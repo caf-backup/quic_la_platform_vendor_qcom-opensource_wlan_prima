@@ -24,6 +24,8 @@
 #define HAL_STA_INVALID_IDX 0xFF
 #define HAL_BSS_INVALID_IDX 0xFF
 
+#define HAL_BSSPERSONA_INVALID_IDX 0xFF
+
 #define WLAN_BSS_PROTECTION_ON  1
 #define WLAN_BSS_PROTECTION_OFF 0
 
@@ -104,6 +106,7 @@ typedef enum eRxpMode {
 #ifndef WLAN_FTM_STUB
 	,eRXP_FTM_MODE         = 0x4000
 #endif
+   ,eRXP_LISTEN_MODE      = 0x8000
 } tRxpMode;
 
 
@@ -267,6 +270,11 @@ typedef struct
 
     tANI_U8     sessionId; //PE session id for PE<->HAL interface 
     // HAL just sends back what it receives.
+
+#ifdef WLAN_FEATURE_P2P
+    /*if this is a P2P Capable Sta*/
+    tANI_U8     p2pCapableSta;
+#endif
 
 } tAddStaParams, *tpAddStaParams;
 
@@ -433,6 +441,7 @@ typedef struct
     tANI_U8   ucMaxProbeRespRetryLimit;  //probe Response Max retries
     tANI_U8   bHiddenSSIDEn;             //To Enable Hidden ssid.      
     tANI_U8   bProxyProbeRespEn;         //To Enable Disable FW Proxy Probe Resp
+    tANI_U8   halPersona;         //Persona for the BSS can be STA,AP,GO,CLIENT value same as tVOS_CON_MODE
 
 } tAddBssParams, * tpAddBssParams;
 
@@ -475,6 +484,10 @@ typedef struct {
 
     tANI_U8 notifyBss;
 
+#ifdef WLAN_FEATURE_P2P
+    tANI_U8 useNoA;
+#endif
+
     // If this flag is set HAL notifies PE when SMAC returns status.
     tANI_U8 notifyHost;
 
@@ -489,6 +502,7 @@ typedef struct {
 
     // when this flag is set, HAL should check for link traffic prior to scan
     tSirLinkTrafficCheck    checkLinkTraffic;
+
     /*
     * Following parameters are for returning status and station index from HAL to PE
     * via response message. HAL does not read them.
@@ -641,6 +655,9 @@ typedef struct {
     tANI_U32 beaconLength; //length of the template.
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32 timIeOffset; //TIM IE offset from the beginning of the template.
+#ifdef WLAN_FEATURE_P2P    
+    tANI_U16 p2pIeOffset; //P2P IE offset from the begining of the template
+#endif    
 #endif
 } tSendbeaconParams, * tpSendbeaconParams;
 
@@ -874,6 +891,7 @@ typedef struct sLinkStateParams
 {
     // SIR_HAL_SET_LINK_STATE
     tSirMacAddr bssid;
+    tSirMacAddr selfMacAddr;
     tSirLinkState state;
 
 } tLinkStateParams, * tpLinkStateParams;
@@ -1165,5 +1183,32 @@ typedef struct sMaxTxPowerParams
 }tMaxTxPowerParams, *tpMaxTxPowerParams;
 #endif
 
+typedef struct sAddStaSelfParams
+{
+   tSirMacAddr selfMacAddr;
+
+   tANI_U32 status;
+}tAddStaSelfParams, *tpAddStaSelfParams;
+
+typedef struct sDelStaSelfParams
+{
+   tSirMacAddr selfMacAddr;
+
+   tANI_U32 status;
+}tDelStaSelfParams, *tpDelStaSelfParams;
+
+#ifdef WLAN_FEATURE_P2P
+typedef struct sP2pPsParams
+{
+   tANI_U8   opp_ps;
+   tANI_U32  ctWindow;
+   tANI_U8   count; 
+   tANI_U32  duration;
+   tANI_U32  interval;
+   tANI_U32  single_noa_duration;
+   tANI_U8   psSelection;
+}tP2pPsParams, *tpP2pPsParams;
+#endif
+	
 #endif /* _HALMSGAPI_H_ */
 

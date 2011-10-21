@@ -137,8 +137,8 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
 ============================================================================*/
 v_U32_t sapweightRssiCount(v_S7_t rssi, v_U16_t count)
 {
-    v_U32_t     rssiWeight=0;
-    v_U32_t     countWeight=0;
+    v_S31_t     rssiWeight=0;
+    v_S31_t     countWeight=0;
     v_U32_t     rssicountWeight=0;
     
     // Weight from RSSI

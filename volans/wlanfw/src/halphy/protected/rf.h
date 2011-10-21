@@ -59,6 +59,6 @@ extern tANI_U8 pllVfcReg3B1;
 extern tANI_U8 pllVfcReg3B2;
 extern tANI_U8 pllVfcReg3B3;
 
-#define RF_CHIP_VERSION(x)      (hphy.rf.version.ver == (x))
+#define RF_CHIP_VERSION(x)      (hphy.rf.version.ver >= (x))
 
 #endif /* RF_H */

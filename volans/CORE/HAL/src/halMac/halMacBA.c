@@ -740,11 +740,15 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
         status = eHAL_STATUS_FAILURE;
         return status;
     }
-    else
-    {
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only do BA on "hard" STAs
+    if (!(IS_HWSTA_IDX(pAddBAParams->staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
         // Restore the "saved" STA context in HAL for this STA
         halTable_RestoreStaConfig( pMac, (tHalCfgSta *) &staEntry, (tANI_U8 ) pAddBAParams->staIdx );
-    }
 
     // Restore the current TC settings from the saved STA config
     // This ensures that the existing TC configuration
@@ -850,36 +854,42 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
 
         switch (ampduValQid) {
 
+
+        /* changing ampdu_window_size from (txBufSize - 1) to (txBufSize - 4)
+         * There is a hardware issue on volans that results in AMPDU to have
+         * MPDUS with sequence exceeding the window size. This value mitigates
+         * the occurence of this failure. */
+
         case BTQM_QUEUE_TX_TID_0: //0:
-                tpeStaDescCfg.ampdu_window_size_qid0 = tcCfg.txBufSize - 1;
+                tpeStaDescCfg.ampdu_window_size_qid0 = tcCfg.txBufSize - 4;
                 break;
 
         case BTQM_QUEUE_TX_TID_1: //1:
-                tpeStaDescCfg.ampdu_window_size_qid1 = tcCfg.txBufSize - 1;
+                tpeStaDescCfg.ampdu_window_size_qid1 = tcCfg.txBufSize - 4;
                 break;
 
         case BTQM_QUEUE_TX_TID_2: //2:
-                tpeStaDescCfg.ampdu_window_size_qid2 = tcCfg.txBufSize - 1;
+                tpeStaDescCfg.ampdu_window_size_qid2 = tcCfg.txBufSize - 4;
                 break;
 
         case BTQM_QUEUE_TX_TID_3: //3:
-                tpeStaDescCfg.ampdu_window_size_qid3 = tcCfg.txBufSize - 1;
+                tpeStaDescCfg.ampdu_window_size_qid3 = tcCfg.txBufSize - 4;
                 break;
 
         case BTQM_QUEUE_TX_TID_4: //4:
-                tpeStaDescCfg.ampdu_window_size_qid4 = tcCfg.txBufSize - 1;
+                tpeStaDescCfg.ampdu_window_size_qid4 = tcCfg.txBufSize - 4;
                 break;
 
         case BTQM_QUEUE_TX_TID_5: //5:
-                tpeStaDescCfg.ampdu_window_size_qid5 = tcCfg.txBufSize - 1;
+                tpeStaDescCfg.ampdu_window_size_qid5 = tcCfg.txBufSize - 4;
                 break;
 
         case BTQM_QUEUE_TX_TID_6: //6:
-                tpeStaDescCfg.ampdu_window_size_qid6 = tcCfg.txBufSize - 1;
+                tpeStaDescCfg.ampdu_window_size_qid6 = tcCfg.txBufSize - 4;
                 break;
 
         case BTQM_QUEUE_TX_TID_7: //7:
-                tpeStaDescCfg.ampdu_window_size_qid7 = tcCfg.txBufSize - 1;
+                tpeStaDescCfg.ampdu_window_size_qid7 = tcCfg.txBufSize - 4;
                 break;
 
             default:
@@ -1026,11 +1036,15 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
         status = eHAL_STATUS_FAILURE;
         return status;
     }
-    else
-    {
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only do BA on "hard" STAs
+    if (!(IS_HWSTA_IDX(pDelBAParams->staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
         // Restore the "saved" STA context in HAL for this STA
         halTable_RestoreStaConfig( pMac, (tHalCfgSta *) &staEntry, (tANI_U8 ) pDelBAParams->staIdx );
-    }
 
     // Restore the current TC settings from the saved STA config
     // This ensures that the existing TC configuration
@@ -1409,18 +1423,28 @@ eHalStatus baProcessTLAddBARsp(
                                                      (tANI_U8) pAddBAParams->staIdx )))
                 {
                     HALLOGW( halLog( pMac, LOGW, FL(
-                    "Invalid STA Index %d\n"),
+                    "Invalid STA Index %d"),
                        pAddBAParams->staIdx ));
 
                     status = eHAL_STATUS_FAILURE;
-                  return status;
-                }
-                    else
-                {
-                // Restore the "saved" STA context in HAL for this STA
-                 halTable_RestoreStaConfig( pMac, (tHalCfgSta *) &staEntry, (tANI_U8 ) pAddBAParams->staIdx );
+                    goto Fail;
                 }
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+                // we should only have BA for "hard" STAs
+                if (!(IS_HWSTA_IDX(pAddBAParams->staIdx)))
+                {
+                    HALLOGW( halLog( pMac, LOGW,
+                                     FL("Virtual STA for BA, Index %d"),
+                                     pAddBAParams->staIdx ));
+
+                    status = eHAL_STATUS_FAILURE;
+                    goto Fail;
+                }
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
+                // Restore the "saved" STA context in HAL for this STA
+                 halTable_RestoreStaConfig( pMac, (tHalCfgSta *) &staEntry, (tANI_U8 ) pAddBAParams->staIdx );
 
                 // Restore the current TC settings from the saved STA config
                 // This ensures that , the existing TC configuration
@@ -1655,10 +1679,10 @@ eHalStatus baProcessTLAddBARsp(
             } else
                 HALLOGE( halLog(pMac, LOGE, FL("We are in wrong state\n")));
         }
-        else {
+        else{
             HALLOGE( halLog(pMac, LOGE, FL("Could not retrieve pAddBAParams for baSessionID = %d\n"),
                 baSessionID));
-	    return status;
+            return status;
         }
     }
     else
@@ -1708,6 +1732,13 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
 
     for(curSta=0; curSta<pMac->hal.halMac.maxSta; curSta++, pSta++)
     {
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+        // we can only do BA on "hard" STAs
+        if (!(IS_HWSTA_IDX(curSta)))
+            continue;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
         if(pSta && pSta->valid && pSta->htEnabled)
         {
             newBaCandidate = 0;
@@ -1931,6 +1962,12 @@ eHalStatus halGetUpdatedSSN(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U16 baTID
         if(STA_ENTRY_PEER != pSta->staType) // we want only the peer stations.
              return status;
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+        // we can only do BA on "hard" STAs
+        if (!(IS_HWSTA_IDX(staIdx)))
+            return status;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
         // Read BTQM Queue to get BD index of first frame in the queue
         if ((status = halBmu_ReadBtqmQFrmInfo(pMac, (tANI_U8)staIdx,
               (tANI_U8)queueId, &uTotalBd, &uHeadBdIdx, NULL))!= 
@@ -2006,6 +2043,12 @@ void halSendUnSolicitBARFrame(tpAniSirGlobal pMac, tANI_U16 staIdx,
     eHalStatus status = eHAL_STATUS_SUCCESS;
     static tANI_U8 swBaseTemplateInit = FALSE;
         
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only do BA on "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
     /** Initialize SW Template base */
     if (swBaseTemplateInit == FALSE) {
         if (halTpe_InitSwTemplateBase(pMac, pMac->hal.memMap.swTemplate_offset) 

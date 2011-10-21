@@ -62,7 +62,7 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
     phyMode = pMac->lim.gLimPhyMode;
     pStaDs->staType= STA_ENTRY_SELF;
 
-    limGetQosMode(pMac, &qosMode);    
+    limGetQosMode(psessionEntry, &qosMode);    
     // set the ani peer bit, if self mode is one of the proprietary modes
     if(IS_DOT11_MODE_PROPRIETARY(psessionEntry->dot11mode)) 
     {
@@ -151,7 +151,7 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
     
        pStaDs->wmeEnabled = 0;
        pStaDs->wsmEnabled = 0;
-       if (pMac->lim.gLimWmeEnabled && pAssocRsp->wmeEdcaPresent)
+       if (psessionEntry->limWmeEnabled && pAssocRsp->wmeEdcaPresent)
        {
            tSirRetStatus status;
            status = schBeaconEdcaProcess(pMac,&pAssocRsp->edca);
@@ -631,7 +631,7 @@ assocReject:
             palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmJoinReq);
             psessionEntry->pLimMlmJoinReq = NULL;
         }
-        if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId) != eSIR_SUCCESS)
+        if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
         limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
     } else {

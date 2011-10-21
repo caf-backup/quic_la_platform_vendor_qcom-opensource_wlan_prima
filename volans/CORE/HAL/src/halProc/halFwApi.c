@@ -89,9 +89,12 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     //pFwConfig->bClosedLoop = CLOSED_LOOP_CONTROL;
 
     //mode of operation: production or FTM
-    if(pMac->gDriverType == eDRIVER_TYPE_MFG) {
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
         pFwConfig->bMfgDriver = TRUE;
-    } else {
+    }
+    else
+    {
         pFwConfig->bMfgDriver = FALSE;
     }
 
@@ -305,12 +308,21 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
 
     pFwConfig->ucMaxBss = HAL_NUM_BSSID;
     pFwConfig->ucMaxSta = HAL_NUM_STA;
+    pFwConfig->uRaBssCfgAddr = pMac->hal.memMap.raBssTable_offset;
+    pFwConfig->uRaStaCfgAddr = pMac->hal.memMap.raStaTable_offset;
+    halZeroDeviceMemory(pMac,pMac->hal.memMap.raBssTable_offset, pMac->hal.memMap.raBssTable_size);
+    halZeroDeviceMemory(pMac,pMac->hal.memMap.raStaTable_offset, pMac->hal.memMap.raStaTable_size);
 
 #ifdef WLAN_SOFTAP_FEATURE
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    pFwConfig->txComplPollIntrv = 10;
+    pFwConfig->ucNumFrmsSched = 10;
+    pFwConfig->uMaxMedTimeUs = 7000;
+#endif
     pFwConfig->uBssTableOffset = pMac->hal.memMap.bssTable_offset;
     pFwConfig->uStaTableOffset = pMac->hal.memMap.staTable_offset;
+    pFwConfig->beaconTemplate_offset = pMac->hal.memMap.beaconTemplate_offset;
     pFwConfig->bFwProcProbeReqDisabled = 1;
-    pFwConfig->beaconTemplate_offset   = pMac->hal.memMap.beaconTemplate_offset;
     halZeroDeviceMemory(pMac,pMac->hal.memMap.bssTable_offset, pMac->hal.memMap.bssTable_size);
     halZeroDeviceMemory(pMac,pMac->hal.memMap.staTable_offset, pMac->hal.memMap.staTable_size);
 #endif
@@ -333,7 +345,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
 
             1/* Channel Tune after cal */,
-            1/* Temperature Measure Periodically */,
+            0/* Temperature Measure Periodically */,
             1/* Temperature Measure at Init */,
             0/* Tx DPD */,
             0/* CLPC Temp Adjustment */,
@@ -384,7 +396,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* CLPC Temp Adjustment */,
             0/* Tx DPD */,
             1/* Temperature Measure at Init */,
-            1/* Temperature Measure Periodically */,
+            0/* Temperature Measure Periodically */,
             1/* Channel Tune after cal */,
 
             1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
@@ -641,6 +653,53 @@ eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState lin
 }
 
 
+eHalStatus halFW_SendBTAmpEventMesg(tpAniSirGlobal pMac, tpSmeBtAmpEvent btAmpEvent) {
+
+   tANI_U8    uFwMesgType = QWLANFW_HOST2FW_MSG_TYPES_END + 1;
+   Qwlanfw_BTAmpEventType sBtAmpEventType;
+   void *pMsg = (void*)&sBtAmpEventType;
+   tANI_U16 size = 0;
+   tSmeBtAmpEventType event = btAmpEvent->btAmpEventType;
+
+   pMsg = (void *)(btAmpEvent);
+   size = sizeof(sBtAmpEventType);
+
+    switch(event){
+        case BTAMP_EVENT_CONNECTION_START:
+            uFwMesgType = QWLANFW_HOST2FW_BTAMP_PREASSOC_STATE;
+            break;
+
+        case BTAMP_EVENT_CONNECTION_STOP :
+            uFwMesgType = QWLANFW_HOST2FW_BTAMP_POSTASSOC_STATE;
+            break;
+
+        case BTAMP_EVENT_CONNECTION_TERMINATED:
+            uFwMesgType = QWLANFW_HOST2FW_BTAMP_IDLE_STATE;
+            break;
+
+        default:
+            //only above three states are BTAmp connection setup related.
+            //assert here.
+            size = 0;
+            VOS_ASSERT(0);
+    }
+
+       if(size){
+        tANI_U16 dialogToken = 0;
+        if(eHAL_STATUS_SUCCESS != halFW_SendMsg(pMac, HAL_MODULE_ID_BTC, uFwMesgType, dialogToken,
+                                     size, pMsg, FALSE, NULL)){
+            if(pMac->hal.halMac.isFwInitialized){
+                //if FW already initialized, should never fail. Assert here.
+                VOS_ASSERT(0);
+            }
+
+        }
+    }
+    return eHAL_STATUS_SUCCESS;
+}
+
+
+
 eHalStatus halFW_SendConnectionEndMesg(tpAniSirGlobal pMac)
 {
     Qwlanfw_ConnectionSetupEndType    sConnSetupEndNotify;
@@ -873,6 +932,16 @@ eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg)
             break;
 #endif
 
+#ifdef WLAN_FEATURE_P2P
+        case QWLANFW_FW2HOST_P2P_NOA_START_MSG:
+            status = halPS_HandleFwP2pNoAStarted (pMac, pFwMsg);
+            break;
+
+        case QWLANFW_FW2HOST_P2P_NOA_ATTR_MSG:
+            status = halPS_HandleFwP2PNoAAttr (pMac, pFwMsg);
+            break;
+#endif
+
         default:
             status = eHAL_STATUS_FW_MSG_INVALID;
             break;
@@ -986,7 +1055,7 @@ void halFW_HeartBeatMonitor(tpAniSirGlobal pMac)
     {
         VOS_ASSERT(0);
         VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL,
-			"%s Firmware Not Responding!!!uFwHeartBeat %d", __func__, uFwHeartBeat);
+			"%s Firmware Not Responding!!!uFwHeartBeat %d", __FUNCTION__, uFwHeartBeat);
 
         pMac->hal.halMac.fwMonitorthr++;
         if (pMac->hal.halMac.fwMonitorthr > HAL_FW_HEARTBEAT_MONITOR_TH)
@@ -1150,8 +1219,13 @@ eHalStatus halFW_MsgReq(tpAniSirGlobal pMac, tFwMsgTypeEnum msgType, tANI_U16 ms
     return status;
 }
 
+#ifdef WLAN_FEATURE_P2P
 eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx,
-                                           tANI_U16 timIeOffset)
+                                 tANI_U16 timIeOffset, tANI_U16 p2pIeOffset)
+#else
+eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx,
+                                 tANI_U16 timIeOffset)
+#endif
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     Qwlanfw_UpdateBeaconMsgType msgBody;
@@ -1163,11 +1237,14 @@ eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx,
         pBss = &(((tpBssStruct) (pMac->hal.halMac.bssTable))[bssIdx]);
         if(pBss && pBss->valid)
         {
-            msgBody.bssIdx = pBss->bssIdx;
+            msgBody.bssIdx = bssIdx;
             bssInfo.timIeOffset = timIeOffset;
+#ifdef WLAN_FEATURE_P2P
+            bssInfo.p2pIeOffset = p2pIeOffset;
+#endif
+
             halWriteDeviceMemory(pMac, (pMac->hal.memMap.bssTable_offset + (bssIdx * BSS_INFO_SIZE)), &bssInfo, sizeof(bssInfo));
-            /* send message to firmware */
-            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_UPDATE_BEACON to FW for bssIdx = %u, bssTable Address = 0x%x\n"), pBss->bssIdx,
+            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_UPDATE_BEACON to FW for bssIdx = %u, bssTable Address = 0x%x\n"), bssIdx,
                     (pMac->hal.memMap.bssTable_offset + (bssIdx * BSS_INFO_SIZE))));
             status = halFW_MsgReq(pMac, QWLANFW_COMMON_UPDATE_BEACON, sizeof(Qwlanfw_UpdateBeaconMsgType), (tANI_U8 *)&msgBody);
         }
@@ -1267,8 +1344,16 @@ eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
                     pFwConfig->ucapUapsdSendQoSNullDataMsec = cfgVal;
             }
 
-            msgBody.bssIdx = pBss->bssIdx;
-            bssInfo.bssIdx = pBss->bssIdx;
+            if(VOS_P2P_CLIENT_MODE == pBss->halBssPersona)
+            {
+                //If the Mode is P2P Client then Set the Beacon Filter
+                //to 1 since P2P has to Parse all beacons for NoA.
+                pFwConfig->ucBeaconFilterPeriod = 1;
+            }
+
+            msgBody.bssIdx = bssIdx;
+            bssInfo.bssIdx = bssIdx;
+			bssInfo.fwBssPersona = pBss->halBssPersona;
             bssInfo.selfStaIdx = pBss->bssSelfStaIdx;
             bssInfo.bcastStaIdx = pBss->bcastStaIdx;
             bssInfo.bssRole = mapHostToFwBssSystemRole(pMac, pBss->bssSystemRole);
@@ -1276,13 +1361,13 @@ eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
             bssInfo.hiddenSsid = pBss->hiddenSsid;
             bssInfo.valid = 1;
             pSta = &(((tpStaStruct) (pMac->hal.halMac.staTable))[pBss->staIdForBss]);
-            bssInfo.selfStaAddrLo = *((tANI_U32*)pSta->staAddr);
-            bssInfo.selfStaAddrHi = *((tANI_U16*)(pSta->staAddr + 4));
+            bssInfo.bssidLo = *((tANI_U32*)pSta->staAddr);
+            bssInfo.bssidHi = *((tANI_U16*)(pSta->staAddr + 4));
 
             vos_mem_copy(bssInfo.ssId, pBss->ssId.ssId, pBss->ssId.length);
             bssInfo.ssIdLen = pBss->ssId.length;
             //need to take care of multiple BSSid.
-            bssInfo.bcnTemplateAddr = (tANI_U8*)pMac->hal.memMap.beaconTemplate_offset;
+            bssInfo.bcnTemplateAddr = (tANI_U8*)pMac->hal.memMap.beaconTemplate_offset + (bssIdx * BEACON_TEMPLATE_SIZE);
             bssInfo.probeRspTemplateAddr = (tANI_U8*)pMac->hal.memMap.probeRspTemplate_offset;
             halWriteDeviceMemory(pMac, (pMac->hal.memMap.bssTable_offset + (bssIdx * BSS_INFO_SIZE)) , &bssInfo, sizeof(bssInfo));
             status = halFW_UpdateSystemConfig(pMac,
@@ -1292,7 +1377,7 @@ eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
             if(eHAL_STATUS_SUCCESS == status)
             {
                 HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_COMMON_ADD_BSS to FW for bssIdx = %u, staIdxForBss = %u, bcastStaIdxForBss %u\n"),
-                    pBss->bssIdx, pBss->bssSelfStaIdx, pBss->bcastStaIdx));
+                    bssIdx, pBss->bssSelfStaIdx, pBss->bcastStaIdx));
                 /* send message to firmware */
                 status = halFW_MsgReq(pMac, QWLANFW_COMMON_ADD_BSS, sizeof(Qwlanfw_AddBssMsgType), (tANI_U8 *)&msgBody);
             }
@@ -1331,14 +1416,19 @@ eHalStatus halFW_DelBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
     return status;
 }
 
+
+#ifdef WLAN_FEATURE_P2P
+eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobalUpdate, tANI_U8 raStaUpdate,
+                                tANI_U8 p2pCapableSta)
+#else
 eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobalUpdate, tANI_U8 raStaUpdate)
+#endif
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tStaInfo staInfo;
     Qwlanfw_AddStaMsgType msgBody;
     tpStaStruct pSta;
     tANI_U8 uSig;
-    vos_mem_zero(&staInfo, sizeof(staInfo));
     vos_mem_zero(&msgBody, sizeof(Qwlanfw_AddStaMsgType));
 
     if(staIdx < HAL_NUM_STA)
@@ -1346,41 +1436,70 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
         pSta = &(((tpStaStruct)(pMac->hal.halMac.staTable))[staIdx]);
         if((pSta) && pSta->valid)
         {
-            msgBody.staIdx = pSta->staId;
+            vos_mem_zero(&staInfo, sizeof(staInfo));
             staInfo.bssIdx = pSta->bssIdx;
             staInfo.staIdx = pSta->staId;
             staInfo.aid = (tANI_U8)pSta->assocId;
             staInfo.valid = 1;
-            staInfo.delEnbQidMask = pSta->delEnbQidMask;
+
+            if (pSta->delEnbQidMask) {
+                staInfo.bIsUapsdEnabled = TRUE;
+                staInfo.delEnbQidMask = pSta->delEnbQidMask;
+                staInfo.triggerEnbQidMask = pSta->trigEnbQidMask;
+            }
+
             staInfo.qosEnabled = pSta->qosEnabled;
             staInfo.peerEntry = ((pSta->staType == STA_ENTRY_PEER)?1:0);
             staInfo.macAddrLo = *((tANI_U32*)pSta->staAddr);
             staInfo.macAddrHi = *((tANI_U16*)(pSta->staAddr + 4));
 
+            staInfo.maxSPLen = pSta->maxSPLen;
             staInfo.dpuDescIndx = pSta->dpuIndex;
 
             halDpu_GetSignature(pMac, pSta->dpuIndex, &uSig);
             staInfo.dpuSig = uSig;
 
-            msgBody.bssIdx = pSta->bssIdx;
+            staInfo.maxSPLen = pSta->maxSPLen;
+            staInfo.dpuDescIndx = pSta->dpuIndex;
+
+            halDpu_GetSignature(pMac, pSta->dpuIndex, &uSig);
+            staInfo.dpuSig = uSig;
+
+            staInfo.ftBit = halGetFrameTranslation(pMac);
+            staInfo.rmfBit = pSta->rmfEnabled;
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+            if (staInfo.peerEntry && pSta->staId >= QWLAN_VSTA_MIN_IDX)
+                staInfo.bIsVirtualStation = TRUE;
+#endif
+
             if(raGlobalUpdate)
             {
                 tHalRaGlobalInfo *pGlobRaInfo = &pMac->hal.halRaInfo;
 
                 /* Download the table to the target. */
                 /* Note : As a workaround, update globalInfo here. This is supposed to be called
-                               after initializtaion of RaGlobalInfo in halMacRaStart().
-                               However, rtsThreshold and protPolicy is not initialized properly at that moment,
-                               because Cfg is not initialized yet.
-                            */
+                   after initializtaion of RaGlobalInfo in halMacRaStart().
+                   However, rtsThreshold and protPolicy is not initialized properly at that moment,
+                   because Cfg is not initialized yet.
+                */
                 halMacRaGlobalInfoToFW(pMac, pGlobRaInfo, 0, sizeof(tHalRaGlobalInfo));
-                msgBody.raGlobalUpdate = raGlobalUpdate;
             }
 
             halWriteDeviceMemory(pMac, (pMac->hal.memMap.staTable_offset + (staIdx * STA_INFO_SIZE)), &staInfo, sizeof(staInfo));
 
             /* send message to firmware */
-            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_COMMON_ADD_STA to FW for staId = %u\n"), pSta->staId));
+            msgBody.staIdx = pSta->staId;
+            msgBody.bssIdx = pSta->bssIdx;
+            msgBody.raGlobalUpdate = raGlobalUpdate;
+#ifdef WLAN_FEATURE_P2P
+            msgBody.isP2pSta = p2pCapableSta;
+
+            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_COMMON_ADD_STA to FW for staId = %u p2pCapableSta = %u"),
+                           pSta->staId, p2pCapableSta));
+#else
+            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_COMMON_ADD_STA to FW for staId = %u"),pSta->staId));
+#endif
             status = halFW_MsgReq(pMac, QWLANFW_COMMON_ADD_STA, sizeof(Qwlanfw_AddStaMsgType), (tANI_U8 *)&msgBody);
         }
     }
@@ -1435,4 +1554,59 @@ eHalStatus halFW_UpdateProbeRspIeBitmap(tpAniSirGlobal pMac, tANI_U32* pIeBitmap
 }
 
 #endif
+
+#ifdef WLAN_FEATURE_P2P
+eHalStatus halFW_SendP2pMsg(tpAniSirGlobal pMac, tFwP2pMsgType msgType, void *msgData, tANI_U32 msgLen)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    Qwlanfw_p2pMsgType p2pMsg;
+    tANI_U16 dialogToken = 0;
+
+    p2pMsg.msgType = msgType;
+    p2pMsg.msgLen = msgLen;
+
+    if(msgData != NULL)
+ 	vos_mem_copy(&p2pMsg.u, msgData, msgLen);
+
+    status = halFW_SendMsg(pMac, HAL_MODULE_ID_P2P, QWLANFW_HOST2FW_P2P_MSG,
+              dialogToken, sizeof(Qwlanfw_p2pMsgType), &p2pMsg, FALSE, NULL);
+    if(status != eHAL_STATUS_SUCCESS) {
+        VOS_ASSERT(eANI_BOOLEAN_FALSE == pMac->hal.halMac.isFwInitialized);
+    }
+    return status;
+}
+
+eHalStatus halFW_SetP2PGoPs(tpAniSirGlobal pMac, tpP2pPsParams  pP2pPsParams)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    Qwlanfw_P2pPs p2pNoAMsg;
+
+    p2pNoAMsg.P2pPsSelection = pP2pPsParams->psSelection;
+
+    p2pNoAMsg.opPSData.oppPsFlag = pP2pPsParams->opp_ps;
+    p2pNoAMsg.opPSData.ctWin = pP2pPsParams->ctWindow;
+
+    p2pNoAMsg.PeriodicNoAData.ucIntervalCnt = pP2pPsParams->count;
+    p2pNoAMsg.PeriodicNoAData.uDuration = pP2pPsParams->duration;
+    p2pNoAMsg.PeriodicNoAData.uInterval = pP2pPsParams->interval;
+    p2pNoAMsg.PeriodicNoAData.uStartTime = 0;
+
+    p2pNoAMsg.SingleNoAData.ucIntervalCnt = 1;
+    p2pNoAMsg.SingleNoAData.uDuration = pP2pPsParams->single_noa_duration;
+    p2pNoAMsg.SingleNoAData.uInterval = 0;
+    p2pNoAMsg.SingleNoAData.uStartTime = 0;
+
+    HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_P2P_UPDATE_GO_NOA to FW: \
+                    NoA: PS Sel=%x OppPS=%x CtWindow=%x PNoA Duration=%d \
+                    PNoA Interval=%d PNoACnt=%x SNoA Duration=%d Ps Select %x\n"), \
+                    p2pNoAMsg.P2pPsSelection, p2pNoAMsg.opPSData.oppPsFlag, \
+                    p2pNoAMsg.PeriodicNoAData.ucIntervalCnt,\
+                    p2pNoAMsg.SingleNoAData.uDuration, p2pNoAMsg.P2pPsSelection));
+
+    status = halFW_SendP2pMsg(pMac,
+                    QWLANFW_P2P_UPDATE_GO_PS, &p2pNoAMsg, sizeof(Qwlanfw_P2pPs));
+    return status;
+}
+#endif
+
 #endif //#ifndef VERIFY_HALPHY

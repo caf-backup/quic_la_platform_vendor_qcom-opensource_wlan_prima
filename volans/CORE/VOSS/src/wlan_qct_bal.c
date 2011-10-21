@@ -384,7 +384,7 @@ static v_VOID_t balGetTXResTimerExpierCB
       }
       else
       {
-        	 BMSGERROR("backoffCounter reached max value", 0, 0, 0);
+          BMSGERROR("backoffCounter reached max value", 0, 0, 0);
       }
    }
    else
@@ -2077,7 +2077,6 @@ VOS_STATUS WLANBAL_SuspendChip
 }
 
 /*----------------------------------------------------------------------------
-
   @brief Suspend Entire chip, Trigger SSC Suspend Chip
 
   @param v_PVOID_t pAdapter
@@ -2103,15 +2102,14 @@ VOS_STATUS WLANBAL_SuspendChip_NoLock
 
    status = WLANSSC_SuspendChip_NoLock(sscHandle);
 
-
    BEXIT();
 
    return status;
 
 }
 
-/*----------------------------------------------------------------------------
 
+/*----------------------------------------------------------------------------
   @brief Resume entire chip from Suspend, Trigger SSC Resume chip
 
   @param v_PVOID_t pAdapter

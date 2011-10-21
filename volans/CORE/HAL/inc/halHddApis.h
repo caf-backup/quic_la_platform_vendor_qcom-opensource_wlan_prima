@@ -23,11 +23,6 @@
 // is there another way to do this to prevent the nested includes ?
 #include "halTypes.h"
 #include "halPhy.h"
-
-#include "halTxRx.h"
-
-#include "halTx.h"
-#include "halRx.h"
 #include "halInterrupts.h"
 
 #include "wlan_nv.h"

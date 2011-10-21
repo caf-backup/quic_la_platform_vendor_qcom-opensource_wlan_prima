@@ -53,7 +53,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
                  CFG_FRAG_THRESHOLD_DEFAULT, 
                  CFG_FRAG_THRESHOLD_MIN, 
-                 CFG_FRAG_THRESHOLD_MAX ),
+                 CFG_FRAG_THRESHOLD_MAX ),              
 
    REG_VARIABLE( CFG_CALIBRATION_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, Calibration, 
@@ -393,24 +393,34 @@ REG_TABLE_ENTRY g_registry_table[] =
                         hdd_config_t, IbssBssid, 
                         VAR_FLAGS_OPTIONAL,
                         (void *)CFG_IBSS_BSSID_DEFAULT ),
-
-   REG_VARIABLE_STRING( CFG_STA_MAC_ADDR_NAME, WLAN_PARAM_MacAddr,
-                        hdd_config_t, staMacAddr, 
+	   
+   REG_VARIABLE_STRING( CFG_INTF0_MAC_ADDR_NAME, WLAN_PARAM_MacAddr,
+                        hdd_config_t, intfMacAddr[0], 
                         VAR_FLAGS_OPTIONAL,
-                        (void *)CFG_STA_MAC_ADDR_DEFAULT ),
+                        (void *)CFG_INTF0_MAC_ADDR_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_INTF1_MAC_ADDR_NAME, WLAN_PARAM_MacAddr,
+                        hdd_config_t, intfMacAddr[1], 
+                        VAR_FLAGS_OPTIONAL,
+                        (void *)CFG_INTF1_MAC_ADDR_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_INTF2_MAC_ADDR_NAME, WLAN_PARAM_MacAddr,
+                        hdd_config_t, intfMacAddr[2], 
+                        VAR_FLAGS_OPTIONAL,
+                        (void *)CFG_INTF2_MAC_ADDR_DEFAULT ),
+
+   REG_VARIABLE_STRING( CFG_INTF3_MAC_ADDR_NAME, WLAN_PARAM_MacAddr,
+                        hdd_config_t, intfMacAddr[3], 
+                        VAR_FLAGS_OPTIONAL,
+                        (void *)CFG_INTF3_MAC_ADDR_DEFAULT ),
 
 #ifdef WLAN_SOFTAP_FEATURE
-   REG_VARIABLE_STRING( CFG_AP_MAC_ADDR_NAME, WLAN_PARAM_MacAddr,
-                        hdd_config_t, apMacAddr, 
-                        VAR_FLAGS_OPTIONAL,
-                        (void *)CFG_AP_MAC_ADDR_DEFAULT ),
-
    REG_VARIABLE( CFG_AP_QOS_UAPSD_MODE_NAME , WLAN_PARAM_Integer,
-                        hdd_config_t, apUapsdEnabled, 
-                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-                        CFG_AP_QOS_UAPSD_MODE_DEFAULT, 
-                        CFG_AP_QOS_UAPSD_MODE_MIN, 
-                        CFG_AP_QOS_UAPSD_MODE_MAX ),
+                 hdd_config_t, apUapsdEnabled, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_AP_QOS_UAPSD_MODE_DEFAULT, 
+                 CFG_AP_QOS_UAPSD_MODE_MIN, 
+                 CFG_AP_QOS_UAPSD_MODE_MAX ),
 
    REG_VARIABLE_STRING( CFG_AP_COUNTRY_CODE, WLAN_PARAM_String,
                         hdd_config_t, apCntryCode, 
@@ -1176,7 +1186,6 @@ This is a Verizon required feature.
                  CFG_BTC_A2DP_DHCP_PROTECTION_DEFAULT,
                  CFG_BTC_A2DP_DHCP_PROTECTION_MIN,
                  CFG_BTC_A2DP_DHCP_PROTECTION_MAX ),
-   
 
 #ifdef WLAN_SOFTAP_FEATURE
    REG_VARIABLE( CFG_AP_LISTEN_MODE_NAME , WLAN_PARAM_Integer,
@@ -1188,7 +1197,7 @@ This is a Verizon required feature.
 
    REG_VARIABLE( CFG_AP_AUTO_SHUT_OFF , WLAN_PARAM_Integer,
                  hdd_config_t, nAPAutoShutOff,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                  CFG_AP_AUTO_SHUT_OFF_DEFAULT,
                  CFG_AP_AUTO_SHUT_OFF_MIN,
                  CFG_AP_AUTO_SHUT_OFF_MAX ),
@@ -1331,72 +1340,6 @@ This is a Verizon required feature.
                   CFG_DYNAMIC_PSPOLL_VALUE_MIN,
                   CFG_DYNAMIC_PSPOLL_VALUE_MAX ),
 
-    REG_VARIABLE( CFG_WPS_REQUEST_TYPE_NAME, WLAN_PARAM_Integer,
-                  hdd_config_t, WpsRequestType,
-                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                  CFG_WPS_REQUEST_TYPE_DEFAULT,
-                  CFG_WPS_REQUEST_TYPE_MIN,
-                  CFG_WPS_REQUEST_TYPE_MAX ),
-
-    REG_VARIABLE( CFG_WPS_CONFIG_METHOD_NAME, WLAN_PARAM_HexInteger,
-                  hdd_config_t, WpsConfigMethod,
-                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                  CFG_WPS_CONFIG_METHOD_DEFAULT,
-                  CFG_WPS_CONFIG_METHOD_MIN,
-                  CFG_WPS_CONFIG_METHOD_MAX ),
-
-    REG_VARIABLE_STRING( CFG_WPS_UUID_E_NAME, WLAN_PARAM_String,
-                         hdd_config_t, WpsUUID_E, 
-                         VAR_FLAGS_OPTIONAL,
-                         (void *)CFG_WPS_UUID_E_DEFAULT ),
-
-
-    REG_VARIABLE( CFG_WPS_PRIMARY_DEVICE_CATEGORY_NAME, WLAN_PARAM_Integer,
-                  hdd_config_t, WpsPrimayDeviceCategory,
-                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                  CFG_WPS_PRIMARY_DEVICE_CATEGORY_DEFAULT,
-                  CFG_WPS_PRIMARY_DEVICE_CATEGORY_MIN,
-                  CFG_WPS_PRIMARY_DEVICE_CATEGORY_MAX ),
-
-    REG_VARIABLE( CFG_WPS_DEVICE_SUB_CATEGORY_NAME, WLAN_PARAM_Integer,
-                  hdd_config_t, WpsDeviceSubCategory,
-                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                  CFG_WPS_DEVICE_SUB_CATEGORY_DEFAULT,
-                  CFG_WPS_DEVICE_SUB_CATEGORY_MIN,
-                  CFG_WPS_DEVICE_SUB_CATEGORY_MAX ),
-
-    REG_VARIABLE( CFG_WPS_DEVICE_PASSWORD_ID_NAME, WLAN_PARAM_Integer,
-                  hdd_config_t, WpsDevicePasswordId,
-                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                  CFG_WPS_DEVICE_PASSWORD_ID_DEFAULT,
-                  CFG_WPS_DEVICE_PASSWORD_ID_MIN,
-                  CFG_WPS_DEVICE_PASSWORD_ID_MAX ),
-
-    REG_VARIABLE_STRING( CFG_WPS_MANUFACTURER_NAME, WLAN_PARAM_String,
-                         hdd_config_t, WpsManufacturer, 
-                         VAR_FLAGS_OPTIONAL,
-                         (void *)CFG_WPS_MANUFACTURER_DEFAULT ),
-
-    REG_VARIABLE_STRING( CFG_WPS_MODEL_NAME_NAME, WLAN_PARAM_String,
-                         hdd_config_t, WpsModelName, 
-                         VAR_FLAGS_OPTIONAL,
-                         (void *)CFG_WPS_MODEL_NAME_DEFAULT ),
-
-    REG_VARIABLE_STRING( CFG_WPS_MODEL_NUMBER_NAME, WLAN_PARAM_String,
-                         hdd_config_t, WpsModelNumber, 
-                         VAR_FLAGS_OPTIONAL,
-                         (void *)CFG_WPS_MODEL_NUMBER_DEFAULT ),
-
-    REG_VARIABLE_STRING( CFG_WPS_DEVICE_NAME_NAME, WLAN_PARAM_String,
-                         hdd_config_t, WpsDeviceName, 
-                         VAR_FLAGS_OPTIONAL,
-                         (void *)CFG_WPS_DEVICE_NAME_DEFAULT ),
-
-    REG_VARIABLE_STRING( CFG_WPS_SERIAL_NUMBER_NAME, WLAN_PARAM_String,
-                         hdd_config_t, WpsSerialNumber, 
-                         VAR_FLAGS_OPTIONAL,
-                         (void *)CFG_WPS_SERIAL_NUMBER_DEFAULT ),
-
    REG_VARIABLE( CFG_TELE_BCN_WAKEUP_EN_NAME, WLAN_PARAM_Integer,
                   hdd_config_t, teleBcnWakeupEn,
                   VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -1518,7 +1461,7 @@ typedef struct
    char *value;
 }tCfgIniEntry;
 
-static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t * pAdapter, 
+static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t * pHddCtx, 
     tCfgIniEntry* iniTable, unsigned long entries);
 
 #ifdef WLAN_CFG_DEBUG
@@ -1537,11 +1480,11 @@ void dump_cfg_ini (tCfgIniEntry* iniTable, unsigned long entries)
  * This function reads the qcom_cfg.ini file and
  * parses each 'Name=Value' pair in the ini file
  */
-VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
+VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
 {
    int status, i=0;
    /** Pointer for firmware image data */
-   const struct firmware *fw =NULL;
+   const struct firmware *fw = NULL;
    char *buffer, *line,*pTemp;
    size_t size;
    char *name, *value;
@@ -1550,24 +1493,20 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 
    memset(cfgIniTable, 0, sizeof(cfgIniTable));
 
-   status = request_firmware(&fw, INI_FILE, &pAdapter->hsdio_func_dev->dev);
+   status = request_firmware(&fw, INI_FILE, &pHddCtx->hsdio_func_dev->dev);
    
    if(status)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: request_firmware failed %d\n",__FUNCTION__, status);
       return VOS_STATUS_E_FAILURE;   
    }
-   
-   if(!fw || !fw->data || !fw->size) {
+   if(!fw || !fw->data || !fw->size) 
+   {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: %s download failed\n",__FUNCTION__, INI_FILE);
       release_firmware(fw);
       return VOS_STATUS_E_FAILURE;
-   }
-
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: qcom_cfg.ini Size %d\n",__FUNCTION__, fw->size);
-
+   } 
    buffer = (char*)vos_mem_malloc(fw->size);
-   
    if(NULL == buffer) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__FUNCTION__);
       release_firmware(fw);
@@ -1622,7 +1561,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
    }
 
    //Loop through the registry table and apply all these configs
-   vos_status = hdd_apply_cfg_ini(pAdapter, cfgIniTable, i);
+   vos_status = hdd_apply_cfg_ini(pHddCtx, cfgIniTable, i);
 
    release_firmware(fw);
    vos_mem_free(pTemp);
@@ -1630,136 +1569,152 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 } 
 
 
-static void print_hdd_cfg(hdd_adapter_t *pAdapter)
+static void print_hdd_cfg(hdd_context_t *pHddCtx)
 {
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "*********Config values in HDD Adapter*******");
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RTSThreshold] Value = %lu",pAdapter->cfg_ini->RTSThreshold) ;
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [OperatingChannel] Value = [%u]",pAdapter->cfg_ini->OperatingChannel);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PowerUsageControl] Value = [%s]",pAdapter->cfg_ini->PowerUsageControl);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fIsImpsEnabled] Value = [%u]",pAdapter->cfg_ini->fIsImpsEnabled);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [AutoBmpsTimerEnabled] Value = [%u]",pAdapter->cfg_ini->fIsAutoBmpsTimerEnabled);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nAutoBmpsTimerValue] Value = [%lu]",pAdapter->cfg_ini->nAutoBmpsTimerValue);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nVccRssiTrigger] Value = [%u]",pAdapter->cfg_ini->nVccRssiTrigger);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RTSThreshold] Value = %lu",pHddCtx->cfg_ini->RTSThreshold) ;
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [OperatingChannel] Value = [%u]",pHddCtx->cfg_ini->OperatingChannel);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PowerUsageControl] Value = [%s]",pHddCtx->cfg_ini->PowerUsageControl);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fIsImpsEnabled] Value = [%u]",pHddCtx->cfg_ini->fIsImpsEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [AutoBmpsTimerEnabled] Value = [%u]",pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nAutoBmpsTimerValue] Value = [%lu]",pHddCtx->cfg_ini->nAutoBmpsTimerValue);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nVccRssiTrigger] Value = [%u]",pHddCtx->cfg_ini->nVccRssiTrigger);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssBssid] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
-      pAdapter->cfg_ini->IbssBssid.bytes[0],pAdapter->cfg_ini->IbssBssid.bytes[1],
-      pAdapter->cfg_ini->IbssBssid.bytes[2],pAdapter->cfg_ini->IbssBssid.bytes[3],
-      pAdapter->cfg_ini->IbssBssid.bytes[4],pAdapter->cfg_ini->IbssBssid.bytes[5]);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [NetworkAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
-      pAdapter->cfg_ini->staMacAddr.bytes[0],pAdapter->cfg_ini->staMacAddr.bytes[1],
-      pAdapter->cfg_ini->staMacAddr.bytes[2],pAdapter->cfg_ini->staMacAddr.bytes[3],
-      pAdapter->cfg_ini->staMacAddr.bytes[4],pAdapter->cfg_ini->staMacAddr.bytes[5]);
+      pHddCtx->cfg_ini->IbssBssid.bytes[0],pHddCtx->cfg_ini->IbssBssid.bytes[1],
+      pHddCtx->cfg_ini->IbssBssid.bytes[2],pHddCtx->cfg_ini->IbssBssid.bytes[3],
+      pHddCtx->cfg_ini->IbssBssid.bytes[4],pHddCtx->cfg_ini->IbssBssid.bytes[5]);
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, 
+          "Name = [Intf0MacAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
+                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[0],
+                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[1],
+                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[2],
+                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[3],
+                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[4],
+                                  pHddCtx->cfg_ini->intfMacAddr[0].bytes[5]);
+
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, 
+          "Name = [Intf1MacAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
+                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[0],
+                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[1],
+                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[2],
+                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[3],
+                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[4],
+                                  pHddCtx->cfg_ini->intfMacAddr[1].bytes[5]);
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, 
+          "Name = [Intf2MacAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
+                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[0],
+                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[1],
+                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[2],
+                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[3],
+                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[4],
+                                  pHddCtx->cfg_ini->intfMacAddr[2].bytes[5]);
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, 
+          "Name = [Intf3MacAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
+                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[0],
+                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[1],
+                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[2],
+                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[3],
+                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[4],
+                                  pHddCtx->cfg_ini->intfMacAddr[3].bytes[5]);
 
 #ifdef WLAN_SOFTAP_FEATURE
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPMacAddr] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]\n",
-      pAdapter->cfg_ini->apMacAddr.bytes[0],pAdapter->cfg_ini->apMacAddr.bytes[1],
-      pAdapter->cfg_ini->apMacAddr.bytes[2],pAdapter->cfg_ini->apMacAddr.bytes[3],
-      pAdapter->cfg_ini->apMacAddr.bytes[4],pAdapter->cfg_ini->apMacAddr.bytes[5]);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApEnableUapsd] value = [%u]\n",pAdapter->cfg_ini->apUapsdEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApEnableUapsd] value = [%u]\n",pHddCtx->cfg_ini->apUapsdEnabled);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPCntryCode] Value =[%c%c%c]\n",
-      pAdapter->cfg_ini->apCntryCode[0],pAdapter->cfg_ini->apCntryCode[1],
-      pAdapter->cfg_ini->apCntryCode[2]);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]", pAdapter->cfg_ini->apProtEnabled);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPAutoShutOff] Value = [%u]\n", pAdapter->cfg_ini->nAPAutoShutOff);
+      pHddCtx->cfg_ini->apCntryCode[0],pHddCtx->cfg_ini->apCntryCode[1],
+      pHddCtx->cfg_ini->apCntryCode[2]);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]", pHddCtx->cfg_ini->apProtEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPAutoShutOff] Value = [%u]\n", pHddCtx->cfg_ini->nAPAutoShutOff);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pAdapter->cfg_ini->nEnableListenMode);  
-  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]\n",pAdapter->cfg_ini->apProtEnabled);
-  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pAdapter->cfg_ini->apOBSSProtEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pHddCtx->cfg_ini->nEnableListenMode);  
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]\n",pHddCtx->cfg_ini->apProtEnabled);
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pHddCtx->cfg_ini->apOBSSProtEnabled);
 #endif
   
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pAdapter->cfg_ini->ChannelBondingMode);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [dot11Mode] Value = [%lu]",pAdapter->cfg_ini->dot11Mode);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WmmMode] Value = [%u] ",pAdapter->cfg_ini->WmmMode);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [UapsdMask] Value = [0x%x] ",pAdapter->cfg_ini->UapsdMask);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PktClassificationBasis] Value = [%u] ",pAdapter->cfg_ini->PktClassificationBasis);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ImplicitQosIsEnabled] Value = [%u]",(int)pAdapter->cfg_ini->bImplicitQosEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pHddCtx->cfg_ini->ChannelBondingMode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [dot11Mode] Value = [%lu]",pHddCtx->cfg_ini->dot11Mode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WmmMode] Value = [%u] ",pHddCtx->cfg_ini->WmmMode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [UapsdMask] Value = [0x%x] ",pHddCtx->cfg_ini->UapsdMask);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PktClassificationBasis] Value = [%u] ",pHddCtx->cfg_ini->PktClassificationBasis);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ImplicitQosIsEnabled] Value = [%u]",(int)pHddCtx->cfg_ini->bImplicitQosEnabled);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdVoSrvIntv);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdVoSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdVoSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdVoSuspIntv);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdViSrvIntv);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdViSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdViSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdViSuspIntv);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdBeSrvIntv);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdBeSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBeSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBeSuspIntv);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdBkSrvIntv);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdBkSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBkSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBkSuspIntv);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVo] Value = [%u] ",pAdapter->cfg_ini->InfraDirAcVo);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVo] Value = [0x%x] ",pAdapter->cfg_ini->InfraNomMsduSizeAcVo);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVo] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMeanDataRateAcVo);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVo] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMinPhyRateAcVo);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcVo] Value = [0x%x] ",pAdapter->cfg_ini->InfraSbaAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVo] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVo] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVo] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMinPhyRateAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraSbaAcVo);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVi] Value = [%u] ",pAdapter->cfg_ini->InfraDirAcVi);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVi] Value = [0x%x] ",pAdapter->cfg_ini->InfraNomMsduSizeAcVi);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVi] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMeanDataRateAcVi);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVi] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMinPhyRateAcVi);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcVi] Value = [0x%x] ",pAdapter->cfg_ini->InfraSbaAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVi] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVi] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVi] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVi] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMinPhyRateAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcVi] Value = [0x%x] ",pHddCtx->cfg_ini->InfraSbaAcVi);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcBe] Value = [%u] ",pAdapter->cfg_ini->InfraDirAcBe);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcBe] Value = [0x%x] ",pAdapter->cfg_ini->InfraNomMsduSizeAcBe);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBe] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMeanDataRateAcBe);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBe] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMinPhyRateAcBe);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcBe] Value = [0x%x] ",pAdapter->cfg_ini->InfraSbaAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcBe] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcBe] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBe] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBe] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMinPhyRateAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcBe] Value = [0x%x] ",pHddCtx->cfg_ini->InfraSbaAcBe);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcBk] Value = [%u] ",pAdapter->cfg_ini->InfraDirAcBk);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcBk] Value = [0x%x] ",pAdapter->cfg_ini->InfraNomMsduSizeAcBk);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBk] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMeanDataRateAcBk);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBk] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMinPhyRateAcBk);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcBk] Value = [0x%x] ",pAdapter->cfg_ini->InfraSbaAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcBk] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcBk] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBk] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBk] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMinPhyRateAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcBk] Value = [0x%x] ",pHddCtx->cfg_ini->InfraSbaAcBk);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqBkWeight] Value = [%u] ",pAdapter->cfg_ini->WfqBkWeight);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqBeWeight] Value = [%u] ",pAdapter->cfg_ini->WfqBeWeight);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqViWeight] Value = [%u] ",pAdapter->cfg_ini->WfqViWeight);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pAdapter->cfg_ini->WfqVoWeight);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pAdapter->cfg_ini->DelayedTriggerFrmInt);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [mcastBcastFilterSetting] Value = [%u] ",pAdapter->cfg_ini->mcastBcastFilterSetting);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqBkWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqBkWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqBeWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqBeWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqViWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqViWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqVoWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pHddCtx->cfg_ini->DelayedTriggerFrmInt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [mcastBcastFilterSetting] Value = [%u] ",pHddCtx->cfg_ini->mcastBcastFilterSetting);
 #ifdef WLAN_FEATURE_VOWIFI_11R  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTEnable] Value = [%lu] ",pAdapter->cfg_ini->fFTEnable);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTResourceReqSupported] Value = [%lu] ",pAdapter->cfg_ini->fFTResourceReqSupported);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTEnable] Value = [%lu] ",pHddCtx->cfg_ini->fFTEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTResourceReqSupported] Value = [%lu] ",pHddCtx->cfg_ini->fFTResourceReqSupported);
 #endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborReassocRssiThreshold] Value = [%lu] ",pAdapter->cfg_ini->nNeighborReassocRssiThreshold);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborLookupRssiThreshold] Value = [%lu] ",pAdapter->cfg_ini->nNeighborLookupRssiThreshold);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMinChanTime] Value = [%lu] ",pAdapter->cfg_ini->nNeighborScanMinChanTime);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMaxChanTime] Value = [%lu] ",pAdapter->cfg_ini->nNeighborScanMaxChanTime);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nMaxNeighborRetries] Value = [%lu] ",pAdapter->cfg_ini->nMaxNeighborReqTries);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanPeriod] Value = [%lu] ",pAdapter->cfg_ini->nNeighborScanPeriod);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanResultsRefreshPeriod] Value = [%lu] ",pAdapter->cfg_ini->nNeighborResultsRefreshPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborReassocRssiThreshold] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborReassocRssiThreshold);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborLookupRssiThreshold] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborLookupRssiThreshold);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMinChanTime] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborScanMinChanTime);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanMaxChanTime] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborScanMaxChanTime);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nMaxNeighborRetries] Value = [%lu] ",pHddCtx->cfg_ini->nMaxNeighborReqTries);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanPeriod] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborScanPeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nNeighborScanResultsRefreshPeriod] Value = [%lu] ",pHddCtx->cfg_ini->nNeighborResultsRefreshPeriod);
 #endif
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [burstSizeDefinition] Value = [0x%x] ",pAdapter->cfg_ini->burstSizeDefinition);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [tsInfoAckPolicy] Value = [0x%x] ",pAdapter->cfg_ini->tsInfoAckPolicy);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gDynamicPSPollvalue] Value = [%u] ",pAdapter->cfg_ini->dynamicPsPollValue);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [burstSizeDefinition] Value = [0x%x] ",pHddCtx->cfg_ini->burstSizeDefinition);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [tsInfoAckPolicy] Value = [0x%x] ",pHddCtx->cfg_ini->tsInfoAckPolicy);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pHddCtx->cfg_ini->rfSettlingTimeUs);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pHddCtx->cfg_ini->bSingleTidRc);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pHddCtx->cfg_ini->rfSettlingTimeUs);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gDynamicPSPollvalue] Value = [%u] ",pHddCtx->cfg_ini->dynamicPsPollValue);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAddTSWhenACMIsOff] Value = [%u] ",pHddCtx->cfg_ini->AddTSWhenACMIsOff);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gValidateScanList] Value = [%u] ",pHddCtx->cfg_ini->fValidateScanList);
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsRequestType] Value = [0x%x] ",pAdapter->cfg_ini->WpsRequestType);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsConfigMethod] Value = [0x%x] ",pAdapter->cfg_ini->WpsConfigMethod);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsUUID_E] Value = [%s] ",pAdapter->cfg_ini->WpsUUID_E);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsPrimayDeviceCategory] Value = [0x%u] ",pAdapter->cfg_ini->WpsPrimayDeviceCategory);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsDeviceSubCategory] Value = [0x%u] ",pAdapter->cfg_ini->WpsDeviceSubCategory);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsDevicePasswordId] Value = [0x%u] ",pAdapter->cfg_ini->WpsDevicePasswordId);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsManufacturer] Value = [%s] ",pAdapter->cfg_ini->WpsManufacturer);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsModelName] Value = [%s] ",pAdapter->cfg_ini->WpsModelName);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsModelNumber] Value = [%s] ",pAdapter->cfg_ini->WpsModelNumber);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsDeviceName] Value = [%s] ",pAdapter->cfg_ini->WpsDeviceName);  
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsSerialNumber] Value = [%s] ",pAdapter->cfg_ini->WpsSerialNumber);  
-
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAddTSWhenACMIsOff] Value = [%u] ",pAdapter->cfg_ini->AddTSWhenACMIsOff);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gValidateScanList] Value = [%u] ",pAdapter->cfg_ini->fValidateScanList);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gStaKeepAlivePeriod] Value = [%u] ",pAdapter->cfg_ini->infraStaKeepAlivePeriod);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pAdapter->cfg_ini->apDataAvailPollPeriodInMs);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pHddCtx->cfg_ini->apDataAvailPollPeriodInMs);
 }
 
 
 #define CFG_VALUE_MAX_LEN 256
 #define CFG_ENTRY_MAX_LEN (32+CFG_VALUE_MAX_LEN)
-VOS_STATUS hdd_cfg_get_config(hdd_adapter_t *pAdapter, char *pBuf, int buflen)
+VOS_STATUS hdd_cfg_get_config(hdd_context_t *pHddCtx, char *pBuf, int buflen)
 {
    unsigned int idx;
    REG_TABLE_ENTRY *pRegEntry = g_registry_table;
@@ -1778,7 +1733,7 @@ VOS_STATUS hdd_cfg_get_config(hdd_adapter_t *pAdapter, char *pBuf, int buflen)
 
    for ( idx = 0; idx < cRegTableEntries; idx++, pRegEntry++ ) 
    {
-      pField = ( (v_U8_t *)pAdapter->cfg_ini) + pRegEntry->VarOffset;
+      pField = ( (v_U8_t *)pHddCtx->cfg_ini) + pRegEntry->VarOffset;
 
       if ( ( WLAN_PARAM_Integer    == pRegEntry->RegType ) ||
            ( WLAN_PARAM_HexInteger == pRegEntry->RegType ) ) 
@@ -1819,7 +1774,7 @@ VOS_STATUS hdd_cfg_get_config(hdd_adapter_t *pAdapter, char *pBuf, int buflen)
                         "%s=[%s]%s\n",
                         pRegEntry->RegName,
                         valueStr,
-                        test_bit(idx, (void *)&pAdapter->cfg_ini->bExplicitCfg) ?
+                        test_bit(idx, (void *)&pHddCtx->cfg_ini->bExplicitCfg) ?
                         "*" : "");
 
       // ideally we want to return the config to the application
@@ -1884,7 +1839,7 @@ static int parseHexDigit(char c)
 }
 
 
-static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniTable, unsigned long entries)
+static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTable, unsigned long entries)
 {
    VOS_STATUS match_status = VOS_STATUS_E_FAILURE;
    VOS_STATUS ret_status = VOS_STATUS_SUCCESS;
@@ -1894,7 +1849,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
    unsigned long len_value_str; 
    char *candidate;
    v_U32_t value;
-   void *pStructBase = pAdapter->cfg_ini;
+   void *pStructBase = pHddCtx->cfg_ini;
    REG_TABLE_ENTRY *pRegEntry = g_registry_table;
    unsigned long cRegTableEntries  = sizeof(g_registry_table) / sizeof( g_registry_table[ 0 ]);
    v_U32_t cbOutString;
@@ -2043,11 +1998,11 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
       if( (match_status == VOS_STATUS_SUCCESS) &&
           (idx < MAX_CFG_INI_ITEMS) )
       {
-         set_bit(idx, (void *)&pAdapter->cfg_ini->bExplicitCfg);
+         set_bit(idx, (void *)&pHddCtx->cfg_ini->bExplicitCfg);
    }
    }
 
-   print_hdd_cfg(pAdapter);
+   print_hdd_cfg(pHddCtx);
 
   return( ret_status );
 }
@@ -2077,12 +2032,12 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode )
 
 }
 
-static void hdd_set_btc_config(hdd_adapter_t *pAdapter) 
+static void hdd_set_btc_config(hdd_context_t *pHddCtx) 
 {
-   hdd_config_t *pConfig = pAdapter->cfg_ini;
+   hdd_config_t *pConfig = pHddCtx->cfg_ini;
    tSmeBtcConfig btcParams;
    
-   sme_BtcGetConfig(pAdapter->hHal, &btcParams);
+   sme_BtcGetConfig(pHddCtx->hHal, &btcParams);
 
    btcParams.btcExecutionMode = pConfig->btcExecutionMode;
 
@@ -2090,16 +2045,16 @@ static void hdd_set_btc_config(hdd_adapter_t *pAdapter)
 
    btcParams.btcA2DPBtSubIntervalsDuringDhcp = pConfig->btcA2DPBtSubIntervalsDuringDhcp;
 
-   sme_BtcSetConfig(pAdapter->hHal, &btcParams);
+   sme_BtcSetConfig(pHddCtx->hHal, &btcParams);
 }
 
-static void hdd_set_power_save_config(hdd_adapter_t *pAdapter, tSmeConfigParams *smeConfig) 
+static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *smeConfig) 
 {
-   hdd_config_t *pConfig = pAdapter->cfg_ini;
+   hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
    tPmcBmpsConfigParams bmpsParams;
    
-   sme_GetConfigPowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE, &bmpsParams);
+   sme_GetConfigPowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE, &bmpsParams);
    
    if (strcmp(pConfig->PowerUsageControl, "Min") == 0)
    {
@@ -2119,32 +2074,32 @@ static void hdd_set_power_save_config(hdd_adapter_t *pAdapter, tSmeConfigParams 
 
    if (pConfig->fIsImpsEnabled)
    {
-      sme_EnablePowerSave (pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+      sme_EnablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
    }
    else
    {
-      sme_DisablePowerSave (pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+      sme_DisablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
    }
 
    if (pConfig->fIsBmpsEnabled)
    {
-      sme_EnablePowerSave (pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+      sme_EnablePowerSave (pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
    }
    else
    {
-      sme_DisablePowerSave (pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+      sme_DisablePowerSave (pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
    }
 
    bmpsParams.trafficMeasurePeriod = pConfig->nAutoBmpsTimerValue;
 
-   if (sme_SetConfigPowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE, &bmpsParams)== eHAL_STATUS_FAILURE)
+   if (sme_SetConfigPowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE, &bmpsParams)== eHAL_STATUS_FAILURE)
    {
       hddLog(LOGE, "SetConfigPowerSave failed to set BMPS params\n");
    }
   
    if(pConfig->fIsAutoBmpsTimerEnabled)
    {
-      sme_StartAutoBmpsTimer(pAdapter->hHal);
+      sme_StartAutoBmpsTimer(pHddCtx->hHal);
    }
 
 }
@@ -2253,27 +2208,27 @@ static VOS_STATUS hdd_get_ho_config ( hdd_config_t *pConfig, tSmeHoConfigParams 
 }
 #endif //FEATURE_WLAN_GEN6_ROAMING
 
-v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
+v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 {
    v_BOOL_t  fStatus = TRUE;
 
-   hdd_config_t *pConfig = pAdapter->cfg_ini;
+   hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_SHORT_GI_20MHZ, 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SHORT_GI_20MHZ, 
       pConfig->ShortGI20MhzEnable, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_SHORT_GI_20MHZ to CCM\n");
    }
        
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_CAL_CONTROL, pConfig->Calibration, 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_CAL_CONTROL, pConfig->Calibration, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_CAL_CONTROL to CCM\n");
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_CAL_PERIOD, pConfig->CalibrationPeriod,
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_CAL_PERIOD, pConfig->CalibrationPeriod,
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
@@ -2282,7 +2237,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 
    if ( 0 != pConfig->Cfg1Id )
    {
-      if (ccmCfgSetInt(pAdapter->hHal, pConfig->Cfg1Id, pConfig->Cfg1Value, NULL, 
+      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg1Id, pConfig->Cfg1Value, NULL, 
          eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
@@ -2293,7 +2248,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 
    if ( 0 != pConfig->Cfg2Id )
    {
-      if (ccmCfgSetInt(pAdapter->hHal, pConfig->Cfg2Id, pConfig->Cfg2Value, 
+      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg2Id, pConfig->Cfg2Value, 
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
@@ -2303,7 +2258,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 
    if ( 0 != pConfig->Cfg3Id )
    {
-      if (ccmCfgSetInt(pAdapter->hHal, pConfig->Cfg3Id, pConfig->Cfg3Value, 
+      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg3Id, pConfig->Cfg3Value, 
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
@@ -2313,7 +2268,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 
    if ( 0 != pConfig->Cfg4Id )
    {
-      if (ccmCfgSetInt(pAdapter->hHal, pConfig->Cfg4Id, pConfig->Cfg4Value, 
+      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg4Id, pConfig->Cfg4Value, 
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
@@ -2323,7 +2278,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 
    if ( 0 != pConfig->Cfg5Id )
    {
-      if (ccmCfgSetInt(pAdapter->hHal, pConfig->Cfg5Id, pConfig->Cfg5Value, 
+      if (ccmCfgSetInt(pHddCtx->hHal, pConfig->Cfg5Id, pConfig->Cfg5Value, 
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
@@ -2331,28 +2286,28 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
       }
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_BA_AUTO_SETUP, pConfig->BlockAckAutoSetup, 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_BA_AUTO_SETUP, pConfig->BlockAckAutoSetup, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_BA_AUTO_SETUP to CCM\n");
    }
-
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_FIXED_RATE, pConfig->TxRate, 
+       
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_FIXED_RATE, pConfig->TxRate, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_FIXED_RATE to CCM\n");
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_MAX_RX_AMPDU_FACTOR, 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MAX_RX_AMPDU_FACTOR, 
       pConfig->MaxRxAmpduFactor, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE,"Could not pass on WNI_CFG_HT_AMPDU_PARAMS_MAX_RX_AMPDU_FACTOR to CCM\n");
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_SHORT_PREAMBLE, pConfig->fIsShortPreamble,
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SHORT_PREAMBLE, pConfig->fIsShortPreamble,
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
@@ -2361,7 +2316,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 
    if (pConfig->fIsAutoIbssBssid) 
    {
-      if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_BSSID, (v_U8_t *)"000000000000", 
+      if (ccmCfgSetStr(pHddCtx->hHal, WNI_CFG_BSSID, (v_U8_t *)"000000000000", 
          sizeof(v_BYTE_t) * VOS_MAC_ADDR_SIZE, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
@@ -2376,7 +2331,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
                     "MAC Addr (IBSS BSSID) read from Registry is: %02x-%02x-%02x-%02x-%02x-%02x",
                     pConfig->IbssBssid.bytes[0], pConfig->IbssBssid.bytes[1], pConfig->IbssBssid.bytes[2], 
                     pConfig->IbssBssid.bytes[3], pConfig->IbssBssid.bytes[4], pConfig->IbssBssid.bytes[5]);
-         if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_BSSID, pConfig->IbssBssid.bytes, 
+         if (ccmCfgSetStr(pHddCtx->hHal, WNI_CFG_BSSID, pConfig->IbssBssid.bytes, 
             sizeof(v_BYTE_t) * VOS_MAC_ADDR_SIZE, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
          {
             fStatus = FALSE;
@@ -2390,76 +2345,76 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
       }
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_BEACON_INTERVAL, pConfig->nBeaconInterval, 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_BEACON_INTERVAL, pConfig->nBeaconInterval, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_BEACON_INTERVAL to CCM\n");
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_MAX_PS_POLL, pConfig->nMaxPsPoll, 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MAX_PS_POLL, pConfig->nMaxPsPoll, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
 	  fStatus = FALSE;
 	  hddLog(LOGE, "Could not pass on WNI_CFG_MAX_PS_POLL to CCM\n");
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_CURRENT_RX_ANTENNA, pConfig-> nRxAnt, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_CURRENT_RX_ANTENNA, pConfig-> nRxAnt, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Failure: Could not pass on WNI_CFG_CURRENT_RX_ANTENNA configuration info to HAL\n"  );
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_LOW_GAIN_OVERRIDE, pConfig->fIsLowGainOverride, 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_LOW_GAIN_OVERRIDE, pConfig->fIsLowGainOverride, 
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_LOW_GAIN_OVERRIDE to HAL\n");
    }
  
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RSSI_FILTER_PERIOD, pConfig->nRssiFilterPeriod,
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RSSI_FILTER_PERIOD, pConfig->nRssiFilterPeriod,
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_RSSI_FILTER_PERIOD to CCM\n");
    }
 
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_IGNORE_DTIM, pConfig->fIgnoreDtim,
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, pConfig->fIgnoreDtim,
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_IGNORE_DTIM configuration to CCM\n"  );
    }
 
-	if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_ENABLE_HEART_BEAT, pConfig->fEnableFwHeartBeatMonitoring, 
+	if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PS_ENABLE_HEART_BEAT, pConfig->fEnableFwHeartBeatMonitoring, 
 		NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
       hddLog(LOGE, "Failure: Could not pass on WNI_CFG_PS_HEART_BEAT configuration info to CCM\n"	);
 	 }
 	 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_ENABLE_BCN_FILTER, pConfig->fEnableFwBeaconFiltering, 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PS_ENABLE_BCN_FILTER, pConfig->fEnableFwBeaconFiltering, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE, "Failure: Could not pass on WNI_CFG_PS_BCN_FILTER configuration info to CCM\n"	);
 	 }
 	 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_ENABLE_RSSI_MONITOR, pConfig->fEnableFwRssiMonitoring, 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PS_ENABLE_RSSI_MONITOR, pConfig->fEnableFwRssiMonitoring, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE, "Failure: Could not pass on WNI_CFG_PS_RSSI_MONITOR configuration info to CCM\n"  );
 	 }
 	 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT, pConfig->nDataInactivityTimeout, 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT, pConfig->nDataInactivityTimeout, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT configuration info to CCM\n"  );
 	 }
 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_NTH_BEACON_FILTER, pConfig->nthBeaconFilter, 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_NTH_BEACON_FILTER, pConfig->nthBeaconFilter, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
@@ -2467,7 +2422,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 	 }
 
 #ifdef WLAN_SOFTAP_FEATURE
-     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE, pConfig->nEnableListenMode, 
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE, pConfig->nEnableListenMode, 
         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
      {
         fStatus = FALSE;
@@ -2476,153 +2431,73 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 #endif
    
 #if defined WLAN_FEATURE_VOWIFI
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RRM_ENABLED, pConfig->fRrmEnable, 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RRM_ENABLED, pConfig->fRrmEnable, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RRM_ENABLE configuration info to CCM\n"  );
 	 }
 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RRM_OPERATING_CHAN_MAX, pConfig->nInChanMeasMaxDuration, 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RRM_OPERATING_CHAN_MAX, pConfig->nInChanMeasMaxDuration, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RRM_OPERATING_CHAN_MAX configuration info to CCM\n"  );
 	 }
 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RRM_NON_OPERATING_CHAN_MAX, pConfig->nOutChanMeasMaxDuration, 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RRM_NON_OPERATING_CHAN_MAX, pConfig->nOutChanMeasMaxDuration, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RRM_OUT_CHAN_MAX configuration info to CCM\n"  );
 	 }
 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_MCAST_BCAST_FILTER_SETTING, pConfig->mcastBcastFilterSetting, 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MCAST_BCAST_FILTER_SETTING, pConfig->mcastBcastFilterSetting, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 #endif
-  
-     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_SINGLE_TID_RC, pConfig->bSingleTidRc, 
+
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SINGLE_TID_RC, pConfig->bSingleTidRc, 
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_SINGLE_TID_RC configuration info to CCM\n"  );
      }
 
-     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_TELE_BCN_WAKEUP_EN, pConfig->teleBcnWakeupEn, 
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TELE_BCN_WAKEUP_EN, pConfig->teleBcnWakeupEn, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_TELE_BCN_WAKEUP_EN configuration info to CCM\n"  );
 	 }
 
-     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs,
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs,
         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
     {
         fStatus = FALSE;
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RF_SETTLING_TIME_CLK configuration info to CCM\n"  );
     }
 
-    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD, pConfig->infraStaKeepAlivePeriod, 
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD, pConfig->infraStaKeepAlivePeriod, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD configuration info to CCM\n"  );
 	 }
-
-
-
-    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_DYNAMIC_PS_POLL_VALUE, pConfig->dynamicPsPollValue, 
+    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_DYNAMIC_PS_POLL_VALUE, pConfig->dynamicPsPollValue, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
     {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_DYNAMIC_PS_POLL_VALUE configuration info to CCM\n"  );
     }
    	
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT, pConfig->nNullDataApRespTimeout,
+    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT, pConfig->nNullDataApRespTimeout,
                NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	      fStatus = FALSE;
-	      hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_NULLDATA_DELAY_TIMEOUT configuration info to CCM\n"  );
-   } 
+    {
+	    fStatus = FALSE;
+	    hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_NULLDATA_DELAY_TIMEOUT configuration info to CCM\n"  );
+    } 
 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_REQUEST_TYPE, pConfig->WpsRequestType, 
-		NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-	 {
-		fStatus = FALSE;
-		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_REQUEST_TYPE configuration info to CCM\n"  );
-	 }
-
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_CFG_METHOD, pConfig->WpsConfigMethod, 
-		NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-	 {
-		fStatus = FALSE;
-		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_CFG_METHOD configuration info to CCM\n"  );
-	 }
-
-	if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_WPS_UUID, (v_U8_t *)pConfig->WpsUUID_E, 
-		sizeof(pConfig->WpsUUID_E), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-	{
-		fStatus = FALSE;
-		hddLog(LOGE,"Could not pass on WNI_CFG_WPS_UUID to CCM\n");
-	}
-
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY, pConfig->WpsPrimayDeviceCategory, 
-	  NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	  fStatus = FALSE;
-	  hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY configuration info to CCM\n"  );
-   }
-
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_DEVICE_SUB_CATEGORY, pConfig->WpsDeviceSubCategory, 
-	  NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	  fStatus = FALSE;
-	  hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_DEVICE_SUB_CATEGORY configuration info to CCM\n"  );
-   }
-
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_DEVICE_PASSWORD_ID, pConfig->WpsDevicePasswordId, 
-	  NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	  fStatus = FALSE;
-	  hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_DEVICE_PASSWORD_ID configuration info to CCM\n"  );
-   }
-
-   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MANUFACTURER_NAME, (v_U8_t *)pConfig->WpsManufacturer, 
-	   strlen((const char *)pConfig->WpsManufacturer), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	   fStatus = FALSE;
-	   hddLog(LOGE,"Could not pass on WNI_CFG_MANUFACTURER_NAME to CCM\n");
-   }
-
-   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MODEL_NAME, (v_U8_t *)pConfig->WpsModelName, 
-	   strlen((const char *)pConfig->WpsModelName), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	   fStatus = FALSE;
-	   hddLog(LOGE,"Could not pass on WNI_CFG_MODEL_NAME to CCM\n");
-   }
-
-   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MODEL_NUMBER, (v_U8_t *)pConfig->WpsModelNumber, 
-	   strlen((const char *)pConfig->WpsModelNumber), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	   fStatus = FALSE;
-	   hddLog(LOGE,"Could not pass on WNI_CFG_MODEL_NUMBER to CCM\n");
-   }
-
-   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MANUFACTURER_PRODUCT_NAME, (v_U8_t *)pConfig->WpsDeviceName, 
-	   strlen((const char *)pConfig->WpsDeviceName), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	   fStatus = FALSE;
-	   hddLog(LOGE,"Could not pass on WNI_CFG_MANUFACTURER_PRODUCT_NAME to CCM\n");
-   }
-
-   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MANUFACTURER_PRODUCT_VERSION, (v_U8_t *)pConfig->WpsSerialNumber, 
-	   strlen((const char *)pConfig->WpsSerialNumber), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-	   fStatus = FALSE;
-	   hddLog(LOGE,"Could not pass on WNI_CFG_MANUFACTURER_PRODUCT_VERSION to CCM\n");
-   }
-
-   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD, pConfig->apDataAvailPollPeriodInMs,
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD, pConfig->apDataAvailPollPeriodInMs,
                NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
 	   fStatus = FALSE;
@@ -2639,13 +2514,13 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 
    This function initializes the sme configuration parameters
    
-  \param  - pAdapter - Pointer to the HDD Adapter.
+  \param  - pHddCtx - Pointer to the HDD Adapter.
               
   \return - 0 for success, non zero for failure
     
   --------------------------------------------------------------------------*/
 
-VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
+VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    eHalStatus halStatus;
@@ -2653,7 +2528,7 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
 #ifdef FEATURE_WLAN_GEN6_ROAMING
    tSmeHoConfigParams smeHoCfg;
 #endif
-   hdd_config_t *pConfig = pAdapter->cfg_ini;
+   hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
    vos_mem_zero( &smeConfig, sizeof( smeConfig ) );
 
@@ -2740,12 +2615,12 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
  		   "AP country Code %s\n", pConfig->apCntryCode);
 
     if (memcmp(pConfig->apCntryCode, CFG_AP_COUNTRY_CODE_DEFAULT, 3) != 0)
-       sme_setRegInfo(pAdapter->hHal, pConfig->apCntryCode);
-       sme_set11dinfo(pAdapter->hHal, &smeConfig);
+       sme_setRegInfo(pHddCtx->hHal, pConfig->apCntryCode);
+       sme_set11dinfo(pHddCtx->hHal, &smeConfig);
     }
 #endif
-   hdd_set_power_save_config(pAdapter, &smeConfig);
-   hdd_set_btc_config(pAdapter);
+   hdd_set_power_save_config(pHddCtx, &smeConfig);
+   hdd_set_btc_config(pHddCtx);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R   
    smeConfig.csrConfig.csr11rConfig.IsFTSupportEnabled = pConfig->fFTEnable;
@@ -2769,7 +2644,7 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
    smeConfig.csrConfig.addTSWhenACMIsOff = pConfig->AddTSWhenACMIsOff;
    smeConfig.csrConfig.fValidateList = pConfig->fValidateScanList;
 
-   halStatus = sme_UpdateConfig( pAdapter->hHal, &smeConfig);    
+   halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);    
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {
       status = VOS_STATUS_E_FAILURE;
@@ -2778,7 +2653,7 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
 #ifdef FEATURE_WLAN_GEN6_ROAMING   
    if (VOS_IS_STATUS_SUCCESS(hdd_get_ho_config ( pConfig, &smeHoCfg )))
    {
-      halStatus = sme_HoConfig(pAdapter->hHal, &smeHoCfg);
+      halStatus = sme_HoConfig(pHddCtx->hHal, &smeHoCfg);
       if ( !HAL_STATUS_SUCCESS( halStatus ) )
       {
 		     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
@@ -2787,5 +2662,6 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
       }
    } 
 #endif
+   
    return status;   
 }

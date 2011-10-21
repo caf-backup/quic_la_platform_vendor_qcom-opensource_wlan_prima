@@ -23,6 +23,7 @@ typedef struct tagMeasInNavMeasurementStruct
 	tANI_U32                         measurementRequestID; //original measurement request ID
 	tInNavMeasurementResponse*       pMeasurementResult; //measurement results
 	tInNavMeasurementConfig          measurementConfig; //current measurement request
+  tANI_U8                          sessionId; //Session on which measurement is active
 } tMeasInNavMeasurementStruct;
 
 typedef struct tagMeasCmd

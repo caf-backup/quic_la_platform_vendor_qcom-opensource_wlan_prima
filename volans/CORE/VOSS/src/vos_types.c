@@ -122,12 +122,31 @@ v_U32_t vos_atomic_decrement_U32( v_U32_t *pTarget )
 
 v_U32_t vos_atomic_increment_U32_by_value( v_U32_t *pTarget, v_U32_t value )
 {
-    return ( *pTarget +  value );
+   unsigned long flags;
+   if (pTarget == NULL)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "NULL ptr passed into %s",__FUNCTION__);
+      return 0;
+   }
+   local_irq_save(flags);
+   *pTarget += value ;
+   local_irq_restore(flags);
+   return (*pTarget);
 }    
 
 v_U32_t vos_atomic_decrement_U32_by_value( v_U32_t *pTarget, v_U32_t value )
 {
-    return ( *pTarget - value );
+   unsigned long flags;
+   if (pTarget == NULL)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "NULL ptr passed into %s",__FUNCTION__);
+      return 0;
+   }
+   local_irq_save(flags);
+   *pTarget -= value ;
+   local_irq_restore(flags);
+   return (*pTarget);
+
 }
 
 

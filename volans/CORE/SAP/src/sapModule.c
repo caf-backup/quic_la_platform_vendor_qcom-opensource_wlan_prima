@@ -27,7 +27,7 @@
 
 
 
-  when        	   who                 what, where, why
+  when               who                 what, where, why
 ----------       ---                --------------------------------------------------------
 03/15/10     SOFTAP team            Created module
 06/03/10     js                     Added support to hostapd driven 
@@ -151,7 +151,7 @@ WLANSAP_Open
    
     /*------------------------------------------------------------------------
         Allocate internal resources
-   	------------------------------------------------------------------------*/
+       ------------------------------------------------------------------------*/
 
     return VOS_STATUS_SUCCESS;
 }// WLANSAP_Open
@@ -478,6 +478,40 @@ WLANSAP_pmcFullPwrReqCB
     }
 
 }// WLANSAP_pmcFullPwrReqCB
+/*==========================================================================
+  FUNCTION    WLANSAP_getState
+
+  DESCRIPTION 
+    This api returns the current SAP state to the caller.
+
+  DEPENDENCIES 
+
+  PARAMETERS 
+
+    IN
+    pContext            : Pointer to Sap Context structure
+
+  RETURN VALUE
+    Returns the SAP FSM state.  
+============================================================================*/
+
+v_U8_t WLANSAP_getState 
+(
+    v_PVOID_t  pvosGCtx
+)
+{
+    ptSapContext  pSapCtx = NULL;
+
+    pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+
+    if ( NULL == pSapCtx )
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+           "Invalid SAP pointer from pvosGCtx on WLANSAP_Start");
+        return VOS_STATUS_E_FAULT;
+    }
+    return pSapCtx->sapsMachine;
+}
 
 /*==========================================================================
   FUNCTION    WLANSAP_StartBss
@@ -709,6 +743,59 @@ WLANSAP_GetAssocStations
     return VOS_STATUS_SUCCESS;
 }
 
+
+/*==========================================================================
+  FUNCTION    WLANSAP_RemoveWpsSessionOverlap
+
+  DESCRIPTION 
+    This api function provides for Ap App/HDD to remove an entry from session session overlap info.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+    IN
+    pvosGCtx: Pointer to vos global context structure
+    pRemoveMac: pointer to v_MACADDR_t for session MAC address
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+    VOS_STATUS_E_FAULT:  Session is not dectected. The parameter is function not valid.
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS
+WLANSAP_RemoveWpsSessionOverlap
+
+(
+    v_PVOID_t pvosGCtx,
+    v_MACADDR_t pRemoveMac
+)
+{
+  ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+
+  /*------------------------------------------------------------------------
+    Sanity check
+    Extract SAP control block 
+  ------------------------------------------------------------------------*/
+  if (NULL == pSapCtx)
+  {
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+        "Invalid SAP pointer from pvosGCtx on WLANSAP_RemoveWpsSessionOverlap");
+    return VOS_STATUS_E_FAULT;
+  }
+
+  sme_RoamGetWpsSessionOverlap( VOS_GET_HAL_CB(pSapCtx->pvosGCtx), pSapCtx->sessionId,
+                                pSapCtx->pUsrContext,
+                                (v_PVOID_t *)pSapCtx->pfnSapEventCallback,
+                                pRemoveMac);
+
+  return VOS_STATUS_SUCCESS;
+}
+
 /*==========================================================================
   FUNCTION    WLANSAP_getWpsSessionOverlap
 
@@ -736,6 +823,8 @@ WLANSAP_getWpsSessionOverlap
  v_PVOID_t pvosGCtx  
 )
 {
+    v_MACADDR_t pRemoveMac = VOS_MAC_ADDR_ZERO_INITIALIZER; 
+
     ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
 
     /*------------------------------------------------------------------------
@@ -751,7 +840,8 @@ WLANSAP_getWpsSessionOverlap
     
     sme_RoamGetWpsSessionOverlap( VOS_GET_HAL_CB(pSapCtx->pvosGCtx), pSapCtx->sessionId,
                                 pSapCtx->pUsrContext,
-                                (v_PVOID_t *)pSapCtx->pfnSapEventCallback);
+                                (v_PVOID_t *)pSapCtx->pfnSapEventCallback,
+                                pRemoveMac);
 
     return VOS_STATUS_SUCCESS;
 }
@@ -790,7 +880,7 @@ WLANSAP_DisassocSta
     /*------------------------------------------------------------------------
       Sanity check
       Extract SAP control block 
-      ------------------------------------------------------------------------*/	
+      ------------------------------------------------------------------------*/    
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -839,7 +929,7 @@ WLANSAP_DeauthSta
     /*------------------------------------------------------------------------
       Sanity check
       Extract SAP control block 
-      ------------------------------------------------------------------------*/	
+      ------------------------------------------------------------------------*/    
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -1152,7 +1242,7 @@ WLANSAP_Set_WpsIe
         {
             if (pSap_WPSIe->sapWPSIECode == eSAP_WPS_BEACON_IE)
             {
-                vos_mem_copy(&pSapCtx->APWPSIEs.SirWPSBeaconIE, &pSap_WPSIe->sapwpsie.sapWPSBeaconIE, sizeof(tSap_WPSBeaconIE));	
+                vos_mem_copy(&pSapCtx->APWPSIEs.SirWPSBeaconIE, &pSap_WPSIe->sapwpsie.sapWPSBeaconIE, sizeof(tSap_WPSBeaconIE));    
             }
             else if (pSap_WPSIe->sapWPSIECode == eSAP_WPS_PROBE_RSP_IE) 
             {
@@ -1413,3 +1503,328 @@ VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf, 
 
     return (WLANTL_GetSoftAPStatistics(pvosGCtx, statBuf, bReset));
 }
+
+#ifdef WLAN_FEATURE_P2P
+/*==========================================================================
+
+  FUNCTION    WLANSAP_SendAction
+
+  DESCRIPTION 
+    This api function provides to send action frame sent by upper layer.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+    pBuf: Pointer of the action frame to be transmitted
+    len: Length of the action frame
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_SendAction( v_PVOID_t pvosGCtx, const tANI_U8 *pBuf,
+                               tANI_U32 len )
+{
+    ptSapContext  pSapCtx = NULL;
+    v_PVOID_t hHal = NULL;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+
+    if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
+    {
+        pSapCtx = VOS_GET_SAP_CB( pvosGCtx );
+        if (NULL == pSapCtx)
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "Invalid SAP pointer from pvosGCtx on WLANSAP_SendAction");
+            return VOS_STATUS_E_FAULT;
+        }
+        hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
+        if( ( NULL == hHal ) || ( eSAP_TRUE != pSapCtx->isSapSessionOpen ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              "HAL pointer (%p) NULL OR SME session is not open (%d)",
+              hHal, pSapCtx->isSapSessionOpen );
+            return VOS_STATUS_E_FAULT;
+        }
+
+        halStatus = sme_sendAction( hHal, pSapCtx->sessionId, pBuf, len );
+
+        if ( eHAL_STATUS_SUCCESS == halStatus )
+        {
+            return VOS_STATUS_SUCCESS;
+        }
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+               "Failed to Send Action Frame");
+
+    return VOS_STATUS_E_FAULT;
+}
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_RemainOnChannel
+
+  DESCRIPTION 
+    This api function provides to set Remain On channel on specified channel
+    for specified duration.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+    channel: Channel on which driver has to listen 
+    duration: Duration for which driver has to listen on specified channel
+    callback: Callback function to be called once Listen is done.
+    pContext: Context needs to be called in callback function. 
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_RemainOnChannel( v_PVOID_t pvosGCtx,
+                                    tANI_U8 channel, tANI_U32 duration,
+                                    remainOnChanCallback callback,
+                                    void *pContext )
+{
+    ptSapContext  pSapCtx = NULL;
+    v_PVOID_t hHal = NULL;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+
+    if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
+    {
+        pSapCtx = VOS_GET_SAP_CB( pvosGCtx );
+        if (NULL == pSapCtx)
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "Invalid SAP pointer from pvosGCtx on WLANSAP_SendAction");
+            return VOS_STATUS_E_FAULT;
+        }
+        hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
+        if( ( NULL == hHal ) || ( eSAP_TRUE != pSapCtx->isSapSessionOpen ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              "HAL pointer (%p) NULL OR SME session is not open (%d)",
+              hHal, pSapCtx->isSapSessionOpen );
+            return VOS_STATUS_E_FAULT;
+        }
+
+        halStatus = sme_RemainOnChannel( hHal, pSapCtx->sessionId,
+                          channel, duration, callback, pContext );
+
+        if( eHAL_STATUS_SUCCESS == halStatus )
+        {
+            return VOS_STATUS_SUCCESS;
+        }
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+               "Failed to Set Remain on Channel");
+
+    return VOS_STATUS_E_FAULT;
+}
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_CancelRemainOnChannel
+
+  DESCRIPTION 
+    This api cancel previous remain on channel request.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_CancelRemainOnChannel( v_PVOID_t pvosGCtx )
+{
+    ptSapContext  pSapCtx = NULL;
+    v_PVOID_t hHal = NULL;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+
+    if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
+    {
+        pSapCtx = VOS_GET_SAP_CB( pvosGCtx );
+        if (NULL == pSapCtx)
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "Invalid SAP pointer from pvosGCtx on WLANSAP_SendAction");
+            return VOS_STATUS_E_FAULT;
+        }
+        hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
+        if( ( NULL == hHal ) || ( eSAP_TRUE != pSapCtx->isSapSessionOpen ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              "HAL pointer (%p) NULL OR SME session is not open (%d)",
+              hHal, pSapCtx->isSapSessionOpen );
+            return VOS_STATUS_E_FAULT;
+        }
+
+        halStatus = sme_CancelRemainOnChannel( hHal, pSapCtx->sessionId );
+
+        if( eHAL_STATUS_SUCCESS == halStatus )
+        {
+            return VOS_STATUS_SUCCESS;
+        }
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to Cancel Remain on Channel");
+
+    return VOS_STATUS_E_FAULT;
+}
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_RegisterMgmtFrame
+
+  DESCRIPTION 
+    HDD use this API to register specified type of frame with CORE stack.
+    On receiving such kind of frame CORE stack should pass this frame to HDD
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+    frameType: frameType that needs to be registered with PE.
+    matchData: Data pointer which should be matched after frame type is matched.
+    matchLen: Length of the matchData
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_RegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType,
+                                      tANI_U8* matchData, tANI_U16 matchLen )
+{
+    ptSapContext  pSapCtx = NULL;
+    v_PVOID_t hHal = NULL;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+
+    if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
+    {
+        pSapCtx = VOS_GET_SAP_CB( pvosGCtx );
+        if (NULL == pSapCtx)
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "Invalid SAP pointer from pvosGCtx on WLANSAP_SendAction");
+            return VOS_STATUS_E_FAULT;
+        }
+        hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
+        if( ( NULL == hHal ) || ( eSAP_TRUE != pSapCtx->isSapSessionOpen ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              "HAL pointer (%p) NULL OR SME session is not open (%d)",
+              hHal, pSapCtx->isSapSessionOpen );
+            return VOS_STATUS_E_FAULT;
+        }
+
+        halStatus = sme_RegisterMgmtFrame(hHal, pSapCtx->sessionId,
+                          frameType, matchData, matchLen);
+
+        if( eHAL_STATUS_SUCCESS == halStatus )
+        {
+            return VOS_STATUS_SUCCESS;
+        }
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to Register MGMT frame");
+
+    return VOS_STATUS_E_FAULT;
+}
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_DeRegisterMgmtFrame
+
+  DESCRIPTION 
+   This API is used to deregister previously registered frame. 
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+    frameType: frameType that needs to be De-registered with PE.
+    matchData: Data pointer which should be matched after frame type is matched.
+    matchLen: Length of the matchData
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_DeRegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType,
+                                      tANI_U8* matchData, tANI_U16 matchLen )
+{
+    ptSapContext  pSapCtx = NULL;
+    v_PVOID_t hHal = NULL;
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+
+    if( VOS_STA_SAP_MODE == vos_get_conparam ( ) )
+    {
+        pSapCtx = VOS_GET_SAP_CB( pvosGCtx );
+        if (NULL == pSapCtx)
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "Invalid SAP pointer from pvosGCtx on WLANSAP_SendAction");
+            return VOS_STATUS_E_FAULT;
+        }
+        hHal = VOS_GET_HAL_CB(pSapCtx->pvosGCtx);
+        if( ( NULL == hHal ) || ( eSAP_TRUE != pSapCtx->isSapSessionOpen ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+              "HAL pointer (%p) NULL OR SME session is not open (%d)",
+              hHal, pSapCtx->isSapSessionOpen );
+            return VOS_STATUS_E_FAULT;
+        }
+
+        halStatus = sme_DeregisterMgmtFrame( hHal, pSapCtx->sessionId,
+                          frameType, matchData, matchLen );
+
+        if( eHAL_STATUS_SUCCESS == halStatus )
+        {
+            return VOS_STATUS_SUCCESS;
+        }
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to Deregister MGMT frame");
+
+    return VOS_STATUS_E_FAULT;
+}
+#endif // WLAN_FEATURE_P2P

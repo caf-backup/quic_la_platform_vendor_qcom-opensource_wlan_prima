@@ -40,7 +40,6 @@
 /* Useful macros for fetching various states in pMac->lim */
 /* gLimSystemRole */
 #define GET_LIM_SYSTEM_ROLE(psessionEntry)		(psessionEntry->limSystemRole)
-#define SET_LIM_SYSTEM_ROLE(pMac, role)		(pMac->lim.gLimSystemRole = role)
 #define LIM_IS_AP_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_AP_ROLE)
 #define LIM_IS_STA_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_ROLE)
 #define LIM_IS_IBSS_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE)
@@ -243,10 +242,10 @@ extern void limSetBssid(tpAniSirGlobal pMac, tANI_U8 *bssId);
 extern void limGetBssid(tpAniSirGlobal pMac, tANI_U8 *bssId);
 extern void limGetMyMacAddr(tpAniSirGlobal pMac, tANI_U8 *mac);
  
-#define limGetQosMode(pMac, pVal) *(pVal) = (pMac)->lim.gLimQosEnabled
-#define limGetWmeMode(pMac, pVal) *(pVal) = (pMac)->lim.gLimWmeEnabled
-#define limGetWsmMode(pMac, pVal) *(pVal) = (pMac)->lim.gLimWsmEnabled
-#define limGet11dMode(pMac, pVal) *(pVal) = (pMac)->lim.gLim11dEnabled
+#define limGetQosMode(psessionEntry, pVal) *(pVal) = (psessionEntry)->limQosEnabled
+#define limGetWmeMode(psessionEntry, pVal) *(pVal) = (psessionEntry)->limWmeEnabled
+#define limGetWsmMode(psessionEntry, pVal) *(pVal) = (psessionEntry)->limWsmEnabled
+#define limGet11dMode(psessionEntry, pVal) *(pVal) = (psessionEntry)->lim11dEnabled
 #define limGetPhyMode(pMac, pVal) *(pVal) = (pMac)->lim.gLimPhyMode
 #define limGetRfBand(pMac, pVal) *(pVal) = (pMac)->lim.gLimRFBand
 #define limGetAckPolicy(pMac, pVal)         *(pVal) = pMac->lim.ackPolicy

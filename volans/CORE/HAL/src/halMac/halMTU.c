@@ -447,7 +447,7 @@ void halMTU_startBackoffs(tpAniSirGlobal pMac, tANI_U32 mask)
 eHalStatus halMTU_Start(tHalHandle hHal, void *arg)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    tANI_U32 value = 0;
+    tANI_U32 regValue = 0;
     (void) arg;
 
     /**
@@ -460,22 +460,22 @@ eHalStatus halMTU_Start(tHalHandle hHal, void *arg)
 
     halMTU_initTimingParams(pMac, MODE_11G_PURE);
 
+    /* fixed Stall backoff issue in P2P discovery mode */
+    halReadRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, &regValue);
+    regValue |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_RSP_TO_CONSIDER_VECTOR_MASK;
+    halWriteRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, regValue);
+
     /** Program the BackOff Controls */
     halMtu_setBackOffControl(pMac);
 
-    // SW response to consider vector = 0x7 to avoid a possible hang in TPE
-    // when trying to stall the MTU backoff engines during scan.
-    halReadRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, &value);
-    value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_RSP_TO_CONSIDER_VECTOR_MASK;
-    halWriteRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, value);
 
 #ifdef ENABLE_RF_WARM_UP_PULSE
     //setting RF warm up pulse as provided by ASIC team.
-    value = 0;
-    halReadRegister(pMac, QWLAN_MTU_SW_MTU_MISC_LIMITS_REG, &value);
-    value &= ~QWLAN_MTU_SW_MTU_MISC_LIMITS_SW_MTU_TXP_DELAY_LIMIT_MASK;
-    value |= (16 << QWLAN_MTU_SW_MTU_MISC_LIMITS_SW_MTU_TXP_DELAY_LIMIT_OFFSET);
-    halWriteRegister(pMac, QWLAN_MTU_SW_MTU_MISC_LIMITS_REG, value);
+    regValue = 0;
+    halReadRegister(pMac, QWLAN_MTU_SW_MTU_MISC_LIMITS_REG, &regValue);
+    regValue &= ~QWLAN_MTU_SW_MTU_MISC_LIMITS_SW_MTU_TXP_DELAY_LIMIT_MASK;
+    regValue |= (16 << QWLAN_MTU_SW_MTU_MISC_LIMITS_SW_MTU_TXP_DELAY_LIMIT_OFFSET);
+    halWriteRegister(pMac, QWLAN_MTU_SW_MTU_MISC_LIMITS_REG, regValue);
 #endif
 
     /** Register interrupt for adaptive threshold timer.*/
@@ -964,7 +964,17 @@ eHalStatus halMTU_UpdateValidBssid(tpAniSirGlobal pMac, tANI_U16 bssIdx, tHalBit
     }
     else /** Clear the bit.*/
     {
+#if 0
+        /*This code should enabled, when multiple BSS support is enabled*/
         value &= ~(1 << bssIdx);
+#else
+        /* For beacon bssIndex to be 0 always as there was a bug in Volans,
+         * where beacon can be transmitted only on bssIdx 0 location in the beacon template memory. 
+         * This bug should not be in RIVA, But we need to enable the mbssid support. While we work on mbssid support, 
+         * the quick-fix could be to always keep the bit 0 in this register set. but we should get the right fix very soon. 
+         * Right now clearing MSB bit irrespective of bssidx.*/
+        value &= ((value - 1) >> 1);
+#endif
     }
 
     halWriteRegister(pMac, QWLAN_MTU_VALID_BSSID_BITMAP_REG,
@@ -1313,6 +1323,7 @@ void halMTU_EnableDisableBssidTBTTBeaconTransmission(tpAniSirGlobal pMac,
 void halMTU_UpdateNumBSS(tpAniSirGlobal pMac, tANI_U8 numBSS)
 {
     tANI_U32 value;
+    tANI_U32 bssBitmap;
 
     halReadRegister(pMac, QWLAN_MTU_BCN_BSSID_INTV_REG,
                                     &value);
@@ -1322,9 +1333,20 @@ void halMTU_UpdateNumBSS(tpAniSirGlobal pMac, tANI_U8 numBSS)
 
     value |= (QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_MAX_BSSIDS_MASK & (numBSS << QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_MAX_BSSIDS_OFFSET));
 
+    /** Read the MTU valid bitmap and check if bit 0 is set */
+    halReadRegister(pMac, QWLAN_MTU_VALID_BSSID_BITMAP_REG,
+                    &bssBitmap);
+
     /** Configure mtu M BSS*/
-    if (numBSS > 1)
-         value |= QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_MBSSID_ENABLE_MASK;
+    /* Set mbssid_enable_mask if bit 0 of valid_bssid_bitmap is 0 and bss count is non-zero.
+     * This is to take care of the below scenario
+     * 1. Infra STA session is made up. valid_bssid_bitmap will be 1 and mbssid_enable will be 0.
+     * 2. BT-AMP AP session is also made up after Infra. valid_bssid_bitmap will be 3 and mbssid_enable will be 1.
+     * 3. BT-AMP AP starts sending beacons.
+     * 4. Infra STA disassociates with Infra AP. valid_bssid_bitmap will be 2 and mbssid_enable will be 0.
+     * 5. BT-AMP AP also stops sending beacons because of wrong configuration in step 4.*/
+    if (numBSS > 1 || (numBSS && !(bssBitmap & 1)))
+        value |= QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_MBSSID_ENABLE_MASK;
     else
         value &= ~QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_MBSSID_ENABLE_MASK;
 

@@ -586,7 +586,23 @@ limCreateTimers(tpAniSirGlobal pMac)
         return;
     }
 #endif
+#ifdef WLAN_FEATURE_P2P
+    cfgValue = 1000;
+    cfgValue = SYS_MS_TO_TICKS(cfgValue);
+	 if (tx_timer_create(&pMac->lim.limTimers.gLimRemainOnChannelTimer,
+                                    "FT PREAUTH RSP TIMEOUT",
+                                    limTimerHandler, SIR_LIM_REMAIN_CHN_TIMEOUT,
+                                    cfgValue, 0,
+                                    TX_NO_ACTIVATE) != TX_SUCCESS)
+    {
+        // Could not create Join failure timer.
+        // Log error
+        limLog(pMac, LOGP, FL("could not create Join failure timer\n"));
+        return;
+    }
 
+
+#endif
     pMac->lim.gLimTimersCreated = 1;
 } /****** end limCreateTimers() ******/
 
@@ -1263,40 +1279,6 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
 
             break;
 
-        case eLIM_RELEASE_AID_TIMER:
-            if (tx_timer_deactivate(&pMac->lim.limTimers.gLimAIDreleaseTimer) !=
-                                    TX_SUCCESS)
-            {
-                // Could not deactivate Release AID timer.
-                // Log error
-                limLog(pMac, LOGP,
-                   FL("unable to deactivate Release AID timer\n"));
-            }
-
-            // Change timer to reactivate it in future
-            if (wlan_cfgGetInt(pMac, WNI_CFG_RELEASE_AID_TIMEOUT,
-                          &val) != eSIR_SUCCESS)
-            {
-                /**
-                 * Could not get Release AID timer value
-                 * from CFG. Log error.
-                 */
-                limLog(pMac, LOGP,
-                   FL("could not retrieve Release AID timer value\n"));
-            }
-            val = SYS_MS_TO_TICKS(val);
-
-            if (tx_timer_change(&pMac->lim.limTimers.gLimAIDreleaseTimer,
-                                val, val) != TX_SUCCESS)
-            {
-                // Could not change Release AID timer.
-                // Log error
-                limLog(pMac, LOGP,
-                   FL("unable to change Release AID timer\n"));
-            }
-
-            break;
-
         case eLIM_LEARN_INTERVAL_TIMER:
             {
             // Restart Learn Interval timer
@@ -1495,6 +1477,30 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP, FL("Unable to change Join Failure timer\n"));
             }
             break;
+#endif
+#ifdef WLAN_FEATURE_P2P
+        case eLIM_REMAIN_CHN_TIMER:
+				if (tx_timer_deactivate(&pMac->lim.limTimers.gLimRemainOnChannelTimer) != TX_SUCCESS)
+            {
+                /**
+                ** Could not deactivate Join Failure
+                ** timer. Log error.
+                **/
+                limLog(pMac, LOGP, FL("Unable to deactivate Remain on Chn timer\n"));
+            }
+            val = 1000;
+            val = SYS_MS_TO_TICKS(val);
+            if (tx_timer_change(&pMac->lim.limTimers.gLimRemainOnChannelTimer,
+                                                val, 0) != TX_SUCCESS)
+            {
+                /**
+                * Could not change Join Failure
+                * timer. Log error.
+                */
+                limLog(pMac, LOGP, FL("Unable to change timer\n"));
+            }
+            break;
+			break;
 #endif
 
         default:

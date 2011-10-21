@@ -483,7 +483,7 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAd
 }
 #endif //0
 
-tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAddr bssId)
+tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAddr bssId, tSirMacAddr selfMacAddr)
 {
     tSirMsgQ msgQ;
     tSirRetStatus retCode;
@@ -507,6 +507,7 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAd
 
     /* Copy Mac address */
     sirCopyMacAddr(pLinkStateParams->bssid,bssId);
+    sirCopyMacAddr(pLinkStateParams->selfMacAddr, selfMacAddr);
 
 
     msgQ.type = SIR_HAL_SET_LINK_STATE;

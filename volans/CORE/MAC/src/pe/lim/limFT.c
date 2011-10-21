@@ -43,7 +43,7 @@ void limFTCleanup(tpAniSirGlobal pMac)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, "%s: Freeing pFTPreAuthReq= %p\n", 
-            __func__, pMac->ft.ftPEContext.pFTPreAuthReq);) 
+            __FUNCTION__, pMac->ft.ftPEContext.pFTPreAuthReq);) 
 #endif
         vos_mem_free(pMac->ft.ftPEContext.pFTPreAuthReq);
         pMac->ft.ftPEContext.pFTPreAuthReq = NULL;
@@ -55,7 +55,7 @@ void limFTCleanup(tpAniSirGlobal pMac)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, "%s: Setting psavedsessionEntry= %p to NULL\n", 
-            __func__, pMac->ft.ftPEContext.psavedsessionEntry);) 
+            __FUNCTION__, pMac->ft.ftPEContext.psavedsessionEntry);) 
 #endif
         pMac->ft.ftPEContext.psavedsessionEntry = NULL;
     }
@@ -69,7 +69,7 @@ void limFTCleanup(tpAniSirGlobal pMac)
         pMac->ft.ftPEContext.pftSessionEntry = NULL;
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, "%s: Setting psavedsessionEntry= %p to NULL\n", 
-            __func__, pMac->ft.ftPEContext.psavedsessionEntry);) 
+            __FUNCTION__, pMac->ft.ftPEContext.psavedsessionEntry);) 
 #endif
     }
 
@@ -98,7 +98,7 @@ void limFTInit(tpAniSirGlobal pMac)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, "%s: Freeing pFTPreAuthReq= %p\n", 
-            __func__, pMac->ft.ftPEContext.pFTPreAuthReq);) 
+            __FUNCTION__, pMac->ft.ftPEContext.pFTPreAuthReq);) 
 #endif
         vos_mem_free(pMac->ft.ftPEContext.pFTPreAuthReq);
         pMac->ft.ftPEContext.pFTPreAuthReq = NULL;
@@ -110,7 +110,7 @@ void limFTInit(tpAniSirGlobal pMac)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, "%s: Setting psavedsessionEntry= %p to NULL\n", 
-            __func__, pMac->ft.ftPEContext.psavedsessionEntry);) 
+            __FUNCTION__, pMac->ft.ftPEContext.psavedsessionEntry);) 
 #endif
         pMac->ft.ftPEContext.psavedsessionEntry = NULL;
     }
@@ -122,7 +122,7 @@ void limFTInit(tpAniSirGlobal pMac)
         /* Cannot delete sessions across associations */
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, "%s: Deleting session = %p \n", 
-            __func__, pMac->ft.ftPEContext.pftSessionEntry);) 
+            __FUNCTION__, pMac->ft.ftPEContext.pftSessionEntry);) 
 #endif
         pMac->ft.ftPEContext.pftSessionEntry = NULL;
     }
@@ -131,7 +131,7 @@ void limFTInit(tpAniSirGlobal pMac)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, "%s: Freeing AddBssReq = %p \n", 
-            __func__, pMac->ft.ftPEContext.pAddBssReq);) 
+            __FUNCTION__, pMac->ft.ftPEContext.pAddBssReq);) 
 #endif
         vos_mem_free(pMac->ft.ftPEContext.pAddBssReq);
         pMac->ft.ftPEContext.pAddBssReq = NULL;
@@ -142,7 +142,7 @@ void limFTInit(tpAniSirGlobal pMac)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOGE(limLog( pMac, LOGE, "%s: Freeing AddStaReq = %p \n", 
-            __func__, pMac->ft.ftPEContext.pAddStaReq);) 
+            __FUNCTION__, pMac->ft.ftPEContext.pAddStaReq);) 
 #endif
         vos_mem_free(pMac->ft.ftPEContext.pAddStaReq);
         pMac->ft.ftPEContext.pAddStaReq = NULL;
@@ -165,7 +165,7 @@ void FTPreAuthSuspendLinkHandler(tpAniSirGlobal pMac, eHalStatus status, tANI_U3
     // The link is suspended of not ?
     if (status != eHAL_STATUS_SUCCESS) 
     {
-        PELOGE(limLog( pMac, LOGE, "%s: Returning \n", __func__);)
+        PELOGE(limLog( pMac, LOGE, "%s: Returning \n", __FUNCTION__);)
         // Post the FT Pre Auth Response to SME
         limPostFTPreAuthRsp(pMac, eSIR_FAILURE, NULL, 0, (tpPESession)data);
 
@@ -205,7 +205,7 @@ int limProcessFTPreAuthReq(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     pMac->ft.ftPEContext.pFTPreAuthReq = (tpSirFTPreAuthReq)pMsg->bodyptr;
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-    PELOGE(limLog( pMac, LOGE, "%s: PE Auth ft_ies_length=%02x%02x%02x\n", __func__,
+    PELOGE(limLog( pMac, LOGE, "%s: PE Auth ft_ies_length=%02x%02x%02x\n", __FUNCTION__,
         pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies[0],
         pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies[1],
         pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies[2]);)
@@ -217,7 +217,7 @@ int limProcessFTPreAuthReq(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     if (psessionEntry == NULL)
     {
         PELOGE(limLog( pMac, LOGE, "%s: Unable to find session for the following bssid\n", 
-            __func__);)
+            __FUNCTION__);)
         limPrintMacAddr( pMac, pMac->ft.ftPEContext.pFTPreAuthReq->currbssId, LOGE );
         // Post the FT Pre Auth Response to SME
         limPostFTPreAuthRsp(pMac, eSIR_FAILURE, NULL, 0, NULL); 
@@ -234,7 +234,7 @@ int limProcessFTPreAuthReq(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     else 
     {
         PELOGE(limLog( pMac, LOGE, "%s: Performing pre-auth on same channel\n", 
-            __func__);)
+            __FUNCTION__);)
         // We are in the same channel. Perform pre-auth
         limPerformFTPreAuth(pMac, eHAL_STATUS_SUCCESS, NULL, psessionEntry);
     }
@@ -280,12 +280,12 @@ void limPerformFTPreAuth(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data,
     if(TX_SUCCESS !=  tx_timer_activate(&pMac->lim.limTimers.gLimFTPreAuthRspTimer))
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-        PELOGE(limLog( pMac, LOGE, "%s: FT Auth Rsp Timer Start Failed\n", __func__);)
+        PELOGE(limLog( pMac, LOGE, "%s: FT Auth Rsp Timer Start Failed\n", __FUNCTION__);)
 #endif
     }
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-    PELOGE(limLog( pMac, LOGE, "%s: FT Auth Rsp Timer Started\n", __func__);)
+    PELOGE(limLog( pMac, LOGE, "%s: FT Auth Rsp Timer Started\n", __FUNCTION__);)
 #endif
 
     limSendAuthMgmtFrame(pMac, &authFrame,
@@ -487,6 +487,8 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     // Set a new state for MLME
 
     pftSessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE;
+	
+	pAddBssParams->halPersona=(tANI_U8)pftSessionEntry->pePersona; //pass on the session persona to hal
     
     pMac->ft.ftPEContext.pAddBssReq = pAddBssParams;
 
@@ -612,7 +614,7 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
     limLog( pMac, LOGE, "%s: Regulatory max = %d, local power constraint = %d, max tx = %d", 
-        __func__, regMax, localPowerConstraint, pftSessionEntry->maxTxPower );
+        __FUNCTION__, regMax, localPowerConstraint, pftSessionEntry->maxTxPower );
 #endif
 
     pftSessionEntry->limRFBand = limGetRFBand(pftSessionEntry->currentOperChannel);
@@ -624,7 +626,7 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
     PELOGE(limLog( pMac, LOGE, "%s: Created session with the id = %d\n", 
-       __func__, pftSessionEntry->peSessionId);)
+       __FUNCTION__, pftSessionEntry->peSessionId);)
 #endif
 
     return pftSessionEntry;

@@ -68,8 +68,10 @@ eHalStatus halTable_Open(tHalHandle hHal, void *arg)
     pMac->hal.halMac.maxSta = max_sta;
     pMac->hal.halMac.numOfValidSta= 0;
 
+#ifndef HAL_SELF_STA_PER_BSS
     // Initialize the Self STAID to an invalid value
     pMac->hal.halMac.selfStaId = HAL_STA_INVALID_IDX;
+#endif
 
     return eHAL_STATUS_SUCCESS;
 out:
@@ -115,8 +117,10 @@ eHalStatus halTable_Stop(tHalHandle hHal, void *arg)
 
     (void) arg;
 
+#ifndef HAL_SELF_STA_PER_BSS
     // Clean up the Self STAID
     pMac->hal.halMac.selfStaId = HAL_STA_INVALID_IDX;
+#endif
 
     max_sta     = (tANI_U8) pMac->hal.memMap.maxStations;
     max_bssid   = (tANI_U8) pMac->hal.memMap.maxBssids;
@@ -257,7 +261,7 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
         }
     } else {
         minIndex = HAL_MIN_STA_INDEX;
-        maxIndex = HAL_NUM_STA;
+        maxIndex = (HAL_NUM_STA);
     }
     t += minIndex;
 #else
@@ -280,8 +284,8 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
                     HALLOGE( halLog(pMac, LOGE, FL("This SELF STA mac addr already exist in entry %d. \n"),i));
                     *id = i;
                     sta = t;
-                    found = i;
-                    break;
+                    found = i;                    
+                    return eHAL_STATUS_SUCCESS;
                 }
             }
             else
@@ -307,6 +311,17 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
                 continue;
         }
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+        if ((pMac->hal.useOnlyVstaIdx) && 
+            (type == STA_ENTRY_PEER) && !IS_VSTA_IDX(i))
+            continue;
+
+        // make sure we never assign the General Purpose STAs used to
+        // support the Virtual Station functionality
+        if (IS_GPSTA_IDX(i))
+            continue;
+#endif
+
         /* Assign this free staid entry */
         if ( (t->valid == 0) && (!sta) )
         {
@@ -319,7 +334,7 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
     HALLOG1( halLog(pMac, LOG1, FL("Got station index %d \n"), found));
 //#endif
 
-    if ((i == pMac->hal.halMac.maxSta) && !sta)
+    if ((i == maxIndex) && !sta)
     {
         HALLOGE( halLog(pMac, LOGE, FL("Station table full")));
         return eHAL_STATUS_STA_TABLE_FULL;
@@ -385,12 +400,14 @@ eHalStatus halTable_ClearSta(tpAniSirGlobal pMac, tANI_U8 id)
         {
             halTable_BssDelSta(pMac, t[id].bssIdx, id);
         }
+#ifndef HAL_SELF_STA_PER_BSS
         else if(STA_ENTRY_SELF == t[id].staType)
         {
             // Check if this was same as the stored Self-STAID then reset the stored index
             if(id == (tANI_U8)pMac->hal.halMac.selfStaId)
                 pMac->hal.halMac.selfStaId = HAL_STA_INVALID_IDX;
         }
+#endif
         
         //clear the statistics maintained for this sta
         halMacClearStaStats(pMac, id);
@@ -1893,6 +1910,15 @@ eHalStatus halTable_GetStaTxConfig( tpAniSirGlobal pMac,
     }
 }
 
+tANI_U8 halTable_UpdateStaRefCount ( tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 add )
+{
+   tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
+
+   if( add )
+      return ++t[staIdx].refCount;
+
+   return --t[staIdx].refCount;
+}
 #if defined(ANI_OS_TYPE_LINUX)
 /**
  * \brief Adds station the the cache table. If the staId already exists

@@ -24,6 +24,11 @@
 #define CSR_ACTIVE_MAX_CHANNEL_TIME    40
 #define CSR_ACTIVE_MIN_CHANNEL_TIME    20
 
+#ifdef WLAN_AP_STA_CONCURRENCY
+#define CSR_ACTIVE_MAX_CHANNEL_TIME_CONC    27
+#define CSR_ACTIVE_MIN_CHANNEL_TIME_CONC    20
+#endif
+
 #define CSR_MAX_NUM_SUPPORTED_CHANNELS 55
 
 #define CSR_MAX_BSS_SUPPORT            50
@@ -39,6 +44,9 @@
 #define CSR_IDLE_SCAN_NO_PS_INTERVAL     (10 * PAL_TIMER_TO_SEC_UNIT)     //10 second 
 #define CSR_IDLE_SCAN_NO_PS_INTERVAL_MIN (5 * PAL_TIMER_TO_SEC_UNIT)
 #define CSR_SCAN_GET_RESULT_INTERVAL    (5 * PAL_TIMER_TO_SEC_UNIT)     //5 seconds
+#ifdef WLAN_AP_STA_CONCURRENCY
+#define CSR_SCAN_STAAP_CONC_INTERVAL    (20 * PAL_TIMER_TO_MS_UNIT)     //20 milliseconds
+#endif
 #define CSR_MIC_ERROR_TIMEOUT  (60 * PAL_TIMER_TO_SEC_UNIT)     //60 seconds
 #define CSR_TKIP_COUNTER_MEASURE_TIMEOUT  (60 * PAL_TIMER_TO_SEC_UNIT)     //60 seconds
 #define CSR_SCAN_RESULT_AGING_INTERVAL    (5 * PAL_TIMER_TO_SEC_UNIT)     //5 seconds
@@ -344,7 +352,12 @@ tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11
 eHalStatus csrRoamSetKey( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 roamId );
 eHalStatus csrRoamOpenSession( tpAniSirGlobal pMac, csrRoamCompleteCallback callback, void *pContext,
                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId );
-eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId );
+//fSync: TRUE means cleanupneeds to handle synchronously.
+eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                tANI_BOOLEAN fSync, 
+                                csrRoamSessionCloseCallback callback,
+                                void *pContext );
+void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId);
 eHalStatus csrRoamGetSessionIdFromBSSID( tpAniSirGlobal pMac, tCsrBssid *bssid, tANI_U32 *pSessionId );
 eCsrCfgDot11Mode csrFindBestPhyMode( tpAniSirGlobal pMac, tANI_U32 phyMode );
 
@@ -372,8 +385,9 @@ eHalStatus csrScanDisable(tpAniSirGlobal);
     \param pContext - a pointer passed in for the callback
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
-eHalStatus csrScanRequest(tpAniSirGlobal, tCsrScanRequest *, tANI_U32 *pScanRequestID, 
-                            csrScanCompleteCallback callback, void *pContext);
+eHalStatus csrScanRequest(tpAniSirGlobal, tANI_U16, tCsrScanRequest *,
+                   tANI_U32 *pScanRequestID, csrScanCompleteCallback callback,
+                   void *pContext);
 
 /* ---------------------------------------------------------------------------
     \fn csrScanAbort
@@ -511,6 +525,7 @@ eHalStatus csrScanGetBaseChannels( tpAniSirGlobal pMac, tCsrChannelInfo * pChann
 //Return SUCCESS is the command is queued, failed
 eHalStatus csrQueueSmeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fHighPriority );
 tSmeCmd *csrGetCommandBuffer( tpAniSirGlobal pMac );
+void csrReleaseCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 #ifdef FEATURE_WLAN_WAPI
 tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile );
 #endif /* FEATURE_WLAN_WAPI */
@@ -831,13 +846,14 @@ eHalStatus csrSendMBGetAssociatedStasReqMsg( tpAniSirGlobal pMac, tANI_U32 sessi
     \param sessionId - session Id for Soft AP
     \param pUsrContext - Opaque HDD context
     \param pfnSapEventCallback - Sap event callback in HDD
+    \param pRemoveMac - pointer to MAC address of session to be removed
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 eHalStatus csrRoamGetWpsSessionOverlap( tpAniSirGlobal pMac, tANI_U32 sessionId,
-                             void *pUsrContext, void *pfnSapEventCallback );
+                             void *pUsrContext, void *pfnSapEventCallback,v_MACADDR_t pRemoveMac );
                                         
 eHalStatus csrSendMBGetWPSPBCSessions( tpAniSirGlobal pMac, tANI_U32 sessionId,
-                            tSirMacAddr bssId, void *pUsrContext, void *pfnSapEventCallback);
+                            tSirMacAddr bssId, void *pUsrContext, void *pfnSapEventCallback,v_MACADDR_t pRemoveMac);
                             
 #endif
 

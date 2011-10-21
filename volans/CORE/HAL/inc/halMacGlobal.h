@@ -167,8 +167,10 @@ typedef struct sAniSirHalMac
     // Following max are read from CFG.
     tANI_U16 maxSta;              // Max supported STA
     tANI_U16 maxBssId;            // Max BSSIDs supported
+#ifndef HAL_SELF_STA_PER_BSS
     tANI_U16 selfStaId;              // Store the Self Sta ID here -
                                   // Used during self MAC address updates
+#endif
     tANI_U16 selfStaDpuId;        // Self Sta DPU Idx store 
     tANI_U16 numOfValidSta;       // Current number of STA's connected or valid in the StaTable
     tANI_U8  fShortSlot:1;          // this flag is for per BSS shortSlot setting..
@@ -179,8 +181,24 @@ typedef struct sAniSirHalMac
     tANI_U32 activeBss;
 
     tANI_U16 BeaconRateIndex;        //Beacon rate index for beacon frames
-    tANI_U16 NonBeaconRateIndex;     //Rate index for non-beacon frames
-    tANI_U16 MulticastRateIndex;     //Rate index for multicast frames 
+
+    /* 
+     * Rate index1  for non-beacon frames. This will be mapped to BD rate 0
+     * and it will be used to transmit broadcast frames.
+     */
+    tANI_U16 MulticastRateIndex;
+
+    /* 
+     * Rate index2  for non-beacon frames. This will be mapped to BD rate 1
+     * and it will be used to transmit frame management frames.
+     */
+    tANI_U16 NonBeaconRateIndex;
+
+    /* 
+     * Rate index3  for non-beacon frames. This will be mapped to BD rate 2
+     * and will be used for P2P.
+     */
+    tANI_U16 NonBeaconRateIndex2;
 
     // Global BSS and STA table
     // Memory is allocated when needed.

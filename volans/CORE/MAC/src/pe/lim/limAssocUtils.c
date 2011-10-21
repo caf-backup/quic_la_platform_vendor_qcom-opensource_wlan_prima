@@ -409,7 +409,7 @@ tANI_U8
 limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSessionEntry, tANI_U8 staIsHT)
 {
     tDot11fIERSN    *pRSNIe;
-    tANI_U8         i, j, match, onlyNonHtCipher=1;
+    tANI_U8         i, j, match, onlyNonHtCipher = 1;
 
 
     //RSN IE should be received from PE
@@ -444,7 +444,7 @@ limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSess
 
         if ((staIsHT) 
 #ifdef ANI_LITTLE_BYTE_ENDIAN
-			&&( (rxRSNIe.pwise_cipher_suites[i][3] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+            &&( (rxRSNIe.pwise_cipher_suites[i][3] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
 #else
             &&( (rxRSNIe.pwise_cipher_suites[i][0] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
 #endif            
@@ -454,7 +454,7 @@ limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSess
 
     }
 
-    if ((!match) || ((staIsHT)&&onlyNonHtCipher))
+    if ((!match) || ((staIsHT) && onlyNonHtCipher))
     {
         return eSIR_MAC_INVALID_PAIRWISE_CIPHER_STATUS;
     }
@@ -493,7 +493,7 @@ tANI_U8
 limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSessionEntry, tANI_U8 staIsHT)
 {
     tDot11fIEWPA    *pWPAIe;
-    tANI_U8         i, j, match, onlyNonHtCipher=1;
+    tANI_U8         i, j, match, onlyNonHtCipher = 1;
 
     // WPA IE should be received from PE
     pWPAIe = &pSessionEntry->gStartBssWPAIe;
@@ -527,7 +527,7 @@ limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSess
 
         if ((staIsHT) 
 #ifdef ANI_LITTLE_BYTE_ENDIAN
-			&&( (rxWPAIe.unicast_ciphers[i][3] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+            &&( (rxWPAIe.unicast_ciphers[i][3] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
 #else
             &&( (rxWPAIe.unicast_ciphers[i][0] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
 #endif            
@@ -537,7 +537,7 @@ limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSess
 
     }
 
-    if ((!match) || ((staIsHT)&&onlyNonHtCipher))
+    if ((!match) || ((staIsHT) && onlyNonHtCipher))
     {
         return eSIR_MAC_CIPHER_SUITE_REJECTED_STATUS;
     }
@@ -602,23 +602,20 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
         {
             /**
              * There is no context at Polaris to delete.
-             * Add AID to TBR list which will move to
-             * free pool upon periodic AID cleanup.
+             * Release our assigned AID back to the free pool
              */
-//#if (WNI_POLARIS_FW_PRODUCT == AP)
             if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) || 
                 (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE))
             {    
-                limAddAIDtoTBRList(pMac, pStaDs->assocId);
+                limReleaseAID(pMac, pStaDs->assocId);
             }
-//#endif
             limDeleteDphHashEntry(pMac, pStaDs->staAddr, pStaDs->assocId,psessionEntry);
 
             return retCode;
         }
     }
 
-    //delete all tspecs associated witht his sta.
+    //delete all tspecs associated with this sta.
     limAdmitControlDeleteSta(pMac, pStaDs->assocId);
 
 #if (WNI_POLARIS_FW_PRODUCT==AP)
@@ -640,7 +637,7 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_WT_DEL_STA_RSP_STATE));
         psessionEntry->limMlmState = eLIM_MLM_WT_DEL_STA_RSP_STATE;
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_WT_DEL_STA_RSP_STATE));
-	/* Deactivating probe after heart beat timer */
+        /* Deactivating probe after heart beat timer */
         limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
         limHeartBeatDeactivateAndChangeTimer(pMac, psessionEntry);
         limDeactivateAndChangeTimer(pMac, eLIM_KEEPALIVE_TIMER);
@@ -1217,95 +1214,95 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
 \return      None
   -------------------------------------------------------------*/
 #ifdef WLAN_SOFTAP_FEATURE
-void
-limDecideShortPreamble(tpAniSirGlobal pMac, 
-      tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry )
+	void
+	limDecideShortPreamble(tpAniSirGlobal pMac, 
+		  tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry )
 #else
-void
-limDecideShortPreamble(tpAniSirGlobal pMac, 
-      tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams )
+	void
+	limDecideShortPreamble(tpAniSirGlobal pMac, 
+		  tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams )
 #endif
-{
-    tANI_U32 i;
-
+	{
+		tANI_U32 i;
+	
 #ifdef WLAN_SOFTAP_FEATURE
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
-    {
-        if (pStaDs->shortPreambleEnabled == eHAL_CLEAR)
-        {
-            PELOG1(limLog(pMac, LOG1, FL("(%d) A non-short preamble STA is disassociated. Addr is "),
-                   psessionEntry->gLimNoShortParams.numNonShortPreambleSta);
-            limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
-            if (psessionEntry->gLimNoShortParams.numNonShortPreambleSta > 0)
-            {
-                for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
-                {
-                    if (psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
-                    {
-                        if (palEqualMemory( pMac->hHdd, psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
-                                            pStaDs->staAddr, sizeof(tSirMacAddr)))
-                        {
-                           psessionEntry->gLimNoShortParams.numNonShortPreambleSta--;
-                           psessionEntry->gLimNoShortParams.staNoShortCache[i].active = false;
-                           break;
-                        }
-                    }
-                }
-            }
-
-            if (psessionEntry->gLimNoShortParams.numNonShortPreambleSta == 0)
-            {
-                // enable short preamble
-                PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short preamble support now.\n"));)
-                //reset the cache
-                palZeroMemory( pMac->hHdd, (tANI_U8 *)&psessionEntry->gLimNoShortParams , sizeof(tLimNoShortParams));
-                if (limEnableShortPreamble(pMac, true, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
-                    PELOGE(limLog(pMac, LOGE, FL("Cannot enable short preamble\n"));)
-            }
-        }
-    }
-    else
+		if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
+		{
+			if (pStaDs->shortPreambleEnabled == eHAL_CLEAR)
+			{
+				PELOG1(limLog(pMac, LOG1, FL("(%d) A non-short preamble STA is disassociated. Addr is "),
+					   psessionEntry->gLimNoShortParams.numNonShortPreambleSta);
+				limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
+				if (psessionEntry->gLimNoShortParams.numNonShortPreambleSta > 0)
+				{
+					for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
+					{
+						if (psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
+						{
+							if (palEqualMemory( pMac->hHdd, psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
+												pStaDs->staAddr, sizeof(tSirMacAddr)))
+							{
+							   psessionEntry->gLimNoShortParams.numNonShortPreambleSta--;
+							   psessionEntry->gLimNoShortParams.staNoShortCache[i].active = false;
+							   break;
+							}
+						}
+					}
+				}
+	
+				if (psessionEntry->gLimNoShortParams.numNonShortPreambleSta == 0)
+				{
+					// enable short preamble
+					PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short preamble support now.\n"));)
+					//reset the cache
+					palZeroMemory( pMac->hHdd, (tANI_U8 *)&psessionEntry->gLimNoShortParams , sizeof(tLimNoShortParams));
+					if (limEnableShortPreamble(pMac, true, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
+						PELOGE(limLog(pMac, LOGE, FL("Cannot enable short preamble\n"));)
+				}
+			}
+		}
+		else
 #endif
-    {
-        if (pStaDs->shortPreambleEnabled == eHAL_CLEAR)
-        {
-            PELOG1(limLog(pMac, LOG1, FL("(%d) A non-short preamble STA is disassociated. Addr is "),
-                          pMac->lim.gLimNoShortParams.numNonShortPreambleSta);
-            limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
-            if (pMac->lim.gLimNoShortParams.numNonShortPreambleSta > 0)
-            {
-                for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
-                {
-                    if (pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
-                    {
-                        if (palEqualMemory( pMac->hHdd, pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
-                                            pStaDs->staAddr, sizeof(tSirMacAddr)))
-                        {
-                            pMac->lim.gLimNoShortParams.numNonShortPreambleSta--;
-                            pMac->lim.gLimNoShortParams.staNoShortCache[i].active = false;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (pMac->lim.gLimNoShortParams.numNonShortPreambleSta == 0)
-            {
-                // enable short preamble
-                PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short preamble support now.\n"));)
-                //reset the cache
-                palZeroMemory( pMac->hHdd, (tANI_U8 *)&pMac->lim.gLimNoShortParams , sizeof(tLimNoShortParams));
-
+		{
+			if (pStaDs->shortPreambleEnabled == eHAL_CLEAR)
+			{
+				PELOG1(limLog(pMac, LOG1, FL("(%d) A non-short preamble STA is disassociated. Addr is "),
+							  pMac->lim.gLimNoShortParams.numNonShortPreambleSta);
+				limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
+				if (pMac->lim.gLimNoShortParams.numNonShortPreambleSta > 0)
+				{
+					for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
+					{
+						if (pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
+						{
+							if (palEqualMemory( pMac->hHdd, pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
+												pStaDs->staAddr, sizeof(tSirMacAddr)))
+							{
+								pMac->lim.gLimNoShortParams.numNonShortPreambleSta--;
+								pMac->lim.gLimNoShortParams.staNoShortCache[i].active = false;
+								break;
+							}
+						}
+					}
+				}
+	
+				if (pMac->lim.gLimNoShortParams.numNonShortPreambleSta == 0)
+				{
+					// enable short preamble
+					PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short preamble support now.\n"));)
+					//reset the cache
+					palZeroMemory( pMac->hHdd, (tANI_U8 *)&pMac->lim.gLimNoShortParams , sizeof(tLimNoShortParams));
+	
 #ifdef WLAN_SOFTAP_FEATURE
-                if (limEnableShortPreamble(pMac, true, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
+					if (limEnableShortPreamble(pMac, true, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
 #else
-                if (limEnableShortPreamble(pMac, true, pBeaconParams) != eSIR_SUCCESS)
+					if (limEnableShortPreamble(pMac, true, pBeaconParams) != eSIR_SUCCESS)
 #endif
-                    PELOGE(limLog(pMac, LOGE, FL("Cannot enable short preamble\n"));)
-            }
-         }
-    }
-}
+						PELOGE(limLog(pMac, LOGE, FL("Cannot enable short preamble\n"));)
+				}
+			 }
+		}
+	}
 
 /** -------------------------------------------------------------
 \fn limDecideShortSlot
@@ -1314,104 +1311,98 @@ limDecideShortPreamble(tpAniSirGlobal pMac,
 \param      tpDphHashNode pStaDs
 \return      None
   -------------------------------------------------------------*/
-
-#ifdef WLAN_SOFTAP_FEATURE
+	
 void
 limDecideShortSlot(tpAniSirGlobal pMac, tpDphHashNode pStaDs,  
-                                      tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry)
-#else
-void
-limDecideShortSlot(tpAniSirGlobal pMac, tpDphHashNode pStaDs,  
-                                      tpUpdateBeaconParams pBeaconParams)
-#endif
+									  tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry)
 {
-    tANI_U32 i, val;
-    if (pStaDs->shortSlotTimeEnabled == eHAL_CLEAR)
-    {
-        PELOG1(limLog(pMac, LOG1, FL("(%d) A non-short slottime STA is disassociated. Addr is "),
-               pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta);
-        limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
+	tANI_U32 i, val;
+	if (pStaDs->shortSlotTimeEnabled == eHAL_CLEAR)
+	{
+		PELOG1(limLog(pMac, LOG1, FL("(%d) A non-short slottime STA is disassociated. Addr is "),
+			   pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta);
+		limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
 
 #ifdef WLAN_SOFTAP_FEATURE
-        if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-             psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta> 0)
-        {
-            for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
-            {
-                if (psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
-                {
-                    if (palEqualMemory( pMac->hHdd, psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
-                            pStaDs->staAddr, sizeof(tSirMacAddr)))
-                    {
-                        psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta--;
-                        psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active = false;
-                        break;
-                    }
-                }
-            }
-        }
-        else 
+		if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
+			 psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta> 0)
+		{
+			for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
+			{
+				if (psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
+				{
+					if (palEqualMemory( pMac->hHdd, psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
+							pStaDs->staAddr, sizeof(tSirMacAddr)))
+					{
+						psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta--;
+						psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active = false;
+						break;
+					}
+				}
+			}
+		}
+		else 
 #endif
-       {
-            if (pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta> 0)
-            {
-                for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
-                {
-                    if (pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
-                    {
-                        if (palEqualMemory( pMac->hHdd, pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
-                                            pStaDs->staAddr, sizeof(tSirMacAddr)))
-                        {
-                            pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta--;
-                            pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active = false;
-                            break;
-                        }
-                    }
-                }
-            }
-       }
+	   {
+			if (pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta> 0)
+			{
+				for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
+				{
+					if (pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
+					{
+						if (palEqualMemory( pMac->hHdd, pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
+											pStaDs->staAddr, sizeof(tSirMacAddr)))
+						{
+							pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta--;
+							pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active = false;
+							break;
+						}
+					}
+				}
+			}
+	   }
 
-        wlan_cfgGetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED, &val);
+		wlan_cfgGetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED, &val);
 
 #ifdef WLAN_SOFTAP_FEATURE
-        if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-             (val && psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta == 0))
-        {
-            // enable short slot time
-            PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short slot time support now.\n"));)
-            //reset the cache
-            palZeroMemory( pMac->hHdd, (tANI_U8 *)&psessionEntry->gLimNoShortSlotParams , sizeof(tLimNoShortSlotParams));
-            // in case of AP set SHORT_SLOT_TIME to enable
-            if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-            {
-                pBeaconParams->fShortSlotTime = true;
-                pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
+		if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
+			 (val && psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta == 0))
+		{
+			// enable short slot time
+			PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short slot time support now.\n"));)
+			//reset the cache
+			palZeroMemory( pMac->hHdd, (tANI_U8 *)&psessionEntry->gLimNoShortSlotParams , sizeof(tLimNoShortSlotParams));
+			// in case of AP set SHORT_SLOT_TIME to enable
+			if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
+			{
+				pBeaconParams->fShortSlotTime = true;
+				pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
 
-                if (cfgSetInt(pMac,  WNI_CFG_SHORT_SLOT_TIME,  true) != eSIR_SUCCESS)
-                    PELOGE(limLog(pMac, LOGE,  FL("could not update short slot time at CFG\n"));)
-            }
-        }
-        else 
+				if (cfgSetInt(pMac,  WNI_CFG_SHORT_SLOT_TIME,  true) != eSIR_SUCCESS)
+					PELOGE(limLog(pMac, LOGE,  FL("could not update short slot time at CFG\n"));)
+			}
+		}
+		else 
 #endif
-       {
-           if (val && pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta == 0)
-           {
-                // enable short slot time
-                PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short slot time support now.\n"));)
-                //reset the cache
-                palZeroMemory( pMac->hHdd, (tANI_U8 *)&pMac->lim.gLimNoShortSlotParams , sizeof(tLimNoShortSlotParams));
-                // in case of AP set SHORT_SLOT_TIME to enable
-                if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-                {
-                    pBeaconParams->fShortSlotTime = true;
-                    pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
+	   {
+		   if (val && pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta == 0)
+		   {
+				// enable short slot time
+				PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short slot time support now.\n"));)
+				//reset the cache
+				palZeroMemory( pMac->hHdd, (tANI_U8 *)&pMac->lim.gLimNoShortSlotParams , sizeof(tLimNoShortSlotParams));
+				// in case of AP set SHORT_SLOT_TIME to enable
+				if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
+				{
+					pBeaconParams->fShortSlotTime = true;
+					pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
 
-                    if (cfgSetInt(pMac,  WNI_CFG_SHORT_SLOT_TIME,  true) != eSIR_SUCCESS)
-                        PELOGE(limLog(pMac, LOGE,  FL("could not update short slot time at CFG\n"));)
-                }
-            }
-       }
-    }
+					if (cfgSetInt(pMac,  WNI_CFG_SHORT_SLOT_TIME,  true) != eSIR_SUCCESS)
+						PELOGE(limLog(pMac, LOGE,  FL("could not update short slot time at CFG\n"));)
+				}
+			}
+	   }
+	}
 }
 
 /**
@@ -2013,7 +2004,10 @@ limAddSta(
     tSirRetStatus     retCode = eSIR_SUCCESS;
     tSirMacAddr     staMac, *pStaAddr;
     tANI_U8 i;
-
+#ifdef WLAN_FEATURE_P2P
+    tpSirAssocReq   pAssocReq;
+    tANI_U8  *p2pIe = NULL;
+#endif
     #if 0
     retCode = wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, staMac, &cfg);
     if (retCode != eSIR_SUCCESS)
@@ -2089,6 +2083,18 @@ limAddSta(
     pAddStaParams->mimoPS = pStaDs->htMIMOPSState;
     /* Update PE session ID*/
     pAddStaParams->sessionId = psessionEntry->peSessionId;
+
+    if (psessionEntry->parsedAssocReq != NULL)
+    {	
+#ifdef WLAN_FEATURE_P2P
+    // Get a copy of the already parsed Assoc Request
+       pAssocReq = (tpSirAssocReq) psessionEntry->parsedAssocReq[pStaDs->assocId];
+       if ( pAssocReq && pAssocReq->addIEPresent && pAssocReq->addIE.length ) {
+           p2pIe = limGetP2pIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
+       }
+       pAddStaParams->p2pCapableSta = (p2pIe != NULL);
+#endif
+    }
 
     //Disable BA. It will be set as part of ADDBA negotiation.
     for( i = 0; i < STACFG_MAX_TC; i++ )
@@ -2431,6 +2437,13 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
 		limLog(pMac, LOGP, FL("Couldn't get LISTEN_INTERVAL\n"));
 	pAddStaParams->listenInterval = (tANI_U16)listenInterval;
 
+#ifdef WLAN_FEATURE_P2P
+    if (VOS_P2P_CLIENT_MODE == psessionEntry->pePersona)
+    {
+        pAddStaParams->p2pCapableSta = 1;       
+    }
+#endif
+
     limFillSupportedRatesInfo(pMac, NULL, &pAddStaParams->supportedRates,psessionEntry);
 
     msgQ.type = SIR_HAL_ADD_STA_REQ;
@@ -2509,16 +2522,15 @@ limTeardownInfraBss(tpAniSirGlobal pMac,tpPESession psessionEntry)
 void limHandleCnfWaitTimeout(tpAniSirGlobal pMac, tANI_U16 staId)
 {
     tpDphHashNode       pStaDs;
-
-    //to get the MlME state based on sessionId, use the below seesionEntry
-    //priority - HIGH
-    tpPESession psessionEntry;
+    tLimSystemRole systemRole;
+    tpPESession psessionEntry = NULL;
 
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gpLimCnfWaitTimer[staId].sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
         return;
     }
+    systemRole = limGetSystemRole(psessionEntry);
     pStaDs = dphGetHashEntry(pMac, staId, &psessionEntry->dph.dphHashTable);
 
     if (pStaDs == NULL)
@@ -2532,7 +2544,7 @@ void limHandleCnfWaitTimeout(tpAniSirGlobal pMac, tANI_U16 staId)
             PELOGW(limLog(pMac, LOGW, FL("Did not receive Assoc Cnf in eLIM_MLM_WT_ASSOC_CNF_STATE sta Assoc id %d\n"), pStaDs->assocId);)
             limPrintMacAddr(pMac, pStaDs->staAddr, LOGW);
 
-            if ( (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)|| (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
+            if ( (systemRole == eLIM_AP_ROLE)|| (systemRole == eLIM_BT_AMP_AP_ROLE) )
             {
                 limRejectAssociation(
                             pMac,
@@ -2578,8 +2590,9 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
     tANI_U16              aid;
     tpDphHashNode    pStaDs;
     tUpdateBeaconParams beaconParams;    
-    beaconParams.paramChangeBitmap = 0;
+    tLimSystemRole systemRole = limGetSystemRole(psessionEntry);
 
+    beaconParams.paramChangeBitmap = 0;
     limDeactivateAndChangePerStaIdTimer(pMac, eLIM_CNF_WAIT_TIMER, staId);
     if(psessionEntry==NULL)
     	return;
@@ -2590,7 +2603,7 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
          PELOGW(limLog(pMac, LOGW, FL("Deleting DPH Hash entry for STAID: %X\n "), staId);)
         // update the station count and perform associated actions
         // do this before deleting the dph hash entry
-        limUtilCountStaDel(pMac, pStaDs, psessionEntry->limSystemRole);
+        limUtilCountStaDel(pMac, pStaDs, psessionEntry);
 
         if((eLIM_AP_ROLE == psessionEntry->limSystemRole) ||
               (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole))
@@ -2603,16 +2616,11 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
             }	
 #endif         
 
-            if(eLIM_STA_IN_IBSS_ROLE == pMac->lim.gLimSystemRole)
-                limIbssDecideProtectionOnDelete(pMac, pStaDs, &beaconParams,psessionEntry);
+            if(eLIM_STA_IN_IBSS_ROLE == systemRole)
+                limIbssDecideProtectionOnDelete(pMac, pStaDs, &beaconParams, psessionEntry);
 
-#ifdef WLAN_SOFTAP_FEATURE
-            limDecideShortPreamble(pMac, pStaDs, &beaconParams, psessionEntry);
+			limDecideShortPreamble(pMac, pStaDs, &beaconParams, psessionEntry);
             limDecideShortSlot(pMac, pStaDs, &beaconParams, psessionEntry);
-#else
-            limDecideShortPreamble(pMac, pStaDs, &beaconParams);
-            limDecideShortSlot(pMac, pStaDs, &beaconParams);
-#endif
 
             //Send message to HAL about beacon parameter change.
             PELOGW(limLog(pMac, LOGW, FL("param bitmap = %d \n"), beaconParams.paramChangeBitmap);)
@@ -3048,8 +3056,8 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                 pAddBssParams->staContext.rifsMode = pAssocRsp->HTInfo.rifsMode;
         }
 
-        if ((pMac->lim.gLimWmeEnabled && pAssocRsp->wmeEdcaPresent) ||
-                (pMac->lim.gLimQosEnabled && pAssocRsp->edcaPresent))
+        if ((psessionEntry->limWmeEnabled && pAssocRsp->wmeEdcaPresent) ||
+                (psessionEntry->limQosEnabled && pAssocRsp->edcaPresent))
             pAddBssParams->staContext.wmmEnabled = 1;
         else 
             pAddBssParams->staContext.wmmEnabled = 0;
@@ -3086,6 +3094,15 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     // FIXME_GEN4 - Any other value that can be used for initialization?
     pAddBssParams->status = eHAL_STATUS_SUCCESS;
     pAddBssParams->respReqd = true;
+
+	pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
+
+#ifdef WLAN_FEATURE_P2P
+    if (VOS_P2P_CLIENT_MODE == psessionEntry->pePersona)
+    {
+        pAddBssParams->staContext.p2pCapableSta = 1;       
+    }
+#endif
 
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )
@@ -3276,8 +3293,8 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
                 pAddBssParams->staContext.rifsMode = beaconStruct.HTInfo.rifsMode;
         }
 
-        if ((pMac->lim.gLimWmeEnabled && beaconStruct.wmeEdcaPresent) ||
-                (pMac->lim.gLimQosEnabled && beaconStruct.edcaPresent))
+        if ((psessionEntry->limWmeEnabled && beaconStruct.wmeEdcaPresent) ||
+                (psessionEntry->limQosEnabled && beaconStruct.edcaPresent))
             pAddBssParams->staContext.wmmEnabled = 1;
         else 
             pAddBssParams->staContext.wmmEnabled = 0;
@@ -3301,6 +3318,7 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     }
 
     pAddBssParams->staContext.encryptType = psessionEntry->encryptType;
+
 #if defined WLAN_FEATURE_VOWIFI  
     pAddBssParams->maxTxPower = psessionEntry->maxTxPower;
 #endif
@@ -3311,6 +3329,8 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     pAddBssParams->staContext.sessionId = psessionEntry->peSessionId;
     pAddBssParams->sessionId = psessionEntry->peSessionId;
     
+	pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
+
     // Set a new state for MLME
 
     //pMac->lim.gLimMlmState = eLIM_MLM_WT_ADD_BSS_RSP_PREASSOC_STATE;
@@ -3482,8 +3502,8 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                 pAddBssParams->staContext.rifsMode = pAssocRsp->HTInfo.rifsMode;
         }
 
-        if ((pMac->lim.gLimWmeEnabled && pAssocRsp->wmeEdcaPresent) ||
-                (pMac->lim.gLimQosEnabled && pAssocRsp->edcaPresent))
+        if ((psessionEntry->limWmeEnabled && pAssocRsp->wmeEdcaPresent) ||
+                (psessionEntry->limQosEnabled && pAssocRsp->edcaPresent))
             pAddBssParams->staContext.wmmEnabled = 1;
         else 
             pAddBssParams->staContext.wmmEnabled = 0;
@@ -3518,6 +3538,8 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     // FIXME_GEN4 - Any other value that can be used for initialization?
     pAddBssParams->status = eHAL_STATUS_SUCCESS;
     pAddBssParams->respReqd = true;
+
+    pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
 
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )
@@ -3586,15 +3608,13 @@ limPrepareAndSendDelStaCnf(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tSirResult
     mlmStaContext = pStaDs->mlmStaContext;
     if(eSIR_SME_SUCCESS == statusCode)
     {
-//#if (WNI_POLARIS_FW_PRODUCT == AP)
         if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
             (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE))
         {
-            limAddAIDtoTBRList(pMac, pStaDs->assocId);
+            limReleaseAID(pMac, pStaDs->assocId);
         }
-//#endif
 
-      limDeleteDphHashEntry(pMac, pStaDs->staAddr, pStaDs->assocId,psessionEntry);
+        limDeleteDphHashEntry(pMac, pStaDs->staAddr, pStaDs->assocId,psessionEntry);
     }
     if ( (psessionEntry->limSystemRole == eLIM_STA_ROLE)||(psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE))
     {

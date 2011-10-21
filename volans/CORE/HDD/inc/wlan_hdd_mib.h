@@ -8,7 +8,8 @@ typedef enum
 {
     eMib_dot11DesiredBssType_infrastructure = 1,
     eMib_dot11DesiredBssType_independent = 2,
-    eMib_dot11DesiredBssType_any = 3
+    eMib_dot11DesiredBssType_infra_ap =3,
+    eMib_dot11DesiredBssType_any = 4
     
 } eMib_dot11DesiredBssType;
 

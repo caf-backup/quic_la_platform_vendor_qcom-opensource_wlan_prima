@@ -28,7 +28,6 @@
 #include "halMacUtilsApi.h"
 #include "halMsgApi.h"
 #include "halMacSecurityApi.h"
-#include "halTxRx.h"
 #include "halBDApi.h"
 #include "halMacBA.h"
 #include "halHddApis.h"
@@ -43,12 +42,15 @@ extern tSirRetStatus halMmhPostMsgApi(tpAniSirGlobal, tSirMsgQ* , tANI_U8);
 
 /* ----------------- Global and per BSS System Role ---------- */
 extern tBssSystemRole halGetBssSystemRole(tpAniSirGlobal pMac, tANI_U8 bssIdx);
+extern tANI_U8 halGetHalBssPersona(tpAniSirGlobal pMac, tANI_U8 bssIdx);
 extern void halSetBssSystemRole(tpAniSirGlobal pMac, tBssSystemRole role, 
-    tANI_U8 bssIdx);
+    tANI_U8 bssIdx, tANI_U8 bssPersona);
 extern tBssSystemRole halGetGlobalSystemRole(tpAniSirGlobal pMac);
 extern void halSetGlobalSystemRole(tpAniSirGlobal pMac, tBssSystemRole role);
 extern tBssSystemRole halGetSystemRoleFromStaIdx(tpAniSirGlobal pMac, tANI_U8 staIdx);
 extern tBssSystemRole halGetBssSystemRoleFromStaIdx(tpAniSirGlobal pMac, tANI_U8 staIdx);
+extern tANI_U8 halGetHalPersonaFromStaIdx(tpAniSirGlobal pMac, tANI_U8 staIdx);
+
 
 /** =========================================================================
     Function prototypes

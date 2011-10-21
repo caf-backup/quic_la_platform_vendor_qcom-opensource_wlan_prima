@@ -255,7 +255,6 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
       return;
    }
 
-   wRxMetaInfo.ucUP = ucTID;
 #ifdef WLAN_SOFTAP_FEATURE  
    if( WLAN_STA_SOFTAP == pTLHandle->atlSTAClients[ucSTAID].wSTADesc.wSTAType)
    {
@@ -264,7 +263,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    else
 #endif
    {
-
+      wRxMetaInfo.ucUP = ucTID;
       pTLHandle->atlSTAClients[ucSTAID].pfnSTARx(expireHandle->pAdapter,
                                            vosDataBuff, ucSTAID, &wRxMetaInfo);
    }

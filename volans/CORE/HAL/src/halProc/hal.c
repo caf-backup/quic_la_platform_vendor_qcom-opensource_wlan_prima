@@ -75,7 +75,7 @@ extern eHalStatus halPrepareForBmpsExit(tpAniSirGlobal pMac);
 #ifdef WLAN_SOFTAP_FEATURE
 static eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId);
 #endif
-static 
+static
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
 static eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId);
 static eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
@@ -137,6 +137,7 @@ __halIsChipBusy(tpAniSirGlobal pMac)
 }
 #endif
 
+#if 0
 tANI_BOOLEAN halIsSelfHtCapable(tpAniSirGlobal pMac)
 {
     tpStaStruct pSta;
@@ -150,6 +151,7 @@ tANI_BOOLEAN halIsSelfHtCapable(tpAniSirGlobal pMac)
     else
         return eANI_BOOLEAN_FALSE;
 }
+#endif
 
 /** -------------------------------------------------------------
 \fn      halPhy_setNwDensityAndProximity
@@ -183,7 +185,6 @@ static void halPhy_setNwDensityAndProximity(tpAniSirGlobal pMac)
         if (halPhySetNwDensity( pMac, densityOn, (ePhyNwDensity)nwDensity, (ePhyNwDensity)nwDensity ) != eHAL_STATUS_SUCCESS)
             HALLOGP( halLog(pMac, LOGP, FL("halPhySetNwDensity() failed")));
     }
-
     //halRate_updateRateTable(pMac);
 
     return;
@@ -229,8 +230,10 @@ tSirRetStatus halDoCfgInit(tpAniSirGlobal pMac)
     // we'll be notified via a SIR_CFG_DOWNLOAD_COMPLETE_IND when the
     // config & stats module has finish its exchange with the host.
 
-            return rc;
-        }
+    return rc;
+}
+
+
 
 /** -------------------------------------------------------------
 \fn halSetReadyToHandleInt
@@ -333,12 +336,14 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
 #if !defined(LOOPBACK) && !defined(ANI_DVT_DEBUG)
             if(pMac->gDriverType != eDRIVER_TYPE_MFG)
             {
-           if (halMsg_AddStaSelf(pMac) != eHAL_STATUS_SUCCESS)
-           {
-               HALLOGW( halLog(pMac, LOGW, FL("Failed at halMsg_AddStaSelf() \n")));
-               rc = eSIR_FAILURE;
-               break;
-           }
+#ifndef HAL_SELF_STA_PER_BSS
+                if (halMsg_AddStaSelf(pMac, NULL) != eHAL_STATUS_SUCCESS)
+                {
+                    HALLOGW( halLog(pMac, LOGW, FL("Failed at halMsg_AddStaSelf() \n")));
+                    rc = eSIR_FAILURE;
+                    break;
+                }
+#endif
             }
 #endif
             if(pMac->gDriverType != eDRIVER_TYPE_MFG)
@@ -406,6 +411,7 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
     return rc;
 
 } // halProcessStartEvent
+
 
 
 // -------------------------------------------------------------
@@ -833,10 +839,12 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             switch (pMsg->bodyval)
             {
 
+#ifndef HAL_SELF_STA_PER_BSS
                 case WNI_CFG_STA_ID:
-                    if( (rc = halMsg_AddStaSelf(pMac)) != eHAL_STATUS_SUCCESS)
+                    if( (rc = halMsg_AddStaSelf(pMac, NULL)) != eHAL_STATUS_SUCCESS)
                         HALLOGW( halLog(pMac, LOGW, FL("halMsg_AddStaSelf() failed \n")));
                     break;
+#endif
 
                 case WNI_CFG_PACKET_CLASSIFICATION:
                     pMac->hal.halMac.frameClassifierEnabled = (tANI_U16) val;
@@ -1009,25 +1017,26 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                     break;
 
 #ifdef WLAN_SOFTAP_FEATURE
-        case WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE:
-            halHandleEnableListenModeCfg(pMac, pMsg->bodyval);         
-            break;
-#endif  
+                case WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE:
+                    halHandleEnableListenModeCfg(pMac, pMsg->bodyval);
+                    break;
+#endif
                 case WNI_CFG_PS_ENABLE_RSSI_MONITOR:
                      halPSRssiMonitorCfg(pMac, pMsg->bodyval);
-                     break;
-           
+
+                   break;
+            
                 case WNI_CFG_MCAST_BCAST_FILTER_SETTING:
                      halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
                    break;
-            
+
                 case WNI_CFG_DYNAMIC_PS_POLL_VALUE:
                     halHandleDynamicPsPollValue(pMac, pMsg->bodyval);
                     break;
                 case WNI_CFG_TELE_BCN_WAKEUP_EN:
                    halHandleTelescopicBeaconWakeupSetting(pMac, pMsg->bodyval);
                    break;
-       
+
                 case WNI_CFG_RF_SETTLING_TIME_CLK:
                       halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
                       break;
@@ -1053,9 +1062,15 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             }
             break;
 
-            /*
-             * Taurus related messages
-             */
+        /*
+         * Taurus related messages
+         */
+        case SIR_HAL_ADD_STA_SELF_REQ:
+            halMsg_AddStaSelf( pMac, pMsg->reserved, (tpAddStaSelfParams) (pMsg->bodyptr) );
+            break;
+        case SIR_HAL_DEL_STA_SELF_REQ:
+            halMsg_DelStaSelf( pMac, pMsg->reserved, (tpDelStaSelfParams) (pMsg->bodyptr) );
+            break;
         case SIR_HAL_ADD_STA_REQ:
             halMsg_AddSta(pMac, pMsg->reserved, (tpAddStaParams) (pMsg->bodyptr), eANI_BOOLEAN_TRUE);
             break;
@@ -1117,16 +1132,15 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             break;
 
 #ifdef WLAN_SOFTAP_FEATURE
-        case SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND:
+        case SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND :
             halMsg_UpdateProbeRspTemplate(pMac, (tpSendProbeRespParams)(pMsg->bodyptr));
             break;
 #if 0 //separate setting for ie bitmap for probeRsp. Not in use right now.           
         case SIR_HAL_UPDATE_PROBE_RSP_IE_BITMAP_IND:
             halFW_UpdateProbeRspIeBitmap(pMac, (tpUpdateProbeRspIeBitmap)(pMsg->bodyptr));
             break;
-#endif            
 #endif
-
+#endif
         case SIR_HAL_INIT_CFG_REQ:
             break;
 
@@ -1315,7 +1329,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_BEACON_PRE_IND:
             halMsg_BeaconPre(pMac);
             break;
-#endif 
+#endif
 
         case SIR_HAL_STA_STAT_REQ:
         case SIR_HAL_AGGR_STAT_REQ:
@@ -1399,6 +1413,9 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halBtc_SendBtEventToFW(pMac, (void *)pMsg->bodyptr);
             break;
 
+        case SIR_HAL_SIGNAL_BTAMP_EVENT:
+        	halFW_SendBTAmpEventMesg(pMac, (tpSmeBtAmpEvent)(pMsg->bodyptr) );
+        	break;
 
 #ifdef ANI_SUPPORT_5GHZ
         case SIR_HAL_INIT_RADAR_IND:
@@ -1412,7 +1429,12 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halMsg_setTxPowerLimit(pMac, (tpMaxTxPowerParams)pMsg->bodyptr);
             break;
 #endif /* WLAN_FEATURE_VOWIFI */
-
+#ifdef WLAN_FEATURE_P2P
+        case SIR_HAL_SET_P2P_GO_NOA_REQ:
+            HALLOGW( halLog(pMac, LOGW, FL("Go NoA Update Request \n")));
+            halFW_SetP2PGoPs(pMac, (tpP2pPsParams)pMsg->bodyptr);
+            break;
+#endif
         case SIR_HAL_SET_HOST_OFFLOAD:
             halPS_SetHostOffloadInFw(pMac, (tpSirHostOffloadReq)pMsg->bodyptr);
             break;
@@ -1431,7 +1453,6 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
     HALLOG4( halLog(pMac, LOG4, FL("Success Returns!\n")));
     return rc;
 } // halHandleMsg()
-
 
 // --------------------------------------------------------
 /**
@@ -1592,6 +1613,7 @@ eHalStatus halSetNewChannelParams(tpAniSirGlobal pMac)
 
         halSetBcnRateIdx(pMac, rateIndex);
         halSetNonBcnRateIdx(pMac, rateIndex);
+        halSetNonBcnRateIdx2(pMac, rateIndex);
         halSetMulticastRateIdx(pMac, mcastRateIndex);
     }
 
@@ -1599,7 +1621,7 @@ eHalStatus halSetNewChannelParams(tpAniSirGlobal pMac)
     halRxp_setChannel(pMac, pMac->hphy.setChanCntx.newChannel);
 
 #ifdef FIXME_VOLANS
-    //In Volans FPGA netlist 37, there is an issue related to CCA extension found. If this bit is set while BA session is to be setup, 
+    //In Volans FPGA netlist 37, there is an issue related to CCA extension found. If this bit is set while BA session is to be setup,
     //upstream traffic stopped and it seems TPE blocked. VI/HW team is working on this now. Disable CCA extension for now.
     // Configure Rxp when doing channel switch
     halRxp_setOperatingRfBand(pMac, pMac->hphy.setChanCntx.newRfBand);
@@ -1637,7 +1659,11 @@ eHalStatus halSetNewChannelParams(tpAniSirGlobal pMac)
 eHalStatus halPhy_ChangeChannel(tpAniSirGlobal pMac,
         tANI_U8 newChannel, ePhyChanBondState newCbState,
         tANI_U8 calRequired, funcHalSetChanCB pFunc,
-        void* pData, tANI_U16 dialog_token)
+        void* pData, tANI_U16 dialog_token
+#ifdef WLAN_AP_STA_CONCURRENCY
+        , tANI_U8 bSendCts
+#endif
+        )
 {
     eHalStatus     status;
 
@@ -1676,7 +1702,11 @@ eHalStatus halPhy_ChangeChannel(tpAniSirGlobal pMac,
     }
 
         HALLOGW( halLog(pMac, LOGW, FL("halPhySetChannel(channel %d, cbState %d) \n"), newChannel, newCbState));
-        status = halPhySetChannel(pMac, newChannel, newCbState, calRequired);
+        status = halPhySetChannel(pMac, newChannel, newCbState, calRequired
+#ifdef WLAN_AP_STA_CONCURRENCY
+        , bSendCts
+#endif
+        );
 #ifdef FW_PRESENT
     return status;
 #else
@@ -1686,7 +1716,7 @@ eHalStatus halPhy_ChangeChannel(tpAniSirGlobal pMac,
 
 
 void halPhy_HandleSetChannelRsp(tHalHandle hHal,  void* pFwMsg)
-{
+        {
     eHalStatus  status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     Qwlanfw_SetChannelRspType *setChanRsp = (Qwlanfw_SetChannelRspType *)pFwMsg;
@@ -1863,7 +1893,11 @@ eHalStatus hal_SendDummyFinishScan(tpAniSirGlobal pMac)
 
     HALLOG2( halLog( pMac, LOG2, FL("Current Channel = %d\n"),  pMac->hal.currentChannel ));
 
-    status = halPhy_ChangeChannel(pMac, saved_channel, pFinishScanParam->cbState, TRUE, hal_SendDummyFinishScanPostSetChan, pFinishScanParam, 0);
+    status = halPhy_ChangeChannel(pMac, saved_channel, pFinishScanParam->cbState, TRUE, hal_SendDummyFinishScanPostSetChan, pFinishScanParam, 0
+#ifdef WLAN_AP_STA_CONCURRENCY
+             , 0
+#endif
+               );
     // If channel is already on the request channel, proceed further with
     // post set channel configuration
     if (status == eHAL_STATUS_SET_CHAN_ALREADY_ON_REQUESTED_CHAN) {
@@ -2342,7 +2376,7 @@ eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId)
 \param  tANI_U32 cfgId
 \return eHalStatus status
   -------------------------------------------------------------*/
-static
+static 
 eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
 {
     tANI_U32 val;
@@ -2354,16 +2388,16 @@ eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
         return eHAL_STATUS_FAILURE;
     }
     else
-    {    
-        pMac->hal.ghalPhyAgcListenMode = (tANI_U8)val;   
+    {
+        pMac->hal.ghalPhyAgcListenMode = (tANI_U8)val;
     }
-    
+
     return status;
 }
 
 /** ------------------------------------------------------------------------
 \fn     halEnableListenMode
-\brief  hal API to configure listen mode (disable or enable Listen mode 
+\brief  hal API to configure listen mode (disable or enable Listen mode
 \       with EDET threshold settings).
 \param  tpAniSirGlobal pMac
 \param  tANI_U8 listenModeEnableParams
@@ -2372,20 +2406,20 @@ eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
 eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_U8 listenModeEnableParams)
 {
     eHalStatus status;
-    
-    if (listenModeEnableParams <= QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_MASK) 
+
+    if (listenModeEnableParams <= QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_MASK)
     {
-        status = halPhyAGCEnableListenMode(pMac, listenModeEnableParams); 
+        status = halPhyAGCEnableListenMode(pMac, listenModeEnableParams);
     }
     else
-    {
+    {    
         status = halPhyAGCDisableListenMode(pMac);
     }
-
+    
     return status;
 }
 #endif
-static 
+static
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
 {
     tANI_U32 val;
@@ -2397,9 +2431,9 @@ eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
         return eHAL_STATUS_FAILURE;
     }
     else
-    {    
+    {
         pMac->hal.mcastBcastFilterSetting = (tANI_BOOLEAN)val;
     }
-    
+
     return status;
 }

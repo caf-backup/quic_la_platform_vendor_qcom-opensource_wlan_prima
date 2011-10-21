@@ -12,9 +12,7 @@
 #include <wlan_ptt_sock_svc.h>
 #include <vos_types.h>
 #include <vos_trace.h>
-#ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
-#endif
 
 #define PTT_SOCK_DEBUG
 #ifdef PTT_SOCK_DEBUG
@@ -23,7 +21,7 @@
 #define PTT_TRACE(level, args...)
 #endif
 // Global variables
-static struct hdd_adapter_s *pAdapterHandle = NULL;
+static struct hdd_context_s *pAdapterHandle = NULL;
 //Utility function to perform endianess swap
 static void ptt_sock_swap_32(void *pBuffer, unsigned int len)
 {
@@ -229,11 +227,9 @@ static void ptt_proc_quarky_msg(tAniNlHdr *wnl, tAniHdr *wmsg, int radio)
             //send message to the app
             ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
             break;
-#ifdef ANI_MANF_DIAG
          case PTT_MSG_FTM_CMDS_TYPE:
             wlan_hdd_process_ftm_cmd(pAdapterHandle,wnl);
             break;
-#endif
          default:
             PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Unknown ANI Msg [0x%X], length [0x%X]\n",
                __FUNCTION__, ani_msg_type, be16_to_cpu(wmsg->length ));
@@ -271,7 +267,7 @@ static int ptt_sock_rx_nlink_msg (struct sk_buff * skb)
 }
 int ptt_sock_activate_svc(void *pAdapter)
 {
-   pAdapterHandle = (struct hdd_adapter_s*)pAdapter;
+   pAdapterHandle = (struct hdd_context_s*)pAdapter;
    nl_srv_register(ANI_NL_MSG_PUMAC, ptt_sock_rx_nlink_msg);
    nl_srv_register(ANI_NL_MSG_PTT, ptt_sock_rx_nlink_msg);
    return 0;

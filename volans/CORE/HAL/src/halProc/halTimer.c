@@ -221,10 +221,10 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
 #endif
         /** Create timer for waiting for TL responce */
         //Right now this is being used for addBA only. Later, may be used in other cases too.
-    	val = SYS_MS_TO_TICKS(SYS_ADD_BA_RSP_DUR);
+        val = SYS_MS_TO_TICKS(SYS_ADD_BA_RSP_DUR);
         if (tx_timer_create(&pMac->hal.addBARspTimer, "TL resp timeout timer",
                      halTimerAddBARspTimeoutHandler, 0,
-                     val /*SYS_ADD_BA_RSP_DUR */ /*SYS_TICK_DUR_MS*/,
+                     val /*SYS_ADD_BA_RSP_DUR*/ /*SYS_TICK_DUR_MS*/,
                      0, TX_NO_ACTIVATE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Could not create TL AddBA resp timeout timer\n")));

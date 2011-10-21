@@ -327,6 +327,8 @@ tANI_U8 WLANHAL_RxBD_GetFrameTypeSubType(v_PVOID_t _pvBDHeader, tANI_U16 usFrmCt
 #endif
 #define HAL_USE_NO_ACK_REQUESTED_MASK       0x20
 
+#define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
+
 /*==========================================================================
 
   FUNCTION    WLANHAL_FillTxBd
@@ -397,6 +399,10 @@ VOS_STATUS WLANHAL_EnableIdleBdPduInterrupt(void* pVosGCtx, tANI_U8 idleBdPduThr
 
 #ifdef FEATURE_ON_CHIP_REORDERING
 tANI_U8 WLANHAL_IsOnChipReorderingEnabledForTID(void* pVosGCtx, tANI_U8 staIdx, tANI_U8 tid);
+#endif
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+v_BOOL_t WLANHAL_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx, tANI_U8 staIdx);
 #endif
 
 #define tHalRxBd	halRxBd_type

@@ -2398,7 +2398,7 @@ eHalStatus halRate_BckupTpeRateTable(tpAniSirGlobal pMac, tANI_U32 *pAddr)
 }
 
 /* Returns PHY rate index for the given TPE rate index */
-inline eHalPhyRates halRate_MacRateIdxtoPhyRateIdx(tpAniSirGlobal pMac, tTpeRateIdx tpeRateIdx)
+eHalPhyRates halRate_MacRateIdxtoPhyRateIdx(tpAniSirGlobal pMac, tTpeRateIdx tpeRateIdx)
 {
     return macPhyRateIndex[tpeRateIdx];
 }

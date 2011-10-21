@@ -135,6 +135,7 @@ typedef enum {
     eCSR_SCAN_HO_BG_SCAN, // bg scan request in NRT & RT Handoff sub-states
     eCSR_SCAN_HO_PROBE_SCAN, // directed probe on an entry from the candidate list
     eCSR_SCAN_HO_NT_BG_SCAN, // bg scan request in NT  sub-state
+    eCSR_SCAN_P2P_DISCOVERY,
 
 }eCsrRequestType;
 
@@ -211,6 +212,9 @@ typedef struct tagCsrScanRequest
     tANI_U32 uIEFieldLen;
     tANI_U8 *pIEField;
     eCsrRequestType requestType;    //11d scan or full scan
+#ifdef WLAN_FEATURE_P2P
+    tANI_BOOLEAN p2pSearch;
+#endif
 }tCsrScanRequest;
 
 typedef struct tagCsrBGScanRequest
@@ -358,6 +362,11 @@ typedef enum
 #ifdef WLAN_FEATURE_VOWIFI_11R
     eCSR_ROAM_FT_RESPONSE,
 #endif
+    eCSR_ROAM_INDICATE_MGMT_FRAME,
+    eCSR_ROAM_REMAIN_CHAN_READY,
+    eCSR_ROAM_SEND_ACTION_CNF,
+    //this mean error happens before association_start or roaming_start is called.
+    eCSR_ROAM_SESSION_OPENED,
 }eRoamCmdStatus;
 
 
@@ -392,11 +401,12 @@ typedef enum
     //the peer's MAC address in peerMacOrBssid and a beacon frame of the IBSS in pbFrames
     eCSR_ROAM_RESULT_IBSS_NEW_PEER, 
     //Peer departed from IBSS, Callback may get a pointer tSmeIbssPeerInd in pIbssPeerInd
-	eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED, 
+    eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED, 
     //Coalescing in the IBSS network (joined an IBSS network)
     //Callback pass a BSSID in peerMacOrBssid
     eCSR_ROAM_RESULT_IBSS_COALESCED,    
     //If roamStatus is eCSR_ROAM_ROAMING_START, callback may get a pointer to tCsrConnectedProfile used to connect.
+    eCSR_ROAM_RESULT_IBSS_STOP,  
     eCSR_ROAM_RESULT_LOSTLINK, 
     eCSR_ROAM_RESULT_MIC_ERROR_UNICAST,
     eCSR_ROAM_RESULT_MIC_ERROR_GROUP,
@@ -433,7 +443,10 @@ typedef enum
     // INFRA disassociated
     eCSR_ROAM_RESULT_INFRA_DISASSOCIATED,
     eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND,
-#endif    
+#endif
+#ifdef WLAN_FEATURE_P2P
+    eCSR_ROAM_RESULT_SEND_ACTION_FAIL,
+#endif
 }eCsrRoamResult;
 
 
@@ -460,7 +473,7 @@ typedef enum
     eCSR_DISCONNECT_REASON_MIC_ERROR,
     eCSR_DISCONNECT_REASON_DISASSOC,
     eCSR_DISCONNECT_REASON_DEAUTH,
-	eCSR_DISCONNECT_REASON_HANDOFF,
+    eCSR_DISCONNECT_REASON_HANDOFF,
     eCSR_DISCONNECT_REASON_IBSS_JOIN_FAILURE,
     eCSR_DISCONNECT_REASON_IBSS_LEAVE,
 }eCsrRoamDisconnectReason;
@@ -727,11 +740,14 @@ typedef struct tagCsrRoamProfile
     tANI_U32 nWAPIReqIELength;   //The byte count in the pWAPIReqIE
     tANI_U8 *pWAPIReqIE;   //If not null, it has the IE byte stream for WAPI
 #endif /* FEATURE_WLAN_WAPI */
+    tANI_U32 nAddIEScanLength;   //The byte count in the pAddIE for scan (at the time of join)
+    tANI_U8 *pAddIEScan;       //If not null, it has the IE byte stream for additional IE, which can be WSC IE and/or P2P IE
+    tANI_U32 nAddIEAssocLength;   //The byte count in the pAddIE for assoc 
+    tANI_U8 *pAddIEAssoc;       //If not null, it has the IE byte stream for additional IE, which can be WSC IE and/or P2P IE
+
     tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
     /*WPS Association if true => auth and ecryption should be ignored*/
     tANI_BOOLEAN bWPSAssociation;
-    tANI_U32 nWSCReqIELength;   //The byte count in the pWSCReqIE
-    tANI_U8 *pWSCReqIE;   //If not null, it has the IE byte stream for WSC
 
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U8 privacy;
@@ -748,6 +764,7 @@ typedef struct tagCsrRoamProfile
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tCsrMobilityDomainInfo MDID;
 #endif
+    tVOS_CON_MODE csrPersona;
 }tCsrRoamProfile;
 
 
@@ -759,11 +776,11 @@ typedef struct tagCsrRoamConnectedProfile
     tCsrBssid bssid;
     eCsrRoamBssType BSSType;
     eCsrAuthType AuthType;
-	tCsrAuthList AuthInfo;
+    tCsrAuthList AuthInfo;
     eCsrEncryptionType EncryptionType;
-	tCsrEncryptionList EncryptionInfo;
+    tCsrEncryptionList EncryptionInfo;
     eCsrEncryptionType mcEncryptionType;
-	tCsrEncryptionList mcEncryptionInfo;
+    tCsrEncryptionList mcEncryptionInfo;
     eCsrCBChoice CBMode; //up, down or auto
     tANI_U8 operationChannel;
     tCsrKeys Keys;
@@ -946,6 +963,7 @@ typedef struct tagCsrConfigParam
     /* Instead of Reassoc, send ADDTS/DELTS even when ACM is off for that AC 
      * This is mandated by WMM-AC certification */
     tANI_BOOLEAN addTSWhenACMIsOff;
+
     
     /*channelPowerInfoList24 has been seen corrupted. Set this flag to true trying to 
     * detect when it happens. Adding this into code because we can't reproduce it easily.
@@ -967,6 +985,8 @@ typedef struct tagCsrRoamInfo
     tANI_U32 nBeaconLength; //the length, in bytes, of the beacon frame, can be 0
     tANI_U32 nAssocReqLength;   //the length, in bytes, of the assoc req frame, can be 0
     tANI_U32 nAssocRspLength;   //The length, in bytes, of the assoc rsp frame, can be 0
+    tANI_U32 nProbeReqLength;   //The length, in bytes, of the probe req frame, can be 0
+    tANI_U32 nActionLength;     //The length, in bytes, of the action frame, can be 0
     tANI_U8 *pbFrames;  //Point to a buffer contain the beacon, assoc req, assoc rsp frame, in that order
                         //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
                         //each frame starts and ends.
@@ -992,6 +1012,9 @@ typedef struct tagCsrRoamInfo
     tANI_U8 rsnIELen;
     tANI_U8 *prsnIE;
 
+    tANI_U8 addIELen;
+    tANI_U8 *paddIE;
+    
     union
     {
         tSirMicFailureInfo *pMICFailureInfo;
@@ -1004,6 +1027,10 @@ typedef struct tagCsrRoamInfo
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_BOOLEAN wmmEnabledSta;   //set to true if WMM enabled STA
     tANI_U32 dtimPeriod;
+#endif
+
+#ifdef WLAN_FEATURE_P2P
+    void* pRemainCtx; 
 #endif
 
 }tCsrRoamInfo;
@@ -1033,6 +1060,7 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tANI_U8              alternateChannelId;
     tANI_U8              wmmEnabledSta;   //set to true if WMM enabled STA
     tSirRSNie            rsnIE;           // RSN IE received from peer
+    tSirAddie            addIE;           // Addtional IE received from peer, which can be WSC and/or P2P IE
     tANI_U8              reassocReq;      //set to true if reassoc
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;
 #endif
@@ -1176,6 +1204,8 @@ typedef eHalStatus (*csrScanCompleteCallback)(tHalHandle, void *p2, tANI_U32 sca
 //roamResult is the result
 typedef eHalStatus (*csrRoamCompleteCallback)(void *pContext, tCsrRoamInfo *pParam, tANI_U32 roamId, 
                                               eRoamCmdStatus roamStatus, eCsrRoamResult roamResult);
+
+typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);   
 
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetNumPMKIDCache

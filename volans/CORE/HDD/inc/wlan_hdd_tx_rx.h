@@ -30,6 +30,19 @@
 #define HDD_ETHERTYPE_WAI                  ( 0x88b4 )
 #endif
 
+#define HDD_80211_HEADER_LEN      24
+#define HDD_80211_HEADER_QOS_CTL  2
+#define HDD_LLC_HDR_LEN           6
+#define HDD_FRAME_TYPE_MASK       0x0c 
+#define HDD_FRAME_SUBTYPE_MASK    0xf0 
+#define HDD_FRAME_TYPE_DATA       0x08
+#define HDD_FRAME_TYPE_MGMT       0x00
+#define HDD_FRAME_SUBTYPE_QOSDATA 0x80
+#define HDD_FRAME_SUBTYPE_DEAUTH  0xC0
+#define HDD_FRAME_SUBTYPE_DISASSOC 0xA0
+#define HDD_DEST_ADDR_OFFSET      6
+
+#define HDD_MAC_HDR_SIZE          6
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -50,6 +63,9 @@
   ===========================================================================*/
 extern int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
 
+#ifdef CONFIG_CFG80211   
+extern int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
+#endif
 /**============================================================================
   @brief hdd_tx_timeout() - Function called by OS if there is any
   timeout during transmission. Since HDD simply enqueues packet
@@ -179,6 +195,23 @@ extern VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
                   : VOS_FALSE otherwise
   ===========================================================================*/
 extern v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket );
+#endif
+
+#ifdef CONFIG_CFG80211
+/**============================================================================
+  @brief hdd_mon_tx_mgmt_pkt() - Transmit MGMT packet received on monitor 
+                                 interface.
+
+  @param pAdapter: [in] SAP/P2P GO adaptor. 
+  ===========================================================================*/
+void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter);
+
+/**============================================================================
+  @brief hdd_mon_tx_work_queue() - workqueue handler for transmitting mgmt packets..
+
+  @param work: [in] workqueue structure.
+  ===========================================================================*/
+void hdd_mon_tx_work_queue(struct work_struct *work);
 #endif
 
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

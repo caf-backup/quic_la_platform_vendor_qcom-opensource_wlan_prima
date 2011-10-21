@@ -31,17 +31,63 @@
  */
 
 /*
- * Volans suppports 8 stations
+ * Volans supports 8 stations in hardware
+ *
+ * Volans without Virtual STA feature can only support 8 stations:
+ *    1 Broadcast STA (hard)
+ *    1 "Self" STA (hard)
+ *    6 Soft AP Stations (hard)
+ *
+ * Volans with Virtual STA feature supports 14 stations:
+ *    1 Broadcast STA (hard)
+ *    1 "Self" STA (hard)
+ *    2 General Purpose Stations to support Virtual STAs (hard)
+ *   10 Soft AP Stations (4 hard/6 virtual)
  */
-#define HAL_NUM_STA                 8
-#define HAL_NUM_BSSID               2
-#define HAL_NUM_UMA_DESC_ENTRIES    8
 
+#define HAL_NUM_BSSID               3
+#define HAL_INVALID_BSSIDX          HAL_NUM_BSSID
+#define HAL_NUM_UMA_DESC_ENTRIES    8
 #define MAX_NUM_OF_BACKOFFS         8
-#define HAL_MAX_ASSOC_ID HAL_NUM_STA //currently max assoc id is same as max num sta.
+
+#define QWLANFW_BDCST_STA_IDX       0
+
 #define IS_VALID_BSSIDX(__x) \
                         ((__x) < HAL_NUM_BSSID)
-#define HAL_INVALID_BSSIDX          HAL_NUM_BSSID
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+#define HAL_NUM_ASSOC_STA           10
+#define HAL_NUM_STA                 14
+#define HAL_NUM_HW_STA              8
+#define HAL_NUM_GPSTA               2
+#define HAL_NUM_VSTA                HAL_NUM_STA - HAL_NUM_HW_STA
+
+#define QWLANFW_MAX_NUM_VSTA        HAL_NUM_VSTA
+#define QWLANFW_VSTA_INVALID_IDX    HAL_NUM_STA+1
+#define QWLAN_VSTA_MIN_IDX          HAL_NUM_HW_STA
+#define QWLANFW_NUM_GPSTA           HAL_NUM_GPSTA
+
+#define IS_VSTA_VALID_IDX(__x) \
+                          ((__x) != QWLANFW_VSTA_INVALID_IDX)
+
+#define IS_VSTA_IDX(__x) \
+                   (((__x) >= QWLAN_VSTA_MIN_IDX) && ((__x) < HAL_NUM_STA))
+
+                 
+// is the STA a General Purpose STA?
+#define IS_GPSTA_IDX(__x) \
+    (((__x) >= (HAL_NUM_HW_STA-HAL_NUM_GPSTA)) && \
+     ((__x) < HAL_NUM_HW_STA))
+
+// is the STA a HW STA (excluding GP STAs)
+#define IS_HWSTA_IDX(__x) \
+    ((__x) < (HAL_NUM_HW_STA-HAL_NUM_GPSTA))
+
+#else
+#define HAL_NUM_STA                 8
+#define HAL_NUM_ASSOC_STA           5
+#define HAL_NUM_HW_STA              8
+#endif
 
 /*
  * From NOVA Mac Arch document
@@ -425,8 +471,8 @@ typedef enum sBmuWqId {
     BMUWQ_BMU_IDLE_BD = 0,
     BMUWQ_BMU_IDLE_PDU = 1,
 
-    /* RxP */
-    BMUWQ_RXP_UNKNWON_ADDR = 2,  /* currently unhandled by HAL */
+    /* JOBQ */
+    BMUWQ_FW_JOBQ = 2,
 
     /* DPU RX */
     BMUWQ_DPU_RX = 3,
@@ -467,7 +513,7 @@ typedef enum sBmuWqId {
     /* Aliases */
     BMUWQ_BTQM_TX_MGMT = BMUWQ_BTQM,
     BMUWQ_BTQM_TX_DATA = BMUWQ_BTQM,
-    BMUWQ_BMU_WQ2 = BMUWQ_RXP_UNKNWON_ADDR,
+    BMUWQ_BMU_WQ2 = 2,
     BMUWQ_FW_DPU_TX = 5,
 
     //WQ where all the frames with addr1/addr2/addr3 with value 254/255 go to. 
@@ -476,6 +522,7 @@ typedef enum sBmuWqId {
     //WQ where all frames with unknown Addr2 filter exception cases frames will pushed if FW wants host to 
     //send deauth to the sender. 
     BMUWQ_HOST_RX_UNKNOWN_ADDR2_FRAMES = 15, //using BMUWQ_FW_DXECH2_0 for this purpose.
+
 
     /* ====== Unused/Reserved WQ ====== */
 
@@ -565,6 +612,12 @@ typedef enum
    (1 << ((index) + QWLAN_MTU_TIMER_CONTROL11TO8_SW_MTU_CONTINUOUS_VALID_OFFSET))
 
 enum {
+   /* timer for p2p client */
+   QWLAN_MTU_TIMER_FW_P2P_CLIENT = 2,
+   /* timer for p2p Go */
+   QWLAN_MTU_TIMER_FW_P2P_GO = 3,
+   /* timer for BTC */
+   QWLAN_MTU_TIMER_FW_BTC = 4,
    /* timer for pre beacon interrupt */
    QWLAN_MTU_TIMER_FW_BEACON_PRE = 5,
    /* Free run clock for firmware */
@@ -748,6 +801,8 @@ typedef enum eFrameSubType {
  *--------------------------------------------------------------------------*/
 #define VOLANS_VER_1_0_CARD_ID      0x0 
 #define VOLANS_VER_2_0_CARD_ID      0x2881
+
+#define BTQM_NONQOS_QID   0x8
 
 #endif //__ASSEMBLER__
 #endif // __VOLANS_DEFS_H

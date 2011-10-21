@@ -174,6 +174,9 @@ typedef struct sSapContext {
     v_U8_t            pStaWpaRsnReqIE[MAX_ASSOC_IND_IE_LEN]; 
     tSirAPWPSIEs      APWPSIEs;
     tSirRSNie         APWPARSNIEs;
+
+    v_U32_t           nStaAddIeLength;
+    v_U8_t            pStaAddIE[MAX_ASSOC_IND_IE_LEN]; 
 } *ptSapContext;
 
 

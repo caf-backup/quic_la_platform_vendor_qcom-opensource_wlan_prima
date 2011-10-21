@@ -261,7 +261,7 @@ eHalStatus palFillMemory( tHddHandle hHdd, void *pMemory, tANI_U32 numBytes, tAN
     \return eHalStatus - status of the memory copy 
     
   -------------------------------------------------------------------------------*/
-eHalStatus palCopyMemory( tHddHandle hHdd, void *pDst, void *pSrc, tANI_U32 numBytes );
+eHalStatus palCopyMemory( tHddHandle hHdd, void *pDst, const void *pSrc, tANI_U32 numBytes );
 
 /** ---------------------------------------------------------------------------
 

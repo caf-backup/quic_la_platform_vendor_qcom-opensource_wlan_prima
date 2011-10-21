@@ -1067,7 +1067,6 @@ NONE
 V    RW    NP
 LIM
 0    100000    1000
-
 *
 * Heartbeat Threshold
 *
@@ -1107,7 +1106,6 @@ NONE
 *
 * Manufacture Name (from eeprom)
 *
-* Qualcomm
 
 WNI_CFG_MANUFACTURER_NAME    S    65    8
 V    RO    NP
@@ -1120,15 +1118,14 @@ NONE
 *
 * Model Number (from eeprom)
 *
-* default: v1.0 (WCN1312)/v1.2 (WCN1314)
 
 WNI_CFG_MODEL_NUMBER    S    33    8
 V    RO    NP
 NONE
-4    0x76  0x31  0x2e  0x30  
+6    0x4d 0x4e 0x31 0x32 0x33 0x34
 V    RO    NP
 NONE
-4    0x76  0x31  0x2e  0x30  
+6    0x4d 0x4e 0x31 0x32 0x33 0x34
 
 
 
@@ -1136,45 +1133,42 @@ NONE
 * Model Name (from eeprom)
 * WFR4031
 *
-* default: MSM7630/MSM8660
 
 WNI_CFG_MODEL_NAME    S    33    8
 V    RO    NP
 NONE
-7    0x4d  0x53  0x4d  0x37  0x36  0x33  0x30
+7    0x57 0x46 0x52 0x34 0x30 0x33 0x31
 V    RO    NP
 NONE
-7    0x4d  0x53  0x4d  0x37  0x36  0x33  0x30
+7    0x57 0x46 0x52 0x34 0x30 0x33 0x31
 
 
 
 
 *
 * Manufacture Product Name (from eeprom)
-* 
-* default: FFA/SURF/FLUID (Reference Platform)
+*
 
 WNI_CFG_MANUFACTURER_PRODUCT_NAME    S    33    8
 V    RO    NP
 NONE
-3    0x46  0x46  0x41 
+6    0x31 0x31 0x6e 0x2D 0x41 0x50
 V    RO    NP
 NONE
-3    0x46  0x46  0x41 
+6    0x31 0x31 0x6e 0x2D 0x41 0x50
 
 
 *
 * Manufacture Product Version (from eeprom)
 *
-* default: "123456"
 
 WNI_CFG_MANUFACTURER_PRODUCT_VERSION    S    33    8
 V    RO    NP
 NONE
-6    0x31  0x32  0x33  0x34  0x35  0x36  
+6    0x53 0x4e 0x31 0x32 0x33 0x34 
 V    RO    NP
 NONE
-6    0x31  0x32  0x33  0x34  0x35  0x36  
+6    0x53 0x4e 0x31 0x32 0x33 0x34 
 
 *
 * Multi Domain Capability (11d) Enable
@@ -3079,6 +3073,29 @@ NONE
 0 0
 
 *
+* Include Additional P2P IEs in probe request.
+*
+WNI_CFG_PROBE_REQ_ADDNP2PIE_FLAG    I    4    0
+V    RW    NP
+NONE
+0 1 0
+V    RW    NP
+NONE
+0 1 0
+
+*
+* Include Additional P2P IE in probe request.
+*
+WNI_CFG_PROBE_REQ_ADDNP2PIE_DATA    S     255    0
+V    RW    NP
+NONE
+0 0
+V    RW    NP
+NONE
+0 0
+
+
+*
 * Include Additional IEs in probe response/beacon.
 *
 WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG    I    4    0
@@ -3106,8 +3123,6 @@ LIM
 * wpsApEnable and wpsStaEnable is specified in here
 * wpsApEnable is bit #0 and wpsStaEnable is bit #1
 *
-* depricated in new implementation for WSC2.0
-*
 WNI_CFG_WPS_ENABLE  I   4   7
 V    RW     NP
 LIM
@@ -3119,9 +3134,6 @@ LIM
 #ENUM AP         1
 #ENUM STA        2
 
-*
-* depricated in new implementation for WSC2.0
-*
 WNI_CFG_WPS_STATE  I   4   7
 V    RW     NP
 LIM
@@ -3132,8 +3144,6 @@ LIM
 
 *
 * TRUE => include this information in Probe Requests, FALSE => omit it
-*
-* depricated in new implementation for WSC2.0
 *
 
 WNI_CFG_WPS_PROBE_REQ_FLAG    I    4    7
@@ -3150,8 +3160,6 @@ LIM
 * This  one-byte field is broken into a four-bit major
 * part using the top MSBs and four-bit  minor part
 * using the LSBs. As an example, version 3.2 would be 0x32.
-*
-* depricated in new implementation for WSC2.0
 *
 
 WNI_CFG_WPS_VERSION  I   4   7
@@ -3172,10 +3180,10 @@ LIM
 WNI_CFG_WPS_REQUEST_TYPE  I   4   7
 V    RW     NP
 LIM
-0    0x3   0x01 
+0    0xff   0x00 
 V    RW     NP
 LIM
-0    0x3   0x02
+0    0xff   0x03
 
 * Configuration Method(s)
 *
@@ -3196,10 +3204,6 @@ LIM
 * 0x0040  NFC Interface
 * 0x0080  PushButton
 * 0x0100  Keypad
-* 0x0280  Virtual Push Button (WSC2.0)
-* 0x0480  Physical Push Button (WSC2.0)
-* 0x2008  Virtual Display PIN (WSC2.0)
-* 0x4008  Physical Display PIN (WSC2.0)
 *
 * The bottom 16 bits contain the configuration method(s) when acting
 * as an Enrollee, and the top 16 when acting as a Registrar.
@@ -3211,10 +3215,10 @@ LIM
 WNI_CFG_WPS_CFG_METHOD  I   4   7
 V    RW    NP
 LIM
-0    0xFFFFFFFF   0x0000228c
+0    0xFFFFFFFF   0x00000008
 V    RW    NP
 LIM
-0    0xFFFFFFFF   0x228c228c
+0    0xFFFFFFFF   0x018c018e
 
 * UUID
 * The universally unique identifier (UUID) element is a unique
@@ -3257,78 +3261,28 @@ LIM
 * three-byte OUI  occupies the first  three bytes of  the OUI field  and the
 * fourth byte is set to zero.
 *
-* mark with '*' is WSC2.0 
-*
 *  Category              ID Value  Sub Category             ID Value
 *  Computer              1         PC                       1
 *                                  Server                   2
 *                                  Media Center             3
-*                                  Ultra-Mobile PC*         4
-*                                  Notebook*                5
-*                                  Desktop*                 6
-*                                  MID(Mobile Internet Device)* 7
-*                                  Netbook*                 8
-*
-*  Input Device          2         Keyboard*                1
-*                                  Mouse*                   2
-*                                  Joystick*                3
-*                                  Trackball*               4
-*                                  Gaming Controller*       5
-*                                  Remote*                  6
-*                                  Touchscreen*             7
-*                                  Biometric reader*        8
-*                                  Barcode reader*          9
-*
+*  Input Device          2
 *  Printers, Scanners,             Printer                  1
 *  Faxes and Copiers     3         Scanner                  2
-*                                  Fax*                     3
-*                                  Copier*                  4
-*                                  All-in-one (printer,Scanner, Fax, Copier)* 5
-*                                  
 *  Camera                4         Digital Still Camera     1
-*                                  Video Camera*            2
-*                                  Web Camera*              3
-*                                  Security Camera*         4
-*
 *  Storage               5         NAS                      1
-*
 *  Network                         AP                       1
 *  Infrastructure        6         Router                   2
 *                                  Switch                   3
-*                                  Gateway*                 4
-*                                  Bridge*                  5
-*
 *  Displays              7         Television               1
 *                                  Electronic Picture Frame 2
 *                                  Projector                3
-*                                  Monitor*                 4
-*
 *  Multimedia Devices    8         DAR                      1
 *                                  PVR                      2
 *                                  MCX                      3
-*                                  Set-top box*             4
-*                                  Media server*            5
-*                                  Portable Video Player*   6
-*                                  
 *  Gaming Devices        9         Xbox                     1
 *                                  Xbox360                  2
 *                                  Playstation              3
-*                                  Game Console*            4
-*                                  Portable Gaming Device*  5
-*
 *  Telephone             10        Windows Mobile           1
-*                                  Phone - single mode*     2
-*                                  Phone - dual mode*       3
-*                                  Smartphone - single mode*4
-*                                  Smartphone - dual mode*  5
-*								   			
-*  Audio Devices*        11        Audio tuner/receiver*    1
-*                                  Speaker*                 2
-*                                  Portable Music Player(PMP)* 3
-*                                  Headset (headset+microphone)* 4
-*                                  Headphones*              5
-*                                  Micropone*               6
-*                                  Home Theater Systems*    7
 *
 ************************************************************************
 
@@ -3336,10 +3290,10 @@ LIM
 WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY  I   4   7
 V    RW     NP
 LIM
-0    0xb   10
+0    0xffff   1
 V    RW     NP
 LIM
-0    0xb   6
+0    0xffff   6
 
 * QNE-TODO: Rename their cfg from 'WNI_CFG_PRIM_DEVICE_OUI'
 WNI_CFG_WPS_PIMARY_DEVICE_OUI  I   4   7
@@ -3354,10 +3308,10 @@ LIM
 WNI_CFG_WPS_DEVICE_SUB_CATEGORY  I   4   7
 V    RW     NP
 LIM
-0    0x9     4
+0    0xffff   1
 V    RW     NP
 LIM
-0    0x9     1
+0    0xffff   1
 
 * Association State
 *
@@ -3372,9 +3326,7 @@ LIM
 * 2                    Configuration Failure
 * 3                    Association Failure
 * 4                    IP Failure
-*
-* depricated in new implementation for WSC2.0
-*
+
 WNI_CFG_WPS_ASSOCIATION_STATE  I   4   7
 V    RW     NP
 LIM
@@ -3415,9 +3367,6 @@ LIM
 * performing a single instance of the Registration Protocol at a time,
 * it may return this error in response to attempts to start another
 * instance in the middle of an active session.
-*
-* depricated in new implementation for WSC2.0
-*
 
 WNI_CFG_WPS_CONFIGURATION_ERROR  I   4   7
 V    RW     NP
@@ -3467,10 +3416,10 @@ LIM
 WNI_CFG_WPS_DEVICE_PASSWORD_ID  I   4   7
 V    RW     NP
 LIM
-0    0x6   0 
+0    0xffffffff   0 
 V    RW     NP
 LIM
-0    0x6   0
+0    0xffffffff   0
 
 *
 * WPS Association
@@ -3523,9 +3472,6 @@ LIM
 * 0x0001 Incldue the WPS Information Element in Assoc Request frames
 * 0x0002 Elide the the WPA and RSN Information Elements from the
 *        Assoc Request frame
-*
-*
-* depricated in new implementation for WSC2.0
 *
 
 WNI_CFG_WPS_ASSOC_METHOD    I    4    7
@@ -3708,7 +3654,6 @@ V    RW    NP
 HAL
 0    3    0
 
-
 *
 *  BTC DHCP No of Bt slots to block 
 *
@@ -3834,6 +3779,18 @@ V    RW    NP
 HAL
 0    65535    0
 
+* Limit on number of associated stations
+* (applies to peer stations in IBSS, SoftAP, BT-AMP AP, & P2P-GO modes)
+*
+
+WNI_CFG_ASSOC_STA_LIMIT    I   4   8
+V    RW    NP
+LIM
+1    10    5
+V    RW    NP
+LIM
+1    10    5
+
 * 
 * Softap data available poll period (in milliseconds) for 
 * queueing (Qos)Null frames to the station if there 
@@ -3847,4 +3804,6 @@ NONE
 V    RW    NP
 NONE
 0    65535    5
+
+
 

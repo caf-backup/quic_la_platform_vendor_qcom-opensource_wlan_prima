@@ -118,7 +118,7 @@ halMacRaBssInfoToFW(
     eHalStatus status;
 
     // Download the table to the target.
-    status = halWriteDeviceMemory(pMac, QWLANFW_MEMMAP_RA_BSS_INFO_TABLE + sizeof(tpHalRaBssInfo)*bssIdx, \
+    status = halWriteDeviceMemory(pMac, pMac->hal.memMap.raBssTable_offset + sizeof(tHalRaBssInfo)*bssIdx, \
             pHalRaBssInfo, sizeof(bssRaParam));
 
     halMacRaUpdateParamReq(pMac, RA_UPDATE_BSS_INFO, pHalRaBssInfo->u.dword);
@@ -146,7 +146,7 @@ halMacRaBssInfoFromFW(
 
     memset((void *)(beRaBssInfo+sizeof(bssRaParam)), HALRATE_INVALID, sizeof(beRaBssInfo)-sizeof(bssRaParam));
     /* read from the firmware */
-    status = halReadDeviceMemory(pMac, QWLANFW_MEMMAP_RA_BSS_INFO_TABLE+sizeof(tpHalRaBssInfo)*bssIdx, \
+    status = halReadDeviceMemory(pMac, pMac->hal.memMap.raBssTable_offset+sizeof(tHalRaBssInfo)*bssIdx, \
         &beRaBssInfo[0], sizeof(tHalRaBssInfo));
     
     /* copy bssRaParam because it doesn't require swap */
@@ -160,7 +160,7 @@ halMacRaBssInfoFromFW(
         src++; dest++;
     }
 #else
-     status = halReadDeviceMemory(pMac, QWLANFW_MEMMAP_RA_BSS_INFO_TABLE+sizeof(tpHalRaBssInfo)*bssIdx, \
+     status = halReadDeviceMemory(pMac, pMac->hal.memMap.raBssTable_offset+sizeof(tHalRaBssInfo)*bssIdx, \
                 (void *)pHalRaBssInfo, sizeof(tHalRaBssInfo));
 #endif
     return status;
@@ -227,7 +227,7 @@ halMacRaStaInfoToFW(
     startOffset &= ~3;
     szLen = CEIL_ALIGN(szLen+(startOffset & 3), 4);
 
-    status = halWriteDeviceMemory(pMac, QWLANFW_MEMMAP_RA_STA_CONFIG+sizeof(tHalRaInfo)*staId + startOffset, \
+    status = halWriteDeviceMemory(pMac, pMac->hal.memMap.raStaTable_offset + sizeof(tHalRaInfo)*staId + startOffset, \
                 (void*)((tANI_U32)pRaInfo + startOffset), szLen);
     return status;
 }
@@ -254,7 +254,7 @@ halMacRaStaInfoFromFW(
     startOffset &= ~3;
     szLen = CEIL_ALIGN(szLen+(startOffset & 3), 4);
 
-    status = halReadDeviceMemory(pMac, QWLANFW_MEMMAP_RA_STA_CONFIG+sizeof(tHalRaInfo)*staId + startOffset, \
+    status = halReadDeviceMemory(pMac, pMac->hal.memMap.raStaTable_offset+sizeof(tHalRaInfo)*staId + startOffset, \
         (void *)((tANI_U32)pRaInfo + startOffset), szLen);
 
     if(bSwapNeeded) {
@@ -1535,7 +1535,16 @@ halMacRaUpdateStaSuppRateBitmap_PeerType(
     tSirRetStatus retval;
     tpStaStruct pSta = ((tpStaStruct) pMac->hal.halMac.staTable)+staid;
 #ifdef FEATURE_TX_PWR_CONTROL
-    tANI_U8     isSelfSta = (staid == pMac->hal.halMac.selfStaId)?1:0;
+    tANI_U8     staType;
+    tANI_U8     isSelfSta;
+    
+    if( eHAL_STATUS_SUCCESS != halTable_GetStaType( pMac, staid, &staType ) )
+    {
+       raLog(pMac, RALOG_ERROR, FL("invalid staid"));
+       return eSIR_FAILURE;
+    }
+
+    isSelfSta = (STA_ENTRY_SELF == staType)?1:0;
 #endif
 
     if((pSta == NULL) || (pRates == NULL))
@@ -1862,7 +1871,7 @@ halMacRaSetAllStaRetryRates(
     tHalMacRate     sRate,  /* secondary rate */
     tHalMacRate     tRate)  /* tertiary rate */
 {
-    tANI_U8 staid ; //startStaid;
+    tANI_U16 staid ; //startStaid;
     tANI_U8  staType;
     tpHalRaGlobalInfo   pGlob   = &pMac->hal.halRaInfo;
 

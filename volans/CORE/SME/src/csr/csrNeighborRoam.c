@@ -1174,7 +1174,8 @@ eHalStatus csrNeighborRoamIssueBgScanRequest(tpAniSirGlobal pMac, tCsrBGScanRequ
     scanReq.requestType = eCSR_SCAN_HO_BG_SCAN;
     scanReq.maxChnTime = pBgScanParams->maxChnTime;
     scanReq.minChnTime = pBgScanParams->minChnTime;
-    status = csrScanRequest(pMac, &scanReq, &scanId, csrNeighborRoamScanRequestCallback, NULL);
+    status = csrScanRequest(pMac, CSR_SESSION_ID_INVALID, &scanReq,
+                        &scanId, csrNeighborRoamScanRequestCallback, NULL);
     if (eHAL_STATUS_SUCCESS != status)
     {
         smsLog(pMac, LOGE, FL("CSR Scan Request failed with status %d"), status);
@@ -2280,6 +2281,7 @@ void csrNeighborRoamClose(tpAniSirGlobal pMac)
     pNeighborRoamInfo->neighborScanTimerInfo.sessionId = CSR_SESSION_ID_INVALID;
     palTimerFree(pMac->hHdd, pNeighborRoamInfo->neighborScanTimer);
     palTimerFree(pMac->hHdd, pNeighborRoamInfo->neighborResultsRefreshTimer);
+
 
     /* Should free up the nodes in the list before closing the double Linked list */
     csrNeighborRoamFreeRoamableBSSList(pMac, &pNeighborRoamInfo->roamableAPList);

@@ -41,6 +41,10 @@ tSirRetStatus ConvertWMMTCLAS       (tpAniSirGlobal, tSirTclasInfo*,            
 void          ConvertTSDelay        (tpAniSirGlobal, tSirMacTsDelayIE*,          tDot11fIETSDelay*);
 void          ConvertSchedule       (tpAniSirGlobal, tSirMacScheduleIE*,         tDot11fIESchedule*);
 void          ConvertWMMSchedule    (tpAniSirGlobal, tSirMacScheduleIE*,         tDot11fIEWMMSchedule*);
+tSirRetStatus ConvertWscOpaque      (tpAniSirGlobal, tSirAddie*,                 tDot11fIEWscIEOpaque*);
+#ifdef WLAN_FEATURE_P2P
+tSirRetStatus ConvertP2POpaque      (tpAniSirGlobal, tSirAddie*,                 tDot11fIEP2PIEOpaque*);
+#endif
 
 
 #endif

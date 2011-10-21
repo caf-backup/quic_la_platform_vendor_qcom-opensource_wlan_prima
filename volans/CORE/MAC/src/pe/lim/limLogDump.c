@@ -432,10 +432,10 @@ static char *sendSmeScanReq(tpAniSirGlobal pMac, char *p)
     pScanReq->returnUniqueResults = 0;
     pScanReq->returnFreshResults = SIR_BG_SCAN_PURGE_RESUTLS|SIR_BG_SCAN_RETURN_FRESH_RESULTS;
     pScanReq->channelList.numChannels = 1;
-    pScanReq->channelList.channelNumberOffset = sizeof(tSirSmeScanReq);
-    *((tANI_U8 *)pScanReq + pScanReq->channelList.channelNumberOffset) = 6;
+    pScanReq->channelList.channelNumber[0] = 6;
     pScanReq->uIEFieldLen = 0;
-    pScanReq->uIEFieldOffset = pScanReq->channelList.channelNumberOffset + 1;
+    pScanReq->uIEFieldOffset = sizeof(tSirSmeScanReq);
+
     msg.type = eWNI_SME_SCAN_REQ;
     msg.bodyptr = pScanReq;
     msg.bodyval = 0;
@@ -453,10 +453,12 @@ static char *sendSmeDisAssocReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1 ,tANI
 	tSirSmeDisassocReq	*pDisAssocReq;
 	tpPESession  psessionEntry;
 
-	if((arg1 < 1 ) || (arg2 < 0) )
+	//arg1 - assocId
+	//arg2 - sessionId	
+	if( arg1 < 1 )
 	{
 		p += log_sprintf( pMac,p,"Invalid session OR Assoc ID  \n");
-        return p;
+      return p;
 	}	
 
 	if((psessionEntry = peFindSessionBySessionId(pMac,(tANI_U8)arg2) )== NULL)
@@ -473,14 +475,7 @@ static char *sendSmeDisAssocReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1 ,tANI
             return p;
     }
 
-	//arg1 - assocId
-	//arg2 - sessionId	
-	if((arg1 < 1 ) || (arg2 < 0) )
-	{
-		p += log_sprintf( pMac,p,"Invalid session OR Assoc ID  \n");
-        return p;
-	}	
-	if (palAllocateMemory(pMac->hHdd, (void **)&pDisAssocReq, sizeof(tSirSmeDisassocReq)) != eHAL_STATUS_SUCCESS)
+    if (palAllocateMemory(pMac->hHdd, (void **)&pDisAssocReq, sizeof(tSirSmeDisassocReq)) != eHAL_STATUS_SUCCESS)
     {
         p += log_sprintf( pMac,p,"sendSmeDisAssocReq: palAllocateMemory() failed \n");
         return p;
@@ -552,31 +547,31 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
     pStartBssReq->length = 29;    // 0x1d
     
 	if(arg1 == 0) //BTAMP STATION 
-	{
-    	pStartBssReq->bssType = eSIR_BTAMP_STA_MODE;
+	 {
+        pStartBssReq->bssType = eSIR_BTAMP_STA_MODE;
 		
-		pStartBssReq->ssId.length = 5;
-		palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"BTSTA", 5);   
-	}
-	else if(arg1 == 1) //BTAMP AP 
-	{
-		pStartBssReq->bssType = eSIR_BTAMP_AP_MODE;
-		pStartBssReq->ssId.length = 4;
-		palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"BTAP", 4); 
-	}
-	else  //IBSS
-	{
-		pStartBssReq->bssType = eSIR_IBSS_MODE;
-		pStartBssReq->ssId.length = 4;
-    	palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"Ibss", 4);
-	}
+        pStartBssReq->ssId.length = 5;
+        palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"BTSTA", 5);   
+    }
+    else if(arg1 == 1) //BTAMP AP 
+    {
+        pStartBssReq->bssType = eSIR_BTAMP_AP_MODE;
+        pStartBssReq->ssId.length = 4;
+        palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"BTAP", 4); 
+    }
+    else  //IBSS
+    {
+        pStartBssReq->bssType = eSIR_IBSS_MODE;
+        pStartBssReq->ssId.length = 4;
+        palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"Ibss", 4);
+    }
 
-	// Filling in channel ID 6
+	 // Filling in channel ID 6
     pBuf = &(pStartBssReq->ssId.ssId[pStartBssReq->ssId.length]);
     *pBuf = 6;
     pBuf++;
 
-	// Filling in CB mode
+	 // Filling in CB mode
     cbMode = eANI_CB_SECONDARY_NONE;
     palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *)&cbMode, sizeof(tAniCBSecondaryMode) );
     pBuf += sizeof(tAniCBSecondaryMode);
@@ -586,7 +581,7 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
     pBuf += sizeof(tANI_U16);
 
     // Filling in NW Type
-	nwType = eSIR_11G_NW_TYPE;
+	 nwType = eSIR_11G_NW_TYPE;
     palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *)&nwType, sizeof(tSirNwType) );
     pBuf += sizeof(tSirNwType);
 
@@ -2140,10 +2135,12 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       case 5:
          {
             tDot11fLinkMeasurementRequest frm;
-            tHalBufDesc Bd = { .phyStats0 = 0x00000000, .phyStats1 = 0x00000000 };
+            tHalBufDesc Bd;
             pBody[arg2][3] = (tANI_U8)arg3; //TxPower used
             pBody[arg2][4] = (tANI_U8)arg4; //Max Tx power
 
+            Bd.phyStats0 = 0;
+            Bd.phyStats1 = 0;
             if( (status = dot11fUnpackLinkMeasurementRequest( pMac, &pBody[arg2][0], size[arg2], &frm )) != 0 )
                p += log_sprintf( pMac, p, "failed to unpack.....status = %x\n", status);
             else
@@ -2245,18 +2242,18 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                    vos_mem_copy(Profile.pBssDesc->bssId, macAddr, 6);
 
                    p += log_sprintf( pMac,p, "\n ----- LIM Debug Information ----- \n");
-                   p += log_sprintf( pMac, p, "%s: length = %d\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: length = %d\n", __FUNCTION__, 
                             (int)pMac->ft.ftSmeContext.auth_ft_ies_length);
-                   p += log_sprintf( pMac, p, "%s: length = %02x\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: length = %02x\n", __FUNCTION__, 
                             (int)pMac->ft.ftSmeContext.auth_ft_ies[0]);
                    p += log_sprintf( pMac, p, "%s: Auth Req %02x %02x %02x\n", 
-                            __func__, pftPreAuthReq->ft_ies[0],
+                            __FUNCTION__, pftPreAuthReq->ft_ies[0],
                             pftPreAuthReq->ft_ies[1], pftPreAuthReq->ft_ies[2]);
 
-                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __FUNCTION__, 
                             psessionEntry->bssId[0],
                             psessionEntry->bssId[1], psessionEntry->bssId[2]);
-                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n", __FUNCTION__, 
                             pftPreAuthReq->currbssId[0],
                             pftPreAuthReq->currbssId[1], 
                             pftPreAuthReq->currbssId[2], pftPreAuthReq);

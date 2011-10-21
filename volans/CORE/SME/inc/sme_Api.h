@@ -14,7 +14,7 @@
   
   ========================================================================*/
 
-/* $Header$ */
+/* $Header: //deploy/qcom/qct/wconnect/wlanhs/core/sme/rel/3.0/inc/sme_Api.h#1 $ */
 
 /*--------------------------------------------------------------------------
   Include Files
@@ -66,6 +66,7 @@ typedef struct _smeHoConfigParams
    tCsrHandoffConfigParams  csrHoConfig;
 } tSmeHoConfigParams, *tpSmeHoConfigParams;
 #endif
+
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
   ------------------------------------------------------------------------*/
@@ -192,7 +193,8 @@ eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, vo
   \sa
   
   --------------------------------------------------------------------------*/
-eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId);
+eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId,
+                         csrRoamSessionCloseCallback callback, void *pContext);
 
 
 
@@ -554,7 +556,8 @@ eHalStatus sme_RoamTKIPCounterMeasures(tHalHandle hHal, tANI_U8 sessionId, tANI_
     \return eHalStatus
   -------------------------------------------------------------------------------*/
 eHalStatus sme_RoamGetWpsSessionOverlap(tHalHandle hHal, tANI_U8 sessionId,
-                                        void *pUsrContext, void *pfnSapEventCallback);
+                                        void *pUsrContext, void *pfnSapEventCallback,
+                                        v_MACADDR_t pRemoveMac);
 #endif
 
 /* ---------------------------------------------------------------------------
@@ -1457,6 +1460,7 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
 /* ---------------------------------------------------------------------------
     \fn sme_InNavMeasurementRequest
     \brief a wrapper function to Request RSSI/RTT measurements
+    \param sessionId - session id of session to be used for measurement.
     \param pMeasurementRequestID - pointer to an object to get back the request ID
     \param callback - a callback function that meas calls upon finish, will not 
                       be called if measMeasurementRequest returns error
@@ -1464,6 +1468,7 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
 eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal, 
+    tANI_U8 sessionId,
 		tInNavMeasurementConfig *, 
 		tANI_U32 *pMeasurementRequestID, 
 		measMeasurementCompleteCallback callback, 
@@ -1519,21 +1524,18 @@ eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSN
 #endif
 
 /* ---------------------------------------------------------------------------
+  \fn sme_sendBTAmpEvent
+  \brief API to send the btAMPstate to FW
+  \param  hHal - The handle returned by macOpen.
+  \param  btAmpEvent -- btAMP event
+  \return eHalStatus  SUCCESS 
 
-    \fn sme_combineWSCIE
+                         FAILURE or RESOURCES  The API finished and failed.
 
-    \brief To combine WPS IEs. pWscIe1 is input as well as output. 
-    if same parameters are present, pWscIe2's contents will overwrite pWscIe1's.
+--------------------------------------------------------------------------- */
 
-    \param pSirWscIe - pointer to a caller allocated object of tSirWSCie with WPS IEs
-    \param pSirIe2 - pointer to new ie (wanting to be combined on top of WscIe)
-    \param pSirIe2Len - length of pSirIe2
+eHalStatus sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEvent btAmpEvent);
 
-    \return eHalStatus � SUCCESS 
-
-
-  -------------------------------------------------------------------------------*/
-eHalStatus sme_combineWSCIE(tHalHandle hHal, tSirWSCie *pSirWscIe, tANI_U8 *pSirIe2, tANI_U32 pSirIe2Len);
 
 
 /* ---------------------------------------------------------------------------
@@ -1555,8 +1557,6 @@ eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
   ---------------------------------------------------------------------------*/
 eHalStatus sme_AbortMacScan(tHalHandle hHal);
 
-
-
 /* ----------------------------------------------------------------------------
  	\fn sme_GetOperationChannel
 	\brief API to get current channel on which STA is parked
@@ -1565,7 +1565,36 @@ eHalStatus sme_AbortMacScan(tHalHandle hHal);
 	\returns eHAL_STATUS_SUCCESS
 		eHAL_STATUS_FAILURE
 -------------------------------------------------------------------------------*/
-
 eHalStatus sme_GetOperationChannel(tHalHandle hHal, tANI_U32 *pChannel);
+
+#ifdef WLAN_FEATURE_P2P
+/* ---------------------------------------------------------------------------
+
+    \fn sme_RegisterMgtFrame
+
+    \brief To register managment frame of specified type and subtype. 
+    \param frameType - type of the frame that needs to be passed to HDD.
+    \param matchData - data which needs to be matched before passing frame 
+                       to HDD. 
+    \param matchDataLen - Length of matched data.
+    \return eHalStatus 
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RegisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId, 
+                     tANI_U16 frameType, tANI_U8* matchData, tANI_U16 matchLen);
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_DeregisterMgtFrame
+
+    \brief To De-register managment frame of specified type and subtype. 
+    \param frameType - type of the frame that needs to be passed to HDD.
+    \param matchData - data which needs to be matched before passing frame 
+                       to HDD. 
+    \param matchDataLen - Length of matched data.
+    \return eHalStatus 
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_DeregisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId, 
+                     tANI_U16 frameType, tANI_U8* matchData, tANI_U16 matchLen);
+#endif
 
 #endif //#if !defined( __SME_API_H )

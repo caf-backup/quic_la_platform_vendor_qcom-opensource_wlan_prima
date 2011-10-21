@@ -420,7 +420,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tpPESession psessionEn
      * to AP. PE shall reset the EDCA parameters to default parameters 
      * as advertised by AP and send the update to HAL;
      */
-    if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE )
+    if (psessionEntry->limSystemRole == eLIM_STA_ROLE )
 	{
         schSetDefaultEdcaParams(pMac);
         if (pStaDs != NULL)

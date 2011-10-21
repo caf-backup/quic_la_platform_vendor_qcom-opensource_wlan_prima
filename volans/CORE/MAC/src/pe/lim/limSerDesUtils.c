@@ -102,7 +102,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
         return eSIR_FAILURE;
 
     // Extract timeStamp
-	palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->timeStamp,
+    palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->timeStamp,
                   pBuf, sizeof(tSirMacTimeStamp));
     pBuf += sizeof(tSirMacTimeStamp);
     len  -= sizeof(tSirMacTimeStamp);
@@ -206,11 +206,11 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
 #endif
 
     if (len)
-	{
+    {
         palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->ieFields,
                        pBuf,
                        len);
-	}
+    }
 
     return eSIR_SUCCESS;
 } /*** end limGetBssDescription() ***/
@@ -1402,6 +1402,11 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
         return eSIR_FAILURE;
 
 #endif
+    // Extract bssPersona
+    pStartBssReq->bssPersona = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
 
     // Extract rsnIe
     pStartBssReq->rsnIE.length = limGetU16(pBuf);
@@ -1590,7 +1595,7 @@ limStopBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStopBssReq pStopBssReq, tANI_U8
     palCopyMemory( pMac->hHdd, (tANI_U8 *) pStopBssReq->bssId, pBuf, sizeof(tSirMacAddr));
     len  -= sizeof(tSirMacAddr);
   
-	if (len)
+    if (len)
         return eSIR_FAILURE;
     else
         return eSIR_SUCCESS;
@@ -1706,6 +1711,12 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
+    // Extract bssPersona
+    pJoinReq->staPersona = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
     // Extract uapsdPerAcBitmask
     pJoinReq->uapsdPerAcBitmask = *pBuf++;
     len--;
@@ -1753,9 +1764,8 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     if (pJoinReq->rsnIE.length)
     {
         // Check for RSN IE length (that includes length of type & length)
-        if (pJoinReq->rsnIE.length &&
-            ((pJoinReq->rsnIE.length > SIR_MAC_MAX_IE_LENGTH + 2) ||
-             (pJoinReq->rsnIE.length != 2 + *(pBuf + 1))))
+        if ((pJoinReq->rsnIE.length > SIR_MAC_MAX_IE_LENGTH + 2) ||
+             (pJoinReq->rsnIE.length != 2 + *(pBuf + 1)))
         {
             limLog(pMac, LOGW,
                    FL("Invalid RSN IE length %d in SME_JOIN_REQ\n"),
@@ -1770,25 +1780,50 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
             return eSIR_FAILURE;
     }
 
-    // Extract WSC IE
-    pJoinReq->wscIE.length = limGetU16(pBuf);
+    // Extract Add IE for scan
+    pJoinReq->addIEScan.length = limGetU16(pBuf);
     pBuf += sizeof(tANI_U16);
     len -= sizeof(tANI_U16);
-    if (pJoinReq->wscIE.length)
+
+    if (pJoinReq->addIEScan.length)
     {
-        // Check for WSC IE length (that includes length of type & length)
-        if ((pJoinReq->wscIE.length > SIR_MAC_WSC_IE_MAX_LENGTH) ||
-             (pJoinReq->wscIE.length != (2 + *(pBuf + 1))))
+        // Check for IE length (that includes length of type & length)
+        if (pJoinReq->addIEScan.length > SIR_MAC_MAX_IE_LENGTH + 2)
         {
-            limLog(pMac, LOGW,
-                   FL("Invalid WSC IE length %d/%d in SME_JOIN_REQ\n"),
-                   pJoinReq->wscIE.length, 2 + *(pBuf + 1));
+            limLog(pMac, LOGE,
+                   FL("Invalid addIE Scan length %d in SME_JOIN_REQ\n"),
+                   pJoinReq->addIEScan.length);
             return eSIR_FAILURE;
         }
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->wscIE.wscIEdata,
-                      pBuf, pJoinReq->wscIE.length);
-        pBuf += pJoinReq->wscIE.length;
-        len  -= pJoinReq->wscIE.length; // skip WSC IE
+        // Check for P2P IE length (that includes length of type & length)
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->addIEScan.addIEdata,
+                      pBuf, pJoinReq->addIEScan.length);
+        pBuf += pJoinReq->addIEScan.length;
+        len  -= pJoinReq->addIEScan.length; // skip add IE
+        if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+            return eSIR_FAILURE;
+    }
+
+    pJoinReq->addIEAssoc.length = limGetU16(pBuf);
+    pBuf += sizeof(tANI_U16);
+    len -= sizeof(tANI_U16);
+
+    // Extract Add IE for assoc
+    if (pJoinReq->addIEAssoc.length)
+    {
+        // Check for IE length (that includes length of type & length)
+        if (pJoinReq->addIEAssoc.length > SIR_MAC_MAX_IE_LENGTH + 2)
+        {
+            limLog(pMac, LOGE,
+                   FL("Invalid addIE Assoc length %d in SME_JOIN_REQ\n"),
+                   pJoinReq->addIEAssoc.length);
+            return eSIR_FAILURE;
+        }
+        // Check for P2P IE length (that includes length of type & length)
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->addIEAssoc.addIEdata,
+                      pBuf, pJoinReq->addIEAssoc.length);
+        pBuf += pJoinReq->addIEAssoc.length;
+        len  -= pJoinReq->addIEAssoc.length; // skip add IE
         if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
             return eSIR_FAILURE;
     }
@@ -2001,7 +2036,7 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
         mLen += (tANI_U16) len;
     }
 
-	// place holder to capability and nwType
+    // place holder to capability and nwType
 
     limCopyU16(pBuf, *(tANI_U16 *)&pAssocInd->capabilityInfo);
     pBuf += sizeof(tANI_U16); // capabilityInfo
@@ -2042,15 +2077,6 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
         pBuf += pAssocInd->supportedChannels.numChnl;
         mLen += pAssocInd->supportedChannels.numChnl;
     }
-
-    // Fill in wscInfo 
-    *pBuf = pAssocInd->wscInfo.present;
-    pBuf++;
-    *pBuf = pAssocInd->wscInfo.wpsVersion;
-    pBuf++;
-    *pBuf = pAssocInd->wscInfo.wpsRequestType;
-    pBuf++;
-    mLen += sizeof(tSirMacWscInfo);
 #ifdef WLAN_SOFTAP_FEATURE
     limCopyU32(pBuf, pAssocInd->WmmStaInfoPresent);
     pBuf += sizeof(tANI_U32);
@@ -2535,6 +2561,15 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
     pBuf += pReassocInd->rsnIE.length;
     mLen += pReassocInd->rsnIE.length;
 
+    // Fill in addIE
+    limCopyU16(pBuf, pReassocInd->addIE.length);
+    pBuf += sizeof(tANI_U16);
+    mLen += sizeof(tANI_U16);
+    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8*) &(pReassocInd->addIE.addIEdata),
+                   pReassocInd->addIE.length);
+    pBuf += pReassocInd->addIE.length;
+    mLen += pReassocInd->addIE.length;
+
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
 
     limCopyU16(pBuf, pReassocInd->seqNum);
@@ -2612,16 +2647,6 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
         pBuf += pReassocInd->supportedChannels.numChnl;
         mLen += pReassocInd->supportedChannels.numChnl;
     }
-
-    //Copy the wscInfo 
-    *pBuf = pReassocInd->wscInfo.present;
-    pBuf++;
-    *pBuf = pReassocInd->wscInfo.wpsVersion;
-    pBuf++;
-    *pBuf = pReassocInd->wscInfo.wpsRequestType;
-    pBuf++;
-    mLen += sizeof(tSirMacWscInfo);
-
 #ifdef WLAN_SOFTAP_FEATURE
     limCopyU32(pBuf, pReassocInd->WmmStaInfoPresent);
     pBuf += sizeof(tANI_U32);
@@ -2763,9 +2788,9 @@ limSetContextReqSerDes(tpAniSirGlobal pMac, tpSirSmeSetContextReq pSetContextReq
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-	// Extract sessionId
+    // Extract sessionId
     pSetContextReq->sessionId = *pBuf++;
-	len--;
+    len--;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
@@ -2870,7 +2895,7 @@ limRemoveKeyReqSerDes(tpAniSirGlobal pMac, tpSirSmeRemoveKeyReq pRemoveKeyReq, t
 {
     tANI_S16 len = 0;
 
-#ifdef	PE_DEBUG_LOG1
+#ifdef    PE_DEBUG_LOG1
     tANI_U8  *pTemp = pBuf;
 #endif
     if (!pRemoveKeyReq || !pBuf)
@@ -3113,7 +3138,7 @@ limDeauthReqSerDes(tpAniSirGlobal pMac, tSirSmeDeauthReq *pDeauthReq, tANI_U8 *p
 
     // Extract sessionId
     pDeauthReq->sessionId = *pBuf++;
-	len--;
+    len--;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
@@ -3148,7 +3173,7 @@ limDeauthReqSerDes(tpAniSirGlobal pMac, tSirSmeDeauthReq *pDeauthReq, tANI_U8 *p
         return eSIR_FAILURE;
     pDeauthReq->aid = limGetU16(pBuf);
 #endif
-	
+    
     return eSIR_SUCCESS;
 } /*** end limDisassocReqSerDes() ***/
 
@@ -3875,6 +3900,11 @@ limIsSmeGetWPSPBCSessionsReqValid(tpAniSirGlobal pMac, tSirSmeGetWPSPBCSessionsR
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
  
+    // Extract MAC address of Station to be removed
+    palCopyMemory( pMac->hHdd, (tANI_U8 *) pGetWPSPBCSessionsReq->pRemoveMac, pBuf, sizeof(tSirMacAddr));
+    pBuf += sizeof(tSirMacAddr);
+    len  -= sizeof(tSirMacAddr);
+    
     PELOG1(limLog(pMac, LOG1, FL("SME_GET_ASSOC_STAS_REQ length consumed %d bytes \n"), len);)
 
     if (len < 0)
@@ -3915,15 +3945,9 @@ limGetSessionInfo(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U8 *sessionId, tANI_U
     pBuf += sizeof(tANI_U16);   // skip message type 
     pBuf += sizeof(tANI_U16);   // skip message length
 
-	*sessionId = *pBuf;			// get sessionId
+    *sessionId = *pBuf;            // get sessionId
     pBuf++;    
     *transactionId = limGetU16(pBuf);  // get transactionId
-
-#if 0
-    // BTAMP: for now, just return 0
-    *sessionId = 0;
-    *transactionId = 0;
-#endif
 
     return;
 }

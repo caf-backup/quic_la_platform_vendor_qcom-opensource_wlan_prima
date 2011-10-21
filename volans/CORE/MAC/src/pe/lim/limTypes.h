@@ -219,6 +219,7 @@ typedef struct sLimMlmAssocInd
     tAniAuthType         authType;
     tAniSSID             ssId;
     tSirRSNie            rsnIE;
+    tSirAddie            addIE; // additional IE recevied from the peer, which possibly includes WSC IE and/or P2P IE.
     tSirMacCapabilityInfo capabilityInfo;
     tAniTitanHtCapabilityInfo titanHtCaps;
 
@@ -226,6 +227,7 @@ typedef struct sLimMlmAssocInd
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
 	tANI_U8					sessionId;
+
 
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool               WmmStaInfoPresent;
@@ -242,9 +244,6 @@ typedef struct sLimMlmAssocInd
     tANI_U32                  numBss; // List received from STA
     tSirNeighborBssInfo  neighborList[1]; // List received from STA
 #endif
-    /**************** QNE updated - BEGIN **********************/
-    tSirMacWscInfo       wscInfo;
-    /**************** QNE updated - END   **********************/
 } tLimMlmAssocInd, *tpLimMlmAssocInd;
 
 typedef struct sLimMlmReassocReq
@@ -271,6 +270,7 @@ typedef struct sLimMlmReassocInd
     tAniAuthType         authType;
     tAniSSID             ssId;
     tSirRSNie            rsnIE;
+    tSirAddie            addIE; // additional IE recevied from the peer, which can be WSC IE and/or P2P IE.
     tSirMacCapabilityInfo capabilityInfo;
     tAniTitanHtCapabilityInfo titanHtCaps;
 
@@ -293,9 +293,6 @@ typedef struct sLimMlmReassocInd
     tANI_U32                  numBss; // List received from STA
     tSirNeighborBssInfo  neighborList[1]; // List received from STA
 #endif
-    /**************** QNE updated - BEGIN **********************/
-    tSirMacWscInfo       wscInfo;
-    /**************** QNE updated - END   **********************/
 } tLimMlmReassocInd, *tpLimMlmReassocInd;
 
 typedef struct sLimMlmAuthCnf
@@ -667,6 +664,9 @@ void limProcessAssocRspFrame(tpAniSirGlobal, tANI_U32 *, tANI_U8,tpPESession);
 void limProcessDisassocFrame(tpAniSirGlobal, tANI_U32 *,tpPESession);
 void limProcessDeauthFrame(tpAniSirGlobal, tANI_U32 *,tpPESession);
 void limProcessActionFrame(tpAniSirGlobal, tANI_U32 *,tpPESession);
+#if defined WLAN_FEATURE_P2P
+void limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd);
+#endif
 
 
 tSirRetStatus limPopulateBD(tpAniSirGlobal, tANI_U8*, tANI_U8, tANI_U8, tSirMacAddr,tSirMacAddr);
@@ -952,9 +952,7 @@ limPostMlmMessage(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBuf)
 static inline tANI_U8
 limGetCurrentScanChannel(tpAniSirGlobal pMac)
 {
-    tANI_U8 *pChanNum = (tANI_U8 *)pMac->lim.gpLimMlmScanReq;
-
-    pChanNum += pMac->lim.gpLimMlmScanReq->channelList.channelNumberOffset;
+    tANI_U8 *pChanNum = pMac->lim.gpLimMlmScanReq->channelList.channelNumber;
 
     return (*(pChanNum + pMac->lim.gLimCurrentScanChannelId));
 } /*** end limGetCurrentScanChannel() ***/
@@ -1017,6 +1015,8 @@ limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry);
 void limGetWPSPBCSessions(tpAniSirGlobal pMac, tANI_U8 *addr, tANI_U8 *uuid_e, eWPSPBCOverlap *overlap, tpPESession psessionEntry);
 void limWPSPBCTimeout(tpAniSirGlobal pMac, tpPESession psessionEntry);
 void limWPSPBCClose(tpAniSirGlobal pMac, tpPESession psessionEntry);
+void limRemovePBCSessions(tpAniSirGlobal pMac, tSirMacAddr pRemoveMac,tpPESession psessionEntry);
+
 
 tSirRetStatus
 limIsSmeGetWPSPBCSessionsReqValid(tpAniSirGlobal pMac, tSirSmeGetWPSPBCSessionsReq *pGetWPSPBCSessionsReq, tANI_U8 *pBuf);
@@ -1031,6 +1031,16 @@ limResumeLink(tpAniSirGlobal pMac, SUSPEND_RESUME_LINK_CALLBACK callback, tANI_U
 
 void
 limChangeChannelWithCallback(tpAniSirGlobal pMac, tANI_U8 newChannel, 
-    CHANGE_CHANNEL_CALLBACK callback, tANI_U32 *cbdata, tpPESession psessionEntry);
+   CHANGE_CHANNEL_CALLBACK callback, tANI_U32 *cbdata, tpPESession psessionEntry);
+
+#ifdef WLAN_FEATURE_P2P
+void limSendSmeMgmtFrameInd(
+                    tpAniSirGlobal pMac, tSirSmeMgmtFrameType frameType,
+                    tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId);
+void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac);
+void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
+void limAbortRemainOnChan(tpAniSirGlobal pMac);
+tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf);
+#endif
 #endif /* __LIM_TYPES_H */
 

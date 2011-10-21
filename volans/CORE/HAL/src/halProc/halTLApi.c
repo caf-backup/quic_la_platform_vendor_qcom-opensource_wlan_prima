@@ -612,11 +612,7 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
             pBd->bd_ssn = HAL_TXBD_BD_SSN_FILL_DPU_NON_QOS;
         }
 
-#ifdef WLAN_SOFTAP_FEATURE
-        pBd->bdRate = HAL_TXBD_BDRATE_DEFAULT;
-#else
         pBd->bdRate = (unicastDst)? HAL_TXBD_BDRATE_DEFAULT : HAL_BDRATE_BCDATA_FRAME;
-#endif
         pBd->rmf    = HAL_RMF_DISABLED;     
 
         /* sanity: Might already be set by caller, but enforce it here again */
@@ -667,12 +663,12 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
          *     rmf:    NOT SET here. would be set later after STA id lookup is done.
          * - Sanity: Force HW frame translation OFF for mgmt frames.
          */
-#ifdef WLAN_SOFTAP_FEATURE
-         pBd->bdRate = (unicastDst) ? HAL_BDRATE_BCMGMT_FRAME : HAL_TXBD_BDRATE_DEFAULT; /* apply to both ucast/mcast mgmt frames */
-#else
-         pBd->bdRate = HAL_BDRATE_BCMGMT_FRAME; /* apply to both ucast/mcast mgmt frames */
-#endif
-         pBd->bd_ssn = HAL_TXBD_BD_SSN_FILL_DPU_NON_QOS;
+        pBd->bdRate = HAL_BDRATE_BCMGMT_FRAME; /* apply to both ucast/mcast mgmt frames */
+        if (txFlag & HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME) {
+            pBd->bdRate = HAL_BDRATE_CTRL_FRAME;
+        } 
+        
+        pBd->bd_ssn = HAL_TXBD_BD_SSN_FILL_DPU_NON_QOS;
         if ((subType == SIR_MAC_MGMT_ACTION) || 
             (subType == SIR_MAC_MGMT_DEAUTH) || 
             (subType == SIR_MAC_MGMT_DISASSOC)) {
@@ -707,6 +703,10 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
          *    DPU Sig 
          *    DPU descriptor index
          *    BTQM Queue ID
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+         * - For Virtual Stations
+         *    Change DPU Routing Flag so Firmware will process the frames
+#endif
          * - For mgmt frames, also update rmf bits
          */
         tpStaStruct  pSta = (tpStaStruct) pMac->hal.halMac.staTable;
@@ -863,6 +863,16 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
             HALLOGE(halLog(pMac, LOGE, FL("halDpu_GetSignature() failed for dpuId = %d\n"), pBd->dpuDescIdx));
             return VOS_STATUS_E_FAILURE;
         }
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+        // if this is a Virtual Station then change the DPU Routing Flag so
+        // that the frame will be routed to Firmware for queuing & transmit
+
+        if (IS_VSTA_IDX(staId))
+        {
+            pBd->dpuRF = BMUWQ_FW_DPU_TX;
+        }
+#endif
 
         HALLOGW(halLog(pMac, LOGW, FL("UC=%d, staid = %d, Dpu idx = %d, Dpu Sig =%d\n"), unicastDst, staId, pBd->dpuDescIdx, dpuSig));
     } 
@@ -1126,3 +1136,62 @@ tANI_U8 WLANHAL_IsOnChipReorderingEnabledForTID(void* pVosGCtx, tANI_U8 staIdx, 
 }
 #endif
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+
+/* 
+ * DESCRIPTION:
+ *      Function provided for TL(transport layer) to determine whether or
+ *      not a given station is capable of using HW-based frame translation
+ *
+ * PARAMETERS:
+ *      pVosGCtx:   Pointer to the global VOS contextt
+ *      staIdx:     Index of the station that is being queried
+ *
+ * RETURN VALUE:
+ *      VOS_TRUE    Station is capable of using HW-based frame translation
+ *      VOS_FALSE   Station must use SW-based frame translation
+ */
+v_BOOL_t WLANHAL_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx, tANI_U8 staIdx)
+{
+    tpAniSirGlobal pMac;
+    tANI_U8 umaIdx;
+    eHalStatus status;
+
+    pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_HAL,
+                                           (v_CONTEXT_t) pVosGCtx);
+    status = halTable_GetStaUMAIdx(pMac, staIdx, &umaIdx);
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGW(halLog(pMac, LOGW,
+                       FL("Cannot get UMA Index for STA %d"),
+                       staIdx));
+        return VOS_FALSE;
+    }
+
+    if (HAL_INVALID_KEYID_INDEX == umaIdx)
+    {
+        HALLOGW(halLog(pMac, LOGW,
+                       FL("Invalid UMA Index for STA %d"),
+                       staIdx));
+        return VOS_FALSE;
+    }
+
+    // Unfortunately Virtual STAs need to have a special value set in
+    // the DPU Routing Flag in the BD, and since on the data path we
+    // only do a STA table lookup when we do frame translation, we must
+    // not allow HW-based frame translation for virtual STAs
+    if (IS_VSTA_IDX(staIdx))
+    {
+        HALLOGW(halLog(pMac, LOGW,
+                       FL("STA %d is a Virtual STA, "
+                          "HW frame translation disabled"),
+                       staIdx));
+        return VOS_FALSE;
+    }
+
+    HALLOG2(halLog(pMac, LOG2,
+                   FL("STA %d is allowed to do HW frame translation"),
+                   staIdx));
+    return VOS_TRUE;
+}
+#endif //WLAN_SOFTAP_VSTA_FEATURE

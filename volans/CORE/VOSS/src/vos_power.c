@@ -60,7 +60,6 @@ when       who     what, where, why
 #include <linux/err.h>
 #include <linux/delay.h>
 
-
 #ifdef MSM_PLATFORM_7x30
 #include <linux/mfd/pmic8058.h>
 #include <mach/rpc_pmapp.h>
@@ -1343,6 +1342,7 @@ VOS_STATUS vos_chipVoteXOCore
 )
 {
     static v_BOOL_t is_vote_on;
+
 #if defined(MSM_PLATFORM_8660) || defined(MSM_PLATFORM_7x30)
     int rc;
 #endif

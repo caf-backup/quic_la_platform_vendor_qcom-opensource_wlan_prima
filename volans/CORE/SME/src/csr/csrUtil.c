@@ -1330,7 +1330,7 @@ tANI_BOOLEAN csrIsConnStateConnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId
 tANI_BOOLEAN csrIsConnStateConnectedInfraAp( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
     return( (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pMac->roam.roamSession[sessionId].connectState) ||
-        (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState) );
+        (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState ) );
 }
 #endif
 
@@ -2294,14 +2294,6 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
         }
     }
     return( fRSNProfile );
-}
-
-tANI_BOOLEAN csrIsProfileWsc( tCsrRoamProfile *pProfile )
-{
-    if(pProfile->nWSCReqIELength)
-        return TRUE;
-    else
-        return FALSE;
 }
 
 
@@ -3587,36 +3579,6 @@ tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tANI_U32 sessionId,
 }
 #endif /* FEATURE_WLAN_WAPI */
 
-//If a WSCIE exists in the profile, just use it. Otherwise this function does nothing
-//Caller allocated memory for pWscIe and guarrantee it can contain a max length WSC IE
-//Return how many bytes for WSC IE is used up
-tANI_U8 csrRetrieveWscIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile, void *pWscIe )
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    tANI_U8 cbWscIe = 0;
-
-    do
-    {
-        if ( !csrIsProfileWsc( pProfile ) )  {
-            break;
-        }
-        if(pProfile->nWSCReqIELength && pProfile->pWSCReqIE)
-        {
-            if(SIR_MAC_WSC_IE_MAX_LENGTH+2 >= pProfile->nWSCReqIELength)
-            {
-                cbWscIe = (tANI_U8)pProfile->nWSCReqIELength;
-                palCopyMemory(pMac->hHdd, pWscIe, pProfile->pWSCReqIE, cbWscIe);
-            }
-            else
-            {
-                smsLog(pMac, LOGW, "  csrRetrieveRsnIe detect invalid WSC IE length (%d) \n", pProfile->pWSCReqIE);
-            }
-        }
-    }while(0);
-
-    return (cbWscIe);
-}
-
 tANI_BOOLEAN csrSearchChannelListForTxPower(tHalHandle hHal, tSirBssDescription *pBssDescription, tCsrChannelSet *returnChannelGroup)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -4820,35 +4782,47 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
         if(pProfile->BSSIDs.bssid)
         {
             palFreeMemory(pMac->hHdd, pProfile->BSSIDs.bssid);
-	     pProfile->BSSIDs.bssid = NULL;
+            pProfile->BSSIDs.bssid = NULL;
         }
         if(pProfile->SSIDs.SSIDList)
         {
             palFreeMemory(pMac->hHdd, pProfile->SSIDs.SSIDList);
-	     pProfile->SSIDs.SSIDList = NULL;
+            pProfile->SSIDs.SSIDList = NULL;
         }
         if(pProfile->pWPAReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pWPAReqIE);
-	     pProfile->pWPAReqIE = NULL;
+            pProfile->pWPAReqIE = NULL;
         }
         if(pProfile->pRSNReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pRSNReqIE);
-	     pProfile->pRSNReqIE = NULL;
+            pProfile->pRSNReqIE = NULL;
         }
 #ifdef FEATURE_WLAN_WAPI
         if(pProfile->pWAPIReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pWAPIReqIE);
-	     pProfile->pWAPIReqIE = NULL;
+            pProfile->pWAPIReqIE = NULL;
         }
 #endif /* FEATURE_WLAN_WAPI */
-    
+
+        if(pProfile->pAddIEScan)
+        {
+            palFreeMemory(pMac->hHdd, pProfile->pAddIEScan);
+            pProfile->pAddIEScan = NULL;
+        }
+
+        if(pProfile->pAddIEAssoc)
+        {
+            palFreeMemory(pMac->hHdd, pProfile->pAddIEAssoc);
+            pProfile->pAddIEAssoc = NULL;
+        }
+
         if(pProfile->ChannelInfo.ChannelList)
         {
             palFreeMemory(pMac->hHdd, pProfile->ChannelInfo.ChannelList);
-	     pProfile->ChannelInfo.ChannelList = NULL;
+            pProfile->ChannelInfo.ChannelList = NULL;
         }
 
     

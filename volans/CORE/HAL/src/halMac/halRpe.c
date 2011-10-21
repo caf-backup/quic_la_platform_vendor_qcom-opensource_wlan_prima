@@ -41,18 +41,18 @@ eHalStatus rpe_init_error_interrupt(tpAniSirGlobal pMac);
  */
 eHalStatus rpe_init_error_interrupt(tpAniSirGlobal pMac)
 {
-	tANI_U32 value;
+    tANI_U32 value;
 
-	value = QWLAN_RPE_ERR_INT_ENABLE_BU_SM_STUCK_ERR_INT_EN_MASK |
-            	QWLAN_RPE_ERR_INT_ENABLE_DD_SM_STUCK_ERR_INT_EN_MASK |
-            	QWLAN_RPE_ERR_INT_ENABLE_BMU_BD_AVAIL_ERR_INT_ENABLE_MASK |
-            	QWLAN_RPE_ERR_INT_ENABLE_GBI_ERR_INT_EN_MASK |
-            	QWLAN_RPE_ERR_INT_ENABLE_GAM_ERR_INT_EN_MASK;
+    value = QWLAN_RPE_ERR_INT_ENABLE_BU_SM_STUCK_ERR_INT_EN_MASK |
+            QWLAN_RPE_ERR_INT_ENABLE_DD_SM_STUCK_ERR_INT_EN_MASK |
+            QWLAN_RPE_ERR_INT_ENABLE_BMU_BD_AVAIL_ERR_INT_ENABLE_MASK |
+            QWLAN_RPE_ERR_INT_ENABLE_GBI_ERR_INT_EN_MASK |
+            QWLAN_RPE_ERR_INT_ENABLE_GAM_ERR_INT_EN_MASK;
 
-	if (halRpeinit_error_interrupt(pMac, value) != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+    if (halRpeinit_error_interrupt(pMac, value) != eHAL_STATUS_SUCCESS)
+        return eHAL_STATUS_FAILURE;
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -70,13 +70,13 @@ eHalStatus rpe_init_error_interrupt(tpAniSirGlobal pMac)
  * \return eHalStatus Routing flag configuration status
  */
 eHalStatus halRpe_CfgRoutingFlag(tpAniSirGlobal pMac, tANI_U32 drop_pkts,
-                                        	tANI_U32 good_pkts)
+                                 tANI_U32 good_pkts)
 {
 
-	halWriteRegister(pMac, QWLAN_RPE_ROUTING_FLAG_REG,
+    halWriteRegister(pMac, QWLAN_RPE_ROUTING_FLAG_REG,
                     (drop_pkts << QWLAN_RPE_ROUTING_FLAG_ROUTING_DROP_PACKET_OFFSET)| good_pkts);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -94,14 +94,14 @@ eHalStatus halRpe_CfgRoutingFlag(tpAniSirGlobal pMac, tANI_U32 drop_pkts,
  * \return eHalStatus Station Queue configuration status
  */
 eHalStatus halRpe_program_staid_qid(tpAniSirGlobal pMac,
-                    	tANI_U32 maxRpeStations, tANI_U32 maxRpeQueues)
+                                    tANI_U32 maxRpeStations, tANI_U32 maxRpeQueues)
 {
 
-	halWriteRegister(pMac, QWLAN_RPE_FULLSTATE_STATIONS_QUEUES_REG,
+    halWriteRegister(pMac, QWLAN_RPE_FULLSTATE_STATIONS_QUEUES_REG,
                     (maxRpeQueues << QWLAN_BMU_TX_QUEUE_STAID_QUEUEID_CONFIG_MAX_VALID_QUEUEID_OFFSET)|
-                	maxRpeStations);
+                     maxRpeStations);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 /**
@@ -118,13 +118,13 @@ eHalStatus halRpe_program_staid_qid(tpAniSirGlobal pMac,
 eHalStatus halRpe_sta_desc_base(tpAniSirGlobal pMac, tANI_U32 rpeStaDesc_offset)
 {
     /** Zero out the RPE STA descriptor */
-	halZeroDeviceMemory(pMac, pMac->hal.memMap.rpeStaDesc_offset,
-                                    	pMac->hal.memMap.rpeStaDesc_size);
+    halZeroDeviceMemory(pMac, pMac->hal.memMap.rpeStaDesc_offset,
+                        pMac->hal.memMap.rpeStaDesc_size);
 
-	halWriteRegister(pMac, QWLAN_RPE_MEM_BASE_ADDR_REG,
-                	rpeStaDesc_offset);
+    halWriteRegister(pMac, QWLAN_RPE_MEM_BASE_ADDR_REG,
+                     rpeStaDesc_offset);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -141,29 +141,39 @@ eHalStatus halRpe_sta_desc_base(tpAniSirGlobal pMac, tANI_U32 rpeStaDesc_offset)
  */
 eHalStatus halRpe_Start(tHalHandle hHal, void *arg)
 {
-	tpAniSirGlobal 	pMac = (tpAniSirGlobal)hHal;
-	tANI_U32		drop_pkts, good_pkts;
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+    tANI_U32 drop_pkts, good_pkts;
+    tANI_U32 maxStaid;
 
 #ifdef FEATURE_ON_CHIP_REORDERING
     tANI_U32 value;
 #endif
 
+    maxStaid = pMac->hal.memMap.maxStations - 1;
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // The RPE can only see "hard" stations
+    if (maxStaid >= HAL_NUM_HW_STA)
+    {
+        maxStaid = HAL_NUM_HW_STA - 1;
+    }
+#endif
     /** Initialize the number of Queues and Stations */
-	if (halRpe_program_staid_qid(pMac, pMac->hal.memMap.maxStations - 1,
-                	pMac->hal.memMap.maxHwQueues) != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+    if (halRpe_program_staid_qid(pMac, maxStaid,
+                                 pMac->hal.memMap.maxHwQueues)
+                                                != eHAL_STATUS_SUCCESS)
+        return eHAL_STATUS_FAILURE;
 
     /** Program the RPE STA data structure Base */
-	if (halRpe_sta_desc_base(pMac, pMac->hal.memMap.rpeStaDesc_offset)
+    if (halRpe_sta_desc_base(pMac, pMac->hal.memMap.rpeStaDesc_offset)
                                                 != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+        return eHAL_STATUS_FAILURE;
 
     /** Configure the routing flag */
-	drop_pkts = 0xFF;                    /**< Default value */
-	good_pkts = QWLAN_RPE_ROUTING_FLAG_ROUTING_GOOD_PACKET_DEFAULT; /**< Default value */
-	if (halRpe_CfgRoutingFlag(pMac, drop_pkts, good_pkts)
+    drop_pkts = 0xFF;                    /**< Default value */
+    good_pkts = QWLAN_RPE_ROUTING_FLAG_ROUTING_GOOD_PACKET_DEFAULT; /**< Default value */
+    if (halRpe_CfgRoutingFlag(pMac, drop_pkts, good_pkts)
                                                 != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+        return eHAL_STATUS_FAILURE;
 
     /** Enable error interrupts */
     if (rpe_init_error_interrupt(pMac) != eHAL_STATUS_SUCCESS)
@@ -217,10 +227,10 @@ eHalStatus halRpe_Start(tHalHandle hHal, void *arg)
 #endif /* FEATURE_ON_CHIP_REORDERING */
 
     /** Zero out the RPE Partial Bit Map */
-	halZeroDeviceMemory(pMac, pMac->hal.memMap.rpePartialBitmap_offset,
-        	pMac->hal.memMap.rpePartialBitmap_size) ;
+    halZeroDeviceMemory(pMac, pMac->hal.memMap.rpePartialBitmap_offset,
+                        pMac->hal.memMap.rpePartialBitmap_size) ;
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -237,10 +247,10 @@ eHalStatus halRpe_Start(tHalHandle hHal, void *arg)
  */
 eHalStatus halRpeinit_error_interrupt(tpAniSirGlobal pMac, tANI_U32 error_mask)
 {
-	halWriteRegister(pMac, QWLAN_RPE_ERR_INT_ENABLE_REG,
-                	error_mask);
+    halWriteRegister(pMac, QWLAN_RPE_ERR_INT_ENABLE_REG,
+                     error_mask);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 /**
@@ -256,10 +266,10 @@ eHalStatus halRpeinit_error_interrupt(tpAniSirGlobal pMac, tANI_U32 error_mask)
  */
 eHalStatus halRpe_interrupt_status(tpAniSirGlobal pMac, tANI_U32 *intr_status)
 {
-	halReadRegister(pMac, QWLAN_RPE_ERR_INT_STATUS_REG,
-                	intr_status) ;
+    halReadRegister(pMac, QWLAN_RPE_ERR_INT_STATUS_REG,
+                    intr_status) ;
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 /**
@@ -278,27 +288,33 @@ eHalStatus halRpe_interrupt_status(tpAniSirGlobal pMac, tANI_U32 *intr_status)
  * \return eHalStatus Station descriptor configuration status
  */
  eHalStatus halRpe_cfgStaDesc(tpAniSirGlobal pMac, tANI_U32 staIdx,
-                                                	tpRpeStaDesc pRpeStaDesc)
+                              tpRpeStaDesc pRpeStaDesc)
 {
-	tANI_U32	    	address;
+    tANI_U32    address;
 
-	address = pMac->hal.memMap.rpeStaDesc_offset + (staIdx * RPE_STA_DESC_ENTRY_SIZE);
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
+    address = pMac->hal.memMap.rpeStaDesc_offset + (staIdx * RPE_STA_DESC_ENTRY_SIZE);
 
 #if 0
     /** Zero out the RPE STA descriptor */
-	if (halZeroDeviceMemory(pMac, address,
-                            	sizeof(rpeStaDesc)) != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+    if (halZeroDeviceMemory(pMac, address,
+                            sizeof(rpeStaDesc)) != eHAL_STATUS_SUCCESS)
+        return eHAL_STATUS_FAILURE;
 #endif
     /** Save the STA config */
-	if (halRpe_SaveStaConfig(pMac, pRpeStaDesc, (tANI_U8) staIdx) != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+    if (halRpe_SaveStaConfig(pMac, pRpeStaDesc, (tANI_U8) staIdx) != eHAL_STATUS_SUCCESS)
+        return eHAL_STATUS_FAILURE;
 
     /** Write to RPE STA Desc memory */
-	halWriteDeviceMemory(pMac, address, (tANI_U8 *)pRpeStaDesc,
-                            	RPE_STA_DESC_ENTRY_SIZE);
+    halWriteDeviceMemory(pMac, address, (tANI_U8 *)pRpeStaDesc,
+                         RPE_STA_DESC_ENTRY_SIZE);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -316,17 +332,23 @@ eHalStatus halRpe_interrupt_status(tpAniSirGlobal pMac, tANI_U32 *intr_status)
  * \return eHalStatus Station descriptor retreiving status
  */
 eHalStatus halRpe_GetStaDesc(tpAniSirGlobal pMac, tANI_U8 staId,
-                                        	tpRpeStaDesc rpeStaDesc)
+                             tpRpeStaDesc rpeStaDesc)
 {
-	tANI_U32	address;
+    tANI_U32 address;
 
-	palFillMemory(pMac->hHdd, (void *)rpeStaDesc, RPE_STA_DESC_ENTRY_SIZE, 0);
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staId)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
 
-	address = pMac->hal.memMap.rpeStaDesc_offset + (staId * RPE_STA_DESC_ENTRY_SIZE);
-	halReadDeviceMemory(pMac, address, (tANI_U8 *)rpeStaDesc,
-                    	RPE_STA_DESC_ENTRY_SIZE);
+    palFillMemory(pMac->hHdd, (void *)rpeStaDesc, RPE_STA_DESC_ENTRY_SIZE, 0);
 
-	return eHAL_STATUS_SUCCESS;
+    address = pMac->hal.memMap.rpeStaDesc_offset + (staId * RPE_STA_DESC_ENTRY_SIZE);
+    halReadDeviceMemory(pMac, address, (tANI_U8 *)rpeStaDesc,
+                        RPE_STA_DESC_ENTRY_SIZE);
+
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -358,7 +380,7 @@ eHalStatus halRpe_SaveStaConfig(tpAniSirGlobal pMac, tpRpeStaDesc pRpeStaDesc, t
 }
 
 eHalStatus halRpe_SaveStaQueueConfig(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U32 queueId,
-                                                        	tpRpeStaQueueInfo rpeStaQueueInfo)
+                                     tpRpeStaQueueInfo rpeStaQueueInfo)
 {
     eHalStatus status = eHAL_STATUS_INVALID_STAIDX;
     tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
@@ -374,7 +396,7 @@ eHalStatus halRpe_SaveStaQueueConfig(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U
 }
 
 eHalStatus halRpe_RestoreStaQueueConfig(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U32 queueId,
-                                                        	tpRpeStaQueueInfo rpeStaQueueInfo)
+                                        tpRpeStaQueueInfo rpeStaQueueInfo)
 {
     eHalStatus status = eHAL_STATUS_INVALID_STAIDX;
     tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
@@ -382,7 +404,7 @@ eHalStatus halRpe_RestoreStaQueueConfig(tpAniSirGlobal pMac, tANI_U8 staIdx, tAN
     if (staIdx < pMac->hal.halMac.maxSta)
     {
         palCopyMemory(pMac->hHdd, (tANI_U8 *)rpeStaQueueInfo, (tANI_U8 *) &t[staIdx].rpeStaDesc.rpeStaQueueInfo[queueId],
-                                                                                    	RPE_STA_DESC_ENTRY_SIZE);
+                      RPE_STA_DESC_ENTRY_SIZE);
         status = eHAL_STATUS_SUCCESS;
     }
 
@@ -433,144 +455,180 @@ eHalStatus halRpe_RestoreStaConfig(tpAniSirGlobal pMac, tpRpeStaDesc pRpeStaDesc
  * \return eHalStatus Station descriptor configuration status
  */
  eHalStatus halRpe_UpdateStaDesc(tpAniSirGlobal pMac, tANI_U32 staIdx,
-                                                	tpRpeStaDesc rpeStaDesc)
+                                 tpRpeStaDesc rpeStaDesc)
 {
-	tANI_U32	    	address;
+    tANI_U32    address;
 
-	address = pMac->hal.memMap.rpeStaDesc_offset + (staIdx * RPE_STA_DESC_ENTRY_SIZE);
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
+    address = pMac->hal.memMap.rpeStaDesc_offset + (staIdx * RPE_STA_DESC_ENTRY_SIZE);
 
     /** Write to RPE STA Desc memory */
-	halWriteDeviceMemory(pMac, address, (tANI_U8 *)rpeStaDesc,
-                            	RPE_STA_DESC_ENTRY_SIZE);
+    halWriteDeviceMemory(pMac, address, (tANI_U8 *)rpeStaDesc,
+                         RPE_STA_DESC_ENTRY_SIZE);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
 eHalStatus halRpe_UpdateStaDescQueueInfo(tpAniSirGlobal pMac, tANI_U32 staIdx,
-                                        	tANI_U32 queueId, tpRpeStaQueueInfo rpeStaQueueInfo)
+                                         tANI_U32 queueId, tpRpeStaQueueInfo rpeStaQueueInfo)
 {
 
-	tANI_U32	    	address;
+    tANI_U32    address;
 
-	address = pMac->hal.memMap.rpeStaDesc_offset + (staIdx * RPE_STA_DESC_ENTRY_SIZE) +
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
+    address = pMac->hal.memMap.rpeStaDesc_offset + (staIdx * RPE_STA_DESC_ENTRY_SIZE) +
                                 (queueId * RPE_STA_DESC_QUEUE_SIZE);
 
     /** Write to RPE STA Desc memory */
-	halWriteDeviceMemory(pMac, address, (tANI_U8 *)rpeStaQueueInfo,
-                            	RPE_STA_DESC_QUEUE_SIZE) ;
+    halWriteDeviceMemory(pMac, address, (tANI_U8 *)rpeStaQueueInfo,
+                         RPE_STA_DESC_QUEUE_SIZE) ;
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
 eHalStatus halRpe_GetStaDescQueueInfo(tpAniSirGlobal pMac, tANI_U32 staIdx,
-                                        	tANI_U32 queueId, tpRpeStaQueueInfo rpeStaQueueInfo)
+                                      tANI_U32 queueId, tpRpeStaQueueInfo rpeStaQueueInfo)
 {
 
-	tANI_U32	    	address;
+    tANI_U32    address;
 
-	palFillMemory(pMac->hHdd, (void *)rpeStaQueueInfo, RPE_STA_DESC_QUEUE_SIZE, 0);
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
 
-	address = pMac->hal.memMap.rpeStaDesc_offset + (staIdx * RPE_STA_DESC_ENTRY_SIZE) +
+    palFillMemory(pMac->hHdd, (void *)rpeStaQueueInfo, RPE_STA_DESC_QUEUE_SIZE, 0);
+
+    address = pMac->hal.memMap.rpeStaDesc_offset + (staIdx * RPE_STA_DESC_ENTRY_SIZE) +
                                 (queueId * RPE_STA_DESC_QUEUE_SIZE);
 
     /** Write to RPE STA Desc memory */
-	halReadDeviceMemory(pMac, address, (tANI_U8 *)rpeStaQueueInfo,
-                            	RPE_STA_DESC_QUEUE_SIZE);
+    halReadDeviceMemory(pMac, address, (tANI_U8 *)rpeStaQueueInfo,
+                        RPE_STA_DESC_QUEUE_SIZE);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 eHalStatus halRpe_BlockAndFlushFrames(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId,
-                                            	tRpeSwBlockReq rpeSwBlockReq)
+                                      tRpeSwBlockReq rpeSwBlockReq)
 {
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
     /** Lock the RPE STA desc  */
-	if (halRpe_UpdateSwBlockReq(pMac, staIdx, queueId, eRPE_SW_ENABLE_DROP) != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+    if (halRpe_UpdateSwBlockReq(pMac, staIdx, queueId, eRPE_SW_ENABLE_DROP) != eHAL_STATUS_SUCCESS)
+        return eHAL_STATUS_FAILURE;
 
     /** Flush the Queues */
-	if (halRpe_FlushBitMapCache(pMac) != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+    if (halRpe_FlushBitMapCache(pMac) != eHAL_STATUS_SUCCESS)
+        return eHAL_STATUS_FAILURE;
 
 #ifdef FEATURE_ON_CHIP_REORDERING
     if (halRpe_FlushReorderPacketMemory(pMac, staIdx, queueId) != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+        return eHAL_STATUS_FAILURE;
 #endif
 
-	if (halRpe_FlushrsrcEntry(pMac, staIdx, queueId) != eHAL_STATUS_SUCCESS)
-    	return eHAL_STATUS_FAILURE;
+    if (halRpe_FlushrsrcEntry(pMac, staIdx, queueId) != eHAL_STATUS_SUCCESS)
+        return eHAL_STATUS_FAILURE;
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 eHalStatus halRpe_UpdateSwBlockReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId,
-                                            	tRpeSwBlockReq rpeSwBlockReq)
+                                   tRpeSwBlockReq rpeSwBlockReq)
 {
-	tANI_U32 value;
+    tANI_U32 value;
 
-	value = (staIdx << QWLAN_RPE_RPE_SW_BLOCK_PKTS_SW_BLOCK_STAID_OFFSET) |
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
+    value = (staIdx << QWLAN_RPE_RPE_SW_BLOCK_PKTS_SW_BLOCK_STAID_OFFSET) |
             (queueId << QWLAN_RPE_RPE_SW_BLOCK_PKTS_SW_BLOCK_QID_OFFSET) |
-            	rpeSwBlockReq;
+        rpeSwBlockReq;
 
-	halWriteRegister(pMac, QWLAN_RPE_RPE_SW_BLOCK_PKTS_REG, value);
+    halWriteRegister(pMac, QWLAN_RPE_RPE_SW_BLOCK_PKTS_REG, value);
 
-	halReadRegister(pMac, QWLAN_RPE_RPE_SW_BLOCK_PKTS_REG, &value);
+    halReadRegister(pMac, QWLAN_RPE_RPE_SW_BLOCK_PKTS_REG, &value);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 eHalStatus halRpe_FlushBitMapCache(tpAniSirGlobal pMac)
 {
 
 #ifdef WLAN_HAL_VOLANS
-	//tANI_U32 value;
+    //tANI_U32 value;
 #else
-	tANI_U32 value;
+    tANI_U32 value;
 #endif
 
-	halWriteRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG,
-        	QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FLUSH_PARTIALSTATE_CACHE_MASK |
-        	QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FLUSH_FULLSTATE_CACHE_MASK);
+    halWriteRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG,
+                     QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FLUSH_PARTIALSTATE_CACHE_MASK |
+                     QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FLUSH_FULLSTATE_CACHE_MASK);
 
 #ifndef WLAN_HAL_VOLANS //FIXME_VOLANS
     /** Poll on both bits to clear */
-	do {
+    do {
 
-    	halReadRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG, &value) ;
+        halReadRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG, &value) ;
 
     } while ((value & QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FLUSH_PARTIALSTATE_CACHE_MASK));
 
-	do {
+    do {
 
-    	halReadRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG, &value);
+        halReadRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG, &value);
 
     } while ((value & QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FLUSH_FULLSTATE_CACHE_MASK));
 #endif
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
 eHalStatus halRpe_FlushrsrcEntry(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId)
 {
-	tANI_U32 value;
+    tANI_U32 value;
 
-	value = (staIdx << QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_SW_FLUSH_RSRC_STAID_OFFSET) |
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
+    value = (staIdx << QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_SW_FLUSH_RSRC_STAID_OFFSET) |
             (queueId << QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_SW_FLUSH_RSRC_ENTRY_QUEUE_OFFSET) |
-        	QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_SW_FLUSH_RSRC_ENTRY_MASK;
+        QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_SW_FLUSH_RSRC_ENTRY_MASK;
 
-	halWriteRegister(pMac, QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_REG,
-                                        	value) ;
+    halWriteRegister(pMac, QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_REG,
+                     value) ;
 
 
-	do {
+    do {
 
-    	halReadRegister(pMac, QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_REG,
+        halReadRegister(pMac, QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_REG,
                                                 &value) ;
     } while ( (value & QWLAN_RPE_RPE_SW_FLUSH_RSRC_ENTRY_SW_FLUSH_RSRC_ENTRY_STATUS_MASK));
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 
 }
 
@@ -581,12 +639,12 @@ eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource)
 	tANI_U8 tID;
 	tANI_U8 staIdx;
 	tANI_U32 Reason_Code;
-	tANI_U32 rpeIntrStatus;
+    tANI_U32 rpeIntrStatus;
     tANI_U32 index, intHandled[]={
         QWLAN_RPE_ERR_INT_STATUS_2K_JUMP_SN_IN_BASESSION_INT_STATUS_MASK,
-    	QWLAN_RPE_ERR_INT_STATUS_2K_JUMP_SSN_IN_BAR_INT_STATUS_MASK,
-    	QWLAN_RPE_ERR_INT_STATUS_BAR_IN_NON_BASESSION_INT_STATUS_MASK,
-    	QWLAN_RPE_ERR_INT_STATUS_FRAGPKT_IN_BASESSION_INT_STATUS_MASK
+        QWLAN_RPE_ERR_INT_STATUS_2K_JUMP_SSN_IN_BAR_INT_STATUS_MASK,
+        QWLAN_RPE_ERR_INT_STATUS_BAR_IN_NON_BASESSION_INT_STATUS_MASK,
+        QWLAN_RPE_ERR_INT_STATUS_FRAGPKT_IN_BASESSION_INT_STATUS_MASK
     };        
     tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
 
@@ -595,7 +653,7 @@ eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource)
 	HALLOG1( halLog( pMac, LOG1, FL("halRpe_ErrIntHandler entered\n")));
 
     /** Read Interrupt Status.*/
-	halRpe_interrupt_status(pMac, &rpeIntrStatus);
+    halRpe_interrupt_status(pMac, &rpeIntrStatus);
     intRegStatus = rpeIntrStatus;
 
 	HALLOGE( halLog( pMac, LOGE, FL("RPE Err Intr status %x\n"),intRegStatus));
@@ -640,6 +698,12 @@ eHalStatus halRpe_FlushReorderPacketMemory(tpAniSirGlobal pMac, tANI_U8 staIdx, 
 {
   tANI_U32 value;
   tANI_U32 error_status;
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+  // we can only access "hard" STAs
+  if (!(IS_HWSTA_IDX(staIdx)))
+    return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
 
   /* Flush Reorder Packet Memory for this STA and QID */
   do {

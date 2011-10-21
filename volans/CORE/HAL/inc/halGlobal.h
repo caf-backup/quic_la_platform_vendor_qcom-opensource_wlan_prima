@@ -22,7 +22,6 @@
 #include   "halTypes.h"
 #include   "halInterrupts.h"
 #include   "halMacGlobal.h"
-#include   "halTxRx.h"
 #include   "halRateAdaptApi.h"
 #include   "halRateTable.h"
 #include   "halDXE.h"
@@ -132,12 +131,19 @@ typedef struct sHalMemMap
     tANI_U32   beaconTemplate_offset;
     tANI_U32   beaconTemplate_size;
 
+    tANI_U32   raBssTable_offset;
+    tANI_U32   raBssTable_size;
+    
+    tANI_U32   raStaTable_offset;
+    tANI_U32   raStaTable_size;
+
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32   bssTable_offset;
     tANI_U32   bssTable_size;
 
     tANI_U32   staTable_offset;
     tANI_U32   staTable_size;
+
     tANI_U32   probeRspTemplate_offset;
     tANI_U32   probeRspTemplate_size;
 #endif	
@@ -370,7 +376,9 @@ typedef struct sAniSirHal
     tANI_U8    ghalPhyAgcListenMode;
 #endif    
     tANI_U8         mcastBcastFilterSetting;
+    tSirLinkState   prevLinkState;
     tANI_U8         dynamicPsPollValue;
+    tANI_U8         useOnlyVstaIdx;
 
     tANI_U8         teleBcnWakeupEnable;
     tANI_U16        transListenInterval;

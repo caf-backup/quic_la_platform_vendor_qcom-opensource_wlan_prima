@@ -135,12 +135,14 @@ void measReleaseInNavMeasurementReqCommand(tpAniSirGlobal pMac, tSmeCmd *pMeasCm
 /* ---------------------------------------------------------------------------
     \fn measInNavMeasurementRequest
     \brief Request an innav measurement for given set of BSSIDs
+    \param sessionId - Id of session to be used for measurement
     \param pMeasurementRequestID - pointer to an object to get back the request ID
     \param callback - a callback function that measurement calls upon finish
     \param pContext - a pointer passed in for the callback
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
 eHalStatus measInNavMeasurementRequest(tHalHandle hHal, 
+                                tANI_U8 sessionId,
                                 tInNavMeasurementConfig *measurementReq, 
                                 tANI_U32 *pMeasurementRequestID, 
                                 measMeasurementCompleteCallback callback, 
@@ -152,6 +154,11 @@ eHalStatus measInNavMeasurementRequest(tHalHandle hHal,
 
     do 
     {
+        if( !CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+           status = eHAL_STATUS_FAILURE;
+           break;
+        }
         //This is a new measurement configuration coming in
         //so stop all the timers
         status = measStopTimers(hHal);
@@ -173,6 +180,7 @@ eHalStatus measInNavMeasurementRequest(tHalHandle hHal,
                 pMac->innavMeas.measurementConfig.numInNavMeasurements = 0;
                 pMac->innavMeas.measurementConfig.numSetRepetitions = 0;
                 pMac->innavMeas.measurementConfig.measurementTimeInterval = 0;
+                pMac->innavMeas.measurementConfig.sessionId = sessionId;
                 pMac->innavMeas.callback = NULL;
                 pMac->innavMeas.pContext = NULL;
             }
@@ -185,6 +193,7 @@ eHalStatus measInNavMeasurementRequest(tHalHandle hHal,
         pMac->innavMeas.measurementConfig.numSetRepetitions = measurementReq->numSetRepetitions;
         pMac->innavMeas.measurementConfig.measurementTimeInterval = measurementReq->measurementTimeInterval;
         pMac->innavMeas.measurementConfig.measurementMode = measurementReq->measurementMode;
+        pMac->innavMeas.measurementConfig.sessionId = sessionId;
         pMac->innavMeas.callback = callback;
         pMac->innavMeas.pContext = pContext;
         pMac->innavMeas.measurementRequestID = *(pMeasurementRequestID);
@@ -235,6 +244,7 @@ eHalStatus measInNavMeasurementRequest(tHalHandle hHal,
             pMeasCmd->u.measCmd.measurementID = pMac->innavMeas.measurementRequestID;
     
             //set the measurementRequest
+            pMeasCmd->u.measCmd.measurementReq.sessionId = pMac->innavMeas.measurementConfig.sessionId;
             pMeasCmd->u.measCmd.measurementReq.numBSSIDs = pMac->innavMeas.measurementConfig.numBSSIDs;
             pMeasCmd->u.measCmd.measurementReq.numInNavMeasurements = pMac->innavMeas.measurementConfig.numInNavMeasurements;
             pMeasCmd->u.measCmd.measurementReq.measurementMode = pMac->innavMeas.measurementConfig.measurementMode;
@@ -300,6 +310,7 @@ void measInNavMeasurementStartTimerHandler(void* pv)
             pMeasCmd->u.measCmd.measurementID = pMac->innavMeas.measurementRequestID;
     
             //set the measurementRequest
+            pMeasCmd->u.measCmd.measurementReq.sessionId = pMac->innavMeas.measurementConfig.sessionId;
             pMeasCmd->u.measCmd.measurementReq.numBSSIDs = pMac->innavMeas.measurementConfig.numBSSIDs;
             pMeasCmd->u.measCmd.measurementReq.numInNavMeasurements = pMac->innavMeas.measurementConfig.numInNavMeasurements;
             pMeasCmd->u.measCmd.measurementReq.measurementMode = pMac->innavMeas.measurementConfig.measurementMode;
@@ -356,6 +367,7 @@ eHalStatus measSendMBInNavMeasurementReq(tpAniSirGlobal pMac, tInNavMeasurementR
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirMeasInNavMeasurementReq* pMsg;
     tANI_U16 msgLen;
+    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pMeasReq->sessionId );
 
     smsLog(pMac, LOGW, "INNAV: entering Function %s\n", __FUNCTION__);
     
@@ -367,6 +379,7 @@ eHalStatus measSendMBInNavMeasurementReq(tpAniSirGlobal pMac, tInNavMeasurementR
         palZeroMemory(pMac->hHdd, pMsg, msgLen);
         pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_INNAV_MEAS_REQ);
         pMsg->length = pal_cpu_to_be16(msgLen);
+        palCopyMemory(pMac->hHdd, pMsg->selfMacAddr, pSession->selfMacAddr, sizeof(tSirMacAddr) );
         pMsg->numBSSIDs = pMeasReq->numBSSIDs;
         pMsg->numInNavMeasurements = pMeasReq->numInNavMeasurements;
         pMsg->measurementMode = (tANI_U32)(pMeasReq->measurementMode);
@@ -574,7 +587,11 @@ eHalStatus measIsInNavAllowed(tHalHandle hHal)
     {
         if(CSR_IS_SESSION_VALID(pMac, sessionId))
         {
-            if(csrIsConnStateIbss(pMac, sessionId) || csrIsBTAMP(pMac, sessionId) || csrIsConnStateConnectedInfraAp(pMac, sessionId))
+            if(csrIsConnStateIbss(pMac, sessionId) || csrIsBTAMP(pMac, sessionId) 
+#ifdef WLAN_SOFTAP_FEATURE
+               || csrIsConnStateConnectedInfraAp(pMac, sessionId)
+#endif
+               )
             {
                 //co-exist with IBSS or BT-AMP or Soft-AP mode is not supported
                 smsLog(pMac, LOGW, "INNAV is not allowed due to IBSS|BTAMP|SAP exist in session %d\n", sessionId);

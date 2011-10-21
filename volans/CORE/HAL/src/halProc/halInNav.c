@@ -142,7 +142,11 @@ void halInNav_FinishInNavMeasReq(tHalHandle hHalHandle)
                             FALSE, 
                             halInNav_HandleSwitchChannelPostMeasurements, 
                             NULL,
-                            pMac->hal.innavMeasParam.dialog_token);
+                            pMac->hal.innavMeasParam.dialog_token
+#ifdef WLAN_AP_STA_CONCURRENCY
+                            , 0
+#endif
+                            );
 
     if(status == eHAL_STATUS_SET_CHAN_ALREADY_ON_REQUESTED_CHAN)
     {
@@ -211,6 +215,8 @@ eHalStatus halInNav_StartInNavMeas(tpAniSirGlobal pMac)
                 break;
             }
             
+            palCopyMemory( pMac->hHdd, pPerBssidChannelInfo->selfMacAddr, reqParam->selfMacAddr, sizeof(tSirMacAddr) );
+
             currentChannel = (tANI_U8)(reqParam->bssidChannelInfo[pMac->hal.innavMeasParam.currentBssidIndex].channel);
 
             pPerBssidChannelInfo->numInNavMeasurements = reqParam->numInNavMeasurements;
@@ -234,7 +240,11 @@ eHalStatus halInNav_StartInNavMeas(tpAniSirGlobal pMac)
                             FALSE, 
                             halInNav_StartInNavMeasPostSetChannel, 
                             pPerBssidChannelInfo,
-                            pMac->hal.innavMeasParam.dialog_token);
+                            pMac->hal.innavMeasParam.dialog_token
+#ifdef WLAN_AP_STA_CONCURRENCY
+                            , 0
+#endif
+                            );
 
             if(status == eHAL_STATUS_SET_CHAN_ALREADY_ON_REQUESTED_CHAN)
             {
@@ -330,6 +340,9 @@ eHalStatus halInNav_SendStartInNavMeasMesg(tHalHandle hHalHandle, void* pData)
     tANI_U8  numBssids = 0;
 
     tANI_U8* pBuffer = NULL;
+#ifdef HAL_SELF_STA_PER_BSS
+    tANI_U8  selfStaIdx;
+#endif
     
     Qwlanfw_InNavMeasReqType* pInNavMeasReq = NULL;
     Qwlanfw_InNavBssidInfoType* pInNavBssidInfo = NULL;
@@ -353,7 +366,13 @@ eHalStatus halInNav_SendStartInNavMeasMesg(tHalHandle hHalHandle, void* pData)
 
     //send the selfSTA to the FW for now. With out the association,
     //FW does not know the self sta index
+    
+#ifndef HAL_SELF_STA_PER_BSS
     pInNavMeasReq->selfStaIndex = (tANI_U8)pMac->hal.halMac.selfStaId;
+#else
+    halTable_FindStaidByAddr(pMac, pPerBssidInfo->selfMacAddr, &selfStaIdx);
+    pInNavMeasReq->selfStaIndex = (tANI_U8)selfStaIdx;
+#endif
 
     for(numBssids=0;numBssids<pInNavMeasReq->numBssidsInReq;numBssids++)
     {

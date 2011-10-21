@@ -1,4 +1,3 @@
-
 /**=========================================================================
 
   \file  vos_api.c
@@ -12,17 +11,17 @@
   ========================================================================*/
  /*===========================================================================
 
-                       EDIT HISTORY FOR FILE
-
-
-  This section contains comments describing changes made to the module.
-  Notice that changes are listed in reverse chronological order.
-
-
-  $Header:$ $DateTime: $ $Author: $
-
-
-  when        who    what, where, why
+                       EDIT HISTORY FOR FILE 
+   
+   
+  This section contains comments describing changes made to the module. 
+  Notice that changes are listed in reverse chronological order. 
+   
+   
+   $Header:$ $DateTime: $ $Author: $ 
+   
+   
+  when        who    what, where, why 
   --------    ---    --------------------------------------------------------
   03/29/09    kanand     Created module.
 ===========================================================================*/
@@ -59,6 +58,7 @@
 #ifdef WLAN_BTAMP_FEATURE
 #include "bapApi.h"
 #include "bapInternal.h"
+#include "bap_hdd_main.h"
 #endif //WLAN_BTAMP_FEATURE
 
 
@@ -257,7 +257,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    for (iter =0; iter < VOS_CORE_MAX_MESSAGES; iter++)
    {
       (gpVosContext->aMsgWrappers[iter]).pVosMsg =
-         &(gpVosContext->aMsgBuffers[iter]);
+         &(gpVosContext->aMsgBuffers[iter]); 
       INIT_LIST_HEAD(&gpVosContext->aMsgWrappers[iter].msgNode);
       vos_mq_put(&gpVosContext->freeVosMq, &(gpVosContext->aMsgWrappers[iter]));
    }
@@ -370,7 +370,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    /* Now proceed to open TL. Read TL config first */
    vos_fetch_tl_cfg_parms ( &TLConfig,
-       ((hdd_adapter_t*)(gpVosContext->pHDDContext))->cfg_ini);
+       ((hdd_context_t*)(gpVosContext->pHDDContext))->cfg_ini);
 
    vStatus = WLANTL_Open(gpVosContext, &TLConfig);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -381,18 +381,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      VOS_ASSERT(0);
      goto err_sme_close;
    }
-
-#ifdef WLAN_BTAMP_FEATURE
-   vStatus = WLANBAP_Open(gpVosContext);
-   if(!VOS_IS_STATUS_SUCCESS(vStatus))
-   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to open BAP",__func__);
-     goto err_tl_close;
-   }
-
-#endif //WLAN_BTAMP_FEATURE
-
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: VOSS successfully Opened",__func__);
 
@@ -400,10 +388,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    return VOS_STATUS_SUCCESS;
 
-#ifdef WLAN_BTAMP_FEATURE
-err_tl_close:
-   WLANTL_Close(gpVosContext);
-#endif //WLAN_BTAMP_FEATURE
 
 err_sme_close:
    sme_Close(gpVosContext->pMACContext);
@@ -527,7 +511,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   //Begining kernel 2.6.31, memory buffer returned by request_firmware API
   //cannot be overwritten. So need to copy the firmware into a separate buffer
-  //as HAL needs to modify the endianess of FW binary.
+  //as HAL needs to modify the endianess of FW binary. 
 
   //Kernel may not have ~40 pages of free buffers always, so
   //Store the pointer to the buffer provided by kernel for now,
@@ -544,7 +528,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   /* Start the MAC */
   sirStatus = macStart(pVosContext->pMACContext,(v_PVOID_t)&halStartParams);
 
-  hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
+     hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
 
   halStartParams.FW.pImage = NULL;
   halStartParams.FW.cbImage = 0;
@@ -583,17 +567,6 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
             "TL correctly started");
-
-#ifdef WLAN_BTAMP_FEATURE
-  vStatus = WLANBAP_Start(pVosContext);
-  if (!VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to start TL",__func__);
-    goto err_bap_stop;
-  }
-#endif //WLAN_BTAMP_FEATURE
-
   /* START SYS. This will trigger the CFG download */
   sysMcStart(pVosContext, vos_sys_start_complete_cback, pVosContext);
 
@@ -634,11 +607,6 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
 
   return VOS_STATUS_SUCCESS;
-
-#ifdef WLAN_BTAMP_FEATURE
-err_bap_stop:
-  WLANBAP_Stop(pVosContext);
-#endif //WLAN_BTAMP_FEATURE
 
 err_tl_stop:
   WLANTL_Stop(pVosContext);
@@ -1037,7 +1005,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   {
     case VOS_MODULE_ID_TL:
     {
-      pGpModContext = &(gpVosContext->pTLContext);
+      pGpModContext = &(gpVosContext->pTLContext); 
       break;
     }
 
@@ -1055,7 +1023,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 
     case VOS_MODULE_ID_SSC:
     {
-      pGpModContext = &(gpVosContext->pSSCContext);
+      pGpModContext = &(gpVosContext->pSSCContext); 
       break;
     }
 
@@ -1106,6 +1074,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   /*
   ** Dynamically allocate the context for module
   */
+  
   *ppModuleContext = kmalloc(size, GFP_KERNEL);
 
   if ( *ppModuleContext == NULL)
@@ -1177,7 +1146,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   {
     case VOS_MODULE_ID_TL:
     {
-      pGpModContext = &(gpVosContext->pTLContext);
+      pGpModContext = &(gpVosContext->pTLContext); 
       break;
     }
 
@@ -1195,7 +1164,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 
     case VOS_MODULE_ID_SSC:
     {
-      pGpModContext = &(gpVosContext->pSSCContext);
+      pGpModContext = &(gpVosContext->pSSCContext); 
       break;
     }
 
@@ -1210,7 +1179,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 #ifdef WLAN_SOFTAP_FEATURE
     case VOS_MODULE_ID_SAP:
     {
-      pGpModContext = &(gpVosContext->pSAPContext);
+      pGpModContext = &(gpVosContext->pSAPContext); 
       break;
     }
 #endif
@@ -1625,31 +1594,14 @@ vos_fetch_tl_cfg_parms
 
 }
 
-v_BOOL_t vos_is_apps_power_collapse_allowed(void)
+v_BOOL_t vos_is_apps_power_collapse_allowed(void* pHddCtx)
 {
-    hdd_adapter_t *pAdapter        = NULL;
-    v_CONTEXT_t pVosContext        = NULL;
-
-    /* Get the Global VOSS Context */
-    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-    if(!pVosContext) {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Global VOS context is Null", __func__);
-       return TRUE;
-    }
-    
-    /* Get the HDD context */
-    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
-    if(!pAdapter) {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: HDD context is Null", __func__);
-       return TRUE;
-    }
-
-  return hdd_is_apps_power_collapse_allowed(pAdapter);
+  return hdd_is_apps_power_collapse_allowed((hdd_context_t*) pHddCtx);
 }
 
 void vos_abort_mac_scan(void)
 {
-    hdd_adapter_t *pAdapter        = NULL;
+    hdd_context_t *pHddCtx = NULL;
     v_CONTEXT_t pVosContext        = NULL;
 
     /* Get the Global VOSS Context */
@@ -1660,13 +1612,13 @@ void vos_abort_mac_scan(void)
     }
     
     /* Get the HDD context */
-    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
-    if(!pAdapter) {
+    pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+    if(!pHddCtx) {
        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
        return;
     }
 
-    hdd_abort_mac_scan(pAdapter);
+    hdd_abort_mac_scan(pHddCtx);
     return;
 }
 

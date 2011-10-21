@@ -235,7 +235,6 @@ static void __limInitStates(tpAniSirGlobal pMac)
      * By default assume 'unknown' role. This will be updated
      * when SME_START_BSS_REQ is received.
      */
-    pMac->lim.gLimSystemRole = eLIM_UNKNOWN_ROLE;
 
     // Number of legacy STAs associated
     palZeroMemory(pMac->hHdd, &pMac->lim.gLim11bParams, sizeof(tLimProtStaParams));
@@ -268,11 +267,13 @@ static void __limInitStates(tpAniSirGlobal pMac)
     palZeroMemory(pMac->hHdd, pMac->lim.gLimMyMacAddr, sizeof(pMac->lim.gLimMyMacAddr));
     pMac->lim.ackPolicy = 0;
 
+#if 0 /* Moving all these to session specific elements */
     pMac->lim.gLimQosEnabled = 0; //11E
     pMac->lim.gLimWmeEnabled = 0; //WME
     pMac->lim.gLimWsmEnabled = 0; //WSM
     pMac->lim.gLimHcfEnabled = 0;
     pMac->lim.gLim11dEnabled = 0;
+#endif
 
     pMac->lim.gLimProbeRespDisableFlag = 0; // control over probe response
 }
@@ -313,7 +314,7 @@ static void __limInitVars(tpAniSirGlobal pMac)
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
     // 11h Spectrum Management Related Flag
-    pMac->lim.gLim11hEnable = 0;
+    //pMac->lim.gLim11hEnable = 0;
     pMac->lim.gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_INIT;
     LIM_SET_RADAR_DETECTED(pMac, eANI_BOOLEAN_FALSE);
     pMac->sys.gSysEnableLearnMode = eANI_BOOLEAN_TRUE;
@@ -354,24 +355,11 @@ static void __limInitVars(tpAniSirGlobal pMac)
 
 static void __limInitAssocVars(tpAniSirGlobal pMac)
 {
-  //  pMac->lim.gpLimJoinReq = NULL;
-   // pMac->lim.gpLimReassocReq = NULL;
-    palZeroMemory(pMac->hHdd, pMac->lim.gpLimAIDpool, sizeof(*pMac->lim.gpLimAIDpool) * pMac->lim.maxStation);
+    palZeroMemory(pMac->hHdd, pMac->lim.gpLimAIDpool,
+                  sizeof(*pMac->lim.gpLimAIDpool) * (WNI_CFG_ASSOC_STA_LIMIT_STAMAX+1));
     pMac->lim.freeAidHead = 0;
     pMac->lim.freeAidTail = 0;
-
-#ifdef ANI_PRODUCT_TYPE_AP
-    pMac->lim.toBeReleasedHead = 0;
-    pMac->lim.toBeReleasedTail = 0;
-    pMac->lim.numReleasedThisCycle = 0;
-    pMac->lim.numReleasedLastCycle = 0;
-    pMac->lim.delayedRelease = 0;
-#endif
-    /// This indicates assigned AID on STA
-    //pMac->lim.gLimAID = 0;
-
-    // Current Authentication type used at STA
-    //pMac->lim.gLimCurrentAuthType = eSIR_OPEN_SYSTEM;
+    pMac->lim.gLimAssocStaLimit = WNI_CFG_ASSOC_STA_LIMIT_STADEF;
 
     // Place holder for current authentication request
     // being handled
@@ -517,7 +505,11 @@ limInitialize(tpAniSirGlobal pMac)
 #if defined WLAN_FEATURE_VOWIFI_11R
     limFTOpen(pMac);
 #endif
-    
+
+#ifdef WLAN_FEATURE_P2P
+    vos_list_init(&pMac->lim.gLimMgmtFrameRegistratinQueue);
+#endif    
+
 	#if 0
 
 	
@@ -579,6 +571,10 @@ limCleanup(tpAniSirGlobal pMac)
 #ifdef VOSS_ENABLED
     v_PVOID_t pvosGCTx;
     VOS_STATUS retStatus;
+#endif
+
+#ifdef WLAN_FEATURE_P2P
+    vos_list_destroy(&pMac->lim.gLimMgmtFrameRegistratinQueue);
 #endif
 
     limCleanupMlm(pMac);
@@ -728,7 +724,8 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
     }
 
     if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
-              (void **) &pMac->lim.gpLimAIDpool, sizeof(tANI_U8)*pMac->lim.maxStation))
+              (void **) &pMac->lim.gpLimAIDpool, 
+              sizeof(*pMac->lim.gpLimAIDpool) * (WNI_CFG_ASSOC_STA_LIMIT_STAMAX+1)))
     {
         PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!\n"));)
         return eSIR_FAILURE;
@@ -1423,8 +1420,7 @@ limContinueChannelLearn(tpAniSirGlobal pMac)
     {
         /// Prepare and send Probe Request frame
         ssId.length = 0;
-        /* for learning channel, we don't include any additional IE */
-        limSendProbeReqMgmtFrame(pMac, &ssId, bssId, chanNum,pMac->lim.gSelfMacAddr, 0 , NULL);
+        limSendProbeReqMgmtFrame(pMac, &ssId, bssId, chanNum,pMac->lim.gSelfMacAddr);
     }
 
     // Activate Learn duration timer during which
@@ -2301,13 +2297,21 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tpHalBufDesc pB
         }
     }
 
+    framelen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+    pBody    = SIR_MAC_BD_TO_MPDUDATA(pBd);
 
+   /* Note sure if this is sufficient, basically this condition allows all probe responses and 
+    *   beacons from an infrastructure network 
+    */
+        *((tANI_U16*) &capabilityInfo) = sirReadU16(pBody+ LIM_BCN_PR_CAPABILITY_OFFSET);
+    if(!capabilityInfo.ibss)
+        return eMGMT_DROP_NO_DROP;
+#if 0
     //Allow the mgmt frames to be queued if STA not in IBSS mode.
     if (pMac->lim.gLimSystemRole != eLIM_STA_IN_IBSS_ROLE)
         return eMGMT_DROP_NO_DROP;
+#endif
 
-    framelen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
-    pBody    = SIR_MAC_BD_TO_MPDUDATA(pBd);
 
     //Drop INFRA Beacons and Probe Responses in IBSS Mode
     if( (subType == SIR_MAC_MGMT_BEACON) ||

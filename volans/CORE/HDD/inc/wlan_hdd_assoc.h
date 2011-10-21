@@ -63,13 +63,21 @@ typedef struct connection_info_s
 }connection_info_t;
 /*Forward declaration of Adapter*/
 typedef struct hdd_adapter_s hdd_adapter_t;
-extern v_BOOL_t hdd_connIsConnected( hdd_adapter_t *pAdapter );
+typedef struct hdd_context_s hdd_context_t;
+typedef struct hdd_station_ctx hdd_station_ctx_t;
+typedef struct hdd_ap_ctx_s  hdd_ap_ctx_t;
+#ifdef CONFIG_CFG80211   
+typedef struct hdd_mon_ctx_s  hdd_mon_ctx_t;
+#endif
+
+
+extern v_BOOL_t hdd_connIsConnected( hdd_station_ctx_t *pHddStaCtx );
 extern eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, v_U32_t roamId, 
                                 eRoamCmdStatus roamStatus, eCsrRoamResult roamResult );
 
 extern v_VOID_t hdd_connSaveConnectInfo( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, eCsrRoamBssType eBssType );
 
-inline v_BOOL_t hdd_connGetConnectedBssType( hdd_adapter_t *pAdapter, 
+inline v_BOOL_t hdd_connGetConnectedBssType( hdd_station_ctx_t *pHddCtx, 
         eMib_dot11DesiredBssType *pConnectedBssType );
 
 int hdd_SetGENIEToCsr( hdd_adapter_t *pAdapter, eCsrAuthType *RSNAuthType );

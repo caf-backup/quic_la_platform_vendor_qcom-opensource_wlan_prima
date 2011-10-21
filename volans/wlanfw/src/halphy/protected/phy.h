@@ -5,13 +5,13 @@
    This program is the confidential and proprietary product of Airgo Networks Inc.
    Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
-  
+
    phy.h: Types needed only for internal phy interfaces.
             Nothing in here is needed for configuration or by halPhy interface clients.
    Author:  Mark Nelson
    Date:    3/4/05
 
-   History - 
+   History -
    Date        Modified by              Modification Information
   --------------------------------------------------------------------------
 
@@ -60,10 +60,10 @@ typedef struct
     tIQAdc     txLoCorr;
     sIQCalValues rxIQCorr[PHY_MAX_RX_CHAINS];
     sIQCalValues txIQCorr[PHY_ALL_TX_CHAINS];
-    
+
 // #ifdef DUAL_BAND_BUILD
 //     sCalTable           calTable[NUM_RF_BANDS];
-// 
+//
 //     eRfSubBand          prevBandIndex;
 // #endif //DUAL_BAND_BUILD
 
@@ -72,6 +72,9 @@ typedef struct
     tANI_BOOLEAN        tempMeasureTimerEnabled;
     tANI_BOOLEAN        r2pUpdateTimerEnabled;
     tANI_BOOLEAN        r2pUpdatedForHotTemp;
+    tANI_U8 nominalTempPwrCap;
+    tANI_U8 ofdmPwrCap;
+    tANI_U8 tpcSplitPoint;
 
 }tPhy;
 

@@ -129,7 +129,6 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
     tSirSmeScanReq   smeScanReq;
     tSirMacAddr      bcAddr = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     tSirBackgroundScanMode   backgroundScan;
-    tANI_U8 *ChanNum;
 
     PELOG1(limLog(pMac, LOG1, FL("Background Scan: %d success, %d consec fail \n"),
         pMac->lim.gLimNumOfBackgroundScanSuccess,  pMac->lim.gLimNumOfConsecutiveBkgndScanFailure);)
@@ -234,12 +233,12 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
         PELOGE(limLog(pMac, LOGE, FL("Send dummy scan with returnFreshResults as 0 to report BG scan results to SME.\n"));)
         return;
     }
-    smeScanReq.channelList.channelNumberOffset = sizeof(tSirSmeScanReq);
-    ChanNum = (tANI_U8 *)&smeScanReq;
-    ChanNum += smeScanReq.channelList.channelNumberOffset;
+    smeScanReq.channelList.channelNumber[0] =
+              bgScanChannelList[pMac->lim.gLimBackgroundScanChannelId++];
 
-    *ChanNum = bgScanChannelList[pMac->lim.gLimBackgroundScanChannelId++];
-
+    smeScanReq.uIEFieldLen = 0;
+    smeScanReq.uIEFieldOffset = sizeof(tSirSmeScanReq);
+    
     backgroundScan = limSelectsBackgroundScanMode(pMac);
     PELOG1(limLog(pMac, LOG1, FL("Performing (mode %d) Background Scan \n"), backgroundScan);)
     smeScanReq.backgroundScanMode = backgroundScan;

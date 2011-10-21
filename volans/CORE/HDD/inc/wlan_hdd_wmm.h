@@ -63,7 +63,7 @@ typedef enum
    HDD_LINUX_AC_BK = 3
 
 } hdd_wmm_linuxac_t;
- 
+
 /*! @brief types of classification supported
 */
 typedef enum
@@ -170,16 +170,29 @@ extern const v_U8_t hddLinuxUpToAcMap[];
   and status to an initial state.  The configuration can later be overwritten
   via application APIs
 
-  @param pAdapter : [in]  pointer to adapter context
+  @param pHddCtx : [in]  pointer to HDD context
 
   @return         : VOS_STATUS_SUCCESS if succssful
                   : other values if failure
 
   ===========================================================================*/
-VOS_STATUS hdd_wmm_init ( hdd_adapter_t* pAdapter );
+VOS_STATUS hdd_wmm_init ( hdd_context_t* pHddCtx );
 
 /**============================================================================
-  @brief hdd_wmm_close() - Function which will perform any necessary work to
+  @brief hdd_wmm_adapter_init() - Function which will initialize the WMM configuation
+  and status to an initial state.  The configuration can later be overwritten
+  via application APIs
+
+  @param pAdapter : [in]  pointer to Adapter context
+
+  @return         : VOS_STATUS_SUCCESS if succssful
+                  : other values if failure
+
+  ===========================================================================*/
+VOS_STATUS hdd_wmm_adapter_init( hdd_adapter_t *pAdapter );
+
+/**============================================================================
+  @brief hdd_wmm_adapter_close() - Function which will perform any necessary work to
   to clean up the WMM functionality prior to the kernel module unload
 
   @param pAdapter : [in]  pointer to adapter context
@@ -188,7 +201,7 @@ VOS_STATUS hdd_wmm_init ( hdd_adapter_t* pAdapter );
                   : other values if failure
 
   ===========================================================================*/
-VOS_STATUS hdd_wmm_close ( hdd_adapter_t* pAdapter );
+VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter );
 
 /**============================================================================
   @brief hdd_wmm_select_queue() - Function which will classify an OS packet

@@ -3,8 +3,6 @@ BUILD_DEBUG_VERSION := 1
 
 #Enable this flag to build driver in diag version
 BUILD_DIAG_VERSION := 0
-#Enable this flag to build ftm driver
-BUILD_FTM_DRIVER := 0
 
 #KERNEL include dir
 KERNEL_INC ?= ./include/linux
@@ -30,37 +28,11 @@ HDD_OBJS := wlan_hdd_main.o  \
             wlan_hdd_ftm.o  \
             wlan_hdd_hostapd.o  \
             wlan_hdd_softap_tx_rx.o
-#            bap_hdd_main.o \
 
 ifeq ($(CONFIG_CFG80211), y)
-HDD_OBJS += wlan_hdd_cfg80211.o
+HDD_OBJS += wlan_hdd_cfg80211.o \
+            wlan_hdd_p2p.o
 endif
-
-############# BAP ##################### 
-#BAP_INC := 	-I$(WLAN_DIR)/BAP/inc \
-#		-I$(WLAN_DIR)/BAP/src
-#
-#BAP_SRC_DIR := ../../BAP/src
-#BAP_OBJS := $(BAP_SRC_DIR)/bapModule.o        \
-#         $(BAP_SRC_DIR)/btampHCI.o         \
-#         $(BAP_SRC_DIR)/bapApiLinkCntl.o   \
-#         $(BAP_SRC_DIR)/bapApiHCBB.o       \
-#         $(BAP_SRC_DIR)/bapApiInfo.o       \
-#         $(BAP_SRC_DIR)/bapApiStatus.o     \
-#         $(BAP_SRC_DIR)/bapApiDebug.o      \
-#         $(BAP_SRC_DIR)/bapApiData.o       \
-#         $(BAP_SRC_DIR)/bapApiExt.o        \
-#         $(BAP_SRC_DIR)/bapApiTimer.o      \
-#         $(BAP_SRC_DIR)/btampFsm.o         \
-#         $(BAP_SRC_DIR)/bapRsn8021xAuthFsm.o \
-#         $(BAP_SRC_DIR)/bapRsn8021xSuppRsnFsm.o \
-#         $(BAP_SRC_DIR)/bapRsn8021xPrf.o     \
-#         $(BAP_SRC_DIR)/bapRsnAsfPacket.o    \
-#         $(BAP_SRC_DIR)/bapRsnSsmEapol.o     \
-#         $(BAP_SRC_DIR)/bapRsnSsmReplayCtr.o \
-#         $(BAP_SRC_DIR)/bapRsnTxRx.o         \
-#         $(BAP_SRC_DIR)/bapRsnSsmAesKeyWrap.o	\
-#	 $(BAP_SRC_DIR)/bapApiLinkSupervision.o
 
 ############# VOSS ################################
 VOSS_INC := -I$(WLAN_DIR)/VOSS/inc/ \
@@ -90,9 +62,6 @@ VOSS_OBJS :=    $(VOSS_SRC_DIR)/vos_types.o \
                 $(VOSS_SRC_DIR)/vos_sched.o   \
                 $(VOSS_SRC_DIR)/wlan_qct_bal.o \
                 $(VOSS_SRC_DIR)/wlan_qct_sal.o
-#                $(VOSS_SRC_DIR)/vos_utils.o   \
-#                $(VOSS_SRC_DIR)/aes_core.o \
-#		$(VOSS_SRC_DIR)/SHA1_sha1.o
 
 ifeq ($(BUILD_DIAG_VERSION),1)
 VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
@@ -187,7 +156,8 @@ MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
             $(MAC_SRC_DIR)/pe/lim/limAdmitControl.o \
             $(MAC_SRC_DIR)/pe/lim/limSession.o \
             $(MAC_SRC_DIR)/pe/lim/limSessionUtils.o \
-            $(MAC_SRC_DIR)/pe/lim/limFT.o
+            $(MAC_SRC_DIR)/pe/lim/limFT.o \
+            $(MAC_SRC_DIR)/pe/lim/limP2P.o
 
 MAC_PMM_OBJS = $(MAC_SRC_DIR)/pe/pmm/pmmApi.o    \
             $(MAC_SRC_DIR)/pe/pmm/pmmDebug.o     \
@@ -248,7 +218,7 @@ HAL_PHY_OBJS := $(HAL_SRC)/halPhy/asicAGC.o \
 	$(HAL_SRC)/halPhy/phyTxPowerPLUT.o \
         $(HAL_SRC)/halPhy/phyDebug.o \
         $(HAL_SRC)/halPhy/rfUtils.o \
-	$(HAL_SRC)/halPhy/phyClpcLpbkCal.o
+        $(HAL_SRC)/halPhy/phyClpcLpbkCal.o
 
 HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
 		$(HAL_SRC)/halFtm/pttModule.o \
@@ -259,8 +229,7 @@ HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
         $(HAL_SRC)/halFtm/pttFrameGen.o \
         $(HAL_SRC)/halFtm/asicPhyDbg.o \
 		$(HAL_SRC)/halFtm/halPhyRates.o \
-		$(HAL_SRC)/halFtm/halFtmRx.o \
-
+		$(HAL_SRC)/halFtm/halFtmRx.o
 
 
 HAL_PROC_OBJS :=$(HAL_SRC)/halProc/halInitApi.o \
@@ -322,7 +291,7 @@ SME_CMN_OBJS := $(SME_SRC_DIR)/sme_common/sme_Api.o $(SME_SRC_DIR)/sme_common/sm
 SME_BTC_OBJS := $(SME_SRC_DIR)/btc/btcApi.o
 
 SME_MEAS_OBJS := $(SME_SRC_DIR)/meas/measApi.o
-
+SME_P2P_OBJS = $(SME_SRC_DIR)/p2p/p2p_Api.o
 SME_RRM_OBJS := $(SME_SRC_DIR)/rrm/sme_rrm.o
 
 SME_OBJS :=  $(SME_CCM_OBJS) \
@@ -332,6 +301,7 @@ SME_OBJS :=  $(SME_CCM_OBJS) \
         $(SME_CMN_OBJS) \
         $(SME_BTC_OBJS) \
         $(SME_MEAS_OBJS) \
+        $(SME_P2P_OBJS) \
         $(SME_RRM_OBJS)
 
 ############# SSC ##################### 
@@ -393,6 +363,7 @@ EXTRA_CFLAGS += -Wframe-larger-than=4096
 endif
 
 
+DISABLE_WLAN_SOFTAP_VSTA_FEATURE := 1
 
 CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DANI_BUS_TYPE_SDIO=1 \
@@ -438,18 +409,26 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DFEATURE_INNAV_SUPPORT \
         -DFEATURE_TX_PWR_CONTROL \
         -DMSM_PLATFORM \
-        -DWLAN_FTM_STUB \
         -DVOLANS_1_0_CLPC_WORKAROUND \
         -DFEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND \
         -DWLAN_FEATURE_PROTECT_TXRX_REG_ACCESS \
         -DFEATURE_WLAN_WAPI #\
         #-DFEATURE_TX_PWR_CONTROL
+        #-DWLAN_BTAMP_FEATURE \
+        #-DBAP_DEBUG \
         #-DWLAN_FEATURE_VOWIFI_11R_DEBUG \
         #-DWLAN_VOWIFI_DEBUG
         #-Wframe-larger-than=4096#\
-        #-DVOLANS_PHY_TX_OPT_ENABLED \
-        #-DVOLANS_ENABLE_SW_REPLAY_CHECK
+        #-DVOLANS_PHY_TX_OPT_ENABLED #\
 
+ifeq ($(CONFIG_CFG80211), y)
+CDEFINES += -DWLAN_FEATURE_P2P
+endif
+
+# Enable SoftAP Virtual STA support unless explicitly disabled
+ifneq ($(DISABLE_WLAN_SOFTAP_VSTA_FEATURE),1)
+CDEFINES += -DWLAN_SOFTAP_VSTA_FEATURE
+endif
 
 ifeq ($(BUILD_DEBUG_VERSION),1)
 CDEFINES += -DWLAN_DEBUG \
@@ -505,13 +484,6 @@ CDEFINES += -DVOLANS_FPGA
 MODNAME := volans_fpga
 endif
 
-ifeq ($(BUILD_FTM_DRIVER),1)
-CDEFINES += -DANI_MANF_DIAG \
-	-UWLAN_FTM_STUB \
-	-DANI_PHY_DEBUG
-MODNAME := $(MODNAME)_ftm
-endif
-
 ifeq ($(WLAN_DBG),1)
 CDEFINES += -DWLAN_DEBUG
 endif
@@ -531,6 +503,7 @@ OBJS := $(VOSS_OBJS) \
                 $(NLINK_OBJS) \
                 $(BTC_OBJS) \
                 $(PTT_OBJS)
+#               $(BAP_OBJS) 
 
 # Module information used by KBuild framework
 obj-m   := $(MODNAME).o

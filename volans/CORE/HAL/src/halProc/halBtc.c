@@ -24,12 +24,15 @@
 #include "halFw.h"
 #include "halMailbox.h"
 #include "halBtc.h"
+#include "cfgApi.h"
 
 
 void halBtc_SetBtcCfg(tpAniSirGlobal pMac, void *pBuffer)
 {
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
     eHalStatus status;
+    tANI_U32 cfgLen = SIR_MAC_ADDR_LENGTH;
+    tANI_U8 selfMac[6];
     tpSmeBtcConfig pBtcCfg = (tpSmeBtcConfig)pBuffer;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
 
@@ -41,7 +44,16 @@ void halBtc_SetBtcCfg(tpAniSirGlobal pMac, void *pBuffer)
         pFwConfig->btcExecutionMode       = pBtcCfg->btcExecutionMode;
         pFwConfig->btcConsBtSlotsToBlockDuringDhcp = pBtcCfg->btcConsBtSlotsToBlockDuringDhcp;
         pFwConfig->btcA2DPBtSubIntervalsDuringDhcp = pBtcCfg->btcA2DPBtSubIntervalsDuringDhcp;
+		
+        if ( wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *)selfMac, &cfgLen) != eSIR_SUCCESS)
+        {
+            HALLOGE( halLog(pMac, LOGE, FL("halBtc_SetBtcCfg: cfgGetStr(WNI_CFG_STA_ID) failed \n")));
+        }
 
+		/*Early copy of SelfSta Mac Address to SysConfig. This is Required by firmware*/       
+        pFwConfig->staMacAddrLo = *((tANI_U32 *)selfMac);
+        pFwConfig->staMacAddrHi = *((tANI_U16 *)(selfMac + 4));    
+        
         // Write the configuration parameters in the memory mapped for
         // system configuration parameters
         status = halFW_UpdateSystemConfig(pMac,

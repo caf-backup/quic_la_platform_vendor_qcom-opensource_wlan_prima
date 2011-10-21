@@ -48,7 +48,8 @@ eHalStatus halSetByteSwap(
 
 eHalStatus halToggleByteSwap(tpAniSirGlobal pMac);
 eHalStatus halInitWmParam(tHalHandle hHal, void *arg);
-eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac);
+eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac, tANI_U16 dialog_token, tpAddStaSelfParams pAddStaSelfParams );
+void halMsg_DelStaSelf(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpDelStaSelfParams pDelStaSelfReq);
 void halMsg_setBssLinkState(tpAniSirGlobal pMac, tSirLinkState state,
         tANI_U8 bssIdx);
 void halMsg_ProcessSetLinkState(tpAniSirGlobal pMac,

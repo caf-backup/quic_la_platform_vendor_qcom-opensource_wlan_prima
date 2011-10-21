@@ -117,7 +117,7 @@ int iw_get_innav_measurements(
     do
     {
         //get the measurements from sme
-        status = sme_getInNavMeasurementResult(pAdapter->hHal, &pSmeMeasRsp);
+        status = sme_getInNavMeasurementResult(WLAN_HDD_GET_HAL_CTX(pAdapter), &pSmeMeasRsp);
         if(status != eHAL_STATUS_SUCCESS)
         {
             hddLog(LOGE, "%s: failed in sme_getInNavMeasurementResult\n", __FUNCTION__);
@@ -213,7 +213,7 @@ int iw_set_innav_measurements(
     v_U32_t measurementSetID = 0;
 
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
-    hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
+    hdd_wext_state_t *pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 
     do
     {
@@ -310,7 +310,8 @@ int iw_set_innav_measurements(
                         sizeof(tMeasurementBSSIDChannelInfo));
         }
     
-        status = sme_InNavMeasurementRequest(pAdapter->hHal, 
+        status = sme_InNavMeasurementRequest(WLAN_HDD_GET_HAL_CTX(pAdapter), 
+                                                pAdapter->sessionId,
                                                 &measConfig, 
                                                 &measurementSetID, 
                                                 &hdd_InNavMeasurementRequestCallback, 

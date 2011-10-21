@@ -1,3 +1,4 @@
+//source/qcom/qct/wconnect/wlan/hal/volans/dev/sap-vsta/src/halMac/halLogDump.c#8 - integrate change 536152 (text)
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * halLogDump.c:  Contains logDump functions
@@ -1759,7 +1760,7 @@ void getFrmTemplate(tpAniSirGlobal pMac, tANI_U32 templateType /*0 = templateLis
 
    /** Pointer for firmware image data */
    const struct firmware *fw = NULL;
-   hdd_adapter_t* pAdapter = (hdd_adapter_t*)pMac->pAdapter; 
+   hdd_context_t* pAdapter = (hdd_context_t*)pMac->pAdapter; 
    char *buffer;
    char buffer1[2048];
    tANI_U32 val = 0;
@@ -2398,7 +2399,7 @@ dump_addStaWithUapsd(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, t
     palCopyMemory(pMac->hHdd, (void *) &pMsg->staMac, (void *)staid, 6);
 
     pMsg->staIdx = HAL_STA_INVALID_IDX; 
-    pMsg->assocId = (tANI_U16)staidNum + 1; // may not work in all the cases. 
+    pMsg->assocId = staidNum + 1; // may not work in all the cases. 
     pMsg->staType = (staType == 0) ? STA_ENTRY_SELF : STA_ENTRY_PEER;
     HALLOGW( halLog(pMac, LOGW, FL("Adding STA %d-%d-%d-%d-%d-%d %s. "),
            (*staid)[0], (*staid)[1], (*staid)[2],
@@ -2467,7 +2468,7 @@ halLog_testAddSta(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, tANI
     palCopyMemory(pMac->hHdd, (void *) &pMsg->staMac, (void *)staid, 6);
 
     pMsg->staIdx = HAL_STA_INVALID_IDX; 
-    pMsg->assocId = (tANI_U16)staidNum + 1; // may not work in all the cases. 
+    pMsg->assocId = staidNum + 1; // may not work in all the cases. 
     pMsg->staType = (staType == 0) ? STA_ENTRY_SELF : STA_ENTRY_PEER;
     HALLOGW( halLog(pMac, LOGW, FL("Adding STA %d-%d-%d-%d-%d-%d %s. "),
            (*staid)[0], (*staid)[1], (*staid)[2],
@@ -2634,7 +2635,7 @@ static char *
 dump_hal_test_update_beacon_template( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg2; (void) arg3; (void) arg4;
-    halLog_SendBeaconReq(pMac, (tANI_U8)arg1);
+    halLog_SendBeaconReq(pMac, arg1);
     return p;
 }
 
@@ -3654,6 +3655,14 @@ dump_hal_Fw_Stat( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 ar
     halFW_MsgReq(pMac, QWLANFW_COMMON_DUMP_STAT, 0, 0);
     return p;
 }
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+static char *dump_hal_use_Only_Vsta( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    pMac->hal.useOnlyVstaIdx = TRUE;
+    return p;
+}
+#endif
 #endif
 
 static char *
@@ -3831,7 +3840,7 @@ dump_hal_set_tx_pwr( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32
     tANI_U32 index;
 
     (void) arg2; (void) arg3; (void) arg4;
-    if((arg1 < 32) && (arg1 >= 0))  {
+    if(arg1 < 32)  {
         /* Update the Tx power for the in the Hal rate table */
         for(index = (tTpeRateIdx)MIN_LIBRA_RATE_NUM; index < (tTpeRateIdx)MAX_LIBRA_TX_RATE_NUM; index++) {
             halRate_UpdateRateTxPower(pMac, index, (tPwrTemplateIndex)arg1);
@@ -4370,31 +4379,6 @@ dump_hal_get_pwr_save_counters( tpAniSirGlobal pMac,
     return p;
 }
 
-#ifdef WLAN_DBG_GPIO
-
-static char *
-dump_hal_toggle_gpio(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
-{
-    HALLOGE( halLog( pMac, LOGE, FL("GPIO toggle %d\n"), arg1));
-
-    if (arg2) {
-//        gpio_request( 181, "debug_wifi_gpio" );
-//	    gpio_direction_output( 181, arg2 );
-    }
-
-    if (arg1) {
-         HALLOGE( halLog( pMac, LOGE, FL("setting gpio 181 HIGH\n")));
-//         gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_2MA), GPIO_ENABLE);
-         gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-    } else {
-         HALLOGE( halLog( pMac, LOGE, FL("setting gpio 181 LOW\n")));
-//         gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), GPIO_ENABLE);
-         gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-    }
-   
-    return p;
-}
-#endif
 
 /* The dump command enables/disable the Mutex logs */
 static char *
@@ -4465,10 +4449,11 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {101,   "ap link monitor at FW <1/0>",                             dump_hal_set_ap_link_monitor},   
     {102,   "ap unknown addr2 handling at FW <1/0>",                   dump_hal_set_ap_unknown_addr2_handling}, 
     {103,   "dump FW stat",                                            dump_hal_Fw_Stat},
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    {104,   "Use Only Vsta",                                           dump_hal_use_Only_Vsta},
+#endif
 #endif    
-#ifdef WLAN_DBG_GPIO
-    {104,   "Toggle GPIO <level> <init> <enable>",                      dump_hal_toggle_gpio},
-#endif    
+    
     {127,   "HAL: enable/disable BA activity check timer. arg1 = enable(1)/disable(0)",  (tpFunc)dump_set_ba_activity_check_timeout},
     {128,   "HAL: enable(1)/disable(0) Powersave Mutex debugging",      dump_hal_enable_disable_mutex_logs},
 

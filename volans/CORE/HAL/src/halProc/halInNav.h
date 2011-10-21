@@ -28,6 +28,7 @@
 
 typedef struct sHalInNavPerBssidChannelInfo
 {
+    tSirMacAddr         selfMacAddr;
     tANI_U8             numInNavMeasurements;
     tSirMacAddr         bssid;
 } tHalInNavPerBssidChannelInfo, *tpHalInNavPerBssidChannelInfo;
@@ -53,6 +54,7 @@ typedef struct tagStartInNavMeasReq
     // The return status of SIR_HAL_INIT_INNAV_MEAS_REQ is reported here
     eHalStatus                 status;
 
+    tSirMacAddr                selfMacAddr;
     //Request Parameters
 
     //Number of BSSIDs

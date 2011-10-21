@@ -57,8 +57,8 @@ void ConvertQOSCapsStation(tpAniSirGlobal              pMac,
     pOld->type    = 46;
     pOld->length  = 1;
 
-	pOld->qosInfo.moreDataAck = pNew->more_data_ack;
-	pOld->qosInfo.maxSpLen    = pNew->max_sp_length;
+    pOld->qosInfo.moreDataAck = pNew->more_data_ack;
+    pOld->qosInfo.maxSpLen    = pNew->max_sp_length;
     pOld->qosInfo.qack        = pNew->qack;
     pOld->qosInfo.acbe_uapsd  = pNew->acbe_uapsd;
     pOld->qosInfo.acbk_uapsd  = pNew->acbk_uapsd;
@@ -99,10 +99,52 @@ tSirRetStatus ConvertWPAOpaque( tpAniSirGlobal      pMac,
     pOld->info[ 1 ] = 0x50;
     pOld->info[ 2 ] = 0xf2;
     pOld->info[ 3 ] = 0x01;
-    palCopyMemory( pMac->hHdd, pOld->info + 4, pNew->data, pOld->length );
+    palCopyMemory( pMac->hHdd, pOld->info + 4, pNew->data, pNew->num_data );
 
-			return eSIR_SUCCESS;
-		}
+    return eSIR_SUCCESS;
+}
+
+tSirRetStatus ConvertWscOpaque( tpAniSirGlobal      pMac,
+                                tSirAddie           *pOld,
+                                tDot11fIEWscIEOpaque *pNew )
+{
+    // This is awful, I know, but the old code just rammed the IE into
+    // an opaque array.  Note that we need to explicitly add the vendorIE and OUI !
+    tANI_U8 curAddIELen = pOld->length; 
+
+    pOld->length    = curAddIELen + pNew->num_data + 6;
+    pOld->addIEdata[ curAddIELen++ ] = 0xdd;
+    pOld->addIEdata[ curAddIELen++ ] = pNew->num_data + 4;
+    pOld->addIEdata[ curAddIELen++ ] = 0x00;
+    pOld->addIEdata[ curAddIELen++ ] = 0x50;
+    pOld->addIEdata[ curAddIELen++ ] = 0xf2;
+    pOld->addIEdata[ curAddIELen++ ] = 0x04;
+    palCopyMemory( pMac->hHdd, pOld->addIEdata + curAddIELen, pNew->data, pNew->num_data );
+
+    return eSIR_SUCCESS;
+}
+
+#ifdef WLAN_FEATURE_P2P
+tSirRetStatus ConvertP2POpaque( tpAniSirGlobal      pMac,
+                                tSirAddie           *pOld,
+                                tDot11fIEP2PIEOpaque *pNew )
+{
+    // This is awful, I know, but the old code just rammed the IE into
+    // an opaque array.  Note that we need to explicitly add the vendorIE and OUI !
+    tANI_U8 curAddIELen = pOld->length; 
+
+    pOld->length    = curAddIELen + pNew->num_data + 6;
+    pOld->addIEdata[ curAddIELen++ ] = 0xdd;
+    pOld->addIEdata[ curAddIELen++ ] = pNew->num_data + 4;
+    pOld->addIEdata[ curAddIELen++ ] = 0x50;
+    pOld->addIEdata[ curAddIELen++ ] = 0x6f;
+    pOld->addIEdata[ curAddIELen++ ] = 0x9A;
+    pOld->addIEdata[ curAddIELen++ ] = 0x09;
+    palCopyMemory( pMac->hHdd, pOld->addIEdata + curAddIELen, pNew->data, pNew->num_data );
+
+    return eSIR_SUCCESS;
+}
+#endif
 
 tSirRetStatus ConvertRSN(tpAniSirGlobal  pMac,
                                tSirMacRsnInfo *pOld,
@@ -506,72 +548,76 @@ void ConvertWMMSchedule(tpAniSirGlobal        pMac,
 }
 
 /**
-	@brief	:	This functions converts the given buffer till given size to Big endian format assuming the 
-				bus is 32 bit. The size should be four byte aligned.
-	@param	:	ptr to be converted, size
-	@return	:	void
+    @brief   :    This functions converts the given buffer till given size to Big endian format assuming the 
+                     bus is 32 bit. The size should be four byte aligned.
+    @param :    ptr to be converted, size
+    @return  :    void
 */
 
-void ConverttoBigEndian(void *ptr, tANI_U16	size)
+void ConverttoBigEndian(void *ptr, tANI_U16    size)
 {
-	tANI_U8		*temp_ptr;
-	tANI_U32	*dest_ptr;
+    tANI_U8        *temp_ptr;
+    tANI_U32    *dest_ptr;
 
-	dest_ptr  = (tANI_U32 *)ptr;
-	while(size)
-	{
-    	temp_ptr = (tANI_U8 *) dest_ptr;
-		*dest_ptr = (temp_ptr[0] << 24) | (temp_ptr[1] << 16) | (temp_ptr[2] << 8) | temp_ptr[3];
-		dest_ptr++;
-		size -= 4;
-	}
+    dest_ptr  = (tANI_U32 *)ptr;
+    while(size)
+    {
+        temp_ptr = (tANI_U8 *) dest_ptr;
+        *dest_ptr = (temp_ptr[0] << 24) | (temp_ptr[1] << 16) | (temp_ptr[2] << 8) | temp_ptr[3];
+        dest_ptr++;
+        size -= 4;
+    }
 }
 
 
-void CreateScanDataNullFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tSirMacAddr bssid)
+void CreateScanDataNullFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr,
+                  tANI_U8 pwrMgmt, tSirMacAddr bssid, tSirMacAddr selfMacAddr)
 {
 
-	macMgmtHdr->fc.type = SIR_MAC_DATA_FRAME;
-	macMgmtHdr->fc.subType = SIR_MAC_DATA_NULL;
-	macMgmtHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
-	macMgmtHdr->fc.order = 0;
-	macMgmtHdr->fc.wep = 0;
-	macMgmtHdr->fc.moreData =0;
-	macMgmtHdr->fc.powerMgmt = pwrMgmt;
-	macMgmtHdr->fc.retry = 0;
-	macMgmtHdr->fc.moreFrag = 0;
-	macMgmtHdr->fc.fromDS = 0;
-	macMgmtHdr->fc.toDS = 0;
-	macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
-	macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
-	macMgmtHdr->seqControl.fragNum = 0;
-	macMgmtHdr->seqControl.seqNumLo = 0;
-	macMgmtHdr->seqControl.seqNumHi = 2;
-	palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->da,     (void *)bssid, sizeof(tSirMacAddr));
-	palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->sa,     (void *)pMac->lim.gSelfMacAddr, sizeof(tSirMacAddr));
-	palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->bssId, (void *)bssid, sizeof(tSirMacAddr));
-	
-	return;
+    macMgmtHdr->fc.type = SIR_MAC_DATA_FRAME;
+    macMgmtHdr->fc.subType = SIR_MAC_DATA_NULL;
+    macMgmtHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
+    macMgmtHdr->fc.order = 0;
+    macMgmtHdr->fc.wep = 0;
+    macMgmtHdr->fc.moreData =0;
+    macMgmtHdr->fc.powerMgmt = pwrMgmt;
+    macMgmtHdr->fc.retry = 0;
+    macMgmtHdr->fc.moreFrag = 0;
+    macMgmtHdr->fc.fromDS = 0;
+    macMgmtHdr->fc.toDS = 0;
+    macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
+    macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
+    macMgmtHdr->seqControl.fragNum = 0;
+    macMgmtHdr->seqControl.seqNumLo = 0;
+    macMgmtHdr->seqControl.seqNumHi = 2;
+    palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->da,
+                              (void *)bssid, sizeof(tSirMacAddr));
+    palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->sa,
+                              (void *)selfMacAddr, sizeof(tSirMacAddr));
+    palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->bssId,
+                              (void *)bssid, sizeof(tSirMacAddr));
+    
+    return;
 }
 
 
-void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr)
+void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSirMacAddr selfMac)
 {
-	macMgmtHdr->fc.type = SIR_MAC_CTRL_FRAME;
-	macMgmtHdr->fc.subType = SIR_MAC_CTRL_CTS;
-	macMgmtHdr->fc.order = 0;
-	macMgmtHdr->fc.wep = 0;
-	macMgmtHdr->fc.moreData =0;
-	macMgmtHdr->fc.powerMgmt = 0;  
-	macMgmtHdr->fc.retry = 0;
-	macMgmtHdr->fc.moreFrag = 0;
-	macMgmtHdr->fc.fromDS = 0;
-	macMgmtHdr->fc.toDS = 0;
-	macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
-	macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
-	palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)pMac->lim.gSelfMacAddr, sizeof(tSirMacAddr));
-			
-	return;
+    macMgmtHdr->fc.type = SIR_MAC_CTRL_FRAME;
+    macMgmtHdr->fc.subType = SIR_MAC_CTRL_CTS;
+    macMgmtHdr->fc.order = 0;
+    macMgmtHdr->fc.wep = 0;
+    macMgmtHdr->fc.moreData =0;
+    macMgmtHdr->fc.powerMgmt = 0;  
+    macMgmtHdr->fc.retry = 0;
+    macMgmtHdr->fc.moreFrag = 0;
+    macMgmtHdr->fc.fromDS = 0;
+    macMgmtHdr->fc.toDS = 0;
+    macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
+    macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
+    palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)selfMac, sizeof(tSirMacAddr));
+            
+    return;
 }
 
 
@@ -581,95 +627,95 @@ void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr)
 
 
 /**
-	@brief	:	This functions creates a DATA_NULL/CTS2SELF frame in Big endian format 
-	@param	:	Global MAC structure, pointer to return the created packet, role which is Station/AP
-	@return	:	void
+    @brief    :    This functions creates a DATA_NULL/CTS2SELF frame in Big endian format 
+    @param    :    Global MAC structure, pointer to return the created packet, role which is Station/AP
+    @return    :    void
 */
 
 void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBssSystemRole role)
 {
 #if 0
-	tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
-	
-	if (role == eSYSTEM_STA_ROLE)
-	{
-		macMgmtHdr->fc.type = SIR_MAC_DATA_FRAME;
-		macMgmtHdr->fc.subType = SIR_MAC_DATA_NULL;
-		macMgmtHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
-		macMgmtHdr->fc.order = 0;
-		macMgmtHdr->fc.wep = 0;
-		macMgmtHdr->fc.moreData =0;
-		macMgmtHdr->fc.powerMgmt = 1;  // Needed for station
-		macMgmtHdr->fc.retry = 0;
-		macMgmtHdr->fc.moreFrag = 0;
-		macMgmtHdr->fc.fromDS = 0;
-		macMgmtHdr->fc.toDS = 1;
-		macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
-		macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
-		macMgmtHdr->seqControl.fragNum = 0;
-		macMgmtHdr->seqControl.seqNumLo = 0;
-		macMgmtHdr->seqControl.seqNumHi = 2;
-		palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->da, (void *)pSta[0].bssId, 6);
-		palCopyMemory(pMac->hHdd, &macMgmtHdr->sa, pSta[0].staAddr, 6);
-		palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->bssId, (void *)pSta[0].bssId, 6);
-	}
-	else if (role == eSYSTEM_AP_ROLE || role == eSYSTEM_STA_IN_IBSS_ROLE)
-	{
-		macMgmtHdr->fc.type = SIR_MAC_CTRL_FRAME;
-		macMgmtHdr->fc.subType = SIR_MAC_CTRL_CTS;
-		macMgmtHdr->fc.order = 0;
-		macMgmtHdr->fc.wep = 0;
-		macMgmtHdr->fc.moreData =0;
-		macMgmtHdr->fc.powerMgmt = 0;  // Needed for station
-		macMgmtHdr->fc.retry = 0;
-		macMgmtHdr->fc.moreFrag = 0;
-		macMgmtHdr->fc.fromDS = 0;
-		macMgmtHdr->fc.toDS = 0;
-		macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
-		macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
-		palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)pSta[0].staAddr, 6);
-	}
-	return;
+    tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
+    
+    if (role == eSYSTEM_STA_ROLE)
+    {
+        macMgmtHdr->fc.type = SIR_MAC_DATA_FRAME;
+        macMgmtHdr->fc.subType = SIR_MAC_DATA_NULL;
+        macMgmtHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
+        macMgmtHdr->fc.order = 0;
+        macMgmtHdr->fc.wep = 0;
+        macMgmtHdr->fc.moreData =0;
+        macMgmtHdr->fc.powerMgmt = 1;  // Needed for station
+        macMgmtHdr->fc.retry = 0;
+        macMgmtHdr->fc.moreFrag = 0;
+        macMgmtHdr->fc.fromDS = 0;
+        macMgmtHdr->fc.toDS = 1;
+        macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
+        macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
+        macMgmtHdr->seqControl.fragNum = 0;
+        macMgmtHdr->seqControl.seqNumLo = 0;
+        macMgmtHdr->seqControl.seqNumHi = 2;
+        palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->da, (void *)pSta[0].bssId, 6);
+        palCopyMemory(pMac->hHdd, &macMgmtHdr->sa, pSta[0].staAddr, 6);
+        palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->bssId, (void *)pSta[0].bssId, 6);
+    }
+    else if (role == eSYSTEM_AP_ROLE || role == eSYSTEM_STA_IN_IBSS_ROLE)
+    {
+        macMgmtHdr->fc.type = SIR_MAC_CTRL_FRAME;
+        macMgmtHdr->fc.subType = SIR_MAC_CTRL_CTS;
+        macMgmtHdr->fc.order = 0;
+        macMgmtHdr->fc.wep = 0;
+        macMgmtHdr->fc.moreData =0;
+        macMgmtHdr->fc.powerMgmt = 0;  // Needed for station
+        macMgmtHdr->fc.retry = 0;
+        macMgmtHdr->fc.moreFrag = 0;
+        macMgmtHdr->fc.fromDS = 0;
+        macMgmtHdr->fc.toDS = 0;
+        macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
+        macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
+        palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)pSta[0].staAddr, 6);
+    }
+    return;
 #endif
 }
 
 /**
-	@brief	:	This functions creates a DATA_NULL frame in Big endian format 
-	@param	:	Global MAC structure, pointer to return the created packet, role which is Station/AP
-	@return	:	void
+    @brief    :    This functions creates a DATA_NULL frame in Big endian format 
+    @param    :    Global MAC structure, pointer to return the created packet, role which is Station/AP
+    @return    :    void
 */
 
 
 void CreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBssSystemRole role)
 {
 #if 0
-	tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
+    tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
 
-	if (role == eSYSTEM_STA_ROLE)
-	{
-		macMgmtHdr->fc.type = SIR_MAC_DATA_FRAME;
-		macMgmtHdr->fc.subType = SIR_MAC_DATA_NULL;
-		macMgmtHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
-		macMgmtHdr->fc.order = 0;
-		macMgmtHdr->fc.wep = 0;
-		macMgmtHdr->fc.moreData =0;
-		macMgmtHdr->fc.powerMgmt = 0;	 // Needed for station
-		macMgmtHdr->fc.retry = 0;
-		macMgmtHdr->fc.moreFrag = 0;
-		macMgmtHdr->fc.fromDS = 0;
-		macMgmtHdr->fc.toDS = 1;
-		macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
-		macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
-		macMgmtHdr->seqControl.fragNum = 0;
-		macMgmtHdr->seqControl.seqNumLo = 0;
-		macMgmtHdr->seqControl.seqNumHi = 2;
-		palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)pSta[0].bssId, 6);
-		palCopyMemory(pMac->hHdd, macMgmtHdr->sa, pSta[0].staAddr, 6);
-		palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->bssId, (void *)pSta[0].bssId, 6);
+    if (role == eSYSTEM_STA_ROLE)
+    {
+        macMgmtHdr->fc.type = SIR_MAC_DATA_FRAME;
+        macMgmtHdr->fc.subType = SIR_MAC_DATA_NULL;
+        macMgmtHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
+        macMgmtHdr->fc.order = 0;
+        macMgmtHdr->fc.wep = 0;
+        macMgmtHdr->fc.moreData =0;
+        macMgmtHdr->fc.powerMgmt = 0;     // Needed for station
+        macMgmtHdr->fc.retry = 0;
+        macMgmtHdr->fc.moreFrag = 0;
+        macMgmtHdr->fc.fromDS = 0;
+        macMgmtHdr->fc.toDS = 1;
+        macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
+        macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
+        macMgmtHdr->seqControl.fragNum = 0;
+        macMgmtHdr->seqControl.seqNumLo = 0;
+        macMgmtHdr->seqControl.seqNumHi = 2;
+        palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)pSta[0].bssId, 6);
+        palCopyMemory(pMac->hHdd, macMgmtHdr->sa, pSta[0].staAddr, 6);
+        palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->bssId, (void *)pSta[0].bssId, 6);
 
-	}
-	
-	return;
+    }
+    
+    return;
 #endif
 }
 

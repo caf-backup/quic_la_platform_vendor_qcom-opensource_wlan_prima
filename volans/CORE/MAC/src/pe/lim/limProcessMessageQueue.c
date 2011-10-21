@@ -84,6 +84,8 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
     if ((limMsg->type != SIR_HAL_ADD_BSS_RSP) &&
         (limMsg->type != SIR_HAL_DELETE_BSS_RSP) &&
         (limMsg->type != SIR_HAL_ADD_STA_RSP) &&
+        (limMsg->type != SIR_HAL_ADD_STA_SELF_RSP) &&
+        (limMsg->type != SIR_HAL_DEL_STA_SELF_RSP) &&
         (limMsg->type != SIR_HAL_DELETE_STA_RSP)&&
         (limMsg->type != SIR_HAL_SET_BSSKEY_RSP)&&
         (limMsg->type != SIR_HAL_SET_STAKEY_RSP)&&
@@ -103,6 +105,9 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         (limMsg->type != SIR_HAL_WOWL_ENTER_RSP) &&
         (limMsg->type != SIR_HAL_WOWL_EXIT_RSP) &&
         (limMsg->type != SIR_HAL_SWITCH_CHANNEL_RSP) &&
+#ifdef WLAN_FEATURE_P2P 
+        (limMsg->type != SIR_HAL_P2P_NOA_ATTR_IND) &&
+#endif
 #ifdef FEATURE_INNAV_SUPPORT
         (limMsg->type != SIR_HAL_START_INNAV_MEAS_RSP) &&
 #endif
@@ -321,7 +326,7 @@ limHandleFramesInScanState(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U32 *pBD,
     // Process all BDs and extract PHY stats
     limGetBssidFromBD(pMac, (tpHalBufDesc) pBD, bssIdRcv, &ignore);
 
-    if ((pMac->lim.gLimSystemRole == eLIM_AP_ROLE) &&
+    if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
         palEqualMemory( pMac->hHdd,bssIdRcv, psessionEntry->bssId, sizeof(tSirMacAddr)))
     {
         /**
@@ -349,7 +354,7 @@ limHandleFramesInScanState(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U32 *pBD,
     else
     {
         // Frame received from other BSS
-        if (fc.type == SIR_MAC_DATA_FRAME && pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+        if (fc.type == SIR_MAC_DATA_FRAME && psessionEntry->limSystemRole == eLIM_AP_ROLE)
         {
             /**
               * Data Frame from neighbor BSS.
@@ -389,7 +394,17 @@ limHandleFramesInScanState(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U32 *pBD,
         else
             limProcessProbeRspFrame(pMac, pBD,psessionEntry);
     }
-    else 
+    else if ((fc.type == SIR_MAC_MGMT_FRAME) && (fc.subType == SIR_MAC_MGMT_PROBE_REQ))
+    {
+      limProcessProbeReqFrame_multiple_BSS(pMac, pBD, psessionEntry);
+    }
+#if defined WLAN_FEATURE_P2P
+    else if ((fc.type == SIR_MAC_MGMT_FRAME) && (fc.subType == SIR_MAC_MGMT_ACTION))
+    {
+       limProcessActionFrameNoSession( pMac, pBD);
+    }
+#endif
+    else
     {
         *deferMsg = true;
         return; 
@@ -504,10 +519,106 @@ static void limHandleUnknownA2IndexFrames(tpAniSirGlobal pMac, void *pBd,tpPESes
        /*Send disassociation message again*/
        //Dinesh need one more arguement. 
        //limSendDisassocMgmtFrame(pMac, eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON,(tANI_U8 *) pBd);
+#if defined WLAN_FEATURE_P2P
+    //This could be a public action frame.
+    if( psessionEntry->limSystemRole == eLIM_P2P_DEVICE_ROLE )
+        limProcessActionFrameNoSession(pMac, pBd);
+#endif
 #endif
 
     return;
 }
+
+#ifdef WLAN_FEATURE_P2P
+/**
+ * limCheckMgmtRegisteredFrames()
+ *
+ *FUNCTION:
+ * This function is called to process to check if received frame match with 
+ * any of the registered frame from HDD. If yes pass this frame to SME.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac      Pointer to Global MAC structure
+ * @param  *pBd     Pointer to the received Buffer Descriptor+payload
+ * @param  *psessionEntry Pointer to session on which packet is received
+ * @return None
+ */
+static tANI_BOOLEAN
+limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U32 *pBd,
+                                        tpPESession psessionEntry)
+{
+    tSirMacFrameCtl  fc;
+    tpSirMacMgmtHdr  pHdr;
+    tANI_U8          *pBody;
+    tpLimMgmtFrameRegistration pLimMgmtRegistration = NULL, pNext = NULL;
+    tANI_U16 frameType;
+    tANI_U16 framelen;
+    tANI_BOOLEAN match = VOS_FALSE;
+    VOS_STATUS vosStatus;
+	
+    pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
+    fc = pHdr->fc;
+    frameType = (fc.type << 2 ) | (fc.subType << 4);
+    pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
+    framelen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+
+    vos_list_peek_front(&pMac->lim.gLimMgmtFrameRegistratinQueue,
+   	                (vos_list_node_t**)&pLimMgmtRegistration);
+
+    while(pLimMgmtRegistration != NULL)
+    {
+        if (pLimMgmtRegistration->frameType == frameType)
+        { 
+            if (pLimMgmtRegistration->matchLen > 0)
+            {   
+                if (pLimMgmtRegistration->matchLen <= framelen)
+                {
+                    if (palEqualMemory(pMac, pLimMgmtRegistration->matchData,
+                                       pBody, pLimMgmtRegistration->matchLen))
+                    {
+                       /* found match! */   
+                       match = VOS_TRUE;
+                       break;
+                    }
+                } 
+            }
+            else
+            {
+                /* found match! */   
+                match = VOS_TRUE;
+                break;
+            }
+        }
+             
+        vosStatus = 
+          vos_list_peek_next ( &pMac->lim.gLimMgmtFrameRegistratinQueue, 
+                              (vos_list_node_t*) pLimMgmtRegistration, 
+                              (vos_list_node_t**) &pNext );
+        pLimMgmtRegistration = pNext;
+        pNext = NULL;
+    }
+   
+    if (match)
+    {
+        limLog( pMac, LOG1, 
+                FL("rcvd frame match with registered frame params\n"));
+
+        /* Indicate this to SME */	 
+        limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
+                     SIR_MAC_BD_TO_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
+                     ( psessionEntry != NULL ) ? psessionEntry->smeSessionId :
+                     pLimMgmtRegistration->sessionId );
+    }
+
+    return match;
+} /*** end  limCheckMgmtRegisteredFrames() ***/
+#endif /* WLAN_FEATURE_P2P */
+
 
 /**
  * limHandle80211Frames()
@@ -546,7 +657,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
     fc = pHdr->fc;
     limLog( pMac, LOG1, FL("ProtVersion %d, Type %d, Subtype %d rateIndex=%d\n"),
             fc.protVer, fc.type, fc.subType, SIR_MAC_BD_TO_RATE_INDEX(pBD));
-    
+   
     /* Added For BT-AMP Support */
     if((psessionEntry = peFindSessionByBssid(pMac,pHdr->bssId,&sessionId))== NULL)
         {
@@ -567,7 +678,11 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 #endif
             if((fc.subType != SIR_MAC_MGMT_PROBE_RSP )&&
                 (fc.subType != SIR_MAC_MGMT_BEACON)&&
-                (fc.subType != SIR_MAC_MGMT_PROBE_REQ))
+                (fc.subType != SIR_MAC_MGMT_PROBE_REQ)
+#if defined WLAN_FEATURE_P2P
+                && (fc.subType != SIR_MAC_MGMT_ACTION ) //Public action frame can be recieved from non-associated stations.
+#endif
+              )
             {
 
                if((psessionEntry = peFindSessionByPeerSta(pMac,pHdr->sa,&sessionId))== NULL) 
@@ -578,6 +693,17 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                }
             } 
         }
+
+#ifdef WLAN_FEATURE_P2P 
+    /* Check if frame is registered by HDD */
+    if(limCheckMgmtRegisteredFrames(pMac, pBD, psessionEntry))
+    {        
+        limLog( pMac, LOG1, FL("Received frame is passed to SME\n"));
+        limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pBD, limMsg->bodyptr);
+        return;
+    }
+#endif 
+
 
 #ifdef ANI_PRODUCT_TYPE_AP
     if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) && (LIM_IS_RADAR_DETECTED(pMac)))
@@ -711,12 +837,20 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                     break;
 
                 case SIR_MAC_MGMT_ACTION:
-                    if (SIR_MAC_BD_IS_UNKNOWN_UCAST_FRAME(pBD))
-                        limHandleUnknownA2IndexFrames(pMac, pBD,psessionEntry);
-                    else
-                        limProcessActionFrame(pMac, pBD,psessionEntry);
-                    break;
-
+#if defined WLAN_FEATURE_P2P
+                   if(psessionEntry == NULL)
+                      limProcessActionFrameNoSession(pMac, pBD);
+                   else
+                   {
+#endif
+                     if (SIR_MAC_BD_IS_UNKNOWN_UCAST_FRAME(pBD))
+                       limHandleUnknownA2IndexFrames(pMac, pBD,psessionEntry);
+                     else
+                       limProcessActionFrame(pMac, pBD,psessionEntry);
+#if defined WLAN_FEATURE_P2P
+                   }
+#endif
+                   break;
                 default:
                     // Received Management frame of 'reserved' subtype
                     break;
@@ -1102,6 +1236,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 
         case eWNI_SME_SCAN_REQ:
+#ifdef WLAN_FEATURE_P2P		  	
+        case eWNI_SME_REMAIN_ON_CHANNEL_REQ:
+#endif
         case eWNI_SME_DISASSOC_REQ:
         case eWNI_SME_DEAUTH_REQ:
         case eWNI_SME_STA_STAT_REQ:
@@ -1164,6 +1301,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #if defined WLAN_FEATURE_VOWIFI_11R
 	case eWNI_SME_FT_PRE_AUTH_REQ:
 #endif
+        case eWNI_SME_ADD_STA_SELF_REQ:
+        case eWNI_SME_DEL_STA_SELF_REQ:
+#ifdef WLAN_FEATURE_P2P
+        case eWNI_SME_REGISTER_MGMT_FRAME_REQ:
+        case eWNI_SME_UPDATE_NOA:
+#endif	    
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, false);   //no need to response to hdd
             break;
@@ -1207,12 +1350,70 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 }
             }
 #endif
-            if(limMsg->bodyptr){
-               palFreeMemory( pMac->hHdd, (tANI_U8 *) limMsg->bodyptr);
-               limMsg->bodyptr = NULL;
-            }
         }
+
+            // not currently handled
+            // return the message
+            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
             break;
+#if defined WLAN_FEATURE_P2P
+        case eWNI_SME_SEND_ACTION_FRAME_IND:
+            limSendP2PActionFrame(pMac, limMsg);
+            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
+            break;
+        case eWNI_SME_ABORT_REMAIN_ON_CHAN_IND:
+            limAbortRemainOnChan(pMac);
+            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
+            break;
+
+        case SIR_HAL_P2P_NOA_ATTR_IND:
+            {
+                tpPESession psessionEntry = &pMac->lim.gpSession[0];  
+                tANI_U8  i;
+                
+                
+                limLog(pMac, LOGW, FL("Received message Noa_ATTR %x\n"), limMsg->type);
+                for(i=0; i < pMac->lim.maxBssId; i++)
+                {
+                    if   ( (psessionEntry != NULL) && (pMac->lim.gpSession[i].valid) && 
+                        (psessionEntry->pePersona == VOS_P2P_GO_MODE))
+                    { //Save P2P attributes for P2P Go persona
+                    
+                        palCopyMemory(pMac->hHdd,&psessionEntry->p2pGoPsUpdate, limMsg->bodyptr,sizeof(tSirP2PNoaAttr));
+                        
+                        
+                        limLog(pMac, LOGE, FL(" &psessionEntry->bssId%02x:%02x:%02x:%02x:%02x:%02x ctWin=%d oppPsFlag=%d\n"),
+                                     psessionEntry->bssId[0],
+                                     psessionEntry->bssId[1],
+                                     psessionEntry->bssId[2],
+                                     psessionEntry->bssId[3],
+                                     psessionEntry->bssId[4],
+                                     psessionEntry->bssId[5],                                     
+                                     psessionEntry->p2pGoPsUpdate.ctWin,
+                                     psessionEntry->p2pGoPsUpdate.oppPsFlag);
+
+                        limLog(pMac, LOGE, FL(" uNoa1IntervalCnt=%d uNoa1Duration=%d uNoa1Interval=%d uNoa1StartTime=%d\n"),
+                                     psessionEntry->p2pGoPsUpdate.uNoa1IntervalCnt,
+                                     psessionEntry->p2pGoPsUpdate.uNoa1Duration,
+                                     psessionEntry->p2pGoPsUpdate.uNoa1Interval,
+                                     psessionEntry->p2pGoPsUpdate.uNoa1StartTime);
+
+                        
+                        break;
+                    }
+                }
+                
+            }
+            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
+            
+            break;
+
+            
+#endif
 
         //Power Save Related Messages From HAL
         case SIR_HAL_ENTER_BMPS_RSP:
@@ -1361,6 +1562,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case SIR_LIM_FT_PREAUTH_RSP_TIMEOUT:
 #endif
+#ifdef WLAN_FEATURE_P2P
+		case SIR_LIM_REMAIN_CHN_TIMEOUT:
+#endif
             // These timeout messages are handled by MLM sub module
 
             limProcessMlmReqMessages(pMac,
@@ -1414,12 +1618,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 
 #ifdef ANI_PRODUCT_TYPE_AP
-        case SIR_LIM_AID_RELEASE_TIMEOUT:
-            // ReleaseAID timeout message
-            if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-                limReleaseAIDHandler(pMac);
-            break;
-
         case SIR_LIM_PREAUTH_CLNUP_TIMEOUT:
             if (limIsSystemInScanState(pMac))
             {
@@ -1521,6 +1719,13 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
         case SIR_HAL_DELETE_STA_RSP:
             limProcessMlmDelStaRsp(pMac, limMsg);
+            break;
+
+        case SIR_HAL_ADD_STA_SELF_RSP:
+            limProcessAddStaSelfRsp(pMac, limMsg);
+            break; 
+        case SIR_HAL_DEL_STA_SELF_RSP:
+            limProcessDelStaSelfRsp(pMac, limMsg);
             break;
 
         case SIR_HAL_DELETE_BSS_RSP:

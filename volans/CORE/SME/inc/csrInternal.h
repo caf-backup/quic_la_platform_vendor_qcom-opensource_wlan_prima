@@ -84,14 +84,14 @@ typedef enum etCsrRoamCommands
 
 typedef enum  
 {
-	eCsrScanOther = 1,
-	eCsrScanLostLink1,
-	eCsrScanLostLink2,
-	eCsrScanLostLink3,
-	eCsrScanLostLink4,
+    eCsrScanOther = 1,
+    eCsrScanLostLink1,
+    eCsrScanLostLink2,
+    eCsrScanLostLink3,
+    eCsrScanLostLink4,
     eCsrScan11d1,  //First 11d scan
-	eCsrScan11d2,  //First 11d scan has failed
-	eCsrScan11dDone,  //11d scan succeeded, try the rest of the channel
+    eCsrScan11d2,  //First 11d scan has failed
+    eCsrScan11dDone,  //11d scan succeeded, try the rest of the channel
     eCsrScanUserRequest,
     eCsrScanGetResult,
     eCsrScanSetBGScanParam, //used for HO too - bg scan request in NT Handoff sub-state
@@ -111,13 +111,13 @@ typedef enum
 typedef enum 
 {
     eCsrNoConnection,          // Roaming because we have not established the initial connection.
-	eCsrCapsChange,            // roaming because LIM reported a Capability change in the associated AP.
+    eCsrCapsChange,            // roaming because LIM reported a Capability change in the associated AP.
     eCsrForcedDisassoc,        // roaming becuase someone asked us to Disassoc and stay disassociated.
-	eCsrHddIssued,             // roaming because an 802.11 request was issued to the driver.
-	eCsrLostLink1,             // roaming because we lost link to an associated AP
-	eCsrLostLink2, 
-	eCsrLostLink3,
-	eCsrForcedDisassocMICFailure, // roaming because we need to force a Disassoc due to MIC failure
+    eCsrHddIssued,             // roaming because an 802.11 request was issued to the driver.
+    eCsrLostLink1,             // roaming because we lost link to an associated AP
+    eCsrLostLink2, 
+    eCsrLostLink3,
+    eCsrForcedDisassocMICFailure, // roaming because we need to force a Disassoc due to MIC failure
     eCsrHddIssuedReassocToSameAP,
     eCsrSmeIssuedReassocToSameAP,
     eCsrSmeIssuedReassocToDiffAP,
@@ -290,7 +290,7 @@ typedef struct tagCsrRoamStartBssParams
     tSirMacRateSet      extendedRateSet;
     tANI_U8             operationChn;
     eCsrCfgDot11Mode    uCfgDot11Mode;
-#ifdef WLAN_SOFTAP_FEATURE	
+#ifdef WLAN_SOFTAP_FEATURE
     tANI_U8             privacy;
     tANI_BOOLEAN        fwdWPSPBCProbeReq;
     tANI_BOOLEAN        protEnabled;
@@ -303,10 +303,9 @@ typedef struct tagCsrRoamStartBssParams
     tANI_U8             ssidHidden;
     tANI_U8             wps_state;
 #endif
+    tVOS_CON_MODE       bssPersona;
     tANI_U16            nRSNIELength;  //The byte count in the pRSNIE, if 0, pRSNIE is ignored.
     tANI_U8             *pRSNIE;     //If not null, it has the IE byte stream for RSN
-    tANI_U16            nWSCIELength;  //The byte count in the pWSCIE, if 0, pWSCIE is ignored.
-    tANI_U8             *pWSCIE;     //If not null, it has the IE byte stream for WSC
 }tCsrRoamStartBssParams;
 
 
@@ -379,6 +378,20 @@ typedef struct tagWmStatusChangeCmd
 
 }tWmStatusChangeCmd;
 
+typedef struct tagAddStaForSessionCmd
+{
+   //Session self mac addr
+   tSirMacAddr selfMacAddr;
+}tAddStaForSessionCmd;
+
+typedef struct tagDelStaForSessionCmd
+{
+   //Session self mac addr
+   tSirMacAddr selfMacAddr;
+   csrRoamSessionCloseCallback callback;
+   void *pContext;
+}tDelStaForSessionCmd;
+
 //This structure represents one scan request
 typedef struct tagCsrCmd
 {
@@ -392,6 +405,8 @@ typedef struct tagCsrCmd
         tWmStatusChangeCmd wmStatusChangeCmd;
         tSetKeyCmd setKeyCmd;
         tRemoveKeyCmd removeKeyCmd;
+        tAddStaForSessionCmd addStaSessionCmd;
+        tDelStaForSessionCmd delStaSessionCmd;
     }u;
 }tCsrCmd;
 
@@ -531,6 +546,9 @@ typedef struct tagCsrScanStruct
     tANI_BOOLEAN fScanEnable;
     tANI_BOOLEAN fFullScanIssued;
     tPalTimerHandle hTimerGetResult;
+#ifdef WLAN_AP_STA_CONCURRENCY
+    tPalTimerHandle hTimerStaApConcTimer;
+#endif
     tPalTimerHandle hTimerIdleScan;
     tPalTimerHandle hTimerResultAging;
     tPalTimerHandle hTimerBgScan;
@@ -577,6 +595,9 @@ typedef struct tagCsrScanStruct
     * detect when it happens. Adding this into code because we can't reproduce it easily.
     * We don't know when it happens. */
     tANI_BOOLEAN fValidateList;
+#ifdef WLAN_AP_STA_CONCURRENCY
+    tDblLinkList scanCmdPendingList;
+#endif    
 }tCsrScanStruct;
 
 
@@ -757,8 +778,11 @@ typedef struct tagCsrRoamSession
     tANI_U32 nWapiRspIeLength;    //the byte count for pWapiRspIE
     tANI_U8 *pWapiRspIE;  //this contain the WAPI IE in beacon/probe rsp
 #endif /* FEATURE_WLAN_WAPI */
-    tANI_U32 nWscReqIeLength;   //the byte count of pWSCIE;
-    tANI_U8 *pWscReqIE; //this contain the WSC IE in assoc request or probe request 
+    tANI_U32 nAddIEScanLength;  //the byte count of pAddIeScanIE;
+    tANI_U8 *pAddIEScan; //this contains the additional IE in (unicast) probe request at the time of join
+    tANI_U32 nAddIEAssocLength;      //the byte count for pAddIeAssocIE
+    tANI_U8 *pAddIEAssoc; //this contains the additional IE in (re) assoc request
+
     tANI_TIMESTAMP roamingStartTime;    //in units of 10ms
     tCsrTimerInfo roamingTimerInfo;
     eCsrRoamingReason roamingReason;
@@ -801,7 +825,7 @@ typedef struct tagCsrRoamStruct
     tChannelListWithPower   *powerTableFromEeprom40MHz;
     tPalTimerHandle hTimerWaitForKey;  //To support timeout for WaitForKey state
 #ifdef FEATURE_WLAN_GEN6_ROAMING    
-	 /* TODO : Per session members .?*/
+     /* TODO : Per session members .?*/
     tCsrHandoffStruct handoffInfo;
 #endif
     tCsrSummaryStatsInfo       summaryStatsInfo;
@@ -1151,7 +1175,7 @@ eHalStatus csrRoamUpdateWPARSNIEs( tpAniSirGlobal pMac, tANI_U32 sessionId, tSir
 #endif
 void csrSetCfgPrivacy( tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, tANI_BOOLEAN fPrivacy );
 eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, 
-	                               tCsrRoamConnectedProfile *pProfile);
+                                   tCsrRoamConnectedProfile *pProfile);
 tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif
 

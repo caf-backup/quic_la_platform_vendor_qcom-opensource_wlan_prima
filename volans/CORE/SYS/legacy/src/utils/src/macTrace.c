@@ -328,7 +328,6 @@ tANI_U8* macTraceGetLimMsgString( tANI_U16 limMsg )
         CASE_RETURN_STRING(SIR_LIM_REASSOC_FAIL_TIMEOUT);
         CASE_RETURN_STRING(SIR_LIM_HEART_BEAT_TIMEOUT);
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-        CASE_RETURN_STRING(SIR_LIM_AID_RELEASE_TIMEOUT);
         CASE_RETURN_STRING(SIR_LIM_PREAUTH_CLNUP_TIMEOUT);
 #endif
         CASE_RETURN_STRING(SIR_LIM_CHANNEL_SCAN_TIMEOUT );
@@ -595,9 +594,14 @@ void macTraceDumpAll(tpAniSirGlobal pMac, tANI_U8 code, tANI_U8 session, tANI_U3
                 count = gTraceData.num;
             if (count > MAX_TRACE_RECORDS)
                 count = MAX_TRACE_RECORDS;
-            i = tail - count +1;
-            if (i < 0)
-                i = MAX_TRACE_RECORDS + i;
+            if(tail >= (count + 1))
+            {
+                i = tail - count + 1;
+            }
+            else
+            {
+                i = MAX_TRACE_RECORDS - ((count + 1) - tail);
+            }
         }
 
         pRecord = &gTraceTbl[i];

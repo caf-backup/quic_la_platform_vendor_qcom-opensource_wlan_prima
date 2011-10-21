@@ -81,7 +81,7 @@ static tRxpFilterName pktType[] = {
     {eMGMT_AUTH,            STR("eMGMT_AUTH")         },     // 11
     {eMGMT_DEAUTH,          STR("eMGMT_DEAUTH")       },     // 12
     {eMGMT_ACTION,          STR("eMGMT_ACTION")       },     // 13
-    {eMGMT_ACTION_NOACK,           STR("eMGMT_ACTION_NOACK")        },     // 14
+    {eMGMT_ACTION_NOACK,    STR("eMGMT_ACTION_NOACK") },     // 14
     {eMGMT_RSVD4,           STR("eMGMT_RSVD4")        },     // 15
     {eCTRL_RSVD1,           STR("eCTRL_RSVD1")        },     // 16
     {eCTRL_RSVD2,           STR("eCTRL_RSVD2")        },     // 17
@@ -90,7 +90,7 @@ static tRxpFilterName pktType[] = {
     {eCTRL_RSVD5,           STR("eCTRL_RSVD5")        },     // 20
     {eCTRL_RSVD6,           STR("eCTRL_RSVD6")        },     // 21
     {eCTRL_RSVD7,           STR("eCTRL_RSVD7")        },     // 22
-    {eCTRL_CONTROL_WRAPPER,  STR("eCTRL_CONTROL_WRAPPER")        },     // 23
+    {eCTRL_CONTROL_WRAPPER, STR("eCTRL_CONTROL_WRAPPER")        },     // 23
     {eCTRL_BAR,             STR("eCTRL_BAR")          },     // 24
     {eCTRL_BA,              STR("eCTRL_BA")           },     // 25
     {eCTRL_PSPOLL,          STR("eCTRL_PSPOLL")       },     // 26
@@ -182,6 +182,9 @@ static eHalStatus fillAddrTableEntry(tpAniSirGlobal pMac, tRxpAddrTable* pRxpAdd
         tANI_U8 dpuNE, tANI_U8 ftBit, tANI_BOOLEAN keyIdExtract);
 
 static eHalStatus halRxp_enable_multicast_broadcast(tpAniSirGlobal pMac);
+#ifdef WLAN_FEATURE_P2P
+void halRxp_setFrameFilterMaskForProbeReqAction(tpAniSirGlobal pMac, tANI_U32 maskValue);
+#endif
 
 #define  LESS             0
 #define  SAME             1
@@ -370,8 +373,62 @@ tANI_U32 rxpDisableFrameIbssModeLow =
 };
 
 
+#if defined WLAN_FEATURE_P2P
 
-static tANI_U32 rxpDisableFrameBTAMPStaPreAssocModeHi =
+tANI_U32 rxpDisableFrameP2PListenModeHi =
+(
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_REQ) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_REQ) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ATIM) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_DISASSOC) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_AUTH) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_DEAUTH) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION_NOACK) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD3) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD5) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD6) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD7) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CONTROL_WRAPPER) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_BAR) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_BA) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_PSPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND_CFACK)
+);
+
+tANI_U32 rxpDisableFrameP2PListenModeLow =
+{
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_NULL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSNULL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFACK_CFPOLL)
+};
+#endif
+
+
+static tANI_U32 rxpDisableFrameBTAMPStaPreAssocModeHi = 
 (
     RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_REQ) |
     RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_REQ) |
@@ -559,9 +616,9 @@ tANI_U32 rxpDisableFrameInNavModeHi =
     RXP_TYPE_SUBTYPE_MASK(eCTRL_BA) |
     RXP_TYPE_SUBTYPE_MASK(eCTRL_PSPOLL) |
     RXP_TYPE_SUBTYPE_MASK(eCTRL_RTS) |
-	//We need to receive only the CTS in the RTS-CTS mode
+    //We need to receive only the CTS in the RTS-CTS mode
     //RXP_TYPE_SUBTYPE_MASK(eCTRL_CTS) |
-	//We will need to receive ACk in the frame based mode
+    //We will need to receive ACk in the frame based mode
     //RXP_TYPE_SUBTYPE_MASK(eCTRL_ACK) |
     RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND) |
     RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND_CFACK) // 31
@@ -693,7 +750,11 @@ tRxpFilterConfig rxpFilterTable_AllMode[] = {
     {eMGMT_RSVD2,                (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
     {eMGMT_BEACON,               (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_ROUTING_FLAG_SEL) },
     {eMGMT_ATIM,                 (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    {eMGMT_DISASSOC,             (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS) },
+#else
     {eMGMT_DISASSOC,             (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3|RXP_FCS) },
+#endif
     {eMGMT_AUTH,                 (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|
                                   RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3) },
     {eMGMT_DEAUTH,               (RXP_VERSION|RXP_NAV_SET|RXP_FCS| RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3) },
@@ -710,13 +771,21 @@ tRxpFilterConfig rxpFilterTable_AllMode[] = {
     {eCTRL_CONTROL_WRAPPER,      (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
     {eCTRL_BAR,                  (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ADDR2_ACCEPT_REMAIN|RXP_FCS) },
     {eCTRL_BA,                   (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_FCS|RXP_DROP_AT_DMA) },
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    {eCTRL_PSPOLL,               (RXP_VERSION|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ROUTING_FLAG_SEL|RXP_ACCEPT_ALL_ADDR2|RXP_FCS) },
+#else
     {eCTRL_PSPOLL,               (RXP_VERSION|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR2_FILTER|RXP_FCS|RXP_DROP_AT_DMA) },
+#endif
     {eCTRL_RTS,                  (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_FCS|RXP_DROP_AT_DMA) },
     {eCTRL_CTS,                  (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_FCS|RXP_DROP_AT_DMA) },
     {eCTRL_ACK,                  (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_FCS|RXP_DROP_AT_DMA) },
     {eCTRL_CFEND,                (RXP_VERSION|RXP_NAV_CLEAR|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ADDR2_ACCEPT_REMAIN|RXP_DROP_AT_DMA|RXP_FCS) },
     {eCTRL_CFEND_CFACK,          (RXP_VERSION|RXP_NAV_CLEAR|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ADDR2_ACCEPT_REMAIN|RXP_DROP_AT_DMA|RXP_FCS) },
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    {eDATA_DATA,                 (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER| RXP_ADDR1_ACCEPT_MULTICAST|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION) },
+#else
     {eDATA_DATA,                 (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER| RXP_ADDR1_ACCEPT_MULTICAST|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION) },
+#endif
     {eDATA_DATA_CFACK,           (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
     {eDATA_DATA_CFPOLL,          (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
     {eDATA_DATA_CFACK_CFPOLL,    (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
@@ -724,7 +793,11 @@ tRxpFilterConfig rxpFilterTable_AllMode[] = {
     {eDATA_CFACK,                (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS|RXP_DROP_AT_DMA) },
     {eDATA_CFPOLL,               (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS|RXP_DROP_AT_DMA) },
     {eDATA_CFACK_CFPOLL,         (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS|RXP_DROP_AT_DMA) },
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    {eDATA_QOSDATA,              (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION) },
+#else
     {eDATA_QOSDATA,              (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION) },
+#endif
     {eDATA_QOSDATA_CFACK,        (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3|RXP_FCS) },
     {eDATA_QOSDATA_CFPOLL,       (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3|RXP_FCS) },
     {eDATA_QOSDATA_CFACK_CFPOLL, (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3|RXP_FCS) },
@@ -987,10 +1060,10 @@ eHalStatus halRxp_Stop(tHalHandle hHal, void *arg)
     return eHAL_STATUS_SUCCESS;
 }
 
-eHalStatus halRxp_AddPreAssocAddr2Entry(tpAniSirGlobal pMac, tSirMacAddr macAddr)
+eHalStatus halRxp_AddPreAssocAddr2Entry(tpAniSirGlobal pMac, tSirMacAddr macAddr, tANI_U8 selfStaIdx)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tANI_U8 staIdx = (tANI_U8)pMac->hal.halMac.selfStaId;
+    tANI_U8 staIdx;
     tANI_U8 dpuIdx, bcastDpuIdx, bcastMgmtDpuIdx;
     tANI_U8 dpuSignature = 0;
     tANI_U8 rmfBit = 0, ftBit = 0;
@@ -999,6 +1072,15 @@ eHalStatus halRxp_AddPreAssocAddr2Entry(tpAniSirGlobal pMac, tSirMacAddr macAddr
     if(macAddr == NULL) {
         return status;
     }
+
+#ifdef HAL_SELF_STA_PER_BSS
+    staIdx = selfStaIdx;
+    HALLOG1( halLog(pMac, LOG1, FL("SelfSta requested StaId =%d\n"), staIdx));
+#else
+    staIdx = (tANI_U8)pMac->hal.halMac.selfStaId;
+    HALLOG1( halLog(pMac, LOG1, FL("SelfSta requested StaId =%d\n"), staIdx));
+#endif
+
 
     halTable_GetStaDpuIdx(pMac, staIdx, &dpuIdx);
     halTable_GetStaBcastDpuIdx(pMac, staIdx, &bcastDpuIdx);
@@ -1119,7 +1201,7 @@ static eHalStatus halRxp_config_control_reg(tpAniSirGlobal pMac)
     // Program the CONFIG3 register
     // Basically for the HW bug fix:
     // CR-0000142348: BAR handling during BD/PDU not available is not correct which is fixed in LIBRA2.0
-	// CR-0000144751: METAL ECO: RxP stops parsing TIM element in beacon as soon as an IE's Element ID > TIM
+    // CR-0000144751: METAL ECO: RxP stops parsing TIM element in beacon as soon as an IE's Element ID > TIM
     if (halGetChipRevNum(pMac) == LIBRA_CHIP_REV_ID_2_0) {
         halReadRegister(pMac, QWLAN_RXP_CONFIG3_REG, &cfgValue);
         cfgValue |= (QWLAN_RXP_CONFIG3_BAR_DMA_CONFIRM_ECO_EN_MASK | QWLAN_RXP_CONFIG3_TIMORDER_ECO_EN_MASK);
@@ -1139,14 +1221,14 @@ static eHalStatus halRxp_config_control_reg(tpAniSirGlobal pMac)
 
 static eHalStatus halRxp_enable_multicast_broadcast(tpAniSirGlobal pMac)
 {
-	tANI_U32 cfgValue;
+    tANI_U32 cfgValue;
 
-	cfgValue = BROADCAST_STAID << QWLAN_RXP_CONFIG4_UNKNOWN_MC_STAID_OFFSET;
-	cfgValue |= RXP_BROADCAST_ENTRY_PRESENT;
+    cfgValue = BROADCAST_STAID << QWLAN_RXP_CONFIG4_UNKNOWN_MC_STAID_OFFSET;
+    cfgValue |= RXP_BROADCAST_ENTRY_PRESENT;
 
-	halWriteRegister(pMac,  QWLAN_RXP_CONFIG4_REG,  cfgValue );
+    halWriteRegister(pMac,  QWLAN_RXP_CONFIG4_REG,  cfgValue );
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -1210,7 +1292,6 @@ eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN s
            FL("%s: Cannot set McastBcast filter, as device is not in BMPS\n"), __FUNCTION__));
         return eHAL_STATUS_FAILURE;
     }
-
     switch(pMac->hal.mcastBcastFilterSetting)
     {
         case FILTER_ALL_MULTICAST:
@@ -1226,11 +1307,12 @@ eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN s
         break;
     }
 
-    if (IS_PWRSAVE_STATE_IN_BMPS)
-        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+    }
 
     halStatus = halRxp_getFrameFilterMask(pMac, eDATA_DATA, &reg_value);
-
     if(eHAL_STATUS_SUCCESS != halStatus)
         return halStatus;
 
@@ -1251,8 +1333,10 @@ eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN s
             halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value & ~mask);
     }
 
-    if (IS_PWRSAVE_STATE_IN_BMPS)
-        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+    }
 
     return halStatus;
 }
@@ -1690,6 +1774,15 @@ eHalStatus halRxp_UpdateEntry(tpAniSirGlobal pMac, tANI_U8 staid, tRxpRole role,
         return eHAL_STATUS_FAILURE;
     }
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    if(IS_VSTA_IDX(staid))
+    {
+        HALLOGW( halLog(pMac, LOGW,
+                        FL("Cannot update RXP for VSTA %d"), staid));
+        return eHAL_STATUS_SUCCESS;
+    }
+#endif
+
     switch(role) {
         case eRXP_SELF:
             {
@@ -1825,6 +1918,14 @@ eHalStatus halRxp_AddEntry(tpAniSirGlobal pMac, tANI_U8 staid, tSirMacAddr macAd
         dpuMgmtBcMcTag = %u, dpuNE = %u, ftBit = %u, keyIdExtract = %u\n"),
         staid, role, rmfBit, dpuIdx, dpuRFOrBcMcIdx, dpuMgmtBcMcIdx, dpuTag,
         dpuDataBcMcTag, dpuMgmtBcMcTag, dpuNE, ftBit, keyIdExtract));
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    if(IS_VSTA_IDX(staid))
+    {
+        HALLOGW( halLog(pMac, LOGW, FL("Cannot add RXP for VSTA %d"), staid));
+        return eHAL_STATUS_SUCCESS;
+    }
+#endif
 
     switch(role)
     {
@@ -2173,7 +2274,7 @@ eHalStatus writeAddrTable(tpAniSirGlobal pMac, tRxpAddrTable* pTable, tANI_U8 ad
 
 eHalStatus searchAndDeleteTableEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr,
         tANI_U8 addrType, tRxpAddrTable* pTable, tANI_U8 *pNumOfEntry, tANI_U8 *pFound)
-            {
+{
     tANI_U8 i, j;
     tANI_U8 numOfEntry = *pNumOfEntry;
 
@@ -2194,14 +2295,14 @@ eHalStatus searchAndDeleteTableEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr,
             if( palZeroMemory(pMac->hHdd, (void *)&pTable[numOfEntry - 1],
                         sizeof(tRxpAddrTable)) != eHAL_STATUS_SUCCESS) {
                 return eHAL_STATUS_FAILURE;
-        }
+            }
 
             // Decrement the number of entries in the table
             *pNumOfEntry = --numOfEntry;
             *pFound = 1;
 
             return eHAL_STATUS_SUCCESS;
-    }
+        }
     }
 
     return eHAL_STATUS_SUCCESS;
@@ -2224,6 +2325,7 @@ eHalStatus halRxp_DelEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr)
     tANI_U8      addr2MatchFound = 0;
     tANI_U8      addr3MatchFound = 0;
     tpRxpInfo    pRxp = GET_RXP_INFO(pMac);
+
     if(pRxp == NULL)
     {
       HALLOGW(halLog(pMac, LOGW, FL("pRXP is NULL\n")));
@@ -2233,20 +2335,20 @@ eHalStatus halRxp_DelEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr)
     if(searchAndDeleteTableEntry(pMac, macAddr, RXP_TABLE_ADDR1,
                 pRxp->addr1_table, &pRxp->addr1.numOfEntry,
                 &addr1MatchFound) != eHAL_STATUS_SUCCESS) {
-                    return eHAL_STATUS_FAILURE;
-            }
+        return eHAL_STATUS_FAILURE;
+    }
 
     if(searchAndDeleteTableEntry(pMac, macAddr, RXP_TABLE_ADDR2,
                 pRxp->addr2_table, &pRxp->addr2.numOfEntry,
                 &addr2MatchFound) != eHAL_STATUS_SUCCESS) {
-                    return eHAL_STATUS_FAILURE;
-            }
+        return eHAL_STATUS_FAILURE;
+    }
 
     if(searchAndDeleteTableEntry(pMac, macAddr, RXP_TABLE_ADDR3,
                 pRxp->addr3_table, &pRxp->addr3.numOfEntry,
                 &addr3MatchFound) != eHAL_STATUS_SUCCESS) {
-            return eHAL_STATUS_FAILURE;
-        }
+        return eHAL_STATUS_FAILURE;
+    }
 
     if (!(addr1MatchFound || addr2MatchFound || addr3MatchFound))
     {
@@ -2263,10 +2365,10 @@ eHalStatus halRxp_DelEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr)
         pRxp->addr1.lowPtr = 0;
 
         if(pRxp->addr1.numOfEntry != 0) {
-          pRxp->addr1.highPtr = pRxp->addr1.numOfEntry - 1;
+            pRxp->addr1.highPtr = pRxp->addr1.numOfEntry - 1;
             validTable = RXP_TABLE_VALID;
         } else {
-          pRxp->addr1.highPtr = pRxp->addr1.lowPtr;
+            pRxp->addr1.highPtr = pRxp->addr1.lowPtr;
             validTable = RXP_TABLE_EMPTY;
         }
 
@@ -2278,14 +2380,14 @@ eHalStatus halRxp_DelEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr)
      *   Write Addr2 Table to memory
      * ------------------------------
      */
-      if(addr1MatchFound || addr2MatchFound)
-      {
+    if(addr1MatchFound || addr2MatchFound)
+    {
         pRxp->addr2.lowPtr = pRxp->addr1.highPtr + 1;
         if(pRxp->addr2.numOfEntry != 0) {
-          pRxp->addr2.highPtr = pRxp->addr2.lowPtr + pRxp->addr2.numOfEntry - 1;
+            pRxp->addr2.highPtr = pRxp->addr2.lowPtr + pRxp->addr2.numOfEntry - 1;
             validTable = RXP_TABLE_VALID;
         } else {
-          pRxp->addr2.highPtr = pRxp->addr2.lowPtr = pRxp->addr1.highPtr;
+            pRxp->addr2.highPtr = pRxp->addr2.lowPtr = pRxp->addr1.highPtr;
             validTable = RXP_TABLE_EMPTY;
         }
 
@@ -2297,22 +2399,22 @@ eHalStatus halRxp_DelEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr)
      *   Write Addr3 Table to memory
      * ------------------------------
      */
-      pRxp->addr3.lowPtr = pRxp->addr2.highPtr + 1;
+    pRxp->addr3.lowPtr = pRxp->addr2.highPtr + 1;
     if(pRxp->addr3.numOfEntry != 0) {
         pRxp->addr3.highPtr = pRxp->addr3.lowPtr + pRxp->addr3.numOfEntry - 1;
         validTable = RXP_TABLE_VALID;
     } else {
         pRxp->addr3.highPtr = pRxp->addr3.lowPtr = pRxp->addr2.highPtr;
         validTable = RXP_TABLE_EMPTY;
-      }
+    }
     writeAddrTable(pMac, pRxp->addr3_table, RXP_TABLE_ADDR3, validTable,
                 pRxp->addr3.highPtr, pRxp->addr3.lowPtr, pRxp->addr3.numOfEntry);
 
-      //deleting (invalidating) by number of entries that we have shifted above
-      for(j = 0;j < (addr1MatchFound + addr2MatchFound + addr3MatchFound); j++)
-      {
+    //deleting (invalidating) by number of entries that we have shifted above
+    for(j = 0;j < (addr1MatchFound + addr2MatchFound + addr3MatchFound); j++)
+    {
         delete_rxp_search_table_entry(pMac,(pRxp->addr3.highPtr+ j + 1));
-      }
+    }
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -2450,18 +2552,18 @@ eHalStatus halRxp_disable(tpAniSirGlobal pMac)
 eHalStatus halRxp_setOperatingRfBand(tpAniSirGlobal pMac, eRfBandMode rfBand)
 {
 
-	tANI_U32 value;
+    tANI_U32 value;
 
     if(rfBand != eRF_BAND_2_4_GHZ ){
         return eHAL_STATUS_FAILURE;
     }
 
-	/* enable pktdet signal extension in in 2.4G band*/
-	halReadRegister(pMac, QWLAN_RXP_CCA_AND_EXT_TIMEOUT_REG, &value);
-	value |=  QWLAN_RXP_CCA_AND_EXT_TIMEOUT_CCA_PKDET_EXTENTION_ALLOWED_MASK;
-	halWriteRegister(pMac, QWLAN_RXP_CCA_AND_EXT_TIMEOUT_REG, value);
+    /* enable pktdet signal extension in in 2.4G band*/
+    halReadRegister(pMac, QWLAN_RXP_CCA_AND_EXT_TIMEOUT_REG, &value);
+    value |=  QWLAN_RXP_CCA_AND_EXT_TIMEOUT_CCA_PKDET_EXTENTION_ALLOWED_MASK;
+    halWriteRegister(pMac, QWLAN_RXP_CCA_AND_EXT_TIMEOUT_REG, value);
 
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -3159,6 +3261,14 @@ static void halRxp_GetRegValRxpMode(tpAniSirGlobal pMac,
 
             break;
 
+#ifdef WLAN_FEATURE_P2P
+        case eRXP_LISTEN_MODE:
+            HALLOG1(halLog(pMac, LOG1, FL("RXP filter to P2P Listen mode \n")));
+            *regLo = rxpDisableFrameP2PListenModeLow;
+            *regHi = rxpDisableFrameP2PListenModeHi;
+            break;
+#endif
+
         case eRXP_PRE_ASSOC_MODE:
             HALLOG1( halLog(pMac, LOG1,
                 FL("RXP filter to PRE-ASSOC mode \n")));
@@ -3286,11 +3396,11 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
         if (bssTable[bssIndex].valid == 0) continue;
 
         // OK so we have the entry we need.
-		halRxp_GetRegValRxpMode(pMac, bssTable[bssIndex].bssRxpMode,
-                &regLo, &regHi);
+        halRxp_GetRegValRxpMode(pMac, bssTable[bssIndex].bssRxpMode, 
+                                &regLo, &regHi);
 
         /* Retrieve the mask value for the stored BSS RXP Mode */
-        bssMaskValue = halRxp_getFrameFilterMaskForMode (pMac, bssTable[bssIndex].bssRxpMode);
+        bssMaskValue |= halRxp_getFrameFilterMaskForMode (pMac, bssTable[bssIndex].bssRxpMode);
 
         HALLOG1( halLog( pMac, LOG1, FL("finalRegLo - %x finalRegHi = %x\n"),
             finalRegLo, finalRegHi));
@@ -3315,17 +3425,21 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
  * -----------------------
  */
 void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
-        tRxpMode rxpMode, tANI_U8 *bssid, tANI_U8 bssIdx)
+        tRxpMode rxpMode, tANI_U8 *bssid, tANI_U8 bssIdx, tANI_U8 selfStaIdx)
 {
     tANI_U32 regHi = 0;
     tANI_U32 regLo = 0;
     tANI_U32 finalRegHi = 0;
     tANI_U32 finalRegLo = 0;
+    tANI_U32 tmpRegHi = 0;
+    tANI_U32 tmpRegLo = 0;
+
     int i=0, found = 0;
     tANI_U32 maskValue = 0;
     tANI_U32 value;
     tRxpMode systemRxpMode = halRxp_getSystemRxpMode(pMac);
     tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
+    tRxpMode staRxpMode = systemRxpMode; //For concurrency
 
     // Get the global system rxp mode register values.
     halRxp_GetRegValRxpMode(pMac, systemRxpMode, &regLo, &regHi);
@@ -3353,6 +3467,8 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
 
         finalRegLo = finalRegLo & regLo;
         finalRegHi = finalRegHi & regHi;
+        if (bssTable[i].bssSystemRole == eSYSTEM_STA_ROLE)
+                   staRxpMode = bssTable[i].bssRxpMode;  //For concurrency purpose store rxpFiler corresponding to STA
     }
 
     if (found == 0)
@@ -3387,29 +3503,27 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
 
         case eRXP_BTAMP_PREASSOC_MODE:
         case eRXP_PRE_ASSOC_MODE:
-            halRxp_AddPreAssocAddr2Entry(pMac, bssid);
-
-            halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
-            HALLOG1( halLog( pMac, LOG1, FL("BTAMP STA PRE ASSOC HACK: finalRegLo - %x finalRegHi = %x\n"),
-                        finalRegLo, finalRegHi));
-
-            setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
-
-            // Accept only beacons & probe responses from specific address2, rest filter it out.
-            maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
-            halRxp_setFrameFilterMaskForBcnProbeRsp(pMac, maskValue);
-            break;
+            if( HAL_INVALID_KEYID_INDEX == selfStaIdx)
+               HALLOGE( halLog( pMac, LOGE, FL("Invalid self sta idx")));
+               halRxp_AddPreAssocAddr2Entry(pMac, bssid, selfStaIdx); //Fall through
 
         case  eRXP_BTAMP_POSTASSOC_MODE:
         case  eRXP_POST_ASSOC_MODE:
-            halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
-            HALLOGE( halLog( pMac, LOGE, FL("BTAMP STA POST ASSOC HACK: finalRegLo - %x finalRegHi = %x\n"),
-                        finalRegLo, finalRegHi));
+            if ((vos_get_concurrency_mode()& VOS_STA_SAP)==VOS_STA_SAP) 
+            {
+                halRxp_GetRegValRxpMode(pMac, rxpMode, &tmpRegLo, &tmpRegHi);
+                finalRegLo = finalRegLo&tmpRegLo;
+                finalRegHi = finalRegHi&tmpRegHi;
+            }
+            else
+            {
+                halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
+            }
+            HALLOG1( halLog( pMac, LOG1, FL("STA ASSOC : finalRegLo - %x finalRegHi = %x\n"), 
+                     finalRegLo, finalRegHi));
 
             setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
-
-            // Accept only beacons & probe responses from address2 BSS to which
-            // are now associated, rest filter it out.
+            // Accept only beacons & probe responses from specific address2, rest filter it out.
             maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
             halRxp_setFrameFilterMaskForBcnProbeRsp(pMac, maskValue);
             break;
@@ -3417,18 +3531,20 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
         case eRXP_AP_MODE:
             {
                 tANI_U8 obssProt = 0;
-            // Allow unknown ADDR2 data frames as well in AP mode, such that
-            // if the AP receives unknown ADDR2 data frame it would send back a DEAUTH frame
+                // Allow unknown ADDR2 data frames as well in AP mode, such that
+                // if the AP receives unknown ADDR2 data frame it would send back a DEAUTH frame
                 HALLOGE(halLog( pMac, LOGE,FL("##### AP MODE ######\n")));
 
                 // Check if OBSS protection is turned on, if yes allow neighboring
                 // beacons to come in.
                 halTable_GetObssProtForBss(pMac, bssIdx, &obssProt);
-                if (obssProt) {
+                if (obssProt) { 
                     finalRegHi &= (~RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON));
                 } else {
-                    finalRegHi |= (RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON));
+                   if (!(vos_get_concurrency_mode()& VOS_STA)) //NO sta mode running
+                      finalRegHi |= (RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON));
                 }
+
                 // Apply the RXP type/subtype settings.
                 setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
 
@@ -3438,6 +3554,12 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
                 maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
                 halRxp_setFrameFilterMask(pMac, eDATA_DATA, maskValue);
                 halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, maskValue);
+
+                if ((vos_get_concurrency_mode()& VOS_STA)==VOS_STA)
+                {  //If there is a concurrent STA session then we need to allow beacons from associated 
+                    maskValue = halRxp_getFrameFilterMaskForMode (pMac, staRxpMode);
+                    halRxp_setFrameFilterMaskForBcnProbeRsp(pMac, maskValue);
+                }
 #if 0 //do we need to set the following for NULL and QosNULL frames? most likely not.
                 halRxp_setFrameFilterMask(pMac, eDATA_NULL, maskValue);
                 halRxp_setFrameFilterMask(pMac, eDATA_QOSNULL, maskValue);
@@ -3463,17 +3585,26 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
         case eRXP_PROMISCUOUS_MODE:
         case eRXP_LEARN_MODE:
         case eRXP_POWER_SAVE_MODE:
-		break;
+            break;
         case eRXP_IBSS_MODE:
-                maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
-                halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, maskValue);
-		break;
+            maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
+            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, maskValue);
+            break;
         case eRXP_BTAMP_AP_MODE:
         case eRXP_BTAMP_STA_MODE:
 #ifndef WLAN_FTM_STUB
     case eRXP_FTM_MODE:
 #endif
             break;
+
+#ifdef WLAN_FEATURE_P2P
+        case eRXP_LISTEN_MODE:
+            setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+            maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
+            halRxp_setFrameFilterMaskForProbeReqAction(pMac, maskValue);
+            break;
+#endif
+
         default:
             break;
     }
@@ -3503,12 +3634,19 @@ tANI_U32 halRxp_getFrameFilterMaskForMode (tpAniSirGlobal pMac, tANI_U32 rxpMode
         case eRXP_POST_ASSOC_MODE:
         case eRXP_BTAMP_PREASSOC_MODE:
         case eRXP_BTAMP_POSTASSOC_MODE:
+        case eRXP_BTAMP_AP_MODE:
             maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
             break;
 
         case eRXP_AP_MODE:
             maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION);
             break;
+
+#ifdef WLAN_FEATURE_P2P
+        case eRXP_LISTEN_MODE:
+            maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
+            break;
+#endif
 
         case eRXP_IBSS_MODE:
             maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
@@ -3532,5 +3670,12 @@ void halRxp_setFrameFilterMaskForBcnProbeRsp(tpAniSirGlobal pMac, tANI_U32 maskV
      halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, maskValue);
 }
 
+#ifdef WLAN_FEATURE_P2P
+void halRxp_setFrameFilterMaskForProbeReqAction(tpAniSirGlobal pMac, tANI_U32 maskValue)
+{
+     halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_REQ, maskValue);
+     halRxp_setFrameFilterMask(pMac, eMGMT_ACTION, maskValue);
+}
+#endif
 
 /* End of file */

@@ -158,14 +158,14 @@ limIsRSNieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirRSNie pRSNie)
 } /*** end limIsRSNieValidInSmeReqMessage() ***/
 
 /**
- * limIsWSCieValidInSmeReqMessage()
+ * limIsAddieValidInSmeReqMessage()
  *
  *FUNCTION:
- * This function is called to verify if the WSN IE
+ * This function is called to verify if the Add IE
  * received in various SME_REQ messages is valid or not
  *
  *LOGIC:
- * WSC IE validity checks are performed in this function
+ * Add IE validity checks are performed on only length
  *
  *ASSUMPTIONS:
  *
@@ -177,57 +177,36 @@ limIsRSNieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirRSNie pRSNie)
  */
 
 static tANI_U8
-limIsWSCieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirWSCie pWSCie)
+limIsAddieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirAddie pAddie)
 {
-    tANI_U8  startPos = 0, valid = false;
-    tANI_U32 val;
-    int len;
+    int left = pAddie->length;
+    tANI_U8 *ptr = pAddie->addIEdata;
+    tANI_U8 elem_id, elem_len;
 
-    // Do we need to check anything here from CFG, such as WPS_ENABLED ?
-
-    if (pWSCie->length == 0)
+    if (left == 0)
         return true;
 
-    if ((pWSCie->wscIEdata[0] != DOT11F_EID_WPA))
+    while(left >= 2)
     {
-        limLog(pMac, LOGE, FL("WPA EID %d not [%d]\n"), 
-               pWSCie->wscIEdata[0], DOT11F_EID_WPA);
-        return false;
-    }
-
-    len = pWSCie->length;
-    startPos = 0;
-    while(len > 0)
-    {
-    // Check validity of WSC IE
-        if(pWSCie->wscIEdata[startPos] == DOT11F_EID_WPA)
+        elem_id  = ptr[0];
+        elem_len = ptr[1];
+        left -= 2;
+        if(elem_len > left)
         {
-            // Check validity of WPA IE
-            val = sirReadU32((tANI_U8 *) &pWSCie->wscIEdata[startPos + 2]);
-            if((SIR_MAC_WPS_OUI == val)) {
-                if((pWSCie->wscIEdata[startPos + 1] >= SIR_MAC_WSC_IE_MIN_LENGTH) &&
-                (pWSCie->wscIEdata[startPos + 1] <= SIR_MAC_WSC_IE_MAX_LENGTH)) 
-                    valid = TRUE;
-            }
-            // else not needed, valid = FALSE;
-
-            if( valid == false) 
-            {
-                limLog(pMac, LOGE,
-                       FL("WSC IE len %d not [%d,%d] OR data 0x%x not 0x%x\n"),
-                       pWSCie->wscIEdata[startPos+1], 6, 
-                       257, val, SIR_MAC_WPS_OUI);
-            }
+            limLog( pMac, LOGE, 
+               FL("****Invalid Add IEs eid = %d elem_len=%d left=%d*****\n"), 
+                                               elem_id,elem_len,left);
+            return false;
         }
-        // else
-        // { // not needed, valid = false;
-        // }
-        startPos += 2 + pWSCie->wscIEdata[startPos+1];  //EID + length field + length
-        len -= startPos;
-    }//while
-
-    return valid;
-} /*** end limIsWSCieValidInSmeReqMessage() ***/
+ 
+        left -= elem_len;
+        ptr += (elem_len + 2);
+    }
+    // there shouldn't be any left byte
+ 
+    
+    return true;
+} /*** end limIsAddieValidInSmeReqMessage() ***/
 
 #ifdef WLAN_SOFTAP_FEATURE
 /**
@@ -800,13 +779,22 @@ limIsSmeJoinReqValid(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq)
         goto end;
     }
 
-    if (!limIsWSCieValidInSmeReqMessage(pMac, &pJoinReq->wscIE))
+    if (!limIsAddieValidInSmeReqMessage(pMac, &pJoinReq->addIEScan))
     {
         limLog(pMac, LOGE,
-               FL("received SME_JOIN_REQ with invalid WSCIE\n"));
+               FL("received SME_JOIN_REQ with invalid addtional IE for scan\n"));
         valid = false;
         goto end;
     }
+
+    if (!limIsAddieValidInSmeReqMessage(pMac, &pJoinReq->addIEAssoc))
+    {
+        limLog(pMac, LOGE,
+               FL("received SME_JOIN_REQ with invalid addtional IE for assoc\n"));
+        valid = false;
+        goto end;
+    }
+
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     if (!limIsBssInfoValidInSmeReqMessage(
@@ -855,16 +843,16 @@ end:
 
 tANI_U8
 limIsSmeDisassocReqValid(tpAniSirGlobal pMac,
-                         tpSirSmeDisassocReq pDisassocReq)
+                         tpSirSmeDisassocReq pDisassocReq, tpPESession psessionEntry)
 {
     if (limIsGroupAddr(pDisassocReq->peerMacAddr) &&
          !limIsAddrBC(pDisassocReq->peerMacAddr))
         return false;
 
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    if (((pMac->lim.gLimSystemRole == eLIM_AP_ROLE) &&
+    if (((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
          ((pDisassocReq->aid < 2) || (pDisassocReq->aid > 2007))) ||
-        ((pMac->lim.gLimSystemRole == eLIM_STA_ROLE) &&
+        ((psessionEntry->limSystemRole == eLIM_STA_ROLE) &&
          (pDisassocReq->aid != 1)))
         return false;
 #endif
@@ -935,16 +923,16 @@ limIsSmeDisassocCnfValid(tpAniSirGlobal pMac,
  */
 
 tANI_U8
-limIsSmeDeauthReqValid(tpAniSirGlobal pMac, tpSirSmeDeauthReq pDeauthReq)
+limIsSmeDeauthReqValid(tpAniSirGlobal pMac, tpSirSmeDeauthReq pDeauthReq, tpPESession psessionEntry)
 {
     if (limIsGroupAddr(pDeauthReq->peerMacAddr) &&
          !limIsAddrBC(pDeauthReq->peerMacAddr))
         return false;
 
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    if (((pMac->lim.gLimSystemRole == eLIM_AP_ROLE) &&
+    if (((psessionEntryp->limSystemRole == eLIM_AP_ROLE) &&
          ((pDeauthReq->aid < 2) || (pDeauthReq->aid > 2007))) ||
-        ((pMac->lim.gLimSystemRole == eLIM_STA_ROLE) &&
+        ((psessionEntryp->limSystemRole == eLIM_STA_ROLE) &&
          (pDeauthReq->aid != 1)))
         return false;
 #endif

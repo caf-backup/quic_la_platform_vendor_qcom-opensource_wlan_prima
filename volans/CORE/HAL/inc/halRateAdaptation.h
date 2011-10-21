@@ -89,7 +89,7 @@
 
 #define SET_ANIENHANCED_RATES(pU32) \
    HALRATE_SETBIT(pU32, HALRATE_CB_START,HALRATE_MIMO_CB_END)
-#else 
+#else
 #define SET_ANILEGACY_RATES(pU32)
 #define SET_ANIENHANCED_RATES(pU32)
 #endif
@@ -111,7 +111,7 @@
    HALRATE_SETBIT(pU32, HALRATE_TAURUS_SIMO_CB_2835,    HALRATE_TAURUS_SIMO_CB_2835)     \
    HALRATE_SETBIT(pU32, HALRATE_TAURUS_MIMO_CB_SGI_3150,HALRATE_TAURUS_MIMO_CB_SGI_3150)     \
 }while(0)
-#else 
+#else
 #define SET_TAURUS_RATES(pU32)
 #define CLEAR_TAURUS_SGI20_RATES(pU32)
 #define CLEAR_TAURUS_SGI40_RATES(pU32)
@@ -160,7 +160,7 @@
 #define CLEAR_SPREAM_11B_NONDUP_RATES(pU32)
 #endif
 
-#else 
+#else
 // 11B
 #define SET_11B_RATES(pU32)
 #define CLEAR_11B_RATES(pU32)
@@ -355,7 +355,7 @@
    HALRATE_CLEARBIT(pU32, HALRATE_HT_SIMO_CB_DUP_SGI_START, HALRATE_HT_SIMO_CB_DUP_SGI_END)}while(0)
 #define CLEAR_HT_SIMO_CB_DUP_SGI_RATES(pU32) do{\
    HALRATE_CLEARBIT(pU32, HALRATE_HT_SIMO_CB_DUP_SGI_START, HALRATE_HT_SIMO_CB_DUP_SGI_END)}while(0)
-#else // SIMO HT CB DUP SGI 
+#else // SIMO HT CB DUP SGI
 #define SET_HT_SIMO_CB_DUP_SGI_RATES(pU32)
 #define CLEAR_HT_SIMO_CB_DUP_SGI_RATES(pU32)
 #endif
@@ -374,7 +374,7 @@
 // SIMO HT CB DUP
 #define SET_HT_SIMO_CB_DUP_RATES(pU32)
 #define CLEAR_HT_SIMO_DUP_RATES(pU32)
-// SIMO HT CB DUP SGI 
+// SIMO HT CB DUP SGI
 #define SET_HT_SIMO_CB_DUP_SGI_RATES(pU32)
 #define CLEAR_HT_SIMO_CB_DUP_SGI_RATES(pU32)
 #endif
@@ -384,7 +384,7 @@
 #define CLEAR_HT_SIMO_NONCB_RATES(pU32)
 #endif
 
-#else 
+#else
 // SIMO CB
 #define SET_SIMO_CB_RATES(pU32)
 #define CLEAR_SIMO_CB_RATES(pU32)
@@ -403,7 +403,7 @@
 // SIMO HT CB DUP
 #define SET_HT_SIMO_CB_DUP_RATES(pU32)
 #define CLEAR_HT_SIMO_DUP_RATES(pU32)
-// SIMO HT CB DUP SGI 
+// SIMO HT CB DUP SGI
 #define SET_HT_SIMO_CB_DUP_SGI_RATES(pU32)
 #define CLEAR_HT_SIMO_CB_DUP_SGI_RATES(pU32)
 #endif // SIMO
@@ -653,9 +653,9 @@ typedef enum eHalIeRateType{
    IERATE_POLARIS,
 } tHalIeRateType;
 
-/* Note: this may include legacy configuration, some of them are deprecated 
+/* Note: this may include legacy configuration, some of them are deprecated
  Just keep the sequences and values, as these are already documented and published.
- Keep in mind that some of them are not available now. 
+ Keep in mind that some of them are not available now.
  You can always rely on tHalRaGlobalInfo structre for the current */
 typedef enum eHalRaGlobalCfg {
    RA_GLOBCFG_NONE =0,

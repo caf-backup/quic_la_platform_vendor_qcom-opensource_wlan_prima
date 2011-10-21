@@ -478,8 +478,8 @@ eHalStatus halTpe_Start(tHalHandle hHal, void *arg)
     __halTpe_InitBeaconTemplateBase(pMac);
 
     /** Set the Tx SIFS cycles */
-    value = (tANI_U32)(SW_TX_SIFS_A_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_OFFSET) |
-           (tANI_U32)(SW_TX_SIFS_B_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_B_MODE_CYCLES_OFFSET);
+    value = (SW_TX_SIFS_A_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_OFFSET) |
+            (SW_TX_SIFS_B_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_B_MODE_CYCLES_OFFSET);
 
     mask = QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_MASK | QWLAN_TPE_SW_PM_SW_TX_SIFS_B_MODE_CYCLES_MASK;
 
@@ -1410,20 +1410,26 @@ eHalStatus halTpe_UpdateEdcaTxOp(tpAniSirGlobal pMac, tANI_U16 *pTxOp)
 void halTpe_DumpEdcaTxOp(tpAniSirGlobal pMac)
 {
     tANI_U32 regVal = 0;
+    do
+    {
+        halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_0_1_REG, &regVal);
+        HALLOGW( halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_0_1_REG = %x\n"), regVal));
 
-    halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_0_1_REG, &regVal);
-    HALLOGW( halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_0_1_REG = %x\n"), regVal));
+        
+        halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_2_3_REG, &regVal);
+        HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_2_3_REG = %x\n"), regVal));        
 
-    halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_2_3_REG, &regVal);
-    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_2_3_REG = %x\n"), regVal));
 
-    halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_4_5_REG, &regVal);
-    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_4_5_REG = %x\n"), regVal));
+        halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_4_5_REG, &regVal);
+        HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_4_5_REG = %x\n"), regVal));        
 
-    halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_6_7_REG, &regVal);
-    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_6_7_REG = %x\n"), regVal));
 
+        halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_6_7_REG, &regVal);
+        HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_6_7_REG = %x\n"), regVal));        
+    
+    }while(0);
     return;
+    
 }
 
 /**
@@ -1637,9 +1643,16 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
  *
  * \return eHalStatus Beacon update status
  */
- #ifdef WLAN_SOFTAP_FEATURE
+#ifdef WLAN_SOFTAP_FEATURE
+#ifdef WLAN_FEATURE_P2P
 eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
-                                    tANI_U16 bssIndex, tANI_U32 length, tANI_U16 timIeOffset)
+                               tANI_U16 bssIndex, tANI_U32 length, 
+                               tANI_U16 timIeOffset, tANI_U16 p2pIeOffset)
+#else
+eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
+                               tANI_U16 bssIndex, tANI_U32 length, 
+                               tANI_U16 timIeOffset)
+#endif
 {
     tANI_U32 value;
     tANI_U32 loop = 0;
@@ -1673,7 +1686,7 @@ eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
     } while (!(value & QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_MAIN_SW_UPDATE_BCN_GNT_BY_HW_MASK));
 
     /** Update Beacon Memory */
-    halTpe_UpdateBeaconMemory(pMac, beacon, bssIndex, length);
+    halTpe_UpdateBeaconMemory(pMac, beacon, 0 /* bssIndex*/, length);
 
     /** Unlock the beacon ownership */
     halReadRegister(pMac, QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, &value);
@@ -1682,7 +1695,11 @@ eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
 
     halWriteRegister(pMac, QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, value);
 
+#ifdef WLAN_FEATURE_P2P
+    if(halFW_UpdateBeaconReq(pMac, (tANI_U8) bssIndex, (tANI_U16)timIeOffset, p2pIeOffset) != eHAL_STATUS_SUCCESS)
+#else
     if(halFW_UpdateBeaconReq(pMac, (tANI_U8) bssIndex, (tANI_U16)timIeOffset) != eHAL_STATUS_SUCCESS)
+#endif
     {
         HALLOGE(halLog(pMac, LOGE, FL("halFW_UpdateBeaconReq failed")));
         return eHAL_STATUS_FAILURE;
@@ -1753,7 +1770,10 @@ void halTpe_UpdateMaxMpduInAmpdu(tpAniSirGlobal pMac, tANI_U32 mpduInAmpdu)
     tANI_U32 value = 0;
     halReadRegister(pMac, QWLAN_TPE_SW_MAX_MPDUS_IN_AMPDU_AND_MISC_REG, &value);
     value &= ~QWLAN_TPE_SW_MAX_MPDUS_IN_AMPDU_AND_MISC_SW_MAX_MPDUS_IN_AMPDU_MASK;
-    value |= mpduInAmpdu;
+
+    value |= ( (mpduInAmpdu & 0x7f) |
+       (1 << QWLAN_TPE_SW_MAX_MPDUS_IN_AMPDU_AND_MISC_SW_TX_AMPDU_WINDOW_CHECK_VALID_OFFSET));
+
     halWriteRegister(pMac, QWLAN_TPE_SW_MAX_MPDUS_IN_AMPDU_AND_MISC_REG, value);
 }
 

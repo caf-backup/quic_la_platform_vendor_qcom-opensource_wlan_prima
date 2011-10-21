@@ -128,7 +128,9 @@ eHalStatus bmuCommand_read_btqm_index_entry2(tpAniSirGlobal pMac, tANI_U8 queueI
 eHalStatus halBmu_get_qid_for_qos_tid(tpAniSirGlobal pMac, tANI_U8 tid, tANI_U8 *queueId);
 
 eHalStatus halBmu_btqmStaTxWqStatus(tpAniSirGlobal pMac ,tANI_U8 staIdx, tANI_U32 *pbmuBtqmStaQueues);
+#ifndef WLAN_SOFTAP_VSTA_FEATURE
 eHalStatus halBmu_GetStaWqStatus(tpAniSirGlobal pMac, tpBmuStaQueueData pStaQueueData );
+#endif //WLAN_SOFTAP_VSTA_FEATURE
 void halBmu_StaCfgForPM(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 mask, tANI_U16 delEnbQIdMask, tANI_U16 trigEnbQIdMask);
 void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac, 
                                  tANI_U8 staIdx, tANI_U8 uapsdACMask, 

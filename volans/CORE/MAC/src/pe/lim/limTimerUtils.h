@@ -28,7 +28,6 @@ enum
     eLIM_HEART_BEAT_TIMER,    
     eLIM_BACKGROUND_SCAN_TIMER,
 #ifdef ANI_PRODUCT_TYPE_AP
-    eLIM_RELEASE_AID_TIMER,
     eLIM_LEARN_INTERVAL_TIMER,
 #endif
     eLIM_KEEPALIVE_TIMER,
@@ -47,6 +46,10 @@ enum
 #ifdef WLAN_FEATURE_VOWIFI_11R
     eLIM_FT_PREAUTH_RSP_TIMER,
 #endif
+#ifdef WLAN_FEATURE_P2P
+    eLIM_REMAIN_CHN_TIMER,
+#endif
+
 };
 
 // Timer Handler functions

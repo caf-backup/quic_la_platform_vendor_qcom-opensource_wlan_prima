@@ -1137,6 +1137,11 @@ typedef struct sSirSmeReassocReq
                                    // sending (Re) Association
                                    // due to load balance or not
 #endif
+
+#ifdef WLAN_FEATURE_P2P
+	tSirP2Pie		    p2pIE;
+#endif
+
     tSirRSNie           rsnIE;     // RSN IE to be sent in
                                    // (Re) Association Request
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)

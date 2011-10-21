@@ -97,7 +97,7 @@
 #define HAL_PWR_SAVE_MAX_CONS_BCN_MISS                          5
 #define HAL_PWR_SAVE_BCN_MISS_GRACE_PERIOD_US                 200
 #define HAL_PWR_SAVE_MAX_ALLOWED_BCN_DRIFT_US                 200
-#define HAL_PWR_SAVE_BCN_MISS_WAIT_TU                           10
+#define HAL_PWR_SAVE_BCN_MISS_WAIT_TU                          10
 #define HAL_PWR_SAVE_MIN_BCN_WAIT_TU                            4
 
 // Frames to be passed to host while in WOWL mode
@@ -179,6 +179,13 @@ typedef struct sHalPsUapsd {
     tANI_U16 token;
 } tHalPsUapsd;
 
+#ifdef WLAN_FEATURE_P2P
+/* Parameters required for P2P PS*/
+typedef struct sHalPsP2p{
+    /* TODO: Store all NoA information also in this */	
+    tANI_U16 token;
+} tHalPsP2p;
+#endif    
 /* Paramters required for the entire Power save module */
 typedef struct sHalPwrSave
 {
@@ -224,6 +231,9 @@ typedef struct sHalPwrSave
     tHalPsImps      ImpsCtx;        // IMPS context
     tHalPsBmps      BmpsCtx;        // BMPS context
     tHalPsUapsd     UapsdCtx;        // UAPSD context;
+#ifdef WLAN_FEATURE_P2P
+    tHalPsP2p       P2pPsCtx;       // P2P Power save context
+#endif    
 } tHalPwrSave;
 
 /* Beacon Filtering data structures */
@@ -361,5 +371,11 @@ eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRe
 VOS_STATUS halPS_SetHostBusyTxRx(v_PVOID_t pContext);
 VOS_STATUS halPS_ReleaseHostBusyTxRx(v_PVOID_t pContext);
 #endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
+#ifdef WLAN_FEATURE_P2P
+eHalStatus halPS_UpdateSingleNoA(tpAniSirGlobal pMac, tANI_U16 dialogToken,
+      funcHalPsCB cbFunc, void* data);
+eHalStatus halPS_HandleFwP2pNoAStarted ( tpAniSirGlobal pMac, void* pFwMsg);
+eHalStatus halPS_HandleFwP2PNoAAttr ( tpAniSirGlobal pMac, void* pFwMsg);
+#endif
 
 #endif //_HALPWRSAVE_H_

@@ -23,7 +23,6 @@
 #include <vos_types.h>
 #include <vos_status.h>
 
-
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
@@ -74,12 +73,11 @@ typedef enum
    VOS_PKT_USER_DATA_ID_SSC,   
    VOS_PKT_USER_DATA_ID_HDD,
    VOS_PKT_USER_DATA_ID_BAP,
+   VOS_PKT_USER_DATA_ID_BSL,
 
    VOS_PKT_USER_DATA_ID_MAX
    
 } VOS_PKT_USER_DATA_ID;
-
-
 
 /**------------------------------------------------------------------------
   
@@ -101,6 +99,13 @@ typedef enum
   ------------------------------------------------------------------------*/
 typedef VOS_STATUS ( *vos_pkt_get_packet_callback )( vos_pkt_t *pPacket, 
                                                      v_VOID_t *userData );
+
+/*
+ * include the OS-specific packet abstraction
+ * we include it here since the abstraction probably needs to access the
+ * generic types defined above
+ */
+#include "i_vos_packet.h"
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation

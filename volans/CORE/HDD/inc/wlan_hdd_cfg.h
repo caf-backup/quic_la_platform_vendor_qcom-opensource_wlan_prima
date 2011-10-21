@@ -312,17 +312,27 @@ typedef enum
 #define CFG_IBSS_BSSID_MAX                     "ffffffffffff"
 #define CFG_IBSS_BSSID_DEFAULT                 "000AF5040506"
 
-#define CFG_STA_MAC_ADDR_NAME                  "NetworkAddress"
-#define CFG_STA_MAC_ADDR_MIN                   "000000000000"
-#define CFG_STA_MAC_ADDR_MAX                   "ffffffffffff"
-#define CFG_STA_MAC_ADDR_DEFAULT               "000AF5898989"
+#define CFG_INTF0_MAC_ADDR_NAME                  "Intf0MacAddress"
+#define CFG_INTF0_MAC_ADDR_MIN                   "000000000000"
+#define CFG_INTF0_MAC_ADDR_MAX                   "ffffffffffff"
+#define CFG_INTF0_MAC_ADDR_DEFAULT               "000AF5898980"
+
+#define CFG_INTF1_MAC_ADDR_NAME                  "Intf1MacAddress"
+#define CFG_INTF1_MAC_ADDR_MIN                   "000000000000"
+#define CFG_INTF1_MAC_ADDR_MAX                   "ffffffffffff"
+#define CFG_INTF1_MAC_ADDR_DEFAULT               "000AF5898981"
+
+#define CFG_INTF2_MAC_ADDR_NAME                  "Intf2MacAddress"
+#define CFG_INTF2_MAC_ADDR_MIN                   "000000000000"
+#define CFG_INTF2_MAC_ADDR_MAX                   "ffffffffffff"
+#define CFG_INTF2_MAC_ADDR_DEFAULT               "000AF5898982"
+
+#define CFG_INTF3_MAC_ADDR_NAME                  "Intf3MacAddress"
+#define CFG_INTF3_MAC_ADDR_MIN                   "000000000000"
+#define CFG_INTF3_MAC_ADDR_MAX                   "ffffffffffff"
+#define CFG_INTF3_MAC_ADDR_DEFAULT               "000AF5898983"
 
 #ifdef WLAN_SOFTAP_FEATURE
-#define CFG_AP_MAC_ADDR_NAME                   "gAPMacAddr"
-#define CFG_AP_MAC_ADDR_MIN                    "000000000000"
-#define CFG_AP_MAC_ADDR_MAX                    "ffffffffffff"
-#define CFG_AP_MAC_ADDR_DEFAULT                "00deadbeef04"
-
 #define CFG_AP_QOS_UAPSD_MODE_NAME             "gEnableApUapsd" // ACs to setup U-APSD for at assoc
 #define CFG_AP_QOS_UAPSD_MODE_MIN              ( 0 )
 #define CFG_AP_QOS_UAPSD_MODE_MAX              ( 1 ) 
@@ -980,7 +990,6 @@ typedef enum
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_MAX            (4)
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_DEFAULT        (1)
 
-
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_NAME         "gNeighborScanRefreshPeriod"
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MIN          (1000)
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MAX          (60000)
@@ -1010,51 +1019,6 @@ typedef enum
 #define CFG_DYNAMIC_PSPOLL_VALUE_MIN           (0)
 #define CFG_DYNAMIC_PSPOLL_VALUE_MAX           (255)
 #define CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT       (0)
-
-// WSC 2.0 configuration items
-#define CFG_WPS_REQUEST_TYPE_NAME              "gWpsRequestType"
-#define CFG_WPS_REQUEST_TYPE_MIN               (0)
-#define CFG_WPS_REQUEST_TYPE_MAX               (4)
-#define CFG_WPS_REQUEST_TYPE_DEFAULT           (1)
-
-#define CFG_WPS_CONFIG_METHOD_NAME             "gWpsConfigMethod"
-#define CFG_WPS_CONFIG_METHOD_MIN              (0)
-#define CFG_WPS_CONFIG_METHOD_MAX              (0xffff)
-#define CFG_WPS_CONFIG_METHOD_DEFAULT          (0x228c)
-
-#define CFG_WPS_UUID_E_NAME                    "gWpsUUID_E"
-#define CFG_WPS_UUID_E_DEFAULT                 "123456789ABCDEF0"
-
-#define CFG_WPS_PRIMARY_DEVICE_CATEGORY_NAME   "gWpsPrimayDeviceCategory"
-#define CFG_WPS_PRIMARY_DEVICE_CATEGORY_MIN     (0)
-#define CFG_WPS_PRIMARY_DEVICE_CATEGORY_MAX     (11)
-#define CFG_WPS_PRIMARY_DEVICE_CATEGORY_DEFAULT (10)
-
-#define CFG_WPS_DEVICE_SUB_CATEGORY_NAME        "gWpsDeviceSubCategory"
-#define CFG_WPS_DEVICE_SUB_CATEGORY_MIN         (0)
-#define CFG_WPS_DEVICE_SUB_CATEGORY_MAX         (10)
-#define CFG_WPS_DEVICE_SUB_CATEGORY_DEFAULT     (4)
-
-#define CFG_WPS_DEVICE_PASSWORD_ID_NAME        "gWpsDevicePasswordId"
-#define CFG_WPS_DEVICE_PASSWORD_ID_MIN         (0)
-#define CFG_WPS_DEVICE_PASSWORD_ID_MAX         (5)
-#define CFG_WPS_DEVICE_PASSWORD_ID_DEFAULT     (0)
-
-#define CFG_WPS_MANUFACTURER_NAME              "gWpsManufacturer"
-#define CFG_WPS_MANUFACTURER_DEFAULT           "Qualcomm"
-
-#define CFG_WPS_MODEL_NAME_NAME                "gWpsModelName"
-#define CFG_WPS_MODEL_NAME_DEFAULT             "MSM7630"
-
-#define CFG_WPS_MODEL_NUMBER_NAME              "gWpsModelNumber"
-#define CFG_WPS_MODEL_NUMBER_DEFAULT           "v1.0"
-
-#define CFG_WPS_DEVICE_NAME_NAME               "gWpsDeviceName"
-#define CFG_WPS_DEVICE_NAME_DEFAULT            "FFA"
-
-#define CFG_WPS_SERIAL_NUMBER_NAME             "gWpsSerialNumber"
-#define CFG_WPS_SERIAL_NUMBER_DEFAULT          "123456"
-
 
 #define CFG_TELE_BCN_WAKEUP_EN_NAME            "gTelescopicBeaconWakeupEn"
 #define CFG_TELE_BCN_WAKEUP_EN_MIN             (0)
@@ -1149,10 +1113,11 @@ typedef struct
    v_BOOL_t      fIsShortPreamble;
    v_BOOL_t      fIsAutoIbssBssid;
    v_MACADDR_t   IbssBssid;
-   v_MACADDR_t   staMacAddr;
-
+   
+   v_U8_t        intfAddrMask;
+   v_MACADDR_t   intfMacAddr[VOS_MAX_CONCURRENCY_PERSONA];
+   
 #ifdef WLAN_SOFTAP_FEATURE
-   v_MACADDR_t   apMacAddr;
    v_BOOL_t      apUapsdEnabled;
    v_BOOL_t      apProtEnabled;
    v_BOOL_t      apOBSSProtEnabled;
@@ -1328,24 +1293,7 @@ typedef struct
    /* RF Settling Time Clock */
    v_U32_t                     rfSettlingTimeUs;
 
-   
    v_U8_t                      dynamicPsPollValue;
-
-   /* WSC configuration field. Only used when this field is not given by supplicant */
-   v_U8_t                      WpsRequestType;
-   v_U16_t                     WpsConfigMethod;
-   v_U8_t                      WpsUUID_E[16];
-
-   v_U8_t                      WpsPrimayDeviceCategory;
-   v_U8_t                      WpsDeviceSubCategory;
-   v_U8_t                      WpsDevicePasswordId;
-   
-   v_U8_t                      WpsManufacturer[64+1];
-   v_U8_t                      WpsModelName[32+1];
-   v_U8_t                      WpsModelNumber[32+1];
-   v_U8_t                      WpsDeviceName[32+1];
-   v_U8_t                      WpsSerialNumber[32+1];
-
    v_BOOL_t                    AddTSWhenACMIsOff;
    v_BOOL_t                    fValidateScanList;
 
@@ -1358,10 +1306,10 @@ typedef struct
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
   -------------------------------------------------------------------------*/ 
-VOS_STATUS hdd_parse_config_ini(hdd_adapter_t *pAdapter);
-VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter );
-v_BOOL_t hdd_update_config_dat ( hdd_adapter_t *pAdapter );
-VOS_STATUS hdd_cfg_get_config(hdd_adapter_t *pAdapter, char *pBuf, int buflen);
+VOS_STATUS hdd_parse_config_ini(hdd_context_t *pHddCtx);
+VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx );
+v_BOOL_t hdd_update_config_dat ( hdd_context_t *pHddCtx );
+VOS_STATUS hdd_cfg_get_config(hdd_context_t *pHddCtx, char *pBuf, int buflen);
 eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
 
 #define FIELD_OFFSET(__type, __field) ((unsigned int)(&((__type *)0)->__field))

@@ -14,6 +14,8 @@
 #include "sirMacProtDef.h" // tSirMacAddr
 #include "halMsgApi.h"
 
+
+
 #define   RXP_DROP_ALL_FRAME_TYPES   0xffffffff
 #define   RXP_PASS_ALL_FRAME_TYPES   0x0
 
@@ -164,7 +166,7 @@ eHalStatus halRxp_EnableSSIDBasedFilter( tpAniSirGlobal pMac, tSirMacSSid *pSirM
 void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac, 
         tRxpMode rxpMode, tHalRxpModeFlag mode_flag);
 void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac, 
-        tRxpMode rxpMode, tANI_U8 *bssid, tANI_U8 bssIdx);
+        tRxpMode rxpMode, tANI_U8 *bssid, tANI_U8 bssIdx, tANI_U8 selfStaId);
 void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode);
 tANI_U32 halRxp_getFrameFilterMaskForMode (tpAniSirGlobal pMac, tANI_U32 rxpMode);
 void halRxp_setFrameFilterMaskForBcnProbeRsp(tpAniSirGlobal pMac, tANI_U32 maskValue);

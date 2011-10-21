@@ -19,6 +19,7 @@
 #ifndef HALPHYAPI_H
 #define HALPHYAPI_H
 
+
 #include "halPhy.h"
 #include <halPhyRates.h>
 
@@ -73,7 +74,11 @@ eHalStatus halPhyAssessCal(tHalHandle hHal, tANI_BOOLEAN *performCal);
 eHalStatus halPhyCalUpdate(tHalHandle hHal);
 
 //to set the primary channel and which channel-bonded state this is
-eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber, ePhyChanBondState cbState, tANI_U8 calRequired);
+eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber, ePhyChanBondState cbState, tANI_U8 calRequired
+#ifdef WLAN_AP_STA_CONCURRENCY
+, tANI_U8 bSendCts
+#endif
+);
 
 //to get the current channel-bonded state
 ePhyChanBondState halPhyGetChannelBondState(tHalHandle hHal);
@@ -142,5 +147,5 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal);
 /* Routine to return the power in Dbm for the given rate from Rate 2 power table */
 eHalStatus halPhyGetPwrFromRate2PwrTable(tHalHandle hHal, eHalPhyRates rate, t2Decimal *pwr2dec);
 /* Routine to return the maxPwrIndex that can be used for the given absolute power limit in dBm */
-inline eHalStatus halPhyGetMaxTxPowerIndex(tHalHandle hHal, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
+eHalStatus halPhyGetMaxTxPowerIndex(tHalHandle hHal, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
 #endif /* HALPHYAPI_H */

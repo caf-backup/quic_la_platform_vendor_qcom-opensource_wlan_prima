@@ -158,13 +158,13 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
     tDot11fIERSN            Dot11fIERSN;
     tDot11fIEWPA            Dot11fIEWPA;
 #endif
-
     tANI_U32 phyMode;
     tHalBitVal qosMode;
     tHalBitVal wsmMode, wmeMode;
+    tANI_U8    *wpsIe = NULL;
 
     limGetPhyMode(pMac, &phyMode);
-    limGetQosMode(pMac, &qosMode);
+    limGetQosMode(psessionEntry, &qosMode);
 
     pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
     framelen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
@@ -604,7 +604,11 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&Dot11fIERSN, sizeof( Dot11fIERSN ) );
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&Dot11fIEWPA, sizeof( Dot11fIEWPA ) );
 
-    if( ! pAssocReq->wscInfo.present )
+    /* if additional IE is present, check if it has WscIE */
+    if( pAssocReq->addIEPresent && pAssocReq->addIE.length )
+        wpsIe = limGetWscIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
+    /* when wpsIe is present, RSN/WPA IE is ignored */
+    if( wpsIe == NULL )
     {
         /** check whether as RSN IE is present */
         if(psessionEntry->limSystemRole == eLIM_AP_ROLE 
@@ -628,7 +632,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
                     if(SIR_MAC_OUI_VERSION_1 == Dot11fIERSN.version)
                     {
                         /* check the groupwise and pairwise cipher suites */
-                        if(eSIR_SUCCESS != (status = limCheckRxRSNIeMatch(pMac,Dot11fIERSN,psessionEntry,pAssocReq->HTCaps.present) ) )
+                        if(eSIR_SUCCESS != (status = limCheckRxRSNIeMatch(pMac, Dot11fIERSN, psessionEntry, pAssocReq->HTCaps.present) ) )
                         {
                             /* some IE is not properly sent */
                             /* received Association req frame with RSN IE but length is 0 */
@@ -687,7 +691,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
                                         pAssocReq->wpa.length, 
                                         &Dot11fIEWPA);
                     /* check the groupwise and pairwise cipher suites */
-                    if(eSIR_SUCCESS != (status = limCheckRxWPAIeMatch(pMac,Dot11fIEWPA,psessionEntry, pAssocReq->HTCaps.present)))
+                    if(eSIR_SUCCESS != (status = limCheckRxWPAIeMatch(pMac, Dot11fIEWPA, psessionEntry, pAssocReq->HTCaps.present)))
                     {
                         /* received Association req frame with WPA IE but mismatch */
                         limSendAssocRspMgmtFrame(
@@ -854,7 +858,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
 
     // check if sta is allowed per QoS AC rules
     //if (pMac->dph.gDphQosEnabled || pMac->dph.gDphWmeEnabled)
-    limGetWmeMode(pMac, &wmeMode);
+    limGetWmeMode(psessionEntry, &wmeMode);
     if ((qosMode == eHAL_SET) || (wmeMode == eHAL_SET))
     {
         // for a qsta, check if the requested Traffic spec
@@ -1057,13 +1061,13 @@ sendIndToSme:
 
     pStaDs->wmeEnabled = eANI_BOOLEAN_FALSE;
     pStaDs->wsmEnabled = eANI_BOOLEAN_FALSE;
-    limGetWmeMode(pMac, &wmeMode);
+    limGetWmeMode(psessionEntry, &wmeMode);
     //if ((! pStaDs->lleEnabled) && assoc.wmeInfoPresent && pMac->dph.gDphWmeEnabled)
     if ((! pStaDs->lleEnabled) && pAssocReq->wmeInfoPresent && (wmeMode == eHAL_SET))
     {
         pStaDs->wmeEnabled = eANI_BOOLEAN_TRUE;
         pStaDs->qosMode = eANI_BOOLEAN_TRUE;
-        limGetWsmMode(pMac, &wsmMode);
+        limGetWsmMode(psessionEntry, &wsmMode);
         /* WMM_APSD - WMM_SA related processing should be separate; WMM_SA and WMM_APSD
          can coexist */
 #ifdef WLAN_SOFTAP_FEATURE
@@ -1237,9 +1241,11 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
     tANI_U16                temp;
     tANI_U32                phyMode;
     tANI_U8                 subType;
-    tANI_U32                wpsApEnable=0;
-    tANI_U32                tmp, wpsVersion;
-    tANI_U16                statusCode;    
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_U8                 *wpsIe = NULL;
+#endif
+    tANI_U32                tmp;
+//    tANI_U16                statusCode;    
     tANI_U16                i, j=0;
 
     // Get a copy of the already parsed Assoc Request
@@ -1272,6 +1278,8 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             limLog(pMac, LOGP, FL("palAllocateMemory failed for pMlmAssocInd\n"));
             return;
         }
+        palZeroMemory( pMac->hHdd, pMlmAssocInd, temp);
+
         palCopyMemory( pMac->hHdd,(tANI_U8 *)pMlmAssocInd->peerMacAddr,(tANI_U8 *)pStaDs->staAddr,sizeof(tSirMacAddr));
  
         pMlmAssocInd->aid    = pStaDs->assocId;
@@ -1314,7 +1322,11 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         // Fill in RSN IE information
         pMlmAssocInd->rsnIE.length = 0;
 #ifdef WLAN_SOFTAP_FEATURE
-        if (pAssocReq->rsnPresent&& (!pAssocReq->wscInfo.present))
+        // if WPS IE is present, ignore RSN IE
+        if (pAssocReq->addIEPresent && pAssocReq->addIE.length ) {
+            wpsIe = limGetWscIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
+        }
+        if (pAssocReq->rsnPresent && (NULL == wpsIe))
 #else
         if (pAssocReq->rsnPresent)
 #endif
@@ -1347,7 +1359,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
 
 #ifdef WLAN_SOFTAP_FEATURE
         /* This check is to avoid extra Sec IEs present incase of WPS */
-        if (pAssocReq->wpaPresent && (!pAssocReq->wscInfo.present))
+        if (pAssocReq->wpaPresent && (NULL == wpsIe))
 #else
         if ((pAssocReq->wpaPresent) && (pMlmAssocInd->rsnIE.length < SIR_MAC_MAX_IE_LENGTH))
 #endif
@@ -1367,34 +1379,16 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         }
 
 
-        /* Initialize wscInfo. */
-        vos_mem_set(&pMlmAssocInd->wscInfo, sizeof(tSirMacWscInfo), 0);
-           
-        if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_ENABLE, &tmp) != eSIR_SUCCESS)
-             limLog(pMac, LOGP, FL("wlan_cfgGetInt failed for id %d\n"), WNI_CFG_WPS_ENABLE );        
-        wpsApEnable = tmp & WNI_CFG_WPS_ENABLE_AP;
+       pMlmAssocInd->addIE.length = 0;
+       if (pAssocReq->addIEPresent)
+       {
+            palCopyMemory( pMac->hHdd,
+                           &pMlmAssocInd->addIE.addIEdata,
+                           pAssocReq->addIE.addIEdata,
+                           pAssocReq->addIE.length);
 
-        if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_VERSION, &wpsVersion) != eSIR_SUCCESS)
-             limLog(pMac, LOGP,FL("wlan_cfgGetInt failed for id %d\n"), WNI_CFG_WPS_VERSION );
-
-        if (pAssocReq->wscInfo.present && wpsApEnable)
-        {
-            /* Compare wps version of the received assoc req with BTAMP-AP's wps version */
-            /* If not compatible, reject; else, copy into wscinfo into sLimMlmAssocInd */
-            if (pAssocReq->wscInfo.wpsVersion != wpsVersion)
-            {
-                /* Reject Association */
-                statusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
-                limSendAssocRspMgmtFrame( pMac, statusCode, 1, pStaDs->staAddr, subType, 0 ,psessionEntry);
-            }
-            else
-            {
-                /* Copy sSirAssocReq.sSirMacWscInfo to sLimMlmAssocInd.sSirMacWscInfo */
-                pMlmAssocInd->wscInfo.present         = 1;
-                pMlmAssocInd->wscInfo.wpsVersion      = pAssocReq->wscInfo.wpsVersion;
-                pMlmAssocInd->wscInfo.wpsRequestType  = pAssocReq->wscInfo.wpsRequestType;
-            }
-        }
+            pMlmAssocInd->addIE.length = pAssocReq->addIE.length;
+       }
 
 #ifdef WLAN_SOFTAP_FEATURE
         if(pAssocReq->wmeInfoPresent)
@@ -1434,6 +1428,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             limReleaseAID(pMac, pStaDs->assocId);
             return;
         }
+        palZeroMemory( pMac->hHdd, pMlmReassocInd, temp);
 
         palCopyMemory( pMac->hHdd,(tANI_U8 *) pMlmReassocInd->peerMacAddr, (tANI_U8 *)pStaDs->staAddr, sizeof(tSirMacAddr));
         palCopyMemory( pMac->hHdd,(tANI_U8 *) pMlmReassocInd->currentApAddr, (tANI_U8 *)&(pAssocReq->currentApAddr), sizeof(tSirMacAddr));
@@ -1482,7 +1477,10 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         pMlmReassocInd->rsnIE.length = 0;
 
 #ifdef WLAN_SOFTAP_FEATURE
-        if (pAssocReq->rsnPresent&& (!pAssocReq->wscInfo.present))
+        if (pAssocReq->addIEPresent && pAssocReq->addIE.length )
+            wpsIe = limGetWscIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
+
+        if (pAssocReq->rsnPresent && (NULL == wpsIe))
 #else
         if (pAssocReq->rsnPresent)
 #endif
@@ -1525,7 +1523,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
 
 #ifdef WLAN_SOFTAP_FEATURE
         /* This check is to avoid extra Sec IEs present incase of WPS */
-        if (pAssocReq->wpaPresent && (!pAssocReq->wscInfo.present))
+        if (pAssocReq->wpaPresent && (NULL == wpsIe))
 #else
         if (pAssocReq->wpaPresent)
 #endif
@@ -1540,36 +1538,16 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             pMlmReassocInd->rsnIE.length += 2 + pAssocReq->wpa.length;
         }
 
+       pMlmReassocInd->addIE.length = 0;
+       if (pAssocReq->addIEPresent)
+       {
+            palCopyMemory( pMac->hHdd,
+                           &pMlmReassocInd->addIE.addIEdata,
+                           pAssocReq->addIE.addIEdata,
+                           pAssocReq->addIE.length);
 
-        /* Initialize wscInfo. */
-       vos_mem_set(&pMlmReassocInd->wscInfo, sizeof(tSirMacWscInfo), 0);
-       if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_ENABLE, &tmp) != eSIR_SUCCESS)
-            limLog(pMac, LOGP,"Failed to cfg get id %d\n", WNI_CFG_WPS_ENABLE );
-       
-       wpsApEnable = tmp & WNI_CFG_WPS_ENABLE_AP;
-
-       if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_VERSION, &wpsVersion) != eSIR_SUCCESS)
-            limLog(pMac, LOGP,"Failed to cfg get id %d\n", WNI_CFG_WPS_VERSION );
-
-        if (pAssocReq->wscInfo.present && wpsApEnable)
-        {
-            /* Compare wps version of the received assoc req with AP's wps version */
-            /* If not compatible, reject; else, copy into wscinfo into sLimMlmAssocInd */
-            if (pAssocReq->wscInfo.wpsVersion != wpsVersion)
-            {
-                /* Reject Reassociation */
-                statusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
-                limSendAssocRspMgmtFrame( pMac, statusCode, 1, pStaDs->staAddr, subType, 0 ,psessionEntry);
-            }
-            else
-            {
-                /* Copy sSirReassocReq.sSirMacWscInfo to sLimMlmReassocInd.sSirMacWscInfo */
-                pMlmReassocInd->wscInfo.present         = 1;
-                pMlmReassocInd->wscInfo.wpsVersion      = pAssocReq->wscInfo.wpsVersion;
-                pMlmReassocInd->wscInfo.wpsRequestType  = pAssocReq->wscInfo.wpsRequestType;
-
-            }
-        }
+            pMlmReassocInd->addIE.length = pAssocReq->addIE.length;
+       }
 
 #ifdef WLAN_SOFTAP_FEATURE
         if(pAssocReq->wmeInfoPresent)

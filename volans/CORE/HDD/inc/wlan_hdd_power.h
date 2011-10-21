@@ -17,7 +17,6 @@
  * Include Files
  *------------------------------------------------------------------------*/
 #include "wlan_hdd_main.h"
-#include "vos_power.h"
 
 /*---------------------------------------------------------------------------
  *   Preprocessor definitions and constants
@@ -56,9 +55,10 @@
  VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter);
  VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter);
 #ifdef CONFIG_HAS_EARLYSUSPEND
- VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason);
+ VOS_STATUS hdd_wlan_reset(void) ;
  VOS_STATUS hdd_wlan_reset_initialization(void) ;
 #endif
 
-void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter);
+void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter);
+
 #endif // if !defined __WLAN_QCT_DRIVER_H

@@ -507,7 +507,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
       VOS_ASSERT(0);
       return VOS_STATUS_E_INVAL;
    }
-    vos_mem_free(timer->ptimerNode);
+   vos_mem_free(timer->ptimerNode);
    
 
    spin_lock_irqsave( &timer->platformInfo.spinlock,flags );

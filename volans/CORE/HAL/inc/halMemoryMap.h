@@ -32,10 +32,12 @@
 
 #define DXE_RXDESC_INFO_SIZE           0x80                          // 128 bytes
 #define BEACON_TEMPLATE_SIZE           0x180
+#define RA_STA_INFO_SIZE               sizeof(tHalRaInfo)
+#define RA_BSS_INFO_SIZE               sizeof(tHalRaBssInfo)
 #ifdef WLAN_SOFTAP_FEATURE
 #define PROBE_RSP_TEMPLATE_MAX_SIZE    0x180 //unit byte.
-#define STA_INFO_SIZE                   sizeof(tStaInfo)
-#define BSS_INFO_SIZE                   sizeof(tBssInfo)
+#define STA_INFO_SIZE                  sizeof(tStaInfo)
+#define BSS_INFO_SIZE                  sizeof(tBssInfo)
 #endif
 
 
@@ -62,7 +64,7 @@
 #define TPE_STA_DESC_AND_STATS_SIZE     (TPE_STA_DESC_ENTRY_SIZE + TPE_PER_STA_STATS_SIZE)
 #define RPE_PARTIAL_BITMAP_SIZE         sizeof(tRpePartialBAInfo)
 
-#define ADU_UMA_STA_DESC_ENTRY_SIZE		sizeof(tAduUmaStaDesc)
+#define ADU_UMA_STA_DESC_ENTRY_SIZE     sizeof(tAduUmaStaDesc)
 
 #ifdef FEATURE_ON_CHIP_REORDERING
 #define MAX_NUM_OF_ONCHIP_REORDER_SESSIONS   2
@@ -94,7 +96,7 @@
 #define RPE_STA_DESC_QUEUE_SIZE         sizeof(tRpeStaQueueInfo)
 #define TPE_PER_STA_STATS_START_OFFSET  TPE_STA_DESC_ENTRY_SIZE
 
-#define SW_TEMPLATE_SIZE				0x100
+#define SW_TEMPLATE_SIZE                0x100
 
 eHalStatus halMemoryMap_Open(tHalHandle hHal, void *arg);
 eHalStatus halMemoryMap_Start(tHalHandle hHal, void *arg);

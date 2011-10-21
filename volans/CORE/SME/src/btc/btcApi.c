@@ -1068,7 +1068,6 @@ static VOS_STATUS btcDeferDisconnectEventForACL( tpAniSirGlobal pMac, tpSmeBtEve
             smsLog(pMac, LOGE, FL(" ACL event history index:%d overflow, resetting to BT_MAX_NUM_EVENT_ACL_DEFERRED\n"), pAclEventHist->bNextEventIdx);
             pAclEventHist->bNextEventIdx = BT_MAX_NUM_EVENT_ACL_DEFERRED;
         }
-
         //Looking backwords
         for(i = pAclEventHist->bNextEventIdx - 1; i >= 0; i--)
         {
@@ -1153,7 +1152,6 @@ static VOS_STATUS btcDeferDisconnectEventForSync( tpAniSirGlobal pMac, tpSmeBtEv
             smsLog(pMac, LOGE, FL(" SYNC event history index:%d overflow, resetting to BT_MAX_NUM_EVENT_SCO_DEFERRED\n"), pSyncEventHist->bNextEventIdx);
             pSyncEventHist->bNextEventIdx = BT_MAX_NUM_EVENT_SCO_DEFERRED;
         }
-
         //Looking backwords
         for(i = pSyncEventHist->bNextEventIdx - 1; i >= 0; i--)
         {
@@ -1722,7 +1720,7 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
             pMac->btc.fA2DPTrafStop = VOS_TRUE;
             smsLog( pMac, LOGE, "BT_EVENT_A2DP_STREAM_STOP: UAPSD-allowed flag is now %d\n",
                    		pMac->btc.btcUapsdOk );
-        }
+       }
        break;
 
    case BT_EVENT_MODE_CHANGED:

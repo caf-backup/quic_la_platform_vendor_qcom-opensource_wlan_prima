@@ -27,7 +27,7 @@
 #include "vos_event.h"
 #include "vos_status.h"
 #include "vos_types.h"
-
+#include "btcApi.h"
 
 // FW system config memory map
 #define QWLAN_FW_SYS_CONFIG_MMAP_OFFSET  0x1200
@@ -57,6 +57,9 @@
 #define HAL_MODULE_ID_FW        4
 #if defined(LIBRA_WAPI_SUPPORT)
 #define HAL_MODULE_ID_WAPI      5
+#endif
+#ifdef WLAN_FEATURE_P2P
+#define HAL_MODULE_ID_P2P       6
 #endif
 
 
@@ -138,16 +141,33 @@ eHalStatus halFW_SendScanStartMesg(tpAniSirGlobal pMac);
 eHalStatus halFW_SendScanStopMesg(tpAniSirGlobal pMac);
 eHalStatus halFW_SendConnectionEndMesg(tpAniSirGlobal pMac);
 eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState linkStatus);
+
+/* Msg Handler for notifying FW about the BT_AMP link state*/
+eHalStatus halFW_SendBTAmpEventMesg(tpAniSirGlobal pMac, tpSmeBtAmpEvent event);
+
 #ifdef WLAN_SOFTAP_FEATURE
+#ifdef WLAN_FEATURE_P2P
+eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U16 timIeOffset, tANI_U16 p2pIeOffset);
+#else
 eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U16 timIeOffset);
+#endif
 eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx);
 eHalStatus halFW_DelBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx);
+#ifdef WLAN_FEATURE_P2P
+eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobalUpdate, tANI_U8 raStaUpdate,
+             tANI_U8 p2pCapableSta );
+#else
 eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobalUpdate, tANI_U8 raStaUpdate);
+#endif
 eHalStatus halFW_DelStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx);
 eHalStatus halFW_MsgReq(tpAniSirGlobal pMac, tFwMsgTypeEnum msgType, tANI_U16 msgLen, tANI_U8* msgBody);
 eHalStatus halFW_HandleFwDelStaMsg(tpAniSirGlobal pMac, void* pFwMsg);
 #ifdef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
 eHalStatus halFW_UpdateBAMsg(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U8 code);
+#endif
+#ifdef WLAN_FEATURE_P2P
+eHalStatus halFW_SendP2pMsg(tpAniSirGlobal pMac, tFwP2pMsgType msgType,void* msgData, tANI_U32 msgLen);
+eHalStatus halFW_SetP2PGoPs(tpAniSirGlobal pMac, tpP2pPsParams  pP2pPsParams);
 #endif
 #endif
 #endif //_HALFWAPI_H_

@@ -131,11 +131,11 @@ typedef struct
 ----------------------------------------------------------------------------*/
 static inline void sd_claim_host(struct sdio_func *sdio_func_dev)
 {
-   hdd_adapter_t *pAdapter;
+   hdd_context_t *pHddCtx;
 
-   pAdapter =  sdio_get_drvdata(sdio_func_dev);
+   pHddCtx =  sdio_get_drvdata(sdio_func_dev);
 
-   libra_claim_host(sdio_func_dev, &(pAdapter->pid_sdio_claimed), current->pid, &(pAdapter->sdio_claim_count));
+   libra_claim_host(sdio_func_dev, &(pHddCtx->pid_sdio_claimed), current->pid, &(pHddCtx->sdio_claim_count));
 
 }
 
@@ -150,16 +150,16 @@ static inline void sd_claim_host(struct sdio_func *sdio_func_dev)
 ----------------------------------------------------------------------------*/
 static inline void sd_release_host(struct sdio_func *sdio_func_dev)
 {
-   hdd_adapter_t *pAdapter;
+   hdd_context_t *pHddCtx;
 
-   pAdapter =  sdio_get_drvdata(sdio_func_dev);
+   pHddCtx =  sdio_get_drvdata(sdio_func_dev);
 
-   libra_release_host(sdio_func_dev, &(pAdapter->pid_sdio_claimed), current->pid, &(pAdapter->sdio_claim_count));
+   libra_release_host(sdio_func_dev, &(pHddCtx->pid_sdio_claimed), current->pid, &(pHddCtx->sdio_claim_count));
 }
 
 /*----------------------------------------------------------------------------
 
-   @brief Check if pAdapter is available in SDIO device 
+   @brief Check if HDD Context is available in SDIO device 
 
    @param SDIO function device. 
 
@@ -168,11 +168,11 @@ static inline void sd_release_host(struct sdio_func *sdio_func_dev)
 ----------------------------------------------------------------------------*/
 static inline v_BOOL_t sd_is_drvdata_available(struct sdio_func *sdio_func_dev)
 {
-   hdd_adapter_t *pAdapter;
+   hdd_context_t *pHddCtx;
 
-   pAdapter =  sdio_get_drvdata(sdio_func_dev);
+   pHddCtx =  sdio_get_drvdata(sdio_func_dev);
 
-   if(pAdapter)
+   if(pHddCtx)
      return TRUE;
 
    return FALSE;

@@ -149,6 +149,8 @@ eHalStatus halTable_GetBssRaConfig(tpAniSirGlobal pMac, tANI_U8 rfBand, bssRaPar
 eHalStatus halTable_GetTxPowerLimitIndex(tpAniSirGlobal pMac, tANI_U8 rfBand, tPwrTemplateIndex *maxTxPwrIndex);
 #endif /* WLAN_FEATURE_VOWIFI */
 
+tANI_U8 halTable_UpdateStaRefCount ( tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 add );
+
 #define STA_ADDR_HASH(staAddr) (staAddr[5])
 #endif /* _HALSTA_TABLE_API_H_ */
 

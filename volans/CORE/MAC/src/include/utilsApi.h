@@ -824,9 +824,10 @@ halRoundS32(tANI_S32 p)
 #define ani_be32_to_cpu(x)  ani_cpu_to_be32(x)
 
 void ConverttoBigEndian(void *ptr, tANI_U16	size);
-void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr);
-void CreateScanDataNullFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tSirMacAddr bssid);
-
+void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSirMacAddr selfMac);
+void CreateScanDataNullFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr,
+                             tANI_U8 pwrMgmt, tSirMacAddr bssid, 
+                             tSirMacAddr selfMacAddr);
 void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBssSystemRole role);
 void CreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBssSystemRole role);
 

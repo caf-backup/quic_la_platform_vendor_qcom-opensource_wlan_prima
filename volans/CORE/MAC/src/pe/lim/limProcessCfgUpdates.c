@@ -465,27 +465,6 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
 
             break;
 
-        case WNI_CFG_RELEASE_AID_TIMEOUT:
-            if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-            {
-                limDeactivateAndChangeTimer(pMac,
-                                            eLIM_RELEASE_AID_TIMER);
-
-                // Reactivate Release AID interval timer
-                MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_RELEASE_AID_TIMER));
-                if (tx_timer_activate(&pMac->lim.limTimers.gLimAIDreleaseTimer)
-                                                       != TX_SUCCESS)
-                {
-                    /// Could not activate Release AID interval timer.
-                    // Log error
-                    limLog(pMac, LOGP,
-                       FL("could not activate Release AID interval timer\n"));
-                }
-               PELOG3(limLog(pMac, LOG3,
-                       FL("Updated Release AID timeout\n"));)
-            }
-
-            break;
 #endif
 
         case WNI_CFG_BG_SCAN_CHANNEL_LIST:
@@ -550,12 +529,9 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         limSetCfgProtection(pMac);
 #endif
         break;
-    case WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA:
     case WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG:
         //Update beacon.
-        if( (pMac->lim.gLimSmeState == eLIM_SME_NORMAL_STATE)  && 
-             (pMac->lim.gLimSystemRole != eLIM_STA_ROLE) )
-                limUpdateBeacon(pMac);
+        limUpdateBeacon(pMac);
         break;
     case WNI_CFG_GREENFIELD_CAPABILITY:
         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
@@ -575,7 +551,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
             PELOGE(limLog(pMac, LOGE, FL("could not update HT Cap Info CFG\n"));)
         break;
 
-	case WNI_CFG_HT_RX_STBC:
+    case WNI_CFG_HT_RX_STBC:
         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
         {
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve WNI_CFG_HT_CAP_INFO \n"));)
@@ -746,12 +722,21 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         pMac->lim.gAddBA_Declined = (tANI_U8)val1;
         break;
         
-	case WNI_CFG_SCAN_IN_POWERSAVE:
+    case WNI_CFG_SCAN_IN_POWERSAVE:
         if(wlan_cfgGetInt(pMac, WNI_CFG_SCAN_IN_POWERSAVE, &val1) != eSIR_SUCCESS) {
             limLog( pMac, LOGE, FL( "Unabled to get WNI_CFG_SCAN_IN_POWERSAVE \n" ));
             break;
         }
         pMac->lim.gScanInPowersave = (tANI_U8)val1;
+        break;
+
+
+    case WNI_CFG_ASSOC_STA_LIMIT:
+        if(wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_STA_LIMIT, &val1) != eSIR_SUCCESS) {
+            limLog( pMac, LOGE, FL( "Unable to get WNI_CFG_ASSOC_STA_LIMIT" ));
+            break;
+        }
+        pMac->lim.gLimAssocStaLimit = (tANI_U16)val1;
         break;
 
     default:
@@ -914,25 +899,25 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_WME_ENABLED, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get wme enabled failed\n"));
-    pMac->lim.gLimWmeEnabled = (val) ? 1 : 0;
+    psessionEntry->limWmeEnabled = (val) ? 1 : 0;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_WSM_ENABLED, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get wsm enabled failed\n"));
-    pMac->lim.gLimWsmEnabled = (val) ? 1 : 0;
+    psessionEntry->limWsmEnabled = (val) ? 1 : 0;
 
-    if ((! pMac->lim.gLimWmeEnabled) && (pMac->lim.gLimWsmEnabled))
+    if ((! psessionEntry->limWmeEnabled) && (psessionEntry->limWsmEnabled))
     {
         PELOGE(limLog(pMac, LOGE, FL("Can't enable WSM without WME\n"));)
-        pMac->lim.gLimWsmEnabled = 0;
+        psessionEntry->limWsmEnabled = 0;
     }
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_QOS_ENABLED, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get qos enabled failed\n"));
-    pMac->lim.gLimQosEnabled = (val) ? 1 : 0;
+    psessionEntry->limQosEnabled = (val) ? 1 : 0;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_HCF_ENABLED, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get hcf enabled failed\n"));
-    pMac->lim.gLimHcfEnabled = (val) ? 1 : 0;
+    psessionEntry->limHcfEnabled = (val) ? 1 : 0;
 
     // Update the ADD BA Declined configuration 
     if(wlan_cfgGetInt(pMac, WNI_CFG_ADDBA_REQ_DECLINE, &val) != eSIR_SUCCESS)
@@ -941,12 +926,17 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     // AP: WSM should enable HCF as well, for STA enable WSM only after
     // association response is received
-    if (pMac->lim.gLimWsmEnabled && pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-        pMac->lim.gLimHcfEnabled = 1;
+    if (psessionEntry->limWsmEnabled && psessionEntry->limSystemRole == eLIM_AP_ROLE)
+        psessionEntry->limHcfEnabled = 1;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_11D_ENABLED, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get 11d enabled failed\n"));
-    pMac->lim.gLim11dEnabled = (val) ? 1 : 0;
+    psessionEntry->lim11dEnabled = (val) ? 1 : 0;
+
+    if(wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_STA_LIMIT, &val) != eSIR_SUCCESS) {
+        limLog( pMac, LOGP, FL( "cfg get assoc sta limit failed" ));
+    }
+    pMac->lim.gLimAssocStaLimit = (tANI_U16)val;
 
 #if defined WLAN_FEATURE_VOWIFI
     rrmUpdateConfig( pMac, psessionEntry ); 

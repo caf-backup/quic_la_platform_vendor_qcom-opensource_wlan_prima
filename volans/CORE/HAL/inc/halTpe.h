@@ -1022,7 +1022,11 @@ eHalStatus halTpe_ReEnableBeacon(tpAniSirGlobal pMac, tANI_U16 beaconIndex);
 eHalStatus halTpe_UpdateEdcaTxOp(tpAniSirGlobal pMac, tANI_U16 *pTxOp);
 void halTpe_UpdateMtuMaxBssid(tpAniSirGlobal pMac);
 #ifdef WLAN_SOFTAP_FEATURE
+#ifdef WLAN_FEATURE_P2P
+eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac,tANI_U8 * beacon,tANI_U16 bssIndex,tANI_U32 length,tANI_U16 timIeOffset, tANI_U16 p2pIeOffset);
+#else
 eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac,tANI_U8 * beacon,tANI_U16 bssIndex,tANI_U32 length,tANI_U16 timIeOffset);
+#endif
 #else
 eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
                                     tANI_U16 beaconIndex, tANI_U32 length);

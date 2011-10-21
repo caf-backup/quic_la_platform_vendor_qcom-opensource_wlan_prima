@@ -39,6 +39,7 @@
 // which is how the production code should work
 
 #define HAL_INT_MAX_ITERATIONS 5
+#define BMU_IDLE_BD_PDU_THRESHOLD  0x190
 
 // information about each interrupt register
 typedef struct sHalIntRegisterInfo {
@@ -452,7 +453,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
     {
         1, /* default group interrupt for BMU error */
         eHAL_INT_BMU_IDLE_BD_PDU_REGISTER,
-        QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_ENABLE_MASK | 0x21C,
+        QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_ENABLE_MASK | BMU_IDLE_BD_PDU_THRESHOLD,
         halIntBMUIdleBdPduHandler
     },
 
@@ -1339,9 +1340,9 @@ halIntHandler(v_PVOID_t pVosGCtx)
         status = halPS_SetHostBusy(pMac, HAL_PS_BUSY_INTR_CONTEXT); 
     }
 
-   if(eHAL_STATUS_SUCCESS != status) {
-   	VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s halPS_SetHostBusy  failed", __func__);
-       return VOS_STATUS_E_FAILURE;
+    if(eHAL_STATUS_SUCCESS != status) {
+   	    VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s halPS_SetHostBusy  failed", __FUNCTION__);
+        return VOS_STATUS_E_FAILURE;
     }
 
 #ifdef HAL_INT_DEBUG

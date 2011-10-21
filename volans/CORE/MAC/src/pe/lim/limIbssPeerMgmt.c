@@ -246,7 +246,7 @@ ibss_sta_caps_update(
     // some STA's when joining Airgo IBSS, assert qos capability even when
     // they don't suport qos. however, they do not include the edca parameter
     // set. so let's check for edcaParam in addition to the qos capability
-    if (pPeerNode->capabilityInfo.qos && (pMac->lim.gLimQosEnabled) && pPeerNode->edcaPresent)
+    if (pPeerNode->capabilityInfo.qos && (psessionEntry->limQosEnabled) && pPeerNode->edcaPresent)
     {
         pStaDs->qosMode    = 1;
         pStaDs->wmeEnabled = 0;
@@ -265,7 +265,7 @@ ibss_sta_caps_update(
     }
 
     // peer is wme capable but is not wme enabled yet
-    if (pPeerNode->wmeInfoPresent &&  pMac->lim.gLimWmeEnabled)
+    if (pPeerNode->wmeInfoPresent &&  psessionEntry->limWmeEnabled)
     {
         pStaDs->qosMode    = 1;
         pStaDs->lleEnabled = 0;
@@ -280,7 +280,7 @@ ibss_sta_caps_update(
       considering. Added this code when we saw that one of the Peer Device
       was advertising WMM param where we were not honouring that. CR# 210756
     */
-    if (pPeerNode->wmeEdcaPresent && pMac->lim.gLimWmeEnabled) {
+    if (pPeerNode->wmeEdcaPresent && psessionEntry->limWmeEnabled) {
         pStaDs->qosMode    = 1;
         pStaDs->lleEnabled = 0;
         if (! pStaDs->wmeEnabled) {
@@ -1227,7 +1227,6 @@ void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void *msg, tpPESession
 
 
 
-
 void
 limIbssDelBssRsp(
     tpAniSirGlobal  pMac,
@@ -1278,7 +1277,7 @@ limIbssDelBssRsp(
 
 
 
-    if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid) != eSIR_SUCCESS)
+    if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("IBSS: DEL_BSS_RSP setLinkState failed\n"));)
         rc = eSIR_SME_REFUSED;
@@ -1293,7 +1292,7 @@ limIbssDelBssRsp(
 
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
-    pMac->lim.gLimSystemRole = eLIM_STA_ROLE;
+    psessionEntry->limSystemRole = eLIM_STA_ROLE;
 
     /* Change the short slot operating mode to Default (which is 1 for now) so that when IBSS starts next time with Libra
      * as originator, it picks up the default. This enables us to remove hard coding of short slot = 1 from limApplyConfiguration 

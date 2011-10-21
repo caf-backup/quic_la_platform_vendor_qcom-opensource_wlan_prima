@@ -29,15 +29,6 @@ PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/$(FW_NV_FILE):persist/WCN1314_qcom_wlan_n
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_cfg.dat:system/etc/firmware/wlan/volans/WCN1314_cfg.dat
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_cfg.ini:system/etc/firmware/wlan/volans/WCN1314_qcom_cfg.ini
 
-#Create sym link for ftm driver
-WLAN_VOLANS_FTM_SYM_LINK := $(WLAN_BLD_DIR)/volans/ftm/CORE
-$(WLAN_VOLANS_FTM_SYM_LINK):
-	@mkdir -p $(dir $@)
-	ln -sf ../CORE $@
-
-file := $(WLAN_VOLANS_FTM_SYM_LINK)
-ALL_PREBUILT += $(file)
-
 # Build WCN1314_rf.ko
 ###########################################################
 LOCAL_PATH := $(call my-dir)
@@ -56,22 +47,6 @@ LOCAL_MODULE_KBUILD_NAME := wlan.ko
 LOCAL_MODULE_TAGS        := eng
 LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/volans
 include $(DLKM_DIR)/AndroidKernelModule.mk
-###########################################################
-
-# Build WCN1314_rf_ftm.ko
-###########################################################
-LOCAL_PATH := $(WLAN_BLD_DIR)/volans/ftm/CORE/HDD/src
-
-# This is set once per LOCAL_PATH, not per (kernel) module
-KBUILD_OPTIONS := BUILD_FTM_DRIVER=1
-KBUILD_OPTIONS += WLAN_VOLANS=../$(WLAN_BLD_DIR)/volans
-
-include $(CLEAR_VARS)
-LOCAL_MODULE      := WCN1314_rf_ftm.ko
-LOCAL_MODULE_TAGS := eng
-LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/volans
-include $(DLKM_DIR)/AndroidKernelModule.mk
-###########################################################
 
 #Create symbolic link
 ifeq ($(call is-board-platform-in-list,msm7627a msm8660),true)

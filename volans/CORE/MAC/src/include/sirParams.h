@@ -43,7 +43,8 @@ typedef enum eSriLinkState {
     eSIR_LINK_SCAN_STATE        = 10,
     eSIR_LINK_FINISH_SCAN_STATE = 11,
     eSIR_LINK_INIT_CAL_STATE    = 12,
-    eSIR_LINK_FINISH_CAL_STATE  = 13
+    eSIR_LINK_FINISH_CAL_STATE  = 13,
+    eSIR_LINK_LISTEN_STATE = 14
 } tSirLinkState;
 
 
@@ -90,6 +91,30 @@ typedef struct sSirMbMsg
      */
     tANI_U32 data[1];
 } tSirMbMsg, *tpSirMbMsg;
+
+#ifdef WLAN_FEATURE_P2P
+/// Mailbox Message Structure for P2P 
+typedef struct sSirMbMsgP2p
+{
+    tANI_U16 type;
+
+    /**
+     * This length includes 4 bytes of header, that is,
+     * 2 bytes type + 2 bytes msgLen + n*4 bytes of data.
+     * This field is byte length.
+     */
+    tANI_U16 msgLen;
+
+    tANI_U32 sessionId;
+    /**
+     * This is the first data word in the mailbox message.
+     * It is followed by n words of data.
+     * NOTE: data[1] is not a place holder to store data
+     * instead to dereference the message body.
+     */
+    tANI_U32 data[1];
+} tSirMbMsgP2p, *tpSirMbMsgP2p;
+#endif
 
 /// Message queue definitions
 //  msgtype(2bytes) reserved(2bytes) bodyptr(4bytes) bodyval(4bytes)
@@ -384,8 +409,19 @@ typedef struct sSirMbMsg
 
 /// PE <-> HAL Host Offload message
 #define SIR_HAL_SET_HOST_OFFLOAD           SIR_HAL_ITC_MSG_TYPES_BEGIN + 149
+#define SIR_HAL_ADD_STA_SELF_REQ           SIR_HAL_ITC_MSG_TYPES_BEGIN + 150
+#define SIR_HAL_ADD_STA_SELF_RSP           SIR_HAL_ITC_MSG_TYPES_BEGIN + 151
+#define SIR_HAL_DEL_STA_SELF_REQ           SIR_HAL_ITC_MSG_TYPES_BEGIN + 152
+#define SIR_HAL_DEL_STA_SELF_RSP           SIR_HAL_ITC_MSG_TYPES_BEGIN + 153
+#define SIR_HAL_SIGNAL_BTAMP_EVENT		   SIR_HAL_ITC_MSG_TYPES_BEGIN + 154
 
-#define SIR_HAL_MSG_TYPES_END    SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
+#ifdef WLAN_FEATURE_P2P
+/* P2P <-> HAL P2P msg */
+#define SIR_HAL_SET_P2P_GO_NOA_REQ         SIR_HAL_ITC_MSG_TYPES_BEGIN + 155
+#define SIR_HAL_P2P_NOA_ATTR_IND           SIR_HAL_ITC_MSG_TYPES_BEGIN + 156
+#endif
+
+#define SIR_HAL_MSG_TYPES_END              SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
 
 
 // CFG message types
@@ -447,8 +483,8 @@ typedef struct sSirMbMsg
 #define SIR_LIM_ASSOC_FAIL_TIMEOUT     SIR_LIM_TIMEOUT_MSG_START + 5
 #define SIR_LIM_REASSOC_FAIL_TIMEOUT   SIR_LIM_TIMEOUT_MSG_START + 6
 #define SIR_LIM_HEART_BEAT_TIMEOUT     SIR_LIM_TIMEOUT_MSG_START + 7
+// currently unused                    SIR_LIM_TIMEOUT_MSG_START + 0x8
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-#define SIR_LIM_AID_RELEASE_TIMEOUT    SIR_LIM_TIMEOUT_MSG_START + 0x8
 #define SIR_LIM_PREAUTH_CLNUP_TIMEOUT  SIR_LIM_TIMEOUT_MSG_START + 0x9
 #endif
 // Link Monitoring Messages
@@ -474,6 +510,9 @@ typedef struct sSirMbMsg
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
 #define SIR_LIM_FT_PREAUTH_RSP_TIMEOUT   SIR_LIM_TIMEOUT_MSG_START + 0x1E
+#endif
+#ifdef WLAN_FEATURE_P2P
+#define SIR_LIM_REMAIN_CHN_TIMEOUT       SIR_LIM_TIMEOUT_MSG_START + 0x1F
 #endif
 
 #ifdef WMM_APSD

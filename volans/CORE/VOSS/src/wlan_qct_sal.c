@@ -76,10 +76,9 @@ static v_U8_t gSDCmdFailed = 0;
    @return None
 
 ----------------------------------------------------------------------------*/
-static int wlan_suspend(hdd_adapter_t* pAdapter)
+static int wlan_suspend(hdd_context_t* pHddCtx)
 {
    int rc = 0;
-
    pVosSchedContext vosSchedContext = NULL;
 
    /* Get the global VOSS context */
@@ -91,21 +90,20 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
    }
 
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "%s: Enter",__func__);
-
    /*
      Suspending MC Thread and Tx Thread as the SDIO driver is going to Suspend.
    */
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO, "%s: Suspending Mc and Tx Threads",__func__);
 
-     INIT_COMPLETION(pAdapter->mc_sus_event_var);
-
+   INIT_COMPLETION(pHddCtx->mc_sus_event_var);
+   
    /* Indicate Mc Thread to Suspend */
    set_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
 
    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
 
    /* Wait for Suspend Confirmation from Mc Thread */
-   rc = wait_for_completion_interruptible_timeout(&pAdapter->mc_sus_event_var, msecs_to_jiffies(200));
+   rc = wait_for_completion_interruptible_timeout(&pHddCtx->mc_sus_event_var, msecs_to_jiffies(200));
 
    if(!rc)
    {
@@ -118,20 +116,19 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
 
    /* If not associated, make sure that STA is in IMPS before suspend happens. 
     * Otherwise power consumption will be high in suspend mode */
-   if(!vos_is_apps_power_collapse_allowed())
+   if(!vos_is_apps_power_collapse_allowed(pHddCtx))
    {
        /* Indicate MC Thread to Resume */
        complete(&vosSchedContext->ResumeMcEvent);
        vos_abort_mac_scan();
-       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_INFO,"%s: WLAN is not connected and not in IMPS",__func__);
        /* Fail this suspend */
        return -1;
    }
 
    /* Set the Mc Thread as Suspended */
-   pAdapter->isMcThreadSuspended= TRUE;
+   pHddCtx->isMcThreadSuspended= TRUE;
 
-     INIT_COMPLETION(pAdapter->tx_sus_event_var);
+   INIT_COMPLETION(pHddCtx->tx_sus_event_var);
 
    /* Indicate Tx Thread to Suspend */
    set_bit(TX_SUSPEND_EVENT_MASK, &vosSchedContext->txEventFlag);
@@ -139,7 +136,7 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
    wake_up_interruptible(&vosSchedContext->txWaitQueue);
 
    /* Wait for Suspend Confirmation from Tx Thread */
-   rc = wait_for_completion_interruptible_timeout(&pAdapter->tx_sus_event_var, msecs_to_jiffies(200));
+   rc = wait_for_completion_interruptible_timeout(&pHddCtx->tx_sus_event_var, msecs_to_jiffies(200));
 
    if(!rc)
    {
@@ -150,16 +147,16 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
        complete(&vosSchedContext->ResumeMcEvent);
 
        /* Set the MC Thread as Resumed */
-       pAdapter->isMcThreadSuspended= FALSE;
+       pHddCtx->isMcThreadSuspended= FALSE;
+
        return -1;
    }
 
    /* Set the Tx Thread as Suspended */
-   pAdapter->isTxThreadSuspended= TRUE;
-
+   pHddCtx->isTxThreadSuspended= TRUE;
 
    /* Set the Station state as Suspended */
-   pAdapter->isWlanSuspended = TRUE;
+   pHddCtx->isWlanSuspended = TRUE;
 
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "%s: Exit",__func__);
 
@@ -176,7 +173,7 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
    @return None
 
 ----------------------------------------------------------------------------*/
-static void wlan_resume(hdd_adapter_t* pAdapter)
+static void wlan_resume(hdd_context_t* pHddCtx)
 {
    pVosSchedContext vosSchedContext = NULL;
 
@@ -201,16 +198,16 @@ static void wlan_resume(hdd_adapter_t* pAdapter)
    complete(&vosSchedContext->ResumeMcEvent);
 
    /* Set the Mc Thread as Resumed */
-   pAdapter->isMcThreadSuspended= FALSE;
+   pHddCtx->isMcThreadSuspended= FALSE;
 
    /* Indicate Tx Thread to Resume */
    complete(&vosSchedContext->ResumeTxEvent);
 
    /* Set the Tx Thread as Resumed */
-   pAdapter->isTxThreadSuspended= FALSE;
+   pHddCtx->isTxThreadSuspended= FALSE;
 
    /* Set the Station state as Suspended */
-   pAdapter->isWlanSuspended = FALSE;
+   pHddCtx->isWlanSuspended = FALSE;
 
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "%s: Exit",__func__);
 }
@@ -229,46 +226,44 @@ static void wlan_resume(hdd_adapter_t* pAdapter)
 int wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
 {
    int ret = 0;
-   hdd_adapter_t* pAdapter = NULL;
-   pAdapter =  (hdd_adapter_t*)libra_sdio_getprivdata(sdio_func_dev);
+   hdd_context_t *pHddCtx =  (hdd_context_t*)libra_sdio_getprivdata(sdio_func_dev);
 
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO, "%s: WLAN suspended by SDIO",__func__);
 
    /* Get the HDD context */
-   if(!pAdapter) 
+   if(!pHddCtx) 
    {
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
       return 0;
    }
 
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "%s: Enter",__func__);
-
-   if(pAdapter->isWlanSuspended == TRUE)
+   if(pHddCtx->isWlanSuspended == TRUE)
    {
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is alredy in suspended state",__func__);
       return 0;
    }
 
-   if(pAdapter->isLogpInProgress == TRUE) {
+   if(pHddCtx->isLogpInProgress == TRUE) {
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Trying to Suspend While LogP is in progress",__func__);
       return -1;
    }
-   
+
    /* Suspend the wlan driver */
-   ret = wlan_suspend(pAdapter);
+   ret = wlan_suspend(pHddCtx);
    if(ret != 0)
-   {   
-      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_INFO,"%s: Not able to suspend wlan",__func__);
+   {
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Not able to suspend wlan",__func__);
       return ret;
    }
 
-   if(pAdapter->isLogpInProgress == TRUE) {
+   if(pHddCtx->isLogpInProgress == TRUE) {
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: After Suspend LogP is in progress",__func__);
-      wlan_resume(pAdapter);
+      wlan_resume(pHddCtx);
       return -1;
    }
 
-   return 0;
+   return 0;   
 }
 
 /*----------------------------------------------------------------------------
@@ -284,27 +279,25 @@ int wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
 ----------------------------------------------------------------------------*/
 void wlan_sdio_resume_hdlr(struct sdio_func* sdio_func_dev)
 {
-   hdd_adapter_t* pAdapter = NULL;
-   pAdapter =  (hdd_adapter_t*)libra_sdio_getprivdata(sdio_func_dev);
+   hdd_context_t *pHddCtx =  (hdd_context_t*)libra_sdio_getprivdata(sdio_func_dev);
 
-   if (!pAdapter)
+   if (!pHddCtx)
    {
       VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s pAdapter is dereferencing to NULL pointer\n", __func__);
       VOS_ASSERT(0);
       return;
    }
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "%s: Enter",__func__);
-
    VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed by Android OS",__func__);
 
-   if(pAdapter->isWlanSuspended != TRUE)
+   if(pHddCtx->isWlanSuspended != TRUE)
    {
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is alredy in resumed state",__func__);
       return;
    }
 
    /* Resume the wlan driver */
-   wlan_resume(pAdapter);
+   wlan_resume(pHddCtx);
 }
 
 /*----------------------------------------------------------------------------
@@ -324,7 +317,7 @@ void salRxInterruptCB
    struct sdio_func *sdio_func_dev
 )
 {
-   v_PVOID_t pAdapter = NULL;
+   v_PVOID_t pHddCtx = NULL;
 
    if (vos_is_logp_in_progress(VOS_MODULE_ID_SAL, NULL)) 
    {
@@ -337,7 +330,7 @@ void salRxInterruptCB
 #endif
       return;
    }
-   
+
    VOS_ASSERT(sdio_func_dev);
    VOS_ASSERT(gpsalHandle);
 
@@ -348,6 +341,7 @@ void salRxInterruptCB
       VOS_ASSERT(gpsalHandle->sscCBs.interruptCB);
       return;
    }
+   pHddCtx =  libra_sdio_getprivdata(sdio_func_dev);
 
    if (!gpsalHandle->sscCBs.sscUsrData)
    {
@@ -356,9 +350,8 @@ void salRxInterruptCB
       return;
    }
 
-   pAdapter =  libra_sdio_getprivdata(sdio_func_dev);
-   ((hdd_adapter_t *)pAdapter)->pid_sdio_claimed = current->pid;
-   atomic_inc(&((hdd_adapter_t *)pAdapter)->sdio_claim_count);
+   ((hdd_context_t *)pHddCtx)->pid_sdio_claimed = current->pid;
+   atomic_inc(&((hdd_context_t *)pHddCtx)->sdio_claim_count);
 
    /* Release SDIO lock acquired by irq_sdio task before calling salRxInterruptCB. 
     * As we are anyway acquiring the same lock again while doing SDIO operation. 
@@ -368,15 +361,15 @@ void salRxInterruptCB
     */
    sd_release_host(sdio_func_dev);
 
-   gpsalHandle->sscCBs.interruptCB(pAdapter, gpsalHandle->sscCBs.sscUsrData);
+   gpsalHandle->sscCBs.interruptCB(pHddCtx, gpsalHandle->sscCBs.sscUsrData);
 
    /* Acquring the SDIO lock again as we release earlier. This is done so that
     * irq_sdio thread can release it after returning from here. 
     */
    sd_claim_host(sdio_func_dev);
 
-   ((hdd_adapter_t *)pAdapter)->pid_sdio_claimed = 0; 
-   atomic_dec(&((hdd_adapter_t *)pAdapter)->sdio_claim_count);
+   ((hdd_context_t *)pHddCtx)->pid_sdio_claimed = 0; 
+   atomic_dec(&((hdd_context_t *)pHddCtx)->sdio_claim_count);
 }
 
 /*----------------------------------------------------------------------------
@@ -692,10 +685,9 @@ VOS_STATUS WLANSAL_Reset
    v_PVOID_t pAdapter
 )
 {
-
    int  err_ret = 0;
    v_U8_t regValue = 0;
-   
+
    SENTER();
    // TBD 
 
@@ -719,11 +711,12 @@ VOS_STATUS WLANSAL_Reset
    sd_release_host(gpsalHandle->sdio_func_dev);
 
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, " Done SDIO_CCCR_ABORT");
-   
+
    //
    SEXIT();
    return VOS_STATUS_SUCCESS;
 }
+
 
 /*=========================================================================
  * END Interactions with BAL
@@ -759,7 +752,7 @@ VOS_STATUS WLANSAL_Cmd52
    int  err_ret = 0;
    int  save_function_num = 0;
    struct sdio_func *sdio_func_dev = NULL;
-   
+
    VOS_ASSERT(gpsalHandle);
    VOS_ASSERT(cmd52Req);
 
@@ -768,9 +761,10 @@ VOS_STATUS WLANSAL_Cmd52
    //Get the SDIO func device
    sdio_func_dev = libra_getsdio_funcdev();
 
-   if(NULL == sdio_func_dev) {   	
-   	VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: sdio_func is null!!!",__func__);
-   	return VOS_STATUS_E_FAILURE;
+   if(NULL == sdio_func_dev) 
+   {  	
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: sdio_func is null!!!",__func__);
+      return VOS_STATUS_E_FAILURE;
    }
   
 
@@ -797,7 +791,7 @@ VOS_STATUS WLANSAL_Cmd52
      VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: addr 0x%x err = %d",__func__, cmd52Req->address, err_ret);
      gSDCmdFailed = 1;
    }
-   
+
    // Release lock
    sd_release_host(gpsalHandle->sdio_func_dev);
 
@@ -847,22 +841,21 @@ VOS_STATUS WLANSAL_Cmd53
    v_U32_t              numBytes = 0;
    v_U8_t               *temp_dataPtr;           // Data pointer
    v_U32_t              temp_address;           // Target address
-   struct sdio_func *sdio_func_dev = NULL;   
+   struct sdio_func *sdio_func_dev = NULL;
 
    VOS_ASSERT(gpsalHandle);
    VOS_ASSERT(cmd53Req);
    VOS_ASSERT(cmd53Req->dataSize);
 
-   SENTER();  
+   SENTER();
    
-   if (0 == cmd53Req->dataSize) 
+   if (0 == cmd53Req->dataSize)
    {
-      SMSGERROR("CMD53 Data size 0, direction %d, Mode %d, address 0x%x",
+      SMSGERROR(" CMD53 Data size 0, direction %d, Mode %d, address 0x%x",
          cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
       SEXIT();
       return VOS_STATUS_E_FAILURE;
    }
-	
    // Get the lock, going native
    sd_claim_host(gpsalHandle->sdio_func_dev);
 
@@ -874,20 +867,21 @@ VOS_STATUS WLANSAL_Cmd53
    } 
    
    if (vos_is_logp_in_progress(VOS_MODULE_ID_SAL, NULL)) {
-        VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress. Ignore!!! direction %d, Mode %d, address 0x%x",
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress. Ignore!!! direction %d, Mode %d, address 0x%x",
                         __func__,cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
-        // Release lock
-        sd_release_host(gpsalHandle->sdio_func_dev);
-        return VOS_STATUS_E_FAILURE;
+      // Release lock
+      sd_release_host(gpsalHandle->sdio_func_dev);
+      return VOS_STATUS_E_FAILURE;
    }
    
    //Get the SDIO func device
    sdio_func_dev = libra_getsdio_funcdev();
 
-   if(NULL == sdio_func_dev) {   	
-   	VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: sdio_func is null Doing WatchDog Chip Reset!!!",__func__);
-   	err_ret = VOS_STATUS_E_FAILURE;
-   	goto watchdog_chip_reset;
+   if(NULL == sdio_func_dev) 
+   {   	
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: sdio_func is null Doing WatchDog Chip Reset!!!",__func__);
+      err_ret = VOS_STATUS_E_FAILURE;
+      goto watchdog_chip_reset;
    }
 
    // The host driver internally takes care of chopping it into blocks.
@@ -1240,71 +1234,4 @@ void WLANSAL_GetSDIOCardId
 {
   VOS_ASSERT(NULL != gpsalHandle);
   libra_sdio_get_card_id(gpsalHandle->sdio_func_dev, sdioCardId);
-}
-
-/*----------------------------------------------------------------------------
-
-   @brief Reinitialize LIBRA's SDIO core
-          Deep sleep status is same with turn off power
-          So, standard SDIO init procedure is needed
-
-   @param v_PVOID_t pAdapter
-        Global adapter handle
-
-   @return General status code
-        VOS_STATUS_SUCCESS       Update success
-        VOS_STATUS_E_RESOURCES   SAL resources are not ready
-        VOS_STATUS_E_INVAL       Invalid argument
-      
-----------------------------------------------------------------------------*/
-VOS_STATUS WLANSAL_SDIOReInit
-(
-   v_PVOID_t             pAdapter
-)
-{
-   hdd_adapter_t *pHddAdapter = NULL;
-   v_CONTEXT_t pVosContext = NULL;
-   struct sdio_func *func;
-#ifndef LIBRA_LINUX_PC
-   int err = 0;
-#endif
-
-   //Get the global vos context
-   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-
-   if(!pVosContext) 
-   {
-      SMSGERROR("Global VOS context is Null", 0, 0, 0);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   //Get the HDD context.
-   pHddAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
-   if(!pHddAdapter) 
-   {
-      SMSGERROR("Hdd Adapter context is Null", 0, 0, 0);
-      return VOS_STATUS_E_FAILURE;;
-   }
-
-   func = libra_getsdio_funcdev();
-   if (func && func->card) {
-#ifndef LIBRA_LINUX_PC
-      err = sdio_reset_comm(func->card);
-#endif
-#ifndef LIBRA_LINUX_PC
-      if(err) {
-         SMSGERROR("%s: sdio_reset_comm failed %d", __func__, err, 0);
-         return VOS_STATUS_E_FAILURE;
-      }
-#endif
-   }
-   else
-   {
-      SMSGERROR("%s: sdio_func or mmc_card handle is null", __func__, 0, 0);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   atomic_set(&pHddAdapter->sdio_claim_count, 0);
-
-   return VOS_STATUS_SUCCESS;
 }

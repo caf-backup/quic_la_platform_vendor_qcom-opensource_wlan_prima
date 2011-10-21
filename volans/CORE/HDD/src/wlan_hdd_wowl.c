@@ -28,7 +28,7 @@
  * Type Declarations
  * -------------------------------------------------------------------------*/
 
-static struct hdd_adapter_s *pAdapterHandle = NULL;
+static struct hdd_context_s *pAdapterHandle = NULL;
 
 char *g_hdd_wowl_ptrns[WOWL_MAX_PTRNS_ALLOWED]; //Patterns 0-7 
 
@@ -311,8 +311,10 @@ v_BOOL_t hdd_enter_wowl (v_BOOL_t enable_mp, v_BOOL_t enable_pbm)
   wowParams.ucMagicPktEnable = enable_mp;
   if(enable_mp)
   {
+#ifdef HDD_SESSIONIZE
     vos_copy_macaddr( (v_MACADDR_t *)&(wowParams.magicPtrn),
       &(pAdapterHandle->macAddressCurrent) );
+#endif
   }
 
   // Request to put Libra into WoWL
@@ -362,7 +364,7 @@ v_BOOL_t hdd_exit_wowl (void)
   ===========================================================================*/
 v_BOOL_t hdd_init_wowl (void *pAdapter) 
 {
-  pAdapterHandle = (struct hdd_adapter_s*)pAdapter;
+  pAdapterHandle = (struct hdd_context_s*)pAdapter;
 
   memset(g_hdd_wowl_ptrns, 0, sizeof(g_hdd_wowl_ptrns));
 

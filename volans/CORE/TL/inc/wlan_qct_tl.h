@@ -85,7 +85,7 @@ when        who    what, where, why
 #ifdef WLAN_SOFTAP_FEATURE
 
 /* Maximum number of station supported by TL, including BC. */
-#define WLAN_MAX_STA_COUNT  8
+#define WLAN_MAX_STA_COUNT  (HAL_NUM_STA)
 
 /* The symbolic station ID return to HDD to specify the packet is bc/mc */
 #define WLAN_RX_BCMC_STA_ID (WLAN_MAX_STA_COUNT + 1)
@@ -377,6 +377,8 @@ typedef struct
 {
   /* UP of the packet being sent */
   v_U8_t    ucUP;
+  /* Address 3 Index of the received packet */
+  v_U16_t 	   ucDesSTAId;
 }WLANTL_RxMetaInfoType;
 
 
@@ -495,7 +497,6 @@ typedef VOS_STATUS (*WLANTL_TxCompCBType)( v_PVOID_t      pvosGCtx,
 /*----------------------------------------------------------------------------
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
-
 /*----------------------------------------------------------------------------
 
   DESCRIPTION   
@@ -876,6 +877,32 @@ WLANTL_Close
 /*----------------------------------------------------------------------------
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
+/*==========================================================================
+
+  FUNCTION    WLANTL_ConfigureSwFrameTXXlationForAll
+
+  DESCRIPTION
+     Function to disable/enable frame translation for all association stations.
+
+  DEPENDENCIES
+
+  PARAMETERS
+   IN
+    pvosGCtx:           VOS context 
+    EnableFrameXlation TRUE means enable SW translation for all stations.
+    .
+
+  RETURN VALUE
+
+   void.
+
+============================================================================*/
+void
+WLANTL_ConfigureSwFrameTXXlationForAll
+(
+  v_PVOID_t pvosGCtx, 
+  v_BOOL_t enableFrameXlation
+);
 
 /*===========================================================================
 
@@ -2265,7 +2292,12 @@ WLANTL_SetACWeights
 VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TYPE *statsSum, v_BOOL_t bReset);
 #endif
 
-/*===========================================================================
+#ifdef __cplusplus
+ }
+#endif 
+
+
+ /*===========================================================================
 
   FUNCTION    WLANTL_AssocFailed
 
@@ -2300,11 +2332,6 @@ VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TY
    
 ============================================================================*/
 void WLANTL_AssocFailed(v_U8_t staId);
-
-
-#ifdef __cplusplus
- }
-#endif 
 
 
 /*===============================================================================

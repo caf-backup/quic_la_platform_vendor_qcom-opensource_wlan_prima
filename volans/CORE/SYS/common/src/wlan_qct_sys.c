@@ -832,7 +832,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
             vosStatus = VOS_STATUS_E_BADMSG;
             if (pMsg->bodyptr) 
-               vos_mem_free(pMsg->bodyptr); 
+               vos_mem_free(pMsg->bodyptr);
             break;
          }
       }   // end switch on pMsg->type

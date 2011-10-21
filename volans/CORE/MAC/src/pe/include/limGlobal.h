@@ -71,6 +71,11 @@ typedef enum eLimSystemRole
     eLIM_STA_ROLE,
     eLIM_BT_AMP_STA_ROLE,
     eLIM_BT_AMP_AP_ROLE
+#ifdef WLAN_FEATURE_P2P
+    ,eLIM_P2P_DEVICE_ROLE
+    ,eLIM_P2P_DEVICE_GO
+    ,eLIM_P2P_DEVICE_CLINET
+#endif
 } tLimSystemRole;
 
 /**
@@ -155,6 +160,9 @@ typedef enum eLimMlmStates
 #if defined WLAN_FEATURE_VOWIFI_11R
     eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE,
     eLIM_MLM_WT_FT_REASSOC_RSP_STATE,
+#endif
+#ifdef WLAN_FEATURE_P2P
+    eLIM_MLM_P2P_LISTEN_STATE,
 #endif
 } tLimMlmStates;
 
@@ -331,10 +339,31 @@ typedef struct sLimMlmScanReq
     /* Number of SSIDs to scan(send Probe request) */
     tANI_U8            numSsid;
 
-    tSirChannelList    channelList;
-
+#ifdef WLAN_FEATURE_P2P
+    tANI_BOOLEAN   p2pSearch;
+#endif
     tANI_U16           uIEFieldLen;
     tANI_U16           uIEFieldOffset;
+
+    //channelList MUST be the last field of this structure
+    tSirChannelList    channelList;
+    /*-----------------------------
+      tLimMlmScanReq....
+      -----------------------------
+      uIEFiledLen 
+      -----------------------------
+      uIEFiledOffset               ----+
+      -----------------------------    |
+      channelList.numChannels          |
+      -----------------------------    |
+      ... variable size up to          |
+      channelNumber[numChannels-1]     |
+      This can be zero, if             |
+      numChannel is zero.              |
+      ----------------------------- <--+
+      ... variable size uIEFiled 
+      up to uIEFieldLen (can be 0)
+      -----------------------------*/
 } tLimMlmScanReq, *tpLimMlmScanReq;
 
 typedef struct tLimScanResultNode tLimScanResultNode;
@@ -350,6 +379,7 @@ typedef struct sLimMlmInNavMeasReq
 {
     tANI_U8               numBSSIDs;
     tANI_U8               numInNavMeasurements;
+    tSirMacAddr           selfMacAddr;
     eSirInNavMeasurementMode measurementMode;
     tSirBSSIDChannelInfo  bssidChannelInfo[1];
 } tLimMlmInNavMeasReq, *tpLimMlmInNavMeasReq;
@@ -473,8 +503,8 @@ typedef struct sCacheParams
 #define LIM_PROT_STA_CACHE_SIZE 256
 #else
 #ifdef WLAN_SOFTAP_FEATURE
-#define LIM_PROT_STA_OVERLAP_CACHE_SIZE    MAX_NO_OF_ASSOC_STA
-#define LIM_PROT_STA_CACHE_SIZE            MAX_NO_OF_ASSOC_STA 
+#define LIM_PROT_STA_OVERLAP_CACHE_SIZE    HAL_NUM_ASSOC_STA
+#define LIM_PROT_STA_CACHE_SIZE            HAL_NUM_ASSOC_STA
 #else
 #define LIM_PROT_STA_OVERLAP_CACHE_SIZE    5
 #define LIM_PROT_STA_CACHE_SIZE            5
@@ -680,6 +710,4 @@ typedef struct sLimSpecMgmtInfo
     tANI_BOOLEAN       fRadarDetCurOperChan; /* Radar detected in cur oper chan on AP */
     tANI_BOOLEAN       fRadarIntrConfigured; /* Whether radar interrupt has been configured */
 }tLimSpecMgmtInfo, *tpLimSpecMgmtInfo;
-
-
 #endif

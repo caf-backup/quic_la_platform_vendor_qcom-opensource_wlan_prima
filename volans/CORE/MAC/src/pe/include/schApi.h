@@ -28,16 +28,16 @@ extern void schSetInitParams(tpAniSirGlobal pMac);
 extern void schUpdateQosInfo(tpAniSirGlobal pMac);
 
 // update only the broadcast qos params
-extern void schQosUpdateBroadcast(tpAniSirGlobal pMac);
+extern void schQosUpdateBroadcast(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
 // fill in the default local edca parameter into gSchEdcaParams[]
 extern void schSetDefaultEdcaParams(tpAniSirGlobal pMac);
 
 // update only local qos params
-extern void schQosUpdateLocal(tpAniSirGlobal pMac);
+extern void schQosUpdateLocal(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
 // update the edca profile parameters
-extern void schEdcaProfileUpdate(tpAniSirGlobal pMac, tLimSystemRole systemRole);
+extern void schEdcaProfileUpdate(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
 /// Check for RR timer expiry
 extern void schCheckRRTimerExpiry(tpAniSirGlobal pMac);

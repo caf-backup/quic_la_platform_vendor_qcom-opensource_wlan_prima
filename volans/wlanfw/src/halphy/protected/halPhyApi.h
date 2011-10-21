@@ -29,7 +29,11 @@ tANI_U8 halPhyQueryNumTxChains(ePhyChainSelect phyRxTxAntennaMode);
 ePhyChainSelect halPhyGetActiveChainSelect();
 void halPhySetChainSelect(ePhyChainSelect phyRxTxAntennaMode);
 
-void halPhySetChannel(tANI_U8 channelNumber, ePhyChanBondState cbState);
+void halPhySetChannel(tANI_U8 channelNumber, ePhyChanBondState cbState
+#ifdef WLAN_AP_STA_CONCURRENCY
+          , tANI_U8 bSendCts
+#endif
+          );
 
 #ifdef CHANNEL_BONDED_CAPABLE
 void halPhySetChannelBondState(ePhyChanBondState chBondState);

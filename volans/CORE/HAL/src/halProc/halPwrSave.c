@@ -37,6 +37,7 @@
 
 #include "wlan_qct_bal.h"
 #include "rfApi.h"
+#include "limApi.h"
 
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
@@ -103,7 +104,7 @@ eHalStatus halPS_Init(tHalHandle hHal, void *arg)
             pHalPwrSave->regListSize;
 
 #ifdef VOLANS_PHY_TX_OPT_ENABLED
-		// Backup the PHY/RF TX registers which should be initialized 
+		// Backup the PHY/RF TX registers which should be initialized
 		// after coming out of power save and not as a part of ADU reinit
 		/** Zero out the ADU Register Reconfiguration table memory */
 		pRegBckup->phyRFTxRegListStartAddr = pMac->hal.memMap.aduPhyTxRegRecfgTbl_offset;
@@ -112,13 +113,13 @@ eHalStatus halPS_Init(tHalHandle hHal, void *arg)
 				pMac->hal.memMap.aduPhyTxRegRecfgTbl_size) != eHAL_STATUS_SUCCESS) {
 			return eHAL_STATUS_FAILURE;
 		}
-	
+
 		memAddr = pRegBckup->phyRFTxRegListStartAddr;
 		status = halRegBckup_PhyRFTxRegisters(pMac, &memAddr);
 		if(status != eHAL_STATUS_SUCCESS) {
 			return status;
 		}
-	
+
 		// Write the magic value in the next device memory location
 		status = halRegBckup_WriteTableEndCmd(pMac, memAddr);
 #endif /* VOLANS_PHY_TX_OPT_ENABLED */
@@ -157,12 +158,12 @@ eHalStatus halPS_Init(tHalHandle hHal, void *arg)
     pHalPwrSave->enableMutexDebug = 0;
 
 #ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
-    /* FIXME: Volans 1.0 Power-save workaround. Needs to be removed 
+    /* FIXME: Volans 1.0 Power-save workaround. Needs to be removed
      * as soon as fix is available in the hardware
      */
     halMcu_ResetMutexCount(pMac, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_INDEX, QWLAN_HOSTFW_TX_SYNC_MUTEX_MAX_COUNT);
 #endif
-    
+
     /* This bit in MCU_HOST_INT_EN_REG is not mapped to interrupt
      * lines. Hence this bit is only used to enable the SIF unfreeze
      * to happen when Host accesss comes in during power save mode.
@@ -398,7 +399,6 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     //Beacon Miss Handling
     pFwConfig->bBcnMissMLC = TRUE;
     pFwConfig->ucMaxBcnWaitTU = HAL_PWR_SAVE_BCN_MISS_WAIT_TU;
-    pFwConfig->ucMinBcnWaitTU = HAL_PWR_SAVE_MIN_BCN_WAIT_TU;
     pFwConfig->uBcnMissGracePeriodUs = HAL_PWR_SAVE_BCN_MISS_GRACE_PERIOD_US;
     pFwConfig->ucNumConsBcnMiss = HAL_PWR_SAVE_MAX_CONS_BCN_MISS; 
     pFwConfig->uMaxAllowBcnDriftUs = HAL_PWR_SAVE_MAX_ALLOWED_BCN_DRIFT_US;
@@ -538,8 +538,7 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
 
     halStatus = halReadRegister(pMac, QWLAN_PMU_RSSI_ANT_PTR_REG, &startPtr) ;
     if(eHAL_STATUS_SUCCESS != halStatus)
-    	    return halStatus;
-        
+    	return halStatus;
     startPtr = (startPtr & QWLAN_PMU_RSSI_ANT_PTR_PMU_RSSI_ANT1_STORE_REG19_MASK)
                         >> QWLAN_PMU_RSSI_ANT_PTR_PMU_RSSI_ANT1_STORE_REG19_OFFSET;
 
@@ -547,7 +546,7 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
     {
         halStatus = halReadRegister(pMac, QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_REG + (4*i), &value[i]);
         if(eHAL_STATUS_SUCCESS != halStatus)
-    	        return halStatus;
+    	    return halStatus;
     }
 
     if((startPtr + 1) < reqd)
@@ -654,7 +653,7 @@ eHalStatus halPS_SetPeerParams(tpAniSirGlobal pMac, tANI_U8 staIdx,
 
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
 
-    // FW uses staIdx for xmitting datanull frames, which should be out 
+    // FW uses staIdx for xmitting datanull frames, which should be out
     // of selfSta
 #ifdef HAL_SELF_STA_PER_BSS
     halTable_GetBssSelfStaIdxForSta(pMac, staIdx, &selfStaIdx);
@@ -771,7 +770,7 @@ eHalStatus halPS_SetBeaconInterval(tpAniSirGlobal pMac, tANI_U16 beaconInterval)
  */
 eHalStatus halPS_SetListenIntervalParam(tpAniSirGlobal pMac, tANI_U16 listenInterval)
 {
-    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;  
+    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     if(!pHalPwrSave)
         return eHAL_STATUS_FAILURE;
     pHalPwrSave->listenInterval = listenInterval;
@@ -796,19 +795,23 @@ eHalStatus halPS_ExitImpsSequence(tpAniSirGlobal pMac)
     eHalStatus  status = eHAL_STATUS_FAILURE;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     v_CONTEXT_t pVosGCtx = vos_get_global_context(VOS_MODULE_ID_HAL, (v_VOID_t *) pMac);
+#ifndef WLAN_FW_BTQM_STA_MGMT
     tANI_U8 staId;
+#endif // WLAN_FW_BTQM_STA_MGMT
 
+#ifndef WLAN_FW_BTQM_STA_MGMT
     // Enable BTQM queues
     for( staId = 0 ; staId < pMac->hal.memMap.maxStations ; staId++ ) {
         if ((halTable_ValidateStaIndex( pMac, staId)) == eHAL_STATUS_SUCCESS) {
             if ((status = halBmu_sta_enable_disable_control( pMac, staId,
                           eBMU_ENB_TX_QUE_ENB_TRANS)) != eHAL_STATUS_SUCCESS ) {
-                          HALLOGP( halLog( pMac, LOGP, 
-                          FL("Enabling Tx queue failed for staId %d"), staId ));
+                          HALLOGP( halLog( pMac, LOGP,
+                              FL("Enabling Tx queue failed for staId %d"), staId ));
                 return status;
             }
 	    }
     }
+#endif
 
     // Enable RX
     status = halRxp_enable(pMac);
@@ -837,7 +840,7 @@ eHalStatus halPS_ExitImpsSequence(tpAniSirGlobal pMac)
 
     // Start the FW heart beat monitor, once we are back to full power.
     halFW_StartChipMonitor(pMac);
-   
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -861,8 +864,10 @@ eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
     v_CONTEXT_t pVosGCtx = vos_get_global_context(VOS_MODULE_ID_HAL, (v_VOID_t *) pMac);
     tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     tHalPsImps *pImpsCtx = &pMac->hal.PsParam.ImpsCtx;
-    tANI_U8 staId;
     Qwlanfw_EnterImpsReqType msg;
+#ifndef WLAN_FW_BTQM_STA_MGMT
+    tANI_U8 staId;
+#endif // WLAN_FW_BTQM_STA_MGMT
 
     // Stop the FW heartbeat monitoring till the IMPS request is been
     // processed. Host is not supposed to access HW when in IMPS
@@ -900,11 +905,12 @@ eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
         goto error;
     }
 
+#ifndef WLAN_FW_BTQM_STA_MGMT
     // Disable and cleanup the BTQM queues
     for( staId = 0 ; staId < pMac->hal.memMap.maxStations ; staId++ ) {
         if ((halTable_ValidateStaIndex( pMac, staId)) == eHAL_STATUS_SUCCESS) {
             if (( status = halBmu_sta_enable_disable_control( pMac, staId,
-                           eBMU_DIS_TX_QUE_DIS_TRANS_CLEANUP_QUE)) != 
+                           eBMU_DIS_TX_QUE_DIS_TRANS_CLEANUP_QUE)) !=
 			               eHAL_STATUS_SUCCESS ) {
                 HALLOGE( halLog( pMac, LOGE,
                         FL("Disabling BTQM Tx queue failed for staId %d"),
@@ -914,6 +920,7 @@ eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
             }
 	    }
     }
+#endif
 
     // Load the ADU memory with the indirectly accessed register list
     status = halPS_RegBckupIndirectRegisters(pMac);
@@ -1027,7 +1034,7 @@ eHalStatus halPS_HandleFwEnterImpsRsp(tpAniSirGlobal pMac, void* pFwMsg)
         halPS_ExitImpsSequence(pMac);
         goto respond;
     }
-    
+
 
     // Execute the standby procedure
     halPS_ExecuteStandbyProcedure(pMac);
@@ -1129,7 +1136,7 @@ void halPS_ExecuteStandbyProcedure( tpAniSirGlobal pMac)
     // disable Pllen_force, IQ_DIV_MODE, En_TXLO_Mode, En_RXLO_Mode bits in rfApb modeSel1 register
     halWriteRegister(pMac, QWLAN_RFAPB_MODE_SEL1_REG, 0);
 #endif //#if VOLANS_RF
-    
+
 #ifndef VOLANS_FPGA
     // Footer switch is toggled for both BB and RF version of the chip (not for FPGA)
     // restore pmu_rfa_tcxo_buf_en_mask under rf_pa_trsw_ctrl_reg to defaults
@@ -1155,7 +1162,7 @@ void halPS_ExecuteStandbyProcedure( tpAniSirGlobal pMac)
 	 */
 
 	/**
-	 * Clearing PMU test debug status register. The register provides vital debug 
+	 * Clearing PMU test debug status register. The register provides vital debug
      * information about internal PMU state machine in case of failure
 	 */
     halWriteRegister(pMac, QWLAN_PMU_PMU_DEBUG_STATUS_REG_REG, 0x0);
@@ -1445,8 +1452,7 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI
     // Update the DPU routing WQ in FW sys config.
     pFwConfig->ucDpuRoutingWq = (tANI_U8)BMUWQ_ADU_UMA_RX;
 
-    pFwConfig->ucNumNoDwnLinkThres     = pMac->hal.dynamicPsPollValue;
-
+    pFwConfig->ucNumNoDwnLinkThres = pMac->hal.dynamicPsPollValue;
     status = halFW_UpdateSystemConfig(pMac,
             pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
             sizeof(*pFwConfig));
@@ -1476,16 +1482,18 @@ void halPS_GetRefTbtt(tpAniSirGlobal pMac, tANI_U64 tbtt, tANI_U8 bssIdx,
     tANI_U64 prevDtimTbtt;
 
     // Apply the compensation for TBTT
-    if (pMac->hal.currentRfBand == eRF_BAND_2_4_GHZ) {
+    if (pMac->hal.currentRfBand == eRF_BAND_2_4_GHZ) 
+    {
         if(tbtt > TBTT_COMPENSATION_2_4_GHZ)
             tbtt -= TBTT_COMPENSATION_2_4_GHZ;
         else
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: ERROR TBTT Low: %x TBTT High: %x\n",
                       __FUNCTION__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
-    } else if (pMac->hal.currentRfBand == eRF_BAND_5_GHZ) {
+    } else if (pMac->hal.currentRfBand == eRF_BAND_5_GHZ) 
+    {
         if(tbtt > TBTT_COMPENSATION_5_GHZ)
             tbtt -= TBTT_COMPENSATION_5_GHZ;
-	else
+	    else
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: ERROR TBTT Low: %x TBTT High: %x\n",
                       __FUNCTION__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
     }
@@ -1524,11 +1532,11 @@ eHalStatus halPS_HandleEnterBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, t
     tANI_U16 listenInterval = (tANI_U16)pHalPwrSave->listenInterval;
     tANI_U64 leastDtimTbtt = 0, lastDtimTbtt = 0;
 
-    // Do not enter BMPS if listen interval is set to 0. This shouldn't happen. 
+    // Do not enter BMPS if listen interval is set to 0. This shouldn't happen.
     if (listenInterval == 0)
-    { 
+   	{
         HALLOGE( halLog(pMac, LOGE, FL("Inavlid Listen Interval %d  do not enter BMPS"), listenInterval));
-        goto error;
+		goto error;
     }
 
     // Load the ADU memory with the indirectly accessed register list
@@ -2308,7 +2316,7 @@ eHalStatus halPS_HandleFwEnterUapsdRsp(tpAniSirGlobal pMac, void* pFwMsg)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
-    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;    
+    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     tMBoxMsgHdr *pMbMsg = (tMBoxMsgHdr *)pFwMsg;
     tpUapsdParams pPeMsg = NULL;
     tANI_U8 *pMsgBody = (tANI_U8*)(pFwMsg) + sizeof(*pMbMsg);
@@ -2792,13 +2800,13 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
     tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
     tANI_U32 index;
-
     eHalStatus mutexAcq = eHAL_STATUS_FW_PS_BUSY;
     eHalStatus status = eHAL_STATUS_SUCCESS;
+
 #ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
     // Dummy write to the HW register
     palWriteRegister(pMac->hHdd, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT);
-#endif    
+#endif
 
 /***********************************************************************
  * Please note that the below logic is executed by 3 different contexts.
@@ -2820,7 +2828,7 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 	   */
 	  {
 		  tANI_U32 uRegValue, mutexFailCnt = 0;
-	
+
 		  do {
 			/* Acquire Mutex1 here */
 			status = palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
@@ -2861,10 +2869,10 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 
           /* Tracking the protection for device writes */
           pMac->hal.PsParam.mutexTxCount++;
-		   
+
 		  /* Once mutex1 is acquired, touch BPS_REQ bit in PMU that would unfreeze SIF for Register-FIFO acesses
 		   * It is necessary that host acquire the mutex here and not inside the DO-WHILE Loop. This addresses the
-		   * corner case in which firmware acquires both mutex counts of MUTEX1 and issues SIF_FREEZE request. 
+		   * corner case in which firmware acquires both mutex counts of MUTEX1 and issues SIF_FREEZE request.
 		   * And SIF_FREEZE is going on. In the mean time, the host has something to tranfer and attempts to acquire
 		   * the mutex but won't be able to. And as part of polling, host issues SIF_UNFREEZE request while firmware
 		   * initiated SIF_FREEZE request is happening. In other words, SIF state is not synchronized between host
@@ -2875,24 +2883,27 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 	  }
 #endif
     retryCnt = 0;
-    while((eHAL_STATUS_FW_PS_BUSY == mutexAcq)&& (retryCnt < 3)) {
-        status = palReadRegister(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
-
+    while((eHAL_STATUS_FW_PS_BUSY == mutexAcq)&& (retryCnt < 3)) 
+    {
+        status = palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
         if(eHAL_STATUS_SUCCESS != status)
-	     break;
-
+            break;
         curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
-        if(curCnt <= 1) {
+        if(curCnt <= 1) 
+        {
             VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Not Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue);
 #ifdef WLAN_DBG_GPIO
-        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Mutex register value read 0, asserting GPIO HIGH \n");
-        gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+            VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Mutex register value read 0, asserting GPIO HIGH \n");
+            gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
 #endif
             ++retryCnt;
-            VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s Mutex register value read 0, %d times", __func__, retryCnt);
+            VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s Mutex register value read 0, %d times", 
+               __FUNCTION__, retryCnt);
 			
-           if(retryCnt == 2) {
-            	 VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s retryCnt = %d Sleeping for 200ms before next retry", __func__, retryCnt);
+            if(retryCnt == 2) 
+            {
+            	 VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s retryCnt = %d Sleeping for 200ms before next retry", 
+                   __FUNCTION__, retryCnt);
             	 vos_sleep(200);
             }            	
         }
@@ -2950,7 +2961,6 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 }
 
 
-
 /*
  * DESCRIPTION:
  *      Function to release the host from busy by releasing the mutex, should
@@ -2989,7 +2999,7 @@ eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 #ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
     {
 	    /* FIXME: Release the mutex after SIF Register-FIFO Access */
-	
+
 	    v_U32_t uRegValue = (1 << QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET);
 	    palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, uRegValue);
         pMac->hal.PsParam.mutexTxCount--;
@@ -3723,6 +3733,7 @@ eHalStatus halPS_RegisterWrite(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regVa
     return halFW_UpdateSystemConfig(pMac,
             pMac->hal.FwParam.fwSysConfigAddr + offset,
             (tANI_U8*)&pFwConfig->uRegWriteCount, sizeof(tANI_U32));
+
 }
 
 eHalStatus halPS_RegisterRead(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 *pRegValue)
@@ -3733,9 +3744,11 @@ eHalStatus halPS_RegisterRead(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 *pRegV
         HALLOGE(halLog(pMac, LOGE, "RMutex not acquired, %d, %d, %d for Reg 0x%08x (Please report to HAL team, except for dump commands)", 
                     pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount, regAddr));
     }
-    
+
     return palReadRegister(pMac->hHdd, regAddr, pRegValue);
+
 }
+
 
 /*
  * halPS_MemoryWrite
@@ -3774,6 +3787,7 @@ eHalStatus halPS_MemoryRead(tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, 
 
     return( palReadDeviceMemory( pMac->hHdd, srcOffset, pBuffer, numBytes ) );
 }
+
 
 /*
  * halPS_StartMonitoringRegAccess
@@ -3848,6 +3862,7 @@ void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId )
      }
      return;
 }
+
 /*
  * halPSNullDataAPProcessDelay
  *
@@ -3861,7 +3876,6 @@ void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId )
  * RETURN:
  *      void
  */
-
 void halPSNullDataAPProcessDelay( tpAniSirGlobal pMac, tANI_U32 cfgId )
 {
     tANI_U32 nullDataApRespTimeout;
@@ -3872,6 +3886,7 @@ void halPSNullDataAPProcessDelay( tpAniSirGlobal pMac, tANI_U32 cfgId )
              HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration file for Null data delay Timeout with cfgId %d"), cfgId));
              return;
         }
+
         /* Null Data Delay Timeout value as read from CFG */
         pFwConfig->nullDataApRespTimeoutMsec = (tANI_U8)nullDataApRespTimeout;
 
@@ -3879,8 +3894,10 @@ void halPSNullDataAPProcessDelay( tpAniSirGlobal pMac, tANI_U32 cfgId )
         halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
                      (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
     }
+
     return;
 }
+
 
 /*
  * halPSFWHeartBeatCfg
@@ -4093,13 +4110,13 @@ eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRe
  * RETURN:
  *      void
  */
- 
+
  void halPSRfSettlingTimeClk( tpAniSirGlobal pMac, tANI_U32 cfgId )
  {
     tANI_U32 rfSettlingTimeUs = 0;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)
     pMac->hal.FwParam.pFwConfig;
-    
+
     if (cfgId == WNI_CFG_RF_SETTLING_TIME_CLK) {
         if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &rfSettlingTimeUs)) {
             HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration "
@@ -4110,14 +4127,14 @@ eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRe
     pFwConfig->ucRfSupplySettlingTimeClk = (tANI_U16)((rfSettlingTimeUs*1000)/QWLAN_PMIC_SLEEPCLK_PERIOD_NS);
     pFwConfig->ucRfSupplySettlingTimeClk += ((rfSettlingTimeUs*1000)%QWLAN_PMIC_SLEEPCLK_PERIOD_NS)? 1 : 0;
 
-    pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US + 
+    pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US +
 					((pFwConfig->ucRfSupplySettlingTimeClk * QWLAN_PMIC_SLEEPCLK_PERIOD_NS)/1000);
- 
+
     /* Update FW SysConfig with Rf Supply Settling Time Clock Units Value */
     halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
                      (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
    }
-   
+
    return;
    
 }
@@ -4182,3 +4199,169 @@ VOS_STATUS halPS_ReleaseHostBusyTxRx(v_PVOID_t pMacContext)
 
 }
 #endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
+#ifdef WLAN_FEATURE_P2P
+/*
+ * DESCRIPTION:
+ *      Function to Send Single NoA information to FW
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      dialogToken: Dialog Token to be carried in the message
+ *      cbFunc: Function pointer to the callback function to be called after
+ *              suspend BMPS is done.
+ *      data:   Pointer to the data to be passed to the callback function
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ */
+eHalStatus halPS_UpdateSingleNoA(tpAniSirGlobal pMac, tANI_U16 dialogToken,
+      funcHalPsCB cbFunc, void* data)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    VOS_STATUS  vosStatus = VOS_STATUS_E_FAILURE;
+    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
+    tHalPsP2p *pP2pPsCtx = &pMac->hal.PsParam.P2pPsCtx;
+    Qwlanfw_P2pPs fwP2pPS = {0};
+    tpInitScanParams scanparams = (tpInitScanParams)data;
+    pP2pPsCtx->token = dialogToken;
+
+    HALLOGE( halLog(pMac, LOGE, FL("Sending Single NoA message to FW")));
+
+    // Start the timer for the FW response
+    // NOTE: Here we start the timer before sending the message so in case if
+    // start time fails, we can simply fall through. Had we started the timer
+    // after sending the message to FW and in case of failure, HAL will have to
+    // send another message to FW to bring it out of that state.
+    vosStatus = vos_timer_start(&pHalPwrSave->fwRspTimer, 
+                                               pHalPwrSave->fwRspTimeout);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+        HALLOGE( halLog( pMac, LOGE, 
+            FL("VOS Timer start failed - status = %d\n"), vosStatus));
+        status = eHAL_STATUS_TIMER_START_FAILED;
+        return status;
+    }
+
+    // Store the callback function pointer and the data
+    pHalPwrSave->psCbFunc = cbFunc;
+    pHalPwrSave->psCbData = data;
+
+    fwP2pPS.P2pPsSelection = P2P_PS_UPDATE_SINGLE_NOA;
+    /* Durations should be specified in us */
+    fwP2pPS.SingleNoAData.uDuration = 
+                        scanparams->scanDuration*TIME_UNIT_IN_USEC;
+    fwP2pPS.IndicateFirstAbsent = 1;
+
+    // Send the single NoA information to FW
+    status = halFW_SendP2pMsg(pMac, QWLANFW_P2P_UPDATE_GO_PS, &fwP2pPS, 
+                              sizeof(Qwlanfw_P2pPs));
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        HALLOGE( halLog(pMac, LOGE, FL("FW send Update NOA to FW \n")));
+        status = eHAL_STATUS_FW_SEND_MSG_FAILED;
+        // Stop the FW response timeout timer
+        vosStatus = vos_timer_stop(&pHalPwrSave->fwRspTimer);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+            HALLOGE( halLog(pMac, LOGE, 
+                FL("VOS Timer stop failed, status = %d\n"), vosStatus));
+            status = eHAL_STATUS_TIMER_STOP_FAILED;
+        }
+        return status;
+    }
+    return status;
+}
+
+/*
+ * DESCRIPTION:
+ *      Function handle NOA Start message from FW
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      pFwMsg: Pointer to the FW message
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ */
+eHalStatus halPS_HandleFwP2pNoAStarted ( tpAniSirGlobal pMac, void* pFwMsg)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    VOS_STATUS  vosStatus = VOS_STATUS_E_FAILURE;
+    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
+    tHalPsP2p *pP2pPsCtx = &pMac->hal.PsParam.P2pPsCtx;
+    tMBoxMsgHdr *pMbMsg = (tMBoxMsgHdr *)pFwMsg;
+    tANI_U8 *pMsgBody = (tANI_U8*)(pFwMsg) + sizeof(*pMbMsg);
+    tANI_U8 fwStatus = *pMsgBody;
+
+    // Stop the FW response timeout timer
+    vosStatus = vos_timer_stop(&pHalPwrSave->fwRspTimer);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+        HALLOGE( halLog( pMac, LOGE,
+                FL("VOS Timer stop Failed, status = %d\n"), vosStatus));
+        status = eHAL_STATUS_TIMER_STOP_FAILED;
+    }
+
+    HALLOG1( halLog(pMac, LOG1, 
+             FL("resp received from FW, status = %d\n"), fwStatus));
+
+    // Check the FW status of the response message
+    if (fwStatus != QWLANFW_STATUS_SUCCESS) {
+        HALLOGE( halLog( pMac, LOGE, FL("FW error status = %d"), fwStatus));
+        status = eHAL_STATUS_FAILURE;
+    } else {
+        status = eHAL_STATUS_SUCCESS;
+    }
+
+    // Call the callback function
+    if (pHalPwrSave->psCbFunc != NULL) {
+        pHalPwrSave->psCbFunc(pMac, pHalPwrSave->psCbData, 
+                                    pP2pPsCtx->token, status);
+    }
+    return status;
+}
+
+/*
+ * DESCRIPTION:
+ *      Function handle NOA Attribute message from FW
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      pFwMsg: Pointer to the FW message
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ */
+eHalStatus halPS_HandleFwP2PNoAAttr ( tpAniSirGlobal pMac, void* pFwMsg)
+{
+    tMBoxMsgHdr *pMbMsg = (tMBoxMsgHdr *)pFwMsg;
+    tANI_U8 *pMsgBody = (tANI_U8*)(pFwMsg) + sizeof(*pMbMsg);
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tSirMsgQ    msg;    
+    tpSirP2PNoaAttr pP2PNoaAttr = NULL;	
+
+    status = palAllocateMemory(pMac->hHdd, (void **)&pP2PNoaAttr, sizeof(tSirP2PNoaAttr));
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("palAllocateMemory() failed to return buffer (0x%x)\n"),
+                       status));        
+        return status;
+    }
+
+    palCopyMemory(pMac->hHdd, pP2PNoaAttr, pMsgBody,sizeof(tSirP2PNoaAttr));
+
+    HALLOG1( halLog(pMac, LOG1, 
+             FL("P2P noa attr received from FW, status = %d\n"), status));
+
+    //Posting the info to PE
+    // Prepare and post message to LIM Message Queue
+    msg.type = SIR_HAL_P2P_NOA_ATTR_IND;
+    msg.bodyval = 0;
+    msg.bodyptr = pP2PNoaAttr;
+
+    limPostMsgApi(pMac, &msg);
+    
+    return status;
+}
+#endif
+

@@ -87,6 +87,7 @@ void schSetBeaconInterval(tpAniSirGlobal pMac,tpPESession psessionEntry)
  * @return None
  */
 
+#if 0 /* This function is not used anywhere */
 void
 schSetInitParams(tpAniSirGlobal pMac)
 {
@@ -97,6 +98,7 @@ schSetInitParams(tpAniSirGlobal pMac)
 
     PELOG1(schLog(pMac, LOG1, FL("Finished init of SCH params\n"));)
 }
+#endif
 
 // --------------------------------------------------------------------
 /**
@@ -123,8 +125,8 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
 #endif
     tANI_U32            val;
 
-	tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
-	PELOG3(schLog(pMac, LOG3, FL("Received message (%x) \n"), pSchMsg->type);)
+    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
+    PELOG3(schLog(pMac, LOG3, FL("Received message (%x) \n"), pSchMsg->type);)
 
     switch (pSchMsg->type)
     {
@@ -196,7 +198,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
             pMac->sch.gSchScanReqRcvd = false;
 #ifdef WMM_SA
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-            if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE && pMac->sch.gSchHcfEnabled)
+            if (psessionEntry->limSystemRole == eLIM_AP_ROLE && pMac->sch.gSchHcfEnabled)
                 startCFB();
 #endif
 #endif
@@ -211,7 +213,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
             {
                 case WNI_CFG_BEACON_INTERVAL:
                     // What to do for IBSS ?? - TBD
-                    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+                    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
                         schSetBeaconInterval(pMac,psessionEntry);
                     break;
 
@@ -225,7 +227,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                     break;
 
                 case WNI_CFG_EDCA_PROFILE:
-                    schEdcaProfileUpdate(pMac, psessionEntry->limSystemRole);
+                    schEdcaProfileUpdate(pMac, psessionEntry);
                     break;
 
                 case WNI_CFG_EDCA_ANI_ACBK_LOCAL:
@@ -237,7 +239,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                 case WNI_CFG_EDCA_WME_ACVI_LOCAL:
                 case WNI_CFG_EDCA_WME_ACVO_LOCAL:
                     if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-                        schQosUpdateLocal(pMac);
+                        schQosUpdateLocal(pMac, psessionEntry);
                     break;
 
                 case WNI_CFG_EDCA_ANI_ACBK:
@@ -248,10 +250,10 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                 case WNI_CFG_EDCA_WME_ACBE:
                 case WNI_CFG_EDCA_WME_ACVI:
                 case WNI_CFG_EDCA_WME_ACVO:
-                    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+                    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
                     {
                         pMac->sch.schObject.gSchEdcaParamSetCount++;
-                        schQosUpdateBroadcast(pMac);
+                        schQosUpdateBroadcast(pMac, psessionEntry);
                     }
                     break;
 
@@ -310,6 +312,7 @@ void schProcessMessageQueue(tpAniSirGlobal pMac)
 #endif
 }
 
+#if 0 /* This function is not used anywhere */
 // set the default values for all params of interest
 void
 schUpdateQosInfo( tpAniSirGlobal pMac)
@@ -328,9 +331,11 @@ schUpdateQosInfo( tpAniSirGlobal pMac)
         schQosUpdateLocal(pMac);
 
         // fill broadcast values
-        schQosUpdateBroadcast(pMac);
+        schQosUpdateBroadcast(pMac, psessionEntry);
     }
 }
+
+#endif
 
 // get the local or broadcast parameters based on the profile sepcified in the config
 // params are delivered in this order: BK, BE, VI, VO
@@ -431,13 +436,13 @@ schGetParams(
 }
 
 void
-schQosUpdateBroadcast(tpAniSirGlobal pMac)
+schQosUpdateBroadcast(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
     tANI_U32        params[4][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN];
     tANI_U32        cwminidx, cwmaxidx, txopidx;
     tANI_U32        phyMode;
     tANI_U8         i;
-    tpPESession     psessionEntry = &pMac->lim.gpSession[0];//TBD-RAJESH HOW TO GET sessionEntry?????
+
     if (schGetParams(pMac, params, false) != eSIR_SUCCESS)
     {
         PELOGE(schLog(pMac, LOGE, FL("QosUpdateBroadcast: failed\n"));)
@@ -497,12 +502,9 @@ schQosUpdateBroadcast(tpAniSirGlobal pMac)
 }
 
 void
-schQosUpdateLocal(tpAniSirGlobal pMac)
+schQosUpdateLocal(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
 
-    tpPESession psessionEntry = &pMac->lim.gpSession[0];
-    //TBD-RAJESH - HOW to get SessionEntry
-    
     tANI_U32 params[4][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN];
     tANI_BOOLEAN highPerformance=eANI_BOOLEAN_TRUE;
 
@@ -666,13 +668,13 @@ getWmmLocalParams(tpAniSirGlobal  pMac,  tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK
 \return  none
 \ ------------------------------------------------------------ */
 void
-schEdcaProfileUpdate(tpAniSirGlobal pMac, tLimSystemRole systemRole)
+schEdcaProfileUpdate(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
-    if (systemRole == eLIM_AP_ROLE || systemRole == eLIM_STA_IN_IBSS_ROLE)
+    if (psessionEntry->limSystemRole == eLIM_AP_ROLE || psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
     {
-        schQosUpdateLocal(pMac);
+        schQosUpdateLocal(pMac, psessionEntry);
         pMac->sch.schObject.gSchEdcaParamSetCount++;
-        schQosUpdateBroadcast(pMac);
+        schQosUpdateBroadcast(pMac, psessionEntry);
     }
 }
 

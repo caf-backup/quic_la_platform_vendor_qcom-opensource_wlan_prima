@@ -392,7 +392,11 @@ eHalStatus halPhyCalUpdate(tHalHandle hHal)
 }
 
 eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
-        ePhyChanBondState cbState, tANI_U8 calRequired)
+        ePhyChanBondState cbState, tANI_U8 calRequired
+#ifdef WLAN_AP_STA_CONCURRENCY
+           , tANI_U8 bSendCts
+#endif
+          )
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
@@ -407,6 +411,9 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
     setChan.ucCbState = (tANI_U8)cbState;
     setChan.ucRegDomain = (tANI_U8)halPhyGetRegDomain(pMac);
     setChan.ucCalRequired = (tANI_U32)NO_CALS;
+#ifdef WLAN_AP_STA_CONCURRENCY
+    setChan.bSendCts = bSendCts;
+#endif
 
 #ifdef ANI_PHY_DEBUG
     //test interface is in control of channel setting
@@ -648,7 +655,6 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
 #ifndef WLAN_FTM_STUB
     if (pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
-        Qwlanfw_FtmUpdateType ftmUpdate; 
         halStoreTableToNv(pMac, NV_TABLE_RF_CAL_VALUES);
         //comment out the Noise Gain figure improvement changes as it is affecting max sensitivity results.
 #if 0
@@ -669,12 +675,6 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
         SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_TX_DELAY6_REG,
                            ((29 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_START_PRD_OFFSET) |
                             (0 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_END_PRD_OFFSET)));
-
-        // Send the mailbox message to FW to get initialized in FTM mode
-        ftmUpdate.usReqCode = HALPHY_FTM_INIT;
-        retVal = halFW_SendMsg(pMac, HAL_MODULE_ID_PHY, QWLANFW_HOST2FW_FTM_UPDATE, 0,
-                                 sizeof(Qwlanfw_FtmUpdateType), &ftmUpdate, FALSE, NULL);
-        if(retVal != eHAL_STATUS_SUCCESS) { return (retVal); }
     }
     else
 #endif

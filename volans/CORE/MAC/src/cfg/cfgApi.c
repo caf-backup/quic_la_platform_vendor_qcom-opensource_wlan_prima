@@ -806,20 +806,28 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
 {
     tANI_U32 val = 0;
     tpSirMacCapabilityInfo pCapInfo;
+    tLimSystemRole systemRole = limGetSystemRole(sessionEntry);
 
     *pCap = 0;
     pCapInfo = (tpSirMacCapabilityInfo) pCap;
 
-    if (limGetSystemRole(sessionEntry) == eLIM_STA_IN_IBSS_ROLE)
+    if (systemRole == eLIM_STA_IN_IBSS_ROLE)
         pCapInfo->ibss = 1; // IBSS bit
-    else if ( (limGetSystemRole(sessionEntry) == eLIM_AP_ROLE) ||(limGetSystemRole(sessionEntry)== eLIM_BT_AMP_AP_ROLE)||(limGetSystemRole(sessionEntry)== eLIM_BT_AMP_STA_ROLE) ||
-             (limGetSystemRole(sessionEntry) == eLIM_STA_ROLE) )
+    else if ( (systemRole == eLIM_AP_ROLE) ||(systemRole == eLIM_BT_AMP_AP_ROLE)||(systemRole == eLIM_BT_AMP_STA_ROLE) ||
+             (systemRole == eLIM_STA_ROLE) )
         pCapInfo->ess = 1; // ESS bit
+#if defined WLAN_FEATURE_P2P
+    else if (limGetSystemRole(sessionEntry) == eLIM_P2P_DEVICE_ROLE )
+    {
+        pCapInfo->ess = 0;
+        pCapInfo->ibss = 0;
+    }
+#endif
     else
         cfgLog(pMac, LOGP, FL("can't get capability, role is UNKNOWN!!\n"));
 
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    if( (limGetSystemRole(sessionEntry) == eLIM_AP_ROLE) )
+    if( (systemRole == eLIM_AP_ROLE) )
     {
         // CF-pollable bit
         if (wlan_cfgGetInt(pMac, WNI_CFG_CF_POLLABLE, &val) != eSIR_SUCCESS)
@@ -842,7 +850,7 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
 #endif
 
 #ifdef WLAN_SOFTAP_FEATURE
-    if((limGetSystemRole(sessionEntry) == eLIM_AP_ROLE))
+    if(systemRole == eLIM_AP_ROLE)
     {
         val = sessionEntry->privacy;
     }
@@ -883,7 +891,7 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
 
     
     // Short slot time bit
-    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+    if (systemRole == eLIM_AP_ROLE)
     {
         if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &val)
                        != eSIR_SUCCESS)
@@ -925,8 +933,8 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
     }
 
     // Spectrum Management bit
-    if((eLIM_STA_IN_IBSS_ROLE != pMac->lim.gLimSystemRole) &&
-            pMac->lim.gLim11hEnable )
+    if((eLIM_STA_IN_IBSS_ROLE != systemRole) &&
+            sessionEntry->lim11hEnable )
     {
       if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) != eSIR_SUCCESS)
       {

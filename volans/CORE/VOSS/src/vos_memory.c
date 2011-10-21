@@ -92,9 +92,9 @@ void vos_mem_clean()
 
        do
        {
-	      spin_lock(&vosMemList.lock);
+          spin_lock(&vosMemList.lock);
           vosStatus = hdd_list_remove_front(&vosMemList, &pNode);
-	      spin_unlock(&vosMemList.lock);
+          spin_unlock(&vosMemList.lock);
           if(VOS_STATUS_SUCCESS == vosStatus)
           {
              memStruct = (struct s_vos_mem_struct*)pNode;
@@ -109,7 +109,7 @@ void vos_mem_clean()
 
 void vos_mem_exit()
 {
-    vos_mem_clean();
+    vos_mem_clean();    
     hdd_list_destroy(&vosMemList);
 }
 
@@ -127,9 +127,10 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
    }
    if (in_interrupt())
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s cannot be called from interrupt context!!!", __FUNCTION__);
-      return NULL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               "%s is being called in interrupt context, using GPF_ATOMIC.", __FUNCTION__);
+       return kmalloc(size, GFP_ATOMIC);
+      
    }
 
    new_size = size + sizeof(struct s_vos_mem_struct) + 8; 

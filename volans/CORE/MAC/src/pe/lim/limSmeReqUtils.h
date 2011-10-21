@@ -24,8 +24,8 @@ tANI_U8 limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal,
 tANI_U8 limIsSmeScanReqValid(tpAniSirGlobal, tpSirSmeScanReq);
 tANI_U8 limIsSmeJoinReqValid(tpAniSirGlobal, tpSirSmeJoinReq);
 tANI_U8 limIsSmeAuthReqValid(tpSirSmeAuthReq);
-tANI_U8 limIsSmeDisassocReqValid(tpAniSirGlobal, tpSirSmeDisassocReq);
-tANI_U8 limIsSmeDeauthReqValid(tpAniSirGlobal, tpSirSmeDeauthReq);
+tANI_U8 limIsSmeDisassocReqValid(tpAniSirGlobal, tpSirSmeDisassocReq, tpPESession);
+tANI_U8 limIsSmeDeauthReqValid(tpAniSirGlobal, tpSirSmeDeauthReq, tpPESession);
 tANI_U8 limIsSmeSetContextReqValid(tpAniSirGlobal, tpSirSmeSetContextReq);
 tANI_U8 limIsSmeStopBssReqValid(tANI_U32 *);
 tANI_U8*  limGetBssIdFromSmeJoinReqMsg(tANI_U8 *);

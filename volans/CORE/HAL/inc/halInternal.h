@@ -70,13 +70,20 @@ typedef enum
 eHalStatus    halGlobalInit( tpAniSirGlobal pMac );
 eHalStatus halSetPowerSaveMode(tpAniSirGlobal pMac, tSirMacHTMIMOPowerSaveState powerState);
 eHalStatus    halInitEdcaProfile(tHalHandle hHal, void *arg);
-eHalStatus    halPhy_ChangeChannel(tpAniSirGlobal pMac, tANI_U8 newChannel, ePhyChanBondState cbState, tANI_U8 calRequired, funcHalSetChanCB pFunc, void* pData, tANI_U16 dialog_token);
+eHalStatus    halPhy_ChangeChannel(tpAniSirGlobal pMac, tANI_U8 newChannel, ePhyChanBondState cbState, tANI_U8 calRequired, funcHalSetChanCB pFunc, void* pData, tANI_U16 dialog_token
+#ifdef WLAN_AP_STA_CONCURRENCY
+, tANI_U8 bSendCts
+#endif
+);
 void halPhy_HandleSetChannelRsp(tHalHandle hHal,  void* pFwMsg);
 void halSetBcnRateIdx(tpAniSirGlobal pMac, tTpeRateIdx rateIndex);
 void halSetNonBcnRateIdx(tpAniSirGlobal pMac, tTpeRateIdx rateIndex);
+void halSetNonBcnRateIdx2(tpAniSirGlobal pMac, tTpeRateIdx rateIndex);
 void halSetMulticastRateIdx(tpAniSirGlobal pMac, tTpeRateIdx rateIndex);
 void halGetBcnRateIdx(tpAniSirGlobal pMac, tTpeRateIdx *pRateIndex);
 void halGetNonBcnRateIdx(tpAniSirGlobal pMac, tTpeRateIdx *pRateIndex);
+void halGetNonBcnRateIdx2(tpAniSirGlobal pMac, tTpeRateIdx *pRateIndex);
+void halGetDefaultMulticastRateIdx(tpAniSirGlobal pMac, tTpeRateIdx *pRateIndex);
 eHalStatus hal_SendDummyInitScan(tpAniSirGlobal pMac, tANI_BOOLEAN setPMbit);
 eHalStatus hal_SendDummyFinishScan(tpAniSirGlobal pMac);
 tSirRetStatus halConfigCalPeriod(tpAniSirGlobal pMac);

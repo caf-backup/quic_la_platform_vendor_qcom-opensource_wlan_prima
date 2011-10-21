@@ -34,17 +34,6 @@ typedef struct
     hddTransferCallback callback;      //called after hal dequeues a frame.
 }sTxQueue;
 
-
-eHalStatus halTxFrameWithTxComplete(tHalHandle hHal,
-                      void *pFrmBuf,
-                      tANI_U16 frmLen,
-                      eFrameType frmType,
-                      eFrameTxDir txDir,
-                      tANI_U8 tid,
-                      pHalTxRxCompFunc pCompFunc,
-                      void *pData,
-                      tpCBackFnTxComp pCBackFnTxComp);
-
 //  halTx.c functions....
 eHalStatus halAddTxQueue(tHalHandle, sTxQueue *txQueue);
 eHalStatus halRemoveTxQueue(tHalHandle, sTxQueue *txQueue);

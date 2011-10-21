@@ -206,46 +206,39 @@ void pmmHandleTimBasedDisassociation (tpAniSirGlobal pMac, tpPESession psessionE
  */
 void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength, tANI_U8 dtimPeriod)
 {
-    tANI_U16 i,j;
     tANI_U8 *ptr = *pPtr;
     tANI_U32 val = 0;
-    tpPmmTim pPmmTim = &pMac->pmm.gPmmTim;
+    tANI_U32 minAid = 1; // Always start with AID 1 as minimum
+    tANI_U32 maxAid = HAL_NUM_STA;
 
 
     // Generate partial virtual bitmap
-    tANI_U8 N1 = pPmmTim->minAssocId / 8;
-    tANI_U8 N2 = pPmmTim->maxAssocId  / 8;
+    tANI_U8 N1 = minAid / 8;
+    tANI_U8 N2 = maxAid / 8;
     if (N1 & 1) N1--;
 
     *timLength = N2 - N1 + 4;
     val = dtimPeriod;
 
-
+    /* 
+     * 09/23/2011 - ASW team decision; 
+     * Write 0xFF to firmware's field to detect firmware's mal-function early.
+     * DTIM count and bitmap control usually cannot be 0xFF, so it is easy to know that 
+     * firmware never updated DTIM count/bitmap control field after host driver downloaded
+     * beacon template if end-user complaints that DTIM count and bitmapControl is 0xFF.
+     */
     *ptr++ = SIR_MAC_TIM_EID;
     *ptr++ = (tANI_U8)(*timLength);
-    *ptr++ = pPmmTim->dtimCount;
+    *ptr++ = 0xFF; // location for dtimCount. will be filled in by FW.
     *ptr++ = (tANI_U8)val;
 
-    // bit 0 is the multicast traffic indication
-    *ptr++ = (N1 & 0xfe) | (pPmmTim->pTim[0] & 0x1);
-
-    for (i = N1; i <= N2; i++)
-    {
-        ptr[i - N1] = 0;
-        for (j = 0; j < 8; j++)
-        {
-            if ((8*i+j) >= pMac->lim.maxStation)
-                break;
-            ptr[i - N1] |= ( (pPmmTim->pTim[8*i+j]  & 0x1) << j);
-        }
-    }
-
+    *ptr++ = 0xFF; // location for bitmap contorl. will be filled in by FW.
     ptr += (N2 - N1 + 1);
 
     PELOG2(sirDumpBuf(pMac, SIR_PMM_MODULE_ID, LOG2, *pPtr, (*timLength)+2);)
-
     *pPtr = ptr;
 }
+
 #endif
 #ifdef ANI_PRODUCT_TYPE_AP
 /**

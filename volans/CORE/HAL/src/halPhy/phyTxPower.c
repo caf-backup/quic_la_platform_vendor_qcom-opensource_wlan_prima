@@ -1503,7 +1503,7 @@ eHalStatus halPhyGetPwrFromRate2PwrTable(tHalHandle hHal, eHalPhyRates rate, t2D
 }
 
 /* Return the maxPwrIndex that can be used for a given absolute power limit in dBm */
-inline eHalStatus halPhyGetMaxTxPowerIndex(tHalHandle hHal, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex)
+eHalStatus halPhyGetMaxTxPowerIndex(tHalHandle hHal, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex)
 {
     VOS_ASSERT(NULL != retTemplateIndex);
 

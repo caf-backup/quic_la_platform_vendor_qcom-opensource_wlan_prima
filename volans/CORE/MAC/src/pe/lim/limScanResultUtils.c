@@ -275,18 +275,17 @@ limCollectBssDescription(tpAniSirGlobal pMac,
 tANI_BOOLEAN limIsScanRequestedSSID(tpAniSirGlobal pMac, tSirMacSSid *ssId)
 {
     tANI_U8 i = 0;
-    tANI_BOOLEAN requestedSsid = eANI_BOOLEAN_FALSE;
 
     for (i = 0; i < pMac->lim.gpLimMlmScanReq->numSsid; i++)
     {
-        if ((requestedSsid = palEqualMemory( pMac->hHdd,(tANI_U8 *) ssId,
+        if ( eANI_BOOLEAN_TRUE == palEqualMemory( pMac->hHdd,(tANI_U8 *) ssId,
                    (tANI_U8 *) &pMac->lim.gpLimMlmScanReq->ssId[i],
-                   (tANI_U8) (pMac->lim.gpLimMlmScanReq->ssId[i].length))) == eANI_BOOLEAN_TRUE)
+                   (tANI_U8) (pMac->lim.gpLimMlmScanReq->ssId[i].length + 1)))
         {
-            break;
+            return eANI_BOOLEAN_TRUE;
         }
     }
-    return requestedSsid;
+    return eANI_BOOLEAN_FALSE;
 }
 
 /**

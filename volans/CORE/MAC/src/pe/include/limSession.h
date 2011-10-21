@@ -78,9 +78,9 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U32                limCurrentTitanHtCaps;
     tANI_U16                limAID;
 
-	/* Parameters  For Reassociation */
+    /* Parameters  For Reassociation */
     tSirMacAddr             limReAssocbssId;
-	tSirMacChanNum          limReassocChannelId;
+    tSirMacChanNum          limReassocChannelId;
     tSirMacSSid             limReassocSSID;
     tANI_U16                limReassocBssCaps;
     tANI_U8                 limReassocBssQosCaps;
@@ -96,11 +96,11 @@ typedef struct sPESession           // Added to Support BT-AMP
 
 
     /*
-    * staId:  Start BSS: 	this is the  Sta Id for the BSS.
-                 Join: 		this is the selfStaId
+    * staId:  Start BSS:     this is the  Sta Id for the BSS.
+                 Join:         this is the selfStaId
       In both cases above, the peer STA ID wll be stored in dph hash table.
     */
-    tANI_U16                staId;	        
+    tANI_U16                staId;            
     tANI_U16                statypeForBss;          //to know session is for PEER or SELF
     tANI_U8                 shortSlotTimeSupported;
     tANI_U8                 fShortPreamble;   
@@ -137,7 +137,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tAniSirDph              dph;
     void *                  *parsedAssocReq;        // Used to store parsed assoc req from various requesting station
     
-    tANI_U32           	    encryptType;
+    tANI_U32                   encryptType;
 
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_BOOLEAN            bTkipCntrMeasActive;    // Used to keep record of TKIP counter measures start/stop
@@ -147,11 +147,11 @@ typedef struct sPESession           // Added to Support BT-AMP
     // OBss Mode . set when we have Non HT STA is associated or with in overlap bss
     tANI_U8                 gHTObssMode; 
 
-    tANI_U8                 gHTNonGFDevicesPresent;	
+    tANI_U8                 gHTNonGFDevicesPresent;    
 
     //protection related config cache
     tCfgProtection          cfgProtection;
-	
+    
     // Number of legacy STAs associated
     tLimProtStaParams          gLim11bParams;
 
@@ -206,9 +206,23 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_BOOLEAN            fwdWPSPBCProbeReq;
     tANI_U8                 wps_state;
 #endif
-    tPowerdBm  maxTxPower;   //MIN (Regulatory and local power constraint)
+
+    tANI_U8            limQosEnabled:1; //11E
+    tANI_U8            limWmeEnabled:1; //WME
+    tANI_U8            limWsmEnabled:1; //WSM
+    tANI_U8            limHcfEnabled:1;
+    tANI_U8            lim11dEnabled:1;
+
+    tANI_U32           lim11hEnable;
+
+    tPowerdBm          maxTxPower;   //MIN (Regulatory and local power constraint)
+    tVOS_CON_MODE      pePersona;
 #if defined WLAN_FEATURE_VOWIFI
-    tPowerdBm  txMgmtPower;
+    tPowerdBm          txMgmtPower;
+#endif
+#ifdef WLAN_FEATURE_P2P
+    tSirNoAParam p2pNoA;
+    tSirP2PNoaAttr p2pGoPsUpdate;
 #endif
 }tPESession, *tpPESession;
 

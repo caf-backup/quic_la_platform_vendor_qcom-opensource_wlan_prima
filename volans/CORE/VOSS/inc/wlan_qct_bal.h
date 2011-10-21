@@ -679,8 +679,8 @@ VOS_STATUS WLANBAL_SuspendChip
    v_PVOID_t pAdapter
 );
 
-/*----------------------------------------------------------------------------
 
+/*----------------------------------------------------------------------------
   @brief Suspend Entire chip, Trigger SSC Suspend Chip
 
   @param v_PVOID_t pAdapter

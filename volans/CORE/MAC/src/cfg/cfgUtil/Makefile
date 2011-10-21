@@ -3,9 +3,9 @@
 CC = gcc
 CFLAGS += -g -I.. -I../../../include 
 
-GENERATED=../cfgParamName.c \
-		../../../export/wniCfgAp.bin ../../../export/wniCfgSta.bin \
-		../../../export/wniCfgAp.h ../../../export/wniCfgSta.h
+GENERATED=../cfgParamName.c ../../../inc/cfg.dat \
+		../../../inc/wniCfgAp.bin ../../../inc/wniCfgSta.bin \
+		../../../inc/wniCfgAp.h ../../../inc/wniCfgSta.h
 
 # Generate locally executable cfgGen
 all: cfgGen
@@ -30,17 +30,19 @@ checkoutCfg:
 
 updateCfg:
 	mv -f cfgParamName.c ..
-	mv -f wniCfgSta.bin ../../../export
-	mv -f wniCfgAp.bin ../../../export
-	mv -f wniCfgSta.h ../../../export
-	mv -f wniCfgAp.h ../../../export
+	mv -f cfg.dat ../../../inc
+	mv -f wniCfgSta.bin ../../../inc
+	mv -f wniCfgAp.bin ../../../inc
+	mv -f wniCfgSta.h ../../../inc
+	mv -f wniCfgAp.h ../../../inc
 
 cmpCfg:
 	-diff ../cfgParamName.c cfgParamName.c
-	-cmp -l ../../../export/wniCfgSta.bin wniCfgSta.bin
-	-cmp -l ../../../export/wniCfgAp.bin wniCfgAp.bin
-	-diff ../../../export/wniCfgSta.h wniCfgSta.h
-	-diff ../../../export/wniCfgAp.h wniCfgAp.h
+	-diff ../../../inc/cfg.dat cfg.dat
+	-cmp -l ../../../inc/wniCfgSta.bin wniCfgSta.bin
+	-cmp -l ../../../inc/wniCfgAp.bin wniCfgAp.bin
+	-diff ../../../inc/wniCfgSta.h wniCfgSta.h
+	-diff ../../../inc/wniCfgAp.h wniCfgAp.h
 
 revertCfg:
 	p4 revert $(GENERATED)

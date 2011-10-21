@@ -213,7 +213,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                      (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
                 {
                     PELOG1(limLog(pMac, LOG1, FL("Received a probe rsp without Quiet IE\n"));)
-                    limCancelDot11hQuiet(pMac);
+                    limCancelDot11hQuiet(pMac, psessionEntry);
                 }
 
                 if (probeRsp.channelSwitchPresent ||
@@ -223,7 +223,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                 }
                 else if (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
                 {
-                    limCancelDot11hChannelSwitch(pMac);
+                    limCancelDot11hChannelSwitch(pMac, psessionEntry);
                 }
             }
         
@@ -239,8 +239,8 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
 
             pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
 
-            limGetQosMode(pMac, &qosEnabled);
-            limGetWmeMode(pMac, &wmeEnabled);
+            limGetQosMode(psessionEntry, &qosEnabled);
+            limGetWmeMode(psessionEntry, &wmeEnabled);
            PELOG2(limLog(pMac, LOG2,
                     FL("wmeEdcaPresent: %d wmeEnabled: %d, edcaPresent: %d, qosEnabled: %d,  edcaParams.qosInfo.count: %d schObject.gSchEdcaParamSetCount: %d\n"),
                           probeRsp.wmeEdcaPresent, wmeEnabled, probeRsp.edcaPresent, qosEnabled,

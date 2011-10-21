@@ -9,11 +9,7 @@
 
 #include "halTypes.h"
 #include "aniGlobal.h"
-#ifdef WLAN_HAL_VOLANS
 #include "volansDefs.h"
-#else
-#include "libraDefs.h"
-#endif
 #include "halDebug.h"
 #include "halAdu.h"
 #include "halMTU.h"
@@ -104,37 +100,38 @@ static tBdPduThr thrInfo[] = {
 
 /*
 ------------------------------------------------------------------------------------------------------------
-Qid    | Backoff    | Tid   | selfSta             | selfSta    | peer  |    Peer    |    Broadcast        | Broadcast STA    |
-         |                |        |                       |  ack pol   |          |  ack Pol  |    Sta (sta 0)       | ack pol               |
-------------------------------------------------------------------------------------------------------------
-0       | 7             | 0      | Unused            | No ack    | BE      |Normal   |                          |                          |
------------------------------------------------------------------------------------------------------------
-1       | 6             | 1      | Unused            | No ack    | BG      |Normal   |                          |                           |
-----------------------------------------------------------------------------------------------------------
-2       | 6             | 2      | Unused            | No ack    | BG        |Normal |                          |                           |
-----------------------------------------------------------------------------------------------------------
-3       | 7             | 3      | Unused            | No ack    | BE        |Normal  |                          |                          |
-----------------------------------------------------------------------------------------------------------
-4       | 5             | 4      | Unused            | No ack    | VI        |Normal   |                          |                         |
-----------------------------------------------------------------------------------------------------------
-5       | 5             | 5      | Unused            |No ack     | VI        |Normal   |                          |                         |
-----------------------------------------------------------------------------------------------------------
-6       | 4             | 6      | Unused            | No ack    | VO        |Normal  |                          |                          |
-----------------------------------------------------------------------------------------------------------
-7       | 4             | 7      | Unused            | No ack    | VO        |Normal  |                          |                          |
----------------------------------------------------------------------------------------------------------
-8       | 7             | 0      | Broadcast        | No ack    | Non-Qos|Normal  |  Broadcast          | No ack                |
-         |                |        | mgmt / data     |               |             |            | mgmt/data(ap)   |                         |
-         |                |        | (non-ap mode) |               |             |            |                           |                         |
---------------------------------------------------------------------------------------------------------------
-9       | 4             | 0      | Unicast mgmt   | Normal    | NULL      | Normal  |                       |                           |
---------------------------------------------------------------------------------------------------------------
-10     | 3             | 0      | probeRsp         | Normal    |unused    | Normal  |                       |                           | Backoff parameters between VI and BE and no retry
---------------------------------------------------------------------------------------------------------------
-        | 0                                                                                                                                                          Beacon transmission in IBSS
---------------------------------------------------------------------------------------------------------------    
-        | 1                                                                                                                                                          psPoll
---------------------------------------------------------------------------------------------------------------    
+Qid| Backoff | Tid | selfSta       | selfSta | peer    |  Peer   | Broadcast     | Broadcast STA |
+   |         |     |               | ack pol |         | ack Pol | Sta (sta 0)   | ack pol       |
+--------------------------------------------------------------------------------------------------
+0  | 7       | 0   | Unused        | No ack  | BE      | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+1  | 6       | 1   | Unused        | No ack  | BG      | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+2  | 6       | 2   | Unused        | No ack  | BG      | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+3  | 7       | 3   | Unused        | No ack  | BE      | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+4  | 5       | 4   | Unused        | No ack  | VI      | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+5  | 5       | 5   | Unused        | No ack  | VI      | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+6  | 4       | 6   | Unused        | No ack  | VO      | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+7  | 4       | 7   | Unused        | No ack  | VO      | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+8  | 7       | 0   | Broadcast     | No ack  | Non-Qos | Normal  |  Broadcast    | No ack        |
+   |         |     | mgmt / data   |         |         |         | mgmt/data(ap) |               |
+   |         |     | (non-ap mode) |         |         |         |               |               |
+--------------------------------------------------------------------------------------------------
+9  | 4       | 0   | Unicast mgmt  | Normal  | NULL    | Normal  |               |               |
+--------------------------------------------------------------------------------------------------
+10 | 3       | 0   | probeRsp      | Normal  | unused  | Normal  |               |               |
+   |         | (Backoff parameters between VI and BE and no retry)                               |
+--------------------------------------------------------------------------------------------------
+   | 0       | (Beacon transmission in IBSS)                                                     |
+--------------------------------------------------------------------------------------------------    
+   | 1       | (psPoll)                                                                          |
+--------------------------------------------------------------------------------------------------    
 
 */    
 
@@ -192,11 +189,7 @@ static eHalStatus halBmu_btqm_tx_wq_base_addr(tpAniSirGlobal pMac,  tANI_U32 tx_
 static eHalStatus halBmu_queueid_qos_map(tpAniSirGlobal pMac);
 static eHalStatus halBmu_btqm_init_control1_register(tpAniSirGlobal pMac, tANI_U32 ctrlCfg);
 static void halBmu_btqm_init_control2_register(tpAniSirGlobal pMac, tANI_U32 txQueueIdsMask);
-static eHalStatus halBmu_InitIntHanlder(tpAniSirGlobal pMac);
-
-#ifndef WLAN_FTM_STUB
-static int ftmBmuInitiliazed = 0;
-#endif
+static eHalStatus halBmu_InitIntHandler(tpAniSirGlobal pMac);
 
 /* -------------------------------------------------------------
  * FUNCTION:  halBmu_Start()
@@ -220,20 +213,11 @@ halBmu_Start(
 
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     tANI_U32 value, status;
+    tANI_U32 maxStaid;
     (void) arg;
 
-    HALLOGW( halLog( pMac, LOGW, FL("%s: ***** BMU INITIALIZATION ***** \n"),  __FUNCTION__ ));
 
-#ifndef WLAN_FTM_STUB
-    // In FTM mode, initialize the BMU only for the first halStart. For the subsequent 
-    // halStop and halStart do not call the BMUStart, since there is no chip powerdown/up 
-    // sequence in Stop/Start
-    if (pMac->gDriverType == eDRIVER_TYPE_MFG) {
-        if (ftmBmuInitiliazed++) {
-            return eHAL_STATUS_SUCCESS;
-        }
-    }
-#endif
+    HALLOGW( halLog( pMac, LOGW, FL("%s: ***** BMU INITIALIZATION ***** \n"),  __FUNCTION__ ));
 
     // Initialize the BD/PDU base address
     if (halBmu_InitBdPduBaseAddress(pMac) != eHAL_STATUS_SUCCESS) {
@@ -241,14 +225,9 @@ halBmu_Start(
         return eHAL_STATUS_FAILURE;
     }
 
-    // In FTM mode, no descriptor memory is allocated, so skip programming 
-    // the BTQM queue desc base address
-    if (pMac->gDriverType != eDRIVER_TYPE_MFG) {
     /** Set the Start Address of TxWQ */
-        if (halBmu_btqm_tx_wq_base_addr(pMac, pMac->hal.memMap.btqmTxQueue_offset) != eHAL_STATUS_SUCCESS) {
+    if (halBmu_btqm_tx_wq_base_addr(pMac, pMac->hal.memMap.btqmTxQueue_offset) != eHAL_STATUS_SUCCESS)
         return eHAL_STATUS_FAILURE;
-        }
-    }
 
     bmu_init_bd_pdu_pointer(pMac, &bdStart, &bdEnd, &pduStart, &pduEnd, &bdPduExchangeable);
     pMac->hal.halMac.bdPduExchangeable = bdPduExchangeable;
@@ -273,7 +252,13 @@ halBmu_Start(
         return eHAL_STATUS_FAILURE;
 
     /** Program the STA ids and QIDs */
-    if (halBmu_tx_queue_staid_qid_config(pMac, pMac->hal.memMap.maxStations - 1,
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // The BMU will only see "hard" stations
+    maxStaid = HAL_NUM_HW_STA - 1;
+#else
+    maxStaid = pMac->hal.memMap.maxStations - 1;
+#endif
+    if (halBmu_tx_queue_staid_qid_config(pMac, maxStaid,
                     pMac->hal.memMap.maxHwQueues - 1, HAL_MAX_NUM_BCAST_STATIONS) != eHAL_STATUS_SUCCESS)
         return eHAL_STATUS_FAILURE;
 
@@ -327,7 +312,7 @@ halBmu_Start(
 
     bmu_init_bd_pdu_threshold(pMac, bdPduExchangeable) ;
 
-    halBmu_InitIntHanlder(pMac);
+    halBmu_InitIntHandler(pMac);
 
     /** Initialize the BMU BD/PDU Dynamic Threshold Change Flag.*/
     pMac->hal.halMac.halDynamicBdPduEnabled = eANI_BOOLEAN_TRUE;
@@ -708,9 +693,12 @@ bmu_init_error_interrupt(
     // in AP mode this interrupt shows up right away when station is in UAPSD mode and AP is set to send out
     // QoS null Rsp frame in response to trigger frame received when all the delivery enabled queues are empty.
     // HW team thinks that this is a warning and we can disable it. 
+    //Disable _TPE_INTERACTION_ERR because as per HW folks when this interrupt occurs TPE goes to idle state
+    //and BMU goes to idle state and then they resume normal operation. So it is safe to MASK this interrupt
     value = 0;
     halReadRegister(pMac, QWLAN_BMU_BTQM_ERR_ENABLE_REG, &value);
-    value &= ~QWLAN_BMU_BTQM_ERR_ENABLE_UNEXPECTED_ARBITER_RESULT_WARNING_MASK;
+    value &= ~(QWLAN_BMU_BTQM_ERR_ENABLE_UNEXPECTED_ARBITER_RESULT_WARNING_MASK
+               | QWLAN_BMU_BTQM_ERR_ENABLE_TPE_INTERACTION_ERR_ENABLE_MASK);
     halWriteRegister(pMac, QWLAN_BMU_BTQM_ERR_ENABLE_REG, value);
 #endif
 
@@ -786,9 +774,7 @@ bmu_init_bd_pdu_threshold(
     }
     
     FRAME_ADU_BATCH_COMMAND ( (tANI_U32 *)values, (thrInfo[0].thrRegAddr | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), regCount ); 
-    if (pMac->gDriverType != eDRIVER_TYPE_MFG) {
     halRegBckup_Memory(pMac, values, (regCount * sizeof(tANI_U32)) + sizeof(tAduBatchCommandType)); 
-    }
     palFreeMemory(pMac->hHdd, values);
 }
 #endif /* ADU_MEM_OPT_ENABLED */
@@ -916,10 +902,10 @@ static eHalStatus bmu_fast_init_wq0_bd_idle_list(tpAniSirGlobal pMac,
     do
     {
         halReadRegister(pMac, QWLAN_BMU_FAST_BD_LINK_SETUP_CONTROL_REG, &fastSetStatus);
-    	if(loop > BMU_REG_POLLING_WARNING){
-	    	HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU fast BD link setup register for %d times %d!!!\n"),loop));
-	    }
-		loop++;
+        if(loop > BMU_REG_POLLING_WARNING){
+            HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU fast BD link setup register for %d times %d!!!\n"),loop));
+        }
+        loop++;
     }while(fastSetStatus & QWLAN_BMU_FAST_BD_LINK_SETUP_CONTROL_BD_LINK_LIST_CREATION_STATUS_MASK);
 
     /** Set the last BD index point to NULL */
@@ -935,17 +921,17 @@ static eHalStatus bmu_fast_init_wq0_bd_idle_list(tpAniSirGlobal pMac,
     HALLOGW( halLog( pMac, LOGW, FL(": Register BMU_AVAILABLE_BD_PDU_AFTER_RSV_REG Read Available BDs = %d \n"),  availBDs1 ));
 
 #ifdef DYNAMIC_RECORD
-	// Start recording register writes
-	halRegBckup_StartRecord(pMac, (HAL_REG_RSVD_BIT|HAL_REG_HOST_FILLED));
+    // Start recording register writes
+    halRegBckup_StartRecord(pMac, (HAL_REG_RSVD_BIT|HAL_REG_HOST_FILLED));
 #endif
-	
+
     /** Updating the BMU WQ Head/Tail/NR commands */
     bmu_set_wq_head_tail_nr(pMac, BMUWQ_BMU_IDLE_BD, startIndex,
                                 *tailBdIndex, availBDs);
 
 #ifdef DYNAMIC_RECORD
-	// Start recording register writes
-	halRegBckup_StopRecord(pMac);
+    // Start recording register writes
+    halRegBckup_StopRecord(pMac);
 #endif
 
     return eHAL_STATUS_SUCCESS;
@@ -1315,7 +1301,7 @@ bmu_set_wq_head_tail_nr(tpAniSirGlobal pMac, tANI_U32 wqIndex, tANI_U32 head, tA
 
 static eHalStatus halBmu_tx_queue_staid_qid_config(tpAniSirGlobal pMac,  tANI_U32 maxStaid, tANI_U32 maxQid, tANI_U32 maxBssStaIds)
 {
-    tANI_U32	value = 0;
+    tANI_U32    value = 0;
 
 #ifdef WLAN_SOFTAP_FEATURE
     halWriteRegister(pMac, QWLAN_BMU_TX_QUEUE_STAID_QUEUEID_CONFIG_REG,
@@ -1338,7 +1324,7 @@ static eHalStatus halBmu_tx_queue_staid_qid_config(tpAniSirGlobal pMac,  tANI_U3
                 (maxQid << QWLAN_BMU_TX_QUEUE_STAID_QUEUEID_CONFIG_MAX_VALID_QUEUEID_OFFSET))
                 != eHAL_STATUS_SUCCESS)
             return eHAL_STATUS_FAILURE;
-	} else if ((systemRole == eSYSTEM_AP_ROLE) ||
+    } else if ((systemRole == eSYSTEM_AP_ROLE) ||
                 (systemRole == eSYSTEM_STA_IN_IBSS_ROLE) ||
                 (systemRole == eSYSTEM_BTAMP_STA_ROLE) ||
                 (systemRole == eSYSTEM_BTAMP_AP_ROLE)) {
@@ -1557,13 +1543,21 @@ static eHalStatus halBmu_btqm_init_control1_register(tpAniSirGlobal pMac, tANI_U
  */
 eHalStatus halBmu_sta_enable_disable_control(tpAniSirGlobal pMac, tANI_U32 staId, tANI_U32 staCfgCmd)
 {
-    tANI_U32 value;
-    tANI_U32 count = 0;
+
+#ifndef WLAN_FW_BTQM_STA_MGMT
+    tANI_U32 value, count=0;
     eHalStatus status = eHAL_STATUS_SUCCESS;
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only enable/disable "hard" STAs
+    if (!(IS_HWSTA_IDX(staId)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
 
     /** Set the staId and configuration command */
     value = (staCfgCmd << QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_STA_CONFIGURATION_COMMAND_OFFSET) |
         (staId << QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_STAID_OFFSET);
+
 
     halWriteRegister(pMac, QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_REG,
             value );
@@ -1577,14 +1571,17 @@ eHalStatus halBmu_sta_enable_disable_control(tpAniSirGlobal pMac, tANI_U32 staId
         {
              VOS_ASSERT(0);
              VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, 
-			 	"%s Polled BTQM_STA_ENABLE_DISABLE_CONTROL_REG  register %d times", __func__, count);
+			 	"%s Polled BTQM_STA_ENABLE_DISABLE_CONTROL_REG  register %d times", __FUNCTION__, count);
              break;
         }
-    	if(count > BMU_REG_POLLING_WARNING){
+        if(count > BMU_REG_POLLING_WARNING){
 	    	HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU STA en/disable register for %d times %d!!!\n"), count));
 	    }
-		count++;
+        //Why is the count increment twice?
+        count++;
     } while ((value & QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_STA_UPDATE_STATUS_MASK));
+
+#endif // WLAN_FW_BTQM_STA_MGMT
 
     (void)halTable_SetStaTxConfig(pMac, staId, staCfgCmd);
 
@@ -1608,6 +1605,7 @@ eHalStatus halIntBMUErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
     tANI_U32 intBMUErrAddr;
     tANI_U32 intBMUErrWData;
     tANI_U32 btqmErrStatus;
+    tANI_U32 btqmTpeErrStatus;
 #ifdef WLAN_HAL_VOLANS
     tANI_U32 pBd = 0;
     void*    tempBuff = 0;
@@ -1655,6 +1653,12 @@ eHalStatus halIntBMUErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
         VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "BMU FATAL Error Interrupt Status %x, enable %x, Address %x, WData %x, btqmErrStatus %x\n", 
                 intRegStatus, intRegMask, intBMUErrAddr, intBMUErrWData, btqmErrStatus);
 
+        /** Display BTQM_TPE_INT_STATS when tpe_interaction bit is set to assist debugging */
+        if(btqmErrStatus & QWLAN_BMU_BTQM_ERR_STATUS_TPE_INTERACTION_ERR_MASK) {
+            halReadRegister(pMac, QWLAN_BMU_BTQM_TPE_INT_STATS_REG, &btqmTpeErrStatus);
+            VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "BTQM TPE Intr Status = 0x%08x\n", btqmTpeErrStatus);
+        }
+        
 #ifdef BMU_ERR_DEBUG
         halReadRegister(pMac, QWLAN_BMU_BTQM_ERR_STATUS_REG, &value);
         HALLOGE(halLog(pMac, LOGE, FL("BTQM Err = 0x%08x"), value));
@@ -1692,6 +1696,7 @@ eHalStatus halIntBMUErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
         {
 			halReadDeviceMemory(pMac, pBd, tempBuff, HAL_BD_SIZE);
         	sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGE, tempBuff, HAL_BD_SIZE);
+            vos_mem_free((v_VOID_t*)tempBuff);
         }
 #endif
         macSysResetReq(pMac, eSIR_BMU_EXCEPTION);
@@ -1758,6 +1763,17 @@ static eHalStatus halBmu_InitControl2Reg(tpAniSirGlobal pMac, tANI_U32 mask)
     return eHAL_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+
+// Just in case the FIXME_VOLANS code is ever looked at, it should
+// be noted that with VSTA support that the STA WQ status for all
+// STAs is not available directly from the BMU since the status of
+// Virtual STAs is only maintained by Firmware.  If this functionality
+// is ever needed, an appropriate Firmware API will need to be defined
+// to replace halBmu_GetStaWqStatus()
+
+#else // WLAN_SOFTAP_VSTA_FEATURE
+
 eHalStatus halBmu_GetStaWqStatus(tpAniSirGlobal pMac, tpBmuStaQueueData pStaQueueData)
 {
 #ifdef FIXME_VOLANS
@@ -1806,6 +1822,7 @@ eHalStatus halBmu_GetStaWqStatus(tpAniSirGlobal pMac, tpBmuStaQueueData pStaQueu
 #endif /* FIXME_VOLANS */
     return eHAL_STATUS_SUCCESS;
 }
+#endif // WLAN_SOFTAP_VSTA_FEATURE
 
 #ifdef WLAN_SOFTAP_FEATURE
 
@@ -1816,10 +1833,12 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
                                  tANI_U8 maxSPLen, tANI_U8 updateUapsdOnly)
 {
     tpStaStruct pSta;     
+    tANI_U8  allAcMask;
+#ifndef WLAN_FW_BTQM_STA_MGMT
     tANI_U32 mask = 0;
     tANI_U16 delEnbQidMask=0;
     tANI_U16 trigEnbQidMask=0;
-    tANI_U8  allAcMask;
+#endif    
 
     if(staIdx > HAL_NUM_STA)
         return;
@@ -1828,11 +1847,13 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
         return;
 
     HALLOGE( halLog(pMac, LOGE, FL("uapsdACMask = 0x%x"), uapsdACMask));
-    allAcMask = (HAL_APSD_AC_BE_MASK | HAL_APSD_AC_BK_MASK | HAL_APSD_AC_VI_MASK | HAL_APSD_AC_VO_MASK);    
+    allAcMask = (HAL_APSD_AC_BE_MASK | HAL_APSD_AC_BK_MASK | HAL_APSD_AC_VI_MASK | HAL_APSD_AC_VO_MASK);
+
     halBmu_sta_enable_disable_control(pMac, staIdx, eBMU_ENB_TX_QUE_DONOT_ENB_TRANS);
     
     if (pSta->staType == STA_ENTRY_PEER)
     {
+#ifndef WLAN_FW_BTQM_STA_MGMT
         if(!updateUapsdOnly)
         {
             halBmu_btqmStaClearState(pMac, staIdx);    
@@ -1890,15 +1911,36 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
 
         halBmu_StaCfgForPM(pMac, staIdx, mask, delEnbQidMask, trigEnbQidMask);
         
+#else
+        if (uapsdACMask)
+        {
+            pSta->delEnbQidMask  = halBmu_getQidMask((uapsdACMask & allAcMask));
+            pSta->trigEnbQidMask = halBmu_getQidMask(((uapsdACMask) >> 4) & allAcMask);
+            pSta-> maxSPLen = maxSPLen;
+
+            if ((uapsdACMask & allAcMask) == allAcMask)
+            {
+                pSta->delEnbQidMask |= ((1 << BTQM_QID8) | (1 << BTQM_QID9) | (1 << BTQM_QID10));
+            }
+
+        }
+#endif 
     }
     halBmu_sta_enable_disable_control(pMac, staIdx, eBMU_ENB_TX_QUE_ENB_TRANS);        
 }
 
+#ifndef WLAN_FW_BTQM_STA_MGMT
 //clears station state without changing the station enable and txenable state.
 void halBmu_btqmStaClearState(tpAniSirGlobal pMac, tANI_U8 staIdx)
 {
     tANI_U32     value = 0;
     
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
     value = staIdx & ~QWLAN_BMU_STA_CONFIG_STATUS1_STA_CONFIG_UPDATE_MASK;
 
     /** Write the staidx and update mask values */
@@ -1929,11 +1971,17 @@ void halBmu_btqmStaClearState(tpAniSirGlobal pMac, tANI_U8 staIdx)
     } while ((value & QWLAN_BMU_STA_CONFIG_STATUS1_READ_WRITE_STATUS_MASK));
 }
 #endif
+#endif
 
 eHalStatus halBmu_btqmStaTxWqStatus(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U32 *pbmuBtqmStaQueues)
 {
     tANI_U32     value = 0, count=0;
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
 
     value = staIdx & ~QWLAN_BMU_STA_CONFIG_STATUS1_STA_CONFIG_UPDATE_MASK;
 
@@ -1944,9 +1992,9 @@ eHalStatus halBmu_btqmStaTxWqStatus(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U3
     do {
 
         halReadRegister(pMac, QWLAN_BMU_STA_CONFIG_STATUS1_REG, &value);
-    	if(count > BMU_REG_POLLING_WARNING){
-	    	HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU STA cfg register for %d times %d!!!\n"), count));
-	    }
+        if(count > BMU_REG_POLLING_WARNING){
+            HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU STA cfg register for %d times %d!!!\n"), count));
+        }
         count++;
 
     } while ((value & QWLAN_BMU_STA_CONFIG_STATUS1_READ_WRITE_STATUS_MASK));
@@ -1960,9 +2008,16 @@ eHalStatus halBmu_btqmStaTxWqStatus(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U3
 }
 
 
+#ifndef WLAN_FW_BTQM_STA_MGMT
 void halBmu_StaCfgForPM(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 mask, tANI_U16 delEnbQIdMask, tANI_U16 trigEnbQIdMask)
 {
     tANI_U32     value = 0, count=0;
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
 
     value = staIdx & ~QWLAN_BMU_STA_CONFIG_STATUS1_STA_CONFIG_UPDATE_MASK;
 
@@ -1974,9 +2029,9 @@ void halBmu_StaCfgForPM(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 mask, tAN
     do {
 
         halReadRegister(pMac, QWLAN_BMU_STA_CONFIG_STATUS1_REG, &value);
-    	if(count > BMU_REG_POLLING_WARNING){
-	    	HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU STA CONFIG register for %d times %d!!!\n"), count));
-	    }
+        if(count > BMU_REG_POLLING_WARNING){
+            HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU STA CONFIG register for %d times %d!!!\n"), count));
+        }
         count++;
     } while ((value & QWLAN_BMU_STA_CONFIG_STATUS1_READ_WRITE_STATUS_MASK));
 
@@ -2007,13 +2062,13 @@ void halBmu_StaCfgForPM(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 mask, tAN
     do {
 
         halReadRegister(pMac, QWLAN_BMU_STA_CONFIG_STATUS1_REG, &value);
-    	if(count > BMU_REG_POLLING_WARNING){
-	    	HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU STA config register for %d times %d!!!\n"), count));
-	    }
+        if(count > BMU_REG_POLLING_WARNING){
+            HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU STA config register for %d times %d!!!\n"), count));
+        }
         count++;
     } while ((value & QWLAN_BMU_STA_CONFIG_STATUS1_READ_WRITE_STATUS_MASK));
 }
-
+#endif
 
 tANI_U16 halBmu_getQidMask(tANI_U8 acAPSDflag)
 {
@@ -2051,6 +2106,12 @@ eHalStatus halBmu_ConfigureToSendBAR(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U
 {
     tANI_U32 value, count = 0;
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
     value = (staIdx << QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL1_STAID_OFFSET) |
             (queueId << QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL1_QUEUEID_OFFSET);
 
@@ -2066,10 +2127,10 @@ eHalStatus halBmu_ConfigureToSendBAR(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U
 #endif //CONFIGURE_SW_TEMPLATE
 
     /* Enable the read operation to avoid writing any unexpected values 
-	   into the BTQM queue information (head/tail/nrframes)*/
-	/* And also set queue bar indication bit for BMU to transmit the BAR */    
-	value |= (QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_SET_QUEUE_BAR_INDICATION_MASK | 
-		      QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_READ_WRITE_CONTROL_MASK);
+       into the BTQM queue information (head/tail/nrframes)*/
+    /* And also set queue bar indication bit for BMU to transmit the BAR */    
+    value |= (QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_SET_QUEUE_BAR_INDICATION_MASK | 
+              QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_READ_WRITE_CONTROL_MASK);
 
     /** Write the staidx and queueId */
     halWriteRegister(pMac, QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_REG, value);
@@ -2077,10 +2138,10 @@ eHalStatus halBmu_ConfigureToSendBAR(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U
     /** Poll on write access to complete */
     do {
         halReadRegister(pMac, QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_REG, &value);
-    	if(count > BMU_REG_POLLING_WARNING){
-	    	HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU transmit Q register for %d times %d!!!\n"), count));
-	    }
-		count ++;
+        if(count > BMU_REG_POLLING_WARNING){
+            HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU transmit Q register for %d times %d!!!\n"), count));
+        }
+        count ++;
     } while (!(value & QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_ACCESS_DONE_MASK));
 
     return eHAL_STATUS_SUCCESS;
@@ -2097,6 +2158,12 @@ eHalStatus halBmu_ReadBtqmQFrmInfo(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 
     eHalStatus status = eHAL_STATUS_FAILURE;
     tANI_U32 regValue = 0;
     tANI_U8  dataBkoffStalled = FALSE;
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only access "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
 
 #ifdef BMU_FATAL_ERROR
     if (halBmu_getBtqmQueueStatus(pMac, staIdx, &bmuBtqmStaQueues) != eHAL_STATUS_SUCCESS)
@@ -2132,9 +2199,9 @@ eHalStatus halBmu_ReadBtqmQFrmInfo(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 
     do {
         halReadRegister(pMac, QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_REG, &value);
         vos_busy_wait(10);        
-		if(count > BMU_REG_POLLING_WARNING){
-			HALLOGE( halLog(pMac, LOGE, FL("Polled BTQM STA %d transmit Q register for %d times !!!\n"), staIdx, count));
-		}
+        if(count > BMU_REG_POLLING_WARNING){
+            HALLOGE( halLog(pMac, LOGE, FL("Polled BTQM STA %d transmit Q register for %d times !!!\n"), staIdx, count));
+        }
         count++;
     } while (!(value & QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL4_ACCESS_DONE_MASK));
 
@@ -2186,9 +2253,9 @@ eHalStatus halBmu_ReadBdInfo(tpAniSirGlobal pMac, tANI_U32 bdIdx, tpBmuBtqmBdInf
     /** Poll on write access to complete */
     do {
         halReadRegister(pMac, QWLAN_BMU_BD_INDEX_INFO_ACCESS_CONTROL1_REG, &value);
-	if(count > BMU_REG_POLLING_WARNING){
-		HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU BD index %d info register for %d times %d!!!\n"), bdIdx, count));
-	}
+        if(count > BMU_REG_POLLING_WARNING){
+            HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU BD index %d info register for %d times %d!!!\n"), bdIdx, count));
+        }
         count++;
     } while ((value & QWLAN_BMU_BD_INDEX_INFO_ACCESS_CONTROL1_BD_INDEX_INFO_ACCESS_STATUS_MASK));
 
@@ -2220,7 +2287,7 @@ eHalStatus halBmu_ReadBdInfo(tpAniSirGlobal pMac, tANI_U32 bdIdx, tpBmuBtqmBdInf
 }
 
 
-static eHalStatus halBmu_InitIntHanlder(tpAniSirGlobal pMac)
+static eHalStatus halBmu_InitIntHandler(tpAniSirGlobal pMac)
 {
     tHalHandle hHal = (tHalHandle)pMac;
     tANI_U32 value;
@@ -2397,6 +2464,12 @@ eHalStatus halBmu_BckupBtqmStaConfig(tpAniSirGlobal pMac, tANI_U32 *pAddr)
             continue;
         }
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+        // we can only backup "hard" STAs
+        if (!(IS_HWSTA_IDX(staId)))
+            continue;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
         // Write the register address
         value = QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED;
         halWriteDeviceMemory(pMac, 
@@ -2446,8 +2519,14 @@ eHalStatus halBmu_getBtqmQueueStatus(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U
     tANI_U32     value = 0;
     tANI_U32     count = 0;
 
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+    // we can only enable/disable "hard" STAs
+    if (!(IS_HWSTA_IDX(staIdx)))
+        return eHAL_STATUS_FAILURE;
+#endif //WLAN_SOFTAP_VSTA_FEATURE
+
     value = staIdx & ~QWLAN_BMU_STA_CONFIG_STATUS1_STA_CONFIG_UPDATE_MASK;
-	
+
     /** Write the staidx and update mask values */
     halWriteRegister(pMac, QWLAN_BMU_STA_CONFIG_STATUS1_REG, value);
 

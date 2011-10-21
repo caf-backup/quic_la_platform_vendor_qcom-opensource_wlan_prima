@@ -67,6 +67,21 @@ typedef struct sGenericQosCmd
     v_U8_t tspec_mask;
 } tGenericQosCmd;
 
+#ifdef WLAN_FEATURE_P2P
+typedef struct sRemainChlCmd
+{
+    tANI_U8 chn;
+    tANI_U32 duration;
+    void* callback;
+    void* callbackCtx;
+}tRemainChlCmd;
+
+typedef struct sNoACmd
+{
+    tP2pPsConfig NoA;
+} tNoACmd;
+#endif
+
 typedef struct tagSmeCmd
 {
     tListElem Link;
@@ -84,6 +99,11 @@ typedef struct tagSmeCmd
 #ifdef FEATURE_INNAV_SUPPORT
 		tMeasCmd measCmd;
 #endif
+#ifdef WLAN_FEATURE_P2P
+        tRemainChlCmd remainChlCmd;
+#endif
+        tAddStaForSessionCmd addStaSessionCmd;
+        tDelStaForSessionCmd delStaSessionCmd;
     }u;
 }tSmeCmd;
 
@@ -99,6 +119,7 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac );
 void smePushCommand( tpAniSirGlobal pMac, tSmeCmd *pCmd, tANI_BOOLEAN fHighPriority );
 void smeProcessPendingQueue( tpAniSirGlobal pMac );
 void smeReleaseCommand(tpAniSirGlobal pMac, tSmeCmd *pCmd);
+void purgeSmeSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId);
 tANI_BOOLEAN smeCommandPending(tpAniSirGlobal pMac);
 tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 //this function is used to abort a command where the normal processing of the command
@@ -132,5 +153,9 @@ eHalStatus sme_ReleaseGlobalLock( tSmeStruct *psSme);
 eHalStatus measProcessInNavMeasCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 #endif
 
+eHalStatus csrProcessAddStaSessionCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
+eHalStatus csrProcessAddStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg);
+eHalStatus csrProcessDelStaSessionCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
+eHalStatus csrProcessDelStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg);
 
 #endif //#if !defined( __SMEINSIDE_H )

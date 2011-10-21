@@ -1168,10 +1168,10 @@ void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 
     if(psessionEntry == NULL)
     {
-      PELOGE(limLog(pMac, LOGE,FL("Session does Not exist with given sessionId :%d \n"), pAddTsRspMsg->sessionId);)
-      limSendSmeAddtsRsp(pMac, rspReqd, eSIR_SME_ADDTS_RSP_FAILED, psessionEntry, pAddTsRspMsg->tspec, 
+        PELOGE(limLog(pMac, LOGE,FL("Session does Not exist with given sessionId :%d \n"), pAddTsRspMsg->sessionId);)
+        limSendSmeAddtsRsp(pMac, rspReqd, eSIR_SME_ADDTS_RSP_FAILED, psessionEntry, pAddTsRspMsg->tspec, 
               pMac->lim.gLimAddtsReq.sessionId, pMac->lim.gLimAddtsReq.transactionId);
-      goto end;
+        goto end;
     }
 
     if(pAddTsRspMsg->status == eHAL_STATUS_SUCCESS)

@@ -58,6 +58,10 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "rrmGlobal.h"
 #endif
 
+#ifdef WLAN_FEATURE_P2P
+#include "p2p_Api.h"
+#endif
+
 #if defined WLAN_FEATURE_VOWIFI_11R
 #include <limFTDefs.h>
 #endif
@@ -99,6 +103,11 @@ extern tpAniSirGlobal pMac;
 /* max number of legacy bssid we can store during scan on one channel */
 #define MAX_NUM_LEGACY_BSSID_PER_CHANNEL    10
 
+#if defined WLAN_FEATURE_P2P
+#define P2P_WILDCARD_SSID "DIRECT-" //TODO Put it in proper place;
+#define P2P_WILDCARD_SSID_LEN 7
+#endif
+
 // -------------------------------------------------------------------
 // Change channel generic scheme
 typedef void (*CHANGE_CHANNEL_CALLBACK)(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data,
@@ -128,12 +137,6 @@ typedef struct sLimTimers
 {
     //TIMERS IN LIM ARE NOT SUPPOSED TO BE ZEROED OUT DURING RESET.
     //DURING limInitialize DONOT ZERO THEM OUT.
-
-//AP SPECIFIC TIMERS
-#ifdef ANI_PRODUCT_TYPE_AP
-    // Station related timers on AP
-    TX_TIMER    gLimAIDreleaseTimer;
-#endif
 
 //STA SPECIFIC TIMERS
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
@@ -193,6 +196,11 @@ typedef struct sLimTimers
 #ifdef WLAN_FEATURE_VOWIFI_11R
     TX_TIMER           gLimFTPreAuthRspTimer;
 #endif
+
+#ifdef WLAN_FEATURE_P2P
+    TX_TIMER           gLimRemainOnChannelTimer;
+#endif
+
 //********************TIMER SECTION ENDS**************************************************
 // ALL THE FIELDS BELOW THIS CAN BE ZEROED OUT in limInitialize
 //****************************************************************************************
@@ -290,6 +298,11 @@ typedef struct sAniSirLim
 #ifdef ANI_AP_SDK
     tLimScanDurationConvert gLimScanDurationConvert; /* Used to store converted scan duration values in TU and TICKS */
 #endif /* ANI_AP_SDK */
+
+#ifdef WLAN_FEATURE_P2P
+    // This variable store the total duration to do scan
+    tANI_U32 gTotalScanDuration;
+#endif    
 
     // abort scan is used to abort an on-going scan
     tANI_U8 abortScan;
@@ -398,6 +411,7 @@ typedef struct sAniSirLim
     /// Variable to keep track of number of currently associated STAs
     tANI_U16  gLimNumOfCurrentSTAs;
     tANI_U16  gLimNumOfAniSTAs;      // count of ANI peers
+    tANI_U16  gLimAssocStaLimit;
 
     /// This indicates number of RXed Beacons during HB period
    // tANI_U8    gLimRxedBeaconCntDuringHB;
@@ -661,25 +675,6 @@ typedef struct sAniSirLim
     tANI_U8    *gpLimAIDpool;
     tANI_U8    freeAidHead;
     tANI_U8    freeAidTail;
-
-#ifdef ANI_PRODUCT_TYPE_AP
-    /**
-     * Specifies the AID to be released list.
-     * "tLimAIDtbr" is currently defined inside limAIDMgmt.cc
-     * to free pool.
-     */
-    //    tLimAIDtbr   gLimAIDtbrList[LIM_MAX_NUM_OF_AID];
-    tANI_U8 toBeReleasedHead;
-    tANI_U8 toBeReleasedTail;
-    tANI_U8 numReleasedThisCycle; /* number of Aid released since last timer
-                              * expiry */
-    tANI_U8 numReleasedLastCycle; /* number of Aid released before last timer
-                              * expiry */
-
-    tANI_U8 delayedRelease;
-#endif
-    /// This indicates assigned AID on STA
-    //tANI_U16            gLimAID; oct 10th review
 
     // Current Authentication type used at STA
     //tAniAuthType        gLimCurrentAuthType;
@@ -950,7 +945,23 @@ typedef struct sAniSirLim
     tLimMlmInNavMeasRsp* gpLimMlmInNavMeasRsp;
 #endif
 
+#ifdef WLAN_FEATURE_P2P
+    tSirRemainOnChnReq  *gpLimRemainOnChanReq; //hold remain on chan request in this buf
+    vos_list_t  gLimMgmtFrameRegistratinQueue;
+    tANI_U32    actionFrameSessionId;
+#endif
 } tAniSirLim, *tpAniSirLim;
+
+#ifdef WLAN_FEATURE_P2P
+typedef struct sLimMgmtFrameRegistration
+{
+    vos_list_node_t node;     // MUST be first element
+    tANI_U16        frameType;
+    tANI_U16        matchLen;
+    tANI_U16        sessionId;
+    tANI_U8         matchData[1];
+} tLimMgmtFrameRegistration, *tpLimMgmtFrameRegistration;
+#endif
 
 #if defined WLAN_FEATURE_VOWIFI
 typedef struct sRrmContext
@@ -1028,6 +1039,9 @@ typedef struct sAniSirGlobal
 
 #if defined WLAN_FEATURE_VOWIFI
     tRrmContext rrm;
+#endif
+#ifdef WLAN_FEATURE_P2P
+    tp2pContext p2pContext;
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI_11R

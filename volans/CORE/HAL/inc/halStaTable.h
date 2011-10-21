@@ -81,6 +81,7 @@ typedef struct
 #ifdef WLAN_SOFTAP_FEATURE 
     tANI_U8 defaultKeyId;
 #endif
+    tANI_U8 halBssPersona; //Persona for the BSS can be STA,AP,GO,CLIENT value same as VOS_CON_MODE
 } tBssStruct, * tpBssStruct;
 
 /*
@@ -270,6 +271,13 @@ typedef struct
     //current QID mask for delivery enabled ACs (zero if none or all
     //ACs are delivery enabled)
     tANI_U16 delEnbQidMask;
+
+    //Ref count to keep track how many times the station is added.
+    //Currently used only to keep track of  self sta. Can be later updated for all stations.
+    tANI_U8  refCount;
+    tANI_U16 trigEnbQidMask;  
+
+    tANI_U8  maxSPLen;
 } tStaStruct, *tpStaStruct;
 
 #if defined(ANI_OS_TYPE_LINUX)

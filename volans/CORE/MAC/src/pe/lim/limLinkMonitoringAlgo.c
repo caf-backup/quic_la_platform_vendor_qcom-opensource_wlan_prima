@@ -70,7 +70,7 @@ limSendKeepAliveToPeer(tpAniSirGlobal pMac)
         return;
 
     if ( (limIsSystemInScanState(pMac) == false) &&
-          (pMac->lim.gLimSystemRole == eLIM_AP_ROLE))
+          (psessionEntry->limSystemRole == eLIM_AP_ROLE))
     {
         tANI_U16 i;
         tANI_U32        len = SIR_MAC_MAX_SSID_LENGTH;
@@ -176,7 +176,7 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                 PELOGE(limLog(pMac, LOGE, FL(" Deleting Unkown station \n"));)
                 limPrintMacAddr(pMac, pMsg->addr2, LOGE);
                
-                limSendDeauthMgmtFrame( pMac, eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON, pMsg->addr2, psessionEntry);
+			   limSendDeauthMgmtFrame( pMac, eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON, pMsg->addr2, psessionEntry);
                 break;
 
             default:
@@ -413,8 +413,11 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
 	/** Re Activate Timer if the system is Waiting for ReAssoc Response*/
-	if(((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) || (psessionEntry->limSystemRole == eLIM_STA_ROLE))
-        && (LIM_IS_CONNECTION_ACTIVE(psessionEntry) || (limIsReassocInProgress(pMac, psessionEntry))))
+        if(((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) || 
+            (psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
+            (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) && 
+           (LIM_IS_CONNECTION_ACTIVE(psessionEntry) ||
+            (limIsReassocInProgress(pMac, psessionEntry))))
 	{
 		if(psessionEntry->LimRxedBeaconCntDuringHB < MAX_NO_BEACONS_PER_HEART_BEAT_INTERVAL)
 			pMac->lim.gLimHeartBeatBeaconStats[psessionEntry->LimRxedBeaconCntDuringHB]++;
@@ -455,7 +458,7 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
         /* for searching AP, we don't include any additional IE */
         limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId, psessionEntry->bssId,
                                   psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
-                                  psessionEntry->dot11mode, 0 , NULL);
+                                  psessionEntry->dot11mode, 0, NULL);
 
         //assign the sessionId to the timer object
 

@@ -371,22 +371,22 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         if (pBeacon->erpPresent)
         {
 #ifdef WLAN_SOFTAP_FEATURE
-              if (pBeacon->erpIEInfo.barkerPreambleMode)
-                  limEnableShortPreamble(pMac, false, &beaconParams, psessionEntry);
-              else
-                  limEnableShortPreamble(pMac, true, &beaconParams, psessionEntry);
+			if (pBeacon->erpIEInfo.barkerPreambleMode)
+			  limEnableShortPreamble(pMac, false, &beaconParams, psessionEntry);
+			else
+			  limEnableShortPreamble(pMac, true, &beaconParams, psessionEntry);
 #else
-              if (pBeacon->erpIEInfo.barkerPreambleMode)
-                  limEnableShortPreamble(pMac, false, &beaconParams);
-              else
-                  limEnableShortPreamble(pMac, true, &beaconParams);
+			if (pBeacon->erpIEInfo.barkerPreambleMode)
+			  limEnableShortPreamble(pMac, false, &beaconParams);
+			else
+			  limEnableShortPreamble(pMac, true, &beaconParams);
 #endif
           }
         limUpdateShortSlot(pMac, pBeacon, &beaconParams,psessionEntry);
 
         pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
-        if ((pBeacon->wmeEdcaPresent && (pMac->lim.gLimWmeEnabled)) ||
-             (pBeacon->edcaPresent    && (pMac->lim.gLimQosEnabled)))
+        if ((pBeacon->wmeEdcaPresent && (psessionEntry->limWmeEnabled)) ||
+             (pBeacon->edcaPresent    && (psessionEntry->limQosEnabled)))
         {
             if(pBeacon->edcaParams.qosInfo.count != pMac->sch.schObject.gSchEdcaParamSetCount)
             {
@@ -406,7 +406,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                     PELOGE(limLog(pMac, LOGE, FL("Self Entry missing in Hash Table\n"));)
             }
         }
-        else if( (pBeacon->qosCapabilityPresent && pMac->lim.gLimQosEnabled) &&
+        else if( (pBeacon->qosCapabilityPresent && psessionEntry->limQosEnabled) &&
             (pBeacon->qosCapability.qosInfo.count != pMac->sch.schObject.gSchEdcaParamSetCount))
             sendProbeReq = TRUE;
     }
@@ -428,7 +428,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
              (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
         {
             PELOG1(limLog(pMac, LOG1, FL("Received a beacon without Quiet IE\n"));)
-            limCancelDot11hQuiet(pMac);
+            limCancelDot11hQuiet(pMac, psessionEntry);
         }
 
         /* Channel Switch information element updated */
@@ -439,7 +439,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         }
         else if (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
         {
-            limCancelDot11hChannelSwitch(pMac);
+            limCancelDot11hChannelSwitch(pMac, psessionEntry);
         }   
     }
 #endif
@@ -479,8 +479,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     else
         limReceivedHBHandler(pMac, (tANI_U8)pBeacon->channelNumber, psessionEntry);
 
+    // I don't know if any addtional IE is required here. Currently, not include addIE.
     if(sendProbeReq)
-        // don't need to include additional IE
         limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId,
             psessionEntry->bssId, psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
             psessionEntry->dot11mode, 0, NULL);

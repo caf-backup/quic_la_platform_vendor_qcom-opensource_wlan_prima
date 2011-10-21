@@ -139,6 +139,9 @@
 #endif
 #define SIR_MAC_ACTION_HT              7
 #define SIR_MAC_ACTION_WME            17	
+#if defined WLAN_FEATURE_P2P
+#define SIR_MAC_ACTION_PUBLIC_USAGE 4
+#endif
 
 // QoS management action codes
 
@@ -203,6 +206,11 @@
 #define SIR_MAC_BLKACK_ADD_REQ      0
 #define SIR_MAC_BLKACK_ADD_RSP      1
 #define SIR_MAC_BLKACK_DEL          2
+#if defined WLAN_FEATURE_P2P
+#define SIR_MAC_ACTION_VENDOR_SPECIFIC 9
+#define SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY     0x7F
+#define SIR_MAC_ACTION_P2P_SUBTYPE_PRESENCE_RSP     2
+#endif
 
 #define SIR_MAC_MAX_RANDOM_LENGTH   2306
 
@@ -322,6 +330,9 @@
 #define SIR_MAC_WPA_EID                221
 #define SIR_MAC_WPA_EID_MIN                0
 #define SIR_MAC_WPA_EID_MAX                255
+
+#define SIR_MAC_EID_VENDOR                221
+
 // reserved                            222-254
 #define SIR_MAC_HT_CAPABILITIES_EID    45
 #define SIR_MAC_HT_CAPABILITIES_EID_MIN    0
@@ -343,19 +354,26 @@
 /// Maximum length of each IE
 #define SIR_MAC_RSN_IE_MAX_LENGTH   255
 #define SIR_MAC_WPA_IE_MAX_LENGTH   255
-#define SIR_MAC_WSC_IE_MAX_LENGTH   255 /* see MAX_WSC_IE_LEN */
 /// Minimum length of each IE
 #define SIR_MAC_RSN_IE_MIN_LENGTH   2
 #define SIR_MAC_WPA_IE_MIN_LENGTH   6
-#define SIR_MAC_WSC_IE_MIN_LENGTH   4 
 
 #define SIR_MAC_OUI_VERSION_1         1
 
 // OUI and type definition for WPA IE in network byte order
 #define SIR_MAC_WPA_OUI             0x01F25000
 #define SIR_MAC_WME_OUI             0x02F25000
-#define SIR_MAC_WPS_OUI             0x04F25000
 #define SIR_MAC_WSM_OUI             SIR_MAC_WME_OUI
+#define SIR_MAC_WSC_OUI             "\x00\x50\xf2\x04"
+#define SIR_MAC_WSC_OUI_SIZE        4
+#ifdef WLAN_FEATURE_P2P
+#define SIR_MAC_P2P_OUI             "\x50\x6f\x9a\x09"
+#define SIR_MAC_P2P_OUI_SIZE        4
+#define SIR_P2P_NOA_ATTR            12
+#define SIR_MAX_NOA_ATTR_LEN        31
+#define SIR_MAX_NOA_DESCR           2
+#define SIR_P2P_IE_HEADER_LEN       6
+#endif
 
 // min size of wme oui header: oui(3) + type + subtype + version
 #define SIR_MAC_OUI_WME_HDR_MIN       6
@@ -938,15 +956,6 @@ typedef __ani_attr_pre_packed struct sSirMacSSid
     tANI_U8        ssId[32];
 } __ani_attr_packed tSirMacSSid;
 
-/**************** QNE updated - BEGIN **********************/
-typedef __ani_attr_pre_packed struct sSirMacWscInfo
-{
-    tANI_U8         present;
-    tANI_U8         wpsVersion;
-    tANI_U8         wpsRequestType;
-} __ani_attr_packed tSirMacWscInfo, tpSirMacWscInfo;
-/**************** QNE updated - END   **********************/
-
 typedef __ani_attr_pre_packed struct sSirMacWpaInfo
 {
     tANI_U8        length;
@@ -1514,6 +1523,58 @@ typedef enum eSirMacHTChannelWidth
     eHT_CHANNEL_WIDTH_40MHZ = 1
 } tSirMacHTChannelWidth;
 
+//Packet struct for HT capability
+typedef VOS_PACK_PRE struct sHtCaps {
+    tANI_U16     advCodingCap: 1;
+    tANI_U16 supportedChannelWidthSet: 1;
+    tANI_U16    mimoPowerSave: 2;
+    tANI_U16       greenField: 1;
+    tANI_U16     shortGI20MHz: 1;
+    tANI_U16     shortGI40MHz: 1;
+    tANI_U16           txSTBC: 1;
+    tANI_U16           rxSTBC: 2;
+    tANI_U16        delayedBA: 1;
+    tANI_U16 maximalAMSDUsize: 1;
+    tANI_U16 dsssCckMode40MHz: 1;
+    tANI_U16             psmp: 1;
+    tANI_U16 stbcControlFrame: 1;
+    tANI_U16 lsigTXOPProtection: 1;
+    tANI_U8 maxRxAMPDUFactor: 2;
+    tANI_U8      mpduDensity: 3;
+    tANI_U8        reserved1: 3;
+    tANI_U8      supportedMCSSet[16];
+    tANI_U16              pco: 1;
+    tANI_U16   transitionTime: 2;
+    tANI_U16        reserved2: 5;
+    tANI_U16      mcsFeedback: 2;
+    tANI_U16        reserved3: 6;
+    tANI_U32             txBF: 1;
+    tANI_U32 rxStaggeredSounding: 1;
+    tANI_U32 txStaggeredSounding: 1;
+    tANI_U32            rxZLF: 1;
+    tANI_U32            txZLF: 1;
+    tANI_U32     implicitTxBF: 1;
+    tANI_U32      calibration: 2;
+    tANI_U32  explicitCSITxBF: 1;
+    tANI_U32 explicitUncompressedSteeringMatrix: 1;
+    tANI_U32 explicitBFCSIFeedback: 3;
+    tANI_U32 explicitUncompressedSteeringMatrixFeedback: 3;
+    tANI_U32 explicitCompressedSteeringMatrixFeedback: 3;
+    tANI_U32 csiNumBFAntennae: 2;
+    tANI_U32 uncompressedSteeringMatrixBFAntennae: 2;
+    tANI_U32 compressedSteeringMatrixBFAntennae: 2;
+    tANI_U32        reserved4: 7;
+    tANI_U8 antennaSelection: 1;
+    tANI_U8 explicitCSIFeedbackTx: 1;
+    tANI_U8 antennaIndicesFeedbackTx: 1;
+    tANI_U8 explicitCSIFeedback: 1;
+    tANI_U8 antennaIndicesFeedback: 1;
+    tANI_U8             rxAS: 1;
+    tANI_U8  txSoundingPPDUs: 1;
+    tANI_U8        reserved5: 1;
+
+} VOS_PACK_POST tHtCaps;
+
 
 /* During 11h channel switch, the AP can indicate if the
  * STA needs to stop the transmission or continue until the 
@@ -2041,6 +2102,27 @@ typedef __ani_attr_pre_packed struct sSirMacActionFrameHdr
     tANI_U8    category;
     tANI_U8    actionID;
 } __ani_attr_packed tSirMacActionFrameHdr, *tpSirMacActionFrameHdr;
+
+#if defined WLAN_FEATURE_P2P
+typedef __ani_attr_pre_packed struct sSirMacVendorSpecificPublicActionFrameHdr
+{
+    tANI_U8    category;
+    tANI_U8    actionID;
+    tANI_U8    Oui[4];
+    tANI_U8    OuiSubType;
+    tANI_U8    dialogToken;
+} __ani_attr_packed tSirMacVendorSpecificPublicActionFrameHdr, *tpSirMacVendorSpecificPublicActionFrameHdr;
+
+typedef __ani_attr_pre_packed struct sSirMacP2PActionFrameHdr
+{
+    tANI_U8    category;
+    tANI_U8    Oui[4];
+    tANI_U8    OuiSubType;
+    tANI_U8    dialogToken;
+} __ani_attr_packed tSirMacP2PActionFrameHdr, *tpSirMacP2PActionFrameHdr;
+
+
+#endif
 
 typedef  struct sSirMacMeasActionFrameHdr
 {

@@ -499,25 +499,6 @@ VOS_STATUS WLANSAL_SetCardStatusNotfPath
    WLANSAL_NOTF_PATH_T   path
 );
 
-/*----------------------------------------------------------------------------
-
-   @brief Reinitialize LIBRA's SDIO core
-          Deep sleep status is same with turn off power
-          So, standard SDIO init procedure is needed
-
-   @param v_PVOID_t pAdapter
-        Global adapter handle
-
-   @return General status code
-        VOS_STATUS_SUCCESS       Update success
-        VOS_STATUS_E_RESOURCES   SAL resources are not ready
-        VOS_STATUS_E_INVAL       Invalid argument
-      
-----------------------------------------------------------------------------*/
-VOS_STATUS WLANSAL_SDIOReInit
-(
-   v_PVOID_t             pAdapter
-);
 
 /*----------------------------------------------------------------------------
 
@@ -539,10 +520,14 @@ v_BOOL_t WLANSAL_IsSDHCSupportDeepSleep
    v_PVOID_t             pAdapter
 );
 
+
+#ifdef VOLANS_1_0_WORKAROUND
 /*----------------------------------------------------------------------------
 
-   @brief API exported from SAL to set the SD clock frequency. This needs to 
-          have the libra_sdio_set_clock API exported from librasdioif driver and          mmc_set_clock API exported from the kernel
+   @brief API exported from SAL to set the SD clock frequency.
+   
+   @param v_PVOID_t pAdater
+        Global adapter handle
    @param hz - Frequency to be set
    
    @return void
@@ -553,6 +538,7 @@ void WLANSAL_SetSDIOClock
     v_PVOID_t    pAdapter,
     v_UINT_t     hz
 );
+#endif //#ifdef VOLANS_1_0_WORKAROUND
 
 /*----------------------------------------------------------------------------
 
@@ -573,5 +559,6 @@ void WLANSAL_GetSDIOCardId
 #ifdef __cplusplus
 }
 #endif
+
 #endif /* WLAN_QCT_SAL_H */
 

@@ -6721,6 +6721,7 @@ static void sme_QosInitACs(tpAniSirGlobal pMac, v_U8_t sessionId)
       sme_QosStateTransition(sessionId, ac, SME_QOS_INIT);
    }
 }
+
 static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
                                         tCsrRoamModifyProfileFields *pModFields,
                                         v_BOOL_t fForce )
@@ -6757,6 +6758,7 @@ static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
    }
    return status;
 }
+
 static v_U32_t sme_QosAssignFlowId(void)
 {
    v_U32_t flowId;

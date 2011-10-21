@@ -42,6 +42,8 @@ typedef enum eSmeCommandType
     eSmeCommandWmStatusChange, 
     eSmeCommandSetKey,
     eSmeCommandRemoveKey,
+    eSmeCommandAddStaSession,
+    eSmeCommandDelStaSession,
     //PMC
     eSmePmcCommandMask = 0x20000, //To identify PMC commands
     eSmeCommandEnterImps,
@@ -59,6 +61,10 @@ typedef enum eSmeCommandType
     eSmeCommandDelTs,
 #ifdef FEATURE_INNAV_SUPPORT
 	eSmeCommandMeas = 0x50000, //To identify the InNav meas commands
+#endif
+#ifdef WLAN_FEATURE_P2P
+    eSmeCommandRemainOnChannel,
+    eSmeCommandNoAUpdate,
 #endif
 } eSmeCommandType;
 
