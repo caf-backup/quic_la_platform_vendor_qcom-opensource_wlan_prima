@@ -228,7 +228,11 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   WDI_ProcessSetPreferredNetworkReq,  /* WDI_SET_PREF_NETWORK_REQ */
   WDI_ProcessSetRssiFilterReq,        /* WDI_SET_RSSI_FILTER_REQ */
   WDI_ProcessUpdateScanParamsReq,     /* WDI_UPDATE_SCAN_PARAMS_REQ */
-#endif /* WLAN_FEATURE_VOWIFI_11R */
+#else
+  NULL,
+  NULL,
+  NULL,
+#endif /* FEATURE_WLAN_SCAN_PNO */
 
   WDI_ProcessSetTxPerTrackingReq,     /* WDI_SET_TX_PER_TRACKING_REQ  */
   
