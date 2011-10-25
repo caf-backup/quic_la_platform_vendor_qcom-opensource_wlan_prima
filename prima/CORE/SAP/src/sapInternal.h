@@ -81,6 +81,9 @@ when           who        what, where, why
 //MAC Address length
 #define ANI_EAPOL_KEY_RSN_NONCE_SIZE      32
 
+extern sRegulatoryChannel *regChannels;
+extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
+
 /*----------------------------------------------------------------------------
  *  Typedefs
  * -------------------------------------------------------------------------*/

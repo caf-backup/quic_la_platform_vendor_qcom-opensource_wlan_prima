@@ -17639,12 +17639,15 @@ WDI_DetectedDeviceError
   wpalMutexRelease(&pWDICtx->wptMutex);
 
   /*------------------------------------------------------------------------
-    Notify UMAC
+    Notify UMAC if a handler is registered
   ------------------------------------------------------------------------*/
-  wdiInd.wdiIndicationType             = WDI_FATAL_ERROR_IND; 
-  wdiInd.wdiIndicationData.usErrorCode = usErrorCode; 
+  if (pWDICtx->wdiLowLevelIndCB)
+  {
+     wdiInd.wdiIndicationType             = WDI_FATAL_ERROR_IND; 
+     wdiInd.wdiIndicationData.usErrorCode = usErrorCode; 
 
-  pWDICtx->wdiLowLevelIndCB( &wdiInd,  pWDICtx->pIndUserData);
+     pWDICtx->wdiLowLevelIndCB( &wdiInd,  pWDICtx->pIndUserData);
+  }
 }/*WDI_DetectedDeviceError*/
 
 /**

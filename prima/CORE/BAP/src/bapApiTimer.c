@@ -604,7 +604,7 @@ WLANBAP_LinkSupervisionTimerHandler
     VOS_STATUS               vosStatus =      VOS_STATUS_SUCCESS;
     ptBtampHandle            btampHandle =    (ptBtampHandle)userData;
     tWLAN_BAPEvent           bapEvent; /* State machine event */
-    v_U8_t                   phy_link_handle = pBtampCtx->phy_link_handle;
+    v_U8_t                   phy_link_handle;
 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
@@ -619,6 +619,7 @@ WLANBAP_LinkSupervisionTimerHandler
        return; 
     }
 
+    phy_link_handle = pBtampCtx->phy_link_handle;
      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "WLAN BAP:In LinkSupervision Timer handler %s", __FILE__ );
 

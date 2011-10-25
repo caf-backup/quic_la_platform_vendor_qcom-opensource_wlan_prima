@@ -512,9 +512,20 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     
     ENTER();
 
-   hddLog(LOGW,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
+    hddLog(LOGW,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
            " returned status = %d", __FUNCTION__, halHandle, pContext,
-            (int) scanId, (int) status);
+           (int) scanId, (int) status);
+
+    /* if there is a scan request pending when the wlan driver is unloaded
+       we may be invoked as SME flushes its pending queue.  If that is the
+       case, the underlying net_device may have already been destroyed, so
+       do some quick sanity before proceeding */
+    if (pAdapter->dev != dev)
+    {
+       hddLog(LOGW, "%s: device mismatch %p vs %p",
+               __FUNCTION__, pAdapter->dev, dev);
+        return eHAL_STATUS_SUCCESS;
+    }
 
     /* Check the scanId */
     if (pwextBuf->scanId != scanId)

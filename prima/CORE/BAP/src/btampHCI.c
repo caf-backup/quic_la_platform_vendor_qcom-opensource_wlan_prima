@@ -4639,7 +4639,7 @@ v_U32_t btampPackTlvAMP_Assoc_Connected_Channel(void * pCtx,
                                                 v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -4658,6 +4658,7 @@ v_U32_t btampPackTlvAMP_Assoc_Connected_Channel(void * pCtx,
         return BTAMP_BAD_INPUT_BUFFER;
     }
 
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvAMP_Assoc_Connected_Channel(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -4706,7 +4707,7 @@ v_U32_t btampPackTlvAMP_Assoc_MAC_Addr(void * pCtx,
                                        v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -4724,6 +4725,8 @@ v_U32_t btampPackTlvAMP_Assoc_MAC_Addr(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvAMP_Assoc_MAC_Addr(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -4764,7 +4767,7 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Capabilities(void * pCtx,
                                                v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -4782,6 +4785,8 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Capabilities(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvAMP_Assoc_PAL_Capabilities(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -4822,7 +4827,7 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Version(void * pCtx,
                                           v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -4840,6 +4845,8 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Version(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvAMP_Assoc_PAL_Version(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -4888,7 +4895,7 @@ v_U32_t btampPackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx,
                                                      v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -4906,6 +4913,8 @@ v_U32_t btampPackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvAMP_Assoc_Preferred_Channel_List(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -4953,7 +4962,7 @@ v_U32_t btampPackTlvFlow_Spec(void * pCtx,
                               v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -4967,6 +4976,8 @@ v_U32_t btampPackTlvFlow_Spec(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvFlow_Spec(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -5027,7 +5038,7 @@ v_U32_t btampPackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx,
                                                 v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5042,6 +5053,8 @@ v_U32_t btampPackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx,
         return BTAMP_BAD_INPUT_BUFFER;
     }
 
+    nConsumedOnEntry = *pnConsumed;
+
     status = btampGetPackedTlvHCI_Accept_Logical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
@@ -5050,7 +5063,6 @@ v_U32_t btampPackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1081, 0);
-		else ; //*pBuf = 1081;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5089,7 +5101,7 @@ v_U32_t btampPackTlvHCI_Accept_Physical_Link_Cmd(void * pCtx,
                                                  v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5104,6 +5116,8 @@ v_U32_t btampPackTlvHCI_Accept_Physical_Link_Cmd(void * pCtx,
         return BTAMP_BAD_INPUT_BUFFER;
     }
 
+    nConsumedOnEntry = *pnConsumed;
+
     status = btampGetPackedTlvHCI_Accept_Physical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
@@ -5112,7 +5126,6 @@ v_U32_t btampPackTlvHCI_Accept_Physical_Link_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1078, 0);
-		else ; //*pBuf = 1078;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5155,7 +5168,7 @@ v_U32_t btampPackTlvHCI_Channel_Selected_Event(void * pCtx,
                                                v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5169,6 +5182,7 @@ v_U32_t btampPackTlvHCI_Channel_Selected_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Channel_Selected_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -5209,7 +5223,7 @@ v_U32_t btampPackTlvHCI_Command_Complete_Event(void * pCtx,
                                                v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5223,6 +5237,8 @@ v_U32_t btampPackTlvHCI_Command_Complete_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Command_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -5648,7 +5664,7 @@ v_U32_t btampPackTlvHCI_Command_Status_Event(void * pCtx,
                                              v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5662,6 +5678,7 @@ v_U32_t btampPackTlvHCI_Command_Status_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Command_Status_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -5710,7 +5727,7 @@ v_U32_t btampPackTlvHCI_Create_Logical_Link_Cmd(void * pCtx,
                                                 v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5725,6 +5742,7 @@ v_U32_t btampPackTlvHCI_Create_Logical_Link_Cmd(void * pCtx,
         return BTAMP_BAD_INPUT_BUFFER;
     }
 
+    nConsumedOnEntry = *pnConsumed;
     status = btampGetPackedTlvHCI_Create_Logical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
@@ -5733,7 +5751,6 @@ v_U32_t btampPackTlvHCI_Create_Logical_Link_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1080, 0);
-		else ; //*pBuf = 1080;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5772,7 +5789,7 @@ v_U32_t btampPackTlvHCI_Create_Physical_Link_Cmd(void * pCtx,
                                                  v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5786,6 +5803,7 @@ v_U32_t btampPackTlvHCI_Create_Physical_Link_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Create_Physical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -5795,7 +5813,6 @@ v_U32_t btampPackTlvHCI_Create_Physical_Link_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1077, 0);
-		else ; //*pBuf = 1077;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5838,7 +5855,7 @@ v_U32_t btampPackTlvHCI_Data_Buffer_Overflow_Event(void * pCtx,
                                                    v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5852,6 +5869,7 @@ v_U32_t btampPackTlvHCI_Data_Buffer_Overflow_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Data_Buffer_Overflow_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -5892,7 +5910,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Cmd(void * pCtx,
                                                     v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5906,6 +5924,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Disconnect_Logical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -5915,7 +5934,6 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1082, 0);
-		else ; //*pBuf = 1082;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5946,7 +5964,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Complete_Event(void * pCtx,
                                                                v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -5960,6 +5978,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Complete_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Disconnect_Logical_Link_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6008,7 +6027,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx,
                                                      v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6022,6 +6041,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Disconnect_Physical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6031,7 +6051,6 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1079, 0);
-		else ; //*pBuf = 1079;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6066,7 +6085,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Complete_Event(void * pCtx,
                                                                 v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6080,6 +6099,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Complete_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Disconnect_Physical_Link_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6128,7 +6148,7 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Cmd(void * pCtx,
                                              v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6142,6 +6162,7 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Flow_Spec_Modify_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6151,7 +6172,6 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1084, 0);
-		else ; //*pBuf = 1084;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6194,7 +6214,7 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Complete_Event(void * pCtx,
                                                         v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6208,6 +6228,7 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Complete_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Flow_Spec_Modify_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6252,7 +6273,7 @@ v_U32_t btampPackTlvHCI_Flush_Cmd(void * pCtx,
                                   v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6266,6 +6287,7 @@ v_U32_t btampPackTlvHCI_Flush_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Flush_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6275,7 +6297,6 @@ v_U32_t btampPackTlvHCI_Flush_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3080, 0);
-		else ; //*pBuf = 3080;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6306,7 +6327,7 @@ v_U32_t btampPackTlvHCI_Flush_Occurred_Event(void * pCtx,
                                              v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6320,6 +6341,7 @@ v_U32_t btampPackTlvHCI_Flush_Occurred_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Flush_Occurred_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6360,7 +6382,7 @@ v_U32_t btampPackTlvHCI_Num_Completed_Pkts_Event(void * pCtx,
                                              v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6374,6 +6396,7 @@ v_U32_t btampPackTlvHCI_Num_Completed_Pkts_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Num_Completed_Pkts_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6449,7 +6472,7 @@ v_U32_t btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event(void * pCtx,
                                                                 v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6463,6 +6486,7 @@ v_U32_t btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Generic_AMP_Link_Key_Notification_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6511,7 +6535,7 @@ v_U32_t btampPackTlvHCI_Hardware_Error_Event(void * pCtx,
                                              v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6525,6 +6549,7 @@ v_U32_t btampPackTlvHCI_Hardware_Error_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Hardware_Error_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6565,7 +6590,7 @@ v_U32_t btampPackTlvHCI_Logical_Link_Cancel_Cmd(void * pCtx,
                                                 v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6579,6 +6604,7 @@ v_U32_t btampPackTlvHCI_Logical_Link_Cancel_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Logical_Link_Cancel_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6588,7 +6614,6 @@ v_U32_t btampPackTlvHCI_Logical_Link_Cancel_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1083, 0);
-		else ; //*pBuf = 1083;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6623,7 +6648,7 @@ v_U32_t btampPackTlvHCI_Logical_Link_Complete_Event(void * pCtx,
                                                     v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6637,6 +6662,7 @@ v_U32_t btampPackTlvHCI_Logical_Link_Complete_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Logical_Link_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6689,7 +6715,7 @@ v_U32_t btampPackTlvHCI_Loopback_Command_Event(void * pCtx,
                                                v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6703,6 +6729,7 @@ v_U32_t btampPackTlvHCI_Loopback_Command_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Loopback_Command_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6743,7 +6770,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Complete_Event(void * pCtx,
                                                      v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6757,6 +6784,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Complete_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Physical_Link_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6801,7 +6829,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Loss_Warning_Event(void * pCtx,
                                                          v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6815,6 +6843,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Loss_Warning_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Physical_Link_Loss_Warning_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6859,7 +6888,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Recovery_Event(void * pCtx,
                                                      v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6873,6 +6902,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Recovery_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Physical_Link_Recovery_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6913,7 +6943,7 @@ v_U32_t btampPackTlvHCI_Qos_Violation_Event(void * pCtx,
                                             v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6927,6 +6957,7 @@ v_U32_t btampPackTlvHCI_Qos_Violation_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Qos_Violation_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6967,7 +6998,7 @@ v_U32_t btampPackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
                                                            v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -6981,6 +7012,7 @@ v_U32_t btampPackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -6990,7 +7022,6 @@ v_U32_t btampPackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3177, 0);
-		else ; //*pBuf = 3177;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7021,7 +7052,7 @@ v_U32_t btampPackTlvHCI_Read_Buffer_Size_Cmd(void * pCtx,
                                              v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7035,6 +7066,7 @@ v_U32_t btampPackTlvHCI_Read_Buffer_Size_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Buffer_Size_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7044,7 +7076,6 @@ v_U32_t btampPackTlvHCI_Read_Buffer_Size_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4101, 0);
-		else ; //*pBuf = 4101;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7071,7 +7102,7 @@ v_U32_t btampPackTlvHCI_Read_Connection_Accept_Timeout_Cmd(void * pCtx,
                                                            v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7085,6 +7116,7 @@ v_U32_t btampPackTlvHCI_Read_Connection_Accept_Timeout_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Connection_Accept_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7094,7 +7126,6 @@ v_U32_t btampPackTlvHCI_Read_Connection_Accept_Timeout_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3093, 0);
-		else ; //*pBuf = 3093;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7121,7 +7152,7 @@ v_U32_t btampPackTlvHCI_Read_Data_Block_Size_Cmd(void * pCtx,
                                                  v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7135,6 +7166,7 @@ v_U32_t btampPackTlvHCI_Read_Data_Block_Size_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Data_Block_Size_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7144,7 +7176,6 @@ v_U32_t btampPackTlvHCI_Read_Data_Block_Size_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4106, 0);
-		else ; //*pBuf = 4106;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7171,7 +7202,7 @@ v_U32_t btampPackTlvHCI_Read_Failed_Contact_Counter_Cmd(void * pCtx,
                                                         v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7185,6 +7216,7 @@ v_U32_t btampPackTlvHCI_Read_Failed_Contact_Counter_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Failed_Contact_Counter_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7194,7 +7226,6 @@ v_U32_t btampPackTlvHCI_Read_Failed_Contact_Counter_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5121, 0);
-		else ; //*pBuf = 5121;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7225,7 +7256,7 @@ v_U32_t btampPackTlvHCI_Read_Flow_Control_Mode_Cmd(void * pCtx,
                                                    v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7239,6 +7270,7 @@ v_U32_t btampPackTlvHCI_Read_Flow_Control_Mode_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Flow_Control_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7248,7 +7280,6 @@ v_U32_t btampPackTlvHCI_Read_Flow_Control_Mode_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3174, 0);
-		else ; //*pBuf = 3174;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7275,7 +7306,7 @@ v_U32_t btampPackTlvHCI_Read_Link_Quality_Cmd(void * pCtx,
                                               v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7289,6 +7320,7 @@ v_U32_t btampPackTlvHCI_Read_Link_Quality_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Link_Quality_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7298,7 +7330,6 @@ v_U32_t btampPackTlvHCI_Read_Link_Quality_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5123, 0);
-		else ; //*pBuf = 5123;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7329,7 +7360,7 @@ v_U32_t btampPackTlvHCI_Read_Link_Supervision_Timeout_Cmd(void * pCtx,
                                                           v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7343,6 +7374,7 @@ v_U32_t btampPackTlvHCI_Read_Link_Supervision_Timeout_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Link_Supervision_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7352,7 +7384,6 @@ v_U32_t btampPackTlvHCI_Read_Link_Supervision_Timeout_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3126, 0);
-		else ; //*pBuf = 3126;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7383,7 +7414,7 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx,
                                                  v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7397,6 +7428,7 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Local_AMP_Assoc_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7406,7 +7438,6 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5130, 0);
-		else ; //*pBuf = 5130;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7445,7 +7476,7 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Information_Cmd(void * pCtx,
                                                        v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7459,6 +7490,7 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Information_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Local_AMP_Information_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7468,7 +7500,6 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Information_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5129, 0);
-		else ; //*pBuf = 5129;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7495,7 +7526,7 @@ v_U32_t btampPackTlvHCI_Read_Local_Supported_Cmds_Cmd(void * pCtx,
                                                       v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7509,6 +7540,7 @@ v_U32_t btampPackTlvHCI_Read_Local_Supported_Cmds_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Local_Supported_Cmds_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7518,7 +7550,6 @@ v_U32_t btampPackTlvHCI_Read_Local_Supported_Cmds_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4098, 0);
-		else ; //*pBuf = 4098;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7545,7 +7576,7 @@ v_U32_t btampPackTlvHCI_Read_Local_Version_Info_Cmd(void * pCtx,
                                                     v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7559,6 +7590,7 @@ v_U32_t btampPackTlvHCI_Read_Local_Version_Info_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Local_Version_Info_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7568,7 +7600,6 @@ v_U32_t btampPackTlvHCI_Read_Local_Version_Info_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4097, 0);
-		else ; //*pBuf = 4097;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7595,7 +7626,7 @@ v_U32_t btampPackTlvHCI_Read_Location_Data_Cmd(void * pCtx,
                                                v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7609,6 +7640,7 @@ v_U32_t btampPackTlvHCI_Read_Location_Data_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Location_Data_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7618,7 +7650,6 @@ v_U32_t btampPackTlvHCI_Read_Location_Data_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3172, 0);
-		else ; //*pBuf = 3172;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7645,7 +7676,7 @@ v_U32_t btampPackTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
                                                              v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7659,6 +7690,7 @@ v_U32_t btampPackTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7668,7 +7700,6 @@ v_U32_t btampPackTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3169, 0);
-		else ; //*pBuf = 3169;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7695,7 +7726,7 @@ v_U32_t btampPackTlvHCI_Read_Loopback_Mode_Cmd(void * pCtx,
                                                v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7709,6 +7740,7 @@ v_U32_t btampPackTlvHCI_Read_Loopback_Mode_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_Loopback_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7718,7 +7750,6 @@ v_U32_t btampPackTlvHCI_Read_Loopback_Mode_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 6145, 0);
-		else ; //*pBuf = 6145;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7745,7 +7776,7 @@ v_U32_t btampPackTlvHCI_Read_RSSI_Cmd(void * pCtx,
                                       v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7759,6 +7790,7 @@ v_U32_t btampPackTlvHCI_Read_RSSI_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Read_RSSI_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7768,7 +7800,6 @@ v_U32_t btampPackTlvHCI_Read_RSSI_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5125, 0);
-		else ; //*pBuf = 5125;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7799,7 +7830,7 @@ v_U32_t btampPackTlvHCI_Reset_Cmd(void * pCtx,
                                   v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7813,6 +7844,7 @@ v_U32_t btampPackTlvHCI_Reset_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Reset_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7822,7 +7854,6 @@ v_U32_t btampPackTlvHCI_Reset_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3075, 0);
-		else ; //*pBuf = 3075;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7849,7 +7880,7 @@ v_U32_t btampPackTlvHCI_Reset_Failed_Contact_Counter_Cmd(void * pCtx,
                                                          v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7863,6 +7894,7 @@ v_U32_t btampPackTlvHCI_Reset_Failed_Contact_Counter_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Reset_Failed_Contact_Counter_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7872,7 +7904,6 @@ v_U32_t btampPackTlvHCI_Reset_Failed_Contact_Counter_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5122, 0);
-		else ; //*pBuf = 5122;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7903,7 +7934,7 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Cmd(void * pCtx,
                                            v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7917,6 +7948,7 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Set_Event_Mask_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7926,7 +7958,6 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3077, 0);
-		else ; //*pBuf = 3077;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7957,7 +7988,7 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx,
                                                   v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -7971,6 +8002,7 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Set_Event_Mask_Page_2_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -7980,7 +8012,6 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3171, 0);
-		else ; //*pBuf = 3171;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8011,7 +8042,7 @@ v_U32_t btampPackTlvHCI_Set_Short_Range_Mode_Cmd(void * pCtx,
                                                  v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8025,6 +8056,7 @@ v_U32_t btampPackTlvHCI_Set_Short_Range_Mode_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Set_Short_Range_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8034,7 +8066,6 @@ v_U32_t btampPackTlvHCI_Set_Short_Range_Mode_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3179, 0);
-		else ; //*pBuf = 3179;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8069,7 +8100,7 @@ v_U32_t btampPackTlvHCI_Short_Range_Mode_Change_Complete_Event(void * pCtx,
                                                                v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8083,6 +8114,7 @@ v_U32_t btampPackTlvHCI_Short_Range_Mode_Change_Complete_Event(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Short_Range_Mode_Change_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8131,7 +8163,7 @@ v_U32_t btampPackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
                                                             v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8145,6 +8177,7 @@ v_U32_t btampPackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8154,7 +8187,6 @@ v_U32_t btampPackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3178, 0);
-		else ; //*pBuf = 3178;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8189,7 +8221,7 @@ v_U32_t btampPackTlvHCI_Write_Connection_Accept_Timeout_Cmd(void * pCtx,
                                                             v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8203,6 +8235,7 @@ v_U32_t btampPackTlvHCI_Write_Connection_Accept_Timeout_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Write_Connection_Accept_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8212,7 +8245,6 @@ v_U32_t btampPackTlvHCI_Write_Connection_Accept_Timeout_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3094, 0);
-		else ; //*pBuf = 3094;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8243,7 +8275,7 @@ v_U32_t btampPackTlvHCI_Write_Flow_Control_Mode_Cmd(void * pCtx,
                                                     v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8257,6 +8289,7 @@ v_U32_t btampPackTlvHCI_Write_Flow_Control_Mode_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Write_Flow_Control_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8266,7 +8299,6 @@ v_U32_t btampPackTlvHCI_Write_Flow_Control_Mode_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3175, 0);
-		else ; //*pBuf = 3175;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8297,7 +8329,7 @@ v_U32_t btampPackTlvHCI_Write_Link_Supervision_Timeout_Cmd(void * pCtx,
                                                            v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8311,6 +8343,7 @@ v_U32_t btampPackTlvHCI_Write_Link_Supervision_Timeout_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Write_Link_Supervision_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8320,7 +8353,6 @@ v_U32_t btampPackTlvHCI_Write_Link_Supervision_Timeout_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3127, 0);
-		else ; //*pBuf = 3127;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8355,7 +8387,7 @@ v_U32_t btampPackTlvHCI_Write_Location_Data_Cmd(void * pCtx,
                                                 v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8369,6 +8401,7 @@ v_U32_t btampPackTlvHCI_Write_Location_Data_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Write_Location_Data_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8378,7 +8411,6 @@ v_U32_t btampPackTlvHCI_Write_Location_Data_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3173, 0);
-		else ; //*pBuf = 3173;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8417,7 +8449,7 @@ v_U32_t btampPackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
                                                               v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8431,6 +8463,7 @@ v_U32_t btampPackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8440,7 +8473,6 @@ v_U32_t btampPackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3170, 0);
-		else ; //*pBuf = 3170;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8471,7 +8503,7 @@ v_U32_t btampPackTlvHCI_Write_Loopback_Mode_Cmd(void * pCtx,
                                                 v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8485,6 +8517,7 @@ v_U32_t btampPackTlvHCI_Write_Loopback_Mode_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Write_Loopback_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8494,7 +8527,6 @@ v_U32_t btampPackTlvHCI_Write_Loopback_Mode_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 6146, 0);
-		else ; //*pBuf = 6146;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8525,7 +8557,7 @@ v_U32_t btampPackTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx,
                                                    v_U32_t *pnConsumed)
 {
     v_U8_t* pTlvLen = 0;
-    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t nConsumedOnEntry;
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     v_U32_t nNeeded = 0U;
     v_U32_t sType = 0U;
@@ -8539,6 +8571,7 @@ v_U32_t btampPackTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
         return BTAMP_BAD_INPUT_BUFFER;
     }
+    nConsumedOnEntry = *pnConsumed;
 
     status = btampGetPackedTlvHCI_Write_Remote_AMP_ASSOC_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
@@ -8548,7 +8581,6 @@ v_U32_t btampPackTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5131, 0);
-		else ; //*pBuf = 5131;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;

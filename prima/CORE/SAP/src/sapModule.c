@@ -67,8 +67,7 @@
 /*----------------------------------------------------------------------------
  * Global Data Definitions
  * -------------------------------------------------------------------------*/
-extern sRegulatoryChannel *regChannels;
-extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
+
 /*----------------------------------------------------------------------------
  *  External declarations for global context 
  * -------------------------------------------------------------------------*/
@@ -973,110 +972,152 @@ WLANSAP_SetChannelRange(tHalHandle hHal,v_U8_t startChannel, v_U8_t endChannel,
                               v_U8_t operatingBand)
 {
 
-   v_U8_t    channelCount=0;
-   v_U8_t    loopCount =0;
+    v_U8_t    validChannelFlag =0;
+    v_U8_t    loopStartCount =0;
+    v_U8_t    loopEndCount =0;
+    v_U8_t    bandStartChannel =0;
+    v_U8_t    bandEndChannel =0;   
+
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+         "WLANSAP_SetChannelRange:startChannel %d,EndChannel %d,Operatingband:%d",
+         startChannel,endChannel,operatingBand);
+
     /*------------------------------------------------------------------------
       Sanity check
       ------------------------------------------------------------------------*/    
-
-   if (( WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_APMIN > operatingBand)||
-         (WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_APMAX < operatingBand))
-   {
-      VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                    "Invalid operatingBand on WLANSAP_SetChannelRange");
-      return VOS_STATUS_E_FAULT;
-   }
-   if (( WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL_APMIN > startChannel)||
-         (WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL_APMAX < startChannel))
-   {
-      VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                    "Invalid startChannel value on WLANSAP_SetChannelRange");
-      return VOS_STATUS_E_FAULT;
-   }
-   if (( WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL_APMIN > endChannel)||
-         (WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL_APMAX < endChannel))
-   {
-      VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                    "Invalid endChannel value on WLANSAP_SetChannelRange");
-      return VOS_STATUS_E_FAULT;
-   }
-
-   if(operatingBand == RF_BAND_2_4_GHZ)
-   {
-      if(!(CSR_IS_CHANNEL_24GHZ(startChannel))||!(CSR_IS_CHANNEL_24GHZ(endChannel)))
-      {
+    if (( WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_APMIN > operatingBand)||
+          (WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_APMAX < operatingBand))
+    {
          VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                    "Invalid startChannel or endChannel value for 2.4GHZ band");
-         return VOS_STATUS_E_FAULT;
-      }
-      /*In the given range search the active channels for the current region */
-      for( loopCount = startChannel; loopCount <= startChannel; loopCount++ )
-      {
-         if( regChannels[loopCount].enabled )
-         {
-             channelCount++;
-         }
-      }
-      if(channelCount ==0)
-      { 
-         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-             "No active channels present in the given range for the current region");
-         return VOS_STATUS_E_FAULT;
-      }
-   }
-   if(operatingBand == RF_BAND_5_GHZ)
-   {
-      if(!(CSR_IS_CHANNEL_5GHZ(startChannel))||!(CSR_IS_CHANNEL_5GHZ(endChannel)))
-      {
-         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                    "Invalid startChannel or endChannel value for 5GHZ band");
-         return VOS_STATUS_E_FAULT;
-      }
-      for( loopCount = RF_CHAN_36; loopCount <= RF_CHAN_165; loopCount++ )
-      {
-         if((startChannel <= rfChannels[loopCount].channelNum)&&
-             (endChannel >= rfChannels[loopCount].channelNum ))
-         {
-            if( regChannels[loopCount].enabled )
-            {
-               channelCount++;
-            }
-         }
-      }
-      if(channelCount ==0)
-      { 
-         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                    "No active channels present in the given range for the current region");
-         return VOS_STATUS_E_FAULT;
-      }
-   }
-
-   if (ccmCfgSetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, 
-      operatingBand, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-         "Could not pass on WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND to CCM\n");
+                     "Invalid operatingBand on WLANSAP_SetChannelRange");
         return VOS_STATUS_E_FAULT;
-   }
-   if (ccmCfgSetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, 
-       startChannel, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-
-      VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-         "Could not pass on WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL to CCM\n");
-      return VOS_STATUS_E_FAULT;
-      
-   }     
-   if (ccmCfgSetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, 
-      endChannel, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-   {
-
-      VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-         "Could not pass on WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL to CCM\n");
-      return VOS_STATUS_E_FAULT;
-   }
-
-   return VOS_STATUS_SUCCESS;
+    }
+    if (( WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL_APMIN > startChannel)||
+         (WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL_APMAX < startChannel))
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                    "Invalid startChannel value on WLANSAP_SetChannelRange");
+        return VOS_STATUS_E_FAULT;
+    }
+    if (( WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL_APMIN > endChannel)||
+         (WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL_APMAX < endChannel))
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      "Invalid endChannel value on WLANSAP_SetChannelRange");
+        return VOS_STATUS_E_FAULT;
+    }
+    switch(operatingBand)
+    {
+       case RF_SUBBAND_2_4_GHZ:
+          bandStartChannel = RF_CHAN_1;
+          bandEndChannel = RF_CHAN_14;
+          break;
+          
+       case RF_SUBBAND_5_LOW_GHZ:
+          bandStartChannel = RF_CHAN_36;
+          bandEndChannel = RF_CHAN_64;
+          break;
+          
+       case RF_SUBBAND_5_MID_GHZ:
+          bandStartChannel = RF_CHAN_100;
+          bandEndChannel = RF_CHAN_140;
+          break;
+          
+       case RF_SUBBAND_5_HIGH_GHZ:
+          bandStartChannel = RF_CHAN_149;
+          bandEndChannel = RF_CHAN_165;
+          break;
+          
+       case RF_SUBBAND_4_9_GHZ:
+          bandStartChannel = RF_CHAN_240;
+          bandEndChannel = RF_CHAN_216;
+          break;
+       default:
+          VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "Invalid operatingBand value on WLANSAP_SetChannelRange");
+          break;
+    }      
+ 
+    /* Validating the start channel is in range or not*/
+    for(loopStartCount = bandStartChannel ; loopStartCount <= bandEndChannel ; 
+    loopStartCount++)
+    { 
+       if(rfChannels[loopStartCount].channelNum == startChannel )
+       {
+          /* start channel is in the range */
+          break;
+       }
+    }
+    /* Validating the End channel is in range or not*/
+    for(loopEndCount = bandStartChannel ; loopEndCount <= bandEndChannel ; 
+    loopEndCount++)
+    { 
+        if(rfChannels[loopEndCount].channelNum == endChannel )
+        {
+          /* End channel is in the range */
+            break;
+        }
+    }
+    if((loopStartCount == bandEndChannel)||(loopEndCount == bandEndChannel))
+    {
+       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "%s Invalid startChannel-%d or EndChannel-%d for band -%d",
+                   __FUNCTION__,startChannel,endChannel,operatingBand);
+       /* Supplied channels are nt in the operating band so set the default 
+            channels for the given operating band */
+       startChannel = rfChannels[bandStartChannel].channelNum;
+       endChannel = rfChannels[bandEndChannel].channelNum;;
+    }
+    
+    /*Search for the Active channels in the given range */
+    for( loopStartCount = bandStartChannel; loopStartCount <= bandEndChannel; loopStartCount++ )
+    {
+       if((startChannel <= rfChannels[loopStartCount].channelNum)&&
+             (endChannel >= rfChannels[loopStartCount].channelNum ))
+       {
+          if( regChannels[loopStartCount].enabled )
+          {
+             validChannelFlag = 1;
+             break;
+          }
+       }
+    }
+    if(0 == validChannelFlag)
+    { 
+       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+         "%s-No active channels present in the given range for the current region",
+         __FUNCTION__);
+       /* There is no active channel in the supplied range.Updating the config 
+       with the default channels in the given band so that we can select the best channel in the sub-band*/
+       startChannel = rfChannels[bandStartChannel].channelNum;
+       endChannel = rfChannels[bandEndChannel].channelNum;;
+    }
+   
+    if (ccmCfgSetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, 
+       operatingBand, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+    {
+         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+          "Could not pass on WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND to CCn");
+         return VOS_STATUS_E_FAULT;
+    }
+    if (ccmCfgSetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, 
+        startChannel, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+    {
+ 
+       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+          "Could not pass on WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL to CCM");
+       return VOS_STATUS_E_FAULT;
+       
+    }     
+    if (ccmCfgSetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, 
+       endChannel, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+    {
+ 
+       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+          "Could not pass on WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL to CCM");
+       return VOS_STATUS_E_FAULT;
+    }
+    return VOS_STATUS_SUCCESS;
 }
 #endif
 

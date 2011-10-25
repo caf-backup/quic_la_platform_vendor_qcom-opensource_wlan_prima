@@ -327,9 +327,10 @@ static wpt_status dxeCtrlBlkAlloc
 )
 {
    wpt_status                status = eWLAN_PAL_STATUS_SUCCESS;
-   unsigned int              idx;
+   unsigned int              idx, fIdx;
    WLANDXE_DescCtrlBlkType  *currentCtrlBlk = NULL;
    WLANDXE_DescCtrlBlkType  *prevCtrlBlk = NULL;
+   WLANDXE_DescCtrlBlkType  *nextCtrlBlk = NULL;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
@@ -351,6 +352,21 @@ static wpt_status dxeCtrlBlkAlloc
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                   "dxeCtrlBlkOpen MemAlloc Fail for channel %d",
                   channelEntry->channelType);
+         currentCtrlBlk = channelEntry->headCtrlBlk;
+         if(NULL == currentCtrlBlk)
+         {
+            return eWLAN_PAL_STATUS_E_FAULT;
+         }
+         for(fIdx = 0; fIdx < idx; fIdx++)
+         {
+            nextCtrlBlk = currentCtrlBlk->nextCtrlBlk;
+            wpalMemoryFree((void *)currentCtrlBlk);
+            if(NULL == nextCtrlBlk)
+            {
+               break;
+            }
+            currentCtrlBlk = nextCtrlBlk;
+         }
          return eWLAN_PAL_STATUS_E_FAULT;
       }
 
@@ -446,6 +462,12 @@ static wpt_status dxeDescAllocAndLink
    channelEntry->descriptorAllocation = (WLANDXE_DescType *)
       wpalDmaMemoryAllocate(sizeof(WLANDXE_DescType)*channelEntry->numDesc,
                             &physAddress);
+   if(NULL == channelEntry->descriptorAllocation)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "dxeDescLinkAlloc Descriptor Alloc Fail");
+      return eWLAN_PAL_STATUS_E_RESOURCES;
+   }
    currentDesc = channelEntry->descriptorAllocation;
 #endif
 
@@ -2069,6 +2091,12 @@ static wpt_status dxeTXPushFrame
     * Set as end of packet
     * Enable interrupt also for first code lock down
     * performace optimization, this will be revisited */
+   if(NULL == LastDesc)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "dxeTXPushFrame NULL Last Descriptor, broken chain");
+      return eWLAN_PAL_STATUS_E_FAULT;
+   }
    LastDesc->descCtrl.ctrl  = channelEntry->extraConfig.cw_ctrl_write_eop_int;
    /* Now First one also Valid ????
     * this procedure will prevent over handle descriptor from previous
@@ -2868,7 +2896,6 @@ void *WLANDXE_Open
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "WLANDXE_Open Alloc RX ISR Fail");
       wpalMemoryFree(tempDxeCtrlBlk);
-      HDXE_ASSERT(NULL != tempDxeCtrlBlk->rxIsrMsg);
       return NULL;
    }
    wpalMemoryZero(tempDxeCtrlBlk->rxIsrMsg, sizeof(wpt_msg));
@@ -2877,12 +2904,11 @@ void *WLANDXE_Open
 
    /* Allocate and Init TX COMP ISR Serialize Buffer */
    tempDxeCtrlBlk->txIsrMsg = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
-   if(NULL == tempDxeCtrlBlk->rxIsrMsg)
+   if(NULL == tempDxeCtrlBlk->txIsrMsg)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "WLANDXE_Open Alloc TX ISR Fail");
       wpalMemoryFree(tempDxeCtrlBlk);
-      HDXE_ASSERT(NULL != tempDxeCtrlBlk->txIsrMsg);
       return NULL;
    }
    wpalMemoryZero(tempDxeCtrlBlk->txIsrMsg, sizeof(wpt_msg));
@@ -3490,7 +3516,7 @@ void dxeSetPowerStateEventHandler
 {
    wpt_msg                  *msgContent = (wpt_msg *)msgPtr;
    WLANDXE_CtrlBlkType      *dxeCtxt;
-   wpt_status                status;
+   wpt_status                status = eWLAN_PAL_STATUS_E_FAILURE;
    WLANDXE_PowerStateType    reqPowerState;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
@@ -3604,6 +3630,12 @@ wpt_status WLANDXE_SetPowerState
    {
       //serialize through Tx thread
       txCompMsg          = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
+      if(NULL == txCompMsg)
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "WLANDXE_SetPowerState, MSG MEM alloc Fail");
+         return eWLAN_PAL_STATUS_E_RESOURCES;
+      }
 
       /* Event type, where it must be defined???? */
       /* THIS MUST BE CLEARED ASAP

@@ -831,6 +831,10 @@ gotoStatePtkInitNegoTx(tAuthRsnFsm *fsm)
                 //groupKeyLen += ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE;
                 // ...here is the right way to do it
                 // Add the length of the prepended IV A[0]
+                if (NULL == wrappedKey)
+                {
+                    break;
+                }
                 groupKeyLen += ANI_SSM_AES_KEY_WRAP_BLOCK_SIZE;
                 memcpy( groupKeyBytes, wrappedKey, groupKeyLen);
                 // Free the array used to hold the wrapped key
@@ -1168,6 +1172,12 @@ int checkTransition(tAuthRsnFsm *fsm, void *arg)
         if ( fsm->eapolAvail ) 
         {
             fsm->eapolAvail = eANI_BOOLEAN_FALSE;
+            if (NULL == arg)
+            {
+                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                           "arg is NULL, exiting checkTransition()");
+                return ANI_E_FAILED;
+            }
             data = (tAniEapolKeyAvailEventData *) arg;
             retVal = checkLocalReplayCounter(fsm, data);
             if (retVal != ANI_OK)
@@ -1206,6 +1216,12 @@ int checkTransition(tAuthRsnFsm *fsm, void *arg)
         }
         break;
     case PTK_INIT_NEGO:
+        if (NULL == arg)
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                       "arg is NULL, exiting checkTransition()");
+            return ANI_E_FAILED;
+        }
         data = (tAniEapolKeyAvailEventData *) arg;
         retVal = checkInfoElement(fsm, data);
         if (retVal != ANI_OK) 
@@ -1220,6 +1236,12 @@ int checkTransition(tAuthRsnFsm *fsm, void *arg)
         if (fsm->eapolAvail) 
         {
             fsm->eapolAvail = eANI_BOOLEAN_FALSE;
+            if (NULL == arg)
+            {
+                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                           "arg is NULL, exiting checkTransition()");
+                return ANI_E_FAILED;
+            }
             data = (tAniEapolKeyAvailEventData *) arg;
             retVal = checkLocalReplayCounter(fsm, data);
             if (retVal != ANI_OK)
@@ -1253,6 +1275,12 @@ int checkTransition(tAuthRsnFsm *fsm, void *arg)
         if (fsm->eapolAvail) {
 
             fsm->eapolAvail = eANI_BOOLEAN_FALSE;
+            if (NULL == arg)
+            {
+                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                           "arg is NULL, exiting checkTransition()");
+                return ANI_E_FAILED;
+            }
             data = (tAniEapolKeyAvailEventData *) arg;
             rxDesc = (tAniEapolRsnKeyDesc *) data->keyDesc;
 
@@ -1282,6 +1310,12 @@ int checkTransition(tAuthRsnFsm *fsm, void *arg)
         break;
     case UPDATE_KEYS_REQ:
 
+        if (NULL == arg)
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                       "arg is NULL, exiting checkTransition()");
+            return ANI_E_FAILED;
+        }
         data = (tAniEapolKeyAvailEventData *) arg;
         rxDesc = (tAniEapolRsnKeyDesc *) data->keyDesc;
 

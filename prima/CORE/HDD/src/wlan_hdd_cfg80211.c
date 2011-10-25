@@ -755,6 +755,23 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
     }
 #endif
     
+#ifdef WLAN_FEATURE_WFD
+    pIe = wlan_hdd_get_wfd_ie_ptr(pBeacon->tail,pBeacon->tail_len);
+
+    if(pIe) 
+    { 
+        ielen = pIe[1] + 2;
+        if(total_ielen + ielen <= MAX_GENIE_LEN) {
+            vos_mem_copy(&genie[total_ielen],pIe,(pIe[1] + 2));
+        }
+        else {
+           hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie + P2p Ie + Wfd Ie Length is too big***\n");
+           return -EINVAL;
+        }
+        total_ielen += ielen; 
+    }
+#endif
+
     if(ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal, 
        WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, genie, total_ielen, NULL, 
                eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)

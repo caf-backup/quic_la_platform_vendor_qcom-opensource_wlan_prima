@@ -2226,13 +2226,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE to CCM\n");
      }
 
-	 WLANSAP_SetChannelRange(pHddCtx->hHal,pConfig->apStartChannelNum,pConfig->apEndChannelNum,pConfig->apOperatingBand);
+     WLANSAP_SetChannelRange(pHddCtx->hHal, pConfig->apStartChannelNum, pConfig->apEndChannelNum, pConfig->apOperatingBand);
 #endif
    
 #if defined WLAN_FEATURE_VOWIFI
-	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RRM_ENABLED, pConfig->fRrmEnable, 
+    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RRM_ENABLED, pConfig->fRrmEnable, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-	 {
+    {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RRM_ENABLE configuration info to CCM\n"  );
 	 }

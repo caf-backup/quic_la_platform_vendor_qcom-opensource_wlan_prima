@@ -116,6 +116,9 @@ WLANSAP_ScanCallback
     tWLAN_SAPEvent sapEvent; /* State machine event */
     v_U8_t operChannel = 0;
     VOS_STATUS sapstatus;
+#ifdef SOFTAP_CHANNEL_RANGE
+    v_U32_t operatingBand;
+#endif
 
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
@@ -144,16 +147,37 @@ WLANSAP_ScanCallback
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR scanStatus = %s (%d)", __FUNCTION__, "eCSR_SCAN_ABORT/FAILURE", scanStatus);
     }
+    
+    if (operChannel == SAP_CHANNEL_NOT_SELECTED)
 #ifdef SOFTAP_CHANNEL_RANGE
-    if (operChannel == SAP_CHANNEL_NOT_SELECTED)
-        psapContext->channel = psapContext->channelList[0];
+    {
+       if(psapContext->channelList != NULL)
+       {
+          psapContext->channel = psapContext->channelList[0];
+          vos_mem_free(psapContext->channelList);
+       }
+       else 
+       {
+         /* if the channel list is empty then there is no valid channel in 
+                the selected sub-band so select default channel in the 
+                BAND(2.4GHz/5GHZ) */
+          ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
+          if(RF_SUBBAND_2_4_GHZ == operatingBand )
+              psapContext->channel = SAP_DEFAULT_CHANNEL;
+          else
+              psapContext->channel = SAP_DEFAULT_5GHZ_CHANNEL;
+         
+       }
+    }
 #else
-    if (operChannel == SAP_CHANNEL_NOT_SELECTED)
-        psapContext->channel = SAP_DEFAULT_CHANNEL;
+       psapContext->channel = SAP_DEFAULT_CHANNEL;
 #endif
     else
-    {    psapContext->channel = operChannel;
-    } 
+    {
+      psapContext->channel = operChannel;
+    }
+    
+
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Channel selected = %d", __FUNCTION__, psapContext->channel);
 
     /* Fill in the event structure */

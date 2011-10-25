@@ -179,6 +179,11 @@ typedef enum
 #define P2P_OUI_TYPE_SIZE  4
 #endif
 
+#ifdef WLAN_FEATURE_WFD
+#define WFD_OUI_TYPE   "\x50\x6f\x9a\x0a"
+#define WFD_OUI_TYPE_SIZE  4
+#endif
+
 typedef enum
 {
     eWEXT_WPS_OFF = 0,
@@ -266,6 +271,11 @@ typedef struct ccp_freq_chan_map_s{
 #ifdef WLAN_FEATURE_P2P
 #define wlan_hdd_get_p2p_ie_ptr(ie, ie_len) \
     wlan_hdd_get_vendor_oui_ie_ptr(P2P_OUI_TYPE, P2P_OUI_TYPE_SIZE, ie, ie_len)
+#endif
+
+#ifdef WLAN_FEATURE_WFD
+#define wlan_hdd_get_wfd_ie_ptr(ie, ie_len) \
+    wlan_hdd_get_vendor_oui_ie_ptr(WFD_OUI_TYPE, WFD_OUI_TYPE_SIZE, ie, ie_len)
 #endif
 
 extern int hdd_UnregisterWext(struct net_device *dev);

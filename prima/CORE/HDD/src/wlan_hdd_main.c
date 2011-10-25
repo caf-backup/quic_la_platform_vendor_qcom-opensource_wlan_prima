@@ -314,6 +314,9 @@ static void hdd_uninit (struct net_device *dev)
    if (pAdapter && pAdapter->pHddCtx)
    {
       hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
+
+      /* after uninit our adapter structure will no longer be valid */
+      pAdapter->dev = NULL;
    }
 }
 
@@ -1130,12 +1133,16 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
    wlan_hdd_set_concurrency_mode(pHddCtx, session_type);
    
-   /* If there are concurrent session enable SW frame translation 
-    * for all registered STA */ 
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+    /* If there are concurrent session enable SW frame translation 
+    * for all registered STA
+    * This is not required in case of PRIMA as HW frame translation
+    * is disabled in PRIMA*/ 
    if (vos_concurrent_sessions_running())
    {
       WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, TRUE);
    }
+#endif
    
    if( VOS_STATUS_SUCCESS == status )
    {
@@ -1201,12 +1208,16 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
       hdd_remove_adapter( pHddCtx, pAdapterNode );
       vos_mem_free( pAdapterNode );
 
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
       /* If there is no concurrent session disable SW frame translation 
-       * for all registered STA */ 
+       * for all registered STA */
+      /* This is not required in case of PRIMA as HW frame translation
+       * is disabled in PRIMA*/
       if (!vos_concurrent_sessions_running())
       {
          WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, FALSE);
       }
+#endif
       return VOS_STATUS_SUCCESS;
    }
 
@@ -1869,6 +1880,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       VOS_ASSERT(0);
    }
 #endif //FEATURE_WLAN_INTEGRATED_SOC
+
+   // Cancel any outstanding scan requests.  We are about to close all
+   // of our adapters, but an adapter structure is what SME passes back
+   // to our callback function.  Hence if there are any outstanding scan
+   // requests then there is a race condition between when the adapter
+   // is closed and when the callback is invoked.  We try to resolve that
+   // race condition here by canceling any outstanding scans before we
+   // close the adapters.
+   // Note that the scans may be cancelled in an asynchronous manner, so
+   // ideally there needs to be some kind of synchronization.  Rather than
+   // introduce a new synchronization here, we will utilize the fact that
+   // we are about to Request Full Power, and since that is synchronized,
+   // the expectation is that by the time Request Full Power has completed,
+   // all scans will be cancelled.
+   hdd_abort_mac_scan( pHddCtx );
 
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode during shutdown

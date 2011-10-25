@@ -1377,16 +1377,23 @@ WLAN_BAPLogicalLinkDisconnect
    /*------------------------------------------------------------------------
     Sanity check
     ------------------------------------------------------------------------*/
-    /* Derive logical link index from handle */
-    log_link_index = ((pBapHCILogLinkDisconnect->log_link_handle) >> 8);
     if (( NULL == pBapHCILogLinkDisconnect ) ||
-        ( log_link_index > WLANBAP_MAX_LOG_LINKS ) ||
         ( NULL == btampContext))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
                    "Critical error: Invalid input parameter on %s", 
                    __FUNCTION__); 
-        /* VOS_ASSERT(0); */
+        return VOS_STATUS_E_INVAL; 
+    }
+
+    /* Derive logical link index from handle */
+    log_link_index = ((pBapHCILogLinkDisconnect->log_link_handle) >> 8);
+
+    if( log_link_index > WLANBAP_MAX_LOG_LINKS )
+    {
+       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+                  "Critical error: Invalid input parameter on %s", 
+                  __FUNCTION__); 
         /* Fill in the event code to propagate the event notification to BRM
            BRM generates the Command status Event based on this.*/
         pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_DISCONNECT_LOGICAL_LINK_COMPLETE_EVENT;
@@ -1394,6 +1401,7 @@ WLAN_BAPLogicalLinkDisconnect
         pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.status =
             WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
         return VOS_STATUS_E_INVAL; 
+
     }
 
 #ifdef BAP_DEBUG

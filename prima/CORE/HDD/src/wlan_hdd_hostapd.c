@@ -127,6 +127,9 @@ static void hdd_hostapd_uninit (struct net_device *dev)
    if (pHostapdAdapter && pHostapdAdapter->pHddCtx)
    {
       hdd_deinit_adapter(pHostapdAdapter->pHddCtx, pHostapdAdapter);
+
+      /* after uninit our adapter structure will no longer be valid */
+      pHostapdAdapter->dev = NULL;
    }
 }
 
@@ -1045,7 +1048,7 @@ static int iw_softap_set_channel_range(struct net_device *dev,
     {
       hddLog( LOGE, FL("iw_softap_set_channel_range:  startChannel = %d, endChannel = %d band = %d\n"), 
                                   startChannel,endChannel, band);
-      ret = -1;
+      ret = -EINVAL;
     }
     return ret;
 }
@@ -2116,8 +2119,14 @@ VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter)
    
    printk("%s", __func__);
    hdd_softap_deinit_tx_rx(pAdapter);
-   pAdapter->dev->wireless_handlers = NULL;
-   
+
+   /* if we are being called during driver unload, then the dev has already
+      been invalidated.  if we are being called at other times, then we can
+      detatch the wireless device handlers */
+   if (pAdapter->dev)
+   {
+      pAdapter->dev->wireless_handlers = NULL;
+   }
    EXIT();
    return 0;
 }

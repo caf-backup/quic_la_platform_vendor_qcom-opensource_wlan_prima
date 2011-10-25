@@ -44,8 +44,6 @@
 #include "pmcApi.h"
 #include "wlan_nv.h"
 
-extern sRegulatoryChannel *regChannels;
-extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -69,10 +67,10 @@ extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
 /*----------------------------------------------------------------------------
  * Static Function Declarations and Definitions
  * -------------------------------------------------------------------------*/
- #ifdef SOFTAP_CHANNEL_RANGE
-static VOS_STATUS sapGetChannelList(ptSapContext sapContext,v_U8_t **channelList,v_U8_t 
-*numberOfChannels);
- #endif
+#ifdef SOFTAP_CHANNEL_RANGE
+static VOS_STATUS sapGetChannelList(ptSapContext sapContext, v_U8_t **channelList, 
+                                 v_U8_t  *numberOfChannels);
+#endif
 /*----------------------------------------------------------------------------
  * Externalized Function Definitions
 * -------------------------------------------------------------------------*/
@@ -173,7 +171,7 @@ sapGotoChannelSel
 
 #else
 
-        sapGetChannelList(sapContext,&channelList,&numOfChannels);
+        sapGetChannelList(sapContext, &channelList, &numOfChannels);
 
         /*Scan the channels in the list*/
         scanRequest.ChannelInfo.numOfChannels = numOfChannels;
@@ -183,6 +181,7 @@ sapGotoChannelSel
         scanRequest.requestType = eCSR_SCAN_SOFTAP_CHANNEL_RANGE;
 
         sapContext->channelList = channelList;
+        
 #endif
         /* Set requestType to Full scan */
 
@@ -987,14 +986,17 @@ sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
 }
 
 #ifdef SOFTAP_CHANNEL_RANGE
-static VOS_STATUS sapGetChannelList(ptSapContext sapContext,v_U8_t **channelList,v_U8_t *numberOfChannels)
+static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
+                                 v_U8_t **channelList, v_U8_t *numberOfChannels)
 {
     v_U32_t startChannelNum;
     v_U32_t endChannelNum;
     v_U32_t operatingBand;
-    v_U8_t i;
+    v_U8_t  loopCount;
     v_U8_t *list;
     v_U8_t channelCount=0;
+    v_U8_t bandStartChannel;
+    v_U8_t bandEndChannel ;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
 
     if (NULL == hHal)
@@ -1004,43 +1006,68 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,v_U8_t **channelList
         return VOS_STATUS_E_FAULT;
     }
     
-    ccmCfgGetInt(hHal,WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL,&startChannelNum);
-    ccmCfgGetInt(hHal,WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL,&endChannelNum);
-    ccmCfgGetInt(hHal,WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,&operatingBand);
+    ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, &startChannelNum);
+    ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, &endChannelNum);
+    ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
     
-    if(operatingBand == RF_BAND_2_4_GHZ)
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+             "%s:sapGetChannelList: startChannel %d,EndChannel %d,Operatingband:%d",
+             __FUNCTION__,startChannelNum,endChannelNum,operatingBand);
+    
+    switch(operatingBand)
     {
-        /*allocating the maximum channels in 2.4GHZ band*/
-        list = (v_U8_t *)vos_mem_malloc(NUM_2_4GHZ_CHANNELS);
-       
-        for( i = startChannelNum; i <= endChannelNum; i++ )
+        case RF_SUBBAND_2_4_GHZ:
+           bandStartChannel = RF_CHAN_1;
+           bandEndChannel = RF_CHAN_14;
+           break;
+           
+        case RF_SUBBAND_5_LOW_GHZ:
+           bandStartChannel = RF_CHAN_36;
+           bandEndChannel = RF_CHAN_64;
+           break;
+           
+        case RF_SUBBAND_5_MID_GHZ:
+           bandStartChannel = RF_CHAN_100;
+           bandEndChannel = RF_CHAN_140;
+           break;
+           
+        case RF_SUBBAND_5_HIGH_GHZ:
+           bandStartChannel = RF_CHAN_149;
+           bandEndChannel = RF_CHAN_165;
+           break;
+           
+        case RF_SUBBAND_4_9_GHZ:
+           bandStartChannel = RF_CHAN_240;
+           bandEndChannel = RF_CHAN_216;
+           break;
+        default:
+           VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+             "sapGetChannelList:OperatingBand not valid ");
+           break;
+    }      
+    /* Allocate the max number of channel supported */
+    list = (v_U8_t *)vos_mem_malloc(NUM_5GHZ_CHANNELS);
+
+    /*Search for the Active channels in the given range */
+    for( loopCount = bandStartChannel; loopCount <= bandEndChannel; loopCount++ )
+    {
+        if((startChannelNum <= rfChannels[loopCount].channelNum)&&
+            (endChannelNum >= rfChannels[loopCount].channelNum ))
         {
-            if( regChannels[i].enabled )
+            if( regChannels[loopCount].enabled )
             {
-               list[channelCount] = i;
-               channelCount++;
+                list[channelCount] = rfChannels[loopCount].channelNum; 
+                channelCount++;
             }
         }
     }
-    else
-    if(operatingBand == RF_BAND_5_GHZ)
-    {   
-        /*allocating the maximum channels in 5 GHZ band*/
-        list = (v_U8_t *)vos_mem_malloc(NUM_5GHZ_CHANNELS);
- 
-        for( i = RF_CHAN_36; i <= RF_CHAN_165; i++ )
-        {
-            if((startChannelNum <= rfChannels[i].channelNum)&&( endChannelNum >= rfChannels[i].channelNum ))
-            {
-                if( regChannels[i].enabled )
-                {
-                    list[channelCount] = rfChannels[i].channelNum;
-                    channelCount++;
-                 }
-            }
-        }
+    if(channelCount ==0)
+    { 
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+        "sapGetChannelList:No active channels present in the given range for the current region");
     }
-    /* return the channel numbers and number of channels to scan*/
+   
+    /* return the channel list and number of channels to scan*/
     *numberOfChannels = channelCount;
     if(channelCount != 0)
     {         

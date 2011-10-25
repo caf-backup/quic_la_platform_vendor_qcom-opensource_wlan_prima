@@ -3798,10 +3798,10 @@ LIM
 WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL    I    4    7
 V    RW    NP
 NONE
-0    0xFF     0
+1    0xFC  1   
 V    RW    NP
 NONE
-0    0xFF     0
+1    0xFC  1
 
 *
 *  SAP channel select end channel number
@@ -3809,19 +3809,19 @@ NONE
 WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL    I    4    7
 V    RW    NP
 NONE
-0    0xFF     11
+1    0xFC  11
 V    RW    NP
 NONE
-0    0xFF     11
+1    0xFC  11
 
 *
 *  SAP channel select operating band
-*  Currently 2.4GHZ is represented as '0' and 5GHz band as '1'
+*  0- 2.4GHZ / 1- Low 5GHZ /2-MID /3-HIGH/4-Japan4.9GHZ
 *
 WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND     I    4    7
 V    RW    NP
 NONE
-0    0x1     0
+0    0x4     0
 V    RW    NP
 NONE
-0    0x1     0
+0    0x4     0

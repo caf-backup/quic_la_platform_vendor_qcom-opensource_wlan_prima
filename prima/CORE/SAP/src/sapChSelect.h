@@ -58,6 +58,7 @@
 #define SOFTAP_COUNT_WEIGHT     (20)
 
 #define SAP_DEFAULT_CHANNEL     (6)
+#define SAP_DEFAULT_5GHZ_CHANNEL      (40)
 #define SAP_CHANNEL_NOT_SELECTED (0)
 /**
 * Structure holding information of each channel in the spectrum, 

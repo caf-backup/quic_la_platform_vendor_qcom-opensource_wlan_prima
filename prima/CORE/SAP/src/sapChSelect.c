@@ -162,7 +162,7 @@ v_U32_t sapweightRssiCount(v_S7_t rssi, v_U16_t count)
     rssicountWeight =  rssiWeight + countWeight;      
 
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, rssiWeight=%d, countWeight=%d, rssicountWeight=%d",
-			  __FUNCTION__, rssiWeight, countWeight, rssicountWeight);
+              __FUNCTION__, rssiWeight, countWeight, rssicountWeight);
     
     return(rssicountWeight);
 }
@@ -191,7 +191,7 @@ v_U32_t sapweightRssiCount(v_S7_t rssi, v_U16_t count)
   SIDE EFFECTS 
 ============================================================================*/
 void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams, 
-								  tHalHandle halHandle, tScanResultHandle pResult)
+                                 tHalHandle halHandle, tScanResultHandle pResult)
 {
     v_S7_t rssi = 0;
     v_U8_t chn_num = 0;
@@ -226,18 +226,18 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                 if (pSpectCh->rssiAgr < pScanResult->BssDescriptor.rssi)
                     pSpectCh->rssiAgr = pScanResult->BssDescriptor.rssi;
 
-	            ++pSpectCh->bssCount; // Increment the count of BSS
+                ++pSpectCh->bssCount; // Increment the count of BSS
 
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                    "In %s, bssdes.ch_self=%d, bssdes.ch_ID=%d, bssdes.rssi=%d, SpectCh.bssCount=%d, pScanReult=0x%x",
-                    __FUNCTION__, pScanResult->BssDescriptor.channelIdSelf, pScanResult->BssDescriptor.channelId, pScanResult->BssDescriptor.rssi, 
-					pSpectCh->bssCount, pScanResult);
+                  __FUNCTION__, pScanResult->BssDescriptor.channelIdSelf, pScanResult->BssDescriptor.channelId, 
+                  pScanResult->BssDescriptor.rssi, pSpectCh->bssCount, pScanResult);
                          
                  pSpectCh++;
-		        break;
-    	    } else {
-		        pSpectCh++;
-	        }
+                 break;
+           } else {
+             pSpectCh++;
+           }
         }
 
         pScanResult = sme_ScanResultGetNext(halHandle, pResult);
@@ -413,14 +413,14 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, tScanResultHandle pScanResult)
 
     // Sort the 20M channel list as per the computed weights, lesser weight first.
     sapSortChlWeight(pSpectInfoParams);
-    
-#ifdef SOFTAP_CHANNEL_RANGE
-    ccmCfgGetInt(halHandle,WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL,&startChannelNum);
-    ccmCfgGetInt(halHandle,WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL,&endChannelNum);
-    ccmCfgGetInt(halHandle,WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,&operatingBand);
 
-    /*Loop till get the best channel */
-    for(count=0;count < pSpectInfoParams->numSpectChans ;count++)
+#ifdef SOFTAP_CHANNEL_RANGE
+    ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, &startChannelNum);
+    ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, &endChannelNum);
+    ccmCfgGetInt( halHandle, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
+
+    /*Loop till get the best channel in the given range */
+    for(count=0; count < pSpectInfoParams->numSpectChans ; count++)
     {
         if((startChannelNum <= pSpectInfoParams->pSpectCh[count].chNum)&&
           ( endChannelNum >= pSpectInfoParams->pSpectCh[count].chNum))
