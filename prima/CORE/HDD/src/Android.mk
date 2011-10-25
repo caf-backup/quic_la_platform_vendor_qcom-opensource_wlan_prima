@@ -2,17 +2,36 @@
 
 # Build/Package only in case of 8960 target
 
+LOCAL_PATH := $(call my-dir)
 WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
-PRIMA_FW_DIR := vendor/qcom/proprietary/wlan/prima/firmware_bin
 DLKM_DIR     := build/dlkm
 
-PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCNSS_qcom_wlan_nv.bin:persist/WCNSS_qcom_wlan_nv.bin
-PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCNSS_cfg.dat:system/etc/firmware/wlan/prima/WCNSS_cfg.dat
-PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCNSS_qcom_cfg.ini:system/etc/firmware/wlan/prima/WCNSS_qcom_cfg.ini
+include $(CLEAR_VARS)
+LOCAL_MODULE       := WCNSS_qcom_wlan_nv.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/persist
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := WCNSS_cfg.dat
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan/prima
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := WCNSS_qcom_cfg.ini
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan/prima
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
 
 # Build prima_wlan.ko
 ###########################################################
-LOCAL_PATH := $(call my-dir)
 
 # This is set once per LOCAL_PATH, not per (kernel) module
 KBUILD_OPTIONS := WLAN_PRIMA=../$(WLAN_BLD_DIR)/prima
@@ -31,18 +50,10 @@ include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 #Create symbolic link
-WLAN_PRIMA_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko
-$(WLAN_PRIMA_SYMLINK):
-	@mkdir -p $(dir $@)
-	ln -sf /system/lib/modules/prima/prima_wlan.ko $@
+$(shell mkdir -p $(TARGET_OUT)/lib/modules; \
+        ln -sf /system/lib/modules/prima/prima_wlan.ko \
+               $(TARGET_OUT)/lib/modules/wlan.ko)
 
-file := $(WLAN_PRIMA_SYMLINK)
-ALL_PREBUILT += $(file)
-
-WLAN_NV_FILE_SYMLINK := $(TARGET_OUT)/etc/firmware/wlan/prima/WCNSS_qcom_wlan_nv.bin
-$(WLAN_NV_FILE_SYMLINK):
-	@mkdir -p $(dir $@)
-	ln -s -f /persist/WCNSS_qcom_wlan_nv.bin $@
-
-file := $(WLAN_NV_FILE_SYMLINK)
-ALL_PREBUILT += $(file)
+$(shell mkdir -p $(TARGET_OUT_ETC)/firmware/wlan/prima; \
+        ln -sf /persist/WCNSS_qcom_wlan_nv.bin \
+        $(TARGET_OUT_ETC)/firmware/wlan/prima/WCNSS_qcom_wlan_nv.bin)

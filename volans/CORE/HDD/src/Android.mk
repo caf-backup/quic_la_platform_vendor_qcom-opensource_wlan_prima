@@ -1,9 +1,7 @@
 # Android makefile for the WLAN WCN1314 Module
 
-# Build/Package only in case of 7x30 and 8660
-
+LOCAL_PATH := $(call my-dir)
 WLAN_BLD_DIR  := vendor/qcom/proprietary/wlan
-VOLANS_FW_DIR := vendor/qcom/proprietary/wlan/volans/firmware_bin
 DLKM_DIR      := build/dlkm
 
 # Default nv.bin to move to persist
@@ -24,14 +22,44 @@ ifeq ($(call is-board-platform,msm8660),true)
 FW_NV_FILE := msm8660_qcom_wlan_nv.bin
 endif
 
-PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_fw.bin:system/etc/firmware/wlan/volans/WCN1314_qcom_fw.bin
-PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/$(FW_NV_FILE):persist/WCN1314_qcom_wlan_nv.bin
-PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_cfg.dat:system/etc/firmware/wlan/volans/WCN1314_cfg.dat
-PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_cfg.ini:system/etc/firmware/wlan/volans/WCN1314_qcom_cfg.ini
+include $(CLEAR_VARS)
+LOCAL_MODULE       := WCN1314_qcom_fw.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan/volans
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := WCN1314_qcom_wlan_nv.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/persist
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := WCN1314_cfg.dat
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan/volans
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := WCN1314_qcom_cfg.ini
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan/volans
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+#Create sym link for ftm driver
+$(shell mkdir -p $(WLAN_BLD_DIR)/volans/ftm; \
+        ln -sf ../CORE $(WLAN_BLD_DIR)/volans/ftm/CORE)
 
 # Build WCN1314_rf.ko
 ###########################################################
-LOCAL_PATH := $(call my-dir)
 
 # This is set once per LOCAL_PATH, not per (kernel) module
 KBUILD_OPTIONS := WLAN_VOLANS=../$(WLAN_BLD_DIR)/volans
@@ -50,19 +78,11 @@ include $(DLKM_DIR)/AndroidKernelModule.mk
 
 #Create symbolic link
 ifeq ($(call is-board-platform-in-list,msm7627a msm8660),true)
-WLAN_WCN1314_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko
-$(WLAN_WCN1314_SYMLINK):
-	@mkdir -p $(dir $@)
-	ln -s -f /system/lib/modules/volans/WCN1314_rf.ko $@
-
-file := $(WLAN_WCN1314_SYMLINK)
-ALL_PREBUILT += $(file)
+$(shell mkdir -p $(TARGET_OUT)/lib/modules; \
+        ln -sf /system/lib/modules/volans/WCN1314_rf.ko \
+               $(TARGET_OUT)/lib/modules/wlan.ko)
 endif
 
-WLAN_NV_FILE_SYMLINK := $(TARGET_OUT)/etc/firmware/wlan/volans/WCN1314_qcom_wlan_nv.bin
-$(WLAN_NV_FILE_SYMLINK):
-	@mkdir -p $(dir $@)
-	ln -s -f /persist/WCN1314_qcom_wlan_nv.bin $@
-
-file := $(WLAN_NV_FILE_SYMLINK)
-ALL_PREBUILT += $(file)
+$(shell mkdir -p $(TARGET_OUT_ETC)/firmware/wlan/volans; \
+        ln -sf /persist/WCN1314_qcom_wlan_nv.bin \
+        $(TARGET_OUT_ETC)/firmware/wlan/volans/WCN1314_qcom_wlan_nv.bin)
