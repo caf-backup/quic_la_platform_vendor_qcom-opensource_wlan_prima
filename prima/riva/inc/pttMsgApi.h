@@ -126,7 +126,8 @@ typedef enum {
    PTT_MSG_SET_RX_DISABLE_MODE = 0x30D4,
    PTT_MSG_GET_RX_PKT_COUNTS = 0x30E0,
    PTT_MSG_RESET_RX_PACKET_STATISTICS = 0x30E2,
-   PTT_MSG_GET_UNI_CAST_MAC_PKT_RX_RSSI = 0x30E3, 
+   PTT_MSG_GET_UNI_CAST_MAC_PKT_RX_RSSI = 0x30E3,
+   PTT_MSG_GET_UNI_CAST_MAC_PKT_RX_RSSI_CONFIG = 0x30E4,
 
 //Rx Symbol Service
    PTT_MSG_GRAB_RAM = 0x30F0,
@@ -228,6 +229,12 @@ typedef enum {
 #define PTT_MSG_TYPES_BEGIN_31          PTT_MSG_TYPES_BEGIN + 0x100
 #define PTT_MSG_TYPES_BEGIN_32          PTT_MSG_TYPES_BEGIN + 0x200
 
+// for FTM PER feature
+enum {
+Legacy_FTM = 0,
+FTM_PER_TX = 1,
+FTM_PER_RX = 2,
+};
 
 #ifndef tANI_BOOLEAN
 #define tANI_BOOLEAN tANI_U8
@@ -487,6 +494,10 @@ typedef PACKED_PRE struct PACKED_POST {
 typedef PACKED_PRE struct PACKED_POST {
     sRxChainsRssi rssi;
 }tMsgPttGetUnicastMacPktRxRssi;
+
+typedef PACKED_PRE struct PACKED_POST {
+    tANI_U32 conf;
+}tMsgPttGetUnicastMacPktRxRssiConf_PRIMA_V1;
 
 //Rx Frame Catcher Service
 typedef PACKED_PRE struct PACKED_POST {
@@ -794,6 +805,7 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttEnableAgcTables EnableAgcTables;
    tMsgPttGetRxRssi GetRxRssi;
    tMsgPttGetUnicastMacPktRxRssi GetUnicastMacPktRxRssi;
+   tMsgPttGetUnicastMacPktRxRssiConf_PRIMA_V1 GetUnicastMacPktRxRssiConf_PRIMA_V1;
    tMsgPttSetRxDisableMode SetRxDisableMode;
    tMsgPttGetRxPktCounts GetRxPktCounts;
    tMsgPttResetRxPacketStatistics ResetRxPacketStatistics;

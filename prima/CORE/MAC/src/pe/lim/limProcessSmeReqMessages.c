@@ -824,7 +824,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         // Initialize 11h Enable Flag
         psessionEntry->lim11hEnable = 0;
         if((pMlmStartReq->bssType != eSIR_IBSS_MODE) &&
-            (SIR_BAND_5_GHZ == pMac->lim.gLimRFBand) )
+            (SIR_BAND_5_GHZ == psessionEntry->limRFBand) )
         {
             if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) != eSIR_SUCCESS)
                 limLog(pMac, LOGP, FL("Fail to get WNI_CFG_11H_ENABLED \n"));
@@ -1554,7 +1554,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             psessionEntry->limRFBand = limGetRFBand(psessionEntry->currentOperChannel);
 
             // Initialize 11h Enable Flag
-            if(SIR_BAND_5_GHZ == pMac->lim.gLimRFBand)
+            if(SIR_BAND_5_GHZ == psessionEntry->limRFBand)
             {
                 if (wlan_cfgGetInt(pMac, WNI_CFG_11H_ENABLED, &val) != eSIR_SUCCESS)
                     limLog(pMac, LOGP, FL("Fail to get WNI_CFG_11H_ENABLED \n"));

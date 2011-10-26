@@ -1990,16 +1990,16 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     fWsmEnabled = ( psessionEntry->limWsmEnabled ) && fWmeEnabled &&
         LIM_BSS_CAPS_GET( WSM, psessionEntry->limCurrentBssQosCaps );
 
-
-    if ( pMac->lim.gLim11hEnable  &&
+    if ( psessionEntry->lim11hEnable  &&
          psessionEntry->pLimJoinReq->spectrumMgtIndicator == eSIR_TRUE ) 
     {
 #if defined WLAN_FEATURE_VOWIFI
         PowerCapsPopulated = TRUE;
 
-	      PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_ASSOC,psessionEntry);
-        PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_ASSOC,psessionEntry);
+        PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_ASSOC,psessionEntry);
 #endif
+        PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_ASSOC,psessionEntry);
+
     }
 
 #if defined WLAN_FEATURE_VOWIFI

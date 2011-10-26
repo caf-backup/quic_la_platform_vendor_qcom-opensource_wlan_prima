@@ -8297,6 +8297,10 @@ void WDA_StartInNavMeasReqCallback(
    /* copy status and rsp Len, that is needed by PE in any case */
    pInNavMeasRspParams->status = 
                     CONVERT_WDI2SIR_STATUS(wdiInNavMeasRspParams->wdiStatus) ;
+   if(WDI_STATUS_SUCCESS != wdiInNavMeasRspParams->wdiStatus)
+   {
+      pInNavMeasRspParams->numBSSIDs = wdiInNavMeasRspParams->ucNumBSSIDs;
+   }
 
    /* 
     * after converting HAL<->WDA messages, the size PE is expecting is 

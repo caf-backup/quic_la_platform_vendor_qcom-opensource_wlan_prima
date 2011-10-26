@@ -14368,10 +14368,16 @@ WDI_ProcessStartInNavMeasRsp
   wdiInNavMeasRspParams->wdiStatus = 
                      WDI_HAL_2_WDI_STATUS(halStartInNavMeasRspParams->status);
   wdiInNavMeasRspParams->usRspLen  =   halStartInNavMeasRspParams->rspLen;
-
-  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-            "WDI INNAV RSP STATUS %d RSPLEN %d \n ",
-               wdiInNavMeasRspParams->wdiStatus, wdiInNavMeasRspParams->usRspLen);
+  if ( WDI_STATUS_SUCCESS != wdiInNavMeasRspParams->wdiStatus)
+  {
+    wdiInNavMeasRspParams->ucNumBSSIDs = halStartInNavMeasRspParams->numBSSIDs ;
+     
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+            "WDI INNAV RSP STATUS %d RSPLEN %d NUMBSSIDS %d \n ",
+               wdiInNavMeasRspParams->wdiStatus, wdiInNavMeasRspParams->usRspLen,
+                                          wdiInNavMeasRspParams->ucNumBSSIDs);
+    wdiInNavMeasRspParams->rttRssiResults->ucNumSuccessfulMeasurements = 0;
+  }
   
   //Copy RTT RSSI values only if status is success
   if ( WDI_STATUS_SUCCESS == wdiInNavMeasRspParams->wdiStatus)

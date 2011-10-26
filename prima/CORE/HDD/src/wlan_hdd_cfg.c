@@ -2420,7 +2420,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.AdHocChannel5G            = 44; 
    smeConfig.csrConfig.ProprietaryRatesEnabled   = 0;  
    smeConfig.csrConfig.HeartbeatThresh50         = 40; 
-   smeConfig.csrConfig.Is11hSupportEnabled       = 0; 
+   smeConfig.csrConfig.Is11hSupportEnabled       = 1; 
    smeConfig.csrConfig.bandCapability            = pConfig->nBandCapability; 
    smeConfig.csrConfig.cbChoice                  = 0;   
    smeConfig.csrConfig.bgScanInterval            = 0; 

@@ -197,9 +197,14 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WLAN_STATS_RX_ERROR_CNT       11
 #define WLAN_STATS_TX_BYTE_CNT        12
 
+/* Added for CIQ related stats */
+#define WLAN_STATS_RX_BYTE_CNT        13
+#define WLAN_STATS_RX_RATE            14
+#define WLAN_STATS_TX_RATE            15
+
 #define FILL_TLV(__p, __type, __size, __val, __tlen) \
 {\
-    if (tlen < WE_MAX_STR_LEN) \
+    if ((__tlen + __size + 2) < WE_MAX_STR_LEN) \
     {\
         *__p++ = __type;\
         *__p++ = __size;\
@@ -208,7 +213,9 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
         __tlen += __size + 2;\
     }\
     else \
-        return -1;\
+	{\
+        hddLog(VOS_TRACE_LEVEL_ERROR, "FILL_TLV Failed!!!\n");\
+	}\
 }while(0);
 
 #define VERSION_VALUE_MAX_LEN 32
@@ -3805,6 +3812,9 @@ static int iw_get_statistics(struct net_device *dev,
   char *p = (char*)wrqu->data.pointer;
   int tlen = 0;
   tCsrSummaryStatsInfo *pStats = &(pAdapter->hdd_stats.summary_stat);
+  
+  tCsrGlobalClassAStatsInfo *aStats = &(pAdapter->hdd_stats.ClassA_stat);
+  tCsrGlobalClassDStatsInfo *dStats = &(pAdapter->hdd_stats.ClassD_stat);
 
   ENTER();
 
@@ -3819,7 +3829,12 @@ static int iw_get_statistics(struct net_device *dev,
   }
   else {
     status = sme_GetStatistics( pHddCtx->hHal, eCSR_HDD,
-                       SME_SUMMARY_STATS,
+                       SME_SUMMARY_STATS      |
+                       SME_GLOBAL_CLASSA_STATS |
+					   SME_GLOBAL_CLASSB_STATS |
+                       SME_GLOBAL_CLASSC_STATS |
+                       SME_GLOBAL_CLASSD_STATS |
+                       SME_PER_STA_STATS,
                        hdd_StatisticsCB, 0, FALSE,
                        (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0], pAdapter );
 
@@ -3841,7 +3856,12 @@ static int iw_get_statistics(struct net_device *dev,
               __FUNCTION__);
        /*Remove the SME statistics list by passing NULL in callback argument*/
        status = sme_GetStatistics( pHddCtx->hHal, eCSR_HDD,
-                       SME_SUMMARY_STATS,
+                       SME_SUMMARY_STATS      |
+                       SME_GLOBAL_CLASSA_STATS |
+					   SME_GLOBAL_CLASSB_STATS |
+                       SME_GLOBAL_CLASSC_STATS |
+                       SME_GLOBAL_CLASSD_STATS |
+                       SME_PER_STA_STATS,
                        NULL, 0, FALSE,
                        (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0], pAdapter );
 
@@ -3907,8 +3927,28 @@ static int iw_get_statistics(struct net_device *dev,
               (char*) &(pStats->tx_byte_cnt), 
               tlen);
 
+	/* Added for CIQ related stats */
+	FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BYTE_CNT, 
+              (tANI_U8) sizeof (dStats->rx_byte_cnt), 
+              (char*) &(dStats->rx_byte_cnt), 
+              tlen);
+	
+	FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_RATE, 
+              (tANI_U8) sizeof (dStats->rx_rate), 
+              (char*) &(dStats->rx_rate), 
+              tlen);
+			  
+	/* Transmit rate, in units of 500 kbit/sec */
+	FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_RATE, 
+              (tANI_U8) sizeof (aStats->tx_rate), 
+              (char*) &(aStats->tx_rate), 
+              tlen);
+			  
+
+			  
+			  
     wrqu->data.length = tlen;
-     
+ 
   }
 
   EXIT();

@@ -48,7 +48,7 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U8 addr1[MAC_ADDR_SIZE];
    tANI_U8 addr2[MAC_ADDR_SIZE];
    tANI_U8 addr3[MAC_ADDR_SIZE];
-   tANI_U8 pktScramblerSeed;    //for tx scrambler
+   tANI_U8 tx_mode;
    tANI_BOOLEAN crc;            //0 = no FCS calculated = power detector works = receive won't work?,
    //1 = crc calculated = receive works, but power detector workaround doesn't
 

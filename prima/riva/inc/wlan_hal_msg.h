@@ -4286,13 +4286,13 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST {
 
     /*Enable PNO*/
-    tANI_U8          enable;
+    tANI_U32          enable;
 
     /*Immediate,  On Suspend,   On Resume*/
     ePNOMode         modePNO;
     
     /*Number of networks sent for PNO*/
-    tANI_U8          ucNetworksCount; 
+    tANI_U32          ucNetworksCount; 
 
     /*The networks that PNO needs to look for*/
     tNetworkType     aNetworks[WLAN_HAL_PNO_MAX_SUPP_NETWORKS];
@@ -4367,9 +4367,17 @@ typedef PACKED_PRE struct PACKED_POST {
 typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader header;
-   tRssiFilterParams   prefNetwListParams;
+   tRssiFilterParams   prefRSSIFilterParams;
 }  tSetRssiFilterReq, *tpSetRssiFilterReq;
 
+/*
+ Set RSSI filter resp
+*/
+typedef PACKED_PRE struct PACKED_POST{
+   tHalMsgHeader header;
+   /*status of the request */
+   tANI_U32   status;
+}  tSetRssiFilterResp, *tpSetRssiFilterResp;
 /*
   Update scan params 
 */

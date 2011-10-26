@@ -120,7 +120,11 @@ typedef PACKED_PRE struct PACKED_POST {
    //Tx Frame Gen Service
    tANI_BOOLEAN frameGenEnabled;
    tANI_BOOLEAN phyDbgFrameGen; //this says use phyDbg for frames - leave this in place until we know that PhyDbg will suffice
-   tANI_U8 reserved[2];
+   
+   // for FTM PER feature
+   tANI_U8 tx_mode;
+   
+   tANI_U8 reserved[1];
 
    //Rx Gain Service
    sRxChainsAgcEnable agcEnables;

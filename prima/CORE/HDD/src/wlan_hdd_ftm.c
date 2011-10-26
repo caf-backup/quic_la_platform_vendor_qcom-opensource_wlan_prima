@@ -260,7 +260,7 @@ static void _ftm_status_init(void)
     ftm_status.frameParams.payloadLength = 2000;
     ftm_status.frameParams.payloadFillByte = 0xA5;
     ftm_status.frameParams.pktAutoSeqNum = eANI_BOOLEAN_FALSE;
-    ftm_status.frameParams.pktScramblerSeed = 7;
+    ftm_status.frameParams.tx_mode = 0;
     ftm_status.frameParams.crc = 0;
     ftm_status.frameParams.preamble = PHYDBG_PREAMBLE_OFDM;
     memcpy(&ftm_status.frameParams.addr1[0], addr1, ANI_MAC_ADDR_SIZE);
