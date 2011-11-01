@@ -2442,7 +2442,7 @@ LIM
 WNI_CFG_HT_CAP_INFO   I    4    10
 V    RW    NP       RESTART
 LIM
-0    0xffff    0x012c
+0    0xffff    0x016c
 V    RW    NP       RESTART
 LIM
 0    0xffff    0x106e

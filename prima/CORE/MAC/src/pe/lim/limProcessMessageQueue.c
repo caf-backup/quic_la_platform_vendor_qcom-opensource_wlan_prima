@@ -1069,8 +1069,8 @@ void
 limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 {
     tANI_U8  deferMsg = false;
-#if defined WLAN_FEATURE_VOWIFI_11R
     tLinkStateParams *linkStateParams;
+#if defined WLAN_FEATURE_VOWIFI_11R
     tpPESession pSession;
 #endif
 #if defined(ANI_DVT_DEBUG)
@@ -1816,8 +1816,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        break;
 #endif
     case WDA_SET_LINK_STATE_RSP:
-#if defined WLAN_FEATURE_VOWIFI_11R
        linkStateParams = (tLinkStateParams *)limMsg->bodyptr;
+#if defined WLAN_FEATURE_VOWIFI_11R
        pSession = linkStateParams->session;
        if(linkStateParams->ft)
        {
@@ -1826,6 +1826,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                                               pSession); 
        }
 #endif
+       if( linkStateParams->callback )
+       {
+          linkStateParams->callback( pMac, linkStateParams->callbackArg );
+       }
        vos_mem_free((v_VOID_t *)(limMsg->bodyptr));
        break;
 

@@ -1268,6 +1268,29 @@ tANI_BOOLEAN sme_IsWmmSupported(tHalHandle hHal);
 //Upper layer to get the list of the base channels to scan for passively 11d info from csr
 eHalStatus sme_ScanGetBaseChannels( tHalHandle hHal, tCsrChannelInfo * pChannelInfo );
 
+typedef void ( *tSmeChangeCountryCallback)(void *pContext);
+/* ---------------------------------------------------------------------------
+
+    \fn sme_ChangeCountryCode
+
+    \brief Change Country code from upperlayer during WLAN driver operation.
+           This is a synchronous API.
+
+    \param hHal - The handle returned by macOpen.
+
+    \param pCountry New Country Code String
+
+    \return eHalStatus  SUCCESS.
+
+                         FAILURE or RESOURCES  The API finished and failed.
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
+                                  tSmeChangeCountryCallback callback,
+                                  tANI_U8 *pCountry,
+                                  void *pContext,
+                                  void* pVosContext );
+
 /* ---------------------------------------------------------------------------
     \fn sme_BtcSignalBtEvent
     \brief  API to signal Bluetooth (BT) event to the WLAN driver. Based on the

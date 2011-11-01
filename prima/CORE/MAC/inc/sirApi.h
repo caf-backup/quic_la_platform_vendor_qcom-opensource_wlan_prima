@@ -2589,6 +2589,19 @@ typedef struct sAniGetRssiReq
     
 } tAniGetRssiReq, *tpAniGetRssiReq;
 
+/* Change country code request MSG structure */
+typedef struct sAniChangeCountryCodeReq
+{
+    // Common for all types are requests
+    tANI_U16                msgType;    // message type is same as the request type
+    tANI_U16                msgLen;     // length of the entire request
+    tANI_U8                 countryCode[WNI_CFG_COUNTRY_CODE_LEN];   //3 char country code
+    void                    *changeCCCallback;
+    void                    *pDevContext; //device context
+    void                    *pVosContext; //voss context
+    
+} tAniChangeCountryCodeReq, *tpAniChangeCountryCodeReq;
+
 typedef struct sAniSummaryStatsInfo
 {
     tANI_U32 retry_cnt[4];         //Total number of packets(per AC) that were successfully transmitted with retries

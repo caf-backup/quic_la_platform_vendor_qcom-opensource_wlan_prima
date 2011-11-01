@@ -53,6 +53,12 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
 
     if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request )
     {
+        if( cfgState->buf )
+        {
+           hddLog( LOGP, 
+                   "%s: We need to receive yet an ack from one of tx packet",
+                   __func__);
+        }
         cfg80211_remain_on_channel_expired( pRemainChanCtx->dev,
                               pRemainChanCtx->cookie,
                               &pRemainChanCtx->chan,
@@ -302,7 +308,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
         /* Wait for driver to be ready on the requested channel */
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
         status = wait_for_completion_interruptible_timeout(
-                     &pAdapter->cancel_rem_on_chan_var,
+                     &pAdapter->offchannel_tx_event,
                      msecs_to_jiffies(WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
         if(!status)
         {

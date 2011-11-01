@@ -2032,7 +2032,9 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMac->lim.limTimers.gLimJoinFailureTimer.sessionId = sessionId;
 
 
-        if (limSetLinkState(pMac, eSIR_LINK_PREASSOC_STATE, psessionEntry->pLimMlmJoinReq->bssDescription.bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS )
+        if (limSetLinkState(pMac, eSIR_LINK_PREASSOC_STATE, 
+             psessionEntry->pLimMlmJoinReq->bssDescription.bssId, 
+             psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS )
         {
             limLog(pMac, LOGE, FL("limSetLinkState to eSIR_LINK_PREASSOC_STATE Failed!!\n"));
             mlmJoinCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
@@ -2380,10 +2382,12 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
   //Set the link state to postAssoc, so HW can start receiving frames from AP.
     if (psessionEntry->bssType == eSIR_BTAMP_STA_MODE)
     {
-       if(limSetLinkState(pMac, eSIR_LINK_BTAMP_POSTASSOC_STATE, currentBssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+       if(limSetLinkState(pMac, eSIR_LINK_BTAMP_POSTASSOC_STATE, currentBssId, 
+           psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
     } else {
-       if(limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, currentBssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+       if(limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, currentBssId, 
+           psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
     }
 
@@ -3507,7 +3511,8 @@ limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
 
         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
 		MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
-        if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+        if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, psessionEntry->bssId, 
+            psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
         /* Update PE session Id */
         mlmJoinCnf.sessionId = psessionEntry->peSessionId;
@@ -3765,7 +3770,8 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
             MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
             
             //Set the RXP mode to IDLE, so it starts filtering the frames.
-            if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+            if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId, 
+                psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
                 PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
          
             // 'Change' timer for future activations

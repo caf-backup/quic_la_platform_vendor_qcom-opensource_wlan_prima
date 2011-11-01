@@ -95,6 +95,13 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include "wlan_qct_pal_trace.h"
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#include "qwlan_version.h"
+
+#ifdef MODULE
+#define WLAN_MODULE_NAME  module_name(THIS_MODULE)
+#else
+#define WLAN_MODULE_NAME  "wlan"
+#endif
 
 //internal function declaration
 v_U16_t hdd_select_queue(struct net_device *dev,
@@ -2855,9 +2862,10 @@ static int __init hdd_module_init ( void)
 #endif // ANI_BUS_TYPE_SDIO
    struct device *dev = NULL;
    int ret_status = 0;
+
    ENTER();
 
-   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Wi-Fi loading driver",__func__);
+   pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME, QWLAN_VERSIONSTR);
 
    //Power Up Libra WLAN card first if not already powered up
    status = vos_chipPowerUp(NULL,NULL,NULL);
@@ -2886,17 +2894,17 @@ static int __init hdd_module_init ( void)
 
       if(attempts == 7)
          break;
-      
+
       msleep(250);
 
    }while (attempts < 7);
 
-   //Retry to detect the card again by Powering Down the chip and Power up the chip 
+   //Retry to detect the card again by Powering Down the chip and Power up the chip
    //again. This retry is done to recover from CRC Error
    if (NULL == sdio_func_dev) {
 
       attempts = 0;
-      
+
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
 
@@ -2925,7 +2933,7 @@ static int __init hdd_module_init ( void)
 
          if(attempts == 2)
            break;
-      
+
          msleep(1000);
 
       }while (attempts < 3);
@@ -3002,9 +3010,9 @@ static int __init hdd_module_init ( void)
          ret_status = -1;
          break;
       }
-      
+
       /* Cancel the vote for XO Core ON
-       * This is done here for safety purposes in case we re-initialize without turning 
+       * This is done here for safety purposes in case we re-initialize without turning
        * it OFF in any error scenario.
        */
       hddLog(VOS_TRACE_LEVEL_ERROR, "In module init: Ensure Force XO Core is OFF"
@@ -3014,10 +3022,10 @@ static int __init hdd_module_init ( void)
       {
           hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel XO Core ON vote. Not returning failure."
                                             "Power consumed will be high\n");
-      }  
+      }
    } while (0);
 
-   if(!VOS_IS_STATUS_SUCCESS(ret_status))
+   if (0 != ret_status)
    {
       //Assert Deep sleep signal now to put Libra HW in lowest power state
       status = vos_chipAssertDeepSleep( NULL, NULL, NULL );
@@ -3026,28 +3034,26 @@ static int __init hdd_module_init ( void)
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
 #ifdef TIMER_MANAGER
-     vos_timer_exit();
+      vos_timer_exit();
 #endif
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
 
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Wi-Fi driver load failure", __func__);
+      pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
    }
    else
    {
       //Send WLAN UP indication to Nlink Service
       send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
 
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Wi-Fi driver loaded", __func__);
+      pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
+
    }
-   
-   
 
    EXIT();
 
    return ret_status;
-
 }
 
 
@@ -3068,7 +3074,7 @@ static void __exit hdd_module_exit(void)
    v_CONTEXT_t pVosContext = NULL;
    int attempts = 0;
 
-   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Entering module exit",__func__);
+   pr_info("%s: unloading driver v%s\n", WLAN_MODULE_NAME, QWLAN_VERSIONSTR);
 
    //Get the global vos context
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
@@ -3076,7 +3082,7 @@ static void __exit hdd_module_exit(void)
    if(!pVosContext)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
-      return;
+      goto done;
    }
 
    //Get the HDD context.
@@ -3114,13 +3120,11 @@ static void __exit hdd_module_exit(void)
    vos_timer_exit();
 #endif
 #ifdef MEMORY_DEBUG
-   vos_mem_exit(); 
+   vos_mem_exit();
 #endif
 
-#if 0
-done:   
-#endif
-   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Exiting module exit",__func__);
+done:
+   pr_info("%s: driver unloaded\n", WLAN_MODULE_NAME);
 }
 
 #if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)

@@ -920,6 +920,7 @@ typedef struct
 
 }tSwitchChannelParams, *tpSwitchChannelParams;
 
+typedef void (*tpSetLinkStateCallback)(tpAniSirGlobal pMac, void *msgParam );
 
 typedef struct sLinkStateParams
 {
@@ -927,6 +928,8 @@ typedef struct sLinkStateParams
     tSirMacAddr bssid;
     tSirMacAddr selfMacAddr;
     tSirLinkState state;
+    tpSetLinkStateCallback callback;
+    void *callbackArg;
 #ifdef WLAN_FEATURE_VOWIFI_11R
     int ft;
     void * session;

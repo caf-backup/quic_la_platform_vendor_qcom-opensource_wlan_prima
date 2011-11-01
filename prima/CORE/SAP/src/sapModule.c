@@ -1058,10 +1058,10 @@ WLANSAP_SetChannelRange(tHalHandle hHal,v_U8_t startChannel, v_U8_t endChannel,
             break;
         }
     }
-    if((loopStartCount == bandEndChannel)||(loopEndCount == bandEndChannel))
+    if((loopStartCount > bandEndChannel)||(loopEndCount > bandEndChannel))
     {
        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                  "%s Invalid startChannel-%d or EndChannel-%d for band -%d",
+                  "%s: Invalid startChannel-%d or EndChannel-%d for band -%d",
                    __FUNCTION__,startChannel,endChannel,operatingBand);
        /* Supplied channels are nt in the operating band so set the default 
             channels for the given operating band */

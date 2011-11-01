@@ -50,8 +50,22 @@ void limExitRemainOnChannel(tpAniSirGlobal pMac, eHalStatus status,
 void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
 extern tSirRetStatus limSetLinkState(
                          tpAniSirGlobal pMac, tSirLinkState state,
-                         tSirMacAddr bssId, tSirMacAddr selfMacAddr);
+                         tSirMacAddr bssId, tSirMacAddr selfMacAddr, 
+                         tpSetLinkStateCallback callback, void *callbackArg);
 
+/*------------------------------------------------------------------
+ *
+ * Below function is callback function, it is called when 
+ * WDA_SET_LINK_STATE_RSP is received from WDI. callback function for
+ * P2P of limSetLinkState
+ *
+ *------------------------------------------------------------------*/
+void limSetLinkStateP2PCallback(tpAniSirGlobal pMac, void *callbackArg)
+{
+    //Send Ready on channel indication to SME
+    limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RDY_IND, eHAL_STATUS_SUCCESS, 
+                  pMac->lim.gpLimRemainOnChanReq->sessionId, 0); 
+}
 
 /*------------------------------------------------------------------
  *
@@ -80,12 +94,6 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                 tANI_U32 val;
                 tSirMacAddr nullBssid = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-                if ((limSetLinkState(pMac, eSIR_LINK_LISTEN_STATE,
-                    nullBssid, pMac->lim.gSelfMacAddr)) != eSIR_SUCCESS)
-                {
-                    limLog( pMac, LOGE, "Unable to change link state");
-                    goto error;
-                }
 
                 /* get the duration from the request */
                 val = SYS_MS_TO_TICKS(MsgBuff->duration);
@@ -107,8 +115,14 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                     limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
                     goto error;
                 }
-                limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RDY_IND,
-                              eSIR_SME_SUCCESS, MsgBuff->sessionId, 0);
+
+                if ((limSetLinkState(pMac, eSIR_LINK_LISTEN_STATE,
+                    nullBssid, pMac->lim.gSelfMacAddr, 
+                    limSetLinkStateP2PCallback, NULL)) != eSIR_SUCCESS)
+                {
+                    limLog( pMac, LOGE, "Unable to change link state");
+                    goto error;
+                }
                 return FALSE;
             }
         }
@@ -221,21 +235,11 @@ void limRemainOnChnlSetLinkStat(tpAniSirGlobal pMac, eHalStatus status,
         goto error1;
     }
 
-    //Send Ready on channel indication to SME
-    limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RDY_IND, status, 
-                  MsgRemainonChannel->sessionId, 0); 
-
-    if ((limSetLinkState(pMac, eSIR_LINK_LISTEN_STATE,nullBssid,
-                         pMac->lim.gSelfMacAddr)) != eSIR_SUCCESS)
-    {
-        limLog( pMac, LOGE, "Unable to change link state");
-        goto error1;
-    }
-
     // Start timer here to come back to operating channel.
     pMac->lim.limTimers.gLimRemainOnChannelTimer.sessionId =
                                                 psessionEntry->peSessionId;
-      /* get the duration from the request */
+
+    /* get the duration from the request */
     val = SYS_MS_TO_TICKS(MsgRemainonChannel->duration);
 
     limLog( pMac, LOGE, "Start listen duration = %d", val);
@@ -257,6 +261,15 @@ void limRemainOnChnlSetLinkStat(tpAniSirGlobal pMac, eHalStatus status,
                   "%s: remain on channel Timer Start Failed\n", __func__);
         goto error;
     }
+
+    if ((limSetLinkState(pMac, eSIR_LINK_LISTEN_STATE,nullBssid,
+                         pMac->lim.gSelfMacAddr, limSetLinkStateP2PCallback, 
+                         NULL)) != eSIR_SUCCESS)
+    {
+        limLog( pMac, LOGE, "Unable to change link state");
+        goto error;
+    }
+
     return;
 error:
     limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
@@ -287,7 +300,7 @@ void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac)
 
     /* get the previous valid LINK state */
     if (limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid,
-        pMac->lim.gSelfMacAddr) != eSIR_SUCCESS)
+        pMac->lim.gSelfMacAddr, NULL, NULL) != eSIR_SUCCESS)
     {
         limLog( pMac, LOGE, "Unable to change link state");
         return;
@@ -656,17 +669,30 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
          */
     txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
-
-    halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
-                   HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
-                   7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame, 
-                   limP2PActionCnf, txFlag );
-
-    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
+      
+    if (SIR_MAC_MGMT_PROBE_RSP == pFc->subType)
     {
-        limLog( pMac, LOGE, FL("could not send Probe Request frame!\n" ));
-        limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, halstatus, 
-            pMbMsg->sessionId, 0);
+        halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
+                    HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
+                    7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame, 
+                    txFlag );
+
+        limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, 
+               halstatus, pMac->lim.actionFrameSessionId, 0);
+    }
+    else
+    {
+        halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
+                      HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
+                      7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame, 
+                      limP2PActionCnf, txFlag );
+
+        if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
+        {
+             limLog( pMac, LOGE, FL("could not send Probe Request frame!\n" ));
+             limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, halstatus, 
+                pMbMsg->sessionId, 0);
+        }
     }
 
     return ;

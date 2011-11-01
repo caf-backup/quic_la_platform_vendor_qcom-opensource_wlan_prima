@@ -36,6 +36,7 @@
 #include <linux/irqreturn.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
+#include <mach/msm_smsm.h>
 #include "wlan_qct_pal_api.h"
 #include "wlan_qct_pal_device.h"
 #include "wlan_hdd_main.h"
@@ -694,3 +695,32 @@ wpt_status wpalDeviceClose
 
    return eWLAN_PAL_STATUS_SUCCESS;
 }
+
+/**
+  @brief wpalNotifySmsm provides a mechansim for a client to 
+         notify SMSM to start DXE engine and/or condition of Tx
+         ring buffer
+
+  @param  clrSt:   bit(s) to be cleared on the MASK 
+  @param  setSt:   bit(s) to be set on the MASK
+
+  @return SUCCESS if the operation is successful
+*/
+wpt_status wpalNotifySmsm
+(
+   wpt_uint32                            clrSt,
+   wpt_uint32                            setSt
+)
+{
+   int rc;
+   rc = smsm_change_state(SMSM_APPS_STATE, clrSt, setSt);
+   if(0 != rc) 
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: smsm_change_state failed",
+                 __FUNCTION__);
+      return eWLAN_PAL_STATUS_E_FAILURE;
+   }
+   return eWLAN_PAL_STATUS_SUCCESS;
+}
+

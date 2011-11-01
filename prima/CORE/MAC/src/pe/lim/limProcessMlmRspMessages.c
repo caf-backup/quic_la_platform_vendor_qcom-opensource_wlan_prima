@@ -600,8 +600,9 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 psessionEntry->limSmeState = eLIM_SME_JOIN_FAILURE_STATE;
                 MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
                 psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-          MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
-                if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+                MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+                if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId, 
+                    psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
                    PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState.\n"));)
 #if defined(ANI_AP_CLIENT_SDK)
                 if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
@@ -1983,7 +1984,8 @@ void limProcessStaMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESessi
     {
         PELOGW(limLog( pMac, LOGW,
                       FL( "STA received the DEL_BSS_RSP for BSSID: %X.\n"),pDelBssParams->bssIdx);)
-        if (limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+        if (limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, psessionEntry->bssId, 
+             psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
 
         {
             PELOGE(limLog( pMac, LOGE, FL( "Failure in setting link state to IDLE\n"));)
@@ -2119,7 +2121,8 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
         rc = eSIR_SME_STOP_BSS_FAILURE;
         goto end;
     }
-    rc = limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid, psessionEntry->selfMacAddr);
+    rc = limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid, 
+           psessionEntry->selfMacAddr, NULL, NULL);
     if( rc != eSIR_SUCCESS )
         goto end;
     /** Softmac may send all the buffered packets right after resuming the transmission hence
@@ -2610,7 +2613,8 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
     if( eHAL_STATUS_SUCCESS == pAddBssParams->status )
     {
         PELOG2(limLog(pMac, LOG2, FL("WDA_ADD_BSS_RSP returned with eHAL_STATUS_SUCCESS\n"));)
-        if (limSetLinkState(pMac, eSIR_LINK_AP_STATE,psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS )
+        if (limSetLinkState(pMac, eSIR_LINK_AP_STATE,psessionEntry->bssId, 
+              psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS )
             goto end;
         // Set MLME state
         psessionEntry->limMlmState = eLIM_MLM_BSS_STARTED_STATE;
@@ -2712,7 +2716,8 @@ limProcessIbssMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession 
     if( eHAL_STATUS_SUCCESS == pAddBssParams->status )
     {
         PELOG1(limLog(pMac, LOG1, FL("WDA_ADD_BSS_RSP returned with eHAL_STATUS_SUCCESS\n"));)
-        if (limSetLinkState(pMac, eSIR_LINK_IBSS_STATE,psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS )
+        if (limSetLinkState(pMac, eSIR_LINK_IBSS_STATE,psessionEntry->bssId, 
+             psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS )
             goto end;
         // Set MLME state
         psessionEntry->limMlmState = eLIM_MLM_BSS_STARTED_STATE;
@@ -2899,7 +2904,8 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
 
     // Set the filter state to post assoc
     if (limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, 
-            pAddBssParams->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+            pAddBssParams->bssId, psessionEntry->selfMacAddr, 
+            NULL, NULL) != eSIR_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
         return;
@@ -3768,12 +3774,14 @@ static void limProcessSwitchChannelJoinReq(tpAniSirGlobal pMac, tpPESession pses
     /* eSIR_BTAMP_AP_MODE stroed as bss type in session Table when join req is received, is to be veified   */
     if(psessionEntry->bssType == eSIR_BTAMP_AP_MODE)
     {
-        if (limSetLinkState(pMac, eSIR_LINK_BTAMP_PREASSOC_STATE, psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS )
+        if (limSetLinkState(pMac, eSIR_LINK_BTAMP_PREASSOC_STATE, psessionEntry->bssId, 
+             psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS )
             goto error;
     }
     else
     {
-        if(limSetLinkState(pMac, eSIR_LINK_PREASSOC_STATE, psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+        if(limSetLinkState(pMac, eSIR_LINK_PREASSOC_STATE, psessionEntry->bssId, 
+            psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
             goto error;
     }
     // Update BSSID at CFG database
@@ -4631,10 +4639,12 @@ limProcessBtampAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession ps
         limLog(pMac, LOG2, FL("WDA_ADD_BSS_RSP returned with eHAL_STATUS_SUCCESS\n"));
          if (psessionEntry->bssType == eSIR_BTAMP_AP_MODE)
          {
-             if (limSetLinkState(pMac, eSIR_LINK_BTAMP_AP_STATE, psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS )
+             if (limSetLinkState(pMac, eSIR_LINK_BTAMP_AP_STATE, psessionEntry->bssId, 
+                  psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS )
                goto end;
          } else if (psessionEntry->bssType == eSIR_BTAMP_STA_MODE) {
-            if (limSetLinkState(pMac, eSIR_LINK_SCAN_STATE, psessionEntry->bssId, psessionEntry->selfMacAddr) != eSIR_SUCCESS )
+            if (limSetLinkState(pMac, eSIR_LINK_SCAN_STATE, psessionEntry->bssId, 
+                 psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS )
                 goto end;
          }
 

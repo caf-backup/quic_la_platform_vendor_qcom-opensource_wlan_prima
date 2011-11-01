@@ -73,6 +73,8 @@ static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEA
 
 eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
 
+eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf);
+
 //Internal SME APIs
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme)
 {
@@ -1383,6 +1385,18 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
 				{
 				    pMac->sme.pTxPerHitCallback(pMac->sme.pTxPerHitCbContext);
 				}
+                break;
+				
+          case eWNI_SME_CHANGE_COUNTRY_CODE:
+                if(pMsg->bodyptr)
+                {
+                   status = sme_HandleChangeCountryCode((void *)pMac, pMsg->bodyptr);
+                   vos_mem_free(pMsg->bodyptr);
+                }
+                else
+                {
+                   smsLog(pMac, LOGE, "Empty rsp message for meas (eWNI_SME_COEX_IND), nothing to process\n");
+                }
                 break;
 				
           default:
@@ -3667,6 +3681,68 @@ eHalStatus sme_ScanGetBaseChannels( tHalHandle hHal, tCsrChannelInfo * pChannelI
 }
 
 /* ---------------------------------------------------------------------------
+
+    \fn sme_ChangeCountryCode
+
+    \brief Change Country code from upperlayer during WLAN driver operation.
+           This is a synchronous API.
+
+    \param hHal - The handle returned by macOpen.
+
+    \param pCountry New Country Code String
+
+    \return eHalStatus  SUCCESS.
+
+                         FAILURE or RESOURCES  The API finished and failed.
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
+                                          tSmeChangeCountryCallback callback,
+                                          tANI_U8 *pCountry,
+                                          void *pContext,
+                                          void* pVosContext )
+{
+   eHalStatus                status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal            pMac = PMAC_STRUCT( hHal );
+   vos_msg_t                 msg;
+   tAniChangeCountryCodeReq *pMsg;
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      smsLog(pMac, LOG1, FL(" called\n"));      
+      status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tAniChangeCountryCodeReq));
+      if ( !HAL_STATUS_SUCCESS(status) ) 
+      {
+         smsLog(pMac, LOGE, " csrChangeCountryCode: failed to allocate mem for req \n");
+         return status;
+      }
+
+      pMsg->msgType = pal_cpu_to_be16((tANI_U16)eWNI_SME_CHANGE_COUNTRY_CODE);
+      pMsg->msgLen = (tANI_U16)sizeof(tAniChangeCountryCodeReq);
+      palCopyMemory(pMac->hHdd, pMsg->countryCode, pCountry, 3);
+      pMsg->changeCCCallback = callback;
+      pMsg->pDevContext = pContext;
+      pMsg->pVosContext = pVosContext;
+
+      msg.type = eWNI_SME_CHANGE_COUNTRY_CODE;
+      msg.bodyptr = pMsg;
+      msg.reserved = 0;
+
+      if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME, &msg))
+      {
+          smsLog(pMac, LOGE, " sme_ChangeCountryCode failed to post msg to self \n");   
+          palFreeMemory(pMac->hHdd, (void *)pMsg);
+          status = eHAL_STATUS_FAILURE;
+      }
+      smsLog(pMac, LOG1, FL(" returned\n"));      
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
     \fn sme_BtcSignalBtEvent
     \brief  API to signal Bluetooth (BT) event to the WLAN driver. Based on the
             BT event type and the current operating mode of Libra (full power,
@@ -5229,4 +5305,78 @@ eHalStatus sme_SetTxPerTracking(tHalHandle hHal,
     }
 
     return eHAL_STATUS_SUCCESS;
+}
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_HandleChangeCountryCode
+
+    \brief Change Country code, Reg Domain and channel list
+
+    \param pMac - The handle returned by macOpen.
+    \param pMsgBuf - MSG Buffer
+
+    \return eHalStatus
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
+{
+   tANI_U8        Num2GChannels, bMaxNumChn;
+   eHalStatus     status = eHAL_STATUS_SUCCESS;
+   tAniChangeCountryCodeReq *pMsg;
+
+   pMsg = (tAniChangeCountryCodeReq *)pMsgBuf;
+
+   /* WEXT set country code means
+    * 11D should be supported?
+    * 11D Channel should be enforced?
+    * 11D Country code should be matched?
+    * 11D Reg Domian should be matched?
+    * Country string changed */
+   if(pMac->roam.configParam.Is11dSupportEnabled &&
+      pMac->roam.configParam.fEnforce11dChannels &&
+      pMac->roam.configParam.fEnforceCountryCodeMatch &&
+      pMac->roam.configParam.fEnforceDefaultDomain &&
+      !csrSave11dCountryString(pMac, pMsg->countryCode))
+   {
+      /* All 11D related options are already enabled
+       * Country string is not changed
+       * Do not need do anything for country code change request */
+      return eHAL_STATUS_SUCCESS;
+   }
+
+   pMac->roam.configParam.Is11dSupportEnabled      = 1;
+   pMac->roam.configParam.fEnforce11dChannels      = 1;
+   pMac->roam.configParam.fEnforceCountryCodeMatch = 1;
+   /* Country code already updated */
+
+   /* Set Current Country code and Current Regulatory domain */
+   status = csrSetCountryCode(pMac, pMsg->countryCode, NULL);
+   if(eHAL_STATUS_SUCCESS != status)
+   {
+      smsLog(pMac, LOGE, "Set Country Code Fail %d", status);
+      return status;  
+   }
+   pMac->scan.domainIdDefault = pMac->scan.domainIdCurrent;
+   pMac->roam.configParam.fEnforceDefaultDomain    = 1;
+   /* Reset Country info based on new CC */
+   csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);
+
+   csrSetOppositeBandChannelInfo(pMac);
+   bMaxNumChn = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+   csrConstructCurrentValidChannelList( pMac, &pMac->scan.channelPowerInfoList24, pMac->scan.channels11d.channelList, 
+                                        bMaxNumChn, &Num2GChannels );
+   if(bMaxNumChn > Num2GChannels)
+   {
+      csrConstructCurrentValidChannelList( pMac, &pMac->scan.channelPowerInfoList5G, pMac->scan.channels11d.channelList + Num2GChannels,
+                                           bMaxNumChn - Num2GChannels,
+                                           &pMac->scan.channels11d.numChannels );
+   }
+   csrApplyCountryInformation(pMac, TRUE);
+   if(pMsg->changeCCCallback)
+   {
+      ((tSmeChangeCountryCallback)(pMsg->changeCCCallback))((void *)pMsg->pDevContext);
+   }
+
+   return eHAL_STATUS_SUCCESS;
 }

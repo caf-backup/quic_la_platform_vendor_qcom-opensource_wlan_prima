@@ -36,6 +36,9 @@
 #define     DXE_INTERRUPT_RX_READY       0x04
 #define     WPAL_ISR_CLIENT_MAX          0x08
 
+#define     WPAL_SMSM_WLAN_TX_ENABLE          0x00000400
+#define     WPAL_SMSM_WLAN_TX_RINGS_EMPTY     0x00000200
+
 /* ====================================================================================================================
   @  Function Name 
       wpalIsrType
@@ -237,5 +240,20 @@ wpt_status wpalWriteDeviceMemory
    wpt_uint32                            len
 );
 
+/**
+  @brief wpalNotifySmsm provides a mechansim for a client to 
+         notify SMSM to start DXE engine and/or condition of Tx
+         ring buffer
+
+  @param  clrSt:   bit(s) to be cleared on the MASK 
+  @param  setSt:   bit(s) to be set on the MASK
+
+  @return SUCCESS if the operation is successful
+*/
+wpt_status wpalNotifySmsm
+(
+   wpt_uint32                            clrSt,
+   wpt_uint32                            setSt
+);
 
 #endif /* WLAN_QCT_PAL_DEVICE_H*/

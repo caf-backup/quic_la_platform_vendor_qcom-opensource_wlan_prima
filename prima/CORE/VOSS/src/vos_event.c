@@ -215,7 +215,7 @@ VOS_STATUS vos_event_reset ( vos_event_t* event )
    }
 
    // (re)initialize event
-   init_completion(&event->complete);
+   INIT_COMPLETION(event->complete);
    return VOS_STATUS_SUCCESS;
 }
 

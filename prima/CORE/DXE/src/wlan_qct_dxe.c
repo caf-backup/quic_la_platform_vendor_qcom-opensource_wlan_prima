@@ -43,7 +43,6 @@ when           who        what, where, why
 #ifdef FEATURE_R33D
 #include "wlan_qct_pal_bus.h"
 #endif /* FEATURE_R33D */
-#include <mach/msm_smsm.h>
 
 /*----------------------------------------------------------------------------
  * Local Definitions
@@ -1531,12 +1530,12 @@ static wpt_status dxeNotifySmsm
 
      if(tempDxeCtrlBlk->lastKickOffDxe == 0)
      {
-       setSt |= SMSM_WLAN_TX_ENABLE; 
+       setSt |= WPAL_SMSM_WLAN_TX_ENABLE; 
        tempDxeCtrlBlk->lastKickOffDxe = 1;
      }
      else if(tempDxeCtrlBlk->lastKickOffDxe == 1)
      {
-       clrSt |= SMSM_WLAN_TX_ENABLE;
+       clrSt |= WPAL_SMSM_WLAN_TX_ENABLE;
        tempDxeCtrlBlk->lastKickOffDxe = 0;
      }
      else
@@ -1552,17 +1551,17 @@ static wpt_status dxeNotifySmsm
    if(ringEmpty)
    {
      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW, "SMSM Tx Ring Empty");
-     clrSt |= SMSM_WLAN_TX_RINGS_EMPTY; 
+     clrSt |= WPAL_SMSM_WLAN_TX_RINGS_EMPTY; 
    }
    else
    {
      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW, "SMSM Tx Ring Not Empty");
-     setSt |= SMSM_WLAN_TX_RINGS_EMPTY; 
+     setSt |= WPAL_SMSM_WLAN_TX_RINGS_EMPTY; 
    }
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_HIGH, "C%x S%x", clrSt, setSt);
 
-   smsm_change_state(SMSM_APPS_STATE, clrSt, setSt);
+   wpalNotifySmsm(clrSt, setSt);
 
    return eWLAN_PAL_STATUS_SUCCESS;
 }
@@ -2948,9 +2947,8 @@ void *WLANDXE_Open
     * Init State is
     *    Clear TX Enable
     *    RING EMPTY STATE */
-   smsmInitState = smsm_change_state(SMSM_APPS_STATE,
-                                     SMSM_WLAN_TX_ENABLE,
-                                     SMSM_WLAN_TX_RINGS_EMPTY);
+   smsmInitState = wpalNotifySmsm(WPAL_SMSM_WLAN_TX_ENABLE,
+                                  WPAL_SMSM_WLAN_TX_RINGS_EMPTY);
    if(0 != smsmInitState)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,

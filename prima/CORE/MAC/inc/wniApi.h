@@ -281,6 +281,8 @@ enum eWniMsgTypes
     
 	eWNI_SME_TX_PER_HIT_IND,
 	
+    eWNI_SME_CHANGE_COUNTRY_CODE,
+	
     eWNI_SME_MSG_TYPES_END 
 };
 

@@ -1063,5 +1063,10 @@ tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId);
 eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, 
                                    tCsrRoamConnectedProfile *pProfile);
 tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId);
+
+void csrSetOppositeBandChannelInfo( tpAniSirGlobal pMac );
+void csrConstructCurrentValidChannelList( tpAniSirGlobal pMac, tDblLinkList *pChannelSetList, 
+                                            tANI_U8 *pChannelList, tANI_U8 bSize, tANI_U8 *pNumChannels );
+
 #endif
 

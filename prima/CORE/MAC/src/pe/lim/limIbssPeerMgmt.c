@@ -1276,7 +1276,8 @@ limIbssDelBssRsp(
 
 
 
-    if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid, psessionEntry->selfMacAddr) != eSIR_SUCCESS)
+    if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid,  
+        psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("IBSS: DEL_BSS_RSP setLinkState failed\n"));)
         rc = eSIR_SME_REFUSED;
