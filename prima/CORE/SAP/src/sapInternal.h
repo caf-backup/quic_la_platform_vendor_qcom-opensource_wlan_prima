@@ -529,6 +529,119 @@ sapSortMacList(v_MACADDR_t *macList, v_U8_t size);
 
 /*==========================================================================
 
+  FUNCTION    sapAddMacToACL
+
+  DESCRIPTION 
+    Function to ADD a mac address in an ACL.
+    The function ensures that the ACL list remains sorted after the addition.
+    This API does not take care of buffer overflow i.e. if the list is already maxed out while adding a mac address,
+    it will still try to add. 
+    The caller must take care that the ACL size is less than MAX_MAC_ADDRESS_ACCEPTED before calling this function.
+
+  DEPENDENCIES 
+
+  PARAMETERS 
+
+    IN
+       macList 		: ACL list of mac addresses (black/white list)
+       size (I/O) 	: size of the ACL. It is an I/O arg. The API takes care of incrementing the size by 1.
+       peerMac		: Mac address of the peer to be added
+
+ RETURN VALUE
+    None.
+
+  SIDE EFFECTS 
+
+============================================================================*/
+void
+sapAddMacToACL(v_MACADDR_t *macList, v_U8_t *size, v_U8_t *peerMac);
+
+/*==========================================================================
+
+  FUNCTION    sapRemoveMacFromACL
+
+  DESCRIPTION 
+    Function to REMOVE a mac address from an ACL.
+    The function ensures that the ACL list remains sorted after the DELETION.
+
+  DEPENDENCIES 
+
+  PARAMETERS 
+
+    IN
+       macList 		: ACL list of mac addresses (black/white list)
+       size (I/O) 	: size of the ACL. It is an I/O arg. The API takes care of decrementing the size by 1.
+       index		: index in the ACL list where the peerMac is present
+       			  This index can be found by using the "sapSearchMacList" API which returns the index of the MAC
+       			  addr, if found in an ACL, in one of the arguments passed by the caller.
+
+ RETURN VALUE
+    None.
+
+  SIDE EFFECTS 
+
+============================================================================*/
+void
+sapRemoveMacFromACL(v_MACADDR_t *macList, v_U8_t *size, v_U8_t index);
+
+/*==========================================================================
+
+  FUNCTION    sapPrintACL
+
+  DESCRIPTION 
+    Function to print all the mac address of an ACL.
+    Useful for debug.
+    
+  DEPENDENCIES 
+
+  PARAMETERS 
+
+    IN
+       macList 		: ACL list of mac addresses (black/white list)
+       size    		: size of the ACL
+
+ RETURN VALUE
+    None.
+
+  SIDE EFFECTS 
+
+============================================================================*/
+void 
+sapPrintACL(v_MACADDR_t *macList, v_U8_t size);
+
+/*==========================================================================
+
+  FUNCTION    sapSearchMacList
+
+  DESCRIPTION 
+    Function to search for a mac address in an ACL
+
+  DEPENDENCIES 
+
+  PARAMETERS 
+
+    IN
+       macList 		: list of mac addresses (black/white list)
+       num_mac    	: size of the ACL
+       peerMac		: Mac address of the peer
+    OP       
+       index 		: the index at which the peer mac is found
+       			  this value gets filled in this function. If the caller is not interested
+       			  in the index of the peerMac to be searched, it can pass NULL here.
+	
+ RETURN VALUE
+    SUCCESS		: if the mac addr being searched for is found
+    FAILURE 		: if the mac addr being searched for is NOT found
+
+  SIDE EFFECTS 
+
+============================================================================*/
+eSapBool
+sapSearchMacList(v_MACADDR_t *macList, v_U8_t num_mac, v_U8_t *peerMac, v_U8_t *index);
+
+
+/*==========================================================================
+
   FUNCTION    sap_AcquireGlobalLock
 
   DESCRIPTION 

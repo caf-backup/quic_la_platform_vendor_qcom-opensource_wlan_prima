@@ -5784,6 +5784,7 @@ WDI_ProcessInitScanReq
   wpt_uint8*                  pSendBuffer           = NULL; 
   wpt_uint16                  usDataOffset          = 0;
   wpt_uint16                  usSendSize            = 0;
+  wpt_uint8                   i = 0;
 
   tHalInitScanReqMsg          halInitScanReqMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -5856,6 +5857,15 @@ WDI_ProcessInitScanReq
 
   WDI_CopyWDIMgmFrameHdrToHALMgmFrameHdr( &halInitScanReqMsg.initScanParams.macMgmtHdr,
                               &pwdiInitScanParams->wdiReqInfo.wdiMACMgmtHdr);
+
+  halInitScanReqMsg.initScanParams.scanEntry.activeBSScnt = 
+  	            pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt;
+
+  for (i=0; i < pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt; i++)
+  {
+    halInitScanReqMsg.initScanParams.scanEntry.bssIdx[i] = 
+               	pwdiInitScanParams->wdiReqInfo.wdiScanEntry.bssIdx[i];
+  }
 
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
                   &halInitScanReqMsg.initScanParams, 
@@ -6086,6 +6096,7 @@ WDI_ProcessFinishScanReq
   wpt_uint8*                    pSendBuffer          = NULL; 
   wpt_uint16                    usDataOffset         = 0;
   wpt_uint16                    usSendSize           = 0;
+  wpt_uint8                     i                    = 0;
 
   tHalFinishScanReqMsg          halFinishScanReqMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -6168,11 +6179,20 @@ WDI_ProcessFinishScanReq
                  pwdiFinishScanParams->wdiReqInfo.macBSSID, WDI_MAC_ADDR_LEN);
 
   halFinishScanReqMsg.finishScanParams.notifyBss   = 
-    pwdiFinishScanParams->wdiReqInfo.bNotifyBSS;
+                              pwdiFinishScanParams->wdiReqInfo.bNotifyBSS ;
   halFinishScanReqMsg.finishScanParams.frameType   = 
-    pwdiFinishScanParams->wdiReqInfo.ucFrameType;
+                              pwdiFinishScanParams->wdiReqInfo.ucFrameType ;
   halFinishScanReqMsg.finishScanParams.frameLength = 
-    pwdiFinishScanParams->wdiReqInfo.ucFrameLength;
+                              pwdiFinishScanParams->wdiReqInfo.ucFrameLength ;
+
+  halFinishScanReqMsg.finishScanParams.scanEntry.activeBSScnt = 
+                   pwdiFinishScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt ;
+
+  for (i = 0; i < pwdiFinishScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt; i++)
+  {
+    halFinishScanReqMsg.finishScanParams.scanEntry.bssIdx[i] = 
+               	pwdiFinishScanParams->wdiReqInfo.wdiScanEntry.bssIdx[i] ;
+  }
 
   WDI_CopyWDIMgmFrameHdrToHALMgmFrameHdr( &halFinishScanReqMsg.finishScanParams.macMgmtHdr,
                               &pwdiFinishScanParams->wdiReqInfo.wdiMACMgmtHdr);

@@ -199,6 +199,8 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
 #define WE_P2P_NOA_CMD  2
 #endif
 
+#define QCSAP_IOCTL_MODIFY_ACL        (SIOCIWFIRSTPRIV+18)
+
 #define MAX_VAR_ARGS         7			
 
 enum { 

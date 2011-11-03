@@ -292,7 +292,13 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
    v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
    tWDA_CbContext *wdaContext = 
                        vos_get_context(VOS_MODULE_ID_WDA, pVosContext);
-
+   if(NULL == wdaContext)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s:WDA context is NULL", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return eSYSTEM_UNKNOWN_ROLE;
+   }
    WDALOG1( wdaLog(pMac, LOG1, FL(" returning  %d role\n"),
              wdaContext->wdaGlobalSystemRole));
    return  wdaContext->wdaGlobalSystemRole;

@@ -6145,16 +6145,16 @@ WLANTL_FwdPktToHDD
   v_U8_t          ucSTAId
 )
 {
-   v_MACADDR_t DestMacAddress;
-   v_MACADDR_t *pDestMacAddress = &DestMacAddress;
-   v_SIZE_t usMacAddSize = VOS_MAC_ADDR_SIZE;
-   WLANTL_CbType*           pTLCb = NULL;
-   vos_pkt_t*               vosDataBuff ;
-   VOS_STATUS               vosStatus = VOS_STATUS_SUCCESS;
-   v_U16_t                  STAMetaInfo;
+   v_MACADDR_t             DestMacAddress;
+   v_MACADDR_t*            pDestMacAddress = &DestMacAddress;
+   v_SIZE_t                usMacAddSize = VOS_MAC_ADDR_SIZE;
+   WLANTL_CbType*          pTLCb = NULL;
+   vos_pkt_t*              vosDataBuff ;
+   VOS_STATUS              vosStatus = VOS_STATUS_SUCCESS;
+   v_U32_t                 STAMetaInfo;
    vos_pkt_t*              vosNextDataBuff ;
    v_U8_t                  ucDesSTAId;
-   WLANTL_RxMetaInfoType    wRxMetaInfo;
+   WLANTL_RxMetaInfoType   wRxMetaInfo;
 
 
   /*------------------------------------------------------------------------
@@ -6230,9 +6230,10 @@ WLANTL_FwdPktToHDD
 
          
          //loopback unicast station comes here
-      }
-      wRxMetaInfo.ucUP = (v_U8_t)(STAMetaInfo & WLANTL_AC_MASK);
-      wRxMetaInfo.ucDesSTAId = ucDesSTAId;
+   }
+
+   wRxMetaInfo.ucUP = (v_U8_t)(STAMetaInfo & WLANTL_AC_MASK);
+   wRxMetaInfo.ucDesSTAId = ucDesSTAId;
      
    vosStatus = pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucDesSTAId,
                                             &wRxMetaInfo );

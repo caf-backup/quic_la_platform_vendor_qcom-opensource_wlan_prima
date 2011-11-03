@@ -585,6 +585,15 @@ sapSignalHDDevent
             break;
 #endif
 
+	   case eSAP_UNKNOWN_STA_JOIN:
+		   VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+						"In %s, SAP event callback event = %s",
+						__FUNCTION__, "eSAP_UNKNOWN_STA_JOIN");
+		   sapApAppEvent.sapHddEventCode = eSAP_UNKNOWN_STA_JOIN;
+		   vos_mem_copy((v_PVOID_t)sapApAppEvent.sapevt.sapUnknownSTAJoin.macaddr.bytes, 
+		   				(v_PVOID_t)context, sizeof(v_MACADDR_t));
+		   break;
+		   
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, SAP Unknown callback event = %d",
                        __FUNCTION__,sapHddevent);
@@ -934,10 +943,10 @@ sapSortMacList(v_MACADDR_t *macList, v_U8_t size)
 }
 
 eSapBool
-sapSearchMacList(v_MACADDR_t *macList, v_U8_t num_mac, v_U8_t *peerMac)
+sapSearchMacList(v_MACADDR_t *macList, v_U8_t num_mac, v_U8_t *peerMac, v_U8_t *index)
 {
     v_SINT_t nRes = -1;
-    v_S7_t nStart = 0, nEnd, nMiddle;
+    v_U8_t nStart = 0, nEnd, nMiddle;
     nEnd = num_mac - 1;
 
     while (nStart <= nEnd)
@@ -946,24 +955,98 @@ sapSearchMacList(v_MACADDR_t *macList, v_U8_t num_mac, v_U8_t *peerMac)
         nRes = vos_mem_compare2(&macList[nMiddle], peerMac, sizeof(v_MACADDR_t));
 
         if (0 == nRes)
-            return eSAP_TRUE;
-
+        {
+			VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+						"search SUCC");
+			// "index equals NULL" means the caller does not need the index value of the peerMac being searched
+			if (index != NULL) 
+			{
+				*index = nMiddle;
+				VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+							"index %d", *index);
+        	}
+			return eSAP_TRUE;
+		}
         if (nRes < 0)
             nStart = nMiddle + 1;
         else
             nEnd = nMiddle - 1;
     }
 
+	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+				"search not succ");
     return eSAP_FALSE;
+}
+
+void
+sapAddMacToACL(v_MACADDR_t *macList, v_U8_t *size, v_U8_t *peerMac)
+{
+    v_SINT_t nRes = -1;
+	int i;
+	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"add acl entered");
+	for (i=((*size)-1); i>=0; i--)
+	{
+		nRes = vos_mem_compare2(&macList[i], peerMac, sizeof(v_MACADDR_t));
+		if (nRes > 0)
+		{
+			/* Move alphabetically greater mac addresses one index down to allow for insertion
+			of new mac in sorted order */
+			vos_mem_copy((macList+i+1)->bytes,(macList+i)->bytes, sizeof(v_MACADDR_t));
+		}
+		else
+		{
+			break;
+		}
+	}
+	//This should also take care of if the element is the first to be added in the list
+	vos_mem_copy((macList+i+1)->bytes, peerMac, sizeof(v_MACADDR_t));
+	// increment the list size
+	(*size)++;
+}
+	
+void
+sapRemoveMacFromACL(v_MACADDR_t *macList, v_U8_t *size, v_U8_t index)	
+{
+	int i;
+	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"remove acl entered");
+	/* return if the list passed is empty. Ideally this should never happen since this funcn is always
+	    called after sapSearchMacList to get the index of the mac addr to be removed and this will
+	    only get called if the search is successful. Still no harm in having the check */
+	if (macList==NULL) return;
+	for (i=index; i<((*size)-1); i++)
+	{
+		/* Move mac addresses starting from "index" passed one index up to delete the void
+		created by deletion of a mac address in ACL */
+		vos_mem_copy((macList+i)->bytes,(macList+i+1)->bytes, sizeof(v_MACADDR_t));
+	}
+	// The last space should be made empty since all mac addesses moved one step up
+	vos_mem_zero((macList+(*size)-1)->bytes, sizeof(v_MACADDR_t));
+	//reduce the list size by 1
+	(*size)--;
+}
+
+void sapPrintACL(v_MACADDR_t *macList, v_U8_t size)
+{
+	int i;
+	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"print acl entered");	
+	if (size==0) return;
+	for (i=0; i<size; i++)
+	{
+		VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+			"** ACL entry %i - %02x:%02x:%02x:%02x:%02x:%02x", i, 
+			(macList+i)->bytes[0], (macList+i)->bytes[1], (macList+i)->bytes[2],
+			(macList+i)->bytes[3], (macList+i)->bytes[4], (macList+i)->bytes[5]);
+	}
+	return;
 }
 
 VOS_STATUS
 sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
 {
-    if (sapSearchMacList(sapContext->acceptMacList, sapContext->nAcceptMac, peerMac))
+    if (sapSearchMacList(sapContext->acceptMacList, sapContext->nAcceptMac, peerMac, NULL))
         return VOS_STATUS_SUCCESS;
 
-    if (sapSearchMacList(sapContext->denyMacList, sapContext->nDenyMac, peerMac))
+    if (sapSearchMacList(sapContext->denyMacList, sapContext->nDenyMac, peerMac, NULL))
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Peer %02x:%02x:%02x:%02x:%02x:%02x in deny list",
             __FUNCTION__, *peerMac, *(peerMac + 1), *(peerMac + 2), *(peerMac + 3), *(peerMac + 4), *(peerMac + 5));
@@ -982,6 +1065,16 @@ sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
         return VOS_STATUS_E_FAILURE;
     }
 
+	/* The new STA is neither in accept list nor in deny list. In this case, deny the association
+	 * but send a wifi event notification indicating the mac address being denied
+	 */
+	if (eSAP_SUPPORT_ACCEPT_AND_DENY == sapContext->eSapMacAddrAclMode)
+	{
+		sapSignalHDDevent(sapContext, NULL, eSAP_UNKNOWN_STA_JOIN, (v_PVOID_t)peerMac);	
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Peer %02x:%02x:%02x:%02x:%02x:%02x denied, Mac filter mode is eSAP_SUPPORT_ACCEPT_AND_DENY",
+            __FUNCTION__,  *peerMac, *(peerMac + 1), *(peerMac + 2), *(peerMac + 3), *(peerMac + 4), *(peerMac + 5));
+        return VOS_STATUS_E_FAILURE;
+	}
     return VOS_STATUS_SUCCESS;
 }
 

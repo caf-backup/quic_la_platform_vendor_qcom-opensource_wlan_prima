@@ -538,30 +538,17 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 * for concurrent scenario: Infra+BT  or Infra+IBSS, always send CTS2Self, no need to send Data Null
 *
 */
-#ifndef WLAN_FEATURE_P2P
 static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, 
-          tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tANI_U8* notifyBss)
-#else
-static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, 
-         tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tANI_U8* notifyBss, 
-         tANI_U8* useNoA)
-#endif
+                                        tpInitScanParams pInitScanParam)
 {
     tANI_U8   i;
-    tANI_U8 sendDataNull = FALSE;
-    tSirMacAddr bssid;
-    tSirMacAddr selfMacAddr;
-    *notifyBss = FALSE;
-#ifdef WLAN_FEATURE_P2P
-    *useNoA    = FALSE;
-#endif
+    pInitScanParam->scanEntry.activeBSScnt = 0;
     
-
-/* Don't send CTS to self as we have issue with BTQM queues where BTQM can not handle transmition of CTS2self frames
- * Sending CTS 2 self at this juncture also doesn't serve much purpose as probe request frames go out immediately
- * No need to notify BSS in IBSS case.
- * */
-
+    /* Don't send CTS to self as we have issue with BTQM queues where BTQM can 
+     * not handle transmition of CTS2self frames.  Sending CTS 2 self at this 
+     * juncture also doesn't serve much purpose as probe request frames go out 
+     * immediately, No need to notify BSS in IBSS case.
+     * */
 
     for(i =0; i < pMac->lim.maxBssId; i++)
     {
@@ -571,36 +558,28 @@ static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac,
             {
                 if(pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
                 {
-                    /* Fr BT_AMP STA case, we don't nned to notify BSS with a NULL data */
-                    /* Send NULL data only for Infra STA */
-                    sendDataNull = TRUE;
-                    palCopyMemory(pMac->hHdd, (void *)bssid, (void *)pMac->lim.gpSession[i].bssId, sizeof(tSirMacAddr));
-                    palCopyMemory(pMac->hHdd, (void *)selfMacAddr, 
-                                  (void *)pMac->lim.gpSession[i].selfMacAddr,
-                                  sizeof(tSirMacAddr));
-                    *notifyBss =  TRUE;
-#ifndef WLAN_FEATURE_P2P
-                    break;
-#endif
+                    pInitScanParam->scanEntry.bssIdx[pInitScanParam->scanEntry.activeBSScnt] 
+                        = pMac->lim.gpSession[i].bssIdx;
+                    pInitScanParam->scanEntry.activeBSScnt++;
+
                 }
             }
 #ifdef WLAN_FEATURE_P2P
             else if( (eLIM_AP_ROLE == pMac->lim.gpSession[i].limSystemRole ) 
-                  && ( VOS_P2P_GO_MODE == pMac->lim.gpSession[i].pePersona )
+                    && ( VOS_P2P_GO_MODE == pMac->lim.gpSession[i].pePersona )
                    )
             {
-                *useNoA = TRUE;
+                pInitScanParam->useNoA = TRUE;
             }
 #endif
         }
     }
-
-    //This will be the scenario, when we have multiple sessions Infra+IBSS or Infra+BT
-    if(sendDataNull)
+    if (pInitScanParam->scanEntry.activeBSScnt)
     {
-        CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid, selfMacAddr);
+        pInitScanParam->notifyBss = TRUE;
+        pInitScanParam->frameType = SIR_MAC_DATA_FRAME;
+        pInitScanParam->frameLength = 0;
     }
-
 }
 
 /*
@@ -611,43 +590,36 @@ static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac,
 * for concurrent scenario: Infra+BT  or Infra+IBSS, no need to send Data Null
 *
 */
-static void __limCreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr,   tANI_U8* notifyBss)
+static void __limCreateFinishScanRawFrame(tpAniSirGlobal pMac, 
+                                          tpFinishScanParams pFinishScanParam)
 {
-    
     tANI_U8   i;
-    tANI_U8 sendDataNull = FALSE;
-    tSirMacAddr bssid;
-    tSirMacAddr selfMacAddr;
-    *notifyBss = FALSE;
-    
+    pFinishScanParam->scanEntry.activeBSScnt = 0;
+
     for(i =0; i < pMac->lim.maxBssId; i++)
     {
         if(pMac->lim.gpSession[i].valid == TRUE)
         {
             if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
-           {
-                 //BT-STA can either be in LINK-ESTB state or BSS_STARTED State
-                 //for BT, need to send CTS2Self
+            {
+                //BT-STA can either be in LINK-ESTB state or BSS_STARTED State
+                //for BT, need to send CTS2Self
                 if(pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
                 {
-                  sendDataNull = TRUE;
-                  *notifyBss =  TRUE;
-                  palCopyMemory(pMac->hHdd, (void *)bssid,
-                                (void *)pMac->lim.gpSession[i].bssId,
-                                sizeof(tSirMacAddr));
-                  palCopyMemory(pMac->hHdd, (void *)selfMacAddr, 
-                                (void *)pMac->lim.gpSession[i].selfMacAddr, 
-                                sizeof(tSirMacAddr));
-                  break;
+                    pFinishScanParam->scanEntry.bssIdx[pFinishScanParam->scanEntry.activeBSScnt] 
+                        = pMac->lim.gpSession[i].bssIdx;
+                    pFinishScanParam->scanEntry.activeBSScnt++;
                 }
             }
         }
     }
-    if(sendDataNull)
+    
+    if (pFinishScanParam->scanEntry.activeBSScnt)
     {
-        CreateScanDataNullFrame(pMac, macMgmtHdr, FALSE, bssid, selfMacAddr);
+        pFinishScanParam->notifyBss = TRUE;
+        pFinishScanParam->frameType = SIR_MAC_DATA_FRAME;
+        pFinishScanParam->frameLength = 0;
     }
-
 }
 
 void
@@ -658,12 +630,12 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
     tSirMsgQ                msg;
     tpInitScanParams        pInitScanParam;
     tSirRetStatus           rc = eSIR_SUCCESS;
-        
+
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pInitScanParam,
-                                               sizeof(*pInitScanParam)))
+                sizeof(*pInitScanParam)))
     {
-       PELOGW(limLog(pMac, LOGW, FL("palAllocateMemor() failed\n"));)
-       goto error;
+        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemor() failed\n"));)
+            goto error;
     }
 
     msg.type = WDA_INIT_SCAN_REQ;
@@ -673,50 +645,40 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
     palZeroMemory( pMac->hHdd, (tANI_U8 *)&pInitScanParam->macMgmtHdr, sizeof(tSirMacMgmtHdr));
     if (nextState == eLIM_HAL_INIT_LEARN_WAIT_STATE)
     {
-       pInitScanParam->notifyBss = TRUE;
-       pInitScanParam->notifyHost = FALSE;
-       pInitScanParam->scanMode = eHAL_SYS_MODE_LEARN;
+        pInitScanParam->notifyBss = TRUE;
+        pInitScanParam->notifyHost = FALSE;
+        pInitScanParam->scanMode = eHAL_SYS_MODE_LEARN;
 
 #if defined(ANI_AP_CLIENT_SDK) 
-       if (GET_LIM_SYSTEM_ROLE(pMac) == eLIM_STA_ROLE)
-       {
-           pInitScanParam->frameType = SIR_MAC_DATA_NULL;
-           // We need to inform the AP only when we are
-           // in the LINK_ESTABLISHED state
-           if( eLIM_SME_LINK_EST_WT_SCAN_STATE != pMac->lim.gLimSmeState )
-           {
-               pInitScanParam->notifyBss = FALSE;
-               // FIXME - Handle this one carefully
-               pInitScanParam->notifyHost = FALSE;
-           }
-           __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr,  TRUE,  &pInitScanParam->notifyBss);
-           //CreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, eSYSTEM_STA_ROLE);
-           //pInitScanParam->checkLinkTraffic = eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN;
-           //pInitScanParam->checkLinkTraffic = eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN;
-           pInitScanParam->checkLinkTraffic = trafficCheck;
-       }
-       else
+        if (GET_LIM_SYSTEM_ROLE(pMac) == eLIM_STA_ROLE)
+        {
+            pInitScanParam->frameType = SIR_MAC_DATA_NULL;
+            // We need to inform the AP only when we are
+            // in the LINK_ESTABLISHED state
+            if( eLIM_SME_LINK_EST_WT_SCAN_STATE != pMac->lim.gLimSmeState )
+            {
+                pInitScanParam->notifyBss = FALSE;
+                // FIXME - Handle this one carefully
+                pInitScanParam->notifyHost = FALSE;
+            }
+            __limCreateInitScanRawFrame(pMac, pInitScanParam);
+            pInitScanParam->checkLinkTraffic = trafficCheck;
+        }
+        else
 #endif
-       {
-           pInitScanParam->frameType = SIR_MAC_CTRL_CTS;
-#ifndef WLAN_FEATURE_P2P
-           __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr,  TRUE,  &pInitScanParam->notifyBss);
-#else
-           __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, TRUE, 
-                 &pInitScanParam->notifyBss, &pInitScanParam->useNoA);
-#endif       
-           //CreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, eSYSTEM_AP_ROLE);
-           pInitScanParam->checkLinkTraffic = trafficCheck;
-           //pInitScanParam->checkLinkTraffic = eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN;
-       }
+        {
+            pInitScanParam->frameType = SIR_MAC_CTRL_CTS;
+            __limCreateInitScanRawFrame(pMac, pInitScanParam);
+            pInitScanParam->checkLinkTraffic = trafficCheck;
+        }
 
 #if (defined(ANI_PRODUCT_TYPE_AP) ||defined(ANI_PRODUCT_TYPE_AP_SDK))
         /* Currently using the AP's scanDuration values for Linux station also. This should
          * be revisited if this needs to changed depending on AP or Station */
-       {
-           if (pMac->lim.gpLimMeasReq->measControl.longChannelScanPeriodicity &&
-           (pMac->lim.gLimMeasParams.shortDurationCount ==
-            pMac->lim.gpLimMeasReq->measControl.longChannelScanPeriodicity))
+        {
+            if (pMac->lim.gpLimMeasReq->measControl.longChannelScanPeriodicity &&
+                    (pMac->lim.gLimMeasParams.shortDurationCount ==
+                     pMac->lim.gpLimMeasReq->measControl.longChannelScanPeriodicity))
             {
 #ifdef ANI_AP_SDK
                 pInitScanParam->scanDuration = (tANI_U16)pMac->lim.gLimScanDurationConvert.longChannelScanDuration_tick;
@@ -732,50 +694,27 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
                 pInitScanParam->scanDuration = (tANI_U16)pMac->lim.gpLimMeasReq->measDuration.shortChannelScanDuration;
 #endif /* ANI_AP_SDK */
             }
-       }
+        }
 #endif       //#if (defined(ANI_PRODUCT_TYPE_AP) ||defined(ANI_PRODUCT_TYPE_AP_SDK))
-   }
+    }
     else
     {
-       pInitScanParam->scanMode = eHAL_SYS_MODE_SCAN;
-       pInitScanParam->notifyBss = FALSE;
-       pInitScanParam->notifyHost = FALSE;
-       pInitScanParam->scanDuration = 0;
-#ifndef WLAN_FEATURE_P2P
-       __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, 
-                                   TRUE,  &pInitScanParam->notifyBss);
-#else
-       __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, TRUE, 
-                 &pInitScanParam->notifyBss, &pInitScanParam->useNoA);
-       if (pInitScanParam->useNoA)
-       {
-          pInitScanParam->scanDuration = pMac->lim.gTotalScanDuration;
-       }
+        pInitScanParam->scanMode = eHAL_SYS_MODE_SCAN;
+        pInitScanParam->notifyBss = FALSE;
+        pInitScanParam->notifyHost = FALSE;
+        pInitScanParam->scanDuration = 0;
+        __limCreateInitScanRawFrame(pMac, pInitScanParam);
+#ifdef WLAN_FEATURE_P2P
+        if (pInitScanParam->useNoA)
+        {
+            pInitScanParam->scanDuration = pMac->lim.gTotalScanDuration;
+        }
 #endif       
-       pInitScanParam->frameType = pInitScanParam->macMgmtHdr.fc.type;
-
-       /* Inform HAL whether it should check for traffic on the link
-        * prior to performing a background scan
-        */
+        /* Inform HAL whether it should check for traffic on the link
+         * prior to performing a background scan
+         */
         pInitScanParam->checkLinkTraffic = trafficCheck;
-#if 0
-#ifdef ANI_PRODUCT_TYPE_CLIENT         
-       if ( IS_MLM_SCAN_REQ_BACKGROUND_SCAN_AGGRESSIVE(pMac) )
-           pInitScanParam->checkLinkTraffic = eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN;
-       else 
-           pInitScanParam->checkLinkTraffic = eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN;
-#else
-            /* Currently checking the traffic before scan for Linux station. This is because MLM
-             * scan request is not filled as scan is received via Measurement req in Linux. This
-             * should be made as common code for Windows/Linux station once the scan requests are
-             * enabled in Linux
-             * TODO */
-            pInitScanParam->checkLinkTraffic = eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN;
-#endif
-#endif
     }
-    pInitScanParam->frameLength = sizeof(tSirMacMgmtHdr);
-    
 
     pMac->lim.gLimHalScanState = nextState;
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
@@ -783,9 +722,9 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
 
     rc = wdaPostCtrlMsg(pMac, &msg);
     if (rc == eSIR_SUCCESS) {
-       PELOG3(limLog(pMac, LOG3, FL("wdaPostCtrlMsg() return eSIR_SUCCESS pMac=%x nextState=%d\n"),
+        PELOG3(limLog(pMac, LOG3, FL("wdaPostCtrlMsg() return eSIR_SUCCESS pMac=%x nextState=%d\n"),
                     pMac, pMac->lim.gLimHalScanState);)
-        return;
+            return;
     }
 
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
@@ -797,23 +736,11 @@ error:
     {
         case eLIM_HAL_START_SCAN_WAIT_STATE:
             limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_INIT_FAILED);
-#if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-        /* Once again, this piece of code will be needed if we handle the Measurement request as
-         * scan request in LIM. To keep this or remove this depends on how we handle the Measurement
-         * request for Linux station */
-#if 0            
-            if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
-            {
-                limRestorePreLearnState(pMac);
-                limReEnableLearnMode(pMac);
-            }
-#endif
-#endif            
             break;
 
 #if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
         case eLIM_HAL_START_LEARN_WAIT_STATE:
-//            if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+            //            if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
             {
                 limRestorePreLearnState(pMac);
                 limReEnableLearnMode(pMac);
@@ -822,18 +749,18 @@ error:
 
 #endif
 
-//WLAN_SUSPEND_LINK Related
+            //WLAN_SUSPEND_LINK Related
         case eLIM_HAL_SUSPEND_LINK_WAIT_STATE:
             pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
             if( pMac->lim.gpLimSuspendCallback )
             {
-               pMac->lim.gpLimSuspendCallback( pMac, rc, pMac->lim.gpLimSuspendData );
-               pMac->lim.gpLimSuspendCallback = NULL;
-               pMac->lim.gpLimSuspendData = NULL;
+                pMac->lim.gpLimSuspendCallback( pMac, rc, pMac->lim.gpLimSuspendData );
+                pMac->lim.gpLimSuspendCallback = NULL;
+                pMac->lim.gpLimSuspendData = NULL;
             }
             pMac->lim.gLimSystemInScanLearnMode = 0;
             break;
-//end WLAN_SUSPEND_LINK Related
+            //end WLAN_SUSPEND_LINK Related
         default:
             break;
     }
@@ -854,57 +781,58 @@ limSendHalStartScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalScanSt
      */
     if(pMac->lim.gLimHalScanState != eLIM_HAL_START_SCAN_WAIT_STATE) 
     { 
-    
-    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pStartScanParam,
-                                           sizeof(*pStartScanParam)))
-    {
-       PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
-       goto error;
-    }
 
-    msg.type = WDA_START_SCAN_REQ;
-    msg.bodyptr = pStartScanParam;
-    msg.bodyval = 0;
-    pStartScanParam->status = eHAL_STATUS_SUCCESS;
-    pStartScanParam->scanChannel = (tANI_U8)channelNum;
+        if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, 
+                    (void **)&pStartScanParam,
+                    sizeof(*pStartScanParam)))
+        {
+            PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
+                goto error;
+        }
 
-    pMac->lim.gLimHalScanState = nextState;
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+        msg.type = WDA_START_SCAN_REQ;
+        msg.bodyptr = pStartScanParam;
+        msg.bodyval = 0;
+        pStartScanParam->status = eHAL_STATUS_SUCCESS;
+        pStartScanParam->scanChannel = (tANI_U8)channelNum;
 
-    MTRACE(macTraceMsgTx(pMac, 0, msg.type));
-    PELOGW(limLog(pMac, LOGW, FL("Channel %d\n"), channelNum);)
+        pMac->lim.gLimHalScanState = nextState;
+        SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-    rc = wdaPostCtrlMsg(pMac, &msg);
-    if (rc == eSIR_SUCCESS) {
-        return;
-    }
+        MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+        PELOGW(limLog(pMac, LOGW, FL("Channel %d\n"), channelNum);)
 
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-    palFreeMemory(pMac->hHdd, (void *)pStartScanParam);
-    PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)
+            rc = wdaPostCtrlMsg(pMac, &msg);
+        if (rc == eSIR_SUCCESS) {
+            return;
+        }
+
+        SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+        palFreeMemory(pMac->hHdd, (void *)pStartScanParam);
+        PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)
 
 error:
-    switch(nextState)
-    {
-        case eLIM_HAL_START_SCAN_WAIT_STATE:
-            limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_INIT_FAILED);
-            break;
+        switch(nextState)
+        {
+            case eLIM_HAL_START_SCAN_WAIT_STATE:
+                limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_INIT_FAILED);
+                break;
 
 #if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-        case eLIM_HAL_START_LEARN_WAIT_STATE:
-            //if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-            {
-                limRestorePreLearnState(pMac);
-                limReEnableLearnMode(pMac);
-            }
-            break;
+            case eLIM_HAL_START_LEARN_WAIT_STATE:
+                //if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+                {
+                    limRestorePreLearnState(pMac);
+                    limReEnableLearnMode(pMac);
+                }
+                break;
 
 #endif
 
-        default:
-            break;
-    }
-    pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+            default:
+                break;
+        }
+        pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
 
     }
     else
@@ -926,64 +854,64 @@ void limSendHalEndScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalSca
      * Start scan is not already requestd
      */
     if((pMac->lim.gLimHalScanState != eLIM_HAL_END_SCAN_WAIT_STATE)  &&
-       (pMac->lim.gLimHalScanState != eLIM_HAL_START_SCAN_WAIT_STATE))
+            (pMac->lim.gLimHalScanState != eLIM_HAL_START_SCAN_WAIT_STATE))
     { 
 
-    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pEndScanParam,
-                                           sizeof(*pEndScanParam)))
-    {
-       PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
-       goto error;
-    }
+        if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pEndScanParam,
+                    sizeof(*pEndScanParam)))
+        {
+            PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
+                goto error;
+        }
 
-    msg.type = WDA_END_SCAN_REQ;
-    msg.bodyptr = pEndScanParam;
-    msg.bodyval = 0;
-    pEndScanParam->status = eHAL_STATUS_SUCCESS;
-    pEndScanParam->scanChannel = (tANI_U8)channelNum;
+        msg.type = WDA_END_SCAN_REQ;
+        msg.bodyptr = pEndScanParam;
+        msg.bodyval = 0;
+        pEndScanParam->status = eHAL_STATUS_SUCCESS;
+        pEndScanParam->scanChannel = (tANI_U8)channelNum;
 
-    pMac->lim.gLimHalScanState = nextState;
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-    MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+        pMac->lim.gLimHalScanState = nextState;
+        SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+        MTRACE(macTraceMsgTx(pMac, 0, msg.type));
 
-    rc = wdaPostCtrlMsg(pMac, &msg);
-    if (rc == eSIR_SUCCESS) {
-        return;
-    }
+        rc = wdaPostCtrlMsg(pMac, &msg);
+        if (rc == eSIR_SUCCESS) {
+            return;
+        }
 
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-    palFreeMemory(pMac->hHdd, (void *)pEndScanParam);
-    PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)
+        SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+        palFreeMemory(pMac->hHdd, (void *)pEndScanParam);
+        PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)
 
-error:
-    switch(nextState)
-    {
-        case eLIM_HAL_END_SCAN_WAIT_STATE:
-            limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_END_FAILED);
-            break;
+            error:
+            switch(nextState)
+            {
+                case eLIM_HAL_END_SCAN_WAIT_STATE:
+                    limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_END_FAILED);
+                    break;
 
 #if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-        case eLIM_HAL_END_LEARN_WAIT_STATE:
-//            if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-            {
-                limRestorePreLearnState(pMac);
-                limReEnableLearnMode(pMac);
-            }
-            break;
+                case eLIM_HAL_END_LEARN_WAIT_STATE:
+                    //            if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+                    {
+                        limRestorePreLearnState(pMac);
+                        limReEnableLearnMode(pMac);
+                    }
+                    break;
 #endif
 
-        default:
-            PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg Rcvd invalid nextState %d\n"), nextState);)
-            break;
-    }
-    pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
-    PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)    
+                default:
+                    PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg Rcvd invalid nextState %d\n"), nextState);)
+                        break;
+            }
+        pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+        PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)    
     }
     else
     {
         PELOGW(limLog(pMac, LOGW, FL("Invalid state for END_SCAN_REQ message=%d\n"), pMac->lim.gLimHalScanState);)
     }
-    
+
 
     return;
 }
@@ -1016,22 +944,22 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
 
     if(pMac->lim.gLimHalScanState == nextState)
     {
-     /*
-          * PE may receive multiple probe responses, while waiting for HAL to send 'FINISH_SCAN_RSP' message
-          * PE was sending multiple finish scan req messages to HAL
-          * this check will avoid that.
-          * If PE is already waiting for the 'finish_scan_rsp' message from HAL, it will ignore this request.
-        */
+        /*
+         * PE may receive multiple probe responses, while waiting for HAL to send 'FINISH_SCAN_RSP' message
+         * PE was sending multiple finish scan req messages to HAL
+         * this check will avoid that.
+         * If PE is already waiting for the 'finish_scan_rsp' message from HAL, it will ignore this request.
+         */
         PELOGW(limLog(pMac, LOGW, FL("Next Scan State is same as the current state: %d \n"), nextState);)
-        return;
+            return;
     }
 
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pFinishScanParam,
-                                           sizeof(*pFinishScanParam)))
+                sizeof(*pFinishScanParam)))
     {
-       PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
-       goto error;
+        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
+            goto error;
     }
 
     msg.type = WDA_FINISH_SCAN_REQ;
@@ -1043,15 +971,15 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
 
     if (nextState == eLIM_HAL_FINISH_LEARN_WAIT_STATE)
     {
-       //AP - No pkt need to be transmitted
-       pFinishScanParam->scanMode = eHAL_SYS_MODE_LEARN;
-       pFinishScanParam->notifyBss = FALSE;
-       pFinishScanParam->notifyHost = FALSE;
-       pFinishScanParam->frameType = 0;
-       pFinishScanParam->currentOperChannel = peGetCurrentChannel(pMac);
-       pFinishScanParam->cbState = limGetPhyCBState(pMac);
-       pFinishScanParam->frameLength = 0;
-       pMac->lim.gLimHalScanState = nextState;
+        //AP - No pkt need to be transmitted
+        pFinishScanParam->scanMode = eHAL_SYS_MODE_LEARN;
+        pFinishScanParam->notifyBss = FALSE;
+        pFinishScanParam->notifyHost = FALSE;
+        pFinishScanParam->frameType = 0;
+        pFinishScanParam->currentOperChannel = peGetCurrentChannel(pMac);
+        pFinishScanParam->cbState = limGetPhyCBState(pMac);
+        pFinishScanParam->frameLength = 0;
+        pMac->lim.gLimHalScanState = nextState;
     }
     else
     {
@@ -1061,16 +989,14 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
          */
         pFinishScanParam->scanMode = eHAL_SYS_MODE_SCAN;
         pFinishScanParam->notifyHost = FALSE;
-        __limCreateFinishScanRawFrame(pMac, &pFinishScanParam->macMgmtHdr, &pFinishScanParam->notifyBss);
-        pFinishScanParam->frameType = pFinishScanParam->macMgmtHdr.fc.type;
-        pFinishScanParam->frameLength = sizeof(tSirMacMgmtHdr);
+        __limCreateFinishScanRawFrame(pMac, pFinishScanParam);
         pFinishScanParam->currentOperChannel = peGetCurrentChannel(pMac);
         pFinishScanParam->cbState = limGetPhyCBState(pMac);
-//WLAN_SUSPEND_LINK Related
-      pMac->lim.gLimHalScanState = nextState;
-//end WLAN_SUSPEND_LINK Related
+        //WLAN_SUSPEND_LINK Related
+        pMac->lim.gLimHalScanState = nextState;
+        //end WLAN_SUSPEND_LINK Related
     }
-    
+
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
     MTRACE(macTraceMsgTx(pMac, 0, msg.type));
 
@@ -1082,21 +1008,21 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
     palFreeMemory(pMac->hHdd, (void *)pFinishScanParam);
     PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)
 
-error:
-    if(nextState == eLIM_HAL_FINISH_SCAN_WAIT_STATE)
-       limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_FINISH_FAILED);
-//WLAN_SUSPEND_LINK Related
-    else if ( nextState == eLIM_HAL_RESUME_LINK_WAIT_STATE )
-    {
-       if( pMac->lim.gpLimResumeCallback )
-       {
-          pMac->lim.gpLimResumeCallback( pMac, rc, pMac->lim.gpLimResumeData );
-          pMac->lim.gpLimResumeCallback = NULL;
-          pMac->lim.gpLimResumeData = NULL;
-          pMac->lim.gLimSystemInScanLearnMode = 0;
-       }
-    }
-//end WLAN_SUSPEND_LINK Related
+        error:
+        if(nextState == eLIM_HAL_FINISH_SCAN_WAIT_STATE)
+            limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_FINISH_FAILED);
+    //WLAN_SUSPEND_LINK Related
+        else if ( nextState == eLIM_HAL_RESUME_LINK_WAIT_STATE )
+        {
+            if( pMac->lim.gpLimResumeCallback )
+            {
+                pMac->lim.gpLimResumeCallback( pMac, rc, pMac->lim.gpLimResumeData );
+                pMac->lim.gpLimResumeCallback = NULL;
+                pMac->lim.gpLimResumeData = NULL;
+                pMac->lim.gLimSystemInScanLearnMode = 0;
+            }
+        }
+    //end WLAN_SUSPEND_LINK Related
     pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
     return;
 }

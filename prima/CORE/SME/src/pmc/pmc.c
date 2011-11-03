@@ -661,8 +661,7 @@ tANI_BOOLEAN pmcPowerSaveCheck (tHalHandle hHal)
         checkRoutine = pPowerSaveCheckEntry->checkRoutine;
         if (!checkRoutine(pPowerSaveCheckEntry->checkContext))
         {
-            smsLog(pMac, LOG2, FL("pmcPowerSaveCheck fail\n"));
-            return FALSE;
+            smsLog(pMac, LOGE, FL("pmcPowerSaveCheck fail!\n"));
         }
         pEntry = csrLLNext(&pMac->pmc.powerSaveCheckList, pEntry, FALSE);
     }
@@ -852,7 +851,7 @@ void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
     while (pEntry != NULL)
     {
         pRequestFullPowerEntry = GET_BASE_ADDR(pEntry, tRequestFullPowerEntry, link);
-        pRequestFullPowerEntry->callbackRoutine(pRequestFullPowerEntry->callbackContext, callbackStatus);
+           pRequestFullPowerEntry->callbackRoutine(pRequestFullPowerEntry->callbackContext, callbackStatus);
         if (palFreeMemory(pMac->hHdd, pRequestFullPowerEntry) != eHAL_STATUS_SUCCESS)
         {
             smsLog(pMac, LOGE, FL("Cannot free request full power routine list entry\n"));
@@ -1097,7 +1096,7 @@ void pmcDoBmpsCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
    while (pEntry != NULL)
    {
       pRequestBmpsEntry = GET_BASE_ADDR(pEntry, tRequestBmpsEntry, link);
-      pRequestBmpsEntry->callbackRoutine(pRequestBmpsEntry->callbackContext,
+         pRequestBmpsEntry->callbackRoutine(pRequestBmpsEntry->callbackContext,
          callbackStatus);
       palFreeMemory(pMac->hHdd, pRequestBmpsEntry);
       pEntry = csrLLRemoveHead(&pMac->pmc.requestBmpsList, FALSE);

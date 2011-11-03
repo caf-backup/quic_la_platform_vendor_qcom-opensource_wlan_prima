@@ -72,7 +72,7 @@ when           who                what, where, why
   ------------------------------------------------------------------------*/
   
 #define       MAX_SSID_LEN                 32
-#define       MAX_MAC_ADDRESS_ACCEPTED     15
+#define       MAX_MAC_ADDRESS_ACCEPTED     16
 #define       MAX_MAC_ADDRESS_DENIED       MAX_MAC_ADDRESS_ACCEPTED
 #define       AUTO_CHANNEL_SELECT          0
 #define       MAX_ASSOC_IND_IE_LEN         255
@@ -130,9 +130,20 @@ typedef enum {
 } eSapPhyMode;
 
 typedef enum {
-    eSAP_ACCEPT_UNLESS_DENIED = 0,
-    eSAP_DENY_UNLESS_ACCEPTED = 1,
+    eSAP_ACCEPT_UNLESS_DENIED    = 0,
+    eSAP_DENY_UNLESS_ACCEPTED    = 1,
+    eSAP_SUPPORT_ACCEPT_AND_DENY = 2,	/* this type is added to support both accept and deny lists at the same time */
 } eSapMacAddrACL;
+
+typedef enum {
+	eSAP_BLACK_LIST = 0, /* List of mac addresses NOT allowed to assoc */
+	eSAP_WHITE_LIST = 1, /* List of mac addresses allowed to assoc */
+} eSapACLType;
+
+typedef enum {
+	ADD_STA_TO_ACL      = 0, /* cmd to add STA to access control list */
+	DELETE_STA_FROM_ACL = 1, /* cmd to delete STA from access control list */	
+} eSapACLCmdType;
 
 typedef enum {
     eSAP_START_BSS_EVENT = 0, /*Event sent when BSS is started*/
@@ -153,6 +164,7 @@ typedef enum {
     eSAP_REMAIN_CHAN_READY,
     eSAP_SEND_ACTION_CNF,
 #endif
+	eSAP_UNKNOWN_STA_JOIN, /* Event send when a STA in neither white list or black list tries to associate in softap mode */
 } eSapHddEvent;
 
 typedef enum {
@@ -291,6 +303,11 @@ typedef struct sap_SendActionCnf_s {
 } tSap_SendActionCnf;
 #endif
 
+typedef struct sap_UnknownSTAJoinEvent_s {
+    v_MACADDR_t    macaddr;  
+} tSap_UnknownSTAJoinEvent;
+
+
 /* 
    This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call   
    The event id corresponding to structure  in the union is defined in comment next to the structure
@@ -313,6 +330,7 @@ typedef struct sap_Event_s {
         tSap_ManagementFrameInfo                  sapManagementFrameInfo; /*eSAP_INDICATE_MGMT_FRAME*/
         tSap_SendActionCnf                        sapActionCnf;  /* eSAP_SEND_ACTION_CNF */ 
 #endif
+		tSap_UnknownSTAJoinEvent				  sapUnknownSTAJoin; /* eSAP_UNKNOWN_STA_JOIN */
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
@@ -1137,6 +1155,38 @@ VOS_STATUS
 WLANSAP_getWpsSessionOverlap
 (
     v_PVOID_t pvosGCtx
+);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_ModifyACL
+
+  DESCRIPTION 
+    This api function provides for Ap App/HDD to add/remove mac addresses from black/white lists (ACLs).
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+    IN
+        pvosGCtx      : Pointer to vos global context structure
+        pPeerStaMac : MAC address to be added or removed 
+        listType         : add/remove to be done on black or white list
+   	 cmd              : Are we doing to add or delete a mac addr from an ACL.
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS 
+WLANSAP_ModifyACL
+(
+    v_PVOID_t  pvosGCtx,
+    v_U8_t *pPeerStaMac,
+    eSapACLType listType,
+	eSapACLCmdType cmd
 );
 
 /*==========================================================================

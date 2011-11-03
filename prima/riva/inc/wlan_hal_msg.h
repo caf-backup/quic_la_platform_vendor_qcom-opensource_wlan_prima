@@ -763,6 +763,13 @@ typedef __ani_attr_pre_packed struct sSirMacMgmtHdr
     tSirMacSeqCtl   seqControl;
 } __ani_attr_packed tSirMacMgmtHdr, *tpSirMacMgmtHdr;
 
+/// Scan Entry to hold active BSS idx's
+typedef __ani_attr_pre_packed struct sSirScanEntry
+{
+    tANI_U8 bssIdx[HAL_NUM_BSSID];
+	tANI_U8 activeBSScnt;
+}tSirScanEntry, *ptSirScanEntry;
+
 typedef PACKED_PRE struct PACKED_POST {
 
    /*LEARN - AP Role
@@ -788,6 +795,9 @@ typedef PACKED_PRE struct PACKED_POST {
     /* Following the framelength there is a MAC frame buffer if frameLength 
        is non-zero. */
     tSirMacMgmtHdr macMgmtHdr;
+
+    /*Entry to hold number of active BSS idx's*/
+	tSirScanEntry scanEntry;
 
 } tInitScanParams, * tpInitScanParams;
 
@@ -925,6 +935,9 @@ typedef PACKED_PRE struct PACKED_POST
     /*Following the framelength there is a MAC frame buffer if frameLength 
       is non-zero.*/    
     tSirMacMgmtHdr macMgmtHdr;
+
+    /*Entry to hold number of active BSS idx's*/
+	tSirScanEntry scanEntry;
 
 } tFinishScanParams, *tpFinishScanParams;
 

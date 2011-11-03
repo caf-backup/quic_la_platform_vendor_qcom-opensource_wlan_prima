@@ -9,6 +9,7 @@
 #include "halPhyApi.h"
 #endif
 
+#define HAL_NUM_BSSID 2
 /* operMode in ADD BSS message */
 #define BSS_OPERATIONAL_MODE_AP     0
 #define BSS_OPERATIONAL_MODE_STA    1
@@ -508,6 +509,12 @@ typedef struct
     tANI_U8 maxSpLen;    
 } tUpdateUapsdParams, * tpUpdateUapsdParams;
 
+typedef struct sSirScanEntry
+{
+    tANI_U8 bssIdx[HAL_NUM_BSSID];
+    tANI_U8 activeBSScnt;
+}tSirScanEntry, *ptSirScanEntry;
+
 //
 // Mesg header is used from tSirMsgQ
 // Mesg Type = SIR_HAL_INIT_SCAN_REQ
@@ -536,13 +543,15 @@ typedef struct {
     // For creation of CTS-to-Self and Data-NULL MAC packets
     tSirMacMgmtHdr macMgmtHdr;
 
+    tSirScanEntry scanEntry;
+
     // when this flag is set, HAL should check for link traffic prior to scan
     tSirLinkTrafficCheck    checkLinkTraffic;
 
     /*
-    * Following parameters are for returning status and station index from HAL to PE
-    * via response message. HAL does not read them.
-    */
+     * Following parameters are for returning status and station index from HAL to PE
+     * via response message. HAL does not read them.
+     */
     // The return status of SIR_HAL_INIT_SCAN_REQ is reported here
     eHalStatus status;
 
@@ -650,6 +659,8 @@ typedef struct {
 
     // For creation of CTS-to-Self and Data-NULL MAC packets
     tSirMacMgmtHdr macMgmtHdr;
+
+	tSirScanEntry scanEntry;
 
     /*
     * Following parameters are for returning status and station index from HAL to PE

@@ -104,6 +104,8 @@ of NV fragment is nt possbile.The next multiple of 1Kb is 3K */
 
 #define WDI_CIPHER_SEQ_CTR_SIZE 6
 
+#define WDI_NUM_BSSID   2
+
 /*============================================================================
  *     GENERIC STRUCTURES 
   
@@ -678,6 +680,15 @@ typedef enum
 } WDI_ScanMode;
 
 /*---------------------------------------------------------------------------
+  WDI_ScanEntry
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+  wpt_uint8 bssIdx[WDI_NUM_BSSID];
+  wpt_uint8 activeBSScnt;
+}WDI_ScanEntry;
+
+/*---------------------------------------------------------------------------
   WDI_InitScanReqInfoType
 ---------------------------------------------------------------------------*/
 typedef struct
@@ -704,6 +715,10 @@ typedef struct
 
   /*Pointer to the MAC frame buffer. Used only if ucFrameLength is non-zero.*/
   WDI_MacMgmtHdr   wdiMACMgmtHdr;
+
+  /*Entry to hold number of active BSS to send NULL frames before 
+   * initiating SCAN*/
+  WDI_ScanEntry    wdiScanEntry;
 
 }WDI_InitScanReqInfoType; 
 
@@ -823,6 +838,9 @@ typedef struct
 
   /*Pointer to the MAC frame buffer. Used only if ucFrameLength is non-zero.*/
   WDI_MacMgmtHdr        wdiMACMgmtHdr;
+
+  /*Entry to hold number of active BSS to send NULL frames after SCAN*/
+  WDI_ScanEntry    wdiScanEntry;
 
 }WDI_FinishScanReqInfoType; 
 
