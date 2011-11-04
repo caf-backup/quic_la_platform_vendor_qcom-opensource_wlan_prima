@@ -60,7 +60,10 @@ typedef PACKED_PRE union PACKED_POST
     tANI_U8   wlanNvRevId;
     tANI_U8   numOfTxChains;
     tANI_U8   numOfRxChains;
-    tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+    tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];   /* Default, not change name for compatibility */
+    tANI_U8   macAddr2[NV_FIELD_MAC_ADDR_SIZE];
+    tANI_U8   macAddr3[NV_FIELD_MAC_ADDR_SIZE];
+    tANI_U8   macAddr4[NV_FIELD_MAC_ADDR_SIZE];
     tANI_U8   mfgSN[NV_FIELD_MFG_SN_SIZE];
 } uNvFields;
 
@@ -76,7 +79,10 @@ typedef PACKED_PRE struct PACKED_POST
 
     tANI_U8   numOfTxChains;
     tANI_U8   numOfRxChains;
-    tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+    tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];   /* Default, not change name for compatibility */
+    tANI_U8   macAddr2[NV_FIELD_MAC_ADDR_SIZE];
+    tANI_U8   macAddr3[NV_FIELD_MAC_ADDR_SIZE];
+    tANI_U8   macAddr4[NV_FIELD_MAC_ADDR_SIZE];
     tANI_U8   mfgSN[NV_FIELD_MFG_SN_SIZE];
 } sNvFields;
 

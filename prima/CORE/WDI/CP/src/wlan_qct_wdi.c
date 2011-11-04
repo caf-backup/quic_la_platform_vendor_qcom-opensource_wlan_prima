@@ -236,6 +236,22 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
 
   WDI_ProcessSetTxPerTrackingReq,     /* WDI_SET_TX_PER_TRACKING_REQ  */
   
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+  /* WDI_8023_MULTICAST_LIST_REQ */
+  WDI_Process8023MulticastListReq,          
+  /* WDI_RECEIVE_FILTER_SET_FILTER_REQ */
+  WDI_ProcessReceiveFilterSetFilterReq,     
+  /* WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ */
+  WDI_ProcessFilterMatchCountReq,    
+  /* WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ */
+  WDI_ProcessReceiveFilterClearFilterReq,   
+#else
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+#endif // WLAN_FEATURE_PACKET_FILTERING
+
   /*-------------------------------------------------------------------------
     Indications
   -------------------------------------------------------------------------*/
@@ -371,6 +387,22 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #endif // FEATURE_WLAN_SCAN_PNO
 
   WDI_ProcessSetTxPerTrackingRsp,      /* WDI_SET_TX_PER_TRACKING_RESP  */
+  
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+  /* WDI_8023_MULTICAST_LIST_RESP */
+  WDI_Process8023MulticastListRsp,          
+  /* WDI_RECEIVE_FILTER_SET_FILTER_RESP */
+  WDI_ProcessReceiveFilterSetFilterRsp,     
+  /* WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_RESP */
+  WDI_ProcessFilterMatchCountRsp,   
+  /* WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP */
+  WDI_ProcessReceiveFilterClearFilterRsp,   
+#else
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+#endif // WLAN_FEATURE_PACKET_FILTERING
   
   /*---------------------------------------------------------------------
     Indications
@@ -11581,7 +11613,6 @@ WDI_ProcessKeepAliveReq
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
    tHalKeepAliveReq         keepAliveReq;
-   int i = 0;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -11633,23 +11664,16 @@ WDI_ProcessKeepAliveReq
                    &keepAliveReq, 
                    sizeof(keepAliveReq)); 
 
-   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
                "Process keep alive req %d",sizeof(keepAliveReq));
 
-  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
                "Process keep alive req time period %d",keepAliveReq.timePeriod);
-
-
-   for (i=0; i<usSendSize; i++)
-   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-                  "0x%x  ",*(pSendBuffer+i));
-   }
 
    pWDICtx->wdiReqStatusCB     = pwdiKeepAliveParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiKeepAliveParams->pUserData; 
 
-  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
                   "Sending keep alive req to HAL");
 
    /*-------------------------------------------------------------------------
@@ -12248,7 +12272,7 @@ WDI_ProcessStartRsp
   WDI_StartRspParamsType   wdiRspParams;
   WDI_StartRspCb           wdiStartRspCb = NULL;
 
-  tHalMacStartRspMsg       halStartRspMsg; 
+  tHalMacStartRspParams*   startRspParams;
 
 #ifndef HAL_SELF_STA_PER_BSS
   WDI_AddStaParams         wdiAddSTAParam = {0};
@@ -12272,27 +12296,25 @@ WDI_ProcessStartRsp
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
   -------------------------------------------------------------------------*/
-  if ( sizeof(halStartRspMsg) < pEventData->uEventDataSize )
+  if ( sizeof(tHalMacStartRspParams) > pEventData->uEventDataSize )
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
-              "Invalid response length in Start Resp Expect %x Rcvd %x",
-                sizeof(halStartRspMsg), pEventData->uEventDataSize);
+     // not enough data was received
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "Invalid response length in Start Resp Expect %x Rcvd %x",
+                 sizeof(tHalMacStartRspParams), pEventData->uEventDataSize);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
-
 
   /*-------------------------------------------------------------------------
     Unpack HAL Response Message - the header was already extracted by the
     main Response Handling procedure 
   -------------------------------------------------------------------------*/
-  wpalMemoryCopy( &halStartRspMsg.startRspParams , 
-                   pEventData->pEventData, 
-                   sizeof(halStartRspMsg.startRspParams));
+  startRspParams = (tHalMacStartRspParams *) pEventData->pEventData;
 
-  wdiRspParams.ucMaxBssids    = halStartRspMsg.startRspParams.ucMaxBssids; 
-  wdiRspParams.ucMaxStations  = halStartRspMsg.startRspParams.ucMaxStations;
-  wdiRspParams.wdiStatus      = WDI_HAL_2_WDI_STATUS(halStartRspMsg.startRspParams.status); 
+  wdiRspParams.ucMaxBssids   = startRspParams->ucMaxBssids;
+  wdiRspParams.ucMaxStations = startRspParams->ucMaxStations;
+  wdiRspParams.wdiStatus     = WDI_HAL_2_WDI_STATUS(startRspParams->status);
 
   wpalMutexAcquire(&pWDICtx->wptMutex);
   if ( WDI_STATUS_SUCCESS == wdiRspParams.wdiStatus  )
@@ -18967,6 +18989,17 @@ WDI_2_HAL_REQ_TYPE
 #endif // FEATURE_WLAN_SCAN_PNO
   case WDI_SET_TX_PER_TRACKING_REQ:
     return WLAN_HAL_SET_TX_PER_TRACKING_REQ;
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+  case WDI_8023_MULTICAST_LIST_REQ:
+    return WLAN_HAL_8023_MULTICAST_LIST_REQ;
+  case WDI_RECEIVE_FILTER_SET_FILTER_REQ:
+    return WLAN_HAL_SET_PACKET_FILTER_REQ; 
+  case WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ:
+    return WLAN_HAL_PACKET_FILTER_MATCH_COUNT_REQ;
+  case WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ:
+    return WLAN_HAL_CLEAR_PACKET_FILTER_REQ;
+#endif // WLAN_FEATURE_PACKET_FILTERING
+
   default:
     return WLAN_HAL_MSG_MAX; 
   }
@@ -19149,6 +19182,17 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
 #endif // FEATURE_WLAN_SCAN_PNO
   case WLAN_HAL_SET_TX_PER_TRACKING_RSP:
     return WDI_SET_TX_PER_TRACKING_RESP;
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+  case WLAN_HAL_8023_MULTICAST_LIST_RSP:
+    return WDI_8023_MULTICAST_LIST_RESP;
+  case WLAN_HAL_SET_PACKET_FILTER_RSP:
+    return WDI_RECEIVE_FILTER_SET_FILTER_RESP;
+  case WLAN_HAL_PACKET_FILTER_MATCH_COUNT_RSP:
+    return WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_RESP;
+  case WLAN_HAL_CLEAR_PACKET_FILTER_RSP:
+    return WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP;
+#endif // WLAN_FEATURE_PACKET_FILTERING
+
   default:
     return eDRIVER_TYPE_MAX; 
   }
@@ -20605,3 +20649,774 @@ WDI_ProcessUpdateScanParamsRsp
    return WDI_STATUS_SUCCESS; 
 }
 #endif // FEATURE_WLAN_SCAN_PNO
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+WDI_Status 
+WDI_8023MulticastListReq
+(
+  WDI_RcvFltPktSetMcListReqParamsType*  pwdiRcvFltPktSetMcListReqInfo,
+  WDI_8023MulticastListCb 	            wdi8023MulticastListCallback,
+  void*                                 pUserData
+)
+{
+   WDI_EventInfoType      wdiEventData;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s", __FUNCTION__);
+
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+
+     return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_8023_MULTICAST_LIST_REQ;
+   wdiEventData.pEventData      = pwdiRcvFltPktSetMcListReqInfo; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiRcvFltPktSetMcListReqInfo);
+   wdiEventData.pCBfnc          = wdi8023MulticastListCallback; 
+   wdiEventData.pUserData       = pUserData;
+
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
+
+WDI_Status 
+WDI_ReceiveFilterSetFilterReq
+(
+  WDI_SetRcvPktFilterReqParamsType* pwdiSetRcvPktFilterReqInfo,
+  WDI_ReceiveFilterSetFilterCb 	    wdiReceiveFilterSetFilterCallback,
+  void*                             pUserData
+)
+{
+   WDI_EventInfoType      wdiEventData;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+
+     return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_RECEIVE_FILTER_SET_FILTER_REQ;
+   wdiEventData.pEventData      = pwdiSetRcvPktFilterReqInfo; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiSetRcvPktFilterReqInfo) + 
+                                  (pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.numFieldParams 
+                                  * sizeof(WDI_RcvPktFilterFieldParams) - 1);
+   wdiEventData.pCBfnc          = wdiReceiveFilterSetFilterCallback; 
+   wdiEventData.pUserData       = pUserData;
+
+
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
+
+WDI_Status 
+WDI_FilterMatchCountReq
+(
+  WDI_RcvFltPktMatchCntReqParamsType* pwdiRcvFltPktMatchCntReqInfo,
+  WDI_FilterMatchCountCb 	          wdiFilterMatchCountCallback,
+  void*                               pUserData
+)
+{
+   WDI_EventInfoType      wdiEventData;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+
+     return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ;
+   wdiEventData.pEventData      = pwdiRcvFltPktMatchCntReqInfo; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiRcvFltPktMatchCntReqInfo);
+   wdiEventData.pCBfnc          = wdiFilterMatchCountCallback; 
+   wdiEventData.pUserData       = pUserData;
+
+
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
+
+WDI_Status 
+WDI_ReceiveFilterClearFilterReq
+(
+  WDI_RcvFltPktClearReqParamsType*  pwdiRcvFltPktClearReqInfo,
+  WDI_ReceiveFilterClearFilterCb 	wdiReceiveFilterClearFilterCallback,
+  void*                             pUserData
+)
+{
+   WDI_EventInfoType      wdiEventData;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+
+     return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ;
+   wdiEventData.pEventData      = pwdiRcvFltPktClearReqInfo; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiRcvFltPktClearReqInfo);
+   wdiEventData.pCBfnc          = wdiReceiveFilterClearFilterCallback; 
+   wdiEventData.pUserData       = pUserData;
+
+
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
+
+/**
+ @brief Process 8023 Multicast List Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_Process8023MulticastListReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_RcvFltPktSetMcListReqParamsType* pwdiFltPktSetMcListReqParamsType  = NULL;
+   WDI_8023MulticastListCb    wdi8023MulticastListCb = NULL;
+   wpt_uint8*                 pSendBuffer           = NULL; 
+   wpt_uint16                 usDataOffset          = 0;
+   wpt_uint16                 usSendSize            = 0;
+   tHalRcvFltMcAddrListType   rcvFltMcAddrListType;
+   wpt_uint8                  i;
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pEventData ) ||
+       ( NULL == (pwdiFltPktSetMcListReqParamsType = 
+       (WDI_RcvFltPktSetMcListReqParamsType*)pEventData->pEventData)) ||
+       ( NULL == (wdi8023MulticastListCb = 
+       (WDI_8023MulticastListCb)pEventData->pCBfnc)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+     ! TO DO : proper conversion into the HAL Message Request Format 
+   -----------------------------------------------------------------------*/
+   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, 
+                         WDI_8023_MULTICAST_LIST_REQ, 
+                         sizeof(tHalRcvFltMcAddrListType),
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+       ( usSendSize < (usDataOffset + sizeof(tHalRcvFltMcAddrListType))))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Unable to get send buffer in "
+                  "WDI_Process8023MulticastListReq() %x %x %x",
+                  pEventData, pwdiFltPktSetMcListReqParamsType,
+                  wdi8023MulticastListCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   rcvFltMcAddrListType.cMulticastAddr = 
+	       pwdiFltPktSetMcListReqParamsType->mcAddrList.ulMulticastAddrCnt; 
+   for( i = 0; i < rcvFltMcAddrListType.cMulticastAddr; i++ )
+   {
+      wpalMemoryCopy(rcvFltMcAddrListType.multicastAddr[i],
+                 pwdiFltPktSetMcListReqParamsType->mcAddrList.multicastAddr[i],
+                 sizeof(tSirMacAddr));
+   }
+
+   wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                   &rcvFltMcAddrListType, 
+                   sizeof(rcvFltMcAddrListType)); 
+
+   pWDICtx->wdiReqStatusCB     = pwdiFltPktSetMcListReqParamsType->wdiReqStatusCB;
+   pWDICtx->pReqStatusUserData = pwdiFltPktSetMcListReqParamsType->pUserData; 
+
+
+   /*-------------------------------------------------------------------------
+     Send Get STA Request to HAL 
+   -------------------------------------------------------------------------*/
+   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdi8023MulticastListCb, pEventData->pUserData,
+                        WDI_8023_MULTICAST_LIST_RESP); 
+}
+
+/**
+ @brief Process Receive Filter Set Filter Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessReceiveFilterSetFilterReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_SetRcvPktFilterReqParamsType* pwdiSetRcvPktFilterReqInfo  = NULL;
+   WDI_ReceiveFilterSetFilterCb      wdiReceiveFilterSetFilterCb = NULL;
+   wpt_uint8*                 pSendBuffer           = NULL; 
+   wpt_uint16                 usDataOffset          = 0;
+   wpt_uint16                 usSendSize            = 0;
+   wpt_uint32                 usRcvPktFilterCfgSize;
+   tHalRcvPktFilterCfgType    *pRcvPktFilterCfg;
+   wpt_uint8                  i;
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pEventData ) ||
+       ( NULL == (pwdiSetRcvPktFilterReqInfo = 
+       (WDI_SetRcvPktFilterReqParamsType*)pEventData->pEventData)) ||
+       ( NULL == (wdiReceiveFilterSetFilterCb = 
+       (WDI_ReceiveFilterSetFilterCb)pEventData->pCBfnc)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   usRcvPktFilterCfgSize = sizeof(tHalRcvPktFilterCfgType) + 
+       ((pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.numFieldParams - 1)
+        * sizeof(tHalRcvPktFilterParams));
+
+  pRcvPktFilterCfg = (tHalRcvPktFilterCfgType *)wpalMemoryAllocate(
+                                              usRcvPktFilterCfgSize);
+
+  if(NULL == pRcvPktFilterCfg)
+  {
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+            "%s: Failed to allocate memory for "
+            "tHalRcvPktFilterCfgType: %x %x %x ",
+            __FUNCTION__, pWDICtx, pEventData, pEventData->pEventData);
+    WDI_ASSERT(0);
+    return WDI_STATUS_E_FAILURE; 
+  }
+
+  wpalMemoryZero(pRcvPktFilterCfg, usRcvPktFilterCfgSize);
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+     ! TO DO : proper conversion into the HAL Message Request Format 
+   -----------------------------------------------------------------------*/
+   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_RECEIVE_FILTER_SET_FILTER_REQ, 
+                         usRcvPktFilterCfgSize,
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+       ( usSendSize < (usDataOffset + usRcvPktFilterCfgSize)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Unable to get send buffer in "
+                  "WDI_ProcessReceiveFilterSetFilterReq() %x %x %x",
+                  pEventData, pwdiSetRcvPktFilterReqInfo,
+                  wdiReceiveFilterSetFilterCb);
+      WDI_ASSERT(0);
+      wpalMemoryFree(pRcvPktFilterCfg);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+              "UsData Off %d UsSend %d cfg %d",usDataOffset, 
+              usSendSize,usRcvPktFilterCfgSize);
+
+   pRcvPktFilterCfg->filterId = pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.filterId;
+   pRcvPktFilterCfg->filterType = pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.filterType;   
+   pRcvPktFilterCfg->numParams = pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.numFieldParams;
+   pRcvPktFilterCfg->coleasceTime = pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.coalesceTime;
+
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+              "Out: FID %d FT %d",pRcvPktFilterCfg->filterId, 
+              pRcvPktFilterCfg->filterType);
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+              "NParams %d CT %d",pRcvPktFilterCfg->numParams, 
+              pRcvPktFilterCfg->coleasceTime);
+
+   for ( i = 0; i < pRcvPktFilterCfg->numParams; i++ )
+   {
+       pRcvPktFilterCfg->paramsData[i].protocolLayer = 
+           pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.paramsData[i].protocolLayer;
+       pRcvPktFilterCfg->paramsData[i].cmpFlag = 
+           pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.paramsData[i].cmpFlag;
+       pRcvPktFilterCfg->paramsData[i].dataOffset = 
+           pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.paramsData[i].dataOffset;
+        pRcvPktFilterCfg->paramsData[i].dataLength = 
+            pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.paramsData[i].dataLength;
+
+       wpalMemoryCopy(&pRcvPktFilterCfg->paramsData[i].compareData,
+                    &pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.paramsData[i].compareData,
+                    8);
+       wpalMemoryCopy(&pRcvPktFilterCfg->paramsData[i].dataMask,
+                    &pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.paramsData[i].dataMask,
+                    8);
+
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+           "Out:Proto %d Comp Flag %d \n",
+           pRcvPktFilterCfg->paramsData[i].protocolLayer, 
+           pRcvPktFilterCfg->paramsData[i].cmpFlag);
+
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+           "Data Offset %d Data Len %d\n",
+           pRcvPktFilterCfg->paramsData[i].dataOffset, 
+           pRcvPktFilterCfg->paramsData[i].dataLength);			  
+
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+           "CData: %d:%d:%d:%d:%d:%d\n",
+           pRcvPktFilterCfg->paramsData[i].compareData[0], 
+           pRcvPktFilterCfg->paramsData[i].compareData[1], 
+           pRcvPktFilterCfg->paramsData[i].compareData[2], 
+           pRcvPktFilterCfg->paramsData[i].compareData[3],
+           pRcvPktFilterCfg->paramsData[i].compareData[4], 
+           pRcvPktFilterCfg->paramsData[i].compareData[5]);
+
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+           "MData: %d:%d:%d:%d:%d:%d\n",
+           pRcvPktFilterCfg->paramsData[i].dataMask[0], 
+           pRcvPktFilterCfg->paramsData[i].dataMask[1], 
+           pRcvPktFilterCfg->paramsData[i].dataMask[2], 
+           pRcvPktFilterCfg->paramsData[i].dataMask[3],
+           pRcvPktFilterCfg->paramsData[i].dataMask[4], 
+           pRcvPktFilterCfg->paramsData[i].dataMask[5]);
+   }
+
+   wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                   pRcvPktFilterCfg, 
+                   usRcvPktFilterCfgSize); 
+
+
+   pWDICtx->wdiReqStatusCB     = pwdiSetRcvPktFilterReqInfo->wdiReqStatusCB;
+   pWDICtx->pReqStatusUserData = pwdiSetRcvPktFilterReqInfo->pUserData; 
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+   wpalMemoryFree(pRcvPktFilterCfg);
+
+   /*-------------------------------------------------------------------------
+     Send Get STA Request to HAL 
+   -------------------------------------------------------------------------*/
+   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiReceiveFilterSetFilterCb, pEventData->pUserData,
+                        WDI_RECEIVE_FILTER_SET_FILTER_RESP); 
+}
+
+/**
+ @brief Process Packet Filter Match Count Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessFilterMatchCountReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_RcvFltPktMatchCntReqParamsType*    pwdiRcvFltPktMatchCntReqParamsType =
+                                                                         NULL;
+   WDI_FilterMatchCountCb               wdiFilterMatchCountCb            =
+                                                                         NULL;
+   wpt_uint8*                             pSendBuffer           = NULL; 
+   wpt_uint16                             usDataOffset          = 0;
+   wpt_uint16                             usSendSize            = 0;
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pEventData ) ||
+       ( NULL == (pwdiRcvFltPktMatchCntReqParamsType = 
+       (WDI_RcvFltPktMatchCntReqParamsType*)pEventData->pEventData)) ||
+       ( NULL == (wdiFilterMatchCountCb = 
+       (WDI_FilterMatchCountCb)pEventData->pCBfnc)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+     ! TO DO : proper conversion into the HAL Message Request Format 
+   -----------------------------------------------------------------------*/
+   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, 
+	                     WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ, 
+                         0,
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+       ( usSendSize < usDataOffset))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Unable to get send buffer in "
+                  "WDI_ProcessFilterMatchCountReq() %x %x %x",
+                  pEventData, pwdiRcvFltPktMatchCntReqParamsType,
+                  wdiFilterMatchCountCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   //
+   // Don't need to fill send buffer other than header
+   //
+   pWDICtx->wdiReqStatusCB     = pwdiRcvFltPktMatchCntReqParamsType->wdiReqStatusCB;
+   pWDICtx->pReqStatusUserData = pwdiRcvFltPktMatchCntReqParamsType->pUserData; 
+
+
+   /*-------------------------------------------------------------------------
+     Send Get STA Request to HAL 
+   -------------------------------------------------------------------------*/
+   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiFilterMatchCountCb, 
+                        pEventData->pUserData, 
+                        WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_RESP); 
+}
+
+/**
+ @brief Process Receive Filter Clear Filter Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessReceiveFilterClearFilterReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{ 
+   WDI_RcvFltPktClearReqParamsType* pwdiRcvFltPktClearReqParamsType = NULL;
+   WDI_ReceiveFilterClearFilterCb   wdiRcvFltPktClearFilterCb       = NULL;
+   wpt_uint8*                       pSendBuffer           = NULL; 
+   wpt_uint16                       usDataOffset          = 0;
+   wpt_uint16                       usSendSize            = 0;
+   tHalRcvFltPktClearParam          rcvFltPktClearParam;
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pEventData ) ||
+       ( NULL == (pwdiRcvFltPktClearReqParamsType =
+       (WDI_RcvFltPktClearReqParamsType*)pEventData->pEventData)) ||
+       ( NULL == (wdiRcvFltPktClearFilterCb = 
+       (WDI_ReceiveFilterClearFilterCb)pEventData->pCBfnc)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+     ! TO DO : proper conversion into the HAL Message Request Format 
+   -----------------------------------------------------------------------*/
+   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx,
+                         WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ, 
+                         sizeof(tHalRcvFltPktClearParam),
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+       ( usSendSize < (usDataOffset + sizeof(tHalRcvFltPktClearParam))))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Unable to get send buffer in "
+                  "WDI_ProcessReceiveFilterClearFilterReq() %x %x %x",
+                  pEventData, pwdiRcvFltPktClearReqParamsType,
+                  wdiRcvFltPktClearFilterCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+
+   rcvFltPktClearParam.status = pwdiRcvFltPktClearReqParamsType->
+	                              filterClearParam.status; 
+   rcvFltPktClearParam.filterId = pwdiRcvFltPktClearReqParamsType->
+	                              filterClearParam.filterId; 
+
+   wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                   &rcvFltPktClearParam, 
+                   sizeof(rcvFltPktClearParam)); 
+
+   pWDICtx->wdiReqStatusCB     = pwdiRcvFltPktClearReqParamsType->wdiReqStatusCB;
+   pWDICtx->pReqStatusUserData = pwdiRcvFltPktClearReqParamsType->pUserData; 
+
+
+   /*-------------------------------------------------------------------------
+     Send Get STA Request to HAL 
+   -------------------------------------------------------------------------*/
+   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiRcvFltPktClearFilterCb, pEventData->pUserData,
+                        WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP); 
+}
+
+/**
+ @brief Process 8023 Multicast List Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_Process8023MulticastListRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_Status           wdiStatus;
+   eHalStatus           halStatus;
+   WDI_8023MulticastListCb wdi8023MulticastListCb = NULL;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   wdi8023MulticastListCb = (WDI_8023MulticastListCb)pWDICtx->pfncRspCB; 
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData ))
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+   halStatus = *((eHalStatus*)pEventData->pEventData);
+   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+   /*Notify UMAC*/
+   wdi8023MulticastListCb(wdiStatus, pWDICtx->pRspCBUserData);
+
+
+   return WDI_STATUS_SUCCESS; 
+}
+
+/**
+ @brief Process Set Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessReceiveFilterSetFilterRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_Status           wdiStatus;
+   eHalStatus           halStatus;
+   WDI_ReceiveFilterSetFilterCb wdiReceiveFilterSetFilterCb = NULL;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+          "%s",__FUNCTION__);
+
+   wdiReceiveFilterSetFilterCb = (WDI_ReceiveFilterSetFilterCb)pWDICtx->
+	                                                         pfncRspCB; 
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData ))
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+   halStatus = *((eHalStatus*)pEventData->pEventData);
+   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+   /*Notify UMAC*/
+   wdiReceiveFilterSetFilterCb(wdiStatus, pWDICtx->pRspCBUserData);
+
+   return WDI_STATUS_SUCCESS; 
+}
+
+/**
+ @brief Process Packet Filter Match Count Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessPacketFilterMatchCountRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_Status           wdiStatus;
+   eHalStatus           halStatus;
+
+   WDI_FilterMatchCountCb   wdiFilterMatchCountCb = NULL;
+
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   wdiFilterMatchCountCb = (WDI_FilterMatchCountCb)pWDICtx->pfncRspCB; 
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData ))
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+   halStatus = *((eHalStatus*)pEventData->pEventData);
+   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+   /*Notify UMAC*/
+   wdiFilterMatchCountCb(wdiStatus, pWDICtx->pRspCBUserData);
+
+   return WDI_STATUS_SUCCESS; 
+}
+
+/**
+ @brief Process Receive Filter Clear Filter Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessReceiveFilterClearFilterRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_Status           wdiStatus;
+   eHalStatus           halStatus;
+   WDI_ReceiveFilterClearFilterCb wdiReceiveFilterClearFilterCb = NULL;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "%s",__FUNCTION__);
+
+   wdiReceiveFilterClearFilterCb = (WDI_ReceiveFilterClearFilterCb)pWDICtx->
+                                                                 pfncRspCB; 
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData ))
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+   halStatus = *((eHalStatus*)pEventData->pEventData);
+   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+   /*Notify UMAC*/
+   wdiReceiveFilterClearFilterCb(wdiStatus, pWDICtx->pRspCBUserData);
+
+   return WDI_STATUS_SUCCESS; 
+}
+#endif // WLAN_FEATURE_PACKET_FILTERING

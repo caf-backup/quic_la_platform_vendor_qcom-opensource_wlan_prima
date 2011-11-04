@@ -1782,5 +1782,47 @@ eHalStatus sme_SetTxPerTracking (
    void (*pCallbackfn) (void *pCallbackContext),
    void *pCallbackContext,
    tpSirTxPerTrackingParam pTxPerTrackingParam);
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/* ---------------------------------------------------------------------------
+    \fn sme_ReceiveFilterSetFilter
+    \brief  API to set 8023 Multicast Address List
+    \param  hHal - The handle returned by macOpen.
+    \param  pMulticastAddrs - Pointer to the Multicast Address List
+    \return eHalStatus   
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_8023MulticastList(tHalHandle hHal, tpSirRcvFltMcAddrList pMulticastAddrs);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ReceiveFilterSetFilter
+    \brief  API to set Receive Packet Filter
+    \param  hHal - The handle returned by macOpen.
+    \param  pRcvPktFilterCfg - Receive Packet Filter parameter
+    \return eHalStatus   
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_ReceiveFilterSetFilter(tHalHandle hHal, tpSirRcvPktFilterCfgType pRcvPktFilterCfg);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_GetPCFilterMatchCount
+    \brief  API to get D0 PC Filter Match Count
+    \param  hHal - The handle returned by macOpen 
+    \param  callbackRoutine - Callback routine invoked to receive Packet Coalescing Filter Match Count
+    \param  callbackContext - Cookie to be passed back during callback 
+    \return eHalStatus   
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_GetFilterMatchCount(tHalHandle hHal, 
+                                   FilterMatchCountCallback callbackRoutine, 
+                                   void *callbackContext );
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ReceiveFilterClearFilter
+    \brief  API to clear Receive Packet Filter
+    \param  hHal - The handle returned by macOpen.
+    \param  pRcvFltPktClearParam - Receive Packet Filter Clear parameter
+    \return eHalStatus   
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_ReceiveFilterClearFilter(tHalHandle hHal,
+                                        tpSirRcvFltPktClearParam pRcvFltPktClearParam);
+#endif // WLAN_FEATURE_PACKET_FILTERING
    
 #endif //#if !defined( __SME_API_H )

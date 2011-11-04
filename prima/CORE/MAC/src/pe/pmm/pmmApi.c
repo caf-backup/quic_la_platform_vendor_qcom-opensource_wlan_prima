@@ -1179,7 +1179,11 @@ void pmmProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         case WDA_WOWL_EXIT_RSP:
             pmmExitWowlanResponseHandler(pMac, (eHalStatus)pMsg->bodyval);
             break;
-
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+        case WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP:
+            pmmFilterMatchCountResponseHandler(pMac, pMsg);
+            break;
+#endif // WLAN_FEATURE_PACKET_FILTERING
         default:
             PELOGW(pmmLog(pMac, LOGW, 
                 FL("PMM: Uknown message in pmmMsgQ type %d, potential memory leak!!\n"),
@@ -2644,3 +2648,43 @@ void pmmSendMessageToLim(tpAniSirGlobal pMac,
     }
 }
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+void pmmFilterMatchCountResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
+{
+    tpSirRcvFltPktMatchRsp  pRcvFltPktMatchCntRsp;
+    eHalStatus              rspStatus;
+    tSirResultCodes         smeRspCode = eSIR_SME_SUCCESS;
+
+    /* we need to process all the deferred messages enqueued
+     * since the initiating the WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ.
+     */
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+
+    pRcvFltPktMatchCntRsp = (tpSirRcvFltPktMatchRsp)(limMsg->bodyptr);
+    if (NULL == pRcvFltPktMatchCntRsp)
+    {
+        pmmLog(pMac, LOGE, FL("Received "
+            "WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP with NULL msg "));
+        smeRspCode = eSIR_SME_PC_FILTER_MATCH_COUNT_REQ_FAILED;
+    }
+    else
+    {
+        rspStatus = pRcvFltPktMatchCntRsp->status;
+        if (eHAL_STATUS_SUCCESS == rspStatus)
+        {
+            pmmLog(pMac, LOGE, FL("Rcv successful response from HAL to get "
+                "Packet Coalescing Filter Match Count\n"));
+        }
+        else
+        {
+            pmmLog(pMac, LOGE, FL("HAL failed to get Packet Coalescing "
+                "Filter Match Count, informing SME\n"));
+            smeRspCode = eSIR_SME_PC_FILTER_MATCH_COUNT_REQ_FAILED;
+        }
+    }
+
+    limSendSmeRsp(pMac, eWNI_PMC_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP, 
+                  smeRspCode, 0, 0);
+    return;
+}
+#endif // WLAN_FEATURE_PACKET_FILTERING

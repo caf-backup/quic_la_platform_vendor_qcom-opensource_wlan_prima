@@ -163,6 +163,10 @@ typedef struct sPmcInfo
     preferredNetworkFoundIndCallback  prefNetwFoundCB; /* routine to call for Preferred Network Found Indication */ 
     void *preferredNetworkFoundIndCallbackContext;/* value to be passed as parameter to routine specified above */
 #endif // FEATURE_WLAN_SCAN_PNLO
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+    FilterMatchCountCallback  FilterMatchCountCB; /* routine to call for Packet Coalescing Filter Match Count */ 
+    void *FilterMatchCountCBContext;/* value to be passed as parameter to routine specified above */
+#endif // WLAN_FEATURE_PACKET_FILTERING
 } tPmcInfo, *tpPmcInfo;
 
 

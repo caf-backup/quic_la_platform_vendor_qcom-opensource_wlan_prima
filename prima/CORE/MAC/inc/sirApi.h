@@ -285,6 +285,9 @@ typedef enum eSirResultCodes
 #ifdef WLAN_FEATURE_P2P
     eSIR_SME_SEND_ACTION_FAIL,
 #endif
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+    eSIR_SME_PC_FILTER_MATCH_COUNT_REQ_FAILED,
+#endif // WLAN_FEATURE_PACKET_FILTERING
     eSIR_DONOT_USE_RESULT_CODE = SIR_MAX_ENUM_SIZE
     
 } tSirResultCodes;
@@ -3839,5 +3842,107 @@ typedef struct sSirTxPerTrackingParam
 	tANI_U32 uTxPerTrackingWatermark;               /* A watermark of check number, once the tx packet exceed this number, we do the check, default is 5 */
 }tSirTxPerTrackingParam, *tpSirTxPerTrackingParam;
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/*---------------------------------------------------------------------------
+  Packet Filtering Parameters
+---------------------------------------------------------------------------*/
+#define    SIR_MAX_FILTER_TEST_DATA_LEN       8
+#define    SIR_MAX_NUM_MULTICAST_ADDRESS    240
+#define    SIR_MAX_NUM_FILTERS               20 
+#define    SIR_MAX_NUM_TESTS_PER_FILTER      10 
+
+//
+// Receive Filter Parameters
+//
+typedef enum
+{
+  SIR_RCV_FILTER_TYPE_INVALID,
+  SIR_RCV_FILTER_TYPE_FILTER_PKT,
+  SIR_RCV_FILTER_TYPE_BUFFER_PKT,
+  SIR_RCV_FILTER_TYPE_MAX_ENUM_SIZE
+}eSirReceivePacketFilterType;
+
+typedef enum 
+{
+  SIR_FILTER_HDR_TYPE_INVALID,
+  SIR_FILTER_HDR_TYPE_MAC,
+  SIR_FILTER_HDR_TYPE_ARP,
+  SIR_FILTER_HDR_TYPE_IPV4,
+  SIR_FILTER_HDR_TYPE_IPV6,
+  SIR_FILTER_HDR_TYPE_UDP,
+  SIR_FILTER_HDR_TYPE_MAX
+}eSirRcvPktFltProtocolType;
+
+typedef enum 
+{
+  SIR_FILTER_CMP_TYPE_INVALID,
+  SIR_FILTER_CMP_TYPE_EQUAL,
+  SIR_FILTER_CMP_TYPE_MASK_EQUAL,
+  SIR_FILTER_CMP_TYPE_NOT_EQUAL,
+  SIR_FILTER_CMP_TYPE_MAX
+}eSirRcvPktFltCmpFlagType;
+
+typedef struct sSirRcvPktFilterFieldParams
+{
+  eSirRcvPktFltProtocolType        protocolLayer;
+  eSirRcvPktFltCmpFlagType         cmpFlag;
+  /* Length of the data to compare */
+  tANI_U16                         dataLength; 
+  /* from start of the respective frame header */
+  tANI_U8                          dataOffset; 
+  /* Reserved field */
+  tANI_U8                          reserved; 
+  /* Data to compare */
+  tANI_U8                          compareData[SIR_MAX_FILTER_TEST_DATA_LEN];
+  /* Mask to be applied on the received packet data before compare */
+  tANI_U8                          dataMask[SIR_MAX_FILTER_TEST_DATA_LEN];   
+}tSirRcvPktFilterFieldParams, *tpSirRcvPktFilterFieldParams;
+
+typedef struct sSirRcvPktFilterCfg
+{
+  tANI_U8                         filterId; 
+  eSirReceivePacketFilterType     filterType;
+  tANI_U32                        numFieldParams;
+  tANI_U32                        coalesceTime;
+  tSirRcvPktFilterFieldParams     paramsData[1];
+}tSirRcvPktFilterCfgType, *tpSirRcvPktFilterCfgType;
+
+//
+// Filter Packet Match Count Parameters
+//
+typedef struct sSirRcvFltPktMatchCnt
+{
+  tANI_U8    filterId;
+  tANI_U32   matchCnt;
+} tSirRcvFltPktMatchCnt, tpSirRcvFltPktMatchCnt;
+
+typedef struct sSirRcvFltPktMatchRsp
+{
+  tANI_U16        mesgType;
+  tANI_U16        mesgLen;
+    
+  /* Success or Failure */
+  tANI_U32                 status;
+  tSirRcvFltPktMatchCnt    filterMatchCnt[SIR_MAX_NUM_FILTERS];
+} tSirRcvFltPktMatchRsp, *tpSirRcvFltPktMatchRsp;
+
+//
+// Receive Filter Clear Parameters
+//
+typedef struct sSirRcvFltPktClearParam
+{
+  tANI_U32   status;  /* only valid for response message */
+  tANI_U8    filterId;
+}tSirRcvFltPktClearParam, *tpSirRcvFltPktClearParam;
+
+//
+// Multicast Address List Parameters
+//
+typedef struct sSirRcvFltMcAddrList
+{
+  tANI_U32       ulMulticastAddrCnt;
+  tSirMacAddr    multicastAddr[SIR_MAX_NUM_MULTICAST_ADDRESS];
+} tSirRcvFltMcAddrList, *tpSirRcvFltMcAddrList;
+#endif // WLAN_FEATURE_PACKET_FILTERING
 #endif /* __SIR_API_H */
 

@@ -490,6 +490,21 @@ VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount );
 VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress );
 
 /**------------------------------------------------------------------------
+
+  \brief vos_nv_readMultiMacAddress() - return the Multiple MAC addresses
+
+  \param pMacAddress - MAC address
+  \param macCount - Count of valid MAC addresses to get from NV field
+
+  \return status of the NV read operation
+
+  \sa
+
+  -------------------------------------------------------------------------*/
+VOS_STATUS vos_nv_readMultiMacAddress( v_MAC_ADDRESS_t pMacAddress,
+                                              v_U8_t macCount );
+
+/**------------------------------------------------------------------------
   \brief vos_nv_getDefaultRegDomain() - return the default regulatory domain
   \return default regulatory domain
   \sa

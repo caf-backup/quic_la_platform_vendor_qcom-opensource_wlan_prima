@@ -156,6 +156,24 @@ VOS_STATUS WDA_ProcessSetRssiFilterReq(tWDA_CbContext *pWDA, tSirSetRSSIFilterRe
 VOS_STATUS WDA_ProcessUpdateScanParams(tWDA_CbContext *pWDA, tSirUpdateScanParams *pUpdateScanParams);
 #endif // FEATURE_WLAN_SCAN_PNO
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+static VOS_STATUS WDA_Process8023MulticastListReq (
+                                       tWDA_CbContext *pWDA,
+                                       tSirRcvFltMcAddrList *pRcvFltMcAddrLis
+                                                  );
+static VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (
+                                   tWDA_CbContext *pWDA,
+                                   tSirRcvPktFilterCfgType *pRcvPktFilterCfg
+                                                       );
+static VOS_STATUS WDA_ProcessPacketFilterMatchCountReq (
+                                   tWDA_CbContext *pWDA,
+                                   tpSirRcvFltPktMatchRsp pRcvFltPktMatchRsp
+                                                   );
+static VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (
+                               tWDA_CbContext *pWDA,
+                               tSirRcvFltPktClearParam *pRcvFltPktClearParam
+                                                         );
+#endif // WLAN_FEATURE_PACKET_FILTERING
 
 /*
  * FUNCTION: WDA_open
@@ -9370,10 +9388,35 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 #endif // FEATURE_WLAN_SCAN_PNO
 
       case WDA_SET_TX_PER_TRACKING_REQ:
-	  {
-	     WDA_ProcessSetTxPerTrackingReq(pWDA, (tSirTxPerTrackingParam *)pMsg->bodyptr);
-		 break;
-	  }
+      {
+         WDA_ProcessSetTxPerTrackingReq(pWDA, (tSirTxPerTrackingParam *)pMsg->bodyptr);
+         break;
+      }
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+      case WDA_8023_MULTICAST_LIST_REQ:
+      {
+         WDA_Process8023MulticastListReq(pWDA, (tSirRcvFltMcAddrList *)pMsg->bodyptr);
+         break;
+      }
+
+      case WDA_RECEIVE_FILTER_SET_FILTER_REQ:
+      {
+         WDA_ProcessReceiveFilterSetFilterReq(pWDA, (tSirRcvPktFilterCfgType *)pMsg->bodyptr);
+         break;
+      }
+
+      case WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ:
+      {
+         WDA_ProcessPacketFilterMatchCountReq(pWDA, (tpSirRcvFltPktMatchRsp)pMsg->bodyptr);
+         break;
+      }
+
+      case WDA_RECEIVE_FILTER_CLEAR_FILTER_REQ:
+      {
+         WDA_ProcessReceiveFilterClearFilterReq(pWDA, (tSirRcvFltPktClearParam *)pMsg->bodyptr);
+         break;
+      }
+#endif // WLAN_FEATURE_PACKET_FILTERING
 	  
       default:
       {
@@ -10421,3 +10464,500 @@ VOS_STATUS WDA_ProcessUpdateScanParams(tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 #endif // FEATURE_WLAN_SCAN_PNO
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/*
+ * FUNCTION: WDA_8023MulticastListReqCallback
+ * 
+ */ 
+void WDA_8023MulticastListReqCallback(WDI_Status status, void * pUserData)
+{
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
+   
+   vos_mem_free(pWdaParams->wdaMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
+
+   //print a msg, nothing else to do
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+              "WDA_8023MulticastListReqCallback invoked " );
+
+   return ;
+}
+
+/*
+ * FUNCTION: WDA_Process8023MulticastListReq
+ * Request to WDI to add 8023 Multicast List
+ */ 
+VOS_STATUS WDA_Process8023MulticastListReq (tWDA_CbContext *pWDA, 
+                                       tSirRcvFltMcAddrList *pRcvFltMcAddrList)
+{
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   WDI_RcvFltPktSetMcListReqParamsType *pwdiFltPktSetMcListReqParamsType = NULL;
+   tWDA_ReqParams *pWdaParams ;
+   tANI_U8         i;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+
+   pwdiFltPktSetMcListReqParamsType = 
+      (WDI_RcvFltPktSetMcListReqParamsType *)vos_mem_malloc(
+                             sizeof(WDI_RcvFltPktSetMcListReqParamsType)
+                                                           ) ;
+   if(NULL == pwdiFltPktSetMcListReqParamsType) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(pwdiFltPktSetMcListReqParamsType);
+      return VOS_STATUS_E_NOMEM;
+   }
+   
+   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL",
+              __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   //
+   // Fill pwdiFltPktSetMcListReqParamsType from pRcvFltMcAddrList
+   //
+   pwdiFltPktSetMcListReqParamsType->mcAddrList.ulMulticastAddrCnt = 
+                                   pRcvFltMcAddrList->ulMulticastAddrCnt; 
+   for( i = 0; i < pRcvFltMcAddrList->ulMulticastAddrCnt; i++ )
+   {
+      vos_mem_copy(&(pwdiFltPktSetMcListReqParamsType->mcAddrList.multicastAddr[i]),
+                   &(pRcvFltMcAddrList->multicastAddr[i]),
+                   sizeof(tSirMacAddr));
+   }
+
+   pwdiFltPktSetMcListReqParamsType->wdiReqStatusCB = NULL;
+
+  /* WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
+                  (NULL == pWDA->wdaWdiApiMsgParam)); */
+
+   /* Store Params pass it to WDI */
+   pWdaParams->wdaWdiApiMsgParam = (void *)pwdiFltPktSetMcListReqParamsType;
+   pWdaParams->pWdaContext = pWDA;
+   /* Store param pointer as passed in by caller */
+   pWdaParams->wdaMsgParam = pRcvFltMcAddrList;
+
+   status = WDI_8023MulticastListReq(
+                        pwdiFltPktSetMcListReqParamsType, 
+                        (WDI_8023MulticastListCb)WDA_8023MulticastListReqCallback,
+                        pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+        "Failure in WDA_Process8023MulticastListReq(), free all the memory " );
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      vos_mem_free(pWdaParams->wdaMsgParam);
+      vos_mem_free(pWdaParams);
+   }
+
+   return CONVERT_WDI2VOS_STATUS(status) ;
+}
+
+/*
+ * FUNCTION: WDA_ReceiveFilterSetFilterReqCallback
+ * 
+ */ 
+void WDA_ReceiveFilterSetFilterReqCallback(WDI_Status status, void * pUserData)
+{
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+
+   /*WDA_VOS_ASSERT(NULL != pWdaParams);*/
+
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
+   
+   vos_mem_free(pWdaParams->wdaMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
+
+   //print a msg, nothing else to do
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+              "WDA_ReceiveFilterSetFilterReqCallback invoked " );
+
+   return ;
+}
+
+/*
+ * FUNCTION: WDA_ProcessReceiveFilterSetFilterReq
+ * Request to WDI to set Receive Filters
+ */ 
+VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA, 
+                                       tSirRcvPktFilterCfgType *pRcvPktFilterCfg)
+{
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   v_SIZE_t   allocSize = sizeof(WDI_SetRcvPktFilterReqParamsType) + 
+      ((pRcvPktFilterCfg->numFieldParams - 1) * sizeof(tSirRcvPktFilterFieldParams));
+   WDI_SetRcvPktFilterReqParamsType *pwdiSetRcvPktFilterReqParamsType = 
+      (WDI_SetRcvPktFilterReqParamsType *)vos_mem_malloc(allocSize) ;
+   tWDA_ReqParams *pWdaParams ;
+   tANI_U8         i;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+
+   if(NULL == pwdiSetRcvPktFilterReqParamsType) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(pwdiSetRcvPktFilterReqParamsType);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterId = pRcvPktFilterCfg->filterId;
+   pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterType = pRcvPktFilterCfg->filterType;   
+   pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.numFieldParams = pRcvPktFilterCfg->numFieldParams;
+   pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.coalesceTime = pRcvPktFilterCfg->coalesceTime;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+              "FID %d FT %d",pwdiSetRcvPktFilterReqParamsType->
+			  wdiPktFilterCfg.filterId, 
+              pwdiSetRcvPktFilterReqParamsType->
+			  wdiPktFilterCfg.filterType);
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+              "NParams %d CT %d",pwdiSetRcvPktFilterReqParamsType->
+			  wdiPktFilterCfg.numFieldParams, 
+              pwdiSetRcvPktFilterReqParamsType->
+			  wdiPktFilterCfg.coalesceTime);
+
+   for ( i = 0; i < pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.numFieldParams; i++ )
+   {
+     wpalMemoryCopy(&pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.paramsData[i],
+                    &pRcvPktFilterCfg->paramsData[i],
+                    sizeof(pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.paramsData[i]));
+
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
+	       "Proto %d Comp Flag %d \n",
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].protocolLayer, 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].cmpFlag);
+
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
+	       "Data Offset %d Data Len %d\n",
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].dataOffset, 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].dataLength);
+
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
+	       "CData: %d:%d:%d:%d:%d:%d\n",
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].compareData[0], 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].compareData[1], 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].compareData[2], 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].compareData[3],
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].compareData[4], 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].compareData[5]);
+
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
+	       "MData: %d:%d:%d:%d:%d:%d\n",
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].dataMask[0], 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].dataMask[1], 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].dataMask[2], 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].dataMask[3],
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].dataMask[4], 
+           pwdiSetRcvPktFilterReqParamsType->
+		   wdiPktFilterCfg.paramsData[i].dataMask[5]);
+
+   }
+
+   pwdiSetRcvPktFilterReqParamsType->wdiReqStatusCB = NULL;
+
+   /* Store Params pass it to WDI */
+   pWdaParams->wdaWdiApiMsgParam = (void *)pwdiSetRcvPktFilterReqParamsType;
+   pWdaParams->pWdaContext = pWDA;
+   /* Store param pointer as passed in by caller */
+   pWdaParams->wdaMsgParam = pRcvPktFilterCfg;
+
+   status = WDI_ReceiveFilterSetFilterReq(pwdiSetRcvPktFilterReqParamsType,
+           (WDI_ReceiveFilterSetFilterCb)WDA_ReceiveFilterSetFilterReqCallback,
+           pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "Failure in SetFilter(),free all the memory,status %d ",status);
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      vos_mem_free(pWdaParams->wdaMsgParam);
+      vos_mem_free(pWdaParams);
+   }
+
+   return CONVERT_WDI2VOS_STATUS(status) ;
+}
+
+/*
+ * FUNCTION: WDA_FilterMatchCountReqCallback
+ * 
+ */ 
+void WDA_FilterMatchCountReqCallback(WDI_Status status, void * pUserData)
+{
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+   tWDA_CbContext *pWDA;
+   tpSirRcvFltPktMatchRsp pRcvFltPktMatchCntReq;
+   tpSirRcvFltPktMatchRsp pRcvFltPktMatchCntRsp = 
+                            vos_mem_malloc(sizeof(tSirRcvFltPktMatchCnt));
+   tANI_U8         i;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+
+   /*WDA_VOS_ASSERT(NULL != pWdaParams);*/
+
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
+
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext ;
+   pRcvFltPktMatchCntReq = (tpSirRcvFltPktMatchRsp)pWdaParams->wdaMsgParam;
+
+   // Fill pRcvFltPktMatchCntRsp from pRcvFltPktMatchCntReq
+   vos_mem_zero(pRcvFltPktMatchCntRsp,sizeof(tSirRcvFltPktMatchRsp));
+   pRcvFltPktMatchCntRsp->status = pRcvFltPktMatchCntReq->status;
+   for (i = 0; i < SIR_MAX_NUM_FILTERS; i++)
+   {   
+      pRcvFltPktMatchCntRsp->filterMatchCnt[i].filterId = pRcvFltPktMatchCntReq->filterMatchCnt[i].filterId;
+      pRcvFltPktMatchCntRsp->filterMatchCnt[i].matchCnt = pRcvFltPktMatchCntReq->filterMatchCnt[i].matchCnt;
+   }
+
+   vos_mem_free(pWdaParams->wdaMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
+
+   WDA_SendMsg(pWDA, WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP, (void *)pRcvFltPktMatchCntRsp , 0) ;
+}
+
+/*
+ * FUNCTION: WDA_ProcessPacketFilterMatchCountReq
+ * Request to WDI to get PC Filter Match Count
+ */ 
+VOS_STATUS WDA_ProcessPacketFilterMatchCountReq (tWDA_CbContext *pWDA, tpSirRcvFltPktMatchRsp pRcvFltPktMatchRsp)
+{
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   WDI_RcvFltPktMatchCntReqParamsType *pwdiRcvFltPktMatchCntReqParamsType = 
+      (WDI_RcvFltPktMatchCntReqParamsType *)vos_mem_malloc(sizeof(WDI_RcvFltPktMatchCntReqParamsType));
+   tWDA_ReqParams *pWdaParams ;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+
+   if(NULL == pwdiRcvFltPktMatchCntReqParamsType) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(pwdiRcvFltPktMatchCntReqParamsType);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   pwdiRcvFltPktMatchCntReqParamsType->wdiReqStatusCB = NULL;
+
+
+   /* Store Params pass it to WDI */
+   pWdaParams->wdaWdiApiMsgParam = (void *)pwdiRcvFltPktMatchCntReqParamsType;
+   pWdaParams->pWdaContext = pWDA;
+   /* Store param pointer as passed in by caller */
+   pWdaParams->wdaMsgParam = pRcvFltPktMatchRsp;
+
+   status = WDI_FilterMatchCountReq(pwdiRcvFltPktMatchCntReqParamsType, 
+                 (WDI_FilterMatchCountCb)WDA_FilterMatchCountReqCallback,
+                 pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(status))
+   {
+      /* failure returned by WDI API */
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "Failure in WDI_FilterMatchCountReq(), free all the memory " );
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
+      pRcvFltPktMatchRsp->status = eSIR_FAILURE ;
+      WDA_SendMsg(pWDA, WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP, (void *)pRcvFltPktMatchRsp, 0) ;
+   }
+
+   return CONVERT_WDI2VOS_STATUS(status) ;
+}
+
+/*
+ * FUNCTION: WDA_ReceiveFilterSetFilterReqCallback
+ * 
+ */ 
+void WDA_ReceiveFilterClearFilterReqCallback(WDI_Status status, void * pUserData)
+{
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                          "<------ %s " ,__FUNCTION__);
+
+/*   WDA_VOS_ASSERT(NULL != pWdaParams); */
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
+   
+   vos_mem_free(pWdaParams->wdaMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
+
+   //print a msg, nothing else to do
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+              "WDA_ReceiveFilterClearFilterReqCallback invoked " );
+
+   return ;
+}
+
+/*
+ * FUNCTION: WDA_ProcessReceiveFilterClearFilterReq
+ * Request to WDI to clear Receive Filters
+ */ 
+VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA, 
+                                       tSirRcvFltPktClearParam *pRcvFltPktClearParam)
+{
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   WDI_RcvFltPktClearReqParamsType *pwdiRcvFltPktClearReqParamsType = 
+      (WDI_RcvFltPktClearReqParamsType *)vos_mem_malloc(sizeof(WDI_RcvFltPktClearReqParamsType));
+   tWDA_ReqParams *pWdaParams ;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                          "------> %s " ,__FUNCTION__);
+
+   if(NULL == pwdiRcvFltPktClearReqParamsType) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(pwdiRcvFltPktClearReqParamsType);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   pwdiRcvFltPktClearReqParamsType->filterClearParam.status = pRcvFltPktClearParam->status;
+   pwdiRcvFltPktClearReqParamsType->filterClearParam.filterId = pRcvFltPktClearParam->filterId;
+    
+   pwdiRcvFltPktClearReqParamsType->wdiReqStatusCB = NULL;
+
+   /* Store Params pass it to WDI */
+   pWdaParams->wdaWdiApiMsgParam = (void *)pwdiRcvFltPktClearReqParamsType;
+   pWdaParams->pWdaContext = pWDA;
+   /* Store param pointer as passed in by caller */
+   pWdaParams->wdaMsgParam = pRcvFltPktClearParam;
+
+   status = WDI_ReceiveFilterClearFilterReq(pwdiRcvFltPktClearReqParamsType,
+       (WDI_ReceiveFilterClearFilterCb)WDA_ReceiveFilterClearFilterReqCallback,
+       pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "Failure in WDA_ProcessReceiveFilterClearFilterReq(), free all the memory " );
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      vos_mem_free(pWdaParams->wdaMsgParam);
+      vos_mem_free(pWdaParams);
+   }
+
+   return CONVERT_WDI2VOS_STATUS(status) ;
+}
+#endif // WLAN_FEATURE_PACKET_FILTERING

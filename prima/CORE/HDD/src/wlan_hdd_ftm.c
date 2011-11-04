@@ -120,6 +120,10 @@
 #define QWLAN_TXCTL_FSHIFT_BW12_MASK        0x03
 #endif /* QWLAN_TXCTL_FSHIFT_REG */
 
+/* To set 4MAC addresses from given first MAC address,
+ * Last byte value within given MAC address must less than 0xFF - 3 */
+#define QWLAN_MAX_MAC_LAST_BYTE_VALUE       0xFC
+
 typedef struct {
    tANI_U32 tableSize;                      /* Whole NV Table Size */
    tANI_U32 chunkSize;                      /* Current Chunk Size < 2K */
@@ -2156,6 +2160,9 @@ int wlan_hdd_ftm_set_nv_field
    VOS_STATUS         nvStatus = VOS_STATUS_SUCCESS;
    v_SIZE_t           nvSize;
    sHalNv            *nvContents = NULL;
+   v_U8_t             macLoop;
+   v_U8_t            *pNVMac;
+   v_U8_t             lastByteMAC;
 
    nvStatus = vos_nv_getNVBuffer((void **)&nvContents, &nvSize);
    if((VOS_STATUS_SUCCESS != nvStatus) || (NULL == nvContents))
@@ -2192,9 +2199,27 @@ int wlan_hdd_ftm_set_nv_field
          break;
 
       case NV_COMMON_MAC_ADDR:
-         memcpy(&nvContents->fields.macAddr[0],
-                &nvField->fieldData.macAddr[0],
-                 NV_FIELD_MAC_ADDR_SIZE);
+         /* If Last byte is larger than 252 (0xFC), return Error,
+          * Since 3MACs should be derived from first MAC */
+         if(QWLAN_MAX_MAC_LAST_BYTE_VALUE <
+            nvField->fieldData.macAddr[VOS_MAC_ADDRESS_LEN - 1])
+         {
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                       "Last Byte of the seed MAC is too large 0x%x",
+                        nvField->fieldData.macAddr[VOS_MAC_ADDRESS_LEN - 1]);
+            return -1;
+         }
+
+         pNVMac = (v_U8_t *)nvContents->fields.macAddr;
+         lastByteMAC = nvField->fieldData.macAddr[VOS_MAC_ADDRESS_LEN - 1];
+         for(macLoop = 0; macLoop < VOS_MAX_CONCURRENCY_PERSONA; macLoop++)
+         {
+            nvField->fieldData.macAddr[VOS_MAC_ADDRESS_LEN - 1] =
+                                               lastByteMAC + macLoop;
+            vos_mem_copy(pNVMac + (macLoop * NV_FIELD_MAC_ADDR_SIZE),
+                         &nvField->fieldData.macAddr[0],
+                         NV_FIELD_MAC_ADDR_SIZE);
+         }
          break;
 
       case NV_COMMON_MFG_SERIAL_NUMBER:

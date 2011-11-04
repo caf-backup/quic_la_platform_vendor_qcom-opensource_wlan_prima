@@ -198,10 +198,12 @@ when        who    what, where, why
         (WLANTL_BT_AMP_TYPE_LS_REQ == usType) || (WLANTL_BT_AMP_TYPE_LS_REP == usType)
 
 /*get RSSI0 from a RX BD*/
-#define WLANTL_GETRSSI0(pBD)    WDA_GETRSSI0(pBD)
+/* 7 bits in phystats represent -100dBm to +27dBm */
+#define WLAN_TL_RSSI_CORRECTION 100
+#define WLANTL_GETRSSI0(pBD)    (WDA_GETRSSI0(pBD) - WLAN_TL_RSSI_CORRECTION)
 
 /*get RSSI1 from a RX BD*/
-#define WLANTL_GETRSSI1(pBD)    WDA_GETRSSI1(pBD)
+#define WLANTL_GETRSSI1(pBD)    (WDA_GETRSSI1(pBD) - WLAN_TL_RSSI_CORRECTION)
 
 /* Check whether Rx frame is LS or EAPOL packet (other than data) */
 #define WLANTL_BAP_IS_NON_DATA_PKT_TYPE(usType) \

@@ -3824,16 +3824,193 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct 
 { 
-   /* Configurations for Tx PER Tracking */ 
-   WDI_TxPerTrackingParamType     wdiTxPerTrackingParam;
-   /*Request status callback offered by UMAC - it is called if the current req
-   has returned PENDING as status; it delivers the status of sending the message
-   over the BUS */ 
-   WDI_ReqStatusCb            wdiReqStatusCB; 
-   /*The user data passed in by UMAC, it will be sent back when the above
-   function pointer will be called */ 
-   void*                      pUserData; 
+  /* Configurations for Tx PER Tracking */ 
+  WDI_TxPerTrackingParamType     wdiTxPerTrackingParam;
+  /*Request status callback offered by UMAC - it is called if the current req
+    has returned PENDING as status; it delivers the status of sending the message
+    over the BUS */ 
+  WDI_ReqStatusCb            wdiReqStatusCB; 
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */ 
+  void*                      pUserData; 
 }WDI_SetTxPerTrackingReqParamsType;
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/*---------------------------------------------------------------------------
+  Packet Filtering Parameters
+---------------------------------------------------------------------------*/
+
+#define    WDI_IPV4_ADDR_LEN                  4
+#define    WDI_MAC_ADDR_LEN                   6
+#define    WDI_MAX_FILTER_TEST_DATA_LEN       8
+#define    WDI_MAX_NUM_MULTICAST_ADDRESS    240
+#define    WDI_MAX_NUM_FILTERS               20 
+#define    WDI_MAX_NUM_TESTS_PER_FILTER      10 
+
+//
+// Receive Filter Parameters
+//
+typedef enum
+{
+  WDI_RCV_FILTER_TYPE_INVALID,
+  WDI_RCV_FILTER_TYPE_FILTER_PKT,
+  WDI_RCV_FILTER_TYPE_BUFFER_PKT,
+  WDI_RCV_FILTER_TYPE_MAX_ENUM_SIZE
+}WDI_ReceivePacketFilterType;
+
+typedef enum 
+{
+  WDI_FILTER_HDR_TYPE_INVALID,
+  WDI_FILTER_HDR_TYPE_MAC,
+  WDI_FILTER_HDR_TYPE_ARP,
+  WDI_FILTER_HDR_TYPE_IPV4,
+  WDI_FILTER_HDR_TYPE_IPV6,
+  WDI_FILTER_HDR_TYPE_UDP,
+  WDI_FILTER_HDR_TYPE_MAX
+}WDI_RcvPktFltProtocolType;
+
+typedef enum 
+{
+  WDI_FILTER_CMP_TYPE_INVALID,
+  WDI_FILTER_CMP_TYPE_EQUAL,
+  WDI_FILTER_CMP_TYPE_MASK_EQUAL,
+  WDI_FILTER_CMP_TYPE_NOT_EQUAL,
+  WDI_FILTER_CMP_TYPE_MAX
+}WDI_RcvPktFltCmpFlagType;
+
+typedef struct
+{
+  WDI_RcvPktFltProtocolType          protocolLayer;
+  WDI_RcvPktFltCmpFlagType           cmpFlag;
+/* Length of the data to compare */
+  wpt_uint16                         dataLength; 
+/* from start of the respective frame header */  
+  wpt_uint8                          dataOffset; 
+  wpt_uint8                          reserved; /* Reserved field */
+/* Data to compare */
+  wpt_uint8                          compareData[WDI_MAX_FILTER_TEST_DATA_LEN];  
+/* Mask to be applied on the received packet data before compare */
+  wpt_uint8                          dataMask[WDI_MAX_FILTER_TEST_DATA_LEN];   
+}WDI_RcvPktFilterFieldParams;
+
+typedef struct
+{
+  wpt_uint8                       filterId; 
+  wpt_uint8                       filterType; 	
+  wpt_uint32                      numFieldParams;
+  wpt_uint32                      coalesceTime;
+  WDI_RcvPktFilterFieldParams     paramsData[1];
+}WDI_RcvPktFilterCfgType;
+
+typedef struct 
+{
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+    
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+    
+  // Variable length packet filter field params
+  WDI_RcvPktFilterCfgType wdiPktFilterCfg;
+} WDI_SetRcvPktFilterReqParamsType;
+
+//
+// Filter Packet Match Count Parameters
+//
+typedef struct
+{
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+    
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+} WDI_RcvFltPktMatchCntReqParamsType;
+
+typedef struct
+{
+  wpt_uint8    filterId;
+  wpt_uint32   matchCnt;
+} WDI_RcvFltPktMatchCnt;
+
+typedef struct
+{
+  /* Success or Failure */
+  wpt_uint32                 status;
+  WDI_RcvFltPktMatchCnt    filterMatchCnt[WDI_MAX_NUM_FILTERS];
+  
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+    
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+} WDI_RcvFltPktMatchRspParams;
+
+typedef struct
+{
+  WDI_RcvFltPktMatchRspParams fltPktMatchRspParams;
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+    
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+} WDI_RcvFltPktMatchCntRspParamsType;
+
+
+//
+// Receive Filter Clear Parameters
+//
+typedef struct
+{
+  wpt_uint32   status;  /* only valid for response message */
+  wpt_uint8    filterId;
+}WDI_RcvFltPktClearParam;
+
+typedef struct
+{
+  WDI_RcvFltPktClearParam     filterClearParam;
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+    
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+} WDI_RcvFltPktClearReqParamsType;
+
+//
+// Multicast Address List Parameters
+//
+typedef struct 
+{
+  wpt_uint32     ulMulticastAddrCnt;
+  wpt_macAddr    multicastAddr[WDI_MAX_NUM_MULTICAST_ADDRESS];
+} WDI_RcvFltMcAddrListType;
+
+typedef struct
+{
+  WDI_RcvFltMcAddrListType         mcAddrList;
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+    
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+} WDI_RcvFltPktSetMcListReqParamsType;
+#endif // WLAN_FEATURE_PACKET_FILTERING
 
 /*----------------------------------------------------------------------------
  *   WDI callback types
@@ -5297,6 +5474,95 @@ typedef void  (*WDI_UpdateScanParamsCb)(WDI_Status  wdiStatus,
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_SetTxPerTrackingRspCb)(WDI_Status   wdiStatus,
                                            void*        pUserData);
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/*---------------------------------------------------------------------------
+   WDI_8023MulticastListCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a 8023 Multicast List
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_8023MulticastListCb)(WDI_Status   wdiStatus,
+										 void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_ReceiveFilterSetFilterCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Receive Filter Set Filter
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_ReceiveFilterSetFilterCb)(WDI_Status   wdiStatus,
+											  void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_FilterMatchCountCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Do PC Filter Match Count
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_FilterMatchCountCb)(WDI_Status   wdiStatus,
+                                        void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_ReceiveFilterClearFilterCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Receive Filter Clear Filter
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_ReceiveFilterClearFilterCb)(WDI_Status   wdiStatus,
+												void*        pUserData);
+#endif // WLAN_FEATURE_PACKET_FILTERING
 									 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -7598,6 +7864,104 @@ WDI_SetTxPerTrackingReq
   WDI_SetTxPerTrackingRspCb               pwdiSetTxPerTrackingRspCb,
   void*                                   pUserData
 );
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/**
+ @brief WDI_8023MulticastListReq
+
+ @param pwdiRcvFltPktSetMcListReqInfo: the Set 8023 Multicast 
+        List as specified by the Device Interface
+  
+        wdi8023MulticastListCallback: callback for passing back
+        the response of the Set 8023 Multicast List operation
+        received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_8023MulticastListReq
+(
+  WDI_RcvFltPktSetMcListReqParamsType*  pwdiRcvFltPktSetMcListReqInfo,
+  WDI_8023MulticastListCb               wdi8023MulticastListCallback,
+  void*                                 pUserData
+);
+
+/**
+ @brief WDI_ReceiveFilterSetFilterReq
+
+ @param pwdiSetRcvPktFilterReqInfo: the Set Receive Filter as 
+        specified by the Device Interface
+  
+        wdiReceiveFilterSetFilterReqCallback: callback for
+        passing back the response of the Set Receive Filter
+        operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_ReceiveFilterSetFilterReq
+(
+  WDI_SetRcvPktFilterReqParamsType* pwdiSetRcvPktFilterReqInfo,
+  WDI_ReceiveFilterSetFilterCb      wdiReceiveFilterSetFilterReqCallback,
+  void*                             pUserData
+);
+
+/**
+ @brief WDI_PCFilterMatchCountReq
+
+ @param pwdiRcvFltPktMatchCntReqInfo: get D0 PC Filter Match 
+                                    Count
+  
+        wdiPCFilterMatchCountCallback: callback for passing back
+        the response of the D0 PC Filter Match Count operation
+        received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_FilterMatchCountReq
+(
+  WDI_RcvFltPktMatchCntReqParamsType* pwdiRcvFltPktMatchCntReqInfo,
+  WDI_FilterMatchCountCb              wdiFilterMatchCountCallback,
+  void*                               pUserData
+);
+
+/**
+ @brief WDI_ReceiveFilterClearFilterReq
+
+ @param pwdiRcvFltPktClearReqInfo: the Clear Filter as 
+                      specified by the Device Interface
+  
+        wdiReceiveFilterClearFilterCallback: callback for
+        passing back the response of the Clear Filter
+        operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_ReceiveFilterClearFilterReq
+(
+  WDI_RcvFltPktClearReqParamsType*  pwdiRcvFltPktClearReqInfo,
+  WDI_ReceiveFilterClearFilterCb    wdiReceiveFilterClearFilterCallback,
+  void*                             pUserData
+);
+#endif // WLAN_FEATURE_PACKET_FILTERING
 
 #ifdef __cplusplus
  }

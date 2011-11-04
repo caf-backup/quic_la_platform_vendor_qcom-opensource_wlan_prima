@@ -363,6 +363,11 @@ typedef enum
 #endif // FEATURE_WLAN_SCAN_PNO
 
   WDI_SET_TX_PER_TRACKING_REQ = 66,
+
+  WDI_8023_MULTICAST_LIST_REQ      				= 67,
+  WDI_RECEIVE_FILTER_SET_FILTER_REQ      		= 68,
+  WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ  = 69,
+  WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ      		= 70,
   
   WDI_MAX_REQ,
 
@@ -583,6 +588,16 @@ typedef enum
 
   //Tx PER Tracking
   WDI_SET_TX_PER_TRACKING_RESP       = 66,
+
+
+  WDI_8023_MULTICAST_LIST_RESP                  = 67,
+
+  WDI_RECEIVE_FILTER_SET_FILTER_RESP            = 68,
+
+  WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_RESP = 69,
+
+  WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP          = 70,
+
   
   /*-------------------------------------------------------------------------
     Indications
@@ -4360,6 +4375,136 @@ WDI_ProcessUpdateScanParamsRsp
   WDI_EventInfoType*     pEventData
 );
 #endif // FEATURE_WLAN_SCAN_PNO
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/**
+ @brief Process 8023 Multicast List Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_Process8023MulticastListReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Receive Filter Set Filter Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessReceiveFilterSetFilterReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process D0 PC Filter Match Count Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessFilterMatchCountReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Receive Filter Clear Filter Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessReceiveFilterClearFilterReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process 8023 Multicast List Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_Process8023MulticastListRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Receive Filter Set Filter Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessReceiveFilterSetFilterRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process D0 PC Filter Match Count Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessFilterMatchCountRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Receive Filter Clear Filter Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessReceiveFilterClearFilterRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif // WLAN_FEATURE_PACKET_FILTERING
 
 #endif /*WLAN_QCT_WDI_I_H*/
 

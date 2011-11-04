@@ -3790,6 +3790,9 @@ const sHalNv nvDefaults =
         1,                                                              // tANI_U8   numOfTxChains;
         2,                                                              // tANI_U8   numOfRxChains;
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
         { "\0" }
     }, //fields
 

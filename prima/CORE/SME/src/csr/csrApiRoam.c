@@ -363,8 +363,21 @@ eHalStatus csrSetRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     v_REGDOMAIN_t regId;
+    v_U8_t        cntryCodeLength;
 
-    smsLog( pMac, LOGE, FL(" country Code %s\n"), apCntryCode );
+    if(NULL == apCntryCode)
+    {
+       smsLog( pMac, LOGW, FL(" Invalid country Code Pointer\n") );
+       return eHAL_STATUS_FAILURE;
+    }
+
+    smsLog( pMac, LOGW, FL(" country Code %s\n"), apCntryCode );
+
+    /* To get correct Regulatory domain from NV table 
+     * 2 character Country code should be used
+     * 3rd charater is optional for indoor/outdoor setting */
+    cntryCodeLength = strlen(apCntryCode);
+
     status = csrGetRegulatoryDomainForCountry(pMac, apCntryCode, &regId);
     if (status != eHAL_STATUS_SUCCESS)
     {
@@ -382,8 +395,23 @@ eHalStatus csrSetRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
     pMac->scan.domainIdDefault = regId;
     pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
 
+    /* Clear CC field */
+    palFillMemory( pMac->hHdd,
+                   pMac->scan.countryCodeDefault,
+                   WNI_CFG_COUNTRY_CODE_LEN,
+                   0 );
+    /* Copy 2 or 3 bytes country code */
     palCopyMemory( pMac->hHdd, pMac->scan.countryCodeDefault, 
-                apCntryCode, WNI_CFG_COUNTRY_CODE_LEN );
+                apCntryCode, cntryCodeLength );
+
+    /* If 2 bytes country code, 3rd byte must be filled with space */
+    if((WNI_CFG_COUNTRY_CODE_LEN - 1) == cntryCodeLength)
+    {
+       palFillMemory( pMac->hHdd,
+                      pMac->scan.countryCodeDefault + 2,
+                      1,
+                      0x20 );
+    }
 
     status = palCopyMemory(pMac->hHdd, pMac->scan.countryCodeCurrent, 
                                pMac->scan.countryCodeDefault, WNI_CFG_COUNTRY_CODE_LEN);
@@ -11483,18 +11511,13 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         *pBuf = pParam->operationalRateSet.numRates; //tSirMacRateSet->numRates
         pBuf++;
 
-        if (nwType == eSIR_11G_NW_TYPE || nwType == eSIR_11N_NW_TYPE) {
-            palCopyMemory( pMac->hHdd, pBuf, pParam->operationalRateSet.rate, pParam->operationalRateSet.numRates );
-            pBuf += pParam->operationalRateSet.numRates ;
-            *pBuf++ = pParam->extendedRateSet.numRates;
+        palCopyMemory( pMac->hHdd, pBuf, pParam->operationalRateSet.rate, pParam->operationalRateSet.numRates );
+        pBuf += pParam->operationalRateSet.numRates ;
+        *pBuf++ = pParam->extendedRateSet.numRates;
+        if(0 != pParam->extendedRateSet.numRates)
+        {
             palCopyMemory( pMac->hHdd, pBuf, pParam->extendedRateSet.rate, pParam->extendedRateSet.numRates );
             pBuf += pParam->extendedRateSet.numRates;
-        }
-        else
-        {
-            palCopyMemory( pMac->hHdd, pBuf, pParam->operationalRateSet.rate, pParam->operationalRateSet.numRates);
-            pBuf += pParam->operationalRateSet.numRates;
-            *pBuf++ = pParam->operationalRateSet.numRates;
         }
 
         msgLen = (tANI_U16)(sizeof(tANI_U32 ) + (pBuf - wTmpBuf)); //msg_header + msg

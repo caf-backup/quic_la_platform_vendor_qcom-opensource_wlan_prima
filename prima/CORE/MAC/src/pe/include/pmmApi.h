@@ -119,4 +119,8 @@ tSirRetStatus  pmmSendPowerSaveCfg(tpAniSirGlobal pMac, tpSirPowerSaveCfg pUpdat
 //Handle Low RSSI Indication
 void pmmLowRssiHandler(tpAniSirGlobal pMac);
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+void pmmFilterMatchCountResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
+#endif // WLAN_FEATURE_D0PC
+
 #endif

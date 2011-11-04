@@ -383,6 +383,13 @@ wpt_status dxeChannelDefaultConfig
          break;
       }
    }
+   if(NULL == mappedChannel)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "dxeLinkDescAndCtrlBlk Mapped Channel Not found");
+      return eWLAN_PAL_STATUS_E_INVAL;
+   }
+
    wpalMemoryCopy(&channelEntry->channelConfig,
                   mappedChannel->channelConfig,
                   sizeof(WLANDXE_ChannelConfigType));

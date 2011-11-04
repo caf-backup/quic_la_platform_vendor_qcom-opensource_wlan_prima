@@ -1165,6 +1165,54 @@ eHalStatus sme_Start(tHalHandle hHal)
 }
 
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/******************************************************************************
+*
+* Name: sme_PCFilterMatchCountResponseHandler
+*
+* Description:
+*    Invoke Packet Coalescing Filter Match Count callback routine
+*
+* Parameters:
+*    hHal - HAL handle for device
+*    pMsg - Pointer to tRcvFltPktMatchRsp structure
+*
+* Returns: eHalStatus
+*
+******************************************************************************/
+eHalStatus sme_PCFilterMatchCountResponseHandler(tHalHandle hHal, void* pMsg)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpSirRcvFltPktMatchRsp pRcvFltPktMatchRsp = (tpSirRcvFltPktMatchRsp)pMsg;
+    
+    if (NULL == pMsg)
+    {
+        smsLog(pMac, LOGE, "in %s msg ptr is NULL\n", __FUNCTION__);
+        status = eHAL_STATUS_FAILURE;
+    }
+    else
+    {
+        smsLog(pMac, LOG2, "SME: entering "
+            "sme_FilterMatchCountResponseHandler\n");
+        
+        /* Call Packet Coalescing Filter Match Count callback routine. */
+        if (pMac->pmc.FilterMatchCountCB != NULL)
+           pMac->pmc.FilterMatchCountCB(pMac->pmc.FilterMatchCountCBContext,
+                                          pRcvFltPktMatchRsp);
+        
+        pMac->pmc.FilterMatchCountCB = NULL;
+        pMac->pmc.FilterMatchCountCBContext = NULL;
+    }
+    
+    smsLog(pMac, LOG1, "%s: status=0x%x", __FUNCTION__, 
+          pRcvFltPktMatchRsp->status);
+    
+    return(status);
+}
+#endif // WLAN_FEATURE_PACKET_FILTERING
+
+
 /*--------------------------------------------------------------------------
 
   \brief sme_ProcessMsg() - The main message processor for SME.
@@ -1398,7 +1446,22 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    smsLog(pMac, LOGE, "Empty rsp message for meas (eWNI_SME_COEX_IND), nothing to process\n");
                 }
                 break;
-				
+                
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+          case eWNI_PMC_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP:
+                if(pMsg->bodyptr)
+                {
+                   status = sme_PCFilterMatchCountResponseHandler((void *)pMac, pMsg->bodyptr);
+                   vos_mem_free(pMsg->bodyptr);
+                }
+                else
+                {
+                   smsLog(pMac, LOGE, "Empty rsp message for meas "
+           "(PACKET_COALESCING_FILTER_MATCH_COUNT_RSP), nothing to process\n");
+                }
+                break;
+#endif // WLAN_FEATURE_PACKET_FILTERING	
+                
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -5380,3 +5443,169 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
 
    return eHAL_STATUS_SUCCESS;
 }
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+eHalStatus sme_8023MulticastList (tHalHandle hHal, tpSirRcvFltMcAddrList pMulticastAddrs)
+{
+    tpSirRcvFltMcAddrList   pRequestBuf;
+    vos_msg_t               msg;
+
+    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "%s: "
+               "ulMulticastAddrCnt=%d, multicastAddr[0]=%d", __FUNCTION__,
+               pMulticastAddrs->ulMulticastAddrCnt,
+               pMulticastAddrs->multicastAddr[0]);
+  
+    pRequestBuf = vos_mem_malloc(sizeof(tSirRcvFltMcAddrList));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to "
+            "allocate memory for 8023 Multicast List request", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+    vos_mem_copy(pRequestBuf, pMulticastAddrs, sizeof(tSirRcvFltMcAddrList));
+
+    msg.type = WDA_8023_MULTICAST_LIST_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to "
+            "post WDA_8023_MULTICAST_LIST message to WDA", __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus sme_ReceiveFilterSetFilter(tHalHandle hHal, tpSirRcvPktFilterCfgType pRcvPktFilterCfg)
+{
+    tpSirRcvPktFilterCfgType    pRequestBuf;
+    v_SINT_t                allocSize;
+    vos_msg_t               msg;
+    /*tpAniSirGlobal          pMac = PMAC_STRUCT(hHal);*/
+    v_U8_t   idx=0;
+
+    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "%s: filterType=%d, "
+               "filterId = %d", __FUNCTION__,
+               pRcvPktFilterCfg->filterType, pRcvPktFilterCfg->filterId);
+  
+    allocSize = sizeof(tSirRcvPktFilterCfgType) + 
+                      ((pRcvPktFilterCfg->numFieldParams - 1) * 
+                      sizeof(tSirRcvPktFilterFieldParams));
+    pRequestBuf = vos_mem_malloc(allocSize);
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to "
+            "allocate memory for Receive Filter Set Filter request", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+    vos_mem_copy(pRequestBuf, pRcvPktFilterCfg, allocSize);
+
+    msg.type = WDA_RECEIVE_FILTER_SET_FILTER_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "Pkt Flt Req : "
+           "FT %d FID %d ", 
+           pRequestBuf->filterType, pRequestBuf->filterId);    
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "Pkt Flt Req : "
+           "params %d CT %d", 
+           pRequestBuf->numFieldParams, pRequestBuf->coalesceTime);    
+
+    for (idx=0; idx<pRequestBuf->numFieldParams; idx++)
+    {
+
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+           "Proto %d Comp Flag %d \n",
+           pRequestBuf->paramsData[idx].protocolLayer,
+           pRequestBuf->paramsData[idx].cmpFlag);
+
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+           "Data Offset %d Data Len %d\n",
+           pRequestBuf->paramsData[idx].dataOffset,
+           pRequestBuf->paramsData[idx].dataLength);			  
+
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+          "CData: %d:%d:%d:%d:%d:%d\n",
+           pRequestBuf->paramsData[idx].compareData[0],
+           pRequestBuf->paramsData[idx].compareData[1], 
+           pRequestBuf->paramsData[idx].compareData[2],
+           pRequestBuf->paramsData[idx].compareData[3],
+           pRequestBuf->paramsData[idx].compareData[4],
+           pRequestBuf->paramsData[idx].compareData[5]);
+
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
+           "MData: %d:%d:%d:%d:%d:%d\n",
+           pRequestBuf->paramsData[idx].dataMask[0],
+           pRequestBuf->paramsData[idx].dataMask[1], 
+           pRequestBuf->paramsData[idx].dataMask[2],
+           pRequestBuf->paramsData[idx].dataMask[3],
+           pRequestBuf->paramsData[idx].dataMask[4],
+           pRequestBuf->paramsData[idx].dataMask[5]);
+
+    }
+
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post "
+            "WDA_RECEIVE_FILTER_SET_FILTER message to WDA", __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus sme_GetFilterMatchCount(tHalHandle hHal, 
+                                   FilterMatchCountCallback callbackRoutine,
+                                   void *callbackContext )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status;
+
+    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "+%s", __FUNCTION__);
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme)))
+    {
+        pmcGetFilterMatchCount(hHal, callbackRoutine, callbackContext);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "-%s", __FUNCTION__);
+
+    return (status);
+}
+
+eHalStatus sme_ReceiveFilterClearFilter(tHalHandle hHal, tpSirRcvFltPktClearParam pRcvFltPktClearParam)
+{
+    tpSirRcvFltPktClearParam pRequestBuf;
+    vos_msg_t               msg;
+
+    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "%s: filterId = %d", __FUNCTION__,
+               pRcvFltPktClearParam->filterId);
+  
+    pRequestBuf = vos_mem_malloc(sizeof(tSirRcvFltPktClearParam));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            "%s: Not able to allocate memory for Receive Filter "
+            "Clear Filter request", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+    vos_mem_copy(pRequestBuf, pRcvFltPktClearParam, sizeof(tSirRcvFltPktClearParam));
+
+    msg.type = WDA_RECEIVE_FILTER_CLEAR_FILTER_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post "
+            "WDA_RECEIVE_FILTER_CLEAR_FILTER message to WDA", __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+#endif // WLAN_FEATURE_PACKET_FILTERING

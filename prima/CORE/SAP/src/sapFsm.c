@@ -585,15 +585,15 @@ sapSignalHDDevent
             break;
 #endif
 
-	   case eSAP_UNKNOWN_STA_JOIN:
-		   VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-						"In %s, SAP event callback event = %s",
-						__FUNCTION__, "eSAP_UNKNOWN_STA_JOIN");
-		   sapApAppEvent.sapHddEventCode = eSAP_UNKNOWN_STA_JOIN;
-		   vos_mem_copy((v_PVOID_t)sapApAppEvent.sapevt.sapUnknownSTAJoin.macaddr.bytes, 
-		   				(v_PVOID_t)context, sizeof(v_MACADDR_t));
-		   break;
-		   
+        case eSAP_UNKNOWN_STA_JOIN:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                       "In %s, SAP event callback event = %s",
+                       __FUNCTION__, "eSAP_UNKNOWN_STA_JOIN");
+            sapApAppEvent.sapHddEventCode = eSAP_UNKNOWN_STA_JOIN;
+            vos_mem_copy((v_PVOID_t)sapApAppEvent.sapevt.sapUnknownSTAJoin.macaddr.bytes, 
+                         (v_PVOID_t)context, sizeof(v_MACADDR_t));
+            break;
+
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, SAP Unknown callback event = %d",
                        __FUNCTION__,sapHddevent);
@@ -946,7 +946,7 @@ eSapBool
 sapSearchMacList(v_MACADDR_t *macList, v_U8_t num_mac, v_U8_t *peerMac, v_U8_t *index)
 {
     v_SINT_t nRes = -1;
-    v_U8_t nStart = 0, nEnd, nMiddle;
+    v_S7_t nStart = 0, nEnd, nMiddle;
     nEnd = num_mac - 1;
 
     while (nStart <= nEnd)
@@ -956,25 +956,26 @@ sapSearchMacList(v_MACADDR_t *macList, v_U8_t num_mac, v_U8_t *peerMac, v_U8_t *
 
         if (0 == nRes)
         {
-			VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-						"search SUCC");
-			// "index equals NULL" means the caller does not need the index value of the peerMac being searched
-			if (index != NULL) 
-			{
-				*index = nMiddle;
-				VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-							"index %d", *index);
-        	}
-			return eSAP_TRUE;
-		}
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                       "search SUCC");
+            // "index equals NULL" means the caller does not need the
+            // index value of the peerMac being searched
+            if (index != NULL) 
+            {
+                *index = (v_U8_t) nMiddle;
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                           "index %d", *index);
+            }
+            return eSAP_TRUE;
+        }
         if (nRes < 0)
             nStart = nMiddle + 1;
         else
             nEnd = nMiddle - 1;
     }
 
-	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-				"search not succ");
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+               "search not succ");
     return eSAP_FALSE;
 }
 

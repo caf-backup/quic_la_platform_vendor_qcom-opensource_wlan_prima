@@ -2811,3 +2811,56 @@ eHalStatus pmcUpdateScanParams(tHalHandle hHal, tCsrConfig *pRequest, tCsrChanne
     return eHAL_STATUS_SUCCESS;
 }
 #endif // FEATURE_WLAN_SCAN_PNO
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+eHalStatus pmcGetFilterMatchCount
+(
+    tHalHandle hHal, 
+    FilterMatchCountCallback callbackRoutine, 
+    void *callbackContext
+)
+{
+    tpSirRcvFltPktMatchRsp  pRequestBuf;
+    vos_msg_t               msg;
+    tpAniSirGlobal          pMac = PMAC_STRUCT(hHal);
+
+    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
+        "%s: filterId = %d", __FUNCTION__);
+
+    pRequestBuf = vos_mem_malloc(sizeof(tSirRcvFltPktMatchRsp));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                  "%s: Not able to allocate "
+                  "memory for Get PC Filter Match Count request", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    msg.type = WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+
+    /* Cache the Packet Coalescing Filter Match Count callback information */
+    if (NULL != pMac->pmc.FilterMatchCountCB)
+    {
+        // Do we need to check if the callback is in use? 
+        // Because we are not sending the same message again when it is pending,
+        // the only case when the callback is not NULL is that the previous message 
+        //was timed out or failed.
+        // So, it will be safe to set the callback in this case.
+    }
+
+    pMac->pmc.FilterMatchCountCB = callbackRoutine;
+    pMac->pmc.FilterMatchCountCBContext = callbackContext;
+
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+            "%s: Not able to post WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ "
+            "message to WDA", __FUNCTION__);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+#endif // WLAN_FEATURE_PACKET_FILTERING

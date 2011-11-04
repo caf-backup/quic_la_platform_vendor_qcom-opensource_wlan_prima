@@ -412,5 +412,14 @@ extern eHalStatus pmcSetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pReque
   ---------------------------------------------------------------------------*/
 extern eHalStatus pmcSetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest);
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+// Packet Coalescing Filter Match Count Callback declaration
+typedef void(*FilterMatchCountCallback)(void *callbackContext,
+                                        tpSirRcvFltPktMatchRsp pRcvFltPktMatchRsp);
+
+extern eHalStatus pmcGetFilterMatchCount(tHalHandle hHal,
+                                         FilterMatchCountCallback callbackRoutine,
+                                         void *callbackContext);
+#endif // WLAN_FEATURE_PACKET_FILTERING
 #endif
 

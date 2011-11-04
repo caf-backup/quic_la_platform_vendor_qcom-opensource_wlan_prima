@@ -53,6 +53,9 @@
 #include <vos_power.h>
 #include "wlan_hdd_host_offload.h"
 #include "wlan_hdd_keep_alive.h"
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+#include "wlan_hdd_packet_filtering.h"
+#endif
 
 #ifdef CONFIG_CFG80211
 #include <linux/wireless.h>
@@ -194,7 +197,10 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 
 /* Private ioctl to set the Keep Alive Params */
 #define WLAN_SET_KEEPALIVE_PARAMS (SIOCIWFIRSTPRIV + 22)
-
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/* Private ioctl to set the Packet Filtering Params */
+#define WLAN_SET_PACKET_FILTER_PARAMS (SIOCIWFIRSTPRIV + 23)
+#endif
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
 #define WLAN_STATS_MUL_RETRY_CNT      2
@@ -4032,7 +4038,99 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
 
     return 0;
 }
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{   
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tpPacketFilterCfg pRequest = (tpPacketFilterCfg)wrqu->data.pointer;
+    tSirRcvPktFilterCfgType    packetFilterSetReq;
+    tSirRcvFltPktClearParam    packetFilterClrReq;
+	int i=0;
 
+    /* Debug display of request components. */
+	hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Packet Filter Request : FA %d params %d", 
+	  	      __FUNCTION__, pRequest->filterAction, pRequest->numParams);    
+
+      switch (pRequest->filterAction)
+      {
+        case HDD_RCV_FILTER_SET:
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Set Packet Filter Request for Id: %d",
+                __FUNCTION__, pRequest->filterId);
+
+            packetFilterSetReq.filterId = pRequest->filterId;
+            if ( pRequest->numParams >= HDD_MAX_CMP_PER_PACKET_FILTER)
+            {
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Number of Params exceed Max limit %d\n",
+                     __func__, pRequest->numParams);
+              return -EINVAL;
+            }
+            packetFilterSetReq.numFieldParams = pRequest->numParams;
+            packetFilterSetReq.coalesceTime = 0;
+            packetFilterSetReq.filterType = 1;
+            for (i=0; i < pRequest->numParams; i++)
+            {
+              packetFilterSetReq.paramsData[i].protocolLayer = pRequest->paramsData[i].protocolLayer;
+              packetFilterSetReq.paramsData[i].cmpFlag = pRequest->paramsData[i].cmpFlag;
+              packetFilterSetReq.paramsData[i].dataOffset = pRequest->paramsData[i].dataOffset;
+              packetFilterSetReq.paramsData[i].dataLength = pRequest->paramsData[i].dataLength;
+              packetFilterSetReq.paramsData[i].reserved = 0;
+
+              hddLog(VOS_TRACE_LEVEL_ERROR, "Proto %d Comp Flag %d Filter Type\n",
+                     pRequest->paramsData[i].protocolLayer, pRequest->paramsData[i].cmpFlag, 
+					 packetFilterSetReq.filterType);
+
+              hddLog(VOS_TRACE_LEVEL_ERROR, "Data Offset %d Data Len %d\n",
+                     pRequest->paramsData[i].dataOffset, pRequest->paramsData[i].dataLength);			  
+              
+              memcpy(&packetFilterSetReq.paramsData[i].compareData, 
+                      pRequest->paramsData[i].compareData, pRequest->paramsData[i].dataLength);
+              memcpy(&packetFilterSetReq.paramsData[i].dataMask, 
+                      pRequest->paramsData[i].dataMask, pRequest->paramsData[i].dataLength);
+
+              hddLog(VOS_TRACE_LEVEL_ERROR, "CData %d CData %d CData %d CData %d CData %d CData %d\n",
+                     pRequest->paramsData[i].compareData[0], pRequest->paramsData[i].compareData[1], 
+					 pRequest->paramsData[i].compareData[2], pRequest->paramsData[i].compareData[3],
+					 pRequest->paramsData[i].compareData[4], pRequest->paramsData[i].compareData[5]);
+
+              hddLog(VOS_TRACE_LEVEL_ERROR, "MData %d MData %d MData %d MData %d MData %d MData %d\n",
+                     pRequest->paramsData[i].dataMask[0], pRequest->paramsData[i].dataMask[1], 
+					 pRequest->paramsData[i].dataMask[2], pRequest->paramsData[i].dataMask[3],
+					 pRequest->paramsData[i].dataMask[4], pRequest->paramsData[i].dataMask[5]);
+            }
+
+            if (eHAL_STATUS_SUCCESS != sme_ReceiveFilterSetFilter(WLAN_HDD_GET_HAL_CTX(pAdapter), &packetFilterSetReq))
+            {
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Set Filter\n",
+                     __func__);
+              return -EINVAL;
+            }
+
+            break;
+
+        case HDD_RCV_FILTER_CLEAR:
+
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Clear Packet Filter Request for Id: %d\n",
+               __FUNCTION__, pRequest->filterId);
+            packetFilterClrReq.filterId = pRequest->filterId;
+            
+            if (eHAL_STATUS_SUCCESS != sme_ReceiveFilterClearFilter(WLAN_HDD_GET_HAL_CTX(pAdapter), &packetFilterClrReq))
+            {
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Clear Filter\n",
+                     __func__);
+              return -EINVAL;
+            }
+            break;
+
+	default :
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Packet Filter Request: Invalid %d\n",
+               __FUNCTION__, pRequest->filterAction);
+            return -EINVAL;
+      }
+
+    return 0;
+}
+#endif
 static int iw_get_statistics(struct net_device *dev,
                            struct iw_request_info *info,
                            union iwreq_data *wrqu, char *extra)
@@ -4481,6 +4579,10 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_HOST_OFFLOAD          - SIOCIWFIRSTPRIV]   = iw_set_host_offload,
    [WLAN_GET_WLAN_STATISTICS            - SIOCIWFIRSTPRIV]   = iw_get_statistics,
    [WLAN_SET_KEEPALIVE_PARAMS           - SIOCIWFIRSTPRIV]   = iw_set_keepalive_params
+#ifdef WLAN_FEATURE_PACKET_FILTERING   
+   ,
+   [WLAN_SET_PACKET_FILTER_PARAMS    - SIOCIWFIRSTPRIV]   = iw_set_packet_filter_params
+#endif   
 };
 
 /*Maximum command length can be only 15 */
@@ -4747,7 +4849,14 @@ static const struct iw_priv_args we_private_args[] = {
 	WLAN_SET_KEEPALIVE_PARAMS,
        IW_PRIV_TYPE_BYTE  | sizeof(tKeepAliveRequest),
        0,
-       "setKeepAlive" },		
+       "setKeepAlive" },
+#ifdef WLAN_FEATURE_PACKET_FILTERING	   
+    {  
+	WLAN_SET_PACKET_FILTER_PARAMS,
+       IW_PRIV_TYPE_BYTE  | sizeof(tPacketFilterCfg),
+       0,
+       "setPktFilter" },		
+#endif	   
 };
 
 

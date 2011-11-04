@@ -800,6 +800,56 @@ VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress )
    }
    return status;
 }
+
+/**------------------------------------------------------------------------
+
+  \brief vos_nv_readMultiMacAddress() - return the Multiple MAC addresses
+
+  \param pMacAddress - MAC address
+  \param macCount - Count of valid MAC addresses to get from NV field
+
+  \return status of the NV read operation
+
+  \sa
+
+  -------------------------------------------------------------------------*/
+VOS_STATUS vos_nv_readMultiMacAddress( v_U8_t *pMacAddress,
+                                              v_U8_t  macCount )
+{
+   sNvFields   fieldImage;
+   VOS_STATUS  status;
+   v_U8_t      countLoop;
+   v_U8_t     *pNVMacAddress;
+
+   if((0 == macCount) || (VOS_MAX_CONCURRENCY_PERSONA < macCount) ||
+      (NULL == pMacAddress))
+   {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+          " Invalid Parameter from NV Client macCount %d, pMacAddress 0x%x",
+          macCount, pMacAddress);
+   }
+
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
+                         sizeof(fieldImage) );
+   if (VOS_STATUS_SUCCESS == status)
+   {
+      pNVMacAddress = fieldImage.macAddr;
+      for(countLoop = 0; countLoop < macCount; countLoop++)
+      {
+         vos_mem_copy(pMacAddress + (countLoop * VOS_MAC_ADDRESS_LEN),
+                      pNVMacAddress + (countLoop * VOS_MAC_ADDRESS_LEN),
+                      VOS_MAC_ADDRESS_LEN);
+      }
+   }
+   else
+   {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 "vos_nv_readMultiMacAddress Get NV Field Fail");
+   }
+
+   return status;
+}
+
 /**------------------------------------------------------------------------
   \brief vos_nv_setValidity() - set the validity of an NV item.
   The \a vos_nv_setValidity() validates and invalidates an NV item.  The

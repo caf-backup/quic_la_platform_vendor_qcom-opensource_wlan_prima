@@ -2185,7 +2185,8 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    v_BOOL_t itemIsValid = VOS_FALSE;
    VOS_STATUS status;
-   v_MACADDR_t macFromNV;
+   v_MACADDR_t macFromNV[VOS_MAX_CONCURRENCY_PERSONA];
+   v_U8_t      macLoop;
 
    /*If the NV is valid then get the macaddress from nv else get it from qcom_cfg.ini*/
    status = vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid);
@@ -2198,7 +2199,8 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
    if (itemIsValid == VOS_TRUE) 
    {
       hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV\n ");
-      status = vos_nv_readMacAddress((v_U8_t *)&macFromNV.bytes[0]);
+      status = vos_nv_readMultiMacAddress((v_U8_t *)&macFromNV[0].bytes[0],
+                                          VOS_MAX_CONCURRENCY_PERSONA);
       if(status != VOS_STATUS_SUCCESS)
       {
          /* Get MAC from NV fail, not update CFG info
@@ -2206,7 +2208,10 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
          hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_readMacAddress() failed\n ");
          return VOS_STATUS_E_FAILURE;
       }
-      if(vos_is_macaddr_zero(&macFromNV))
+
+      /* If first MAC is not valid, treat all others are not valid
+       * Then all MACs will be got from ini file */
+      if(vos_is_macaddr_zero(&macFromNV[0]))
       {
          /* MAC address in NV file is not configured yet */
          hddLog(VOS_TRACE_LEVEL_ERROR, " Not valid MAC in NV file ");
@@ -2214,9 +2219,21 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
       }
 
       /* Get MAC address from NV, update CFG info */
-      vos_mem_copy((v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[0],
-                   (v_U8_t *)&macFromNV.bytes[0],
+      for(macLoop = 0; macLoop < VOS_MAX_CONCURRENCY_PERSONA; macLoop++)
+      {
+         if(vos_is_macaddr_zero(&macFromNV[macLoop]))
+         {
+            printk(KERN_ERR "not valid MAC from NV for %d", macLoop);
+            /* This MAC is not valid, skip it
+             * This MAC will be got from ini file */
+         }
+         else
+         {
+            vos_mem_copy((v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[macLoop].bytes[0],
+                         (v_U8_t *)&macFromNV[macLoop].bytes[0],
                    VOS_MAC_ADDR_SIZE);
+         }
+      }
    }
    else
    {

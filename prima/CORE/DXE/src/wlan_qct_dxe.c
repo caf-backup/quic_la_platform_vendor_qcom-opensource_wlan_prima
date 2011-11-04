@@ -328,6 +328,7 @@ static wpt_status dxeCtrlBlkAlloc
    wpt_status                status = eWLAN_PAL_STATUS_SUCCESS;
    unsigned int              idx, fIdx;
    WLANDXE_DescCtrlBlkType  *currentCtrlBlk = NULL;
+   WLANDXE_DescCtrlBlkType  *freeCtrlBlk = NULL;
    WLANDXE_DescCtrlBlkType  *prevCtrlBlk = NULL;
    WLANDXE_DescCtrlBlkType  *nextCtrlBlk = NULL;
 
@@ -351,20 +352,17 @@ static wpt_status dxeCtrlBlkAlloc
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                   "dxeCtrlBlkOpen MemAlloc Fail for channel %d",
                   channelEntry->channelType);
-         currentCtrlBlk = channelEntry->headCtrlBlk;
-         if(NULL == currentCtrlBlk)
-         {
-            return eWLAN_PAL_STATUS_E_FAULT;
-         }
+         freeCtrlBlk = channelEntry->headCtrlBlk;
          for(fIdx = 0; fIdx < idx; fIdx++)
          {
-            nextCtrlBlk = currentCtrlBlk->nextCtrlBlk;
-            wpalMemoryFree((void *)currentCtrlBlk);
-            if(NULL == nextCtrlBlk)
+            if(NULL == freeCtrlBlk)
             {
                break;
             }
-            currentCtrlBlk = nextCtrlBlk;
+
+            nextCtrlBlk = freeCtrlBlk->nextCtrlBlk;
+            wpalMemoryFree((void *)freeCtrlBlk);
+            freeCtrlBlk = nextCtrlBlk;
          }
          return eWLAN_PAL_STATUS_E_FAULT;
       }
@@ -399,6 +397,15 @@ static wpt_status dxeCtrlBlkAlloc
          prevCtrlBlk->nextCtrlBlk    = currentCtrlBlk;
          currentCtrlBlk->nextCtrlBlk = channelEntry->headCtrlBlk;
       }
+      else
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "dxeCtrlBlkOpen Invalid Ctrl Blk location %d",
+                  channelEntry->channelType);
+         wpalMemoryFree(currentCtrlBlk);
+         return eWLAN_PAL_STATUS_E_FAULT;
+      }
+
       prevCtrlBlk = currentCtrlBlk;
       channelEntry->numFreeDesc++;
    }
@@ -1065,7 +1072,10 @@ static wpt_status dxeChannelClose
 
 #if !(defined(FEATURE_R33D) || defined(WLANDXE_TEST_CHANNEL_ENABLE))
    // descriptors were allocated as a single chunk so free the chunk
-   wpalDmaMemoryFree(channelEntry->descriptorAllocation);
+   if(NULL != channelEntry->descriptorAllocation)
+   {
+      wpalDmaMemoryFree(channelEntry->descriptorAllocation);
+   }
 #endif
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
@@ -2576,7 +2586,6 @@ void dxeTXEventHandler
       dxeChannelMonitor(channelCb);
    }
 
-   dxePsComplete(dxeCtxt, eWLAN_PAL_TRUE);
 
 #ifdef WLANDXE_TEST_CHANNEL_ENABLE
    /* Test H2H TX Channel interrupt is enabled or not */
@@ -2626,6 +2635,10 @@ void dxeTXEventHandler
       wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
    }
 
+   /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid 
+     the posibility of a race*/
+   dxePsComplete(dxeCtxt, eWLAN_PAL_TRUE);
+
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return;
@@ -2674,15 +2687,17 @@ void dxeTXCompleteProcessing
 
    /* Handle TX complete for low priority channel */
    status = dxeTXCompFrame(dxeCtxt, channelCb);
-   
-   dxePsComplete(dxeCtxt, eWLAN_PAL_FALSE);
-   
+  
    if(( dxeCtxt->txCompletedFrames > 0 ) && 
       (  eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
    {
       dxeCtxt->txIntEnable =  eWLAN_PAL_TRUE; 
       wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
    }
+   
+   /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid 
+     the posibility of a race*/
+   dxePsComplete(dxeCtxt, eWLAN_PAL_FALSE);
    
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
@@ -2792,7 +2807,7 @@ void *WLANDXE_Open
 )
 {
    wpt_status              status = eWLAN_PAL_STATUS_SUCCESS;
-   unsigned int            idx;
+   unsigned int            idx, closeIdx;
    WLANDXE_ChannelCBType  *currentChannel = NULL;
    int                     smsmInitState;
 #ifdef WLANDXE_TEST_CHANNEL_ENABLE
@@ -2873,6 +2888,11 @@ void *WLANDXE_Open
       {
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                   "WLANDXE_Open Alloc DXE Control Block Fail for channel %d", idx);
+
+         for(closeIdx = 0; closeIdx < idx; closeIdx++)
+         {
+            dxeChannelClose(tempDxeCtrlBlk, &tempDxeCtrlBlk->dxeChannel[closeIdx]);
+         }
          wpalMemoryFree(tempDxeCtrlBlk);
          return NULL;         
       }
@@ -2894,6 +2914,10 @@ void *WLANDXE_Open
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "WLANDXE_Open Alloc RX ISR Fail");
+      for(closeIdx = 0; closeIdx < WDTS_CHANNEL_MAX; closeIdx++)
+      {
+         dxeChannelClose(tempDxeCtrlBlk, &tempDxeCtrlBlk->dxeChannel[closeIdx]);
+      }
       wpalMemoryFree(tempDxeCtrlBlk);
       return NULL;
    }
@@ -2907,6 +2931,11 @@ void *WLANDXE_Open
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "WLANDXE_Open Alloc TX ISR Fail");
+      wpalMemoryFree((void *)&tempDxeCtrlBlk->rxIsrMsg);
+      for(closeIdx = 0; closeIdx < WDTS_CHANNEL_MAX; closeIdx++)
+      {
+         dxeChannelClose(tempDxeCtrlBlk, &tempDxeCtrlBlk->dxeChannel[closeIdx]);
+      }
       wpalMemoryFree(tempDxeCtrlBlk);
       return NULL;
    }
@@ -2937,6 +2966,8 @@ void *WLANDXE_Open
          }
 #endif /* WLANDXE_TEST_CHANNEL_ENABLE */
       }
+      wpalMemoryFree((void *)&tempDxeCtrlBlk->rxIsrMsg);
+      wpalMemoryFree((void *)&tempDxeCtrlBlk->txIsrMsg);
       wpalMemoryFree(tempDxeCtrlBlk);
       return NULL;
    }
@@ -2953,6 +2984,13 @@ void *WLANDXE_Open
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "SMSM Channel init fail %d", smsmInitState);
+      for(idx = 0; idx < WDTS_CHANNEL_MAX; idx++)
+      {
+         dxeChannelClose(tempDxeCtrlBlk, &tempDxeCtrlBlk->dxeChannel[idx]);
+      }
+      wpalMemoryFree((void *)&tempDxeCtrlBlk->rxIsrMsg);
+      wpalMemoryFree((void *)&tempDxeCtrlBlk->txIsrMsg);
+      wpalMemoryFree(tempDxeCtrlBlk);
       return NULL;
    }
 
