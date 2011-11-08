@@ -136,13 +136,13 @@ typedef enum {
 } eSapMacAddrACL;
 
 typedef enum {
-	eSAP_BLACK_LIST = 0, /* List of mac addresses NOT allowed to assoc */
-	eSAP_WHITE_LIST = 1, /* List of mac addresses allowed to assoc */
+    eSAP_BLACK_LIST = 0, /* List of mac addresses NOT allowed to assoc */
+    eSAP_WHITE_LIST = 1, /* List of mac addresses allowed to assoc */
 } eSapACLType;
 
 typedef enum {
-	ADD_STA_TO_ACL      = 0, /* cmd to add STA to access control list */
-	DELETE_STA_FROM_ACL = 1, /* cmd to delete STA from access control list */	
+    ADD_STA_TO_ACL      = 0, /* cmd to add STA to access control list */
+    DELETE_STA_FROM_ACL = 1, /* cmd to delete STA from access control list */	
 } eSapACLCmdType;
 
 typedef enum {
@@ -164,7 +164,7 @@ typedef enum {
     eSAP_REMAIN_CHAN_READY,
     eSAP_SEND_ACTION_CNF,
 #endif
-	eSAP_UNKNOWN_STA_JOIN, /* Event send when a STA in neither white list or black list tries to associate in softap mode */
+    eSAP_UNKNOWN_STA_JOIN, /* Event send when a STA in neither white list or black list tries to associate in softap mode */
 } eSapHddEvent;
 
 typedef enum {
@@ -330,7 +330,7 @@ typedef struct sap_Event_s {
         tSap_ManagementFrameInfo                  sapManagementFrameInfo; /*eSAP_INDICATE_MGMT_FRAME*/
         tSap_SendActionCnf                        sapActionCnf;  /* eSAP_SEND_ACTION_CNF */ 
 #endif
-		tSap_UnknownSTAJoinEvent				  sapUnknownSTAJoin; /* eSAP_UNKNOWN_STA_JOIN */
+        tSap_UnknownSTAJoinEvent                  sapUnknownSTAJoin; /* eSAP_UNKNOWN_STA_JOIN */
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
@@ -1169,10 +1169,10 @@ WLANSAP_getWpsSessionOverlap
   PARAMETERS
 
     IN
-        pvosGCtx      : Pointer to vos global context structure
-        pPeerStaMac : MAC address to be added or removed 
-        listType         : add/remove to be done on black or white list
-   	 cmd              : Are we doing to add or delete a mac addr from an ACL.
+        pvosGCtx        : Pointer to vos global context structure
+        pPeerStaMac     : MAC address to be added or removed 
+        listType        : add/remove to be done on black or white list
+        cmd             : Are we doing to add or delete a mac addr from an ACL.
   RETURN VALUE
     The VOS_STATUS code associated with performing the operation  
 
@@ -1186,7 +1186,7 @@ WLANSAP_ModifyACL
     v_PVOID_t  pvosGCtx,
     v_U8_t *pPeerStaMac,
     eSapACLType listType,
-	eSapACLCmdType cmd
+    eSapACLCmdType cmd
 );
 
 /*==========================================================================

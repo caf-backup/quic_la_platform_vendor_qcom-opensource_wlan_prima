@@ -856,168 +856,166 @@ WLANSAP_ModifyACL
     eSapACLType listType,
     eSapACLCmdType cmd
 )
-{	
-	eSapBool staInWhiteList=eSAP_FALSE, staInBlackList=eSAP_FALSE;
-	v_U8_t staWLIndex, staBLIndex;
+{   
+    eSapBool staInWhiteList=eSAP_FALSE, staInBlackList=eSAP_FALSE;
+    v_U8_t staWLIndex, staBLIndex;
     ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
 
-	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"Modify ACL entered\n"
-														"Before modification of ACL\n"
-														"size of accept and deny lists %d %d",
-														pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
-	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"*** WHITE LIST ***");
-	sapPrintACL(pSapCtx->acceptMacList, pSapCtx->nAcceptMac);
-	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"*** BLACK LIST ***");
-	sapPrintACL(pSapCtx->denyMacList, pSapCtx->nDenyMac);
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"Modify ACL entered\n"
+            "Before modification of ACL\n"
+            "size of accept and deny lists %d %d",
+            pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"*** WHITE LIST ***");
+    sapPrintACL(pSapCtx->acceptMacList, pSapCtx->nAcceptMac);
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"*** BLACK LIST ***");
+    sapPrintACL(pSapCtx->denyMacList, pSapCtx->nDenyMac);
 
-	
-	/* the expectation is a mac addr will not be in both the lists at the same time.
-	    It is the responsiblity of userspace to ensure this */
+    /* the expectation is a mac addr will not be in both the lists at the same time.
+       It is the responsiblity of userspace to ensure this */
     staInWhiteList = sapSearchMacList(pSapCtx->acceptMacList, pSapCtx->nAcceptMac, pPeerStaMac, &staWLIndex);
-	staInBlackList = sapSearchMacList(pSapCtx->denyMacList, pSapCtx->nDenyMac, pPeerStaMac, &staBLIndex);
+    staInBlackList = sapSearchMacList(pSapCtx->denyMacList, pSapCtx->nDenyMac, pPeerStaMac, &staBLIndex);
 
-	if (staInWhiteList && staInBlackList)
-	{
-		VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-					"Peer mac found in white and black lists. Initial lists passed incorrect %s"
-					"Cannot execute this command.", pPeerStaMac);
-		return VOS_STATUS_E_FAILURE;
-		
-	}
-		
-	switch(listType)
-	{
-		case eSAP_WHITE_LIST:			
-			VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,	"cmd %d", cmd);
-			if (cmd == ADD_STA_TO_ACL)
-			{
-				//error check
-				// if list is already at max, return failure
-				if (pSapCtx->nAcceptMac == MAX_MAC_ADDRESS_ACCEPTED)
-				{
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-								"White list is already maxed out. Cannot accept %s", pPeerStaMac);
-					return VOS_STATUS_E_FAILURE;
-				}
-				if (staInWhiteList)
-				{
-					//Do nothing if already present in white list. Just print a warning
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
-								"MAC address already present in white list %s", pPeerStaMac);
-					
-				} else 
-				{
-					if (staInBlackList)
-					{
-						//remove it from black list before adding to the white list
-						VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
-									"STA present in black list so first remove from it");
-						sapRemoveMacFromACL(pSapCtx->denyMacList, &pSapCtx->nDenyMac, staBLIndex);						
-					}
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-								"... Now add to the white list");					
-					sapAddMacToACL(pSapCtx->acceptMacList, &pSapCtx->nAcceptMac, pPeerStaMac);
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW, "size of accept and deny lists %d %d",
-								pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
-				}				
-			}
-			else if (cmd == DELETE_STA_FROM_ACL)
-			{
-				if (staInWhiteList)
-				{
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "Delete from white list");										
-					sapRemoveMacFromACL(pSapCtx->acceptMacList, &pSapCtx->nAcceptMac, staWLIndex);										
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW, "size of accept and deny lists %d %d",
-						pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
-				}
-				else
-				{
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
-								"MAC address to be deleted is not present in the white list %s",
-								pPeerStaMac);
-					return VOS_STATUS_E_FAILURE;
-				}
-			}
-			else
-			{
-				VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "Invalid cmd type passed");														
-				return VOS_STATUS_E_FAILURE;
-			}
-			break;
-			
-		case eSAP_BLACK_LIST:			
-			VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-						"cmd %d", cmd);
-			if (cmd == ADD_STA_TO_ACL)
-			{
-				//error check
-				// if list is already at max, return failure
-				if (pSapCtx->nDenyMac == MAX_MAC_ADDRESS_ACCEPTED)
-				{
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-								"Black list is already maxed out. Cannot accept %s", pPeerStaMac);
-					return VOS_STATUS_E_FAILURE;
-				}
-				if (staInBlackList)
-				{
-					//Do nothing if already present in white list
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
-								"MAC address already present in black list %s", pPeerStaMac);
-					
-				} else 
-				{
-					if (staInWhiteList)
-					{
-						//remove it from white list before adding to the white list
-						VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
-									"Present in white list so first remove from it");
-						sapRemoveMacFromACL(pSapCtx->acceptMacList, &pSapCtx->nAcceptMac, staWLIndex);						
-					}
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-								"... Now add to black list");					
-					sapAddMacToACL(pSapCtx->denyMacList, &pSapCtx->nDenyMac, pPeerStaMac);
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"size of accept and deny lists %d %d",
-								pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
-				}					
-			}
-			else if (cmd == DELETE_STA_FROM_ACL)
-			{
-				if (staInBlackList)
-				{
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,	"Delete from black list");										
-					sapRemoveMacFromACL(pSapCtx->denyMacList, &pSapCtx->nDenyMac, staBLIndex);										
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"no accept and deny mac %d %d",
-								pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
-				}
-				else
-				{
-					VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
-								"MAC address to be deleted is not present in the black list %s",
-								pPeerStaMac);
-					return VOS_STATUS_E_FAILURE;
-				}
-			}
-			else
-			{
-				VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "Invalid cmd type passed");														
-				return VOS_STATUS_E_FAILURE;
-			}
-			break;
-			
-		default:
-			{
-				VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-							"Invalid list type passed %d",listType);
-			
-				return VOS_STATUS_E_FAILURE;
-			}
-	}
-	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"After modification of ACL");
-	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"*** WHITE LIST ***");
-	sapPrintACL(pSapCtx->acceptMacList, pSapCtx->nAcceptMac);
-	VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"*** BLACK LIST ***");
-	sapPrintACL(pSapCtx->denyMacList, pSapCtx->nDenyMac);
-	return VOS_STATUS_SUCCESS;
+    if (staInWhiteList && staInBlackList)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "Peer mac found in white and black lists. Initial lists passed incorrect %s"
+                "Cannot execute this command.", pPeerStaMac);
+        return VOS_STATUS_E_FAILURE;
+
+    }
+
+    switch(listType)
+    {
+        case eSAP_WHITE_LIST:           
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW, "cmd %d", cmd);
+            if (cmd == ADD_STA_TO_ACL)
+            {
+                //error check
+                // if list is already at max, return failure
+                if (pSapCtx->nAcceptMac == MAX_MAC_ADDRESS_ACCEPTED)
+                {
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                            "White list is already maxed out. Cannot accept %s", pPeerStaMac);
+                    return VOS_STATUS_E_FAILURE;
+                }
+                if (staInWhiteList)
+                {
+                    //Do nothing if already present in white list. Just print a warning
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                            "MAC address already present in white list %s", pPeerStaMac);
+
+                } else 
+                {
+                    if (staInBlackList)
+                    {
+                        //remove it from black list before adding to the white list
+                        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                                "STA present in black list so first remove from it");
+                        sapRemoveMacFromACL(pSapCtx->denyMacList, &pSapCtx->nDenyMac, staBLIndex);                      
+                    }
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                            "... Now add to the white list");                   
+                    sapAddMacToACL(pSapCtx->acceptMacList, &pSapCtx->nAcceptMac, pPeerStaMac);
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW, "size of accept and deny lists %d %d",
+                            pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
+                }               
+            }
+            else if (cmd == DELETE_STA_FROM_ACL)
+            {
+                if (staInWhiteList)
+                {
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "Delete from white list");                                      
+                    sapRemoveMacFromACL(pSapCtx->acceptMacList, &pSapCtx->nAcceptMac, staWLIndex);                                      
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW, "size of accept and deny lists %d %d",
+                            pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
+                }
+                else
+                {
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                            "MAC address to be deleted is not present in the white list %s",
+                            pPeerStaMac);
+                    return VOS_STATUS_E_FAILURE;
+                }
+            }
+            else
+            {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "Invalid cmd type passed");                                                        
+                return VOS_STATUS_E_FAILURE;
+            }
+            break;
+
+        case eSAP_BLACK_LIST:           
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
+                    "cmd %d", cmd);
+            if (cmd == ADD_STA_TO_ACL)
+            {
+                //error check
+                // if list is already at max, return failure
+                if (pSapCtx->nDenyMac == MAX_MAC_ADDRESS_ACCEPTED)
+                {
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                            "Black list is already maxed out. Cannot accept %s", pPeerStaMac);
+                    return VOS_STATUS_E_FAILURE;
+                }
+                if (staInBlackList)
+                {
+                    //Do nothing if already present in white list
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                            "MAC address already present in black list %s", pPeerStaMac);
+
+                } else 
+                {
+                    if (staInWhiteList)
+                    {
+                        //remove it from white list before adding to the white list
+                        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                                "Present in white list so first remove from it");
+                        sapRemoveMacFromACL(pSapCtx->acceptMacList, &pSapCtx->nAcceptMac, staWLIndex);                      
+                    }
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+                            "... Now add to black list");                   
+                    sapAddMacToACL(pSapCtx->denyMacList, &pSapCtx->nDenyMac, pPeerStaMac);
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"size of accept and deny lists %d %d",
+                            pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
+                }                   
+            }
+            else if (cmd == DELETE_STA_FROM_ACL)
+            {
+                if (staInBlackList)
+                {
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO, "Delete from black list");                                      
+                    sapRemoveMacFromACL(pSapCtx->denyMacList, &pSapCtx->nDenyMac, staBLIndex);                                      
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"no accept and deny mac %d %d",
+                            pSapCtx->nAcceptMac, pSapCtx->nDenyMac);
+                }
+                else
+                {
+                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                            "MAC address to be deleted is not present in the black list %s",
+                            pPeerStaMac);
+                    return VOS_STATUS_E_FAILURE;
+                }
+            }
+            else
+            {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "Invalid cmd type passed");                                                        
+                return VOS_STATUS_E_FAILURE;
+            }
+            break;
+
+        default:
+            {
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                        "Invalid list type passed %d",listType);
+                return VOS_STATUS_E_FAILURE;
+            }
+    }
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"After modification of ACL");
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"*** WHITE LIST ***");
+    sapPrintACL(pSapCtx->acceptMacList, pSapCtx->nAcceptMac);
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"*** BLACK LIST ***");
+    sapPrintACL(pSapCtx->denyMacList, pSapCtx->nDenyMac);
+    return VOS_STATUS_SUCCESS;
 }
 
 /*==========================================================================

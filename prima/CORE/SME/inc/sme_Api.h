@@ -1291,6 +1291,7 @@ eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
                                   void *pContext,
                                   void* pVosContext );
 
+
 /* ---------------------------------------------------------------------------
     \fn sme_BtcSignalBtEvent
     \brief  API to signal Bluetooth (BT) event to the WLAN driver. Based on the
@@ -1733,6 +1734,21 @@ tANI_S8 sme_GetInfraSessionId(tHalHandle hHal);
 
   -------------------------------------------------------------------------------*/
 tANI_U8 sme_GetInfraOperationChannel( tHalHandle hHal, tANI_U8 sessionId);
+/* ---------------------------------------------------------------------------
+
+    \fn sme_GetConcurrentOperationChannel
+
+    \brief To get the operating channel for other concurrent sessions, if connected
+    This is a synchronous API.
+
+    \param hHal - The handle returned by macOpen.
+    \param currentPersona - persona that is trying to come up.
+
+    \return operating channel, 0 if infra session is not connected
+
+  -------------------------------------------------------------------------------*/
+tANI_U8 sme_GetConcurrentOperationChannel( tHalHandle hHal,
+                                            tVOS_CON_MODE currentPersona);
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 /* ---------------------------------------------------------------------------

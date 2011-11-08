@@ -3258,6 +3258,7 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     tANI_U32 sessionId = pCommand->sessionId;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tCsrRoamProfile *pProfile = &pCommand->u.roamCmd.roamProfile;
+    tANI_U8  concurrentChannel = 0;
     
     do  
     {
@@ -3298,11 +3299,40 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                 while(pCommand->u.roamCmd.pRoamBssEntry)
                 {
                     pScanResult = GET_BASE_ADDR(pCommand->u.roamCmd.pRoamBssEntry, tCsrScanResult, Link);
-                    if(HAL_STATUS_SUCCESS(csrRoamShouldRoam(pMac, sessionId, &pScanResult->Result.BssDescriptor, pCommand->u.roamCmd.roamId)))
+                    /*If STA-AP concurrency is enabled take the concurrent connected
+                                      channel first. In other cases wpa_supplicant should take care */
+                    if (vos_get_concurrency_mode() == VOS_STA_SAP)
                     {
-                        //Ok to roam this
-                        break;
+                       concurrentChannel = 
+                        csrGetConcurrentOperationChannel(pMac, VOS_STA_MODE);
+                       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, "%s: "
+                       " csr Concurrent Channel = %d", __FUNCTION__, concurrentChannel);
+                       
+                       if ((concurrentChannel) && 
+                        (concurrentChannel == 
+                        pScanResult->Result.BssDescriptor.channelId))
+                       {
+                            //make this 0 because we do not want the 
+                            //below check to pass as we don't want to 
+                            //connect on other channel
+                            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                              FL("Concurrent channel match =%d"),
+                                 concurrentChannel);
+                            concurrentChannel = 0; 
+                       
+                       }
                     }
+                    if (!concurrentChannel)
+                    {
+                        
+                        if(HAL_STATUS_SUCCESS(csrRoamShouldRoam(pMac,
+                            sessionId, &pScanResult->Result.BssDescriptor,
+                            pCommand->u.roamCmd.roamId)))
+                        {
+                            //Ok to roam this
+                            break;
+                        }
+                     }
                     pCommand->u.roamCmd.pRoamBssEntry = csrLLNext(&pBSSList->List, pCommand->u.roamCmd.pRoamBssEntry, LL_ACCESS_LOCK);
                     if(NULL == pCommand->u.roamCmd.pRoamBssEntry)
                     {

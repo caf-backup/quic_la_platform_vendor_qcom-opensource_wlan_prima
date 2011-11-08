@@ -543,9 +543,9 @@ sapSortMacList(v_MACADDR_t *macList, v_U8_t size);
   PARAMETERS 
 
     IN
-       macList 		: ACL list of mac addresses (black/white list)
-       size (I/O) 	: size of the ACL. It is an I/O arg. The API takes care of incrementing the size by 1.
-       peerMac		: Mac address of the peer to be added
+       macList          : ACL list of mac addresses (black/white list)
+       size (I/O)       : size of the ACL. It is an I/O arg. The API takes care of incrementing the size by 1.
+       peerMac          : Mac address of the peer to be added
 
  RETURN VALUE
     None.
@@ -569,11 +569,11 @@ sapAddMacToACL(v_MACADDR_t *macList, v_U8_t *size, v_U8_t *peerMac);
   PARAMETERS 
 
     IN
-       macList 		: ACL list of mac addresses (black/white list)
-       size (I/O) 	: size of the ACL. It is an I/O arg. The API takes care of decrementing the size by 1.
-       index		: index in the ACL list where the peerMac is present
-       			  This index can be found by using the "sapSearchMacList" API which returns the index of the MAC
-       			  addr, if found in an ACL, in one of the arguments passed by the caller.
+       macList          : ACL list of mac addresses (black/white list)
+       size (I/O)       : size of the ACL. It is an I/O arg. The API takes care of decrementing the size by 1.
+       index            : index in the ACL list where the peerMac is present
+                          This index can be found by using the "sapSearchMacList" API which returns the index of the MAC
+                          addr, if found in an ACL, in one of the arguments passed by the caller.
 
  RETURN VALUE
     None.
@@ -597,8 +597,8 @@ sapRemoveMacFromACL(v_MACADDR_t *macList, v_U8_t *size, v_U8_t index);
   PARAMETERS 
 
     IN
-       macList 		: ACL list of mac addresses (black/white list)
-       size    		: size of the ACL
+       macList          : ACL list of mac addresses (black/white list)
+       size             : size of the ACL
 
  RETURN VALUE
     None.
@@ -621,17 +621,17 @@ sapPrintACL(v_MACADDR_t *macList, v_U8_t size);
   PARAMETERS 
 
     IN
-       macList 		: list of mac addresses (black/white list)
-       num_mac    	: size of the ACL
-       peerMac		: Mac address of the peer
+       macList          : list of mac addresses (black/white list)
+       num_mac          : size of the ACL
+       peerMac          : Mac address of the peer
     OP       
-       index 		: the index at which the peer mac is found
-       			  this value gets filled in this function. If the caller is not interested
-       			  in the index of the peerMac to be searched, it can pass NULL here.
-	
+       index            : the index at which the peer mac is found
+                              this value gets filled in this function. If the caller is not interested
+                              in the index of the peerMac to be searched, it can pass NULL here.
+
  RETURN VALUE
-    SUCCESS		: if the mac addr being searched for is found
-    FAILURE 		: if the mac addr being searched for is NOT found
+    SUCCESS          : if the mac addr being searched for is found
+    FAILURE          : if the mac addr being searched for is NOT found
 
   SIDE EFFECTS 
 

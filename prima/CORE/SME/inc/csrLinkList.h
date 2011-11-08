@@ -35,7 +35,7 @@ typedef enum
 typedef struct tagDblLinkList
 {
   tListElem ListHead;
-  vos_spin_lock_t Lock;
+  vos_lock_t Lock;
   tANI_U32  Count;
   tHddHandle hHdd;
   tListFlag Flag;

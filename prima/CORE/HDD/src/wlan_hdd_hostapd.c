@@ -184,6 +184,11 @@ void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
     struct net_device *dev = (struct net_device *)usrDataForCallback;
     v_BYTE_t we_custom_event[64];
     union iwreq_data wrqu;
+#ifdef DISABLE_CONCURRENCY_AUTOSAVE    
+    VOS_STATUS vos_status;
+    hdd_adapter_t *pHostapdAdapter;
+    hdd_ap_ctx_t *pHddApCtx;
+#endif /*DISABLE_CONCURRENCY_AUTOSAVE */
 
     /* event_name space-delimiter driver_module_name */
     /* Format of the event is "AUTO-SHUT.indication" " " "module_name" */
@@ -191,13 +196,39 @@ void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
     int event_len = strlen(autoShutEvent) + 1; /* For the NULL at the end */
 
     ENTER();
-
+    
+#ifdef DISABLE_CONCURRENCY_AUTOSAVE    
+    if (vos_concurrent_sessions_running())
+    {  
+       /*
+              This timer routine is going to be called only when AP
+              persona is up.
+              If there are concurrent sessions running we do not want
+              to shut down the Bss.Instead we run the timer again so
+              that if Autosave is enabled next time and other session
+              was down only then we bring down AP 
+             */
+        pHostapdAdapter = netdev_priv(dev);
+        pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
+        vos_status = vos_timer_start(
+         &pHddApCtx->hdd_ap_inactivity_timer, 
+         (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nAPAutoShutOff
+          * 1000);
+        if (!VOS_IS_STATUS_SUCCESS(vos_status))
+        {
+            hddLog(LOGE, FL("Failed to init AP inactivity timer"));
+        }
+        EXIT();
+        return;
+    }
+#endif /*DISABLE_CONCURRENCY_AUTOSAVE */
     memset(&we_custom_event, '\0', sizeof(we_custom_event));
     memcpy(&we_custom_event, autoShutEvent, event_len);
 
     memset(&wrqu, 0, sizeof(wrqu));
     wrqu.data.length = event_len;
 
+    hddLog(LOGE, FL("Shutting down AP interface due to inactivity"));
     wireless_send_event(dev, IWEVCUSTOM, &wrqu, (char *)we_custom_event);    
 
     EXIT();
@@ -219,7 +250,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     v_BOOL_t bWPSState;
     v_BOOL_t bApActive = FALSE;
     tpSap_AssocMacAddr pAssocStasArray = NULL;
-	char unknownSTAEvent[IW_CUSTOM_MAX+1];
+    char unknownSTAEvent[IW_CUSTOM_MAX+1];
 
 
     dev = (struct net_device *)usrDataForCallback;
@@ -501,20 +532,20 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
            hdd_sendActionCnf( pHostapdAdapter, pSapEvent->sapevt.sapActionCnf.actionSendSuccess);
            return VOS_STATUS_SUCCESS;
 #endif
-		case eSAP_UNKNOWN_STA_JOIN:
-			memset(&wrqu, '\0', sizeof(wrqu));			
-			snprintf(unknownSTAEvent, IW_CUSTOM_MAX, "JOIN_UNKNOWN_STA-%02x:%02x:%02x:%02x:%02x:%02x",
-				pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[0],
-				pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[1],
-				pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[2],
-				pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[3],
-				pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[4],
-				pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[5]);
-            we_event = IWEVCUSTOM; /* Discovered a new node (AP mode). */			
-			wrqu.data.pointer = unknownSTAEvent;
-			wrqu.data.length = strlen(unknownSTAEvent);
-			we_custom_event_generic = (v_BYTE_t *)unknownSTAEvent;
-			break;
+        case eSAP_UNKNOWN_STA_JOIN:
+            memset(&wrqu, '\0', sizeof(wrqu));          
+            snprintf(unknownSTAEvent, IW_CUSTOM_MAX, "JOIN_UNKNOWN_STA-%02x:%02x:%02x:%02x:%02x:%02x",
+                pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[0],
+                pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[1],
+                pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[2],
+                pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[3],
+                pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[4],
+                pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[5]);
+            we_event = IWEVCUSTOM; /* Discovered a new node (AP mode). */
+            wrqu.data.pointer = unknownSTAEvent;
+            wrqu.data.length = strlen(unknownSTAEvent);
+            we_custom_event_generic = (v_BYTE_t *)unknownSTAEvent;
+            break;
         default:
             hddLog(LOG1,"SAP message is not handled\n");
             goto stopbss;
@@ -655,37 +686,37 @@ static iw_softap_setparam(struct net_device *dev,
     switch(sub_cmd)
     {
 
-    case QCSAP_PARAM_MAX_ASSOC:
-        if (WNI_CFG_ASSOC_STA_LIMIT_STAMIN > set_value)
-        {
-            hddLog(LOGE, FL("Invalid setMaxAssoc value %d"), set_value);			
-            ret = -EINVAL;
-        }
-        else
-        {	
-        	if (WNI_CFG_ASSOC_STA_LIMIT_STAMAX < set_value)
-        	{
-				hddLog(LOGW, FL("setMaxAssoc value %d higher than max allowed %d."
-								"Setting it to max allowed and continuing"),
-					   			set_value, WNI_CFG_ASSOC_STA_LIMIT_STAMAX);
-				set_value = WNI_CFG_ASSOC_STA_LIMIT_STAMAX;
-        	}	
-            status = ccmCfgSetInt(hHal, WNI_CFG_ASSOC_STA_LIMIT,
-                                  set_value, NULL, eANI_BOOLEAN_FALSE);
-            if ( status != eHAL_STATUS_SUCCESS ) 
+        case QCSAP_PARAM_MAX_ASSOC:
+            if (WNI_CFG_ASSOC_STA_LIMIT_STAMIN > set_value)
             {
-                hddLog(LOGE, FL("setMaxAssoc failure, status %d"),
-                       status);
-                ret = -EIO;
+                hddLog(LOGE, FL("Invalid setMaxAssoc value %d"), set_value);
+                ret = -EINVAL;
             }
-        }
-        break;
+            else
+            {
+                if (WNI_CFG_ASSOC_STA_LIMIT_STAMAX < set_value)
+                {
+                    hddLog(LOGW, FL("setMaxAssoc value %d higher than max allowed %d."
+                                "Setting it to max allowed and continuing"),
+                            set_value, WNI_CFG_ASSOC_STA_LIMIT_STAMAX);
+                    set_value = WNI_CFG_ASSOC_STA_LIMIT_STAMAX;
+                }
+                status = ccmCfgSetInt(hHal, WNI_CFG_ASSOC_STA_LIMIT,
+                        set_value, NULL, eANI_BOOLEAN_FALSE);
+                if ( status != eHAL_STATUS_SUCCESS ) 
+                {
+                    hddLog(LOGE, FL("setMaxAssoc failure, status %d"),
+                            status);
+                    ret = -EIO;
+                }
+            }
+            break;
 
-    default:
-        hddLog(LOGE, FL("Invalid setparam command %d value %d"),
-               sub_cmd, set_value);
-        ret = -EINVAL;
-        break;
+        default:
+            hddLog(LOGE, FL("Invalid setparam command %d value %d"),
+                    sub_cmd, set_value);
+            ret = -EINVAL;
+            break;
     }
 
     return ret;
@@ -739,24 +770,24 @@ static iw_softap_getparam(struct net_device *dev,
 }
 
 /* Usage:	
-	BLACK_LIST 	= 0
-	WHITE_LIST 	= 1 
-	ADD MAC	= 0
-	REMOVE MAC	= 1
+    BLACK_LIST  = 0
+    WHITE_LIST  = 1 
+    ADD MAC = 0
+    REMOVE MAC  = 1
 
-	mac addr will be accepted as a 6 octet mac address with each octet inputted in hex
-	for e.g. 00:0a:f5:11:22:33 will be represented as 0x00 0x0a 0xf5 0x11 0x22 0x33
-	while using this ioctl
+    mac addr will be accepted as a 6 octet mac address with each octet inputted in hex
+    for e.g. 00:0a:f5:11:22:33 will be represented as 0x00 0x0a 0xf5 0x11 0x22 0x33
+    while using this ioctl
 
-	Syntax:
-	iwpriv softap.0 modify_acl 
-	<6 octet mac addr> <list type> <cmd type>
+    Syntax:
+    iwpriv softap.0 modify_acl 
+    <6 octet mac addr> <list type> <cmd type>
 
-	Examples:
- 	eg 1. to add a mac addr 00:0a:f5:89:89:90 to the black list
-	iwpriv softap.0 modify_acl 0x00 0x0a 0xf5 0x89 0x89 0x90 0 0
-	eg 2. to delete a mac addr 00:0a:f5:89:89:90 from white list
-	iwpriv softap.0 modify_acl 0x00 0x0a 0xf5 0x89 0x89 0x90 1 1
+    Examples:
+    eg 1. to add a mac addr 00:0a:f5:89:89:90 to the black list
+    iwpriv softap.0 modify_acl 0x00 0x0a 0xf5 0x89 0x89 0x90 0 0
+    eg 2. to delete a mac addr 00:0a:f5:89:89:90 from white list
+    iwpriv softap.0 modify_acl 0x00 0x0a 0xf5 0x89 0x89 0x90 1 1
 */
 int iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
@@ -768,28 +799,27 @@ int iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
     int listType, cmd, i;
     int ret = 0; /* success */
 
-	ENTER();	
-	for (i=0; i<VOS_MAC_ADDR_SIZE; i++)
-	{
-		pPeerStaMac[i] = *(value+i);
-	}
-	listType = (int)(*(value+i));
-	i++;
-	cmd = (int)(*(value+i));
-	
-    hddLog(LOG1, "%s: SAP Modify ACL arg0 %02x:%02x:%02x:%02x:%02x:%02x arg1 %d arg2 %d\n",
-             __FUNCTION__, pPeerStaMac[0], pPeerStaMac[1], pPeerStaMac[2], 
-             pPeerStaMac[3], pPeerStaMac[4], pPeerStaMac[5], listType, cmd);
-	
+    ENTER();
+    for (i=0; i<VOS_MAC_ADDR_SIZE; i++)
+    {
+        pPeerStaMac[i] = *(value+i);
+    }
+    listType = (int)(*(value+i));
+    i++;
+    cmd = (int)(*(value+i));
 
-	if (WLANSAP_ModifyACL(pVosContext, pPeerStaMac,(eSapACLType)listType,(eSapACLCmdType)cmd)
-		!= VOS_STATUS_SUCCESS)
-	{
-		   hddLog(LOGE, FL("Modify ACL failed\n"));
-		   ret = -EIO;
-	}
+    hddLog(LOG1, "%s: SAP Modify ACL arg0 %02x:%02x:%02x:%02x:%02x:%02x arg1 %d arg2 %d\n",
+            __FUNCTION__, pPeerStaMac[0], pPeerStaMac[1], pPeerStaMac[2], 
+            pPeerStaMac[3], pPeerStaMac[4], pPeerStaMac[5], listType, cmd);
+
+    if (WLANSAP_ModifyACL(pVosContext, pPeerStaMac,(eSapACLType)listType,(eSapACLCmdType)cmd)
+            != VOS_STATUS_SUCCESS)
+    {
+        hddLog(LOGE, FL("Modify ACL failed\n"));
+        ret = -EIO;
+    }
     EXIT();
-    return ret;	
+    return ret;
 }
 
 int
@@ -845,17 +875,17 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
     return 0;
 }
 
-/* 	Usage:
-	mac addr will be accepted as a 6 octet mac address with each octet inputted in hex
-	for e.g. 00:0a:f5:11:22:33 will be represented as 0x00 0x0a 0xf5 0x11 0x22 0x33
-	while using this ioctl
+/* Usage:
+    mac addr will be accepted as a 6 octet mac address with each octet inputted in hex
+    for e.g. 00:0a:f5:11:22:33 will be represented as 0x00 0x0a 0xf5 0x11 0x22 0x33
+    while using this ioctl
 
-	Syntax:
-	iwpriv softap.0 disassoc_sta <6 octet mac address>
+    Syntax:
+    iwpriv softap.0 disassoc_sta <6 octet mac address>
 
-	e.g.
-	disassociate sta with mac addr 00:0a:f5:11:22:33 from softap
-	iwpriv softap.0 disassoc_sta 0x00 0x0a 0xf5 0x11 0x22 0x33
+    e.g.
+    disassociate sta with mac addr 00:0a:f5:11:22:33 from softap
+    iwpriv softap.0 disassoc_sta 0x00 0x0a 0xf5 0x11 0x22 0x33
 */
 
 int
@@ -863,25 +893,25 @@ static iw_softap_disassoc_sta(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-	hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-	v_U8_t *peerMacAddr;	
-	
-	ENTER();
-	/* the comparison below is needed since if iwpriv tool is used for calling this ioctl
-	  * data is passed in extra (less than 16 octets); however in android wifi framework
-	  * data is placed in wrqu->data.pointer.
-	  */
-	if ((v_U8_t*)wrqu == (v_U8_t*)extra)
-		peerMacAddr = (v_U8_t *)(extra);
-	else
-		peerMacAddr = (v_U8_t *)(wrqu->data.pointer);
-	
-	hddLog(LOG1, "data %02x:%02x:%02x:%02x:%02x:%02x",
-			peerMacAddr[0], peerMacAddr[1], peerMacAddr[2],
-			peerMacAddr[3], peerMacAddr[4], peerMacAddr[5]);
-	hdd_softap_sta_disassoc(pHostapdAdapter, peerMacAddr);
-	EXIT();
-	return 0;
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    v_U8_t *peerMacAddr;    
+
+    ENTER();
+    /* the comparison below is needed since if iwpriv tool is used for calling this ioctl
+     * data is passed in extra (less than 16 octets); however in android wifi framework
+     * data is placed in wrqu->data.pointer.
+     */
+    if ((v_U8_t*)wrqu == (v_U8_t*)extra)
+        peerMacAddr = (v_U8_t *)(extra);
+    else
+        peerMacAddr = (v_U8_t *)(wrqu->data.pointer);
+
+    hddLog(LOG1, "data %02x:%02x:%02x:%02x:%02x:%02x",
+            peerMacAddr[0], peerMacAddr[1], peerMacAddr[2],
+            peerMacAddr[3], peerMacAddr[4], peerMacAddr[5]);
+    hdd_softap_sta_disassoc(pHostapdAdapter, peerMacAddr);
+    EXIT();
+    return 0;
 }
 
 int
@@ -1942,74 +1972,74 @@ static const iw_handler      hostapd_handler[] =
     IW_PRIV_TYPE_BYTE | sizeof(struct ieee80211req_mlme)
 
 static const struct iw_priv_args hostapd_private_args[] = {
-  { QCSAP_IOCTL_SETPARAM,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2, 0, "setparam" },
-  { QCSAP_IOCTL_SETPARAM,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "" },
-  { QCSAP_PARAM_MAX_ASSOC,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setMaxAssoc" },
-  { QCSAP_IOCTL_GETPARAM,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
-  { QCSAP_IOCTL_GETPARAM, 0,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "" },
-  { QCSAP_PARAM_MAX_ASSOC, 0,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
-  { QCSAP_PARAM_MODULE_DOWN_IND, 0,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
-  { QCSAP_IOCTL_COMMIT,
-      IW_PRIV_TYPE_BYTE | sizeof(struct s_CommitConfig) | IW_PRIV_SIZE_FIXED, 0, "commit" },
-  { QCSAP_IOCTL_SETMLME,
-      IW_PRIV_TYPE_BYTE | sizeof(struct sQcSapreq_mlme)| IW_PRIV_SIZE_FIXED, 0, "setmlme" },
-  { QCSAP_IOCTL_GET_STAWPAIE,
-      IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 1, 0, "get_staWPAIE" },
-  { QCSAP_IOCTL_SETWPAIE,
-      IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE | IW_PRIV_SIZE_FIXED, 0, "setwpaie" },
-  { QCSAP_IOCTL_STOPBSS,
-      IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED, 0, "stopbss" },
-  { QCSAP_IOCTL_VERSION, 0,
-      IW_PRIV_TYPE_CHAR | QCSAP_MAX_WSC_IE, "version" },
-  { QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES,
-      IW_PRIV_TYPE_BYTE | sizeof(sQcSapreq_WPSPBCProbeReqIES_t) | IW_PRIV_SIZE_FIXED | 1, 0, "getProbeReqIEs" },
-  { QCSAP_IOCTL_GET_CHANNEL, 0,
-      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | sizeof(signed long int), "getchannel" },
-  { QCSAP_IOCTL_ASSOC_STA_MACADDR, 0,
-      IW_PRIV_TYPE_BYTE | /*((WLAN_MAX_STA_COUNT*6)+100)*/1 , "get_assoc_stamac" },
-  { QCSAP_IOCTL_DISASSOC_STA,
-      IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 6 , 0, "disassoc_sta" },
-  { QCSAP_IOCTL_AP_STATS,
+    { QCSAP_IOCTL_SETPARAM,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2, 0, "setparam" },
+    { QCSAP_IOCTL_SETPARAM,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "" },
+    { QCSAP_PARAM_MAX_ASSOC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setMaxAssoc" },
+    { QCSAP_IOCTL_GETPARAM,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
+    { QCSAP_IOCTL_GETPARAM, 0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "" },
+    { QCSAP_PARAM_MAX_ASSOC, 0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
+    { QCSAP_PARAM_MODULE_DOWN_IND, 0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
+    { QCSAP_IOCTL_COMMIT,
+        IW_PRIV_TYPE_BYTE | sizeof(struct s_CommitConfig) | IW_PRIV_SIZE_FIXED, 0, "commit" },
+    { QCSAP_IOCTL_SETMLME,
+        IW_PRIV_TYPE_BYTE | sizeof(struct sQcSapreq_mlme)| IW_PRIV_SIZE_FIXED, 0, "setmlme" },
+    { QCSAP_IOCTL_GET_STAWPAIE,
+        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 1, 0, "get_staWPAIE" },
+    { QCSAP_IOCTL_SETWPAIE,
+        IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE | IW_PRIV_SIZE_FIXED, 0, "setwpaie" },
+    { QCSAP_IOCTL_STOPBSS,
+        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED, 0, "stopbss" },
+    { QCSAP_IOCTL_VERSION, 0,
+        IW_PRIV_TYPE_CHAR | QCSAP_MAX_WSC_IE, "version" },
+    { QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES,
+        IW_PRIV_TYPE_BYTE | sizeof(sQcSapreq_WPSPBCProbeReqIES_t) | IW_PRIV_SIZE_FIXED | 1, 0, "getProbeReqIEs" },
+    { QCSAP_IOCTL_GET_CHANNEL, 0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | sizeof(signed long int), "getchannel" },
+    { QCSAP_IOCTL_ASSOC_STA_MACADDR, 0,
+        IW_PRIV_TYPE_BYTE | /*((WLAN_MAX_STA_COUNT*6)+100)*/1 , "get_assoc_stamac" },
+    { QCSAP_IOCTL_DISASSOC_STA,
+        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 6 , 0, "disassoc_sta" },
+    { QCSAP_IOCTL_AP_STATS,
         IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE, 0, "ap_stats" },
 
-  { QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE,
+    { QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3, 0, "" },
-   /* handlers for sub-ioctl */
-   {   WE_SET_WLAN_DBG,
-       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
-       0, 
-       "setwlandbg" },
+    /* handlers for sub-ioctl */
+    {   WE_SET_WLAN_DBG,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0, 
+        "setwlandbg" },
 
-   /* handlers for main ioctl */
-   {   QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE,
-       IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
-       0, 
-       "" },
+    /* handlers for main ioctl */
+    {   QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, 
+        "" },
 
-   /* handlers for sub-ioctl */
-   {   WE_LOG_DUMP_CMD,
-       IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
-       0, 
-       "dump" },
+    /* handlers for sub-ioctl */
+    {   WE_LOG_DUMP_CMD,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, 
+        "dump" },
 #ifdef WLAN_FEATURE_P2P
-   {   WE_P2P_NOA_CMD,
-       IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
-       0, 
-       "SetP2pPs" },
+    {   WE_P2P_NOA_CMD,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, 
+        "SetP2pPs" },
 #endif
-/* handlers for main ioctl */
-{	QCSAP_IOCTL_MODIFY_ACL,
-	IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 8,
-	0, 
-	"modify_acl" },
+    /* handlers for main ioctl */
+    {   QCSAP_IOCTL_MODIFY_ACL,
+        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 8,
+        0, 
+        "modify_acl" },
 
 
 };
@@ -2030,7 +2060,7 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,   
    [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
    [QCSAP_IOCTL_SET_CHANNEL_RANGE - SIOCIWFIRSTPRIV] = iw_softap_set_channel_range,
-   [QCSAP_IOCTL_MODIFY_ACL - SIOCIWFIRSTPRIV]	 = iw_softap_modify_acl,
+   [QCSAP_IOCTL_MODIFY_ACL - SIOCIWFIRSTPRIV]   = iw_softap_modify_acl,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),

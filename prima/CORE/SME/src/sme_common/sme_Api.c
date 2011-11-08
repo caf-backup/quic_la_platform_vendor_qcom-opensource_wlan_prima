@@ -5266,6 +5266,27 @@ tANI_U8 sme_GetInfraOperationChannel( tHalHandle hHal, tANI_U8 sessionId)
    return (channel);
 }
 
+//This routine will return poerating channel on which other BSS is operating to be used for concurrency mode.
+//If other BSS is not up or not connected it will return 0 
+tANI_U8 sme_GetConcurrentOperationChannel( tHalHandle hHal,
+                                            tVOS_CON_MODE currentPersona)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );   
+   tANI_U8 channel = 0;
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+
+      channel = csrGetConcurrentOperationChannel( pMac, currentPersona);
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, "%s: "
+           " Other Concurrent Channel = %d", __FUNCTION__,channel);
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (channel);
+}
+
 #ifdef FEATURE_WLAN_SCAN_PNO
 /******************************************************************************
 *
