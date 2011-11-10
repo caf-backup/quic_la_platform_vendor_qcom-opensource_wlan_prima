@@ -250,20 +250,20 @@ enum _KEY_DIRECTION
    Rx_Tx
 }__attribute__((packed));
 
-typedef enum _KEY_DIRECTION KEY_DIRECTION;
+typedef enum _KEY_DIRECTION WAPI_KEY_DIRECTION;
 
 /** WAPI KEY stucture definition */
 struct WLAN_WAPI_KEY
 {
-   WAPIKeyType     keyType;
-   KEY_DIRECTION   keyDirection;  /*reserved for future use*/
-   v_U8_t          keyId;
-   v_U8_t          addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
-   int             wpiekLen;
-   v_U8_t          wpiek[MAX_WPI_KEY_LENGTH];
-   int             wpickLen;
-   v_U8_t          wpick[MAX_WPI_KEY_LENGTH];
-   v_U8_t          pn[MAX_NUM_PN];        /*reserved for future use*/
+   WAPIKeyType          keyType;
+   WAPI_KEY_DIRECTION   keyDirection;  /*reserved for future use*/
+   v_U8_t               keyId;
+   v_U8_t               addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
+   int                  wpiekLen;
+   v_U8_t               wpiek[MAX_WPI_KEY_LENGTH];
+   int                  wpickLen;
+   v_U8_t               wpick[MAX_WPI_KEY_LENGTH];
+   v_U8_t               pn[MAX_NUM_PN];        /*reserved for future use*/
 }__attribute__((packed));
 
 typedef struct WLAN_WAPI_KEY WLAN_WAPI_KEY;
