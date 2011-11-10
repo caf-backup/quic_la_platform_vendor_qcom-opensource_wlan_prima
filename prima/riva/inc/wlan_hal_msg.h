@@ -20,6 +20,25 @@
 #include "wlan_nv.h"
 
 /*---------------------------------------------------------------------------
+  API VERSIONING INFORMATION
+
+  The RIVA API is versioned as MAJOR.MINOR.VERSION.REVISION
+  The MAJOR is incremented for major product/architecture changes
+      (and then MINOR/VERSION/REVISION are zeroed)
+  The MINOR is incremented for minor product/architecture changes
+      (and then VERSION/REVISION are zeroed)
+  The VERSION is incremented if a significant API change occurs
+      (and then REVISION is zeroed)
+  The REVISION is incremented if an insignificant API change occurs
+      or if a new API is added
+  All values are in the range 0..255 (ie they are 8-bit values)
+ ---------------------------------------------------------------------------*/
+#define WLAN_HAL_VER_MAJOR 0
+#define WLAN_HAL_VER_MINOR 0
+#define WLAN_HAL_VER_VERSION 0
+#define WLAN_HAL_VER_REVISION 0
+
+/*---------------------------------------------------------------------------
   Commom Type definitons
  ---------------------------------------------------------------------------*/
 
@@ -61,6 +80,9 @@ typedef tANI_U8 tHalIpv4Addr[4];
 
 /*Dump command responce Buffer size*/
 #define DUMPCMD_RSP_BUFFER 100
+
+/*Version string max length (including NUL) */
+#define WLAN_HAL_VERSION_LENGTH  64
 
 /*Max Num Of BSSIDS in INNAV_MEAS_REQ*/
 #define MAX_BSSIDS_IN_INNAV_MEAS_REQ 1
@@ -275,6 +297,18 @@ typedef enum
    WLAN_HAL_SET_TX_PER_TRACKING_REQ  = 154,
    WLAN_HAL_SET_TX_PER_TRACKING_RSP  = 155,
    WLAN_HAL_TX_PER_HIT_IND           = 156,
+   
+
+   WLAN_HAL_8023_MULTICAST_LIST_REQ   = 157,
+   WLAN_HAL_8023_MULTICAST_LIST_RSP   = 158,   
+
+   WLAN_HAL_SET_PACKET_FILTER_REQ     = 159,
+   WLAN_HAL_SET_PACKET_FILTER_RSP     = 160,   
+   WLAN_HAL_PACKET_FILTER_MATCH_COUNT_REQ   = 161,
+   WLAN_HAL_PACKET_FILTER_MATCH_COUNT_RSP   = 162,   
+   WLAN_HAL_CLEAR_PACKET_FILTER_REQ         = 163,
+   WLAN_HAL_CLEAR_PACKET_FILTER_RSP         = 164,   
+   
    
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
@@ -503,6 +537,16 @@ typedef enum
 #pragma pack(1)
 #else
 #endif
+
+/// Definition for HAL API Version.
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8                  revision;
+    tANI_U8                  version;
+    tANI_U8                  minor;
+    tANI_U8                  major;
+} tWcnssWlanVersion, *tpWcnssWlanVersion;
+
 /// Definition for Encryption Keys
 typedef PACKED_PRE struct PACKED_POST
 {
@@ -616,6 +660,15 @@ typedef PACKED_PRE struct PACKED_POST sHalMacStartRspParameters
 
    /*Max number of BSS supported by the device*/
    tANI_U8     ucMaxBssids;
+
+   /*API Version */
+   tWcnssWlanVersion wcnssWlanVersion;
+
+   /*CRM build information */
+   tANI_U8     wcnssCrmVersionString[WLAN_HAL_VERSION_LENGTH];
+
+   /*hardware/chipset/misc version information */
+   tANI_U8     wcnssWlanVersionString[WLAN_HAL_VERSION_LENGTH];
 
 } tHalMacStartRspParams, *tpHalMacStartRspParams;
 
@@ -4487,6 +4540,152 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader   header;
 }tTxPerHitIndMsg, *tpTxPerHitIndMsg;
 
+/*---------------------------------------------------------------------------
+ *******************Packet Filtering Definitions Begin*******************
+ *--------------------------------------------------------------------------*/
+#define    HAL_PROTOCOL_DATA_LEN                  8
+#define    HAL_MAX_NUM_MULTICAST_ADDRESS        240
+#define    HAL_MAX_NUM_FILTERS                   20
+#define    HAL_MAX_CMP_PER_FILTER                10
+
+typedef enum
+{
+  HAL_RCV_FILTER_TYPE_INVALID,
+  HAL_RCV_FILTER_TYPE_FILTER_PKT,
+  HAL_RCV_FILTER_TYPE_BUFFER_PKT,
+  HAL_RCV_FILTER_TYPE_MAX_ENUM_SIZE
+}tHalReceivePacketFilterType;
+
+typedef enum 
+{
+  HAL_FILTER_PROTO_TYPE_INVALID,
+  HAL_FILTER_PROTO_TYPE_MAC,
+  HAL_FILTER_PROTO_TYPE_ARP,
+  HAL_FILTER_PROTO_TYPE_IPV4,
+  HAL_FILTER_PROTO_TYPE_IPV6,
+  HAL_FILTER_PROTO_TYPE_UDP,
+  HAL_FILTER_PROTO_TYPE_MAX
+}tHalRcvPktFltProtocolType;
+
+typedef enum 
+{
+  HAL_FILTER_CMP_TYPE_INVALID,
+  HAL_FILTER_CMP_TYPE_EQUAL,
+  HAL_FILTER_CMP_TYPE_MASK_EQUAL,
+  HAL_FILTER_CMP_TYPE_NOT_EQUAL,
+  HAL_FILTER_CMP_TYPE_MAX
+}tHalRcvPktFltCmpFlagType;
+
+typedef PACKED_PRE struct PACKED_POST 
+{
+    tANI_U8                          protocolLayer;
+    tANI_U8                          cmpFlag;
+    tANI_U16                         dataLength; /* Length of the data to compare */
+    tANI_U8                          dataOffset; /* from start of the respective frame header */
+    tANI_U8                          reserved; /* Reserved field */
+    tANI_U8                          compareData[HAL_PROTOCOL_DATA_LEN];  /* Data to compare */
+    tANI_U8                          dataMask[HAL_PROTOCOL_DATA_LEN];   /* Mask to be applied on the received packet data before compare */
+}tHalRcvPktFilterParams, *tpHalRcvPktFilterParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8                         filterId;
+    tANI_U8                         filterType;	
+    tANI_U8                         numParams; 
+    tANI_U32                        coleasceTime; 
+    tHalRcvPktFilterParams          paramsData[1];
+}tHalRcvPktFilterCfgType, *tpHalRcvPktFilterCfgType;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+  tHalMsgHeader                 header;
+  tHalRcvPktFilterCfgType       pktFilterCfg;
+} tHalSetRcvPktFilterReqMsg, *tpHalSetRcvPktFilterReqMsg;
+
+
+typedef PACKED_PRE struct PACKED_POST 
+{
+    tANI_U8         dataOffset; /* from start of the respective frame header */
+    tANI_U32       cMulticastAddr;
+    tSirMacAddr    multicastAddr[HAL_MAX_NUM_MULTICAST_ADDRESS];
+} tHalRcvFltMcAddrListType, *tpHalRcvFltMcAddrListType;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalSetPktFilterRspParams, *tpHalSetPktFilterRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader               header;
+   tHalSetPktFilterRspParams   pktFilterRspParams;
+}  tHalSetPktFilterRspMsg, *tpHalSetPktFilterRspMsg;
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader        header;
+} tHalRcvFltPktMatchCntReqMsg, *tpHalRcvFltPktMatchCntReqMsg;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8    filterId;
+   tANI_U32   matchCnt;
+} tHalRcvFltPktMatchCnt;
+typedef PACKED_PRE struct PACKED_POST
+{
+   /* Success or Failure */
+   tANI_U32                 status;
+   tANI_U32                 matchCnt;   
+   tHalRcvFltPktMatchCnt    filterMatchCnt[HAL_MAX_NUM_FILTERS]; 
+} tHalRcvFltPktMatchRspParams, *tptHalRcvFltPktMatchRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader  header;
+   tHalRcvFltPktMatchRspParams fltPktMatchRspParams;
+} tHalRcvFltPktMatchCntRspMsg, *tpHalRcvFltPktMatchCntRspMsg;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U32   status;  /* only valid for response message */
+    tANI_U8    filterId;
+}tHalRcvFltPktClearParam, *tpHalRcvFltPktClearParam;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader               header;
+    tHalRcvFltPktClearParam     filterClearParam;
+} tHalRcvFltPktClearReqMsg, *tpHalRcvFltPktClearReqMsg;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader              header;
+   tHalRcvFltPktClearParam    filterClearParam;
+} tHalRcvFltPktClearRspMsg, *tpHalRcvFltPktClearRspMsg;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U32   status;  
+}tHalRcvFltPktSetMcListRspType, *tpHalRcvFltPktSetMcListRspType;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader                    header;
+    tHalRcvFltMcAddrListType         mcAddrList;
+} tHalRcvFltPktSetMcListReqMsg, *tpHalRcvFltPktSetMcListReqMsg;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader                    header;
+   tHalRcvFltPktSetMcListRspType    rspParam;
+} tHalRcvFltPktSetMcListRspMsg, *tpHalRcvFltPktSetMcListRspMsg;
+
+
+/*---------------------------------------------------------------------------
+ *******************Packet Filtering Definitions End*******************
+ *--------------------------------------------------------------------------*/
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)
 #elif defined(__ANI_COMPILER_PRAGMA_PACK)

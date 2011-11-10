@@ -12558,6 +12558,13 @@ WDI_ProcessInitScanRsp
   }
 
   wdiInitScanRspCb = (WDI_InitScanRspCb)pWDICtx->pfncRspCB;
+  if( NULL == wdiInitScanRspCb)
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "%s: call back function is NULL", __FUNCTION__);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
 
   /*-------------------------------------------------------------------------
     Unpack HAL Response Message - the header was already extracted by the
@@ -12618,6 +12625,13 @@ WDI_ProcessStartScanRsp
   }
 
   wdiStartScanRspCb = (WDI_StartScanRspCb)pWDICtx->pfncRspCB;
+  if( NULL == wdiStartScanRspCb)
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "%s: call back function is NULL", __FUNCTION__);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -17368,10 +17382,23 @@ WDI_RXMsgCTSCB
     /*!UT - check for potential race conditions between stop and response */
      wpalTimerStop(&pWDICtx->wptResponseTimer);
   }
+  /* Check if we recieve a response message which is not expected */
+  else if ( wdiEventData.wdiResponse < WDI_HAL_IND_MIN )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+              "Recieved a response message which is not expected - catastrophic failure");
+    /* WDI_DetectedDeviceError( pWDICtx, WDI_ERR_INVALID_RSP_FMT); */
+    WDI_ASSERT(0);
+    return; 
+  }
 
   /*Post response event to the state machine*/
   WDI_PostMainEvent(pWDICtx, WDI_RESPONSE_EVENT, &wdiEventData);
-  
+
+  /*Reset the global information call back function & userdata */
+  gWDICb.pfncRspCB = NULL;
+  gWDICb.pRspCBUserData = NULL;
+  pWDICtx->wdiExpectedResponse = -1;
 }/*WDI_RXMsgCTSCB*/
 
 
