@@ -61,6 +61,7 @@ when       who     what, where, why
 #include <linux/delay.h>
 
 #ifdef MSM_PLATFORM_7x30
+#include <mach/irqs-7x30.h>
 #include <linux/mfd/pmic8058.h>
 #include <mach/rpc_pmapp.h>
 #include <mach/pmic.h>
@@ -100,22 +101,24 @@ when       who     what, where, why
 
 #ifdef MSM_PLATFORM_7x30
 
+#define PM8058_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + NR_GPIO_IRQS)
+
 static const char* id = "WLAN";
 
 struct wlan_pm8058_gpio {
     int gpio_num;
-    struct pm8058_gpio gpio_cfg;
+    struct pm_gpio gpio_cfg;
 };
 
 
 //PMIC8058 GPIO COnfiguration for MSM7x30 //ON
 static struct wlan_pm8058_gpio wlan_gpios_reset[] = {
-    {22,{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO, 2, PM_GPIO_STRENGTH_LOW, PM_GPIO_FUNC_NORMAL, 0}},
+    {PM8058_GPIO_PM_TO_SYS(22),{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO, 2, PM_GPIO_STRENGTH_LOW, PM_GPIO_FUNC_NORMAL, 0}},
 };
 
 //OFF
 static struct wlan_pm8058_gpio wlan_gpios_reset_out[] = {
-    {22,{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO, 2, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0}},
+    {PM8058_GPIO_PM_TO_SYS(22),{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO, 2, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0}},
 };
 
 
@@ -163,7 +166,7 @@ VOS_PWR_SLEEP(100);
 
     if (on) {
         /* Program GPIO 23 to de-assert (drive 1) external_por_n (default 0x00865a05 */
-        rc = pm8058_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
+        rc = pm8xxx_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic gpio %d config failed (%d)\n",
                             __func__, wlan_gpios_reset[0].gpio_num, rc);
@@ -227,7 +230,7 @@ VOS_PWR_SLEEP(100);
 
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.2V AON Power Supply Enabled \n");
 
-        rc = pm8058_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
+        rc = pm8xxx_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic gpio %d config failed (%d)\n",
                             __func__, wlan_gpios_reset_out[0].gpio_num, rc);
@@ -318,7 +321,7 @@ VOS_PWR_SLEEP(100);
         /* Program GPIO 23 to de-assert (drive 1) external_por_n to prevent chip detection
            until it is asserted.
         */
-        rc = pm8058_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
+        rc = pm8xxx_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic gpio %d config failed (%d)\n",
                             __func__, wlan_gpios_reset[0].gpio_num, rc);
@@ -789,7 +792,7 @@ VOS_STATUS vos_chipAssertDeepSleep
 
 #ifdef MSM_PLATFORM_7x30
    // Configure GPIO 23 for Deep Sleep
-   int rc = pm8058_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
+   int rc = pm8xxx_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
    if (rc) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
          __func__, wlan_gpios_reset_out[0].gpio_num, rc);
@@ -849,7 +852,7 @@ VOS_STATUS vos_chipDeAssertDeepSleep
 
 #ifdef MSM_PLATFORM_7x30
 	// Configure GPIO 23 for Deep Sleep
-	int rc = pm8058_gpio_config(wlan_gpios_reset[2].gpio_num, &wlan_gpios_reset[2].gpio_cfg);
+	int rc = pm8xxx_gpio_config(wlan_gpios_reset[2].gpio_num, &wlan_gpios_reset[2].gpio_cfg);
 	if (rc) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
 			__func__, wlan_gpios_reset[2].gpio_num, rc);

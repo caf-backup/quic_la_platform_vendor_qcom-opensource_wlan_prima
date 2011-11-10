@@ -70,6 +70,7 @@ when       who     what, where, why
 
 
 #ifdef MSM_PLATFORM_7x30
+//#include <mach/irqs-7x30.h>
 #include <linux/mfd/pmic8058.h>
 #include <mach/rpc_pmapp.h>
 #endif
@@ -94,26 +95,28 @@ when       who     what, where, why
 
 #ifdef MSM_PLATFORM_7x30
 
+#define PM8058_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + NR_GPIO_IRQS)
+
 static const char* id = "WLAN";
 
 struct wlan_pm8058_gpio {
   int gpio_num;
-  struct pm8058_gpio gpio_cfg;
+  struct pm_gpio gpio_cfg;
 };
 
 //PMIC8058 GPIO COnfiguration for QRF8600 bringup on 7x30 FFA/SURF
 static struct wlan_pm8058_gpio wlan_gpios_power_on[] = {
-  {20,{PM_GPIO_DIR_IN,  PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_DN,    2, PM_GPIO_STRENGTH_NO,   PM_GPIO_FUNC_NORMAL, 0}},
-  {21,{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,    0, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_PAIRED, 0}},
-  {22,{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO,    2, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0}},
-  {30,{PM_GPIO_DIR_IN,  PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_DN,    2, PM_GPIO_STRENGTH_NO,   PM_GPIO_FUNC_NORMAL, 0}},
-  {31,{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO,    0, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_PAIRED, 0}},
-  {26,{PM_GPIO_DIR_IN,  PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_UP_30, 2, PM_GPIO_STRENGTH_NO,   PM_GPIO_FUNC_NORMAL, 0}},
+  {PM8058_GPIO_PM_TO_SYS(20),{PM_GPIO_DIR_IN,  PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_DN,    2, PM_GPIO_STRENGTH_NO,   PM_GPIO_FUNC_NORMAL, 0}},
+  {PM8058_GPIO_PM_TO_SYS(21),{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,    0, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_PAIRED, 0}},
+  {PM8058_GPIO_PM_TO_SYS(22),{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO,    2, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0}},
+  {PM8058_GPIO_PM_TO_SYS(30),{PM_GPIO_DIR_IN,  PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_DN,    2, PM_GPIO_STRENGTH_NO,   PM_GPIO_FUNC_NORMAL, 0}},
+  {PM8058_GPIO_PM_TO_SYS(31),{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO,    0, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_PAIRED, 0}},
+  {PM8058_GPIO_PM_TO_SYS(26),{PM_GPIO_DIR_IN,  PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_UP_30, 2, PM_GPIO_STRENGTH_NO,   PM_GPIO_FUNC_NORMAL, 0}},
 };
 
 //PMIC8058 GPIO COnfiguration for QRF8600 shutdown on 7x30 FFA/SURF
 static struct wlan_pm8058_gpio wlan_gpios_power_off[] = {
-  {22,{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,    2, PM_GPIO_STRENGTH_LOW, PM_GPIO_FUNC_NORMAL, 0}},
+  {PM8058_GPIO_PM_TO_SYS(22),{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,    2, PM_GPIO_STRENGTH_LOW, PM_GPIO_FUNC_NORMAL, 0}},
 };
 
 //Helper routine to power up QRF8600 on 7x30 FFA/SURF
@@ -160,14 +163,14 @@ int vos_chip_power_qrf8600(int on)
    if (on) 
    {
       // Configure GPIO 21 & GPIO 22
-      rc = pm8058_gpio_config(wlan_gpios_power_on[0].gpio_num, &wlan_gpios_power_on[0].gpio_cfg);
+      rc = pm8xxx_gpio_config(wlan_gpios_power_on[0].gpio_num, &wlan_gpios_power_on[0].gpio_cfg);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[0].gpio_num, rc);
          return -EIO;
       }
 
-      rc = pm8058_gpio_config(wlan_gpios_power_on[1].gpio_num, &wlan_gpios_power_on[1].gpio_cfg);
+      rc = pm8xxx_gpio_config(wlan_gpios_power_on[1].gpio_num, &wlan_gpios_power_on[1].gpio_cfg);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[1].gpio_num, rc);
@@ -175,7 +178,7 @@ int vos_chip_power_qrf8600(int on)
       }
 
       // Cofigure GPIO 27 to be high. Without this GPIO 31, 32 will be disabled.
-      rc = pm8058_gpio_config(wlan_gpios_power_on[5].gpio_num, &wlan_gpios_power_on[5].gpio_cfg);
+      rc = pm8xxx_gpio_config(wlan_gpios_power_on[5].gpio_num, &wlan_gpios_power_on[5].gpio_cfg);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[5].gpio_num, rc);
@@ -183,14 +186,14 @@ int vos_chip_power_qrf8600(int on)
       }
 
       // Configure GPIO 31 & GPIO 32
-      rc = pm8058_gpio_config(wlan_gpios_power_on[3].gpio_num, &wlan_gpios_power_on[3].gpio_cfg);
+      rc = pm8xxx_gpio_config(wlan_gpios_power_on[3].gpio_num, &wlan_gpios_power_on[3].gpio_cfg);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[3].gpio_num, rc);
          return -EIO;
       }
 
-      rc = pm8058_gpio_config(wlan_gpios_power_on[4].gpio_num, &wlan_gpios_power_on[4].gpio_cfg);
+      rc = pm8xxx_gpio_config(wlan_gpios_power_on[4].gpio_num, &wlan_gpios_power_on[4].gpio_cfg);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[4].gpio_num, rc);
@@ -215,7 +218,7 @@ int vos_chip_power_qrf8600(int on)
       msleep(250);
 
       // Configure GPIO 23 for Deep Sleep
-      rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
+      rc = pm8xxx_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[2].gpio_num, rc);
@@ -704,7 +707,7 @@ VOS_STATUS vos_chipAssertDeepSleep
 
 #ifdef MSM_PLATFORM_7x30
    // Configure GPIO 23 for Deep Sleep
-   int rc = pm8058_gpio_config(wlan_gpios_power_off[0].gpio_num, &wlan_gpios_power_off[0].gpio_cfg);
+   int rc = pm8xxx_gpio_config(wlan_gpios_power_off[0].gpio_num, &wlan_gpios_power_off[0].gpio_cfg);
    if (rc) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
          __func__, wlan_gpios_power_off[0].gpio_num, rc);
@@ -763,7 +766,7 @@ VOS_STATUS vos_chipDeAssertDeepSleep
 
 #ifdef MSM_PLATFORM_7x30
 	// Configure GPIO 23 for Deep Sleep
-	int rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
+	int rc = pm8xxx_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
 	if (rc) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
 			__func__, wlan_gpios_power_on[2].gpio_num, rc);
