@@ -353,10 +353,9 @@ EXTRA_CFLAGS += $(WDI_INC)
 EXTRA_CFLAGS += $(RIVA_INC)
 EXTRA_LDFLAGS += --strip-debug
 
-ifneq (,$(findstring arm-eabi-4.4, $(ANDROID_EABI_TOOLCHAIN)))
+# By default the compiler will complain about frames larger than 1K.
+# Some of the WLAN structures are larger, so we increase the size.
 EXTRA_CFLAGS += -Wframe-larger-than=8192
-endif
-
 
 CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DANI_BUS_TYPE_PLATFORM=1 \
