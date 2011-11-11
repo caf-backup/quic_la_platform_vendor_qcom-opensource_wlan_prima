@@ -19,6 +19,7 @@
 #include "pmc.h"
 #include "cfgApi.h"
 #include "smeInside.h"
+#include "csrInsideApi.h"
 #include "wlan_ps_wow_diag.h"
 
 #include "wlan_qct_wda.h"
@@ -2678,7 +2679,7 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
             "There were warnings while packing a Probe Request (0x%08x).\n" );
     }
 
-    *pusLen = nPayload; 
+    *pusLen = nPayload + sizeof(tSirMacMgmtHdr); 
     return eSIR_SUCCESS;
 } // End pmcPrepareProbeReqTemplate.
 
@@ -2696,31 +2697,36 @@ eHalStatus pmcSetPreferredNetworkList
     vos_msg_t msg;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+    tANI_U8 ucDot11Mode; 
 
 
     VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "%s: SSID = %s, %s", __FUNCTION__,
         pRequest->aNetworks[0].ssId.ssId, pRequest->aNetworks[1].ssId.ssId);
 
-    pRequestBuf = vos_mem_malloc(sizeof(tpSirPNOScanReq));
+    pRequestBuf = vos_mem_malloc(sizeof(tSirPNOScanReq));
     if (NULL == pRequestBuf)
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for PNO request", __FUNCTION__);
         return eHAL_STATUS_FAILED_ALLOC;
     }
 
+    vos_mem_copy(pRequestBuf, pRequest, sizeof(tSirPNOScanReq));
+
+    /*Must translate the mode first*/
+    ucDot11Mode = (tANI_U8) csrTranslateToWNICfgDot11Mode(pMac, 
+                                       csrFindBestPhyMode( pMac, pMac->roam.configParam.phyMode ));
+
     /*Prepare a probe request for 2.4GHz band and one for 5GHz band*/
-    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_24G_DEFAULT_CH, pMac->roam.configParam.uCfgDot11Mode, pSession->selfMacAddr, 
+    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_24G_DEFAULT_CH, ucDot11Mode, pSession->selfMacAddr, 
                                pRequestBuf->p24GProbeTemplate, &pRequestBuf->us24GProbeTemplateLen); 
 
-    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_5G_DEFAULT_CH,pMac->roam.configParam.uCfgDot11Mode, pSession->selfMacAddr, 
+    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_5G_DEFAULT_CH, ucDot11Mode, pSession->selfMacAddr, 
                                pRequestBuf->p5GProbeTemplate, &pRequestBuf->us5GProbeTemplateLen); 
 
 
-    vos_mem_copy(pRequestBuf, pRequest, sizeof(tpSirPNOScanReq));
-
-    msg.type = WDA_SET_PNO_REQ;
+    msg.type     = WDA_SET_PNO_REQ;
     msg.reserved = 0;
-    msg.bodyptr = pRequestBuf;
+    msg.bodyptr  = pRequestBuf;
     if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_PNO_REQ message to WDA", __FUNCTION__);

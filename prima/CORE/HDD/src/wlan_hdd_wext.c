@@ -201,6 +201,13 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 /* Private ioctl to set the Packet Filtering Params */
 #define WLAN_SET_PACKET_FILTER_PARAMS (SIOCIWFIRSTPRIV + 23)
 #endif
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+/* Private ioctl to get the statistics */
+#define WLAN_SET_PNO (SIOCIWFIRSTPRIV + 24)
+#endif
+
+
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
 #define WLAN_STATS_MUL_RETRY_CNT      2
@@ -4328,9 +4335,14 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
   tSirPNOScanReq pnoRequest;
   char *ptr;
-  v_U8_t i,j, ucParams; 
+  v_U8_t i,j, ucParams, ucMode; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+            "PNO data len %d data %s", 
+            wrqu->data.length, 
+            wrqu->data.pointer);
+  
   if (wrqu->data.length <= nOffset )
   {
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "PNO input is not correct");
@@ -4378,6 +4390,12 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
   ptr += nOffset; 
   sscanf(ptr,"%hhu %n", &(pnoRequest.ucNetworksCount), &nOffset);
 
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+            "PNO enable %d networks count %d offset %d", 
+            pnoRequest.enable, 
+            pnoRequest.ucNetworksCount,
+            nOffset);
+
   /* Parameters checking:
       ucNetworksCount has to be larger than 0*/
   if (( 0 == pnoRequest.ucNetworksCount ) ||
@@ -4387,11 +4405,11 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
       return VOS_STATUS_E_FAILURE;
   }
 
+  ptr += nOffset; 
 
   for ( i = 0; i < pnoRequest.ucNetworksCount; i++ )
   {
-    ptr += nOffset; 
-
+  
     pnoRequest.aNetworks[i].ssId.length = 0; 
 
     sscanf(ptr,"%hhu %n",
@@ -4400,7 +4418,7 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
     if (( 0 == pnoRequest.aNetworks[i].ssId.length ) || 
         ( pnoRequest.aNetworks[i].ssId.length > 32 ) )
     {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
                 "SSID Len %d is not correct for network %d", 
                 pnoRequest.aNetworks[i].ssId.length, i);
       return VOS_STATUS_E_FAILURE;
@@ -4415,6 +4433,15 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
            &(pnoRequest.aNetworks[i].encryption),
            &(pnoRequest.aNetworks[i].ucChannelCount),
            &nOffset);
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+            "PNO len %d ssid %s auth %d encry %d channel count %d offset %d", 
+            pnoRequest.aNetworks[i].ssId.length, 
+            pnoRequest.aNetworks[i].ssId.ssId,
+            pnoRequest.aNetworks[i].authentication,
+            pnoRequest.aNetworks[i].encryption,
+            pnoRequest.aNetworks[i].ucChannelCount,
+            nOffset );
 
     if ( 4 != ucParams )
     {
@@ -4446,12 +4473,24 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
 
     sscanf(ptr,"%hhu %n",
               &(pnoRequest.aNetworks[i].rssiThreshold), &nOffset);
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+            "PNO rssi %d offset %d", 
+            pnoRequest.aNetworks[i].rssiThreshold, 
+            nOffset );
     /*Advance to next network*/
     ptr += nOffset; 
   }/*For ucNetworkCount*/
   
+  ucParams = sscanf(ptr,"%hhu %n",
+              &(ucMode), &nOffset);
+
+  pnoRequest.modePNO = ucMode; 
   /*for LA we just expose suspend option*/
-  pnoRequest.modePNO  = SIR_PNO_MODE_ON_SUSPEND; 
+  if (( 1 != ucParams )||(  ucMode >= SIR_PNO_MODE_MAX ))
+  {
+     pnoRequest.modePNO = SIR_PNO_MODE_ON_SUSPEND; 
+  }
 
   /*no scan timers provided on LA*/
   pnoRequest.scanTimers.ucScanTimersCount = 0; 
@@ -4482,6 +4521,16 @@ VOS_STATUS iw_set_rssi_filter(struct net_device *dev, struct iw_request_info *in
 
     sme_SetRSSIFilter(WLAN_HDD_GET_HAL_CTX(pAdapter), rssiThreshold);    
     return VOS_STATUS_SUCCESS;
+}
+
+
+static int iw_set_pno_priv(struct net_device *dev,
+                           struct iw_request_info *info,
+                           union iwreq_data *wrqu, char *extra)
+{
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+                "Set PNO Private");
+  return iw_set_pno(dev,info,wrqu,extra,0);
 }
 
 #endif /*FEATURE_WLAN_SCAN_PNO*/
@@ -4581,8 +4630,12 @@ static const iw_handler we_private[] = {
    [WLAN_SET_KEEPALIVE_PARAMS           - SIOCIWFIRSTPRIV]   = iw_set_keepalive_params
 #ifdef WLAN_FEATURE_PACKET_FILTERING   
    ,
-   [WLAN_SET_PACKET_FILTER_PARAMS    - SIOCIWFIRSTPRIV]   = iw_set_packet_filter_params
+   [WLAN_SET_PACKET_FILTER_PARAMS       - SIOCIWFIRSTPRIV]   = iw_set_packet_filter_params
 #endif   
+#ifdef FEATURE_WLAN_SCAN_PNO
+   ,
+   [WLAN_SET_PNO                        - SIOCIWFIRSTPRIV]   = iw_set_pno_priv
+#endif
 };
 
 /*Maximum command length can be only 15 */
@@ -4856,7 +4909,14 @@ static const struct iw_priv_args we_private_args[] = {
        IW_PRIV_TYPE_BYTE  | sizeof(tPacketFilterCfg),
        0,
        "setPktFilter" },		
-#endif	   
+#endif	 
+#ifdef FEATURE_WLAN_SCAN_PNO
+    {  
+	  WLAN_SET_PNO,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        0,
+        "setpno" },
+#endif
 };
 
 

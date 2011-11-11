@@ -2385,4 +2385,24 @@ void WLANTL_PostResNeeded(v_PVOID_t pvosGCtx);
 VOS_STATUS WLANTL_Finish_ULA( void (*callbackRoutine) (void *callbackContext),
                               void *callbackContext);
 
+/*===============================================================================
+  FUNCTION       WLANTL_UpdateRssiBmps
+
+  DESCRIPTION    This function updates the TL's RSSI (in BMPS mode)
+
+  DEPENDENCIES   None
+
+  PARAMETERS
+
+    pvosGCtx         VOS context          VOS Global context
+    staId            Station ID           Station ID
+    rssi             RSSI (BMPS mode)     RSSI in BMPS mode
+
+  RETURN         None
+
+  SIDE EFFECTS   none
+ ===============================================================================*/
+
+void WLANTL_UpdateRssiBmps(v_PVOID_t pvosGCtx, v_U8_t staId, v_S7_t rssi);
+
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

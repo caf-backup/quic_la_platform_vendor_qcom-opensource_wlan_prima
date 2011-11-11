@@ -762,18 +762,20 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
        }
 #endif
 
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   /*Suspend notification sent down to driver*/
+   hdd_conf_suspend_ind(pHddCtx);
+#else
    if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
       if(eConnectionState_Associated == 
             (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) {
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-         hdd_conf_suspend_ind(pHddCtx);
-#else
          hdd_conf_mcastbcast_filter(pHddCtx, TRUE);
          halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME,
                                   pHddCtx->pvosContext), FALSE);
-#endif
        }
-   }
+   } 
+#endif
    pHddCtx->hdd_wlan_suspended = TRUE;
    status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
    pAdapterNode = pNext;

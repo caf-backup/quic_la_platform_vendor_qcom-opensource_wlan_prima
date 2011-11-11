@@ -688,7 +688,7 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac)
     pBeaconFilterMsg->capabilityInfo = psessionEntry->limCurrentBssCaps;
     pBeaconFilterMsg->capabilityMask = CAPABILITY_FILTER_MASK;
 
-    pBeaconFilterMsg->beaconInterval = (tANI_U16) psessionEntry->beaconInterval;
+    pBeaconFilterMsg->beaconInterval = (tANI_U16) psessionEntry->beaconParams.beaconInterval;
 
     // Fill in number of IEs in beaconFilterTable
 	pBeaconFilterMsg->ieNum = (tANI_U16) (sizeof(beaconFilterTable) / sizeof(tBeaconFilterIe));

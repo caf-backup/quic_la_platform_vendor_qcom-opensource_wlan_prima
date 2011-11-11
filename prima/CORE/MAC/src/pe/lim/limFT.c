@@ -365,10 +365,10 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     pAddBssParams->nwType = bssDescription->nwType;
     
     pAddBssParams->shortSlotTimeSupported = (tANI_U8)beaconStruct.capabilityInfo.shortSlotTime; 
-    pAddBssParams->llaCoexist = (tANI_U8) pftSessionEntry->llaCoexist;
-    pAddBssParams->llbCoexist = (tANI_U8) pftSessionEntry->llbCoexist;
-    pAddBssParams->llgCoexist = (tANI_U8) pftSessionEntry->llgCoexist;
-    pAddBssParams->ht20Coexist = (tANI_U8) pftSessionEntry->ht20Coexist;
+    pAddBssParams->llaCoexist = (tANI_U8) pftSessionEntry->beaconParams.llaCoexist;
+    pAddBssParams->llbCoexist = (tANI_U8) pftSessionEntry->beaconParams.llbCoexist;
+    pAddBssParams->llgCoexist = (tANI_U8) pftSessionEntry->beaconParams.llgCoexist;
+    pAddBssParams->ht20Coexist = (tANI_U8) pftSessionEntry->beaconParams.ht20Coexist;
 
     // Use the advertised capabilities from the received beacon/PR
     if (IS_DOT11_MODE_HT(pftSessionEntry->dot11mode) && ( beaconStruct.HTCaps.present ))
@@ -569,7 +569,7 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
     sirCopyMacAddr(pftSessionEntry->limReAssocbssId, pbssDescription->bssId);
 
     /* Store beaconInterval */
-    pftSessionEntry->beaconInterval = pbssDescription->beaconInterval;
+    pftSessionEntry->beaconParams.beaconInterval = pbssDescription->beaconInterval;
     pftSessionEntry->bssType = bssType;
 
     pftSessionEntry->statypeForBss = STA_ENTRY_PEER;

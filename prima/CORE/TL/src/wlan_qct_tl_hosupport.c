@@ -688,7 +688,7 @@ VOS_STATUS WLANTL_HSGetRSSI
 #endif
 
 
-   tlCtxt->atlSTAClients[STAid].uRssiAvg = *currentAvgRSSI;
+   tlCtxt->atlSTAClients[STAid].rssiAvg = *currentAvgRSSI;
 
    TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Current new RSSI is %d, averaged RSSI is %d", currentRSSI, *currentAvgRSSI));
    return status;

@@ -2073,7 +2073,7 @@ handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac)
     *((tANI_U16 *)ptr) = (tANI_U16) (cfgValue & 0xffff);
     pMac->lim.gHTPCOActive = (tANI_U8)macHTInfoField3.pcoActive;
     pMac->lim.gHTPCOPhase = (tANI_U8)macHTInfoField3.pcoPhase;
-    pMac->lim.gHTLSigTXOPFullSupport = (tANI_U8)macHTInfoField3.lsigTXOPProtectionFullSupport;
+    psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = (tANI_U8)macHTInfoField3.lsigTXOPProtectionFullSupport;
     pMac->lim.gHTSecondaryBeacon = (tANI_U8)macHTInfoField3.secondaryBeacon;
     pMac->lim.gHTDualCTSProtection = (tANI_U8)macHTInfoField3.dualCTSProtection;
     pMac->lim.gHTSTBCBasicMCS = (tANI_U8)macHTInfoField3.basicSTBCMCS;

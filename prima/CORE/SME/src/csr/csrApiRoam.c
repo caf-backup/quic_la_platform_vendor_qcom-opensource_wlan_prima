@@ -87,6 +87,7 @@
 //Flag to send/do not send disassoc frame over the air
 #define CSR_DONT_SEND_DISASSOC_OVER_THE_AIR 1
 
+#define RSSI_HACK_BMPS (-40)
 /*-------------------------------------------------------------------------- 
   Static Type declarations
   ------------------------------------------------------------------------*/
@@ -1136,9 +1137,6 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.addTSWhenACMIsOff = pParam->addTSWhenACMIsOff;
         pMac->scan.fValidateList = pParam->fValidateList;
 
-#ifdef FEATURE_WLAN_SCAN_PNO
-        pmcUpdateScanParams(pMac, &(pMac->roam.configParam), NULL, FALSE);
-#endif // FEATURE_WLAN_SCAN_PNLO
     }
     
     return status;
@@ -12360,7 +12358,6 @@ eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask, tANI_U
    return status;
 }
 
-
 void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
 {
    tAniGetPEStatsRsp *pSmeStatsRsp;
@@ -12371,6 +12368,10 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
    tANI_U32  tempMask = 0;
    tANI_U8 counter = 0;
    tANI_U8 *pStats = NULL;
+   tANI_U32   length = 0;
+   v_PVOID_t  pvosGCtx;
+   v_S7_t     rssi = 0;
+   tANI_U32   *pRssi = NULL;
 
    pSmeStatsRsp = (tAniGetPEStatsRsp *)pSirMsg;
    if(pSmeStatsRsp->rc)
@@ -12387,6 +12388,11 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
       smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:empty stats buffer from PE\n"));
       goto post_update;
    }
+   /* subtract all statistics from this length, and after processing the entire 
+    * 'stat' part of the message, if the length is not zero, then rssi is piggy packed 
+    * in this 'stats' message.
+    */
+   length = pSmeStatsRsp->msgLen - sizeof(tAniGetPEStatsRsp);
 
    //new stats info from PE, fill up the stats strucutres in PMAC
    while(tempMask)
@@ -12404,7 +12410,9 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
                smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:failed to copy summary stats\n"));
             }
             pStats += sizeof(tCsrSummaryStatsInfo);
+            length -= sizeof(tCsrSummaryStatsInfo);
             break;
+
          case eCsrGlobalClassAStats:
             smsLog( pMac, LOG1, FL("csrRoamStatsRspProcessor:ClassA stats\n"));
             status = palCopyMemory(pMac->hHdd, (tANI_U8 *)&pMac->roam.classAStatsInfo, 
@@ -12414,7 +12422,7 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
                smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:failed to copy ClassA stats\n"));
             }
             pStats += sizeof(tCsrGlobalClassAStatsInfo);
-
+            length -= sizeof(tCsrGlobalClassAStatsInfo);
             break;
 
          case eCsrGlobalClassBStats:
@@ -12426,7 +12434,7 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
                smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:failed to copy ClassB stats\n"));
             }
             pStats += sizeof(tCsrGlobalClassBStatsInfo);
-
+            length -= sizeof(tCsrGlobalClassBStatsInfo);
             break;
 
          case eCsrGlobalClassCStats:
@@ -12438,7 +12446,7 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
                smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:failed to copy ClassC stats\n"));
             }
             pStats += sizeof(tCsrGlobalClassCStatsInfo);
-
+            length -= sizeof(tCsrGlobalClassCStatsInfo);
             break;
 
          case eCsrPerStaStats:
@@ -12450,8 +12458,9 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
                smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:failed to copy PerSta stats\n"));
             }
             pStats += sizeof(tCsrPerStaStatsInfo);
-
+            length -= sizeof(tCsrPerStaStatsInfo);
             break;
+
          default:
             smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:unknown stats type\n"));
             break;
@@ -12462,6 +12471,18 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
       tempMask >>=1;
       counter++;
    }
+   pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SME, pMac);
+   if (length != 0)
+   {
+       pRssi = (tANI_U32*)pStats;
+       rssi = (v_S7_t)*pRssi;
+   }
+   else
+   {
+       /* If riva is not sending rssi, continue to use the hack */
+       rssi = RSSI_HACK_BMPS;
+   }
+   WDA_UpdateRssiBmps(pvosGCtx, pSmeStatsRsp->staId, rssi);
 
 post_update:   
    //make sure to update the pe stats req list 

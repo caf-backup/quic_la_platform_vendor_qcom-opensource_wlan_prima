@@ -1163,7 +1163,7 @@ WLANTL_RegisterSTAClient
       sizeof(pTLCb->atlSTAClients[pwSTADescType->ucSTAId].auRxCount[0])*
       WLAN_MAX_TID);
 
-  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].uRssiAvg = 0;
+  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].rssiAvg = 0;
 
   /*Tx not suspended and station fully registered*/
   vos_atomic_set_U8(
@@ -1988,7 +1988,7 @@ WLANTL_GetRssi
 (
   v_PVOID_t        pvosGCtx,
   v_U8_t           ucSTAId,
-  v_S7_t*          puRssi
+  v_S7_t*          pRssi
 )
 {
   WLANTL_CbType*  pTLCb = NULL;
@@ -1997,7 +1997,7 @@ WLANTL_GetRssi
   /*------------------------------------------------------------------------
     Sanity check
    ------------------------------------------------------------------------*/
-  if ( NULL == puRssi )
+  if ( NULL == pRssi )
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL:Invalid parameter sent on WLANTL_GetRssi"));
@@ -2034,11 +2034,11 @@ WLANTL_GetRssi
    ------------------------------------------------------------------------*/
   if(pTLCb->isBMPS)
   {
-    WDA_DS_GetRssi( pvosGCtx, puRssi);
+    *pRssi = pTLCb->atlSTAClients[ucSTAId].rssiAvgBmps;
   }
   else
   {
-    *puRssi = pTLCb->atlSTAClients[ucSTAId].uRssiAvg;
+    *pRssi = pTLCb->atlSTAClients[ucSTAId].rssiAvg;
   }
 
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -4305,7 +4305,7 @@ WLANTL_ProcessBAPFrame
     --------------------------------------------------------------------*/
     if ( *pFirstDataPktArrived == 0)
     {
-      pTLCb->atlSTAClients[ucSTAId].uRssiAvg =
+      pTLCb->atlSTAClients[ucSTAId].rssiAvg =
          WLANHAL_GET_RSSI_AVERAGE( pvBDHeader );
       pTLCb->atlSTAClients[ucSTAId].uLinkQualityAvg = 
         WLANHAL_RX_BD_GET_SNR( pvBDHeader );
@@ -4315,9 +4315,9 @@ WLANTL_ProcessBAPFrame
     }
     else
     {
-      pTLCb->atlSTAClients[ucSTAId].uRssiAvg =
+      pTLCb->atlSTAClients[ucSTAId].rssiAvg =
           (WLANHAL_GET_RSSI_AVERAGE( pvBDHeader ) + 
-           pTLCb->atlSTAClients[ucSTAId].uRssiAvg)/2;
+           pTLCb->atlSTAClients[ucSTAId].rssiAvg)/2;
       pTLCb->atlSTAClients[ucSTAId].uLinkQualityAvg =
           (WLANHAL_RX_BD_GET_SNR( pvBDHeader ) +  
            pTLCb->atlSTAClients[ucSTAId].uLinkQualityAvg)/2;
@@ -8991,9 +8991,14 @@ WLANTL_CleanCB
       ( NULL != pTLCb->tlBAPClient.vosPendingDataBuff ))
   {
     vos_pkt_return_packet(pTLCb->tlBAPClient.vosPendingDataBuff);
+  }
+  
+  if (( 0 != ucEmpty) &&
+      ( NULL != pTLCb->vosDummyBuf ))
+  {
     vos_pkt_return_packet(pTLCb->vosDummyBuf);
   }
-
+  
   pTLCb->tlBAPClient.vosPendingDataBuff  = NULL;
 
   pTLCb->vosDummyBuf = NULL;
@@ -9132,7 +9137,7 @@ WLANTL_CleanSTA
                  sizeof(ptlSTAClient->auRxCount[0])* WLAN_MAX_TID);
    vos_mem_zero( ptlSTAClient->auTxCount,
                  sizeof(ptlSTAClient->auTxCount[0])* WLAN_MAX_TID);
-   ptlSTAClient->uRssiAvg = 0;
+   ptlSTAClient->rssiAvg = 0;
 
    /*Tx not suspended and station fully registered*/
    vos_atomic_set_U8( &ptlSTAClient->ucTxSuspended, 0);
@@ -9884,7 +9889,7 @@ VOS_STATUS WLANTL_ReadRSSI
    currentRSSI1 = WLANTL_GETRSSI1(pBDHeader);
    currentRSSI  = (currentRSSI0 > currentRSSI1) ? currentRSSI0 : currentRSSI1;
 
-   tlCtxt->atlSTAClients[STAid].uRssiAvg = currentRSSI;
+   tlCtxt->atlSTAClients[STAid].rssiAvg = currentRSSI;
 
    return VOS_STATUS_SUCCESS;
 }
@@ -10314,4 +10319,29 @@ void WLANTL_PostResNeeded(v_PVOID_t pvosGCtx)
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
         "WLAN TL: BD/PDU available interrupt received, Posting message to TL");
   vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
+}
+
+/*===============================================================================
+  FUNCTION       WLANTL_UpdateRssiBmps
+
+  DESCRIPTION    This function updates the TL's RSSI (in BMPS mode)
+
+  DEPENDENCIES   None
+
+  PARAMETERS
+
+    pvosGCtx         VOS context          VOS Global context
+    staId            Station ID           Station ID
+    rssi             RSSI (BMPS mode)     RSSI in BMPS mode
+
+  RETURN         None
+
+  SIDE EFFECTS   none
+ ===============================================================================*/
+
+void WLANTL_UpdateRssiBmps(v_PVOID_t pvosGCtx, v_U8_t staId, v_S7_t rssi)
+{
+  WLANTL_CbType*	pTLCb = VOS_GET_TL_CB(pvosGCtx);
+
+  pTLCb->atlSTAClients[staId].rssiAvgBmps = rssi;
 }

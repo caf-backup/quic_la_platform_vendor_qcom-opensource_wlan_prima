@@ -461,7 +461,10 @@ typedef struct
   WLANTL_STAPriorityType        tlPri;
 
   /* Value of the averaged RSSI for this station */
-  v_S7_t                        uRssiAvg;
+  v_S7_t                        rssiAvg;
+
+  /* Value of the averaged RSSI for this station in BMPS */
+  v_S7_t                        rssiAvgBmps;
 
   /* Value of the averaged RSSI for this station */
   v_U32_t                       uLinkQualityAvg;

@@ -583,9 +583,9 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     
     if(beaconStruct.erpPresent) {
         if (beaconStruct.erpIEInfo.barkerPreambleMode)
-            pMac->lim.gLimShortPreamble = false;
+            psessionEntry->beaconParams.fShortPreamble = false;
         else
-            pMac->lim.gLimShortPreamble = true;
+            psessionEntry->beaconParams.fShortPreamble = true;
     }
 
 

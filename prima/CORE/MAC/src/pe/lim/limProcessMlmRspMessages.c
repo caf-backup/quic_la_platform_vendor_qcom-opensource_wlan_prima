@@ -2973,7 +2973,7 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
     pAddStaParams->staIdx = HAL_STA_INVALID_IDX;
     pAddStaParams->updateSta = FALSE;
 
-    pAddStaParams->shortPreambleSupported = (tANI_U8)pMac->lim.gLimShortPreamble;
+    pAddStaParams->shortPreambleSupported = (tANI_U8)psessionEntry->beaconParams.fShortPreamble;
     limPopulateOwnRateSet(pMac, &pAddStaParams->supportedRates, NULL, false,psessionEntry);
 
     if( psessionEntry->htCapabality)
@@ -4565,9 +4565,9 @@ limHandleDelBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESe
                 limDecideStaProtectionOnAssoc(pMac, &beaconStruct, psessionEntry);
                 if(beaconStruct.erpPresent) {
                 if (beaconStruct.erpIEInfo.barkerPreambleMode)
-                    pMac->lim.gLimShortPreamble = 0;
+                    psessionEntry->beaconParams.fShortPreamble = 0;
                 else
-                    pMac->lim.gLimShortPreamble = 1;
+                    psessionEntry->beaconParams.fShortPreamble = 1;
             }
             //updateBss flag is false, as in this case, PE is first deleting the existing BSS and then adding a new one.
             if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, &beaconStruct, 
@@ -4734,9 +4734,9 @@ limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPES
                 limDecideStaProtectionOnAssoc(pMac, &beaconStruct, psessionEntry);
                 if(beaconStruct.erpPresent) {
                 if (beaconStruct.erpIEInfo.barkerPreambleMode)
-                    pMac->lim.gLimShortPreamble = 0;
+                    psessionEntry->beaconParams.fShortPreamble = 0;
                 else
-                    pMac->lim.gLimShortPreamble = 1;
+                    psessionEntry->beaconParams.fShortPreamble = 1;
             }
             
             if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, &beaconStruct, 

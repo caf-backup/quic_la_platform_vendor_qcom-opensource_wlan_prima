@@ -59,7 +59,7 @@ void schSetBeaconInterval(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
     tANI_U32 bi;
 
-    bi = psessionEntry->beaconInterval;
+    bi = psessionEntry->beaconParams.beaconInterval;
 
     if (bi < SCH_BEACON_INTERVAL_MIN || bi > SCH_BEACON_INTERVAL_MAX)
     {

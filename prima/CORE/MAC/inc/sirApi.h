@@ -3820,6 +3820,7 @@ typedef struct {
   tANI_U16  usPassiveMaxChTime; 
   tANI_U16  usActiveMinChTime; 
   tANI_U16  usActiveMaxChTime; 
+  tANI_U8   ucCBState; 
 } tSirUpdateScanParams, * tpSirUpdateScanParams;
 
 // Preferred Network Found Indication

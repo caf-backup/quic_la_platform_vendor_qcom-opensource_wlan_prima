@@ -1239,6 +1239,10 @@ v_BOOL_t WDA_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx,
          halPS_SetRSSIThresholds(pMac, pThresholds)
 #endif
 
+#if defined( FEATURE_WLAN_INTEGRATED_SOC )
+#define WDA_UpdateRssiBmps(pvosGCtx,  staId, rssi) \
+        WLANTL_UpdateRssiBmps (pvosGCtx, staId, rssi)
+#endif
 
 #ifdef WLAN_PERF 
 /*==========================================================================

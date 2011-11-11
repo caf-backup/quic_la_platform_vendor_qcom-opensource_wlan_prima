@@ -4600,7 +4600,8 @@ VOS_STATUS WDA_ProcessSetLinkState(tWDA_CbContext *pWDA,
       /* store Params pass it to WDI */
       pWdaParams->wdaWdiApiMsgParam = (void *)wdiSetLinkStateParam ;
 
-      if( linkStateParams->state == eSIR_LINK_IDLE_STATE )
+      if( linkStateParams->state == eSIR_LINK_IDLE_STATE 
+          && !(vos_concurrent_sessions_running()))
       {
          WDA_STOP_TIMER(&pWDA->wdaTimers.baActivityChkTmr);
       }
@@ -9722,9 +9723,15 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          pPrefNetworkFoundInd->mesgLen = sizeof(pPrefNetworkFoundInd);
 
          /* Info from WDI Indication */ 
-         vos_mem_copy( (void *)&(pPrefNetworkFoundInd->ssId), 
-                  &(wdiLowLevelInd->wdiIndicationData.wdiPrefNetworkFoundInd.ssId), 
-                  sizeof(WDI_MacSSid));
+         pPrefNetworkFoundInd->ssId.length = 
+            wdiLowLevelInd->wdiIndicationData.wdiPrefNetworkFoundInd.ssId.ucLength;
+
+         vos_mem_set( pPrefNetworkFoundInd->ssId.ssId, 32, 0);
+
+         vos_mem_copy( pPrefNetworkFoundInd->ssId.ssId, 
+                  wdiLowLevelInd->wdiIndicationData.wdiPrefNetworkFoundInd.ssId.sSSID, 
+                  pPrefNetworkFoundInd->ssId.length);
+
          pPrefNetworkFoundInd ->rssi = wdiLowLevelInd->wdiIndicationData.wdiPrefNetworkFoundInd.rssi; 
 
          /* VOS message wrapper */
@@ -10152,20 +10159,27 @@ eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
  */ 
 void WDA_PNOScanReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   vos_mem_free(pWDA->wdaMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
-   
+    if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
 
-   //print a msg, nothing else to do
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "WDA_PNOScanReqCallback invoked " );
+   if( pWdaParams != NULL )
+   {
+      if( pWdaParams->wdaWdiApiMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      }
+      vos_mem_free(pWdaParams) ;
+   }
 
    return ;
 }
@@ -10176,20 +10190,28 @@ void WDA_PNOScanReqCallback(WDI_Status status, void* pUserData)
  */ 
 void WDA_RssiFilterCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   vos_mem_free(pWDA->wdaMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
-   
+    if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
 
-   //print a msg, nothing else to do
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "WDA_RssiFilterCallback invoked " );
+   if( pWdaParams != NULL )
+   {
+      if( pWdaParams->wdaWdiApiMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      }
+      vos_mem_free(pWdaParams) ;
+   }
+
 
    return ;
 }
@@ -10200,20 +10222,27 @@ void WDA_RssiFilterCallback(WDI_Status status, void* pUserData)
  */ 
 void WDA_UpdateScanParamsCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
 
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+     VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   vos_mem_free(pWDA->wdaMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
-   
+    if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
 
-   //print a msg, nothing else to do
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "WDA_PNOScanReqCallback invoked " );
+   if( pWdaParams != NULL )
+   {
+      if( pWdaParams->wdaWdiApiMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      }
+      vos_mem_free(pWdaParams) ;
+   }
 
    return ;
 }
@@ -10408,6 +10437,7 @@ VOS_STATUS WDA_ProcessUpdateScanParams(tWDA_CbContext *pWDA,
       (WDI_UpdateScanParamsInfoType *)vos_mem_malloc(
          sizeof(WDI_UpdateScanParamsInfoType)) ;
    tWDA_ReqParams *pWdaParams ;
+   v_U8_t i; 
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
@@ -10421,7 +10451,7 @@ VOS_STATUS WDA_ProcessUpdateScanParams(tWDA_CbContext *pWDA,
    }
 
    pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
-   if(NULL == pWdaParams)
+   if ( NULL == pWdaParams )
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s: VOS MEM Alloc Failure", __FUNCTION__); 
@@ -10433,19 +10463,79 @@ VOS_STATUS WDA_ProcessUpdateScanParams(tWDA_CbContext *pWDA,
    //
    // Fill wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo from pUpdateScanParams
    //
-   vos_mem_copy(&(wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo), 
-                       pUpdateScanParams, sizeof(tSirUpdateScanParams)) ;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+          "Update Scan Parameters b11dEnabled %d b11dResolved %d "
+          "ucChannelCount %d usPassiveMinChTime %d usPassiveMaxChTime"
+          " %d usActiveMinChTime %d usActiveMaxChTime %d sizeof "
+          "sir struct %d wdi struct %d",
+              pUpdateScanParams->b11dEnabled,
+              pUpdateScanParams->b11dResolved,
+              pUpdateScanParams->ucChannelCount, 
+              pUpdateScanParams->usPassiveMinChTime, 
+              pUpdateScanParams->usPassiveMaxChTime, 
+              pUpdateScanParams->usActiveMinChTime,
+              pUpdateScanParams->usActiveMaxChTime,
+              sizeof(tSirUpdateScanParams),
+              sizeof(wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo) ); 
+
+
+   wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.b11dEnabled  =
+      pUpdateScanParams->b11dEnabled;
+
+   wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.b11dResolved =
+      pUpdateScanParams->b11dResolved;
+
+   wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.cbState = 
+      pUpdateScanParams->ucCBState;
+
+   wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.usActiveMaxChTime  =
+      pUpdateScanParams->usActiveMaxChTime; 
+   wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.usActiveMinChTime  = 
+      pUpdateScanParams->usActiveMinChTime;
+   wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.usPassiveMaxChTime = 
+      pUpdateScanParams->usPassiveMaxChTime;
+   wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.usPassiveMinChTime = 
+     pUpdateScanParams->usPassiveMinChTime;
+
+
+   wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.ucChannelCount = 
+      (pUpdateScanParams->ucChannelCount < WDI_PNO_MAX_NETW_CHANNELS)?
+      pUpdateScanParams->ucChannelCount:WDI_PNO_MAX_NETW_CHANNELS;
+
+
+   for ( i = 0; i < 
+         wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.ucChannelCount ; 
+         i++)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+             "Update Scan Parameters channel: %d",
+                 pUpdateScanParams->aChannels[i]);
+   
+      wdiUpdateScanParamsInfoType->wdiUpdateScanParamsInfo.aChannels[i] = 
+         pUpdateScanParams->aChannels[i];
+   }
+
 
    wdiUpdateScanParamsInfoType->wdiReqStatusCB = NULL;
 
-   VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                  (NULL == pWDA->wdaWdiApiMsgParam));
+    if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(pWdaParams);
+      vos_mem_free(wdiUpdateScanParamsInfoType);
+      return VOS_STATUS_E_FAILURE;
+   }
 
-   /* Store Params pass it to WDI */
+     /* Store Params pass it to WDI */
    pWdaParams->wdaWdiApiMsgParam = wdiUpdateScanParamsInfoType;
    pWdaParams->pWdaContext = pWDA;
    /* Store param pointer as passed in by caller */
    pWdaParams->wdaMsgParam = pUpdateScanParams;
+
+ 
 
    status = WDI_UpdateScanParamsReq(wdiUpdateScanParamsInfoType, 
                     (WDI_UpdateScanParamsCb)WDA_UpdateScanParamsCallback, 
@@ -10456,9 +10546,7 @@ VOS_STATUS WDA_ProcessUpdateScanParams(tWDA_CbContext *pWDA,
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in Update Scan Params EQ WDI API, free all the memory " );
       vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
-      vos_mem_free(pWdaParams->wdaMsgParam);
-      pWdaParams->wdaWdiApiMsgParam = NULL;
-      pWdaParams->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams);
    }
 
    return CONVERT_WDI2VOS_STATUS(status) ;

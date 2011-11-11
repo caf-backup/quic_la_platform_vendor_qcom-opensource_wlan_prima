@@ -287,10 +287,21 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     hddLog( LOGE, "Action frame tx request\n");
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
-    if( offchan )
+    if( offchan ) 
     {
         int status;
+        hdd_adapter_t *goAdapter;
 
+        goAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_P2P_GO );
+
+        //If GO adapter exists and operating on same frequency 
+        //then we will not request remain on channel 
+        if( goAdapter && ( ieee80211_frequency_to_channel(chan->center_freq)
+                             == goAdapter->sessionCtx.ap.operatingChannel ) )
+        {
+           goto send_frame;
+        }
+        
         status = wlan_hdd_request_remain_on_channel(wiphy, dev,
                                         chan, channel_type, wait, cookie,
                                         OFF_CHANNEL_ACTION_TX);

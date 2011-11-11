@@ -498,12 +498,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     }
 #endif
 
-#ifdef WLAN_SOFTAP_FEATURE
     if (psessionEntry->dot11mode != WNI_CFG_DOT11_MODE_11B)
         PopulateDot11fERPInfo( pMac, &frm.ERPInfo, psessionEntry);
-#else
-    PopulateDot11fERPInfo( pMac, &frm.ERPInfo );
-#endif
 
 
     // N.B. In earlier implementations, the RSN IE would be placed in

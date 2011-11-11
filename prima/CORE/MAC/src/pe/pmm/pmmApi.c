@@ -974,7 +974,7 @@ void pmmExitBmpsIndicationHandler(tpAniSirGlobal pMac, tANI_U8 mode, eHalStatus 
 			{
 
 				/* Read the beacon interval from sessionTable */        		
-				beaconInterval = psessionEntry->beaconInterval;
+				beaconInterval = psessionEntry->beaconParams.beaconInterval;
 				
     			/* Change timer to reactivate it in future */
                 heartBeatInterval= SYS_MS_TO_TICKS(beaconInterval * heartBeatInterval);

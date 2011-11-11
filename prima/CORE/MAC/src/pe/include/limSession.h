@@ -34,6 +34,19 @@
 /*-------------------------------------------------------------------------- 
   Type declarations
   ------------------------------------------------------------------------*/
+typedef struct 
+{
+    tSirMacBeaconInterval   beaconInterval;
+    tANI_U8                 fShortPreamble;   
+    tANI_U8                 llaCoexist;    
+    tANI_U8                 llbCoexist;
+    tANI_U8                 llgCoexist;
+    tANI_U8                 ht20Coexist;
+    tANI_U8                 llnNonGFCoexist;
+    tANI_U8                 fRIFSMode;
+    tANI_U8                 fLsigTXOPProtectionFullSupport;
+    tANI_U8                 gHTObssMode; 
+}tBeaconParams, *tpBeaconParams;
 
 typedef struct sPESession           // Added to Support BT-AMP
 {
@@ -103,15 +116,6 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U16                staId;            
     tANI_U16                statypeForBss;          //to know session is for PEER or SELF
     tANI_U8                 shortSlotTimeSupported;
-    tANI_U8                 fShortPreamble;   
-    tANI_U8                 llaCoexist;    
-    tANI_U8                 llbCoexist;
-    tANI_U8                 llgCoexist;
-    tANI_U8                 ht20Coexist;
-    tANI_U8                 llnNonGFCoexist;
-    tANI_U8                 fLsigTXOPProtectionFullSupport;
-    tANI_U8                 fRIFSMode;
-    tSirMacBeaconInterval   beaconInterval;
     tANI_U8                 dtimPeriod;
     tSirMacRateSet       rateSet;
     tSirMacRateSet       extRateSet;
@@ -143,9 +147,6 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_BOOLEAN            bTkipCntrMeasActive;    // Used to keep record of TKIP counter measures start/stop
 
     tANI_U8                 gLimProtectionControl;  //used for 11n protection
-
-    // OBss Mode . set when we have Non HT STA is associated or with in overlap bss
-    tANI_U8                 gHTObssMode; 
 
     tANI_U8                 gHTNonGFDevicesPresent;    
 
@@ -243,6 +244,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     tSirMacEdcaParamRecord gLimEdcaParamsActive[MAX_NUM_AC]; 
 
     tANI_U8  gLimEdcaParamSetCount;
+
+    tBeaconParams beaconParams;
 
 }tPESession, *tpPESession;
 

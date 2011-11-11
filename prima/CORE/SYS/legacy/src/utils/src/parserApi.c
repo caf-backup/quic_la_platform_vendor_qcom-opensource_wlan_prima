@@ -389,16 +389,10 @@ PopulateDot11fEDCAParamSet(tpAniSirGlobal         pMac,
 
 } // End PopluateDot11fEDCAParamSet.
 
-#ifdef WLAN_SOFTAP_FEATURE
 tSirRetStatus
 PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
                       tDot11fIEERPInfo *pDot11f,
                       tpPESession    psessionEntry)
-#else
-tSirRetStatus
-PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
-                      tDot11fIEERPInfo *pDot11f)
-#endif
 {
     tSirRetStatus nSirStatus;
     tANI_U32            val;
@@ -409,81 +403,31 @@ PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
     {
         pDot11f->present = 1;
 
-#ifdef WLAN_SOFTAP_FEATURE
-        if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
 	        val  = psessionEntry->cfgProtection.fromllb;
             if(!val ){
                dot11fLog( pMac, LOGE, FL("11B protection not enabled. Not populating ERP IE %d\n" ),val );
                return eSIR_SUCCESS;
             }
-       	}else{
-#endif       	
-            CFG_GET_INT( nSirStatus, pMac, WNI_CFG_PROTECTION_ENABLED, val );
 
-            if ( ! ((val >> WNI_CFG_PROTECTION_ENABLED_FROM_llB) & 1))
-            {
-                dot11fLog( pMac, LOG4, FL("11B protection not enabled. Not populating ERP IE\n") );
-                return eSIR_SUCCESS;
-            }
-#ifdef WLAN_SOFTAP_FEATURE
-        }
-#endif
-
-#ifdef WLAN_SOFTAP_FEATURE
-       if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE ) && psessionEntry->gLim11bParams.protectionEnabled)
-       {
-            pDot11f->non_erp_present = 1;
-            pDot11f->use_prot        = 1;
-       }
-       else
-#endif
-       {
-           if ( pMac->lim.gLim11bParams.protectionEnabled)
+        if (psessionEntry->gLim11bParams.protectionEnabled)
            {
                pDot11f->non_erp_present = 1;
                pDot11f->use_prot        = 1;
            }
-       }
 
-#ifdef WLAN_SOFTAP_FEATURE
-        if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE ) && psessionEntry->gLimOlbcParams.protectionEnabled )
+        if ( psessionEntry->gLimOlbcParams.protectionEnabled )
         {
             //FIXME_PROTECTION: we should be setting non_erp present also.
             //check the test plan first.
             pDot11f->use_prot = 1;
         }
-        else 
-#endif
-       {
-            if ( pMac->lim.gLimOlbcParams.protectionEnabled )
-            {
-               //FIXME_PROTECTION: we should be setting non_erp present also.
-               //check the test plan first.
-               pDot11f->use_prot = 1;
-            }
-        }	
 
 
-#ifdef WLAN_SOFTAP_FEATURE
-        if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) && 
-            ((psessionEntry->gLimNoShortParams.numNonShortPreambleSta) 
-               || !psessionEntry->fShortPreamble)){ 
+        if((psessionEntry->gLimNoShortParams.numNonShortPreambleSta) 
+                 || !psessionEntry->beaconParams.fShortPreamble){ 
                 pDot11f->barker_preamble = 1;
          
         }
-        
-        else if (psessionEntry->limSystemRole != eLIM_AP_ROLE){ 
-#endif
-            CFG_GET_INT( nSirStatus, pMac, WNI_CFG_SHORT_PREAMBLE, val );
-
-            if ( pMac->lim.gLimNoShortParams.numNonShortPreambleSta || ! val )
-            {
-                pDot11f->barker_preamble = 1;
-            }
-
-#ifdef WLAN_SOFTAP_FEATURE
-      }
-#endif
         // if protection always flag is set, advertise protection enabled
         // regardless of legacy stations presence
         CFG_GET_INT( nSirStatus, pMac, WNI_CFG_11G_PROTECTION_ALWAYS, val );
@@ -765,7 +709,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     pHTInfoField1 = ( tSirMacHTInfoField1* ) &htInfoField1;
     pHTInfoField1->secondaryChannelOffset     = pMac->lim.gHTSecondaryChannelOffset;
     pHTInfoField1->recommendedTxWidthSet      = pMac->lim.gHTRecommendedTxWidthSet;
-    pHTInfoField1->rifsMode                   = pMac->lim.gHTRifsMode;
+    pHTInfoField1->rifsMode                   = psessionEntry->beaconParams.fRIFSMode;
     pHTInfoField1->serviceIntervalGranularity = pMac->lim.gHTServiceIntervalGranularity;
 
 
@@ -776,8 +720,8 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     uHTInfoField2.nCfgValue16 = nCfgValue & 0xFFFF; // this is added for fixing CRs on MDM9K platform - 257951, 259577
 
     uHTInfoField2.infoField2.opMode   =  psessionEntry->htOperMode;
-    uHTInfoField2.infoField2.nonGFDevicesPresent = psessionEntry->gHTNonGFDevicesPresent;
-    uHTInfoField2.infoField2.obssNonHTStaPresent = psessionEntry->gHTObssMode;	/*added for Obss  */
+    uHTInfoField2.infoField2.nonGFDevicesPresent = psessionEntry->beaconParams.llnNonGFCoexist;
+    uHTInfoField2.infoField2.obssNonHTStaPresent = psessionEntry->beaconParams.gHTObssMode;	/*added for Obss  */
 
     uHTInfoField2.infoField2.reserved = 0;
 
@@ -807,7 +751,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     uHTInfoField.infoField3.basicSTBCMCS                  = pMac->lim.gHTSTBCBasicMCS;
     uHTInfoField.infoField3.dualCTSProtection             = pMac->lim.gHTDualCTSProtection;
     uHTInfoField.infoField3.secondaryBeacon               = pMac->lim.gHTSecondaryBeacon;
-    uHTInfoField.infoField3.lsigTXOPProtectionFullSupport = pMac->lim.gHTLSigTXOPFullSupport;
+    uHTInfoField.infoField3.lsigTXOPProtectionFullSupport = psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport;
     uHTInfoField.infoField3.pcoActive                     = pMac->lim.gHTPCOActive;
     uHTInfoField.infoField3.pcoPhase                      = pMac->lim.gHTPCOPhase;
     uHTInfoField.infoField3.reserved                      = 0;
@@ -819,7 +763,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     pHTInfoField3->basicSTBCMCS                  = pMac->lim.gHTSTBCBasicMCS;
     pHTInfoField3->dualCTSProtection             = pMac->lim.gHTDualCTSProtection;
     pHTInfoField3->secondaryBeacon               = pMac->lim.gHTSecondaryBeacon;
-    pHTInfoField3->lsigTXOPProtectionFullSupport = pMac->lim.gHTLSigTXOPFullSupport;
+    pHTInfoField3->lsigTXOPProtectionFullSupport = psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport;
     pHTInfoField3->pcoActive                     = pMac->lim.gHTPCOActive;
     pHTInfoField3->pcoPhase                      = pMac->lim.gHTPCOPhase;
     pHTInfoField3->reserved                      = 0;

@@ -1026,7 +1026,7 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
             //we are HT and 11A station is leaving.
             //protection consideration required.
             //HT station leaving ==> this case is commonly handled between both the bands below.
-            if((psessionEntry->llaCoexist) && 
+            if((psessionEntry->beaconParams.llaCoexist) && 
               (false == pStaDs->mlmStaContext.htCapability))
             {
                 PELOG1(limLog(pMac, LOG1, FL("(%d) A 11A STA is disassociated. Addr is "),
@@ -1163,13 +1163,13 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
             }
         }
         //HT 20Mhz station leaving.
-        if(psessionEntry->ht20Coexist &&
+        if(psessionEntry->beaconParams.ht20Coexist &&
                 (eHT_CHANNEL_WIDTH_20MHZ == pStaDs->htSupportedChannelWidthSet))
         {
             limDecideApProtectionOnHt20Delete(pMac, pStaDs, pBeaconParams,psessionEntry);
         }
 
-        if(false == psessionEntry->fLsigTXOPProtectionFullSupport &&
+        if(false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport &&
                 (false == pStaDs->htLsigTXOPProtection))
         {
            PELOG1( limLog(pMac, LOG1, FL("(%d) A HT LSIG not supporting STA is disassociated. Addr is "),
@@ -1212,21 +1212,11 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
 \param      tpUpdateBeaconParams pBeaconParams
 \return      None
   -------------------------------------------------------------*/
-#ifdef WLAN_SOFTAP_FEATURE
-	void
-	limDecideShortPreamble(tpAniSirGlobal pMac, 
+void limDecideShortPreamble(tpAniSirGlobal pMac, 
 		  tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry )
-#else
-	void
-	limDecideShortPreamble(tpAniSirGlobal pMac, 
-		  tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams )
-#endif
 	{
 		tANI_U32 i;
 	
-#ifdef WLAN_SOFTAP_FEATURE
-		if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
-		{
 			if (pStaDs->shortPreambleEnabled == eHAL_CLEAR)
 			{
 				PELOG1(limLog(pMac, LOG1, FL("(%d) A non-short preamble STA is disassociated. Addr is "),
@@ -1260,48 +1250,6 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
 				}
 			}
 		}
-		else
-#endif
-		{
-			if (pStaDs->shortPreambleEnabled == eHAL_CLEAR)
-			{
-				PELOG1(limLog(pMac, LOG1, FL("(%d) A non-short preamble STA is disassociated. Addr is "),
-							  pMac->lim.gLimNoShortParams.numNonShortPreambleSta);
-				limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
-				if (pMac->lim.gLimNoShortParams.numNonShortPreambleSta > 0)
-				{
-					for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
-					{
-						if (pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
-						{
-							if (palEqualMemory( pMac->hHdd, pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
-												pStaDs->staAddr, sizeof(tSirMacAddr)))
-							{
-								pMac->lim.gLimNoShortParams.numNonShortPreambleSta--;
-								pMac->lim.gLimNoShortParams.staNoShortCache[i].active = false;
-								break;
-							}
-						}
-					}
-				}
-	
-				if (pMac->lim.gLimNoShortParams.numNonShortPreambleSta == 0)
-				{
-					// enable short preamble
-					PELOG1(limLog(pMac, LOG1, FL("All associated STAs have short preamble support now.\n"));)
-					//reset the cache
-					palZeroMemory( pMac->hHdd, (tANI_U8 *)&pMac->lim.gLimNoShortParams , sizeof(tLimNoShortParams));
-	
-#ifdef WLAN_SOFTAP_FEATURE
-					if (limEnableShortPreamble(pMac, true, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
-#else
-					if (limEnableShortPreamble(pMac, true, pBeaconParams) != eSIR_SUCCESS)
-#endif
-						PELOGE(limLog(pMac, LOGE, FL("Cannot enable short preamble\n"));)
-				}
-			 }
-		}
-	}
 
 /** -------------------------------------------------------------
 \fn limDecideShortSlot
@@ -2385,7 +2333,7 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
     pAddStaParams->staIdx = staIdx;
     pAddStaParams->updateSta = updateSta;
 
-    pAddStaParams->shortPreambleSupported = (tANI_U8)pMac->lim.gLimShortPreamble;
+    pAddStaParams->shortPreambleSupported = psessionEntry->beaconParams.fShortPreamble;
     limPopulateOwnRateSet(pMac, &pAddStaParams->supportedRates, NULL, false,psessionEntry);
 
     if( psessionEntry->htCapabality)
@@ -2972,10 +2920,10 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     pAddBssParams->nwType = bssDescription->nwType;
     
     pAddBssParams->shortSlotTimeSupported = (tANI_U8)pAssocRsp->capabilityInfo.shortSlotTime;    
-    pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->llaCoexist;    
-    pAddBssParams->llbCoexist = (tANI_U8) psessionEntry->llbCoexist;
-    pAddBssParams->llgCoexist = (tANI_U8) psessionEntry->llgCoexist;
-    pAddBssParams->ht20Coexist = (tANI_U8) psessionEntry->ht20Coexist;   
+    pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->beaconParams.llaCoexist;    
+    pAddBssParams->llbCoexist = (tANI_U8) psessionEntry->beaconParams.llbCoexist;
+    pAddBssParams->llgCoexist = (tANI_U8) psessionEntry->beaconParams.llgCoexist;
+    pAddBssParams->ht20Coexist = (tANI_U8) psessionEntry->beaconParams.ht20Coexist;   
 
 
     // Use the advertised capabilities from the received beacon/PR
@@ -3212,10 +3160,10 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     pAddBssParams->nwType = bssDescription->nwType;
     
     pAddBssParams->shortSlotTimeSupported = (tANI_U8)beaconStruct.capabilityInfo.shortSlotTime; 
-    pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->llaCoexist;//(tANI_U8) pMac->lim.llaCoexist;    
-    pAddBssParams->llbCoexist = (tANI_U8) psessionEntry->llbCoexist;//(tANI_U8) pMac->lim.llbCoexist;
-    pAddBssParams->llgCoexist = (tANI_U8) psessionEntry->llgCoexist;// pMac->lim.llgCoexist;
-    pAddBssParams->ht20Coexist = (tANI_U8) psessionEntry->ht20Coexist; //pMac->lim.ht20MhzCoexist;   
+    pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->beaconParams.llaCoexist;
+    pAddBssParams->llbCoexist = (tANI_U8) psessionEntry->beaconParams.llbCoexist;
+    pAddBssParams->llgCoexist = (tANI_U8) psessionEntry->beaconParams.llgCoexist;
+    pAddBssParams->ht20Coexist = (tANI_U8) psessionEntry->beaconParams.ht20Coexist; 
 
     // Use the advertised capabilities from the received beacon/PR
     if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && ( beaconStruct.HTCaps.present ))
@@ -3432,10 +3380,10 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     pAddBssParams->nwType = neighborBssInfo->nwType;
     
     pAddBssParams->shortSlotTimeSupported = (tANI_U8)pAssocRsp->capabilityInfo.shortSlotTime;    
-    pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->llaCoexist;    
-    pAddBssParams->llbCoexist = (tANI_U8) psessionEntry->llbCoexist;
-    pAddBssParams->llgCoexist = (tANI_U8) psessionEntry->llgCoexist;
-    pAddBssParams->ht20Coexist = (tANI_U8) psessionEntry->ht20Coexist;    
+    pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->beaconParams.llaCoexist;    
+    pAddBssParams->llbCoexist = (tANI_U8) psessionEntry->beaconParams.llbCoexist;
+    pAddBssParams->llgCoexist = (tANI_U8) psessionEntry->beaconParams.llgCoexist;
+    pAddBssParams->ht20Coexist = (tANI_U8) psessionEntry->beaconParams.ht20Coexist;    
 
     // Use the advertised capabilities from the received beacon/PR
     if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && ( neighborBssInfo->HTCapsPresent ))

@@ -913,6 +913,33 @@ eHalStatus sme_setRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
 }
 
 #endif
+#ifdef FEATURE_WLAN_SCAN_PNO
+/*--------------------------------------------------------------------------
+
+  \brief sme_UpdateChannelConfig() - Update channel configuration in RIVA.
+ 
+  It is used at driver start up to inform RIVA of the default channel 
+  configuration. 
+
+  This is a synchronuous call
+
+  \param hHal - The handle returned by macOpen.
+  
+  \return eHAL_STATUS_SUCCESS - SME update the channel config successfully.
+
+          Other status means SME is failed to update the channel config.
+  \sa
+
+  --------------------------------------------------------------------------*/
+eHalStatus sme_UpdateChannelConfig(tHalHandle hHal)
+{
+  tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+  pmcUpdateScanParams( pMac, &(pMac->roam.configParam), 
+                      &pMac->scan.base20MHzChannels, FALSE);
+  return eHAL_STATUS_SUCCESS;
+}
+#endif // FEATURE_WLAN_SCAN_PNLO
 
 /*--------------------------------------------------------------------------
 

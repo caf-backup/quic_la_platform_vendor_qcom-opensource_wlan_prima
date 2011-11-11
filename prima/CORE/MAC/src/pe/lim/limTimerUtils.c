@@ -1530,7 +1530,7 @@ limHeartBeatDeactivateAndChangeTimer(tpAniSirGlobal pMac, tpPESession psessionEn
     if (tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
         limLog(pMac, LOGP, FL("Fail to deactivate HeartBeatTimer \n"));
 
-    val = psessionEntry->beaconInterval;
+    val = psessionEntry->beaconParams.beaconInterval;
     PELOGW(limLog(pMac, LOGW, FL("session beaconInterval = %d\n"), val);)
 
 

@@ -219,7 +219,7 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
         #endif// TO SUPPORT BT-AMP
 
         /* copy the beacon interval from psessionEntry*/
-        val = psessionEntry->beaconInterval;
+        val = psessionEntry->beaconParams.beaconInterval;
 
         beaconPeriod = (tANI_U16) val;
 

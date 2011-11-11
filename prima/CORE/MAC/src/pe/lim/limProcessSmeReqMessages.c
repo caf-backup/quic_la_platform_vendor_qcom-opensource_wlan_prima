@@ -523,7 +523,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         
         psessionEntry->nwType = pSmeStartBssReq->nwType;
         
-        psessionEntry->beaconInterval = pSmeStartBssReq->beaconInterval;
+        psessionEntry->beaconParams.beaconInterval = pSmeStartBssReq->beaconInterval;
 
         /* Store the channel number in session Table */
         psessionEntry->currentOperChannel = pSmeStartBssReq->channelId;
@@ -777,7 +777,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /* store the channel num in mlmstart req structure */
         pMlmStartReq->channelNumber = psessionEntry->currentOperChannel;
         pMlmStartReq->cbMode = pSmeStartBssReq->cbMode;        
-        pMlmStartReq->beaconPeriod = psessionEntry->beaconInterval;
+        pMlmStartReq->beaconPeriod = psessionEntry->beaconParams.beaconInterval;
 
 #ifdef WLAN_SOFTAP_FEATURE
         if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
@@ -1381,7 +1381,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             psessionEntry->transactionId = pSmeJoinReq->transactionId;
 
            /* Store beaconInterval */
-            psessionEntry->beaconInterval = pSmeJoinReq->bssDescription.beaconInterval;
+            psessionEntry->beaconParams.beaconInterval = pSmeJoinReq->bssDescription.beaconInterval;
 
             /* Copying of bssId is already done, while creating session */
             //sirCopyMacAddr(psessionEntry->bssId,pSmeJoinReq->bssId);

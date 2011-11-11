@@ -303,12 +303,8 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     }
 #endif
 
-#ifdef WLAN_SOFTAP_FEATURE
     if (psessionEntry->dot11mode != WNI_CFG_DOT11_MODE_11B)
         PopulateDot11fERPInfo( pMac, &bcn2.ERPInfo, psessionEntry );
-#else
-    PopulateDot11fERPInfo( pMac, &bcn2.ERPInfo );
-#endif
 
     if(psessionEntry->htCapabality)
     {

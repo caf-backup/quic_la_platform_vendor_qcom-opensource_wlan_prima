@@ -2394,7 +2394,7 @@ void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannel
 		csrSetCfgScanControlList(pMac, countryCode, pChannelList);     //  build a scan list based on the channel list : channel# + active/passive scan
 #ifdef FEATURE_WLAN_SCAN_PNO
         // Send HAL UpdateScanParams message
-        pmcUpdateScanParams(pMac, &(pMac->roam.configParam), pChannelList, TRUE);
+        //pmcUpdateScanParams(pMac, &(pMac->roam.configParam), pChannelList, TRUE);
 #endif // FEATURE_WLAN_SCAN_PNLO
 	}
 	else
@@ -4743,7 +4743,7 @@ static void csrStaApConcTimerHandler(void *pv)
              //remove this command from pending list 
              if (csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) == NULL)
              { //In case between PeekHead and here, the entry got removed by another thread.
-                 continue;
+                 smsLog( pMac, LOGE, FL(" Failed to remove entry from scanCmdPendingList\n"));
              }
             
         }               

@@ -406,7 +406,7 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
                 sirCopyMacAddr(pSirSmeRsp->bssDescription.bssId, psessionEntry->bssId);
         
                 /* Read beacon interval from session */
-                pSirSmeRsp->bssDescription.beaconInterval = (tANI_U16) psessionEntry->beaconInterval;
+                pSirSmeRsp->bssDescription.beaconInterval = (tANI_U16) psessionEntry->beaconParams.beaconInterval;
                 pSirSmeRsp->bssType         = psessionEntry->bssType;
 
                 if (cfgGetCapabilityInfo( pMac, &pSirSmeRsp->bssDescription.capabilityInfo,psessionEntry)

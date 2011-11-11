@@ -244,15 +244,6 @@ static void __limInitStates(tpAniSirGlobal pMac)
      * when SME_START_BSS_REQ is received.
      */
 
-    // Number of legacy STAs associated
-    palZeroMemory(pMac->hHdd, &pMac->lim.gLim11bParams, sizeof(tLimProtStaParams));
-    palZeroMemory(pMac->hHdd, &pMac->lim.gLim11aParams, sizeof(tLimProtStaParams));
-    palZeroMemory(pMac->hHdd, &pMac->lim.gLim11gParams, sizeof(tLimProtStaParams));
-    palZeroMemory(pMac->hHdd, &pMac->lim.gLimNonGfParams, sizeof(tLimProtStaParams));
-    palZeroMemory(pMac->hHdd, &pMac->lim.gLimHt20Params, sizeof(tLimProtStaParams));
-    palZeroMemory(pMac->hHdd, &pMac->lim.gLimLsigTxopParams, sizeof(tLimProtStaParams));
-    palZeroMemory(pMac->hHdd, &pMac->lim.gLimOlbcParams, sizeof(tLimProtStaParams));
-
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimOverlap11gParams, sizeof(tLimProtStaParams));
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimOverlap11aParams, sizeof(tLimProtStaParams));
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimOverlapHt20Params, sizeof(tLimProtStaParams));
@@ -268,7 +259,6 @@ static void __limInitStates(tpAniSirGlobal pMac)
     pMac->lim.gLimRFBand = SIR_BAND_2_4_GHZ;
 
     pMac->lim.gLimPhyMode = 0;
-    pMac->lim.gLimShortPreamble = 0;
     pMac->lim.scanStartTime = 0;    // used to measure scan time
 
     palZeroMemory(pMac->hHdd, pMac->lim.gLimBssid, sizeof(pMac->lim.gLimBssid));
@@ -444,19 +434,15 @@ static void __limInitHTVars(tpAniSirGlobal pMac)
     pMac->lim.gHTMaxRxAMpduFactor = 0;
     pMac->lim.gHTServiceIntervalGranularity = 0;
     pMac->lim.gHTControlledAccessOnly = 0;
-    pMac->lim.gHTRifsMode = 0;
-    pMac->lim.gHTObssMode = 0;
     pMac->lim.gHTRecommendedTxWidthSet = 0;
     pMac->lim.gHTSecondaryChannelOffset = eHT_SECONDARY_CHANNEL_OFFSET_NONE;
     pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
     pMac->lim.gHTPCOActive = 0;
 
     pMac->lim.gHTPCOPhase = 0;
-    pMac->lim.gHTLSigTXOPFullSupport = 0;
     pMac->lim.gHTSecondaryBeacon = 0;
     pMac->lim.gHTDualCTSProtection = 0;
     pMac->lim.gHTSTBCBasicMCS = 0;
-    pMac->lim.gHTNonGFDevicesPresent = 0;
     pMac->lim.gAddBA_Declined = 0;               // Flag to Decline the BAR if the particular bit (0-7) is being set   
 }
 
@@ -593,7 +579,6 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
       limLog(pMac, LOGP, FL("cfg get short preamble failed\n"));
       return eSIR_FAILURE;
    }
-   pMac->lim.gLimShortPreamble = (val1) ? 1 : 0;
 
    /* WNI_CFG_BSSID - this one is not updated in limHandleCFGparamUpdate do we
       want to update this? */

@@ -514,14 +514,14 @@ ibss_bss_add(
         limLog(pMac, LOGP, FL("Can't read beacon interval\n"));
 #endif //TO SUPPORT BT-AMP
     /* Copy beacon interval from sessionTable */
-    cfg = psessionEntry->beaconInterval;
+    cfg = psessionEntry->beaconParams.beaconInterval;
     if (cfg != pBeacon->beaconInterval)
         #if 0
         if (cfgSetInt(pMac, WNI_CFG_BEACON_INTERVAL, pBeacon->beaconInterval)
             != eSIR_SUCCESS)
             limLog(pMac, LOGP, FL("Can't update beacon interval\n"));
         #endif//TO SUPPORT BT-AMP
-        psessionEntry->beaconInterval = pBeacon->beaconInterval;
+        psessionEntry->beaconParams.beaconInterval = pBeacon->beaconInterval;
 
     /* This function ibss_bss_add (and hence the below code) is only called during ibss coalescing. We need to 
      * adapt to peer's capability with respect to short slot time. Changes have been made to limApplyConfiguration() 
@@ -869,19 +869,19 @@ limIbssSetProtection(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams p
 
     if (enable)
     {
-        pMac->lim.gLim11bParams.protectionEnabled = true;
-        if(false == psessionEntry->llbCoexist/*pMac->lim.llbCoexist*/)
+        psessionEntry->gLim11bParams.protectionEnabled = true;
+        if(false == psessionEntry->beaconParams.llbCoexist/*pMac->lim.llbCoexist*/)
         {
 			PELOGE(limLog(pMac, LOGE, FL("=> IBSS: Enable Protection \n"));)
-            pBeaconParams->llbCoexist = psessionEntry->llbCoexist = true;/*pMac->lim.llbCoexist = true;*/
+            pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = true;
             pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
         }
     }
-    else if (true == psessionEntry->llbCoexist/*pMac->lim.llbCoexist*/)
+    else if (true == psessionEntry->beaconParams.llbCoexist/*pMac->lim.llbCoexist*/)
     {
-        pMac->lim.gLim11bParams.protectionEnabled = false;
+        psessionEntry->gLim11bParams.protectionEnabled = false;
 		PELOGE(limLog(pMac, LOGE, FL("===> IBSS: Disable protection \n"));)
-        pBeaconParams->llbCoexist = psessionEntry->llbCoexist = false;/*pMac->lim.llbCoexist = false;*/
+        pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
         pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
     }
     return;
@@ -899,7 +899,8 @@ limIbssSetProtection(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams p
   -------------------------------------------------------------*/
 static void
 limIbssUpdateProtectionParams(tpAniSirGlobal pMac,
-tSirMacAddr peerMacAddr, tLimProtStaCacheType protStaCacheType)
+        tSirMacAddr peerMacAddr, tLimProtStaCacheType protStaCacheType,
+        tpPESession psessionEntry)
 {
   tANI_U32 i;
 
@@ -944,11 +945,11 @@ tSirMacAddr peerMacAddr, tLimProtStaCacheType protStaCacheType)
   pMac->lim.protStaCache[i].active = true;
   if(eLIM_PROT_STA_CACHE_TYPE_llB == protStaCacheType)
   {
-      pMac->lim.gLim11bParams.numSta++;
+      psessionEntry->gLim11bParams.numSta++;
   }
   else if(eLIM_PROT_STA_CACHE_TYPE_llG == protStaCacheType)
   {
-      pMac->lim.gLim11gParams.numSta++;
+      psessionEntry->gLim11gParams.numSta++;
   }
 }
 
@@ -997,7 +998,7 @@ limIbssDecideProtection(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaco
             }
         }
     }
-    limIbssUpdateProtectionParams(pMac, pStaDs->staAddr, protStaCacheType);
+    limIbssUpdateProtectionParams(pMac, pStaDs->staAddr, protStaCacheType, psessionEntry);
     return;
 }
 
@@ -1616,9 +1617,9 @@ limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac,
               && (erpEnabled == eHAL_CLEAR))
         {
             PELOGE(limLog(pMac, LOGE, FL("(%d) A legacy STA is disassociated. Addr is "),
-                   pMac->lim.gLim11bParams.numSta);
+                   psessionEntry->gLim11bParams.numSta);
             limPrintMacAddr(pMac, pStaDs->staAddr, LOGE);)
-            if (pMac->lim.gLim11bParams.numSta > 0)
+            if (psessionEntry->gLim11bParams.numSta > 0)
             {
                 for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
                 {
@@ -1627,7 +1628,7 @@ limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac,
                         if (palEqualMemory( pMac->hHdd,pMac->lim.protStaCache[i].addr,
                                 pStaDs->staAddr, sizeof(tSirMacAddr)))
                         {
-                            pMac->lim.gLim11bParams.numSta--;
+                            psessionEntry->gLim11bParams.numSta--;
                             pMac->lim.protStaCache[i].active = false;
                             break;
                         }
@@ -1635,7 +1636,7 @@ limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac,
                 }
             }
 
-            if (pMac->lim.gLim11bParams.numSta == 0)
+            if (psessionEntry->gLim11bParams.numSta == 0)
             {
                 PELOGE(limLog(pMac, LOGE, FL("No more 11B STA exists. Disable protection. \n"));)
 				limIbssSetProtection(pMac, false, pBeaconParams,psessionEntry);

@@ -221,7 +221,7 @@ limInitMeasResources(tpAniSirGlobal pMac)
     #endif // TO SUPPORT BT-AMP
 
      /* Copy the beacon interval from the sessio Id */
-     beaconInterval = psessionEntry->beaconInterval;
+     beaconInterval = psessionEntry->beaconParams.beaconInterval;
    
     if ((learnInterval > ( 2 * beaconInterval)) &&
             (pMac->lim.gLimSystemRole == eLIM_AP_ROLE))

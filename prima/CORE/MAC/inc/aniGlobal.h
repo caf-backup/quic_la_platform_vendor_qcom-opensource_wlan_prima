@@ -530,33 +530,12 @@ typedef struct sAniSirLim
     /// This indicates whether we're an AP, STA in BSS/IBSS
     tLimSystemRole        gLimSystemRole;
 
-    // Number of legacy STAs associated
-    tLimProtStaParams          gLim11bParams;
-
-    // Number of 11A STAs associated
-    tLimProtStaParams          gLim11aParams;
-
-    // Number of non-ht non-legacy STAs associated
-    tLimProtStaParams          gLim11gParams;
-
-    //Number of nonGf STA associated
-    tLimProtStaParams       gLimNonGfParams;
-
-    //Number of HT 20 STAs associated
-    tLimProtStaParams          gLimHt20Params;
-
-    //Number of Lsig Txop not supported STAs associated
-    tLimProtStaParams          gLimLsigTxopParams;
-
     // Number of STAs that do not support short preamble
     tLimNoShortParams         gLimNoShortParams;
 
     // Number of STAs that do not support short slot time
     tLimNoShortSlotParams   gLimNoShortSlotParams;
 
-
-    // OLBC parameters
-    tLimProtStaParams  gLimOlbcParams;
 
     // OLBC parameters
     tLimProtStaParams  gLimOverlap11gParams;
@@ -573,7 +552,6 @@ typedef struct sAniSirLim
     // ---------------- DPH -----------------------
     // these used to live in DPH but are now moved here (where they belong)
     tANI_U32           gLimPhyMode;
-    tANI_U32             gLimShortPreamble;
     tANI_U32           propRateAdjustPeriod;
     tANI_U32           scanStartTime;    // used to measure scan time
 
@@ -906,14 +884,6 @@ typedef struct sAniSirLim
     // 1 - switch to 40 MHz phase
     //
     tANI_U8 gHTPCOPhase;
-
-    //
-    // If L-SIG TXOP Protection bit is set by ALL members of the
-    // HT BSS and the QAP, then this field is set.
-    // 0 - Not full support
-    // 1 - Full support
-    //
-    tANI_U8 gHTLSigTXOPFullSupport;
 
     //
     // Used only in beacons. For PR, this is set to 0

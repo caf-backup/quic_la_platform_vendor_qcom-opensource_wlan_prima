@@ -342,14 +342,14 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT_TSF, 0, pBeacon->timeStamp[1]);)
 
         /* Read beacon interval session Entry */
-        bi = psessionEntry->beaconInterval;
+        bi = psessionEntry->beaconParams.beaconInterval;
         if (bi != pBeacon->beaconInterval)
         {
            PELOG1(schLog(pMac, LOG1, FL("Beacon interval changed from %d to %d\n"),
                    pBeacon->beaconInterval, bi);)
 
             bi = pBeacon->beaconInterval;
-            psessionEntry->beaconInterval = (tANI_U16) bi;
+            psessionEntry->beaconParams.beaconInterval = (tANI_U16) bi;
             beaconParams.paramChangeBitmap |= PARAM_BCN_INTERVAL_CHANGED;
             beaconParams.beaconInterval = (tANI_U16)bi;
         }

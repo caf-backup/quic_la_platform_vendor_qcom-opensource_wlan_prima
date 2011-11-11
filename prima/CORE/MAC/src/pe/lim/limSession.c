@@ -22,10 +22,39 @@
 #include "limSession.h"
 #include "limUtils.h"
 
+/*--------------------------------------------------------------------------
+  
+  \brief peInitBeaconParams() - Initialize the beaconParams structure
 
 
+  \param tpPESession          - pointer to the session context or NULL if session can not be created.
+  \return void
+  \sa
 
+  --------------------------------------------------------------------------*/
 
+void peInitBeaconParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
+{
+    psessionEntry->beaconParams.beaconInterval = 0;
+    psessionEntry->beaconParams.fShortPreamble = 0;
+    psessionEntry->beaconParams.llaCoexist = 0;
+    psessionEntry->beaconParams.llbCoexist = 0;
+    psessionEntry->beaconParams.llgCoexist = 0;
+    psessionEntry->beaconParams.ht20Coexist = 0;
+    psessionEntry->beaconParams.llnNonGFCoexist = 0;
+    psessionEntry->beaconParams.fRIFSMode = 0;
+    psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = 0;
+    psessionEntry->beaconParams.gHTObssMode = 0;
+
+    // Number of legacy STAs associated 
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11bParams, sizeof(tLimProtStaParams)); 
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11aParams, sizeof(tLimProtStaParams)); 
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLim11gParams, sizeof(tLimProtStaParams)); 
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimNonGfParams, sizeof(tLimProtStaParams)); 
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimHt20Params, sizeof(tLimProtStaParams)); 
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimLsigTxopParams, sizeof(tLimProtStaParams)); 
+    palZeroMemory(pMac->hHdd, (void*)&psessionEntry->gLimOlbcParams, sizeof(tLimProtStaParams));
+}
 
 /*--------------------------------------------------------------------------
   
@@ -81,6 +110,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             pMac->lim.gpSession[i].limMlmState = eLIM_MLM_IDLE_STATE;
             pMac->lim.gpSession[i].limSmeState = eLIM_SME_IDLE_STATE;
             pMac->lim.gpSession[i].limCurrentAuthType = eSIR_OPEN_SYSTEM;
+            peInitBeaconParams(pMac, &pMac->lim.gpSession[i]);
             *sessionId = i;
 
             return(&pMac->lim.gpSession[i]);

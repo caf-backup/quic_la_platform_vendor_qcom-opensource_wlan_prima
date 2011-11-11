@@ -20262,11 +20262,47 @@ WDI_ProcessSetPreferredNetworkReq
      pwdiPNOScanReqParams->wdiPNOScanInfo.ucNetworksCount : 
       WLAN_HAL_PNO_MAX_SUPP_NETWORKS;
 
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+               "WDI SET PNO: Enable %d, Mode %d, Netw Count %d", 
+               pwdiPNOScanReqParams->wdiPNOScanInfo.bEnable,
+               pwdiPNOScanReqParams->wdiPNOScanInfo.wdiModePNO,
+               pwdiPNOScanReqParams->wdiPNOScanInfo.ucNetworksCount);
+
    for ( i = 0; i < pPrefNetwListParams.ucNetworksCount; i++ )
    {
-     wpalMemoryCopy(&pPrefNetwListParams.aNetworks[i],
-                  &pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i],
-                  sizeof(pPrefNetwListParams.aNetworks[i]));
+     /*SSID of the BSS*/
+     pPrefNetwListParams.aNetworks[i].ssId.length
+        = pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].ssId.ucLength;
+
+     wpalMemoryCopy( pPrefNetwListParams.aNetworks[i].ssId.ssId,
+          pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].ssId.sSSID,
+          pPrefNetwListParams.aNetworks[i].ssId.length);
+
+     /*Authentication type for the network*/
+     pPrefNetwListParams.aNetworks[i].authentication = 
+        pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiAuth; 
+
+     /*Encryption type for the network*/
+     pPrefNetwListParams.aNetworks[i].encryption = 
+       pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiEncryption; 
+
+     /*Indicate the channel on which the Network can be found 
+       0 - if all channels */
+     pPrefNetwListParams.aNetworks[i].ucChannelCount = 
+       pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].ucChannelCount;
+
+     wpalMemoryCopy(pPrefNetwListParams.aNetworks[i].aChannels,
+                    pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].aChannels,
+                    pPrefNetwListParams.aNetworks[i].ucChannelCount);
+
+     /*Indicates the RSSI threshold for the network to be considered*/
+     pPrefNetwListParams.aNetworks[i].rssiThreshold =
+       pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].rssiThreshold;
+
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI SET PNO: SSID %d %s", 
+               pPrefNetwListParams.aNetworks[i].ssId.length,
+               pPrefNetwListParams.aNetworks[i].ssId.ssId);
    }
 
    pPrefNetwListParams.scanTimers.ucScanTimersCount = 
@@ -20274,6 +20310,12 @@ WDI_ProcessSetPreferredNetworkReq
       WLAN_HAL_PNO_MAX_SCAN_TIMERS)?
      pwdiPNOScanReqParams->wdiPNOScanInfo.scanTimers.ucScanTimersCount :
       WLAN_HAL_PNO_MAX_SCAN_TIMERS;
+
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI SET PNO: Scan timers count %d 24G P %d 5G Probe %d", 
+               pPrefNetwListParams.scanTimers.ucScanTimersCount,
+               pwdiPNOScanReqParams->wdiPNOScanInfo.us24GProbeSize,
+               pwdiPNOScanReqParams->wdiPNOScanInfo.us5GProbeSize);
 
    for ( i = 0; i < pPrefNetwListParams.scanTimers.ucScanTimersCount; i++   )
    {
@@ -20422,6 +20464,8 @@ WDI_ProcessUpdateScanParamsReq
       return WDI_STATUS_E_FAILURE; 
    }
 
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+               "Begin WDI Update Scan Parameters");
    /*-----------------------------------------------------------------------
      Get message buffer
    -----------------------------------------------------------------------*/
@@ -20466,6 +20510,8 @@ WDI_ProcessUpdateScanParamsReq
    pWDICtx->wdiReqStatusCB     = pwdiUpdateScanParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiUpdateScanParams->pUserData; 
 
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+               "End Update Scan Parameters");
    /*-------------------------------------------------------------------------
      Send Get STA Request to HAL 
    -------------------------------------------------------------------------*/
@@ -20513,14 +20559,22 @@ WDI_ProcessPrefNetworkFoundInd
 
   /*Fill in the indication parameters*/
   wdiInd.wdiIndicationType = WDI_PREF_NETWORK_FOUND_IND; 
-  wpalMemoryCopy( (void *)&(wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId), 
-                  &(prefNetwFoundInd.prefNetwFoundParams.ssId), 
-                  sizeof(WDI_MacSSid));
+
+  wpalMemoryZero(wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.sSSID,32);
+
+  wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.ucLength = 
+     (prefNetwFoundInd.prefNetwFoundParams.ssId.length < 31 )?
+      prefNetwFoundInd.prefNetwFoundParams.ssId.length : 31; 
+
+  wpalMemoryCopy( wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.sSSID, 
+                  prefNetwFoundInd.prefNetwFoundParams.ssId.ssId, 
+                  wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.ucLength);
+
   wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.rssi =
      prefNetwFoundInd.prefNetwFoundParams.rssi;
 
   // DEBUG
-  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
               "[PNO WDI] PREF_NETWORK_FOUND_IND Type (%x) data (SSID=%s, RSSI=%d)",
               wdiInd.wdiIndicationType,
               wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.sSSID,
@@ -20647,7 +20701,7 @@ WDI_ProcessUpdateScanParamsRsp
 )
 {
    WDI_Status             wdiStatus;
-   eHalStatus             halStatus;
+   tUpdateScanParamsResp  halUpdScanParams; 
    WDI_UpdateScanParamsCb wdiUpdateScanParamsCb   = NULL;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -20663,17 +20717,28 @@ WDI_ProcessUpdateScanParamsRsp
       return WDI_STATUS_E_FAILURE; 
    }
 
-   wdiUpdateScanParamsCb = (WDI_UpdateScanParamsCb)pWDICtx->pfncRspCB; 
-   /*-------------------------------------------------------------------------
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                  "Process UPD scan params ptr : %x", __FUNCTION__);
+
+  wdiUpdateScanParamsCb = (WDI_UpdateScanParamsCb)pWDICtx->pfncRspCB; 
+
+  /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
    -------------------------------------------------------------------------*/
-   halStatus = *((eHalStatus*)pEventData->pEventData);
-   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+  wpalMemoryCopy( (void *)&halUpdScanParams.status, 
+                  pEventData->pEventData, 
+                  sizeof(halUpdScanParams.status));
 
-   /*Notify UMAC*/
-   wdiUpdateScanParamsCb(wdiStatus, pWDICtx->pRspCBUserData);
+  wdiStatus   =   WDI_HAL_2_WDI_STATUS(halUpdScanParams.status); 
 
-   return WDI_STATUS_SUCCESS; 
+  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+              "UPD Scan Parameters rsp with status: %d", 
+              halUpdScanParams.status);
+
+  /*Notify UMAC*/
+  wdiUpdateScanParamsCb(wdiStatus, pWDICtx->pRspCBUserData);
+
+  return WDI_STATUS_SUCCESS; 
 }
 #endif // FEATURE_WLAN_SCAN_PNO
 

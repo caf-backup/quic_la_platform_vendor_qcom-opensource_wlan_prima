@@ -1026,19 +1026,20 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   }
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-  vosStatus = vos_packet_close( vosContext );
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close VOSS Packet",__func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-
   vosStatus = WDA_close( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed to close WDA",__func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+  
+  /* Let DXE return packets in WDA_close and then free them here */
+  vosStatus = vos_packet_close( vosContext );
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close VOSS Packet",__func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 #endif

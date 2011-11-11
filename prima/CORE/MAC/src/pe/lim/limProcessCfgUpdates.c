@@ -897,7 +897,7 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_PREAMBLE, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get short preamble failed\n"));
-    pMac->lim.gLimShortPreamble = (val) ? 1 : 0;
+    psessionEntry->beaconParams.fShortPreamble = (val) ? 1 : 0;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_WME_ENABLED, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get wme enabled failed\n"));
