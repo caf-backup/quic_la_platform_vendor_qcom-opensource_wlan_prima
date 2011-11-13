@@ -4074,8 +4074,10 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != pMac->lim.gHTOperMode) &&
                 	(eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode))
                 {
-                	pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
+                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
+                    psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
                     limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);          
+                    limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);         
                 }
             }
             else

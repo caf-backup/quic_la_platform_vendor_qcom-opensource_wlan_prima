@@ -954,6 +954,7 @@ regStaWithTl
     VOS_STATUS vosStatus;
     WLAN_STADescType staDesc;
 
+    vos_mem_zero(&staDesc, sizeof(WLAN_STADescType));
     /* Fill in everything I know about the STA */
     btampContext->ucSTAId = staDesc.ucSTAId = pCsrRoamInfo->staId;
 
@@ -1031,7 +1032,7 @@ regStaWithTl
     staDesc.ucBcastSig = pCsrRoamInfo->bcastSig;
     staDesc.ucInitState = ( btampContext->ucSecEnabled)?
         WLANTL_STA_CONNECTED:WLANTL_STA_AUTHENTICATED;
-
+    staDesc.ucIsReplayCheckValid = VOS_FALSE;
     /* register our STA with TL */
     vosStatus = WLANTL_RegisterSTAClient 
         ( 

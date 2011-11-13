@@ -5332,6 +5332,8 @@ WDI_MainRsp
 )
 {
   WDI_Status  wdiStatus; 
+  wpt_boolean expectedResponse;
+
   /*--------------------------------------------------------------------
      Sanity Check 
   ----------------------------------------------------------------------*/
@@ -5345,12 +5347,23 @@ WDI_MainRsp
 
   if ( pEventData->wdiResponse ==  pWDICtx->wdiExpectedResponse )
   {
+    /* we received an expected response */
+    expectedResponse = eWLAN_PAL_TRUE;
+
     /*We expect that we will transition to started after this processing*/
-    pWDICtx->ucExpectedStateTransition = WDI_STARTED_ST; 
+    pWDICtx->ucExpectedStateTransition = WDI_STARTED_ST;
+
+    /* we are no longer expecting a response */
+    pWDICtx->wdiExpectedResponse = -1;
   }
   else
-  {/*for indications no need to update state from what it is right now, unless
-    it explicitly does it in the indication handler (say for device failure ind) */
+  {
+    /* we received an indication or unexpected response */
+    expectedResponse = eWLAN_PAL_FALSE;
+
+    /* for indications no need to update state from what it is right
+       now, unless it explicitly does it in the indication handler (say
+       for device failure ind) */
     pWDICtx->ucExpectedStateTransition = pWDICtx->uGlobalState;
   }
 
@@ -5369,7 +5382,7 @@ WDI_MainRsp
  
   /*Dequeue request that may have been queued while we were waiting for the
     response */
-  if ( pEventData->wdiResponse ==  pWDICtx->wdiExpectedResponse )
+  if ( expectedResponse )
   {
      WDI_DequeuePendingReq(pWDICtx); 
   }
@@ -17380,25 +17393,21 @@ WDI_RXMsgCTSCB
   {
     /*Stop the timer as the response was received */
     /*!UT - check for potential race conditions between stop and response */
-     wpalTimerStop(&pWDICtx->wptResponseTimer);
+    wpalTimerStop(&pWDICtx->wptResponseTimer);
   }
-  /* Check if we recieve a response message which is not expected */
+  /* Check if we receive a response message which is not expected */
   else if ( wdiEventData.wdiResponse < WDI_HAL_IND_MIN )
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-              "Recieved a response message which is not expected - catastrophic failure");
+               "Received response %d when expecting %d - catastrophic failure",
+               wdiEventData.wdiResponse, pWDICtx->wdiExpectedResponse);
     /* WDI_DetectedDeviceError( pWDICtx, WDI_ERR_INVALID_RSP_FMT); */
-    WDI_ASSERT(0);
-    return; 
+    return;
   }
 
   /*Post response event to the state machine*/
   WDI_PostMainEvent(pWDICtx, WDI_RESPONSE_EVENT, &wdiEventData);
 
-  /*Reset the global information call back function & userdata */
-  gWDICb.pfncRspCB = NULL;
-  gWDICb.pRspCBUserData = NULL;
-  pWDICtx->wdiExpectedResponse = -1;
 }/*WDI_RXMsgCTSCB*/
 
 

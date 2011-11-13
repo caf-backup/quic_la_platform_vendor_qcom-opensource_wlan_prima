@@ -57,7 +57,8 @@ ap_beacon_process(
     tpSirMacMgmtHdr    pMh = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     tANI_U32           phyMode;
     tSirRFBand          rfBand = SIR_BAND_UNKNOWN;
-    limGetRfBand(pMac, &rfBand);
+    //Get RF band from psessionEntry
+    rfBand = psessionEntry->limRFBand;
     limGetPhyMode(pMac, &phyMode);    
     if(SIR_BAND_5_GHZ == rfBand)
     {

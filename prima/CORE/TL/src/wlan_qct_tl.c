@@ -1086,7 +1086,8 @@ WLANTL_RegisterSTAClient
   // TX frame translation then force SW-based TX frame translation
   // otherwise use the frame translation supplied by the client
 
-  if (!WDA_IsHwFrameTxTranslationCapable(pvosGCtx, pwSTADescType->ucSTAId))
+  if (!WDA_IsHwFrameTxTranslationCapable(pvosGCtx, pwSTADescType->ucSTAId)
+      || ( WLAN_STA_BT_AMP == pwSTADescType->wSTAType))
   {
       pwSTADescType->ucSwFrameTXXlation = 1;
   }
