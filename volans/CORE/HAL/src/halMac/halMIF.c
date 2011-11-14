@@ -119,7 +119,8 @@ eHalStatus halIntMIFErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
 #ifdef WLAN_HAL_VOLANS
     halReadRegister(hHalHandle, QWLAN_MIF_MIF_ACPU_INVALID_ADDR_REG, &acpuInvalidAddr);
     halReadRegister(hHalHandle, QWLAN_MIF_MIF_AHB_INVALID_ADDR_REG, &ahbInvalidAddr);    
-    HALLOGE( halLog( pMac, LOGE, FL("AHB invalid addr  : %x, ACPU invalid addr = %x\n"), ahbInvalidAddr, acpuInvalidAddr));
+    VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "AHB invalid addr" 
+                    ": %x, ACPU invalid addr = %x\n", ahbInvalidAddr, acpuInvalidAddr);
 #endif
 
     /** Fatal Issue mac Reset.*/

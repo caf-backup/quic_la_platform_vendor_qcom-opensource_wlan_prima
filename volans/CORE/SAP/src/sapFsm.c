@@ -533,18 +533,12 @@ sapSignalHDDevent
                                  "In %s, SAP event callback event = %s",
                                 __FUNCTION__, "eSAP_INDICATE_MGMT_FRAME");
             sapApAppEvent.sapHddEventCode = eSAP_INDICATE_MGMT_FRAME;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.nBeaconLength
-                                           = pCsrRoamInfo->nBeaconLength;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.nAssocReqLength
-                                           = pCsrRoamInfo->nAssocReqLength;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.nAssocRspLength
-                                           = pCsrRoamInfo->nAssocRspLength;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.nProbeReqLength
-                                           = pCsrRoamInfo->nProbeReqLength;
-            sapApAppEvent.sapevt.sapManagementFrameInfo.nActionLength
-                                           = pCsrRoamInfo->nActionLength;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.nFrameLength
+                                           = pCsrRoamInfo->nFrameLength;
             sapApAppEvent.sapevt.sapManagementFrameInfo.pbFrames
                                            = pCsrRoamInfo->pbFrames;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.frameType
+                                           = pCsrRoamInfo->frameType;
             break;
        case eSAP_REMAIN_CHAN_READY:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,

@@ -227,6 +227,8 @@ int wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
 {
    int ret = 0;
    hdd_context_t *pHddCtx =  (hdd_context_t*)libra_sdio_getprivdata(sdio_func_dev);
+   VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
+   
 
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO, "%s: WLAN suspended by SDIO",__func__);
 
@@ -248,7 +250,17 @@ int wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Trying to Suspend While LogP is in progress",__func__);
       return -1;
    }
+  
+   if(TRUE == pHddCtx->hdd_host_arpoffload_failed)
+   {
+       vosStatus = vos_conf_hostarpoffload(TRUE);
 
+       if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+       {
+           VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_INFO,"%s: \
+                            hostarpoffloadfeature config failed",__func__);
+       }   
+   } 
    /* Suspend the wlan driver */
    ret = wlan_suspend(pHddCtx);
    if(ret != 0)

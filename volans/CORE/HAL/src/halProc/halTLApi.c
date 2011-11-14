@@ -1017,14 +1017,23 @@ VOS_STATUS WLANHAL_EnableUapsdAcParams(void* pVosGCtx, tANI_U8 staIdx, tUapsdInf
     pFwConfig->acParam[pUapsdInfo->ac].uSuspIntrMs  = pUapsdInfo->susInterval;
     pFwConfig->acParam[pUapsdInfo->ac].uDelayIntrMs = pUapsdInfo->delayInterval;
 
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+    }
+
     // Write the UAPSD params in the sysConfig
     status = halFW_UpdateSystemConfig(pMac,pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig, sizeof(*pFwConfig));
     if (status != eHAL_STATUS_SUCCESS) {
         HALLOGE(halLog(pMac, LOGE, FL("FW system config update FAILED!")));
-        return VOS_STATUS_E_FAILURE;
     }
 
-    return VOS_STATUS_SUCCESS;
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+    }
+
+    return status;
 }
 
 /*

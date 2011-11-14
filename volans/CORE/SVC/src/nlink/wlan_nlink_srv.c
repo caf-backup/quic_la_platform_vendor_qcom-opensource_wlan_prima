@@ -27,27 +27,27 @@ static void nl_srv_rcv_skb (struct sk_buff *skb);
 static void nl_srv_rcv_msg (struct sk_buff *skb, struct nlmsghdr *nlh);
 
 /*
- * Initialize the netlink service. 
+ * Initialize the netlink service.
  * Netlink service is usable after this.
  */
 int nl_srv_init(void)
 {
    int retcode = 0;
-   nl_srv_sock = netlink_kernel_create(&init_net, WLAN_NLINK_PROTO_FAMILY, 
+   nl_srv_sock = netlink_kernel_create(&init_net, WLAN_NLINK_PROTO_FAMILY,
       WLAN_NLINK_MCAST_GRP_ID, nl_srv_rcv, NULL, THIS_MODULE);
 
    if (nl_srv_sock != NULL) {
       memset(nl_srv_msg_handler, 0, sizeof(nl_srv_msg_handler));
    } else {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "NLINK: netlink_kernel_create failed\n");
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+         "NLINK: netlink_kernel_create failed");
       retcode = -ECONNREFUSED;
    }
    return retcode;
 }
 
 /*
- * Deinit the netlink service. 
+ * Deinit the netlink service.
  * Netlink service is unusable after this.
  */
 void nl_srv_exit(void)
@@ -57,7 +57,7 @@ void nl_srv_exit(void)
 
 /*
  * Register a message handler for a specified module.
- * Each module (e.g. WLAN_NL_MSG_BTC )will register a 
+ * Each module (e.g. WLAN_NL_MSG_BTC )will register a
  * handler to handle messages addressed to it.
  */
 int nl_srv_register(tWlanNlModTypes msg_type, nl_srv_msg_callback msg_handler)
@@ -65,13 +65,13 @@ int nl_srv_register(tWlanNlModTypes msg_type, nl_srv_msg_callback msg_handler)
    int retcode = 0;
 
    if ((msg_type >= WLAN_NL_MSG_BASE) && (msg_type < WLAN_NL_MSG_MAX) &&
-        msg_handler != NULL) 
+        msg_handler != NULL)
    {
       nl_srv_msg_handler[msg_type - WLAN_NL_MSG_BASE] = msg_handler;
-   } 
+   }
    else {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "NLINK: nl_srv_register failed for msg_type %d\n", msg_type);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+         "NLINK: nl_srv_register failed for msg_type %d", msg_type);
       retcode = -EINVAL;
    }
 
@@ -85,14 +85,14 @@ int nl_srv_unregister(tWlanNlModTypes msg_type, nl_srv_msg_callback msg_handler)
    int retcode = 0;
 
    if ((msg_type >= WLAN_NL_MSG_BASE) && (msg_type < WLAN_NL_MSG_MAX) &&
-       (nl_srv_msg_handler[msg_type - WLAN_NL_MSG_BASE] == msg_handler)) 
+       (nl_srv_msg_handler[msg_type - WLAN_NL_MSG_BASE] == msg_handler))
    {
       nl_srv_msg_handler[msg_type - WLAN_NL_MSG_BASE] = NULL;
-   } 
+   }
    else
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "NLINK: nl_srv_unregister failed for msg_type %d\n", msg_type);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+         "NLINK: nl_srv_unregister failed for msg_type %d", msg_type);
       retcode = -EINVAL;
    }
 
@@ -108,13 +108,13 @@ int nl_srv_ucast(struct sk_buff *skb, int dst_pid)
    int err;
 
    NETLINK_CB(skb).pid = 0; //sender's pid
-   NETLINK_CB(skb).dst_group = 0; //not multicast 
+   NETLINK_CB(skb).dst_group = 0; //not multicast
 
    err = netlink_unicast(nl_srv_sock, skb, dst_pid, MSG_DONTWAIT);
 
    if (err < 0)
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "NLINK: netlink_unicast to pid[%d] failed, ret[0x%X]\n", dst_pid, err);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+      "NLINK: netlink_unicast to pid[%d] failed, ret[0x%X]", dst_pid, err);
 
    return err;
 }
@@ -134,8 +134,8 @@ int nl_srv_bcast(struct sk_buff *skb)
 
    if (err < 0)
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "NLINK: netlink_broadcast failed err = %d\n", err);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+         "NLINK: netlink_broadcast failed err = %d", err);
    }
    return err;
 }
@@ -150,11 +150,11 @@ static void nl_srv_rcv (struct sk_buff *sk)
 {
    mutex_lock(&nl_srv_sem);
    nl_srv_rcv_skb(sk);
-   mutex_unlock(&nl_srv_sem);      
+   mutex_unlock(&nl_srv_sem);
 }
 
-/* 
- * Each skb could contain multiple Netlink messages. Process all the 
+/*
+ * Each skb could contain multiple Netlink messages. Process all the
  * messages in one skb and discard malformed skb's silently.
  */
 static void nl_srv_rcv_skb (struct sk_buff *skb)
@@ -167,7 +167,7 @@ static void nl_srv_rcv_skb (struct sk_buff *skb)
       nlh = (struct nlmsghdr *)skb->data;
 
       if (nlh->nlmsg_len < sizeof(*nlh) || skb->len < nlh->nlmsg_len) {
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "NLINK: Invalid "
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "NLINK: Invalid "
             "Netlink message: skb[0x%X], len[%d], nlhdr[0x%X], nlmsg_len[%d]",
             (u32)skb, skb->len, (u32)nlh, nlh->nlmsg_len);
          return;
@@ -181,18 +181,18 @@ static void nl_srv_rcv_skb (struct sk_buff *skb)
    }
 }
 
-/* 
- * Process a netlink message. 
- * Each netlink message will have a message of type tAniMsgHdr inside. 
- */ 
+/*
+ * Process a netlink message.
+ * Each netlink message will have a message of type tAniMsgHdr inside.
+ */
 static void nl_srv_rcv_msg (struct sk_buff *skb, struct nlmsghdr *nlh)
 {
    int type;
 
    /* Only requests are handled by kernel now */
    if (!(nlh->nlmsg_flags & NLM_F_REQUEST)) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "NLINK: Received Invalid NL Req type [%x]\n", nlh->nlmsg_flags);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+         "NLINK: Received Invalid NL Req type [%x]", nlh->nlmsg_flags);
       return;
    }
 
@@ -200,23 +200,23 @@ static void nl_srv_rcv_msg (struct sk_buff *skb, struct nlmsghdr *nlh)
 
    /* Unknown message */
    if (type < WLAN_NL_MSG_BASE || type > WLAN_NL_MSG_MAX) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "NLINK: Received Invalid NL Msg type [%x]\n", type);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+         "NLINK: Received Invalid NL Msg type [%x]", type);
       return;
    }
 
-   /* 
-   * All the messages must at least carry the tAniMsgHdr 
-   * Drop any message with invalid length 
+   /*
+   * All the messages must at least carry the tAniMsgHdr
+   * Drop any message with invalid length
    */
    if (nlh->nlmsg_len < NLMSG_LENGTH(sizeof(tAniMsgHdr))) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "NLINK: Received NL Msg with invalid len[%x]\n", nlh->nlmsg_len);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+         "NLINK: Received NL Msg with invalid len[%x]", nlh->nlmsg_len);
       return;
    }
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
-      "NLINK: Received NL msg type [%d]\n", type);
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+      "NLINK: Received NL msg type [%d]", type);
 
    // turn type into dispatch table offset
    type -= WLAN_NL_MSG_BASE;
@@ -225,8 +225,8 @@ static void nl_srv_rcv_msg (struct sk_buff *skb, struct nlmsghdr *nlh)
    if (nl_srv_msg_handler[type] != NULL) {
       (nl_srv_msg_handler[type])(skb);
    } else {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "NLINK: No handler for Netlink Msg [0x%X]\n", type);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+         "NLINK: No handler for Netlink Msg [0x%X]", type);
    }
 }
 

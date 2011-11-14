@@ -32,6 +32,11 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
                                   hdd_cfg80211_state_t* cfgState,
                                   tANI_BOOLEAN actionSendSuccess );
 
+static void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
+                                               tANI_U32 nFrameLength, 
+                                               tANI_U8* pbFrames,
+                                               tANI_U8 frameType );
+
 #ifdef WLAN_FEATURE_P2P
 eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                                                 eHalStatus status )
@@ -53,6 +58,12 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
 
     if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request )
     {
+        if( cfgState->buf )
+        {
+           hddLog( LOGP, 
+                   "%s: We need to receive yet an ack from one of tx packet",
+                   __func__);
+        }
         cfg80211_remain_on_channel_expired( pRemainChanCtx->dev,
                               pRemainChanCtx->cookie,
                               &pRemainChanCtx->chan,
@@ -285,6 +296,8 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     {
         int status;
 
+        /* Wait for driver to be ready on the requested channel */
+        INIT_COMPLETION(pAdapter->offchannel_tx_event);
         status = wlan_hdd_request_remain_on_channel(wiphy, dev,
                                         chan, channel_type, wait, cookie,
                                         OFF_CHANNEL_ACTION_TX);
@@ -299,10 +312,8 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             goto err;
         }
 
-        /* Wait for driver to be ready on the requested channel */
-        INIT_COMPLETION(pAdapter->offchannel_tx_event);
         status = wait_for_completion_interruptible_timeout(
-                     &pAdapter->cancel_rem_on_chan_var,
+                     &pAdapter->offchannel_tx_event,
                      msecs_to_jiffies(WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
         if(!status)
         {
@@ -527,86 +538,105 @@ int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct net_device *dev )
      return 0;
 }
 
-void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
-                            tANI_U32 nProbeReqLength,
-                            tANI_U32 nActionLength, tANI_U8* pbFrames )
+void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
+                                        tANI_U32 nFrameLength, tANI_U8* pbFrames,
+                                        tANI_U8 frameType )  
 {
+    //Indicate a Frame over Monitor Intf.
     int rxstat;
+    struct sk_buff *skb = NULL;
+    int needed_headroom = 0;
+    int flag = HDD_RX_FLAG_IV_STRIPPED | HDD_RX_FLAG_DECRYPTED |
+               HDD_RX_FLAG_MMIC_STRIPPED;
+
+    hddLog( LOGE, FL("Indicate Frame over Monitor Intf"));
+
+    VOS_ASSERT( (pbFrames != NULL) );
+
+    /* room for the radiotap header based on driver features
+     * 1 Byte for RADIO TAP Flag, 1 Byte padding and 2 Byte for
+     * RX flags.
+     * */
+     needed_headroom = sizeof(struct ieee80211_radiotap_header) + 4;
+
+     //alloc skb  here
+     skb = alloc_skb(VPKT_SIZE_BUFFER, GFP_ATOMIC);
+     if (unlikely(NULL == skb))
+     {
+         hddLog( LOGW, FL("Unable to allocate skb"));
+         return;
+     }
+     skb_reserve(skb, VPKT_SIZE_BUFFER);
+     if (unlikely(skb_headroom(skb) < nFrameLength))
+     {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "HDD [%d]: Insufficient headroom, "
+                   "head[%p], data[%p], req[%d]",
+                   __LINE__, skb->head, skb->data, nFrameLength);
+         kfree_skb(skb);
+         return ;
+     }
+     // actually push the data
+     memcpy(skb_push(skb, nFrameLength), pbFrames, nFrameLength);
+     /* prepend radiotap information */
+     if( 0 != hdd_wlan_add_rx_radiotap_hdr( skb, needed_headroom, flag ) )
+     {
+         hddLog( LOGE, FL("Not Able Add Radio Tap"));
+         //free skb
+         kfree_skb(skb);
+         return ;
+     }
+
+     skb_reset_mac_header( skb );
+     skb->dev = pMonAdapter->dev;
+     skb->protocol = eth_type_trans( skb, skb->dev );
+     skb->ip_summed = CHECKSUM_UNNECESSARY;
+     rxstat = netif_rx_ni(skb);
+     if( NET_RX_SUCCESS == rxstat )
+     {
+         hddLog( LOGE, FL("Success"));
+     }
+     else
+         hddLog( LOGE, FL("Failed %d"), rxstat);                   
+
+     return ;
+}
+
+void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
+                            tANI_U32 nFrameLength, tANI_U8* pbFrames,
+                            tANI_U8 frameType )
+{
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
-    if( nActionLength )
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d\n",
+                            __func__, frameType, nFrameLength);
+
+    if( !nFrameLength )
     {
-        hddLog( LOGE, FL("Indicate Action Frame over NL80211 Intf"));
-        //Channel indicated may be wrong. TODO
-        //Indicate an action frame.
-        cfg80211_rx_mgmt( pAdapter->dev, cfgState->current_freq,
-                          pbFrames,
-                          nActionLength, GFP_ATOMIC );
+        hddLog( LOGE, FL("Frame Length is Invalid ZERO"));
+        return;
     }
-    else if( nProbeReqLength )
+
+    if( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) 
+     || ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
+      )
     {
-        //Indicate an probe request frame.
-        struct sk_buff *skb = NULL;
         hdd_adapter_t *pMonAdapter =
                    hdd_get_mon_adapter( WLAN_HDD_GET_CTX(pAdapter) );
-        int needed_headroom = 0;
-        int flag = HDD_RX_FLAG_IV_STRIPPED | HDD_RX_FLAG_DECRYPTED |
-                   HDD_RX_FLAG_MMIC_STRIPPED;
-
-        hddLog( LOGE, FL("Indicate Action Frame over Monitor Intf"));
-
-        if( NULL == pMonAdapter ) return;
-
-        VOS_ASSERT( (pbFrames != NULL) );
-
-        /* room for the radiotap header based on driver features
-         * 1 Byte for RADIO TAP Flag, 1 Byte padding and 2 Byte for
-         * RX flags.
-         * */
-        needed_headroom = sizeof(struct ieee80211_radiotap_header) + 4;
-
-        //alloc skb  here
-        skb = alloc_skb(VPKT_SIZE_BUFFER, GFP_ATOMIC);
-        if (unlikely(NULL == skb))
+        
+        if( NULL != pMonAdapter )
         {
-            hddLog( LOGW, FL("Unable to allocate skb"));
+            hdd_sendMgmtFrameOverMonitorIface( pMonAdapter, nFrameLength,
+                                               pbFrames, frameType);
             return;
         }
-        skb_reserve(skb, VPKT_SIZE_BUFFER);
-        if (unlikely(skb_headroom(skb) < nProbeReqLength))
-        {
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                     "HDD [%d]: Insufficient headroom, "
-                     "head[%p], data[%p], req[%d]",
-                     __LINE__, skb->head, skb->data, nProbeReqLength);
-           kfree_skb(skb);
-           return ;
-        }
-        // actually push the data
-        memcpy(skb_push(skb, nProbeReqLength), pbFrames, nProbeReqLength);
-        /* prepend radiotap information */
-        if( 0 != hdd_wlan_add_rx_radiotap_hdr( skb,
-                                needed_headroom, flag ) )
-        {
-            hddLog( LOGE, FL("Not Able Add Radio Tap"));
-            //free skb
-            kfree_skb(skb);
-            return;
-        }
-
-        skb_reset_mac_header( skb );
-        skb->dev = pMonAdapter->dev;
-        skb->protocol = eth_type_trans( skb, skb->dev );
-        skb->ip_summed = CHECKSUM_UNNECESSARY;
-        rxstat = netif_rx_ni(skb);
-        if( NET_RX_SUCCESS == rxstat )
-        {
-            hddLog( LOGE, FL("Success"));
-        }
-        else
-            hddLog( LOGE, FL("Failed %d"), rxstat);                   
     }
-    return;
+
+    //Indicate Frame Over Normal Interface
+    hddLog( LOGE, FL("Indicate Frame over NL80211 Intf"));
+    cfg80211_rx_mgmt( pAdapter->dev, cfgState->current_freq,
+                      pbFrames,
+    	              nFrameLength, GFP_ATOMIC );
 }
 
 /*

@@ -47,6 +47,8 @@
 #include <wlan_hdd_hostapd.h>
 #endif
 
+#include <linux/inetdevice.h>
+#include <wlan_hdd_cfg.h>
 /**-----------------------------------------------------------------------------
 *   Preprocessor definitions and constants
 * ----------------------------------------------------------------------------*/
@@ -553,13 +555,119 @@ err_deep_sleep:
 
 }
 
+VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
+{
+   struct in_ifaddr **ifap = NULL;
+   struct in_ifaddr *ifa = NULL;
+   struct in_device *in_dev;
+   int i = 0;
+   hdd_adapter_t *pAdapter = NULL;   
+   tSirHostOffloadReq  offLoadRequest;
+
+   pAdapter = hdd_get_adapter(pHddCtx,WLAN_HDD_INFRA_STATION);
+   if(pAdapter == NULL)
+   {
+      pAdapter = hdd_get_adapter(pHddCtx,WLAN_HDD_P2P_CLIENT);
+      if(pAdapter == NULL)
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
+         return VOS_STATUS_E_FAILURE;
+      }
+   }
+
+   
+
+   if(fenable)
+   {
+       if ((in_dev = __in_dev_get_rtnl(pAdapter->dev)) != NULL)
+       {
+           for (ifap = &in_dev->ifa_list; (ifa = *ifap) != NULL; 
+                   ifap = &ifa->ifa_next)
+           {
+               if (!strcmp(pAdapter->dev->name, ifa->ifa_label))
+               {
+                   break; /* found */
+               }
+           }
+       }
+       
+       if(ifa && ifa->ifa_local)
+       {
+           offLoadRequest.offloadType =  SIR_IPV4_ARP_REPLY_OFFLOAD;
+           offLoadRequest.enableOrDisable = SIR_OFFLOAD_ENABLE;
+
+           if((HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST ==
+                   pHddCtx->cfg_ini->mcastBcastFilterSetting )
+                    || (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST ==
+                    pHddCtx->cfg_ini->mcastBcastFilterSetting))
+           {
+               //MCAST filter is set by hdd_conf_mcastbcast_filter fn call
+               offLoadRequest.enableOrDisable = 
+                       SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE;
+           }
+           
+           //converting u32 to IPV4 address
+           for(i = 0 ; i < 4; i++)
+           {
+              offLoadRequest.params.hostIpv4Addr[i] = 
+                      (ifa->ifa_local >> (i*8) ) & 0xFF ;
+           }
+
+          if (eHAL_STATUS_SUCCESS != 
+                    sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter) , &offLoadRequest))
+          {
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to enable HostOffload \
+                      feature\n", __func__);
+              return VOS_STATUS_E_FAILURE;
+          }
+		  return VOS_STATUS_SUCCESS;
+       }
+       else
+       {
+           hddLog(VOS_TRACE_LEVEL_INFO, "%s:IP Address is not assigned \n", __func__);
+           return VOS_STATUS_E_AGAIN;
+       }
+   }
+   else
+   {
+       vos_mem_zero((void *)&offLoadRequest, sizeof(tSirHostOffloadReq));
+       offLoadRequest.enableOrDisable = SIR_OFFLOAD_DISABLE;
+       offLoadRequest.offloadType =  SIR_IPV4_ARP_REPLY_OFFLOAD;
+
+       if (eHAL_STATUS_SUCCESS != sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter), &offLoadRequest))
+       {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to disable host \
+                             offload feature\n",__func__);
+            return VOS_STATUS_E_FAILURE;
+       }
+	   return VOS_STATUS_SUCCESS;
+   }
+}
 
 void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_SME, pHddCtx->pvosContext);
+    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
+
     hddLog(VOS_TRACE_LEVEL_INFO,
         "%s: Configuring Mcast/Bacst Filter Setting. setfilter %d", __func__, setfilter);
+
+    if(pHddCtx->cfg_ini->fhostArpOffload)
+    {
+        vosStatus = hdd_conf_hostarpoffload(pHddCtx, setfilter);
+		if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+            pHddCtx->hdd_host_arpoffload_failed = TRUE;
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s:Failed to enable ARPOFFLOAD \
+                    Feature %d\n", __func__, vosStatus) ;
+        }
+        else
+        {
+            pHddCtx->hdd_host_arpoffload_failed = FALSE;
+        }
+    }
+
     if ( pMac ) 
     {
       halStatus = halRxp_configureRxpFilterMcstBcst( pMac, setfilter);

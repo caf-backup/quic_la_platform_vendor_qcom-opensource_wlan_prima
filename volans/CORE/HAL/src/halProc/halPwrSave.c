@@ -455,6 +455,7 @@ eHalStatus halPS_SetRSSIThresholds(tpAniSirGlobal pMac, tpSirRSSIThresholds pThr
 {
     tHalFwParams *pFw = &pMac->hal.FwParam;
     Qwlanfw_SysCfgType *pFwConfig;
+    eHalStatus status;
 
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
 
@@ -468,12 +469,23 @@ eHalStatus halPS_SetRSSIThresholds(tpAniSirGlobal pMac, tpSirRSSIThresholds pThr
     pFwConfig->bRssiThres3PosNotify = pThresholds->bRssiThres3PosNotify;
     pFwConfig->bRssiThres3NegNotify = pThresholds->bRssiThres3NegNotify;
 
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+    }
+
     // Write the configuration parameters in the memory mapped for
     // system configuration parameters
-    return halFW_UpdateSystemConfig(pMac,
-            pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
-            sizeof(*pFwConfig));
+    status =  halFW_UpdateSystemConfig(pMac,
+              pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
+              sizeof(*pFwConfig));
 
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+    }
+
+    return status;
 }
 
 static void computeRssAvg(tANI_U32 value, tANI_S32 *totRssi, tANI_U32 *avgCount)
@@ -2802,6 +2814,7 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     tANI_U32 index;
     eHalStatus mutexAcq = eHAL_STATUS_FW_PS_BUSY;
     eHalStatus status = eHAL_STATUS_SUCCESS;
+    tANI_U32 maxCnt = 0;
 
 #ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
     // Dummy write to the HW register
@@ -2832,9 +2845,17 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 		  do {
 			/* Acquire Mutex1 here */
 			status = palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
-            if (0 == uRegValue)
+            maxCnt = (uRegValue & QWLAN_MCU_MUTEX1_MAXCOUNT_MASK) >> QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET;
+            if(maxCnt != QWLAN_HOSTFW_TX_SYNC_MUTEX_MAX_COUNT)
+            {
                 mutexFailCnt++;
-			curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
+            }
+            else
+            {
+                curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
+                if(curCnt)
+                    break;
+            }
 
             if(!VOS_IS_STATUS_SUCCESS(status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
             {
@@ -2842,7 +2863,7 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
                 return VOS_STATUS_E_FAILURE;
             }
 
-		  } while(curCnt < 1 && retryCnt++ < 300 );
+		  } while(retryCnt++ < 300 );
          
           if (0 == curCnt)
           {
@@ -2888,7 +2909,15 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
         status = palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
         if(eHAL_STATUS_SUCCESS != status)
             break;
-        curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
+        maxCnt = (regValue & QWLAN_MCU_MUTEX0_MAXCOUNT_MASK) >> QWLAN_MCU_MUTEX0_MAXCOUNT_OFFSET;
+        if(maxCnt != QWLAN_HOSTFW_SYNC_MUTEX_MAX_COUNT)
+        {
+            curCnt = 0;
+        }
+        else
+        {
+            curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
+        }
         if(curCnt <= 1) 
         {
             VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Not Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue);
@@ -4170,10 +4199,20 @@ void halPSAppsCpuWakeupState( tpAniSirGlobal pMac, tANI_U32 isAppsAwake )
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
     pFwConfig->isAppsCpuAwake = isAppsAwake;
 
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+    }
+
     // Update the sytem config
     halFW_UpdateSystemConfig(pMac,
                             pMac->hal.FwParam.fwSysConfigAddr + offset,
                             (tANI_U8*)&appsCpuWakeupState, sizeof(tANI_U32));
+
+   if (IS_PWRSAVE_STATE_IN_BMPS) 
+   {
+       halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+   }
    return;
 }
 

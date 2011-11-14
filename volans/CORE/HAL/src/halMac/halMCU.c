@@ -38,6 +38,7 @@ eHalStatus halMcu_Start(tHalHandle hHal, void *arg)
 {
     tANI_U8    i;
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+    tANI_U32 regValue = 0;
 
     // By default, MLC loopback is disabled.
     // For Loopback testing, enable MLC loopback and set
@@ -79,6 +80,12 @@ eHalStatus halMcu_Start(tHalHandle hHal, void *arg)
                 MCU_MUTEX_REG_ADDR(i),
                 QWLAN_MCU_MUTEX0_RESET_MASK);
     }
+
+    /* Disable TPE root clock gating */
+    halReadRegister(pMac, QWLAN_MCU_MRCM_CLK_GATE_DISABLE_REG, &regValue);
+    regValue |= QWLAN_MCU_MRCM_CLK_GATE_DISABLE_MCU_MRCM_TPE_GCU_CLK_GATE_DISABLE_MASK;
+    halWriteRegister(pMac, QWLAN_MCU_MRCM_CLK_GATE_DISABLE_REG, regValue);
+
     return eHAL_STATUS_SUCCESS;
 }
 

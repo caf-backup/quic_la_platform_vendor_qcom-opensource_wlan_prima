@@ -60,12 +60,6 @@ __inline VOS_STATUS vos_mq_init(pVosMqType pMq)
      return VOS_STATUS_E_FAILURE;
   }
 
-  /*
-  ** Create the Mq event
-  */
-  if (vos_event_init(&pMq->MqEvent)!= VOS_STATUS_SUCCESS)
-     return VOS_STATUS_E_FAILURE;
-
   /* 
   ** Now initialize the lock
   */
@@ -104,10 +98,7 @@ __inline void vos_mq_deinit(pVosMqType pMq)
      return ;
   }
 
-  /* 
-  ** Close the Mq event
-  */
-  vos_event_destroy(&pMq->MqEvent);
+  /* we don't have to do anything with the embedded list or spinlock */
 
 }/* vos_mq_deinit() */
 
@@ -183,7 +174,7 @@ __inline pVosMsgWrapper vos_mq_get(pVosMqType pMq)
 
   if( list_empty(&pMq->mqList) )
   {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
              "%s: VOS Message Queue is empty",__FUNCTION__);
   }
   else

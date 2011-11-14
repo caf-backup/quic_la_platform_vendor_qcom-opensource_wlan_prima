@@ -1319,6 +1319,13 @@ This is a Verizon required feature.
                  CFG_MCAST_BCAST_FILTER_SETTING_MIN,
                  CFG_MCAST_BCAST_FILTER_SETTING_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_HOST_ARPOFFLOAD_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, fhostArpOffload,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_HOST_ARPOFFLOAD_DEFAULT,
+                 CFG_ENABLE_HOST_ARPOFFLOAD_MIN,
+                 CFG_ENABLE_HOST_ARPOFFLOAD_MAX ),
+
    REG_VARIABLE( CFG_QOS_WMM_TS_INFO_ACK_POLICY_NAME , WLAN_PARAM_HexInteger,
                  hdd_config_t, tsInfoAckPolicy, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -1685,6 +1692,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pHddCtx->cfg_ini->WfqVoWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pHddCtx->cfg_ini->DelayedTriggerFrmInt);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [mcastBcastFilterSetting] Value = [%u] ",pHddCtx->cfg_ini->mcastBcastFilterSetting);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [fhostArpOffload] Value = [%u] ",pHddCtx->cfg_ini->fhostArpOffload);
 #ifdef WLAN_FEATURE_VOWIFI_11R  
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTEnable] Value = [%lu] ",pHddCtx->cfg_ini->fFTEnable);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTResourceReqSupported] Value = [%lu] ",pHddCtx->cfg_ini->fFTResourceReqSupported);
@@ -2213,6 +2221,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    v_BOOL_t  fStatus = TRUE;
 
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
+   v_U32_t mcastBcastFilter = pConfig->mcastBcastFilterSetting;
 
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SHORT_GI_20MHZ, 
       pConfig->ShortGI20MhzEnable, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
@@ -2452,8 +2461,31 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RRM_OUT_CHAN_MAX configuration info to CCM\n"  );
 	 }
 
-	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MCAST_BCAST_FILTER_SETTING, pConfig->mcastBcastFilterSetting, 
-	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+     //Changing the mcastbcastFiltersetting if ARPOFFLOAD feature is enabled
+     if(pConfig->fhostArpOffload)
+     {
+        if (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
+                    pConfig->mcastBcastFilterSetting)
+        {
+           //BROADCAST filter is configured at host arp offload
+           mcastBcastFilter = HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST;
+        }
+        else if(HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST == 
+                   pConfig->mcastBcastFilterSetting)
+        {
+           //BROADCAST filter is configured at host arp offload
+           mcastBcastFilter = HDD_MCASTBCASTFILTER_FILTER_NONE;
+        }
+     }
+
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MCAST_BCAST_FILTER_SETTING, 
+                   mcastBcastFilter, NULL, 
+                   eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+     {
+        fStatus = FALSE;
+        hddLog(LOGE,"Failure: Could not pass on WNI_CFG_MCAST_BCAST_FILTER_ \
+			 SETTING configuration info to CCM\n"  );
+     }
 #endif
 
      if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SINGLE_TID_RC, pConfig->bSingleTidRc, 

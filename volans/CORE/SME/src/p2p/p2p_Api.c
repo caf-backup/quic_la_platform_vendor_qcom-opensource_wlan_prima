@@ -98,15 +98,9 @@ eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm)
     tCsrRoamInfo pRoamInfo = {0};
     tANI_U32 pSessionId = pSmeMgmtFrm->sessionId;
 
-    if(pSmeMgmtFrm->frameType == eSIR_MGMT_FRM_PROBE_REQ)
-    {
-        pRoamInfo.nProbeReqLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
-    }
-    else if(pSmeMgmtFrm->frameType == eSIR_MGMT_FRM_ACTION)
-    {
-        pRoamInfo.nActionLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
-    }
+    pRoamInfo.nFrameLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
     pRoamInfo.pbFrames = pSmeMgmtFrm->frameBuf;
+    pRoamInfo.frameType = pSmeMgmtFrm->frameType;
 
     /* forward the mgmt frame to HDD */
     csrRoamCallCallback(pMac, pSessionId, &pRoamInfo, 0, eCSR_ROAM_INDICATE_MGMT_FRAME, 0);

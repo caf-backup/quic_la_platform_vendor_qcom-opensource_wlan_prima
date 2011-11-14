@@ -61,6 +61,7 @@
 #include "bap_hdd_main.h"
 #endif //WLAN_BTAMP_FEATURE
 
+#include "wlan_hdd_power.h"
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -1622,3 +1623,27 @@ void vos_abort_mac_scan(void)
     return;
 }
 
+VOS_STATUS  vos_conf_hostarpoffload(v_BOOL_t fenable) 
+{
+    hdd_context_t *pHddCtx        = NULL;
+    v_CONTEXT_t pVosContext        = NULL;
+
+     /* Get the Global VOSS Context */
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    if(!pVosContext) 
+    {
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+       return  VOS_STATUS_E_FAULT;
+    }
+
+    /* Get the HDD context */
+    pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+
+    if(!pHddCtx) 
+    {
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+       return  VOS_STATUS_E_FAULT;
+    }
+
+    return hdd_conf_hostarpoffload(pHddCtx, fenable);
+}

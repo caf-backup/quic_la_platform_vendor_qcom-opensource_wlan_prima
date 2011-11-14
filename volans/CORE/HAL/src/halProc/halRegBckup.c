@@ -84,6 +84,7 @@ tRegisterEntry aVolansRFSetup[] = {
      * SIF, none of the registers are readable from JTAG. Hence priority of JTAG is
      * set to highest in DAHB */
     { (QWLAN_DAHB_DAHB_JTAG_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_MCU_MRCM_CLK_GATE_DISABLE_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
 
     /* PHY registers specific to Netlist#82 */
     { (QWLAN_RXCLKCTRL_ROOT_CLK_EN_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0X7F },
