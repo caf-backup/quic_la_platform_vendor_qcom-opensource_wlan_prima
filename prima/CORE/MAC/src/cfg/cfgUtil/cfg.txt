@@ -3779,7 +3779,6 @@ V    RW    NP
 HAL
 0    65535    0
 
-
 * Limit on number of associated stations
 * (applies to peer stations in IBSS, SoftAP, BT-AMP AP, & P2P-GO modes)
 *
@@ -3825,3 +3824,17 @@ NONE
 V    RW    NP
 NONE
 0    0x4     0
+
+* 
+* Softap data available poll period (in milliseconds) for 
+* queueing (Qos)Null frames to the station if there 
+* is no data available and PS-Poll/Trigger frame is pending.
+* 0 = disabled. Recommended values is 5ms
+*
+WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD   I    4    8
+V    RW    NP
+NONE
+0    65535    5
+V    RW    NP
+NONE
+0    65535    5

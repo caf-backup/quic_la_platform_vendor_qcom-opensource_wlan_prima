@@ -87,6 +87,9 @@
 
 typedef tANI_U8 tSirIpv4Addr[SIR_IPV4_ADDR_LEN];
 
+#define SIR_VERSION_STRING_LEN 64
+typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
+
 enum eSirHostMsgTypes
 {
     SIR_HAL_APP_SETUP_NTF = SIR_HAL_HOST_MSG_START,
@@ -3945,5 +3948,16 @@ typedef struct sSirRcvFltMcAddrList
   tSirMacAddr    multicastAddr[SIR_MAX_NUM_MULTICAST_ADDRESS];
 } tSirRcvFltMcAddrList, *tpSirRcvFltMcAddrList;
 #endif // WLAN_FEATURE_PACKET_FILTERING
-#endif /* __SIR_API_H */
 
+//
+// Generic version information
+//
+typedef struct
+{
+  tANI_U8    revision;
+  tANI_U8    version;
+  tANI_U8    minor;
+  tANI_U8    major;
+} tSirVersionType;
+
+#endif /* __SIR_API_H */

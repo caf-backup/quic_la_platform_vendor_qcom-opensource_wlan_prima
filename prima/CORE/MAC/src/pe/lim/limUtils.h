@@ -28,6 +28,7 @@ typedef enum
 
 #define LIM_STA_ID_MASK                        0x00FF
 #define LIM_AID_MASK                              0xC000
+#define LIM_SPECTRUM_MANAGEMENT_BIT_MASK          0x0100
 
 // classifier ID is coded as 0-3: tsid, 4-5:direction
 #define LIM_MAKE_CLSID(tsid, dir) (((tsid) & 0x0F) | (((dir) & 0x03) << 4))

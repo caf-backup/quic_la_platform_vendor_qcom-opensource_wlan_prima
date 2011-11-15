@@ -89,13 +89,17 @@ cfgSendHostMsg(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32 msgLen, tANI_U32 
             pMsg++;
             pEnd  = pMsg + paramNum;
             while (pMsg < pEnd)
+            {
                 *pMsg++ = *pParamList++;
-
-            // Copy data if there is any
+            }            // Copy data if there is any
             pEnd = pMsg + (dataLen >> 2);
-            while (pMsg < pEnd)
-                *pMsg++ = *pData++;
-
+			if(NULL != pData)
+			{
+               while (pMsg < pEnd)
+               {
+                   *pMsg++ = *pData++;
+               }
+            }
             break;
 
         default:

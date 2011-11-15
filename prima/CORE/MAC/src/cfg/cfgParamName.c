@@ -258,6 +258,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"SAP_CHANNEL_SELECT_START_CHANNEL",
 	(unsigned char *)"SAP_CHANNEL_SELECT_END_CHANNEL",
 	(unsigned char *)"SAP_CHANNEL_SELECT_OPERATING_BAND",
+	(unsigned char *)"AP_DATA_AVAIL_POLL_PERIOD",
 };
 
 

@@ -2631,6 +2631,93 @@ int hdd_wlan_startup(struct device *dev )
       goto err_vosclose;
    }
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   /* retrieve and display WCNSS version information */
+   do {
+      tSirVersionType versionCompiled;
+      tSirVersionType versionReported;
+      tSirVersionString versionString;
+      VOS_STATUS vstatus;
+
+      vstatus = sme_GetWcnssWlanCompiledVersion(pHddCtx->hHal,
+                                                &versionCompiled);
+      if (!VOS_IS_STATUS_SUCCESS(vstatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: unable to retrieve WCNSS WLAN compiled version",
+                __FUNCTION__);
+         break;
+      }
+
+      vstatus = sme_GetWcnssWlanReportedVersion(pHddCtx->hHal,
+                                                &versionReported);
+      if (!VOS_IS_STATUS_SUCCESS(vstatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: unable to retrieve WCNSS WLAN reporteded version",
+                __FUNCTION__);
+         break;
+      }
+
+      if ((versionCompiled.major != versionReported.major) ||
+          (versionCompiled.minor != versionReported.minor) ||
+          (versionCompiled.version != versionReported.version) ||
+          (versionCompiled.revision != versionReported.revision))
+      {
+         pr_err("%s: WCNSS WLAN version mismatch\n"
+                "WCNSS reported %u.%u.%u.%u,"
+                "but expected %u.%u.%u.%u\n",
+                WLAN_MODULE_NAME,
+                (int)versionReported.major,
+                (int)versionReported.minor,
+                (int)versionReported.version,
+                (int)versionReported.revision,
+                (int)versionCompiled.major,
+                (int)versionCompiled.minor,
+                (int)versionCompiled.version,
+                (int)versionCompiled.revision);
+      }
+      else
+      {
+         pr_info("%s: WCNSS WLAN version %u.%u.%u.%u\n",
+                 WLAN_MODULE_NAME,
+                 (int)versionReported.major,
+                 (int)versionReported.minor,
+                 (int)versionReported.version,
+                 (int)versionReported.revision);
+      }
+
+      vstatus = sme_GetWcnssSoftwareVersion(pHddCtx->hHal,
+                                            versionString,
+                                            sizeof(versionString));
+      if (!VOS_IS_STATUS_SUCCESS(vstatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: unable to retrieve WCNSS software version string",
+                __FUNCTION__);
+         break;
+      }
+
+      pr_info("%s: WCNSS software version %s\n",
+              WLAN_MODULE_NAME, versionString);
+
+      vstatus = sme_GetWcnssHardwareVersion(pHddCtx->hHal,
+                                            versionString,
+                                            sizeof(versionString));
+      if (!VOS_IS_STATUS_SUCCESS(vstatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: unable to retrieve WCNSS hardware version string",
+                __FUNCTION__);
+         break;
+      }
+
+      pr_info("%s: WCNSS hardware version %s\n",
+              WLAN_MODULE_NAME, versionString);
+   } while (0);
+
+#endif // FEATURE_WLAN_INTEGRATED_SOC
+
    status = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {

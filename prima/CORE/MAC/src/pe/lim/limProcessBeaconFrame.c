@@ -78,10 +78,10 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
      *    to announce join success.
      * 3. STA/AP is in Learn mode
      */
-    if ((psessionEntry->limMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
-        (psessionEntry->limMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) ||
-        (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE) ||
-        (psessionEntry->limMlmState == eLIM_MLM_LEARN_STATE))
+    if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
+        (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) ||
+        (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) ||
+        (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE))
     {
         // Parse received Beacon
         if (sirConvertBeaconFrame2Struct(pMac, (tANI_U8 *) pRxPacketInfo,
@@ -101,10 +101,10 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
        MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT_TSF, 0, beacon.timeStamp[1]);)
 
 
-        if ((psessionEntry->limMlmState  == eLIM_MLM_WT_PROBE_RESP_STATE) ||
-            (psessionEntry->limMlmState  == eLIM_MLM_PASSIVE_SCAN_STATE))
+        if ((pMac->lim.gLimMlmState  == eLIM_MLM_WT_PROBE_RESP_STATE) ||
+            (pMac->lim.gLimMlmState  == eLIM_MLM_PASSIVE_SCAN_STATE))
             limCheckAndAddBssDescription(pMac, &beacon, pRxPacketInfo, ((pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE) ? eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE));
-        else if (psessionEntry->limMlmState == eLIM_MLM_LEARN_STATE)
+        else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
         {
 #if (WNI_POLARIS_FW_PRODUCT == AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
             // STA/AP is in learn mode

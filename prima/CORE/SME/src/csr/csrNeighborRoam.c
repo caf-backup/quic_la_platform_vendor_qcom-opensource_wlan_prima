@@ -1173,7 +1173,8 @@ eHalStatus csrNeighborRoamIssueBgScanRequest(tpAniSirGlobal pMac, tCsrBGScanRequ
     scanReq.requestType = eCSR_SCAN_HO_BG_SCAN;
     scanReq.maxChnTime = pBgScanParams->maxChnTime;
     scanReq.minChnTime = pBgScanParams->minChnTime;
-    status = csrScanRequest(pMac, &scanReq, &scanId, csrNeighborRoamScanRequestCallback, NULL);
+    status = csrScanRequest(pMac, CSR_SESSION_ID_INVALID, &scanReq,
+                        &scanId, csrNeighborRoamScanRequestCallback, NULL);
     if (eHAL_STATUS_SUCCESS != status)
     {
         smsLog(pMac, LOGE, FL("CSR Scan Request failed with status %d"), status);

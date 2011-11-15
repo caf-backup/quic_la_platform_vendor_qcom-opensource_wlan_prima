@@ -106,10 +106,24 @@ of NV fragment is nt possbile.The next multiple of 1Kb is 3K */
 
 #define WDI_NUM_BSSID   2
 
+/*Version string max length (including NUL) */
+#define WDI_VERSION_LENGTH  64
+
 /*============================================================================
  *     GENERIC STRUCTURES 
   
 ============================================================================*/
+
+/*---------------------------------------------------------------------------
+ WDI Version Information
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint8                  revision;
+    wpt_uint8                  version;
+    wpt_uint8                  minor;
+    wpt_uint8                  major;
+} WDI_WlanVersionType;
 
 /*---------------------------------------------------------------------------
  WDI Device Capability
@@ -629,6 +643,17 @@ typedef struct
   /*Max number of BSS supported by the device*/
   wpt_uint8     ucMaxBssids;
 
+  /*Version of the WLAN HAL API with which we were compiled*/
+  WDI_WlanVersionType wlanCompiledVersion;
+
+  /*Version of the WLAN HAL API that was reported*/
+  WDI_WlanVersionType wlanReportedVersion;
+
+  /*WCNSS Software version string*/
+  wpt_uint8 wcnssSoftwareVersion[WDI_VERSION_LENGTH];
+
+  /*WCNSS Hardware version string*/
+  wpt_uint8 wcnssHardwareVersion[WDI_VERSION_LENGTH];
 }WDI_StartRspParamsType;
 
 

@@ -1361,7 +1361,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         /* This check is to avoid extra Sec IEs present incase of WPS */
         if (pAssocReq->wpaPresent && (NULL == wpsIe))
 #else
-        if (pAssocReq->wpaPresent)
+        if ((pAssocReq->wpaPresent) && (pMlmAssocInd->rsnIE.length < SIR_MAC_MAX_IE_LENGTH))
 #endif
         {
             if((pMlmAssocInd->rsnIE.length + pAssocReq->wpa.length) >= SIR_MAC_MAX_IE_LENGTH)

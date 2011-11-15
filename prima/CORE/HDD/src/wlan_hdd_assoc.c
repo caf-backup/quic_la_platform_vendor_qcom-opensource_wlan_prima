@@ -1890,6 +1890,12 @@ int iw_set_essid(struct net_device *dev,
                      msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
         }
     }
+    /** wpa_supplicant 0.8.x, wext driver uses */
+    else 
+    {
+        return -EINVAL;
+    }
+    /** wpa_supplicant 0.8.x, wext driver uses */
 #ifdef CONFIG_CFG80211
     /** when cfg80211 defined, wpa_supplicant wext driver uses 
       zero-length, null-string ssid for force disconnection. 

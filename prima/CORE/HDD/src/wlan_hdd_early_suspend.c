@@ -801,6 +801,9 @@ static void hdd_PowerStateChangedCB
           && (pHddCtx->hdd_mcastbcast_filter_set != TRUE)) {
       spin_unlock(&pHddCtx->filter_lock);
       hdd_conf_mcastbcast_filter(pHddCtx, TRUE);
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+      halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME, pHddCtx->pvosContext), FALSE);
+#endif
       if(pHddCtx->hdd_mcastbcast_filter_set != TRUE)
          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Not able to set mcast/bcast filter ", __func__);
    }

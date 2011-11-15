@@ -1445,8 +1445,10 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             val = sizeof(tLimMlmJoinReq) + psessionEntry->pLimJoinReq->bssDescription.length + 2;
 #endif
             if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmJoinReq, val))
+	        {
                 limLog(pMac, LOGP, FL("call to palAllocateMemory failed for mlmJoinReq\n"));
-            
+                return;
+            }
             (void) palZeroMemory(pMac->hHdd, (void *) pMlmJoinReq, val);
 
             /* PE SessionId is stored as a part of JoinReq*/
@@ -1609,6 +1611,7 @@ end:
     {
         palFreeMemory( pMac->hHdd, pSmeJoinReq);
 		pSmeJoinReq=NULL;
+        psessionEntry->pLimJoinReq = NULL;
     }
     
     if(retCode != eSIR_SME_SUCCESS)
@@ -2709,7 +2712,11 @@ __limProcessSmeSetContextReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         pMlmSetKeysReq->edType  = pSetContextReq->keyMaterial.edType;
         pMlmSetKeysReq->numKeys = pSetContextReq->keyMaterial.numKeys;
-
+        if(pMlmSetKeysReq->numKeys > SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS)
+        {
+            limLog(pMac, LOGP, FL("Num of keys exceeded max num of default keys limit\n"));
+            goto end;
+        }
         palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmSetKeysReq->peerMacAddr,
                       (tANI_U8 *) &pSetContextReq->peerMacAddr,
                       sizeof(tSirMacAddr));

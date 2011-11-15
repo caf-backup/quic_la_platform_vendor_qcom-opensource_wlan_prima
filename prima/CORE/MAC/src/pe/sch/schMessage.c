@@ -297,6 +297,7 @@ void schProcessMessageQueue(tpAniSirGlobal pMac)
     if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
         pMac->sch.gSchRRRecd = false;
 #endif
+    schMsg.type = 0;
     while (1)
     {
         if (tx_queue_receive(&pMac->sys.gSirSchMsgQ, (void *) &schMsg, TX_WAIT_FOREVER)

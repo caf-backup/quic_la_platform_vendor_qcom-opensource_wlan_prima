@@ -234,6 +234,7 @@ void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
     EXIT();
 }
 
+
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
 {
     hdd_adapter_t *pHostapdAdapter;
@@ -251,7 +252,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     v_BOOL_t bApActive = FALSE;
     tpSap_AssocMacAddr pAssocStasArray = NULL;
     char unknownSTAEvent[IW_CUSTOM_MAX+1];
-
+    v_BYTE_t we_custom_start_event[64];
+    char *startBssEvent; 
 
     dev = (struct net_device *)usrDataForCallback;
     pHostapdAdapter = netdev_priv(dev);
@@ -316,11 +318,21 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                  pHddApCtx->groupKey.keyLength = 0;
             }
 #endif
+            //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
+            startBssEvent = "SOFTAP.enabled";
+            memset(&we_custom_start_event, '\0', sizeof(we_custom_start_event));
+            memcpy(&we_custom_start_event, startBssEvent, strlen(startBssEvent));
+            memset(&wrqu, 0, sizeof(wrqu));
+            wrqu.data.length = strlen(startBssEvent);
+            we_event = IWEVCUSTOM;
+            we_custom_event_generic = we_custom_start_event;
 
-            return VOS_STATUS_SUCCESS;
+            break; //Event will be sent after Switch-Case stmt 
+
         case eSAP_STOP_BSS_EVENT:
             hddLog(LOGE, FL("BSS stop status = %s\n"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ? 
                              "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
+
             pHddApCtx->operatingChannel = 0; //Invalidate the channel info.
             vos_event_set(&pHostapdState->vosEvent);
 
@@ -611,7 +623,8 @@ int hdd_softap_unpackIE(
         // Skip past the EID byte and length byte  
         pRsnIe = gen_ie + 2; 
         RSNIeLen = gen_ie_len - 2; 
-        // Unpack the RSN IE 
+        // Unpack the RSN IE
+        dot11RSNIE.present = 0;  
         dot11fUnpackIeRSN((tpAniSirGlobal) halHandle, 
                             pRsnIe, 
                             RSNIeLen, 
@@ -645,7 +658,8 @@ int hdd_softap_unpackIE(
         // Skip past the EID byte and length byte - and four byte WiFi OUI  
         pRsnIe = gen_ie + 2 + 4; 
         RSNIeLen = gen_ie_len - (2 + 4); 
-        // Unpack the WPA IE 
+        // Unpack the WPA IE
+        dot11WPAIE.present = 0; 
         dot11fUnpackIeWPA((tpAniSirGlobal) halHandle, 
                             pRsnIe, 
                             RSNIeLen, 
@@ -769,7 +783,7 @@ static iw_softap_getparam(struct net_device *dev,
     return ret;
 }
 
-/* Usage:	
+/* Usage:
     BLACK_LIST  = 0
     WHITE_LIST  = 1 
     ADD MAC = 0
@@ -965,6 +979,10 @@ static iw_softap_commit(struct net_device *dev,
     pCommitConfig = (s_CommitConfig_t *)extra;
     
     pConfig = kmalloc(sizeof(tsap_Config_t), GFP_KERNEL);
+    if(NULL == pConfig) {
+        hddLog(LOG1, "VOS unable to allocate memory\n");
+        return -ENOMEM;
+    }
     pConfig->beacon_int =  pCommitConfig->beacon_int;
     pConfig->channel = pCommitConfig->channel;
 
@@ -1540,6 +1558,11 @@ static int iw_softap_setwpsie(struct net_device *dev,
       return 0;
 
    pSap_WPSIe = vos_mem_malloc(sizeof(tSap_WPSIE));
+   if (NULL == pSap_WPSIe) 
+   {
+      hddLog(LOG1, "VOS unable to allocate memory\n");
+      return -ENOMEM;
+   }
    vos_mem_zero(pSap_WPSIe, sizeof(tSap_WPSIE));
  
    hddLog(LOGE,"%s WPS IE type[0x%X] IE[0x%X], LEN[%d]\n", __FUNCTION__, wps_genie[0], wps_genie[1], wps_genie[2]);

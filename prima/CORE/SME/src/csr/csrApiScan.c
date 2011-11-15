@@ -471,8 +471,9 @@ eHalStatus csrQueueScanRequest( tpAniSirGlobal pMac, tSmeCmd *pScanCmd )
 }
 #endif
 
-eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tANI_U32 *pScanRequestID, 
-                            csrScanCompleteCallback callback, void *pContext)
+eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId, 
+              tCsrScanRequest *pScanRequest, tANI_U32 *pScanRequestID, 
+              csrScanCompleteCallback callback, void *pContext)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tSmeCmd *pScanCmd = NULL;
@@ -485,6 +486,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tA
             if(pScanCmd)
             {
                 pScanCmd->command = eSmeCommandScan; 
+                pScanCmd->sessionId = sessionId;
                 pScanCmd->u.scanCmd.callback = callback;
                 pScanCmd->u.scanCmd.pContext = pContext;
                 pScanCmd->u.scanCmd.scanID = *pScanRequestID;
@@ -699,11 +701,13 @@ eHalStatus csrScanAllChannels(tpAniSirGlobal pMac, eCsrRequestType reqType)
     scanReq.requestType = reqType;
     scanReq.maxChnTime = pMac->roam.configParam.nActiveMaxChnTime;
     scanReq.minChnTime = pMac->roam.configParam.nActiveMinChnTime;
-    status = csrScanRequest(pMac, &scanReq, &scanId, NULL, NULL);
+    //Scan with invalid sessionId. 
+    //This results in SME using the first available session to scan.
+    status = csrScanRequest(pMac, CSR_SESSION_ID_INVALID, &scanReq, 
+                            &scanId, NULL, NULL);
 
     return (status);
 }
-
 
 
 
@@ -2244,6 +2248,7 @@ tCsrScanResult *csrScanAppendBssDescription( tpAniSirGlobal pMac,
     tmpSsid.length = 0;
     result = csrRemoveDupBssDescription( pMac, pSirBssDescription, pIes, &tmpSsid, &timer );
     pCsrBssDescription = csrScanSaveBssDescription( pMac, pSirBssDescription, pIes );
+    VOS_ASSERT(pCsrBssDescription != NULL);
     if(result)
     {
         //Check if the new one has SSID it it, if not, use the older SSID if it exists.
@@ -3467,6 +3472,7 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
             //SSID not hidden
             pCsrBssDescription->Result.ssId.length = pIes->SSID.num_ssid;
             pCsrBssDescription->Result.timer = vos_timer_get_system_time();
+	        VOS_ASSERT(pIes->SSID.num_ssid <= 32);
             palCopyMemory(pMac->hHdd, pCsrBssDescription->Result.ssId.ssId, 
                 pIes->SSID.ssid, pIes->SSID.num_ssid );
         }
@@ -4037,7 +4043,8 @@ eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInf
 }
 
 
-eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tScanReqParam *pScanReqParam )
+eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId, 
+                    tCsrScanRequest *pScanReq, tScanReqParam *pScanReqParam )
 {
 	eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirSmeScanReq *pMsg;
@@ -4068,29 +4075,36 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tSc
             pMsg->dot11mode = (tANI_U8) csrTranslateToWNICfgDot11Mode(pMac, csrFindBestPhyMode( pMac, pMac->roam.configParam.phyMode ));
             pMsg->bssType = pal_cpu_to_be32(csrTranslateBsstypeToMacType(pScanReq->BSSType));
 
-            // Since we don't have session for the scanning, we find a valid session. In case we fail to
-            // do so, get the WNI_CFG_STA_ID
-            for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+            if ( CSR_IS_SESSION_VALID( pMac, sessionId ) )
             {
+              pSelfMac = (tANI_U8 *)&pMac->roam.roamSession[sessionId].selfMacAddr;
+            }
+            else
+            {
+              // Since we don't have session for the scanning, we find a valid session. In case we fail to
+              // do so, get the WNI_CFG_STA_ID
+              for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+              {
                 if( CSR_IS_SESSION_VALID( pMac, i ) )
                 {
-                    pSelfMac = (tANI_U8 *)&pMac->roam.roamSession[i].selfMacAddr;
-                    break;
+                  pSelfMac = (tANI_U8 *)&pMac->roam.roamSession[i].selfMacAddr;
+                  break;
                 }
-            }
-            if( CSR_ROAM_SESSION_MAX == i )
-            {
+              }
+              if( CSR_ROAM_SESSION_MAX == i )
+              {
                 tANI_U32 len = WNI_CFG_BSSID_LEN;
                 pSelfMac = selfMacAddr;
                 status = ccmCfgGetStr( pMac, WNI_CFG_STA_ID, pSelfMac, &len );
                 if( !HAL_STATUS_SUCCESS( status ) || 
                     ( len < WNI_CFG_BSSID_LEN ) )
                 {
-                    smsLog( pMac, LOGE, FL(" Can not get self MAC address from CFG status = %d"), status );
-                    //Force failed status
-                    status = eHAL_STATUS_FAILURE;
-                    break;
+                  smsLog( pMac, LOGE, FL(" Can not get self MAC address from CFG status = %d"), status );
+                  //Force failed status
+                  status = eHAL_STATUS_FAILURE;
+                  break;
                 }
+              }
             }
             palCopyMemory( pMac->hHdd, (tANI_U8 *)pMsg->selfMacAddr, pSelfMac, sizeof(tSirMacAddr) );
 
@@ -4292,7 +4306,8 @@ eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
 
 
-	    status = csrSendMBScanReq(pMac, &pCommand->u.scanCmd.u.scanRequest, &scanReq);
+	    status = csrSendMBScanReq(pMac, pCommand->sessionId,
+                                &pCommand->u.scanCmd.u.scanRequest, &scanReq);
     }while(0);
     
   	return( status );

@@ -396,7 +396,26 @@ static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEA
     }
     else
     {
-        smeReleaseCommand( pMac, pCommand );
+        switch( pCommand->command )
+        {
+#ifdef WLAN_FEATURE_P2P
+            case eSmeCommandRemainOnChannel:
+                if (NULL != pCommand->u.remainChlCmd.callback)
+                {
+                    remainOnChanCallback callback = 
+                                            pCommand->u.remainChlCmd.callback;
+                    /* process the msg */
+                    callback(pMac, pCommand->u.remainChlCmd.callbackCtx, 
+                                         eCSR_SCAN_ABORT );
+                }
+                smeReleaseCommand( pMac, pCommand );
+
+                break;
+#endif
+            default:
+                smeReleaseCommand( pMac, pCommand );
+                break;
+        }
     }
 }
 
@@ -1752,8 +1771,8 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
             if ( HAL_STATUS_SUCCESS( status ) )
             {
                 {
-                    status = csrScanRequest( hHal, pscanReq, pScanRequestID,
-                                     callback, pContext );
+                    status = csrScanRequest( hHal, sessionId, pscanReq,
+                                     pScanRequestID, callback, pContext );
                 }
                   
                 sme_ReleaseGlobalLock( &pMac->sme );
@@ -4269,6 +4288,7 @@ void smsLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...)
     }
 #endif
 }
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC  
 /* ---------------------------------------------------------------------------
     \fn sme_GetFwVersion
     \brief  This API returns the firmware version.
@@ -4278,7 +4298,6 @@ void smsLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...)
             VOS_STATUS_E_INVAL - failure
             VOS_STATUS_SUCCESS  success
   ---------------------------------------------------------------------------*/
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC  
 VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion)
 {
     VOS_STATUS status = VOS_STATUS_SUCCESS;
@@ -4290,6 +4309,147 @@ VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion)
             vos_mem_copy((v_VOID_t*)pVersion,(v_VOID_t*)&pMac->hal.FwParam.fwVersion, sizeof(FwVersionInfo));
         }
         else {
+            status = VOS_STATUS_E_INVAL;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+#endif
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/* ---------------------------------------------------------------------------
+    \fn sme_GetWcnssWlanCompiledVersion
+    \brief  This API returns the version of the WCNSS WLAN API with
+            which the HOST driver was built
+    \param  hHal - The handle returned by macOpen.
+    \param  pVersion - Points to the Version structure to be filled
+    \return VOS_STATUS
+            VOS_STATUS_E_INVAL - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+VOS_STATUS sme_GetWcnssWlanCompiledVersion(tHalHandle hHal,
+                                           tSirVersionType *pVersion)
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    v_CONTEXT_t vosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
+
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        if( pVersion != NULL )
+        {
+            status = WDA_GetWcnssWlanCompiledVersion(vosContext, pVersion);
+        }
+        else
+        {
+            status = VOS_STATUS_E_INVAL;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
+
+/* ---------------------------------------------------------------------------
+    \fn sme_GetWcnssWlanReportedVersion
+    \brief  This API returns the version of the WCNSS WLAN API with
+            which the WCNSS driver reports it was built
+    \param  hHal - The handle returned by macOpen.
+    \param  pVersion - Points to the Version structure to be filled
+    \return VOS_STATUS
+            VOS_STATUS_E_INVAL - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+VOS_STATUS sme_GetWcnssWlanReportedVersion(tHalHandle hHal,
+                                           tSirVersionType *pVersion)
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    v_CONTEXT_t vosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
+
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        if( pVersion != NULL )
+        {
+            status = WDA_GetWcnssWlanReportedVersion(vosContext, pVersion);
+        }
+        else
+        {
+            status = VOS_STATUS_E_INVAL;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
+
+/* ---------------------------------------------------------------------------
+    \fn sme_GetWcnssSoftwareVersion
+    \brief  This API returns the version string of the WCNSS driver
+    \param  hHal - The handle returned by macOpen.
+    \param  pVersion - Points to the Version string buffer to be filled
+    \param  versionBufferSize - THe size of the Version string buffer
+    \return VOS_STATUS
+            VOS_STATUS_E_INVAL - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+VOS_STATUS sme_GetWcnssSoftwareVersion(tHalHandle hHal,
+                                       tANI_U8 *pVersion,
+                                       tANI_U32 versionBufferSize)
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    v_CONTEXT_t vosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
+
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        if( pVersion != NULL )
+        {
+            status = WDA_GetWcnssSoftwareVersion(vosContext, pVersion,
+                                                 versionBufferSize);
+        }
+        else
+        {
+            status = VOS_STATUS_E_INVAL;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
+
+/* ---------------------------------------------------------------------------
+    \fn sme_GetWcnssHardwareVersion
+    \brief  This API returns the version string of the WCNSS hardware
+    \param  hHal - The handle returned by macOpen.
+    \param  pVersion - Points to the Version string buffer to be filled
+    \param  versionBufferSize - THe size of the Version string buffer
+    \return VOS_STATUS
+            VOS_STATUS_E_INVAL - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+VOS_STATUS sme_GetWcnssHardwareVersion(tHalHandle hHal,
+                                       tANI_U8 *pVersion,
+                                       tANI_U32 versionBufferSize)
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    v_CONTEXT_t vosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
+
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        if( pVersion != NULL )
+        {
+            status = WDA_GetWcnssHardwareVersion(vosContext, pVersion,
+                                                 versionBufferSize);
+        }
+        else
+        {
             status = VOS_STATUS_E_INVAL;
         }
         sme_ReleaseGlobalLock( &pMac->sme );
@@ -4499,8 +4659,10 @@ eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal,
 
             if(pMeasurementRequestID)
             {
-                *pMeasurementRequestID = lMeasId;
+               *pMeasurementRequestID = lMeasId;
             }
+            else
+               return eHAL_STATUS_FAILURE;
 
             status = measInNavMeasurementRequest(hHal, sessionId, pInNavMeasConfig, pMeasurementRequestID, callback, pContext);
 

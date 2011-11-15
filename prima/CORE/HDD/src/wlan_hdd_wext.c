@@ -25,7 +25,9 @@
 #include <wlan_hdd_includes.h>
 #include <wlan_btc_svc.h>
 #include <wlan_nlink_common.h>
+#ifdef WLAN_BTAMP_FEATURE
 #include <bap_hdd_main.h>
+#endif
 #include <vos_api.h>
 #include <net/arp.h>
 #include "ccmApi.h"
@@ -359,9 +361,9 @@ int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
 
 int hdd_wlan_get_freq(v_U32_t channel, v_U32_t *pfreq)
 {
-     if(channel <= (FREQ_CHAN_MAP_TABLE_SIZE - 1))
+     if((channel > 0) && (channel <= (FREQ_CHAN_MAP_TABLE_SIZE - 1)))
      {
-       *pfreq = freq_chan_map[channel-1].freq * 100000;
+       *pfreq = freq_chan_map[channel - 1].freq * 100000;
        return 0;
      }
      else
@@ -1370,7 +1372,7 @@ static int iw_get_encode(struct net_device *dev,
 
     keyId = pRoamProfile->Keys.defaultIndex;
 
-    if(keyId < 0 || keyId > MAX_WEP_KEYS)
+    if(keyId < 0 || keyId >= MAX_WEP_KEYS)
     {
         hddLog(LOG1,"%s: Invalid keyId : %d\n",__FUNCTION__,keyId);
         return -EINVAL;
@@ -1554,9 +1556,9 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
                   supp_rates, &a_len) == eHAL_STATUS_SUCCESS)
            {
                if(a_len <= IW_MAX_BITRATES) {
-                 for (i = 0; i < a_len; ++i)
+                 for (i = 0; i < a_len; i++)
                  {
-                   range->bitrate[i] = ((supp_rates[i]& 0x7F)/2)*1000000;
+                   range->bitrate[i] = ((supp_rates[i]& 0x7F)/2) * 1000000;
                  }
                }   
            else 
@@ -1575,9 +1577,9 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
            {
               if(b_len <= IW_MAX_BITRATES)
               {
-                  for (i = 0; i < b_len; ++i)
+                  for (i = 0; i < b_len; i++)
                   {
-                     range->bitrate[i] = ((supp_rates[i]& 0x7F)/2)*1000000;
+                     range->bitrate[i] = ((supp_rates[i]& 0x7F)/2) * 1000000;
                   }
               }
               else {
@@ -2439,7 +2441,7 @@ static int iw_get_encodeext(struct net_device *dev,
 
     keyId = pRoamProfile->Keys.defaultIndex;
 
-    if(keyId < 0 || keyId > MAX_WEP_KEYS)
+    if(keyId < 0 || keyId >= MAX_WEP_KEYS)
     {
         hddLog(LOG1,"%s: Invalid keyId : %d\n",__FUNCTION__,keyId);
         return -EINVAL;
@@ -2548,7 +2550,7 @@ static int iw_set_encodeext(struct net_device *dev,
        else {
          /*Static wep, update the roam profile with the keys */ 
           if(ext->key && (ext->key_len <= eCSR_SECURITY_WEP_KEYSIZE_MAX_BYTES) &&
-                                                               key_index <=CSR_MAX_NUM_KEY) {
+                                                               key_index < CSR_MAX_NUM_KEY) {
              vos_mem_copy(&pRoamProfile->Keys.KeyMaterial[key_index][0],ext->key,ext->key_len);
              pRoamProfile->Keys.KeyLength[key_index] = (v_U8_t)ext->key_len;
           
@@ -3401,7 +3403,15 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
     {
         case WE_LOG_DUMP_CMD:
             {
-                vos_mem_copy(apps_args, value, (sizeof(int))*wrqu->data.length);
+
+                if (wrqu->data.length > MAX_VAR_ARGS)
+                {
+                    vos_mem_copy(apps_args, value, (sizeof(int)) * MAX_VAR_ARGS);
+                }
+                else
+                {
+                    vos_mem_copy(apps_args, value, (sizeof(int)) * wrqu->data.length);
+                }
 
 
                 hddLog(LOGE, "%s: PTT_MSG_LOG_DUMP %d arg1 %d arg2 %d arg3 %d arg4 %d\n",

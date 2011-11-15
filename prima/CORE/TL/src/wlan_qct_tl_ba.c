@@ -132,6 +132,12 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
       return;
    }
 
+   if( pTLHandle->atlSTAClients[ucSTAID].atlBAReorderInfo[ucTID].ucExists == 0 )
+   {
+      vos_lock_release(&ReorderInfo->reorderLock);
+      return;
+   }
+
    opCode      = WLANTL_OPCODE_FWDALL_DROPCUR;
    vosDataBuff = NULL;
 
@@ -534,9 +540,11 @@ WLANTL_BaSessionDel
   WLANTL_CbType*          pTLCb       = NULL; 
   vos_pkt_t*              vosDataBuff = NULL;
   VOS_STATUS              vosStatus   = VOS_STATUS_E_FAILURE;
+  VOS_STATUS              lockStatus = VOS_STATUS_E_FAILURE;  
   WLANTL_BAReorderType*   reOrderInfo = NULL;
   WLANTL_RxMetaInfoType   wRxMetaInfo;
   v_U32_t                 fwIdx = 0;
+  tANI_U8                 lockRetryCnt = 0;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*------------------------------------------------------------------------
@@ -607,6 +615,19 @@ WLANTL_BaSessionDel
    ------------------------------------------------------------------------*/
   reOrderInfo = &pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid];
 
+  /*------------------------------------------------------------------------
+     Invalidate reorder info here. This ensures that no packets are 
+     bufferd after  reorder buffer is cleaned.
+   */
+  lockStatus = vos_lock_acquire(&reOrderInfo->reorderLock);
+  if(!VOS_IS_STATUS_SUCCESS(lockStatus))
+  {
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "Unable to acquire reorder vos lock in %s\n", __func__));
+    return lockStatus;
+  }
+  pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].ucExists = 0;
+
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL: Fwd all packets to HDD on WLANTL_BaSessionDel"));
 
@@ -635,7 +656,7 @@ WLANTL_BaSessionDel
 #ifdef WLAN_SOFTAP_FEATURE
     if ( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
     {
-		WLANTL_FwdPktToHDD( pTLCb, vosDataBuff, ucSTAId);
+      WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId);
     }
     else
 #endif
@@ -645,6 +666,8 @@ WLANTL_BaSessionDel
                                             &wRxMetaInfo );
     }
   }
+
+  vos_lock_release(&reOrderInfo->reorderLock);
 
   /*------------------------------------------------------------------------
      Delete reordering timer
@@ -677,14 +700,24 @@ WLANTL_BaSessionDel
   /*------------------------------------------------------------------------
     Delete session 
    ------------------------------------------------------------------------*/
-  pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].ucExists = 0;
   pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].usCount  = 0;
   pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].ucCIndex = 0;
   reOrderInfo->winSize   = 0;
   reOrderInfo->SSN       = 0;
   reOrderInfo->sessionID = 0;
 
-  vos_lock_destroy(&reOrderInfo->reorderLock);
+  while (vos_lock_destroy(&reOrderInfo->reorderLock) == VOS_STATUS_E_BUSY)
+  {
+    if( lockRetryCnt > 2)
+    {
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "Unable to destroy reoderLock\n"));
+      break;
+    }
+    vos_sleep(1);
+    lockRetryCnt++;
+  }
+
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL: BA session deleted for STA: %d TID: %d",
              ucSTAId, ucTid));
@@ -967,10 +1000,17 @@ VOS_STATUS WLANTL_MSDUReorder
       return lockStatus;
    }
 
+   if( pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].ucExists == 0 )
+   {
+     vos_lock_release(&currentReorderInfo->reorderLock);
+     return VOS_STATUS_E_INVAL;
+   }
    ucOpCode  = (v_U8_t)WDA_GET_RX_REORDER_OPCODE(pvBDHeader);
    ucSlotIdx = (v_U8_t)WDA_GET_RX_REORDER_SLOT_IDX(pvBDHeader);
    ucFwdIdx  = (v_U8_t)WDA_GET_RX_REORDER_FWD_IDX(pvBDHeader);
    CSN       = (v_U16_t)WDA_GET_RX_REORDER_CUR_PKT_SEQ_NO(pvBDHeader);
+
+
 
 #ifdef WLANTL_HAL_VOLANS
    /* Replay check code : check whether replay check is needed or not */

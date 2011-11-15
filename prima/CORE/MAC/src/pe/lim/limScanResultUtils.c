@@ -208,8 +208,6 @@ limCollectBssDescription(tpAniSirGlobal pMac,
 
     // Copy RSSI & SINR from BD
 
-
-
     PELOG4(limLog(pMac, LOG4, "***********BSS Description for BSSID:*********** ");
     sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG4, pBssDescr->bssId, 6 );
     sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG4, (tANI_U8*)pRxPacketInfo, 36 );)
@@ -331,7 +329,7 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
                              tANI_BOOLEAN fScanning)
 {
     tLimScanResultNode   *pBssDescr;
-    tANI_U32                  frameLen, ieLen = 0;
+    tANI_U32              frameLen, ieLen = 0;
     tANI_U8               rxChannelInBeacon = 0;
 
     /**

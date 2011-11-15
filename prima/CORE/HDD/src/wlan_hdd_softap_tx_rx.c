@@ -1449,7 +1449,6 @@ VOS_STATUS hdd_softap_stop_bss( hdd_adapter_t *pAdapter)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                    "%s: Failed to deregister BC sta Id %d", __FUNCTION__, (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->uBCStaId);
-        return vosStatus;
     }
 
     for (staId = 0; staId < WLAN_MAX_STA_COUNT; staId++)
@@ -1461,7 +1460,6 @@ VOS_STATUS hdd_softap_stop_bss( hdd_adapter_t *pAdapter)
         {
             VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                        "%s: Failed to deregister sta Id %d", __FUNCTION__, staId);
-            return vosStatus;
         }
     }
 

@@ -6182,6 +6182,7 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
                     return;
                 } 
                 // If we are roaming TO an Infrastructure BSS...
+                VOS_ASSERT(pScanResult != NULL); 
                 if ( csrIsInfraBssDesc( pBssDesc ) )
                 {
                     tDot11fBeaconIEs *pIesLocal = (tDot11fBeaconIEs *)pScanResult->Result.pvIes;
@@ -11976,7 +11977,6 @@ eHalStatus csrProcessDelStaSessionCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
          pCommand->u.delStaSessionCmd.selfMacAddr );
 }
 
-#if 0
 static void purgeCsrSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
     tDblLinkList *pList = &pMac->roam.roamCmdPendingList;
@@ -11992,7 +11992,6 @@ static void purgeCsrSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId)
         }
     }
 }
-#endif
 
 void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
@@ -12006,10 +12005,8 @@ void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
         csrRoamFreeConnectedInfo ( pMac, &pSession->connectedInfo);
         palTimerFree(pMac->hHdd, pSession->hTimerRoaming);
         palTimerFree(pMac->hHdd, pSession->hTimerIbssJoining);
-#if 0
         purgeSmeSessionCmdList(pMac, sessionId);
         purgeCsrSessionCmdList(pMac, sessionId);
-#endif	
         csrInitSession(pMac, sessionId);
     }
 }
@@ -12031,10 +12028,8 @@ eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId,
         }
         else
         { 
-#if 0
             purgeSmeSessionCmdList(pMac, sessionId);
             purgeCsrSessionCmdList(pMac, sessionId);
-#endif
             status = csrIssueDelStaForSessionReq( pMac, sessionId,
                                         pSession->selfMacAddr, callback, pContext);
         }

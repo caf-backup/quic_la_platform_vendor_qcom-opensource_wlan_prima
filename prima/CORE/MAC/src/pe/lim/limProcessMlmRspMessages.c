@@ -552,6 +552,7 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 // Log error
                 limLog(pMac, LOGP,
                    FL("call to palAllocateMemory failed for mlmAuthReq\n"));
+		        return;
             }
             palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmAuthReq, sizeof(tLimMlmAuthReq));
             val = sizeof(tSirMacAddr);
@@ -688,6 +689,13 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 limLog(pMac, LOGP,
                        FL("could not retrieve Capabilities value\n"));
             }
+            /*Clear spectrum management bit if AP doesn't support it*/
+            if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo & LIM_SPECTRUM_MANAGEMENT_BIT_MASK))
+            {
+                /*AP doesn't support spectrum management clear spectrum management bit*/
+                caps &= (~LIM_SPECTRUM_MANAGEMENT_BIT_MASK);
+            }
+	    
             pMlmAssocReq->capabilityInfo = caps;
            PELOG3(limLog(pMac, LOG3,
                FL("Capabilities to be used in AssocReq=0x%X, privacy bit=%x\n"),
@@ -1180,6 +1188,7 @@ limProcessMlmAssocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         // Log error
         limLog(pMac, LOGP,
                FL("call to palAllocateMemory failed for eWNI_SME_ASSOC_IND\n"));
+	    return;
     }
 
 #if defined (ANI_PRODUCT_TYPE_AP)

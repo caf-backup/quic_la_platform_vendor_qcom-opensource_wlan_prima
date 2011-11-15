@@ -364,6 +364,13 @@ typedef struct
    tANI_U8    txSuspendTimedOut;   
 
    vos_event_t          waitOnWdiIndicationCallBack;
+
+   /* version information */
+   tSirVersionType      wcnssWlanCompiledVersion;
+   tSirVersionType      wcnssWlanReportedVersion;
+   tSirVersionString    wcnssSoftwareVersionString;
+   tSirVersionString    wcnssHardwareVersionString;
+
 } tWDA_CbContext ; 
 
 typedef struct
@@ -861,6 +868,17 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 /* --------------------------------------------------------------------*/
 
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
+VOS_STATUS WDA_GetWcnssWlanCompiledVersion(v_PVOID_t pvosGCtx,
+                                           tSirVersionType *pVersion);
+VOS_STATUS WDA_GetWcnssWlanReportedVersion(v_PVOID_t pvosGCtx,
+                                           tSirVersionType *pVersion);
+VOS_STATUS WDA_GetWcnssSoftwareVersion(v_PVOID_t pvosGCtx,
+                                       tANI_U8 *pVersion,
+                                       tANI_U32 versionBufferSize);
+VOS_STATUS WDA_GetWcnssHardwareVersion(v_PVOID_t pvosGCtx,
+                                       tANI_U8 *pVersion,
+                                       tANI_U32 versionBufferSize);
+
 VOS_STATUS WDA_SetUapsdAcParamsReq(v_PVOID_t , v_U8_t , tUapsdInfo *);
 VOS_STATUS WDA_ClearUapsdAcParamsReq(v_PVOID_t , v_U8_t , wpt_uint8 );
 VOS_STATUS WDA_SetRSSIThresholdsReq(tpAniSirGlobal , tSirRSSIThresholds *);

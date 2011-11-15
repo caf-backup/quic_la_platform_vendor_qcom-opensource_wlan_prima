@@ -3609,6 +3609,7 @@ int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
     return 0;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
 static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
                          struct net_device *netdev,
                          u8 key_index)
@@ -3621,6 +3622,7 @@ static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
 {
     return 0;
 }
+#endif
 
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops = 

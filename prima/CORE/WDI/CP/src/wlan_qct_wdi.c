@@ -12327,6 +12327,24 @@ WDI_ProcessStartRsp
 
   wdiRspParams.ucMaxBssids   = startRspParams->ucMaxBssids;
   wdiRspParams.ucMaxStations = startRspParams->ucMaxStations;
+  wdiRspParams.wlanCompiledVersion.major = WLAN_HAL_VER_MAJOR;
+  wdiRspParams.wlanCompiledVersion.minor = WLAN_HAL_VER_MINOR;
+  wdiRspParams.wlanCompiledVersion.version = WLAN_HAL_VER_VERSION;
+  wdiRspParams.wlanCompiledVersion.revision = WLAN_HAL_VER_REVISION;
+  wdiRspParams.wlanReportedVersion.major =
+                               startRspParams->wcnssWlanVersion.major;
+  wdiRspParams.wlanReportedVersion.minor =
+                               startRspParams->wcnssWlanVersion.minor;
+  wdiRspParams.wlanReportedVersion.version =
+                               startRspParams->wcnssWlanVersion.version;
+  wdiRspParams.wlanReportedVersion.revision =
+                               startRspParams->wcnssWlanVersion.revision;
+  strlcpy(wdiRspParams.wcnssSoftwareVersion,
+          startRspParams->wcnssCrmVersionString,
+          sizeof(wdiRspParams.wcnssSoftwareVersion));
+  strlcpy(wdiRspParams.wcnssHardwareVersion,
+          startRspParams->wcnssWlanVersionString,
+          sizeof(wdiRspParams.wcnssHardwareVersion));
   wdiRspParams.wdiStatus     = WDI_HAL_2_WDI_STATUS(startRspParams->status);
 
   wpalMutexAcquire(&pWDICtx->wptMutex);
@@ -16061,8 +16079,7 @@ WDI_ProcessKeepAliveRsp
        ( NULL == pEventData->pEventData))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in keep alive Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -16523,8 +16540,7 @@ WDI_ProcessSetTxPerTrackingRsp
       ( NULL == pEventData->pEventData))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set Tx PER Tracking Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }

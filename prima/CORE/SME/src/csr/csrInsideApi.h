@@ -385,8 +385,9 @@ eHalStatus csrScanDisable(tpAniSirGlobal);
     \param pContext - a pointer passed in for the callback
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
-eHalStatus csrScanRequest(tpAniSirGlobal, tCsrScanRequest *, tANI_U32 *pScanRequestID, 
-                            csrScanCompleteCallback callback, void *pContext);
+eHalStatus csrScanRequest(tpAniSirGlobal, tANI_U16, tCsrScanRequest *,
+                   tANI_U32 *pScanRequestID, csrScanCompleteCallback callback,
+                   void *pContext);
 
 /* ---------------------------------------------------------------------------
     \fn csrScanAbort

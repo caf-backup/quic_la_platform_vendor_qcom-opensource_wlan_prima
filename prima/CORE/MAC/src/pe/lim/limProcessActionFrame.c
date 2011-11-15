@@ -585,8 +585,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
         pMac->lim.gLimAddtsSent = false;
         return;   //Error handling. send the response with error status. need to send DelTS to tear down the TSPEC status.
     }
-
-    if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) ||
+    if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) || 
        (psessionEntry->gLimEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
     {
         retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec);
@@ -686,6 +685,7 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     // if no Admit Control, ignore the request
     if ((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA))
     {
+    
 #if(defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
         if ((psessionEntry->limSystemRole == eLIM_AP_ROLE &&
         (! psessionEntry->gLimEdcaParamsBC[upToAc(tsinfo->traffic.userPrio)].aci.acm)) ||

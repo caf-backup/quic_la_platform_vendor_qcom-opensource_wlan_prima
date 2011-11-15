@@ -218,6 +218,7 @@ static void limUpdatePBCSessionEntry(tpAniSirGlobal pMac,
             (void **) &pbc, sizeof(tSirWPSPBCSession)))
         {
             PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!\n"));)
+		    return;
         }
         palCopyMemory(pMac->hHdd, (tANI_U8 *)pbc->addr, (tANI_U8 *)addr, sizeof(tSirMacAddr));
     		
@@ -436,6 +437,7 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
 	                            // Log error
 	                            limLog(pMac, LOGP,
 	                                      FL("call to palAllocateMemory failed for eWNI_SME_PROBE_REQ\n"));
+                                return;      
 	                        }
 	                        msgQ.type = eWNI_SME_PROBE_REQ;
 	                        msgQ.bodyval = 0;
@@ -676,6 +678,7 @@ limSendSmeProbeReqInd(tpAniSirGlobal pMac,
         // Log error
         limLog(pMac, LOGP,
             FL("call to palAllocateMemory failed for eWNI_SME_PROBE_REQ\n"));
+	    return;
     }
     
     msgQ.type =  eWNI_SME_WPS_PBC_PROBE_REQ_IND;
