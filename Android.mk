@@ -1,3 +1,4 @@
+ifneq ($(call is-android-codename,ICECREAM_SANDWICH),true)
 WLAN_BLD_DIR := $(call my-dir)
 
 #Build/Package Libra Mono only in case of 7627 target
@@ -35,3 +36,4 @@ ifeq ($(call is-board-platform,msm7627a),true)
         include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
         include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
 endif
+endif # ICECREAM_SANDWICH
