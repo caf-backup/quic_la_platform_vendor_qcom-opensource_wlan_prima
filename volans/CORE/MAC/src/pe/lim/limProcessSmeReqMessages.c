@@ -559,14 +559,9 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->dtimPeriod = (tANI_U8)pSmeStartBssReq->dtimPeriod;
                  /*Enable/disable UAPSD*/  
                  psessionEntry->apUapsdEnable = pSmeStartBssReq->apUapsdEnable;
-                 if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
-                 {
-                     psessionEntry->proxyProbeRspEn = 0;
-                 }
-                 else
-                 {
-                     psessionEntry->proxyProbeRspEn = 1;
-                 }
+                 /* CR309183. Disable Proxy Probe Rsp.
+                  * Host handles Probe Requests. Until FW fixed. */ 
+                 psessionEntry->proxyProbeRspEn = 0;
                  psessionEntry->ssidHidden = pSmeStartBssReq->ssidHidden;
                  psessionEntry->wps_state = pSmeStartBssReq->wps_state;
                  break;

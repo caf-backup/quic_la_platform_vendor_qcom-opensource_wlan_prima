@@ -68,7 +68,13 @@
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #endif
-#include "wlan_hdd_ftm.h"
+#include "qwlan_version.h"
+
+#ifdef MODULE
+#define WLAN_MODULE_NAME  module_name(THIS_MODULE)
+#else
+#define WLAN_MODULE_NAME  "wlan"
+#endif
 
 //internal function declaration
 v_U16_t hdd_select_queue(struct net_device *dev,
@@ -154,8 +160,6 @@ void hdd_register_mcast_bcast_filter(hdd_context_t *pHddCtx);
 //variable to hold the insmod parameters
 static int con_mode = 0;
 #endif
-static tVOS_CONCURRENCY_MODE concurrency_mode = 0;
-
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
    return 0;
@@ -248,6 +252,9 @@ static void hdd_uninit (struct net_device *dev)
    if (pAdapter && pAdapter->pHddCtx)
    {
       hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
+
+      /* after uninit our adapter structure will no longer be valid */
+      pAdapter->dev = NULL;
    }
 }
 
@@ -316,7 +323,7 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
 
 VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_data, v_SIZE_t *pSize)
 {
-   int status;
+   int status = VOS_STATUS_SUCCESS;
    hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
    ENTER();
 
@@ -325,7 +332,8 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        status = request_firmware(&pHddCtx->fw, pfileName, &pHddCtx->hsdio_func_dev->dev);
 
        if(status || !pHddCtx->fw || !pHddCtx->fw->data) {
-           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Firmware download failed",__func__);
+           hddLog(VOS_TRACE_LEVEL_FATAL,
+                 "%s: Firmware download failed, status = %d",__func__, status);
            status = VOS_STATUS_E_FAILURE;
        }
 
@@ -340,7 +348,8 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        status = request_firmware(&pHddCtx->nv, pfileName, &pHddCtx->hsdio_func_dev->dev);
 
        if(status || !pHddCtx->nv || !pHddCtx->nv->data) {
-           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: nv download failed",__func__);
+           hddLog(VOS_TRACE_LEVEL_FATAL,
+                 "%s: nv download failed, status = %d",__func__, status);
            status = VOS_STATUS_E_FAILURE;
        }
 
@@ -352,7 +361,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    }
 
    EXIT();
-   return VOS_STATUS_SUCCESS;
+   return status;
 }
 
 /**---------------------------------------------------------------------------
@@ -640,7 +649,7 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
 
       pAdapter->isLinkUpSvcNeeded = FALSE; 
       //Init the net_device structure
-      strcpy(pWlanDev->name, name);
+      strlcpy(pWlanDev->name, name, IFNAMSIZ);
 
       vos_mem_copy(pWlanDev->dev_addr, (void *)macAddr, sizeof(tSirMacAddr));
       vos_mem_copy( pAdapter->macAddressCurrent.bytes, macAddr, sizeof(tSirMacAddr));
@@ -1070,24 +1079,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       }
    }
 
-   switch(session_type)
-   {
-      case WLAN_HDD_INFRA_STATION:
-         concurrency_mode |= VOS_STA;
-         break;
-#ifdef WLAN_FEATURE_P2P
-      case WLAN_HDD_P2P_CLIENT:       
-         concurrency_mode |= VOS_P2P_CLIENT;
-         break;
-      case WLAN_HDD_P2P_GO:
-         concurrency_mode |= VOS_P2P_GO;
-         break;
-#endif
-      case WLAN_HDD_SOFTAP:
-         concurrency_mode |= VOS_SAP;
-         break;
-   }
-
+   wlan_hdd_set_concurrency_mode(pHddCtx, session_type);
+   
    /* If there are concurrent session enable SW frame translation 
     * for all registered STA */ 
    if (vos_concurrent_sessions_running())
@@ -1154,24 +1147,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
    pAdapterNode = pCurrent;
    if( VOS_STATUS_SUCCESS == status )
    {
-      switch ( pAdapter->device_mode )
-      {
-            case WLAN_HDD_INFRA_STATION:
-                   concurrency_mode &= ~VOS_STA;
-                   break;
-            case WLAN_HDD_P2P_CLIENT:
-                   concurrency_mode &= ~VOS_P2P_CLIENT;
-                   break;
-            case WLAN_HDD_P2P_GO:
-                   concurrency_mode &= ~VOS_P2P_GO;
-                   break;
-            case WLAN_HDD_SOFTAP:
-                   concurrency_mode &= ~VOS_SAP;
-                   break;
-            default:
-                   break;
-      }
-                             
+      wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
       hdd_cleanup_adapter( pHddCtx, pAdapterNode->pAdapter, rtnl_held );
       hdd_remove_adapter( pHddCtx, pAdapterNode );
       vos_mem_free( pAdapterNode );
@@ -1829,6 +1805,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    if(pHddCtx->cfg_ini->nEnableSuspend)
       unregister_wlan_suspend();
 #endif
+
+   // Cancel any outstanding scan requests.  We are about to close all
+   // of our adapters, but an adapter structure is what SME passes back
+   // to our callback function.  Hence if there are any outstanding scan
+   // requests then there is a race condition between when the adapter
+   // is closed and when the callback is invoked.  We try to resolve that
+   // race condition here by canceling any outstanding scans before we
+   // close the adapters.
+   // Note that the scans may be cancelled in an asynchronous manner, so
+   // ideally there needs to be some kind of synchronization.  Rather than
+   // introduce a new synchronization here, we will utilize the fact that
+   // we are about to Request Full Power, and since that is synchronized,
+   // the expectation is that by the time Request Full Power has completed,
+   // all scans will be cancelled.
+   hdd_abort_mac_scan( pHddCtx );
 
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode during shutdown
@@ -2521,10 +2512,10 @@ static int __init hdd_module_init ( void)
    struct sdio_func *sdio_func_dev = NULL;
    unsigned int attempts = 0;
    int ret_status = 0;
+
    ENTER();
 
-   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Wi-Fi loading driver and"
-             " driver_mode_flag is %d",__func__, driver_mode);
+   pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME, QWLAN_VERSIONSTR);
 
    //Power Up Libra WLAN card first if not already powered up
    status = vos_chipPowerUp(NULL,NULL,NULL);
@@ -2551,17 +2542,17 @@ static int __init hdd_module_init ( void)
 
       if(attempts == 7)
          break;
-      
+
       msleep(250);
 
    }while (attempts < 7);
 
-   //Retry to detect the card again by Powering Down the chip and Power up the chip 
+   //Retry to detect the card again by Powering Down the chip and Power up the chip
    //again. This retry is done to recover from CRC Error
    if (NULL == sdio_func_dev) {
 
       attempts = 0;
-      
+
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
 
@@ -2589,7 +2580,7 @@ static int __init hdd_module_init ( void)
 
          if(attempts == 2)
            break;
-      
+
          msleep(1000);
 
       }while (attempts < 3);
@@ -2642,9 +2633,9 @@ static int __init hdd_module_init ( void)
          ret_status = -1;
          break;
       }
-      
+
       /* Cancel the vote for XO Core ON
-       * This is done here for safety purposes in case we re-initialize without turning 
+       * This is done here for safety purposes in case we re-initialize without turning
        * it OFF in any error scenario.
        */
       hddLog(VOS_TRACE_LEVEL_ERROR, "In module init: Ensure Force XO Core is OFF"
@@ -2654,10 +2645,10 @@ static int __init hdd_module_init ( void)
       {
           hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel XO Core ON vote. Not returning failure."
                                             "Power consumed will be high\n");
-      }  
+      }
    } while (0);
 
-   if(!VOS_IS_STATUS_SUCCESS(ret_status))
+   if (0 != ret_status)
    {
       //Assert Deep sleep signal now to put Libra HW in lowest power state
       status = vos_chipAssertDeepSleep( NULL, NULL, NULL );
@@ -2666,24 +2657,24 @@ static int __init hdd_module_init ( void)
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
 #ifdef TIMER_MANAGER
-     vos_timer_exit();
+      vos_timer_exit();
 #endif
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
+      pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
    }
    else
    {
       //Send WLAN UP indication to Nlink Service
       send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
+      pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
+
    }
-   
-   
 
    EXIT();
 
    return ret_status;
-
 }
 
 
@@ -2704,7 +2695,7 @@ static void __exit hdd_module_exit(void)
    v_CONTEXT_t pVosContext = NULL;
    int attempts = 0;
 
-   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Entering module exit",__func__);
+   pr_info("%s: unloading driver v%s\n", WLAN_MODULE_NAME, QWLAN_VERSIONSTR);
 
    //Get the global vos context
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
@@ -2712,7 +2703,7 @@ static void __exit hdd_module_exit(void)
    if(!pVosContext)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
-      return;
+      goto done;
    }
 
    //Get the HDD context.
@@ -2759,13 +2750,11 @@ static void __exit hdd_module_exit(void)
    vos_timer_exit();
 #endif
 #ifdef MEMORY_DEBUG
-   vos_mem_exit(); 
+   vos_mem_exit();
 #endif
 
-#if 0
-done:   
-#endif
-   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Exiting module exit",__func__);
+done:
+   pr_info("%s: driver unloaded\n", WLAN_MODULE_NAME);
 }
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -2884,8 +2873,9 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter,v_BOOL_t e
  *           --------------------------------------------------------------------------*/
 tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
 {
-      return (tVOS_CONCURRENCY_MODE)concurrency_mode;
-
+    v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+    hdd_context_t *pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+    return (tVOS_CONCURRENCY_MODE)pHddCtx->concurrency_mode;
 }
 
 /* Decide whether to allow/not the apps power collapse. 
@@ -2927,6 +2917,18 @@ v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
     return TRUE;
 }
 
+void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
+{
+    pHddCtx->concurrency_mode |= (1 << mode);
+    pHddCtx->no_of_sessions[mode]++;
+}
+
+void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
+{
+    pHddCtx->no_of_sessions[mode]--;
+    if (!(pHddCtx->no_of_sessions[mode]))
+        pHddCtx->concurrency_mode &= ~(1 << mode);
+}
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);

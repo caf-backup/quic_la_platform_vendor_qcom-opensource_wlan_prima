@@ -1558,7 +1558,8 @@ limMlmAddBss (
 #ifdef WLAN_SOFTAP_FEATURE
     pAddBssParams->bHiddenSSIDEn = pMlmStartReq->ssidHidden;
     limLog( pMac, LOGE, FL( "TRYING TO HIDE SSID %d\n" ),pAddBssParams->bHiddenSSIDEn);
-    pAddBssParams->bProxyProbeRespEn = 1;
+    // CR309183. Disable Proxy Probe Rsp.  Host handles Probe Requests.  Until FW fixed. 
+    pAddBssParams->bProxyProbeRespEn = 0;
     pAddBssParams->obssProtEnabled = pMlmStartReq->obssProtEnabled;
 
 #endif

@@ -348,7 +348,7 @@ VosMCThread
       if(test_bit(MC_SHUTDOWN_EVENT_MASK, &pSchedContext->mcEventFlag))
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                "%s: MC thread signaled to shutdown",__func__);
+                "%s: MC thread signaled to shutdown", __func__);
         shutdown = VOS_TRUE;
          /* Check for any Suspend Indication */
          if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
@@ -598,7 +598,7 @@ VosWDThread
       if(test_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag))
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                "%s: Watchdog thread signaled to shutdown",__func__);
+                "%s: Watchdog thread signaled to shutdown", __func__);
 
         clear_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
         shutdown = VOS_TRUE;
@@ -727,7 +727,7 @@ static int VosTXThread ( void * Arg )
       if(test_bit(TX_SHUTDOWN_EVENT_MASK, &pSchedContext->txEventFlag))
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                 "%s: TX thread signaled for shutdown",__func__);
+                 "%s: TX thread signaled to shutdown", __func__);
         shutdown = VOS_TRUE;
          /* Check for any Suspend Indication */
          if(test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag))
@@ -860,31 +860,34 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     int driver_mode_flag = ((hdd_context_t *)
         (((VosContextType *)(pVosContext))->pHDDContext))->driver_type;
 
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: vos_schdeuler closing now", __FUNCTION__);
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+        "%s: invoked", __FUNCTION__);
     if (gpVosSchedContext == NULL)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
            "%s: gpVosSchedContext == NULL\n",__FUNCTION__);
        return VOS_STATUS_E_FAILURE;
     }
+
+    // shut down MC Thread
     set_bit(MC_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     set_bit(MC_POST_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     wake_up_interruptible(&gpVosSchedContext->mcWaitQueue);
     //Wait for MC to exit
     wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
+    gpVosSchedContext->McThread = 0;
 
     if(eDRIVER_TYPE_PRODUCTION == driver_mode_flag)
     {
+       // shut down TX Thread
        set_bit(TX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->txEventFlag);
        set_bit(TX_POST_EVENT_MASK, &gpVosSchedContext->txEventFlag);
        wake_up_interruptible(&gpVosSchedContext->txWaitQueue);
        //Wait for TX to exit	
        wait_for_completion_interruptible(&gpVosSchedContext->TxShutdown);
+       gpVosSchedContext->TxThread = 0;
     }
 
-    gpVosSchedContext->McThread = 0;
-    gpVosSchedContext->TxThread = 0;
     //Clean up message queues of TX and MC thread
     vos_sched_flush_mc_mqs(gpVosSchedContext);
     if(eDRIVER_TYPE_PRODUCTION == driver_mode_flag)

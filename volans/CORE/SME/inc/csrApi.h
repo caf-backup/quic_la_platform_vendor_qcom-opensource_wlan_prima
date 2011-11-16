@@ -985,8 +985,8 @@ typedef struct tagCsrRoamInfo
     tANI_U32 nBeaconLength; //the length, in bytes, of the beacon frame, can be 0
     tANI_U32 nAssocReqLength;   //the length, in bytes, of the assoc req frame, can be 0
     tANI_U32 nAssocRspLength;   //The length, in bytes, of the assoc rsp frame, can be 0
-    tANI_U32 nProbeReqLength;   //The length, in bytes, of the probe req frame, can be 0
-    tANI_U32 nActionLength;     //The length, in bytes, of the action frame, can be 0
+    tANI_U32 nFrameLength;
+    tANI_U8  frameType;
     tANI_U8 *pbFrames;  //Point to a buffer contain the beacon, assoc req, assoc rsp frame, in that order
                         //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
                         //each frame starts and ends.

@@ -243,6 +243,15 @@ void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
 
    pMonAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_MONITOR );
 
+   cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+
+   if( NULL != cfgState->buf )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+          "%s: Already one MGMT packet Tx going on", __func__);
+      return;
+   }
+
    skb = hdd_mon_tx_fetch_pkt(pMonAdapter);
 
    if (NULL == skb)
@@ -250,15 +259,6 @@ void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
        "%s: No Packet Pending", __func__);
       return;
-   }
-
-   cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
-
-   if( NULL != cfgState->buf )
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-          "%s: Already one MGMT packet Tx going on", __func__);
-      goto fail;
    }
 
    cfgState->buf = vos_mem_malloc( skb->len ); //buf;

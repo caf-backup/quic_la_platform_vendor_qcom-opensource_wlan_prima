@@ -623,7 +623,10 @@ struct hdd_context_s
    
    /* Track whether Mcast/Bcast Filter is enabled.*/
    v_BOOL_t hdd_mcastbcast_filter_set;
-   
+
+   /* Track whether host arpoffload config applied successfully or not.*/
+   v_BOOL_t hdd_host_arpoffload_failed;
+
    v_BOOL_t hdd_wlan_suspended;
    
    spinlock_t filter_lock;
@@ -632,6 +635,11 @@ struct hdd_context_s
    v_SINT_t ptt_pid;
 
    v_U8_t change_iface;
+
+   /** Concurrency Parameters*/
+   tVOS_CONCURRENCY_MODE concurrency_mode;
+
+   v_U16_t no_of_sessions[VOS_MAX_CONCURRENCY_PERSONA];
 
    hdd_chip_reset_stats_t hddChipResetStats;
 
@@ -694,4 +702,6 @@ void hdd_abort_mac_scan(hdd_context_t *pHddCtx);
 #ifdef CONFIG_CFG80211
 void wlan_hdd_set_monitor_tx_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
 #endif
+void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
+void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

@@ -54,6 +54,7 @@
 #include "wlan_hdd_hostapd.h"
 #include "sapInternal.h"
 #include "wlan_hdd_softap_tx_rx.h"
+#include "wlan_hdd_main.h"
 
 #define g_mode_rates_size (12)
 #define FREQ_BASE_80211G          (2407)
@@ -189,6 +190,7 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
 static struct cfg80211_ops wlan_hdd_cfg80211_ops;
 
 extern struct net_device_ops net_ops_struct;
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_sdio_probe() 
@@ -919,6 +921,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
 {
     struct wireless_dev *wdev;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev ); //(hdd_adapter_t*) wiphy_priv(wiphy);
+    hdd_context_t *pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
     tCsrRoamProfile *pRoamProfile = NULL;
     eCsrRoamBssType LastBSSType;
     hdd_config_t *pConfig = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
@@ -932,6 +935,9 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
  
     wdev = ndev->ieee80211_ptr;
 
+    /* Reset the current device mode bit mask*/
+    wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
+    
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
 #ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
@@ -1098,6 +1104,8 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     }
 
 done:
+    /*set bitmask based on updated value*/
+    wlan_hdd_set_concurrency_mode(pHddCtx, pAdapter->device_mode);
     EXIT();
     return 0;
 }

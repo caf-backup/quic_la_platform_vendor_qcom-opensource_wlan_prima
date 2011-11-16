@@ -338,6 +338,15 @@ static v_VOID_t balGetTXResTimerExpierCB
 
    BENTER();
 
+   /* Do not issue any reservation command when chip is in suspended state */
+   if (gbalHandle->isChipSuspended)
+   {
+       VOS_TRACE(VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL,
+            "%s : Resource Timer expired in suspended state\n", __func__);
+       BEXIT();
+       return;
+   }
+
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
    /* Acquire the resource to make sure firmware wont power down the chip when 
     * next register access is in progress */
@@ -847,6 +856,9 @@ VOS_STATUS WLANBAL_Start
       BEXIT();
       return VOS_STATUS_E_NOMEM;
    }
+
+   /* Initialize the chip suspended to 0 */
+   gbalHandle->isChipSuspended = 0;
 
    sscReg.pfnGetMultipleTxPacketCback           = balGetTXFramesCB;
    sscReg.pfnTxCompleteCback                    = balTXCompleteCB;
@@ -1994,6 +2006,9 @@ VOS_STATUS WLANBAL_Suspend
 
    vos_timer_stop(&gbalHandle->timer);
 
+   /* Set the chip state as suspended */
+   gbalHandle->isChipSuspended = 1;
+
    status = WLANSSC_Suspend(sscHandle, WLANSSC_ALL_FLOW);
 
    BEXIT();
@@ -2029,6 +2044,13 @@ VOS_STATUS WLANBAL_Resume
    }
 
    BENTER();
+
+   /* Reset the suspended state of chip */
+   gbalHandle->isChipSuspended = 0;
+
+   /* To avoid hardware getting choked without any resources and to 
+    * keep TL in sync with resource count, call below function */
+   balGetTXResTimerExpierCB(pAdapter);
 
    status = WLANSSC_Resume(sscHandle, WLANSSC_ALL_FLOW);
 
@@ -2246,6 +2268,16 @@ VOS_STATUS WLANBAL_GetTxResources
    VOS_ASSERT(availableTxBuffer);
 
    BENTER();
+
+   /* Do not issue any reservation command when chip is in suspended state */
+   if (gbalHandle->isChipSuspended)
+   {
+       VOS_TRACE(VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL,
+            "%s : Resource requested in suspended state\n", __func__);
+       BEXIT();
+       return VOS_STATUS_E_FAILURE;
+   }
+
 
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
    /* Acquire the resource to make sure firmware wont power down the chip when 

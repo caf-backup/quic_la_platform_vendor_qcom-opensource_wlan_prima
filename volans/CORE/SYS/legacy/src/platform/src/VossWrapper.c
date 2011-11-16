@@ -316,9 +316,9 @@ v_UINT_t tx_timer_create_intern_debug( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr
    v_ULONG_t rescheduleTimeInTicks, v_ULONG_t auto_activate, 
    char* fileName, v_U32_t lineNum)
 {
-   VOS_STATUS status;
+    VOS_STATUS status;
 
-	VOS_ASSERT((NULL != expiration_function) && (NULL != name_ptr));
+    VOS_ASSERT((NULL != expiration_function) && (NULL != name_ptr));
 
     if (!initScheduleTimeInTicks)
         return TX_TICK_ERROR;
@@ -333,14 +333,14 @@ v_UINT_t tx_timer_create_intern_debug( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr
         TX_MSECS_IN_1_TICK * initScheduleTimeInTicks;
     timer_ptr->rescheduleTimeInMsecs =
         TX_MSECS_IN_1_TICK * rescheduleTimeInTicks;
-	timer_ptr->pMac = pMacGlobal;
+    timer_ptr->pMac = pMacGlobal;
 
     // Set the flag indicating that the timer was created
-	timer_ptr->tmrSignature = TX_AIRGO_TMR_SIGNATURE;
+    timer_ptr->tmrSignature = TX_AIRGO_TMR_SIGNATURE;
 
 #ifdef WLAN_DEBUG
-	// Store the timer name
-    strcpy(timer_ptr->timerName, name_ptr);
+    // Store the timer name
+    strlcpy(timer_ptr->timerName, name_ptr, sizeof(timer_ptr->timerName));
 #endif // Store the timer name, for Debug build only
 
     status = vos_timer_init_debug( &timer_ptr->vosTimer, VOS_TIMER_TYPE_SW, 
@@ -352,11 +352,11 @@ v_UINT_t tx_timer_create_intern_debug( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr
        return TX_TIMER_ERROR;
     }
 
-	if(0 != rescheduleTimeInTicks)
-	{
-      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
-                "Creating periodic timer for %s\n", TIMER_NAME);
-	}
+    if(0 != rescheduleTimeInTicks)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+                  "Creating periodic timer for %s\n", TIMER_NAME);
+    }
 
     // Activate this timer if required
     if (auto_activate)
@@ -374,9 +374,9 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
    tANI_U32 expiration_input, v_ULONG_t initScheduleTimeInTicks, 
    v_ULONG_t rescheduleTimeInTicks, v_ULONG_t auto_activate )
 {
-   VOS_STATUS status;
+    VOS_STATUS status;
 
-	VOS_ASSERT((NULL != expiration_function) && (NULL != name_ptr));
+    VOS_ASSERT((NULL != expiration_function) && (NULL != name_ptr));
 
     if (!initScheduleTimeInTicks)
         return TX_TICK_ERROR;
@@ -391,14 +391,14 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
         TX_MSECS_IN_1_TICK * initScheduleTimeInTicks;
     timer_ptr->rescheduleTimeInMsecs =
         TX_MSECS_IN_1_TICK * rescheduleTimeInTicks;
-	timer_ptr->pMac = pMacGlobal;
+    timer_ptr->pMac = pMacGlobal;
 
     // Set the flag indicating that the timer was created
-	timer_ptr->tmrSignature = TX_AIRGO_TMR_SIGNATURE;
+    timer_ptr->tmrSignature = TX_AIRGO_TMR_SIGNATURE;
 
 #ifdef WLAN_DEBUG
-	// Store the timer name
-    strcpy(timer_ptr->timerName, name_ptr);
+    // Store the timer name
+    strlcpy(timer_ptr->timerName, name_ptr, sizeof(timer_ptr->timerName));
 #endif // Store the timer name, for Debug build only
 
     status = vos_timer_init( &timer_ptr->vosTimer, VOS_TIMER_TYPE_SW, 
@@ -410,11 +410,11 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
        return TX_TIMER_ERROR;
     }
 
-	if(0 != rescheduleTimeInTicks)
-	{
-      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
-                "Creating periodic timer for %s\n", TIMER_NAME);
-	}
+    if(0 != rescheduleTimeInTicks)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+                  "Creating periodic timer for %s\n", TIMER_NAME);
+    }
 
     // Activate this timer if required
     if (auto_activate)

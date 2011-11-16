@@ -609,7 +609,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U32 *pBd,
                 FL("rcvd frame match with registered frame params\n"));
 
         /* Indicate this to SME */	 
-        limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
+        limSendSmeMgmtFrameInd( pMac, pHdr->fc.subType, (tANI_U8*)pHdr, 
                      SIR_MAC_BD_TO_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      ( psessionEntry != NULL ) ? psessionEntry->smeSessionId :
                      pLimMgmtRegistration->sessionId );

@@ -355,11 +355,12 @@ VOS_STATUS vos_nv_open(void)
 
     if ( (!VOS_IS_STATUS_SUCCESS( status )) || !gnvEFSTable)
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                         "%s : vos_nv_open failed!!! make sure the qcom_wlan_nv.bin is present in persist directory\n",__func__);
-
-        return VOS_STATUS_E_FAILURE;
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                   "%s : unable to download NV file %s",
+                   __FUNCTION__, LIBRA_NV_FILE);
+         return VOS_STATUS_E_RESOURCES;
     }
+
     return VOS_STATUS_SUCCESS;
 }
 

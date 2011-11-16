@@ -1046,6 +1046,15 @@ typedef enum
 #define CFG_AP_DATA_AVAIL_POLL_PERIOD_MAX       ( WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD_STAMAX )
 #define CFG_AP_DATA_AVAIL_POLL_PERIOD_DEFAULT   ( WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD_STADEF )
 
+#define CFG_ENABLE_HOST_ARPOFFLOAD_NAME         "hostArpOffload"
+#define CFG_ENABLE_HOST_ARPOFFLOAD_MIN            ( 0 )
+#define CFG_ENABLE_HOST_ARPOFFLOAD_MAX            ( 1 )
+#define CFG_ENABLE_HOST_ARPOFFLOAD_DEFAULT        ( 1 )
+
+#define HDD_MCASTBCASTFILTER_FILTER_NONE                    0x00
+#define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST           0x01
+#define HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST           0x02
+#define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST 0x03
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1287,6 +1296,7 @@ typedef struct
       single replay counter for all TID*/
    v_BOOL_t                    bSingleTidRc;
    v_U8_t                      mcastBcastFilterSetting;
+   v_BOOL_t                    fhostArpOffload;
    v_BOOL_t                     burstSizeDefinition;
    v_U8_t                       tsInfoAckPolicy;
    

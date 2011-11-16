@@ -716,7 +716,7 @@ limProcessP2PProbeReq(tpAniSirGlobal pMac, tANI_U32 *pBd,
     frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
   
     //send the probe req to SME. 
-    limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_PROBE_REQ,
+    limSendSmeMgmtFrameInd( pMac, pHdr->fc.subType,
                (tANI_U8*)pHdr, (frameLen + sizeof(tSirMacMgmtHdr)), 
                psessionEntry->smeSessionId );
 }

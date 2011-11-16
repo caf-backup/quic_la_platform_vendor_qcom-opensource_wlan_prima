@@ -1545,7 +1545,8 @@ eHalStatus halFW_UpdateProbeRspIeBitmap(tpAniSirGlobal pMac, tANI_U32* pIeBitmap
 
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
     vos_mem_copy(pFwConfig->apProbeReqValidIEBitmap, pIeBitmap, sizeof(pFwConfig->apProbeReqValidIEBitmap));
-    pFwConfig->bFwProcProbeReqDisabled = 0; //enable the feature;
+    // CR309183. Disable Proxy Probe Rsp.  Host handles Probe Requests.  Until FW fixed. 
+    pFwConfig->bFwProcProbeReqDisabled = 1; //disable the feature;
 
     status = halFW_UpdateSystemConfig(pMac,
             pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,

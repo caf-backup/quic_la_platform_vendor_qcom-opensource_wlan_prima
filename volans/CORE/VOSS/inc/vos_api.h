@@ -216,4 +216,5 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
                              
 v_BOOL_t vos_is_apps_power_collapse_allowed(void* pHddCtx);
 void vos_abort_mac_scan(void);
+VOS_STATUS  vos_conf_hostarpoffload(v_BOOL_t fenable);
 #endif // if !defined __VOS_NVITEM_H

@@ -99,7 +99,7 @@ void vos_trace_setLevel( VOS_MODULE_ID module, VOS_TRACE_LEVEL level )
    // Make sure the caller is passing in a valid LEVEL.
    if ( level >= VOS_TRACE_LEVEL_MAX )
    {
-      printk(KERN_CRIT "%s: Invalid trace level %d passed in!\n",__FUNCTION__, level);
+      pr_err("%s: Invalid trace level %d passed in!\n", __FUNCTION__, level);
       return;
    }
 
@@ -122,14 +122,14 @@ void vos_trace_setValue( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, v_U8_t on)
    // Make sure the caller is passing in a valid LEVEL.
    if ( level < 0  || level >= VOS_TRACE_LEVEL_MAX )
    {
-      printk(KERN_CRIT "%s: Invalid trace level %d passed in!\n",__FUNCTION__, level);
+      pr_err("%s: Invalid trace level %d passed in!\n", __FUNCTION__, level);
       return;
    }
 	
    // Make sure the caller is passing in a valid module.
    if ( module < 0 || module >= VOS_MODULE_ID_MAX )
    {
-      printk(KERN_CRIT "%s: Invalid module id %d passed in!\n",__FUNCTION__, module);
+      pr_err("%s: Invalid module id %d passed in!\n", __FUNCTION__, module);
       return;
    }
 
@@ -137,23 +137,23 @@ void vos_trace_setValue( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, v_U8_t on)
    // the bits in the bit mask so none of the traces appear.
    if ( VOS_TRACE_LEVEL_NONE == level )
    {
-	   gVosTraceInfo[ module ].moduleTraceLevel = VOS_TRACE_LEVEL_NONE;
+      gVosTraceInfo[ module ].moduleTraceLevel = VOS_TRACE_LEVEL_NONE;
    }
    // Treat 'All' differently.  All means we have to turn on all
    // the bits in the bit mask so all of the traces appear.
    else if ( VOS_TRACE_LEVEL_ALL == level )
    {
-	   gVosTraceInfo[ module ].moduleTraceLevel = 0xFFFF;
+      gVosTraceInfo[ module ].moduleTraceLevel = 0xFFFF;
    }
 	
    else
    {
-      if(on)
-          // Set the desired bit in the bit mask for the module trace level.
-	       gVosTraceInfo[ module ].moduleTraceLevel |= VOS_TRACE_LEVEL_TO_MODULE_BITMASK( level );
-		else
-			// Clear the desired bit in the bit mask for the module trace level.
-			gVosTraceInfo[ module ].moduleTraceLevel &= ~(VOS_TRACE_LEVEL_TO_MODULE_BITMASK( level ));
+      if (on)
+         // Set the desired bit in the bit mask for the module trace level.
+         gVosTraceInfo[ module ].moduleTraceLevel |= VOS_TRACE_LEVEL_TO_MODULE_BITMASK( level );
+      else
+         // Clear the desired bit in the bit mask for the module trace level.
+         gVosTraceInfo[ module ].moduleTraceLevel &= ~(VOS_TRACE_LEVEL_TO_MODULE_BITMASK( level ));
    }
 }
 
@@ -215,6 +215,7 @@ void vos_snprintf(char *strBuffer, unsigned  int size, char *strFormat, ...)
 void vos_trace_msg( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, char *strFormat, ... )
 {
    char strBuffer[VOS_TRACE_BUFFER_SIZE];
+   int n;
 
    // Print the trace message when the desired level bit is set in the module
    // tracel level mask.
@@ -225,58 +226,20 @@ void vos_trace_msg( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, char *strFormat
       // can index into this array with the level and get the right string.  The
       // vos trace levels are...
       // none, Fata, Error, Warning, Info, InfoHigh, InfoMed, InfoLow
-      static const char * TRACE_LEVEL_STR[] = { "   ", "F ", "E ", "W ", "I ", "IH", "IM", "IL" };
+      static const char * TRACE_LEVEL_STR[] = { "  ", "F ", "E ", "W ", "I ", "IH", "IM", "IL" };
       va_list val;
       va_start(val, strFormat);
 
       // print the prefix string into the string buffer...
-      snprintf( strBuffer, VOS_TRACE_BUFFER_SIZE, "[%2s:%3s] ",
-                 (char *) TRACE_LEVEL_STR[ level ],
-                 (char *) gVosTraceInfo[ module ].moduleNameStr );
+      n = snprintf(strBuffer, VOS_TRACE_BUFFER_SIZE, "[%d:%d:%2s:%3s] ",
+                   smp_processor_id(),
+                   in_interrupt() ? 0 : current->pid,
+                   (char *) TRACE_LEVEL_STR[ level ],
+                   (char *) gVosTraceInfo[ module ].moduleNameStr );
 
-      // then move the format string with var replacements into the string buffer
-      // AFTER the prefix string.  Note the prefix string is 9 characters long and
-      // looks something like this.... [I :HDD] with a space after the last bracket.
-      // Hence the hardcoded 9 below where we put the formaatted string following
-      // the prefix. We also need to reserve additional 2 spaces for the terminating
-      // new line and null character
-      vsnprintf(strBuffer + 9,VOS_TRACE_BUFFER_SIZE - 11, strFormat, val );
-      strcat(strBuffer, "\n");
-
-      switch(level)
-      {
-         default:
-            printk(KERN_CRIT "%s: Unknown trace level passed in!\n", __FUNCTION__); 
-            break;
-
-         case VOS_TRACE_LEVEL_FATAL:
-            printk(KERN_CRIT "%s", strBuffer);
-            break;
-
-         case VOS_TRACE_LEVEL_ERROR:
-            printk(KERN_CRIT "%s", strBuffer);
-            break;
-
-         case VOS_TRACE_LEVEL_WARN:
-            printk(KERN_CRIT "%s", strBuffer);
-            break;
-
-         case VOS_TRACE_LEVEL_INFO:
-            printk(KERN_CRIT "%s", strBuffer);
-            break;
-
-         case VOS_TRACE_LEVEL_INFO_HIGH:
-            printk(KERN_CRIT "%s", strBuffer);
-            break;
-
-         case VOS_TRACE_LEVEL_INFO_MED:
-            printk(KERN_CRIT "%s", strBuffer);
-            break;
-
-         case VOS_TRACE_LEVEL_INFO_LOW:
-            printk(KERN_CRIT "%s", strBuffer);
-            break;
-      }
+      // print the formatted log message after the prefix string.
+      vsnprintf(strBuffer + n, VOS_TRACE_BUFFER_SIZE - n, strFormat, val );
+      pr_err("%s\n", strBuffer);
       va_end( val);
    }
 }
@@ -285,10 +248,10 @@ void vos_trace_display(void)
 {
    VOS_MODULE_ID moduleId;
 
-     printk(KERN_CRIT "     1)FATAL  2)ERROR  3)WARN  4)INFO  5)INFO_H  6)INFO_M  7)INFO_L\n"); 
+   pr_err("     1)FATAL  2)ERROR  3)WARN  4)INFO  5)INFO_H  6)INFO_M  7)INFO_L\n"); 
    for (moduleId = 0; moduleId < VOS_MODULE_ID_MAX; ++moduleId)
    {
-      printk(KERN_CRIT "%2d)%s    %s        %s       %s       %s        %s         %s         %s\n",
+      pr_err("%2d)%s    %s        %s       %s       %s        %s         %s         %s\n",
              (int)moduleId,
              gVosTraceInfo[moduleId].moduleNameStr,
              (gVosTraceInfo[moduleId].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":" ",

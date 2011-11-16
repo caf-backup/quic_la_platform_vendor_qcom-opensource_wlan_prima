@@ -382,12 +382,6 @@ typedef enum eBeaconForwarding
 
 
 #ifdef WLAN_FEATURE_P2P
-typedef enum eSirSmeMgmtFrameType
-{
-    eSIR_MGMT_FRM_PROBE_REQ,
-    eSIR_MGMT_FRM_ACTION
-} tSirSmeMgmtFrameType;
-
 typedef struct sSirRemainOnChnReq
 {
     tANI_U16 messageType;
@@ -3589,7 +3583,7 @@ typedef struct sSirSmeMgmtFrameInd
     tANI_U16        mesgType;
     tANI_U16        mesgLen;
     tANI_U16        sessionId;
-    tSirSmeMgmtFrameType frameType;
+    tANI_U8         frameType;
     tANI_U8  frameBuf[1]; //variable
 }tSirSmeMgmtFrameInd, *tpSirSmeMgmtFrameInd;
 #endif
