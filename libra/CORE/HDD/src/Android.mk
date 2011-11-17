@@ -1,31 +1,63 @@
 # Android makefile for the WLAN Libra Module
 
-# Build/Package only in case of 7x30 and 7x27 target
-ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion msm7627_6x),true)
-
+LOCAL_PATH := $(call my-dir)
 WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
-LIBRA_FW_DIR := vendor/qcom/proprietary/wlan/libra/firmware_bin
 DLKM_DIR     := build/dlkm
 
-PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_fw.bin:system/etc/firmware/wlan/qcom_fw.bin
-PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_wapi_fw.bin:system/etc/firmware/wlan/qcom_wapi_fw.bin
-PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_wlan_nv.bin:persist/qcom_wlan_nv.bin
-PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/cfg.dat:system/etc/firmware/wlan/cfg.dat
-PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_cfg.ini:data/hostapd/qcom_cfg.ini
-PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_cfg.ini:persist/qcom/softap/qcom_cfg_default.ini
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_fw.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_wapi_fw.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_wlan_nv.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/persist
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := cfg.dat
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_cfg.ini
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/data/hostapd
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_cfg_default.ini
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/persist/qcom/softap
+LOCAL_SRC_FILES    := ../../../firmware_bin/qcom_cfg.ini
+include $(BUILD_PREBUILT)
 
 #Create sym link for ftm driver
-WLAN_LIBRA_FTM_SYM_LINK := $(WLAN_BLD_DIR)/libra/ftm/CORE
-$(WLAN_LIBRA_FTM_SYM_LINK):
-	@mkdir -p $(dir $@)
-	ln -sf ../CORE $@
-
-file := $(WLAN_LIBRA_FTM_SYM_LINK)
-ALL_PREBUILT += $(file)
+$(shell mkdir -p $(WLAN_BLD_DIR)/libra/ftm; \
+        ln -sf ../CORE $(WLAN_BLD_DIR)/libra/ftm/CORE)
 
 # Build libra.ko
 ###########################################################
-LOCAL_PATH := $(call my-dir)
 
 # This is set once per LOCAL_PATH, not per (kernel) module
 KBUILD_OPTIONS := WLAN_LIBRA=../$(WLAN_BLD_DIR)/libra
@@ -60,12 +92,7 @@ include $(DLKM_DIR)/AndroidKernelModule.mk
 
 #Create symbolic link
 ifeq ($(call is-chipset-in-board-platform,msm7627),true)
-WLAN_WCN1312_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko
-$(WLAN_WCN1312_SYMLINK):
-	@mkdir -p $(dir $@)
-	ln -sf /system/lib/modules/libra/libra.ko $@
-
-file := $(WLAN_WCN1312_SYMLINK)
-ALL_PREBUILT += $(file)
-endif
+$(shell mkdir -p $(TARGET_OUT)/lib/modules; \
+        ln -sf /system/lib/modules/libra/libra.ko \
+               $(TARGET_OUT)/lib/modules/wlan.ko)
 endif

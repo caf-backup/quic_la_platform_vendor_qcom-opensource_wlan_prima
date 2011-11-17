@@ -4,11 +4,47 @@
 # Build/Package only in case of 7x30 and 7x27 target
 ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion msm7627_6x),true)
 
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/qcom_fw.bin:system/etc/firmware/wlan/qcom_fw.bin
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/qcom_wapi_fw.bin:system/etc/firmware/wlan/qcom_wapi_fw.bin
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/qcom_wlan_nv.bin:persist/qcom_wlan_nv.bin
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/cfg.dat:system/etc/firmware/wlan/cfg.dat
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/qcom_cfg.ini:system/etc/firmware/wlan/qcom_cfg.ini
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_fw.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_wapi_fw.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_wlan_nv.bin
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/persist
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := cfg.dat
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE       := qcom_cfg.ini
+LOCAL_MODULE_TAGS  := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan
+LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
 
 ACP_BINARY_OUT := $(HOST_OUT)/bin/acp
 MAKE_MODULES_FOLDER := $(TARGET_OUT)/lib/modules/libra
