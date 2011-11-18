@@ -24,6 +24,8 @@
 #define HAL_NUM_BSSID               2
 #define HAL_NUM_UMA_DESC_ENTRIES    12
 
+#define HAL_INVALID_BSSIDX          HAL_NUM_BSSID
+
 #define MAX_NUM_OF_BACKOFFS         8
 #define HAL_MAX_ASSOC_ID            HAL_NUM_STA
 

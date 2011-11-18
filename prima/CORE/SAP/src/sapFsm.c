@@ -154,8 +154,7 @@ sapGotoChannelSel
     /*If STA-AP concurrency is enabled take the concurrent connected channel first. In other cases wpa_supplicant should take care */
     if (vos_get_concurrency_mode() == VOS_STA_SAP)
     {
-        channel = sme_GetConcurrentOperationChannel(hHal,
-                   VOS_STA_SAP_MODE);
+        channel = sme_GetConcurrentOperationChannel(hHal);
 
         if (channel)
         { /*if a valid channel is returned then use concurrent channel. 

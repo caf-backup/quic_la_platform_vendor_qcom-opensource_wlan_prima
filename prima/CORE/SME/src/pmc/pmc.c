@@ -25,7 +25,6 @@
 
 static void pmcProcessDeferredMsg( tpAniSirGlobal pMac );
 
-extern tANI_BOOLEAN pmcValidateConnectState( tpAniSirGlobal pMac );
 /******************************************************************************
 *
 * Name:  pmcEnterLowPowerState
@@ -2407,6 +2406,14 @@ eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac )
         return eHAL_STATUS_PMC_NOT_NOW;
     }
 
+    /* Check that entry into a power save mode is allowed at this time if all
+       running sessions agree. */
+    if (!pmcAllowImps(pMac))
+    {
+        smsLog(pMac, LOG2, FL("IMPS cannot be entered now\n"));
+        return eHAL_STATUS_PMC_NOT_NOW;
+    }
+    
     /* Check if already in IMPS. */
     if ((pMac->pmc.pmcState == REQUEST_IMPS) || (pMac->pmc.pmcState == IMPS) ||
         (pMac->pmc.pmcState == REQUEST_FULL_POWER))

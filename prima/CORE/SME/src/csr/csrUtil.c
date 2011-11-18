@@ -1406,57 +1406,34 @@ tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId)
 //This routine will return operating channel on FIRST BSS that is active/operating to be used for concurrency mode.
 //If other BSS is not up or not connected it will return 0 
 
-tANI_U8 csrGetConcurrentOperationChannel( tpAniSirGlobal pMac,
-                                            tVOS_CON_MODE currentPersona)
+tANI_U8 csrGetConcurrentOperationChannel( tpAniSirGlobal pMac )
 {
-  tCsrRoamSession *pSession;
+  tCsrRoamSession *pSession = NULL;
   tANI_U8 i = 0;
 
   for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
   {
-    
-     if( CSR_IS_SESSION_VALID( pMac, i ) )
-     {
+      if( CSR_IS_SESSION_VALID( pMac, i ) )
+      {
           pSession = CSR_GET_SESSION( pMac, i );
-                   
-          switch (currentPersona)
-          {
-            case VOS_P2P_GO_MODE:
-            case VOS_STA_SAP_MODE:
-            case VOS_MONITOR_MODE: //this case not needed but  just added for safety
-            {
-                if ((NULL != pSession->pCurRoamProfile) &&
-                    ((pSession->pCurRoamProfile->csrPersona == VOS_STA_MODE)
-                      || (pSession->pCurRoamProfile->csrPersona == VOS_P2P_CLIENT_MODE)))
-                 {
-                     if (pSession->connectState == eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED)
-                            return (pSession->connectedProfile.operationChannel);
-                 }
-                 break;
-            }
-            
-            case VOS_P2P_CLIENT_MODE:
-            case VOS_STA_MODE:
-            {
-                 if ((NULL != pSession->pCurRoamProfile) &&
-                    ((pSession->pCurRoamProfile->csrPersona == VOS_P2P_GO_MODE)
-                      || (pSession->pCurRoamProfile->csrPersona == VOS_STA_SAP_MODE)))
-                 {
 
-                 
-                     if (pSession->connectState != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)
-                            return (pSession->connectedProfile.operationChannel);
-                 }
-                 break;
-            }
-                
-           default:
-               break;
+          if (NULL != pSession->pCurRoamProfile)
+          {
+              if (
+                      (((pSession->pCurRoamProfile->csrPersona == VOS_STA_MODE) ||
+                        (pSession->pCurRoamProfile->csrPersona == VOS_P2P_CLIENT_MODE)) &&
+                       (pSession->connectState == eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED)) 
+                      || 
+                      (((pSession->pCurRoamProfile->csrPersona == VOS_P2P_GO_MODE) ||
+                        (pSession->pCurRoamProfile->csrPersona == VOS_STA_SAP_MODE)) &&
+                       (pSession->connectState != eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED))
+                 )
+                  return (pSession->connectedProfile.operationChannel);
           }
-     }
+
+      }
   }
   return 0;
-    
 }
 
 tANI_BOOLEAN csrIsAllSessionDisconnected( tpAniSirGlobal pMac )
@@ -1514,13 +1491,24 @@ tANI_BOOLEAN csrIsIBSSStarted( tpAniSirGlobal pMac )
 
 tANI_BOOLEAN csrIsBTAMPStarted( tpAniSirGlobal pMac )
 {
-    //****Fix it for BT-AMP
-    return ( 0 );
+    tANI_U32 i;
+    tANI_BOOLEAN fRc = eANI_BOOLEAN_FALSE;
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+        if( CSR_IS_SESSION_VALID( pMac, i ) && csrIsConnStateConnectedWds( pMac, i ) )
+        {
+            fRc = eANI_BOOLEAN_TRUE;
+            break;
+        }
+    }
+
+    return ( fRc );
 }
 
 tANI_BOOLEAN csrIsBTAMP( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return ( 0 );
+    return ( csrIsConnStateConnectedWds( pMac, sessionId ) );
 }
 
 

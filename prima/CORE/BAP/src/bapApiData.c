@@ -749,6 +749,8 @@ WLANBAP_STARxCB
     {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                    "Unable to retrieve BSL or BAP context from STA Id in WLANBAP_STARxCB");
+      /* Drop packet */
+      vos_pkt_return_packet(vosDataBuff);
       return VOS_STATUS_E_FAULT;
     }
 
@@ -762,6 +764,7 @@ WLANBAP_STARxCB
                  "WLANBAP_STARxCB:Cannot extract LLC header");
 	    /* Drop packet */
         vos_pkt_return_packet(vosDataBuff);
+        return VOS_STATUS_E_FAULT;
     }	
     
     vos_mem_copy(&protoType,&aucLLCHeader[WLANBAP_LLC_PROTO_TYPE_OFFSET],WLANBAP_LLC_PROTO_TYPE_SIZE);

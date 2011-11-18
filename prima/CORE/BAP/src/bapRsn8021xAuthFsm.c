@@ -1475,6 +1475,8 @@ static int authRsnTxCompleteHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS
 {
     tBtampContext *ctx = (tBtampContext *)VOS_GET_BAP_CB( pvosGCtx );
     tAuthRsnFsm *fsm;
+
+    vos_pkt_return_packet( pPacket );
     if (NULL == ctx) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -1492,7 +1494,6 @@ static int authRsnTxCompleteHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS
         return ANI_ERROR;
     }
 
-    vos_pkt_return_packet( pPacket );
     if(!VOS_IS_STATUS_SUCCESS( retStatus ) )
     {
         //No need to do anything. Retransmit is handled by timeout
