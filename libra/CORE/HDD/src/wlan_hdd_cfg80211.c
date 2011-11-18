@@ -2199,6 +2199,35 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
     return 0;
 }
 
+static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
+                                   u8* mac, struct station_info *sinfo)
+{
+    hdd_adapter_t *pAdapter = (hdd_adapter_t*) wiphy_priv(wiphy);
+
+    // TODO: Implement this function properly
+    sinfo->signal = 20;
+    sinfo->filled |= STATION_INFO_SIGNAL;
+    sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
+    sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+    sinfo->txrate.mcs = 4;
+    sinfo->filled |= STATION_INFO_TX_BITRATE;
+
+    if(eConnectionState_Associated == pAdapter->conn_info.connState)
+    {
+       sinfo->filled |= STATION_INFO_BSS_PARAM;
+       sinfo->bss_param.flags = 0;
+       sinfo->bss_param.dtim_period = 2;
+       sinfo->bss_param.beacon_interval = 100;
+    }
+
+    return 0;
+}
+
+static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
+                     struct net_device *dev, bool enabled, s32 timeout)
+{
+   return 0;
+}
 
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops = 
@@ -2217,5 +2246,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .set_wiphy_params = wlan_hdd_cfg80211_set_wiphy_params,
     .set_tx_power = wlan_hdd_cfg80211_set_txpower,
     .get_tx_power = wlan_hdd_cfg80211_get_txpower,
+    .get_station = wlan_hdd_cfg80211_get_station,
+    .set_power_mgmt = wlan_hdd_cfg80211_set_power_mgmt,
 };
 

@@ -353,15 +353,9 @@ EXTRA_CFLAGS += $(SVC_EXT_INC)
 EXTRA_CFLAGS += $(FW_INC)
 EXTRA_LDFLAGS += --strip-debug
 
-ifneq (,$(findstring arm-eabi-4.4, $(ANDROID_EABI_TOOLCHAIN)))
-EXTRA_CFLAGS += -Wframe-larger-than=4096
-endif
-
-# Added for HONEYCOMB Builds only
-ifneq (,$(findstring androideabi-4.4, $(ANDROID_EABI_TOOLCHAIN)))
-EXTRA_CFLAGS += -Wframe-larger-than=4096
-endif
-
+# By default the compiler will complain about frames larger than 1K.
+# Some of the WLAN structures are larger, so we increase the size.
+EXTRA_CFLAGS += -Wframe-larger-than=8192
 
 DISABLE_WLAN_SOFTAP_VSTA_FEATURE := 1
 

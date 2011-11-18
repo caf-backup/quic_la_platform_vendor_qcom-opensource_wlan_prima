@@ -3455,25 +3455,35 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
     return 0;
 }
 
-int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
-                                  u8* mac, struct station_info *sinfo)
+static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
+                                   u8* mac, struct station_info *sinfo)
 {
-    sinfo->filled = STATION_INFO_INACTIVE_TIME;
-    sinfo->inactive_time = 1000; //Setting it to 1 sec.
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
+    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    /* TODO Fill following */
-    //sinfo->rx_bytes
-    //sininfo->tx_bytes;
-    //sininfo->llid;
-    //sininfo->plid;
-    //sininfo->plink_state;
-    //sinifo->signal;
-    //sininfo->txrate.... ;
-    //sininfo->rx_packets;
-    //sininfo->tx_packets;
-    //sininfo->generation;
+    // TODO: Implement this function properly
+    sinfo->signal = 20;
+    sinfo->filled |= STATION_INFO_SIGNAL;
+    sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
+    sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+    sinfo->txrate.mcs = 4;
+    sinfo->filled |= STATION_INFO_TX_BITRATE;
+
+    if(eConnectionState_Associated == pHddStaCtx->conn_info.connState)
+    {
+       sinfo->filled |= STATION_INFO_BSS_PARAM;
+       sinfo->bss_param.flags = 0;
+       sinfo->bss_param.dtim_period = 2;
+       sinfo->bss_param.beacon_interval = 100;
+    }
 
     return 0;
+}
+
+static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
+                     struct net_device *dev, bool enabled, s32 timeout)
+{
+   return 0;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
@@ -3524,8 +3534,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .set_default_mgmt_key = wlan_hdd_set_default_mgmt_key,
      .set_txq_params = wlan_hdd_set_txq_params,
 #endif
-     .get_station = wlan_hdd_cfg80211_get_station,
 #endif
+     .get_station = wlan_hdd_cfg80211_get_station,
+     .set_power_mgmt = wlan_hdd_cfg80211_set_power_mgmt,
 };
 
 #endif // CONFIG_CFG80211
