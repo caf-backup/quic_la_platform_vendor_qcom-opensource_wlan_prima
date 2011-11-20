@@ -3635,6 +3635,20 @@ static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
 }
 #endif
 
+static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
+                                         struct net_device *dev, u8 *mac)
+{
+    // TODO: Implement this later.
+    return 0;
+}
+
+static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
+          struct net_device *dev, u8 *mac, struct station_parameters *params)
+{
+    // TODO: Implement this later.
+    return 0;
+}
+
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops = 
 {
@@ -3671,6 +3685,8 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 #endif
      .get_station = wlan_hdd_cfg80211_get_station,
      .set_power_mgmt = wlan_hdd_cfg80211_set_power_mgmt,
+     .del_station  = wlan_hdd_cfg80211_del_station,
+     .add_station  = wlan_hdd_cfg80211_add_station
 };
 
 #endif // CONFIG_CFG80211
