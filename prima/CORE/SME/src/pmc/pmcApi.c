@@ -1578,29 +1578,49 @@ void pmcMessageProcessor (tHalHandle hHal, tSirSmeRsp *pMsg)
 }
 
 
-tANI_BOOLEAN pmcValidateConnectState( tpAniSirGlobal pMac )
+tANI_BOOLEAN pmcValidateConnectState( tHalHandle hHal )
 {
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
    if ( !csrIsInfraConnected( pMac ) )
    {
-      smsLog(pMac, LOGE, "PMC: STA not associated. BMPS cannot be entered\n");
+      smsLog(pMac, LOGW, "PMC: STA not associated. BMPS cannot be entered\n");
       return eANI_BOOLEAN_FALSE;
    }
 
    //Cannot have other session
    if ( csrIsIBSSStarted( pMac ) )
    {
-      smsLog(pMac, LOGE, "PMC: IBSS started. BMPS cannot be entered\n");
+      smsLog(pMac, LOGW, "PMC: IBSS started. BMPS cannot be entered\n");
       return eANI_BOOLEAN_FALSE;
    }
    if ( csrIsBTAMPStarted( pMac ) )
    {
-      smsLog(pMac, LOGE, "PMC: BT-AMP exists. BMPS cannot be entered\n");
+      smsLog(pMac, LOGW, "PMC: BT-AMP exists. BMPS cannot be entered\n");
       return eANI_BOOLEAN_FALSE;
    }
 
    return eANI_BOOLEAN_TRUE;
 }
 
+tANI_BOOLEAN pmcAllowImps( tHalHandle hHal )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    //Cannot have other session like IBSS or BT AMP running
+    if ( csrIsIBSSStarted( pMac ) )
+    {
+       smsLog(pMac, LOGW, "PMC: IBSS started. IMPS cannot be entered\n");
+       return eANI_BOOLEAN_FALSE;
+    }
+    if ( csrIsBTAMPStarted( pMac ) )
+    {
+       smsLog(pMac, LOGW, "PMC: BT-AMP exists. IMPS cannot be entered\n");
+       return eANI_BOOLEAN_FALSE;
+    }
+
+    return eANI_BOOLEAN_TRUE;
+}
 
 /******************************************************************************
 *

@@ -1054,7 +1054,9 @@ static int suppRsnTxCompleteHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS
 {
     tBtampContext *ctx = (tBtampContext *)VOS_GET_BAP_CB( pvosGCtx );
     tAuthRsnFsm *fsm;
-    if ((pvosGCtx == NULL) || (NULL == pPacket))
+
+    vos_pkt_return_packet( pPacket );
+    if (pvosGCtx == NULL)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                      "param is NULL in %s", __FILE__);
@@ -1080,7 +1082,7 @@ static int suppRsnTxCompleteHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS
     }
 
     //Synchronization needed
-    vos_pkt_return_packet( pPacket );
+    
     if(!VOS_IS_STATUS_SUCCESS( retStatus ) )
     {
         //This is bad.

@@ -421,5 +421,9 @@ extern eHalStatus pmcGetFilterMatchCount(tHalHandle hHal,
                                          FilterMatchCountCallback callbackRoutine,
                                          void *callbackContext);
 #endif // WLAN_FEATURE_PACKET_FILTERING
+extern tANI_BOOLEAN pmcValidateConnectState( tHalHandle hHal );
+
+extern tANI_BOOLEAN pmcAllowImps( tHalHandle hHal );
+
 #endif
 

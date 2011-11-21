@@ -3297,28 +3297,28 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                 while(pCommand->u.roamCmd.pRoamBssEntry)
                 {
                     pScanResult = GET_BASE_ADDR(pCommand->u.roamCmd.pRoamBssEntry, tCsrScanResult, Link);
-                    /*If STA-AP concurrency is enabled take the concurrent connected
-                                      channel first. In other cases wpa_supplicant should take care */
-                    if (vos_get_concurrency_mode() == VOS_STA_SAP)
+					
+                    /*If concurrency enabled take the concurrent connected channel first. */
+                    if (vos_concurrent_sessions_running())
                     {
-                       concurrentChannel = 
-                        csrGetConcurrentOperationChannel(pMac, VOS_STA_MODE);
-                       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, "%s: "
-                       " csr Concurrent Channel = %d", __FUNCTION__, concurrentChannel);
-                       
-                       if ((concurrentChannel) && 
-                        (concurrentChannel == 
-                        pScanResult->Result.BssDescriptor.channelId))
-                       {
+                        concurrentChannel = 
+                            csrGetConcurrentOperationChannel(pMac);
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, "%s: "
+                                " csr Concurrent Channel = %d", __FUNCTION__, concurrentChannel);
+
+                        if ((concurrentChannel) && 
+                                (concurrentChannel == 
+                                 pScanResult->Result.BssDescriptor.channelId))
+                        {
                             //make this 0 because we do not want the 
                             //below check to pass as we don't want to 
                             //connect on other channel
                             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                              FL("Concurrent channel match =%d"),
-                                 concurrentChannel);
+                                    FL("Concurrent channel match =%d"),
+                                    concurrentChannel);
                             concurrentChannel = 0; 
-                       
-                       }
+
+                        }
                     }
                     if (!concurrentChannel)
                     {

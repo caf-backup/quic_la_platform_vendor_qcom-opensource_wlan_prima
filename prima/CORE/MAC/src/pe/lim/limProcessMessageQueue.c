@@ -1000,9 +1000,10 @@ void limInNavHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U3
     if(status != eHAL_STATUS_SUCCESS)
     {
         limLog(pMac, LOGE, FL("innav failed to get the response for resume link\n"));
-        return;
     }
-
+    //"Failure" status doesn't mean that InNav measurement did not happen
+    //and hence we need to respond to upper layers. Only Resume link is failed, but
+    //innav measurements already happened.
     //Post the meessage to MLM
     limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)(mlmInNavMeasRsp));
 

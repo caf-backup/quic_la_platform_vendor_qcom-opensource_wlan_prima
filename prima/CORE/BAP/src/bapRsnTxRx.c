@@ -117,7 +117,6 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
     //bapRsnFsmTxCmpHandler could be NULL 
     //VOS_ASSERT( bapRsnFsmTxCmpHandler );
 
-    vos_pkt_return_packet( pPacket );
     if( bapRsnFsmTxCmpHandler )
     {
         //Change the state
@@ -126,6 +125,7 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
     }
     else
     {
+        vos_pkt_return_packet( pPacket );
         return (VOS_STATUS_SUCCESS );
     }
 
@@ -215,9 +215,11 @@ VOS_STATUS bapRsnRxCallback( v_PVOID_t pv, vos_pkt_t *pPacket )
     {
         bapRsnFsmRxFrameHandler( pv, pPacket );
     }
-    
-    //done
-    vos_pkt_return_packet( pPacket );
+    else
+    {
+        //done
+        vos_pkt_return_packet( pPacket );
+    }
 
     return ( VOS_STATUS_SUCCESS );
 }

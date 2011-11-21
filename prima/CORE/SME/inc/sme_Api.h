@@ -1780,8 +1780,7 @@ tANI_U8 sme_GetInfraOperationChannel( tHalHandle hHal, tANI_U8 sessionId);
     \return operating channel, 0 if infra session is not connected
 
   -------------------------------------------------------------------------------*/
-tANI_U8 sme_GetConcurrentOperationChannel( tHalHandle hHal,
-                                            tVOS_CON_MODE currentPersona);
+tANI_U8 sme_GetConcurrentOperationChannel( tHalHandle hHal );
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 /* ---------------------------------------------------------------------------
