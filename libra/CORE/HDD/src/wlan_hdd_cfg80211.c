@@ -173,6 +173,9 @@ struct wireless_dev *wlan_hdd_cfg80211_init( struct device *dev,
  
     wdev->wiphy->max_scan_ie_len = MAX_SCAN_IE_LEN;
 
+    /*signal strength in mBm (100*dBm) */
+    wdev->wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
+
     /* Supports STATION & AD-HOC modes right now */
     wdev->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
         BIT(NL80211_IFTYPE_ADHOC);
@@ -927,6 +930,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         kzalloc((sizeof (struct ieee80211_mgmt) + ie_length), GFP_KERNEL);
     struct cfg80211_bss *bss_status = NULL;
     size_t frame_len = sizeof (struct ieee80211_mgmt) + ie_length;
+    int rssi = 0;
 
     ENTER();
 
@@ -940,8 +944,11 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     mgmt->frame_control |=
         (u16)(IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_RESP);
 
+    /* signal strength in mBm (100*dBm) */
+    rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
+
     bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt,
-            frame_len, 0, GFP_KERNEL);
+            frame_len, rssi, GFP_KERNEL);
     kfree(mgmt);
     return bss_status;
 }

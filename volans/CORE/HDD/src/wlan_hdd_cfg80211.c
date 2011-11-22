@@ -245,6 +245,9 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
     wiphy->cipher_suites = hdd_cipher_suites;
     wiphy->n_cipher_suites = ARRAY_SIZE(hdd_cipher_suites);
 
+    /*signal strength in mBm (100*dBm) */
+    wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
 #ifdef WLAN_FEATURE_P2P
     wiphy->max_remain_on_channel_duration = 1000;
@@ -1962,6 +1965,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         kzalloc((sizeof (struct ieee80211_mgmt) + ie_length), GFP_KERNEL);
     struct cfg80211_bss *bss_status = NULL;
     size_t frame_len = sizeof (struct ieee80211_mgmt) + ie_length;
+    int rssi = 0;
 
     ENTER();
 
@@ -1990,8 +1994,11 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 
     chan = __ieee80211_get_channel(wiphy, freq);
 
+    /* signal strength in mBm (100*dBm) */
+    rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
+
     bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt,
-            frame_len, 0, GFP_KERNEL);
+            frame_len, rssi, GFP_KERNEL);
     kfree(mgmt);
     return bss_status;
 }
