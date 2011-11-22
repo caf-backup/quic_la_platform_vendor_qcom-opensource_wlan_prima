@@ -371,6 +371,8 @@ typedef struct
    tSirVersionString    wcnssSoftwareVersionString;
    tSirVersionString    wcnssHardwareVersionString;
 
+   
+   tSirLinkState        linkState;
 } tWDA_CbContext ; 
 
 typedef struct

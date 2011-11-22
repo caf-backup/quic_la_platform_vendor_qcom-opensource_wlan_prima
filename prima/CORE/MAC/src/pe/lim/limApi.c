@@ -2124,8 +2124,10 @@ limDetectChangeInApCapabilities(tpAniSirGlobal pMac,
                       sizeof(tSirMacAddr));
         if (newChannel != psessionEntry->currentOperChannel)
         {
-            PELOGE(limLog(pMac, LOGE, FL("Channel Change from %d --> %d \n"), psessionEntry->currentOperChannel, newChannel);)
-            apNewCaps.channelId = newChannel;
+            PELOGE(limLog(pMac, LOGE, FL("Channel Change from %d --> %d  - "
+                                         "Ignoring beacon!\n"), 
+                          psessionEntry->currentOperChannel, newChannel);)
+            return;
         }
         else
             apNewCaps.channelId = psessionEntry->currentOperChannel;

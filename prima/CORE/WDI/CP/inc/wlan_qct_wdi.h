@@ -941,7 +941,10 @@ typedef struct
 
   /*Indicates the MAC Address of the current Self STA*/
   wpt_macAddr     	macSTASelf; 
-
+ 
+  /*Indicates the link State determining the entity Type e.g. BTAMP-STA, STA etc.*/
+  wpt_uint32 	linkState;
+  
   /*Indicates the channel to switch to.*/
   WDI_SwitchChReqInfoType  wdiChannelInfo; 
   	

@@ -1228,6 +1228,7 @@ void dxeRXPacketAvailableCB
       return;
    }
 
+   dxeCtxt->freeRXPacket = freePacket;
    if(eWLAN_PAL_STATUS_SUCCESS !=
       wpalEventSet(&dxeCtxt->rxPalPacketAvailableEvent))
    {
@@ -1237,7 +1238,6 @@ void dxeRXPacketAvailableCB
       return;
    }
 
-   dxeCtxt->freeRXPacket = freePacket;
    return;
 }
 

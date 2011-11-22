@@ -159,6 +159,7 @@ typedef struct
    struct mutex                 wmmLock;
    hdd_wmm_ac_status_t          wmmAcStatus[WLANTL_MAX_AC];
    v_BOOL_t                     wmmQap;
+   v_BOOL_t                     wmmQosConnection;
 } hdd_wmm_status_t;
 
 extern const v_U8_t hdd_QdiscAcToTlAC[];

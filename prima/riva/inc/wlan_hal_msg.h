@@ -1591,9 +1591,13 @@ typedef PACKED_PRE struct PACKED_POST
   tSirMacHTSecondaryChannelOffset  secondaryChannelOffset;
 
 #ifdef WLAN_FEATURE_VOWIFI
-    /* Max TX power */
-    tANI_S8 maxTxPower;
+  /* Max TX power */
+  tANI_S8 maxTxPower;
 #endif
+
+  /*link State*/
+  tSirLinkState   linkState;
+
 } tHalJoinReqParams, *tpHalJoinReqParams;
 
 typedef PACKED_PRE struct PACKED_POST

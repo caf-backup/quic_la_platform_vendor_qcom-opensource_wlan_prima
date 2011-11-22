@@ -54,7 +54,7 @@ typedef enum
 \param  pMac
 \return NONE
 -----------------------------------------------------------------*/
-void limStopTxAndSwitchChannel(tpAniSirGlobal pMac)
+void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
     PELOG1(limLog(pMac, LOG1, FL("Channel switch Mode == %d\n"), 
                        pMac->lim.gLimChannelSwitch.switchMode);)
@@ -77,12 +77,8 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac)
     }
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_CHANNEL_SWITCH_TIMER));
 
-#ifdef GEN6_TODO
-    /* revisit this piece of code to assign the appropriate sessionId below
-     * priority - MEDIUM
-     */
     pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId = sessionId;
-#endif
+
     if (tx_timer_activate(&pMac->lim.limTimers.gLimChannelSwitchTimer) != TX_SUCCESS)
     {
         limLog(pMac, LOGP, FL("tx_timer_activate failed\n"));

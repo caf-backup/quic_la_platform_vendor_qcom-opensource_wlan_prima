@@ -6354,6 +6354,8 @@ WDI_ProcessBSSSessionJoinReq
   halJoinReqMsg.joinReqParams.ucChannel = 
     pwdiJoinParams->wdiReqInfo.wdiChannelInfo.ucChannel;
 
+  halJoinReqMsg.joinReqParams.linkState = pwdiJoinParams->wdiReqInfo.linkState;
+
 #ifndef WLAN_FEATURE_VOWIFI
   halJoinReqMsg.joinReqParams.ucLocalPowerConstraint = 
     pwdiJoinParams->wdiReqInfo.wdiChannelInfo.ucLocalPowerConstraint;

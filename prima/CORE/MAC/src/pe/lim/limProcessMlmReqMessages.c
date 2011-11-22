@@ -1923,6 +1923,7 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tLimMlmJoinCnf      mlmJoinCnf;
     tANI_U8             sessionId;
     tpPESession         psessionEntry;
+	tSirLinkState       linkState;
 
     sessionId = ((tpLimMlmJoinReq)pMsgBuf)->sessionId;
 	
@@ -1958,8 +1959,10 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         //assign appropriate sessionId to the timer object
         pMac->lim.limTimers.gLimJoinFailureTimer.sessionId = sessionId;
 
+	    linkState = ((psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) ? eSIR_LINK_BTAMP_PREASSOC_STATE : eSIR_LINK_PREASSOC_STATE);
+		limLog(pMac, LOG1, FL("[limProcessMlmJoinReq]: linkState:%d\n"),linkState);
 
-        if (limSetLinkState(pMac, eSIR_LINK_PREASSOC_STATE, 
+        if (limSetLinkState(pMac, linkState, 
              psessionEntry->pLimMlmJoinReq->bssDescription.bssId, 
              psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS )
         {
