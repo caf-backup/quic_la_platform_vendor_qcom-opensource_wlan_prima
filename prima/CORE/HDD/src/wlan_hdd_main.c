@@ -1283,6 +1283,10 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
             memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
             wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
          }
+         else
+         {
+            hdd_abort_mac_scan(pHddCtx);
+         }
          break;
 
       case WLAN_HDD_SOFTAP:

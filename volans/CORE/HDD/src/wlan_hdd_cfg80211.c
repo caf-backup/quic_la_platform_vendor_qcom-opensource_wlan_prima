@@ -528,6 +528,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len, 
                                        WLAN_EID_RSN);
+    if(pIe == NULL)
+        pIe = wlan_hdd_get_vendor_oui_ie_ptr(WPA_OUI_TYPE, WPA_OUI_TYPE_SIZE,
+                                             pBeacon->tail, pBeacon->tail_len);
 
     if(pIe)
     { 

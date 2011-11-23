@@ -40,6 +40,9 @@
 #define HDD_P2P_WILDCARD_SSID "DIRECT-" //TODO Put it in proper place;
 #define HDD_P2P_WILDCARD_SSID_LEN 7
 
+#define WPA_OUI_TYPE   "\x00\x50\xf2\x01"
+#define WPA_OUI_TYPE_SIZE  4
+
 void wlan_hdd_cfg80211_update_bss_db(hdd_adapter_t *pAdapter, 
                                      tCsrRoamInfo *pRoamInfo
                                      );
