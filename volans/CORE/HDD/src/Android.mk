@@ -31,7 +31,7 @@ LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE       := WCN1314_qcom_wlan_nv.bin
+LOCAL_MODULE       := $(FW_NV_FILE)
 LOCAL_MODULE_TAGS  := optional
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/persist
@@ -84,5 +84,5 @@ $(shell mkdir -p $(TARGET_OUT)/lib/modules; \
 endif
 
 $(shell mkdir -p $(TARGET_OUT_ETC)/firmware/wlan/volans; \
-        ln -sf /persist/WCN1314_qcom_wlan_nv.bin \
+        ln -sf /persist/$(FW_NV_FILE) \
         $(TARGET_OUT_ETC)/firmware/wlan/volans/WCN1314_qcom_wlan_nv.bin)
