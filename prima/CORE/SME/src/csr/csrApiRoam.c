@@ -324,7 +324,7 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
         vosStatus = vos_nv_readDefaultCountryTable( &nvTables );
-		if ( VOS_STATUS_SUCCESS == vosStatus )
+        if ( VOS_STATUS_SUCCESS == vosStatus )
         {
             palCopyMemory( pMac->hHdd, pMac->scan.countryCodeDefault, 
                     nvTables.defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
@@ -1631,7 +1631,43 @@ void csrRoamRemoveDuplicateCommand(tpAniSirGlobal pMac, tANI_U32 sessionId, tSme
     }
     csrLLUnlock( &pMac->sme.smeCmdPendingList );
 }
+/*  Description: Returns BMPS can be disabled/enabled based on concurrency
+ *  False: If number of active sessions is > 1 or if there is any active SAP/P2P GO session
+ *  True: otherwise
+ *  */
 
+tANI_BOOLEAN csrRoamGetConcurrencyConnectStatusForBmps(tpAniSirGlobal pMac)
+{
+    int i,no_of_sessions=0;
+    tCsrRoamSession *pSession;
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+        pSession = CSR_GET_SESSION(pMac,i);
+
+        if( !CSR_IS_SESSION_VALID( pMac, i ) )
+            continue;
+ 
+        if((eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED == pSession->connectState) ||
+           (eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED == pSession->connectState) || 
+           (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pSession->connectState) ||  
+           (eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED == pSession->connectState))
+           
+        {
+           if((VOS_STA_SAP_MODE == pSession->pCurRoamProfile->csrPersona) || 
+              (VOS_P2P_GO_MODE == pSession->pCurRoamProfile->csrPersona))
+           {
+              return eANI_BOOLEAN_FALSE;
+              no_of_sessions++;
+           }
+        }
+    }
+
+    if(no_of_sessions > 1)
+       return eANI_BOOLEAN_FALSE;
+    else
+       return eANI_BOOLEAN_TRUE;
+}
 
 eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamInfo *pRoamInfo, 
                                tANI_U32 roamId, eRoamCmdStatus u1, eCsrRoamResult u2)
@@ -1662,6 +1698,58 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
         }
         status = pSession->callback(pSession->pContext, pRoamInfo, roamId, u1, u2);
 
+       if ((eCSR_ROAM_RESULT_WDS_STARTED == u2) || (eCSR_ROAM_RESULT_INFRA_STARTED == u2) || 
+           (eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF == u2) || (eCSR_ROAM_RESULT_INFRA_ASSOCIATION_IND == u2) ||
+           (eCSR_ROAM_RESULT_ASSOCIATED == u2) || (eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND == u2))
+       {
+          /**************************************************************************
+           * Disable BMPS if there are multiple sessions
+           **************************************************************************/
+          if(!csrRoamGetConcurrencyConnectStatusForBmps(pMac))
+          {
+            if(pMac->pmc.bmpsEnabled)
+            {
+              pmcDisablePowerSave(pMac, ePMC_BEACON_MODE_POWER_SAVE);
+            }
+            pMac->pmc.remainInPowerActiveTillDHCP = TRUE;
+
+            status = pmcRequestFullPower(pMac, NULL,NULL, eSME_FULL_PWR_NEEDED_BY_HDD);
+
+            if((status != eHAL_STATUS_SUCCESS) && (status != eHAL_STATUS_PMC_PENDING))
+            {  
+               smsLog(pMac, LOGE, "Failure to get device into full power in concurrent scenario\n");
+               return eHAL_STATUS_FAILURE; 
+            }
+           }
+         }
+
+
+      if((eCSR_ROAM_RESULT_INFRA_STOPPED == u2) || (eCSR_ROAM_RESULT_WDS_STOPPED == u2) ||
+       (eCSR_ROAM_RESULT_DISASSOC_IND == u2) || (eCSR_ROAM_RESULT_DEAUTH_IND == u2))
+
+      {
+        /*******************************************************************************
+         * Re-enable BMPS, if there is only one session after the current session goes away
+         * and the existing session is not a SAP/GO.
+         * *****************************************************************************/
+        if(csrRoamGetConcurrencyConnectStatusForBmps(pMac))
+        {
+         if(pMac->pmc.bmpsEnabled)
+          {
+            pmcEnablePowerSave(pMac, ePMC_BEACON_MODE_POWER_SAVE);
+          }
+
+          status = pmcRequestBmps(pMac, NULL, NULL);
+    
+          if ((eHAL_STATUS_PMC_PENDING != status) && (eHAL_STATUS_PMC_PENDING != status ))
+          {
+            smsLog(pMac, LOGE, "Failure to get device into BMPS\n");
+            return eHAL_STATUS_FAILURE; 
+          }
+           pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+       
+         }
+       }
     }
     //EVENT_WLAN_STATUS: eCSR_ROAM_ASSOCIATION_COMPLETION, 
     //                   eCSR_ROAM_LOSTLINK, eCSR_ROAM_DISASSOCIATED, 
@@ -3110,7 +3198,7 @@ eCsrJoinState csrRoamJoin( tpAniSirGlobal pMac, tANI_U32 sessionId,
     {
         if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pBssDesc, &pIesLocal))) )
         {
-            smsLog(pMac, LOGE, FL(" failt o parse IEs"));
+            smsLog(pMac, LOGE, FL(" fail to parse IEs"));
             return (eCsrStopRoaming);
         }
         if ( csrIsInfraBssDesc( pBssDesc ) ) 
@@ -3130,7 +3218,7 @@ eCsrJoinState csrRoamJoin( tpAniSirGlobal pMac, tANI_U32 sessionId,
             // a new Association.
             if(csrIsSameProfile(pMac, &pSession->connectedProfile, pProfile))
             {
-                smsLog(pMac, LOGW, FL("  detect same porfile authType = %d encryType = %d\n"), pProfile->AuthType, pProfile->EncryptionType);
+                smsLog(pMac, LOGW, FL("  detect same profile authType = %d encryType = %d\n"), pProfile->AuthType, pProfile->EncryptionType);
                 if(csrRoamIsSameProfileKeys(pMac, &pSession->connectedProfile, pProfile))
                 {
                     eRoamState = eCsrReassocToSelfNoCapChange;
@@ -3297,7 +3385,7 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                 while(pCommand->u.roamCmd.pRoamBssEntry)
                 {
                     pScanResult = GET_BASE_ADDR(pCommand->u.roamCmd.pRoamBssEntry, tCsrScanResult, Link);
-					
+
                     /*If concurrency enabled take the concurrent connected channel first. */
                     if (vos_concurrent_sessions_running())
                     {
@@ -4059,7 +4147,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 #endif
 
 
-    smsLog( pMac, LOG1, FL("Processsing ROAM results...\n"));
+    smsLog( pMac, LOG1, FL("Processing ROAM results...\n"));
 
     switch( Result )
     {
@@ -4171,7 +4259,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                                                 pSirBssDesc, &(pSirBssDesc->bssId),
                                                 FALSE, TRUE, eSIR_TX_RX, 0, 0, NULL, 0 ) ) ) // NO keys... these key parameters don't matter.
                     {
-                        smsLog( pMac, LOGE, FL("  Set contextfor unicast fail\n") );
+                        smsLog( pMac, LOGE, FL("  Set context for unicast fail\n") );
                         //
                         csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_NONE );
                     }
@@ -6174,7 +6262,7 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
             }
             else
             {
-            	if (!pCommand->u.roamCmd.pRoamBssEntry)
+                if (!pCommand->u.roamCmd.pRoamBssEntry)
                 {
                     smsLog(pMac, LOGW, " pRoamBssEntry is NULL\n");
                     //We need to complete the command
@@ -7925,7 +8013,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if (pRoamInfo)
                 {
                     pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
-                }	
+                }
                 csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, 
                             eCSR_ROAM_CONNECT_STATUS_UPDATE, eCSR_ROAM_RESULT_IBSS_NEW_PEER);
                 if(pRoamInfo)
@@ -12826,7 +12914,7 @@ eHalStatus csrGetRssi(tpAniSirGlobal pMac,
    vos_msg_t  msg;
 
    tAniGetRssiReq *pMsg;
-    smsLog(pMac, LOGE, FL(" called\n"));      
+   smsLog(pMac, LOG2, FL("called"));      
    status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tAniGetRssiReq));
    if ( !HAL_STATUS_SUCCESS(status) ) 
    {
@@ -12851,7 +12939,7 @@ eHalStatus csrGetRssi(tpAniSirGlobal pMac,
        palFreeMemory(pMac->hHdd, (void *)pMsg);
        status = eHAL_STATUS_FAILURE;
    }
-    smsLog(pMac, LOGE, FL(" returned\n"));      
+   smsLog(pMac, LOG2, FL("returned"));      
    return status;
 }
 
@@ -13096,7 +13184,7 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                                         csrRoamStatsClientTimerHandler, pStaEntry );
             if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
             {
-               smsLog(pMac, LOGE, FL("csrGetStatistics:cannot int StatsClient timer\n"));
+               smsLog(pMac, LOGE, FL("csrGetStatistics:cannot init StatsClient timer\n"));
                return eHAL_STATUS_FAILURE;
             }
             vosStatus = vos_timer_start( &pStaEntry->timer, periodicity );

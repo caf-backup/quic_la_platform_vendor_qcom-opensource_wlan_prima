@@ -1884,7 +1884,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
  *FUNCTION:
  * This function is called by limProcessMessageQueue() upon
  * Action frame reception and no session.
- * Currently only public action frames can be recieved from
+ * Currently only public action frames can be received from
  * a non-associated station.
  *
  *LOGIC:
@@ -1904,7 +1904,7 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
    tANI_U8 *pBody = WDA_GET_RX_MPDU_DATA(pBd);
    tpSirMacVendorSpecificPublicActionFrameHdr pActionHdr = (tpSirMacVendorSpecificPublicActionFrameHdr) pBody;
 
-   limLog( pMac, LOGE, "Recieved a Action frame -- no session");
+   limLog( pMac, LOGE, "Received a Action frame -- no session");
 
    switch ( pActionHdr->category )
    {

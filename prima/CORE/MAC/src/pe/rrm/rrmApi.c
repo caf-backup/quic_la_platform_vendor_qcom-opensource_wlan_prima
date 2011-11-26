@@ -219,7 +219,7 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
    v_S7_t            currentRSSI = 0;
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "Recieved Link measurement request\n");)
+   PELOGE(limLog( pMac, LOGE, "Received Link measurement request\n");)
 #endif
    if( pRxPacketInfo == NULL || pLinkReq == NULL || pSessionEntry == NULL )
    {
@@ -297,13 +297,13 @@ rrmProcessNeighborReportResponse( tpAniSirGlobal pMac,
    }
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, FL("Neighbor report response recieved \n") );)
+   PELOGE(limLog( pMac, LOGE, FL("Neighbor report response received \n") );)
 #endif
 
    // Dialog token
    if( pMac->rrm.rrmPEContext.DialogToken != pNeighborRep->DialogToken.token )
    {
-      PELOGE(limLog( pMac, LOGE, "Dialog token mismatch in the recieved Neighbor report\n");)
+      PELOGE(limLog( pMac, LOGE, "Dialog token mismatch in the received Neighbor report\n");)
       return eSIR_FAILURE;
    }
    if( pNeighborRep->num_NeighborReport == 0 )
@@ -399,7 +399,7 @@ rrmProcessNeighborReportReq( tpAniSirGlobal pMac,
    }
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, FL("Neighbor Request recieved \n") );)
+   PELOGE(limLog( pMac, LOGE, FL("Neighbor Request received \n") );)
    PELOGE(limLog( pMac, LOGE, "SSID present = %d \n", pNeighborReq->noSSID );)
 #endif
 
@@ -697,14 +697,14 @@ rrmProcessBeaconReportXmit( tpAniSirGlobal pMac,
    tANI_U8 sessionId;
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "Recieved beacon report xmit indication\n");)  
+   PELOGE(limLog( pMac, LOGE, "Received beacon report xmit indication\n");)  
 #endif
    if(NULL == pBcnReport)
       return eSIR_FAILURE;
 
    if ( pCurrentReq == NULL )
    {
-      PELOGE(limLog( pMac, LOGE, "Recieved report xmit while there is no request pending in PE\n");)
+      PELOGE(limLog( pMac, LOGE, "Received report xmit while there is no request pending in PE\n");)
       return eSIR_FAILURE;
    }
    if ((pSessionEntry = peFindSessionByBssid(pMac,pBcnReport->bssId,&sessionId))==NULL)

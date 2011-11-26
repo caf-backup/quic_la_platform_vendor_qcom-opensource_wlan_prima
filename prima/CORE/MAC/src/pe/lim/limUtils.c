@@ -2573,7 +2573,7 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
     // Restore Channel Switch parameters to default
     pMac->lim.gLimChannelSwitch.switchTimeoutValue = 0;
 
-    /* Channel-switch timeout has occured. reset the state */
+    /* Channel-switch timeout has occurred. reset the state */
     pMac->lim.gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_END;
     
     /* Check if the AP is switching to a channel that we support.
@@ -2781,7 +2781,7 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
  *FUNCTION:
  * This function is called when STA does not send updated channel-swith IE
  * after indicating channel-switch start. This will cancel the channel-swith
- * timer which is alredy running.
+ * timer which is already running.
  * 
  *LOGIC:
  *
@@ -5805,7 +5805,7 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
     if ((! pSta->valid) ||
         (pSta->mlmStaContext.mlmState != eLIM_MLM_LINK_ESTABLISHED_STATE))
     {
-        PELOGE(limLog(pMac, LOGE, "Ivalid Sta (or state) for DelTsReq\n");)
+        PELOGE(limLog(pMac, LOGE, "Invalid Sta (or state) for DelTsReq\n");)
         return eSIR_FAILURE;
     }
 
@@ -6871,7 +6871,7 @@ __limFillTxControlParams(tpAniSirGlobal pMac, tpTxControlParams  pTxCtrlMsg,
             break;
 
         case eLIM_TX_BSS_BUT_BEACON:
-            /** Stops/resumes transmission on a particular BSS. Stoping BSS, doesnt
+            /** Stops/resumes transmission on a particular BSS. Stopping BSS, doesnt
               *  stop beacon transmission.
               */
             pTxCtrlMsg->ctrlBss = 1;
@@ -7334,10 +7334,8 @@ void limHandleHeartBeatTimeout(tpAniSirGlobal pMac )
                 break;
             }
 
-            if(((pMac->lim.gpSession[i].bssType == eSIR_INFRASTRUCTURE_MODE) &&
-				      (pMac->lim.gpSession[i].limSystemRole == eLIM_STA_ROLE))||
-                    ( (pMac->lim.gpSession[i].bssType == eSIR_BTAMP_AP_MODE)&&
-                      (pMac->lim.gpSession[i].statypeForBss == STA_ENTRY_PEER)) ) 
+            if((pMac->lim.gpSession[i].bssType == eSIR_INFRASTRUCTURE_MODE) &&
+                (pMac->lim.gpSession[i].limSystemRole == eLIM_STA_ROLE))
             {           
                 limHandleHeartBeatFailure(pMac,&pMac->lim.gpSession[i]);
                 /* The following is to take care of the case where if heartbeat is fine for

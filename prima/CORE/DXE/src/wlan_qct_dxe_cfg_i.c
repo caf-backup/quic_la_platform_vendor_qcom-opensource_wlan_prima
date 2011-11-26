@@ -371,7 +371,7 @@ wpt_status dxeChannelDefaultConfig
    if((NULL == dxeCtrlBlk) || (NULL == channelEntry))
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeLinkDescAndCtrlBlk Chaneel Entry is not valid");
+               "dxeLinkDescAndCtrlBlk Channel Entry is not valid");
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 

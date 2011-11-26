@@ -483,7 +483,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     else
         limReceivedHBHandler(pMac, (tANI_U8)pBeacon->channelNumber, psessionEntry);
 
-    // I don't know if any addtional IE is required here. Currently, not include addIE.
+    // I don't know if any additional IE is required here. Currently, not include addIE.
     if(sendProbeReq)
         limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId,
             psessionEntry->bssId, psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,

@@ -710,7 +710,7 @@ limProcessP2PProbeReq(tpAniSirGlobal pMac, tANI_U8 *pBd,
     tpSirMacMgmtHdr     pHdr;
     tANI_U32            frameLen;
   
-    limLog( pMac, LOG1, "Recieved a probe request frame\n");
+    limLog( pMac, LOG1, "Received a probe request frame\n");
   
     pHdr = WDA_GET_RX_MAC_HEADER(pBd);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);

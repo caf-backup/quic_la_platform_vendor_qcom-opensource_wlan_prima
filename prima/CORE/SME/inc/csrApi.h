@@ -273,7 +273,7 @@ typedef struct tagCsrScanResultFilter
     eCsrRoamBssType BSSType;   
     //this is a bit mask of all the needed phy mode defined in eCsrPhyMode
     tANI_U32 phyMode;   
-    //If countryCode[0] is not 0, countryCode is checked independent of fCheckUnknwonCountryCode
+    //If countryCode[0] is not 0, countryCode is checked independent of fCheckUnknownCountryCode
     tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN]; 
     tANI_U8 uapsd_mask; 
     /*For WPS filtering if true => auth and ecryption should be ignored*/
@@ -317,7 +317,7 @@ typedef enum
     eCSR_ROAM_CANCELLED = 1,
     //this mean error happens before association_start or roaming_start is called.
     eCSR_ROAM_FAILED,   
-    //a CSR trigger roaming operation starts, callback may get a pointer to tCsrConnectedPorfile
+    //a CSR trigger roaming operation starts, callback may get a pointer to tCsrConnectedProfile
     eCSR_ROAM_ROAMING_START,    
     //a CSR trigger roaming operation is completed
     eCSR_ROAM_ROAMING_COMPLETION,   
@@ -860,7 +860,7 @@ typedef struct tagCsrConfigParam
     //find a domain for the country code in its 11d IE. 
     tANI_BOOLEAN fEnforceCountryCodeMatch;  
     //When true, only APs in the default domain can be seen. If the Ap has "unknown country
-    //code", or the doamin of the country code doesn't match the default domain, the Ap is
+    //code", or the domain of the country code doesn't match the default domain, the Ap is
     //not acceptable.
     tANI_BOOLEAN fEnforceDefaultDomain;     
 
@@ -987,7 +987,7 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tANI_U8              alternateChannelId;
     tANI_U8              wmmEnabledSta;   //set to true if WMM enabled STA
     tSirRSNie            rsnIE;           // RSN IE received from peer
-    tSirAddie            addIE;           // Addtional IE received from peer, which can be WSC and/or P2P IE
+    tSirAddie            addIE;           // Additional IE received from peer, which can be WSC and/or P2P IE
     tANI_U8              reassocReq;      //set to true if reassoc
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;
 #endif

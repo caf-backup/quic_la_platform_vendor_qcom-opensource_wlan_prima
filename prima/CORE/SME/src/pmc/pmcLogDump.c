@@ -30,7 +30,7 @@ void dump_pmc_callbackRoutine (void *callbackContext, eHalStatus status)
 void dump_pmc_deviceUpdateRoutine (void *callbackContext, tPmcState pmcState)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)callbackContext;
-    smsLog(pMac, LOGW, "*********Received msg rom PMC: Device is in %s state\n*********", pmcGetPmcStateStr(pmcState));
+    smsLog(pMac, LOGW, "*********Received msg from PMC: Device is in %s state\n*********", pmcGetPmcStateStr(pmcState));
 }
 
 static char *
@@ -200,7 +200,7 @@ dump_pmc_enter_wowl( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32
         status = wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *)wowlEnterParams.magicPtrn, &length); 
         if (eSIR_SUCCESS != status)
         {
-            smsLog(pMac, LOGE, "Reading of WNI_CFG_STA_ID from CFG failed. Using hardocded STA MAC Addr\n");
+            smsLog(pMac, LOGE, "Reading of WNI_CFG_STA_ID from CFG failed. Using hardcoded STA MAC Addr\n");
             wowlEnterParams.magicPtrn[0] = 0x00;
             wowlEnterParams.magicPtrn[1] = 0x0a;
             wowlEnterParams.magicPtrn[2] = 0xf5;

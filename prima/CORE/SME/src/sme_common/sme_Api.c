@@ -789,45 +789,45 @@ eHalStatus sme_Open(tHalHandle hHal)
 
       status = ccmOpen(hHal);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "ccmOpen failed during initialization with \
-              status=%d\n", status );
+         smsLog( pMac, LOGE,
+                 "ccmOpen failed during initialization with status=%d", status );
          break;
       }
 
       status = csrOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "csrOpen failed during initialization with \
-                status=%d\n", status );
+         smsLog( pMac, LOGE,
+                 "csrOpen failed during initialization with status=%d", status );
          break;
       }
 
       status = pmcOpen(hHal);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "pmcOpen failed during initialization with \
-              status=%d\n", status );
+         smsLog( pMac, LOGE,
+                 "pmcOpen failed during initialization with status=%d", status );
          break;
       }
 
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
       status = sme_QosOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "Qos open failed during initialization with \
-              status=%d\n", status );
+         smsLog( pMac, LOGE,
+                 "Qos open failed during initialization with status=%d", status );
          break;
       }
 
       status = btcOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "btcOpen open failed during initialization with \
-              status=%d\n", status );
+         smsLog( pMac, LOGE,
+                 "btcOpen open failed during initialization with status=%d", status );
          break;
       }
 #endif
 #ifdef FEATURE_INNAV_SUPPORT
       status = measInNavOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog(pMac, LOGE, "measInNavOpen failed during initialization with \
-              status=%d\n", status );
+         smsLog(pMac, LOGE,
+                "measInNavOpen failed during initialization with status=%d", status );
          break;
       }
 #endif
@@ -838,26 +838,25 @@ eHalStatus sme_Open(tHalHandle hHal)
 #ifdef WLAN_SOFTAP_FEATURE
       {
          v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
-		 if ( NULL == pvosGCtx ){
-		  	smsLog( pMac, LOGE, "WLANSAP_Open open failed during initialization with \
-             	 \n");
+         if ( NULL == pvosGCtx ){
+            smsLog( pMac, LOGE, "WLANSAP_Open open failed during initialization");
             status = eHAL_STATUS_FAILURE;
-			break;
-		 } 	
-		  	
+            break;
+         }
+
          status = WLANSAP_Open( pvosGCtx );
-		 if ( ! HAL_STATUS_SUCCESS( status ) ) {
-            smsLog( pMac, LOGE, "WLANSAP_Open open failed during initialization with \
-             	 status=%d\n", status );
-		    break;
+         if ( ! HAL_STATUS_SUCCESS( status ) ) {
+             smsLog( pMac, LOGE,
+                     "WLANSAP_Open open failed during initialization with status=%d", status );
+             break;
     	 }
       }
 #endif
 #if defined WLAN_FEATURE_VOWIFI
       status = rrmOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "rrmOpen open failed during initialization with \
-              status=%d\n", status );
+         smsLog( pMac, LOGE,
+                 "rrmOpen open failed during initialization with status=%d", status );
          break;
       }
 #endif
@@ -899,8 +898,8 @@ eHalStatus sme_set11dinfo(tHalHandle hHal,  tpSmeConfigParams pSmeConfigParams)
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
    if (NULL == pSmeConfigParams ) {
-      smsLog( pMac, LOGE, "Empty config param structure for SME, nothing to \
-            update\n");
+      smsLog( pMac, LOGE,
+              "Empty config param structure for SME, nothing to update");
       return status;
    }	
 
@@ -918,8 +917,7 @@ eHalStatus sme_setRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
    if (NULL == apCntryCode ) {
-      smsLog( pMac, LOGE, "Empty Country Code, nothing to \
-            update\n");
+      smsLog( pMac, LOGE, "Empty Country Code, nothing to update");
       return status;
    }    
 
@@ -987,8 +985,8 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
    if (NULL == pSmeConfigParams ) {
-      smsLog( pMac, LOGE, "Empty config param structure for SME, nothing to \
-            update\n");
+      smsLog( pMac, LOGE,
+              "Empty config param structure for SME, nothing to update");
       return status;
    }
 
@@ -1046,8 +1044,8 @@ eHalStatus sme_ChangeConfigParams(tHalHandle hHal,
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
    if (NULL == pUpdateConfigParam ) {
-      smsLog( pMac, LOGE, "Empty config param structure for SME, nothing to \
-            reset\n");
+      smsLog( pMac, LOGE,
+              "Empty config param structure for SME, nothing to reset\n");
       return status;
    }
 
@@ -1104,8 +1102,8 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
       }
       else
       {
-         smsLog( pMac, LOGE, "uMacPostCtrlMsg failed to send \
-               eWNI_SME_SYS_READY_IND\n");
+         smsLog( pMac, LOGE,
+                 "uMacPostCtrlMsg failed to send eWNI_SME_SYS_READY_IND");
          break;
    }
 
@@ -1350,7 +1348,7 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_NEIGHBOR_REPORT_IND:
           case eWNI_SME_BEACON_REPORT_REQ_IND:
 #if defined WLAN_VOWIFI_DEBUG
-             smsLog( pMac, LOGE, "Recieved RRM message. Message Id = %d\n", pMsg->type );
+             smsLog( pMac, LOGE, "Received RRM message. Message Id = %d\n", pMsg->type );
 #endif
              if ( pMsg->bodyptr )
              {
@@ -1763,7 +1761,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-    smsLog(pMac, LOGE, FL("   enter \n"));
+    smsLog(pMac, LOG2, FL("enter"));
     do
     {
         if(pMac->scan.fScanEnable)
@@ -1799,14 +1797,14 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultF
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-   smsLog(pMac, LOGE, FL("   enter \n"));
+   smsLog(pMac, LOG2, FL("enter"));
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
        status = csrScanGetResult( hHal, pFilter, phResult );
        sme_ReleaseGlobalLock( &pMac->sme );
    }
-   smsLog(pMac, LOGE, FL("   exit status %d \n"), status);
+   smsLog(pMac, LOG2, FL("exit status %d"), status);
 
    return (status);
 }
@@ -2035,7 +2033,7 @@ eHalStatus sme_RoamConnect(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-    smsLog(pMac, LOGE, FL("   enter \n"));
+    smsLog(pMac, LOG2, FL("enter"));
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
@@ -2072,7 +2070,7 @@ eHalStatus sme_RoamReassoc(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-    smsLog(pMac, LOGE, FL("   enter \n"));
+    smsLog(pMac, LOG2, FL("enter"));
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
@@ -2132,7 +2130,7 @@ eHalStatus sme_RoamDisconnect(tHalHandle hHal, tANI_U8 sessionId, eCsrRoamDiscon
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-   smsLog(pMac, LOGE, FL("   enter \n"));
+   smsLog(pMac, LOG2, FL("enter"));
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
@@ -2163,7 +2161,7 @@ eHalStatus sme_RoamStopBss(tHalHandle hHal, tANI_U8 sessionId)
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-   smsLog(pMac, LOGE, FL("   enter \n"));
+   smsLog(pMac, LOG2, FL("enter"));
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
@@ -2761,8 +2759,8 @@ eHalStatus sme_SetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
    if (NULL == pConfigParams ) {
-      smsLog( pMac, LOGE, "Empty config param structure for PMC, nothing to \
-            update\n");
+      smsLog( pMac, LOGE, "Empty config param structure for PMC, "
+              "nothing to update");
       return eHAL_STATUS_FAILURE;
    }
 
@@ -2778,7 +2776,7 @@ eHalStatus sme_SetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
 
 /*--------------------------------------------------------------------------
     \fn sme_GetConfigPowerSave
-    \brief  Wrapper fn to retireve power save configuration in SME (PMC) module
+    \brief  Wrapper fn to retrieve power save configuration in SME (PMC) module
     \param  hHal - The handle returned by macOpen.
     \param  psMode - Power Saving mode
     \param  pConfigParams - a pointer to a caller allocated object of type
@@ -2792,8 +2790,8 @@ eHalStatus sme_GetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
    if (NULL == pConfigParams ) {
-      smsLog( pMac, LOGE, "Empty config param structure for PMC, nothing to \
-            update\n");
+      smsLog( pMac, LOGE, "Empty config param structure for PMC, "
+              "nothing to update");
       return eHAL_STATUS_FAILURE;
    }
 
@@ -3130,7 +3128,7 @@ eHalStatus sme_RequestStandby (
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-   smsLog( pMac, LOGE, FL(" \n") );
+   smsLog( pMac, LOG1, FL("") );
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
@@ -3404,12 +3402,12 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamSetKey *pS
       }
 
 #ifdef WLAN_SOFTAP_FEATURE
-      smsLog(pMac, LOGE, FL("keyLength\n"), pSetKey->keyLength);
+      smsLog(pMac, LOG2, FL("keyLength\n"), pSetKey->keyLength);
 
       for(i=0; i<pSetKey->keyLength; i++)
-          smsLog(pMac, LOGE, FL("%02x"), pSetKey->Key[i]); 
+          smsLog(pMac, LOG2, FL("%02x"), pSetKey->Key[i]); 
 
-      smsLog(pMac, LOGE, "\n sessionId=%d roamId=%d\n", sessionId, roamId);       
+      smsLog(pMac, LOG2, "\n sessionId=%d roamId=%d\n", sessionId, roamId);       
 
       pSession = CSR_GET_SESSION(pMac, sessionId);
       
@@ -4647,7 +4645,7 @@ eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal,
     smsLog(pMac, LOG1, "%s sessionId               = %d\n", __FUNCTION__, sessionId);
     smsLog(pMac, LOG1, "%s #bssids                 = %u\n", __FUNCTION__, pInNavMeasConfig->numBSSIDs);
     smsLog(pMac, LOG1, "%s #measurements           = %u\n", __FUNCTION__, pInNavMeasConfig->numInNavMeasurements);
-    smsLog(pMac, LOG1, "%s #repetetions            = %u\n", __FUNCTION__, pInNavMeasConfig->numSetRepetitions);
+    smsLog(pMac, LOG1, "%s #repetitions            = %u\n", __FUNCTION__, pInNavMeasConfig->numSetRepetitions);
     smsLog(pMac, LOG1, "%s time-interval (ms)      = %u\n", __FUNCTION__, pInNavMeasConfig->measurementTimeInterval);
 
     do
@@ -5193,7 +5191,7 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal,
 	     pMac->p2pContext.probeRspIe = vos_mem_malloc(p2pIeLength);
 	     pMac->p2pContext.probeRspIeLength = p2pIeLength;
 
-         sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOGE, pMac->p2pContext.probeRspIe, pMac->p2pContext.probeRspIeLength ); 
+         sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG2, pMac->p2pContext.probeRspIe, pMac->p2pContext.probeRspIeLength ); 
 		 vos_mem_copy((tANI_U8 *)pMac->p2pContext.probeRspIe , p2pIe,
                 p2pIeLength);
 
@@ -5201,7 +5199,7 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal,
 	     sme_ReleaseGlobalLock( &pMac->sme );
 	  }
    
-    smsLog(pMac, LOGW, "exiting function %s\n", __FUNCTION__);
+    smsLog(pMac, LOG2, "exiting function %s\n", __FUNCTION__);
 
     return(status);
 }

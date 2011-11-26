@@ -475,7 +475,7 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
    tANI_U32 len,i;  
 
 #if defined WLAN_VOWIFI_DEBUG
-   smsLog( pMac, LOGE, "Recieved Beacon report request ind Channel = %d\n", pBeaconReq->channelInfo.channelNum );
+   smsLog( pMac, LOGE, "Received Beacon report request ind Channel = %d\n", pBeaconReq->channelInfo.channelNum );
 #endif
    //section 11.10.8.1 (IEEE Std 802.11k-2008) 
    //channel 0 and 255 has special meaning.
@@ -619,7 +619,7 @@ VOS_STATUS sme_RrmNeighborReportRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
    tCsrRoamSession *pSession;
 
 #if defined WLAN_VOWIFI_DEBUG
-   smsLog( pMac, LOGE, FL("Request to send Neighbor report request recieved \n"));
+   smsLog( pMac, LOGE, FL("Request to send Neighbor report request received \n"));
 #endif
    if( !CSR_IS_SESSION_VALID( pMac, sessionId ) )
    {  
@@ -782,7 +782,7 @@ void rrmStoreNeighborRptByRoamScore(tpAniSirGlobal pMac, tpRrmNeighborReportDesc
 
 /*--------------------------------------------------------------------------
   \brief sme_RrmProcessNeighborReport() - This is called to process the Neighbor 
-         report recieved from PE.
+         report received from PE.
   
   \param pMsgBuf - a pointer to a buffer that maps to various structures base 
                    on the message type.
@@ -825,7 +825,7 @@ eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
                                                 sizeof(tSirNeighborBssDescription));
 
 #if defined WLAN_VOWIFI_DEBUG
-       smsLog( pMac, LOGE, "Recieved neighbor report with Neighbor BSSID: %02x:%02x:%02x:%02x:%02x:%02x \n",
+       smsLog( pMac, LOGE, "Received neighbor report with Neighbor BSSID: %02x:%02x:%02x:%02x:%02x:%02x \n",
                     pNeighborRpt->sNeighborBssDescription[i].bssId[0], 
                     pNeighborRpt->sNeighborBssDescription[i].bssId[1], 
                     pNeighborRpt->sNeighborBssDescription[i].bssId[2], 

@@ -150,7 +150,7 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
         {
             case HAL_DEL_STA_REASON_CODE_KEEP_ALIVE:
             case HAL_DEL_STA_REASON_CODE_TIM_BASED:
-                PELOGE(limLog(pMac, LOGE, FL(" Deleting station: staId = %d, reaonCode = %d\n"), pMsg->staId, pMsg->reasonCode);)
+                PELOGE(limLog(pMac, LOGE, FL(" Deleting station: staId = %d, reasonCode = %d\n"), pMsg->staId, pMsg->reasonCode);)
 #endif        
                 pStaDs = dphGetHashEntry(pMac, pMsg->assocId, &psessionEntry->dph.dphHashTable);
                 if (! pStaDs)
@@ -176,15 +176,15 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                 break;        
             
             case HAL_DEL_STA_REASON_CODE_UNKNOWN_A2:
-                PELOGE(limLog(pMac, LOGE, FL(" Deleting Unkown station \n"));)
+                PELOGE(limLog(pMac, LOGE, FL(" Deleting Unknown station \n"));)
                 limPrintMacAddr(pMac, pMsg->addr2, LOGE);
                
 			   limSendDeauthMgmtFrame( pMac, eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON, pMsg->addr2, psessionEntry);
                 break;
 
             default:
-                PELOGE(limLog(pMac, LOGE, FL(" Unkown reason code \n"));)
-                break;    
+                PELOGE(limLog(pMac, LOGE, FL(" Unknown reason code \n"));)
+                break;
 
         }
 #endif

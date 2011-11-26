@@ -229,7 +229,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                 ++pSpectCh->bssCount; // Increment the count of BSS
 
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "In %s, bssdes.ch_self=%d, bssdes.ch_ID=%d, bssdes.rssi=%d, SpectCh.bssCount=%d, pScanReult=0x%x",
+                   "In %s, bssdes.ch_self=%d, bssdes.ch_ID=%d, bssdes.rssi=%d, SpectCh.bssCount=%d, pScanResult=0x%x",
                   __FUNCTION__, pScanResult->BssDescriptor.channelIdSelf, pScanResult->BssDescriptor.channelId, 
                   pScanResult->BssDescriptor.rssi, pSpectCh->bssCount, pScanResult);
                          
@@ -251,7 +251,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
     for (chn_num = 0; chn_num < (pSpectInfoParams->numSpectChans); chn_num++) {
     
         /*
-	        rssi : Maximum recieved signal strength among all BSS on that channel
+	        rssi : Maximum received signal strength among all BSS on that channel
        	 bssCount : Number of BSS on that channel
         	*/
 

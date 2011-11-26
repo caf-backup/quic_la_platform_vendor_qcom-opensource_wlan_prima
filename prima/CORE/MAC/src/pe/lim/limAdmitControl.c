@@ -868,7 +868,7 @@ tSirRetStatus limAdmitControlAddTS(
     // determine a service interval for the tspec
     if (limCalculateSvcInt(pMac, &pAddts->tspec, &svcInterval) != eSIR_SUCCESS)
     {
-        PELOGW(limLog(pMac, LOGW, FL("SvcInt calcualte failed\n"));)
+        PELOGW(limLog(pMac, LOGW, FL("SvcInt calculate failed\n"));)
         return eSIR_FAILURE;
     }
 

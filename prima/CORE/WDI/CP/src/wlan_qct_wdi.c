@@ -12884,7 +12884,7 @@ WDI_ProcessJoinRsp
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Association sequence for this BSS does not yet exist or "
-              "association no longer in progress - misterious HAL response");
+              "association no longer in progress - mysterious HAL response");
 
     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -13029,7 +13029,7 @@ WDI_ProcessConfigBSSRsp
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Association sequence for this BSS does not yet exist "
-              "- misterious HAL response");
+              "- mysterious HAL response");
 
     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
     
@@ -13189,7 +13189,7 @@ WDI_ProcessDelBSSRsp
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Association sequence for this BSS does not yet exist or "
-              "association no longer in progress - misterious HAL response");
+              "association no longer in progress - mysterious HAL response");
 
     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
     
@@ -13326,7 +13326,7 @@ WDI_ProcessPostAssocRsp
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Association sequence for this BSS does not yet exist or "
-              "association no longer in progress - misterious HAL response");
+              "association no longer in progress - mysterious HAL response");
 
     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
     
@@ -15084,7 +15084,7 @@ WDI_ProcessTriggerBARsp
   if(NULL == wdiTriggerBARsp)
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-                "Failed to allocate memory in TRigger BA Response %x %x %x ",
+                "Failed to allocate memory in Trigger BA Response %x %x %x ",
                  pWDICtx, pEventData, pEventData->pEventData);
     wpalMemoryFree(halTriggerBARsp);
     WDI_ASSERT(0);

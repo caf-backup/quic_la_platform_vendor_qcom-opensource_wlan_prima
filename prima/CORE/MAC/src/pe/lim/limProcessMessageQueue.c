@@ -525,7 +525,7 @@ static void limHandleUnknownA2IndexFrames(tpAniSirGlobal pMac, void *pRxPacketIn
         }
     }
 #else
-      /* addr2 mismatch interrupt occured this means previous 
+      /* addr2 mismatch interrupt occurred this means previous 
        disassociation was not successful
        In Volans pRxPacketInfo only contains pointer 48-bit address2 field */
        /*Send disassociation message again*/
@@ -692,7 +692,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                 (fc.subType != SIR_MAC_MGMT_BEACON)&&
                 (fc.subType != SIR_MAC_MGMT_PROBE_REQ)
 #if defined WLAN_FEATURE_P2P
-                && (fc.subType != SIR_MAC_MGMT_ACTION ) //Public action frame can be recieved from non-associated stations.
+                && (fc.subType != SIR_MAC_MGMT_ACTION ) //Public action frame can be received from non-associated stations.
 #endif
               )
             {
@@ -1800,7 +1800,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
            limLog(pMac, LOGE,
                    FL("Addr2 mismatch interrupt received %X\n"),
                    limMsg->type);
-           /*a message from HAL indicating addr2 mismatch interrupt occured
+           /*a message from HAL indicating addr2 mismatch interrupt occurred
              limMsg->bodyptr contains only pointer to 48-bit addr2 field*/
            //Dinesh fix this. the third parameter should be sessionentry.
            //limHandleUnknownA2IndexFrames(pMac, (void *)limMsg->bodyptr); 

@@ -2780,7 +2780,7 @@ VOS_STATUS vos_pkt_flatten_rx_pkt( vos_pkt_t **ppPacket )
   
   \brief vos_pkt_set_rx_length() - Set the length of a received packet 
 
-  This API set the length of the data inside the packet after a DMA has occured
+  This API set the length of the data inside the packet after a DMA has occurred
   on rx, it will also set the tail pointer to the end of the data.
 
   \param pPacket - the voss Packet to operate on.

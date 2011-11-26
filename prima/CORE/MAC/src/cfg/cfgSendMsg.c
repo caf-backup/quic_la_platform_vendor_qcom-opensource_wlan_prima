@@ -73,7 +73,7 @@ cfgSendHostMsg(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32 msgLen, tANI_U32 
 
    if ( paramNum > 0 && (pParamList == NULL))
    {
-       PELOGE(cfgLog(pMac, LOGE, FL("pParamList cannot be NULL for paramNum gearter than 0!\n"));)
+       PELOGE(cfgLog(pMac, LOGE, FL("pParamList cannot be NULL for paramNum greater than 0!\n"));)
        palFreeMemory( pMac->hHdd, pMsg);
        return;    
    }

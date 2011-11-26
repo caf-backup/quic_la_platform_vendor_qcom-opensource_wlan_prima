@@ -184,7 +184,7 @@ eHalStatus sme_QosValidateParams(tpAniSirGlobal pMac,
   from CSR when certain events occur as mentioned in sme_QosCsrEventIndType.
 
   \param pMac - Pointer to the global MAC parameter structure.
-  \param ind - The event occured of type sme_QosCsrEventIndType.
+  \param ind - The event occurred of type sme_QosCsrEventIndType.
   \param pEvent_info - Information related to the event
   
   \return eHalStatus
@@ -202,7 +202,7 @@ eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
   AP mandates Admission Control (ACM = 1)
 
   \param pMac - Pointer to the global MAC parameter structure.
-  \param pSirBssDesc - The event occured of type sme_QosCsrEventIndType.
+  \param pSirBssDesc - The event occurred of type sme_QosCsrEventIndType.
   \param pIes - the parsed IE for pSirBssDesc. This can be NULL.
 
   

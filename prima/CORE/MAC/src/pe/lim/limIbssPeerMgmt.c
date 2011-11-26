@@ -1512,7 +1512,7 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
             pTempNode->beaconHBCount = 0;
             pTempNode->heartbeatFailure = 0;
         }
-        else //There wasnt any beacon recieved during heartbeat timer.
+        else //There wasnt any beacon received during heartbeat timer.
         {
             pTempNode->heartbeatFailure++;
             PELOGE(limLog(pMac, LOGE, FL("Heartbeat fail = %d  thres = %d"), pTempNode->heartbeatFailure, pMac->lim.gLimNumIbssPeers);)

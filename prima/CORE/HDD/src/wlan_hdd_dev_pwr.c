@@ -238,7 +238,7 @@ int hddDevSuspendHdlr(struct device *dev)
 
    if(pHddCtx->isWlanSuspended == TRUE)
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is alredy in suspended state",__func__);
+      VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is already in suspended state",__func__);
       return 0;
    }
 
@@ -274,7 +274,7 @@ int hddDevResumeHdlr(struct device *dev)
 
    if(pHddCtx->isWlanSuspended != TRUE)
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is alredy in resumed state",__func__);
+      VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is already in resumed state",__func__);
       return 0;
    }
 

@@ -672,7 +672,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
    if (0 == countryInfoTable.countryCount)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            ("Reg domain table is emtpy\r\n") );
+            ("Reg domain table is empty\r\n") );
       return VOS_STATUS_E_EMPTY;
    }
    // iterate the country info table until end of table or the country code

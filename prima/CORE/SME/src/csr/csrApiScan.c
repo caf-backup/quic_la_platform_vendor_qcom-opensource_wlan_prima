@@ -340,7 +340,7 @@ eHalStatus csrQueueScanRequest( tpAniSirGlobal pMac, tSmeCmd *pScanCmd )
              {
                  palFreeMemory( pMac->hHdd, pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList );
                  pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = NULL;
-                 smsLog( pMac, LOGE, FL(" Failed to copy memory tochannel list \n") );
+                 smsLog( pMac, LOGE, FL(" Failed to copy memory to channel list \n") );
                  return eHAL_STATUS_FAILURE;
              }
              pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = numChn;
@@ -1239,7 +1239,7 @@ eHalStatus csrScanHandleSearchForSSID(tpAniSirGlobal pMac, tSmeCmd *pCommand)
         //If there is roam command waiting, ignore this roam because the newer roam command is the one to execute
         if(csrIsRoamCommandWaitingForSession(pMac, sessionId))
         {
-            smsLog(pMac, LOGW, FL(" aborts because roam commandwaiting\n"));
+            smsLog(pMac, LOGW, FL(" aborts because roam command waiting\n"));
             break;
         }
         if(pProfile == NULL)
@@ -2922,7 +2922,7 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                             csrFreeScanFilter( pMac, &filter );
                             if(fMatch)
                             {
-                                smsLog(pMac, LOGW, "   Matching roam profile BSSID %02X-%02X-%02X-%02X-%02X-%02X causing ambiguous doamin info\n",
+                                smsLog(pMac, LOGW, "   Matching roam profile BSSID %02X-%02X-%02X-%02X-%02X-%02X causing ambiguous domain info\n",
                                     pSirBssDesc->bssId[0], pSirBssDesc->bssId[1], pSirBssDesc->bssId[2], 
                                     pSirBssDesc->bssId[3], pSirBssDesc->bssId[4], pSirBssDesc->bssId[5]);
                                 pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
@@ -2936,7 +2936,7 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                         //User doesn't give profile and just connect to anything.
                         if(csrMatchBSSToConnectProfile(pMac, &pSession->connectedProfile, pSirBssDesc, pIesLocal))
                         {
-                            smsLog(pMac, LOGW, "   Matching connect profile BSSID %02X-%02X-%02X-%02X-%02X-%02X causing ambiguous doamin info\n",
+                            smsLog(pMac, LOGW, "   Matching connect profile BSSID %02X-%02X-%02X-%02X-%02X-%02X causing ambiguous domain info\n",
                                 pSirBssDesc->bssId[0], pSirBssDesc->bssId[1], pSirBssDesc->bssId[2],
                                 pSirBssDesc->bssId[3], pSirBssDesc->bssId[4], pSirBssDesc->bssId[5]);
                             //Tush
@@ -3711,12 +3711,12 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
                 else
                 {
                     //Cannot continue
-                    smsLog( pMac, LOGE, "CSR: Processsing internal SCAN results...csrGetCfgValidChannels failed\n" );
+                    smsLog( pMac, LOGE, "CSR: Processing internal SCAN results...csrGetCfgValidChannels failed\n" );
                     break;
                 }
             }
 
-            smsLog( pMac, LOG2, "CSR: Processsing internal SCAN results..." );
+            smsLog( pMac, LOG2, "CSR: Processing internal SCAN results..." );
             cbParsed = GET_FIELD_OFFSET( tSirSmeScanRsp, bssDescription );
             pSirBssDescription = pScanRsp->bssDescription;
             while( cbParsed < pScanRsp->length )
@@ -4958,12 +4958,12 @@ void csrScanIMPSCallback(void *callbackContext, eHalStatus status)
             {
                 if(csrIsAllSessionDisconnected(pMac) && !csrIsRoamCommandWaiting(pMac))
                 {
-                    smsLog(pMac, LOGW, FL("starts idle mdoe full scan\n"));
+                    smsLog(pMac, LOGW, FL("starts idle mode full scan\n"));
                     csrScanAllChannels(pMac, eCSR_SCAN_IDLE_MODE_SCAN);
                 }
                 else
                 {
-                    smsLog(pMac, LOGW, FL("cannot start idle mdoe full scan\n"));
+                    smsLog(pMac, LOGW, FL("cannot start idle mode full scan\n"));
                     //even though we are in timer handle, calling stop timer will make sure the timer
                     //doesn't get to restart.
                     csrScanStopIdleScanTimer(pMac);
@@ -5651,6 +5651,18 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
                 // we keep the 5G channel sets internally with an interchannel offset of 4.  Expand these
                 // to the right format... (inter channel offset of 1 is the only option for the triplets
                 // that 11d advertises.
+                if ((cbLen + (pChannelSet->numChannels * sizeof(tSirMacChanInfo))) >= dataLen)
+                {
+                    // expanding this entry will overflow our allocation
+                    smsLog(pMac, LOGE,
+                           "%s: Buffer overflow, start %d, num %d, offset %d",
+                           __FUNCTION__,
+                           pChannelSet->firstChannel,
+                           pChannelSet->numChannels,
+                           pChannelSet->interChannelOffset);
+                    break;
+                }
+
                 for( idx = 0; idx < pChannelSet->numChannels; idx++ )
                 {
                     pChannelPowerSet->firstChanNum = (tSirMacChanNum)(pChannelSet->firstChannel + ( idx * pChannelSet->interChannelOffset ));
@@ -5661,13 +5673,24 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
 #else
                     pChannelPowerSet->maxTxPower = pChannelSet->txPower;
 #endif
-                    smsLog(pMac, LOG3, " Setting Max Transmit Power %d\n", pChannelPowerSet->maxTxPower);					
+                    smsLog(pMac, LOG3, " Setting Max Transmit Power %d\n", pChannelPowerSet->maxTxPower);
                     cbLen += sizeof( tSirMacChanInfo );
                     pChannelPowerSet++;
                 }
             }
             else
             {
+                if (cbLen >= dataLen)
+                {
+                    // this entry will overflow our allocation
+                    smsLog(pMac, LOGE,
+                           "%s: Buffer overflow, start %d, num %d, offset %d",
+                           __FUNCTION__,
+                           pChannelSet->firstChannel,
+                           pChannelSet->numChannels,
+                           pChannelSet->interChannelOffset);
+                    break;
+                }
                 pChannelPowerSet->firstChanNum = pChannelSet->firstChannel;
                 smsLog(pMac, LOG3, " Setting Channel Number %d\n", pChannelPowerSet->firstChanNum);
                 pChannelPowerSet->numChannels = pChannelSet->numChannels;
@@ -5700,8 +5723,8 @@ void csrSetCfgCountryCode( tpAniSirGlobal pMac, tANI_U8 *countryCode )
     tANI_U8 cc[WNI_CFG_COUNTRY_CODE_LEN];
     ///v_REGDOMAIN_t DomainId;
     
-	smsLog( pMac, LOG3, "Setting Country Code in Cfg from csrSetCfgCountryCode %s\n",countryCode );   
-	palCopyMemory( pMac->hHdd, cc, countryCode, WNI_CFG_COUNTRY_CODE_LEN );
+    smsLog( pMac, LOG3, "Setting Country Code in Cfg from csrSetCfgCountryCode %s\n",countryCode );
+    palCopyMemory( pMac->hHdd, cc, countryCode, WNI_CFG_COUNTRY_CODE_LEN );
 
     // don't program the bogus country codes that we created for Korea in the MAC.  if we see
     // the bogus country codes, program the MAC with the right country code.
@@ -5919,7 +5942,7 @@ eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac)
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }                             
 
-	return( status );
+    return( status );
 }
 
 
@@ -5953,7 +5976,7 @@ eHalStatus csrScanGetScanChannelInfo(tpAniSirGlobal pMac)
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }                             
 
-	return( status );
+    return( status );
 }
 
 tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel )

@@ -1186,7 +1186,7 @@ void pmmProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 #endif // WLAN_FEATURE_PACKET_FILTERING
         default:
             PELOGW(pmmLog(pMac, LOGW, 
-                FL("PMM: Uknown message in pmmMsgQ type %d, potential memory leak!!\n"),
+                FL("PMM: Unknown message in pmmMsgQ type %d, potential memory leak!!\n"),
                 pMsg->type);)
     }
 
@@ -2503,7 +2503,7 @@ void pmmImpsUpdateWakeupStats (tpAniSirGlobal pMac)
 */
 }
 
-// Collects number of times error occured while going to sleep mode
+// Collects number of times error occurred while going to sleep mode
 void pmmImpsUpdateSleepErrStats(tpAniSirGlobal pMac,
 								tSirRetStatus retStatus)
 {
@@ -2512,7 +2512,7 @@ void pmmImpsUpdateSleepErrStats(tpAniSirGlobal pMac,
 	return;
 }
 
-// Collects number of times error occured while waking up from sleep mode
+// Collects number of times error occurred while waking up from sleep mode
 void pmmImpsUpdateWakeupErrStats(tpAniSirGlobal pMac,
 								 tSirRetStatus retStatus)
 {

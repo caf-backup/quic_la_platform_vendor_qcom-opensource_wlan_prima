@@ -410,7 +410,8 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        else {
          *ppfw_data = (v_VOID_t *)pHddCtx->fw->data;
          *pSize = pHddCtx->fw->size;
-          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Firmware size = %d",__func__, *pSize);
+          hddLog(VOS_TRACE_LEVEL_INFO, "%s: Firmware size = %d",
+                 __func__, *pSize);
        }
    }
    else if(!strcmp(WLAN_NV_FILE, pfileName)) {
@@ -426,7 +427,8 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        else {
          *ppfw_data = (v_VOID_t *)pHddCtx->nv->data;
          *pSize = pHddCtx->nv->size;
-          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: nv file size = %d",__func__, *pSize);
+          hddLog(VOS_TRACE_LEVEL_INFO, "%s: nv file size = %d",
+                 __func__, *pSize);
        }
    }
 
@@ -464,7 +466,7 @@ VOS_STATUS hdd_get_cfg_file_size(v_VOID_t *pCtx, char *pFileName, v_SIZE_t *pBuf
    }
    else {
       *pBufSize = pHddCtx->fw->size;
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: CFG size = %d",__func__, *pBufSize);
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: CFG size = %d", __func__, *pBufSize);
       release_firmware(pHddCtx->fw);
       pHddCtx->fw = NULL;
    }
@@ -946,7 +948,7 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
                if(status != VOS_STATUS_SUCCESS) 
                {
                   hddLog(VOS_TRACE_LEVEL_FATAL,
-                        "%s:Error!!! Stoping the BSS\n",__func__);
+                        "%s:Error!!! Stopping the BSS\n",__func__);
                }
                clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
             }
@@ -2071,12 +2073,12 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     * exited at this point
     */
    hddLog(VOS_TRACE_LEVEL_WARN, "In module exit: Cancel the vote for XO Core ON"
-                                    "when  WLAN is turned OFF\n");
+                                    " when WLAN is turned OFF\n");
    if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
    {
        hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel the vote for XO Core ON." 
-                                        "Not returning failure."
-                                        "Power consumed will be high\n");
+                                        " Not returning failure."
+                                        " Power consumed will be high\n");
    }  
 
    //Free up dynamically allocated members inside HDD Adapter
@@ -2218,7 +2220,7 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
       if(vos_is_macaddr_zero(&macFromNV[0]))
       {
          /* MAC address in NV file is not configured yet */
-         hddLog(VOS_TRACE_LEVEL_ERROR, " Not valid MAC in NV file ");
+         hddLog(VOS_TRACE_LEVEL_WARN, "Invalid MAC in NV file");
          return VOS_STATUS_E_INVAL;
       }
 
@@ -2658,7 +2660,7 @@ int hdd_wlan_startup(struct device *dev )
       if (!VOS_IS_STATUS_SUCCESS(vstatus))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: unable to retrieve WCNSS WLAN reporteded version",
+                "%s: unable to retrieve WCNSS WLAN reported version",
                 __FUNCTION__);
          break;
       }
@@ -2669,7 +2671,7 @@ int hdd_wlan_startup(struct device *dev )
           (versionCompiled.revision != versionReported.revision))
       {
          pr_err("%s: WCNSS WLAN version mismatch\n"
-                "WCNSS reported %u.%u.%u.%u,"
+                "WCNSS reported %u.%u.%u.%u, "
                 "but expected %u.%u.%u.%u\n",
                 WLAN_MODULE_NAME,
                 (int)versionReported.major,
@@ -2984,7 +2986,7 @@ static int __init hdd_module_init ( void)
    status = vos_chipPowerUp(NULL,NULL,NULL);
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not Powered Up."
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not Powered Up. "
           "exiting", __func__);
       return -1;
    }
@@ -3027,7 +3029,7 @@ static int __init hdd_module_init ( void)
       status = vos_chipPowerUp(NULL,NULL,NULL);
       if (!VOS_IS_STATUS_SUCCESS(status))
       {
-         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not Powered Up."
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not Powered Up. "
              "exiting", __func__);
          return -1;
       }
@@ -3129,12 +3131,12 @@ static int __init hdd_module_init ( void)
        * it OFF in any error scenario.
        */
       hddLog(VOS_TRACE_LEVEL_ERROR, "In module init: Ensure Force XO Core is OFF"
-                                       "when  WLAN is turned ON so Core toggles"
-                                       "unless we enter PS\n");
+                                       " when  WLAN is turned ON so Core toggles"
+                                       " unless we enter PS\n");
       if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
       {
           hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel XO Core ON vote. Not returning failure."
-                                            "Power consumed will be high\n");
+                                            " Power consumed will be high\n");
       }
    } while (0);
 

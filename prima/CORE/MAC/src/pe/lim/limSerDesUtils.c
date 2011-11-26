@@ -172,7 +172,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     len -= sizeof(tANI_TIMESTAMP);
 
 #if defined WLAN_FEATURE_VOWIFI
-    //TSF when the beacon recieved (parent TSF)
+    //TSF when the beacon received (parent TSF)
     pBssDescription->parentTSF = limGetU32( pBuf );
     pBuf += sizeof(tANI_U32);
     len -= sizeof(tANI_U32);

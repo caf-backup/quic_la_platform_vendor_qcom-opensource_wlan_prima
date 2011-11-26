@@ -538,7 +538,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
     case WNI_CFG_GREENFIELD_CAPABILITY:
         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
         {
-            PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap CFG CFG\n"));)
+            PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap Info CFG\n"));)
             break;
         }
         if (wlan_cfgGetInt(pMac, WNI_CFG_GREENFIELD_CAPABILITY, &val2) != eSIR_SUCCESS) 
@@ -574,7 +574,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
     case WNI_CFG_MAX_AMSDU_LENGTH:
         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS)
             {
-                PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap CFG CFG\n"));)
+                PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap Info CFG\n"));)
                 break;
             }
         if (wlan_cfgGetInt(pMac, WNI_CFG_MAX_AMSDU_LENGTH, &val2) != eSIR_SUCCESS)
@@ -718,7 +718,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         break;
     case WNI_CFG_ADDBA_REQ_DECLINE:
         if(wlan_cfgGetInt(pMac, WNI_CFG_ADDBA_REQ_DECLINE, &val1) != eSIR_SUCCESS) {
-            limLog( pMac, LOGE, FL( "Unabled to get ADDBA_REQ_DECLINE cfg\n" ));
+            limLog( pMac, LOGE, FL( "Unable to get ADDBA_REQ_DECLINE cfg\n" ));
             break;
         }
         pMac->lim.gAddBA_Declined = (tANI_U8)val1;
@@ -726,7 +726,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         
     case WNI_CFG_SCAN_IN_POWERSAVE:
         if(wlan_cfgGetInt(pMac, WNI_CFG_SCAN_IN_POWERSAVE, &val1) != eSIR_SUCCESS) {
-            limLog( pMac, LOGE, FL( "Unabled to get WNI_CFG_SCAN_IN_POWERSAVE \n" ));
+            limLog( pMac, LOGE, FL( "Unable to get WNI_CFG_SCAN_IN_POWERSAVE \n" ));
             break;
         }
         pMac->lim.gScanInPowersave = (tANI_U8)val1;
@@ -923,7 +923,7 @@ limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     // Update the ADD BA Declined configuration 
     if(wlan_cfgGetInt(pMac, WNI_CFG_ADDBA_REQ_DECLINE, &val) != eSIR_SUCCESS)
-        limLog( pMac, LOGP, FL( "Unabled to get ADDBA_REQ_DECLINE cfg\n" ));
+        limLog( pMac, LOGP, FL( "Unable to get ADDBA_REQ_DECLINE cfg\n" ));
     pMac->lim.gAddBA_Declined = (val) ?  0xff : 0x0;
 
     // AP: WSM should enable HCF as well, for STA enable WSM only after

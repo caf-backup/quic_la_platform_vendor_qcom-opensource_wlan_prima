@@ -227,10 +227,10 @@ typedef struct hdd_wext_state_s
    /**gen IE */
    tSirAddie genIE;
    
-   /**Addtional IE for scan */
+   /**Additional IE for scan */
    tSirAddie scanAddIE; 
    
-   /**Addtional IE for assoc */
+   /**Additional IE for assoc */
    tSirAddie assocAddIE; 
    
    /**auth key mgmt */

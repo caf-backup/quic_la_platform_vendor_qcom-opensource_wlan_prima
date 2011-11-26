@@ -676,7 +676,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             /* Handling for this message is not needed now so adding 
              *debug print and VOS_ASSERT*/
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       " Recieved SYS_MSG_ID_MC_START message msgType= %d [0x%08lx]",
+                       " Received SYS_MSG_ID_MC_START message msgType= %d [0x%08lx]",
                        pMsg->type, pMsg->type );
             VOS_ASSERT(0);
 #endif
@@ -721,7 +721,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             /* Handling for this message is not needed now so adding 
              *debug print and VOS_ASSERT*/
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       " Recieved SYS_MSG_ID_MC_THR_PROBE message msgType= %d [0x%08lx]",
+                       " Received SYS_MSG_ID_MC_THR_PROBE message msgType= %d [0x%08lx]",
                        pMsg->type, pMsg->type );
             VOS_ASSERT(0);
 #endif
@@ -755,7 +755,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          default:
          {
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       "Unknwon message type in sysMcProcessMsg() msgType= %d [0x%08lx]",
+                       "Unknown message type in sysMcProcessMsg() msgType= %d [0x%08lx]",
                        pMsg->type, pMsg->type );
             break;
         }
@@ -917,7 +917,7 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
            /* Handling for this message is not needed now so adding 
             * debug print and VOS_ASSERT*/
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       " Recieved SYS_MSG_ID_TX_THR_PROBE message msgType= %d [0x%08lx]",
+                       " Received SYS_MSG_ID_TX_THR_PROBE message msgType= %d [0x%08lx]",
                        pMsg->type, pMsg->type );
             VOS_ASSERT(0);
 
@@ -944,7 +944,7 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          default:
          {
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       "Unknwon message type in sysTxProcessMsg() msgType= %d [0x%08lx]",
+                       "Unknown message type in sysTxProcessMsg() msgType= %d [0x%08lx]",
                        pMsg->type, pMsg->type );
             break;
         }
@@ -1001,7 +1001,7 @@ VOS_STATUS sysRxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          default:
          {
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                       "Unknwon message type in sysRxProcessMsg() msgType= %d [0x%08lx]",
+                       "Unknown message type in sysRxProcessMsg() msgType= %d [0x%08lx]",
                        pMsg->type, pMsg->type );
             break;
         }

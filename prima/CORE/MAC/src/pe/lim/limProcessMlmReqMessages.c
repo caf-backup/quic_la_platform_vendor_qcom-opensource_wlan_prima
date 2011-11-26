@@ -634,8 +634,8 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pInitScanParam,
                 sizeof(*pInitScanParam)))
     {
-        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemor() failed\n"));)
-            goto error;
+        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
+        goto error;
     }
 
     msg.type = WDA_INIT_SCAN_REQ;
@@ -2053,7 +2053,7 @@ limProcessMlmAuthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     sessionId = pMac->lim.gpLimMlmAuthReq->sessionId;
     if((psessionEntry= peFindSessionBySessionId(pMac,sessionId) )== NULL)
     {
-        limLog(pMac, LOGP, FL("Session Does not exist for givne sessionId\n"));
+        limLog(pMac, LOGP, FL("Session Does not exist for given sessionId\n"));
         return;
     }
 

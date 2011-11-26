@@ -398,7 +398,7 @@ VosMCThread
       // Check if MC needs to shutdown
       if(test_bit(MC_SHUTDOWN_EVENT_MASK, &pSchedContext->mcEventFlag))
       {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                 "%s: MC thread signaled to shutdown", __func__);
         shutdown = VOS_TRUE;
         /* Check for any Suspend Indication */
@@ -636,7 +636,7 @@ VosMCThread
     } // while message loop processing
   } // while TRUE
   // If we get here the MC thread must exit
-  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
       "%s: MC Thread exiting!!!!", __FUNCTION__);
   complete_and_exit(&pSchedContext->McShutdown, 0);
 } /* VosMCThread() */
@@ -709,7 +709,7 @@ VosWDThread
       // Check if Watchdog needs to shutdown
       if(test_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag))
       {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                 "%s: Watchdog thread signaled to shutdown", __func__);
 		  
 		  clear_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
@@ -754,7 +754,7 @@ VosWDThread
     
   } // while TRUE
   // If we get here the Watchdog thread must exit
-  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
       "%s: Watchdog Thread exiting!!!!", __FUNCTION__);
   complete_and_exit(&pWdContext->WdShutdown, 0);
 
@@ -798,7 +798,7 @@ static int VosTXThread ( void * Arg )
   ** created.
   */
   complete(&pSchedContext->TxStartEvent);
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
       "%s: TX Thread %d (%s) starting up!",__func__, current->pid, current->comm);
 
   /* Get the Global VOSS Context */
@@ -836,7 +836,7 @@ static int VosTXThread ( void * Arg )
     {
       if(test_bit(TX_SHUTDOWN_EVENT_MASK, &pSchedContext->txEventFlag))
       {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                  "%s: TX thread signaled to shutdown", __func__);
         shutdown = VOS_TRUE;
         /* Check for any Suspend Indication */
@@ -968,7 +968,7 @@ static int VosTXThread ( void * Arg )
     } // while message loop processing
   } // while TRUE
   // If we get here the TX thread must exit
-  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
       "%s: TX Thread exiting!!!!", __FUNCTION__);
   complete_and_exit(&pSchedContext->TxShutdown, 0);
 } /* VosTxThread() */
@@ -1007,7 +1007,7 @@ static int VosRXThread ( void * Arg )
   ** created.
   */
   complete(&pSchedContext->RxStartEvent);
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
       "%s: RX Thread %d (%s) starting up!",__func__, current->pid, current->comm);
 
   /* Get the Global VOSS Context */
@@ -1044,7 +1044,7 @@ static int VosRXThread ( void * Arg )
     {
       if(test_bit(RX_SHUTDOWN_EVENT_MASK, &pSchedContext->rxEventFlag))
       {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                  "%s: RX thread signaled to shutdown", __func__);
         shutdown = VOS_TRUE;
         /* Check for any Suspend Indication */
@@ -1126,7 +1126,7 @@ static int VosRXThread ( void * Arg )
     } // while message loop processing
   } // while TRUE
   // If we get here the RX thread must exit
-  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
       "%s: RX Thread exiting!!!!", __FUNCTION__);
   complete_and_exit(&pSchedContext->RxShutdown, 0);
 } /* VosRxThread() */

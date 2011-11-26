@@ -45,7 +45,7 @@
 #define ANI_E_ELEM_NOT_FND  -7 /// Element not found
 #define ANI_E_INVALID_LEN   -8 /// Element has invalid Length 
 #define ANI_E_INVALID_DT    -9 /// Invalid Data Type 
-#define ANI_E_TIMEOUT       -10 /// Timeout occured
+#define ANI_E_TIMEOUT       -10 /// Timeout occurred
 #define ANI_E_DBM_INVALID_ID    -11 /// Invalid DB id sent to server
 #define ANI_E_DBM_KEY_NOT_FOUND -12 /// Key's mapping was not found
 #define ANI_E_FILE_EMPTY    -13 /// file empty

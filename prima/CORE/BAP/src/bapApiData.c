@@ -537,7 +537,7 @@ WLANBAP_XlateRxDataPkt
     {
 
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "Invalid LLC header for BT-AMP paclet in %s", __FUNCTION__);
+                     "Invalid LLC header for BT-AMP packet in %s", __FUNCTION__);
         return VOS_STATUS_E_FAULT;
     }
 #endif //BAP_DEBUG
