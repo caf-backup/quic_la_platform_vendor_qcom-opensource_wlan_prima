@@ -4068,7 +4068,10 @@ void limProcessFinishScanRsp(tpAniSirGlobal pMac,  void *body)
             if (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
             {
                 /** Right time to stop tx and start the timer for channel switch */
-                limStopTxAndSwitchChannel(pMac);
+                /* Sending Session ID 0, may not be correct, since SCAN is global there should not
+                 * be any associated session id
+                */
+                limStopTxAndSwitchChannel(pMac, dummySessionId);
             }
             else if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN)
             {

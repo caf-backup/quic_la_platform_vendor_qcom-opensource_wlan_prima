@@ -991,6 +991,9 @@ static iw_softap_commit(struct net_device *dev,
     pConfig->dtim_period = pCommitConfig->dtim_period;
     switch(pCommitConfig->hw_mode )
     {
+        case eQC_DOT11_MODE_11A:
+        pConfig->SapHw_mode = eSAP_DOT11_MODE_11a; 
+            break;
         case eQC_DOT11_MODE_11B:
         pConfig->SapHw_mode = eSAP_DOT11_MODE_11b; 
             break;

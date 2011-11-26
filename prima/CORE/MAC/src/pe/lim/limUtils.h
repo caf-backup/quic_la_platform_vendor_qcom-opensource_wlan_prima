@@ -152,7 +152,7 @@ void limProcessAddtsRspTimeout(tpAniSirGlobal pMac, tANI_U32 param);
 #ifdef ANI_PRODUCT_TYPE_AP
 tANI_U32 computeChannelSwitchCount(tpAniSirGlobal, tANI_U32);
 #endif
-void limStopTxAndSwitchChannel(tpAniSirGlobal pMac);
+void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId);
 void limProcessChannelSwitchTimeout(tpAniSirGlobal);
 tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry);
 void limUpdateChannelSwitch(tpAniSirGlobal, tpSirProbeRespBeacon, tpPESession psessionEntry);

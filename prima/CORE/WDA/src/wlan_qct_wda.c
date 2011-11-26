@@ -2499,6 +2499,8 @@ VOS_STATUS WDA_ProcessJoinReq(tWDA_CbContext *pWDA,
 #endif
    wdiJoinReqParam->wdiReqInfo.wdiChannelInfo.wdiSecondaryChannelOffset = 
                                         joinReqParam->secondaryChannelOffset ;
+   wdiJoinReqParam->wdiReqInfo.linkState = pWDA->linkState;
+   
    wdiJoinReqParam->wdiReqStatusCB = NULL ;
 
    /* Store Init Req pointer, as this will be used for response */
@@ -4626,7 +4628,7 @@ WDA_processSetLinkStateStatus WDA_IsHandleSetLinkStateReq(
 
          vos_mem_copy(pWDA->macSTASelf,linkStateParams->selfMacAddr, 
                                                    sizeof(tSirMacAddr));
-        /* UMAC is issuing the setlink state with PREASSOC twice (before set 
+         /* UMAC is issuing the setlink state with PREASSOC twice (before set 
          *channel and after ) so reset the WDA state to ready when the second 
          * time UMAC issue the link state with PREASSOC 
          */
@@ -4639,6 +4641,8 @@ WDA_processSetLinkStateStatus WDA_IsHandleSetLinkStateReq(
          {
             pWDA->wdaState = WDA_PRE_ASSOC_STATE;
          }
+         //populate linkState info in WDACbCtxt
+		 pWDA->linkState = linkStateParams->state;
          status = WDA_IGNORE_SET_LINK_STATE;
          break;
 

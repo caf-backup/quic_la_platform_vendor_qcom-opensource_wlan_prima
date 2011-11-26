@@ -120,6 +120,7 @@ typedef enum{
 
 typedef enum {
     eSAP_DOT11_MODE_abg = 0x0001,
+    eSAP_DOT11_MODE_11a = 0x0002,
     eSAP_DOT11_MODE_11b = 0x0004,     
     eSAP_DOT11_MODE_11g = 0x0008,     
     eSAP_DOT11_MODE_11n = 0x0010,     

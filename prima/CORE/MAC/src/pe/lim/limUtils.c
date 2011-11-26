@@ -2540,22 +2540,19 @@ limDecideStaProtection(tpAniSirGlobal pMac,
 void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
 {
     tpPESession psessionEntry = NULL;
-#ifdef GEN6_TODO
-    //fetch the sessionEntry based on the sessionId
-    //priority - MEDIUM
-   
+#if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
+    tSirMsgQ    mmhMsg;
+    tSirMbMsg   *msg2Hdd;
+    tANI_U8    channel = pMac->lim.gLimChannelSwitch.primaryChannel;   // This is received and stored from channelSwitch Action frame
+#endif
+
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
         return;
     }
-#endif
 
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
-    tSirMsgQ    mmhMsg;
-    tSirMbMsg   *msg2Hdd;
-
-    tANI_U8    channel = pMac->lim.gLimChannelSwitch.primaryChannel;   // This is received and stored from channelSwitch Action frame
 
     if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
     {
@@ -7167,7 +7164,7 @@ limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
     {
         PELOGE(limLog(pMac, LOGE, FL("Not in scan state, start channel switch timer\n"));)
         /** We are safe to switch channel at this point */
-        limStopTxAndSwitchChannel(pMac);
+        limStopTxAndSwitchChannel(pMac, psessionEntry->peSessionId);
     }
 #endif
 }
