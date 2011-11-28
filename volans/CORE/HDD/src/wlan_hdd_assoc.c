@@ -320,6 +320,7 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
     char *buff;
     tANI_U16 auth_resp_len = 0;
     tANI_U32 ric_ies_length = 0;
+    tANI_U16 str_len;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     // We need to send the IEs to the supplicant.
@@ -332,23 +333,24 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
     }
 
     // Sme needs to send the RIC IEs first 
-    strcpy(buff,"RIC=");
-    sme_GetRICIEs( pHddCtx->hHal, (u8 *)&(buff[strlen("RIC=")]), &ric_ies_length );
+    str_len = strlcpy(buff, "RIC=", IW_CUSTOM_MAX);
+    sme_GetRICIEs( pHddCtx->hHal, (u8 *)&(buff[str_len]), 
+                   (IW_CUSTOM_MAX - str_len), &ric_ies_length ); 
     if (ric_ies_length == 0) 
     {
         hddLog(LOGW, "%s: RIC IEs is of length 0 not sending RIC Information for now", __func__); 
     }
     else
     {
-        wrqu.data.length = strlen("RIC=") + ric_ies_length;
+        wrqu.data.length = str_len + ric_ies_length;
         wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buff);
     }
 
     // Sme needs to provide the Auth Resp
     vos_mem_zero(buff, IW_CUSTOM_MAX); 
-    strcpy(buff,"AUTH=");
-    sme_GetFTPreAuthResponse(pHddCtx->hHal,
-        (u8 *)&buff[strlen("AUTH=")], &auth_resp_len);
+    str_len = strlcpy(buff, "AUTH=", IW_CUSTOM_MAX);
+    sme_GetFTPreAuthResponse(pHddCtx->hHal, (u8 *)&buff[str_len], 
+                             (IW_CUSTOM_MAX - str_len),  &auth_resp_len);
 
     if (auth_resp_len == 0) 
     {
@@ -356,7 +358,7 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
         return;
     }
 
-    wrqu.data.length = strlen("AUTH=") + ANI_MAC_ADDR_SIZE + auth_resp_len;
+    wrqu.data.length = str_len + auth_resp_len;
     wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buff);
 
     kfree(buff);
@@ -370,7 +372,7 @@ void hdd_SendUpdateBeaconIEsEvent(hdd_adapter_t *pAdapter, tCsrRoamInfo *pCsrRoa
     u8  *pBeaconIes;
     u8 currentLen = 0;
     char *buff;
-    int totalIeLen = 0, currentOffset = 0;
+    int totalIeLen = 0, currentOffset = 0, strLen;
 
     memset(&wrqu, '\0', sizeof(wrqu));
 
@@ -402,24 +404,24 @@ void hdd_SendUpdateBeaconIEsEvent(hdd_adapter_t *pAdapter, tCsrRoamInfo *pCsrRoa
     }
     vos_mem_zero(buff, IW_CUSTOM_MAX); 
 
-    strcpy(buff,"BEACONIEs=");
-    currentLen = strlen("BEACONIE=") + 1;
+    strLen = strlcpy(buff,"BEACONIEs=", IW_CUSTOM_MAX);
+    currentLen = strLen + 1;
 
     totalIeLen = pCsrRoamInfo->nBeaconLength - BEACON_FRAME_IES_OFFSET;
     do
     {
         /* If the beacon size exceeds max CUSTOM event size, break it into chunks of CUSTOM event 
          * max size and send it to supplicant. Changes are done in supplicant to handle this */
-        vos_mem_zero(&buff[strlen("BEACONIEs=") + 1], IW_CUSTOM_MAX - (strlen("BEACONIEs=") + 1));
-        currentLen = VOS_MIN(totalIeLen, IW_CUSTOM_MAX - (strlen("BEACONIE=") + 1) - 1);
-        vos_mem_copy(&buff[strlen("BEACONIEs=") + 1], pBeaconIes+currentOffset, currentLen);
+        vos_mem_zero(&buff[strLen + 1], IW_CUSTOM_MAX - (strLen + 1));
+        currentLen = VOS_MIN(totalIeLen, IW_CUSTOM_MAX - (strLen + 1) - 1);
+        vos_mem_copy(&buff[strLen + 1], pBeaconIes+currentOffset, currentLen);
         currentOffset += currentLen;
         totalIeLen -= currentLen;
-        wrqu.data.length = strlen("BEACONIEs=") + 1 + currentLen;
+        wrqu.data.length = strLen + 1 + currentLen;
         if (totalIeLen)
-          buff[strlen("BEACONIEs=")] = 1;   // This tells supplicant more chunks are pending 
+          buff[strLen] = 1;   // This tells supplicant more chunks are pending 
         else
-          buff[strlen("BEACONIEs=")] = 0;   // For last chunk of beacon IE to supplicant
+          buff[strLen] = 0;   // For last chunk of beacon IE to supplicant
 
         hddLog(LOG1, "%s: Beacon IEs length to supplicant = %d", __func__, currentLen);
         wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buff);

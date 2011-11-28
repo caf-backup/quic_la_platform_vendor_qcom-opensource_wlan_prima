@@ -581,7 +581,10 @@
 #define HALRATE_IS_DUP(halRate)       ((gHalRateInfo[(halRate)].rateProperty & (RA_DUPLICATE))==(RA_DUPLICATE))
 #define HALRATE_IS_11BG(halRate)      ((gHalRateInfo[(halRate)].rateProperty & (RA_11AG_RATES|RA_CCKDSSS)) !=0 )
 #define HALRATE_IS_11AG(halRate)      (gHalRateInfo[(halRate)].rateProperty & (RA_11AG_RATES))
-#define HALRATE_IS_SLR(halRate)		  ((gHalRateInfo[(halRate)].rateProperty & RA_SLR))
+#define HALRATE_IS_SLR(halRate)	      ((gHalRateInfo[(halRate)].rateProperty & RA_SLR))
+#define HALRATE_IS_LEGACY(halRate)    (gHalRateInfo[(halRate)].rateProperty & (RA_11B_RATES))
+#define HALRATE_IS_HT20(halRate)      (gHalRateInfo[(halRate)].rateProperty & (RA_HT_20_SIMO))
+#define HALRATE_IS_HT20_SGI(halRate)  (gHalRateInfo[(halRate)].rateProperty & (RA_HT_20_SIMO_SGI))
 
 
 /* Qualcomm proprietary */

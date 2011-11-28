@@ -175,7 +175,7 @@ typedef struct
    WLANBAL_SDIODXEHeaderConfigType sdioDXEConfig;
    v_U8_t                          *dmaBuffer;
    struct sdio_func                *sdio_func_dev;
-   v_U8_t                          isChipSuspended;
+   v_U8_t                          isChipSuspended; 
 } balHandleType;
 
 

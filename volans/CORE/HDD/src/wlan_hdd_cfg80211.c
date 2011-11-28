@@ -90,7 +90,10 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_WEP40,
     WLAN_CIPHER_SUITE_WEP104,
     WLAN_CIPHER_SUITE_TKIP,
-    WLAN_CIPHER_SUITE_CCMP
+    WLAN_CIPHER_SUITE_CCMP,
+#ifdef FEATURE_WLAN_WAPI
+	WLAN_CIPHER_SUITE_SMS4
+#endif
 };
 
 static inline int is_broadcast_ether_addr(const u8 *addr)
@@ -352,6 +355,60 @@ void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
                                   P2P_ACTION_FRAME_SIZE );
 #endif /* WLAN_FEATURE_P2P */
 }
+
+#ifdef FEATURE_WLAN_WAPI
+void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index, 
+	                                  const u8 *mac_addr, u8 *key , int key_Len)
+{
+    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+    tCsrRoamSetKey  setKey;
+    v_BOOL_t isConnected = TRUE;
+    int status = 0;
+    v_U32_t roamId= 0xFF;
+    tANI_U8 *pKeyPtr = NULL;
+    int n = 0;
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
+                                        __func__,pAdapter->device_mode);
+
+    setKey.keyId = key_index; // Store Key ID
+    setKey.encType  = eCSR_ENCRYPT_TYPE_WPI; // SET WAPI Encryption
+    setKey.keyDirection = eSIR_TX_RX;  // Key Directionn both TX and RX
+    setKey.paeRole = 0 ; // the PAE role
+    if (!mac_addr || is_broadcast_ether_addr(mac_addr))
+    {
+        vos_set_macaddr_broadcast( (v_MACADDR_t *)setKey.peerMac );
+    }
+    else
+    {
+        isConnected = hdd_connIsConnected(pHddStaCtx);
+        vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId,WNI_CFG_BSSID_LEN);
+    }
+    setKey.keyLength = key_Len;
+    pKeyPtr = setKey.Key;
+    memcpy( pKeyPtr, key, key_Len);
+
+    hddLog(VOS_TRACE_LEVEL_INFO,"\n%s: WAPI KEY LENGTH:0x%04x", 
+                                            __func__, key_Len);
+    for (n = 0 ; n < key_Len; n++)
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s WAPI KEY Data[%d]:%02x ",
+                                           __func__,n,setKey.Key[n]);
+
+    pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_SETTING_KEY;
+    if ( isConnected ) 
+    {
+        status= sme_RoamSetKey( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                             pAdapter->sessionId, &setKey, &roamId );
+    }
+    if ( status != 0 )
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "[%4d] sme_RoamSetKey returned ERROR status= %d", 
+				                                   __LINE__, status );
+        pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+    }
+}
+#endif /* FEATURE_WLAN_WAPI*/
 
 int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter, 
                                        beacon_data_t **ppBeacon,
@@ -1271,7 +1328,15 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         case WLAN_CIPHER_SUITE_CCMP:
             setKey.encType = eCSR_ENCRYPT_TYPE_AES;
             break;
-
+#ifdef FEATURE_WLAN_WAPI
+        case WLAN_CIPHER_SUITE_SMS4:
+        {
+            vos_mem_zero(&setKey,sizeof(tCsrRoamSetKey));
+            wlan_hdd_cfg80211_set_key_wapi(pAdapter, key_index, mac_addr, 
+                                               params->key, params->key_len);
+            return 0;
+        }
+#endif
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: unsupported cipher type %lu",
                     __func__, params->cipher);
@@ -1910,6 +1975,7 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
         ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
     unsigned int freq;
     struct ieee80211_channel *chan;
+    int rssi = 0;
 
     ENTER();
 
@@ -1928,11 +1994,13 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
 
     chan = __ieee80211_get_channel(wiphy, freq);
 
+    rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
+
     return (cfg80211_inform_bss(wiphy, chan, bss_desc->bssId, 
                 le64_to_cpu(*(__le64 *)bss_desc->timeStamp), 
                 bss_desc->capabilityInfo,
                 bss_desc->beaconInterval, ie, ie_length,
-                bss_desc->rssi, GFP_KERNEL ));
+                rssi, GFP_KERNEL ));
 }
 
 
@@ -1997,8 +2065,22 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 
     chan = __ieee80211_get_channel(wiphy, freq);
 
-    /* signal strength in mBm (100*dBm) */
-    rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
+    /*To keep the rssi icon of the connected AP in the scan window
+    *and the rssi icon of the wireless networks in sync 
+    * */
+    if (( eConnectionState_Associated ==
+             pAdapter->sessionCtx.station.conn_info.connState ) &&
+             ( VOS_TRUE == vos_mem_compare(bss_desc->bssId,
+                             pAdapter->sessionCtx.station.conn_info.bssId,
+                             WNI_CFG_BSSID_LEN)))
+    {
+       /* supplicant takes the signal strength in terms of mBm(100*dBm) */
+       rssi = (pAdapter->rssi * 100);
+    }
+    else
+    {
+       rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
+    }
 
     bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt,
             frame_len, rssi, GFP_KERNEL);
@@ -2482,7 +2564,39 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             /*set auth*/
             hdd_set_csr_auth_type(pAdapter, RSNAuthType);
         }
-        
+#ifdef FEATURE_WLAN_WAPI
+        if (pAdapter->wapi_info.nWapiMode)
+        {
+            hddLog(LOG1, "%s: Setting WAPI AUTH Type and Encryption Mode values", __FUNCTION__);
+            switch (pAdapter->wapi_info.wapiAuthMode)
+            {
+                case WAPI_AUTH_MODE_PSK:
+                {
+                    hddLog(LOG1, "%s: WAPI AUTH TYPE: PSK: %d", __FUNCTION__,
+                                                   pAdapter->wapi_info.wapiAuthMode);
+                    pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_WAPI_WAI_PSK;
+                    break;
+                }
+                case WAPI_AUTH_MODE_CERT:
+                {
+                    hddLog(LOG1, "%s: WAPI AUTH TYPE: CERT: %d", __FUNCTION__,
+                                                    pAdapter->wapi_info.wapiAuthMode);
+                    pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE;
+                    break;
+                }
+            } // End of switch
+            if ( pAdapter->wapi_info.wapiAuthMode == WAPI_AUTH_MODE_PSK ||
+                pAdapter->wapi_info.wapiAuthMode == WAPI_AUTH_MODE_CERT)
+            {
+                hddLog(LOG1, "%s: WAPI PAIRWISE/GROUP ENCRYPTION: WPI", __FUNCTION__);
+                pRoamProfile->AuthType.numEntries = 1;
+                pRoamProfile->EncryptionType.numEntries = 1;
+                pRoamProfile->EncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_WPI;
+                pRoamProfile->mcEncryptionType.numEntries = 1;
+                pRoamProfile->mcEncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_WPI;
+            }
+        }
+#endif /* FEATURE_WLAN_WAPI */
         pRoamProfile->csrPersona = pAdapter->device_mode;
 
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter), 
@@ -2632,7 +2746,11 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
         case WLAN_CIPHER_SUITE_CCMP:
             encryptionType = eCSR_ENCRYPT_TYPE_AES;
             break;
-
+#ifdef FEATURE_WLAN_WAPI
+        case WLAN_CIPHER_SUITE_SMS4:
+            encryptionType = eCSR_ENCRYPT_TYPE_WPI;
+            break;
+#endif
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported cipher type %d", 
                     __func__, cipher);
@@ -2673,6 +2791,12 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     u8 *genie = ie;
     v_U16_t remLen = ie_len;
+#ifdef FEATURE_WLAN_WAPI
+	v_U32_t akmsuite[MAX_NUM_AKM_SUITES];
+	u16 *tmp;
+	v_U16_t akmsuiteCount;
+	int *akmlist;
+#endif 
     ENTER();
 
     /* clear previous assocAddIE */
@@ -2759,7 +2883,33 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 pWextState->roamProfile.pRSNReqIE = pWextState->WPARSNIE;
                 pWextState->roamProfile.nRSNReqIELength = eLen + 2; //ie_len;
                 break;
-     
+#ifdef FEATURE_WLAN_WAPI				
+            case WLAN_EID_WAPI:
+                pAdapter->wapi_info.nWapiMode = 1;   //Setting WAPI Mode to ON=1
+                hddLog(VOS_TRACE_LEVEL_INFO,"WAPI MODE IS  %lu \n",
+                                          pAdapter->wapi_info.nWapiMode);
+                tmp = (u16 *)ie;
+                tmp = tmp + 2; // Skip element Id and Len, Version        
+                akmsuiteCount = WPA_GET_LE16(tmp);       
+                tmp = tmp + 1;   
+                akmlist= (int *)(tmp);       
+                memcpy(akmsuite, akmlist, (4*akmsuiteCount));
+
+                if (WAPI_PSK_AKM_SUITE == akmsuite[0])    
+                {
+                    hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO PSK",
+                                                            __FUNCTION__);       
+                    pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_PSK;
+                }    
+                if (WAPI_CERT_AKM_SUITE == akmsuite[0])     
+                {     
+                    hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO CERTIFICATE",
+                                                             __FUNCTION__);      
+                    pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_CERT;
+                }
+                break;
+#endif
+
             default:
                 hddLog (VOS_TRACE_LEVEL_ERROR, 
                         "%s Set UNKNOWN IE %X", __func__, elementId);
@@ -3408,60 +3558,33 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
     return 0;
 }
 
-extern void hdd_StatisticsCB( void *pStats, void *pContext );
-
 /*
  * FUNCTION: wlan_hdd_cfg80211_get_txpower
  * This function is used to read the txpower
  */
 static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
 {
-#if 0
-  //TODO: - How to get tx power? should pick from the statistics or just return the value configured in set_txpower.
-    hdd_adapter_t *pAdapter = (hdd_adapter_t*) wiphy_priv(wiphy);
-    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-    ENTER();
-
-    if (eConnectionState_Associated != pHddStaCtx->conn_info.connState) 
+  
+    hdd_adapter_t *pAdapter;
+    hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
+   
+    if (NULL == pHddCtx) 
     {
+        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
         *dbm = 0;
+        return -ENOENT;
     }
-    else 
+
+    pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+    if (NULL == pAdapter)
     {
-        int status;
-        hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-        status = sme_GetStatistics( WLAN_HDD_GET_HAL_CTX(pAdapter), eCSR_HDD, 
-                SME_SUMMARY_STATS      | 
-                SME_GLOBAL_CLASSA_STATS | 
-                SME_GLOBAL_CLASSB_STATS | 
-                SME_GLOBAL_CLASSC_STATS | 
-                SME_GLOBAL_CLASSD_STATS | 
-                SME_PER_STA_STATS, 
-                hdd_StatisticsCB, 0, FALSE, 
-                pHddStaCtx->conn_info.staId[0], 
-                pAdapter );
-
-        if (0 != status)
-        {
-            hddLog(VOS_TRACE_LEVEL_ERROR, 
-                    "%s: sme_GetStatistics failed, returned %d", __func__, 
-                    status);
-            return -EIO;
-        }
-
-        status = vos_wait_single_event(&pWextState->vosevent, 1000);
-
-        if (0 != status)
-        { 
-            return -EIO;
-        }
-
-        *dbm = pAdapter->hdd_stats.ClassA_stat.max_pwr;
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Not in station context " ,__func__);
+        return -ENOENT;
     }
-#else
-    *dbm = 0;
-#endif
+     
+    wlan_hdd_get_classAstats(pAdapter);
+    *dbm = pAdapter->hdd_stats.ClassA_stat.max_pwr;
+
     return 0;
 }
 
@@ -3470,29 +3593,65 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
-    // TODO: Implement this function properly
-    sinfo->signal = 20;
-    sinfo->filled |= STATION_INFO_SIGNAL;
-    sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
-    sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
-    sinfo->txrate.mcs = 4;
-    sinfo->filled |= STATION_INFO_TX_BITRATE;
-
-    if(eConnectionState_Associated == pHddStaCtx->conn_info.connState)
+    int ssidlen = pHddStaCtx->conn_info.SSID.SSID.length;
+    tANI_U8 rate_flags;
+     
+    if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
+           (0 == ssidlen))
     {
-       sinfo->filled |= STATION_INFO_BSS_PARAM;
-       sinfo->bss_param.flags = 0;
-       sinfo->bss_param.dtim_period = 2;
-       sinfo->bss_param.beacon_interval = 100;
+       hddLog(VOS_TRACE_LEVEL_INFO, "%s: Not associated or"
+                    "Invalid ssid, %d", __func__, ssidlen);
+       /*To keep GUI happy*/
+        return 0;
     }
 
+    wlan_hdd_get_rssi(pAdapter, &sinfo->signal);
+    sinfo->filled |= STATION_INFO_SIGNAL;
+
+    wlan_hdd_get_classAstats(pAdapter);
+    rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
+
+    if (rate_flags & eHAL_TX_RATE_LEGACY)
+    {
+        //provide to the UI in units of 100kbps
+        sinfo->txrate.legacy = pAdapter->hdd_stats.ClassA_stat.tx_rate * 5;
+    }
+    else if (rate_flags & eHAL_TX_RATE_HT20)
+    {
+        sinfo->txrate.mcs = pAdapter->hdd_stats.ClassA_stat.mcs_index;
+        sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+        if (rate_flags & eHAL_TX_RATE_SGI)
+        {
+            sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
+        }
+    }
+    sinfo->filled |= STATION_INFO_TX_BITRATE;
+    
     return 0;
 }
 
 static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
-                     struct net_device *dev, bool enabled, s32 timeout)
+                     struct net_device *dev, bool mode, v_SINT_t timeout)
 {
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   VOS_STATUS vos_status;
+  
+   if (NULL == pAdapter)
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Adapter is NULL\n", __func__);
+       return -ENODEV;
+   }
+   
+   /**The get power cmd from the supplicant gets updated by the nl only
+     *on successful execution of the function call
+     *we are oppositely mapped w.r.t mode in the driver
+     **/
+   vos_status =  wlan_hdd_enter_bmps(pAdapter, !mode);
+   
+   if (VOS_STATUS_E_FAILURE == vos_status)
+   {
+       return -EINVAL;
+   }
    return 0;
 }
 

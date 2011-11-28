@@ -2001,8 +2001,10 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
     {
         pHostapdAdapter = netdev_priv(pWlanHostapdDev);
 
+#ifndef CONFIG_CFG80211
         //Init the net_device structure
         ether_setup(pWlanHostapdDev);
+#endif
 
         //Initialize the adapter context to zeros.
         vos_mem_zero(pHostapdAdapter, sizeof( hdd_adapter_t ));
@@ -2036,6 +2038,8 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
         init_completion(&pHostapdAdapter->offchannel_tx_event);
 #endif
+        init_completion(&pHddCtx->mc_sus_event_var);
+        init_completion(&pHddCtx->tx_sus_event_var);
 
         SET_NETDEV_DEV(pWlanHostapdDev, &pHddCtx->hsdio_func_dev->dev);
     }

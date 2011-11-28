@@ -17,6 +17,7 @@
  * Include Files
  *------------------------------------------------------------------------*/
 #include "wlan_hdd_main.h"
+#include "vos_power.h"
 
 /*---------------------------------------------------------------------------
  *   Preprocessor definitions and constants
@@ -50,12 +51,14 @@
 /*-------------------------------------------------------------------------
  * Function declarations and documentation
  * ------------------------------------------------------------------------*/
- eHalStatus hdd_exit_standby(hdd_adapter_t* pAdapter);
- VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter);
- VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter);
- VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter);
+ eHalStatus hdd_exit_standby(hdd_context_t *pHddCtx);
+ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, 
+                                hdd_adapter_t* pAdapter);
+ VOS_STATUS hdd_enter_standby(hdd_context_t *pHddCtx);
+ VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, 
+                                hdd_adapter_t* pAdapter);
 #ifdef CONFIG_HAS_EARLYSUSPEND
- VOS_STATUS hdd_wlan_reset(void) ;
+ VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason);
  VOS_STATUS hdd_wlan_reset_initialization(void) ;
 #endif
 

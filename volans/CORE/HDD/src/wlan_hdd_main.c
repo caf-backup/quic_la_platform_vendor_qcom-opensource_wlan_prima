@@ -51,6 +51,7 @@
 #include <wlan_ptt_sock_svc.h>
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_misc.h>
+#include <wlan_hdd_wext.h>
 #ifdef WLAN_BTAMP_FEATURE
 #include <bap_hdd_main.h>
 #include <bapInternal.h>
@@ -179,18 +180,60 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 int hdd_open (struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_context_t *pHddCtx;
+   hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+   VOS_STATUS status;
+   v_BOOL_t in_standby = TRUE;
 
-   if(pAdapter == NULL) {
+   if (NULL == pAdapter) 
+   {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
          "%s: HDD adapter context is Null", __FUNCTION__);
-      return -1;
+      return -ENODEV;
+   }
+   
+   pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
+   if (NULL == pHddCtx)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+         "%s: HDD context is Null", __FUNCTION__);
+      return -ENODEV;
    }
 
-   /* Enable TX queues only when we are connected */
-   if(hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Enabling Tx Queues" , __FUNCTION__);
-      netif_tx_start_all_queues(dev);
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+   while ( (NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status) )
+   {
+        if( pAdapterNode->pAdapter->event_flags & DEVICE_IFACE_OPENED)
+        {
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s: chip all ready out of " 
+                  "standby", __func__, pAdapter->device_mode);
+            in_standby = FALSE;
+            break;
+        }
+        else
+        {
+            status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+            pAdapterNode = pNext;
+        }
+   }
+ 
+   if (TRUE == in_standby)
+   {
+       if (VOS_STATUS_SUCCESS != wlan_hdd_exit_lowpower(pHddCtx, pAdapter))
+       {
+           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to bring " 
+                   "wlan out of power save", __func__);
+           return -EINVAL;
+       }
+   }
+   
+   pAdapter->event_flags |= DEVICE_IFACE_OPENED;
+   if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) 
+   {
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                 "%s: Enabling Tx Queues", __FUNCTION__);
+       /* Enable TX queues only when we are connected */
+       netif_tx_start_all_queues(dev);
    }
 
    return 0;
@@ -224,12 +267,71 @@ int hdd_mon_open (struct net_device *dev)
 
 int hdd_stop (struct net_device *dev)
 {
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_context_t *pHddCtx;
+   hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+   VOS_STATUS status;
+   v_BOOL_t enter_standby = TRUE;
+   
+   if (NULL == pAdapter)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+         "%s: HDD adapter context is Null", __FUNCTION__);
+      return -ENODEV;
+   }
 
-   //Stop the Interface TX queue. netif_stop_queue should not be used when
-   //transmission is being disabled anywhere other than hard_start_xmit
-   hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Disabling OS Tx queues",__func__);
-   netif_tx_disable(dev);
+   pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
+   if (NULL == pHddCtx)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+         "%s: HDD context is Null", __FUNCTION__);
+      return -ENODEV;
+   }
 
+   pAdapter->event_flags &= ~(DEVICE_IFACE_OPENED);
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Disabling OS Tx queues", __func__);
+   netif_tx_disable(pAdapter->dev);
+   netif_carrier_off(pAdapter->dev);
+
+   if ( (WLAN_HDD_SOFTAP == pAdapter->device_mode )
+                 || (WLAN_HDD_MONITOR == pAdapter->device_mode )
+#ifdef WLAN_FEATURE_P2P
+                 || (WLAN_HDD_P2P_GO == pAdapter->device_mode )
+#endif
+      )
+   {
+      return 0;
+   }
+
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+   while ( (NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status) )
+   {
+        if ( pAdapterNode->pAdapter->event_flags & DEVICE_IFACE_OPENED)
+        {
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s: Still other ifaces are up cannot "
+                   "put device to sleep", __func__, pAdapter->device_mode);
+            enter_standby = FALSE;
+            break;
+        }
+        else
+        { 
+            status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+            pAdapterNode = pNext;
+        }
+   }
+
+   if (TRUE == enter_standby)
+   {
+       hddLog(VOS_TRACE_LEVEL_INFO, "%s: All Interfaces are Down " 
+                 "entering standby", __func__);
+       if (VOS_STATUS_SUCCESS != wlan_hdd_enter_lowpower(pHddCtx))
+       {
+           /*log and return success*/
+           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to put "
+                   "wlan in power save", __func__);
+       }
+   }
+   
    return 0;
 }
 

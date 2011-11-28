@@ -1094,6 +1094,10 @@ typedef struct tagCsrGlobalClassAStatsInfo
    //tANI_U32 default_pwr;
    tANI_U32 sync_fail_cnt;
    tANI_U32 tx_rate;
+   //mcs index for HT20 and HT40 rates
+   tANI_U8  mcs_index;
+   //to defferentiate between HT20 and HT40 rates;short and long guard interval
+   tANI_U8  tx_rate_flags;
 
 }tCsrGlobalClassAStatsInfo;
 

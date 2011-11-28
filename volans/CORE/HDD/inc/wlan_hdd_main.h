@@ -63,6 +63,7 @@
 #define INIT_TX_RX_SUCCESS     1<<2
 #define WMM_INIT_DONE          1<<3
 #define SOFTAP_BSS_STARTED     1<<4
+#define DEVICE_IFACE_OPENED    1<<5
 
 /** Maximum time(ms)to wait for disconnect to complete **/
 #define WLAN_WAIT_TIME_DISCONNECT  500
@@ -248,19 +249,27 @@ typedef enum _KEY_DIRECTION WAPI_KEY_DIRECTION;
 /** WAPI KEY stucture definition */
 struct WLAN_WAPI_KEY
 {
-   WAPIKeyType          keyType;
+   WAPIKeyType     keyType;
    WAPI_KEY_DIRECTION   keyDirection;  /*reserved for future use*/
-   v_U8_t               keyId;
-   v_U8_t               addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
-   int                  wpiekLen;
-   v_U8_t               wpiek[MAX_WPI_KEY_LENGTH];
-   int                  wpickLen;
-   v_U8_t               wpick[MAX_WPI_KEY_LENGTH];
-   v_U8_t               pn[MAX_NUM_PN];        /*reserved for future use*/
+   v_U8_t          keyId;
+   v_U8_t          addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
+   int             wpiekLen;
+   v_U8_t          wpiek[MAX_WPI_KEY_LENGTH];
+   int             wpickLen;
+   v_U8_t          wpick[MAX_WPI_KEY_LENGTH];
+   v_U8_t          pn[MAX_NUM_PN];        /*reserved for future use*/
 }__attribute__((packed));
 
 typedef struct WLAN_WAPI_KEY WLAN_WAPI_KEY;
 typedef struct WLAN_WAPI_KEY *pWLAN_WAPI_KEY;
+
+
+#define WPA_GET_LE16(a) ((u16) (((a)[1] << 8) | (a)[0]))
+#define WLAN_EID_WAPI 68
+#define WAPI_PSK_AKM_SUITE  0x02721400
+#define WLAN_CIPHER_SUITE_SMS4  0x00147201
+#define WAPI_CERT_AKM_SUITE 0x01721400
+
 
 #ifdef CONFIG_CFG80211
 

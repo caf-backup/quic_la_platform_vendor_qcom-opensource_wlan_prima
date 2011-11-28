@@ -1337,6 +1337,7 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 {
                         smsLog( pMac, LOGE, "Empty rsp message for meas (eWNI_SME_INNAV_MEAS_RSP), nothing to process\n");
                 }
+                smeProcessPendingQueue( pMac );
                 break;
 #endif
 

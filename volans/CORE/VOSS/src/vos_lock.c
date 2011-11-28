@@ -349,7 +349,7 @@ VOS_STATUS vos_lock_destroy( vos_lock_t *lock )
           is ready to be used.
   --------------------------------------------------------------------------*/
 
-VOS_STATUS vos_spin_lock_init(spinlock_t *pLock)
+VOS_STATUS vos_spin_lock_init(vos_spin_lock_t *pLock)
 {
    spin_lock_init(pLock);
    
@@ -372,7 +372,7 @@ VOS_STATUS vos_spin_lock_init(spinlock_t *pLock)
       
   \sa
   ------------------------------------------------------------------------*/
-VOS_STATUS vos_spin_lock_acquire(spinlock_t *pLock)
+VOS_STATUS vos_spin_lock_acquire(vos_spin_lock_t *pLock)
 {
    spin_lock(pLock);
    return VOS_STATUS_SUCCESS;
@@ -393,8 +393,25 @@ VOS_STATUS vos_spin_lock_acquire(spinlock_t *pLock)
   
   \sa
   ------------------------------------------------------------------------*/
-VOS_STATUS vos_spin_lock_release(spinlock_t *pLock)
+VOS_STATUS vos_spin_lock_release(vos_spin_lock_t *pLock)
 {
    spin_unlock(pLock);
+   return VOS_STATUS_SUCCESS;
+}
+
+
+/*--------------------------------------------------------------------------
+  
+  \brief vos_spin_lock_destroy() - releases resource of a lock
+
+  \param pLock - the pointer to a lock to release
+  
+  \return VOS_STATUS_SUCCESS - the lock was successfully released
+  
+  \sa
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_spin_lock_destroy(vos_spin_lock_t *pLock)
+{
+
    return VOS_STATUS_SUCCESS;
 }
