@@ -54,10 +54,6 @@ LOCAL_MODULE_PATH  := $(TARGET_OUT_ETC)/firmware/wlan/volans
 LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 
-#Create sym link for ftm driver
-$(shell mkdir -p $(WLAN_BLD_DIR)/volans/ftm; \
-        ln -sf ../CORE $(WLAN_BLD_DIR)/volans/ftm/CORE)
-
 # Build WCN1314_rf.ko
 ###########################################################
 
