@@ -1258,10 +1258,10 @@ dump_lim_send_SM_Power_Mode( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, 
     tpSirMbMsg  pMBMsg;
         tSirMacHTMIMOPowerSaveState state;
 
-        p += log_sprintf( pMac,p, "%s: Verifying the Arguements\n", __FUNCTION__);
+        p += log_sprintf( pMac,p, "%s: Verifying the Arguments\n", __FUNCTION__);
     if ((arg1 > 3) || (arg1 == 2))
     {
-                p += log_sprintf( pMac,p, "Invalid Arguement , enter one of the valid states\n");
+                p += log_sprintf( pMac,p, "Invalid Argument , enter one of the valid states\n");
                 return p;
         }
 

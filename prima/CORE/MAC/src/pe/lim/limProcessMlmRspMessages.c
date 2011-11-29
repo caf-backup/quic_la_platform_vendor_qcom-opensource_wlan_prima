@@ -1879,7 +1879,7 @@ void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESess
 
     if(NULL == pAddStaParams )
     {
-        limLog( pMac, LOGE, FL( "Encounterd NULL Pointer\n" ));
+        limLog( pMac, LOGE, FL( "Encountered NULL Pointer\n" ));
         return;
     }
     if( eHAL_STATUS_SUCCESS == pAddStaParams->status )
@@ -2369,7 +2369,7 @@ void limProcessStaMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESessi
     tpDphHashNode     pStaDs        = NULL;
     if(NULL == pDelStaParams )
     {
-        limLog( pMac, LOGE, FL( "Encounterd NULL Pointer\n" ));
+        limLog( pMac, LOGE, FL( "Encountered NULL Pointer\n" ));
         goto end;
     }
     if( eHAL_STATUS_SUCCESS == pDelStaParams->status )
@@ -2608,7 +2608,7 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
     tpAddBssParams pAddBssParams = (tpAddBssParams) limMsgQ->bodyptr;
     if(NULL == pAddBssParams )
     {
-        limLog( pMac, LOGE, FL( "Encounterd NULL Pointer\n" ));
+        limLog( pMac, LOGE, FL( "Encountered NULL Pointer\n" ));
         goto end;
     }
     //TBD: free the memory before returning, do it for all places where lookup fails.
@@ -3213,7 +3213,7 @@ void limProcessMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 
     if(NULL == pAddBssParams )
     {
-        limLog( pMac, LOGE, FL( "Encounterd NULL Pointer\n" ));
+        limLog( pMac, LOGE, FL( "Encountered NULL Pointer\n" ));
         return;
     }
 

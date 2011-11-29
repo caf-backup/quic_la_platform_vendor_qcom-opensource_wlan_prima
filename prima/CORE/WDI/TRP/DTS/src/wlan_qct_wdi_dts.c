@@ -163,7 +163,7 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
   if(NULL == pBDHeader)
   {
     DTI_TRACE( DTI_TRACE_LEVEL_ERROR,
-       "WLAN TL:BD header recieved NULL - dropping packet");
+       "WLAN TL:BD header received NULL - dropping packet");
     wpalPacketFree(pFrame);
     return eWLAN_PAL_STATUS_E_FAILURE;
   }

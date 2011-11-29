@@ -1003,7 +1003,7 @@ int derivePtk(tAuthRsnFsm *fsm, tAniEapolKeyAvailEventData *data)
         break;
     default:
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-            "Auth cannot generate PTK for for invalid algorithm %d\n",
+            "Auth cannot generate PTK for invalid algorithm %d\n",
                       fsm->staCtx->pwCipherType);
         return ANI_E_ILLEGAL_ARG;
         break;

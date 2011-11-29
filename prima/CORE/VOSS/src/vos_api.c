@@ -150,7 +150,7 @@ VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext )
   \param  pVosContext: A pointer to where the VOS Context was stored 
  
   
-  \return VOS_STATUS_SUCCESS - Always successfull
+  \return VOS_STATUS_SUCCESS - Always successful
                   
           
   \sa vos_preClose()
@@ -159,7 +159,7 @@ VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext )
 VOS_STATUS vos_preClose( v_CONTEXT_t *pVosContext )
 {
 
-   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                 "%s: De-allocating the VOS Context",__func__);
 
    if (( pVosContext == NULL) || (*pVosContext == NULL)) 
@@ -312,7 +312,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    {
       /* Critical Error ...  Cannot proceed further */
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to open VOS SCheduler", __func__);
+                "%s: Failed to open VOS Scheduler", __func__);
       VOS_ASSERT(0);
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
       goto err_packet_close;
@@ -584,7 +584,7 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
       if ( vStatus == VOS_STATUS_E_TIMEOUT )
       {
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-          "%s: Timeout occured before WDA complete\n",__func__);
+          "%s: Timeout occurred before WDA complete\n",__func__);
       }
       else
       {
@@ -710,7 +710,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      if ( vStatus == VOS_STATUS_E_TIMEOUT )
      {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Timeout occured before WDA_NVDownload_start complete\n",__func__);
+         "%s: Timeout occurred before WDA_NVDownload_start complete\n",__func__);
      }
      else
      {
@@ -855,7 +855,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
 #endif
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: VOSS Start is successfull!!",__func__);
+            "%s: VOSS Start is successful!!",__func__);
 
   return VOS_STATUS_SUCCESS;
 
@@ -880,7 +880,7 @@ err_wda_stop:
      if( vStatus == VOS_STATUS_E_TIMEOUT )
      {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Timeout occured before WDA_stop complete\n",__func__);
+         "%s: Timeout occurred before WDA_stop complete\n",__func__);
 
      }
      else
@@ -938,7 +938,7 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      if ( vosStatus == VOS_STATUS_E_TIMEOUT )
      {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Timeout occured before WDA complete\n",__func__);
+         "%s: Timeout occurred before WDA complete\n",__func__);
      }
      else
      {

@@ -996,7 +996,7 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
         if(status != VOS_STATUS_SUCCESS) 
         {
             hddLog(VOS_TRACE_LEVEL_FATAL,
-                    "%s:Error!!! Stoping the BSS\n",__func__);
+                    "%s:Error!!! Stopping the BSS\n",__func__);
             return -EINVAL;
         }
         
@@ -2840,8 +2840,8 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     
                     if( SIR_MAC_MAX_IE_LENGTH < (pWextState->assocAddIE.length + eLen) )
                     {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate assocAddIE. \
-                                                      Need bigger buffer space\n");
+                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate assocAddIE. "
+                                                     "Need bigger buffer space\n");
                        VOS_ASSERT(0);
                        return -ENOMEM;
                     }
@@ -2871,8 +2871,8 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     
                     if( SIR_MAC_MAX_IE_LENGTH < (pWextState->assocAddIE.length + eLen) )
                     {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate assocAddIE. \
-                                                      Need bigger buffer space\n");
+                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate assocAddIE. "
+                                                     "Need bigger buffer space\n");
                        VOS_ASSERT(0);
                        return -ENOMEM;
                     }

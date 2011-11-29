@@ -422,7 +422,7 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
                                                 (void **) &pprobeRespParams,
                                                 sizeof( tSendProbeRespParams )))
     {
-        schLog( pMac, LOGE, FL("limSendProbeRspTemplateToHal: HAL probe response params malloc failed for byted %d\n"), nBytes );
+        schLog( pMac, LOGE, FL("limSendProbeRspTemplateToHal: HAL probe response params malloc failed for bytes %d\n"), nBytes );
     }
     else
     {

@@ -252,7 +252,7 @@ typedef enum
                                of the driver*/
    WDI_STATUS_E_NOT_IMPLEMENT, /* Operation is not yet implemented*/
 
-   WDI_STATUS_DEV_INTERNAL_FAILURE, /*An internal error has occured in the device*/
+   WDI_STATUS_DEV_INTERNAL_FAILURE, /*An internal error has occurred in the device*/
    WDI_STATUS_MAX
 
 }WDI_Status;
@@ -414,7 +414,7 @@ typedef struct
  /*Sequence Number*/
  wpt_uint8   TSC[WDI_CIPHER_SEQ_CTR_SIZE];
 
- /*recieve address */
+ /*receive address */
  wpt_macAddr   macRxAddr;
 }WDI_MicFailureIndType;
 
@@ -6877,7 +6877,7 @@ WDI_SetUapsdAcParamsReq
 
 /**
  @brief WDI_ConfigureRxpFilterReq will be called when the upper 
-        MAC wants to set/reset the RXP filters for recieved pkts
+        MAC wants to set/reset the RXP filters for received pkts
         (MC, BC etc.). Upon the call of this API the WLAN DAL will pack
         and send a HAL configure RXP filter request message to
         the lower RIVA sub-system.
@@ -7270,7 +7270,7 @@ WDI_FlushAcReq
 /**
  @brief WDI_BtAmpEventReq will be called when the upper MAC 
         wants to notify the lower mac on a BT AMP event. This is
-        to inform BTC-SLM that some BT AMP event occured. Upon
+        to inform BTC-SLM that some BT AMP event occurred. Upon
         the call of this API the WLAN DAL will pack and send a
         HAL BT AMP event request message to the lower RIVA
         sub-system if DAL is in state STARTED.

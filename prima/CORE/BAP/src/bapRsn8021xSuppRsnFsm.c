@@ -490,8 +490,8 @@ gotoStateStaKeySet(tSuppRsnFsm *fsm,
             return retVal;
         }
     }
-
-    if( VOS_IS_STATUS_SUCCESS( bapRsnSendEapolFrame( fsm->ctx->pvosGCtx, fsm->lastEapol ) ) )
+    gReadToSetKey = BAP_SET_RSN_KEY;
+    if( !VOS_IS_STATUS_SUCCESS( bapRsnSendEapolFrame( fsm->ctx->pvosGCtx, fsm->lastEapol ) ) )
     {
 		/* making it global to access in bapTxRx file */
 #if 0
@@ -519,10 +519,7 @@ gotoStateStaKeySet(tSuppRsnFsm *fsm,
             retVal = ANI_ERROR;
         }
 #endif
-		gReadToSetKey = BAP_SET_RSN_KEY;
-    }
-    else
-    {
+	gReadToSetKey = BAP_RESET_RSN_KEY;
         retVal = ANI_ERROR;
     }
 

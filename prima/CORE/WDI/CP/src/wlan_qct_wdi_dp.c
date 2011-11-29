@@ -673,6 +673,11 @@ WDI_FillTxBd
               // Get the broadcast station index for this bss
               (void) WDI_FindAssocSessionByBSSIdx( pWDICtx, bssSessIdx, 
                                                    &pBSSSes ); 
+              if (NULL == pBSSSes)
+              {
+                // session not found ?!?
+                return WDI_STATUS_E_FAILURE;
+              }
               ucStaId = pBSSSes->bcastStaIdx;
            }
          }    

@@ -284,7 +284,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
              with Marvel - they send their own SSID instead of ours*/
             if ( 0 != vos_get_skip_ssid_check())
             {
-                limLog(pMac, LOG1, FL("Received unmatched SSID but cfg to supress - continuing\n"));
+                limLog(pMac, LOG1, FL("Received unmatched SSID but cfg to suppress - continuing\n"));
             }
             else
             {
@@ -437,7 +437,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                     if (subType == LIM_ASSOC)
                         limLog(pMac, LOGW, FL("LIM Info: Association wrong supported channels (STA)\n"));
                     else
-                        limLog(pMac, LOGW, FL("LIM Info: Rassociation wrong supported channels (STA)\n"));
+                        limLog(pMac, LOGW, FL("LIM Info: Reassociation wrong supported channels (STA)\n"));
                     limPrintMacAddr(pMac, pHdr->sa, LOGW);
                 }
                 /* IEs are valid, use them if needed */

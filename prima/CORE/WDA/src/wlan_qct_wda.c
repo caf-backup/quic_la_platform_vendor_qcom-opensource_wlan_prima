@@ -15,7 +15,7 @@
   Are listed for each API below.
 
 
-  Copyright (c) 2010 QUALCOMM Incorporated.
+  Copyright (c) 2010-2011 QUALCOMM Incorporated.
   All Rights Reserved.
   Qualcomm Confidential and Proprietary
 ===========================================================================*/
@@ -447,7 +447,7 @@ VOS_STATUS WDA_start(v_PVOID_t pVosContext)
       if ( VOS_STATUS_E_TIMEOUT == status )
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Timeout occured during WDI_Start", __FUNCTION__ );
+                    "%s: Timeout occurred during WDI_Start", __FUNCTION__ );
       }
       else
       {
@@ -1525,7 +1525,7 @@ VOS_STATUS WDA_GetWcnssWlanCompiledVersion(v_PVOID_t pvosGCtx,
    if ((NULL == pvosGCtx) || (NULL == pVersion))
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Invoked with invalid paaramter", __FUNCTION__);
+                "%s: Invoked with invalid parameter", __FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
@@ -1559,7 +1559,7 @@ VOS_STATUS WDA_GetWcnssWlanReportedVersion(v_PVOID_t pvosGCtx,
    if ((NULL == pvosGCtx) || (NULL == pVersion))
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Invoked with invalid paaramter", __FUNCTION__);
+                "%s: Invoked with invalid parameter", __FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
@@ -1593,7 +1593,7 @@ VOS_STATUS WDA_GetWcnssSoftwareVersion(v_PVOID_t pvosGCtx,
    if ((NULL == pvosGCtx) || (NULL == pVersion))
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Invoked with invalid paaramter", __FUNCTION__);
+                "%s: Invoked with invalid parameter", __FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
@@ -1627,7 +1627,7 @@ VOS_STATUS WDA_GetWcnssHardwareVersion(v_PVOID_t pvosGCtx,
    if ((NULL == pvosGCtx) || (NULL == pVersion))
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "%s: Invoked with invalid paaramter", __FUNCTION__);
+                "%s: Invoked with invalid parameter", __FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
@@ -1700,21 +1700,21 @@ VOS_STATUS WDA_WniCfgDnld(tWDA_CbContext *pWDA)
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-         "Error: Cannot retrieve CFG fine image from vOSS. [size= %d bytes]",
+         "Error: Cannot retrieve CFG file image from vOSS. [size= %d bytes]",
                                                              cbFileImageSize );
       goto fail;
    }
    
    /* 
     * Validate the binary image.  This function will return a pointer 
-    * and lengthwhere the CFG binary is located within the binary image file.
+    * and length where the CFG binary is located within the binary image file.
     */
    bStatus = sys_validateStaConfig( pFileImage, cbFileImageSize,
                                    &pCfgBinary, &cbCfgBinarySize );
    if ( VOS_FALSE == bStatus )
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                 "Error: Cannot find STA CFG in binary image fileze" );
+                 "Error: Cannot find STA CFG in binary image file" );
       vosStatus = VOS_STATUS_E_FAILURE;
       goto fail;
    }
@@ -3399,7 +3399,7 @@ void WDA_DelSTASelfReqCallback(WDI_DelSTASelfRspParamsType *
    if (NULL == pWdaParams)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "InvalId pWdaParams pointer in WDA_DelSTASelfReqCallback");
+              "Invalid pWdaParams pointer in WDA_DelSTASelfReqCallback");
       VOS_ASSERT(0);
       return;
 
@@ -3461,7 +3461,7 @@ VOS_STATUS WDA_ProcessDelSTASelfReq(tWDA_CbContext *pWDA,
    pWdaParams->wdaWdiApiMsgParam = (void *)wdiDelStaSelfReq;
 
    vos_mem_copy( wdiDelStaSelfReq->wdiDelStaSelfInfo.selfMacAddr, 
-   	                 pDelStaSelfReqParam->selfMacAddr, sizeof(tSirMacAddr));
+                 pDelStaSelfReqParam->selfMacAddr, sizeof(tSirMacAddr));
    
    status = WDI_DelSTASelfReq(wdiDelStaSelfReq, 
                       (WDI_DelSTASelfRspCb)WDA_DelSTASelfReqCallback, pWdaParams);
@@ -4642,7 +4642,7 @@ WDA_processSetLinkStateStatus WDA_IsHandleSetLinkStateReq(
             pWDA->wdaState = WDA_PRE_ASSOC_STATE;
          }
          //populate linkState info in WDACbCtxt
-		 pWDA->linkState = linkStateParams->state;
+         pWDA->linkState = linkStateParams->state;
          status = WDA_IGNORE_SET_LINK_STATE;
          break;
 
@@ -8798,7 +8798,7 @@ VOS_STATUS WDA_ProcessSetTxPerTrackingReq(tWDA_CbContext *pWDA, tSirTxPerTrackin
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s: VOS MEM Alloc Failure", __FUNCTION__); 
-	  vos_mem_free(pTxPerTrackingParams);
+      vos_mem_free(pTxPerTrackingParams);
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
@@ -8807,8 +8807,8 @@ VOS_STATUS WDA_ProcessSetTxPerTrackingReq(tWDA_CbContext *pWDA, tSirTxPerTrackin
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s: VOS MEM Alloc Failure", __FUNCTION__); 
-	  vos_mem_free(pwdiSetTxPerTrackingReqParams);
-	  vos_mem_free(pTxPerTrackingParams);
+      vos_mem_free(pwdiSetTxPerTrackingReqParams);
+      vos_mem_free(pTxPerTrackingParams);
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
@@ -9588,7 +9588,7 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          break;
       }
 #endif // WLAN_FEATURE_PACKET_FILTERING
-	  
+  
       default:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -9657,7 +9657,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
       case WDI_UNKNOWN_ADDR2_FRAME_RX_IND:
       {
          /* TODO: Decode Ind and send Ind to PE */
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                      "Received WDI_UNKNOWN_ADDR2_FRAME_RX_IND from WDI ");
          break ;
       }
@@ -9675,7 +9675,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
                                   "%s: VOS MEM Alloc Failure", __FUNCTION__);
             break;
          }
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                   "Received WDI_MIC_FAILURE_IND from WDI ");
 
          pMicInd->messageType = eWNI_SME_MIC_FAILURE_IND;
@@ -9719,7 +9719,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
       case WDI_FATAL_ERROR_IND:
       {
          /* TODO: Decode Ind and send Ind to PE */
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                   "Received WDI_FATAL_ERROR_IND from WDI ");
          break ;
       }
@@ -9744,7 +9744,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          tpDeleteStaContext  pDelSTACtx = 
             (tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
          
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                   "Received WDI_DEL_STA_IND from WDI ");
          if(NULL == pDelSTACtx)
          {
@@ -9849,9 +9849,16 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          tSirP2PNoaAttr   *pP2pNoaAttr = 
             (tSirP2PNoaAttr *)vos_mem_malloc(sizeof(tSirP2PNoaAttr));
 
-         VOS_ASSERT(pP2pNoaAttr);
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                              "Received WDI_P2P_NOA_ATTR_IND from WDI ");
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                              "Received WDI_P2P_NOA_ATTR_IND from WDI");
+
+         if (NULL == pP2pNoaAttr)
+         {
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                       "Memory allocation failure, "
+                       "WDI_P2P_NOA_ATTR_IND not forwarded");
+            break;
+         }
 
          pP2pNoaAttr->index            = 
                     wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.ucIndex;
@@ -9890,6 +9897,17 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          vos_msg_t vosMsg;
          tSirPrefNetworkFoundInd *pPrefNetworkFoundInd = (tSirPrefNetworkFoundInd *)vos_mem_malloc(sizeof(tSirPrefNetworkFoundInd));
 
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                              "Received WDI_PREF_NETWORK_FOUND_IND from WDI");
+
+         if (NULL == pPrefNetworkFoundInd)
+         {
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                       "Memory allocation failure, "
+                       "WDI_PREF_NETWORK_FOUND_IND not forwarded");
+            break;
+         }
+
          /* Message Header */
          pPrefNetworkFoundInd->mesgType = eWNI_SME_PREF_NETWORK_FOUND_IND;
          pPrefNetworkFoundInd->mesgLen = sizeof(pPrefNetworkFoundInd);
@@ -9922,12 +9940,12 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
       }
 #endif // FEATURE_WLAN_SCAN_PNO
       
-	  case WDI_TX_PER_HIT_IND:
-	  {
-	     vos_msg_t vosMsg;
+      case WDI_TX_PER_HIT_IND:
+      {
+         vos_msg_t vosMsg;
          VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, "Get WDI_TX_PER_HIT_IND");
          /* send IND to PE eWNI_SME_TX_PER_HIT_IND*/
-		 /* VOS message wrapper */
+         /* VOS message wrapper */
          vosMsg.type = eWNI_SME_TX_PER_HIT_IND;
          vosMsg.bodyptr = NULL;
          vosMsg.bodyval = 0;
@@ -9938,8 +9956,8 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
             VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_WARN, "post eWNI_SME_TX_PER_HIT_IND to SME Failed");
          }
          break;
-	  }
-	  
+      }
+  
       default:
       {
          /* TODO error */
@@ -10056,7 +10074,7 @@ void WDA_BaCheckActivity(tWDA_CbContext *pWDA)
    if(WDA_MAX_STA < pWDA->wdaMaxSta)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                              "INconsistent STA entries in WDA");
+                              "Inconsistent STA entries in WDA");
       VOS_ASSERT(0) ;
    }  
    /* walk through all STA entries and find out TX packet count */ 
@@ -10924,15 +10942,11 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.coalesceTime = pRcvPktFilterCfg->coalesceTime;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "FID %d FT %d",pwdiSetRcvPktFilterReqParamsType->
-			  wdiPktFilterCfg.filterId, 
-              pwdiSetRcvPktFilterReqParamsType->
-			  wdiPktFilterCfg.filterType);
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "NParams %d CT %d",pwdiSetRcvPktFilterReqParamsType->
-			  wdiPktFilterCfg.numFieldParams, 
-              pwdiSetRcvPktFilterReqParamsType->
-			  wdiPktFilterCfg.coalesceTime);
+              "FID %d FT %d NParams %d CT %d",
+              pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterId, 
+              pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterType,
+              pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.numFieldParams, 
+              pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.coalesceTime);
 
    for ( i = 0; i < pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.numFieldParams; i++ )
    {
@@ -10941,48 +10955,48 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
                     sizeof(pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.paramsData[i]));
 
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
-	       "Proto %d Comp Flag %d \n",
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].protocolLayer, 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].cmpFlag);
+                 "Proto %d Comp Flag %d \n",
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].protocolLayer, 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].cmpFlag);
 
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
-	       "Data Offset %d Data Len %d\n",
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].dataOffset, 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].dataLength);
+                 "Data Offset %d Data Len %d\n",
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].dataOffset, 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].dataLength);
 
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
-	       "CData: %d:%d:%d:%d:%d:%d\n",
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].compareData[0], 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].compareData[1], 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].compareData[2], 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].compareData[3],
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].compareData[4], 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].compareData[5]);
+                 "CData: %d:%d:%d:%d:%d:%d\n",
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].compareData[0], 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].compareData[1], 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].compareData[2], 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].compareData[3],
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].compareData[4], 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].compareData[5]);
 
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, 
-	       "MData: %d:%d:%d:%d:%d:%d\n",
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].dataMask[0], 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].dataMask[1], 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].dataMask[2], 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].dataMask[3],
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].dataMask[4], 
-           pwdiSetRcvPktFilterReqParamsType->
-		   wdiPktFilterCfg.paramsData[i].dataMask[5]);
+                 "MData: %d:%d:%d:%d:%d:%d\n",
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].dataMask[0], 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].dataMask[1], 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].dataMask[2], 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].dataMask[3],
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].dataMask[4], 
+                 pwdiSetRcvPktFilterReqParamsType->
+                         wdiPktFilterCfg.paramsData[i].dataMask[5]);
 
    }
 
@@ -11130,7 +11144,7 @@ void WDA_ReceiveFilterClearFilterReqCallback(WDI_Status status, void * pUserData
 {
    tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
 
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
 /*   WDA_VOS_ASSERT(NULL != pWdaParams); */
@@ -11165,7 +11179,7 @@ VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA,
       (WDI_RcvFltPktClearReqParamsType *)vos_mem_malloc(sizeof(WDI_RcvFltPktClearReqParamsType));
    tWDA_ReqParams *pWdaParams ;
 
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    if(NULL == pwdiRcvFltPktClearReqParamsType) 

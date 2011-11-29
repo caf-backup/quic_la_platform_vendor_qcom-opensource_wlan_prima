@@ -592,7 +592,7 @@ static tCsrCountryInfo gCsrCountryInfo[eCSR_NUM_COUNTRY_INDEX] =
 
 //The channels listed here doesn't mean they are valid channels for certain domain. They are here only to present
 //whether they should be passive scanned.
-tCsrDomainChnInfo gCsrDoaminChnInfo[NUM_REG_DOMAINS] =
+tCsrDomainChnInfo gCsrDomainChnInfo[NUM_REG_DOMAINS] =
 {
     //REG_DOMAIN_FCC
     {
@@ -4997,11 +4997,11 @@ tSirScanType csrGetScanType(tANI_U8 chnId, eRegDomainId domainId, tANI_U8 *count
     tSirScanType scanType = eSIR_PASSIVE_SCAN;
     tANI_U8 cc = 0;
 
-    while (cc++ < gCsrDoaminChnInfo[domainId].numChannels)
+    while (cc++ < gCsrDomainChnInfo[domainId].numChannels)
     {
-        if(chnId == gCsrDoaminChnInfo[domainId].chnInfo[cc].chnId)
+        if(chnId == gCsrDomainChnInfo[domainId].chnInfo[cc].chnId)
         {
-            scanType = gCsrDoaminChnInfo[domainId].chnInfo[cc].scanType;
+            scanType = gCsrDomainChnInfo[domainId].chnInfo[cc].scanType;
             break;
         }
     }
@@ -5369,7 +5369,7 @@ eHalStatus csrSetCountryDomainMapping(tpAniSirGlobal pMac, tCsrCountryDomainMapp
 
                 if(pMac->scan.f11dInfoApplied)
                 {
-                    //11d info already applied. Let's reapply with the new doamin setting
+                    //11d info already applied. Let's reapply with the new domain setting
                     if(pMac->scan.channels11d.numChannels)
                     {
                         pChannelList = &pMac->scan.channels11d;
@@ -5401,7 +5401,7 @@ eHalStatus csrSetDomainScanSetting(tpAniSirGlobal pMac, tCsrDomainFreqInfo *pDom
 
     if(pDomainFreqInfo && pDomainFreqInfo->numEntry && (pDomainFreqInfo->domainId < NUM_REG_DOMAINS))
     {
-        tCsrDomainChnInfo *pDomainChnInfo = &gCsrDoaminChnInfo[pDomainFreqInfo->domainId];
+        tCsrDomainChnInfo *pDomainChnInfo = &gCsrDomainChnInfo[pDomainFreqInfo->domainId];
 
         for(j = 0; j < pDomainChnInfo->numChannels; j++)
         {

@@ -206,10 +206,10 @@ typedef enum eSirResultCodes
     eSIR_SME_NO_KEY_MAPPING_KEY_FOR_PEER,
     eSIR_SME_ASSOC_REFUSED,
     eSIR_SME_REASSOC_REFUSED,
-    eSIR_SME_DEAUTH_WHILE_JOIN, //Recieved Deauth while joining or pre-auhtentication.
-    eSIR_SME_DISASSOC_WHILE_JOIN, //Recieved Disassociation while joining.
-    eSIR_SME_DEAUTH_WHILE_REASSOC, //Recieved Deauth while ReAssociate.
-    eSIR_SME_DISASSOC_WHILE_REASSOC, //Recieved Disassociation while ReAssociate
+    eSIR_SME_DEAUTH_WHILE_JOIN, //Received Deauth while joining or pre-auhtentication.
+    eSIR_SME_DISASSOC_WHILE_JOIN, //Received Disassociation while joining.
+    eSIR_SME_DEAUTH_WHILE_REASSOC, //Received Deauth while ReAssociate.
+    eSIR_SME_DISASSOC_WHILE_REASSOC, //Received Disassociation while ReAssociate
     eSIR_SME_STA_NOT_AUTHENTICATED,
     eSIR_SME_STA_NOT_ASSOCIATED,
     eSIR_SME_STA_DISASSOCIATED,
@@ -1268,10 +1268,10 @@ typedef struct sSirSmeJoinReq
     tSirRSNie           rsnIE;                  // RSN IE to be sent in
                                                 // (Re) Association Request
 
-    tSirAddie           addIEScan;              // Addtional IE to be sent in
+    tSirAddie           addIEScan;              // Additional IE to be sent in
                                                 // (unicast) Probe Request at the time of join
 
-    tSirAddie           addIEAssoc;             // Addtional IE to be sent in 
+    tSirAddie           addIEAssoc;             // Additional IE to be sent in 
                                                 // (Re) Association Request
 
     tAniEdType          UCEncryptionType;
@@ -1447,10 +1447,10 @@ typedef struct sSirSmeReassocReq
     tSirRSNie           rsnIE;     // RSN IE to be sent in
                                    // (Re) Association Request
 
-    tSirAddie           addIEScan; // Addtional IE to be sent in
+    tSirAddie           addIEScan; // Additional IE to be sent in
                                    // (unicast) Probe Request at the time of join
 
-    tSirAddie           addIEAssoc; // Addtional IE to be sent in 
+    tSirAddie           addIEAssoc; // Additional IE to be sent in 
                                     // (Re) Association Request
                                    
     tAniEdType          UCEncryptionType;
@@ -1858,7 +1858,7 @@ typedef struct sAniStatSummaryStruct
     tAni64BitCounters txError;
     tAni64BitCounters rxError;
     tANI_S8     rssi[SIR_MAX_RX_CHAINS]; //For each chain.
-    tANI_U32    rxRate; // Rx rate of the last recieved packet.
+    tANI_U32    rxRate; // Rx rate of the last received packet.
     tANI_U32    txRate;
     tANI_U16    rxMCSId; //MCS index is valid only when packet type is ePACKET_TYPE_11N
     tANI_U16    txMCSId;

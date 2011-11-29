@@ -1232,7 +1232,7 @@ eHalStatus csrNeighborRoamPerformBgScan(tpAniSirGlobal pMac)
     status = csrNeighborRoamIssueBgScanRequest(pMac, &bgScanParams);
     if (eHAL_STATUS_SUCCESS != status)
     {
-        smsLog(pMac, LOGE, FL("Issual of BG Scan request failed: Status = %d"), status);
+        smsLog(pMac, LOGE, FL("Issue of BG Scan request failed: Status = %d"), status);
         return status;
     }
 

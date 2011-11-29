@@ -114,7 +114,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    pTLHandle    = (WLANTL_CbType *)expireHandle->pTLHandle;
    if(NULL == pTLHandle)
    {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"TL Controll block NULL"));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"TL Control block NULL"));
       return;
    }
 
@@ -202,7 +202,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
                 ullcurrentReplayCounter);
 
                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLANTL_ReorderingAgingTimerExpierCB: Drp the replay packet with PN : [0x%llX]\n",
+                "WLANTL_ReorderingAgingTimerExpierCB: Drop the replay packet with PN : [0x%llX]\n",
                 ullcurrentReplayCounter);
 
                ReorderInfo->reorderBuffer->arrayBuffer[ucloopCounter] = NULL;
@@ -711,7 +711,7 @@ WLANTL_BaSessionDel
     if( lockRetryCnt > 2)
     {
       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "Unable to destroy reoderLock\n"));
+            "Unable to destroy reorderLock\n"));
       break;
     }
     vos_sleep(1);
@@ -1093,7 +1093,7 @@ VOS_STATUS WLANTL_MSDUReorder
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
             {
-               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"IMake frame chain fail %d", status));
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make frame chain fail %d", status));
                lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
                if(!VOS_IS_STATUS_SUCCESS(lockStatus))
                {
@@ -1202,7 +1202,7 @@ VOS_STATUS WLANTL_MSDUReorder
                                         pTLCb);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make cahin with buffered frame fail %d",
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make chain with buffered frame fail %d",
                         status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
@@ -1261,7 +1261,7 @@ VOS_STATUS WLANTL_MSDUReorder
                                         pTLCb);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make cahin with buffered frame fail %d",
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make chain with buffered frame fail %d",
                         status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
@@ -1341,7 +1341,7 @@ VOS_STATUS WLANTL_MSDUReorder
                                         pTLCb);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make cahin with buffered frame fail %d",
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make chain with buffered frame fail %d",
                         status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))

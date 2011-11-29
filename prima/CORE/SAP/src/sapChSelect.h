@@ -9,7 +9,8 @@
   This software unit holds the implementation of the WLAN SAP modules
   functions for channel selection.
 
-  DEPENDENCIES: 
+  DEPENDENCIES:   
+  
 
   Are listed for each API below. 
   

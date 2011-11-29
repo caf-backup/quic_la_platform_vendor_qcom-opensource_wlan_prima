@@ -245,7 +245,7 @@ int iw_set_innav_measurements(
         }
     
         hddLog(LOG4, "INNAV:HDD: #bssids       %u\n", measurementReq->numBSSIDs);
-        hddLog(LOG4, "INNAV:HDD: #mesurements  %u\n", measurementReq->numInNavMeasurements);
+        hddLog(LOG4, "INNAV:HDD: #measurements %u\n", measurementReq->numInNavMeasurements);
         hddLog(LOG4, "INNAV:HDD: #repetitions  %u\n", measurementReq->numSetRepetitions);
         hddLog(LOG4, "INNAV:HDD: time-interval %u\n", measurementReq->measurementTimeInterval);
 

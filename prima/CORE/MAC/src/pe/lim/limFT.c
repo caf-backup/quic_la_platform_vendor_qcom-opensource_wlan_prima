@@ -792,7 +792,7 @@ void limPostFTPreAuthRsp(tpAniSirGlobal pMac, eHalStatus status,
     pFTPreAuthRsp = (tpSirFTPreAuthRsp)vos_mem_malloc(rspLen);
     if(NULL == pFTPreAuthRsp)
 	{
-       PELOGE(limLog( pMac, LOGE, "Failed to allocate mermory\n");)
+       PELOGE(limLog( pMac, LOGE, "Failed to allocate memory\n");)
        VOS_ASSERT(pFTPreAuthRsp != NULL);
 	   return;
 	}

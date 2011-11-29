@@ -1006,7 +1006,7 @@ eHalStatus sme_QosValidateParams(tpAniSirGlobal pMac,
   \brief sme_QosCsrEventInd() - The QoS sub-module in SME expects notifications 
   from CSR when certain events occur as mentioned in sme_QosCsrEventIndType.
   \param pMac - Pointer to the global MAC parameter structure.
-  \param ind - The event occured of type sme_QosCsrEventIndType.
+  \param ind - The event occurred of type sme_QosCsrEventIndType.
   \param pEvent_info - Information related to the event
   
   \return eHalStatus
@@ -1087,7 +1087,7 @@ eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
   AP mandates Admission Control (ACM = 1)
   (Bit0:VO; Bit1:VI; Bit2:BK; Bit3:BE all other bits are ignored)
   \param pMac - Pointer to the global MAC parameter structure.
-  \param pSirBssDesc - The event occured of type sme_QosCsrEventIndType.
+  \param pSirBssDesc - The event occurred of type sme_QosCsrEventIndType.
 
   \return a bit mask indicating for which ACs AP has ACM set to 1
   
@@ -3104,7 +3104,7 @@ eHalStatus sme_QosDelTsReq(tpAniSirGlobal pMac,
    if (NULL == pSession->assocInfo.pBssDesc)
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                "%s: %d: BSS descriptor is NULL so we don't send requst to PE",
+                "%s: %d: BSS descriptor is NULL so we don't send request to PE",
                 __FUNCTION__, __LINE__);
       return eHAL_STATUS_FAILURE;
    }

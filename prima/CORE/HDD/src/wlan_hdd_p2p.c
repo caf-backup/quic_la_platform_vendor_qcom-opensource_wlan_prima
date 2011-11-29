@@ -47,7 +47,7 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
        return eHAL_STATUS_SUCCESS;
     }
 
-    hddLog( LOGE, "Recieved remain on channel rsp");
+    hddLog( LOGE, "Received remain on channel rsp");
 
     cfgState->remain_on_chan_ctx = NULL;
 
@@ -301,7 +301,9 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
         {
            goto send_frame;
         }
-        
+
+        INIT_COMPLETION(pAdapter->offchannel_tx_event);
+
         status = wlan_hdd_request_remain_on_channel(wiphy, dev,
                                         chan, channel_type, wait, cookie,
                                         OFF_CHANNEL_ACTION_TX);
@@ -313,17 +315,16 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             {
                 goto send_frame;
             }
-            goto err;
+            goto err1;
         }
 
         /* Wait for driver to be ready on the requested channel */
-        INIT_COMPLETION(pAdapter->offchannel_tx_event);
         status = wait_for_completion_interruptible_timeout(
                      &pAdapter->offchannel_tx_event,
                      msecs_to_jiffies(WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
         if(!status)
         {
-            goto err;
+            goto err1;
         }
     }
     send_frame:
@@ -382,7 +383,8 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     return 0;
 err:
     hdd_sendActionCnf( pAdapter, FALSE );
-    return 0;
+err1:
+    return -EIO;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))

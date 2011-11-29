@@ -131,7 +131,7 @@ v_BOOL_t hdd_add_wowl_ptrn (const char * ptrn)
       {
         // Pattern Already configured, skip to next pattern
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-            "Trying to add duplicate WoWl pattern. Skip it!");
+            "Trying to add duplicate WoWL pattern. Skip it!");
         ptrn += len; 
         goto next_ptrn;
       }

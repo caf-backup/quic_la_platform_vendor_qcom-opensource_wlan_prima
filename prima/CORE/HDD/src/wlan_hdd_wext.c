@@ -15,7 +15,7 @@
     of the "Portable" HDD.   This file also includes the underlying Linux 
     Wireless Extensions Data types referred to by CCP. 
   
-	======================================================================== */
+  ======================================================================== */
 
 #include <linux/version.h>
 #include <linux/module.h>
@@ -161,7 +161,7 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WE_P2P_NOA_CMD       2
 #endif
 
-#define MAX_VAR_ARGS         7			
+#define MAX_VAR_ARGS         7
 
 /* Private ioctls (with no sub-ioctls) */
 /* note that they must be odd so that they have "get" semantics */
@@ -240,9 +240,9 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
         __tlen += __size + 2;\
     }\
     else \
-	{\
+    {                                                         \
         hddLog(VOS_TRACE_LEVEL_ERROR, "FILL_TLV Failed!!!\n");\
-	}\
+    }                                                         \
 }while(0);
 
 #define VERSION_VALUE_MAX_LEN 32
@@ -1246,7 +1246,7 @@ static int iw_set_genie(struct net_device *dev,
 
                     if( SIR_MAC_MAX_IE_LENGTH < (pWextState->genIE.length + eLen) )
                     {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate genIE. \
+                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate genIE. \
                                                       Need bigger buffer space\n");
                        VOS_ASSERT(0);
                        return -ENOMEM;
@@ -1271,7 +1271,7 @@ static int iw_set_genie(struct net_device *dev,
 
                     if( SIR_MAC_MAX_IE_LENGTH < (pWextState->genIE.length + eLen) )
                     {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate genIE. \
+                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate genIE. \
                                                       Need bigger buffer space\n");
                        VOS_ASSERT(0);
                        return -ENOMEM;
@@ -1660,7 +1660,7 @@ void iw_priv_callback_fn (void *callbackContext, eHalStatus status)
 {
   struct completion *completion_var = (struct completion*) callbackContext;
 
-  hddLog(LOGE, "Received callback from PMC with status = %d\n", status);
+  hddLog(LOG1, "Received callback from PMC with status = %d\n", status);
   if(completion_var != NULL)
     complete(completion_var);
 }
@@ -2004,7 +2004,7 @@ static int iw_set_priv(struct net_device *dev,
         }
         else
         {
-            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: START CMD Status %d", __func__, status);        	   
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: START CMD Status %d", __func__, status);
         }
         goto done;
     }
@@ -2196,48 +2196,48 @@ static int iw_set_priv(struct net_device *dev,
         
         hddLog( VOS_TRACE_LEVEL_INFO, "pno\n"); 
         status = iw_set_pno(dev, info, wrqu, extra, 3);
-		    return status;
+        return status;
     }
     else if( strncasecmp(cmd, "rssifilter",10) == 0 ) {
         
         hddLog( VOS_TRACE_LEVEL_INFO, "rssifilter\n"); 
         status = iw_set_rssi_filter(dev, info, wrqu, extra, 10);
-		    return status;
+        return status;
     }
 #endif /*FEATURE_WLAN_SCAN_PNO*/
     else if( 0 == strncasecmp(cmd, "CONFIG-TX-TRACKING", 18) ) {
-		tSirTxPerTrackingParam tTxPerTrackingParam;
-	    char *ptr = (char*)(cmd + 18);
+        tSirTxPerTrackingParam tTxPerTrackingParam;
+        char *ptr = (char*)(cmd + 18);
         sscanf(ptr,"%hhu %hhu %hhu %lu",&(tTxPerTrackingParam.ucTxPerTrackingEnable), &(tTxPerTrackingParam.ucTxPerTrackingPeriod),
-		                         &(tTxPerTrackingParam.ucTxPerTrackingRatio), &(tTxPerTrackingParam.uTxPerTrackingWatermark));
-		
-		// parameters checking
-		// period has to be larger than 0
-		if (0 == tTxPerTrackingParam.ucTxPerTrackingPeriod)
-		{
-		    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Period input is not correct");
-		    return VOS_STATUS_E_FAILURE;
-		}
-		
-		// use default value 5 is the input is not reasonable. in unit of 10%
-		if ((tTxPerTrackingParam.ucTxPerTrackingRatio > TX_PER_TRACKING_MAX_RATIO) || (0 == tTxPerTrackingParam.ucTxPerTrackingRatio))
-		{
-		    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Ratio input is not good. use default 5");
-		    tTxPerTrackingParam.ucTxPerTrackingRatio = TX_PER_TRACKING_DEFAULT_RATIO;
-	    }
-		
-		// default is 5
-		if (0 == tTxPerTrackingParam.uTxPerTrackingWatermark)
-		{
-		    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Tx Packet number input is not good. use default 5");
-		    tTxPerTrackingParam.uTxPerTrackingWatermark = TX_PER_TRACKING_DEFAULT_WATERMARK;
-	    }
-		
-		status = sme_SetTxPerTracking(pHddCtx->hHal, hdd_tx_per_hit_cb, (void*)pAdapter, &tTxPerTrackingParam);
+               &(tTxPerTrackingParam.ucTxPerTrackingRatio), &(tTxPerTrackingParam.uTxPerTrackingWatermark));
+
+        // parameters checking
+        // period has to be larger than 0
+        if (0 == tTxPerTrackingParam.ucTxPerTrackingPeriod)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Period input is not correct");
+            return VOS_STATUS_E_FAILURE;
+        }
+
+        // use default value 5 is the input is not reasonable. in unit of 10%
+        if ((tTxPerTrackingParam.ucTxPerTrackingRatio > TX_PER_TRACKING_MAX_RATIO) || (0 == tTxPerTrackingParam.ucTxPerTrackingRatio))
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Ratio input is not good. use default 5");
+            tTxPerTrackingParam.ucTxPerTrackingRatio = TX_PER_TRACKING_DEFAULT_RATIO;
+        }
+
+        // default is 5
+        if (0 == tTxPerTrackingParam.uTxPerTrackingWatermark)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Tx Packet number input is not good. use default 5");
+            tTxPerTrackingParam.uTxPerTrackingWatermark = TX_PER_TRACKING_DEFAULT_WATERMARK;
+        }
+
+        status = sme_SetTxPerTracking(pHddCtx->hHal, hdd_tx_per_hit_cb, (void*)pAdapter, &tTxPerTrackingParam);
         if(status != eHAL_STATUS_SUCCESS){
-		    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Set Tx PER Tracking Failed!");
-		}
-	}
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Set Tx PER Tracking Failed!");
+        }
+    }
     else {
         hddLog( VOS_TRACE_LEVEL_WARN, "Unsupported GUI command %s", cmd);
     }
@@ -2800,7 +2800,7 @@ static int iw_set_mlme(struct net_device *dev,
                     hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n",
                        __FUNCTION__, (int)mlme->cmd, (int)status );
 
-                /* Resetting authKeyMgmt */		
+                /* Resetting authKeyMgmt */
                 (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->authKeyMgmt = 0;
 
                 netif_tx_disable(dev);
@@ -2969,7 +2969,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 #endif
               case  14://reset wlan (power down/power up)
                  vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_RESET_UNKNOWN_EXCEPTION);
-                 break;					  
+                 break;
               default:
                  hddLog(LOGE, "Invalid arg  %d in WE_SET_POWER IOCTL\n", set_value);
                  ret = -EINVAL;
@@ -3063,7 +3063,7 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
 #endif
 #ifdef WLAN_FEATURE_P2P
        case WE_SET_AP_WPS_IE:
-          hddLog( LOGE, "Recieved WE_SET_AP_WPS_IE" );
+          hddLog( LOGE, "Received WE_SET_AP_WPS_IE" );
 #ifdef WLAN_FEATURE_P2P
           sme_updateP2pIe( WLAN_HDD_GET_HAL_CTX(pAdapter), wrqu->data.pointer, wrqu->data.length );
 #endif // WLAN_FEATURE_P2P
@@ -4008,8 +4008,8 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
 
 
     /* Debug display of request components. */
-	hddLog(VOS_TRACE_LEVEL_WARN, "%s: Set Keep Alive Request : TimePeriod %d size %d", 
-	  	      __FUNCTION__,pRequest->timePeriod, sizeof(tKeepAliveRequest));    
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Set Keep Alive Request : TimePeriod %d size %d", 
+           __FUNCTION__,pRequest->timePeriod, sizeof(tKeepAliveRequest));    
 
       switch (pRequest->packetType)
       {
@@ -4033,7 +4033,7 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
             hddLog(VOS_TRACE_LEVEL_WARN, "  Dest MAC address: %d:%d:%d:%d:%d:%d",
             pRequest->destMacAddr[0], pRequest->destMacAddr[1],
             pRequest->destMacAddr[2], pRequest->destMacAddr[3], 
-            pRequest->destMacAddr[4], pRequest->destMacAddr[5]);			
+            pRequest->destMacAddr[4], pRequest->destMacAddr[5]);
             break;
 
       }
@@ -4063,16 +4063,16 @@ static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request
     tpPacketFilterCfg pRequest = (tpPacketFilterCfg)wrqu->data.pointer;
     tSirRcvPktFilterCfgType    packetFilterSetReq;
     tSirRcvFltPktClearParam    packetFilterClrReq;
-	int i=0;
+    int i=0;
 
     /* Debug display of request components. */
-	hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Packet Filter Request : FA %d params %d", 
-	  	      __FUNCTION__, pRequest->filterAction, pRequest->numParams);    
+    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Packet Filter Request : FA %d params %d", 
+           __FUNCTION__, pRequest->filterAction, pRequest->numParams);    
 
       switch (pRequest->filterAction)
       {
         case HDD_RCV_FILTER_SET:
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Set Packet Filter Request for Id: %d",
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s: Set Packet Filter Request for Id: %d",
                 __FUNCTION__, pRequest->filterId);
 
             packetFilterSetReq.filterId = pRequest->filterId;
@@ -4093,27 +4093,27 @@ static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request
               packetFilterSetReq.paramsData[i].dataLength = pRequest->paramsData[i].dataLength;
               packetFilterSetReq.paramsData[i].reserved = 0;
 
-              hddLog(VOS_TRACE_LEVEL_ERROR, "Proto %d Comp Flag %d Filter Type\n",
+              hddLog(VOS_TRACE_LEVEL_INFO, "Proto %d Comp Flag %d Filter Type\n",
                      pRequest->paramsData[i].protocolLayer, pRequest->paramsData[i].cmpFlag, 
-					 packetFilterSetReq.filterType);
+                     packetFilterSetReq.filterType);
 
-              hddLog(VOS_TRACE_LEVEL_ERROR, "Data Offset %d Data Len %d\n",
-                     pRequest->paramsData[i].dataOffset, pRequest->paramsData[i].dataLength);			  
+              hddLog(VOS_TRACE_LEVEL_INFO, "Data Offset %d Data Len %d\n",
+                     pRequest->paramsData[i].dataOffset, pRequest->paramsData[i].dataLength);
               
               memcpy(&packetFilterSetReq.paramsData[i].compareData, 
                       pRequest->paramsData[i].compareData, pRequest->paramsData[i].dataLength);
               memcpy(&packetFilterSetReq.paramsData[i].dataMask, 
                       pRequest->paramsData[i].dataMask, pRequest->paramsData[i].dataLength);
 
-              hddLog(VOS_TRACE_LEVEL_ERROR, "CData %d CData %d CData %d CData %d CData %d CData %d\n",
+              hddLog(VOS_TRACE_LEVEL_INFO, "CData %d CData %d CData %d CData %d CData %d CData %d\n",
                      pRequest->paramsData[i].compareData[0], pRequest->paramsData[i].compareData[1], 
-					 pRequest->paramsData[i].compareData[2], pRequest->paramsData[i].compareData[3],
-					 pRequest->paramsData[i].compareData[4], pRequest->paramsData[i].compareData[5]);
+                     pRequest->paramsData[i].compareData[2], pRequest->paramsData[i].compareData[3],
+                     pRequest->paramsData[i].compareData[4], pRequest->paramsData[i].compareData[5]);
 
-              hddLog(VOS_TRACE_LEVEL_ERROR, "MData %d MData %d MData %d MData %d MData %d MData %d\n",
+              hddLog(VOS_TRACE_LEVEL_INFO, "MData %d MData %d MData %d MData %d MData %d MData %d\n",
                      pRequest->paramsData[i].dataMask[0], pRequest->paramsData[i].dataMask[1], 
-					 pRequest->paramsData[i].dataMask[2], pRequest->paramsData[i].dataMask[3],
-					 pRequest->paramsData[i].dataMask[4], pRequest->paramsData[i].dataMask[5]);
+                     pRequest->paramsData[i].dataMask[2], pRequest->paramsData[i].dataMask[3],
+                     pRequest->paramsData[i].dataMask[4], pRequest->paramsData[i].dataMask[5]);
             }
 
             if (eHAL_STATUS_SUCCESS != sme_ReceiveFilterSetFilter(WLAN_HDD_GET_HAL_CTX(pAdapter), &packetFilterSetReq))
@@ -4139,7 +4139,7 @@ static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request
             }
             break;
 
-	default :
+        default :
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Packet Filter Request: Invalid %d\n",
                __FUNCTION__, pRequest->filterAction);
             return -EINVAL;
@@ -4180,7 +4180,7 @@ static int iw_get_statistics(struct net_device *dev,
     status = sme_GetStatistics( pHddCtx->hHal, eCSR_HDD,
                        SME_SUMMARY_STATS      |
                        SME_GLOBAL_CLASSA_STATS |
-					   SME_GLOBAL_CLASSB_STATS |
+                       SME_GLOBAL_CLASSB_STATS |
                        SME_GLOBAL_CLASSC_STATS |
                        SME_GLOBAL_CLASSD_STATS |
                        SME_PER_STA_STATS,
@@ -4207,7 +4207,7 @@ static int iw_get_statistics(struct net_device *dev,
        status = sme_GetStatistics( pHddCtx->hHal, eCSR_HDD,
                        SME_SUMMARY_STATS      |
                        SME_GLOBAL_CLASSA_STATS |
-					   SME_GLOBAL_CLASSB_STATS |
+                       SME_GLOBAL_CLASSB_STATS |
                        SME_GLOBAL_CLASSC_STATS |
                        SME_GLOBAL_CLASSD_STATS |
                        SME_PER_STA_STATS,
@@ -4276,26 +4276,23 @@ static int iw_get_statistics(struct net_device *dev,
               (char*) &(pStats->tx_byte_cnt), 
               tlen);
 
-	/* Added for CIQ related stats */
-	FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BYTE_CNT, 
+    /* Added for CIQ related stats */
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BYTE_CNT, 
               (tANI_U8) sizeof (dStats->rx_byte_cnt), 
               (char*) &(dStats->rx_byte_cnt), 
               tlen);
-	
-	FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_RATE, 
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_RATE, 
               (tANI_U8) sizeof (dStats->rx_rate), 
               (char*) &(dStats->rx_rate), 
               tlen);
-			  
-	/* Transmit rate, in units of 500 kbit/sec */
-	FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_RATE, 
+
+    /* Transmit rate, in units of 500 kbit/sec */
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_RATE, 
               (tANI_U8) sizeof (aStats->tx_rate), 
               (char*) &(aStats->tx_rate), 
               tlen);
-			  
 
-			  
-			  
     wrqu->data.length = tlen;
  
   }
@@ -4340,7 +4337,7 @@ void found_pref_network_cb (void *callbackContext,
 
 /*string based input*/
 VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
-				 union iwreq_data *wrqu, char *extra, int nOffset)
+                      union iwreq_data *wrqu, char *extra, int nOffset)
 {
   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
   tSirPNOScanReq pnoRequest;
@@ -4615,10 +4612,10 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,   
    [WLAN_PRIV_GET_CHAR_SET_NONE      - SIOCIWFIRSTPRIV]  = iw_get_char_setnone,
    [WLAN_PRIV_SET_NONE_GET_NONE     - SIOCIWFIRSTPRIV]   = iw_setnone_getnone, //action priv ioctl   
-   [WLAN_PRIV_SET_VAR_INT_GET_NONE	- SIOCIWFIRSTPRIV]	 = iw_set_var_ints_getnone,
-   [WLAN_PRIV_ADD_TSPEC	            - SIOCIWFIRSTPRIV]   = iw_add_tspec,
-   [WLAN_PRIV_DEL_TSPEC	            - SIOCIWFIRSTPRIV]   = iw_del_tspec,
-   [WLAN_PRIV_GET_TSPEC	            - SIOCIWFIRSTPRIV]   = iw_get_tspec,
+   [WLAN_PRIV_SET_VAR_INT_GET_NONE  - SIOCIWFIRSTPRIV]   = iw_set_var_ints_getnone,
+   [WLAN_PRIV_ADD_TSPEC             - SIOCIWFIRSTPRIV]   = iw_add_tspec,
+   [WLAN_PRIV_DEL_TSPEC             - SIOCIWFIRSTPRIV]   = iw_del_tspec,
+   [WLAN_PRIV_GET_TSPEC             - SIOCIWFIRSTPRIV]   = iw_get_tspec,
 #ifdef FEATURE_INNAV_SUPPORT
    [WLAN_PRIV_SET_INNAV_MEASUREMENTS - SIOCIWFIRSTPRIV] = iw_set_innav_measurements, //InNav measurement Specifc
    [WLAN_PRIV_GET_INNAV_MEASUREMENTS - SIOCIWFIRSTPRIV] = iw_get_innav_measurements, //InNav measurement Specifc
@@ -4810,7 +4807,6 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "exitAP" },
 
-		
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_VAR_INT_GET_NONE,
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
@@ -4849,13 +4845,13 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "set_innav_meas" },
 
-	/* handlers for main ioctl - InNav */
-	{
-		WLAN_PRIV_GET_INNAV_MEASUREMENTS,
-		0,
-		IW_PRIV_TYPE_BYTE | MAX_INNAV_RESPONSE_LEN,
+    /* handlers for main ioctl - InNav */
+    {
+        WLAN_PRIV_GET_INNAV_MEASUREMENTS,
+        0,
+        IW_PRIV_TYPE_BYTE | MAX_INNAV_RESPONSE_LEN,
         "get_innav_meas" },
-#endif		
+#endif
 
 #ifdef FEATURE_WLAN_WAPI
    /* handlers for main ioctl SET_WAPI_MODE */
@@ -4903,26 +4899,26 @@ static const struct iw_priv_args we_private_args[] = {
         "setHostOffload" },
 
     {  
-	WLAN_GET_WLAN_STATISTICS,
+        WLAN_GET_WLAN_STATISTICS,
         0,
         IW_PRIV_TYPE_BYTE | WE_MAX_STR_LEN,
         "getWlanStats" },
-	
+
     {  
-	WLAN_SET_KEEPALIVE_PARAMS,
-       IW_PRIV_TYPE_BYTE  | sizeof(tKeepAliveRequest),
-       0,
-       "setKeepAlive" },
-#ifdef WLAN_FEATURE_PACKET_FILTERING	   
+        WLAN_SET_KEEPALIVE_PARAMS,
+        IW_PRIV_TYPE_BYTE  | sizeof(tKeepAliveRequest),
+        0,
+        "setKeepAlive" },
+#ifdef WLAN_FEATURE_PACKET_FILTERING   
     {  
-	WLAN_SET_PACKET_FILTER_PARAMS,
-       IW_PRIV_TYPE_BYTE  | sizeof(tPacketFilterCfg),
-       0,
-       "setPktFilter" },		
-#endif	 
+        WLAN_SET_PACKET_FILTER_PARAMS,
+        IW_PRIV_TYPE_BYTE  | sizeof(tPacketFilterCfg),
+        0,
+        "setPktFilter" },
+#endif 
 #ifdef FEATURE_WLAN_SCAN_PNO
     {  
-	  WLAN_SET_PNO,
+        WLAN_SET_PNO,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         0,
         "setpno" },

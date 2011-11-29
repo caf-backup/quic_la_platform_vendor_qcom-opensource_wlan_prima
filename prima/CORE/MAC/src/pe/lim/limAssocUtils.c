@@ -176,7 +176,7 @@ limCompareCapabilities(tpAniSirGlobal pMac,
           CSR - proper fix needs to be put in place*/
         if ( 0 != vos_get_skip_11e_check())
         {
-             limLog(pMac, LOG1, FL("Received unmatched QOS but cfg to supress - continuing\n"));
+             limLog(pMac, LOG1, FL("Received unmatched QOS but cfg to suppress - continuing\n"));
         }
         else
         {
@@ -1869,7 +1869,7 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
         val = 0;
         if(wlan_cfgGetInt(pMac, WNI_CFG_PROPRIETARY_RATES_ENABLED, &val) != eSIR_SUCCESS)
         {
-            limLog(pMac, LOGP, FL("could not retireve prop rate enabled flag from CFG\n"));
+            limLog(pMac, LOGP, FL("could not retrieve prop rate enabled flag from CFG\n"));
         }
         else if(val)
         {

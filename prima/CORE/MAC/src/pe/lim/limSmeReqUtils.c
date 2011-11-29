@@ -782,7 +782,7 @@ limIsSmeJoinReqValid(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq)
     if (!limIsAddieValidInSmeReqMessage(pMac, &pJoinReq->addIEScan))
     {
         limLog(pMac, LOGE,
-               FL("received SME_JOIN_REQ with invalid addtional IE for scan\n"));
+               FL("received SME_JOIN_REQ with invalid additional IE for scan\n"));
         valid = false;
         goto end;
     }
@@ -790,7 +790,7 @@ limIsSmeJoinReqValid(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq)
     if (!limIsAddieValidInSmeReqMessage(pMac, &pJoinReq->addIEAssoc))
     {
         limLog(pMac, LOGE,
-               FL("received SME_JOIN_REQ with invalid addtional IE for assoc\n"));
+               FL("received SME_JOIN_REQ with invalid additional IE for assoc\n"));
         valid = false;
         goto end;
     }

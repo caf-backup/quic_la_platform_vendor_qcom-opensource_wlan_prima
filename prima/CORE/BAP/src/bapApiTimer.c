@@ -661,7 +661,7 @@ WLANBAP_LinkSupervisionTimerHandler
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                     "%s: Resend the LS packet", __FUNCTION__ );
 	
-        /* If we have transmit pkt pending and the time out occured,resend the ls packet */
+        /* If we have transmit pkt pending and the time out occurred,resend the ls packet */
         WLANBAP_StopLinkSupervisionTimer(pBtampCtx);
 	    pBtampCtx->pPacket = pBtampCtx->lsReqPacket;
         vosStatus = WLANBAP_TxLinkSupervision( btampHandle, 

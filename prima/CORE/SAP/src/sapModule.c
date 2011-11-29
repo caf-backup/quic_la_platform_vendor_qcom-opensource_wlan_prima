@@ -285,7 +285,7 @@ WLANSAP_Stop
         Extract SAP control block 
     ------------------------------------------------------------------------*/
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                "WLANSAP_Stop invokedsuccessfully ");
+                "WLANSAP_Stop invoked successfully ");
 
     pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
     if (NULL == pSapCtx)

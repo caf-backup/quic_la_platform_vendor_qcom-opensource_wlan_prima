@@ -116,7 +116,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             return(&pMac->lim.gpSession[i]);
         }
     }
-    limLog(pMac, LOGE, FL("Session can not be created.. Reached Max premitted sessions \n "));
+    limLog(pMac, LOGE, FL("Session can not be created.. Reached Max permitted sessions \n "));
     return NULL;
 }
 

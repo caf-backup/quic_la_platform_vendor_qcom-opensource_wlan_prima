@@ -1231,7 +1231,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
     {
         pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
 
-        smsLog(pMac, LOGE, FL("process message = %d\n"), pMsg->messageType);
+        smsLog(pMac, LOG1, FL("process message = %d\n"), pMsg->messageType);
 
     /* Process each different type of message. */
     switch (pMsg->messageType)
@@ -1599,7 +1599,11 @@ tANI_BOOLEAN pmcValidateConnectState( tHalHandle hHal )
       smsLog(pMac, LOGW, "PMC: BT-AMP exists. BMPS cannot be entered\n");
       return eANI_BOOLEAN_FALSE;
    }
-
+   if ( !csrRoamGetConcurrencyConnectStatusForBmps(pMac))   
+   {
+      smsLog(pMac, LOGW, "PMC: Multiple active sessions exists. BMPS cannot be entered\n");
+      return eANI_BOOLEAN_FALSE;
+   }
    return eANI_BOOLEAN_TRUE;
 }
 
@@ -2291,7 +2295,7 @@ eHalStatus pmcEnterWowl (
    /* Check that we are associated with single Session. */
    if (!pmcValidateConnectState( pMac ))
    {
-      smsLog(pMac, LOGE, "PMC: Cannot enable WOWL. STA not associated"
+      smsLog(pMac, LOGE, "PMC: Cannot enable WOWL. STA not associated "
              "with an Access Point in Infra Mode with single active session\n");
       return eHAL_STATUS_FAILURE;
    }
@@ -2430,7 +2434,7 @@ eHalStatus pmcSetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest)
     }
     vos_mem_copy(pRequestBuf, pRequest, sizeof(tSirKeepAliveReq));
     
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_LOW, "buff TP %d"
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_LOW, "buff TP %d "
               "input TP %d ", pRequestBuf->timePeriod, pRequest->timePeriod);
 
     msg.type = WDA_SET_KEEP_ALIVE;

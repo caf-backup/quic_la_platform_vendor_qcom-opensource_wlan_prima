@@ -137,7 +137,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8                 *assocReq;              //Used to store association request frame sent out while associating.
 
     tANI_U32                assocRspLen;
-    tANI_U8                 *assocRsp;              //Used to store association response recieved while associating
+    tANI_U8                 *assocRsp;              //Used to store association response received while associating
     tAniSirDph              dph;
     void *                  *parsedAssocReq;        // Used to store parsed assoc req from various requesting station
     

@@ -536,7 +536,7 @@ VOS_STATUS vos_list_peek_next( vos_list_t *pList, vos_list_node_t *pNode,
 
    if ( list_empty(&pList->anchor) )
    {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                  "%s: list empty", __FUNCTION__);
        mutex_unlock(&pList->lock);
        return VOS_STATUS_E_EMPTY;
@@ -557,7 +557,7 @@ VOS_STATUS vos_list_peek_next( vos_list_t *pList, vos_list_node_t *pNode,
    listptr = pNode->next;
    if (listptr == &pList->anchor)
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                 "%s: list empty", __FUNCTION__);
       mutex_unlock(&pList->lock);
       return VOS_STATUS_E_EMPTY;

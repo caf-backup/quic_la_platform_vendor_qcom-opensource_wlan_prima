@@ -339,7 +339,7 @@ static wpt_status dxeCtrlBlkAlloc
    if((NULL == dxeCtrlBlk) || (NULL == channelEntry))
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeCtrlBlkAlloc Chaneel Entry is not valid");
+               "dxeCtrlBlkAlloc Channel Entry is not valid");
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -457,7 +457,7 @@ static wpt_status dxeDescAllocAndLink
    if((NULL == dxeCtrlBlk) || (NULL == channelEntry))
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeDescLinkAlloc Chaneel Entry is not valid");
+               "dxeDescLinkAlloc Channel Entry is not valid");
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -773,7 +773,7 @@ static wpt_status dxeChannelInitProgram
    if((NULL == dxeCtrlBlk) || (NULL == channelEntry))
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeChannelInitProgram Chaneel Entry is not valid");
+               "dxeChannelInitProgram Channel Entry is not valid");
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -1419,7 +1419,7 @@ static wpt_status dxeRXFrameReady
    if((NULL == dxeCtxt) || (NULL == channelEntry))
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeRXFrameReady Chaneel Entry is not valid");
+               "dxeRXFrameReady Channel Entry is not valid");
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -1670,7 +1670,7 @@ void dxeRXEventHandler
    if(NULL == rxReadyMsg)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeRXEventHandler Chaneel Entry is not valid");
+               "dxeRXEventHandler Channel Entry is not valid");
       return;
    }
 
@@ -1812,7 +1812,7 @@ void dxeRXEventHandler
    if(eWLAN_PAL_STATUS_SUCCESS != status)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeRXEventHandler Enable RX Ready interrrupt fail");
+               "dxeRXEventHandler Enable RX Ready interrupt fail");
       return;         
    }
 
@@ -1900,7 +1900,7 @@ static void dxeRXISR
    if(eWLAN_PAL_STATUS_SUCCESS != status)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeRXFrameReadyISR Disable RX ready interrrupt fail");
+               "dxeRXFrameReadyISR Disable RX ready interrupt fail");
       return;         
    }
 
@@ -2604,7 +2604,7 @@ void dxeTXEventHandler
       if(WLANDXE_CH_STAT_INT_ERR_MASK & chStat)
       {
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                  "WLANDXE_CH_STAT_INT_ERR_MASK occured");
+                  "WLANDXE_CH_STAT_INT_ERR_MASK occurred");
          HDXE_ASSERT(0);
       }
       else if(WLANDXE_CH_STAT_INT_DONE_MASK & chStat)
@@ -3201,12 +3201,10 @@ wpt_status WLANDXE_Start
    if(eWLAN_PAL_STATUS_SUCCESS != status)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeTXCompleteEventHandler Enable TX complete interrrupt fail");
+               "dxeTXCompleteEventHandler Enable TX complete interrupt fail");
       return status;         
    }
 
-   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-            "WLANDXE_Start Successfully done");
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return status;

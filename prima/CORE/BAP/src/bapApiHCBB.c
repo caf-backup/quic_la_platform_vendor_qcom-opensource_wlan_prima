@@ -754,7 +754,7 @@ WLAN_BAPWriteLogicalLinkAcceptTimeout
          WLANBAP_CON_ACCEPT_TIMEOUT_MIN_RANGE))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "Out of range for logocal connection accept timeout parameters in %s",
+                   "Out of range for logical connection accept timeout parameters in %s",
                    __FUNCTION__);
         pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Write_Logical_Link_Accept_TO.status
             = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
