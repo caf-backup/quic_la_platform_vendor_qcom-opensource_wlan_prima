@@ -296,7 +296,8 @@ typedef struct
     * each bit in ucUseBaBitmap represent BA is enabled or not for this tid 
     * tid0 ..bit0, tid1..bit1 and so on..
     */
-   tANI_U8 ucUseBaBitmap ;
+   tANI_U8    ucUseBaBitmap ;
+   tANI_U32   framesTxed[STACFG_MAX_TC];
 }tWdaStaInfo, *tpWdaStaInfo ;
 
 /* group all the WDA timers into this structure */
@@ -340,7 +341,6 @@ typedef struct
    WDA_DS_TxCompleteCallback pfnTxCompleteCallback; 
    
    tWdaStaInfo          wdaStaInfo[WDA_MAX_STA];
-   tANI_U32             framesTxed[STACFG_MAX_TC];
 
    tANI_U8              wdaMaxSta;
    tWdaTimers           wdaTimers;

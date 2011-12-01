@@ -669,7 +669,7 @@ AMP ASSOC Pal Capabilities: Size: 4 Octets
             pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.AMP_assoc_fragment, 
             248, 
             &nConsumed);
-	
+
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: nConsumed value: %d", __FUNCTION__,  nConsumed); 
 
     /* Format the command complete event to return... */ 

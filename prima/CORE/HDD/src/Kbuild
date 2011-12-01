@@ -11,6 +11,17 @@ KERNEL_INC ?= ./include/linux
 
 WLAN_DIR 		:= $(WLAN_PRIMA)/CORE
 
+ifeq ($(CONFIG_CFG80211),y)
+HAVE_CFG80211 := 1
+else
+ifeq ($(CONFIG_CFG80211),m)
+HAVE_CFG80211 := 1
+EXTRA_CFLAGS += -DCONFIG_CFG80211=1
+else
+HAVE_CFG80211 := 0
+endif
+endif
+
 ############## HDD ###################
 HDD_INC := $(WLAN_DIR)/HDD/inc/
 HDD_OBJS := wlan_hdd_main.o  \
@@ -31,7 +42,7 @@ HDD_OBJS := wlan_hdd_main.o  \
             wlan_hdd_dev_pwr.o \
             bap_hdd_main.o
 
-ifeq ($(CONFIG_CFG80211), y)
+ifeq ($(HAVE_CFG80211),1)
 HDD_OBJS += wlan_hdd_cfg80211.o \
             wlan_hdd_p2p.o
 endif
@@ -426,7 +437,7 @@ CDEFINES += -DWLAN_DEBUG \
 		-DDEBUG 
 endif
 
-ifeq ($(CONFIG_CFG80211), y)
+ifeq ($(HAVE_CFG80211),1)
 CDEFINES += -DWLAN_FEATURE_P2P
 CDEFINES += -DWLAN_FEATURE_WFD
 endif

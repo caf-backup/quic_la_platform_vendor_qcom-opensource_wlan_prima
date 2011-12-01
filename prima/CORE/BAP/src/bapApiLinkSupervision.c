@@ -84,7 +84,7 @@ VOS_STATUS
 WLANBAP_AcquireLSPacket( ptBtampContext pBtampCtx, vos_pkt_t **ppPacket, v_U16_t size, tANI_BOOLEAN isLsReq )
 {
     VOS_STATUS vosStatus;
-    vos_pkt_t *pPacket;	
+    vos_pkt_t *pPacket;
     WLANBAP_8023HeaderType   w8023Header;
     v_U8_t                   aucLLCHeader[WLANBAP_LLC_HEADER_LEN];
     v_U16_t                  headerLength;  /* The 802.3 frame length*/
@@ -99,9 +99,9 @@ WLANBAP_AcquireLSPacket( ptBtampContext pBtampCtx, vos_pkt_t **ppPacket, v_U16_t
     else
     {
         protoType = WLANTL_BT_AMP_TYPE_LS_REP;
-    }	    
-	    
-	 //If success, vosTxLsPacket is the packet and pData points to the head.
+    }    
+
+    //If success, vosTxLsPacket is the packet and pData points to the head.
    vosStatus = vos_pkt_get_packet( &pPacket, VOS_PKT_TYPE_TX_802_11_MGMT,size, 1, 
                                     VOS_TRUE, NULL, NULL );
    if( VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -113,7 +113,6 @@ WLANBAP_AcquireLSPacket( ptBtampContext pBtampCtx, vos_pkt_t **ppPacket, v_U16_t
                  "%s: failed to reserve size = %d\n",__FUNCTION__, size );
                  vos_pkt_return_packet( pPacket );
        }
-	   
    }
 
    if( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -129,9 +128,9 @@ WLANBAP_AcquireLSPacket( ptBtampContext pBtampCtx, vos_pkt_t **ppPacket, v_U16_t
 
    headerLength = WLANBAP_LLC_HEADER_LEN;
         /* Now the 802.3 length field is big-endian?! */
-   w8023Header.usLenType = vos_cpu_to_be16(headerLength);	 
+   w8023Header.usLenType = vos_cpu_to_be16(headerLength); 
         
-	/* Now adjust the protocol type bytes*/
+   /* Now adjust the protocol type bytes*/
    protoType = vos_cpu_to_be16( protoType);
          /* Now form the LLC header */
    vos_mem_copy(aucLLCHeader, 
@@ -225,8 +224,8 @@ WLANBAP_InitLinkSupervision
          VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                        "%s:AcquireLSPacket failed\n",__FUNCTION__);
          pBtampCtx->lsReqPacket = NULL;
-	 return vosStatus;   
-    } 	    
+         return vosStatus;   
+    }
 
     vosStatus = WLANBAP_AcquireLSPacket( pBtampCtx, &pLSRepPacket,32,FALSE );
     if( VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -238,8 +237,8 @@ WLANBAP_InitLinkSupervision
          VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                        "%s:AcquireLSPacket failed\n",__FUNCTION__);
          pBtampCtx->lsRepPacket = NULL;
-	 return vosStatus;   
-    } 	         
+         return vosStatus;   
+    }        
 
     vosStatus = vos_pkt_get_packet_length(pBtampCtx->lsRepPacket,&lsPktln); 
 
@@ -405,7 +404,7 @@ WLANBAP_RxProcLsPkt
     if (RxProtoType ==  WLANTL_BT_AMP_TYPE_LS_REP)
     { 
         pBtampCtx->lsReqPktPending = FALSE;
-	    pBtampCtx->retries = 0;
+        pBtampCtx->retries = 0;
         if (pBtampCtx->bapLinkSupervisionTimerInterval)
         {
             /* Restart the LS timer */
@@ -413,7 +412,7 @@ WLANBAP_RxProcLsPkt
             vosStatus = WLANBAP_StartLinkSupervisionTimer (pBtampCtx,
                    pBtampCtx->bapLinkSupervisionTimerInterval * WLANBAP_BREDR_BASEBAND_SLOT_TIME);
         }
-    }	
+    }
     else if(RxProtoType == WLANTL_BT_AMP_TYPE_LS_REQ)
     {
         if (pBtampCtx->bapLinkSupervisionTimerInterval)
@@ -424,7 +423,7 @@ WLANBAP_RxProcLsPkt
                    pBtampCtx->bapLinkSupervisionTimerInterval * WLANBAP_BREDR_BASEBAND_SLOT_TIME);
         }
         pBtampCtx->pPacket = pBtampCtx->lsRepPacket;
-	    // Handle LS rep frame
+        // Handle LS rep frame
         vosStatus = WLANBAP_TxLinkSupervision( btampHandle, phy_link_handle, pBtampCtx->pPacket, WLANTL_BT_AMP_TYPE_LS_REP);
     }
    
@@ -479,7 +478,7 @@ static VOS_STATUS WLANBAP_TxLinkSupervisionCB
                        "%s:AcquireLSPacket failed\n",__FUNCTION__);
          bapContext->lsReqPacket = NULL;
          return vosStatus;   
-    } 	    
+    }
     }
     else
     {
@@ -494,7 +493,7 @@ static VOS_STATUS WLANBAP_TxLinkSupervisionCB
                            "%s:AcquireLSPacket failed\n",__FUNCTION__);
              bapContext->lsRepPacket = NULL;
              return vosStatus;   
-        } 	    
+        }
     }
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                "%s:Returned Vos Packet:%x\n",__FUNCTION__, pPacket );
@@ -539,7 +538,7 @@ WLANBAP_TxLinkSupervision
   v_U16_t           protoType
 )
 {
-    ptBtampContext             pBtampCtx = (ptBtampContext)btampHandle;	
+    ptBtampContext             pBtampCtx = (ptBtampContext)btampHandle;
     VOS_STATUS                 vosStatus = VOS_STATUS_E_FAILURE;
     v_PVOID_t                  pvosGCtx;
     v_U8_t                     ucSTAId;  /* The StaId (used by TL, PE, and HAL) */
@@ -588,7 +587,7 @@ WLANBAP_TxLinkSupervision
     if(protoType ==  WLANTL_BT_AMP_TYPE_LS_REQ)
     {
         pBtampCtx->lsReqPktPending = TRUE;
-	    pBtampCtx->retries++;
+        pBtampCtx->retries++;
     }
    
     if (pBtampCtx->bapLinkSupervisionTimerInterval)

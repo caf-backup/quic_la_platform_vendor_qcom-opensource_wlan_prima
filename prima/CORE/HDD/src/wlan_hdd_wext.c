@@ -4158,7 +4158,7 @@ static int iw_get_statistics(struct net_device *dev,
   hdd_wext_state_t *pWextState;
   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-  char *p = (char*)wrqu->data.pointer;
+  char *p = extra;
   int tlen = 0;
   tCsrSummaryStatsInfo *pStats = &(pAdapter->hdd_stats.summary_stat);
   

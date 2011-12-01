@@ -257,7 +257,7 @@ int hdd_open (struct net_device *dev)
 
    /* Enable TX queues only when we are connected */
    if(hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                  "%s: Enabling Tx Queues" , __FUNCTION__);
       netif_tx_start_all_queues(dev);
    }
@@ -296,7 +296,7 @@ int hdd_stop (struct net_device *dev)
 
    //Stop the Interface TX queue. netif_stop_queue should not be used when
    //transmission is being disabled anywhere other than hard_start_xmit
-   hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Disabling OS Tx queues",__func__);
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Disabling OS Tx queues", __func__);
    netif_tx_disable(dev);
 
    return 0;

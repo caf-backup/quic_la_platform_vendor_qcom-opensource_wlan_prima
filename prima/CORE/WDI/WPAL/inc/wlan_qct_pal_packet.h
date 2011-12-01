@@ -39,7 +39,7 @@ typedef struct swpt_packet
    PAL packet shall set the pointer point to the start of the flat buffer
    where the BD starts.
    */
-   void *pBD;	
+   void *pBD;
    //Physical address for pBD for DMA-able devices
    void *pBDPhys; 
    //OS dependent strucutre used only by OS specific code.

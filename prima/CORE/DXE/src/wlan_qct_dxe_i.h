@@ -481,7 +481,7 @@ typedef struct
    wpt_uint32                      bmuThdSel;
 
    /*  Added in Gen5 for Prefetch */
-   wpt_boolean	                   useLower4G;
+   wpt_boolean                     useLower4G;
 
    wpt_boolean                     useShortDescFmt;
    /* Till here inharited from GEN5 code */

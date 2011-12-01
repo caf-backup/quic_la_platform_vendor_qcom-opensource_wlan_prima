@@ -5616,9 +5616,6 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
       return eHAL_STATUS_SUCCESS;
    }
 
-   pMac->roam.configParam.Is11dSupportEnabled      = 1;
-   pMac->roam.configParam.fEnforce11dChannels      = 1;
-   pMac->roam.configParam.fEnforceCountryCodeMatch = 1;
    /* Country code already updated */
 
    /* Set Current Country code and Current Regulatory domain */
@@ -5629,7 +5626,7 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
       return status;  
    }
    pMac->scan.domainIdDefault = pMac->scan.domainIdCurrent;
-   pMac->roam.configParam.fEnforceDefaultDomain    = 1;
+
    /* Reset Country info based on new CC */
    csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);
 

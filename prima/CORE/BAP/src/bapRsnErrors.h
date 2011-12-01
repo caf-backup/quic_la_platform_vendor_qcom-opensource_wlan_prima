@@ -28,7 +28,7 @@
  * Indicates that the function returned successfully and no error was
  * reported.
  */
-#define ANI_OK	    0
+#define ANI_OK      0
 #define ANI_ERROR   ANI_E_FAILED
 
 /**
@@ -95,12 +95,12 @@
                                                       // missing
 #define ANI_E_CLI_WEP_KEY_LEN_ERROR             -1051 // key length error
 #define ANI_E_CLI_WEP_KEY_HEX_ERROR             -1052 // no hex character
-#define	ANI_E_CLI_WPA_MODES_CFG_ERROR           -1053 // WPA config error
-#define	ANI_E_CLI_WEP_AND_OPEN_CFG_ERROR        -1054 // WEP and open error
-#define	ANI_E_CLI_OPEN_AND_WEP_CFG_ERROR        -1055 // open and WEP error
-#define	ANI_E_CLI_LEGACY_WEP_AND_OPEN_CFG_ERROR -1056 // WEP and open error
-#define	ANI_E_CLI_OPEN_AND_LEGACY_WEP_CFG_ERROR -1057 // open and WEP error
-#define	ANI_E_CLI_WPA_MODES_NOT_AVAILABLE       -1058 // WPA modes not active
+#define ANI_E_CLI_WPA_MODES_CFG_ERROR           -1053 // WPA config error
+#define ANI_E_CLI_WEP_AND_OPEN_CFG_ERROR        -1054 // WEP and open error
+#define ANI_E_CLI_OPEN_AND_WEP_CFG_ERROR        -1055 // open and WEP error
+#define ANI_E_CLI_LEGACY_WEP_AND_OPEN_CFG_ERROR -1056 // WEP and open error
+#define ANI_E_CLI_OPEN_AND_LEGACY_WEP_CFG_ERROR -1057 // open and WEP error
+#define ANI_E_CLI_WPA_MODES_NOT_AVAILABLE       -1058 // WPA modes not active
 #define ANI_E_CLI_INVALID_LISENCE_KEY           -1059 // invalid license
 #define ANI_E_CLI_EXISTING_LISENCE_KEY          -1060 // duplicated license
 #define ANI_E_CLI_WEP_INVALID_LENGTH_CHANGE     -1061 // invalid length change

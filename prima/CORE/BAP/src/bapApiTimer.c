@@ -627,10 +627,10 @@ WLANBAP_LinkSupervisionTimerHandler
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                     "%s: Data seen. Do nothing", __FUNCTION__ );
-	
+
         pBtampCtx->dataPktPending = VOS_FALSE;
         pBtampCtx->lsReqPktPending = VOS_FALSE;
-	      pBtampCtx->retries = 0;
+        pBtampCtx->retries = 0;
         vosStatus = WLANBAP_StopLinkSupervisionTimer(pBtampCtx);
         vosStatus = WLANBAP_StartLinkSupervisionTimer (pBtampCtx,
                     pBtampCtx->bapLinkSupervisionTimerInterval * WLANBAP_BREDR_BASEBAND_SLOT_TIME);
@@ -643,7 +643,7 @@ WLANBAP_LinkSupervisionTimerHandler
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                     "#########WLAN BAP: LinkSupervision Timed OUT######## %s", __FUNCTION__ );
-	
+
      /*---------------------------------------------------------------------
     Feed this timeout to the BTAMP FSM 
    ---------------------------------------------------------------------*/
@@ -660,10 +660,10 @@ WLANBAP_LinkSupervisionTimerHandler
     {    
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                     "%s: Resend the LS packet", __FUNCTION__ );
-	
+
         /* If we have transmit pkt pending and the time out occurred,resend the ls packet */
         WLANBAP_StopLinkSupervisionTimer(pBtampCtx);
-	    pBtampCtx->pPacket = pBtampCtx->lsReqPacket;
+        pBtampCtx->pPacket = pBtampCtx->lsReqPacket;
         vosStatus = WLANBAP_TxLinkSupervision( btampHandle, 
                                                phy_link_handle, 
                                                pBtampCtx->pPacket ,

@@ -99,7 +99,7 @@ when        who    what, where, why
 #ifdef FEATURE_WLAN_BTAMP_UT
 #define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x7D00
 #else
-#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x0960  // 1.5 seconds
+#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x2710  // 10 seconds
 #endif
 #define WLANBAP_LINK_SUPERVISION_RETRIES   2
 
@@ -126,7 +126,6 @@ when        who    what, where, why
 
 /*Size of the OUI type field inside the LLC/SNAP header*/
 #define WLANBAP_LLC_OUI_SIZE                   3
-	 
 
 /*Offset of the OUI field inside the LLC/SNAP header*/
 #define WLANBAP_LLC_OUI_OFFSET                 3

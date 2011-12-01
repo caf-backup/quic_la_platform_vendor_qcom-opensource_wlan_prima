@@ -57,7 +57,7 @@ int checkPeerReplayCounter(tSuppRsnFsm *fsm,
                            v_BOOL_t *retransmit,
                            v_BOOL_t actualMicFlag,
                            v_BOOL_t reTxMicFlag
-			   );
+                           );
 
 static
 int derivePtk(tSuppRsnFsm *fsm, 
@@ -180,7 +180,7 @@ suppRsnFsmCreate(tBtampContext *ctx)
     fsm->currentState = INITIALIZE;
     gotoStateInit(fsm);
 
-	suppRsnFsmProcessEvent( fsm, RSN_FSM_AUTH_START, NULL );
+    suppRsnFsmProcessEvent( fsm, RSN_FSM_AUTH_START, NULL );
 
     return ANI_OK;
 
@@ -493,7 +493,7 @@ gotoStateStaKeySet(tSuppRsnFsm *fsm,
     gReadToSetKey = BAP_SET_RSN_KEY;
     if( !VOS_IS_STATUS_SUCCESS( bapRsnSendEapolFrame( fsm->ctx->pvosGCtx, fsm->lastEapol ) ) )
     {
-		/* making it global to access in bapTxRx file */
+        /* making it global to access in bapTxRx file */
 #if 0
         tCsrRoamSetKey setKeyInfo;
 
@@ -507,10 +507,9 @@ gotoStateStaKeySet(tSuppRsnFsm *fsm,
         setKeyInfo.keyLength = CSR_AES_KEY_LEN; 
         vos_mem_copy( setKeyInfo.Key, (v_U8_t *)fsm->suppCtx->ptk + (2 * CSR_AES_KEY_LEN ), CSR_AES_KEY_LEN );
         //fsm->suppCtx->ptk contains the 3 16-bytes keys. We need the last one.
-		/*
-		We will move the Set key to EAPOL Completion handler. We found a race condition betweem
-		sending EAPOL frame and setting Key */
-		
+        /*
+          We will move the Set key to EAPOL Completion handler. We found a race condition betweem
+          sending EAPOL frame and setting Key */
 
 
         if( !VOS_IS_STATUS_SUCCESS( bapSetKey( fsm->ctx->pvosGCtx, &setKeyInfo ) ) )
@@ -519,7 +518,7 @@ gotoStateStaKeySet(tSuppRsnFsm *fsm,
             retVal = ANI_ERROR;
         }
 #endif
-	gReadToSetKey = BAP_RESET_RSN_KEY;
+        gReadToSetKey = BAP_RESET_RSN_KEY;
         retVal = ANI_ERROR;
     }
 
@@ -792,7 +791,7 @@ int checkTransition(tSuppRsnFsm *fsm, void *arg)
         break;
     case AUTHENTICATION:
         gotoStateGotPmk(fsm);
-    	checkTransition(fsm, arg);	
+        checkTransition(fsm, arg);
         break;
     case GOT_PMK:
         if (fsm->eapolAvail) {

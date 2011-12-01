@@ -102,13 +102,13 @@ typedef enum eAniSsmCipherType {
 
 // WPA modes
 typedef enum eAniSsmWpaModes {
-	eANI_SSM_WPA_UNDERFLOW = -1,
+    eANI_SSM_WPA_UNDERFLOW = -1,
 
-	eANI_SSM_WPA_DISABLE = 0,
-	eANI_SSM_WPA_1 = 1,
-	eANI_SSM_WPA_2 = 2,
+    eANI_SSM_WPA_DISABLE = 0,
+    eANI_SSM_WPA_1 = 1,
+    eANI_SSM_WPA_2 = 2,
 
-	eANI_SSM_WPA_OVERFLOW = ((eANI_SSM_WPA_2 | eANI_SSM_WPA_1)  + 1)
+    eANI_SSM_WPA_OVERFLOW = ((eANI_SSM_WPA_2 | eANI_SSM_WPA_1)  + 1)
 } tAniSsmWpaModes;
 
 typedef struct sAniSsmGroup {
