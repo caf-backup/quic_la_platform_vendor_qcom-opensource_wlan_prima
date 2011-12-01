@@ -40,6 +40,7 @@ KBUILD_OPTIONS := WLAN_PRIMA=../$(WLAN_BLD_DIR)/prima
 # This means we need to rename the module to prima_wlan.ko
 # after wlan.ko is built.
 KBUILD_OPTIONS += MODNAME=wlan
+KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE             := prima_wlan.ko

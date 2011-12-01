@@ -64,6 +64,7 @@ KBUILD_OPTIONS := WLAN_VOLANS=../$(WLAN_BLD_DIR)/volans
 # This means we need to rename the module to WCN1314_rf.ko
 # after wlan.ko is built.
 KBUILD_OPTIONS += MODNAME=wlan
+KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE             := WCN1314_rf.ko

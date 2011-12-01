@@ -66,6 +66,7 @@ KBUILD_OPTIONS := WLAN_LIBRA=../$(WLAN_BLD_DIR)/libra
 # This means we need to rename the module to libra.ko after
 # wlan.ko is built.
 KBUILD_OPTIONS += MODNAME=wlan
+KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE             := libra.ko
@@ -82,6 +83,7 @@ LOCAL_PATH := $(WLAN_BLD_DIR)/libra/ftm/CORE/HDD/src
 # This is set once per LOCAL_PATH, not per (kernel) module
 KBUILD_OPTIONS := BUILD_FTM_DRIVER=1
 KBUILD_OPTIONS += WLAN_LIBRA=../$(WLAN_BLD_DIR)/libra
+KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE      := libra_ftm.ko
