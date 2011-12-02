@@ -472,6 +472,7 @@ void pttSocketAppProcNetlinkMsg (void *arg)
     tAniNlHdr *wnl;
     tAniRttCtxt *pserver = (tAniRttCtxt *)arg;
     tAniIpc      *nIpc = pserver->ipcnl;
+    int contentsLength = 0;
     tAniRttCmdRspMsg    *msg;
 
     if ((buf = malloc(RTT_MAX_MSG_SIZE)) == NULL)
@@ -562,8 +563,7 @@ void pttSocketAppProcNetlinkMsg (void *arg)
             wnl->wmsg.length = ntohs(wnl->wmsg.length);
 
             msg->msgLen = ntohl(msg->msgLen);
-
-            pserver->diag_msg.msg_len = wnl->wmsg.length-sizeof(tAniHdr);
+            contentsLength = wnl->wmsg.length-sizeof(tAniHdr);
 
             printf("wnl->wmsg.length = %d\n",pserver->diag_msg.msg_len);
 
@@ -573,13 +573,14 @@ void pttSocketAppProcNetlinkMsg (void *arg)
             {
                 pData += sizeof(tANI_U32);
                 printf("********Writing Data to EFS*****\n");
-                write_nv_items_to_efs(pData, (pserver->diag_msg.msg_len - sizeof(tANI_U32)));
+                write_nv_items_to_efs(pData, (contentsLength - sizeof(tANI_U32)));
             }
             else
             {
-                pserver->diag_msg.pRespData = (char*)malloc(pserver->diag_msg.msg_len);
+                pserver->diag_msg.pRespData = (char*)malloc(contentsLength);
 
-                memcpy(pserver->diag_msg.pRespData,pData,pserver->diag_msg.msg_len);
+                memcpy(pserver->diag_msg.pRespData,pData,contentsLength);
+                pserver->diag_msg.msg_len = contentsLength;
             }
             break;
         }
@@ -629,8 +630,10 @@ void pttSocketAppProcNetlinkMsg (void *arg)
         //aniDumpBuf((char *)msg, pttRspLen + 4);
 #endif
     } while(0);
-
-    free(buf);
+    if(buf)
+    {
+       free(buf);
+    }
 }
 
 void pttSocketAppProcConnInd(void *arg)
@@ -906,7 +909,7 @@ PACK(void *) wlan_ftm_func_75(PACK(void *)req_pkt, uint16 pkt_len)
 {
     PACK(void *)rsp = NULL;
     tAniRttCtxt *pserver = &serverCtxt;
-    char *pBuf;
+    char *pBuf = NULL;
     tAniHdr *msg;
     int msgLen;
     unsigned long retry_count = 0xFFFFFFFF;
@@ -966,8 +969,7 @@ PACK(void *) wlan_ftm_func_75(PACK(void *)req_pkt, uint16 pkt_len)
         pserver->diag_msg.pRespData = NULL;
         pserver->diag_msg.msg_len=0;
         pserver->diag_msg.diag_msg_received = FALSE;
-
-        printf("Wlan FTM Test APP: diagpkt_alloc succeeded");
+        printf("Wlan FTM Test APP: diagpkt_alloc succeeded\n");
 
     } else {
         printf("Wlan FTM Test APP: diagpkt_subsys_alloc failed");
