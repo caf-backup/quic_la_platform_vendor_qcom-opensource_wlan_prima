@@ -5327,7 +5327,7 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
                                  WLANSSC_MemoryAvailableCallback,
                                  (v_PVOID_t)pControlBlock );
     /* Return NO_MEM when VOS is out of Resources but Return INVAL for Inavlid Packet Length ( > MTU len) */
-    if (eStatus == VOS_STATUS_E_RESOURCES)
+    if ((eStatus == VOS_STATUS_E_RESOURCES) || (eStatus == VOS_STATUS_E_ALREADY))
     {
       return VOS_STATUS_E_NOMEM;
     }

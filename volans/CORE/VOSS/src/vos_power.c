@@ -50,6 +50,7 @@ when       who     what, where, why
                            INCLUDE FILES
 
 ===========================================================================*/
+#include <linux/version.h>
 #include <vos_power.h>
 
 #include <libra_sdioif.h>
@@ -61,7 +62,9 @@ when       who     what, where, why
 #include <linux/delay.h>
 
 #ifdef MSM_PLATFORM_7x30
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
 #include <mach/irqs-7x30.h>
+#endif
 #include <linux/mfd/pmic8058.h>
 #include <mach/rpc_pmapp.h>
 #include <mach/pmic.h>
@@ -101,24 +104,37 @@ when       who     what, where, why
 
 #ifdef MSM_PLATFORM_7x30
 
-#define PM8058_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + NR_GPIO_IRQS)
-
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
+#define PM8058_GPIO_PM_TO_SYS(pm_gpio)         (pm_gpio + NR_GPIO_IRQS)
+#endif
 static const char* id = "WLAN";
 
 struct wlan_pm8058_gpio {
     int gpio_num;
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
     struct pm_gpio gpio_cfg;
+#else
+    struct pm8058_gpio gpio_cfg;
+#endif
 };
 
 
 //PMIC8058 GPIO COnfiguration for MSM7x30 //ON
 static struct wlan_pm8058_gpio wlan_gpios_reset[] = {
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
     {PM8058_GPIO_PM_TO_SYS(22),{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO, 2, PM_GPIO_STRENGTH_LOW, PM_GPIO_FUNC_NORMAL, 0}},
+#else
+    {22,{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO, 2, PM_GPIO_STRENGTH_LOW, PM_GPIO_FUNC_NORMAL, 0}},
+#endif
 };
 
 //OFF
 static struct wlan_pm8058_gpio wlan_gpios_reset_out[] = {
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
     {PM8058_GPIO_PM_TO_SYS(22),{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO, 2, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0}},
+#else
+    {22,{PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO, 2, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0}},
+#endif
 };
 
 
@@ -166,7 +182,11 @@ VOS_PWR_SLEEP(100);
 
     if (on) {
         /* Program GPIO 23 to de-assert (drive 1) external_por_n (default 0x00865a05 */
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
         rc = pm8xxx_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
+#else
+        rc = pm8058_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
+#endif
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic gpio %d config failed (%d)\n",
                             __func__, wlan_gpios_reset[0].gpio_num, rc);
@@ -230,7 +250,11 @@ VOS_PWR_SLEEP(100);
 
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.2V AON Power Supply Enabled \n");
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
         rc = pm8xxx_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
+#else
+        rc = pm8058_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
+#endif
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic gpio %d config failed (%d)\n",
                             __func__, wlan_gpios_reset_out[0].gpio_num, rc);
@@ -321,7 +345,11 @@ VOS_PWR_SLEEP(100);
         /* Program GPIO 23 to de-assert (drive 1) external_por_n to prevent chip detection
            until it is asserted.
         */
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
         rc = pm8xxx_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
+#else
+        rc = pm8058_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
+#endif
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic gpio %d config failed (%d)\n",
                             __func__, wlan_gpios_reset[0].gpio_num, rc);
@@ -792,7 +820,11 @@ VOS_STATUS vos_chipAssertDeepSleep
 
 #ifdef MSM_PLATFORM_7x30
    // Configure GPIO 23 for Deep Sleep
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
    int rc = pm8xxx_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
+#else
+   int rc = pm8058_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
+#endif
    if (rc) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
          __func__, wlan_gpios_reset_out[0].gpio_num, rc);
@@ -852,7 +884,11 @@ VOS_STATUS vos_chipDeAssertDeepSleep
 
 #ifdef MSM_PLATFORM_7x30
 	// Configure GPIO 23 for Deep Sleep
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
 	int rc = pm8xxx_gpio_config(wlan_gpios_reset[2].gpio_num, &wlan_gpios_reset[2].gpio_cfg);
+#else
+	int rc = pm8058_gpio_config(wlan_gpios_reset[2].gpio_num, &wlan_gpios_reset[2].gpio_cfg);
+#endif
 	if (rc) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
 			__func__, wlan_gpios_reset[2].gpio_num, rc);

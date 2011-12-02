@@ -1633,49 +1633,51 @@ eHalStatus pmcRequestBmps (
 #endif
 
    smsLog(pMac, LOG2, "PMC: entering pmcRequestBmps");
-   /* Check that we are associated. */
-   if ( !pmcValidateConnectState( pMac ) )
-   {
-      smsLog(pMac, LOGE, "PMC: STA not associated. BMPS cannot be entered\n");
-      return eHAL_STATUS_FAILURE;
-   }
 
+   /* If already in BMPS, just return. */
+   if (pMac->pmc.pmcState == BMPS || REQUEST_START_UAPSD == pMac->pmc.pmcState || UAPSD == pMac->pmc.pmcState)
+   {
+      smsLog(pMac, LOG2, "PMC: Device already in BMPS pmcState %d", pMac->pmc.pmcState);
+      pMac->pmc.bmpsRequestedByHdd = TRUE;
+      return eHAL_STATUS_SUCCESS;
+   }
+   
    status = pmcEnterBmpsCheck( pMac );
    if(HAL_STATUS_SUCCESS( status ))
    {
-       status = pmcEnterRequestBmpsState(hHal);
-       /* Enter Request BMPS State. */
-       if ( HAL_STATUS_SUCCESS( status ) )
-   {
-   /* Remember that HDD requested BMPS. This flag will be used to put the
-      device back into BMPS if any module other than HDD (e.g. CSR, QoS, or BAP)
-      requests full power for any reason */
-   pMac->pmc.bmpsRequestedByHdd = TRUE;
+      status = pmcEnterRequestBmpsState(hHal);
+      /* Enter Request BMPS State. */
+      if ( HAL_STATUS_SUCCESS( status ) )
+      {
+         /* Remember that HDD requested BMPS. This flag will be used to put the
+            device back into BMPS if any module other than HDD (e.g. CSR, QoS, or BAP)
+            requests full power for any reason */
+         pMac->pmc.bmpsRequestedByHdd = TRUE;
 
-   /* If able to enter Request BMPS State, then request is pending.
-      Allocate entry for request BMPS callback routine list. */
-   if (palAllocateMemory(
-      pMac->hHdd, (void **)&pEntry,
-      sizeof(tRequestBmpsEntry)) != eHAL_STATUS_SUCCESS)
-   {
-      smsLog(pMac, LOGE, "PMC: cannot allocate memory for request "
-         "BMPS routine list entry\n");
-      return eHAL_STATUS_FAILURE;
-   }
+         /* If able to enter Request BMPS State, then request is pending.
+            Allocate entry for request BMPS callback routine list. */
+         if (palAllocateMemory(
+               pMac->hHdd, (void **)&pEntry,
+               sizeof(tRequestBmpsEntry)) != eHAL_STATUS_SUCCESS)
+         {
+            smsLog(pMac, LOGE, "PMC: cannot allocate memory for request "
+                  "BMPS routine list entry\n");
+            return eHAL_STATUS_FAILURE;
+         }
 
-   /* Store routine and context in entry. */
-   pEntry->callbackRoutine = callbackRoutine;
-   pEntry->callbackContext = callbackContext;
+         /* Store routine and context in entry. */
+         pEntry->callbackRoutine = callbackRoutine;
+         pEntry->callbackContext = callbackContext;
 
-   /* Add entry to list. */
-   csrLLInsertTail(&pMac->pmc.requestBmpsList, &pEntry->link, FALSE);
+         /* Add entry to list. */
+         csrLLInsertTail(&pMac->pmc.requestBmpsList, &pEntry->link, FALSE);
 
-           status = eHAL_STATUS_PMC_PENDING;
-       }
-       else
-       {
-           status = eHAL_STATUS_FAILURE;
-       }
+         status = eHAL_STATUS_PMC_PENDING;
+      }
+      else
+      {
+         status = eHAL_STATUS_FAILURE;
+      }
    }
 
    return status;

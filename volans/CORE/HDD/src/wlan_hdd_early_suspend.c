@@ -119,10 +119,9 @@ void hdd_suspend_full_pwr_callback(void *callbackContext, eHalStatus status)
    complete(&pHddCtx->full_pwr_comp_var);
 }
 
-eHalStatus hdd_exit_standby(hdd_adapter_t *pAdapter)
+eHalStatus hdd_exit_standby(hdd_context_t *pHddCtx)
 {  
     eHalStatus status = VOS_STATUS_SUCCESS;
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     hddLog(VOS_TRACE_LEVEL_ERROR, "%s: WLAN being resumed from standby",__func__);
     INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
@@ -162,14 +161,10 @@ failure:
 
 
 //Helper routine to put the chip into standby
-VOS_STATUS hdd_enter_standby(hdd_adapter_t *pAdapter)
+VOS_STATUS hdd_enter_standby(hdd_context_t *pHddCtx)
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-         
-   netif_tx_disable(pAdapter->dev);
-   netif_carrier_off(pAdapter->dev);
 
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode on its own during suspend sequence
@@ -262,15 +257,13 @@ failure:
 
 
 //Helper routine for Deep sleep entry
-VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t *pAdapter)
+VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
 {
    eHalStatus halStatus;
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
    vos_call_status_type callType;
    struct sdio_func *sdio_func_dev_current = NULL;
    int attempts = 0;
-
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    //Stop the Interface TX queue.
    netif_tx_disable(pAdapter->dev);
@@ -374,14 +367,12 @@ err_fail:
    return vosStatus;
 }
 
-VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t *pAdapter)
+VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
 {
    VOS_STATUS vosStatus;
    eHalStatus halStatus;
    int attempts = 0;
    struct sdio_func *sdio_func_dev = NULL;
-   
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    //Power Up Libra WLAN card first if not already powered up
    vosStatus = vos_chipPowerUp(NULL,NULL,NULL);
@@ -768,21 +759,25 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
        }
 
 #ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
-       if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY) 
+       if (pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY)
        {
-          //Execute standby procedure. Executing standby procedure will cause the STA to
-          //disassociate first and then the chip will be put into standby.
-          hdd_enter_standby(pAdapter);
+          //stop the interface before putting the chip to standby
+          netif_tx_disable(pAdapter->dev);
+          netif_carrier_off(pAdapter->dev);
        }
-       else if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_DEEP_SLEEP) {
+       else if (pHddCtx->cfg_ini->nEnableSuspend == 
+               WLAN_MAP_SUSPEND_TO_DEEP_SLEEP)
+       {
           //Execute deep sleep procedure
-          hdd_enter_deep_sleep(pAdapter);
+          hdd_enter_deep_sleep(pHddCtx, pAdapter);
        }
 #endif
 
-   if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
-      if(eConnectionState_Associated == 
-            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) {
+   if (pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) 
+   {
+      if (eConnectionState_Associated == 
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) 
+      {
          hdd_conf_mcastbcast_filter(pHddCtx, TRUE);
          halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME,
                                   pHddCtx->pvosContext), FALSE);
@@ -793,6 +788,12 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
    pAdapterNode = pNext;
   }
 
+#ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
+  if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY)
+  {
+      hdd_enter_standby(pHddCtx);
+  }
+#endif
    sd_release_host(sdio_func_dev);
    
    return;
@@ -916,33 +917,37 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
             continue;
        }
 #ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP   
-       if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
-       {
-          hdd_exit_standby(pAdapter);
-       }    
-       else if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP) 
+       if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP) 
        {
           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: WLAN being resumed from deep sleep",__func__);
           hdd_exit_deep_sleep(pAdapter);
        }
 #endif
-         if(pHddCtx->hdd_mcastbcast_filter_set == TRUE) {
-                  hdd_conf_mcastbcast_filter(pHddCtx, FALSE);
-                              pHddCtx->hdd_mcastbcast_filter_set = FALSE;
-                  halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME,
-                                          pHddCtx->pvosContext), TRUE);
+       if(pHddCtx->hdd_mcastbcast_filter_set == TRUE)
+       {
+          hdd_conf_mcastbcast_filter(pHddCtx, FALSE);
+          pHddCtx->hdd_mcastbcast_filter_set = FALSE;
+          halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME,
+                                  pHddCtx->pvosContext), TRUE);
 
-       }
-       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
-       pAdapterNode = pNext;
+      }
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+      pAdapterNode = pNext;
    }
+
+#ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP   
+   if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
+   {
+       hdd_exit_standby(pHddCtx);
+   }    
+#endif
 
    sd_release_host(sdio_func_dev);
 
    return;
 }
 
-VOS_STATUS hdd_wlan_reset(void) 
+VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason) 
 {
    VOS_STATUS vosStatus;
    hdd_context_t *pHddCtx = NULL;
@@ -1099,31 +1104,6 @@ VOS_STATUS hdd_wlan_reset(void)
           "%s: Failed to close BAL",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
-   //Get the Current SDIO Func
-   sdio_func_dev_current = libra_getsdio_funcdev();
-
-   if(NULL != sdio_func_dev_current) {
-      libra_detect_card_change();
-      attempts = 0;
-      do {
-         msleep(100);
-         //Get the SDIO func device
-         sdio_func_dev_current = libra_getsdio_funcdev();
-         if(NULL == sdio_func_dev_current) {
-            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Card Removed Successfully",__func__);
-            break;
-         }
-         else {
-            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to Remove the Card: Trying Again",__func__);
-            attempts++;
-         }
-      } while (attempts < LIBRA_CARD_REMOVE_DETECT_MAX_COUNT);
-
-      if(LIBRA_CARD_REMOVE_DETECT_MAX_COUNT == attempts) {
-         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to Remove the Card: Fatal",__func__);
-         goto err_fail;
-      }
-   }
 
 #ifdef TIMER_MANAGER
    vos_timer_exit();
@@ -1132,6 +1112,10 @@ VOS_STATUS hdd_wlan_reset(void)
 #ifdef MEMORY_DEBUG
    vos_mem_clean();
 #endif
+
+   //Get the Current SDIO Func
+   sdio_func_dev_current = libra_getsdio_funcdev();   
+
    //Reinitialize the variable
    attempts = 0;
 
@@ -1145,42 +1129,58 @@ VOS_STATUS hdd_wlan_reset(void)
       goto err_pwr_fail;
    }
 
-   // Trigger card detect
-   libra_detect_card_change();
+   if (reset_reason == VOS_CHIP_RESET_CMD53_FAILURE &&
+       sdio_func_dev_current == NULL)
+   {
+      // Trigger card detect
+      libra_detect_card_change();
 
-   //Reinitialize the variable
-   attempts = 0;
+      //Reinitialize the variable
+      attempts = 0;
 
-   do {
-      msleep(500);
+      do {
+         msleep(500);
 
-      //Get the SDIO func device
-      sdio_func_dev_new = libra_getsdio_funcdev();
-      if(sdio_func_dev_new != NULL)
+         //Get the SDIO func device
+         sdio_func_dev_new = libra_getsdio_funcdev();
+         if(sdio_func_dev_new != NULL)
+         {
+            //Not needed but in case it causes probs then put a loop and set for each adapter
+            //SET_NETDEV_DEV(pAdapter->dev, &sdio_func_dev_new->dev); 
+            libra_sdio_setprivdata (sdio_func_dev_new, pHddCtx);
+            atomic_set(&pHddCtx->sdio_claim_count, 0);
+            pHddCtx->hsdio_func_dev = sdio_func_dev_new;
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                    "%s: Card Detected Successfully %p",__func__, 
+                    sdio_func_dev_new);
+            break;
+         }
+         else
+         {
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                    "%s: Failed to detect card change %p",__func__, 
+                    sdio_func_dev_new);     
+            attempts++;
+         }
+      }while (attempts < LIBRA_CARD_INSERT_DETECT_MAX_COUNT);
+
+      if(LIBRA_CARD_INSERT_DETECT_MAX_COUNT == attempts)
       {
-         //Not needed but in case it causes probs then put a loop and set for each adapter
-         //SET_NETDEV_DEV(pAdapter->dev, &sdio_func_dev_new->dev); 
-         libra_sdio_setprivdata (sdio_func_dev_new, pHddCtx);
-         atomic_set(&pHddCtx->sdio_claim_count, 0);
-         pHddCtx->hsdio_func_dev = sdio_func_dev_new;
-         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-          "%s: Card Detected Successfully %p",__func__, 
-          sdio_func_dev_new);
-         break;
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN fail to detect in reset"
+                 "exiting", __func__);
+         goto err_fail;
       }
-      else
-      {
-         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-          "%s: Failed to detect card change %p",__func__, 
-          sdio_func_dev_new);     
-         attempts++;
-      }
-   }while (attempts < LIBRA_CARD_INSERT_DETECT_MAX_COUNT);
-
-   if(LIBRA_CARD_INSERT_DETECT_MAX_COUNT == attempts){
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN fail to detect in reset"
-             "exiting", __func__);
-      goto err_fail;
+   }
+   else
+   {
+       vosStatus = WLANSAL_SDIOReInit( pHddCtx->pvosContext );
+       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+       if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+       {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Failed in WLANSAL_SDIOReInit",__func__);
+           goto err_fail;
+       }
    }
    //Get the SDIO func device
    sdio_func_dev_new = libra_getsdio_funcdev();

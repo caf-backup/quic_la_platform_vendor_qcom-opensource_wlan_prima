@@ -214,44 +214,40 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *ft_ies,
  * Reassoc Req.
  *
  *------------------------------------------------------------------------*/
-void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies, tANI_U16 *ft_ies_length )
+void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies, 
+                               tANI_U32 ft_ies_ip_len, tANI_U16 *ft_ies_length )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     eHalStatus status = eHAL_STATUS_FAILURE;
 
+    *ft_ies_length = 0;
+
     status = sme_AcquireGlobalLock( &pMac->sme );
-    if (!( HAL_STATUS_SUCCESS( status ))) return;
+    if (!( HAL_STATUS_SUCCESS( status ))) 
+       return;
+
+    /* All or nothing - proceed only if both BSSID and FT IE fit */
+    if((ANI_MAC_ADDR_SIZE + 
+       pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ft_ies_length) > ft_ies_ip_len) 
+       return;
 
     // hdd needs to pack the bssid also along with the 
     // auth response to supplicant
     vos_mem_copy(ft_ies, pMac->ft.ftSmeContext.preAuthbssId, ANI_MAC_ADDR_SIZE);
-
+    
     // Copy the auth resp FTIEs
-    *ft_ies_length = 0;
-    *ft_ies_length = pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ft_ies_length;
-    if (*ft_ies_length > (MAX_FTIE_SIZE-ANI_MAC_ADDR_SIZE)) 
-    {
-        smsLog( pMac, LOGE, FL(" FTIES length bigger than 256 = %d\n"), *ft_ies_length);
-        smsLog( pMac, LOGE, FL(" Unable to get Reassoc Req from supplicant\n"), *ft_ies_length);
-        sme_ReleaseGlobalLock( &pMac->sme );
-        return;
-    }
+    vos_mem_copy(&(ft_ies[ANI_MAC_ADDR_SIZE]), 
+                 pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ft_ies, 
+                 pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ft_ies_length);
 
-    if (*ft_ies_length) 
-    {
-        vos_mem_copy(&(ft_ies[ANI_MAC_ADDR_SIZE]), 
-            pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ft_ies, 
-            pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ft_ies_length);
+    *ft_ies_length = ANI_MAC_ADDR_SIZE + 
+       pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ft_ies_length;
 
-        // Wait for the reassoc req. We now have passed auth resp 2 as follows
-        // SME->HDD->Supplicant and waiting for the reassoc req.
-        pMac->ft.ftSmeContext.FTState = eFT_REASSOC_REQ_WAIT;
-    }
+    pMac->ft.ftSmeContext.FTState = eFT_REASSOC_REQ_WAIT;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
     smsLog( pMac, LOGE, FL(" Filled auth resp = %d\n"), *ft_ies_length);
 #endif
-
     sme_ReleaseGlobalLock( &pMac->sme );
     return;
 }
@@ -263,23 +259,27 @@ void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies, tANI_U16 *ft_ie
  * Reassoc Req.
  *
  *------------------------------------------------------------------------*/
-void sme_GetRICIEs( tHalHandle hHal, tANI_U8 *ric_ies, tANI_U32 *ric_ies_length )
+void sme_GetRICIEs( tHalHandle hHal, tANI_U8 *ric_ies, tANI_U32 ric_ies_ip_len,
+                    tANI_U32 *ric_ies_length )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     eHalStatus status = eHAL_STATUS_FAILURE;
 
-    status = sme_AcquireGlobalLock( &pMac->sme );
-    if (!( HAL_STATUS_SUCCESS( status ))) return;
-
-    // Copy the ric ies 
     *ric_ies_length = 0;
 
-    if (pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length) 
-    {
-        *ric_ies_length = pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length;
-        vos_mem_copy(ric_ies, pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies, 
-            pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length);
-    }
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if (!( HAL_STATUS_SUCCESS( status ))) 
+       return;
+
+    /* All or nothing */
+    if (pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length > 
+        ric_ies_ip_len)
+       return;
+
+    vos_mem_copy(ric_ies, pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies, 
+                 pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length);
+
+    *ric_ies_length = pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
     smsLog( pMac, LOGE, FL(" Filled ric ies = %d\n"), *ric_ies_length);

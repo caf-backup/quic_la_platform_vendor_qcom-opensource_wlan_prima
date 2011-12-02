@@ -325,5 +325,16 @@ VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter);
 v_U8_t* wlan_hdd_get_vendor_oui_ie_ptr(v_U8_t *oui, v_U8_t oui_size, 
                        v_U8_t *ie, int ie_len);
 
+VOS_STATUS wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode);
+
+VOS_STATUS wlan_hdd_exit_lowpower(hdd_context_t *pHddCtx,
+                                       hdd_adapter_t *pAdapter);
+
+VOS_STATUS wlan_hdd_enter_lowpower(hdd_context_t *pHddCtx);
+
+VOS_STATUS wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter);
+
+VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value);
+
 #endif // __WEXT_IW_H__
 

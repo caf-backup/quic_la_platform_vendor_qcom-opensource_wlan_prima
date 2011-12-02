@@ -1394,7 +1394,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
             /*Store Persona */
             psessionEntry->pePersona = pSmeJoinReq->staPersona;
-            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL, FL("PE PERSONA=%d\n"), psessionEntry->pePersona);
+            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+                      FL("PE PERSONA=%d"), psessionEntry->pePersona);
             
             /* Copy the SSID from smejoinreq to session entry  */  
             psessionEntry->ssId.length = pSmeJoinReq->ssId.length;
