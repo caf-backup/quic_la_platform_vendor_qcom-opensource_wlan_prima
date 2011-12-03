@@ -12506,6 +12506,32 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
             }
             pStats += sizeof(tCsrGlobalClassAStatsInfo);
             length -= sizeof(tCsrGlobalClassAStatsInfo);
+
+            /****************************************************
+             *
+             * TEMPORARY WORKAROUND
+             *
+             * RIVA API version 0.0.1.0 has a different format for the
+             * Class A stats -- it has an additional 2 * U32 of data.
+             * If we are talking to a RIVA 0.0.1.0 then we need to skip
+             * over those 8 bytes of data
+             *
+             ***************************************************/
+            {
+               tSirVersionType version;
+               VOS_STATUS status;
+               v_CONTEXT_t vosContext;
+
+               vosContext = vos_get_global_context(VOS_MODULE_ID_SME, pMac);
+               status = WDA_GetWcnssWlanReportedVersion(vosContext, &version);
+               if ((VOS_STATUS_SUCCESS == status) &&
+                   (1 == version.version))
+               {
+                  pStats += 8;
+                  length -= 8;
+                  smsLog( pMac, LOGE, FL("Handled v1 ClassA stats"));
+               }
+            }
             break;
 
          case eCsrGlobalClassBStats:
