@@ -4159,7 +4159,8 @@ typedef PACKED_PRE struct PACKED_POST
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_U8 configuredMcstBcstFilterSetting;
+    tANI_U32 configuredMcstBcstFilterSetting;
+    tANI_U32 activeSessionCount; 
 }tHalWlanHostSuspendIndParam,*tpHalWlanHostSuspendIndParam;
 
 typedef PACKED_PRE struct PACKED_POST

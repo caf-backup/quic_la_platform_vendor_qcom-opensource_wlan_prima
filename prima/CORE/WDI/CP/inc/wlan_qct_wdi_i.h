@@ -4122,6 +4122,22 @@ WDI_FindEmptySession
 );
 
 /**
+ @brief Helper routine used to get the total count of active 
+        sessions
+  
+ 
+ @param  pWDICtx:       pointer to the WLAN DAL context 
+  
+ @see
+ @return Number of sessions in use
+*/
+wpt_uint8
+WDI_GetActiveSessionsCount
+( 
+  WDI_ControlBlockType*   pWDICtx
+);
+
+/**
  @brief Helper routine used to delete session in the WDI 
         CB
   
