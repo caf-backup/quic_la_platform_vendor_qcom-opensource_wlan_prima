@@ -33,7 +33,7 @@
 
 #define EAPOL_VERSION_1 0x01
 
-#define EAPOL_RX_HEADER_SIZE   	18
+#define EAPOL_RX_HEADER_SIZE    18
 #define EAPOL_TX_HEADER_SIZE    26  //include LLC_SNAP
 #define SNAP_HEADER_SIZE   8
 

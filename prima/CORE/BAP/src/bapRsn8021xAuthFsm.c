@@ -451,7 +451,7 @@ gotoStatePtkStart(tAuthRsnFsm *fsm)
     if( fsm->lastEapol )
     {
         aniAsfPacketFree( fsm->lastEapol );
-	fsm->lastEapol = NULL;
+        fsm->lastEapol = NULL;
 
     retVal = aniAsfPacketAllocateExplicit(&fsm->lastEapol,
                                           RSN_MAX_PACKET_SIZE,
@@ -593,8 +593,8 @@ aagAppendGroupKeyForRsn(tAniPacket *packet)
 #if 0
     tAniPacket *groupKey = NULL;
 #else
-	tANI_U8 groupKey[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-		                  0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15};
+    tANI_U8 groupKey[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+	                  0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15};
 #endif
     tANI_U8 *groupKeyBytes = NULL;
     tANI_U8 *lenPtr = NULL;
@@ -653,7 +653,7 @@ aagAppendGroupKeyForRsn(tAniPacket *packet)
     // (Here, I assume the Group Key is to be used for both STA Tx and Rx)
     retVal = aniAsfPacketAppend8(
             packet,
-			GROUP_KEY_ID );
+            GROUP_KEY_ID );
             //AAG_GROUP_KEY_ID(radioId) );
     //CHECK_NO_ERROR(retVal);
 
@@ -714,19 +714,19 @@ gotoStatePtkInitNegoTx(tAuthRsnFsm *fsm)
         // Create a new EAPOL frame if we don't have one to retransmit
         //if (aniAsfPacketGetLen(fsm->lastEapol) == 0) 
 #if 0
-   	    if( fsm->lastEapol )
+        if( fsm->lastEapol )
          {
              aniAsfPacketFree( fsm->lastEapol );
-	     fsm->lastEapol = NULL;
+             fsm->lastEapol = NULL;
 
              retVal = aniAsfPacketAllocateExplicit(&fsm->lastEapol,
                                           RSN_MAX_PACKET_SIZE,
                                           EAPOL_TX_HEADER_SIZE );
 #endif     
-     	     aniAsfPacketEmptyExplicit(fsm->lastEapol, 
+             aniAsfPacketEmptyExplicit(fsm->lastEapol, 
                               EAPOL_TX_HEADER_SIZE);
       //  }
-	
+
         if (1) 
         {
 

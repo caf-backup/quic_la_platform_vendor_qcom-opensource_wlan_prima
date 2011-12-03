@@ -827,7 +827,7 @@ gotoStarting
     {
         btampContext->isBapSessionOpen = TRUE;
         }
-    }	
+    }
     /* Update the SME Session info for this Phys Link (i.e., for this Phys State Machine instance) */
     //bapUpdateSMESessionForThisPhysLink(newSession, PhysLinkHandle);
     // Taken care of, above
@@ -1371,8 +1371,7 @@ signalHCIDiscLogLinkCompEvent
     bapHCIEvent.u.btampDisconnectLogicalLinkCompleteEvent.status = status;
     bapHCIEvent.u.btampDisconnectLogicalLinkCompleteEvent.reason = reason;
     bapHCIEvent.u.btampDisconnectLogicalLinkCompleteEvent.log_link_handle 
-    = (btampContext->phy_link_handle  << 8) + log_link_handle ;
-
+    = (log_link_handle  << 8) + btampContext->phy_link_handle;
 
     vosStatus = (*btampContext->pBapHCIEventCB) 
         (  
@@ -1601,13 +1600,13 @@ btampFsm
 #if 0
          /* This will have issues in multisession. Need not close the session */
          /* TODO : Need to have better handling */ 
-	  if(btampContext->isBapSessionOpen == TRUE)//We want to close only BT-AMP Session
-          {		  
+          if(btampContext->isBapSessionOpen == TRUE)//We want to close only BT-AMP Session
+          {
           sme_CloseSession(VOS_GET_HAL_CB(btampContext->pvosGCtx),
                                          btampContext->sessionId);
           /*Added by Luiza:*/
           btampContext->isBapSessionOpen = FALSE; 
-	  }   
+          }   
 #endif
 
           /* Set BAP device role */
@@ -1622,13 +1621,13 @@ btampFsm
           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s", __FUNCTION__, "DISCONNECTED", "S1");
           
 #if 0
-	  if(btampContext->isBapSessionOpen == TRUE)
-          {		  
+          if(btampContext->isBapSessionOpen == TRUE)
+          {
           sme_CloseSession(VOS_GET_HAL_CB(btampContext->pvosGCtx),
                                          btampContext->sessionId);
           /*Added by Luiza:*/
           btampContext->isBapSessionOpen = FALSE; 
-          }	      
+          }
           /*Action code for transition */
 #endif
 
@@ -1797,7 +1796,7 @@ btampFsm
           /*should have been already set */
           btampContext->channel = ( 0 == btampContext->channel )?1:btampContext->channel;
 
-		  /*Advance outer statevar */
+          /*Advance outer statevar */
           btampfsmChangeToState(instanceVar,CONNECTING);
           /*Action code for transition */
             gotoConnecting(btampContext);
@@ -2206,7 +2205,7 @@ btampFsm
     //Clear gDiscRequested;
     btampContext->gDiscRequested = VOS_FALSE;
            
-	  if(btampContext->BAPDeviceRole == BT_INITIATOR) 
+    if(btampContext->BAPDeviceRole == BT_INITIATOR) 
           {
                 if(!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&btampContext->bapLock)))
                 {
@@ -2217,11 +2216,11 @@ btampFsm
                 {
                    VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,"btampFsm, Release LOCK Fail");
                 }
-	  }
-	  else if(btampContext->BAPDeviceRole == BT_RESPONDER)
-	  {
-    	      suppRsnFsmFree(btampContext);
-	  }
+          }
+          else if(btampContext->BAPDeviceRole == BT_RESPONDER)
+          {
+              suppRsnFsmFree(btampContext);
+          }
 
           /* Lookup the StaId using the phy_link_handle and the BAP context */ 
           vosStatus = WLANBAP_GetStaIdFromLinkCtx ( 
@@ -2261,7 +2260,7 @@ btampFsm
         {
           /*Transition from DISCONNECTING to DISCONNECTED (both without substates)*/
           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s gNeedPhysLinkComp TRUE", __FUNCTION__, "DISCONNECTING", "DISCONNECTED");
-	  if(btampContext->BAPDeviceRole == BT_INITIATOR) 
+          if(btampContext->BAPDeviceRole == BT_INITIATOR) 
           {
               if(!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&btampContext->bapLock)))
               {
@@ -2273,11 +2272,11 @@ btampFsm
                   VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,"btampFsm, Release LOCK Fail");
               }
 
-	  }
-	  else if(btampContext->BAPDeviceRole == BT_RESPONDER)
-	  {
-    	      suppRsnFsmFree(btampContext);
-	  }
+          }
+          else if(btampContext->BAPDeviceRole == BT_RESPONDER)
+          {
+              suppRsnFsmFree(btampContext);
+          }
           /* Lookup the StaId using the phy_link_handle and the BAP context */ 
           vosStatus = WLANBAP_GetStaIdFromLinkCtx ( 
                     btampHandle,  /* btampHandle value in  */ 
@@ -2292,7 +2291,7 @@ btampFsm
           }
           WLANTL_ClearSTAClient(btampContext->pvosGCtx, ucSTAId);
 
-	  
+
           /*Action code for transition */
          // signalHCIPhysLinkCompEvent(btampContext, WLANBAP_ERROR_NO_CNCT/*btampContext->gPhysLinkStatus*/);
           signalHCIPhysLinkCompEvent(btampContext, btampContext->gPhysLinkStatus);

@@ -126,7 +126,7 @@ VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext )
    if (NULL == gpVosContext)
    {
      /* Critical Error ...Cannot proceed further */
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                  "%s: Failed to allocate VOS Context", __func__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_RESOURCES;
@@ -160,19 +160,19 @@ VOS_STATUS vos_preClose( v_CONTEXT_t *pVosContext )
 {
 
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                "%s: De-allocating the VOS Context",__func__);
+                "%s: De-allocating the VOS Context", __func__);
 
    if (( pVosContext == NULL) || (*pVosContext == NULL)) 
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: vOS Context is Null",__func__);
+                "%s: vOS Context is Null", __func__);
       return VOS_STATUS_E_FAILURE;
    }
 
    if (gpVosContext != *pVosContext)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: Context mismatch",__func__);
+                "%s: Context mismatch", __func__);
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -230,8 +230,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    if (NULL == gpVosContext)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Trying to open VOSS without a PreOpen",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                    "%s: Trying to open VOSS without a PreOpen", __func__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
@@ -242,16 +242,16 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    /* Initialize the probe event */
    if (vos_event_init(&gpVosContext->ProbeEvent) != VOS_STATUS_SUCCESS)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Unable to init probeEvent",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                    "%s: Unable to init probeEvent", __func__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    if (vos_event_init( &(gpVosContext->wdaCompleteEvent) ) != VOS_STATUS_SUCCESS )
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Unable to init wdaCompleteEvent",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: Unable to init wdaCompleteEvent", __func__);
       VOS_ASSERT(0);
     
       goto err_probe_event;
@@ -262,7 +262,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       gpVosContext->pHDDContext = pHddContext;*/
  
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-               "%s: HDD context is saved successfully\n",__func__);
+               "%s: HDD context is saved successfully", __func__);
    
 #endif
 
@@ -272,8 +272,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    {
 
       /* Critical Error ...  Cannot proceed further */
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to initialize VOS free message queue",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to initialize VOS free message queue", __func__);
       VOS_ASSERT(0);
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
       goto err_probe_event;
@@ -297,8 +297,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    if ( !VOS_IS_STATUS_SUCCESS( vStatus ) )
    {
       /* Critical Error ...  Cannot proceed further */
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to open VOS Packet Module",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to open VOS Packet Module", __func__);
       VOS_ASSERT(0);
       goto err_msg_queue;
    }
@@ -311,7 +311,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to open VOS Scheduler", __func__);
       VOS_ASSERT(0);
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
@@ -339,8 +339,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to open WDA module",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to open WDA module", __func__);
       VOS_ASSERT(0);
       goto err_sched_close;
    }
@@ -352,8 +352,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    if ( !VOS_IS_STATUS_SUCCESS( vStatus ) )
    {
       /* Critical Error ...  Cannot proceed further */
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to open VOS Packet Module",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to open VOS Packet Module", __func__);
       VOS_ASSERT(0);
       goto err_wda_close;
    }
@@ -365,8 +365,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to open SYS module",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to open SYS module", __func__);
       VOS_ASSERT(0);
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
       goto err_sched_close;
@@ -380,9 +380,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    vStatus = vos_nv_open();
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
-     // NV module cannot be initialized, however the driver is allowed
-     // to proceed
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+     // NV module cannot be initialized
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to initialize the NV module", __func__);
      goto err_sys_close;
    }
@@ -394,7 +393,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    if (vos_wait_single_event(&gpVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to probe MC Thread", __func__);
       VOS_ASSERT(0);
       goto err_nv_close;
@@ -407,8 +406,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    
    if (vos_wait_single_event(&gpVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to probe TX Thread",__func__);
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to probe TX Thread", __func__);
       VOS_ASSERT(0);
       goto err_nv_close;
    }
@@ -427,7 +426,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    if (eSIR_SUCCESS != sirStatus)
    {
      /* Critical Error ...  Cannot proceed further */
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Failed to open MAC", __func__);
      VOS_ASSERT(0);
      goto err_nv_close;
@@ -438,8 +437,8 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
      /* Critical Error ...  Cannot proceed further */
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to open SME",__func__);
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Failed to open SME", __func__);
      VOS_ASSERT(0);
      goto err_mac_close;
    }
@@ -452,13 +451,13 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
      /* Critical Error ...  Cannot proceed further */
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Failed to open TL", __func__);
      VOS_ASSERT(0);
      goto err_sme_close;
    }
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-               "%s: VOSS successfully Opened",__func__);
+               "%s: VOSS successfully Opened", __func__);
 
    *pVosContext = gpVosContext;
 
@@ -553,7 +552,7 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
    vStatus = macPreStart(gpVosContext->pMACContext);
    if ( !VOS_IS_STATUS_SUCCESS(vStatus) )
    {
-      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
              "Failed at macPreStart ");
       return VOS_STATUS_E_FAILURE;
    }
@@ -569,8 +568,8 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
    vStatus = WDA_preStart(gpVosContext);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
-      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-             "Failed to WDA prestart ");
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
+             "Failed to WDA prestart");
       macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
       ccmStop(gpVosContext->pMACContext);
       VOS_ASSERT(0);
@@ -584,12 +583,12 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
       if ( vStatus == VOS_STATUS_E_TIMEOUT )
       {
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-          "%s: Timeout occurred before WDA complete\n",__func__);
+          "%s: Timeout occurred before WDA complete\n", __func__);
       }
       else
       {
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: WDA_preStart reporting  other error \n",__func__);
+           "%s: WDA_preStart reporting other error", __func__);
       }
       VOS_ASSERT( 0 );
       return VOS_STATUS_E_FAILURE;
@@ -650,7 +649,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   if (gpVosContext != pVosContext)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: mismatch in context",__FUNCTION__);
+           "%s: mismatch in context", __FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   }
 
@@ -660,13 +659,13 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   {
      if (pVosContext->pBALContext == NULL)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: BAL NULL context",__FUNCTION__);
+            "%s: BAL NULL context", __FUNCTION__);
      else if (pVosContext->pMACContext == NULL)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: MAC NULL context",__FUNCTION__);
+            "%s: MAC NULL context", __FUNCTION__);
      else
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: TL NULL context",__FUNCTION__);
+            "%s: TL NULL context", __FUNCTION__);
      
      return VOS_STATUS_E_FAILURE;
   }
@@ -676,13 +675,13 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   {
      if (pVosContext->pWDAContext == NULL)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: WDA NULL context",__FUNCTION__);
+            "%s: WDA NULL context", __FUNCTION__);
      else if (pVosContext->pMACContext == NULL)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: MAC NULL context",__FUNCTION__);
+            "%s: MAC NULL context", __FUNCTION__);
      else
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: TL NULL context",__FUNCTION__);
+            "%s: TL NULL context", __FUNCTION__);
      
      return VOS_STATUS_E_FAILURE;
   }
@@ -699,7 +698,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   if ( vStatus != VOS_STATUS_SUCCESS )
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Failed to start NV Download",__func__);
+                 "%s: Failed to start NV Download", __func__);
      return VOS_STATUS_E_FAILURE;
   }
 
@@ -710,19 +709,19 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      if ( vStatus == VOS_STATUS_E_TIMEOUT )
      {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Timeout occurred before WDA_NVDownload_start complete\n",__func__);
+         "%s: Timeout occurred before WDA_NVDownload_start complete", __func__);
      }
      else
      {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: WDA_NVDownload_start reporting  other error \n",__func__);
+         "%s: WDA_NVDownload_start reporting other error", __func__);
      }
      VOS_ASSERT(0);
      goto err_wda_stop;   
   }
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-            "%s: WDA_NVDownload_start correctly started",__func__);
+            "%s: WDA_NVDownload_start correctly started", __func__);
 
   /* Start the WDA */
   vStatus = WDA_start(pVosContext);
@@ -747,12 +746,12 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   if ( !VOS_IS_STATUS_SUCCESS( vStatus ) )
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-             "%s: Failed to get firmware binary",__func__);
+             "%s: Failed to get firmware binary", __func__);
     return VOS_STATUS_E_FAILURE;
   }
 
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: Firmware binary file found",__func__);
+             "%s: Firmware binary file found", __func__);
    
 
   //Begining kernel 2.6.31, memory buffer returned by request_firmware API
@@ -782,7 +781,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 #endif 
   if (eSIR_SUCCESS != sirStatus)
   {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
               "%s: Failed to start MAC", __func__);
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
     return VOS_STATUS_E_FAILURE;
@@ -792,27 +791,27 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   }
    
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-            "%s: MAC correctly started",__func__);
+            "%s: MAC correctly started", __func__);
 
   /* START SME */
   vStatus = sme_Start(pVosContext->pMACContext);
 
   if (!VOS_IS_STATUS_SUCCESS(vStatus))
   {
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to start SME",__func__);
+    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Failed to start SME", __func__);
     goto err_mac_stop;
   }
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-            "%s: SME correctly started",__func__);
+            "%s: SME correctly started", __func__);
 
   /** START TL */
   vStatus = WLANTL_Start(pVosContext);
   if (!VOS_IS_STATUS_SUCCESS(vStatus))
   {
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to start TL",__func__);
+    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Failed to start TL", __func__);
     goto err_sme_stop;
   }
 
@@ -824,8 +823,8 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   if (vos_wait_single_event(&gpVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to start SYS module",__func__);
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Failed to start SYS module", __func__);
      goto err_tl_stop;
   }
 
@@ -850,12 +849,13 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
     if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, freq.freqFor1p3VSupply) != VOS_STATUS_SUCCESS)
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to set the freq %d for 1.3V Supply",__func__,freq.freqFor1p3VSupply );
+                   "%s: Failed to set the freq %d for 1.3V Supply",
+                   __func__, freq.freqFor1p3VSupply );
   }
 
 #endif
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: VOSS Start is successful!!",__func__);
+            "%s: VOSS Start is successful!!", __func__);
 
   return VOS_STATUS_SUCCESS;
 
@@ -879,14 +879,14 @@ err_wda_stop:
   {
      if( vStatus == VOS_STATUS_E_TIMEOUT )
      {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Timeout occurred before WDA_stop complete\n",__func__);
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: Timeout occurred before WDA_stop complete", __func__);
 
      }
      else
      {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: WDA_stop reporting  other error \n",__func__);
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: WDA_stop reporting other error", __func__);
      }
      VOS_ASSERT( 0 );
   }
@@ -907,7 +907,7 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to stop SYS",__func__);
+         "%s: Failed to stop SYS", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
@@ -915,7 +915,7 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to stop TL",__func__);
+         "%s: Failed to stop TL", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
@@ -927,7 +927,7 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to stop WDA",__func__);
+         "%s: Failed to stop WDA", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
@@ -938,12 +938,12 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      if ( vosStatus == VOS_STATUS_E_TIMEOUT )
      {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Timeout occurred before WDA complete\n",__func__);
+         "%s: Timeout occurred before WDA complete", __func__);
      }
      else
      {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: WDA_stop reporting  other error \n",__func__);
+         "%s: WDA_stop reporting other error", __func__);
      }
      VOS_ASSERT(0);
   }
@@ -959,7 +959,7 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
    */
    if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_1P6MH) != VOS_STATUS_SUCCESS)
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to set the freq to 1.6Mhz for 1.3V Supply",__func__ );
+               "%s: Failed to set the freq to 1.6Mhz for 1.3V Supply", __func__ );
 #endif
 
   return VOS_STATUS_SUCCESS;
@@ -976,7 +976,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close BAP",__func__);
+         "%s: Failed to close BAP", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 #endif // WLAN_BTAMP_FEATURE
@@ -986,7 +986,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close TL",__func__);
+         "%s: Failed to close TL", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
    
@@ -994,7 +994,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close SME",__func__);
+         "%s: Failed to close SME", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
@@ -1002,7 +1002,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close MAC",__func__);
+         "%s: Failed to close MAC", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
@@ -1012,7 +1012,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close NV",__func__);
+         "%s: Failed to close NV", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
@@ -1021,7 +1021,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close SYS",__func__);
+         "%s: Failed to close SYS", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
@@ -1030,7 +1030,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close WDA",__func__);
+         "%s: Failed to close WDA", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
   
@@ -1039,7 +1039,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close VOSS Packet",__func__);
+         "%s: Failed to close VOSS Packet", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 #endif
@@ -1049,7 +1049,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close VOSS Packet",__func__);
+         "%s: Failed to close VOSS Packet", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 #endif
@@ -1061,7 +1061,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: failed to destroy wdaCompleteEvent",__func__);
+         "%s: failed to destroy wdaCompleteEvent", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 #endif
@@ -1070,7 +1070,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: failed to destroy ProbeEvent",__func__);
+         "%s: failed to destroy ProbeEvent", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
@@ -1202,7 +1202,7 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
     default:
     {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,"%s: Module ID %i "
-          "does not have its context maintained by VOSS",__func__, moduleId);
+          "does not have its context maintained by VOSS", __func__, moduleId);
       VOS_ASSERT(0);
       return NULL;
     }
@@ -1211,7 +1211,7 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
   if (pModContext == NULL )
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,"%s: Module ID %i "
-          "context is Null",__func__, moduleId);
+          "context is Null", __func__, moduleId);
   }
 
   return pModContext;
@@ -1411,7 +1411,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
     default:
     {     
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Module ID %i "
-          "does not have its context allocated by VOSS",__func__, moduleID);
+          "does not have its context allocated by VOSS", __func__, moduleID);
       VOS_ASSERT(0);
       return VOS_STATUS_E_INVAL;
     }
@@ -1439,7 +1439,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   if ( *ppModuleContext == NULL)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,"%s: Failed to "
-        "allocate Context for module ID %i",__func__, moduleID);
+        "allocate Context for module ID %i", __func__, moduleID);
     VOS_ASSERT(0);
     return VOS_STATUS_E_NOMEM;
   }
@@ -1496,7 +1496,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
       ( pModuleContext == NULL))
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Null params or context mismatch",__func__);
+        "%s: Null params or context mismatch", __func__);
     return VOS_STATUS_E_FAILURE;
   }
   
@@ -1575,7 +1575,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
     ** Context has not been allocated or freed already!
     */
     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,"%s: Module ID %i "
-        "context has not been allocated or freed already",__func__,moduleID);
+        "context has not been allocated or freed already", __func__,moduleID);
     return VOS_STATUS_E_FAILURE;
   }
   
@@ -1641,7 +1641,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if ((gpVosContext == NULL) || (pMsg == NULL))
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Null params or global vos context is null",__func__);
+        "%s: Null params or global vos context is null", __func__);
     VOS_ASSERT(0);
     return VOS_STATUS_E_FAILURE;
   }
@@ -1712,7 +1712,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pTargetMq == NULL",__FUNCTION__);
+         "%s: pTargetMq == NULL", __FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   } 
 
@@ -1724,7 +1724,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (NULL == pMsgWrapper)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "%s: VOS Core run out of message wrapper",__func__);
+              "%s: VOS Core run out of message wrapper", __func__);
 
     return VOS_STATUS_E_RESOURCES;
   }
@@ -1789,7 +1789,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if ((gpVosContext == NULL) || (pMsg == NULL))
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Null params or global vos context is null",__func__);
+        "%s: Null params or global vos context is null", __func__);
     VOS_ASSERT(0);
     return VOS_STATUS_E_FAILURE;
   }
@@ -1838,7 +1838,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pTargetMq == NULL",__FUNCTION__);
+         "%s: pTargetMq == NULL", __FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   } 
     
@@ -1851,7 +1851,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (NULL == pMsgWrapper)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-              "%s: VOS Core run out of message wrapper",__func__);
+              "%s: VOS Core run out of message wrapper", __func__);
 
     return VOS_STATUS_E_RESOURCES;
   }
@@ -1916,7 +1916,7 @@ VOS_STATUS vos_rx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if ((gpVosContext == NULL) || (pMsg == NULL))
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Null params or global vos context is null",__func__);
+        "%s: Null params or global vos context is null", __func__);
     VOS_ASSERT(0);
     return VOS_STATUS_E_FAILURE;
   }
@@ -1949,7 +1949,7 @@ VOS_STATUS vos_rx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: pTargetMq == NULL",__FUNCTION__);
+         "%s: pTargetMq == NULL", __FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   }
 
@@ -1962,7 +1962,7 @@ VOS_STATUS vos_rx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (NULL == pMsgWrapper)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "%s: VOS Core run out of message wrapper",__func__);
+              "%s: VOS Core run out of message wrapper", __func__);
 
     return VOS_STATUS_E_RESOURCES;
   }
@@ -1992,7 +1992,7 @@ vos_sys_probe_thread_cback
   if (gpVosContext != pUserData)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%S: gpVosContext != pUserData",__FUNCTION__);
+         "%s: gpVosContext != pUserData", __FUNCTION__);
      return;
   } 
 
@@ -2015,7 +2015,7 @@ v_VOID_t vos_sys_start_complete_cback
   if (gpVosContext != pUserData)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: gpVosContext != pUserData",__FUNCTION__);
+         "%s: gpVosContext != pUserData", __FUNCTION__);
      return;
   } 
 
@@ -2037,7 +2037,7 @@ v_VOID_t vos_WDAComplete_cback
   if (gpVosContext != pUserData)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: gpVosContext != pUserData",__FUNCTION__);
+         "%s: gpVosContext != pUserData", __FUNCTION__);
      return;
   }
 
@@ -2064,7 +2064,7 @@ v_VOID_t vos_core_return_msg
   if (gpVosContext != pVosContext)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: gpVosContext != pVosContext",__FUNCTION__);
+         "%s: gpVosContext != pVosContext", __FUNCTION__);
      return;
   } 
 
@@ -2073,7 +2073,7 @@ v_VOID_t vos_core_return_msg
   if (pMsgWrapper == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pMsgWrapper == NULL in function",__FUNCTION__);
+         "%s: pMsgWrapper == NULL in function", __FUNCTION__);
      return;
   } 
   
@@ -2105,7 +2105,7 @@ vos_fetch_tl_cfg_parms
 {
   if (pTLConfig == NULL)
   {
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s NULL ptr passed in!\n",__FUNCTION__);
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s NULL ptr passed in!", __FUNCTION__);
    return;
   }
 
@@ -2133,14 +2133,14 @@ void vos_abort_mac_scan(void)
     /* Get the Global VOSS Context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
     if(!pVosContext) {
-       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Global VOS context is Null", __func__);
        return;
     }
     
     /* Get the HDD context */
     pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
     if(!pHddCtx) {
-       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HDD context is Null", __func__);
        return;
     }
 

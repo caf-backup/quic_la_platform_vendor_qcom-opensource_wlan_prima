@@ -644,7 +644,7 @@ v_U32_t btampUnpackTlvAMP_Assoc_MAC_Addr(void * pCtx, v_U8_t *pBuf, v_U16_t tlvl
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_MAC_ADDR_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
       /*Log invalid len*/
       VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __FUNCTION__); 
 #endif      
@@ -677,7 +677,7 @@ v_U32_t btampUnpackTlvAMP_Assoc_PAL_Capabilities(void * pCtx, v_U8_t *pBuf, v_U1
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_CAPABILITIES_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
       /*Log invalid len*/
       VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __FUNCTION__); 
 #endif      
@@ -711,7 +711,7 @@ v_U32_t btampUnpackTlvAMP_Assoc_PAL_Version(void * pCtx, v_U8_t *pBuf, v_U16_t t
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_VERSION_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
       /*Log invalid len*/
       VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __FUNCTION__); 
 #endif      
@@ -750,7 +750,7 @@ v_U32_t btampUnpackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx, v_U8_t *pBuf
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_AMP_ASSOC_PREF_CH_TLV_MIN_LEN > tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
       /*Log invalid len*/
       VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid TLV len on %s", __FUNCTION__); 
 #endif      
@@ -775,9 +775,9 @@ v_U32_t btampUnpackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx, v_U8_t *pBuf
         ((*pBuf + 1) != WLAN_BAP_PAL_REG_CLASS_VAL) &&
         ((*pBuf + 2) != WLAN_BAP_PAL_COVERAGE_CLASS_VAL))
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
         VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,"Invalid preferred channel list values on %s", __FUNCTION__); 
-#endif	
+#endif
         return BTAMP_BAD_FIXED_VALUE;
     }
     pBuf += 3;
@@ -821,7 +821,7 @@ v_U32_t btampUnpackTlvFlow_Spec(void * pCtx, v_U8_t *pBuf, v_U16_t tlvlen, tBtam
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_FLOW_SPEC_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING 
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1330,7 +1330,7 @@ v_U32_t btampUnpackTlvHCI_Create_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_U
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_CREATE_LOG_LINK_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1370,7 +1370,7 @@ v_U32_t btampUnpackTlvHCI_Create_Physical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_CREATE_PHY_LINK_TLV_MIN_LEN > tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING    
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1435,7 +1435,7 @@ v_U32_t btampUnpackTlvHCI_Disconnect_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf,
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_DISC_LOG_LINK_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1493,7 +1493,7 @@ v_U32_t btampUnpackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx, v_U8_t *pBuf
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_DISC_PHY_LINK_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1554,7 +1554,7 @@ v_U32_t btampUnpackTlvHCI_Flow_Spec_Modify_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_FLOW_SPEC_MOD_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1617,7 +1617,7 @@ v_U32_t btampUnpackTlvHCI_Flush_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_t tlvlen, t
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_FLUSH_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1708,7 +1708,7 @@ v_U32_t btampUnpackTlvHCI_Logical_Link_Cancel_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_CANCEL_LOG_LINK_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1859,7 +1859,7 @@ v_U32_t btampUnpackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(void * pCtx, v_U8_t
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_READ_BE_FLUSH_TIMEOUT_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1935,7 +1935,7 @@ v_U32_t btampUnpackTlvHCI_Read_Failed_Contact_Counter_Cmd(void * pCtx, v_U8_t *p
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_READ_FAILED_CONTACT_CNT_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -1983,7 +1983,7 @@ v_U32_t btampUnpackTlvHCI_Read_Link_Quality_Cmd(void * pCtx, v_U8_t *pBuf, v_U16
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_READ_LINK_QUALITY_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2017,7 +2017,7 @@ v_U32_t btampUnpackTlvHCI_Read_Link_Supervision_Timeout_Cmd(void * pCtx, v_U8_t 
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_READ_LINK_SVISISON_TIMEOUT_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2055,7 +2055,7 @@ v_U32_t btampUnpackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx, v_U8_t *pBuf, v_
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_READ_LOCAL_AMP_ASSOC_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2180,7 +2180,7 @@ v_U32_t btampUnpackTlvHCI_Read_RSSI_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_t tlvle
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_READ_RSSI_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2228,7 +2228,7 @@ v_U32_t btampUnpackTlvHCI_Reset_Failed_Contact_Counter_Cmd(void * pCtx, v_U8_t *
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_RESET_FAILED_CONTACT_CNT_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2262,7 +2262,7 @@ v_U32_t btampUnpackTlvHCI_Set_Event_Mask_Cmd(void * pCtx, v_U8_t *pBuf, v_U16_t 
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_SET_EVENT_MASK_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2300,7 +2300,7 @@ v_U32_t btampUnpackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx, v_U8_t *pBuf, v
 #ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_SET_EVENT_MASK2_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2335,7 +2335,7 @@ v_U32_t btampUnpackTlvHCI_Set_Short_Range_Mode_Cmd(void * pCtx, v_U8_t *pBuf, v_
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_SET_SHORT_RANGE_MODE_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2395,7 +2395,7 @@ v_U32_t btampUnpackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(void * pCtx, v_U8_
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_WRITE_BE_FLUSH_TIMEOUT_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2432,7 +2432,7 @@ v_U32_t btampUnpackTlvHCI_Write_Connection_Accept_Timeout_Cmd(void * pCtx, v_U8_
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_WRITE_CON_ACC_TIMEOUT_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2466,7 +2466,7 @@ v_U32_t btampUnpackTlvHCI_Write_Flow_Control_Mode_Cmd(void * pCtx, v_U8_t *pBuf,
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_WRITE_FLOW_CTRL_MODE_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2499,7 +2499,7 @@ v_U32_t btampUnpackTlvHCI_Write_Link_Supervision_Timeout_Cmd(void * pCtx, v_U8_t
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_WRITE_LINK_SVISION_TIMEOUT_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2536,7 +2536,7 @@ v_U32_t btampUnpackTlvHCI_Write_Location_Data_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_WRITE_LOCATION_DATA_CMD_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2576,7 +2576,7 @@ v_U32_t btampUnpackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(void * pCtx, v_U
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_WRITE_LOG_LINK_ACC_TIMEOUT_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2610,7 +2610,7 @@ v_U32_t btampUnpackTlvHCI_Write_Loopback_Mode_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_WRITE_LOOOPBACK_MODE_TLV_LEN != tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2644,7 +2644,7 @@ v_U32_t btampUnpackTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx, v_U8_t *pBuf, 
     -------------------------------------------------------------------------*/
     if ( WLAN_BAP_PAL_WRITE_REMOTE_AMP_ASSOC_MIN_TLV_LEN > tlvlen ) 
     {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
       /*Log invalid len*/
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
@@ -2695,7 +2695,7 @@ v_U32_t btampUnpackAMP_ASSOC(void * pCtx, v_U8_t *pBuf, v_U32_t nBuf, tBtampAMP_
     };
 
     v_U32_t status = 0;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampUnpackAMP_ASSOC. nBuf - %d\n", nBuf); 
 #endif    
@@ -2785,7 +2785,7 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
     status2 = BTAMP_PARSE_SUCCESS;
     pBufRemaining = pBuf;
     nBufRemaining = nBuf;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In UnpackTlvCore, nBufRemaining - %d\n", nBufRemaining); 
 #endif    
@@ -2803,10 +2803,10 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
         }
 
         npec = 0U;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
         VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
           "Calling FindTLVDefn...\n", nBufRemaining); 
-#endif	
+#endif
 
         // Look for a matching TLV definition,
         pTlv = FindTLVDefn( pCtx, pBufRemaining, nBufRemaining, TLVs );
@@ -2830,10 +2830,10 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
             npec = 3U;
             if ( 3 > nBufRemaining )
             {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 		    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
                 VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
                   "3 > nBufRemaining\n"); 
-#endif		
+#endif
 
                 FRAMES_LOG2(pCtx, FRLOGW, FRFL("TLV %d reports length"
                     "%d, but it has a Private Enterprise Code (3 byte"
@@ -2850,10 +2850,10 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
             nBufRemaining -= 3;
             len           -= 3;
         }
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
         VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
           "Len - %d nBufRemaining - %d\n", len, nBufRemaining); 
-#endif	
+#endif
 
         // Whether we found a hit or not, we can validate the reported
         // length of this TLV:
@@ -2900,10 +2900,10 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
             }
             else
             {
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 		    
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
                 VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
                   "pTlv->sig - %d\n", pTlv->sig); 
-#endif		
+#endif
 
                 switch (pTlv->sig)
                 {
@@ -3101,10 +3101,10 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
             } // End if on length check.
 
             status |= status2;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
             VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
               "status - %x\n", status); 
-#endif	    
+#endif
         }
         else
         {
@@ -3116,10 +3116,10 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
 
         // Advance to the next TLV
         pBufRemaining += len;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
         VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
           "len - %d nBufRemaining - %d\n", len, nBufRemaining); 
-#endif	
+#endif
 
         if (len > nBufRemaining)
          {
@@ -3138,7 +3138,7 @@ static v_U32_t UnpackTlvCore( void *   pCtx,
 
 MandatoryCheck:
     pTlv = &TLVs[0];
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "pTlv->id - %x\n", pTlv->id); 
 #endif    
@@ -3168,7 +3168,7 @@ v_U32_t btampGetPackedTlvAMP_Assoc_Connected_Channel(void * pCtx, tBtampTLVAMP_A
 {
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     (void)pCtx; (void)pTlv; (void)pnNeeded;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampGetPackedTlvAMP_Assoc_Connected_Channel\n"); 
 #endif    
@@ -3193,7 +3193,7 @@ v_U32_t btampGetPackedTlvAMP_Assoc_MAC_Addr(void * pCtx, tBtampTLVAMP_Assoc_MAC_
 {
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     (void)pCtx; (void)pTlv; (void)pnNeeded;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampGetPackedTlvAMP_Assoc_MAC_Addr\n"); 
 #endif    
@@ -3213,7 +3213,7 @@ v_U32_t btampGetPackedTlvAMP_Assoc_PAL_Capabilities(void * pCtx, tBtampTLVAMP_As
 {
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     (void)pCtx; (void)pTlv; (void)pnNeeded;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampGetPackedTlvAMP_Assoc_PAL_Capabilities\n"); 
 #endif    
@@ -3250,7 +3250,7 @@ v_U32_t btampGetPackedTlvAMP_Assoc_Preferred_Channel_List(void * pCtx, tBtampTLV
 {
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     (void)pCtx; (void)pTlv; (void)pnNeeded;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampGetPackedTlvAMP_Assoc_Preferred_Channel_List\n"); 
 #endif    
@@ -4304,7 +4304,7 @@ v_U32_t btampGetPackedTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx, tBtampTLVHC
 {
     v_U32_t status = BTAMP_PARSE_SUCCESS;
     (void)pCtx; (void)pTlv; (void)pnNeeded;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampGetPackedTlvHCI_Write_Remote_AMP_ASSOC_Cmd\n"); 
 #endif    
@@ -4336,7 +4336,7 @@ v_U32_t btampGetPackedAMP_ASSOCSize(void * pCtx, tBtampAMP_ASSOC *pFrm, v_U32_t 
 
     v_U32_t status = 0;
     *pnNeeded = 0;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampGetPackedAMP_ASSOCSize\n"); 
 #endif    
@@ -4356,7 +4356,7 @@ static v_U32_t GetPackedSizeTlvCore(void * pCtx,
 
     status = BTAMP_PARSE_SUCCESS;
     status2 = BTAMP_PARSE_SUCCESS;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In GetPackedSizeTlvCore\n"); 
 #endif    
@@ -4370,10 +4370,10 @@ static v_U32_t GetPackedSizeTlvCore(void * pCtx,
         {
             *pnNeeded += 4U;
             if ( pTlv->pec ) *pnNeeded += 3U;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
             VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
               "In GetPackedSizeTlvCore, pTlv->sig - %d\n", pTlv->sig); 
-#endif	    
+#endif
 
             switch (pTlv->sig)
             {
@@ -4646,7 +4646,7 @@ v_U32_t btampPackTlvAMP_Assoc_Connected_Channel(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 2;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_Connected_Channel\n"); 
 #endif    
@@ -4668,7 +4668,7 @@ v_U32_t btampPackTlvAMP_Assoc_Connected_Channel(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3, 0);
-		else *pBuf = 3;
+        else *pBuf = 3;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -4714,7 +4714,7 @@ v_U32_t btampPackTlvAMP_Assoc_MAC_Addr(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 2;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_MAC_Addr\n"); 
 #endif    
@@ -4736,7 +4736,7 @@ v_U32_t btampPackTlvAMP_Assoc_MAC_Addr(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1, 0);
-		else *pBuf = 1;
+        else *pBuf = 1;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -4774,7 +4774,7 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Capabilities(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 2;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_PAL_Capabilities\n"); 
 #endif    
@@ -4796,7 +4796,7 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Capabilities(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4, 0);
-		else *pBuf = 4;
+        else *pBuf = 4;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -4834,7 +4834,7 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Version(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 2;
-#ifdef WLAN_BAPHCI_ENABLE_LOGGING	 
+#ifdef WLAN_BAPHCI_ENABLE_LOGGING
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_PAL_Version\n"); 
 #endif    
@@ -4856,7 +4856,7 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Version(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5, 0);
-		else *pBuf = 5;
+        else *pBuf = 5;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -4924,7 +4924,7 @@ v_U32_t btampPackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 2, 0);
-		else *pBuf = 2;
+        else *pBuf = 2;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -4987,7 +4987,7 @@ v_U32_t btampPackTlvFlow_Spec(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 6, 0);
-		else *pBuf = 6;
+        else *pBuf = 6;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5192,7 +5192,7 @@ v_U32_t btampPackTlvHCI_Channel_Selected_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 65, 0);
-		else *pBuf = 65;
+        else *pBuf = 65;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5248,7 +5248,7 @@ v_U32_t btampPackTlvHCI_Command_Complete_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 14, 0);
-		else *pBuf = 14;
+        else *pBuf = 14;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5688,7 +5688,7 @@ v_U32_t btampPackTlvHCI_Command_Status_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 15, 0);
-		else *pBuf = 15;
+        else *pBuf = 15;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5879,7 +5879,7 @@ v_U32_t btampPackTlvHCI_Data_Buffer_Overflow_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 26, 0);
-		else *pBuf = 26;
+        else *pBuf = 26;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5988,7 +5988,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Complete_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 70, 0);
-		else *pBuf = 70;
+        else *pBuf = 70;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6109,7 +6109,7 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Complete_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 66, 0);
-		else *pBuf = 66;
+        else *pBuf = 66;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6238,7 +6238,7 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Complete_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 71, 0);
-		else *pBuf = 71;
+        else *pBuf = 71;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6351,7 +6351,7 @@ v_U32_t btampPackTlvHCI_Flush_Occurred_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 17, 0);
-		else *pBuf = 17;
+        else *pBuf = 17;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6405,7 +6405,7 @@ v_U32_t btampPackTlvHCI_Num_Completed_Pkts_Event(void * pCtx,
 //    while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 19, 0);
-		else *pBuf = 19;
+        else *pBuf = 19;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6496,7 +6496,7 @@ v_U32_t btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 62, 0);
-		else *pBuf = 62;
+        else *pBuf = 62;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6559,7 +6559,7 @@ v_U32_t btampPackTlvHCI_Hardware_Error_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 16, 0);
-		else *pBuf = 16;
+        else *pBuf = 16;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6672,7 +6672,7 @@ v_U32_t btampPackTlvHCI_Logical_Link_Complete_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 69, 0);
-		else *pBuf = 69;
+        else *pBuf = 69;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6739,7 +6739,7 @@ v_U32_t btampPackTlvHCI_Loopback_Command_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 25, 0);
-		else *pBuf = 25;
+        else *pBuf = 25;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6794,7 +6794,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Complete_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 64, 0);
-		else *pBuf = 64;
+        else *pBuf = 64;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6853,7 +6853,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Loss_Warning_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 67, 0);
-		else *pBuf = 67;
+        else *pBuf = 67;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6912,7 +6912,7 @@ v_U32_t btampPackTlvHCI_Physical_Link_Recovery_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 68, 0);
-		else *pBuf = 68;
+        else *pBuf = 68;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6967,7 +6967,7 @@ v_U32_t btampPackTlvHCI_Qos_Violation_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 30, 0);
-		else *pBuf = 30;
+        else *pBuf = 30;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -8124,7 +8124,7 @@ v_U32_t btampPackTlvHCI_Short_Range_Mode_Change_Complete_Event(void * pCtx,
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 76, 0);
-		else *pBuf = 76;
+        else *pBuf = 76;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;

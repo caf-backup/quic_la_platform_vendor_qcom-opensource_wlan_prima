@@ -82,11 +82,11 @@ static VOS_STATUS bapRsnAcquirePacket( vos_pkt_t **ppPacket, v_U8_t **ppData, v_
 
 static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS_STATUS retStatus )
 {
-	int retVal;
-	ptBtampContext btampContext; // use btampContext value  
+    int retVal;
+    ptBtampContext btampContext; // use btampContext value  
     tCsrRoamSetKey setKeyInfo;
-	tSuppRsnFsm *fsm;
-	
+    tSuppRsnFsm *fsm;
+
     if (NULL == pvosGCtx) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -95,7 +95,7 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
         return VOS_STATUS_E_FAULT;
     }
 
-	btampContext = VOS_GET_BAP_CB(pvosGCtx); 
+    btampContext = VOS_GET_BAP_CB(pvosGCtx); 
     if (NULL == btampContext) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -104,7 +104,7 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
         return VOS_STATUS_E_FAULT;
     }
 
-	fsm = &btampContext->uFsm.suppFsm;
+    fsm = &btampContext->uFsm.suppFsm;
     if (NULL == fsm) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -133,24 +133,24 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
     /*
     We will move the Set key to EAPOL Completion handler. We found a race condition betweem
     sending EAPOL frame and setting Key */
-	if (BAP_SET_RSN_KEY == gReadToSetKey) {	
-		vos_mem_zero( &setKeyInfo, sizeof( tCsrRoamSetKey ) );
-		setKeyInfo.encType = eCSR_ENCRYPT_TYPE_AES;
-		setKeyInfo.keyDirection = eSIR_TX_RX;
-		vos_mem_copy( setKeyInfo.peerMac, fsm->suppCtx->authMac, sizeof( tAniMacAddr ) );
-		setKeyInfo.paeRole = 0; //this is a supplicant
-		setKeyInfo.keyId = 0;   //always
-		setKeyInfo.keyLength = CSR_AES_KEY_LEN; 
-		vos_mem_copy( setKeyInfo.Key, (v_U8_t *)fsm->suppCtx->ptk + (2 * CSR_AES_KEY_LEN ), CSR_AES_KEY_LEN );
-    		
-		if( !VOS_IS_STATUS_SUCCESS( bapSetKey( fsm->ctx->pvosGCtx, &setKeyInfo ) ) )
-		{
-			VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, " Supp: gotoStateStaKeySet fail to set key\n" );
-			retVal = ANI_ERROR;
-		}
-		gReadToSetKey = BAP_RESET_RSN_KEY;
-	}
-	
+    if (BAP_SET_RSN_KEY == gReadToSetKey) {
+        vos_mem_zero( &setKeyInfo, sizeof( tCsrRoamSetKey ) );
+        setKeyInfo.encType = eCSR_ENCRYPT_TYPE_AES;
+        setKeyInfo.keyDirection = eSIR_TX_RX;
+        vos_mem_copy( setKeyInfo.peerMac, fsm->suppCtx->authMac, sizeof( tAniMacAddr ) );
+        setKeyInfo.paeRole = 0; //this is a supplicant
+        setKeyInfo.keyId = 0;   //always
+        setKeyInfo.keyLength = CSR_AES_KEY_LEN; 
+        vos_mem_copy( setKeyInfo.Key, (v_U8_t *)fsm->suppCtx->ptk + (2 * CSR_AES_KEY_LEN ), CSR_AES_KEY_LEN );
+
+        if( !VOS_IS_STATUS_SUCCESS( bapSetKey( fsm->ctx->pvosGCtx, &setKeyInfo ) ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, " Supp: gotoStateStaKeySet fail to set key\n" );
+            retVal = ANI_ERROR;
+        }
+        gReadToSetKey = BAP_RESET_RSN_KEY;
+    }
+
     return (VOS_STATUS_SUCCESS );
 }
 

@@ -20,8 +20,8 @@
 #define AES_BLOCK_SIZE 16 // Bytes
 
 typedef union uAniU32ValAry{
-	tANI_U32 val;
-	char ary[sizeof(tANI_U32)];
+    tANI_U32 val;
+    char ary[sizeof(tANI_U32)];
 } tAniU32ValAry;
 
 /**

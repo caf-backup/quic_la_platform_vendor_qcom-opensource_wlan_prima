@@ -699,7 +699,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 
                if((psessionEntry = peFindSessionByPeerSta(pMac,pHdr->sa,&sessionId))== NULL) 
                {
-                  limLog(pMac, LOGE, FL("session does not exist for given bssId\n"));
+                  limLog(pMac, LOGW, FL("session does not exist for given bssId\n"));
                   limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
                   return;
                }

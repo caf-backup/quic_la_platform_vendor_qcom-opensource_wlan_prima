@@ -645,9 +645,6 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     PELOG3(limLog( pMac, LOG3, FL("Sending Probe Response frame to ") );
     limPrintMacAddr( pMac, peerMacAddr, LOG3 );)
 
-    PELOGE(limLog( pMac, LOGE, FL("Sending Probe Response frame to ") );
-    limPrintMacAddr( pMac, peerMacAddr, LOGE );)
-
     pMac->sys.probeRespond++;
 
 #ifdef WLAN_FEATURE_P2P
@@ -1426,15 +1423,16 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     if (subType == LIM_ASSOC)
     {
-        PELOGE(limLog(pMac, LOGE,
-              FL("*** Sending Assoc Resp status %d aid %d to "),statusCode, aid);)
+        PELOG1(limLog(pMac, LOG1,
+               FL("*** Sending Assoc Resp status %d aid %d to "),
+               statusCode, aid);)
     }    
     else{
-        PELOGE(limLog(pMac, LOGE,
+        PELOG1(limLog(pMac, LOG1,
                FL("*** Sending ReAssoc Resp status %d aid %d to "),
                statusCode, aid);)
-        PELOGE(limPrintMacAddr(pMac, pMacHdr->da, LOGE);)
     }
+    PELOG1(limPrintMacAddr(pMac, pMacHdr->da, LOG1);)
 
     if( ( SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel))
 #ifdef WLAN_FEATURE_P2P
@@ -2092,7 +2090,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
         if( (psessionEntry->pLimJoinReq != NULL) && (!psessionEntry->pLimJoinReq->bssDescription.aniIndicator))
             {
-                limLog( pMac, LOGE, FL("Sending Assoc Req to Non-TQ AP, Turning off Greenfield"));
+                limLog( pMac, LOG1, FL("Sending Assoc Req to Non-TQ AP, Turning off Greenfield"));
                 frm.HTCaps.greenField = WNI_CFG_GREENFIELD_CAPABILITY_DISABLE;
             }
 #endif
@@ -2292,7 +2290,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
         return;
     }
     
-    limLog( pMac, LOGE, FL("limSendReassocReqWithFTIEsMgmtFrame received in " 
+    limLog( pMac, LOG1, FL("limSendReassocReqWithFTIEsMgmtFrame received in " 
                            "state (%d).\n"), psessionEntry->limMlmState);
 
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
@@ -2464,7 +2462,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
                                "e-Association Request (0x%08x).\n") );
     }
 
-    PELOGE(limLog( pMac, LOGE, 
+    PELOG1(limLog( pMac, LOG1, 
             FL("*** Sending Re-Association Request length %d %d to \n"),
             nBytes, nPayload );)
     if (ft_ies_length) 
@@ -2481,7 +2479,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
     PELOGE(limLog(pMac, LOGE, FL("Re-assoc Req Frame is: "));
-                sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE,
+    sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE,
                             (tANI_U8 *)pFrame,
                             (nBytes + ft_ies_length));)
 #endif
@@ -2891,11 +2889,11 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
                     if (pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies) 
                     {
                         frameLen += pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length;
-                        limLog(pMac, LOGE, FL("Auth frame, FTIES length added=%d\n"), 
+                        limLog(pMac, LOG3, FL("Auth frame, FTIES length added=%d\n"), 
                         pMac->ft.ftPEContext.pFTPreAuthReq->ft_ies_length);
                     }
                     else 
-                        limLog(pMac, LOGE, FL("Auth frame, Does not contain FTIES!!!\n"));
+                        limLog(pMac, LOG3, FL("Auth frame, Does not contain FTIES!!!\n"));
                 }
 #endif
                 break;

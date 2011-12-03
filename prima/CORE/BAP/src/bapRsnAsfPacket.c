@@ -662,7 +662,7 @@ aniAsfPacketGet32(tAniPacket *packet, v_U32_t *val)
 int
 aniAsfPacketAppend32(tAniPacket *packet, v_U32_t val)
 {
-	v_U8_t *p8;
+    v_U8_t *p8;
 
     if (packet == NULL)
         return ANI_E_NULL_VALUE;
@@ -671,7 +671,7 @@ aniAsfPacketAppend32(tAniPacket *packet, v_U32_t val)
         return ANI_E_FAILED;
 
     val = vos_cpu_to_be32( val );
-	p8 = (v_U8_t *)&val;
+    p8 = (v_U8_t *)&val;
     packet->tail[0] =  p8[0];
     packet->tail[1] =  p8[1];
     packet->tail[2] =  p8[2];
@@ -731,7 +731,7 @@ aniAsfPacketGet16(tAniPacket *packet, v_U16_t *val)
 int
 aniAsfPacketPrepend16(tAniPacket *packet, v_U16_t val)
 {
-	v_U8_t *p8;
+    v_U8_t *p8;
 
     if (packet == NULL)
         return ANI_E_NULL_VALUE;
@@ -741,7 +741,7 @@ aniAsfPacketPrepend16(tAniPacket *packet, v_U16_t val)
 
     aniAsfPacketMoveLeft(packet, 2);
     val = vos_cpu_to_be16( val );
-	p8 = (v_U8_t *)&val;
+    p8 = (v_U8_t *)&val;
     packet->head[0] =  p8[0];
     packet->head[1] =  p8[1];
 
@@ -763,7 +763,7 @@ aniAsfPacketPrepend16(tAniPacket *packet, v_U16_t val)
 int
 aniAsfPacketAppend16(tAniPacket *packet, v_U16_t val)
 {
-	v_U8_t *p8;
+    v_U8_t *p8;
 
     if (packet == NULL)
         return ANI_E_NULL_VALUE;
@@ -772,7 +772,7 @@ aniAsfPacketAppend16(tAniPacket *packet, v_U16_t val)
         return ANI_E_FAILED;
 
     val = vos_cpu_to_be16( val );
-	p8 = (v_U8_t *)&val;
+    p8 = (v_U8_t *)&val;
     packet->tail[0] =  p8[0];
     packet->tail[1] =  p8[1];
     aniAsfPacketMoveRight(packet, 2);

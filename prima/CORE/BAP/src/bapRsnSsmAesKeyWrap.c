@@ -334,15 +334,15 @@ aes_1(v_U32_t cryptHandle, tANI_U8 *keyBytes, tANI_U32 keyLen,
  */
 static inline char *aniAsfWr32(char *cp, tANI_U32 x)
 {
-	tAniU32ValAry r;
-	int i;
+    tAniU32ValAry r;
+    int i;
 
-	r.val = vos_cpu_to_be32(x);
-	i = sizeof(tANI_U32) - 1;
-	cp[3] = r.ary[i--];
-	cp[2] = r.ary[i--];
-	cp[1] = r.ary[i--];
-	cp[0] = r.ary[i];
+    r.val = vos_cpu_to_be32(x);
+    i = sizeof(tANI_U32) - 1;
+    cp[3] = r.ary[i--];
+    cp[2] = r.ary[i--];
+    cp[1] = r.ary[i--];
+    cp[0] = r.ary[i];
 
     return (cp + sizeof(tANI_U32));
 }
@@ -355,7 +355,7 @@ static inline char *aniAsfWr32(char *cp, tANI_U32 x)
  */
 char *aniAsfPut32(char *cp, tANI_U32 x)
 {
-	return(aniAsfWr32(cp, x));
+    return(aniAsfWr32(cp, x));
 }
 
 

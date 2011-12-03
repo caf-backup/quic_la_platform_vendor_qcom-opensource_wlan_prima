@@ -173,7 +173,7 @@ addEapolHeaders(tAniPacket *packet,
         retVal = aniAsfPacketPrependBuffer(packet, ANI_ETH_P_EAPOL_BYTES, 2);
         if( !ANI_IS_STATUS_SUCCESS( retVal ) ) break;
 
-		//Since TL expects SNAP header in all packets we send, put it in
+        //Since TL expects SNAP header in all packets we send, put it in
         retVal = aniAsfPacketPrependBuffer(packet, BAP_RSN_LLC_HEADER, sizeof(BAP_RSN_LLC_HEADER));
         if( !ANI_IS_STATUS_SUCCESS( retVal ) ) break;
 

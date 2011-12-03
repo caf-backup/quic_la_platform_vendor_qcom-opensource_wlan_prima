@@ -105,8 +105,8 @@
 
 #define WDA_WDI_START_TIMEOUT 5000
 
-#define WDA_LAST_POLLED_THRESHOLD(a, tid) \
-   ((a)->framesTxed[tid] + WDA_BA_TX_FRM_THRESHOLD)
+#define WDA_LAST_POLLED_THRESHOLD(a, curSta, tid) \
+   ((a)->wdaStaInfo[curSta].framesTxed[tid] + WDA_BA_TX_FRM_THRESHOLD)
 
 #define WDA_BA_MAX_WINSIZE   (64)
 
@@ -3119,11 +3119,11 @@ void WDA_DelBSSReqCallback(WDI_DelBSSRspParamsType *wdiDelBssRsp,
    {
       pWDA->wdaStaInfo[staIdx].ucValidStaIndex = WDA_INVALID_STA_INDEX;
       pWDA->wdaStaInfo[staIdx].ucUseBaBitmap = 0;
-   }
-   /* Reset framesTxed counters here */
-   for(tid = 0; tid < STACFG_MAX_TC; tid++)
-   {
-      pWDA->framesTxed[tid] = 0;
+      /* Reset framesTxed counters here */
+      for(tid = 0; tid < STACFG_MAX_TC; tid++)
+      {
+         pWDA->wdaStaInfo[staIdx].framesTxed[tid] = 0;
+      } 
    }
 
    WDA_SendMsg(pWDA, WDA_DELETE_BSS_RSP, (void *)delBssReqParam , 0) ;
@@ -10090,10 +10090,12 @@ void WDA_BaCheckActivity(tWDA_CbContext *pWDA)
                                                     curSta, tid, &txPktCount)))
          {
             VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_LOW,
-             "************* :%d, %d ",txPktCount,pWDA->framesTxed[tid]);
+             "************* %d:%d, %d ",curSta, txPktCount,
+                                    pWDA->wdaStaInfo[curSta].framesTxed[tid]);
 
             if(!WDA_GET_BA_TXFLAG(pWDA, curSta, tid) 
-                      && (txPktCount >= WDA_LAST_POLLED_THRESHOLD(pWDA, tid)))
+                   && (txPktCount >= WDA_LAST_POLLED_THRESHOLD(pWDA, 
+                                                               curSta, tid)))
             {
                /* get prepare for sending message to HAL */
                //baCandidate[baCandidateCount].staIdx = curSta ;
@@ -10101,7 +10103,7 @@ void WDA_BaCheckActivity(tWDA_CbContext *pWDA)
                WDA_SET_BA_TXFLAG(pWDA, curSta, tid) ;
                newBaCandidate = WDA_ENABLE_BA ;
             }
-            pWDA->framesTxed[tid] = txPktCount ;
+            pWDA->wdaStaInfo[curSta].framesTxed[tid] = txPktCount ;
          }
       }
 

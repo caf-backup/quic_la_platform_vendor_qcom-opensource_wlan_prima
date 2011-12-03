@@ -762,10 +762,10 @@ WLANBAP_STARxCB
     {
         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                  "WLANBAP_STARxCB:Cannot extract LLC header");
-	    /* Drop packet */
+        /* Drop packet */
         vos_pkt_return_packet(vosDataBuff);
         return VOS_STATUS_E_FAULT;
-    }	
+    }
     
     vos_mem_copy(&protoType,&aucLLCHeader[WLANBAP_LLC_PROTO_TYPE_OFFSET],WLANBAP_LLC_PROTO_TYPE_SIZE);
     protoType = vos_be16_to_cpu(protoType);
@@ -778,9 +778,9 @@ WLANBAP_STARxCB
     {
         if (bapContext->bapLinkSupervisionTimerInterval)
         {
-       	    /* Reset Link Supervision timer */
+            /* Reset Link Supervision timer */
             //vosStatus = WLANBAP_StopLinkSupervisionTimer(bapContext); 
-            //vosStatus = WLANBAP_StartLinkSupervisionTimer(bapContext,7000);  	    
+            //vosStatus = WLANBAP_StartLinkSupervisionTimer(bapContext,7000);
             bapContext->dataPktPending = VOS_TRUE;//Indication for LinkSupervision module that data is pending 
             /* Invoke the callback that BSL registered with me */ 
             vosStatus = (*bapContext->pfnBtamp_STARxCB)( 
@@ -795,19 +795,19 @@ WLANBAP_STARxCB
             /* Drop packet */
             vos_pkt_return_packet(vosDataBuff);
         }
-    }	
+    }
     else
     {
           VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                 "%s: link Supervision packet received over TL: %d, => BAP",
                      __FUNCTION__,protoType);
-	   btampHandle = (ptBtampHandle)bapContext; 
-           vosStatus = WLANBAP_RxProcLsPkt(
-		        btampHandle,
-	                bapContext->phy_link_handle,
-			protoType,
+          btampHandle = (ptBtampHandle)bapContext; 
+          vosStatus = WLANBAP_RxProcLsPkt(
+                        btampHandle,
+                        bapContext->phy_link_handle,
+                        protoType,
                         vosDataBuff
-			);
+                        );
     }  
 
     return vosStatus;
