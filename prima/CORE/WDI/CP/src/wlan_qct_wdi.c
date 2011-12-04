@@ -5509,7 +5509,8 @@ WDI_MainReqBusy
      Check if the Control Transport has been opened 
   ----------------------------------------------------------------------*/
   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-           "WDI Busy state - queue request");
+           "WDI Busy state - queue request %d because waiting for response %d",
+             pEventData->wdiRequest, pWDICtx->wdiExpectedResponse);
 
   WDI_QueuePendingReq( pWDICtx, pEventData); 
   return WDI_STATUS_PENDING;
@@ -9228,7 +9229,7 @@ WDI_ProcessHostSuspendInd
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
-  Sanity check 
+     Sanity check 
   -------------------------------------------------------------------------*/
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ))
   {
@@ -9258,12 +9259,18 @@ WDI_ProcessHostSuspendInd
   halWlanSuspendIndparams.configuredMcstBcstFilterSetting =
        pSuspendIndParams->wdiSuspendParams.ucConfiguredMcstBcstFilterSetting;
 
+  halWlanSuspendIndparams.activeSessionCount = 
+       WDI_GetActiveSessionsCount(pWDICtx);
+
   wpalMemoryCopy( pSendBuffer+usDataOffset, &halWlanSuspendIndparams, 
                                          sizeof(tHalWlanHostSuspendIndParam)); 
 
   /*-------------------------------------------------------------------------
-    Send Start Request to HAL 
+    Send Suspend Request to HAL 
   -------------------------------------------------------------------------*/
+  pWDICtx->wdiReqStatusCB     = pSuspendIndParams->wdiReqStatusCB;
+  pWDICtx->pReqStatusUserData = pSuspendIndParams->pUserData; 
+
   wdiStatus = WDI_SendIndication( pWDICtx, pSendBuffer, usSendSize); 
   return  ( wdiStatus != WDI_STATUS_SUCCESS )?wdiStatus:WDI_STATUS_SUCCESS_SYNC;
 }/*WDI_ProcessHostSuspendInd*/
@@ -18591,6 +18598,39 @@ WDI_FindEmptySession
 
 
 /**
+ @brief Helper routine used to get the total count of active 
+        sessions
+  
+ 
+ @param  pWDICtx:       pointer to the WLAN DAL context 
+  
+ @see
+ @return Number of sessions in use
+*/
+wpt_uint8
+WDI_GetActiveSessionsCount
+( 
+  WDI_ControlBlockType*   pWDICtx
+)
+{
+  wpt_uint8 i, ucCount = 0; 
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+  
+  /*------------------------------------------------------------------------ 
+      Count all sessions in use
+    ------------------------------------------------------------------------*/
+  for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
+  {
+     if ( pWDICtx->aBSSSessions[i].bInUse )
+     {
+       ucCount++;
+     }
+  }
+
+  return ucCount; 
+}/*WDI_GetActiveSessionsCount*/
+
+/**
  @brief Helper routine used to delete session in the WDI 
         CB
   
@@ -18627,7 +18667,7 @@ WDI_DeleteSession
   ppSession->bInUse        = eWLAN_PAL_FALSE; 
   wpal_list_init(&ppSession->wptPendingQueue);
 
-}/*WDI_FindEmptySession*/
+}/*WDI_DeleteSession*/
 
 /**
  @brief    Utility function to add the broadcast STA to the the STA table. 

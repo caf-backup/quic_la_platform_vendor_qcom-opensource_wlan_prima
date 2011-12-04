@@ -2788,6 +2788,11 @@ int hdd_wlan_startup(struct device *dev )
 
 #endif //WLAN_BTAMP_FEATURE
  
+#ifdef FEATURE_WLAN_SCAN_PNO
+   /*SME must send channel update configuration to RIVA*/
+   sme_UpdateChannelConfig(pHddCtx->hHal); 
+#endif
+ 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    /* Register with platform driver as client for Suspend/Resume */
    status = hddRegisterPmOps(pHddCtx);
@@ -2861,10 +2866,6 @@ int hdd_wlan_startup(struct device *dev )
    }
 #endif
 
-#ifdef FEATURE_WLAN_SCAN_PNO
-   /*SME must send channel update configuration to RIVA*/
-   sme_UpdateChannelConfig(pHddCtx->hHal); 
-#endif
 
    //Scanning only for station mode.
    //TODO if initial scan is required on AP mode, need to remove this condition.

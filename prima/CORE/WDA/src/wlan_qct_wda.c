@@ -7117,18 +7117,9 @@ VOS_STATUS WDA_ProcessConfigureRxpFilterReq(tWDA_CbContext *pWDA,
 void WDA_WdiIndicationCallback( WDI_Status   wdiStatus,
                                 void*        pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   VOS_STATUS vosStatus;
-
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vosStatus = vos_event_set(&pWDA->waitOnWdiIndicationCallBack);
-   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                      "NEW VOS Event Set failed - status = %d \n", vosStatus);
-   }
 }
 
 /*
@@ -7155,28 +7146,9 @@ VOS_STATUS WDA_ProcessWlanSuspendInd(tWDA_CbContext *pWDA,
    wdiStatus = WDI_HostSuspendInd(&wdiSuspendParams);
    if(WDI_STATUS_PENDING == wdiStatus)
    {
-      VOS_STATUS status;
-      tANI_U8 eventIdx = 0;
-      /* wait for the call back gets called */
-      /* Reset the event to be not signalled */
-      status = vos_event_reset(&pWDA->waitOnWdiIndicationCallBack);
-      if(!VOS_IS_STATUS_SUCCESS(status))
-      {
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                               "VOS Event reset failed - status = %d\n",status);
-         vos_mem_free(pWlanSuspendParam);
-         return VOS_STATUS_E_FAILURE;
-      }
-      status = vos_wait_events(&pWDA->waitOnWdiIndicationCallBack, 1, 
-                                      1000, &eventIdx);
-      if(!VOS_IS_STATUS_SUCCESS(status))
-      {
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                    "%s: Status %d when waiting for WDI Indication Callback",
-                    __FUNCTION__, status);
-         vos_mem_free(pWlanSuspendParam);
-         return status;
-      }
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+              "Pending received for %s:%d ",__FUNCTION__,__LINE__ );
+
    }
    else if( WDI_STATUS_SUCCESS_SYNC != wdiStatus )
    {
