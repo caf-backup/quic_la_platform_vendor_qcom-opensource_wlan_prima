@@ -1,12 +1,12 @@
 /**=========================================================================
- *     
+ *
  *       \file  wlan_qct_dti_bd.c
- *          
+ *
  *       \brief Datapath utilities file.
- *                               
+ *
  * WLAN Device Abstraction layer External API for Dataservice
  * DESCRIPTION
- *  This file contains the external API implemntation exposed by the 
+ *  This file contains the external API implemntation exposed by the
  *   wlan device abstarction layer module.
  *
  *   Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
@@ -35,7 +35,7 @@
  PARAMETERS
 
  IN
-palPacket:     PAL packet pointer 
+palPacket:     PAL packet pointer
 
 
 RETURN VALUE
@@ -45,8 +45,8 @@ SIDE EFFECTS
 
 ============================================================================*/
 void
-WDI_DS_PrepareBDHeader (wpt_packet* palPacket, 
-	wpt_uint8 ucDisableHWFrmXtl, wpt_uint8 alignment)
+WDI_DS_PrepareBDHeader (wpt_packet* palPacket,
+                        wpt_uint8 ucDisableHWFrmXtl, wpt_uint8 alignment)
 {
   void*          pvBDHeader;
   wpt_uint8      ucHeaderOffset;
@@ -95,15 +95,15 @@ WDI_DS_PrepareBDHeader (wpt_packet* palPacket,
 
   // pkt length from PAL API. Need to change in case of HW FT used
   ucPktLen  = wpalPacketGetLength( palPacket ); // This includes BD length
-  /** This is the length (in number of bytes) of the entire MPDU 
+  /** This is the length (in number of bytes) of the entire MPDU
       (header and data). Note that the length INCLUDES FCS field. */
   ucMpduLen = ucPktLen - WPAL_PACKET_GET_BD_LENGTH( palPacket );
   WDI_TX_BD_SET_MPDU_LEN( pvBDHeader, ucMpduLen );
 
   DTI_TRACE(  DTI_TRACE_LEVEL_INFO,
       "WLAN DTI: VALUES ARE HLen=%x Hoff=%x doff=%x len=%x ex=%d",
-      ucHeaderLen, ucHeaderOffset, 
-      (ucHeaderOffset + ucHeaderLen + alignment), 
+      ucHeaderLen, ucHeaderOffset,
+      (ucHeaderOffset + ucHeaderLen + alignment),
       pTxMetadata->fPktlen, alignment);
 
 }/* WDI_DS_PrepareBDHeader */
@@ -117,7 +117,7 @@ WDI_DS_PrepareBDHeader (wpt_packet* palPacket,
  PARAMETERS
 
  IN
-WDI_DS_BdMemPoolType:     Memory pool pointer 
+WDI_DS_BdMemPoolType:     Memory pool pointer
 
 
 
@@ -139,10 +139,10 @@ WDI_Status WDI_DS_MemPoolCreate(WDI_DS_BdMemPoolType *memPool, wpt_uint8 chunkSi
     return WDI_STATUS_E_FAILURE;
 
   memPool->AllocationBitmap = (wpt_uint32*)wpalMemoryAllocate( (numChunks/32 + 1) * sizeof(wpt_uint32));
-  if( NULL == memPool->AllocationBitmap) 
+  if( NULL == memPool->AllocationBitmap)
      return WDI_STATUS_E_FAILURE;
   wpalMemoryZero(memPool->AllocationBitmap, (numChunks/32+1)*sizeof(wpt_uint32));
-  
+
   return WDI_STATUS_SUCCESS;
 }
 
@@ -165,7 +165,7 @@ WPT_STATIC WPT_INLINE int find_leading_zero_and_setbit(wpt_uint32 *bitmap, wpt_u
 
   for(i=0; i < (maxNumPool/32 + 1); i++){
     j = 0;
-    word = bitmap[i]; 
+    word = bitmap[i];
     for(j=0; j< 32; j++){
       if((word & 1) == 0) {
         bitmap[i] |= (1 << j);
@@ -176,14 +176,14 @@ WPT_STATIC WPT_INLINE int find_leading_zero_and_setbit(wpt_uint32 *bitmap, wpt_u
   }
   return -1;
 }
-  
-void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress, 
+
+void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress,
                                WDI_ResPoolType wdiResPool)
 {
   wpt_uint32 index;
   void *pVirtAddress;
   wpt_uint32 maxNumPool;
-  switch(wdiResPool) 
+  switch(wdiResPool)
   {
     case WDI_MGMT_POOL_ID:
       maxNumPool = WDI_DS_HI_PRI_RES_NUM;
@@ -192,21 +192,21 @@ void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress,
        maxNumPool = WDI_DS_LO_PRI_RES_NUM;
       break;
     default:
-      return NULL; 
+      return NULL;
   }
 
-  if(maxNumPool == memPool->numChunks) 
-  { 
-     return NULL; 
+  if(maxNumPool == memPool->numChunks)
+  {
+     return NULL;
   }
   //Find the leading 0 in the allocation bitmap
 
-  if((index = find_leading_zero_and_setbit(memPool->AllocationBitmap, maxNumPool)) == -1) 
+  if((index = find_leading_zero_and_setbit(memPool->AllocationBitmap, maxNumPool)) == -1)
   {
      //DbgBreakPoint();
      DTI_TRACE(  DTI_TRACE_LEVEL_INFO, "WDI_DS_MemPoolAlloc: index:%d(NULL), numChunks:%d",
                   index, memPool->numChunks );
-     return NULL; 
+     return NULL;
   }
   memPool->numChunks++;
   // The first 8 bytes are reserved for internal use for control bits and hash.
@@ -216,7 +216,7 @@ void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress,
   DTI_TRACE(  DTI_TRACE_LEVEL_INFO, "WDI_DS_MemPoolAlloc: index:%d, numChunks:%d", index, memPool->numChunks );
 
   return pVirtAddress;
-  
+
 }
 
 /*
@@ -224,7 +224,7 @@ void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress,
  */
 void  WDI_DS_MemPoolFree(WDI_DS_BdMemPoolType *memPool, void *pVirtAddress, void *pPhysAddress)
 {
-  wpt_uint32 index = 
+  wpt_uint32 index =
     ((wpt_uint8 *)pVirtAddress - (wpt_uint8 *)memPool->pVirtBaseAddress - 8)/memPool->chunkSize;
   wpt_uint32 word = memPool->AllocationBitmap[index/32];
   word &= ~(1<<(index%32));
@@ -236,11 +236,11 @@ void  WDI_DS_MemPoolFree(WDI_DS_BdMemPoolType *memPool, void *pVirtAddress, void
 
 
 /**
- @brief Returns the available number of resources (BD headers) 
+ @brief Returns the available number of resources (BD headers)
         available for TX
- 
- @param  pMemPool:         pointer to the BD memory pool 
-  
+
+ @param  pMemPool:         pointer to the BD memory pool
+
  @see
  @return Result of the function call
 */

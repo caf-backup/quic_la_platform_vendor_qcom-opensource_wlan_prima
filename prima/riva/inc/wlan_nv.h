@@ -32,6 +32,7 @@ typedef enum
     NV_COMMON_MAC_ADDR,                 // 4
     NV_COMMON_MFG_SERIAL_NUMBER,        // 5
     NV_COMMON_WLAN_NV_REV_ID,           // 6
+    NV_COMMON_COUPLER_TYPE,             // 7
 
     NUM_NV_FIELDS,
     NV_MAX_FIELD = 0x7FFFFFFF  /* define as 4 bytes data */
@@ -65,6 +66,8 @@ typedef PACKED_PRE union PACKED_POST
     tANI_U8   macAddr3[NV_FIELD_MAC_ADDR_SIZE];
     tANI_U8   macAddr4[NV_FIELD_MAC_ADDR_SIZE];
     tANI_U8   mfgSN[NV_FIELD_MFG_SN_SIZE];
+    tANI_U8   couplerType;                       /* 0 : Internal coupler, 1 : External coupler */
+    tANI_U8   reserved;                          /* Make Byte alignment */
 } uNvFields;
 
 
@@ -84,6 +87,8 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8   macAddr3[NV_FIELD_MAC_ADDR_SIZE];
     tANI_U8   macAddr4[NV_FIELD_MAC_ADDR_SIZE];
     tANI_U8   mfgSN[NV_FIELD_MFG_SN_SIZE];
+    tANI_U8   couplerType;                       /* 0 : Internal coupler, 1 : External coupler */
+    tANI_U8   reserved;                          /* Make Byte alignment */
 } sNvFields;
 
 
@@ -544,6 +549,9 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8     unused[6];
 }sCalStatus;
 
+#define NUM_RF_VR_RATE   13
+typedef uAbsPwrPrecision tRateGroupPwrVR[NUM_RF_VR_RATE];
+
 typedef PACKED_PRE union PACKED_POST
 {
     tRateGroupPwr        pwrOptimum[NUM_RF_SUBBANDS];                         // NV_TABLE_RATE_POWER_SETTINGS
@@ -551,6 +559,7 @@ typedef PACKED_PRE union PACKED_POST
     sDefaultCountry      defaultCountryTable;                                 // NV_TABLE_DEFAULT_COUNTRY
     tTpcPowerTable       plutCharacterized[NUM_RF_CHANNELS];                  // NV_TABLE_TPC_POWER_TABLE
     tANI_U16             plutPdadcOffset[NUM_RF_CHANNELS];                    // NV_TABLE_TPC_PDADC_OFFSETS
+    tRateGroupPwrVR      pwrOptimum_virtualRate[NUM_RF_SUBBANDS];             // NV_TABLE_VIRTUAL_RATE
     //sCalFlashMemory    calFlashMemory;                                      // NV_TABLE_CAL_MEMORY
     sCalStatus           calStatus;                                           // NV_TABLE_CAL_STATUS
     sRssiChannelOffsets  rssiChanOffsets[2];                                  // NV_TABLE_RSSI_CHANNEL_OFFSETS
@@ -588,6 +597,7 @@ typedef enum
     NV_TABLE_PACKET_TYPE_POWER_LIMITS   = 13,
     NV_TABLE_OFDM_CMD_PWR_OFFSET        = 14,
     NV_TABLE_TX_BB_FILTER_MODE          = 15,
+    NV_TABLE_VIRTUAL_RATE               = 18,
 
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
@@ -602,6 +612,7 @@ typedef PACKED_PRE struct PACKED_POST
     sDefaultCountry      defaultCountryTable;                                 // NV_TABLE_DEFAULT_COUNTRY
     tTpcPowerTable       plutCharacterized[NUM_RF_CHANNELS];                  // NV_TABLE_TPC_POWER_TABLE
     tANI_U16             plutPdadcOffset[NUM_RF_CHANNELS];                    // NV_TABLE_TPC_PDADC_OFFSETS
+    tRateGroupPwrVR      pwrOptimum_virtualRate[NUM_RF_SUBBANDS];             // NV_TABLE_VIRTUAL_RATE
     //sCalFlashMemory    calFlashMemory;                                      // NV_TABLE_CAL_MEMORY
     sCalStatus           calStatus;                                           // NV_TABLE_CAL_STATUS
     sRssiChannelOffsets  rssiChanOffsets[2];                                  // NV_TABLE_RSSI_CHANNEL_OFFSETS

@@ -1226,6 +1226,13 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_AP_DATA_AVAIL_POLL_PERIOD_MIN, 
               CFG_AP_DATA_AVAIL_POLL_PERIOD_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_CLOSE_LOOP_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, enableCloseLoop, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_ENABLE_CLOSE_LOOP_DEFAULT, 
+                CFG_ENABLE_CLOSE_LOOP_MIN, 
+                CFG_ENABLE_CLOSE_LOOP_MAX ),
+
 };
 
 /*
@@ -2365,7 +2372,15 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    {
 	   fStatus = FALSE;
 	   hddLog(LOGE,"Failure: Could not pass on WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD configuration info to CCM\n"  );
-   } 
+   }
+
+   if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ENABLE_CLOSE_LOOP, 
+                   pConfig->enableCloseLoop, NULL, eANI_BOOLEAN_FALSE)
+       ==eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_CLOSE_LOOP to CCM\n");
+   }
 
    return fStatus;
 }

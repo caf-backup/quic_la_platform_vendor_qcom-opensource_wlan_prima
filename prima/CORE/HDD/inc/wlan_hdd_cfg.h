@@ -912,6 +912,11 @@ typedef enum
 #define CFG_ENABLE_BEACON_EARLY_TERMINATION_MAX           ( 1 )
 #define CFG_ENABLE_BEACON_EARLY_TERMINATION_DEFAULT       ( 0 )
 
+#define CFG_ENABLE_CLOSE_LOOP_NAME                 "gEnableCloseLoop"
+#define CFG_ENABLE_CLOSE_LOOP_MIN                  WNI_CFG_FIXED_RATE_STAMIN
+#define CFG_ENABLE_CLOSE_LOOP_MAX                  WNI_CFG_FIXED_RATE_STAMAX
+#define CFG_ENABLE_CLOSE_LOOP_DEFAULT              WNI_CFG_FIXED_RATE_STADEF
+
 /*
  * WDI Trace Enable Control
  * Notes:
@@ -1173,6 +1178,7 @@ typedef struct
    v_U16_t                     nTeleBcnTransLiNumIdleBeacons;
    v_U16_t                     nTeleBcnMaxLiNumIdleBeacons;
    v_U8_t                      bcnEarlyTermWakeInterval;
+   v_U32_t                     enableCloseLoop;
 
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 

@@ -3785,15 +3785,17 @@ const sHalNv nvDefaults =
 {
     {
         0,                                                              // tANI_U16  productId;
-        0,                                                              // tANI_U8   productBands;
+        1,                                                              // tANI_U8   productBands;
         2,                                                              // tANI_U8   wlanNvRevId; //0: WCN1312, 1: WCN1314, 2: WCN3660
         1,                                                              // tANI_U8   numOfTxChains;
-        2,                                                              // tANI_U8   numOfRxChains;
+        1,                                                              // tANI_U8   numOfRxChains;
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
-        { "\0" }
+        { "\0" },
+        0,                                                              // tANI_U8   0 : Internal coupler, 1 : External coupler
+        0                                                               // Reserved Byte to make alignment
     }, //fields
 
     {
@@ -7240,6 +7242,98 @@ const sHalNv nvDefaults =
             100,   // RF_CHAN_BOND_155
             100,   // RF_CHAN_BOND_159
             100,   // RF_CHAN_BOND_163
+        },
+
+        //NV_TABLE_VIRTUAL_RATE
+        // typedef tANI_S16 tPowerdBm;
+        //typedef tPowerdBm tRateGroupPwr[NUM_HAL_PHY_RATES];
+        //tRateGroupPwr       pwrOptimum[NUM_RF_SUBBANDS];
+        {
+            // 2.4G RF Subband
+            {
+                //802.11b Rates
+                {-32668},    // HAL_PHY_VRATE_11A_54_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_65_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_72_2_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_CB_135_MBPS
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_CB_150_MBPS,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+            },
+            // 5G Low RF Subband
+            {
+                //802.11b Rates
+                {-32668},    // HAL_PHY_VRATE_11A_54_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_65_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_72_2_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_CB_135_MBPS
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_CB_150_MBPS,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+            },
+            // 5G Middle RF Subband
+            {
+                //802.11b Rates
+                {-32668},    // HAL_PHY_VRATE_11A_54_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_65_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_72_2_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_CB_135_MBPS
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_CB_150_MBPS,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+            },
+            // 5G High RF Subband
+            {
+                //802.11b Rates
+                {-32668},    // HAL_PHY_VRATE_11A_54_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_65_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_72_2_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_CB_135_MBPS
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_CB_150_MBPS,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+            },
+            // 4.9G RF Subband
+            {
+                //802.11b Rates
+                {-32668},    // HAL_PHY_VRATE_11A_54_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_65_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_72_2_MBPS,
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_CB_135_MBPS
+                {-32668},    // HAL_PHY_VRATE_MCS_1NSS_MM_SG_CB_150_MBPS,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+                {-32668},    // RESERVED,
+            }
         },
 
 #if 0 //FIXME_PRIMA

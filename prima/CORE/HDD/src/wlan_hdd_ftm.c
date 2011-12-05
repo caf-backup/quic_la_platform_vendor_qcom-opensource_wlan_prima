@@ -1654,6 +1654,11 @@ int wlan_hdd_ftm_get_nv_table
             pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.plutPdadcOffset[0];
             break;
 
+         case NV_TABLE_VIRTUAL_RATE:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.pwrOptimum_virtualRate);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.pwrOptimum_virtualRate[0];
+            break;
+
          case NV_TABLE_RSSI_CHANNEL_OFFSETS:
             pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.rssiChanOffsets);
             pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.rssiChanOffsets[0];
@@ -1804,6 +1809,11 @@ int wlan_hdd_ftm_set_nv_table
             pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.plutPdadcOffset[0];
             break;
 
+         case NV_TABLE_VIRTUAL_RATE:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.pwrOptimum_virtualRate);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.pwrOptimum_virtualRate[0];
+            break;
+
          case NV_TABLE_RSSI_CHANNEL_OFFSETS:
             pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.rssiChanOffsets);
             pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.rssiChanOffsets[0];
@@ -1930,6 +1940,11 @@ int wlan_hdd_ftm_blank_nv_table
           &nvDefaults.tables.plutPdadcOffset[0],
           itemSize);
 
+   itemSize = sizeof(nvContents->tables.pwrOptimum_virtualRate);
+   memcpy(&nvContents->tables.pwrOptimum_virtualRate[0],
+          &nvDefaults.tables.pwrOptimum_virtualRate[0],
+          itemSize);
+
    itemSize = sizeof(nvContents->tables.rssiChanOffsets);
    memcpy(&nvContents->tables.rssiChanOffsets[0],
           &nvDefaults.tables.rssiChanOffsets[0],
@@ -2018,6 +2033,13 @@ int wlan_hdd_ftm_delete_nv_table
          itemSize = sizeof(nvContents->tables.plutPdadcOffset);
          memcpy(&nvContents->tables.plutPdadcOffset[0],
                 &nvDefaults.tables.plutPdadcOffset[0],
+                itemSize);
+         break;
+
+      case NV_TABLE_VIRTUAL_RATE:
+         itemSize = sizeof(nvContents->tables.pwrOptimum_virtualRate);
+         memcpy(&nvContents->tables.pwrOptimum_virtualRate[0],
+                &nvDefaults.tables.pwrOptimum_virtualRate[0],
                 itemSize);
          break;
 
@@ -2129,6 +2151,12 @@ int wlan_hdd_ftm_get_nv_field
              NV_FIELD_MFG_SN_SIZE);
          break;
 
+      case NV_COMMON_COUPLER_TYPE:
+         memcpy((void *)&nvField->fieldData,
+                &nvFieldDataBuffer.couplerType,
+                sizeof(nvFieldDataBuffer.couplerType));
+         break;
+
       default:
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                     "Not Valid NV field %d", nvField->nvField);
@@ -2228,6 +2256,12 @@ int wlan_hdd_ftm_set_nv_field
              NV_FIELD_MFG_SN_SIZE);
          break;
 
+      case NV_COMMON_COUPLER_TYPE:
+         memcpy(&nvContents->fields.couplerType,
+                &nvField->fieldData,
+                sizeof(nvContents->fields.couplerType));
+         break;
+
       default:
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                     "Not Valid NV field %d", nvField->nvField);
@@ -2308,6 +2342,12 @@ int wlan_hdd_ftm_store_nv_table
          tablePtr     = (void *)&nvContents->tables.plutPdadcOffset[0];
          tableSize    = sizeof(nvContents->tables.plutPdadcOffset);
          tableVNVType = VNV_TPC_PDADC_OFFSETS;
+         break;
+
+      case NV_TABLE_VIRTUAL_RATE:
+         tablePtr     = (void *)&nvContents->tables.pwrOptimum_virtualRate[0];
+         tableSize    = sizeof(nvContents->tables.pwrOptimum_virtualRate);
+         tableVNVType = VNV_TABLE_VIRTUAL_RATE;
          break;
 
       case NV_TABLE_RSSI_CHANNEL_OFFSETS:
