@@ -121,10 +121,9 @@ void hdd_suspend_full_pwr_callback(void *callbackContext, eHalStatus status)
    complete(&pHddCtx->full_pwr_comp_var);
 }
 
-eHalStatus hdd_exit_standby(hdd_adapter_t *pAdapter)
+eHalStatus hdd_exit_standby(hdd_context_t *pHddCtx)
 {  
     eHalStatus status = VOS_STATUS_SUCCESS;
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed from standby",__func__);
     INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
@@ -164,14 +163,10 @@ failure:
 
 
 //Helper routine to put the chip into standby
-VOS_STATUS hdd_enter_standby(hdd_adapter_t *pAdapter)
+VOS_STATUS hdd_enter_standby(hdd_context_t *pHddCtx)
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-         
-   netif_tx_disable(pAdapter->dev);
-   netif_carrier_off(pAdapter->dev);
 
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode on its own during suspend sequence
@@ -264,7 +259,7 @@ failure:
 
 
 //Helper routine for Deep sleep entry
-VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t *pAdapter)
+VOS_STATUS hdd_enter_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
 {
    eHalStatus halStatus;
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
@@ -273,8 +268,6 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t *pAdapter)
    struct sdio_func *sdio_func_dev_current = NULL;
    int attempts = 0;
 #endif
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-
    //Stop the Interface TX queue.
    netif_tx_disable(pAdapter->dev);
    netif_carrier_off(pAdapter->dev);
@@ -383,7 +376,7 @@ err_fail:
    return vosStatus;
 }
 
-VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t *pAdapter)
+VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
 {
    VOS_STATUS vosStatus;
    eHalStatus halStatus;
@@ -391,7 +384,6 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t *pAdapter)
    int attempts = 0;
    struct sdio_func *sdio_func_dev = NULL;
 #endif
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    //Power Up Libra WLAN card first if not already powered up
    vosStatus = vos_chipPowerUp(NULL,NULL,NULL);
@@ -750,15 +742,17 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
        }
 
 #ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
-       if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY) 
+       if (pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY)
        {
-          //Execute standby procedure. Executing standby procedure will cause the STA to
-          //disassociate first and then the chip will be put into standby.
-          hdd_enter_standby(pAdapter);
+          //stop the interface before putting the chip to standby
+          netif_tx_disable(pAdapter->dev);
+          netif_carrier_off(pAdapter->dev);
        }
-       else if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_DEEP_SLEEP) {
+       else if (pHddCtx->cfg_ini->nEnableSuspend == 
+               WLAN_MAP_SUSPEND_TO_DEEP_SLEEP)
+       {
           //Execute deep sleep procedure
-          hdd_enter_deep_sleep(pAdapter);
+          hdd_enter_deep_sleep(pHddCtx, pAdapter);
        }
 #endif
 
@@ -781,6 +775,12 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
    pAdapterNode = pNext;
   }
 
+#ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
+  if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY)
+  {
+      hdd_enter_standby(pHddCtx);
+  }
+#endif
 #ifdef ANI_BUS_TYPE_SDIO
    sd_release_host(sdio_func_dev);
 #endif
@@ -910,11 +910,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
             continue;
        }
 #ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP   
-       if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
-       {
-          hdd_exit_standby(pAdapter);
-       }    
-       else if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP) 
+       if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP) 
        {
           hddLog(VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed from deep sleep",__func__);
           hdd_exit_deep_sleep(pAdapter);
@@ -931,10 +927,17 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
                                           pHddCtx->pvosContext), TRUE);
 #endif
            pHddCtx->hdd_mcastbcast_filter_set = FALSE;
-       }
-       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
-       pAdapterNode = pNext;
+      }
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+      pAdapterNode = pNext;
    }
+
+#ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP   
+   if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
+   {
+       hdd_exit_standby(pHddCtx);
+   }    
+#endif
 
 #ifdef ANI_BUS_TYPE_SDIO
    sd_release_host(sdio_func_dev);
