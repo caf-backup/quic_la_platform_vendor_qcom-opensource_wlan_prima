@@ -35,7 +35,8 @@ int nl_srv_init(void)
    int retcode = 0;
    nl_srv_sock = netlink_kernel_create(&init_net, WLAN_NLINK_PROTO_FAMILY,
       WLAN_NLINK_MCAST_GRP_ID, nl_srv_rcv, NULL, THIS_MODULE);
-
+   /*For a process with Non root permissions to communicate with NL socket*/
+   netlink_set_nonroot(WLAN_NLINK_PROTO_FAMILY, (NL_NONROOT_SEND | NL_NONROOT_RECV));
    if (nl_srv_sock != NULL) {
       memset(nl_srv_msg_handler, 0, sizeof(nl_srv_msg_handler));
    } else {
