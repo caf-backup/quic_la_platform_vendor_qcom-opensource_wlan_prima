@@ -62,6 +62,8 @@
 #define NET_DEVICE_REGISTERED  1<<0
 /** Maximum time(ms)to wait for disconnect to complete **/
 #define WLAN_WAIT_TIME_DISCONNECT  1000
+#define WLAN_WAIT_TIME_STATS       800
+#define WLAN_WAIT_TIME_POWER       800
 #define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
@@ -232,22 +234,29 @@ enum _KEY_DIRECTION
 
 typedef enum _KEY_DIRECTION WAPI_KEY_DIRECTION;
 
+
 /** WAPI KEY stucture definition */
 struct WLAN_WAPI_KEY
 {
-   WAPIKeyType          keyType;
+   WAPIKeyType     keyType;
    WAPI_KEY_DIRECTION   keyDirection;  /*reserved for future use*/
-   v_U8_t               keyId;
-   v_U8_t               addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
-   int                  wpiekLen;
-   v_U8_t               wpiek[MAX_WPI_KEY_LENGTH];
-   int                  wpickLen;
-   v_U8_t               wpick[MAX_WPI_KEY_LENGTH];
-   v_U8_t               pn[MAX_NUM_PN];        /*reserved for future use*/
+   v_U8_t          keyId;
+   v_U8_t          addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
+   int             wpiekLen;
+   v_U8_t          wpiek[MAX_WPI_KEY_LENGTH];
+   int             wpickLen;
+   v_U8_t          wpick[MAX_WPI_KEY_LENGTH];
+   v_U8_t          pn[MAX_NUM_PN];        /*reserved for future use*/
 }__attribute__((packed));
 
 typedef struct WLAN_WAPI_KEY WLAN_WAPI_KEY;
 typedef struct WLAN_WAPI_KEY *pWLAN_WAPI_KEY;
+#define WPA_GET_LE16(a) ((u16) (((a)[1] << 8) | (a)[0]))
+#define WLAN_EID_WAPI 68
+#define WAPI_PSK_AKM_SUITE  0x02721400
+#define WAPI_CERT_AKM_SUITE 0x01721400
+#define WLAN_CIPHER_SUITE_SMS4 0x00147201
+
 /** WAPI BKID List stucture definition */
 struct _WLAN_BKID_LIST
 {
