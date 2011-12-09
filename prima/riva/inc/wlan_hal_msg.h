@@ -35,7 +35,7 @@
  ---------------------------------------------------------------------------*/
 #define WLAN_HAL_VER_MAJOR 0
 #define WLAN_HAL_VER_MINOR 0
-#define WLAN_HAL_VER_VERSION 0
+#define WLAN_HAL_VER_VERSION 1
 #define WLAN_HAL_VER_REVISION 0
 
 /*---------------------------------------------------------------------------
@@ -2095,6 +2095,18 @@ typedef PACKED_PRE struct PACKED_POST
                                     //to provide this.
 }tAniSummaryStatsInfo, *tpAniSummaryStatsInfo;
 
+
+// defines tx_rate_flags
+typedef enum eTxRateInfo
+{
+   eHAL_TX_RATE_LEGACY = 0x1,    /* Legacy rates */
+   eHAL_TX_RATE_HT20   = 0x2,    /* HT20 rates */
+   eHAL_TX_RATE_HT40   = 0x4,    /* HT40 rates */
+   eHAL_TX_RATE_SGI    = 0x8,    /* Rate with Short guard interval */
+   eHAL_TX_RATE_LGI    = 0x10    /* Rate with Long guard interval */
+} tTxrateinfoflags;
+
+
 typedef PACKED_PRE struct PACKED_POST
 {
     tANI_U32 rx_frag_cnt;              //The number of MPDU frames received by the 802.11 station for MSDU packets 
@@ -2108,8 +2120,12 @@ typedef PACKED_PRE struct PACKED_POST
                                        //for eg: if it is 10.5dBm, the value would be 105 
     tANI_U32 sync_fail_cnt;            //Number of times the receiver failed to synchronize with the incoming signal 
                                        //after detecting the sync in the preamble of the transmitted PLCP protocol data unit. 
-    tANI_U32 tx_rate;                  //Transmit rate, in units of 500 kbit/sec, for the most recently transmitted frame 
 
+    tANI_U32 tx_rate;                  //Legacy transmit rate, in units of 500 kbit/sec, for the most 
+                                       //recently transmitted frame    
+    tANI_U32  mcs_index;               //mcs index for HT20 and HT40 rates
+    tANI_U32  tx_rate_flags;           //to differentiate between HT20 and 
+                                       //HT40 rates;  short and long guard interval  
 }tAniGlobalClassAStatsInfo, *tpAniGlobalClassAStatsInfo;
 
 typedef PACKED_PRE struct PACKED_POST
