@@ -5,7 +5,7 @@
 #define TKIP_COUNTER_MEASURE_STARTED 1
 #define TKIP_COUNTER_MEASURE_STOPED  0 
 /* Timeout (in ms) for Link to Up before Registering Station */
-#define ASSOC_LINKUP_TIMEOUT 60
+#define ASSOC_LINKUP_TIMEOUT 1000
 typedef enum 
 {
    /** Not associated in Infra or participating in an IBSS / Ad-hoc network.*/

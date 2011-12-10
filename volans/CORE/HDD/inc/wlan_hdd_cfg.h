@@ -343,10 +343,23 @@ typedef enum
 #define CFG_AP_COUNTRY_CODE_MAX                "USI"
 #define CFG_AP_COUNTRY_CODE_DEFAULT            "FFF"
 
-#define CFG_AP_PROTECTION_MODE_NAME            "gEnableApProt" 
-#define CFG_AP_PROTECTION_MODE_MIN             ( 0 )
-#define CFG_AP_PROTECTION_MODE_MAX             ( 1 ) 
-#define CFG_AP_PROTECTION_MODE_DEFAULT         ( 1 )   
+#define CFG_AP_ENABLE_PROTECTION_MODE_NAME            "gEnableApProt"
+#define CFG_AP_ENABLE_PROTECTION_MODE_MIN             ( 0 )
+#define CFG_AP_ENABLE_PROTECTION_MODE_MAX             ( 1 )
+#define CFG_AP_ENABLE_PROTECTION_MODE_DEFAULT         ( 1 )
+
+// Bit map for CFG_AP_PROTECTION_MODE_DEFAULT
+// LOWER byte for associated stations
+// UPPER byte for overlapping stations
+// each byte will have the following info
+// bit15 bit14 bit13     bit12  bit11 bit10    bit9     bit8
+// OBSS  RIFS  LSIG_TXOP NON_GF HT20  FROM_11G FROM_11B FROM_11A
+// bit7  bit6  bit5      bit4   bit3  bit2     bit1     bit0
+// OBSS  RIFS  LSIG_TXOP NON_GF HT_20 FROM_11G FROM_11B FROM_11A
+#define CFG_AP_PROTECTION_MODE_NAME            "gApProtection"
+#define CFG_AP_PROTECTION_MODE_MIN             ( 0x0 )
+#define CFG_AP_PROTECTION_MODE_MAX             ( 0xFFFF )
+#define CFG_AP_PROTECTION_MODE_DEFAULT         ( 0xBFFF )
 
 #define CFG_AP_OBSS_PROTECTION_MODE_NAME       "gEnableApOBSSProt" 
 #define CFG_AP_OBSS_PROTECTION_MODE_MIN        ( 0 )
@@ -1129,6 +1142,7 @@ typedef struct
 #ifdef WLAN_SOFTAP_FEATURE
    v_BOOL_t      apUapsdEnabled;
    v_BOOL_t      apProtEnabled;
+   v_U16_t       apProtection;
    v_BOOL_t      apOBSSProtEnabled;
    v_U8_t        MinFramesProcThres;
    v_U8_t        apCntryCode[4];

@@ -754,6 +754,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     VOS_STATUS vosStatus;
+    int status;
  
     if ( eCSR_ROAM_RESULT_ASSOCIATED == roamResult )
     {
@@ -791,10 +792,14 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         // Switch on the Carrier to activate the device
         netif_carrier_on(dev);
-        
         // Wait for the Link to up to ensure all the queues are set properly by the kernel
-        wait_for_completion_interruptible_timeout(&pAdapter->linkup_event_var,
-                                                   msecs_to_jiffies(ASSOC_LINKUP_TIMEOUT));
+        status = wait_for_completion_interruptible_timeout(&pAdapter->linkup_event_var,
+                         msecs_to_jiffies(ASSOC_LINKUP_TIMEOUT));
+        if (!status) 
+        {
+            hddLog(VOS_TRACE_LEVEL_WARN, "%s: Warning:ASSOC_LINKUP_TIMEOUT",
+                    __func__);
+        }
         
         // Disable Linkup Event Servicing - no more service required from the net device notifier call
         pAdapter->isLinkUpSvcNeeded = FALSE;
@@ -883,7 +888,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #ifdef CONFIG_CFG80211
         /* inform association failure event to nl80211 */
         cfg80211_connect_result(dev, 
-                pRoamInfo->bssid, 
+               ((NULL == pRoamInfo) ? NULL : pRoamInfo->bssid),
                 NULL, 0, NULL, 0,
                 WLAN_STATUS_UNSPECIFIED_FAILURE, 
                 GFP_KERNEL);
@@ -1325,6 +1330,10 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                 halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
             }
 
+            break;
+        case eCSR_ROAM_ASSOCIATION_FAILURE:
+            halStatus = hdd_AssociationCompletionHandler( pAdapter, 
+                               pRoamInfo, roamId, roamStatus, roamResult );
             break;
         case eCSR_ROAM_IBSS_IND:
             halStatus = roamRoamIbssIndicationHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );

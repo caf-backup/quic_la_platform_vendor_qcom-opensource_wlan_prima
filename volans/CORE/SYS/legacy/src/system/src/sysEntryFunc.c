@@ -137,20 +137,62 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     tSirRetStatus ret;
     tpHalBufDesc pBd;
     tMgmtFrmDropReason dropReason;
+    tANI_U16 pkt_length = 0;
 
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
 #ifndef GEN6_ONWARDS
-    palGetPacketDataPtr( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, (void *) pMsg->bodyptr, (void **) &pBd );
+    palGetPacketDataPtr( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+                                     (void *) pMsg->bodyptr, (void **) &pBd );
 #endif //GEN6_ONWARDS
 #elif defined(VOSS_ENABLED)
     vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
-    VOS_STATUS  vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pBd, WLANHAL_RX_BD_HEADER_SIZE );
+    VOS_STATUS  vosStatus = vos_pkt_peek_data( pVosPkt, 
+                            0, (v_PVOID_t *)&pBd, WLANHAL_RX_BD_HEADER_SIZE );
+    if( VOS_IS_STATUS_SUCCESS(vosStatus))
+    {
+        vos_pkt_get_packet_length( pVosPkt,  &pkt_length);
 
-    if( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-	{
+        /*The return value for the above API is not checked as
+          the API preceding this one i.e  vos_pkt_peek_data makes the same checks
+          */
+        if((pkt_length != (WLANHAL_RX_BD_HEADER_SIZE + \
+                           SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd) + \
+                           SIR_MAC_BD_TO_PAYLOAD_LEN(pBd)) \
+                           || ((tANI_U16)(SIR_MAC_BD_TO_MPDUDATA(pBd) - \
+                           (tANI_U8 *)SIR_MAC_BD_TO_MPDUHEADER(pBd))) \
+                           != SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd)))
+        {
+            tANI_U16 est_length = 0;
+
+            est_length =   WLANHAL_RX_BD_HEADER_SIZE + 
+                           SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd) +  
+                           SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+            /*For any VOID between MAC HDR and BD HDR*/
+            est_length += (WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pBd) - 
+                          WLANHAL_RX_BD_HEADER_SIZE);
+            /*For any VOID between MAC HDR and DATA*/
+            est_length += (WLANHAL_RX_BD_GET_MPDU_D_OFFSET(pBd) - 
+                          (WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pBd) + 
+                          SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd)));
+
+            if ((SIR_MAC_DATA_FRAME == type) && 
+                         (!(SIR_MAC_BD_IS_VALID_HDR_OFFSET(pBd)) ||
+                         !(SIR_MAC_BD_IS_VALID_DATA_OFFSET(pBd)) ||
+                         (pkt_length != est_length))) 
+            {
+                vos_pkt_return_packet(pVosPkt);
+                PELOGE(sysLog(pMac, LOGE, FL("Corrupted Rx Mgmt Frame type: " 
+                        " %d Subtype: %d\n"), type, subType););
+                return eSIR_FAILURE;
+            }
+        }
+    }
+    else
+    {
         vos_pkt_return_packet(pVosPkt);
         return eSIR_FAILURE;
-	}
+    }
+
 #else
     pBd = (tpHalBufDesc) pMsg->bodyptr;
 #endif  //#if defined(ANI_OS_TYPE_RTAI_LINUX)

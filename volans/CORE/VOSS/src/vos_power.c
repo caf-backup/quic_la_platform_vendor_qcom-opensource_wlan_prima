@@ -304,6 +304,12 @@ VOS_PWR_SLEEP(100);
         VOS_PWR_SLEEP(300);
 
 #ifdef WLAN_FEATURE_VOS_POWER_VOTED_SUPPLY
+        rc = vreg_set_level(vreg_s2, 1300);
+        if (rc) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: s2 vreg set level  failed. .(%d)\n",__func__, rc);
+            return -EIO;
+        }
         rc = vreg_enable(vreg_s2);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg enable failed. .(%d)\n",__func__, rc);

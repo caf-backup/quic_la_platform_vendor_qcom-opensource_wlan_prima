@@ -1953,7 +1953,8 @@ eHalStatus csrScanHandleSearchForSSID(tpAniSirGlobal pMac, tSmeCmd *pCommand)
             csrScanResultPurge(pMac, hBSSList);
         }
         //We haven't done anything to this profile
-        csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.scanCmd.roamId, eCSR_ROAM_FAILED, eCSR_ROAM_RESULT_FAILURE);
+        csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.scanCmd.roamId,
+                     eCSR_ROAM_ASSOCIATION_FAILURE, eCSR_ROAM_RESULT_FAILURE);
         //In case we have nothing else to do, restart idle scan
         if(csrIsConnStateDisconnected(pMac, sessionId) && !csrIsRoamCommandWaiting(pMac))
         {
@@ -5400,10 +5401,13 @@ eHalStatus csrScanFreeRequest(tpAniSirGlobal pMac, tCsrScanRequest *pReq)
 void csrScanCallCallback(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatus scanStatus)
 {
     if(pCommand->u.scanCmd.callback)
-    {
+    { 
+        sme_ReleaseGlobalLock( &pMac->sme );
         pCommand->u.scanCmd.callback(pMac, pCommand->u.scanCmd.pContext, pCommand->u.scanCmd.scanID, scanStatus); 
+        sme_AcquireGlobalLock( &pMac->sme );
     } 
-    else {
+    else
+    {
         smsLog( pMac, LOGW, "%s:%d - Callback NULL!!!\n", __FUNCTION__, __LINE__);
     }
 }

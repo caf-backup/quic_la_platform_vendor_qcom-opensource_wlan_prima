@@ -92,7 +92,7 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_TKIP,
     WLAN_CIPHER_SUITE_CCMP,
 #ifdef FEATURE_WLAN_WAPI
-	WLAN_CIPHER_SUITE_SMS4
+    WLAN_CIPHER_SUITE_SMS4
 #endif
 };
 
@@ -358,7 +358,7 @@ void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
 
 #ifdef FEATURE_WLAN_WAPI
 void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index, 
-	                                  const u8 *mac_addr, u8 *key , int key_Len)
+                                      const u8 *mac_addr, u8 *key , int key_Len)
 {
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     tCsrRoamSetKey  setKey;
@@ -404,7 +404,7 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  "[%4d] sme_RoamSetKey returned ERROR status= %d", 
-				                                   __LINE__, status );
+                                                   __LINE__, status );
         pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
     }
 }
@@ -516,22 +516,104 @@ v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid)
     return NULL;
 }
 
+/* Check if rate is 11g rate or not */
+static int wlan_hdd_rate_is_11g(u8 rate)
+{
+    u8 gRateArray[8] = {12, 18, 24, 36, 48, 72, 96, 104}; /* actual rate * 2 */
+    u8 i;
+    for (i = 0; i < 8; i++)
+    {
+        if(rate == gRateArray[i])
+            return TRUE;
+    }
+    return FALSE;
+}
+
+/* Check for 11g rate and set proper 11g only mode */
+static void wlan_hdd_check_11gmode(u8 *pIe, u8* require_ht,
+                     u8* pCheckRatesfor11g, eSapPhyMode* pSapHw_mode)
+{
+    u8 i, num_rates = pIe[0];
+
+    pIe += 1;
+    for ( i = 0; i < num_rates; i++)
+    {
+        if( *pCheckRatesfor11g && (TRUE == wlan_hdd_rate_is_11g(pIe[i] & RATE_MASK)))
+        {
+            /* If rate set have 11g rate than change the mode to 11G */
+            *pSapHw_mode = eSAP_DOT11_MODE_11g;
+            if (pIe[i] & BASIC_RATE_MASK)
+            {
+                /* If we have 11g rate as  basic rate, it means mode
+                   is 11g only mode.
+                 */
+               *pSapHw_mode = eSAP_DOT11_MODE_11g_ONLY;
+               *pCheckRatesfor11g = FALSE;
+            }
+        }
+        else if((BASIC_RATE_MASK | WLAN_BSS_MEMBERSHIP_SELECTOR_HT_PHY) == pIe[i])
+        {
+            *require_ht = TRUE;
+        }
+    }
+    return;
+}
+
+static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
+{
+    tsap_Config_t *pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
+    beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
+    struct ieee80211_mgmt *pMgmt_frame = (struct ieee80211_mgmt*)pBeacon->head;
+    u8 checkRatesfor11g = TRUE;
+    u8 require_ht = FALSE;
+    u8 *pIe=NULL;
+
+    pConfig->SapHw_mode= eSAP_DOT11_MODE_11b;
+
+    pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
+                                       pBeacon->head_len, WLAN_EID_SUPP_RATES);
+    if (pIe != NULL)
+    {
+        pIe += 2;
+        wlan_hdd_check_11gmode(pIe, &require_ht, &checkRatesfor11g,
+                               &pConfig->SapHw_mode);
+    }
+
+    pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
+                                WLAN_EID_EXT_SUPP_RATES);
+    if (pIe != NULL)
+    {
+        pIe += 2;
+        wlan_hdd_check_11gmode(pIe, &require_ht, &checkRatesfor11g,
+                               &pConfig->SapHw_mode);
+    }
+
+    pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len,
+                                       WLAN_EID_HT_CAPABILITY);
+
+    if(pIe) 
+    {
+        pConfig->SapHw_mode= eSAP_DOT11_MODE_11n;
+        if(require_ht)
+            pConfig->SapHw_mode= eSAP_DOT11_MODE_11n_ONLY;
+    }
+}
+
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
 {
-    tsap_Config_t *pConfig;    
+    tsap_Config_t *pConfig;
     beacon_data_t *pBeacon = NULL;
     struct ieee80211_mgmt *pMgmt_frame;
     v_U8_t *pIe=NULL;
     v_U16_t capab_info;
     eCsrAuthType RSNAuthType;
     eCsrEncryptionType RSNEncryptType;
-    eCsrEncryptionType mcRSNEncryptType;    
+    eCsrEncryptionType mcRSNEncryptType;
     int status = VOS_STATUS_SUCCESS;
     tpWLAN_SAPEventCB pSapEventCallback;
     v_U8_t *genie;
     v_U8_t total_ielen=0,ielen=0;
     hdd_hostapd_state_t *pHostapdState;
-
 
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
 
@@ -625,8 +707,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
             }
         }
     }
-    pConfig->SSIDinfo.ssidHidden = VOS_FALSE; 
-    
+    pConfig->SSIDinfo.ssidHidden = VOS_FALSE;
+
     pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
                                        pBeacon->head_len, WLAN_EID_SSID);
 
@@ -646,23 +728,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
                pHostapdAdapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
     
     pConfig->SapMacaddr_acl = eSAP_ACCEPT_UNLESS_DENIED;
-    
-    pConfig->SapHw_mode= eSAP_DOT11_MODE_11g;
-    pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len, 
-                                       WLAN_EID_HT_CAPABILITY);
 
-    if(pIe) 
-    {
-        struct ieee80211_ht_cap *pHtcap = (struct ieee80211_ht_cap *)&pIe[2];
+    wlan_hdd_set_sapHwmode(pHostapdAdapter);
 
-        pConfig->ht_capab = pHtcap->cap_info;
-        pConfig->SapHw_mode= eSAP_DOT11_MODE_11n;
-    }
-    else
-    {
-        pConfig->ht_capab = 0;    
-    }
-
+    // ht_capab is not what the name conveys,this is used for protection bitmap
+    pConfig->ht_capab =
+                 (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apProtection;
     genie = vos_mem_malloc(MAX_GENIE_LEN);
 
     if(genie == NULL) {
@@ -2792,10 +2863,10 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
     u8 *genie = ie;
     v_U16_t remLen = ie_len;
 #ifdef FEATURE_WLAN_WAPI
-	v_U32_t akmsuite[MAX_NUM_AKM_SUITES];
-	u16 *tmp;
-	v_U16_t akmsuiteCount;
-	int *akmlist;
+    v_U32_t akmsuite[MAX_NUM_AKM_SUITES];
+    u16 *tmp;
+    v_U16_t akmsuiteCount;
+    int *akmlist;
 #endif 
     ENTER();
 
@@ -2883,7 +2954,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 pWextState->roamProfile.pRSNReqIE = pWextState->WPARSNIE;
                 pWextState->roamProfile.nRSNReqIELength = eLen + 2; //ie_len;
                 break;
-#ifdef FEATURE_WLAN_WAPI				
+#ifdef FEATURE_WLAN_WAPI
             case WLAN_EID_WAPI:
                 pAdapter->wapi_info.nWapiMode = 1;   //Setting WAPI Mode to ON=1
                 hddLog(VOS_TRACE_LEVEL_INFO,"WAPI MODE IS  %lu \n",
@@ -3378,7 +3449,7 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev ); 
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     tCsrRoamProfile *pRoamProfile;
-    
+
     ENTER();
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",__func__,pAdapter->device_mode);
@@ -3508,7 +3579,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
                     __func__, retry_value);
         }
         else if (changed & WIPHY_PARAM_RETRY_SHORT)
-        {      
+        {
             if (0 != ccmCfgSetInt(hHal, WNI_CFG_SHORT_RETRY_LIMIT, \
                         retry_value, ccmCfgSetCallback, \
                         eANI_BOOLEAN_TRUE)) 
@@ -3517,7 +3588,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
                         "%s: ccmCfgSetInt failed for short retry count %hu", 
                         __func__, retry_value);
                 return -EIO;
-            }   
+            }
             hddLog(VOS_TRACE_LEVEL_INFO_MED, "%s: set short retry count %hu", 
                     __func__, retry_value);
         }
@@ -3551,7 +3622,7 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
                 "%s: ccmCfgSetInt failed for tx power %hu", __func__, dbm);
         return -EIO;
     }
-    
+
     hddLog(VOS_TRACE_LEVEL_INFO_MED, "%s: set tx power level %d dbm", __func__,
             dbm);
 
@@ -3564,11 +3635,10 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
  */
 static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
 {
-  
     hdd_adapter_t *pAdapter;
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
-   
-    if (NULL == pHddCtx) 
+
+    if (NULL == pHddCtx)
     {
         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
         *dbm = 0;
@@ -3581,7 +3651,7 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Not in station context " ,__func__);
         return -ENOENT;
     }
-     
+
     wlan_hdd_get_classAstats(pAdapter);
     *dbm = pAdapter->hdd_stats.ClassA_stat.max_pwr;
 
@@ -3595,7 +3665,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     int ssidlen = pHddStaCtx->conn_info.SSID.SSID.length;
     tANI_U8 rate_flags;
-     
+
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
            (0 == ssidlen))
     {
@@ -3626,7 +3696,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
         }
     }
     sinfo->filled |= STATION_INFO_TX_BITRATE;
-    
+
     return 0;
 }
 
@@ -3635,19 +3705,19 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    VOS_STATUS vos_status;
-  
+
    if (NULL == pAdapter)
    {
        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Adapter is NULL\n", __func__);
        return -ENODEV;
    }
-   
+
    /**The get power cmd from the supplicant gets updated by the nl only
      *on successful execution of the function call
      *we are oppositely mapped w.r.t mode in the driver
      **/
    vos_status =  wlan_hdd_enter_bmps(pAdapter, !mode);
-   
+
    if (VOS_STATUS_E_FAILURE == vos_status)
    {
        return -EINVAL;
@@ -3709,7 +3779,7 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .set_wiphy_params = wlan_hdd_cfg80211_set_wiphy_params,
     .set_tx_power = wlan_hdd_cfg80211_set_txpower,
     .get_tx_power = wlan_hdd_cfg80211_get_txpower,
-#ifdef WLAN_FEATURE_P2P    
+#ifdef WLAN_FEATURE_P2P
     .remain_on_channel = wlan_hdd_cfg80211_remain_on_channel,
     .cancel_remain_on_channel =  wlan_hdd_cfg80211_cancel_remain_on_channel,
     .mgmt_tx =  wlan_hdd_action,

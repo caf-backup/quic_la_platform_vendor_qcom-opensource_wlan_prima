@@ -41,10 +41,6 @@
 #define HAL_PWR_SAVE_UAPSD_STATE        (1<<4)
 #define HAL_PWR_SAVE_BMPS_REQUESTED     (1<<5)
 
-// TODO: this defines need to go into sirParams.h
-#define SIR_HAL_SUSPEND_BMPS            1101
-#define SIR_HAL_RESUME_BMPS             1102
-
 //TO DO: This needs to be defined in CFG
 #define HAL_PWR_SAVE_FW_PMU_SLEEP_TIMEOUT    3  //millisecond
 #define HAL_PWR_SAVE_FW_FRAME_RETRIES         4

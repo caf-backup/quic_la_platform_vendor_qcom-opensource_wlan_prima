@@ -27,10 +27,6 @@
 //Static Functions
 static  tSirMsgQ* halUtil_readDeferredMsgQ(tpAniSirGlobal pMac);
 
-#ifdef WLAN_DEBUG
-static  char* halUtil_getMsgString(tANI_U16 msgId);
-#endif
-
 #if 0
 static tANI_U32 aAc2BtqmQid[MAX_NUM_AC]={
    BTQM_QUEUE_TX_AC_BE, /* EDCA_AC_BE */
@@ -305,7 +301,7 @@ void halUtil_EndianConvert(tpAniSirGlobal pMac, tANI_U32 *pBuf, tANI_U32 nLen)
 \return  char*
 \ -------------------------------------------------------- */
 #ifdef WLAN_DEBUG
-static char *halUtil_getMsgString(tANI_U16 msgId)
+char *halUtil_getMsgString(tANI_U16 msgId)
 {
     switch (msgId)
     {
@@ -482,6 +478,13 @@ static char *halUtil_getMsgString(tANI_U16 msgId)
         CASE_RETURN_STRING( SIR_DVT_MSG_TYPES_END );
         CASE_RETURN_STRING( SIR_PTT_MSG_TYPES_BEGIN );
         CASE_RETURN_STRING( SIR_PTT_MSG_TYPES_END );
+#ifdef WLAN_FEATURE_P2P
+        CASE_RETURN_STRING( SIR_HAL_P2P_UPDATE_SINGLE_NOA );
+#endif
+        CASE_RETURN_STRING( SIR_HAL_RESUME_BMPS );
+        CASE_RETURN_STRING( SIR_HAL_SUSPEND_BMPS );
+        CASE_RETURN_STRING( SIR_HAL_ENTER_UAPSD_RSP );
+        CASE_RETURN_STRING( SIR_HAL_EXIT_UAPSD_RSP );
         default:
             return "Unknown messageId \n";
     }

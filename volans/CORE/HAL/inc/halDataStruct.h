@@ -133,6 +133,8 @@ typedef tHalRxBd *tpHalBufDesc;
 #endif
 
 #define SIR_MAC_BD_TO_RSSI_DB(pBd)               HAL_GET_RSSI_DB(SIR_MAC_BD_TO_PHY_STATS0(pBd))
+#define SIR_MAC_BD_IS_VALID_HDR_OFFSET(pBd)       ((tANI_U32)(((tpHalBufDesc) pBd)->mpduHeaderOffset) < HAL_BD_SIZE)
+#define SIR_MAC_BD_IS_VALID_DATA_OFFSET(pBd)       ((tANI_U32)(((tpHalBufDesc) pBd)->mpduDataOffset) < (HAL_BD_SIZE+HAL_PDU_SIZE))
 
 #define WLANTL_HO_IS_AN_AMPDU                    0x4000
 #define WLANTL_HO_LAST_MPDU_OF_AMPDU             0x400

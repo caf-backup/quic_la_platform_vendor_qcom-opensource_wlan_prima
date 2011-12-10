@@ -617,6 +617,8 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
 
    pWextState->roamProfile.AuthType.numEntries = 1;
    pWextState->roamProfile.AuthType.authType[0] = eCSR_AUTH_TYPE_OPEN_SYSTEM;
+
+   pWextState->authKeyMgmt = 0;
    
    for(i=0;i < CSR_MAX_NUM_KEY; i++)
    {

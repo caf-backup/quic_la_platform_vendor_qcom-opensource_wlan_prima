@@ -1905,7 +1905,15 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
         {
             pRoamInfo->sessionId = (tANI_U8)sessionId;
         }
+        /*Release the sme lock before calling the HDD callback.
+          The linux android HDD calls the netif_carrier_on to up the link and 
+          the driver waits untill the kernel calls the link up notifier 
+          call back. The netif_carrier_on and wext ioctl acquires the rtnl_lock
+          so holding the sme lock for hdd callback has problems. 
+          Please refer CR304874 for more info.*/
+        sme_ReleaseGlobalLock( &pMac->sme );
         status = pSession->callback(pSession->pContext, pRoamInfo, roamId, u1, u2);
+        sme_AcquireGlobalLock( &pMac->sme );
     }
 
     //EVENT_WLAN_STATUS: eCSR_ROAM_ASSOCIATION_COMPLETION, 

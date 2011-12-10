@@ -43,7 +43,9 @@ void halUtil_GetLeastRefDtimTbtt(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U64 d
 void halUtil_GetRegPowerLimit(tpAniSirGlobal pMac, tANI_U8 currChannel,
                               tANI_U8 localPwrConstraint, tANI_S8 *pRegLimit);
 void halUtil_DumpFwCorexLogs(void *pData);
-
+#ifdef WLAN_DEBUG
+char* halUtil_getMsgString(tANI_U16 msgId);
+#endif
 #endif /* _HALUTILS_H_ */
 
 
