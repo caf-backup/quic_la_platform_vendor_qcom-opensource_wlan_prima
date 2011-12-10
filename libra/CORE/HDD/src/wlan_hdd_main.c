@@ -51,7 +51,7 @@
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_misc.h>
 #include <vos_sched.h>
-
+#include <wlan_hdd_wext.h>
 #ifdef WLAN_BTAMP_FEATURE
 #include <bap_hdd_main.h>
 #include <bapInternal.h>
@@ -164,17 +164,26 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 int hdd_open (struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-
-   if(pAdapter == NULL) {
+   
+   if (NULL == pAdapter) 
+   {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
          "%s: HDD adapter context is Null", __FUNCTION__);
-      return -1;
+      return -ENODEV;
    }
 
-   /* Enable TX queues only when we are connected */
-   if(hdd_connIsConnected(pAdapter)) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-                 "%s: Enabling Tx Queues" , __FUNCTION__);
+   if (VOS_STATUS_SUCCESS != wlan_hdd_exit_lowpower(pAdapter))
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to bring " 
+              "wlan out of power save", __func__);
+      return -EINVAL;
+   }
+
+   if (hdd_connIsConnected(pAdapter)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              "%s: Enabling Tx Queues", __FUNCTION__);
+      /* Enable TX queues only when we are connected */
       netif_tx_start_all_queues(dev);
    }
 
@@ -195,12 +204,26 @@ int hdd_open (struct net_device *dev)
 
 int hdd_stop (struct net_device *dev)
 {
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   
+   if (NULL == pAdapter)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+              "%s: HDD adapter context is Null", __FUNCTION__);
+      return -ENODEV;
+   }
 
-   //Stop the Interface TX queue. netif_stop_queue should not be used when
-   //transmission is being disabled anywhere other than hard_start_xmit
-   hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Disabling OS Tx queues",__func__);
-   netif_tx_disable(dev);
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Disabling OS Tx queues", __func__);
+   netif_tx_disable(pAdapter->dev);
+   netif_carrier_off(pAdapter->dev);
 
+   if (VOS_STATUS_SUCCESS != wlan_hdd_enter_lowpower(pAdapter))
+   {
+      /*log and return success*/
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to put "
+              "wlan in power save", __func__);
+   }
+      
    return 0;
 }
 

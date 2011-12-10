@@ -263,5 +263,13 @@ void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result);
 
 void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter);
 
+VOS_STATUS wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode);
+
+VOS_STATUS wlan_hdd_exit_lowpower(hdd_adapter_t *pAdapter);
+
+VOS_STATUS wlan_hdd_enter_lowpower(hdd_adapter_t *pAdapter);
+
+VOS_STATUS wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter);
+
 #endif // __WEXT_IW_H__
 

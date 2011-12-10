@@ -310,6 +310,7 @@ typedef enum
     //possible data passed back
     eCSR_ROAM_ASSOCIATION_COMPLETION,   
     eCSR_ROAM_DISASSOCIATED,
+    eCSR_ROAM_ASSOCIATION_FAILURE,
     //when callback with this flag. callback gets a pointer to the BSS desc.
     eCSR_ROAM_SHOULD_ROAM,  
     //A new candidate for PMKID is found
@@ -996,6 +997,10 @@ typedef struct tagCsrGlobalClassAStatsInfo
    //tANI_U32 default_pwr;
    tANI_U32 sync_fail_cnt;
    tANI_U32 tx_rate;
+   //mcs index for HT20 and HT40 rates
+   tANI_U8  mcs_index;
+   //to defferentiate between HT20 and HT40 rates;short and long guard interval
+   tANI_U8  tx_rate_flags;
 
 }tCsrGlobalClassAStatsInfo;
 

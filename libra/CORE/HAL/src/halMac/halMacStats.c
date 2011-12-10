@@ -1233,8 +1233,26 @@ static void __halMacHandlePEGlobalClassAStatsReq( tpAniSirGlobal pMac, tANI_U8 *
 
     //tANI_U32 max_pwr;
     {
+        tANI_U32 tbidx;
         tpTpeStaDescRateInfo pTpeRateInfo;
         halTpe_GetStaDescRateInfo(pMac, staId, TPE_STA_20MHZ_RATE, &pTpeRateInfo);
+        pGlobalClassAStats->tx_rate_flags = 0;
+        tbidx = (tANI_U32)pTpeRateInfo->rate_index;
+        if(HALRATE_IS_LEGACY(tbidx) || HALRATE_IS_11AG(tbidx))
+        {
+            pGlobalClassAStats->tx_rate_flags |= eHAL_TX_RATE_LEGACY;
+        }
+        else if(HALRATE_IS_HT20(tbidx))
+        {
+            pGlobalClassAStats->mcs_index =  HAL_RA_IERATEMCSIDX_GET(tbidx);
+            pGlobalClassAStats->tx_rate_flags |= eHAL_TX_RATE_HT20;
+        }
+        else if(HALRATE_IS_HT20_SGI(tbidx))
+        {
+            pGlobalClassAStats->mcs_index =  HAL_RA_IERATEMCSIDX_GET(tbidx);
+            pGlobalClassAStats->tx_rate_flags |= eHAL_TX_RATE_HT20;
+            pGlobalClassAStats->tx_rate_flags |= eHAL_TX_RATE_SGI;
+        }
 
         //Transmit rate, in units of 500 kbit/sec, for the most recently transmitted frame
         pGlobalClassAStats->tx_rate =  (gHalRateInfo[pTpeRateInfo->rate_index].thruputKbps) / 5;

@@ -2429,6 +2429,15 @@ typedef struct sAniSummaryStatsInfo
 
 }tAniSummaryStatsInfo, *tpAniSummaryStatsInfo;
 
+typedef enum eTxRateInfo
+{
+   eHAL_TX_RATE_LEGACY = 0x1,    /* Legacy rates */
+   eHAL_TX_RATE_HT20   = 0x2,    /* HT20 rates */
+   eHAL_TX_RATE_HT40   = 0x4,    /* HT40 rates */
+   eHAL_TX_RATE_SGI    = 0x8,    /* Rate with Short guard interval */
+   eHAL_TX_RATE_LGI    = 0x10    /* Rate with Long guard interval */
+} tTxrateinfoflags;
+
 typedef struct sAniGlobalClassAStatsInfo
 {
     tANI_U32 rx_frag_cnt;             //The number of MPDU frames received by the 802.11 station for MSDU packets 
@@ -2444,7 +2453,12 @@ typedef struct sAniGlobalClassAStatsInfo
     //tANI_U32 default_pwr;             //The nominal transmit level used after normal power on sequence
     tANI_U32 sync_fail_cnt;           //Number of times the receiver failed to synchronize with the incoming signal 
                                      //after detecting the sync in the preamble of the transmitted PLCP protocol data unit. 
-    tANI_U32 tx_rate;                 //Transmit rate, in units of 500 kbit/sec, for the most recently transmitted frame 
+    tANI_U32 tx_rate;                //Legacy transmit rate, in units of 
+                                     //500 kbit/sec, for the most 
+                                     //recently transmitted frame 
+    tANI_U8  mcs_index;              //mcs index for HT20 and HT40 rates
+    tANI_U8  tx_rate_flags;          //to differentiate between HT20 and 
+                                     //HT40 rates;  short and long guard interval
 
 }tAniGlobalClassAStatsInfo, *tpAniGlobalClassAStatsInfo;
 
