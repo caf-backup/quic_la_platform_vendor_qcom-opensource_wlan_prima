@@ -59,6 +59,7 @@
 #include "wlan_qct_wdi_i.h"
 #ifdef CONFIG_ANDROID
 #include <mach/msm_smd.h>
+#include <linux/delay.h>
 #else
 #include "msm_smd.h"
 #endif
@@ -770,6 +771,15 @@ WCTS_CloseTransport
       /* nothing else we can do as we no longer have a context */
       return status;
    }
+
+   /* As part of
+      deregistration SMD will call back into our driver with an event to
+      let us know the channel is closed.  We need to insert a brief delay
+      to allow that thread of execution to exit our module.  Otherwise our
+      module may be unloaded while there is still code running within the
+      address space, and that code will crash when the memory is unmapped
+   */
+   msleep(50);
 
    return status;
 

@@ -205,8 +205,8 @@ WDA_DS_PrepareBDHeader
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                 "WLAN TL: VALUES ARE HLen=%x Hoff=%x doff=%x len=%x ex=%d",
                 ucHeaderLen, ucHeaderOffset, 
-		(ucHeaderOffset + ucHeaderLen + extraHeadSpace), 
-		*pusPktLen, extraHeadSpace));
+                (ucHeaderOffset + ucHeaderLen + extraHeadSpace), 
+                *pusPktLen, extraHeadSpace));
   }/* if peek MAC success*/
 
 }/* WLANTL_PrepareBDHeader */

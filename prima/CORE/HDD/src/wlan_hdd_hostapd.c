@@ -1073,7 +1073,9 @@ static iw_softap_commit(struct net_device *dev,
     vos_mem_copy(pConfig->self_macaddr.bytes, pHostapdAdapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
     
     pConfig->SapMacaddr_acl = pCommitConfig->qc_macaddr_acl;
-    pConfig->ht_capab = pCommitConfig->ht_capab;
+
+    // ht_capab is not what the name conveys,this is used for protection bitmap
+    pConfig->ht_capab = (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apProtection;
 
     if (pCommitConfig->num_accept_mac > MAX_MAC_ADDRESS_ACCEPTED)
         num_mac = pConfig->num_accept_mac = MAX_MAC_ADDRESS_ACCEPTED;

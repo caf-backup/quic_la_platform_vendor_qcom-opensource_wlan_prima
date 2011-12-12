@@ -37,12 +37,12 @@ typedef wpt_int16    int16;       /* Signed 16 bit value */
 
 typedef wpt_int8     int8;        /* Signed 8  bit value */
 
-typedef wpt_int64 	 int64;		    /* Signed 64 bit value */
+typedef wpt_int64    int64;       /* Signed 64 bit value */
 
-typedef wpt_uint64	 uint64; 	    /* Unsigned 64 bit value */
+typedef wpt_uint64   uint64;      /* Unsigned 64 bit value */
 
 typedef wpt_byte     byte;        /* byte type */
 
-typedef wpt_boolean  boolean;			/* Boolean Type */
+typedef wpt_boolean  boolean;     /* Boolean Type */
 
 #endif //__WLAN_DEFS_H__

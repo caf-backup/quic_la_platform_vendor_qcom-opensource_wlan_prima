@@ -122,6 +122,9 @@ typedef enum
 
    /* Self STA not added as entry already exists*/
    eHAL_STATUS_ADD_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO,
+
+   /* Message from SLM has failure status */
+   eHAL_STATUS_FW_SEND_MSG_FAILED,
    
    /* Max status value */
    eHAL_STATUS_MAX_VALUE = WLAN_STATUS_MAX_ENUM_SIZE

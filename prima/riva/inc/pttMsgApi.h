@@ -219,6 +219,8 @@ typedef enum {
     PTT_MSG_CLPC_CAL_RESTORE_PRIMA_V1 = 0x32C8,
     PTT_MSG_CLOSE_TPC_LOOP_PRIMA_V1 = 0x32C9,
     PTT_MSG_SW_CLPC_CAL_PRIMA_V1 = 0x32CA,
+	PTT_MSG_CLPC_CAL_EXTRA_MEASUREMENT_PRIMA_V1 = 0x32CB,
+
 
    PTT_MSG_EXIT = 0x32ff,
    PTT_MAX_MSG_ID = PTT_MSG_EXIT
@@ -358,6 +360,14 @@ typedef PACKED_PRE struct PACKED_POST {
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 notUsed;
 } tMsgPttClpcCalSetup_PRIMA_V1;
+
+typedef PACKED_PRE struct PACKED_POST {
+   tANI_U16 setup_measure;
+   tANI_U16 setup_txDmdPwrOffset;
+   tANI_U16 measure_totalExtraPt;
+   tANI_U16 measure_currentMeasurePtIdx;
+   tANI_U8 plut[256];
+} tMsgPttClpcCalExtraMeasurement_PRIMA_V1;
 
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 notUsed;
@@ -575,6 +585,7 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U16 step;
    tANI_U8 plut[256];
 } tMsgPttClpcSwCal_PRIMA_V1;
+
 
 //Phy Calibration Override Service
 typedef PACKED_PRE struct PACKED_POST {
@@ -822,6 +833,7 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttClpcCalRestore_PRIMA_V1 ClpcCalRestore_PRIMA_V1;
    tMsgPttHdetCal HdetCal;
    tMsgPttClpcSwCal_PRIMA_V1 ClpcSwCal_PRIMA_V1;
+   tMsgPttClpcCalExtraMeasurement_PRIMA_V1 ClpcCalExtraMeasurement_PRIMA_V1;
    tMsgPttSetTxCarrierSuppressCorrect SetTxCarrierSuppressCorrect;
    tMsgPttGetTxCarrierSuppressCorrect GetTxCarrierSuppressCorrect;
    tMsgPttSetTxIqCorrect SetTxIqCorrect;

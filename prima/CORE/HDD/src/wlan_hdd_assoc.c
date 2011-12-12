@@ -989,7 +989,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #ifdef CONFIG_CFG80211
         /* inform association failure event to nl80211 */
         cfg80211_connect_result(dev, 
-                pRoamInfo->bssid, 
+               ((NULL == pRoamInfo) ? NULL : pRoamInfo->bssid),
                 NULL, 0, NULL, 0,
                 WLAN_STATUS_UNSPECIFIED_FAILURE, 
                 GFP_KERNEL);
@@ -1433,6 +1433,10 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                 halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
             }
 
+            break;
+        case eCSR_ROAM_ASSOCIATION_FAILURE:
+            halStatus = hdd_AssociationCompletionHandler( pAdapter, 
+                               pRoamInfo, roamId, roamStatus, roamResult );
             break;
         case eCSR_ROAM_IBSS_IND:
             halStatus = roamRoamIbssIndicationHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );

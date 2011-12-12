@@ -70,24 +70,24 @@ typedef struct
 moduleTraceInfo gVosTraceInfo[ VOS_MODULE_ID_MAX ] =
 {
    [VOS_MODULE_ID_BAP]        = { (1<<VOS_TRACE_LEVEL_FATAL), "BAP" },
-   [VOS_MODULE_ID_TL]         = { (1<<VOS_TRACE_LEVEL_FATAL), "TL " }, 
+   [VOS_MODULE_ID_TL]         = { (1<<VOS_TRACE_LEVEL_FATAL), "TL " },
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
-   [VOS_MODULE_ID_BAL]        = { (1<<VOS_TRACE_LEVEL_FATAL), "BAL" }, 
-   [VOS_MODULE_ID_SAL]        = { (1<<VOS_TRACE_LEVEL_FATAL), "SAL" }, 
+   [VOS_MODULE_ID_BAL]        = { (1<<VOS_TRACE_LEVEL_FATAL), "BAL" },
+   [VOS_MODULE_ID_SAL]        = { (1<<VOS_TRACE_LEVEL_FATAL), "SAL" },
    [VOS_MODULE_ID_SSC]        = { (1<<VOS_TRACE_LEVEL_FATAL), "SSC" },
 #endif
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-   [VOS_MODULE_ID_WDI]        = { (1<<VOS_TRACE_LEVEL_FATAL), "WDI"}, 
+   [VOS_MODULE_ID_WDI]        = { (1<<VOS_TRACE_LEVEL_FATAL), "WDI"},
 #endif
-   [VOS_MODULE_ID_HDD]        = { (1<<VOS_TRACE_LEVEL_FATAL), "HDD" }, 
-   [VOS_MODULE_ID_SME]        = { (1<<VOS_TRACE_LEVEL_FATAL), "SME" }, 
-   [VOS_MODULE_ID_PE]         = { (1<<VOS_TRACE_LEVEL_FATAL), "PE " }, 
+   [VOS_MODULE_ID_HDD]        = { (1<<VOS_TRACE_LEVEL_FATAL), "HDD" },
+   [VOS_MODULE_ID_SME]        = { (1<<VOS_TRACE_LEVEL_FATAL), "SME" },
+   [VOS_MODULE_ID_PE]         = { (1<<VOS_TRACE_LEVEL_FATAL), "PE " },
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
-   [VOS_MODULE_ID_HAL]        = { (1<<VOS_TRACE_LEVEL_FATAL), "HAL" }, 
+   [VOS_MODULE_ID_HAL]        = { (1<<VOS_TRACE_LEVEL_FATAL), "HAL" },
 #else
    [VOS_MODULE_ID_WDA]        = { (1<<VOS_TRACE_LEVEL_FATAL), "WDA" },
 #endif
-   [VOS_MODULE_ID_SYS]        = { (1<<VOS_TRACE_LEVEL_FATAL), "SYS" }, 
+   [VOS_MODULE_ID_SYS]        = { (1<<VOS_TRACE_LEVEL_FATAL), "SYS" },
    [VOS_MODULE_ID_VOSS]       = { (1<<VOS_TRACE_LEVEL_FATAL), "VOS" },
 #ifdef WLAN_SOFTAP_FEATURE
    [VOS_MODULE_ID_SAP]        = { (1<<VOS_TRACE_LEVEL_FATAL), "SAP" },
@@ -113,12 +113,12 @@ void vos_trace_setLevel( VOS_MODULE_ID module, VOS_TRACE_LEVEL level )
    // than 'none' means we need to turn ON a bit in the bitmask.
    if ( VOS_TRACE_LEVEL_NONE == level )
    {
-	   gVosTraceInfo[ module ].moduleTraceLevel = VOS_TRACE_LEVEL_NONE;
+      gVosTraceInfo[ module ].moduleTraceLevel = VOS_TRACE_LEVEL_NONE;
    }
    else
    {
       // Set the desired bit in the bit mask for the module trace level.
-	   gVosTraceInfo[ module ].moduleTraceLevel |= VOS_TRACE_LEVEL_TO_MODULE_BITMASK( level );
+      gVosTraceInfo[ module ].moduleTraceLevel |= VOS_TRACE_LEVEL_TO_MODULE_BITMASK( level );
    }
 }
 
@@ -130,7 +130,7 @@ void vos_trace_setValue( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, v_U8_t on)
       pr_err("%s: Invalid trace level %d passed in!\n", __FUNCTION__, level);
       return;
    }
-	
+
    // Make sure the caller is passing in a valid module.
    if ( module < 0 || module >= VOS_MODULE_ID_MAX )
    {
@@ -150,7 +150,7 @@ void vos_trace_setValue( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, v_U8_t on)
    {
       gVosTraceInfo[ module ].moduleTraceLevel = 0xFFFF;
    }
-	
+
    else
    {
       if (on)
@@ -186,9 +186,9 @@ void vos_snprintf(char *strBuffer, unsigned  int size, char *strFormat, ...)
     va_list val;
 
     va_start( val, strFormat );
-    snprintf (strBuffer, size, strFormat, val); 
+    snprintf (strBuffer, size, strFormat, val);
     va_end( val );
-}     
+}
 
 
 
@@ -253,7 +253,7 @@ void vos_trace_display(void)
 {
    VOS_MODULE_ID moduleId;
 
-   pr_err("     1)FATAL  2)ERROR  3)WARN  4)INFO  5)INFO_H  6)INFO_M  7)INFO_L\n"); 
+   pr_err("     1)FATAL  2)ERROR  3)WARN  4)INFO  5)INFO_H  6)INFO_M  7)INFO_L\n");
    for (moduleId = 0; moduleId < VOS_MODULE_ID_MAX; ++moduleId)
    {
       pr_err("%2d)%s    %s        %s       %s       %s        %s         %s         %s\n",

@@ -2047,7 +2047,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    unregister_netdevice_notifier(&hdd_netdev_notifier);
 
    hdd_stop_all_adapters( pHddCtx );
-   hdd_close_all_adapters( pHddCtx );
 
    
 #ifdef ANI_BUS_TYPE_SDIO
@@ -2138,27 +2137,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 #endif
 
-   //Close VOSS
-   //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
-   vos_close(pVosContext);
-
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-   /* During the vos_close() sequence we deregister from SMD.  As part of
-      deregistration SMD will call back into our driver with an event to
-      let us know the channel is closed.  We need to insert a brief delay
-      to allow that thread of execution to exit our module.  Otherwise our
-      module may be unloaded while there is still code running within the
-      address space, and that code will crash when the memory is unmapped
-   */
-   msleep(50);
-#endif
-   //Close the scheduler before closing other modules.
+   //Close the scheduler before calling vos_close to make sure no thread is 
+   // scheduled after the each module close is called i.e after all the data 
+   // structures are freed.
    vosStatus = vos_sched_close( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
             "%s: Failed to close VOSS Scheduler",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
+
+
+   //Close VOSS
+   //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
+   vos_close(pVosContext);
+
 
 #ifdef ANI_BUS_TYPE_SDIO
    vosStatus = WLANBAL_Close(pVosContext);
@@ -2187,6 +2180,9 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
                                         " Not returning failure."
                                         " Power consumed will be high\n");
    }  
+
+   hdd_close_all_adapters( pHddCtx );
+
 
    //Free up dynamically allocated members inside HDD Adapter
    kfree(pHddCtx->cfg_ini);
@@ -3521,16 +3517,47 @@ v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
 
 void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
 {
-    pHddCtx->concurrency_mode |= (1 << mode);
-    pHddCtx->no_of_sessions[mode]++;
+   switch(mode)
+   {
+       case WLAN_HDD_INFRA_STATION:
+#ifdef WLAN_FEATURE_P2P
+       case WLAN_HDD_P2P_CLIENT:
+       case WLAN_HDD_P2P_GO:
+#endif
+       case WLAN_HDD_SOFTAP:
+            pHddCtx->concurrency_mode |= (1 << mode);
+            pHddCtx->no_of_sessions[mode]++;
+            break;
+       default:
+            break;
+
+   }
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: concurrency_mode = 0x%x NumberofSessions for mode %d = %d",
+    __func__,pHddCtx->concurrency_mode,mode,pHddCtx->no_of_sessions[mode]);
 }
+
 
 void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
 {
-    pHddCtx->no_of_sessions[mode]--;
-    if (!(pHddCtx->no_of_sessions[mode]))
-        pHddCtx->concurrency_mode &= ~(1 << mode);
+   switch(mode)
+   {
+       case WLAN_HDD_INFRA_STATION:
+#ifdef WLAN_FEATURE_P2P
+       case WLAN_HDD_P2P_CLIENT:
+       case WLAN_HDD_P2P_GO:
+#endif
+       case WLAN_HDD_SOFTAP:
+          pHddCtx->no_of_sessions[mode]--;
+          if (!(pHddCtx->no_of_sessions[mode]))
+            pHddCtx->concurrency_mode &= (~(1 << mode));
+            break;
+       default:
+            break;
+   }
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: concurrency_mode = 0x%x NumberofSessions for mode %d = %d",
+    __func__,pHddCtx->concurrency_mode,mode,pHddCtx->no_of_sessions[mode]);
 }
+
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);

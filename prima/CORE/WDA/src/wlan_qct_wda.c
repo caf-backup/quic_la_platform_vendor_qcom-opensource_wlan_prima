@@ -1986,6 +1986,13 @@ VOS_STATUS  WDA_ProcessInitScanReq(tWDA_CbContext *pWDA,
    wdiInitScanParam->wdiReqInfo.bNotifyBSS = initScanParams->notifyBss ;
    wdiInitScanParam->wdiReqInfo.ucFrameType = initScanParams->frameType ;
    wdiInitScanParam->wdiReqInfo.ucFrameLength = initScanParams->frameLength ;
+#ifdef WLAN_FEATURE_P2P
+   wdiInitScanParam->wdiReqInfo.bUseNOA = initScanParams->useNoA;
+   wdiInitScanParam->wdiReqInfo.scanDuration = initScanParams->scanDuration;
+#else
+   wdiInitScanParam->wdiReqInfo.bUseNOA = 0;
+   wdiInitScanParam->wdiReqInfo.scanDuration = 0;
+#endif
    wdiInitScanParam->wdiReqInfo.wdiScanEntry.activeBSScnt = 
                                      initScanParams->scanEntry.activeBSScnt ;
 
@@ -8979,7 +8986,8 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
    if ((pFc->type == SIR_MAC_MGMT_FRAME)) {
        if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
                (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
-               (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP)) {
+               (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP) || 
+               (pFc->subType == SIR_MAC_MGMT_PROBE_REQ)) {    /*Send Probe request frames on self sta idx*/
            txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
        } 
        // Since we donot want probe responses to be retried, send probe responses

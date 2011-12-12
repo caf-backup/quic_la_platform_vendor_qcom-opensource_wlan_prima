@@ -307,9 +307,11 @@ typedef enum
    WLAN_HAL_PACKET_FILTER_MATCH_COUNT_REQ   = 161,
    WLAN_HAL_PACKET_FILTER_MATCH_COUNT_RSP   = 162,   
    WLAN_HAL_CLEAR_PACKET_FILTER_REQ         = 163,
-   WLAN_HAL_CLEAR_PACKET_FILTER_RSP         = 164,   
-   
-   
+   WLAN_HAL_CLEAR_PACKET_FILTER_RSP         = 164,  
+   /*This is temp fix. Should be removed once 
+    * Host and Riva code is in sync*/
+   WLAN_HAL_INIT_SCAN_CON_REQ               = 165,
+    
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -820,15 +822,15 @@ typedef __ani_attr_pre_packed struct sSirMacMgmtHdr
 typedef __ani_attr_pre_packed struct sSirScanEntry
 {
     tANI_U8 bssIdx[HAL_NUM_BSSID];
-	tANI_U8 activeBSScnt;
-}tSirScanEntry, *ptSirScanEntry;
+    tANI_U8 activeBSScnt;
+}__ani_attr_packed tSirScanEntry, *ptSirScanEntry;
 
 typedef PACKED_PRE struct PACKED_POST {
 
-   /*LEARN - AP Role
-    SCAN - STA Role*/
+    /*LEARN - AP Role
+      SCAN - STA Role*/
     eHalSysMode scanMode;
-    
+
     /*BSSID of the BSS*/
     tSirMacAddr bssid;
 
@@ -836,29 +838,73 @@ typedef PACKED_PRE struct PACKED_POST {
     tANI_U8 notifyBss;
 
     /*Kind of frame to be used for notifying the BSS (Data Null, QoS Null, or
-    CTS to Self). Must always be a valid frame type.*/
+      CTS to Self). Must always be a valid frame type.*/
     tANI_U8 frameType;
 
     /*UMAC has the option of passing the MAC frame to be used for notifying
-     the BSS. If non-zero, HAL will use the MAC frame buffer pointed to by
-     macMgmtHdr. If zero, HAL will generate the appropriate MAC frame based on
-     frameType.*/
+      the BSS. If non-zero, HAL will use the MAC frame buffer pointed to by
+      macMgmtHdr. If zero, HAL will generate the appropriate MAC frame based on
+      frameType.*/
     tANI_U8 frameLength;
-  
+
     /* Following the framelength there is a MAC frame buffer if frameLength 
        is non-zero. */
     tSirMacMgmtHdr macMgmtHdr;
 
     /*Entry to hold number of active BSS idx's*/
-	tSirScanEntry scanEntry;
+    tSirScanEntry scanEntry;
 
 } tInitScanParams, * tpInitScanParams;
 
 typedef PACKED_PRE struct PACKED_POST
 {
-   tHalMsgHeader header;
-   tInitScanParams initScanParams;
+    tHalMsgHeader header;
+    tInitScanParams initScanParams;
 }  tHalInitScanReqMsg, *tpHalInitScanReqMsg;
+
+typedef PACKED_PRE struct PACKED_POST {
+
+    /*LEARN - AP Role
+      SCAN - STA Role*/
+    eHalSysMode scanMode;
+
+    /*BSSID of the BSS*/
+    tSirMacAddr bssid;
+
+    /*Whether BSS needs to be notified*/
+    tANI_U8 notifyBss;
+
+    /*Kind of frame to be used for notifying the BSS (Data Null, QoS Null, or
+      CTS to Self). Must always be a valid frame type.*/
+    tANI_U8 frameType;
+
+    /*UMAC has the option of passing the MAC frame to be used for notifying
+      the BSS. If non-zero, HAL will use the MAC frame buffer pointed to by
+      macMgmtHdr. If zero, HAL will generate the appropriate MAC frame based on
+      frameType.*/
+    tANI_U8 frameLength;
+
+    /* Following the framelength there is a MAC frame buffer if frameLength 
+       is non-zero. */
+    tSirMacMgmtHdr macMgmtHdr;
+
+    /*Entry to hold number of active BSS idx's*/
+    tSirScanEntry scanEntry;
+
+    /* Single NoA usage in Scanning */
+    tANI_U8 useNoA;
+
+    /* Indicates the scan duration (in ms) */
+    tANI_U16 scanDuration;
+
+} tInitScanConParams, * tpInitScanConParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tInitScanConParams initScanParams;
+}  tHalInitScanConReqMsg, *tpHalInitScanConReqMsg;
+
 
 /*---------------------------------------------------------------------------
   WLAN_HAL_INIT_SCAN_RSP
@@ -4281,18 +4327,17 @@ typedef enum
 {
     eAUTH_TYPE_ANY                   = 0,    
     eAUTH_TYPE_OPEN_SYSTEM           = 1,
-    eAUTH_TYPE_SHARED_KEY            = 2,
-
-    // Upper layer authentication types
-    eAUTH_TYPE_WPA                   = 3,
-    eAUTH_TYPE_WPA_PSK               = 4,
     
-    eAUTH_TYPE_RSN                   = 5,
-    eAUTH_TYPE_RSN_PSK               = 6,
-    eAUTH_TYPE_FT_RSN                = 7,
-    eAUTH_TYPE_FT_RSN_PSK            = 8,
-    eAUTH_TYPE_WAPI_WAI_CERTIFICATE  = 9,
-    eAUTH_TYPE_WAPI_WAI_PSK          = 10,
+    // Upper layer authentication types
+    eAUTH_TYPE_WPA                   = 2,
+    eAUTH_TYPE_WPA_PSK               = 3,
+    
+    eAUTH_TYPE_RSN                   = 4,
+    eAUTH_TYPE_RSN_PSK               = 5,
+    eAUTH_TYPE_FT_RSN                = 6,
+    eAUTH_TYPE_FT_RSN_PSK            = 7,
+    eAUTH_TYPE_WAPI_WAI_CERTIFICATE  = 8,
+    eAUTH_TYPE_WAPI_WAI_PSK          = 9,
     
     eAUTH_TYPE_MAX = WLAN_HAL_MAX_ENUM_SIZE
 
@@ -4303,13 +4348,11 @@ typedef enum eEdType
 {
     eED_ANY           = 0,
     eED_NONE          = 1,
-    eED_WEP40         = 2,
-    eED_WEP104        = 3,
-    eED_TKIP          = 4,
-    eED_CCMP          = 5,
-    eED_WPI           = 6,
-    eED_AES_128_CMAC  = 7,
-    
+    eED_WEP           = 2,
+    eED_TKIP          = 3,
+    eED_CCMP          = 4,
+    eED_WPI           = 5,
+        
     eED_TYPE_MAX = WLAN_HAL_MAX_ENUM_SIZE
 } tEdType;
 

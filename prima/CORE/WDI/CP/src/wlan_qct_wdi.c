@@ -151,7 +151,7 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   WDI_ProcessAddBASessionReq,      /* WDI_ADD_BA_SESSION_REQ  */
   WDI_ProcessDelBAReq,             /* WDI_DEL_BA_REQ  */
 
-  /* Miscellaneous Control APIs	*/
+  /* Miscellaneous Control APIs */
   WDI_ProcessChannelSwitchReq,     /* WDI_CH_SWITCH_REQ  */
   WDI_ProcessConfigStaReq,         /* WDI_CONFIG_STA_REQ  */
   WDI_ProcessSetLinkStateReq,      /* WDI_SET_LINK_ST_REQ  */
@@ -251,6 +251,7 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   NULL,
   NULL,
 #endif // WLAN_FEATURE_PACKET_FILTERING
+  WDI_ProcessInitScanReq,               /* WDI_INIT_SCAN_CON_REQ */ 
 
   /*-------------------------------------------------------------------------
     Indications
@@ -298,7 +299,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
   WDI_ProcessAddBASessionRsp,      /* WDI_ADD_BA_SESSION_RESP  */
   WDI_ProcessDelBARsp,             /* WDI_DEL_BA_RESP  */
 
-  /* Miscellaneous Control APIs	*/
+  /* Miscellaneous Control APIs */
   WDI_ProcessChannelSwitchRsp,     /* WDI_CH_SWITCH_RESP  */
   WDI_ProcessConfigStaRsp,         /* WDI_CONFIG_STA_RESP  */
   WDI_ProcessSetLinkStateRsp,      /* WDI_SET_LINK_ST_RESP  */
@@ -571,7 +572,7 @@ WPT_STATIC WPT_INLINE void
 WDI_CopyWDIRateSetToHALRateSet
 ( 
   tSirMacRateSet* pHalRateSet,
-  WDI_RateSet*	  pwdiRateSet
+  WDI_RateSet*    pwdiRateSet
 );
 
 /*Translate an EDCA Parameter Record from WDI into HAL*/
@@ -835,7 +836,7 @@ WDI_Init
   if(eDRIVER_TYPE_MFG != (tDriverType)driverType)
   {  
     /*------------------------------------------------------------------------
-  	Open the Data Transport
+     Open the Data Transport
      ------------------------------------------------------------------------*/
     if(eWLAN_PAL_STATUS_SUCCESS != WDTS_openTransport(&gWDICb))
     {
@@ -4841,7 +4842,7 @@ WDI_DelSTASelfReq
 /**
  @brief WDI_SetTxPerTrackingReq will be called when the upper MAC 
         wants to set the Tx Per Tracking configurations. 
-		Upon the call of this API the WLAN DAL will pack
+        Upon the call of this API the WLAN DAL will pack
         and send a HAL Set Tx Per Tracking request message to the
         lower RIVA sub-system if DAL is in state STARTED.
 
@@ -5832,20 +5833,25 @@ WDI_ProcessInitScanReq
   wpt_uint16                  usSendSize            = 0;
   wpt_uint8                   i = 0;
 
-  tHalInitScanReqMsg          halInitScanReqMsg; 
+  tHalInitScanReqMsg          halInitScanReqMsg;
+
+  /*This is temporary fix. 
+   * It shold be removed once host and riva changes are in sync*/
+  tHalInitScanConReqMsg       halInitScanConReqMsg;
+
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
     Sanity check 
-  -------------------------------------------------------------------------*/
+    -------------------------------------------------------------------------*/
   if (( NULL == pEventData ) ||
       ( NULL == (pwdiInitScanParams = (WDI_InitScanReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiInitScanRspCb   = (WDI_InitScanRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-                 "%s: Invalid parameters", __FUNCTION__);
-     WDI_ASSERT(0);
-     return WDI_STATUS_E_FAILURE; 
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+        "%s: Invalid parameters", __FUNCTION__);
+    WDI_ASSERT(0);
+    return WDI_STATUS_E_FAILURE; 
   }
 
 #if 0
@@ -5854,12 +5860,12 @@ WDI_ProcessInitScanReq
     Check to see if SCAN is already in progress - if so reject the req
     We only allow one scan at a time
     ! TO DO: - revisit this constraint 
-  -----------------------------------------------------------------------*/
+    -----------------------------------------------------------------------*/
   if ( pWDICtx->bScanInProgress )
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Scan is already in progress - subsequent scan is not allowed"
-              " until the first scan completes");
+        "Scan is already in progress - subsequent scan is not allowed"
+        " until the first scan completes");
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -5870,61 +5876,124 @@ WDI_ProcessInitScanReq
 
   wpalMutexRelease(&pWDICtx->wptMutex);
 #endif
-  /*-----------------------------------------------------------------------
-    Get message buffer
-  -----------------------------------------------------------------------*/
-  if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_INIT_SCAN_REQ, 
-                        sizeof(halInitScanReqMsg.initScanParams),
-                        &pSendBuffer, &usDataOffset, &usSendSize))||
-      ( usSendSize < (usDataOffset + sizeof(halInitScanReqMsg.initScanParams) )))
+
+  if (pwdiInitScanParams->wdiReqInfo.bUseNOA)
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Unable to get send buffer in init scan req %x %x %x",
-                pEventData, pwdiInitScanParams, wdiInitScanRspCb);
-     WDI_ASSERT(0);
-     return WDI_STATUS_E_FAILURE; 
+
+    /*This is temporary fix. 
+     * It shold be removed once host and riva changes are in sync*/
+    /*-----------------------------------------------------------------------
+      Get message buffer
+      -----------------------------------------------------------------------*/
+    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_INIT_SCAN_CON_REQ, 
+            sizeof(halInitScanConReqMsg.initScanParams),
+            &pSendBuffer, &usDataOffset, &usSendSize))||
+        ( usSendSize < (usDataOffset + sizeof(halInitScanConReqMsg.initScanParams) )))
+    {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+          "Unable to get send buffer in init scan req %x %x %x",
+          pEventData, pwdiInitScanParams, wdiInitScanRspCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+    }
+
+
+    /*-----------------------------------------------------------------------
+      Fill in the message
+      -----------------------------------------------------------------------*/
+    halInitScanConReqMsg.initScanParams.scanMode = 
+      WDI_2_HAL_SCAN_MODE(pwdiInitScanParams->wdiReqInfo.wdiScanMode);
+
+    wpalMemoryCopy(halInitScanConReqMsg.initScanParams.bssid,
+        pwdiInitScanParams->wdiReqInfo.macBSSID, WDI_MAC_ADDR_LEN);
+
+    halInitScanConReqMsg.initScanParams.notifyBss = 
+      pwdiInitScanParams->wdiReqInfo.bNotifyBSS;
+    halInitScanConReqMsg.initScanParams.frameType = 
+      pwdiInitScanParams->wdiReqInfo.ucFrameType;
+    halInitScanConReqMsg.initScanParams.frameLength = 
+      pwdiInitScanParams->wdiReqInfo.ucFrameLength;
+
+    WDI_CopyWDIMgmFrameHdrToHALMgmFrameHdr( &halInitScanConReqMsg.initScanParams.macMgmtHdr,
+        &pwdiInitScanParams->wdiReqInfo.wdiMACMgmtHdr);
+
+#ifdef WLAN_FEATURE_P2P
+    halInitScanConReqMsg.initScanParams.useNoA = pwdiInitScanParams->wdiReqInfo.bUseNOA;
+    halInitScanConReqMsg.initScanParams.scanDuration = pwdiInitScanParams->wdiReqInfo.scanDuration;
+#endif
+
+    halInitScanConReqMsg.initScanParams.scanEntry.activeBSScnt = 
+      pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt;
+
+    for (i=0; i < pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt; i++)
+    {
+      halInitScanConReqMsg.initScanParams.scanEntry.bssIdx[i] = 
+        pwdiInitScanParams->wdiReqInfo.wdiScanEntry.bssIdx[i];
+    }
+
+    wpalMemoryCopy( pSendBuffer+usDataOffset, 
+        &halInitScanConReqMsg.initScanParams, 
+        sizeof(halInitScanConReqMsg.initScanParams)); 
   }
-
-  /*-----------------------------------------------------------------------
-    Fill in the message
-  -----------------------------------------------------------------------*/
-  halInitScanReqMsg.initScanParams.scanMode = 
-             WDI_2_HAL_SCAN_MODE(pwdiInitScanParams->wdiReqInfo.wdiScanMode);
-
-  wpalMemoryCopy(halInitScanReqMsg.initScanParams.bssid,
-                 pwdiInitScanParams->wdiReqInfo.macBSSID, WDI_MAC_ADDR_LEN);
-
-  halInitScanReqMsg.initScanParams.notifyBss = 
-                                  pwdiInitScanParams->wdiReqInfo.bNotifyBSS;
-  halInitScanReqMsg.initScanParams.frameType = 
-                                  pwdiInitScanParams->wdiReqInfo.ucFrameType;
-  halInitScanReqMsg.initScanParams.frameLength = 
-                                  pwdiInitScanParams->wdiReqInfo.ucFrameLength;
-
-  WDI_CopyWDIMgmFrameHdrToHALMgmFrameHdr( &halInitScanReqMsg.initScanParams.macMgmtHdr,
-                              &pwdiInitScanParams->wdiReqInfo.wdiMACMgmtHdr);
-
-  halInitScanReqMsg.initScanParams.scanEntry.activeBSScnt = 
-  	            pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt;
-
-  for (i=0; i < pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt; i++)
+  else
   {
-    halInitScanReqMsg.initScanParams.scanEntry.bssIdx[i] = 
-               	pwdiInitScanParams->wdiReqInfo.wdiScanEntry.bssIdx[i];
-  }
+    /*-----------------------------------------------------------------------
+      Get message buffer
+      -----------------------------------------------------------------------*/
+    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_INIT_SCAN_REQ, 
+            sizeof(halInitScanReqMsg.initScanParams),
+            &pSendBuffer, &usDataOffset, &usSendSize))||
+        ( usSendSize < (usDataOffset + sizeof(halInitScanReqMsg.initScanParams) )))
+    {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+          "Unable to get send buffer in init scan req %x %x %x",
+          pEventData, pwdiInitScanParams, wdiInitScanRspCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+    }
 
-  wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                  &halInitScanReqMsg.initScanParams, 
-                  sizeof(halInitScanReqMsg.initScanParams)); 
+
+    /*-----------------------------------------------------------------------
+      Fill in the message
+      -----------------------------------------------------------------------*/
+    halInitScanReqMsg.initScanParams.scanMode = 
+      WDI_2_HAL_SCAN_MODE(pwdiInitScanParams->wdiReqInfo.wdiScanMode);
+
+    wpalMemoryCopy(halInitScanReqMsg.initScanParams.bssid,
+        pwdiInitScanParams->wdiReqInfo.macBSSID, WDI_MAC_ADDR_LEN);
+
+    halInitScanReqMsg.initScanParams.notifyBss = 
+      pwdiInitScanParams->wdiReqInfo.bNotifyBSS;
+    halInitScanReqMsg.initScanParams.frameType = 
+      pwdiInitScanParams->wdiReqInfo.ucFrameType;
+    halInitScanReqMsg.initScanParams.frameLength = 
+      pwdiInitScanParams->wdiReqInfo.ucFrameLength;
+
+    WDI_CopyWDIMgmFrameHdrToHALMgmFrameHdr( &halInitScanReqMsg.initScanParams.macMgmtHdr,
+        &pwdiInitScanParams->wdiReqInfo.wdiMACMgmtHdr);
+
+    halInitScanReqMsg.initScanParams.scanEntry.activeBSScnt = 
+      pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt;
+
+    for (i=0; i < pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt; i++)
+    {
+      halInitScanReqMsg.initScanParams.scanEntry.bssIdx[i] = 
+        pwdiInitScanParams->wdiReqInfo.wdiScanEntry.bssIdx[i];
+    }
+
+    wpalMemoryCopy( pSendBuffer+usDataOffset, 
+        &halInitScanReqMsg.initScanParams, 
+        sizeof(halInitScanReqMsg.initScanParams)); 
+  }
 
   pWDICtx->wdiReqStatusCB     = pwdiInitScanParams->wdiReqStatusCB;
   pWDICtx->pReqStatusUserData = pwdiInitScanParams->pUserData; 
 
   /*-------------------------------------------------------------------------
     Send Init Scan Request to HAL 
-  -------------------------------------------------------------------------*/
+    -------------------------------------------------------------------------*/
   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
-                       wdiInitScanRspCb, pEventData->pUserData, WDI_INIT_SCAN_RESP);
+      wdiInitScanRspCb, pEventData->pUserData, WDI_INIT_SCAN_RESP);
 
 }/*WDI_ProcessInitScanReq*/
 
@@ -6237,7 +6306,7 @@ WDI_ProcessFinishScanReq
   for (i = 0; i < pwdiFinishScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt; i++)
   {
     halFinishScanReqMsg.finishScanParams.scanEntry.bssIdx[i] = 
-               	pwdiFinishScanParams->wdiReqInfo.wdiScanEntry.bssIdx[i] ;
+               pwdiFinishScanParams->wdiReqInfo.wdiScanEntry.bssIdx[i] ;
   }
 
   WDI_CopyWDIMgmFrameHdrToHALMgmFrameHdr( &halFinishScanReqMsg.finishScanParams.macMgmtHdr,
@@ -14491,8 +14560,8 @@ WDI_ProcessStartInNavMeasRsp
                        rttRssiResults->numSuccessfulMeasurements;
 
       wpalMemoryCopy(wdiRttRssiResults->ucBssid,
-           		     rttRssiResults->bssid,
-                                       sizeof(wpt_macAddr));
+                     rttRssiResults->bssid,
+                     sizeof(wpt_macAddr));
 
       for( j = 0; j < rttRssiResults->numSuccessfulMeasurements ; j++)
       {
@@ -14929,7 +14998,7 @@ WDI_ProcessGetStatsRsp
   return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessGetStatsRsp*/
 
-	
+
 /**
  @brief Process Update Cfg Rsp function (called when a response is  
         being received over the bus from HAL)
@@ -18839,9 +18908,10 @@ WDI_Status WDI_SendNvBlobReq
 WPT_INLINE void 
 WDI_DS_AssignDatapathContext (void *pContext, void *pDPContext)
 {
-	WDI_ControlBlockType *pCB = (WDI_ControlBlockType *)pContext;
-	pCB->pDPContext = pDPContext;
-	return;
+   WDI_ControlBlockType *pCB = (WDI_ControlBlockType *)pContext;
+
+   pCB->pDPContext = pDPContext;
+   return;
 }
 
 /**
@@ -18856,8 +18926,8 @@ WDI_DS_AssignDatapathContext (void *pContext, void *pDPContext)
 WPT_INLINE void * 
 WDI_DS_GetDatapathContext (void *pContext)
 {
-	WDI_ControlBlockType *pCB = (WDI_ControlBlockType *)pContext;
-	return pCB->pDPContext;
+   WDI_ControlBlockType *pCB = (WDI_ControlBlockType *)pContext;
+   return pCB->pDPContext;
 }
 /**
  @brief Helper routine used to find a session based on the BSSID 
@@ -18872,9 +18942,10 @@ WDI_DS_GetDatapathContext (void *pContext)
 WPT_INLINE void  
 WDT_AssignTransportDriverContext (void *pContext, void *pDTDriverContext)
 {
-	WDI_ControlBlockType *pCB = (WDI_ControlBlockType *)pContext;
-	pCB->pDTDriverContext = pDTDriverContext;
-	return; 
+   WDI_ControlBlockType *pCB = (WDI_ControlBlockType *)pContext;
+
+   pCB->pDTDriverContext = pDTDriverContext;
+   return; 
 }
 
 /**
@@ -18889,8 +18960,8 @@ WDT_AssignTransportDriverContext (void *pContext, void *pDTDriverContext)
 WPT_INLINE void * 
 WDT_GetTransportDriverContext (void *pContext)
 {
-	WDI_ControlBlockType *pCB = (WDI_ControlBlockType *)pContext;
-	return(pCB->pDTDriverContext); 
+   WDI_ControlBlockType *pCB = (WDI_ControlBlockType *)pContext;
+   return(pCB->pDTDriverContext); 
 }
 
 /*============================================================================ 
@@ -19071,7 +19142,7 @@ WDI_2_HAL_REQ_TYPE
   case WDI_HOST_SUSPEND_IND:
     return WLAN_HAL_HOST_SUSPEND_IND;
   case WDI_KEEP_ALIVE_REQ:
-    return WLAN_HAL_KEEP_ALIVE_REQ;	
+    return WLAN_HAL_KEEP_ALIVE_REQ;
 
 #ifdef FEATURE_WLAN_SCAN_PNO
   case WDI_SET_PREF_NETWORK_REQ:
@@ -19093,6 +19164,11 @@ WDI_2_HAL_REQ_TYPE
   case WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ:
     return WLAN_HAL_CLEAR_PACKET_FILTER_REQ;
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+  /*This is temporary change and should be 
+   * removed once host and riva changes are in sync*/
+  case WDI_INIT_SCAN_CON_REQ:
+    return WLAN_HAL_INIT_SCAN_CON_REQ; 
 
   default:
     return WLAN_HAL_MSG_MAX; 
@@ -19263,7 +19339,7 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
   case WLAN_HAL_HOST_RESUME_RSP:
     return WDI_HOST_RESUME_RESP;
   case WLAN_HAL_KEEP_ALIVE_RSP:
-    return WDI_KEEP_ALIVE_RESP;	
+    return WDI_KEEP_ALIVE_RESP;
 #ifdef FEATURE_WLAN_SCAN_PNO
   case WLAN_HAL_SET_PREF_NETWORK_RSP:
     return WDI_SET_PREF_NETWORK_RESP;
@@ -19714,7 +19790,7 @@ WPT_STATIC WPT_INLINE void
 WDI_CopyWDIRateSetToHALRateSet
 ( 
   tSirMacRateSet* pHalRateSet,
-  WDI_RateSet*	  pwdiRateSet
+  WDI_RateSet*    pwdiRateSet
 )
 {
   wpt_uint8 i; 
@@ -20814,7 +20890,7 @@ WDI_Status
 WDI_8023MulticastListReq
 (
   WDI_RcvFltPktSetMcListReqParamsType*  pwdiRcvFltPktSetMcListReqInfo,
-  WDI_8023MulticastListCb 	            wdi8023MulticastListCallback,
+  WDI_8023MulticastListCb               wdi8023MulticastListCallback,
   void*                                 pUserData
 )
 {
@@ -20851,7 +20927,7 @@ WDI_Status
 WDI_ReceiveFilterSetFilterReq
 (
   WDI_SetRcvPktFilterReqParamsType* pwdiSetRcvPktFilterReqInfo,
-  WDI_ReceiveFilterSetFilterCb 	    wdiReceiveFilterSetFilterCallback,
+  WDI_ReceiveFilterSetFilterCb      wdiReceiveFilterSetFilterCallback,
   void*                             pUserData
 )
 {
@@ -20891,7 +20967,7 @@ WDI_Status
 WDI_FilterMatchCountReq
 (
   WDI_RcvFltPktMatchCntReqParamsType* pwdiRcvFltPktMatchCntReqInfo,
-  WDI_FilterMatchCountCb 	          wdiFilterMatchCountCallback,
+  WDI_FilterMatchCountCb              wdiFilterMatchCountCallback,
   void*                               pUserData
 )
 {
@@ -20929,7 +21005,7 @@ WDI_Status
 WDI_ReceiveFilterClearFilterReq
 (
   WDI_RcvFltPktClearReqParamsType*  pwdiRcvFltPktClearReqInfo,
-  WDI_ReceiveFilterClearFilterCb 	wdiReceiveFilterClearFilterCallback,
+  WDI_ReceiveFilterClearFilterCb    wdiReceiveFilterClearFilterCallback,
   void*                             pUserData
 )
 {
@@ -21025,7 +21101,7 @@ WDI_Process8023MulticastListReq
    }
 
    rcvFltMcAddrListType.cMulticastAddr = 
-	       pwdiFltPktSetMcListReqParamsType->mcAddrList.ulMulticastAddrCnt; 
+       pwdiFltPktSetMcListReqParamsType->mcAddrList.ulMulticastAddrCnt; 
    for( i = 0; i < rcvFltMcAddrListType.cMulticastAddr; i++ )
    {
       wpalMemoryCopy(rcvFltMcAddrListType.multicastAddr[i],
@@ -21173,7 +21249,7 @@ WDI_ProcessReceiveFilterSetFilterReq
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
            "Data Offset %d Data Len %d\n",
            pRcvPktFilterCfg->paramsData[i].dataOffset, 
-           pRcvPktFilterCfg->paramsData[i].dataLength);			  
+           pRcvPktFilterCfg->paramsData[i].dataLength);
 
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
            "CData: %d:%d:%d:%d:%d:%d\n",
@@ -21261,7 +21337,7 @@ WDI_ProcessFilterMatchCountReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, 
-	                     WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ, 
+                         WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ, 
                          0,
                          &pSendBuffer, &usDataOffset, &usSendSize))||
        ( usSendSize < usDataOffset))
@@ -21353,9 +21429,9 @@ WDI_ProcessReceiveFilterClearFilterReq
 
 
    rcvFltPktClearParam.status = pwdiRcvFltPktClearReqParamsType->
-	                              filterClearParam.status; 
+                                                    filterClearParam.status; 
    rcvFltPktClearParam.filterId = pwdiRcvFltPktClearReqParamsType->
-	                              filterClearParam.filterId; 
+                                                    filterClearParam.filterId; 
 
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
                    &rcvFltPktClearParam, 
@@ -21450,7 +21526,7 @@ WDI_ProcessReceiveFilterSetFilterRsp
           "%s",__FUNCTION__);
 
    wdiReceiveFilterSetFilterCb = (WDI_ReceiveFilterSetFilterCb)pWDICtx->
-	                                                         pfncRspCB; 
+                                                                   pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 

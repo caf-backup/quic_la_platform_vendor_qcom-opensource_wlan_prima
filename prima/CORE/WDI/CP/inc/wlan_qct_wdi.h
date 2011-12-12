@@ -356,7 +356,7 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct
 {
-	/*Rx Bd data of the unknown received addr2 frame.*/
+  /*Rx Bd data of the unknown received addr2 frame.*/
   void*  bufRxBd;
 
   /*Buffer Length*/
@@ -369,7 +369,7 @@ typedef struct
 typedef struct
 {
    /*ASSOC ID, as assigned by UMAC*/
-	 wpt_uint16    usAssocId;
+   wpt_uint16    usAssocId;
 
    /*STA Index returned during DAL_PostAssocReq or DAL_ConfigStaReq*/
    wpt_uint8     ucSTAIdx;
@@ -399,11 +399,11 @@ typedef struct
  /*Transmitter mac address*/
  wpt_macAddr macTaAddr;
 
- /*	Destination mac address*/
+ /*Destination mac address*/
  wpt_macAddr macDstAddr;
 
  /*Multicast flag*/
- wpt_uint8   ucMulticast;	
+ wpt_uint8   ucMulticast;
 
  /*First byte of IV*/
  wpt_uint8   ucIV1;
@@ -638,7 +638,7 @@ typedef struct
   WDI_Status    wdiStatus;
 
   /*Max number of STA supported by the device*/
-  wpt_uint8     ucMaxStations;	
+  wpt_uint8     ucMaxStations;
 
   /*Max number of BSS supported by the device*/
   wpt_uint8     ucMaxBssids;
@@ -745,6 +745,12 @@ typedef struct
    * initiating SCAN*/
   WDI_ScanEntry    wdiScanEntry;
 
+  /* Flag to enable/disable Single NOA*/
+  wpt_boolean      bUseNOA;
+
+  /* Indicates the scan duration (in ms) */
+  wpt_uint16       scanDuration;
+
 }WDI_InitScanReqInfoType; 
 
 /*---------------------------------------------------------------------------
@@ -772,7 +778,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the channel to scan*/
-  wpt_uint8         ucChannel;	
+  wpt_uint8         ucChannel;
 
   /*Request status callback offered by UMAC - it is called if the current
     req has returned PENDING as status; it delivers the status of sending
@@ -790,7 +796,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the status of the operation */
-  WDI_Status        wdiStatus;	
+  WDI_Status        wdiStatus;
 
 #if defined WLAN_FEATURE_VOWIFI
   wpt_uint32        aStartTSF[2];
@@ -919,7 +925,7 @@ typedef struct
 typedef struct
 {
   /*Info for the Finish Scan request that will be sent down to the device*/
- 	WDI_FinishScanReqInfoType  wdiReqInfo; 
+  WDI_FinishScanReqInfoType  wdiReqInfo; 
 
   /*Request status callback offered by UMAC - it is called if the current
     req has returned PENDING as status; it delivers the status of sending
@@ -937,17 +943,17 @@ typedef struct
 typedef struct
 {
   /*Indicates the BSSID to which STA is going to associate*/
-  wpt_macAddr     	macBSSID; 
+  wpt_macAddr   macBSSID; 
 
   /*Indicates the MAC Address of the current Self STA*/
-  wpt_macAddr     	macSTASelf; 
+  wpt_macAddr   macSTASelf; 
  
   /*Indicates the link State determining the entity Type e.g. BTAMP-STA, STA etc.*/
-  wpt_uint32 	linkState;
+  wpt_uint32    linkState;
   
   /*Indicates the channel to switch to.*/
   WDI_SwitchChReqInfoType  wdiChannelInfo; 
-  	
+
 }WDI_JoinReqInfoType;
 
 /*---------------------------------------------------------------------------
@@ -990,7 +996,7 @@ typedef enum
   WDI_11B_NW_TYPE,
   WDI_11G_NW_TYPE,
   WDI_11N_NW_TYPE,
-} WDI_NwType;	
+} WDI_NwType;
 
 /*---------------------------------------------------------------------------
   WDI_ConfigAction
@@ -999,7 +1005,7 @@ typedef enum
 {
   WDI_ADD_BSS,
   WDI_UPDATE_BSS
-} WDI_ConfigAction;	
+} WDI_ConfigAction;
 
 /*---------------------------------------------------------------------------
   WDI_HTOperatingMode
@@ -1011,7 +1017,7 @@ typedef enum
   WDI_HT_OP_MODE_NO_LEGACY_20MHZ_HT,  
   WDI_HT_OP_MODE_MIXED
 
-} WDI_HTOperatingMode;	
+} WDI_HTOperatingMode;
 
 
 /*---------------------------------------------------------------------------
@@ -1173,7 +1179,7 @@ typedef struct
   /*HAL should update the existing STA entry, if this flag is set. UMAC 
    will set this flag in case of RE-ASSOC, where we want to reuse the old
    STA ID.*/
-  WDI_ConfigActionType      wdiAction;	
+  WDI_ConfigActionType      wdiAction;
 
   /*U-APSD Flags: 1b per AC.  Encoded as follows:
      b7 b6 b5 b4 b3 b2 b1 b0 =
@@ -1191,7 +1197,7 @@ typedef struct
   WDI_HTMIMOPowerSaveState  wdiMIMOPS;
 
   /*Delayed BA Support*/
-  wpt_uint8                 ucDelayedBASupport;	
+  wpt_uint8                 ucDelayedBASupport;
 
   /*Max AMPDU duration in 32us*/
   wpt_uint8                 us32MaxAmpduDuratio;
@@ -1291,10 +1297,10 @@ typedef struct
 typedef struct
 {
   /*Peer BSSID*/
-  wpt_macAddr     	       macBSSID; 	
+  wpt_macAddr              macBSSID;
 
   /*Self MAC Address*/
-  wpt_macAddr     	       macSelfAddr; 
+  wpt_macAddr              macSelfAddr; 
 
   /*BSS Type*/
   WDI_BssType              wdiBSSType;
@@ -1309,40 +1315,40 @@ typedef struct
   wpt_uint8                ucShortSlotTimeSupported;
 
   /*Co-exist with 11a STA*/
-  wpt_uint8                ucllaCoexist;		
+  wpt_uint8                ucllaCoexist;
 
   /*Co-exist with 11b STA*/
-  wpt_uint8                ucllbCoexist;		
+  wpt_uint8                ucllbCoexist;
 
   /*Co-exist with 11g STA*/
-  wpt_uint8                ucllgCoexist;		
+  wpt_uint8                ucllgCoexist;
 
   /*Coexistence with 11n STA*/
-  wpt_uint8                ucHT20Coexist;		
+  wpt_uint8                ucHT20Coexist;
 
   /*Non GF coexist flag*/
   wpt_uint8                ucllnNonGFCoexist;
 
   /*TXOP protection support*/
-  wpt_uint8                ucTXOPProtectionFullSupport;		
+  wpt_uint8                ucTXOPProtectionFullSupport;
 
   /*RIFS mode*/
-  wpt_uint8                ucRIFSMode;	
+  wpt_uint8                ucRIFSMode;
 
   /*Beacon Interval in TU*/
-  wpt_uint16               usBeaconInterval;	
+  wpt_uint16               usBeaconInterval;
 
   /*DTIM period*/
   wpt_uint8                ucDTIMPeriod;
 
-  /*TX Width Set: 0 - 20 MHz only, 1 - 20/40 MHz*/		
+  /*TX Width Set: 0 - 20 MHz only, 1 - 20/40 MHz*/
   wpt_uint8                ucTXChannelWidthSet;
-  	
-  /*Operating channel*/	
+
+  /*Operating channel*/
   wpt_uint8                ucCurrentOperChannel;
 
   /*Extension channel for channel bonding*/
-  wpt_uint8                ucCurrentExtChannel;		
+  wpt_uint8                ucCurrentExtChannel;
 
   /*Context of the station being added in HW.*/
   WDI_ConfigStaReqInfoType wdiSTAContext;
@@ -1355,7 +1361,7 @@ typedef struct
   WDI_ConfigAction         wdiAction;
 
   /*Basic Rate Set*/
-  WDI_RateSet	             wdiRateSet;
+  WDI_RateSet              wdiRateSet;
 
   /*Enable/Disable HT capabilities of the BSS*/
   wpt_uint8                ucHTCapable;
@@ -1494,10 +1500,10 @@ typedef struct
 typedef struct
 {
   /*Config STA arguments.*/
-  WDI_ConfigStaReqInfoType	wdiSTAParams; 
+  WDI_ConfigStaReqInfoType  wdiSTAParams; 
 
    /*Config BSS Arguments*/
-  WDI_ConfigBSSReqInfoType	wdiBSSParams;
+  WDI_ConfigBSSReqInfoType  wdiBSSParams;
 
   /*Request status callback offered by UMAC - it is called if the current
     req has returned PENDING as status; it delivers the status of sending
@@ -1657,13 +1663,13 @@ typedef struct
   wpt_uint8      ucBssIdx; 
 
   /*Encryption Type used with peer*/
-  WDI_EncryptType  wdiEncType;		
+  WDI_EncryptType  wdiEncType;
 
   /*Number of keys*/
   wpt_uint8        ucNumKeys;
 
   /*Array of keys.*/
-  WDI_KeysType	   aKeys[WDI_MAX_ENCR_KEYS]; 
+  WDI_KeysType     aKeys[WDI_MAX_ENCR_KEYS]; 
 
   /*Control for Replay Count, 1= Single TID based replay count on Tx
     0 = Per TID based replay count on TX */
@@ -1707,7 +1713,7 @@ typedef struct
   wpt_uint8      ucBssIdx; 
 
   /*Encryption Type used with peer*/
-  WDI_EncryptType  wdiEncType;		
+  WDI_EncryptType  wdiEncType;
 
   /*Key Id*/
   wpt_uint8    ucKeyId;
@@ -1744,7 +1750,7 @@ typedef struct
   wpt_uint8        ucSTAIdx; 
 
   /*Encryption Type used with peer*/
-  WDI_EncryptType  wdiEncType;		
+  WDI_EncryptType  wdiEncType;
 
   /*STATIC/DYNAMIC*/
   WDI_WepType      wdiWEPType;
@@ -1756,7 +1762,7 @@ typedef struct
   wpt_uint8        ucNumKeys;
 
   /*Array of keys.*/
-  WDI_KeysType	   wdiKey[WDI_MAX_ENCR_KEYS]; 
+  WDI_KeysType     wdiKey[WDI_MAX_ENCR_KEYS]; 
 
   /*Control for Replay Count, 1= Single TID based replay count on Tx
     0 = Per TID based replay count on TX */
@@ -1790,7 +1796,7 @@ typedef struct
   wpt_uint8        ucSTAIdx; 
 
   /*Encryption Type used with peer*/
-  WDI_EncryptType  wdiEncType;		
+  WDI_EncryptType  wdiEncType;
 
   /*Key Id*/
   wpt_uint8        ucKeyId;
@@ -1892,7 +1898,7 @@ typedef struct
   wpt_uint16        ucTspecIdx;
 
   /*Tspec IE negotiated OTA*/
-  WDI_TspecIEType	  wdiTspecIE;
+  WDI_TspecIEType   wdiTspecIE;
 
   /*UAPSD delivery and trigger enabled flags */
   wpt_uint8         ucUapsdFlags;
@@ -2011,7 +2017,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the station for which BA is added..*/
-  wpt_uint8        ucSTAIdx;	
+  wpt_uint8        ucSTAIdx;
 
   /*The peer mac address*/
   wpt_macAddr      macPeerAddr;
@@ -2239,7 +2245,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the station for which BA is added..*/
-  wpt_uint8        ucSTAIdx;	
+  wpt_uint8        ucSTAIdx;
 
   /*TID for which BA was negotiated*/
   wpt_uint8        ucBaTID;
@@ -2277,7 +2283,7 @@ typedef struct
   WDI_Status    wdiStatus;
 
   /*Indicates the channel that WLAN is on*/
-  wpt_uint8     ucChannel;	
+  wpt_uint8     ucChannel;
 
 #ifdef WLAN_FEATURE_VOWIFI
   /*HAL fills in the tx power used for mgmt frames in this field.*/
@@ -2648,7 +2654,7 @@ typedef struct
 }WDI_NvDownloadReqParamsType;
 
 /*---------------------------------------------------------------------------
-	 WDI_NvDownloadRspInfoType
+  WDI_NvDownloadRspInfoType
 ---------------------------------------------------------------------------*/
 typedef struct
 {
@@ -3146,11 +3152,11 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct
 {
-    wpt_uint8  ucPacketType;	
+    wpt_uint8  ucPacketType;
     wpt_uint32 ucTimePeriod;
-    wpt_uint8  aHostIpv4Addr[4]; 
-    wpt_uint8  aDestIpv4Addr[4]; 	
-    wpt_uint8  aDestMacAddr[6];	
+    wpt_uint8  aHostIpv4Addr[4];
+    wpt_uint8  aDestIpv4Addr[4];
+    wpt_uint8  aDestMacAddr[6];
 } WDI_KeepAliveReqType;
 
 /*---------------------------------------------------------------------------
@@ -3483,7 +3489,7 @@ typedef struct
   wpt_uint8         ucTspecIdx;
 
   /*Tspec IE negotiated OTA*/
-  WDI_TspecIEType	  wdiTspecIE[WDI_MAX_NO_AC];
+  WDI_TspecIEType   wdiTspecIE[WDI_MAX_NO_AC];
 
   /*UAPSD delivery and trigger enabled flags */
   wpt_uint8         ucUapsdFlags;
@@ -3923,7 +3929,7 @@ typedef struct
 typedef struct
 {
   wpt_uint8                       filterId; 
-  wpt_uint8                       filterType; 	
+  wpt_uint8                       filterType;
   wpt_uint32                      numFieldParams;
   wpt_uint32                      coalesceTime;
   WDI_RcvPktFilterFieldParams     paramsData[1];
@@ -5206,7 +5212,7 @@ typedef void  (*WDI_ConfigureAppsCpuWakeupStateCb)(WDI_Status   wdiStatus,
 /*---------------------------------------------------------------------------
    WDI_NvDownloadRspCb
  
-   DESCRIPTION	 
+   DESCRIPTION
  
    This callback is invoked by DAL when it has received a NV Download response
    from the underlying device.
@@ -5523,7 +5529,7 @@ typedef void  (*WDI_SetTxPerTrackingRspCb)(WDI_Status   wdiStatus,
     The result code associated with performing the operation
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_8023MulticastListCb)(WDI_Status   wdiStatus,
-										 void*        pUserData);
+                                         void*        pUserData);
 
 /*---------------------------------------------------------------------------
    WDI_ReceiveFilterSetFilterCb
@@ -5545,7 +5551,7 @@ typedef void  (*WDI_8023MulticastListCb)(WDI_Status   wdiStatus,
     The result code associated with performing the operation
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_ReceiveFilterSetFilterCb)(WDI_Status   wdiStatus,
-											  void*        pUserData);
+                                              void*        pUserData);
 
 /*---------------------------------------------------------------------------
    WDI_FilterMatchCountCb
@@ -5589,9 +5595,9 @@ typedef void  (*WDI_FilterMatchCountCb)(WDI_Status   wdiStatus,
     The result code associated with performing the operation
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_ReceiveFilterClearFilterCb)(WDI_Status   wdiStatus,
-												void*        pUserData);
+                                                void*        pUserData);
 #endif // WLAN_FEATURE_PACKET_FILTERING
-									 
+
 /*========================================================================
  *     Function Declarations and Documentation
  ==========================================================================*/
@@ -7866,7 +7872,7 @@ WDI_UpdateScanParamsReq
 /**
  @brief WDI_SetTxPerTrackingReq will be called when the upper MAC 
         wants to set the Tx Per Tracking configurations. 
-		Upon the call of this API the WLAN DAL will pack
+        Upon the call of this API the WLAN DAL will pack
         and send a HAL Set Tx Per Tracking request message to the
         lower RIVA sub-system if DAL is in state STARTED.
 

@@ -148,12 +148,12 @@ when        who    what, where, why
 
 // Action frame categories
 
-#define WDI_MAC_ACTION_SPECTRUM_MGMT		0
-#define WDI_MAC_ACTION_QOS_MGMT			1
-#define WDI_MAC_ACTION_DLP					2
-#define WDI_MAC_ACTION_BLKACK				3		
-#define WDI_MAC_ACTION_HT					7
-#define WDI_MAC_ACTION_WME					17	
+#define WDI_MAC_ACTION_SPECTRUM_MGMT    0
+#define WDI_MAC_ACTION_QOS_MGMT         1
+#define WDI_MAC_ACTION_DLP              2
+#define WDI_MAC_ACTION_BLKACK           3
+#define WDI_MAC_ACTION_HT               7
+#define WDI_MAC_ACTION_WME              17
 
 // QoS management action codes
 
@@ -247,8 +247,8 @@ when        who    what, where, why
 #define WDI_RX_BD_GET_ADDR3_IDX( _pvBDHeader )  (((WDI_RxBdType*)_pvBDHeader)->addr3Index)
 #define WDI_RX_BD_GET_ADDR1_IDX( _pvBDHeader )  (((WDI_RxBdType*)_pvBDHeader)->addr1Index)
 
-#define WDI_TX_BD_GET_TID( _pvBDHeader )   		  (((WDI_TxBdType*)_pvBDHeader)->tid)
-#define WDI_TX_BD_GET_STA_ID( _pvBDHeader ) 	  (((WDI_TxBdType*)_pvBDHeader)->staIndex)
+#define WDI_TX_BD_GET_TID( _pvBDHeader )   (((WDI_TxBdType*)_pvBDHeader)->tid)
+#define WDI_TX_BD_GET_STA_ID( _pvBDHeader ) (((WDI_TxBdType*)_pvBDHeader)->staIndex)
 
 #define WDI_RX_BD_GET_DPU_SIG( _pvBDHeader )     (((WDI_RxBdType*)_pvBDHeader)->dpuSignature)
 

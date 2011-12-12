@@ -126,12 +126,12 @@ typedef enum
   /*The flag will be set to this value when End Scan API is called. When the   
     flag is set to this value the only two Scan APIs allowed are Start and 
     Finish. */
-	WDI_SCAN_ENDED_ST       = 2, 
+  WDI_SCAN_ENDED_ST       = 2, 
 
   /*The flag will be set to this value in the beginning before init is called   
     and after the Finish API is called. No other scan APIs will be allowed 
     in this state until Scan Init is called again. */
-	WDI_SCAN_FINISHED_ST    = 3,
+  WDI_SCAN_FINISHED_ST    = 3,
 
   WDI_SCAN_MAX_ST
 }WDI_ScanStateType;
@@ -230,7 +230,7 @@ typedef enum
   /*WLAN DAL Delete BA Request*/ 
   WDI_DEL_BA_REQ        = 20,
 
-   /* Miscellaneous Control	*/
+   /* Miscellaneous Control */
   /*WLAN DAL Channel Switch Request*/ 
   WDI_CH_SWITCH_REQ     = 21,
   
@@ -364,10 +364,14 @@ typedef enum
 
   WDI_SET_TX_PER_TRACKING_REQ = 66,
 
-  WDI_8023_MULTICAST_LIST_REQ      				= 67,
-  WDI_RECEIVE_FILTER_SET_FILTER_REQ      		= 68,
+  WDI_8023_MULTICAST_LIST_REQ                   = 67,
+  WDI_RECEIVE_FILTER_SET_FILTER_REQ             = 68,
   WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ  = 69,
-  WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ      		= 70,
+  WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ           = 70,
+
+  /*This is temp fix. Should be removed once 
+   * Host and Riva code is in sync*/
+  WDI_INIT_SCAN_CON_REQ                         = 71,
   
   WDI_MAX_REQ,
 
@@ -655,7 +659,7 @@ typedef struct
   wpt_boolean         bAssocReqQueued;
 
   /*BSSID of the session*/
-  wpt_macAddr     	  macBSSID; 
+  wpt_macAddr         macBSSID; 
 
   /*BSS Index associated with this BSSID*/
   wpt_uint8           ucBSSIdx; 
@@ -695,14 +699,14 @@ typedef WPT_PACK_PRE struct
   wpt_uint8    ucBcastDpuDescIndx;
 
   /*DPU signature to be used for broadcast/multicast packets*/
-  wpt_uint8    ucBcastDpuSignature;	
+  wpt_uint8    ucBcastDpuSignature;
   
   /*DPU descriptor index allocated by HAL, used for bcast/mcast management
   packets*/
-  wpt_uint8    ucMgmtDpuDescIndx;		
+  wpt_uint8    ucMgmtDpuDescIndx;
 
   /*DPU signature to be used for bcast/mcast management packets*/
-  wpt_uint8    ucMgmtDpuSignature;		
+  wpt_uint8    ucMgmtDpuSignature;
 
   /*Status of the request received from HAL */
   eHalStatus   halStatus;
@@ -2887,7 +2891,7 @@ WDI_ProcessGetStatsRsp
   WDI_EventInfoType*     pEventData
 );
 
-	
+
 /**
  @brief Process Update Cfg Rsp function (called when a response is  
         being received over the bus from HAL)

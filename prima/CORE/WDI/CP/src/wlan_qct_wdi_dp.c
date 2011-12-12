@@ -806,16 +806,15 @@ WDI_RxBD_GetFrameTypeSubType
     
     if (pRxBd->ft != WDI_RX_BD_FT_DONE)
     {
-      if (pRxBd->asf)
-      {
-	      typeSubType = (WDI_MAC_DATA_FRAME << WDI_FRAME_TYPE_OFFSET) |
-							  WDI_MAC_DATA_QOS_DATA;
-	  }else{
-		
-        wpalMemoryCopy(&wdiFrmCtl, &usFrmCtrl, sizeof(wdiFrmCtl)); 
-        typeSubType = (wdiFrmCtl.type << WDI_FRAME_TYPE_OFFSET) |
-                        wdiFrmCtl.subType;
-	  }
+        if (pRxBd->asf)
+        {
+            typeSubType = (WDI_MAC_DATA_FRAME << WDI_FRAME_TYPE_OFFSET) |
+                                                       WDI_MAC_DATA_QOS_DATA;
+        } else {
+           wpalMemoryCopy(&wdiFrmCtl, &usFrmCtrl, sizeof(wdiFrmCtl)); 
+           typeSubType = (wdiFrmCtl.type << WDI_FRAME_TYPE_OFFSET) |
+                                                       wdiFrmCtl.subType;
+        }
     }
     else
     {
@@ -880,26 +879,27 @@ WDI_RxAmsduBdFix
     wpt_uint32 *pModBd, *pMaskBd, *pFirstBd, i;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-    if(pRxBd->asf)
+    if (pRxBd->asf)
     {
-		if(pRxBd->sybFrameIdx == 0)
+        if (pRxBd->sybFrameIdx == 0)
         {
             //copy the BD of first AMSDU
-			pWDICtx->wdiRxAmsduFirstBdCache = *pRxBd;
-		}
+            pWDICtx->wdiRxAmsduFirstBdCache = *pRxBd;
+        }
         else
         {
             pModBd   = (wpt_uint32*)pRxBd;
-			pMaskBd  = (wpt_uint32*)&pWDICtx->wdiRxAmsduBdFixMask; 
-			pFirstBd = (wpt_uint32*)&pWDICtx->wdiRxAmsduFirstBdCache; 
+            pMaskBd  = (wpt_uint32*)&pWDICtx->wdiRxAmsduBdFixMask;
+            pFirstBd = (wpt_uint32*)&pWDICtx->wdiRxAmsduFirstBdCache;
 
-			for(i=0; i < sizeof(WDI_RxBdType)/sizeof(wpt_uint32 *); i++)
+            for (i = 0; i < sizeof(WDI_RxBdType)/sizeof(wpt_uint32 *); i++)
             {
-				//modified BD = zero out non AMSDU related fields in this BD |
-				//              non AMSDU related fields from the first BD.
-				pModBd[i]= (pModBd[i] & ~pMaskBd[i])| (pFirstBd[i] & pMaskBd[i]);
-			}
-		}
+                //modified BD = zero out non AMSDU related fields in this BD |
+                //              non AMSDU related fields from the first BD.
+                pModBd[i] = (pModBd[i] & ~pMaskBd[i]) |
+                            (pFirstBd[i] & pMaskBd[i]);
+            }
+        }
     }
     return;
 }/*WDI_RxAmsduBdFix*/

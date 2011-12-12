@@ -575,14 +575,14 @@ v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid)
 
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
 {
-    tsap_Config_t *pConfig;    
+    tsap_Config_t *pConfig;
     beacon_data_t *pBeacon = NULL;
     struct ieee80211_mgmt *pMgmt_frame;
     v_U8_t *pIe=NULL;
     v_U16_t capab_info;
     eCsrAuthType RSNAuthType;
     eCsrEncryptionType RSNEncryptType;
-    eCsrEncryptionType mcRSNEncryptType;    
+    eCsrEncryptionType mcRSNEncryptType;
     int status = VOS_STATUS_SUCCESS;
     tpWLAN_SAPEventCB pSapEventCallback;
     v_U8_t *genie;
@@ -682,8 +682,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
             }
         }
     }
-    pConfig->SSIDinfo.ssidHidden = VOS_FALSE; 
-    
+    pConfig->SSIDinfo.ssidHidden = VOS_FALSE;
+
     pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
                                        pBeacon->head_len, WLAN_EID_SSID);
 
@@ -703,7 +703,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
                pHostapdAdapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
     
     pConfig->SapMacaddr_acl = eSAP_ACCEPT_UNLESS_DENIED;
-    
+
     pConfig->SapHw_mode= eSAP_DOT11_MODE_11g;
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len, 
                                        WLAN_EID_HT_CAPABILITY);
@@ -720,6 +720,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
         pConfig->ht_capab = 0;    
     }
 
+    // ht_capab is not what the name conveys,this is used for protection bitmap
+    pConfig->ht_capab =
+                 (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apProtection;
     genie = vos_mem_malloc(MAX_GENIE_LEN);
 
     if(genie == NULL) {

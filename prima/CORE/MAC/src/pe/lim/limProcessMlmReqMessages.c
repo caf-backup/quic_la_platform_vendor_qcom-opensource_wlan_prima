@@ -637,6 +637,9 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
         PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
         goto error;
     }
+    
+    /*Initialize the pInitScanParam with 0*/
+    palZeroMemory( pMac->hHdd, (tANI_U8 *)pInitScanParam, sizeof(*pInitScanParam));
 
     msg.type = WDA_INIT_SCAN_REQ;
     msg.bodyptr = pInitScanParam;
@@ -700,9 +703,6 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
     else
     {
         pInitScanParam->scanMode = eHAL_SYS_MODE_SCAN;
-        pInitScanParam->notifyBss = FALSE;
-        pInitScanParam->notifyHost = FALSE;
-        pInitScanParam->scanDuration = 0;
         __limCreateInitScanRawFrame(pMac, pInitScanParam);
 #ifdef WLAN_FEATURE_P2P
         if (pInitScanParam->useNoA)
