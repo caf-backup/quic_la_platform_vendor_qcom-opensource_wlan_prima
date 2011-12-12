@@ -37,6 +37,8 @@ int nl_srv_init(void)
       WLAN_NLINK_MCAST_GRP_ID, nl_srv_rcv, NULL, THIS_MODULE);
 
    if (nl_srv_sock != NULL) {
+      /*For a process with Non root permissions to communicate with NL socket*/
+      netlink_set_nonroot(WLAN_NLINK_PROTO_FAMILY, (NL_NONROOT_SEND | NL_NONROOT_RECV));
       memset(nl_srv_msg_handler, 0, sizeof(nl_srv_msg_handler));
    } else {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
