@@ -574,7 +574,7 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
                                        pBeacon->head_len, WLAN_EID_SUPP_RATES);
     if (pIe != NULL)
     {
-        pIe += 2;
+        pIe += 1;
         wlan_hdd_check_11gmode(pIe, &require_ht, &checkRatesfor11g,
                                &pConfig->SapHw_mode);
     }
@@ -583,7 +583,7 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
                                 WLAN_EID_EXT_SUPP_RATES);
     if (pIe != NULL)
     {
-        pIe += 2;
+        pIe += 1;
         wlan_hdd_check_11gmode(pIe, &require_ht, &checkRatesfor11g,
                                &pConfig->SapHw_mode);
     }
@@ -2902,8 +2902,8 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     
                     if( SIR_MAC_MAX_IE_LENGTH < (pWextState->assocAddIE.length + eLen) )
                     {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate assocAddIE. \
-                                                      Need bigger buffer space\n");
+                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate assocAddIE. "
+                                                      "Need bigger buffer space\n");
                        VOS_ASSERT(0);
                        return -ENOMEM;
                     }
@@ -2917,24 +2917,26 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 }
                 else if (0 == memcmp(&genie[0], "\x00\x50\xf2", 3)) 
                 {  
-                    hddLog (VOS_TRACE_LEVEL_INFO, "%s Set WPA IE (len %d)",__func__, eLen + 2);            
+                    hddLog (VOS_TRACE_LEVEL_INFO, "%s Set WPA IE (len %d)",__func__, eLen + 2);
                     memset( pWextState->WPARSNIE, 0, MAX_WPA_RSN_IE_LEN );
                     memcpy( pWextState->WPARSNIE, genie - 2, (eLen + 2) /*ie_len*/);
                     pWextState->roamProfile.pWPAReqIE = pWextState->WPARSNIE;
                     pWextState->roamProfile.nWPAReqIELength = eLen + 2;//ie_len;
                 }
 #ifdef WLAN_FEATURE_P2P
-                else if (0 == memcmp(&genie[0], P2P_OUI_TYPE, 
-                                                         P2P_OUI_TYPE_SIZE)) 
-                {  
+                else if ( (0 == memcmp(&genie[0], P2P_OUI_TYPE, 
+                                                  P2P_OUI_TYPE_SIZE) )
+                        /*Consider P2P IE, only for P2P Client */
+                         && (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
+                {
                     v_U16_t curAddIELen = pWextState->assocAddIE.length;
                     hddLog (VOS_TRACE_LEVEL_INFO, "%s Set P2P IE(len %d)", 
                             __func__, eLen + 2);
                     
                     if( SIR_MAC_MAX_IE_LENGTH < (pWextState->assocAddIE.length + eLen) )
                     {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate assocAddIE. \
-                                                      Need bigger buffer space\n");
+                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate assocAddIE "
+                                                      "Need bigger buffer space\n");
                        VOS_ASSERT(0);
                        return -ENOMEM;
                     }
@@ -2960,22 +2962,22 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 hddLog(VOS_TRACE_LEVEL_INFO,"WAPI MODE IS  %lu \n",
                                           pAdapter->wapi_info.nWapiMode);
                 tmp = (u16 *)ie;
-                tmp = tmp + 2; // Skip element Id and Len, Version        
-                akmsuiteCount = WPA_GET_LE16(tmp);       
-                tmp = tmp + 1;   
-                akmlist= (int *)(tmp);       
+                tmp = tmp + 2; // Skip element Id and Len, Version
+                akmsuiteCount = WPA_GET_LE16(tmp);
+                tmp = tmp + 1;
+                akmlist= (int *)(tmp);
                 memcpy(akmsuite, akmlist, (4*akmsuiteCount));
 
-                if (WAPI_PSK_AKM_SUITE == akmsuite[0])    
+                if (WAPI_PSK_AKM_SUITE == akmsuite[0])
                 {
                     hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO PSK",
-                                                            __FUNCTION__);       
+                                                            __FUNCTION__);
                     pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_PSK;
                 }    
                 if (WAPI_CERT_AKM_SUITE == akmsuite[0])     
                 {     
                     hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO CERTIFICATE",
-                                                             __FUNCTION__);      
+                                                             __FUNCTION__);
                     pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_CERT;
                 }
                 break;
