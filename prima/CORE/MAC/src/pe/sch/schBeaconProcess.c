@@ -328,6 +328,13 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                * This is the Beacon received from the AP  we're currently associated with. Check
                * if there are any changes in AP's capabilities 
                */
+        if((tANI_U8) pBeacon->channelNumber != psessionEntry->currentOperChannel)
+        {
+            PELOGE(limLog(pMac, LOGE, FL("Channel Change from %d --> %d  - "
+                                         "Ignoring beacon!\n"), 
+                          psessionEntry->currentOperChannel, pBeacon->channelNumber);)
+           goto fail;
+        }
         limDetectChangeInApCapabilities(pMac, pBeacon, psessionEntry);
         if(limGetStaHashBssidx(pMac, DPH_STA_HASH_INDEX_PEER, &bssIdx, psessionEntry) != eSIR_SUCCESS)
             goto fail;

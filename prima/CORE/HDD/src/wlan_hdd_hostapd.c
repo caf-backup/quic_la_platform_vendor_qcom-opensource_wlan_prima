@@ -2231,6 +2231,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         pWlanHostapdDev->ieee80211_ptr = &pHostapdAdapter->wdev ;
         pHostapdAdapter->wdev.wiphy = pHddCtx->wiphy;  
         pHostapdAdapter->wdev.netdev =  pWlanHostapdDev;
+        init_completion(&pHostapdAdapter->tx_action_cnf_event);
 #endif 
         init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))

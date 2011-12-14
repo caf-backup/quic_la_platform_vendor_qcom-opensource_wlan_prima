@@ -1513,6 +1513,8 @@ typedef PACKED_PRE struct PACKED_POST
     /* Persona for the BSS can be STA,AP,GO,CLIENT value same as tHalConMode */    
     tANI_U8   halPersona;
    
+    tANI_U8 bSpectrumMgtEnable;
+   
 } tConfigBssParams, * tpConfigBssParams;
 
 typedef PACKED_PRE struct PACKED_POST

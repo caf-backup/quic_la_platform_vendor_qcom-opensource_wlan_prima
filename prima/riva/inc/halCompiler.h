@@ -71,6 +71,9 @@
 #define __ani_attr_aligned_8
 #define __ani_attr_aligned_16
 #define __ani_attr_aligned_32
+#define PACKED
+#define PACKED_POST
+#define ALIGN(__value)
 #elif defined(__INTEL_COMPILER) || defined(__ICC) || defined(__ECC)
 #define __ANI_COMPILER_PRAGMA_PACK              1
 #define __ani_attr_pre_packed 
@@ -80,6 +83,9 @@
 #define __ani_attr_aligned_8
 #define __ani_attr_aligned_16
 #define __ani_attr_aligned_32
+#define PACKED
+#define PACKED_POST
+#define ALIGN(__value)
 #elif defined(__GNUC__)
 #define __ani_attr_pre_packed 
 #define __ani_attr_packed                       __attribute__((packed))
@@ -88,6 +94,15 @@
 #define __ani_attr_aligned_8                    __attribute__((aligned(8)))
 #define __ani_attr_aligned_16                   __attribute__((aligned(16)))
 #define __ani_attr_aligned_32                   __attribute__((aligned(32)))
+#ifndef PACKED
+#define PACKED
+#endif
+#ifndef PACKED_POST
+#define PACKED_POST                             __attribute__((packed))
+#endif
+#ifndef ALIGN
+#define ALIGN(__value)                          __attribute__((aligned(__value)))
+#endif
 #elif defined(ANI_COMPILER_TYPE_RVCT)
 /* Nothing defined so far */
 #define __ani_attr_packed
@@ -97,16 +112,15 @@
 #define __ani_attr_aligned_8                    __align(8)
 #define __ani_attr_aligned_16                   __align(16)
 #define __ani_attr_aligned_32                   __align(32)
+#define PACKED                                  __packed
+#define PACKED_POST
+#define ALIGN(__value)                          __align(__value)
 #else
 #error "Unknown compiler"
 #endif
 
 #ifndef PACKED_PRE
 #define PACKED_PRE   __ani_attr_pre_packed
-#endif
-
-#ifndef PACKED_POST
-#define PACKED_POST   __ani_attr_packed
 #endif
 
 #ifndef ALIGN_4

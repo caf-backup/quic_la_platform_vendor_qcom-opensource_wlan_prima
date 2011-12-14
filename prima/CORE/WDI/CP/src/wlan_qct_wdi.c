@@ -19950,6 +19950,9 @@ WDI_CopyWDIConfigBSSToHALConfigBSS
   }
 
   phalConfigBSS->halPersona = pwdiConfigBSS->ucPersona; 
+
+  phalConfigBSS->bSpectrumMgtEnable = pwdiConfigBSS->bSpectrumMgtEn;
+
 }/*WDI_CopyWDIConfigBSSToHALConfigBSS*/
 
 

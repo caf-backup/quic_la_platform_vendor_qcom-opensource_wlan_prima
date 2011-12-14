@@ -3053,6 +3053,8 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     }
 #endif
 
+    pAddBssParams->bSpectrumMgtEnabled = psessionEntry->spectrumMgtEnabled;
+
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_ASSOC_STATE;
@@ -3279,6 +3281,8 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     pAddBssParams->sessionId = psessionEntry->peSessionId;
     
 	pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
+
+    pAddBssParams->bSpectrumMgtEnabled = psessionEntry->spectrumMgtEnabled;
 
     // Set a new state for MLME
 

@@ -71,5 +71,7 @@ void limSendExitBmpsInd(tpAniSirGlobal pMac, tExitBmpsReason reasonCode);
 void limSendSmeInNavMeasRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCodes resultCode);
 #endif
 
+void limSendSmePreChannelSwitchInd(tpAniSirGlobal pMac);
+void limSendSmePostChannelSwitchInd(tpAniSirGlobal pMac);
 #endif /* __LIM_SEND_SME_RSP_H */
 

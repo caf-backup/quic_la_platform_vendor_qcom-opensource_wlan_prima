@@ -46,6 +46,11 @@ typedef enum
   LIM_ADDBA_REQ = 1
 }tLimAddBaValidationReqType;
 
+/* Note: The test passes if the STAUT stops sending any frames, and no further
+ frames are transmitted on this channel by the station when the AP has sent
+ the last 6 beacons, with the channel switch information elements as seen
+ with the sniffer.*/
+#define SIR_CHANSW_TX_STOP_MAX_COUNT 6
 /**-----------------------------------------------------------------
 \fn     limStopTxAndSwitchChannel
 \brief  Stops the transmission if channel switch mode is silent and
@@ -58,10 +63,15 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
     PELOG1(limLog(pMac, LOG1, FL("Channel switch Mode == %d\n"), 
                        pMac->lim.gLimChannelSwitch.switchMode);)
-    if (pMac->lim.gLimChannelSwitch.switchMode == eSIR_CHANSW_MODE_SILENT)
+
+    if (pMac->lim.gLimChannelSwitch.switchMode == eSIR_CHANSW_MODE_SILENT ||
+        pMac->lim.gLimChannelSwitch.switchCount <= SIR_CHANSW_TX_STOP_MAX_COUNT)
     {
         /* Freeze the transmission */
         limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_STOP_TX);
+
+       /* Request Full Power */
+       limSendSmePreChannelSwitchInd(pMac);
     }
     else
     {

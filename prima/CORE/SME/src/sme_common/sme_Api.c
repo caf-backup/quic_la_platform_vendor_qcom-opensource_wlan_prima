@@ -75,6 +75,10 @@ eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
 
 eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf);
 
+eHalStatus sme_HandlePreChannelSwitchInd(tHalHandle hHal);
+
+eHalStatus sme_HandlePostChannelSwitchInd(tHalHandle hHal);
+
 //Internal SME APIs
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme)
 {
@@ -1506,6 +1510,17 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 }
                 break;
 #endif // WLAN_FEATURE_PACKET_FILTERING	
+          case eWNI_SME_PRE_SWITCH_CHL_IND:
+             {
+                status = sme_HandlePreChannelSwitchInd(pMac);
+                break;
+             }
+
+          case eWNI_SME_POST_SWITCH_CHL_IND:
+             {
+                status = sme_HandlePostChannelSwitchInd(pMac);
+                break;
+             }
                 
           default:
 
@@ -5814,3 +5829,44 @@ eHalStatus sme_ReceiveFilterClearFilter(tHalHandle hHal, tpSirRcvFltPktClearPara
     return eHAL_STATUS_SUCCESS;
 }
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+/* ---------------------------------------------------------------------------
+    \fn sme_HandlePreChannelSwitchInd
+    \brief  Processes the indcation from PE for pre-channel switch.
+    \param hHal
+    \- The handle returned by macOpen. return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_HandlePreChannelSwitchInd(tHalHandle hHal)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+       status = pmcRequestFullPower(hHal, NULL, NULL, eSME_REASON_OTHER); 
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_HandlePostChannelSwitchInd
+    \brief  Processes the indcation from PE for post-channel switch.
+    \param hHal
+    \- The handle returned by macOpen. return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_HandlePostChannelSwitchInd(tHalHandle hHal)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+       status = pmcRequestBmps(hHal, NULL, NULL);
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}

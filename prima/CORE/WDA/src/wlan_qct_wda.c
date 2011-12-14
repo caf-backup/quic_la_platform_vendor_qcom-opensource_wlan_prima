@@ -175,6 +175,10 @@ static VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (
                                                          );
 #endif // WLAN_FEATURE_PACKET_FILTERING
 
+static VOS_STATUS WDA_ProcessTxControlInd(tWDA_CbContext *pWDA,
+                                          tpTxControlParams pTxCtrlParam);
+
+
 /*
  * FUNCTION: WDA_open
  * Allocate the WDA context 
@@ -3584,6 +3588,9 @@ void WDA_UpdateBSSParams(tWDA_CbContext *pWDA,
 #endif
 
    wdiBssParams->ucPersona = wdaBssParams->halPersona;
+
+   wdiBssParams->bSpectrumMgtEn = wdaBssParams->bSpectrumMgtEnabled;
+
    return ;
 }
 
@@ -9583,6 +9590,12 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       }
 #endif // WLAN_FEATURE_PACKET_FILTERING
   
+      case WDA_TRANSMISSION_CONTROL_IND:
+      {
+         WDA_ProcessTxControlInd(pWDA, (tpTxControlParams)pMsg->bodyptr);
+         break;
+      }
+	  
       default:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -11231,3 +11244,30 @@ VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+VOS_STATUS WDA_ProcessTxControlInd(tWDA_CbContext *pWDA,
+                                   tpTxControlParams pTxCtrlParam)
+{
+   VOS_STATUS wdaStatus;
+   
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+
+   if( pTxCtrlParam == NULL )
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: Input tpTxControlParams is NULL", __FUNCTION__); 
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   if( pTxCtrlParam->stopTx == eANI_BOOLEAN_TRUE )
+   {
+      wdaStatus = WDA_SuspendDataTx(pWDA);
+   }
+   else /* pTxCtrlParam->stopTx == eANI_BOOLEAN_FALSE */
+   {
+      wdaStatus = WDA_ResumeDataTx(pWDA);
+   }
+
+   return wdaStatus;
+}

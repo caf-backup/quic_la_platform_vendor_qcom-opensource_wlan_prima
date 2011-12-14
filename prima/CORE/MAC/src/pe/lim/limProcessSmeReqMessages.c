@@ -1589,6 +1589,9 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                    psessionEntry->bssId[4],
                    psessionEntry->bssId[5]);)
 
+            /* Indicate whether spectrum management is enabled*/
+            psessionEntry->spectrumMgtEnabled = 
+               pSmeJoinReq->spectrumMgtIndicator;
             /* Issue LIM_MLM_JOIN_REQ to MLM */
             limPostMlmMessage(pMac, LIM_MLM_JOIN_REQ, (tANI_U32 *) pMlmJoinReq);
             return;
@@ -2051,6 +2054,10 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     limDelAllBASessions(pMac);
 
     pMlmReassocReq->listenInterval = (tANI_U16) val;
+
+    /* Indicate whether spectrum management is enabled*/
+    psessionEntry->spectrumMgtEnabled = pReassocReq->spectrumMgtIndicator;
+
     psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
     psessionEntry->limSmeState    = eLIM_SME_WT_REASSOC_STATE;
 

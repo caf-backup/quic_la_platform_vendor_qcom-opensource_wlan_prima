@@ -1409,6 +1409,10 @@ typedef struct
 
   /* Persona for the BSS can be STA,AP,GO,CLIENT, same as Connection Mode */  
   wpt_uint8                 ucPersona;
+
+  /* Spectrum Mangement Indicator */
+  wpt_uint8                 bSpectrumMgtEn;
+
 }WDI_ConfigBSSReqInfoType;
 
 

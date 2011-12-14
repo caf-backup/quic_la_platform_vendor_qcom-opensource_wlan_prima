@@ -8493,12 +8493,10 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
         result = eCSR_ROAM_RESULT_NONE;
     }
     
+    // call profile lost link routine here
 #ifdef WLAN_SOFTAP_FEATURE
-    //Verify the operating mode before calling lost link routine
-    if(!CSR_IS_INFRA_AP(&pSession->connectedProfile) &&
-       !CSR_IS_CONN_WDS_AP(&pSession->connectedProfile))
+    if(!CSR_IS_INFRA_AP(&pSession->connectedProfile))
 #endif
-       // call profile lost link routine here
         csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_LOSTLINK_DETECTED, result);
     
     if ( eWNI_SME_DISASSOC_IND == type )

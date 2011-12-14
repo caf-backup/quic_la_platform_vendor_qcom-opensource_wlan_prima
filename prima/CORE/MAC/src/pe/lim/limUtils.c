@@ -2541,18 +2541,13 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
 {
     tpPESession psessionEntry = NULL;
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
-    tSirMsgQ    mmhMsg;
-    tSirMbMsg   *msg2Hdd;
     tANI_U8    channel = pMac->lim.gLimChannelSwitch.primaryChannel;   // This is received and stored from channelSwitch Action frame
-#endif
 
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
         return;
     }
-
-#if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
 
     if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
     {
@@ -2629,45 +2624,6 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
             }
             return;  /* Please note, this is 'return' and not 'break' */
     }
-
-    /* We need to restore pre-channelSwitch state on the STA */
-    if (limRestorePreChannelSwitchState(pMac, psessionEntry) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("Could not restore pre-channelSwitch (11h) state, resetting the system\n"));
-        return;
-    }
-
-    mmhMsg.type = eWNI_SME_SWITCH_CHL_REQ;
-    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&msg2Hdd, sizeof(tSirMbMsg)))
-    {
-        limLog(pMac, LOGP, FL("Failed to allocate buffer for buffer descriptor\n"));
-        return;
-    }
-
-
-#if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
-    sirStoreU16N((tANI_U8*)&msg2Hdd->type, eWNI_SME_SWITCH_CHL_REQ);
-    sirStoreU16N((tANI_U8*)&msg2Hdd->msgLen, sizeof(tSirMbMsg));
-#else
-    msg2Hdd->type = eWNI_SME_SWITCH_CHL_REQ;
-    msg2Hdd->msgLen = sizeof(tSirMbMsg);
-#endif
-    
-    msg2Hdd->data[0] = (tANI_U32) pMac->lim.gLimChannelSwitch.primaryChannel;
-    mmhMsg.bodyptr = msg2Hdd;
-    mmhMsg.bodyval = 0;
-
-    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
-// FIXME
-#if defined( FEATURE_WLAN_INTEGRATED_SOC )
-    SysProcessMmhMsg(pMac, &mmhMsg);
-#else
-    if(halMmhPostMsgApi(pMac, &mmhMsg, ePROT) != eSIR_SUCCESS)
-    {
-        palFreeMemory(pMac->hHdd, (void *)msg2Hdd);
-        limLog(pMac, LOGP, FL("Message posting to HAL failed\n"));
-    }
-#endif
 #endif
 }
 
@@ -2693,8 +2649,7 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
     tChannelSwitchPropIEStruct       *pPropChnlSwitch;
     tDot11fIEChanSwitchAnn           *pChnlSwitch;
 
-    if (!pMac->lim.gLim11hEnable)
-        return;
+ 
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL, &val) != eSIR_SUCCESS)
     {
@@ -3453,6 +3408,67 @@ void limGetHtCbOpState( tpAniSirGlobal pMac,
 }
 
 /**
+ * limSwitchChannelCback()
+ *
+ *FUNCTION:
+ *  This is the callback function registered while requesting to switch channel
+ *  after AP indicates a channel switch for spectrum management (11h).
+ * 
+ *NOTE:
+ * @param  pMac               Pointer to Global MAC structure
+ * @param  status             Status of channel switch request
+ * @param  data               User data
+ * @param  psessionEntry      Session information 
+ * @return NONE
+ */
+void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status, 
+                           tANI_U32 *data, tpPESession psessionEntry)
+{
+   tSirMsgQ    mmhMsg = {0};
+   tSirMbMsg   *msg2Hdd = NULL;
+
+   psessionEntry->currentOperChannel = psessionEntry->currentReqChannel; 
+   
+   /* We need to restore pre-channelSwitch state on the STA */
+   if (limRestorePreChannelSwitchState(pMac, psessionEntry) != eSIR_SUCCESS)
+   {
+      limLog(pMac, LOGP, FL("Could not restore pre-channelSwitch (11h) state, resetting the system\n"));
+      return;
+   }
+   
+   mmhMsg.type = eWNI_SME_SWITCH_CHL_REQ;
+   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&msg2Hdd, sizeof(tSirMbMsg)))
+   {
+      limLog(pMac, LOGP, FL("Failed to allocate buffer for buffer descriptor\n"));
+      return;
+   }
+   
+#if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
+   sirStoreU16N((tANI_U8*)&msg2Hdd->type, eWNI_SME_SWITCH_CHL_REQ);
+   sirStoreU16N((tANI_U8*)&msg2Hdd->msgLen, sizeof(tSirMbMsg));
+#else
+   msg2Hdd->type = eWNI_SME_SWITCH_CHL_REQ;
+   msg2Hdd->msgLen = sizeof(tSirMbMsg);
+#endif
+   
+   msg2Hdd->data[0] = (tANI_U32) pMac->lim.gLimChannelSwitch.primaryChannel;
+   mmhMsg.bodyptr = msg2Hdd;
+   mmhMsg.bodyval = 0;
+   
+   MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+   
+#if defined( FEATURE_WLAN_INTEGRATED_SOC )
+   SysProcessMmhMsg(pMac, &mmhMsg);
+#else
+   if(halMmhPostMsgApi(pMac, &mmhMsg, ePROT) != eSIR_SUCCESS)
+   {
+      palFreeMemory(pMac->hHdd, (void *)msg2Hdd);
+      limLog(pMac, LOGP, FL("Message posting to HAL failed\n"));
+   }
+#endif
+}
+
+/**
  * limSwitchPrimaryChannel()
  *
  *FUNCTION:
@@ -3472,16 +3488,14 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
     
     PELOG3(limLog(pMac, LOG3, FL("limSwitchPrimaryChannel: old chnl %d --> new chnl %d \n"),
            psessionEntry->currentOperChannel, newChannel);)
-    psessionEntry->currentOperChannel= newChannel;
+    psessionEntry->currentReqChannel = newChannel;
     pMac->lim.gLimRFBand = limGetRFBand(newChannel);
 
-    #if 0
-    if (cfgSetInt(pMac, WNI_CFG_CURRENT_CHANNEL, newChannel) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("set CURRENT_CHANNEL at CFG fail.\n"));
-        return;
-    }
-    #endif //  TO SUPPORT BT-AMP 
+    psessionEntry->channelChangeReasonCode=LIM_SWITCH_CHANNEL_OPERATION;
+
+    pMac->lim.gpchangeChannelCallback = limSwitchChannelCback;
+    pMac->lim.gpchangeChannelData = NULL;
+
 #if defined WLAN_FEATURE_VOWIFI  
     limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_NONE,
                                                    psessionEntry->maxTxPower, psessionEntry->peSessionId);
@@ -3496,7 +3510,6 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
 #endif
     return;
 }
-
 
 /**
  * limSwitchPrimarySecondaryChannel()
@@ -7008,6 +7021,8 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry)
     /* Restore the frame transmission, all the time. */
     limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_RESUME_TX);
 
+    /* Free to enter BMPS */
+    limSendSmePostChannelSwitchInd(pMac);
 
     //Background scan is now enabled by SME    
     if(pMac->lim.gLimBackgroundScanTerminate == FALSE)

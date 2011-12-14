@@ -121,6 +121,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tSirMacRateSet       extRateSet;
     tSirMacHTOperatingMode  htOperMode;
     tANI_U8                 currentOperChannel;
+    tANI_U8                 currentReqChannel;
     tANI_U8                 LimRxedBeaconCntDuringHB;
     
     //Time stamp of the last beacon received from the BSS to which STA is connected.
@@ -246,6 +247,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8  gLimEdcaParamSetCount;
 
     tBeaconParams beaconParams;
+
+    tANI_U8            spectrumMgtEnabled;
 
 }tPESession, *tpPESession;
 

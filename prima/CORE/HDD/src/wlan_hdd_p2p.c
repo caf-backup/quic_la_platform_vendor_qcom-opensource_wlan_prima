@@ -432,6 +432,7 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
             cfgState->skb = NULL;
             vos_mem_free( cfgState->buf );
             cfgState->buf = NULL;
+            complete(&pAdapter->tx_action_cnf_event);
             return;
         }
         /* Send TX completion feedback over monitor interface. */
@@ -442,6 +443,7 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
         /* Look for the next Mgmt packet to TX */
         hdd_mon_tx_mgmt_pkt(pAdapter);
     }
+    complete(&pAdapter->tx_action_cnf_event);
 }
 
 int hdd_setP2pPs( struct net_device *dev, void *msgData )

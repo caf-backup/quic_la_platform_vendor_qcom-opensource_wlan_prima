@@ -480,6 +480,9 @@ typedef struct
     tANI_U8   bProxyProbeRespEn;         //To Enable Disable FW Proxy Probe Resp
     tANI_U8   halPersona;         //Persona for the BSS can be STA,AP,GO,CLIENT value same as tVOS_CON_MODE
 
+    //Spectrum Management Capability, 1 - Enabled, 0 - Disabled.
+    tANI_U8 bSpectrumMgtEnabled;
+
 } tAddBssParams, * tpAddBssParams;
 
 typedef struct

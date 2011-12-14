@@ -183,7 +183,8 @@ tSirRetStatus limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession p
 tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac);
 
 void limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry);
-
+void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status, 
+                           tANI_U32 *data, tpPESession psessionEntry);
 
 static inline tSirRFBand limGetRFBand(tANI_U8 channel)
 {

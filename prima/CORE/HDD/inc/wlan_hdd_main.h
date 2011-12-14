@@ -71,6 +71,7 @@
 #define WLAN_WAIT_TIME_STATS       800
 #define WLAN_WAIT_TIME_POWER       800
 #define WLAN_WAIT_TIME_SESSIONOPENCLOSE  2000
+#define WLAN_WAIT_TIME_ABORTSCAN  2000
 
 #define MAX_NUMBER_OF_ADAPTERS 4
 
@@ -256,15 +257,15 @@ typedef enum _KEY_DIRECTION WAPI_KEY_DIRECTION;
 /** WAPI KEY stucture definition */
 struct WLAN_WAPI_KEY
 {
-   WAPIKeyType          keyType;
+   WAPIKeyType     keyType;
    WAPI_KEY_DIRECTION   keyDirection;  /*reserved for future use*/
-   v_U8_t               keyId;
-   v_U8_t               addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
-   int                  wpiekLen;
-   v_U8_t               wpiek[MAX_WPI_KEY_LENGTH];
-   int                  wpickLen;
-   v_U8_t               wpick[MAX_WPI_KEY_LENGTH];
-   v_U8_t               pn[MAX_NUM_PN];        /*reserved for future use*/
+   v_U8_t          keyId;
+   v_U8_t          addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
+   int             wpiekLen;
+   v_U8_t          wpiek[MAX_WPI_KEY_LENGTH];
+   int             wpickLen;
+   v_U8_t          wpick[MAX_WPI_KEY_LENGTH];
+   v_U8_t          pn[MAX_NUM_PN];        /*reserved for future use*/
 }__attribute__((packed));
 
 typedef struct WLAN_WAPI_KEY WLAN_WAPI_KEY;
@@ -418,10 +419,10 @@ struct hdd_ap_ctx_s
    v_U8_t uBCStaId;
 
    v_U8_t uPrivacy;  // The privacy bits of configuration
-
+   
 #ifdef WLAN_SOFTAP_FEATURE   
    tSirWPSPBCProbeReq WPSPBCProbeReq;
-
+   
    tsap_Config_t sapConfig;
 #endif
    
@@ -431,7 +432,7 @@ struct hdd_ap_ctx_s
       
    vos_timer_t hdd_ap_inactivity_timer;
 
-    v_U8_t   operatingChannel;
+   v_U8_t   operatingChannel;
    
    v_BOOL_t uIsAuthenticated;
    
@@ -493,12 +494,18 @@ struct hdd_adapter_s
    /* completion variable for Linkup Event */
    struct completion linkup_event_var;
 
+   /* completion variable for abortscan */
+   struct completion abortscan_event_var;
+#ifdef CONFIG_CFG80211
    /* completion variable for cancel remain on channel Event */
    struct completion cancel_rem_on_chan_var;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
    /* completion variable for off channel  remain on channel Event */
    struct completion offchannel_tx_event;
+#endif
+   /* Completion variable for action frame */
+   struct completion tx_action_cnf_event;
 #endif
 
    /* Track whether the linkup handling is needed  */
@@ -641,7 +648,7 @@ struct hdd_context_s
    
    /* Track whether Mcast/Bcast Filter is enabled.*/
    v_BOOL_t hdd_mcastbcast_filter_set;
-   
+
    v_BOOL_t hdd_wlan_suspended;
    
    spinlock_t filter_lock;

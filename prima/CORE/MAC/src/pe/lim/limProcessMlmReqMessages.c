@@ -1502,6 +1502,8 @@ limMlmAddBss (
 
 	pAddBssParams->halPersona=psessionEntry->pePersona; //pass on the session persona to hal
 
+    pAddBssParams->bSpectrumMgtEnabled = psessionEntry->spectrumMgtEnabled;
+
     //
     // FIXME_GEN4
     // A global counter (dialog token) is required to keep track of

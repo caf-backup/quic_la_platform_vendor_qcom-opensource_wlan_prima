@@ -2249,6 +2249,54 @@ limSendSmeAggrQosRsp(tpAniSirGlobal pMac, tpSirAggrQosRsp aggrQosRsp,
 }
 #endif
 
+/** -----------------------------------------------------------------
+  \brief limSendSmePreChannelSwitchInd() - sends an indication to SME 
+  before switching channels for spectrum manangement.
+   
+  This function sends a eWNI_SME_PRE_SWITCH_CHL_IND to SME.
+    
+  \param pMac - global mac structure
+  \return none 
+  \sa
+  ----------------------------------------------------------------- */
+void
+limSendSmePreChannelSwitchInd(tpAniSirGlobal pMac)
+{
+    tSirMsgQ         mmhMsg;
+
+    mmhMsg.type = eWNI_SME_PRE_SWITCH_CHL_IND;
+    mmhMsg.bodyptr = NULL;
+    mmhMsg.bodyval = 0;
+    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
+
+    return;
+}
+
+/** -----------------------------------------------------------------
+  \brief limSendSmePostChannelSwitchInd() - sends an indication to SME 
+  after channel switch for spectrum manangement is complete.
+   
+  This function sends a eWNI_SME_POST_SWITCH_CHL_IND to SME.
+    
+  \param pMac - global mac structure
+  \return none 
+  \sa
+  ----------------------------------------------------------------- */
+void
+limSendSmePostChannelSwitchInd(tpAniSirGlobal pMac)
+{
+    tSirMsgQ         mmhMsg;
+
+    mmhMsg.type = eWNI_SME_POST_SWITCH_CHL_IND;
+    mmhMsg.bodyptr = NULL;
+    mmhMsg.bodyval = 0;
+    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
+
+    return;
+}
+
 
 
 
