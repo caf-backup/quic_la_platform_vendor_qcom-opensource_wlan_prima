@@ -5010,13 +5010,16 @@ tSirScanType csrGetScanType(tANI_U8 chnId, eRegDomainId domainId, tANI_U8 *count
 }
 #endif
 
-tSirScanType csrGetScanType(tANI_U8 chnId, v_REGDOMAIN_t domainId)
+tSirScanType csrGetScanType(tpAniSirGlobal pMac, tANI_U8 chnId)
 {
-    tSirScanType scanType = eSIR_ACTIVE_SCAN;
+    tSirScanType scanType = eSIR_PASSIVE_SCAN;
+    eNVChannelEnabledType channelEnabledType;
 
-    //Need to call a HAL function to decide the scan type
-    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, " csrGetScanType needs to call a HAL function to get scan type\n" );
-
+    channelEnabledType = vos_nv_getChannelEnabledState(chnId);
+    if( NV_CHANNEL_ENABLE ==  channelEnabledType)
+    {
+         scanType = eSIR_ACTIVE_SCAN;
+    }
     return (scanType);
 }
 

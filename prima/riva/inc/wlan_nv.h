@@ -278,9 +278,18 @@ typedef enum
     RF_CHANNEL_INVALID_MAX_FIELD = 0x7FFFFFFF  /* define as 4 bytes data */
 }eRfChannels;
 
+enum
+{
+   NV_CHANNEL_DISABLE,
+   NV_CHANNEL_ENABLE,
+   NV_CHANNEL_DFS,
+   NV_CHANNEL_INVALID
+};	
+typedef tANI_U8 eNVChannelEnabledType;
+
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_U8   enabled;
+    eNVChannelEnabledType   enabled;
     tPowerdBm pwrLimit;
 }sRegulatoryChannel;
 

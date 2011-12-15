@@ -752,7 +752,7 @@ eHalStatus csrParseBssDescriptionIEs(tHalHandle hHal, tSirBssDescription *pBssDe
 eHalStatus csrGetParsedBssDescriptionIEs(tHalHandle hHal, tSirBssDescription *pBssDesc, tDot11fBeaconIEs **ppIEStruct);
 
 tANI_BOOLEAN csrValidateCountryString( tHalHandle hHal, tANI_U8 *pCountryString );
-tSirScanType csrGetScanType(tANI_U8 chnId, v_REGDOMAIN_t domainId);
+tSirScanType csrGetScanType(tpAniSirGlobal pMac, tANI_U8 chnId);
 
 tANI_U8 csrToUpper( tANI_U8 ch );
 eHalStatus csrGetPhyModeFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBSSDescription, 

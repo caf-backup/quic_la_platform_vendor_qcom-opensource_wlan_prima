@@ -2020,7 +2020,7 @@ VOS_STATUS wlan_hdd_exit_lowpower(hdd_context_t *pHddCtx,
    {
        hddLog(VOS_TRACE_LEVEL_WARN, "%s: Not in standby or deep sleep. "
                "Ignore start cmd %d", __func__, pHddCtx->hdd_ps_state);
-       vos_Status = VOS_STATUS_E_FAILURE;
+       vos_Status = VOS_STATUS_SUCCESS;
    }
    
    return vos_Status;
@@ -2057,7 +2057,7 @@ VOS_STATUS wlan_hdd_enter_lowpower(hdd_context_t *pHddCtx)
    {
        hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Driver stop is not enabled %d",
            __func__, pHddCtx->cfg_ini->nEnableDriverStop);
-       vos_Status = VOS_STATUS_E_FAILURE;
+       vos_Status = VOS_STATUS_SUCCESS;
    }
      
    return vos_Status;  

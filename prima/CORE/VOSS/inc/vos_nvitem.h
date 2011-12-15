@@ -599,6 +599,20 @@ VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer ,v_SIZE_t *pSize);
   \sa
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
+
+/**------------------------------------------------------------------------
+  \brief vos_nv_getChannelEnabledState - 
+  \param rfChannel  - input channel number to know enabled state
+  \return eNVChannelEnabledType enabled state for channel
+             * enabled
+             * disabled
+             * DFS
+  \sa
+  -------------------------------------------------------------------------*/
+eNVChannelEnabledType vos_nv_getChannelEnabledState
+(
+   v_U32_t    rfChannel
+);
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 #endif // __VOS_NVITEM_H

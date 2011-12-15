@@ -85,9 +85,9 @@ typedef struct
 
    wpt_uint32 currentPktSeqNo:12;  /*current sequence number */
    wpt_uint32 ampdu_reorderOpcode:4;
-   wpt_uint32 ampdu_reorderSlotIdx:4;
-   wpt_uint32 ampdu_reorderFwdIdx:4;
-   wpt_uint32 reserved3:8;
+   wpt_uint32 ampdu_reorderSlotIdx:6;
+   wpt_uint32 ampdu_reorderFwdIdx:6;
+   wpt_uint32 reserved3:4;
 
    wpt_uint16 amsdu_size;
    wpt_uint32 amsdu_asf:1;

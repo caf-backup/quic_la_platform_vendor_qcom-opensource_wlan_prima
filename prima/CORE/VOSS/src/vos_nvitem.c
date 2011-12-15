@@ -1608,8 +1608,44 @@ VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
    }
 
    /* Set correct channel information based on REG Domain */
-   regChannels = nvDefaults.tables.regDomains[regId].channels;
+   regChannels = pnvEFSTable->halnv.tables.regDomains[regId].channels;
 
    return VOS_STATUS_SUCCESS;
+}
+
+/**------------------------------------------------------------------------
+  \brief vos_nv_getChannelEnabledState - 
+  \param rfChannel  - input channel enum to know evabled state
+  \return eNVChannelEnabledType enabled state for channel
+             * enabled
+             * disabled
+             * DFS
+  \sa
+  -------------------------------------------------------------------------*/
+eNVChannelEnabledType vos_nv_getChannelEnabledState
+(
+   v_U32_t     rfChannel
+)
+{
+   v_U32_t       channelLoop;
+   eRfChannels   channelEnum = INVALID_RF_CHANNEL;
+
+   for(channelLoop = 0; channelLoop < RF_CHAN_165; channelLoop++)
+   {
+      if(rfChannels[channelLoop].channelNum == rfChannel)
+      {
+         channelEnum = (eRfChannels)channelLoop;
+         break;
+      }
+   }
+
+   if(INVALID_RF_CHANNEL == channelEnum)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "vos_nv_getChannelEnabledState, invalid cahnnel %d", rfChannel);
+      return NV_CHANNEL_INVALID;
+   }
+
+   return regChannels[channelEnum].enabled;
 }
 #endif /* FEATURE_WLAN_NON_INTEGRATED_SOC */

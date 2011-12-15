@@ -25,7 +25,7 @@
 #include "vos_diag_core_event.h"
 
 #include "vos_nvitem.h"
-                                                                     
+#include "wlan_qct_wda.h"
                                                                      
 #define CSR_VALIDATE_LIST  //This portion of code need to be removed once the issue is resolved.
 
@@ -2569,6 +2569,7 @@ void csrGetChannelPowerInfo( tpAniSirGlobal pMac, tDblLinkList *pList,
 void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
 {
     v_REGDOMAIN_t domainId;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
 
     do
     {
@@ -2647,7 +2648,11 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
                     }
                 }
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
-
+                status = WDA_SetRegDomain(pMac, domainId);
+                if (status != eHAL_STATUS_SUCCESS)
+                {
+                    smsLog( pMac, LOGE, FL("  fail to set regId %d\n"), domainId );
+                }
                 pMac->scan.domainIdCurrent = domainId;
                 csrApplyChannelPowerCountryInfo( pMac, &pMac->scan.channels11d, pMac->scan.countryCode11d );
                 // switch to active scans using this new channel list
@@ -5774,50 +5779,41 @@ void csrSetCfgScanControlList( tpAniSirGlobal pMac, tANI_U8 *countryCode, tCsrCh
     tANI_BOOLEAN found=FALSE;  
     tANI_U8 *pControlList = NULL;
     tANI_U32 len = WNI_CFG_SCAN_CONTROL_LIST_LEN;
-    v_REGDOMAIN_t eDomain;
-
 
     if(HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pControlList, WNI_CFG_SCAN_CONTROL_LIST_LEN)))
     {
         palZeroMemory(pMac->hHdd, (void *)pControlList, WNI_CFG_SCAN_CONTROL_LIST_LEN);
-        if(HAL_STATUS_SUCCESS(csrGetRegulatoryDomainForCountry( pMac, countryCode, &eDomain )))
+        if(HAL_STATUS_SUCCESS(ccmCfgGetStr(pMac, WNI_CFG_SCAN_CONTROL_LIST, pControlList, &len)))
         {
-            if(HAL_STATUS_SUCCESS(ccmCfgGetStr(pMac, WNI_CFG_SCAN_CONTROL_LIST, pControlList, &len)))
+            for (i = 0; i < pChannelList->numChannels; i++)
             {
-                for (i = 0; i < pChannelList->numChannels; i++)
+                for (j = 0; j < len; j += 2) 
                 {
-                    for (j = 0; j < len; j += 2) 
+                    if (pControlList[j] == pChannelList->channelList[i]) 
                     {
-                        if (pControlList[j] == pChannelList->channelList[i]) 
-                        {
-                            found = TRUE;
-                            break;
-                        }
+                        found = TRUE;
+                        break;
                     }
+                }
                    
-                    if (found)    // insert a pair(channel#, flag)
+                if (found)    // insert a pair(channel#, flag)
+                {
+                    if (CSR_IS_CHANNEL_5GHZ(pControlList[j]))
                     {
-                        if (CSR_IS_CHANNEL_5GHZ(pControlList[j]))
-                        {
-                            pControlList[j+1] = csrGetScanType(pControlList[j], eDomain);     
-                        }
-                        else  
-                        {
-                            pControlList[j+1]  = eSIR_ACTIVE_SCAN;  
-                        }
-
-                        found = FALSE;  // reset the flag
+                        pControlList[j+1] = csrGetScanType(pMac, pControlList[j]);     
                     }
-                       
-                }            
+                    else  
+                    {
+                        pControlList[j+1]  = eSIR_ACTIVE_SCAN;  
+                    }
 
-                ccmCfgSetStr(pMac, WNI_CFG_SCAN_CONTROL_LIST, pControlList, len, NULL, eANI_BOOLEAN_FALSE);
-            }//Successfully getting scan control list
-        }//getting domain
-        else
-        {
-            smsLog(pMac, LOGE, FL(" failed to get country-to-domain\n"));
-        }
+                    found = FALSE;  // reset the flag
+                }
+                       
+            }            
+
+            ccmCfgSetStr(pMac, WNI_CFG_SCAN_CONTROL_LIST, pControlList, len, NULL, eANI_BOOLEAN_FALSE);
+        }//Successfully getting scan control list
         palFreeMemory(pMac->hHdd, pControlList);
     }//AllocateMemory
 }

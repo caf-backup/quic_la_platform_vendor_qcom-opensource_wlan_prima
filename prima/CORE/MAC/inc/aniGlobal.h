@@ -86,10 +86,6 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 // New HAL API interface defs.
 #include "logDump.h"
 
-#if !defined ANI_OS_TYPE_OSX && !defined ANI_OS_TYPE_LINUX && !defined ANI_OS_TYPE_WINDOWS
-extern tpAniSirGlobal pMac;
-#endif
-
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 //Check if this definition can actually move here from halInternal.h even for Volans. In that case
 //this featurization can be removed.

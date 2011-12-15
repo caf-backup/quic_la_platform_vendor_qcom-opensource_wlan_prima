@@ -150,7 +150,7 @@
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_NAME     "gEnableDriverStop"
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_MIN      ( 0 ) //No support for stop
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_MAX      ( 2 ) //Map to Deep Sleep
-#define CFG_ENABLE_ENABLE_DRIVER_STOP_DEFAULT  ( 1 ) //Map to Standby
+#define CFG_ENABLE_ENABLE_DRIVER_STOP_DEFAULT  ( 0 )
 
 #define CFG_WOWL_PATTERN_NAME                  "gWowlPattern"
 #define CFG_WOWL_PATTERN_DEFAULT               ""
