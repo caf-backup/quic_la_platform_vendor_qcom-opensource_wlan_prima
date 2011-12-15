@@ -35,8 +35,10 @@ int nl_srv_init(void)
    int retcode = 0;
    nl_srv_sock = netlink_kernel_create(&init_net, WLAN_NLINK_PROTO_FAMILY,
       WLAN_NLINK_MCAST_GRP_ID, nl_srv_rcv, NULL, THIS_MODULE);
-
+   
    if (nl_srv_sock != NULL) {
+      /*For a process with Non root permissions to communicate with NL socket*/
+      netlink_set_nonroot(WLAN_NLINK_PROTO_FAMILY, (NL_NONROOT_SEND | NL_NONROOT_RECV));
       memset(nl_srv_msg_handler, 0, sizeof(nl_srv_msg_handler));
    } else {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -111,9 +113,7 @@ int nl_srv_ucast(struct sk_buff *skb, int dst_pid)
    NETLINK_CB(skb).dst_group = 0; //not multicast
 
    err = netlink_unicast(nl_srv_sock, skb, dst_pid, MSG_DONTWAIT);
-   /*For a process with Non root permissions to communicate with NL socket*/
-   netlink_set_nonroot(WLAN_NLINK_PROTO_FAMILY, (NL_NONROOT_SEND | NL_NONROOT_RECV));
-
+   
    if (err < 0)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
       "NLINK: netlink_unicast to pid[%d] failed, ret[0x%X]", dst_pid, err);

@@ -61,6 +61,7 @@
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
 #include "wlan_hdd_cfg80211.h"
+#include "wlan_hdd_p2p.h"
 #endif
 #include <linux/rtnetlink.h>
 #ifdef WLAN_SOFTAP_FEATURE
@@ -746,6 +747,9 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
       init_completion(&pAdapter->offchannel_tx_event);
 #endif
+#ifdef CONFIG_CFG80211
+      init_completion(&pAdapter->tx_action_cnf_event);
+#endif
       init_completion(&pHddCtx->mc_sus_event_var);
       init_completion(&pHddCtx->tx_sus_event_var);
 
@@ -928,6 +932,30 @@ error_sme_open:
    return status;
 }
 
+#ifdef CONFIG_CFG80211
+static void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
+{
+   hdd_cfg80211_state_t *cfgState;
+
+   cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+
+   if( NULL != cfgState->buf )
+   {
+      int rc;
+      INIT_COMPLETION(pAdapter->tx_action_cnf_event);
+      rc = wait_for_completion_interruptible_timeout(
+                     &pAdapter->tx_action_cnf_event,
+                     msecs_to_jiffies(ACTION_FRAME_TX_TIMEOUT));
+      if(!rc)
+      {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+              ("ERROR: HDD Wait for Action Confirmation Failed!!\n"));
+      }
+   }
+   return;
+}
+#endif
+
 void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 {
    switch ( pAdapter->device_mode )
@@ -946,6 +974,10 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
             hdd_wmm_adapter_close( pAdapter );
             clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
          }
+
+#ifdef CONFIG_CFG80211
+         hdd_cleanup_actionframe(pHddCtx, pAdapter);
+#endif
 
          if(test_bit(SME_SESSION_OPENED, &pAdapter->event_flags)) 
          {
@@ -966,6 +998,11 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       case WLAN_HDD_P2P_GO:
       {
          VOS_STATUS status = VOS_STATUS_E_FAILURE;
+
+#ifdef CONFIG_CFG80211
+         hdd_cleanup_actionframe(pHddCtx, pAdapter);
+#endif
+
          //Any softap specific cleanup here...
          if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) 
          {
@@ -1010,11 +1047,20 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 
       case WLAN_HDD_MONITOR:
       {
+#ifdef CONFIG_CFG80211
+          hdd_adapter_t* pAdapterforTx = pAdapter->sessionCtx.monitor.pAdapterForTx;
+#endif
          if(test_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags))
          {
             hdd_deinit_tx_rx( pAdapter );
             clear_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags);
          }
+#ifdef CONFIG_CFG80211
+         if(NULL != pAdapterforTx)
+         {
+            hdd_cleanup_actionframe(pHddCtx, pAdapterforTx);
+         }
+#endif
          break;
       }
 

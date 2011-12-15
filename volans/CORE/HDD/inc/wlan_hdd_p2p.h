@@ -11,7 +11,7 @@
 
 ==========================================================================*/
 #ifdef CONFIG_CFG80211
-#define ACTION_FRAME_TX_TIMEOUT 500
+#define ACTION_FRAME_TX_TIMEOUT 1000
 #define WAIT_CANCEL_REM_CHAN    100
 #define WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX 3000
 
