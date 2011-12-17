@@ -70,6 +70,7 @@
 #define WLAN_WAIT_TIME_STATS       800
 #define WLAN_WAIT_TIME_POWER       800
 #define WLAN_WAIT_TIME_SESSIONOPENCLOSE  2000
+#define WLAN_WAIT_TIME_ABORTSCAN  2000
 
 #define MAX_NUMBER_OF_ADAPTERS 4
 
@@ -492,6 +493,9 @@ struct hdd_adapter_s
 
    /* completion variable for Linkup Event */
    struct completion linkup_event_var;
+
+   /* completion variable for abortscan */
+   struct completion abortscan_event_var;
 
 #ifdef CONFIG_CFG80211
    /* completion variable for cancel remain on channel Event */

@@ -135,6 +135,22 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_GOING_DOWN:
+
+        if( pAdapter->sessionCtx.station.WextState.mScanPending != FALSE )
+        { 
+           int result;
+           INIT_COMPLETION(pAdapter->abortscan_event_var);
+           hdd_abort_mac_scan(pAdapter->pHddCtx);
+           result = wait_for_completion_interruptible_timeout(
+                               &pAdapter->abortscan_event_var,
+                               msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
+           if(!result)
+           {
+              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s: Timeout occured while waiting for abortscan" ,
+                          __FUNCTION__);
+           }
+        }
         break;
 
    default:
@@ -743,11 +759,12 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
       init_completion(&pAdapter->session_close_comp_var);
       init_completion(&pAdapter->disconnect_comp_var);
       init_completion(&pAdapter->linkup_event_var);
-      init_completion(&pAdapter->cancel_rem_on_chan_var);
+      init_completion(&pAdapter->abortscan_event_var);
+#ifdef CONFIG_CFG80211
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
       init_completion(&pAdapter->offchannel_tx_event);
 #endif
-#ifdef CONFIG_CFG80211
+      init_completion(&pAdapter->cancel_rem_on_chan_var);
       init_completion(&pAdapter->tx_action_cnf_event);
 #endif
       init_completion(&pHddCtx->mc_sus_event_var);

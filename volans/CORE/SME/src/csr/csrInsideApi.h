@@ -221,6 +221,8 @@ tANI_BOOLEAN csrScanRemoveNotRoamingScanCommand(tpAniSirGlobal pMac);
 //To remove fresh scan commands from the pending queue
 tANI_BOOLEAN csrScanRemoveFreshScanCommand(tpAniSirGlobal pMac);
 eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac);
+void csrRemoveCmdFromPendingList(tpAniSirGlobal pMac, tDblLinkList *pList, 
+                                              eSmeCommandType commandType );
 eHalStatus csrScanAbortMacScanNotForConnect(tpAniSirGlobal pMac);
 eHalStatus csrScanGetScanChannelInfo(tpAniSirGlobal pMac);
 //To age out scan results base. tSmeGetScanChnRsp is a pointer returned by LIM that
