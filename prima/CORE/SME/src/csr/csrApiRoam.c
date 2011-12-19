@@ -12506,7 +12506,6 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
             }
             pStats += sizeof(tCsrGlobalClassAStatsInfo);
             length -= sizeof(tCsrGlobalClassAStatsInfo);
-
             break;
 
          case eCsrGlobalClassBStats:
