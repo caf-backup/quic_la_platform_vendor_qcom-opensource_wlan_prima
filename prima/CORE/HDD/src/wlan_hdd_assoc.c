@@ -513,18 +513,30 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 #ifdef WLAN_FEATURE_CIQ_METRICS
 
 
-static void hdd_SendAssocResultEvent_ForCIQ(struct net_device *dev,tCsrRoamInfo *pCsrRoamInfo, v_BOOL_t successFlag)
+static void hdd_SendAssocResultEvent_ForCIQ(struct net_device *dev,
+                              tCsrRoamInfo *pCsrRoamInfo, v_BOOL_t successFlag)
 {
-    
+    int reasonCode;
     unsigned char assoc_result[16];
-	union iwreq_data wrqu;
+    union iwreq_data wrqu;
 
-	VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-			   "hdd_SendAssocResultEvent_ForCIQ : send ASSOC event to wpa_supplicant with successFlag %u ReasonCode %ld\n",
-			   successFlag, pCsrRoamInfo->reasonCode);
-	
-	memset(&wrqu, 0, sizeof(wrqu));
-	wrqu.data.length = snprintf(assoc_result, sizeof(assoc_result), "ASSOC %u %ld", successFlag, pCsrRoamInfo->reasonCode);
+    if (NULL == pCsrRoamInfo)
+    {
+        reasonCode = eSIR_MAC_UNSPEC_FAILURE_REASON;
+    }
+    else
+    {
+        reasonCode = pCsrRoamInfo->reasonCode;
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+               "%s: send ASSOC event to wpa_supplicant "
+               "with successFlag %u ReasonCode %d",
+               __FUNCTION__, successFlag, reasonCode);
+
+    memset(&wrqu, 0, sizeof(wrqu));
+    wrqu.data.length = snprintf(assoc_result, sizeof(assoc_result),
+                                "ASSOC %u %d", successFlag, reasonCode);
     wireless_send_event(dev, IWEVCUSTOM, &wrqu, assoc_result);
 }
 

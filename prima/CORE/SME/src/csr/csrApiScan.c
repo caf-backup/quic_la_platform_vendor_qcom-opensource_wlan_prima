@@ -711,6 +711,7 @@ eHalStatus csrScanAllChannels(tpAniSirGlobal pMac, eCsrRequestType reqType)
 
 
 
+
 eHalStatus csrIssueRoamAfterLostlinkScan(tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoamReason reason)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -6029,7 +6030,6 @@ tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel )
         
     return fValid;
 }
-
 
 
 
