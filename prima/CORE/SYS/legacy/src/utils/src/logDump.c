@@ -130,7 +130,7 @@ logPrintf(tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2, tANI_
     tANI_U16 bufLen;
     pMac->gCurrentLogSize = 0;
 
-    bufLen = (tANI_U16)logRtaiDump(pMac, cmd, arg1, arg2, arg3, arg4, buf);	
+    bufLen = (tANI_U16)logRtaiDump(pMac, cmd, arg1, arg2, arg3, arg4, buf);
 }
 
 /**
@@ -151,7 +151,7 @@ logPrintf(tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2, tANI_
 int log_sprintf(tpAniSirGlobal pMac, char *pBuf, char *fmt, ...)
 {
     tANI_S32 ret = 0;
-#ifdef WLAN_DEBUG	
+#ifdef WLAN_DEBUG
 
 #if defined(ANI_OS_TYPE_AMSS)
     AEEVaList args;

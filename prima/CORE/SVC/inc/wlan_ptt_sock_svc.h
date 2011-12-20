@@ -29,14 +29,14 @@
 #define PTT_MSG_WRITE_REGISTER      0x3041
 #define PTT_MSG_READ_MEMORY         0x3044
 #define PTT_MSG_WRITE_MEMORY        0x3045
-#define PTT_MSG_LOG_DUMP_DBG				    0x32A1
+#define PTT_MSG_LOG_DUMP_DBG        0x32A1
 #ifdef ANI_MANF_DIAG
 #define PTT_MSG_FTM_CMDS_TYPE           0x4040
 #endif
 #define ANI_DRIVER_MSG_START         0x0001
 #define ANI_MSG_APP_REG_REQ         (ANI_DRIVER_MSG_START + 0)
 #define ANI_MSG_APP_REG_RSP         (ANI_DRIVER_MSG_START + 1)
-#define ANI_MAX_RADIOS	    3
+#define ANI_MAX_RADIOS      3
 #define ANI_NL_MSG_OK       0
 #define ANI_NL_MSG_ERROR    -1
 #define ANI_NL_MSG_OVERHEAD (NLMSG_SPACE(tAniHdr + 4))
@@ -70,19 +70,19 @@ int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid);
  * will followed by the Quarky message
  */
 typedef struct sAniNlMsg {
-    struct  nlmsghdr nlh;	// Netlink Header
-    int radio;			      // unit number of the radio
-    tAniHdr wmsg;		      // Airgo Message Header
+    struct  nlmsghdr nlh;             // Netlink Header
+    int radio;                        // unit number of the radio
+    tAniHdr wmsg;                     // Airgo Message Header
 } tAniNlHdr;
 typedef struct sAniAppRegReq {
-    tAniNlModTypes type;	// module id
-    int pid;			      // process id
+    tAniNlModTypes type;              // module id
+    int pid;                          // process id
 } tAniNlAppRegReq;
 typedef struct sAniNlAppRegRsp {
-    struct nlmsghdr nlh;	   // NetLink Msg Header
-    int radio;			         // Radio unit
-    tAniHdr wniHdr;		      // Generic WNI msg header
-    tAniNlAppRegReq regReq;	// The original request msg
-    int ret;			         // Return code
+    struct nlmsghdr nlh;              // NetLink Msg Header
+    int radio;                        // Radio unit
+    tAniHdr wniHdr;                   // Generic WNI msg header
+    tAniNlAppRegReq regReq;           // The original request msg
+    int ret;                          // Return code
 } tAniNlAppRegRsp;
 #endif

@@ -53,7 +53,7 @@
 #define BTC_SMART_MAX_WLAN      (3) /** BTC Mapping Layer decides whats best, WLAN weighted */
 #define BTC_SMART_MAX_BT        (4) /** BTC Mapping Layer decides whats best, BT weighted */
 #define BTC_SMART_BT_A2DP       (5) /** BTC Mapping Layer decides whats best, balanced + BT A2DP weight */
-#define	BT_EXEC_MODE_MAX        (6) /** This and beyond are invalid values */
+#define BT_EXEC_MODE_MAX        (6) /** This and beyond are invalid values */
 
 /** Enumeration of different kinds actions that BTC Mapping Layer
     can do if PM indication (to AP) fails.
@@ -298,7 +298,7 @@ typedef struct sSmeBtcInfo
    v_BOOL_t      btcUapsdOk;  /* Indicate whether BTC is ok with UAPSD */
    v_BOOL_t      fA2DPTrafStop;/*flag to check A2DP_STOP event has come before MODE_CHANGED*/
    v_U16_t       btcScoHandles[BT_MAX_SCO_SUPPORT];  /* Handles for SCO, if any*/
-   v_BOOL_t		 fA2DPUp;	/*remember whether A2DP is in session*/
+   v_BOOL_t      fA2DPUp;        /*remember whether A2DP is in session*/
 } tSmeBtcInfo, *tpSmeBtcInfo;
 
 

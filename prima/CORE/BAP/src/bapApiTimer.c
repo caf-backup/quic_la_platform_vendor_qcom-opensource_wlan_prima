@@ -130,7 +130,7 @@ WLANBAP_InitConnectionAcceptTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -185,7 +185,7 @@ WLANBAP_DeinitConnectionAcceptTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -234,7 +234,7 @@ WLANBAP_StartConnectionAcceptTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -287,7 +287,7 @@ WLANBAP_StopConnectionAcceptTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -340,7 +340,7 @@ WLANBAP_ConnectionAcceptTimerHandler
   if ( NULL == pBtampCtx )
   {
      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                "WLAN BAP: Fatal error in %s", __FILE__ );
+                "WLAN BAP: Fatal error in %s", __FUNCTION__ );
      VOS_ASSERT(0);
      return; 
   }
@@ -406,7 +406,7 @@ WLANBAP_InitLinkSupervisionTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -461,7 +461,7 @@ WLANBAP_DeinitLinkSupervisionTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -510,7 +510,7 @@ WLANBAP_StartLinkSupervisionTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -561,7 +561,7 @@ WLANBAP_StopLinkSupervisionTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -614,14 +614,14 @@ WLANBAP_LinkSupervisionTimerHandler
     if ( NULL == pBtampCtx )
     {
        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                "WLAN BAP: Fatal error in %s", __FILE__ );
+                "WLAN BAP: Fatal error in %s", __FUNCTION__ );
        VOS_ASSERT(0);
        return; 
     }
 
     phy_link_handle = pBtampCtx->phy_link_handle;
      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                "WLAN BAP:In LinkSupervision Timer handler %s", __FILE__ );
+                "WLAN BAP:In LinkSupervision Timer handler %s", __FUNCTION__ );
 
     if(pBtampCtx->dataPktPending == VOS_TRUE)
     {
@@ -713,7 +713,7 @@ WLANBAP_StartTxPacketMonitorTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -764,7 +764,7 @@ WLANBAP_StopTxPacketMonitorTimer
   if ( NULL == pBtampCtx ) 
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid BAP pointer in %s", __FILE__);
+                 "Invalid BAP pointer in %s", __FUNCTION__);
     return VOS_STATUS_E_FAULT;
   }
 
@@ -818,7 +818,7 @@ WLANBAP_TxPacketMonitorHandler
   if ( NULL == pBtampCtx )
   {
      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                "WLAN BAP: Fatal error in %s", __FILE__ );
+                "WLAN BAP: Fatal error in %s", __FUNCTION__ );
      VOS_ASSERT(0);
      return; 
   }
@@ -855,7 +855,7 @@ WLANBAP_TxPacketMonitorHandler
 
        if (uTxCompleted) { 
           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
-                  "wlan bap: %s Log Link handle - %d No Of Pkts - %d", __FILE__, 
+                  "wlan bap: %s Log Link handle - %d No Of Pkts - %d", __FUNCTION__, 
                   pLogLinkContext->log_link_handle, uTxCompleted);  
        }
      }

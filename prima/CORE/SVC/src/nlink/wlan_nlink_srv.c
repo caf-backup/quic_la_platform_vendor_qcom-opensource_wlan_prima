@@ -96,7 +96,7 @@ int nl_srv_unregister(tWlanNlModTypes msg_type, nl_srv_msg_callback msg_handler)
       retcode = -EINVAL;
    }
 
-   return retcode;	
+   return retcode;
 }
 
 /*

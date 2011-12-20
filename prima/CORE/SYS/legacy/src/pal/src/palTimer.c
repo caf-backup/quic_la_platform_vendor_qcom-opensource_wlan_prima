@@ -207,7 +207,7 @@ eHalStatus palTimerStop(tHddHandle hHdd, tPalTimerHandle hPalTimer)
       // make sure the timer is not re-started.
       pPalTimer->fRestart = eANI_BOOLEAN_FALSE;
 
-	  status = eHAL_STATUS_SUCCESS;
+      status = eHAL_STATUS_SUCCESS;
 
    } while( 0 );   
    

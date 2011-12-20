@@ -644,9 +644,9 @@ VOS_STATUS WLANTL_HSGetRSSI
    }
 
    /* 
-	 Compute RSSI only for the last MPDU of an AMPDU.
-	 Only last MPDU carries the Phy Stats Values 
-	 */
+      Compute RSSI only for the last MPDU of an AMPDU.
+      Only last MPDU carries the Phy Stats Values 
+   */
     if (WDA_IS_RX_AN_AMPDU (pBDHeader)) {
        if (!WDA_IS_RX_LAST_MPDU(pBDHeader)) {
            return VOS_STATUS_E_FAILURE;
@@ -1247,7 +1247,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
                TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Shift %d array to %d", sIdx, sIdx + 1));
                memcpy(&hoSupport->registeredInd[sIdx + 1], &hoSupport->registeredInd[sIdx], sizeof(WLANTL_HO_RSSI_INDICATION_TYPE));
                memset(&hoSupport->registeredInd[sIdx], 0, sizeof(WLANTL_HO_RSSI_INDICATION_TYPE));
-			   if(0 == sIdx)
+               if(0 == sIdx)
                {
                   break;
                }

@@ -529,7 +529,7 @@ WLAN_BAPReadLocalAMPAssoc
     if ((pBapHCIReadLocalAMPAssoc == NULL) || (NULL == btampHandle))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "param is NULL in %s", __FILE__);
+                     "param is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
     }
@@ -537,7 +537,7 @@ WLAN_BAPReadLocalAMPAssoc
     if (NULL == hHal) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "hHal is NULL in %s", __FILE__);
+                     "hHal is NULL in %s", __FUNCTION__);
       return VOS_STATUS_E_FAULT;
     }
 

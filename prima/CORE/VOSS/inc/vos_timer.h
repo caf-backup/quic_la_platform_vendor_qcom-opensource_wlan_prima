@@ -84,7 +84,7 @@ typedef struct vos_timer_s
    v_PVOID_t            userData;
    vos_lock_t           lock;
    VOS_TIMER_TYPE       type;
-   VOS_TIMER_STATE      state;	  
+   VOS_TIMER_STATE      state;
 } vos_timer_t;
 
 /*------------------------------------------------------------------------- 

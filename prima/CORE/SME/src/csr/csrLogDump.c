@@ -16,19 +16,19 @@ Implements the dump commands specific to the csr module.
 static char *
 dump_csr( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p )
 {
-	static tCsrRoamProfile x;
-	static tSirMacSSid ssid;   //To be allocated for array of SSIDs
+    static tCsrRoamProfile x;
+    static tSirMacSSid ssid;   //To be allocated for array of SSIDs
     static tANI_U8 sessionId = 0; // Defined for fixed session ID
     palZeroMemory(pMac->hHdd, (void*)&x, sizeof(x)); 
     x.SSIDs.numOfSSIDs=1 ;
     x.SSIDs.SSIDList[0].SSID = ssid ;
     ssid.length=6 ;
     palCopyMemory(pMac->hHdd, ssid.ssId, "AniNet", 6);
-	if(HAL_STATUS_SUCCESS(sme_AcquireGlobalLock( &pMac->sme )))
+    if(HAL_STATUS_SUCCESS(sme_AcquireGlobalLock( &pMac->sme )))
     {
-		(void)csrRoamConnect(pMac, sessionId, &x, NULL, NULL);
-		sme_ReleaseGlobalLock( &pMac->sme );
-	}
+        (void)csrRoamConnect(pMac, sessionId, &x, NULL, NULL);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
     return p;
 }
 static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1, 
@@ -48,12 +48,12 @@ static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1,
             btEvent.uEventParam.btSyncConnection.status = (v_U8_t)arg3;
             break;
         case BT_EVENT_DISCONNECTION_COMPLETE:
-			btEvent.uEventParam.btDisconnect.connectionHandle = (v_U16_t)arg2;
-			break;
+            btEvent.uEventParam.btDisconnect.connectionHandle = (v_U16_t)arg2;
+            break;
         case BT_EVENT_CREATE_ACL_CONNECTION:
         case BT_EVENT_ACL_CONNECTION_COMPLETE:
             btEvent.uEventParam.btAclConnection.connectionHandle = (v_U16_t)arg2;
-			btEvent.uEventParam.btAclConnection.status = (v_U8_t)arg3;
+            btEvent.uEventParam.btAclConnection.status = (v_U8_t)arg3;
             break;
         case BT_EVENT_MODE_CHANGED:
             btEvent.uEventParam.btAclModeChange.connectionHandle = (v_U16_t)arg2;
@@ -77,15 +77,15 @@ static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1,
 }
 
 static tDumpFuncEntry csrMenuDumpTable[] = {
-	{0,     "CSR (850-860)",                                    NULL},
+    {0,     "CSR (850-860)",                                    NULL},
     {851,   "CSR: CSR testing connection to AniNet",            dump_csr},
     {852,   "BTC: Fake BT events (event, handle)",              dump_btcSetEvent},
 };
-	
+
 void csrDumpInit(tHalHandle hHal)
 {
-	logDumpRegisterTable( (tpAniSirGlobal)hHal, &csrMenuDumpTable[0], 
-						  sizeof(csrMenuDumpTable)/sizeof(csrMenuDumpTable[0]) );
+    logDumpRegisterTable( (tpAniSirGlobal)hHal, &csrMenuDumpTable[0], 
+                          sizeof(csrMenuDumpTable)/sizeof(csrMenuDumpTable[0]) );
 }
 
 #endif //#if defined(ANI_LOGDUMP)

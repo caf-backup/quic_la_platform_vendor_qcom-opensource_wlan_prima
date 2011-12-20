@@ -142,27 +142,27 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 #else /* FEATURE_WLAN_INTEGRATED_SOC */
 tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 {
-	tANI_U8 i;
-	tSirRetStatus status = eSIR_SUCCESS;
+    tANI_U8 i;
+    tSirRetStatus status = eSIR_SUCCESS;
     eHalStatus             halStatus;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-	tANI_BOOLEAN memAllocFailed = eANI_BOOLEAN_FALSE;
+    tANI_BOOLEAN memAllocFailed = eANI_BOOLEAN_FALSE;
 
-	 if(NULL == pMac)
-     {
-         VOS_ASSERT(0);
-         status = eSIR_FAILURE;
-         return status;
-     }
+    if(NULL == pMac)
+    {
+        VOS_ASSERT(0);
+        status = eSIR_FAILURE;
+        return status;
+    }
 
     pMac->gDriverType = ((tHalMacStartParameters *)pHalMacStartParams)->driverType;
 
-	sysLog(pMac, LOG2, FL("called\n"));
+    sysLog(pMac, LOG2, FL("called\n"));
 
-	do
-	{
-	    for(i=0; i<MAX_DUMP_TABLE_ENTRY; i++)
-	    {
+    do
+    {
+        for(i=0; i<MAX_DUMP_TABLE_ENTRY; i++)
+        {
             if(palAllocateMemory(pMac->hHdd, ((void **)&pMac->dumpTableEntry[i]), sizeof(tDumpModuleEntry))
                 != eHAL_STATUS_SUCCESS)
             {
@@ -173,9 +173,9 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
             {
                 palZeroMemory(pMac->hHdd, pMac->dumpTableEntry[i], sizeof(tSirMbMsg));
             }
-	    }
-	    if( memAllocFailed )
-	    {
+        }
+        if( memAllocFailed )
+        {
             while(i>0)
             {
                 i--;
@@ -184,43 +184,43 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
             sysLog(pMac, LOGE, FL("pMac->dumpTableEntry is NULL\n"));
             status = eSIR_FAILURE;
             break;
-	    }
-	    else
-	    {
+        }
+        else
+        {
 #if defined(ANI_LOGDUMP)
-		    logDumpInit(pMac);
+            logDumpInit(pMac);
 #endif //#if defined(ANI_LOGDUMP)
-	    }
+        }
 
 #if defined(TRACE_RECORD)
         //Enable Tracing
         macTraceInit(pMac);
 #endif
-	    if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, ((void **)&pMac->pResetMsg), sizeof(tSirMbMsg))))
-	    {
+        if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, ((void **)&pMac->pResetMsg), sizeof(tSirMbMsg))))
+        {
             sysLog(pMac, LOGE, FL("pMac->pResetMsg is NULL\n"));
             status = eSIR_FAILURE;
             break;
-	    }
-	    else
-	    {
-		    palZeroMemory(pMac->hHdd, pMac->pResetMsg, sizeof(tSirMbMsg));
-	    }
+        }
+        else
+        {
+            palZeroMemory(pMac->hHdd, pMac->pResetMsg, sizeof(tSirMbMsg));
+        }
 
-	    halStatus = halStart(hHal, (tHalMacStartParameters*)pHalMacStartParams );
+        halStatus = halStart(hHal, (tHalMacStartParameters*)pHalMacStartParams );
 
-	    if ( !HAL_STATUS_SUCCESS(halStatus) )
-	    {
+        if ( !HAL_STATUS_SUCCESS(halStatus) )
+        {
             sysLog(pMac,LOGE, FL("halStart failed with error code = %d\n"), halStatus);
             status = eSIR_FAILURE;
-	    }
-	    else if(pMac->gDriverType != eDRIVER_TYPE_MFG)
-	    {
-    		peStart(pMac);
-	    }
+        }
+        else if(pMac->gDriverType != eDRIVER_TYPE_MFG)
+        {
+            peStart(pMac);
+        }
 
-	}while(0);
-	  pMac->sys.abort = false;
+    }while(0);
+    pMac->sys.abort = false;
 
     return status;
 }
@@ -237,8 +237,8 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 
 tSirRetStatus macStop(tHalHandle hHal, tHalStopType stopType)
 {
-	tANI_U8 i;
-	tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+    tANI_U8 i;
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
     halStop(hHal, stopType);
 #endif
@@ -251,11 +251,11 @@ tSirRetStatus macStop(tHalHandle hHal, tHalStopType stopType)
         palFreeMemory(pMac->hHdd, pMac->pResetMsg);
         pMac->pResetMsg = NULL;
     }
-	/* Free the DumpTableEntry */
-	for(i=0; i<MAX_DUMP_TABLE_ENTRY; i++)
-	{
-		palFreeMemory(pMac, pMac->dumpTableEntry[i]);
-	}
+    /* Free the DumpTableEntry */
+    for(i=0; i<MAX_DUMP_TABLE_ENTRY; i++)
+    {
+        palFreeMemory(pMac, pMac->dumpTableEntry[i]);
+    }
 
     return eSIR_SUCCESS;
 }

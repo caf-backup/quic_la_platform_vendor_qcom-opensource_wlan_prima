@@ -1611,49 +1611,49 @@ when       who     what, where, why
 #define LOG_CGPS_WIPER_POSITION_REPORT_C                (0x461 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard HTTP Digest Request Info */
-#define LOG_DTV_DVBH_SEC_SC_HTTP_DIGEST_REQ_C           (0x462 + LOG_1X_BASE_C)   	
+#define LOG_DTV_DVBH_SEC_SC_HTTP_DIGEST_REQ_C           (0x462 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard HTTP Digest Response Info */
-#define LOG_DTV_DVBH_SEC_SC_HTTP_DIGEST_RSP_C	        (0x463 + LOG_1X_BASE_C) 
+#define LOG_DTV_DVBH_SEC_SC_HTTP_DIGEST_RSP_C           (0x463 + LOG_1X_BASE_C) 
 
 /* DTV DVBH Security SmartCard Services Registration Request Info */
-#define LOG_DTV_DVBH_SEC_SC_SVC_REG_REQ_C	              (0x464 + LOG_1X_BASE_C)
+#define LOG_DTV_DVBH_SEC_SC_SVC_REG_REQ_C               (0x464 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard Services Registration Complete Info */
-#define LOG_DTV_DVBH_SEC_SC_SVC_REG_COMPLETE_C	        (0x465 + LOG_1X_BASE_C)
+#define LOG_DTV_DVBH_SEC_SC_SVC_REG_COMPLETE_C          (0x465 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard Services Deregistration Request Info */
 #define LOG_DTV_DVBH_SEC_SC_SVC_DEREG_REQ_C             (0x466 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard Services Deregistration Complete Info */
-#define LOG_DTV_DVBH_SEC_SC_SVC_DEREG_COMPLETE_C	     (0x467 + LOG_1X_BASE_C) 
+#define LOG_DTV_DVBH_SEC_SC_SVC_DEREG_COMPLETE_C        (0x467 + LOG_1X_BASE_C) 
 
 /* DTV DVBH Security SmartCard LTKM Request Info */
-#define LOG_DTV_DVBH_SEC_SC_LTKM_REQ_C	                 (0x468 + LOG_1X_BASE_C)
+#define LOG_DTV_DVBH_SEC_SC_LTKM_REQ_C                  (0x468 + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard LTKM Request Complete Info */
-#define LOG_DTV_DVBH_SEC_SC_LTKM_REQ_COMPLETE_C	        (0x469 + LOG_1X_BASE_C) 
+#define LOG_DTV_DVBH_SEC_SC_LTKM_REQ_COMPLETE_C         (0x469 + LOG_1X_BASE_C) 
 
 /* DTV DVBH Security SmartCard Program Selection Info */
-#define LOG_DTV_DVBH_SEC_SC_PROG_SEL_C	                 (0x46A + LOG_1X_BASE_C)
+#define LOG_DTV_DVBH_SEC_SC_PROG_SEL_C                  (0x46A + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard Program Selection Complete Info */
-#define LOG_DTV_DVBH_SEC_SC_PROG_SEL_COMPLETE_C         (0x46B + LOG_1X_BASE_C) 
-	
+#define LOG_DTV_DVBH_SEC_SC_PROG_SEL_COMPLETE_C         (0x46B + LOG_1X_BASE_C)
+
 /* DTV DVBH Security SmartCard LTKM */
 #define LOG_DTV_DVBH_SEC_SC_LTKM_C                      (0x46C + LOG_1X_BASE_C)  
 
 /* DTV DVBH Security SmartCard LTKM Verification Message */
-#define LOG_DTV_DVBH_SEC_SC_LTKM_VERIFICATION_C	        (0x46D + LOG_1X_BASE_C) 
+#define LOG_DTV_DVBH_SEC_SC_LTKM_VERIFICATION_C         (0x46D + LOG_1X_BASE_C) 
 
 /* DTV DVBH Security SmartCard Parental Control Message */
 #define LOG_DTV_DVBH_SEC_SC_PARENTAL_CTRL_C             (0x46E + LOG_1X_BASE_C)
 
 /* DTV DVBH Security SmartCard STKM */
-#define LOG_DTV_DVBH_SEC_SC_STKM_C	                    (0x46F + LOG_1X_BASE_C)
+#define LOG_DTV_DVBH_SEC_SC_STKM_C                      (0x46F + LOG_1X_BASE_C)
 
 /* Protocol Services Statistics Global Socket */
-#define LOG_PS_STAT_GLOBAL_SOCK_C	                    (0x470 + LOG_1X_BASE_C)
+#define LOG_PS_STAT_GLOBAL_SOCK_C                       (0x470 + LOG_1X_BASE_C)
 
 /* MCS Application Manager */
 #define LOG_MCS_APPMGR_C                                (0x471 + LOG_1X_BASE_C)

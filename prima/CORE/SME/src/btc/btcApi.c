@@ -1482,16 +1482,16 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
                     vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
                     vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
                     btEvent.btEventType = pAclHist->btEventType[j];
-					if(BT_EVENT_DISCONNECTION_COMPLETE != btEvent.btEventType)
-					{
-						//It must be CREATE or CONNECTION_COMPLETE
-						vos_mem_copy( &btEvent.uEventParam.btAclConnection, 
-							    &pAclHist->btAclConnection[j], sizeof(tSmeBtAclConnectionParam) );
-					}
-					else
-					{
-						btEvent.uEventParam.btDisconnect.connectionHandle = pAclHist->btAclConnection[j].connectionHandle;
-					}
+                    if(BT_EVENT_DISCONNECTION_COMPLETE != btEvent.btEventType)
+                    {
+                        //It must be CREATE or CONNECTION_COMPLETE
+                       vos_mem_copy( &btEvent.uEventParam.btAclConnection, 
+                                     &pAclHist->btAclConnection[j], sizeof(tSmeBtAclConnectionParam) );
+                    }
+                    else
+                    {
+                       btEvent.uEventParam.btDisconnect.connectionHandle = pAclHist->btAclConnection[j].connectionHandle;
+                    }
                     btcSendBTEvent( pMac, &btEvent );
                 }
             }
@@ -1533,16 +1533,16 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
                     vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
                     vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
                     btEvent.btEventType = pSyncHist->btEventType[j];
-					if(BT_EVENT_DISCONNECTION_COMPLETE != btEvent.btEventType)
-					{
-						//Must be CREATION or CONNECTION_COMPLETE
-						vos_mem_copy( &btEvent.uEventParam.btSyncConnection, 
-							    &pSyncHist->btSyncConnection[j], sizeof(tSmeBtSyncConnectionParam) );
-					}
-					else
-					{
-						btEvent.uEventParam.btDisconnect.connectionHandle = pSyncHist->btSyncConnection[j].connectionHandle;
-					}
+                    if(BT_EVENT_DISCONNECTION_COMPLETE != btEvent.btEventType)
+                    {
+                        //Must be CREATION or CONNECTION_COMPLETE
+                       vos_mem_copy( &btEvent.uEventParam.btSyncConnection, 
+                                     &pSyncHist->btSyncConnection[j], sizeof(tSmeBtSyncConnectionParam) );
+                    }
+                    else
+                    {
+                        btEvent.uEventParam.btDisconnect.connectionHandle = pSyncHist->btSyncConnection[j].connectionHandle;
+                    }
                     btcSendBTEvent( pMac, &btEvent );
                 }
             }
@@ -1695,67 +1695,67 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
    case BT_EVENT_DEVICE_SWITCHED_OFF:
        smsLog( pMac, LOGE, "BT event (DEVICE_OFF) happens, UAPSD-allowed flag (%d) change to TRUE \n", 
                         pBtEvent->btEventType, pMac->btc.btcUapsdOk );
-	   //Clean up SCO
-	   for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+       //Clean up SCO
+       for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
        {
            pMac->btc.btcScoHandles[i] = BT_INVALID_CONN_HANDLE;
        }
-	   pMac->btc.fA2DPUp = VOS_FALSE;
+       pMac->btc.fA2DPUp = VOS_FALSE;
        pMac->btc.btcUapsdOk = VOS_TRUE;
-	   break;
-    case BT_EVENT_A2DP_STREAM_STOP:
+       break;
+   case BT_EVENT_A2DP_STREAM_STOP:
        smsLog( pMac, LOGE, "BT event  (A2DP_STREAM_STOP) happens, UAPSD-allowed flag (%d) \n", 
             pMac->btc.btcUapsdOk );
-	   pMac->btc.fA2DPUp = VOS_FALSE;
-	   //Check whether SCO is on
-	   for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+       pMac->btc.fA2DPUp = VOS_FALSE;
+       //Check whether SCO is on
+       for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
        {
            if(pMac->btc.btcScoHandles[i] != BT_INVALID_CONN_HANDLE)
-		   {
-			   break;
-		   }
+           {
+              break;
+           }
        }
        if( BT_MAX_SCO_SUPPORT == i )
        {
             pMac->btc.fA2DPTrafStop = VOS_TRUE;
            smsLog( pMac, LOGE, "BT_EVENT_A2DP_STREAM_STOP: UAPSD-allowed flag is now %d\n",
-                   		pMac->btc.btcUapsdOk );
+                   pMac->btc.btcUapsdOk );
        }
        break;
 
    case BT_EVENT_MODE_CHANGED:
-        smsLog( pMac, LOGE, "BT event (BT_EVENT_MODE_CHANGED) happens, Mode (%d) UAPSD-allowed flag (%d)\n",
+       smsLog( pMac, LOGE, "BT event (BT_EVENT_MODE_CHANGED) happens, Mode (%d) UAPSD-allowed flag (%d)\n",
                pBtEvent->uEventParam.btAclModeChange.mode, pMac->btc.btcUapsdOk );
-         if(pBtEvent->uEventParam.btAclModeChange.mode == BT_ACL_SNIFF)
-         {
-            //Check whether SCO is on
-            for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
-            {
-                if(pMac->btc.btcScoHandles[i] != BT_INVALID_CONN_HANDLE)
-                {
-                    break;
-                }
-            }
-            if( BT_MAX_SCO_SUPPORT == i )
-            {
-		if(VOS_TRUE == pMac->btc.fA2DPTrafStop)
-		{						
-                    pMac->btc.btcUapsdOk = VOS_TRUE;
-		    pMac->btc.fA2DPTrafStop = VOS_FALSE;
-		}
-                smsLog( pMac, LOGE, "BT_EVENT_MODE_CHANGED with Mode:%d UAPSD-allowed flag is now %d\n",
-                    pBtEvent->uEventParam.btAclModeChange.mode,pMac->btc.btcUapsdOk );
-            }
-	     }
-         break;
+       if(pBtEvent->uEventParam.btAclModeChange.mode == BT_ACL_SNIFF)
+       {
+           //Check whether SCO is on
+           for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+           {
+               if(pMac->btc.btcScoHandles[i] != BT_INVALID_CONN_HANDLE)
+               {
+                   break;
+               }
+           }
+           if( BT_MAX_SCO_SUPPORT == i )
+           {
+               if(VOS_TRUE == pMac->btc.fA2DPTrafStop)
+               {
+                   pMac->btc.btcUapsdOk = VOS_TRUE;
+                   pMac->btc.fA2DPTrafStop = VOS_FALSE;
+               }
+               smsLog( pMac, LOGE, "BT_EVENT_MODE_CHANGED with Mode:%d UAPSD-allowed flag is now %d\n",
+                       pBtEvent->uEventParam.btAclModeChange.mode,pMac->btc.btcUapsdOk );
+           }
+       }
+       break;
    case BT_EVENT_CREATE_SYNC_CONNECTION:
-	   {
-		   pMac->btc.btcUapsdOk = VOS_FALSE;
-		   smsLog( pMac, LOGE, "BT_EVENT_CREATE_SYNC_CONNECTION (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
-                pBtEvent->btEventType, pMac->btc.btcUapsdOk );
-	   }
-	   break;		 
-   case BT_EVENT_SYNC_CONNECTION_COMPLETE:	   
+       {
+           pMac->btc.btcUapsdOk = VOS_FALSE;
+           smsLog( pMac, LOGE, "BT_EVENT_CREATE_SYNC_CONNECTION (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
+                   pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+       }
+       break;
+   case BT_EVENT_SYNC_CONNECTION_COMPLETE:
        //Make sure it is a success
        if( BT_CONN_STATUS_FAIL != pBtEvent->uEventParam.btSyncConnection.status )
        {
@@ -1767,13 +1767,13 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
                    (BT_INVALID_CONN_HANDLE != pBtEvent->uEventParam.btSyncConnection.connectionHandle))
                {
                    pMac->btc.btcScoHandles[i] = pBtEvent->uEventParam.btSyncConnection.connectionHandle;
-			       break;
+                   break;
                }
            }
-	       
+
            if( i >= BT_MAX_SCO_SUPPORT )
-	   {
-	       smsLog(pMac, LOGE, FL("Too many SCO, ignore this one\n"));
+           {
+               smsLog(pMac, LOGE, FL("Too many SCO, ignore this one\n"));
            }
        }
        else
@@ -1784,7 +1784,7 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
                if(pMac->btc.btcScoHandles[i] != BT_INVALID_CONN_HANDLE)
                {
                    break;
-	       }
+               }
        }
            /*If No Other Sco/A2DP is ON reenable UAPSD*/
            if( (BT_MAX_SCO_SUPPORT == i)  && !pMac->btc.fA2DPUp)           
@@ -1799,7 +1799,7 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
                 pBtEvent->btEventType, pMac->btc.btcUapsdOk );
        pMac->btc.fA2DPTrafStop = VOS_FALSE;
        pMac->btc.btcUapsdOk = VOS_FALSE;
-	   pMac->btc.fA2DPUp = VOS_TRUE;
+       pMac->btc.fA2DPUp = VOS_TRUE;
        break;
    default:
        //No change for these events

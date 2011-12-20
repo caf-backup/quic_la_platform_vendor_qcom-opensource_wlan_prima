@@ -109,8 +109,8 @@ VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
 
 #ifdef WLAN_SOFTAP_FEATURE
 /**----------------------------------------------------------------------------
-	\brief vos_get_conparam()- function to read the insmod parameters
------------------------------------------------------------------------------*/	
+   \brief vos_get_conparam()- function to read the insmod parameters
+-----------------------------------------------------------------------------*/
 tVOS_CON_MODE vos_get_conparam( void );
 #endif
 tVOS_CONCURRENCY_MODE vos_get_concurrency_mode( void );

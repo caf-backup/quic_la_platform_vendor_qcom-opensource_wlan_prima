@@ -100,7 +100,7 @@ VOS_STATUS vos_crypto_init( v_U32_t *phCryptProv )
 
     // This implementation doesn't require a crypto context
     *phCryptProv  = (v_U32_t)NULL;
-	uResult = VOS_STATUS_SUCCESS;
+    uResult = VOS_STATUS_SUCCESS;
     return ( uResult );
 }
 
@@ -109,7 +109,7 @@ VOS_STATUS vos_crypto_deinit( v_U32_t hCryptProv )
     VOS_STATUS uResult = VOS_STATUS_E_FAILURE;
 
     // CryptReleaseContext succeeded
-	uResult = VOS_STATUS_SUCCESS;
+    uResult = VOS_STATUS_SUCCESS;
 
     return ( uResult );
 }
@@ -144,7 +144,7 @@ VOS_STATUS vos_rand_get_bytes( v_U32_t cryptHandle, v_U8_t *pbBuf, v_U32_t numBy
 {
    VOS_STATUS uResult = VOS_STATUS_E_FAILURE;
    //v_UINT_t uCode;
-//   HCRYPTPROV hCryptProv = (HCRYPTPROV) cryptHandle;	
+//   HCRYPTPROV hCryptProv = (HCRYPTPROV) cryptHandle;
 
    //check for invalid pointer
    if ( NULL == pbBuf )
@@ -191,111 +191,111 @@ VOS_STATUS vos_rand_get_bytes( v_U32_t cryptHandle, v_U8_t *pbBuf, v_U32_t numBy
     ( *** return value not considered yet )
   --------------------------------------------------------------------------*/
 struct hmac_sha1_result {
-	struct completion completion;
-	int err;
+    struct completion completion;
+    int err;
 };
 
 static void hmac_sha1_complete(struct crypto_async_request *req, int err)
 {
-	struct hmac_sha1_result *r = req->data;
-	if (err == -EINPROGRESS)
-		return;
-	r->err = err;
-	complete(&r->completion);
+    struct hmac_sha1_result *r = req->data;
+    if (err == -EINPROGRESS)
+        return;
+    r->err = err;
+    complete(&r->completion);
 }
 
 int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
-		v_U8_t *output, v_U8_t outlen)
+              v_U8_t *output, v_U8_t outlen)
 {
-	int ret = 0;
-	struct crypto_ahash *tfm;
-	struct scatterlist sg;
-	struct ahash_request *req;
-	struct hmac_sha1_result tresult;
-	void *hash_buff = NULL;
+    int ret = 0;
+    struct crypto_ahash *tfm;
+    struct scatterlist sg;
+    struct ahash_request *req;
+    struct hmac_sha1_result tresult;
+    void *hash_buff = NULL;
 
-	unsigned char hash_result[64];
+    unsigned char hash_result[64];
     int i;
         
-	memset(output, 0, outlen);
+    memset(output, 0, outlen);
         
-	init_completion(&tresult.completion);
+    init_completion(&tresult.completion);
         
-	tfm = wcnss_wlan_crypto_alloc_ahash("hmac(sha1)", CRYPTO_ALG_TYPE_AHASH,
+    tfm = wcnss_wlan_crypto_alloc_ahash("hmac(sha1)", CRYPTO_ALG_TYPE_AHASH,
                                         CRYPTO_ALG_TYPE_AHASH_MASK);
-	if (IS_ERR(tfm)) {
+    if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ahash failed");
-		ret = PTR_ERR(tfm);
-		goto err_tfm;
+        ret = PTR_ERR(tfm);
+        goto err_tfm;
     }
     
-	req = ahash_request_alloc(tfm, GFP_KERNEL);
-	if (!req) {
+    req = ahash_request_alloc(tfm, GFP_KERNEL);
+    if (!req) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "failed to allocate request for hmac(sha1)");
-		ret = -ENOMEM;
-		goto err_req;
-	}
+        ret = -ENOMEM;
+        goto err_req;
+    }
     
-	ahash_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
-					hmac_sha1_complete, &tresult);
-    
-	hash_buff = kzalloc(psize, GFP_KERNEL);
-	if (!hash_buff) {
+    ahash_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
+                               hmac_sha1_complete, &tresult);
+
+    hash_buff = kzalloc(psize, GFP_KERNEL);
+    if (!hash_buff) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "failed to kzalloc hash_buff");
-		ret = -ENOMEM;
-		goto err_hash_buf;
+        ret = -ENOMEM;
+        goto err_hash_buf;
     }
 
-	memset(hash_result, 0, 64);
-	memcpy(hash_buff, plaintext, psize);
-	sg_init_one(&sg, hash_buff, psize);
+    memset(hash_result, 0, 64);
+    memcpy(hash_buff, plaintext, psize);
+    sg_init_one(&sg, hash_buff, psize);
 
-	if (ksize) {
-		crypto_ahash_clear_flags(tfm, ~0);
-		ret = wcnss_wlan_crypto_ahash_setkey(tfm, key, ksize);
+    if (ksize) {
+        crypto_ahash_clear_flags(tfm, ~0);
+        ret = wcnss_wlan_crypto_ahash_setkey(tfm, key, ksize);
     
-		if (ret) {
+        if (ret) {
             VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_ahash_setkey failed");
-			goto err_setkey;
-		}
-	}
-    
-	ahash_request_set_crypt(req, &sg, hash_result, psize);
-	ret = wcnss_wlan_crypto_ahash_digest(req);
+            goto err_setkey;
+        }
+    }
+
+    ahash_request_set_crypt(req, &sg, hash_result, psize);
+    ret = wcnss_wlan_crypto_ahash_digest(req);
 
     VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "ret 0x%x");
 
-	switch (ret) {
-	case 0:
-		for (i=0; i< outlen; i++)
-			output[i] = hash_result[i];
-		break;
-	case -EINPROGRESS:
-	case -EBUSY:
-		ret = wait_for_completion_interruptible(&tresult.completion);
-		if (!ret && !tresult.err) {
-			INIT_COMPLETION(tresult.completion);
-			break;
-		} else {
+    switch (ret) {
+    case 0:
+        for (i=0; i< outlen; i++)
+            output[i] = hash_result[i];
+        break;
+    case -EINPROGRESS:
+    case -EBUSY:
+        ret = wait_for_completion_interruptible(&tresult.completion);
+        if (!ret && !tresult.err) {
+            INIT_COMPLETION(tresult.completion);
+            break;
+        } else {
             VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "wait_for_completion_interruptible failed");
-			if (!ret)
-				ret = tresult.err;
-			goto out;
-		}
-	default:
-		goto out;
-	}
+            if (!ret)
+                ret = tresult.err;
+            goto out;
+        }
+    default:
+        goto out;
+    }
 
 out:
 err_setkey:
-	kfree(hash_buff);
+    kfree(hash_buff);
 err_hash_buf:
-	ahash_request_free(req);
+    ahash_request_free(req);
 err_req:
-	wcnss_wlan_crypto_free_ahash(tfm);
+    wcnss_wlan_crypto_free_ahash(tfm);
 err_tfm:
-	return ret;
-      }
+    return ret;
+}
 
 VOS_STATUS vos_sha1_hmac_str(v_U32_t cryptHandle, /* Handle */
            v_U8_t *pText, /* pointer to data stream */
@@ -304,7 +304,7 @@ VOS_STATUS vos_sha1_hmac_str(v_U32_t cryptHandle, /* Handle */
            v_U32_t keyLen, /* length of authentication key */
            v_U8_t digest[VOS_DIGEST_SHA1_SIZE])/* caller digest to be filled in */
 {
-	int ret = 0;
+    int ret = 0;
 
     ret = hmac_sha1(
             pKey,                   //v_U8_t *key, 
@@ -324,17 +324,17 @@ VOS_STATUS vos_sha1_hmac_str(v_U32_t cryptHandle, /* Handle */
       }
 
 struct ecb_aes_result {
-	struct completion completion;
-	int err;
+    struct completion completion;
+    int err;
 };
 
 static void ecb_aes_complete(struct crypto_async_request *req, int err)
-   {
-	struct ecb_aes_result *r = req->data;
-	if (err == -EINPROGRESS)
-		return;
-	r->err = err;
-	complete(&r->completion);
+{
+    struct ecb_aes_result *r = req->data;
+    if (err == -EINPROGRESS)
+        return;
+    r->err = err;
+    complete(&r->completion);
 }
 
 
@@ -386,21 +386,21 @@ VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
     init_completion(&result.completion);
 
     tfm =  wcnss_wlan_crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
-	if (IS_ERR(tfm)) {
+    if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ablkcipher failed");
         ret = PTR_ERR(tfm);
-		goto err_tfm;
+        goto err_tfm;
     }
 
     req = ablkcipher_request_alloc(tfm, GFP_KERNEL);
     if (!req) {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "Failed to allocate request for cbc(aes)");
-		ret = -ENOMEM;
-		goto err_req;
-    }	
-	    
-	ablkcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
-					ecb_aes_complete, &result);
+        ret = -ENOMEM;
+        goto err_req;
+    }
+
+    ablkcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
+                                    ecb_aes_complete, &result);
 
 
     crypto_ablkcipher_clear_flags(tfm, ~0);
@@ -425,11 +425,11 @@ VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
 
 // -------------------------------------
 err_setkey:    
-	wcnss_wlan_ablkcipher_request_free(req);
+    wcnss_wlan_ablkcipher_request_free(req);
 err_req:
-	wcnss_wlan_crypto_free_ablkcipher(tfm);
+    wcnss_wlan_crypto_free_ablkcipher(tfm);
 err_tfm:
-	//return ret;
+    //return ret;
     if (ret != 0) { 
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __FUNCTION__);
         return VOS_STATUS_E_FAULT; 
@@ -482,21 +482,21 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
     init_completion(&result.completion);
 
     tfm =  wcnss_wlan_crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
-	if (IS_ERR(tfm)) {
+    if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ablkcipher failed");
-		ret = PTR_ERR(tfm);
-		goto err_tfm;
-	}
+        ret = PTR_ERR(tfm);
+        goto err_tfm;
+    }
 
     req = ablkcipher_request_alloc(tfm, GFP_KERNEL);
     if (!req) {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "Failed to allocate request for cbc(aes)");
-		ret = -ENOMEM;
-		goto err_req;
-       }
+        ret = -ENOMEM;
+        goto err_req;
+    }
 
-	ablkcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
-					ecb_aes_complete, &result);
+    ablkcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
+                                    ecb_aes_complete, &result);
 
 
     crypto_ablkcipher_clear_flags(tfm, ~0);
@@ -521,11 +521,11 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
     
 // -------------------------------------
 err_setkey:    
-	wcnss_wlan_ablkcipher_request_free(req);
+    wcnss_wlan_ablkcipher_request_free(req);
 err_req:
-	wcnss_wlan_crypto_free_ablkcipher(tfm);
+    wcnss_wlan_crypto_free_ablkcipher(tfm);
 err_tfm:
-	//return ret;
+    //return ret;
     if (ret != 0) { 
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __FUNCTION__);
         return VOS_STATUS_E_FAULT; 

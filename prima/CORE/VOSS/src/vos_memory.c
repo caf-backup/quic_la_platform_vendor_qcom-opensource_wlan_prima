@@ -70,7 +70,7 @@ struct s_vos_mem_struct
 #ifdef MEMORY_DEBUG
 void vos_mem_init()
 {
-   /* Initalizing the list with maximum size of 60000 */	
+   /* Initalizing the list with maximum size of 60000 */
    hdd_list_init(&vosMemList, 60000);  
    return; 
 }

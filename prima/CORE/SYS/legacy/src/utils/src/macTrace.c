@@ -384,8 +384,8 @@ tANI_U8* macTraceGetCfgMsgString( tANI_U16 cfgMsg )
 
 tANI_U8* macTraceGetModuleString( tANI_U8 moduleId  )
 {
-	return ((tANI_U8*)"PE");
-	//return gVosTraceInfo[moduleId].moduleNameStr;
+    return ((tANI_U8*)"PE");
+    //return gVosTraceInfo[moduleId].moduleNameStr;
 }
 
 

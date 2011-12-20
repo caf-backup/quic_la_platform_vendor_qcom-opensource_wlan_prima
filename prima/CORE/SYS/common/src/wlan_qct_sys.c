@@ -60,8 +60,8 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message);
 // write the COOKIE in the reserved field of the message.  The SYS Module
 // relies on this COOKIE
 #ifndef WLAN_FTM_STUB
-#define	SYS_MSG_ID_FTM_RSP	11
-#define	FTM_SYS_MSG_COOKIE	0xFACE
+#define SYS_MSG_ID_FTM_RSP      11
+#define FTM_SYS_MSG_COOKIE      0xFACE
 #endif
 
 #define SYS_MSG_COOKIE ( 0xFACE )
@@ -481,7 +481,7 @@ static VOS_STATUS sys_getCfgBinaryMsgBuffer( tSirMbMsg **ppMsg, v_SIZE_t *pcbCfg
 
       // malloc a buffer to read in the Configuration binary file.
       //pFileImage = vos_mem_malloc( cbFileImage );
-	  pFileImage = (v_VOID_t*)_vImageArray;
+      pFileImage = (v_VOID_t*)_vImageArray;
 
       if ( NULL == pFileImage )
       {
@@ -1123,10 +1123,10 @@ SysProcessMmhMsg
     case eWNI_PMC_EXIT_BMPS_IND:
     case eWNI_PMC_ENTER_IMPS_RSP:
     case eWNI_PMC_EXIT_IMPS_RSP:
-	case eWNI_PMC_ENTER_UAPSD_RSP:
-	case eWNI_PMC_EXIT_UAPSD_RSP:
-	case eWNI_PMC_ENTER_WOWL_RSP:
-	case eWNI_PMC_EXIT_WOWL_RSP:
+    case eWNI_PMC_ENTER_UAPSD_RSP:
+    case eWNI_PMC_EXIT_UAPSD_RSP:
+    case eWNI_PMC_ENTER_WOWL_RSP:
+    case eWNI_PMC_EXIT_WOWL_RSP:
     case eWNI_SME_SWITCH_CHL_REQ: */ //Taken care by the check in default case
     {
        /* Forward this message to the SME module */
@@ -1189,7 +1189,7 @@ SysProcessMmhMsg
     VOS_STATUS_SUCCESS:
 
   SIDE EFFECTS
-	NONE
+      NONE
 ============================================================================*/
 
 void wlan_sys_ftm(void *pMsgPtr)

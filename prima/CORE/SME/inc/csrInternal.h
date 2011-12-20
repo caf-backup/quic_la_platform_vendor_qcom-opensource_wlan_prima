@@ -722,6 +722,12 @@ typedef struct tagCsrRoamSession
     tBkidCandidateInfo BkidCandidateInfo[CSR_MAX_BKID_ALLOWED]; 
 #endif
     tANI_BOOLEAN fWMMConnection;
+#ifdef FEATURE_WLAN_BTAMP_UT_RF
+    //To retry a join later when it fails if so desired
+    tPalTimerHandle hTimerJoinRetry;
+    tCsrTimerInfo joinRetryTimerInfo;
+    tANI_U32 maxRetryCount;
+#endif
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct

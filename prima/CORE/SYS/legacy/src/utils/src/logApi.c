@@ -133,9 +133,9 @@ logDeinit(tpAniSirGlobal pMac)
 #include <IOKit/firewire/FireLog.h>
 #define printk          FireLog
 #else
-#define printk			printf
+#define printk          printf
 #endif
-#define	tx_time_get()	(0)
+#define tx_time_get()   (0)
 #endif
 
 void logDbg(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 debugLevel, const char *pStr,...)
@@ -177,7 +177,7 @@ static inline VOS_TRACE_LEVEL getVosDebugLevel(tANI_U32 debugLevel)
             return VOS_TRACE_LEVEL_INFO_LOW;
         default:
             return VOS_TRACE_LEVEL_INFO_LOW;
-	}
+    }
 }
 
 static inline VOS_MODULE_ID getVosModuleId(tANI_U8 modId)
@@ -281,8 +281,8 @@ void logDebug(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 debugLevel, const cha
            (int) pMac->sys.gSirRadioId, modId, (int) debugLevel, (int) tx_time_get());
     printk(pMac->gLogBuffer);
     if (pMac->gLogBuffer[len-1] != '\n')
-		printk("\n");
-		
+        printk("\n");
+
     return;
 #elif defined(ANI_OS_TYPE_WINDOWS)
     _vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);

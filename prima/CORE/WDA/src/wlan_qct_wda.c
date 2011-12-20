@@ -9595,7 +9595,7 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          WDA_ProcessTxControlInd(pWDA, (tpTxControlParams)pMsg->bodyptr);
          break;
       }
-	  
+
       default:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,

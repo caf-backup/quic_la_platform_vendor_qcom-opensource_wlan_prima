@@ -86,7 +86,7 @@ typedef struct tagSmeCmd
 {
     tListElem Link;
     eSmeCommandType command;
-	tANI_U32 sessionId;
+    tANI_U32 sessionId;
     union
     {
         tScanCmd scanCmd;
@@ -97,7 +97,7 @@ typedef struct tagSmeCmd
         tGenericPmcCmd pmcCmd;
         tGenericQosCmd qosCmd;
 #ifdef FEATURE_INNAV_SUPPORT
-		tMeasCmd measCmd;
+        tMeasCmd measCmd;
 #endif
 #ifdef WLAN_FEATURE_P2P
         tRemainChlCmd remainChlCmd;

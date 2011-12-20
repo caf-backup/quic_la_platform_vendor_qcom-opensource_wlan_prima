@@ -62,7 +62,7 @@ when       who     what, where, why
 ===========================================================================*/
 typedef enum
 {
-  VOS_CHIP_RESET_CMD53_FAILURE,              /* Reset Chip due to CMD53 Failure */	
+  VOS_CHIP_RESET_CMD53_FAILURE,              /* Reset Chip due to CMD53 Failure */
   VOS_CHIP_RESET_FW_EXCEPTION,               /* Reset Chip due to FW Failure */
   VOS_CHIP_RESET_MUTEX_READ_FAILURE,         /* Reset Chip due to  Mutex Read Failure */
   VOS_CHIP_RESET_MIF_EXCEPTION,              /* Reset Chip due to  MAC exception e.g. BMU fatal, MIF error */

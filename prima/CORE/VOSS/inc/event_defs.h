@@ -917,7 +917,7 @@ typedef enum
   EVENT_MFLO_MFN_VERTICAL_HANDOFF,        /* 16  byte payload */
   EVENT_MFLO_MFN_ACQ_STATE,               /* 10  byte payload */
   EVENT_MFLO_FLOW_STATUS,                 /* 12  byte payload */
-  EVENT_MFLO_NETWORK_STATUS,					/* 12  byte payload */
+  EVENT_MFLO_NETWORK_STATUS,              /* 12  byte payload */
   EVENT_MFLO_UNDEFINED_1070,
 
   EVENT_CM_LCS_MOLR_CONF,                 /* 1 byte payload */
@@ -1080,7 +1080,7 @@ typedef enum
   EVENT_EUL_PHYSICAL_LAYER_RECONFIG,      /* 10 byte payload */
 
   EVENT_DRM_ROAP_TRIGGER_RECIEVED,        /* 1 byte payload */
-  EVENT_DRM_ROAP_PROTOCOL_START,    	   /* 1 byte payload */
+  EVENT_DRM_ROAP_PROTOCOL_START,          /* 1 byte payload */
   EVENT_DRM_ROAP_REQUEST,                 /* 1 byte payload */
   EVENT_DRM_ROAP_REQUEST_EXTENSION,       /* 2 byte payload */
   EVENT_DRM_ROAP_RESPONSE,                /* 2 byte payload */
@@ -1130,23 +1130,23 @@ typedef enum
   EVENT_GPS_LM_PD_COMPLETE,               /* No payload */
   EVENT_GPS_LM_IQ_TEST_COMPLETE,          /* No payload */
 
-  EVENT_PM_APP_OTG_INIT,				                           /* No payload */
-  EVENT_PM_APP_OTG_RESET,			                              /* No payload */
-  EVENT_PM_APP_OTG_ACQUIRE_BUS_REQ,    	                     /* 2 byte payload */
-  EVENT_PM_APP_OTG_RELINQUISH_BUS_REQ,	                        /* No payload */
-  EVENT_PM_APP_OTG_SUSPEND,			                           /* No payload */
-  EVENT_PM_APP_OTG_RESUME,			                              /* No payload */
+  EVENT_PM_APP_OTG_INIT,                  /* No payload */
+  EVENT_PM_APP_OTG_RESET,                 /* No payload */
+  EVENT_PM_APP_OTG_ACQUIRE_BUS_REQ,                         /* 2 byte payload */
+  EVENT_PM_APP_OTG_RELINQUISH_BUS_REQ,                      /* No payload */
+  EVENT_PM_APP_OTG_SUSPEND,                           /* No payload */
+  EVENT_PM_APP_OTG_RESUME,                              /* No payload */
   EVENT_PM_APP_OTG_DEVICE_ATTACHED,                            /* 1 byTe payload */
-  EVENT_PM_APP_OTG_DEVICE_DETACHED,   		                     /* No payload */
+  EVENT_PM_APP_OTG_DEVICE_DETACHED,                        /* No payload */
   EVENT_PM_APP_OTG_HOST_MODE_REM_PERI_DIS,                     /* No payload */
   EVENT_PM_APP_OTG_PERI_MODE_PREPARE_FOR_REM_HOST_WAKEUP_SIG,  /* No payload */
-  EVENT_PM_APP_OTG_PERI_MODE_REM_HOST_WAKEUP_SIG_DONE,		   /* No payload */
-  EVENT_PM_APP_OTG_SET_REM_WAKEUP_CAPABILITY,   	            /* 1 byte payload */
+  EVENT_PM_APP_OTG_PERI_MODE_REM_HOST_WAKEUP_SIG_DONE,   /* No payload */
+  EVENT_PM_APP_OTG_SET_REM_WAKEUP_CAPABILITY,              /* 1 byte payload */
   EVENT_PM_APP_OTG_OPERATIONAL_ERROR,                          /* 1 byte Payload */
-  EVENT_PM_APP_OTG_CONFIGURE_USB_POWER_CONSUMER,		         /* No payload */
+  EVENT_PM_APP_OTG_CONFIGURE_USB_POWER_CONSUMER,         /* No payload */
   EVENT_PM_APP_OTG_SET_USB_POWER_CONSUMPTION_REQUIREMENT,      /* 1 byte payload */
   EVENT_PM_APP_OTG_PERI_MODE_PROCESS_USB_POWER_LINE_CONT_REQ,  /* 1 byte payload */
-  EVENT_PM_APP_OTG_PERI_MODE_SET_REM_A_DEV_INFO,	            /* 3 byte payload */
+  EVENT_PM_APP_OTG_PERI_MODE_SET_REM_A_DEV_INFO,               /* 3 byte payload */
   EVENT_PM_APP_OTG_STATE_TRANSITION,                           /* 2 byte payload */
 
   EVENT_DTV_TABLE_ACQ_SUCCESS,                                 /* 10 byte payload */  
@@ -1483,7 +1483,7 @@ typedef enum
   EVENT_WCDMA_CELL_SELECTION_FAIL,        /* 1 byte payload */
   EVENT_WCDMA_BPLMN_START,                /* 1 byte payload */
   EVENT_WCDMA_BPLMN_END,                  /* 1 byte payload */
-  EVENT_WCDMA_BPLMN_SCAN_START,	          /* 1 byte payload */
+  EVENT_WCDMA_BPLMN_SCAN_START,           /* 1 byte payload */
   EVENT_WCDMA_BPLMN_SCAN_END,             /* 1 byte payload */
 
   EVENT_MSG_HIGH,                         /* 32 byte payload */
@@ -1572,39 +1572,39 @@ typedef enum
 
   EVENT_GSDI_GET_FEATURE_INDICATOR_DATA,   /* 6 byte payload */
 
-  EVENT_LTE_CM_INCOMING_MSG,				    /* 1 byte payload */
-  EVENT_LTE_CM_OUTGOING_MSG,			       /* 1 byte payload */
-  EVENT_LTE_EMM_INCOMING_MSG,			       /* 1 byte payload */
-  EVENT_LTE_EMM_OUTGOING_MSG,				    /* 1 byte payload */
-  EVENT_LTE_EMM_TIMER_START,				    /* 1 byte payload */
-  EVENT_LTE_EMM_TIMER_EXPIRY,				    /* 1 byte payload */
+  EVENT_LTE_CM_INCOMING_MSG,               /* 1 byte payload */
+  EVENT_LTE_CM_OUTGOING_MSG,               /* 1 byte payload */
+  EVENT_LTE_EMM_INCOMING_MSG,              /* 1 byte payload */
+  EVENT_LTE_EMM_OUTGOING_MSG,              /* 1 byte payload */
+  EVENT_LTE_EMM_TIMER_START,               /* 1 byte payload */
+  EVENT_LTE_EMM_TIMER_EXPIRY,              /* 1 byte payload */
 
-  EVENT_LTE_REG_INCOMING_MSG,				    /* 1 byte payload */
-  EVENT_LTE_REG_OUTGOING_MSG,				    /* 1 byte payload */
-  EVENT_LTE_ESM_INCOMING_MSG,				    /* 1 byte payload */
-  EVENT_LTE_ESM_OUTGOING_MSG,				    /* 1 byte payload */
-  EVENT_LTE_ESM_TIMER_START,				    /* 1 byte payload */
-  EVENT_LTE_ESM_TIMER_EXPIRY,				    /* 1 byte payload */
+  EVENT_LTE_REG_INCOMING_MSG,              /* 1 byte payload */
+  EVENT_LTE_REG_OUTGOING_MSG,              /* 1 byte payload */
+  EVENT_LTE_ESM_INCOMING_MSG,              /* 1 byte payload */
+  EVENT_LTE_ESM_OUTGOING_MSG,              /* 1 byte payload */
+  EVENT_LTE_ESM_TIMER_START,               /* 1 byte payload */
+  EVENT_LTE_ESM_TIMER_EXPIRY,              /* 1 byte payload */
 
-  EVENT_SNS_CONTEXT_OPEN, 						 /* 4 byte payload */
-  EVENT_SNS_CONTEXT_CLOSE,  					 /* 4 byte payload */
-  EVENT_SNS_COND_SET,   						 /* 8 byte payload */
-  EVENT_SNS_COND_CANCEL,   					 /* 8 byte payload */
-  EVENT_SNS_COND_MET,	  						 /* 8 byte payload */	
-  EVENT_SNS_DATA_START,			  				 /* 12 byte payload */
-  EVENT_SNS_DATA_STOP,	  						 /* 8 byte payload */
+  EVENT_SNS_CONTEXT_OPEN,                  /* 4 byte payload */
+  EVENT_SNS_CONTEXT_CLOSE,                 /* 4 byte payload */
+  EVENT_SNS_COND_SET,                      /* 8 byte payload */
+  EVENT_SNS_COND_CANCEL,                   /* 8 byte payload */
+  EVENT_SNS_COND_MET,                      /* 8 byte payload */
+  EVENT_SNS_DATA_START,                    /* 12 byte payload */
+  EVENT_SNS_DATA_STOP,                     /* 8 byte payload */
 
-  EVENT_WCDMA_RLC_CONFIG,						 /* 4 byte payload */
+  EVENT_WCDMA_RLC_CONFIG,                  /* 4 byte payload */
 
-  EVENT_HSPA_PLUS_CFG,							 /* 6 byte payload */
+  EVENT_HSPA_PLUS_CFG,                     /* 6 byte payload */
 
-  EVENT_SNS_DRIVER_STATE_CHANGE,				 /* 9 byte payload */
+  EVENT_SNS_DRIVER_STATE_CHANGE,           /* 9 byte payload */
 
   EVENT_WCDMA_TIMER_DISCARD_EXPIRY,        /* 3 byte payload */  
 
-  EVENT_NAS_CB_PAGE_RECEIVED,					 /* 5 byte payload */  
+  EVENT_NAS_CB_PAGE_RECEIVED,              /* 5 byte payload */  
 
-  EVENT_WCDMA_RLC_RESET,						 /* 1 byte payload */  
+  EVENT_WCDMA_RLC_RESET,                   /* 1 byte payload */  
 
   EVENT_HDR_MRLP_EHRPD_PERSONALITY_IS_ACTIVE, /* 1 byte payload */  
   
@@ -1782,23 +1782,23 @@ typedef enum
   EVENT_LTE_RRC_IRAT_REDIR_FROM_EUTRAN_START, /*1 byte payload */
   EVENT_LTE_RRC_IRAT_REDIR_FROM_EUTRAN_END,    /* 2 byte payload */ /*ID = 1808*/
 
-  EVENT_GPRS_DS_CELL_CHANGE_ORDER,	           /* 2 byte payload */ /*1809*/
+  EVENT_GPRS_DS_CELL_CHANGE_ORDER,            /* 2 byte payload */ /*1809*/
   EVENT_GSM_DS_CELL_SELECTION_END,            /* 2 byte payload */ /*1810*/
-  EVENT_GSM_DS_L1_STATE,			                   /* 2 byte payload */ /*1811*/
-  EVENT_GSM_DS_PLMN_LIST_START,  	             /* 2 byte payload */ /*1812*/
-  EVENT_GSM_DS_PLMN_LIST_END,  		             /* 1 byte payload */ /*1813*/
-  EVENT_GSM_DS_POWER_SCAN_STATUS, 	       /* 2 byte payload */ /*1814*/
-  EVENT_GSM_DS_RESELECT_START,  		          /* 2 byte payload */ /*1815*/
-  EVENT_GSM_DS_RR_IN_SERVICE,  		             /* 1 byte payload */ /*1816*/
-  EVENT_GSM_DS_RR_OUT_OF_SERVICE,  	          /* 1 byte payload */ /*1817*/
-  EVENT_GSM_DS_TIMER_EXPIRED,  		             /* 3 byte payload */ /*1818*/
-  EVENT_GSM_DS_TO_WCDMA_RESELECT_END, 	 /* 6 byte payload */ /*1819*/
+  EVENT_GSM_DS_L1_STATE,                      /* 2 byte payload */ /*1811*/
+  EVENT_GSM_DS_PLMN_LIST_START,               /* 2 byte payload */ /*1812*/
+  EVENT_GSM_DS_PLMN_LIST_END,                 /* 1 byte payload */ /*1813*/
+  EVENT_GSM_DS_POWER_SCAN_STATUS,             /* 2 byte payload */ /*1814*/
+  EVENT_GSM_DS_RESELECT_START,                /* 2 byte payload */ /*1815*/
+  EVENT_GSM_DS_RR_IN_SERVICE,                 /* 1 byte payload */ /*1816*/
+  EVENT_GSM_DS_RR_OUT_OF_SERVICE,             /* 1 byte payload */ /*1817*/
+  EVENT_GSM_DS_TIMER_EXPIRED,                 /* 3 byte payload */ /*1818*/
+  EVENT_GSM_DS_TO_WCDMA_RESELECT_END,         /* 6 byte payload */ /*1819*/
 
-  EVENT_CM_DS_SYSTEM_MODE,		                   /*2 byte payload*/ /*1820*/
-  EVENT_SD_DS_EVENT_ACTION,		                   /*9 byte payload*/ /*1821*/
-  EVENT_SMGMM_DS_REQUEST_SENT,		          /*3 byte payload*/ /*1822*/
+  EVENT_CM_DS_SYSTEM_MODE,                    /*2 byte payload*/ /*1820*/
+  EVENT_SD_DS_EVENT_ACTION,                   /*9 byte payload*/ /*1821*/
+  EVENT_SMGMM_DS_REQUEST_SENT,                /*3 byte payload*/ /*1822*/
 
-  EVENT_IFACE,		                                        /*4 byte payload*/ /*1823*/
+  EVENT_IFACE,                                /*4 byte payload*/ /*1823*/
   EVENTS_DS_GSM_L1_ALIGN_VFR = 0x720,
   EVENTS_DS_GSM_L1_STATE = 0x721,
   EVENTS_DS_GSM_RATSCCH_IN_DTX = 0x722,

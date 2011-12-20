@@ -54,7 +54,7 @@ typedef struct
    v_U8_t  ssid[VOS_LOG_MAX_NUM_SSID][VOS_LOG_MAX_SSID_SIZE];
    v_U8_t  bssid[VOS_LOG_MAX_NUM_BSSID][VOS_LOG_MAX_BSSID_SIZE];
    v_U8_t  totalSsid;
-   v_U8_t  minChnTime;	
+   v_U8_t  minChnTime;
    v_U8_t  maxChnTime;
    v_U16_t timeBetweenBgScan;
    v_U8_t  BSSMode;

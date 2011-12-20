@@ -30,45 +30,58 @@ typedef tANI_U8 tMeasurementBSSID[WNI_CFG_BSSID_LEN];
    The other is by sending a PROBE_REQ and receiving an ACK frame */
 typedef enum
 {
-	eMEAS_RTS_CTS_BASED = 1,
-	eMEAS_FRAME_BASED,
+    eMEAS_RTS_CTS_BASED = 1,
+    eMEAS_FRAME_BASED,
 } eInNavMeasurementMode;
 
 /* Common structure for pairing the bssid and the channel
    information */
 typedef struct tagMeasurementBSSIDChannelInfo
 {
-	tMeasurementBSSID	bssid; //bssid to be measured
-	tANI_U16		channel; //Channel of which the BSSID is operating
+    tMeasurementBSSID   bssid; //bssid to be measured
+    tANI_U16            channel; //Channel of which the BSSID is operating
 } tMeasurementBSSIDChannelInfo;
 
 /* Structure for defining the measurement configuration
    for the current measurement set */
 typedef struct tagInNavMeasurementConfig
 {
-  tANI_U8   sessionId; //session Id for which measurement is active
-	tANI_U8		numBSSIDs; //Number of BSSIDs for measurements
-	tANI_U8		numInNavMeasurements; //Number of RTT and RSSI measurements per BSSID
-	tANI_U16	numSetRepetitions; //Number of times to measure a given BSSID set
-	tANI_U32	measurementTimeInterval; //Time interval between the measurement sets
-	eInNavMeasurementMode	measurementMode; //Mode of measurement - RTS-CTS or Frame based
+    //session Id for which measurement is active
+    tANI_U8   sessionId;
 
-	tMeasurementBSSIDChannelInfo*	measBSSIDChannelInfo; //Pointer to the list of all BSSIDs and 
-                                                      //respective channels that need to be 
-	                                              //measured - counted by numBSSIDs. Also expect
-	                                              //that this list will be ordered by the increasing 
-	                                              //order of channel and "maybe" by the decreasing
-	                                              //order of RSSI values returned by the scan
+    //Number of BSSIDs for measurements
+    tANI_U8   numBSSIDs;
+
+    //Number of RTT and RSSI measurements per BSSID
+    tANI_U8   numInNavMeasurements;
+
+    //Number of times to measure a given BSSID set
+    tANI_U16  numSetRepetitions;
+
+    //Time interval between the measurement sets
+    tANI_U32  measurementTimeInterval;
+
+    //Mode of measurement - RTS-CTS or Frame based
+    eInNavMeasurementMode measurementMode;
+
+    // Pointer to the list of all BSSIDs and respective channels that
+    // need to be measured - counted by numBSSIDs. Also expect that this
+    // list will be ordered by the increasing order of channel and "maybe"
+    // by the decreasing order of RSSI values returned by the scan
+    tMeasurementBSSIDChannelInfo* measBSSIDChannelInfo; 
 } tInNavMeasurementConfig;
 
 /* Structure for defining each measurement sent to the PE */
 typedef struct tagInNavMeasurementRequest
 {
-  tANI_U8   sessionId;
-	tANI_U8		numBSSIDs; //Number of BSSIDs in the current measurement request
-	tANI_U8		numInNavMeasurements; //Number of RTT and RSSI measurements needed per BSSID
-	eInNavMeasurementMode	measurementMode; //Mode of measurement
-	tMeasurementBSSIDChannelInfo*	bssidChannelInfo;
+    tANI_U8   sessionId;
+    //Number of BSSIDs in the current measurement request
+    tANI_U8   numBSSIDs;
+    //Number of RTT and RSSI measurements needed per BSSID
+    tANI_U8   numInNavMeasurements;
+    //Mode of measurement
+    eInNavMeasurementMode measurementMode;
+    tMeasurementBSSIDChannelInfo* bssidChannelInfo;
 } tInNavMeasurementRequest;
 
 /*************************************************************************************************************
@@ -76,17 +89,17 @@ typedef struct tagInNavMeasurementRequest
 *************************************************************************************************************/
 typedef struct tagInNavMeasurementResponse
 {
-	tANI_U8             numBSSIDs; //Number of BSSIDs for which the measurement was performed
-	tSirRttRssiResults  rttRssiResults[1]; //Pointer to the array of result data for each BSSID	
+    tANI_U8             numBSSIDs; //Number of BSSIDs for which the measurement was performed
+    tSirRttRssiResults  rttRssiResults[1]; //Pointer to the array of result data for each BSSID
 } tInNavMeasurementResponse;
 
 /*************************************************************************************************************/
 
 typedef enum
 {
-	eMEAS_MEASUREMENT_SUCCESS=1,
-	eMEAS_MEASUREMENT_FAILURE,
-	eMEAS_MEASUREMENT_INVALID_MODE,
+    eMEAS_MEASUREMENT_SUCCESS=1,
+    eMEAS_MEASUREMENT_FAILURE,
+    eMEAS_MEASUREMENT_INVALID_MODE,
 } eMeasMeasurementStatus;
 
 /* ---------------------------------------------------------------------------
@@ -108,10 +121,10 @@ eHalStatus measInNavClose(tHalHandle hHal);
 /* HDD Callback function for the sme to callback when the measurement
 results are available */
 typedef eHalStatus (*measMeasurementCompleteCallback)(
-		tHalHandle, 
-		void* p2, 
-		tANI_U32 measurementID, 
-		eMeasMeasurementStatus status);
+                                           tHalHandle, 
+                                           void* p2, 
+                                           tANI_U32 measurementID, 
+                                           eMeasMeasurementStatus status);
 
 /* ---------------------------------------------------------------------------
     \fn measInNavMeasurementRequest
@@ -135,7 +148,7 @@ eHalStatus measStopTimers(tHalHandle hHal);
 /* ---------------------------------------------------------------------------
     \fn sme_MeasHandleInNavMeasRsp
     \brief This function processes the measurement response obtained from the PE
-	\param pMsg - Pointer to the pSirSmeInNavMeasRsp
+    \param pMsg - Pointer to the pSirSmeInNavMeasRsp
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
 eHalStatus sme_MeasHandleInNavMeasRsp(tHalHandle hHal, tANI_U8*);
@@ -143,7 +156,7 @@ eHalStatus sme_MeasHandleInNavMeasRsp(tHalHandle hHal, tANI_U8*);
 /* ---------------------------------------------------------------------------
     \fn measIsInNavAllowed
     \brief This function checks if InNav measurements can be performed in the 
-	       current driver state
+           current driver state
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
 eHalStatus measIsInNavAllowed(tHalHandle hHal);

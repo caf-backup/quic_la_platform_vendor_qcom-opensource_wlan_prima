@@ -103,7 +103,7 @@ when       who     what, where, why
 
 #ifdef MSM_PLATFORM_7x30
 
-#define PM8058_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + NR_GPIO_IRQS)
+#define PM8058_GPIO_PM_TO_SYS(pm_gpio)  (pm_gpio + NR_GPIO_IRQS)
 
 static const char* id = "WLAN";
 
@@ -247,7 +247,7 @@ VOS_PWR_SLEEP(100);
 
         /* TODO: Replace the code to enable 1.2V sw and 1.3V sw once we have the API to set these power supplies Pin controllable */
 
-	    /* Enable 1.2 switcheable power supply */
+        /* Enable 1.2 switcheable power supply */
         rc = vreg_set_level(vreg_gp15, 1200);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp15 vreg set level failed (%d)\n", __func__, rc);
@@ -272,7 +272,7 @@ VOS_PWR_SLEEP(100);
 
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.2V sw Power Supply is enabled \n");
         printk(KERN_ERR "1.2V sw is enabled \n");
-		
+
         /* Enable 1.3 switcheable power supply */
         rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 1300);
         if (rc) {
@@ -394,7 +394,7 @@ int vos_chip_power_7x27_keypad( int on )
 {
    struct vreg *vreg_wlan, *vreg_bt = NULL;
    int rc = 0;
-	
+
    vreg_wlan = vreg_get(NULL, "wlan");
    if (IS_ERR(vreg_wlan)) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg get failed (%ld)",
@@ -402,12 +402,12 @@ int vos_chip_power_7x27_keypad( int on )
       return PTR_ERR(vreg_wlan);
    }
 
-	vreg_bt = vreg_get(NULL, "gp6");
-	if (IS_ERR(vreg_bt)) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp6 vreg get failed (%ld)",
-		       __func__, PTR_ERR(vreg_bt));
-		return PTR_ERR(vreg_bt);
-	}
+   vreg_bt = vreg_get(NULL, "gp6");
+   if (IS_ERR(vreg_bt)) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp6 vreg get failed (%ld)",
+                __func__, PTR_ERR(vreg_bt));
+      return PTR_ERR(vreg_bt);
+   }
 
    if(on) {
 
@@ -788,9 +788,9 @@ VOS_STATUS vos_chipAssertDeepSleep
    int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
       MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_LOW));
    if (rc) {
-	   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
-		   __func__, rc);
-	   return VOS_STATUS_E_FAILURE;
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
+                __func__, rc);
+      return VOS_STATUS_E_FAILURE;
    }
 
 #endif
@@ -849,20 +849,20 @@ VOS_STATUS vos_chipDeAssertDeepSleep
    if (rc) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
          __func__, rc);
-	   return VOS_STATUS_E_FAILURE;
+      return VOS_STATUS_E_FAILURE;
    }
 
 
 #endif
 
 #ifdef MSM_PLATFORM_7x30
-	// Configure GPIO 23 for Deep Sleep
-	int rc = pm8xxx_gpio_config(wlan_gpios_reset[2].gpio_num, &wlan_gpios_reset[2].gpio_cfg);
-	if (rc) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
-			__func__, wlan_gpios_reset[2].gpio_num, rc);
-		return VOS_STATUS_E_FAILURE;
-	}
+   // Configure GPIO 23 for Deep Sleep
+   int rc = pm8xxx_gpio_config(wlan_gpios_reset[2].gpio_num, &wlan_gpios_reset[2].gpio_cfg);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+                __func__, wlan_gpios_reset[2].gpio_num, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
 #endif
 #endif //FIXME_VOLANS
    return VOS_STATUS_SUCCESS;

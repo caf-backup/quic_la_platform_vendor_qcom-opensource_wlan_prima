@@ -162,7 +162,7 @@ bapSetKey( v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo )
     if (NULL == hHal) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "hHal is NULL in %s", __FILE__);
+                     "hHal is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
     }
@@ -421,7 +421,7 @@ convertToCsrProfile
     if (NULL == btampContext) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "btampContext is NULL in %s", __FILE__);
+                     "btampContext is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
     }
@@ -430,7 +430,7 @@ convertToCsrProfile
     if (NULL == hHal) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "hHal is NULL in %s", __FILE__);
+                     "hHal is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
     }
@@ -651,7 +651,7 @@ gotoStarting
     if (NULL == btampContext) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "btampContext is NULL in %s", __FILE__);
+                     "btampContext is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
     }
@@ -660,7 +660,7 @@ gotoStarting
     if (NULL == hHal) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "hHal is NULL in %s", __FILE__);
+                     "hHal is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
     }
@@ -1576,7 +1576,7 @@ btampFsm
     if (NULL == hHal) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "hHal is NULL in %s", __FILE__);
+                     "hHal is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
     }

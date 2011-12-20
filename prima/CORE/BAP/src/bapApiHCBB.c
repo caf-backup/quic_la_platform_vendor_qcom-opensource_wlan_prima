@@ -126,7 +126,7 @@ WLAN_BAPReset
     if (btampHandle == NULL) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "btampHandle is NULL in %s", __FILE__);
+                     "btampHandle is NULL in %s", __FUNCTION__);
 
       return VOS_STATUS_E_FAULT;
     }
@@ -136,7 +136,7 @@ WLAN_BAPReset
     if (NULL == hHal) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "hHal is NULL in %s", __FILE__);
+                     "hHal is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
     }

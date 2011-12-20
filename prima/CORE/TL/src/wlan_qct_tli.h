@@ -475,26 +475,26 @@ typedef struct
   /* Rx packet count per station per TID */
   v_U32_t                       auRxCount[WLAN_MAX_TID];
 
-  /*	Suspend flag */
+  /* Suspend flag */
   v_U8_t                        ucTxSuspended;
 
-  /*	Pointer to the AMSDU chain maintained by the AMSDU de-aggregation
-      completion sub-module */
+  /* Pointer to the AMSDU chain maintained by the AMSDU de-aggregation
+     completion sub-module */
   vos_pkt_t*                    vosAMSDUChainRoot;
 
-  /*	Pointer to the root of the chain */
+  /* Pointer to the root of the chain */
   vos_pkt_t*                    vosAMSDUChain;
 
-  /*	Used for saving/restoring frame header for 802.3/11 AMSDU sub-frames */
+  /* Used for saving/restoring frame header for 802.3/11 AMSDU sub-frames */
   v_U8_t                        aucMPDUHeader[WLANTL_MPDU_HEADER_LEN];
 
   /* length of the header */
   v_U8_t                        ucMPDUHeaderLen;
 
-  /*Enabled ACs currently serviced by TL (automatic setup in TL)*/
-  v_U8_t                        ucACMask;
+  /* Enabled ACs currently serviced by TL (automatic setup in TL)*/
+  v_U8_t                        aucACMask[WLANTL_MAX_AC];
 
-  /*	Current AC to be retrieved */
+  /* Current AC to be retrieved */
   WLANTL_ACEnumType             ucCurrentAC;
 
   /*Packet pending flag - set if tx is pending for the station*/
@@ -504,10 +504,10 @@ typedef struct
    moment=> packets can be passed to BAL */
   v_U8_t                    ucNoMoreData;
 
-  /*	Last serviced AC to be retrieved */
+  /* Last serviced AC to be retrieved */
   WLANTL_ACEnumType             ucServicedAC;
 
-   /*	Current weight for the AC */
+   /* Current weight for the AC */
   v_U8_t                        ucCurrentWeight;
 
   /* Info used for UAPSD trigger frame generation  */
@@ -754,7 +754,7 @@ typedef struct
   //v_U8_t uCurStaId;
 
   /* Current served station ID in round-robin method to traverse all stations.*/
-  WLANTL_ACEnumType	uCurServedAC;
+  WLANTL_ACEnumType uCurServedAC;
 
   /* How many weights have not been served in current AC. */
   v_U8_t ucCurLeftWeight;
@@ -1243,7 +1243,7 @@ WLANTL_Translate8023To80211Header
     pTLCb:            TL control block
     ucStaId:          station ID
     ucHeaderLen:      Length of the header from BD
-    ucActualHLen:	  Length of header including padding or any other trailers
+    ucActualHLen:     Length of header including padding or any other trailers
 
    IN/OUT
     vosDataBuff:      vos data buffer, will contain the new header on output
@@ -1262,7 +1262,7 @@ WLANTL_Translate80211To8023Header
 (
   vos_pkt_t*      vosDataBuff,
   VOS_STATUS*     pvosStatus,
-  v_U16_t 		  usActualHLen,  
+  v_U16_t         usActualHLen,  
   v_U8_t          ucHeaderLen,
   WLANTL_CbType*  pTLCb,
   v_U8_t          ucSTAId

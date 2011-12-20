@@ -30,12 +30,12 @@
 void dot11fLog(tpAniSirGlobal pMac, int loglevel, const char *pString,...) 
 {
 #ifdef WLAN_DEBUG
-	if( (tANI_U32)loglevel > pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE( SIR_DBG_MODULE_ID )] )
-	{
-		return;
-	}
-	else
-	{
+    if( (tANI_U32)loglevel > pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE( SIR_DBG_MODULE_ID )] )
+    {
+        return;
+    }
+    else
+    {
         va_list         marker;
 
         va_start( marker, pString );     /* Initialize variable arguments. */
@@ -44,7 +44,7 @@ void dot11fLog(tpAniSirGlobal pMac, int loglevel, const char *pString,...)
 
         va_end( marker );              /* Reset variable arguments.      */
     }
-#endif	
+#endif
 }
 
 void
@@ -118,13 +118,13 @@ inline static void __printWMMParams(tpAniSirGlobal  pMac, tDot11fIEWMMParams *pW
     limLog(pMac, LOG1, FL("WMM Parameters Received: \n"));
     limLog(pMac, LOG1, FL("BE: aifsn %d, acm %d, aci %d, cwmin %d, cwmax %d, txop %d \n"),
            pWmm->acbe_aifsn, pWmm->acbe_acm, pWmm->acbe_aci, pWmm->acbe_acwmin, pWmm->acbe_acwmax, pWmm->acbe_txoplimit);
-	
+
     limLog(pMac, LOG1, FL("BK: aifsn %d, acm %d, aci %d, cwmin %d, cwmax %d, txop %d \n"),
            pWmm->acbk_aifsn, pWmm->acbk_acm, pWmm->acbk_aci, pWmm->acbk_acwmin, pWmm->acbk_acwmax, pWmm->acbk_txoplimit);
-	
+
     limLog(pMac, LOG1, FL("VI: aifsn %d, acm %d, aci %d, cwmin %d, cwmax %d, txop %d \n"),
            pWmm->acvi_aifsn, pWmm->acvi_acm, pWmm->acvi_aci, pWmm->acvi_acwmin, pWmm->acvi_acwmax, pWmm->acvi_txoplimit);
-	
+
     limLog(pMac, LOG1, FL("VO: aifsn %d, acm %d, aci %d, cwmin %d, cwmax %d, txop %d \n"),
            pWmm->acvo_aifsn, pWmm->acvo_acm, pWmm->acvo_aci, pWmm->acvo_acwmin, pWmm->acvo_acwmax, pWmm->acvo_txoplimit);
 
@@ -256,8 +256,8 @@ PopulateDot11fChanSwitchAnn(tpAniSirGlobal          pMac,
 } // End PopulateDot11fChanSwitchAnn.
 
 void
-PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal		   pMac,
-                            tDot11fIEExtChanSwitchAnn *pDot11f)
+PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal pMac,
+                               tDot11fIEExtChanSwitchAnn *pDot11f)
 {
     //Has to be updated on the cb state basis
     pDot11f->secondaryChannelOffset = 
@@ -269,7 +269,7 @@ PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal		   pMac,
 tSirRetStatus
 PopulateDot11fCountry(tpAniSirGlobal    pMac,
                       tDot11fIECountry *pDot11f,
-		      tpPESession psessionEntry)
+                      tpPESession psessionEntry)
 {
     tANI_U32           len, maxlen, codelen;
     tANI_U16           item;
@@ -347,7 +347,7 @@ PopulateDot11fDSParams(tpAniSirGlobal     pMac,
 void
 PopulateDot11fEDCAParamSet(tpAniSirGlobal         pMac,
                            tDot11fIEEDCAParamSet *pDot11f, 
-				tpPESession psessionEntry)
+                           tpPESession psessionEntry)
 {
 
     if (  psessionEntry->limQosEnabled )
@@ -399,21 +399,21 @@ PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
     tSirRFBand          rfBand = SIR_BAND_UNKNOWN;
 
     limGetRfBand(pMac, &rfBand);
-    if(SIR_BAND_2_4_GHZ == rfBand)			
+    if(SIR_BAND_2_4_GHZ == rfBand)
     {
         pDot11f->present = 1;
 
-	        val  = psessionEntry->cfgProtection.fromllb;
-            if(!val ){
-               dot11fLog( pMac, LOGE, FL("11B protection not enabled. Not populating ERP IE %d\n" ),val );
-               return eSIR_SUCCESS;
-            }
+        val  = psessionEntry->cfgProtection.fromllb;
+        if(!val ){
+            dot11fLog( pMac, LOGE, FL("11B protection not enabled. Not populating ERP IE %d\n" ),val );
+            return eSIR_SUCCESS;
+        }
 
         if (psessionEntry->gLim11bParams.protectionEnabled)
-           {
-               pDot11f->non_erp_present = 1;
-               pDot11f->use_prot        = 1;
-           }
+        {
+            pDot11f->non_erp_present = 1;
+            pDot11f->use_prot        = 1;
+        }
 
         if ( psessionEntry->gLimOlbcParams.protectionEnabled )
         {
@@ -669,7 +669,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
 #else
 tSirRetStatus
 PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
-		     tDot11fIEHTInfo *pDot11f)
+                     tDot11fIEHTInfo *pDot11f)
 #endif
 {
     tANI_U32             nCfgValue, nCfgLen;
@@ -721,7 +721,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
 
     uHTInfoField2.infoField2.opMode   =  psessionEntry->htOperMode;
     uHTInfoField2.infoField2.nonGFDevicesPresent = psessionEntry->beaconParams.llnNonGFCoexist;
-    uHTInfoField2.infoField2.obssNonHTStaPresent = psessionEntry->beaconParams.gHTObssMode;	/*added for Obss  */
+    uHTInfoField2.infoField2.obssNonHTStaPresent = psessionEntry->beaconParams.gHTObssMode;   /*added for Obss  */
 
     uHTInfoField2.infoField2.reserved = 0;
 
@@ -734,7 +734,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
         pHTInfoField2 = ( tSirMacHTInfoField2* ) &htInfoField2;
         pHTInfoField2->opMode   = pMac->lim.gHTOperMode;
         pHTInfoField2->nonGFDevicesPresent = pMac->lim.gHTNonGFDevicesPresent;
-        pHTInfoField2->obssNonHTStaPresent = pMac->lim.gHTObssMode;	/*added for Obss  */
+        pHTInfoField2->obssNonHTStaPresent = pMac->lim.gHTObssMode;   /*added for Obss  */
 
         pHTInfoField2->reserved = 0;
 #ifdef WLAN_SOFTAP_FEATURE
@@ -924,7 +924,7 @@ PopulateDot11fQOSCapsAp(tpAniSirGlobal      pMac,
                         tDot11fIEQOSCapsAp *pDot11f, tpPESession psessionEntry)
 {
     pDot11f->count    = psessionEntry->gLimEdcaParamSetCount;
-	pDot11f->reserved = 0;
+    pDot11f->reserved = 0;
     pDot11f->txopreq  = 0;
     pDot11f->qreq     = 0;
     pDot11f->qack     = 0;
@@ -975,7 +975,7 @@ PopulateDot11fRSN(tpAniSirGlobal  pMac,
             dot11fLog( pMac, LOGE, FL("Parse failure in PopulateDot11fRS"
                                    "N (0x%08x).\n"),
                     status );
-			return eSIR_FAILURE;
+            return eSIR_FAILURE;
         }
         dot11fLog( pMac, LOG2, FL("dot11fUnpackIeRSN returned 0x%08x in "
                                "PopulateDot11fRSN.\n"), status );
@@ -1034,7 +1034,7 @@ PopulateDot11fWAPI(tpAniSirGlobal  pMac,
                         status );
                 return eSIR_FAILURE;
             }
-    	    dot11fLog( pMac, LOG2, FL("dot11fUnpackIeRSN returned 0x%08x in "
+            dot11fLog( pMac, LOG2, FL("dot11fUnpackIeRSN returned 0x%08x in "
                                "PopulateDot11fWAPI.\n"), status );
         }
     }
@@ -1159,13 +1159,13 @@ PopulateDot11fSuppRates(tpAniSirGlobal      pMac,
         #endif //TO SUPPORT BT-AMP
         if(psessionEntry != NULL)
         {
-	 	    nRates = psessionEntry->rateSet.numRates;
-        	palCopyMemory(pMac->hHdd, rates, psessionEntry->rateSet.rate, 
-              	                     nRates);
+            nRates = psessionEntry->rateSet.numRates;
+            palCopyMemory(pMac->hHdd, rates, psessionEntry->rateSet.rate, 
+                          nRates);
         }
-	    else
+        else
         {
-        	dot11fLog( pMac, LOGE, FL("no session context exists while populating Operational Rate Set\n"));
+            dot11fLog( pMac, LOGE, FL("no session context exists while populating Operational Rate Set\n"));
             nRates = 0;
         }
     }
@@ -1657,14 +1657,14 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
     {
         pProbeResp->channelSwitchPresent = 1;
         palCopyMemory( pMac, &pProbeResp->channelSwitchIE, &pr.ChanSwitchAnn,
-			                                    sizeof(tDot11fIEExtChanSwitchAnn) );
+                       sizeof(tDot11fIEExtChanSwitchAnn) );
     }
 
        if ( pr.ExtChanSwitchAnn.present )
     {
         pProbeResp->extChannelSwitchPresent = 1;
         palCopyMemory( pMac, &pProbeResp->extChannelSwitchIE, &pr.ExtChanSwitchAnn,
-			                                    sizeof(tDot11fIEExtChanSwitchAnn) );
+                       sizeof(tDot11fIEExtChanSwitchAnn) );
     }
 
     if( pr.TPCReport.present)
@@ -1752,7 +1752,7 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
         pProbeResp->mdie[2] = ((pr.MobilityDomain.overDSCap << 0) | (pr.MobilityDomain.resourceReqCap << 1));
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
         limLog(pMac, LOGE, FL("mdie=%02x%02x%02x\n"), (unsigned int)pProbeResp->mdie[0],
-			(unsigned int)pProbeResp->mdie[1], (unsigned int)pProbeResp->mdie[2]);
+               (unsigned int)pProbeResp->mdie[1], (unsigned int)pProbeResp->mdie[2]);
 #endif
     }
 #endif
@@ -2021,7 +2021,7 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
         pAssocRsp->mdie[2] = ((ar.MobilityDomain.overDSCap << 0) | (ar.MobilityDomain.resourceReqCap << 1));
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
         limLog(pMac, LOGE, FL("new mdie=%02x%02x%02x\n"), (unsigned int)pAssocRsp->mdie[0],
-			(unsigned int)pAssocRsp->mdie[1], (unsigned int)pAssocRsp->mdie[2]);
+               (unsigned int)pAssocRsp->mdie[1], (unsigned int)pAssocRsp->mdie[2]);
 #endif
     }
 
@@ -2314,14 +2314,14 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
     {
         pBeaconStruct->channelSwitchPresent = 1;
         palCopyMemory(pMac->hHdd, &pBeaconStruct->channelSwitchIE, &bies.ChanSwitchAnn,
-			                                              sizeof(tDot11fIEChanSwitchAnn));
+                      sizeof(tDot11fIEChanSwitchAnn));
     }
 
     if ( bies.ExtChanSwitchAnn.present)
     {
         pBeaconStruct->extChannelSwitchPresent= 1;
         palCopyMemory(pMac->hHdd, &pBeaconStruct->extChannelSwitchIE, &bies.ExtChanSwitchAnn,
-			                                              sizeof(tDot11fIEExtChanSwitchAnn));
+                      sizeof(tDot11fIEExtChanSwitchAnn));
     }
 
     if ( bies.Quiet.present )
@@ -2672,8 +2672,8 @@ sirConvertAddtsReq2Struct(tpAniSirGlobal    pMac,
                           tANI_U32               nFrame,
                           tSirAddtsReqInfo *pAddTs)
 {
-	tDot11fAddTSRequest    addts = {{0}};
-	tDot11fWMMAddTSRequest wmmaddts = {{0}};
+    tDot11fAddTSRequest    addts = {{0}};
+    tDot11fWMMAddTSRequest wmmaddts = {{0}};
     tANI_U8                     j;
     tANI_U16                    i;
     tANI_U32                    status;
@@ -2820,8 +2820,8 @@ sirConvertAddtsRsp2Struct(tpAniSirGlobal    pMac,
                           tANI_U32               nFrame,
                           tSirAddtsRspInfo *pAddTs)
 {
-	tDot11fAddTSResponse    addts = {{0}};
-	tDot11fWMMAddTSResponse wmmaddts = {{0}};
+    tDot11fAddTSResponse    addts = {{0}};
+    tDot11fWMMAddTSResponse wmmaddts = {{0}};
     tANI_U8                      j;
     tANI_U16                     i;
     tANI_U32                     status;
@@ -2997,8 +2997,8 @@ sirConvertDeltsReq2Struct(tpAniSirGlobal    pMac,
                           tANI_U32               nFrame,
                           tSirDeltsReqInfo *pDelTs)
 {
-	tDot11fDelTS    delts = {{0}};
-	tDot11fWMMDelTS wmmdelts = {{0}};
+    tDot11fDelTS    delts = {{0}};
+    tDot11fWMMDelTS wmmdelts = {{0}};
     tANI_U32             status;
 
     if ( SIR_MAC_QOS_DEL_TS_REQ != *( pFrame + 1 ) )

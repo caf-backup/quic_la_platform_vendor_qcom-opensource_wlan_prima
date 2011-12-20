@@ -273,7 +273,7 @@ eHalStatus p2pSetPs(tHalHandle hHal, tP2pPsConfig *pNoA)
     if(HAL_STATUS_SUCCESS(status))
     {
         palZeroMemory(pMac->hHdd, pNoAParam, sizeof(tP2pPsConfig));
-        palCopyMemory(pMac->hHdd, pNoAParam, pNoA, sizeof(tP2pPsConfig));	        
+        palCopyMemory(pMac->hHdd, pNoAParam, pNoA, sizeof(tP2pPsConfig));
         msg.type = eWNI_SME_UPDATE_NOA;
         msg.bodyval = 0;
         msg.bodyptr = pNoAParam;

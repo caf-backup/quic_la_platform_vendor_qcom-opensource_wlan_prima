@@ -331,7 +331,7 @@ static tDumpFuncEntry pmcMenuDumpTable[] = {
     // Full Power Related
     {912,   "PMC: Request Full Power",  dump_pmc_request_full_power},
     //Unit Test Related
-	{913,   "PMC: Test UAPSD",          dump_pmc_test_uapsd},
+    {913,   "PMC: Test UAPSD",          dump_pmc_test_uapsd},
     {914,   "PMC: Test WOWL",           dump_pmc_test_Wowl},
     // WoWL Related
     {915,   "PMC: Enter WoWL: Syntax: dump 915 <enable_magic_pkt> <enable_ptrn_match>",  dump_pmc_enter_wowl},

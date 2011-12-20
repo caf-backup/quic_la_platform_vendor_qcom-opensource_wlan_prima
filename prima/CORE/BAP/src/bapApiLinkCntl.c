@@ -262,7 +262,9 @@ WLANBAP_RoamCallback
         //case eCSR_ROAM_RESULT_IBSS_START_FAILED:
             /* bapRoamCompleteCallback with eCSR_ROAM_RESULT_FAILURE or eCSR_ROAM_RESULT_NOT_ASSOCIATED */
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)", __FUNCTION__, "eCSR_ROAM_RESULT_FAILURE", roamResult);   
-
+#ifdef FEATURE_WLAN_BTAMP_UT_RF
+            break;
+#endif
         case eCSR_ROAM_RESULT_WDS_START_FAILED:
             /* bapRoamCompleteCallback with eCSR_ROAM_RESULT_WDS_START_FAILED */
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)", __FUNCTION__, "eCSR_ROAM_RESULT_WDS_START_FAILED", roamResult);   
@@ -309,7 +311,9 @@ WLANBAP_RoamCallback
         case eCSR_ROAM_RESULT_NOT_ASSOCIATED:
             /* bapRoamCompleteCallback with eCSR_ROAM_RESULT_FAILURE or eCSR_ROAM_RESULT_NOT_ASSOCIATED */
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)", __FUNCTION__, "eCSR_ROAM_RESULT_NOT_ASSOCIATED", roamResult);   
-
+#ifdef FEATURE_WLAN_BTAMP_UT_RF
+            break;
+#endif
         case eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED:
             /* bapRoamCompleteCallback with eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED */
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)", __FUNCTION__, "eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED", roamResult);   

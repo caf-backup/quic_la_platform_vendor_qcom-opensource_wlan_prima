@@ -918,7 +918,7 @@ tANI_BOOLEAN pmcIsPowerSaveEnabled (tHalHandle hHal, tPmcPowerSavingMode psMode)
         return pMac->pmc.impsEnabled && (pMac->pmc.powerSource != AC_POWER || pMac->pmc.impsConfig.enterOnAc);
 
     case ePMC_BEACON_MODE_POWER_SAVE:
-	     return pMac->pmc.bmpsEnabled;
+        return pMac->pmc.bmpsEnabled;
 
     case ePMC_SPATIAL_MULTIPLEX_POWER_SAVE:
         return pMac->pmc.smpsEnabled && (pMac->pmc.powerSource != AC_POWER || pMac->pmc.smpsConfig.enterOnAc);
@@ -1287,7 +1287,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
 
     /* We got a response to our wake from IMPS request. */
     case eWNI_PMC_EXIT_IMPS_RSP:
-		smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_IMPS_RSP with status = %d\n"), pMsg->statusCode);
+            smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_IMPS_RSP with status = %d\n"), pMsg->statusCode);
             if( eSmeCommandExitImps != pCommand->command )
             {
                 smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_IMPS_RSP without request\n"));
@@ -1312,7 +1312,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
 
     /* We got a response to our BMPS request.  */
     case eWNI_PMC_ENTER_BMPS_RSP:
-		smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_BMPS_RSP with status = %d\n"), pMsg->statusCode);
+            smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_BMPS_RSP with status = %d\n"), pMsg->statusCode);
             if( eSmeCommandEnterBmps != pCommand->command )
             {
                 smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_BMPS_RSP without request\n"));
@@ -1349,7 +1349,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
 
     /* We got a response to our wake from BMPS request. */
     case eWNI_PMC_EXIT_BMPS_RSP:
-		smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_BMPS_RSP with status = %d\n"), pMsg->statusCode);
+            smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_BMPS_RSP with status = %d\n"), pMsg->statusCode);
             if( eSmeCommandExitBmps != pCommand->command )
             {
                 smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_BMPS_RSP without request\n"));
@@ -1537,7 +1537,7 @@ void pmcMessageProcessor (tHalHandle hHal, tSirSmeRsp *pMsg)
     //When PMC needs to handle more indication from PE, they need to be added here.
     {
         /* Device left BMPS on its own. */
-		smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_BMPS_IND with status = %d\n"), pMsg->statusCode);
+        smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_BMPS_IND with status = %d\n"), pMsg->statusCode);
         /* Check that we are in the correct state for this message. */
         switch(pMac->pmc.pmcState)
         {
@@ -1565,7 +1565,7 @@ void pmcMessageProcessor (tHalHandle hHal, tSirSmeRsp *pMsg)
         else
         {
             tpSirSmeExitBmpsInd pExitBmpsInd = (tpSirSmeExitBmpsInd)pMsg;
-	        pmcEnterRequestFullPowerState(hHal, pExitBmpsInd->exitBmpsReason);
+            pmcEnterRequestFullPowerState(hHal, pExitBmpsInd->exitBmpsReason);
         }
         break;
     }
@@ -1638,7 +1638,7 @@ tANI_BOOLEAN pmcAllowImps( tHalHandle hHal )
 *    callbackRoutine - Callback routine invoked in case of success/failure
 *    callbackContext - value to be passed as parameter to routine specified
 *                      above
-*	
+*
 * Returns:
 *    eHAL_STATUS_SUCCESS - device is in BMPS state
 *    eHAL_STATUS_FAILURE - device cannot be brought to BMPS state
@@ -1726,7 +1726,7 @@ eHalStatus pmcRequestBmps (
 *    callbackRoutine - Callback routine invoked in case of success/failure
 *    callbackContext - value to be passed as parameter to routine specified
 *                      above
-*	
+*
 * Returns:
 *    eHAL_STATUS_SUCCESS - device is in UAPSD state
 *    eHAL_STATUS_FAILURE - device cannot be brought to UAPSD state
@@ -1821,7 +1821,7 @@ eHalStatus pmcStartUapsd (
 *
 * Parameters:
 *    hHal - HAL handle for device
-*	
+*
 * Returns:
 *    eHAL_STATUS_SUCCESS - device is put out of UAPSD and back in BMPS state
 *    eHAL_STATUS_FAILURE - device cannot be brought out of UAPSD state

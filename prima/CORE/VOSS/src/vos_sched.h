@@ -229,8 +229,8 @@ typedef struct _VosSchedContext
 typedef struct _VosWatchdogContext
 {
 
-	/* Place holder to the VOSS Context */ 
-	 v_PVOID_t pVContext; 
+   /* Place holder to the VOSS Context */ 
+   v_PVOID_t pVContext; 
 
    /* Handle of Event for Watchdog thread to signal startup */
    struct completion WdStartEvent;
@@ -246,9 +246,9 @@ typedef struct _VosWatchdogContext
    wait_queue_head_t wdWaitQueue;
 
    /* Event flag for events handled by Watchdog */
-   unsigned long wdEventFlag;	
+   unsigned long wdEventFlag;
 
-	v_BOOL_t resetInProgress;
+   v_BOOL_t resetInProgress;
 
    /* Lock for preventing multiple reset being triggered simultaneously */
    spinlock_t wdLock;
@@ -285,8 +285,8 @@ typedef struct _VosContextType
    /* Scheduler Context */
    VosSchedContext     vosSched;
 
-	/* Watchdog Context */
-	VosWatchdogContext  vosWatchdog;
+   /* Watchdog Context */
+   VosWatchdogContext  vosWatchdog;
 
    /* HDD Module Context  */
    v_VOID_t           *pHDDContext;
@@ -325,7 +325,7 @@ typedef struct _VosContextType
 
    vos_event_t         ProbeEvent;
 
-   volatile v_U8_t	  isLogpInProgress;
+   volatile v_U8_t     isLogpInProgress;
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    vos_event_t         wdaCompleteEvent;

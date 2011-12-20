@@ -27,8 +27,8 @@
 
 
 
-  when        	who     	 what, where, why
-----------    ---    	--------------------------------------------------------
+  when        who       what, where, why
+----------    ---       --------------------------------------------------------
 2010-03-15  SOFTAP      Created module
 
 ===========================================================================*/
@@ -65,7 +65,7 @@
   PARAMETERS 
 
     IN
-	*pSpectInfoParams  : Pointer to tSapChSelSpectInfo structure
+    *pSpectInfoParams  : Pointer to tSapChSelSpectInfo structure
    
   RETURN VALUE
     v_BOOL_t:  Success or FAIL
@@ -127,8 +127,8 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
   PARAMETERS 
 
     IN
-	rssi        : Max signal strength receieved from a BSS for the channel
-	count       : Number of BSS observed in the channel
+    rssi        : Max signal strength receieved from a BSS for the channel
+    count       : Number of BSS observed in the channel
    
   RETURN VALUE
     v_U32_t     : Calculated channel weight based on above two
@@ -181,7 +181,7 @@ v_U32_t sapweightRssiCount(v_S7_t rssi, v_U16_t count)
   PARAMETERS 
 
     IN
-	pSpectInfoParams       : Pointer to the tSpectInfoParams structure
+    pSpectInfoParams       : Pointer to the tSpectInfoParams structure
     halHandle              : Pointer to HAL handle
     pResult                : Pointer to tScanResultHandle
    
@@ -251,18 +251,18 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
     for (chn_num = 0; chn_num < (pSpectInfoParams->numSpectChans); chn_num++) {
     
         /*
-	        rssi : Maximum received signal strength among all BSS on that channel
-       	 bssCount : Number of BSS on that channel
-        	*/
+          rssi : Maximum received signal strength among all BSS on that channel
+          bssCount : Number of BSS on that channel
+        */
 
         rssi = (v_S7_t)pSpectCh->rssiAgr;
 
         pSpectCh->weight = SAPDFS_NORMALISE_1000 * sapweightRssiCount(rssi, pSpectCh->bssCount);
 
-    	//------ Debug Info ------ 
+        //------ Debug Info ------ 
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Chan=%d Weight= %d rssiAgr=%d bssCount=%d", __FUNCTION__, pSpectCh->chNum,
             pSpectCh->weight, pSpectCh->rssiAgr, pSpectCh->bssCount);
-	    //------ Debug Info ------ 
+        //------ Debug Info ------ 
         pSpectCh++;
     }
 }
@@ -280,7 +280,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
   PARAMETERS 
 
     IN
-	pSpectInfoParams       : Pointer to the tSapChSelSpectInfo structure
+    pSpectInfoParams       : Pointer to the tSapChSelSpectInfo structure
    
   RETURN VALUE
     void     : NULL
@@ -305,7 +305,7 @@ void sapChanSelExit( tSapChSelSpectInfo *pSpectInfoParams )
   PARAMETERS 
 
     IN
-	pSpectInfoParams       : Pointer to the tSapChSelSpectInfo structure
+    pSpectInfoParams       : Pointer to the tSapChSelSpectInfo structure
    
   RETURN VALUE
     void     : NULL
@@ -376,8 +376,8 @@ void sapSortChlWeight(tSapChSelSpectInfo *pSpectInfoParams)
   PARAMETERS 
 
     IN
-	halHandle       : Pointer to HAL handle
-	pResult         : Pointer to tScanResultHandle
+    halHandle       : Pointer to HAL handle
+    pResult         : Pointer to tScanResultHandle
    
   RETURN VALUE
     v_U8_t          : Success - channel number, Fail - zero

@@ -681,6 +681,9 @@ typedef struct
 
   /*Bcast STA ID associated with this BSS session */
   wpt_uint8           bcastStaIdx;
+
+  /*The type of the BSS in the session */
+  WDI_BssType         wdiBssType;
 }WDI_BSSSessionType;
 
 /*---------------------------------------------------------------------------

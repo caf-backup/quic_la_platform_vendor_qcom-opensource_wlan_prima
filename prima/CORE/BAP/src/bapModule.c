@@ -498,7 +498,7 @@ WLANBAP_GetNewHndl
     if ( NULL == hHal ) 
     {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                   "hHal is NULL in %s", __FILE__);
+                   "hHal is NULL in %s", __FUNCTION__);
 
       return VOS_STATUS_E_FAULT;
     }
@@ -577,7 +577,7 @@ WLANBAP_ReleaseHndl
   if(NULL == halHandle)
   {
      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                  "halHandle is NULL in %s", __FILE__);
+                  "halHandle is NULL in %s", __FUNCTION__);
      return VOS_STATUS_E_FAULT;
   }
 
@@ -1194,7 +1194,7 @@ WLANBAP_ReadMacConfig
   if (NULL == pBtampCtx) 
   {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                   "pBtampCtx is NULL in %s", __FILE__);
+                   "pBtampCtx is NULL in %s", __FUNCTION__);
 
       return;
   }
@@ -1203,7 +1203,7 @@ WLANBAP_ReadMacConfig
   if (NULL == pMac) 
   {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                   "pMac is NULL in %s", __FILE__);
+                   "pMac is NULL in %s", __FUNCTION__);
 
       return;
   }

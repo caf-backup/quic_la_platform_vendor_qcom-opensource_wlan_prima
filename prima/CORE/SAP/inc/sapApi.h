@@ -133,7 +133,7 @@ typedef enum {
 typedef enum {
     eSAP_ACCEPT_UNLESS_DENIED    = 0,
     eSAP_DENY_UNLESS_ACCEPTED    = 1,
-    eSAP_SUPPORT_ACCEPT_AND_DENY = 2,	/* this type is added to support both accept and deny lists at the same time */
+    eSAP_SUPPORT_ACCEPT_AND_DENY = 2, /* this type is added to support both accept and deny lists at the same time */
 } eSapMacAddrACL;
 
 typedef enum {
@@ -143,7 +143,7 @@ typedef enum {
 
 typedef enum {
     ADD_STA_TO_ACL      = 0, /* cmd to add STA to access control list */
-    DELETE_STA_FROM_ACL = 1, /* cmd to delete STA from access control list */	
+    DELETE_STA_FROM_ACL = 1, /* cmd to delete STA from access control list */
 } eSapACLCmdType;
 
 typedef enum {

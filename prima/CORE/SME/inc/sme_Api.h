@@ -252,7 +252,7 @@ eHalStatus sme_UpdateChannelConfig(tHalHandle hHal);
 
   \return eHAL_STATUS_SUCCESS - SME update the config parameters successfully.
 
-		Other status means SME is failed to update the config parameters.
+          Other status means SME is failed to update the config parameters.
   \sa
 --------------------------------------------------------------------------*/
 
@@ -770,7 +770,7 @@ eHalStatus sme_GetModifyProfileFields(tHalHandle hHal, tANI_U8 sessionId,
     \return eHalStatus   
   --------------------------------------------------------------------------*/
 eHalStatus sme_SetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
-			                      void *pConfigParams);
+                                  void *pConfigParams);
 
 /*--------------------------------------------------------------------------
     \fn sme_GetConfigPowerSave
@@ -782,7 +782,7 @@ eHalStatus sme_SetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
     \return eHalStatus   
   --------------------------------------------------------------------------*/
 eHalStatus sme_GetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
-			                      void *pConfigParams);
+                                  void *pConfigParams);
 
 /* ---------------------------------------------------------------------------
     \fn sme_SignalPowerEvent
@@ -1503,21 +1503,21 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
 eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal, 
-    tANI_U8 sessionId,
-		tInNavMeasurementConfig *, 
-		tANI_U32 *pMeasurementRequestID, 
-		measMeasurementCompleteCallback callback, 
-		void *pContext);
+                                       tANI_U8 sessionId,
+                                       tInNavMeasurementConfig *, 
+                                       tANI_U32 *pMeasurementRequestID, 
+                                       measMeasurementCompleteCallback callback, 
+                                       void *pContext);
 
 /* ---------------------------------------------------------------------------
     \fn sme_getInNavMeasurementResult
     \brief a wrapper function to obtain the RSSI/RTT measurement results
-	\param pInNavMeasRsp - A pointer to the response object
+    \param pInNavMeasRsp - A pointer to the response object
     \param pMeasurementRequestID - pointer to an object to get back the request ID
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
 eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal, 
-		tInNavMeasurementResponse **pInNavMeasRsp);
+                                         tInNavMeasurementResponse **pInNavMeasRsp);
 
 #endif /*FEATURE_INNAV_SUPPORT*/
 
@@ -1603,12 +1603,12 @@ eHalStatus sme_SetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest);
 eHalStatus sme_AbortMacScan(tHalHandle hHal);
 
 /* ----------------------------------------------------------------------------
- 	\fn sme_GetOperationChannel
-	\brief API to get current channel on which STA is parked
-	this function gives channel information only of infra station or IBSS station.
-	\param hHal and poiter to memory location 
-	\returns eHAL_STATUS_SUCCESS
-		eHAL_STATUS_FAILURE
+   \fn sme_GetOperationChannel
+   \brief API to get current channel on which STA is parked
+   this function gives channel information only of infra station or IBSS station.
+   \param hHal and poiter to memory location 
+   \returns eHAL_STATUS_SUCCESS
+            eHAL_STATUS_FAILURE
 -------------------------------------------------------------------------------*/
 eHalStatus sme_GetOperationChannel(tHalHandle hHal, tANI_U32 *pChannel);
 

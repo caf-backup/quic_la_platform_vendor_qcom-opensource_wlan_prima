@@ -37,10 +37,10 @@ extern "C" {
   ------------------------------------------------------------------------*/
 typedef struct vos_linux_list_s
 {
-	struct list_head anchor;
-	v_SIZE_t count;
-	struct mutex lock;
-        v_U32_t cookie;
+   struct list_head anchor;
+   v_SIZE_t count;
+   struct mutex lock;
+   v_U32_t cookie;
 } vos_list_t;
 
 typedef struct list_head vos_list_node_t;

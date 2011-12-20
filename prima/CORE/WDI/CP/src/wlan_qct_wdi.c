@@ -13114,6 +13114,7 @@ WDI_ProcessConfigBSSRsp
   }
 
   /*Save data for this BSS*/
+  pBSSSes->wdiBssType = pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiBSSType;
   pBSSSes->ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
   pBSSSes->bcastDpuIndex     = 
     halConfigBssRspMsg.configBssRspParams.bcastDpuDescIndx;
@@ -14878,21 +14879,28 @@ WDI_ProcessSetLinkStateRsp
     }
     else
     {
-      /*-----------------------------------------------------------------------
-        The current session will be deleted 
-      -----------------------------------------------------------------------*/
-      WDI_DeleteSession(pWDICtx, pBSSSes);
+      /* For BT AMP roles no need to delete the sessions if assoc fails. There
+      will be del BSS coming after this to stop the beaconing & cleaning up the
+      sessions*/
+      if(( WDI_BTAMP_STA_MODE != pBSSSes->wdiBssType )&&
+         ( WDI_BTAMP_AP_MODE != pBSSSes->wdiBssType ))
+      {
+         /*-----------------------------------------------------------------------
+           The current session will be deleted 
+         -----------------------------------------------------------------------*/
+         WDI_DeleteSession(pWDICtx, pBSSSes);
 
-      /*-----------------------------------------------------------------------
-        Check to see if this association is in progress - if so disable the
-        flag as this has ended
-      -----------------------------------------------------------------------*/
-      if ( ucCurrentBSSSesIdx == pWDICtx->ucCurrentBSSSesIdx )
-      {  
-       /*Association no longer in progress  */
-        pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
-        /*Association no longer in progress - prepare pending assoc for processing*/
-        WDI_DequeueAssocRequest(pWDICtx);
+         /*-----------------------------------------------------------------------
+           Check to see if this association is in progress - if so disable the
+           flag as this has ended
+         -----------------------------------------------------------------------*/
+         if ( ucCurrentBSSSesIdx == pWDICtx->ucCurrentBSSSesIdx )
+         {  
+           /*Association no longer in progress  */
+           pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+           /*Association no longer in progress - prepare pending assoc for processing*/
+           WDI_DequeueAssocRequest(pWDICtx);
+         }
       }
     }
   }
@@ -18734,6 +18742,7 @@ WDI_DeleteSession
   wpalMemoryZero(ppSession,  sizeof(*ppSession));
   ppSession->wdiAssocState = WDI_ASSOC_INIT_ST; 
   ppSession->bInUse        = eWLAN_PAL_FALSE; 
+  ppSession->wdiBssType    = WDI_INFRASTRUCTURE_MODE;
   wpal_list_init(&ppSession->wptPendingQueue);
 
 }/*WDI_DeleteSession*/

@@ -153,10 +153,10 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     VOS_STATUS  vosStatus = WDA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
 
     if( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-	{
+    {
         vos_pkt_return_packet(pVosPkt);
         return eSIR_FAILURE;
-	}
+    }
 #else
     pBd = (tpHalBufDesc) pMsg->bodyptr;
 #endif  //#if defined(ANI_OS_TYPE_RTAI_LINUX)
@@ -182,7 +182,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                     goto fail;
                 }
             //Post the message to PE Queue
-			ret = (tSirRetStatus) limPostMsgApi(pMac, pMsg);
+            ret = (tSirRetStatus) limPostMsgApi(pMac, pMsg);
             if (ret != eSIR_SUCCESS)
             {
                     PELOGE(sysLog(pMac, LOGE, FL("posting to LIM2 failed, ret %d\n"), ret);)

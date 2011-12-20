@@ -93,7 +93,7 @@ enum
   --------------------------------------------------------------------------*/
 VOS_STATUS vos_lock_init ( vos_lock_t *lock )
 {
-	
+
    //check for invalid pointer
    if ( lock == NULL)
    {
@@ -162,7 +162,7 @@ VOS_STATUS vos_lock_acquire ( vos_lock_t* lock )
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: uninitialized lock",__FUNCTION__);
          return VOS_STATUS_E_INVAL;
       }
-	      
+
       if (in_interrupt())
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
@@ -229,7 +229,7 @@ VOS_STATUS vos_lock_release ( vos_lock_t *lock )
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__FUNCTION__);
          return VOS_STATUS_E_FAULT;
       }
-		
+
       // check if lock refers to an uninitialized object
       if ( LINUX_LOCK_COOKIE != lock->cookie )
       {
@@ -307,16 +307,16 @@ VOS_STATUS vos_lock_destroy( vos_lock_t *lock )
 {
       //Check for invalid pointer
       if ( NULL == lock )
-      { 	
+      {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__FUNCTION__);
          return VOS_STATUS_E_FAULT; 
       }
       if ( LINUX_LOCK_COOKIE != lock->cookie )
-      {	
+      {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: uninitialized lock",__FUNCTION__);
          return VOS_STATUS_E_INVAL;
       }
-	     // check if lock is released		   
+      // check if lock is released
       if (LOCK_RELEASED != lock->state)
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: lock is not released",__FUNCTION__);

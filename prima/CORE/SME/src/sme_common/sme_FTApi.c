@@ -235,20 +235,20 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo)
     }
 
     palZeroMemory(pMac->hHdd, pMsg, msgLen);
-		pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_FT_UPDATE_KEY);
-		pMsg->length = pal_cpu_to_be16(msgLen);
+    pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_FT_UPDATE_KEY);
+    pMsg->length = pal_cpu_to_be16(msgLen);
 
     p = (tANI_U8 *)&pMsg->keyMaterial;
 
-		// Set the pMsg->keyMaterial.length field (this length is defined as all data that follows the edType field
-		// in the tSirKeyMaterial keyMaterial; field).
-		//
-		// !!NOTE:  This keyMaterial.length contains the length of a MAX size key, though the keyLength can be 
-		// shorter than this max size.  Is LIM interpreting this ok ?
-		p = pal_set_U16( p, pal_cpu_to_be16((tANI_U16)( sizeof( pMsg->keyMaterial.numKeys ) + 
+    // Set the pMsg->keyMaterial.length field (this length is defined as all data that follows the edType field
+    // in the tSirKeyMaterial keyMaterial; field).
+    //
+    // !!NOTE:  This keyMaterial.length contains the length of a MAX size key, though the keyLength can be 
+    // shorter than this max size.  Is LIM interpreting this ok ?
+    p = pal_set_U16( p, pal_cpu_to_be16((tANI_U16)( sizeof( pMsg->keyMaterial.numKeys ) + 
                                                     ( pMsg->keyMaterial.numKeys * sizeof( pMsg->keyMaterial.key ) ) )) );
 
-		// set pMsg->keyMaterial.edType
+    // set pMsg->keyMaterial.edType
     edType = csrTranslateEncryptTypeToEdType( pFTKeyInfo->encType );
     tmpEdType = pal_cpu_to_be32(edType);
     palCopyMemory( pMac->hHdd, p, (tANI_U8 *)&tmpEdType, sizeof(tAniEdType) );
@@ -266,7 +266,7 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo)
     *p = (tANI_U8)eANI_BOOLEAN_TRUE;
     p += sizeof( pMsg->keyMaterial.key[ 0 ].unicast );
 
-		// set pSirKey->keyDirection = aniKeyDirection;
+    // set pSirKey->keyDirection = aniKeyDirection;
     tmpDirection = pal_cpu_to_be32(pFTKeyInfo->keyDirection);
     palCopyMemory( pMac->hHdd, p, (tANI_U8 *)&tmpDirection, sizeof(tAniKeyDirection) );
     p += sizeof(tAniKeyDirection);
@@ -274,12 +274,12 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo)
     palCopyMemory( pMac->hHdd, p, pFTKeyInfo->keyRsc, CSR_MAX_RSC_LEN );
     p += sizeof( pMsg->keyMaterial.key[ 0 ].keyRsc );
 
-		// set pSirKey->paeRole
-		*p = pFTKeyInfo->paeRole;   // 0 is Supplicant
-		p++;
+    // set pSirKey->paeRole
+    *p = pFTKeyInfo->paeRole;   // 0 is Supplicant
+    p++;
 
-		// set pSirKey->keyLength = keyLength;
-		p = pal_set_U16( p, pal_cpu_to_be16(pFTKeyInfo->keyLength) );
+    // set pSirKey->keyLength = keyLength;
+    p = pal_set_U16( p, pal_cpu_to_be16(pFTKeyInfo->keyLength) );
 
     if ( pFTKeyInfo->keyLength && pFTKeyInfo->Key ) 
     {   

@@ -114,19 +114,19 @@ typedef struct
     tANI_BOOLEAN preferCircular;        //1 = use circular descriptor handling if available, linear otherwise
     tANI_BOOLEAN bdPresent;             //1 = BD attached to frames for this pipe
     palXfrCompleteFPtr callback;        //callback when transfer is complete, if not NULL
-	palXfrCompleteFPtr rxCallback;      //Rx callback when transfer type is H2H, if not NULL
+    palXfrCompleteFPtr rxCallback;      //Rx callback when transfer type is H2H, if not NULL
     tANI_U32 refWQ;             // Reference WQ - for H2B and B2H only
     tANI_U32 xfrType;           // H2B(Tx), B2H(Rx), H2H(SRAM<->HostMem R/W)
     tANI_U32 chPriority;        // Channel Priority 7(Highest) - 0(Lowest)
     tANI_BOOLEAN bCfged;        //whether the pipe has been configured
     tANI_U32 indexEP;     //This is for USB only, it is the index of TX/RX endpoint, TX_DATA_PIPE_OUT...
     tANI_U32 bmuThreshold; //BMU threshold 
-	// For PAL's internal use
-	void *pReserved1;
-	void *pReserved2;
+    // For PAL's internal use
+    void *pReserved1;
+    void *pReserved2;
 
-	tANI_BOOLEAN	use_lower_4g;	/**< Added for Gen5 Prefetch */
-	tANI_BOOLEAN	use_short_desc_fmt;
+    tANI_BOOLEAN use_lower_4g;  /**< Added for Gen5 Prefetch */
+    tANI_BOOLEAN use_short_desc_fmt;
 }sPipeCfg;
 
 

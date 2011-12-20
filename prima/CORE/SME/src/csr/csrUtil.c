@@ -2148,7 +2148,7 @@ tANI_BOOLEAN csrIsPhyModeMatch( tpAniSirGlobal pMac, tANI_U32 phyMode,
     eCsrCfgDot11Mode cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_TAURUS;
     tANI_U32 bitMask, loopCount;
 
-	if(HAL_STATUS_SUCCESS(csrGetPhyModeFromBss(pMac, pSirBssDesc, &phyModeInBssDesc, pIes )))
+    if(HAL_STATUS_SUCCESS(csrGetPhyModeFromBss(pMac, pSirBssDesc, &phyModeInBssDesc, pIes )))
     {
         //In case some change change eCSR_DOT11_MODE_TAURUS to non-0
         if ( (0 == phyMode) || (eCSR_DOT11_MODE_AUTO & phyMode) || (eCSR_DOT11_MODE_TAURUS & phyMode))
@@ -2347,8 +2347,8 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
         case eCSR_AUTH_TYPE_RSN:
         case eCSR_AUTH_TYPE_RSN_PSK:
 #ifdef WLAN_FEATURE_VOWIFI_11R
-	case eCSR_AUTH_TYPE_FT_RSN:
-	case eCSR_AUTH_TYPE_FT_RSN_PSK:
+        case eCSR_AUTH_TYPE_FT_RSN:
+        case eCSR_AUTH_TYPE_FT_RSN_PSK:
 #endif 
             fRSNProfile = TRUE;
             break;
@@ -2786,7 +2786,7 @@ tANI_BOOLEAN csrGetRSNInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCs
             if( pNegotiatedMCCipher )
                 *pNegotiatedMCCipher = pMCEncryption->encryptionType[i];
             
-	      /* Initializing with FALSE as it has TRUE value already */
+            /* Initializing with FALSE as it has TRUE value already */
             fAcceptableCyphers = FALSE;
             for (i = 0 ; i < pAuthType->numEntries; i++)
             {
@@ -3232,9 +3232,9 @@ tANI_U8 csrConstructWapiIe( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamPro
         // Add BKID count and BKID (if any)
         pWapiIe->IeHeader.Length = (tANI_U8) (sizeof( *pWapiIe ) - sizeof ( pWapiIe->IeHeader ));
 
-		/*2 bytes for BKID Count field*/
-		pWapiIe->IeHeader.Length += sizeof( tANI_U16 );
-			
+        /*2 bytes for BKID Count field*/
+        pWapiIe->IeHeader.Length += sizeof( tANI_U16 );
+
         if(fBKIDFound)
         {
             pWapiIe->IeHeader.Length += CSR_WAPI_BKID_SIZE;
@@ -3778,9 +3778,9 @@ tAniEdType csrTranslateEncryptTypeToEdType( eCsrEncryptionType EncryptType )
             edType = eSIR_ED_CCMP;
             break;
 #ifdef FEATURE_WLAN_WAPI
-		case eCSR_ENCRYPT_TYPE_WPI:
-			edType = eSIR_ED_WPI;
-			break;
+        case eCSR_ENCRYPT_TYPE_WPI:
+            edType = eSIR_ED_WPI;
+            break;
 #endif
     }
 
@@ -3944,7 +3944,7 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
                             if( eCSR_AUTH_TYPE_OPEN_SYSTEM == authType->authType[idx] )
                             {
                                fMatch = TRUE;
-							   negAuthType = eCSR_AUTH_TYPE_OPEN_SYSTEM;
+                               negAuthType = eCSR_AUTH_TYPE_OPEN_SYSTEM;
                                break;
                             }
                         } 
@@ -4970,7 +4970,7 @@ tSirResultCodes csrGetDisassocRspStatusCode( tSirSmeDisassocRsp *pSmeDisassocRsp
     tANI_U32 ret;
 
     pBuffer += (sizeof(tANI_U16) + sizeof(tANI_U16) + sizeof(tSirMacAddr));
-	//tSirResultCodes is an enum, assuming is 32bit
+    //tSirResultCodes is an enum, assuming is 32bit
     //If we cannot make this assumption, use copymemory
     pal_get_U32( pBuffer, &ret );
 
@@ -5262,7 +5262,7 @@ eHalStatus csrGetRegulatoryDomainForCountry(tpAniSirGlobal pMac, tANI_U8 *pCount
 tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11fBeaconIEs *pIes )
 {
     tANI_BOOLEAN fRet = eANI_BOOLEAN_TRUE;
-    v_REGDOMAIN_t domainId = NUM_REG_DOMAINS;	//This is init to invalid value
+    v_REGDOMAIN_t domainId = NUM_REG_DOMAINS;   //This is init to invalid value
     eHalStatus status;
 
     do
@@ -5277,24 +5277,24 @@ tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11
             break;
         }
         //Make sure this country is recognizable
-		if( pIes->Country.present )
-		{
-			status = csrGetRegulatoryDomainForCountry( pMac, pIes->Country.country,(v_REGDOMAIN_t *) &domainId );
-			if( !HAL_STATUS_SUCCESS( status ) )
-			{
-				fRet = eANI_BOOLEAN_FALSE;
-				break;
-			}
-		}
-		//check whether it is needed to enforce to the default regulatory domain first
-		if( pMac->roam.configParam.fEnforceDefaultDomain )
-		{
-			if( domainId != pMac->scan.domainIdCurrent )
-			{
-				fRet = eANI_BOOLEAN_FALSE;
+        if( pIes->Country.present )
+        {
+            status = csrGetRegulatoryDomainForCountry( pMac, pIes->Country.country,(v_REGDOMAIN_t *) &domainId );
+            if( !HAL_STATUS_SUCCESS( status ) )
+            {
+                fRet = eANI_BOOLEAN_FALSE;
                 break;
-			}
-		}
+            }
+        }
+        //check whether it is needed to enforce to the default regulatory domain first
+        if( pMac->roam.configParam.fEnforceDefaultDomain )
+        {
+            if( domainId != pMac->scan.domainIdCurrent )
+            {
+                fRet = eANI_BOOLEAN_FALSE;
+                break;
+            }
+        }
         if( pMac->roam.configParam.fEnforceCountryCodeMatch )
         {
             if( domainId >= NUM_REG_DOMAINS )
@@ -5451,7 +5451,7 @@ eHalStatus csrGetModifyProfileFields(tpAniSirGlobal pMac, tANI_U32 sessionId,
 eHalStatus csrSetModifyProfileFields(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                      tCsrRoamModifyProfileFields *pModifyProfileFields)
 {
-  tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );	
+   tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
    palCopyMemory( pMac->hHdd, &pSession->connectedProfile.modifyProfileFields,
                   pModifyProfileFields,

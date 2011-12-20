@@ -292,7 +292,7 @@ VOS_STATUS vos_watchdog_open
   vos_mem_zero(pWdContext, sizeof(VosWatchdogContext));
   pWdContext->pVContext = pVosContext;
   gpVosWatchdogContext = pWdContext;
-	 
+
   //Initialize the helper events and event queues
   init_completion(&pWdContext->WdStartEvent);
   init_completion(&pWdContext->WdShutdown);
@@ -643,7 +643,7 @@ VosMCThread
 int isWDresetInProgress(void)
 {
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                "%s: Reset is in Progress...",__func__);			
+                "%s: Reset is in Progress...",__func__);
 #if !defined(ANI_MANF_DIAG) || defined(FEATURE_WLAN_INTEGRATED_SOC)
    if(gpVosWatchdogContext!=NULL)
    {
@@ -703,7 +703,7 @@ VosWDThread
       break;
     }
     clear_bit(WD_POST_EVENT_MASK, &pWdContext->wdEventFlag);
-	 
+
     while(1)
     {
       // Check if Watchdog needs to shutdown
@@ -711,8 +711,8 @@ VosWDThread
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                 "%s: Watchdog thread signaled to shutdown", __func__);
-		  
-		  clear_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
+
+        clear_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
         shutdown = VOS_TRUE;
         break;
       }
@@ -743,7 +743,6 @@ VosWDThread
           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Reset already in progress. Ignore recursive reset cmd",__func__);
         }
-		  
         break;
       }
       //Unnecessary wakeup - Should never happen!!

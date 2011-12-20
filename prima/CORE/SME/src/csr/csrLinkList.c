@@ -366,7 +366,7 @@ tListElem *csrLLRemoveTail( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
         {
 
             pEntry = csrListRemoveTail( &pList->ListHead );
-            pList->Count--;					
+            pList->Count--;
         }
         if ( fInterlocked ) 
         {

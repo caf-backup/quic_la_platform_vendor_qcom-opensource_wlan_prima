@@ -16,15 +16,15 @@ Qualcomm Confidential and Proprietary
 
 static tDumpFuncEntry ccmMenuDumpTable[] = {
 
-	{0,     "CCM (861-870)",                               NULL},
+   {0,     "CCM (861-870)",                               NULL},
     //{861,   "CCM: CCM testing ",                         dump_ccm}
 
 };
-	
+
 void ccmDumpInit(tHalHandle hHal)
 {
-	logDumpRegisterTable( (tpAniSirGlobal) hHal, &ccmMenuDumpTable[0], 
-						  sizeof(ccmMenuDumpTable)/sizeof(ccmMenuDumpTable[0]) );
+   logDumpRegisterTable( (tpAniSirGlobal) hHal, &ccmMenuDumpTable[0], 
+                         sizeof(ccmMenuDumpTable)/sizeof(ccmMenuDumpTable[0]) );
 }
 
 #endif //#if defined(ANI_LOGDUMP)

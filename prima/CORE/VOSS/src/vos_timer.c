@@ -267,7 +267,7 @@ static void vos_timer_clean(void);
 
 void vos_timer_manager_init()
 {
-   /* Initalizing the list with maximum size of 60000 */	
+   /* Initalizing the list with maximum size of 60000 */
    hdd_list_init(&vosTimerList, 1000);  
    return;
 }
@@ -279,30 +279,31 @@ static void vos_timer_clean()
         
     hdd_list_size(&vosTimerList, &listSize);
     
-    if(listSize)
+    if (listSize)
     {
        hdd_list_node_t* pNode;
        VOS_STATUS vosStatus;
 
        timer_node_t *ptimerNode;
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-             "%s: List is not Empty. listSize %d ", __FUNCTION__, (int)listSize);
+                 "%s: List is not Empty. listSize %d ",
+                 __FUNCTION__, (int)listSize);
 
        do
        {
-	      spin_lock_irqsave(&vosTimerList.lock, flags);
-        vosStatus = hdd_list_remove_front(&vosTimerList, &pNode);
-	      spin_unlock_irqrestore(&vosTimerList.lock, flags);
-        if(VOS_STATUS_SUCCESS == vosStatus)
-        {
+          spin_lock_irqsave(&vosTimerList.lock, flags);
+          vosStatus = hdd_list_remove_front(&vosTimerList, &pNode);
+          spin_unlock_irqrestore(&vosTimerList.lock, flags);
+          if (VOS_STATUS_SUCCESS == vosStatus)
+          {
              ptimerNode = (timer_node_t*)pNode;
              VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                   "Timer Leak@ File %s, @Line %d", 
-                   ptimerNode->fileName, (int)ptimerNode->lineNum);
+                       "Timer Leak@ File %s, @Line %d", 
+                       ptimerNode->fileName, (int)ptimerNode->lineNum);
 
-                vos_mem_free(ptimerNode);
-            }
-       }while(vosStatus == VOS_STATUS_SUCCESS);
+             vos_mem_free(ptimerNode);
+          }
+       } while (vosStatus == VOS_STATUS_SUCCESS);
     }
 }
 

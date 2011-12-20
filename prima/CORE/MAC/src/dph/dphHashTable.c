@@ -107,7 +107,7 @@ tANI_U16 hashFunction(tpAniSirGlobal pMac, tANI_U8 staAddr[], tANI_U16 numSta)
  */
 
 tpDphHashNode dphLookupHashEntry(tpAniSirGlobal pMac, tANI_U8 staAddr[], tANI_U16 *pAssocId, 
-										dphHashTableClass* pDphHashTable)
+                                 dphHashTableClass* pDphHashTable)
 {
     tpDphHashNode ptr = NULL;
     tANI_U16 index = hashFunction(pMac, staAddr, pDphHashTable->size);
@@ -396,7 +396,7 @@ tSirRetStatus dphDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_
       break;
     if (prev == ptr)
     {
-    PELOGE(limLog(pMac, LOGE, FL("Infinite Loop\n"));)
+        PELOGE(limLog(pMac, LOGE, FL("Infinite Loop\n"));)
         return eSIR_FAILURE;
     }
   }
@@ -406,9 +406,9 @@ tSirRetStatus dphDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_
       /// Delete the entry after invalidating it
       ptr->valid = 0;
       if (prev == 0)
-    		pDphHashTable->pHashTable[index] = ptr->next;
+         pDphHashTable->pHashTable[index] = ptr->next;
       else
-    		prev->next = ptr->next;
+         prev->next = ptr->next;
       ptr->added = 0;
       ptr->next = 0;
     }

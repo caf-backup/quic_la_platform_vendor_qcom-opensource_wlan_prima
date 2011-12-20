@@ -381,7 +381,7 @@ typedef struct
   /* UP of the packet being sent */
   v_U8_t    ucUP;
   /* Address 3 Index of the received packet */
-  v_U16_t 	   ucDesSTAId;
+  v_U16_t   ucDesSTAId;
 }WLANTL_RxMetaInfoType;
 
 
@@ -2355,25 +2355,24 @@ void WLANTL_PostResNeeded(v_PVOID_t pvosGCtx);
 
 /*===========================================================================
 
-  FUNCTION	  WLANTL_Finish_ULA
+  FUNCTION    WLANTL_Finish_ULA
 
   DESCRIPTION
      This function is used by HDD to notify TL to finish Upper layer authentication
      incase the last EAPOL packet is pending in the TL queue. 
      To avoid the race condition between sme set key and the last EAPOL packet 
      the HDD module calls this function just before calling the sme_RoamSetKey.
-		  
    
   DEPENDENCIES
 
-	TL must have been initialized before this gets called.
+    TL must have been initialized before this gets called.
 
    
   PARAMETERS
 
    callbackRoutine:   HDD Callback function.
    callbackContext : HDD userdata context.
-	  
+
   RETURN VALUE
 
    VOS_STATUS_SUCCESS/VOS_STATUS_FAILURE

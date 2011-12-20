@@ -73,8 +73,7 @@ sirDumpBuf(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 level, tANI_U8 *buf, tAN
 {
     tANI_U32 i;
 
-	
-   if (level > pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE(modId)])
+    if (level > pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE(modId)])
         return;
 
     logDbg(pMac, modId, level, FL("Dumping %d bytes in host order\n"), size);

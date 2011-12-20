@@ -138,22 +138,22 @@ v_UINT_t tx_timer_activate(TX_TIMER *timer_ptr)
     // Assert that the timer structure pointer passed, is not NULL
     //dbgAssert(NULL != timer_ptr);
 
-	// If the NIC is halting just spoof a successful timer activation, so that all
-	// the timers can be cleaned up.
+    // If the NIC is halting just spoof a successful timer activation, so that all
+    // the timers can be cleaned up.
 
     if(NULL == timer_ptr)
         return TX_TIMER_ERROR;
 
-	// Put a check for the free builds
-	if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature) {
+    // Put a check for the free builds
+    if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature) {
         VOS_ASSERT( timer_ptr->tmrSignature == 0 );
 
-		return TX_TIMER_ERROR;
+        return TX_TIMER_ERROR;
 
-	}
+    }
 
-	// Check for an uninitialized timer
-	VOS_ASSERT(0 != strlen(TIMER_NAME));
+    // Check for an uninitialized timer
+    VOS_ASSERT(0 != strlen(TIMER_NAME));
 
     VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
             "Timer %s being activated\n", TIMER_NAME);
@@ -178,7 +178,7 @@ v_UINT_t tx_timer_activate(TX_TIMER *timer_ptr)
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, 
             "Timer %s fails to activate\n", TIMER_NAME);
-		return TX_TIMER_ERROR;
+      return TX_TIMER_ERROR;
    }
 } /*** tx_timer_activate() ***/
 
@@ -202,12 +202,12 @@ v_UINT_t tx_timer_activate(TX_TIMER *timer_ptr)
 v_UINT_t tx_timer_change(TX_TIMER *timer_ptr, 
       v_ULONG_t initScheduleTimeInTicks, v_ULONG_t rescheduleTimeInTicks)
 {
-	// Put a check for the free builds
-	if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature) {
-        VOS_ASSERT( timer_ptr->tmrSignature == 0 );
+   // Put a check for the free builds
+   if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature) {
+       VOS_ASSERT( timer_ptr->tmrSignature == 0 );
 
-		return TX_TIMER_ERROR;      
-	}
+       return TX_TIMER_ERROR;      
+   }
 
     // changes cannot be applied until timer stops running
     if (VOS_TIMER_STATE_STOPPED == vos_timer_getCurrentState(&timer_ptr->vosTimer))
@@ -241,12 +241,12 @@ v_UINT_t tx_timer_change(TX_TIMER *timer_ptr,
 v_UINT_t tx_timer_change_context(TX_TIMER *timer_ptr, tANI_U32 expiration_input)
 {
 
-	// Put a check for the free builds
-	if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature) {
-        VOS_ASSERT( timer_ptr->tmrSignature == 0 );
+    // Put a check for the free builds
+    if (TX_AIRGO_TMR_SIGNATURE != timer_ptr->tmrSignature) {
+       VOS_ASSERT( timer_ptr->tmrSignature == 0 );
 
-		return TX_TIMER_ERROR;      
-	}
+       return TX_TIMER_ERROR;      
+    }
 
     // changes cannot be applied until timer stops running
     if (VOS_TIMER_STATE_STOPPED == vos_timer_getCurrentState(&timer_ptr->vosTimer))
