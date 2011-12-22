@@ -287,7 +287,7 @@ void limAbortBackgroundScan(tpAniSirGlobal pMac)
             limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS, 0, 0);
         }       
     }
-	
+
     // reset background scan variables
     pMac->lim.gLimBackgroundScanChannelId = 0;   
     return;

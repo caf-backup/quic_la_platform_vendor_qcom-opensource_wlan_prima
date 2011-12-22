@@ -2,11 +2,11 @@
  * Airgo Networks, Inc proprietary. All rights reserved
  * sysStartup.h: System startup header file.
  *
- * Author:	V. K. Kandarpa
- * Date:	07/26/2002
+ * Author:      V. K. Kandarpa
+ * Date:        07/26/2002
  *
  * History:-
- * Date		Modified by			Modification Information
+ * Date         Modified by            Modification Information
  * --------------------------------------------------------------------------
  *
  */

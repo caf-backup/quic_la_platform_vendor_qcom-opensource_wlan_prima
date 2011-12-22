@@ -21,18 +21,18 @@
 
 tSirRetStatus limSendCFParams(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 cfpCount, tANI_U8 cfpPeriod);
 tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, 
-                                tpUpdateBeaconParams pUpdatedBcnParams,
-								tpPESession  psessionEntry );
+                                  tpUpdateBeaconParams pUpdatedBcnParams,
+                                  tpPESession  psessionEntry );
 
 //tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, tpUpdateBeaconParams pUpdatedBcnParams);
 #if defined WLAN_FEATURE_VOWIFI  
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber, 
-							   tSirMacHTSecondaryChannelOffset secondaryChnlOffset, 
-                               tPowerdBm maxTxPower,tANI_U8 peSessionId);
+                                      tSirMacHTSecondaryChannelOffset secondaryChnlOffset, 
+                                      tPowerdBm maxTxPower,tANI_U8 peSessionId);
 #else
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber, 
-							   tSirMacHTSecondaryChannelOffset secondaryChnlOffset, 
-                               tANI_U8 localPwrConstraint,tANI_U8 peSessionId);
+                                      tSirMacHTSecondaryChannelOffset secondaryChnlOffset, 
+                                      tANI_U8 localPwrConstraint,tANI_U8 peSessionId);
 #endif
 tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUpdatedEdcaParams, tANI_U16 bssIdx, tANI_BOOLEAN highPerformance);
 tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,  tSirMacAddr bssId, 

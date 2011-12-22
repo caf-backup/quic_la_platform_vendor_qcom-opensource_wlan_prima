@@ -439,11 +439,11 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     int we_event;
     char *msg;
     int type = -1;
-	
+
 #if defined (WLAN_FEATURE_VOWIFI_11R) || defined (WLAN_FEATURE_CIQ_METRICS)
-	v_BOOL_t sendFTAssocRsp = FALSE;
+    v_BOOL_t sendFTAssocRsp = FALSE;
 #endif
-	
+
 #if defined (WLAN_FEATURE_VOWIFI_11R) && !defined (WLAN_FEATURE_CIQ_METRICS)
     hdd_config_t *pConfig = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
 #endif
@@ -465,25 +465,25 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
                 wrqu.ap_addr.sa_data[4],
                 wrqu.ap_addr.sa_data[5]);  
         hdd_SendUpdateBeaconIEsEvent(pAdapter, pCsrRoamInfo);
-		
 
-		/* Send IWEVASSOCRESPIE Event if WLAN_FEATURE_CIQ_METRICS is Enabled Or
-         * Send IWEVASSOCRESPIE Event if WLAN_FEATURE_VOWIFI_11R is Enabled and fFTEnable is TRUE */
+        /* Send IWEVASSOCRESPIE Event if WLAN_FEATURE_CIQ_METRICS is Enabled Or
+         * Send IWEVASSOCRESPIE Event if WLAN_FEATURE_VOWIFI_11R is Enabled
+         * and fFTEnable is TRUE */
 #if defined(WLAN_FEATURE_CIQ_METRICS)
-		sendFTAssocRsp = TRUE;
+        sendFTAssocRsp = TRUE;
 #elif defined(WLAN_FEATURE_VOWIFI_11R)
-		// Send FT Keys to the supplicant when FT is enabled
+        // Send FT Keys to the supplicant when FT is enabled
         if (pConfig->fFTEnable == TRUE)
-		{
+        {
             sendFTAssocRsp = TRUE;
-		}
+        }
 #endif
 
 #if defined(WLAN_FEATURE_VOWIFI_11R) || defined (WLAN_FEATURE_CIQ_METRICS)
-		if (TRUE == sendFTAssocRsp)
-		{
-			hdd_SendFTAssocResponse(dev, pAdapter, pCsrRoamInfo);
-		}
+        if (TRUE == sendFTAssocRsp)
+        {
+            hdd_SendFTAssocResponse(dev, pAdapter, pCsrRoamInfo);
+        }
 #endif
 
     }
@@ -544,20 +544,20 @@ static void hdd_SendDisassociateEvent_ForCIQ(struct net_device *dev,tCsrRoamInfo
 {
     
     unsigned char disassoc_reason[16];
-	union iwreq_data wrqu;
-	tANI_U32 reasonCode = 1; //Unspecified Failure
-	
-	if (pCsrRoamInfo)
-	{
+    union iwreq_data wrqu;
+    tANI_U32 reasonCode = 1; //Unspecified Failure
+
+    if (pCsrRoamInfo)
+    {
         reasonCode = pCsrRoamInfo->reasonCode;
-	}
-	
-	VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-			   "hdd_SendDisassociateEvent_ForCIQ : send DISASSOC event to wpa_supplicant ReasonCode %ld\n",
-			   reasonCode);
-					    
-	memset(&wrqu, 0, sizeof(wrqu));
-	wrqu.data.length = snprintf(disassoc_reason, sizeof(disassoc_reason), "DISASSOC %ld", reasonCode);
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+               "hdd_SendDisassociateEvent_ForCIQ : send DISASSOC event to wpa_supplicant ReasonCode %ld\n",
+               reasonCode);
+
+    memset(&wrqu, 0, sizeof(wrqu));
+    wrqu.data.length = snprintf(disassoc_reason, sizeof(disassoc_reason), "DISASSOC %ld", reasonCode);
     wireless_send_event(dev, IWEVCUSTOM, &wrqu, disassoc_reason);
 }
 
@@ -565,20 +565,20 @@ static void hdd_SendDeauthenticateEvent_ForCIQ(struct net_device *dev,tCsrRoamIn
 {
     
     unsigned char deauth_reason[16];
-	union iwreq_data wrqu;
-	tANI_U32 reasonCode = 1; //Unspecified Failure
-	
+    union iwreq_data wrqu;
+    tANI_U32 reasonCode = 1; //Unspecified Failure
+
     if (pCsrRoamInfo)
-	{
-	    reasonCode = pCsrRoamInfo->reasonCode;
-	}
-	
-	VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-			   "hdd_SendDeauthenticateEvent_ForCIQ : send DEAUTH event to wpa_supplicant ReasonCode %ld\n",
-			   reasonCode);
-					  
-	memset(&wrqu, 0, sizeof(wrqu));
-	wrqu.data.length = snprintf(deauth_reason, sizeof(deauth_reason), "DEAUTH %ld", reasonCode);
+    {
+        reasonCode = pCsrRoamInfo->reasonCode;
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+               "hdd_SendDeauthenticateEvent_ForCIQ : send DEAUTH event to wpa_supplicant ReasonCode %ld\n",
+               reasonCode);
+
+    memset(&wrqu, 0, sizeof(wrqu));
+    wrqu.data.length = snprintf(deauth_reason, sizeof(deauth_reason), "DEAUTH %ld", reasonCode);
     wireless_send_event(dev, IWEVCUSTOM, &wrqu, deauth_reason);
 }
 #endif /* WLAN_FEATURE_CIQ_METRICS */
@@ -659,11 +659,11 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
 #endif
 
 #ifdef WLAN_FEATURE_CIQ_METRICS
-	hdd_SendDisassociateEvent_ForCIQ(dev, pRoamInfo);
-	if (eCSR_ROAM_RESULT_DEAUTH_IND == roamResult)
-	{
-	    hdd_SendDeauthenticateEvent_ForCIQ(dev, pRoamInfo);
-	}
+    hdd_SendDisassociateEvent_ForCIQ(dev, pRoamInfo);
+    if (eCSR_ROAM_RESULT_DEAUTH_IND == roamResult)
+    {
+        hdd_SendDeauthenticateEvent_ForCIQ(dev, pRoamInfo);
+    }
 #endif /* WLAN_FEATURE_CIQ_METRICS */
     
 
@@ -883,7 +883,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
       // indicate 'connect' status to userspace
       hdd_SendAssociationEvent(dev, pRoamInfo);
-	  
+
 #ifdef WLAN_FEATURE_CIQ_METRICS
       // Association is Complete and Successful. 
       hdd_SendAssocResultEvent_ForCIQ(dev, pRoamInfo, VOS_TRUE);

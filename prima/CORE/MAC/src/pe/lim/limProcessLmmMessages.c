@@ -101,7 +101,7 @@ limIsSmeMeasurementReqValid(tpAniSirGlobal pMac, tpSirSmeMeasurementReq pMeasReq
         return eANI_BOOLEAN_FALSE;
     }
     else
-	    return eANI_BOOLEAN_TRUE;
+        return eANI_BOOLEAN_TRUE;
 
 } /*** end limIsSmeMeasurementReqValid() ***/
 
@@ -285,13 +285,13 @@ __limFreeMeasAndSendRsp(tpAniSirGlobal pMac, tSirResultCodes resultCode)
     if (pMac->lim.gpLimMeasReq != NULL)
     {
         palFreeMemory( pMac->hHdd, pMac->lim.gpLimMeasReq);
-	    pMac->lim.gpLimMeasReq  = NULL;
+        pMac->lim.gpLimMeasReq  = NULL;
     }
 
     if (pMac->lim.gpLimMeasData != NULL)
     {
         palFreeMemory( pMac->hHdd, pMac->lim.gpLimMeasData);
-	    pMac->lim.gpLimMeasData = NULL;
+        pMac->lim.gpLimMeasData = NULL;
     }
 
     /// Send failure response to WSM
@@ -371,8 +371,8 @@ limProcessSmeMeasurementReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             return;
         }
 
-	    palZeroMemory(pMac->hHdd, (void *)pMac->lim.gpLimMeasData,
-		                                     sizeof(tLimMeasData));
+        palZeroMemory(pMac->hHdd, (void *)pMac->lim.gpLimMeasData,
+                      sizeof(tLimMeasData));
         pMac->lim.gpLimMeasData->duration = 120;
     }
 
@@ -575,7 +575,7 @@ limProcessLearnDurationTimeout(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             // So continue Learn process on remaining channels
             // Send WDA_END_SCAN_REQ to HAL first
             limSendHalEndScanReq(pMac, (tANI_U8)pMac->lim.gLimMeasParams.nextLearnChannelId, 
-			                                      eLIM_HAL_END_LEARN_WAIT_STATE);
+                                 eLIM_HAL_END_LEARN_WAIT_STATE);
         }
         else
         {
@@ -620,13 +620,13 @@ limProcessLearnIntervalTimeout(tpAniSirGlobal pMac)
 #endif
 
     PELOG2(limLog(pMac, LOG2, FL("SME state = %d\n"), pMac->lim.gLimSmeState);)
-	if (!pMac->sys.gSysEnableLearnMode)
-	{
-	PELOG3(limLog(pMac, LOG3,
-		   FL("Ignoring LEARN_INTERVAL_TIMEOUT because gSysEnableLearnMode is disabled...\n"));)
+    if (!pMac->sys.gSysEnableLearnMode)
+    {
+        PELOG3(limLog(pMac, LOG3,
+                      FL("Ignoring LEARN_INTERVAL_TIMEOUT because gSysEnableLearnMode is disabled...\n"));)
         limReEnableLearnMode(pMac);
-		return;
-	}
+        return;
+    }
 
     if (pMac->lim.gLimSystemInScanLearnMode)
     {
@@ -658,7 +658,7 @@ limProcessLearnIntervalTimeout(tpAniSirGlobal pMac)
     {
         pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
         pMac->lim.gLimMlmState     = eLIM_MLM_LEARN_STATE;
-	 MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
         pMac->lim.gLimSystemInScanLearnMode = eANI_BOOLEAN_TRUE;
     }
 #if 0

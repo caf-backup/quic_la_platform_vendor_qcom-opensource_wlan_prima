@@ -107,7 +107,7 @@ typedef enum eRxpMode {
    ,eRXP_INNAV_MODE             = 0x2000
 #endif
 #ifndef WLAN_FTM_STUB
-	,eRXP_FTM_MODE         = 0x4000
+    ,eRXP_FTM_MODE         = 0x4000
 #endif
    ,eRXP_LISTEN_MODE      = 0x8000
 } tRxpMode;
@@ -663,7 +663,7 @@ typedef struct {
     // For creation of CTS-to-Self and Data-NULL MAC packets
     tSirMacMgmtHdr macMgmtHdr;
 
-	tSirScanEntry scanEntry;
+    tSirScanEntry scanEntry;
 
     /*
     * Following parameters are for returning status and station index from HAL to PE
@@ -1280,7 +1280,7 @@ typedef struct sP2pPsParams
    tANI_U8   psSelection;
 }tP2pPsParams, *tpP2pPsParams;
 #endif
-	
+
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 static inline void halGetTxTSFtimer(tpAniSirGlobal pMac, 
                                                 tSirMacTimeStamp *pTime)

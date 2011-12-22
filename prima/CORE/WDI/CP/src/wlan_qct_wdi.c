@@ -97,7 +97,7 @@ WPT_STATIC const WDI_MainFsmEntryType wdiMainFSM[WDI_MAX_ST] =
   /*WDI_STOPPED_ST*/
   {{
     WDI_MainStart,              /*WDI_START_EVENT*/
-    NULL,                       /*WDI_STOP_EVENT*/
+    WDI_MainStopStopped,        /*WDI_STOP_EVENT*/
     NULL,                       /*WDI_REQUEST_EVENT*/
     WDI_MainRsp,                /*WDI_RESPONSE_EVENT*/
     WDI_MainClose               /*WDI_CLOSE_EVENT*/
@@ -5394,6 +5394,50 @@ WDI_MainRsp
   return WDI_STATUS_SUCCESS; 
 
 }/*WDI_MainRsp*/
+
+/*--------------------------------------------------------------------------
+  STOPPED State Functions 
+--------------------------------------------------------------------------*/
+/**
+ @brief Main FSM Stop function for state STOPPED
+
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_MainStopStopped
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  /*--------------------------------------------------------------------
+     Sanity Check 
+  ----------------------------------------------------------------------*/
+  if (( NULL ==  pWDICtx ) || ( NULL == pEventData ))
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Invalid parameters on Main Stop Stopped %x %x", 
+               pWDICtx, pEventData);
+     return WDI_STATUS_E_FAILURE;
+  }
+
+  /*We should normally not get a STOP request if we are already stopped
+    since we should normally be stopped by the UMAC.  However in some
+    error situations we put ourselves in the stopped state without the
+    UMAC knowing, so when we get a STOP request in this state we still
+    process it since we need to clean up the underlying state */
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+            "Processing stop request while stopped in FSM");
+
+  /*Return Success*/
+  return WDI_ProcessRequest( pWDICtx, pEventData );
+
+}/*WDI_MainStopStopped*/
 
 /*--------------------------------------------------------------------------
   BUSY State Functions 

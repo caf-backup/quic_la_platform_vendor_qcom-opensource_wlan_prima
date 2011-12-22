@@ -69,6 +69,11 @@
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
+/* Amount of time to wait for WDA to perform an asynchronous activity.
+   This value should be larger than the timeout used by WDI to wait for
+   a response from WCNSS since in the event that WCNSS is not responding,
+   WDI should handle that timeout */
+#define VOS_WDA_TIMEOUT 15000
 
 /*---------------------------------------------------------------------------
  * Data definitions
@@ -577,7 +582,8 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
    }
 
    /* Need to update time out of complete */
-   vStatus = vos_wait_single_event( &gpVosContext->wdaCompleteEvent, 1000);
+   vStatus = vos_wait_single_event( &gpVosContext->wdaCompleteEvent,
+                                    VOS_WDA_TIMEOUT );
    if ( vStatus != VOS_STATUS_SUCCESS )
    {
       if ( vStatus == VOS_STATUS_E_TIMEOUT )
@@ -702,7 +708,8 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      return VOS_STATUS_E_FAILURE;
   }
 
-  vStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent), 10000 );
+  vStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent),
+                                   VOS_WDA_TIMEOUT );
 
   if ( vStatus != VOS_STATUS_SUCCESS )
   {
@@ -874,7 +881,8 @@ err_mac_stop:
 err_wda_stop:   
   vos_event_reset( &(gpVosContext->wdaCompleteEvent) );
   WDA_stop( pVosContext, HAL_STOP_TYPE_RF_KILL);
-  vStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent), 1000 );
+  vStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent),
+                                   VOS_WDA_TIMEOUT );
   if( vStatus != VOS_STATUS_SUCCESS )
   {
      if( vStatus == VOS_STATUS_E_TIMEOUT )
@@ -931,7 +939,8 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
-  vosStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent), 2000 );/* TODO: Need to update time out value */
+  vosStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent),
+                                     VOS_WDA_TIMEOUT );
    
   if ( vosStatus != VOS_STATUS_SUCCESS )
   {

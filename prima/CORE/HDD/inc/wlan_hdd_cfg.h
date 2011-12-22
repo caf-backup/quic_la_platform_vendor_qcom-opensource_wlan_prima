@@ -2,19 +2,19 @@
 #define HDD_CONFIG_H__
 
 /**===========================================================================
-  
+
   \file  hdd_Config.h
-  
+
   \brief Android WLAN Adapter Configuration functions
-    
+
                Copyright 2008 (c) Qualcomm, Incorporated.
                All Rights Reserved.
                Qualcomm Confidential and Proprietary.
-  
+
   ==========================================================================*/
-  
+
 /* $HEADER$ */
-  
+
 /*--------------------------------------------------------------------------- 
   Include files
   -------------------------------------------------------------------------*/ 
@@ -1094,7 +1094,7 @@ typedef struct
    v_U32_t        nPassiveMaxChnTime;    //in units of milliseconds
    v_U32_t        nActiveMinChnTime;     //in units of milliseconds
    v_U32_t        nActiveMaxChnTime;     //in units of milliseconds
-										 
+
    v_U8_t         nMaxPsPoll;
 
    v_U8_t         nRssiFilterPeriod;
@@ -1106,8 +1106,7 @@ typedef struct
    v_U8_t         fEnableFwRssiMonitoring;
    v_U8_t         nDataInactivityTimeout;
    v_U8_t         nthBeaconFilter;
-	
-										 
+
    //WMM QoS Configuration
    hdd_wmm_user_mode_t          WmmMode;
    v_BOOL_t                     b80211eIsEnabled;

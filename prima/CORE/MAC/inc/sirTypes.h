@@ -20,7 +20,7 @@
  typedef signed char    tANI_S8;
  typedef signed short   tANI_S16;
  typedef signed long    tANI_S32;
- 
+
  #ifndef tANI_BOOLEAN
  #define tANI_BOOLEAN tANI_U8
  #endif
@@ -97,7 +97,7 @@ typedef enum eSirRetStatus
     eSIR_HAL_RHP_HASH_CMD_TIMEOUT,            // 24
     eSIR_HAL_RHP_ROUTING_TBL_SET_FAILED,      // 25
     eSIR_HAL_RHP_ROUTING_TBL_GET_FAILED,      // 26
-    
+
     eSIR_HAL_CAL_STATUS_CHK_FAILED,
 
     eSIR_HAL_SYS_ARM_DBG_MODE_SET_FAILED,
@@ -121,8 +121,8 @@ typedef enum eSirRetStatus
     eSIR_HAL_CB_NOT_ENABLED, // 49
     eSIR_HAL_MAC_RATE_INVALID, // 4a
     eSIR_HAL_RHP_HANG, // 4b
-	eSIR_HAL_UNSUPPORTED, // 4c
-	eSIR_HAL_TSPEC_INVALID, // 4d
+    eSIR_HAL_UNSUPPORTED, // 4c
+    eSIR_HAL_TSPEC_INVALID, // 4d
 
     // NIM Return Codes
     eSIR_NIM_ERROR_BASE=0x2000,

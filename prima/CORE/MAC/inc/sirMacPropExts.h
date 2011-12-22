@@ -40,15 +40,15 @@
 #define SIR_MAC_PROP_TITAN              14  // Advertises a TITAN device
 #define SIR_MAC_PROP_CHANNEL_SWITCH     15  // proprietary channel switch info
 #define SIR_MAC_PROP_QUIET_BSS          16  // Broadcast's REQ for Quiet BSS
-#define SIR_MAC_PROP_TRIG_STA_BK_SCAN	17  // trigger station bk scan during quiet bss duration
+#define SIR_MAC_PROP_TRIG_STA_BK_SCAN   17  // trigger station bk scan during quiet bss duration
 #define SIR_MAC_PROP_TAURUS              18  // Advertises a TAURUS device
 
 // capability ie info
 #define SIR_MAC_PROP_CAPABILITY_MIN      sizeof(tANI_U16)
 
 // trigger sta scan ie length defines
-#define SIR_MAC_PROP_TRIG_STA_BK_SCAN_EID_MIN		0
-#define SIR_MAC_PROP_TRIG_STA_BK_SCAN_EID_MAX		1
+#define SIR_MAC_PROP_TRIG_STA_BK_SCAN_EID_MIN           0
+#define SIR_MAC_PROP_TRIG_STA_BK_SCAN_EID_MAX           1
 
 // the bit map is also used as a config enable, setting a bit in the
 // propIE config variable, enables the corresponding capability in the propIE
@@ -177,7 +177,7 @@ typedef struct sSirMacPropLLSet
 typedef struct sSirMacPropVersion
 {
     tANI_U32  chip_rev;       // board, chipset info
-    tANI_U8	card_type;	// Type of Card
+    tANI_U8   card_type;      // Type of Card
     tANI_U8  build_version[SIR_PROP_VERSION_STR_MAX]; //build version string
 } tSirMacPropVersion, *tpSirMacPropVersion;
 #define SIR_MAC_PROP_VERSION_MIN (SIR_PROP_VERSION_STR_MAX + sizeof(tANI_U32))
@@ -254,11 +254,11 @@ typedef struct sSirMacPropVersion
 #define GET_RFCS_PATTERN_ID(revFcsState) ((revFcsState & 0x0E) >> 1)
 
 /* STA CB Legacy Bss detect states */
-#define LIM_CB_LEGACY_BSS_DETECT_IDLE			0
-#define LIM_CB_LEGACY_BSS_DETECT_RUNNING		1
+#define LIM_CB_LEGACY_BSS_DETECT_IDLE                   0
+#define LIM_CB_LEGACY_BSS_DETECT_RUNNING                1
 
 /* Default value for gLimRestoreCBNumScanInterval */
-#define LIM_RESTORE_CB_NUM_SCAN_INTERVAL_DEFAULT	2
+#define LIM_RESTORE_CB_NUM_SCAN_INTERVAL_DEFAULT        2
 
 //
 // Proprietary Quite BSS IE structure
@@ -324,7 +324,7 @@ typedef struct sSirPropIEStruct
     tANI_U8                    taurusPresent:1;  
     tANI_U8                    propChannelSwitchPresent:1;
     tANI_U8                    quietBssPresent:1;
-    tANI_U8			  triggerStaScanPresent:1;                
+    tANI_U8                    triggerStaScanPresent:1;                
     tANI_U8                    rsvd:5;
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
@@ -341,12 +341,12 @@ typedef struct sSirPropIEStruct
     tSirMacPropRateSet    propRates;
     tAniApName            apName;           // used in beacon/probe only
     tSirAlternateRadioInfo  alternateRadio; // used in assoc response only
-    tANI_U16                   capability;       // capability bit map
+    tANI_U16              capability;       // capability bit map
     tSirMacPropVersion    version;
     tSirMacEdcaParamSetIE edca;
     tChannelSwitchPropIEStruct  channelSwitch;
     tQuietBssIEStruct     quietBss;
-    tANI_U8			  triggerStaScanEnable;
+    tANI_U8               triggerStaScanEnable;
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tANI_U8                    hcfEnabled;

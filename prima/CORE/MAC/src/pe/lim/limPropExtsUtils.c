@@ -489,7 +489,7 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
         /** Probe response or beaccon packet */
         palCopyMemory(pMac->hHdd, (void *)&ssId, (void *) &pBeacon->ssId,
                                              sizeof(ssId));
-	    chanId = limGetChannelFromBeacon(pMac, pBeacon);
+        chanId = limGetChannelFromBeacon(pMac, pBeacon);
         ieLen = pBeacon->wpa.length + pBeacon->propIEinfo.wdsLength;
     }
 
@@ -504,7 +504,7 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
            chanId = pMac->lim.gLimCurrentScanChannelId;
       }
     }
-	
+
     /*
      * Now always returns nwType as 11G for data packets - FIXIT
      */
@@ -514,9 +514,9 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
     /** LOGP would result in freeing all dynamicall allocated memories. So
       *  return from here if limGetMatrixNode returns NULL
       */
-	if (!pNewMatrix)
-		return;
-	
+    if (!pNewMatrix)
+        return;
+
     pNewMatrix->matrix.aggrRssi += WDA_GET_RX_RSSI_DB(pRxPacketInfo);
     pNewMatrix->matrix.totalPackets++;
 
@@ -693,7 +693,7 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
 #endif
 
             if (pBeacon->suppRatesPresent && (pBeacon->supportedRates.numRates <= 
-				                                         SIR_MAC_RATESET_EID_MAX))
+                                              SIR_MAC_RATESET_EID_MAX))
             {
                 pNode->info.neighborBssInfo.operationalRateSet.numRates = pBeacon->supportedRates.numRates;
 
@@ -708,7 +708,7 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
             }
 
             if (pBeacon->extendedRatesPresent && (pBeacon->extendedRates.numRates <= 
-				                                            SIR_MAC_RATESET_EID_MAX))
+                                                  SIR_MAC_RATESET_EID_MAX))
             {
                 pNode->info.neighborBssInfo.extendedRateSet.numRates = pBeacon->extendedRates.numRates;
 
@@ -870,12 +870,12 @@ limSendSmeMeasurementInd(tpAniSirGlobal pMac)
     }
 #endif
 
-	if (!pMac->sys.gSysEnableLearnMode ||
-		(pMac->lim.gpLimMeasReq == NULL))
-	{
-		return;
-	}
-	
+    if (!pMac->sys.gSysEnableLearnMode ||
+        (pMac->lim.gpLimMeasReq == NULL))
+    {
+        return;
+    }
+
     len = sizeof(tSirSmeMeasurementInd) +
           (pMac->lim.gpLimMeasReq->channelList.numChannels *
            sizeof(tSirMeasMatrixInfo)) +
@@ -1226,7 +1226,7 @@ limRestorePreLearnState(tpAniSirGlobal pMac)
 ePhyChanBondState limGetPhyCBState( tpAniSirGlobal pMac )
 {
     ePhyChanBondState cbState = PHY_SINGLE_CHANNEL_CENTERED;
-	
+
     if( GET_CB_OPER_STATE( pMac->lim.gCbState ))
     {
       if( GET_CB_SEC_CHANNEL( pMac->lim.gCbState ))

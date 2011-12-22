@@ -1232,8 +1232,8 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, 
-                    "WLANTL_ClearSTAClient() failed to for staID %d.  \
-                    Status= %d [0x%08lX]",
+                    "WLANTL_ClearSTAClient() failed to for staID %d.  "
+                    "Status= %d [0x%08lX]",
                     staId, vosStatus, vosStatus );
     }
 
@@ -1241,8 +1241,8 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
     if( VOS_STATUS_E_FAILURE == vosStatus )
     {
         VOS_TRACE ( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                    "hdd_softap_deinit_tx_rx_sta() failed for staID %d. \
-                    Status = %d [0x%08lX]",
+                    "hdd_softap_deinit_tx_rx_sta() failed for staID %d. "
+                    "Status = %d [0x%08lX]",
                     staId, vosStatus, vosStatus );
         return( vosStatus );
     }

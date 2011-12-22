@@ -398,7 +398,7 @@ PopulateDot11fDSParams(tpAniSirGlobal     pMac,
 void
 PopulateDot11fEDCAParamSet(tpAniSirGlobal         pMac,
                            tDot11fIEEDCAParamSet *pDot11f,
-			   tpPESession psessionEntry);
+                           tpPESession psessionEntry);
 
 #ifdef WLAN_SOFTAP_FEATURE
 tSirRetStatus
@@ -526,7 +526,7 @@ PopulateDot11fQOSCapsStation(tpAniSirGlobal           pMac,
 
 tSirRetStatus 
 PopulateDot11fRSN(tpAniSirGlobal  pMac,
-				tpSirRSNie      pRsnIe,
+                  tpSirRSNie      pRsnIe,
                   tDot11fIERSN   *pDot11f);
 
 tSirRetStatus
@@ -612,7 +612,7 @@ PopulateDot11fSuppRates(tpAniSirGlobal      pMac,
 
 tSirRetStatus PopulateDot11fTPCReport(tpAniSirGlobal      pMac,
                                       tDot11fIETPCReport *pDot11f,
-				      tpPESession psessionEntry);
+                                      tpPESession psessionEntry);
 
 /// Populate a tDot11FfTSInfo
 void PopulateDot11fTSInfo(tSirMacTSInfo   *pInfo,

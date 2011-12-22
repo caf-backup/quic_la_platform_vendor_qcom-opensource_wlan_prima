@@ -10,8 +10,8 @@
  * constrain this; it's limited only by the max frame size (and
  * the max parameter size of the wireless extensions).
  */
-#define	QCSAP_MAX_OPT_IE	256
-#define	QCSAP_MAX_WSC_IE	256
+#define QCSAP_MAX_OPT_IE        256
+#define QCSAP_MAX_WSC_IE        256
 
 typedef struct sSSID
 {
@@ -42,13 +42,13 @@ typedef enum {
 
 } tQcPhyMode;
 
-#define	QCSAP_ADDR_LEN	6
+#define QCSAP_ADDR_LEN  6
 
 typedef u_int8_t qcmacaddr[QCSAP_ADDR_LEN];
 
 struct qc_mac_acl_entry {
-	qcmacaddr addr;
-	int vlan_id;
+    qcmacaddr addr;
+    int vlan_id;
 };
 
 typedef enum {
@@ -67,21 +67,21 @@ typedef struct s_CommitConfig {
 
     tSSIDInfo SSIDinfo;
 
-    u_int32_t beacon_int;   	/* Beacon Interval */
+    u_int32_t beacon_int;       /* Beacon Interval */
 
-    tQcPhyMode hw_mode;	/* Wireless Mode */
+    tQcPhyMode hw_mode;         /* Wireless Mode */
 
-    u_int32_t channel;		/* Operation channel */
+    u_int32_t channel;          /* Operation channel */
 
-    u_int32_t max_num_sta; 	/* maximum number of STAs in station table */
+    u_int32_t max_num_sta;      /* maximum number of STAs in station table */
 
-    u_int32_t dtim_period;	/* dtim interval */
+    u_int32_t dtim_period;      /* dtim interval */
     u_int32_t max_listen_interval;
 
     enum {
-		QC_ACCEPT_UNLESS_DENIED = 0,
-		QC_DENY_UNLESS_ACCEPTED = 1,
-	} qc_macaddr_acl;
+        QC_ACCEPT_UNLESS_DENIED = 0,
+        QC_DENY_UNLESS_ACCEPTED = 1,
+    } qc_macaddr_acl;
     
     struct qc_mac_acl_entry *accept_mac; /* MAC filtering */
     u_int32_t num_accept_mac;
@@ -109,7 +109,7 @@ typedef struct s_CommitConfig {
     eQcAuthType authType;
 
     u_int8_t privacy;
-	
+
     u_int8_t set_ieee8021x;
 
     u_int8_t RSNWPAReqIE[QCSAP_MAX_OPT_IE];     //If not null, it has the IE byte stream for RSN/WPA
@@ -124,14 +124,14 @@ typedef struct s_CommitConfig {
  * is used for station mode only.  The other types are used for station or ap mode.
  */
 struct sQcSapreq_mlme {
-    u_int8_t    im_op;		/* operation to perform */
-#define	QCSAP_MLME_ASSOC        1	/* associate station */
-#define	QCSAP_MLME_DISASSOC     2	/* disassociate station */
-#define	QCSAP_MLME_DEAUTH       3	/* deauthenticate station */
-#define	QCSAP_MLME_AUTHORIZE    4	/* authorize station */
-#define	QCSAP_MLME_UNAUTHORIZE  5	/* unauthorize station */
-#define QCSAP_MLME_MICFAILURE   6   /* TKIP MICFAILURE */
-    u_int16_t   im_reason;	/* 802.11 reason code */
+    u_int8_t    im_op;          /* operation to perform */
+#define QCSAP_MLME_ASSOC        1       /* associate station */
+#define QCSAP_MLME_DISASSOC     2       /* disassociate station */
+#define QCSAP_MLME_DEAUTH       3       /* deauthenticate station */
+#define QCSAP_MLME_AUTHORIZE    4       /* authorize station */
+#define QCSAP_MLME_UNAUTHORIZE  5       /* unauthorize station */
+#define QCSAP_MLME_MICFAILURE   6       /* TKIP MICFAILURE */
+    u_int16_t   im_reason;      /* 802.11 reason code */
     u_int8_t    im_macaddr[QCSAP_ADDR_LEN];
 };
 
@@ -140,16 +140,16 @@ struct sQcSapreq_mlme {
  * Retrieve the WPA/RSN information element for an associated station.
  */
 struct sQcSapreq_wpaie {
-	u_int8_t	wpa_ie[QCSAP_MAX_OPT_IE];
-	u_int8_t	wpa_macaddr[QCSAP_ADDR_LEN];
+    u_int8_t    wpa_ie[QCSAP_MAX_OPT_IE];
+    u_int8_t    wpa_macaddr[QCSAP_ADDR_LEN];
 };
 
 /*
  * Retrieve the WSC information element for an associated station.
  */
 struct sQcSapreq_wscie {
-	u_int8_t	wsc_macaddr[QCSAP_ADDR_LEN];
-	u_int8_t	wsc_ie[QCSAP_MAX_WSC_IE];
+    u_int8_t    wsc_macaddr[QCSAP_ADDR_LEN];
+    u_int8_t    wsc_ie[QCSAP_MAX_WSC_IE];
 };
 
 
@@ -157,7 +157,7 @@ struct sQcSapreq_wscie {
  * Retrieve the WPS PBC Probe Request IEs.
  */
 typedef struct sQcSapreq_WPSPBCProbeReqIES {
-	u_int8_t	macaddr[QCSAP_ADDR_LEN];
+    u_int8_t    macaddr[QCSAP_ADDR_LEN];
     u_int16_t   probeReqIELen;
     u_int8_t    probeReqIE[512]; 
 } sQcSapreq_WPSPBCProbeReqIES_t ;
@@ -172,9 +172,9 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
  *     (regardless of the incorrect comment in wireless.h!)
  */
 
-#define	QCSAP_IOCTL_SETPARAM          (SIOCIWFIRSTPRIV+0)
-#define	QCSAP_IOCTL_GETPARAM          (SIOCIWFIRSTPRIV+1)
-#define	QCSAP_IOCTL_COMMIT            (SIOCIWFIRSTPRIV+2)
+#define QCSAP_IOCTL_SETPARAM          (SIOCIWFIRSTPRIV+0)
+#define QCSAP_IOCTL_GETPARAM          (SIOCIWFIRSTPRIV+1)
+#define QCSAP_IOCTL_COMMIT            (SIOCIWFIRSTPRIV+2)
 #define QCSAP_IOCTL_SETMLME           (SIOCIWFIRSTPRIV+3)
 
 #define QCSAP_IOCTL_GET_STAWPAIE      (SIOCIWFIRSTPRIV+4)
@@ -201,7 +201,7 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
 
 #define QCSAP_IOCTL_MODIFY_ACL        (SIOCIWFIRSTPRIV+18)
 
-#define MAX_VAR_ARGS         7			
+#define MAX_VAR_ARGS         7
 
 enum { 
     QCSAP_PARAM_MAX_ASSOC = 1,

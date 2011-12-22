@@ -572,7 +572,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
     tANI_U16 framelen;
     tANI_BOOLEAN match = VOS_FALSE;
     VOS_STATUS vosStatus;
-	
+
     pHdr = WDA_GET_RX_MAC_HEADER(pBd);
     fc = pHdr->fc;
     frameType = (fc.type << 2 ) | (fc.subType << 4);
@@ -580,7 +580,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
     framelen = WDA_GET_RX_PAYLOAD_LEN(pBd);
 
     vos_list_peek_front(&pMac->lim.gLimMgmtFrameRegistratinQueue,
-   	                (vos_list_node_t**)&pLimMgmtRegistration);
+                        (vos_list_node_t**)&pLimMgmtRegistration);
 
     while(pLimMgmtRegistration != NULL)
     {
@@ -620,7 +620,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
         limLog( pMac, LOG1, 
                 FL("rcvd frame match with registered frame params\n"));
 
-        /* Indicate this to SME */	 
+        /* Indicate this to SME */
         limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
                      WDA_GET_RX_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      pLimMgmtRegistration->sessionId );
@@ -1255,7 +1255,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 
         case eWNI_SME_SCAN_REQ:
-#ifdef WLAN_FEATURE_P2P		  	
+#ifdef WLAN_FEATURE_P2P
         case eWNI_SME_REMAIN_ON_CHANNEL_REQ:
 #endif
         case eWNI_SME_DISASSOC_REQ:
@@ -1319,7 +1319,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case eWNI_SME_FT_UPDATE_KEY:
-	    case eWNI_SME_FT_PRE_AUTH_REQ:
+        case eWNI_SME_FT_PRE_AUTH_REQ:
         case eWNI_SME_FT_AGGR_QOS_REQ:
 #endif
         case eWNI_SME_ADD_STA_SELF_REQ:
@@ -1327,7 +1327,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #ifdef WLAN_FEATURE_P2P
         case eWNI_SME_REGISTER_MGMT_FRAME_REQ:
         case eWNI_SME_UPDATE_NOA:
-#endif	    
+#endif
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, false);   //no need to response to hdd
             break;
@@ -1584,7 +1584,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case SIR_LIM_FT_PREAUTH_RSP_TIMEOUT:
 #endif
 #ifdef WLAN_FEATURE_P2P
-		case SIR_LIM_REMAIN_CHN_TIMEOUT:
+        case SIR_LIM_REMAIN_CHN_TIMEOUT:
 #endif
             // These timeout messages are handled by MLM sub module
 

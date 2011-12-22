@@ -589,7 +589,7 @@ limCreateTimers(tpAniSirGlobal pMac)
 #ifdef WLAN_FEATURE_P2P
     cfgValue = 1000;
     cfgValue = SYS_MS_TO_TICKS(cfgValue);
-	 if (tx_timer_create(&pMac->lim.limTimers.gLimRemainOnChannelTimer,
+    if (tx_timer_create(&pMac->lim.limTimers.gLimRemainOnChannelTimer,
                                     "FT PREAUTH RSP TIMEOUT",
                                     limTimerHandler, SIR_LIM_REMAIN_CHN_TIMEOUT,
                                     cfgValue, 0,
@@ -1480,7 +1480,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
 #endif
 #ifdef WLAN_FEATURE_P2P
         case eLIM_REMAIN_CHN_TIMER:
-				if (tx_timer_deactivate(&pMac->lim.limTimers.gLimRemainOnChannelTimer) != TX_SUCCESS)
+            if (tx_timer_deactivate(&pMac->lim.limTimers.gLimRemainOnChannelTimer) != TX_SUCCESS)
             {
                 /**
                 ** Could not deactivate Join Failure
@@ -1500,7 +1500,6 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP, FL("Unable to change timer\n"));
             }
             break;
-			break;
 #endif
 
         default:
@@ -1566,10 +1565,10 @@ limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
     //only start the hearbeat-timer if the timeout value is non-zero
     if(pMac->lim.limTimers.gLimHeartBeatTimer.initScheduleTimeInMsecs > 0) {
         if (tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer)!= TX_SUCCESS)
-	    {
-	        limLog(pMac, LOGP,FL("could not activate Heartbeat timer\n"));
-	    }
-	        limResetHBPktCount(psessionEntry);
+        {
+            limLog(pMac, LOGP,FL("could not activate Heartbeat timer\n"));
+        }
+        limResetHBPktCount(psessionEntry);
     }
 
 } /****** end limReactivateHeartBeatTimer() ******/

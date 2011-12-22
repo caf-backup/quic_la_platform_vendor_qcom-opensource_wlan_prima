@@ -263,7 +263,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
 #endif
 
    default:
-      WDALOGW( wdaLog(pMac, LOGW, FL("Unknown message type = " \
+      WDALOGW( wdaLog(pMac, LOGW, FL("Unknown message type = "
              "0x%X\n"),
              msg.type));
 

@@ -138,7 +138,7 @@
 #define SIR_MAC_ACTION_RRM             5
 #endif
 #define SIR_MAC_ACTION_HT              7
-#define SIR_MAC_ACTION_WME            17	
+#define SIR_MAC_ACTION_WME            17
 #if defined WLAN_FEATURE_P2P
 #define SIR_MAC_ACTION_PUBLIC_USAGE 4
 #endif
@@ -195,7 +195,7 @@
 #endif
 
 // HT Action Field Codes
-#define SIR_MAC_SM_POWER_SAVE				1
+#define SIR_MAC_SM_POWER_SAVE       1
 
 // DLP action frame types
 #define SIR_MAC_DLP_REQ             0
@@ -975,7 +975,7 @@ typedef __ani_attr_pre_packed struct sSirMacWpaInfo
 #define AC_MGMT_LO 4
 #define AC_MGMT_HI 5
 #define MAX_NUM_AC 4
-#define TOT_NUM_AC (MAX_NUM_AC + 2)		/* +2 for AC_MGMT_xx */
+#define TOT_NUM_AC (MAX_NUM_AC + 2)   /* +2 for AC_MGMT_xx */
 
 /*
 #define   EDCA_INDEX_0_RSVD            0
@@ -1032,15 +1032,15 @@ typedef __ani_attr_pre_packed struct sSirMacQosInfo
 {
 #ifndef ANI_LITTLE_BIT_ENDIAN
     tANI_U8  uapsd   : 1;
-	tANI_U8  txopreq : 1;
-	tANI_U8  qreq    : 1;
-	tANI_U8  qack    : 1;
+    tANI_U8  txopreq : 1;
+    tANI_U8  qreq    : 1;
+    tANI_U8  qack    : 1;
     tANI_U8  count   : 4;
 #else
     tANI_U8  count   : 4;
-	tANI_U8  qack    : 1;
-	tANI_U8  qreq    : 1;
-	tANI_U8  txopreq : 1;
+    tANI_U8  qack    : 1;
+    tANI_U8  qreq    : 1;
+    tANI_U8  txopreq : 1;
     tANI_U8  uapsd   : 1;
 #endif
 } __ani_attr_packed tSirMacQosInfo;
@@ -1593,30 +1593,30 @@ typedef __ani_attr_pre_packed struct _BarControl {
 
 #ifndef ANI_BIG_BYTE_ENDIAN
 
-	tANI_U16	barAckPolicy:1;
-	tANI_U16	multiTID:1;
-	tANI_U16	bitMap:1;
-	tANI_U16	rsvd:9;
-	tANI_U16	numTID:4;
+    tANI_U16    barAckPolicy:1;
+    tANI_U16    multiTID:1;
+    tANI_U16    bitMap:1;
+    tANI_U16    rsvd:9;
+    tANI_U16    numTID:4;
 
 #else
-	tANI_U16	numTID:4;
-	tANI_U16	rsvd:9;
-	tANI_U16	bitMap:1;
-	tANI_U16	multiTID:1;
-	tANI_U16	barAckPolicy:1;
-	
+    tANI_U16    numTID:4;
+    tANI_U16    rsvd:9;
+    tANI_U16    bitMap:1;
+    tANI_U16    multiTID:1;
+    tANI_U16    barAckPolicy:1;
+
 #endif
 
 }__ani_attr_packed barCtrlType;
 
 typedef __ani_attr_pre_packed struct _BARFrmStruct {
-	tSirMacFrameCtl	  fc;
-	tANI_U16 		  duration;
-	tSirMacAddr       rxAddr;
-	tSirMacAddr       txAddr;
-	barCtrlType       barControl;
-	tSirMacSeqCtl	  ssnCtrl;
+    tSirMacFrameCtl   fc;
+    tANI_U16          duration;
+    tSirMacAddr       rxAddr;
+    tSirMacAddr       txAddr;
+    barCtrlType       barControl;
+    tSirMacSeqCtl     ssnCtrl;
 }__ani_attr_packed BARFrmType;
 
 
@@ -2329,10 +2329,10 @@ typedef __ani_attr_pre_packed struct sSirMacSnrReport
 typedef __ani_attr_pre_packed struct sSirMacStaCbLegacyBssDetect
 {
     tSirMacAniActionFrame hdr;
-    tANI_U8			  channelNum;
-    tANI_U8			  numLegacyBssid;
+    tANI_U8               channelNum;
+    tANI_U8               numLegacyBssid;
     /* Below is declared as a place holder.  Don't add anything after it since LegacyBssidList will take up memory after it */
-    tANI_U8			  LegacyBssidList[1]; /* Need to declare size 1 cause win build doesn't like size 0 */
+    tANI_U8               LegacyBssidList[1]; /* Need to declare size 1 cause win build doesn't like size 0 */
 } __ani_attr_packed tSirMacStaCbLegacyBssDetect, *tpSirMacStaCbLegacyBssDetect;
 
 typedef __ani_attr_pre_packed struct sSirMacQoSDefBAReq

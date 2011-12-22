@@ -12,14 +12,14 @@ typedef enum
    eConnectionState_NotConnected,
    /** Associated in an Infrastructure network.*/
    eConnectionState_Associated,
-	  
+
    /** Participating in an IBSS network though disconnected (no partner stations
        in the IBSS).*/
    eConnectionState_IbssDisconnected,
-	  
+
    /** Participating in an IBSS network with partner stations also present*/
    eConnectionState_IbssConnected
-	
+
 }eConnectionState;
 /**This structure stores the connection information */
 typedef struct connection_info_s
@@ -42,23 +42,23 @@ typedef struct connection_info_s
    v_U8_t staId[ HDD_MAX_NUM_IBSS_STA ];
    /** Peer Mac Address of the IBSS Stations */
    v_MACADDR_t peerMacAddress[ HDD_MAX_NUM_IBSS_STA ];         
-    /** Auth Type */
+   /** Auth Type */
    eCsrAuthType   authType;
-	
-	/** Unicast Encryption Type */
+
+   /** Unicast Encryption Type */
    eCsrEncryptionType ucEncryptionType;
-	
-	/** Multicast Encryption Type */
+
+   /** Multicast Encryption Type */
    eCsrEncryptionType mcEncryptionType;
-	
-	/** Keys */
+
+   /** Keys */
    tCsrKeys Keys;
-	
-	/** Operation Channel  */		
+
+   /** Operation Channel  */
    v_U8_t operationChannel; 
    
     /** Remembers authenticated state */
-   v_U8_t uIsAuthenticated;	
+   v_U8_t uIsAuthenticated;
    
 }connection_info_t;
 /*Forward declaration of Adapter*/

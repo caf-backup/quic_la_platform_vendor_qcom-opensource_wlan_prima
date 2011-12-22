@@ -178,7 +178,7 @@ typedef struct sUapsdInfo {
 #define WLANHAL_RX_BD_GET_ADDR1_IDX( _pvBDHeader )     (((tpHalRxBd)_pvBDHeader)->addr1Index)
 
 #define WLANHAL_TX_BD_GET_TID( _pvBDHeader )           (((tpHalTxBd)_pvBDHeader)->tid)
-#define WLANHAL_TX_BD_GET_STA_ID( _pvBDHeader ) 	(((tpHalTxBd)_pvBDHeader)->staIndex)
+#define WLANHAL_TX_BD_GET_STA_ID( _pvBDHeader )    (((tpHalTxBd)_pvBDHeader)->staIndex)
 
 #define WLANHAL_RX_BD_GET_DPU_SIG( _pvBDHeader )   (((tpHalRxBd)_pvBDHeader)->dpuSignature)
 
@@ -206,8 +206,8 @@ typedef struct sUapsdInfo {
 
 #define WLANHAL_RX_BD_GET_TIMESTAMP(_pvBDHeader)    (((tpHalRxBd)_pvBDHeader)->mclkRxTimestamp)
 
-#define tHalFcRxBd	     halFcRxBd_type             
-#define tpHalFcRxBd	     phalFcRxBd_type
+#define tHalFcRxBd       halFcRxBd_type             
+#define tpHalFcRxBd      phalFcRxBd_type
 #define tHalFcTxBd       halFcTxBd_type
 #define tpHalFcTxBd      pHalFcTxBd_type              
 #define tHalFcTxParams   tFcTxParams_type
@@ -418,8 +418,8 @@ tANI_U8 WLANHAL_IsOnChipReorderingEnabledForTID(void* pVosGCtx, tANI_U8 staIdx, 
 v_BOOL_t WLANHAL_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx, tANI_U8 staIdx);
 #endif
 
-#define tHalRxBd	halRxBd_type
-#define tpHalRxBd	phalRxBd_type
+#define tHalRxBd    halRxBd_type
+#define tpHalRxBd    phalRxBd_type
 
 #define tHalTxBd    halTxBd_type
 #define tpHalTxBd    pHalTxBd_type

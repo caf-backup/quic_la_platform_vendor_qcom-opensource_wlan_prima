@@ -77,26 +77,26 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
     tANI_U8 i;
     for(i =0; i < pMac->lim.maxBssId; i++)
     {
-        /* Find first free room in session table */	
+        /* Find first free room in session table */
         if(pMac->lim.gpSession[i].valid == FALSE)
         {
-	        palZeroMemory(pMac, (void*)&pMac->lim.gpSession[i], sizeof(tPESession));
+            palZeroMemory(pMac, (void*)&pMac->lim.gpSession[i], sizeof(tPESession));
 
-     	    //Allocate space for Station Table for this session.
-    	    if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
-    	              (void **) &pMac->lim.gpSession[i].dph.dphHashTable.pHashTable, sizeof(tpDphHashNode)*numSta))
-    	    {
-    	        limLog(pMac, LOGE, FL("memory allocate failed!\n"));
-    	        return NULL;
-    	    }
+            //Allocate space for Station Table for this session.
+            if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
+                     (void **) &pMac->lim.gpSession[i].dph.dphHashTable.pHashTable, sizeof(tpDphHashNode)*numSta))
+            {
+                limLog(pMac, LOGE, FL("memory allocate failed!\n"));
+                return NULL;
+            }
 
-    	    if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
-    	              (void **) &pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray, sizeof(tDphHashNode)*numSta))
-    	    {
-    	        limLog(pMac, LOGE, FL("memory allocate failed!\n"));
-    		    palFreeMemory(pMac->hHdd,pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
-    	        return NULL;
-    	    }
+            if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
+                  (void **) &pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray, sizeof(tDphHashNode)*numSta))
+            {
+                limLog(pMac, LOGE, FL("memory allocate failed!\n"));
+                palFreeMemory(pMac->hHdd,pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
+                return NULL;
+            }
             pMac->lim.gpSession[i].dph.dphHashTable.size = numSta;
 
             dphHashTableClassInit(pMac, 
@@ -206,44 +206,44 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
     if(psessionEntry->pLimStartBssReq != NULL)
     {
-    	palFreeMemory( pMac->hHdd, psessionEntry->pLimStartBssReq );
-	psessionEntry->pLimStartBssReq = NULL;
+        palFreeMemory( pMac->hHdd, psessionEntry->pLimStartBssReq );
+        psessionEntry->pLimStartBssReq = NULL;
     }
 
     if(psessionEntry->pLimJoinReq != NULL)
     {
-    	palFreeMemory( pMac->hHdd, psessionEntry->pLimJoinReq );
-	psessionEntry->pLimJoinReq = NULL;
+        palFreeMemory( pMac->hHdd, psessionEntry->pLimJoinReq );
+        psessionEntry->pLimJoinReq = NULL;
     }
-	
+
     if(psessionEntry->pLimReAssocReq != NULL)
     {
-    	palFreeMemory( pMac->hHdd, psessionEntry->pLimReAssocReq );
-	psessionEntry->pLimReAssocReq = NULL;
+        palFreeMemory( pMac->hHdd, psessionEntry->pLimReAssocReq );
+        psessionEntry->pLimReAssocReq = NULL;
     }
 
     if(psessionEntry->pLimMlmJoinReq != NULL)
     {
-    	palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmJoinReq );
-	psessionEntry->pLimMlmJoinReq = NULL;
+        palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmJoinReq );
+        psessionEntry->pLimMlmJoinReq = NULL;
     }
 
     if(psessionEntry->dph.dphHashTable.pHashTable != NULL)
     {
-	palFreeMemory(pMac->hHdd, psessionEntry->dph.dphHashTable.pHashTable);
-	psessionEntry->dph.dphHashTable.pHashTable = NULL;
+        palFreeMemory(pMac->hHdd, psessionEntry->dph.dphHashTable.pHashTable);
+        psessionEntry->dph.dphHashTable.pHashTable = NULL;
     }
-	
+
     if(psessionEntry->dph.dphHashTable.pDphNodeArray != NULL)
     {
-	palFreeMemory(pMac->hHdd, psessionEntry->dph.dphHashTable.pDphNodeArray);
-	psessionEntry->dph.dphHashTable.pDphNodeArray = NULL;
+        palFreeMemory(pMac->hHdd, psessionEntry->dph.dphHashTable.pDphNodeArray);
+        psessionEntry->dph.dphHashTable.pDphNodeArray = NULL;
     }
 
     if(psessionEntry->beacon != NULL)
     {
-       palFreeMemory( pMac->hHdd, psessionEntry->beacon);
-	psessionEntry->beacon = NULL;
+        palFreeMemory( pMac->hHdd, psessionEntry->beacon);
+        psessionEntry->beacon = NULL;
     }
 
     if(psessionEntry->assocReq != NULL)
@@ -259,17 +259,17 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
     }
 
 
-	if(psessionEntry->parsedAssocReq != NULL)
-	{
+    if(psessionEntry->parsedAssocReq != NULL)
+    {
        // Cleanup the individual allocation first
-	    for (i=0; i < psessionEntry->dph.dphHashTable.size; i++)
-	    {
-	        if ( psessionEntry->parsedAssocReq[i] != NULL )
-	        {
-	            palFreeMemory(pMac->hHdd, (void *)psessionEntry->parsedAssocReq[i]);
-	            psessionEntry->parsedAssocReq[i] = NULL;
-	        }
-	    }
+        for (i=0; i < psessionEntry->dph.dphHashTable.size; i++)
+        {
+            if ( psessionEntry->parsedAssocReq[i] != NULL )
+            {
+                palFreeMemory(pMac->hHdd, (void *)psessionEntry->parsedAssocReq[i]);
+                psessionEntry->parsedAssocReq[i] = NULL;
+            }
+        }
         // Cleanup the whole block
         palFreeMemory(pMac->hHdd, (void *)psessionEntry->parsedAssocReq);
         psessionEntry->parsedAssocReq = NULL;

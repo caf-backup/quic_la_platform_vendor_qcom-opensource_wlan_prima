@@ -1090,12 +1090,10 @@ sendIndToSme:
                                      subType, true, authType, aid, true,
                                      (tSirResultCodes) eSIR_MAC_WME_REFUSED_STATUS, psessionEntry);
 
-				
+
                 /*return it from here rather than goto error statement.This is done as the memory is getting free twice in this uapsd scenario*/
-                return;				
+                return;
                 //goto error;
-			
-		
             }
             else
             {
@@ -1144,9 +1142,9 @@ sendIndToSme:
             limRejectAssociation( pMac, pStaDs->staAddr, pStaDs->mlmStaContext.subType,
                                   true, pStaDs->mlmStaContext.authType, pStaDs->assocId, true,
                                   (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
-				
+
             /*return it from here rather than goto error statement.This is done as the memory is getting free twice*/
-            return;			
+            return;
             //goto error;
         }
     }

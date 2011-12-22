@@ -202,7 +202,7 @@ limCollectBssDescription(tpAniSirGlobal pMac,
 
     //set the network type in bss description
     channelNum = pBssDescr->channelId;
-	pBssDescr->nwType = limGetNwType(pMac, channelNum, SIR_MAC_MGMT_FRAME, pBPR);
+    pBssDescr->nwType = limGetNwType(pMac, channelNum, SIR_MAC_MGMT_FRAME, pBPR);
 
     pBssDescr->aniIndicator = pBPR->propIEinfo.aniIndicator;
 

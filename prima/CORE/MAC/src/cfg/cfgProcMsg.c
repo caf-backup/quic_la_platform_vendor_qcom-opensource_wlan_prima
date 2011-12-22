@@ -111,7 +111,7 @@ ProcDnldRsp(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam)
 {
     tANI_S32    i;
   #if defined(ANI_PRODUCT_TYPE_AP)
-	tANI_U32 ap;
+    tANI_U32 ap;
   #endif
 
     tANI_U32    expLen, retVal, bufStart, bufEnd;
@@ -145,7 +145,7 @@ ProcDnldRsp(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam)
 
         ap = 0;
 #else /* ANI_PRODUCT_TYPE_AP*/
-	if (*pParam == CFG_STA_MAGIC_DWORD) {}
+        if (*pParam == CFG_STA_MAGIC_DWORD) {}
 
 #endif/* ANI_PRODUCT_TYPE_AP*/
 
@@ -613,22 +613,22 @@ ProcSetReqInternal(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam, tANI_
 #else
                         value = *pParam;
 #endif
-                       PELOG1(cfgLog(pMac, LOGW, FL("Cfg set int %d len %d(%d) val %d\n"),
+                        PELOG1(cfgLog(pMac, LOGW, FL("Cfg set int %d len %d(%d) val %d\n"),
                                cfgId, valueLen, valueLenRoundedUp4, value);)
                         result = (cfgSetInt(pMac, cfgId, value) == eSIR_SUCCESS ?
                                   WNI_CFG_SUCCESS : WNI_CFG_OTHER_ERROR);
-						if (result == WNI_CFG_SUCCESS)
-						{
-							if (cfgNeedRestart(pMac, cfgId))
-							{
-								result = WNI_CFG_NEED_RESTART ;
-							}
-							else
-							if (cfgNeedReload(pMac, cfgId))
-							{
-								result = WNI_CFG_NEED_RELOAD ;
-							}
-						}
+                        if (result == WNI_CFG_SUCCESS)
+                        {
+                            if (cfgNeedRestart(pMac, cfgId))
+                            {
+                                result = WNI_CFG_NEED_RESTART ;
+                            }
+                            else
+                                if (cfgNeedReload(pMac, cfgId))
+                                {
+                                   result = WNI_CFG_NEED_RELOAD ;
+                                }
+                        }
                     }
                 }
                 // Process string parameter
@@ -643,22 +643,22 @@ ProcSetReqInternal(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam, tANI_
                     else
                     {
                         GetStrValue((tANI_U8*)pParam, pMac->cfg.gSBuffer, valueLen);
-                       PELOG1(cfgLog(pMac, LOGW, FL("Cfg set str %d len %d(%d) bytes\n"),
+                        PELOG1(cfgLog(pMac, LOGW, FL("Cfg set str %d len %d(%d) bytes\n"),
                                cfgId, valueLen, valueLenRoundedUp4);)
                         result = (cfgSetStr(pMac, cfgId, pMac->cfg.gSBuffer, valueLen) == eSIR_SUCCESS ?
                                   WNI_CFG_SUCCESS : WNI_CFG_OTHER_ERROR);
-						if (result == WNI_CFG_SUCCESS)
-						{
-							if (cfgNeedRestart(pMac, cfgId))
-							{
-								result = WNI_CFG_NEED_RESTART ;
-							}
-							else
-							if (cfgNeedReload(pMac, cfgId))
-							{
-								result = WNI_CFG_NEED_RELOAD ;
-							}
-						}
+                        if (result == WNI_CFG_SUCCESS)
+                        {
+                            if (cfgNeedRestart(pMac, cfgId))
+                            {
+                                result = WNI_CFG_NEED_RESTART ;
+                            }
+                            else
+                                if (cfgNeedReload(pMac, cfgId))
+                                {
+                                   result = WNI_CFG_NEED_RELOAD ;
+                                }
+                        }
                     }
                 }
             }

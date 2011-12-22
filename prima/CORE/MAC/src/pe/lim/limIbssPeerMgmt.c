@@ -506,7 +506,7 @@ ibss_bss_add(
     #endif //TO SUPPORT BT-AMP
 
     sirCopyMacAddr(pHdr->bssId,psessionEntry->bssId);
-	/* We need not use global Mac address since per seesion BSSID is available */
+    /* We need not use global Mac address since per seesion BSSID is available */
     //limSetBssid(pMac, pHdr->bssId);
 
 #if 0
@@ -722,11 +722,11 @@ void limIbssDeleteAllPeers( tpAniSirGlobal pMac ,tpPESession psessionEntry)
         if( pStaDs )
         {
 
-			   ibss_status_chg_notify( pMac, pCurrNode->peerMacAddr, pStaDs->staIndex, 
+            ibss_status_chg_notify( pMac, pCurrNode->peerMacAddr, pStaDs->staIndex, 
                                     pStaDs->ucUcastSig, pStaDs->ucBcastSig,
                                     eWNI_SME_IBSS_PEER_DEPARTED_IND );
             dphDeleteHashEntry(pMac, pStaDs->staAddr, aid, &psessionEntry->dph.dphHashTable);
-		}
+        }
 
         pTempNode = pCurrNode->next;
 
@@ -822,9 +822,9 @@ limIbssPeerDelete(tpAniSirGlobal pMac, tSirMacAddr macAddr)
         {
             // Found node to be deleted
             if (pMac->lim.gLimIbssPeerList == pTempNode) /** First Node to be deleted*/
-		        pMac->lim.gLimIbssPeerList = pTempNode->next;
-			else
-	            pPrevNode->next = pTempNode->next;
+                pMac->lim.gLimIbssPeerList = pTempNode->next;
+            else
+                pPrevNode->next = pTempNode->next;
 
             if(pTempNode->beacon)
             {
@@ -872,7 +872,7 @@ limIbssSetProtection(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams p
         psessionEntry->gLim11bParams.protectionEnabled = true;
         if(false == psessionEntry->beaconParams.llbCoexist/*pMac->lim.llbCoexist*/)
         {
-			PELOGE(limLog(pMac, LOGE, FL("=> IBSS: Enable Protection \n"));)
+            PELOGE(limLog(pMac, LOGE, FL("=> IBSS: Enable Protection \n"));)
             pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = true;
             pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
         }
@@ -880,7 +880,7 @@ limIbssSetProtection(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams p
     else if (true == psessionEntry->beaconParams.llbCoexist/*pMac->lim.llbCoexist*/)
     {
         psessionEntry->gLim11bParams.protectionEnabled = false;
-		PELOGE(limLog(pMac, LOGE, FL("===> IBSS: Disable protection \n"));)
+        PELOGE(limLog(pMac, LOGE, FL("===> IBSS: Disable protection \n"));)
         pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
         pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
     }
@@ -1310,8 +1310,8 @@ limIbssDelBssRsp(
     /* Delete PE session once BSS is deleted */
     if (NULL != psessionEntry) {
         limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, rc,psessionEntry->smeSessionId,psessionEntry->transactionId);
-	    peDeleteSession(pMac, psessionEntry);
-	    psessionEntry = NULL;
+        peDeleteSession(pMac, psessionEntry);
+        psessionEntry = NULL;
     }
 }
 
@@ -1386,20 +1386,20 @@ limIbssCoalesce(
         PELOGW(limLog(pMac, LOGW, FL("IBSS Peer node does not exist, adding it***\n"));)
 
 #ifndef ANI_SIR_IBSS_PEER_CACHING
-		/** Limit the Max number of IBSS Peers allowed as the max number of STA's allowed
-		  */
-		if (pMac->lim.gLimNumIbssPeers >= pMac->lim.maxStation)
-			return eSIR_LIM_MAX_STA_REACHED_ERROR;
+        /** Limit the Max number of IBSS Peers allowed as the max number of STA's allowed
+         */
+        if (pMac->lim.gLimNumIbssPeers >= pMac->lim.maxStation)
+            return eSIR_LIM_MAX_STA_REACHED_ERROR;
 #endif
         frameLen = sizeof(tLimIbssPeerNode) + ieLen - sizeof(tANI_U32);
 
         if (eHAL_STATUS_SUCCESS !=
             palAllocateMemory(pMac->hHdd, (void **) &pPeerNode, (tANI_U16)frameLen))
-	    {
+        {
             limLog(pMac, LOGP, FL("alloc fail (%d bytes) storing IBSS peer info\n"),
                    frameLen);
-	        return eSIR_MEM_ALLOC_FAILED;
-	    }
+            return eSIR_MEM_ALLOC_FAILED;
+        }
 
         pPeerNode->beacon = NULL;
         pPeerNode->beaconLen = 0;
@@ -1481,11 +1481,10 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
     tANI_U8 ucUcastSig;
     tANI_U8 ucBcastSig;
 
-	
-	/** MLM BSS is started and if PE in scanmode then MLM state will be waiting for probe resp.
-	 *  If Heart beat timeout triggers during this corner case then we need to reactivate HeartBeat timer 
-	 */
-	if(psessionEntry->limMlmState != eLIM_MLM_BSS_STARTED_STATE) {
+    /** MLM BSS is started and if PE in scanmode then MLM state will be waiting for probe resp.
+     *  If Heart beat timeout triggers during this corner case then we need to reactivate HeartBeat timer 
+     */
+    if(psessionEntry->limMlmState != eLIM_MLM_BSS_STARTED_STATE) {
         /****** 
          * Note: Use this code once you have converted all  
          * limReactivateHeartBeatTimer() calls to 
@@ -1494,11 +1493,11 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
          ******/
         //limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER, psessionEntry);
         limReactivateHeartBeatTimer(pMac, psessionEntry);
-		return;
-	}
-	/** If LinkMonitor is Disabled */
-	if(!pMac->sys.gSysEnableLinkMonitorMode)
-			return;
+        return;
+    }
+    /** If LinkMonitor is Disabled */
+    if(!pMac->sys.gSysEnableLinkMonitorMode)
+        return;
 
     pPrevNode = pTempNode  = pMac->lim.gLimIbssPeerList;
     threshold = (pMac->lim.gLimNumIbssPeers / 4 ) + 1;
@@ -1571,15 +1570,15 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
     else
     {
 
-    	PELOGW(limLog(pMac, LOGW, FL("Heartbeat Failure\n"));)
-	    pMac->lim.gLimHBfailureCntInLinkEstState++;
+        PELOGW(limLog(pMac, LOGW, FL("Heartbeat Failure\n"));)
+        pMac->lim.gLimHBfailureCntInLinkEstState++;
 
         if (psessionEntry->limIbssActive == true)
         {
             // We don't receive Beacon frames from any
             // other STA in IBSS. Announce IBSS inactive
             // to Roaming algorithm
-    	    PELOGW(limLog(pMac, LOGW, FL("Alone in IBSS\n"));)
+            PELOGW(limLog(pMac, LOGW, FL("Alone in IBSS\n"));)
             psessionEntry->limIbssActive = false;
 
             limSendSmeWmStatusChangeNtf(pMac, eSIR_SME_IBSS_INACTIVE,
@@ -1642,7 +1641,7 @@ limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac,
             if (psessionEntry->gLim11bParams.numSta == 0)
             {
                 PELOGE(limLog(pMac, LOGE, FL("No more 11B STA exists. Disable protection. \n"));)
-				limIbssSetProtection(pMac, false, pBeaconParams,psessionEntry);
+                limIbssSetProtection(pMac, false, pBeaconParams,psessionEntry);
             }
         }
     }

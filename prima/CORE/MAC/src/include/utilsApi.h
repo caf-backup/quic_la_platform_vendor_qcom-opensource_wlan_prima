@@ -823,7 +823,7 @@ halRoundS32(tANI_S32 p)
 #define ani_be16_to_cpu(x)  ani_cpu_to_be16(x)
 #define ani_be32_to_cpu(x)  ani_cpu_to_be32(x)
 
-void ConverttoBigEndian(void *ptr, tANI_U16	size);
+void ConverttoBigEndian(void *ptr, tANI_U16 size);
 void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSirMacAddr selfMac);
 void CreateScanDataNullFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr,
                              tANI_U8 pwrMgmt, tSirMacAddr bssid, 

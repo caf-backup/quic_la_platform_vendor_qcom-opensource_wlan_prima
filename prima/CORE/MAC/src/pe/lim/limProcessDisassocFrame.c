@@ -136,7 +136,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
     }
 
     if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
-		(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
+         (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
     {
         switch (reasonCode)
         {
@@ -161,11 +161,11 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         }
     }
     else if (  ((psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-		       (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) &&  
-                     ((psessionEntry->limSmeState != eLIM_SME_WT_JOIN_STATE) && 
-                      (psessionEntry->limSmeState != eLIM_SME_WT_AUTH_STATE)  &&
-                      (psessionEntry->limSmeState != eLIM_SME_WT_ASSOC_STATE)  &&
-                      (psessionEntry->limSmeState != eLIM_SME_WT_REASSOC_STATE) ))
+                (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) &&  
+               ((psessionEntry->limSmeState != eLIM_SME_WT_JOIN_STATE) && 
+                (psessionEntry->limSmeState != eLIM_SME_WT_AUTH_STATE)  &&
+                (psessionEntry->limSmeState != eLIM_SME_WT_ASSOC_STATE)  &&
+                (psessionEntry->limSmeState != eLIM_SME_WT_REASSOC_STATE) ))
     {
         switch (reasonCode)
         {
@@ -259,8 +259,8 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
      * send the update to HAL.
      */
     if ( (psessionEntry->limSystemRole == eLIM_STA_ROLE ) ||
-		(psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE ) )
-	{
+         (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE ) )
+    {
         schSetDefaultEdcaParams(pMac);
         pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
         if (pStaDs != NULL)
@@ -275,7 +275,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
             limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
             return;
         }
-	}
+    }
 
     // Issue Disassoc Indication to SME.
     palCopyMemory( pMac->hHdd, (tANI_U8 *) &mlmDisassocInd.peerMacAddr,
@@ -289,7 +289,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
     mlmDisassocInd.disassocTrigger = eLIM_PEER_ENTITY_DISASSOC;
 
     /* Update PE session Id  */
-	mlmDisassocInd.sessionId = psessionEntry->peSessionId;
+    mlmDisassocInd.sessionId = psessionEntry->peSessionId;
 
     if (limIsReassocInProgress(pMac,psessionEntry)) {
 

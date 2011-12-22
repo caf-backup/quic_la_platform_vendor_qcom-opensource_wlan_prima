@@ -204,7 +204,7 @@ typedef struct
     struct hci_dev               *hdev;        // the BlueZ HCI device structure
 
     /* I don't know how many of these Tx fields we need */
-    spinlock_t                   lock;	/* For serializing operations */
+    spinlock_t                   lock;         /* For serializing operations */
 
     struct                       sk_buff_head txq; /* We need the ACL Data Tx queue */
 
@@ -484,8 +484,8 @@ static VOS_STATUS WLANBAP_STARxCB
 
     if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB WLANBAP_XlateRxDataPkt \
-          failed status = %d\n", VosStatus );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB WLANBAP_XlateRxDataPkt "
+          "failed status = %d\n", VosStatus );
 
         VosStatus = vos_pkt_return_packet( vosDataBuff );
 
@@ -499,8 +499,8 @@ static VOS_STATUS WLANBAP_STARxCB
     VosStatus = vos_pkt_get_os_packet( vosDataBuff, (v_VOID_t **)&skb, VOS_TRUE );
     if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. \
-          VosStatus = %d\n", __FUNCTION__, VosStatus );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. "
+          "VosStatus = %d\n", __FUNCTION__, VosStatus );
 
         // return the packet
         VosStatus = vos_pkt_return_packet( vosDataBuff );
@@ -767,8 +767,8 @@ static VOS_STATUS WLANBAP_EventCB
         return VOS_STATUS_E_FAILURE;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB event=%d \
-       assoc_specific=%d\n", pBapHCIEvent->bapHCIEventCode, AssocSpecificEvent );
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB event=%d "
+       "assoc_specific=%d\n", pBapHCIEvent->bapHCIEventCode, AssocSpecificEvent );
 
     if ( AssocSpecificEvent )
     {
@@ -794,8 +794,8 @@ static VOS_STATUS WLANBAP_EventCB
 
     if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB vos_pkt_get_packet \
-          failed status=%d\n", VosStatus );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB vos_pkt_get_packet "
+          "failed status=%d\n", VosStatus );
         return(VosStatus);
     }
 
@@ -1040,8 +1040,8 @@ static VOS_STATUS WLANBAP_EventCB
 
             if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
             {
-                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB WLANBAP_RegisterDataPlane \
-                  failed status = %d\n", VosStatus );
+                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB WLANBAP_RegisterDataPlane "
+                  "failed status = %d\n", VosStatus );
                 // we still want to send the event upto app so do not bail
             }
             else
@@ -1103,8 +1103,8 @@ static VOS_STATUS WLANBAP_EventCB
         }
         else
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB unexpected HCI Phy Link Comp Evt \
-               status =%d\n", pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.status );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB unexpected HCI Phy Link Comp Evt "
+               "status =%d\n", pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.status );
         }
 
         break;
@@ -1155,8 +1155,8 @@ static VOS_STATUS WLANBAP_EventCB
         }
         else
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB unexpected HCI Dis Phy Link Comp Evt \
-               status =%d reason =%d\n", pBapHCIEvent->u.btampDisconnectPhysicalLinkCompleteEvent.status,
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB unexpected HCI Dis Phy Link Comp Evt "
+               "status =%d reason =%d\n", pBapHCIEvent->u.btampDisconnectPhysicalLinkCompleteEvent.status,
                        pBapHCIEvent->u.btampDisconnectPhysicalLinkCompleteEvent.reason );
         }
 
@@ -1300,8 +1300,8 @@ static VOS_STATUS WLANBAP_EventCB
 
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB vos_pkt_push_head \
-          status =%d\n", VosStatus );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB vos_pkt_push_head "
+          "status =%d\n", VosStatus );
 
             // return the packet
             VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -1315,8 +1315,8 @@ static VOS_STATUS WLANBAP_EventCB
     VosStatus = vos_pkt_get_os_packet( pVosPkt, (v_VOID_t **)&skb, VOS_TRUE );
     if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. \
-          VosStatus = %d\n", __FUNCTION__, VosStatus );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. "
+          "VosStatus = %d\n", __FUNCTION__, VosStatus );
 
         // return the packet
         VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -1384,8 +1384,8 @@ static BOOL BslFindAndInitClientCtx
     if ( i == BSL_MAX_CLIENTS )
     {
         // no more clients can be supported
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslFindAndInitClientCtx no more \
-          clients can be supported MAX=%d\n", BSL_MAX_CLIENTS );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslFindAndInitClientCtx no more "
+          "clients can be supported MAX=%d\n", BSL_MAX_CLIENTS );
         return FALSE;
     }
 
@@ -1579,8 +1579,8 @@ static BOOL BslFindAndInitPhyCtx
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
             // this could happen due to pool not being big enough, etc
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslFindAndInitPhyCtx failed to \
-             get node from BslPhyLinksDescPool vstatus=%d\n", VosStatus );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "BslFindAndInitPhyCtx failed to "
+             "get node from BslPhyLinksDescPool vstatus=%d\n", VosStatus );
             BslReleasePhyCtx( *ppPhyCtx );
             return FALSE;
         }
@@ -3273,8 +3273,8 @@ static BOOL BslProcessACLDataTx
 
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_wrap_data_packet \
-             failed status =%d\n", VosStatus );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_wrap_data_packet "
+             "failed status =%d\n", VosStatus );
 
             return(FALSE);
         }
@@ -3284,8 +3284,8 @@ static BOOL BslProcessACLDataTx
 
         if (VosStatus != VOS_STATUS_SUCCESS)
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_set_os_packet \
-             failed status =%d\n", VosStatus );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_set_os_packet "
+             "failed status =%d\n", VosStatus );
 
             return(FALSE);
         }
@@ -3298,8 +3298,8 @@ static BOOL BslProcessACLDataTx
                                         0, NULL, NULL);
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_get_packet \
-             failed status =%d\n", VosStatus );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_get_packet "
+             "failed status =%d\n", VosStatus );
 
             return(FALSE);
         }
@@ -3308,8 +3308,8 @@ static BOOL BslProcessACLDataTx
 
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_push_head \
-             failed status =%d\n", VosStatus );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_push_head "
+             "failed status =%d\n", VosStatus );
 
             // return the packet
             VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -3327,8 +3327,8 @@ static BOOL BslProcessACLDataTx
 
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_XlateTxDataPkt \
-             failed status =%d\n", VosStatus );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_XlateTxDataPkt "
+             "failed status =%d\n", VosStatus );
 
             // return the packet
             VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -3359,8 +3359,8 @@ static BOOL BslProcessACLDataTx
 
         if ( ListSize >= BSL_MAX_SIZE_TX_ACL_QUEUE )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx \
-             hdd_list_size ==%d\n", ListSize );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx "
+             "hdd_list_size ==%d\n", ListSize );
 
             // return the packet
             VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -3374,8 +3374,8 @@ static BOOL BslProcessACLDataTx
         VosStatus = vos_pkt_get_os_packet( pVosPkt, (v_VOID_t **)&skb, VOS_FALSE );
         if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. \
-            VosStatus = %d\n", __FUNCTION__, VosStatus );
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. "
+            "VosStatus = %d\n", __FUNCTION__, VosStatus );
 
             // return the packet
             VosStatus = vos_pkt_return_packet( pVosPkt );
@@ -3426,8 +3426,8 @@ static BOOL BslProcessACLDataTx
 
             if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
             {
-                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_STAPktPending \
-                failed status =%d\n", VosStatus );
+                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_STAPktPending "
+                "failed status =%d\n", VosStatus );
                 VOS_ASSERT(0);
             }
         }
@@ -3436,8 +3436,8 @@ static BOOL BslProcessACLDataTx
     }
     else
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx attempting to send \
-          data for a non-existant assocation\n" );
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx attempting to send "
+          "data for a non-existant assocation\n" );
 
         return(FALSE);
     }
@@ -3706,7 +3706,7 @@ static int BSL_Open( struct hci_dev *hdev )
     if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BSLClientLock already inited");
-        // return -EIO;	/* I/O error */
+        // return -EIO;  /* I/O error */
         return 0;
     }
 
@@ -3714,7 +3714,7 @@ static int BSL_Open( struct hci_dev *hdev )
 
     if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
     {
-        //return -EIO;	/* I/O error */
+        //return -EIO;  /* I/O error */
         return 0;
     }
 
@@ -3734,7 +3734,7 @@ static int BSL_Open( struct hci_dev *hdev )
     {
         // Where is the clean-up in case the above BslFindAndInitClientCtx() call
         // fails?
-        //return -EIO;	/* I/O error */
+        //return -EIO;  /* I/O error */
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BSLFindAndInitClientContext failed");
         return 0;
     }
@@ -3875,7 +3875,7 @@ static void BSL_Destruct(struct hci_dev *hdev)
   Negative values indicate various failures.
 */
 //static ssize_t BSL_Write(struct file *pFile, const char __user *pBuffer,
-//			 size_t Count, loff_t *pOff)
+//                         size_t Count, loff_t *pOff)
 static int BSL_Write(struct sk_buff *skb)
 {
     struct hci_dev *hdev;

@@ -104,7 +104,7 @@
 
 #if defined(ANI_DATAPATH_SECTION)
 #define  __DP_SRC_RX                __attribute__  ((section(".dpsrcrx")))
-#define  __DP_SRC_TX  				__attribute__  ((section(".dpsrctx")))
+#define  __DP_SRC_TX                __attribute__  ((section(".dpsrctx")))
 #define  __DP_SRC                   __attribute__  ((section(".dpsrc")))
 #define  __ANIHDD_MODULE            __attribute__  ((section(".anihdd")))
 #else

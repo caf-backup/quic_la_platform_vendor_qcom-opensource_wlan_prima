@@ -571,7 +571,7 @@ setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LO
     tANI_U32 cwminidx, cwmaxidx, txopidx;
     tANI_U32 phyMode;
 #ifdef  WLAN_SOFTAP_FEATURE
-	tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
+    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
     if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
     {
          phyMode=psessionEntry->nwType;

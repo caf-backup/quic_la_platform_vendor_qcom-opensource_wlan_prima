@@ -17,46 +17,46 @@
 
 
 
-	   
+   
 // File format
 //
 //  byte 0        1        2       3
 //
-// +---------+---------+--------+-------+                       <----+
-// | Major   | Minor   |  		|		|							 |
-// | Version | Version | Suffix | Build |   FileVersion				 |
-// +---------+---------+--------+-------+							 |
-// | Major   | Minor   |  		|		|							 |
-// | Version | Version | Suffix | Build |   HwCapabilities			 | tPolFileHeader
-// +---------+---------+--------+-------+							 |
-// |                                    |							 |
-// |		   FileLength               |   FileLength				 |
-// +------------------------------------+							 |
-// |                                    |							 |
-// |	 Number of Directory Entries    |	NumDirectoryEntries		 |
-// +------------------------------------+                       <----+
-// |                                    |				  			 |
-// | Directory Entry 1 Type             |   DirEntryType			 |
-// +------------------------------------+							 |
-// |                                    |							 | tPolFileDirEntry 1
-// | Directory Entry 1 File Offset      |   DirEntryFileOffset		 |
-// +------------------------------------+							 |
-// |                                    |							 |
-// | Directory Entry 1 Length           |	DirEntryLength			 |
-// +------------------------------------+						<----+
-// |            . . .                   |						. . . 
-// +------------------------------------+						<----+
-// |                                    |							 |
-// | Directory Entry n Type             |							 |
-// +------------------------------------+							 |
-// |                                    |							 | tpolFileDirEntry n
-// | Directory Entry n File Offset      | 							 |
-// +------------------------------------+							 |
-// |                                    |							 |
-// | Directory Entry n Length           |							 |
-// +------------------------------------+						<----+
-// |									|
-// |									|
+// +---------+---------+--------+-------+                        <----+
+// | Major   | Minor   |        |       |                             |
+// | Version | Version | Suffix | Build |   FileVersion               |
+// +---------+---------+--------+-------+                             |
+// | Major   | Minor   |        |       |                             |
+// | Version | Version | Suffix | Build |   HwCapabilities            | tPolFileHeader
+// +---------+---------+--------+-------+                             |
+// |                                    |                             |
+// | FileLength                         |   FileLength                |
+// +------------------------------------+                             |
+// |                                    |                             |
+// | Number of Directory Entries        |   NumDirectoryEntries       |
+// +------------------------------------+                        <----+
+// |                                    |                             |
+// | Directory Entry 1 Type             |   DirEntryType              |
+// +------------------------------------+                             |
+// |                                    |                             | tPolFileDirEntry 1
+// | Directory Entry 1 File Offset      |   DirEntryFileOffset        |
+// +------------------------------------+                             |
+// |                                    |                             |
+// | Directory Entry 1 Length           |   DirEntryLength            |
+// +------------------------------------+                        <----+
+// |            . . .                   |                        . . . 
+// +------------------------------------+                        <----+
+// |                                    |                             |
+// | Directory Entry n Type             |                             |
+// +------------------------------------+                             |
+// |                                    |                             | tpolFileDirEntry n
+// | Directory Entry n File Offset      |                             |
+// +------------------------------------+                             |
+// |                                    |                             |
+// | Directory Entry n Length           |                             |
+// +------------------------------------+                        <----+
+// |                                    |
+// |                                    |
 // | File data described by             |
 // | directory entry 1                  |
 // |                                    |
@@ -64,14 +64,14 @@
 // +------------------------------------+
 // |            . . .                   |
 // +------------------------------------+
-// |									|
-// |									|
+// |                                    |
+// |                                    |
 // | File data described by             |
 // | directory entry n                  |
 // |                                    |
 // |                                    |
 // +---------+---------+----------------+
-// |        		   |
+// |                   |
 // | File Checksum     |
 // +---------+---------+
 //

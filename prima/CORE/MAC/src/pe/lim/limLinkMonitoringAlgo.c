@@ -134,7 +134,7 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     tpDeleteStaContext  pMsg = (tpDeleteStaContext)limMsg->bodyptr;
     tpDphHashNode       pStaDs;
     tpPESession psessionEntry ;
-    tANI_U8		sessionId;				
+    tANI_U8     sessionId;
 
     if((psessionEntry = peFindSessionByBssid(pMac,pMsg->bssId,&sessionId))== NULL)
     {
@@ -142,7 +142,7 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
          palFreeMemory(pMac->hHdd, pMsg);
          return;
     }
-	
+
     if (NULL != pMsg)
     {
 #ifdef WLAN_SOFTAP_FEATURE
@@ -179,7 +179,7 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                 PELOGE(limLog(pMac, LOGE, FL(" Deleting Unknown station \n"));)
                 limPrintMacAddr(pMac, pMsg->addr2, LOGE);
                
-			   limSendDeauthMgmtFrame( pMac, eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON, pMsg->addr2, psessionEntry);
+                limSendDeauthMgmtFrame( pMac, eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON, pMsg->addr2, psessionEntry);
                 break;
 
             default:
@@ -216,7 +216,7 @@ void
 limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession psessionEntry)
 {
     tSirSmeDeauthReq    *pSmeDeauthReq;
-    tANI_U8				*pBuf;
+    tANI_U8             *pBuf;
     tANI_U8             *pLen;
     tANI_U16            msgLength = 0;
 
@@ -398,15 +398,15 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
     vos_log_beacon_update_pkt_type *log_ptr = NULL;
 #endif //FEATURE_WLAN_DIAG_SUPPORT 
 
-	/* If gLimHeartBeatTimer fires between the interval of sending WDA_ENTER_BMPS_REQUEST 
-	 * to the HAL and receiving WDA_ENTER_BMPS_RSP from the HAL, then LIM (PE) tries to Process the
-	 * SIR_LIM_HEAR_BEAT_TIMEOUT message but The PE state is ePMM_STATE_BMPS_SLEEP so PE dont
-	 * want to handle heartbeat timeout in the BMPS, because Firmware handles it in BMPS.
-	 * So just return from heartbeatfailure handler
-	 */
+    /* If gLimHeartBeatTimer fires between the interval of sending WDA_ENTER_BMPS_REQUEST 
+     * to the HAL and receiving WDA_ENTER_BMPS_RSP from the HAL, then LIM (PE) tries to Process the
+     * SIR_LIM_HEAR_BEAT_TIMEOUT message but The PE state is ePMM_STATE_BMPS_SLEEP so PE dont
+     * want to handle heartbeat timeout in the BMPS, because Firmware handles it in BMPS.
+     * So just return from heartbeatfailure handler
+     */
 
-	if(!limIsSystemInActiveState(pMac))
-			return ;
+    if(!limIsSystemInActiveState(pMac))
+        return;
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
     WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_beacon_update_pkt_type, LOG_WLAN_BEACON_UPDATE_C);
@@ -415,17 +415,17 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
     WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
-	/** Re Activate Timer if the system is Waiting for ReAssoc Response*/
-        if(((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) || 
-            (psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-            (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) && 
-           (LIM_IS_CONNECTION_ACTIVE(psessionEntry) ||
-            (limIsReassocInProgress(pMac, psessionEntry))))
-	{
-		if(psessionEntry->LimRxedBeaconCntDuringHB < MAX_NO_BEACONS_PER_HEART_BEAT_INTERVAL)
-			pMac->lim.gLimHeartBeatBeaconStats[psessionEntry->LimRxedBeaconCntDuringHB]++;
-  		else
-			pMac->lim.gLimHeartBeatBeaconStats[0]++;
+    /** Re Activate Timer if the system is Waiting for ReAssoc Response*/
+    if(((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) || 
+        (psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
+        (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) && 
+       (LIM_IS_CONNECTION_ACTIVE(psessionEntry) ||
+        (limIsReassocInProgress(pMac, psessionEntry))))
+    {
+        if(psessionEntry->LimRxedBeaconCntDuringHB < MAX_NO_BEACONS_PER_HEART_BEAT_INTERVAL)
+            pMac->lim.gLimHeartBeatBeaconStats[psessionEntry->LimRxedBeaconCntDuringHB]++;
+        else
+            pMac->lim.gLimHeartBeatBeaconStats[0]++;
 
         /****** 
          * Note: Use this code once you have converted all  
@@ -466,7 +466,7 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
         //assign the sessionId to the timer object
 
         limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
-	    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PROBE_AFTER_HB_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PROBE_AFTER_HB_TIMER));
         pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId = psessionEntry->peSessionId;
         if (tx_timer_activate(&pMac->lim.limTimers.gLimProbeAfterHBTimer) != TX_SUCCESS)
         {

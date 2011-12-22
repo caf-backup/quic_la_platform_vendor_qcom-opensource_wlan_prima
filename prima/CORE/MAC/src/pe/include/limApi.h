@@ -42,22 +42,22 @@
 
 /* Useful macros for fetching various states in pMac->lim */
 /* gLimSystemRole */
-#define GET_LIM_SYSTEM_ROLE(psessionEntry)		(psessionEntry->limSystemRole)
-#define LIM_IS_AP_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_AP_ROLE)
-#define LIM_IS_STA_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_ROLE)
-#define LIM_IS_IBSS_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE)
+#define GET_LIM_SYSTEM_ROLE(psessionEntry)      (psessionEntry->limSystemRole)
+#define LIM_IS_AP_ROLE(psessionEntry)           (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_AP_ROLE)
+#define LIM_IS_STA_ROLE(psessionEntry)          (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_ROLE)
+#define LIM_IS_IBSS_ROLE(psessionEntry)         (GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE)
 /* gLimSmeState */
-#define GET_LIM_SME_STATE(pMac	)		(pMac->lim.gLimSmeState)
-#define SET_LIM_SME_STATE(pMac, state)		(pMac->lim.gLimSmeState = state)
+#define GET_LIM_SME_STATE(pMac)                 (pMac->lim.gLimSmeState)
+#define SET_LIM_SME_STATE(pMac, state)          (pMac->lim.gLimSmeState = state)
 /* gLimMlmState */
-#define GET_LIM_MLM_STATE(pMac)			(pMac->lim.gLimMlmState)
-#define SET_LIM_MLM_STATE(pMac, state)		(pMac->lim.gLimMlmState = state)
+#define GET_LIM_MLM_STATE(pMac)                 (pMac->lim.gLimMlmState)
+#define SET_LIM_MLM_STATE(pMac, state)          (pMac->lim.gLimMlmState = state)
 /*tpdphHashNode mlmStaContext*/
-#define GET_LIM_STA_CONTEXT_MLM_STATE(pStaDs)			(pStaDs->mlmStaContext.mlmState)
-#define SET_LIM_STA_CONTEXT_MLM_STATE(pStaDs, state)		(pStaDs->mlmStaContext.mlmState = state)
+#define GET_LIM_STA_CONTEXT_MLM_STATE(pStaDs)   (pStaDs->mlmStaContext.mlmState)
+#define SET_LIM_STA_CONTEXT_MLM_STATE(pStaDs, state)  (pStaDs->mlmStaContext.mlmState = state)
 /* gLimQuietState */
-#define GET_LIM_QUIET_STATE(pMac)		(pMac->lim.gLimSpecMgmt.quietState)
-#define SET_LIM_QUIET_STATE(pMac, state)	(pMac->lim.gLimSpecMgmt.quietState = state)
+#define GET_LIM_QUIET_STATE(pMac)               (pMac->lim.gLimSpecMgmt.quietState)
+#define SET_LIM_QUIET_STATE(pMac, state)        (pMac->lim.gLimSpecMgmt.quietState = state)
 
 #define LIM_IS_CONNECTION_ACTIVE(psessionEntry)  (psessionEntry->LimRxedBeaconCntDuringHB)
 

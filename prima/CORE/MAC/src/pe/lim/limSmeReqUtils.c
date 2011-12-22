@@ -554,7 +554,7 @@ limIsSmeStartBssReqValid(tpAniSirGlobal pMac,
             break;
 #endif
         
-	default:
+        default:
             /**
              * Should not have received start BSS req with bssType
              * other than Infrastructure/IBSS.
@@ -1147,7 +1147,7 @@ limIsSmeSetContextReqValid(tpAniSirGlobal pMac, tpSirSmeSetContextReq  pSetConte
             ((pSetContextReq->keyMaterial.edType == eSIR_ED_TKIP) &&
              (pKey->keyLength != 32)) ||
 #ifdef FEATURE_WLAN_WAPI 
-            ((pSetContextReq->keyMaterial.edType == eSIR_ED_WPI) &&		
+            ((pSetContextReq->keyMaterial.edType == eSIR_ED_WPI) &&
              (pKey->keyLength != 32)) ||
 #endif 
             ((pSetContextReq->keyMaterial.edType == eSIR_ED_CCMP) &&

@@ -1275,8 +1275,8 @@ static int iw_set_genie(struct net_device *dev,
 
                     if( SIR_MAC_MAX_IE_LENGTH < (pWextState->genIE.length + eLen) )
                     {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate genIE. \
-                                                      Need bigger buffer space\n");
+                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate genIE. "
+                                                      "Need bigger buffer space\n");
                        VOS_ASSERT(0);
                        return -ENOMEM;
                     }
@@ -1300,8 +1300,8 @@ static int iw_set_genie(struct net_device *dev,
 
                     if( SIR_MAC_MAX_IE_LENGTH < (pWextState->genIE.length + eLen) )
                     {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate genIE. \
-                                                      Need bigger buffer space\n");
+                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accommodate genIE. "
+                                                      "Need bigger buffer space\n");
                        VOS_ASSERT(0);
                        return -ENOMEM;
                     }
@@ -1700,7 +1700,7 @@ static void iw_power_callback_fn (void *pContext, eHalStatus status)
 
   /* there is a race condition that exists between this callback function
      and the caller since the caller could time out either before or
-     while this code is executing.	we'll assume the timeout hasn't
+     while this code is executing.  we'll assume the timeout hasn't
      occurred, but we'll verify that right before we save our work */
 
    pStatsContext = (struct statsContext *)pContext;
@@ -3608,9 +3608,9 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
                 p2pNoA.single_noa_duration = apps_args[5];
                 p2pNoA.psSelection = apps_args[6];
 
-                hddLog(LOGE, "%s: P2P_NOA_ATTR:oppPS %d ctWindow %d duration %d \
-                       interval %d count %d single noa duration %d PsSelection %x\n",\
-                       __FUNCTION__, apps_args[0], apps_args[1], apps_args[2], \
+                hddLog(LOGE, "%s: P2P_NOA_ATTR:oppPS %d ctWindow %d duration %d "
+                       "interval %d count %d single noa duration %d PsSelection %x\n",
+                       __FUNCTION__, apps_args[0], apps_args[1], apps_args[2],
                        apps_args[3], apps_args[4], apps_args[5], apps_args[6]);
 
                 hdd_setP2pPs(dev, &p2pNoA);

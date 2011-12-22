@@ -63,12 +63,12 @@ void dumpInstruction(tpSchInstruction t)
 {
   if (t->type == SCH_INST_DATA)
    PELOG2(schLog(pMac, LOG2, "DATA (%d,%d) txop %d feedback %d\n", 
-	   t->staidLo+0x10*t->staidHi, t->pri, 
-           t->txopLo+0x100*t->txopHi, t->feedback);)
+                 t->staidLo+0x10*t->staidHi, t->pri, 
+                 t->txopLo+0x100*t->txopHi, t->feedback);)
   else
    PELOG2(schLog(pMac, LOG2, "POLL (%d,%d) txop %d feedback %d\n", 
-	   t->staidLo+0x10*t->staidHi, t->pri, 
-           t->txopLo+0x100*t->txopHi, t->feedback);)
+                 t->staidLo+0x10*t->staidHi, t->pri, 
+                 t->txopLo+0x100*t->txopHi, t->feedback);)
 }
 
 void dumpQueueSizes()
@@ -77,12 +77,12 @@ void dumpQueueSizes()
   for(int i=0; i<256; i++)
     for(int j=0; j<8; j++)
       for(int k=0; k<2; k++)
-	{
-	  if (queue[i][j][k].packets > 0)
-	   PELOG3(schLog(pMac, LOG3, FL("\tQueueLength[%d][%d][%d] = %d packets %d txop (serviced %d)\n"), 
-		   i, j, k,
-		   queue[i][j][k].packets, queue[i][j][k].txop, queue[i][j][k].serviced);)
-	}
+      {
+         if (queue[i][j][k].packets > 0)
+            PELOG3(schLog(pMac, LOG3, FL("\tQueueLength[%d][%d][%d] = %d packets %d txop (serviced %d)\n"), 
+                          i, j, k,
+                          queue[i][j][k].packets, queue[i][j][k].txop, queue[i][j][k].serviced);)
+      }
 }
 
 void printQosClass(tANI_U8 classId)
@@ -97,7 +97,7 @@ void printQosClass(tANI_U8 classId)
       tANI_U16 i;
       for(i=1; ptr != q->activeNext; ptr = ptr->next, i++);
      PELOG3(schLog(pMac, LOG3, FL("printQosClass[%d] : Active Qs %d nextPtr %x prevPtr %x creditsRem %d\n"), 
-	     classId, i, (tANI_U32) q->activeNext, (tANI_U32) q->activePrev, q->creditsRemaining);)
+                   classId, i, (tANI_U32) q->activeNext, (tANI_U32) q->activePrev, q->creditsRemaining);)
     }
 }
 

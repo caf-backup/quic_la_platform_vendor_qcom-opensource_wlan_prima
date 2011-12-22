@@ -219,23 +219,23 @@ void limSetCfgProtection(tpAniSirGlobal pMac)
 
 #ifdef WLAN_SOFTAP_FEATURE
     if(( pesessionEntry != NULL ) && (pesessionEntry->limSystemRole == eLIM_AP_ROLE )){
-	    if (pesessionEntry->gLimProtectionControl == WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE )
+        if (pesessionEntry->gLimProtectionControl == WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE )
             palZeroMemory( pMac->hHdd, (void *)&pesessionEntry->cfgProtection , sizeof(tCfgProtection));
-	    else{
-            limLog(pMac, LOG1, FL(" frm11a = %d, from11b = %d, frm11g = %d, ht20 = %d,\
-                                    ht20 = %d, nongf = %d, lsigTxop = %d, rifs = %d,\
-                                    obss = %d\n"),    
-                                    pesessionEntry->cfgProtection.fromlla,\
-                                    pesessionEntry->cfgProtection.fromllb,\
-                                    pesessionEntry->cfgProtection.fromllg,\
-                                    pesessionEntry->cfgProtection.ht20,\
-                                    pesessionEntry->cfgProtection.nonGf,\
-                                    pesessionEntry->cfgProtection.lsigTxop,\
-                                    pesessionEntry->cfgProtection.rifs,\
+        else{
+            limLog(pMac, LOG1, FL(" frm11a = %d, from11b = %d, frm11g = %d, "
+                                    "ht20 = %d, nongf = %d, lsigTxop = %d, "
+                                    "rifs = %d, obss = %d\n"),    
+                                    pesessionEntry->cfgProtection.fromlla,
+                                    pesessionEntry->cfgProtection.fromllb,
+                                    pesessionEntry->cfgProtection.fromllg,
+                                    pesessionEntry->cfgProtection.ht20,
+                                    pesessionEntry->cfgProtection.nonGf,
+                                    pesessionEntry->cfgProtection.lsigTxop,
+                                    pesessionEntry->cfgProtection.rifs,
                                     pesessionEntry->cfgProtection.obss);
-	    }
+        }
     }
-	else{
+    else{
 #endif
     if (wlan_cfgGetInt(pMac, WNI_CFG_FORCE_POLICY_PROTECTION, &val) != eSIR_SUCCESS)
     {
@@ -264,8 +264,8 @@ void limSetCfgProtection(tpAniSirGlobal pMac)
                 pMac->lim.cfgProtection.overlapNonGf = (val >> WNI_CFG_PROTECTION_ENABLED_OLBC_NON_GF) & 1;
                 pMac->lim.cfgProtection.overlapLsigTxop = (val >> WNI_CFG_PROTECTION_ENABLED_OLBC_LSIG_TXOP) & 1;
                 pMac->lim.cfgProtection.overlapRifs = (val >> WNI_CFG_PROTECTION_ENABLED_OLBC_RIFS) & 1;
-				pMac->lim.cfgProtection.overlapOBSS = (val>> WNI_CFG_PROTECTION_ENABLED_OLBC_OBSS )&1;
-		 
+                pMac->lim.cfgProtection.overlapOBSS = (val>> WNI_CFG_PROTECTION_ENABLED_OLBC_OBSS )&1;
+
             }
             #endif
             pMac->lim.cfgProtection.fromlla = (val >> WNI_CFG_PROTECTION_ENABLED_FROM_llA) & 1;
@@ -275,12 +275,12 @@ void limSetCfgProtection(tpAniSirGlobal pMac)
             pMac->lim.cfgProtection.nonGf = (val >> WNI_CFG_PROTECTION_ENABLED_NON_GF) & 1;
             pMac->lim.cfgProtection.lsigTxop = (val >> WNI_CFG_PROTECTION_ENABLED_LSIG_TXOP) & 1;
             pMac->lim.cfgProtection.rifs = (val >> WNI_CFG_PROTECTION_ENABLED_RIFS) & 1;
-	     pMac->lim.cfgProtection.obss= (val >> WNI_CFG_PROTECTION_ENABLED_OBSS) & 1;
-	     
+            pMac->lim.cfgProtection.obss= (val >> WNI_CFG_PROTECTION_ENABLED_OBSS) & 1;
+
         }
 #ifdef WLAN_SOFTAP_FEATURE
 }
-#endif	
+#endif
 }
 
 
@@ -316,7 +316,7 @@ static tSirRetStatus limUpdateTriggerStaBkScanFlag(tpAniSirGlobal pMac)
 
         //call a wrapper and if the session role is other than the sta call this function schsetfixedbeacon fields function
         limUpdateBeacon(pMac);
-		    
+
     }
 
     return eSIR_FAILURE;
@@ -657,53 +657,53 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         pAmpduParamInfo->maxRxAMPDUFactor = (tANI_U8)val2;
         if(cfgSetInt(pMac,  WNI_CFG_HT_AMPDU_PARAMS, *(tANI_U8*)pAmpduParamInfo) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE, FL("could not update HT AMPDU Param CFG\n"));)
-		break;
+        break;
   
-        case WNI_CFG_HEART_BEAT_THRESHOLD:	
-			if (wlan_cfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &val1) != eSIR_SUCCESS)
-			{
-				PELOGE(limLog(pMac, LOGE, FL("could not retrieve WNI_CFG_HEART_BEAT_THRESHOLD CFG\n"));)
-				break;
-			}
-			if(!val1) 
-            {
-				limDeactivateAndChangeTimer(pMac, eLIM_HEART_BEAT_TIMER);
-				pMac->sys.gSysEnableLinkMonitorMode = 0;
-                PELOGE(limLog(pMac, LOGE, "Deactivating heartbeat link monitoring\n");)
-			} 
-            else 
-            {
-				pMac->sys.gSysEnableLinkMonitorMode = 1;
-				//limReactivateTimer( pMac, eLIM_HEART_BEAT_TIMER );
-                               //limReactivateHeartBeatTimer(pMac, psessionEntry);
-                PELOGE(limLog(pMac, LOGE, "Reactivating heartbeat link monitoring\n");)
-            }        
-        case WNI_CFG_MAX_PS_POLL:
-        case WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE:
-        case WNI_CFG_MIN_RSSI_THRESHOLD:
-        case WNI_CFG_NTH_BEACON_FILTER:
-        case WNI_CFG_BROADCAST_FRAME_FILTER_ENABLE:
-	{
-		tpSirPowerSaveCfg pPowerSaveConfig;
-		
-		/* Allocate and fill in power save configuration. */
-		if (palAllocateMemory(pMac->hHdd, (void **)&pPowerSaveConfig,
-				  sizeof(tSirPowerSaveCfg)) != eHAL_STATUS_SUCCESS)
-		{
-			PELOGE(limLog(pMac, LOGE, FL("LIM: Cannot allocate memory for power save configuration\n"));)
-			break;
-		}
+    case WNI_CFG_HEART_BEAT_THRESHOLD:
+        if (wlan_cfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &val1) != eSIR_SUCCESS)
+        {
+            PELOGE(limLog(pMac, LOGE, FL("could not retrieve WNI_CFG_HEART_BEAT_THRESHOLD CFG\n"));)
+                break;
+        }
+        if(!val1) 
+        {
+            limDeactivateAndChangeTimer(pMac, eLIM_HEART_BEAT_TIMER);
+            pMac->sys.gSysEnableLinkMonitorMode = 0;
+            PELOGE(limLog(pMac, LOGE, "Deactivating heartbeat link monitoring\n");)
+        } 
+        else 
+        {
+            pMac->sys.gSysEnableLinkMonitorMode = 1;
+            //limReactivateTimer( pMac, eLIM_HEART_BEAT_TIMER );
+            //limReactivateHeartBeatTimer(pMac, psessionEntry);
+            PELOGE(limLog(pMac, LOGE, "Reactivating heartbeat link monitoring\n");)
+        }        
+    case WNI_CFG_MAX_PS_POLL:
+    case WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE:
+    case WNI_CFG_MIN_RSSI_THRESHOLD:
+    case WNI_CFG_NTH_BEACON_FILTER:
+    case WNI_CFG_BROADCAST_FRAME_FILTER_ENABLE:
+        {
+            tpSirPowerSaveCfg pPowerSaveConfig;
 
-		/* This context should be valid if power-save configuration message has been already dispathed 
-		 * during initialization process. Re-using the present configuration mask
-		 */
-		palCopyMemory(pMac->hHdd, pPowerSaveConfig, (tANI_U8 *)&pMac->pmm.gPmmCfg, sizeof(tSirPowerSaveCfg));
-		
-		if ( (pmmSendPowerSaveCfg(pMac, pPowerSaveConfig)) != eSIR_SUCCESS)
-		{
-			PELOGE(limLog(pMac, LOGE, FL("LIM: pmmSendPowerSaveCfg() failed \n"));)
-		}
-     }       
+            /* Allocate and fill in power save configuration. */
+            if (palAllocateMemory(pMac->hHdd, (void **)&pPowerSaveConfig,
+                                  sizeof(tSirPowerSaveCfg)) != eHAL_STATUS_SUCCESS)
+            {
+                PELOGE(limLog(pMac, LOGE, FL("LIM: Cannot allocate memory for power save configuration\n"));)
+                break;
+            }
+
+            /* This context should be valid if power-save configuration message has been already dispathed 
+             * during initialization process. Re-using the present configuration mask
+             */
+            palCopyMemory(pMac->hHdd, pPowerSaveConfig, (tANI_U8 *)&pMac->pmm.gPmmCfg, sizeof(tSirPowerSaveCfg));
+
+            if ( (pmmSendPowerSaveCfg(pMac, pPowerSaveConfig)) != eSIR_SUCCESS)
+            {
+                PELOGE(limLog(pMac, LOGE, FL("LIM: pmmSendPowerSaveCfg() failed \n"));)
+            }
+        }
         break;
 
 
@@ -773,10 +773,10 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
     tANI_U32          val=0, phyMode;
 
-   PELOG2(limLog(pMac, LOG2, FL("Applying config\n"));)
-   	
+    PELOG2(limLog(pMac, LOG2, FL("Applying config\n"));)
+
 #if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
-        limCleanupMeasResources(pMac);
+    limCleanupMeasResources(pMac);
 #endif
     limInitWdsInfoParams(pMac);
 
@@ -829,7 +829,7 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
     }
     //apply protection related config.
 
-#ifdef WLAN_SOFTAP_FEATURE	
+#ifdef WLAN_SOFTAP_FEATURE
     limSetCfgProtection(pMac, psessionEntry);    
 #else
     limSetCfgProtection(pMac);    
@@ -842,15 +842,15 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
          (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)||
          (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) )
     {
-		/* This check is required to ensure the beacon generation is not done 
-		     as a part of join request for a BT-AMP station */
-		     
-		if(psessionEntry->statypeForBss == STA_ENTRY_SELF)
-    	{
-        	PELOG1(limLog(pMac, LOG1, FL("Initializing BT-AMP beacon generation\n"));)
-        	schSetBeaconInterval(pMac,psessionEntry);
-        	schSetFixedBeaconFields(pMac,psessionEntry);
-    	}	
+        /* This check is required to ensure the beacon generation is not done 
+           as a part of join request for a BT-AMP station */
+
+        if(psessionEntry->statypeForBss == STA_ENTRY_SELF)
+        {
+            PELOG1(limLog(pMac, LOG1, FL("Initializing BT-AMP beacon generation\n"));)
+            schSetBeaconInterval(pMac,psessionEntry);
+            schSetFixedBeaconFields(pMac,psessionEntry);
+        }
     }
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_SCAN_IN_POWERSAVE, &val) != eSIR_SUCCESS)

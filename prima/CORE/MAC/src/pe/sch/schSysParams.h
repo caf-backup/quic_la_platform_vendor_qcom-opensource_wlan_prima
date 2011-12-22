@@ -29,7 +29,7 @@
 #define SCH_DEFAULT_MIN_CP_TIME         100
 
 /// Amount of delay prior to starting CFP (us)
-#define SCH_CFP_START_DELAY		100	
+#define SCH_CFP_START_DELAY             100
 
 /// Unit of Txop in micro seconds
 #define TXOP_UNIT_IN_USEC                32

@@ -1058,11 +1058,11 @@ limSendHalMsgAddTs(
     }
 
     palZeroMemory( pMac->hHdd, (tANI_U8 *)pAddTsParam, sizeof(tAddTsParams));
-      pAddTsParam->staIdx = staIdx;
-      pAddTsParam->tspecIdx = tspecIdx;
-      palCopyMemory(pMac->hHdd, &pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
+    pAddTsParam->staIdx = staIdx;
+    pAddTsParam->tspecIdx = tspecIdx;
+    palCopyMemory(pMac->hHdd, &pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
  
-	msg.type = WDA_ADD_TS_REQ;
+    msg.type = WDA_ADD_TS_REQ;
     msg.bodyptr = pAddTsParam;
     msg.bodyval = 0;
 
@@ -1142,8 +1142,8 @@ limSendHalMsgDelTs(
 void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 {
     tpAddTsParams  pAddTsRspMsg = NULL;
-	tpDphHashNode  pSta = NULL;
-	tANI_U16  assocId =0;
+    tpDphHashNode  pSta = NULL;
+    tANI_U16  assocId =0;
     tSirMacAddr  peerMacAddr;
     tANI_U8   rspReqd = 1;
     tpPESession  psessionEntry = NULL;
@@ -1160,7 +1160,7 @@ void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
         goto end;
     }
 
-	pAddTsRspMsg = (tpAddTsParams) (limMsg->bodyptr);
+    pAddTsRspMsg = (tpAddTsParams) (limMsg->bodyptr);
 
     // 090803: Use peFindSessionBySessionId() to obtain the PE session context       
     // from the sessionId in the Rsp Msg from HAL
@@ -1188,15 +1188,15 @@ void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 
         // Send DELTS action frame to AP        
         // 090803: Get peer MAC addr from session        
-	    #if 0  
+#if 0  
         cfgLen = sizeof(tSirMacAddr);
         if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, peerMacAddr, &cfgLen) != eSIR_SUCCESS)
-		{
+        {
             limLog(pMac, LOGP, FL("Fail to retrieve BSSID \n"));
             goto end;
-		}
-        #endif //TO SUPPORT BT-AMP
-	    sirCopyMacAddr(peerMacAddr,psessionEntry->bssId);
+        }
+#endif //TO SUPPORT BT-AMP
+        sirCopyMacAddr(peerMacAddr,psessionEntry->bssId);
 
         // 090803: Add the SME Session ID        
         limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &pAddTsRspMsg->tspec.tsinfo, &pAddTsRspMsg->tspec,

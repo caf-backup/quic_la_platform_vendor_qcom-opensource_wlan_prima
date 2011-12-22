@@ -2058,6 +2058,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
       if (pAdapter != NULL)
          wlan_hdd_cfg80211_pre_voss_stop(pAdapter);
+
+      hdd_UnregisterWext(pAdapter->dev);
    }
 #endif
 
@@ -2847,9 +2849,9 @@ int hdd_wlan_startup(struct device *dev )
    
       if (!HAL_STATUS_SUCCESS( halStatus ))
       {
-   	   hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed to set MAC Address. "
-   			   "HALStatus is %08d [x%08x]",__func__, halStatus, halStatus );
-   	   return VOS_STATUS_E_FAILURE;
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed to set MAC Address. "
+                "HALStatus is %08d [x%08x]",__func__, halStatus, halStatus );
+         return VOS_STATUS_E_FAILURE;
       }
    }
 #endif // FEATURE_WLAN_INTEGRATED_SOC
@@ -3621,7 +3623,7 @@ v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
     {
         pAdapter = pAdapterNode->pAdapter;
         if ( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
-          || (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )	
+          || (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
         {
             if(!hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)) && 
                 (pConfig->fIsImpsEnabled) &&
