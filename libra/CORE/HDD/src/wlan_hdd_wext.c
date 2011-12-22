@@ -70,6 +70,7 @@ struct statsContext
 
 #define STATS_CONTEXT_MAGIC 0x53544154   //STAT
 #define RSSI_CONTEXT_MAGIC  0x52535349   //RSSI
+#define POWER_CONTEXT_MAGIC 0x504F5752   // POWR
 
 static int iw_qcom_get_wlan_stats(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra);
@@ -1273,13 +1274,44 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
 }
 
 /* Callback function registered with PMC to know status of PMC request */
-void iw_priv_callback_fn (void *callbackContext, eHalStatus status)
+static void iw_power_callback_fn (void *pContext, eHalStatus status)
 {
-  struct completion *completion_var = (struct completion*) callbackContext;
+   struct statsContext *pStatsContext;
+   hdd_adapter_t *pAdapter;
 
-  hddLog(LOGE, "Received callback from PMC with status = %d\n", status);
-  if(completion_var != NULL)
-    complete(completion_var);
+   if (NULL == pContext)
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+            "%s: Bad param, pContext [%p]",
+              __FUNCTION__, pContext);
+       return;
+   }
+
+  /* there is a race condition that exists between this callback function
+     and the caller since the caller could time out either before or
+     while this code is executing.	we'll assume the timeout hasn't
+     occurred, but we'll verify that right before we save our work */
+
+   pStatsContext = (struct statsContext *)pContext;
+   pAdapter = pStatsContext->pAdapter;
+
+   if ((NULL == pAdapter) || (POWER_CONTEXT_MAGIC != pStatsContext->magic))
+   {
+       /* the caller presumably timed out so there is nothing we can do */
+       hddLog(VOS_TRACE_LEVEL_WARN,
+           "%s: Invalid context, pAdapter [%p] magic [%08x]",
+           __FUNCTION__, pAdapter, pStatsContext->magic);
+
+       if (ioctl_debug)
+       {
+           pr_info("%s: Invalid context, pAdapter [%p] magic [%08x]\n",
+             __FUNCTION__, pAdapter, pStatsContext->magic);
+       }
+       return;
+  }
+
+  /* and notify the caller */
+  complete(&pStatsContext->completion);
 }
 
 static void hdd_GetClassA_statisticsCB(void *pStats, void *pContext)
@@ -1394,7 +1426,7 @@ VOS_STATUS  wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter)
 
 VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
 {
-   struct completion completion_var;
+   struct statsContext context;
    eHalStatus status;
 
    if(NULL == pAdapter)
@@ -1404,23 +1436,41 @@ VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
    }
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "power mode=%d", mode);
-   init_completion(&completion_var);
+   init_completion(&context.completion);
+
+   context.pAdapter = pAdapter;
+   context.magic = POWER_CONTEXT_MAGIC;
 
    if(DRIVER_POWER_MODE_ACTIVE == mode)
    {
        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s:Wlan driver Entering "
                "Full Power", __func__);
        status = sme_RequestFullPower( pAdapter->hHal, 
-                       iw_priv_callback_fn, &completion_var, 
+                       iw_power_callback_fn, &context, 
                        eSME_FULL_PWR_NEEDED_BY_HDD);
        // Enter Full power command received from GUI this means we are disconnected
        // Set PMC remainInPowerActiveTillDHCP flag to disable auto BMPS entry by PMC
        sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, TRUE);
        if(eHAL_STATUS_PMC_PENDING == status)
        {
-           wait_for_completion_interruptible_timeout(
-                   &completion_var,
+           int lrc = wait_for_completion_interruptible_timeout(
+                   &context.completion,
                    msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+           context.magic = 0;
+           if (lrc <= 0)
+           {
+               hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while requesting fullpower ",
+                  __FUNCTION__, (0 == lrc) ? "timeout" : "interrupt");
+               /* there is a race condition such that the callback
+                  function could be executing at the same time we are. of
+                  primary concern is if the callback function had already
+                  verified the "magic" but hasn't yet set the completion
+                  variable. Since the completion variable is on our
+                  stack, we'll delay just a bit to make sure the data is
+                  still valid if that is the case */
+               msleep(50);
+               /* we'll now returned a cached value below */
+           }
        }
    }
    else if (DRIVER_POWER_MODE_AUTO == mode)
@@ -1433,12 +1483,27 @@ VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
            // Clear PMC remainInPowerActiveTillDHCP flag to enable auto BMPS entry 
            sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, FALSE);
            status = sme_RequestBmps( pAdapter->hHal,
-                           iw_priv_callback_fn, &completion_var);
+                           iw_power_callback_fn, &context);
            if (eHAL_STATUS_PMC_PENDING == status)
            {
-               wait_for_completion_interruptible_timeout(
-                       &completion_var,
-                       msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+               int lrc = wait_for_completion_interruptible_timeout(
+                           &context.completion,
+                           msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+               context.magic = 0;
+               if (lrc <= 0)
+               {
+                   hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while requesting BMPS ",
+                      __FUNCTION__, (0 == lrc) ? "timeout" : "interrupt");
+                   /* there is a race condition such that the callback
+                      function could be executing at the same time we are. of
+                      primary concern is if the callback function had already
+                      verified the "magic" but hasn't yet set the completion
+                      variable. Since the completion variable is on our
+                      stack, we'll delay just a bit to make sure the data is
+                      still valid if that is the case */
+                   msleep(50);
+                   /* we'll now returned a cached value below */
+               }
            }
        }
        else
@@ -1480,7 +1545,7 @@ VOS_STATUS wlan_hdd_exit_lowpower(hdd_adapter_t *pAdapter)
    {
        hddLog(VOS_TRACE_LEVEL_WARN, "%s: Not in standby or deep sleep. "
                "Ignore start cmd %d", __func__, pAdapter->hdd_ps_state);
-       vos_Status = VOS_STATUS_E_FAILURE;
+       vos_Status = VOS_STATUS_SUCCESS;
    }
    
    return vos_Status;
@@ -1517,7 +1582,7 @@ VOS_STATUS wlan_hdd_enter_lowpower(hdd_adapter_t *pAdapter)
    {
        hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Driver stop is not enabled %d",
            __func__, pAdapter->cfg_ini->nEnableDriverStop);
-       vos_Status = VOS_STATUS_E_FAILURE;
+       vos_Status = VOS_STATUS_SUCCESS;
    }
      
    return vos_Status;  
@@ -2329,12 +2394,44 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            switch (set_value) 
            {
               case  0: //Full Power
-                 if(sme_RequestFullPower(hHal, iw_priv_callback_fn,
-                       &pAdapter->pWextState->completion_var, eSME_FULL_PWR_NEEDED_BY_HDD) ==
-                       eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&pAdapter->pWextState->completion_var);
+              {
+                 struct statsContext context;
+                 eHalStatus status;
+
+                 init_completion(&context.completion);
+
+                 context.pAdapter = pAdapter;
+                 context.magic = POWER_CONTEXT_MAGIC;
+
+                 status = sme_RequestFullPower(pAdapter->hHal,
+                              iw_power_callback_fn, &context,
+                              eSME_FULL_PWR_NEEDED_BY_HDD);
+                 if(eHAL_STATUS_PMC_PENDING == status)
+                 {
+                    int lrc = wait_for_completion_interruptible_timeout(
+                                  &context.completion,
+                                  msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                    context.magic = 0;
+                    if (lrc <= 0)
+                    {
+                       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while "
+                                 "requesting fullpower ",
+                                 __FUNCTION__, (0 == lrc) ? 
+                                 "timeout" : "interrupt");
+                       /* there is a race condition such that the callback
+                          function could be executing at the same time we are. of
+                          primary concern is if the callback function had already
+                          verified the "magic" but hasn't yet set the completion
+                          variable. Since the completion variable is on our
+                          stack, we'll delay just a bit to make sure the data is
+                          still valid if that is the case */
+                       msleep(50);
+                       /* we'll now returned a cached value below */
+                    }
+                 }
                  hddLog(LOGE, "iwpriv Full Power completed\n");
                  break;
+              }
               case  1: //Enable BMPS
                  sme_EnablePowerSave(hHal, ePMC_BEACON_MODE_POWER_SAVE);
                  break;
@@ -2342,11 +2439,43 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                  sme_DisablePowerSave(hHal, ePMC_BEACON_MODE_POWER_SAVE);
                  break;
               case  3: //Request Bmps
-                 if(sme_RequestBmps(hHal, iw_priv_callback_fn, &pAdapter->pWextState->completion_var) == 
-                    eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&pAdapter->pWextState->completion_var);
+              {
+                 struct statsContext context;
+                 eHalStatus status;
+
+                 init_completion(&context.completion);
+
+                 context.pAdapter = pAdapter;
+                 context.magic = POWER_CONTEXT_MAGIC;
+
+                 status = sme_RequestBmps(pAdapter->hHal,
+                           iw_power_callback_fn, &context);
+                 if(eHAL_STATUS_PMC_PENDING == status)
+                 {
+                    int lrc = wait_for_completion_interruptible_timeout(
+                                  &context.completion,
+                                  msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                    context.magic = 0;
+                    if (lrc <= 0)
+                    {
+                       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: SME %s while "
+                                "requesting BMPS",
+                                 __FUNCTION__, (0 == lrc) ? "timeout" :
+                                 "interrupt");
+                       /* there is a race condition such that the callback
+                          function could be executing at the same time we are. of
+                          primary concern is if the callback function had already
+                          verified the "magic" but hasn't yet set the completion
+                          variable. Since the completion variable is on our
+                          stack, we'll delay just a bit to make sure the data is
+                          still valid if that is the case */
+                       msleep(50);
+                       /* we'll now returned a cached value below */
+                    }
+                 }
                  hddLog(LOGE, "iwpriv Request BMPS completed\n");
                  break;
+              }
               case  4: //Enable IMPS
                  sme_EnablePowerSave(hHal, ePMC_IDLE_MODE_POWER_SAVE);
                  break;

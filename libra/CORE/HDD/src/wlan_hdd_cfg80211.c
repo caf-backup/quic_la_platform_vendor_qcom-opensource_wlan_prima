@@ -1179,6 +1179,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
      * of scanning
      */
     cfg80211_scan_done(pAdapter->request, false);
+    complete(&pAdapter->abortscan_event_var);
     pAdapter->request = NULL;
 
     EXIT();

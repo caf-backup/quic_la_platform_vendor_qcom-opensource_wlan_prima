@@ -363,8 +363,10 @@ typedef struct sSirMbMsg
 /// PE <-> HAL Host Offload message
 #define SIR_HAL_SET_HOST_OFFLOAD           SIR_HAL_ITC_MSG_TYPES_BEGIN + 143
 
-#define SIR_HAL_MSG_TYPES_END    SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
+#define SIR_HAL_SUSPEND_BMPS               SIR_HAL_ITC_MSG_TYPES_BEGIN + 144
+#define SIR_HAL_RESUME_BMPS                SIR_HAL_ITC_MSG_TYPES_BEGIN + 145
 
+#define SIR_HAL_MSG_TYPES_END    SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
 
 // CFG message types
 #define SIR_CFG_MSG_TYPES_BEGIN        (SIR_CFG_MODULE_ID << 8)

@@ -72,6 +72,7 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter);
 #include <wlan_hdd_softap_tx_rx.h>
 #endif
 
+extern void hdd_abort_mac_scan(v_CONTEXT_t* pvosContext);
 static int hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
                                          void *ndev)
@@ -116,6 +117,25 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;        
 
    case NETDEV_GOING_DOWN:
+        if( pAdapter->pWextState->mScanPending != FALSE )
+        {
+           int result;
+           INIT_COMPLETION(pAdapter->abortscan_event_var);
+           hdd_abort_mac_scan(pAdapter->pvosContext);
+           result = wait_for_completion_interruptible_timeout(
+                               &pAdapter->abortscan_event_var,
+                               msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
+           if(!result)
+           {
+              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s: Timeout occured while waiting for abortscan" ,
+                          __FUNCTION__);
+           }
+        }
+        else
+        {
+           /* Scan is not Pending from user */
+        }
         break;
 
    default:
@@ -1075,6 +1095,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    init_completion(&pAdapter->linkup_event_var);
    init_completion(&pAdapter->mc_sus_event_var);
    init_completion(&pAdapter->tx_sus_event_var);
+   init_completion(&pAdapter->abortscan_event_var);
 
 #ifdef ANI_MANF_DIAG
     // Register the net device. Device should be registered to invoke

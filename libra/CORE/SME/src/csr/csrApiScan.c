@@ -5065,9 +5065,13 @@ eHalStatus csrScanFreeRequest(tpAniSirGlobal pMac, tCsrScanRequest *pReq)
 void csrScanCallCallback(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatus scanStatus)
 {
     if(pCommand->u.scanCmd.callback)
-    {
+    { 
+        sme_ReleaseGlobalLock( &pMac->sme );
         pCommand->u.scanCmd.callback(pMac, pCommand->u.scanCmd.pContext, pCommand->u.scanCmd.scanID, scanStatus); 
-    } else {
+        sme_AcquireGlobalLock( &pMac->sme );
+    } 
+    else
+    {
         smsLog( pMac, LOGW, "%s:%d - Callback NULL!!!\n", __FUNCTION__, __LINE__);
     }
 }
@@ -8065,12 +8069,47 @@ eHalStatus csrProcessSetBGScanParam(tpAniSirGlobal pMac, tSmeCmd *pCommand)
     return (status);
 }
 
+static void csrRemoveCmdFromPendingList(tpAniSirGlobal pMac,tDblLinkList *pList,eSmeCommandType commandType )
+{
+    tListElem *pEntry;
+    tSmeCmd   *pCommand;
+
+    csrLLLock(pList);
+    if( !csrLLIsListEmpty( pList, LL_ACCESS_NOLOCK ) )
+    {
+        pEntry = csrLLPeekHead( pList, LL_ACCESS_NOLOCK);
+
+        // Have to make sure we don't loop back to the head of the list, which will
+        // happen if the entry is NOT on the list...
+        do
+        {
+            pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+            if ( pCommand->command == commandType )
+            {
+                tListElem *pEntryToRemove = pEntry;
+                // Remove that entry only
+                pEntry = pEntry->next;
+                csrLLRemoveEntry( pList, pEntryToRemove, LL_ACCESS_NOLOCK);
+                csrAbortCommand( pMac, pCommand, eANI_BOOLEAN_FALSE);
+            }
+            else
+            {
+                pEntry = pEntry->next;
+            }
+        }
+        while( pEntry && ( pEntry != &pList->ListHead ) );
+    }
+    csrLLUnlock(pList);
+}
 
 eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirMbMsg *pMsg;
     tANI_U16 msgLen;
+
+    csrRemoveCmdFromPendingList( pMac, &pMac->roam.roamCmdPendingList, eSmeCommandScan);
+    csrRemoveCmdFromPendingList( pMac, &pMac->sme.smeCmdPendingList, eSmeCommandScan);
 
     msgLen = (tANI_U16)(sizeof( tSirMbMsg ));
     status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, msgLen);
