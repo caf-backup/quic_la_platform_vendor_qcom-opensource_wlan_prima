@@ -64,16 +64,16 @@ static inline unsigned int isAuthValid(tpAniSirGlobal pMac, tpSirMacAuthFrameBod
     valid=1;
 
     if (  ((auth->authTransactionSeqNumber==SIR_MAC_AUTH_FRAME_1)||
-		   (auth->authTransactionSeqNumber==SIR_MAC_AUTH_FRAME_3)) &&
-		   ((sessionEntry->limSystemRole == eLIM_STA_ROLE)||(sessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)))
+           (auth->authTransactionSeqNumber==SIR_MAC_AUTH_FRAME_3)) &&
+          ((sessionEntry->limSystemRole == eLIM_STA_ROLE)||(sessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)))
         valid=0;
 
     if ( ((auth->authTransactionSeqNumber==SIR_MAC_AUTH_FRAME_2)||(auth->authTransactionSeqNumber==SIR_MAC_AUTH_FRAME_4))&&
-		      ((sessionEntry->limSystemRole == eLIM_AP_ROLE)||(sessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)))
+         ((sessionEntry->limSystemRole == eLIM_AP_ROLE)||(sessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)))
         valid=0;
 
     if ( ((auth->authTransactionSeqNumber==SIR_MAC_AUTH_FRAME_3)||(auth->authTransactionSeqNumber==SIR_MAC_AUTH_FRAME_4))&&
-		      (auth->type!=SIR_MAC_CHALLENGE_TEXT_EID)&&(auth->authAlgoNumber != eSIR_SHARED_KEY))
+         (auth->type!=SIR_MAC_CHALLENGE_TEXT_EID)&&(auth->authAlgoNumber != eSIR_SHARED_KEY))
         valid=0;
 
     return valid;
@@ -119,18 +119,18 @@ static inline unsigned int isAuthValid(tpAniSirGlobal pMac, tpSirMacAuthFrameBod
 void
 limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession psessionEntry)
 {
-    tANI_U8               	*pBody, keyId, cfgPrivacyOptImp,
-                          	defaultKey[SIR_MAC_KEY_LENGTH],
-                          	encrAuthFrame[LIM_ENCR_AUTH_BODY_LEN],
-                          	plainBody[256];
-    tANI_U16              	frameLen;
-    //tANI_U32                   	authRspTimeout, maxNumPreAuth, val;
-    tANI_U32              	maxNumPreAuth, val;
-    tSirMacAuthFrameBody  	*pRxAuthFrameBody, rxAuthFrame, authFrame;
-    tpSirMacMgmtHdr       	pHdr;
-    tCfgWepKeyEntry       	*pKeyMapEntry = NULL;
+    tANI_U8                 *pBody, keyId, cfgPrivacyOptImp,
+                            defaultKey[SIR_MAC_KEY_LENGTH],
+                            encrAuthFrame[LIM_ENCR_AUTH_BODY_LEN],
+                            plainBody[256];
+    tANI_U16                frameLen;
+    //tANI_U32                authRspTimeout, maxNumPreAuth, val;
+    tANI_U32                maxNumPreAuth, val;
+    tSirMacAuthFrameBody    *pRxAuthFrameBody, rxAuthFrame, authFrame;
+    tpSirMacMgmtHdr         pHdr;
+    tCfgWepKeyEntry         *pKeyMapEntry = NULL;
     struct tLimPreAuthNode  *pAuthNode;
-    tLimMlmAuthInd        	mlmAuthInd;
+    tLimMlmAuthInd          mlmAuthInd;
     tANI_U8                 decryptResult;
     tANI_U8                 *pChallenge;
     tANI_U32                key_length=8;
@@ -234,7 +234,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             return;
         }
 #ifdef WLAN_SOFTAP_FEATURE
-	if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+        if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
         {
             val = psessionEntry->privacy; 
         } 
@@ -671,7 +671,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     case eSIR_SHARED_KEY:
                         PELOG1(limLog(pMac, LOG1, FL("=======> eSIR_SHARED_KEY  ...\n"));)
 #ifdef WLAN_SOFTAP_FEATURE
-		        if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+                        if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
                         {
                             val = psessionEntry->privacy;
                         }
@@ -1086,7 +1086,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                                     encrAuthFrame,key_length);
 
                                 psessionEntry->limMlmState = eLIM_MLM_WT_AUTH_FRAME4_STATE;
-				    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+                                MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
                                 limSendAuthMgmtFrame(pMac,
                                                      (tpSirMacAuthFrameBody) encrAuthFrame,
@@ -1167,7 +1167,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                                 psessionEntry->limMlmState =
                                 eLIM_MLM_WT_AUTH_FRAME4_STATE;
-				    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+                                MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
                                 limSendAuthMgmtFrame(pMac,
                                                      (tpSirMacAuthFrameBody) encrAuthFrame,
@@ -1641,10 +1641,10 @@ int limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, void *body)
                     (tANI_U32) pRxAuthFrameBody->authStatusCode);)
 #endif
             }
-	    else 
-	    {
+            else 
+            {
                 ret_status = eSIR_SUCCESS;
-	    }
+            }
             break;
 
         default:

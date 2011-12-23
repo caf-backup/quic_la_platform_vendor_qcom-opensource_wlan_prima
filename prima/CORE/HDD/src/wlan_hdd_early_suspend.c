@@ -639,11 +639,11 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
           if (eHAL_STATUS_SUCCESS != 
                     sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter) , &offLoadRequest))
           {
-              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to enable HostOffload \
-                      feature\n", __func__);
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to enable HostOffload "
+                      "feature\n", __func__);
               return VOS_STATUS_E_FAILURE;
           }
-		  return VOS_STATUS_SUCCESS;
+          return VOS_STATUS_SUCCESS;
        }
        else
        {
@@ -659,11 +659,11 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
 
        if (eHAL_STATUS_SUCCESS != sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter), &offLoadRequest))
        {
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to disable host \
-                             offload feature\n",__func__);
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to disable host "
+                             "offload feature\n", __func__);
             return VOS_STATUS_E_FAILURE;
        }
-	   return VOS_STATUS_SUCCESS;
+       return VOS_STATUS_SUCCESS;
    }
 }
 
@@ -704,7 +704,8 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
 }
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx)
+static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
+                                 hdd_adapter_t *pAdapter)
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
     tpSirWlanSuspendParam wlanSuspendParam =
@@ -720,15 +721,18 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx)
     hddLog(VOS_TRACE_LEVEL_INFO, 
       "%s: send wlan suspend indication", __func__);
 
-    if(pHddCtx->cfg_ini->fhostArpOffload)
+    if((pHddCtx->cfg_ini->fhostArpOffload) && 
+       (pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) &&
+       (eConnectionState_Associated == 
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)) 
     {
         halStatus = hdd_conf_hostarpoffload(pHddCtx, TRUE);
         if (!VOS_IS_STATUS_SUCCESS(halStatus))
         {
            wlanSuspendParam->configuredMcstBcstFilterSetting = 
                                   pHddCtx->cfg_ini->mcastBcastFilterSetting;
-           hddLog(VOS_TRACE_LEVEL_INFO, "%s:Failed to enable ARPOFFLOAD \
-                  Feature %d\n", __func__, halStatus);								  
+           hddLog(VOS_TRACE_LEVEL_INFO, "%s:Failed to enable ARPOFFLOAD Feature %d\n",
+                  __func__, halStatus);
         }
         else
         {
@@ -786,8 +790,8 @@ static void hdd_conf_resume_ind(hdd_context_t* pHddCtx)
         {
            wlanResumeParam->configuredMcstBcstFilterSetting = 
                                   pHddCtx->cfg_ini->mcastBcastFilterSetting;
-           hddLog(VOS_TRACE_LEVEL_INFO, "%s:Failed to disable ARPOFFLOAD \
-                  Feature %d\n", __func__, halStatus);								  
+           hddLog(VOS_TRACE_LEVEL_INFO, "%s:Failed to disable ARPOFFLOAD "
+                  "Feature %d\n", __func__, halStatus);
         }
         else
         {
@@ -922,19 +926,19 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
        }
 #endif
 
-   if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
-      if(eConnectionState_Associated == 
-            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) {
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    /*Suspend notification sent down to driver*/
-         hdd_conf_suspend_ind(pHddCtx);
+      hdd_conf_suspend_ind(pHddCtx, pAdapter);
 #else
-         hdd_conf_mcastbcast_filter(pHddCtx, TRUE);
-         halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME,
+      if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
+         if(eConnectionState_Associated == 
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) {
+            hdd_conf_mcastbcast_filter(pHddCtx, TRUE);
+            halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME,
                                   pHddCtx->pvosContext), FALSE);
+         }
+      } 
 #endif
-       }
-   } 
    pHddCtx->hdd_wlan_suspended = TRUE;
    status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
    pAdapterNode = pNext;
@@ -1047,8 +1051,8 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    if(!sd_is_drvdata_available(sdio_func_dev))
    {
         /* Our card got removed */
-        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HDD context is not available\
-                                       in sdio_func_dev!",__func__);
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HDD context is not available "
+                                       "in sdio_func_dev!",__func__);
         return;
    }
 

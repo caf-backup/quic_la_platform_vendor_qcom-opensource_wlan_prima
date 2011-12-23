@@ -232,7 +232,7 @@ typedef struct sLimMlmAssocInd
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
-	tANI_U8					sessionId;
+    tANI_U8                 sessionId;
 
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -364,44 +364,44 @@ typedef struct sLimMlmDisassocCnf
 typedef struct sLimMlmDisassocInd
 {
     tSirMacAddr     peerMacAddr;
-    tANI_U16             reasonCode;
-    tANI_U16             disassocTrigger;
-    tANI_U16             aid;
-	tANI_U8				 sessionId;
+    tANI_U16        reasonCode;
+    tANI_U16        disassocTrigger;
+    tANI_U16        aid;
+    tANI_U8         sessionId;
 } tLimMlmDisassocInd, *tpLimMlmDisassocInd;
 
 typedef struct sLimMlmPurgeStaReq
 {
     tSirMacAddr     peerMacAddr;
-    tANI_U16             aid;
+    tANI_U16        aid;
     tANI_U8         sessionId;//Added For BT-AMP Support
 } tLimMlmPurgeStaReq, *tpLimMlmPurgeStaReq;
 
 typedef struct sLimMlmPurgeStaInd
 {
     tSirMacAddr     peerMacAddr;
-    tANI_U16             reasonCode;
-    tANI_U16             purgeTrigger;
-    tANI_U16             aid;
-	tANI_U8				 sessionId;
+    tANI_U16        reasonCode;
+    tANI_U16        purgeTrigger;
+    tANI_U16        aid;
+    tANI_U8         sessionId;
 } tLimMlmPurgeStaInd, *tpLimMlmPurgeStaInd;
 
 typedef struct sLimMlmSetKeysReq
 {
     tSirMacAddr     peerMacAddr;
     tANI_U8         sessionId;      //Added For BT-AMP Support
-    tANI_U16             aid;
+    tANI_U16        aid;
     tAniEdType      edType;    // Encryption/Decryption type
-    tANI_U8              numKeys;
+    tANI_U8         numKeys;
     tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];
 } tLimMlmSetKeysReq, *tpLimMlmSetKeysReq;
 
 typedef struct sLimMlmSetKeysCnf
 {
     tSirMacAddr     peerMacAddr;
-    tANI_U16             resultCode;
-    tANI_U16             aid;
-    tANI_U8             sessionId;
+    tANI_U16        resultCode;
+    tANI_U16        aid;
+    tANI_U8         sessionId;
 } tLimMlmSetKeysCnf, *tpLimMlmSetKeysCnf;
 
 typedef struct sLimMlmRemoveKeyReq
@@ -409,15 +409,15 @@ typedef struct sLimMlmRemoveKeyReq
     tSirMacAddr     peerMacAddr;
     tANI_U8         sessionId; //Added FOr BT-AMP Support
     tAniEdType      edType;    // Encryption/Decryption type
-    tANI_U8          wepType; //STATIC / DYNAMIC specifier
-    tANI_U8          keyId; //Key Id To be removed.
-    tANI_BOOLEAN unicast;
+    tANI_U8         wepType; //STATIC / DYNAMIC specifier
+    tANI_U8         keyId; //Key Id To be removed.
+    tANI_BOOLEAN    unicast;
 } tLimMlmRemoveKeyReq, *tpLimMlmRemoveKeyReq;
 
 typedef struct sLimMlmRemoveKeyCnf
 {
     tSirMacAddr     peerMacAddr;
-    tANI_U16             resultCode;
+    tANI_U16        resultCode;
     tANI_U8         sessionId;
 } tLimMlmRemoveKeyCnf, *tpLimMlmRemoveKeyCnf;
 

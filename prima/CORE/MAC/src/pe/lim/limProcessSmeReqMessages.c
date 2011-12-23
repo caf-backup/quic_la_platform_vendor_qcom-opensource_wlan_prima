@@ -616,7 +616,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             channelNumber = pSmeStartBssReq->channelId;
             /*Update cbMode received from sme with LIM's updated cbMode*/
             pSmeStartBssReq->cbMode =  pMac->lim.gCbMode;
-	    
+
             setupCBState( pMac, pSmeStartBssReq->cbMode );
             pMac->lim.gHTSecondaryChannelOffset = limGetHTCBState(pSmeStartBssReq->cbMode);
 #ifdef WLAN_SOFTAP_FEATURE
@@ -1445,7 +1445,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             val = sizeof(tLimMlmJoinReq) + psessionEntry->pLimJoinReq->bssDescription.length + 2;
 #endif
             if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmJoinReq, val))
-	        {
+            {
                 limLog(pMac, LOGP, FL("call to palAllocateMemory failed for mlmJoinReq\n"));
                 return;
             }
@@ -1613,7 +1613,7 @@ end:
     if(pSmeJoinReq)
     {
         palFreeMemory( pMac->hHdd, pSmeJoinReq);
-		pSmeJoinReq=NULL;
+        pSmeJoinReq = NULL;
         psessionEntry->pLimJoinReq = NULL;
     }
     
@@ -3251,11 +3251,11 @@ limAssocStaEnd:
     // Call hdd callback with sap event to send the list of associated stations from PE
     if (pSapEventCallback != NULL)
     {
-    	sapEvent.sapHddEventCode = eSAP_ASSOC_STA_CALLBACK_EVENT;
-    	sapEvent.sapevt.sapAssocStaListEvent.module = VOS_MODULE_ID_PE;
-    	sapEvent.sapevt.sapAssocStaListEvent.noOfAssocSta = staCount;
-    	sapEvent.sapevt.sapAssocStaListEvent.pAssocStas = (tpSap_AssocMacAddr)getAssocSTAsReq.pAssocStasArray;
-    	pSapEventCallback(&sapEvent, getAssocSTAsReq.pUsrContext);
+        sapEvent.sapHddEventCode = eSAP_ASSOC_STA_CALLBACK_EVENT;
+        sapEvent.sapevt.sapAssocStaListEvent.module = VOS_MODULE_ID_PE;
+        sapEvent.sapevt.sapAssocStaListEvent.noOfAssocSta = staCount;
+        sapEvent.sapevt.sapAssocStaListEvent.pAssocStas = (tpSap_AssocMacAddr)getAssocSTAsReq.pAssocStasArray;
+        pSapEventCallback(&sapEvent, getAssocSTAsReq.pUsrContext);
     }
 }
 /**
@@ -3750,8 +3750,8 @@ __limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsg
     {
         // SME_ASSOC_CNF status is non-success, so STA is not allowed to be associated
         /*Since the HAL sta entry is created for denied STA we need to remove this HAL entry.So to do that set updateContext to 1*/
-		if(!pStaDs->mlmStaContext.updateContext)
-			pStaDs->mlmStaContext.updateContext = 1;
+        if(!pStaDs->mlmStaContext.updateContext)
+           pStaDs->mlmStaContext.updateContext = 1;
         limRejectAssociation(pMac, pStaDs->staAddr,
                              pStaDs->mlmStaContext.subType,
                              true, pStaDs->mlmStaContext.authType,

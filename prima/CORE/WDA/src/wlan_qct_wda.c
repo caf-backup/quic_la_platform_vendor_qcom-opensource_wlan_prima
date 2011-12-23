@@ -10017,9 +10017,9 @@ void WDA_TriggerBaReqCallback(WDI_TriggerBARspParamsType *wdiTriggerBaRsp,
 
       if(NULL == baActivityInd) 
       { 
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR\
-           ,"%s: VOS MEM Alloc Failure", __FUNCTION__); \
-         VOS_ASSERT(0) ; \
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+           "%s: VOS MEM Alloc Failure", __FUNCTION__);
+         VOS_ASSERT(0) ;
          return; 
       }
 

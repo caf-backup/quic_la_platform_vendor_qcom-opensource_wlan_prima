@@ -531,18 +531,18 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     }
 
     /* Since AddTS response was successful, check for the PSB flag
-	 * and directional flag inside the TS Info field. 
+     * and directional flag inside the TS Info field. 
      * An AC is trigger enabled AC if the PSB subfield is set to 1  
      * in the uplink direction.
      * An AC is delivery enabled AC if the PSB subfield is set to 1 
      * in the downlink direction.
      * An AC is trigger and delivery enabled AC if the PSB subfield  
      * is set to 1 in the bi-direction field.
-	 */
+     */
     if (addts.tspec.tsinfo.traffic.psb == 1)
-	    limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, SET_UAPSD_MASK);
+        limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, SET_UAPSD_MASK);
     else 
-	    limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, CLEAR_UAPSD_MASK);
+        limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, CLEAR_UAPSD_MASK);
 
 
     /* ADDTS success, so AC is now admitted. We shall now use the default
@@ -1470,8 +1470,8 @@ tANI_U8 *pBody;
 
   // Now, validate the DELBA Ind
   if( eSIR_MAC_SUCCESS_STATUS != __limValidateDelBAParameterSet( pMac,
-	    frmDelBAInd.DelBAParameterSet,
-		pSta ))
+                                             frmDelBAInd.DelBAParameterSet,
+                                             pSta ))
       return;
 
   //
@@ -1848,10 +1848,10 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         break;
 #endif
 #if defined WLAN_FEATURE_P2P
-	case SIR_MAC_ACTION_PUBLIC_USAGE:
-	    switch(pActionHdr->actionID) {
-		   case SIR_MAC_ACTION_VENDOR_SPECIFIC:
-           {
+    case SIR_MAC_ACTION_PUBLIC_USAGE:
+        switch(pActionHdr->actionID) {
+        case SIR_MAC_ACTION_VENDOR_SPECIFIC:
+            {
               tpSirMacVendorSpecificPublicActionFrameHdr pPubAction = (tpSirMacVendorSpecificPublicActionFrameHdr) pActionHdr;
               tpSirMacMgmtHdr     pHdr;
               tANI_U32            frameLen;
@@ -1874,13 +1874,13 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                       pPubAction->Oui[0], pPubAction->Oui[1], pPubAction->Oui[2], pPubAction->Oui[3] );
               }
            }
-		   break;
-		   
-	      default:
-	         PELOGE(limLog(pMac, LOGE, FL("Unhandled public action frame -- %x \n"), pActionHdr->actionID);)
-		     break;
-	    }
-	    break;
+            break;
+
+        default:
+            PELOGE(limLog(pMac, LOGE, FL("Unhandled public action frame -- %x \n"), pActionHdr->actionID);)
+            break;
+        }
+        break;
 #endif
     default:
        PELOGE(limLog(pMac, LOGE, FL("Action category %d not handled\n"), pActionHdr->category);)

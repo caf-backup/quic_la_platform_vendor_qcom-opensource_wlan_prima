@@ -1099,7 +1099,7 @@ extern void dbgTestCompleted(void *mpAdapterPtr);
 #define ANI_DBG_GRP_INFO_TYPE_RPHY      0x00000100
 #define ANI_DBG_GRP_INFO_TYPE_HCF       0x00000200
 #define ANI_DBG_GRP_INFO_TYPE_SP        0x00000400
-#define ANI_DBG_GRP_INFO_TYPE_CP	    0x00000800
+#define ANI_DBG_GRP_INFO_TYPE_CP        0x00000800
 
 
 #define ANI_DBG_GRP_INFO_TYPE_ALL       (ANI_DBG_GRP_INFO_TYPE_MISC |   \
@@ -1121,11 +1121,11 @@ typedef struct sANI_DBG_MISC_INFO {
     unsigned long sysMode;
     unsigned long sysIntrMask;
     unsigned long intrMask;
-	unsigned long phyIntrMask;
+    unsigned long phyIntrMask;
     unsigned long intrStatus[32];
-	unsigned long phyIntrStatus[16];
+    unsigned long phyIntrStatus[16];
     unsigned long eofSofExceptionResets;  
-    unsigned long  bmuExceptionResets;      
+    unsigned long bmuExceptionResets;      
     unsigned long lowPduExceptionResets;  
     unsigned long userTriggeredResets;
     unsigned long logPExceptionResets;
@@ -1141,7 +1141,7 @@ typedef struct sANI_DBG_BMU_INFO {
     unsigned long pdu;
     unsigned long exception;
     unsigned long exceptionMaster;
-	unsigned long dropCount;
+    unsigned long dropCount;
     unsigned long workQueue[10][4];
 
 } tANI_DBG_BMU_INFO;
@@ -1172,7 +1172,7 @@ typedef struct sANI_DBG_TFP_INFO {
 typedef struct sANI_DBG_RHP_INFO {
 
     unsigned long sof;
-	unsigned long sof_chunk;
+    unsigned long sof_chunk;
     unsigned long fragCount;
     unsigned long dropCount;
     unsigned long fcsCount;
@@ -1278,10 +1278,10 @@ typedef struct sANI_DBG_TC_DESC {
     unsigned long rxAckType;
     unsigned long newPkt;
     unsigned long rxSeqNum;
-	unsigned long rxPktTimeStamp;
-	unsigned long SV;
-	unsigned long ackTimeout;
-	unsigned long numOfFragsSucessful;
+    unsigned long rxPktTimeStamp;
+    unsigned long SV;
+    unsigned long ackTimeout;
+    unsigned long numOfFragsSucessful;
     unsigned long rxBDPtr;
     unsigned long txReplayCountHi;
     unsigned long txReplayCountLo;
@@ -1301,14 +1301,14 @@ typedef struct sANI_DBG_PWR_TEMPL {
     unsigned long esf;
     unsigned long tifs;
     unsigned long edcf;
-	unsigned long cb;
-	unsigned long mode;
-	unsigned long pwrLvl;
-	unsigned long nTransmitters;
-	unsigned long retry1rate;
-	unsigned long retry2rate;
+    unsigned long cb;
+    unsigned long mode;
+    unsigned long pwrLvl;
+    unsigned long nTransmitters;
+    unsigned long retry1rate;
+    unsigned long retry2rate;
 
-	unsigned long pwrTemplate; //entire value
+    unsigned long pwrTemplate; //entire value
 
 } tANI_DBG_PWR_TEMPL;
 
@@ -1330,23 +1330,23 @@ typedef struct sANI_DBG_STA {
     unsigned long descStat_replays;
     unsigned long descStat_formaterr;
     unsigned long descStat_aes_decypterr_default;
-	unsigned long descStat_aes_decypterr_ucast;
+    unsigned long descStat_aes_decypterr_ucast;
 
     unsigned long tfpStat_failed;
     unsigned long tfpStat_retry;
     unsigned long tfpStat_multiretry;
     unsigned long tfpStat_ackto;
     unsigned long tfpStat_frags;
-	unsigned long tfpStat_rtsBrqs;
+    unsigned long tfpStat_rtsBrqs;
     unsigned long tfpStat_pkts;
-	unsigned long tfpStat_ctsBackTimeouts;
-	
+    unsigned long tfpStat_ctsBackTimeouts;
+
 
     unsigned long phyStatHi;
     unsigned long phyStatLo;
 
-	unsigned long ackToNonPrimRates;
-	unsigned long nFragSuccNonPrimRates;
+    unsigned long ackToNonPrimRates;
+    unsigned long nFragSuccNonPrimRates;
 
 } tANI_DBG_STA;
 
@@ -1458,7 +1458,7 @@ typedef struct sANI_DBG_RPHY_PMI_INFO {
     unsigned long rhp_phy_eof_c;
     unsigned long rhp_phy_eof_p;
     unsigned long phy_rhp_data_val;
-	unsigned long pmi_int;
+    unsigned long pmi_int;
 
 } tANI_DBG_RPHY_PMI_INFO;
 

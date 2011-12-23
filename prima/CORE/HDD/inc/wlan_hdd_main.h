@@ -36,8 +36,8 @@
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
 /** Number of attempts to detect/remove card */
-#define LIBRA_CARD_INSERT_DETECT_MAX_COUNT	5
-#define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT	5
+#define LIBRA_CARD_INSERT_DETECT_MAX_COUNT      5
+#define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT      5
 /** Number of Tx Queues */  
 #define NUM_TX_QUEUES 4
 /** Queue length specified to OS in the net_device */

@@ -69,10 +69,10 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        wlan_cfgGetInt(pMac, WNI_CFG_PROPRIETARY_ANI_FEATURES_ENABLED, &prop);
 
        if (prop) 
-	{
-	       pStaDs->aniPeer = eHAL_SET;
-               pStaDs->propCapability = pAssocRsp->propIEinfo.capability;
-        }
+       {
+           pStaDs->aniPeer = eHAL_SET;
+           pStaDs->propCapability = pAssocRsp->propIEinfo.capability;
+       }
     }
     
        //pMac->lim.gLimMlmState         = eLIM_MLM_LINK_ESTABLISHED_STATE;
@@ -116,7 +116,7 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
    
        //If one of the rates is 11g rates, set the ERP mode.
        if ((phyMode == WNI_CFG_PHY_MODE_11G) && sirIsArate(pStaDs->supportedRates.llaRates[0] & 0x7f))
-	   	pStaDs->erpEnabled = eHAL_SET;
+           pStaDs->erpEnabled = eHAL_SET;
     
     
        val = WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET_LEN;
@@ -417,8 +417,8 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
          * Could not get Capabilities value
          * from CFG. Log error.
          */         
-        palFreeMemory(pMac->hHdd, pAssocRsp);	
-        limLog(pMac, LOGP, FL("could not retrieve Capabilities value\n"));	
+        palFreeMemory(pMac->hHdd, pAssocRsp);
+        limLog(pMac, LOGP, FL("could not retrieve Capabilities value\n"));
         return;
     }
     limCopyU16((tANI_U8 *) &localCapabilities, caps);
@@ -595,9 +595,9 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     {
         palFreeMemory(pMac->hHdd, pAssocRsp);   
         return;
-	}
-	else
-	{
+    }
+    else
+    {
         mlmAssocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
         mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
     }
@@ -608,10 +608,10 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     {
         palFreeMemory(pMac->hHdd, pAssocRsp);   
         return;
-	}
-	else
-	{
-		mlmAssocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+    }
+    else
+    {
+        mlmAssocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
         mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
     }
 #else

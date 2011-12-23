@@ -104,7 +104,7 @@ sysInitGlobals(tpAniSirGlobal pMac)
  * NOTE:
  *
  * @param pFrame
- * @return true if frame was received in learn/scan mode\n
+ * @return true if frame was received in learn/scan mode
  *         false otherwise
  */
 
@@ -193,7 +193,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
         }
     else
             {
-            PELOGE(sysLog(pMac, LOGE, "BBT received Invalid type %d subType %d " \
+            PELOGE(sysLog(pMac, LOGE, "BBT received Invalid type %d subType %d "
                    "LIM state %X. BD dump is:\n",
                    type, subType, limGetSmeState(pMac));
             sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOGE,
@@ -555,7 +555,7 @@ sysMntEntry(tANI_U32 dummy)
         {
             if (halMntProcessMsgs(pMac, &msg) != eSIR_SUCCESS)
             {
-                sysLog(pMac, LOGP, "sysMntEntry: halMntProcessMsgs call " \
+                sysLog(pMac, LOGP, "sysMntEntry: halMntProcessMsgs call "
                        "failed!\n");
             }
         }

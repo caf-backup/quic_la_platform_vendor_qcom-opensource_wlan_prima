@@ -4379,7 +4379,7 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
 
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Ptt Socket error sending message to the app!!\n"));
            vos_mem_free((v_VOID_t*)wmsg);
-		   return VOS_STATUS_E_FAILURE;
+           return VOS_STATUS_E_FAILURE;
        }
    }
    else {
@@ -4387,7 +4387,7 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
 
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Ptt Socket error sending message to the app!!\n"));
         vos_mem_free((v_VOID_t*)wmsg);
-		return VOS_STATUS_E_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
    }
 

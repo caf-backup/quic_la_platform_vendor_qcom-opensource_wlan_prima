@@ -36,10 +36,10 @@
 
 /// HDD type for special handling of BDs in the TX pkts
 /// Used in the structure ani_mod_info_t->bd_spl_proc_type
-#define ANI_HDD_NO_SPL_PROC		0
-#define ANI_HDD_DUMMY_PKT_SPL_PROC	1
-#define ANI_HDD_PRE_DUMMY_PKT_SPL_PROC	2
-#define ANI_HDD_WNS_L2_UPDATE_SPL_PROC	3
+#define ANI_HDD_NO_SPL_PROC             0
+#define ANI_HDD_DUMMY_PKT_SPL_PROC      1
+#define ANI_HDD_PRE_DUMMY_PKT_SPL_PROC  2
+#define ANI_HDD_WNS_L2_UPDATE_SPL_PROC  3
 #define ANI_HDD_DUMMY_DATA              4
 #ifdef WMM_APSD
 #define ANI_HDD_EOSP_PKT                5
@@ -58,10 +58,10 @@
  * Product IDs stored in the EEPROM for the different types of AP radio cards
  * supported by Polaris
  */
-#define AGN1323AR_00   	  4
-#define AGN1323AR_01   	  5
+#define AGN1323AR_00      4
+#define AGN1323AR_01      5
 #define AGN1223AR_00      6
-#define AGN1223AR_01   	  7
+#define AGN1223AR_01      7
 #define AGN1223AR_02      8
 #define AGN_EEP_PRODUCT_ID_MAX   8
 
@@ -171,7 +171,7 @@ enum eWniMsgTypes
     eWNI_SME_STA_STAT_RSP,
     eWNI_SME_AGGR_STAT_REQ,
     eWNI_SME_AGGR_STAT_RSP,
-    eWNI_SME_GLOBAL_STAT_REQ,	
+    eWNI_SME_GLOBAL_STAT_REQ,
     eWNI_SME_GLOBAL_STAT_RSP,
     eWNI_SME_STAT_SUMM_REQ,
     eWNI_SME_STAT_SUMM_RSP,
@@ -199,9 +199,9 @@ enum eWniMsgTypes
     eWNI_SME_UPPER_LAYER_ASSOC_CNF,
 #endif
 #ifdef WLAN_FEATURE_P2P
-	eWNI_SME_REMAIN_ON_CHANNEL_REQ,
-	eWNI_SME_REMAIN_ON_CHN_IND,
-	eWNI_SME_REMAIN_ON_CHN_RSP,
+    eWNI_SME_REMAIN_ON_CHANNEL_REQ,
+    eWNI_SME_REMAIN_ON_CHN_IND,
+    eWNI_SME_REMAIN_ON_CHN_RSP,
     eWNI_SME_MGMT_FRM_IND,
     eWNI_SME_REMAIN_ON_CHN_RDY_IND,
     eWNI_SME_SEND_ACTION_FRAME_IND,
@@ -219,7 +219,7 @@ enum eWniMsgTypes
     eWNI_PMC_EXIT_BMPS_REQ,
     eWNI_PMC_EXIT_BMPS_RSP,
     eWNI_PMC_EXIT_BMPS_IND,
-    
+
     //IMPS Messages.
     eWNI_PMC_ENTER_IMPS_REQ,
     eWNI_PMC_ENTER_IMPS_RSP,
@@ -244,21 +244,21 @@ enum eWniMsgTypes
     eWNI_PMC_EXIT_WOWL_RSP,
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-	eWNI_PMC_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP,
+    eWNI_PMC_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP,
 #endif // WLAN_FEATURE_PACKET_FILTERING
 
     eWNI_PMC_MSG_TYPES_END,
 
 #if defined WLAN_FEATURE_VOWIFI
     eWNI_SME_RRM_MSG_TYPE_BEGIN,
-    
+
     eWNI_SME_NEIGHBOR_REPORT_REQ_IND,
     eWNI_SME_NEIGHBOR_REPORT_IND,
     eWNI_SME_BEACON_REPORT_REQ_IND,
     eWNI_SME_BEACON_REPORT_RESP_XMIT_IND,
-   
+
     eWNI_SME_RRM_MSG_TYPE_END,
-   
+
 #endif
     eWNI_SME_ADD_STA_SELF_REQ,
     eWNI_SME_ADD_STA_SELF_RSP,
@@ -273,24 +273,24 @@ enum eWniMsgTypes
     eWNI_SME_FT_AGGR_QOS_RSP,
 #endif
 
-#ifdef WLAN_FEATURE_P2P 
+#ifdef WLAN_FEATURE_P2P
     eWNI_SME_REGISTER_MGMT_FRAME_REQ,
-#endif    
- 
+#endif
+
     eWNI_SME_COEX_IND,
 
 #ifdef FEATURE_WLAN_SCAN_PNO
     eWNI_SME_PREF_NETWORK_FOUND_IND,
 #endif // FEATURE_WLAN_SCAN_PNO
-    
-	eWNI_SME_TX_PER_HIT_IND,
-	
+
+    eWNI_SME_TX_PER_HIT_IND,
+
     eWNI_SME_CHANGE_COUNTRY_CODE,
-	
-   eWNI_SME_PRE_SWITCH_CHL_IND,
-   eWNI_SME_POST_SWITCH_CHL_IND,
-	
-    eWNI_SME_MSG_TYPES_END 
+
+    eWNI_SME_PRE_SWITCH_CHL_IND,
+    eWNI_SME_POST_SWITCH_CHL_IND,
+
+    eWNI_SME_MSG_TYPES_END
 };
 
 #define WNI_CFG_MSG_TYPES_BEGIN        0x1100
@@ -306,7 +306,7 @@ enum eWniMsgTypes
 #define WNI_CFG_MSG_HDR_MASK    0xffff0000
 #define WNI_CFG_MSG_LEN_MASK    0x0000ffff
 #define WNI_CFG_MB_HDR_LEN      4
-#define WNI_CFG_MAX_PARAM_NUM   32 
+#define WNI_CFG_MAX_PARAM_NUM   32
 
 
 /*---------------------------------------------------------------------*/
@@ -380,10 +380,10 @@ enum eWniMsgTypes
                                        (WNI_CFG_SET_CNF_NUM << 2))
 // Get attribute response
 #define WNI_CFG_GET_ATTRIB_RSP_RES     0
-#define WNI_CFG_GET_ATTRIB_RSP_PID     1 
+#define WNI_CFG_GET_ATTRIB_RSP_PID     1
 #define WNI_CFG_GET_ATTRIB_RSP_TYPE    2
-#define WNI_CFG_GET_ATTRIB_RSP_PLEN    3 
-#define WNI_CFG_GET_ATTRIB_RSP_RW      4 
+#define WNI_CFG_GET_ATTRIB_RSP_PLEN    3
+#define WNI_CFG_GET_ATTRIB_RSP_RW      4
 
 #define WNI_CFG_GET_ATTRIB_RSP_NUM     5
 #define WNI_CFG_GET_ATTRIB_RSP_LEN     (WNI_CFG_MB_HDR_LEN + \
@@ -409,7 +409,7 @@ enum eWniMsgTypes
 // Clear stats types.
 #define ANI_CLEAR_ALL_STATS          0
 #define ANI_CLEAR_RX_STATS           1
-#define ANI_CLEAR_TX_STATS           2 
+#define ANI_CLEAR_TX_STATS           2
 #define ANI_CLEAR_PER_STA_STATS      3
 #define ANI_CLEAR_AGGR_PER_STA_STATS 4
 #define ANI_CLEAR_STAT_TYPES_END     5
@@ -461,13 +461,13 @@ enum eWniMsgTypes
 //#define WNI_CFG_GET_ATTRIB_REQ_LEN     (WNI_CFG_MB_HDR_LEN + \
                                        (WNI_CFG_GET_ATTRIB_REQ_NUM << 2))
 // Add group address request
-#define WNI_CFG_ADD_GRP_ADDR_REQ_MAC_ADDR    0 
+#define WNI_CFG_ADD_GRP_ADDR_REQ_MAC_ADDR    0
 
 #define WNI_CFG_ADD_GRP_ADDR_REQ_NUM   1
 #define WNI_CFG_ADD_GRP_ADDR_REQ_LEN   (WNI_CFG_MB_HDR_LEN + \
                                        (WNI_CFG_ADD_GRP_ADDR_REQ_NUM << 2))
 // Delete group address request
-#define WNI_CFG_DEL_GRP_ADDR_REQ_MAC_ADDR    0  
+#define WNI_CFG_DEL_GRP_ADDR_REQ_MAC_ADDR    0
 
 #define WNI_CFG_DEL_GRP_ADDR_REQ_NUM   1
 #define WNI_CFG_DEL_GRP_ADDR_REQ_LEN   (WNI_CFG_MB_HDR_LEN + \
@@ -481,7 +481,7 @@ enum eWniMsgTypes
 #define WNI_CFG_SUCCESS             1
 #define WNI_CFG_NOT_READY           2
 #define WNI_CFG_INVALID_PID         3
-#define WNI_CFG_INVALID_LEN         4 
+#define WNI_CFG_INVALID_LEN         4
 #define WNI_CFG_RO_PARAM            5
 #define WNI_CFG_WO_PARAM            6
 #define WNI_CFG_INVALID_STAID       7
@@ -504,11 +504,11 @@ enum eWniMsgTypes
 #define WNI_CFG_GET_STAT_RSP_RES       0
 #define WNI_CFG_GET_STAT_RSP_PARAMID   1
 #define WNI_CFG_GET_STAT_RSP_VALUE     2
-  
+
 #define WNI_CFG_GET_STAT_RSP_NUM       3
 #define WNI_CFG_GET_STAT_RSP_LEN       (WNI_CFG_MB_HDR_LEN + \
                                         (WNI_CFG_GET_STAT_RSP_NUM <<2))
-// Get per station statistic response 
+// Get per station statistic response
 #define WNI_CFG_GET_PER_STA_STAT_RSP_RES                        0
 #define WNI_CFG_GET_PER_STA_STAT_RSP_STAID                      1
 #define WNI_CFG_GET_PER_STA_STAT_RSP_FIRST_PARAM                2
@@ -518,34 +518,34 @@ typedef struct sAniCfgPerStaStatStruct
 {
        unsigned long     sentAesBlksUcastHi;
        unsigned long     sentAesBlksUcastLo;
-   
+
        unsigned long     recvAesBlksUcastHi;
        unsigned long     recvAesBlksUcastLo;
-   
+
        unsigned long     aesFormatErrorUcastCnts;
-   
+
        unsigned long     aesReplaysUcast;
-   
+
        unsigned long     aesDecryptErrUcast;
-   
+
        unsigned long     singleRetryPkts;
-   
+
        unsigned long     failedTxPkts;
-   
+
        unsigned long     ackTimeouts;
-   
+
        unsigned long     multiRetryPkts;
-   
+
        unsigned long     fragTxCntsHi;
        unsigned long     fragTxCntsLo;
-   
+
        unsigned long     transmittedPktsHi;
        unsigned long     transmittedPktsLo;
-   
+
        unsigned long     phyStatHi;
        unsigned long     phyStatLo;
 } tCfgPerStaStatStruct, *tpAniCfgPerStaStatStruct;
-   
+
 #define WNI_CFG_GET_PER_STA_STAT_RSP_NUM                       23
 #define WNI_CFG_GET_PER_STA_STAT_RSP_LEN    (WNI_CFG_MB_HDR_LEN + \
                                    (WNI_CFG_GET_PER_STA_STAT_RSP_NUM << 2))
@@ -561,11 +561,11 @@ typedef struct sAniCfgPerStaStatStruct
 #define WNI_CFG_GET_AGG_STA_STAT_RSP_LEN    (WNI_CFG_MB_HDR_LEN + \
                                    (WNI_CFG_GET_AGG_STA_STAT_RSP_NUM << 2))
 #define WNI_CFG_GET_AGG_STA_STAT_RSP_RES 0
-                                             
+
   // Get TX rate based stats
 #define WNI_CFG_GET_TX_RATE_CTR_RSP_RES                        0
-  
-typedef struct sAniCfgTxRateCtrs 
+
+typedef struct sAniCfgTxRateCtrs
 {
 // add the rate counters here
     unsigned long TxFrames_1Mbps;
@@ -583,7 +583,7 @@ typedef struct sAniCfgTxRateCtrs
     unsigned long TxFrames_72Mbps;
     unsigned long TxFrames_96Mbps;
     unsigned long TxFrames_108Mbps;
-  	
+
 } tAniCfgTxRateCtrs, *tpAniCfgTxRateCtrs;
 
 
@@ -592,25 +592,25 @@ typedef struct sAniCfgTxRateCtrs
 #define WNI_CFG_GET_AGG_STA_STAT_REQ   (WNI_CFG_MSG_TYPES_BEGIN | 0x88)
 #define WNI_CFG_GET_TX_RATE_CTR_REQ    (WNI_CFG_MSG_TYPES_BEGIN | 0x89)
 
-// Get statistic request 
+// Get statistic request
 #define WNI_CFG_GET_STAT_REQ_PARAMID   0
-  
+
 #define WNI_CFG_GET_STAT_REQ_NUM       1
 #define WNI_CFG_GET_STAT_REQ_LEN       (WNI_CFG_MB_HDR_LEN + \
                                        (WNI_CFG_GET_STAT_REQ_NUM << 2))
-  
-  // Get per station statistic request 
+
+  // Get per station statistic request
 #define WNI_CFG_GET_PER_STA_STAT_REQ_STAID 0
-  
+
 #define WNI_CFG_GET_PER_STA_STAT_REQ_NUM   1
 #define WNI_CFG_GET_PER_STA_STAT_REQ_LEN   (WNI_CFG_MB_HDR_LEN + \
-                                   (WNI_CFG_GET_PER_STA_STAT_REQ_NUM << 2))  
-                                             
+                                   (WNI_CFG_GET_PER_STA_STAT_REQ_NUM << 2))
+
 
 
 
 #define DYNAMIC_CFG_TYPE_SELECTED_REGISTRAR   (0)
 #define DYNAMIC_CFG_TYPE_WPS_STATE            (1)
-                                             
+
 #endif /* __WNI_API_H */
 

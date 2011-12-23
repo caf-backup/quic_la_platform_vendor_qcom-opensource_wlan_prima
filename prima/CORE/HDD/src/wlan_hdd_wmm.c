@@ -1546,7 +1546,7 @@ v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
 
 /**============================================================================
   @brief hdd_hostapd_select_quueue() - Function which will classify the packet
-	 accoring to linux qdisc expectation.
+         according to linux qdisc expectation.
 
 
   @param dev      : [in]  pointer to net_device structure
@@ -1591,14 +1591,14 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
    if (FALSE == vos_is_macaddr_equal(&pAdapter->aStaInfo[STAId].macAddrSTA, pDestMacAddress))
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Station MAC address does not matching", __FUNCTION__);	  
+                   "%s: Station MAC address does not matching", __FUNCTION__);
       
       *pSTAId = HDD_WLAN_INVALID_STA_ID; 
       goto release_lock;
    }
    if (pAdapter->aStaInfo[STAId].isUsed && pAdapter->aStaInfo[STAId].isQosEnabled && (HDD_WMM_USER_MODE_NO_QOS != pHddCtx->cfg_ini->WmmMode))
    {
-      /* Get the user priority from IP header & corresponding AC */	
+      /* Get the user priority from IP header & corresponding AC */
       hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up);
    }
    *pSTAId = STAId;
@@ -1614,7 +1614,7 @@ done:
 
 /**============================================================================
   @brief hdd_wmm_select_quueue() - Function which will classify the packet
-	 accoring to linux qdisc expectation.
+         according to linux qdisc expectation.
 
 
   @param dev      : [in]  pointer to net_device structure

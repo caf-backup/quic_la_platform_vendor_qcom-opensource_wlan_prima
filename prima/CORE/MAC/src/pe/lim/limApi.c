@@ -717,18 +717,18 @@ limInitialize(tpAniSirGlobal pMac)
     }
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
-	/*
-        * MLM will be intitalized when 'START' request comes from SME.
-        * limInitMlm calls limCreateTimers, which actually relies on
-        * CFG to be downloaded. So it should not be called as part of
-        * peStart, as CFG download is happening after peStart.
-      */
+    /*
+     * MLM will be intitalized when 'START' request comes from SME.
+     * limInitMlm calls limCreateTimers, which actually relies on
+     * CFG to be downloaded. So it should not be called as part of
+     * peStart, as CFG download is happening after peStart.
+     */
     //limInitMlm(pMac);
     // Initializations for maintaining peers in IBSS
     limIbssInit(pMac);
 
     pmmInitialize(pMac);
-	
+
     
 #if defined WLAN_FEATURE_VOWIFI
     rrmInitialize(pMac);
@@ -741,19 +741,17 @@ limInitialize(tpAniSirGlobal pMac)
     vos_list_init(&pMac->lim.gLimMgmtFrameRegistratinQueue);
 #endif    
 
-	#if 0
+#if 0
 
-	
-	vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR);
-	vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_WARN);
-	vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL);
+    vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR);
+    vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_WARN);
+    vos_trace_setLevel(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL);
 
-	
-	vos_trace_setLevel(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_WARN);
-	vos_trace_setLevel(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_ERROR);
-		
-	vos_trace_setLevel(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_WARN);
-	vos_trace_setLevel(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR);
+    vos_trace_setLevel(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_WARN);
+    vos_trace_setLevel(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_ERROR);
+
+    vos_trace_setLevel(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_WARN);
+    vos_trace_setLevel(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR);
     vos_trace_setLevel(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR);
     
     vos_trace_setLevel(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR);
@@ -769,7 +767,7 @@ limInitialize(tpAniSirGlobal pMac)
     vos_trace_setLevel(VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_ERROR);
     
     vos_trace_setLevel(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR);
-	#endif
+#endif
     MTRACE(limTraceInit(pMac));
 
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
@@ -929,7 +927,7 @@ limCleanup(tpAniSirGlobal pMac)
 
 #ifdef VOSS_ENABLED
 
-    pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);	
+    pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
     retStatus = WLANTL_DeRegisterMgmtFrmClient(pvosGCTx);
 
     if ( retStatus != VOS_STATUS_SUCCESS )
@@ -1053,7 +1051,8 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
 
 tSirRetStatus peClose(tpAniSirGlobal pMac)
 {
-	tANI_U8		i;
+    tANI_U8 i;
+
     if (ANI_DRIVER_TYPE(pMac) == eDRIVER_TYPE_MFG)
         return eSIR_SUCCESS;
 
@@ -1063,14 +1062,14 @@ tSirRetStatus peClose(tpAniSirGlobal pMac)
     pMac->lim.gpLimAIDpool = NULL;
 
    
-	for(i =0; i < pMac->lim.maxBssId; i++)
-	{
-		if(pMac->lim.gpSession[i].valid == TRUE)
-		{
-		   peDeleteSession(pMac,&pMac->lim.gpSession[i]);
-		}
-	}	
-	
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid == TRUE)
+        {
+            peDeleteSession(pMac,&pMac->lim.gpSession[i]);
+        }
+    }
+
     palFreeMemory(pMac->hHdd, pMac->lim.gpSession);
     pMac->lim.gpSession = NULL;
     /*
@@ -1143,7 +1142,7 @@ v_VOID_t peFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg)
     if(pMsg != NULL)
     {
         if (pMsg->bodyptr)
-		{
+        {
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
         }
         pMsg->bodyptr = 0;
@@ -1270,10 +1269,10 @@ limPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 
         return TX_SUCCESS;
     }
-	if(pMac->gDriverType != eDRIVER_TYPE_MFG)
-	{
-    limMessageProcessor(pMac, pMsg);
-	}
+    if(pMac->gDriverType != eDRIVER_TYPE_MFG)
+    {
+        limMessageProcessor(pMac, pMsg);
+    }
 
     return TX_SUCCESS;
 
@@ -1316,18 +1315,18 @@ tSirRetStatus pePostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 
 tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg)
 {
-	if(pMac->gDriverType == eDRIVER_TYPE_MFG)
-	{
-    	return eSIR_SUCCESS;
-	}
-	/**
-	  *   If the Message to be handled is for CFG Module call the CFG Msg Handler and
-	  *   for all the other cases post it to LIM
-	  */
-    if ( SIR_CFG_PARAM_UPDATE_IND != pMsg->type && IS_CFG_MSG(pMsg->type))		
-		cfgProcessMbMsg(pMac, (tSirMbMsg*)pMsg->bodyptr);
-	else
-	    limMessageProcessor(pMac, pMsg);
+   if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+   {
+      return eSIR_SUCCESS;
+   }
+   /**
+    *   If the Message to be handled is for CFG Module call the CFG Msg Handler and
+    *   for all the other cases post it to LIM
+    */
+    if ( SIR_CFG_PARAM_UPDATE_IND != pMsg->type && IS_CFG_MSG(pMsg->type))
+        cfgProcessMbMsg(pMac, (tSirMbMsg*)pMsg->bodyptr);
+    else
+        limMessageProcessor(pMac, pMsg);
     return eSIR_SUCCESS;
 }
 
@@ -1354,7 +1353,7 @@ tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg)
 
 VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
 {
-	tpAniSirGlobal  pMac;
+    tpAniSirGlobal  pMac;
     tpSirMacMgmtHdr mHdr;
     tSirMsgQ        msg;
     vos_pkt_t      *pVosPkt;
@@ -1396,13 +1395,13 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
                                                   mHdr->fc.type,
                                                   mHdr->fc.subType ))
     {
-		vos_pkt_return_packet(pVosPkt);
+        vos_pkt_return_packet(pVosPkt);
         limLog( pMac, LOGW,
                 FL ( "sysBbtProcessMessageCore failed to process SIR_BB_XPORT_MGMT_MSG\n" ));
-		return VOS_STATUS_E_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
 
-	return  VOS_STATUS_SUCCESS;
+    return  VOS_STATUS_SUCCESS;
 }
 
 // ---------------------------------------------------------------------------
@@ -1423,15 +1422,15 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
 
 void peRegisterTLHandle(tpAniSirGlobal pMac)
 {
-	v_PVOID_t pvosGCTx;
-	VOS_STATUS retStatus;
+    v_PVOID_t pvosGCTx;
+    VOS_STATUS retStatus;
 
-	pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
+    pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
 
-	retStatus = WLANTL_RegisterMgmtFrmClient(pvosGCTx, peHandleMgmtFrame);
+    retStatus = WLANTL_RegisterMgmtFrmClient(pvosGCTx, peHandleMgmtFrame);
 
-	if (retStatus != VOS_STATUS_SUCCESS)
-		limLog( pMac, LOGP, FL("Registering the PE Handle with TL has failed bailing out...\n"));
+    if (retStatus != VOS_STATUS_SUCCESS)
+        limLog( pMac, LOGP, FL("Registering the PE Handle with TL has failed bailing out...\n"));
 
 }
 #endif
@@ -2245,7 +2244,7 @@ tANI_BOOLEAN limUpdateQuietIEInBeacons( tpAniSirGlobal pMac )
   tANI_BOOLEAN fUpdateBeaconFields = eANI_BOOLEAN_TRUE;
 
   limLog( pMac, LOG2, FL("Quiet BSS State = %d\n"),
-	  pMac->lim.gLimSpecMgmt.quietState );
+          pMac->lim.gLimSpecMgmt.quietState );
   switch( pMac->lim.gLimSpecMgmt.quietState )
   {
     case eLIM_QUIET_BEGIN:
@@ -2376,7 +2375,7 @@ void limRadarInit(tpAniSirGlobal pMac)
     tSirMsgQ    msg;
 
    PELOG3(limLog(pMac, LOG3, FL("Radar Interrupt Already configured? %s\n"),
-		pMac->lim.gLimSpecMgmt.fRadarIntrConfigured?"Yes":"No");)
+                 pMac->lim.gLimSpecMgmt.fRadarIntrConfigured?"Yes":"No");)
     /** To avoid configuring the radar multiple times */
     if (pMac->lim.gLimSpecMgmt.fRadarIntrConfigured)
         return;
@@ -2454,7 +2453,7 @@ void limHandleLowRssiInd(tpAniSirGlobal pMac)
 void limHandleBmpsStatusInd(tpAniSirGlobal pMac)
 {
     switch(pMac->pmm.gPmmState)
-	{
+    {
         case ePMM_STATE_BMPS_SLEEP:
         case ePMM_STATE_UAPSD_WT_SLEEP_RSP:
         case ePMM_STATE_UAPSD_SLEEP:
@@ -2464,7 +2463,7 @@ void limHandleBmpsStatusInd(tpAniSirGlobal pMac)
             limSendExitBmpsInd(pMac, eSME_BMPS_STATUS_IND_RCVD);
             break;
 
-		default:
+        default:
             limLog(pMac, LOGE,
                 FL("Received SIR_HAL_BMPS_STATUS_IND while in incorrect state: %d\n"),
                 pMac->pmm.gPmmState);
@@ -2492,7 +2491,7 @@ void limHandleMissedBeaconInd(tpAniSirGlobal pMac)
          (pMac->pmm.gPmmState == ePMM_STATE_WOWLAN) )
     {
         PELOG1(limLog(pMac, LOG1, FL("Sending EXIT_BMPS_IND to SME \n"));)
-		limSendExitBmpsInd(pMac, eSME_MISSED_BEACON_IND_RCVD);
+        limSendExitBmpsInd(pMac, eSME_MISSED_BEACON_IND_RCVD);
     }
     else
     {

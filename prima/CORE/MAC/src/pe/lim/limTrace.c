@@ -86,7 +86,7 @@ static tANI_U8* __limTraceGetMgmtDropReasonString( tANI_U16 dropReason )
 
 void limTraceInit(tpAniSirGlobal pMac)
 {
-	macTraceRegister(pMac,  VOS_MODULE_ID_PE, limTraceDump);
+    macTraceRegister(pMac,  VOS_MODULE_ID_PE, limTraceDump);
 }
 
 

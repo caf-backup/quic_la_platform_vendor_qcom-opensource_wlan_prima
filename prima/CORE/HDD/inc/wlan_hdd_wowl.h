@@ -20,8 +20,8 @@
   Wakeup pattern (used for PBM) is defined as following:
   typedef struct 
   {
-    U8  PatternSize; 		              // Non-Zero pattern size
-    U8  PatternMaskSize; 	            // Non-zero pattern mask size
+    U8  PatternSize;                  // Non-Zero pattern size
+    U8  PatternMaskSize;              // Non-zero pattern mask size
     U8  PatternMask[PatternMaskSize]; // Pattern mask
     U8  Pattern[PatternSize];         // Pattern
   } hdd_wowl_ptrn_t;

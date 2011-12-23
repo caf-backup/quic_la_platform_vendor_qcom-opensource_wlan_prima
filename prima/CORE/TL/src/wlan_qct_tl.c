@@ -763,8 +763,8 @@ WLANTL_ConfigureSwFrameTXXlationForAll
   if ( NULL == pTLCb )
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Invalid TL pointer from pvosGCtx on \
-           WLANTL_ConfigureSwFrameTXXlationForAll"));
+           "WLAN TL:Invalid TL pointer from pvosGCtx on "
+           "WLANTL_ConfigureSwFrameTXXlationForAll"));
     return;
   }
 

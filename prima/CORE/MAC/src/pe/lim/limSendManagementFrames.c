@@ -2112,9 +2112,9 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         limLog( pMac, LOGE, FL("mdie = %02x %02x %02x\n"), 
-		        (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[0],
-		        (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[1],
-		        (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[2]);
+            (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[0],
+            (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[1],
+            (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[2]);
 #endif
         PopulateMDIE( pMac, &frm.MobilityDomain, psessionEntry->pLimJoinReq->bssDescription.mdie); 
     }
@@ -2152,7 +2152,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
                                "sociation Request.\n"), nBytes );
 
         psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-	 MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
         
         /* Update PE session id*/
@@ -2604,7 +2604,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
 #if defined WLAN_FEATURE_VOWIFI
         PowerCapsPopulated = TRUE;
 
-	      PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
+        PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
         PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_REASSOC,psessionEntry);
 #endif
     }
@@ -2718,7 +2718,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-	 MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
         limLog( pMac, LOGP, FL("Failed to allocate %d bytes for a Re-As"
                                "sociation Request.\n"), nBytes );
         goto end;

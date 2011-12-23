@@ -105,7 +105,7 @@ static const u32 hdd_cipher_suites[] =
 
 static inline int is_broadcast_ether_addr(const u8 *addr)
 {
-    return ((addr[0] == 0xff) && (addr[1] == 0xff) && (addr[2] == 0xff) &&   \
+    return ((addr[0] == 0xff) && (addr[1] == 0xff) && (addr[2] == 0xff) &&
             (addr[3] == 0xff) && (addr[4] == 0xff) && (addr[5] == 0xff));
 }
 
@@ -1571,8 +1571,8 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                  * during ibss join*/
                 pWextState->roamProfile.negotiatedUCEncryptionType = 
                     pHddStaCtx->conn_info.ucEncryptionType = 
-                    ((WLAN_CIPHER_SUITE_WEP40 == params->cipher) ? \
-                    eCSR_ENCRYPT_TYPE_WEP40_STATICKEY : \
+                    ((WLAN_CIPHER_SUITE_WEP40 == params->cipher) ?
+                    eCSR_ENCRYPT_TYPE_WEP40_STATICKEY :
                     eCSR_ENCRYPT_TYPE_WEP104_STATICKEY);
     
                 hddLog(VOS_TRACE_LEVEL_INFO_MED, 
@@ -1607,8 +1607,8 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                     u8 staidx = wlan_hdd_cfg80211_get_ibss_peer_staidx(pAdapter);
                     if (HDD_MAX_NUM_IBSS_STA != staidx)
                     {
-                        vos_mem_copy(setKey.peerMac, \
-                                &pHddStaCtx->conn_info.peerMacAddress[staidx], \
+                        vos_mem_copy(setKey.peerMac,
+                                &pHddStaCtx->conn_info.peerMacAddress[staidx],
                                 WNI_CFG_BSSID_LEN);
     
                     } 
@@ -1621,8 +1621,8 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                 }
                 else
                 {
-                    vos_mem_copy(setKey.peerMac, \
-                            &pHddStaCtx->conn_info.bssId[0], \
+                    vos_mem_copy(setKey.peerMac,
+                            &pHddStaCtx->conn_info.bssId[0],
                             WNI_CFG_BSSID_LEN);
                 }
             }
@@ -2692,9 +2692,9 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
 
         pRoamProfile->SSIDs.numOfSSIDs = 1;
         pRoamProfile->SSIDs.SSIDList->SSID.length = ssid_len;
-        vos_mem_zero(pRoamProfile->SSIDs.SSIDList->SSID.ssId, \
+        vos_mem_zero(pRoamProfile->SSIDs.SSIDList->SSID.ssId,
                 sizeof(pRoamProfile->SSIDs.SSIDList->SSID.ssId)); 
-        vos_mem_copy((void *)(pRoamProfile->SSIDs.SSIDList->SSID.ssId), \
+        vos_mem_copy((void *)(pRoamProfile->SSIDs.SSIDList->SSID.ssId),
                 ssid, ssid_len);
 
         if (bssid)
@@ -3483,7 +3483,7 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
 
     /* Issue Disconnect request */
     INIT_COMPLETION(pAdapter->disconnect_comp_var);
-    sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId, \
+    sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId,
                                   eCSR_DISCONNECT_REASON_IBSS_LEAVE);
 
     return 0;
@@ -3504,11 +3504,11 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
 
     if (changed & WIPHY_PARAM_RTS_THRESHOLD)
     {
-        u16 rts_threshold = (wiphy->rts_threshold == -1) ? \
-                               WNI_CFG_RTS_THRESHOLD_STAMAX : \
+        u16 rts_threshold = (wiphy->rts_threshold == -1) ?
+                               WNI_CFG_RTS_THRESHOLD_STAMAX :
                                wiphy->rts_threshold;
 
-        if ((WNI_CFG_RTS_THRESHOLD_STAMIN > rts_threshold) || \
+        if ((WNI_CFG_RTS_THRESHOLD_STAMIN > rts_threshold) ||
                 (WNI_CFG_RTS_THRESHOLD_STAMAX < rts_threshold)) 
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -3517,8 +3517,8 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
             return -EINVAL;
         }
 
-        if (0 != ccmCfgSetInt(hHal, WNI_CFG_RTS_THRESHOLD, \
-                    rts_threshold, ccmCfgSetCallback, \
+        if (0 != ccmCfgSetInt(hHal, WNI_CFG_RTS_THRESHOLD,
+                    rts_threshold, ccmCfgSetCallback,
                     eANI_BOOLEAN_TRUE)) 
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -3533,11 +3533,11 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
 
     if (changed & WIPHY_PARAM_FRAG_THRESHOLD)
     {
-        u16 frag_threshold = (wiphy->frag_threshold == -1) ? \
-                                WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX : \
+        u16 frag_threshold = (wiphy->frag_threshold == -1) ?
+                                WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX :
                                 wiphy->frag_threshold;
 
-        if ((WNI_CFG_FRAGMENTATION_THRESHOLD_STAMIN > frag_threshold)|| \
+        if ((WNI_CFG_FRAGMENTATION_THRESHOLD_STAMIN > frag_threshold)||
                 (WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX < frag_threshold) ) 
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -3546,8 +3546,8 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
             return -EINVAL;
         }
 
-        if (0 != ccmCfgSetInt(hHal, WNI_CFG_FRAGMENTATION_THRESHOLD, \
-                    frag_threshold, ccmCfgSetCallback, \
+        if (0 != ccmCfgSetInt(hHal, WNI_CFG_FRAGMENTATION_THRESHOLD,
+                    frag_threshold, ccmCfgSetCallback,
                     eANI_BOOLEAN_TRUE)) 
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -3563,11 +3563,11 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
     if ((changed & WIPHY_PARAM_RETRY_SHORT)
             || (changed & WIPHY_PARAM_RETRY_LONG))
     {
-        u8 retry_value = (changed & WIPHY_PARAM_RETRY_SHORT) ? \
-                         wiphy->retry_short : \
+        u8 retry_value = (changed & WIPHY_PARAM_RETRY_SHORT) ?
+                         wiphy->retry_short :
                          wiphy->retry_long;
 
-        if ((WNI_CFG_LONG_RETRY_LIMIT_STAMIN > retry_value) || \
+        if ((WNI_CFG_LONG_RETRY_LIMIT_STAMIN > retry_value) ||
                 (WNI_CFG_LONG_RETRY_LIMIT_STAMAX < retry_value))
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid Retry count %hu", 
@@ -3577,8 +3577,8 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
 
         if (changed & WIPHY_PARAM_RETRY_SHORT)
         {
-            if (0 != ccmCfgSetInt(hHal, WNI_CFG_LONG_RETRY_LIMIT, \
-                        retry_value, ccmCfgSetCallback, \
+            if (0 != ccmCfgSetInt(hHal, WNI_CFG_LONG_RETRY_LIMIT,
+                        retry_value, ccmCfgSetCallback,
                         eANI_BOOLEAN_TRUE)) 
             {
                 hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -3591,8 +3591,8 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
         }
         else if (changed & WIPHY_PARAM_RETRY_SHORT)
         {
-            if (0 != ccmCfgSetInt(hHal, WNI_CFG_SHORT_RETRY_LIMIT, \
-                        retry_value, ccmCfgSetCallback, \
+            if (0 != ccmCfgSetInt(hHal, WNI_CFG_SHORT_RETRY_LIMIT,
+                        retry_value, ccmCfgSetCallback,
                         eANI_BOOLEAN_TRUE)) 
             {
                 hddLog(VOS_TRACE_LEVEL_ERROR, 

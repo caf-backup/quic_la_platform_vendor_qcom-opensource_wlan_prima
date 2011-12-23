@@ -1244,6 +1244,26 @@ WDI_MainRsp
 );
 
 /*--------------------------------------------------------------------------
+  STOPPED State Functions 
+--------------------------------------------------------------------------*/
+/**
+ @brief Main FSM Stop function for state STOPPED
+
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_MainStopStopped
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+  );
+
+/*--------------------------------------------------------------------------
   BUSY State Functions 
 --------------------------------------------------------------------------*/
 /**

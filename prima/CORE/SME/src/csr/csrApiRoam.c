@@ -5501,8 +5501,8 @@ eHalStatus csrRoamReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
       }
       else
       {
-         smsLog(pMac, LOG1, FL("Either the profile is NULL or none of the fields\
-                               in tCsrRoamModifyProfileFields got modified\n"));
+         smsLog(pMac, LOG1, FL("Either the profile is NULL or none of the fields "
+                               "in tCsrRoamModifyProfileFields got modified\n"));
       }
    }
    else
@@ -12673,8 +12673,8 @@ tListElem * csrRoamChecknUpdateClientReqList(tpAniSirGlobal pMac, tCsrStatsClien
    if(!pEntry)
    {
       //list empty
-      smsLog(pMac, LOGW, "csrRoamChecknUpdateClientReqList: List empty, no request from \
-             upper layer client(s)\n");
+      smsLog(pMac, LOGW, "csrRoamChecknUpdateClientReqList: List empty, no request from "
+             "upper layer client(s)\n");
       return NULL;
    }
 
@@ -12711,8 +12711,8 @@ tListElem * csrRoamCheckClientReqList(tpAniSirGlobal pMac, tANI_U32 statsMask)
    if(!pEntry)
    {
       //list empty
-      smsLog(pMac, LOGW, "csrRoamCheckClientReqList: List empty, no request from \
-             upper layer client(s)\n");
+      smsLog(pMac, LOGW, "csrRoamCheckClientReqList: List empty, no request from "
+             "upper layer client(s)\n");
       return NULL;
    }
 
@@ -12886,8 +12886,8 @@ tCsrStatsClientReqInfo * csrRoamInsertEntryIntoList( tpAniSirGlobal pMac,
       status = palAllocateMemory(pMac->hHdd, (void **)&pNewStaEntry, sizeof(tCsrStatsClientReqInfo));
       if (!HAL_STATUS_SUCCESS(status))
       {
-         smsLog(pMac, LOGW, "csrRoamInsertEntryIntoList: couldn't allocate memory for the \
-                entry\n");
+         smsLog(pMac, LOGW, "csrRoamInsertEntryIntoList: couldn't allocate memory for the "
+                "entry\n");
          return NULL;
       }
    
@@ -12919,8 +12919,8 @@ tCsrPeStatsReqInfo * csrRoamInsertEntryIntoPeStatsReqList( tpAniSirGlobal pMac,
    status = palAllocateMemory(pMac->hHdd, (void **)&pNewStaEntry, sizeof(tCsrPeStatsReqInfo));
    if (!HAL_STATUS_SUCCESS(status))
    {
-      smsLog(pMac, LOGW, "csrRoamInsertEntryIntoPeStatsReqList: couldn't allocate memory for the \
-                  entry\n");
+      smsLog(pMac, LOGW, "csrRoamInsertEntryIntoPeStatsReqList: couldn't allocate memory for the "
+                  "entry\n");
       return NULL;
    }
    
@@ -13015,8 +13015,8 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
       if(!pEntry)
       {
          //msg
-         smsLog(pMac, LOGW, "csrGetStatistics: callback is empty in the request & couldn't \
-                find any existing request in statsClientReqList\n");
+         smsLog(pMac, LOGW, "csrGetStatistics: callback is empty in the request & couldn't "
+                "find any existing request in statsClientReqList\n");
          return eHAL_STATUS_FAILURE;
       }
       else
@@ -13564,8 +13564,8 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
    if(!pEntry)
    {
       //list empty
-      smsLog(pMac, LOGW, "csrRoamDeregStatisticsReq: List empty, no request from \
-             upper layer client(s)\n");
+      smsLog(pMac, LOGW, "csrRoamDeregStatisticsReq: List empty, no request from "
+             "upper layer client(s)\n");
       return status;
    }
 

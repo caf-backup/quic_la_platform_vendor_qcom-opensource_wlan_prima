@@ -83,7 +83,7 @@ static inline VOS_STATUS mibSetDot11DesiredSsidList( hdd_adapter_t *pAdapter, sM
     VOS_STATUS status = VOS_STATUS_SUCCESS;
         
     if ( pDot11DesiredSsidList->cEntries > MIB_DOT11_DESIRED_SSID_LIST_MAX_COUNT )
-		
+
         pAdapter->hdd_mib.mibDot11DesiredSsidList = *pDot11DesiredSsidList ;
               
     return( status );

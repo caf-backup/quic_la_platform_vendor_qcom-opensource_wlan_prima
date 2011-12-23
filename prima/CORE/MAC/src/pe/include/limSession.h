@@ -239,7 +239,7 @@ typedef struct sPESession           // Added to Support BT-AMP
      * gLimEdcaParamsActive: These EDCA parameters are what's actively being
      * used on station. Specific AC values may be downgraded depending on 
      * admission control for that particular AC. 
-     */	 
+     */
     tSirMacEdcaParamRecord gLimEdcaParams[MAX_NUM_AC];   //used locally 
     tSirMacEdcaParamRecord gLimEdcaParamsBC[MAX_NUM_AC]; //used for broadcast
     tSirMacEdcaParamRecord gLimEdcaParamsActive[MAX_NUM_AC]; 

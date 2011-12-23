@@ -71,20 +71,20 @@ tANI_U8 peGetCurrentChannel(tpAniSirGlobal pMac)
 
 tANI_U8 peValidateBtJoinRequest(tpAniSirGlobal pMac)
 {
-		
-	tANI_U8 i;
-	for(i =0; i < pMac->lim.maxBssId; i++)
-	{
-		if( (pMac->lim.gpSession[i].valid) && 
-			(pMac->lim.gpSession[i].bssType == eSIR_BTAMP_STA_MODE) &&
-			(pMac->lim.gpSession[i].statypeForBss == STA_ENTRY_SELF))
-		{
-			return(TRUE); 
-		}
-		
-	}
-	return(FALSE);
-				
+
+    tANI_U8 i;
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if( (pMac->lim.gpSession[i].valid) && 
+            (pMac->lim.gpSession[i].bssType == eSIR_BTAMP_STA_MODE) &&
+            (pMac->lim.gpSession[i].statypeForBss == STA_ENTRY_SELF))
+        {
+            return(TRUE); 
+        }
+
+    }
+    return(FALSE);
+
 }
 
 /*--------------------------------------------------------------------------
@@ -104,35 +104,33 @@ tANI_U8 peValidateBtJoinRequest(tpAniSirGlobal pMac)
 
 tpPESession peGetValidPowerSaveSession(tpAniSirGlobal pMac)
 {
-	tANI_U8 i;
-	tANI_U8 sessioncount = 0;
-	tANI_U8	sessionId = 0;
-	
+    tANI_U8 i;
+    tANI_U8 sessioncount = 0;
+    tANI_U8 sessionId = 0;
+
     for(i = 0; i < pMac->lim.maxBssId; i++)
     {
-    	if(pMac->lim.gpSession[i].valid == TRUE) 
-    	{
+        if(pMac->lim.gpSession[i].valid == TRUE) 
+        {
             sessioncount++;
-			sessionId = i;
-			
-			if(sessioncount > 1)
-			{
-				return(NULL);
-			}	
-        }
-		
-	}
+            sessionId = i;
 
-	
-	if( (pMac->lim.gpSession[sessionId].valid == TRUE)&&
-		(pMac->lim.gpSession[sessionId].limSystemRole == eLIM_STA_ROLE)&&
-		(pMac->lim.gpSession[sessionId].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE))
-		
+            if(sessioncount > 1)
+            {
+                return(NULL);
+            }
+        }
+
+    }
+
+    if( (pMac->lim.gpSession[sessionId].valid == TRUE)&&
+        (pMac->lim.gpSession[sessionId].limSystemRole == eLIM_STA_ROLE)&&
+        (pMac->lim.gpSession[sessionId].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE))
+
     {
        return(&pMac->lim.gpSession[sessionId]);
-     	
     }
-	return(NULL);
+    return(NULL);
     
 }
 /*--------------------------------------------------------------------------
@@ -149,15 +147,15 @@ tpPESession peGetValidPowerSaveSession(tpAniSirGlobal pMac)
 
 tANI_U8 peIsAnySessionActive(tpAniSirGlobal pMac)
 {
-	tANI_U8 i;
-	for(i =0; i < pMac->lim.maxBssId; i++)
+    tANI_U8 i;
+    for(i =0; i < pMac->lim.maxBssId; i++)
     {
-    	if(pMac->lim.gpSession[i].valid == TRUE) 
-		{
+        if(pMac->lim.gpSession[i].valid == TRUE) 
+        {
             return(TRUE);
         }
-		
+
     }
-	return(FALSE);
+    return(FALSE);
 
 }

@@ -233,7 +233,7 @@ int limProcessFTPreAuthReq(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     {
         // Need to suspend link only if the channels are different
         limSuspendLink(pMac, eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN, FTPreAuthSuspendLinkHandler, 
-			(tANI_U32 *)psessionEntry); 
+                       (tANI_U32 *)psessionEntry); 
     }
     else 
     {
@@ -491,8 +491,8 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     // Set a new state for MLME
 
     pftSessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE;
-	
-	pAddBssParams->halPersona=(tANI_U8)pftSessionEntry->pePersona; //pass on the session persona to hal
+
+    pAddBssParams->halPersona=(tANI_U8)pftSessionEntry->pePersona; //pass on the session persona to hal
     
     pMac->ft.ftPEContext.pAddBssReq = pAddBssParams;
 
@@ -791,11 +791,11 @@ void limPostFTPreAuthRsp(tpAniSirGlobal pMac, eHalStatus status,
 
     pFTPreAuthRsp = (tpSirFTPreAuthRsp)vos_mem_malloc(rspLen);
     if(NULL == pFTPreAuthRsp)
-	{
+    {
        PELOGE(limLog( pMac, LOGE, "Failed to allocate memory\n");)
        VOS_ASSERT(pFTPreAuthRsp != NULL);
-	   return;
-	}
+       return;
+    }
     vos_mem_zero( pFTPreAuthRsp, rspLen);
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
     PELOGE(limLog( pMac, LOGE, "%s: Auth Rsp = %p\n", pFTPreAuthRsp);)

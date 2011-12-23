@@ -201,7 +201,7 @@ typedef enum
  */
 typedef struct hdd_wext_state_s 
 {
-   /** The CSR "desired" Profile;	*/
+   /** The CSR "desired" Profile */
    tCsrRoamProfile roamProfile; 
   
    /** The association status code */ 
@@ -217,7 +217,7 @@ typedef struct hdd_wext_state_s
    v_BOOL_t p2pSearch;
 #endif
 
-      	
+
    /** wpa version WPA/WPA2/None*/
    v_S31_t wpaVersion; 
    
@@ -291,14 +291,14 @@ extern int hdd_wlan_get_version(hdd_adapter_t *pAdapter,
 #endif
 
 extern int iw_get_scan(struct net_device *dev, 
-						 struct iw_request_info *info,
-						 union iwreq_data *wrqu, char *extra);
+                       struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra);
 
 extern int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
-				 union iwreq_data *wrqu, char *extra);
+                       union iwreq_data *wrqu, char *extra);
 
 extern int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
-                 union iwreq_data *wrqu, char *extra);
+                        union iwreq_data *wrqu, char *extra);
 
 extern int iw_set_essid(struct net_device *dev, 
                         struct iw_request_info *info,
@@ -318,16 +318,16 @@ extern int iw_get_ap_address(struct net_device *dev,
                              union iwreq_data *wrqu, char *extra);
 
 extern int iw_set_auth(struct net_device *dev,struct iw_request_info *info,
-                        union iwreq_data *wrqu,char *extra);
+                       union iwreq_data *wrqu,char *extra);
 
 extern int iw_get_auth(struct net_device *dev,struct iw_request_info *info,
-                         union iwreq_data *wrqu,char *extra);
+                       union iwreq_data *wrqu,char *extra);
 
 VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
-				 union iwreq_data *wrqu, char *extra, int nOffset);
+                      union iwreq_data *wrqu, char *extra, int nOffset);
 
 VOS_STATUS iw_set_rssi_filter(struct net_device *dev, struct iw_request_info *info,
-				 union iwreq_data *wrqu, char *extra, int nOffset);
+                              union iwreq_data *wrqu, char *extra, int nOffset);
 
 void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result);
 

@@ -250,7 +250,7 @@ limDeletePreAuthList(tpAniSirGlobal pMac)
 
         PELOG1(limLog(pMac, LOG1, FL("=====> limDeletePreAuthList \n"));)
         limReleasePreAuthNode(pMac, pCurrNode);
-		
+
         pCurrNode = pTempNode;
     }
     pMac->lim.pLimPreAuthList = NULL;
@@ -1166,70 +1166,70 @@ tANI_U32 val = 0;
   /* Update  PE session ID*/
   pSetStaKeyParams->sessionId = sessionEntry->peSessionId;
 
-    /**
-      * For WEP - defWEPIdx indicates the default WEP
-      * Key to be used for TX
-      * For all others, there's just one key that can
-      * be used and hence it is assumed that
-      * defWEPIdx = 0 (from the caller)
-      */
+  /**
+   * For WEP - defWEPIdx indicates the default WEP
+   * Key to be used for TX
+   * For all others, there's just one key that can
+   * be used and hence it is assumed that
+   * defWEPIdx = 0 (from the caller)
+   */
 
-    pSetStaKeyParams->defWEPIdx = defWEPIdx;
+  pSetStaKeyParams->defWEPIdx = defWEPIdx;
     
-    /** Store the Previous MlmState*/
-    sessionEntry->limPrevMlmState = sessionEntry->limMlmState;
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+  /** Store the Previous MlmState*/
+  sessionEntry->limPrevMlmState = sessionEntry->limMlmState;
+  SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
     
-    if(sessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE && !pMlmSetKeysReq->key[0].unicast) {
-        sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_BCASTKEY_STATE;
-        msgQ.type = WDA_SET_STA_BCASTKEY_REQ;
-    }else {
-        sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
-        msgQ.type = WDA_SET_STAKEY_REQ;
-    }
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+  if(sessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE && !pMlmSetKeysReq->key[0].unicast) {
+      sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_BCASTKEY_STATE;
+      msgQ.type = WDA_SET_STA_BCASTKEY_REQ;
+  }else {
+      sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
+      msgQ.type = WDA_SET_STAKEY_REQ;
+  }
+  MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
-    /**
-      * In the Case of WEP_DYNAMIC, ED_TKIP and ED_CCMP
-      * the Key[0] contains the KEY, so just copy that alone,
-      * for the case of WEP_STATIC the hal gets the key from cfg
-      */
-    switch( pMlmSetKeysReq->edType ) {
-    case eSIR_ED_WEP40:
-    case eSIR_ED_WEP104:
+  /**
+   * In the Case of WEP_DYNAMIC, ED_TKIP and ED_CCMP
+   * the Key[0] contains the KEY, so just copy that alone,
+   * for the case of WEP_STATIC the hal gets the key from cfg
+   */
+  switch( pMlmSetKeysReq->edType ) {
+  case eSIR_ED_WEP40:
+  case eSIR_ED_WEP104:
       // FIXME! Is this OK?
-        if( 0 == pMlmSetKeysReq->numKeys ) {
+      if( 0 == pMlmSetKeysReq->numKeys ) {
 #ifdef WLAN_SOFTAP_FEATURE
-         tANI_U32 i;
+          tANI_U32 i;
 
-         for(i=0; i < SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS ;i++)
-         { 
-           palCopyMemory( pMac->hHdd,
-            (tANI_U8 *) &pSetStaKeyParams->key[i],
-            (tANI_U8 *) &pMlmSetKeysReq->key[i], sizeof( tSirKeys ));
-         }
+          for(i=0; i < SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS ;i++)
+          { 
+              palCopyMemory( pMac->hHdd,
+                             (tANI_U8 *) &pSetStaKeyParams->key[i],
+                             (tANI_U8 *) &pMlmSetKeysReq->key[i], sizeof( tSirKeys ));
+          }
 #endif
-        pSetStaKeyParams->wepType = eSIR_WEP_STATIC;
-            sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
-  	     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
-        }else {
-        pSetStaKeyParams->wepType = eSIR_WEP_DYNAMIC;
-            palCopyMemory( pMac->hHdd,
-            (tANI_U8 *) &pSetStaKeyParams->key,
-            (tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( tSirKeys ));
-        }        
+          pSetStaKeyParams->wepType = eSIR_WEP_STATIC;
+          sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
+          MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+      }else {
+          pSetStaKeyParams->wepType = eSIR_WEP_DYNAMIC;
+          palCopyMemory( pMac->hHdd,
+                         (tANI_U8 *) &pSetStaKeyParams->key,
+                         (tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( tSirKeys ));
+      }
       break;
-    case eSIR_ED_TKIP:
-    case eSIR_ED_CCMP:
+  case eSIR_ED_TKIP:
+  case eSIR_ED_CCMP:
 #ifdef FEATURE_WLAN_WAPI 
-    case eSIR_ED_WPI: 
+  case eSIR_ED_WPI: 
 #endif
-        {
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) &pSetStaKeyParams->key,
-                                        (tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( tSirKeys ));
-        }
-        break;
-    default:
+      {
+          palCopyMemory( pMac->hHdd, (tANI_U8 *) &pSetStaKeyParams->key,
+                         (tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( tSirKeys ));
+      }
+      break;
+  default:
       break;
   }
 
@@ -1243,16 +1243,16 @@ tANI_U32 val = 0;
   msgQ.bodyptr = pSetStaKeyParams;
   msgQ.bodyval = 0;
 
-    limLog( pMac, LOG1, FL( "Sending WDA_SET_STAKEY_REQ...\n" ));
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
-    if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ ))) {
-        limLog( pMac, LOGE, FL("Posting SET_STAKEY to HAL failed, reason=%X\n"), retCode );
-    // Respond to SME with LIM_MLM_SETKEYS_CNF
-    mlmSetKeysCnf.resultCode = eSIR_SME_HAL_SEND_MESSAGE_FAIL;
-    }else
-    return; // Continue after WDA_SET_STAKEY_RSP...
+  limLog( pMac, LOG1, FL( "Sending WDA_SET_STAKEY_REQ...\n" ));
+  MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+  if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ ))) {
+      limLog( pMac, LOGE, FL("Posting SET_STAKEY to HAL failed, reason=%X\n"), retCode );
+      // Respond to SME with LIM_MLM_SETKEYS_CNF
+      mlmSetKeysCnf.resultCode = eSIR_SME_HAL_SEND_MESSAGE_FAIL;
+  }else
+      return; // Continue after WDA_SET_STAKEY_RSP...
 
-    limPostSmeSetKeysCnf( pMac, pMlmSetKeysReq, &mlmSetKeysCnf );
+  limPostSmeSetKeysCnf( pMac, pMlmSetKeysReq, &mlmSetKeysCnf );
 }
 
 /**

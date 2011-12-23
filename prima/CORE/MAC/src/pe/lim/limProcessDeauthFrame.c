@@ -194,15 +194,15 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
         {
             PELOGE(limLog(pMac, LOGE, FL("received DeAuth from an AP other than we're trying to join. Ignore. \n"));)
             if (limSearchPreAuthList(pMac, pHdr->sa))
-		    {
+            {
                 PELOGE(limLog(pMac, LOGE, FL("Preauth entry exist. Deleting... \n"));)
                 limDeletePreAuthNode(pMac, pHdr->sa);
-		    }
+            }
             return;
         }
-#ifdef WLAN_SOFTAP_FEATURE	
+#ifdef WLAN_SOFTAP_FEATURE
     }
-#endif	
+#endif
 
         // Check for pre-assoc states
         switch (psessionEntry->limSystemRole)
@@ -410,7 +410,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
 
         PELOGE(limLog(pMac, LOGE, FL("Rcv Deauth from ReAssoc AP. Issue REASSOC_CNF. \n"));)
         limRestorePreReassocState(pMac, eSIR_SME_REASSOC_REFUSED, reasonCode,psessionEntry);
-	    return;
+        return;
     }
 
     /// Deauthentication from peer MAC entity
@@ -421,7 +421,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
      * as advertised by AP and send the update to HAL;
      */
     if (psessionEntry->limSystemRole == eLIM_STA_ROLE )
-	{
+    {
         schSetDefaultEdcaParams(pMac);
         if (pStaDs != NULL)
         {
@@ -434,7 +434,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
         {
             limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
         }
-	}
+    }
 
     // send eWNI_SME_DEAUTH_IND to SME  
     limSendSmeDeauthInd(pMac, pStaDs, psessionEntry);

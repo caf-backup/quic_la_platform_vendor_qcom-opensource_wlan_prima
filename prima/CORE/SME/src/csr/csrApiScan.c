@@ -4238,7 +4238,7 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
                   ( sizeof( pMsg->channelList.channelNumber ) * pScanReq->ChannelInfo.numOfChannels )) ;
             if(pScanReq->uIEFieldLen != 0) 
             {
-                palCopyMemory(pMac->hHdd, (tANI_U8 *)pMsg+pMsg->uIEFieldOffset, \
+                palCopyMemory(pMac->hHdd, (tANI_U8 *)pMsg+pMsg->uIEFieldOffset,
                                     pScanReq->pIEField, pScanReq->uIEFieldLen );
             }
 #ifdef WLAN_FEATURE_P2P

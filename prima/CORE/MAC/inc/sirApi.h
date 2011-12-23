@@ -2807,7 +2807,7 @@ typedef struct sSirP2PNoaAttr
 
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32       uNoa1IntervalCnt:8;
-   tANI_U32	    rsvd2:24;
+   tANI_U32       rsvd2:24;
 #else
    tANI_U32       rsvd2:24;
    tANI_U32       uNoa1IntervalCnt:8;
@@ -2818,7 +2818,7 @@ typedef struct sSirP2PNoaAttr
 
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32       uNoa2IntervalCnt:8;
-   tANI_U32	    rsvd3:24;
+   tANI_U32       rsvd3:24;
 #else
    tANI_U32       rsvd3:24;
    tANI_U32       uNoa2IntervalCnt:8;
@@ -3657,11 +3657,11 @@ typedef struct sSirHostOffloadReq
 /* Keep Alive request. */
 typedef struct sSirKeepAliveReq
 {
-    v_U8_t          packetType;	
+    v_U8_t          packetType;
     v_U32_t         timePeriod;
     tSirIpv4Addr    hostIpv4Addr; 
-    tSirIpv4Addr    destIpv4Addr; 	
-    tSirMacAddr     destMacAddr;	
+    tSirIpv4Addr    destIpv4Addr;
+    tSirMacAddr     destMacAddr;
 
 } tSirKeepAliveReq, *tpSirKeepAliveReq;
 
@@ -3855,9 +3855,9 @@ typedef struct
 typedef struct sSirTxPerTrackingParam
 {
     tANI_U8  ucTxPerTrackingEnable;           /* 0: disable, 1:enable */
-	tANI_U8  ucTxPerTrackingPeriod;              /* Check period, unit is sec. Once tx_stat_chk enable, firmware will check PER in this period periodically */
-	tANI_U8  ucTxPerTrackingRatio;            /* (Fail TX packet)/(Total TX packet) ratio, the unit is 10%. for example, 5 means 50% TX failed rate, default is 5. If current TX packet failed rate bigger than this ratio then firmware send WLC_E_TX_STAT_ERROR event to driver */
-	tANI_U32 uTxPerTrackingWatermark;               /* A watermark of check number, once the tx packet exceed this number, we do the check, default is 5 */
+    tANI_U8  ucTxPerTrackingPeriod;              /* Check period, unit is sec. Once tx_stat_chk enable, firmware will check PER in this period periodically */
+    tANI_U8  ucTxPerTrackingRatio;            /* (Fail TX packet)/(Total TX packet) ratio, the unit is 10%. for example, 5 means 50% TX failed rate, default is 5. If current TX packet failed rate bigger than this ratio then firmware send WLC_E_TX_STAT_ERROR event to driver */
+    tANI_U32 uTxPerTrackingWatermark;               /* A watermark of check number, once the tx packet exceed this number, we do the check, default is 5 */
 }tSirTxPerTrackingParam, *tpSirTxPerTrackingParam;
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING

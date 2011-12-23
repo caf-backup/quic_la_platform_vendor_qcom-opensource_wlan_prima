@@ -46,21 +46,21 @@
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
               ((int) OFFSET_OF( tSirBssDescription, ieFields)))
 
-#define WEXT_CSCAN_HEADER		"CSCAN S\x01\x00\x00S\x00"
-#define WEXT_CSCAN_HEADER_SIZE		12
-#define WEXT_CSCAN_SSID_SECTION		'S'
-#define WEXT_CSCAN_CHANNEL_SECTION	'C'
-#define WEXT_CSCAN_NPROBE_SECTION	'N'
-#define WEXT_CSCAN_ACTV_DWELL_SECTION	'A'
-#define WEXT_CSCAN_PASV_DWELL_SECTION	'P'
-#define WEXT_CSCAN_HOME_DWELL_SECTION	'H'
-#define WEXT_CSCAN_TYPE_SECTION		'T'
-#define WEXT_CSCAN_TYPE_DEFAULT		0
-#define WEXT_CSCAN_TYPE_PASSIVE		1
-#define WEXT_CSCAN_PASV_DWELL_TIME	130
-#define WEXT_CSCAN_PASV_DWELL_TIME_DEF	250
-#define WEXT_CSCAN_PASV_DWELL_TIME_MAX	3000
-#define WEXT_CSCAN_HOME_DWELL_TIME	130
+#define WEXT_CSCAN_HEADER               "CSCAN S\x01\x00\x00S\x00"
+#define WEXT_CSCAN_HEADER_SIZE          12
+#define WEXT_CSCAN_SSID_SECTION         'S'
+#define WEXT_CSCAN_CHANNEL_SECTION      'C'
+#define WEXT_CSCAN_NPROBE_SECTION       'N'
+#define WEXT_CSCAN_ACTV_DWELL_SECTION   'A'
+#define WEXT_CSCAN_PASV_DWELL_SECTION   'P'
+#define WEXT_CSCAN_HOME_DWELL_SECTION   'H'
+#define WEXT_CSCAN_TYPE_SECTION         'T'
+#define WEXT_CSCAN_TYPE_DEFAULT         0
+#define WEXT_CSCAN_TYPE_PASSIVE         1
+#define WEXT_CSCAN_PASV_DWELL_TIME      130
+#define WEXT_CSCAN_PASV_DWELL_TIME_DEF  250
+#define WEXT_CSCAN_PASV_DWELL_TIME_MAX  3000
+#define WEXT_CSCAN_HOME_DWELL_TIME      130
 #define MAX_RATES                       12
 typedef struct hdd_scan_info{
     struct net_device *dev;
@@ -129,8 +129,8 @@ static eHalStatus hdd_GetWPARSNIEs( v_U8_t *ieFields, v_U16_t ie_length, char **
         eid = element[0];
         elen = element[1];
 
-	/*If element length is greater than total remaining ie length,
-	 *break the loop*/
+        /*If element length is greater than total remaining ie length,
+         *break the loop*/
         if ((elen+2) > tie_length)
            break;
 

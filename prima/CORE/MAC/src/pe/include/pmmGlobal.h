@@ -104,12 +104,12 @@ typedef struct sAniSirPmm
 
     // debug statistics
     tANI_U64 BmpsPktDrpInSleepMode;
-    tANI_U64	BmpsInitFailCnt;
-    tANI_U64	BmpsSleeReqFailCnt;
+    tANI_U64 BmpsInitFailCnt;
+    tANI_U64 BmpsSleeReqFailCnt;
     tANI_U64 BmpsWakeupReqFailCnt;
-    tANI_U64	BmpsInvStateCnt;
-    tANI_U64	BmpsWakeupIndCnt;
-    tANI_U64	BmpsHalReqFailCnt;
+    tANI_U64 BmpsInvStateCnt;
+    tANI_U64 BmpsWakeupIndCnt;
+    tANI_U64 BmpsHalReqFailCnt;
     tANI_U64 BmpsReqInInvalidRoleCnt;
 
     /* Add wakeup and sleep time stamps here */
@@ -124,10 +124,10 @@ typedef struct sAniSirPmm
     tANI_U64 ImpsCntSleep;
     tANI_U64 ImpsMaxSleepTime;
     tANI_U64 ImpsMinSleepTime;
-    tANI_U64	ImpsAvgSleepTime;
+    tANI_U64 ImpsAvgSleepTime;
 
-    tANI_U64	ImpsSleepErrCnt;
-    tANI_U64	ImpsWakeupErrCnt;
+    tANI_U64 ImpsSleepErrCnt;
+    tANI_U64 ImpsWakeupErrCnt;
     tANI_U64 ImpsLastErr;
 
     tANI_U64 ImpsInvalidStateCnt;
@@ -166,7 +166,7 @@ typedef struct sAniSirPmm
 #endif
 
 
-	 //Reason for which PMC is sending an EXIT_BMPS_REQ to PE
+    //Reason for which PMC is sending an EXIT_BMPS_REQ to PE
     tExitBmpsReason   gPmmExitBmpsReasonCode;
     tANI_U8  sessionId;      //This sessio Id is added to know the bsstype , infra/btamp .......in power save mode
 

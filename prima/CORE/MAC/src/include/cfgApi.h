@@ -29,9 +29,9 @@
 
 // CFG status
 typedef enum eCfgStatusTypes {
-	CFG_INCOMPLETE,
-	CFG_SUCCESS,
-	CFG_FAILURE
+    CFG_INCOMPLETE,
+    CFG_SUCCESS,
+    CFG_FAILURE
 } tCfgStatusTypes;
 
 // WEP key mapping table row structure

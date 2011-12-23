@@ -73,7 +73,7 @@ typedef enum eAniEdType
     eSIR_ED_WPI,
 #endif
     /*DPU HW treats encryption mode 4 plus RMF bit set in TX BD as BIP.
-      Thus while setting BIP encryption mode in corresponding DPU Desc 
+      Thus while setting BIP encryption mode in corresponding DPU Desc
       eSIR_ED_AES_128_CMAC should be set to eSIR_ED_CCMP*/
     eSIR_ED_AES_128_CMAC,
     eSIR_ED_NOT_IMPLEMENTED = SIR_MAX_ENUM_SIZE
@@ -124,7 +124,7 @@ typedef struct sSirRSNie
     tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
 } tSirRSNie, *tpSirRSNie;
 
-/// Additional IE information : 
+/// Additional IE information :
 /// This can include WSC IE, P2P IE, and/or FTIE from upper layer.
 /// MAC layer transparently convey these IE info between peer STA and upper layer,
 /// but never requires to parse it.
@@ -137,7 +137,7 @@ typedef struct sSirAddie
 /// Need to refine structure definitions for Keying material,
 /// QoS policy, etc
 
-/// Definition Quality of Service 
+/// Definition Quality of Service
 typedef struct sSirQos
 {
     tANI_U16                temp1;  // Need to define later
@@ -171,22 +171,22 @@ typedef struct sSirKeyMaterial
 /// Definition for MIC failure indication
 typedef struct sSirMicFailureInfo
 {
-	tSirMacAddr            srcMacAddr; //address used to compute MIC 
+    tSirMacAddr            srcMacAddr; //address used to compute MIC
     tSirMacAddr            taMacAddr; //transmitter address
     tSirMacAddr            dstMacAddr;
-	tAniBool               multicast;             
-	tANI_U8     IV1;            // first byte of IV
-	tANI_U8     keyId;          // second byte of IV
-	tANI_U8     TSC[SIR_CIPHER_SEQ_CTR_SIZE]; // sequence number
+    tAniBool               multicast;
+    tANI_U8     IV1;            // first byte of IV
+    tANI_U8     keyId;          // second byte of IV
+    tANI_U8     TSC[SIR_CIPHER_SEQ_CTR_SIZE]; // sequence number
     tSirMacAddr            rxMacAddr; // receive address
 
 } tSirMicFailureInfo, *tpSirMicFailureInfo;
- 
+
 // Boa command. Used mainly for radar info persistance
 typedef struct sBoaCommand
 {
-	tANI_U8	length;
-	tANI_U8	cmd[64];	
+    tANI_U8     length;
+    tANI_U8     cmd[64];
 }tBoaCommand;
 
 #endif /* __ANI_SYSTEM_DEFS_H */

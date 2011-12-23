@@ -137,8 +137,8 @@ returnFailure:
  */
 
 tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, 
-                                tpUpdateBeaconParams pUpdatedBcnParams,
-								tpPESession  psessionEntry )
+                                  tpUpdateBeaconParams pUpdatedBcnParams,
+                                  tpPESession  psessionEntry )
 {
     tpUpdateBeaconParams pBcnParams = NULL;
     tSirRetStatus   retCode = eSIR_SUCCESS;
@@ -266,11 +266,11 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
 
 #if !defined WLAN_FEATURE_VOWIFI  
     PELOG3(limLog( pMac, LOG3,
-		FL( "Sending WDA_CHNL_SWITCH_REQ with SecondaryChnOffset - %d, ChannelNumber - %d, maxTxPower - %d"),
+        FL( "Sending WDA_CHNL_SWITCH_REQ with SecondaryChnOffset - %d, ChannelNumber - %d, maxTxPower - %d"),
         pChnlParams->secondaryChannelOffset, pChnlParams->channelNumber, pChnlParams->maxTxPower);)
 #else
     PELOG3(limLog( pMac, LOG3,
-		FL( "Sending WDA_CHNL_SWITCH_REQ with SecondaryChnOffset - %d, ChannelNumber - %d, LocalPowerConstraint - %d"),
+        FL( "Sending WDA_CHNL_SWITCH_REQ with SecondaryChnOffset - %d, ChannelNumber - %d, LocalPowerConstraint - %d"),
         pChnlParams->secondaryChannelOffset, pChnlParams->channelNumber, pChnlParams->localPowerConstraint);)
 #endif
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
@@ -346,7 +346,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
             PELOG1(limLog(pMac, LOG1, FL("AC[%d]:  AIFSN %d, ACM %d, CWmin %d, CWmax %d, TxOp %d \n"),  
                    i, pUpdatedEdcaParams[i].aci.aifsn, pUpdatedEdcaParams[i].aci.acm, 
                    pUpdatedEdcaParams[i].cw.min, pUpdatedEdcaParams[i].cw.max, pUpdatedEdcaParams[i].txoplimit);)
-		}
+        }
     }
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
@@ -691,8 +691,8 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac)
     pBeaconFilterMsg->beaconInterval = (tANI_U16) psessionEntry->beaconParams.beaconInterval;
 
     // Fill in number of IEs in beaconFilterTable
-	pBeaconFilterMsg->ieNum = (tANI_U16) (sizeof(beaconFilterTable) / sizeof(tBeaconFilterIe));
-	
+    pBeaconFilterMsg->ieNum = (tANI_U16) (sizeof(beaconFilterTable) / sizeof(tBeaconFilterIe));
+
     //Fill message with info contained in the beaconFilterTable
     ptr = (tANI_U8 *)pBeaconFilterMsg + sizeof(tBeaconFilterMsg);
     for(i=0; i < (pBeaconFilterMsg->ieNum); i++)
@@ -704,7 +704,7 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac)
         pIe->byte.value =  beaconFilterTable[i].byte.value;
         pIe->byte.bitMask =  beaconFilterTable[i].byte.bitMask;
         pIe->byte.ref =  beaconFilterTable[i].byte.ref; 
-	    ptr += sizeof(tBeaconFilterIe);
+        ptr += sizeof(tBeaconFilterIe);
     }
 
     msgQ.type = WDA_BEACON_FILTER_IND;

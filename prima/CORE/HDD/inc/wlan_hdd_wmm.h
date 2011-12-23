@@ -217,7 +217,7 @@ v_U16_t hdd_wmm_select_queue(struct net_device * dev, struct sk_buff *skb);
 
 /**============================================================================
   @brief hdd_hostapd_select_queue() - Function which will classify the packet
-	 accoring to linux qdisc expectation.
+         according to linux qdisc expectation.
 
 
   @param dev      : [in]  pointer to net_device structure

@@ -382,15 +382,15 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         if (pBeacon->erpPresent)
         {
 #ifdef WLAN_SOFTAP_FEATURE
-			if (pBeacon->erpIEInfo.barkerPreambleMode)
-			  limEnableShortPreamble(pMac, false, &beaconParams, psessionEntry);
-			else
-			  limEnableShortPreamble(pMac, true, &beaconParams, psessionEntry);
+            if (pBeacon->erpIEInfo.barkerPreambleMode)
+                limEnableShortPreamble(pMac, false, &beaconParams, psessionEntry);
+            else
+                limEnableShortPreamble(pMac, true, &beaconParams, psessionEntry);
 #else
-			if (pBeacon->erpIEInfo.barkerPreambleMode)
-			  limEnableShortPreamble(pMac, false, &beaconParams);
-			else
-			  limEnableShortPreamble(pMac, true, &beaconParams);
+            if (pBeacon->erpIEInfo.barkerPreambleMode)
+                limEnableShortPreamble(pMac, false, &beaconParams);
+            else
+                limEnableShortPreamble(pMac, true, &beaconParams);
 #endif
           }
         limUpdateShortSlot(pMac, pBeacon, &beaconParams,psessionEntry);
@@ -502,7 +502,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     if(beaconParams.paramChangeBitmap)
     {
         PELOGW(schLog(pMac, LOGW, FL("Beacon for session[%d] got changed. \n"), psessionEntry->peSessionId);)
-        PELOGW(schLog(pMac, LOGW, FL("sending beacon param change bitmap: 0x%x \n"), beaconParams.paramChangeBitmap);)		
+        PELOGW(schLog(pMac, LOGW, FL("sending beacon param change bitmap: 0x%x \n"), beaconParams.paramChangeBitmap);)
         limSendBeaconParams(pMac, &beaconParams, psessionEntry);
     }
 
@@ -657,17 +657,17 @@ tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *e
     }
     WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
-	PELOG1(schLog(pMac, LOGE, FL("Updating Local EDCA Params(gLimEdcaParams) to: "));)
-	for(i=0; i<MAX_NUM_AC; i++)
-	{
+    PELOG1(schLog(pMac, LOGE, FL("Updating Local EDCA Params(gLimEdcaParams) to: "));)
+    for(i=0; i<MAX_NUM_AC; i++)
+    {
         PELOG1(schLog(pMac, LOG1, FL("AC[%d]:  AIFSN: %d, ACM %d, CWmin %d, CWmax %d, TxOp %d\n"),
             i,
             psessionEntry->gLimEdcaParams[i].aci.aifsn, 
             psessionEntry->gLimEdcaParams[i].aci.acm,
             psessionEntry->gLimEdcaParams[i].cw.min,
             psessionEntry->gLimEdcaParams[i].cw.max,
-            psessionEntry->gLimEdcaParams[i].txoplimit);)		
-	}
-	
+            psessionEntry->gLimEdcaParams[i].txoplimit);)
+    }
+
     return eSIR_SUCCESS;
 }
