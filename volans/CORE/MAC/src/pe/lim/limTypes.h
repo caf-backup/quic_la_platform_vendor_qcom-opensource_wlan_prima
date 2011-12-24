@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limTypes.h contains the definitions used by all
  * all LIM modules.
  * Author:        Chandra Modumudi
@@ -707,6 +712,10 @@ tSirRetStatus limSendChannelSwitchMgmtFrame(tpAniSirGlobal, tSirMacAddr, tANI_U8
 tSirRetStatus limSendNeighborReportRequestFrame(tpAniSirGlobal, tpSirMacNeighborReportReq, tSirMacAddr, tpPESession);
 tSirRetStatus limSendLinkReportActionFrame(tpAniSirGlobal, tpSirMacLinkReport, tSirMacAddr, tpPESession ); 
 tSirRetStatus limSendRadioMeasureReportActionFrame(tpAniSirGlobal, tANI_U8, tANI_U8, tpSirMacRadioMeasureReport, tSirMacAddr, tpPESession);
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+void limProcessIappFrame(tpAniSirGlobal, tANI_U32 *,tpPESession);
 #endif
 
 // Algorithms & Link Monitoring related functions

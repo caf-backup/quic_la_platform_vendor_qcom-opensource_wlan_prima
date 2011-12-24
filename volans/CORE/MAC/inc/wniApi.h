@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
  * This file wniApi.h contains message definitions exported by
  * Sirius software modules.
  * NOTE: See projects/sirius/include/sirApi.h for structure
@@ -240,8 +245,14 @@ enum eWniMsgTypes
 #if defined WLAN_FEATURE_VOWIFI_11R
     eWNI_SME_FT_PRE_AUTH_REQ,
     eWNI_SME_FT_PRE_AUTH_RSP,
-#endif
+    eWNI_SME_FT_AGGR_QOS_REQ,
+    eWNI_SME_FT_AGGR_QOS_RSP,
 
+#endif
+  
+#if defined FEATURE_WLAN_CCX
+    eWNI_SME_CCX_ADJACENT_AP_REPORT,
+#endif
 #ifdef WLAN_FEATURE_P2P 
     eWNI_SME_REGISTER_MGMT_FRAME_REQ,
 #endif    

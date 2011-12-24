@@ -1,3 +1,23 @@
+/** ------------------------------------------------------------------------ *
+    ------------------------------------------------------------------------ *
+
+  
+    \file wlan_hdd_wext.h
+  
+    \brief Linux Wireless Extensions Common Control Plane Types and
+    interfaces.
+    
+    Copyright (c) 2011 Qualcomm Atheros, Inc. 
+    All Rights Reserved. 
+    Qualcomm Atheros Confidential and Proprietary. 
+  
+    Copyright (C) 2006 Airgo Networks, Incorporated
+
+    This file defines all of the types that are utilized by the CCP module
+    of the "Portable" HDD.   This file also includes the underlying Linux 
+    Wireless Extensions Data types referred to by CCP. 
+  
+	======================================================================== */
 #ifndef __WEXT_IW_H__
 #define __WEXT_IW_H__
 
@@ -27,7 +47,9 @@
 #define HDD_WLAN_WMM_PARAM_SUSPENSION_INTERVAL         13
 #define HDD_WLAN_WMM_PARAM_BURST_SIZE_DEFN             14
 #define HDD_WLAN_WMM_PARAM_ACK_POLICY                  15
-#define HDD_WLAN_WMM_PARAM_COUNT                       16
+#define HDD_WLAN_WMM_PARAM_INACTIVITY_INTERVAL         16
+#define HDD_WLAN_WMM_PARAM_MAX_SERVICE_INTERVAL        17
+#define HDD_WLAN_WMM_PARAM_COUNT                       18
 
 typedef enum
 {
@@ -169,10 +191,9 @@ typedef enum
 #define HDD_WPS_ELEM_REGISTRA_CONF_METHODS  0x1053
 #endif
 
-
 #define WPS_OUI_TYPE   "\x00\x50\xf2\x04"
 #define WPS_OUI_TYPE_SIZE  4
- 
+
 #ifdef WLAN_FEATURE_P2P
 #define P2P_OUI_TYPE   "\x50\x6f\x9a\x09"
 #define P2P_OUI_TYPE_SIZE  4
@@ -197,7 +218,10 @@ typedef struct hdd_wext_state_s
 {
    /** The CSR "desired" Profile;	*/
    tCsrRoamProfile roamProfile; 
-  
+
+   /** BSSID to which connect request is received */
+   tCsrBssid req_bssId;
+
    /** The association status code */ 
    v_U32_t statusCode; 
    
@@ -205,13 +229,12 @@ typedef struct hdd_wext_state_s
    v_U32_t scanId; 
 
    /** The scan pending  */
-   v_U32_t mScanPending;
+   v_U32_t mScanPending; 
 
 #ifdef WLAN_FEATURE_P2P
    v_BOOL_t p2pSearch;
 #endif
 
-      	
    /** wpa version WPA/WPA2/None*/
    v_S31_t wpaVersion; 
    
@@ -233,7 +256,7 @@ typedef struct hdd_wext_state_s
     /**vos event */
    vos_event_t  vosevent;
 
-   vos_event_t  scanevent;
+   vos_event_t scanevent;
 
    /**Counter measure state, Started/Stopped*/
    v_BOOL_t mTKIPCounterMeasures;  
@@ -250,6 +273,11 @@ typedef struct hdd_wext_state_s
 
    /* Measurement ID */
    v_U32_t inNavMeasurementID;
+#endif
+#ifdef FEATURE_WLAN_CCX
+   /* CCX state variables */
+   v_BOOL_t isCCXConnection;
+   eCsrAuthType collectedAuthType; /* Collected from ALL SIOCSIWAUTH Ioctls. Will be negotiatedAuthType - in tCsrProfile */
 #endif
 }hdd_wext_state_t;
 

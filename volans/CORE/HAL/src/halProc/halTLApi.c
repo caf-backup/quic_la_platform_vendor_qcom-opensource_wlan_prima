@@ -980,7 +980,7 @@ void halTLRSSINotification(tpAniSirGlobal pMac, tpSirRSSINotification pRSSINotif
     //Its upto TL to act accordinly based on this detection.
     //It has to use the halPS_SetRSSIThresholds interface to set the new RSSI thresholds
     //For more info, look into CR#: 165114 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
     v_CONTEXT_t pVosGCtx = vos_get_global_context(VOS_MODULE_ID_HAL, (v_VOID_t *) pMac);
     WLANTL_BMPSRSSIRegionChangedNotification(pVosGCtx, pRSSINotification);
 #endif

@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * halMsgApiInternal.h:  Provide HAL APIs.
  * Author:    Susan Tsao
  * Date:      02/06/2006
@@ -97,6 +102,10 @@ void halMsg_sendGetNoiseRsp(tpAniSirGlobal pMac);
 eHalStatus halMsg_setTxPowerLimit(tpAniSirGlobal pMac, tpMaxTxPowerParams pSetMaxTxPwrReq);
 #endif /* WLAN_FEATURE_VOWIFI */
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+eHalStatus halMsg_AggrAddTsReq(tpAniSirGlobal pMac, void* msg);
+#endif
+
 eHalStatus halMsg_UpdateTpeProtectionThreshold(tpAniSirGlobal pMac, tANI_U32 val);
 void halMsg_SetKeyDone(tpAniSirGlobal pMac, tANI_U32 bssidx);
 
@@ -104,5 +113,7 @@ void halMsg_SetKeyDone(tpAniSirGlobal pMac, tANI_U32 bssidx);
 eHalStatus
 halMsg_FrameTransmitControlInd(tpAniSirGlobal pMac, void *pBuffer);
 void halMsg_TXCompleteInd(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess);
-
+#ifdef FEATURE_WLAN_CCX
+tSirRetStatus halMsg_GetTSMStats(tpAniSirGlobal  pMac, tpTSMStats pTsmStats);
+#endif
 #endif  /* _HALMSGAPI_INTERNAL_H_ */

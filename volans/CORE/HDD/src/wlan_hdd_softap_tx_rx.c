@@ -769,7 +769,7 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    v_TIME_t timestamp;
    WLANTL_ACEnumType ac;
    v_SIZE_t size = 0;
-   v_U8_t STAId = WLAN_MAX_STA_COUNT;   
+   v_U8_t STAId = WLAN_MAX_STA_COUNT;
    hdd_context_t *pHddCtx = NULL;
 
    //Sanity check on inputs
@@ -782,7 +782,7 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: Null Params being passed", __FUNCTION__);
       return VOS_STATUS_E_FAILURE;
    }
-    
+
    //Get the HDD context.
    pHddCtx = (hdd_context_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
    if ( NULL == pHddCtx )
@@ -1068,7 +1068,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
    int rxstat;
    struct sk_buff *skb = NULL;
    vos_pkt_t* pVosPacket;
-   vos_pkt_t* pNextVosPacket;   
+   vos_pkt_t* pNextVosPacket;
    hdd_context_t *pHddCtx = NULL;   
 
    //Sanity check on inputs
@@ -1079,7 +1079,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: Null params being passed", __FUNCTION__);
       return VOS_STATUS_E_FAILURE;
    }
-   
+
    pHddCtx = (hdd_context_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
    if ( NULL == pHddCtx )
    {
@@ -1088,12 +1088,12 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
    }
 
    pAdapter = pHddCtx->sta_to_adapter[staId];
-   if( NULL == pAdapter )
+   if ( NULL == pAdapter )
    {
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
-   
+
    ++pAdapter->hdd_stats.hddTxRxStats.rxChains;
 
    // walk the chain until all are processed
@@ -1137,27 +1137,25 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
 
       if (WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId)
       {
-         //MC/BC packets. Duplicate a copy of packet
-         struct sk_buff *pSkbCopy;
-         hdd_ap_ctx_t *pHddApCtx;
+          //MC/BC packets. Duplicate a copy of packet
+          struct sk_buff *pSkbCopy;
+          hdd_ap_ctx_t *pHddApCtx;
 
-         pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
-         if (!(pHddApCtx->apDisableIntraBssFwd))
-         {
-             pSkbCopy = skb_copy(skb, GFP_ATOMIC);
-             if (pSkbCopy)
-             {
-               hdd_softap_sta_2_sta_xmit(pSkbCopy, pSkbCopy->dev,
+          pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+          if (!(pHddApCtx->apDisableIntraBssFwd))
+          {
+              pSkbCopy = skb_copy(skb, GFP_ATOMIC);
+              if (pSkbCopy)
+              {
+                  hdd_softap_sta_2_sta_xmit(pSkbCopy, pSkbCopy->dev,
                           pHddApCtx->uBCStaId, (pRxMetaInfo->ucUP));
-             }
-         }
-         else
-         {
-             VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+              }
+          }
+          else
+          {
+              VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                       "%s: skb allocation fails", __FUNCTION__);
-         }
- 
-
+          }
       } //(WLAN_RX_BCMC_STA_ID == staId)
 
       if ((WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId) || 
@@ -1216,7 +1214,7 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
     vosStatus = WLANTL_ClearSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, staId );
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, 
+        VOS_TRACE ( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                     "WLANTL_ClearSTAClient() failed to for staID %d.  \
                     Status= %d [0x%08lX]",
                     staId, vosStatus, vosStatus );
@@ -1225,13 +1223,13 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
     vosStatus = hdd_softap_deinit_tx_rx_sta ( pAdapter, staId );
     if( VOS_STATUS_E_FAILURE == vosStatus )
     {
-        VOS_TRACE ( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, 
                     "hdd_softap_deinit_tx_rx_sta() failed for staID %d. \
                     Status = %d [0x%08lX]",
                     staId, vosStatus, vosStatus );
         return( vosStatus );
     }
-    
+
     pHddCtx->sta_to_adapter[staId] = NULL;
 
     return( vosStatus );
@@ -1247,7 +1245,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
                                        v_BOOL_t fWmmEnabled )
 {
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
-   WLAN_STADescType staDesc;   
+   WLAN_STADescType staDesc;
    hdd_context_t *pHddCtx = pAdapter->pHddCtx;
    hdd_adapter_t *pmonAdapter = NULL;
 
@@ -1266,7 +1264,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
    // Get the Station ID from the one saved during the assocation.
    
    staDesc.ucSTAId = staId;
-   
+
 
    /*Save the pAdapter Pointer for this staId*/
    pHddCtx->sta_to_adapter[staId] = pAdapter;
@@ -1398,7 +1396,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
        netif_carrier_on(pmonAdapter->dev);
            //Enable Tx queue
        netif_tx_start_all_queues(pmonAdapter->dev);
-    }
+   }
    netif_carrier_on(pAdapter->dev);
    //Enable Tx queue
    netif_tx_start_all_queues(pAdapter->dev);
@@ -1411,8 +1409,8 @@ VOS_STATUS hdd_softap_Register_BC_STA( hdd_adapter_t *pAdapter, v_BOOL_t fPrivac
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    v_MACADDR_t broadcastMacAddr = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
-   
-   
+
+
    pHddCtx->sta_to_adapter[WLAN_RX_BCMC_STA_ID] = pAdapter;
    pHddCtx->sta_to_adapter[WLAN_RX_SAP_SELF_STA_ID] = pAdapter;
    vosStatus = hdd_softap_RegisterSTA( pAdapter, VOS_FALSE, fPrivacyBit, (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->uBCStaId, 0, 1, &broadcastMacAddr,0);
@@ -1497,7 +1495,7 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pD
     }
 
     VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
-                                     "%s exit\n",__FUNCTION__);
+	          "%s exit\n",__FUNCTION__);
 
     return vosStatus;
 }

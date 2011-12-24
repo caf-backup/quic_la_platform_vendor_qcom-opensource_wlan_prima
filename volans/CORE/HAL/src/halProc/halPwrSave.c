@@ -475,11 +475,23 @@ eHalStatus halPS_SetRSSIThresholds(tpAniSirGlobal pMac, tpSirRSSIThresholds pThr
         halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
     }
 
+    HALLOG1(halLog(pMac, LOG1, 
+                FL("RSSI notification from FW thrs1=%d, thrs2=%d, thrs3-%d;  %d,%d - %d,%d - %d,%d\n"), 
+                pThresholds->ucRssiThreshold1,
+                pThresholds->ucRssiThreshold2,
+                pThresholds->ucRssiThreshold3,
+                pThresholds->bRssiThres1PosNotify,
+                pThresholds->bRssiThres1NegNotify,
+                pThresholds->bRssiThres2PosNotify,
+                pThresholds->bRssiThres2NegNotify,
+                pThresholds->bRssiThres3PosNotify,
+                pThresholds->bRssiThres3NegNotify));
+
     // Write the configuration parameters in the memory mapped for
     // system configuration parameters
     status =  halFW_UpdateSystemConfig(pMac,
-              pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
-              sizeof(*pFwConfig));
+            pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
+            sizeof(*pFwConfig));
 
     if (IS_PWRSAVE_STATE_IN_BMPS) 
     {
@@ -630,10 +642,17 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
 eHalStatus halPS_HandleFwRssiNotification(tpAniSirGlobal pMac, void* pFwMsg)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-#ifdef FEATURE_WLAN_GEN6_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
     tANI_U8 *pMsgBody = (tANI_U8*)(pFwMsg) + sizeof(tMBoxMsgHdr);
-
     tpSirRSSINotification pRSSINotification = (tpSirRSSINotification)pMsgBody;
+
+    HALLOG1(halLog(pMac, LOG1, FL("RSSI notification from FW %d,%d - %d,%d - %d,%d\n"), 
+                pRSSINotification->bRssiThres1PosCross,
+                pRSSINotification->bRssiThres1NegCross,
+                pRSSINotification->bRssiThres2PosCross,
+                pRSSINotification->bRssiThres2NegCross,
+                pRSSINotification->bRssiThres3PosCross,
+                pRSSINotification->bRssiThres3NegCross ));
     //notify TL
     halTLRSSINotification(pMac, pRSSINotification);
 #endif
@@ -1360,7 +1379,7 @@ void halPS_ComputeListenInterval(tANI_U8 dtim, tANI_U16 listenIntv,
  *      eHAL_STATUS_SUCCESS
  *      eHAL_STATUS_FAILURE
  */
-eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI_U8 bssIdx)
+eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tpEnterBmpsParams pPeMsg)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tHalFwParams *pFw = &pMac->hal.FwParam;
@@ -1372,12 +1391,12 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI
     tANI_U16 listenInterval = (tANI_U16)pHalPwrSave->listenInterval;
     tANI_U8 filterPeriod=0;
 
-    halTable_GetBeaconIntervalForBss(pMac, (tANI_U8)bssIdx, &bcnIntervalTU);
+    halTable_GetBeaconIntervalForBss(pMac, (tANI_U8)pPeMsg->bssIdx, &bcnIntervalTU);
 
     // Compute the Listen interval based on DTIM period, to align
     // the LI with the DTIM period. Basically LI should be multiple of
     // DTIM. This would be done only if ignoreDtim is not set.
-        halPS_ComputeListenInterval(dtimPeriod, (tANI_U16)pHalPwrSave->listenInterval, 0,
+        halPS_ComputeListenInterval(pPeMsg->dtimPeriod, (tANI_U16)pHalPwrSave->listenInterval, 0,
                 &listenInterval);
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
@@ -1391,7 +1410,7 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI
 #endif
 
     pFwConfig->ucListenInterval = listenInterval;
-    pFwConfig->ucDtimPeriod     = dtimPeriod;
+    pFwConfig->ucDtimPeriod     = pPeMsg->dtimPeriod;
     pFwConfig->bBcMcFilterSetting     = pMac->hal.mcastBcastFilterSetting;
 
     /*Telescopic Beacon wakeup configuration*/
@@ -1440,6 +1459,7 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI
         pFwConfig->ucBeaconFilterPeriod = filterPeriod ? filterPeriod : listenInterval;
     }
 
+    pFwConfig->ucRssiFilterPeriod = pPeMsg->rssiFilterPeriod;
     if (pFwConfig->ucRssiFilterPeriod) {
         filterPeriod = (tANI_U8)(((pFwConfig->ucRssiFilterPeriod)/listenInterval)*listenInterval);
         pFwConfig->ucRssiFilterPeriod = filterPeriod ? filterPeriod : listenInterval;
@@ -1466,6 +1486,9 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI
     pFwConfig->ucDpuRoutingWq = (tANI_U8)BMUWQ_ADU_UMA_RX;
 
     pFwConfig->ucNumNoDwnLinkThres = pMac->hal.dynamicPsPollValue;
+    pFwConfig->ucNumBeaconRssiAvg = pPeMsg->numBeaconPerRssiAverage;
+    pFwConfig->bRssiFilterEnable = pPeMsg->bRssiFilterEnable;
+
     status = halFW_UpdateSystemConfig(pMac,
             pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
             sizeof(*pFwConfig));
@@ -1587,7 +1610,7 @@ eHalStatus halPS_HandleEnterBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, t
     halPSAppsCpuWakeupState(pMac, TRUE);
 
     // Update power save related parameters in the FW sys config
-    halPS_UpdateFwSysConfig(pMac, pPeMsg->dtimPeriod, pPeMsg->bssIdx);
+    halPS_UpdateFwSysConfig(pMac, pPeMsg);
 
     // Compute the TSF of the DTIM beacon based on the current TSF and
     // the DTIM count
@@ -2830,30 +2853,30 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     palWriteRegister(pMac->hHdd, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT);
 #endif
 
-/***********************************************************************
- * Please note that the below logic is executed by 3 different contexts.
- * MC Thread, TX Thread and INTR Context. The contexts are differentiated
- * by using 3 different global variables, 1 for each context. But still 
- * the Mutex1 global variable is shared by all the 3 contexts. It is 
- * assumed that each context will acquire only one MUTEX1 variable and 
- * release it appropriately. Hence there is no spin lock used in this 
- * function. If any other changes are done here which requires accessing
- * any other global variable(s), this function should be made re-entrant
- * by adding appropriate lock at the entry and exit for both SetHostBusy
- * and ReleaseHostBusy functions.
- * ********************************************************************/
+    /***********************************************************************
+     * Please note that the below logic is executed by 3 different contexts.
+     * MC Thread, TX Thread and INTR Context. The contexts are differentiated
+     * by using 3 different global variables, 1 for each context. But still 
+     * the Mutex1 global variable is shared by all the 3 contexts. It is 
+     * assumed that each context will acquire only one MUTEX1 variable and 
+     * release it appropriately. Hence there is no spin lock used in this 
+     * function. If any other changes are done here which requires accessing
+     * any other global variable(s), this function should be made re-entrant
+     * by adding appropriate lock at the entry and exit for both SetHostBusy
+     * and ReleaseHostBusy functions.
+     * ********************************************************************/
 
 #ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
-	  /* FIXME: This change is required to address SIF issues in Power-save case.
-	   * The SIF is using Rate-Matching FIFO even in the SIF-Freeze case which is
-	   * causing DxE errors in high SD frequencies on 7x30 platform.
-	   */
-	  {
-		  tANI_U32 uRegValue, mutexFailCnt = 0;
+    /* FIXME: This change is required to address SIF issues in Power-save case.
+     * The SIF is using Rate-Matching FIFO even in the SIF-Freeze case which is
+     * causing DxE errors in high SD frequencies on 7x30 platform.
+     */
+    {
+        tANI_U32 uRegValue, mutexFailCnt = 0;
 
-		  do {
-			/* Acquire Mutex1 here */
-			status = palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
+        do {
+            /* Acquire Mutex1 here */
+            status = palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
             maxCnt = (uRegValue & QWLAN_MCU_MUTEX1_MAXCOUNT_MASK) >> QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET;
             if(maxCnt != QWLAN_HOSTFW_TX_SYNC_MUTEX_MAX_COUNT)
             {
@@ -2872,45 +2895,45 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
                 return VOS_STATUS_E_FAILURE;
             }
 
-		  } while(retryCnt++ < 300 );
-         
-          if (0 == curCnt)
-          {
-              /* LOGP if mutex is not acquired */
-              VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: MUTEX1 Not Acquired after 300 tries, regVal = %d", __func__, regValue);
-              macSysResetReq(pMac, eSIR_PS_MUTEX_READ_EXCEPTION);
-              return VOS_STATUS_E_FAILURE;
-          }    
-          
-          /* Release the mutex for the counts whenever we read the value 0 from register */
-	      uRegValue = (1 << QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET);
-          while (mutexFailCnt)
-          {
-              status = palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, uRegValue);
-              mutexFailCnt--;
-              
-              if(!VOS_IS_STATUS_SUCCESS(status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
-              {
-                  VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress.", __func__);
-                  return VOS_STATUS_E_FAILURE;
-              }
-          }
-          uRegValue = 0;
+        } while(retryCnt++ < 300 );
 
-          /* Tracking the protection for device writes */
-          pMac->hal.PsParam.mutexTxCount++;
+        if (0 == curCnt)
+        {
+            /* LOGP if mutex is not acquired */
+            VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: MUTEX1 Not Acquired after 300 tries, regVal = %d", __func__, regValue);
+            macSysResetReq(pMac, eSIR_PS_MUTEX_READ_EXCEPTION);
+            return VOS_STATUS_E_FAILURE;
+        }    
 
-		  /* Once mutex1 is acquired, touch BPS_REQ bit in PMU that would unfreeze SIF for Register-FIFO acesses
-		   * It is necessary that host acquire the mutex here and not inside the DO-WHILE Loop. This addresses the
-		   * corner case in which firmware acquires both mutex counts of MUTEX1 and issues SIF_FREEZE request.
-		   * And SIF_FREEZE is going on. In the mean time, the host has something to tranfer and attempts to acquire
-		   * the mutex but won't be able to. And as part of polling, host issues SIF_UNFREEZE request while firmware
-		   * initiated SIF_FREEZE request is happening. In other words, SIF state is not synchronized between host
-		   * and firmware. Which can cause unpleasant results. With this, the host issue SIF_UNFREEZE request if-and-only-if
-		   * it gets hold of mutex for SIF Register-FIFO access
-		   */
-	       palWriteRegister(pMac->hHdd, QWLAN_PMU_PMU_CLIENT_IF_BPS_REQ_CTRL_REG_REG, 0x0);
-	  }
+        /* Release the mutex for the counts whenever we read the value 0 from register */
+        uRegValue = (1 << QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET);
+        while (mutexFailCnt)
+        {
+            status = palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, uRegValue);
+            mutexFailCnt--;
+
+            if(!VOS_IS_STATUS_SUCCESS(status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
+            {
+                VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress.", __func__);
+                return VOS_STATUS_E_FAILURE;
+            }
+        }
+        uRegValue = 0;
+
+        /* Tracking the protection for device writes */
+        pMac->hal.PsParam.mutexTxCount++;
+
+        /* Once mutex1 is acquired, touch BPS_REQ bit in PMU that would unfreeze SIF for Register-FIFO acesses
+         * It is necessary that host acquire the mutex here and not inside the DO-WHILE Loop. This addresses the
+         * corner case in which firmware acquires both mutex counts of MUTEX1 and issues SIF_FREEZE request.
+         * And SIF_FREEZE is going on. In the mean time, the host has something to tranfer and attempts to acquire
+         * the mutex but won't be able to. And as part of polling, host issues SIF_UNFREEZE request while firmware
+         * initiated SIF_FREEZE request is happening. In other words, SIF state is not synchronized between host
+         * and firmware. Which can cause unpleasant results. With this, the host issue SIF_UNFREEZE request if-and-only-if
+         * it gets hold of mutex for SIF Register-FIFO access
+         */
+        palWriteRegister(pMac->hHdd, QWLAN_PMU_PMU_CLIENT_IF_BPS_REQ_CTRL_REG_REG, 0x0);
+    }
 #endif
     retryCnt = 0;
     while((eHAL_STATUS_FW_PS_BUSY == mutexAcq)&& (retryCnt < 3)) 
@@ -2936,13 +2959,13 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 #endif
             ++retryCnt;
             VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s Mutex register value read 0, %d times", 
-               __FUNCTION__, retryCnt);
-			
+                    __FUNCTION__, retryCnt);
+
             if(retryCnt == 2) 
             {
-            	 VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s retryCnt = %d Sleeping for 200ms before next retry", 
-                   __FUNCTION__, retryCnt);
-            	 vos_sleep(200);
+                VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s retryCnt = %d Sleeping for 200ms before next retry", 
+                        __FUNCTION__, retryCnt);
+                vos_sleep(200);
             }            	
         }
         else {
@@ -2954,10 +2977,10 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     {
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
         VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Context: %d - Host Busy Mutex is not Acquired = %d,%d, %x", ctx, 
-                            pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxRxCount, regValue);
+                pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxRxCount, regValue);
 #else
         VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Context: %d - Host Busy Mutex is not Acquired = %d,%d, %x", ctx, 
-                            pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue);
+                pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue);
 #endif
         macSysResetReq(pMac, eSIR_PS_MUTEX_READ_EXCEPTION);
     } else {
@@ -2990,7 +3013,7 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     {
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
         HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d,%d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
-                                                    pMac->hal.PsParam.mutexTxRxCount, pMac->hal.PsParam.mutexTxCount, regValue));
+                    pMac->hal.PsParam.mutexTxRxCount, pMac->hal.PsParam.mutexTxCount, regValue));
 #else
         HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
 #endif

@@ -4,9 +4,15 @@
 
   \brief WLAN Host Device Driver implementation
 
+   Copyright (c) 2011 Qualcomm Atheros, Inc.
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary. 
+   Notifications and licenses are retained for attribution purposes only
+  
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-
    Qualcomm Confidential and Proprietary.
+
+   Copyright (C) 2006 Airgo Networks, Incorporated
 
   ========================================================================*/
 

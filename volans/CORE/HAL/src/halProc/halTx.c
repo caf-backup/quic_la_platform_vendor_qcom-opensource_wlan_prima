@@ -82,7 +82,12 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
     // Get system role, use the self station if in unknown role or STA role
     systemRole = halGetGlobalSystemRole(pMac);
     HALLOG1(halLog(pMac, LOG1, FL("SystemRole=%d\n"),systemRole));
-    if ((systemRole == eSYSTEM_UNKNOWN_ROLE) || (systemRole == eSYSTEM_STA_ROLE)) {
+    if ((systemRole == eSYSTEM_UNKNOWN_ROLE) || 
+        ((systemRole == eSYSTEM_STA_ROLE)
+#ifdef FEATURE_WLAN_CCX
+          && (frmType == HAL_TXRX_FRM_802_11_MGMT)
+#endif
+                                                 )) {
         txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;     
     }
 
@@ -90,10 +95,10 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
     // disassoc frame reaches the HW, HAL has already deleted the peer station
     if ((pFc->type == SIR_MAC_MGMT_FRAME)) {
         if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
-                (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
+             (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
                 (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP)) {
             txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
-        } 
+    }
 
         // Since we donot want probe responses to be retried, send probe responses
         // through the NO_ACK queues
@@ -132,7 +137,7 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
 
 // -------------------------------------------------------------
 /**
- * halTxFrameWithTxComplete 
+ * halTxFrameWithTxComplete
  *
  * FUNCTION:
  *     Transmits frames from higher level software.
@@ -216,14 +221,14 @@ __DP_SRC_TX  eHalStatus halTxFrameWithTxComplete(tHalHandle hHal,
                 (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
                 (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP)) {
             txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
-        } 
+        }
 
         // Since we donot want probe responses to be retried, send probe responses
         // through the NO_ACK queues
         if (pFc->subType == SIR_MAC_MGMT_PROBE_RSP) {
             //probe response is sent out using self station and no retries options.
             txFlag |= (HAL_USE_NO_ACK_REQUESTED_MASK | HAL_USE_SELF_STA_REQUESTED_MASK);
-        }
+        }    
     }
 
     if(  (vosStatus = WLANTL_TxMgmtFrm(pVosGCtx, (vos_pkt_t *)pFrmBuf, frmLen, 
@@ -247,15 +252,15 @@ __DP_SRC_TX  eHalStatus halTxFrameWithTxComplete(tHalHandle hHal,
     if(pMac->hal.TLParam.txMgmtFrameStatus != HAL_TL_TX_SUCCESS) {
         HALLOGE(halLog(pMac, LOGE, FL("MGMT SEND ---> FAILURE 1")));
         goto error;
-    }
+    } 
     HALLOG1( halLog(pMac, LOG1, FL("MGMT SEND ---> SUCCESS %d"), eventIdx));
     return eHAL_STATUS_SUCCESS;
 error:
-   pMac->hal.pCBackFnTxComp = NULL;
-   /* Deactivate the TX Complete timer */
-   tx_timer_deactivate(&pMac->hal.txCompTimer); 
-   return eHAL_STATUS_FAILURE;
-}
+    pMac->hal.pCBackFnTxComp = NULL;
+    /* Deactivate the TX Complete timer */
+    tx_timer_deactivate(&pMac->hal.txCompTimer); 
+    return eHAL_STATUS_FAILURE;
+}    
 
 __DP_SRC_TX VOS_STATUS halTxComplete( v_PVOID_t pVosGCtx, vos_pkt_t *pData, VOS_STATUS status )
 //__DP_SRC_TX VOS_STATUS halTxComplete( v_CONTEXT_t pVosGCtx, void *pData, VOS_STATUS status )
@@ -270,6 +275,10 @@ __DP_SRC_TX VOS_STATUS halTxComplete( v_PVOID_t pVosGCtx, vos_pkt_t *pData, VOS_
     if(VOS_IS_STATUS_SUCCESS(status)) {
         pMac->hal.TLParam.txMgmtFrameStatus = HAL_TL_TX_SUCCESS;
         HALLOG1(halLog(pMac, LOG1, FL("NEW VOS Event SUCCESS = %d\n"), vosStatus));
+    }
+    else
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("%s failed status %d\n"), __func__ ,vosStatus));
     }
 
     // Trigger the event to bring the HAL TL Tx complete function to come out of wait

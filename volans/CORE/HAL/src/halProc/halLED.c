@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserve.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * halLED.c:  Handles LED feature.
  * Author:    Naveen G
  * Date:      06/27/2007

@@ -1,10 +1,12 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2006
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  */
 
 #include "sys_api.h"
@@ -1395,6 +1397,40 @@ void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
 }
 
 
+void pttGetUnicastMacPktRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
+{
+    eRfChannels curChan = rfGetChannelIndex(pMac->hphy.phy.test.testChannelId, pMac->hphy.phy.test.testCbState);
+    t2Decimal rssiOffset0;
+    Qwlanfw_PhyFtmInfoType ftmInfo;
+
+    if(curChan == INVALID_RF_CHANNEL)
+    {
+        //default it to channel 1
+        curChan = RF_CHAN_1;
+    }
+
+    //use the bgnpower offsets for RSSI as well. make sure you strip off last two decimal places
+    {
+        tANI_U32 pktMode;
+        sRssiChannelOffsets *rssiChanOffsets = (sRssiChannelOffsets *)(&pMac->hphy.nvCache.tables.rssiChanOffsets[0]);
+
+        palReadRegister(pMac->hHdd, QWLAN_AGC_DIS_MODE_REG, &pktMode);
+
+        if(pktMode & QWLAN_AGC_DIS_MODE_DISABLE_11AG_MASK)
+        {
+            rssiOffset0 = 0;
+        }
+        else
+        {
+            rssiOffset0 = (rssiChanOffsets[PHY_RX_CHAIN_0].gnRssiOffset[curChan] -
+                            rssiChanOffsets[PHY_RX_CHAIN_0].bRssiOffset[curChan]) / 100;
+        }
+    }
+
+    palReadDeviceMemory(pMac->hHdd, QWLANFW_MEM_PHY_FTM_INFO_ADDR_OFFSET, (tANI_U8*)&ftmInfo, sizeof(Qwlanfw_PhyFtmInfoType));
+    rssi->rx[PHY_RX_CHAIN_0] = (tANI_S8)(ftmInfo.uRxLastRssiVal + RSSI_TO_DBM_OFFSET + rssiOffset0);
+
+}
 
 
 
@@ -1428,6 +1464,7 @@ eQWPttStatus pttSetRxDisableMode(tpAniSirGlobal pMac, sRxTypesDisabled disabled)
 
 eQWPttStatus pttGetRxPktCounts(tpAniSirGlobal pMac, sRxFrameCounters *counters)
 {
+    Qwlanfw_PhyFtmInfoType ftmInfo;
     eHalStatus retVal;
     {
         tANI_U32 reg;
@@ -1451,7 +1488,8 @@ eQWPttStatus pttGetRxPktCounts(tpAniSirGlobal pMac, sRxFrameCounters *counters)
     }
 
     {
-        palReadRegister(pMac->hHdd, QWLAN_RXP_DMA_GET_BMU_FAIL_CNT_REG, &counters->totalMacRxPackets);
+        palReadDeviceMemory(pMac->hHdd, QWLANFW_MEM_PHY_FTM_INFO_ADDR_OFFSET, (tANI_U8*)&ftmInfo, sizeof(Qwlanfw_PhyFtmInfoType));
+        counters->totalMacRxPackets = ftmInfo.uRxDataFrameCount;
 
     }
 
@@ -1462,6 +1500,7 @@ eQWPttStatus pttGetRxPktCounts(tpAniSirGlobal pMac, sRxFrameCounters *counters)
 
 eQWPttStatus pttResetRxPacketStatistics(tpAniSirGlobal pMac)
 {
+    Qwlanfw_PhyFtmInfoType ftmInfo;
     eHalStatus retVal;
     {
         tANI_U32 reg;
@@ -1483,6 +1522,9 @@ eQWPttStatus pttResetRxPacketStatistics(tpAniSirGlobal pMac)
     {
         return (FAILURE);
     }
+
+    palZeroMemory(pMac->hHdd, (void*)&ftmInfo, sizeof(Qwlanfw_PhyFtmInfoType));
+    palWriteDeviceMemory(pMac->hHdd, QWLANFW_MEM_PHY_FTM_INFO_ADDR_OFFSET, (tANI_U8*)&ftmInfo, sizeof(Qwlanfw_PhyFtmInfoType));
 
     return (SUCCESS);
 }

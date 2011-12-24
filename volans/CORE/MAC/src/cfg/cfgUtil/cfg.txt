@@ -505,10 +505,10 @@ NONE
 WNI_CFG_PS_ENABLE_RSSI_MONITOR    I    4    7
 V    RW    NP
 HAL
-0    1    1
+0    1    0
 NV    RW    NP
 NONE
-0    1    1
+0    1    0
 
 
 *
@@ -1147,7 +1147,7 @@ NONE
 
 *
 * Manufacture Product Name (from eeprom)
-*
+* 
 
 WNI_CFG_MANUFACTURER_PRODUCT_NAME    S    33    8
 V    RO    NP
@@ -2802,6 +2802,21 @@ NV    RW    NP
 LIM
 0    255    20
 
+*
+* Period for which Firmware will collect the 
+* RSSI stats. Its in units of beacon interval. 
+* Rssi Filter period should always be >=
+* the num_beacon_per_rssi_average.
+* This value is used ONLY for CCX and 11r Fasttransition
+*
+WNI_CFG_FT_RSSI_FILTER_PERIOD    I    4    5
+V    RW    NP
+LIM
+0    255    5
+NV    RW    NP
+LIM
+0    255    5
+
 
 WNI_CFG_MIN_RSSI_THRESHOLD    I    4    5
 V    RW    NP
@@ -3283,7 +3298,7 @@ LIM
 *                                  Xbox360                  2
 *                                  Playstation              3
 *  Telephone             10        Windows Mobile           1
-*
+*								   			
 ************************************************************************
 
 * QNE-TODO: Rename their cfg from 'WNI_CFG_PRIM_DEVICE_CATEGORY'
@@ -3779,18 +3794,6 @@ V    RW    NP
 HAL
 0    65535    0
 
-* Limit on number of associated stations
-* (applies to peer stations in IBSS, SoftAP, BT-AMP AP, & P2P-GO modes)
-*
-
-WNI_CFG_ASSOC_STA_LIMIT    I   4   8
-V    RW    NP
-LIM
-1    10    5
-V    RW    NP
-LIM
-1    10    5
-
 * 
 * Softap data available poll period (in milliseconds) for 
 * queueing (Qos)Null frames to the station if there 
@@ -3806,4 +3809,15 @@ NONE
 0    65535    5
 
 
+* Limit on number of associated stations
+* (applies to peer stations in IBSS, SoftAP, BT-AMP AP, & P2P-GO modes)
+*
+
+WNI_CFG_ASSOC_STA_LIMIT    I   4   8
+V    RW    NP
+LIM
+1    10    5
+V    RW    NP
+LIM
+1    10    5
 

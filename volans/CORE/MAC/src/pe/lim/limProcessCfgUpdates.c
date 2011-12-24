@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limProcessCfgUpdates.cc contains the utility functions
  * to handle various CFG parameter update events
  * Author:        Chandra Modumudi
@@ -530,9 +535,18 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
 #endif
         break;
     case WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG:
-        //Update beacon.
-        limUpdateBeacon(pMac);
+    {
+        tSirMsgQ msg = {0};
+        tANI_U32 status;
+
+        msg.type = SIR_LIM_UPDATE_BEACON;
+
+        status = limPostMsgApi(pMac, &msg);
+
+        if (status != TX_SUCCESS)
+            PELOGE(limLog(pMac, LOGE, FL("Failed limPostMsgApi\n"), status);)
         break;
+    }
     case WNI_CFG_GREENFIELD_CAPABILITY:
         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
         {

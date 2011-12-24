@@ -6,6 +6,12 @@
 //
 //  Author:       Larry Cawley
 // 
+//  Copyright (c) 2011 Qualcomm Atheros, Inc.
+//  All Rights Reserved. 
+//  Qualcomm Atheros Confidential and Proprietary
+//
+//  Copyright (C) 2006 Airgo Networks, Incorporated
+//
 //  Copyright 2002, Woodside Networks, Inc.  All rights reserved.
 //
 //  Change History:

@@ -5,11 +5,15 @@
  *
  * \brief C defines customizing our framesc-generated code
  *
- * $Id: //source/qcom/qct/wconnect/wlan/core/sys/legacy/main/latest/src/utils/inc/dot11fdefs.h#4 $
+ * $Id: //source/qcom/qct/wconnect/wlan/core/sys/legacy/main/latest/src/utils/inc/dot11fdefs.h#5 $
  *
+ *
+ *
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
  *
  * Copyright (C) 2006 Airgo Networks, Incorporated
- *
  *
  * 'framesc' generates code written in terms of a number of macros
  * intended for customization.

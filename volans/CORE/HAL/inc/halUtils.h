@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file halTimer.h contains the utility function HAL
  * uses for timer related functions.
  *
@@ -16,7 +21,7 @@
 #include  "sirParams.h"     // tSirMsgQ
 
 
-typedef enum 
+typedef enum
 {
     eHAL_MSG_DROP,
     eHAL_MSG_DEFER,
@@ -38,10 +43,10 @@ void halSetChainConfig(tpAniSirGlobal pMac, tANI_U32 powerStatePerChain);
 void halUtil_getProtectionMode(tpAniSirGlobal pMac, tTpeProtPolicy *pProtPolicy);
 tANI_U16 halUtil_GetGCD(tANI_U16 num1, tANI_U16 num2);
 void halUtil_GetDtimTbtt(tpAniSirGlobal pMac, tANI_U64 tbtt, tANI_U8 bssIdx,
-                         tANI_U8 dtimPeriod, tANI_U8 dtimCount, tANI_U64 *pDtimTbtt);
+        tANI_U8 dtimPeriod, tANI_U8 dtimCount, tANI_U64 *pDtimTbtt);
 void halUtil_GetLeastRefDtimTbtt(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U64 dtimTbtt, tANI_U64 *pRefDtimTbtt, tANI_U16 dtimPeriod);
 void halUtil_GetRegPowerLimit(tpAniSirGlobal pMac, tANI_U8 currChannel,
-                              tANI_U8 localPwrConstraint, tANI_S8 *pRegLimit);
+        tANI_U8 localPwrConstraint, tANI_S8 *pRegLimit);
 void halUtil_DumpFwCorexLogs(void *pData);
 #ifdef WLAN_DEBUG
 char* halUtil_getMsgString(tANI_U16 msgId);

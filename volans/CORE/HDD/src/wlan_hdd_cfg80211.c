@@ -90,9 +90,18 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_WEP40,
     WLAN_CIPHER_SUITE_WEP104,
     WLAN_CIPHER_SUITE_TKIP,
+#ifdef FEATURE_WLAN_CCX
+#define WLAN_CIPHER_SUITE_KRK 0x004096ff /* use for KRK */
+    WLAN_CIPHER_SUITE_CCMP,
+    WLAN_CIPHER_SUITE_KRK,
+#ifdef FEATURE_WLAN_WAPI
+    WLAN_CIPHER_SUITE_SMS4,
+#endif
+#else
     WLAN_CIPHER_SUITE_CCMP,
 #ifdef FEATURE_WLAN_WAPI
-    WLAN_CIPHER_SUITE_SMS4
+    WLAN_CIPHER_SUITE_SMS4,
+#endif
 #endif
 };
 
@@ -614,7 +623,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
     v_U8_t *genie;
     v_U8_t total_ielen=0,ielen=0;
     hdd_hostapd_state_t *pHostapdState;
-
+    v_U8_t wpaRsnIEdata[(SIR_MAC_MAX_IE_LENGTH * 2)+4];  //Max ie length 255 * 2(WPA+RSN) + 2 bytes (vendor specific ID) * 2
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
 
     ENTER();
@@ -665,48 +674,78 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
     pConfig->wps_state = 0;
     pConfig->fwdWPSPBCProbeReq  = 1; // Forward WPS PBC probe request frame up 
 
+    pConfig->RSNWPAReqIELength = 0;
+    pConfig->pRSNWPAReqIE = NULL;
     pIe = wlan_hdd_cfg80211_get_ie_ptr(pBeacon->tail, pBeacon->tail_len, 
                                        WLAN_EID_RSN);
-    if(pIe == NULL)
-        pIe = wlan_hdd_get_vendor_oui_ie_ptr(WPA_OUI_TYPE, WPA_OUI_TYPE_SIZE,
-                                             pBeacon->tail, pBeacon->tail_len);
-
-    if(pIe)
+    if(pIe && pIe[1])
     { 
-        if(pIe[1])
+        pConfig->RSNWPAReqIELength = pIe[1] + 2;
+        memcpy(&wpaRsnIEdata[0], pIe, pConfig->RSNWPAReqIELength);
+        pConfig->pRSNWPAReqIE = &wpaRsnIEdata[0];
+        /* The actual processing may eventually be more extensive than 
+         * this. Right now, just consume any PMKIDs that are  sent in 
+         * by the app.
+         * */
+        status = hdd_softap_unpackIE( 
+                        vos_get_context( VOS_MODULE_ID_SME, pVosContext),
+                        &RSNEncryptType,
+                        &mcRSNEncryptType,
+                        &RSNAuthType,
+                        pConfig->pRSNWPAReqIE[1]+2,
+                        pConfig->pRSNWPAReqIE );
+
+        if( VOS_STATUS_SUCCESS == status )
+        {
+            /* Now copy over all the security attributes you have 
+             * parsed out 
+             * */
+            pConfig->RSNEncryptType = RSNEncryptType; // Use the cipher type in the RSN IE
+            pConfig->mcRSNEncryptType = mcRSNEncryptType;
+            hddLog( LOG1, FL("%s: CSR AuthType = %d, "
+                        "EncryptionType = %d mcEncryptionType = %d\n"),
+                        RSNAuthType, RSNEncryptType, mcRSNEncryptType);
+        }
+    }
+    
+    pIe = wlan_hdd_get_vendor_oui_ie_ptr(WPA_OUI_TYPE, WPA_OUI_TYPE_SIZE,
+                                         pBeacon->tail, pBeacon->tail_len);
+
+    if(pIe && pIe[1] && (pIe[0] == DOT11F_EID_WPA))
+    {
+        if (pConfig->pRSNWPAReqIE)
+        {
+            /*Mixed mode WPA/WPA2*/
+            memcpy((&wpaRsnIEdata[0] + pConfig->RSNWPAReqIELength), pIe, pIe[1] + 2);
+            pConfig->RSNWPAReqIELength += pIe[1] + 2;
+        }
+        else
         {
             pConfig->RSNWPAReqIELength = pIe[1] + 2;
-            pConfig->pRSNWPAReqIE = pIe;
-            if ( (pConfig->pRSNWPAReqIE[0] == DOT11F_EID_RSN) 
-               || (pConfig->pRSNWPAReqIE[0] == DOT11F_EID_WPA))
+            memcpy(&wpaRsnIEdata[0], pIe, pConfig->RSNWPAReqIELength);
+            pConfig->pRSNWPAReqIE = &wpaRsnIEdata[0];
+            status = hdd_softap_unpackIE( 
+                          vos_get_context( VOS_MODULE_ID_SME, pVosContext),
+                          &RSNEncryptType,
+                          &mcRSNEncryptType,
+                          &RSNAuthType,
+                          pConfig->pRSNWPAReqIE[1]+2,
+                          pConfig->pRSNWPAReqIE );
+
+            if( VOS_STATUS_SUCCESS == status )
             {
-                /* The actual processing may eventually be more extensive than 
-                 * this. Right now, just consume any PMKIDs that are  sent in 
-                 * by the app.
+                /* Now copy over all the security attributes you have 
+                 * parsed out 
                  * */
-                status = hdd_softap_unpackIE( 
-                           vos_get_context( VOS_MODULE_ID_HAL, pVosContext),
-                           &RSNEncryptType,
-                           &mcRSNEncryptType,
-                           &RSNAuthType,
-                           pConfig->pRSNWPAReqIE[1]+2,
-                           pConfig->pRSNWPAReqIE );
-                  
-                if( VOS_STATUS_SUCCESS == status )
-                {
-                    /* Now copy over all the security attributes you have 
-                     * parsed out 
-                     * */
-                    //TODO: Need to handle mixed mode     
-                    pConfig->RSNEncryptType = RSNEncryptType; // Use the cipher type in the RSN IE
-                    pConfig->mcRSNEncryptType = mcRSNEncryptType;
-                    hddLog( LOG1, FL("%s: CSR AuthType = %d, "
-                             "EncryptionType = %d mcEncryptionType = %d\n"),
-                             RSNAuthType, RSNEncryptType, mcRSNEncryptType);
-                }
+                pConfig->RSNEncryptType = RSNEncryptType; // Use the cipher type in the RSN IE
+                pConfig->mcRSNEncryptType = mcRSNEncryptType;
+                hddLog( LOG1, FL("%s: CSR AuthType = %d, "
+                                "EncryptionType = %d mcEncryptionType = %d\n"),
+                                RSNAuthType, RSNEncryptType, mcRSNEncryptType);
             }
         }
     }
+
     pConfig->SSIDinfo.ssidHidden = VOS_FALSE;
 
     pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
@@ -1408,6 +1447,12 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
             return 0;
         }
 #endif
+
+#ifdef FEATURE_WLAN_CCX
+        case WLAN_CIPHER_SUITE_KRK:
+            setKey.encType = eCSR_ENCRYPT_TYPE_KRK;
+            break;
+#endif
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: unsupported cipher type %lu",
                     __func__, params->cipher);
@@ -1470,25 +1515,26 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         pWextState->roamProfile.Keys.KeyLength[key_index] = (u8)params->key_len;
 
         vos_mem_copy(&pWextState->roamProfile.Keys.KeyMaterial[key_index][0], 
-                     params->key, params->key_len);
+                params->key, params->key_len);
 
         pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_SETTING_KEY;
-    
-        if (!( (IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) 
-              && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType)
+
+        if (!(  ( IW_AUTH_KEY_MGMT_802_1X 
+                        == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)) 
+                    && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType)
              )
                 &&
                 (  (WLAN_CIPHER_SUITE_WEP40 == params->cipher)
                    || (WLAN_CIPHER_SUITE_WEP104 == params->cipher)
                 )
-          )
+           )
         {
             /* in case of static WEP, macaddr/bssid is not coming from nl80211
              * interface, copy bssid for pairwise key and group macaddr for 
              * group key initialization*/
-    
+
             tCsrRoamProfile          *pRoamProfile = &pWextState->roamProfile;
-    
+
             if (eCSR_BSS_TYPE_START_IBSS == pRoamProfile->BSSType)
             {
                 /* If IBSS, update the encryption type as we are using default
@@ -1497,9 +1543,9 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                 pWextState->roamProfile.negotiatedUCEncryptionType = 
                     pHddStaCtx->conn_info.ucEncryptionType = 
                     ((WLAN_CIPHER_SUITE_WEP40 == params->cipher) ? \
-                    eCSR_ENCRYPT_TYPE_WEP40_STATICKEY : \
-                    eCSR_ENCRYPT_TYPE_WEP104_STATICKEY);
-    
+                     eCSR_ENCRYPT_TYPE_WEP40_STATICKEY : \
+                     eCSR_ENCRYPT_TYPE_WEP104_STATICKEY);
+
                 hddLog(VOS_TRACE_LEVEL_INFO_MED, 
                         "%s: IBSS - negotiated encryption type %d", __func__, 
                         pWextState->roamProfile.negotiatedUCEncryptionType);
@@ -1508,17 +1554,17 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
             {
                 pWextState->roamProfile.negotiatedUCEncryptionType = 
                     pHddStaCtx->conn_info.ucEncryptionType;
-                
+
                 hddLog(VOS_TRACE_LEVEL_INFO_MED, 
                         "%s: BSS - negotiated encryption type %d", __func__, 
                         pWextState->roamProfile.negotiatedUCEncryptionType);
             }
-    
+
             sme_SetCfgPrivacy((tpAniSirGlobal)WLAN_HDD_GET_HAL_CTX(pAdapter),
                     &pWextState->roamProfile, true);
             setKey.keyLength = 0;
             setKey.keyDirection =  eSIR_TX_RX;
-    
+
             if (mac_addr)
             {
                 vos_mem_copy(setKey.peerMac, mac_addr,WNI_CFG_BSSID_LEN);
@@ -1535,7 +1581,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                         vos_mem_copy(setKey.peerMac, \
                                 &pHddStaCtx->conn_info.peerMacAddress[staidx], \
                                 WNI_CFG_BSSID_LEN);
-    
+
                     } 
                     else
                     {
@@ -1564,7 +1610,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
             setKey.keyDirection = eSIR_TX_RX;
             vos_mem_copy(setKey.peerMac, mac_addr,WNI_CFG_BSSID_LEN);
         }
-        
+
         hddLog(VOS_TRACE_LEVEL_INFO_MED, 
                 "%s: set key for peerMac %2x:%2x:%2x:%2x:%2x:%2x, direction %d",
                 __func__, setKey.peerMac[0], setKey.peerMac[1], 
@@ -1577,20 +1623,20 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         if ( vos_status != VOS_STATUS_SUCCESS )
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-               "[%4d] wlan_hdd_check_ula_done returned ERROR status= %d",
-               __LINE__, vos_status );
+                    "[%4d] wlan_hdd_check_ula_done returned ERROR status= %d",
+                    __LINE__, vos_status );
 
             pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
-            
+
             return -EINVAL;
-            
+
         }
 
-    
+
         /* issue set key request to SME*/
         status = sme_RoamSetKey( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                     pAdapter->sessionId, &setKey, &roamId );
-    
+                pAdapter->sessionId, &setKey, &roamId );
+
         if ( 0 != status )
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -1598,34 +1644,35 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
             pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
             return -EINVAL;
         }
-    
-    
+
+
         /* in case of IBSS as there was no information available about WEP keys during 
          * IBSS join, group key intialized with NULL key, so re-initialize group key 
          * with correct value*/
         if ( (eCSR_BSS_TYPE_START_IBSS == pWextState->roamProfile.BSSType) && 
-                !(  (IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) 
+                !(  ( IW_AUTH_KEY_MGMT_802_1X 
+                        == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)) 
                     && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType)
                  )
                 &&
                 (  (WLAN_CIPHER_SUITE_WEP40 == params->cipher)
                    || (WLAN_CIPHER_SUITE_WEP104 == params->cipher)
                 )
-          )
+           )
         {
             setKey.keyDirection = eSIR_RX_ONLY;
             vos_mem_copy(setKey.peerMac,groupmacaddr,WNI_CFG_BSSID_LEN);
-    
+
             hddLog(VOS_TRACE_LEVEL_INFO_MED, 
-                 "%s: set key peerMac %2x:%2x:%2x:%2x:%2x:%2x, direction %d",
-                 __func__, setKey.peerMac[0], setKey.peerMac[1], 
-                           setKey.peerMac[2], setKey.peerMac[3], 
-                           setKey.peerMac[4], setKey.peerMac[5], 
-                           setKey.keyDirection);
-    
+                    "%s: set key peerMac %2x:%2x:%2x:%2x:%2x:%2x, direction %d",
+                    __func__, setKey.peerMac[0], setKey.peerMac[1], 
+                    setKey.peerMac[2], setKey.peerMac[3], 
+                    setKey.peerMac[4], setKey.peerMac[5], 
+                    setKey.keyDirection);
+
             status = sme_RoamSetKey( WLAN_HDD_GET_HAL_CTX(pAdapter), 
-                          pAdapter->sessionId, &setKey, &roamId );
-    
+                    pAdapter->sessionId, &setKey, &roamId );
+
             if ( 0 != status )
             {
                 hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -2626,6 +2673,12 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             pRoamProfile->BSSIDs.numOfBSSIDs = 1;
             vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid,
                     WNI_CFG_BSSID_LEN);
+            /* Save BSSID in seperate variable as well, as RoamProfile 
+               BSSID is getting zeroed out in the association process. And in 
+               case of join failure we should send valid BSSID to supplicant
+             */
+            vos_mem_copy((void *)(pWextState->req_bssId), bssid,
+                    WNI_CFG_BSSID_LEN);
         }
 
         if ((IW_AUTH_WPA_VERSION_WPA == pWextState->wpaVersion) ||
@@ -2714,6 +2767,14 @@ static int wlan_hdd_cfg80211_set_auth_type(hdd_adapter_t *pAdapter,
                     "%s: set authentication type to SHARED", __func__);
             pHddStaCtx->conn_info.authType = eCSR_AUTH_TYPE_SHARED_KEY;
             break;
+#ifdef FEATURE_WLAN_CCX
+        case NL80211_AUTHTYPE_NETWORK_EAP:
+            hddLog(VOS_TRACE_LEVEL_INFO, 
+                    "%s: set authentication type to CCKM WPA", __func__);
+            pHddStaCtx->conn_info.authType = eCSR_AUTH_TYPE_CCKM_WPA;//eCSR_AUTH_TYPE_CCKM_RSN needs to be handled as well if required.
+            break;
+#endif
+
 
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -2746,15 +2807,23 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
         case WLAN_AKM_SUITE_PSK:
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: setting key mgmt type to PSK", 
                     __func__);
-            pWextState->authKeyMgmt = IW_AUTH_KEY_MGMT_PSK;
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_PSK;
             break;
 
         case WLAN_AKM_SUITE_8021X:
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: setting key mgmt type to 8021x", 
                     __func__);
-            pWextState->authKeyMgmt = IW_AUTH_KEY_MGMT_802_1X;
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
             break;
-
+#ifdef FEATURE_WLAN_CCX
+#define WLAN_AKM_SUITE_CCKM         0x00409600 /* Should be in ieee802_11_defs.h */
+#define IW_AUTH_KEY_MGMT_CCKM       8  /* Should be in linux/wireless.h */
+        case WLAN_AKM_SUITE_CCKM:
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s: setting key mgmt type to CCKM",
+                    __func__);
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_CCKM;
+            break;
+#endif
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported key mgmt type %d", 
                     __func__, key_mgmt);
@@ -2796,16 +2865,18 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
             break;
 
         case WLAN_CIPHER_SUITE_WEP40:
-            if ((IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) && 
-                (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType))
+            if (( IW_AUTH_KEY_MGMT_802_1X 
+                        == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X )) 
+                    && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType))
                 encryptionType = eCSR_ENCRYPT_TYPE_WEP40;
             else
                 encryptionType = eCSR_ENCRYPT_TYPE_WEP40_STATICKEY;
             break;
 
         case WLAN_CIPHER_SUITE_WEP104:
-            if ((IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) && 
-                (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType))
+            if ( (IW_AUTH_KEY_MGMT_802_1X 
+                        == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)) 
+                    && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType))
                 encryptionType = eCSR_ENCRYPT_TYPE_WEP104;
             else
                 encryptionType = eCSR_ENCRYPT_TYPE_WEP104_STATICKEY;
@@ -2821,6 +2892,11 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
 #ifdef FEATURE_WLAN_WAPI
         case WLAN_CIPHER_SUITE_SMS4:
             encryptionType = eCSR_ENCRYPT_TYPE_WPI;
+            break;
+#endif
+#ifdef FEATURE_WLAN_CCX
+        case WLAN_CIPHER_SUITE_KRK:
+            encryptionType = eCSR_ENCRYPT_TYPE_KRK;
             break;
 #endif
         default:
@@ -2926,7 +3002,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 }
 #ifdef WLAN_FEATURE_P2P
                 else if ( (0 == memcmp(&genie[0], P2P_OUI_TYPE, 
-                                                  P2P_OUI_TYPE_SIZE) )
+                                                         P2P_OUI_TYPE_SIZE)) 
                         /*Consider P2P IE, only for P2P Client */
                          && (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
                 {
@@ -2983,7 +3059,6 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 }
                 break;
 #endif
-
             default:
                 hddLog (VOS_TRACE_LEVEL_ERROR, 
                         "%s Set UNKNOWN IE %X", __func__, elementId);
@@ -3098,7 +3173,8 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
                 || (WLAN_CIPHER_SUITE_WEP104 == req->crypto.ciphers_pairwise[0])
           )
         {
-            if (IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt)
+            if ( IW_AUTH_KEY_MGMT_802_1X 
+                    == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X  ))
             {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Dynamic WEP not supported", 
                         __func__);
@@ -3670,11 +3746,11 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     tANI_U8 rate_flags;
 
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
-           (0 == ssidlen))
+            (0 == ssidlen))
     {
-       hddLog(VOS_TRACE_LEVEL_INFO, "%s: Not associated or"
-                    "Invalid ssid, %d", __func__, ssidlen);
-       /*To keep GUI happy*/
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s: Not associated or"
+                "Invalid ssid, %d", __func__, ssidlen);
+        /*To keep GUI happy*/
         return 0;
     }
 
@@ -3694,7 +3770,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
         sinfo->txrate.mcs = pAdapter->hdd_stats.ClassA_stat.mcs_index;
         sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
         if (rate_flags & eHAL_TX_RATE_SGI)
-        {
+        { 
             sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
         }
     }
@@ -3706,26 +3782,26 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
 static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
                      struct net_device *dev, bool mode, v_SINT_t timeout)
 {
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   VOS_STATUS vos_status;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    VOS_STATUS vos_status;
 
-   if (NULL == pAdapter)
-   {
-       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Adapter is NULL\n", __func__);
-       return -ENODEV;
-   }
+    if (NULL == pAdapter)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Adapter is NULL\n", __func__);
+        return -ENODEV;
+    }
 
-   /**The get power cmd from the supplicant gets updated by the nl only
+    /**The get power cmd from the supplicant gets updated by the nl only
      *on successful execution of the function call
      *we are oppositely mapped w.r.t mode in the driver
      **/
-   vos_status =  wlan_hdd_enter_bmps(pAdapter, !mode);
+    vos_status =  wlan_hdd_enter_bmps(pAdapter, !mode);
 
-   if (VOS_STATUS_E_FAILURE == vos_status)
-   {
-       return -EINVAL;
-   }
-   return 0;
+    if (VOS_STATUS_E_FAILURE == vos_status)
+    {
+        return -EINVAL;
+    }
+    return 0;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))

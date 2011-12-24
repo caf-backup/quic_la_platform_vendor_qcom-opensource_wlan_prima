@@ -494,6 +494,7 @@ typedef struct
 
 extern const sFullPMValues PMTable; //large table exists in 80KB segment of memory only at initialization
 extern const sFullPMValuesVolans2 PMTableVolans2; //large table exists in 80KB segment of memory only at initialization
+extern const sFullPMValuesVolans2 PMTableVolans3; //large table exists in 80KB segment of memory only at initialization
 extern sCalMemory *calMemory;  //smaller table resides in 128KB segment of memory for runtime use
 
 #endif

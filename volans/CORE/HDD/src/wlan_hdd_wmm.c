@@ -401,6 +401,148 @@ static v_BOOL_t hdd_wmm_is_access_allowed(hdd_adapter_t* pAdapter,
    return VOS_TRUE;
 }
 
+#ifdef FEATURE_WLAN_CCX
+/**
+  @brief hdd_wmm_inactivity_timer_cb() - timer handler function which is 
+  called for every inactivity interval per AC. This function gets the 
+  current transmitted packets on the given AC, and checks if there where
+  any TX activity from the previous interval. If there was no traffic
+  then it would delete the TS that was negotiated on that AC.
+
+  @param pUserData   : [in] pointer to pQosContext
+
+  @return            : NONE
+*/
+void hdd_wmm_inactivity_timer_cb( v_PVOID_t pUserData )
+{
+    hdd_wmm_qos_context_t* pQosContext = (hdd_wmm_qos_context_t*)pUserData;
+    hdd_adapter_t* pAdapter;
+    hdd_wmm_ac_status_t *pAc;
+    hdd_wlan_wmm_status_e status;
+    VOS_STATUS vos_status; 
+    v_U32_t currentTrafficCnt = 0;
+    WLANTL_ACEnumType acType = pQosContext->acType;
+
+    pAdapter = pQosContext->pAdapter;
+    pAc = &pAdapter->hddWmmStatus.wmmAcStatus[acType];
+
+    // Get the Tx stats for this AC.
+    currentTrafficCnt = pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[pQosContext->acType];
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+            FL("WMM inactivity Timer for AC=%d, currentCnt=%d, prevCnt=%d\n"), 
+            acType, (int)currentTrafficCnt, (int)pAc->wmmPrevTrafficCnt);
+    if (pAc->wmmPrevTrafficCnt == currentTrafficCnt) 
+    {
+        // If there is no traffic activity, delete the TSPEC for this AC
+        status = hdd_wmm_delts(pAdapter, pQosContext->handle);
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+                FL("Deleted TS on AC %d, due to inactivity with status = %d!!!"), 
+                acType, status);
+    } 
+    else 
+    {
+        pAc->wmmPrevTrafficCnt = currentTrafficCnt;
+        if (pAc->wmmInactivityTimer.state == VOS_TIMER_STATE_STOPPED) 
+        {
+            // Restart the timer
+            vos_status = vos_timer_start(&pAc->wmmInactivityTimer, pAc->wmmInactivityTime);
+            if (!VOS_IS_STATUS_SUCCESS(vos_status)) 
+            {
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                        FL("Restarting inactivity timer failed on AC %d"), acType);
+            }
+        } 
+        else 
+        {
+            VOS_ASSERT(vos_timer_getCurrentState(
+                        &pAc->wmmInactivityTimer) == VOS_TIMER_STATE_STOPPED);
+        }
+    }
+
+    return;
+}
+
+
+/**
+  @brief hdd_wmm_enable_inactivity_timer() - function to enable the 
+  traffic inactivity timer for the given AC, if the inactivity_interval
+  specified in the ADDTS parameters is non-zero
+
+  @param pQosContext   : [in] pointer to pQosContext
+  @param inactivityTime: [in] value of the inactivity interval in millisecs
+
+  @return              : VOS_STATUS_E_FAILURE
+                         VOS_STATUS_SUCCESS
+*/
+VOS_STATUS hdd_wmm_enable_inactivity_timer(hdd_wmm_qos_context_t* pQosContext, v_U32_t inactivityTime)
+{
+    VOS_STATUS vos_status = VOS_STATUS_E_FAILURE; 
+    hdd_adapter_t* pAdapter = pQosContext->pAdapter;
+    WLANTL_ACEnumType acType = pQosContext->acType;
+    hdd_wmm_ac_status_t *pAc;
+
+    pAdapter = pQosContext->pAdapter;
+    pAc = &pAdapter->hddWmmStatus.wmmAcStatus[acType];
+
+
+    // If QoS-Tspec is successfully setup and if the inactivity timer is non-zero,
+    // a traffic inactivity timer needs to be started for the given AC
+    vos_status = vos_timer_init( 
+            &pAc->wmmInactivityTimer, 
+            VOS_TIMER_TYPE_SW, 
+            hdd_wmm_inactivity_timer_cb, 
+            (v_PVOID_t)pQosContext );
+    if ( !VOS_IS_STATUS_SUCCESS(vos_status)) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                FL("Initializing inactivity timer failed on AC %d"), acType);
+        return vos_status;
+    }
+
+    // Start the inactivity timer
+    vos_status = vos_timer_start( 
+            &pAc->wmmInactivityTimer, 
+            inactivityTime);
+    if ( !VOS_IS_STATUS_SUCCESS(vos_status)) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                FL("Starting inactivity timer failed on AC %d"), acType);
+        return vos_status;
+    }
+    pAc->wmmInactivityTime = inactivityTime;
+    // Initialize the current tx traffic count on this AC
+    pAc->wmmPrevTrafficCnt = pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[pQosContext->acType];
+
+    return vos_status;
+}
+
+/**
+  @brief hdd_wmm_enable_inactivity_timer() - function to disable the 
+  traffic inactivity timer for the given AC. This would be called when
+  deleting the TS.
+
+  @param pQosContext   : [in] pointer to pQosContext
+
+  @return              : VOS_STATUS_E_FAILURE
+                         VOS_STATUS_SUCCESS
+*/
+VOS_STATUS hdd_wmm_disable_inactivity_timer(hdd_wmm_qos_context_t* pQosContext)
+{
+    hdd_adapter_t* pAdapter = pQosContext->pAdapter;
+    WLANTL_ACEnumType acType = pQosContext->acType;
+    hdd_wmm_ac_status_t *pAc  = &pAdapter->hddWmmStatus.wmmAcStatus[acType];
+    VOS_STATUS vos_status = VOS_STATUS_E_FAILURE; 
+
+    // Clear the timer and the counter
+    pAc->wmmInactivityTime = 0;
+    pAc->wmmPrevTrafficCnt = 0;
+    vos_timer_stop(&pAc->wmmInactivityTimer);
+    vos_status = vos_timer_destroy(&pAc->wmmInactivityTimer);
+
+    return vos_status;
+}
+#endif // FEATURE_WLAN_CCX
 
 /**
   @brief hdd_wmm_sme_callback() - callback registered by HDD with SME for receiving 
@@ -502,6 +644,16 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
          pQosContext->lastStatus = HDD_WLAN_WMM_STATUS_SETUP_SUCCESS;
          hdd_wmm_notify_app(pQosContext);
       }
+
+#ifdef FEATURE_WLAN_CCX
+      // Check if the inactivity interval is specified
+      if (pCurrentQosInfo->inactivity_interval) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO,
+                 "%s: Inactivity timer value = %d for AC=%d", 
+                 __FUNCTION__, pCurrentQosInfo->inactivity_interval, acType); 
+         hdd_wmm_enable_inactivity_timer(pQosContext, pCurrentQosInfo->inactivity_interval);
+      }
+#endif // FEATURE_WLAN_CCX
 
       // notify TL to enable trigger frames if necessary
       hdd_wmm_enable_tl_uapsd(pQosContext);
@@ -1149,7 +1301,9 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
       qosInfo.suspension_interval = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBkSuspIntv;
       break;
    }
-
+#ifdef FEATURE_WLAN_CCX
+   qosInfo.inactivity_interval = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraInactivityInterval;
+#endif
    qosInfo.ts_info.burst_size_defn = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->burstSizeDefinition;
 
    switch ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->tsInfoAckPolicy)
@@ -1348,6 +1502,9 @@ VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter )
    {
       pQosContext = list_first_entry(&pAdapter->hddWmmStatus.wmmContextList,
                                      hdd_wmm_qos_context_t, node);
+#ifdef FEATURE_WLAN_CCX
+      hdd_wmm_disable_inactivity_timer(pQosContext);
+#endif
       hdd_wmm_free_context(pQosContext);
    }
 
@@ -2227,6 +2384,10 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
       // need to tell TL to stop trigger timer, etc
       hdd_wmm_disable_tl_uapsd(pQosContext);
 
+#ifdef FEATURE_WLAN_CCX
+      // disable the inactivity timer
+      hdd_wmm_disable_inactivity_timer(pQosContext);
+#endif
       // we are done with this context
       hdd_wmm_free_context(pQosContext);
 

@@ -2402,3 +2402,41 @@ eHalPhyRates halRate_MacRateIdxtoPhyRateIdx(tpAniSirGlobal pMac, tTpeRateIdx tpe
 {
     return macPhyRateIndex[tpeRateIdx];
 }
+
+/* Return the maxPwrIndex that can be used for a given absolute power limit in dBm */
+eHalStatus halRate_GetMaxTxPowerdBm(tpAniSirGlobal pMac, tANI_U8 bssIdx, tPowerdBm *pPwrLimit)
+{
+    bssRaParam bssRaInfo;
+    tANI_U8 bssPwrIndex=0, ratePwrIndex=0, pwrIndex=0;
+    eRfBandMode rfBand;
+
+    /* Get the max power index by getting the power index for 1Mbps 11b rate 
+     * as this rate can have the maxpower compared to other rates. In case if 
+     * systems team changes this in future to use max TX power for some other rate(s), 
+     * this function should be modified and the interface should remain the same.
+     */
+
+    if (bssIdx != eHAL_STATUS_INVALID_BSSIDX) 
+    {
+        rfBand = halUtil_GetRfBand(pMac, pMac->hal.currentChannel);
+        if (halTable_GetBssRaConfig(pMac, rfBand, &bssRaInfo, bssIdx) == eHAL_STATUS_SUCCESS)
+            bssPwrIndex = bssRaInfo.bit.maxPwrIndex;
+    }
+
+    if (halRate_getPowerIndex(pMac, TPE_RT_IDX_11B_LONG_1_MBPS,
+                              &ratePwrIndex) != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGE( halLog( pMac, LOGE, FL("Failed to BSS power index\n") ));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    if (!bssPwrIndex)
+    {
+        pwrIndex = ratePwrIndex;
+    } else 
+    {
+        pwrIndex = bssPwrIndex;
+    }
+
+    return halPhyGetTxPowerFromPwrIndex(pMac, pwrIndex, pPwrLimit);
+}

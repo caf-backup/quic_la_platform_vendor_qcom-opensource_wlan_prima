@@ -1,10 +1,11 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005, 2007
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
+   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary. 
+  
+   Copyright (C) 2006 Airgo Networks, Incorporated
 
    halPhy.c: Abstracts physical layer components
              This module provides top level data objects that are used across multiple hardware blocks
@@ -655,6 +656,7 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
 #ifndef WLAN_FTM_STUB
     if (pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
+        Qwlanfw_FtmUpdateType ftmUpdate; 
         halStoreTableToNv(pMac, NV_TABLE_RF_CAL_VALUES);
         //comment out the Noise Gain figure improvement changes as it is affecting max sensitivity results.
 #if 0
@@ -675,6 +677,12 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
         SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_TX_DELAY6_REG,
                            ((29 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_START_PRD_OFFSET) |
                             (0 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_END_PRD_OFFSET)));
+
+        // Send the mailbox message to FW to get initialized in FTM mode
+        ftmUpdate.usReqCode = HALPHY_FTM_INIT;
+        retVal = halFW_SendMsg(pMac, HAL_MODULE_ID_PHY, QWLANFW_HOST2FW_FTM_UPDATE, 0,
+                                 sizeof(Qwlanfw_FtmUpdateType), &ftmUpdate, FALSE, NULL);
+        if(retVal != eHAL_STATUS_SUCCESS) { return (retVal); }
     }
     else
 #endif

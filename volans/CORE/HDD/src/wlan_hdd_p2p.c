@@ -106,7 +106,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                                  __func__,pAdapter->device_mode);
 
     hddLog( LOGE,
@@ -115,14 +115,19 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
 
     if( cfgState->remain_on_chan_ctx != NULL)
     {
-        hddLog(VOS_TRACE_LEVEL_INFO,
-             "%s: Already one Remain on Channel Pending\n", __func__);
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+             "%s: Already one Remain on Channel Pending", __func__);
         return -EBUSY;
     }
 
     pRemainChanCtx = vos_mem_malloc( sizeof(hdd_remain_on_chan_ctx_t) );
     if( NULL == pRemainChanCtx )
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: Not able to allocate memory for Channel context",
+                                         __func__);
         return -ENOMEM;
+    }
 
     vos_mem_copy( &pRemainChanCtx->chan, chan,
                    sizeof(struct ieee80211_channel) );
@@ -253,7 +258,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     }
     else 
     {
-       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid device_mode = %d\n",
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid device_mode = %d",
                             __func__, pAdapter->device_mode);
        return -EIO;
     }
@@ -279,7 +284,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                             __func__,pAdapter->device_mode);
 
     //Call sme API to send out a action frame.
@@ -289,7 +294,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     if( NULL != cfgState->buf )
         return -EBUSY;
 
-    hddLog( LOGE, "Action frame tx request\n");
+    hddLog( LOGE, "Action frame tx request");
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     if( offchan && wait)
@@ -302,14 +307,14 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
                                         chan, channel_type, wait, cookie,
                                         OFF_CHANNEL_ACTION_TX);
 
-        if(status != 0)
+        if(0 != status)
         {
             if( (-EBUSY == status) && 
                 (cfgState->current_freq == chan->center_freq) )
             {
                 goto send_frame;
             }
-            goto err;
+            goto err_rem_channel;
         }
 
         status = wait_for_completion_interruptible_timeout(
@@ -317,7 +322,9 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
                      msecs_to_jiffies(WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
         if(!status)
         {
-            goto err;
+            hddLog( LOGE, "Not able to complete remain on channel request"
+                          " within timeout period");
+            goto err_rem_channel;
         }
     }
     send_frame:
@@ -377,6 +384,10 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 err:
     hdd_sendActionCnf( pAdapter, FALSE );
     return 0;
+err_rem_channel:
+    *cookie = (tANI_U32)cfgState;
+    cfg80211_mgmt_tx_status( pAdapter->dev, *cookie, buf, len, FALSE, GFP_KERNEL );
+    return 0;
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
@@ -420,7 +431,7 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
                     hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_MONITOR );
         if( pMonAdapter == NULL )
         {
-            hddLog( LOGE, "Not able to get Monitor Adapter\n");
+            hddLog( LOGE, "Not able to get Monitor Adapter");
             cfgState->skb = NULL;
             vos_mem_free( cfgState->buf );
             cfgState->buf = NULL;
@@ -529,7 +540,7 @@ int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct net_device *dev )
      hdd_adapter_t *pVirtAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
      ENTER();
 
-     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
+     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
             __func__,pVirtAdapter->device_mode);
 
      wlan_hdd_release_intf_addr( pHddCtx,

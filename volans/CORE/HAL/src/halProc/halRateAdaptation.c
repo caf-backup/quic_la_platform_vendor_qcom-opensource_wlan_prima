@@ -1871,7 +1871,7 @@ halMacRaSetAllStaRetryRates(
     tHalMacRate     sRate,  /* secondary rate */
     tHalMacRate     tRate)  /* tertiary rate */
 {
-    tANI_U16 staid ; //startStaid;
+    tANI_U8 staid ; //startStaid;
     tANI_U8  staType;
     tpHalRaGlobalInfo   pGlob   = &pMac->hal.halRaInfo;
 

@@ -6,8 +6,12 @@
   
     Define interface only used by CSR.
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
   
+   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary. 
+ 
+   Copyright (C) 2006 Airgo Networks, Incorporated
  
    ========================================================================== */
 #ifndef CSR_INSIDE_API_H__
@@ -867,5 +871,8 @@ eHalStatus csrSendMBGetWPSPBCSessions( tpAniSirGlobal pMac, tANI_U32 sessionId,
 void csrRoamFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuthRsp );
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+void csrCcxSendAdjacentApRepMsg(tpAniSirGlobal pMac, tCsrRoamSession *pSession);
+#endif
 #endif
 

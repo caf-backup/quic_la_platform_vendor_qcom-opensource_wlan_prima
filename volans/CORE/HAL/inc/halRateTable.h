@@ -813,6 +813,8 @@ void halRate_DumpRateTxPower(tpAniSirGlobal pMac);
 eHalStatus halRate_halRateInfoTableToFW(tpAniSirGlobal pMac, int startIndex, int endIndex);
 eHalStatus halRate_TxPwrIndexToFW(tpAniSirGlobal pMac, int startIndex, int endIndex);
 eHalPhyRates halRate_MacRateIdxtoPhyRateIdx(tpAniSirGlobal pMac, tTpeRateIdx tpeRateIdx);
+eHalStatus halRate_GetMaxTxPowerdBm(tpAniSirGlobal pMac, tANI_U8 bssIdx, tPowerdBm *pwrLimit);
+
 #endif /* _HALRATETABLE_H_ */
 
 

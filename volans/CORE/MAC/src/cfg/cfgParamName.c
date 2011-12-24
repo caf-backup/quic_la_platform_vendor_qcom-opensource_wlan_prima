@@ -189,6 +189,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"MAX_PS_POLL",
 	(unsigned char *)"NUM_BEACON_PER_RSSI_AVERAGE",
 	(unsigned char *)"RSSI_FILTER_PERIOD",
+	(unsigned char *)"FT_RSSI_FILTER_PERIOD",
 	(unsigned char *)"MIN_RSSI_THRESHOLD",
 	(unsigned char *)"NTH_BEACON_FILTER",
 	(unsigned char *)"BROADCAST_FRAME_FILTER_ENABLE",
@@ -254,8 +255,8 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"TELE_BCN_MAX_LI_IDLE_BCNS",
 	(unsigned char *)"BTC_A2DP_DHCP_BT_SUB_INTERVALS",
 	(unsigned char *)"INFRA_STA_KEEP_ALIVE_PERIOD",
-	(unsigned char *)"ASSOC_STA_LIMIT",
 	(unsigned char *)"AP_DATA_AVAIL_POLL_PERIOD",
+	(unsigned char *)"ASSOC_STA_LIMIT",
 };
 
 

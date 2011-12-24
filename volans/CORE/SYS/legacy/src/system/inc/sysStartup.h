@@ -1,5 +1,11 @@
 
 /*
+ * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary
+ *
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
  * Woodside Networks, Inc proprietary. All rights reserved
  * sysStartup.h: System startup header file.
  * Author:  V. K. Kandarpa

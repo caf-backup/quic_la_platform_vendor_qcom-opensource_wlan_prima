@@ -8,8 +8,12 @@
 
     $Id$
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
 
+    Copyright (c) 2011 Qualcomm Atheros, Inc. 
+    All Rights Reserved. 
+    Qualcomm Atheros Confidential and Proprietary. 
+  
+    Copyright (C) 2006 Airgo Networks, Incorporated
 
    ========================================================================== */
 
@@ -39,17 +43,17 @@ const sHalNv nvDefaults =
             //tRateGroupPwr       pwrOptimum[NUM_RF_SUBBANDS];
             {
                     //802.11b Rates
-                {1800},    // HAL_PHY_RATE_11B_LONG_1_MBPS,
-                {1800},    // HAL_PHY_RATE_11B_LONG_2_MBPS,
-                {1800},    // HAL_PHY_RATE_11B_LONG_5_5_MBPS,
-                {1800},    // HAL_PHY_RATE_11B_LONG_11_MBPS,
-                {1800},    // HAL_PHY_RATE_11B_SHORT_2_MBPS,
-                {1800},    // HAL_PHY_RATE_11B_SHORT_5_5_MBPS,
-                {1800},    // HAL_PHY_RATE_11B_SHORT_11_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_LONG_1_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_LONG_2_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_LONG_5_5_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_LONG_11_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_SHORT_2_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_SHORT_5_5_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_SHORT_11_MBPS,
 
                     //SLR Rates
-                {1800},    // HAL_PHY_RATE_SLR_0_25_MBPS,
-                {1800},    // HAL_PHY_RATE_SLR_0_5_MBPS,
+                {1900},    // HAL_PHY_RATE_SLR_0_25_MBPS,
+                {1900},    // HAL_PHY_RATE_SLR_0_5_MBPS,
 
                     //11A 20MHz Rates
                 {1700},    // HAL_PHY_RATE_11A_6_MBPS,

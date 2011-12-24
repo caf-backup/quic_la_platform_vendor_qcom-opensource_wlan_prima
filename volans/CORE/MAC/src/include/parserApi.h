@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file parserApi.h contains the definitions used
  * for parsing received 802.11 frames
  * Author:        Chandra Modumudi
@@ -69,7 +74,10 @@ typedef struct sSirProbeRespBeacon
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tANI_U8                   mdie[SIR_MDIE_SIZE];
 #endif
-
+#ifdef FEATURE_WLAN_CCX
+    tDot11fIECCXTxmitPower    ccxTxPwr;
+    tDot11fIEQBSSLoad         QBSSLoad;
+#endif
     tANI_U8                   ssidPresent;
     tANI_U8                   suppRatesPresent;
     tANI_U8                   extendedRatesPresent;
@@ -132,7 +140,7 @@ typedef struct sSirAssocReq
     tSirMacWpaInfo            wpa;
     tSirMacRsnInfo            rsn;
     tSirAddie                 addIE;
-    
+
     tSirPropIEStruct          propIEinfo;
     tSirMacPowerCapabilityIE  powerCapability;
     tSirMacSupportedChannelIE supportedChannels;
@@ -178,6 +186,14 @@ typedef struct sSirAssocRsp
 #if defined WLAN_FEATURE_VOWIFI_11R
     tDot11fIEFTInfo           FTInfo;
     tANI_U8                   mdie[SIR_MDIE_SIZE];
+    tANI_U8                   num_RICData; 
+    tDot11fIERICDataDesc      RICData[2];
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+    tANI_U8                   num_tspecs;
+    tDot11fIEWMMTSPEC         TSPECInfo[SIR_CCX_MAX_TSPEC_IES];
+    tSirMacCCXTSMIE           tsmIE;
 #endif
 
     tANI_U8                   suppRatesPresent;
@@ -190,7 +206,12 @@ typedef struct sSirAssocRsp
 #if defined WLAN_FEATURE_VOWIFI_11R
     tANI_U8                   ftinfoPresent;
     tANI_U8                   mdiePresent;
+    tANI_U8                   ricPresent;
 #endif
+#ifdef FEATURE_WLAN_CCX
+    tANI_U8                   tspecPresent;
+    tANI_U8                   tsmPresent;
+#endif    
 } tSirAssocRsp, *tpSirAssocRsp;
 
 tANI_U8
@@ -411,7 +432,7 @@ PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
 #endif
 
 tSirRetStatus
-PopulateDot11fExtSuppRates(tpAniSirGlobal      pMac,
+PopulateDot11fExtSuppRates(tpAniSirGlobal         pMac,
                            tANI_U8  nChannelNum, tDot11fIEExtSuppRates *pDot11f,
                            tpPESession psessionEntry);
 
@@ -627,6 +648,17 @@ void PopulateDot11fWMM(tpAniSirGlobal      pMac,
 
 void PopulateDot11fWMMCaps(tDot11fIEWMMCaps *pCaps);
 
+#ifdef FEATURE_WLAN_CCX
+void PopulateDot11TSRSIE(tpAniSirGlobal pMac,
+                        tSirMacCCXTSRSIE *pOld,
+                        tDot11fIECCXTrafStrmRateSet *pDot11f,
+                        tANI_U8 rate_length);
+
+void PopulateDot11fReAssocTspec(tpAniSirGlobal pMac, 
+                        tDot11fReAssocRequest *pReassoc, 
+                        tpPESession psessionEntry);
+#endif
+
 void PopulateDot11fWMMInfoAp(tpAniSirGlobal      pMac,
                              tDot11fIEWMMInfoAp *pInfo,
                              tpPESession psessionEntry);
@@ -782,4 +814,8 @@ void PopulateFTInfo( tpAniSirGlobal      pMac,
 
 void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSupp, 
       tDot11fIEExtSuppRates *pExt, tANI_U16 *_11bRates, tANI_U16 *_11aRates );
+
+int FindIELocation( tpAniSirGlobal pMac,
+                           tpSirRSNie pRsnIe,
+                           tANI_U8 EID);
 #endif

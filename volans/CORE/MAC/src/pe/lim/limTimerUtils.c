@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limTimerUtils.cc contains the utility functions
  * LIM uses for handling various timers.
  * Author:        Chandra Modumudi
@@ -586,6 +591,24 @@ limCreateTimers(tpAniSirGlobal pMac)
         return;
     }
 #endif
+
+#ifdef FEATURE_WLAN_CCX
+    cfgValue = 5000;
+    cfgValue = SYS_MS_TO_TICKS(cfgValue);
+
+    if (tx_timer_create(&pMac->lim.limTimers.gLimCcxTsmTimer,
+                                    "CCX TSM Stats TIMEOUT",
+                                    limTimerHandler, SIR_LIM_CCX_TSM_TIMEOUT,
+                                    cfgValue, 0,
+                                    TX_NO_ACTIVATE) != TX_SUCCESS)
+    {
+        // Could not create Join failure timer.
+        // Log error
+        limLog(pMac, LOGP, FL("could not create Join failure timer\n"));
+        return;
+    }
+#endif
+
 #ifdef WLAN_FEATURE_P2P
     cfgValue = 1000;
     cfgValue = SYS_MS_TO_TICKS(cfgValue);
@@ -600,7 +623,6 @@ limCreateTimers(tpAniSirGlobal pMac)
         limLog(pMac, LOGP, FL("could not create Join failure timer\n"));
         return;
     }
-
 
 #endif
     pMac->lim.gLimTimersCreated = 1;
@@ -1477,6 +1499,15 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP, FL("Unable to change Join Failure timer\n"));
             }
             break;
+#endif
+#ifdef FEATURE_WLAN_CCX
+         case eLIM_TSM_TIMER:
+             if (tx_timer_deactivate(&pMac->lim.limTimers.gLimCcxTsmTimer)
+                                                                != TX_SUCCESS)
+             {
+                 limLog(pMac, LOGE, FL("Unable to deactivate TSM timer\n"));
+             }
+             break;
 #endif
 #ifdef WLAN_FEATURE_P2P
         case eLIM_REMAIN_CHN_TIMER:

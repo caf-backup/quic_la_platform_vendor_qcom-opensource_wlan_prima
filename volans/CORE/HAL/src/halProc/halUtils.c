@@ -1,6 +1,11 @@
 
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * halUtils.cc: Provides all the utilities required by the driver APIs.
  * Author:  Susan Tsao
  * Date:    03/14/2007

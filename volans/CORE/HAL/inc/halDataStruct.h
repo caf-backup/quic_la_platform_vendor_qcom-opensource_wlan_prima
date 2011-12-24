@@ -1,5 +1,10 @@
 /*
+ * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary
+ *
  * Woodside Networks, Inc proprietary. All rights reserved.
+ *
  * halDataStruct.h: Taurus related data structures and definitions
  * Author:  V. K. Kandarpa
  * Date:    03/01/2002

@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limApi.cc contains the functions that are
  * exported by LIM to other modules.
  *
@@ -1103,12 +1108,14 @@ tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg)
 
 VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
 {
-	tpAniSirGlobal  pMac;
+    tpAniSirGlobal  pMac;
     tpSirMacMgmtHdr mHdr;
     tSirMsgQ        msg;
     v_U8_t         *pRxBd;
     vos_pkt_t      *pVosPkt;
     VOS_STATUS      vosStatus;
+    tSirMacFrameCtl frmCtrl;
+    v_SIZE_t        usFrmCtrlSize = sizeof(frmCtrl); 
 
     pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE, pvosGCtx);
     pVosPkt = (vos_pkt_t *)vosBuff;
@@ -1120,19 +1127,27 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
         return VOS_STATUS_E_FAILURE;
     }
 
+    vosStatus = vos_pkt_extract_data( pVosPkt, 
+            ( 0 == WLANHAL_RX_BD_GET_FT(pRxBd) ) ?
+            WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pRxBd):
+            WLANHAL_RX_BD_HEADER_SIZE,
+            &frmCtrl, &usFrmCtrlSize);
+
     //
     //  The MPDU header is now present at a certain "offset" in
     // the BD and is specified in the BD itself
     //
-    mHdr = SIR_MAC_BD_TO_MPDUHEADER(pRxBd);
-    PELOG1(limLog( pMac, LOG1,
-       FL ( "RxBd=%p mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d\n"),
-       pRxBd, mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
+    if(frmCtrl.type == SIR_MAC_MGMT_FRAME) 
+    {
+        mHdr = SIR_MAC_BD_TO_MPDUHEADER(pRxBd);
+        PELOG1(limLog( pMac, LOG1,
+                    FL ( "RxBd=%p mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d\n"),
+                    pRxBd, mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
 
-    MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, 0, 
-                        LIM_TRACE_MAKE_RXMGMT(mHdr->fc.subType,  
-                        (tANI_U16) (((tANI_U16) (mHdr->seqControl.seqNumHi << 4)) | mHdr->seqControl.seqNumLo)));)
-
+        MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, 0, 
+                        LIM_TRACE_MAKE_RXMGMT(frmCtrl.subType,  
+                            (tANI_U16) (((tANI_U16) (mHdr->seqControl.seqNumHi << 4)) | mHdr->seqControl.seqNumLo)));)
+    }
 
 
     // Forward to MAC via mesg = SIR_BB_XPORT_MGMT_MSG
@@ -1141,17 +1156,17 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     msg.bodyval = 0;
 
     if( eSIR_SUCCESS != sysBbtProcessMessageCore( pMac,
-                                                  &msg,
-                                                  mHdr->fc.type,
-                                                  mHdr->fc.subType ))
+                &msg,
+                frmCtrl.type,
+                frmCtrl.subType ))
     {
-		vos_pkt_return_packet(pVosPkt);
+        vos_pkt_return_packet(pVosPkt);
         limLog( pMac, LOGW,
                 FL ( "sysBbtProcessMessageCore failed to process SIR_BB_XPORT_MGMT_MSG\n" ));
-		return VOS_STATUS_E_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
 
-	return  VOS_STATUS_SUCCESS;
+    return  VOS_STATUS_SUCCESS;
 }
 
 // ---------------------------------------------------------------------------
@@ -1420,7 +1435,8 @@ limContinueChannelLearn(tpAniSirGlobal pMac)
     {
         /// Prepare and send Probe Request frame
         ssId.length = 0;
-        limSendProbeReqMgmtFrame(pMac, &ssId, bssId, chanNum,pMac->lim.gSelfMacAddr);
+        /* for learning channel, we don't include any additional IE */
+        limSendProbeReqMgmtFrame(pMac, &ssId, bssId, chanNum,pMac->lim.gSelfMacAddr, 0 , NULL);
     }
 
     // Activate Learn duration timer during which

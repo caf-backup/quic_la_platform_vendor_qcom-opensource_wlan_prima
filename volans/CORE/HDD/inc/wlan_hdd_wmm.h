@@ -149,6 +149,14 @@ typedef struct
    v_U32_t                      wmmAcUapsdServiceInterval;
    v_U32_t                      wmmAcUapsdSuspensionInterval;
    sme_QosWmmDirType            wmmAcUapsdDirection;
+
+#ifdef FEATURE_WLAN_CCX
+   // Inactivity time parameters for TSPEC
+   v_U32_t                      wmmInactivityTime;
+   v_U32_t                      wmmPrevTrafficCnt;
+   vos_timer_t                  wmmInactivityTimer;
+#endif
+
 } hdd_wmm_ac_status_t;
 
 /*! @brief WMM state & status info

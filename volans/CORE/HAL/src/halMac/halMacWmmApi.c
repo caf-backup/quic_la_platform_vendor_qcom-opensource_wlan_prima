@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * halMacWmmApi.c: Provides all the HAL WMM APIs in this file.
  * Author:    Neelay Das
  * Date:      10/22/2006
@@ -19,6 +24,10 @@
 #include "halDebug.h"
 #include "cfgApi.h"
 #include "halMTU.h"
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#define BIT0_MASK 0x0001
+#endif
 
 void halWmmDumpACRegs(tpAniSirGlobal pMac)
 {
@@ -225,4 +234,89 @@ halWmmDelTspec(
 
     return eSIR_SUCCESS;
 }
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+
+eHalStatus
+halWmmAggrAddTspec(
+    tpAniSirGlobal  pMac,
+    tAggrAddTsParams *pTSParams)
+{
+    tANI_U8 aci; // AC index for the AC to be used for this TSPEC
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tHalCfgSta *pStaEntry;
+    tANI_U32 bkOffIdx = 0;
+    tANI_U8 acIdx = 0;//Access Category Index derived from Bitmap
+    tANI_U16 tspecIdx = 0;
+
+    // Copy the TSPEC AC bitmap 
+    tspecIdx = pTSParams->tspecIdx;
+
+    while (tspecIdx)
+    {
+        if ((tspecIdx) & (BIT0_MASK))
+        {
+            tTspecTblEntry  *pTspecInfo = &pMac->hal.halMac.tspecInfo[acIdx];
+
+            do
+            {
+                // validate the staid
+                if (pTSParams->staIdx >= pMac->hal.halMac.maxSta)
+                {
+                    HALLOGE( halLog(pMac, LOGE, FL("Invalid staid 0x%x\n"),  pTSParams->staIdx ));
+                    status = eHAL_STATUS_FAILURE;
+                    break;
+                }
+
+                // update the tspec info
+                pTspecInfo->tsinfo = pTSParams->tspec[acIdx].tsinfo;
+                pTspecInfo->staIdx = pTSParams->staIdx;
+
+                // Validate the TSPEC here so that if there is a failure
+                // from this point onwards the halWmmDelTspec() routine can cleanup appropriately
+                if(!pTspecInfo->valid)
+                    pTspecInfo->valid = eANI_BOOLEAN_TRUE;
+
+                // Update the TC parameters
+
+                if(eHAL_STATUS_SUCCESS != halTable_GetStaConfig(pMac, &pStaEntry, (tANI_U8)pTspecInfo->staIdx))
+                {
+                    HALLOGE( halLog(pMac, LOGE, FL("Failed to retrieve SoftMAC config for staid 0x%x\n"),  pTSParams->staIdx ));
+                    status = eHAL_STATUS_FAILURE;
+                    break;
+                }
+                aci = HAL_WMM_TID_TO_AC(HAL_WMM_DEFAULT_TID_AC_MAP, pTspecInfo->tsinfo.traffic.userPrio);
+
+                HALLOGW( halLog(pMac, LOGW, FL("==Admission Ctrl Regs before adding TSPEC for AC %d, tspecIdx = %x, UP=%d, acIdx = %d =====\n"), 
+                            aci, tspecIdx, pTspecInfo->tsinfo.traffic.userPrio, acIdx));
+                halWmmDumpACRegs(pMac);
+                //update TPE medium time for the AC.
+                if(eHAL_STATUS_SUCCESS != halWmmUpdateTpeMediumTime(pMac, aci, pTSParams->tspec[acIdx].mediumTime))
+                {
+                    status = eHAL_STATUS_FAILURE;
+                    break;
+                }
+
+                //Now enable the backoff for admission control.
+                bkOffIdx = __halMTU_ac2BkoffIndex(pMac, aci);
+                if(eHAL_STATUS_SUCCESS != halWmmEnableACBkOff(pMac, bkOffIdx, eANI_BOOLEAN_TRUE))
+                {
+                    status = eHAL_STATUS_FAILURE;
+                    break;
+                }
+                HALLOGW( halLog(pMac, LOGW, FL("==Admission Control Registers after adding TSPEC=====\n")));
+                halWmmDumpACRegs(pMac);
+
+            } while(0);
+        }
+
+        tspecIdx  >>= 1;
+        // Record the status per AC, as this goes back to PE
+        pTSParams->status[acIdx] = status;
+        acIdx++;
+    }
+    return status;
+}
+
+#endif
 

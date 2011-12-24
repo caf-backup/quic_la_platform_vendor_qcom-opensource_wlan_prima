@@ -916,6 +916,22 @@ typedef struct
 
 typedef tSirRetStatus (*tHalMsgCallback)(tpAniSirGlobal pMac, tANI_U32 mesgId, void *mesgParam );
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+
+#define HAL_QOS_NUM_TSPEC_MAX 2
+#define HAL_QOS_NUM_AC_MAX 4
+
+typedef struct
+{
+    tANI_U16 staIdx;
+    tANI_U16 tspecIdx; //TSPEC handler uniquely identifying a TSPEC for a STA in a BSS
+    tSirMacTspecIE   tspec[HAL_QOS_NUM_AC_MAX];
+    eHalStatus       status[HAL_QOS_NUM_AC_MAX];
+    tANI_U8          sessionId;          //PE session id for PE<->HAL interface
+}tAggrAddTsParams, *tpAggrAddTsParams;
+
+#endif /* WLAN_FEATURE_VOWIFI_11R */
+
 
 typedef struct
 {
@@ -1157,6 +1173,10 @@ typedef struct sEnterBmpsParams
     tANI_U8         bssIdx;
     tANI_U64 tbtt;
     tANI_U8 dtimCount;
+    // Rssi Period Used for FT.
+    tANI_U8 rssiFilterPeriod;
+    tANI_U8 numBeaconPerRssiAverage;                        
+    tANI_U8 bRssiFilterEnable; 
     //DTIM period given to HAL during association may not be valid,
     //if association is based on ProbeRsp instead of beacon.
     tANI_U8 dtimPeriod;

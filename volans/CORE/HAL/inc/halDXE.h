@@ -319,6 +319,15 @@ eHalStatus halDxe_EnableDisableDXE(tHalHandle hHalHandle, tANI_U8 enable);
  * Get DxE channel status
  */
 VOS_STATUS halDxe_DxeChannelIdleStatus(tANI_U32 *pStatus, v_PVOID_t pMacContext);
+#ifdef FEATURE_WLAN_CCX
+eHalStatus halDxe_EnableTimeStamp(tHalHandle hHalHandle, tANI_U8 enable);
+
+eHalStatus halDxe_SetTimeStampOffset(tHalHandle hHalHandle, tANI_U8 tx_offset,tANI_U8 rx_offset);
+
+eHalStatus halDxe_SetTimeStamp(tHalHandle hHalHandle);
+
+#endif
+
 
 #endif /* _HALDXE_H_ */
 

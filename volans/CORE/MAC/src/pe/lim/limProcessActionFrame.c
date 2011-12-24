@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limProcessActionFrame.cc contains the code
  * for processing Action Frame.
  * Author:      Michael Lui
@@ -34,6 +39,10 @@
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
 #endif
+#if defined FEATURE_WLAN_CCX
+#include "ccxApi.h"
+#endif
+
 
 #define BA_DEFAULT_TX_BUFFER_SIZE 64
 
@@ -376,7 +385,7 @@ __limProcessAddTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
     }
     else if (addts.tspec.tsinfo.traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA)
     {
-        if(eSIR_SUCCESS != limSendHalMsgAddTs(pMac, pSta->staIndex, tspecIdx, addts.tspec))
+        if(eSIR_SUCCESS != limSendHalMsgAddTs(pMac, pSta->staIndex, tspecIdx, addts.tspec, psessionEntry->peSessionId))
         {
           limLog(pMac, LOGW, FL("AddTs with UP %d failed in limSendHalMsgAddTs - ignoring request\n"),
                  addts.tspec.tsinfo.traffic.userPrio);
@@ -520,7 +529,16 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
 
         return;
     }
-
+#ifdef FEATURE_WLAN_CCX
+    if (addts.tsmPresent)
+    {
+        limLog(pMac, LOG1, "TSM IE Present\n");
+        psessionEntry->ccxContext.tsm.tid = addts.tspec.tsinfo.traffic.userPrio;
+        vos_mem_copy(&psessionEntry->ccxContext.tsm.tsmInfo,
+                                         &addts.tsmIE,sizeof(tSirMacCCXTSMIE));
+        limActivateTSMStatsTimer(pMac, psessionEntry);
+    }
+#endif
     /* Since AddTS response was successful, check for the PSB flag
 	 * and directional flag inside the TS Info field. 
      * An AC is trigger enabled AC if the PSB subfield is set to 1  
@@ -568,7 +586,6 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
     else
         limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
 
-
     sirCopyMacAddr(peerMacAddr, psessionEntry->bssId);
 
     //if schedule is not present then add TSPEC with svcInterval as 0.
@@ -582,10 +599,10 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
         pMac->lim.gLimAddtsSent = false;
         return;   //Error handling. send the response with error status. need to send DelTS to tear down the TSPEC status.
     }
-    if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) || 
-       (pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
+    if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) || ((upToAc(addts.tspec.tsinfo.traffic.userPrio) < MAX_NUM_AC) &&
+       (pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm)))
     {
-        retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec);
+        retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec, psessionEntry->peSessionId);
         if(eSIR_SUCCESS != retval)
         {
             limAdmitControlDeleteTS(pMac, pSta->assocId, &addts.tspec.tsinfo, NULL, &tspecInfo->idx);
@@ -599,17 +616,17 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
             pMac->lim.gLimAddtsSent = false;
             return;
         }
-        PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
-               addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
+        PELOGW(limLog(pMac, LOG1, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
+                    addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
     }
     else
     {
-        PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
-               addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
-        PELOGW(limLog(pMac, LOGW, FL("no ACM: Bypass sending SIR_HAL_ADD_TS_REQ to HAL \n"));)
-        // Use the smesessionId and smetransactionId from the PE session context
-        limSendSmeAddtsRsp(pMac, true, eSIR_SME_SUCCESS, psessionEntry, addts.tspec,
-                psessionEntry->smeSessionId, psessionEntry->transactionId);
+      PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
+             addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
+      PELOGW(limLog(pMac, LOGW, FL("no ACM: Bypass sending SIR_HAL_ADD_TS_REQ to HAL \n"));)
+      // Use the smesessionId and smetransactionId from the PE session context
+      limSendSmeAddtsRsp(pMac, true, eSIR_SME_SUCCESS, psessionEntry, addts.tspec,
+              psessionEntry->smeSessionId, psessionEntry->transactionId);
     }
 
     // clear the addts flag
@@ -689,7 +706,7 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
         (psessionEntry->limSystemRole != eLIM_AP_ROLE &&
         (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)))
 #else
-        if (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
+        if ((upToAc(tsinfo->traffic.userPrio) >= MAX_NUM_AC) || (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm))
 #endif
         {
             limLog(pMac, LOGW, FL("DelTs with UP %d has no AC - ignoring request\n"),
@@ -774,7 +791,14 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
 
     PELOG1(limLog(pMac, LOG1, FL("DeleteTS succeeded\n"));)
     if((psessionEntry->limSystemRole != eLIM_AP_ROLE) && (psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE))
-      limSendSmeDeltsInd(pMac, &delts, aid,psessionEntry);
+    {
+        limSendSmeDeltsInd(pMac, &delts, aid,psessionEntry);
+    }
+
+#ifdef FEATURE_WLAN_CCX
+    limDeactivateAndChangeTimer(pMac,eLIM_TSM_TIMER);
+#endif
+
 }
 
 
@@ -1035,6 +1059,10 @@ __limValidateAddBAParameterSet( tpAniSirGlobal pMac,
     tLimAddBaValidationReqType reqType ,
     tANI_U8* pDelBAFlag /*this parameter is NULL except for call from processAddBAReq*/)
 {
+  if(baParameterSet.tid >= STACFG_MAX_TC)
+  {
+      return eSIR_MAC_WME_INVALID_PARAMS_STATUS;
+  }
 
   //check if there is already a BA session setup with this STA/TID while processing AddBaReq
   if((true == pSta->tcCfg[baParameterSet.tid].fUseBARx) &&
@@ -1687,7 +1715,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
     tANI_U8 *pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
     tpSirMacActionFrameHdr pActionHdr = (tpSirMacActionFrameHdr) pBody;
 
-   
+
     switch (pActionHdr->category)
     {
         case SIR_MAC_ACTION_QOS_MGMT:
@@ -1714,7 +1742,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
                 break ;
             }
 
-           break;
+            break;
 
         case SIR_MAC_ACTION_SPECTRUM_MGMT:
             switch (pActionHdr->actionID)
@@ -1729,7 +1757,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
 
                 case SIR_MAC_ACTION_TPC_REQUEST_ID:
                     if ((psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-                        (pessionEntry->limSystemRole == eLIM_AP_ROLE))
+                            (pessionEntry->limSystemRole == eLIM_AP_ROLE))
                     {
                         if(psessionEntry->lim11hEnable)
                         {
@@ -1755,7 +1783,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
             if (! psessionEntry->limWmeEnabled)
             {
                 limLog(pMac, LOGW, FL("WME mode disabled - dropping action frame %d\n"),
-                       pActionHdr->actionID);
+                        pActionHdr->actionID);
                 break;
             }
             switch(pActionHdr->actionID)
@@ -1782,100 +1810,100 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
             // Determine the "type" of BA Action Frame
             switch(pActionHdr->actionID)
             {
-              case SIR_MAC_BLKACK_ADD_REQ:
-                __limProcessAddBAReq( pMac, (tANI_U8 *) pBd,psessionEntry);
-                break;
+                case SIR_MAC_BLKACK_ADD_REQ:
+                    __limProcessAddBAReq( pMac, (tANI_U8 *) pBd,psessionEntry);
+                    break;
 
-              case SIR_MAC_BLKACK_ADD_RSP:
-                __limProcessAddBARsp( pMac, (tANI_U8 *) pBd,psessionEntry);
-                break;
+                case SIR_MAC_BLKACK_ADD_RSP:
+                    __limProcessAddBARsp( pMac, (tANI_U8 *) pBd,psessionEntry);
+                    break;
 
-              case SIR_MAC_BLKACK_DEL:
-                __limProcessDelBAReq( pMac, (tANI_U8 *) pBd,psessionEntry);
-                break;
+                case SIR_MAC_BLKACK_DEL:
+                    __limProcessDelBAReq( pMac, (tANI_U8 *) pBd,psessionEntry);
+                    break;
 
-              default:
-                break;
+                default:
+                    break;
             }
 
             break;
-    case SIR_MAC_ACTION_HT:
-        /** Type of HT Action to be performed*/
-        switch(pActionHdr->actionID) {
-        case SIR_MAC_SM_POWER_SAVE:
-            __limProcessSMPowerSaveUpdate(pMac, (tANI_U8 *) pBd,psessionEntry);
-            break;
-        default:
-            PELOGE(limLog(pMac, LOGE, FL("Action ID %d not handled in HT Action category\n"), pActionHdr->actionID);)
-            break;
-        }
-        break;
-
-#if defined WLAN_FEATURE_VOWIFI
-    case SIR_MAC_ACTION_RRM:
-        if( pMac->rrm.rrmPEContext.rrmEnable )
-        {
+        case SIR_MAC_ACTION_HT:
+            /** Type of HT Action to be performed*/
             switch(pActionHdr->actionID) {
-                case SIR_MAC_RRM_RADIO_MEASURE_REQ:
-                    __limProcessRadioMeasureRequest( pMac, (tANI_U8 *) pBd, psessionEntry );
-                    break;
-                case SIR_MAC_RRM_LINK_MEASUREMENT_REQ:
-                    __limProcessLinkMeasurementReq( pMac, (tANI_U8 *) pBd, psessionEntry );
-                    break;
-                case SIR_MAC_RRM_NEIGHBOR_RPT:   
-                    __limProcessNeighborReport( pMac, (tANI_U8*) pBd, psessionEntry );
+                case SIR_MAC_SM_POWER_SAVE:
+                    __limProcessSMPowerSaveUpdate(pMac, (tANI_U8 *) pBd,psessionEntry);
                     break;
                 default:
-                    PELOGE( limLog( pMac, LOGE, FL("Action ID %d not handled in RRM\n"), pActionHdr->actionID);)
+                    PELOGE(limLog(pMac, LOGE, FL("Action ID %d not handled in HT Action category\n"), pActionHdr->actionID);)
                     break;
-
             }
-        }
-        else
-        {
-            // Else we will just ignore the RRM messages.
-            PELOGE( limLog( pMac, LOGE, FL("RRM Action frame ignored as RRM is disabled in cfg\n"));)
-        }
-        break;
+            break;
+
+#if defined WLAN_FEATURE_VOWIFI
+        case SIR_MAC_ACTION_RRM:
+            if( pMac->rrm.rrmPEContext.rrmEnable )
+            {
+                switch(pActionHdr->actionID) {
+                    case SIR_MAC_RRM_RADIO_MEASURE_REQ:
+                        __limProcessRadioMeasureRequest( pMac, (tANI_U8 *) pBd, psessionEntry );
+                        break;
+                    case SIR_MAC_RRM_LINK_MEASUREMENT_REQ:
+                        __limProcessLinkMeasurementReq( pMac, (tANI_U8 *) pBd, psessionEntry );
+                        break;
+                    case SIR_MAC_RRM_NEIGHBOR_RPT:   
+                        __limProcessNeighborReport( pMac, (tANI_U8*) pBd, psessionEntry );
+                        break;
+                    default:
+                        PELOGE( limLog( pMac, LOGE, FL("Action ID %d not handled in RRM\n"), pActionHdr->actionID);)
+                        break;
+
+                }
+            }
+            else
+            {
+                // Else we will just ignore the RRM messages.
+                PELOGE( limLog( pMac, LOGE, FL("RRM Action frame ignored as RRM is disabled in cfg\n"));)
+            }
+            break;
 #endif
 #if defined WLAN_FEATURE_P2P
-	case SIR_MAC_ACTION_PUBLIC_USAGE:
-	    switch(pActionHdr->actionID) {
-		   case SIR_MAC_ACTION_VENDOR_SPECIFIC:
-           {
-              tpSirMacVendorSpecificPublicActionFrameHdr pPubAction = (tpSirMacVendorSpecificPublicActionFrameHdr) pActionHdr;
-              tpSirMacMgmtHdr     pHdr;
-              tANI_U32            frameLen;
-              tANI_U8 P2POui[] = { 0x50, 0x6F, 0x9A, 0x09 };
+        case SIR_MAC_ACTION_PUBLIC_USAGE:
+            switch(pActionHdr->actionID) {
+                case SIR_MAC_ACTION_VENDOR_SPECIFIC:
+                    {
+                        tpSirMacVendorSpecificPublicActionFrameHdr pPubAction = (tpSirMacVendorSpecificPublicActionFrameHdr) pActionHdr;
+                        tpSirMacMgmtHdr     pHdr;
+                        tANI_U32            frameLen;
+                        tANI_U8 P2POui[] = { 0x50, 0x6F, 0x9A, 0x09 };
 
-              pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
-              frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+                        pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
+                        frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
 
-              //Check if it is a P2P public action frame.
-              if( palEqualMemory( pMac->hHdd, pPubAction->Oui, P2POui, 4 ) )
-              {
-                 /* Forward to the SME to HDD to wpa_supplicant */
-                 // type is ACTION
-                 limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
-                    (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0 );
-              }
-              else
-              {
-                 limLog( pMac, LOGE, FL("Unhandled public action frame (Vendor specific). OUI %x %x %x %x\n"),
-                      pPubAction->Oui[0], pPubAction->Oui[1], pPubAction->Oui[2], pPubAction->Oui[3] );
-              }
-           }
-		   break;
-		   
-	      default:
-	         PELOGE(limLog(pMac, LOGE, FL("Unhandled public action frame -- %x \n"), pActionHdr->actionID);)
-		     break;
-	    }
-	    break;
+                        //Check if it is a P2P public action frame.
+                        if( palEqualMemory( pMac->hHdd, pPubAction->Oui, P2POui, 4 ) )
+                        {
+                            /* Forward to the SME to HDD to wpa_supplicant */
+                            // type is ACTION
+                            limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
+                                    (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0 );
+                        }
+                        else
+                        {
+                            limLog( pMac, LOGE, FL("Unhandled public action frame (Vendor specific). OUI %x %x %x %x\n"),
+                                    pPubAction->Oui[0], pPubAction->Oui[1], pPubAction->Oui[2], pPubAction->Oui[3] );
+                        }
+                    }
+                    break;
+
+                default:
+                    PELOGE(limLog(pMac, LOGE, FL("Unhandled public action frame -- %x \n"), pActionHdr->actionID);)
+                    break;
+            }
+            break;
 #endif
-    default:
-       PELOGE(limLog(pMac, LOGE, FL("Action category %d not handled\n"), pActionHdr->category);)
-       break;
+        default:
+            PELOGE(limLog(pMac, LOGE, FL("Action category %d not handled\n"), pActionHdr->category);)
+            break;
     }
 }
 #if defined WLAN_FEATURE_P2P

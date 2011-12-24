@@ -191,6 +191,10 @@ static eHalStatus halBmu_btqm_init_control1_register(tpAniSirGlobal pMac, tANI_U
 static void halBmu_btqm_init_control2_register(tpAniSirGlobal pMac, tANI_U32 txQueueIdsMask);
 static eHalStatus halBmu_InitIntHandler(tpAniSirGlobal pMac);
 
+#ifndef WLAN_FTM_STUB
+static int ftmBmuInitiliazed = 0;
+#endif
+
 /* -------------------------------------------------------------
  * FUNCTION:  halBmu_Start()
  *
@@ -216,8 +220,18 @@ halBmu_Start(
     tANI_U32 maxStaid;
     (void) arg;
 
-
     HALLOGW( halLog( pMac, LOGW, FL("%s: ***** BMU INITIALIZATION ***** \n"),  __FUNCTION__ ));
+
+#ifndef WLAN_FTM_STUB
+    // In FTM mode, initialize the BMU only for the first halStart. For the subsequent 
+    // halStop and halStart do not call the BMUStart, since there is no chip powerdown/up 
+    // sequence in Stop/Start
+    if (pMac->gDriverType == eDRIVER_TYPE_MFG) {
+        if (ftmBmuInitiliazed++) {
+            return eHAL_STATUS_SUCCESS;
+        }
+    }
+#endif
 
     // Initialize the BD/PDU base address
     if (halBmu_InitBdPduBaseAddress(pMac) != eHAL_STATUS_SUCCESS) {
@@ -225,9 +239,14 @@ halBmu_Start(
         return eHAL_STATUS_FAILURE;
     }
 
+    // In FTM mode, no descriptor memory is allocated, so skip programming 
+    // the BTQM queue desc base address
+    if (pMac->gDriverType != eDRIVER_TYPE_MFG) {
     /** Set the Start Address of TxWQ */
-    if (halBmu_btqm_tx_wq_base_addr(pMac, pMac->hal.memMap.btqmTxQueue_offset) != eHAL_STATUS_SUCCESS)
+        if (halBmu_btqm_tx_wq_base_addr(pMac, pMac->hal.memMap.btqmTxQueue_offset) != eHAL_STATUS_SUCCESS) {
         return eHAL_STATUS_FAILURE;
+        }
+    }
 
     bmu_init_bd_pdu_pointer(pMac, &bdStart, &bdEnd, &pduStart, &pduEnd, &bdPduExchangeable);
     pMac->hal.halMac.bdPduExchangeable = bdPduExchangeable;
@@ -774,7 +793,9 @@ bmu_init_bd_pdu_threshold(
     }
     
     FRAME_ADU_BATCH_COMMAND ( (tANI_U32 *)values, (thrInfo[0].thrRegAddr | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), regCount ); 
+    if (pMac->gDriverType != eDRIVER_TYPE_MFG) {
     halRegBckup_Memory(pMac, values, (regCount * sizeof(tANI_U32)) + sizeof(tAduBatchCommandType)); 
+    }
     palFreeMemory(pMac->hHdd, values);
 }
 #endif /* ADU_MEM_OPT_ENABLED */
@@ -2585,3 +2606,163 @@ eHalStatus halBmu_EnableIdleBdPduInterrupt(tpAniSirGlobal pMac, tANI_U8 threshol
 #endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
     return status;
 }
+#ifdef FEATURE_WLAN_CCX
+eHalStatus halBmu_GetBinIndexPacketCount(
+                              tpAniSirGlobal    pMac,
+                              tANI_U16         *pPktDlyHist,
+                              tANI_U8          size)
+{
+    tANI_U32    regValue=0;
+    tANI_U32    bin_index;
+    eHalStatus  status=eHAL_STATUS_SUCCESS;
+    tANI_U32    delay_pkt_count;
+
+    status = halReadRegister(pMac,
+                    QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_REG,
+                    &regValue);
+
+    if(eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halReadRegister failed!!!")));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    /*Read the uplink packet queue delay histogram*/
+    for(bin_index = 0; bin_index < size; bin_index++)
+    {
+        /*Clear the bin index and then write*/
+        regValue &= ~QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_BIN_INDEX_MASK;
+        regValue |= bin_index;
+        status = halWriteRegister( pMac,
+                    QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_REG,
+                    regValue);
+        if(eHAL_STATUS_SUCCESS != status)
+        {
+            HALLOGE( halLog(pMac, LOGE, FL("halWriteRegister failed!!!")));
+            return eHAL_STATUS_FAILURE;
+        }
+        status= halReadRegister( pMac,
+                    QWLAN_BMU_QUEUE_TRANSMIT_DELAY_VALUE_REG,
+                    &delay_pkt_count);
+        if(eHAL_STATUS_SUCCESS != status)
+        {
+            HALLOGE( halLog(pMac, LOGE, FL("halReadRegister failed!!!")));
+            return eHAL_STATUS_FAILURE;
+        }
+        HALLOGW( halLog(pMac, LOGW, FL("delay_pkt_count = %lx\n"),delay_pkt_count));
+        pPktDlyHist[bin_index] = (tANI_U16)delay_pkt_count;
+    }
+    return status;
+}
+
+eHalStatus halBmu_GetTSMStats(
+                       tpAniSirGlobal  pMac,
+                       tANI_U8     tid,
+                       tpTrafStrmMetrics param)
+{
+    tANI_U32    regValue=0;
+    tANI_U16    tx_delay_hist[4];
+    tANI_U16    sum_pkt_count;
+    eHalStatus  status=eHAL_STATUS_SUCCESS;
+
+    status = halReadRegister(pMac,
+                    QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_REG,
+                    &regValue);
+
+    if(eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halReadRegister failed!!!\n")));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    /*Set Read modify write bit*/
+    if(!(regValue & 
+       QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_READ_MODIFY_WRITE_ZERO_MASK))
+    {
+        regValue |=
+          QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_READ_MODIFY_WRITE_ZERO_MASK;
+    }
+
+    /*Clear tid before setting*/
+    regValue &= ~QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_TID_INDEX_MASK;
+
+    regValue |= (tANI_U32)
+      (tid << QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_TID_INDEX_OFFSET);
+
+    if(regValue & 
+           QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_QUEUE_TRANSMIT_DELAY_MASK)
+    {
+       regValue &= 
+           ~QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_QUEUE_TRANSMIT_DELAY_MASK;
+    }
+
+    status = halBmu_GetBinIndexPacketCount(pMac, &param->UplinkPktQueueDlyHist[0],
+    (sizeof(param->UplinkPktQueueDlyHist)/
+                            sizeof(tANI_U16)));
+
+    sum_pkt_count = (param->UplinkPktQueueDlyHist[0]+
+               param->UplinkPktQueueDlyHist[1]+
+               param->UplinkPktQueueDlyHist[2]+
+               param->UplinkPktQueueDlyHist[3]);
+    /*Average queue delay*/
+    if(sum_pkt_count !=0) 
+    {
+         param->UplinkPktQueueDly = 
+              ((10*param->UplinkPktQueueDlyHist[0] + 
+              20*param->UplinkPktQueueDlyHist[1] +
+              40*param->UplinkPktQueueDlyHist[2] +
+              40*param->UplinkPktQueueDlyHist[3])/sum_pkt_count);
+    }
+    else 
+    {
+        param->UplinkPktQueueDly = 0;
+    }
+     
+    /*Now Read the uplink packet transmit queue delay histogram*/
+    /*Set the queue_transmit_delay to 1*/
+    sum_pkt_count = 0;
+    regValue=0;
+    status = halReadRegister(pMac,
+                    QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_REG,
+                    &regValue);
+    
+    if(eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halReadRegister failed!!!\n")));
+        return eHAL_STATUS_FAILURE;
+    }
+    /*Set the transmit delay bit to get the Transmit delay queue*/
+    regValue|= 
+           QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_QUEUE_TRANSMIT_DELAY_MASK;
+
+    status = halWriteRegister( pMac,
+                    QWLAN_BMU_BMU_QUEUE_DELAY_ACCESS_CONTROL_REG,
+                    regValue);
+    
+    if(eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halWriteRegister failed!!!\n")));
+        return eHAL_STATUS_FAILURE;
+    }
+    /*Read the uplink packet transmit delay histogram*/
+    status = halBmu_GetBinIndexPacketCount(pMac, 
+             &tx_delay_hist[0],
+             sizeof(tx_delay_hist)/sizeof(tx_delay_hist[0]));
+
+    sum_pkt_count =(tx_delay_hist[0]+
+                tx_delay_hist[1]+
+                tx_delay_hist[2]+
+                tx_delay_hist[3]);
+
+    if(sum_pkt_count!=0)
+    {
+        /*Average transmit delay*/
+        param->UplinkPktTxDly = 
+                                ((10*tx_delay_hist[0] + 
+                                20*tx_delay_hist[1] +
+                                40*tx_delay_hist[2] +
+                                40*tx_delay_hist[3])/sum_pkt_count);
+    }
+    return status;
+}
+#endif

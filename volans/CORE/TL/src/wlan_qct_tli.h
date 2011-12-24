@@ -749,6 +749,7 @@ typedef struct
    v_S7_t                             historyRSSI;
    v_U8_t                             alpha;
    v_U32_t                            sampleTime;
+   v_U32_t                            fwNotification;
 } WLANTL_CURRENT_HO_STATE_TYPE;
 
 typedef struct

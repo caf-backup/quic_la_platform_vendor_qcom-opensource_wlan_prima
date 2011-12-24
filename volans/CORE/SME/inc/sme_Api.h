@@ -14,7 +14,6 @@
   
   ========================================================================*/
 
-/* $Header: //deploy/qcom/qct/wconnect/wlanhs/core/sme/rel/3.0/inc/sme_Api.h#1 $ */
 
 /*--------------------------------------------------------------------------
   Include Files
@@ -57,6 +56,12 @@ typedef struct _smeConfigParams
    tCsrConfigParam  csrConfig;
 #if defined WLAN_FEATURE_VOWIFI
    tRrmConfigParam  rrmConfig;
+#endif
+#if defined FEATURE_WLAN_CCX
+    tANI_U8   isCcxIniFeatureEnabled;
+#endif
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+    tANI_U8   isFastTransitionEnabled;
 #endif
 } tSmeConfigParams, *tpSmeConfigParams;
 

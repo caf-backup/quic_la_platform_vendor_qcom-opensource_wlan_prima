@@ -1,6 +1,11 @@
 
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * halMacWmmApi.h: Header for HAL WMM API's
  * Author:  Neelay Das
  * Date:    10/22/2006
@@ -94,5 +99,10 @@ tSirRetStatus
 halWmmDelTspec(
     tpAniSirGlobal  pMac,
     tDelTsParams *pTSParams);
+
+eHalStatus
+halWmmAggrAddTspec(
+    tpAniSirGlobal  pMac,
+    tAggrAddTsParams *pTSParams);
 
 #endif    // #ifndef _HALMAC_WMM_API_H

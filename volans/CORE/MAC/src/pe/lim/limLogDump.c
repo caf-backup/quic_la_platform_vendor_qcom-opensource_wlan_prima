@@ -2154,7 +2154,7 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
             maxTxPower = VOS_MIN( maxTxPower, maxTxPower-localConstraint );
             if( maxTxPower != psessionEntry->maxTxPower )
             {
-               rrmSendSetMaxTxPowerReq( pMac, maxTxPower, psessionEntry );
+               limSendSetMaxTxPowerReq( pMac, maxTxPower, psessionEntry );
                psessionEntry->maxTxPower = maxTxPower;
             }
          }

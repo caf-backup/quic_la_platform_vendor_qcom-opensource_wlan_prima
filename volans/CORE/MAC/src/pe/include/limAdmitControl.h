@@ -1,5 +1,9 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
  *
  * Author:      Dinesh Upadhyay
  * Date:        10/24/06
@@ -19,7 +23,8 @@
 #include "aniGlobal.h"
 
 tSirRetStatus
-limTspecFindByAssocId(tpAniSirGlobal, tANI_U16, tSirMacTspecIE*, tpLimTspecInfo, tpLimTspecInfo *);
+limTspecFindByAssocId(tpAniSirGlobal, tANI_U16, 
+        tSirMacTspecIE*, tpLimTspecInfo, tpLimTspecInfo *);
 
 // Add TSPEC in lim local table
 tSirRetStatus limTspecAdd(
@@ -71,8 +76,13 @@ limUpdateAdmitPolicy(
 
 tSirRetStatus limAdmitControlInit(tpAniSirGlobal pMac);
 
-tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U8 tspecIdx, tSirMacTspecIE tspecIE);
-tSirRetStatus limSendHalMsgDelTs(tpAniSirGlobal pMac,  tANI_U16 staIdx,  tANI_U8 tspecIdx,  tSirDeltsReqInfo delts);
-void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
+tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac, 
+        tANI_U16 staIdx, tANI_U8 tspecIdx, 
+        tSirMacTspecIE tspecIE, tANI_U8 sessionId);
+tSirRetStatus limSendHalMsgDelTs(tpAniSirGlobal pMac,  
+        tANI_U16 staIdx,  tANI_U8 tspecIdx,  
+        tSirDeltsReqInfo delts);
+void limProcessHalAddTsRsp(tpAniSirGlobal pMac, 
+        tpSirMsgQ limMsg);
 
 #endif

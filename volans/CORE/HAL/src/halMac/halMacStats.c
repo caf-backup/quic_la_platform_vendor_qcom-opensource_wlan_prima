@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * halMacStats.c:    All statistics handle.
  * Author:   Kiran
  * Date:    4/24/2007
@@ -1228,6 +1233,9 @@ static void __halMacHandlePEGlobalClassAStatsReq( tpAniSirGlobal pMac, tANI_U8 *
 
     tpAniGlobalClassAStatsInfo pGlobalClassAStats = (tpAniGlobalClassAStatsInfo)pBuff;
     Qwlanfw_HwCntrType hwCounters;
+    tPowerdBm pwrLimit;
+    tANI_U8 bssIdx;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
 
     /** Read the Hw counters.*/
     halReadDeviceMemory(pMac, QWLANFW_MEM_HW_COUNTERS_ADDR_OFFSET,
@@ -1273,8 +1281,13 @@ static void __halMacHandlePEGlobalClassAStatsReq( tpAniSirGlobal pMac, tANI_U8 *
         //Transmit rate, in units of 500 kbit/sec, for the most recently transmitted frame
         pGlobalClassAStats->tx_rate =  (gHalRateInfo[pTpeRateInfo->rate_index].thruputKbps) / 5;
 
-        //The maximum transmit power in dBm. upto one decimal. for eg: if it is 10.5dBm, the value would be 105
-        pGlobalClassAStats->max_pwr = (pTpeRateInfo->tx_power + 16) * 5;
+        status = halTable_GetBssIndexForSta( pMac, &bssIdx, staId );
+
+        if ((eHAL_STATUS_SUCCESS == status) &&
+            halRate_GetMaxTxPowerdBm(pMac, bssIdx, &pwrLimit) == eHAL_STATUS_SUCCESS)
+        {
+            pGlobalClassAStats->max_pwr = pwrLimit;
+        }
     }
 
 #ifndef VOLANS_FPGA

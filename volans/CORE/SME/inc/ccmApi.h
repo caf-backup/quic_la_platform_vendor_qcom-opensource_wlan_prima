@@ -8,8 +8,13 @@
   
     $Id$ 
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
   
+    Copyright (c) 2011 Qualcomm Atheros, Inc. 
+    All Rights Reserved. 
+    Qualcomm Atheros Confidential and Proprietary. 
+  
+    Copyright (C) 2006 Airgo Networks, Incorporated
+
     This file contains all the interfaces for thge Platform Abstration Layer
     functions.  It is intended to be included in all modules that are using 
     the PAL interfaces.

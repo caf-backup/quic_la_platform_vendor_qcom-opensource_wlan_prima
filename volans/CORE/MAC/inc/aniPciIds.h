@@ -4,12 +4,16 @@
   
     \file aniPciIds.h
   
-    \brief Airgo Networks PCI Device Ids
+    \brief Qualcomm Atheros PCI Device Ids
   
     $Id$ 
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
   
+    Copyright (c) 2011 Qualcomm Atheros, Inc. 
+    All Rights Reserved. 
+    Qualcomm Atheros Confidential and Proprietary. 
+
+    Copyright (C) 2006 Airgo Networks, Incorporated
   
    ========================================================================== */
 #ifndef _ANIPCIIDS_H_

@@ -36,12 +36,6 @@ extern tSirRetStatus rrmProcessNeighborReportResponse( tpAniSirGlobal pMac,
                                   tDot11fNeighborReportResponse *pNeighborRep,
                                   tpPESession pSessionEntry );
 
-extern void rrmProcessMessage(tpAniSirGlobal pMac, 
-                                  tpSirMsgQ pMsg);
-
-extern tSirRetStatus rrmSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, 
-                                  tPowerdBm txPower, 
-                                  tpPESession pSessionEntry );
 
 extern tPowerdBm rrmGetMgmtTxPower ( tpAniSirGlobal pMac, 
                                   tpPESession pSessionEntry );
@@ -65,4 +59,10 @@ extern void rrmUpdateStartTSF ( tpAniSirGlobal pMac,
 extern tSirRetStatus rrmSetMaxTxPowerRsp ( tpAniSirGlobal pMac, 
                                   tpSirMsgQ limMsgQ );
 
+extern tSirRetStatus
+rrmProcessNeighborReportReq( tpAniSirGlobal pMac,
+                            tpSirNeighborReportReqInd pNeighborReq );
+extern tSirRetStatus
+rrmProcessBeaconReportXmit( tpAniSirGlobal pMac,
+                            tpSirBeaconReportXmitInd pBcnReport);
 #endif
