@@ -1,10 +1,11 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2008 2009
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
+   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary. 
+  
+   Copyright (C) 2006 Airgo Networks, Incorporated
 
    phyTxPower.cc: Tx Power Control functionality
    Author:  Mark Nelson
@@ -14,6 +15,7 @@
  */
 
 #include "sys_api.h"
+#include "halUtils.h"
 
 
 #ifdef ANI_PHY_DEBUG
@@ -974,7 +976,14 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
             relPwr =(tPowerDetect)(((slope * absPwr) + yIntercept)/100);
             phyLog(pMac, LOG1, "relPwr = %d\n", relPwr);
 
-#ifdef ANI_PHY_DEBUG
+#ifdef FEATURE_WLAN_CCX
+            VOS_TRACE (VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_INFO,
+                       "rate %d Pwrlimit: %d.%d  absPwr %d.%d  template:%d\n",
+                       rate, absPwrLimit_2dec / 100, absPwrLimit_2dec % 100,
+                       (absPwr) / 100, (absPwr) % 100,
+                       relPwr
+                       );
+#elif defined ANI_PHY_DEBUG
             phyLog(pMac, LOG2, "%s  Pwrlimit: %d.%d  absPwr %d.%d  template:%d\n",
                    &rateStr[rate][0],
                    absPwrLimit_2dec / 100, absPwrLimit_2dec % 100,
@@ -987,6 +996,19 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
             if (pMac->gDriverType == eDRIVER_TYPE_MFG)
                 pMac->hphy.phy.test.testLastPwrIndex = relPwr;
 #endif
+
+            //For 2.0 silicon production driver, limit the Pout to 18dBm
+            if(pMac->hphy.rf.revId == RF_CHIP_ID_VOLANS2)
+            {
+                if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+                {
+                    //For WCN1314, tpcIdx of 19 corresponds to 18dBm Pout (tpcIdx0:8.5dBm, tpcIdx31:24dBm)
+                    if(relPwr > 19)
+                    {
+                        relPwr = 19;
+                    }
+                }
+            }
 
             *retTemplateIndex = relPwr;
             return(eHAL_STATUS_SUCCESS);
@@ -1520,5 +1542,28 @@ eHalStatus halPhyGetMaxTxPowerIndex(tHalHandle hHal, tPowerdBm absPwrLimit, tPwr
     }
 
     phyLog(hHal, LOG1, FL("MAX Pwr Idx to be used for abs power of %d is %d\n"), absPwrLimit, *retTemplateIndex);
+    return eHAL_STATUS_SUCCESS;
+}
+
+
+/* Return the Pwr limit in dBm for the pwer index*/
+eHalStatus halPhyGetTxPowerFromPwrIndex(tHalHandle hHal, tANI_U8 pwrIdx, tPowerdBm *pPwrLimit)
+{
+    t2Decimal pwrDbm;
+    tANI_S32 slope;
+    tANI_S32 yIntercept;
+
+    //y = mx + c where y is the TPC Gain LUT Index, m is the slope of the
+    //Power-GainLUT curve, c is the the minimum power, x is the power in dBm.
+    //m = (y2 - y1)/(x2 - x1) = (31 - 1)/(24 - 9) = 2
+    //c = y1 - mx1 = 1 - 2*9 = -17
+    slope = TPC_GAIN_LUT_PWR_SLOPE; //m
+    yIntercept = (MIN_TPC_GAIN_INDEX * 100) - (slope * MIN_TPC_GAIN_LUT_DBM_2DEC_PLACES); //c * 100
+    //pwrdBm is x and pwrIdx is y
+    pwrDbm =(t2Decimal)(((pwrIdx * 100) - yIntercept)/slope);
+    *pPwrLimit = (pwrDbm /100);
+
+    phyLog(hHal, LOGW, FL("PwrIndex %d Pwr %d dBm\n"), pwrIdx, *pPwrLimit);
+
     return eHAL_STATUS_SUCCESS;
 }

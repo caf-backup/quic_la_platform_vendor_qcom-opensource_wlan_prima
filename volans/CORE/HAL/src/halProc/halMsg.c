@@ -464,21 +464,21 @@ static eHalStatus __halMsg_FillTpeRateInfo(tpAniSirGlobal pMac,
         /* fill BD rate 0 info */
         halGetDefaultMulticastRateIdx(pMac, &defRateIdx);
         if( eHAL_STATUS_SUCCESS != (status =  
-             __halMsg_FillTpeBdRateInfo(pMac, pRateInfo, param, defRateIdx) ) )
+                    __halMsg_FillTpeBdRateInfo(pMac, pRateInfo, param, defRateIdx) ) )
             return status;
 
         pRateInfo++; 
         /* fill BD rate 1 info */
         halGetNonBcnRateIdx(pMac, &defRateIdx);
         if( eHAL_STATUS_SUCCESS != (status =  
-             __halMsg_FillTpeBdRateInfo(pMac, pRateInfo, param, defRateIdx) ) )
+                    __halMsg_FillTpeBdRateInfo(pMac, pRateInfo, param, defRateIdx) ) )
             return status;
 
         pRateInfo++; 
         /* fill BD rate 2 info */
         halGetNonBcnRateIdx2(pMac, &defRateIdx);
         if( eHAL_STATUS_SUCCESS != (status =  
-             __halMsg_FillTpeBdRateInfo(pMac, pRateInfo, param, defRateIdx) ) )
+                    __halMsg_FillTpeBdRateInfo(pMac, pRateInfo, param, defRateIdx) ) )
             return status;
     }
     else
@@ -489,8 +489,8 @@ static eHalStatus __halMsg_FillTpeRateInfo(tpAniSirGlobal pMac,
         tPwrTemplateIndex txPower = 0;
         halGetNonBcnRateIdx(pMac, &defRateIdx);
         if ((status = halTpe_CalculateAmpduDensity(pMac,
-                          defRateIdx, &ampduDensity,
-                          param->maxAmpduDensity)) != eHAL_STATUS_SUCCESS) {
+                        defRateIdx, &ampduDensity,
+                        param->maxAmpduDensity)) != eHAL_STATUS_SUCCESS) {
             return status;
         }
 
@@ -502,7 +502,7 @@ static eHalStatus __halMsg_FillTpeRateInfo(tpAniSirGlobal pMac,
 #endif
         {
             halRate_getProtectionInfo(pMac, param->staIdx, 0, 0,
-                halRate_tpeRate2HalRate(defRateIdx), &protPolicy);
+                    halRate_tpeRate2HalRate(defRateIdx), &protPolicy);
         }
         /* Fill the basic rate initially for all the rate primary,
          * secondary and tertiary */
@@ -516,7 +516,7 @@ static eHalStatus __halMsg_FillTpeRateInfo(tpAniSirGlobal pMac,
 
     return status;
 }
-        
+
 static eHalStatus halMsg_addStaUpdateTPE( tpAniSirGlobal pMac, tANI_U8 staIdx, tpAddStaParams  param )
 {
     tTpeStaDesc tpeStaDescCfg;
@@ -570,7 +570,7 @@ static eHalStatus halMsg_addStaUpdateTPE( tpAniSirGlobal pMac, tANI_U8 staIdx, t
                 // FIXME : What to do for this case.
             }
             assert (systemRole != eSYSTEM_MULTI_BSS_ROLE)
-                
+
 #ifdef HAL_SELF_STA_PER_BSS
 
             if (halTable_GetBssSelfStaIdxForBss(pMac, param->bssIdx, &selfStaIdx) != eHAL_STATUS_SUCCESS)
@@ -1368,7 +1368,7 @@ halMsg_AddSta(
     {
         // Station table full...
         HALLOGE( halLog(pMac, LOGE, FL("%s: halTable_GetStaId() fail with return code = %d\n"),
-                __FUNCTION__, status));
+                    __FUNCTION__, status));
         goto generate_response;
     }
 #endif
@@ -1463,12 +1463,12 @@ halMsg_AddSta(
     if(!IS_VSTA_IDX(staIdx))
     {
 #endif
-    status = halMsg_addStaUpdateRXP( pMac, staIdx, param );
-    if( status != eHAL_STATUS_SUCCESS )
-    {
-        HALLOGE( halLog( pMac, LOGE, FL(" halMsg_addSraUpdateRXP failed - %x"), status ));
-        goto generate_response;
-    }
+        status = halMsg_addStaUpdateRXP( pMac, staIdx, param );
+        if( status != eHAL_STATUS_SUCCESS )
+        {
+            HALLOGE( halLog( pMac, LOGE, FL(" halMsg_addSraUpdateRXP failed - %x"), status ));
+            goto generate_response;
+        }
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
     }
 #endif
@@ -1514,15 +1514,15 @@ halMsg_AddSta(
                IBSS  PEER     Start RA (raStaUpdate flag set) 
                AP    SELF     Update AutoSamplingTable (raGlobalUpdate flag set)
                AP    PEER     Start RA (raStaUPdate flag set)
-            In order to build AutoSamplingTable, SelfSta information is needed,
-            but SelfSta information becomes valid only upon the combination of Mode & StaType
-            */
+               In order to build AutoSamplingTable, SelfSta information is needed,
+               but SelfSta information becomes valid only upon the combination of Mode & StaType
+               */
 
             if((systemRole == eSYSTEM_STA_ROLE) || 
-			    (systemRole == eSYSTEM_AP_ROLE) || 
-			    (systemRole == eSYSTEM_BTAMP_STA_ROLE) || 
-			    (systemRole == eSYSTEM_BTAMP_AP_ROLE)) {
-               /* this will send selfSta information in shared memory without messaging */
+                    (systemRole == eSYSTEM_AP_ROLE) || 
+                    (systemRole == eSYSTEM_BTAMP_STA_ROLE) || 
+                    (systemRole == eSYSTEM_BTAMP_AP_ROLE)) {
+                /* this will send selfSta information in shared memory without messaging */
                 halMacRaStaAdd(pMac, staIdx, STA_ENTRY_SELF);
 #ifdef WLAN_SOFTAP_FEATURE               
 #ifdef WLAN_FEATURE_P2P
@@ -1533,7 +1533,7 @@ halMsg_AddSta(
 
 #endif
 #ifndef FEATURE_RA_CHANGE
-               /* send RA_ADD_BSS message to let firmware to build AutoSampleTable */
+                /* send RA_ADD_BSS message to let firmware to build AutoSampleTable */
                 halMacRaAddBssReq(pMac, bssIdx, staIdx);
 #endif
             }
@@ -1554,10 +1554,10 @@ halMsg_AddSta(
             }
         }
         /* Note for Firmware RA:
-        This part is little bit tricky. firmware RA requires valid 'supported rates'.
-        But, supported rates is only valid at last ADD_STA message,
-        I had to make sure that RA_ADD_BSS message should be sent after valid supported
-        rates are updated both in IBSS and BSS mode.
+           This part is little bit tricky. firmware RA requires valid 'supported rates'.
+           But, supported rates is only valid at last ADD_STA message,
+           I had to make sure that RA_ADD_BSS message should be sent after valid supported
+           rates are updated both in IBSS and BSS mode.
            In IBSS mode, this ENTRY_BSSID is the point where all supported rates are 
            updated correctly */
         // Get the selfstation index for the BSS
@@ -1586,8 +1586,8 @@ halMsg_AddSta(
         }
     }
     /* Note for Firmware RA:
-    tricky part, for BSS mode, this is the point where all supported rates are updated correctly
-     */
+       tricky part, for BSS mode, this is the point where all supported rates are updated correctly
+       */
     if(param->staType == STA_ENTRY_PEER)
     {
 #ifdef WLAN_SOFTAP_FEATURE
@@ -1609,12 +1609,12 @@ halMsg_AddSta(
         // Turn off the power LED
         if (pMac->hal.ledParam.config.bEnable == eANI_BOOLEAN_TRUE)
         {
-        if (pMac->hal.ledParam.config.powerInd == eHAL_LED_ON)
-            halSetLed(pMac, eHAL_POWER_LED, eHAL_LED_OFF);
+            if (pMac->hal.ledParam.config.powerInd == eHAL_LED_ON)
+                halSetLed(pMac, eHAL_POWER_LED, eHAL_LED_OFF);
 
-        halSetLed(pMac, eHAL_LINK_LED, eHAL_LED_ON);
-        pMac->hal.ledParam.linkLedOn = eANI_BOOLEAN_TRUE;
-    }
+            halSetLed(pMac, eHAL_LINK_LED, eHAL_LED_ON);
+            pMac->hal.ledParam.linkLedOn = eANI_BOOLEAN_TRUE;
+        }
     }
 #endif
 
@@ -1624,7 +1624,7 @@ halMsg_AddSta(
         // and block ack is not disabled by config.
 
         if(wlan_cfgGetInt(pMac, WNI_CFG_BA_AUTO_SETUP, &cfgVal)
-             != eSIR_SUCCESS)
+                != eSIR_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("could not get BLOCK_ACK cfg value\n")));
             return;
@@ -1634,12 +1634,12 @@ halMsg_AddSta(
         if((true == cfgVal) && (true == param->htCapable)) {
             pMac->hal.halMac.baAutoSetupEnabled = true;
         }else{
-           HALLOGW( halLog(pMac, LOGW, FL("AUTO BA setup default NOT enabled from CFG!\n")));
+            HALLOGW( halLog(pMac, LOGW, FL("AUTO BA setup default NOT enabled from CFG!\n")));
         }
 
         //Set AMPDU relate TPE Global settings
         if(wlan_cfgGetInt(pMac, WNI_CFG_MAX_MPDUS_IN_AMPDU, &cfgVal)
-             != eSIR_SUCCESS)
+                != eSIR_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("could not get MAX_MPDUS_IN_AMPDU\n")));
             return;
@@ -1648,7 +1648,7 @@ halMsg_AddSta(
         halTpe_TerminateAmpduAtRateChange(pMac, TRUE);
 
         if(wlan_cfgGetInt(pMac, WNI_CFG_MAX_MEDIUM_TIME, &cfgVal)
-             != eSIR_SUCCESS)
+                != eSIR_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("could not get MAX_MEDIUM_TIME\n")));
             return;
@@ -1687,8 +1687,8 @@ generate_response:
 
     if (isFreeable == eANI_BOOLEAN_TRUE)
     {
-    if(param->respReqd)
-          halMsg_GenerateRsp(pMac, SIR_HAL_ADD_STA_RSP, dialog_token, (void *) param, 0);
+        if(param->respReqd)
+            halMsg_GenerateRsp(pMac, SIR_HAL_ADD_STA_RSP, dialog_token, (void *) param, 0);
         else
             palFreeMemory(pMac->hHdd, param);
     }
@@ -1821,28 +1821,28 @@ halMsg_DelSta(
         status = halTable_GetStaDpuIdx(pMac, (tANI_U8) pDelStaReq->staIdx, &dpuIdx);
         if (status != eHAL_STATUS_SUCCESS)
         {
-        HALLOGW( halLog(pMac, LOGW, FL("No DPU associated with sta %d!\n"),  pDelStaReq->staIdx));
+            HALLOGW( halLog(pMac, LOGW, FL("No DPU associated with sta %d!\n"),  pDelStaReq->staIdx));
         }
         else
         {
             status = halDpu_ReleaseDescriptor(pMac, dpuIdx);
             if (status != eHAL_STATUS_SUCCESS)
-            HALLOGW( halLog(pMac, LOGW, FL("Cannot releae DPU descriptor for sta %d!\n"),
-                   pDelStaReq->staIdx));
+                HALLOGW( halLog(pMac, LOGW, FL("Cannot releae DPU descriptor for sta %d!\n"),
+                            pDelStaReq->staIdx));
             status = halTable_SetStaDpuIdx(pMac, (tANI_U8) pDelStaReq->staIdx,
-                                           HAL_INVALID_KEYID_INDEX);
+                    HAL_INVALID_KEYID_INDEX);
         }
 
         status = halTable_GetStaBcastDpuIdx(pMac, (tANI_U8) pDelStaReq->staIdx, &dpuIdx);
         if (status != eHAL_STATUS_SUCCESS)
         {
-        HALLOGW( halLog(pMac, LOGW, FL("No DPU associated with sta %d!\n"),  pDelStaReq->staIdx));
+            HALLOGW( halLog(pMac, LOGW, FL("No DPU associated with sta %d!\n"),  pDelStaReq->staIdx));
         }
         else
         {
             if((status = halTable_GetBssIndexForSta(pMac, &bssIdx, (tANI_U8)pDelStaReq->staIdx)) != eHAL_STATUS_SUCCESS)
             {
-            HALLOGW( halLog(pMac, LOGW, FL("Unable to get BSSIDX")));
+                HALLOGW( halLog(pMac, LOGW, FL("Unable to get BSSIDX")));
                 goto generate_response;
             }
 
@@ -1856,10 +1856,10 @@ halMsg_DelSta(
         {
             status = halDpu_ReleaseDescriptor(pMac, dpuIdx);
             if (status != eHAL_STATUS_SUCCESS)
-            HALLOGW( halLog(pMac, LOGW, FL("Cannot releae DPU descriptor for sta %d!\n"),
-                    pDelStaReq->staIdx));
+                HALLOGW( halLog(pMac, LOGW, FL("Cannot releae DPU descriptor for sta %d!\n"),
+                            pDelStaReq->staIdx));
             status = halTable_SetStaBcastDpuIdx(pMac, (tANI_U8) pDelStaReq->staIdx,
-                                          HAL_INVALID_KEYID_INDEX);
+                    HAL_INVALID_KEYID_INDEX);
         }
 
         // For Ibss beacon balance set the IBSS CWmin correctly.
@@ -1875,137 +1875,137 @@ halMsg_DelSta(
         {
             if((status = halTable_GetBssIndexForSta(pMac, &bssIdx, (tANI_U8)pDelStaReq->staIdx)) != eHAL_STATUS_SUCCESS)
             {
-            HALLOGW( halLog(pMac, LOGW, FL("Unable to get BSSIDX")));
+                HALLOGW( halLog(pMac, LOGW, FL("Unable to get BSSIDX")));
                 goto generate_response;
             }
             if((status = halTable_GetBssBcastMgmtDpuIdx(pMac, bssIdx, &bssDpuIdx))  != eHAL_STATUS_SUCCESS )
             {
-            HALLOGW( halLog(pMac, LOGW, FL("Unable to get BSS DPU Index")));
+                HALLOGW( halLog(pMac, LOGW, FL("Unable to get BSS DPU Index")));
                 goto generate_response;
             }
             if(bssDpuIdx != dpuIdx) //Not same as bss DPU index, Allocated during set context. Free it.
             {
                 status = halDpu_ReleaseDescriptor(pMac, dpuIdx);
                 if (status != eHAL_STATUS_SUCCESS)
-                HALLOGW( halLog(pMac, LOGW, FL("Cannot releae Mgmt DPU descriptor for sta %d!\n"),
-                       pDelStaReq->staIdx));
+                    HALLOGW( halLog(pMac, LOGW, FL("Cannot releae Mgmt DPU descriptor for sta %d!\n"),
+                                pDelStaReq->staIdx));
                 status = halTable_SetStaBcastMgmtDpuIdx(pMac, (tANI_U8) pDelStaReq->staIdx,
-                                              HAL_INVALID_KEYID_INDEX);
-             }
+                        HAL_INVALID_KEYID_INDEX);
+            }
         }
         if( STA_ENTRY_PEER == staType )
         {
-        tDelBAParams    delBAParams;
-        tANI_U8         tid;
-        tpStaStruct pSta = &((tpStaStruct) pMac->hal.halMac.staTable)[pDelStaReq->staIdx];
-        tANI_U8  tidBitSet;
+            tDelBAParams    delBAParams;
+            tANI_U8         tid;
+            tpStaStruct pSta = &((tpStaStruct) pMac->hal.halMac.staTable)[pDelStaReq->staIdx];
+            tANI_U8  tidBitSet;
 
-        delBAParams.staIdx = pDelStaReq->staIdx;
+            delBAParams.staIdx = pDelStaReq->staIdx;
 
-        for( tid = 1; tid <= STACFG_MAX_TC; tid++ )
+            for( tid = 1; tid <= STACFG_MAX_TC; tid++ )
+            {
+                tidBitSet = (pSta->baInitiatorTidBitMap & (1 << tid)) ;
+                delBAParams.baTID  = tid;
+
+                if(tidBitSet)
+                {
+                    /* Delete BA sessions established as Initiator */
+                    delBAParams.baDirection = eBA_INITIATOR;
+                    baDelBASession(pMac, &delBAParams);
+                }
+
+                /* Delete BA sessions established as Receipient */
+                tidBitSet = (pSta->baReceipientTidBitMap & (1 << tid));
+                if(tidBitSet)
+                {
+                    delBAParams.baDirection = eBA_RECIPIENT;
+                    baDelBASession(pMac, &delBAParams);
+                }
+
+            }
+
+            // Free all of the associated BA buffers and
+            // reclaim all the Session ID's, if any
+            baReleaseSTA( pMac,  pDelStaReq->staIdx );
+
+            if (systemRole == eSYSTEM_STA_ROLE) {
+
+                /* This turns off the traffic regulation and also
+                 * nullifes the Peer mac address in system config.
+                 */
+                status = halPS_SetPeerParams( pMac, HAL_STA_INVALID_IDX, NULL, NULL);
+                if (status != eHAL_STATUS_SUCCESS) {
+                    HALLOGE(halLog( pMac, LOGE, FL("Unable to update FW System Config")));
+                    goto generate_response;
+                }
+            }
+        }
+
+        //Disable TX for this staId
+        status = halBmu_sta_enable_disable_control(pMac, pDelStaReq->staIdx, eBMU_DIS_TX_QUE_DIS_TRANS_CLEANUP_QUE); //TODO: verify
+        if( eHAL_STATUS_SUCCESS != status )
         {
-            tidBitSet = (pSta->baInitiatorTidBitMap & (1 << tid)) ;
-            delBAParams.baTID  = tid;
-
-            if(tidBitSet)
-            {
-                /* Delete BA sessions established as Initiator */
-                delBAParams.baDirection = eBA_INITIATOR;
-                baDelBASession(pMac, &delBAParams);
-            }
-
-            /* Delete BA sessions established as Receipient */
-            tidBitSet = (pSta->baReceipientTidBitMap & (1 << tid));
-            if(tidBitSet)
-            {
-                delBAParams.baDirection = eBA_RECIPIENT;
-                baDelBASession(pMac, &delBAParams);
-            }
-
-        } 
-
-        // Free all of the associated BA buffers and
-        // reclaim all the Session ID's, if any
-        baReleaseSTA( pMac,  pDelStaReq->staIdx );
-
-        if (systemRole == eSYSTEM_STA_ROLE) {
-
-           /* This turns off the traffic regulation and also
-            * nullifes the Peer mac address in system config.
-            */
-           status = halPS_SetPeerParams( pMac, HAL_STA_INVALID_IDX, NULL, NULL);
-           if (status != eHAL_STATUS_SUCCESS) {
-              HALLOGE(halLog( pMac, LOGE, FL("Unable to update FW System Config")));
-              goto generate_response;
-           }
+            HALLOGE( halLog( pMac, LOGE, FL("Unable to update BMU")));
+            goto generate_response;
         }
-    }
 
-    //Disable TX for this staId
-    status = halBmu_sta_enable_disable_control(pMac, pDelStaReq->staIdx, eBMU_DIS_TX_QUE_DIS_TRANS_CLEANUP_QUE); //TODO: verify
-    if( eHAL_STATUS_SUCCESS != status )
-    {
-           HALLOGE( halLog( pMac, LOGE, FL("Unable to update BMU")));
-           goto generate_response;
-    }
+        if (halTable_GetStaUMAIdx(pMac, (tANI_U8)pDelStaReq->staIdx,
+                    &umaIdx) == eHAL_STATUS_SUCCESS)
+        {
+            if (HAL_INVALID_KEYID_INDEX != umaIdx) {
+                status = halMsg_delStaUpdateADU( pMac, umaIdx, staType);
+                if( eHAL_STATUS_SUCCESS != status )
+                {
+                    HALLOGE( halLog( pMac, LOGE, FL("Unable to update ADU/UMA")));
+                    goto generate_response;
+                }
+                halTable_SetStaUMAIdx(pMac, (tANI_U8)pDelStaReq->staIdx,
+                        HAL_INVALID_KEYID_INDEX);
 
-    if (halTable_GetStaUMAIdx(pMac, (tANI_U8)pDelStaReq->staIdx,
-                &umaIdx) == eHAL_STATUS_SUCCESS)
-    {
-        if (HAL_INVALID_KEYID_INDEX != umaIdx) {
-            status = halMsg_delStaUpdateADU( pMac, umaIdx, staType);
-            if( eHAL_STATUS_SUCCESS != status )
-            {
-                HALLOGE( halLog( pMac, LOGE, FL("Unable to update ADU/UMA")));
-                goto generate_response;
-            }
-            halTable_SetStaUMAIdx(pMac, (tANI_U8)pDelStaReq->staIdx,
-                                  HAL_INVALID_KEYID_INDEX);
-
-            // if not infra STA then delete search table entry
-            systemRole = halGetBssSystemRoleFromStaIdx(pMac, (tANI_U8)pDelStaReq->staIdx);
-            if(systemRole != eSYSTEM_STA_ROLE)
-            {
-                // Clear the UMA search table.
-                status = halAdu_AddToUmaSearchTable(pMac, 0, 0, umaIdx);
+                // if not infra STA then delete search table entry
+                systemRole = halGetBssSystemRoleFromStaIdx(pMac, (tANI_U8)pDelStaReq->staIdx);
+                if(systemRole != eSYSTEM_STA_ROLE)
+                {
+                    // Clear the UMA search table.
+                    status = halAdu_AddToUmaSearchTable(pMac, 0, 0, umaIdx);
+                }
             }
         }
-    }
 
-    // Delete RXP entry
-    if((status = halTable_FindAddrByStaid(pMac, (tANI_U8) (pDelStaReq->staIdx), staMac)) != eHAL_STATUS_SUCCESS)
-    {
-       HALLOGW( halLog(pMac, LOGW, FL("Failed at halTable_GetStaMac()  %X \n"), status));
-       goto generate_response;
-    }
-    if((status = halRxp_DelEntry(pMac, staMac)) != eHAL_STATUS_SUCCESS)
-    {
-       HALLOGW( halLog(pMac, LOGW, FL("Failed at halRxp_DelEntry()  %X \n"), status));
-       // NOTE: Ignore the failure here as this entry would have been
-       // already deleted as part of change link state when Auth/Join fails
-    }
+        // Delete RXP entry
+        if((status = halTable_FindAddrByStaid(pMac, (tANI_U8) (pDelStaReq->staIdx), staMac)) != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGW( halLog(pMac, LOGW, FL("Failed at halTable_GetStaMac()  %X \n"), status));
+            goto generate_response;
+        }
+        if((status = halRxp_DelEntry(pMac, staMac)) != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGW( halLog(pMac, LOGW, FL("Failed at halRxp_DelEntry()  %X \n"), status));
+            // NOTE: Ignore the failure here as this entry would have been
+            // already deleted as part of change link state when Auth/Join fails
+        }
 
 #if defined(ANI_OS_TYPE_LINUX)
-    halTable_RemoveFromStaCache(pMac, staMac);
+        halTable_RemoveFromStaCache(pMac, staMac);
 #endif
-    // Remove the entry.
-    halTable_ClearSta(pMac, (tANI_U8) pDelStaReq->staIdx);
+        // Remove the entry.
+        halTable_ClearSta(pMac, (tANI_U8) pDelStaReq->staIdx);
 #ifdef WLAN_SOFTAP_FEATURE
-    halMacRaStaDel(pMac, (tANI_U8) pDelStaReq->staIdx);
-    status = halFW_DelStaReq(pMac, (tANI_U8)pDelStaReq->staIdx);
-    if (status != eHAL_STATUS_SUCCESS)
-    {
-        HALLOGW( halLog(pMac, LOGW, FL("halFW_DelStaReq failed for station id %d"), pDelStaReq->staIdx));
-        goto generate_response;
-    }
+        halMacRaStaDel(pMac, (tANI_U8) pDelStaReq->staIdx);
+        status = halFW_DelStaReq(pMac, (tANI_U8)pDelStaReq->staIdx);
+        if (status != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGW( halLog(pMac, LOGW, FL("halFW_DelStaReq failed for station id %d"), pDelStaReq->staIdx));
+            goto generate_response;
+        }
 #endif
     }
     else
     {
-       //Setting it to HAL_DPU_SELF_STA_DEFAULT_IDX. This means all self-sta's that are not in 
-       //associated state or start Bss state will always point to dpu index zero. 
-       //TODO verify that this is ok in concurrency case where dpu index 0 might get assigned to
-       //one session.
+        //Setting it to HAL_DPU_SELF_STA_DEFAULT_IDX. This means all self-sta's that are not in 
+        //associated state or start Bss state will always point to dpu index zero. 
+        //TODO verify that this is ok in concurrency case where dpu index 0 might get assigned to
+        //one session.
         halTable_SetStaDpuIdx(pMac, (tANI_U8)pDelStaReq->staIdx, HAL_DPU_SELF_STA_DEFAULT_IDX);
         halTable_SetStaBcastDpuIdx(pMac, (tANI_U8)pDelStaReq->staIdx, HAL_DPU_SELF_STA_DEFAULT_IDX);
         halTable_SetStaBcastMgmtDpuIdx(pMac, (tANI_U8)pDelStaReq->staIdx, HAL_DPU_SELF_STA_DEFAULT_IDX);
@@ -2031,12 +2031,12 @@ halMsg_DelSta(
     {
         if (pMac->hal.ledParam.config.bEnable == eANI_BOOLEAN_TRUE)
         {
-        halSetLed(pMac, eHAL_LINK_LED, eHAL_LED_OFF); // Link LED off
-        pMac->hal.ledParam.linkLedOn = eANI_BOOLEAN_FALSE;
-        // Turn on the Power LED
-        if (pMac->hal.ledParam.config.powerInd == eHAL_LED_ON)
-            halSetLed(pMac, eHAL_POWER_LED, eHAL_LED_ON);
-    }
+            halSetLed(pMac, eHAL_LINK_LED, eHAL_LED_OFF); // Link LED off
+            pMac->hal.ledParam.linkLedOn = eANI_BOOLEAN_FALSE;
+            // Turn on the Power LED
+            if (pMac->hal.ledParam.config.powerInd == eHAL_LED_ON)
+                halSetLed(pMac, eHAL_POWER_LED, eHAL_LED_ON);
+        }
     }
 #endif
 
@@ -2048,13 +2048,13 @@ halMsg_DelSta(
         for (qId = 0; qId < HW_MAX_QUEUES; qId++)
         {
             status = halRpe_BlockAndFlushFrames(pMac,
-                                                (tANI_U8)pDelStaReq->staIdx,
-                                                qId, eRPE_SW_DISABLE_DROP);
+                    (tANI_U8)pDelStaReq->staIdx,
+                    qId, eRPE_SW_DISABLE_DROP);
             if (eHAL_STATUS_SUCCESS != status)
             {
                 HALLOGW( halLog(pMac, LOGW,
-                                FL("halRpe_BlockAndFlushFrames failed for station id %d"),
-                                pDelStaReq->staIdx));
+                            FL("halRpe_BlockAndFlushFrames failed for station id %d"),
+                            pDelStaReq->staIdx));
                 goto generate_response;
             }
         }
@@ -2071,7 +2071,7 @@ generate_response:
     // Error case; send message to Caller.
     pDelStaReq->status = status;
     if( pDelStaReq->respReqd )
-      halMsg_GenerateRsp(pMac, SIR_HAL_DELETE_STA_RSP, dialog_token, (void *) pDelStaReq, 0);
+        halMsg_GenerateRsp(pMac, SIR_HAL_DELETE_STA_RSP, dialog_token, (void *) pDelStaReq, 0);
     return;
 }
 
@@ -2553,7 +2553,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
     {
 #ifdef FEATURE_TX_PWR_CONTROL
         status = halRate_UpdateRateTablePower(pMac, (tTpeRateIdx)HALRATE_MODE_START, (tTpeRateIdx)HAL_MAC_MAX_TX_RATES, TRUE);
-#else
+#else	
         status = halRate_UpdateRateTablePower(pMac, (tTpeRateIdx)MIN_LIBRA_RATE_NUM, (tTpeRateIdx)MAX_LIBRA_TX_RATE_NUM, TRUE);
 #endif
         if (status != eHAL_STATUS_SUCCESS ) {
@@ -2653,7 +2653,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
         {
             halMsg_SendAddBssRsp(pMac, dialog_token, param, bssIdx, status);
             return;
-        }
+    }
     }
 
     /** Update the Valid bssid bitmap */
@@ -2699,7 +2699,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
             halMsg_SendAddBssRsp(pMac, dialog_token, param, bssIdx, status);
             return;
         }
-    }
+        }
 
     // Store it in the BSS table, will be used when RXP type/subtype filters are set
     // during SET_LINK_STATE (AP_MODE), to enable all beacon reception 
@@ -2715,7 +2715,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
             halTable_GetBssBcastStaIdx(pMac, bssIdx, &bcastStaIdx);
 #ifdef WLAN_SOFTAP_FEATURE
             /* Enable Listen Mode according to cfg */                     
-            halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);
+            halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);                     
 #endif //#ifdef WLAN_SOFTAP_FEATURE
         } else {
             // If not AP role point the bcastStaIdx to the BSS staIdx
@@ -3110,7 +3110,7 @@ halMsg_DelBss(
       // This will update the Global HAL System Role. 
       // Since we dont know all the Bss that are active, we pass the unknown state 
     halSetGlobalSystemRole(pMac, eSYSTEM_UNKNOWN_ROLE);
-      
+
    // free the bss locally
    status = halTable_ClearBss(pMac, (tANI_U8) pDelBssReq->bssIdx);
 
@@ -3440,8 +3440,8 @@ void halMsg_HandlePSInitScan(tpAniSirGlobal pMac, void* param,
     pMac->hal.scanParam.dialog_token = dialog_token;
     pMac->hal.scanParam.isScanInProgress = eANI_BOOLEAN_TRUE;
 
-    // Send start scan message to FW once FW is suspended from BMPS
-    halFW_SendScanStartMesg(pMac);
+	// Send start scan message to FW once FW is suspended from BMPS
+	halFW_SendScanStartMesg(pMac);
 
 generate_response:
     //if TxComplete is required then sending the response will be deferred until
@@ -3796,9 +3796,9 @@ void halMsg_ChannelSwitchPostSetChan(tpAniSirGlobal pMac, void *pData,
     //update whole TPE rate power table.
 #ifdef FEATURE_TX_PWR_CONTROL
     status = halRate_UpdateRateTablePower(pMac, (tTpeRateIdx)HALRATE_MODE_START, (tTpeRateIdx)HAL_MAC_MAX_TX_RATES, TRUE);
-#else
+#else	
     status = halRate_UpdateRateTablePower(pMac, (tTpeRateIdx)MIN_LIBRA_RATE_NUM, (tTpeRateIdx)MAX_LIBRA_TX_RATE_NUM, TRUE);
-#endif
+#endif	
     if ( status != eHAL_STATUS_SUCCESS ){
         HALLOGE( halLog(pMac, LOGE, FL("Failed updating Tx power\n")));
         goto generate_response;
@@ -4758,7 +4758,7 @@ void halMsg_SetKeyDone(tpAniSirGlobal  pMac, tANI_U32 bssidx)
             (bssTable[bssidx].bssSystemRole == eSYSTEM_BTAMP_STA_ROLE)))
     
     {
-        (void)halFW_SendConnectionEndMesg(pMac);
+    (void)halFW_SendConnectionEndMesg(pMac);
     }
 
     // Start the BA activity check timer.
@@ -5884,6 +5884,69 @@ halMsg_AddTs(
     return halWmmAddTspec(pMac, param);
 }
 
+#ifdef FEATURE_WLAN_CCX
+/** -------------------------------------------------------------
+\fn halMsg_GetTSMStats
+\brief
+\param pMac - pointer to Global pMac
+\param param - pointer to TSMStats
+\return None
+-------------------------------------------------------------*/
+tSirRetStatus
+halMsg_GetTSMStats(
+  tpAniSirGlobal  pMac,
+  tpTSMStats      pTsmStats)
+{
+    tSirRetStatus status;
+    tANI_U8      bssIdx = 0;
+    tANI_U8      staIdx = 0;
+    tTpeStaStats tpeStaStats;
+    tANI_U8 aci;
+    tANI_U32 bkOffIdx = 0;
+
+    status = halBmu_GetTSMStats(pMac,pTsmStats->tid,&pTsmStats->tsmMetrics);
+    if(eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halBmu_GetTSMStats failed!!!\n")));
+        return eSIR_FAILURE;
+    }
+    halTable_GetBssIndex(pMac, pTsmStats->bssId, &bssIdx);
+
+    status = halTable_FindStaInBss(pMac, bssIdx, &staIdx);
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE( halLog(pMac, LOGE, 
+                   FL("halTable_FindStaInBss failed Invalid Bss Index!!!\n")));
+        return eSIR_FAILURE;
+    }
+    halTpe_GetStaStats(pMac,staIdx,&tpeStaStats);
+
+    aci = HAL_WMM_TID_TO_AC(HAL_WMM_DEFAULT_TID_AC_MAP,pTsmStats->tid);
+
+    bkOffIdx = __halMTU_ac2BkoffIndex(pMac, aci);
+
+    if(bkOffIdx < MAX_NUM_OF_BACKOFFS)
+    {
+        pTsmStats->tsmMetrics.UplinkPktCount = 
+                                 tpeStaStats.dot11Stats[bkOffIdx].txFrmSuccCnt;
+        pTsmStats->tsmMetrics.UplinkPktLoss = 
+                                  tpeStaStats.dot11Stats[bkOffIdx].txFrmFailCnt;
+        HALLOGW( halLog(pMac, LOGW, FL("UplinkPktCount =%d UplinkPktLoss=%d\n"),
+                   pTsmStats->tsmMetrics.UplinkPktCount,
+                   pTsmStats->tsmMetrics.UplinkPktLoss));
+    }
+    else 
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("Invalid bkOffIdx!!!\n")));
+        return eSIR_FAILURE;
+    }
+
+    halMsg_GenerateRsp(pMac, SIR_HAL_TSM_STATS_RSP, 0, 
+                                                   (void *) pTsmStats, 0);
+
+    return eSIR_SUCCESS;
+}
+#endif
 /** -------------------------------------------------------------
 //FIXME : Add the function details here.
 \fn halMsgDelTs
@@ -6082,16 +6145,16 @@ void halMsg_AddBA( tpAniSirGlobal  pMac,
     }
 #endif //WLAN_SOFTAP_VSTA_FEATURE
 
-    // Restore the "saved" STA context in HAL for this STA
-    halTable_RestoreStaConfig( pMac, (tHalCfgSta *) &staEntry, (tANI_U8 ) pAddBAParams->staIdx );
+        // Restore the "saved" STA context in HAL for this STA
+        halTable_RestoreStaConfig( pMac, (tHalCfgSta *) &staEntry, (tANI_U8 ) pAddBAParams->staIdx );
 
     // Restore the current TC settings from the saved STA config
     // This ensures that the existing TC configuration
     // for this TID does not get over-written
     palCopyMemory( pMac->hHdd,
-                   (void *) &tcCfg,
-                   (void *) &(staEntry.tcCfg[pAddBAParams->baTID]),
-                   sizeof( tCfgTrafficClass ));
+            (void *) &tcCfg,
+            (void *) &(staEntry.tcCfg[pAddBAParams->baTID]),
+            sizeof( tCfgTrafficClass ));
 
   if( eBA_RECIPIENT == pAddBAParams->baDirection )
   {
@@ -6410,10 +6473,10 @@ void halMsg_BAFail(tpAniSirGlobal pMac, tANI_U16 dialog_token,
     /* Deactivate the addBARspTimer, as we are sending ADD BA RSP to AP with failure information. */
     if (tx_timer_deactivate(&pMac->hal.addBARspTimer) != TX_SUCCESS)
     {
-        /** Could not deactivate Log error*/
-        HALLOGP( halLog(pMac, LOGP,
-            FL("Unable to deactivate addBARsp timer\n")));
-        return ;
+	/** Could not deactivate Log error*/
+	HALLOGP( halLog(pMac, LOGP,
+		  FL("Unable to deactivate addBARsp timer\n")));
+	return ;
     }
 
     for(staIdx = 0; staIdx < pMac->hal.halMac.maxSta; staIdx++)
@@ -6437,8 +6500,8 @@ void halMsg_BAFail(tpAniSirGlobal pMac, tANI_U16 dialog_token,
                     {
                         delBAParams.staIdx = pAddBAParams->staIdx;
                         delBAParams.baTID = pAddBAParams->baTID;
-                        /* The baDirection is to be copied from AddBAParams, it cannot be assumed to be eBA_INITIATOR always*/
-                        delBAParams.baDirection = pAddBAParams->baDirection;
+			/* The baDirection is to be copied from AddBAParams, it cannot be assumed to be eBA_INITIATOR always*/
+			delBAParams.baDirection = pAddBAParams->baDirection;
 
                         /* Reset the H/W configuration which we did while establishing BA */
                         baDelBASession(pMac, &delBAParams);
@@ -6930,7 +6993,7 @@ void halMsg_handleBssLinkState(tpAniSirGlobal pMac, tSirLinkState state,
 {
     tRxpMode    rxpMode;
     tANI_U8     bSendFwMesg = 0;
-    
+
     switch(state)
     {
         case eSIR_LINK_IDLE_STATE:  // comes with a valid bssidx from PE>
@@ -6991,7 +7054,7 @@ void halMsg_handleBssLinkState(tpAniSirGlobal pMac, tSirLinkState state,
                         state));
             return;
     }
-    
+
     HALLOG1(halLog(pMac, LOG1, FL("Link State = %d \n"), state));
     HALLOG1(halLog(pMac, LOG1, FL("BSS Rxp Mode =  %d \n"), rxpMode));
     // Update the filter to the latest for this Bssid and the
@@ -7016,7 +7079,7 @@ void halMsg_handleBssLinkState(tpAniSirGlobal pMac, tSirLinkState state,
     if(bSendFwMesg) {
         halFW_SendConnectionStatusMesg(pMac, state);
     }
-    
+
     return;
 }
 
@@ -7300,6 +7363,24 @@ generate_response:
 
     return eHAL_STATUS_SUCCESS;
 }
+
+eHalStatus halMsg_AggrAddTsReq(tpAniSirGlobal pMac, void* msg)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAggrAddTsParams pTSParams = (tpAggrAddTsParams) msg;
+
+    status = halWmmAggrAddTspec(pMac, pTSParams);
+    if (status != eHAL_STATUS_SUCCESS) {
+        HALLOGE(halLog(pMac, LOGE, 
+                    FL(" Configuring HW for aggr TSPEC failed, status = %d !!!"), 
+                    status));
+    }
+
+    halMsg_GenerateRsp( pMac, SIR_HAL_AGGR_ADD_TS_RSP, (tANI_U16) 0, pTSParams, 0 );
+
+    return status;
+}
+
 #endif /* WLAN_FEATURE_VOWIFI */
 
 /* ---------------------------------------------------------
@@ -7414,7 +7495,7 @@ halMsg_BeaconPre( tpAniSirGlobal pMac )
     tANI_U32  totalSta = 0;
     tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
     tANI_U32 staIdx = 0;
-    tANI_U8  bssIdx = 0;
+	tANI_U8  bssIdx = 0;
 
    //Read BTQM to get beaconGenParams
    /* 
@@ -7437,7 +7518,7 @@ halMsg_BeaconPre( tpAniSirGlobal pMac )
     // is ever needed, an appropriate Firmware API will need to be defined
     // to replace halBmu_GetStaWqStatus()
 #else //WLAN_SOFTAP_VSTA_FEATURE
-    halBmu_GetStaWqStatus(pMac, &staQueueData);
+        halBmu_GetStaWqStatus(pMac, &staQueueData);
 #endif //WLAN_SOFTAP_VSTA_FEATURE
 #endif //FIXME_VOLANS
 

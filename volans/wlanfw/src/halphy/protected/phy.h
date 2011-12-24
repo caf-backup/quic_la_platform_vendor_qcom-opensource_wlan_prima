@@ -1,10 +1,11 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
+   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary. 
+  
+   Copyright (C) 2006 Airgo Networks, Incorporated
 
    phy.h: Types needed only for internal phy interfaces.
             Nothing in here is needed for configuration or by halPhy interface clients.
@@ -75,6 +76,7 @@ typedef struct
     tANI_U8 nominalTempPwrCap;
     tANI_U8 ofdmPwrCap;
     tANI_U8 tpcSplitPoint;
+    Qwlanfw_PhyFtmInfoType *pFtmInfo;
 
 }tPhy;
 

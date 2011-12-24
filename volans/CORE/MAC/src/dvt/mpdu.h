@@ -3,10 +3,11 @@
 
   DESCRIPTION:    Contains all MPDU frame formatting structures
 
-  Copyright (c) 2006 Airgo. 
-  All Rights Reserved This program is the confidential and proprietary 
-  product of Airgo.  Any Unauthorized use, reproduction or 
-  transfer of this program is strictly prohibited.
+ Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ All Rights Reserved. 
+ Qualcomm Atheros Confidential and Proprietary. 
+
+ Copyright (C) 2006 Airgo Networks, Incorporated
 *****************************************************************************/
 #ifndef MPDU_H
 #define MPDU_H

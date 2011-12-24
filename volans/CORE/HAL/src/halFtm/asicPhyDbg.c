@@ -8,8 +8,12 @@
 
     $Id$
 
-    Copyright (C) 2006 Airgo Networks, Incorporated
 
+    Copyright (c) 2011 Qualcomm Atheros, Inc. 
+    All Rights Reserved. 
+    Qualcomm Atheros Confidential and Proprietary. 
+  
+    Copyright (C) 2006 Airgo Networks, Incorporated
 
    ========================================================================== */
 
@@ -1225,10 +1229,19 @@ static eHalStatus DoGrabRamCapture(tpAniSirGlobal pMac, tANI_U32 rxChain, eGrabR
         return(retVal);
     }
 
+    /*
+    mif_mem_cfg ==> grabRam capture location
+         7      ==>     192k
+         8      ==>     176k
+         9      ==>     160k
+         10     ==>     176k
+         11     ==>     0k
+         12     ==>     0k
+    */
     if ((retVal = rdModWrAsicField(pMac, QWLAN_MIF_MIF_MEM_CFG_REG,
                                    QWLAN_MIF_MIF_MEM_CFG_MIF_MEM_CFG_MASK,
                                    QWLAN_MIF_MIF_MEM_CFG_MIF_MEM_CFG_OFFSET,
-                                   0x9
+                                   0x7
                                   )
         ) != eHAL_STATUS_SUCCESS
        )

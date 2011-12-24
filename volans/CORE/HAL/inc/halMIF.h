@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * halMIF.c:  Provides all the MAC APIs to the BMU Hardware Block.
  * Author:    Susan Tsao
  * Date:      03/13/2006

@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limSendSmeRspMessages.h contains the definitions for
  * sending SME response/notification messages to applications above
  * MAC software.
@@ -45,6 +50,11 @@ void limSendSmeMeasurementInd(tpAniSirGlobal);
 #endif
 void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ);
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+void
+limSendSmeAggrQosRsp(tpAniSirGlobal pMac, tpSirAggrQosRsp aggrQosRsp,
+                     tANI_U8 smesessionId);
+#endif /*WLAN_FEATURE_VOWIFI_11R*/
 
 void limSendSmeAddtsRsp(tpAniSirGlobal pMac, tANI_U8 rspReqd, tANI_U32 status, tpPESession psessionEntry, tSirMacTspecIE tspec, tANI_U8 smesessionId, tANI_U16 smetransactionId);
 void limSendSmeAddtsInd(tpAniSirGlobal pMac, tpSirAddtsReqInfo addts);

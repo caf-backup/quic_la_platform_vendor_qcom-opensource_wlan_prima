@@ -22,7 +22,7 @@ HDD_OBJS := wlan_hdd_main.o  \
             wlan_hdd_dp_utils.o \
             wlan_hdd_early_suspend.o  \
             wlan_hdd_wmm.o \
-	    wlan_hdd_cfg.o \
+            wlan_hdd_cfg.o \
             wlan_hdd_wowl.o \
             wlan_hdd_innav.o \
             wlan_hdd_ftm.o  \
@@ -63,6 +63,10 @@ VOSS_OBJS :=    $(VOSS_SRC_DIR)/vos_types.o \
                 $(VOSS_SRC_DIR)/wlan_qct_bal.o \
                 $(VOSS_SRC_DIR)/wlan_qct_sal.o
 
+ifeq ($(WLAN_CCX_FEATURE),1)
+VOSS_OBJS += $(VOSS_SRC_DIR)/vos_utils.o
+endif
+
 ifeq ($(BUILD_DIAG_VERSION),1)
 VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
 endif
@@ -100,6 +104,10 @@ SYS_OBJS :=	$(SYS_COMMON_SRC_DIR)/wlan_qct_sys.o \
         $(SYS_LEGACY_SRC_DIR)/utils/src/parserApi.o \
         $(SYS_LEGACY_SRC_DIR)/utils/src/utilsApi.o \
         $(SYS_LEGACY_SRC_DIR)/utils/src/utilsParser.o
+
+ifeq ($(WLAN_CCX_FEATURE),1)
+SYS_OBJS += $(SYS_LEGACY_SRC_DIR)/utils/src/limCcxparserApi.o
+endif
 
 ############# MAC ##################### 
 MAC_INC := 	-I$(WLAN_DIR)/MAC/inc \
@@ -158,6 +166,10 @@ MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
             $(MAC_SRC_DIR)/pe/lim/limSessionUtils.o \
             $(MAC_SRC_DIR)/pe/lim/limFT.o \
             $(MAC_SRC_DIR)/pe/lim/limP2P.o
+
+ifeq ($(WLAN_CCX_FEATURE),1)
+MAC_LIM_OBJS += $(MAC_SRC_DIR)/pe/lim/limProcessCcxFrame.o
+endif
 
 MAC_PMM_OBJS = $(MAC_SRC_DIR)/pe/pmm/pmmApi.o    \
             $(MAC_SRC_DIR)/pe/pmm/pmmDebug.o     \
@@ -278,7 +290,11 @@ SME_CSR_OBJS := $(SME_SRC_DIR)/csr/csrLinkList.o \
         $(SME_SRC_DIR)/csr/csrCmdProcess.o \
         $(SME_SRC_DIR)/csr/csrUtil.o \
         $(SME_SRC_DIR)/csr/csrLogDump.o \
-        $(SME_SRC_DIR)/csr/csrNeighborRoam.o 
+        $(SME_SRC_DIR)/csr/csrNeighborRoam.o
+
+ifeq ($(WLAN_CCX_FEATURE),1)
+SME_CSR_OBJS += $(SME_SRC_DIR)/csr/csrCcx.o
+endif
 
 SME_PMC_OBJS := $(SME_SRC_DIR)/pmc/pmcApi.o \
         $(SME_SRC_DIR)/pmc/pmc.o \
@@ -417,6 +433,10 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
 
 ifeq ($(CONFIG_CFG80211), y)
 CDEFINES += -DWLAN_FEATURE_P2P
+endif
+
+ifeq ($(WLAN_CCX_FEATURE),1)
+CDEFINES += -DFEATURE_WLAN_CCX
 endif
 
 # Enable SoftAP Virtual STA support unless explicitly disabled

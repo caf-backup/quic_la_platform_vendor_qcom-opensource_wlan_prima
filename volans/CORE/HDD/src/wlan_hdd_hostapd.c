@@ -215,6 +215,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     VOS_STATUS vos_status; 
     v_BOOL_t bWPSState;
     v_BOOL_t bApActive = FALSE;
+    v_BOOL_t bAuthRequired = TRUE;
     tpSap_AssocMacAddr pAssocStasArray = NULL;
 
 
@@ -330,8 +331,15 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             we_event = IWEVREGISTERED;
             
             WLANSAP_Get_WPS_State((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext, &bWPSState);
-            
-            if (pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen || bWPSState == eANI_BOOLEAN_TRUE )
+         
+            if ( (eCSR_ENCRYPT_TYPE_NONE == pHddApCtx->ucEncryptType) ||
+                 ( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY == pHddApCtx->ucEncryptType ) || 
+                 ( eCSR_ENCRYPT_TYPE_WEP104_STATICKEY == pHddApCtx->ucEncryptType ) )
+            {
+                bAuthRequired = FALSE;
+            }
+
+            if (bAuthRequired || bWPSState == eANI_BOOLEAN_TRUE )
             {
                 hdd_softap_RegisterSTA( pHostapdAdapter,
                                        TRUE,
@@ -2038,6 +2046,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         pHostapdAdapter->wdev.netdev =  pWlanHostapdDev;
         init_completion(&pHostapdAdapter->tx_action_cnf_event);
         init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
         init_completion(&pHostapdAdapter->offchannel_tx_event);
 #endif

@@ -7,8 +7,11 @@
   
     Exports and types for the Common Scan and Roaming Module interfaces.
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
+   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary. 
   
+   Copyright (C) 2006 Airgo Networks, Incorporated
  
    ========================================================================== */
 #ifndef CSRAPI_H__
@@ -18,10 +21,6 @@
 #include "sirMacProtDef.h"
 #include "halRfTypes.h"
 #include "csrLinkList.h"
-
-#ifdef WLAN_FEATURE_VOWIFI_11R
-#include "sme_FTApi.h" // Required for SME FT Context in aniGlobal
-#endif /* WLAN_FEATURE_VOWIFI_11R */
 
 typedef enum 
 {
@@ -46,6 +45,10 @@ typedef enum
     eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE,
     eCSR_AUTH_TYPE_WAPI_WAI_PSK,
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef FEATURE_WLAN_CCX
+    eCSR_AUTH_TYPE_CCKM_WPA,
+    eCSR_AUTH_TYPE_CCKM_RSN,
+#endif /* FEATURE_WLAN_CCX */
     eCSR_NUM_OF_SUPPORT_AUTH_TYPE,
     eCSR_AUTH_TYPE_FAILED = 0xff,
     eCSR_AUTH_TYPE_UNKNOWN = eCSR_AUTH_TYPE_FAILED,
@@ -66,6 +69,9 @@ typedef enum
 #ifdef FEATURE_WLAN_WAPI
     eCSR_ENCRYPT_TYPE_WPI, //WAPI
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef FEATURE_WLAN_CCX
+    eCSR_ENCRYPT_TYPE_KRK,
+#endif /* FEATURE_WLAN_CCX */
     eCSR_ENCRYPT_TYPE_ANY,
     eCSR_NUM_OF_ENCRYPT_TYPE = eCSR_ENCRYPT_TYPE_ANY,
 
@@ -172,6 +178,11 @@ typedef enum
 #else
 #define CSR_MAX_KEY_LEN         ( CSR_TKIP_KEY_LEN )  //longest one is for TKIP
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef FEATURE_WLAN_CCX
+#define CSR_KRK_KEY_LEN 16
+#endif
+
+
 
 typedef struct tagCsrChannelInfo
 {
@@ -262,6 +273,15 @@ typedef struct tagCsrMobilityDomainInfo
     tANI_U8 mdiePresent;
     tANI_U16 mobilityDomain;
 } tCsrMobilityDomainInfo;
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+typedef struct tagCsrCcxCckmInfo
+{
+    tANI_U32       reassoc_req_num;
+    tANI_BOOLEAN   krk_plumbed;
+    tANI_U8        krk[CSR_KRK_KEY_LEN];
+} tCsrCcxCckmInfo;
 #endif
 
 
@@ -363,6 +383,7 @@ typedef enum
 #ifdef WLAN_FEATURE_VOWIFI_11R
     eCSR_ROAM_FT_RESPONSE,
 #endif
+    eCSR_ROAM_FT_START,
     eCSR_ROAM_INDICATE_MGMT_FRAME,
     eCSR_ROAM_REMAIN_CHAN_READY,
     eCSR_ROAM_SEND_ACTION_CNF,
@@ -444,7 +465,7 @@ typedef enum
     // INFRA disassociated
     eCSR_ROAM_RESULT_INFRA_DISASSOCIATED,
     eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND,
-#endif
+#endif    
 #ifdef WLAN_FEATURE_P2P
     eCSR_ROAM_RESULT_SEND_ACTION_FAIL,
 #endif
@@ -682,7 +703,7 @@ typedef struct tagBkidCacheInfo
 typedef struct tagCsrKeys
 {
     tANI_U8 KeyLength[ CSR_MAX_NUM_KEY ];   //Also use to indicate whether the key index is set
-    tANI_U8 KeyMaterial[ CSR_MAX_NUM_KEY ][ eCSR_SECURITY_WEP_KEYSIZE_MAX_BYTES ];
+    tANI_U8 KeyMaterial[ CSR_MAX_NUM_KEY ][ CSR_MAX_KEY_LEN ];
     tANI_U8 defaultIndex;
 }tCsrKeys;
 
@@ -766,6 +787,7 @@ typedef struct tagCsrRoamProfile
     tCsrMobilityDomainInfo MDID;
 #endif
     tVOS_CON_MODE csrPersona;
+
 }tCsrRoamProfile;
 
 
@@ -798,6 +820,10 @@ typedef struct tagCsrRoamConnectedProfile
     tCsrMobilityDomainInfo MDID;
 #endif
     
+#ifdef FEATURE_WLAN_CCX
+    tCsrCcxCckmInfo ccxCckmInfo;
+    tANI_BOOLEAN    isCCXAssoc; 
+#endif
 }tCsrRoamConnectedProfile;
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
@@ -874,7 +900,6 @@ typedef struct tagCsrHandoffConfigParams
 #ifdef WLAN_FEATURE_VOWIFI_11R
 typedef struct tagCsr11rConfigParams
 {
-    tANI_BOOLEAN   IsFTSupportEnabled;
     tANI_BOOLEAN   IsFTResourceReqSupported;
 } tCsr11rConfigParams;
 #endif
@@ -956,6 +981,13 @@ typedef struct tagCsrConfigParam
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tCsr11rConfigParams  csr11rConfig;
 #endif
+#ifdef FEATURE_WLAN_CCX
+    tANI_U8   isCcxIniFeatureEnabled;
+#endif
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+    tANI_U8   isFastTransitionEnabled;
+#endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
     tCsrNeighborRoamConfigParams    neighborRoamConfig;
@@ -1030,6 +1062,9 @@ typedef struct tagCsrRoamInfo
     tANI_U32 dtimPeriod;
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+    tANI_BOOLEAN isCCXAssoc;
+#endif
 #ifdef WLAN_FEATURE_P2P
     void* pRemainCtx; 
 #endif
@@ -1341,6 +1376,7 @@ typedef void ( *tCsrRssiCallback) (v_S7_t rssi, tANI_U32 staId, void *pContext);
 #ifdef WLAN_FEATURE_VOWIFI_11R
 eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tpSirBssDescription pBssDescription);
 #endif
+
 
 #endif
 

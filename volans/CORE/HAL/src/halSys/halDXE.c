@@ -443,7 +443,9 @@ eHalStatus halDXE_Start(tHalHandle hHalHandle,  void *arg)
         v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, pMac->hHdd);
         WLANBAL_DXEHeaderConfig(pVosContext, &dxeHdrCfg );
     }
-
+#ifdef FEATURE_WLAN_CCX
+    halDxe_SetTimeStamp(pMac);
+#endif
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -577,4 +579,101 @@ VOS_STATUS halDxe_DxeChannelIdleStatus(tANI_U32 *pStatus, v_PVOID_t pMacContext)
     *pStatus = status; 
     return (status);
 }
+
+#ifdef FEATURE_WLAN_CCX
+
+eHalStatus halDxe_EnableTimeStamp(tHalHandle hHalHandle, tANI_U8 enable)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
+    tANI_U32       regVal;
+    eHalStatus status=eHAL_STATUS_SUCCESS;
+
+    status = halReadRegister(pMac, QWLAN_DXE_0_DMA_CSR_REG, &regVal);
+    if(status != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halReadRegister failed\n")));
+        return status;
+    }
+
+    if(enable)
+    {
+        if(!(regVal & QWLAN_DXE_0_DMA_CSR_TSTMP_EN_MASK))
+            regVal |=QWLAN_DXE_0_DMA_CSR_TSTMP_EN_MASK;
+    }
+    else
+    {
+        if((regVal & QWLAN_DXE_0_DMA_CSR_TSTMP_EN_MASK))
+            regVal &=~QWLAN_DXE_0_DMA_CSR_TSTMP_EN_MASK;
+    }
+
+    status = halWriteRegister(pMac, QWLAN_DXE_0_DMA_CSR_REG, regVal);
+    if(status != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halReadRegister failed\n")));
+        return status;
+    }
+
+    return status;
+}
+
+eHalStatus halDxe_SetTimeStampOffset(tHalHandle hHalHandle, tANI_U8 tx_offset, tANI_U8 rx_offset)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
+    tANI_U32       regVal;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    status = halReadRegister(pMac, QWLAN_DXE_0_DMA_CSR_REG, &regVal);
+    if(status != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halReadRegister failed\n")));
+        return status;
+    }
+    /*First clear before set*/
+    regVal &= ~QWLAN_DXE_0_DMA_CSR_H2B_TSTMP_OFF_MASK;
+    regVal |= (tANI_U32)(tx_offset << QWLAN_DXE_0_DMA_CSR_H2B_TSTMP_OFF_OFFSET);
+    
+    regVal &= ~QWLAN_DXE_0_DMA_CSR_B2H_TSTMP_OFF_MASK;
+    regVal |= (tANI_U32)(rx_offset << QWLAN_DXE_0_DMA_CSR_B2H_TSTMP_OFF_OFFSET);
+
+    status = halWriteRegister(pMac, QWLAN_DXE_0_DMA_CSR_REG, regVal);
+    if(status != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halReadRegister failed\n")));
+        return status;
+    }
+    return status;
+}
+
+eHalStatus halDxe_SetTimeStamp(tHalHandle hHalHandle)
+{
+    eHalStatus status;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
+    tANI_U8 txBdTsOffset,rxBdTsOffset;
+
+    txBdTsOffset = offsetof(halTxBd_type,dxeH2BStartTimestamp)/sizeof(tANI_U32);
+    rxBdTsOffset = offsetof(halRxBd_type,mclkRxTimestamp)/sizeof(tANI_U32);
+
+    status = halDxe_SetTimeStampOffset(pMac,txBdTsOffset,rxBdTsOffset);
+
+    if(eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE( halLog(pMac, LOGE, 
+               FL("halDxe_SetTimeStampOffset failed!!!\n")));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    /*Enable the time stamp in the dxe_0 DMA Control and Status Register*/
+    status = halDxe_EnableTimeStamp(pMac,VOS_TRUE);
+
+    if(eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE( halLog(pMac, LOGE, 
+                     FL("halDxe_EnableTimeStamp failed!!!\n")));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return status;
+}
+
+#endif
 

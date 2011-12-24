@@ -42,6 +42,10 @@ void        limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
                 tpPESession psessionEntry);
 void        limProcessFTPreauthRspTimeout(tpAniSirGlobal pMac);
 
+tSirRetStatus  limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf );
+void        limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
+int         limisFastTransitionRequired(tpAniSirGlobal pMac, int SessionId);
+
 
 #endif /* __LIMFT_H__ */ 
 

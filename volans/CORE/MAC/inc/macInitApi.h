@@ -1,7 +1,12 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
  * macInitApi.c - Header file for mac level init functions
-  * Author:    Dinesh Upadhyay
+ * Author:    Dinesh Upadhyay
  * Date:      04/23/2007
  * History:-
  * Date       Modified by            Modification Information

@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file pmmApi.cc contains functions related to the API exposed
  * by power management module
  *
@@ -23,6 +28,7 @@
 #include "cfgApi.h"
 #include "halCommonApi.h"
 #include "limSessionUtils.h"
+#include "limFT.h"
 
 
 #include "pmmApi.h"
@@ -539,6 +545,10 @@ tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac,tpPESession psessionE
     tSirRetStatus   retCode = eSIR_SUCCESS;
     tSirMsgQ msgQ;
     tpEnterBmpsParams pBmpsParams = NULL;
+    tANI_U32    rssiFilterPeriod;
+    tANI_U32    numBeaconPerRssiAverage;
+    int         i=0;
+    tANI_U32    bRssiFilterEnable = FALSE;
 
     if(psessionEntry->currentBssBeaconCnt == 0)
     {
@@ -557,6 +567,45 @@ tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac,tpPESession psessionE
     pBmpsParams->dtimCount = psessionEntry->lastBeaconDtimCount;
     pBmpsParams->dtimPeriod = psessionEntry->lastBeaconDtimPeriod;
     pBmpsParams->bssIdx = psessionEntry->bssIdx;
+
+    if(wlan_cfgGetInt(pMac, WNI_CFG_RSSI_FILTER_PERIOD, &rssiFilterPeriod) != eSIR_SUCCESS)
+        pmmLog(pMac, LOGP, FL("pmmCfg: cfgGet failed for Rssi filter period"));
+
+    // This flag can be overridden when 11r/CCXEnabled=1 and FastTransition=1
+    if(wlan_cfgGetInt(pMac, WNI_CFG_PS_ENABLE_RSSI_MONITOR, &bRssiFilterEnable) != eSIR_SUCCESS)
+        pmmLog(pMac, LOGP, FL("pmmCfg: cfgGet failed for Rssi monitor enable flag"));
+    pBmpsParams->bRssiFilterEnable = bRssiFilterEnable;
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+    // If there is a CCX assoc or 11r assoc we need to pick up the rssiFilterPeriod from the
+    // FT config value.
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if (limisFastTransitionRequired(pMac, i))
+        {
+            if(wlan_cfgGetInt(pMac, WNI_CFG_FT_RSSI_FILTER_PERIOD, &rssiFilterPeriod) != eSIR_SUCCESS)
+                pmmLog(pMac, LOGP, FL("pmmCfg: cfgGet failed for Rssi filter period"));
+	    // We need to override the ini value to enable 
+	    // FW RSSI Monitoring. Basically if CCX and FT are enabled
+	    // then enable FW RSSI Monitoring
+            pBmpsParams->bRssiFilterEnable = TRUE;
+            break;
+        }
+    }
+#endif
+    pBmpsParams->rssiFilterPeriod = (tANI_U8)rssiFilterPeriod;
+    /* The numBeaconPerRssiAverage should be <= rssiFilter Period,
+     * and less than the max allowed (default set to 20 in CFG)
+     */
+    if(wlan_cfgGetInt(pMac, WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE, &numBeaconPerRssiAverage) != eSIR_SUCCESS)
+        pmmLog(pMac, LOGP, FL("pmmCfg: cfgGet failed for num beacon per rssi"));
+    pBmpsParams->numBeaconPerRssiAverage = (tANI_U8) numBeaconPerRssiAverage;
+    if (numBeaconPerRssiAverage > rssiFilterPeriod)
+        pBmpsParams->numBeaconPerRssiAverage = (tANI_U8)GET_MIN_VALUE(rssiFilterPeriod, WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX);
+
+    VOS_TRACE (VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL,
+        "%s: [INFOLOG]RssiFilterInfo..%d %x %x\n", __func__, (int)pBmpsParams->bRssiFilterEnable,
+        (unsigned int)rssiFilterPeriod, (unsigned int)pBmpsParams->numBeaconPerRssiAverage);
 
     msgQ.type = SIR_HAL_ENTER_BMPS_REQ;
     msgQ.reserved = 0;

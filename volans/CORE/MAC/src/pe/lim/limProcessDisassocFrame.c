@@ -1,6 +1,11 @@
 
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limProcessDisassocFrame.cc contains the code
  * for processing Disassocation Frame.
  * Author:        Chandra Modumudi

@@ -4,8 +4,13 @@
  * \brief Code for preparing and sending 802.11 Management frames
  *
  *
- * Copyright (C) 2005-2007 Airgo Networks, Incorporated
  *
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  *
  */
 
@@ -25,6 +30,10 @@
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
 #endif
+#ifdef FEATURE_WLAN_CCX
+#include <limCcxparserApi.h>
+#endif
+
 #include "halTxRx.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -154,7 +163,6 @@ tSirRetStatus limPopulateBD( tpAniSirGlobal pMac,
  *
  *
  */
-
 tSirRetStatus
 limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
                          tSirMacSSid   *pSsid,
@@ -716,10 +724,12 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
     tANI_U32               nPayload, nBytes, nStatus;
     tpSirMacMgmtHdr        pMacHdr;
     void                  *pPacket;
+#ifdef FEATURE_WLAN_CCX    
+    tANI_U32               phyMode;
+#endif    
     eHalStatus             halstatus;
     tANI_U8                txFlag = 0;
 
-    
     if(NULL == psessionEntry)
     {
            return;
@@ -805,7 +815,18 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
         WMMAddTSReq.StatusCode.statusCode = 0;
 
         PopulateDot11fWMMTSPEC( &pAddTS->tspec, &WMMAddTSReq.WMMTSPEC );
-
+#ifdef FEATURE_WLAN_CCX
+        limGetPhyMode(pMac, &phyMode);
+        if( (WNI_CFG_PHY_MODE_11G == phyMode) || (WNI_CFG_PHY_MODE_11A == phyMode) )
+        {
+            pAddTS->tsrsIE.rates[0] = TSRS_11AG_RATE_6MBPS;
+        }
+        else 
+        {
+            pAddTS->tsrsIE.rates[0] = TSRS_11B_RATE_5_5MBPS;
+        }
+        PopulateDot11TSRSIE(pMac,&pAddTS->tsrsIE, &WMMAddTSReq.CCXTrafStrmRateSet,sizeof(tANI_U8));
+#endif
         // fillWmeTspecIE
 
         nStatus = dot11fGetPackedWMMAddTSRequestSize( pMac, &WMMAddTSReq, &nPayload );
@@ -1947,7 +1968,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
     nAddIELen = psessionEntry->pLimJoinReq->addIEAssoc.length; 
     pAddIE = psessionEntry->pLimJoinReq->addIEAssoc.addIEdata;
-    
+
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
     caps = pMlmAssocReq->capabilityInfo;
@@ -1955,11 +1976,11 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         ((tSirMacCapabilityInfo *) &caps)->qos = 0;
 #if defined(FEATURE_WLAN_WAPI)
     /* CR: 262463 : 
-    According to WAPI standard:
-    7.3.1.4 Capability Information field
-    In WAPI, non-AP STAs within an ESS set the Privacy subfield to 0 in transmitted 
-    Association or Reassociation management frames. APs ignore the Privacy subfield within received Association and 
-    Reassociation management frames. */
+       According to WAPI standard:
+       7.3.1.4 Capability Information field
+       In WAPI, non-AP STAs within an ESS set the Privacy subfield to 0 in transmitted 
+       Association or Reassociation management frames. APs ignore the Privacy subfield within received Association and 
+       Reassociation management frames. */
     if ( psessionEntry->encryptType == eSIR_ED_WPI)
         ((tSirMacCapabilityInfo *) &caps)->privacy = 0;
 #endif
@@ -1968,7 +1989,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     frm.ListenInterval.interval = pMlmAssocReq->listenInterval;
     PopulateDot11fSSID2( pMac, &frm.SSID );
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                             &frm.SuppRates,psessionEntry);
+            &frm.SuppRates,psessionEntry);
 
     fQosEnabled = ( psessionEntry->limQosEnabled) &&
         SIR_MAC_GET_QOS( psessionEntry->limCurrentBssCaps );
@@ -1984,7 +2005,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
 
     if ( pMac->lim.gLim11hEnable  &&
-         psessionEntry->pLimJoinReq->spectrumMgtIndicator == eSIR_TRUE ) 
+            psessionEntry->pLimJoinReq->spectrumMgtIndicator == eSIR_TRUE ) 
     {
 #if defined WLAN_FEATURE_VOWIFI
         PowerCapsPopulated = TRUE;
@@ -1995,7 +2016,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
 #if defined WLAN_FEATURE_VOWIFI
     if( pMac->rrm.rrmPEContext.rrmEnable &&
-        SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
+            SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
     {
         if (PowerCapsPopulated == FALSE) 
         {
@@ -2006,15 +2027,15 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 #endif
 
     if ( fQosEnabled &&
-         ( ! PROP_CAPABILITY_GET(11EQOS, psessionEntry->limCurrentBssPropCap)))
-                PopulateDot11fQOSCapsStation( pMac, &frm.QOSCapsStation );
+            ( ! PROP_CAPABILITY_GET(11EQOS, psessionEntry->limCurrentBssPropCap)))
+        PopulateDot11fQOSCapsStation( pMac, &frm.QOSCapsStation );
 
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                                &frm.ExtSuppRates, psessionEntry );
+            &frm.ExtSuppRates, psessionEntry );
 
 #if defined WLAN_FEATURE_VOWIFI
     if( pMac->rrm.rrmPEContext.rrmEnable &&
-        SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
+            SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
     {
         PopulateDot11fRRMIe( pMac, &frm.RRMEnabledCap, psessionEntry );       
     }
@@ -2046,12 +2067,12 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     if ( NULL == wpsIe )
     {
         PopulateDot11fRSNOpaque( pMac, &( psessionEntry->pLimJoinReq->rsnIE ),
-                                 &frm.RSNOpaque );
+                &frm.RSNOpaque );
         PopulateDot11fWPAOpaque( pMac, &( psessionEntry->pLimJoinReq->rsnIE ),
-                                 &frm.WPAOpaque );
+                &frm.WPAOpaque );
 #if defined(FEATURE_WLAN_WAPI)
         PopulateDot11fWAPIOpaque( pMac, &( psessionEntry->pLimJoinReq->rsnIE ),
-                                 &frm.WAPIOpaque );
+                &frm.WAPIOpaque );
 #endif // defined(FEATURE_WLAN_WAPI)
     }
 
@@ -2064,7 +2085,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         }
 
         if ( fWsmEnabled &&
-             ( ! PROP_CAPABILITY_GET(WSM, psessionEntry->limCurrentBssPropCap )))
+                ( ! PROP_CAPABILITY_GET(WSM, psessionEntry->limCurrentBssPropCap )))
         {
             PopulateDot11fWMMCaps( &frm.WMMCaps );
         }
@@ -2073,35 +2094,35 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     //Populate HT IEs, when operating in 11n or Taurus modes AND
     //when AP is also operating in 11n mode.
     if ( psessionEntry->htCapabality &&
-         pMac->lim.htCapabilityPresentInBeacon)
+            pMac->lim.htCapabilityPresentInBeacon)
     {
         PopulateDot11fHTCaps( pMac, &frm.HTCaps );
 #ifdef DISABLE_GF_FOR_INTEROP
 
-         /*
+        /*
          * To resolve the interop problem with Broadcom AP, 
          * where TQ STA could not pass traffic with GF enabled,
          * TQ STA will do Greenfield only with TQ AP, for 
          * everybody else it will be turned off.
-        */
+         */
 
         if( (psessionEntry->pLimJoinReq != NULL) && (!psessionEntry->pLimJoinReq->bssDescription.aniIndicator))
-            {
-                limLog( pMac, LOGE, FL("Sending Assoc Req to Non-TQ AP, Turning off Greenfield"));
-                frm.HTCaps.greenField = WNI_CFG_GREENFIELD_CAPABILITY_DISABLE;
-            }
+        {
+            limLog( pMac, LOGE, FL("Sending Assoc Req to Non-TQ AP, Turning off Greenfield"));
+            frm.HTCaps.greenField = WNI_CFG_GREENFIELD_CAPABILITY_DISABLE;
+        }
 #endif
 
     }
 
 #if defined WLAN_FEATURE_VOWIFI_11R
-    if (psessionEntry->pLimJoinReq->bssDescription.mdiePresent)
+    if (psessionEntry->pLimJoinReq->is11Rconnection)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         limLog( pMac, LOGE, FL("mdie = %02x %02x %02x\n"), 
-		        (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[0],
-		        (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[1],
-		        (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[2]);
+                (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[0],
+                (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[1],
+                (unsigned int)psessionEntry->pLimJoinReq->bssDescription.mdie[2]);
 #endif
         PopulateMDIE( pMac, &frm.MobilityDomain, psessionEntry->pLimJoinReq->bssDescription.mdie); 
     }
@@ -2112,11 +2133,20 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+    // For CCX Associations fill the CCX IEs
+    if (psessionEntry->isCCXconnection)
+    {
+        PopulateDot11fCCXRadMgmtCap(&frm.CCXRadMgmtCap);
+        PopulateDot11fCCXVersion(&frm.CCXVersion);
+    }
+#endif
+
     nStatus = dot11fGetPackedAssocRequestSize( pMac, &frm, &nPayload );
     if ( DOT11F_FAILED( nStatus ) )
     {
         limLog( pMac, LOGP, FL("Failed to calculate the packed size f"
-                               "or an Association Request (0x%08x).\n"),
+                    "or an Association Request (0x%08x).\n"),
                 nStatus );
         // We'll fall back on the worst case scenario:
         nPayload = sizeof( tDot11fAssocRequest );
@@ -2124,34 +2154,34 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while calculating"
-                               "the packed size for an Association Re "
-                               "quest(0x%08x).\n"), nStatus );
+                    "the packed size for an Association Re "
+                    "quest(0x%08x).\n"), nStatus );
     }
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr ) + nAddIELen;
 
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                             ( tANI_U16 )nBytes, ( void** ) &pFrame,
-                             ( void** ) &pPacket );
+            ( tANI_U16 )nBytes, ( void** ) &pFrame,
+            ( void** ) &pPacket );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         limLog( pMac, LOGP, FL("Failed to allocate %d bytes for an As"
-                               "sociation Request.\n"), nBytes );
+                    "sociation Request.\n"), nBytes );
 
         psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-	 MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
-        
+
         /* Update PE session id*/
         mlmAssocCnf.sessionId = psessionEntry->peSessionId;
 
         mlmAssocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
 
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                    ( void* ) pFrame, ( void* ) pPacket );
+                ( void* ) pFrame, ( void* ) pPacket );
 
         limPostSmeMessage( pMac, LIM_MLM_ASSOC_CNF,
-                          ( tANI_U32* ) &mlmAssocCnf);
+                ( tANI_U32* ) &mlmAssocCnf);
 
         return;
     }
@@ -2161,11 +2191,11 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateBD( pMac, pFrame, SIR_MAC_MGMT_FRAME,
-                                SIR_MAC_MGMT_ASSOC_REQ, psessionEntry->bssId,psessionEntry->selfMacAddr);
+            SIR_MAC_MGMT_ASSOC_REQ, psessionEntry->bssId,psessionEntry->selfMacAddr);
     if ( eSIR_SUCCESS != nSirStatus )
     {
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
-                               "tor for an Association Request (%d).\n"),
+                    "tor for an Association Request (%d).\n"),
                 nSirStatus );
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
         return;
@@ -2174,66 +2204,66 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
     // That done, pack the Probe Request:
     nStatus = dot11fPackAssocRequest( pMac, &frm, pFrame +
-                                      sizeof(tSirMacMgmtHdr),
-                                      nPayload, &nPayload );
+            sizeof(tSirMacMgmtHdr),
+            nPayload, &nPayload );
     if ( DOT11F_FAILED( nStatus ) )
     {
         limLog( pMac, LOGE, FL("Failed to pack a Probe Response (0x%0"
-                               "8x).\n"),
+                    "8x).\n"),
                 nStatus );
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                    ( void* ) pFrame, ( void* ) pPacket );
+                ( void* ) pFrame, ( void* ) pPacket );
         return;
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a P"
-                               "robe Response (0x%08x).\n") );
+                    "robe Response (0x%08x).\n") );
     }
 
     PELOG1(limLog( pMac, LOG1, FL("*** Sending Association Request length %d"
-                           "to \n"),
-            nBytes );)
- //   limPrintMacAddr( pMac, bssid, LOG1 );
+                    "to \n"),
+                nBytes );)
+        //   limPrintMacAddr( pMac, bssid, LOG1 );
 
-    if( psessionEntry->assocReq != NULL )
-    {
-        palFreeMemory(pMac->hHdd, psessionEntry->assocReq);
-        psessionEntry->assocReq = NULL;
-    }
+        if( psessionEntry->assocReq != NULL )
+        {
+            palFreeMemory(pMac->hHdd, psessionEntry->assocReq);
+            psessionEntry->assocReq = NULL;
+        }
 
     if( nAddIELen )
     {
         palCopyMemory( pMac->hHdd, pFrame + sizeof(tSirMacMgmtHdr) + nPayload, 
-                       pAddIE, 
-                       nAddIELen );
+                pAddIE, 
+                nAddIELen );
         nPayload += nAddIELen;
     }
 
     if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocReq, nPayload)) != eSIR_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc request"));)
-     }
-     else
-     {
+    }
+    else
+    {
         //Store the Assoc request. This is sent to csr/hdd in join cnf response. 
         palCopyMemory(pMac->hHdd, psessionEntry->assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
         psessionEntry->assocReqLen = nPayload;
-     }
+    }
 
 #ifdef WLAN_FEATURE_P2P
     if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+            ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
 #endif
 
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (sizeof(tSirMacMgmtHdr) + nPayload),
-                            HAL_TXRX_FRM_802_11_MGMT,
-                            ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
-                            limTxComplete, pFrame, txFlag );
+            HAL_TXRX_FRM_802_11_MGMT,
+            ANI_TXDIR_TODS,
+            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+            limTxComplete, pFrame, txFlag );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         limLog( pMac, LOGE, FL("Failed to send Association Request (%X)!\n"),
@@ -2249,7 +2279,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
 
 
-#if defined WLAN_FEATURE_VOWIFI_11R
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX
 /*------------------------------------------------------------------------------------
  *
  * Send Reassoc Req with FTIEs.
@@ -2273,6 +2303,11 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 #endif
     tANI_U16              ft_ies_length = 0;
     tANI_U8               *pBody;
+    tANI_U16              nAddIELen; 
+    tANI_U8               *pAddIE;
+#ifdef FEATURE_WLAN_CCX    
+    tANI_U8               *wpsIe = NULL;
+#endif
     tANI_U8               txFlag = 0;
 
     if (NULL == psessionEntry)
@@ -2284,11 +2319,23 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     {
         return;
     }
-    if (pMac->ft.ftSmeContext.reassoc_ft_ies_length == 0)
+
+    if (psessionEntry->is11Rconnection)
+    {
+        if (pMac->ft.ftSmeContext.reassoc_ft_ies_length == 0)
+        {
+            return;
+        }
+    }
+
+    /* check this early to avoid unncessary operation */
+    if (NULL == psessionEntry->pLimReAssocReq)
     {
         return;
     }
-    
+    nAddIELen = psessionEntry->pLimReAssocReq->addIEAssoc.length; 
+    pAddIE = psessionEntry->pLimReAssocReq->addIEAssoc.addIEdata;
+
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
     caps = pMlmReassocReq->capabilityInfo;
@@ -2296,11 +2343,11 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
         ((tSirMacCapabilityInfo *) &caps)->qos = 0;
 #if defined(FEATURE_WLAN_WAPI)
     /* CR: 262463 : 
-    According to WAPI standard:
-    7.3.1.4 Capability Information field
-    In WAPI, non-AP STAs within an ESS set the Privacy subfield to 0 in transmitted 
-    Association or Reassociation management frames. APs ignore the Privacy subfield within received Association and 
-    Reassociation management frames. */
+       According to WAPI standard:
+       7.3.1.4 Capability Information field
+       In WAPI, non-AP STAs within an ESS set the Privacy subfield to 0 in transmitted 
+       Association or Reassociation management frames. APs ignore the Privacy subfield within received Association and 
+       Reassociation management frames. */
     if ( psessionEntry->encryptType == eSIR_ED_WPI)
         ((tSirMacCapabilityInfo *) &caps)->privacy = 0;
 #endif
@@ -2310,33 +2357,32 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 
     // Get the old bssid of the older AP.
     palCopyMemory( pMac->hHdd, ( tANI_U8* )frm.CurrentAPAddress.mac,
-        pMac->ft.ftPEContext.pFTPreAuthReq->currbssId, 6); 
+            pMac->ft.ftPEContext.pFTPreAuthReq->currbssId, 6); 
 
     PopulateDot11fSSID2( pMac, &frm.SSID );
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                             &frm.SuppRates,psessionEntry);
+            &frm.SuppRates,psessionEntry);
 
-    fQosEnabled = ( pMac->lim.gLimQosEnabled ) &&
+    fQosEnabled = ( psessionEntry->limQosEnabled) &&
         SIR_MAC_GET_QOS( psessionEntry->limReassocBssCaps );
 
-    fWmeEnabled = ( pMac->lim.gLimWmeEnabled ) &&
+    fWmeEnabled = ( psessionEntry->limWmeEnabled ) &&
         LIM_BSS_CAPS_GET( WME, psessionEntry->limReassocBssQosCaps );
 
-    fWsmEnabled = ( pMac->lim.gLimWsmEnabled ) && fWmeEnabled &&
+    fWsmEnabled = ( psessionEntry->limWsmEnabled ) && fWmeEnabled &&
         LIM_BSS_CAPS_GET( WSM, psessionEntry->limReassocBssQosCaps );
 
-
-    if ( pMac->lim.gLim11hEnable  &&
-         psessionEntry->pLimReAssocReq->spectrumMgtIndicator == eSIR_TRUE )
+    if ( psessionEntry->lim11hEnable  &&
+            psessionEntry->pLimReAssocReq->spectrumMgtIndicator == eSIR_TRUE )
     {
         PowerCapsPopulated = TRUE;
         PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
         PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_REASSOC,psessionEntry);
     }
 
-#if defined WLAN_FEATURE_VOWIFI
+#if defined WLAN_FEATURE_VOWIFI || defined FEATURE_WLAN_CCX
     if( pMac->rrm.rrmPEContext.rrmEnable &&
-        SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
+            SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
     {
         if (PowerCapsPopulated == FALSE) 
         {
@@ -2347,19 +2393,75 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 #endif
 
     if ( fQosEnabled &&
-         ( ! PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap ) ))
+            ( ! PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap ) ))
     {
         PopulateDot11fQOSCapsStation( pMac, &frm.QOSCapsStation );
     }
 
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
-                                &frm.ExtSuppRates, psessionEntry );
+            &frm.ExtSuppRates, psessionEntry );
 
 #if defined WLAN_FEATURE_VOWIFI
     if( pMac->rrm.rrmPEContext.rrmEnable &&
-        SIR_MAC_GET_RRM( psessionEntry->limReassocBssCaps ) )
+            SIR_MAC_GET_RRM( psessionEntry->limReassocBssCaps ) )
     {
         PopulateDot11fRRMIe( pMac, &frm.RRMEnabledCap, psessionEntry );       
+    }
+#endif
+
+    // Ideally this should be enabled for 11r also. But 11r does
+    // not follow the usual norm of using the Opaque object
+    // for rsnie and fties. Instead we just add
+    // the rsnie and fties at the end of the pack routine for 11r.
+    // This should ideally! be fixed.
+#ifdef FEATURE_WLAN_CCX
+    //
+    // The join request *should* contain zero or one of the WPA and RSN
+    // IEs.  The payload send along with the request is a
+    // 'tSirSmeJoinReq'; the IE portion is held inside a 'tSirRSNie':
+
+    //     typedef struct sSirRSNie
+    //     {
+    //         tANI_U16       length;
+    //         tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
+    //     } tSirRSNie, *tpSirRSNie;
+
+    // So, we should be able to make the following two calls harmlessly,
+    // since they do nothing if they don't find the given IE in the
+    // bytestream with which they're provided.
+
+    // The net effect of this will be to faithfully transmit whatever
+    // security IE is in the join request.
+
+    // *However*, if we're associating for the purpose of WPS
+    // enrollment, and we've been configured to indicate that by
+    // eliding the WPA or RSN IE, we just skip this:
+    if (!psessionEntry->is11Rconnection)
+    {
+        if( nAddIELen && pAddIE )
+        {
+            wpsIe = limGetWscIEPtr(pMac, pAddIE, nAddIELen);
+        }
+        if ( NULL == wpsIe )
+        {
+            PopulateDot11fRSNOpaque( pMac, &( psessionEntry->pLimReAssocReq->rsnIE ),
+                    &frm.RSNOpaque );
+            PopulateDot11fWPAOpaque( pMac, &( psessionEntry->pLimReAssocReq->rsnIE ),
+                    &frm.WPAOpaque );
+        }
+
+        if(psessionEntry->pLimReAssocReq->cckmIE.length)
+        {
+            PopulateDot11fCCXCckmOpaque( pMac, &( psessionEntry->pLimReAssocReq->cckmIE ),
+                    &frm.CCXCckmOpaque );
+        }
+    }
+
+    // For CCX Associations fill the CCX IEs
+    if (psessionEntry->isCCXconnection)
+    {
+        PopulateDot11fCCXRadMgmtCap(&frm.CCXRadMgmtCap);
+        PopulateDot11fCCXVersion(&frm.CCXVersion);
     }
 #endif
 
@@ -2372,14 +2474,39 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
         }
 
         if ( fWsmEnabled &&
-             ( ! PROP_CAPABILITY_GET(WSM, psessionEntry->limReassocBssPropCap )))
+                ( ! PROP_CAPABILITY_GET(WSM, psessionEntry->limReassocBssPropCap )))
         {
             PopulateDot11fWMMCaps( &frm.WMMCaps );
         }
+#ifdef FEATURE_WLAN_CCX
+        if (psessionEntry->isCCXconnection) 
+        {
+            PopulateDot11fReAssocTspec(pMac, &frm, psessionEntry);
+
+            // Populate the TSRS IE if TSPEC is included in the reassoc request
+            if (psessionEntry->pLimReAssocReq->ccxTspecInfo.numTspecs) 
+            {
+                tANI_U32 phyMode;
+                tSirMacCCXTSRSIE    tsrsIE; 
+                limGetPhyMode(pMac, &phyMode);
+
+                tsrsIE.tsid = 0;
+                if( phyMode == WNI_CFG_PHY_MODE_11G || phyMode == WNI_CFG_PHY_MODE_11A)
+                {
+                    tsrsIE.rates[0] = TSRS_11AG_RATE_6MBPS;
+                }
+                else 
+                {
+                    tsrsIE.rates[0] = TSRS_11B_RATE_5_5MBPS;
+                }
+                PopulateDot11TSRSIE(pMac,&tsrsIE, &frm.CCXTrafStrmRateSet, sizeof(tANI_U8));
+            }
+        }
+#endif    
     }
 
     if ( psessionEntry->htCapabality &&
-          pMac->lim.htCapabilityPresentInBeacon)
+            pMac->lim.htCapabilityPresentInBeacon)
     {
         PopulateDot11fHTCaps( pMac, &frm.HTCaps );
     }
@@ -2388,7 +2515,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     if ( DOT11F_FAILED( nStatus ) )
     {
         limLog( pMac, LOGP, FL("Failed to calculate the packed size f"
-                               "or a Re-Association Request (0x%08x).\n"),
+                    "or a Re-Association Request (0x%08x).\n"),
                 nStatus );
         // We'll fall back on the worst case scenario:
         nPayload = sizeof( tDot11fReAssocRequest );
@@ -2396,55 +2523,62 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while calculating"
-                               "the packed size for a Re-Association Re "
-                               "quest(0x%08x).\n"), nStatus );
+                    "the packed size for a Re-Association Re "
+                    "quest(0x%08x).\n"), nStatus );
     }
 
-    nBytes = nPayload + sizeof( tSirMacMgmtHdr );
+    nBytes = nPayload + sizeof( tSirMacMgmtHdr ) + nAddIELen; ;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
     limLog( pMac, LOGE, FL("FT IE Reassoc Req (%d).\n"), 
-        pMac->ft.ftSmeContext.reassoc_ft_ies_length);
+            pMac->ft.ftSmeContext.reassoc_ft_ies_length);
 #endif
-    ft_ies_length = pMac->ft.ftSmeContext.reassoc_ft_ies_length;
+
+    if (psessionEntry->is11Rconnection)
+    {
+        ft_ies_length = pMac->ft.ftSmeContext.reassoc_ft_ies_length;
+    }
 
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                             ( tANI_U16 )nBytes+ft_ies_length, ( void** ) &pFrame,
-                             ( void** ) &pPacket );
+            ( tANI_U16 )nBytes+ft_ies_length, ( void** ) &pFrame,
+            ( void** ) &pPacket );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
         limLog( pMac, LOGP, FL("Failed to allocate %d bytes for a Re-As"
-                               "sociation Request.\n"), nBytes );
+                    "sociation Request.\n"), nBytes );
         goto end;
     }
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes + ft_ies_length);
 
+#if defined WLAN_FEATURE_VOWIFI_11R_DEBUG || defined FEATURE_WLAN_CCX
+    limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOGE);
+#endif
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateBD( pMac, pFrame, SIR_MAC_MGMT_FRAME,
-                                SIR_MAC_MGMT_REASSOC_REQ,
-                                psessionEntry->limReAssocbssId,psessionEntry->selfMacAddr);
+            SIR_MAC_MGMT_REASSOC_REQ,
+            psessionEntry->limReAssocbssId,psessionEntry->selfMacAddr);
     if ( eSIR_SUCCESS != nSirStatus )
     {
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
-                               "tor for an Association Request (%d).\n"),
+                    "tor for an Association Request (%d).\n"),
                 nSirStatus );
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
         goto end;
     }
 
 
-    // That done, pack the Probe Request:
+    // That done, pack the ReAssoc Request:
     nStatus = dot11fPackReAssocRequest( pMac, &frm, pFrame +
-                                        sizeof(tSirMacMgmtHdr),
-                                        nPayload, &nPayload );
+            sizeof(tSirMacMgmtHdr),
+            nPayload, &nPayload );
     if ( DOT11F_FAILED( nStatus ) )
     {
         limLog( pMac, LOGE, FL("Failed to pack a Re-Association Reque"
-                               "st (0x%08x).\n"),
+                    "st (0x%08x).\n"),
                 nStatus );
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
         goto end;
@@ -2452,48 +2586,76 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a R"
-                               "e-Association Request (0x%08x).\n") );
+                    "e-Association Request (0x%08x).\n") );
     }
 
     PELOGE(limLog( pMac, LOGE, 
-            FL("*** Sending Re-Association Request length %d %d to \n"),
-            nBytes, nPayload );)
-    if (ft_ies_length) 
+                FL("*** Sending Re-Association Request length %d %d to \n"),
+                nBytes, nPayload );)
+    if( psessionEntry->assocReq != NULL )
     {
-        int i = 0;
+        palFreeMemory(pMac->hHdd, psessionEntry->assocReq);
+        psessionEntry->assocReq = NULL;
+    }
 
-        pBody = pFrame + nBytes;
-        for (i=0; i<ft_ies_length; i++)
+    if( nAddIELen )
+    {
+        palCopyMemory( pMac->hHdd, pFrame + sizeof(tSirMacMgmtHdr) + nPayload, 
+                pAddIE, 
+                nAddIELen );
+        nPayload += nAddIELen;
+    }
+
+    if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocReq, nPayload)) != eSIR_SUCCESS)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc request"));)
+    }
+    else
+    {
+        //Store the Assoc request. This is sent to csr/hdd in join cnf response. 
+        palCopyMemory(pMac->hHdd, psessionEntry->assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
+        psessionEntry->assocReqLen = nPayload;
+    }
+
+    if (psessionEntry->is11Rconnection)
+    {
+        if (ft_ies_length) 
         {
-            *pBody = pMac->ft.ftSmeContext.reassoc_ft_ies[i];
-            pBody++;
+            int i = 0;
+
+            pBody = pFrame + nBytes;
+            for (i=0; i<ft_ies_length; i++)
+            {
+                *pBody = pMac->ft.ftSmeContext.reassoc_ft_ies[i];
+                pBody++;
+            }
         }
     }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
     PELOGE(limLog(pMac, LOGE, FL("Re-assoc Req Frame is: "));
-                sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE,
-                            (tANI_U8 *)pFrame,
-                            (nBytes + ft_ies_length));)
+            sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE,
+                (tANI_U8 *)pFrame,
+                (nBytes + ft_ies_length));)
 #endif
 
 #ifdef WLAN_FEATURE_P2P
     if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+            ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
 #endif
 
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (nBytes + ft_ies_length),
-                            HAL_TXRX_FRM_802_11_MGMT,
-                            ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
-                            limTxComplete, pFrame, txFlag );
+            HAL_TXRX_FRM_802_11_MGMT,
+            ANI_TXDIR_TODS,
+            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+            limTxComplete, pFrame, txFlag );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         limLog( pMac, LOGE, FL("Failed to send Re-Association Request"
-                               "(%X)!\n"),
+                    "(%X)!\n"),
                 nSirStatus );
         //Pkt will be freed up by the callback
         goto end;
@@ -4102,6 +4264,7 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
 
      if(NULL == psessionEntry)
     {
+        PELOGE(limLog(pMac, LOGE, FL("Session entry is NULL!!!\n"));)
         return eSIR_FAILURE;
     }
 

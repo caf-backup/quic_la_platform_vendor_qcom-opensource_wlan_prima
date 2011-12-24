@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limUtils.h contains the utility definitions
  * LIM uses.
  * Author:        Chandra Modumudi
@@ -57,7 +62,11 @@ void limPrintMsgName(tpAniSirGlobal pMac, tANI_U16 logLevel, tANI_U32 msgType);
 void limPrintMsgInfo(tpAniSirGlobal pMac, tANI_U16 logLevel, tSirMsgQ *msg);
 char* limBssTypeStr(tSirBssType bssType);
 
-
+#if defined FEATURE_WLAN_CCX || WLAN_FEATURE_VOWIFI
+extern tSirRetStatus limSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, 
+                                  tPowerdBm txPower, 
+                                  tpPESession pSessionEntry );
+#endif
 
 tANI_U32            limPostMsgApiNoWait(tpAniSirGlobal, tSirMsgQ *);
 tANI_U8           limIsAddrBC(tSirMacAddr);

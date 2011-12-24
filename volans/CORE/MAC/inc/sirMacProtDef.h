@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
  * This file sirMacProtDef.h contains the MAC/PHY protocol
  * definitions used across various projects.
  * Author:        Chandra Modumudi
@@ -358,6 +363,16 @@
 #define SIR_MAC_RSN_IE_MIN_LENGTH   2
 #define SIR_MAC_WPA_IE_MIN_LENGTH   6
 
+#ifdef FEATURE_WLAN_CCX
+#define CCX_VERSION_4               4
+#define CCX_VERSION_SUPPORTED       CCX_VERSION_4
+
+// When station sends Radio Management Cap.
+// State should be normal=1
+// Mbssid Mask should be 0
+#define RM_STATE_NORMAL             1 
+#endif
+
 #define SIR_MAC_OUI_VERSION_1         1
 
 // OUI and type definition for WPA IE in network byte order
@@ -618,6 +633,13 @@ typedef enum eSirMacStatusCodes
     eSIR_MAC_DSSS_CCK_RATE_MUST_SUPPORT_STATUS    = 52, //FIXME: 
     eSIR_MAC_DSSS_CCK_RATE_NOT_SUPPORT_STATUS     = 53,
     eSIR_MAC_PSMP_CONTROLLED_ACCESS_ONLY_STATUS   = 54,
+#ifdef FEATURE_WLAN_CCX    
+    eSIR_MAC_CCX_UNSPECIFIED_QOS_FAILURE_STATUS   = 200, //CCX-Unspecified, QoS related failure in (Re)Assoc response frames
+    eSIR_MAC_CCX_TSPEC_REQ_REFUSED_STATUS         = 201, //CCX-TSPEC request refused due to AP's policy configuration in AddTs Rsp, (Re)Assoc Rsp.
+    eSIR_MAC_CCX_ASSOC_DENIED_INSUFF_BW_STATUS    = 202, //CCX-Assoc denied due to insufficient bandwidth to handle new TS in (Re)Assoc Rsp.
+    eSIR_MAC_CCX_INVALID_PARAMETERS_STATUS        = 203, //CCX-Invalid parameters. (Re)Assoc request had one or more TSPEC parameters with 
+                                                         //invalid values.
+#endif
 
 } tSirMacStatusCodes;
 
@@ -664,8 +686,9 @@ typedef enum eSirMacReasonCodes
     eSIR_MAC_MECHANISM_NOT_SETUP_REASON              = 38, //Requested from peer STA as the STA received frames using the mechanism for which a
                                                            //setup is required
     eSIR_MAC_PEER_TIMEDOUT_REASON                    = 39, //Requested from peer STA due to timeout
-    eSIR_MAC_CIPHER_NOT_SUPPORTED_REASON             = 45  //Peer STA does not support the requested cipher suite
-    //reserved                                         46 - 65535.
+    eSIR_MAC_CIPHER_NOT_SUPPORTED_REASON             = 45,  //Peer STA does not support the requested cipher suite
+    eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON        = 46, //FT reason
+    //reserved                                         47 - 65535.
 } tSirMacReasonCodes;
 
 
@@ -816,6 +839,15 @@ typedef __ani_attr_pre_packed struct sSirMacQosCtl
 
 /// Length (in bytes) of the QoS control field in the MAC header
 #define SIR_MAC_QOS_CTL_LEN    2
+
+/// 3 address MAC data header format (24/26 bytes)
+typedef __ani_attr_pre_packed struct sSirMacDot3Hdr
+{
+    tANI_U8           da[6];
+    tANI_U8           sa[6];
+    tANI_U16          length;
+} __ani_attr_packed tSirMacDot3Hdr, *tpSirMacDot3Hdr;
+
 
 /// 3 address MAC data header format (24/26 bytes)
 typedef __ani_attr_pre_packed struct sSirMacDataHdr3a

@@ -1,10 +1,12 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005, 2007
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
 
    halPhyApi.h: halPhy interface
    Author:  Mark Nelson
@@ -148,4 +150,7 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal);
 eHalStatus halPhyGetPwrFromRate2PwrTable(tHalHandle hHal, eHalPhyRates rate, t2Decimal *pwr2dec);
 /* Routine to return the maxPwrIndex that can be used for the given absolute power limit in dBm */
 eHalStatus halPhyGetMaxTxPowerIndex(tHalHandle hHal, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
+
+eHalStatus halPhyGetTxPowerFromPwrIndex(tHalHandle hHal, tANI_U8 pwrIdx, tPowerdBm *pPwrLimit);
+
 #endif /* HALPHYAPI_H */

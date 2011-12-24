@@ -1,10 +1,11 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
+   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary. 
+  
+   Copyright (C) 2006 Airgo Networks, Incorporated
 
    pttModuleApi.h: Interface to change packet testing parameters used for phy layer testing
    Author:  Mark Nelson
@@ -93,6 +94,7 @@ eQWPttStatus pttUpdateTpcSplitLut(tpAniSirGlobal pMac, ePhyTxPwrRange pwrRange, 
 eQWPttStatus pttDisableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcDisable gains);
 eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables);
 void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi);
+void pttGetUnicastMacPktRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi);
 void pttCollectAdcRssiStats(tpAniSirGlobal pMac);
 
 

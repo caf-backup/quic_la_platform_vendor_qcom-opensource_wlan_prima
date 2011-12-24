@@ -1,11 +1,12 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
-
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
    phyGlobal.h: Holds all globals for the phy, rf, and asic layers in hal
    Author:  Mark Nelson
    Date:    4/9/05
@@ -37,6 +38,9 @@
 #define OPEN_LOOP_TX_HIGH_GAIN_OVERRIDE     10  //used for RVR tests in open loop mode
 #endif
 #define OPEN_LOOP_TX_LOW_GAIN_OVERRIDE      3   //used for throughput tests in open loop mode
+
+// Start address of grab ram memory in FTM mode
+#define HAL_PHY_GRAB_RAM_CAPTURE_START_ADDR    (192 * 1024)
 
 // Function pointer for to the CB function after set channel response from FW
 typedef void (*funcHalSetChanCB)(tpAniSirGlobal, void*, tANI_U32, tANI_U16);

@@ -166,6 +166,7 @@ static tFuncEntry funcTable[] = {
 static tFuncEntry funcFtmTable[] = {
     // func pointer(open)  start                        stop                    close                    name (<20chars)
     { {halResetChip,      halResetChip,                  halResetChip,           halResetChip},           "ResetChip"},
+    { {halMemoryMap_Open, halMemoryMap_Start,            NULL,                   NULL},                   "MemMap"           },
     { {NULL,              halSaveDeviceInfo,             NULL,                   NULL},                   "FillChipInfo"},
     { {NULL,              halPMU_Start,                  NULL,                   NULL},                   "PMU"              },
     { {nvOpen,            NULL,                          NULL,                   nvClose},                "halNv"           },
@@ -176,6 +177,8 @@ static tFuncEntry funcFtmTable[] = {
     { {halMbox_Open,      halMbox_Start,                 halMbox_Stop,           halMbox_Close},          "Mailbox"             },
     { {NULL,              NULL,                          NULL,                   nvClose},                "halNv"           },
     { {NULL,              halFW_Init,                    halFW_Exit,             NULL},                   "Firmware"            },
+    { {NULL,              halAhb_Start,                  NULL,                   NULL},                   "AHB"              },
+    { {NULL,              halBmu_Start,                  NULL,                   NULL},                   "BMU"              },
     { {halRxp_Open,       halRxp_Start,                  halRxp_Stop,            halRxp_Close},           "RXP"             },
     { {NULL,              halFtmRx_Start,                NULL,                   NULL},                   "Add1_filter"     },
     { {NULL,              halFW_CheckInitComplete,       NULL,                   NULL},                   "Check FW Init"   },
@@ -339,7 +342,7 @@ eHalStatus halSaveDeviceInfo(tHalHandle hHal, void *arg)
 
     //storing the rev num in HAL global field.
         pMac->hal.chipRevNum = revNum;
-
+    
     halReadRegister(pMac, QWLAN_RFAPB_REV_ID_REG, &revNum);
 
     //storing the rf rev id.
@@ -438,7 +441,7 @@ halStart(
     /* Get the device Card ID here. Required to perform device specific configurations */
     WLANBAL_GetSDIOCardIdentifier(pMac->pAdapter, &pMac->hal.deviceCardId);
 
-    pMac->hal.halMac.fShortSlot = 1; //initializing as short slot enabled.
+    pMac->hal.halMac.fShortSlot = 1; //initializing as short slot enabled. 
     status = runModuleFunc(hHal, (void *) pHalMacStartParms, START_IDX);
     if (status != eHAL_STATUS_SUCCESS)
         return status;
@@ -463,15 +466,15 @@ halStart(
 #ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
-        if(eHAL_STATUS_SUCCESS != halIntChipEnable((tHalHandle)pMac))
-        {
-            HALLOGP( halLog(pMac, LOGP, FL("halIntChipEnable failed\n")));
+     if(eHAL_STATUS_SUCCESS != halIntChipEnable((tHalHandle)pMac))
+     {
+         HALLOGP( halLog(pMac, LOGP, FL("halIntChipEnable failed\n")));
         }
         else
         {
             //set the halState to ready
             halStateSet(pMac, eHAL_SYS_READY);
-        }
+     }
     }
 #endif
 
@@ -496,10 +499,10 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
     // Disable interrupts from SIF
     if (!vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
     {
-        status = halIntChipDisable( hHal );
+    status = halIntChipDisable( hHal );
 
-        if ( ! HAL_STATUS_SUCCESS( status ) )
-            nReturn = status;
+    if ( ! HAL_STATUS_SUCCESS( status ) )
+        nReturn = status;
     }
 
     /** Disable all default interrupt services.*/
@@ -516,10 +519,10 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
 #if defined(ANI_LED_ENABLE)
     halCloseLed(pMac);
 #endif
-
+    
     if (!vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
     {
-        halPS_ExecuteStandbyProcedure(pMac);
+    halPS_ExecuteStandbyProcedure(pMac);
     }
 
     halCleanup( pMac );
@@ -557,7 +560,7 @@ eHalStatus halReset(tHalHandle hHal, tANI_U32 rc)
 
    vos_chipReset(NULL, VOS_FALSE, NULL, NULL, resetReason);
 
-   return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 /*
@@ -608,14 +611,14 @@ eHalStatus halWriteDeviceMemory( tHalHandle hHal, tANI_U32 dstOffset, void *pSrc
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     return pMac->hal.funcWriteMem(hHal, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes);
-}
+    }
 
 eHalStatus halReadDeviceMemory( tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     return pMac->hal.funcReadMem(hHal, srcOffset, pBuffer, numBytes);
-}
-
+    }
+    
 eHalStatus halFillDeviceMemory( tHalHandle hHal, tANI_U32 memOffset, tANI_U32 numBytes, tANI_BYTE fillValue )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
@@ -657,7 +660,7 @@ static void halOpenInit(tpAniSirGlobal pMac)
 {
     // Initialize the write register function pointer
     pMac->hal.funcWriteReg = halNormalWriteRegister;
-
+    
     // Initialize the read register function pointer
     pMac->hal.funcReadReg = halNormalReadRegister;
 
@@ -681,8 +684,8 @@ static void halCloseExit(tpAniSirGlobal pMac)
 \fn halFreeMsg
 \brief Called by VOS scheduler (function vos_sched_flush_mc_mqs)
 \      to free a given HAL message on the TX and MC thread.
-\      This happens when there are messages pending in the HAL
-\      queue when system is being stopped and reset.
+\      This happens when there are messages pending in the HAL 
+\      queue when system is being stopped and reset. 
 \param   tpAniSirGlobal pMac
 \param   tSirMsgQ       pMsg
 \return  none

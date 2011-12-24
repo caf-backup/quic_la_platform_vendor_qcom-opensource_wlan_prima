@@ -158,18 +158,26 @@ static void purgeSmeCmdList(tpAniSirGlobal pMac)
 void purgeSmeSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
     //release any out standing commands back to free command list
-    tListElem *pEntry;
+    tListElem *pEntry, *pNext;
     tSmeCmd *pCommand;
     tDblLinkList *pList = &pMac->sme.smeCmdPendingList;
 
-    while((pEntry = csrLLRemoveHead(pList, LL_ACCESS_LOCK)) != NULL)
+    csrLLLock(pList);
+    pEntry = csrLLPeekHead(pList,LL_ACCESS_NOLOCK);
+    while(pEntry != NULL)
     {
+        pNext = csrLLNext(pList, pEntry, LL_ACCESS_NOLOCK);
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         if(pCommand->sessionId == sessionId)
         {
-            smeAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
+            if(csrLLRemoveEntry(pList, pEntry, LL_ACCESS_NOLOCK))
+            {
+               smeAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
+            }
         }
+        pEntry = pNext;
     }
+    csrLLUnlock(pList);
 }
 
 static eHalStatus freeSmeCmdList(tpAniSirGlobal pMac)
@@ -1296,6 +1304,9 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_ADDTS_RSP:
           case eWNI_SME_DELTS_RSP:
           case eWNI_SME_DELTS_IND:
+#ifdef WLAN_FEATURE_VOWIFI_11R
+          case eWNI_SME_FT_AGGR_QOS_RSP:
+#endif             
              //QoS
              if (pMsg->bodyptr)
              {
@@ -1618,6 +1629,7 @@ eHalStatus sme_Close(tHalHandle hHal)
               status );
       fail_status = status;
    }
+
 #if defined WLAN_FEATURE_VOWIFI
    status = rrmClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {

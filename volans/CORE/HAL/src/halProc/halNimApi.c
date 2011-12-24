@@ -1,6 +1,11 @@
 
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * hal.c:    HAL thread startup file.
  * Author:   V. K. Kandarpa
  * Date:     01/29/2002

@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limSendSmeRspMessages.cc contains the functions
  * for sending SME response/notification messages to applications
  * above MAC software.
@@ -216,7 +221,15 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
 
     else
     {
-        rspLen = psessionEntry->assocReqLen + psessionEntry->assocRspLen + psessionEntry->bcnLen + sizeof(tSirSmeJoinRsp) - sizeof(tANI_U8) ;
+        rspLen = psessionEntry->assocReqLen + psessionEntry->assocRspLen + 
+            psessionEntry->bcnLen + 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+	    psessionEntry->RICDataLen +
+#endif
+#ifdef FEATURE_WLAN_CCX            
+            psessionEntry->tspecLen + 
+#endif            
+            sizeof(tSirSmeJoinRsp) - sizeof(tANI_U8) ;
     
         if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeJoinRsp, rspLen))
         {
@@ -266,6 +279,12 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
         pSirSmeJoinRsp->beaconLength = 0;
         pSirSmeJoinRsp->assocReqLength = 0;
         pSirSmeJoinRsp->assocRspLength = 0;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+        pSirSmeJoinRsp->parsedRicRspLen = 0;
+#endif
+#ifdef FEATURE_WLAN_CCX            
+        pSirSmeJoinRsp->tspecIeLen = 0;
+#endif
         
         if(resultCode == eSIR_SME_SUCCESS)
         {
@@ -298,6 +317,26 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
                 palFreeMemory(pMac->hHdd, psessionEntry->assocRsp);
                 psessionEntry->assocRsp = NULL;
             }           
+#ifdef WLAN_FEATURE_VOWIFI_11R
+            if(psessionEntry->ricData != NULL)
+            {
+                pSirSmeJoinRsp->parsedRicRspLen = psessionEntry->RICDataLen;
+                palCopyMemory(pMac->hHdd, pSirSmeJoinRsp->frames + psessionEntry->bcnLen + psessionEntry->assocReqLen + psessionEntry->assocRspLen, psessionEntry->ricData, pSirSmeJoinRsp->parsedRicRspLen);
+                palFreeMemory(pMac->hHdd, psessionEntry->ricData);
+                psessionEntry->ricData = NULL;
+		PELOG1(limLog(pMac, LOG1, FL("RicLength=%d\n"), psessionEntry->parsedRicRspLen);)
+            }
+#endif
+#ifdef FEATURE_WLAN_CCX            
+            if(psessionEntry->tspecIes != NULL)
+            {
+                pSirSmeJoinRsp->tspecIeLen = psessionEntry->tspecLen;
+                palCopyMemory(pMac->hHdd, pSirSmeJoinRsp->frames + psessionEntry->bcnLen + psessionEntry->assocReqLen + psessionEntry->assocRspLen + psessionEntry->RICDataLen, psessionEntry->tspecIes, pSirSmeJoinRsp->tspecIeLen);
+                palFreeMemory(pMac->hHdd, psessionEntry->tspecIes);
+                psessionEntry->tspecIes = NULL;
+   		PELOG1(limLog(pMac, LOG1, FL("CCX-TspecLen=%d\n"), psessionEntry->tspecLen);)
+            }
+#endif            
             pSirSmeJoinRsp->aid = psessionEntry->limAID;
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
             PELOG1(limLog(pMac, LOG1, FL("AssocRsp=%d\n"), psessionEntry->assocRspLen);)
@@ -2219,6 +2258,32 @@ void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
     
 }
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/** -----------------------------------------------------------------
+\brief limSendSmeAggrQosRsp() - sends SME FT AGGR QOS RSP
+\      This function sends a eWNI_SME_FT_AGGR_QOS_RSP to SME.
+\      SME only looks at rc and tspec field.
+\param pMac - global mac structure
+\param rspReqd - is SmeAddTsRsp required
+\param status - status code of eWNI_SME_FT_AGGR_QOS_RSP
+\return tspec
+\sa
+----------------------------------------------------------------- */
+void
+limSendSmeAggrQosRsp(tpAniSirGlobal pMac, tpSirAggrQosRsp aggrQosRsp,
+tANI_U8 smesessionId)
+{
+    tSirMsgQ         mmhMsg;
+
+    mmhMsg.type = eWNI_SME_FT_AGGR_QOS_RSP;
+    mmhMsg.bodyptr = aggrQosRsp;
+    mmhMsg.bodyval = 0;
+    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    limHalMmhPostMsgApi(pMac, &mmhMsg, ePROT);
+
+    return;
+}
+#endif
 
 
 

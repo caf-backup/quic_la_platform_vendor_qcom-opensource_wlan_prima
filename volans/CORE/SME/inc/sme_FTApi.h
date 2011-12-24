@@ -35,6 +35,7 @@ typedef struct sFTSMEContext
     // Pre-Auth info
     tFTIEStates       FTState;               // The state of FT in the current 11rAssoc
     tSirMacAddr       preAuthbssId;          // BSSID to preauth to
+    tANI_U32          smeSessionId;    
 
     // Saved pFTPreAuthRsp
     tpSirFTPreAuthRsp psavedFTPreAuthRsp;

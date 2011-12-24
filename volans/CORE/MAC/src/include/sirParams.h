@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file sirParams.h contains the common parameter definitions, which
  * are not dependent on threadX API. These can be used by all Firmware
  * modules.
@@ -409,6 +414,7 @@ typedef struct sSirMbMsgP2p
 
 /// PE <-> HAL Host Offload message
 #define SIR_HAL_SET_HOST_OFFLOAD           SIR_HAL_ITC_MSG_TYPES_BEGIN + 149
+
 #define SIR_HAL_ADD_STA_SELF_REQ           SIR_HAL_ITC_MSG_TYPES_BEGIN + 150
 #define SIR_HAL_ADD_STA_SELF_RSP           SIR_HAL_ITC_MSG_TYPES_BEGIN + 151
 #define SIR_HAL_DEL_STA_SELF_REQ           SIR_HAL_ITC_MSG_TYPES_BEGIN + 152
@@ -424,6 +430,15 @@ typedef struct sSirMbMsgP2p
 
 #define SIR_HAL_SUSPEND_BMPS               SIR_HAL_ITC_MSG_TYPES_BEGIN + 158
 #define SIR_HAL_RESUME_BMPS                SIR_HAL_ITC_MSG_TYPES_BEGIN + 159
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#define SIR_HAL_AGGR_ADD_TS_REQ            SIR_HAL_ITC_MSG_TYPES_BEGIN + 160
+#define SIR_HAL_AGGR_ADD_TS_RSP            SIR_HAL_ITC_MSG_TYPES_BEGIN + 161
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+#define SIR_HAL_TSM_STATS_REQ              SIR_HAL_ITC_MSG_TYPES_BEGIN + 162
+#define SIR_HAL_TSM_STATS_RSP              SIR_HAL_ITC_MSG_TYPES_BEGIN + 163
+#endif
 
 #define SIR_HAL_MSG_TYPES_END              SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
 
@@ -475,6 +490,7 @@ typedef struct sSirMbMsgP2p
 #define SIR_LIM_DELETE_STA_CONTEXT_IND          SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x11
 //Indication from HAL to delete BA
 #define SIR_LIM_DEL_BA_IND                      SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x12
+#define SIR_LIM_UPDATE_BEACON                   SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x13 
 
 
 // LIM Timeout messages
@@ -524,6 +540,9 @@ typedef struct sSirMbMsgP2p
 #define SIR_LIM_WMM_APSD_SP_END_MSG_TYPE SIR_LIM_TIMEOUT_MSG_START + 0x22
 #endif
 #define SIR_LIM_BEACON_GEN_IND          SIR_LIM_TIMEOUT_MSG_START + 0x23
+#ifdef FEATURE_WLAN_CCX
+#define SIR_LIM_CCX_TSM_TIMEOUT        SIR_LIM_TIMEOUT_MSG_START + 0x24
+#endif
 
 #define SIR_LIM_MSG_TYPES_END            SIR_LIM_MSG_TYPES_BEGIN+0xFF
 

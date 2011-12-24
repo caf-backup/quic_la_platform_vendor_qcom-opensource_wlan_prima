@@ -358,6 +358,10 @@ struct hdd_station_ctx
    hdd_cfg80211_state_t cfg80211State;
 #endif
    v_BOOL_t bSendDisconnect;
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+   int     ft_carrier_on;
+#endif
 };
 
 #define BSS_STOP    0 
@@ -435,6 +439,8 @@ struct hdd_ap_ctx_s
    v_U8_t   operatingChannel;
    
    v_BOOL_t uIsAuthenticated;
+
+   eCsrEncryptionType ucEncryptType;
    
 #ifdef CONFIG_CFG80211   
    //This will point to group key data, if it is received before start bss. 
@@ -637,10 +643,10 @@ struct hdd_context_s
    
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
-   
+
    /* Track whether Mcast/Bcast Filter is enabled.*/
    v_BOOL_t hdd_mcastbcast_filter_set;
-
+   
    /* Track whether host arpoffload config applied successfully or not.*/
    v_BOOL_t hdd_host_arpoffload_failed;
 
@@ -662,6 +668,7 @@ struct hdd_context_s
 
    /* driver_type tells whether Driver need to configured to FTM or normal driver */
    tDriverType driver_type;
+
 };
 
 

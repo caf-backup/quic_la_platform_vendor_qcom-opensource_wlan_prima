@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
  * This is the private header file for CFG module.
  *
  * Author:        Kevin Nguyen

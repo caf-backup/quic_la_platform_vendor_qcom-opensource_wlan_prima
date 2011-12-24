@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file contains TSPEC and STA admit control related functions
  * NOTE: applies only to AP builds
  *
@@ -1032,12 +1037,11 @@ tSirRetStatus limUpdateAdmitPolicy(tpAniSirGlobal    pMac)
 /** -------------------------------------------------------------
 \fn limSendHalMsgAddTs
 \brief Send halMsg_AddTs to HAL
-\param   tpAniSirGlobal pMac
-\param     tANI_U16        staIdx
-\param     tANI_U8         tspecIdx
-\param       tSirMacTspecIE tspecIE
-\param       tSirTclasInfo   *tclasInfo
-\param       tANI_U8           tclasProc
+\param tpAniSirGlobal pMac
+\param tANI_U16       staIdx
+\param tANI_U8        tspecIdx
+\param tSirMacTspecIE tspecIE
+\param tANI_U8        sessionId
 \return eSirRetStatus - status
   -------------------------------------------------------------*/
 
@@ -1046,23 +1050,25 @@ limSendHalMsgAddTs(
   tpAniSirGlobal pMac,
   tANI_U16       staIdx,
   tANI_U8         tspecIdx,
-  tSirMacTspecIE tspecIE)
+  tSirMacTspecIE tspecIE,
+  tANI_U8        sessionId)
 {
     tSirMsgQ msg;
     tpAddTsParams pAddTsParam;
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pAddTsParam, sizeof(tAddTsParams)))
     {
-       PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
-       return eSIR_MEM_ALLOC_FAILED;          
+        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
+        return eSIR_MEM_ALLOC_FAILED;          
     }
 
     palZeroMemory( pMac->hHdd, (tANI_U8 *)pAddTsParam, sizeof(tAddTsParams));
-      pAddTsParam->staIdx = staIdx;
-      pAddTsParam->tspecIdx = tspecIdx;
-      palCopyMemory(pMac->hHdd, &pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
- 
-	msg.type = SIR_HAL_ADD_TS_REQ;
+    pAddTsParam->staIdx = staIdx;
+    pAddTsParam->tspecIdx = tspecIdx;
+    palCopyMemory(pMac->hHdd, &pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
+    pAddTsParam->sessionId = sessionId;
+
+    msg.type = SIR_HAL_ADD_TS_REQ;
     msg.bodyptr = pAddTsParam;
     msg.bodyval = 0;
 
@@ -1074,12 +1080,12 @@ limSendHalMsgAddTs(
 
     if(eSIR_SUCCESS != halPostMsgApi(pMac, &msg))
     {
-       PELOGW(limLog(pMac, LOGW, FL("halPostMsgApi() failed\n"));)
-       SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-       palFreeMemory(pMac->hHdd, (tANI_U8*)pAddTsParam);
-       return eSIR_FAILURE;
+        PELOGW(limLog(pMac, LOGW, FL("halPostMsgApi() failed\n"));)
+        SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+        palFreeMemory(pMac->hHdd, (tANI_U8*)pAddTsParam);
+        return eSIR_FAILURE;
     }
-  return eSIR_SUCCESS;
+    return eSIR_SUCCESS;
 }
 
 /** -------------------------------------------------------------

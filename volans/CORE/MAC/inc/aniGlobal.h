@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary.
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
  * aniGlobal.h: MAC Modules Adapter Definitions.
  * Author:      V. K. Kandarpa
  * Date:    10/25/2002
@@ -43,6 +48,9 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif
 
 #include "csrApi.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "sme_FTApi.h"
+#endif
 #include "csrSupport.h"
 #include "smeInternal.h"
 #include "ccmApi.h"
@@ -57,7 +65,10 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "smeRrmInternal.h"
 #include "rrmGlobal.h"
 #endif
-
+#if defined FEATURE_WLAN_CCX
+#include "ccxApi.h"
+#include "ccxGlobal.h"
+#endif
 #ifdef WLAN_FEATURE_P2P
 #include "p2p_Api.h"
 #endif
@@ -197,6 +208,9 @@ typedef struct sLimTimers
     TX_TIMER           gLimFTPreAuthRspTimer;
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+    TX_TIMER           gLimCcxTsmTimer;
+#endif
 #ifdef WLAN_FEATURE_P2P
     TX_TIMER           gLimRemainOnChannelTimer;
 #endif

@@ -89,12 +89,9 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     //pFwConfig->bClosedLoop = CLOSED_LOOP_CONTROL;
 
     //mode of operation: production or FTM
-    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
-    {
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG) {
         pFwConfig->bMfgDriver = TRUE;
-    }
-    else
-    {
+    } else {
         pFwConfig->bMfgDriver = FALSE;
     }
 
@@ -500,7 +497,7 @@ static eHalStatus halFW_InitComplete(tpAniSirGlobal pMac, void* pMsgInfo, eHalSt
         if ((status = halPhyFwInitDone((tHalHandle)pMac)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGP(halLog (pMac, LOGP, FL("Could not initialize the halPhy module post fwinit\n")));
-        }
+    }
     }
 #endif //FW_PRESENT
     return status;
@@ -1224,7 +1221,7 @@ eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx,
                                  tANI_U16 timIeOffset, tANI_U16 p2pIeOffset)
 #else
 eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx,
-                                 tANI_U16 timIeOffset)
+                                           tANI_U16 timIeOffset)
 #endif
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1444,7 +1441,7 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
 
             if (pSta->delEnbQidMask) {
                 staInfo.bIsUapsdEnabled = TRUE;
-                staInfo.delEnbQidMask = pSta->delEnbQidMask;
+            staInfo.delEnbQidMask = pSta->delEnbQidMask;
                 staInfo.triggerEnbQidMask = pSta->trigEnbQidMask;
             }
 
@@ -1479,10 +1476,10 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
 
                 /* Download the table to the target. */
                 /* Note : As a workaround, update globalInfo here. This is supposed to be called
-                   after initializtaion of RaGlobalInfo in halMacRaStart().
-                   However, rtsThreshold and protPolicy is not initialized properly at that moment,
-                   because Cfg is not initialized yet.
-                */
+                               after initializtaion of RaGlobalInfo in halMacRaStart().
+                               However, rtsThreshold and protPolicy is not initialized properly at that moment,
+                               because Cfg is not initialized yet.
+                            */
                 halMacRaGlobalInfoToFW(pMac, pGlobRaInfo, 0, sizeof(tHalRaGlobalInfo));
             }
 

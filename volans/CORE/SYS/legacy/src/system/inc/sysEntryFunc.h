@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary.
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
  * This file sysEntryFunc.h contains module entry functions definitions
  * Author:      V. K. Kandarpa
  * Date:        04/13/2002

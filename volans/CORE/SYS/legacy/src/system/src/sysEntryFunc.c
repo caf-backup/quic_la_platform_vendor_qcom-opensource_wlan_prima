@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
  * sysEntryFunc.cc - This file has all the system level entry functions
  *                   for all the defined threads at system level.
  * Author:    V. K. Kandarpa
@@ -139,6 +144,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     tMgmtFrmDropReason dropReason;
     tANI_U16 pkt_length = 0;
 
+
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
 #ifndef GEN6_ONWARDS
     palGetPacketDataPtr( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
@@ -148,6 +154,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
     VOS_STATUS  vosStatus = vos_pkt_peek_data( pVosPkt, 
                             0, (v_PVOID_t *)&pBd, WLANHAL_RX_BD_HEADER_SIZE );
+    
     if( VOS_IS_STATUS_SUCCESS(vosStatus))
     {
         vos_pkt_get_packet_length( pVosPkt,  &pkt_length);
@@ -155,6 +162,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
         /*The return value for the above API is not checked as
           the API preceding this one i.e  vos_pkt_peek_data makes the same checks
           */
+		
         if((pkt_length != (WLANHAL_RX_BD_HEADER_SIZE + \
                            SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd) + \
                            SIR_MAC_BD_TO_PAYLOAD_LEN(pBd)) \
@@ -188,17 +196,16 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
         }
     }
     else
-    {
+	{
         vos_pkt_return_packet(pVosPkt);
         return eSIR_FAILURE;
-    }
+	}
 
 #else
     pBd = (tpHalBufDesc) pMsg->bodyptr;
 #endif  //#if defined(ANI_OS_TYPE_RTAI_LINUX)
 
     pMac->sys.gSysBbtReceived++;
-
 
     PELOGW(sysLog(pMac, LOGW, FL("Rx Mgmt Frame Subtype: %d\n"), subType);
     sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOGW, (tANI_U8 *)SIR_MAC_BD_TO_MPDUHEADER(pBd), SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd));
@@ -227,6 +234,21 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
             pMac->sys.gSysBbtPostedToLim++;
 
         }
+#ifdef FEATURE_WLAN_CCX
+    else if (type == SIR_MAC_DATA_FRAME)
+    {
+             PELOGW(sysLog(pMac, LOGW, FL("IAPP Frame...\n")););
+             //Post the message to PE Queue
+             ret = (tSirRetStatus) limPostMsgApi(pMac, pMsg);
+             if (ret != eSIR_SUCCESS)
+             {
+                 PELOGE(sysLog(pMac, LOGE, FL("posting to LIM2 failed, ret %d\n"), ret);)
+                 goto fail;
+             }
+             pMac->sys.gSysBbtPostedToLim++;
+
+    }
+#endif
     else
             {
             PELOGE(sysLog(pMac, LOGE, "BBT received Invalid type %d subType %d " \

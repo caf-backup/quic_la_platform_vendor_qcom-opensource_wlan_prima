@@ -1,10 +1,11 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005 2006
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
+   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary. 
+  
+   Copyright (C) 2006 Airgo Networks, Incorporated
 
    pttMsgApi.h: Handles kernal mode messages sent from socket or pttApi.dll
    Author:  Mark Nelson
@@ -845,6 +846,12 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
         case PTT_MSG_GET_RX_RSSI:
         {
             pttGetRxRssi(pMac, &(msgBody->GetRxRssi.rssi));
+            break;
+        }
+
+        case PTT_MSG_GET_UNI_CAST_MAC_PKT_RX_RSSI:
+        {
+            pttGetUnicastMacPktRxRssi(pMac, &(msgBody->GetUnicastMacPktRxRssi.rssi));
             break;
         }
 

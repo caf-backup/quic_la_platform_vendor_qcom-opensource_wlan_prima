@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file schBeaconProcess.cc contains beacon processing related
  * functions
  *
@@ -444,6 +449,28 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     }
 #endif
 
+#if defined FEATURE_WLAN_CCX
+        if( psessionEntry->isCCXconnection )
+        {
+           tPowerdBm  localConstraint = 0, regMax = 0, maxTxPower = 0;
+           if (pBeacon->ccxTxPwr.present)
+           {
+              localConstraint = pBeacon->ccxTxPwr.power_limit;
+              regMax = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel ); 
+              maxTxPower = VOS_MIN( regMax , (localConstraint) );
+              //If maxTxPower is increased or decreased
+             if( maxTxPower != psessionEntry->maxTxPower )
+             {
+                limLog( pMac, LOGE, "RegMax = %d, lpc = %d, MaxTx = %d", regMax, localConstraint, maxTxPower );
+                limLog( pMac, LOGE, "Local power constraint change..updating mew maxTx power to HAL");
+                if( limSendSetMaxTxPowerReq ( pMac, maxTxPower, psessionEntry ) == eHAL_STATUS_SUCCESS )
+                   psessionEntry->maxTxPower = maxTxPower;
+             }
+           }
+        }
+#endif
+
+
 #if defined WLAN_FEATURE_VOWIFI
         if( pMac->rrm.rrmPEContext.rrmEnable )
         {
@@ -465,12 +492,13 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
               limLog( pMac, LOGE, "Regulatory max = %d, local power constraint = %d, max tx = %d", regMax, localConstraint, maxTxPower );
               limLog( pMac, LOGE, "Local power constraint change..updating mew maxTx power to HAL");
 #endif
-              if( rrmSendSetMaxTxPowerReq ( pMac, maxTxPower, psessionEntry ) == eHAL_STATUS_SUCCESS )
+              if( limSendSetMaxTxPowerReq ( pMac, maxTxPower, psessionEntry ) == eHAL_STATUS_SUCCESS )
                  psessionEntry->maxTxPower = maxTxPower;
 
            }
         }
 #endif
+
 
     // Indicate to LIM that Beacon is received
 
@@ -481,6 +509,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
 
     // I don't know if any addtional IE is required here. Currently, not include addIE.
     if(sendProbeReq)
+        // don't need to include additional IE
         limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId,
             psessionEntry->bssId, psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
             psessionEntry->dot11mode, 0, NULL);

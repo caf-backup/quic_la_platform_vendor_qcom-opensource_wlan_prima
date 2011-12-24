@@ -182,7 +182,10 @@ eHalStatus halIntBmuWqHandler(tHalHandle hHalHandle, eHalIntSources intSource);
 eHalStatus halBmu_BckupBtqmStaConfig(tpAniSirGlobal pMac, tANI_U32 *pAddr);
 eHalStatus halBmu_getBtqmStaWqStatus(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U32 *pbmuBtqmStatus);
 eHalStatus halIntBMUIdleBdPduHandler(tHalHandle hHalHandle, eHalIntSources intSource);
-
+#ifdef FEATURE_WLAN_CCX
+eHalStatus halBmu_GetTSMStats(tpAniSirGlobal  pMac,tANI_U8 tid,
+                                                  tpTrafStrmMetrics param);
+#endif
 #endif /* _HALBMU_H_ */
 
 

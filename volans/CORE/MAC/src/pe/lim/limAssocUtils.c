@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limAssocUtils.cc contains the utility functions
  * LIM uses while processing (Re) Association messages.
  * Author:        Chandra Modumudi
@@ -644,8 +649,9 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
         pMac->lim.gLastBeaconDtimCount = 0;
         pMac->lim.gLastBeaconDtimPeriod = 0;
 
-        
-
+#ifdef FEATURE_WLAN_CCX
+        limDeactivateAndChangeTimer(pMac,eLIM_TSM_TIMER);
+#endif
         
         /**
          * Update the status for PMM module

@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * 
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ * 
  * This file limTimerUtils.h contains the utility definitions
  * LIM uses for timer handling.
  * Author:        Chandra Modumudi
@@ -45,6 +50,9 @@ enum
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
     eLIM_FT_PREAUTH_RSP_TIMER,
+#endif
+#ifdef FEATURE_WLAN_CCX
+    eLIM_TSM_TIMER,
 #endif
 #ifdef WLAN_FEATURE_P2P
     eLIM_REMAIN_CHN_TIMER,

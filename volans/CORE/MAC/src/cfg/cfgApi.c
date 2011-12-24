@@ -1,5 +1,10 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ *
+ * Copyright (C) 2006 Airgo Networks, Incorporated
+ *
+ * Qualcomm Atheros Confidential and Proprietary. 
  * This file contains the source code for CFG API functions.
  *
  * Author:      Kevin Nguyen
