@@ -62,6 +62,7 @@
 #define NET_DEVICE_REGISTERED  1<<0
 /** Maximum time(ms)to wait for disconnect to complete **/
 #define WLAN_WAIT_TIME_DISCONNECT  1000
+#define WLAN_WAIT_TIME_ABORTSCAN   2000
 #define WLAN_WAIT_TIME_STATS       800
 #define WLAN_WAIT_TIME_POWER       800
 #define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
@@ -255,7 +256,6 @@ typedef struct WLAN_WAPI_KEY *pWLAN_WAPI_KEY;
 #define WLAN_EID_WAPI 68
 #define WAPI_PSK_AKM_SUITE  0x02721400
 #define WAPI_CERT_AKM_SUITE 0x01721400
-#define WLAN_CIPHER_SUITE_SMS4 0x00147201
 
 /** WAPI BKID List stucture definition */
 struct _WLAN_BKID_LIST
@@ -361,6 +361,9 @@ struct hdd_adapter_s
 
    /* Completion  variable to indicate Mc Thread Suspended */
    struct completion mc_sus_event_var;
+
+   /* Completion  variable to indicate Mc Thread Suspended */
+   struct completion abortscan_event_var;
 
    /* Track whether the linkup handling is needed  */
    v_BOOL_t isLinkUpSvcNeeded;

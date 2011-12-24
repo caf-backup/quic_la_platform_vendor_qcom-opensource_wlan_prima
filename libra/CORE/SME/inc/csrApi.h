@@ -645,7 +645,7 @@ typedef struct tagBkidCacheInfo
 typedef struct tagCsrKeys
 {
     tANI_U8 KeyLength[ CSR_MAX_NUM_KEY ];   //Also use to indicate whether the key index is set
-    tANI_U8 KeyMaterial[ CSR_MAX_NUM_KEY ][ eCSR_SECURITY_WEP_KEYSIZE_MAX_BYTES ];
+    tANI_U8 KeyMaterial[ CSR_MAX_NUM_KEY ][ CSR_MAX_KEY_LEN ];
     tANI_U8 defaultIndex;
 }tCsrKeys;
 

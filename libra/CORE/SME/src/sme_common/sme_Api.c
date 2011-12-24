@@ -3996,4 +3996,27 @@ eHalStatus sme_combineWSCIE(tHalHandle hHal, tSirWSCie *pSirWscIe, tANI_U8 *pSir
     return eHAL_STATUS_SUCCESS;
 }
 
+/* ---------------------------------------------------------------------------
+    \fn sme_AbortMacScan
+    \brief  API to cancel MAC scan.
+    \param  hHal - The handle returned by macOpen.
+    \return VOS_STATUS
+            VOS_STATUS_E_FAILURE - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_AbortMacScan(tHalHandle hHal)
+{
+    eHalStatus status;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+       status = csrScanAbortMacScan(pMac);
+
+       sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return ( status );
+}
 

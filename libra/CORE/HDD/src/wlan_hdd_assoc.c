@@ -483,6 +483,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 {
     struct net_device *dev = pAdapter->dev;
     VOS_STATUS vosStatus;
+    int status;
  
     if ( eCSR_ROAM_RESULT_ASSOCIATED == roamResult )
     {
@@ -521,10 +522,14 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         // Switch on the Carrier to activate the device
         netif_carrier_on(dev);
-        
         // Wait for the Link to up to ensure all the queues are set properly by the kernel
-        wait_for_completion_interruptible_timeout(&pAdapter->linkup_event_var,
-                                                   msecs_to_jiffies(ASSOC_LINKUP_TIMEOUT));
+        status = wait_for_completion_interruptible_timeout(&pAdapter->linkup_event_var,
+                         msecs_to_jiffies(ASSOC_LINKUP_TIMEOUT));
+        if (!status) 
+        {
+            hddLog(VOS_TRACE_LEVEL_WARN, "%s: Warning:ASSOC_LINKUP_TIMEOUT",
+                    __func__);
+        }
         
         // Disable Linkup Event Servicing - no more service required from the net device notifier call
         pAdapter->isLinkUpSvcNeeded = FALSE;

@@ -37,6 +37,8 @@
 #include <palTypes.h>
 #include <aniGlobal.h>
 #include <dot11f.h>
+#include <sme_Api.h>
+#include "vos_sched.h"
 
 #ifdef CONFIG_CFG80211
 #include <linux/wireless.h>
@@ -968,5 +970,10 @@ exit_point:
 
      EXIT();
      return status;
+}
+/* Abort any MAC scan if in progress */
+void hdd_abort_mac_scan(pVosContextType pvosContext)
+{
+    sme_AbortMacScan(pvosContext->pMACContext);
 }
 

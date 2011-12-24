@@ -4382,6 +4382,7 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionID: %d\n"),pAddBAParams->sessionId );)
         palFreeMemory(pMac->hHdd, (void*)limMsgQ->bodyptr);
+		limMsgQ->bodyptr = NULL;
         return;
     }
 
@@ -4390,6 +4391,7 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
           (void **) &pMlmAddBACnf, sizeof( tLimMlmAddBACnf ))) {
         limLog( pMac, LOGP, FL(" palAllocateMemory failed with error code %d\n"));
         palFreeMemory(pMac->hHdd, (void*)limMsgQ->bodyptr);
+		limMsgQ->bodyptr = NULL;
         return;
     }
 
@@ -4414,6 +4416,7 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
         pMlmAddBACnf->addBAResultCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
 
      palFreeMemory(pMac->hHdd, (void*)limMsgQ->bodyptr);
+	 limMsgQ->bodyptr = NULL;
 
      // Send ADDBA CNF to LIM
      limPostSmeMessage( pMac, LIM_MLM_ADDBA_CNF, (tANI_U32 *) pMlmAddBACnf );

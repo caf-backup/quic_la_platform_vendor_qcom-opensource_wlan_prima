@@ -195,8 +195,8 @@ static void halPS_FwRspTimeoutFunc(void* pData)
     (void)pMac;
 
     // Should do a LOGP here, if the response timeout occured
-    HALLOGP( halLog(pMac, LOGP, FL("CRITICAL: FW response timedout for msg rsp type %d!!!\n"),
-            pHalPwrSave->rspType));
+    HALLOGP( halLog(pMac, LOGP, FL("CRITICAL: FW response timedout for msg rsp type %d (%s)!!!\n"),
+            pHalPwrSave->rspType, halUtil_getMsgString(pHalPwrSave->rspType)));
 
     // If we decide not to LOGP the below function can be used to generate
     // failure response message to PE, commenting for now
@@ -1884,6 +1884,9 @@ eHalStatus halPS_SuspendBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
         return status;
     }
 
+    pHalPwrSave->rspType = SIR_HAL_SUSPEND_BMPS;
+    pHalPwrSave->dialogToken = dialogToken;
+
     // Store the callback function pointer and the data
     pHalPwrSave->psCbFunc = cbFunc;
     pHalPwrSave->psCbData = data;
@@ -2007,6 +2010,9 @@ eHalStatus halPS_ResumeBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
             return eHAL_STATUS_TIMER_START_FAILED;
         }
     }
+
+    pHalPwrSave->rspType = SIR_HAL_RESUME_BMPS;
+    pHalPwrSave->dialogToken = dialogToken;
 
     // Store the callback function pointer and the data
     pHalPwrSave->psCbFunc = cbFunc;
@@ -2207,6 +2213,7 @@ eHalStatus halPS_HandleEnterUapsdReq(tpAniSirGlobal pMac, tANI_U16 dialogToken,
     // Set the FW system config for the re-init address location
     status = halFW_UpdateReInitRegListStartAddr(pMac, pUapsdCtx->aduMemAddr);
 
+    pHalPwrSave->rspType = SIR_HAL_ENTER_UAPSD_RSP;
     pHalPwrSave->dialogToken = dialogToken;
 
     // Start the timer for the FW response
@@ -2399,6 +2406,7 @@ eHalStatus halPS_HandleExitUapsdReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
     // pointing to BMPS
     halFW_UpdateReInitRegListStartAddr(pMac, pBmpsCtx->aduMemAddr);
 
+    pHalPwrSave->rspType = SIR_HAL_EXIT_UAPSD_RSP;
     pHalPwrSave->dialogToken = dialogToken;
 
 #ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
