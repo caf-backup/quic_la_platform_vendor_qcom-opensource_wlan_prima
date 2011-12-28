@@ -372,6 +372,9 @@ typedef enum
   /*This is temp fix. Should be removed once 
    * Host and Riva code is in sync*/
   WDI_INIT_SCAN_CON_REQ                         = 71,
+
+  /* WLAN HAL DUMP Command request */
+  WDI_HAL_DUMP_CMD_REQ                          = 72,
   
   WDI_MAX_REQ,
 
@@ -602,6 +605,8 @@ typedef enum
 
   WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP          = 70,
 
+  /* WLAN HAL DUMP Command Response */
+  WDI_HAL_DUMP_CMD_RESP                         = 71,
   
   /*-------------------------------------------------------------------------
     Indications
@@ -3775,6 +3780,39 @@ WDI_ProcessFTMCommandRsp
   WDI_EventInfoType*     pEventData
 );
 #endif /* ANI_MANF_DIAG */
+/**
+ @brief WDI_ProcessHALDumpCmdReq
+        Process Hal Dump Command, simply route to HAL
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessHALDumpCmdReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief WDI_ProcessHALDumpCmdRsp
+        Process Hal Dump Command Response from HAL, simply route to HDD FTM
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessHALDumpCmdRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 /*========================================================================
          Internal Helper Routines 
 ========================================================================*/

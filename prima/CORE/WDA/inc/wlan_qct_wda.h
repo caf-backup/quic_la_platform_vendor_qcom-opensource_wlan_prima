@@ -1840,5 +1840,35 @@ WDA_DS_GetTxFlowMask
  v_U8_t*   puFlowMask
 );
 
+/*==========================================================================
+   FUNCTION    WDA_HALDumpCmdReq
 
+  DESCRIPTION
+    Send Dump commandsto WDI
+    
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+    pMac             MAC global pointer
+    cmd               Hal dump command
+    arg1              Dump command argument 1
+    arg2              Dump command argument 2
+    arg3              Dump command argument 3
+    arg4              Dump command argument 4
+
+   OUT
+       pBuffer          Dump command Response buffer
+
+  RETURN VALUE
+    VOS_STATUS_E_FAULT:  pointer is NULL and other errors 
+    VOS_STATUS_SUCCESS:  Everything is good :)
+
+  SIDE EFFECTS
+
+============================================================================*/
+VOS_STATUS WDA_HALDumpCmdReq(tpAniSirGlobal   pMac,tANI_U32 cmd, 
+                 tANI_U32   arg1, tANI_U32   arg2, tANI_U32   arg3,
+                 tANI_U32   arg4, tANI_U8   *pBuffer);
 #endif

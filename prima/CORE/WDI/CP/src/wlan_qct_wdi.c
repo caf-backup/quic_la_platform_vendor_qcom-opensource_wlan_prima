@@ -252,7 +252,8 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   NULL,
 #endif // WLAN_FEATURE_PACKET_FILTERING
   WDI_ProcessInitScanReq,               /* WDI_INIT_SCAN_CON_REQ */ 
-
+  
+  WDI_ProcessHALDumpCmdReq,       /*WDI_HAL_DUMP_CMD_REQ */
   /*-------------------------------------------------------------------------
     Indications
   -------------------------------------------------------------------------*/
@@ -404,6 +405,9 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
   NULL,
   NULL,
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+  WDI_ProcessHALDumpCmdRsp,       /*WDI_HAL_DUMP_CMD_RESP */
+
   
   /*---------------------------------------------------------------------
     Indications
@@ -4942,6 +4946,49 @@ WDI_HostSuspendInd
 
 }/*WDI_HostSuspendInd*/
 
+/**
+ @brief WDI_HALDumpCmdReq
+        Post HAL DUMP Command Event
+ 
+ @param  halDumpCmdReqParams:   Hal Dump Command Body 
+ @param  halDumpCmdRspCb: HAL DUMP Response from HAL CB 
+ @param  pUserData:       Client Data
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status WDI_HALDumpCmdReq
+(
+  WDI_HALDumpCmdReqParamsType *halDumpCmdReqParams,
+  WDI_HALDumpCmdRspCb    halDumpCmdRspCb,
+  void                  *pUserData
+)
+{
+  WDI_EventInfoType      wdiEventData;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*------------------------------------------------------------------------
+    Sanity Check 
+  ------------------------------------------------------------------------*/
+  if ( eWLAN_PAL_FALSE == gWDIInitialized )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+              "WDI API call before module is initialized - Fail request");
+
+    return WDI_STATUS_E_NOT_ALLOWED; 
+  }
+
+  /*------------------------------------------------------------------------
+    Fill in Event data and post to the Main FSM
+  ------------------------------------------------------------------------*/
+  wdiEventData.wdiRequest     =   WDI_HAL_DUMP_CMD_REQ;
+  wdiEventData.pEventData     =   (void *)halDumpCmdReqParams;
+  wdiEventData.uEventDataSize =   sizeof(WDI_HALDumpCmdReqParamsType);
+  wdiEventData.pCBfnc         =   halDumpCmdRspCb;
+  wdiEventData.pUserData      =   pUserData;
+
+  return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
 
 /*============================================================================ 
  
@@ -17383,6 +17430,155 @@ WDI_ProcessFTMCommandRsp
   return WDI_STATUS_SUCCESS; 
 }
 #endif /* ANI_MANF_DIAG */
+/**
+ @brief WDI_ProcessHalDumpCmdReq
+        Process hal dump Command, simply route to HAL
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessHALDumpCmdReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_HALDumpCmdReqParamsType*  pwdiHALDumpCmdParams = NULL;
+  WDI_HALDumpCmdRspCb           wdiHALDumpCmdRspCb = NULL;
+  wpt_uint16               usDataOffset        = 0;
+  wpt_uint16               usSendSize          = 0;
+  tHalDumpCmdReqMsg        halDumpCmdReqMsg;
+  wpt_uint8*               pSendBuffer         = NULL; 
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData) ||
+      ( NULL == pEventData->pCBfnc ))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+            "Invalid parameters in Hal Dump Cmd req %x %x %x",
+            pEventData, pEventData->pEventData, pEventData->pCBfnc );
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  pwdiHALDumpCmdParams = (WDI_HALDumpCmdReqParamsType*)pEventData->pEventData;
+  wdiHALDumpCmdRspCb   = (WDI_HALDumpCmdRspCb)pEventData->pCBfnc;
+
+  /* Copying the HAL DUMP Command Information HAL Structure*/
+  halDumpCmdReqMsg.dumpCmdReqParams.argument1 = 
+                pwdiHALDumpCmdParams->wdiHALDumpCmdInfoType.command;
+  halDumpCmdReqMsg.dumpCmdReqParams.argument2 = 
+                pwdiHALDumpCmdParams->wdiHALDumpCmdInfoType.argument1;
+  halDumpCmdReqMsg.dumpCmdReqParams.argument3 = 
+                pwdiHALDumpCmdParams->wdiHALDumpCmdInfoType.argument2;
+  halDumpCmdReqMsg.dumpCmdReqParams.argument4 = 
+                pwdiHALDumpCmdParams->wdiHALDumpCmdInfoType.argument3;
+  halDumpCmdReqMsg.dumpCmdReqParams.argument5 = 
+                pwdiHALDumpCmdParams->wdiHALDumpCmdInfoType.argument4;
+  
+  /*-----------------------------------------------------------------------
+    Get message buffer
+  -----------------------------------------------------------------------*/
+  if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_HAL_DUMP_CMD_REQ, 
+                        sizeof(halDumpCmdReqMsg.dumpCmdReqParams),
+                        &pSendBuffer, &usDataOffset, &usSendSize))||
+      ( usSendSize < 
+            (usDataOffset + sizeof(halDumpCmdReqMsg.dumpCmdReqParams) )))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+              "Unable to get send buffer in HAL Dump Command req %x %x %x",
+                pEventData, pwdiHALDumpCmdParams, wdiHALDumpCmdRspCb);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                  &halDumpCmdReqMsg.dumpCmdReqParams, 
+                  sizeof(halDumpCmdReqMsg.dumpCmdReqParams)); 
+
+  pWDICtx->wdiReqStatusCB     = pwdiHALDumpCmdParams->wdiReqStatusCB;
+  pWDICtx->pReqStatusUserData = pwdiHALDumpCmdParams->pUserData; 
+
+  /*-------------------------------------------------------------------------
+    Send Start Request to HAL 
+  -------------------------------------------------------------------------*/
+  return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiHALDumpCmdRspCb, pEventData->pUserData, 
+                        WDI_HAL_DUMP_CMD_RESP); 
+}
+
+/**
+ @brief WDI_ProcessHalDumpCmdRsp
+        Process hal Dump Command Response from HAL, simply route to HDD 
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessHALDumpCmdRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_HALDumpCmdRspCb     wdiHALDumpCmdRspCb          = NULL;
+  tpHalDumpCmdRspParams   halDumpCmdRspParams        = NULL;
+  WDI_HALDumpCmdRspParamsType wdiHALDumpCmdRsp;
+
+  wdiHALDumpCmdRspCb = (WDI_HALDumpCmdRspCb)pWDICtx->pfncRspCB; 
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData))
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+              "Invalid parameters in HAL DUMP Command Params Response %x %x %x ",
+               pWDICtx, pEventData, pEventData->pEventData);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+  /*Initialize the WDI Response structure */
+  wdiHALDumpCmdRsp.usBufferLen = 0;
+  wdiHALDumpCmdRsp.pBuffer = NULL;
+
+  halDumpCmdRspParams = (tHalDumpCmdRspParams *)pEventData->pEventData;
+  
+  wdiHALDumpCmdRsp.wdiStatus   = 
+              WDI_HAL_2_WDI_STATUS(halDumpCmdRspParams->status); 
+
+  if (( wdiHALDumpCmdRsp.wdiStatus  ==  WDI_STATUS_SUCCESS) &&
+      (halDumpCmdRspParams->rspLength != 0))
+  {
+      /* Copy the response data */
+      wdiHALDumpCmdRsp.usBufferLen = halDumpCmdRspParams->rspLength;
+      wdiHALDumpCmdRsp.pBuffer = wpalMemoryAllocate(halDumpCmdRspParams->rspLength);
+      wpalMemoryCopy( &halDumpCmdRspParams->rspBuffer, 
+                  wdiHALDumpCmdRsp.pBuffer, 
+                  sizeof(wdiHALDumpCmdRsp.usBufferLen));
+  }
+  
+  /*Notify UMAC*/
+  wdiHALDumpCmdRspCb(&wdiHALDumpCmdRsp, pWDICtx->pRspCBUserData);
+
+  if(wdiHALDumpCmdRsp.pBuffer != NULL)
+  {
+    /* Free the allocated buffer */
+    wpalMemoryFree(wdiHALDumpCmdRsp.pBuffer);
+  }
+  return WDI_STATUS_SUCCESS;
+}
 
 /*==========================================================================
                      CONTRL TRANSPORT INTERACTION
@@ -19217,7 +19413,8 @@ WDI_2_HAL_REQ_TYPE
   case WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ:
     return WLAN_HAL_CLEAR_PACKET_FILTER_REQ;
 #endif // WLAN_FEATURE_PACKET_FILTERING
-
+  case WDI_HAL_DUMP_CMD_REQ:
+    return WLAN_HAL_DUMP_COMMAND_REQ;
   /*This is temporary change and should be 
    * removed once host and riva changes are in sync*/
   case WDI_INIT_SCAN_CON_REQ:
@@ -19415,7 +19612,8 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
   case WLAN_HAL_CLEAR_PACKET_FILTER_RSP:
     return WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP;
 #endif // WLAN_FEATURE_PACKET_FILTERING
-
+  case WLAN_HAL_DUMP_COMMAND_RSP:
+    return WDI_HAL_DUMP_CMD_RESP;
   default:
     return eDRIVER_TYPE_MAX; 
   }

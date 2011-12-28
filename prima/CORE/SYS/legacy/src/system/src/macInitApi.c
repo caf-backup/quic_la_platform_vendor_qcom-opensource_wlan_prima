@@ -37,9 +37,6 @@
 #ifdef TRACE_RECORD
 #include "macTrace.h"
 #endif
-#ifdef WLAN_FEATURE_LOG_DUMP
-#include "haldump.h"
-#endif
 
 extern tSirRetStatus halDoCfgInit(tpAniSirGlobal pMac);
 extern tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac);
@@ -113,10 +110,6 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
       macTraceInit(pMac);
 #endif
 
-#ifdef WLAN_FEATURE_LOG_DUMP
-      halDumpInit(pMac);
-    
-#endif
       if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, ((void *)&pMac->pResetMsg), sizeof(tSirMbMsg))))
       {
          sysLog(pMac, LOGE, FL("pMac->pResetMsg is NULL\n"));

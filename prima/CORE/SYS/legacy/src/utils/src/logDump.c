@@ -121,6 +121,9 @@ logDump.c
 #include "sysDebug.h"
 #include "wlan_qct_wda.h"
 
+#define HAL_LOG_DUMP_CMD_START 0
+#define HAL_LOG_DUMP_CMD_END 299
+
 static int debug = 0;
 
     void
@@ -657,12 +660,6 @@ int logRtaiDump( tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2
     tDumpFuncEntry *pEntry = NULL;
 
     pMac->gCurrentLogSize = 0;
-
-   /* Dump command will be sent to the HAL from WDI*/   
-#ifdef WLAN_FEATURE_LOG_DUMP
-    pMac->dumpCommand = cmd;
-#endif
-
     if (debug) {
         p += log_sprintf( pMac,p, "Cmd = %d Args (0x%x,0x%x,0x%x,0x%x)\n\n",
                 cmd, arg1, arg2, arg3, arg4);
@@ -672,32 +669,37 @@ int logRtaiDump( tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2
         pMac->menuCurrent = print_menu(pMac, p, pMac->menuCurrent);
         return pMac->gCurrentLogSize;
     }
-
-    for(i = 0; i < pMac->dumpTablecurrentId; i++) {
-        if( (cmd > pMac->dumpTableEntry[i]->mindumpid) && (cmd <= pMac->dumpTableEntry[i]->maxdumpid)) {
-            pEntry = pMac->dumpTableEntry[i]->dumpTable;
-            nItems = pMac->dumpTableEntry[i]->nItems;
-            break;
-        } else {
-            continue;
-        }
+    if(( cmd >= HAL_LOG_DUMP_CMD_START) && ( cmd <= HAL_LOG_DUMP_CMD_END))
+    {
+       WDA_HALDumpCmdReq(pMac, cmd, arg1, arg2, arg3, arg4, p);
     }
-
-    if((nItems > 0) && (pEntry != NULL)) {
-        for (i = 0; i < nItems; i++, pEntry++) {
-            if( cmd == pEntry->id ) {
-                if ( pEntry->func != NULL ) {
-                    pEntry->func(pMac, arg1, arg2, arg3, arg4, p);
-                } else {
-                    p += log_sprintf( pMac,p, "Cmd not supported\n");
-                }
-                break;
-            }
-        }
-    } else {
-        p += log_sprintf( pMac,p, "Cmd not found \n");
+    else
+    {
+       for(i = 0; i < pMac->dumpTablecurrentId; i++) {
+           if( (cmd > pMac->dumpTableEntry[i]->mindumpid) && (cmd <= pMac->dumpTableEntry[i]->maxdumpid)) {
+               pEntry = pMac->dumpTableEntry[i]->dumpTable;
+               nItems = pMac->dumpTableEntry[i]->nItems;
+               break;
+           } else {
+               continue;
+           }
+       }
+       
+       if((nItems > 0) && (pEntry != NULL)) {
+           for (i = 0; i < nItems; i++, pEntry++) {
+               if( cmd == pEntry->id ) {
+                   if ( pEntry->func != NULL ) {
+                       pEntry->func(pMac, arg1, arg2, arg3, arg4, p);
+                   } else {
+                       p += log_sprintf( pMac,p, "Cmd not supported\n");
+                   }
+                   break;
+               }
+           }
+       } else {
+           p += log_sprintf( pMac,p, "Cmd not found \n");
+       }
     }
-
     if (debug)
         p += log_sprintf( pMac,p, "Returned %d bytes\n", pMac->gCurrentLogSize);
 

@@ -437,10 +437,6 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_SET_P2P_GO_NOA_REQ         SIR_HAL_ITC_MSG_TYPES_BEGIN + 161
 #define SIR_HAL_P2P_NOA_ATTR_IND           SIR_HAL_ITC_MSG_TYPES_BEGIN + 162
 #endif
-#ifdef WLAN_FEATURE_LOG_DUMP
-#define  SIR_HAL_DUMP_CMD_REQ               SIR_HAL_ITC_MSG_TYPES_BEGIN + 163
-#define  SIR_HAL_DUMP_CMD_RSP               SIR_HAL_ITC_MSG_TYPES_BEGIN + 164
-#endif
 
 #define SIR_HAL_SET_LINK_STATE_RSP             SIR_HAL_ITC_MSG_TYPES_BEGIN + 165
 
@@ -518,6 +514,7 @@ typedef struct sSirMbMsgP2p
 #define SIR_LIM_DELETE_STA_CONTEXT_IND          SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x11
 //Indication from HAL to delete BA
 #define SIR_LIM_DEL_BA_IND                      SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x12
+#define SIR_LIM_UPDATE_BEACON                   SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x13 
 
 
 // LIM Timeout messages

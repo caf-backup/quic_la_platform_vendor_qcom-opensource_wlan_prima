@@ -1114,6 +1114,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 #endif
 
+        case SIR_LIM_UPDATE_BEACON:
+            limUpdateBeacon(pMac);
+            break;
+
         case SIR_LIM_RESUME_ACTIVITY_NTF:
             // This message is from HAL notifying LIM
             // to resume activity.

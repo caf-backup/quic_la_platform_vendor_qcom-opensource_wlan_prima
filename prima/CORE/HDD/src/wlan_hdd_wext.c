@@ -664,6 +664,9 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
          pWextState->roamProfile.Keys.KeyLength[i] = 0;
       }
    }
+
+   vos_mem_zero((void *)(pWextState->req_bssId), WNI_CFG_BSSID_LEN);
+
 }
 
 void wlan_hdd_ula_done_cb(v_VOID_t *callbackContext) 

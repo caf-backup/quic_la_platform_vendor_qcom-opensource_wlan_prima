@@ -241,16 +241,22 @@ void wpalUnRegisterInterrupt
 
    case DXE_INTERRUPT_TX_COMPLE:
       disable_irq_nosync(gpEnv->tx_irq);
-      free_irq(gpEnv->tx_irq, gpEnv);
-      gpEnv->tx_registered = 0;
+      if (gpEnv->tx_registered)
+      {
+         free_irq(gpEnv->tx_irq, gpEnv);
+         gpEnv->tx_registered = 0;
+      }
       gpEnv->tx_isr = NULL;
       gpEnv->tx_context = NULL;
       break;
 
    case DXE_INTERRUPT_RX_READY:
       disable_irq_nosync(gpEnv->rx_irq);
-      free_irq(gpEnv->rx_irq, gpEnv);
-      gpEnv->rx_registered = 0;
+      if (gpEnv->rx_registered)
+      {
+         free_irq(gpEnv->rx_irq, gpEnv);
+         gpEnv->rx_registered = 0;
+      }
       gpEnv->rx_isr = NULL;
       gpEnv->rx_context = NULL;
       break;

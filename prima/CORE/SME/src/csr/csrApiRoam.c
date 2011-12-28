@@ -1678,7 +1678,18 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
     WLAN_VOS_DIAG_EVENT_DEF(connectionStatus, vos_event_wlan_status_payload_type);
 #endif
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+    tCsrRoamSession *pSession;
+
+    if( CSR_IS_SESSION_VALID( pMac, sessionId) )
+    {
+        pSession = CSR_GET_SESSION( pMac, sessionId );
+    }
+    else
+    {
+       smsLog(pMac, LOGE, "Session ID:%d is not valid\n", sessionId);
+       VOS_ASSERT(0);
+       return eHAL_STATUS_FAILURE;
+    }
 
     if(eCSR_ROAM_ASSOCIATION_COMPLETION == u1 && pRoamInfo)
     {

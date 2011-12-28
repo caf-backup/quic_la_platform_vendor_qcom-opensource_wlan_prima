@@ -4050,6 +4050,58 @@ typedef struct
 } WDI_RcvFltPktSetMcListReqParamsType;
 #endif // WLAN_FEATURE_PACKET_FILTERING
 
+/*---------------------------------------------------------------------------
+  WDI_HALDumpCmdReqInfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*command*/
+  wpt_uint32 command;
+
+  /*Arguments*/
+  wpt_uint32 argument1;
+  wpt_uint32 argument2;
+  wpt_uint32 argument3;
+  wpt_uint32 argument4;
+
+}WDI_HALDumpCmdReqInfoType;
+
+/*---------------------------------------------------------------------------
+ WDI_HALDumpCmdReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*NV Blob Info*/
+  WDI_HALDumpCmdReqInfoType  wdiHALDumpCmdInfoType; 
+
+  /*Request status callback offered by UMAC - it is called if the current
+   req has returned PENDING as status; it delivers the status of sending
+   the message over the BUS */
+  WDI_ReqStatusCb       wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */
+  void*                 pUserData;
+  
+}WDI_HALDumpCmdReqParamsType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_HALDumpCmdRspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Result of the operation*/
+  WDI_Status       wdiStatus;
+
+  /* length of the buffer */
+  wpt_uint16       usBufferLen;
+    
+  /* Buffer */
+  wpt_uint8       *pBuffer;
+}WDI_HALDumpCmdRspParamsType;
+
+
 /*----------------------------------------------------------------------------
  *   WDI callback types
  *--------------------------------------------------------------------------*/
@@ -5601,6 +5653,29 @@ typedef void  (*WDI_FilterMatchCountCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_ReceiveFilterClearFilterCb)(WDI_Status   wdiStatus,
                                                 void*        pUserData);
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+/*---------------------------------------------------------------------------
+   WDI_HALDumpCmdRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a HAL DUMP Command 
+response from
+   the HAL layer.
+ 
+   PARAMETERS 
+
+    IN
+    wdiHalDumpCmdRsp:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_HALDumpCmdRspCb)(WDI_HALDumpCmdRspParamsType* wdiHalDumpCmdRsp,
+                                                                       void*  pUserData);
 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -8000,6 +8075,24 @@ WDI_ReceiveFilterClearFilterReq
   void*                             pUserData
 );
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+/**
+ @brief WDI_HALDumpCmdReq
+        Post HAL DUMP Command Event
+ 
+ @param  halDumpCmdReqParams:   Hal Dump Command Body 
+ @param  halDumpCmdRspCb:         callback for passing back the
+                                                 response 
+ @param  pUserData:       Client Data
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status WDI_HALDumpCmdReq(
+  WDI_HALDumpCmdReqParamsType *halDumpCmdReqParams,
+  WDI_HALDumpCmdRspCb    halDumpCmdRspCb,
+  void                  *pUserData
+);
 
 #ifdef __cplusplus
  }

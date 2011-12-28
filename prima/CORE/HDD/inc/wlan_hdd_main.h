@@ -435,6 +435,8 @@ struct hdd_ap_ctx_s
    v_U8_t   operatingChannel;
    
    v_BOOL_t uIsAuthenticated;
+
+   eCsrEncryptionType ucEncryptType;
    
 #ifdef CONFIG_CFG80211   
    //This will point to group key data, if it is received before start bss. 

@@ -203,7 +203,10 @@ typedef struct hdd_wext_state_s
 {
    /** The CSR "desired" Profile */
    tCsrRoamProfile roamProfile; 
-  
+
+   /** BSSID to which connect request is received */
+   tCsrBssid req_bssId;
+
    /** The association status code */ 
    v_U32_t statusCode; 
    

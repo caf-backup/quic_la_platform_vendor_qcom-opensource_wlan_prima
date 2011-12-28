@@ -61,6 +61,7 @@
 #include "wlan_qct_tli_ba.h"
 #include "limUtils.h"
 #include "btcApi.h"
+#include "vos_sched.h"
 
 #ifdef ANI_MANF_DIAG
 #include "pttMsgApi.h"
@@ -140,6 +141,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
 static VOS_STATUS wdaCreateTimers(tWDA_CbContext *pWDA) ;
 static VOS_STATUS wdaDestroyTimers(tWDA_CbContext *pWDA);
 void WDA_BaCheckActivity(tWDA_CbContext *pWDA) ;
+void WDA_HALDumpCmdCallback(WDI_HALDumpCmdRspParamsType *wdiRspParams, void* pUserData);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 VOS_STATUS WDA_ProcessAggrAddTSReq(tWDA_CbContext *pWDA, tAggrAddTsParams *pAggrAddTsReqParams);
@@ -8846,6 +8848,121 @@ VOS_STATUS WDA_ProcessSetTxPerTrackingReq(tWDA_CbContext *pWDA, tSirTxPerTrackin
    return CONVERT_WDI2VOS_STATUS(status) ;
 
 }/*WDA_ProcessSetTxPerTrackingReq*/
+
+/*
+ * FUNCTION: WDA_HALDumpCmdCallback
+ * Send the VOS complete . 
+ */
+void WDA_HALDumpCmdCallback(WDI_HALDumpCmdRspParamsType *wdiRspParams, 
+                                                            void* pUserData)
+{
+   tANI_U8 *buffer = NULL;
+   tWDA_CbContext *pWDA = NULL;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
+   
+   pWDA = pWdaParams->pWdaContext;
+   buffer = (tANI_U8 *)pWdaParams->wdaMsgParam;
+
+   if(wdiRspParams->usBufferLen > 0)
+   {
+      /*Copy the Resp data to UMAC supplied buffer*/
+      vos_mem_copy(buffer, wdiRspParams->pBuffer, wdiRspParams->usBufferLen);
+   }
+
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams);
+   
+   /* Indicate VOSS about the start complete */
+   vos_WDAComplete_cback(pWDA->pVosContext);
+
+   return ;
+}
+
+
+/*
+ * FUNCTION: WDA_ProcessHALDumpCmdReq
+ * Send Dump command to WDI
+ */ 
+VOS_STATUS WDA_HALDumpCmdReq(tpAniSirGlobal   pMac, tANI_U32  cmd, 
+                 tANI_U32   arg1, tANI_U32   arg2, tANI_U32   arg3,
+                 tANI_U32   arg4, tANI_U8   *pBuffer)
+{
+   WDI_Status             status = WDI_STATUS_SUCCESS;
+   WDI_HALDumpCmdReqParamsType *wdiHALDumpCmdReqParam = NULL;
+   WDI_HALDumpCmdReqInfoType *wdiHalDumpCmdInfo = NULL ;
+   tWDA_ReqParams *pWdaParams ;
+   pVosContextType pVosContext = NULL; 
+   VOS_STATUS vStatus;
+
+   pVosContext = (pVosContextType)vos_get_global_context(VOS_MODULE_ID_PE,
+                                                           (void *)pMac);
+   
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   /* Allocate memory WDI request structure*/
+   wdiHALDumpCmdReqParam = (WDI_HALDumpCmdReqParamsType *)
+                vos_mem_malloc(sizeof(WDI_HALDumpCmdReqParamsType));
+   if(NULL == wdiHALDumpCmdReqParam)
+   {
+      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                "WDA HAL DUMP Command buffer alloc fail");
+      return WDI_STATUS_E_FAILURE;
+   }
+
+   wdiHalDumpCmdInfo = &wdiHALDumpCmdReqParam->wdiHALDumpCmdInfoType;
+
+   /* Extract the arguments */
+   wdiHalDumpCmdInfo->command     = cmd;
+   wdiHalDumpCmdInfo->argument1   = arg1;
+   wdiHalDumpCmdInfo->argument2   = arg2;
+   wdiHalDumpCmdInfo->argument3   = arg3;
+   wdiHalDumpCmdInfo->argument4   = arg4;
+
+   wdiHALDumpCmdReqParam->wdiReqStatusCB = NULL ;
+
+   pWdaParams->pWdaContext = pVosContext->pWDAContext;
+   
+   /*  Response message will be passed through the buffer */
+   pWdaParams->wdaMsgParam = (void *)pBuffer;
+   
+   /* store Params pass it to WDI */
+   pWdaParams->wdaWdiApiMsgParam = (void *)wdiHALDumpCmdReqParam ;
+
+   /* Send command to WDI */
+   status = WDI_HALDumpCmdReq(wdiHALDumpCmdReqParam, WDA_HALDumpCmdCallback, pWdaParams);
+
+   vStatus = vos_wait_single_event( &(pVosContext->wdaCompleteEvent), 1000 );
+
+   if ( vStatus != VOS_STATUS_SUCCESS )
+   {
+      if ( vStatus == VOS_STATUS_E_TIMEOUT )
+      {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Timeout occured before WDA_HALDUMP complete\n",__func__);
+      }
+      else
+      {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: WDA_HALDUMP reporting  other error \n",__func__);
+      }
+      VOS_ASSERT(0);
+   }
+   return status;
+}
 
 /*
  * -------------------------------------------------------------------------
