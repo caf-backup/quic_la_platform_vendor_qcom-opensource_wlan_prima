@@ -1557,6 +1557,15 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                        __LINE__, status );
             }
         }
+
+        /* Saving WEP keys */
+        else if( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY  == setKey.encType ||
+                 eCSR_ENCRYPT_TYPE_WEP104_STATICKEY  == setKey.encType  )
+        {
+             //Save the wep key in ap context. Issue setkey after the BSS is started.
+             hdd_ap_ctx_t *pAPCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+             vos_mem_copy(&pAPCtx->wepKey[key_index], &setKey, sizeof(tCsrRoamSetKey));
+        }
         else
         {
              //Save the key in ap context. Issue setkey after the BSS is started.
@@ -1955,8 +1964,8 @@ static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
 
     ENTER();
 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
-                                         __func__,pAdapter->device_mode);
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d key_index = %d \n",
+                                         __func__,pAdapter->device_mode, key_index);
    
     if (CSR_MAX_NUM_KEY <= key_index)
     {
@@ -2021,6 +2030,22 @@ static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
             }
         }
     }
+
+    /* In SoftAp mode setting key direction for default mode */
+    else if ( WLAN_HDD_SOFTAP == pAdapter->device_mode )
+    {
+        if ( (eCSR_ENCRYPT_TYPE_TKIP !=
+                pWextState->roamProfile.EncryptionType.encryptionType[0]) &&
+             (eCSR_ENCRYPT_TYPE_AES !=
+                pWextState->roamProfile.EncryptionType.encryptionType[0])
+           )
+        {
+            /*  Saving key direction for default key index to TX default */
+            hdd_ap_ctx_t *pAPCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+            pAPCtx->wepKey[key_index].keyDirection = eSIR_TX_DEFAULT;
+        }
+    }
+ 
     return status;
 }
 

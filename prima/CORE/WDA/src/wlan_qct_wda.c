@@ -4340,6 +4340,11 @@ VOS_STATUS WDA_ProcessSetStaKeyReq(tWDA_CbContext *pWDA,
                                    setStaKeyParams->key[keyIndex].keyLength;
             vos_mem_copy(wdiSetStaKeyParam->wdiKeyInfo.wdiKey[keyIndex].key, 
                   setStaKeyParams->key[keyIndex].key, SIR_MAC_MAX_KEY_LENGTH);
+            /* set default index to index which have key direction as  WDI_TX_DEFAULT */
+            if (WDI_TX_DEFAULT == wdiSetStaKeyParam->wdiKeyInfo.wdiKey[keyIndex].keyDirection)
+            {
+                wdiSetStaKeyParam->wdiKeyInfo.ucDefWEPIdx = keyIndex;
+            }
          }
 
          wdiSetStaKeyParam->wdiKeyInfo.ucNumKeys = 

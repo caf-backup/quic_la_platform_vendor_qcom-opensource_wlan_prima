@@ -434,6 +434,7 @@ void hdd_SendUpdateBeaconIEsEvent(hdd_adapter_t *pAdapter, tCsrRoamInfo *pCsrRoa
 static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRoamInfo)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     union iwreq_data wrqu;
     int we_event;
@@ -506,7 +507,12 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
     }
     msg = NULL;
-    wireless_send_event(dev, we_event, &wrqu, msg);
+    /*During the WLAN uninitialization,supplicant is stopped before the
+       driver so not sending the status of the connection to supplicant*/
+    if(pHddCtx->isLoadUnloadInProgress != TRUE)
+    {
+        wireless_send_event(dev, we_event, &wrqu, msg);
+    }
     send_btc_nlink_msg(type, 0);
 }
 
@@ -643,17 +649,22 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     /* indicate disconnected event to nl80211 */
     if(roamStatus != eCSR_ROAM_IBSS_LEAVE)
     {
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
-                "%s: sent disconnected event to nl80211", 
-                __func__);
-        /* To avoid wpa_supplicant sending "HANGED" CMD to ICS UI */
-        if( eCSR_ROAM_LOSTLINK == roamStatus )
+        /*During the WLAN uninitialization,supplicant is stopped before the
+            driver so not sending the status of the connection to supplicant*/
+        if(pHddCtx->isLoadUnloadInProgress != TRUE)
         {
-            cfg80211_disconnected(dev, WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY, NULL, 0, GFP_KERNEL);
-        }
-        else
-        {
-            cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0, GFP_KERNEL); 
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
+               "%s: sent disconnected event to nl80211", 
+               __func__);
+            /* To avoid wpa_supplicant sending "HANGED" CMD to ICS UI */
+            if( eCSR_ROAM_LOSTLINK == roamStatus )
+            {
+                cfg80211_disconnected(dev, WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY, NULL, 0, GFP_KERNEL);
+            }
+            else
+            {
+                cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0, GFP_KERNEL); 
+            }
         }
     }
 #endif

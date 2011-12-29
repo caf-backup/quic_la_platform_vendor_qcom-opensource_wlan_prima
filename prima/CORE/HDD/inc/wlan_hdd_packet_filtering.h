@@ -13,7 +13,7 @@
 #define __WLAN_HDD_PACKET_FILTERING_H__
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-#define HDD_MAX_CMP_PER_PACKET_FILTER     4     
+#define HDD_MAX_CMP_PER_PACKET_FILTER     5     
 
 typedef enum
 {

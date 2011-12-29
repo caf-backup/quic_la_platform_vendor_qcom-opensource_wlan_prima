@@ -318,6 +318,21 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                  }
                  pHddApCtx->groupKey.keyLength = 0;
             }
+            else if ( pHddApCtx->wepKey[0].keyLength )
+            {
+                int i=0;
+                for ( i = 0; i < CSR_MAX_NUM_KEY; i++ ) 
+                {
+                    if( eHAL_STATUS_SUCCESS !=  WLANSAP_SetKeySta(
+                                (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
+                                &pHddApCtx->wepKey[i] ) )
+                    {   
+                          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                             "%s: WLANSAP_SetKeySta failed idx %d", __func__, i);
+                    }
+                    pHddApCtx->wepKey[i].keyLength = 0;
+                }
+           }
 #endif
             //Fill the params for sending IWEVCUSTOM Event with SOFTAP.enabled
             startBssEvent = "SOFTAP.enabled";

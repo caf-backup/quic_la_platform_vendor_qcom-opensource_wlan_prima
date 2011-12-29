@@ -634,6 +634,244 @@ WDI_Status WDI_SendNvBlobReq
   WDI_EventInfoType*     pEventData
 );
 
+#define CASE_RETURN_STRING( str )           \
+    case ( ( str ) ): return( #str ); break \
+
+/**
+ @brief WDI_getReqMsgString prints the WDI request message in string.
+  
+ @param wdiReqMsgId: WDI Message request Id 
+  
+ @see 
+ @return Result of the function call
+*/
+static char *WDI_getReqMsgString(wpt_uint16 wdiReqMsgId)
+{
+  switch (wdiReqMsgId)
+  {
+    CASE_RETURN_STRING( WDI_START_REQ );
+    CASE_RETURN_STRING( WDI_STOP_REQ );
+    CASE_RETURN_STRING( WDI_CLOSE_REQ );
+    CASE_RETURN_STRING( WDI_INIT_SCAN_REQ );
+    CASE_RETURN_STRING( WDI_START_SCAN_REQ );
+    CASE_RETURN_STRING( WDI_END_SCAN_REQ );
+    CASE_RETURN_STRING( WDI_FINISH_SCAN_REQ );
+    CASE_RETURN_STRING( WDI_JOIN_REQ );
+    CASE_RETURN_STRING( WDI_CONFIG_BSS_REQ );
+    CASE_RETURN_STRING( WDI_DEL_BSS_REQ );
+    CASE_RETURN_STRING( WDI_POST_ASSOC_REQ );
+    CASE_RETURN_STRING( WDI_DEL_STA_REQ );
+    CASE_RETURN_STRING( WDI_SET_BSS_KEY_REQ );
+    CASE_RETURN_STRING( WDI_RMV_BSS_KEY_REQ );
+    CASE_RETURN_STRING( WDI_SET_STA_KEY_REQ );
+    CASE_RETURN_STRING( WDI_RMV_STA_KEY_REQ );
+    CASE_RETURN_STRING( WDI_ADD_TS_REQ );
+    CASE_RETURN_STRING( WDI_DEL_TS_REQ );
+    CASE_RETURN_STRING( WDI_UPD_EDCA_PRMS_REQ );
+    CASE_RETURN_STRING( WDI_ADD_BA_SESSION_REQ );
+    CASE_RETURN_STRING( WDI_DEL_BA_REQ );
+    CASE_RETURN_STRING( WDI_CH_SWITCH_REQ );
+    CASE_RETURN_STRING( WDI_CONFIG_STA_REQ );
+    CASE_RETURN_STRING( WDI_SET_LINK_ST_REQ );
+    CASE_RETURN_STRING( WDI_GET_STATS_REQ );
+    CASE_RETURN_STRING( WDI_UPDATE_CFG_REQ );
+    CASE_RETURN_STRING( WDI_ADD_BA_REQ );
+    CASE_RETURN_STRING( WDI_TRIGGER_BA_REQ );
+    CASE_RETURN_STRING( WDI_UPD_BCON_PRMS_REQ );
+    CASE_RETURN_STRING( WDI_SND_BCON_REQ );
+    CASE_RETURN_STRING( WDI_UPD_PROBE_RSP_TEMPLATE_REQ );
+    CASE_RETURN_STRING( WDI_SET_STA_BCAST_KEY_REQ );
+    CASE_RETURN_STRING( WDI_RMV_STA_BCAST_KEY_REQ );
+    CASE_RETURN_STRING( WDI_SET_MAX_TX_POWER_REQ );
+    CASE_RETURN_STRING( WDI_P2P_GO_NOTICE_OF_ABSENCE_REQ );
+    CASE_RETURN_STRING( WDI_ENTER_IMPS_REQ );
+    CASE_RETURN_STRING( WDI_EXIT_IMPS_REQ );
+    CASE_RETURN_STRING( WDI_ENTER_BMPS_REQ );
+    CASE_RETURN_STRING( WDI_EXIT_BMPS_REQ );
+    CASE_RETURN_STRING( WDI_ENTER_UAPSD_REQ );
+    CASE_RETURN_STRING( WDI_EXIT_UAPSD_REQ );
+    CASE_RETURN_STRING( WDI_SET_UAPSD_PARAM_REQ );
+    CASE_RETURN_STRING( WDI_UPDATE_UAPSD_PARAM_REQ );
+    CASE_RETURN_STRING( WDI_CONFIGURE_RXP_FILTER_REQ );
+    CASE_RETURN_STRING( WDI_SET_BEACON_FILTER_REQ);
+    CASE_RETURN_STRING( WDI_REM_BEACON_FILTER_REQ );
+    CASE_RETURN_STRING( WDI_SET_RSSI_THRESHOLDS_REQ );
+    CASE_RETURN_STRING( WDI_HOST_OFFLOAD_REQ );
+    CASE_RETURN_STRING( WDI_WOWL_ADD_BC_PTRN_REQ );
+    CASE_RETURN_STRING( WDI_WOWL_DEL_BC_PTRN_REQ );
+    CASE_RETURN_STRING( WDI_WOWL_ENTER_REQ );
+    CASE_RETURN_STRING( WDI_WOWL_EXIT_REQ );
+    CASE_RETURN_STRING( WDI_CONFIGURE_APPS_CPU_WAKEUP_STATE_REQ );
+    CASE_RETURN_STRING( WDI_NV_DOWNLOAD_REQ );
+    CASE_RETURN_STRING( WDI_FLUSH_AC_REQ );
+    CASE_RETURN_STRING( WDI_BTAMP_EVENT_REQ );
+    CASE_RETURN_STRING( WDI_AGGR_ADD_TS_REQ );
+    CASE_RETURN_STRING( WDI_ADD_STA_SELF_REQ );
+    CASE_RETURN_STRING( WDI_DEL_STA_SELF_REQ );
+    CASE_RETURN_STRING( WDI_FTM_CMD_REQ );
+    CASE_RETURN_STRING( WDI_START_INNAV_MEAS_REQ );
+    CASE_RETURN_STRING( WDI_HOST_RESUME_REQ );
+    CASE_RETURN_STRING( WDI_KEEP_ALIVE_REQ);
+  #ifdef FEATURE_WLAN_SCAN_PNO
+    CASE_RETURN_STRING( WDI_SET_PREF_NETWORK_REQ );
+    CASE_RETURN_STRING( WDI_SET_RSSI_FILTER_REQ );
+    CASE_RETURN_STRING( WDI_UPDATE_SCAN_PARAMS_REQ );
+  #endif
+    CASE_RETURN_STRING( WDI_SET_TX_PER_TRACKING_REQ );
+    CASE_RETURN_STRING( WDI_8023_MULTICAST_LIST_REQ );
+    CASE_RETURN_STRING( WDI_RECEIVE_FILTER_SET_FILTER_REQ );
+    CASE_RETURN_STRING( WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ );
+    CASE_RETURN_STRING( WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ );
+    CASE_RETURN_STRING( WDI_INIT_SCAN_CON_REQ );
+    CASE_RETURN_STRING( WDI_HAL_DUMP_CMD_REQ );
+    default:
+        return "Unknown WDI MessageId";
+  }
+}
+
+
+
+/**
+ @brief WDI_getRespMsgString prints the WDI resonse message in string.
+  
+ @param wdiRespMsgId: WDI Message response Id 
+  
+ @see 
+ @return Result of the function call
+*/
+static char *WDI_getRespMsgString(wpt_uint16 wdiRespMsgId)
+{
+  switch (wdiRespMsgId)
+  {
+    CASE_RETURN_STRING( WDI_START_RESP );
+    CASE_RETURN_STRING( WDI_STOP_RESP );
+    CASE_RETURN_STRING( WDI_CLOSE_RESP );
+    CASE_RETURN_STRING( WDI_INIT_SCAN_RESP );
+    CASE_RETURN_STRING( WDI_START_SCAN_RESP );
+    CASE_RETURN_STRING( WDI_END_SCAN_RESP );
+    CASE_RETURN_STRING( WDI_FINISH_SCAN_RESP );
+    CASE_RETURN_STRING( WDI_JOIN_RESP );
+    CASE_RETURN_STRING( WDI_CONFIG_BSS_RESP );
+    CASE_RETURN_STRING( WDI_DEL_BSS_RESP );
+    CASE_RETURN_STRING( WDI_POST_ASSOC_RESP );
+    CASE_RETURN_STRING( WDI_DEL_STA_RESP );
+    CASE_RETURN_STRING( WDI_SET_BSS_KEY_RESP );
+    CASE_RETURN_STRING( WDI_RMV_BSS_KEY_RESP );
+    CASE_RETURN_STRING( WDI_SET_STA_KEY_RESP );
+    CASE_RETURN_STRING( WDI_RMV_STA_KEY_RESP );
+    CASE_RETURN_STRING( WDI_ADD_TS_RESP );
+    CASE_RETURN_STRING( WDI_DEL_TS_RESP );
+    CASE_RETURN_STRING( WDI_UPD_EDCA_PRMS_RESP );
+    CASE_RETURN_STRING( WDI_ADD_BA_SESSION_RESP );
+    CASE_RETURN_STRING( WDI_DEL_BA_RESP );
+    CASE_RETURN_STRING( WDI_CH_SWITCH_RESP );
+    CASE_RETURN_STRING( WDI_CONFIG_STA_RESP );
+    CASE_RETURN_STRING( WDI_SET_LINK_ST_RESP );
+    CASE_RETURN_STRING( WDI_GET_STATS_RESP );
+    CASE_RETURN_STRING( WDI_UPDATE_CFG_RESP );
+    CASE_RETURN_STRING( WDI_ADD_BA_RESP );
+    CASE_RETURN_STRING( WDI_TRIGGER_BA_RESP );
+    CASE_RETURN_STRING( WDI_UPD_BCON_PRMS_RESP );
+    CASE_RETURN_STRING( WDI_SND_BCON_RESP );
+    CASE_RETURN_STRING( WDI_UPD_PROBE_RSP_TEMPLATE_RESP );
+    CASE_RETURN_STRING( WDI_SET_STA_BCAST_KEY_RESP );
+    CASE_RETURN_STRING( WDI_RMV_STA_BCAST_KEY_RESP );
+    CASE_RETURN_STRING( WDI_SET_MAX_TX_POWER_RESP );
+    CASE_RETURN_STRING( WDI_P2P_GO_NOTICE_OF_ABSENCE_RESP );
+    CASE_RETURN_STRING( WDI_ENTER_IMPS_RESP );
+    CASE_RETURN_STRING( WDI_EXIT_IMPS_RESP );
+    CASE_RETURN_STRING( WDI_ENTER_BMPS_RESP );
+    CASE_RETURN_STRING( WDI_EXIT_BMPS_RESP );
+    CASE_RETURN_STRING( WDI_ENTER_UAPSD_RESP );
+    CASE_RETURN_STRING( WDI_EXIT_UAPSD_RESP );
+    CASE_RETURN_STRING( WDI_SET_UAPSD_PARAM_RESP );
+    CASE_RETURN_STRING( WDI_UPDATE_UAPSD_PARAM_RESP );
+    CASE_RETURN_STRING( WDI_CONFIGURE_RXP_FILTER_RESP );
+    CASE_RETURN_STRING( WDI_SET_BEACON_FILTER_RESP);
+    CASE_RETURN_STRING( WDI_REM_BEACON_FILTER_RESP );
+    CASE_RETURN_STRING( WDI_SET_RSSI_THRESHOLDS_RESP );
+    CASE_RETURN_STRING( WDI_HOST_OFFLOAD_RESP );
+    CASE_RETURN_STRING( WDI_WOWL_ADD_BC_PTRN_RESP );
+    CASE_RETURN_STRING( WDI_WOWL_DEL_BC_PTRN_RESP );
+    CASE_RETURN_STRING( WDI_WOWL_ENTER_RESP );
+    CASE_RETURN_STRING( WDI_WOWL_EXIT_RESP );
+    CASE_RETURN_STRING( WDI_CONFIGURE_APPS_CPU_WAKEUP_STATE_RESP );
+    CASE_RETURN_STRING( WDI_NV_DOWNLOAD_RESP );
+    CASE_RETURN_STRING( WDI_FLUSH_AC_RESP );
+    CASE_RETURN_STRING( WDI_BTAMP_EVENT_RESP );
+    CASE_RETURN_STRING( WDI_AGGR_ADD_TS_RESP );
+    CASE_RETURN_STRING( WDI_ADD_STA_SELF_RESP );
+    CASE_RETURN_STRING( WDI_DEL_STA_SELF_RESP );
+    CASE_RETURN_STRING( WDI_FTM_CMD_RESP );
+    CASE_RETURN_STRING( WDI_START_INNAV_MEAS_RESP );
+    CASE_RETURN_STRING( WDI_HOST_RESUME_RESP );
+    CASE_RETURN_STRING( WDI_KEEP_ALIVE_RESP);
+  #ifdef FEATURE_WLAN_SCAN_PNO
+    CASE_RETURN_STRING( WDI_SET_PREF_NETWORK_RESP );
+    CASE_RETURN_STRING( WDI_SET_RSSI_FILTER_RESP );
+    CASE_RETURN_STRING( WDI_UPDATE_SCAN_PARAMS_RESP );
+  #endif
+    CASE_RETURN_STRING( WDI_SET_TX_PER_TRACKING_RESP );
+    CASE_RETURN_STRING( WDI_8023_MULTICAST_LIST_RESP );
+    CASE_RETURN_STRING( WDI_RECEIVE_FILTER_SET_FILTER_RESP );
+    CASE_RETURN_STRING( WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_RESP );
+    CASE_RETURN_STRING( WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP );
+    CASE_RETURN_STRING( WDI_HAL_DUMP_CMD_RESP );
+    default:
+        return "Unknown WDI MessageId";
+  }
+}
+
+/**
+ @brief WDI_getHALStatusMsgString prints the HAL status in string.
+  
+ @param halStatusId: HAL status Id 
+  
+ @see 
+ @return Result of the function call
+*/
+static char *WDI_getHALStatusMsgString(wpt_uint16 halStatusId)
+{
+  switch (halStatusId)
+  {
+    CASE_RETURN_STRING( eHAL_STATUS_SUCCESS );
+    CASE_RETURN_STRING( PAL_STATUS_INVAL );
+    CASE_RETURN_STRING( PAL_STATUS_ALREADY );
+    CASE_RETURN_STRING( PAL_STATUS_EMPTY );
+    CASE_RETURN_STRING( PAL_STATUS_FAILURE );
+    CASE_RETURN_STRING( eHAL_STATUS_FAILURE );
+    CASE_RETURN_STRING( eHAL_STATUS_INVALID_PARAMETER );
+    CASE_RETURN_STRING( eHAL_STATUS_INVALID_STAIDX );
+    CASE_RETURN_STRING( eHAL_STATUS_DPU_DESCRIPTOR_TABLE_FULL );
+    CASE_RETURN_STRING( eHAL_STATUS_NO_INTERRUPTS );
+    CASE_RETURN_STRING( eHAL_STATUS_INTERRUPT_PRESENT );
+    CASE_RETURN_STRING( eHAL_STATUS_STA_TABLE_FULL );
+    CASE_RETURN_STRING( eHAL_STATUS_DUPLICATE_STA );
+    CASE_RETURN_STRING( eHAL_STATUS_BSSID_INVALID );
+    CASE_RETURN_STRING( eHAL_STATUS_STA_INVALID );
+    CASE_RETURN_STRING( eHAL_STATUS_DUPLICATE_BSSID );
+    CASE_RETURN_STRING( eHAL_STATUS_INVALID_BSSIDX );
+    CASE_RETURN_STRING( eHAL_STATUS_BSSID_TABLE_FULL );
+    CASE_RETURN_STRING( eHAL_STATUS_INVALID_SIGNATURE );
+    CASE_RETURN_STRING( eHAL_STATUS_INVALID_KEYID );
+    CASE_RETURN_STRING( eHAL_STATUS_SET_CHAN_ALREADY_ON_REQUESTED_CHAN );
+    CASE_RETURN_STRING( eHAL_STATUS_UMA_DESCRIPTOR_TABLE_FULL );
+    CASE_RETURN_STRING( eHAL_STATUS_DPU_MICKEY_TABLE_FULL );
+    CASE_RETURN_STRING( eHAL_STATUS_BA_RX_BUFFERS_FULL );
+    CASE_RETURN_STRING( eHAL_STATUS_BA_RX_MAX_SESSIONS_REACHED );
+    CASE_RETURN_STRING( eHAL_STATUS_BA_RX_INVALID_SESSION_ID );
+    CASE_RETURN_STRING( eHAL_STATUS_TIMER_START_FAILED );
+    CASE_RETURN_STRING( eHAL_STATUS_TIMER_STOP_FAILED );
+    CASE_RETURN_STRING( eHAL_STATUS_FAILED_ALLOC );
+    CASE_RETURN_STRING( eHAL_STATUS_NOTIFY_BSS_FAIL );
+    CASE_RETURN_STRING( eHAL_STATUS_DEL_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO );
+    CASE_RETURN_STRING( eHAL_STATUS_ADD_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO );
+    CASE_RETURN_STRING( eHAL_STATUS_FW_SEND_MSG_FAILED );
+    default:
+        return "Unknown HAL status";
+  }
+}
+
 /*======================================================================== 
  
                              INITIALIZATION APIs
@@ -12530,7 +12768,9 @@ WDI_ProcessStartRsp
   else
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Failed to start device");
+               "Failed to start device with status %s(%d)",
+               WDI_getHALStatusMsgString(startRspParams->status),
+               startRspParams->status);
 
     /*Set the expected state transition to stopped - because the start has
       failed*/
@@ -12671,7 +12911,9 @@ WDI_ProcessStopRsp
   if ( WDI_STATUS_SUCCESS != wdiStatus  )
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Failed to stop the device");
+               "Failed to stop the device with status %s (%d)",
+               WDI_getHALStatusMsgString(halMacStopRspMsg.stopRspParams.status),
+               halMacStopRspMsg.stopRspParams.status);
 
     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
     
@@ -12853,9 +13095,10 @@ WDI_ProcessStartScanRsp
   if ( eHAL_STATUS_SUCCESS != halStartScanRspMsg.startScanRspParams.status )
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in Start Scan - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "Start scan failed with status %s (%d)",
+              WDI_getHALStatusMsgString(halStartScanRspMsg.startScanRspParams.status),
+              halStartScanRspMsg.startScanRspParams.status);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -12914,9 +13157,10 @@ WDI_ProcessEndScanRsp
   if ( eHAL_STATUS_SUCCESS != halEndScanRspMsg.endScanRspParams.status )
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in End Scan - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "End Scan failed with status %s (%d )",
+              WDI_getHALStatusMsgString(halEndScanRspMsg.endScanRspParams.status),
+              halEndScanRspMsg.endScanRspParams.status);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -12980,9 +13224,10 @@ WDI_ProcessFinishScanRsp
       ( eHAL_STATUS_NOTIFY_BSS_FAIL  != halFinishScanRspMsg.finishScanRspParams.status ))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in Finish Scan - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "Finish Scan failed with status %s (%d)",
+              WDI_getHALStatusMsgString(halFinishScanRspMsg.finishScanRspParams.status),
+              halFinishScanRspMsg.finishScanRspParams.status);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -13692,9 +13937,10 @@ WDI_ProcessSetBssKeyRsp
   if ( eHAL_STATUS_SUCCESS != halStatus )
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in Set BSS Key - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "Set BSS Key failed with status %s (%d)",
+              WDI_getHALStatusMsgString(halStatus),
+              halStatus);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -13748,9 +13994,10 @@ WDI_ProcessRemoveBssKeyRsp
   if ( eHAL_STATUS_SUCCESS != halStatus )
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in Remove BSS Key - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "Remove BSS Key failed with status %s (%d )",
+              WDI_getHALStatusMsgString(halStatus),
+              halStatus);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -13805,9 +14052,10 @@ WDI_ProcessSetStaKeyRsp
   if ( eHAL_STATUS_SUCCESS != halStatus )
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in Set STA Key - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "Set STA Key failed with status %s (%d)",
+              WDI_getHALStatusMsgString(halStatus),
+              halStatus);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -13861,9 +14109,10 @@ WDI_ProcessRemoveStaKeyRsp
   if ( eHAL_STATUS_SUCCESS != halStatus )
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in Remove STA Key - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "Remove STA Key failed with status %s (%d)",
+              WDI_getHALStatusMsgString(halStatus),
+              halStatus);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -13920,9 +14169,10 @@ WDI_ProcessSetStaBcastKeyRsp
   if ( eHAL_STATUS_SUCCESS != halStatus )
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in Set STA Key - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "Set STA Key failed with status %s (%d)",
+              WDI_getHALStatusMsgString(halStatus),
+              halStatus);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -13979,9 +14229,10 @@ WDI_ProcessRemoveStaBcastKeyRsp
   if ( eHAL_STATUS_SUCCESS != halStatus )
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Error status returned in Remove STA Key - considered catastrophic");
-     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-     return WDI_STATUS_E_FAILURE; 
+              "Remove STA Key failed with status %s (%d)",
+              WDI_getHALStatusMsgString(halStatus),
+              halStatus);
+     /* send the status to UMAC, don't return from here*/
   }
 
   /*Notify UMAC*/
@@ -17741,8 +17992,11 @@ WDI_RXMsgCTSCB
   else if ( wdiEventData.wdiResponse < WDI_HAL_IND_MIN )
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-               "Received response %d when expecting %d - catastrophic failure",
-               wdiEventData.wdiResponse, pWDICtx->wdiExpectedResponse);
+               "Received response %s (%d) when expecting %s (%d) - catastrophic failure",
+               WDI_getRespMsgString(wdiEventData.wdiResponse),
+               wdiEventData.wdiResponse, 
+               WDI_getRespMsgString(pWDICtx->wdiExpectedResponse),
+               pWDICtx->wdiExpectedResponse);
     /* WDI_DetectedDeviceError( pWDICtx, WDI_ERR_INVALID_RSP_FMT); */
     return;
   }
@@ -17812,8 +18066,9 @@ WDI_ProcessRequest
       ( NULL != pfnReqProcTbl[pEventData->wdiRequest] ))
   {  
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-              "Calling request processing function for req %d %x", 
-               pEventData->wdiRequest, pfnReqProcTbl[pEventData->wdiRequest]);
+              "Calling request processing function for req %s (%d) %x",
+              WDI_getReqMsgString(pEventData->wdiRequest),
+              pEventData->wdiRequest, pfnReqProcTbl[pEventData->wdiRequest]);
     return pfnReqProcTbl[pEventData->wdiRequest](pWDICtx, pEventData);
   }
   else
@@ -17868,7 +18123,9 @@ WDI_GetMessageBuffer
   if ( NULL ==  *pMsgBuffer )
   {
      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Unable to allocate message buffer for req %d", wdiReqType); 
+               "Unable to allocate message buffer for req %s (%d)",
+               WDI_getReqMsgString(wdiReqType),
+               wdiReqType); 
      WDI_ASSERT(0);
      return WDI_STATUS_MEM_FAILURE; 
   }
@@ -18107,8 +18364,10 @@ WDI_ResponseTimerCB
 
 
   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-            "Timeout occurred while waiting for response %d from device "
-            " - catastrophic failure", pWDICtx->wdiExpectedResponse);
+            "Timeout occurred while waiting for %s (%d) message from device "
+            " - catastrophic failure", 
+            WDI_getRespMsgString(pWDICtx->wdiExpectedResponse),
+            pWDICtx->wdiExpectedResponse);
   WDI_DetectedDeviceError( pWDICtx, WDI_ERR_RSP_TIMEOUT); 
   return; 
 
@@ -18141,15 +18400,16 @@ WDI_ProcessResponse
       ( NULL != pfnRspProcTbl[pEventData->wdiResponse] ))
   {  
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-              "Calling response processing function for resp %d %x", 
-               pEventData->wdiResponse, pfnRspProcTbl[pEventData->wdiResponse]);
+              "Calling response processing function for resp %s (%d) %x", 
+              WDI_getRespMsgString(pEventData->wdiResponse),
+              pEventData->wdiResponse, pfnRspProcTbl[pEventData->wdiResponse]);
     return pfnRspProcTbl[pEventData->wdiResponse](pWDICtx, pEventData);
   }
   else
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Operation %d is not yet implemented ", 
-               pEventData->wdiResponse);
+              pEventData->wdiResponse);
     return WDI_STATUS_E_NOT_IMPLEMENT;
   }
 }/*WDI_ProcessResponse*/
