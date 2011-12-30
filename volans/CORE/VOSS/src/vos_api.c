@@ -909,6 +909,7 @@ v_U8_t vos_is_logp_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: global voss context is NULL", __FUNCTION__);
+    return 1;
   }
 
    return gpVosContext->isLogpInProgress;
@@ -920,6 +921,7 @@ void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: global voss context is NULL", __FUNCTION__);
+    return;
   }
 
    gpVosContext->isLogpInProgress = value;
@@ -931,6 +933,7 @@ v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleCo
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
         "%s: global voss context is NULL", __FUNCTION__);
+    return 0; 
   }
 
    return gpVosContext->isLoadUnloadInProgress;
@@ -942,6 +945,7 @@ void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
         "%s: global voss context is NULL", __FUNCTION__);
+    return;
   }
 
    gpVosContext->isLoadUnloadInProgress = value;

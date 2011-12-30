@@ -591,7 +591,8 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
 
             assert(rfChannel != INVALID_RF_CHANNEL);
 
-
+            if(rfChannel >= NUM_RF_CHANNELS)
+                return eHAL_STATUS_FAILURE;
             if (pMac->hphy.phy.test.testTxGainIndexSource == REGULATORY_POWER_LIMITS)
             {
                 if ((retVal =

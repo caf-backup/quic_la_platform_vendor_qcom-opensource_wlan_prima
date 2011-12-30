@@ -398,7 +398,6 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
       const v_COUNTRYCODE_t countryCode )
 {
    int i;
-   *pRegDomain = REGDOMAIN_COUNT;
    // sanity checks
    if (NULL == pRegDomain)
    {
@@ -406,6 +405,8 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
             ("Invalid reg domain pointer\r\n") );
       return VOS_STATUS_E_FAULT;
    }
+   *pRegDomain = REGDOMAIN_COUNT;
+
    if (NULL == countryCode)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,

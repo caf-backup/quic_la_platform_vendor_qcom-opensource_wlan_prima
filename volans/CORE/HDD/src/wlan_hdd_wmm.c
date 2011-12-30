@@ -2019,6 +2019,7 @@ VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
 {
    int ac;
    v_BOOL_t qap;
+   v_BOOL_t qosConnection;
    v_U8_t acmMask;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW, 
@@ -2029,24 +2030,27 @@ VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
        pRoamInfo->u.pConnectedProfile)
    {
       qap = pRoamInfo->u.pConnectedProfile->qap;
+      qosConnection = pRoamInfo->u.pConnectedProfile->qosConnection;
       acmMask = pRoamInfo->u.pConnectedProfile->acm_mask;
    }
    else
    {
       qap = VOS_TRUE;
+      qosConnection = VOS_TRUE;
       acmMask = 0x0;
    }
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
-             "%s: qap is %d, acmMask is 0x%x",
-             __FUNCTION__, qap, acmMask);
+             "%s: qap is %d, qosConnection is %d, acmMask is 0x%x",
+             __FUNCTION__, qap, qosConnection, acmMask);
 
    pAdapter->hddWmmStatus.wmmQap = qap;
+   pAdapter->hddWmmStatus.wmmQosConnection = qosConnection;
 
    for (ac = 0; ac < WLANTL_MAX_AC; ac++)
    {
       if (qap &&
-          (HDD_WMM_USER_MODE_NO_QOS != (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->WmmMode) &&
+          qosConnection &&
           (acmMask & acmMaskBit[ac]))
       {
          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
@@ -2140,7 +2144,7 @@ VOS_STATUS hdd_wmm_get_uapsd_mask( hdd_adapter_t* pAdapter,
   ===========================================================================*/
 v_BOOL_t hdd_wmm_is_active( hdd_adapter_t* pAdapter )
 {
-   if ((HDD_WMM_USER_MODE_NO_QOS == (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->WmmMode) ||
+   if ((!pAdapter->hddWmmStatus.wmmQosConnection) ||
        (!pAdapter->hddWmmStatus.wmmQap))
    {
       return VOS_FALSE;

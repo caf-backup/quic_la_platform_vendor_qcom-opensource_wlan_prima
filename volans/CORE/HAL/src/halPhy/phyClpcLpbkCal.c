@@ -296,6 +296,7 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
     t2Decimal deltaOffsetdBm = 0;
     t2Decimal cmdDbmPwr = lpBktxPwr - boardLoss;
     tANI_U32 offset = 0;
+    sOfdmCmdPwrOffset cmdoffset;
 
     pMac->hphy.phy.test.identicalPayloadEnabled = eANI_BOOLEAN_TRUE;
 
@@ -407,9 +408,7 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
     //printk("offset =%d\n", (int)offset);
 
     //if offset is greater than 0 then write it to Nv
-    if(offset >= 0)
-    {
-        sOfdmCmdPwrOffset cmdoffset;
+    
         cmdoffset.ofdmPwrOffset = (t2Decimal)offset;
 
         halWriteNvTable(pMac, NV_TABLE_OFDM_CMD_PWR_OFFSET, (uNvTables *)(&cmdoffset));
@@ -420,7 +419,7 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
             halStoreTableToNv(pMac, NV_TABLE_OFDM_CMD_PWR_OFFSET);
         }
 #endif
-    }
+    
 
     return (eHAL_STATUS_SUCCESS);
 }

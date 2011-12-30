@@ -531,7 +531,7 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
 
     p += log_sprintf( pMac,p, "sendSmeStartBssReq: Preparing eWNI_SME_START_BSS_REQ message\n");
     pStartBssReq = (tSirSmeStartBssReq *) &startBssReq;
-    if(arg1 < 0 || arg1 > 2)
+    if(arg1 > 2)
     {
 	    p += log_sprintf( pMac,p,"Invalid Argument1 \n");
 	    return p;

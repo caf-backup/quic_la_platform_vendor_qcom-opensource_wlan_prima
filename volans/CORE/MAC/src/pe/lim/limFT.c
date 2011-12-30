@@ -733,8 +733,11 @@ void limPostFTPreAuthRsp(tpAniSirGlobal pMac, eHalStatus status,
 
     pFTPreAuthRsp = (tpSirFTPreAuthRsp)vos_mem_malloc(rspLen);
     if(NULL == pFTPreAuthRsp)
-    PELOGE(limLog( pMac, LOGE, "Failed to allocate mermory\n");)
-    VOS_ASSERT(pFTPreAuthRsp != NULL);
+    {
+        PELOGE(limLog( pMac, LOGE, "Failed to allocate mermory\n");)
+        VOS_ASSERT(pFTPreAuthRsp != NULL);
+        return;
+    }
     vos_mem_zero( pFTPreAuthRsp, rspLen);
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
     PELOGE(limLog( pMac, LOGE, "%s: Auth Rsp = %p\n", pFTPreAuthRsp);)

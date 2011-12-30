@@ -1764,6 +1764,11 @@ limHandleSmeJoinResult(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U16
     tANI_U16        smetransactionId;
 
     /* Newly Added on oct 11 th*/
+    if(psessionEntry == NULL)
+    {
+        PELOGE(limLog(pMac, LOGE,FL("psessionEntry is NULL \n"));)
+        return;
+    }
     smesessionId = psessionEntry->smeSessionId;
     smetransactionId = psessionEntry->transactionId;
     /* When associations is failed , delete the session created  and pass NULL  to  limsendsmeJoinReassocRsp() */
@@ -3303,12 +3308,17 @@ void limProcessMlmSetStaKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 {
     tANI_U8 respReqd = 1;
     tLimMlmSetKeysCnf mlmSetKeysCnf;
-    tANI_U8  sessionId;
+    tANI_U8  sessionId = 0;
     tpPESession  psessionEntry;
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
     palZeroMemory( pMac->hHdd, (void *)&mlmSetKeysCnf, sizeof( tLimMlmSetKeysCnf ));
    //BTAMP
-    sessionId = ((tpSetStaKeyParams) limMsgQ->bodyptr)->sessionId;
+    if(NULL == limMsgQ->bodyptr)
+    {
+        PELOGE(limLog(pMac, LOGE,FL("limMsgQ bodyptr is NULL\n"));)
+        return;
+    }
+    sessionId = ((tpSetBssKeyParams) limMsgQ->bodyptr)->sessionId;
     if((psessionEntry = peFindSessionBySessionId(pMac, sessionId))== NULL)
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionId\n"));)
@@ -3324,8 +3334,7 @@ void limProcessMlmSetStaKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     else
       mlmSetKeysCnf.resultCode = (tANI_U16) (((tpSetStaKeyParams) limMsgQ->bodyptr)->status);
 
-    if( 0 != limMsgQ->bodyptr )
-        palFreeMemory( pMac->hHdd, (void *) limMsgQ->bodyptr );
+    palFreeMemory( pMac->hHdd, (void *) limMsgQ->bodyptr );
     // Restore MLME state
     //pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
     psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
@@ -3353,11 +3362,16 @@ void limProcessMlmSetBssKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     tANI_U8 respReqd = 1;
     tLimMlmSetKeysCnf mlmSetKeysCnf;
     tANI_U16 resultCode;
-    tANI_U8  sessionId;
+    tANI_U8  sessionId =0;
     tpPESession  psessionEntry;
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
     palZeroMemory( pMac->hHdd, (void *)&mlmSetKeysCnf, sizeof( tLimMlmSetKeysCnf ));
    //BTAMP
+    if(NULL == limMsgQ->bodyptr)
+    {
+        PELOGE(limLog(pMac, LOGE,FL("limMsgQ bodyptr is null\n"));)
+        return;
+    }
     sessionId = ((tpSetBssKeyParams) limMsgQ->bodyptr)->sessionId;
     if((psessionEntry = peFindSessionBySessionId(pMac, sessionId))== NULL)
     {
@@ -3388,8 +3402,7 @@ void limProcessMlmSetBssKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     else
       mlmSetKeysCnf.resultCode = resultCode;
 
-    if( 0 != limMsgQ->bodyptr )
-        palFreeMemory( pMac->hHdd, (void *) limMsgQ->bodyptr );
+    palFreeMemory( pMac->hHdd, (void *) limMsgQ->bodyptr );
     // Restore MLME state
     //pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
     psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
@@ -3700,6 +3713,7 @@ static void limProcessSwitchChannelReAssocReq(tpAniSirGlobal pMac, tpPESession p
     if(status != eHAL_STATUS_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Change channel failed!!\n"));)
+        mlmReassocCnf.resultCode = eSIR_SME_CHANNEL_SWITCH_FAIL;
         goto end;
     }
     /// Start reassociation failure timer
@@ -3714,7 +3728,6 @@ static void limProcessSwitchChannelReAssocReq(tpAniSirGlobal pMac, tpPESession p
         // Return Reassoc confirm with
         // Resources Unavailable
         mlmReassocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
-        mlmReassocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
         goto end;
     }
     /// Prepare and send Reassociation request frame
@@ -3724,12 +3737,16 @@ end:
     // Free up buffer allocated for reassocReq
     if(pMlmReassocReq != NULL)
     {
-    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmReassocReq);
+        /* Update PE session Id*/
+        mlmReassocCnf.sessionId = pMlmReassocReq->sessionId;
+        palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmReassocReq);
+    }
+    else
+    {
+        mlmReassocCnf.sessionId = 0;
     }
 
     mlmReassocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
-    /* Update PE session Id*/
-    mlmReassocCnf.sessionId = psessionEntry->peSessionId;
 
     limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmReassocCnf);
 }
@@ -3823,13 +3840,20 @@ static void limProcessSwitchChannelJoinReq(tpAniSirGlobal pMac, tpPESession pses
             psessionEntry->selfMacAddr, psessionEntry->dot11mode, 
             psessionEntry->pLimJoinReq->addIEScan.length, psessionEntry->pLimJoinReq->addIEScan.addIEdata);
     return;
-error:
-    psessionEntry->pLimMlmJoinReq = NULL;
-    palFreeMemory( pMac->hHdd, (tANI_U8 *) (psessionEntry->pLimMlmJoinReq));
-    mlmJoinCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
-    mlmJoinCnf.sessionId = psessionEntry->peSessionId;
-    mlmJoinCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
-    limPostSmeMessage(pMac, LIM_MLM_JOIN_CNF, (tANI_U32 *) &mlmJoinCnf);
+error:  
+        if(NULL != psessionEntry)
+        {
+            palFreeMemory( pMac->hHdd, (tANI_U8 *) (psessionEntry->pLimMlmJoinReq));
+            psessionEntry->pLimMlmJoinReq = NULL;
+            mlmJoinCnf.sessionId = psessionEntry->peSessionId;
+        }
+        else
+        {
+            mlmJoinCnf.sessionId = 0;
+        }
+        mlmJoinCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+        mlmJoinCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+        limPostSmeMessage(pMac, LIM_MLM_JOIN_CNF, (tANI_U32 *) &mlmJoinCnf);
 }
 
 /**

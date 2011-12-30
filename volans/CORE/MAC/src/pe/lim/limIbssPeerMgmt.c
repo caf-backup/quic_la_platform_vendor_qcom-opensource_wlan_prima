@@ -1312,11 +1312,9 @@ limIbssDelBssRsp(
     if(pDelBss != NULL)
         palFreeMemory( pMac->hHdd, (void *) pDelBss );
     /* Delete PE session once BSS is deleted */
-    if (NULL != psessionEntry) {
     limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, rc,psessionEntry->smeSessionId,psessionEntry->transactionId);
-	peDeleteSession(pMac, psessionEntry);
-	psessionEntry = NULL;
-    }
+    peDeleteSession(pMac, psessionEntry);
+    psessionEntry = NULL;
 }
 
 /**
@@ -1357,10 +1355,6 @@ limIbssCoalesce(
 
     palZeroMemory( pMac->hHdd, (tANI_U8 *) &beaconParams, sizeof(tUpdateBeaconParams));
 
-    #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
-    #endif // TO SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     /* Check for IBSS Coalescing only if Beacon is from different BSS */

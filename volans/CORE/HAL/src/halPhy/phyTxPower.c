@@ -1293,7 +1293,12 @@ tPowerdBm halPhyGetRegDomainLimit(tHalHandle hHal, eHalPhyRates rate)
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eRfChannels chanIndex = rfGetCurChannel(pMac);
 
-    assert(chanIndex < NUM_RF_CHANNELS);
+    if(chanIndex >= NUM_RF_CHANNELS)
+    {
+        phyLog(pMac, LOGE, "ERROR:Channel index is out of bounds \n");
+        return(0);
+    }
+
     if (pMac->hphy.phy.regDomainInfo != NULL)
     {
         return (tPowerdBm)(pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].channels[chanIndex].pwrLimit);
@@ -1514,7 +1519,7 @@ eHalStatus halPhyGetPwrFromRate2PwrTable(tHalHandle hHal, eHalPhyRates rate, t2D
             return(eHAL_STATUS_FAILURE);
     }
 
-    if(rfSubBand > NUM_RF_SUBBANDS)
+    if(rfSubBand >= NUM_RF_SUBBANDS)
     {
         phyLog(pMac, LOGE, "ERROR: Invalid RF sub band");
         return eHAL_STATUS_FAILURE;

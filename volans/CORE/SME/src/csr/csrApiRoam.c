@@ -1915,7 +1915,18 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
     WLAN_VOS_DIAG_EVENT_DEF(connectionStatus, vos_event_wlan_status_payload_type);
 #endif
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+    tCsrRoamSession *pSession;
+
+    if( CSR_IS_SESSION_VALID( pMac, sessionId) )
+    {
+        pSession = CSR_GET_SESSION( pMac, sessionId );
+    }
+    else
+    {
+       smsLog(pMac, LOGE, "Session ID:%d is not valid\n", sessionId);
+       VOS_ASSERT(0);
+       return eHAL_STATUS_FAILURE;
+    }
 
     if(eCSR_ROAM_ASSOCIATION_COMPLETION == u1 && pRoamInfo)
     {
@@ -2249,9 +2260,9 @@ eHalStatus csrRoamIssueDeauth( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoam
 eHalStatus csrRoamSaveConnectedBssDesc( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDescription *pBssDesc )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tANI_U32 size = pBssDesc->length + sizeof( pBssDesc->length );
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
+    tANI_U32 size;
+    
     // If no BSS description was found in this connection (happens with start IBSS), then 
     // nix the BSS description that we keep around for the connected BSS) and get out...
     if(NULL == pBssDesc)
@@ -2260,6 +2271,7 @@ eHalStatus csrRoamSaveConnectedBssDesc( tpAniSirGlobal pMac, tANI_U32 sessionId,
     }
     else 
     {
+        size = pBssDesc->length + sizeof( pBssDesc->length );
         if(NULL != pSession->pConnectBssDesc)
         {
             if(((pSession->pConnectBssDesc->length) + sizeof(pSession->pConnectBssDesc->length)) < size)
@@ -5525,7 +5537,8 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     tANI_U32 roamId = 0;
     tANI_BOOLEAN fCallCallback = eANI_BOOLEAN_FALSE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
+    if(NULL == pProfile)
+        return eHAL_STATUS_FAILURE;
     smsLog(pMac, LOG1, FL("called  BSSType = %d authtype = %d  encryType = %d\n"),
             pProfile->BSSType, pProfile->AuthType.authType[0], pProfile->EncryptionType.encryptionType[0]);
 
@@ -5691,6 +5704,9 @@ eHalStatus csrRoamReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     tANI_BOOLEAN fCallCallback = eANI_BOOLEAN_TRUE;
     tANI_U32 roamId = 0;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+   
+    if(NULL == pProfile)
+       return eHAL_STATUS_FAILURE;
 
     smsLog(pMac, LOG1, FL("called  BSSType = %d authtype = %d  encryType = %d\n"), pProfile->BSSType, pProfile->AuthType.authType[0], pProfile->EncryptionType.encryptionType[0]);
     csrRoamCancelRoaming(pMac, sessionId);
@@ -5898,7 +5914,7 @@ eHalStatus csrRoamProcessDisassocDeauth( tpAniSirGlobal pMac, tSmeCmd *pCommand,
         }
         else
         {
-            status = csrRoamIssueDeauth( pMac, sessionId, eCSR_ROAM_SUBSTATE_AUTH_REQ );
+            status = csrRoamIssueDeauth( pMac, sessionId, eCSR_ROAM_SUBSTATE_DEAUTH_REQ );
         }
         fComplete = (!HAL_STATUS_SUCCESS(status));
     }
@@ -7148,7 +7164,7 @@ static void csrRoamRoamingStateDeauthRspProcessor( tpAniSirGlobal pMac, tSirSmeD
     smsLog(pMac, LOGW, FL("is no-op\n"));
     statusCode = csrGetDeAuthRspStatusCode( pSmeRsp );
 
-    if ( CSR_IS_ROAM_SUBSTATE_AUTH_REQ( pMac ) )
+    if ( CSR_IS_ROAM_SUBSTATE_DEAUTH_REQ( pMac ) )
     {
         csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
     }

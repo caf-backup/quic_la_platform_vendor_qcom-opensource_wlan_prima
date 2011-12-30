@@ -641,7 +641,11 @@ void halMTU_update11gSlotTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
     for (ac=0;  ac < MAX_NUM_AC; ac++)
     {
         tANI_U32 bkoffId = __halMTU_ac2BkoffIndex(pMac, ac);
-        VOS_ASSERT(bkoffId < 8); 
+        if(bkoffId >= 8)
+	    {
+            HALLOG1( halLog(pMac, LOG1, FL("the back off index :%d exceeding the limit \n"),bkoffId));
+            return;
+	    }	    
          /** Updating local host cwMin, cwMax.*/
         modeParams->cwMin[bkoffId] = pMac->hal.edcaParam[ac].cw.min;
         modeParams->cwMax[bkoffId] = pMac->hal.edcaParam[ac].cw.max;

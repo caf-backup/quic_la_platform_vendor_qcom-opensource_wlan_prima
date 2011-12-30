@@ -4277,7 +4277,9 @@ eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal,
 		    *pMeasurementRequestID = lMeasId;
 	    }
 	    else
-		    return eHAL_STATUS_FAILURE;
+	    {
+	        return eHAL_STATUS_FAILURE;
+	    }
             status = measInNavMeasurementRequest(hHal, sessionId, pInNavMeasConfig, pMeasurementRequestID, callback, pContext);
 
             //release the lock for the sme object

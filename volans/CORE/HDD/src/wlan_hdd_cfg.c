@@ -2690,7 +2690,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.Csr11dinfo.Channels.channelList[9] = 10;    
    smeConfig.csrConfig.Csr11dinfo.Channels.channelList[10]= 11;
 
-   strcpy( (char*)smeConfig.csrConfig.Csr11dinfo.countryCode, "US " );
+   strlcpy( (char*)smeConfig.csrConfig.Csr11dinfo.countryCode, "US ", sizeof(smeConfig.csrConfig.Csr11dinfo.countryCode));
    smeConfig.csrConfig.Csr11dinfo.ChnPower[0].firstChannel = 1;
    smeConfig.csrConfig.Csr11dinfo.ChnPower[0].numChannels  = 11;
    smeConfig.csrConfig.Csr11dinfo.ChnPower[0].maxtxPower   = 30;

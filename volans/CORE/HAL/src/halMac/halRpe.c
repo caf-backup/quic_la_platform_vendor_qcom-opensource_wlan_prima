@@ -669,7 +669,10 @@ eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource)
 
         HALLOGW( halLog( pMac, LOGW, FL("staIdx %d tID %d RC %d\n"),
                    staIdx,tID,Reason_Code));
-
+        if(tID > 7)
+        {
+	        tID = 0;
+        }
         if( !t[staIdx].baBlocked[tID] && (BA_SESSION_ID_INVALID != t[staIdx].baSessionID[tID]) )
         {
             t[staIdx].baBlocked[tID] = HAL_BA_BLOCK_TIMEOUT;

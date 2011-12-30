@@ -281,6 +281,21 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                  }
                  pHddApCtx->groupKey.keyLength = 0;
             }
+            else if ( pHddApCtx->wepKey[0].keyLength )
+            {
+                int i=0;
+                for ( i = 0; i < CSR_MAX_NUM_KEY; i++ ) 
+                {
+                    if( eHAL_STATUS_SUCCESS !=  WLANSAP_SetKeySta(
+                                (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
+                                &pHddApCtx->wepKey[i] ) )
+                    {   
+                          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                             "%s: WLANSAP_SetKeySta failed idx %d", __func__, i);
+                    }
+                    pHddApCtx->wepKey[i].keyLength = 0;
+                }
+           }
 #endif
 
             return VOS_STATUS_SUCCESS;
@@ -571,7 +586,7 @@ int hdd_softap_unpackIE(
         pRsnIe = gen_ie + 2; 
         RSNIeLen = gen_ie_len - 2; 
         // Unpack the RSN IE
-        dot11RSNIE.present = 0;  
+    	memset(&dot11RSNIE, 0, sizeof(tDot11fIERSN));
         dot11fUnpackIeRSN((tpAniSirGlobal) halHandle, 
                             pRsnIe, 
                             RSNIeLen, 
@@ -606,7 +621,7 @@ int hdd_softap_unpackIE(
         pRsnIe = gen_ie + 2 + 4; 
         RSNIeLen = gen_ie_len - (2 + 4); 
         // Unpack the WPA IE
-        dot11WPAIE.present = 0; 
+	    memset(&dot11WPAIE, 0, sizeof(tDot11fIEWPA));
         dot11fUnpackIeWPA((tpAniSirGlobal) halHandle, 
                             pRsnIe, 
                             RSNIeLen, 
@@ -2046,7 +2061,6 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         pHostapdAdapter->wdev.netdev =  pWlanHostapdDev;
         init_completion(&pHostapdAdapter->tx_action_cnf_event);
         init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
-
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
         init_completion(&pHostapdAdapter->offchannel_tx_event);
 #endif

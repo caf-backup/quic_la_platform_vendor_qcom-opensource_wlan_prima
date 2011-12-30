@@ -445,6 +445,9 @@ struct hdd_ap_ctx_s
 #ifdef CONFIG_CFG80211   
    //This will point to group key data, if it is received before start bss. 
    tCsrRoamSetKey groupKey; 
+   // This will have WEP key data, if it is received before start bss
+   tCsrRoamSetKey wepKey[CSR_MAX_NUM_KEY];
+
    beacon_data_t *beacon;
 #endif
 };

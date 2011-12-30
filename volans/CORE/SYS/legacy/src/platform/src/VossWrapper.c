@@ -376,7 +376,9 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
 {
     VOS_STATUS status;
 
-    VOS_ASSERT((NULL != expiration_function) && (NULL != name_ptr));
+	VOS_ASSERT((NULL != expiration_function) && (NULL != name_ptr));
+    if((NULL == name_ptr) || (NULL == expiration_function))
+        return TX_TIMER_ERROR;
 
     if (!initScheduleTimeInTicks)
         return TX_TICK_ERROR;

@@ -547,7 +547,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 pScanCmd->sessionId = sessionId;
                 pScanCmd->u.scanCmd.callback = callback;
                 pScanCmd->u.scanCmd.pContext = pContext;
-                pScanCmd->u.scanCmd.scanID = *pScanRequestID;
                 if(eCSR_SCAN_REQUEST_11D_SCAN == pScanRequest->requestType)
                 {
                     pScanCmd->u.scanCmd.reason = eCsrScan11d1;
@@ -2770,8 +2769,8 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
 {
     tListElem *pEntry;
     tCsrScanResult *pBssDescription;
-    tANI_S8              cand_Bss_rssi;
-    tANI_BOOLEAN fNewBSSForCurConnection = eANI_BOOLEAN_FALSE, fDupBss;
+    tANI_S8         cand_Bss_rssi;
+    tANI_BOOLEAN    fDupBss;
 #ifdef FEATURE_WLAN_WAPI
     tANI_BOOLEAN fNewWapiBSSForCurConnection = eANI_BOOLEAN_FALSE;
 #endif /* FEATURE_WLAN_WAPI */
@@ -2822,10 +2821,12 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
         if ( !fDupBss )
         {
             //Found a new BSS
-            sessionId = csrProcessBSSDescForPMKIDList(pMac, &pBssDescription->Result.BssDescriptor, pIesLocal);
+            sessionId = csrProcessBSSDescForPMKIDList(pMac, 
+                             &pBssDescription->Result.BssDescriptor, pIesLocal);
             if( CSR_SESSION_ID_INVALID != sessionId)
             {
-                fNewBSSForCurConnection = eANI_BOOLEAN_TRUE;
+                csrRoamCallCallback(pMac, sessionId, NULL, 0, 
+                           eCSR_ROAM_SCAN_FOUND_NEW_BSS, eCSR_ROAM_RESULT_NONE);
             }
         }
         else
@@ -2882,11 +2883,6 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
       }
     }
 
-    if(fNewBSSForCurConnection)
-    {
-        //remember it first
-        csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_SCAN_FOUND_NEW_BSS, eCSR_ROAM_RESULT_NONE);
-    }
 #ifdef FEATURE_WLAN_WAPI
     if(fNewWapiBSSForCurConnection)
     {
@@ -5761,7 +5757,10 @@ eHalStatus csrScanTriggerIdleScan(tpAniSirGlobal pMac, tANI_U32 *pTimeInterval)
     if (vos_concurrent_sessions_running())
         return (status);
 
-    *pTimeInterval = 0;
+    if(pTimeInterval)
+    {
+        *pTimeInterval = 0;
+    }
 
     smsLog(pMac, LOGW, FL("called\n"));
     if( smeCommandPending( pMac ) )
@@ -8257,6 +8256,18 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
                 // we keep the 5G channel sets internally with an interchannel offset of 4.  Expand these
                 // to the right format... (inter channel offset of 1 is the only option for the triplets
                 // that 11d advertises.
+                if ((cbLen + (pChannelSet->numChannels * sizeof(tSirMacChanInfo))) >= dataLen)
+                {
+                    // expanding this entry will overflow our allocation
+                    smsLog(pMac, LOGE,
+                           "%s: Buffer overflow, start %d, num %d, offset %d",
+                           __FUNCTION__,
+                           pChannelSet->firstChannel,
+                           pChannelSet->numChannels,
+                           pChannelSet->interChannelOffset);
+                    break;
+                }
+
                 for( idx = 0; idx < pChannelSet->numChannels; idx++ )
                 {
                     pChannelPowerSet->firstChanNum = (tSirMacChanNum)(pChannelSet->firstChannel + ( idx * pChannelSet->interChannelOffset ));
@@ -8267,13 +8278,24 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
 #else
                     pChannelPowerSet->maxTxPower = pChannelSet->txPower;
 #endif
-                    smsLog(pMac, LOG3, " Setting Max Transmit Power %d\n", pChannelPowerSet->maxTxPower);					
+                    smsLog(pMac, LOG3, " Setting Max Transmit Power %d\n", pChannelPowerSet->maxTxPower);
                     cbLen += sizeof( tSirMacChanInfo );
                     pChannelPowerSet++;
                 }
             }
             else
             {
+                if (cbLen >= dataLen)
+                {
+                    // this entry will overflow our allocation
+                    smsLog(pMac, LOGE,
+                           "%s: Buffer overflow, start %d, num %d, offset %d",
+                           __FUNCTION__,
+                           pChannelSet->firstChannel,
+                           pChannelSet->numChannels,
+                           pChannelSet->interChannelOffset);
+                    break;
+                }
                 pChannelPowerSet->firstChanNum = pChannelSet->firstChannel;
                 smsLog(pMac, LOG3, " Setting Channel Number %d\n", pChannelPowerSet->firstChanNum);
                 pChannelPowerSet->numChannels = pChannelSet->numChannels;
@@ -8306,8 +8328,8 @@ void csrSetCfgCountryCode( tpAniSirGlobal pMac, tANI_U8 *countryCode )
     tANI_U8 cc[WNI_CFG_COUNTRY_CODE_LEN];
     ///v_REGDOMAIN_t DomainId;
     
-	smsLog( pMac, LOG3, "Setting Country Code in Cfg from csrSetCfgCountryCode %s\n",countryCode );   
-	palCopyMemory( pMac->hHdd, cc, countryCode, WNI_CFG_COUNTRY_CODE_LEN );
+    smsLog( pMac, LOG3, "Setting Country Code in Cfg from csrSetCfgCountryCode %s\n",countryCode );
+    palCopyMemory( pMac->hHdd, cc, countryCode, WNI_CFG_COUNTRY_CODE_LEN );
 
     // don't program the bogus country codes that we created for Korea in the MAC.  if we see
     // the bogus country codes, program the MAC with the right country code.
@@ -8530,7 +8552,7 @@ eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac)
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }                             
 
-	return( status );
+    return( status );
 }
 
 void csrRemoveCmdFromPendingList(tpAniSirGlobal pMac, tDblLinkList *pList,
@@ -8597,7 +8619,7 @@ eHalStatus csrScanGetScanChannelInfo(tpAniSirGlobal pMac)
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }                             
 
-	return( status );
+    return( status );
 }
 
 tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel )

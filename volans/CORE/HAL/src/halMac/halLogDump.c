@@ -4069,7 +4069,11 @@ dump_hal_phy_update_rate2pwr_table( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32
     }
 
     phyRate = macPhyRateIndex[arg1];
-    VOS_ASSERT(phyRate < NUM_HAL_PHY_RATES);
+    if(phyRate >= NUM_HAL_PHY_RATES)
+	{
+        HALLOGE(halLog(pMac, LOGE, FL("Invalid phyRate  \n")));
+	    return p;
+	}
     pMac->hphy.phy.pwrOptimal[RF_SUBBAND_2_4_GHZ][phyRate].reported = (t2Decimal)arg2;
 
     halRate_GetTxPwrForRate(pMac, (tTpeRateIdx)arg1, 30, &power);

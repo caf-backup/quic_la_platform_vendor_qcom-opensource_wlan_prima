@@ -1243,6 +1243,11 @@ void limSendHalInNavMeasReq(tpAniSirGlobal pMac)
     tSirRetStatus rc = eSIR_SUCCESS;
     tpLimMlmInNavMeasRsp pMlmInNavMeasRsp;
     tANI_U32 reqLen = 0;
+    if(NULL == pMac->lim.gpLimMlmInNavMeasReq)
+    {
+        PELOGE(limLog(pMac, LOGE,  FL("Null pointer\n"));)
+        goto error;
+    }
 
     PELOG3(limLog(pMac, LOG3, FL("INNAV: Number of bssids to measure are %d \n"), 
         pMac->lim.gpLimMlmInNavMeasReq->numBSSIDs););

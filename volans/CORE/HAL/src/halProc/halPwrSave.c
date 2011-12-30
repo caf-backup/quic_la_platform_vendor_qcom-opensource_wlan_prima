@@ -606,7 +606,8 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
         tANI_S16 skuOffset = 0;
 
 		VOS_ASSERT(curChan != INVALID_RF_CHANNEL);
-		VOS_ASSERT(curChan < NUM_2_4GHZ_CHANNELS);
+        if(curChan >= NUM_2_4GHZ_CHANNELS)
+            return eHAL_STATUS_FAILURE;         
         //apply the sku dependant offset on the base RSSI value.
         if(halGetNvTableLoc(pMac, NV_TABLE_RSSI_CHANNEL_OFFSETS, (uNvTables **)&pRssiOffset) == eHAL_STATUS_SUCCESS)
         {

@@ -717,7 +717,7 @@ eQWPttStatus pttSetPacketTxGainTable(tpAniSirGlobal pMac, ePhyTxChains txChain, 
 {
     tANI_U8 i;
 
-    if ((txChain > 1) ||
+    if ((txChain != PHY_TX_CHAIN_0) ||
         (maxIndex >= TPC_MEM_GAIN_LUT_DEPTH)
        )
     {
@@ -1246,7 +1246,7 @@ eQWPttStatus pttSetPowerLut(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U8 m
 {
     tANI_U32 i;
 
-    if ((txChain > 1) ||
+    if ((txChain != PHY_TX_CHAIN_0) ||
         (maxIndex >= TPC_MEM_POWER_LUT_DEPTH)
        )
     {

@@ -1957,6 +1957,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
       if (pAdapter != NULL)
          wlan_hdd_cfg80211_pre_voss_stop(pAdapter);
+
+      hdd_UnregisterWext(pAdapter->dev);
    }
 #endif
 

@@ -29,7 +29,7 @@ eHalStatus asicTxFirSetTxCarrierCorrection(tpAniSirGlobal pMac, eGainSteps gain,
     eHalStatus retVal;
     tANI_U32 startWord = TXFIR_MEM + ((tANI_U32)txChain * TXFIR_MEM_PER_CHAIN) + ((tANI_U32)gain * TXFIR_MEM_GAIN_MULT);
     tANI_U32 loWord;
-    tANI_U32 txIqLoCache[3];
+    tANI_U32 txIqLoCache[3] = { 0, 0 ,0 };
 
 
     assert((tANI_U32)txChain < PHY_MAX_TX_CHAINS);
@@ -92,7 +92,7 @@ eHalStatus asicTxFirGetTxCarrierCorrection(tpAniSirGlobal pMac, eGainSteps gain,
 {
     eHalStatus retVal;
     tANI_U32 startWord = TXFIR_MEM + ((tANI_U32)txChain * TXFIR_MEM_PER_CHAIN) + ((tANI_U32)gain * TXFIR_MEM_GAIN_MULT);
-    tANI_U32 txIqLoCache[3];
+    tANI_U32 txIqLoCache[3] = { 0, 0, 0 };
 
     assert(correct != NULL);
     assert((tANI_U32)txChain < PHY_MAX_TX_CHAINS);
