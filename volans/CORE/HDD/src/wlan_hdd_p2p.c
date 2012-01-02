@@ -81,7 +81,7 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                    (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
                     NULL, 0 );
     }
-    else if ( ( WLAN_HDD_SOFTAP== pAdapter->device_mode ) ||
+    else if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
               ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
             )
     {
@@ -157,20 +157,37 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
                               (SIR_MAC_MGMT_PROBE_REQ << 4), NULL, 0 );
 
     }
-    else if ( ( WLAN_HDD_SOFTAP== pAdapter->device_mode ) ||
+    else if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
               ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
             )
     {
         //call sme API to start remain on channel.
-        WLANSAP_RemainOnChannel(
+        if (eHAL_STATUS_SUCCESS != WLANSAP_RemainOnChannel(
                           (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                           chan->hw_value, duration,
-                          wlan_hdd_remain_on_channel_callback, pAdapter );
+                          wlan_hdd_remain_on_channel_callback, pAdapter ));
 
-        WLANSAP_RegisterMgmtFrame(
+        {
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: WLANSAP_RemainOnChannel returned fail", __func__);
+           cfgState->remain_on_chan_ctx = NULL;
+           vos_mem_free (pRemainChanCtx);             
+           return -EINVAL;
+        }
+
+
+        if (eHAL_STATUS_SUCCESS != WLANSAP_RegisterMgmtFrame(
                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                     (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
-                    NULL, 0 );
+                    NULL, 0 ));
+        {
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: WLANSAP_RegisterMgmtFrame returned fail", __func__);
+           WLANSAP_CancelRemainOnChannel(
+                                (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+           return -EINVAL;
+       }
+
     }
     return 0;
 
@@ -249,7 +266,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
         sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
                                             pAdapter->sessionId );
     }
-    else if ( (WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
+    else if ( (WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
               (WLAN_HDD_P2P_GO == pAdapter->device_mode)
             )
     {
@@ -290,6 +307,21 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     //Call sme API to send out a action frame.
     // OR can we send it directly through data path??
     // After tx completion send tx status back.
+    if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
+         ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
+       )
+    {
+       /* Drop Probe response recieved from supplicant, as for GO and 
+          SAP PE itself sends probe response
+        */ 
+       if ( buf[0] == 
+               ( (SIR_MAC_MGMT_FRAME << 2)
+               | ( SIR_MAC_MGMT_PROBE_RSP << 4) ) 
+          )
+       {
+            goto err_rem_channel;
+       }
+    }
 
     if( NULL != cfgState->buf )
         return -EBUSY;
@@ -300,6 +332,12 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     if( offchan && wait)
     {
         int status;
+        if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
+              ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
+           )
+        {
+            goto send_frame;
+        }
 
         /* Wait for driver to be ready on the requested channel */
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
@@ -366,7 +404,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             goto err;
         }
     }
-    else if( ( WLAN_HDD_SOFTAP== pAdapter->device_mode ) ||
+    else if( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
               ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
             )
      {

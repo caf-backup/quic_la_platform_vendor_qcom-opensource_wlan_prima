@@ -247,7 +247,6 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
                              | BIT(NL80211_IFTYPE_P2P_CLIENT)
                              | BIT(NL80211_IFTYPE_P2P_GO)
 #endif                       
-                             | BIT(NL80211_IFTYPE_MONITOR)
                              | BIT(NL80211_IFTYPE_AP);
 
     /*Initialise the band details*/
@@ -608,20 +607,217 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
     }
 }
 
-static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
+static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter, 
+                            struct beacon_parameters *params)
+{
+    v_U8_t *genie;
+    v_U8_t total_ielen = 0, ielen = 0;
+    v_U8_t *pIe = NULL;
+    beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
+
+    genie = vos_mem_malloc(MAX_GENIE_LEN);
+
+    if(genie == NULL) {
+       
+        return -ENOMEM;
+    }
+    
+    pIe = wlan_hdd_get_wps_ie_ptr(pBeacon->tail, pBeacon->tail_len);
+
+    if(pIe) 
+    {
+        /*Copy the wps IE*/
+        ielen = pIe[1] + 2;  
+        if( ielen <=MAX_GENIE_LEN)
+       	{
+            vos_mem_copy(genie, pIe, ielen);
+        }
+        else 
+	{
+           hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie Length is too big***\n");
+           return -EINVAL;
+        }
+        total_ielen = ielen;
+    }
+
+#ifdef WLAN_FEATURE_P2P    
+    pIe = wlan_hdd_get_p2p_ie_ptr(pBeacon->tail,pBeacon->tail_len);
+
+    if(pIe) 
+    {
+        ielen = pIe[1] + 2;
+        if(total_ielen + ielen <= MAX_GENIE_LEN)
+       	{
+            vos_mem_copy(&genie[total_ielen], pIe, (pIe[1] + 2));
+        }
+        else
+	{
+           hddLog( VOS_TRACE_LEVEL_ERROR, 
+                    "**Wps Ie+ P2pIE Length is too big***\n");
+           return -EINVAL;
+        }
+        total_ielen += ielen; 
+    }
+#endif
+    
+    if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal, 
+       WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, genie, total_ielen, NULL, 
+               eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+    {            
+        hddLog(LOGE, 
+               "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA to CCM");
+        return -EINVAL;
+    }
+
+    if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal, 
+          WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 1,NULL,
+          test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
+                   eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
+          ==eHAL_STATUS_FAILURE)
+    {
+        hddLog(LOGE, 
+            "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM");
+        return -EINVAL;
+    }
+
+    // Added for ProResp IE
+    if ( (params->proberesp_ies != NULL) && (params->proberesp_ies_len != 0) )
+    {
+        u16 rem_probe_resp_ie_len = params->proberesp_ies_len;
+        u8 probe_rsp_ie_len[3] = {0};
+        u8 counter = 0;
+        /* Check Probe Resp Length if it is greater then 255 then Store 
+           Probe Resp IEs into WNI_CFG_PROBE_RSP_ADDNIE_DATA1 & 
+           WNI_CFG_PROBE_RSP_ADDNIE_DATA2 CFG Variable As We are not able
+           Store More then 255 bytes into One Variable.   
+        */
+        while ((rem_probe_resp_ie_len > 0) && (counter < 3))
+        {
+            if (rem_probe_resp_ie_len > MAX_CFG_STRING_LEN)
+            {
+                probe_rsp_ie_len[counter++] = MAX_CFG_STRING_LEN;
+                rem_probe_resp_ie_len -= MAX_CFG_STRING_LEN;
+            }
+            else
+            {
+                probe_rsp_ie_len[counter++] = rem_probe_resp_ie_len;
+                rem_probe_resp_ie_len = 0;
+            }
+        }
+
+        rem_probe_resp_ie_len = 0;
+
+        if (probe_rsp_ie_len[0] > 0)
+        {
+            if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA1,
+                            (tANI_U8*)&params->proberesp_ies[rem_probe_resp_ie_len],
+                            probe_rsp_ie_len[0], NULL,
+                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+            {
+                 hddLog(LOGE,
+                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
+                 return -EINVAL;
+            }
+            rem_probe_resp_ie_len += probe_rsp_ie_len[0];
+        }
+
+        if (probe_rsp_ie_len[1] > 0)
+        {
+            if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2,
+                            (tANI_U8*)&params->proberesp_ies[rem_probe_resp_ie_len],
+                            probe_rsp_ie_len[1], NULL,
+                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+            {
+                 hddLog(LOGE,
+                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
+                 return -EINVAL;
+            }
+            rem_probe_resp_ie_len += probe_rsp_ie_len[1];
+        }
+
+        if (probe_rsp_ie_len[2] > 0)
+        {
+            if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3,
+                            (tANI_U8*)&params->proberesp_ies[rem_probe_resp_ie_len],
+                            probe_rsp_ie_len[2], NULL,
+                            eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+            {
+                 hddLog(LOGE,
+                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
+                 return -EINVAL;
+            }
+            rem_probe_resp_ie_len += probe_rsp_ie_len[2];
+        }
+
+        if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+             WNI_CFG_PROBE_RSP_ADDNIE_FLAG, 1,NULL,
+             test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
+                      eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
+             == eHAL_STATUS_FAILURE)
+        {
+           hddLog(LOGE,
+             "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_FLAG to CCM");
+           return -EINVAL;
+        }
+    }
+    else
+    {
+        hddLog(VOS_TRACE_LEVEL_INFO,
+               "%s: No Probe Response IE received in set beacon",
+               __func__);
+    }
+
+    // Added for AssocResp IE
+    if ( (params->assocresp_ies != NULL) && (params->assocresp_ies_len != 0) )
+    {
+       if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+               WNI_CFG_ASSOC_RSP_ADDNIE_DATA, (tANI_U8*)params->assocresp_ies,
+               params->assocresp_ies_len, NULL,
+               eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+       {
+            hddLog(LOGE,
+                  "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_DATA to CCM");
+            return -EINVAL;
+       }
+
+       if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+          WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 1,NULL,
+          test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
+                   eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
+          == eHAL_STATUS_FAILURE)
+       {
+          hddLog(LOGE,
+            "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM");
+          return -EINVAL;
+       }
+    }
+    else
+    {
+        hddLog(VOS_TRACE_LEVEL_INFO,
+               "%s: No Assoc Response IE received in set beacon",
+               __func__);
+    }
+
+    vos_mem_free(genie);
+    return 0;
+}
+
+static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
+                            struct beacon_parameters *params)
 {
     tsap_Config_t *pConfig;
     beacon_data_t *pBeacon = NULL;
     struct ieee80211_mgmt *pMgmt_frame;
-    v_U8_t *pIe=NULL;
+    v_U8_t *pIe = NULL;
     v_U16_t capab_info;
     eCsrAuthType RSNAuthType;
     eCsrEncryptionType RSNEncryptType;
     eCsrEncryptionType mcRSNEncryptType;
     int status = VOS_STATUS_SUCCESS;
     tpWLAN_SAPEventCB pSapEventCallback;
-    v_U8_t *genie;
-    v_U8_t total_ielen=0,ielen=0;
     hdd_hostapd_state_t *pHostapdState;
     v_U8_t wpaRsnIEdata[(SIR_MAC_MAX_IE_LENGTH * 2)+4];  //Max ie length 255 * 2(WPA+RSN) + 2 bytes (vendor specific ID) * 2
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
@@ -748,20 +944,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
 
     pConfig->SSIDinfo.ssidHidden = VOS_FALSE;
 
-    pIe = wlan_hdd_cfg80211_get_ie_ptr(&pMgmt_frame->u.beacon.variable[0],
-                                       pBeacon->head_len, WLAN_EID_SSID);
-
-    pConfig->SSIDinfo.ssid.length = pIe[1];
-
-    if(pConfig->SSIDinfo.ssid.length) 
+    if (params->ssid != NULL)
     {
-        vos_mem_copy(pConfig->SSIDinfo.ssid.ssId, &pIe[2], 
-                     pConfig->SSIDinfo.ssid.length);
-    }
-    else 
-    {
-      /*Empty SSID*/ 
-       pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
+        memcpy(pConfig->SSIDinfo.ssid.ssId, params->ssid, params->ssid_len);
+        pConfig->SSIDinfo.ssid.length = params->ssid_len;
+        if (params->hidden_ssid != NL80211_HIDDEN_SSID_NOT_IN_USE)
+           pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
     }
     vos_mem_copy(pConfig->self_macaddr.bytes, 
                pHostapdAdapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
@@ -773,69 +961,13 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab =
                  (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apProtection;
-    genie = vos_mem_malloc(MAX_GENIE_LEN);
 
-    if(genie == NULL) {
-       
-        return -ENOMEM;
-    }
-    
-    pIe = wlan_hdd_get_wps_ie_ptr(pBeacon->tail,pBeacon->tail_len);
-
-    if(pIe) 
+    if ( 0 != wlan_hdd_cfg80211_update_apies(pHostapdAdapter, params) )
     {
-        /*Copy the wps IE*/
-        ielen = pIe[1] + 2;  
-        if( ielen <=MAX_GENIE_LEN) {
-            vos_mem_copy(genie,pIe,ielen);
-        }
-        else {
-           hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie Length is too big***\n");
-           return -EINVAL;
-        }
-        total_ielen = ielen;
-    }
-
-#ifdef WLAN_FEATURE_P2P    
-    pIe = wlan_hdd_get_p2p_ie_ptr(pBeacon->tail,pBeacon->tail_len);
-
-    if(pIe) 
-    {
-        ielen = pIe[1] + 2;
-        if(total_ielen + ielen <= MAX_GENIE_LEN) {
-            vos_mem_copy(&genie[total_ielen],pIe,(pIe[1] + 2));
-        }
-        else {
-           hddLog( VOS_TRACE_LEVEL_ERROR, 
-                    "**Wps Ie+ P2pIE Length is too big***\n");
-           return -EINVAL;
-        }
-        total_ielen += ielen; 
-    }
-#endif
-    
-    if(ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal, 
-       WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, genie, total_ielen, NULL, 
-               eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-    {            
-        hddLog(LOGE, 
-               "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA to CCM\n");
+        hddLog(LOGE, FL("SAP Not able to set AP IEs"));
         return -EINVAL;
     }
 
-    if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal, 
-          WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 1,NULL,
-          test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
-                   eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
-          ==eHAL_STATUS_FAILURE)
-    {
-        hddLog(LOGE, 
-            "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM\n");
-        return -EINVAL;
-    }
-
-    vos_mem_free(genie);
-    
     pConfig->num_accept_mac =0;
     pConfig->num_deny_mac = 0;
     //Uapsd Enabled Bit
@@ -937,7 +1069,7 @@ static int wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
 
         pAdapter->sessionCtx.ap.beacon = new;
 
-        status = wlan_hdd_cfg80211_start_bss(pAdapter);
+        status = wlan_hdd_cfg80211_start_bss(pAdapter, params);
     }
 
     EXIT();
@@ -979,7 +1111,7 @@ static int wlan_hdd_cfg80211_set_beacon(struct wiphy *wiphy,
 
        pAdapter->sessionCtx.ap.beacon = new;
 
-       status = wlan_hdd_cfg80211_start_bss(pAdapter);
+       status = wlan_hdd_cfg80211_start_bss(pAdapter, params);
     }
 
     EXIT();

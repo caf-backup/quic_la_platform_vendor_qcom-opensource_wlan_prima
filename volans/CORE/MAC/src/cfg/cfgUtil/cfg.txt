@@ -3088,6 +3088,72 @@ NONE
 0 0
 
 *
+* Include Additional IEs in probe response.
+*
+WNI_CFG_PROBE_RSP_ADDNIE_FLAG    I    4    0
+V    RW    NP
+NONE
+0 1 0
+V    RW    NP
+NONE
+0 1 0
+
+*
+* Include Additional IE in probe response.
+*
+WNI_CFG_PROBE_RSP_ADDNIE_DATA1    S     255    0
+V    RW    NP
+NONE
+0 0
+V    RW    NP
+NONE
+0 0
+
+*
+* Include Additional IE in probe response.
+*
+WNI_CFG_PROBE_RSP_ADDNIE_DATA2    S     255    0
+V    RW    NP
+NONE
+0 0
+V    RW    NP
+NONE
+0 0
+
+*
+* Include Additional IE in probe response.
+*
+WNI_CFG_PROBE_RSP_ADDNIE_DATA3    S     255    0
+V    RW    NP
+NONE
+0 0
+V    RW    NP
+NONE
+0 0
+
+*
+* Include Additional IEs in assoc response.
+*
+WNI_CFG_ASSOC_RSP_ADDNIE_FLAG    I    4    0
+V    RW    NP
+NONE
+0 1 0
+V    RW    NP
+NONE
+0 1 0
+
+*
+* Include Additional IE in assoc response.
+*
+WNI_CFG_ASSOC_RSP_ADDNIE_DATA    S     255    0
+V    RW    NP
+NONE
+0 0
+V    RW    NP
+NONE
+0 0
+
+*
 * Include Additional P2P IEs in probe request.
 *
 WNI_CFG_PROBE_REQ_ADDNP2PIE_FLAG    I    4    0
