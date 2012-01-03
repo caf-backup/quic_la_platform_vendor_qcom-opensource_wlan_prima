@@ -623,7 +623,8 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
         /* Indicate this to SME */
         limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
                      WDA_GET_RX_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
-                     pLimMgmtRegistration->sessionId );
+                     pLimMgmtRegistration->sessionId,
+                     WDA_GET_RX_CH(pBd) );
     }
 
     return match;

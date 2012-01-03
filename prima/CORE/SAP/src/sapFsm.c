@@ -583,6 +583,8 @@ sapSignalHDDevent
                                            = pCsrRoamInfo->nProbeReqLength;
             sapApAppEvent.sapevt.sapManagementFrameInfo.nActionLength
                                            = pCsrRoamInfo->nActionLength;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.rxChan
+                                           = pCsrRoamInfo->rxChan;
             sapApAppEvent.sapevt.sapManagementFrameInfo.pbFrames
                                            = pCsrRoamInfo->pbFrames;
             break;
@@ -608,6 +610,15 @@ sapSignalHDDevent
             sapApAppEvent.sapHddEventCode = eSAP_UNKNOWN_STA_JOIN;
             vos_mem_copy((v_PVOID_t)sapApAppEvent.sapevt.sapUnknownSTAJoin.macaddr.bytes, 
                          (v_PVOID_t)context, sizeof(v_MACADDR_t));
+            break;
+
+        case eSAP_MAX_ASSOC_EXCEEDED:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "In %s, SAP event callback event = %s",
+                    __FUNCTION__, "eSAP_MAX_ASSOC_EXCEEDED");
+            sapApAppEvent.sapHddEventCode = eSAP_MAX_ASSOC_EXCEEDED;
+            vos_mem_copy((v_PVOID_t)sapApAppEvent.sapevt.sapMaxAssocExceeded.macaddr.bytes, 
+                    (v_PVOID_t)pCsrRoamInfo->peerMac, sizeof(v_MACADDR_t));
             break;
 
         default:

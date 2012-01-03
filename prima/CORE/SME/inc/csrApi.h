@@ -443,6 +443,8 @@ typedef enum
 #ifdef WLAN_FEATURE_P2P
     eCSR_ROAM_RESULT_SEND_ACTION_FAIL,
 #endif
+    // peer rejected assoc because max assoc limit reached. callback gets pointer to peer
+    eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED,
 }eCsrRoamResult;
 
 
@@ -959,6 +961,7 @@ typedef struct tagCsrRoamInfo
 
 #ifdef WLAN_FEATURE_P2P
     void* pRemainCtx; 
+    tANI_U32 rxChan;
 #endif
 
 }tCsrRoamInfo;

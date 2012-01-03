@@ -396,7 +396,8 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
  *------------------------------------------------------------------*/
 void limSendSmeMgmtFrameInd(
                     tpAniSirGlobal pMac, tSirSmeMgmtFrameType frameType,
-                    tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId)
+                    tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId,
+                    tANI_U32 rxChannel)
 {
     tSirMsgQ              mmhMsg;
     tpSirSmeMgmtFrameInd pSirSmeMgmtFrame = NULL;
@@ -417,6 +418,7 @@ void limSendSmeMgmtFrameInd(
     pSirSmeMgmtFrame->mesgLen = length;
     pSirSmeMgmtFrame->sessionId = sessionId;
     pSirSmeMgmtFrame->frameType = frameType;
+    pSirSmeMgmtFrame->rxChan = rxChannel;
     
     vos_mem_zero(pSirSmeMgmtFrame->frameBuf,frameLen);
     vos_mem_copy(pSirSmeMgmtFrame->frameBuf,frame,frameLen);
@@ -668,7 +670,6 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
          * at OFDM rates. And BD rate2 we configured at 6Mbps.
          */
     txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
-    pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
       
     if (SIR_MAC_MGMT_PROBE_RSP == pFc->subType)
     {
@@ -678,7 +679,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
                     txFlag );
 
         limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, 
-               halstatus, pMac->lim.actionFrameSessionId, 0);
+               halstatus, pMbMsg->sessionId, 0);
     }
     else
     {
@@ -689,9 +690,13 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
         if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
         {
-             limLog( pMac, LOGE, FL("could not send Probe Request frame!\n" ));
+             limLog( pMac, LOGE, FL("could not send action frame!\n" ));
              limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, halstatus, 
                 pMbMsg->sessionId, 0);
+        }
+        else
+        {
+             pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
         }
     }
 

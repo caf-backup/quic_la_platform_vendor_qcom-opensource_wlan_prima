@@ -60,7 +60,7 @@ typedef enum eSmeCommandType
     eSmeCommandAddTs,
     eSmeCommandDelTs,
 #ifdef FEATURE_INNAV_SUPPORT
-    eSmeCommandMeas = 0x50000, //To identify the InNav meas commands
+    eSmeCommandMeas = 0x80000, //To identify the InNav meas commands
 #endif
 #ifdef WLAN_FEATURE_P2P
     eSmeCommandRemainOnChannel,

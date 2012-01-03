@@ -553,6 +553,8 @@ WLANSAP_StartBss
     tWLAN_SAPEvent sapEvent;    /* State machine event*/
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
     ptSapContext  pSapCtx = NULL;
+    tANI_BOOLEAN restartNeeded;
+    
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
     /*------------------------------------------------------------------------
@@ -591,6 +593,10 @@ WLANSAP_StartBss
 
         //copy the configuration items to csrProfile
         sapconvertToCsrProfile( pConfig, eCSR_BSS_TYPE_INFRA_AP, &pSapCtx->csrRoamProfile);
+        
+        /* Setting the region/country  information */
+        sme_setRegInfo(VOS_GET_HAL_CB(pvosGCtx), pConfig->countryCode);
+        sme_ResetCountryCodeInformation(VOS_GET_HAL_CB(pvosGCtx), &restartNeeded);
 
         // Copy MAC filtering settings to sap context
         pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;

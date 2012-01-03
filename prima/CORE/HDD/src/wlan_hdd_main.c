@@ -564,6 +564,53 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    EXIT();
    return retval;
 }
+/**---------------------------------------------------------------------------
+     \brief hdd_full_pwr_cbk() - HDD full power callbackfunction
+
+      This is the function invoked by SME to inform the result of a full power
+      request issued by HDD
+
+     \param  - callbackcontext - Pointer to cookie
+               status - result of request
+
+     \return - None
+
+--------------------------------------------------------------------------*/
+void hdd_full_pwr_cbk(void *callbackContext, eHalStatus status)
+{
+   hdd_context_t *pHddCtx = (hdd_context_t*)callbackContext;
+
+   hddLog(VOS_TRACE_LEVEL_ERROR,"HDD full Power callback status = %d", status);
+   if(&pHddCtx->full_pwr_comp_var)
+   {
+      complete(&pHddCtx->full_pwr_comp_var);
+   }
+}
+
+/**---------------------------------------------------------------------------
+
+    \brief hdd_req_bmps_cbk() - HDD Request BMPS callback function
+
+     This is the function invoked by SME to inform the result of BMPS
+     request issued by HDD
+
+    \param  - callbackcontext - Pointer to cookie
+               status - result of request
+
+    \return - None
+
+--------------------------------------------------------------------------*/
+void hdd_req_bmps_cbk(void *callbackContext, eHalStatus status)
+{
+
+   struct completion *completion_var = (struct completion*) callbackContext;
+
+   hddLog(VOS_TRACE_LEVEL_ERROR, "HDD BMPS request Callback, status = %d\n", status);
+   if(completion_var != NULL)
+   {
+      complete(completion_var);
+   }
+}
 
 /**---------------------------------------------------------------------------
 
@@ -1184,6 +1231,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 {
    hdd_adapter_t *pAdapter = NULL;
    hdd_adapter_list_node_t *pHddAdapterNode = NULL;
+   hdd_adapter_t *pStaAdapter = NULL;
+   eHalStatus halStatus;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
@@ -1327,7 +1376,43 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, TRUE);
    }
 #endif
-   
+   /* If there are any concurrent sessions, disable BMPS */
+
+   pStaAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+   if ((vos_concurrent_sessions_running()) && 
+       hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pStaAdapter)))
+   {
+        if (pHddCtx->cfg_ini->fIsBmpsEnabled)
+        {
+           sme_DisablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+        }
+        if (pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled)
+        { 
+           sme_StopAutoBmpsTimer(pHddCtx->hHal);
+        }
+
+        /* Now, get the chip into Full Power now */
+        INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
+        halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_full_pwr_cbk,
+            pHddCtx, eSME_FULL_PWR_NEEDED_BY_HDD);
+
+        if(halStatus != eHAL_STATUS_SUCCESS)
+        {  
+           if(halStatus == eHAL_STATUS_PMC_PENDING)
+           {  
+             //Block on a completion variable. Can't wait forever though
+              wait_for_completion_interruptible_timeout(&pHddCtx->full_pwr_comp_var,
+                 msecs_to_jiffies(1000));
+           } 
+           else
+           {
+              hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed\n", __func__);
+              VOS_ASSERT(0);
+              return NULL;
+           }
+        }
+   }
+
    if( VOS_STATUS_SUCCESS == status )
    {
       //Add it to the hdd's session list. 
@@ -1402,6 +1487,32 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, FALSE);
       }
 #endif
+
+      /* If there is a single session of STA/P2P client, re-enable BMPS */
+      if ((!vos_concurrent_sessions_running()) && 
+         ((pHddCtx->no_of_sessions[VOS_STA_MODE] >= 1) || 
+          (pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE] >= 1)))
+      {
+         if(pHddCtx->cfg_ini->fIsBmpsEnabled)
+         {
+           sme_EnablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+         }
+
+         INIT_COMPLETION(pHddCtx->req_bmps_comp_var);
+         status = sme_RequestBmps(WLAN_HDD_GET_HAL_CTX(pAdapter), 
+                      hdd_req_bmps_cbk, &pHddCtx->req_bmps_comp_var);
+
+         if (eHAL_STATUS_PMC_PENDING == status)
+         {
+            wait_for_completion_interruptible_timeout(&pHddCtx->req_bmps_comp_var,
+                   msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+         }
+         if(pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled)
+         {
+            sme_StartAutoBmpsTimer(pHddCtx->hHal); 
+         }
+         
+      }
       return VOS_STATUS_SUCCESS;
    }
 
@@ -2650,6 +2761,8 @@ int hdd_wlan_startup(struct device *dev )
 
    init_completion(&pHddCtx->full_pwr_comp_var);
    init_completion(&pHddCtx->standby_comp_var);
+   init_completion(&pHddCtx->req_bmps_comp_var);
+
 
    hdd_list_init( &pHddCtx->hddAdapters, MAX_NUMBER_OF_ADAPTERS );
 

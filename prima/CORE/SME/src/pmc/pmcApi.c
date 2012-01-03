@@ -1599,7 +1599,7 @@ tANI_BOOLEAN pmcValidateConnectState( tHalHandle hHal )
       smsLog(pMac, LOGW, "PMC: BT-AMP exists. BMPS cannot be entered\n");
       return eANI_BOOLEAN_FALSE;
    }
-   if ( !csrRoamGetConcurrencyConnectStatusForBmps(pMac))   
+   if ((vos_concurrent_sessions_running()) && csrIsInfraConnected( pMac ))  
    {
       smsLog(pMac, LOGW, "PMC: Multiple active sessions exists. BMPS cannot be entered\n");
       return eANI_BOOLEAN_FALSE;

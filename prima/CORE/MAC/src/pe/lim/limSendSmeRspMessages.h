@@ -73,5 +73,7 @@ void limSendSmeInNavMeasRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCo
 
 void limSendSmePreChannelSwitchInd(tpAniSirGlobal pMac);
 void limSendSmePostChannelSwitchInd(tpAniSirGlobal pMac);
+void limSendSmeMaxAssocExceededNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tANI_U8 smesessionId);
+
 #endif /* __LIM_SEND_SME_RSP_H */
 

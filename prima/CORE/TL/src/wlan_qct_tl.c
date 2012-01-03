@@ -1001,7 +1001,8 @@ WLANTL_RegisterSTAClient
   WLANTL_STARxCBType        pfnSTARx,
   WLANTL_TxCompCBType       pfnSTATxComp,
   WLANTL_STAFetchPktCBType  pfnSTAFetchPkt,
-  WLAN_STADescType*         pwSTADescType
+  WLAN_STADescType*         pwSTADescType,
+  v_S7_t                    rssi
 )
 {
   WLANTL_CbType*  pTLCb = NULL;
@@ -1177,8 +1178,10 @@ WLANTL_RegisterSTAClient
   vos_mem_zero( pTLCb->atlSTAClients[pwSTADescType->ucSTAId].auTxCount,
       sizeof(pTLCb->atlSTAClients[pwSTADescType->ucSTAId].auRxCount[0])*
       WLAN_MAX_TID);
-
-  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].rssiAvg = 0;
+  /* Initial RSSI is always reported as zero because TL doesnt have enough 
+  data to calculate RSSI. So to avoid reporting zero, we are initializing 
+  RSSI with RSSI saved in BssDescription during scanning.*/
+  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].rssiAvg = rssi;
 
   /*Tx not suspended and station fully registered*/
   vos_atomic_set_U8(
@@ -2050,6 +2053,16 @@ WLANTL_GetRssi
   if(pTLCb->isBMPS)
   {
     *pRssi = pTLCb->atlSTAClients[ucSTAId].rssiAvgBmps;
+    /* Check If RSSI is zero because we are reading rssAvgBmps updated by HAL in 
+    previous GetStatsRequest. It may be updated as zero by Hal because EnterBmps 
+    might not have happend by that time. Hence reading the most recent Rssi 
+    calcluated by TL*/
+    if(0 == *pRssi)
+    {
+      *pRssi = pTLCb->atlSTAClients[ucSTAId].rssiAvg;
+    }
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                                 "WLAN TL:bmpsRssi %d \n",*pRssi));
   }
   else
   {

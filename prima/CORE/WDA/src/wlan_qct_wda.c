@@ -10562,6 +10562,11 @@ void WDA_UpdateScanParamsCallback(WDI_Status status, void* pUserData)
       {
          vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
       }
+
+      if( pWdaParams->wdaMsgParam != NULL)
+      {
+         vos_mem_free(pWdaParams->wdaMsgParam);
+      }
       vos_mem_free(pWdaParams) ;
    }
 

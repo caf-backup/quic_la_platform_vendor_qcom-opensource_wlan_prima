@@ -958,7 +958,8 @@ WLANTL_RegisterSTAClient
   WLANTL_STARxCBType        pfnSTARx,  
   WLANTL_TxCompCBType       pfnSTATxComp,  
   WLANTL_STAFetchPktCBType  pfnSTAFetchPkt,
-  WLAN_STADescType*         wSTADescType 
+  WLAN_STADescType*         wSTADescType ,
+  v_S7_t                    rssi
 );
 
 /*===========================================================================

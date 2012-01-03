@@ -494,6 +494,13 @@ WLANSAP_RoamCallback
             }
             break;
 
+        case eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)\n",
+                    __FUNCTION__, "eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED", roamResult);
+            /* Fill in the event structure */
+            vosStatus = sapSignalHDDevent(sapContext, pCsrRoamInfo, eSAP_MAX_ASSOC_EXCEEDED, (v_PVOID_t)NULL);
+
+            break;
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamResult = %s (%d) not handled\n",
                        __FUNCTION__,get_eCsrRoamResult_str(roamResult),roamResult);

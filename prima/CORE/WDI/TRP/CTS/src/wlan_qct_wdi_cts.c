@@ -781,6 +781,7 @@ WCTS_CloseTransport
    */
    msleep(50);
 
+   wpalMemoryFree(pWCTSCb);
    return status;
 
 }/*WCTS_CloseTransport*/

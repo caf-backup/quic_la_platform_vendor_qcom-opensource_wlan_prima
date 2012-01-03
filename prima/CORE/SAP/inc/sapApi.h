@@ -166,6 +166,7 @@ typedef enum {
     eSAP_SEND_ACTION_CNF,
 #endif
     eSAP_UNKNOWN_STA_JOIN, /* Event send when a STA in neither white list or black list tries to associate in softap mode */
+    eSAP_MAX_ASSOC_EXCEEDED, /* Event send when a new STA is rejected association since softAP max assoc limit has reached */
 } eSapHddEvent;
 
 typedef enum {
@@ -294,6 +295,7 @@ typedef struct sap_ManagementFrameInfo_s {
     tANI_U32 nAssocRspLength;   //The length, in bytes, of the assoc rsp frame, can be 0
     tANI_U32 nProbeReqLength;   //The length, in bytes, of the probe req frame, can be 0
     tANI_U32 nActionLength;     //The length, in bytes, of the action frame, can be 0
+    tANI_U32 rxChan;            //Channel of where packet is recevied 
     tANI_U8 *pbFrames;         //Point to a buffer contain the beacon, assoc req, assoc rsp frame, in that order
                              //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
                             //each frame starts and ends.
@@ -307,6 +309,10 @@ typedef struct sap_SendActionCnf_s {
 typedef struct sap_UnknownSTAJoinEvent_s {
     v_MACADDR_t    macaddr;  
 } tSap_UnknownSTAJoinEvent;
+
+typedef struct sap_MaxAssocExceededEvent_s {
+    v_MACADDR_t    macaddr;  
+} tSap_MaxAssocExceededEvent;
 
 
 /* 
@@ -332,6 +338,7 @@ typedef struct sap_Event_s {
         tSap_SendActionCnf                        sapActionCnf;  /* eSAP_SEND_ACTION_CNF */ 
 #endif
         tSap_UnknownSTAJoinEvent                  sapUnknownSTAJoin; /* eSAP_UNKNOWN_STA_JOIN */
+        tSap_MaxAssocExceededEvent                sapMaxAssocExceeded; /* eSAP_MAX_ASSOC_EXCEEDED */
     } sapevt;
 } tSap_Event, *tpSap_Event;
 

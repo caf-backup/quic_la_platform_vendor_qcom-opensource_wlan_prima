@@ -253,6 +253,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     v_BOOL_t bAuthRequired = TRUE;
     tpSap_AssocMacAddr pAssocStasArray = NULL;
     char unknownSTAEvent[IW_CUSTOM_MAX+1];
+    char maxAssocExceededEvent[IW_CUSTOM_MAX+1];
     v_BYTE_t we_custom_start_event[64];
     char *startBssEvent; 
 
@@ -558,7 +559,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
            hdd_indicateMgmtFrame( pHostapdAdapter, 
                                  pSapEvent->sapevt.sapManagementFrameInfo.nProbeReqLength, 
                                  pSapEvent->sapevt.sapManagementFrameInfo.nActionLength, 
-                                 pSapEvent->sapevt.sapManagementFrameInfo.pbFrames);
+                                 pSapEvent->sapevt.sapManagementFrameInfo.pbFrames,
+                                 pSapEvent->sapevt.sapManagementFrameInfo.rxChan);
            return VOS_STATUS_SUCCESS;
         case eSAP_REMAIN_CHAN_READY:
            hdd_remainChanReadyHandler( pHostapdAdapter );
@@ -568,7 +570,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
            return VOS_STATUS_SUCCESS;
 #endif
         case eSAP_UNKNOWN_STA_JOIN:
-            memset(&wrqu, '\0', sizeof(wrqu));          
             snprintf(unknownSTAEvent, IW_CUSTOM_MAX, "JOIN_UNKNOWN_STA-%02x:%02x:%02x:%02x:%02x:%02x",
                 pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[0],
                 pSapEvent->sapevt.sapUnknownSTAJoin.macaddr.bytes[1],
@@ -580,7 +581,26 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             wrqu.data.pointer = unknownSTAEvent;
             wrqu.data.length = strlen(unknownSTAEvent);
             we_custom_event_generic = (v_BYTE_t *)unknownSTAEvent;
+            hddLog(LOG1,"%s\n", unknownSTAEvent);
             break;
+
+        case eSAP_MAX_ASSOC_EXCEEDED:
+            snprintf(maxAssocExceededEvent, IW_CUSTOM_MAX, "Peer %02x:%02x:%02x:%02x:%02x:%02x denied"
+                    " assoc due to Maximum Mobile Hotspot connections reached. Please disconnect"
+                    " one or more devices to enable the new device connection",
+                    pSapEvent->sapevt.sapMaxAssocExceeded.macaddr.bytes[0],
+                    pSapEvent->sapevt.sapMaxAssocExceeded.macaddr.bytes[1],
+                    pSapEvent->sapevt.sapMaxAssocExceeded.macaddr.bytes[2],
+                    pSapEvent->sapevt.sapMaxAssocExceeded.macaddr.bytes[3],
+                    pSapEvent->sapevt.sapMaxAssocExceeded.macaddr.bytes[4],
+                    pSapEvent->sapevt.sapMaxAssocExceeded.macaddr.bytes[5]);
+            we_event = IWEVCUSTOM; /* Discovered a new node (AP mode). */
+            wrqu.data.pointer = maxAssocExceededEvent;
+            wrqu.data.length = strlen(maxAssocExceededEvent);
+            we_custom_event_generic = (v_BYTE_t *)maxAssocExceededEvent;
+            hddLog(LOG1,"%s\n", maxAssocExceededEvent);
+            break;
+
         default:
             hddLog(LOG1,"SAP message is not handled\n");
             goto stopbss;

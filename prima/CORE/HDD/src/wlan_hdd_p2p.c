@@ -115,6 +115,17 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         return -EBUSY;
     }
 
+    /* When P2P-GO and if we are trying to unload the driver then 
+     * wlan driver is keep on receiving the remain on channel command
+     * and which is resulting in crash. So not allowing any remain on 
+     * channel requets when Load/Unload is in progress*/
+    if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadUnloadInProgress);
+    {
+        hddLog( LOGE,
+                "%s: Wlan Load/Unload is in progress", __func__);
+        return -EBUSY;
+    }
+
     pRemainChanCtx = vos_mem_malloc( sizeof(hdd_remain_on_chan_ctx_t) );
     if( NULL == pRemainChanCtx )
     {
@@ -157,15 +168,32 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
             )
     {
         //call sme API to start remain on channel.
-        WLANSAP_RemainOnChannel(
+        if (eHAL_STATUS_SUCCESS != WLANSAP_RemainOnChannel(
                           (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                           chan->hw_value, duration,
-                          wlan_hdd_remain_on_channel_callback, pAdapter );
+                          wlan_hdd_remain_on_channel_callback, pAdapter ));
 
-        WLANSAP_RegisterMgmtFrame(
+        {
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: WLANSAP_RemainOnChannel returned fail", __func__);
+           cfgState->remain_on_chan_ctx = NULL;
+           vos_mem_free (pRemainChanCtx);             
+           return -EINVAL;
+        }
+
+
+        if (eHAL_STATUS_SUCCESS != WLANSAP_RegisterMgmtFrame(
                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                     (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
-                    NULL, 0 );
+                    NULL, 0 ));
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: WLANSAP_RegisterMgmtFrame returned fail", __func__);
+            WLANSAP_CancelRemainOnChannel(
+                    (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+            return -EINVAL;
+        }
+
     }
     return 0;
 
@@ -285,6 +313,21 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     //Call sme API to send out a action frame.
     // OR can we send it directly through data path??
     // After tx completion send tx status back.
+    if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
+         ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
+       )
+    {
+       /* Drop Probe response recieved from supplicant, as for GO and 
+          SAP PE itself sends probe response
+        */ 
+       if ( buf[0] == 
+               ( (SIR_MAC_MGMT_FRAME << 2)
+               | ( SIR_MAC_MGMT_PROBE_RSP << 4) ) 
+          )
+       {
+            goto err_rem_channel;
+       }
+    }
 
     if( NULL != cfgState->buf )
         return -EBUSY;
@@ -295,7 +338,15 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     if( offchan && wait)
     {
         int status;
+
         hdd_adapter_t *goAdapter;
+
+        if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
+              ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
+           )
+        {
+            goto send_frame;
+        }
 
         goAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_P2P_GO );
 
@@ -303,9 +354,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
         //then we will not request remain on channel 
         if( goAdapter && ( ieee80211_frequency_to_channel(chan->center_freq)
                              == goAdapter->sessionCtx.ap.operatingChannel ) )
-        {
-           goto send_frame;
-        }
+        
 
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
 
@@ -560,85 +609,96 @@ int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct net_device *dev )
 
 void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                             tANI_U32 nProbeReqLength,
-                            tANI_U32 nActionLength, tANI_U8* pbFrames )
+                            tANI_U32 nActionLength, tANI_U8* pbFrames,
+                            tANI_U32 rxChan )
 {
     int rxstat;
-    hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
     if( nActionLength )
     {
+        tANI_U16 freq;
         hddLog( LOGE, FL("Indicate Action Frame over NL80211 Intf"));
         //Channel indicated may be wrong. TODO
         //Indicate an action frame.
-        cfg80211_rx_mgmt( pAdapter->dev, cfgState->current_freq,
+        if( rxChan <= MAX_NO_OF_2_4_CHANNELS )
+        {
+           freq = ieee80211_channel_to_frequency( rxChan,
+                                                       IEEE80211_BAND_2GHZ);
+        }
+        else
+        {
+           freq = ieee80211_channel_to_frequency( rxChan,
+                                                       IEEE80211_BAND_5GHZ);
+        }
+        cfg80211_rx_mgmt( pAdapter->dev, freq,
                           pbFrames,
                           nActionLength, GFP_ATOMIC );
     }
     else if( nProbeReqLength )
     {
         //Indicate an probe request frame.
-        struct sk_buff *skb = NULL;
+    struct sk_buff *skb = NULL;
         hdd_adapter_t *pMonAdapter =
                    hdd_get_mon_adapter( WLAN_HDD_GET_CTX(pAdapter) );
-        int needed_headroom = 0;
-        int flag = HDD_RX_FLAG_IV_STRIPPED | HDD_RX_FLAG_DECRYPTED |
-                   HDD_RX_FLAG_MMIC_STRIPPED;
+    int needed_headroom = 0;
+    int flag = HDD_RX_FLAG_IV_STRIPPED | HDD_RX_FLAG_DECRYPTED |
+               HDD_RX_FLAG_MMIC_STRIPPED;
 
         hddLog( LOGE, FL("Indicate Action Frame over Monitor Intf"));
 
         if( NULL == pMonAdapter ) return;
 
-        VOS_ASSERT( (pbFrames != NULL) );
+    VOS_ASSERT( (pbFrames != NULL) );
 
-        /* room for the radiotap header based on driver features
-         * 1 Byte for RADIO TAP Flag, 1 Byte padding and 2 Byte for
-         * RX flags.
-         * */
-        needed_headroom = sizeof(struct ieee80211_radiotap_header) + 4;
+    /* room for the radiotap header based on driver features
+     * 1 Byte for RADIO TAP Flag, 1 Byte padding and 2 Byte for
+     * RX flags.
+     * */
+     needed_headroom = sizeof(struct ieee80211_radiotap_header) + 4;
 
-        //alloc skb  here
-        skb = alloc_skb(VPKT_SIZE_BUFFER, GFP_ATOMIC);
-        if (unlikely(NULL == skb))
-        {
-            hddLog( LOGW, FL("Unable to allocate skb"));
-            return;
-        }
-        skb_reserve(skb, VPKT_SIZE_BUFFER);
+     //alloc skb  here
+     skb = alloc_skb(VPKT_SIZE_BUFFER, GFP_ATOMIC);
+     if (unlikely(NULL == skb))
+     {
+         hddLog( LOGW, FL("Unable to allocate skb"));
+         return;
+     }
+     skb_reserve(skb, VPKT_SIZE_BUFFER);
         if (unlikely(skb_headroom(skb) < nProbeReqLength))
-        {
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                     "HDD [%d]: Insufficient headroom, "
-                     "head[%p], data[%p], req[%d]",
+     {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "HDD [%d]: Insufficient headroom, "
+                   "head[%p], data[%p], req[%d]",
                      __LINE__, skb->head, skb->data, nProbeReqLength);
-           kfree_skb(skb);
-           return ;
-        }
-        // actually push the data
+         kfree_skb(skb);
+         return ;
+     }
+     // actually push the data
         memcpy(skb_push(skb, nProbeReqLength), pbFrames, nProbeReqLength);
-        /* prepend radiotap information */
+     /* prepend radiotap information */
         if( 0 != hdd_wlan_add_rx_radiotap_hdr( skb,
                                 needed_headroom, flag ) )
-        {
-            hddLog( LOGE, FL("Not Able Add Radio Tap"));
-            //free skb
-            kfree_skb(skb);
-            return;
-        }
+     {
+         hddLog( LOGE, FL("Not Able Add Radio Tap"));
+         //free skb
+         kfree_skb(skb);
+         return ;
+     }
 
-        skb_reset_mac_header( skb );
-        skb->dev = pMonAdapter->dev;
-        skb->protocol = eth_type_trans( skb, skb->dev );
-        skb->ip_summed = CHECKSUM_UNNECESSARY;
-        rxstat = netif_rx_ni(skb);
-        if( NET_RX_SUCCESS == rxstat )
-        {
-            hddLog( LOGE, FL("Success"));
-        }
-        else
-            hddLog( LOGE, FL("Failed %d"), rxstat);                   
-    }
-    return;
+     skb_reset_mac_header( skb );
+     skb->dev = pMonAdapter->dev;
+     skb->protocol = eth_type_trans( skb, skb->dev );
+     skb->ip_summed = CHECKSUM_UNNECESSARY;
+     rxstat = netif_rx_ni(skb);
+     if( NET_RX_SUCCESS == rxstat )
+     {
+         hddLog( LOGE, FL("Success"));
+     }
+     else
+         hddLog( LOGE, FL("Failed %d"), rxstat);                   
 }
+        return;
+    }
 
 /*
  * ieee80211_add_rx_radiotap_header - add radiotap header

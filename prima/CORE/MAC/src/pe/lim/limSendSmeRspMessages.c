@@ -2297,6 +2297,31 @@ limSendSmePostChannelSwitchInd(tpAniSirGlobal pMac)
     return;
 }
 
+void limSendSmeMaxAssocExceededNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
+                    tANI_U8 smesessionId)
+{
+    tSirMsgQ         mmhMsg;
+    tSmeMaxAssocInd *pSmeMaxAssocInd;
 
+    if(eSIR_SUCCESS !=
+            palAllocateMemory(pMac->hHdd,(void **)&pSmeMaxAssocInd, sizeof(tSmeMaxAssocInd)))
+    {
+        PELOGE(limLog(pMac, LOGE, FL("Failed to allocate memory"));)
+        return;
+    }    
+    palZeroMemory(pMac->hHdd, (void *) pSmeMaxAssocInd, sizeof(tSmeMaxAssocInd));
+    palCopyMemory( pMac->hHdd, (tANI_U8 *)pSmeMaxAssocInd->peerMac,
+            (tANI_U8 *)peerMacAddr, sizeof(tSirMacAddr));
+    pSmeMaxAssocInd->mesgType  = eWNI_SME_MAX_ASSOC_EXCEEDED;
+    pSmeMaxAssocInd->mesgLen    = sizeof(tSmeMaxAssocInd); 
+    pSmeMaxAssocInd->sessionId = smesessionId;
+    mmhMsg.type = pSmeMaxAssocInd->mesgType;
+    mmhMsg.bodyptr = pSmeMaxAssocInd;
+    PELOG1(limLog(pMac, LOG1, FL("msgType %s peerMacAddr %02x-%02x-%02x-%02x-%02x-%02x"
+                "sme session id %d\n"),"eWNI_SME_MAX_ASSOC_EXCEEDED", peerMacAddr[0], peerMacAddr[1],
+                peerMacAddr[2], peerMacAddr[3], peerMacAddr[4], peerMacAddr[5], smesessionId);)
+    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
 
-
+    return;
+}

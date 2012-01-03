@@ -1633,43 +1633,6 @@ void csrRoamRemoveDuplicateCommand(tpAniSirGlobal pMac, tANI_U32 sessionId, tSme
     }
     csrLLUnlock( &pMac->sme.smeCmdPendingList );
 }
-/*  Description: Returns BMPS can be disabled/enabled based on concurrency
- *  False: If number of active sessions is > 1 or if there is any active SAP/P2P GO session
- *  True: otherwise
- *  */
-
-tANI_BOOLEAN csrRoamGetConcurrencyConnectStatusForBmps(tpAniSirGlobal pMac)
-{
-    int i,no_of_sessions=0;
-    tCsrRoamSession *pSession;
-
-    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
-    {
-        pSession = CSR_GET_SESSION(pMac,i);
-
-        if( !CSR_IS_SESSION_VALID( pMac, i ) )
-            continue;
- 
-        if((eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED == pSession->connectState) ||
-           (eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED == pSession->connectState) || 
-           (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pSession->connectState) ||  
-           (eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED == pSession->connectState))
-           
-        {
-           if((VOS_STA_SAP_MODE == pSession->pCurRoamProfile->csrPersona) || 
-              (VOS_P2P_GO_MODE == pSession->pCurRoamProfile->csrPersona))
-           {
-              return eANI_BOOLEAN_FALSE;
-              no_of_sessions++;
-           }
-        }
-    }
-
-    if(no_of_sessions > 1)
-       return eANI_BOOLEAN_FALSE;
-    else
-       return eANI_BOOLEAN_TRUE;
-}
 
 eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamInfo *pRoamInfo, 
                                tANI_U32 roamId, eRoamCmdStatus u1, eCsrRoamResult u2)
@@ -1710,59 +1673,6 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
             pRoamInfo->sessionId = (tANI_U8)sessionId;
         }
         status = pSession->callback(pSession->pContext, pRoamInfo, roamId, u1, u2);
-
-       if ((eCSR_ROAM_RESULT_WDS_STARTED == u2) || (eCSR_ROAM_RESULT_INFRA_STARTED == u2) || 
-           (eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF == u2) || (eCSR_ROAM_RESULT_INFRA_ASSOCIATION_IND == u2) ||
-           (eCSR_ROAM_RESULT_ASSOCIATED == u2) || (eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND == u2))
-       {
-          /**************************************************************************
-           * Disable BMPS if there are multiple sessions
-           **************************************************************************/
-          if(!csrRoamGetConcurrencyConnectStatusForBmps(pMac))
-          {
-            if(pMac->pmc.bmpsEnabled)
-            {
-              pmcDisablePowerSave(pMac, ePMC_BEACON_MODE_POWER_SAVE);
-            }
-            pMac->pmc.remainInPowerActiveTillDHCP = TRUE;
-
-            status = pmcRequestFullPower(pMac, NULL,NULL, eSME_FULL_PWR_NEEDED_BY_HDD);
-
-            if((status != eHAL_STATUS_SUCCESS) && (status != eHAL_STATUS_PMC_PENDING))
-            {  
-               smsLog(pMac, LOGE, "Failure to get device into full power in concurrent scenario\n");
-               return eHAL_STATUS_FAILURE; 
-            }
-           }
-         }
-
-
-      if((eCSR_ROAM_RESULT_INFRA_STOPPED == u2) || (eCSR_ROAM_RESULT_WDS_STOPPED == u2) ||
-       (eCSR_ROAM_RESULT_DISASSOC_IND == u2) || (eCSR_ROAM_RESULT_DEAUTH_IND == u2))
-
-      {
-        /*******************************************************************************
-         * Re-enable BMPS, if there is only one session after the current session goes away
-         * and the existing session is not a SAP/GO.
-         * *****************************************************************************/
-        if(csrRoamGetConcurrencyConnectStatusForBmps(pMac))
-        {
-         if(pMac->pmc.bmpsEnabled)
-          {
-            pmcEnablePowerSave(pMac, ePMC_BEACON_MODE_POWER_SAVE);
-          }
-
-          status = pmcRequestBmps(pMac, NULL, NULL);
-    
-          if ((eHAL_STATUS_PMC_PENDING != status) && (eHAL_STATUS_PMC_PENDING != status ))
-          {
-            smsLog(pMac, LOGE, "Failure to get device into BMPS\n");
-            return eHAL_STATUS_FAILURE; 
-          }
-           pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
-       
-         }
-       }
     }
     //EVENT_WLAN_STATUS: eCSR_ROAM_ASSOCIATION_COMPLETION, 
     //                   eCSR_ROAM_LOSTLINK, eCSR_ROAM_DISASSOCIATED, 
@@ -4982,33 +4892,6 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
                 pSrcProfile->nAddIEAssocLength);
         }
 
-        if(pSrcProfile->nAddIEScanLength)
-        {
-            status = palAllocateMemory(pMac->hHdd,
-                     (void **)&pDstProfile->pAddIEScan, pSrcProfile->nAddIEScanLength);
-            if(!HAL_STATUS_SUCCESS(status))
-            {
-                break;
-            }
-            pDstProfile->nAddIEScanLength = pSrcProfile->nAddIEScanLength;
-            palCopyMemory(pMac->hHdd, pDstProfile->pAddIEScan, pSrcProfile->pAddIEScan,
-                pSrcProfile->nAddIEScanLength);
-        }
-
-        if(pSrcProfile->nAddIEAssocLength)
-        {
-            status = palAllocateMemory(pMac->hHdd,
-                     (void **)&pDstProfile->pAddIEAssoc, pSrcProfile->nAddIEAssocLength);
-            if(!HAL_STATUS_SUCCESS(status))
-            {
-                break;
-            }
-            pDstProfile->nAddIEAssocLength = pSrcProfile->nAddIEAssocLength;
-            palCopyMemory(pMac->hHdd, pDstProfile->pAddIEAssoc, pSrcProfile->pAddIEAssoc,
-                pSrcProfile->nAddIEAssocLength);
-        }
-
-
         if(pSrcProfile->ChannelInfo.ChannelList)
         {
             status = palAllocateMemory(pMac->hHdd, (void **)&pDstProfile->ChannelInfo.ChannelList, pSrcProfile->ChannelInfo.numOfChannels);
@@ -7579,6 +7462,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
     tANI_U32 sessionId = CSR_SESSION_ID_INVALID;
     tCsrRoamSession *pSession = NULL;
     tpSirSmeSwitchChannelInd pSwitchChnInd;
+    tSmeMaxAssocInd *pSmeMaxAssocInd;
 
 #if defined ANI_PRODUCT_TYPE_AP
     pSirMsg->messageType = pal_be16_to_cpu(pSirMsg->messageType);
@@ -8279,6 +8163,19 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             break;
 #endif
 
+        case eWNI_SME_MAX_ASSOC_EXCEEDED:
+            pSmeMaxAssocInd = (tSmeMaxAssocInd*)pSirMsg;
+            smsLog( pMac, LOG1, FL("send indication that max assoc have been reached and the new peer cannot be accepted\n"));          
+            if(pSmeMaxAssocInd)
+            {
+                sessionId = pSmeMaxAssocInd->sessionId;
+                roamInfo.sessionId = sessionId;
+                palCopyMemory(pMac->hHdd, &roamInfo.peerMac, pSmeMaxAssocInd->peerMac, sizeof(tCsrBssid));
+                csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, 
+                        eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED);                
+            }
+            break;
+            
         default:
             break;
 
@@ -12110,17 +12007,25 @@ eHalStatus csrProcessDelStaSessionCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
 static void purgeCsrSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
     tDblLinkList *pList = &pMac->roam.roamCmdPendingList;
-    tListElem *pEntry;
+    tListElem *pEntry, *pNext;
     tSmeCmd *pCommand;
 
-    while((pEntry = csrLLRemoveHead(pList, LL_ACCESS_LOCK)) != NULL)
+    csrLLLock(pList);
+    pEntry = csrLLPeekHead(pList,LL_ACCESS_NOLOCK);
+    while(pEntry != NULL)
     {
+        pNext = csrLLNext(pList, pEntry, LL_ACCESS_NOLOCK);
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         if(pCommand->sessionId == sessionId)
         {
-            csrAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
+            if(csrLLRemoveEntry(pList, pEntry, LL_ACCESS_NOLOCK))
+            {
+               csrAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
+            }
         }
+        pEntry = pNext;
     }
+    csrLLUnlock(pList);
 }
 
 void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)

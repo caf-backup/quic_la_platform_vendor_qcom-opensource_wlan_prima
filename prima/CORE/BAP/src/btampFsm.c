@@ -1040,8 +1040,8 @@ regStaWithTl
          WLANBAP_STARxCB,  
          WLANBAP_TxCompCB,  
          (WLANTL_STAFetchPktCBType)WLANBAP_STAFetchPktCB,
-         &staDesc 
-         );   
+         &staDesc ,
+         pCsrRoamInfo->pBssDesc->rssi);   
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 

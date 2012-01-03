@@ -177,18 +177,26 @@ static void purgeSmeCmdList(tpAniSirGlobal pMac)
 void purgeSmeSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
     //release any out standing commands back to free command list
-    tListElem *pEntry;
+    tListElem *pEntry, *pNext;
     tSmeCmd *pCommand;
     tDblLinkList *pList = &pMac->sme.smeCmdPendingList;
 
-    while((pEntry = csrLLRemoveHead(pList, LL_ACCESS_LOCK)) != NULL)
+    csrLLLock(pList);
+    pEntry = csrLLPeekHead(pList,LL_ACCESS_NOLOCK);
+    while(pEntry != NULL)
     {
+        pNext = csrLLNext(pList, pEntry, LL_ACCESS_NOLOCK);
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         if(pCommand->sessionId == sessionId)
         {
+            if(csrLLRemoveEntry(pList, pEntry, LL_ACCESS_NOLOCK))
+            {
             smeAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
         }
     }
+        pEntry = pNext;
+}
+    csrLLUnlock(pList);
 }
 
 static eHalStatus freeSmeCmdList(tpAniSirGlobal pMac)
@@ -404,14 +412,7 @@ static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEA
         {
 #ifdef WLAN_FEATURE_P2P
             case eSmeCommandRemainOnChannel:
-                if (NULL != pCommand->u.remainChlCmd.callback)
-                {
-                    remainOnChanCallback callback = 
-                                            pCommand->u.remainChlCmd.callback;
-                    /* process the msg */
-                    callback(pMac, pCommand->u.remainChlCmd.callbackCtx, 
-                                         eCSR_SCAN_ABORT );
-                }
+                sme_CancelRemainOnChannel( pMac, pCommand->sessionId );
                 smeReleaseCommand( pMac, pCommand );
 
                 break;

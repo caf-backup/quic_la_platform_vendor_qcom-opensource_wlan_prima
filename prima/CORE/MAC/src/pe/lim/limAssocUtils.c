@@ -953,6 +953,7 @@ limRejectAssociation(tpAniSirGlobal pMac, tSirMacAddr peerAddr, tANI_U8 subType,
         limLog(pMac, LOGW,
            FL("received Re/Assoc req when max associated STAs reached from \n"));
         limPrintMacAddr(pMac, peerAddr, LOGW);
+        limSendSmeMaxAssocExceededNtf(pMac, peerAddr, psessionEntry->smeSessionId);
     }
 } /*** end limRejectAssociation() ***/
 

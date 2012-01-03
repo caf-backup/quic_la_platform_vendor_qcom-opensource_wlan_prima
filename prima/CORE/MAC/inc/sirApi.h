@@ -3188,6 +3188,14 @@ typedef struct sSirSmeGetAssocSTAsReq
 } tSirSmeGetAssocSTAsReq, *tpSirSmeGetAssocSTAsReq;
 #endif
 
+typedef struct sSmeMaxAssocInd
+{
+    tANI_U16    mesgType;    // eWNI_SME_MAX_ASSOC_EXCEEDED
+    tANI_U16    mesgLen;    
+    tSirMacAddr peerMac;     // the new peer that got rejected due to softap max assoc limit reached
+    tANI_U8     sessionId;    
+} tSmeMaxAssocInd, *tpSmeMaxAssocInd;
+
 /*--------------------------------------------------------------------*/
 /* BootLoader message definition                                      */
 /*--------------------------------------------------------------------*/
@@ -3718,6 +3726,7 @@ typedef struct sSirSmeMgmtFrameInd
     tANI_U16        mesgLen;
     tANI_U16        sessionId;
     tSirSmeMgmtFrameType frameType;
+    tANI_U32        rxChan;
     tANI_U8  frameBuf[1]; //variable
 }tSirSmeMgmtFrameInd, *tpSirSmeMgmtFrameInd;
 #endif

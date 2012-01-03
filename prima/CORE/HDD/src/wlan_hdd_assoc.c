@@ -703,7 +703,8 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
                                        v_U8_t staId,
                                        v_U8_t ucastSig,
                                        v_U8_t bcastSig,
-                                       v_MACADDR_t *pPeerMacAddress )
+                                       v_MACADDR_t *pPeerMacAddress,
+                                       tSirBssDescription *pBssDesc )
 {
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
    WLAN_STADescType staDesc = {0};
@@ -823,7 +824,8 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    vosStatus = WLANTL_RegisterSTAClient( pHddCtx->pvosContext, 
                                          hdd_rx_packet_cbk, 
                                          hdd_tx_complete_cbk, 
-                                         hdd_tx_fetch_packet_cbk, &staDesc );
+                                         hdd_tx_fetch_packet_cbk, &staDesc,
+                                         pBssDesc->rssi );
    
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
@@ -962,7 +964,8 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                     pHddStaCtx->conn_info.staId[ 0 ],
                                          pRoamInfo->ucastSig,
                                          pRoamInfo->bcastSig,
-                    NULL );
+                                         NULL,
+                                         pRoamInfo->pBssDesc );
         }
         else
         {
@@ -1312,7 +1315,8 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
                                           pRoamInfo->staId,
                                           pRoamInfo->ucastSig,
                                           pRoamInfo->bcastSig,
-                                          (v_MACADDR_t *)pRoamInfo->peerMac );
+                                          (v_MACADDR_t *)pRoamInfo->peerMac,
+                                          pRoamInfo->pBssDesc );
          if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
          {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -1486,7 +1490,8 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             hdd_indicateMgmtFrame( pAdapter, 
                                   pRoamInfo->nProbeReqLength, 
                                   pRoamInfo->nActionLength,
-                                  pRoamInfo->pbFrames );
+                                  pRoamInfo->pbFrames,
+                                  pRoamInfo->rxChan );
             break;
         case eCSR_ROAM_REMAIN_CHAN_READY:
             hdd_remainChanReadyHandler( pAdapter );

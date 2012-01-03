@@ -75,6 +75,8 @@
 
 #define MAX_NUMBER_OF_ADAPTERS 4
 
+#define MAX_CFG_STRING_LEN  255
+
 #define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
@@ -97,6 +99,8 @@
 #define WLAN_HDD_GET_PRIV_PTR(__dev__) (hdd_adapter_t*)(netdev_priv((__dev__)))
 
 #define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
+
+#define MAX_NO_OF_2_4_CHANNELS 14
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -619,6 +623,9 @@ struct hdd_context_s
   #endif
    /** completion variable for full power callback */
    struct completion full_pwr_comp_var;
+   /** completion variable for Request BMPS callback */
+   struct completion req_bmps_comp_var;
+   
    /** completion variable for standby callback */
    struct completion standby_comp_var;
    
