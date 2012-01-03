@@ -1012,6 +1012,7 @@ VOS_STATUS WLANTL_Finish_ULA( void (*callbackRoutine) (void *callbackContext),
    pfnSTAFetchPkt:  function pointer to the packet retrieval routine in HDD
    wSTADescType:    STA Descriptor, contains information related to the
                     new added STA
+   rssi:            RSSI value with which sta descriptor should be initialized.
 
   RETURN VALUE
 
@@ -1033,7 +1034,8 @@ WLANTL_RegisterSTAClient
   WLANTL_STARxCBType        pfnSTARx,
   WLANTL_TxCompCBType       pfnSTATxComp,
   WLANTL_STAFetchPktCBType  pfnSTAFetchPkt,
-  WLAN_STADescType*         pwSTADescType
+  WLAN_STADescType*         pwSTADescType,
+  v_S7_t                    rssi
 )
 {
   WLANTL_CbType*  pTLCb = NULL;
@@ -1221,7 +1223,10 @@ WLANTL_RegisterSTAClient
       sizeof(pTLCb->atlSTAClients[pwSTADescType->ucSTAId].auRxCount[0])*
       WLAN_MAX_TID);
 
-  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].uRssiAvg = 0;
+  /* Initial RSSI is always reported as zero because TL doesnt have enough
+     data to calculate RSSI. So to avoid reporting zero, we are initializing
+     RSSI with RSSI saved in BssDescription during scanning. */
+  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].uRssiAvg = rssi;
 
   /*Tx not suspended and station fully registered*/
   vos_atomic_set_U8(

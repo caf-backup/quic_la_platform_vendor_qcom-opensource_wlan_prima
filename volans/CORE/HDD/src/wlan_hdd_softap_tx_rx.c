@@ -1344,7 +1344,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
    vosStatus = WLANTL_RegisterSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, 
                                          hdd_softap_rx_packet_cbk, 
                                          hdd_softap_tx_complete_cbk, 
-                                         hdd_softap_tx_fetch_packet_cbk, &staDesc );
+                                         hdd_softap_tx_fetch_packet_cbk, &staDesc, 0 );
    
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {

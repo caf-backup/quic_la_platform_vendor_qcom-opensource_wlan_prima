@@ -648,7 +648,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                      (nBytes + addnIE3Len) <= SIR_MAX_PACKET_SIZE)
         {
             if (wlan_cfgGetStr(pMac, WNI_CFG_PROBE_RSP_ADDNIE_DATA3,
-                              &addIE[addnIE1Len], &addnIE3Len) == eSIR_SUCCESS)
+                              &addIE[addnIE1Len + addnIE2Len], &addnIE3Len) == eSIR_SUCCESS)
             {
                 nBytes = nBytes + addnIE3Len; 
             }
@@ -1184,12 +1184,6 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     }
 
     nBytes = sizeof( tSirMacMgmtHdr ) + nPayload;
-
-    if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, &addnIEPresent) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("Unable to get WNI_CFG_ASSOC_RSP_ADDNIE_FLAG"));
-        return;
-    }
 
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,

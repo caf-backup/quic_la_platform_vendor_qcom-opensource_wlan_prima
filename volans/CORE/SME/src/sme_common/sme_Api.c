@@ -172,7 +172,7 @@ void purgeSmeSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId)
         {
             if(csrLLRemoveEntry(pList, pEntry, LL_ACCESS_NOLOCK))
             {
-               smeAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
+                smeAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
             }
         }
         pEntry = pNext;
@@ -393,17 +393,7 @@ static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEA
         {
 #ifdef WLAN_FEATURE_P2P
             case eSmeCommandRemainOnChannel:
-                if (NULL != pCommand->u.remainChlCmd.callback)
-                {
-                    remainOnChanCallback callback = 
-                                            pCommand->u.remainChlCmd.callback;
-                    /* process the msg */
-                    if( callback )
-                    {
-                        callback(pMac, pCommand->u.remainChlCmd.callbackCtx, 
-                                            eCSR_SCAN_ABORT );
-                    }
-                }
+                sme_CancelRemainOnChannel( pMac, pCommand->sessionId );
                 smeReleaseCommand( pMac, pCommand );
 
                 break;

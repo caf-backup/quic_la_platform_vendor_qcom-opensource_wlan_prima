@@ -945,6 +945,7 @@ WLANTL_ConfigureSwFrameTXXlationForAll
    pfnSTAFetchPkt:  function pointer to the packet retrieval routine in HDD 
    wSTADescType:    STA Descriptor, contains information related to the 
                     new added STA
+   rssi:            Rssi with which sta descriptor should be intialized.
    
   RETURN VALUE
 
@@ -966,7 +967,8 @@ WLANTL_RegisterSTAClient
   WLANTL_STARxCBType        pfnSTARx,  
   WLANTL_TxCompCBType       pfnSTATxComp,  
   WLANTL_STAFetchPktCBType  pfnSTAFetchPkt,
-  WLAN_STADescType*         wSTADescType 
+  WLAN_STADescType*         wSTADescType,
+  v_S7_t                    rssi
 );
 
 /*===========================================================================

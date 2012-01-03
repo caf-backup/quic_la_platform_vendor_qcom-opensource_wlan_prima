@@ -976,9 +976,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     //Enable OBSS protection
     pConfig->obssProtEnabled = 
            (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apOBSSProtEnabled; 
-    (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->apDisableIntraBssFwd = 
-           (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apDisableIntraBssFwd;
-    
+
     hddLog(LOGW, FL("SOftAP macaddress : "MAC_ADDRESS_STR"\n"), 
                  MAC_ADDR_ARRAY(pHostapdAdapter->macAddressCurrent.bytes));
     hddLog(LOGW,FL("ssid =%s\n"), pConfig->SSIDinfo.ssid.ssId);  
@@ -991,8 +989,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     hddLog(LOGW,FL("Uapsd = %d\n"),pConfig->UapsdEnable); 
     hddLog(LOGW,FL("ProtEnabled = %d, OBSSProtEnabled = %d\n"),
                           pConfig->protEnabled, pConfig->obssProtEnabled);
-    hddLog(LOGW,FL("DisableIntraBssFwd = %d\n"),
-          (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->apDisableIntraBssFwd); 
 
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) 
     {
@@ -1199,14 +1195,12 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
 #endif
       ) 
     {
-        if (params->ap_isolate) 
+        /* ap_isolate == -1 means that in change bss, upper layer doesn't
+         * want to update this parameter */
+        if (-1 != params->ap_isolate)
         {
-            pAdapter->sessionCtx.ap.apDisableIntraBssFwd = VOS_TRUE; 
+            pAdapter->sessionCtx.ap.apDisableIntraBssFwd = !!params->ap_isolate;
         } 
-        else 
-        { 
-            pAdapter->sessionCtx.ap.apDisableIntraBssFwd = VOS_FALSE; 
-        }
     }
 
     EXIT();
