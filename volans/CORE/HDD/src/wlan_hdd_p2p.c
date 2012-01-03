@@ -120,6 +120,17 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         return -EBUSY;
     }
 
+    /* When P2P-GO and if we are trying to unload the driver then 
+     * wlan driver is keep on receiving the remain on channel command
+     * and which is resulting in crash. So not allowing any remain on 
+     * channel requets when Load/Unload is in progress*/
+    if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadUnloadInProgress);
+    {
+        hddLog( LOGE,
+                "%s: Wlan Load/Unload is in progress", __func__);
+        return -EBUSY;
+    }
+
     pRemainChanCtx = vos_mem_malloc( sizeof(hdd_remain_on_chan_ctx_t) );
     if( NULL == pRemainChanCtx )
     {
