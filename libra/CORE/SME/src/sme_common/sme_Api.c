@@ -667,7 +667,8 @@ eHalStatus sme_Open(tHalHandle hHal)
           break;
 
 #ifdef WLAN_SOFTAP_FEATURE
-      if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+      //if(VOS_STA_SAP_MODE == vos_get_conparam ( ))
+      {
          v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
 		 if ( NULL == pvosGCtx ){
 		  	smsLog( pMac, LOGE, "WLANSAP_Open open failed during initialization with \
@@ -1018,7 +1019,8 @@ eHalStatus sme_Start(tHalHandle hHal)
       }
 
 #ifdef WLAN_SOFTAP_FEATURE
-      if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+      //if(VOS_STA_SAP_MODE == vos_get_conparam ( ))
+     {
          status = WLANSAP_Start(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
          if ( ! HAL_STATUS_SUCCESS( status ) ) {
 	   	   smsLog( pMac, LOGE, "WLANSAP_Start failed during smeStart with status=%d\n",
@@ -1218,7 +1220,8 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
    ccmStop(hHal);
 
 #ifdef WLAN_SOFTAP_FEATURE
-   if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+   //if(VOS_STA_SAP_MODE == vos_get_conparam ( ))
+   {
        status = WLANSAP_Stop(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
        if ( ! HAL_STATUS_SUCCESS( status ) ) {
           smsLog( pMac, LOGE, "WLANSAP_Stop failed during smeStop with status=%d\n",
@@ -1271,7 +1274,8 @@ eHalStatus sme_Close(tHalHandle hHal)
    }
 
 #ifdef WLAN_SOFTAP_FEATURE
-   if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+   //if(VOS_STA_SAP_MODE == vos_get_conparam ( ))
+   {
          status = WLANSAP_Close(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
          if ( ! HAL_STATUS_SUCCESS( status ) ) {
              smsLog( pMac, LOGE, "WLANSAP_close failed during sme close with status=%d\n",

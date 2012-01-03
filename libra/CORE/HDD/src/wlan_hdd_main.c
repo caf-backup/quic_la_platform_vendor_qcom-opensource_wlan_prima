@@ -117,24 +117,27 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;        
 
    case NETDEV_GOING_DOWN:
-        if( pAdapter->pWextState->mScanPending != FALSE )
+        if (NULL != pAdapter->pWextState)
         {
-           int result;
-           INIT_COMPLETION(pAdapter->abortscan_event_var);
-           hdd_abort_mac_scan(pAdapter->pvosContext);
-           result = wait_for_completion_interruptible_timeout(
-                               &pAdapter->abortscan_event_var,
-                               msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
-           if(!result)
-           {
-              VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                         "%s: Timeout occured while waiting for abortscan" ,
-                          __FUNCTION__);
-           }
-        }
-        else
-        {
-           /* Scan is not Pending from user */
+            if( pAdapter->pWextState->mScanPending != FALSE )
+            {
+                int result;
+                INIT_COMPLETION(pAdapter->abortscan_event_var);
+                hdd_abort_mac_scan(pAdapter->pvosContext);
+                result = wait_for_completion_interruptible_timeout(
+                                 &pAdapter->abortscan_event_var,
+                                 msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
+                if(!result)
+                {
+                    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                            "%s: Timeout occured while waiting for abortscan" ,
+                            __FUNCTION__);
+                }
+            }
+            else
+            {
+                /* Scan is not Pending from user */
+            }
         }
         break;
 
@@ -643,13 +646,16 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    VOS_STATUS vosStatus;
   
 #ifdef CONFIG_CFG80211
-    struct wireless_dev *wdev = pWlanDev->ieee80211_ptr ;
+   struct wiphy *wiphy  = pAdapter->wiphy;
 #endif 
    
 #ifdef ANI_MANF_DIAG
     wlan_hdd_ftm_close(pAdapter);
     return;
 #endif
+
+    //Deregister the device with the kernel
+    hdd_UnregisterWext(pWlanDev);
 
    //Stop the Interface TX queue.
    netif_tx_disable(pWlanDev);
@@ -759,11 +765,15 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 #ifdef WLAN_SOFTAP_FEATURE
    //Deregister the hostapd device with the kernel
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
-         hdd_unregister_hostapd(pWlanHostapdDev);
+   {
+      hdd_unregister_hostapd(pWlanHostapdDev);
+#ifdef CONFIG_CFG80211
+      /*We have only one net_dev*/
+      hdd_set_conparam(0);
+#endif
+   }
 #endif
 
-   //Deregister the device with the kernel
-   hdd_UnregisterWext(pWlanDev);
 
    if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) 
    {
@@ -812,9 +822,8 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    //Free the net device
    free_netdev(pWlanDev);
 #ifdef CONFIG_CFG80211
-   wiphy_unregister(wdev->wiphy) ; 
-   wiphy_free(wdev->wiphy) ;
-   kfree(wdev) ;
+   wiphy_unregister(wiphy);
+   wiphy_free(wiphy);
 #endif
 }
 
@@ -836,7 +845,7 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
 
 #ifdef WLAN_SOFTAP_FEATURE
     struct net_device *pWlanHostapdDev = pAdapter->pHostapd_dev;
-    hdd_hostapd_adapter_t *pHostapdAdapter = (hdd_hostapd_adapter_t *)(netdev_priv(pAdapter->pHostapd_dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(pWlanHostapdDev);
 #endif
 
    //Apply the cfg.ini to cfg.dat
@@ -955,17 +964,6 @@ static struct net_device_ops sLibraNetDevOps = {
 };
 #endif // CONFIG_QCOM_WLAN_HAVE_NET_DEVICE_OPS
 
-/**---------------------------------------------------------------------------
-  
-  \brief hdd_wlan_sdio_probe() - HDD init function
-  
-  This is the driver init point (invoked by SAL during SDIO probe)
-  
-  \param  - sdio_func_dev - Pointer to the SDIO function device
-  
-  \return -  0 for success -1 for failure
-              
-  --------------------------------------------------------------------------*/
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
   static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
@@ -979,6 +977,119 @@ static struct net_device_ops sLibraNetDevOps = {
  };
  #endif
 
+void hdd_set_station_ops( struct net_device *pWlanDev )
+{
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
+      pWlanDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN,
+      pWlanDev->netdev_ops = &wlan_drv_ops;
+#else
+      pWlanDev->open = hdd_open;
+      pWlanDev->stop = hdd_stop;
+      pWlanDev->hard_start_xmit = NULL;
+      pWlanDev->tx_timeout = hdd_tx_timeout;
+      pWlanDev->get_stats = hdd_stats;
+      pWlanDev->do_ioctl = hdd_ioctl;
+      pWlanDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN;
+      pWlanDev->set_mac_address = hdd_set_mac_address;
+#endif
+}
+
+VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
+{
+   struct net_device *pWlanDev = pAdapter->dev;
+   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+   VOS_STATUS status = VOS_STATUS_E_FAILURE;
+
+   //Open a SME session for future operation
+   halStatus = sme_OpenSession( pAdapter->hHal, hdd_smeRoamCallback, pAdapter,
+         (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
+   if (!HAL_STATUS_SUCCESS( halStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "sme_OpenSession() failed with status code %08d [x%08lx]",
+                                                 halStatus, halStatus );
+      status = VOS_STATUS_E_FAILURE;
+      goto error_sme_open;
+   }
+
+   // Register wireless extensions
+   if (eHAL_STATUS_SUCCESS !=  (halStatus = hdd_register_wext(pWlanDev)))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+              "hdd_register_wext() failed with status code %08d [x%08lx]",
+                                                   halStatus, halStatus );
+      status = VOS_STATUS_E_FAILURE;
+      goto error_register_wext;
+   }
+   //Safe to register the hard_start_xmit function again
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
+   wlan_drv_ops.ndo_start_xmit = hdd_hard_start_xmit;
+#else
+   pWlanDev->hard_start_xmit = hdd_hard_start_xmit;
+#endif
+
+//Set the Connection State to Not Connected
+   pAdapter->conn_info.connState = eConnectionState_NotConnected;
+
+   //Set the default operation channel
+   pAdapter->conn_info.operationChannel = pAdapter->cfg_ini->OperatingChannel;
+
+    /* Make the default Auth Type as OPEN*/
+   pAdapter->conn_info.authType = eCSR_AUTH_TYPE_OPEN_SYSTEM;
+
+   if (VOS_STATUS_SUCCESS != ( status = hdd_init_tx_rx( pAdapter ) ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+            "hdd_init_tx_rx() failed with status code %08d [x%08lx]",
+                            status, status );
+      goto error_init_txrx;
+   }
+
+   set_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags);
+
+   if ( VOS_STATUS_SUCCESS != ( status = hdd_wmm_init( pAdapter ) ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+            "hdd_wmm_adapter_init() failed with status code %08d [x%08lx]",
+                            status, status );
+      goto error_wmm_init;
+   }
+
+   set_bit(WMM_INIT_DONE, &pAdapter->event_flags);
+
+   return VOS_STATUS_SUCCESS;
+
+error_wmm_init:
+   clear_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags);
+   hdd_deinit_tx_rx(pAdapter);
+error_init_txrx:
+   hdd_UnregisterWext(pWlanDev);
+error_register_wext:
+   if(test_bit(SME_SESSION_OPENED, &pAdapter->event_flags))
+   {
+      //INIT_COMPLETION(pAdapter->session_close_comp_var);
+      if( eHAL_STATUS_SUCCESS == sme_CloseSession( pAdapter->hHal,
+                                    pAdapter->sessionId))
+      {
+          status = eHAL_STATUS_FAILURE;
+      }
+   }
+error_sme_open:
+   return status;
+}
+
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_wlan_sdio_probe() - HDD init function
+
+  This is the driver init point (invoked by SAL during SDIO probe)
+
+  \param  - sdio_func_dev - Pointer to the SDIO function device
+
+  \return -  0 for success -1 for failure
+
+  --------------------------------------------------------------------------*/
 int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 {
    VOS_STATUS status;
@@ -989,7 +1100,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    static char macAddr[6] =  {0x00, 0x0a, 0xf5, 0x89, 0x89, 0x89};
    int ret;
 #ifdef CONFIG_CFG80211
-   struct wireless_dev *wdev;
+   struct wiphy *wiphy;
 #endif
 
    ENTER();
@@ -999,16 +1110,15 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
     * cfg80211 initialization and registration....
     */
 
-   wdev = wlan_hdd_cfg80211_init(&sdio_func_dev->dev, sizeof(hdd_adapter_t));
+   wiphy = wlan_hdd_cfg80211_init(&sdio_func_dev->dev, sizeof(hdd_adapter_t));
 
-   if(wdev == NULL)
+   if (NULL == wiphy)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cfg80211 init failed", __func__);
       goto register_cfg80211_err;
    }
 
-   pAdapter = wdev_priv(wdev) ;
-   pAdapter->wdev = wdev ;
+   pAdapter = wiphy_priv(wiphy) ;
 
    pWlanDev = alloc_netdev_mq(0, "wlan%d", ether_setup, NUM_TX_QUEUES); 
 
@@ -1047,6 +1157,17 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    
    //Save the pointer to the net_device in the HDD adapter
    pAdapter->dev = pWlanDev;
+
+#ifdef CONFIG_CFG80211
+   pAdapter->wiphy = wiphy;
+   pWlanDev->ieee80211_ptr = &pAdapter->wdev;
+   pAdapter->wdev.wiphy = wiphy;
+   pAdapter->wdev.netdev = pWlanDev;
+   pAdapter->wdev.iftype = NL80211_IFTYPE_STATION;
+   pAdapter->pHostapd_dev = pWlanDev;
+   ((VosContextType*)(pVosContext))->pHDDSoftAPContext = (v_VOID_t*)pAdapter;
+   pAdapter->device_mode = WLAN_HDD_INFRA_STATION;
+#endif
    
    //Save the adapter context in global context for future.
    ((VosContextType*)(pVosContext))->pHDDContext = (v_VOID_t*)pAdapter;
@@ -1072,17 +1193,9 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
    pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
 
-#ifdef CONFIG_CFG80211
-   wdev->iftype = NL80211_IFTYPE_STATION;
-   pWlanDev->ieee80211_ptr = wdev ;
-#endif
-
    /* set pWlanDev's parent to sdio device */
    SET_NETDEV_DEV(pWlanDev, &sdio_func_dev->dev);
 
-#ifdef CONFIG_CFG80211
-   wdev->netdev =  pWlanDev;
-#endif
 
    // Set the private data for the device to our adapter.
    libra_sdio_setprivdata (sdio_func_dev, pAdapter);
@@ -1295,7 +1408,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
    {
       //Initialize the data path module
-      status = hdd_softap_init_tx_rx(netdev_priv(pAdapter->pHostapd_dev));
+       status = hdd_softap_init_tx_rx(WLAN_HDD_GET_PRIV_PTR(pAdapter->pHostapd_dev));
       if ( !VOS_IS_STATUS_SUCCESS( status ))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_softap_init_tx_rx failed", __FUNCTION__);
@@ -1377,7 +1490,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    hdd_register_mcast_bcast_filter(pAdapter);
 #endif
    //Trigger the initial scan
-   hdd_wlan_initial_scan(pAdapter);
+   //hdd_wlan_initial_scan(pAdapter);
 
    pAdapter->isLoadUnloadInProgress = FALSE;
 
@@ -1437,9 +1550,8 @@ err_free_netdev:
    free_netdev(pWlanDev);
 #ifdef CONFIG_CFG80211
 register_cfg80211_err:
-   wiphy_unregister(wdev->wiphy) ;
-   wiphy_free(wdev->wiphy) ;
-   kfree(wdev) ;
+   wiphy_unregister(wiphy) ;
+   wiphy_free(wiphy) ;
 #endif
 
    return -1;
@@ -1719,9 +1831,10 @@ done:
   --------------------------------------------------------------------------*/
 VOS_CON_MODE hdd_get_conparam ( void )
 {
-    return (VOS_CON_MODE)con_mode;
+   return (VOS_CON_MODE)con_mode;
  
 }
+
 /**---------------------------------------------------------------------------
   
   \brief hdd_softap_sta_deauth() - function
@@ -1736,17 +1849,17 @@ VOS_CON_MODE hdd_get_conparam ( void )
 
   --------------------------------------------------------------------------*/
 
-void hdd_softap_sta_deauth(hdd_hostapd_adapter_t *pAdapter,v_U8_t *pDestMacAddress)
+void hdd_softap_sta_deauth(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddress)
 {
-    tHalHandle hHalHandle;
-	v_CONTEXT_t pVosContext = pAdapter->pvosContext;
-    hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
+   tHalHandle hHalHandle;
+   v_CONTEXT_t pVosContext = pAdapter->pvosContext;
+   hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
 
-    hddLog(LOG1, FL("%s enter \n"));
+   hddLog(LOG1, FL("%s enter \n"));
 
-    hddLog( LOGE, "hdd_softap_sta_deauth:(0x%x, false)", pAdapter->pvosContext);
+   hddLog( LOGE, "hdd_softap_sta_deauth:(0x%x, false)", pAdapter->pvosContext);
 
-    WLANSAP_DeauthSta(pVosContext,pDestMacAddress);
+   WLANSAP_DeauthSta(pVosContext, pDestMacAddress);
 }
 
 /**---------------------------------------------------------------------------
@@ -1763,33 +1876,139 @@ void hdd_softap_sta_deauth(hdd_hostapd_adapter_t *pAdapter,v_U8_t *pDestMacAddre
 
   --------------------------------------------------------------------------*/
 
-void hdd_softap_sta_disassoc(hdd_hostapd_adapter_t *pAdapter,v_U8_t *pDestMacAddress)
+void hdd_softap_sta_disassoc(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddress)
 {
-    tHalHandle hHalHandle;
-        v_CONTEXT_t pVosContext = pAdapter->pvosContext;
-    hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
+   tHalHandle hHalHandle;
+   v_CONTEXT_t pVosContext = pAdapter->pvosContext;
+   hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
 
-    hddLog(LOG1, FL("%s enter \n"));
+   hddLog(LOG1, FL("%s enter \n"));
 
-    hddLog( LOGE, "hdd_softap_sta_disassoc:(0x%x, false)", pAdapter->pvosContext);
+   hddLog( LOGE, "hdd_softap_sta_disassoc:(0x%x, false)", pAdapter->pvosContext);
 
 
-    WLANSAP_DisassocSta(pVosContext,pDestMacAddress);
+   WLANSAP_DisassocSta(pVosContext, pDestMacAddress);
 }
 
-void hdd_softap_tkip_mic_fail_counter_measure(hdd_hostapd_adapter_t *pAdapter,v_BOOL_t enable)
+void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter, v_BOOL_t enable)
 {
-    tHalHandle hHalHandle;
-	v_CONTEXT_t pVosContext = pAdapter->pvosContext;
-    hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
+   tHalHandle hHalHandle;
+   v_CONTEXT_t pVosContext = pAdapter->pvosContext;
+   hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
 
-    hddLog(LOG1, FL("%s enter \n"));
+   hddLog(LOG1, FL("%s enter \n"));
 
-    hddLog( LOGE, "hdd_softap_tkip_mic_fail_counter_measure:(0x%x, false)", pAdapter->pvosContext);
+   hddLog( LOGE, "hdd_softap_tkip_mic_fail_counter_measure:(0x%x, false)",
+                 pAdapter->pvosContext);
 
-    WLANSAP_SetCounterMeasure(pVosContext, (v_BOOL_t)enable);
+   WLANSAP_SetCounterMeasure(pVosContext, (v_BOOL_t)enable);
 }
 
+#ifdef CONFIG_CFG80211
+void hdd_set_conparam ( v_UINT_t newParam )
+{
+   con_mode = newParam;
+}
+
+VOS_STATUS hdd_stop_adapter( hdd_adapter_t *pAdapter)
+{
+   hdd_wext_state_t *pWextState = pAdapter->pWextState;
+   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+   union iwreq_data wrqu;
+
+   if( hdd_connIsConnected( pAdapter ))
+   {
+      if (eCSR_BSS_TYPE_START_IBSS == pWextState->roamProfile.BSSType)
+          halStatus = sme_RoamDisconnect(pAdapter->hHal,
+                                         pAdapter->sessionId,
+                                         eCSR_DISCONNECT_REASON_IBSS_LEAVE);
+      else
+          halStatus = sme_RoamDisconnect(pAdapter->hHal,
+                                         pAdapter->sessionId,
+                                         eCSR_DISCONNECT_REASON_UNSPECIFIED);
+      //success implies disconnect command got queued up successfully
+      if(eHAL_STATUS_SUCCESS == halStatus )
+      {
+          wait_for_completion_interruptible_timeout(
+                                  &pAdapter->disconnect_comp_var,
+                                  msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+      }
+      memset(&wrqu, '\0', sizeof(wrqu));
+      wrqu.ap_addr.sa_family = ARPHRD_ETHER;
+      memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+      wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
+   }
+   else
+   {
+      hdd_abort_mac_scan(pAdapter->pvosContext);
+   }
+
+   return 0;
+}
+
+void hdd_deinit_adapter( hdd_adapter_t *pAdapter )
+{
+   if( WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
+   {
+      if(test_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags))
+      {
+          hdd_deinit_tx_rx( pAdapter );
+          clear_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags);
+      }
+
+      if(test_bit(WMM_INIT_DONE, &pAdapter->event_flags))
+      {
+          hdd_wmm_adapter_close( pAdapter );
+          clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
+      }
+
+      pAdapter->dev->wireless_handlers = NULL;
+  }
+  else
+  {
+      VOS_STATUS status = VOS_STATUS_E_FAILURE;
+      //Any softap specific cleanup here...
+      if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
+      {
+          //Stop Bss.
+          if(VOS_STATUS_SUCCESS == (status =
+               WLANSAP_StopBss((pAdapter->pvosContext))))
+          {
+               hdd_hostapd_state_t *pHostapdState =
+                                 &pAdapter->HostapdState;
+
+               status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+
+               if (!VOS_IS_STATUS_SUCCESS(status))
+               {
+                  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         ("ERROR: HDD vos wait for single_event failed!!\n"));
+                  VOS_ASSERT(0);
+               }
+          }
+          else
+          {
+               hddLog(VOS_TRACE_LEVEL_FATAL,
+                             "%s:Error!!! Stoping the BSS\n",__func__);
+          }
+          clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
+      }
+
+      if (eHAL_STATUS_FAILURE == (ccmCfgSetInt(pAdapter->hHal,
+                                 WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 0,
+                                 NULL, eANI_BOOLEAN_FALSE))
+
+         )
+      {
+           hddLog(LOGE, "Could not pass on  "
+                    "WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM\n");
+      }
+
+      hdd_unregister_hostapd(pAdapter->dev);
+  }
+}
+
+#endif /*CONFIG_CFG80211*/
 #endif /* WLAN_SOFTAP_FEATURE */
 
 //Register the module init/exit functions

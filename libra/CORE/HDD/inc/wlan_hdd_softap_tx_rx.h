@@ -80,7 +80,7 @@ extern struct net_device_stats* hdd_softap_stats(struct net_device *dev);
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-extern VOS_STATUS hdd_softap_init_tx_rx( hdd_hostapd_adapter_t *pAdapter );
+extern VOS_STATUS hdd_softap_init_tx_rx( hdd_adapter_t *pAdapter );
 
 /**============================================================================
   @brief hdd_softap_deinit_tx_rx() - Deinit function to clean up Tx/RX
@@ -90,7 +90,7 @@ extern VOS_STATUS hdd_softap_init_tx_rx( hdd_hostapd_adapter_t *pAdapter );
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-extern VOS_STATUS hdd_softap_deinit_tx_rx( hdd_hostapd_adapter_t *pAdapter );
+extern VOS_STATUS hdd_softap_deinit_tx_rx( hdd_adapter_t *pAdapter );
 
 /**============================================================================
   @brief hdd_softap_init_tx_rx_sta() - Init function to initialize a station in Tx/RX
@@ -102,7 +102,7 @@ extern VOS_STATUS hdd_softap_deinit_tx_rx( hdd_hostapd_adapter_t *pAdapter );
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-extern VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_hostapd_adapter_t *pAdapter, v_U8_t STAId, v_MACADDR_t *pmacAddrSTA);
+extern VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_adapter_t *pAdapter, v_U8_t STAId, v_MACADDR_t *pmacAddrSTA);
 
 /**============================================================================
   @brief hdd_softap_deinit_tx_rx_sta() - Deinit function to clean up a statioin in Tx/RX
@@ -113,7 +113,7 @@ extern VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_hostapd_adapter_t *pAdapter, v_
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-extern VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_hostapd_adapter_t *pAdapter, v_U8_t STAId );
+extern VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId );
 
 /**============================================================================
   @brief hdd_disconnect_tx_rx() - Disconnect function to clean up Tx/RX
@@ -123,7 +123,7 @@ extern VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_hostapd_adapter_t *pAdapter,
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-extern VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_hostapd_adapter_t *pAdapter );
+extern VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_adapter_t *pAdapter );
 
 /**============================================================================
   @brief hdd_tx_complete_cbk() - Callback function invoked by TL
@@ -202,7 +202,7 @@ extern VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-extern VOS_STATUS hdd_softap_DeregisterSTA( hdd_hostapd_adapter_t *pAdapter, tANI_U8 staId );
+extern VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId );
 
 /**============================================================================
   @brief hdd_softap_RegisterSTA - Register a station into TL block
@@ -218,7 +218,7 @@ extern VOS_STATUS hdd_softap_DeregisterSTA( hdd_hostapd_adapter_t *pAdapter, tAN
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
-extern VOS_STATUS hdd_softap_RegisterSTA( hdd_hostapd_adapter_t *pAdapter,
+extern VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
                                        v_BOOL_t fAuthRequired,
                                        v_BOOL_t fPrivacyBit,    
                                        v_U8_t staId,
@@ -235,7 +235,7 @@ extern VOS_STATUS hdd_softap_RegisterSTA( hdd_hostapd_adapter_t *pAdapter,
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
-extern VOS_STATUS hdd_softap_Register_BC_STA( hdd_hostapd_adapter_t *pAdapter, v_BOOL_t fPrivacyBit);
+extern VOS_STATUS hdd_softap_Register_BC_STA( hdd_adapter_t *pAdapter, v_BOOL_t fPrivacyBit);
 
 /**============================================================================
   @brief hdd_softap_DeregisterSTA - DeRegister the default broadcast station into TL block
@@ -244,7 +244,7 @@ extern VOS_STATUS hdd_softap_Register_BC_STA( hdd_hostapd_adapter_t *pAdapter, v
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
-extern VOS_STATUS hdd_softap_Deregister_BC_STA( hdd_hostapd_adapter_t *pAdapter);
+extern VOS_STATUS hdd_softap_Deregister_BC_STA( hdd_adapter_t *pAdapter);
 
 /**============================================================================
   @brief hdd_softap_stop_bss - Helper function to stop bss and do cleanup in HDD and TL
@@ -253,7 +253,7 @@ extern VOS_STATUS hdd_softap_Deregister_BC_STA( hdd_hostapd_adapter_t *pAdapter)
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
-extern VOS_STATUS hdd_softap_stop_bss( hdd_hostapd_adapter_t *pHostapdAdapter);
+extern VOS_STATUS hdd_softap_stop_bss( hdd_adapter_t *pHostapdAdapter);
 
 
 /**============================================================================
@@ -265,7 +265,7 @@ extern VOS_STATUS hdd_softap_stop_bss( hdd_hostapd_adapter_t *pHostapdAdapter);
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
-extern VOS_STATUS hdd_softap_change_STA_state( hdd_hostapd_adapter_t *pAdapter, v_MACADDR_t *pDestMacAddress, WLANTL_STAStateType state);
+extern VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pDestMacAddress, WLANTL_STAStateType state);
 
 /**============================================================================
   @brief hdd_softap_GetStaId - Helper function to get station Id from MAC address
@@ -276,6 +276,6 @@ extern VOS_STATUS hdd_softap_change_STA_state( hdd_hostapd_adapter_t *pAdapter, 
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
-extern VOS_STATUS hdd_softap_GetStaId( hdd_hostapd_adapter_t *pAdapter, v_MACADDR_t *pMacAddress, v_U16_t *staId);
+extern VOS_STATUS hdd_softap_GetStaId( hdd_adapter_t *pAdapter, v_MACADDR_t *pMacAddress, v_U16_t *staId);
 
 #endif    // end #if !defined( WLAN_HDD_SOFTAP_TX_RX_H )

@@ -32,14 +32,15 @@
 #ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
 #endif
+/** Number of Tx Queues */
+#define NUM_TX_QUEUES 4
+#include <wlan_hdd_hostapd.h>
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
 /** Number of attempts to detect/remove card */
 #define LIBRA_CARD_INSERT_DETECT_MAX_COUNT	5
 #define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT	5
-/** Number of Tx Queues */  
-#define NUM_TX_QUEUES 4
 /** Queue length specified to OS in the net_device */
 #define NET_DEV_TX_QUEUE_LEN 100
 /** HDD's internal Tx Queue Length. Needs to be a power of 2 */
@@ -60,6 +61,10 @@
 #define HDD_DEFAULT_MTU         (1500)
 /**event flags registered net device*/
 #define NET_DEVICE_REGISTERED  1<<0
+#define SME_SESSION_OPENED     1<<1
+#define INIT_TX_RX_SUCCESS     1<<2
+#define WMM_INIT_DONE          1<<3
+#define SOFTAP_BSS_STARTED     1<<4
 /** Maximum time(ms)to wait for disconnect to complete **/
 #define WLAN_WAIT_TIME_DISCONNECT  1000
 #define WLAN_WAIT_TIME_ABORTSCAN   2000
@@ -81,6 +86,9 @@
 #define WLAN_HDD_GET_PRIV_PTR(__dev__) (hdd_adapter_t*)(netdev_priv((__dev__)))
 #endif
 #define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
+#define BSS_STOP    0
+#define BSS_START   1
+
 typedef struct hdd_tx_rx_stats_s
 {
    // start_xmit stats
@@ -278,6 +286,21 @@ struct hdd_wapi_info_s
 typedef struct hdd_wapi_info_s hdd_wapi_info_t;
 #endif /* FEATURE_WLAN_WAPI */
 
+typedef enum device_mode
+{  /* MAINTAIN 1 - 1 CORRESPONDENCE WITH tVOS_CON_MODE*/
+   WLAN_HDD_INFRA_STATION,
+   WLAN_HDD_SOFTAP,
+   WLAN_HDD_MONITOR,
+   WLAN_HDD_FTM,
+}device_mode_t;
+
+typedef struct beacon_data_s
+{
+    u8 *head, *tail;
+    int head_len, tail_len;
+    int dtim_period;
+} beacon_data_t;
+
 /** Adapter stucture definition */
 
 struct hdd_adapter_s
@@ -288,8 +311,10 @@ struct hdd_adapter_s
    /** HAL handle...*/
    tHalHandle hHal;
 #ifdef CONFIG_CFG80211
-   struct wireless_dev *wdev ;
+   struct wiphy* wiphy;
+   struct wireless_dev wdev ;
    struct cfg80211_scan_request *request ; 
+   device_mode_t  device_mode;
 #endif
 
    /** Handle to the network device */
@@ -298,6 +323,10 @@ struct hdd_adapter_s
 #ifdef WLAN_SOFTAP_FEATURE
    /** Handle to the network AP device */
    struct net_device *pHostapd_dev;
+   /* pHostapd_dev, pWlanDev and dev would be pointing to only one net_dev
+    * so as to minimize changes in the code and ensure compatibility.
+    **/
+   struct net_device *pWlanDev;
 #endif
 	
   /** Handle to the Wireless Extension State */
@@ -394,9 +423,51 @@ struct hdd_adapter_s
 #ifdef FEATURE_WLAN_WAPI
    hdd_wapi_info_t wapi_info;
 #endif
+   eCsrEncryptionType ucEncryptType;
+   /**The following elements are  the members of hostapd_adapter structure
+    * which will now be part of the adapter structure
+    **/
+   struct hdd_station_info_s aStaInfo[WLAN_MAX_STA_COUNT];
+
+   v_U16_t aTxQueueLimit[NUM_TX_QUEUES];
+
+   hdd_hostapd_state_t HostapdState;
+
+   v_U8_t uBCStaId;
+
+   v_U8_t uPrivacy;
+
+   tSirWPSPBCProbeReq WPSPBCProbeReq;
+
+   v_BOOL_t apDisableIntraBssFwd;
+
+   struct semaphore semWpsPBCOverlapInd;
+
+   // This will have WEP key data, if it is received before start bss
+   tCsrRoamSetKey wepKey[CSR_MAX_NUM_KEY];
+#ifdef CONFIG_CFG80211
+   tCsrRoamSetKey groupKey;
+
+   beacon_data_t *beacon;
+#endif
+ 
+   tsap_Config_t sapConfig;
+
+   vos_timer_t hdd_ap_inactivity_timer;
 };
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
   -------------------------------------------------------------------------*/ 
 void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext);
+
+void hdd_deinit_adapter( hdd_adapter_t *pAdapter );
+
+VOS_STATUS hdd_stop_adapter( hdd_adapter_t *pAdapter);
+
+void hdd_set_conparam ( v_UINT_t newParam );
+
+void hdd_set_station_ops( struct net_device *pWlanDev );
+
+VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter );
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

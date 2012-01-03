@@ -419,8 +419,15 @@ REG_TABLE_ENTRY g_registry_table[] =
                         VAR_FLAGS_OPTIONAL,
                         (void *)CFG_AP_COUNTRY_CODE_DEFAULT ),
 
-   REG_VARIABLE( CFG_AP_PROTECTION_MODE_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_AP_ENABLE_PROTECTION_MODE_NAME, WLAN_PARAM_Integer,
                         hdd_config_t, apProtEnabled, 
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                        CFG_AP_ENABLE_PROTECTION_MODE_DEFAULT,
+                        CFG_AP_ENABLE_PROTECTION_MODE_MIN,
+                        CFG_AP_ENABLE_PROTECTION_MODE_MAX ),
+
+   REG_VARIABLE( CFG_AP_PROTECTION_MODE_NAME, WLAN_PARAM_HexInteger,
+                        hdd_config_t, apProtection,
                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                         CFG_AP_PROTECTION_MODE_DEFAULT,
                         CFG_AP_PROTECTION_MODE_MIN,
@@ -1523,6 +1530,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
 
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]\n",pAdapter->cfg_ini->apProtEnabled);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pAdapter->cfg_ini->apOBSSProtEnabled);
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApProtection] value = [%u]\n",pAdapter->cfg_ini->apProtection);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pAdapter->cfg_ini->nEnableListenMode);  
 #endif
   

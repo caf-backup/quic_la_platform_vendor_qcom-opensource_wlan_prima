@@ -620,6 +620,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 WLAN_STATUS_UNSPECIFIED_FAILURE, 
                 GFP_KERNEL);
 #endif
+        hdd_clearRoamProfileIe(pAdapter);
         netif_tx_disable(dev); 
         netif_carrier_off(dev);
     }

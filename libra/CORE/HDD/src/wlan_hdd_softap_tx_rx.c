@@ -65,7 +65,7 @@ static void hdd_softap_dump_sk_buff(struct sk_buff * skb)
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-static VOS_STATUS hdd_softap_flush_tx_queues( hdd_hostapd_adapter_t *pAdapter )
+static VOS_STATUS hdd_softap_flush_tx_queues( hdd_adapter_t *pAdapter )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    v_SINT_t i = -1;
@@ -132,7 +132,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
    skb_list_node_t *pktNode = NULL;
    v_SIZE_t pktListSize = 0;
-   hdd_hostapd_adapter_t *pAdapter = (hdd_hostapd_adapter_t *)netdev_priv(dev);
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
    vos_list_node_t *anchor = NULL;
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
@@ -283,7 +283,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    VOS_STATUS status;
    skb_list_node_t *pktNode = NULL;
    v_SIZE_t pktListSize = 0;
-   hdd_hostapd_adapter_t *pAdapter = (hdd_hostapd_adapter_t *)netdev_priv(dev);
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    v_U8_t ac;
    vos_list_node_t *anchor = NULL;
 
@@ -409,7 +409,7 @@ void hdd_softap_tx_timeout(struct net_device *dev)
   ===========================================================================*/
 struct net_device_stats* hdd_softap_stats(struct net_device *dev)
 {
-   hdd_hostapd_adapter_t* priv = netdev_priv(dev);
+   hdd_adapter_t* priv = WLAN_HDD_GET_PRIV_PTR(dev);
    return &priv->stats;
 }
 
@@ -422,7 +422,7 @@ struct net_device_stats* hdd_softap_stats(struct net_device *dev)
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-VOS_STATUS hdd_softap_init_tx_rx( hdd_hostapd_adapter_t *pAdapter )
+VOS_STATUS hdd_softap_init_tx_rx( hdd_adapter_t *pAdapter )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    v_SINT_t i = -1;
@@ -474,7 +474,7 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_hostapd_adapter_t *pAdapter )
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-VOS_STATUS hdd_softap_deinit_tx_rx( hdd_hostapd_adapter_t *pAdapter )
+VOS_STATUS hdd_softap_deinit_tx_rx( hdd_adapter_t *pAdapter )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
@@ -491,7 +491,7 @@ VOS_STATUS hdd_softap_deinit_tx_rx( hdd_hostapd_adapter_t *pAdapter )
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-static VOS_STATUS hdd_softap_flush_tx_queues_sta( hdd_hostapd_adapter_t *pAdapter, v_U8_t STAId )
+static VOS_STATUS hdd_softap_flush_tx_queues_sta( hdd_adapter_t *pAdapter, v_U8_t STAId )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    v_U8_t i = -1;
@@ -543,7 +543,7 @@ static VOS_STATUS hdd_softap_flush_tx_queues_sta( hdd_hostapd_adapter_t *pAdapte
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_hostapd_adapter_t *pAdapter, v_U8_t STAId, v_MACADDR_t *pmacAddrSTA)
+VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_adapter_t *pAdapter, v_U8_t STAId, v_MACADDR_t *pmacAddrSTA)
 {
    v_U8_t i = 0;
    if (pAdapter->aStaInfo[STAId].isUsed)
@@ -573,7 +573,7 @@ VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_hostapd_adapter_t *pAdapter, v_U8_t ST
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_hostapd_adapter_t *pAdapter, v_U8_t STAId )
+VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    if (FALSE == pAdapter->aStaInfo[STAId].isUsed)
@@ -596,7 +596,7 @@ VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_hostapd_adapter_t *pAdapter, v_U8_t
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_hostapd_adapter_t *pAdapter )
+VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_adapter_t *pAdapter )
 {
    return hdd_softap_flush_tx_queues(pAdapter);
 }
@@ -618,7 +618,7 @@ VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext,
                                 VOS_STATUS vosStatusIn )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
-   hdd_hostapd_adapter_t *pAdapter = NULL;
+   hdd_adapter_t *pAdapter = NULL;
    void* pOsPkt = NULL;
    
    if( ( NULL == vosContext ) || ( NULL == pVosPacket )  )
@@ -638,7 +638,7 @@ VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext,
    }
 
    //Get the HDD context.
-   pAdapter = (hdd_hostapd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD_SOFTAP, vosContext );
+   pAdapter = (hdd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD_SOFTAP, vosContext );
    if(pAdapter == NULL)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
@@ -682,7 +682,7 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
                                     WLANTL_MetaInfoType *pPktMetaInfo )
 {
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
-   hdd_hostapd_adapter_t *pAdapter = NULL;
+   hdd_adapter_t *pAdapter = NULL;
    hdd_list_node_t *anchor = NULL;
    skb_list_node_t *pktNode = NULL;
    struct sk_buff *skb = NULL;
@@ -705,7 +705,7 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    }
 
    //Get the HDD context.
-   pAdapter = (hdd_hostapd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD_SOFTAP, vosContext );
+   pAdapter = (hdd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD_SOFTAP, vosContext );
    if(pAdapter == NULL)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
@@ -874,7 +874,7 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressuredAC[ac];
       
       pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_FALSE;
-      netif_wake_subqueue(pAdapter->pDev, skb_get_queue_mapping(skb));
+      netif_wake_subqueue(pAdapter->dev, skb_get_queue_mapping(skb));
    }    
 
    // We're giving the packet to TL so consider it transmitted from
@@ -916,7 +916,7 @@ VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
    VOS_STATUS status;
    v_SINT_t i = 0;
    v_SIZE_t size = 0;
-   hdd_hostapd_adapter_t* pAdapter = (hdd_hostapd_adapter_t *)userData;
+   hdd_adapter_t* pAdapter = (hdd_adapter_t *)userData;
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
  
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
@@ -982,7 +982,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
                               v_U8_t staId,
                               WLANTL_RxMetaInfoType* pRxMetaInfo )
 {
-   hdd_hostapd_adapter_t *pAdapter = NULL;
+   hdd_adapter_t *pAdapter = NULL;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    int rxstat;
    struct sk_buff *skb = NULL;
@@ -998,7 +998,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
 
-   pAdapter = (hdd_hostapd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD_SOFTAP, vosContext );
+   pAdapter = (hdd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD_SOFTAP, vosContext );
    if ( NULL == pAdapter )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
@@ -1035,7 +1035,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
    
       //hdd_softap_dump_sk_buff(skb);
 
-      skb->dev = pAdapter->pDev;
+      skb->dev = pAdapter->dev;
       ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
       ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
@@ -1105,12 +1105,12 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: Failure returning vos pkt", __FUNCTION__);
    }
    
-   pAdapter->pDev->last_rx = jiffies;
+   pAdapter->dev->last_rx = jiffies;
 
    return status;   
 }
 
-VOS_STATUS hdd_softap_DeregisterSTA( hdd_hostapd_adapter_t *pAdapter, tANI_U8 staId )
+VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
 {
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 
@@ -1133,7 +1133,7 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_hostapd_adapter_t *pAdapter, tANI_U8 st
     return( vosStatus );
 }
 
-VOS_STATUS hdd_softap_RegisterSTA( hdd_hostapd_adapter_t *pAdapter,
+VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
                                        v_BOOL_t fAuthRequired,
                                        v_BOOL_t fPrivacyBit,
                                        v_U8_t staId,
@@ -1273,7 +1273,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_hostapd_adapter_t *pAdapter,
    return( vosStatus );
 }
 
-VOS_STATUS hdd_softap_Register_BC_STA( hdd_hostapd_adapter_t *pAdapter, v_BOOL_t fPrivacyBit)
+VOS_STATUS hdd_softap_Register_BC_STA( hdd_adapter_t *pAdapter, v_BOOL_t fPrivacyBit)
 {
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
 
@@ -1284,12 +1284,12 @@ VOS_STATUS hdd_softap_Register_BC_STA( hdd_hostapd_adapter_t *pAdapter, v_BOOL_t
    return vosStatus;
 }
 
-VOS_STATUS hdd_softap_Deregister_BC_STA( hdd_hostapd_adapter_t *pAdapter)
+VOS_STATUS hdd_softap_Deregister_BC_STA( hdd_adapter_t *pAdapter)
 {
    return hdd_softap_DeregisterSTA( pAdapter, pAdapter->uBCStaId);
 }
 
-VOS_STATUS hdd_softap_stop_bss( hdd_hostapd_adapter_t *pAdapter)
+VOS_STATUS hdd_softap_stop_bss( hdd_adapter_t *pAdapter)
 {
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     v_U8_t staId = 0;
@@ -1319,7 +1319,7 @@ VOS_STATUS hdd_softap_stop_bss( hdd_hostapd_adapter_t *pAdapter)
     return vosStatus;
 }
 
-VOS_STATUS hdd_softap_change_STA_state( hdd_hostapd_adapter_t *pAdapter, v_MACADDR_t *pDestMacAddress, WLANTL_STAStateType state)
+VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pDestMacAddress, WLANTL_STAStateType state)
 {
 
     tHalHandle hHalHandle;
@@ -1367,7 +1367,7 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_hostapd_adapter_t *pAdapter, v_MACAD
 }
 
 
-VOS_STATUS hdd_softap_GetStaId(hdd_hostapd_adapter_t *pAdapter, v_MACADDR_t *pMacAddress, v_U16_t *staId)
+VOS_STATUS hdd_softap_GetStaId(hdd_adapter_t *pAdapter, v_MACADDR_t *pMacAddress, v_U16_t *staId)
 {
     v_U16_t i;
 

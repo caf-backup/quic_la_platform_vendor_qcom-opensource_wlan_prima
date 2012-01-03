@@ -193,7 +193,7 @@ void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
 
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter;
+    hdd_adapter_t *pHostapdAdapter;
     hdd_hostapd_state_t *pHostapdState;
     hdd_adapter_t *pAdapter = NULL;
     struct net_device *dev;
@@ -206,11 +206,12 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     VOS_STATUS vos_status; 
     v_BOOL_t bWPSState;
     v_BOOL_t bApActive = FALSE;
+    v_BOOL_t bAuthRequired = TRUE;
     tpSap_AssocMacAddr pAssocStasArray = NULL;
 
     dev = (struct net_device *)usrDataForCallback;
-    pHostapdAdapter = (hdd_hostapd_adapter_t*)netdev_priv(dev);
-    pHostapdState = pHostapdAdapter->pHostapdState; 
+    pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    pHostapdState = &pHostapdAdapter->HostapdState;
     pAdapter = WLAN_HDD_GET_PRIV_PTR(pHostapdAdapter->pWlanDev);
 
     sapEvent = pSapEvent->sapHddEventCode;
@@ -252,12 +253,49 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                    hddLog(LOGE, FL("Failed to init AP inactivity timer\n"));
 
             }
+            pHostapdState->HostapdState = BSS_START;
+
+#ifdef CONFIG_CFG80211
+            //Check if there is any group key pending to set.
+            if ( pAdapter->groupKey.keyLength )
+            {
+                if ( eHAL_STATUS_SUCCESS !=  WLANSAP_SetKeySta(
+                              pAdapter->pvosContext,
+                              &pAdapter->groupKey ) )
+                {
+                     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                            "%s: WLANSAP_SetKeySta failed", __func__);
+                }
+                pAdapter->groupKey.keyLength = 0;
+            }
+            else if ( pAdapter->wepKey[0].keyLength )
+            {
+                int i=0;
+                for ( i = 0; i < CSR_MAX_NUM_KEY; i++ )
+                {
+                    if( eHAL_STATUS_SUCCESS !=  WLANSAP_SetKeySta(
+                                            pHostapdAdapter->pvosContext,
+                                            &pHostapdAdapter->wepKey[i] ) )
+                    {
+                          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                             "%s: WLANSAP_SetKeySta failed idx %d", __func__, i);
+                    }
+                    pAdapter->wepKey[i].keyLength = 0;
+                }
+           }
+#endif
             return VOS_STATUS_SUCCESS;
 
         case eSAP_STOP_BSS_EVENT:
 
             hddLog(LOGE, FL("BSS stop status = %s\n"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ? 
                              "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
+            vos_event_set(&pHostapdState->vosEvent);
+
+            /* need to make sure all of our scheduled work has completed.
+             * Right now we are in MC thread context, so it is safe to call this function from here.
+             */
+            flush_scheduled_work();
             goto stopbss;
 
         case eSAP_STA_SET_KEY_EVENT:
@@ -304,7 +342,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             
             WLANSAP_Get_WPS_State(pHostapdAdapter->pvosContext, &bWPSState);
             
-            if (pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen || bWPSState == eANI_BOOLEAN_TRUE )
+             if ( (eCSR_ENCRYPT_TYPE_NONE == pHostapdAdapter->ucEncryptType) ||
+                 ( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY == pHostapdAdapter->ucEncryptType ) || 
+                 ( eCSR_ENCRYPT_TYPE_WEP104_STATICKEY == pHostapdAdapter->ucEncryptType ) )
+            {
+                bAuthRequired = FALSE;
+            }
+
+            if (bAuthRequired || bWPSState == eANI_BOOLEAN_TRUE ) 
             {
                 hdd_softap_RegisterSTA( pHostapdAdapter,
                                        TRUE,
@@ -335,7 +380,30 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 if (!VOS_IS_STATUS_SUCCESS(vos_status))
                    hddLog(LOGE, FL("Failed to start AP inactivity timer\n"));
             }
-
+#ifdef CONFIG_CFG80211
+            {
+                struct ieee80211_mgmt *mgmt;
+                v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
+                v_U16_t size =  (24 + sizeof(mgmt->u.assoc_resp) + iesLen);
+                mgmt = vos_mem_malloc(size);
+                if (mgmt != NULL)
+                {
+                    memcpy(mgmt->da, &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac, 6);
+                    memcpy(mgmt->sa, &pHostapdAdapter->macAddressCurrent, 6);
+                    memcpy(mgmt->bssid, &pHostapdAdapter->macAddressCurrent, 6);
+                    mgmt->u.assoc_resp.status_code =
+                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.statusCode;
+                    memcpy(mgmt->u.assoc_resp.variable,
+                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies,iesLen);
+                    cfg80211_send_rx_assoc(dev,(const u8 *)mgmt,size);
+                    vos_mem_free(mgmt);
+                }
+                else
+                {
+                    hddLog(LOGE, FL("HDD: Failed to allocate memory for assoc req\n"));
+                }
+             }
+#endif
             break;
 
         case eSAP_STA_DISASSOC_EVENT:
@@ -383,6 +451,22 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                         VOS_ASSERT(vos_timer_getCurrentState(&pHostapdAdapter->hdd_ap_inactivity_timer) == VOS_TIMER_STATE_STOPPED);
                 }
             }
+#ifdef CONFIG_CFG80211
+            {
+                struct ieee80211_mgmt mgmt;
+                v_U16_t size =  (24 + sizeof(mgmt.u.disassoc));
+
+                mgmt.u.disassoc.reason_code =
+                   pSapEvent->sapevt.sapStationDisassocCompleteEvent.reason;
+                memcpy(mgmt.da, &pHostapdAdapter->macAddressCurrent, 6);
+                memcpy(mgmt.sa, 
+                 &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
+                 6);
+                memcpy( mgmt.bssid, &pHostapdAdapter->macAddressCurrent, 6);
+
+                cfg80211_send_disassoc(dev, (const u8 *)&mgmt, size);
+            }
+#endif
             break;
 
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:
@@ -454,12 +538,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
         we_event = IWEVCUSTOM;
         we_custom_event_generic = we_custom_event;
         wireless_send_event(dev, we_event, &wrqu, (char *)we_custom_event_generic);
+        pHostapdState->HostapdState = BSS_STOP;
     }
 
     return VOS_STATUS_SUCCESS;
 }
 
-static int 
+int 
 hdd_softap_unpackIE( 
                 tHalHandle halHandle,
                 eCsrEncryptionType *pEncryptType, 
@@ -578,18 +663,18 @@ static iw_softap_getchannel(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-	hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-	ptSapContext  pSapCtx;
-	v_CONTEXT_t pvos = pHostapdAdapter->pvosContext;
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    ptSapContext  pSapCtx;
+    v_CONTEXT_t pvos = pHostapdAdapter->pvosContext;
  
-	pSapCtx = VOS_GET_SAP_CB(pvos);
+    pSapCtx = VOS_GET_SAP_CB(pvos);
 
-	/** Operating channel */
+    /** Operating channel */
     *(v_U32_t *)(wrqu->data.pointer) = pSapCtx->channel;
 
-	wrqu->data.length = sizeof(pSapCtx->channel);
+    wrqu->data.length = sizeof(pSapCtx->channel);
 
-	return 0;
+    return 0;
 }
 
 #define IS_BROADCAST_MAC(x) (((x[0] & x[1] & x[2] & x[3] & x[4] & x[5]) == 0xff) ? 1 : 0)
@@ -599,33 +684,36 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-	hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-	unsigned char *pmaclist;
-	int cnt = 0, len;
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    unsigned char *pmaclist;
+    int cnt = 0, len;
 
+    pmaclist = wrqu->data.pointer + sizeof(unsigned long int);
+    len = wrqu->data.length;
 
-	pmaclist = wrqu->data.pointer + sizeof(unsigned long int);
-	len = wrqu->data.length;
+    while ((cnt < WLAN_MAX_STA_COUNT) && (len > (sizeof(v_MACADDR_t)+1)))
+    {
+        if (TRUE == pHostapdAdapter->aStaInfo[cnt].isUsed)
+        {
+	    if(!IS_BROADCAST_MAC(pHostapdAdapter->aStaInfo[cnt].macAddrSTA.bytes))
+	    {
+               memcpy( (void *)pmaclist, 
+                       (void *)&(pHostapdAdapter->aStaInfo[cnt].macAddrSTA),
+                       sizeof(v_MACADDR_t));
+               pmaclist += sizeof(v_MACADDR_t);
+               len -= sizeof(v_MACADDR_t);
+            }
+        }
+	cnt++;
+    }
 
-	while((cnt < WLAN_MAX_STA_COUNT) && (len > (sizeof(v_MACADDR_t)+1))) {
-		if (TRUE == pHostapdAdapter->aStaInfo[cnt].isUsed) {
-			
-			if(!IS_BROADCAST_MAC(pHostapdAdapter->aStaInfo[cnt].macAddrSTA.bytes)) {
-				memcpy((void *)pmaclist, (void *)&(pHostapdAdapter->aStaInfo[cnt].macAddrSTA), sizeof(v_MACADDR_t));
-				pmaclist += sizeof(v_MACADDR_t);
-				len -= sizeof(v_MACADDR_t);
-			}
-		}
-		cnt++;
-	}
-
-	*pmaclist = '\0';
+    *pmaclist = '\0';
 
     wrqu->data.length -= len;
 
-	*(unsigned long int *)(wrqu->data.pointer) = wrqu->data.length;
+    *(unsigned long int *)(wrqu->data.pointer) = wrqu->data.length;
 
-	return 0;
+    return 0;
 }
 
 int
@@ -633,12 +721,9 @@ static iw_softap_disassoc_sta(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-	hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-	
-
-	hdd_softap_sta_disassoc(pHostapdAdapter, (v_U8_t *)(wrqu->data.pointer));
-
-	return 0;
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_softap_sta_disassoc(pHostapdAdapter, (v_U8_t *)(wrqu->data.pointer));
+    return 0;
 }
 
 int
@@ -646,7 +731,7 @@ static iw_softap_ap_stats(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     WLANTL_TRANSFER_STA_TYPE  statBuffer;
     char *pstatbuf;
     int len = wrqu->data.length;
@@ -674,7 +759,7 @@ static int iw_softap_get_stats(struct net_device *dev,
                                struct iw_request_info *info,
                                union iwreq_data *wrqu, char *extra)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_tx_rx_stats_t *pStats = &pHostapdAdapter->hdd_stats.hddTxRxStats;
 
     snprintf(extra, WE_MAX_STR_LEN,
@@ -764,7 +849,7 @@ static int iw_softap_clr_stats(struct net_device *dev,
                                struct iw_request_info *info,
                                union iwreq_data *wrqu, char *extra)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_tx_rx_stats_t *pStats = &pHostapdAdapter->hdd_stats.hddTxRxStats;
 
     memset(pStats, 0, sizeof(*pStats));
@@ -778,7 +863,7 @@ static iw_softap_commit(struct net_device *dev,
                         union iwreq_data *wrqu, char *extra)
 {
     VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_hostapd_state_t *pHostapdState;
     hdd_adapter_t *pAdapter = NULL ;
     v_CONTEXT_t pVosContext = pHostapdAdapter->pvosContext; 
@@ -792,12 +877,12 @@ static iw_softap_commit(struct net_device *dev,
     eCsrEncryptionType RSNEncryptType;
     eCsrEncryptionType mcRSNEncryptType;
 
-    pHostapdState = pHostapdAdapter->pHostapdState;
+    pHostapdState = &pHostapdAdapter->HostapdState;
     pAdapter = WLAN_HDD_GET_PRIV_PTR(pHostapdAdapter->pWlanDev);
 
     pCommitConfig = (s_CommitConfig_t *)extra;
     
-    pConfig = kmalloc(sizeof(tsap_Config_t), GFP_KERNEL);
+    pConfig = &pHostapdAdapter->sapConfig;
 
     pConfig->beacon_int =  pCommitConfig->beacon_int;
     pConfig->channel = pCommitConfig->channel;
@@ -884,8 +969,8 @@ static iw_softap_commit(struct net_device *dev,
     vos_mem_copy(pConfig->self_macaddr.bytes, pHostapdAdapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
     
     pConfig->SapMacaddr_acl = pCommitConfig->qc_macaddr_acl;
-    pConfig->ht_capab = pCommitConfig->ht_capab;
-
+    // ht_capab is not what the name conveys,this is used for protection bitmap
+    pConfig->ht_capab = pHostapdAdapter->cfg_ini->apProtection;
     if (pCommitConfig->num_accept_mac > MAX_MAC_ADDRESS_ACCEPTED)
         num_mac = pConfig->num_accept_mac = MAX_MAC_ADDRESS_ACCEPTED;
     else
@@ -931,8 +1016,6 @@ static iw_softap_commit(struct net_device *dev,
            hddLog(LOGE,FL("SAP Start Bss fail\n"));
     }
     
-    kfree(pConfig);
-    
     hddLog(LOGE, FL("Waiting for Scan to complete(auto mode) and BSS to start"));
     vos_status = vos_wait_single_event(&pHostapdState->vosEvent, 0);
    
@@ -960,7 +1043,7 @@ int iw_softap_setmlme(struct net_device *dev,
                         union iwreq_data *wrqu, char *extra)
 {
     struct sQcSapreq_mlme *pmlme;
-    hdd_hostapd_adapter_t *pHostapdAdapter = (hdd_hostapd_adapter_t*)(netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     v_MACADDR_t destAddress;
     pmlme = (struct sQcSapreq_mlme *)(wrqu->name);
 
@@ -1006,7 +1089,7 @@ int iw_get_genie(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     v_CONTEXT_t pVosContext = pHostapdAdapter->pvosContext; 
     eHalStatus status;
     v_U32_t length = DOT11F_IE_RSN_MAX_LEN;
@@ -1035,7 +1118,7 @@ int iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));    
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     sQcSapreq_WPSPBCProbeReqIES_t *pWPSPBCProbeReqIEs;
 
     ENTER();
@@ -1061,7 +1144,7 @@ static int iw_set_encodeext(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     v_CONTEXT_t pVosContext = pHostapdAdapter->pvosContext;    
     eHalStatus halStatus= eHAL_STATUS_SUCCESS;
     struct iw_encode_ext *ext = (struct iw_encode_ext*)extra;
@@ -1253,7 +1336,7 @@ static int iw_set_mlme(struct net_device *dev,
                        char *extra)
 {
 #if 0
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     struct iw_mlme *mlme = (struct iw_mlme *)extra;
  
     ENTER();    
@@ -1306,7 +1389,7 @@ static int iw_softap_setwpsie(struct net_device *dev,
         union iwreq_data *wrqu, 
         char *extra)
 {
-   hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    v_CONTEXT_t pVosContext = pHostapdAdapter->pvosContext;
    hdd_hostapd_state_t *pHostapdState;
    eHalStatus halStatus= eHAL_STATUS_SUCCESS;
@@ -1613,11 +1696,11 @@ static int iw_softap_setwpsie(struct net_device *dev,
 
     halStatus = WLANSAP_Set_WpsIe(pVosContext, pSap_WPSIe);
 
-    pHostapdState = pHostapdAdapter->pHostapdState;
+    pHostapdState = &pHostapdAdapter->HostapdState;
 
     if( pHostapdState->bCommit && WPSIeType == eQC_WPS_PROBE_RSP_IE)
     {
-        hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+        hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
         v_CONTEXT_t pVosContext = pHostapdAdapter->pvosContext;
 
         WLANSAP_Update_WpsIe ( pVosContext );
@@ -1634,7 +1717,7 @@ static int iw_softap_stopbss(struct net_device *dev,
         union iwreq_data *wrqu, 
         char *extra)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     eHalStatus halStatus= eHAL_STATUS_SUCCESS;
     ENTER();
     halStatus = WLANSAP_StopBss(pHostapdAdapter->pvosContext);
@@ -1647,7 +1730,7 @@ static int iw_softap_version(struct net_device *dev,
         union iwreq_data *wrqu, 
         char *extra)
 {
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int ret;
     ENTER();
     wrqu->data.flags = WE_WLAN_VERSION;
@@ -1663,7 +1746,7 @@ static int iw_set_ap_genie(struct net_device *dev,
         char *extra)
 {
  
-    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     v_CONTEXT_t pVosContext = pHostapdAdapter->pvosContext;
     eHalStatus halStatus= eHAL_STATUS_SUCCESS;
     u_int8_t *genie = wrqu->data.pointer;
@@ -1838,21 +1921,35 @@ static struct net_device_ops net_ops_struct  = {
  };
 #endif
 
-
-int hdd_set_hostapd(hdd_hostapd_adapter_t *pAdapter)
+void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
 {
-	return VOS_STATUS_SUCCESS;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29)
+    pWlanHostapdDev->netdev_ops = &net_ops_struct;
+#else
+    pWlanHostapdDev->open = hdd_hostapd_open;
+    pWlanHostapdDev->stop = hdd_hostapd_stop;
+    pWlanHostapdDev->hard_start_xmit = hdd_softap_hard_start_xmit;
+    pWlanHostapdDev->tx_timeout = hdd_softap_tx_timeout;
+    pWlanHostapdDev->get_stats = hdd_softap_stats;
+    pWlanHostapdDev->set_mac_address = hdd_hostapd_set_mac_address;
+    pWlanHostapdDev->do_ioctl = hdd_hostapd_ioctl;
+#endif
+}
+
+int hdd_set_hostapd(hdd_adapter_t *pAdapter)
+{
+    return VOS_STATUS_SUCCESS;
 } 
 
 int hdd_wlan_create_ap_dev(struct net_device * pWlanDev)
 {
     struct net_device *pWlanHostapdDev = NULL;
     hdd_adapter_t *pAdapter = NULL;
-    hdd_hostapd_adapter_t *pHostapdAdapter = NULL;
+    hdd_adapter_t *pHostapdAdapter = NULL;
     static char macAddr[6] =  {0x00, 0xde, 0xad, 0xbe, 0xef, 0x04};
     v_CONTEXT_t pVosContext= NULL; 
 		
-    pWlanHostapdDev = alloc_etherdev_mq(sizeof(hdd_hostapd_adapter_t),NUM_TX_QUEUES);
+    pWlanHostapdDev = alloc_etherdev_mq(sizeof(hdd_adapter_t),NUM_TX_QUEUES);
     if (NULL == pWlanHostapdDev)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: alloc_netdev failed", __func__);
@@ -1862,12 +1959,12 @@ int hdd_wlan_create_ap_dev(struct net_device * pWlanDev)
     //Init the net_device structure
     ether_setup(pWlanHostapdDev);
 
-    pHostapdAdapter = netdev_priv(pWlanHostapdDev);
+    pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(pWlanHostapdDev);
 
     //Initialize the adapter context to zeros.
-    vos_mem_zero(pHostapdAdapter, sizeof( hdd_hostapd_adapter_t ));
+    vos_mem_zero(pHostapdAdapter, sizeof( hdd_adapter_t ));
 
-    pHostapdAdapter->pDev = pWlanHostapdDev;
+    pHostapdAdapter->dev = pWlanHostapdDev;
 
     pHostapdAdapter->pWlanDev = pWlanDev; 
 
@@ -1900,25 +1997,21 @@ int hdd_wlan_create_ap_dev(struct net_device * pWlanDev)
     pWlanHostapdDev->watchdog_timeo = HDD_TX_TIMEOUT;
     pWlanHostapdDev->mtu = HDD_DEFAULT_MTU;
 
-    vos_mem_copy(pWlanHostapdDev->dev_addr, (void *)macAddr,sizeof(macAddr));
+    vos_mem_copy(pWlanHostapdDev->dev_addr, (void *)macAddr, sizeof(macAddr));
     vos_mem_copy(&pHostapdAdapter->macAddressCurrent, (void *)macAddr, sizeof(macAddr));
-
+ 
     return 0;
-
 }
 
 int hdd_register_hostapd(struct net_device *hostap_dev)
 {
-   hdd_hostapd_adapter_t *pHostapdAdapter = (hdd_hostapd_adapter_t*)(netdev_priv(hostap_dev));
+   hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(hostap_dev);
    hdd_hostapd_state_t * phostapdBuf;
    VOS_STATUS status;
 
    ENTER();
    
-   printk("%s", __func__);
- 
-   // Allocate the Wireless Extensions state structure   
-   phostapdBuf = kmalloc(sizeof(hdd_hostapd_state_t), GFP_KERNEL);
+   phostapdBuf = &pHostapdAdapter->HostapdState;
 
    if( !phostapdBuf ) {
       hddLog( LOG1,"VOS unable to allocate memory\n");
@@ -1927,9 +2020,6 @@ int hdd_register_hostapd(struct net_device *hostap_dev)
    
    // Zero the memory.  This zeros the profile structure.
    memset(phostapdBuf, 0,sizeof(hdd_hostapd_state_t));
-   
-   // Set up the pointer to the Wireless Extensions state structure
-   pHostapdAdapter->pHostapdState = phostapdBuf;
 
    status = hdd_set_hostapd(pHostapdAdapter);
 
@@ -1956,20 +2046,12 @@ int hdd_register_hostapd(struct net_device *hostap_dev)
     
 int hdd_unregister_hostapd(struct net_device *hostap_dev)
 {
-   hdd_hostapd_adapter_t *pHostapdAdapter = (hdd_hostapd_adapter_t*)(netdev_priv(hostap_dev));
+   hdd_adapter_t *pHostapdAdapter = WLAN_HDD_GET_PRIV_PTR(hostap_dev);
 
    ENTER();
-   
-   printk("%s", __func__);
 
    hdd_softap_deinit_tx_rx(pHostapdAdapter);
    hostap_dev->wireless_handlers = NULL;
-
-   // Allocate the Wireless Extensions state structure   
-   kfree(pHostapdAdapter->pHostapdState);
-
-   // Clear out the pointer to the Wireless Extensions state structure
-  ((hdd_hostapd_adapter_t*)(netdev_priv(hostap_dev)))->pHostapdState = NULL;
    
    EXIT();
    return 0;

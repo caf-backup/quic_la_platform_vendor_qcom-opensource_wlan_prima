@@ -1511,7 +1511,7 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
    sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
    v_USHORT_t queueIndex;   
    v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
-   hdd_hostapd_adapter_t *pAdapter = (hdd_hostapd_adapter_t *)netdev_priv(dev);
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_adapter_t *pStaAdapter = WLAN_HDD_GET_PRIV_PTR(pAdapter->pWlanDev);
    tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, pAdapter->pvosContext);   
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
@@ -2213,3 +2213,32 @@ hdd_wlan_wmm_status_e hdd_wmm_checkts( hdd_adapter_t* pAdapter,
    mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
    return status;
 }
+
+/**============================================================================
+  @brief hdd_wmm_close() - Function which will perform any necessary work to
+  to clean up the WMM functionality prior to the kernel module unload
+
+  @param pAdapter : [in]  pointer to adapter context
+
+  @return         : VOS_STATUS_SUCCESS if succssful
+                  : other values if failure
+
+  ===========================================================================*/
+VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter )
+{
+   hdd_wmm_qos_context_t* pQosContext;
+
+   VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
+             "%s: Entered", __FUNCTION__);
+
+   // free any context records that we still have linked
+   while (!list_empty(&pAdapter->hddWmmStatus.wmmContextList))
+   {
+      pQosContext = list_first_entry(&pAdapter->hddWmmStatus.wmmContextList,
+                                     hdd_wmm_qos_context_t, node);
+      hdd_wmm_free_context(pQosContext);
+   }
+
+   return VOS_STATUS_SUCCESS;
+}
+
