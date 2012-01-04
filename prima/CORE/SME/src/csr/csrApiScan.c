@@ -5072,8 +5072,8 @@ eHalStatus csrScanTriggerIdleScan(tpAniSirGlobal pMac, tANI_U32 *pTimeInterval)
         return (status);
     }
 
-    if((pMac->scan.fScanEnable) && (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan) && 
-        pMac->roam.configParam.impsSleepTime)
+    if((pMac->scan.fScanEnable) && (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan) 
+    /*&& pMac->roam.configParam.impsSleepTime*/)
     {
         //Stop get result timer because idle scan gets scan result out of PE
         csrScanStopGetResultTimer(pMac);

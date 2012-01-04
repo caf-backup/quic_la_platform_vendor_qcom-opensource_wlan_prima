@@ -2672,6 +2672,45 @@ WLAN_BAPSetConfig
   WLANBAP_ConfigType *pConfig
 );
 
+/*===========================================================================
+
+  FUNCTION    WLANBAP_GetAcFromTxDataPkt
+
+  DESCRIPTION 
+
+    HDD will call this API when it has a HCI Data Packet (SKB) and it wants 
+    to find AC type of the data frame from the HCI header on the data pkt
+    - to be send using TL.
+
+
+  PARAMETERS 
+
+    btampHandle: The BT-AMP PAL handle returned in WLANBAP_GetNewHndl.
+ 
+    pHciData: Pointer to the HCI data frame
+ 
+    pucAC:       Pointer to return the access category 
+   
+  RETURN VALUE
+
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_INVAL:  Input parameters are invalid 
+    VOS_STATUS_E_FAULT:  BAP handle is NULL  
+    VOS_STATUS_SUCCESS:  Everything is good :) 
+
+  SIDE EFFECTS 
+  
+============================================================================*/
+VOS_STATUS
+WLANBAP_GetAcFromTxDataPkt
+( 
+  ptBtampHandle     btampHandle,  /* Used by BAP to identify the actual session
+                                    and therefore addresses */
+  void              *pHciData,     /* Pointer to the HCI data frame */
+  WLANTL_ACEnumType *pucAC        /* Return the AC here */
+);
+
 
 #ifdef __cplusplus
  }

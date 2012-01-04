@@ -2861,7 +2861,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-	 MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
         limLog( pMac, LOGP, FL("Failed to allocate %d bytes for a Re-As"
                                "sociation Request.\n"), nBytes );
         goto end;

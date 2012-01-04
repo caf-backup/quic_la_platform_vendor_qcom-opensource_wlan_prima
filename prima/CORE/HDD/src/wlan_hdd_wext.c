@@ -3534,15 +3534,22 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
         }
         case WE_STOP_AP:
         {
+           /*FIX ME: Need to be revisited if multiple SAPs to be supported */
+           /* As Soft AP mode has been changed to STA already with killing of Hostapd,
+            * this is a dead code and need to find the adpater by name rather than mode */
            hdd_adapter_t* pAdapter_to_stop = 
-                 hdd_get_adapter(WLAN_HDD_GET_CTX(pAdapter), WLAN_HDD_SOFTAP);
-           printk(KERN_ERR"Stopping AP mode\n");
+                hdd_get_adapter_by_name(WLAN_HDD_GET_CTX(pAdapter), "softap.0");
            if( pAdapter_to_stop )
            {
+              printk(KERN_ERR"Stopping AP mode\n");
               wlan_hdd_release_intf_addr(WLAN_HDD_GET_CTX(pAdapter), 
                                  pAdapter_to_stop->macAddressCurrent.bytes);
               hdd_close_adapter(WLAN_HDD_GET_CTX(pAdapter), pAdapter_to_stop, 
                                  TRUE);
+           }
+           else
+           {
+              printk(KERN_ERR"SAP adaptor not found to stop it!\n");
            }
 
            break;

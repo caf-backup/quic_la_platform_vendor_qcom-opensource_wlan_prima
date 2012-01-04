@@ -3055,6 +3055,10 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
 
     pAddBssParams->bSpectrumMgtEnabled = psessionEntry->spectrumMgtEnabled;
 
+#if defined WLAN_FEATURE_VOWIFI_11R
+    pAddBssParams->extSetStaKeyParamValid = 0;
+#endif
+
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_ASSOC_STATE;
@@ -3284,6 +3288,10 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
 
     pAddBssParams->bSpectrumMgtEnabled = psessionEntry->spectrumMgtEnabled;
 
+#if defined WLAN_FEATURE_VOWIFI_11R
+    pAddBssParams->extSetStaKeyParamValid = 0;
+#endif
+
     // Set a new state for MLME
 
     //pMac->lim.gLimMlmState = eLIM_MLM_WT_ADD_BSS_RSP_PREASSOC_STATE;
@@ -3493,6 +3501,10 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     pAddBssParams->respReqd = true;
 
     pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+    pAddBssParams->extSetStaKeyParamValid = 0;
+#endif
 
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )

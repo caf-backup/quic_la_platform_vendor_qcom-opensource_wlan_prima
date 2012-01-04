@@ -684,13 +684,13 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         /*Copy the wps IE*/
         ielen = pIe[1] + 2;  
         if( ielen <=MAX_GENIE_LEN)
-       	{
+        {
             vos_mem_copy(genie, pIe, ielen);
         }
         else 
-	{
-           hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie Length is too big***\n");
-           return -EINVAL;
+        {
+            hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie Length is too big***\n");
+            return -EINVAL;
         }
         total_ielen = ielen;
     }

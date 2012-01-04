@@ -1504,6 +1504,10 @@ limMlmAddBss (
 
     pAddBssParams->bSpectrumMgtEnabled = psessionEntry->spectrumMgtEnabled;
 
+#if defined WLAN_FEATURE_VOWIFI_11R
+    pAddBssParams->extSetStaKeyParamValid = 0;
+#endif
+
     //
     // FIXME_GEN4
     // A global counter (dialog token) is required to keep track of

@@ -266,10 +266,8 @@ typedef struct
 // Borrowed from wlan_hdd_dp_utils.h
 typedef struct
 {
-    //vos_list_node_t     node;         // MUST be first element
     hdd_list_node_t     node;         // MUST be first element
-    vos_pkt_t*          pVosPkt;      // ptr to TX VoS pkt for ACL data
-    WLANTL_MetaInfoType TlMetaInfo;   // meta-data needed by TL for above ACL data pkt
+    struct sk_buff *    skb;          // ptr to the ACL data
 
 } BslTxListNodeType;
 
@@ -363,13 +361,18 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     WLANTL_MetaInfoType*  tlMetaInfo
 )
 {
-    BslPhyLinkCtxType* pctx;
+    BslPhyLinkCtxType* pPhyCtx;
     VOS_STATUS VosStatus;
     v_U8_t AcIdxStart;
     v_U8_t AcIdx;
-    //vos_list_node_t *pLink;
     hdd_list_node_t *pLink;
     BslTxListNodeType *pNode;
+    struct sk_buff *    skb;
+    BslClientCtxType* pctx;
+    WLANTL_ACEnumType Ac;
+    vos_pkt_t* pVosPkt;
+    WLANTL_MetaInfoType TlMetaInfo;
+    pctx = &BslClientCtx[0];
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "WLANBAP_STAFetchPktCB\n" );
 
@@ -384,13 +387,12 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     // Initialize the VOSS packet returned to NULL - in case of error
     *vosDataBuff = NULL;
 
-    pctx = (BslPhyLinkCtxType *)pHddHdl;
+    pPhyCtx = (BslPhyLinkCtxType *)pHddHdl;
     AcIdx = AcIdxStart = ucAC;
 
-    //VosStatus = vos_list_remove_front( &pctx->ACLTxQueue[AcIdx], &pLink );
-    spin_lock_bh(&pctx->ACLTxQueue[AcIdx].lock);
-    VosStatus = hdd_list_remove_front( &pctx->ACLTxQueue[AcIdx], &pLink );
-    spin_unlock_bh(&pctx->ACLTxQueue[AcIdx].lock);
+    spin_lock_bh(&pPhyCtx->ACLTxQueue[AcIdx].lock);
+    VosStatus = hdd_list_remove_front( &pPhyCtx->ACLTxQueue[AcIdx], &pLink );
+    spin_unlock_bh(&pPhyCtx->ACLTxQueue[AcIdx].lock);
 
     if ( VOS_STATUS_E_EMPTY == VosStatus )
     {
@@ -398,10 +400,9 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
         {
             AcIdx = (AcIdx + 1) % WLANTL_MAX_AC;
 
-            //VosStatus = vos_list_remove_front( &pctx->ACLTxQueue[AcIdx], &pLink );
-            spin_lock_bh(&pctx->ACLTxQueue[AcIdx].lock);
-            VosStatus = hdd_list_remove_front( &pctx->ACLTxQueue[AcIdx], &pLink );
-            spin_unlock_bh(&pctx->ACLTxQueue[AcIdx].lock);
+            spin_lock_bh(&pPhyCtx->ACLTxQueue[AcIdx].lock);
+            VosStatus = hdd_list_remove_front( &pPhyCtx->ACLTxQueue[AcIdx], &pLink );
+            spin_unlock_bh(&pPhyCtx->ACLTxQueue[AcIdx].lock);
 
         }
         while ( VosStatus == VOS_STATUS_E_EMPTY && AcIdx != AcIdxStart );
@@ -423,12 +424,48 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     }
 
     pNode = (BslTxListNodeType *)pLink;
+    skb   = pNode->skb;
 
+   // I will access the skb in a VOSS packet
+   // Wrap the OS provided skb in a VOSS packet
+    // Attach skb to VOS packet.
+    VosStatus = vos_pkt_wrap_data_packet( &pVosPkt,
+                                          VOS_PKT_TYPE_TX_802_3_DATA,
+                                          skb,
+                                          NULL,
+                                          NULL);
+
+    if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB vos_pkt_wrap_data_packet "
+             "failed status =%d\n", VosStatus );
+        kfree_skb(skb);  
+        return VosStatus;
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "%s: pVosPkt(vos_pkt_t *)=%p\n", __FUNCTION__,
+               pVosPkt );
+
+    VosStatus = WLANBAP_XlateTxDataPkt( pctx->bapHdl, pPhyCtx->PhyLinkHdl,
+                                        &Ac, &TlMetaInfo, pVosPkt);
+
+    if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB WLANBAP_XlateTxDataPkt "
+             "failed status =%d\n", VosStatus );
+
+        // return the packet
+        VosStatus = vos_pkt_return_packet( pVosPkt );
+        kfree_skb(skb);  
+        VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
+
+        return VosStatus;
+    }
     // give TL the VoS pkt
-    *vosDataBuff = pNode->pVosPkt;
+    *vosDataBuff = pVosPkt;
 
     // provide the meta-info BAP provided previously
-    *tlMetaInfo = pNode->TlMetaInfo;
+    *tlMetaInfo = TlMetaInfo;
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: *vosDataBuff(vos_pkt_t *)=%p\n", __FUNCTION__, *vosDataBuff );
 
@@ -623,7 +660,7 @@ static VOS_STATUS BslFlushTxQueues
     v_SINT_t i = -1;
     hdd_list_node_t* pLink;
     BslTxListNodeType *pNode;
-    vos_pkt_t *pVosPkt;
+
 
     if(TRUE == pPhyCtx->used)
     {
@@ -637,16 +674,7 @@ static VOS_STATUS BslFlushTxQueues
                 if(VOS_STATUS_E_EMPTY != VosStatus)
                 {
                     pNode = (BslTxListNodeType *)pLink;
-                    pVosPkt = pNode->pVosPkt;
-                    if (pVosPkt != NULL)
-                    {
-                        //Return the VOS packet resources.
-                        VosStatus = vos_pkt_return_packet( pVosPkt );
-                        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-                        {
-                            VOS_ASSERT(0);
-                        }
-                    }
+                    kfree_skb(pNode->skb);
                     continue;
                 }
                 break;
@@ -3236,12 +3264,9 @@ static BOOL BslProcessACLDataTx
     BslPhyLinkCtxType* pPhyCtx;
     VOS_STATUS VosStatus = VOS_STATUS_SUCCESS;
     WLANTL_ACEnumType Ac;
-    vos_pkt_t* pVosPkt;
-    //vos_list_node_t* pLink;
     hdd_list_node_t* pLink;
     BslTxListNodeType *pNode;
     v_SIZE_t ListSize;
-    WLANTL_MetaInfoType TlMetaInfo;
     // I will access the skb in a VOSS packet
 #ifndef BTAMP_USE_VOS_WRAPPER
     struct sk_buff *skb;
@@ -3262,143 +3287,22 @@ static BOOL BslProcessACLDataTx
 
     if ( findPhyStatus )
     {
-#ifdef BTAMP_USE_VOS_WRAPPER
-        // Wrap the OS provided skb in a VOSS packet
-        VosStatus = vos_pkt_wrap_data_packet( &pVosPkt,
-                                              VOS_PKT_TYPE_TX_802_3_DATA,
-                                              //VOS_PKT_TYPE_RX_RAW,
-                                              NULL, //skb,
-                                              NULL,
-                                              NULL);
-
-        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_wrap_data_packet "
-             "failed status =%d\n", VosStatus );
-
-            return(FALSE);
-        }
-
-        //Attach skb to VOS packet.
-        VosStatus = vos_pkt_set_os_packet( pVosPkt, skb );
-
-        if (VosStatus != VOS_STATUS_SUCCESS)
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_set_os_packet "
-             "failed status =%d\n", VosStatus );
-
-            return(FALSE);
-        }
-
-#else
-        // create a VOS pkt out of the data, Ok this is rather UGLY having to use
-        // something called a RX raw packet for TX data but lets get it to work first,
-        // not using the low resource callback for now
-        VosStatus = vos_pkt_get_packet( &pVosPkt, VOS_PKT_TYPE_RX_RAW, *pCount, 1,
-                                        0, NULL, NULL);
-        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_get_packet "
-             "failed status =%d\n", VosStatus );
-
-            return(FALSE);
-        }
-
-        VosStatus = vos_pkt_push_head( pVosPkt, pBuffer, *pCount );
-
-        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx vos_pkt_push_head "
-             "failed status =%d\n", VosStatus );
-
-            // return the packet
-            VosStatus = vos_pkt_return_packet( pVosPkt );
-            VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
-
-            return(FALSE);
-        }
-#endif
-
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "%s: pVosPkt(vos_pkt_t *)=%p\n", __FUNCTION__,
-                   pVosPkt );
-
-        VosStatus = WLANBAP_XlateTxDataPkt( pctx->bapHdl, pPhyCtx->PhyLinkHdl,
-                                            &Ac, &TlMetaInfo, pVosPkt);
-
-        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_XlateTxDataPkt "
-             "failed status =%d\n", VosStatus );
-
-            // return the packet
-            VosStatus = vos_pkt_return_packet( pVosPkt );
-            VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
-
-            return(FALSE);
-        }
-
-        // sanitize Ac
-        if ( Ac >= WLANTL_MAX_AC )
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx bad AC =%d\n", Ac );
-
-            // return the packet
-            VosStatus = vos_pkt_return_packet( pVosPkt );
-            VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
-
-            return(FALSE);
-        }
-
-        // check if queue is already at capped size
-        hdd_list_size( &pPhyCtx->ACLTxQueue[Ac], &ListSize );
-
-        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-        {
-            VOS_ASSERT(0);
-        }
-
-        if ( ListSize >= BSL_MAX_SIZE_TX_ACL_QUEUE )
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx "
-             "hdd_list_size ==%d\n", ListSize );
-
-            // return the packet
-            VosStatus = vos_pkt_return_packet( pVosPkt );
-            VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
-
-            return(FALSE);
-        }
-
-        // Extract the OS packet (skb).
-        // DON'T tell VOS to detach the OS packet from the VOS packet
-        VosStatus = vos_pkt_get_os_packet( pVosPkt, (v_VOID_t **)&skb, VOS_FALSE );
-        if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. "
-            "VosStatus = %d\n", __FUNCTION__, VosStatus );
-
-            // return the packet
-            VosStatus = vos_pkt_return_packet( pVosPkt );
-            VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
-
-            return(VOS_STATUS_E_FAILURE);
-        }
-
         //Use the skb->cb field to hold the list node information
         pNode = (BslTxListNodeType *) &skb->cb;
 
         // This list node info includes the VOS pkt
-        pNode->pVosPkt = pVosPkt;
-        // cache the meta-info BAP returns for use during BAP fetch i.e. TL fetch
-        pNode->TlMetaInfo = TlMetaInfo;
+        pNode->skb = skb;
 
-        // now queue the pkt into the correct (only) queue
-        // Don't do the queueing this way.  Try using the hdd_list_..() routines, instead.
-        // skb_queue_tail(&(pctx->txq), skb);
-
-
-        // stick the VOS pkt into the node
+        // stick the SKB into the node
         pLink = (hdd_list_node_t *) pNode;
+        VosStatus = WLANBAP_GetAcFromTxDataPkt(pctx->bapHdl, skb->data, &Ac);
+        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_GetAcFromTxDataPkt "
+                 "failed status =%d\n", VosStatus );
+
+            Ac = WLANTL_AC_BE;
+        }
 
         // now queue the pkt into the correct queue
         // We will want to insert a node of type BslTxListNodeType (was going to be vos_pkt_list_node_t)

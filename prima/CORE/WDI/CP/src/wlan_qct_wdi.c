@@ -11019,6 +11019,55 @@ WDI_ProcessP2PGONOAReq
 
 
 /**
+ @brief    Function to handle the ack from DXE once the power 
+           state is set.
+ @param    None 
+    
+ @see 
+ @return void 
+*/
+void
+WDI_SetPowerStateCb
+(
+   wpt_status status,
+   unsigned int dxePhyAddr,
+   void      *pContext
+)
+{
+   wpt_status              wptStatus;
+   WDI_ControlBlockType *pCB = NULL;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+   if(eWLAN_PAL_STATUS_E_FAILURE == status )
+   {
+      //it shouldn't happen, put an error msg
+   }
+   /* 
+    * Trigger the event to bring the Enter BMPS req function to come 
+    * out of wait 
+*/
+   if( NULL != pContext )
+   {
+      pCB = (WDI_ControlBlockType *)pContext; 
+   }
+   else
+   {
+      //put an error msg 
+      pCB = &gWDICb;
+   }
+   pCB->dxePhyAddr = dxePhyAddr;
+   wptStatus  = wpalEventSet(&pCB->setPowerStateEvent);
+   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "Failed to set an event");
+
+      WDI_ASSERT(0); 
+   }
+   return;
+}
+
+
+/**
  @brief Process Enter IMPS Request function (called when 
         Main FSM allows it)
  
@@ -11067,6 +11116,32 @@ WDI_ProcessEnterImpsReq
                  pEventData, wdiEnterImpsRspCb);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
+   }
+
+   /* Reset the event to be not signalled */
+   if(WDI_STATUS_SUCCESS != wpalEventReset(&pWDICtx->setPowerStateEvent) )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "WDI Init failed to reset an event");
+
+      WDI_ASSERT(0); 
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   // notify DTS that we are entering IMPS
+   WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_IMPS, WDI_SetPowerStateCb);
+
+   /*
+    * Wait for the event to be set once the ACK comes back from DXE 
+    */
+   if(WDI_STATUS_SUCCESS != wpalEventWait(&pWDICtx->setPowerStateEvent, 
+                                          WDI_SET_POWER_STATE_TIMEOUT))
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "WDI Init failed to wait on an event");
+
+      WDI_ASSERT(0); 
+      return VOS_STATUS_E_FAILURE;
    }
 
    /*-------------------------------------------------------------------------
@@ -11133,54 +11208,6 @@ WDI_ProcessExitImpsReq
    return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
                         wdiExitImpsRspCb, pEventData->pUserData, WDI_EXIT_IMPS_RESP); 
 }/*WDI_ProcessExitImpsReq*/
-
-/**
- @brief    Function to handle the ack from DXE once the power 
-           state is set.
- @param    None 
-    
- @see 
- @return void 
-*/
-void
-WDI_SetPowerStateCb
-(
-   wpt_status status,
-   unsigned int dxePhyAddr,
-   void      *pContext
-)
-{
-   wpt_status              wptStatus;
-   WDI_ControlBlockType *pCB = NULL;
-   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-   if(eWLAN_PAL_STATUS_E_FAILURE == status )
-   {
-      //it shouldn't happen, put an error msg
-   }
-   /* 
-    * Trigger the event to bring the Enter BMPS req function to come 
-    * out of wait 
-*/
-   if( NULL != pContext )
-   {
-      pCB = (WDI_ControlBlockType *)pContext; 
-   }
-   else
-   {
-      //put an error msg 
-      pCB = &gWDICb;
-   }
-   pCB->dxePhyAddr = dxePhyAddr;
-   wptStatus  = wpalEventSet(&pCB->setPowerStateEvent);
-   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
-   {
-      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-                "Failed to set an event");
-
-      WDI_ASSERT(0); 
-   }
-   return;
-}
 
 /**
  @brief Process Enter BMPS Request function (called when Main 
@@ -15913,6 +15940,9 @@ WDI_ProcessExitImpsRsp
   halStatus = *((eHalStatus*)pEventData->pEventData);
   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
 
+  // notify DTS that we are entering Full power
+  WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+
   /*Notify UMAC*/
   wdiExitImpsRspCb( wdiStatus, pWDICtx->pRspCBUserData);
 
@@ -17712,9 +17742,8 @@ WDI_ProcessHALDumpCmdReq
       ( NULL == pEventData->pEventData) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-            "Invalid parameters in Hal Dump Cmd req %x %x %x",
-            pEventData, pEventData->pEventData, pEventData->pCBfnc );
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -17794,9 +17823,8 @@ WDI_ProcessHALDumpCmdRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in HAL DUMP Command Params Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -20385,6 +20413,8 @@ WDI_CopyWDIConfigBSSToHALConfigBSS
   WDI_ConfigBSSReqInfoType* pwdiConfigBSS
 )
 {
+
+  wpt_uint8 keyIndex = 0;
   wpalMemoryCopy( phalConfigBSS->bssId,
                   pwdiConfigBSS->macBSSID,
                   WDI_MAC_ADDR_LEN);
@@ -20463,6 +20493,76 @@ WDI_CopyWDIConfigBSSToHALConfigBSS
   phalConfigBSS->halPersona = pwdiConfigBSS->ucPersona; 
 
   phalConfigBSS->bSpectrumMgtEnable = pwdiConfigBSS->bSpectrumMgtEn;
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+
+  phalConfigBSS->extSetStaKeyParamValid = 
+     pwdiConfigBSS->bExtSetStaKeyParamValid;
+  
+  if( phalConfigBSS->extSetStaKeyParamValid )
+  {
+     /*-----------------------------------------------------------------------
+       Copy the STA Key parameters into the HAL message
+     -----------------------------------------------------------------------*/
+     phalConfigBSS->extSetStaKeyParam.encType = 
+        WDI_2_HAL_ENC_TYPE (pwdiConfigBSS->wdiExtSetKeyParam.wdiEncType);
+
+     phalConfigBSS->extSetStaKeyParam.wepType = 
+        WDI_2_HAL_WEP_TYPE (pwdiConfigBSS->wdiExtSetKeyParam.wdiWEPType );
+
+     phalConfigBSS->extSetStaKeyParam.staIdx = pwdiConfigBSS->wdiExtSetKeyParam.ucSTAIdx;
+
+     phalConfigBSS->extSetStaKeyParam.defWEPIdx = pwdiConfigBSS->wdiExtSetKeyParam.ucDefWEPIdx;
+
+     phalConfigBSS->extSetStaKeyParam.singleTidRc = pwdiConfigBSS->wdiExtSetKeyParam.ucSingleTidRc;
+
+#ifdef WLAN_SOFTAP_FEATURE
+     for(keyIndex = 0; keyIndex < pwdiConfigBSS->wdiExtSetKeyParam.ucNumKeys ;
+          keyIndex++)
+     {
+        phalConfigBSS->extSetStaKeyParam.key[keyIndex].keyId = 
+           pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[keyIndex].keyId;
+        phalConfigBSS->extSetStaKeyParam.key[keyIndex].unicast =
+           pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[keyIndex].unicast;
+        phalConfigBSS->extSetStaKeyParam.key[keyIndex].keyDirection =
+           pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[keyIndex].keyDirection;
+        wpalMemoryCopy(phalConfigBSS->extSetStaKeyParam.key[keyIndex].keyRsc,
+                       pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[keyIndex].keyRsc, 
+                       WDI_MAX_KEY_RSC_LEN);
+        phalConfigBSS->extSetStaKeyParam.key[keyIndex].paeRole = 
+           pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[keyIndex].paeRole;
+        phalConfigBSS->extSetStaKeyParam.key[keyIndex].keyLength = 
+           pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[keyIndex].keyLength;
+        wpalMemoryCopy(phalConfigBSS->extSetStaKeyParam.key[keyIndex].key,
+                       pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[keyIndex].key, 
+                       WDI_MAX_KEY_LENGTH);
+     }
+#else
+     phalConfigBSS->extSetStaKeyParam.key.keyId = 
+        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].keyId;
+     phalConfigBSS->extSetStaKeyParam.key.unicast =
+        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].unicast;
+     phalConfigBSS->extSetStaKeyParam.key.keyDirection =
+        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].keyDirection;
+     wpalMemoryCopy(phalConfigBSS->extSetStaKeyParam.key.keyRsc,
+                    pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].keyRsc, 
+                    WDI_MAX_KEY_RSC_LEN);
+     phalConfigBSS->extSetStaKeyParam.key.paeRole = 
+        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].paeRole;
+     phalConfigBSS->extSetStaKeyParam.key.keyLength = 
+        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].keyLength;
+     wpalMemoryCopy(phalConfigBSS->extSetStaKeyParam.key.key,
+                    pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].key, 
+                    WDI_MAX_KEY_LENGTH);
+#endif
+  }
+  else/* phalConfigBSS->extSetStaKeyParamValid is not set */
+  {
+     wpalMemoryZero( &phalConfigBSS->extSetStaKeyParam, 
+                     sizeof(phalConfigBSS->extSetStaKeyParam) );
+  }
+
+#endif /*WLAN_FEATURE_VOWIFI_11R*/
 
 }/*WDI_CopyWDIConfigBSSToHALConfigBSS*/
 
