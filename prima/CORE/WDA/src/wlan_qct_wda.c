@@ -180,6 +180,11 @@ static VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (
 static VOS_STATUS WDA_ProcessTxControlInd(tWDA_CbContext *pWDA,
                                           tpTxControlParams pTxCtrlParam);
 
+VOS_STATUS WDA_GetWepKeysFromCfg( tWDA_CbContext *pWDA, 
+                                                      v_U8_t *pDefaultKeyId,
+                                                      v_U8_t *pNumKeys,
+                                                      WDI_KeysType *pWdiKeys );
+
 
 /*
  * FUNCTION: WDA_open
@@ -2928,10 +2933,10 @@ VOS_STATUS WDA_ProcessPostAssocReq(tWDA_CbContext *pWDA,
       return VOS_STATUS_E_NOMEM;
    }
    
-   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
@@ -3545,6 +3550,8 @@ void WDA_UpdateBSSParams(tWDA_CbContext *pWDA,
                          WDI_ConfigBSSReqInfoType *wdiBssParams, 
                          tAddBssParams *wdaBssParams)
 {
+   v_U8_t keyIndex = 0;
+
    /* copy bssReq Params to WDI structure */
    vos_mem_copy(wdiBssParams->macBSSID,
                            wdaBssParams->bssId, sizeof(tSirMacAddr)) ;
@@ -3592,6 +3599,86 @@ void WDA_UpdateBSSParams(tWDA_CbContext *pWDA,
    wdiBssParams->ucPersona = wdaBssParams->halPersona;
 
    wdiBssParams->bSpectrumMgtEn = wdaBssParams->bSpectrumMgtEnabled;
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+   wdiBssParams->bExtSetStaKeyParamValid = wdaBssParams->extSetStaKeyParamValid;
+
+   if(wdiBssParams->bExtSetStaKeyParamValid)
+   {
+      /* copy set STA key params to WDI structure */
+      wdiBssParams->wdiExtSetKeyParam.ucSTAIdx = 
+         wdaBssParams->extSetStaKeyParam.staIdx;
+      wdiBssParams->wdiExtSetKeyParam.wdiEncType = 
+         wdaBssParams->extSetStaKeyParam.encType;
+      wdiBssParams->wdiExtSetKeyParam.wdiWEPType = 
+         wdaBssParams->extSetStaKeyParam.wepType;
+      wdiBssParams->wdiExtSetKeyParam.ucDefWEPIdx = 
+         wdaBssParams->extSetStaKeyParam.defWEPIdx;
+
+      if(wdaBssParams->extSetStaKeyParam.encType != eSIR_ED_NONE)
+      {
+         if( (wdiBssParams->wdiExtSetKeyParam.wdiWEPType == eSIR_WEP_STATIC) && 
+             (WDA_INVALID_KEY_INDEX == wdaBssParams->extSetStaKeyParam.defWEPIdx) &&
+             (eSYSTEM_AP_ROLE != pWDA->wdaGlobalSystemRole))
+         {
+            WDA_GetWepKeysFromCfg( pWDA, 
+                                   &wdiBssParams->wdiExtSetKeyParam.ucDefWEPIdx, 
+                                   &wdiBssParams->wdiExtSetKeyParam.ucNumKeys,
+                                   wdiBssParams->wdiExtSetKeyParam.wdiKey );
+         }
+         else
+         {
+#ifdef WLAN_SOFTAP_FEATURE
+            for( keyIndex=0; keyIndex < SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS; 
+                                                                  keyIndex++)
+            {
+               wdiBssParams->wdiExtSetKeyParam.wdiKey[keyIndex].keyId =
+                  wdaBssParams->extSetStaKeyParam.key[keyIndex].keyId;
+               wdiBssParams->wdiExtSetKeyParam.wdiKey[keyIndex].unicast =
+                  wdaBssParams->extSetStaKeyParam.key[keyIndex].unicast;
+               wdiBssParams->wdiExtSetKeyParam.wdiKey[keyIndex].keyDirection =
+                  wdaBssParams->extSetStaKeyParam.key[keyIndex].keyDirection;
+
+               vos_mem_copy(wdiBssParams->wdiExtSetKeyParam.wdiKey[keyIndex].keyRsc, 
+                            wdaBssParams->extSetStaKeyParam.key[keyIndex].keyRsc, WLAN_MAX_KEY_RSC_LEN);
+               wdiBssParams->wdiExtSetKeyParam.wdiKey[keyIndex].paeRole =
+                  wdaBssParams->extSetStaKeyParam.key[keyIndex].paeRole;
+               wdiBssParams->wdiExtSetKeyParam.wdiKey[keyIndex].keyLength =
+                  wdaBssParams->extSetStaKeyParam.key[keyIndex].keyLength;
+               vos_mem_copy(wdiBssParams->wdiExtSetKeyParam.wdiKey[keyIndex].key, 
+                            wdaBssParams->extSetStaKeyParam.key[keyIndex].key, SIR_MAC_MAX_KEY_LENGTH);
+            }
+
+            wdiBssParams->wdiExtSetKeyParam.ucNumKeys = 
+               SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS;
+#else
+            wdiBssParams->wdiExtSetKeyParam.wdiKey[0].keyId =
+               wdaBssParams->extSetStaKeyParam.key.keyId;
+            wdiBssParams->wdiExtSetKeyParam.wdiKey[0].unicast = 
+               wdaBssParams->extSetStaKeyParam.key.unicast;
+            wdiBssParams->wdiExtSetKeyParam.wdiKey[0].keyDirection =
+               wdaBssParams->extSetStaKeyParam.key.keyDirection;
+            vos_mem_copy(wdiBssParams->wdiExtSetKeyParam.wdiKey[0].keyRsc, 
+                         wdaBssParams->extSetStaKeyParam.key.keyRsc, WLAN_MAX_KEY_RSC_LEN);
+            wdiBssParams->wdiExtSetKeyParam.wdiKey[0].paeRole =
+               wdaBssParams->extSetStaKeyParam.key.paeRole;
+            wdiBssParams->wdiExtSetKeyParam.wdiKey[0].keyLength =
+               wdaBssParams->extSetStaKeyParam.key.keyLength;
+            vos_mem_copy(wdiBssParams->wdiExtSetKeyParam.wdiKey[0].key, 
+                         wdaBssParams->extSetStaKeyParam.key[keyIndex].key, 
+                         SIR_MAC_MAX_KEY_LENGTH);
+            wdiBssParams->wdiExtSetKeyParam.ucNumKeys = 1;
+#endif
+         }
+      }
+      wdiBssParams->wdiExtSetKeyParam.ucSingleTidRc = wdaBssParams->extSetStaKeyParam.singleTidRc;
+   }
+   else /* wdaBssParams->bExtSetStaKeyParamValid is not valid */
+   {
+      vos_mem_zero( &wdaBssParams->extSetStaKeyParam, 
+                    sizeof(wdaBssParams->extSetStaKeyParam) );
+   }
+#endif /*WLAN_FEATURE_VOWIFI_11R*/
 
    return ;
 }
@@ -3857,7 +3944,7 @@ VOS_STATUS WDA_UpdateCfg(tWDA_CbContext *pWDA, tSirMsgQ *cfgParam)
       return VOS_STATUS_E_FAILURE;
    }
    
-   if(NULL != pWDA->wdaWdiCfgApiMsgParam) 
+   if(NULL != pWDA->wdaWdiCfgApiMsgParam)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s:wdaWdiCfgApiMsgParam is not NULL", __FUNCTION__); 
@@ -6048,7 +6135,7 @@ VOS_STATUS WDA_ProcessSetP2PGONOAReq(tWDA_CbContext *pWDA,
    wdiSetP2PGONOAReqParam->wdiP2PGONOAInfo.ucPsSelection = 
                                     pP2pPsConfigParams->psSelection;
 
-   if((NULL != pWDA->wdaMsgParam) || 
+   if((NULL != pWDA->wdaMsgParam) ||
                              (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -6126,7 +6213,7 @@ VOS_STATUS WDA_ProcessAggrAddTSReq(tWDA_CbContext *pWDA,
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
-   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s:wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
@@ -7024,8 +7111,8 @@ VOS_STATUS WDA_UpdateUapsdParamsReq(tWDA_CbContext *pWDA,
    wdiUpdateUapsdParams->wdiUpdateUapsdInfo.ucSTAIdx = pUpdateUapsdInfo->staIdx;
    wdiUpdateUapsdParams->wdiUpdateUapsdInfo.ucUapsdACMask = pUpdateUapsdInfo->uapsdACMask;
 
-   if((NULL != pWDA->wdaMsgParam) || 
-                  (NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) ||
+                  (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s:wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
@@ -7460,7 +7547,7 @@ VOS_STATUS WDA_RemBeaconFilterReq(tWDA_CbContext *pWDA,
                 wdiBeaconFilterInfo->wdiBeaconFilterInfo.ucIeCount);
    wdiBeaconFilterInfo->wdiReqStatusCB = NULL;
 
-   if((NULL != pWDA->wdaMsgParam) || 
+   if((NULL != pWDA->wdaMsgParam) ||
                   (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -7648,7 +7735,7 @@ VOS_STATUS WDA_ProcessHostOffloadReq(tWDA_CbContext *pWDA,
 
    wdiHostOffloadInfo->wdiReqStatusCB = NULL;
 
-   if((NULL != pWDA->wdaMsgParam) || 
+   if((NULL != pWDA->wdaMsgParam) ||
                   (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -7760,7 +7847,7 @@ VOS_STATUS WDA_ProcessKeepAliveReq(tWDA_CbContext *pWDA,
 
     wdiKeepAliveInfo->wdiReqStatusCB = NULL;
 
-    if((NULL != pWDA->wdaMsgParam) || 
+    if((NULL != pWDA->wdaMsgParam) ||
        (NULL != pWDA->wdaWdiApiMsgParam))
     {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -8221,7 +8308,7 @@ VOS_STATUS WDA_NVDownload_Start(v_PVOID_t pVosContext)
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
-   if(NULL != pWDA->wdaWdiApiMsgParam) 
+   if(NULL != pWDA->wdaWdiApiMsgParam)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s:wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
@@ -8720,8 +8807,8 @@ VOS_STATUS WDA_ProcessStartInNavMeasReq(tWDA_CbContext *pWDA,
 
    wdiInNavMeasReqParams->wdiReqStatusCB = NULL;
 
-    if((NULL != pWDA->wdaMsgParam) ||
-                           (NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) ||
+                           (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s:wdaWdiApiMsgParam is Not NULL", __FUNCTION__); 
@@ -10649,10 +10736,10 @@ VOS_STATUS WDA_ProcessSetPrefNetworkReq(tWDA_CbContext *pWDA,
 
    pwdiPNOScanReqInfo->wdiReqStatusCB = NULL;
 
-   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
       VOS_ASSERT(0);
       vos_mem_free(pwdiPNOScanReqInfo) ;
       vos_mem_free(pWdaParams);
@@ -10717,10 +10804,10 @@ VOS_STATUS WDA_ProcessSetRssiFilterReq(tWDA_CbContext *pWDA,
    pwdiSetRssiFilterReqInfo->rssiThreshold = pRssiFilterParams->rssiThreshold;
    pwdiSetRssiFilterReqInfo->wdiReqStatusCB = NULL;
 
-   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
       VOS_ASSERT(0);
       vos_mem_free(pwdiSetRssiFilterReqInfo) ;
       vos_mem_free(pWdaParams);
@@ -10845,10 +10932,10 @@ VOS_STATUS WDA_ProcessUpdateScanParams(tWDA_CbContext *pWDA,
 
    wdiUpdateScanParamsInfoType->wdiReqStatusCB = NULL;
 
-    if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
       VOS_ASSERT(0);
       vos_mem_free(pWdaParams);
       vos_mem_free(wdiUpdateScanParamsInfoType);
@@ -10946,13 +11033,15 @@ VOS_STATUS WDA_Process8023MulticastListReq (tWDA_CbContext *pWDA,
       vos_mem_free(pwdiFltPktSetMcListReqParamsType);
       return VOS_STATUS_E_NOMEM;
    }
-   
-   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL",
-              __FUNCTION__); 
+             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL",
+              __FUNCTION__);
       VOS_ASSERT(0);
+      vos_mem_free(pwdiFltPktSetMcListReqParamsType);
+      vos_mem_free(pWdaParams);
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -11064,11 +11153,13 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
       return VOS_STATUS_E_NOMEM;
    }
 
-   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
       VOS_ASSERT(0);
+      vos_mem_free(pwdiSetRcvPktFilterReqParamsType);
+      vos_mem_free(pWdaParams);
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -11237,11 +11328,13 @@ VOS_STATUS WDA_ProcessPacketFilterMatchCountReq (tWDA_CbContext *pWDA, tpSirRcvF
       return VOS_STATUS_E_NOMEM;
    }
 
-   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
       VOS_ASSERT(0);
+      vos_mem_free(pwdiRcvFltPktMatchCntReqParamsType);
+      vos_mem_free(pWdaParams);
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -11306,22 +11399,22 @@ void WDA_ReceiveFilterClearFilterReqCallback(WDI_Status status, void * pUserData
 /*
  * FUNCTION: WDA_ProcessReceiveFilterClearFilterReq
  * Request to WDI to clear Receive Filters
- */ 
-VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA, 
+ */
+VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA,
                                        tSirRcvFltPktClearParam *pRcvFltPktClearParam)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
-   WDI_RcvFltPktClearReqParamsType *pwdiRcvFltPktClearReqParamsType = 
+   WDI_RcvFltPktClearReqParamsType *pwdiRcvFltPktClearReqParamsType =
       (WDI_RcvFltPktClearReqParamsType *)vos_mem_malloc(sizeof(WDI_RcvFltPktClearReqParamsType));
    tWDA_ReqParams *pWdaParams ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
-   if(NULL == pwdiRcvFltPktClearReqParamsType) 
+   if(NULL == pwdiRcvFltPktClearReqParamsType)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
@@ -11330,23 +11423,25 @@ VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA,
    if(NULL == pWdaParams)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__);
       VOS_ASSERT(0);
       vos_mem_free(pwdiRcvFltPktClearReqParamsType);
       return VOS_STATUS_E_NOMEM;
    }
 
-   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam)) 
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
+             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__);
       VOS_ASSERT(0);
+      vos_mem_free(pwdiRcvFltPktClearReqParamsType);
+      vos_mem_free(pWdaParams);
       return VOS_STATUS_E_FAILURE;
    }
 
    pwdiRcvFltPktClearReqParamsType->filterClearParam.status = pRcvFltPktClearParam->status;
    pwdiRcvFltPktClearReqParamsType->filterClearParam.filterId = pRcvFltPktClearParam->filterId;
-    
+
    pwdiRcvFltPktClearReqParamsType->wdiReqStatusCB = NULL;
 
    /* Store Params pass it to WDI */

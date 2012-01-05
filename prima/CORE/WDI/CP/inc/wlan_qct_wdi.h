@@ -1291,148 +1291,6 @@ typedef struct
 /* operMode in ADD BSS message */
 #define WDI_BSS_OPERATIONAL_MODE_AP     0
 #define WDI_BSS_OPERATIONAL_MODE_STA    1
-/*---------------------------------------------------------------------------
-  WDI_ConfigBSSReqInfoType
----------------------------------------------------------------------------*/
-typedef struct
-{
-  /*Peer BSSID*/
-  wpt_macAddr              macBSSID;
-
-  /*Self MAC Address*/
-  wpt_macAddr              macSelfAddr; 
-
-  /*BSS Type*/
-  WDI_BssType              wdiBSSType;
-
-  /*Operational Mode: AP =0, STA = 1*/
-  wpt_uint8                ucOperMode;
-
-  /*Network Type*/
-  WDI_NwType               wdiNWType;
-
-  /*Used to classify PURE_11G/11G_MIXED to program MTU*/
-  wpt_uint8                ucShortSlotTimeSupported;
-
-  /*Co-exist with 11a STA*/
-  wpt_uint8                ucllaCoexist;
-
-  /*Co-exist with 11b STA*/
-  wpt_uint8                ucllbCoexist;
-
-  /*Co-exist with 11g STA*/
-  wpt_uint8                ucllgCoexist;
-
-  /*Coexistence with 11n STA*/
-  wpt_uint8                ucHT20Coexist;
-
-  /*Non GF coexist flag*/
-  wpt_uint8                ucllnNonGFCoexist;
-
-  /*TXOP protection support*/
-  wpt_uint8                ucTXOPProtectionFullSupport;
-
-  /*RIFS mode*/
-  wpt_uint8                ucRIFSMode;
-
-  /*Beacon Interval in TU*/
-  wpt_uint16               usBeaconInterval;
-
-  /*DTIM period*/
-  wpt_uint8                ucDTIMPeriod;
-
-  /*TX Width Set: 0 - 20 MHz only, 1 - 20/40 MHz*/
-  wpt_uint8                ucTXChannelWidthSet;
-
-  /*Operating channel*/
-  wpt_uint8                ucCurrentOperChannel;
-
-  /*Extension channel for channel bonding*/
-  wpt_uint8                ucCurrentExtChannel;
-
-  /*Context of the station being added in HW.*/
-  WDI_ConfigStaReqInfoType wdiSTAContext;
-
-  /*SSID of the BSS*/
-  WDI_MacSSid              wdiSSID;
-
-  /*HAL should update the existing BSS entry, if this flag is set. UMAC will
-    set this flag in case of RE-ASSOC, where we want to reuse the old BSSID*/
-  WDI_ConfigAction         wdiAction;
-
-  /*Basic Rate Set*/
-  WDI_RateSet              wdiRateSet;
-
-  /*Enable/Disable HT capabilities of the BSS*/
-  wpt_uint8                ucHTCapable;
-
-  /*RMF enabled/disabled*/
-  wpt_uint8                ucRMFEnabled;
-
-  /*Determines the current HT Operating Mode operating mode of the
-    802.11n STA*/
-  WDI_HTOperatingMode      wdiHTOperMod;
-
-  /*Dual CTS Protection: 0 - Unused, 1 - Used*/
-  wpt_uint8                ucDualCTSProtection;
-
-    /* Probe Response Max retries */
-  wpt_uint8   ucMaxProbeRespRetryLimit;
-
-  /* To Enable Hidden ssid */
-  wpt_uint8   bHiddenSSIDEn;
-
-  /* To Enable Disable FW Proxy Probe Resp */
-  wpt_uint8   bProxyProbeRespEn;
-
- /* Boolean to indicate if EDCA params are valid. UMAC might not have valid 
-    EDCA params or might not desire to apply EDCA params during config BSS. 
-    0 implies Not Valid ; Non-Zero implies valid*/
-  wpt_uint8   ucEDCAParamsValid;
-
-   /*EDCA Parameters for BK*/  
-  WDI_EdcaParamRecord       wdiBKEDCAParams; 
-
-   /*EDCA Parameters for BE*/  
-  WDI_EdcaParamRecord       wdiBEEDCAParams; 
-
-   /*EDCA Parameters for VI*/  
-  WDI_EdcaParamRecord       wdiVIEDCAParams; 
-
-   /*EDCA Parameters for VO*/  
-  WDI_EdcaParamRecord       wdiVOEDCAParams; 
-
-#ifdef WLAN_FEATURE_VOWIFI
-   /*max power to be used after applying the power constraint, if any */
-  wpt_int8                  cMaxTxPower;
-#endif
-
-  /* Persona for the BSS can be STA,AP,GO,CLIENT, same as Connection Mode */  
-  wpt_uint8                 ucPersona;
-
-  /* Spectrum Mangement Indicator */
-  wpt_uint8                 bSpectrumMgtEn;
-
-}WDI_ConfigBSSReqInfoType;
-
-
-/*---------------------------------------------------------------------------
-  WDI_ConfigBSSReqParamsType
----------------------------------------------------------------------------*/
-typedef struct
-{
-  /*Info for the Join request that will be sent down to the device*/
-  WDI_ConfigBSSReqInfoType   wdiReqInfo; 
-
-  /*Request status callback offered by UMAC - it is called if the current
-    req has returned PENDING as status; it delivers the status of sending
-    the message over the BUS */
-  WDI_ReqStatusCb            wdiReqStatusCB; 
-
-  /*The user data passed in by UMAC, it will be sent back when the above
-    function pointer will be called */
-  void*                      pUserData;
-}WDI_ConfigBSSReqParamsType;
 
 /*---------------------------------------------------------------------------
   WDI_ConfigBSSRspParamsType
@@ -1497,27 +1355,6 @@ typedef struct
   wpt_macAddr  macBSSID; 
 
 }WDI_DelBSSRspParamsType;
-
-/*---------------------------------------------------------------------------
-  WDI_PostAssocReqParamsType
----------------------------------------------------------------------------*/
-typedef struct
-{
-  /*Config STA arguments.*/
-  WDI_ConfigStaReqInfoType  wdiSTAParams; 
-
-   /*Config BSS Arguments*/
-  WDI_ConfigBSSReqInfoType  wdiBSSParams;
-
-  /*Request status callback offered by UMAC - it is called if the current
-    req has returned PENDING as status; it delivers the status of sending
-    the message over the BUS */
-  WDI_ReqStatusCb           wdiReqStatusCB; 
-
-  /*The user data passed in by UMAC, it will be sent back when the above
-    function pointer will be called */
-  void*                     pUserData;
-}WDI_PostAssocReqParamsType;
 
 /*---------------------------------------------------------------------------
   WDI_ConfigSTARspParamsType
@@ -1772,6 +1609,174 @@ typedef struct
     0 = Per TID based replay count on TX */
   wpt_uint8        ucSingleTidRc; 
 }WDI_SetSTAKeyReqInfoType; 
+
+/*---------------------------------------------------------------------------
+  WDI_ConfigBSSReqInfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Peer BSSID*/
+  wpt_macAddr     	       macBSSID; 	
+
+  /*Self MAC Address*/
+  wpt_macAddr     	       macSelfAddr; 
+
+  /*BSS Type*/
+  WDI_BssType              wdiBSSType;
+
+  /*Operational Mode: AP =0, STA = 1*/
+  wpt_uint8                ucOperMode;
+
+  /*Network Type*/
+  WDI_NwType               wdiNWType;
+
+  /*Used to classify PURE_11G/11G_MIXED to program MTU*/
+  wpt_uint8                ucShortSlotTimeSupported;
+
+  /*Co-exist with 11a STA*/
+  wpt_uint8                ucllaCoexist;		
+
+  /*Co-exist with 11b STA*/
+  wpt_uint8                ucllbCoexist;		
+
+  /*Co-exist with 11g STA*/
+  wpt_uint8                ucllgCoexist;		
+
+  /*Coexistence with 11n STA*/
+  wpt_uint8                ucHT20Coexist;		
+
+  /*Non GF coexist flag*/
+  wpt_uint8                ucllnNonGFCoexist;
+
+  /*TXOP protection support*/
+  wpt_uint8                ucTXOPProtectionFullSupport;		
+
+  /*RIFS mode*/
+  wpt_uint8                ucRIFSMode;	
+
+  /*Beacon Interval in TU*/
+  wpt_uint16               usBeaconInterval;	
+
+  /*DTIM period*/
+  wpt_uint8                ucDTIMPeriod;
+
+  /*TX Width Set: 0 - 20 MHz only, 1 - 20/40 MHz*/		
+  wpt_uint8                ucTXChannelWidthSet;
+  	
+  /*Operating channel*/	
+  wpt_uint8                ucCurrentOperChannel;
+
+  /*Extension channel for channel bonding*/
+  wpt_uint8                ucCurrentExtChannel;		
+
+  /*Context of the station being added in HW.*/
+  WDI_ConfigStaReqInfoType wdiSTAContext;
+
+  /*SSID of the BSS*/
+  WDI_MacSSid              wdiSSID;
+
+  /*HAL should update the existing BSS entry, if this flag is set. UMAC will
+    set this flag in case of RE-ASSOC, where we want to reuse the old BSSID*/
+  WDI_ConfigAction         wdiAction;
+
+  /*Basic Rate Set*/
+  WDI_RateSet	             wdiRateSet;
+
+  /*Enable/Disable HT capabilities of the BSS*/
+  wpt_uint8                ucHTCapable;
+
+  /*RMF enabled/disabled*/
+  wpt_uint8                ucRMFEnabled;
+
+  /*Determines the current HT Operating Mode operating mode of the
+    802.11n STA*/
+  WDI_HTOperatingMode      wdiHTOperMod;
+
+  /*Dual CTS Protection: 0 - Unused, 1 - Used*/
+  wpt_uint8                ucDualCTSProtection;
+
+    /* Probe Response Max retries */
+  wpt_uint8   ucMaxProbeRespRetryLimit;
+
+  /* To Enable Hidden ssid */
+  wpt_uint8   bHiddenSSIDEn;
+
+  /* To Enable Disable FW Proxy Probe Resp */
+  wpt_uint8   bProxyProbeRespEn;
+
+ /* Boolean to indicate if EDCA params are valid. UMAC might not have valid 
+    EDCA params or might not desire to apply EDCA params during config BSS. 
+    0 implies Not Valid ; Non-Zero implies valid*/
+  wpt_uint8   ucEDCAParamsValid;
+
+   /*EDCA Parameters for BK*/  
+  WDI_EdcaParamRecord       wdiBKEDCAParams; 
+
+   /*EDCA Parameters for BE*/  
+  WDI_EdcaParamRecord       wdiBEEDCAParams; 
+
+   /*EDCA Parameters for VI*/  
+  WDI_EdcaParamRecord       wdiVIEDCAParams; 
+
+   /*EDCA Parameters for VO*/  
+  WDI_EdcaParamRecord       wdiVOEDCAParams; 
+
+#ifdef WLAN_FEATURE_VOWIFI
+   /*max power to be used after applying the power constraint, if any */
+  wpt_int8                  cMaxTxPower;
+#endif
+
+  /* Persona for the BSS can be STA,AP,GO,CLIENT, same as Connection Mode */  
+  wpt_uint8                 ucPersona;
+
+  /* Spectrum Mangement Indicator */
+  wpt_uint8                 bSpectrumMgtEn;
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+  wpt_uint8                 bExtSetStaKeyParamValid;
+  WDI_SetSTAKeyReqInfoType  wdiExtSetKeyParam;
+#endif
+
+}WDI_ConfigBSSReqInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_PostAssocReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Config STA arguments.*/
+  WDI_ConfigStaReqInfoType	wdiSTAParams; 
+
+   /*Config BSS Arguments*/
+  WDI_ConfigBSSReqInfoType	wdiBSSParams;
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb           wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*                     pUserData;
+}WDI_PostAssocReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_ConfigBSSReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Info for the Join request that will be sent down to the device*/
+  WDI_ConfigBSSReqInfoType   wdiReqInfo; 
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb            wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*                      pUserData;
+}WDI_ConfigBSSReqParamsType;
 
 /*---------------------------------------------------------------------------
   WDI_SetSTAKeyReqParamsType

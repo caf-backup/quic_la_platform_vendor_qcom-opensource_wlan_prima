@@ -1666,6 +1666,15 @@ void dxeRXEventHandler
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
 
+   /* Return from here if the RIVA is in IMPS, to avoid register access */
+   if((WLANDXE_POWER_STATE_IMPS == tempDxeCtrlBlk->hostPowerState) ||
+      (WLANDXE_POWER_STATE_IMPS_PENDING == tempDxeCtrlBlk->hostPowerState))
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
+         "%s Riva is in %d, return from here ", __FUNCTION__, tempDxeCtrlBlk->hostPowerState);
+      return;
+   }
+
    /* Sanity Check */
    if(NULL == rxReadyMsg)
    {
@@ -1864,6 +1873,25 @@ static void dxeRXISR
    WLANDXE_CtrlBlkType      *dxeCtxt    = (WLANDXE_CtrlBlkType *)hostCtxt;
    wpt_status                status     = eWLAN_PAL_STATUS_SUCCESS;
    wpt_uint32                regValue;
+
+   /* Return from here if the RIVA is in IMPS, to avoid register access */
+   if((WLANDXE_POWER_STATE_IMPS == tempDxeCtrlBlk->hostPowerState) ||
+      (WLANDXE_POWER_STATE_IMPS_PENDING == tempDxeCtrlBlk->hostPowerState))
+   {
+      /* Disable interrupt at here
+       * IMPS or IMPS pending state should not access RIVA register */
+      status = wpalDisableInterrupt(DXE_INTERRUPT_RX_READY);
+      if(eWLAN_PAL_STATUS_SUCCESS != status)
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "dxeRXFrameReadyISR Disable RX ready interrupt fail");
+         return;         
+      }
+      dxeCtxt->rxIntDisabledByIMPS = eWLAN_PAL_TRUE;
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
+         "%s Riva is in %d, return from here ", __FUNCTION__, tempDxeCtrlBlk->hostPowerState);
+      return;
+   }
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
@@ -2468,6 +2496,15 @@ void dxeTXEventHandler
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
 
+   /* Return from here if the RIVA is in IMPS, to avoid register access */
+   if((WLANDXE_POWER_STATE_IMPS == tempDxeCtrlBlk->hostPowerState) ||
+      (WLANDXE_POWER_STATE_IMPS_PENDING == tempDxeCtrlBlk->hostPowerState))
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
+         "%s Riva is in %d, return from here ", __FUNCTION__, tempDxeCtrlBlk->hostPowerState);
+      return;
+   }
+
    dxeCtxt = (WLANDXE_CtrlBlkType *)(msgContent->pContext);
 
    dxeCtxt->ucTxMsgCnt = 0;   
@@ -2729,6 +2766,25 @@ static void dxeTXISR
    wpt_status                status  = eWLAN_PAL_STATUS_SUCCESS;
    wpt_uint32                regValue;
 
+   /* Return from here if the RIVA is in IMPS, to avoid register access */
+   if((WLANDXE_POWER_STATE_IMPS == tempDxeCtrlBlk->hostPowerState) ||
+      (WLANDXE_POWER_STATE_IMPS_PENDING == tempDxeCtrlBlk->hostPowerState))
+   {
+      /* Disable interrupt at here,
+         IMPS or IMPS Pending state should not access RIVA register */
+      status = wpalDisableInterrupt(DXE_INTERRUPT_TX_COMPLE);
+      if(eWLAN_PAL_STATUS_SUCCESS != status)
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "dxeRXFrameReadyISR Disable RX ready interrupt fail");
+         return;         
+      }
+      dxeCtxt->txIntDisabledByIMPS = eWLAN_PAL_TRUE;
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
+         "%s Riva is in %d, return from here ", __FUNCTION__, tempDxeCtrlBlk->hostPowerState);
+      return;
+   }
+
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
 
@@ -2973,6 +3029,8 @@ void *WLANDXE_Open
    }
    tempDxeCtrlBlk->freeRXPacket = NULL;
    tempDxeCtrlBlk->dxeCookie    = WLANDXE_CTXT_COOKIE;
+   tempDxeCtrlBlk->rxIntDisabledByIMPS = eWLAN_PAL_FALSE;
+   tempDxeCtrlBlk->txIntDisabledByIMPS = eWLAN_PAL_FALSE;
 
    /* Initialize SMSM state
     * Init State is
@@ -3530,7 +3588,7 @@ wpt_status WLANDXE_TriggerTX
 
 /*==========================================================================
   @  Function Name 
-      dxeSetPowerStateEventHandler
+      dxeTxThreadSetPowerStateEventHandler
 
   @  Description 
       If WDI sends set power state req, this event handler will be called in Tx
@@ -3543,7 +3601,7 @@ wpt_status WLANDXE_TriggerTX
   @  Return
       None
 ===========================================================================*/
-void dxeSetPowerStateEventHandler
+void dxeTxThreadSetPowerStateEventHandler
 (
     wpt_msg               *msgPtr
 )
@@ -3577,6 +3635,17 @@ void dxeSetPowerStateEventHandler
             status = eWLAN_PAL_STATUS_E_INVAL;
          }
          break;
+      case WLANDXE_POWER_STATE_IMPS_PENDING:
+         if(WLANDXE_RIVA_POWER_STATE_ACTIVE == dxeCtxt->rivaPowerState)
+         {
+            dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_IMPS_UNKNOWN;
+            dxeCtxt->hostPowerState = WLANDXE_POWER_STATE_IMPS;
+         }
+         else
+         {
+            status = eWLAN_PAL_STATUS_E_INVAL;
+         }
+         break;
       case WLANDXE_POWER_STATE_FULL:
          if(WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN == dxeCtxt->rivaPowerState)
          {
@@ -3589,6 +3658,37 @@ void dxeSetPowerStateEventHandler
          //assert
          break;
    }
+
+   /* If previous host power state was IMPS and new host power state is not IMPS,
+      RX interrupt should be enabled, since  */
+   if(WLANDXE_POWER_STATE_IMPS != dxeCtxt->hostPowerState)
+   {
+      if(eWLAN_PAL_TRUE == dxeCtxt->rxIntDisabledByIMPS)
+      {
+         dxeCtxt->rxIntDisabledByIMPS = eWLAN_PAL_FALSE;
+         /* Enable RX interrupt at here, if new PS is not IMPS */
+         status = wpalEnableInterrupt(DXE_INTERRUPT_RX_READY);
+         if(eWLAN_PAL_STATUS_SUCCESS != status)
+         {
+            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                     "%s Enable RX ready interrupt fail", __FUNCTION__);
+            return;         
+         }
+      }
+      if(eWLAN_PAL_TRUE == dxeCtxt->txIntDisabledByIMPS)
+      {
+         dxeCtxt->txIntDisabledByIMPS = eWLAN_PAL_FALSE;
+         /* Enable RX interrupt at here, if new PS is not IMPS */
+         status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
+         if(eWLAN_PAL_STATUS_SUCCESS != status)
+         {
+            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                     "%s Enable TX comp interrupt fail", __FUNCTION__);
+            return;         
+         }
+      }  
+   }
+
    if(WLANDXE_POWER_STATE_BMPS_PENDING != dxeCtxt->hostPowerState)
    {
       dxeCtxt->setPowerStateCb(status, 
@@ -3599,6 +3699,49 @@ void dxeSetPowerStateEventHandler
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return;
+}
+
+
+/*==========================================================================
+  @  Function Name 
+      dxeRxThreadSetPowerStateEventHandler
+
+  @  Description 
+      If WDI sends set power state req, this event handler will be called in Rx
+      thread context
+
+  @  Parameters
+         void               *msgPtr
+                             Event MSG
+
+  @  Return
+      None
+===========================================================================*/
+void dxeRxThreadSetPowerStateEventHandler
+(
+    wpt_msg               *msgPtr
+)
+{
+   wpt_status               status = eWLAN_PAL_STATUS_SUCCESS;
+
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
+            "%s Enter", __FUNCTION__);
+
+   /* Now serialise the message through Tx thread also to make sure
+    * no register access when RIVA is in powersave */
+   /*Use the same message pointer just change the call back function */
+   msgPtr->callback = dxeTxThreadSetPowerStateEventHandler;
+   status = wpalPostTxMsg(WDI_GET_PAL_CTX(),
+                       msgPtr);
+   if ( eWLAN_PAL_STATUS_SUCCESS != status )
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Tx thread Set power state req serialize fail status=%d",
+               status, 0, 0);
+   }
+
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
+            "%s Exit", __FUNCTION__);
 }
 
 /*==========================================================================
@@ -3625,7 +3768,7 @@ wpt_status WLANDXE_SetPowerState
    wpt_status               status = eWLAN_PAL_STATUS_SUCCESS;
    WLANDXE_CtrlBlkType     *pDxeCtrlBlk;
    WLANDXE_PowerStateType   hostPowerState;
-   wpt_msg                  *txCompMsg;
+   wpt_msg                  *rxCompMsg;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
@@ -3645,6 +3788,9 @@ wpt_status WLANDXE_SetPowerState
       case WDTS_POWER_STATE_BMPS:
          hostPowerState = WLANDXE_POWER_STATE_BMPS;
          break;
+      case WDTS_POWER_STATE_IMPS:
+         hostPowerState = WLANDXE_POWER_STATE_IMPS_PENDING;
+         break;
       default:
          hostPowerState = WLANDXE_POWER_STATE_MAX;
    }
@@ -3662,9 +3808,9 @@ wpt_status WLANDXE_SetPowerState
    // init_scan_rsp
    if ( cBack )
    {
-      //serialize through Tx thread
-      txCompMsg          = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
-      if(NULL == txCompMsg)
+      //serialize through Rx thread
+      rxCompMsg          = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
+      if(NULL == rxCompMsg)
       {
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                   "WLANDXE_SetPowerState, MSG MEM alloc Fail");
@@ -3674,16 +3820,16 @@ wpt_status WLANDXE_SetPowerState
       /* Event type, where it must be defined???? */
       /* THIS MUST BE CLEARED ASAP
       txCompMsg->type     = TX_COMPLETE; */
-      txCompMsg->callback = dxeSetPowerStateEventHandler;
-      txCompMsg->pContext = pDxeCtrlBlk;
-      txCompMsg->val      = hostPowerState;
-      txCompMsg->ptr      = cBack;
-      status = wpalPostTxMsg(WDI_GET_PAL_CTX(),
-                          txCompMsg);
+      rxCompMsg->callback = dxeRxThreadSetPowerStateEventHandler;
+      rxCompMsg->pContext = pDxeCtrlBlk;
+      rxCompMsg->val      = hostPowerState;
+      rxCompMsg->ptr      = cBack;
+      status = wpalPostRxMsg(WDI_GET_PAL_CTX(),
+                          rxCompMsg);
       if ( eWLAN_PAL_STATUS_SUCCESS != status )
       {
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                  "Set power state req serialize fail status=%d",
+                  "Rx thread Set power state req serialize fail status=%d",
                   status, 0, 0);
       }
    }
@@ -3691,15 +3837,22 @@ wpt_status WLANDXE_SetPowerState
    {
       if ( WLANDXE_POWER_STATE_FULL == hostPowerState )
       {
+         if( WLANDXE_POWER_STATE_BMPS == pDxeCtrlBlk->hostPowerState )
+         {
+            dxeNotifySmsm(eWLAN_PAL_FALSE, eWLAN_PAL_TRUE);
+         }
          pDxeCtrlBlk->hostPowerState = hostPowerState;
          pDxeCtrlBlk->rivaPowerState = WLANDXE_RIVA_POWER_STATE_ACTIVE;
-         dxeNotifySmsm(eWLAN_PAL_FALSE, eWLAN_PAL_TRUE);
-
       }
       else if ( hostPowerState == WLANDXE_POWER_STATE_BMPS )
       {
          pDxeCtrlBlk->hostPowerState = hostPowerState;
          pDxeCtrlBlk->rivaPowerState = WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN;
+      }
+      else if ( hostPowerState == WLANDXE_POWER_STATE_IMPS_PENDING )
+      {
+         pDxeCtrlBlk->hostPowerState = hostPowerState;
+         pDxeCtrlBlk->rivaPowerState = WLANDXE_RIVA_POWER_STATE_IMPS_UNKNOWN;
       }
       else
       {

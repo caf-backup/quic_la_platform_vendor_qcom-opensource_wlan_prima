@@ -567,6 +567,8 @@ typedef struct
    wpt_msg                        *rxIsrMsg;
    wpt_msg                        *txIsrMsg;
    volatile WLANDXE_PowerStateType hostPowerState;
+   wpt_boolean                     rxIntDisabledByIMPS;
+   wpt_boolean                     txIntDisabledByIMPS;
    WLANDXE_SetPowerStateCbType     setPowerStateCb;
    volatile WLANDXE_RivaPowerStateType rivaPowerState;
    wpt_boolean                     ringNotEmpty; 

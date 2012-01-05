@@ -440,6 +440,94 @@ WLANBAP_XlateTxDataPkt
 
 /*===========================================================================
 
+  FUNCTION    WLANBAP_GetAcFromTxDataPkt
+
+  DESCRIPTION 
+
+    HDD will call this API when it has a HCI Data Packet (SKB) and it wants 
+    to find AC type of the data frame from the HCI header on the data pkt
+    - to be send using TL.
+
+
+  PARAMETERS 
+
+    btampHandle: The BT-AMP PAL handle returned in WLANBAP_GetNewHndl.
+ 
+    pHciData: Pointer to the HCI data frame
+ 
+    pucAC:       Pointer to return the access category 
+   
+  RETURN VALUE
+
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_INVAL:  Input parameters are invalid 
+    VOS_STATUS_E_FAULT:  BAP handle is NULL  
+    VOS_STATUS_SUCCESS:  Everything is good :) 
+
+  SIDE EFFECTS 
+  
+============================================================================*/
+VOS_STATUS
+WLANBAP_GetAcFromTxDataPkt
+( 
+  ptBtampHandle     btampHandle,  /* Used by BAP to identify the actual session
+                                    and therefore addresses */
+  void              *pHciData,     /* Pointer to the HCI data frame */
+  WLANTL_ACEnumType *pucAC        /* Return the AC here */
+)
+{
+    ptBtampContext           pBtampCtx; 
+    tpBtampLogLinkCtx        pLogLinkContext;
+    WLANBAP_HCIACLHeaderType hciACLHeader;
+    /*------------------------------------------------------------------------
+        Sanity check params
+      ------------------------------------------------------------------------*/
+    if (( NULL == btampHandle) || (NULL == pHciData) || (NULL == pucAC))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "Invalid params in %s", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
+    pBtampCtx = (ptBtampContext) btampHandle;
+
+    vos_mem_copy( &hciACLHeader, pHciData, WLANBAP_HCI_ACL_HEADER_LEN);
+    // Sanity check the log_link_handle value 
+    if (!BTAMP_VALID_LOG_LINK( hciACLHeader.logLinkHandle))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+                "WLAN BAP: Invalid logical link handle (%d) in %s", 
+                hciACLHeader.logLinkHandle,
+                __FUNCTION__);
+
+        return VOS_STATUS_E_INVAL;
+    }
+
+    /* Use the log_link_handle to retrieve the logical link context */ 
+    /* JEZ081006: abstract this with a proc.  So you can change the impl later */ 
+    pLogLinkContext = &(pBtampCtx->btampLogLinkCtx[ hciACLHeader.logLinkHandle ]);
+
+    // Sanity check the log_link_handle value 
+    // JEZ081113: I changed this to fail on an UNOCCUPIED entry 
+    if ( pLogLinkContext->present != VOS_TRUE)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+                "WLAN BAP: Invalid logical link entry in %s",
+                __FUNCTION__);
+
+        return VOS_STATUS_E_INVAL;
+    }
+
+    // Return the AC
+
+    // Now copy the AC values from the Logical Link context
+    *pucAC = pLogLinkContext->btampAC;
+
+    return VOS_STATUS_SUCCESS;
+}
+
+/*===========================================================================
+
   FUNCTION    WLANBAP_XlateRxDataPkt
 
   DESCRIPTION 

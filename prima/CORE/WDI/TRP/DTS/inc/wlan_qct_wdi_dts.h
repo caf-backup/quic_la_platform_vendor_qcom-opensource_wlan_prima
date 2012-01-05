@@ -50,6 +50,7 @@ typedef enum
 typedef enum
 {
    WDTS_POWER_STATE_FULL,
+   WDTS_POWER_STATE_IMPS,
    WDTS_POWER_STATE_BMPS,
    WDTS_POWER_STATE_MAX
 } WDTS_PowerStateType;

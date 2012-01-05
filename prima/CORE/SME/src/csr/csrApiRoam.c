@@ -13772,10 +13772,18 @@ tSmeCmd *csrGetCommandBuffer( tpAniSirGlobal pMac )
 
 void csrReleaseCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand)
 {
-    VOS_ASSERT( pMac->roam.sPendingCommands > 0 );
-    //All command allocated through csrGetCommandBuffer need to decrement the pending count when releasing.
-    pMac->roam.sPendingCommands--;
-    smeReleaseCommand( pMac, pCommand );
+   if (pMac->roam.sPendingCommands > 0)
+   {
+       //All command allocated through csrGetCommandBuffer need to
+       //decrement the pending count when releasing.
+       pMac->roam.sPendingCommands--;
+       smeReleaseCommand( pMac, pCommand );
+   }
+   else
+   {
+       smsLog(pMac, LOGE, FL( "no pending commands"));
+       VOS_ASSERT(0);
+   }
 }
 
 
