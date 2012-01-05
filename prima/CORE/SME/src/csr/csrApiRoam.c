@@ -5572,7 +5572,7 @@ eHalStatus csrRoamProcessDisassocDeauth( tpAniSirGlobal pMac, tSmeCmd *pCommand,
         }
         else
         {
-            status = csrRoamIssueDeauth( pMac, sessionId, eCSR_ROAM_SUBSTATE_AUTH_REQ );
+            status = csrRoamIssueDeauth( pMac, sessionId, eCSR_ROAM_SUBSTATE_DEAUTH_REQ );
         }
         fComplete = (!HAL_STATUS_SUCCESS(status));
     }
@@ -6577,7 +6577,7 @@ static void csrRoamRoamingStateDeauthRspProcessor( tpAniSirGlobal pMac, tSirSmeD
     smsLog(pMac, LOGW, FL("is no-op\n"));
     statusCode = csrGetDeAuthRspStatusCode( pSmeRsp );
 
-    if ( CSR_IS_ROAM_SUBSTATE_AUTH_REQ( pMac ) )
+    if ( CSR_IS_ROAM_SUBSTATE_DEAUTH_REQ( pMac ) )
     {
         csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
     }

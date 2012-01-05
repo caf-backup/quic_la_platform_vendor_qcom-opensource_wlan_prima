@@ -1335,23 +1335,18 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
     {
-        if(psessionEntry->pePersona == VOS_STA_SAP_MODE)
-            PopulateDot11fAssocResWPSIEs(pMac, &frm.WscAssocRes, psessionEntry);
-        else if(psessionEntry->pePersona == VOS_P2P_GO_MODE)
+        if( pSta != NULL && eSIR_SUCCESS == statusCode )
         {
-            if( pSta != NULL && eSIR_SUCCESS == statusCode )
-            {
-                pAssocReq = 
-                    (tpSirAssocReq) psessionEntry->parsedAssocReq[pSta->assocId];
+            pAssocReq = 
+                (tpSirAssocReq) psessionEntry->parsedAssocReq[pSta->assocId];
 #ifdef WLAN_FEATURE_P2P
-                /* populate P2P IE in AssocRsp when assocReq from the peer includes P2P IE */
-                if( pAssocReq != NULL && pAssocReq->addIEPresent) {
-                    PopulateDot11AssocResP2PIE(pMac, &frm.P2PAssocRes, pAssocReq);
-                }
-#endif
-                }
+            /* populate P2P IE in AssocRsp when assocReq from the peer includes P2P IE */
+            if( pAssocReq != NULL && pAssocReq->addIEPresent) {
+                PopulateDot11AssocResP2PIE(pMac, &frm.P2PAssocRes, pAssocReq);
             }
+#endif
         }
+    }
 #endif
 
     if ( NULL != pSta )

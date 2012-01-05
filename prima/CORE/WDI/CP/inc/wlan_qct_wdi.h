@@ -1616,10 +1616,10 @@ typedef struct
 typedef struct
 {
   /*Peer BSSID*/
-  wpt_macAddr     	       macBSSID; 	
+  wpt_macAddr              macBSSID;
 
   /*Self MAC Address*/
-  wpt_macAddr     	       macSelfAddr; 
+  wpt_macAddr              macSelfAddr; 
 
   /*BSS Type*/
   WDI_BssType              wdiBSSType;
@@ -1634,40 +1634,40 @@ typedef struct
   wpt_uint8                ucShortSlotTimeSupported;
 
   /*Co-exist with 11a STA*/
-  wpt_uint8                ucllaCoexist;		
+  wpt_uint8                ucllaCoexist;
 
   /*Co-exist with 11b STA*/
-  wpt_uint8                ucllbCoexist;		
+  wpt_uint8                ucllbCoexist;
 
   /*Co-exist with 11g STA*/
-  wpt_uint8                ucllgCoexist;		
+  wpt_uint8                ucllgCoexist;
 
   /*Coexistence with 11n STA*/
-  wpt_uint8                ucHT20Coexist;		
+  wpt_uint8                ucHT20Coexist;
 
   /*Non GF coexist flag*/
   wpt_uint8                ucllnNonGFCoexist;
 
   /*TXOP protection support*/
-  wpt_uint8                ucTXOPProtectionFullSupport;		
+  wpt_uint8                ucTXOPProtectionFullSupport;
 
   /*RIFS mode*/
-  wpt_uint8                ucRIFSMode;	
+  wpt_uint8                ucRIFSMode;
 
   /*Beacon Interval in TU*/
-  wpt_uint16               usBeaconInterval;	
+  wpt_uint16               usBeaconInterval;
 
   /*DTIM period*/
   wpt_uint8                ucDTIMPeriod;
 
-  /*TX Width Set: 0 - 20 MHz only, 1 - 20/40 MHz*/		
+  /*TX Width Set: 0 - 20 MHz only, 1 - 20/40 MHz*/
   wpt_uint8                ucTXChannelWidthSet;
-  	
-  /*Operating channel*/	
+
+  /*Operating channel*/
   wpt_uint8                ucCurrentOperChannel;
 
   /*Extension channel for channel bonding*/
-  wpt_uint8                ucCurrentExtChannel;		
+  wpt_uint8                ucCurrentExtChannel;
 
   /*Context of the station being added in HW.*/
   WDI_ConfigStaReqInfoType wdiSTAContext;
@@ -1680,7 +1680,7 @@ typedef struct
   WDI_ConfigAction         wdiAction;
 
   /*Basic Rate Set*/
-  WDI_RateSet	             wdiRateSet;
+  WDI_RateSet              wdiRateSet;
 
   /*Enable/Disable HT capabilities of the BSS*/
   wpt_uint8                ucHTCapable;
@@ -1745,10 +1745,10 @@ typedef struct
 typedef struct
 {
   /*Config STA arguments.*/
-  WDI_ConfigStaReqInfoType	wdiSTAParams; 
+  WDI_ConfigStaReqInfoType  wdiSTAParams; 
 
    /*Config BSS Arguments*/
-  WDI_ConfigBSSReqInfoType	wdiBSSParams;
+  WDI_ConfigBSSReqInfoType  wdiBSSParams;
 
   /*Request status callback offered by UMAC - it is called if the current
     req has returned PENDING as status; it delivers the status of sending
