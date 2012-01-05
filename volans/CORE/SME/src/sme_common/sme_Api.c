@@ -328,6 +328,8 @@ static eSmeCommandType smeIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pComm
 
     do
     {
+        pmcState = pmcGetPmcState(pMac);
+
         status = csrIsFullPowerNeeded( pMac, pCommand, NULL, &fFullPowerNeeded );
         if( !HAL_STATUS_SUCCESS(status) )
         {
@@ -339,15 +341,19 @@ static eSmeCommandType smeIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pComm
                     ( eSmeCommandDelTs ==  pCommand->command ) );
         if( fFullPowerNeeded ) break;
 #ifdef FEATURE_INNAV_SUPPORT
-        pmcState = pmcGetPmcState(pMac);
-        fFullPowerNeeded = (pmcState == IMPS && eSmeCommandMeas == pCommand->command);
+        fFullPowerNeeded = (pmcState == IMPS && 
+                                       eSmeCommandMeas == pCommand->command);
+        if(fFullPowerNeeded) break;
+#endif
+#ifdef WLAN_FEATURE_P2P
+        fFullPowerNeeded = (pmcState == IMPS && 
+                            eSmeCommandRemainOnChannel == pCommand->command);
         if(fFullPowerNeeded) break;
 #endif
     } while(0);
 
     if( fFullPowerNeeded )
     {
-        pmcState = pmcGetPmcState( pMac );
         switch( pmcState )
         {
         case IMPS:

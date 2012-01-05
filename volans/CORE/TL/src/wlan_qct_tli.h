@@ -584,7 +584,7 @@ typedef struct
   v_U8_t                        ucMPDUHeaderLen;
 
   /*Enabled ACs currently serviced by TL (automatic setup in TL)*/
-  v_U8_t                        ucACMask;
+  v_U8_t                        aucACMask[WLANTL_MAX_AC];
 
   /*	Current AC to be retrieved */
   WLANTL_ACEnumType             ucCurrentAC;

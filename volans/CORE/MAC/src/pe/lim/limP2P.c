@@ -655,7 +655,6 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
      * at OFDM rates. And BD rate2 we configured at 6Mbps.
      */
     txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
-    pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
 
     if (SIR_MAC_MGMT_PROBE_RSP == pFc->subType)
     {
@@ -664,8 +663,8 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
                         7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame,
                         txFlag );
 
-        limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, halstatus,
-                      pMbMsg->sessionId, 0);
+        limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, 
+               halstatus, pMbMsg->sessionId, 0);
     }
     else
     {
@@ -676,9 +675,13 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
         if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
         {
-            limLog( pMac, LOGE, FL("could not send Probe Request frame!\n" ));
-            limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, halstatus,
-                 pMbMsg->sessionId, 0);
+             limLog( pMac, LOGE, FL("could not send action frame!\n" ));
+             limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, halstatus, 
+                pMbMsg->sessionId, 0);
+        }
+        else
+        {
+             pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
         }
     }
 

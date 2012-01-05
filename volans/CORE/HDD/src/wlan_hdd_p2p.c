@@ -176,7 +176,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         if (eHAL_STATUS_SUCCESS != WLANSAP_RemainOnChannel(
                           (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                           chan->hw_value, duration,
-                          wlan_hdd_remain_on_channel_callback, pAdapter ));
+                          wlan_hdd_remain_on_channel_callback, pAdapter ))
 
         {
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -190,7 +190,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         if (eHAL_STATUS_SUCCESS != WLANSAP_RegisterMgmtFrame(
                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                     (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
-                    NULL, 0 ));
+                    NULL, 0 ))
         {
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: WLANSAP_RegisterMgmtFrame returned fail", __func__);

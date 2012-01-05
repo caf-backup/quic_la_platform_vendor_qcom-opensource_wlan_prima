@@ -401,7 +401,9 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
     tSirMsgQ            msgQ;
     tSirSmeProbeReq     *pSirSmeProbeReq;
     tANI_U32            wpsApEnable=0, tmp;
+#ifdef WLAN_FEATURE_P2P
     tANI_U8             i = 0, rate_11b = 0;
+#endif    
 
     do{
         // Don't send probe responses if disabled

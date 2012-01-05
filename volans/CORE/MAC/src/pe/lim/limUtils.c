@@ -7739,6 +7739,9 @@ v_U8_t* limGetVendorIEOuiPtr(tpAniSirGlobal pMac, tANI_U8 *oui, tANI_U8 oui_size
     return NULL;
 }
 
+#ifdef WLAN_FEATURE_P2P
+//Returns length of P2P stream and Pointer ie passed to this function is filled with noa stream
+
 v_U8_t limBuildP2pIe(tpAniSirGlobal pMac, tANI_U8 *ie, tANI_U8 *data, tANI_U8 ie_len)
 {
     int length = 0;
@@ -7751,7 +7754,6 @@ v_U8_t limBuildP2pIe(tpAniSirGlobal pMac, tANI_U8 *ie, tANI_U8 *data, tANI_U8 ie
     return (ie_len + SIR_P2P_IE_HEADER_LEN);
 }
 
-#ifdef WLAN_FEATURE_P2P
 //Returns length of NoA stream and Pointer pNoaStream passed to this function is filled with noa stream
 
 v_U8_t limGetNoaAttrStreamInMultP2pIes(tpAniSirGlobal pMac,v_U8_t* noaStream,v_U8_t noaLen,v_U8_t overFlowLen)

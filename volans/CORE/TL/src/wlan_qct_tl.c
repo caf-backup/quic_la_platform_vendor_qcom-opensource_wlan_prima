@@ -310,6 +310,19 @@ typedef struct
 #define WLAN_TL_INVALID_U_SIG 255
 #define WLAN_TL_INVALID_B_SIG 255
 
+#define WLAN_TL_AC_ARRAY_2_MASK( _pSTA, _ucACMask, i ) \
+  do\
+  {\
+    _ucACMask = 0; \
+    for ( i = 0; i < WLANTL_MAX_AC; i++ ) \
+    { \
+      if ( 0 != (_pSTA)->aucACMask[i] ) \
+      { \
+        _ucACMask |= ( 1 << i ); \
+      } \
+    } \
+  } while (0);
+
 /*----------------------------------------------------------------------------
  * Static Variable Definitions
  * -------------------------------------------------------------------------*/
@@ -964,7 +977,7 @@ void WLANTL_AssocFailed(v_U8_t staId)
    VOS_STATUS_SUCCESS/VOS_STATUS_FAILURE
    
   SIDE EFFECTS
-
+   
 ============================================================================*/
 
 VOS_STATUS WLANTL_Finish_ULA( void (*callbackRoutine) (void *callbackContext),
@@ -1192,7 +1205,9 @@ WLANTL_RegisterSTAClient
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].ucCurrentAC     = WLANTL_AC_VO;
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].ucCurrentWeight = 0;
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].ucServicedAC    = WLANTL_AC_BK;
-  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].ucACMask        = 0;
+  
+  vos_mem_zero( pTLCb->atlSTAClients[pwSTADescType->ucSTAId].aucACMask,
+                sizeof(pTLCb->atlSTAClients[pwSTADescType->ucSTAId].aucACMask)); 
 
   vos_mem_zero( &pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wUAPSDInfo,
            sizeof(pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wUAPSDInfo));
@@ -1528,7 +1543,6 @@ WLANTL_STAPktPending
   WLANTL_ACEnumType    ucAc
 )
 {
-  VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
   WLANTL_CbType*  pTLCb = NULL;
 #ifdef WLAN_SOFTAP_FEATURE
   vos_msg_t      vosMsg;
@@ -1580,13 +1594,48 @@ WLANTL_STAPktPending
     To avoid race condition, serialize the updation of AC and AC mask 
     through WLANTL_TX_STAID_AC_IND message.
   -----------------------------------------------------------------------*/
-  vosMsg.reserved = 0;
-  vosMsg.bodyval  = 0;
-  vosMsg.bodyval = (ucAc | (ucSTAId << WLANTL_STAID_OFFSET));
-  vosMsg.type     = WLANTL_TX_STAID_AC_IND;
-  vosStatus = vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
-    
-  return vosStatus;
+#ifdef WLAN_SOFTAP_FEATURE
+    if (WLAN_STA_SOFTAP != pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
+    {
+#endif
+
+      pTLCb->atlSTAClients[ucSTAId].aucACMask[ucAc] = 1; 
+
+      vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
+
+      /*------------------------------------------------------------------------
+        Check if there are enough resources for transmission and tx is not
+        suspended.
+        ------------------------------------------------------------------------*/
+      if (( pTLCb->uResCount >=  WLANTL_MIN_RES_DATA ) &&
+          ( 0 == pTLCb->ucTxSuspended ))
+      {
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "Issuing Xmit start request to BAL"));
+        WLANBAL_StartXmit(pvosGCtx);
+      }
+      else
+      {
+        /*---------------------------------------------------------------------
+          No error code is sent because TL will resume tx autonomously if
+          resources become available or tx gets resumed
+          ---------------------------------------------------------------------*/
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "WLAN TL:Request to send but condition not met. Res: %d,Suspend: %d",
+              pTLCb->uResCount, pTLCb->ucTxSuspended ));
+      }
+#ifdef WLAN_SOFTAP_FEATURE
+    }
+    else
+    {
+      vosMsg.reserved = 0;
+      vosMsg.bodyval  = 0;
+      vosMsg.bodyval = (ucAc | (ucSTAId << WLANTL_STAID_OFFSET));
+      vosMsg.type     = WLANTL_TX_STAID_AC_IND;
+      return vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
+    }
+#endif
+  return VOS_STATUS_SUCCESS;
 }/* WLANTL_STAPktPending */
 
 /*==========================================================================
@@ -5423,6 +5472,7 @@ WLANTL_STATxConn
    v_U8_t               ucWDSEnabled = 0;
    WLANTL_STAClientType *pStaClient;
    WLANTL_ACEnumType    ucAC;
+   v_U8_t               ucACMask, i;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -5473,10 +5523,11 @@ WLANTL_STATxConn
        To prevent this the AC will be disabled here and if retrieve
        is successfull it will be re-enabled
   -------------------------------------------------------------------*/
-  pStaClient->ucACMask = pStaClient->ucACMask & (~( 1 << ucAC));
+
+  pStaClient->aucACMask[ucAC] = 0; 
 
   vosStatus = pStaClient->pfnSTAFetchPkt( pvosGCtx, &ucSTAId, &ucAC,
-                                          &vosDataBuff, &tlMetaInfo );
+                                                &vosDataBuff, &tlMetaInfo );
 
   if (( VOS_STATUS_SUCCESS != vosStatus ) || ( NULL == vosDataBuff ))
   {
@@ -5492,11 +5543,13 @@ WLANTL_STATxConn
     --------------------------------------------------------------------*/
     pStaClient->ucCurrentAC      = WLANTL_AC_VO;
     pStaClient->ucCurrentWeight  = 0;
+
+    WLAN_TL_AC_ARRAY_2_MASK( pStaClient, ucACMask, i); 
 #ifdef WLAN_SOFTAP_FEATURE
     if (WLAN_STA_SOFTAP == pStaClient->wSTADesc.wSTAType)
     {
       // for softap make sure the client doesn't have data on another AC
-      if (0 == pStaClient->ucACMask)
+      if (0 == ucACMask)
       {
         pStaClient->ucPktPending = 0;
         pStaClient->ucNoMoreData = 1;
@@ -5521,11 +5574,11 @@ WLANTL_STATxConn
 #endif
 
 #ifdef WLAN_PERF 
-   vos_pkt_set_user_data_ptr( vosDataBuff, VOS_PKT_USER_DATA_ID_BAL, 
-                       (v_PVOID_t)0);
+  vos_pkt_set_user_data_ptr( vosDataBuff, VOS_PKT_USER_DATA_ID_BAL, 
+                             (v_PVOID_t)0);
 #endif /*WLAN_PERF*/
 
-  pStaClient->ucACMask = pStaClient->ucACMask | ( 1 << ucAC);
+  pStaClient->aucACMask[ucAC] = 1; 
 
   if ( ucAC == pStaClient->ucCurrentAC ) 
   {
@@ -5744,6 +5797,7 @@ WLANTL_STATxAuth
    WLANTL_STAClientType *pStaClient;
    v_U8_t                ucWDSEnabled = 0;
    v_U8_t                ucTxFlag   = 0; 
+   v_U8_t                ucACMask, i; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -5793,9 +5847,7 @@ WLANTL_STATxAuth
        To prevent this the AC will be disabled here and if retrieve
        is successfull it will be re-enabled
   -------------------------------------------------------------------*/
-  vos_atomic_set_U8( &pStaClient->ucACMask, 
-                      pStaClient->ucACMask &
-                  (~( 1 << pStaClient->ucCurrentAC)));
+  pStaClient->aucACMask[pStaClient->ucCurrentAC] = 0; 
 
   vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
 #ifdef WLAN_SOFTAP_FEATURE
@@ -5804,12 +5856,13 @@ WLANTL_STATxAuth
   {
     //softap case
     ucAC = pTLCb->uCurServedAC;
-    vos_atomic_set_U8( &pStaClient->ucACMask, 
-                      pStaClient->ucACMask & (~( 1 << ucAC)));
+    pStaClient->aucACMask[ucAC] = 0; 
 
     //vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
   }
 #endif
+
+  WLAN_TL_AC_ARRAY_2_MASK( pStaClient, ucACMask, i); 
 
   vosStatus = pStaClient->pfnSTAFetchPkt( pvosGCtx, 
                                &ucSTAId,
@@ -5844,7 +5897,7 @@ WLANTL_STATxAuth
     if (WLAN_STA_SOFTAP == pStaClient->wSTADesc.wSTAType)
     {
        // for softap make sure the client doesn't have data on another AC
-       if (0 == pStaClient->ucACMask)
+       if (0 == ucACMask)
        {
           vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
           pStaClient->ucNoMoreData = 1;
@@ -5893,9 +5946,7 @@ WLANTL_STATxAuth
 
   if ( ucAC == pStaClient->ucCurrentAC ) 
   {
-    vos_atomic_set_U8( &pStaClient->ucACMask, 
-                        pStaClient->ucACMask |
-                        ( 1 << pStaClient->ucCurrentAC));
+    pStaClient->aucACMask[pStaClient->ucCurrentAC] = 1;
     pStaClient->ucCurrentWeight--;
   }
   else
@@ -5904,9 +5955,8 @@ WLANTL_STATxAuth
     pStaClient->ucCurrentWeight = 
                          pTLCb->tlConfigInfo.ucAcWeights[ucAC] - 1;
 
-    vos_atomic_set_U8( &pStaClient->ucACMask, 
-                        pStaClient->ucACMask |
-                        ( 1 << pStaClient->ucCurrentAC));
+    pStaClient->aucACMask[pStaClient->ucCurrentAC] = 1;
+
   }
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -5919,11 +5969,10 @@ WLANTL_STATxAuth
     /*-----------------------------------------------------------------------
        Choose next AC - !!! optimize me
     -----------------------------------------------------------------------*/
-    while ( 0 != pStaClient->ucACMask ) 
+    while ( 0 != ucACMask ) 
     {
       ucNextAC = (WLANTL_ACEnumType)(( tempAC - 1 ) & WLANTL_MASK_AC); 
-      if ( 0 != ( pStaClient->ucACMask & 
-          ( 1 << ucNextAC ))) 
+      if ( 0 != pStaClient->aucACMask[ucNextAC] )
       {
          pStaClient->ucCurrentAC     = ucNextAC;
          pStaClient->ucCurrentWeight = 
@@ -6519,14 +6568,14 @@ WLANTL_STARxConn
     TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
                "WLAN TL %s:Sending data chain to station \n", __FUNCTION__));
     if ( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
-    { 
+    {
       wRxMetaInfo.ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
       pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
                                             &wRxMetaInfo );
     }
     else
 #endif
-    pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
                                             &wRxMetaInfo );
     }/*EAPOL frame or WAI frame*/
   }/*vos status success*/
@@ -7044,13 +7093,13 @@ if(0 == ucUnicastBroadcastType
 #ifdef WLAN_SOFTAP_FEATURE
     if( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
     {
-       WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId );
+      WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId );
     }
     else
 #endif
     {
       wRxMetaInfo.ucUP = ucTid;
-       pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
                                             &wRxMetaInfo );
     }
   }/* if not NULL */
@@ -7543,8 +7592,7 @@ WLANTL_TxProcessMsg
 
       ucAC = message->bodyval &  WLANTL_AC_MASK;
       ucSTAId = (v_U8_t)message->bodyval >> WLANTL_STAID_OFFSET;  
-      vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucACMask,
-                      pTLCb->atlSTAClients[ucSTAId].ucACMask| ( 1 << (ucAC)));
+      pTLCb->atlSTAClients[ucSTAId].aucACMask[ucAC] = 1; 
 
       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
       vosStatus = WLANBAL_StartXmit(pvosGCtx);
@@ -8738,6 +8786,8 @@ WLAN_TLAPGetNextTxIds
   v_U8_t          ucNextSTA ; 
   v_BOOL_t        isServed = TRUE;  //current round has find a packet or not
   v_U8_t          ucACLoopNum = WLANTL_AC_VO + 1; //number of loop to go
+  v_U8_t          ucACMask; 
+  v_U8_t          i; 
   /*------------------------------------------------------------------------
     Extract TL control block
   ------------------------------------------------------------------------*/
@@ -8799,9 +8849,12 @@ WLAN_TLAPGetNextTxIds
 
       for ( ; ucNextSTA < WLAN_MAX_STA_COUNT; ucNextSTA ++ )
       {
+        WLAN_TL_AC_ARRAY_2_MASK (&pTLCb->atlSTAClients[ucNextSTA], ucACMask, i); 
+
         if ( (0 == pTLCb->atlSTAClients[ucNextSTA].ucExists) ||
-             ((0 == pTLCb->atlSTAClients[ucNextSTA].ucPktPending) && !(pTLCb->atlSTAClients[ucNextSTA].ucACMask)) ||
-             (0 == (pTLCb->atlSTAClients[ucNextSTA].ucACMask & ucACFilter)) )
+             ((0 == pTLCb->atlSTAClients[ucNextSTA].ucPktPending) && !(ucACMask)) ||
+             (0 == (ucACMask & ucACFilter)) )
+
         {
           //current statioin does not exist or have any packet to serve.
           continue;
@@ -8904,7 +8957,8 @@ WLAN_TLGetNextTxIds
   v_U8_t          ucNextAC;
   v_U8_t          ucNextSTA; 
   v_U8_t          ucCount; 
-
+  v_U8_t          ucACMask = 0;
+  v_U8_t          i = 0; 
 
   tBssSystemRole systemRole; //RG HACK to be removed
   tpAniSirGlobal pMac;
@@ -8955,8 +9009,11 @@ WLAN_TLGetNextTxIds
 
   *pucSTAId = pTLCb->ucCurrentSTA;
 
-   if ( ( WLANTL_STA_ID_INVALID( *pucSTAId ) ) ||
-        ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucACMask ) )
+  /*Convert the array to a mask for easier operation*/
+  WLAN_TL_AC_ARRAY_2_MASK( &pTLCb->atlSTAClients[*pucSTAId], ucACMask, i); 
+  
+  if ( ( WLANTL_STA_ID_INVALID( *pucSTAId ) ) ||
+       ( 0 == ucACMask ) )
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
       "WLAN TL:No station registered with TL at this point or Mask 0"
@@ -8989,16 +9046,13 @@ WLAN_TLGetNextTxIds
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "Next AC: %d", ucNextAC));
 
-  while ( 0 != pTLCb->atlSTAClients[*pucSTAId].ucACMask )
+  while ( 0 != ucACMask )
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              " AC Mask: %d Next: %d Res : %d",
-               pTLCb->atlSTAClients[*pucSTAId].ucACMask,
-               ( 1 << ucNextAC ),
-        ( pTLCb->atlSTAClients[*pucSTAId].ucACMask & ( 1 << ucNextAC ))));
+               ucACMask, ( 1 << ucNextAC ), ( ucACMask & ( 1 << ucNextAC ))));
 
-    if ( 0 != ( pTLCb->atlSTAClients[*pucSTAId].ucACMask &
-        ( 1 << ucNextAC )))
+    if ( 0 != ( ucACMask & ( 1 << ucNextAC ) ))
     {
        pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC     = 
                                    (WLANTL_ACEnumType)ucNextAC;
@@ -9105,7 +9159,7 @@ WLAN_TLGetNextTxIds
   *pucSTAId = pTLCb->ucCurrentSTA;
 
    if ( ( WLANTL_STA_ID_INVALID( *pucSTAId ) ) ||
-        ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucACMask ) )
+        ( 0 == ucACMask ) )
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
       "WLAN TL:No station registered with TL at this point or Mask 0"
@@ -9138,16 +9192,13 @@ WLAN_TLGetNextTxIds
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "Next AC: %d", ucNextAC));
 
-  while ( 0 != pTLCb->atlSTAClients[*pucSTAId].ucACMask )
+  while ( 0 != ucACMask )
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              " AC Mask: %d Next: %d Res : %d",
-               pTLCb->atlSTAClients[*pucSTAId].ucACMask,
-               ( 1 << ucNextAC ),
-        ( pTLCb->atlSTAClients[*pucSTAId].ucACMask & ( 1 << ucNextAC ))));
+               ucACMask, ( 1 << ucNextAC ), ( ucACMask & ( 1 << ucNextAC ))));
 
-    if ( 0 != ( pTLCb->atlSTAClients[*pucSTAId].ucACMask &
-        ( 1 << ucNextAC )))
+    if ( 0 !=  pTLCb->atlSTAClients[*pucSTAId].aucACMask[ucNextAC] )
     {
        pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC     = 
                                    (WLANTL_ACEnumType)ucNextAC;
@@ -9590,7 +9641,8 @@ WLANTL_CleanSTA
    ptlSTAClient->ucCurrentAC     = WLANTL_AC_VO;
    ptlSTAClient->ucCurrentWeight = 0;
    ptlSTAClient->ucServicedAC    = WLANTL_AC_BK;
-   ptlSTAClient->ucACMask        = 0;
+
+   vos_mem_zero( ptlSTAClient->aucACMask, sizeof(ptlSTAClient->aucACMask));
    vos_mem_zero( &ptlSTAClient->wUAPSDInfo, sizeof(ptlSTAClient->wUAPSDInfo));
 
 

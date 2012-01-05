@@ -446,13 +446,16 @@ eHalStatus pmcEnterImpsState (tHalHandle hHal)
 #endif
     }
 
-    /* Set timer to come out of IMPS. */
-    if (palTimerStart(pMac->hHdd, pMac->pmc.hImpsTimer, pMac->pmc.impsPeriod * 1000, FALSE) != eHAL_STATUS_SUCCESS)
+    /* Set timer to come out of IMPS.only if impsPeriod is non-Zero*/
+    if(0 != pMac->pmc.impsPeriod)
     {
-        smsLog(pMac, LOGE, FL("Cannot start IMPS timer\n"));
-        PMC_ABORT;
-        pmcEnterRequestFullPowerState(hHal, eSME_REASON_OTHER);
-        return eHAL_STATUS_FAILURE;
+        if (palTimerStart(pMac->hHdd, pMac->pmc.hImpsTimer, pMac->pmc.impsPeriod * 1000, FALSE) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, FL("Cannot start IMPS timer\n"));
+            PMC_ABORT;
+            pmcEnterRequestFullPowerState(hHal, eSME_REASON_OTHER);
+            return eHAL_STATUS_FAILURE;
+        }
     }
 
     //Vote off RF supplies. Note RF supllies are not voted off if there is a 
