@@ -1666,15 +1666,6 @@ void dxeRXEventHandler
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
 
-   /* Return from here if the RIVA is in IMPS, to avoid register access */
-   if((WLANDXE_POWER_STATE_IMPS == tempDxeCtrlBlk->hostPowerState) ||
-      (WLANDXE_POWER_STATE_IMPS_PENDING == tempDxeCtrlBlk->hostPowerState))
-   {
-      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
-         "%s Riva is in %d, return from here ", __FUNCTION__, tempDxeCtrlBlk->hostPowerState);
-      return;
-   }
-
    /* Sanity Check */
    if(NULL == rxReadyMsg)
    {
@@ -1684,6 +1675,39 @@ void dxeRXEventHandler
    }
 
    dxeCtxt = (WLANDXE_CtrlBlkType *)(msgContent->pContext);
+
+   if((WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState) ||
+      (WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState))
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+         "%s Riva is in %d, Just Pull frames without any register touch ",
+           __FUNCTION__, dxeCtxt->hostPowerState);
+
+      /* Not to touch any register, just pull frame directly from chain ring
+       * First high priority */
+      channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI];
+      status = dxeRXFrameReady(dxeCtxt,
+                               channelCb);
+      if(eWLAN_PAL_STATUS_SUCCESS != status)
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "dxeRXEventHandler Pull from RX high channel fail");        
+      }
+
+       /* Second low priority */
+      channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI];
+      status = dxeRXFrameReady(dxeCtxt,
+                               channelCb);
+      if(eWLAN_PAL_STATUS_SUCCESS != status)
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "dxeRXEventHandler Pull from RX low channel fail");        
+      }
+
+      /* Interrupt will not enabled at here, it will be enabled at PS mode change */
+      tempDxeCtrlBlk->rxIntDisabledByIMPS = eWLAN_PAL_TRUE;
+      return;
+   }
 
    /* Disable device interrupt */
    /* Read whole interrupt mask register and exclusive only this channel int */
@@ -1872,26 +1896,9 @@ static void dxeRXISR
 {
    WLANDXE_CtrlBlkType      *dxeCtxt    = (WLANDXE_CtrlBlkType *)hostCtxt;
    wpt_status                status     = eWLAN_PAL_STATUS_SUCCESS;
+#ifdef FEATURE_R33D
    wpt_uint32                regValue;
-
-   /* Return from here if the RIVA is in IMPS, to avoid register access */
-   if((WLANDXE_POWER_STATE_IMPS == tempDxeCtrlBlk->hostPowerState) ||
-      (WLANDXE_POWER_STATE_IMPS_PENDING == tempDxeCtrlBlk->hostPowerState))
-   {
-      /* Disable interrupt at here
-       * IMPS or IMPS pending state should not access RIVA register */
-      status = wpalDisableInterrupt(DXE_INTERRUPT_RX_READY);
-      if(eWLAN_PAL_STATUS_SUCCESS != status)
-      {
-         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                  "dxeRXFrameReadyISR Disable RX ready interrupt fail");
-         return;         
-      }
-      dxeCtxt->rxIntDisabledByIMPS = eWLAN_PAL_TRUE;
-      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
-         "%s Riva is in %d, return from here ", __FUNCTION__, tempDxeCtrlBlk->hostPowerState);
-      return;
-   }
+#endif /* FEATURE_R33D */
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
@@ -1904,6 +1911,7 @@ static void dxeRXISR
       return;
    }
 
+#ifdef FEATURE_R33D
    status = wpalReadRegister(WLANDXE_INT_SRC_RAW_ADDRESS,
                                   &regValue);
    if(eWLAN_PAL_STATUS_SUCCESS != status)
@@ -1920,6 +1928,7 @@ static void dxeRXISR
                "This is not DXE Interrupt, Reject it 0x%x", regValue);
       return;
    }
+#endif /* FEATURE_R33D */
 
    /* Disable interrupt at here
     * Disable RX Ready system level Interrupt at here
@@ -1932,7 +1941,7 @@ static void dxeRXISR
       return;         
    }
 
-
+#if 0
    /* Prepare Control Register EN Channel */
    wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].channelRegister.chDXECtrlRegAddr,
                      dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].extraConfig.chan_mask_read_disable);
@@ -1940,7 +1949,7 @@ static void dxeRXISR
    /* Prepare Control Register EN Channel */
    wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].channelRegister.chDXECtrlRegAddr,
                      dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].extraConfig.chan_mask_read_disable);
-
+#endif
    /* Serialize RX Ready interrupt upon RX thread */
    HDXE_ASSERT(NULL != dxeCtxt->rxIsrMsg);
    status = wpalPostRxMsg(WDI_GET_PAL_CTX(),
@@ -2496,16 +2505,14 @@ void dxeTXEventHandler
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
 
+   dxeCtxt = (WLANDXE_CtrlBlkType *)(msgContent->pContext);
    /* Return from here if the RIVA is in IMPS, to avoid register access */
-   if((WLANDXE_POWER_STATE_IMPS == tempDxeCtrlBlk->hostPowerState) ||
-      (WLANDXE_POWER_STATE_IMPS_PENDING == tempDxeCtrlBlk->hostPowerState))
+   if(WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
-         "%s Riva is in %d, return from here ", __FUNCTION__, tempDxeCtrlBlk->hostPowerState);
+         "%s Riva is in %d, return from here ", __FUNCTION__, dxeCtxt->hostPowerState);
       return;
    }
-
-   dxeCtxt = (WLANDXE_CtrlBlkType *)(msgContent->pContext);
 
    dxeCtxt->ucTxMsgCnt = 0;   
    
@@ -2764,11 +2771,15 @@ static void dxeTXISR
 {
    WLANDXE_CtrlBlkType      *dxeCtxt    = (WLANDXE_CtrlBlkType *)hostCtxt;
    wpt_status                status  = eWLAN_PAL_STATUS_SUCCESS;
+#ifdef FEATURE_R33D
    wpt_uint32                regValue;
+#endif /* FEATURE_R33D */
+
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
+            "%s Enter", __FUNCTION__);
 
    /* Return from here if the RIVA is in IMPS, to avoid register access */
-   if((WLANDXE_POWER_STATE_IMPS == tempDxeCtrlBlk->hostPowerState) ||
-      (WLANDXE_POWER_STATE_IMPS_PENDING == tempDxeCtrlBlk->hostPowerState))
+   if(WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState)
    {
       /* Disable interrupt at here,
          IMPS or IMPS Pending state should not access RIVA register */
@@ -2781,13 +2792,11 @@ static void dxeTXISR
       }
       dxeCtxt->txIntDisabledByIMPS = eWLAN_PAL_TRUE;
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
-         "%s Riva is in %d, return from here ", __FUNCTION__, tempDxeCtrlBlk->hostPowerState);
+         "%s Riva is in %d, return from here ", __FUNCTION__, dxeCtxt->hostPowerState);
       return;
    }
 
-   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
-            "%s Enter", __FUNCTION__);
-
+#ifdef FEATURE_R33D
    status = wpalReadRegister(WLANDXE_INT_SRC_RAW_ADDRESS,
                                   &regValue);
    if(eWLAN_PAL_STATUS_SUCCESS != status)
@@ -2804,6 +2813,7 @@ static void dxeTXISR
                "This is not DXE Interrupt, Reject it");
       return;
    }
+#endif /* FEATURE_R33D */
 
    /* Disable TX Complete Interrupt at here */
    status = wpalDisableInterrupt(DXE_INTERRUPT_TX_COMPLE);
@@ -3635,11 +3645,10 @@ void dxeTxThreadSetPowerStateEventHandler
             status = eWLAN_PAL_STATUS_E_INVAL;
          }
          break;
-      case WLANDXE_POWER_STATE_IMPS_PENDING:
+      case WLANDXE_POWER_STATE_IMPS:
          if(WLANDXE_RIVA_POWER_STATE_ACTIVE == dxeCtxt->rivaPowerState)
          {
             dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_IMPS_UNKNOWN;
-            dxeCtxt->hostPowerState = WLANDXE_POWER_STATE_IMPS;
          }
          else
          {
@@ -3653,6 +3662,9 @@ void dxeTxThreadSetPowerStateEventHandler
          }
          dxeCtxt->hostPowerState = reqPowerState;
          dxeNotifySmsm(eWLAN_PAL_FALSE, eWLAN_PAL_TRUE);
+         break;
+      case WLANDXE_POWER_STATE_DOWN:
+         WLANDXE_Stop((void *)dxeCtxt);         
          break;
       default:
          //assert
@@ -3789,7 +3801,10 @@ wpt_status WLANDXE_SetPowerState
          hostPowerState = WLANDXE_POWER_STATE_BMPS;
          break;
       case WDTS_POWER_STATE_IMPS:
-         hostPowerState = WLANDXE_POWER_STATE_IMPS_PENDING;
+         hostPowerState = WLANDXE_POWER_STATE_IMPS;
+         break;
+      case WDTS_POWER_STATE_DOWN:
+         hostPowerState = WLANDXE_POWER_STATE_DOWN;
          break;
       default:
          hostPowerState = WLANDXE_POWER_STATE_MAX;
@@ -3832,6 +3847,14 @@ wpt_status WLANDXE_SetPowerState
                   "Rx thread Set power state req serialize fail status=%d",
                   status, 0, 0);
       }
+      if(WDTS_POWER_STATE_IMPS == powerState)
+      {
+         pDxeCtrlBlk->hostPowerState = WLANDXE_POWER_STATE_IMPS;
+      }
+      else if(WDTS_POWER_STATE_DOWN == powerState)
+      {
+         pDxeCtrlBlk->hostPowerState = WLANDXE_POWER_STATE_DOWN;
+      }
    }
    else
    {
@@ -3848,11 +3871,6 @@ wpt_status WLANDXE_SetPowerState
       {
          pDxeCtrlBlk->hostPowerState = hostPowerState;
          pDxeCtrlBlk->rivaPowerState = WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN;
-      }
-      else if ( hostPowerState == WLANDXE_POWER_STATE_IMPS_PENDING )
-      {
-         pDxeCtrlBlk->hostPowerState = hostPowerState;
-         pDxeCtrlBlk->rivaPowerState = WLANDXE_RIVA_POWER_STATE_IMPS_UNKNOWN;
       }
       else
       {

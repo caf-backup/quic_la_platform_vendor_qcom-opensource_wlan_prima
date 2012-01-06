@@ -634,6 +634,14 @@ WDI_Status WDI_SendNvBlobReq
   WDI_EventInfoType*     pEventData
 );
 
+void
+WDI_SetPowerStateCb
+(
+   wpt_status status,
+   unsigned int dxePhyAddr,
+   void      *pContext
+);
+
 #define CASE_RETURN_STRING( str )           \
     case ( ( str ) ): return( #str ); break \
 
@@ -6062,8 +6070,29 @@ WDI_ProcessStopReq
       It is safer to do it here than on the response - because a stop is imminent*/
      WDI_STATableStop(pWDICtx);
 
+     /* Reset the event to be not signalled */
+     if(WDI_STATUS_SUCCESS != wpalEventReset(&pWDICtx->setPowerStateEvent) )
+     {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "WDI Init failed to reset power state event");
+
+        WDI_ASSERT(0); 
+        return VOS_STATUS_E_FAILURE;
+     }
      /* Stop Transport Driver, DXE */
-     WDTS_Stop(pWDICtx);
+     WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_DOWN, WDI_SetPowerStateCb);
+     /*
+      * Wait for the event to be set once the ACK comes back from DXE 
+      */
+     if(WDI_STATUS_SUCCESS != wpalEventWait(&pWDICtx->setPowerStateEvent, 
+                                            WDI_SET_POWER_STATE_TIMEOUT))
+     {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "WDI Init failed to wait on an event");
+
+        WDI_ASSERT(0); 
+        return VOS_STATUS_E_FAILURE;
+      }
   }
 
   /*-------------------------------------------------------------------------
