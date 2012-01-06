@@ -1941,15 +1941,6 @@ static void dxeRXISR
       return;         
    }
 
-#if 0
-   /* Prepare Control Register EN Channel */
-   wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].channelRegister.chDXECtrlRegAddr,
-                     dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].extraConfig.chan_mask_read_disable);
-
-   /* Prepare Control Register EN Channel */
-   wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].channelRegister.chDXECtrlRegAddr,
-                     dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].extraConfig.chan_mask_read_disable);
-#endif
    /* Serialize RX Ready interrupt upon RX thread */
    HDXE_ASSERT(NULL != dxeCtxt->rxIsrMsg);
    status = wpalPostRxMsg(WDI_GET_PAL_CTX(),
@@ -2779,7 +2770,8 @@ static void dxeTXISR
             "%s Enter", __FUNCTION__);
 
    /* Return from here if the RIVA is in IMPS, to avoid register access */
-   if(WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState)
+   if((WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState) ||
+      (WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState))
    {
       /* Disable interrupt at here,
          IMPS or IMPS Pending state should not access RIVA register */
@@ -3673,7 +3665,8 @@ void dxeTxThreadSetPowerStateEventHandler
 
    /* If previous host power state was IMPS and new host power state is not IMPS,
       RX interrupt should be enabled, since  */
-   if(WLANDXE_POWER_STATE_IMPS != dxeCtxt->hostPowerState)
+   if((WLANDXE_POWER_STATE_IMPS != dxeCtxt->hostPowerState) &&
+      (WLANDXE_POWER_STATE_DOWN != dxeCtxt->hostPowerState))
    {
       if(eWLAN_PAL_TRUE == dxeCtxt->rxIntDisabledByIMPS)
       {
@@ -3801,9 +3794,11 @@ wpt_status WLANDXE_SetPowerState
          hostPowerState = WLANDXE_POWER_STATE_BMPS;
          break;
       case WDTS_POWER_STATE_IMPS:
+         pDxeCtrlBlk->hostPowerState = WLANDXE_POWER_STATE_IMPS;
          hostPowerState = WLANDXE_POWER_STATE_IMPS;
          break;
       case WDTS_POWER_STATE_DOWN:
+         pDxeCtrlBlk->hostPowerState = WLANDXE_POWER_STATE_DOWN;
          hostPowerState = WLANDXE_POWER_STATE_DOWN;
          break;
       default:
@@ -3846,14 +3841,6 @@ wpt_status WLANDXE_SetPowerState
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                   "Rx thread Set power state req serialize fail status=%d",
                   status, 0, 0);
-      }
-      if(WDTS_POWER_STATE_IMPS == powerState)
-      {
-         pDxeCtrlBlk->hostPowerState = WLANDXE_POWER_STATE_IMPS;
-      }
-      else if(WDTS_POWER_STATE_DOWN == powerState)
-      {
-         pDxeCtrlBlk->hostPowerState = WLANDXE_POWER_STATE_DOWN;
       }
    }
    else

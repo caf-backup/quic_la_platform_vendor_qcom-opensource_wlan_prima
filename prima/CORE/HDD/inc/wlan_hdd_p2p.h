@@ -52,8 +52,8 @@ int wlan_hdd_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy,
 int hdd_setP2pPs( struct net_device *dev, void *msgData );
 
 void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
-                            tANI_U32 nProbeReqLength,
-                            tANI_U32 nActionLength, tANI_U8* pbFrames,
+                            tANI_U32 nFrameLength, tANI_U8* pbFrames,
+                            tANI_U8 frameType,
                             tANI_U32 rxChan);
 
 void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter );

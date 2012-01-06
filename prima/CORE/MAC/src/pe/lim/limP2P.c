@@ -3,7 +3,7 @@
 
   OVERVIEW:
 
-  This software unit holds the implementation of the WLAN Protocol Engine for 
+  This software unit holds the implementation of the WLAN Protocol Engine for
   P2P.
 
   Copyright (c) 2011 QUALCOMM Incorporated.
@@ -395,7 +395,7 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
  *
  *------------------------------------------------------------------*/
 void limSendSmeMgmtFrameInd(
-                    tpAniSirGlobal pMac, tSirSmeMgmtFrameType frameType,
+                    tpAniSirGlobal pMac, tANI_U8 frameType,
                     tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId,
                     tANI_U32 rxChannel)
 {

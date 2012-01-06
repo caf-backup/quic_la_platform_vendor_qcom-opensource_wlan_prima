@@ -17,7 +17,7 @@
 #elif defined FEATURE_WLAN_INTEGRATED_SOC
 #include "wlan_qct_wdi_ds.h"
 #include "wlan_qct_pal_packet.h"
-#include "wlan_qct_wda.h"  
+#include "wlan_qct_wda.h"
 #endif
 
 #ifdef ANI_PRODUCT_TYPE_AP
@@ -621,7 +621,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
                 FL("rcvd frame match with registered frame params\n"));
 
         /* Indicate this to SME */
-        limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
+        limSendSmeMgmtFrameInd( pMac, pHdr->fc.subType, (tANI_U8*)pHdr, 
                      WDA_GET_RX_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      pLimMgmtRegistration->sessionId,
                      WDA_GET_RX_CH(pBd) );

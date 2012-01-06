@@ -1865,7 +1865,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               {
                  /* Forward to the SME to HDD to wpa_supplicant */
                  // type is ACTION
-                 limSendSmeMgmtFrameInd(pMac, eSIR_MGMT_FRM_ACTION, 
+                 limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
                     (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0, 
                     WDA_GET_RX_CH( pRxPacketInfo ));
               }
@@ -1935,7 +1935,7 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
                 {
                   /* Forward to the SME to HDD to wpa_supplicant */
                   // type is ACTION
-                  limSendSmeMgmtFrameInd(pMac, eSIR_MGMT_FRM_ACTION, 
+                  limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
                       (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
                       WDA_GET_RX_CH( pBd ));
                 }

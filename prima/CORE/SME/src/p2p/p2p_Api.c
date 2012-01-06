@@ -100,15 +100,9 @@ eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm)
     tCsrRoamInfo pRoamInfo = {0};
     tANI_U32 pSessionId = pSmeMgmtFrm->sessionId;
 
-    if(pSmeMgmtFrm->frameType == eSIR_MGMT_FRM_PROBE_REQ)
-    {
-        pRoamInfo.nProbeReqLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
-    }
-    else if(pSmeMgmtFrm->frameType == eSIR_MGMT_FRM_ACTION)
-    {
-        pRoamInfo.nActionLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
-    }
+    pRoamInfo.nFrameLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
     pRoamInfo.pbFrames = pSmeMgmtFrm->frameBuf;
+    pRoamInfo.frameType = pSmeMgmtFrm->frameType;
     pRoamInfo.rxChan   = pSmeMgmtFrm->rxChan;
 
     /* forward the mgmt frame to HDD */
@@ -274,7 +268,7 @@ eHalStatus p2pSetPs(tHalHandle hHal, tP2pPsConfig *pNoA)
     if(HAL_STATUS_SUCCESS(status))
     {
         palZeroMemory(pMac->hHdd, pNoAParam, sizeof(tP2pPsConfig));
-        palCopyMemory(pMac->hHdd, pNoAParam, pNoA, sizeof(tP2pPsConfig));
+        palCopyMemory(pMac->hHdd, pNoAParam, pNoA, sizeof(tP2pPsConfig)); 
         msg.type = eWNI_SME_UPDATE_NOA;
         msg.bodyval = 0;
         msg.bodyptr = pNoAParam;

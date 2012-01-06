@@ -910,24 +910,9 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
 {
   VOS_STATUS vosStatus;
 
-  /* SYS STOP will stop SME and MAC */
-  vosStatus = sysStop( vosContext);
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to stop SYS", __func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-
-  vosStatus = WLANTL_Stop( vosContext );
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to stop TL", __func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
+  /* WDA_Stop is called before the SYS so that the processing of Riva 
+  pending responces will not be handled during uninitialization of WLAN driver */
   vos_event_reset( &(gpVosContext->wdaCompleteEvent) );
 
   vosStatus = WDA_stop( vosContext, HAL_STOP_TYPE_RF_KILL );
@@ -957,6 +942,23 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      VOS_ASSERT(0);
   }
 #endif
+
+  /* SYS STOP will stop SME and MAC */
+  vosStatus = sysStop( vosContext);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to stop SYS", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  vosStatus = WLANTL_Stop( vosContext );
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to stop TL", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
    /**

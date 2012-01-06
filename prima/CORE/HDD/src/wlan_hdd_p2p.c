@@ -32,6 +32,17 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
                                   hdd_cfg80211_state_t* cfgState,
                                   tANI_BOOLEAN actionSendSuccess );
 
+static void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
+                                               tANI_U32 nFrameLength, 
+                                               tANI_U8* pbFrames,
+                                               tANI_U8 frameType );
+
+void hdd_indicateMgmtFrame( hdd_adapter_t *pMonAdapter,
+                            tANI_U32 nFrameLength, 
+                            tANI_U8* pbFrames,
+                            tANI_U8 frameType,
+                            tANI_U32 rxChan );
+
 #ifdef WLAN_FEATURE_P2P
 eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                                                 eHalStatus status )
@@ -607,46 +618,18 @@ int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct net_device *dev )
      return 0;
 }
 
-void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
-                            tANI_U32 nProbeReqLength,
-                            tANI_U32 nActionLength, tANI_U8* pbFrames,
-                            tANI_U32 rxChan )
+void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
+                                        tANI_U32 nFrameLength, tANI_U8* pbFrames,
+                                        tANI_U8 frameType )  
 {
+    //Indicate a Frame over Monitor Intf.
     int rxstat;
-
-    if( nActionLength )
-    {
-        tANI_U16 freq;
-        hddLog( LOGE, FL("Indicate Action Frame over NL80211 Intf"));
-        //Channel indicated may be wrong. TODO
-        //Indicate an action frame.
-        if( rxChan <= MAX_NO_OF_2_4_CHANNELS )
-        {
-           freq = ieee80211_channel_to_frequency( rxChan,
-                                                       IEEE80211_BAND_2GHZ);
-        }
-        else
-        {
-           freq = ieee80211_channel_to_frequency( rxChan,
-                                                       IEEE80211_BAND_5GHZ);
-        }
-        cfg80211_rx_mgmt( pAdapter->dev, freq,
-                          pbFrames,
-                          nActionLength, GFP_ATOMIC );
-    }
-    else if( nProbeReqLength )
-    {
-        //Indicate an probe request frame.
     struct sk_buff *skb = NULL;
-        hdd_adapter_t *pMonAdapter =
-                   hdd_get_mon_adapter( WLAN_HDD_GET_CTX(pAdapter) );
     int needed_headroom = 0;
     int flag = HDD_RX_FLAG_IV_STRIPPED | HDD_RX_FLAG_DECRYPTED |
                HDD_RX_FLAG_MMIC_STRIPPED;
 
-        hddLog( LOGE, FL("Indicate Action Frame over Monitor Intf"));
-
-        if( NULL == pMonAdapter ) return;
+    hddLog( LOGE, FL("Indicate Frame over Monitor Intf"));
 
     VOS_ASSERT( (pbFrames != NULL) );
 
@@ -664,20 +647,19 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
          return;
      }
      skb_reserve(skb, VPKT_SIZE_BUFFER);
-        if (unlikely(skb_headroom(skb) < nProbeReqLength))
+     if (unlikely(skb_headroom(skb) < nFrameLength))
      {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                    "HDD [%d]: Insufficient headroom, "
                    "head[%p], data[%p], req[%d]",
-                     __LINE__, skb->head, skb->data, nProbeReqLength);
+                   __LINE__, skb->head, skb->data, nFrameLength);
          kfree_skb(skb);
          return ;
      }
      // actually push the data
-        memcpy(skb_push(skb, nProbeReqLength), pbFrames, nProbeReqLength);
+     memcpy(skb_push(skb, nFrameLength), pbFrames, nFrameLength);
      /* prepend radiotap information */
-        if( 0 != hdd_wlan_add_rx_radiotap_hdr( skb,
-                                needed_headroom, flag ) )
+     if( 0 != hdd_wlan_add_rx_radiotap_hdr( skb, needed_headroom, flag ) )
      {
          hddLog( LOGE, FL("Not Able Add Radio Tap"));
          //free skb
@@ -696,9 +678,61 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
      }
      else
          hddLog( LOGE, FL("Failed %d"), rxstat);                   
+
+     return ;
 }
+
+void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
+                            tANI_U32 nFrameLength, 
+                            tANI_U8* pbFrames,
+                            tANI_U8 frameType,
+                            tANI_U32 rxChan )
+{
+    tANI_U16 freq;
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d\n",
+            __func__, frameType, nFrameLength);
+
+    if( !nFrameLength )
+    {
+        hddLog( LOGE, FL("Frame Length is Invalid ZERO"));
         return;
     }
+
+    if( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) 
+            || ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
+      )
+    {
+        hdd_adapter_t *pMonAdapter =
+            hdd_get_mon_adapter( WLAN_HDD_GET_CTX(pAdapter) );
+
+        if( NULL != pMonAdapter )
+        {
+            hdd_sendMgmtFrameOverMonitorIface( pMonAdapter, nFrameLength,
+                    pbFrames, frameType);
+            return;
+        }
+    }
+
+    hddLog( LOGE, FL("Indicate Action Frame over NL80211 Intf"));
+    //Channel indicated may be wrong. TODO
+    //Indicate an action frame.
+    if( rxChan <= MAX_NO_OF_2_4_CHANNELS )
+    {
+        freq = ieee80211_channel_to_frequency( rxChan,
+                IEEE80211_BAND_2GHZ);
+    }
+    else
+    {
+        freq = ieee80211_channel_to_frequency( rxChan,
+                IEEE80211_BAND_5GHZ);
+    }
+
+    //Indicate Frame Over Normal Interface
+    hddLog( LOGE, FL("Indicate Frame over NL80211 Intf"));
+    cfg80211_rx_mgmt( pAdapter->dev, freq,
+                      pbFrames, nFrameLength, 
+                      GFP_ATOMIC );
+}
 
 /*
  * ieee80211_add_rx_radiotap_header - add radiotap header

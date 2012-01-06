@@ -39,28 +39,28 @@
  *     FAILURE_XXX  Request was rejected due XXX Reason.
  *
  */
-WDI_Status WDI_DS_Register( void *pContext, 
+WDI_Status WDI_DS_Register( void *pContext,
   WDI_DS_TxCompleteCallback pfnTxCompleteCallback,
-  WDI_DS_RxPacketCallback pfnRxPacketCallback, 
+  WDI_DS_RxPacketCallback pfnRxPacketCallback,
   WDI_DS_TxFlowControlCallback pfnTxFlowControlCallback,
   void *pCallbackContext)
 {
-  WDI_DS_ClientDataType *pClientData = 
-    (WDI_DS_ClientDataType *)WDI_DS_GetDatapathContext(pContext);
-  WDI_Status sWdiStatus = WDI_STATUS_SUCCESS;
-
-  if(!pClientData)
-    return WDI_STATUS_MEM_FAILURE;
+  WDI_DS_ClientDataType *pClientData;
 
   // Do Sanity checks
-  if(NULL == pContext ||
-     NULL == pCallbackContext || 
-     NULL == pfnTxCompleteCallback || 
-     NULL == pfnRxPacketCallback || 
-     NULL == pfnTxFlowControlCallback) {
+  if (NULL == pContext ||
+      NULL == pCallbackContext ||
+      NULL == pfnTxCompleteCallback ||
+      NULL == pfnRxPacketCallback ||
+      NULL == pfnTxFlowControlCallback) {
     return WDI_STATUS_E_FAILURE;
   }
-  
+
+  pClientData = (WDI_DS_ClientDataType *)WDI_DS_GetDatapathContext(pContext);
+  if (NULL == pClientData)
+  {
+    return WDI_STATUS_MEM_FAILURE;
+  }
 
   // Store callbacks in client structure
   pClientData->pcontext = pContext;
@@ -68,14 +68,13 @@ WDI_Status WDI_DS_Register( void *pContext,
   pClientData->txCompleteCB = pfnTxCompleteCallback;
   pClientData->txResourceCB = pfnTxFlowControlCallback;
   pClientData->pCallbackContext = pCallbackContext;
-    
-  // rerurn status
-  return sWdiStatus;  
+
+  return WDI_STATUS_SUCCESS;
 }
 
 
 
-/* DAL Transmit function. 
+/* DAL Transmit function.
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
  *  pFrame:Refernce to PAL frame.
@@ -90,8 +89,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   wpt_packet *pFrame,
   wpt_boolean more)
 {
-  WDI_DS_ClientDataType *pClientData =  
-    (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
+  WDI_DS_ClientDataType *pClientData;
   wpt_uint8      ucSwFrameTXXlation;
   wpt_uint8      ucUP;
   wpt_uint8      ucTypeSubtype;
@@ -106,7 +104,14 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   wpt_uint8      ucBdPoolType;
 
   // Do Sanity checks
-  if(NULL == pContext || pClientData->suspend){
+  if (NULL == pContext)
+  {
+    return WDI_STATUS_E_FAILURE;
+  }
+
+  pClientData = (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
+  if (NULL == pClientData || pClientData->suspend)
+  {
     return WDI_STATUS_E_FAILURE;
   }
 

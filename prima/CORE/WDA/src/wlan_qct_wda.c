@@ -6440,27 +6440,35 @@ void WDA_EnterBmpsReqCallback(WDI_Status status, void* pUserData)
 VOS_STATUS WDA_ProcessEnterBmpsReq(tWDA_CbContext *pWDA,
                                    tEnterBmpsParams *pEnterBmpsReqParams)
 {
-   WDI_Status status = WDI_STATUS_SUCCESS ;
-   WDI_EnterBmpsReqParamsType *wdiEnterBmpsReqParams = 
-      (WDI_EnterBmpsReqParamsType *)vos_mem_malloc(
-         sizeof(WDI_EnterBmpsReqParamsType)) ;
-   tWDA_ReqParams *pWdaParams ;
+   WDI_Status status = WDI_STATUS_SUCCESS;
+   WDI_EnterBmpsReqParamsType *wdiEnterBmpsReqParams;
+   tWDA_ReqParams *pWdaParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
-   if(NULL == wdiEnterBmpsReqParams) 
+   if ((NULL == pWDA) || (NULL == pEnterBmpsReqParams))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+                           "%s: invalid param", __FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   wdiEnterBmpsReqParams = vos_mem_malloc(sizeof(WDI_EnterBmpsReqParamsType));
+   if (NULL == wdiEnterBmpsReqParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
-   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
-   if(NULL == pWdaParams)
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams));
+   if (NULL == pWdaParams)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__);
       VOS_ASSERT(0);
       vos_mem_free(wdiEnterBmpsReqParams);
       return VOS_STATUS_E_NOMEM;
@@ -6470,32 +6478,30 @@ VOS_STATUS WDA_ProcessEnterBmpsReq(tWDA_CbContext *pWDA,
    wdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucDtimCount = pEnterBmpsReqParams->dtimCount;
    wdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucDtimPeriod = pEnterBmpsReqParams->dtimPeriod;
    wdiEnterBmpsReqParams->wdiEnterBmpsInfo.uTbtt = pEnterBmpsReqParams->tbtt;
-      
+
    wdiEnterBmpsReqParams->wdiReqStatusCB = NULL;
-      
+
+   // we are done with the input
+   vos_mem_free(pEnterBmpsReqParams);
+
    /* Store param pointer as passed in by caller */
    /* store Params pass it to WDI */
    pWdaParams->wdaWdiApiMsgParam = wdiEnterBmpsReqParams;
    pWdaParams->pWdaContext = pWDA;
-   pWdaParams->wdaMsgParam = pEnterBmpsReqParams;
+   pWdaParams->wdaMsgParam = NULL;
 
    status = WDI_EnterBmpsReq(wdiEnterBmpsReqParams,
-                             (WDI_EnterBmpsRspCb)WDA_EnterBmpsReqCallback, pWdaParams);
+                    (WDI_EnterBmpsRspCb)WDA_EnterBmpsReqCallback, pWdaParams);
 
-   if(IS_WDI_STATUS_FAILURE(status))
+   if (IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "Failure in Enter BMPS REQ WDI API, free all the memory " );
-      vos_mem_free(pWdaParams->wdaMsgParam) ;
+              "Failure in Enter BMPS REQ WDI API, free all the memory" );
       vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-      vos_mem_free(pWdaParams) ;
+      vos_mem_free(pWdaParams);
    }
 
-   if(NULL != pEnterBmpsReqParams)
-   {
-      vos_mem_free(pEnterBmpsReqParams);
-   }
-   return CONVERT_WDI2VOS_STATUS(status) ;
+   return CONVERT_WDI2VOS_STATUS(status);
 }
 
 /*
@@ -6790,18 +6796,25 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
    v_PVOID_t      *configParam;
    tANI_U32       configParamSize;
    tANI_U32       *configDataValue;
-   WDI_UpdateCfgReqParamsType *wdiPowerSaveCfg = 
-                     (WDI_UpdateCfgReqParamsType *)vos_mem_malloc(
-                                             sizeof(WDI_UpdateCfgReqParamsType)) ;
-   tWDA_ReqParams *pWdaParams ;
+   WDI_UpdateCfgReqParamsType *wdiPowerSaveCfg;
+   tWDA_ReqParams *pWdaParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
-   if(NULL == wdiPowerSaveCfg) 
+   if ((NULL == pWDA) || (NULL == pPowerSaveCfg))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+                           "%s: invalid param", __FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   wdiPowerSaveCfg = vos_mem_malloc(sizeof(WDI_UpdateCfgReqParamsType));
+   if (NULL == wdiPowerSaveCfg)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
@@ -6946,16 +6959,14 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in Set Pwr Save CFG REQ WDI API, free all the memory " );
-      vos_mem_free(pWdaParams->wdaMsgParam) ;
+      vos_mem_free(pWdaParams->wdaMsgParam);
       vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams);
    }
 
-   if(NULL != pPowerSaveCfg)
-   {
-      vos_mem_free(pPowerSaveCfg);
-   }
-   return CONVERT_WDI2VOS_STATUS(status) ;
+   vos_mem_free(pPowerSaveCfg);
 
+   return CONVERT_WDI2VOS_STATUS(status);
 }
 
 /*

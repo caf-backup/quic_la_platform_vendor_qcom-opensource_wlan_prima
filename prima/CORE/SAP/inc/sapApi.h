@@ -131,8 +131,8 @@ typedef enum {
 } eSapPhyMode;
 
 typedef enum {
-    eSAP_ACCEPT_UNLESS_DENIED    = 0,
-    eSAP_DENY_UNLESS_ACCEPTED    = 1,
+    eSAP_ACCEPT_UNLESS_DENIED = 0,
+    eSAP_DENY_UNLESS_ACCEPTED = 1,
     eSAP_SUPPORT_ACCEPT_AND_DENY = 2, /* this type is added to support both accept and deny lists at the same time */
 } eSapMacAddrACL;
 
@@ -290,11 +290,8 @@ typedef struct sap_WPSPBCProbeReqEvent_s {
 
 #ifdef WLAN_FEATURE_P2P
 typedef struct sap_ManagementFrameInfo_s {
-    tANI_U32 nBeaconLength; //the length, in bytes, of the beacon frame, can be 0
-    tANI_U32 nAssocReqLength;   //the length, in bytes, of the assoc req frame, can be 0
-    tANI_U32 nAssocRspLength;   //The length, in bytes, of the assoc rsp frame, can be 0
-    tANI_U32 nProbeReqLength;   //The length, in bytes, of the probe req frame, can be 0
-    tANI_U32 nActionLength;     //The length, in bytes, of the action frame, can be 0
+    tANI_U32 nFrameLength;
+    tANI_U8  frameType;
     tANI_U32 rxChan;            //Channel of where packet is recevied 
     tANI_U8 *pbFrames;         //Point to a buffer contain the beacon, assoc req, assoc rsp frame, in that order
                              //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where

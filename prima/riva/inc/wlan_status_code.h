@@ -6,7 +6,7 @@
  *             All status codes have been consolidated into one enum
  *
  *  @author:   Kumar Anand
- *             Copyright (C) 2010, Qualcomm, Inc. 
+ *             Copyright (C) 2010, Qualcomm, Inc.
  *             All rights reserved.
  *
  *=========================================================================*/
@@ -36,26 +36,26 @@ typedef enum
 
    /* HAL Request succeeded!*/
    eHAL_STATUS_SUCCESS = 0,
- 
-	/* Request failed because there of an invalid request.  This is 
+
+   /* Request failed because there of an invalid request.  This is
       typically the result of invalid parameters on the request*/
    PAL_STATUS_INVAL,
 
-	/* Request refused because a request is already in place and 
-   	another cannot be handled currently */
+   /* Request refused because a request is already in place and
+      another cannot be handled currently */
    PAL_STATUS_ALREADY,
 
-	/* Request failed because of an empty condition */
+   /* Request failed because of an empty condition */
    PAL_STATUS_EMPTY,
 
-	/* Request failed for some unknown reason. */
+   /* Request failed for some unknown reason. */
    PAL_STATUS_FAILURE,
 
    /* HAL general failure */
    eHAL_STATUS_FAILURE,
 
    /* Invalid Param*/
-   eHAL_STATUS_INVALID_PARAMETER,   
+   eHAL_STATUS_INVALID_PARAMETER,
 
    /* Invalid Station Index*/
    eHAL_STATUS_INVALID_STAIDX,
@@ -80,7 +80,7 @@ typedef enum
 
    /* STA is invalid */
    eHAL_STATUS_STA_INVALID,
-   
+
    /* BSSID is is duplicate */
    eHAL_STATUS_DUPLICATE_BSSID,
 
@@ -101,7 +101,7 @@ typedef enum
 
    /* UMA descriptor table is full */
    eHAL_STATUS_UMA_DESCRIPTOR_TABLE_FULL,
-   
+
    /* MIC Key table is full */
    eHAL_STATUS_DPU_MICKEY_TABLE_FULL,
 
@@ -109,11 +109,11 @@ typedef enum
    eHAL_STATUS_BA_RX_BUFFERS_FULL,
    eHAL_STATUS_BA_RX_MAX_SESSIONS_REACHED,
    eHAL_STATUS_BA_RX_INVALID_SESSION_ID,
-   
+
    eHAL_STATUS_TIMER_START_FAILED,
    eHAL_STATUS_TIMER_STOP_FAILED,
    eHAL_STATUS_FAILED_ALLOC,
-   
+
    /* Scan failure codes */
    eHAL_STATUS_NOTIFY_BSS_FAIL,
 
@@ -125,7 +125,7 @@ typedef enum
 
    /* Message from SLM has failure status */
    eHAL_STATUS_FW_SEND_MSG_FAILED,
-   
+
    /* Max status value */
    eHAL_STATUS_MAX_VALUE = WLAN_STATUS_MAX_ENUM_SIZE
 

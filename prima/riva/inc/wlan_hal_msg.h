@@ -78,7 +78,7 @@ typedef tANI_U8 tHalIpv4Addr[4];
 #define PARAM_BEACON_UPDATE_MASK                (PARAM_BCN_INTERVAL_CHANGED|PARAM_SHORT_PREAMBLE_CHANGED|PARAM_SHORT_SLOT_TIME_CHANGED|PARAM_llACOEXIST_CHANGED |PARAM_llBCOEXIST_CHANGED|\
     PARAM_llGCOEXIST_CHANGED|PARAM_HT20MHZCOEXIST_CHANGED|PARAM_NON_GF_DEVICES_PRESENT_CHANGED|PARAM_RIFS_MODE_CHANGED|PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED| PARAM_OBSS_MODE_CHANGED)
 
-/*Dump command responce Buffer size*/
+/*Dump command response Buffer size*/
 #define DUMPCMD_RSP_BUFFER 100
 
 /*Version string max length (including NUL) */
@@ -1036,7 +1036,7 @@ typedef PACKED_PRE struct PACKED_POST
     tSirMacMgmtHdr macMgmtHdr;
 
     /*Entry to hold number of active BSS idx's*/
-	tSirScanEntry scanEntry;
+    tSirScanEntry scanEntry;
 
 } tFinishScanParams, *tpFinishScanParams;
 
@@ -1428,10 +1428,10 @@ typedef PACKED_PRE struct PACKED_POST
     /*DTIM period*/
     tANI_U8 dtimPeriod;
 
-     /*TX Width Set: 0 - 20 MHz only, 1 - 20/40 MHz*/	
+    /*TX Width Set: 0 - 20 MHz only, 1 - 20/40 MHz*/
     tANI_U8 txChannelWidthSet;
 
-    /*Operating channel*/	
+    /*Operating channel*/
     tANI_U8 currentOperChannel;
 
     /*Extension channel for channel bonding*/
@@ -2387,7 +2387,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     tHalMsgHeader header;
-    tAddTsParams  addTsParams;	
+    tAddTsParams  addTsParams;
 }  tAddTsReqMsg, *tpAddTsReqMsg;
 
 /*---------------------------------------------------------------------------
@@ -2633,7 +2633,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
    
-    /* TO SUPPORT BT-AMP */	
+    /* TO SUPPORT BT-AMP */
     tSirMacAddr  bssId; 
 
     /* success or failure */
@@ -2793,13 +2793,13 @@ typedef PACKED_PRE struct PACKED_POST
 
 typedef PACKED_PRE struct PACKED_POST
 {
-	tSirMacAddr  srcMacAddr;     //address used to compute MIC 
+    tSirMacAddr  srcMacAddr;     //address used to compute MIC 
     tSirMacAddr  taMacAddr;      //transmitter address
     tSirMacAddr  dstMacAddr;
-	tANI_U8      multicast;             
-	tANI_U8      IV1;            // first byte of IV
-	tANI_U8      keyId;          // second byte of IV
-	tANI_U8      TSC[SIR_CIPHER_SEQ_CTR_SIZE]; // sequence number
+    tANI_U8      multicast;             
+    tANI_U8      IV1;            // first byte of IV
+    tANI_U8      keyId;          // second byte of IV
+    tANI_U8      TSC[SIR_CIPHER_SEQ_CTR_SIZE]; // sequence number
     tSirMacAddr  rxMacAddr;      // receive address
 } tSirMicFailureInfo, *tpSirMicFailureInfo;
 
@@ -2933,7 +2933,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* Link Parameters */
     tSirMacAddr BSSID;
-    /* success or failure */	
+    /* success or failure */
     tANI_U32   status;
 }tEnableRadarRspParams, *tpEnableRadarRspParams;
 
@@ -3003,7 +3003,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    /* success or failure */	
+    /* success or failure */
     tANI_U32   status;
 }tSirGetTpcReportRspParams, *tpSirGetTpcReportRspParams;
 
@@ -3316,11 +3316,11 @@ typedef PACKED_PRE struct PACKED_POST
 /* Keep Alive request. */
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_U8          packetType;	
+    tANI_U8          packetType;
     tANI_U32         timePeriod;
     tHalIpv4Addr     hostIpv4Addr; 
-    tHalIpv4Addr     destIpv4Addr; 	
-    tSirMacAddr      destMacAddr;	
+    tHalIpv4Addr     destIpv4Addr;
+    tSirMacAddr      destMacAddr;
 } tHalKeepAliveReq, *tpHalKeepAliveReq;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4656,7 +4656,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     tANI_U8                         filterId;
-    tANI_U8                         filterType;	
+    tANI_U8                         filterType;
     tANI_U8                         numParams; 
     tANI_U32                        coleasceTime; 
     tHalRcvPktFilterParams          paramsData[1];

@@ -196,7 +196,7 @@ void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
     int event_len = strlen(autoShutEvent) + 1; /* For the NULL at the end */
 
     ENTER();
-    
+
 #ifdef DISABLE_CONCURRENCY_AUTOSAVE    
     if (vos_concurrent_sessions_running())
     {  
@@ -433,28 +433,27 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                    hddLog(LOGE, FL("Failed to start AP inactivity timer\n"));
             }
 #ifdef CONFIG_CFG80211
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
-                struct ieee80211_mgmt *mgmt;
+                struct station_info staInfo;
                 v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
-                v_U16_t size =  (24 + sizeof(mgmt->u.assoc_resp) + iesLen);
-                mgmt = vos_mem_malloc(size);
-                if (mgmt != NULL)
+
+                memset(&staInfo, 0, sizeof(staInfo));
+                if (iesLen <= MAX_ASSOC_IND_IE_LEN )
                 {
-                    memcpy(mgmt->da, &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac, 6);
-                    memcpy(mgmt->sa, &pHostapdAdapter->macAddressCurrent, 6);
-                    memcpy(mgmt->bssid, &pHostapdAdapter->macAddressCurrent, 6);
-                    mgmt->u.assoc_resp.status_code = 
-                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.statusCode;
-                    memcpy(mgmt->u.assoc_resp.variable,
-                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies,iesLen);
-                    cfg80211_send_rx_assoc(dev,(const u8 *)mgmt,size);
-                    vos_mem_free(mgmt);
+                    staInfo.assoc_req_ies =
+                        (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies[0];
+                    staInfo.assoc_req_ies_len = iesLen;
+                    cfg80211_new_sta(dev,
+                                 (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac.bytes[0],
+                                 &staInfo, GFP_KERNEL);
                 }
                 else
                 {
-                    hddLog(LOGE, FL("HDD: Failed to allocate memory for assoc req\n"));
+                    hddLog(LOGE, FL(" Assoc Ie length is too long \n"));
                 }
              }
+#endif
 #endif
 
             break;
@@ -502,21 +501,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 }
             }
 #ifdef CONFIG_CFG80211
-            {
-                struct ieee80211_mgmt mgmt;
-                v_U16_t size =  (24 + sizeof(mgmt.u.disassoc));
-
-                mgmt.u.disassoc.reason_code = 
-                   pSapEvent->sapevt.sapStationDisassocCompleteEvent.reason;
-                memcpy(mgmt.da, &pHostapdAdapter->macAddressCurrent, 6);
-                memcpy(
-                 mgmt.sa, 
-                 &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
-                 6);
-                memcpy( mgmt.bssid, &pHostapdAdapter->macAddressCurrent, 6);
-
-                cfg80211_send_disassoc(dev, (const u8 *)&mgmt, size);
-            }
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+            cfg80211_del_sta(dev,
+                            (const u8 *)&pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac.bytes[0],
+                            GFP_KERNEL);
+#endif
 #endif
             break;
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:
@@ -557,9 +546,9 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #ifdef WLAN_FEATURE_P2P
         case eSAP_INDICATE_MGMT_FRAME:
            hdd_indicateMgmtFrame( pHostapdAdapter, 
-                                 pSapEvent->sapevt.sapManagementFrameInfo.nProbeReqLength, 
-                                 pSapEvent->sapevt.sapManagementFrameInfo.nActionLength, 
+                                 pSapEvent->sapevt.sapManagementFrameInfo.nFrameLength,
                                  pSapEvent->sapevt.sapManagementFrameInfo.pbFrames,
+                                 pSapEvent->sapevt.sapManagementFrameInfo.frameType, 
                                  pSapEvent->sapevt.sapManagementFrameInfo.rxChan);
            return VOS_STATUS_SUCCESS;
         case eSAP_REMAIN_CHAN_READY:
@@ -755,11 +744,11 @@ static iw_softap_setparam(struct net_device *dev,
                 {
                     hddLog(LOGW, FL("setMaxAssoc value %d higher than max allowed %d."
                                 "Setting it to max allowed and continuing"),
-                            set_value, WNI_CFG_ASSOC_STA_LIMIT_STAMAX);
+                                set_value, WNI_CFG_ASSOC_STA_LIMIT_STAMAX);
                     set_value = WNI_CFG_ASSOC_STA_LIMIT_STAMAX;
                 }
                 status = ccmCfgSetInt(hHal, WNI_CFG_ASSOC_STA_LIMIT,
-                        set_value, NULL, eANI_BOOLEAN_FALSE);
+                                      set_value, NULL, eANI_BOOLEAN_FALSE);
                 if ( status != eHAL_STATUS_SUCCESS ) 
                 {
                     hddLog(LOGE, FL("setMaxAssoc failure, status %d"),
@@ -952,7 +941,7 @@ static iw_softap_disassoc_sta(struct net_device *dev,
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     v_U8_t *peerMacAddr;    
-
+    
     ENTER();
     /* the comparison below is needed since if iwpriv tool is used for calling this ioctl
      * data is passed in extra (less than 16 octets); however in android wifi framework
@@ -1915,7 +1904,7 @@ static int iw_softap_stopbss(struct net_device *dev,
                 VOS_ASSERT(0);
             }
         }
-         clear_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
+        clear_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
     }
     EXIT();
     return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
@@ -2044,68 +2033,68 @@ static const iw_handler      hostapd_handler[] =
     IW_PRIV_TYPE_BYTE | sizeof(struct ieee80211req_mlme)
 
 static const struct iw_priv_args hostapd_private_args[] = {
-    { QCSAP_IOCTL_SETPARAM,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2, 0, "setparam" },
-    { QCSAP_IOCTL_SETPARAM,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "" },
-    { QCSAP_PARAM_MAX_ASSOC,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setMaxAssoc" },
-    { QCSAP_IOCTL_GETPARAM,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
-    { QCSAP_IOCTL_GETPARAM, 0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "" },
-    { QCSAP_PARAM_MAX_ASSOC, 0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
-    { QCSAP_PARAM_MODULE_DOWN_IND, 0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
-    { QCSAP_IOCTL_COMMIT,
-        IW_PRIV_TYPE_BYTE | sizeof(struct s_CommitConfig) | IW_PRIV_SIZE_FIXED, 0, "commit" },
-    { QCSAP_IOCTL_SETMLME,
-        IW_PRIV_TYPE_BYTE | sizeof(struct sQcSapreq_mlme)| IW_PRIV_SIZE_FIXED, 0, "setmlme" },
-    { QCSAP_IOCTL_GET_STAWPAIE,
-        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 1, 0, "get_staWPAIE" },
-    { QCSAP_IOCTL_SETWPAIE,
-        IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE | IW_PRIV_SIZE_FIXED, 0, "setwpaie" },
-    { QCSAP_IOCTL_STOPBSS,
-        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED, 0, "stopbss" },
-    { QCSAP_IOCTL_VERSION, 0,
-        IW_PRIV_TYPE_CHAR | QCSAP_MAX_WSC_IE, "version" },
-    { QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES,
-        IW_PRIV_TYPE_BYTE | sizeof(sQcSapreq_WPSPBCProbeReqIES_t) | IW_PRIV_SIZE_FIXED | 1, 0, "getProbeReqIEs" },
-    { QCSAP_IOCTL_GET_CHANNEL, 0,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | sizeof(signed long int), "getchannel" },
-    { QCSAP_IOCTL_ASSOC_STA_MACADDR, 0,
-        IW_PRIV_TYPE_BYTE | /*((WLAN_MAX_STA_COUNT*6)+100)*/1 , "get_assoc_stamac" },
+  { QCSAP_IOCTL_SETPARAM,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2, 0, "setparam" },
+  { QCSAP_IOCTL_SETPARAM,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "" },
+  { QCSAP_PARAM_MAX_ASSOC,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setMaxAssoc" },
+  { QCSAP_IOCTL_GETPARAM,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
+  { QCSAP_IOCTL_GETPARAM, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "" },
+  { QCSAP_PARAM_MAX_ASSOC, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
+  { QCSAP_PARAM_MODULE_DOWN_IND, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
+  { QCSAP_IOCTL_COMMIT,
+      IW_PRIV_TYPE_BYTE | sizeof(struct s_CommitConfig) | IW_PRIV_SIZE_FIXED, 0, "commit" },
+  { QCSAP_IOCTL_SETMLME,
+      IW_PRIV_TYPE_BYTE | sizeof(struct sQcSapreq_mlme)| IW_PRIV_SIZE_FIXED, 0, "setmlme" },
+  { QCSAP_IOCTL_GET_STAWPAIE,
+      IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 1, 0, "get_staWPAIE" },
+  { QCSAP_IOCTL_SETWPAIE,
+      IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE | IW_PRIV_SIZE_FIXED, 0, "setwpaie" },
+  { QCSAP_IOCTL_STOPBSS,
+      IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED, 0, "stopbss" },
+  { QCSAP_IOCTL_VERSION, 0,
+      IW_PRIV_TYPE_CHAR | QCSAP_MAX_WSC_IE, "version" },
+  { QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES,
+      IW_PRIV_TYPE_BYTE | sizeof(sQcSapreq_WPSPBCProbeReqIES_t) | IW_PRIV_SIZE_FIXED | 1, 0, "getProbeReqIEs" },
+  { QCSAP_IOCTL_GET_CHANNEL, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | sizeof(signed long int), "getchannel" },
+  { QCSAP_IOCTL_ASSOC_STA_MACADDR, 0,
+      IW_PRIV_TYPE_BYTE | /*((WLAN_MAX_STA_COUNT*6)+100)*/1 , "get_assoc_stamac" },
     { QCSAP_IOCTL_DISASSOC_STA,
         IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 6 , 0, "disassoc_sta" },
-    { QCSAP_IOCTL_AP_STATS,
+  { QCSAP_IOCTL_AP_STATS,
         IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE, 0, "ap_stats" },
 
-    { QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE,
+  { QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3, 0, "" },
-    /* handlers for sub-ioctl */
-    {   WE_SET_WLAN_DBG,
-        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
-        0, 
-        "setwlandbg" },
+   /* handlers for sub-ioctl */
+   {   WE_SET_WLAN_DBG,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+       0, 
+       "setwlandbg" },
 
-    /* handlers for main ioctl */
-    {   QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE,
-        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
-        0, 
-        "" },
+   /* handlers for main ioctl */
+   {   QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE,
+       IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+       0, 
+       "" },
 
-    /* handlers for sub-ioctl */
-    {   WE_LOG_DUMP_CMD,
-        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
-        0, 
-        "dump" },
+   /* handlers for sub-ioctl */
+   {   WE_LOG_DUMP_CMD,
+       IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+       0, 
+       "dump" },
 #ifdef WLAN_FEATURE_P2P
-    {   WE_P2P_NOA_CMD,
-        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
-        0, 
-        "SetP2pPs" },
+   {   WE_P2P_NOA_CMD,
+       IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+       0, 
+       "SetP2pPs" },
 #endif
     /* handlers for main ioctl */
     {   QCSAP_IOCTL_MODIFY_ACL,
@@ -2208,7 +2197,7 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     
     init_completion(&pAdapter->session_close_comp_var);
     init_completion(&pAdapter->session_open_comp_var);
- 
+
     sema_init(&(WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->semWpsPBCOverlapInd, 1);
  
      // Register as a wireless device
