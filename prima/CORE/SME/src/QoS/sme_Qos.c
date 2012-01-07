@@ -2731,10 +2731,7 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
                 "%s: %d: On session %d AP doesn't support QoS",
                 __FUNCTION__, __LINE__,
                 sessionId);
-      if(pIes)
-      {
-         vos_mem_free(pIes);
-      }
+      vos_mem_free(pIes);
       //notify HDD through the synchronous status msg
       return SME_QOS_STATUS_SETUP_NOT_QOS_AP_RSP;
    }
@@ -5885,6 +5882,13 @@ eHalStatus sme_QosSaveAssocInfo(sme_QosSessionInfo *pSession, sme_QosAssocInfo *
 {
    tSirBssDescription    *pBssDesc = NULL;
    v_U32_t                bssLen = 0;
+   if(NULL == pAssoc_info)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                "%s: %d: pAssoc_info is NULL",
+                __FUNCTION__, __LINE__);
+      return eHAL_STATUS_FAILURE;
+   }
    //clean up the assoc info if already set
    if(pSession->assocInfo.pBssDesc)
    {
@@ -5905,14 +5909,11 @@ eHalStatus sme_QosSaveAssocInfo(sme_QosSessionInfo *pSession, sme_QosAssocInfo *
    vos_mem_copy(pBssDesc, pAssoc_info->pBssDesc, bssLen);
    pSession->assocInfo.pBssDesc = pBssDesc;
    //save the apsd info from assoc
-   if(pAssoc_info)
+   if(pAssoc_info->pProfile)
    {
-      if(pAssoc_info->pProfile)
-      {
-         pSession->apsdMask |= pAssoc_info->pProfile->uapsd_mask;
-      }
-      // [TODO] Do we need to update the global APSD bitmap?
+       pSession->apsdMask |= pAssoc_info->pProfile->uapsd_mask;
    }
+   // [TODO] Do we need to update the global APSD bitmap?
    return eHAL_STATUS_SUCCESS;
 }
 

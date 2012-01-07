@@ -447,7 +447,7 @@ PopulateDot11fExtSuppRates(tpAniSirGlobal pMac, tANI_U8 nChannelNum,
                            tpPESession psessionEntry)
 {
     tSirRetStatus nSirStatus;
-    tANI_U32           nRates;
+    tANI_U32           nRates = 0;
     tANI_U8            rates[WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET_LEN];
 
    /* Use the ext rates present in session entry whenever nChannelNum is set to OPERATIONAL
@@ -466,7 +466,6 @@ PopulateDot11fExtSuppRates(tpAniSirGlobal pMac, tANI_U8 nChannelNum,
         {
             dot11fLog( pMac, LOGE, FL("no session context exists while"
                         " populating Operational Rate Set\n"));
-            nRates = 0;
         }
     }
     else if ( HIGHEST_24GHZ_CHANNEL_NUM >= nChannelNum )

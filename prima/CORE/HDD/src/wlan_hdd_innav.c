@@ -268,12 +268,6 @@ int iw_set_innav_measurements(
             status = eHAL_STATUS_FAILURE;
             break;
         }
-        if(measurementReq->numInNavMeasurements < 0)
-        {
-            hddLog(LOGE, "number of rtt rssi measurements < 0 ... illegal value\n");
-            status = eHAL_STATUS_FAILURE;
-            break;
-        }
         if(measurementReq->measurementMode != RTS_CTS_MODE)
         {
             hddLog(LOGE, "Mode currently not supported\n");

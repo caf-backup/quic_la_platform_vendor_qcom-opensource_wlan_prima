@@ -596,6 +596,12 @@ typedef struct tagCsrScanStruct
     * detect when it happens. Adding this into code because we can't reproduce it easily.
     * We don't know when it happens. */
     tANI_BOOLEAN fValidateList;
+    /*Customer wants to start with an active scan based on the default country code.
+    * This optimization will minimize the driver load to association time.
+    * Based on this flag we will bypass the initial passive scan needed for 11d
+    * to determine the country code & domain */
+    tANI_BOOLEAN fEnableBypass11d;
+
 #ifdef WLAN_AP_STA_CONCURRENCY
     tDblLinkList scanCmdPendingList;
 #endif    

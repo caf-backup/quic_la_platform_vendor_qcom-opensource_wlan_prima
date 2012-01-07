@@ -53,9 +53,25 @@ cfgSendHostMsg(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32 msgLen, tANI_U32 
     tANI_U32        *pMsg, *pEnd;
     tSirMsgQ    mmhMsg;
 
+    // sanity
+    if ((paramNum > 0) && (NULL == pParamList))
+    {
+        PELOGE(cfgLog(pMac, LOGE,
+                      FL("pParamList NULL when paramNum greater than 0!"));)
+        return;
+    }
+    if ((dataLen > 0) && (NULL == pData))
+    {
+        PELOGE(cfgLog(pMac, LOGE,
+                      FL("pData NULL when dataLen greater than 0!"));)
+        return;
+    }
+
     // Allocate message buffer
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMsg, msgLen))
     {
+        PELOGE(cfgLog(pMac, LOGE,
+                      FL("Memory allocation failure!"));)
         return;
     }
 
@@ -63,20 +79,8 @@ cfgSendHostMsg(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32 msgLen, tANI_U32 
     mmhMsg.type = msgType;
     mmhMsg.bodyptr = pMsg;
     mmhMsg.bodyval = 0;
-#if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
-    sirStoreU16N((tANI_U8*)pMsg, (tANI_U16)msgType);
-    sirStoreU16N(((tANI_U8*)pMsg+2), (tANI_U16)msgLen);
-#else
     ((tSirMbMsg*)pMsg)->type   = msgType;
     ((tSirMbMsg*)pMsg)->msgLen = (tANI_U16)msgLen;
-#endif
-
-   if ( paramNum > 0 && (pParamList == NULL))
-   {
-       PELOGE(cfgLog(pMac, LOGE, FL("pParamList cannot be NULL for paramNum greater than 0!\n"));)
-       palFreeMemory( pMac->hHdd, pMsg);
-       return;    
-   }
 
     switch (msgType)
     {
@@ -87,22 +91,28 @@ cfgSendHostMsg(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32 msgLen, tANI_U32 
         case WNI_CFG_SET_CNF:
             // Fill in parameters
             pMsg++;
-            pEnd  = pMsg + paramNum;
-            while (pMsg < pEnd)
+            if (NULL != pParamList)
             {
-                *pMsg++ = *pParamList++;
-            }            // Copy data if there is any
-            pEnd = pMsg + (dataLen >> 2);
-            if(NULL != pData)
+                pEnd  = pMsg + paramNum;
+                while (pMsg < pEnd)
+                {
+                    *pMsg++ = *pParamList++;
+                }
+            }
+            // Copy data if there is any
+            if (NULL != pData)
             {
-               while (pMsg < pEnd)
-               {
-                   *pMsg++ = *pData++;
-               }
+                pEnd = pMsg + (dataLen >> 2);
+                while (pMsg < pEnd)
+                {
+                    *pMsg++ = *pData++;
+                }
             }
             break;
 
         default:
+           PELOGE(cfgLog(pMac, LOGE,
+                         FL("Unknown msg %d!"), (int) msgType);)
             palFreeMemory( pMac->hHdd, pMsg);
             return;
     }

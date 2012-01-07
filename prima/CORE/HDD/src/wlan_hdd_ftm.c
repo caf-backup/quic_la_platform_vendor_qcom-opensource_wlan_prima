@@ -816,7 +816,11 @@ static VOS_STATUS wlan_ftm_priv_enable_chain(hdd_adapter_t *pAdapter,v_U16_t cha
     }
 
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_ENABLE_CHAINS;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttEnableChains) + PTT_HEADER_LENGTH;
@@ -885,7 +889,7 @@ static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
                       chain[ftm_status.chainSelect], rx[ftm_status.rxmode], 
                       tx[ftm_status.frameGenEnabled], 
                       ftm_status.frameParams.interFrameSpace);
-    if(lenRes < 0 || lenRes > lenBuf)
+    if(lenRes < 0 || lenRes >= lenBuf)
        return VOS_STATUS_E_FAILURE;
 
     buf += lenRes;
@@ -898,7 +902,7 @@ static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
     }
 
     lenRes = strlcpy(buf, rateName_rateIndex_tbl[ii].rate_str, lenBuf);
-    if(lenRes < 0 || lenRes > lenBuf)
+    if(lenRes < 0 || lenRes >= lenBuf)
        return VOS_STATUS_E_FAILURE;
 
     buf += lenRes;
@@ -909,7 +913,7 @@ static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
                       ftm_status.frameParams.numTestPackets, 
                       ftm_status.frameParams.payloadLength);
 
-    if(lenRes < 0 || lenRes > lenBuf)
+    if(lenRes < 0 || lenRes >= lenBuf)
        return VOS_STATUS_E_FAILURE;
 
     return VOS_STATUS_SUCCESS;
@@ -1201,6 +1205,11 @@ int wlan_hdd_ftm_close(hdd_context_t *pHddCtx)
 
     hdd_adapter_t *pAdapter = hdd_get_adapter(pHddCtx,WLAN_HDD_FTM);
     ENTER();
+    if(pAdapter == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pAdapter is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
     vosStatus = WLANBAL_SuspendChip( pHddCtx->pvosContext );
@@ -2889,7 +2898,11 @@ static VOS_STATUS wlan_ftm_priv_set_channel(hdd_adapter_t *pAdapter,v_U16_t chan
     }
 
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_SET_CHANNEL;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttSetChannel) + PTT_HEADER_LENGTH;
@@ -2966,7 +2979,11 @@ static VOS_STATUS wlan_ftm_priv_set_txpower(hdd_adapter_t *pAdapter,v_U16_t txpo
         return VOS_STATUS_E_FAILURE;
     }
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_CLOSE_TPC_LOOP;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttCloseTpcLoop) + PTT_HEADER_LENGTH;
@@ -3108,7 +3125,11 @@ static VOS_STATUS wlan_ftm_priv_start_stop_tx_pktgen(hdd_adapter_t *pAdapter,v_U
     }
 
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     if (startStop == 1)
     {
         init_completion(&pHddCtx->ftm.ftm_comp_var);
@@ -3278,14 +3299,18 @@ static VOS_STATUS wlan_ftm_priv_rx_mode(hdd_adapter_t *pAdapter,v_U16_t rxmode)
         return VOS_STATUS_E_FAILURE;
     }
 
-    if(!(rxmode >= 0 && rxmode <=3))
+    if(rxmode > 3)
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Tx mode value is invalid ",__func__);
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Rx mode value is invalid ",__func__);
         return VOS_STATUS_E_FAILURE;
     }
 
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
 
     pMsgBuf->msgId = PTT_MSG_SET_RX_DISABLE_MODE;
@@ -3377,7 +3402,11 @@ static VOS_STATUS wlan_ftm_priv_rx_pkt_clear(hdd_adapter_t *pAdapter,v_U16_t rx_
     }
 
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_RESET_RX_PACKET_STATISTICS;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttResetRxPacketStatistics) + PTT_HEADER_LENGTH;
@@ -3437,7 +3466,11 @@ static VOS_STATUS wlan_ftm_priv_get_channel(hdd_adapter_t *pAdapter,v_U16_t *pCh
         return VOS_STATUS_E_FAILURE;
     }
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_DBG_READ_REGISTER;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttDbgReadRegister) + PTT_HEADER_LENGTH;
@@ -3510,7 +3543,11 @@ static VOS_STATUS wlan_ftm_priv_get_txpower(hdd_adapter_t *pAdapter,v_U16_t *pTx
         return VOS_STATUS_E_FAILURE;
     }
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_GET_TX_POWER_REPORT;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttGetTxPowerReport) + PTT_HEADER_LENGTH;
@@ -3575,7 +3612,11 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
     }
 
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_DBG_READ_REGISTER;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttDbgReadRegister) + PTT_HEADER_LENGTH;
@@ -3622,7 +3663,7 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
 
 
     lenRes = snprintf(buf, lenBuf, "%s_",WLAN_CHIP_VERSION);
-    if(lenRes < 0 || lenRes > lenBuf)
+    if(lenRes < 0 || lenRes >= lenBuf)
     {
         status = VOS_STATUS_E_FAILURE;
         goto done;
@@ -3633,7 +3674,7 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
 
     /*Read the RevID*/
     lenRes = snprintf(buf, lenBuf, "%x.%x-",(v_U8_t)(reg_val >> 8), (v_U8_t)(reg_val &0x000000FF)); 
-    if(lenRes < 0 || lenRes > lenBuf)
+    if(lenRes < 0 || lenRes >= lenBuf)
     {
         status = VOS_STATUS_E_FAILURE;
         goto done;
@@ -3643,7 +3684,7 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
     lenBuf -= lenRes;
 
     lenRes = snprintf(buf, lenBuf, "%s-", QWLAN_VERSIONSTR);
-    if(lenRes < 0 || lenRes > lenBuf)
+    if(lenRes < 0 || lenRes >= lenBuf)
     {
         status = VOS_STATUS_E_FAILURE;
         goto done;
@@ -3655,7 +3696,7 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
     pFwVersion = &pMsgBody->GetBuildReleaseNumber.relParams.fwVer;
     lenRes = snprintf(buf, lenBuf, "%ld.%ld.%ld.%ld", pFwVersion->uMj,pFwVersion->uMn,pFwVersion->uPatch,pFwVersion->uBuild ) ;
-    if(lenRes < 0 || lenRes > lenBuf)
+    if(lenRes < 0 || lenRes >= lenBuf)
     {
         status = VOS_STATUS_E_FAILURE;
         goto done;
@@ -3702,7 +3743,11 @@ static VOS_STATUS wlan_ftm_priv_get_txrate(hdd_adapter_t *pAdapter,char *pTxRate
     }
 
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_GET_TX_POWER_REPORT;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttGetTxPowerReport) + PTT_HEADER_LENGTH;
@@ -3776,7 +3821,11 @@ static VOS_STATUS wlan_ftm_priv_get_rx_pkt_count(hdd_adapter_t *pAdapter,v_U16_t
         return VOS_STATUS_E_FAILURE;
     }
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_GET_RX_PKT_COUNTS;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttGetRxPktCounts) + PTT_HEADER_LENGTH;
@@ -3834,7 +3883,11 @@ static VOS_STATUS wlan_ftm_priv_get_rx_rssi(hdd_adapter_t *pAdapter,char *buf)
         return VOS_STATUS_E_FAILURE;
     }
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_GET_RX_RSSI;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttGetRxRssi) + PTT_HEADER_LENGTH;
@@ -3862,7 +3915,7 @@ static VOS_STATUS wlan_ftm_priv_get_rx_rssi(hdd_adapter_t *pAdapter,char *buf)
                       pMsgBody->GetRxRssi.rssi.rx[0], 
                   pMsgBody->GetRxRssi.rssi.rx[1]);
 
-   if( ret < 0 || ret > WE_FTM_MAX_STR_LEN )
+   if( ret < 0 || ret >= WE_FTM_MAX_STR_LEN )
    {
       status = VOS_STATUS_E_FAILURE;
    }
@@ -3910,8 +3963,10 @@ static VOS_STATUS wlan_ftm_priv_get_mac_address(hdd_adapter_t *pAdapter,char *bu
          ret = snprintf(buf, WE_FTM_MAX_STR_LEN, 
                              "%02x:%02x:%02x:%02x:%02x:%02x", 
                         MAC_ADDR_ARRAY(macAddr));
-         if( ret < 0 || ret > WE_FTM_MAX_STR_LEN )
+         if( ret < 0 || ret >= WE_FTM_MAX_STR_LEN )
+         {
              return VOS_STATUS_E_FAILURE;
+         }
        }
    }
    else 
@@ -3921,8 +3976,10 @@ static VOS_STATUS wlan_ftm_priv_get_mac_address(hdd_adapter_t *pAdapter,char *bu
                             "%02x:%02x:%02x:%02x:%02x:%02x", 
                      MAC_ADDR_ARRAY(macAddr));
 
-      if( ret < 0 || ret > WE_FTM_MAX_STR_LEN )
-            return VOS_STATUS_E_FAILURE;
+      if( ret < 0 || ret >= WE_FTM_MAX_STR_LEN )
+      {
+          return VOS_STATUS_E_FAILURE;
+      }
    }
     return VOS_STATUS_SUCCESS;
 }
@@ -3958,7 +4015,11 @@ static VOS_STATUS wlan_ftm_priv_set_mac_address(hdd_adapter_t *pAdapter,char *bu
         return VOS_STATUS_E_FAILURE;
     }
     pMsgBuf = (tPttMsgbuffer *)vos_mem_malloc(sizeof(tPttMsgbuffer));
-
+    if(pMsgBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pMsgBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     init_completion(&pHddCtx->ftm.ftm_comp_var);
     pMsgBuf->msgId = PTT_MSG_SET_NV_FIELD;
     pMsgBuf->msgBodyLength = sizeof(tMsgPttSetNvField) + PTT_HEADER_LENGTH;
@@ -4353,7 +4414,11 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
     v_CONTEXT_t pVosContext= NULL;
 
     pBuf =  (v_U8_t*)vos_mem_malloc(sizeof(tAniHdr) + sizeof(v_U32_t)+ data_len);
-
+    if(pBuf == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pBuf is NULL",__func__);
+        return VOS_STATUS_E_NOMEM;
+    }
     wmsg = (tAniHdr*)pBuf;
     wmsg->type = PTT_MSG_FTM_CMDS_TYPE;
     wmsg->length = data_len + sizeof(tAniHdr)+ sizeof(v_U32_t);
@@ -4414,6 +4479,11 @@ static int iw_ftm_setnone_getnone(struct net_device *dev, struct iw_request_info
             size = sizeof(v_U32_t) + sizeof(sHalNv);
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"HAL NV Size =%d\n",size);
             pu8buf = vos_mem_malloc(size);
+            if(pu8buf == NULL)
+            {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pu8buf is NULL",__func__);
+                return VOS_STATUS_E_NOMEM;
+            }
             memset(pu8buf,0,size);
             pTempBuf = pu8buf;
             pTempBuf += sizeof(v_U32_t);

@@ -607,6 +607,12 @@ WCTS_OpenTransport
       return NULL;
    }
 
+   /* make sure the control block is initialized.  in particular we need
+      to make sure the embedded event and list structures are initialized
+      to prevent "magic number" tests from being run against uninitialized
+      values */
+   wpalMemoryZero(pWCTSCb, sizeof(*pWCTSCb));
+
 #ifdef FEATURE_R33D
    smd_init(0);
    port_open = 1;

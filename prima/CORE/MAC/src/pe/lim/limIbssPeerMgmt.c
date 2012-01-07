@@ -1353,10 +1353,6 @@ limIbssCoalesce(
 
     palZeroMemory( pMac->hHdd, (tANI_U8 *) &beaconParams, sizeof(tUpdateBeaconParams));
 
-    #if 0
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
-    #endif // TO SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     /* Check for IBSS Coalescing only if Beacon is from different BSS */

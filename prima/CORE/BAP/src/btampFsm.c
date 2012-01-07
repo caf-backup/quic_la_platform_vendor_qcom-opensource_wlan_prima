@@ -953,6 +953,7 @@ regStaWithTl
 {
     VOS_STATUS vosStatus;
     WLAN_STADescType staDesc;
+    tANI_S8          rssi = 0;
 
     vos_mem_zero(&staDesc, sizeof(WLAN_STADescType));
     /* Fill in everything I know about the STA */
@@ -1033,6 +1034,10 @@ regStaWithTl
     staDesc.ucInitState = ( btampContext->ucSecEnabled)?
         WLANTL_STA_CONNECTED:WLANTL_STA_AUTHENTICATED;
     staDesc.ucIsReplayCheckValid = VOS_FALSE;
+    if(NULL != pCsrRoamInfo->pBssDesc)
+    {
+        rssi = pCsrRoamInfo->pBssDesc->rssi;
+    }
     /* register our STA with TL */
     vosStatus = WLANTL_RegisterSTAClient 
         ( 
@@ -1041,7 +1046,7 @@ regStaWithTl
          WLANBAP_TxCompCB,  
          (WLANTL_STAFetchPktCBType)WLANBAP_STAFetchPktCB,
          &staDesc ,
-         pCsrRoamInfo->pBssDesc->rssi);   
+         rssi);   
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 

@@ -489,7 +489,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 pScanCmd->sessionId = sessionId;
                 pScanCmd->u.scanCmd.callback = callback;
                 pScanCmd->u.scanCmd.pContext = pContext;
-                pScanCmd->u.scanCmd.scanID = *pScanRequestID;
                 if(eCSR_SCAN_REQUEST_11D_SCAN == pScanRequest->requestType)
                 {
                     pScanCmd->u.scanCmd.reason = eCsrScan11d1;
@@ -545,6 +544,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
 #ifdef SOFTAP_CHANNEL_RANGE
                    && (eCSR_SCAN_SOFTAP_CHANNEL_RANGE != pScanRequest->requestType)
 #endif                   
+                   && (eANI_BOOLEAN_FALSE == pMac->scan.fEnableBypass11d)
                    )
                 {
                     tSmeCmd *p11dScanCmd;
@@ -4165,7 +4165,8 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
                back to passive. But in BT AMP STA mode we need to send out a
                directed probe*/
             if( (eSIR_PASSIVE_SCAN != scanType) && (eCSR_SCAN_P2P_DISCOVERY != pScanReq->requestType)
-                && (eCSR_BSS_TYPE_WDS_STA != pScanReq->BSSType))  
+                && (eCSR_BSS_TYPE_WDS_STA != pScanReq->BSSType)
+                && (eANI_BOOLEAN_FALSE == pMac->scan.fEnableBypass11d))
             {
                 scanType = pMac->scan.curScanType;
                 if(eSIR_PASSIVE_SCAN == pMac->scan.curScanType)
@@ -5055,7 +5056,10 @@ eHalStatus csrScanTriggerIdleScan(tpAniSirGlobal pMac, tANI_U32 *pTimeInterval)
     if (vos_concurrent_sessions_running())
         return (status);
 
-    *pTimeInterval = 0;
+    if(pTimeInterval)
+    {
+        *pTimeInterval = 0;
+    }
 
     smsLog(pMac, LOGW, FL("called\n"));
     if( smeCommandPending( pMac ) )

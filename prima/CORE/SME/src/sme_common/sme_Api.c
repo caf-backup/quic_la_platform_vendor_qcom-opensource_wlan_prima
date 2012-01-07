@@ -2037,7 +2037,7 @@ eCsrPhyMode sme_GetPhyMode(tHalHandle hHal)
     \brief a wrapper function to request CSR to inititiate an association
     This is an asynchronuous call.
     \param sessionId - the sessionId returned by sme_OpenSession.
-    \param pProfile - can be NULL to join to any open ones
+    \param pProfile - description of the network to which to connect
     \param hBssListIn - a list of BSS descriptor to roam to. It is returned
                         from csrScanGetResult
     \param pRoamId - to get back the request ID

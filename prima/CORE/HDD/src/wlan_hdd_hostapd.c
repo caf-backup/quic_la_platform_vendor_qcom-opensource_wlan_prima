@@ -656,7 +656,7 @@ int hdd_softap_unpackIE(
         pRsnIe = gen_ie + 2; 
         RSNIeLen = gen_ie_len - 2; 
         // Unpack the RSN IE
-        dot11RSNIE.present = 0;  
+        memset(&dot11RSNIE, 0, sizeof(tDot11fIERSN));
         dot11fUnpackIeRSN((tpAniSirGlobal) halHandle, 
                             pRsnIe, 
                             RSNIeLen, 
@@ -691,7 +691,7 @@ int hdd_softap_unpackIE(
         pRsnIe = gen_ie + 2 + 4; 
         RSNIeLen = gen_ie_len - (2 + 4); 
         // Unpack the WPA IE
-        dot11WPAIE.present = 0; 
+        memset(&dot11WPAIE, 0, sizeof(tDot11fIEWPA));
         dot11fUnpackIeWPA((tpAniSirGlobal) halHandle, 
                             pRsnIe, 
                             RSNIeLen, 

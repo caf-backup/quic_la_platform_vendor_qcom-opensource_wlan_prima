@@ -900,6 +900,12 @@ typedef struct tagCsrConfigParam
     * We don't know when it happens. */
     tANI_BOOLEAN fValidateList;
 
+    /*Customer wants to start with an active scan based on the default country code.
+    * This optimization will minimize the driver load to association time.
+    * Based on this flag we will bypass the initial passive scan needed for 11d
+    * to determine the country code & domain */
+    tANI_BOOLEAN fEnableBypass11d;
+
 }tCsrConfigParam;   
 
 //Tush

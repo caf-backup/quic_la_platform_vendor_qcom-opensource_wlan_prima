@@ -3208,14 +3208,6 @@ int hdd_wlan_startup(struct device *dev )
 #endif
 
 
-   //Scanning only for station mode.
-   //TODO if initial scan is required on AP mode, need to remove this condition.
-   //Since AP session is not yet created and hence there is no self sta, active scan will fail.
-   if( pAdapter->device_mode == WLAN_HDD_INFRA_STATION )
-   {
-     //Trigger the initial scan
-     hdd_wlan_initial_scan(pAdapter);
-   }
 
    pHddCtx->isLoadUnloadInProgress = FALSE;
 
