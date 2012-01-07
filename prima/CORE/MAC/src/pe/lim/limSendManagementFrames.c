@@ -1295,10 +1295,9 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     eHalStatus           halstatus;
     tUpdateBeaconParams beaconParams;
     tANI_U8              txFlag = 0;
-    tANI_U32             addnIEPresent;
+    tANI_U32             addnIEPresent = false;
     tANI_U32             addnIELen=0;
     tANI_U8              addIE[WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN];
-    tANI_U8              *wscIe = NULL;
     tpSirAssocReq        pAssocReq = NULL; 
 
     if(NULL == psessionEntry)
@@ -1341,7 +1340,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
                 (tpSirAssocReq) psessionEntry->parsedAssocReq[pSta->assocId];
 #ifdef WLAN_FEATURE_P2P
             /* populate P2P IE in AssocRsp when assocReq from the peer includes P2P IE */
-            if( pAssocReq != NULL && pAssocReq->addIEPresent) {
+            if( pAssocReq != NULL && pAssocReq->addIEPresent ) {
                 PopulateDot11AssocResP2PIE(pMac, &frm.P2PAssocRes, pAssocReq);
             }
 #endif
@@ -1453,41 +1452,32 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = sizeof( tSirMacMgmtHdr ) + nPayload;
 
-    if ( pAssocReq != NULL && pAssocReq->addIEPresent) 
+    if ( pAssocReq != NULL ) 
     {
-        wscIe = limGetWscIEPtr(pMac, pAssocReq->addIE.addIEdata, 
-                                     pAssocReq->addIE.length);
-        /* Here we are assuming that additional IE contain only WPS IE */
-        /* TODO: Check for additional IE and consider all other IEs when wscIE is 
-                 not there in assoc request */
-        if (wscIe != NULL)
+        if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 
+                    &addnIEPresent) != eSIR_SUCCESS)
         {
-            addnIEPresent = false;
-            if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 
-                              &addnIEPresent) != eSIR_SUCCESS)
+            limLog(pMac, LOGP, FL("Unable to get WNI_CFG_ASSOC_RSP_ADDNIE_FLAG"));
+            return;
+        }
+
+        if (addnIEPresent)
+        {
+            //Assoc rsp IE available
+            if (wlan_cfgGetStrLen(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_DATA,
+                        &addnIELen) != eSIR_SUCCESS)
             {
-                limLog(pMac, LOGP, FL("Unable to get WNI_CFG_ASSOC_RSP_ADDNIE_FLAG"));
+                limLog(pMac, LOGP, FL("Unable to get WNI_CFG_ASSOC_RSP_ADDNIE_DATA length"));
                 return;
             }
 
-            if (addnIEPresent)
+            if (addnIELen <= WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN && addnIELen &&
+                    (nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE)
             {
-                //Assoc rsp IE available
-                if (wlan_cfgGetStrLen(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_DATA,
-                                     &addnIELen) != eSIR_SUCCESS)
+                if (wlan_cfgGetStr(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_DATA,
+                            &addIE[0], &addnIELen) == eSIR_SUCCESS)
                 {
-                    limLog(pMac, LOGP, FL("Unable to get WNI_CFG_ASSOC_RSP_ADDNIE_DATA length"));
-                    return;
-                }
-
-                if (addnIELen <= WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN && addnIELen &&
-                             (nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE)
-                {
-                    if (wlan_cfgGetStr(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_DATA,
-                                      &addIE[0], &addnIELen) == eSIR_SUCCESS)
-                    {
-                        nBytes = nBytes + addnIELen;
-                    }
+                    nBytes = nBytes + addnIELen;
                 }
             }
         }
