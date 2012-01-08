@@ -101,6 +101,7 @@ eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm)
     pRoamInfo.nFrameLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
     pRoamInfo.pbFrames = pSmeMgmtFrm->frameBuf;
     pRoamInfo.frameType = pSmeMgmtFrm->frameType;
+    pRoamInfo.rxChan   = pSmeMgmtFrm->rxChan;
 
     /* forward the mgmt frame to HDD */
     csrRoamCallCallback(pMac, pSessionId, &pRoamInfo, 0, eCSR_ROAM_INDICATE_MGMT_FRAME, 0);

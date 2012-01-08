@@ -626,7 +626,8 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U32 *pBd,
         limSendSmeMgmtFrameInd( pMac, pHdr->fc.subType, (tANI_U8*)pHdr, 
                      SIR_MAC_BD_TO_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      ( psessionEntry != NULL ) ? psessionEntry->smeSessionId :
-                     pLimMgmtRegistration->sessionId );
+                     pLimMgmtRegistration->sessionId, 
+                     SIR_MAC_BD_TO_RX_CHANNEL(pBd) );
     }
 
     return match;

@@ -384,7 +384,8 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
  *------------------------------------------------------------------*/
 void limSendSmeMgmtFrameInd(
                     tpAniSirGlobal pMac, tANI_U8 frameType,
-                    tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId)
+                    tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId,
+                    tANI_U32 rxChannel)
 {
     tSirMsgQ              mmhMsg;
     tpSirSmeMgmtFrameInd pSirSmeMgmtFrame = NULL;
@@ -405,6 +406,7 @@ void limSendSmeMgmtFrameInd(
     pSirSmeMgmtFrame->mesgLen = length;
     pSirSmeMgmtFrame->sessionId = sessionId;
     pSirSmeMgmtFrame->frameType = frameType;
+    pSirSmeMgmtFrame->rxChan = rxChannel;
 
     vos_mem_zero(pSirSmeMgmtFrame->frameBuf,frameLen);
     vos_mem_copy(pSirSmeMgmtFrame->frameBuf,frame,frameLen);

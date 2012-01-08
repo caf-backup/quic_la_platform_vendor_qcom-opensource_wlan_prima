@@ -53,7 +53,7 @@ int hdd_setP2pPs( struct net_device *dev, void *msgData );
 
 void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                             tANI_U32 nFrameLength, tANI_U8* pbFrames,
-                            tANI_U8 frameType );
+                            tANI_U8 frameType, tANI_U32 rxChan);
 
 void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter );
 void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess );

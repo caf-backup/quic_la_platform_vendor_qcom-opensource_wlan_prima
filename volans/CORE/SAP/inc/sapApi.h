@@ -281,6 +281,7 @@ typedef struct sap_ManagementFrameInfo_s {
     tANI_U8 *pbFrames;         //Point to a buffer contain the beacon, assoc req, assoc rsp frame, in that order
                              //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
                             //each frame starts and ends.
+    tANI_U32 rxChan;        //Channel of where packet is recevied
 } tSap_ManagementFrameInfo;
 
 typedef struct sap_SendActionCnf_s {

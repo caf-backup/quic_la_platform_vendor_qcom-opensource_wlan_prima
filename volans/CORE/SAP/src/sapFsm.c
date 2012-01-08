@@ -539,6 +539,8 @@ sapSignalHDDevent
                                            = pCsrRoamInfo->pbFrames;
             sapApAppEvent.sapevt.sapManagementFrameInfo.frameType
                                            = pCsrRoamInfo->frameType;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.rxChan
+                                           = pCsrRoamInfo->rxChan;
             break;
        case eSAP_REMAIN_CHAN_READY:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,

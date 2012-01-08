@@ -666,9 +666,9 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
 
 void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                             tANI_U32 nFrameLength, tANI_U8* pbFrames,
-                            tANI_U8 frameType )
+                            tANI_U8 frameType, tANI_U32 rxChan )
 {
-    hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    tANI_U16 freq;
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d\n",
                             __func__, frameType, nFrameLength);
@@ -696,9 +696,22 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
 
     //Indicate Frame Over Normal Interface
     hddLog( LOGE, FL("Indicate Frame over NL80211 Intf"));
-    cfg80211_rx_mgmt( pAdapter->dev, cfgState->current_freq,
-                      pbFrames,
-    	              nFrameLength, GFP_ATOMIC );
+    
+    //Channel indicated may be wrong. TODO
+    //Indicate an action frame.
+    if( rxChan <= MAX_NO_OF_2_4_CHANNELS )
+    {
+        freq = ieee80211_channel_to_frequency( rxChan,
+                                                     IEEE80211_BAND_2GHZ);
+    }
+    else
+    {
+        freq = ieee80211_channel_to_frequency( rxChan,
+                                                     IEEE80211_BAND_5GHZ);
+    }
+    
+    cfg80211_rx_mgmt( pAdapter->dev, freq, pbFrames,
+    	                             nFrameLength, GFP_ATOMIC );
 }
 
 /*

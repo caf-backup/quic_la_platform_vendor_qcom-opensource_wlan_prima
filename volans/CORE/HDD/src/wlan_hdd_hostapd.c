@@ -500,7 +500,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
            hdd_indicateMgmtFrame( pHostapdAdapter, 
                                  pSapEvent->sapevt.sapManagementFrameInfo.nFrameLength,
                                  pSapEvent->sapevt.sapManagementFrameInfo.pbFrames,
-                                 pSapEvent->sapevt.sapManagementFrameInfo.frameType); 
+                                 pSapEvent->sapevt.sapManagementFrameInfo.frameType,
+                                 pSapEvent->sapevt.sapManagementFrameInfo.rxChan ); 
            return VOS_STATUS_SUCCESS;
         case eSAP_REMAIN_CHAN_READY:
            hdd_remainChanReadyHandler( pHostapdAdapter );

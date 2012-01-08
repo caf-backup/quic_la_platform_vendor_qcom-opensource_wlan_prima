@@ -93,6 +93,8 @@
 
 #define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
 
+#define MAX_NO_OF_2_4_CHANNELS 14
+
 typedef struct hdd_tx_rx_stats_s
 {
    // start_xmit stats

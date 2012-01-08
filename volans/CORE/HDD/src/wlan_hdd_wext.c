@@ -447,11 +447,11 @@ static void hdd_GetRssiCB( v_S7_t rssi, tANI_U32 staId, void *pContext )
    complete(&pStatsContext->completion);
 }
 
-VOS_STATUS  wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
+VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
 {
    struct statsContext context;
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-   hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+   hdd_context_t *pHddCtx;
+   hdd_station_ctx_t *pHddStaCtx;
    eHalStatus hstatus;
    long lrc;
 
@@ -461,6 +461,8 @@ VOS_STATUS  wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
             "%s: Invalid context, pAdapter", __func__);
       return VOS_STATUS_E_FAULT;
    }
+   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
    init_completion(&context.completion);
    context.pAdapter = pAdapter;

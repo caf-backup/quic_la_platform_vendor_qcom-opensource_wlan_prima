@@ -1467,7 +1467,8 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             hdd_indicateMgmtFrame( pAdapter, 
                     pRoamInfo->nFrameLength, 
                     pRoamInfo->pbFrames,
-                    pRoamInfo->frameType);
+                    pRoamInfo->frameType,
+                    pRoamInfo->rxChan );
             break;
         case eCSR_ROAM_REMAIN_CHAN_READY:
             hdd_remainChanReadyHandler( pAdapter );

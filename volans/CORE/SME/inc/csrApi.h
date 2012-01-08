@@ -1067,6 +1067,7 @@ typedef struct tagCsrRoamInfo
 #endif
 #ifdef WLAN_FEATURE_P2P
     void* pRemainCtx; 
+    tANI_U32 rxChan;
 #endif
 
 }tCsrRoamInfo;
