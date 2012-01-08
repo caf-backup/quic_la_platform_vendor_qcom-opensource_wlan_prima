@@ -2161,16 +2161,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    if (VOS_STA_SAP_MODE != hdd_get_conparam())
 #endif
    {
-      hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
+#ifdef ANI_MANF_DIAG
+      if (VOS_FTM_MODE != hdd_get_conparam())
+#endif /* ANI_MANF_DIAG */
+      {
+         hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
                                       WLAN_HDD_INFRA_STATION);
+         if (pAdapter == NULL)
+            pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
 
-      if (pAdapter == NULL)
-         pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
-
-      if (pAdapter != NULL)
-         wlan_hdd_cfg80211_pre_voss_stop(pAdapter);
-
-      hdd_UnregisterWext(pAdapter->dev);
+         if (pAdapter != NULL)
+         {
+            wlan_hdd_cfg80211_pre_voss_stop(pAdapter);
+            hdd_UnregisterWext(pAdapter->dev);
+         }
+      }
    }
 #endif
 
@@ -2203,8 +2208,13 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    else
    {
 #endif
-      pAdapter = hdd_get_adapter(pHddCtx,
-                                   WLAN_HDD_INFRA_STATION);
+#ifdef ANI_MANF_DIAG
+      if (VOS_FTM_MODE != hdd_get_conparam())
+#endif /* ANI_MANF_DIAG */
+      {
+         pAdapter = hdd_get_adapter(pHddCtx,
+                                    WLAN_HDD_INFRA_STATION);
+      }
 #ifdef WLAN_SOFTAP_FEATURE
    }
 #endif
@@ -3694,16 +3704,28 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter,v_BOOL_t e
  *   \brief hdd_get__concurrency_mode() -
  *
  *
- *       \param  - None
+ *   \param  - None
  *
- *         \return - CONCURRENCY MODE
+ *   \return - CONCURRENCY MODE
  *
- *           --------------------------------------------------------------------------*/
+ * --------------------------------------------------------------------------*/
 tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
 {
     v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
-    hdd_context_t *pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
-    return (tVOS_CONCURRENCY_MODE)pHddCtx->concurrency_mode;
+    hdd_context_t *pHddCtx;
+
+    if (NULL != pVosContext)
+    {
+       pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+       if (NULL != pHddCtx)
+       {
+          return (tVOS_CONCURRENCY_MODE)pHddCtx->concurrency_mode;
+       }
+    }
+
+    /* we are in an invalid state :( */
+    hddLog(LOGE, "%s: Invalid context", __FUNCTION__);
+    return VOS_STA;
 }
 
 /* Decide whether to allow/not the apps power collapse. 

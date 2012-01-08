@@ -199,7 +199,7 @@ static void nl_srv_rcv_msg (struct sk_buff *skb, struct nlmsghdr *nlh)
    type = nlh->nlmsg_type;
 
    /* Unknown message */
-   if (type < WLAN_NL_MSG_BASE || type > WLAN_NL_MSG_MAX) {
+   if (type < WLAN_NL_MSG_BASE || type >= WLAN_NL_MSG_MAX) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
          "NLINK: Received Invalid NL Msg type [%x]", type);
       return;

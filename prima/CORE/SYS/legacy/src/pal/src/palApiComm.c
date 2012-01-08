@@ -254,35 +254,46 @@ eHalStatus palSpinLockGive( tHddHandle hHdd, tPalSpinLockHandle hSpinLock )
       // to the caller.
       halStatus = eHAL_STATUS_SUCCESS;
    }
-   
+
    return( halStatus );
 } 
 
 
-//Caller of this function MUST dynamically allocate memory for pBuf because this funciton will
-//free thememory.
+// Caller of this function MUST dynamically allocate memory for pBuf
+// because this funciton will free the memory.
 eHalStatus palSendMBMessage(tHddHandle hHdd, void *pBuf)
 {
    eHalStatus halStatus = eHAL_STATUS_FAILURE;
    tSirRetStatus sirStatus;
    v_CONTEXT_t vosContext;
    v_VOID_t *hHal;
-   
-   vosContext = vos_get_global_context( VOS_MODULE_ID_HDD, hHdd );
 
-#if defined(FEATURE_WLAN_NON_INTEGRATED_SOC)
-   hHal = vos_get_context( VOS_MODULE_ID_HAL, vosContext );
-#else
-   hHal = vos_get_context( VOS_MODULE_ID_SME, vosContext );
-#endif
-   sirStatus = uMacPostCtrlMsg( hHal, pBuf );
-   if ( eSIR_SUCCESS == sirStatus )
+   vosContext = vos_get_global_context( VOS_MODULE_ID_HDD, hHdd );
+   if (NULL == vosContext)
    {
-      halStatus = eHAL_STATUS_SUCCESS;
-   }   
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                "%s: invalid vosContext", __FUNCTION__);
+   }
+   else
+   {
+      hHal = vos_get_context( VOS_MODULE_ID_SME, vosContext );
+      if (NULL == hHal)
+      {
+         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                   "%s: invalid hHal", __FUNCTION__);
+      }
+      else
+      {
+         sirStatus = uMacPostCtrlMsg( hHal, pBuf );
+         if ( eSIR_SUCCESS == sirStatus )
+         {
+            halStatus = eHAL_STATUS_SUCCESS;
+         }
+      }
+   }
 
    palFreeMemory( hHdd, pBuf );
-   
+
    return( halStatus );
 }
   

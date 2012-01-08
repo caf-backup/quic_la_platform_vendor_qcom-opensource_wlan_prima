@@ -602,6 +602,11 @@ void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS,NULL);
 
    pHddCtx = (hdd_context_t*) vos_get_context(VOS_MODULE_ID_HDD,pVosContext);
+   if (NULL == pHddCtx)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid pHddCtx", __FUNCTION__);
+      return;
+   }
 #if 0
    pWextState = pAdapter->pWextState;
 #endif
@@ -772,12 +777,19 @@ static int iw_set_mode(struct net_device *dev,
     tCsrRoamProfile          *pRoamProfile;
     eCsrRoamBssType          LastBSSType;
     eMib_dot11DesiredBssType connectedBssType;
-    hdd_config_t *pConfig  = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
+    hdd_config_t             *pConfig;
 #ifdef CONFIG_CFG80211
     struct wireless_dev      *wdev;
 #endif
        
     ENTER();
+
+    if (NULL == pAdapter)
+    {
+        hddLog(VOS_TRACE_LEVEL_WARN,
+               "%s: Invalid context, pAdapter", __func__);
+        return 0;
+    }
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
@@ -805,6 +817,7 @@ static int iw_set_mode(struct net_device *dev,
         hddLog( LOG1,"%s Setting AP Mode as IW_MODE_ADHOC", __FUNCTION__); 
         pRoamProfile->BSSType = eCSR_BSS_TYPE_START_IBSS;
         // Set the phymode correctly for IBSS.
+        pConfig  = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
         pWextState->roamProfile.phyMode = hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
 #ifdef CONFIG_CFG80211
         wdev->iftype = NL80211_IFTYPE_ADHOC;
@@ -861,6 +874,13 @@ static int iw_get_mode(struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
     hddLog (LOG1, "In %s",__FUNCTION__);
+
+    if (NULL == pAdapter)
+    {
+        hddLog(VOS_TRACE_LEVEL_WARN,
+               "%s: Invalid context, pAdapter", __func__);
+        return 0;
+    }
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
@@ -1559,101 +1579,105 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
    struct iw_range *range = (struct iw_range *) extra;
-   
+
    v_U8_t channels[WNI_CFG_VALID_CHANNEL_LIST_LEN];
-   
+
    v_U32_t num_channels = sizeof(channels);
    v_U8_t supp_rates[WNI_CFG_SUPPORTED_RATES_11A_LEN];
-   v_U32_t a_len = WNI_CFG_SUPPORTED_RATES_11A_LEN;
-   
-   v_U32_t b_len = WNI_CFG_SUPPORTED_RATES_11B_LEN;
+   v_U32_t a_len;
+   v_U32_t b_len;
    v_U32_t active_phy_mode = 0;
    v_U8_t index = 0, i;
-   
+
    ENTER();
-   
+
    wrqu->data.length = sizeof(struct iw_range);
    memset(range, 0, sizeof(struct iw_range));
    
  
-    /*Get the phy mode*/
-   if (ccmCfgGetInt(hHal, 
+   /*Get the phy mode*/
+   if (ccmCfgGetInt(hHal,
                   WNI_CFG_DOT11_MODE, &active_phy_mode) == eHAL_STATUS_SUCCESS) 
-   {  
-     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("active_phy_mode = %ld\n"),active_phy_mode);
-     
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "active_phy_mode = %ld", active_phy_mode);
+
       if (active_phy_mode == WNI_CFG_DOT11_MODE_11A || active_phy_mode == WNI_CFG_DOT11_MODE_11G)
       { 
          /*Get the supported rates for 11G band*/
-           if (ccmCfgGetStr(hHal, 
-                  WNI_CFG_SUPPORTED_RATES_11A,
-                  supp_rates, &a_len) == eHAL_STATUS_SUCCESS)
-           {
-               if(a_len <= IW_MAX_BITRATES) {
-                 for (i = 0; i < a_len; i++)
-                 {
-                   range->bitrate[i] = ((supp_rates[i]& 0x7F)/2) * 1000000;
-                 }
-               }   
-           else 
-           {
-                 return -EIO;
-               }
-           }
-           range->num_bitrates = a_len;
+         if (ccmCfgGetStr(hHal,
+                          WNI_CFG_SUPPORTED_RATES_11A,
+                          supp_rates, &a_len) == eHAL_STATUS_SUCCESS)
+         {
+            if (a_len > WNI_CFG_SUPPORTED_RATES_11A_LEN)
+            {
+               a_len = WNI_CFG_SUPPORTED_RATES_11A_LEN;
+            }
+            for (i = 0; i < a_len; i++)
+            {
+               range->bitrate[i] = ((supp_rates[i] & 0x7F) / 2) * 1000000;
+            }
+            range->num_bitrates = a_len;
+         }
+         else
+         {
+            return -EIO;
+         }
       }
-     else if (active_phy_mode == WNI_CFG_DOT11_MODE_11B) 
-     {
+      else if (active_phy_mode == WNI_CFG_DOT11_MODE_11B) 
+      {
          /*Get the supported rates for 11B band*/
-           if (ccmCfgGetStr(hHal, 
-                  WNI_CFG_SUPPORTED_RATES_11B,
-                  supp_rates, &b_len) == eHAL_STATUS_SUCCESS)
-           {
-              if(b_len <= IW_MAX_BITRATES)
-              {
-                  for (i = 0; i < b_len; i++)
-                  {
-                     range->bitrate[i] = ((supp_rates[i]& 0x7F)/2) * 1000000;
-                  }
-              }
-              else {
-               return -EIO;
-              }
-           }
-           range->num_bitrates = b_len;
+         if (ccmCfgGetStr(hHal, 
+                          WNI_CFG_SUPPORTED_RATES_11B,
+                          supp_rates, &b_len) == eHAL_STATUS_SUCCESS)
+         {
+            if (b_len > WNI_CFG_SUPPORTED_RATES_11B_LEN)
+            {
+               b_len = WNI_CFG_SUPPORTED_RATES_11B_LEN;
+            }
+            for (i = 0; i < b_len; i++)
+            {
+               range->bitrate[i] = ((supp_rates[i] & 0x7F) / 2) * 1000000;
+            }
+            range->num_bitrates = b_len;
+         }
+         else
+         {
+            return -EIO;
+         }
       }
-     
    }
- 
 
    range->max_rts = WNI_CFG_RTS_THRESHOLD_STAMAX;
    range->min_frag = WNI_CFG_FRAGMENTATION_THRESHOLD_STAMIN;
    range->max_frag = WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX;
-   
+
    range->encoding_size[0] = 5;
    range->encoding_size[1] = 13;
    range->num_encoding_sizes = 2;
    range->max_encoding_tokens = MAX_WEP_KEYS;
-   
+
    // we support through Wireless Extensions 22
    range->we_version_compiled = WIRELESS_EXT;
    range->we_version_source = 22;
-   
+
    /*Supported Channels and Frequencies*/
-   if (ccmCfgGetStr((hHal), WNI_CFG_VALID_CHANNEL_LIST, channels, &num_channels) != eHAL_STATUS_SUCCESS){
+   if (ccmCfgGetStr((hHal), WNI_CFG_VALID_CHANNEL_LIST, channels, &num_channels) != eHAL_STATUS_SUCCESS)
+   {
       return -EIO;
    }
-   if (num_channels > IW_MAX_FREQUENCIES){
+   if (num_channels > IW_MAX_FREQUENCIES)
+   {
       num_channels = IW_MAX_FREQUENCIES;
    }
-     
+  
    range->num_channels = num_channels;
    range->num_frequency = num_channels;
-  
-   for(index=0; index < num_channels; index++)
+
+   for (index=0; index < num_channels; index++)
    {
       v_U32_t frq_indx = 0;
-   
+
       range->freq[index].i = channels[index];
       while (frq_indx <  FREQ_CHAN_MAP_TABLE_SIZE)
       {
@@ -3575,27 +3599,20 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
     int sub_cmd = wrqu->data.flags;
     int *value = (int*)wrqu->data.pointer;
     int apps_args[MAX_VAR_ARGS] = {0};
+    int num_args = wrqu->data.length;
 
-    hddLog(LOGW, "The function iw_set_var_ints_getnone called \n");
-    hddLog(LOGW, "%s: Received length %d\n", __FUNCTION__, wrqu->data.length);
-    hddLog(LOGW, "%s: Received data %s\n", __FUNCTION__, (char*)wrqu->data.pointer);
+    hddLog(LOG1, "%s: Received length %d", __FUNCTION__, wrqu->data.length);
+    if (num_args > MAX_VAR_ARGS)
+    {
+       num_args = MAX_VAR_ARGS;
+    }
+    vos_mem_copy(apps_args, value, (sizeof(int)) * num_args);
 
     switch (sub_cmd)
     {
         case WE_LOG_DUMP_CMD:
             {
-
-                if (wrqu->data.length > MAX_VAR_ARGS)
-                {
-                    vos_mem_copy(apps_args, value, (sizeof(int)) * MAX_VAR_ARGS);
-                }
-                else
-                {
-                    vos_mem_copy(apps_args, value, (sizeof(int)) * wrqu->data.length);
-                }
-
-
-                hddLog(LOGE, "%s: PTT_MSG_LOG_DUMP %d arg1 %d arg2 %d arg3 %d arg4 %d\n",
+                hddLog(LOG1, "%s: LOG_DUMP %d arg1 %d arg2 %d arg3 %d arg4 %d",
                         __FUNCTION__, apps_args[0], apps_args[1], apps_args[2], 
                         apps_args[3], apps_args[4]);
 
@@ -3610,8 +3627,6 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
             {
                 p2p_app_setP2pPs_t p2pNoA;  
 
-                vos_mem_copy(apps_args, value, (sizeof(int))*wrqu->data.length);
-
                 p2pNoA.opp_ps = apps_args[0];
                 p2pNoA.ctWindow = apps_args[1];
                 p2pNoA.duration = apps_args[2];
@@ -3620,22 +3635,22 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
                 p2pNoA.single_noa_duration = apps_args[5];
                 p2pNoA.psSelection = apps_args[6];
 
-                hddLog(LOGE, "%s: P2P_NOA_ATTR:oppPS %d ctWindow %d duration %d "
-                       "interval %d count %d single noa duration %d PsSelection %x\n",
+                hddLog(LOG1, "%s: P2P_NOA_ATTR:oppPS %d ctWindow %d duration %d "
+                       "interval %d count %d single noa duration %d PsSelection %x",
                        __FUNCTION__, apps_args[0], apps_args[1], apps_args[2],
                        apps_args[3], apps_args[4], apps_args[5], apps_args[6]);
 
                 hdd_setP2pPs(dev, &p2pNoA);
 
-          }
-          break;
+            }
+            break;
 #endif
 
         default:  
             {
-                hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
-                break;
+                hddLog(LOGE, "Invalid IOCTL command %d",  sub_cmd );
             }
+            break;
     }
 
     return 0;
@@ -4250,8 +4265,8 @@ static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request
     hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Packet Filter Request : FA %d params %d", 
            __FUNCTION__, pRequest->filterAction, pRequest->numParams);    
 
-      switch (pRequest->filterAction)
-      {
+    switch (pRequest->filterAction)
+    {
         case HDD_RCV_FILTER_SET:
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: Set Packet Filter Request for Id: %d",
                 __FUNCTION__, pRequest->filterId);
@@ -4324,7 +4339,7 @@ static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Packet Filter Request: Invalid %d\n",
                __FUNCTION__, pRequest->filterAction);
             return -EINVAL;
-      }
+    }
 
     return 0;
 }
@@ -4615,7 +4630,7 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
     /*Advance to SSID*/
     ptr += nOffset; 
 
-    ucParams = sscanf(ptr,"%s %lu %lu %hhu %n",
+    ucParams = sscanf(ptr,"%32s %lu %lu %hhu %n",
            pnoRequest.aNetworks[i].ssId.ssId,
            &(pnoRequest.aNetworks[i].authentication),
            &(pnoRequest.aNetworks[i].encryption),

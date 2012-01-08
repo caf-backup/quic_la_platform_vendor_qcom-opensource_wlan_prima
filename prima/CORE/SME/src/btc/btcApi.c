@@ -1834,6 +1834,10 @@ eHalStatus btcHandleCoexInd(tHalHandle hHal, void* pMsg)
    }
    else
    {
+      // DEBUG
+      smsLog(pMac, LOG1, "Coex indication in %s(), type %d",
+             __FUNCTION__, pSmeCoexInd->coexIndType);
+
      // suspend heartbeat monitoring
      if (pSmeCoexInd->coexIndType == SIR_COEX_IND_TYPE_DISABLE_HB_MONITOR)
      {
@@ -1858,9 +1862,6 @@ eHalStatus btcHandleCoexInd(tHalHandle hHal, void* pMsg)
         smsLog(pMac, LOGE, "unknown Coex indication type in %s()", __FUNCTION__);
      }
    }
-
-   // DEBUG
-   smsLog(pMac, LOG1, "Coex indication in %s(), type %d", __FUNCTION__, pSmeCoexInd->coexIndType);
 
    return(status);
 }
