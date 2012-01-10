@@ -100,7 +100,10 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_WEP40,
     WLAN_CIPHER_SUITE_WEP104,
     WLAN_CIPHER_SUITE_TKIP,
-    WLAN_CIPHER_SUITE_CCMP
+    WLAN_CIPHER_SUITE_CCMP,
+#ifdef FEATURE_WLAN_WAPI
+	WLAN_CIPHER_SUITE_SMS4
+#endif
 };
 
 static inline int is_broadcast_ether_addr(const u8 *addr)
@@ -466,6 +469,59 @@ void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
 #endif /* WLAN_FEATURE_P2P */
 }
 
+#ifdef FEATURE_WLAN_WAPI
+void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index, 
+	                                  const u8 *mac_addr, u8 *key , int key_Len)
+{
+    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+    tCsrRoamSetKey  setKey;
+    v_BOOL_t isConnected = TRUE;
+    int status = 0;
+    v_U32_t roamId= 0xFF;
+    tANI_U8 *pKeyPtr = NULL;
+    int n = 0;
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
+                                        __func__,pAdapter->device_mode);
+
+    setKey.keyId = key_index; // Store Key ID
+    setKey.encType  = eCSR_ENCRYPT_TYPE_WPI; // SET WAPI Encryption
+    setKey.keyDirection = eSIR_TX_RX;  // Key Directionn both TX and RX
+    setKey.paeRole = 0 ; // the PAE role
+    if (!mac_addr || is_broadcast_ether_addr(mac_addr))
+    {
+        vos_set_macaddr_broadcast( (v_MACADDR_t *)setKey.peerMac );
+    }
+    else
+    {
+        isConnected = hdd_connIsConnected(pHddStaCtx);
+        vos_mem_copy(setKey.peerMac,&pHddStaCtx->conn_info.bssId,WNI_CFG_BSSID_LEN);
+    }
+    setKey.keyLength = key_Len;
+    pKeyPtr = setKey.Key;
+    memcpy( pKeyPtr, key, key_Len);
+
+    hddLog(VOS_TRACE_LEVEL_INFO,"\n%s: WAPI KEY LENGTH:0x%04x", 
+                                            __func__, key_Len);
+    for (n = 0 ; n < key_Len; n++)
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s WAPI KEY Data[%d]:%02x ",
+                                           __func__,n,setKey.Key[n]);
+
+    pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_SETTING_KEY;
+    if ( isConnected ) 
+    {
+        status= sme_RoamSetKey( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                             pAdapter->sessionId, &setKey, &roamId );
+    }
+    if ( status != 0 )
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "[%4d] sme_RoamSetKey returned ERROR status= %d", 
+				                                   __LINE__, status );
+        pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+    }
+}
+#endif /* FEATURE_WLAN_WAPI*/
 int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter, 
                                        beacon_data_t **ppBeacon,
                                        struct beacon_parameters *params)
@@ -509,7 +565,7 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     if( beacon == NULL )
         return -ENOMEM;
 
-    if(params->dtim_period)
+    if(params->dtim_period || !old )
         beacon->dtim_period = params->dtim_period;
     else
         beacon->dtim_period = old->dtim_period;
@@ -1193,6 +1249,7 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                                         struct net_device *dev)
 {
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx  =  (hdd_context_t*)pAdapter->pHddCtx;
     VOS_STATUS status = 0;
 
     ENTER();
@@ -1200,6 +1257,13 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                               __func__,pAdapter->device_mode);
 
+    if (NULL == pAdapter)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: HDD adapter context is Null", __FUNCTION__);
+        return -ENODEV;
+    }
+        
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) 
 #ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -1213,7 +1277,10 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
         if (!old)
             return -ENOENT;
 
-         
+#ifdef CONFIG_CFG80211
+        hdd_cleanup_actionframe(pHddCtx, pAdapter);
+#endif
+
         if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) 
         {
             if ( VOS_STATUS_SUCCESS == (status = WLANSAP_StopBss((WLAN_HDD_GET_CTX(pAdapter))->pvosContext) ) )
@@ -1640,7 +1707,15 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         case WLAN_CIPHER_SUITE_CCMP:
             setKey.encType = eCSR_ENCRYPT_TYPE_AES;
             break;
-
+#ifdef FEATURE_WLAN_WAPI
+        case WLAN_CIPHER_SUITE_SMS4:
+        {
+            vos_mem_zero(&setKey,sizeof(tCsrRoamSetKey));
+            wlan_hdd_cfg80211_set_key_wapi(pAdapter, key_index, mac_addr, 
+                                               params->key, params->key_len);
+            return 0;
+        }
+#endif
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: unsupported cipher type %lu",
                     __func__, params->cipher);
@@ -2723,17 +2798,20 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     /*TODO: scan the requested channels only*/
 
     /*Right now scanning all the channels */
-    if( request->n_channels )
+    if( request )
     {
-        channelList = vos_mem_malloc( request->n_channels );
-        if( NULL == channelList )
+        if( request->n_channels )
         {
-            status = -ENOMEM;
-            goto free_mem;
+            channelList = vos_mem_malloc( request->n_channels );
+            if( NULL == channelList )
+            {
+                status = -ENOMEM;
+                goto free_mem;
+            }
+      
+            for( i = 0 ; i < request->n_channels ; i++ )
+                channelList[i] = request->channels[i]->hw_value;
         }
-  
-        for( i = 0 ; i < request->n_channels ; i++ )
-            channelList[i] = request->channels[i]->hw_value;
     }
 
     scanRequest.ChannelInfo.numOfChannels = request->n_channels;
@@ -2901,7 +2979,39 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             /*set auth*/
             hdd_set_csr_auth_type(pAdapter, RSNAuthType);
         }
-        
+#ifdef FEATURE_WLAN_WAPI
+        if (pAdapter->wapi_info.nWapiMode)
+        {
+            hddLog(LOG1, "%s: Setting WAPI AUTH Type and Encryption Mode values", __FUNCTION__);
+            switch (pAdapter->wapi_info.wapiAuthMode)
+            {
+                case WAPI_AUTH_MODE_PSK:
+                {
+                    hddLog(LOG1, "%s: WAPI AUTH TYPE: PSK: %d", __FUNCTION__,
+                                                   pAdapter->wapi_info.wapiAuthMode);
+                    pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_WAPI_WAI_PSK;
+                    break;
+                }
+                case WAPI_AUTH_MODE_CERT:
+                {
+                    hddLog(LOG1, "%s: WAPI AUTH TYPE: CERT: %d", __FUNCTION__,
+                                                    pAdapter->wapi_info.wapiAuthMode);
+                    pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE;
+                    break;
+                }
+            } // End of switch
+            if ( pAdapter->wapi_info.wapiAuthMode == WAPI_AUTH_MODE_PSK ||
+                pAdapter->wapi_info.wapiAuthMode == WAPI_AUTH_MODE_CERT)
+            {
+                hddLog(LOG1, "%s: WAPI PAIRWISE/GROUP ENCRYPTION: WPI", __FUNCTION__);
+                pRoamProfile->AuthType.numEntries = 1;
+                pRoamProfile->EncryptionType.numEntries = 1;
+                pRoamProfile->EncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_WPI;
+                pRoamProfile->mcEncryptionType.numEntries = 1;
+                pRoamProfile->mcEncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_WPI;
+            }
+        }
+#endif /* FEATURE_WLAN_WAPI */
         pRoamProfile->csrPersona = pAdapter->device_mode;
 
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter), 
@@ -3051,7 +3161,11 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
         case WLAN_CIPHER_SUITE_CCMP:
             encryptionType = eCSR_ENCRYPT_TYPE_AES;
             break;
-
+#ifdef FEATURE_WLAN_WAPI
+        case WLAN_CIPHER_SUITE_SMS4:
+            encryptionType = eCSR_ENCRYPT_TYPE_WPI;
+            break;
+#endif
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported cipher type %d", 
                     __func__, cipher);
@@ -3092,6 +3206,12 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     u8 *genie = ie;
     v_U16_t remLen = ie_len;
+#ifdef FEATURE_WLAN_WAPI
+	v_U32_t akmsuite[MAX_NUM_AKM_SUITES];
+	u16 *tmp;
+	v_U16_t akmsuiteCount;
+	int *akmlist;
+#endif 
     ENTER();
 
     /* clear previous assocAddIE */
@@ -3180,7 +3300,32 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 pWextState->roamProfile.pRSNReqIE = pWextState->WPARSNIE;
                 pWextState->roamProfile.nRSNReqIELength = eLen + 2; //ie_len;
                 break;
+#ifdef FEATURE_WLAN_WAPI				
+            case WLAN_EID_WAPI:
+                pAdapter->wapi_info.nWapiMode = 1;   //Setting WAPI Mode to ON=1
+                hddLog(VOS_TRACE_LEVEL_INFO,"WAPI MODE IS  %lu \n",
+                                          pAdapter->wapi_info.nWapiMode);
+                tmp = (u16 *)ie;
+                tmp = tmp + 2; // Skip element Id and Len, Version        
+                akmsuiteCount = WPA_GET_LE16(tmp);       
+                tmp = tmp + 1;   
+                akmlist= (int *)(tmp);       
+                memcpy(akmsuite, akmlist, (4*akmsuiteCount));
 
+                if (WAPI_PSK_AKM_SUITE == akmsuite[0])    
+                {
+                    hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO PSK",
+                                                            __FUNCTION__);       
+                    pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_PSK;
+                }    
+                if (WAPI_CERT_AKM_SUITE == akmsuite[0])     
+                {     
+                    hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO CERTIFICATE",
+                                                             __FUNCTION__);      
+                    pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_CERT;
+                }
+                break;
+#endif
             default:
                 hddLog (VOS_TRACE_LEVEL_ERROR, 
                         "%s Set UNKNOWN IE %X", __func__, elementId);
@@ -3307,7 +3452,7 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
                 u8 key_idx = req->key_idx;
 
                 if ((eCSR_SECURITY_WEP_KEYSIZE_MAX_BYTES >= key_len) 
-                        && (CSR_MAX_NUM_KEY >= key_idx)
+                        && (CSR_MAX_NUM_KEY > key_idx)
                   )
                 {
                     hddLog(VOS_TRACE_LEVEL_INFO, 

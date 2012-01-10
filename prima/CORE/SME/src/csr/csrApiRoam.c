@@ -1139,7 +1139,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.addTSWhenACMIsOff = pParam->addTSWhenACMIsOff;
         pMac->scan.fValidateList = pParam->fValidateList;
         pMac->scan.fEnableBypass11d = pParam->fEnableBypass11d;
-
+        pMac->scan.fEnableDFSChnlScan = pParam->fEnableDFSChnlScan;
     }
     
     return status;
@@ -1200,7 +1200,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->addTSWhenACMIsOff = pMac->roam.configParam.addTSWhenACMIsOff;
         pParam->fValidateList = pMac->roam.configParam.fValidateList;
         pParam->fEnableBypass11d = pMac->scan.fEnableBypass11d;
-
+        pParam->fEnableDFSChnlScan = pMac->scan.fEnableDFSChnlScan;
         status = eHAL_STATUS_SUCCESS;
     }
 
@@ -8838,7 +8838,7 @@ tANI_BOOLEAN csrRoamIsChannelValid( tpAniSirGlobal pMac, tANI_U8 channel )
             }
         }
     }    
-        
+    pMac->roam.numValidChannels = len;   
     return fValid;
 }
 

@@ -1067,7 +1067,7 @@ error_sme_open:
 }
 
 #ifdef CONFIG_CFG80211
-static void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
+void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 {
    hdd_cfg80211_state_t *cfgState;
 

@@ -63,8 +63,16 @@ extern tSirRetStatus limSetLinkState(
 void limSetLinkStateP2PCallback(tpAniSirGlobal pMac, void *callbackArg)
 {
     //Send Ready on channel indication to SME
-    limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RDY_IND, eHAL_STATUS_SUCCESS, 
-                  pMac->lim.gpLimRemainOnChanReq->sessionId, 0); 
+    if(pMac->lim.gpLimRemainOnChanReq)
+    {
+        limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RDY_IND, eHAL_STATUS_SUCCESS, 
+                     pMac->lim.gpLimRemainOnChanReq->sessionId, 0); 
+    }
+    else
+    {
+        //This is possible in case remain on channel is aborted
+        limLog( pMac, LOGE, FL(" NULL pointer of gpLimRemainOnChanReq") );
+    }
 }
 
 /*------------------------------------------------------------------
@@ -157,17 +165,23 @@ tSirRetStatus limRemainOnChnlChangeChnReq(tpAniSirGlobal pMac,
     tSirRetStatus nSirStatus = eSIR_FAILURE;
     tANI_U32 val;
    
+    if( NULL == pMac->lim.gpLimRemainOnChanReq )
+    {
+        //RemainOnChannel may have aborted
+        PELOGE(limLog( pMac, LOGE, FL(" gpLimRemainOnChanReq is NULL") );)
+        return nSirStatus;
+    }
+
      /* The link is not suspended */
     if (status != eHAL_STATUS_SUCCESS) 
     {
-        PELOGE(limLog( pMac, LOGE, "%s: Suspend link Failure \n", __func__);)
+        PELOGE(limLog( pMac, LOGE, FL(" Suspend link Failure ") );)
         goto error;
     }
 
-    VOS_ASSERT( pMac->lim.gpLimRemainOnChanReq );
      
     if((psessionEntry = peFindSessionByBssid(
-        pMac,pMac->lim.gpLimRemainOnChanReq->selfMacAddr,&sessionId)) != NULL)
+        pMac,pMac->lim.gpLimRemainOnChanReq->selfMacAddr, &sessionId)) != NULL)
     {
         limLog(pMac, LOGP, FL("Session Already exists for given BSSID\n"));
         goto error;
@@ -709,9 +723,9 @@ void limAbortRemainOnChan(tpAniSirGlobal pMac)
     if(VOS_TRUE == tx_timer_running(
                 &pMac->lim.limTimers.gLimRemainOnChannelTimer))
     {
-    //TODO check for state and take appropriate actions
-    limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
-    limProcessRemainOnChnTimeout(pMac);
+        //TODO check for state and take appropriate actions
+        limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
+        limProcessRemainOnChnTimeout(pMac);
     }
     return;
 }

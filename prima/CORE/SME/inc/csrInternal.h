@@ -602,6 +602,11 @@ typedef struct tagCsrScanStruct
     * to determine the country code & domain */
     tANI_BOOLEAN fEnableBypass11d;
 
+    /*Customer wants to optimize the scan time. Avoiding scans(passive) on DFS 
+    * channels while swipping through both bands can save some time 
+    * (apprx 1.3 sec) */
+    tANI_BOOLEAN fEnableDFSChnlScan;
+
 #ifdef WLAN_AP_STA_CONCURRENCY
     tDblLinkList scanCmdPendingList;
 #endif    
@@ -751,6 +756,7 @@ typedef struct tagCsrRoamStruct
     //This may or may not have the up-to-date valid channel list
     //It is used to get WNI_CFG_VALID_CHANNEL_LIST and not allocate memory all the time
     tSirMacChanNum validChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    tANI_U32 numValidChannels; //total number of channels in CFG
     
     tANI_S32 sPendingCommands;
     tChannelListWithPower   *powerTableFromEeprom;

@@ -1631,7 +1631,7 @@ eNVChannelEnabledType vos_nv_getChannelEnabledState
    v_U32_t       channelLoop;
    eRfChannels   channelEnum = INVALID_RF_CHANNEL;
 
-   for(channelLoop = 0; channelLoop < RF_CHAN_165; channelLoop++)
+   for(channelLoop = 0; channelLoop <= RF_CHAN_165; channelLoop++)
    {
       if(rfChannels[channelLoop].channelNum == rfChannel)
       {

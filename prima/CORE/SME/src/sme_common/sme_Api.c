@@ -347,6 +347,8 @@ static eSmeCommandType smeIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pComm
 
     do
     {
+        pmcState = pmcGetPmcState(pMac);
+
         status = csrIsFullPowerNeeded( pMac, pCommand, NULL, &fFullPowerNeeded );
         if( !HAL_STATUS_SUCCESS(status) )
         {
@@ -358,15 +360,19 @@ static eSmeCommandType smeIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pComm
                     ( eSmeCommandDelTs ==  pCommand->command ) );
         if( fFullPowerNeeded ) break;
 #ifdef FEATURE_INNAV_SUPPORT
-        pmcState = pmcGetPmcState(pMac);
-        fFullPowerNeeded = (pmcState == IMPS && eSmeCommandMeas == pCommand->command);
+        fFullPowerNeeded = (pmcState == IMPS && 
+                                       eSmeCommandMeas == pCommand->command);
+        if(fFullPowerNeeded) break;
+#endif
+#ifdef WLAN_FEATURE_P2P
+        fFullPowerNeeded = (pmcState == IMPS && 
+                            eSmeCommandRemainOnChannel == pCommand->command);
         if(fFullPowerNeeded) break;
 #endif
     } while(0);
 
     if( fFullPowerNeeded )
     {
-        pmcState = pmcGetPmcState( pMac );
         switch( pmcState )
         {
         case IMPS:
@@ -3429,17 +3435,19 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamSetKey *pS
       
       if(CSR_IS_INFRA_AP(&pSession->connectedProfile))
       {
-
-          if ( ( eCSR_ENCRYPT_TYPE_WEP40 == pSetKey->encType ) ||
-             ( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY == pSetKey->encType ))
-              pSession->pCurRoamProfile->negotiatedUCEncryptionType = eCSR_ENCRYPT_TYPE_WEP40_STATICKEY;
- 
-          if ( ( eCSR_ENCRYPT_TYPE_WEP104 == pSetKey->encType ) ||
-             ( eCSR_ENCRYPT_TYPE_WEP104_STATICKEY == pSetKey->encType ))
-          {
-              pSession->pCurRoamProfile->negotiatedUCEncryptionType = eCSR_ENCRYPT_TYPE_WEP104_STATICKEY;
-          }
-
+         if(pSetKey->keyDirection == eSIR_TX_DEFAULT)
+         {
+            if ( ( eCSR_ENCRYPT_TYPE_WEP40 == pSetKey->encType ) ||
+                 ( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY == pSetKey->encType ))
+            {
+               pSession->pCurRoamProfile->negotiatedUCEncryptionType = eCSR_ENCRYPT_TYPE_WEP40_STATICKEY;
+            }
+            if ( ( eCSR_ENCRYPT_TYPE_WEP104 == pSetKey->encType ) ||
+                 ( eCSR_ENCRYPT_TYPE_WEP104_STATICKEY == pSetKey->encType ))
+            {
+               pSession->pCurRoamProfile->negotiatedUCEncryptionType = eCSR_ENCRYPT_TYPE_WEP104_STATICKEY;
+            }
+         }
       }
 #endif
       

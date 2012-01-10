@@ -17840,11 +17840,9 @@ WDI_ProcessHALDumpCmdRsp
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_HALDumpCmdRspCb     wdiHALDumpCmdRspCb          = NULL;
-  tpHalDumpCmdRspParams   halDumpCmdRspParams        = NULL;
+  WDI_HALDumpCmdRspCb     wdiHALDumpCmdRspCb;
+  tpHalDumpCmdRspParams   halDumpCmdRspParams;
   WDI_HALDumpCmdRspParamsType wdiHALDumpCmdRsp;
-
-  wdiHALDumpCmdRspCb = (WDI_HALDumpCmdRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -17857,6 +17855,9 @@ WDI_ProcessHALDumpCmdRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiHALDumpCmdRspCb = (WDI_HALDumpCmdRspCb)pWDICtx->pfncRspCB; 
+
   /*Initialize the WDI Response structure */
   wdiHALDumpCmdRsp.usBufferLen = 0;
   wdiHALDumpCmdRsp.pBuffer = NULL;
@@ -21440,10 +21441,8 @@ WDI_ProcessSetRssiFilterRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_RssiFilterCb     wdiRssiFilterCb   = NULL;
+   WDI_RssiFilterCb     wdiRssiFilterCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiRssiFilterCb = (WDI_PNOScanCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -21456,6 +21455,8 @@ WDI_ProcessSetRssiFilterRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiRssiFilterCb = (WDI_PNOScanCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -22110,13 +22111,11 @@ WDI_Process8023MulticastListRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_8023MulticastListCb wdi8023MulticastListCb = NULL;
+   WDI_8023MulticastListCb wdi8023MulticastListCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
              "%s",__FUNCTION__);
-
-   wdi8023MulticastListCb = (WDI_8023MulticastListCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -22129,6 +22128,8 @@ WDI_Process8023MulticastListRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdi8023MulticastListCb = (WDI_8023MulticastListCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -22162,14 +22163,11 @@ WDI_ProcessReceiveFilterSetFilterRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_ReceiveFilterSetFilterCb wdiReceiveFilterSetFilterCb = NULL;
+   WDI_ReceiveFilterSetFilterCb wdiReceiveFilterSetFilterCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
           "%s",__FUNCTION__);
-
-   wdiReceiveFilterSetFilterCb = (WDI_ReceiveFilterSetFilterCb)pWDICtx->
-                                                                   pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -22182,6 +22180,9 @@ WDI_ProcessReceiveFilterSetFilterRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiReceiveFilterSetFilterCb = (WDI_ReceiveFilterSetFilterCb)pWDICtx->
+                                                                   pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -22214,14 +22215,12 @@ WDI_ProcessFilterMatchCountRsp
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
 
-   WDI_FilterMatchCountCb   wdiFilterMatchCountCb = NULL;
+   WDI_FilterMatchCountCb   wdiFilterMatchCountCb;
 
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
              "%s",__FUNCTION__);
-
-   wdiFilterMatchCountCb = (WDI_FilterMatchCountCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -22234,6 +22233,8 @@ WDI_ProcessFilterMatchCountRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiFilterMatchCountCb = (WDI_FilterMatchCountCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -22265,14 +22266,11 @@ WDI_ProcessReceiveFilterClearFilterRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_ReceiveFilterClearFilterCb wdiReceiveFilterClearFilterCb = NULL;
+   WDI_ReceiveFilterClearFilterCb wdiReceiveFilterClearFilterCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
              "%s",__FUNCTION__);
-
-   wdiReceiveFilterClearFilterCb = (WDI_ReceiveFilterClearFilterCb)pWDICtx->
-                                                                 pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -22285,6 +22283,9 @@ WDI_ProcessReceiveFilterClearFilterRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiReceiveFilterClearFilterCb = (WDI_ReceiveFilterClearFilterCb)pWDICtx->
+                                                                 pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC

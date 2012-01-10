@@ -63,7 +63,7 @@ v_U8_t ccpRSNOui03[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x03 }; // Reserved
 v_U8_t ccpRSNOui04[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x04 }; // AES-CCMP
 v_U8_t ccpRSNOui05[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x05 }; // WEP-104
 
-#if defined(WLAN_FEATURE_VOWIFI_11R) || defined (WLAN_FEATURE_CIQ_METRICS)
+#ifdef WLAN_FEATURE_VOWIFI_11R
 // Offset where the EID-Len-IE, start.
 #define FT_ASSOC_RSP_IES_OFFSET 6
 #endif
@@ -242,7 +242,7 @@ void hdd_connSaveConnectInfo( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
    
 }
 
-#if defined(WLAN_FEATURE_VOWIFI_11R) || defined (WLAN_FEATURE_CIQ_METRICS)
+#ifdef WLAN_FEATURE_VOWIFI_11R
 /*
  * Send the 11R key information to the supplicant.
  * Only then teh supplicant can generate the PMK-R1.
@@ -299,9 +299,6 @@ static void hdd_SendFTAssocResponse(struct net_device *dev, hdd_adapter_t *pAdap
 
     kfree(buff);
 }
-#endif /* WLAN_FEATURE_VOWIFI_11R Or WLAN_FEATURE_CIQ_METRICS */
-
-#ifdef WLAN_FEATURE_VOWIFI_11R
 
 /*---------------------------------------------------
  *
@@ -441,11 +438,7 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     char *msg;
     int type = -1;
 
-#if defined (WLAN_FEATURE_VOWIFI_11R) || defined (WLAN_FEATURE_CIQ_METRICS)
-    v_BOOL_t sendFTAssocRsp = FALSE;
-#endif
-
-#if defined (WLAN_FEATURE_VOWIFI_11R) && !defined (WLAN_FEATURE_CIQ_METRICS)
+#ifdef WLAN_FEATURE_VOWIFI_11R
     hdd_config_t *pConfig = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
 #endif
  
@@ -470,18 +463,9 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         /* Send IWEVASSOCRESPIE Event if WLAN_FEATURE_CIQ_METRICS is Enabled Or
          * Send IWEVASSOCRESPIE Event if WLAN_FEATURE_VOWIFI_11R is Enabled
          * and fFTEnable is TRUE */
-#if defined(WLAN_FEATURE_CIQ_METRICS)
-        sendFTAssocRsp = TRUE;
-#elif defined(WLAN_FEATURE_VOWIFI_11R)
+#ifdef WLAN_FEATURE_VOWIFI_11R
         // Send FT Keys to the supplicant when FT is enabled
         if (pConfig->fFTEnable == TRUE)
-        {
-            sendFTAssocRsp = TRUE;
-        }
-#endif
-
-#if defined(WLAN_FEATURE_VOWIFI_11R) || defined (WLAN_FEATURE_CIQ_METRICS)
-        if (TRUE == sendFTAssocRsp)
         {
             hdd_SendFTAssocResponse(dev, pAdapter, pCsrRoamInfo);
         }
@@ -515,79 +499,6 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
     }
     send_btc_nlink_msg(type, 0);
 }
-
-#ifdef WLAN_FEATURE_CIQ_METRICS
-
-
-static void hdd_SendAssocResultEvent_ForCIQ(struct net_device *dev,
-                              tCsrRoamInfo *pCsrRoamInfo, v_BOOL_t successFlag)
-{
-    int reasonCode;
-    unsigned char assoc_result[16];
-    union iwreq_data wrqu;
-
-    if (NULL == pCsrRoamInfo)
-    {
-        reasonCode = eSIR_MAC_UNSPEC_FAILURE_REASON;
-    }
-    else
-    {
-        reasonCode = pCsrRoamInfo->reasonCode;
-    }
-
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-               "%s: send ASSOC event to wpa_supplicant "
-               "with successFlag %u ReasonCode %d",
-               __FUNCTION__, successFlag, reasonCode);
-
-    memset(&wrqu, 0, sizeof(wrqu));
-    wrqu.data.length = snprintf(assoc_result, sizeof(assoc_result),
-                                "ASSOC %u %d", successFlag, reasonCode);
-    wireless_send_event(dev, IWEVCUSTOM, &wrqu, assoc_result);
-}
-
-static void hdd_SendDisassociateEvent_ForCIQ(struct net_device *dev,tCsrRoamInfo *pCsrRoamInfo)
-{
-    
-    unsigned char disassoc_reason[16];
-    union iwreq_data wrqu;
-    tANI_U32 reasonCode = 1; //Unspecified Failure
-
-    if (pCsrRoamInfo)
-    {
-        reasonCode = pCsrRoamInfo->reasonCode;
-    }
-
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-               "hdd_SendDisassociateEvent_ForCIQ : send DISASSOC event to wpa_supplicant ReasonCode %ld\n",
-               reasonCode);
-
-    memset(&wrqu, 0, sizeof(wrqu));
-    wrqu.data.length = snprintf(disassoc_reason, sizeof(disassoc_reason), "DISASSOC %ld", reasonCode);
-    wireless_send_event(dev, IWEVCUSTOM, &wrqu, disassoc_reason);
-}
-
-static void hdd_SendDeauthenticateEvent_ForCIQ(struct net_device *dev,tCsrRoamInfo *pCsrRoamInfo)
-{
-    
-    unsigned char deauth_reason[16];
-    union iwreq_data wrqu;
-    tANI_U32 reasonCode = 1; //Unspecified Failure
-
-    if (pCsrRoamInfo)
-    {        
-        reasonCode = pCsrRoamInfo->reasonCode;
-    }
-
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-               "hdd_SendDeauthenticateEvent_ForCIQ : send DEAUTH event to wpa_supplicant ReasonCode %ld\n",
-               reasonCode);
-
-    memset(&wrqu, 0, sizeof(wrqu));
-    wrqu.data.length = snprintf(deauth_reason, sizeof(deauth_reason), "DEAUTH %ld", reasonCode);
-    wireless_send_event(dev, IWEVCUSTOM, &wrqu, deauth_reason);
-}
-#endif /* WLAN_FEATURE_CIQ_METRICS */
 
 void hdd_connRemoveConnectInfo( hdd_station_ctx_t *pHddStaCtx )
 {
@@ -669,15 +580,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     }
 #endif
     
-#ifdef WLAN_FEATURE_CIQ_METRICS
-    hdd_SendDisassociateEvent_ForCIQ(dev, pRoamInfo);
-    if (eCSR_ROAM_RESULT_DEAUTH_IND == roamResult)
-    {
-        hdd_SendDeauthenticateEvent_ForCIQ(dev, pRoamInfo);
-    }
-#endif /* WLAN_FEATURE_CIQ_METRICS */
-
-
     //We should clear all sta register with TL, for now, only one.
     status = hdd_roamDeregisterSTA( pAdapter, pHddStaCtx->conn_info.staId [0] );
     if ( !VOS_IS_STATUS_SUCCESS(status ) )
@@ -897,11 +799,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         // indicate 'connect' status to userspace
         hdd_SendAssociationEvent(dev,pRoamInfo);
 
-#ifdef WLAN_FEATURE_CIQ_METRICS
-        // Association is Complete and Successful. 
-        hdd_SendAssocResultEvent_ForCIQ(dev, pRoamInfo, VOS_TRUE);
-#endif /* WLAN_FEATURE_CIQ_METRICS */
-
         // Initialize the Linkup event completion variable 
         INIT_COMPLETION(pAdapter->linkup_event_var);
 
@@ -1001,16 +898,13 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     }  
     else 
     {
+#ifdef CONFIG_CFG80211
         hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+#endif
         pr_info("wlan: connection failed\n");
 
         /*Handle all failure conditions*/
         hdd_connSetConnectionState( pHddStaCtx, eConnectionState_NotConnected);
-        
-#ifdef WLAN_FEATURE_CIQ_METRICS
-        // Association is Complete but it is a Failure. So success flag is set to VOS_FALSE.
-        hdd_SendAssocResultEvent_ForCIQ(dev, pRoamInfo, VOS_FALSE);
-#endif /* WLAN_FEATURE_CIQ_METRICS */
 
 #ifdef CONFIG_CFG80211
         /* inform association failure event to nl80211 */

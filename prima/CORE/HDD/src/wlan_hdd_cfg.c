@@ -1254,6 +1254,13 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_ENABLE_BYPASS_11D_MIN, 
               CFG_ENABLE_BYPASS_11D_MAX ),
 
+ REG_VARIABLE( CFG_ENABLE_DFS_CHNL_SCAN_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, enableDFSChnlScan, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+              CFG_ENABLE_DFS_CHNL_SCAN_DEFAULT, 
+              CFG_ENABLE_DFS_CHNL_SCAN_MIN, 
+              CFG_ENABLE_DFS_CHNL_SCAN_MAX ),
+
 };
 
 /*
@@ -1594,6 +1601,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [bcnEarlyTermWakeInterval] Value = [%u] ",pHddCtx->cfg_ini->bcnEarlyTermWakeInterval);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pHddCtx->cfg_ini->apDataAvailPollPeriodInMs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableBypass11d] Value = [%u] ",pHddCtx->cfg_ini->enableBypass11d);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableDFSChnlScan] Value = [%u] ",pHddCtx->cfg_ini->enableDFSChnlScan);
 }
 
 
@@ -2485,6 +2493,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.eBand                     = pConfig->nBandCapability; 
    smeConfig.csrConfig.nTxPowerCap = pConfig->nTxPowerCap;
    smeConfig.csrConfig.fEnableBypass11d          = pConfig->enableBypass11d;
+   smeConfig.csrConfig.fEnableDFSChnlScan        = pConfig->enableDFSChnlScan;
    
    //FIXME 11d config is hardcoded
 #ifdef WLAN_SOFTAP_FEATURE

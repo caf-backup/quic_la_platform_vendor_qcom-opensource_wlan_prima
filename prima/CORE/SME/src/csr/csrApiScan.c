@@ -2425,11 +2425,42 @@ void csrApplyPower2Current( tpAniSirGlobal pMac )
 
 void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannelList, tANI_U8 *countryCode)
 {
+    int i;
+    eNVChannelEnabledType channelEnabledType;
+    tANI_U8 numChannels = 0;
+    tANI_U8 tempNumChannels = 0;
+    tCsrChannel ChannelList;
     if( pChannelList->numChannels )
     {
-        csrSetCfgValidChannelList(pMac, pChannelList->channelList, pChannelList->numChannels);
+        tempNumChannels = CSR_MIN(pChannelList->numChannels, WNI_CFG_VALID_CHANNEL_LIST_LEN);
+        /* If user doesn't want to scan the DFS channels lets trim them from 
+        the valid channel list*/
+        if(FALSE == pMac->scan.fEnableDFSChnlScan)
+        {
+            for(i = 0; i< tempNumChannels; i++)
+            {
+                 channelEnabledType = 
+                     vos_nv_getChannelEnabledState(pChannelList->channelList[i]);
+                 if( NV_CHANNEL_ENABLE ==  channelEnabledType)
+                 {
+                     ChannelList.channelList[numChannels] =
+                         pChannelList->channelList[i];
+                     numChannels++;
+                 }
+            }
+            ChannelList.numChannels = numChannels;
+        }
+        else
+        {
+            ChannelList.numChannels = tempNumChannels;
+             vos_mem_copy(ChannelList.channelList,
+                          pChannelList->channelList,
+                          ChannelList.numChannels);
+        }
+
+        csrSetCfgValidChannelList(pMac, ChannelList.channelList, ChannelList.numChannels);
         // extend scan capability
-        csrSetCfgScanControlList(pMac, countryCode, pChannelList);     //  build a scan list based on the channel list : channel# + active/passive scan
+        csrSetCfgScanControlList(pMac, countryCode, &ChannelList);     //  build a scan list based on the channel list : channel# + active/passive scan
 #ifdef FEATURE_WLAN_SCAN_PNO
         // Send HAL UpdateScanParams message
         //pmcUpdateScanParams(pMac, &(pMac->roam.configParam), pChannelList, TRUE);
@@ -4609,6 +4640,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                     if (HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac, pMac->roam.validChannelList, &len)))
                     {
                         new_index = 0;
+                        pMac->roam.numValidChannels = len;
                         for ( index = 0; index < pSrcReq->ChannelInfo.numOfChannels ; index++ )
                         {
                             if(csrRoamIsValidChannel(pMac, pSrcReq->ChannelInfo.ChannelList[index]))
@@ -5591,6 +5623,7 @@ void csrInitBGScanChannelList(tpAniSirGlobal pMac)
 
     if(HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac, pMac->roam.validChannelList, &len)))
     {
+        pMac->roam.numValidChannels = len;
         pMac->scan.numBGScanChannel = (tANI_U8)CSR_MIN(len, WNI_CFG_BG_SCAN_CHANNEL_LIST_LEN);
         palCopyMemory(pMac->hHdd, pMac->scan.bgScanChannelList, pMac->roam.validChannelList, pMac->scan.numBGScanChannel);
         csrSetBGScanChannelList(pMac, pMac->scan.bgScanChannelList, pMac->scan.numBGScanChannel);
@@ -6069,7 +6102,7 @@ tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel )
 {
     tANI_BOOLEAN fValid = FALSE;
     tANI_U32 idxValidChannels;
-    tANI_U32 len = sizeof(pMac->roam.validChannelList);
+    tANI_U32 len = pMac->roam.numValidChannels;
     
     for ( idxValidChannels = 0; ( idxValidChannels < len ); idxValidChannels++ )
     {

@@ -224,7 +224,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WLAN_STATS_RX_ERROR_CNT       11
 #define WLAN_STATS_TX_BYTE_CNT        12
 
-/* Added for CIQ related stats */
 #define WLAN_STATS_RX_BYTE_CNT        13
 #define WLAN_STATS_RX_RATE            14
 #define WLAN_STATS_TX_RATE            15
@@ -4472,7 +4471,6 @@ static int iw_get_statistics(struct net_device *dev,
               (char*) &(pStats->tx_byte_cnt), 
               tlen);
 
-    /* Added for CIQ related stats */
     FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BYTE_CNT, 
               (tANI_U8) sizeof (dStats->rx_byte_cnt), 
               (char*) &(dStats->rx_byte_cnt), 

@@ -298,11 +298,18 @@ void WLANTL_InitBAReorderBuffer
    v_PVOID_t   pvosGCtx
 )
 {
-   WLANTL_CbType        *pTLCb = NULL; 
+   WLANTL_CbType        *pTLCb;
    v_U32_t              idx;
    v_U32_t              pIdx;
 
    pTLCb = VOS_GET_TL_CB(pvosGCtx);
+   if (NULL == pTLCb)
+   {
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Invalid TL Control Block", __FUNCTION__));
+      return;
+   }
+
    for(idx = 0; idx < WLANTL_MAX_BA_SESSION; idx++)
    {
       pTLCb->reorderBufferPool[idx].isAvailable = VOS_TRUE;

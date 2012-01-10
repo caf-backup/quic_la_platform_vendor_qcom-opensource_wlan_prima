@@ -906,6 +906,11 @@ typedef struct tagCsrConfigParam
     * to determine the country code & domain */
     tANI_BOOLEAN fEnableBypass11d;
 
+    /*Customer wants to optimize the scan time. Avoiding scans(passive) on DFS 
+    * channels while swipping through both bands can save some time 
+    * (apprx 1.3 sec) */
+    tANI_BOOLEAN fEnableDFSChnlScan;
+
 }tCsrConfigParam;   
 
 //Tush
