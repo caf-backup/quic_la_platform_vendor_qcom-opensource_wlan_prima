@@ -534,7 +534,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
          break;
       case VOS_TIMER_STATE_RUNNING:
          /* Stop the timer first */
-         del_timer_sync(&(timer->platformInfo.Timer));
+         del_timer(&(timer->platformInfo.Timer));
          vStatus = VOS_STATUS_SUCCESS;
          break;
       case VOS_TIMER_STATE_STOPPED:
@@ -597,7 +597,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
          break;
       case VOS_TIMER_STATE_RUNNING:
          /* Stop the timer first */
-         del_timer_sync(&(timer->platformInfo.Timer));
+         del_timer(&(timer->platformInfo.Timer));
          vStatus = VOS_STATUS_SUCCESS;
          break;
       case VOS_TIMER_STATE_STOPPED:
@@ -792,7 +792,7 @@ VOS_STATUS vos_timer_stop ( vos_timer_t *timer )
    
    timer->state = VOS_TIMER_STATE_STOPPED;
 
-   del_timer_sync(&(timer->platformInfo.Timer));
+   del_timer(&(timer->platformInfo.Timer));
        
    spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
       

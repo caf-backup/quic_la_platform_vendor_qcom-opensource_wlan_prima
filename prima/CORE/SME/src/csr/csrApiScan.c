@@ -2202,7 +2202,8 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
                 {
                     cand_Bss_rssi = pBssDescription->Result.BssDescriptor.rssi;
                     // learn country information
-                    csrLearnCountryInformation( pMac, &pBssDescription->Result.BssDescriptor, pIesLocal );
+                    csrLearnCountryInformation( pMac, &pBssDescription->Result.BssDescriptor, 
+                             pIesLocal, eANI_BOOLEAN_FALSE );
                 }
 
             }
@@ -2732,7 +2733,8 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
 
 
 
-tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode )
+tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode,
+                     tANI_BOOLEAN fForce)
 {
     tANI_BOOLEAN fCountryStringChanged = FALSE, fUnknownCountryCode = FALSE;
     tANI_U32 i;
@@ -2772,20 +2774,15 @@ tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode
 
     if( !fUnknownCountryCode )
     {
-        if( 0 == pMac->scan.countryCode11d[ 0 ] && 0 == pMac->scan.countryCode11d[ 1 ] )
+        fCountryStringChanged = (!palEqualMemory( pMac->hHdd,
+              pMac->scan.countryCode11d, pCountryCode, 2));
+
+
+        if(( 0 == pMac->scan.countryCode11d[ 0 ] && 0 == pMac->scan.countryCode11d[ 1 ] )
+             || (fForce))
         {
             // this is the first .11d information
             palCopyMemory( pMac->hHdd, pMac->scan.countryCode11d, pCountryCode, sizeof( pMac->scan.countryCode11d ) );
-        }
-        else
-        {
-            // check that country string has not changed, which it should not
-            // compare only the first two bytes as third byte specifies 'I' - Indoor or
-            // 'O' - Outdoor or ' ' - for ANY
-            if( !palEqualMemory( pMac->hHdd, pMac->scan.countryCode11d, pCountryCode, 2 ) )
-            {
-                fCountryStringChanged = TRUE;
-            }
         }
     }
 
@@ -2937,7 +2934,7 @@ void csrConstructCurrentValidChannelList( tpAniSirGlobal pMac, tDblLinkList *pCh
   * 802.11D only: Gather 11d IE via beacon or Probe response and store them in pAdapter->channels11d
 */
 tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
-                                         tDot11fBeaconIEs *pIes)
+                                         tDot11fBeaconIEs *pIes, tANI_BOOLEAN fForce)
 {
     tANI_U8 Num2GChannels, bMaxNumChn;
     eHalStatus status;
@@ -2965,7 +2962,7 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
             break;
         }
 
-        if( csrSave11dCountryString( pMac, pIesLocal->Country.country ) )
+        if( csrSave11dCountryString( pMac, pIesLocal->Country.country, fForce ) )
         {
             // country string changed, this should not happen
             //Need to check whether we care about this BSS' domain info

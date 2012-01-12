@@ -556,7 +556,8 @@ static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac,
         {
             if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
             {
-                if(pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
+               if ((pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE) &&
+                   (pInitScanParam->scanEntry.activeBSScnt < HAL_NUM_BSSID))
                 {
                     pInitScanParam->scanEntry.bssIdx[pInitScanParam->scanEntry.activeBSScnt] 
                         = pMac->lim.gpSession[i].bssIdx;
@@ -604,7 +605,8 @@ static void __limCreateFinishScanRawFrame(tpAniSirGlobal pMac,
             {
                 //BT-STA can either be in LINK-ESTB state or BSS_STARTED State
                 //for BT, need to send CTS2Self
-                if(pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
+               if ((pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE) &&
+                   (pFinishScanParam->scanEntry.activeBSScnt < HAL_NUM_BSSID))
                 {
                     pFinishScanParam->scanEntry.bssIdx[pFinishScanParam->scanEntry.activeBSScnt] 
                         = pMac->lim.gpSession[i].bssIdx;

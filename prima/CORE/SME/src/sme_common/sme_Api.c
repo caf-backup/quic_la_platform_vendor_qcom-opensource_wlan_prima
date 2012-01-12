@@ -5630,7 +5630,7 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
       pMac->roam.configParam.fEnforce11dChannels &&
       pMac->roam.configParam.fEnforceCountryCodeMatch &&
       pMac->roam.configParam.fEnforceDefaultDomain &&
-      !csrSave11dCountryString(pMac, pMsg->countryCode))
+      !csrSave11dCountryString(pMac, pMsg->countryCode, eANI_BOOLEAN_TRUE))
    {
       /* All 11D related options are already enabled
        * Country string is not changed

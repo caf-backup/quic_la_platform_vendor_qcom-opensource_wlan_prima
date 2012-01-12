@@ -55,6 +55,7 @@
 #include "sapInternal.h"
 #include "wlan_hdd_softap_tx_rx.h"
 #include "wlan_hdd_main.h"
+#include <qc_sap_ioctl.h>
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -949,6 +950,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     hdd_hostapd_state_t *pHostapdState;
     v_U8_t wpaRsnIEdata[(SIR_MAC_MAX_IE_LENGTH * 2)+4];  //Max ie length 255 * 2(WPA+RSN) + 2 bytes (vendor specific ID) * 2
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;
+    struct qc_mac_acl_entry *acl_entry = NULL;
+    v_SINT_t i;
 
     ENTER();
 
@@ -1027,7 +1030,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
              * */
             pConfig->RSNEncryptType = RSNEncryptType; // Use the cipher type in the RSN IE
             pConfig->mcRSNEncryptType = mcRSNEncryptType;
-                    (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->ucEncryptType
+            (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->ucEncryptType
                                                               = RSNEncryptType;
             hddLog( LOG1, FL("%s: CSR AuthType = %d, "
                         "EncryptionType = %d mcEncryptionType = %d\n"),
@@ -1066,6 +1069,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                  * */
                 pConfig->RSNEncryptType = RSNEncryptType; // Use the cipher type in the RSN IE
                 pConfig->mcRSNEncryptType = mcRSNEncryptType;
+                (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->ucEncryptType
+                                                              = RSNEncryptType;
                 hddLog( LOG1, FL("%s: CSR AuthType = %d, "
                                 "EncryptionType = %d mcEncryptionType = %d\n"),
                                 RSNAuthType, RSNEncryptType, mcRSNEncryptType);
@@ -1085,8 +1090,63 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     vos_mem_copy(pConfig->self_macaddr.bytes, 
                pHostapdAdapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
     
+    /* default value */
     pConfig->SapMacaddr_acl = eSAP_ACCEPT_UNLESS_DENIED;
+    pConfig->num_accept_mac = 0;
+    pConfig->num_deny_mac = 0;
 
+    pIe = wlan_hdd_get_vendor_oui_ie_ptr(BLACKLIST_OUI_TYPE, WPA_OUI_TYPE_SIZE,
+                                         pBeacon->tail, pBeacon->tail_len);
+
+    /* pIe for black list is following form:
+            type    : 1 byte
+            length  : 1 byte
+            OUI     : 4 bytes
+            acl type : 1 byte
+            no of mac addr in black list: 1 byte
+            list of mac_acl_entries: variable, 6 bytes per mac address + sizeof(int) for vlan id
+    */    
+    if ((pIe != NULL) && (pIe[1] != 0))    
+    {
+        pConfig->SapMacaddr_acl = pIe[6];
+        pConfig->num_deny_mac   = pIe[7];
+        hddLog(VOS_TRACE_LEVEL_INFO,"acl type = %d no deny mac = %d\n",
+                                     pIe[6], pIe[7]);
+        if (pConfig->num_deny_mac > MAX_MAC_ADDRESS_DENIED)
+            pConfig->num_deny_mac = MAX_MAC_ADDRESS_DENIED;
+        acl_entry = (struct qc_mac_acl_entry *)(pIe + 8);
+        for (i = 0; i < pConfig->num_deny_mac; i++)
+        {
+            vos_mem_copy(&pConfig->deny_mac[i], acl_entry->addr, sizeof(qcmacaddr));
+            acl_entry++;
+        }        
+    }
+    pIe = wlan_hdd_get_vendor_oui_ie_ptr(WHITELIST_OUI_TYPE, WPA_OUI_TYPE_SIZE,
+                                         pBeacon->tail, pBeacon->tail_len);
+
+    /* pIe for white list is following form:
+            type    : 1 byte
+            length  : 1 byte
+            OUI     : 4 bytes
+            acl type : 1 byte
+            no of mac addr in white list: 1 byte
+            list of mac_acl_entries: variable, 6 bytes per mac address + sizeof(int) for vlan id
+    */    
+    if ((pIe != NULL) && (pIe[1] != 0))    
+    {
+        pConfig->SapMacaddr_acl = pIe[6];
+        pConfig->num_accept_mac   = pIe[7];
+        hddLog(VOS_TRACE_LEVEL_INFO,"acl type = %d no accept mac = %d\n",
+                                      pIe[6], pIe[7]);
+        if (pConfig->num_accept_mac > MAX_MAC_ADDRESS_ACCEPTED)
+            pConfig->num_accept_mac = MAX_MAC_ADDRESS_ACCEPTED;
+        acl_entry = (struct qc_mac_acl_entry *)(pIe + 8);
+        for (i = 0; i < pConfig->num_accept_mac; i++)
+        {
+            vos_mem_copy(&pConfig->accept_mac[i], acl_entry->addr, sizeof(qcmacaddr));
+            acl_entry++;
+        }
+    }
     wlan_hdd_set_sapHwmode(pHostapdAdapter);
 
     // ht_capab is not what the name conveys,this is used for protection bitmap
@@ -1099,8 +1159,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         return -EINVAL;
     }
 
-    pConfig->num_accept_mac =0;
-    pConfig->num_deny_mac = 0;
     //Uapsd Enabled Bit
     pConfig->UapsdEnable =  
           (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apUapsdEnabled;
@@ -2812,55 +2870,55 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
             for( i = 0 ; i < request->n_channels ; i++ )
                 channelList[i] = request->channels[i]->hw_value;
         }
-    }
 
-    scanRequest.ChannelInfo.numOfChannels = request->n_channels;
-    scanRequest.ChannelInfo.ChannelList = channelList;
+        scanRequest.ChannelInfo.numOfChannels = request->n_channels;
+        scanRequest.ChannelInfo.ChannelList = channelList;
 
-    /* set requestType to full scan */
-    scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
+        /* set requestType to full scan */
+        scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
 
-    if( request->ie_len )
-    {
-        /* save this for future association (join requires this) */
-        memset( &pwextBuf->scanAddIE, 0, sizeof(pwextBuf->scanAddIE) );
-        memcpy( pwextBuf->scanAddIE.addIEdata, request->ie, request->ie_len);
-        pwextBuf->scanAddIE.length = request->ie_len;
+        if( request->ie_len )
+        {
+            /* save this for future association (join requires this) */
+            memset( &pwextBuf->scanAddIE, 0, sizeof(pwextBuf->scanAddIE) );
+            memcpy( pwextBuf->scanAddIE.addIEdata, request->ie, request->ie_len);
+            pwextBuf->scanAddIE.length = request->ie_len;
 
-        pwextBuf->roamProfile.pAddIEScan = pwextBuf->scanAddIE.addIEdata;
-        pwextBuf->roamProfile.nAddIEScanLength = pwextBuf->scanAddIE.length;
-        
-        scanRequest.uIEFieldLen = pwextBuf->roamProfile.nAddIEScanLength;
-        scanRequest.pIEField = pwextBuf->roamProfile.pAddIEScan;
+            pwextBuf->roamProfile.pAddIEScan = pwextBuf->scanAddIE.addIEdata;
+            pwextBuf->roamProfile.nAddIEScanLength = pwextBuf->scanAddIE.length;
+            
+            scanRequest.uIEFieldLen = pwextBuf->roamProfile.nAddIEScanLength;
+            scanRequest.pIEField = pwextBuf->roamProfile.pAddIEScan;
 
 #ifdef WLAN_FEATURE_P2P
-        pP2pIe = wlan_hdd_get_p2p_ie_ptr((v_U8_t*)request->ie,
-                                                   request->ie_len);
-        if (pP2pIe != NULL)
-        {
-            /*
-             * If Number of channel to scan are 3 and channels 
-             * to be scan are 1, 6, 11, with p2p IE is provided in 
-             * scan, then it is P2P search.
-             */ 
-            if ( (request->n_channels == 3) &&
-                 ( (channelList[0]== 1) && (channelList[1] == 6 )
-                && (channelList[2] == 11))
-                )
+            pP2pIe = wlan_hdd_get_p2p_ie_ptr((v_U8_t*)request->ie,
+                                                       request->ie_len);
+            if (pP2pIe != NULL)
             {
-                hddLog(VOS_TRACE_LEVEL_INFO,
-                       "%s: This is a P2P Search", __func__);
-                scanRequest.p2pSearch = 1;
-                pwextBuf->p2pSearch = 1;
+                /*
+                 * If Number of channel to scan are 3 and channels 
+                 * to be scan are 1, 6, 11, with p2p IE is provided in 
+                 * scan, then it is P2P search.
+                 */ 
+                if ( (request->n_channels == 3) &&
+                     ( (channelList[0]== 1) && (channelList[1] == 6 )
+                    && (channelList[2] == 11))
+                    )
+                {
+                    hddLog(VOS_TRACE_LEVEL_INFO,
+                           "%s: This is a P2P Search", __func__);
+                    scanRequest.p2pSearch = 1;
+                    pwextBuf->p2pSearch = 1;
 
-                /* set requestType to P2P Discovery */
-                scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
+                    /* set requestType to P2P Discovery */
+                    scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
 
-                sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                     pAdapter->sessionId );
+                    sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                         pAdapter->sessionId );
+                }
             }
-        }
 #endif
+        }
     }
 
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),

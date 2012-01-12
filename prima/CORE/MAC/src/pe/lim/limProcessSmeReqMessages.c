@@ -1614,7 +1614,10 @@ end:
     {
         palFreeMemory( pMac->hHdd, pSmeJoinReq);
         pSmeJoinReq = NULL;
-        psessionEntry->pLimJoinReq = NULL;
+        if (NULL != psessionEntry)
+        {
+            psessionEntry->pLimJoinReq = NULL;
+        }
     }
     
     if(retCode != eSIR_SME_SUCCESS)

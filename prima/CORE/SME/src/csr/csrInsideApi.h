@@ -31,7 +31,7 @@
 
 #define CSR_MAX_NUM_SUPPORTED_CHANNELS 55
 
-#define CSR_MAX_BSS_SUPPORT            50
+#define CSR_MAX_BSS_SUPPORT            100
 
 //This number minus 1 means the number of times a channel is scanned before a BSS is remvoed from
 //cache scan result
@@ -235,8 +235,11 @@ eHalStatus csrScanGetScanChannelInfo(tpAniSirGlobal pMac);
 //a value. This function deduct the age count if channelId matches the BSS' channelId
 //The BSS is remove if the count reaches 0.
 eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInfo);
+
+//If fForce is TRUE we will save the new String that is learn't.
+//Typically it will be true in case of Join or user initiated ioctl
 tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
-                                         tDot11fBeaconIEs *pIes);
+                                         tDot11fBeaconIEs *pIes, tANI_BOOLEAN fForce );
 void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce );
 void csrSetCfgScanControlList( tpAniSirGlobal pMac, tANI_U8 *countryCode, tCsrChannel *pChannelList  );
 void csrReinitScanCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
@@ -521,7 +524,7 @@ v_REGDOMAIN_t csrGetCurrentRegulatoryDomain(tpAniSirGlobal pMac);
 eHalStatus csrGetRegulatoryDomainForCountry(tpAniSirGlobal pMac, tANI_U8 *pCountry, v_REGDOMAIN_t *pDomainId);
 
 
-tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode );
+tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode, tANI_BOOLEAN fForce );
 
 //some support functions
 tANI_BOOLEAN csrIs11dSupported(tpAniSirGlobal pMac);

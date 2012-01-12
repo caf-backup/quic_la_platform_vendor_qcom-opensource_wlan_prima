@@ -1360,8 +1360,20 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     VOS_STATUS      vosStatus;
     v_U8_t         *pRxPacketInfo;
 
-    pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE, pvosGCtx);
     pVosPkt = (vos_pkt_t *)vosBuff;
+    if (NULL == pVosPkt)
+    {
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE, pvosGCtx);
+    if (NULL == pMac)
+    {
+        // cannot log a failure without a valid pMac
+        vos_pkt_return_packet(pVosPkt);
+        return VOS_STATUS_E_FAILURE;
+    }
+
     vosStatus = WDA_DS_PeekRxPacketInfo( pVosPkt, (void *)&pRxPacketInfo, VOS_FALSE );
 
     if(!VOS_IS_STATUS_SUCCESS(vosStatus))

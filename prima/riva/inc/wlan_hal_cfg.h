@@ -102,10 +102,14 @@
 #define QCOM_WLAN_CFG_MAX_TX_POWER_5                     73
 #define QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD        74
 #define QWLAN_HAL_CFG_ENABLE_CLOSE_LOOP                  75
-#define QWLAN_HAL_CFG_MAX_PARAMS                         76
+#define QWLAN_HAL_CFG_BTC_EXECUTION_MODE                 76
+#define QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK         77
+#define QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS     78
+#define QWLAN_HAL_CFG_MAX_PARAMS                         79
+
 
 /* Total number of Integer CFGs. This is used while allocating the memory for TLV */
-#define QWLAN_HAL_CFG_INTEGER_PARAM                      72
+#define QWLAN_HAL_CFG_INTEGER_PARAM                      75
 
 /*-------------------------------------------------------------------------
   Configuration Parameter min, max, defaults
@@ -558,6 +562,21 @@
 #define QWLAN_HAL_CFG_ENABLE_CLOSE_LOOP_MAX  1
 #define QWLAN_HAL_CFG_ENABLE_CLOSE_LOOP_DEF  0
 
+/* QWLAN_HAL_CFG_BTC_EXECUTION_MODE */
+#define QWLAN_HAL_CFG_BTC_EXECUTION_MODE_MIN  0
+#define QWLAN_HAL_CFG_BTC_EXECUTION_MODE_MAX  5
+#define QWLAN_HAL_CFG_BTC_EXECUTION_MODE_DEF  0
+
+/* QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK */
+#define QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK_MIN  0
+#define QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK_MAX  255
+#define QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK_DEF  0
+
+/* QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS */
+#define QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS_MIN  0
+#define QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS_MAX  255
+#define QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS_DEF  15
+
 typedef struct 
 {
    uint8    cfgStaId[QCOM_WLAN_CFG_STA_ID_LEN]; //QWLAN_HAL_CFG_STA_ID
@@ -637,6 +656,9 @@ typedef struct
    uint8    cfgMaxTxPower5[QCOM_WLAN_CFG_MAX_TX_POWER_5_LEN];    //QCOM_WLAN_CFG_MAX_TX_POWER_5
    uint32   cfgInfraStaKeepAlivePeriod;       //QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD
    uint32   cfgEnableCloseLoop;               //QWLAN_HAL_CFG_ENABLE_CLOSE_LOOP
+   uint32   cfgBtcExecutionMode;              //QWLAN_HAL_CFG_BTC_EXECUTION_MODE
+   uint32   cfgBtcDhcpBtSlotsToBlock;         //QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK
+   uint32   cfgBtcA2dpDhcpBtSubIntervals;     //QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS
 }tAniHalCfg, *tpAniHalCfg;
 
 #endif //__WLAN_HAL_CFG_H__

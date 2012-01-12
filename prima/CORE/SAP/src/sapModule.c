@@ -554,6 +554,7 @@ WLANSAP_StartBss
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
     ptSapContext  pSapCtx = NULL;
     tANI_BOOLEAN restartNeeded;
+    tHalHandle hHal; 
     
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
@@ -593,10 +594,25 @@ WLANSAP_StartBss
 
         //copy the configuration items to csrProfile
         sapconvertToCsrProfile( pConfig, eCSR_BSS_TYPE_INFRA_AP, &pSapCtx->csrRoamProfile);
-        
-        /* Setting the region/country  information */
-        sme_setRegInfo(VOS_GET_HAL_CB(pvosGCtx), pConfig->countryCode);
-        sme_ResetCountryCodeInformation(VOS_GET_HAL_CB(pvosGCtx), &restartNeeded);
+        hHal = (tHalHandle)VOS_GET_HAL_CB(pvosGCtx); 
+        if (NULL == hHal)
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                       "%s: Invalid MAC context from pvosGCtx", __FUNCTION__);
+        }
+        else
+        {
+            //If concurrent session is running that is already associated
+            //then we just follow that sessions country info (whether
+            //present or not doesn't maater as we have to follow whatever
+            //STA session does)
+            if (0 == sme_GetConcurrentOperationChannel(hHal))
+            {
+                /* Setting the region/country  information */
+                sme_setRegInfo(hHal, pConfig->countryCode);
+                sme_ResetCountryCodeInformation(hHal, &restartNeeded);
+            }
+        }
 
         // Copy MAC filtering settings to sap context
         pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;
@@ -866,6 +882,13 @@ WLANSAP_ModifyACL
     eSapBool staInWhiteList=eSAP_FALSE, staInBlackList=eSAP_FALSE;
     v_U8_t staWLIndex, staBLIndex;
     ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+
+    if (NULL == pSapCtx)
+    {
+       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Invalid SAP Context", __FUNCTION__);
+       return VOS_STATUS_E_FAULT;
+    }
 
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,"Modify ACL entered\n"
             "Before modification of ACL\n"
