@@ -2645,7 +2645,8 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
         {
             for ( i = 0; i < pIes->SuppRates.num_rates; i++ ) 
             {
-                if ( csrRatesIsDot11RateSupported( pMac, pIes->SuppRates.rates[ i ] ) ) 
+                if ( csrRatesIsDot11RateSupported( pMac, pIes->SuppRates.rates[ i ] ) &&
+                     ( OperationalRatesLength < CSR_DOT11_SUPPORTED_RATES_MAX ))
                 {
                     *pDstRate++ = pIes->SuppRates.rates[ i ];
                     OperationalRatesLength++;
@@ -2666,7 +2667,8 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
             {
                 for ( i = 0; i < pIes->ExtSuppRates.num_rates; i++ ) 
                 {
-                    if ( csrRatesIsDot11RateSupported( pMac, pIes->ExtSuppRates.rates[ i ] ) ) 
+                    if ( csrRatesIsDot11RateSupported( pMac, pIes->ExtSuppRates.rates[ i ] ) &&
+                     ( ExtendedOperationalRatesLength < CSR_DOT11_EXTENDED_SUPPORTED_RATES_MAX ))
                     {
                         *pDstRate++ = pIes->ExtSuppRates.rates[ i ];
                         ExtendedOperationalRatesLength++;
@@ -2689,12 +2691,15 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
         // For ANI network companions, we need to populate the proprietary rate
         // set with any proprietary rates we found in the beacon, only if user
         // allows them...
-        if ( pMac->roam.configParam.ProprietaryRatesEnabled &&
-                pIes->Airgo.present && pIes->Airgo.PropSuppRates.present && pIes->Airgo.PropSuppRates.num_rates ) 
+        if ( PropRatesEnable && pIes->Airgo.PropSuppRates.present &&
+             ( pIes->Airgo.PropSuppRates.num_rates > 0 )) 
         {
-            palCopyMemory( pMac->hHdd, ProprietaryOperationalRates, pIes->Airgo.PropSuppRates.rates, pIes->Airgo.PropSuppRates.num_rates );
             ProprietaryOperationalRatesLength = pIes->Airgo.PropSuppRates.num_rates;
-
+            if ( ProprietaryOperationalRatesLength > sizeof(ProprietaryOperationalRates) )
+            {
+               ProprietaryOperationalRatesLength = sizeof (ProprietaryOperationalRates);
+            }
+            palCopyMemory( pMac->hHdd, ProprietaryOperationalRates, pIes->Airgo.PropSuppRates.rates, ProprietaryOperationalRatesLength );
         }
         else {
             // No proprietary modes...
@@ -5843,7 +5848,7 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
               pConnectProfile->qap = FALSE;
            }
 
-        if( ( NULL == pIes ) && pIesTemp )
+        if ( NULL == pIes )
         {
             //Free memory if it allocated locally
             palFreeMemory(pMac->hHdd, pIesTemp);
@@ -7687,32 +7692,26 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         (v_U8_t)diagEncTypeFromCSRType(pSession->connectedProfile.EncryptionType);
                     secEvent.authMode = 
                         (v_U8_t)diagAuthTypeFromCSRType(pSession->connectedProfile.AuthType);
-                    if(pMicInd)
-                    {
-                        palCopyMemory( pMac->hHdd, secEvent.bssid, pSession->connectedProfile.bssid, 6 );
-                    }
+                    palCopyMemory( pMac->hHdd, secEvent.bssid, pSession->connectedProfile.bssid, 6 );
                     WLAN_VOS_DIAG_EVENT_REPORT(&secEvent, EVENT_WLAN_SECURITY);
                 }
 #endif//FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-                if(pMicInd)
+                status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pMicInd->bssId, &sessionId );
+                if( HAL_STATUS_SUCCESS( status ) )
                 {
-                    status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pMicInd->bssId, &sessionId );
-                    if( HAL_STATUS_SUCCESS( status ) )
+                    palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
+                    roamInfo.u.pMICFailureInfo = &pMicInd->info;
+                    pRoamInfo = &roamInfo;
+                    if(pMicInd->info.multicast)
                     {
-                        palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
-                        roamInfo.u.pMICFailureInfo = &pMicInd->info;
-                        pRoamInfo = &roamInfo;
-                        if(pMicInd->info.multicast)
-                        {
-                            result = eCSR_ROAM_RESULT_MIC_ERROR_GROUP;
-                        }
-                        else
-                        {
-                            result = eCSR_ROAM_RESULT_MIC_ERROR_UNICAST;
-                        }
-                        csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_MIC_ERROR_IND, result);
+                        result = eCSR_ROAM_RESULT_MIC_ERROR_GROUP;
                     }
+                    else
+                    {
+                        result = eCSR_ROAM_RESULT_MIC_ERROR_UNICAST;
+                    }
+                    csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_MIC_ERROR_IND, result);
                 }
             }
             break;
@@ -7725,16 +7724,13 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 
                 smsLog( pMac, LOG1, FL("WPS PBC Probe request Indication from SME\n"));
            
-                if(pProbeReqInd)
+                status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pProbeReqInd->bssId, &sessionId );
+                if( HAL_STATUS_SUCCESS( status ) )
                 {
-                    status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pProbeReqInd->bssId, &sessionId );
-                    if( HAL_STATUS_SUCCESS( status ) )
-                    {
-                        palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
-                        roamInfo.u.pWPSPBCProbeReq = &pProbeReqInd->WPSPBCProbeReq;
-                        csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_WPS_PBC_PROBE_REQ_IND, 
-                            eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND);
-                    }
+                    palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
+                    roamInfo.u.pWPSPBCProbeReq = &pProbeReqInd->WPSPBCProbeReq;
+                    csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_WPS_PBC_PROBE_REQ_IND, 
+                        eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND);
                 }
             }
             break;        
@@ -7875,10 +7871,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if(pIbssLog)
                 {
                     pIbssLog->eventId = WLAN_IBSS_EVENT_PEER_JOIN;
-                    if(pIbssPeerInd)
-                    {
-                        palCopyMemory(pMac->hHdd, pIbssLog->peerMacAddr, &pIbssPeerInd->peerAddr, 6);
-                    }
+                    palCopyMemory(pMac->hHdd, pIbssLog->peerMacAddr, &pIbssPeerInd->peerAddr, 6);
                     WLAN_VOS_DIAG_LOG_REPORT(pIbssLog);
                 }
             }
@@ -8181,14 +8174,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
         case eWNI_SME_MAX_ASSOC_EXCEEDED:
             pSmeMaxAssocInd = (tSmeMaxAssocInd*)pSirMsg;
             smsLog( pMac, LOG1, FL("send indication that max assoc have been reached and the new peer cannot be accepted\n"));          
-            if(pSmeMaxAssocInd)
-            {
-                sessionId = pSmeMaxAssocInd->sessionId;
-                roamInfo.sessionId = sessionId;
-                palCopyMemory(pMac->hHdd, &roamInfo.peerMac, pSmeMaxAssocInd->peerMac, sizeof(tCsrBssid));
-                csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, 
-                        eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED);                
-            }
+            sessionId = pSmeMaxAssocInd->sessionId;
+            roamInfo.sessionId = sessionId;
+            palCopyMemory(pMac->hHdd, &roamInfo.peerMac, pSmeMaxAssocInd->peerMac, sizeof(tCsrBssid));
+            csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, 
+                    eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED);
             break;
             
         default:
@@ -12431,11 +12421,6 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
    tempMask = pSmeStatsRsp->statsMask;
    pStats = ((tANI_U8 *)&pSmeStatsRsp->statsMask) + sizeof(pSmeStatsRsp->statsMask);
 
-   if(!pStats)
-   {
-      smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:empty stats buffer from PE\n"));
-      goto post_update;
-   }
    /* subtract all statistics from this length, and after processing the entire 
     * 'stat' part of the message, if the length is not zero, then rssi is piggy packed 
     * in this 'stats' message.

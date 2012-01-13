@@ -113,6 +113,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_WOWL              2
 #define WE_SET_POWER         3
 #define WE_SET_MAX_ASSOC     4
+#define WE_SET_SAP_AUTO_CHANNEL_SELECTION     5
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -123,6 +124,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_MODULE_DOWN_IND   5
 #define WE_GET_MAX_ASSOC     6
 #define WE_GET_WDI_DBG       7
+#define WE_GET_SAP_AUTO_CHANNEL_SELECTION 8
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -3190,7 +3192,24 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             }
             break;
         }
-           
+
+        case WE_SET_SAP_AUTO_CHANNEL_SELECTION:
+        {
+            if( 0 == set_value )
+            {
+                (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apAutoChannelSelection = 0;
+            }
+            else if ( 1 == set_value )
+            {
+                (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apAutoChannelSelection = 1;
+            }
+            else
+            {
+                 hddLog(LOGE, "Invalid arg  %d in WE_SET_SAP_AUTO_CHANNEL_SELECTION IOCTL\n", set_value);
+                 ret = -EINVAL;
+            }
+            break;
+         }
         default:  
         {
             hddLog(LOGE, "Invalid IOCTL setvalue command %d value %d \n",
@@ -3348,6 +3367,11 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
         }         
 #endif // FEATURE_WLAN_INTEGRATED_SOC
 
+        case WE_GET_SAP_AUTO_CHANNEL_SELECTION:
+        {
+            *value = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apAutoChannelSelection;
+            break;
+        }
         default:
         {
             hddLog(LOGE, "Invalid IOCTL get_value command %d ",value[0]);
@@ -4868,6 +4892,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, 
         "setMaxAssoc" },
+        
+    {   WE_SET_SAP_AUTO_CHANNEL_SELECTION,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, 
+        "setAutoChannel" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -4912,6 +4941,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getwdidbg" },    
 #endif // FEATURE_WLAN_INTEGRATED_SOC
+
+    {   WE_GET_SAP_AUTO_CHANNEL_SELECTION,
+        0, 
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "getAutoChannel" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
@@ -5117,6 +5151,7 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "setpno" },
 #endif
+   
 };
 
 

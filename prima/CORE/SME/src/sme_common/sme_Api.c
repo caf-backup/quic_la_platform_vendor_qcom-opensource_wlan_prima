@@ -1104,32 +1104,32 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
       csrSetGlobalCfgs( pMac );
 #endif
 
-   Msg.messageType = eWNI_SME_SYS_READY_IND;
-   Msg.length      = sizeof( tSirSmeReadyReq );
+      Msg.messageType = eWNI_SME_SYS_READY_IND;
+      Msg.length      = sizeof( tSirSmeReadyReq );
 
       if (eSIR_FAILURE != uMacPostCtrlMsg( hHal, (tSirMbMsg*)&Msg ))
       {
-      status = eHAL_STATUS_SUCCESS;
+         status = eHAL_STATUS_SUCCESS;
       }
       else
       {
          smsLog( pMac, LOGE,
                  "uMacPostCtrlMsg failed to send eWNI_SME_SYS_READY_IND");
          break;
-   }
+      }
 
-   status = pmcQueryPowerState( hHal, &powerState,
+      status = pmcQueryPowerState( hHal, &powerState,
                                 &hwWlanSwitchState, &swWlanSwitchState );
       if ( ! HAL_STATUS_SUCCESS( status ) )
       {
-      smsLog( pMac, LOGE, "pmcQueryPowerState failed with status=%d\n",
-              status );
+         smsLog( pMac, LOGE, "pmcQueryPowerState failed with status=%d\n",
+                 status );
          break;
-   }
+      }
 
-   if ( (ePMC_SWITCH_OFF != hwWlanSwitchState) &&
-        (ePMC_SWITCH_OFF != swWlanSwitchState) )
-   {
+      if ( (ePMC_SWITCH_OFF != hwWlanSwitchState) &&
+           (ePMC_SWITCH_OFF != swWlanSwitchState) )
+      {
          status = csrReady(pMac);
          if ( ! HAL_STATUS_SUCCESS( status ) )
          {
@@ -1141,7 +1141,7 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
          {
              smsLog( pMac, LOGE, "pmcReady failed with status=%d\n", status );
              break;
-      }
+         }
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
          if(VOS_STATUS_SUCCESS != btcReady(hHal)) 
          {
@@ -1157,9 +1157,9 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
              status = eHAL_STATUS_FAILURE;
              smsLog( pMac, LOGE, "rrmReady failed\n");
              break;
-   }
+         }
 #endif
-   }
+      }
       pMac->sme.state = SME_STATE_READY;
    } while( 0 );
 
@@ -1240,7 +1240,7 @@ eHalStatus sme_PCFilterMatchCountResponseHandler(tHalHandle hHal, void* pMsg)
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpSirRcvFltPktMatchRsp pRcvFltPktMatchRsp = (tpSirRcvFltPktMatchRsp)pMsg;
-    
+
     if (NULL == pMsg)
     {
         smsLog(pMac, LOGE, "in %s msg ptr is NULL\n", __FUNCTION__);
@@ -1250,19 +1250,19 @@ eHalStatus sme_PCFilterMatchCountResponseHandler(tHalHandle hHal, void* pMsg)
     {
         smsLog(pMac, LOG2, "SME: entering "
             "sme_FilterMatchCountResponseHandler\n");
-        
+
         /* Call Packet Coalescing Filter Match Count callback routine. */
         if (pMac->pmc.FilterMatchCountCB != NULL)
            pMac->pmc.FilterMatchCountCB(pMac->pmc.FilterMatchCountCBContext,
                                           pRcvFltPktMatchRsp);
-        
+
+        smsLog(pMac, LOG1, "%s: status=0x%x", __FUNCTION__,
+               pRcvFltPktMatchRsp->status);
+
         pMac->pmc.FilterMatchCountCB = NULL;
         pMac->pmc.FilterMatchCountCBContext = NULL;
     }
-    
-    smsLog(pMac, LOG1, "%s: status=0x%x", __FUNCTION__, 
-          pRcvFltPktMatchRsp->status);
-    
+
     return(status);
 }
 #endif // WLAN_FEATURE_PACKET_FILTERING
@@ -5210,15 +5210,27 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal, void *p2pIe, tANI_U32 p2pIeLength)
             vos_mem_free(pMac->p2pContext.probeRspIe);
             pMac->p2pContext.probeRspIeLength = 0;
         }
+
         pMac->p2pContext.probeRspIe = vos_mem_malloc(p2pIeLength);
-        pMac->p2pContext.probeRspIeLength = p2pIeLength;
+        if (NULL == pMac->p2pContext.probeRspIe)
+        {
+            smsLog(pMac, LOGE, "%s: Unable to allocate P2P IE", __FUNCTION__);
+            pMac->p2pContext.probeRspIeLength = 0;
+            status = eHAL_STATUS_FAILURE;
+        }
+        else
+        {
+            pMac->p2pContext.probeRspIeLength = p2pIeLength;
 
-         sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG2, pMac->p2pContext.probeRspIe, pMac->p2pContext.probeRspIeLength ); 
-         vos_mem_copy((tANI_U8 *)pMac->p2pContext.probeRspIe, p2pIe,
-                      p2pIeLength);
+            sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG2,
+                        pMac->p2pContext.probeRspIe,
+                        pMac->p2pContext.probeRspIeLength ); 
+            vos_mem_copy((tANI_U8 *)pMac->p2pContext.probeRspIe, p2pIe,
+                         p2pIeLength);
+        }
 
-         //release the lock for the sme object
-         sme_ReleaseGlobalLock( &pMac->sme );
+        //release the lock for the sme object
+        sme_ReleaseGlobalLock( &pMac->sme );
     }
    
     smsLog(pMac, LOG2, "exiting function %s\n", __FUNCTION__);

@@ -103,7 +103,7 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_TKIP,
     WLAN_CIPHER_SUITE_CCMP,
 #ifdef FEATURE_WLAN_WAPI
-	WLAN_CIPHER_SUITE_SMS4
+    WLAN_CIPHER_SUITE_SMS4
 #endif
 };
 
@@ -471,8 +471,8 @@ void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
 }
 
 #ifdef FEATURE_WLAN_WAPI
-void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index, 
-	                                  const u8 *mac_addr, u8 *key , int key_Len)
+void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
+                                     const u8 *mac_addr, u8 *key , int key_Len)
 {
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     tCsrRoamSetKey  setKey;
@@ -502,14 +502,14 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     pKeyPtr = setKey.Key;
     memcpy( pKeyPtr, key, key_Len);
 
-    hddLog(VOS_TRACE_LEVEL_INFO,"\n%s: WAPI KEY LENGTH:0x%04x", 
+    hddLog(VOS_TRACE_LEVEL_INFO,"\n%s: WAPI KEY LENGTH:0x%04x",
                                             __func__, key_Len);
     for (n = 0 ; n < key_Len; n++)
         hddLog(VOS_TRACE_LEVEL_INFO, "%s WAPI KEY Data[%d]:%02x ",
                                            __func__,n,setKey.Key[n]);
 
     pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_SETTING_KEY;
-    if ( isConnected ) 
+    if ( isConnected )
     {
         status= sme_RoamSetKey( WLAN_HDD_GET_HAL_CTX(pAdapter),
                              pAdapter->sessionId, &setKey, &roamId );
@@ -517,12 +517,13 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     if ( status != 0 )
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "[%4d] sme_RoamSetKey returned ERROR status= %d", 
-				                                   __LINE__, status );
+                  "[%4d] sme_RoamSetKey returned ERROR status= %d",
+                                                __LINE__, status );
         pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
     }
 }
 #endif /* FEATURE_WLAN_WAPI*/
+
 int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter, 
                                        beacon_data_t **ppBeacon,
                                        struct beacon_parameters *params)
@@ -1311,9 +1312,6 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
     VOS_STATUS status = 0;
 
     ENTER();
- 
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
-                              __func__,pAdapter->device_mode);
 
     if (NULL == pAdapter)
     {
@@ -1321,12 +1319,15 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                    "%s: HDD adapter context is Null", __FUNCTION__);
         return -ENODEV;
     }
-        
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
+                              __func__,pAdapter->device_mode);
+
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) 
 #ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
 #endif
-       ) 
+       )
     {
         beacon_data_t *old;
              
@@ -1769,7 +1770,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         case WLAN_CIPHER_SUITE_SMS4:
         {
             vos_mem_zero(&setKey,sizeof(tCsrRoamSetKey));
-            wlan_hdd_cfg80211_set_key_wapi(pAdapter, key_index, mac_addr, 
+            wlan_hdd_cfg80211_set_key_wapi(pAdapter, key_index, mac_addr,
                                                params->key, params->key_len);
             return 0;
         }
@@ -2338,7 +2339,7 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
      */
 
     channel = ieee80211_frequency_to_channel(freq);
-
+    
     /* Check freq range */
     if ((WNI_CFG_CURRENT_CHANNEL_STAMIN > channel) || 
             (WNI_CFG_CURRENT_CHANNEL_STAMAX < channel)) 
@@ -2409,11 +2410,28 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
             ) 
     {
         (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
+
+        if ( WLAN_HDD_SOFTAP == pAdapter->device_mode )
+        {
+            hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
+
+            /* If auto channel selection is configured as enable/ 1 then ignore
+            channel set by supplicant
+            */
+            if ( cfg_param->apAutoChannelSelection )
+            {
+                (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = AUTO_CHANNEL_SELECT;
+
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                       "%s: set channel to auto channel (0) for device mode =%d",
+                       __func__, pAdapter->device_mode);
+            }
+        }
     }
     else 
     {
         hddLog(VOS_TRACE_LEVEL_FATAL, 
-           "%s: Invalid device mode failed to set valid channel\n", __func__);
+               "%s: Invalid device mode failed to set valid channel", __func__);
         return -EINVAL;
     }
     EXIT();
@@ -2866,7 +2884,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                 status = -ENOMEM;
                 goto free_mem;
             }
-      
+
             for( i = 0 ; i < request->n_channels ; i++ )
                 channelList[i] = request->channels[i]->hw_value;
         }
@@ -3265,11 +3283,11 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
     u8 *genie = ie;
     v_U16_t remLen = ie_len;
 #ifdef FEATURE_WLAN_WAPI
-	v_U32_t akmsuite[MAX_NUM_AKM_SUITES];
-	u16 *tmp;
-	v_U16_t akmsuiteCount;
-	int *akmlist;
-#endif 
+    v_U32_t akmsuite[MAX_NUM_AKM_SUITES];
+    u16 *tmp;
+    v_U16_t akmsuiteCount;
+    int *akmlist;
+#endif
     ENTER();
 
     /* clear previous assocAddIE */
@@ -3358,28 +3376,37 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 pWextState->roamProfile.pRSNReqIE = pWextState->WPARSNIE;
                 pWextState->roamProfile.nRSNReqIELength = eLen + 2; //ie_len;
                 break;
-#ifdef FEATURE_WLAN_WAPI				
+#ifdef FEATURE_WLAN_WAPI
             case WLAN_EID_WAPI:
                 pAdapter->wapi_info.nWapiMode = 1;   //Setting WAPI Mode to ON=1
                 hddLog(VOS_TRACE_LEVEL_INFO,"WAPI MODE IS  %lu \n",
                                           pAdapter->wapi_info.nWapiMode);
                 tmp = (u16 *)ie;
                 tmp = tmp + 2; // Skip element Id and Len, Version        
-                akmsuiteCount = WPA_GET_LE16(tmp);       
-                tmp = tmp + 1;   
-                akmlist= (int *)(tmp);       
-                memcpy(akmsuite, akmlist, (4*akmsuiteCount));
+                akmsuiteCount = WPA_GET_LE16(tmp);
+                tmp = tmp + 1;
+                akmlist = (int *)(tmp);
+                if(akmsuiteCount <= 4)
+                {
+                    memcpy(akmsuite, akmlist, (4*akmsuiteCount));
+                }
+                else
+                {
+                    hddLog(VOS_TRACE_LEVEL_FATAL, "Invalid akmSuite count\n");
+                    VOS_ASSERT(0);
+                    return -EINVAL;
+                }
 
-                if (WAPI_PSK_AKM_SUITE == akmsuite[0])    
+                if (WAPI_PSK_AKM_SUITE == akmsuite[0])
                 {
                     hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO PSK",
-                                                            __FUNCTION__);       
+                                                            __FUNCTION__);
                     pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_PSK;
                 }    
-                if (WAPI_CERT_AKM_SUITE == akmsuite[0])     
+                if (WAPI_CERT_AKM_SUITE == akmsuite[0])
                 {     
                     hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO CERTIFICATE",
-                                                             __FUNCTION__);      
+                                                             __FUNCTION__);
                     pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_CERT;
                 }
                 break;

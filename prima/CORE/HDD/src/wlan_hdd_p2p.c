@@ -352,20 +352,15 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 
         hdd_adapter_t *goAdapter;
 
-        if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
-              ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
-           )
-        {
-            goto send_frame;
-        }
-
         goAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_P2P_GO );
 
         //If GO adapter exists and operating on same frequency 
         //then we will not request remain on channel 
         if( goAdapter && ( ieee80211_frequency_to_channel(chan->center_freq)
                              == goAdapter->sessionCtx.ap.operatingChannel ) )
-        
+        {
+           goto send_frame;
+        } 
 
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
 
@@ -393,6 +388,14 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
                           " within timeout period");
             goto err_rem_channel;
         }
+    }
+
+    /* Check before sending action frame 
+       whether we already remain on channel */ 
+
+    if(NULL == cfgState->remain_on_chan_ctx)
+    {
+       goto err_rem_channel;
     }
     send_frame:
 #endif
@@ -560,6 +563,7 @@ static tANI_U8 wlan_hdd_get_session_type( enum nl80211_iftype type )
             sessionType = WLAN_HDD_MONITOR;
             break;
         default:
+            sessionType = WLAN_HDD_INFRA_STATION;
             break;
     }
 

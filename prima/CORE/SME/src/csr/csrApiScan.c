@@ -306,7 +306,7 @@ eHalStatus csrScanDisable( tpAniSirGlobal pMac )
 //Return SUCCESS is the command is queued, else returns eHAL_STATUS_FAILURE 
 eHalStatus csrQueueScanRequest( tpAniSirGlobal pMac, tSmeCmd *pScanCmd )
 {
-    eHalStatus status;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
 
     tANI_BOOLEAN fNoCmdPending;
     tSmeCmd *pQueueScanCmd=NULL;
@@ -1733,7 +1733,7 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                 palFreeMemory(pMac->hHdd, pRetList);
                 status = eHAL_STATUS_E_NULL_VALUE;
             }
-            else if(phResult && pRetList)
+            else if(phResult)
             {
                 *phResult = pRetList;
             }
@@ -1830,7 +1830,7 @@ eHalStatus csrScanCopyResultList(tpAniSirGlobal pMac, tScanResultHandle hIn, tSc
                 palFreeMemory(pMac->hHdd, pRetList);
                 status = eHAL_STATUS_E_NULL_VALUE;
             }
-            else if(phResult && pRetList)
+            else if(phResult)
             {
                 *phResult = pRetList;
             }
@@ -2282,8 +2282,7 @@ tCsrScanResult *csrScanAppendBssDescription( tpAniSirGlobal pMac,
     tmpSsid.length = 0;
     result = csrRemoveDupBssDescription( pMac, pSirBssDescription, pIes, &tmpSsid, &timer );
     pCsrBssDescription = csrScanSaveBssDescription( pMac, pSirBssDescription, pIes );
-    VOS_ASSERT(pCsrBssDescription != NULL);
-    if(result)
+    if (result && (pCsrBssDescription != NULL))
     {
         //Check if the new one has SSID it it, if not, use the older SSID if it exists.
         if( (0 == pCsrBssDescription->Result.ssId.length) && tmpSsid.length )
@@ -3536,11 +3535,16 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
         if( pIes->SSID.present && !csrIsNULLSSID(pIes->SSID.ssid, pIes->SSID.num_ssid) )
         {
             //SSID not hidden
-            pCsrBssDescription->Result.ssId.length = pIes->SSID.num_ssid;
+            tANI_U32 len = pIes->SSID.num_ssid;;
+            if (len > SIR_MAC_MAX_SSID_LENGTH)
+            {
+               // truncate to fit in our struct
+               len = SIR_MAC_MAX_SSID_LENGTH;
+            }
+            pCsrBssDescription->Result.ssId.length = len;
             pCsrBssDescription->Result.timer = vos_timer_get_system_time();
-            VOS_ASSERT(pIes->SSID.num_ssid <= 32);
             palCopyMemory(pMac->hHdd, pCsrBssDescription->Result.ssId.ssId, 
-                pIes->SSID.ssid, pIes->SSID.num_ssid );
+                pIes->SSID.ssid, len );
         }
         csrLLInsertTail( &pMac->scan.tempScanResults, &pCsrBssDescription->Link, LL_ACCESS_LOCK );
     }

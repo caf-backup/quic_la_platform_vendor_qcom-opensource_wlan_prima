@@ -153,7 +153,7 @@ sapGotoChannelSel
     if (NULL == hHal)
     {
         /* we have a serious problem */
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
                    "In %s, invalid hHal", __FUNCTION__);
         return VOS_STATUS_E_FAULT;
     }
@@ -297,7 +297,7 @@ sapGotoStarting
     if (NULL == hHal)
     {
         /* we have a serious problem */
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
                    "In %s, invalid hHal", __FUNCTION__);
         return VOS_STATUS_E_FAULT;
     }
@@ -1146,7 +1146,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
     v_U32_t operatingBand;
     v_U8_t  loopCount;
     v_U8_t *list;
-    v_U8_t channelCount=0;
+    v_U8_t channelCount;
     v_U8_t bandStartChannel;
     v_U8_t bandEndChannel ;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
@@ -1155,7 +1155,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
              "Invalid HAL pointer from pvosGCtx on sapGetChannelList");
-        *numberOfChannels = channelCount;
+        *numberOfChannels = 0;
         *channelList = NULL;
         return VOS_STATUS_E_FAULT;
     }
@@ -1208,12 +1208,13 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                    "%s: Unable to allocate channel list", __FUNCTION__);
-        *numberOfChannels = channelCount;
+        *numberOfChannels = 0;
         *channelList = NULL;
         return VOS_STATUS_E_RESOURCES;
     }
 
     /*Search for the Active channels in the given range */
+    channelCount = 0;
     for( loopCount = bandStartChannel; loopCount <= bandEndChannel; loopCount++ )
     {
         if((startChannelNum <= rfChannels[loopCount].channelNum)&&

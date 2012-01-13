@@ -143,26 +143,16 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     tSirRetStatus ret;
     void*         pBd;
     tMgmtFrmDropReason dropReason;
-
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-#ifndef GEN6_ONWARDS
-    palGetPacketDataPtr( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, (void *) pMsg->bodyptr, (void **) &pBd );
-#endif //GEN6_ONWARDS
-#elif defined(VOSS_ENABLED)
     vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
-    VOS_STATUS  vosStatus = WDA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
-
-    if( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-    {
-        vos_pkt_return_packet(pVosPkt);
-        return eSIR_FAILURE;
-    }
-#else
-    pBd = (tpHalBufDesc) pMsg->bodyptr;
-#endif  //#if defined(ANI_OS_TYPE_RTAI_LINUX)
+    VOS_STATUS  vosStatus =
+              WDA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
 
     pMac->sys.gSysBbtReceived++;
 
+    if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
+    {
+        goto fail;
+    }
 
     PELOGW(sysLog(pMac, LOGW, FL("Rx Mgmt Frame Subtype: %d\n"), subType);
     sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOGW, (tANI_U8 *)WDA_GET_RX_MAC_HEADER(pBd), WDA_GET_RX_MPDU_LEN(pBd));
@@ -170,29 +160,27 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
 
     pMac->sys.gSysFrameCount[type][subType]++;
 
-
-
     if(type == SIR_MAC_MGMT_FRAME)
-        {
+    {
 
             if( (dropReason = limIsPktCandidateForDrop(pMac, pBd, subType)) != eMGMT_DROP_NO_DROP)
-    {
+            {
                 PELOG1(sysLog(pMac, LOG1, FL("Mgmt Frame %d being dropped, reason: %d\n"), subType, dropReason);)
                 MTRACE(macTrace(pMac,   TRACE_CODE_RX_MGMT_DROP, 0, dropReason);)
-                    goto fail;
-                }
+                goto fail;
+            }
             //Post the message to PE Queue
             ret = (tSirRetStatus) limPostMsgApi(pMac, pMsg);
             if (ret != eSIR_SUCCESS)
             {
-                    PELOGE(sysLog(pMac, LOGE, FL("posting to LIM2 failed, ret %d\n"), ret);)
+                PELOGE(sysLog(pMac, LOGE, FL("posting to LIM2 failed, ret %d\n"), ret);)
                 goto fail;
             }
             pMac->sys.gSysBbtPostedToLim++;
 
-        }
+    }
     else
-            {
+    {
             PELOGE(sysLog(pMac, LOGE, "BBT received Invalid type %d subType %d "
                    "LIM state %X. BD dump is:\n",
                    type, subType, limGetSmeState(pMac));

@@ -3663,37 +3663,6 @@ void dxeTxThreadSetPowerStateEventHandler
          break;
    }
 
-   /* If previous host power state was IMPS and new host power state is not IMPS,
-      RX interrupt should be enabled, since  */
-   if((WLANDXE_POWER_STATE_IMPS != dxeCtxt->hostPowerState) &&
-      (WLANDXE_POWER_STATE_DOWN != dxeCtxt->hostPowerState))
-   {
-      if(eWLAN_PAL_TRUE == dxeCtxt->rxIntDisabledByIMPS)
-      {
-         dxeCtxt->rxIntDisabledByIMPS = eWLAN_PAL_FALSE;
-         /* Enable RX interrupt at here, if new PS is not IMPS */
-         status = wpalEnableInterrupt(DXE_INTERRUPT_RX_READY);
-         if(eWLAN_PAL_STATUS_SUCCESS != status)
-         {
-            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                     "%s Enable RX ready interrupt fail", __FUNCTION__);
-            return;         
-         }
-      }
-      if(eWLAN_PAL_TRUE == dxeCtxt->txIntDisabledByIMPS)
-      {
-         dxeCtxt->txIntDisabledByIMPS = eWLAN_PAL_FALSE;
-         /* Enable RX interrupt at here, if new PS is not IMPS */
-         status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
-         if(eWLAN_PAL_STATUS_SUCCESS != status)
-         {
-            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                     "%s Enable TX comp interrupt fail", __FUNCTION__);
-            return;         
-         }
-      }  
-   }
-
    if(WLANDXE_POWER_STATE_BMPS_PENDING != dxeCtxt->hostPowerState)
    {
       dxeCtxt->setPowerStateCb(status, 
@@ -3850,6 +3819,34 @@ wpt_status WLANDXE_SetPowerState
          if( WLANDXE_POWER_STATE_BMPS == pDxeCtrlBlk->hostPowerState )
          {
             dxeNotifySmsm(eWLAN_PAL_FALSE, eWLAN_PAL_TRUE);
+         }
+         else if( WLANDXE_POWER_STATE_IMPS == pDxeCtrlBlk->hostPowerState )
+         {
+            /* Requested Full power from exit IMPS, reenable the interrupts*/
+            if(eWLAN_PAL_TRUE == pDxeCtrlBlk->rxIntDisabledByIMPS)
+            {
+               pDxeCtrlBlk->rxIntDisabledByIMPS = eWLAN_PAL_FALSE;
+               /* Enable RX interrupt at here, if new PS is not IMPS */
+               status = wpalEnableInterrupt(DXE_INTERRUPT_RX_READY);
+               if(eWLAN_PAL_STATUS_SUCCESS != status)
+               {
+                  HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                           "%s Enable RX ready interrupt fail", __FUNCTION__);
+                  return status;
+               }
+            }
+            if(eWLAN_PAL_TRUE == pDxeCtrlBlk->txIntDisabledByIMPS)
+            {
+               pDxeCtrlBlk->txIntDisabledByIMPS = eWLAN_PAL_FALSE;
+               /* Enable RX interrupt at here, if new PS is not IMPS */
+               status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
+               if(eWLAN_PAL_STATUS_SUCCESS != status)
+               {
+                  HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                           "%s Enable TX comp interrupt fail", __FUNCTION__);
+                  return status;
+               }
+            }
          }
          pDxeCtrlBlk->hostPowerState = hostPowerState;
          pDxeCtrlBlk->rivaPowerState = WLANDXE_RIVA_POWER_STATE_ACTIVE;

@@ -3317,7 +3317,7 @@ void limProcessMlmSetStaKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
         PELOGE(limLog(pMac, LOGE,FL("limMsgQ bodyptr is NULL\n"));)
         return;
     }
-    sessionId = ((tpSetBssKeyParams) limMsgQ->bodyptr)->sessionId;
+    sessionId = ((tpSetStaKeyParams) limMsgQ->bodyptr)->sessionId;
     if((psessionEntry = peFindSessionBySessionId(pMac, sessionId))== NULL)
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionId\n"));)

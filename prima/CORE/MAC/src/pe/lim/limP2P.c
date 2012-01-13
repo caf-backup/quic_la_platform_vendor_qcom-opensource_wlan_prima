@@ -392,12 +392,13 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
         peDeleteSession( pMac, psessionEntry);
     }
      
-    palFreeMemory( pMac->hHdd, pMac->lim.gpLimRemainOnChanReq );
-    pMac->lim.gpLimRemainOnChanReq = NULL;
-
     /* Post the meessage to Sme */
     limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP, status, 
                   MsgRemainonChannel->sessionId, 0);
+
+    palFreeMemory( pMac->hHdd, pMac->lim.gpLimRemainOnChanReq );
+    pMac->lim.gpLimRemainOnChanReq = NULL;
+
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
     return;
 }
@@ -542,6 +543,21 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     limLog( pMac, LOG1, FL("sending pFc->type=%d pFc->subType=%d"),
                             pFc->type, pFc->subType);
+
+    psessionEntry = peFindSessionByBssid(pMac,
+                   (tANI_U8*)pMbMsg->data + BSSID_OFFSET, &sessionId);
+
+    /* Drop if remain on channel is not pending in case of normal device */
+    if( NULL == psessionEntry )
+    {
+        if( NULL == pMac->lim.gpLimRemainOnChanReq )
+        {
+            limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, 
+                          eHAL_STATUS_FAILURE, pMbMsg->sessionId, 0);
+            return;
+        }
+    }
+
     if ((SIR_MAC_MGMT_FRAME == pFc->type)&&
         ((SIR_MAC_MGMT_PROBE_RSP == pFc->subType)||
         (SIR_MAC_MGMT_ACTION == pFc->subType)))
@@ -603,8 +619,6 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
         if (pP2PIe != NULL)
         {
-            psessionEntry = peFindSessionByBssid(pMac,
-                   (tANI_U8*)pMbMsg->data + BSSID_OFFSET, &sessionId);
             //get NoA attribute stream P2P IE
             noaLen = limGetNoaAttrStream(pMac, noaStream, psessionEntry);
             //need to append NoA attribute in P2P IE
@@ -650,6 +664,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
                            nBytes);
         }
     }
+
 
     // Ok-- try to allocate some memory:
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, 

@@ -906,7 +906,7 @@ typedef enum
 #define CFG_ENABLE_HOST_ARPOFFLOAD_NAME         "hostArpOffload"
 #define CFG_ENABLE_HOST_ARPOFFLOAD_MIN          ( 0 )
 #define CFG_ENABLE_HOST_ARPOFFLOAD_MAX          ( 1 )
-#define CFG_ENABLE_HOST_ARPOFFLOAD_DEFAULT      ( 1 )
+#define CFG_ENABLE_HOST_ARPOFFLOAD_DEFAULT      ( 0 )
 
 #define CFG_ENABLE_BTAMP_NAME                   "gEnableBtAmp"
 #define CFG_ENABLE_BTAMP_MIN                    ( 0 )
@@ -976,6 +976,27 @@ typedef enum
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST              0x01
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST              0x02
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST    0x03
+
+/*
+ *
+ * SAP Auto Channel Enable
+ * Notes:
+ * Auto Channel selection for SAP configuration
+ * 0 - Disable Auto Channel
+ * 1 - Enable auto channel selection in auto mode.
+ *     When enable auto channel, channel provided by Supplicant will be ignored.
+ *
+ * Default configuration: Auto channel is disabled.
+ */
+
+#define CFG_SAP_AUTO_CHANNEL_SELECTION_NAME       "gApAutoChannelSelection"
+
+#define CFG_SAP_AUTO_CHANNEL_SELECTION_MIN        ( 0 )
+#define CFG_SAP_AUTO_CHANNEL_SELECTION_MAX        ( 1 )
+#define CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT    ( 0 )
+
+
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1061,6 +1082,7 @@ typedef struct
    v_U8_t        apStartChannelNum;
    v_U8_t        apEndChannelNum;
    v_U8_t        apOperatingBand;
+   v_BOOL_t      apAutoChannelSelection;
 #endif
 
    v_U32_t       nBeaconInterval;

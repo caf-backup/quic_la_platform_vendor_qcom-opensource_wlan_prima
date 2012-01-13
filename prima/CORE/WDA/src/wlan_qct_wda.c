@@ -1300,6 +1300,9 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
       goto handle_failure;
    }
 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ;
+
    /* QWLAN_HAL_CFG_ENABLE_CLOSE_LOOP   */
    tlvStruct->type = QWLAN_HAL_CFG_ENABLE_CLOSE_LOOP  ;
    tlvStruct->length = sizeof(tANI_U32);
@@ -4958,10 +4961,10 @@ void WDA_GetStatsReqParamsCallback(
 
 
 /*
- * FUNCTION: WDA_ProcessGetStasReq
+ * FUNCTION: WDA_ProcessGetStatsReq
  * Request to WDI to get the statistics
  */ 
-VOS_STATUS WDA_ProcessGetStasReq(tWDA_CbContext *pWDA,
+VOS_STATUS WDA_ProcessGetStatsReq(tWDA_CbContext *pWDA,
                                     tAniGetPEStatsReq *pGetStatsParams)
 {
    WDI_Status status = WDI_STATUS_SUCCESS ;
@@ -9454,8 +9457,7 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       }
       case WDA_GET_STATISTICS_REQ:
       {
-         WDA_ProcessGetStasReq(pWDA,
-                                    (tAniGetPEStatsReq *)pMsg->bodyptr);
+         WDA_ProcessGetStatsReq(pWDA, (tAniGetPEStatsReq *)pMsg->bodyptr);
          break;
       }
       case WDA_PWR_SAVE_CFG:
