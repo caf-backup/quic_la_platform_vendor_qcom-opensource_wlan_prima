@@ -67,6 +67,9 @@
 #include "wlan_qct_pal_trace.h"
 #endif // FEATURE_WLAN_INTEGRATED_SOC
 
+#include "wlan_hdd_misc.h"
+#include "bap_hdd_misc.h"
+
 #define WE_MAX_STR_LEN 1024
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -125,6 +128,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_MAX_ASSOC     6
 #define WE_GET_WDI_DBG       7
 #define WE_GET_SAP_AUTO_CHANNEL_SELECTION 8
+#define WE_GET_CONCURRENCY_MODE 9
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -154,6 +158,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_CLEAR_STATS       1
 #define WE_INIT_AP           2
 #define WE_STOP_AP           3
+#define WE_ENABLE_AMP        4
+#define WE_DISABLE_AMP       5
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV + 7)
@@ -3372,6 +3378,14 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
             *value = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apAutoChannelSelection;
             break;
         }
+        case WE_GET_CONCURRENCY_MODE:
+        {
+           *value = hdd_get_concurrency_mode ( );
+ 
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("concurrency mode=%d \n"),*value);
+           break;
+        }
+
         default:
         {
             hddLog(LOGE, "Invalid IOCTL get_value command %d ",value[0]);
@@ -3604,6 +3618,19 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
            break;
         }
 #endif
+        case WE_ENABLE_AMP:
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: enabling AMP", __FUNCTION__);
+            WLANBAP_RegisterWithHCI(pAdapter);
+            break;
+        }
+        case WE_DISABLE_AMP:
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __FUNCTION__);
+            WLANBAP_DeregisterFromHCI();
+            break;
+        }
+
         default:
         {
             hddLog(LOGE, "%s: unknown ioctl %d", __FUNCTION__, sub_cmd);
@@ -4947,6 +4974,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getAutoChannel" },
 
+    {   WE_GET_CONCURRENCY_MODE,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 
+        "getconcurrency" }, 
+
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
         IW_PRIV_TYPE_CHAR| 512,
@@ -5034,6 +5066,14 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "exitAP" },
+    {   WE_ENABLE_AMP,
+        0,
+        0,
+        "enableAMP" },
+    {   WE_DISABLE_AMP,
+        0,
+        0,
+        "disableAMP" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_VAR_INT_GET_NONE,

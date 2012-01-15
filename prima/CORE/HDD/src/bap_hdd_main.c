@@ -3561,6 +3561,7 @@ int BSL_Deinit( v_PVOID_t  pvosGCtx )
     if (!hdev)
         return 0;
 
+    /* hci_unregister_dev is called again here, in case user didn't call it */
     /* Unregister device from BlueZ; fcn sends us HCI commands before it returns */
     /* And then the registered hdev->close fcn should be called by BlueZ (BSL_Close) */
     if (hci_unregister_dev(hdev) < 0)
@@ -4050,5 +4051,145 @@ VOS_STATUS WLANBAP_SetConfig
     }
 
     return(VOS_STATUS_SUCCESS);
+}
+
+VOS_STATUS WLANBAP_RegisterWithHCI(hdd_adapter_t *pAdapter)
+{
+    struct hci_dev *hdev = NULL;
+    BslClientCtxType* pctx = NULL;
+    int err = 0;
+
+    pctx = gpBslctx;
+
+    if ( NULL == pctx )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "Invalid BSL pointer from pctx on BSL_Init");
+        return VOS_STATUS_E_FAULT;
+    }
+    if ( NULL == pAdapter )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "Invalid HDD Adapter pointer from pvosGCtx on BSL_Init");
+        return VOS_STATUS_E_FAULT;
+    }
+
+    if(NULL != pctx->hdev)
+    {
+        VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_WARN,
+                  "Already registered as HCI device\n");
+        return VOS_STATUS_SUCCESS;
+    }
+
+
+
+    /* Save away the pointer to the parent WLAN device in BSL driver context */
+    pctx->p_dev = pAdapter->dev;
+
+    /* Initialize HCI device */
+    hdev = hci_alloc_dev();
+    if (!hdev)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "Can't allocate HCI device in WLANBAP_RegisterWithHCI");
+        return VOS_STATUS_E_FAULT;
+    }
+
+    /* Save away the HCI device pointer in the BSL driver context */
+    pctx->hdev = hdev;
+
+#if defined HCI_80211 || defined HCI_AMP
+#define BUILD_FOR_BLUETOOTH_NEXT_2_6
+#else
+#undef BUILD_FOR_BLUETOOTH_NEXT_2_6
+#endif
+
+#ifdef BUILD_FOR_BLUETOOTH_NEXT_2_6
+    /* HCI "bus type" of HCI_VIRTUAL should apply */
+    hdev->bus = HCI_VIRTUAL;
+    /* Set the dev_type to BT-AMP 802.11 */
+#ifdef HCI_80211
+    hdev->dev_type = HCI_80211;
+#else
+    hdev->dev_type = HCI_AMP;
+#endif
+#ifdef FEATURE_WLAN_BTAMP_UT
+    /* For the "real" BlueZ build, DON'T Set the device "quirks" to indicate RAW */
+    set_bit(HCI_QUIRK_RAW_DEVICE, &hdev->quirks);
+#endif
+#else //BUILD_FOR_BLUETOOTH_NEXT_2_6
+    /* HCI "bus type" of HCI_VIRTUAL should apply */
+    hdev->type = HCI_VIRTUAL;
+    /* Set the dev_type to BT-AMP 802.11 */
+    //hdev->dev_type = HCI_80211;
+    ////hdev->dev_type = HCI_AMP;
+    /* For the "temporary" BlueZ build, Set the device "quirks" to indicate RAW */
+    set_bit(HCI_QUIRK_RAW_DEVICE, &hdev->quirks);
+#endif //BUILD_FOR_BLUETOOTH_NEXT_2_6
+    /* Save away the BSL driver pointer in the HCI device context */
+    hdev->driver_data = pctx;
+    /* Set the parent device for this HCI device.  This is our WLAN net_device */
+    SET_HCIDEV_DEV(hdev, &pctx->p_dev->dev);
+
+    hdev->open     = BSL_Open;
+    hdev->close    = BSL_Close;
+    hdev->flush    = BSL_Flush;
+    hdev->send     = BSL_Write;
+    hdev->destruct = BSL_Destruct;
+    hdev->ioctl    = BSL_IOControl;
+
+    hdev->owner = THIS_MODULE;
+
+    /* Timeout before it is safe to send the first HCI packet */
+    msleep(1000);
+
+    /* Register HCI device */
+    err = hci_register_dev(hdev);
+    if (err < 0)
+    {
+        VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                  "Unable to register HCI device, err=%d\n", err);
+        pctx->hdev = NULL;
+        hci_free_dev(hdev);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS WLANBAP_DeregisterFromHCI(void)
+{
+    struct hci_dev *hdev;
+    BslClientCtxType* pctx = NULL;
+
+    pctx = gpBslctx;
+
+    if ( NULL == pctx )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "Invalid BSL pointer from pvosGCtx on BSL_Init");
+        return VOS_STATUS_E_FAULT;
+    }
+
+    /* Retrieve the HCI device pointer from the BSL driver context */
+    hdev = pctx->hdev;
+
+    if (!hdev)
+        return VOS_STATUS_E_FAULT;
+
+    /* Unregister device from BlueZ; fcn sends us HCI commands before it returns */
+    /* And then the registered hdev->close fcn should be called by BlueZ (BSL_Close) */
+    if (hci_unregister_dev(hdev) < 0)
+    {    
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "Can't unregister HCI device %s", hdev->name);
+    }
+
+    /* BSL_Close is called again here, in case BlueZ didn't call it */
+    BSL_Close(hdev);
+    hci_free_dev(hdev);
+    pctx->hdev = NULL;
+
+    return VOS_STATUS_SUCCESS;
 }
 #endif // WLAN_BTAMP_FEATURE

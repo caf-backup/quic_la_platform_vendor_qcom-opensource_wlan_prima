@@ -537,15 +537,16 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 }
         else
             cfgAuthType = pMac->lim.gLimPreAuthType;
+        
         if ((cfgAuthType == eSIR_AUTO_SWITCH) &&
-            (((tLimMlmAuthCnf *) pMsgBuf)->authType == eSIR_SHARED_KEY))
+                (((tLimMlmAuthCnf *) pMsgBuf)->authType == eSIR_OPEN_SYSTEM)
+                && (eSIR_MAC_AUTH_ALGO_NOT_SUPPORTED_STATUS == ((tLimMlmAuthCnf *) pMsgBuf)->protStatusCode))
         {
             /**
-             * When Shared key authentication fails with
-             * authType set to 'auto switch', revert to
-             * Open System Authentication
+             * When Open authentication fails with reason code "13" and
+             * authType set to 'auto switch', Try with Shared Authentication
              */
-            authMode = eSIR_OPEN_SYSTEM;
+            authMode = eSIR_SHARED_KEY;
             // Trigger MAC based Authentication
             if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmAuthReq, sizeof(tLimMlmAuthReq)))
             {
@@ -558,17 +559,8 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             val = sizeof(tSirMacAddr);
             if (psessionEntry->limSmeState == eLIM_SME_WT_AUTH_STATE)
             {
-                #if 0
-                if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID,
-                              pMlmAuthReq->peerMacAddr,
-                              &val) != eSIR_SUCCESS)
-                {
-                    /// Could not get BSSID from CFG. Log error.
-                    limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
-                }
-                #endif //TO SUPPORT BT-AMP
                 sirCopyMacAddr(pMlmAuthReq->peerMacAddr,psessionEntry->bssId);
-             }
+            }
             else
                 palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmAuthReq->peerMacAddr,
                               (tANI_U8 *) &pMac->lim.gLimPreAuthPeerAddr,
@@ -2822,8 +2814,9 @@ limProcessStaMlmAddBssRspPreAssoc( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPES
                 limLog(pMac, LOGP,
                        FL("could not retrieve AuthType\n"));
             }
-            if (cfgAuthType == eSIR_AUTO_SWITCH)
-                authMode = eSIR_SHARED_KEY; // Try Shared Key first
+            if (cfgAuthType == eSIR_AUTO_SWITCH) {
+                authMode = eSIR_OPEN_SYSTEM; // Try Open Authentication first
+           	}
             else
                 authMode = cfgAuthType;
             // Trigger MAC based Authentication
