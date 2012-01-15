@@ -577,7 +577,7 @@ static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac,
         {
             if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
             {
-                if(pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
+               if (pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
                 {
                     /* Fr BT_AMP STA case, we don't nned to notify BSS with a NULL data */
                     /* Send NULL data only for Infra STA */
@@ -636,7 +636,7 @@ static void __limCreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *m
             {
                 //BT-STA can either be in LINK-ESTB state or BSS_STARTED State
                 //for BT, need to send CTS2Self
-                if(pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
+               if (pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
                 {
                     sendDataNull = TRUE;
                     *notifyBss =  TRUE;

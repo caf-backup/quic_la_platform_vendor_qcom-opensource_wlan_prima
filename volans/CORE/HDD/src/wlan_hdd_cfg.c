@@ -461,6 +461,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                         CFG_FRAMES_PROCESSING_TH_DEFAULT,
                         CFG_FRAMES_PROCESSING_TH_MIN,
                         CFG_FRAMES_PROCESSING_TH_MAX ),
+   REG_VARIABLE(CFG_SAP_AUTO_CHANNEL_SELECTION_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, apAutoChannelSelection,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT,
+                 CFG_SAP_AUTO_CHANNEL_SELECTION_MIN,
+                 CFG_SAP_AUTO_CHANNEL_SELECTION_MAX ),
+
+
 #endif
 
    REG_VARIABLE( CFG_BEACON_INTERVAL_NAME, WLAN_PARAM_Integer,
@@ -1684,6 +1692,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pHddCtx->cfg_ini->nEnableListenMode);  
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApProtection] value = [%u]\n",pHddCtx->cfg_ini->apProtection);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pHddCtx->cfg_ini->apOBSSProtEnabled);
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApAutoChannelSelection] value = [%u]\n",pHddCtx->cfg_ini->apAutoChannelSelection);
 #endif
   
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pHddCtx->cfg_ini->ChannelBondingMode);

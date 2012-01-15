@@ -353,9 +353,9 @@ void limWPSPBCClose(tpAniSirGlobal pMac, tpPESession psessionEntry)
 tANI_BOOLEAN limCheck11bRates(tANI_U8 rate)
 {
     if ( ( 0x02 == (rate))
-        || ( 0x04 == (rate)) 
-        || ( 0x0b == (rate))
-        || ( 0x16 == (rate))
+      || ( 0x04 == (rate))
+      || ( 0x0b == (rate))
+      || ( 0x16 == (rate))
        )
        {
            return TRUE;
@@ -401,9 +401,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
     tSirMsgQ            msgQ;
     tSirSmeProbeReq     *pSirSmeProbeReq;
     tANI_U32            wpsApEnable=0, tmp;
-#ifdef WLAN_FEATURE_P2P
-    tANI_U8             i = 0, rate_11b = 0;
-#endif    
 
     do{
         // Don't send probe responses if disabled
@@ -439,6 +436,8 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
 #ifdef WLAN_FEATURE_P2P
                 if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
                 {
+                    tANI_U8 other_rates = 0;
+                    tANI_U8 i = 0, rate_11b = 0;
                     // Check 11b rates in supported rates
                     for ( i = 0 ; i < probeReq.supportedRates.numRates;
                                                                   i++ )
@@ -446,6 +445,10 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                         if (limCheck11bRates(probeReq.supportedRates.rate[i] & 0x7f))
                         {
                             rate_11b++; 
+                        }
+                        else
+                        {
+                            other_rates++;
                         }
                     }
 
@@ -456,13 +459,17 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                         {
                             rate_11b++; 
                         }
+                        else
+                        {
+                            other_rates++;
+                        }
                     }
 
-                    if ( rate_11b > 0 )
+                    if ( (rate_11b > 0) && (other_rates == 0) )
                     {
                         PELOG3(limLog(pMac, LOG3, 
-                                   FL("Received a probe request frame with 11b rates , SA is: "));
-                                   limPrintMacAddr(pMac, pHdr->sa, LOG3);)
+                               FL("Received a probe request frame with only 11b rates , SA is: "));
+                               limPrintMacAddr(pMac, pHdr->sa, LOG3);)
                         return;
                     }
                 }

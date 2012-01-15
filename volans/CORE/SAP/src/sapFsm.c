@@ -138,6 +138,16 @@ sapGotoChannelSel
 
     v_U32_t scanRequestID = 0;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tHalHandle hHal;
+
+    hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    if (NULL == hHal)
+    {
+        /* we have a serious problem */
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
+                   "In %s, invalid hHal", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
 
     if (sapContext->channel == AUTO_CHANNEL_SELECT) 
     {
@@ -163,7 +173,7 @@ sapGotoChannelSel
 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, calling sme_ScanRequest", __FUNCTION__);
 
-        sapStatus = sme_ScanRequest(VOS_GET_HAL_CB(sapContext->pvosGCtx),//tHalHandle hHal
+        sapStatus = sme_ScanRequest(hHal,
                             0,//Not used in csrScanRequest
                             &scanRequest,
                             &scanRequestID,//, when ID == 0 11D scan/active scan with callback, min-maxChntime set in csrScanRequest()?
@@ -247,6 +257,13 @@ sapGotoStarting
     vos_mem_copy(sapContext->key_material, key_material, sizeof(key_material));  /* Need a key size define */
     
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s", __FUNCTION__);
+    if (NULL == hHal)
+    {
+        /* we have a serious problem */
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
+                   "In %s, invalid hHal", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
 
     //TODO: What shall we do if failure????
     halStatus = pmcRequestFullPower( hHal, 
@@ -298,11 +315,20 @@ sapGotoDisconnecting
     ptSapContext sapContext
 )
 {
-    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+    eHalStatus halStatus;
+    tHalHandle hHal;
 
-    halStatus = sme_RoamStopBss(VOS_GET_HAL_CB(sapContext->pvosGCtx), sapContext->sessionId);
+    hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+    if (NULL == hHal)
+    {
+        /* we have a serious problem */
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "In %s, invalid hHal", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
 
-    if(eHAL_STATUS_SUCCESS != halStatus )
+    halStatus = sme_RoamStopBss(hHal, sapContext->sessionId);
+    if (eHAL_STATUS_SUCCESS != halStatus )
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "Error: In %s calling sme_RoamStopBss status = %d", __FUNCTION__, halStatus);
         return VOS_STATUS_E_FAILURE;
@@ -711,8 +737,15 @@ sapFsm
 
                 if (eSAP_TRUE == sapContext->isSapSessionOpen) 
                 {
-                    if( eHAL_STATUS_SUCCESS == 
-                         sme_CloseSession(VOS_GET_HAL_CB(sapContext->pvosGCtx),
+                    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+                    if (NULL == hHal)
+                    {
+                       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                                  "In %s, NULL hHal in state %s, msg %d",
+                                  __FUNCTION__, "eSAP_STARTING", msg);
+                    }
+                    else if (eHAL_STATUS_SUCCESS == 
+                         sme_CloseSession(hHal,
                                           sapContext->sessionId, NULL, NULL))
                     {
                         sapContext->isSapSessionOpen = eSAP_FALSE;
@@ -756,8 +789,14 @@ sapFsm
                 /* Close the SME session*/
                 if (eSAP_TRUE == sapContext->isSapSessionOpen) 
                 {
-                    if( eHAL_STATUS_SUCCESS !=
-                            sme_CloseSession(VOS_GET_HAL_CB(sapContext->pvosGCtx),
+                    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+                    if (NULL == hHal)
+                    {
+                       VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                                  "In %s, NULL hHal in state %s, msg %d",
+                                  __FUNCTION__, "eSAP_DISCONNECTING", msg);
+                    } else if (eHAL_STATUS_SUCCESS !=
+                            sme_CloseSession(hHal,
                                      sapContext->sessionId,
                                      sapRoamSessionCloseCallback, sapContext))
                     {

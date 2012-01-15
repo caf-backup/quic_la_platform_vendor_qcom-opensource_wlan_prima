@@ -2720,6 +2720,9 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
                 sessionId, ac);
       return status;
    }
+
+   /* success so pIes was allocated */
+
    if( !CSR_IS_QOS_BSS(pIes) )
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
@@ -2903,10 +2906,8 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
          }
       }
    }while(0);
-   if(pIes)
-   {
-      vos_mem_free(pIes);
-   }
+
+   vos_mem_free(pIes);
    return status;
 }
 
@@ -5780,7 +5781,7 @@ v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
                       sme_QosEdcaAcType ac, tDot11fBeaconIEs *pIes)
 {
    v_BOOL_t ret_val = VOS_FALSE;
-   tDot11fBeaconIEs *pIesLocal = pIes;
+   tDot11fBeaconIEs *pIesLocal;
    if(!pSirBssDesc)
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
@@ -5788,18 +5789,27 @@ v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
                 __FUNCTION__, __LINE__);
       return VOS_FALSE;
    }
-   if((NULL == pIesLocal) && !HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal)))
+
+   if (NULL != pIes)
    {
-      //err msg
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                "%s: %d: csrGetParsedBssDescriptionIEs() failed",
-                __FUNCTION__, __LINE__);
-      if(pIesLocal)
-      {
-         vos_mem_free(pIesLocal);
-      }
-      return VOS_FALSE;
+      /* IEs were provided so use them locally */
+      pIesLocal = pIes;
    }
+   else
+   {
+      /* IEs were not provided so parse them ourselves */
+      if (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal)))
+      {
+         //err msg
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                   "%s: %d: csrGetParsedBssDescriptionIEs() failed",
+                   __FUNCTION__, __LINE__);
+         return VOS_FALSE;
+      }
+
+      /* if success then pIesLocal was allocated */
+   }
+
    if(CSR_IS_QOS_BSS(pIesLocal))
    {
        switch(ac)
@@ -5828,8 +5838,9 @@ v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "%s: %d: ACM = %d for AC = %d",
              __FUNCTION__, __LINE__, ret_val, ac );
-   if((NULL == pIes) && pIesLocal)
+   if (NULL == pIes)
    {
+      /* IEs were allocated locally so free them */
       vos_mem_free(pIesLocal);
    }
    return ret_val;
@@ -7256,6 +7267,9 @@ v_BOOL_t sme_QosIsTSInfoAckPolicyValid(tpAniSirGlobal pMac,
                sessionId);
      return VOS_FALSE;
   }
+
+  /* success means pIes was allocated */
+
   if(!pIes->HTCaps.present &&
      pQoSInfo->ts_info.ack_policy == SME_QOS_WMM_TS_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK)
   {
@@ -7264,17 +7278,11 @@ v_BOOL_t sme_QosIsTSInfoAckPolicyValid(tpAniSirGlobal pMac,
                 __FUNCTION__, __LINE__,
                 sessionId);
       
-      if(pIes)
-      {
-         vos_mem_free(pIes);
-      }
+      vos_mem_free(pIes);
       return VOS_FALSE;
   }
 
-  if(pIes)
-  {
-     vos_mem_free(pIes);
-  }
+  vos_mem_free(pIes);
   return VOS_TRUE;
 }
 

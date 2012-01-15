@@ -541,15 +541,16 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 }
         else
             cfgAuthType = pMac->lim.gLimPreAuthType;
+        
         if ((cfgAuthType == eSIR_AUTO_SWITCH) &&
-            (((tLimMlmAuthCnf *) pMsgBuf)->authType == eSIR_SHARED_KEY))
+                (((tLimMlmAuthCnf *) pMsgBuf)->authType == eSIR_OPEN_SYSTEM)
+                && (eSIR_MAC_AUTH_ALGO_NOT_SUPPORTED_STATUS == ((tLimMlmAuthCnf *) pMsgBuf)->protStatusCode))
         {
             /**
-             * When Shared key authentication fails with
-             * authType set to 'auto switch', revert to
-             * Open System Authentication
+             * When Open authentication fails with reason code "13" and
+             * authType set to 'auto switch', Try with Shared Authentication
              */
-            authMode = eSIR_OPEN_SYSTEM;
+            authMode = eSIR_SHARED_KEY;
             // Trigger MAC based Authentication
             if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmAuthReq, sizeof(tLimMlmAuthReq)))
             {
@@ -562,17 +563,8 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             val = sizeof(tSirMacAddr);
             if (psessionEntry->limSmeState == eLIM_SME_WT_AUTH_STATE)
             {
-                #if 0
-                if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID,
-                              pMlmAuthReq->peerMacAddr,
-                              &val) != eSIR_SUCCESS)
-                {
-                    /// Could not get BSSID from CFG. Log error.
-                    limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
-                }
-                #endif //TO SUPPORT BT-AMP
                 sirCopyMacAddr(pMlmAuthReq->peerMacAddr,psessionEntry->bssId);
-             }
+            }
             else
                 palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmAuthReq->peerMacAddr,
                               (tANI_U8 *) &pMac->lim.gLimPreAuthPeerAddr,
@@ -2766,52 +2758,47 @@ limProcessStaMlmAddBssRspPreAssoc( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPES
     tpDphHashNode pStaDs = NULL;
     if( eHAL_STATUS_SUCCESS == pAddBssParams->status )
     {
-        if ((pStaDs = dphAddHashEntry(pMac, pAddBssParams->staContext.staMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable)) == NULL)
+        if ((pStaDs = dphAddHashEntry(pMac, pAddBssParams->staContext.staMac,
+                              DPH_STA_HASH_INDEX_PEER, 
+                              &psessionEntry->dph.dphHashTable)) == NULL)
         {
             // Could not add hash table entry
             PELOGE(limLog(pMac, LOGE, FL("could not add hash entry at DPH for \n"));)
                 limPrintMacAddr(pMac, pAddBssParams->staContext.staMac, LOGE);
-            goto joinFailure;
-        }
-        psessionEntry->bssIdx     = (tANI_U8) pAddBssParams->bssIdx;
-        //Success, handle below
-        pStaDs->bssId = pAddBssParams->bssIdx;
-        //STA Index(genr by HAL) for the BSS entry is stored here
-        pStaDs->staIndex = pAddBssParams->staContext.staIdx;
-        // Trigger Authentication with AP
-        if (wlan_cfgGetInt(pMac, WNI_CFG_AUTHENTICATION_TYPE,
-                    (tANI_U32 *) &cfgAuthType) != eSIR_SUCCESS)
-        {
-            /**
-             * Could not get AuthType from CFG.
-             * Log error.
-             */
-            limLog(pMac, LOGP,
-                    FL("could not retrieve AuthType\n"));
-        }
-        if (cfgAuthType == eSIR_AUTO_SWITCH)
-            authMode = eSIR_SHARED_KEY; // Try Shared Key first
-        else
-            authMode = cfgAuthType;
-        // Trigger MAC based Authentication
-        if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmAuthReq, sizeof(tLimMlmAuthReq)))
-        {
-            // Log error
-            limLog(pMac, LOGP,
-                    FL("call to palAllocateMemory failed for mlmAuthReq\n"));
-            return;
-        }
-#if 0
-        val = sizeof(tSirMacAddr);
-        if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID,
-                    pMlmAuthReq->peerMacAddr,
-                    &val) != eSIR_SUCCESS)
-        {
-            /// Could not get BSSID from CFG. Log error.
-            limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
-        }
-#endif //TO SUPPORT BT-AMP
-        sirCopyMacAddr(pMlmAuthReq->peerMacAddr,psessionEntry->bssId);
+                goto joinFailure;
+            }
+            psessionEntry->bssIdx     = (tANI_U8) pAddBssParams->bssIdx;
+            //Success, handle below
+            pStaDs->bssId = pAddBssParams->bssIdx;
+            //STA Index(genr by HAL) for the BSS entry is stored here
+            pStaDs->staIndex = pAddBssParams->staContext.staIdx;
+            // Trigger Authentication with AP
+            if (wlan_cfgGetInt(pMac, WNI_CFG_AUTHENTICATION_TYPE,
+                          (tANI_U32 *) &cfgAuthType) != eSIR_SUCCESS)
+            {
+                /**
+                 * Could not get AuthType from CFG.
+                 * Log error.
+                 */
+                limLog(pMac, LOGP,
+                       FL("could not retrieve AuthType\n"));
+            }
+            if (cfgAuthType == eSIR_AUTO_SWITCH)
+            {
+                authMode = eSIR_OPEN_SYSTEM; // Try Open Authentication first
+            }
+            else
+                authMode = cfgAuthType;
+            // Trigger MAC based Authentication
+            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+                               (void **)&pMlmAuthReq, sizeof(tLimMlmAuthReq)))
+            {
+                // Log error
+                limLog(pMac, LOGP,
+                       FL("call to palAllocateMemory failed for mlmAuthReq\n"));
+                return;
+            }
+            sirCopyMacAddr(pMlmAuthReq->peerMacAddr,psessionEntry->bssId);
 
         pMlmAuthReq->authType = authMode;
         if (wlan_cfgGetInt(pMac, WNI_CFG_AUTHENTICATE_FAILURE_TIMEOUT,
@@ -3318,7 +3305,7 @@ void limProcessMlmSetStaKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
         PELOGE(limLog(pMac, LOGE,FL("limMsgQ bodyptr is NULL\n"));)
         return;
     }
-    sessionId = ((tpSetBssKeyParams) limMsgQ->bodyptr)->sessionId;
+    sessionId = ((tpSetStaKeyParams) limMsgQ->bodyptr)->sessionId;
     if((psessionEntry = peFindSessionBySessionId(pMac, sessionId))== NULL)
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionId\n"));)

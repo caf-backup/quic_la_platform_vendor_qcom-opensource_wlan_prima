@@ -825,6 +825,48 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    return( vosStatus );
 }
 
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+static void hdd_SendReAssocEvent(struct net_device *dev, hdd_adapter_t *pAdapter,
+		              tCsrRoamInfo *pCsrRoamInfo)
+{
+	unsigned int len = 0;
+	u8 *pFTAssocRsp = NULL;
+	v_U8_t reqRsnIe[IW_GENERIC_IE_MAX];
+	v_U8_t rspRsnIe[IW_GENERIC_IE_MAX];
+	tANI_U32 reqRsnLength = 0;
+	tANI_U32 rspRsnLength = 0;
+	struct ieee80211_channel *chan;
+
+	if (pCsrRoamInfo == NULL)
+		return;
+
+	if (pCsrRoamInfo->nAssocRspLength == 0)
+		return;
+
+	pFTAssocRsp = (u8 *)(pCsrRoamInfo->pbFrames + pCsrRoamInfo->nBeaconLength +
+			pCsrRoamInfo->nAssocReqLength);
+	if (pFTAssocRsp == NULL)
+		return;
+
+	//pFTAssocRsp needs to point to the IEs
+	pFTAssocRsp += FT_ASSOC_RSP_IES_OFFSET;
+	hddLog(LOGE, "%s: AssocRsp is now at %02x%02x\n", __func__,
+			(unsigned int)pFTAssocRsp[0],
+			(unsigned int)pFTAssocRsp[1]);
+
+	// Send the Assoc Resp, the supplicant needs this for initial Auth.
+	len = pCsrRoamInfo->nAssocRspLength - FT_ASSOC_RSP_IES_OFFSET;
+	rspRsnLength = len;
+	memset(rspRsnIe, 0, IW_GENERIC_IE_MAX);
+	memcpy(rspRsnIe, pFTAssocRsp, len);
+
+	chan = ieee80211_get_channel(pAdapter->wdev.wiphy, (int) pCsrRoamInfo->pBssDesc->channelId);
+	cfg80211_roamed(dev,chan,pCsrRoamInfo->bssid,
+			reqRsnIe, reqRsnLength,
+			rspRsnIe, rspRsnLength,GFP_KERNEL);
+}
+#endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX */
+
 static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
                                                     tANI_U32 roamId, eRoamCmdStatus roamStatus,                                                
                                                     eCsrRoamResult roamResult )
@@ -833,7 +875,10 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     VOS_STATUS vosStatus;
-
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+        int send_ft_resp_ie = FALSE;
+#endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX */
+ 
     if ( eCSR_ROAM_RESULT_ASSOCIATED == roamResult )
     {
         hdd_connSetConnectionState( pHddStaCtx, eConnectionState_Associated );
@@ -865,11 +910,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
            know that the device is getting activated properly.
            */
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
-        if (pHddStaCtx->ft_carrier_on == FALSE)
-        {
+	if (pHddStaCtx->ft_carrier_on == FALSE)
+	{
 #endif
-            // Enable Linkup Event Servicing which allows the net device notifier to set the linkup event variable       
-            pAdapter->isLinkUpSvcNeeded = TRUE;
+		// Enable Linkup Event Servicing which allows the net device notifier to set the linkup event variable       
+		pAdapter->isLinkUpSvcNeeded = TRUE;
 
             // Switch on the Carrier to activate the device
             netif_carrier_on(dev);
@@ -877,14 +922,14 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             wait_for_completion_interruptible_timeout(&pAdapter->linkup_event_var,
                     msecs_to_jiffies(ASSOC_LINKUP_TIMEOUT));
 
-            // Disable Linkup Event Servicing - no more service required from the net device notifier call
-            pAdapter->isLinkUpSvcNeeded = FALSE;
+		// Disable Linkup Event Servicing - no more service required from the net device notifier call
+		pAdapter->isLinkUpSvcNeeded = FALSE;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
-        }
-        else 
-        {
-            pHddStaCtx->ft_carrier_on = FALSE;
-        }
+	}
+	else { 
+		pHddStaCtx->ft_carrier_on = FALSE;
+		send_ft_resp_ie = TRUE;
+	}
 #endif
         pHddCtx->sta_to_adapter[pRoamInfo->staId] = pAdapter;
 
@@ -908,9 +953,14 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                     reqRsnIe);
 
             csrRoamGetWpaRsnRspIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                    pAdapter->sessionId,
-                    &rspRsnLength,
-                    rspRsnIe);
+                               pAdapter->sessionId,
+                               &rspRsnLength,
+                               rspRsnIe);
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+	    if(send_ft_resp_ie)
+		    hdd_SendReAssocEvent(dev, pAdapter, pRoamInfo);
+	    else
+#endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX */
 
             /* inform connect result to nl80211 */
             cfg80211_connect_result(dev, pRoamInfo->bssid, 
@@ -960,7 +1010,9 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     }  
     else 
     {
+#ifdef CONFIG_CFG80211
         hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+#endif
         pr_info("wlan: connection failed\n");
 
         /*Handle all failure conditions*/
@@ -1332,9 +1384,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
 {
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
     hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;
-    hdd_wext_state_t *pWextState= WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "CSR Callback: status= %d result= %d roamID=%ld", 
             roamStatus, roamResult, roamId ); 
@@ -1416,26 +1466,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
         case eCSR_ROAM_ASSOCIATION_COMPLETION:
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "****eCSR_ROAM_ASSOCIATION_COMPLETION****");
-            if (  (roamResult != eCSR_ROAM_RESULT_ASSOCIATED)
-                    && (   (pWextState->roamProfile.EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_WEP40_STATICKEY) 
-                        || (pWextState->roamProfile.EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_WEP104_STATICKEY)
-                       )
-                    && (eCSR_AUTH_TYPE_SHARED_KEY != pWextState->roamProfile.AuthType.authType[0])
-               )
-            {
-                v_U32_t roamId = 0;
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-                        "****WEP open authentication failed, trying with shared authentication****");
-                (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType = eCSR_AUTH_TYPE_SHARED_KEY;
-                pWextState->roamProfile.AuthType.authType[0] = (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType;
-                pWextState->roamProfile.csrPersona = pAdapter->device_mode;
-                halStatus = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId, &(pWextState->roamProfile), &roamId);
-            }
-            else
-            {
-                halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
-            }
-
+            halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
             break;
         case eCSR_ROAM_ASSOCIATION_FAILURE:
             halStatus = hdd_AssociationCompletionHandler( pAdapter, 

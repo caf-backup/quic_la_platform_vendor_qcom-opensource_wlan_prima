@@ -119,6 +119,8 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
     pMac->lim.gLimMlmState     = eLIM_MLM_P2P_LISTEN_STATE;
 
+    /* Set the duration to requested duration + 10ms (for latencies in messgae exchange etc.) */
+    pMac->lim.gTotalScanDuration = MsgBuff->duration + 10;
     /* 1st we need to suspend link with callback to initiate change channel */
     limSuspendLink(pMac, eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN,
                    limRemainOnChnlSuspendLinkHdlr, NULL);
@@ -157,8 +159,7 @@ tSirRetStatus limRemainOnChnlChangeChnReq(tpAniSirGlobal pMac,
     if((psessionEntry = peFindSessionByBssid(
         pMac,pMac->lim.gpLimRemainOnChanReq->selfMacAddr,&sessionId)) != NULL)
     {
-        limLog(pMac, LOGP, FL("Session Already exists for given BSSID\n"));
-        goto error;
+        goto change_channel;
     }
     else /* Session Entry does not exist for given BSSId */
     {
@@ -187,15 +188,16 @@ tSirRetStatus limRemainOnChnlChangeChnReq(tpAniSirGlobal pMac,
                        pMac->lim.gpLimRemainOnChanReq->selfMacAddr);
     }
 
+change_channel:
     /* change channel to the requested by RemainOn Chn*/
     limChangeChannelWithCallback(pMac,
                               pMac->lim.gpLimRemainOnChanReq->chnNum,
                               limRemainOnChnlSetLinkStat, NULL, psessionEntry);
-     return eSIR_SUCCESS;
+    return eSIR_SUCCESS;
 
 error:
-     limRemainOnChnRsp(pMac,eHAL_STATUS_FAILURE, NULL);
-     return eSIR_FAILURE;
+    limRemainOnChnRsp(pMac,eHAL_STATUS_FAILURE, NULL);
+    return eSIR_FAILURE;
 }
 
 void limRemainOnChnlSuspendLinkHdlr(tpAniSirGlobal pMac, eHalStatus status,
@@ -363,15 +365,18 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
     if((psessionEntry = peFindSessionByBssid(pMac,
                  MsgRemainonChannel->selfMacAddr,&sessionId)) != NULL)
     {
-        peDeleteSession( pMac, psessionEntry);
+        if ( eLIM_P2P_DEVICE_ROLE == psessionEntry->limSystemRole )
+        {
+            peDeleteSession( pMac, psessionEntry);
+        }
     }
+    /* Post the meessage to Sme */
+    limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP, status, 
+                  MsgRemainonChannel->sessionId, 0);
 
     palFreeMemory( pMac->hHdd, pMac->lim.gpLimRemainOnChanReq );
     pMac->lim.gpLimRemainOnChanReq = NULL;
 
-    /* Post the meessage to Sme */
-    limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP, status,
-                  MsgRemainonChannel->sessionId, 0);
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
     return;
 }
@@ -515,6 +520,21 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     limLog( pMac, LOG1, FL("sending pFc->type=%d pFc->subType=%d"),
                             pFc->type, pFc->subType);
+
+    psessionEntry = peFindSessionByBssid(pMac,
+                   (tANI_U8*)pMbMsg->data + BSSID_OFFSET, &sessionId);
+
+    /* Drop if remain on channel is not pending in case of normal device */
+    if( NULL == psessionEntry )
+    {
+        if( NULL == pMac->lim.gpLimRemainOnChanReq )
+        {
+            limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, 
+                          eHAL_STATUS_FAILURE, pMbMsg->sessionId, 0);
+            return;
+        }
+    }
+
     if ((SIR_MAC_MGMT_FRAME == pFc->type)&&
         ((SIR_MAC_MGMT_PROBE_RSP == pFc->subType)||
         (SIR_MAC_MGMT_ACTION == pFc->subType)))
@@ -576,8 +596,6 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
         if (pP2PIe != NULL)
         {
-            psessionEntry = peFindSessionByBssid(pMac,
-                   (tANI_U8*)pMbMsg->data + BSSID_OFFSET, &sessionId);
             //get NoA attribute stream P2P IE
             noaLen = limGetNoaAttrStream(pMac, noaStream, psessionEntry);
             //need to append NoA attribute in P2P IE
@@ -623,6 +641,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
                            nBytes);
         }
     }
+
 
     // Ok-- try to allocate some memory:
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,

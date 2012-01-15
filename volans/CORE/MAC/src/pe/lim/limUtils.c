@@ -1038,23 +1038,18 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         tx_timer_deactivate(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
+#endif
 
-#if 0 // The WPS PBC clean up timer is disabled
-        if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-        {
-            if(pMac->lim.limTimers.gLimWPSOverlapTimerObj.isTimerCreated == eANI_BOOLEAN_TRUE)
-            {
-                tx_timer_deactivate(&pMac->lim.limTimers.gLimWPSOverlapTimerObj.gLimWPSOverlapTimer);
-                tx_timer_delete(&pMac->lim.limTimers.gLimWPSOverlapTimerObj.gLimWPSOverlapTimer);
-                pMac->lim.limTimers.gLimWPSOverlapTimerObj.isTimerCreated = eANI_BOOLEAN_FALSE;
-            }
-        }
-#endif
-#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         // Deactivate and delete FT Preauth response timer
         tx_timer_deactivate(&pMac->lim.limTimers.gLimFTPreAuthRspTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimFTPreAuthRspTimer);
+#endif
+
+#ifdef WLAN_FEATURE_P2P
+        // Deactivate and delete remain on channel timer
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
 #endif
 
 #ifdef FEATURE_WLAN_CCX
@@ -1062,6 +1057,8 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimCcxTsmTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimCcxTsmTimer);
 #endif
+
+
         pMac->lim.gLimTimersCreated = 0;
     }
 

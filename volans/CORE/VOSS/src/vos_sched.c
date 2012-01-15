@@ -400,26 +400,25 @@ VosMCThread
       // Check the HAL queue
       if (!vos_is_mq_empty(&pSchedContext->halMcMq))
       {
-        /* Need some optimization*/
-        pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
-
-        if(pMacContext == NULL)
-        {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-              "%s: pMacContext is NULL", __FUNCTION__);
-           VOS_ASSERT(0);
-           break;
-        }
-
         // Service the HAL message queue
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                  "%s: Servicing the VOS HAL MC Message queue",__func__);
         pMsgWrapper = vos_mq_get(&pSchedContext->halMcMq);
-        if (pMsgWrapper == NULL)
+        if (NULL == pMsgWrapper)
         {
            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
               "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
+           break;
+        }
+
+        /* Need some optimization*/
+        pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
+        if(NULL == pMacContext)
+        {
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+              "%s: pMacContext is NULL", __FUNCTION__);
+           vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
            break;
         }
 
@@ -439,19 +438,29 @@ VosMCThread
          // Check the PE queue
          if (!vos_is_mq_empty(&pSchedContext->peMcMq))
          {
-            /* Need some optimization*/
-            pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
             // Service the PE message queue
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                       "%s: Servicing the VOS PE MC Message queue",__func__);
-            if (pMsgWrapper == NULL)
+
+            pMsgWrapper = vos_mq_get(&pSchedContext->peMcMq);
+            if (NULL == pMsgWrapper)
             {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                   "%s: pMsgWrapper is NULL", __FUNCTION__);
                VOS_ASSERT(0);
                break;
             }
-            pMsgWrapper = vos_mq_get(&pSchedContext->peMcMq);
+
+            /* Need some optimization*/
+            pMacContext = vos_get_context(VOS_MODULE_ID_PE, pSchedContext->pVContext);
+            if (NULL == pMacContext)
+            {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                          "MAC Context not ready yet");
+                vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+                continue;
+            }
+
             macStatus = peProcessMessages( pMacContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
             if (eSIR_SUCCESS != macStatus)
             {
@@ -465,19 +474,28 @@ VosMCThread
          /** Check the SME queue **/
          if (!vos_is_mq_empty(&pSchedContext->smeMcMq))
          {
-            /* Need some optimization*/
-            pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
             // Service the SME message queue
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                       "%s: Servicing the VOS SME MC Message queue",__func__);
             pMsgWrapper = vos_mq_get(&pSchedContext->smeMcMq);
-            if (pMsgWrapper == NULL)
+            if (NULL == pMsgWrapper)
             {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                    "%s: pMsgWrapper is NULL", __FUNCTION__);
                VOS_ASSERT(0);
                break;
             }
+
+            /* Need some optimization*/
+            pMacContext = vos_get_context(VOS_MODULE_ID_SME, pSchedContext->pVContext);
+            if (NULL == pMacContext)
+            {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                          "MAC Context not ready yet");
+                vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+                continue;
+            }
+
             hStatus = sme_ProcessMsg( (tHalHandle)pMacContext, pMsgWrapper->pVosMsg);
             if (!HAL_STATUS_SUCCESS(hStatus))
             {
@@ -1215,7 +1233,7 @@ void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
 void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
 {
   pVosMsgWrapper pMsgWrapper = NULL;
-  pVosContextType vosCtx = (pVosContextType)(pSchedContext->pVContext);
+  pVosContextType vosCtx;
   int driver_mode_flag = ((hdd_context_t *)
     (((VosContextType *)(pSchedContext->pVContext))->pHDDContext))->driver_type;
 
@@ -1227,7 +1245,22 @@ void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
   VOS_TRACE( VOS_MODULE_ID_VOSS,
              VOS_TRACE_LEVEL_INFO,
              ("Flushing the MC Thread message queue\n") );
-  VOS_ASSERT(NULL != pSchedContext);
+
+  if (NULL == pSchedContext)
+  {
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: pSchedContext is NULL", __FUNCTION__);
+     return;
+  }
+
+  vosCtx = (pVosContextType)(pSchedContext->pVContext);
+  if (NULL == vosCtx)
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: vosCtx is NULL", __FUNCTION__);
+     return;
+  }
+
   /* Flush the SYS Mq */
   while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->sysMcMq) ))
   {
@@ -1297,13 +1330,14 @@ void vos_sched_flush_tx_mqs ( pVosSchedContext pSchedContext )
   VOS_TRACE( VOS_MODULE_ID_VOSS,
              VOS_TRACE_LEVEL_INFO,
              "%s: Flushing the TX Thread message queue",__func__);
-  VOS_ASSERT(NULL != pSchedContext);
-  if (pSchedContext == NULL)
+
+  if (NULL == pSchedContext)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
          "%s: pSchedContext is NULL", __FUNCTION__);
      return;
   }
+
   /* Flush the SYS Mq */
   while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->sysTxMq) ))
   {

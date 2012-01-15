@@ -1117,10 +1117,21 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     tSirMacFrameCtl frmCtrl;
     v_SIZE_t        usFrmCtrlSize = sizeof(frmCtrl); 
 
-    pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE, pvosGCtx);
     pVosPkt = (vos_pkt_t *)vosBuff;
-    vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pRxBd, WLANHAL_RX_BD_HEADER_SIZE);
+    if (NULL == pVosPkt)
+    {
+        return VOS_STATUS_E_FAILURE;
+    }
 
+    pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE, pvosGCtx);
+    if (NULL == pMac)
+    {
+        // cannot log a failure without a valid pMac
+        vos_pkt_return_packet(pVosPkt);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pRxBd, WLANHAL_RX_BD_HEADER_SIZE);
     if(!VOS_IS_STATUS_SUCCESS(vosStatus))
     {
         vos_pkt_return_packet(pVosPkt);

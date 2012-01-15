@@ -150,7 +150,7 @@
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_NAME     "gEnableDriverStop"
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_MIN      ( 0 ) //No support for stop
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_MAX      ( 2 ) //Map to Deep Sleep
-#define CFG_ENABLE_ENABLE_DRIVER_STOP_DEFAULT  ( 1 ) //Map to Standby
+#define CFG_ENABLE_ENABLE_DRIVER_STOP_DEFAULT  ( 0 ) //Map to no support for stop 
 
 #define CFG_WOWL_PATTERN_NAME                  "gWowlPattern"
 #define CFG_WOWL_PATTERN_DEFAULT               ""
@@ -1102,6 +1102,23 @@ typedef enum
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST           0x01
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST           0x02
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST 0x03
+
+/*
+ *
+ * SAP Auto Channel Enable
+ * Notes:
+ * Auto Channel selection for SAP configuration
+ * 0 - Disable Auto Channel
+ * 1 - Enable auto channel selection in auto mode.
+ *     When enable auto channel, channel provided by Supplicant will be ignored.
+ *
+ * Default configuration: Auto channel is disabled.
+ */
+#define CFG_SAP_AUTO_CHANNEL_SELECTION_NAME       "gApAutoChannelSelection"
+#define CFG_SAP_AUTO_CHANNEL_SELECTION_MIN        ( 0 )
+#define CFG_SAP_AUTO_CHANNEL_SELECTION_MAX        ( 1 )
+#define CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT    ( 0 )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1181,8 +1198,9 @@ typedef struct
    v_U8_t        MinFramesProcThres;
    v_U8_t        apCntryCode[4];
    v_BOOL_t      apDisableIntraBssFwd;
-   v_U8_t        nEnableListenMode;    
+   v_U8_t        nEnableListenMode;
    v_U32_t       nAPAutoShutOff;
+   v_BOOL_t      apAutoChannelSelection;
 #endif
 
    v_U32_t       nBeaconInterval;

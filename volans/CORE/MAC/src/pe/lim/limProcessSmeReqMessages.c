@@ -1624,8 +1624,9 @@ end:
     if(pSmeJoinReq)
     {
         palFreeMemory( pMac->hHdd, pSmeJoinReq);
-        pSmeJoinReq=NULL;
-        if(NULL != psessionEntry) {
+        pSmeJoinReq = NULL;
+        if (NULL != psessionEntry)
+        {
             psessionEntry->pLimJoinReq = NULL;
         }
     }

@@ -2596,12 +2596,16 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
     tANI_U16              aid;
     tpDphHashNode    pStaDs;
     tUpdateBeaconParams beaconParams;    
-    tLimSystemRole systemRole = limGetSystemRole(psessionEntry);
+    tLimSystemRole systemRole;
 
     beaconParams.paramChangeBitmap = 0;
     limDeactivateAndChangePerStaIdTimer(pMac, eLIM_CNF_WAIT_TIMER, staId);
-    if(psessionEntry==NULL)
-    	return;
+    if (NULL == psessionEntry)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("NULL psessionEntry"));)
+        return;
+    }
+    systemRole = limGetSystemRole(psessionEntry);
     beaconParams.bssIdx = psessionEntry->bssIdx;
     pStaDs = dphLookupHashEntry(pMac, staAddr, &aid, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)

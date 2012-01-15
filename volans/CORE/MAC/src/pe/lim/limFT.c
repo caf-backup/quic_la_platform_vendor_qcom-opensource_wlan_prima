@@ -1135,17 +1135,18 @@ void limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
     pAggrQosRspMsg = (tpAggrAddTsParams) (limMsg->bodyptr);
+    if (NULL == pAggrQosRspMsg)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("NULL pAggrQosRspMsg"));)
+        return;
+    }
 
     psessionEntry = peFindSessionBySessionId(pMac, pAggrQosRspMsg->sessionId);
-
     if (NULL == psessionEntry)
     {
-        // Cant find session entry
-        PELOGE(limLog(pMac, LOGE, FL("Cant find session entry for %s\n"), __FUNCTION__);)
-        if( pAggrQosRspMsg != NULL )
-        {
-            palFreeMemory( pMac->hHdd, (void *)pAggrQosRspMsg );
-        }
+        // Cant find session entry 
+        PELOG1(limLog(pMac, LOG1, FL("Cant find session entry for %s\n", __FUNCTION__));)
+        palFreeMemory( pMac->hHdd, (void *)pAggrQosRspMsg );
         return;
     }
 
@@ -1180,10 +1181,7 @@ void limProcessFTAggrQoSRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 
     limFTSendAggrQosRsp(pMac, rspReqd, pAggrQosRspMsg,
             psessionEntry->smeSessionId);
-    if( pAggrQosRspMsg != NULL )
-    {
-        palFreeMemory( pMac->hHdd, (void *)pAggrQosRspMsg );
-    }
+    palFreeMemory( pMac->hHdd, (void *)pAggrQosRspMsg );
     return;
 }
 

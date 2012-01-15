@@ -461,7 +461,7 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     if( beacon == NULL )
         return -ENOMEM;
 
-    if(params->dtim_period)
+    if(params->dtim_period || !old )
         beacon->dtim_period = params->dtim_period;
     else
         beacon->dtim_period = old->dtim_period;
@@ -898,6 +898,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
              * */
             pConfig->RSNEncryptType = RSNEncryptType; // Use the cipher type in the RSN IE
             pConfig->mcRSNEncryptType = mcRSNEncryptType;
+            (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->ucEncryptType
+                                                              = RSNEncryptType;
             hddLog( LOG1, FL("%s: CSR AuthType = %d, "
                         "EncryptionType = %d mcEncryptionType = %d\n"),
                         RSNAuthType, RSNEncryptType, mcRSNEncryptType);
@@ -935,6 +937,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                  * */
                 pConfig->RSNEncryptType = RSNEncryptType; // Use the cipher type in the RSN IE
                 pConfig->mcRSNEncryptType = mcRSNEncryptType;
+                (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->ucEncryptType
+                                                              = RSNEncryptType;
                 hddLog( LOG1, FL("%s: CSR AuthType = %d, "
                                 "EncryptionType = %d mcEncryptionType = %d\n"),
                                 RSNAuthType, RSNEncryptType, mcRSNEncryptType);
@@ -1118,10 +1122,20 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                                         struct net_device *dev)
 {
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx;
     VOS_STATUS status = 0;
 
     ENTER();
- 
+
+    if (NULL == pAdapter)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: HDD adapter context is Null", __FUNCTION__);
+        return -ENODEV;
+    }
+
+    pHddCtx  =  (hdd_context_t*)pAdapter->pHddCtx;
+
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                               __func__,pAdapter->device_mode);
 
@@ -1138,7 +1152,10 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
         if (!old)
             return -ENOENT;
 
-         
+#ifdef CONFIG_CFG80211
+        hdd_cleanup_actionframe(pHddCtx, pAdapter);
+#endif
+
         if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) 
         {
             if ( VOS_STATUS_SUCCESS == (status = WLANSAP_StopBss((WLAN_HDD_GET_CTX(pAdapter))->pvosContext) ) )
@@ -2146,7 +2163,7 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
      */
 
     channel = ieee80211_frequency_to_channel(freq);
-
+    
     /* Check freq range */
     if ((WNI_CFG_CURRENT_CHANNEL_STAMIN > channel) || 
             (WNI_CFG_CURRENT_CHANNEL_STAMAX < channel)) 
@@ -2217,11 +2234,28 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
             ) 
     {
         (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
+
+        if ( WLAN_HDD_SOFTAP == pAdapter->device_mode )
+        {
+            hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
+
+            /* If auto channel selection is configured as enable/ 1 then ignore
+            channel set by supplicant
+            */
+            if ( cfg_param->apAutoChannelSelection )
+            {
+                (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = AUTO_CHANNEL_SELECT;
+
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                       "%s: set channel to auto channel (0) for device mode =%d",
+                       __func__, pAdapter->device_mode);
+            }
+        }
     }
     else 
     {
         hddLog(VOS_TRACE_LEVEL_FATAL, 
-           "%s: Invalid device mode failed to set valid channel\n", __func__);
+               "%s: Invalid device mode failed to set valid channel", __func__);
         return -EINVAL;
     }
     EXIT();
@@ -2570,8 +2604,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                                    __func__,pAdapter->device_mode);
-    hddLog(VOS_TRACE_LEVEL_INFO, "scan request for ssid = %d\n", 
-            (int)request->n_ssids);  
 
     //Scan on any other interface is not supported.
     if((pAdapter->device_mode != WLAN_HDD_INFRA_STATION) 
@@ -2581,28 +2613,31 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
       )
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, 
-                "%s: Not scanning on device_mode = %d\n",
-                                    __func__,pAdapter->device_mode);
+                "%s: Not scanning on device_mode = %d",
+                                    __func__, pAdapter->device_mode);
         return -EOPNOTSUPP;
     }
 
     if (TRUE == pwextBuf->mScanPending)
     {
-        hddLog(VOS_TRACE_LEVEL_INFO, "%s: mScanPending is TRUE\n", __func__);
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s: mScanPending is TRUE", __func__);
         return -EBUSY;                  
     }
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                        "%s:LOGP in Progress. Ignore!!!",__func__);
-      return -EAGAIN;
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                  "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
     }
 
     vos_mem_zero( &scanRequest, sizeof(scanRequest));
 
-    if (request)
+    if (NULL != request)
     {
+        hddLog(VOS_TRACE_LEVEL_INFO, "scan request for ssid = %d",
+               (int)request->n_ssids);  
+
         /* Even though supplicant doesn't provide any SSIDs, n_ssids is set to 1.
          * Becasue of this, driver is assuming that this is not wildcard scan and so
          * is not aging out the scan results.
@@ -2636,7 +2671,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                 SsidInfo->SSID.length = request->ssids[j].ssid_len;
                 vos_mem_copy(SsidInfo->SSID.ssId, &request->ssids[j].ssid[0],
                              SsidInfo->SSID.length);
-                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s\n",
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s",
                                                    j, SsidInfo->SSID.ssId);
             }
         }
@@ -2664,66 +2699,69 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     /*TODO: scan the requested channels only*/
 
     /*Right now scanning all the channels */
-    if( request->n_channels )
+    if( request )
     {
-        channelList = vos_mem_malloc( request->n_channels );
-        if( NULL == channelList )
+        if( request->n_channels )
         {
-            status = -ENOMEM;
-            goto free_mem;
+            channelList = vos_mem_malloc( request->n_channels );
+            if( NULL == channelList )
+            {
+                status = -ENOMEM;
+                goto free_mem;
+            }
+      
+            for( i = 0 ; i < request->n_channels ; i++ )
+                channelList[i] = request->channels[i]->hw_value;
         }
-  
-        for( i = 0 ; i < request->n_channels ; i++ )
-            channelList[i] = request->channels[i]->hw_value;
-    }
 
-    scanRequest.ChannelInfo.numOfChannels = request->n_channels;
-    scanRequest.ChannelInfo.ChannelList = channelList;
+        scanRequest.ChannelInfo.numOfChannels = request->n_channels;
+        scanRequest.ChannelInfo.ChannelList = channelList;
 
-    /* set requestType to full scan */
-    scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
+        /* set requestType to full scan */
+        scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
 
-    if( request->ie_len )
-    {
-        /* save this for future association (join requires this) */
-        memset( &pwextBuf->scanAddIE, 0, sizeof(pwextBuf->scanAddIE) );
-        memcpy( pwextBuf->scanAddIE.addIEdata, request->ie, request->ie_len);
-        pwextBuf->scanAddIE.length = request->ie_len;
+        if( request->ie_len )
+        {
+            /* save this for future association (join requires this) */
+            memset( &pwextBuf->scanAddIE, 0, sizeof(pwextBuf->scanAddIE) );
+            memcpy( pwextBuf->scanAddIE.addIEdata, request->ie, request->ie_len);
+            pwextBuf->scanAddIE.length = request->ie_len;
 
-        pwextBuf->roamProfile.pAddIEScan = pwextBuf->scanAddIE.addIEdata;
-        pwextBuf->roamProfile.nAddIEScanLength = pwextBuf->scanAddIE.length;
-        
-        scanRequest.uIEFieldLen = pwextBuf->roamProfile.nAddIEScanLength;
-        scanRequest.pIEField = pwextBuf->roamProfile.pAddIEScan;
+            pwextBuf->roamProfile.pAddIEScan = pwextBuf->scanAddIE.addIEdata;
+            pwextBuf->roamProfile.nAddIEScanLength = pwextBuf->scanAddIE.length;
+            
+            scanRequest.uIEFieldLen = pwextBuf->roamProfile.nAddIEScanLength;
+            scanRequest.pIEField = pwextBuf->roamProfile.pAddIEScan;
 
 #ifdef WLAN_FEATURE_P2P
-        pP2pIe = wlan_hdd_get_p2p_ie_ptr((v_U8_t*)request->ie,
-                                                   request->ie_len);
-        if (pP2pIe != NULL)
-        {
-            /*
-             * If Number of channel to scan are 3 and channels 
-             * to be scan are 1, 6, 11, with p2p IE is provided in 
-             * scan, then it is P2P search.
-             */ 
-            if ( (request->n_channels == 3) &&
-                 ( (channelList[0]== 1) && (channelList[1] == 6 )
-                && (channelList[2] == 11))
-                )
+            pP2pIe = wlan_hdd_get_p2p_ie_ptr((v_U8_t*)request->ie,
+                                                       request->ie_len);
+            if (pP2pIe != NULL)
             {
-                hddLog(VOS_TRACE_LEVEL_INFO,
-                       "%s: This is a P2P Search", __func__);
-                scanRequest.p2pSearch = 1;
-                pwextBuf->p2pSearch = 1;
+                /*
+                 * If Number of channel to scan are 3 and channels 
+                 * to be scan are 1, 6, 11, with p2p IE is provided in 
+                 * scan, then it is P2P search.
+                 */ 
+                if ( (request->n_channels == 3) &&
+                     ( (channelList[0]== 1) && (channelList[1] == 6 )
+                    && (channelList[2] == 11))
+                    )
+                {
+                    hddLog(VOS_TRACE_LEVEL_INFO,
+                           "%s: This is a P2P Search", __func__);
+                    scanRequest.p2pSearch = 1;
+                    pwextBuf->p2pSearch = 1;
 
-                /* set requestType to P2P Discovery */
-                scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
+                    /* set requestType to P2P Discovery */
+                    scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
 
-                sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                     pAdapter->sessionId );
+                    sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                         pAdapter->sessionId );
+                }
             }
-        }
 #endif
+        }
     }
 
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
@@ -2841,6 +2879,22 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             hdd_SetGENIEToCsr(pAdapter, &RSNAuthType);
             /*set auth*/
             hdd_set_csr_auth_type(pAdapter, RSNAuthType);
+        }
+        else if ( (pWextState->roamProfile.AuthType.authType[0] == 
+                    eCSR_AUTH_TYPE_OPEN_SYSTEM)
+                && ((pWextState->roamProfile.EncryptionType.encryptionType[0] == 
+                        eCSR_ENCRYPT_TYPE_WEP40_STATICKEY) 
+                    || (pWextState->roamProfile.EncryptionType.encryptionType[0] == 
+                        eCSR_ENCRYPT_TYPE_WEP104_STATICKEY))
+                )
+        {
+            /*Android UI not having any option to configure the Authentication type to OPEN/SHARED;
+             * The authentication type will be always eCSR_AUTH_TYPE_OPEN_SYSTEM when WEP is used
+             * Use eCSR_AUTH_TYPE_AUTOSWITCH when WEP encryption used*/
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType = 
+                                                     eCSR_AUTH_TYPE_AUTOSWITCH;
+            pWextState->roamProfile.AuthType.authType[0] = 
+                  (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType;
         }
 #ifdef FEATURE_WLAN_WAPI
         if (pAdapter->wapi_info.nWapiMode)
@@ -3339,7 +3393,7 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
                 u8 key_idx = req->key_idx;
 
                 if ((eCSR_SECURITY_WEP_KEYSIZE_MAX_BYTES >= key_len) 
-                        && (CSR_MAX_NUM_KEY >= key_idx)
+                        && (CSR_MAX_NUM_KEY > key_idx)
                   )
                 {
                     hddLog(VOS_TRACE_LEVEL_INFO, 

@@ -406,6 +406,7 @@ WLANTL_Open
 {
   WLANTL_CbType*  pTLCb = NULL; 
   v_U8_t          ucIndex; 
+  tHalHandle      smeContext;
 #if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
   VOS_STATUS      status = VOS_STATUS_SUCCESS;
 #endif
@@ -423,6 +424,14 @@ WLANTL_Open
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL: Invalid input pointer on WLANTL_Open TL %x Config %x", pTLCb, pTLConfig ));
+    return VOS_STATUS_E_FAULT;
+  }
+
+  smeContext = vos_get_context(VOS_MODULE_ID_SME, pvosGCtx);
+  if ( NULL == smeContext )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                      "%s: Invalid smeContext", __FUNCTION__));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -507,7 +516,7 @@ WLANTL_Open
 #endif
 
   pTLCb->isBMPS = VOS_FALSE;
-  pmcRegisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_SME, pvosGCtx),
+  pmcRegisterDeviceStateUpdateInd( smeContext,
                                    WLANTL_PowerStateChangedCB, pvosGCtx );
 
   return VOS_STATUS_SUCCESS;
@@ -732,6 +741,7 @@ WLANTL_Close
 )
 {
   WLANTL_CbType*  pTLCb = NULL;
+  tHalHandle smeContext;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -752,8 +762,17 @@ WLANTL_Close
   /*------------------------------------------------------------------------
     Deregister from PMC
    ------------------------------------------------------------------------*/
-  pmcDeregisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_SME, pvosGCtx),
-                                     WLANTL_PowerStateChangedCB );
+  smeContext = vos_get_context(VOS_MODULE_ID_SME, pvosGCtx);
+  if ( NULL == smeContext )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                      "%s: Invalid smeContext", __FUNCTION__));
+    // continue so that we can cleanup as much as possible
+  }
+  else
+  {
+    pmcDeregisterDeviceStateUpdateInd( smeContext, WLANTL_PowerStateChangedCB );
+  }
 
   /*------------------------------------------------------------------------
     Cleanup TL control block.
@@ -3440,6 +3459,13 @@ WLANTL_GetFrames
     return ucResult;
   }
 
+  pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
+  if ( NULL == pMac )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                      "%s: Invalid pMac", __FUNCTION__));
+    return ucResult;
+  }
 
   vosDataBuff = pTLCb->vosDummyBuf; /* Just to avoid checking for NULL at
                                          each iteration */
@@ -3462,7 +3488,6 @@ WLANTL_GetFrames
          ( 0 < uRemaining ))
 #endif
   {
-    pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
     systemRole = halGetGlobalSystemRole(pMac);
 #ifdef WLAN_SOFTAP_FEATURE
 #ifdef WLAN_SOFTAP_FLOWCTRL_EN
@@ -8964,10 +8989,17 @@ WLAN_TLGetNextTxIds
   tpAniSirGlobal pMac;
 
   pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
+  if ( NULL == pMac )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                      "%s: Invalid pMac", __FUNCTION__));
+    return VOS_STATUS_E_FAULT;
+  }
+
   systemRole = halGetGlobalSystemRole(pMac);
   if ((eSYSTEM_AP_ROLE == systemRole) || (vos_concurrent_sessions_running()))
   {
-  	 return WLAN_TLAPGetNextTxIds(pvosGCtx,pucSTAId);
+    return WLAN_TLAPGetNextTxIds(pvosGCtx,pucSTAId);
   }
 
   
@@ -11307,6 +11339,13 @@ void WLANTL_PowerStateChangedCB
 )
 {
    WLANTL_CbType                *tlCtxt = VOS_GET_TL_CB(pAdapter);
+
+   if (NULL == tlCtxt)
+   {
+     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "Invalid TL Control Block", __FUNCTION__ );
+     return;
+   }
 
    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Power state changed, new state is %d", newState );
    switch(newState)

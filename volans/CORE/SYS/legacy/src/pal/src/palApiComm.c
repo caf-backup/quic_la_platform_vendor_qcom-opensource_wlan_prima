@@ -256,32 +256,47 @@ eHalStatus palSpinLockGive( tHddHandle hHdd, tPalSpinLockHandle hSpinLock )
       // to the caller.
       halStatus = eHAL_STATUS_SUCCESS;
    }
-   
+
    return( halStatus );
 } 
 
 
-//Caller of this function MUST dynamically allocate memory for pBuf because this funciton will
-//free thememory.
+// Caller of this function MUST dynamically allocate memory for pBuf
+// because this funciton will free the memory.
 eHalStatus palSendMBMessage(tHddHandle hHdd, void *pBuf)
 {
    eHalStatus halStatus = eHAL_STATUS_FAILURE;
    tSirRetStatus sirStatus;
    v_CONTEXT_t vosContext;
    v_VOID_t *hHal;
-   
+
    vosContext = vos_get_global_context( VOS_MODULE_ID_HDD, hHdd );
-   
-   hHal = vos_get_context( VOS_MODULE_ID_HAL, vosContext );
-   
-   sirStatus = halMmhForwardMBmsg( hHal, pBuf );
-   if ( eSIR_SUCCESS == sirStatus )
+  
+   if ( vosContext == NULL )
    {
-      halStatus = eHAL_STATUS_SUCCESS;
-   }   
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                "%s: invalid vosContext", __FUNCTION__);
+   }
+   else
+   {
+      hHal = vos_get_context( VOS_MODULE_ID_HAL, vosContext );
+      if ( hHal == NULL )
+      {
+         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                "%s: invalid halContext", __FUNCTION__);
+      }
+      else
+      {
+         sirStatus = halMmhForwardMBmsg( hHal, pBuf );
+         if ( eSIR_SUCCESS == sirStatus )
+         {
+               halStatus = eHAL_STATUS_SUCCESS;
+         }
+      }
+   }
 
    palFreeMemory( hHdd, pBuf );
-   
+
    return( halStatus );
 }
   

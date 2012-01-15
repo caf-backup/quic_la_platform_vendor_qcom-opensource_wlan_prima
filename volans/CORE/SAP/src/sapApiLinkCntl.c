@@ -214,12 +214,21 @@ WLANSAP_RoamCallback
             tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
             eHalStatus halStatus;
 
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                "In %s calling sme_RoamConnect with eCSR_BSS_TYPE_INFRA_AP", __FUNCTION__);
-            sapContext->isSapSessionOpen = eSAP_TRUE;
-            halStatus = sme_RoamConnect(hHal, sapContext->sessionId,
-                                        &sapContext->csrRoamProfile,
-                                        &sapContext->csrRoamId);
+            if (NULL == hHal)
+            {
+               VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                          "In %s invalid hHal", __FUNCTION__);
+               vosStatus = VOS_STATUS_E_FAULT;
+            }
+            else
+            {
+               VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "In %s calling sme_RoamConnect with eCSR_BSS_TYPE_INFRA_AP", __FUNCTION__);
+               sapContext->isSapSessionOpen = eSAP_TRUE;
+               halStatus = sme_RoamConnect(hHal, sapContext->sessionId,
+                                           &sapContext->csrRoamProfile,
+                                           &sapContext->csrRoamId);
+            }
             break;
         }
 

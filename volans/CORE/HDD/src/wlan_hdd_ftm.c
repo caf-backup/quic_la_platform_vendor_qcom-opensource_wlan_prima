@@ -1205,14 +1205,22 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
    //if(pHddCtx->ftm.cmd_iwpriv == TRUE)
    {
        /*  STOP MAC only */
-       v_VOID_t *hHal;
-       hHal = vos_get_context( VOS_MODULE_ID_HAL, pHddCtx->pvosContext );
-       vosStatus = macStop(hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
-       if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+       v_VOID_t *hHal = vos_get_context( VOS_MODULE_ID_HAL,
+                                         pHddCtx->pvosContext );
+       if (NULL == hHal)
        {
            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-             "%s: Failed to stop SYS",__func__);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+                      "%s: NULL hHal", __func__);
+       }
+       else
+       {
+           vosStatus = macStop(hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
+           if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+           {
+               VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                          "%s: Failed to stop SYS", __func__);
+               VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+           }
        }
        vosStatus = WLANBAL_Stop( pHddCtx->pvosContext );
        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
