@@ -18,7 +18,7 @@
 #define WLAN_BSS_MEMBERSHIP_SELECTOR_HT_PHY 127
 #define BASIC_RATE_MASK   0x80
 #define RATE_MASK         0x7f
-  
+
 void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter, 
                                       tCsrRoamInfo *pRoamInfo
                                       );

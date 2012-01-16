@@ -665,23 +665,53 @@ static void hdd_PowerStateChangedCB
 void hdd_register_mcast_bcast_filter(hdd_adapter_t *pAdapter)
 {
 
-   v_CONTEXT_t pVosContext = NULL;
+   v_CONTEXT_t pVosContext;
+   tHalHandle  smeContext;
+   
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if (NULL == pVosContext)
+   {
+      hddLog(LOGE, "%s: Invalid pContext", __FUNCTION__);
+      return;
+   }
+   smeContext = vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
+   if (NULL == smeContext)
+   {
+      hddLog(LOGE, "%s: Invalid smeContext", __FUNCTION__);
+      return;
+   }
    spin_lock_init(&pAdapter->filter_lock);
-   if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
-      pmcRegisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_HAL,pVosContext),
-                                     hdd_PowerStateChangedCB,pAdapter  );
+   if (WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER == 
+             pAdapter->cfg_ini->nEnableSuspend)
+   {
+      pmcRegisterDeviceStateUpdateInd( smeContext,
+                    hdd_PowerStateChangedCB, pAdapter );
    }
 }
 
 void hdd_unregister_mcast_bcast_filter(hdd_adapter_t *pAdapter)
 {
 
-   v_CONTEXT_t pVosContext = NULL;
+   v_CONTEXT_t pVosContext;
+   tHalHandle smeContext;
+   
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-   if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
-      pmcDeregisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_HAL,pVosContext),
-                                     hdd_PowerStateChangedCB );
+    if (NULL == pVosContext)
+   {
+      hddLog(LOGE, "%s: Invalid pContext", __FUNCTION__);
+      return;
+   }
+   smeContext = vos_get_context(VOS_MODULE_ID_SME, pVosContext);
+   if (NULL == smeContext)
+   {
+      hddLog(LOGE, "%s: Invalid smeContext", __FUNCTION__);
+      return;
+   }
+
+   if (WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER == 
+                                            pAdapter->cfg_ini->nEnableSuspend)
+   {
+      pmcDeregisterDeviceStateUpdateInd(smeContext, hdd_PowerStateChangedCB);
    }
 }
 

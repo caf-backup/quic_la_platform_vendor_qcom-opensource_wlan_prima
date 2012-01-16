@@ -472,6 +472,9 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemor() failed\n"));)
        goto error;
     }
+    
+    /*Initialize the pInitScanParam with 0*/
+    palZeroMemory( pMac->hHdd, (tANI_U8 *)pInitScanParam, sizeof(*pInitScanParam));
 
     msg.type = SIR_HAL_INIT_SCAN_REQ;
     msg.bodyptr = pInitScanParam;
@@ -538,9 +541,7 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
     else
     {
        pInitScanParam->scanMode = eHAL_SYS_MODE_SCAN;
-       pInitScanParam->notifyBss = FALSE;
-       pInitScanParam->notifyHost = FALSE;
-       pInitScanParam->scanDuration = 0;
+       
        __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr,  TRUE,  &pInitScanParam->notifyBss);
        pInitScanParam->frameType = pInitScanParam->macMgmtHdr.fc.type;
 

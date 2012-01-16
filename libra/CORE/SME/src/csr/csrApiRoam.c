@@ -822,10 +822,19 @@ static eHalStatus csrRoamFreeConnectedInfo( tpAniSirGlobal pMac, tCsrRoamConnect
                 
 void csrReleaseCommandRoam(tpAniSirGlobal pMac, tSmeCmd *pCommand)
 {
-    VOS_ASSERT( pMac->roam.sPendingCommands > 0 );
-    pMac->roam.sPendingCommands--;
-        csrReinitRoamCmd(pMac, pCommand);
-    smeReleaseCommand( pMac, pCommand );
+    if (pMac->roam.sPendingCommands > 0)
+    {
+        //All command allocated through csrGetCommandBuffer need to
+        //decrement the pending count when releasing.
+        pMac->roam.sPendingCommands--;
+		csrReinitRoamCmd(pMac, pCommand);
+        smeReleaseCommand( pMac, pCommand );
+    }
+    else
+    {
+        smsLog(pMac, LOGE, FL( "no pending commands"));
+        VOS_ASSERT(0);
+    }
 }
 
 
@@ -1783,7 +1792,18 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
     WLAN_VOS_DIAG_EVENT_DEF(connectionStatus, vos_event_wlan_status_payload_type);
 #endif
-    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+    tCsrRoamSession *pSession;
+
+    if( CSR_IS_SESSION_VALID( pMac, sessionId) )
+    {
+        pSession = CSR_GET_SESSION( pMac, sessionId );
+    }
+    else
+    {
+       smsLog(pMac, LOGE, "Session ID:%d is not valid\n", sessionId);
+       VOS_ASSERT(0);
+       return eHAL_STATUS_FAILURE;
+    }
 
     if(eCSR_ROAM_ASSOCIATION_COMPLETION == u1 && pRoamInfo)
     {
@@ -5565,7 +5585,7 @@ eHalStatus csrRoamProcessDisassocDeauth( tpAniSirGlobal pMac, tSmeCmd *pCommand,
 	    }
 		else
 		{
-            status = csrRoamIssueDeauth( pMac, sessionId, eCSR_ROAM_SUBSTATE_AUTH_REQ );
+            status = csrRoamIssueDeauth( pMac, sessionId, eCSR_ROAM_SUBSTATE_DEAUTH_REQ );
 		}
 		fComplete = (!HAL_STATUS_SUCCESS(status));
     }
@@ -6553,7 +6573,7 @@ static void csrRoamRoamingStateDeauthRspProcessor( tpAniSirGlobal pMac, tSirSmeD
     smsLog(pMac, LOGW, FL("is no-op\n"));
     statusCode = csrGetDeAuthRspStatusCode( pSmeRsp );
 
-    if ( CSR_IS_ROAM_SUBSTATE_AUTH_REQ( pMac ) )
+    if ( CSR_IS_ROAM_SUBSTATE_DEAUTH_REQ( pMac ) )
     {
         csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
     }
@@ -7624,9 +7644,29 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     }
                 }
             }
-            break;        
+            break;
+
+            case eWNI_SME_SEND_MGT_FRAME:
+            {
+                tpSirSmeSendMgtFrameToHDD  pMgtFrameToHDD = (tpSirSmeSendMgtFrameToHDD)pSirMsg;
+                tCsrRoamInfo roamInfo;
+
+                smsLog( pMac, LOG1, FL("MGT Frame to HDD from SME\n"));
+
+                if (NULL != pMgtFrameToHDD)
+                {
+                    status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pMgtFrameToHDD->bssId, &sessionId );
+                    if ( HAL_STATUS_SUCCESS( status ) )
+                    {
+                        palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
+                        roamInfo.u.probeReq = &pMgtFrameToHDD->probeReq;
+                        csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eWNI_SME_SEND_MGT_FRAME,
+                            eCSR_ROAM_RESULT_SME_SEND_MGT_FRAME);
+                    }
+                }
+            }
+            break;
 #endif
-            
 
         case eWNI_SME_WM_STATUS_CHANGE_NTF:
             pStatusChangeMsg = (tSirSmeWmStatusChangeNtf *)pSirMsg;

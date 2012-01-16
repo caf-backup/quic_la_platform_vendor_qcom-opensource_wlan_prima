@@ -88,6 +88,7 @@
 #define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
 #define BSS_STOP    0
 #define BSS_START   1
+#define MAX_CFG_STRING_LEN  255
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -445,12 +446,13 @@ struct hdd_adapter_s
 
    // This will have WEP key data, if it is received before start bss
    tCsrRoamSetKey wepKey[CSR_MAX_NUM_KEY];
+
 #ifdef CONFIG_CFG80211
    tCsrRoamSetKey groupKey;
 
    beacon_data_t *beacon;
 #endif
- 
+
    tsap_Config_t sapConfig;
 
    vos_timer_t hdd_ap_inactivity_timer;

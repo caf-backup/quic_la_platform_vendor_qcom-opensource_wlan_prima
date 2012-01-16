@@ -658,22 +658,28 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
          case SYS_MSG_ID_MC_STOP:
          {
-            VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, "Processing SYS MC STOP\n" );
+            VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
+                       "Processing SYS MC STOP" );
 
             // get the HAL context...
             hHal = vos_get_context( VOS_MODULE_ID_HAL, pVosContext );
-            VOS_ASSERT ( NULL != hHal );
+            if (NULL == hHal)
+            {
+               VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                          "%s: Invalid hHal", __FUNCTION__ );
+            }
+            else
+            {
+               vosStatus = sme_Stop( hHal, TRUE );
+               VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
-            vosStatus = sme_Stop( hHal, TRUE );
-            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+               vosStatus = macStop( hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
+               VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
-            vosStatus = macStop( hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
-            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+               ((sysResponseCback)pMsg->bodyptr)((v_VOID_t *)pMsg->bodyval);
 
-            ((sysResponseCback)pMsg->bodyptr)((v_VOID_t *)pMsg->bodyval);
-
-            vosStatus = VOS_STATUS_SUCCESS;
-
+               vosStatus = VOS_STATUS_SUCCESS;
+            }
             break;
          }
 

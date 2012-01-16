@@ -132,7 +132,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
    skb_list_node_t *pktNode = NULL;
    v_SIZE_t pktListSize = 0;
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev); 
 
    vos_list_node_t *anchor = NULL;
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
@@ -283,7 +283,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    VOS_STATUS status;
    skb_list_node_t *pktNode = NULL;
    v_SIZE_t pktListSize = 0;
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev); 
    v_U8_t ac;
    vos_list_node_t *anchor = NULL;
 
@@ -1225,7 +1225,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
    vosStatus = WLANTL_RegisterSTAClient( pAdapter->pvosContext, 
                                          hdd_softap_rx_packet_cbk, 
                                          hdd_softap_tx_complete_cbk, 
-                                         hdd_softap_tx_fetch_packet_cbk, &staDesc );
+                                         hdd_softap_tx_fetch_packet_cbk, &staDesc, 0 );
    
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {

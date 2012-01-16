@@ -27,14 +27,17 @@
 #include "limSession.h"
 
 #ifdef WLAN_SOFTAP_FEATURE
-void
 
+static void limSendSmeProbeReqToHDD(tpAniSirGlobal pMac, tANI_U32 *pBd,
+                         tpPESession psessionEntry);
+
+void
 limSendSmeProbeReqInd(tpAniSirGlobal pMac,
                       tSirMacAddr peerMacAddr,
                       tANI_U8 *pProbeReqIE,
                       tANI_U32 ProbeReqIELen,
                       tpPESession psessionEntry);
-                      
+
 /**
  * limGetWPSPBCSessions
  *
@@ -218,6 +221,7 @@ static void limUpdatePBCSessionEntry(tpAniSirGlobal pMac,
         pbc = pbc->next;
     }
 }
+
 #if 0
 /**
  * limWPSPBCTimeout
@@ -374,7 +378,11 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
 #ifdef WLAN_SOFTAP_FEATURE            
             if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
             {
-              
+                if (probeReq.wscIePresent)
+                {
+                    limSendSmeProbeReqToHDD(pMac, pBd, psessionEntry);
+                }
+ 
                 if ( (psessionEntry->APWPSIEs.SirWPSProbeRspIE.FieldPresent & SIR_WPS_PROBRSP_VER_PRESENT) &&
                         (probeReq.wscIePresent ==  1) &&
                         (probeReq.probeReqWscIeInfo.DevicePasswordID.id == WSC_PASSWD_ID_PUSH_BUTTON) &&
@@ -645,7 +653,71 @@ limSendSmeProbeReqInd(tpAniSirGlobal pMac,
     } 
         
 } /*** end limSendSmeProbeReqInd() ***/
-#endif
+
+/**
+ * limSendSmeProbeReqToHDD()
+ *
+ *FUNCTION:
+ * This function is to send
+ *   eWNI_SME_SEND_MGT_FRAME message to host
+ *
+ *PARAMS:
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * This function is used for sending  eWNI_SME_SEND_MGT_FRAME
+ * to host.
+ *
+ * @param pBd               pointer to Bd
+ * @param psessionEntry     A pointer to PE session
+ *
+ * @return None
+ */
+static void limSendSmeProbeReqToHDD(tpAniSirGlobal pMac, tANI_U32 *pBd,
+                         tpPESession psessionEntry)
+{
+    tSirSmeSendMgtFrameToHDD   *pSirSmeProbeReqToHDD;
+    tSirMsgQ                   msgQ;
+    tANI_U16                   frameLen;
+    tANI_U16                   length;
+    tpSirMacMgmtHdr            pHdr;
+
+    frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+    pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
+    length = sizeof(tSirSmeSendMgtFrameToHDD) + frameLen - sizeof(tANI_U32);
+
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+                               (void **)&pSirSmeProbeReqToHDD, length))
+    {
+        // Log error
+        limLog(pMac, LOGP,
+            FL("call to palAllocateMemory failed for eWNI_SME_SEND_MGT_FRAME\n"));
+    }
+
+    msgQ.type =  eWNI_SME_SEND_MGT_FRAME;
+    msgQ.bodyval = 0;
+    msgQ.bodyptr = pSirSmeProbeReqToHDD;
+
+    palZeroMemory(pMac->hHdd, (void*)pSirSmeProbeReqToHDD, length);
+
+    pSirSmeProbeReqToHDD->messageType = eWNI_SME_SEND_MGT_FRAME;
+    pSirSmeProbeReqToHDD->length = length;
+    palCopyMemory( pMac->hHdd, pSirSmeProbeReqToHDD->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
+
+    pSirSmeProbeReqToHDD->probeReq.frame_len = frameLen;
+    pSirSmeProbeReqToHDD->probeReq.channel = (tANI_U16)SIR_MAC_BD_TO_RX_CHANNEL(pBd);
+    palCopyMemory( pMac->hHdd, (tANI_U8 *)&pSirSmeProbeReqToHDD->probeReq.frame, (tANI_U8 *)pHdr, frameLen);
+
+    if (limHalMmhPostMsgApi(pMac, &msgQ,  ePROT) != eSIR_SUCCESS){
+                            PELOGE(limLog(pMac, LOGE, FL("couldnt send the probe req to hdd"));)
+    }
+}
+
+#endif /* WLAN_SOFTAP_FEATURE*/
 
 
 

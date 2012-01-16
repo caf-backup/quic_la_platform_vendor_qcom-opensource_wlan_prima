@@ -253,6 +253,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                    hddLog(LOGE, FL("Failed to init AP inactivity timer\n"));
 
             }
+
             pHostapdState->HostapdState = BSS_START;
 
 #ifdef CONFIG_CFG80211
@@ -342,14 +343,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             
             WLANSAP_Get_WPS_State(pHostapdAdapter->pvosContext, &bWPSState);
             
-             if ( (eCSR_ENCRYPT_TYPE_NONE == pHostapdAdapter->ucEncryptType) ||
+            if ( (eCSR_ENCRYPT_TYPE_NONE == pHostapdAdapter->ucEncryptType) ||
                  ( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY == pHostapdAdapter->ucEncryptType ) || 
                  ( eCSR_ENCRYPT_TYPE_WEP104_STATICKEY == pHostapdAdapter->ucEncryptType ) )
             {
                 bAuthRequired = FALSE;
             }
 
-            if (bAuthRequired || bWPSState == eANI_BOOLEAN_TRUE ) 
+            if (bAuthRequired || bWPSState == eANI_BOOLEAN_TRUE )
             {
                 hdd_softap_RegisterSTA( pHostapdAdapter,
                                        TRUE,
@@ -381,28 +382,27 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                    hddLog(LOGE, FL("Failed to start AP inactivity timer\n"));
             }
 #ifdef CONFIG_CFG80211
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
-                struct ieee80211_mgmt *mgmt;
+                struct station_info staInfo;
                 v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
-                v_U16_t size =  (24 + sizeof(mgmt->u.assoc_resp) + iesLen);
-                mgmt = vos_mem_malloc(size);
-                if (mgmt != NULL)
+
+                memset(&staInfo, 0, sizeof(staInfo));
+                if (iesLen <= MAX_ASSOC_IND_IE_LEN )
                 {
-                    memcpy(mgmt->da, &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac, 6);
-                    memcpy(mgmt->sa, &pHostapdAdapter->macAddressCurrent, 6);
-                    memcpy(mgmt->bssid, &pHostapdAdapter->macAddressCurrent, 6);
-                    mgmt->u.assoc_resp.status_code =
-                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.statusCode;
-                    memcpy(mgmt->u.assoc_resp.variable,
-                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies,iesLen);
-                    cfg80211_send_rx_assoc(dev,(const u8 *)mgmt,size);
-                    vos_mem_free(mgmt);
+                    staInfo.assoc_req_ies =
+			        (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies[0];
+                    staInfo.assoc_req_ies_len = iesLen;
+                    cfg80211_new_sta(dev,
+                                 (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac.bytes[0],
+                                 &staInfo, GFP_KERNEL);
                 }
                 else
                 {
-                    hddLog(LOGE, FL("HDD: Failed to allocate memory for assoc req\n"));
+                    hddLog(LOGE, FL(" Assoc Ie length is too long \n"));
                 }
-             }
+            }
+#endif
 #endif
             break;
 
@@ -452,20 +452,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 }
             }
 #ifdef CONFIG_CFG80211
-            {
-                struct ieee80211_mgmt mgmt;
-                v_U16_t size =  (24 + sizeof(mgmt.u.disassoc));
-
-                mgmt.u.disassoc.reason_code =
-                   pSapEvent->sapevt.sapStationDisassocCompleteEvent.reason;
-                memcpy(mgmt.da, &pHostapdAdapter->macAddressCurrent, 6);
-                memcpy(mgmt.sa, 
-                 &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
-                 6);
-                memcpy( mgmt.bssid, &pHostapdAdapter->macAddressCurrent, 6);
-
-                cfg80211_send_disassoc(dev, (const u8 *)&mgmt, size);
-            }
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+            cfg80211_del_sta(dev,
+                            (const u8 *)&pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac.bytes[0],
+                            GFP_KERNEL);
+#endif
 #endif
             break;
 
@@ -487,8 +478,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 memset(&wreq, 0, sizeof(wreq));
 
                 wreq.data.length = strlen(message); // This is length of message
-                wireless_send_event(dev, IWEVCUSTOM, &wreq, (char *)message); 
-                
+                wireless_send_event(dev, IWEVCUSTOM, &wreq, (char *)message);
+
                 return VOS_STATUS_SUCCESS;
         }
 
@@ -509,6 +500,21 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             vos_mem_free(pSapEvent->sapevt.sapAssocStaListEvent.pAssocStas);// Release caller allocated memory here
             return VOS_STATUS_SUCCESS;
+
+        case eSAP_SEND_MGT_FRAME_EVENT:
+#ifdef CONFIG_CFG80211
+            hddLog(LOG1, "%s:eSAP_SEND_MGT_FRAME_EVENT:ProbeRequest Frame\n", __func__);
+
+            cfg80211_rx_mgmt( pHostapdAdapter->dev,
+                              ieee80211_channel_to_frequency(
+                                    pSapEvent->sapevt.sapSendMgtFrameEvent.probeRequest.channel,
+                                    IEEE80211_BAND_2GHZ
+                                    ),
+                              (tANI_U8 *)&pSapEvent->sapevt.sapSendMgtFrameEvent.probeRequest.frame,
+                              pSapEvent->sapevt.sapSendMgtFrameEvent.probeRequest.frame_len,
+                              GFP_ATOMIC);
+#endif
+        return VOS_STATUS_SUCCESS;
 
         default:
             hddLog(LOG1,"SAP message is not handled\n");

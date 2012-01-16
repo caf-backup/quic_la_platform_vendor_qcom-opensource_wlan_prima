@@ -2460,8 +2460,8 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
 {
     tListElem *pEntry;
     tCsrScanResult *pBssDescription;
-    tANI_S8              cand_Bss_rssi;
-    tANI_BOOLEAN fNewBSSForCurConnection = eANI_BOOLEAN_FALSE, fDupBss;
+    tANI_S8         cand_Bss_rssi;
+    tANI_BOOLEAN    fDupBss;
 #ifdef FEATURE_WLAN_WAPI
     tANI_BOOLEAN fNewWapiBSSForCurConnection = eANI_BOOLEAN_FALSE;
 #endif /* FEATURE_WLAN_WAPI */
@@ -2511,10 +2511,12 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
         if ( !fDupBss )
         {
             //Found a new BSS
-            sessionId = csrProcessBSSDescForPMKIDList(pMac, &pBssDescription->Result.BssDescriptor, pIesLocal);
+            sessionId = csrProcessBSSDescForPMKIDList(pMac, 
+                             &pBssDescription->Result.BssDescriptor, pIesLocal);
             if( CSR_SESSION_ID_INVALID != sessionId)
             {
-                fNewBSSForCurConnection = eANI_BOOLEAN_TRUE;
+                csrRoamCallCallback(pMac, sessionId, NULL, 0, 
+                           eCSR_ROAM_SCAN_FOUND_NEW_BSS, eCSR_ROAM_RESULT_NONE);
             }
         }
         else
@@ -2571,11 +2573,6 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
       }
     }
 
-    if(fNewBSSForCurConnection)
-    {
-        //remember it first
-        csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_SCAN_FOUND_NEW_BSS, eCSR_ROAM_RESULT_NONE);
-    }
 #ifdef FEATURE_WLAN_WAPI
     if(fNewWapiBSSForCurConnection)
     {
@@ -5360,8 +5357,8 @@ eHalStatus csrScanTriggerIdleScan(tpAniSirGlobal pMac, tANI_U32 *pTimeInterval)
         return (status);
     }
 
-    if((pMac->scan.fScanEnable) && (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan) && 
-        pMac->roam.configParam.impsSleepTime)
+    if((pMac->scan.fScanEnable) && (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan) 
+    /*&& pMac->roam.configParam.impsSleepTime*/)
     {
         //Stop get result timer because idle scan gets scan result out of PE
         csrScanStopGetResultTimer(pMac);

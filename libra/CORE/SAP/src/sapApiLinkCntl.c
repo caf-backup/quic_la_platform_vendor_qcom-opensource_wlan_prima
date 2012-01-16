@@ -277,7 +277,12 @@ WLANSAP_RoamCallback
         case eCSR_ROAM_WPS_PBC_PROBE_REQ_IND:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamStatus = %s (%d)\n",
                        __FUNCTION__, "eCSR_ROAM_WPS_PBC_PROBE_REQ_IND", roamStatus);
-            break;        
+            break;
+
+        case eWNI_SME_SEND_MGT_FRAME:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamStatus = %s (%d)\n",
+                       __FUNCTION__, "eWNI_SME_SEND_MGT_FRAME", roamStatus);
+            break;
 
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamStatus not handled roamStatus = %s (%d)\n",
@@ -394,6 +399,14 @@ WLANSAP_RoamCallback
             /* Fill in the event structure */
             //TODO: support for group key MIC failure event to be handled
             vosStatus = sapSignalHDDevent( sapContext, pCsrRoamInfo, eSAP_WPS_PBC_PROBE_REQ_EVENT,(v_PVOID_t) NULL);
+            break;
+
+        case eCSR_ROAM_RESULT_SME_SEND_MGT_FRAME:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)\n",
+                        __FUNCTION__, "eCSR_ROAM_RESULT_SME_SEND_MGT_FRAME", roamResult);
+            /* Fill in the event structure */
+            //TODO: support for group key MIC failure event to be handled
+            vosStatus = sapSignalHDDevent( sapContext, pCsrRoamInfo, eSAP_SEND_MGT_FRAME_EVENT, (v_PVOID_t) NULL);
             break;
 
         case eCSR_ROAM_RESULT_FORCED:

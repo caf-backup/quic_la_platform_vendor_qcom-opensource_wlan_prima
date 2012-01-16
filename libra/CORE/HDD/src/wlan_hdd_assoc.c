@@ -266,7 +266,13 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
         memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
     }
     msg = NULL;
-    wireless_send_event(dev, we_event, &wrqu, msg);
+    
+    /*During the WLAN uninitialization,supplicant is stopped before the
+       driver so not sending the status of the connection to supplicant*/
+    if(TRUE != pAdapter->isLoadUnloadInProgress)
+    {
+        wireless_send_event(dev, we_event, &wrqu, msg);
+    }
     send_btc_nlink_msg(type, 0);
 }
 void hdd_connRemoveConnectInfo( hdd_adapter_t *pAdapter )
@@ -321,17 +327,23 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     /* indicate disconnected event to nl80211 */
     if(roamStatus != eCSR_ROAM_IBSS_LEAVE)
     {
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
-                "%s: sent disconnected event to nl80211", 
-                __func__);
-        /* To avoid wpa_supplicant sending "HANGED" CMD to ICS UI */
-        if( eCSR_ROAM_LOSTLINK == roamStatus )
+        /* During the WLAN uninitialization,supplicant is stopped before the
+           driver so not sending the status of the connection to supplicant
+         */
+        if(TRUE != pAdapter->isLoadUnloadInProgress)
         {
-            cfg80211_disconnected(dev, WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY, NULL, 0, GFP_KERNEL);
-        }
-        else
-        {
-            cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0, GFP_KERNEL);
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
+               "%s: sent disconnected event to nl80211", __func__);
+
+            /* To avoid wpa_supplicant sending "HANGED" CMD to ICS UI */
+            if( eCSR_ROAM_LOSTLINK == roamStatus )
+            {
+                cfg80211_disconnected(dev, WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY, NULL, 0, GFP_KERNEL);
+            }
+            else
+            {
+                cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0, GFP_KERNEL); 
+            }
         }
     }
 #endif
@@ -356,7 +368,8 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
                                        v_U8_t staId,
                                        v_U8_t ucastSig,
                                        v_U8_t bcastSig,
-                                       v_MACADDR_t *pPeerMacAddress )
+                                       v_MACADDR_t *pPeerMacAddress,
+                                       tSirBssDescription *pBssDesc  )
 {
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
    WLAN_STADescType staDesc;
@@ -436,7 +449,8 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    vosStatus = WLANTL_RegisterSTAClient( pAdapter->pvosContext, 
                                          hdd_rx_packet_cbk, 
                                          hdd_tx_complete_cbk, 
-                                         hdd_tx_fetch_packet_cbk, &staDesc );
+                                         hdd_tx_fetch_packet_cbk, &staDesc,
+                                         pBssDesc->rssi );
    
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
@@ -572,7 +586,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                              pAdapter->conn_info.staId[ 0 ],
                                              pRoamInfo->ucastSig,
                                              pRoamInfo->bcastSig,
-                                             NULL );
+                                             NULL, pRoamInfo->pBssDesc );
         }
         else
         {
@@ -608,14 +622,16 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     }  
     else 
     {
-        /*Handle all failure conditions*/	
-
+	#ifdef CONFIG_CFG80211
+        hdd_wext_state_t *pWextState = pAdapter->pWextState;
+	#endif
+        /*Handle all failure conditions*/
+		
         hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected);
-   
+
 #ifdef CONFIG_CFG80211
         /* inform association failure event to nl80211 */
-        cfg80211_connect_result(dev, 
-               ((NULL == pRoamInfo) ? NULL : pRoamInfo->bssid),
+        cfg80211_connect_result(dev, pWextState->req_bssId,
                 NULL, 0, NULL, 0,
                 WLAN_STATUS_UNSPECIFIED_FAILURE, 
                 GFP_KERNEL);
@@ -919,7 +935,8 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
                                           pRoamInfo->staId,
                                           pRoamInfo->ucastSig,
                                           pRoamInfo->bcastSig,
-                                          (v_MACADDR_t *)pRoamInfo->peerMac );
+                                          (v_MACADDR_t *)pRoamInfo->peerMac,
+										  pRoamInfo->pBssDesc );
          if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
          {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

@@ -119,27 +119,27 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    case NETDEV_GOING_DOWN:
         if (NULL != pAdapter->pWextState)
         {
-            if( pAdapter->pWextState->mScanPending != FALSE )
+            if ( pAdapter->pWextState->mScanPending != FALSE )
             {
                 int result;
                 INIT_COMPLETION(pAdapter->abortscan_event_var);
                 hdd_abort_mac_scan(pAdapter->pvosContext);
                 result = wait_for_completion_interruptible_timeout(
-                                 &pAdapter->abortscan_event_var,
-                                 msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
-                if(!result)
+                                &pAdapter->abortscan_event_var,
+                                msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
+                if (!result)
                 {
                     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                            "%s: Timeout occured while waiting for abortscan" ,
-                            __FUNCTION__);
+                           "%s: Timeout occured while waiting for abortscan" ,
+                           __FUNCTION__);
                 }
             }
             else
             {
                 /* Scan is not Pending from user */
             }
+            break;
         }
-        break;
 
    default:
         break;
@@ -601,10 +601,16 @@ void hdd_wlan_sdio_remove(struct sdio_func *sdio_func_dev)
    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Libra unregistered "
        "from SDIO bus driver", __func__);
 }
+struct fullPowerContext
+{
+   struct completion completion;
+   unsigned int magic;
+};
+#define POWER_CONTEXT_MAGIC  0x504F5752   //POWR
 
 /**---------------------------------------------------------------------------
   
-  \brief hdd_full_pwr_cbk() - HDD full power callbackfunction
+  \brief hdd_full_power_callback() - HDD full power callback function
 
   This is the function invoked by SME to inform the result of a full power
   request issued by HDD
@@ -615,13 +621,37 @@ void hdd_wlan_sdio_remove(struct sdio_func *sdio_func_dev)
   \return - None
               
   --------------------------------------------------------------------------*/
-void hdd_full_pwr_cbk(void *callbackContext, eHalStatus status)
+static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
 {
-   hdd_adapter_t *pAdapter = (hdd_adapter_t*)callbackContext;
+   struct fullPowerContext *pContext = callbackContext;
 
-   hddLog(VOS_TRACE_LEVEL_ERROR,"HDD full Power callback status = %d", status);
+   hddLog(VOS_TRACE_LEVEL_INFO,
+          "%s: context = %p, status = %d", pContext, status);
 
-   complete(&pAdapter->full_pwr_comp_var);
+   if (NULL == callbackContext)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+             "%s: Bad param, context [%p]",
+             __FUNCTION__, callbackContext);
+      return;
+   }
+   /* there is a race condition that exists between this callback function
+      and the caller since the caller could time out either before or
+      while this code is executing.  we'll assume the timeout hasn't
+      occurred, but we'll verify that right before we save our work */
+
+   if (POWER_CONTEXT_MAGIC != pContext->magic)
+   {
+      /* the caller presumably timed out so there is nothing we can do */
+      hddLog(VOS_TRACE_LEVEL_WARN,
+             "%s: Invalid context, magic [%08x]",
+              __FUNCTION__, pContext->magic);
+      return;
+   }
+    /* the race is on.  caller could have timed out immediately after
+      we verified the magic, but if so, caller will wait a short time
+      for us to notify the caller, so the context will stay valid */
+   complete(&pContext->completion);
 }
 
 /**---------------------------------------------------------------------------
@@ -648,14 +678,18 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 #ifdef CONFIG_CFG80211
    struct wiphy *wiphy  = pAdapter->wiphy;
 #endif 
+   struct fullPowerContext powerContext;
+   long lrc;
    
+   hddLog(VOS_TRACE_LEVEL_INFO, "In WLAN EXIT");
+
 #ifdef ANI_MANF_DIAG
     wlan_hdd_ftm_close(pAdapter);
     return;
 #endif
 
-    //Deregister the device with the kernel
-    hdd_UnregisterWext(pWlanDev);
+   //Deregister the device with the kernel
+   hdd_UnregisterWext(pWlanDev);
 
    //Stop the Interface TX queue.
    netif_tx_disable(pWlanDev);
@@ -674,25 +708,47 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    sme_DisablePowerSave(pAdapter->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
 
    //Ensure that device is in full power as we will touch H/W during vos_Stop
-   INIT_COMPLETION(pAdapter->full_pwr_comp_var);
-   halStatus = sme_RequestFullPower(pAdapter->hHal, hdd_full_pwr_cbk, 
-       pAdapter, eSME_FULL_PWR_NEEDED_BY_HDD);
+   init_completion(&powerContext.completion);
+   powerContext.magic = POWER_CONTEXT_MAGIC;
 
-   if(halStatus != eHAL_STATUS_SUCCESS)
+   halStatus = sme_RequestFullPower(pAdapter->hHal, hdd_full_power_callback,
+                                    &powerContext, eSME_FULL_PWR_NEEDED_BY_HDD);
+
+   if (eHAL_STATUS_SUCCESS != halStatus)
    {
-     if(halStatus == eHAL_STATUS_PMC_PENDING)
-     {
-        //Block on a completion variable. Can't wait forever though
-        wait_for_completion_interruptible_timeout(&pAdapter->full_pwr_comp_var, 
-            msecs_to_jiffies(1000));
-     }
-     else
-     {
-        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed\n", __func__);
-        VOS_ASSERT(0);
-        return;
-     }
+      if (eHAL_STATUS_PMC_PENDING == halStatus)
+      {
+         /* request was sent -- wait for the response */
+         lrc = wait_for_completion_interruptible_timeout(
+                                      &powerContext.completion,
+                                      msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+         /* either we have a response or we timed out
+            either way, first invalidate our magic */
+         powerContext.magic = 0;
+         if (lrc <= 0)
+         {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: %s while requesting full power",
+                   __FUNCTION__, (0 == lrc) ? "timeout" : "interrupt");
+            /* there is a race condition such that the callback
+               function could be executing at the same time we are. of
+               primary concern is if the callback function had already
+               verified the "magic" but hasn't yet set the completion
+               variable.  Since the completion variable is on our
+               stack, we'll delay just a bit to make sure the data is
+               still valid if that is the case */
+            msleep(50);
+         }
+      }
+      else
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Request for Full Power failed, status %d",
+                __FUNCTION__, halStatus);
+         VOS_ASSERT(0);
+         /* continue -- need to clean up as much as possible */
+      }
    }
+
    
    // Unregister the Net Device Notifier
    unregister_netdevice_notifier(&hdd_netdev_notifier);
@@ -773,7 +829,6 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 #endif
    }
 #endif
-
 
    if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) 
    {
@@ -1905,6 +1960,7 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter, v_BOOL_t 
 }
 
 #ifdef CONFIG_CFG80211
+
 void hdd_set_conparam ( v_UINT_t newParam )
 {
    con_mode = newParam;
@@ -1961,7 +2017,7 @@ void hdd_deinit_adapter( hdd_adapter_t *pAdapter )
           hdd_wmm_adapter_close( pAdapter );
           clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
       }
-
+   
       pAdapter->dev->wireless_handlers = NULL;
   }
   else
@@ -1997,12 +2053,12 @@ void hdd_deinit_adapter( hdd_adapter_t *pAdapter )
       if (eHAL_STATUS_FAILURE == (ccmCfgSetInt(pAdapter->hHal,
                                  WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 0,
                                  NULL, eANI_BOOLEAN_FALSE))
-
+      
          )
       {
            hddLog(LOGE, "Could not pass on  "
                     "WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM\n");
-      }
+      } 
 
       hdd_unregister_hostapd(pAdapter->dev);
   }

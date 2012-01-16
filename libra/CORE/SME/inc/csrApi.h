@@ -410,6 +410,7 @@ typedef enum
     // INFRA disassociated
     eCSR_ROAM_RESULT_INFRA_DISASSOCIATED,
     eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND,
+    eCSR_ROAM_RESULT_SME_SEND_MGT_FRAME,
 #endif    
 }eCsrRoamResult;
 
@@ -929,6 +930,7 @@ typedef struct tagCsrRoamInfo
         tCsrRoamConnectedProfile *pConnectedProfile;
 #ifdef WLAN_SOFTAP_FEATURE
         tSirWPSPBCProbeReq *pWPSPBCProbeReq;
+        tSirSmeProbeReqToHDD *probeReq;
 #endif
     } u;
 

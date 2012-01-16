@@ -330,12 +330,15 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     void                *pPacket;
     eHalStatus           halstatus;
     tANI_U32             addnIEPresent;
-    tANI_U32             addnIELen=0;
+    tANI_U32             addnIE1Len=0;
+    tANI_U32             addnIE2Len=0;
+    tANI_U32             addnIE3Len=0;
     tANI_U32             wpsApEnable=0, tmp;
+    tANI_U8              *addIE = NULL;
   
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)         // We don't answer requests
     {
-    return;                     // in this case.
+        return;                     // in this case.
     }
 
 
@@ -505,27 +508,81 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
     
-    //TODO: If additional IE needs to be added. Add then alloc required buffer.
-    if(wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, &addnIEPresent) != eSIR_SUCCESS)
+    addnIEPresent = false;
+
+    if (wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_ADDNIE_FLAG,
+                      &addnIEPresent) != eSIR_SUCCESS)
     {
-        limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG\n"));
+        limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_FLAG"));
         return;
     }
-    
-    if(addnIEPresent)
+
+    if (addnIEPresent)
     {
-        if(wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &addnIELen) != eSIR_SUCCESS)
+        if( (palAllocateMemory(pMac->hHdd, (void**)&addIE, 
+             WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN*3 )) != eSIR_SUCCESS)
         {
-            limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA length"));
-            return ;
+            PELOGE(limLog(pMac, LOGE,
+                 FL("Unable to allocate memory to store addn IE"));)
+            return;
+        }
+        
+        //Probe rsp IE available
+        if (wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_RSP_ADDNIE_DATA1,
+                             &addnIE1Len) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA1 length"));
+            palFreeMemory(pMac->hHdd, addIE);
+            return;
         }
 
-        if((nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE ) 
-            nBytes += addnIELen;
-       else 
-            addnIEPresent = false; //Dont include the IE.     
+        if (addnIE1Len <= WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN && addnIE1Len &&
+                     (nBytes + addnIE1Len) <= SIR_MAX_PACKET_SIZE)
+        {
+            if (wlan_cfgGetStr(pMac, WNI_CFG_PROBE_RSP_ADDNIE_DATA1, &addIE[0],
+                              &addnIE1Len) == eSIR_SUCCESS)
+            {
+                nBytes = nBytes + addnIE1Len;
+            }
+        }
+
+        //Probe rsp IE available
+        if (wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_RSP_ADDNIE_DATA2,
+                             &addnIE2Len) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA2 length"));
+            palFreeMemory(pMac->hHdd, addIE);
+            return;
+        }
+        if (addnIE2Len <= WNI_CFG_PROBE_RSP_ADDNIE_DATA2_LEN && addnIE2Len &&
+                     (nBytes + addnIE2Len) <= SIR_MAX_PACKET_SIZE)
+        {
+            if (wlan_cfgGetStr(pMac, WNI_CFG_PROBE_RSP_ADDNIE_DATA2,
+                              &addIE[addnIE1Len], &addnIE2Len) == eSIR_SUCCESS)
+            {
+                nBytes = nBytes + addnIE2Len; 
+            }
+        }
+
+        //Probe rsp IE available
+        if (wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_RSP_ADDNIE_DATA3,
+                             &addnIE3Len) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA3 length"));
+            palFreeMemory(pMac->hHdd, addIE);
+            return;
+        }
+        if (addnIE3Len <= WNI_CFG_PROBE_RSP_ADDNIE_DATA3_LEN && addnIE3Len &&
+                     (nBytes + addnIE3Len) <= SIR_MAX_PACKET_SIZE)
+        {
+            if (wlan_cfgGetStr(pMac, WNI_CFG_PROBE_RSP_ADDNIE_DATA3,
+                              &addIE[addnIE1Len + addnIE2Len], &addnIE3Len) == eSIR_SUCCESS)
+            {
+                nBytes = nBytes + addnIE3Len; 
+            }
+        }
     }
-       
+
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -533,6 +590,10 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGP, FL("Failed to allocate %d bytes for a Pro"
                                "be Response.\n"), nBytes );
+        if ( NULL != addIE )
+        {
+            palFreeMemory(pMac->hHdd, addIE);
+        }
         return;
     }
 
@@ -549,6 +610,10 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                 nSirStatus );
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+        if ( NULL != addIE )
+        {
+            palFreeMemory(pMac->hHdd, addIE);
+        }
         return;
     }
 
@@ -576,6 +641,11 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to pack a Probe Response (0x%08x).\n"),
                 nStatus );
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+        if ( NULL != addIE )
+        {
+            palFreeMemory(pMac->hHdd, addIE);
+        }
+        
         return;                 // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -589,18 +659,22 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
     pMac->sys.probeRespond++;
 
-    //TODO: Append any AddnIE if present.
-    if( addnIEPresent && addnIELen && addnIELen <= WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN )
+    if ( addnIEPresent )
     {
-            if(wlan_cfgGetStr(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, pFrame+sizeof(tSirMacMgmtHdr)+nPayload, &addnIELen) != eSIR_SUCCESS)
-            {
-                limLog(pMac, LOGP, FL("Additional IE request failed while Appending: %x\n"),halstatus);
-                palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+        if (palCopyMemory ( pMac->hHdd, pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
+             &addIE[0], addnIE1Len + addnIE2Len + addnIE3Len ) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("Additional Probe Rp IE request failed while Appending: %x"),halstatus);
+            palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                             ( void* ) pFrame, ( void* ) pPacket );
-                return;
+            if ( NULL != addIE )
+            {
+                palFreeMemory(pMac->hHdd, addIE);
             }
+            return;
+        }
     }
-    
+
     // Queue Probe Response frame in high priority WQ
     halstatus = halTxFrame( ( tHalHandle ) pMac, pPacket,
                             ( tANI_U16 ) nBytes,
@@ -608,11 +682,17 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                             ANI_TXDIR_TODS,
                             7,//SMAC_SWBD_TX_TID_MGMT_LOW,
                             limTxComplete, pFrame );
+    
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         limLog( pMac, LOGE, FL("Could not send Probe Response.\n") );
         //Pkt will be freed up by the callback
     }
+
+    if ( NULL != addIE )
+    {
+        palFreeMemory(pMac->hHdd, addIE);
+    }    
 
 } // End limSendProbeRspMgmtFrame.
 
@@ -1099,11 +1179,15 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     void                *pPacket;
     eHalStatus           halstatus;
     tUpdateBeaconParams beaconParams;
-    tANI_U32             wpsApEnable=0, tmp;
+    tANI_U32             addnIEPresent = false;
+    tANI_U32             addnIELen=0;
+    tANI_U8              addIE[WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN];
+    tpSirAssocReq        pAssocReq = NULL; 
+    
 
     if(NULL == psessionEntry)
     {
-              return;
+        return;
     }
 
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
@@ -1123,37 +1207,26 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     if ( NULL == pSta )
     {
-    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &frm.SuppRates,psessionEntry);
+        PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &frm.SuppRates,psessionEntry);
+        PopulateDot11fExtSuppRates( pMac, &frm.ExtSuppRates );
+    
     }
     else
     {
-       PopulateDot11fAssocRspRates( pMac, &frm.SuppRates, &frm.ExtSuppRates,
+        PopulateDot11fAssocRspRates( pMac, &frm.SuppRates, &frm.ExtSuppRates,
                       pSta->supportedRates.llbRates, pSta->supportedRates.llaRates );
     }
 
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
     {
-        PopulateDot11fAssocResWPSIEs(pMac, &frm.WscAssocRes, psessionEntry);
-    }
-    else
-    {
-#endif
-    if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_ENABLE, &tmp) != eSIR_SUCCESS)
-        limLog(pMac, LOGP,"Failed to cfg get id %d\n", WNI_CFG_WPS_ENABLE );
-    
-    wpsApEnable = tmp & WNI_CFG_WPS_ENABLE_AP;
-
-    if (wpsApEnable)
-    {
-        PopulateDot11fWscInAssocRes(pMac, &frm.WscAssocRes);
-    }
-#ifdef WLAN_SOFTAP_FEATURE    
+        if( pSta != NULL && eSIR_SUCCESS == statusCode )
+        {
+            pAssocReq = 
+                (tpSirAssocReq) psessionEntry->parsedAssocReq[pSta->assocId];
+        }
     }
 #endif
-    
-    if( NULL == pSta )
-    PopulateDot11fExtSuppRates( pMac, &frm.ExtSuppRates );
 
     if ( NULL != pSta )
     {
@@ -1259,6 +1332,38 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = sizeof( tSirMacMgmtHdr ) + nPayload;
 
+    if ( NULL != pAssocReq )
+    {
+        if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 
+                    &addnIEPresent) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("Unable to get WNI_CFG_ASSOC_RSP_ADDNIE_FLAG"));
+            return;
+        }
+
+        if (addnIEPresent)
+        {
+            //Assoc rsp IE available
+            if (wlan_cfgGetStrLen(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_DATA,
+                        &addnIELen) != eSIR_SUCCESS)
+            {
+                limLog(pMac, LOGP, FL("Unable to get WNI_CFG_ASSOC_RSP_ADDNIE_DATA length"));
+                return;
+            }
+
+            if (addnIELen <= WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN && addnIELen &&
+                    (nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE)
+            {
+                if (wlan_cfgGetStr(pMac, WNI_CFG_ASSOC_RSP_ADDNIE_DATA,
+                            &addIE[0], &addnIELen) == eSIR_SUCCESS)
+                {
+                    nBytes = nBytes + addnIELen;
+                }
+            }
+        }
+    }
+
+
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -1333,6 +1438,18 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
                FL("*** Sending ReAssoc Resp status %d aid %d to "),
                statusCode, aid);)
         PELOGE(limPrintMacAddr(pMac, pMacHdr->da, LOGE);)
+    }
+
+    if ( addnIEPresent )
+    {
+        if (palCopyMemory ( pMac->hHdd, pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
+                           &addIE[0], addnIELen ) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("Additional Assoc IEs request failed while Appending: %x\n"),halstatus);
+            palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+                       ( void* ) pFrame, ( void* ) pPacket );
+            return;
+        }
     }
 
     /// Queue Association Response frame in high priority WQ

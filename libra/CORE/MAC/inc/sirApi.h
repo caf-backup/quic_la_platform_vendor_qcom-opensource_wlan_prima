@@ -3403,6 +3403,23 @@ typedef struct sSirWPSPBCProbeReq
     tANI_U8            probeReqIE[512];
 } tSirWPSPBCProbeReq, *tpSirWPSPBCProbeReq;
 
+//RAW Probereq frame to be sent to HDD
+typedef struct sSirSmeProbeReqToHDD
+{
+    tANI_U16           frame_len;
+    tANI_U16           channel;
+    tANI_U32           frame[1];
+} tSirSmeProbeReqToHDD, *tpSirSmeProbeReqToHDD;
+
+//RAW MGT frame to be sent to HDD
+typedef struct sSirSmeSendMgtFrame
+{
+    tANI_U16              messageType; // eWNI_SME_SEND_MGT_FRAME
+    tANI_U16              length;
+    tSirMacAddr           bssId;
+    tSirSmeProbeReqToHDD  probeReq;
+} tSirSmeSendMgtFrameToHDD, *tpSirSmeSendMgtFrameToHDD;
+
 // probereq from peer, when wsc is enabled
 typedef struct sSirSmeProbeReqInd
 {

@@ -186,6 +186,14 @@ void WLANTL_HSDebugDisplay
    WLANTL_CURRENT_HO_STATE_TYPE   *currentHO;
    WLANTL_HO_SUPPORT_TYPE         *hoSupport;
 
+   if (NULL == tlCtxt)
+   {
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Invalid TL Context",
+                       __FUNCTION__));
+      return;
+   }
+
    currentHO = &(tlCtxt->hoSupport.currentHOState);
    hoSupport = &(tlCtxt->hoSupport);
 
@@ -218,7 +226,7 @@ void WLANTL_HSDebugDisplay
                    hoSupport->registeredInd[idx].crossCBFunction[sIdx],
                              hoSupport->registeredInd[idx].triggerEvent[sIdx],
                              hoSupport->registeredInd[idx].rssiValue));
-   }
+            }
             else
             {
                TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Client SME pCB %p, triggerEvt %d, RSSI %d",

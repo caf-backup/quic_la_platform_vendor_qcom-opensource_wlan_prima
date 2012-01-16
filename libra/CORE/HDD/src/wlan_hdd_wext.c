@@ -363,6 +363,7 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
       }
    }
    
+   vos_mem_zero((void *)(pWextState->req_bssId), WNI_CFG_BSSID_LEN);
 }
 
 static int iw_set_commit(struct net_device *dev, struct iw_request_info *info,
@@ -393,10 +394,17 @@ static int iw_set_mode(struct net_device *dev,
     tCsrRoamProfile          *pRoamProfile;
     eCsrRoamBssType          LastBSSType;
     eMib_dot11DesiredBssType connectedBssType;
-    hdd_config_t *pConfig  = pAdapter->cfg_ini;
+    hdd_config_t             *pConfig;
        
     ENTER();
 
+	if (NULL == pAdapter)
+    {
+        hddLog(VOS_TRACE_LEVEL_WARN,
+               "%s: Invalid context, pAdapter", __func__);
+        return 0;
+    }
+	
     if (pAdapter->isLogpInProgress) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
        return 0;
@@ -420,6 +428,7 @@ static int iw_set_mode(struct net_device *dev,
         hddLog( LOG1,"%s Setting AP Mode as IW_MODE_ADHOC\n", __FUNCTION__); 
         pRoamProfile->BSSType = eCSR_BSS_TYPE_START_IBSS;
         // Set the phymode correctly for IBSS.
+		pConfig  = pAdapter->cfg_ini;
         pWextState->roamProfile.phyMode = hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
         break;
     case IW_MODE_INFRA:
@@ -469,6 +478,13 @@ static int iw_get_mode(struct net_device *dev,
 
     hddLog (LOG1, "In %s",__FUNCTION__);
 
+	if (NULL == pAdapter)
+    {
+        hddLog(VOS_TRACE_LEVEL_WARN,
+               "%s: Invalid context, pAdapter", __func__);
+        return 0;
+    }
+	
     if (pAdapter->isLogpInProgress) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
        return 0;
@@ -1148,9 +1164,9 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
    
    v_U32_t num_channels = sizeof(channels);
    v_U8_t supp_rates[WNI_CFG_SUPPORTED_RATES_11A_LEN];
-   v_U32_t a_len = WNI_CFG_SUPPORTED_RATES_11A_LEN;
+   v_U32_t a_len;
    
-   v_U32_t b_len = WNI_CFG_SUPPORTED_RATES_11B_LEN;
+   v_U32_t b_len;
    v_U32_t active_phy_mode = 0;
    v_U8_t index = 0, i;
    
@@ -1173,19 +1189,21 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
                   WNI_CFG_SUPPORTED_RATES_11A,
                   supp_rates, &a_len) == eHAL_STATUS_SUCCESS)
            {
-               if(a_len <= IW_MAX_BITRATES) {
-                 for (i = 0; i < a_len; ++i)
-                 {
-                   range->bitrate[i] = ((supp_rates[i]& 0x7F)/2)*1000000;
-                 }
-               }   
+               if (a_len > WNI_CFG_SUPPORTED_RATES_11A_LEN)
+               {
+                 a_len = WNI_CFG_SUPPORTED_RATES_11A_LEN;
+               }
+               for (i = 0; i < a_len; ++i)
+               {
+                 range->bitrate[i] = ((supp_rates[i]& 0x7F)/2)*1000000;
+               }
+               range->num_bitrates = a_len;
+           }  
            else 
            {
-                 return -EIO;
-               }
-           }
-           range->num_bitrates = a_len;
-      }
+               return -EIO;
+           }           
+     }
      else if (active_phy_mode == WNI_CFG_DOT11_MODE_11B) 
      {
          /*Get the supported rates for 11B band*/
@@ -1193,18 +1211,21 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
                   WNI_CFG_SUPPORTED_RATES_11B,
                   supp_rates, &b_len) == eHAL_STATUS_SUCCESS)
            {
-              if(b_len <= IW_MAX_BITRATES)
-              {
-                  for (i = 0; i < b_len; ++i)
-                  {
-                     range->bitrate[i] = ((supp_rates[i]& 0x7F)/2)*1000000;
-                  }
-              }
-              else {
-               return -EIO;
-              }
+               if (b_len > WNI_CFG_SUPPORTED_RATES_11B_LEN)
+               {
+                  b_len = WNI_CFG_SUPPORTED_RATES_11B_LEN;
+               }
+               for (i = 0; i < b_len; ++i)
+               {
+                  range->bitrate[i] = ((supp_rates[i]& 0x7F)/2)*1000000;
+               }
+			   range->num_bitrates = b_len;
            }
-           range->num_bitrates = b_len;
+           else 
+		   {
+               return -EIO;
+           }
+           
       }
      
    }
@@ -1224,17 +1245,19 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
    range->we_version_source = 22;
    
    /*Supported Channels and Frequencies*/
-   if (ccmCfgGetStr((hHal), WNI_CFG_VALID_CHANNEL_LIST, channels, &num_channels) != eHAL_STATUS_SUCCESS){
+   if (ccmCfgGetStr((hHal), WNI_CFG_VALID_CHANNEL_LIST, channels, &num_channels) != eHAL_STATUS_SUCCESS)
+   {
       return -EIO;
    }
-   if (num_channels > IW_MAX_FREQUENCIES){
+   if (num_channels > IW_MAX_FREQUENCIES)
+   {
       num_channels = IW_MAX_FREQUENCIES;
    }
      
    range->num_channels = num_channels;
    range->num_frequency = num_channels;
   
-   for(index=0; index < num_channels; index++)
+   for (index=0; index < num_channels; index++)
    {
       v_U32_t frq_indx = 0;
    
@@ -2850,18 +2873,22 @@ static int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_inf
     int sub_cmd = wrqu->data.flags;
     int *value = (int*)wrqu->data.pointer;
     int log_dump_args[MAX_VAR_ARGS] = {0};
+	int num_args = wrqu->data.length;
 
     hddLog(LOGW, "The function iw_set_var_ints_getnone called \n");
     hddLog(LOGW, "%s: Received length %d\n", __FUNCTION__, wrqu->data.length);
     hddLog(LOGW, "%s: Received data %s\n", __FUNCTION__, (char*)wrqu->data.pointer);
+	
+	if (num_args > MAX_VAR_ARGS)
+    {
+       num_args = MAX_VAR_ARGS;
+    }
+    vos_mem_copy(log_dump_args, value, (sizeof(int)) * num_args);
 
     switch (sub_cmd)
     {
         case WE_LOG_DUMP_CMD:
             {
-                vos_mem_copy(log_dump_args, value, (sizeof(int))*wrqu->data.length);
-
-
                 hddLog(LOGE, "%s: PTT_MSG_LOG_DUMP %d arg1 %d arg2 %d arg3 %d arg4 %d\n",
                         __FUNCTION__, log_dump_args[0], log_dump_args[1], log_dump_args[2], 
                         log_dump_args[3], log_dump_args[4]);
@@ -2875,8 +2902,8 @@ static int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_inf
         default:  
             {
                 hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
-                break;
             }
+            break;
     }
 
     return 0;

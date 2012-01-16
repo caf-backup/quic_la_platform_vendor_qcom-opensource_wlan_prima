@@ -424,7 +424,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                         CFG_AP_ENABLE_PROTECTION_MODE_DEFAULT,
                         CFG_AP_ENABLE_PROTECTION_MODE_MIN,
-                        CFG_AP_ENABLE_PROTECTION_MODE_MAX ),
+                        CFG_AP_ENABLE_PROTECTION_MODE_MAX ), 
 
    REG_VARIABLE( CFG_AP_PROTECTION_MODE_NAME, WLAN_PARAM_HexInteger,
                         hdd_config_t, apProtection,

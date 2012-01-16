@@ -520,6 +520,17 @@ sapSignalHDDevent
                           sizeof(tSirWPSPBCProbeReq));  
             break;
 
+        case eSAP_SEND_MGT_FRAME_EVENT:
+            {
+                unsigned short len = pCsrRoamInfo->u.probeReq->frame_len;
+                sapApAppEvent.sapHddEventCode = eSAP_SEND_MGT_FRAME_EVENT;
+                sapApAppEvent.sapevt.sapSendMgtFrameEvent.probeRequest.frame_len = len;
+                sapApAppEvent.sapevt.sapSendMgtFrameEvent.probeRequest.channel = pCsrRoamInfo->u.probeReq->channel;
+                vos_mem_copy((tANI_U8 *)&sapApAppEvent.sapevt.sapSendMgtFrameEvent.probeRequest.frame,
+                                   (tANI_U8 *)&pCsrRoamInfo->u.probeReq->frame, len );
+            }
+            break;
+
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, SAP Unknown callback event = %d",
                        __FUNCTION__,sapHddevent);

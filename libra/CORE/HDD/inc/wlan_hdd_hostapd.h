@@ -41,7 +41,7 @@ typedef struct hdd_hostapd_state_s
 /*
  * Per station structure kept in HDD for multiple station support for SoftAP
 */
-typedef struct hdd_station_info_s
+typedef struct hdd_station_info_s 
 {
     /** The station entry is used or not  */
     v_BOOL_t isUsed;

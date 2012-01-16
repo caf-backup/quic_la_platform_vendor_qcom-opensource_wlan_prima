@@ -150,7 +150,7 @@
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_NAME     "gEnableDriverStop"
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_MIN      ( 0 ) //No support for stop
 #define CFG_ENABLE_ENABLE_DRIVER_STOP_MAX      ( 2 ) //Map to Deep Sleep
-#define CFG_ENABLE_ENABLE_DRIVER_STOP_DEFAULT  ( 1 ) //Map to Standby
+#define CFG_ENABLE_ENABLE_DRIVER_STOP_DEFAULT  ( 0 ) //Map to Standby
 
 #define CFG_WOWL_PATTERN_NAME                  "gWowlPattern"
 #define CFG_WOWL_PATTERN_DEFAULT               ""
@@ -162,17 +162,17 @@
 #define CFG_ENABLE_IMPS_DEFAULT                ( 1 )
 
 #define CFG_IMPS_MINIMUM_SLEEP_TIME_NAME       "gImpsMinSleepTime" 
-#define CFG_IMPS_MINIMUM_SLEEP_TIME_MIN        ( 1 )
+#define CFG_IMPS_MINIMUM_SLEEP_TIME_MIN        ( 0 )
 #define CFG_IMPS_MINIMUM_SLEEP_TIME_MAX        ( 65535 )
 #define CFG_IMPS_MINIMUM_SLEEP_TIME_DEFAULT    ( 5 )
     
 #define CFG_IMPS_MODERATE_SLEEP_TIME_NAME      "gImpsModSleepTime"
-#define CFG_IMPS_MODERATE_SLEEP_TIME_MIN       ( 5 )
+#define CFG_IMPS_MODERATE_SLEEP_TIME_MIN       ( 0 )
 #define CFG_IMPS_MODERATE_SLEEP_TIME_MAX       ( 65535 )
 #define CFG_IMPS_MODERATE_SLEEP_TIME_DEFAULT   ( 10)
 
 #define CFG_IMPS_MAXIMUM_SLEEP_TIME_NAME       "gImpsMaxSleepTime"
-#define CFG_IMPS_MAXIMUM_SLEEP_TIME_MIN        ( 10 )
+#define CFG_IMPS_MAXIMUM_SLEEP_TIME_MIN        ( 0 )
 #define CFG_IMPS_MAXIMUM_SLEEP_TIME_MAX        ( 65535 )
 #define CFG_IMPS_MAXIMUM_SLEEP_TIME_DEFAULT    ( 15 )
 

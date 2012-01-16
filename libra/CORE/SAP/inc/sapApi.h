@@ -145,6 +145,7 @@ typedef enum {
     eSAP_ASSOC_STA_CALLBACK_EVENT,  /*Event sent when user called WLANSAP_GetAssocStations */
     eSAP_GET_WPSPBC_SESSION_EVENT,  /* Event send when user call  WLANSAP_getWpsSessionOverlap */  
     eSAP_WPS_PBC_PROBE_REQ_EVENT, /* Event send on WPS PBC probe request is received */
+    eSAP_SEND_MGT_FRAME_EVENT, /* Event indicating mgt frame to be sent to supplicant*/
 } eSapHddEvent;
 
 typedef enum {
@@ -266,6 +267,11 @@ typedef struct sap_WPSPBCProbeReqEvent_s {
     tSirWPSPBCProbeReq WPSPBCProbeReq;
 } tSap_WPSPBCProbeReqEvent; 
 
+typedef struct sap_SendMgtFrameEvent_s {
+    v_U8_t             status;
+    VOS_MODULE_ID      module; /* module id that was passed in WLANSAP_GetAssocStations API*/
+    tSirSmeProbeReqToHDD probeRequest;
+} tSap_SendMgtFrameEvent;
 
 /* 
    This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call   
@@ -285,6 +291,7 @@ typedef struct sap_Event_s {
         tSap_AssocStaListEvent                    sapAssocStaListEvent; /*SAP_ASSOC_STA_CALLBACK_EVENT */
         tSap_GetWPSPBCSessionEvent                sapGetWPSPBCSessionEvent; /*SAP_GET_WPSPBC_SESSION_EVENT */
         tSap_WPSPBCProbeReqEvent                  sapPBCProbeReqEvent; /*eSAP_WPS_PBC_PROBE_REQ_EVENT */
+        tSap_SendMgtFrameEvent                    sapSendMgtFrameEvent;/*eSAP_SEND_MGT_FRAME_EVENT*/
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
