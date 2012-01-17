@@ -2253,7 +2253,7 @@ eHalStatus writeAddrTable(tpAniSirGlobal pMac, tRxpAddrTable* pTable, tANI_U8 ad
     }
 
     // disable Rxp during BST entry update
-    halRxp_disable(pMac);
+    halRxp_disable(pMac, FALSE);
 
     // Write the into the RXP search table registers
     for(i=0; i < numOfEntry; i++) {
@@ -2512,7 +2512,6 @@ eHalStatus halRxp_enable(tpAniSirGlobal pMac)
     return eHAL_STATUS_SUCCESS;
 }
 
-
 /* ----------------------------------------------------------
  * FUNCTION:  halRxp_disable()
  *
@@ -2523,9 +2522,9 @@ eHalStatus halRxp_enable(tpAniSirGlobal pMac)
  *   treated as if it passes the Address Filtering.
  * ----------------------------------------------------------
  */
-eHalStatus halRxp_disable(tpAniSirGlobal pMac)
+eHalStatus halRxp_disable(tpAniSirGlobal pMac, tANI_U8 bWaitRxpIdle)
 {
-    tANI_U32   value;
+    tANI_U32   value, i;
 
     HALLOG1( halLog(pMac, LOG1, FL("Set cfg_rxp_en & cfg_addr_filter_en to 0 \n")));
     halReadRegister(pMac, QWLAN_RXP_CONFIG_REG, &value);
@@ -2533,9 +2532,56 @@ eHalStatus halRxp_disable(tpAniSirGlobal pMac)
     value &= ~(QWLAN_RXP_CONFIG_CFG_HAS_PHY_CMD_MASK| QWLAN_RXP_CONFIG_CFG_RXP_EN_MASK | QWLAN_RXP_CONFIG_CFG_ADDR_FILTER_EN_MASK);
     halWriteRegister(pMac, QWLAN_RXP_CONFIG_REG, value);
 
+    if(bWaitRxpIdle)
+    {
+        /* Disable MCU Clock gating for RXP before disabling and aborting RXP */
+        halReadRegister(pMac, QWLAN_MCU_MAC_CLK_GATING_ENABLE_REG, &value);
+        value &= ~QWLAN_MCU_MAC_CLK_GATING_ENABLE_RXP_CLK_GATING_ENABLE_MASK;
+        halWriteRegister(pMac, QWLAN_MCU_MAC_CLK_GATING_ENABLE_REG, value);
+
+        /* Disable the RXP to avoid receivinig any new packets coming in and
+         * enable the soft_pmi_abort */
+        halReadRegister(pMac, QWLAN_RXP_CONFIG_REG, &value);
+        value &= ~(QWLAN_RXP_CONFIG_CFG_RXP_EN_MASK);
+        value |= QWLAN_RXP_CONFIG_SOFT_PMI_ABORT_EN_MASK;
+        halWriteRegister(pMac, QWLAN_RXP_CONFIG_REG, value);
+        
+        /* Set and reset the soft_pm_abort to abort the ongoing transaction */
+        halReadRegister(pMac, QWLAN_RXP_SOFT_PMI_ABORT_REG, &value);       
+        value |= QWLAN_RXP_SOFT_PMI_ABORT_SOFT_PMI_ABORT_MASK;
+        halWriteRegister(pMac, QWLAN_RXP_SOFT_PMI_ABORT_REG, value);
+        value &= ~QWLAN_RXP_SOFT_PMI_ABORT_SOFT_PMI_ABORT_MASK;
+        halWriteRegister(pMac, QWLAN_RXP_SOFT_PMI_ABORT_REG, value);
+
+        /* Disable the soft_pmi_abort_en in RXP */
+        halReadRegister(pMac, QWLAN_RXP_CONFIG_REG, &value);
+        value &= ~QWLAN_RXP_CONFIG_SOFT_PMI_ABORT_EN_MASK;
+        halWriteRegister(pMac, QWLAN_RXP_CONFIG_REG, value);
+ 
+        /* Enable MCU Clock gating for RXP before disabling and aborting RXP */
+        halReadRegister(pMac, QWLAN_MCU_MAC_CLK_GATING_ENABLE_REG, &value);
+        value |= QWLAN_MCU_MAC_CLK_GATING_ENABLE_RXP_CLK_GATING_ENABLE_MASK;
+        halWriteRegister(pMac, QWLAN_MCU_MAC_CLK_GATING_ENABLE_REG, value);
+
+        // Wait for RXP to go to IDLE state, to prevent a race condition
+        // when RXP is disabled in the middle of an ongoing AGC to RXP transfer.
+        for(i=0; i<3; i++)
+        {
+            halReadRegister(pMac, QWLAN_MCU_MCU_WMAC_STATUS_REG, &value);
+
+            if(!(value & QWLAN_MCU_MCU_WMAC_STATUS_RXP_MCU_STATUS_MASK))
+            {
+                break;
+            }
+
+            vos_sleep(10);
+        }
+
+        VOS_ASSERT(!(value & QWLAN_MCU_MCU_WMAC_STATUS_RXP_MCU_STATUS_MASK));
+    }
+
     return eHAL_STATUS_SUCCESS;
 }
-
 
 /* ----------------------------------------------------------
  * FUNCTION:  halRxp_setOperatingRfBand()

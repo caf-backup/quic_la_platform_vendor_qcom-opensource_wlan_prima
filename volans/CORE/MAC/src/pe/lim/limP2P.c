@@ -39,6 +39,7 @@
 
 #define   PROBE_RSP_IE_OFFSET    36
 #define   BSSID_OFFSET           16
+#define   ADDR2_OFFSET           10
 #define   ACTION_OFFSET          24
 
 
@@ -119,8 +120,10 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
     pMac->lim.gLimMlmState     = eLIM_MLM_P2P_LISTEN_STATE;
 
-    /* Set the duration to requested duration + 10ms (for latencies in messgae exchange etc.) */
-    pMac->lim.gTotalScanDuration = MsgBuff->duration + 10;
+    // TODO: Use NOA
+    /* Set the duration to 0 as we do not want to scan on receving remian on channel command */
+    pMac->lim.gTotalScanDuration = 0;
+
     /* 1st we need to suspend link with callback to initiate change channel */
     limSuspendLink(pMac, eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN,
                    limRemainOnChnlSuspendLinkHdlr, NULL);
@@ -523,6 +526,14 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     psessionEntry = peFindSessionByBssid(pMac,
                    (tANI_U8*)pMbMsg->data + BSSID_OFFSET, &sessionId);
+
+    /* Check for session corresponding to ADDR2 As Supplicant is filling 
+       ADDR2  with BSSID */  
+    if( NULL == psessionEntry )
+    {
+        psessionEntry = peFindSessionByBssid(pMac,
+                   (tANI_U8*)pMbMsg->data + ADDR2_OFFSET, &sessionId);
+    }
 
     /* Drop if remain on channel is not pending in case of normal device */
     if( NULL == psessionEntry )

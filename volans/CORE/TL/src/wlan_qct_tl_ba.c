@@ -125,6 +125,13 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
       return;
    }
 
+   if(0 == pTLHandle->atlSTAClients[ucSTAID].atlBAReorderInfo[ucTID].ucExists)
+   {
+       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Reorder session doesn't exist SID %d, TID %d", 
+                   ucSTAID, ucTID));
+       return;
+   }
+
    if(!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&ReorderInfo->reorderLock)))
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Get LOCK Fail"));
@@ -1255,6 +1262,7 @@ VOS_STATUS WLANTL_MSDUReorder
 #endif
          if(VOS_STATUS_E_RESOURCES == status)
          {
+            vos_pkt_return_packet(vosPktIdx); 
             /* This is the case slot index is already cycle one route, route all the frames Qed */
             vosPktIdx = NULL;
             status = WLANTL_ChainFrontPkts(ucFwdIdx,

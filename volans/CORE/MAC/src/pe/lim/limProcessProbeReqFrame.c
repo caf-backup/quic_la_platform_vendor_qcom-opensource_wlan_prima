@@ -389,7 +389,7 @@ tANI_BOOLEAN limCheck11bRates(tANI_U8 rate)
  *
  * @return None
  */
-    
+
 void
 limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEntry)
 {
@@ -406,9 +406,9 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
         // Don't send probe responses if disabled
         if (pMac->lim.gLimProbeRespDisableFlag)
             break;
-    
+
         pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
-    
+
         if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
              (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)||
              (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)|| 
@@ -416,13 +416,13 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
               (SIR_MAC_BD_TO_IBSS_BCN_SENT(pBd)) ) )
         {
             frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
-    
+
             PELOG3(limLog(pMac, LOG3, FL("Received Probe Request %d bytes from "), frameLen);
             limPrintMacAddr(pMac, pHdr->sa, LOG3);)
-    
+
             // Get pointer to Probe Request frame body
             pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
-    
+
             // Parse Probe Request frame
             if (sirConvertProbeReqFrame2Struct(pMac, pBody, frameLen, &probeReq)==eSIR_FAILURE)
             {
@@ -436,8 +436,8 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
 #ifdef WLAN_FEATURE_P2P
                 if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
                 {
-                    tANI_U8 other_rates = 0;
-                    tANI_U8 i = 0, rate_11b = 0;
+                    tANI_U8 i = 0, rate_11b = 0, other_rates = 0;
+
                     // Check 11b rates in supported rates
                     for ( i = 0 ; i < probeReq.supportedRates.numRates;
                                                                   i++ )
@@ -468,30 +468,32 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                     if ( (rate_11b > 0) && (other_rates == 0) )
                     {
                         PELOG3(limLog(pMac, LOG3, 
-                               FL("Received a probe request frame with only 11b rates , SA is: "));
+                               FL("Received a probe request frame with only 11b rates, SA is: "));
                                limPrintMacAddr(pMac, pHdr->sa, LOG3);)
                         return;
                     }
                 }
 #endif
-#ifdef WLAN_SOFTAP_FEATURE            
+#ifdef WLAN_SOFTAP_FEATURE
                 if ((psessionEntry->limSystemRole == eLIM_AP_ROLE))
                 {
                   
-                    if ( (psessionEntry->APWPSIEs.SirWPSProbeRspIE.FieldPresent & SIR_WPS_PROBRSP_VER_PRESENT) &&
-                            (probeReq.wscIePresent ==  1) &&
-                            (probeReq.probeReqWscIeInfo.DevicePasswordID.id == WSC_PASSWD_ID_PUSH_BUTTON) &&
-                            (probeReq.probeReqWscIeInfo.UUID_E.present == 1))
+                    if ( (psessionEntry->APWPSIEs.SirWPSProbeRspIE.FieldPresent &
+                                               SIR_WPS_PROBRSP_VER_PRESENT) &&
+                         (probeReq.wscIePresent ==  1) &&
+                         (probeReq.probeReqWscIeInfo.DevicePasswordID.id == 
+                                                  WSC_PASSWD_ID_PUSH_BUTTON) &&
+                         (probeReq.probeReqWscIeInfo.UUID_E.present == 1))
                     {
                         if(psessionEntry->fwdWPSPBCProbeReq)
-                        {                                          
-                            PELOG4(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG4, pHdr->sa, sizeof(tSirMacAddr));)                        
+                        {
+                            PELOG4(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG4,
+                                              pHdr->sa, sizeof(tSirMacAddr));)
                             PELOG4(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG4, pBody, frameLen);)
-                                                                                                                                           
-                            limSendSmeProbeReqInd(pMac, pHdr->sa, pBody, frameLen, psessionEntry);                        
+                            limSendSmeProbeReqInd(pMac, pHdr->sa, pBody, frameLen, psessionEntry);
                         } 
                         else
-                        {                            
+                        {
                             limUpdatePBCSessionEntry(pMac,
                                 pHdr->sa, probeReq.probeReqWscIeInfo.UUID_E.uuid, psessionEntry);
                         }
@@ -499,22 +501,23 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                 }
                 else
                 {
-#endif                
+#endif
                     if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_ENABLE, &tmp) != eSIR_SUCCESS)
                         limLog(pMac, LOGP,"Failed to cfg get id %d\n", WNI_CFG_WPS_ENABLE );
-                    
+
                     wpsApEnable = tmp & WNI_CFG_WPS_ENABLE_AP;
                     if ((wpsApEnable) &&
                         (probeReq.wscIePresent ==  1) &&
                         (probeReq.probeReqWscIeInfo.DevicePasswordID.id == WSC_PASSWD_ID_PUSH_BUTTON))
                     {
                         // send the probe req to WSM when it is from a PBC station 
-                        if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeProbeReq, sizeof(tSirSmeProbeReq)))
+                        if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+                               (void **)&pSirSmeProbeReq, sizeof(tSirSmeProbeReq)))
                         {
                             // Log error
                             limLog(pMac, LOGP,
-                                      FL("call to palAllocateMemory failed for eWNI_SME_PROBE_REQ\n"));
-                        return;      
+                               FL("call to palAllocateMemory failed for eWNI_SME_PROBE_REQ\n"));
+                            return;
                         }
                         msgQ.type = eWNI_SME_PROBE_REQ;
                         msgQ.bodyval = 0;
@@ -535,30 +538,30 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                             PELOG3(limLog(pMac, LOG3, FL("couldnt send the probe req to wsm "));)
                         }
                     }
-#ifdef WLAN_SOFTAP_FEATURE                   
+#ifdef WLAN_SOFTAP_FEATURE
                 }
 #endif
             }
 
             ssId.length = psessionEntry->ssId.length;
-            
              /* Copy the SSID from sessio entry to local variable */
             palCopyMemory( pMac->hHdd, ssId.ssId,
                        psessionEntry->ssId.ssId,
                        psessionEntry->ssId.length);
-            
+
             // Compare received SSID with current SSID. If they
             // match, reply with Probe Response.
             if (probeReq.ssId.length)
             {
                 if (!ssId.length)
                     goto multipleSSIDcheck;
-            
+
                 if (palEqualMemory( pMac->hHdd,(tANI_U8 *) &ssId,
                               (tANI_U8 *) &(probeReq.ssId), (tANI_U8) (ssId.length + 1)) )
                 {
                     limSendProbeRspMgmtFrame(pMac, pHdr->sa, &ssId, DPH_USE_MGMT_STAID,
-                                             DPH_NON_KEEPALIVE_FRAME,psessionEntry);
+                                             DPH_NON_KEEPALIVE_FRAME, psessionEntry,
+                                             probeReq.p2pIePresent);
                     break;
                 }
 #ifdef WLAN_FEATURE_P2P
@@ -570,7 +573,8 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                               (tANI_U8 *) &(probeReq.ssId.ssId), (tANI_U8) (direct_ssid_len)) )
                     {
                         limSendProbeRspMgmtFrame(pMac, pHdr->sa, &ssId, DPH_USE_MGMT_STAID,
-                                             DPH_NON_KEEPALIVE_FRAME, psessionEntry);
+                                             DPH_NON_KEEPALIVE_FRAME, psessionEntry,
+                                             probeReq.p2pIePresent);
                         break;
                     }
                 }
@@ -591,17 +595,18 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                 if (wlan_cfgGetInt(pMac, WNI_CFG_SEND_SINGLE_SSID_ALWAYS, &cfg)
                     != eSIR_SUCCESS)
                     limLog(pMac, LOGP, FL("could not retrieve SEND_SSID_IN_PR\n"));
-                
+
                 if (!ssId.length &&
                     (psessionEntry->pLimStartBssReq->numSSID == 1) &&
                     cfg)
                 {
                     PELOG2(limLog(pMac, LOG2, FL("Sending ProbeRsp with suppressed SSID to"));
                     limPrintMacAddr(pMac, pHdr->sa, LOG2);)
-                
+
                     limSendProbeRspMgmtFrame( pMac, pHdr->sa,
                        (tAniSSID *) psessionEntry->pLimStartBssReq->ssIdList,
-                       DPH_USE_MGMT_STAID, DPH_NON_KEEPALIVE_FRAME,psessionEntry);
+                       DPH_USE_MGMT_STAID, DPH_NON_KEEPALIVE_FRAME, psessionEntry,
+                       probeReq.p2pIePresent);
                 }
                 else
 #endif
@@ -617,7 +622,8 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                            return;
 #endif
                     limSendProbeRspMgmtFrame(pMac, pHdr->sa, &ssId, DPH_USE_MGMT_STAID,
-                                             DPH_NON_KEEPALIVE_FRAME,psessionEntry);
+                                             DPH_NON_KEEPALIVE_FRAME, psessionEntry,
+                                             probeReq.p2pIePresent);
                 }
                 break;
             }
@@ -626,7 +632,7 @@ multipleSSIDcheck:
             if (!psessionEntry->pLimStartBssReq->ssId.length)
             {
                 tANI_U8     i;
-            
+
                 // Multiple SSIDs/Suppressed SSID is enabled.
                 for (i = 0; i < psessionEntry->pLimStartBssReq->numSSID; i++)
                 {
@@ -637,11 +643,12 @@ multipleSSIDcheck:
                     {
                         limSendProbeRspMgmtFrame( pMac, pHdr->sa,
                                (tAniSSID *) &psessionEntry->pLimStartBssReq->ssIdList[i],
-                               DPH_USE_MGMT_STAID, DPH_NON_KEEPALIVE_FRAME,psessionEntry);
+                               DPH_USE_MGMT_STAID, DPH_NON_KEEPALIVE_FRAME, psessionEntry,
+                               probeReq.p2pIePresent);
                         break;
                     }
                 }
-            
+
                 if (i == psessionEntry->pLimStartBssReq->numSSID)
                 {
                     // Local SSID does not match with received one

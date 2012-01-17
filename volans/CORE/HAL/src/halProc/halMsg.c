@@ -3585,7 +3585,7 @@ halMsg_InitScan(
     }
 
 #ifdef WLAN_FEATURE_P2P
-    if ( param->useNoA )
+    if ( param->useNoA  && (param->scanDuration != 0))
     {
         // Suspend FW from BMPS
         status = halPS_UpdateSingleNoA (pMac, dialog_token,

@@ -114,11 +114,12 @@ typedef struct sSirProbeReq
     tSirMacRateSet            supportedRates;
     tSirMacRateSet            extendedRates;
     tDot11fIEWscProbeReq      probeReqWscIeInfo;
-    tDot11fIEHTCaps   HTCaps;
+    tDot11fIEHTCaps           HTCaps;
     tANI_U8                   ssidPresent;
     tANI_U8                   suppRatesPresent;
     tANI_U8                   extendedRatesPresent;
     tANI_U8                   wscIePresent;
+    tANI_U8                   p2pIePresent;
 
 } tSirProbeReq, *tpSirProbeReq;
 

@@ -112,7 +112,7 @@ limSendKeepAliveToPeer(tpAniSirGlobal pMac)
                                          pStaDs->staAddr,
                                          &ssId,
                                          i,
-                                         DPH_KEEPALIVE_FRAME);
+                                         DPH_KEEPALIVE_FRAME, 0);
             }
         }
     }

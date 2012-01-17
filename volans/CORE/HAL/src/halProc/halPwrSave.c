@@ -910,7 +910,7 @@ eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
     pHalPwrSave->pwrSaveState.p.psState = HAL_PWR_SAVE_IMPS_REQUESTED;
 
 	// Disable RX
-    status = halRxp_disable(pMac);
+    status = halRxp_disable(pMac, TRUE);
     if (eHAL_STATUS_SUCCESS != status) {
         HALLOGP( halLog(pMac, LOGP, FL("Disable RX failed\n")));
         goto error;
