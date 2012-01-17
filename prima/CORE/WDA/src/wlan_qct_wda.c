@@ -94,6 +94,9 @@
 #define WDA_SET_BA_TXFLAG(a, b, c)  \
    (((a)->wdaStaInfo[b].ucUseBaBitmap) |= (1 << c)) 
 
+#define WDA_CLEAR_BA_TXFLAG(a, b, c)  \
+   (((a)->wdaStaInfo[b].ucUseBaBitmap) &= ~(1 << c))
+
 #define WDA_TL_BA_SESSION_ADD(a, b, c, d, e, f, g) \
    WLANTL_BaSessionAdd(a, b, c, d, e, f, g)
 
@@ -1318,7 +1321,36 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
 
-   
+   /* [COEX] strictly speaking, the Coex parameters are not part of the WLAN_CFG_FILE binary, 
+   * but are from the WLAN_INI_FILE file.  However, this is the only parameter download routine
+   * into FW, so the parameters are added here.
+   */
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_EXECUTION_MODE */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_EXECUTION_MODE  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcExecutionMode; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcConsBtSlotsToBlockDuringDhcp; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcA2DPBtSubIntervalsDuringDhcp; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+	   
+
    wdiStartParams->usConfigBufferLen = (tANI_U8 *)tlvStruct - tlvStructStart ;
 
 #ifdef WLAN_DEBUG
@@ -5267,6 +5299,14 @@ void WDA_AddBASessionReqCallback(
    {
       pAddBAReqParams->status = 
             CONVERT_WDI2SIR_STATUS(wdiAddBaSession->wdiStatus) ;
+  
+      /* Setting Flag to indicate that Set BA is success */
+      if(WDI_STATUS_SUCCESS == wdiAddBaSession->wdiStatus)
+      {
+         tANI_U16 curSta = wdiAddBaSession->ucSTAIdx;
+         tANI_U8 tid = wdiAddBaSession->ucBaTID;
+         WDA_SET_BA_TXFLAG(pWDA, curSta, tid) ;
+      }
       pWDA->wdaMsgParam = NULL;
       WDA_SendMsg(pWDA, WDA_ADDBA_RSP, (void *)pAddBAReqParams , 0) ;
    }
@@ -5453,6 +5493,8 @@ VOS_STATUS WDA_ProcessDelBAReq(tWDA_CbContext *pWDA,
                      (WDI_DelBAReqParamsType *)vos_mem_malloc(
                                              sizeof(WDI_DelBAReqParamsType)) ;
    tWDA_ReqParams *pWdaParams ;
+   tANI_U16 staIdx = 0;
+   tANI_U8 tid = 0;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
@@ -5485,6 +5527,13 @@ VOS_STATUS WDA_ProcessDelBAReq(tWDA_CbContext *pWDA,
 
    /* store Params pass it to WDI */
    pWdaParams->wdaWdiApiMsgParam = (void *)wdiDelBAReqParam ;
+
+   /* if BA exchange over the air is failed, clear this tid in BaBitmap
+    * maintained in WDA, so that WDA can retry for another BA session
+    */
+   staIdx = pDelBAReqParams->staIdx;
+   tid = pDelBAReqParams->baTID;
+   WDA_CLEAR_BA_TXFLAG(pWDA, staIdx, tid);
 
    status = WDI_DelBAReq(wdiDelBAReqParam, 
                          (WDI_DelBARspCb)WDA_DelBAReqCallback, pWdaParams);
@@ -9026,6 +9075,7 @@ VOS_STATUS WDA_HALDumpCmdReq(tpAniSirGlobal   pMac, tANI_U32  cmd,
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                 "WDA HAL DUMP Command buffer alloc fail");
+      vos_mem_free(pWdaParams);
       return WDI_STATUS_E_FAILURE;
    }
 
@@ -10329,7 +10379,6 @@ void WDA_BaCheckActivity(tWDA_CbContext *pWDA)
                /* get prepare for sending message to HAL */
                //baCandidate[baCandidateCount].staIdx = curSta ;
                baCandidate[baCandidateCount].ucTidBitmap |= 1 << tid ;
-               WDA_SET_BA_TXFLAG(pWDA, curSta, tid) ;
                newBaCandidate = WDA_ENABLE_BA ;
             }
             pWDA->wdaStaInfo[curSta].framesTxed[tid] = txPktCount ;
@@ -10339,9 +10388,9 @@ void WDA_BaCheckActivity(tWDA_CbContext *pWDA)
       /* fill the entry for all the sta with given TID's */
       if(WDA_ENABLE_BA == newBaCandidate)
       { 
-         /* move to next BA camdidate */
+         /* move to next BA candidate */
          baCandidate[baCandidateCount].ucSTAIdx = curSta ;
-         size += sizeof(tAddBaCandidate) ; 
+         size += sizeof(WDI_TriggerBAReqCandidateType) ; 
          baCandidateCount++ ;
          newBaCandidate = WDA_DISABLE_BA ;
       } 

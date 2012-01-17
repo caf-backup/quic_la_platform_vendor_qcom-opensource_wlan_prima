@@ -1308,7 +1308,7 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                                         struct net_device *dev)
 {
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_context_t *pHddCtx  =  (hdd_context_t*)pAdapter->pHddCtx;
+    hdd_context_t *pHddCtx;
     VOS_STATUS status = 0;
 
     ENTER();
@@ -1319,6 +1319,8 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                    "%s: HDD adapter context is Null", __FUNCTION__);
         return -ENODEV;
     }
+
+    pHddCtx  =  (hdd_context_t*)pAdapter->pHddCtx;
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                               __func__,pAdapter->device_mode);
@@ -2780,8 +2782,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                                    __func__,pAdapter->device_mode);
-    hddLog(VOS_TRACE_LEVEL_INFO, "scan request for ssid = %d\n", 
-            (int)request->n_ssids);  
 
     //Scan on any other interface is not supported.
     if((pAdapter->device_mode != WLAN_HDD_INFRA_STATION) 
@@ -2791,28 +2791,31 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
       )
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, 
-                "%s: Not scanning on device_mode = %d\n",
-                                    __func__,pAdapter->device_mode);
+                "%s: Not scanning on device_mode = %d",
+                                    __func__, pAdapter->device_mode);
         return -EOPNOTSUPP;
     }
 
     if (TRUE == pwextBuf->mScanPending)
     {
-        hddLog(VOS_TRACE_LEVEL_INFO, "%s: mScanPending is TRUE\n", __func__);
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s: mScanPending is TRUE", __func__);
         return -EBUSY;                  
     }
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                        "%s:LOGP in Progress. Ignore!!!",__func__);
-      return -EAGAIN;
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                  "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
     }
 
     vos_mem_zero( &scanRequest, sizeof(scanRequest));
 
-    if (request)
+    if (NULL != request)
     {
+        hddLog(VOS_TRACE_LEVEL_INFO, "scan request for ssid = %d",
+               (int)request->n_ssids);  
+
         /* Even though supplicant doesn't provide any SSIDs, n_ssids is set to 1.
          * Becasue of this, driver is assuming that this is not wildcard scan and so
          * is not aging out the scan results.
@@ -2846,7 +2849,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                 SsidInfo->SSID.length = request->ssids[j].ssid_len;
                 vos_mem_copy(SsidInfo->SSID.ssId, &request->ssids[j].ssid[0],
                              SsidInfo->SSID.length);
-                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s\n",
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s",
                                                    j, SsidInfo->SSID.ssId);
             }
         }
@@ -3054,6 +3057,22 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             hdd_SetGENIEToCsr(pAdapter, &RSNAuthType);
             /*set auth*/
             hdd_set_csr_auth_type(pAdapter, RSNAuthType);
+        }
+        else if ( (pWextState->roamProfile.AuthType.authType[0] == 
+                    eCSR_AUTH_TYPE_OPEN_SYSTEM)
+                && ((pWextState->roamProfile.EncryptionType.encryptionType[0] == 
+                        eCSR_ENCRYPT_TYPE_WEP40_STATICKEY) 
+                    || (pWextState->roamProfile.EncryptionType.encryptionType[0] == 
+                        eCSR_ENCRYPT_TYPE_WEP104_STATICKEY))
+                )
+        {
+            /*Android UI not having any option to configure the Authentication type to OPEN/SHARED;
+             * The authentication type will be always eCSR_AUTH_TYPE_OPEN_SYSTEM when WEP is used
+             * Use eCSR_AUTH_TYPE_AUTOSWITCH when WEP encryption used*/
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType = 
+                                                     eCSR_AUTH_TYPE_AUTOSWITCH;
+            pWextState->roamProfile.AuthType.authType[0] = 
+                  (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType;
         }
 #ifdef FEATURE_WLAN_WAPI
         if (pAdapter->wapi_info.nWapiMode)

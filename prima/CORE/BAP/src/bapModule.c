@@ -555,6 +555,7 @@ WLANBAP_ReleaseHndl
   /* obtain btamp Context  */ 
   ptBtampContext  btampContext = (ptBtampContext) btampHandle; 
   tHalHandle halHandle;
+  eHalStatus halStatus = eHAL_STATUS_SUCCESS;
   /*------------------------------------------------------------------------
     Sanity check params
    ------------------------------------------------------------------------*/
@@ -581,8 +582,12 @@ WLANBAP_ReleaseHndl
      return VOS_STATUS_E_FAULT;
   }
 
-  sme_CloseSession(halHandle, 
+  halStatus = sme_CloseSession(halHandle, 
           btampContext->sessionId, NULL, NULL);
+  if(eHAL_STATUS_SUCCESS == halStatus)
+  {
+    btampContext->isBapSessionOpen = FALSE;
+  }
 
   /* release the btampHandle  */ 
 

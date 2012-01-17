@@ -3925,7 +3925,7 @@ typedef struct sSirRcvPktFilterCfg
   eSirReceivePacketFilterType     filterType;
   tANI_U32                        numFieldParams;
   tANI_U32                        coalesceTime;
-  tSirRcvPktFilterFieldParams     paramsData[1];
+  tSirRcvPktFilterFieldParams     paramsData[SIR_MAX_NUM_TESTS_PER_FILTER];
 }tSirRcvPktFilterCfgType, *tpSirRcvPktFilterCfgType;
 
 //

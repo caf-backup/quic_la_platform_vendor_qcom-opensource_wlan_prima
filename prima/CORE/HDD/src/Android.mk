@@ -26,7 +26,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE       := WCNSS_qcom_cfg.ini
 LOCAL_MODULE_TAGS  := optional
 LOCAL_MODULE_CLASS := ETC
-LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/data/misc/wifi
+LOCAL_MODULE_PATH  := $(PRODUCT_OUT)/persist
 LOCAL_SRC_FILES    := ../../../firmware_bin/$(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 

@@ -1056,6 +1056,12 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimFTPreAuthRspTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimFTPreAuthRspTimer);
 #endif
+#ifdef WLAN_FEATURE_P2P
+        // Deactivate and delete remain on channel timer
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
+#endif
+
         pMac->lim.gLimTimersCreated = 0;
     }
 
