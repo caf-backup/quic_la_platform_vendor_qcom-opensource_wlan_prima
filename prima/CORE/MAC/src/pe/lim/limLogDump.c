@@ -398,7 +398,7 @@ char *testLimSendProbeRsp( tpAniSirGlobal pMac, char *p )
         ssId.length = (tANI_U8) len;
 
     p += log_sprintf( pMac, p, "Calling limSendProbeRspMgmtFrame...\n" );
-    limSendProbeRspMgmtFrame( pMac, peerMacAddr, &ssId, -1, 1,psessionEntry);
+    limSendProbeRspMgmtFrame( pMac, peerMacAddr, &ssId, -1, 1, psessionEntry , 0);
 
     return p;
 }

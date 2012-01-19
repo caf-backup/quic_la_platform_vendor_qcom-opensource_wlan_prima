@@ -1471,6 +1471,29 @@ tANI_BOOLEAN csrIsInfraConnected( tpAniSirGlobal pMac )
     return ( fRc );
 }
 
+tANI_BOOLEAN csrIsConcurrentInfraConnected( tpAniSirGlobal pMac )
+{
+    tANI_U32 i, noOfConnectedInfra = 0;
+
+    tANI_BOOLEAN fRc = eANI_BOOLEAN_FALSE;
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+        if( CSR_IS_SESSION_VALID( pMac, i ) && csrIsConnStateConnectedInfra( pMac, i ) )
+        {
+            ++noOfConnectedInfra;
+        }
+    }
+
+    // More than one Infra Sta Connected
+    if(noOfConnectedInfra > 1)
+    {
+        fRc = eANI_BOOLEAN_TRUE;
+    }
+
+    return ( fRc );
+}
+
 tANI_BOOLEAN csrIsIBSSStarted( tpAniSirGlobal pMac )
 {
     tANI_U32 i;

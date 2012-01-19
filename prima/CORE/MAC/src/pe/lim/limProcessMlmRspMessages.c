@@ -2814,11 +2814,11 @@ limProcessStaMlmAddBssRspPreAssoc( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPES
                 limLog(pMac, LOGP,
                        FL("could not retrieve AuthType\n"));
             }
-            if (cfgAuthType == eSIR_AUTO_SWITCH) {
+            if (cfgAuthType == eSIR_AUTO_SWITCH) 
                 authMode = eSIR_OPEN_SYSTEM; // Try Open Authentication first
-           	}
             else
                 authMode = cfgAuthType;
+
             // Trigger MAC based Authentication
             if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmAuthReq, sizeof(tLimMlmAuthReq)))
             {

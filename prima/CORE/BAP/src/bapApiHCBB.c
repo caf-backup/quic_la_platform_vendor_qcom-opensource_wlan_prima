@@ -148,6 +148,16 @@ WLAN_BAPReset
                        // I want to be able to convey everything 802.11 supports...
                        eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
+    /* Need to reset the timers as well*/
+    /* Connection Accept Timer interval*/
+    btampContext->bapConnectionAcceptTimerInterval = WLANBAP_CONNECTION_ACCEPT_TIMEOUT;  
+    /* Link Supervision Timer interval*/
+    btampContext->bapLinkSupervisionTimerInterval = WLANBAP_LINK_SUPERVISION_TIMEOUT;  
+    /* Logical Link Accept Timer interval*/
+    btampContext->bapLogicalLinkAcceptTimerInterval = WLANBAP_LOGICAL_LINK_ACCEPT_TIMEOUT;  
+    /* Best Effort Flush timer interval*/
+    btampContext->bapBEFlushTimerInterval = WLANBAP_BE_FLUSH_TIMEOUT;  
+
 
     /* Form and immediately return the command complete event... */ 
     bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;

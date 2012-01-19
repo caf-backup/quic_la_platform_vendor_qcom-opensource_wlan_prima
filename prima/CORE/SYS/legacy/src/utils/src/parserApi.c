@@ -1548,6 +1548,10 @@ sirConvertProbeReqFrame2Struct(tpAniSirGlobal  pMac,
         memcpy(&pProbeReq->probeReqWscIeInfo, &pr.WscProbeReq, sizeof(tDot11fIEWscProbeReq));
     }
 
+    if ( pr.P2PProbeReq.present )
+    {
+        pProbeReq->p2pIePresent = 1;
+    }
     return eSIR_SUCCESS;
 
 } // End sirConvertProbeReqFrame2Struct.
