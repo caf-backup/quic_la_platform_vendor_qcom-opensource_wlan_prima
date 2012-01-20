@@ -389,13 +389,14 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             goto err_rem_channel;
         }
     }
-
-    /* Check before sending action frame 
-       whether we already remain on channel */ 
-
-    if(NULL == cfgState->remain_on_chan_ctx)
+    else if ( offchan )
     {
-       goto err_rem_channel;
+        /* Check before sending action frame 
+           whether we already remain on channel */ 
+        if(NULL == cfgState->remain_on_chan_ctx)
+        {
+            goto err_rem_channel;
+        }
     }
     send_frame:
 #endif

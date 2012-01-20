@@ -1137,17 +1137,27 @@ WLAN_BAPLogicalLinkCreate
         = BTAMP_TLV_HCI_CREATE_LOGICAL_LINK_CMD;
 
     retval = VOS_STATUS_E_FAILURE;
-    if (CONNECTED != instanceVar->stateVar)
+    if(DISCONNECTED == instanceVar->stateVar)
+    {
+       /* Create Logical link request in invalid state */
+        pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
+            WLANBAP_ERROR_CMND_DISALLOWED;
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_NO_CNCT;
+
+    }
+    else if (CONNECTED != instanceVar->stateVar)
     {
         /* Create Logical link request in invalid state */
         pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
             WLANBAP_ERROR_CMND_DISALLOWED;
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_CMND_DISALLOWED;
     }
     else if (pBapHCILogLinkCreate->phy_link_handle != btampContext->phy_link_handle)
     {
        /* Invalid Physical link handle */
         pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
             WLANBAP_ERROR_NO_CNCT;
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_NO_CNCT;
     }
     else
     {
@@ -1164,21 +1174,23 @@ WLAN_BAPLogicalLinkCreate
             /* Invalid flow spec format */
             pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
                 WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+            bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
         }
         else
         {
             retval = VOS_STATUS_SUCCESS;
             bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
 
-            vosStatus = (*btampContext->pBapHCIEventCB) 
+            pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status = WLANBAP_STATUS_SUCCESS;
+        }
+    }
+
+    vosStatus = (*btampContext->pBapHCIEventCB) 
                 (  
                  btampContext->pHddHdl,   /* this refers to the BSL per connection context */
                  &bapHCIEvent, /* This now encodes ALL event types */
                  VOS_TRUE /* Flag to indicate assoc-specific event */ 
                 );
-        pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status = WLANBAP_STATUS_SUCCESS;
-    }
-    }
 
     index_for_logLinkCtx = log_link_index >> 8;
     /* Format the Logical Link Complete event to return... */ 
@@ -1387,7 +1399,7 @@ WLAN_BAPLogicalLinkDisconnect
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
                    "Critical error: Invalid input parameter on %s", 
                    __FUNCTION__); 
-        return VOS_STATUS_E_INVAL; 
+        return VOS_STATUS_E_FAULT; 
     }
 
     /* Derive logical link index from handle */
@@ -1414,6 +1426,12 @@ WLAN_BAPLogicalLinkDisconnect
             "WLAN BAP Context Monitor: btampContext value = %x in %s:%d", btampContext, __FUNCTION__, __LINE__ );
 #endif //BAP_DEBUG
 
+    bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_STATUS_EVENT;
+    bapHCIEvent.u.btampCommandStatusEvent.present = 1;
+    bapHCIEvent.u.btampCommandStatusEvent.num_hci_command_packets = 1;
+    bapHCIEvent.u.btampCommandStatusEvent.command_opcode 
+        = BTAMP_TLV_HCI_DISCONNECT_LOGICAL_LINK_CMD;
+
    /*------------------------------------------------------------------------
     FIXME: Validate the Logical Link handle, Generation and freeing...
     Here the Logical link is not validated and assumed that it is correct to. 
@@ -1430,6 +1448,7 @@ WLAN_BAPLogicalLinkDisconnect
            command status event with proper status */
         pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.status =
             WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_NO_CNCT;
         retval = VOS_STATUS_E_FAILURE;
 #ifdef BAP_DEBUG
         /* Log the error. */
@@ -1444,19 +1463,9 @@ WLAN_BAPLogicalLinkDisconnect
     {
         /* Form and return the command status event... */ 
         bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
-        bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_STATUS_EVENT;
-        bapHCIEvent.u.btampCommandStatusEvent.present = 1;
-        bapHCIEvent.u.btampCommandStatusEvent.num_hci_command_packets = 1;
-        bapHCIEvent.u.btampCommandStatusEvent.command_opcode 
-            = BTAMP_TLV_HCI_DISCONNECT_LOGICAL_LINK_CMD;
+        pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.status 
+            = WLANBAP_STATUS_SUCCESS;
     
-        /* Notify the Command status Event */
-        (*btampContext->pBapHCIEventCB) 
-        (  
-            btampContext->pHddHdl,   /* this refers to the BSL per connection context */
-            &bapHCIEvent, /* This now encodes ALL event types */
-            VOS_TRUE /* Flag to indicate assoc-specific event */ 
-        );
 
         pLogLinkContext->present         = VOS_FALSE; 
         pLogLinkContext->uTxPktCompleted = 0;
@@ -1464,13 +1473,19 @@ WLAN_BAPLogicalLinkDisconnect
         /* Decrement the total logical link count */
         btampContext->total_log_link_index--;
     }
+    
+    /* Notify the Command status Event */
+    (*btampContext->pBapHCIEventCB) 
+        (  
+            btampContext->pHddHdl,   /* this refers to the BSL per connection context */
+            &bapHCIEvent, /* This now encodes ALL event types */
+            VOS_TRUE /* Flag to indicate assoc-specific event */ 
+        );
 
     /* Format the Logical Link Complete event to return... */ 
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_DISCONNECT_LOGICAL_LINK_COMPLETE_EVENT;
     pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.present = 1;
     /*  Return the logical link index here */
-    pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.status 
-        = WLANBAP_STATUS_SUCCESS;
     pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.log_link_handle 
         = pBapHCILogLinkDisconnect->log_link_handle;
     pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.reason 
@@ -1521,7 +1536,8 @@ WLAN_BAPLogicalLinkCancel
                                 /* Including Command Complete and Command Status*/
 )
 {
-
+   ptBtampContext btampContext;
+   BTAMPFSM_INSTANCEDATA_T *instanceVar;
     /* Validate params */ 
     if ((btampHandle == NULL) || (pBapHCILogLinkCancel == NULL) || 
         (pBapHCIEvent == NULL))
@@ -1530,6 +1546,9 @@ WLAN_BAPLogicalLinkCancel
             "%s: Null Parameters Not allowed", __FUNCTION__); 
         return VOS_STATUS_E_FAULT;
     }
+
+    btampContext = (ptBtampContext) btampHandle;
+    instanceVar = &(btampContext->bapPhysLinkMachine);
 
     /* Form and immediately return the command status event... */ 
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
@@ -1540,9 +1559,25 @@ WLAN_BAPLogicalLinkCancel
 
     /* As the logical link create is returned immediately, the logical link is
        created and so cancel can not return success.
-       And it returns WLANBAP_ERROR_CMND_DISALLOWED always */
-    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
-        WLANBAP_ERROR_CMND_DISALLOWED;
+       And it returns WLANBAP_ERROR_NO_CNCT if not connected or
+       WLANBAP_ERROR_MAX_NUM_ACL_CNCTS if connected */
+    if(DISCONNECTED == instanceVar->stateVar)
+    {
+       /* Cancel Logical link request in invalid state */
+       pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+           WLANBAP_ERROR_NO_CNCT;
+    }
+    else if(CONNECTED == instanceVar->stateVar)
+    {
+       /* Cancel Logical link request in conected state */
+       pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+           WLANBAP_ERROR_MAX_NUM_ACL_CNCTS;       
+    }
+    else
+    {
+        pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+            WLANBAP_ERROR_CMND_DISALLOWED;
+    }
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.phy_link_handle =
         pBapHCILogLinkCancel->phy_link_handle;
     /* Since the status is not success, the Tx flow spec Id is not meaningful and

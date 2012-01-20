@@ -92,19 +92,19 @@ when        who    what, where, why
 // Physical Link Connection Accept Timer interval (0x1FA0 * 0.625 = 5.06 sec)
 /* chose to double it to 3FFF as we saw conn timeout in lab*/
 //#define WLANBAP_CONNECTION_ACCEPT_TIMEOUT  0xFFFF
-// Set default to the max allowable value.  Which is 0xB540. Which is ~25 secs.
-#define WLANBAP_CONNECTION_ACCEPT_TIMEOUT  WLANBAP_CON_ACCEPT_TIMEOUT_MAX_RANGE
+// Set default to 0x1F40.  Which is ~5 secs.
+#define WLANBAP_CONNECTION_ACCEPT_TIMEOUT  0x1F40
 
 /* Link Supervision Timer interval (0x7D00 * 0.625 = 20 sec) */
 #ifdef FEATURE_WLAN_BTAMP_UT
 #define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x7D00
 #else
-#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x2710  // 10 seconds
+#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x3E80  // 10 seconds
 #endif
 #define WLANBAP_LINK_SUPERVISION_RETRIES   2
 
 /* Logical Link Accept Timer interval (0x1FA0 * 0.625 = 5.06 sec)*/
-#define WLANBAP_LOGICAL_LINK_ACCEPT_TIMEOUT 0x1FA0
+#define WLANBAP_LOGICAL_LINK_ACCEPT_TIMEOUT 0x1F40
 
 /* BR/EDR baseband 1 slot time period */
 #define WLANBAP_BREDR_BASEBAND_SLOT_TIME  1 // 0.625

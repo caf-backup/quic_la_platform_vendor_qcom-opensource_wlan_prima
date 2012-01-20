@@ -785,11 +785,10 @@ static VOS_STATUS WLANBAP_EventCB
     static v_U8_t Buff[BSL_MAX_EVENT_SIZE]; // stack overflow?
     v_U32_t Written = 0; // FramesC REQUIRES this
     v_U32_t OldMapVal;
-    int plen = 0;
     struct sk_buff *skb = NULL;
 
     // sanity checking
-    if ( pHddHdl == NULL || pBapHCIEvent == NULL )
+    if ( pBapHCIEvent == NULL )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_EventCB bad input\n" );
         return VOS_STATUS_E_FAILURE;
@@ -798,14 +797,38 @@ static VOS_STATUS WLANBAP_EventCB
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB event=%d "
        "assoc_specific=%d\n", pBapHCIEvent->bapHCIEventCode, AssocSpecificEvent );
 
-    if ( AssocSpecificEvent )
+    if ( pHddHdl == NULL )
     {
-        // get the app context from the assoc context
-        pctx = ((BslPhyLinkCtxType *)pHddHdl)->pClientCtx;
+        /* Consider the following error scenarios to bypass the NULL check: 
+        - create LL without a call for create PL before 
+        - delete LL or PL when no AMP connection has been established yet 
+        Client context is unimportant from HCI point of view, only needed by the TLV API in BAP 
+        TODO: Change the TLV APIs to not to carry the client context; it doesn't use it anyway 
+        */
+        if (( AssocSpecificEvent ) && 
+            (BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT != pBapHCIEvent->bapHCIEventCode))
+        {
+            pctx = gpBslctx;
+        }
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, "WLANBAP_EventCB bad input\n" );
+            return VOS_STATUS_E_FAILURE;
+        }
     }
-    else
+
+
+    if(NULL != pHddHdl)
     {
-        pctx = (BslClientCtxType *)pHddHdl;
+        if ( AssocSpecificEvent )
+        {
+            // get the app context from the assoc context
+            pctx = ((BslPhyLinkCtxType *)pHddHdl)->pClientCtx;
+        }
+        else
+        {
+            pctx = (BslClientCtxType *)pHddHdl;
+        }
     }
 
     if(NULL == pctx)
@@ -1321,10 +1344,6 @@ static VOS_STATUS WLANBAP_EventCB
 
     // stick the event into a VoS pkt
     VosStatus = vos_pkt_push_head( pVosPkt, Buff, Written );
-    //VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s:Pushed Buff address=%u len=%d\n",__FUNCTION__,Buff,Written);
-    for(plen = 0; plen < 5; plen++)
-        //VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s:Pushed Buff[%d]=%x\n",__FUNCTION__,plen,Buff[plen] );
-        //Eventlen = Written;
 
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
