@@ -11,6 +11,17 @@ WLAN_DIR 		:= $(WLAN_VOLANS)/CORE
 SAL_EXTERNAL_DIR 	:= $(WLAN_VOLANS)/external
 WLANFW_DIR 		:= $(WLAN_VOLANS)/wlanfw
 
+ifeq ($(CONFIG_CFG80211),y)
+HAVE_CFG80211 := 1
+else
+ifeq ($(CONFIG_CFG80211),m)
+HAVE_CFG80211 := 1
+EXTRA_CFLAGS += -DCONFIG_CFG80211=1
+else
+HAVE_CFG80211 := 0
+endif
+endif
+
 ############## HDD ###################
 HDD_INC := $(WLAN_DIR)/HDD/inc/
 HDD_OBJS := wlan_hdd_main.o  \
@@ -29,7 +40,7 @@ HDD_OBJS := wlan_hdd_main.o  \
             wlan_hdd_hostapd.o  \
             wlan_hdd_softap_tx_rx.o
 
-ifeq ($(CONFIG_CFG80211), y)
+ifeq ($(HAVE_CFG80211), 1)
 HDD_OBJS += wlan_hdd_cfg80211.o \
             wlan_hdd_p2p.o
 endif
@@ -431,7 +442,7 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         #-Wframe-larger-than=4096#\
         #-DVOLANS_PHY_TX_OPT_ENABLED #\
 
-ifeq ($(CONFIG_CFG80211), y)
+ifeq ($(HAVE_CFG80211), 1)
 CDEFINES += -DWLAN_FEATURE_P2P
 endif
 
