@@ -51,13 +51,22 @@ _raRateIsSupportedAndValid(
     tANI_U32        *pvRates,
     tANI_U16        maxDataRate);
 
+#ifdef WLAN_FEATURE_P2P
+static tHalMacRate
+_getLowestRateByNwType(
+    eRfBandMode band,
+    tStaRateMode operMode,
+    tANI_U32 pure11g,
+    tANI_U32 isP2P
+);
+#else
 static tHalMacRate
 _getLowestRateByNwType(
     eRfBandMode band,
     tStaRateMode operMode,
     tANI_U32 pure11g
 );
-
+#endif
 static void
 _updateAllStaRetryRateByCfg(
 tpAniSirGlobal  pMac);
@@ -419,9 +428,13 @@ static void raLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,..
 #endif
 }
 
-
+#ifdef WLAN_FEATURE_P2P
+static tHalMacRate
+_getLowestRateByNwType( eRfBandMode band, tStaRateMode operMode, tANI_U32 pure11g, tANI_U32 isP2P)
+#else
 static tHalMacRate
 _getLowestRateByNwType( eRfBandMode band, tStaRateMode operMode, tANI_U32 pure11g)
+#endif
 {
     tHalMacRate halRate = HALRATE_INVALID;
 
@@ -432,7 +445,11 @@ _getLowestRateByNwType( eRfBandMode band, tStaRateMode operMode, tANI_U32 pure11
             break;
         case eSTA_11bg:
         case eSTA_11n:
-            if (band == eRF_BAND_5_GHZ || (pure11g)) {
+#ifdef WLAN_FEATURE_P2P
+            if (band == eRF_BAND_5_GHZ || (pure11g) || isP2P) {
+#else				
+			if (band == eRF_BAND_5_GHZ || (pure11g)) {
+#endif				
                 halRate = HALRATE_6;
             } else {
                 halRate = HALRATE_1;
@@ -1007,7 +1024,11 @@ _raStartStaAutoRate(
     {
         pur11g = false;
     }
-    selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, pur11g);
+#ifdef WLAN_FEATURE_P2P
+	selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, pur11g, VOS_IS_P2P_PERSONA(bssTable->halBssPersona));
+#else
+	selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, pur11g);
+#endif
 
     //non fixed rate, pick lowest rate and force restart sampling
     //Best rate would be selected by RA later
@@ -1708,8 +1729,11 @@ halMacRaStaInit(
      * locally through other means (such as dump commands)
      */
     /* initially set to lowest rate, may be overriden later if fixed rate is configured */
+#ifdef WLAN_FEATURE_P2P
+	pRaInfo->currentRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, (!pBss->bssRaInfo.u.bit.llbCoexist), VOS_IS_P2P_PERSONA(pBss->halBssPersona));
+#else
     pRaInfo->currentRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, (!pBss->bssRaInfo.u.bit.llbCoexist));
-
+#endif
     raLog(pMac, RALOG_STATS, FL("RA[STA%d]  opRateMode %d"), staid, pRates->opRateMode);
 
     /* fill the supported rate bitmap and update peer type based on supported rates */

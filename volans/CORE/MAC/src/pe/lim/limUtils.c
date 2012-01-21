@@ -4279,18 +4279,20 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
 #ifdef WLAN_SOFTAP_FEATURE
-        if((eLIM_AP_ROLE == psessionEntry->limSystemRole) &&
-                (true == psessionEntry->htCapabality))
+        if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
         {
             if(overlap)
             {
                 psessionEntry->gLimOlbcParams.protectionEnabled = true;
                 PELOGE(limLog(pMac, LOGE, FL("protection from olbc is enabled\n"));)
+                if(true == psessionEntry->htCapabality)
+                {
                     if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != psessionEntry->htOperMode) &&
                             (eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode))
                     {
                         psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
                     }
+                }
                 //CR-263021: OBSS bit is not switching back to 0 after disabling the overlapping legacy BSS
                 // This fixes issue of OBSS bit not set after 11b, 11g station leaves
                 limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
@@ -4302,11 +4304,14 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             {
                 psessionEntry->gLim11bParams.protectionEnabled = true;
                 PELOGE(limLog(pMac, LOGE, FL("protection from 11b is enabled\n"));)
-                if(eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode)
+                if(true == psessionEntry->htCapabality)
                 {
-                    psessionEntry->htOperMode = eSIR_HT_OP_MODE_MIXED;
-                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-                    limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);     
+                    if(eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode)
+                    {
+                        psessionEntry->htOperMode = eSIR_HT_OP_MODE_MIXED;
+                        limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                        limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);
+                    }
                 }
             }
         }else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&

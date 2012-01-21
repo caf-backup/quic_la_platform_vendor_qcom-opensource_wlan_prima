@@ -335,6 +335,18 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             we_event = IWEVMICHAELMICFAILURE;
             we_custom_event_generic = (v_BYTE_t *)&msg;
         }
+#ifdef CONFIG_CFG80211
+      /* inform mic failure to nl80211 */
+        cfg80211_michael_mic_failure(dev, 
+                                     pSapEvent->sapevt.
+                                     sapStationMICFailureEvent.staMac.bytes,
+                                     ((pSapEvent->sapevt.sapStationMICFailureEvent.multicast == eSIR_TRUE) ? 
+                                      NL80211_KEYTYPE_GROUP :
+                                      NL80211_KEYTYPE_PAIRWISE),
+                                     pSapEvent->sapevt.sapStationMICFailureEvent.keyId, 
+                                     pSapEvent->sapevt.sapStationMICFailureEvent.TSC, 
+                                     GFP_KERNEL);
+#endif
             break;
         
         case eSAP_STA_ASSOC_EVENT:
@@ -507,7 +519,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
            hdd_remainChanReadyHandler( pHostapdAdapter );
            return VOS_STATUS_SUCCESS;
         case eSAP_SEND_ACTION_CNF:
-           hdd_sendActionCnf( pHostapdAdapter, pSapEvent->sapevt.sapActionCnf.actionSendSuccess);
+           hdd_sendActionCnf( pHostapdAdapter, 
+                              ( eSAP_STATUS_SUCCESS == 
+                                pSapEvent->sapevt.sapActionCnf.actionSendSuccess ) ? 
+                                TRUE : FALSE );
            return VOS_STATUS_SUCCESS;
 #endif
         default:
@@ -1080,6 +1095,57 @@ int iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
     EXIT();
     return 0;
 }
+
+/**---------------------------------------------------------------------------
+  
+  \brief iw_set_auth_hostap() - 
+   This function sets the auth type received from the wpa_supplicant.
+   
+  \param  - dev - Pointer to the net device.
+              - info - Pointer to the iw_request_info.
+              - wrqu - Pointer to the iwreq_data.
+              - extra - Pointer to the data.        
+  \return - 0 for success, non zero for failure
+  
+  --------------------------------------------------------------------------*/
+int iw_set_auth_hostap(struct net_device *dev,struct iw_request_info *info,
+                        union iwreq_data *wrqu,char *extra)
+{
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
+
+   ENTER();
+   switch(wrqu->param.flags & IW_AUTH_INDEX)
+   {
+      case IW_AUTH_TKIP_COUNTERMEASURES:
+      {
+         if(wrqu->param.value) {
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                   "Counter Measure started %d", wrqu->param.value);
+            pWextState->mTKIPCounterMeasures = TKIP_COUNTER_MEASURE_STARTED;
+         }  
+         else {   
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                   "Counter Measure stopped=%d", wrqu->param.value);
+            pWextState->mTKIPCounterMeasures = TKIP_COUNTER_MEASURE_STOPED;
+         }
+
+         hdd_softap_tkip_mic_fail_counter_measure(pAdapter,
+                                                  wrqu->param.value);
+      }   
+      break;
+         
+      default:
+         
+         hddLog(LOGW, "%s called with unsupported auth type %d", __FUNCTION__, 
+               wrqu->param.flags & IW_AUTH_INDEX);
+      break;
+   }
+   
+   EXIT();
+   return 0;
+}
+
 static int iw_set_ap_encodeext(struct net_device *dev, 
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
@@ -1814,7 +1880,7 @@ static const iw_handler      hostapd_handler[] =
    (iw_handler) NULL,           /* -- hole -- */
    (iw_handler) iw_set_ap_genie,     /* SIOCSIWGENIE */
    (iw_handler) NULL,           /* SIOCGIWGENIE */
-   (iw_handler) NULL,           /* SIOCSIWAUTH */
+   (iw_handler) iw_set_auth_hostap,    /* SIOCSIWAUTH */
    (iw_handler) NULL,           /* SIOCGIWAUTH */
    (iw_handler) iw_set_ap_encodeext,     /* SIOCSIWENCODEEXT */
    (iw_handler) NULL,           /* SIOCGIWENCODEEXT */

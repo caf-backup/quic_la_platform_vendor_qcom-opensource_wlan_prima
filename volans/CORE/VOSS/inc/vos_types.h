@@ -116,6 +116,9 @@ typedef enum
     ,VOS_FTM_MODE
 } tVOS_CON_MODE;
 #endif 
+
+#define VOS_IS_P2P_PERSONA(persona) (( VOS_P2P_GO_MODE == (persona) ) || ( VOS_P2P_CLIENT_MODE == (persona) ))
+
 //This is a bit pattern to be set for each mode
 //bit 0 - sta mode
 //bit 1 - ap mode

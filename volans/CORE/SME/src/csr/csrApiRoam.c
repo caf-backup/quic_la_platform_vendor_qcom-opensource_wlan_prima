@@ -9765,9 +9765,8 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
 #endif
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
-                (pProfile->csrPersona == VOS_P2P_GO_MODE) )
-            && ( cfgDot11Mode == eCSR_CFG_DOT11_MODE_11B)
+    if( VOS_IS_P2P_PERSONA (pProfile->csrPersona) 
+     && ( cfgDot11Mode == eCSR_CFG_DOT11_MODE_11B)
       )
     {
         /* This should never happen */
@@ -9870,9 +9869,7 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
         case eSIR_11G_NW_TYPE:
 #ifdef WLAN_FEATURE_P2P
             /* For P2P Client and P2P GO, disable 11b rates */ 
-            if( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
-                    (pProfile->csrPersona == VOS_P2P_GO_MODE)
-              )
+            if( VOS_IS_P2P_PERSONA (pProfile->csrPersona))
             {
                 pParam->operationalRateSet.numRates = 8;
 

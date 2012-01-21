@@ -847,13 +847,15 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32 bFwProcProbeReqDisabled:1; //when set FW will always froward the probeReq to the host.
    tANI_U32 fDisLinkMonitor:1; // when set link monitoring is disabled.
+   tANI_U32 fEnbHwQosNullFeature:1; // when set Hw Qos Null Feature is enabled.
    tANI_U32 fEnableFwUnknownAddr2Handling:1; //enables handling of unknown addr2 at FW.
-   tANI_U32 bReserved11:29;
+   tANI_U32 bReserved11:28;
 #else
-    tANI_U32 bReserved11:29;
+    tANI_U32 bReserved11:28;
     tANI_U32 fEnableFwUnknownAddr2Handling:1; //enables handling of unknown addr2 at FW.
+    tANI_U32 fEnbHwQosNullFeature:1; // when set Hw Qos Null Feature is enabled.
     tANI_U32 fDisLinkMonitor:1; // when set link monitoring is disabled.
-    tANI_U32 bFwProcProbeReqDisabled:1;
+    tANI_U32 bFwProcProbeReqDisabled:1; //when set FW will always froward the probeReq to the host.
 #endif
     tANI_U32 ucApLinkMonitorMsec; //link monitoring timer interval
     tANI_U32 ucUnknownAddr2CreditIntvMsec; //interval at which unkown addr2 credit will be reset to max.

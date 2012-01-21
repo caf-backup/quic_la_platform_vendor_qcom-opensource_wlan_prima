@@ -1859,7 +1859,11 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
     tANI_U32 mask = 0;
     tANI_U16 delEnbQidMask=0;
     tANI_U16 trigEnbQidMask=0;
-#endif    
+#endif
+
+#ifndef WLAN_FW_BTQM_STA_MGMT
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
+#endif
 
     if(staIdx > HAL_NUM_STA)
         return;
@@ -1877,11 +1881,11 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
 #ifndef WLAN_FW_BTQM_STA_MGMT
         if(!updateUapsdOnly)
         {
-            halBmu_btqmStaClearState(pMac, staIdx);    
+            halBmu_btqmStaClearState(pMac, staIdx);
         }
 
         /* 
-         * Dinesh taking this out as we see issue with UAPSD 
+         * Taking this out as we see issue with UAPSD 
          * without this workaround Volans softap shows BMU BTQM arbiter error. 
          * Putting this workaround to unblock softAp testing while we are working on resolving the issue. 
          * FIXME_VOLANS_SOFTAP_UPASD_ISSUE 
@@ -1897,11 +1901,20 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
          * Refer to CR# 304083 and 300709 for more details
          *  
          */
-        mask = QWLAN_BMU_STA_CONFIG_STATUS2_STA_ENABLE_MASK |
-            QWLAN_BMU_STA_CONFIG_STATUS2_STA_TX_ENABLE_MASK //|
-           //QWLAN_BMU_STA_CONFIG_STATUS2_QOS_NULL_RESP_ENABLE_MASK |
-            //QWLAN_BMU_STA_CONFIG_STATUS2_U_DATA_NULL_RESP_ENABLE_MASK
-            ;
+        if (!pFwConfig->fEnbHwQosNullFeature)
+        {
+           /** Configure the STA to Enable support for Power Save Handling */
+           mask = QWLAN_BMU_STA_CONFIG_STATUS2_STA_ENABLE_MASK |
+               QWLAN_BMU_STA_CONFIG_STATUS2_STA_TX_ENABLE_MASK;
+        }
+        else
+        {
+           /** Configure the STA to Enable support for Power Save Handling */
+           mask = QWLAN_BMU_STA_CONFIG_STATUS2_STA_ENABLE_MASK |
+               QWLAN_BMU_STA_CONFIG_STATUS2_STA_TX_ENABLE_MASK |
+               QWLAN_BMU_STA_CONFIG_STATUS2_QOS_NULL_RESP_ENABLE_MASK |
+               QWLAN_BMU_STA_CONFIG_STATUS2_U_DATA_NULL_RESP_ENABLE_MASK;
+        }
 
         if (uapsdACMask)
         {
