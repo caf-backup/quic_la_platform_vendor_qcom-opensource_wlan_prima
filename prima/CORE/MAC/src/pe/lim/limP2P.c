@@ -560,10 +560,24 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
                    (tANI_U8*)pMbMsg->data + ADDR2_OFFSET, &sessionId);
     }
 
-    /* Drop if remain on channel is not pending in case of normal device */
     if( NULL == psessionEntry )
     {
-        if( NULL == pMac->lim.gpLimRemainOnChanReq )
+        tANI_U8             isSessionActive = 0;
+        tANI_U8             i;
+        
+        /* If we are not able to find psessionEntry entry, then try to find 
+           active session, if found any active sessions then send the
+           action frame, If no active sessions found then drop the frame */ 
+        for (i =0; i < pMac->lim.maxBssId;i++)
+        {
+            psessionEntry = peFindSessionBySessionId(pMac,i);
+            if ( NULL != psessionEntry)
+            {
+                isSessionActive = 1;
+                break;
+            }
+        }
+        if( !isSessionActive )
         {
             limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, 
                           eHAL_STATUS_FAILURE, pMbMsg->sessionId, 0);

@@ -555,7 +555,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
            hdd_remainChanReadyHandler( pHostapdAdapter );
            return VOS_STATUS_SUCCESS;
         case eSAP_SEND_ACTION_CNF:
-           hdd_sendActionCnf( pHostapdAdapter, pSapEvent->sapevt.sapActionCnf.actionSendSuccess);
+           hdd_sendActionCnf( pHostapdAdapter, 
+                              ( eSAP_STATUS_SUCCESS == 
+                                pSapEvent->sapevt.sapActionCnf.actionSendSuccess ) ? 
+                                TRUE : FALSE );
            return VOS_STATUS_SUCCESS;
 #endif
         case eSAP_UNKNOWN_STA_JOIN:
