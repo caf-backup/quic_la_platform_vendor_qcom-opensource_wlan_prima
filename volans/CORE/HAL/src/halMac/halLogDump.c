@@ -3655,6 +3655,18 @@ dump_hal_set_ap_unknown_addr2_handling( tpAniSirGlobal pMac, tANI_U32 enable, tA
 }
 
 static char *
+dump_hal_enable_hw_qosnull_feature(  tpAniSirGlobal pMac, tANI_U32 enable, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)  
+{
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
+    (void) arg2; (void) arg3; (void) arg4;
+
+    pFwConfig->fEnbHwQosNullFeature = enable;
+
+    HALLOGW( halLog(pMac, LOGW, FL("ap Enable/Disable HW Qos Null Feature at FW <1/0 = %d\n"), pFwConfig->fEnbHwQosNullFeature));
+    return p;
+}
+
+static char *
 dump_hal_Fw_Stat( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     halFW_MsgReq(pMac, QWLANFW_COMMON_DUMP_STAT, 0, 0);
@@ -4517,7 +4529,8 @@ static tDumpFuncEntry halMenuDumpTable[] = {
 #ifdef WLAN_SOFTAP_FEATURE
     {0,     "SAP (260-269)",                                            NULL},
     {260,   "SAP:Enable/Disable AGC Listen Mode <1/0>",                 dump_hal_enable_listen_mode},
-    {266,   "SAP:Config AGC Listen Mode <EDET threshold; 128-disable>", dump_hal_enable_listen_mode},   
+    {266,   "SAP:Config AGC Listen Mode <EDET threshold; 128-disable>", dump_hal_enable_listen_mode},
+    {267,   "ap Enable/Disable HW Qos Null Feature at FW <1/0",         dump_hal_enable_hw_qosnull_feature},
 #endif
 };
 

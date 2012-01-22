@@ -2438,8 +2438,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
      */
     halSetNonBcnRateIdx(pMac, rateIndex);
     halSetNonBcnRateIdx2(pMac, TPE_RT_IDX_11A_6_MBPS);
-    if( ( VOS_P2P_GO_MODE == param->halPersona ) ||
-        ( VOS_P2P_CLIENT_MODE == param->halPersona ) )
+    if( VOS_IS_P2P_PERSONA (param->halPersona ) )
     {
         mcastRateIndex = TPE_RT_IDX_11A_6_MBPS;
         rateIndex = TPE_RT_IDX_11A_6_MBPS;
@@ -4645,8 +4644,7 @@ eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac, tANI_U16 dialog_token, tpAddS
          */
         halSetNonBcnRateIdx(pMac, rateIndex);
         halSetNonBcnRateIdx2(pMac, TPE_RT_IDX_11A_6_MBPS);
-        if( ( VOS_P2P_GO_MODE == halBssPersona ) ||
-            ( VOS_P2P_CLIENT_MODE == halBssPersona ) )
+        if( VOS_IS_P2P_PERSONA ( halBssPersona ) )
         {
             mcastRateIndex = TPE_RT_IDX_11A_6_MBPS;
             rateIndex = TPE_RT_IDX_11A_6_MBPS;

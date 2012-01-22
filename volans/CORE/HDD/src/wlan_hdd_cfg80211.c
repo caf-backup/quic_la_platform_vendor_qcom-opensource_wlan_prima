@@ -857,7 +857,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     else {
         pConfig->ieee80211d = 0;
     }
-    pConfig->authType = eSAP_AUTO_SWITCH;
+    if(params->auth_type == NL80211_AUTHTYPE_OPEN_SYSTEM)
+        pConfig->authType = eSAP_OPEN_SYSTEM;
+    else if(params->auth_type == NL80211_AUTHTYPE_SHARED_KEY)
+        pConfig->authType = eSAP_SHARED_KEY;
+    else 
+        pConfig->authType = eSAP_AUTO_SWITCH;
 
     capab_info = pMgmt_frame->u.beacon.capab_info;
     
@@ -948,12 +953,14 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 
     pConfig->SSIDinfo.ssidHidden = VOS_FALSE;
 
-    if (params->ssid != NULL)
+    if(params->ssid != NULL)
     {
-        memcpy(pConfig->SSIDinfo.ssid.ssId, params->ssid, params->ssid_len);
-        pConfig->SSIDinfo.ssid.length = params->ssid_len;
-        if (params->hidden_ssid != NL80211_HIDDEN_SSID_NOT_IN_USE)
-           pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
+	    memcpy(pConfig->SSIDinfo.ssid.ssId, params->ssid, params->ssid_len);
+	    pConfig->SSIDinfo.ssid.length = params->ssid_len;
+	    if(params->hidden_ssid != NL80211_HIDDEN_SSID_NOT_IN_USE)
+	    {
+		    pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
+	    }
     }
     vos_mem_copy(pConfig->self_macaddr.bytes, 
                pHostapdAdapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
@@ -3058,58 +3065,58 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
 
     if (!cipher) 
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid value for cipher type %d", 
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: received cipher %d - considering none", 
                 __func__, cipher);
-        encryptionType = eCSR_ENCRYPT_TYPE_FAILED;
-        return 0;
+        encryptionType = eCSR_ENCRYPT_TYPE_NONE;
     }
-
-    /*set encryption method*/
-    switch (cipher) 
+    else
     {
-        case IW_AUTH_CIPHER_NONE:
-            encryptionType = eCSR_ENCRYPT_TYPE_NONE;
-            break;
-
-        case WLAN_CIPHER_SUITE_WEP40:
-            if (( IW_AUTH_KEY_MGMT_802_1X 
-                        == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X )) 
-                    && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType))
-                encryptionType = eCSR_ENCRYPT_TYPE_WEP40;
-            else
-                encryptionType = eCSR_ENCRYPT_TYPE_WEP40_STATICKEY;
-            break;
-
-        case WLAN_CIPHER_SUITE_WEP104:
-            if ( (IW_AUTH_KEY_MGMT_802_1X 
-                        == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)) 
-                    && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType))
-                encryptionType = eCSR_ENCRYPT_TYPE_WEP104;
-            else
-                encryptionType = eCSR_ENCRYPT_TYPE_WEP104_STATICKEY;
-            break;
-
-        case WLAN_CIPHER_SUITE_TKIP:
-            encryptionType = eCSR_ENCRYPT_TYPE_TKIP;
-            break;
-
-        case WLAN_CIPHER_SUITE_CCMP:
-            encryptionType = eCSR_ENCRYPT_TYPE_AES;
-            break;
+    
+        /*set encryption method*/
+        switch (cipher) 
+        {
+            case IW_AUTH_CIPHER_NONE:
+                encryptionType = eCSR_ENCRYPT_TYPE_NONE;
+                break;
+    
+            case WLAN_CIPHER_SUITE_WEP40:
+                if ((IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) && 
+                    (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType))
+                    encryptionType = eCSR_ENCRYPT_TYPE_WEP40;
+                else
+                    encryptionType = eCSR_ENCRYPT_TYPE_WEP40_STATICKEY;
+                break;
+    
+            case WLAN_CIPHER_SUITE_WEP104:
+                if ((IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) && 
+                    (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType))
+                    encryptionType = eCSR_ENCRYPT_TYPE_WEP104;
+                else
+                    encryptionType = eCSR_ENCRYPT_TYPE_WEP104_STATICKEY;
+                break;
+    
+            case WLAN_CIPHER_SUITE_TKIP:
+                encryptionType = eCSR_ENCRYPT_TYPE_TKIP;
+                break;
+    
+            case WLAN_CIPHER_SUITE_CCMP:
+                encryptionType = eCSR_ENCRYPT_TYPE_AES;
+                break;
 #ifdef FEATURE_WLAN_WAPI
-        case WLAN_CIPHER_SUITE_SMS4:
-            encryptionType = eCSR_ENCRYPT_TYPE_WPI;
-            break;
+            case WLAN_CIPHER_SUITE_SMS4:
+                encryptionType = eCSR_ENCRYPT_TYPE_WPI;
+                break;
 #endif
 #ifdef FEATURE_WLAN_CCX
-        case WLAN_CIPHER_SUITE_KRK:
-            encryptionType = eCSR_ENCRYPT_TYPE_KRK;
-            break;
+            case WLAN_CIPHER_SUITE_KRK:
+                encryptionType = eCSR_ENCRYPT_TYPE_KRK;
+                break;
 #endif
-        default:
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported cipher type %d", 
-                    __func__, cipher);
-            return -EOPNOTSUPP;
+            default:
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported cipher type %d", 
+                       __func__, cipher);
+                return -EOPNOTSUPP;
+        }
     }
 
     if (ucast)
@@ -3350,6 +3357,17 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
     {
         status = wlan_hdd_cfg80211_set_cipher(pAdapter,
                                       req->crypto.ciphers_pairwise[0], true);
+        if (0 > status)
+        {
+            hddLog(VOS_TRACE_LEVEL_ERROR, 
+                    "%s: failed to set unicast cipher type", __func__);
+            return status;
+        }
+    }
+    else
+    {
+        /*Reset previous cipher suite to none*/
+        status = wlan_hdd_cfg80211_set_cipher(pAdapter, 0, true);
         if (0 > status)
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, 

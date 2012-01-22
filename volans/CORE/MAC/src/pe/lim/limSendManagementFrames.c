@@ -851,8 +851,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         }
     }
 
-    if ( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -1103,8 +1102,7 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
     limPrintMacAddr( pMac, peerMacAddr, LOG3 );)
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -1339,8 +1337,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     limPrintMacAddr(pMac, pMacHdr->da, LOG1);
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -1668,8 +1665,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     }
 
 #ifdef WLAN_FEATURE_P2P
-    if ( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -1942,8 +1938,7 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
     limPrintMacAddr( pMac, pMacHdr->da, LOG1 );)
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -2121,8 +2116,7 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
     limPrintMacAddr(pMac, pMacHdr->da, LOG1);)
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -2460,8 +2454,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-            ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -2848,8 +2841,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 #endif
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-            ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -3137,8 +3129,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
      }
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -3419,8 +3410,7 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     PELOG2(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG2, pFrame, frameLen);)
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -3553,8 +3543,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     limPrintMacAddr( pMac, pMacHdr->da, LOG1 );)
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -3685,8 +3674,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
     limPrintMacAddr( pMac, pMacHdr->da, LOG1 );)
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -4402,8 +4390,7 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     limPrintMacAddr( pMac, pMlmAddBAReq->peerMacAddr, LOGW );
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -4600,8 +4587,7 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
       limPrintMacAddr( pMac, pMlmAddBARsp->peerMacAddr, LOGW );
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -4794,8 +4780,7 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
       limPrintMacAddr( pMac, pMlmDelBAReq->peerMacAddr, LOGW );
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -4954,8 +4939,7 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
    limPrintMacAddr( pMac, peer, LOGW );
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -5118,8 +5102,7 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
    limPrintMacAddr( pMac, peer, LOGW );
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }
@@ -5293,8 +5276,7 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
    limPrintMacAddr( pMac, peer, LOGW );
 
 #ifdef WLAN_FEATURE_P2P
-    if( ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE) )
+    if (VOS_IS_P2P_PERSONA (psessionEntry->pePersona)) 
     {
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
     }

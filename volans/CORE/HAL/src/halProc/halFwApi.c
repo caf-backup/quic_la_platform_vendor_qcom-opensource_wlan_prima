@@ -1329,6 +1329,7 @@ eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
                 tANI_U32 cfgVal = 0;
 
                 pFwConfig->fDisLinkMonitor = 0;
+                pFwConfig->fEnbHwQosNullFeature = 0;
                 pFwConfig->fEnableFwUnknownAddr2Handling = 1;
                 /* Time interval for firmware to check for data available signals for power 
                  * save stations and enqueue a null frame/qos null frame if PS-Poll/Qos null frame 
@@ -1399,6 +1400,7 @@ eHalStatus halFW_DelBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
             if(pBss->bssSystemRole == eSYSTEM_AP_ROLE)
             {
                 pFwConfig->fDisLinkMonitor = 1;
+                pFwConfig->fEnbHwQosNullFeature = 1;
                 pFwConfig->fEnableFwUnknownAddr2Handling = 0;
             }
 
