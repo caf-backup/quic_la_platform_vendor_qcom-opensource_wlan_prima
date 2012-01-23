@@ -997,6 +997,14 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
     hdd_wext_state_t *pWextState= pAdapter->pWextState;
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,"CSR Callback: status= %d result= %d roamID=%ld", 
                     roamStatus, roamResult, roamId ); 
+    
+	if ( NULL == pWextState )
+	{
+	    hddLog(VOS_TRACE_LEVEL_FATAL,
+               "%s: Wext State Null Pointer", __func__);
+        return eHAL_STATUS_RESOURCES;
+	}
+
     switch( roamStatus )
     {
             

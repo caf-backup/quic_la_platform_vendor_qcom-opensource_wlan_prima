@@ -689,7 +689,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 #endif
 
    //Deregister the device with the kernel
-   hdd_UnregisterWext(pWlanDev);
+   pWlanDev->wireless_handlers = NULL;
 
    //Stop the Interface TX queue.
    netif_tx_disable(pWlanDev);
@@ -873,6 +873,9 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    //Free up dynamically allocated members inside HDD Adapter
    kfree(pAdapter->cfg_ini);
    pAdapter->cfg_ini= NULL;
+
+   //Deregister the device with the kernal
+   hdd_UnregisterWext(pWlanDev);
 
    //Free the net device
    free_netdev(pWlanDev);

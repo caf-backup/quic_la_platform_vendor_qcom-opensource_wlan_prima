@@ -238,8 +238,8 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
 }     
 
 #ifdef FEATURE_WLAN_WAPI
-void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index, 
-	                                  const u8 *mac_addr, u8 *key , int key_Len)
+void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
+                                          const u8 *mac_addr, u8 *key , int key_Len)
 {
     tCsrRoamSetKey  setKey;
     v_BOOL_t isConnected = TRUE;
@@ -266,14 +266,14 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     pKeyPtr = setKey.Key;
     memcpy( pKeyPtr, key, key_Len);
 
-    hddLog(VOS_TRACE_LEVEL_INFO,"\n%s: WAPI KEY LENGTH:0x%04x", 
+    hddLog(VOS_TRACE_LEVEL_INFO,"\n%s: WAPI KEY LENGTH:0x%04x",
                                             __func__, key_Len);
     for (n = 0 ; n < key_Len; n++)
         hddLog(VOS_TRACE_LEVEL_INFO, "%s WAPI KEY Data[%d]:%02x ",
                                            __func__,n,setKey.Key[n]);
 
     pAdapter->roam_info.roamingState = HDD_ROAM_STATE_SETTING_KEY;
-    if ( isConnected ) 
+    if ( isConnected )
     {
         status= sme_RoamSetKey( pAdapter->hHal,
                              pAdapter->sessionId, &setKey, &roamId );
@@ -281,8 +281,8 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
     if ( status != 0 )
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "[%4d] sme_RoamSetKey returned ERROR status= %d", 
-				                                   __LINE__, status );
+                 "[%4d] sme_RoamSetKey returned ERROR status= %d",
+                                               __LINE__, status );
         pAdapter->roam_info.roamingState = HDD_ROAM_STATE_NONE;
     }
 }
@@ -511,7 +511,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         case WLAN_CIPHER_SUITE_SMS4:
         {
             vos_mem_zero(&setKey,sizeof(tCsrRoamSetKey));
-            wlan_hdd_cfg80211_set_key_wapi(pAdapter, key_index, mac_addr, 
+            wlan_hdd_cfg80211_set_key_wapi(pAdapter, key_index, mac_addr,
                                                params->key, params->key_len);
             return 0;
         }
@@ -1720,10 +1720,10 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
     hdd_wext_state_t *pWextState = pAdapter->pWextState;
     u8 *genie = ie;
 #ifdef FEATURE_WLAN_WAPI
-	v_U32_t akmsuite[MAX_NUM_AKM_SUITES];
-	u16 *tmp;
-	v_U16_t akmsuiteCount;
-	int *akmlist;
+    v_U32_t akmsuite[MAX_NUM_AKM_SUITES];
+    u16 *tmp;
+    v_U16_t akmsuiteCount;
+    int *akmlist;
 #endif 
     ENTER();
 
@@ -1780,34 +1780,43 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
             pWextState->roamProfile.pRSNReqIE = pWextState->WPARSNIE;
             pWextState->roamProfile.nRSNReqIELength = ie_len;
             break;
-#ifdef FEATURE_WLAN_WAPI				
+#ifdef FEATURE_WLAN_WAPI
         case WLAN_EID_WAPI:
             pAdapter->wapi_info.nWapiMode = 1;   //Setting WAPI Mode to ON=1
             hddLog(VOS_TRACE_LEVEL_INFO,"WAPI MODE IS  %lu \n",
                                           pAdapter->wapi_info.nWapiMode);
             tmp = (u16 *)ie;
-            tmp = tmp + 2; // Skip element Id and Len, Version        
-            akmsuiteCount = WPA_GET_LE16(tmp);       
-            tmp = tmp + 1;   
-            akmlist= (int *)(tmp);     
-            memcpy(akmsuite, akmlist, (4*akmsuiteCount));
+            tmp = tmp + 2; // Skip element Id and Len, Version
+            akmsuiteCount = WPA_GET_LE16(tmp);
+            tmp = tmp + 1;
+            akmlist= (int *)(tmp);
+            if(akmsuiteCount <= MAX_NUM_AKM_SUITES)
+            {
+                memcpy(akmsuite, akmlist, (4*akmsuiteCount));
+            }
+            else
+            {
+                hddLog(VOS_TRACE_LEVEL_FATAL, "Invalid akmSuite count\n");
+                VOS_ASSERT(0);
+                return -EINVAL;
+            }
 
-            if (WAPI_PSK_AKM_SUITE == akmsuite[0])    
+            if (WAPI_PSK_AKM_SUITE == akmsuite[0])
             {
                  hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO PSK",
-                                                            __FUNCTION__);       
+                                                            __FUNCTION__);
                  pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_PSK;
             }    
-            if (WAPI_CERT_AKM_SUITE == akmsuite[0])     
+            if (WAPI_CERT_AKM_SUITE == akmsuite[0])
             {     
                 hddLog(VOS_TRACE_LEVEL_INFO, "%s: WAPI AUTH MODE SET TO CERTIFICATE",
-                                                             __FUNCTION__);      
+                                                             __FUNCTION__);
                 pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_CERT;
             }
             break;
 #endif
         default:
-            hddLog (VOS_TRACE_LEVEL_ERROR, "%s Set UNKNOWN IE %X", __func__, 
+            hddLog (VOS_TRACE_LEVEL_ERROR, "%s Set UNKNOWN IE %X", __func__,
                     genie[0]);
             return 0;
     }
