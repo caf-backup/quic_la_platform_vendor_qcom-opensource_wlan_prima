@@ -733,6 +733,11 @@ WLANBAP_CleanCB
   /* Implements the callback for ALL asynchronous events. */ 
   pBtampCtx->pBapHCIEventCB = NULL;   
 
+  /* Set the default for location data. */ 
+  pBtampCtx->btamp_Location_Data_Info.loc_options = 0x58;   
+  /* Set the default data transfer mode */ 
+  pBtampCtx->ucDataTrafficMode = WLANBAP_FLOW_CONTROL_MODE_BLOCK_BASED;
+
   return VOS_STATUS_SUCCESS;
 }/* WLANBAP_CleanCB */
 

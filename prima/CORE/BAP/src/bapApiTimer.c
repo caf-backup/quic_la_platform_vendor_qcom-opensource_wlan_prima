@@ -776,21 +776,19 @@ WLANBAP_StopTxPacketMonitorTimer
 }/* WLANBAP_StopTxPacketMonitorTimer */ 
 
 
-
 /*==========================================================================
 
-  FUNCTION    WLANBAP_TxPacketMonitorHandler
+  FUNCTION    WLANBAP_SendCompletedPktsEvent
 
   DESCRIPTION 
-    Callback function registered with vos timer for the Tx Packet Monitor 
-    Timer.
+    Utility function for sending the NUM_OF_COMPLETED_PKTS_EVENT to HCI 
     
   DEPENDENCIES 
     
   PARAMETERS 
 
     IN
-    userData:      pointer can be used to retrive the BT-AMP context 
+    pBtampCtx:   pointer to the BAP control block 
    
   RETURN VALUE
     None
@@ -799,37 +797,17 @@ WLANBAP_StopTxPacketMonitorTimer
   
 ============================================================================*/
 v_VOID_t 
-WLANBAP_TxPacketMonitorHandler
+WLANBAP_SendCompletedPktsEvent
 ( 
-  v_PVOID_t userData 
+  ptBtampContext     pBtampCtx 
 )
 {
-  ptBtampContext     pBtampCtx       = (ptBtampContext)userData;
-  v_U32_t            uTxCompleted    = 0; 
-  tpBtampLogLinkCtx  pLogLinkContext = NULL;
   v_U8_t             i, j;
   tBtampHCI_Event    bapHCIEvent; /* This now encodes ALL event types */
-  BTAMPFSM_INSTANCEDATA_T *instanceVar = &pBtampCtx->bapPhysLinkMachine;
+  v_U32_t            uTxCompleted    = 0; 
+  tpBtampLogLinkCtx  pLogLinkContext = NULL;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-  /*-----------------------------------------------------------------------
-    Sanity check 
-   -----------------------------------------------------------------------*/
-  if ( NULL == pBtampCtx )
-  {
-     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                "WLAN BAP: Fatal error in %s", __FUNCTION__ );
-     VOS_ASSERT(0);
-     return; 
-  }
-
-#if 0 //BAP_DEBUG
-  /* Trace the tBtampCtx being passed in. */
-  VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
-            "WLAN BAP Context Monitor: pBtampCtx value = %x in %s:%d", pBtampCtx, __FUNCTION__, __LINE__ );
-#endif //BAP_DEBUG
-
-  /* Format the Number of completed packets event */ 
+    /* Format the Number of completed packets event */ 
   bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_NUM_OF_COMPLETED_PKTS_EVENT;
   bapHCIEvent.u.btampNumOfCompletedPktsEvent.num_handles = 0;
 
@@ -876,6 +854,150 @@ WLANBAP_TxPacketMonitorHandler
            &bapHCIEvent, /* This now encodes ALL event types */
            VOS_TRUE /* Flag to indicate assoc-specific event */ 
       );
+  }
+
+}
+
+/*==========================================================================
+
+  FUNCTION    WLANBAP_SendCompletedDataBlksEvent
+
+  DESCRIPTION 
+    Utility function for sending the NUM_OF_COMPLETED_DATA_BLOCKS_EVENT to HCI 
+    
+  DEPENDENCIES 
+    
+  PARAMETERS 
+
+    IN
+    pBtampCtx:   pointer to the BAP control block 
+   
+  RETURN VALUE
+    None
+         
+  SIDE EFFECTS 
+  
+============================================================================*/
+v_VOID_t 
+WLANBAP_SendCompletedDataBlksEvent
+( 
+  ptBtampContext     pBtampCtx 
+)
+{
+  v_U8_t             i, j;
+  tBtampHCI_Event    bapHCIEvent; /* This now encodes ALL event types */
+  v_U32_t            uTxCompleted    = 0; 
+  tpBtampLogLinkCtx  pLogLinkContext = NULL;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+    /* Format the Number of completed data blocks event */ 
+  bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_NUM_OF_COMPLETED_DATA_BLOCKS_EVENT;
+  bapHCIEvent.u.btampNumOfCompletedDataBlocksEvent.num_handles = 0;
+
+ /*---------------------------------------------------------------------
+    Check if LL still exists, if TRUE generate num_data_blocks_event and
+    restart the timer 
+   ---------------------------------------------------------------------*/
+  for (i = 0, j = 0; i < WLANBAP_MAX_LOG_LINKS ; i++) 
+  {
+     pLogLinkContext = &pBtampCtx->btampLogLinkCtx[i];
+     if ( pLogLinkContext->present ) 
+     {
+       uTxCompleted = pLogLinkContext->uTxPktCompleted;
+       bapHCIEvent.u.btampNumOfCompletedDataBlocksEvent.conn_handles[j] =
+           pLogLinkContext->log_link_handle;
+       bapHCIEvent.u.btampNumOfCompletedDataBlocksEvent.num_completed_pkts[j] =
+           uTxCompleted;
+       bapHCIEvent.u.btampNumOfCompletedDataBlocksEvent.num_completed_blocks[j] =
+           uTxCompleted;
+       bapHCIEvent.u.btampNumOfCompletedDataBlocksEvent.total_num_data_blocks = 16;
+
+       j++;
+
+       vos_atomic_decrement_U32_by_value((v_U32_t *) &pLogLinkContext->uTxPktCompleted,
+                                         (v_U32_t) uTxCompleted);
+
+       if (uTxCompleted) { 
+          VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+                  "wlan bap: %s Log Link handle - %d No Of Pkts - %d", __FUNCTION__, 
+                  pLogLinkContext->log_link_handle, uTxCompleted);  
+       }
+     }
+  }
+
+  /* Indicate only if at least one logical link is present and number of
+     completed data blocks is non zero */
+  if (j && uTxCompleted)
+  {
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                "WLAN BAP: Indicating Num Completed Data Blocks Event");
+
+      /*issue num_data_blocks_event for uTxCompleted*/
+      bapHCIEvent.u.btampNumOfCompletedDataBlocksEvent.num_handles = j;
+      (*pBtampCtx->pBapHCIEventCB)
+      (
+           pBtampCtx->pHddHdl,   /* this refers the BSL per application context */
+           &bapHCIEvent, /* This now encodes ALL event types */
+           VOS_TRUE /* Flag to indicate assoc-specific event */ 
+      );
+  }
+
+}
+
+/*==========================================================================
+
+  FUNCTION    WLANBAP_TxPacketMonitorHandler
+
+  DESCRIPTION 
+    Callback function registered with vos timer for the Tx Packet Monitor 
+    Timer.
+    
+  DEPENDENCIES 
+    
+  PARAMETERS 
+
+    IN
+    userData:      pointer can be used to retrive the BT-AMP context 
+   
+  RETURN VALUE
+    None
+         
+  SIDE EFFECTS 
+  
+============================================================================*/
+v_VOID_t 
+WLANBAP_TxPacketMonitorHandler
+( 
+  v_PVOID_t userData 
+)
+{
+  ptBtampContext     pBtampCtx       = (ptBtampContext)userData;
+  BTAMPFSM_INSTANCEDATA_T *instanceVar = &pBtampCtx->bapPhysLinkMachine;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+  /*-----------------------------------------------------------------------
+    Sanity check 
+   -----------------------------------------------------------------------*/
+  if ( NULL == pBtampCtx )
+  {
+     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                "WLAN BAP: Fatal error in %s", __FUNCTION__ );
+     VOS_ASSERT(0);
+     return; 
+  }
+
+#if 0 //BAP_DEBUG
+  /* Trace the tBtampCtx being passed in. */
+  VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+            "WLAN BAP Context Monitor: pBtampCtx value = %x in %s:%d", pBtampCtx, __FUNCTION__, __LINE__ );
+#endif //BAP_DEBUG
+
+  if(WLANBAP_FLOW_CONTROL_MODE_BLOCK_BASED == pBtampCtx->ucDataTrafficMode)
+     {
+    WLANBAP_SendCompletedDataBlksEvent(pBtampCtx);
+       }
+  else
+  {
+    WLANBAP_SendCompletedPktsEvent(pBtampCtx);
   }
 
   /* Restart the Packet monitoring timer if still Physical link

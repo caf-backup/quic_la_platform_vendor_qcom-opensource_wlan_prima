@@ -1069,6 +1069,8 @@ WLANBAP_RegisterDataPlane
 
     // (Right now, there is only one)
     pBtampCtx->pHddHdl = pHddHdl;
+    /* Set the default data transfer mode */ 
+    pBtampCtx->ucDataTrafficMode = WLANBAP_FLOW_CONTROL_MODE_BLOCK_BASED;
 
     return VOS_STATUS_SUCCESS;
 } /* WLANBAP_RegisterDataPlane */

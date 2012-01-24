@@ -86,6 +86,9 @@ when        who    what, where, why
 #ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 #define WDI_TRIGGER_ENABLED_AC_MASK         0x10 //bit 4 for data frames belonging to trigger enabled AC
 #endif
+#define WDI_USE_NO_ACK_REQUESTED_MASK       0x20
+
+#define WDI_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
 
 
 /*Macro for getting the size of the TX BD*/
@@ -311,10 +314,6 @@ when        who    what, where, why
 
 #define WDI_RX_BD_FT_DONE                1 /* The value of the field when frame xtl was done*/
 
-#define WDI_TXCOMP_REQUESTED_MASK           0x1  //bit 0 for TxComp intr requested. 
-#define WDI_USE_SELF_STA_REQUESTED_MASK     0x2  //bit 1 for STA overwrite with selfSta Requested.
-
-#define WDI_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40
 /*========================================================================= 
    API Definition  
 =========================================================================*/ 

@@ -282,6 +282,12 @@ limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession pse
     pBuf += sizeof(tANI_U16);
     msgLength += sizeof(tANI_U16);
 
+    //send disassoc OTA
+    pBuf[0]= 1;
+    pBuf += sizeof(tANI_U8);
+    msgLength += sizeof(tANI_U8);
+
+
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     //aid
     limCopyU16((tANI_U8*)pBuf, pStaDs->assocId);

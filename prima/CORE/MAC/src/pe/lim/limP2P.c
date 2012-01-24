@@ -140,9 +140,7 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
     pMac->lim.gLimMlmState     = eLIM_MLM_P2P_LISTEN_STATE;
 
-    // TODO: Use NOA
-    /* Set the duration to 0 as we do not want to scan on receving remian on channel command */
-    pMac->lim.gTotalScanDuration = 0;
+    pMac->lim.gTotalScanDuration = MsgBuff->duration;
 
     /* 1st we need to suspend link with callback to initiate change channel */
     limSuspendLink(pMac, eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN,
@@ -188,8 +186,7 @@ tSirRetStatus limRemainOnChnlChangeChnReq(tpAniSirGlobal pMac,
     if((psessionEntry = peFindSessionByBssid(
         pMac,pMac->lim.gpLimRemainOnChanReq->selfMacAddr,&sessionId)) != NULL)
     {
-        limLog(pMac, LOGP, FL("Session Already exists for given BSSID\n"));
-        goto error;
+        goto change_channel;
     }
     else /* Session Entry does not exist for given BSSId */
     {
@@ -218,15 +215,16 @@ tSirRetStatus limRemainOnChnlChangeChnReq(tpAniSirGlobal pMac,
                        pMac->lim.gpLimRemainOnChanReq->selfMacAddr);
     }
 
+change_channel:
     /* change channel to the requested by RemainOn Chn*/
     limChangeChannelWithCallback(pMac,
                               pMac->lim.gpLimRemainOnChanReq->chnNum,
                               limRemainOnChnlSetLinkStat, NULL, psessionEntry);
-    return eSIR_SUCCESS;
+     return eSIR_SUCCESS;
 
 error:
-    limRemainOnChnRsp(pMac,eHAL_STATUS_FAILURE, NULL);
-    return eSIR_FAILURE;
+     limRemainOnChnRsp(pMac,eHAL_STATUS_FAILURE, NULL);
+     return eSIR_FAILURE;
 }
 
 void limRemainOnChnlSuspendLinkHdlr(tpAniSirGlobal pMac, eHalStatus status,
@@ -394,9 +392,11 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
     if((psessionEntry = peFindSessionByBssid(pMac,
                  MsgRemainonChannel->selfMacAddr,&sessionId)) != NULL)
     {
-            peDeleteSession( pMac, psessionEntry);
+        if ( eLIM_P2P_DEVICE_ROLE == psessionEntry->limSystemRole )
+        {
+           peDeleteSession( pMac, psessionEntry);
         }
-     
+    }
     /* Post the meessage to Sme */
     limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP, status, 
                   MsgRemainonChannel->sessionId, 0);

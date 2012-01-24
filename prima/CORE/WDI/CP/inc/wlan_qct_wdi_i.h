@@ -964,7 +964,11 @@ typedef struct
   wpt_uint8                   ucFTMCommandRspBuffer[WDI_FTM_MAX_RECEIVE_BUFFER];
 #endif /* ANI_MANF_DIAG */
 
+  /*Driver in BMPS state*/
   wpt_boolean                 bInBmps;
+
+  /*version of the PNO implementation in RIVA*/
+  wpt_uint8                   wdiPNOVersion;
 }WDI_ControlBlockType; 
 
 

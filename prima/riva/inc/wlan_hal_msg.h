@@ -4358,6 +4358,16 @@ typedef enum eEdType
     eED_TYPE_MAX = WLAN_HAL_MAX_ENUM_SIZE
 } tEdType;
 
+/* SSID broadcast  type */
+typedef enum eSSIDBcastType
+{
+  eBCAST_UNKNOWN      = 0,
+  eBCAST_NORMAL       = 1,
+  eBCAST_HIDDEN       = 2,
+
+  eBCAST_TYPE_MAX     = WLAN_HAL_MAX_ENUM_SIZE
+} tSSIDBcastType;
+
 /* 
   The network description for which PNO will have to look for
 */
@@ -4450,6 +4460,69 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tPrefNetwListParams   prefNetwListParams;
 }  tSetPrefNetwListReq, *tpSetPrefNetwListReq;
+
+
+/* 
+  The network description for which PNO will have to look for
+*/
+typedef PACKED_PRE struct PACKED_POST
+{
+  /*SSID of the BSS*/
+  tSirMacSSid ssId;
+
+  /*Authentication type for the network*/
+  tAuthType   authentication; 
+
+  /*Encryption type for the network*/
+  tEdType     encryption; 
+
+  /*SSID broadcast type, normal, hidden or unknown*/
+  tSSIDBcastType bcastNetworkType;
+
+  /*Indicate the channel on which the Network can be found 
+    0 - if all channels */
+  tANI_U8     ucChannelCount;
+  tANI_U8     aChannels[WLAN_HAL_PNO_MAX_NETW_CHANNELS];
+
+  /*Indicates the RSSI threshold for the network to be considered*/
+  tANI_U8     rssiThreshold;
+}tNetworkTypeNew; 
+
+typedef PACKED_PRE struct PACKED_POST {
+
+    /*Enable PNO*/
+    tANI_U32          enable;
+
+    /*Immediate,  On Suspend,   On Resume*/
+    ePNOMode         modePNO;
+    
+    /*Number of networks sent for PNO*/
+    tANI_U32         ucNetworksCount; 
+
+    /*The networks that PNO needs to look for*/
+    tNetworkTypeNew  aNetworks[WLAN_HAL_PNO_MAX_SUPP_NETWORKS];
+
+    /*The scan timers required for PNO*/
+    tScanTimersType  scanTimers; 
+
+    /*Probe template for 2.4GHz band*/
+    tANI_U16         us24GProbeSize; 
+    tANI_U8          a24GProbeTemplate[WLAN_HAL_PNO_MAX_PROBE_SIZE];
+
+    /*Probe template for 5GHz band*/
+    tANI_U16         us5GProbeSize; 
+    tANI_U8          a5GProbeTemplate[WLAN_HAL_PNO_MAX_PROBE_SIZE];
+
+} tPrefNetwListParamsNew, * tpPrefNetwListParamsNew;
+
+/*
+  Preferred network list request new
+*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tPrefNetwListParamsNew   prefNetwListParams;
+}  tSetPrefNetwListReqNew, *tpSetPrefNetwListReqNew;
 
 /*
   Preferred network list response 

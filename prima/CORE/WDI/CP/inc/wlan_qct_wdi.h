@@ -3684,6 +3684,16 @@ typedef enum
   WDI_PNO_MODE_MAX = 0xFFFFFFFF
 } WDI_PNOMode;
 
+/* SSID broadcast  type */
+typedef enum 
+{
+  WDI_BCAST_UNKNOWN      = 0,
+  WDI_BCAST_NORMAL       = 1,
+  WDI_BCAST_HIDDEN       = 2,
+
+  WDI_BCAST_TYPE_MAX     = 0xFFFFFFFF
+} WDI_SSIDBcastType;
+
 /*---------------------------------------------------------------------------
   WDI_NetworkType
 ---------------------------------------------------------------------------*/
@@ -3697,6 +3707,9 @@ typedef struct
 
   /*The encryption method of the preferred network*/
   WDI_EdType   wdiEncryption; 
+
+  /*SSID broadcast type, normal, hidden or unknown*/
+  WDI_SSIDBcastType wdiBcastNetworkType;
 
   /*channel count - 0 for all channels*/
   wpt_uint8    ucChannelCount;

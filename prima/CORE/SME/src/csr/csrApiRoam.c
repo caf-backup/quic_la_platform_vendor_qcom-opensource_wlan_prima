@@ -8409,6 +8409,8 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
     tCsrRoamInfo *pRoamInfo = NULL;
     tCsrRoamInfo roamInfo;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+    //Only need to roam for infra station. In this case P2P client will roam as well
+    tANI_BOOLEAN fToRoam = CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile);
 
     pSession->fCancelRoaming = eANI_BOOLEAN_FALSE;
     if ( eWNI_SME_DISASSOC_IND == type )
@@ -8433,7 +8435,9 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
 #ifdef WLAN_SOFTAP_FEATURE
     if(!CSR_IS_INFRA_AP(&pSession->connectedProfile))
 #endif
+    {
         csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_LOSTLINK_DETECTED, result);
+    }
     
     if ( eWNI_SME_DISASSOC_IND == type )
     {
@@ -8444,13 +8448,12 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
         status = csrSendMBDeauthCnfMsg(pMac, pDeauthIndMsg);
     }
 
-
-    if(HAL_STATUS_SUCCESS(status))
+    if(fToRoam)
     {
         //Only remove the connected BSS in infrastructure mode
         csrRoamRemoveConnectedBssFromScanCache(pMac, &pSession->connectedProfile);
         //Not to do anying for lostlink with WDS
-        if( (pMac->roam.configParam.nRoamingTime) && !CSR_IS_CONN_WDS(&pSession->connectedProfile) )
+        if( pMac->roam.configParam.nRoamingTime )
         {
             if(HAL_STATUS_SUCCESS(status = csrRoamStartRoaming(pMac, sessionId, eCsrLostlinkRoaming)))
             {
@@ -8471,29 +8474,34 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
                 pSession->roamingStartTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
                 csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_LOSTLINK);
             }
+            else
+            {
+                smsLog(pMac, LOGW, "  Fail to start roaming, status = %s", status);
+                fToRoam = eANI_BOOLEAN_FALSE;
+            }
         }
         else
         {
             //We are told not to roam, indicate lostlink
-            status = eHAL_STATUS_FAILURE;
+            fToRoam = eANI_BOOLEAN_FALSE;
         }
     }
-    else
-    {
-        smsLog(pMac, LOGW, "  Fail to restart roaming, status = %s", status);
-    }
-    if(!HAL_STATUS_SUCCESS(status))
+
+    if(!fToRoam)
     {
         //We cannot roam, just tell HDD to disconnect
         palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
         roamInfo.statusCode = pSession->roamingStatusCode;
         roamInfo.reasonCode = pSession->joinFailStatusCode.reasonCode;
 #ifdef WLAN_SOFTAP_FEATURE
-       if( eWNI_SME_DISASSOC_IND == type){
+       if( eWNI_SME_DISASSOC_IND == type)
+       {
            //staMacAddr
            palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDisassocIndMsg->peerMacAddr, sizeof(tSirMacAddr));
            roamInfo.staId = (tANI_U8)pDisassocIndMsg->staId;
-       }else if( eWNI_SME_DEAUTH_IND == type ){
+       }
+       else if( eWNI_SME_DEAUTH_IND == type )
+       {
            //staMacAddr
            palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDeauthIndMsg->peerMacAddr, sizeof(tSirMacAddr));
            roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
@@ -8505,7 +8513,8 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
        /*No need to start idle scan in case of IBSS/SAP or in case concurrent 
          sessions are running */
        if(CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile)
-         && !vos_concurrent_sessions_running()){
+         && !vos_concurrent_sessions_running())
+       {
            csrScanStartIdleScan(pMac);
        }
     }
@@ -11157,7 +11166,7 @@ eHalStatus csrSendMBDeauthCnfMsg( tpAniSirGlobal pMac, tpSirSmeDeauthInd pDeauth
             palFreeMemory(pMac->hHdd, pMsg);
             break;
         }
-    status = palCopyMemory(pMac->hHdd, pMsg->peerMacAddr, pDeauthInd->peerMacAddr, sizeof(pMsg->peerMacAddr)); 
+        status = palCopyMemory(pMac->hHdd, pMsg->peerMacAddr, pDeauthInd->peerMacAddr, sizeof(pMsg->peerMacAddr)); 
         if(!HAL_STATUS_SUCCESS(status))
         {
             palFreeMemory(pMac->hHdd, pMsg);
@@ -11292,6 +11301,7 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
     return( status );
 }
 #endif
+
 
 eHalStatus csrSendMBSetContextReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId ,
             tSirMacAddr peerMacAddr, tANI_U8 numKeys, tAniEdType edType, 

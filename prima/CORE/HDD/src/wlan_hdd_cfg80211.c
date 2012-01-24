@@ -3407,7 +3407,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 akmsuiteCount = WPA_GET_LE16(tmp);
                 tmp = tmp + 1;
                 akmlist = (int *)(tmp);
-                if(akmsuiteCount <= 4)
+                if(akmsuiteCount <= MAX_NUM_AKM_SUITES)
                 {
                     memcpy(akmsuite, akmlist, (4*akmsuiteCount));
                 }
