@@ -133,6 +133,39 @@ tSirRetStatus limPopulateBD( tpAniSirGlobal pMac,
     return statusCode;
 } /*** end limPopulateBD() ***/
 
+eHalStatus limProbeReqCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
+{
+   tANI_U8 i;
+
+   if (!txCompleteSuccess) // failure 
+      limLog(pMac, LOGE, FL("Fail to send Probe-after-heartbeat, still starting timer\n"));
+
+   for(i =0;i < pMac->lim.maxBssId;i++)
+   {
+      if(pMac->lim.gpSession[i].valid == TRUE )
+      {
+         if(((pMac->lim.gpSession[i].bssType == eSIR_INFRASTRUCTURE_MODE) &&
+             (pMac->lim.gpSession[i].limSystemRole == eLIM_STA_ROLE))||
+             ((pMac->lim.gpSession[i].bssType == eSIR_BTAMP_AP_MODE)&&
+             (pMac->lim.gpSession[i].statypeForBss == STA_ENTRY_PEER)) ) 
+         {           
+            pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId = pMac->lim.gpSession[i].peSessionId;
+            break;
+         }
+      }
+   }
+
+   limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
+   MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PROBE_AFTER_HB_TIMER));
+
+   if (tx_timer_activate(&pMac->lim.limTimers.gLimProbeAfterHBTimer) != TX_SUCCESS)
+   {
+      limLog(pMac, LOGP, FL("Fail to re-activate Probe-after-heartbeat timer\n"));
+      limReactivateHeartBeatTimer(pMac, &pMac->lim.gpSession[i]);
+   }
+   return eSIR_SUCCESS;
+}
+
 /**
  * \brief limSendProbeReqMgmtFrame
  *
@@ -360,16 +393,32 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     }
 #endif
 
-    halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) sizeof(tSirMacMgmtHdr) + nPayload,
+    if (TRUE == pMac->lim.gLimSendingProbeReqAfterHBFail)
+    {
+        halstatus = halTxFrameWithTxComplete( pMac, pPacket, (tANI_U16)sizeof(tSirMacMgmtHdr) + nPayload,
+                        HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
+                        7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame,
+                        limProbeReqCnf, txFlag );
+
+        if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
+        {
+            limLog( pMac, LOGE, FL("could not send Probe Request frame!\n" ));
+            return eSIR_FAILURE;
+        }
+    }
+    else
+    {
+         halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) sizeof(tSirMacMgmtHdr) + nPayload,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
                             7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
                             limTxComplete, pFrame, txFlag );
-    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
-    {
-        limLog( pMac, LOGE, FL("could not send Probe Request frame!\n" ));
-        //Pkt will be freed up by the callback
-        return eSIR_FAILURE;
+        if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
+        {
+           limLog( pMac, LOGE, FL("could not send Probe Request frame!\n" ));
+           //Pkt will be freed up by the callback
+           return eSIR_FAILURE;
+        }
     }
 
     return eSIR_SUCCESS;

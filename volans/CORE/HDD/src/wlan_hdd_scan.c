@@ -1003,7 +1003,8 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
             }
         }
 #endif
-        if((WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode == eSIR_ACTIVE_SCAN) 
+        if(((WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode == eSIR_ACTIVE_SCAN)||
+           (num_ssid))
         {
             /* set the scan type to active */
             scanRequest.scanType = eSIR_ACTIVE_SCAN;

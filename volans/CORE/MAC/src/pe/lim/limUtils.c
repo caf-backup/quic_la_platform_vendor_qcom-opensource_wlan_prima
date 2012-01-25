@@ -4292,13 +4292,13 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                     {
                         psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
                     }
+                    //CR-263021: OBSS bit is not switching back to 0 after disabling the overlapping legacy BSS
+                    // This fixes issue of OBSS bit not set after 11b, 11g station leaves
+                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                    //Not processing OBSS bit from other APs, as we are already taking care
+                    //of Protection from overlapping BSS based on erp IE or useProtection bit
+                    limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams, psessionEntry);
                 }
-                //CR-263021: OBSS bit is not switching back to 0 after disabling the overlapping legacy BSS
-                // This fixes issue of OBSS bit not set after 11b, 11g station leaves
-                limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-                //Not processing OBSS bit from other APs, as we are already taking care
-                //of Protection from overlapping BSS based on erp IE or useProtection bit
-                limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams, psessionEntry);
             }
             else
             {

@@ -5554,7 +5554,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     csrScanAbortMacScan(pMac);
 
 #ifdef WLAN_SOFTAP_FEATURE
-    if (!vos_concurrent_sessions_running() && (CSR_IS_INFRA_AP(pProfile)))//In case of AP mode we do not want idle mode scan
+    if (!vos_concurrent_sessions_running() && (VOS_STA_SAP_MODE == pProfile->csrPersona))//In case of AP mode we do not want idle mode scan
     {
         csrScanDisable(pMac);
     }

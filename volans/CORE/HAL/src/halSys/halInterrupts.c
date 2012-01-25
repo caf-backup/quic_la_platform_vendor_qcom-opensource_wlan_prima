@@ -39,7 +39,7 @@
 // which is how the production code should work
 
 #define HAL_INT_MAX_ITERATIONS 5
-#define BMU_IDLE_BD_PDU_THRESHOLD  0x190
+#define BMU_IDLE_BD_PDU_THRESHOLD  0x175
 
 // information about each interrupt register
 typedef struct sHalIntRegisterInfo {
@@ -775,7 +775,20 @@ halIntClearStatus(tHalHandle hHalHandle, eHalIntSources interrupt)
         return eHAL_STATUS_SUCCESS;
     }
     mask = halIntInfo[interrupt].mask;
-    return (halIntWriteRegister(pMac, hwRegister, mask));
+    
+    //Call normal write register to avoid ADU reinit counter to FW.
+    //clear interrupt registers are not in ADU re-init table and hence
+    //no need to update the counter. Also This update was causing
+    //significant dip in throughtput.
+    if(hwRegister != QWLAN_SIF_SIF_INT_EN_REG)
+    {
+        return halNormalWriteRegister(pMac, hwRegister, mask);
+    }
+    else
+    {
+        return (halIntWriteRegister(pMac, hwRegister, mask));
+    }
+
 }
 
 

@@ -497,6 +497,11 @@ typedef struct sAniSirLim
      */
     tANI_U8             gLimRspReqd;
 
+    /* This flag is used to send prob request after
+     * Heart Beat failure
+     */
+    tANI_BOOLEAN gLimSendingProbeReqAfterHBFail;
+
     /// Previous SME State
     tLimSmeStates       gLimPrevSmeState;
 

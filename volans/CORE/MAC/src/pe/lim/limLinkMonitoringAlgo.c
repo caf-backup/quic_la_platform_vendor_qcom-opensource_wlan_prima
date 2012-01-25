@@ -460,21 +460,13 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
          * timeout for Probe Response from AP.
          */
         PELOGW(limLog(pMac, LOGW, FL("Heart Beat missed from AP. Sending Probe Req\n"));)
+
+        pMac->lim.gLimSendingProbeReqAfterHBFail = TRUE;
         /* for searching AP, we don't include any additional IE */
         limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId, psessionEntry->bssId,
                                   psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
                                   psessionEntry->dot11mode, 0, NULL);
-
-        //assign the sessionId to the timer object
-
-        limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
-	    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PROBE_AFTER_HB_TIMER));
-        pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId = psessionEntry->peSessionId;
-        if (tx_timer_activate(&pMac->lim.limTimers.gLimProbeAfterHBTimer) != TX_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("Fail to re-activate Probe-after-heartbeat timer\n"));
-            limReactivateHeartBeatTimer(pMac, psessionEntry);
-        }
+        pMac->lim.gLimSendingProbeReqAfterHBFail = FALSE;
     }
     else
     {

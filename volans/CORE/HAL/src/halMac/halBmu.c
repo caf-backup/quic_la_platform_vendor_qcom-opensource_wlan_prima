@@ -1754,9 +1754,13 @@ eHalStatus halIntBMUIdleBdPduHandler(tHalHandle hHalHandle, eHalIntSources intSo
     if (intRegStatus & QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_STATUS_MASK)
     {
         halIntDisable(hHalHandle, eHAL_INT_BMU_IDLE_BD_PDU_INT);
-        halWriteRegister(pMac, QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_REG, (QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_STATUS_MASK | 0x3FF));
-      //  halReadRegister(pMac, QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_REG, &intRegStatus);
-      //  HALLOGE( halLog(pMac, LOGE, FL("BMU Idle BD PDU Status = %08x!!!\n"), intRegStatus));
+        //Since the interrupt is disabled in above call, it should be ok to 
+        //not update the threshold.This adds to throughput overhead in heavy 
+        //traffic scenario.
+        //halWriteRegister(pMac, QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_REG, (QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_STATUS_MASK | 0x3FF));
+        
+        //  halReadRegister(pMac, QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_REG, &intRegStatus);
+        //  HALLOGE( halLog(pMac, LOGE, FL("BMU Idle BD PDU Status = %08x!!!\n"), intRegStatus));
         if (pMac->gDriverType != eDRIVER_TYPE_MFG)
         {
             halTLHandleIdleBdPduInterrupt(pMac);   

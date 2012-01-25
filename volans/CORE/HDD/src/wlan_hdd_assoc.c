@@ -827,13 +827,11 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
 static void hdd_SendReAssocEvent(struct net_device *dev, hdd_adapter_t *pAdapter,
-		              tCsrRoamInfo *pCsrRoamInfo)
+		tCsrRoamInfo *pCsrRoamInfo, v_U8_t *pReqRsnIe, tANI_U32 reqRsnLength)
 {
 	unsigned int len = 0;
 	u8 *pFTAssocRsp = NULL;
-	v_U8_t reqRsnIe[IW_GENERIC_IE_MAX];
 	v_U8_t rspRsnIe[IW_GENERIC_IE_MAX];
-	tANI_U32 reqRsnLength = 0;
 	tANI_U32 rspRsnLength = 0;
 	struct ieee80211_channel *chan;
 
@@ -862,7 +860,7 @@ static void hdd_SendReAssocEvent(struct net_device *dev, hdd_adapter_t *pAdapter
 
 	chan = ieee80211_get_channel(pAdapter->wdev.wiphy, (int) pCsrRoamInfo->pBssDesc->channelId);
 	cfg80211_roamed(dev,chan,pCsrRoamInfo->bssid,
-			reqRsnIe, reqRsnLength,
+			pReqRsnIe, reqRsnLength,
 			rspRsnIe, rspRsnLength,GFP_KERNEL);
 }
 #endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX */
@@ -958,7 +956,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                rspRsnIe);
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
 	    if(send_ft_resp_ie)
-		    hdd_SendReAssocEvent(dev, pAdapter, pRoamInfo);
+		    hdd_SendReAssocEvent(dev, pAdapter, pRoamInfo, reqRsnIe, reqRsnLength);
 	    else
 #endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX */
 

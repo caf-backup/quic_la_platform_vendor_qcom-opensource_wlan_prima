@@ -3788,6 +3788,15 @@ eHalStatus halPS_RegisterWrite(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regVa
         return eHAL_STATUS_FAILURE;
     }
 
+    //Not updating ADU reinit counter for following register.
+    //This register is not in ADU backup list and hence it causes an 
+    //huge overhead to update ADU reinit counter everytime there is an
+    //idle bd pdu interrupt interrupt.
+    if ( QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_REG == regAddr )
+    {
+         return eHAL_STATUS_SUCCESS;
+    }
+
     //Increment the register write count in the FW system config
     pFwConfig->uRegWriteCount++;
 
