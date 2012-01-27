@@ -905,6 +905,43 @@ WLAN_BAPReadLocationData
                                 /* Including "Read" Command Complete*/
 )
 {
+    ptBtampContext btampContext;
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: btampHandle value: %x", __FUNCTION__,  btampHandle);
+
+    /* Validate params */ 
+    if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "Invalid input parameters in %s", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    btampContext = (ptBtampContext) btampHandle;
+
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Location_Data.loc_domain_aware
+        = btampContext->btamp_Location_Data_Info.loc_domain_aware;
+
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Location_Data.loc_options
+        = btampContext->btamp_Location_Data_Info.loc_options;
+
+    vos_mem_copy(  
+            pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Location_Data.loc_domain,
+            btampContext->btamp_Location_Data_Info.loc_domain, 
+            3 );
+
+    /* Return status for command complete event */
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Location_Data.status
+        = WLANBAP_STATUS_SUCCESS;
+
+    /* Fill in the parameters for command complete event... */ 
+    pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
+    pBapHCIEvent->u.btampCommandCompleteEvent.present = TRUE;
+    pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+        = BTAMP_TLV_HCI_READ_LOCATION_DATA_CMD;
 
     return VOS_STATUS_SUCCESS;
 } /* WLAN_BAPReadLocationData */
@@ -950,6 +987,7 @@ WLAN_BAPWriteLocationData
                                 /* Including Command Complete and Command Status*/
 )
 {
+    ptBtampContext btampContext;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -964,10 +1002,18 @@ WLAN_BAPWriteLocationData
         return VOS_STATUS_E_FAULT;
     }
 
-    /* TODO: save away the location data
-    btampContext->bapLogicalLinkAcceptTimerInterval = 
-        pBapHCIWriteLogicalLinkAcceptTimeout->logical_link_accept_timeout;
-    */
+    btampContext = (ptBtampContext) btampHandle;
+
+    btampContext->btamp_Location_Data_Info.loc_domain_aware = 
+        pBapHCIWriteLocationData->loc_domain_aware;
+    
+    btampContext->btamp_Location_Data_Info.loc_options = 
+        pBapHCIWriteLocationData->loc_options;
+
+    vos_mem_copy(  
+            btampContext->btamp_Location_Data_Info.loc_domain, 
+            pBapHCIWriteLocationData->loc_domain, 
+            3 );
 
     /* Return status for command complete event */
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Write_Location_Data.status
@@ -1045,7 +1091,7 @@ WLAN_BAPReadFlowControlMode
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Flow_Control_Mode.status
         = WLANBAP_STATUS_SUCCESS;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Flow_Control_Mode.flow_control_mode
-        = 0x00; // WLANBAP_FLOW_CONTROL_MODE_PACKET_BASED;
+        = WLANBAP_FLOW_CONTROL_MODE_BLOCK_BASED;
 
     return VOS_STATUS_SUCCESS;
 } /* WLAN_BAPReadFlowControlMode */

@@ -411,6 +411,9 @@ WDI_FillTxBd
 
 
     pBd->tid           = ucTid; 
+    // Clear the reserved field as this field is used for defining special 
+    // flow control BD.
+    pBd->reserved4 = 0;
     pBd->fwTxComplete0 = 0;
 
     /* This bit is for host to register TxComplete Interrupt */
@@ -690,8 +693,16 @@ WDI_FillTxBd
         {
             if (ucUnicastDst) 
             {
-                /* Assigning Queue Id configured to Ack */ 
-                pBd->queueId = BTQM_QUEUE_SELF_STA_UCAST_MGMT;
+                /* If no ack is requested use the bcast queue */
+                if (ucTxFlag & WDI_USE_NO_ACK_REQUESTED_MASK) 
+                {
+                    pBd->queueId = BTQM_QUEUE_SELF_STA_BCAST_MGMT;
+                }
+                else
+                {
+                    /* Assigning Queue Id configured to Ack */ 
+                    pBd->queueId = BTQM_QUEUE_SELF_STA_UCAST_MGMT;
+                }
             } 
             else 
             {

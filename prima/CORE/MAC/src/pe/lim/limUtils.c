@@ -225,15 +225,15 @@ limMlmStateStr(tLimMlmStates state)
             return "eLIM_MLM_WT_ASSOC_RSP_STATE\n";
         case eLIM_MLM_WT_REASSOC_RSP_STATE:
             return "eLIM_MLM_WT_REASSOC_RSP_STATE\n";
-        case eLIM_MLM_WT_FT_REASSOC_RSP_STATE:
+	case eLIM_MLM_WT_FT_REASSOC_RSP_STATE:
             return "eLIM_MLM_WT_FT_REASSOC_RSP_STATE";
         case eLIM_MLM_WT_DEL_STA_RSP_STATE:
             return "eLIM_MLM_WT_DEL_STA_RSP_STATE\n";
-        case eLIM_MLM_WT_DEL_BSS_RSP_STATE:
+      case eLIM_MLM_WT_DEL_BSS_RSP_STATE:
             return "eLIM_MLM_WT_DEL_BSS_RSP_STATE\n";
-        case eLIM_MLM_WT_ADD_STA_RSP_STATE:
+       case eLIM_MLM_WT_ADD_STA_RSP_STATE:
             return "eLIM_MLM_WT_ADD_STA_RSP_STATE\n";
-        case eLIM_MLM_WT_ADD_BSS_RSP_STATE:
+      case eLIM_MLM_WT_ADD_BSS_RSP_STATE:
             return "eLIM_MLM_WT_ADD_BSS_RSP_STATE\n";
         case eLIM_MLM_REASSOCIATED_STATE:
             return "eLIM_MLM_REASSOCIATED_STATE\n";
@@ -245,7 +245,7 @@ limMlmStateStr(tLimMlmStates state)
             return "eLIM_MLM_WT_ADD_BSS_RSP_ASSOC_STATE\n";
         case eLIM_MLM_WT_ADD_BSS_RSP_REASSOC_STATE:
             return "eLIM_MLM_WT_ADD_BSS_RSP_REASSOC_STATE\n";
-        case eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE:
+	case eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE:
             return "eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE";
         case eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE:
             return "eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE\n";
@@ -1000,7 +1000,7 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimKeepaliveTimer);
 
         pAuthNode = pMac->lim.gLimPreAuthTimerTable.pTable;
-        
+
         //Deactivate any Authentication response timers
         limDeletePreAuthList(pMac);
 
@@ -1017,7 +1017,7 @@ limCleanupMlm(tpAniSirGlobal pMac)
         {
             // Deactivate and cleanup the periodic pre-auth
             // cleanup timer
-      
+
             tx_timer_deactivate(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
             tx_timer_delete(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
 
@@ -1032,7 +1032,7 @@ limCleanupMlm(tpAniSirGlobal pMac)
         // Deactivate and delete Hash Miss throttle timer
         tx_timer_deactivate(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
-        
+
 #ifdef WLAN_SOFTAP_FEATURE
         tx_timer_deactivate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
@@ -1312,36 +1312,36 @@ void limResetDeferredMsgQ(tpAniSirGlobal pMac)
 tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 {
     PELOG1(limLog(pMac, LOG1,
-           FL("**  Queue a deferred message (size %d, write %d) - type 0x%x  **\n"),
-           pMac->lim.gLimDeferredMsgQ.size, pMac->lim.gLimDeferredMsgQ.write,
-           limMsg->type);)
+                FL("**  Queue a deferred message (size %d, write %d) - type 0x%x  **\n"),
+                pMac->lim.gLimDeferredMsgQ.size, pMac->lim.gLimDeferredMsgQ.write,
+                limMsg->type);)
 
-    /*
-    ** check if the deferred message queue is full
-    **/
+        /*
+         ** check if the deferred message queue is full
+         **/
     if (pMac->lim.gLimDeferredMsgQ.size >= MAX_DEFERRED_QUEUE_LEN)
     {
         PELOGE(limLog(pMac, LOGE, FL("Deferred Message Queue is full. Msg: %d\n"), limMsg->type);)
-        return TX_QUEUE_FULL;
+            return TX_QUEUE_FULL;
     }
 
     /*
-    ** In the application, there should not be more than 1 message get
-    ** queued up. If happens, flags a warning. In the future, this can
-    ** happen.
-    **/
+     ** In the application, there should not be more than 1 message get
+     ** queued up. If happens, flags a warning. In the future, this can
+     ** happen.
+     **/
     if (pMac->lim.gLimDeferredMsgQ.size > 0)
     {
         PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, sme %d, mlme %d, addts %d)\n"),
-               pMac->lim.gLimDeferredMsgQ.size, limMsg->type,
-               limIsSystemInScanState(pMac),
-               pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
-               pMac->lim.gLimAddtsSent);)
+                    pMac->lim.gLimDeferredMsgQ.size, limMsg->type,
+                    limIsSystemInScanState(pMac),
+                    pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
+                    pMac->lim.gLimAddtsSent);)
     }
 
     /*
-    ** To prevent the deferred Q is full of management frames, only give them certain space
-    **/
+     ** To prevent the deferred Q is full of management frames, only give them certain space
+     **/
     if( SIR_BB_XPORT_MGMT_MSG == limMsg->type )
     {
         if( LIM_DEFERRED_Q_CHECK_THRESHOLD < pMac->lim.gLimDeferredMsgQ.size )
@@ -1358,8 +1358,8 @@ tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
             {
                 //We reach the quota for management frames, drop this one
                 PELOGE(limLog(pMac, LOGE, FL("Cannot deferred. Msg: %d Too many (count=%d) already\n"), limMsg->type, count);)
-               //Return error, caller knows what to do
-               return TX_QUEUE_FULL;
+                    //Return error, caller knows what to do
+                return TX_QUEUE_FULL;
             }
         }
     }
@@ -1367,18 +1367,18 @@ tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     ++pMac->lim.gLimDeferredMsgQ.size;
 
     /*
-    ** if the write pointer hits the end of the queue, rewind it
-    **/
+     ** if the write pointer hits the end of the queue, rewind it
+     **/
     if (pMac->lim.gLimDeferredMsgQ.write >= MAX_DEFERRED_QUEUE_LEN)
         pMac->lim.gLimDeferredMsgQ.write = 0;
 
     /*
-    ** save the message to the queue and advanced the write pointer
-    **/
+     ** save the message to the queue and advanced the write pointer
+     **/
     palCopyMemory(pMac->hHdd,
-                  (tANI_U8 *)&pMac->lim.gLimDeferredMsgQ.deferredQueue[pMac->lim.gLimDeferredMsgQ.write++],
-                  (tANI_U8 *)limMsg,
-                  sizeof(tSirMsgQ));
+            (tANI_U8 *)&pMac->lim.gLimDeferredMsgQ.deferredQueue[pMac->lim.gLimDeferredMsgQ.write++],
+            (tANI_U8 *)limMsg,
+            sizeof(tSirMsgQ));
     return TX_SUCCESS;
 
 }
@@ -1583,7 +1583,7 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     tUpdateBeaconParams beaconParams;
 
     tpPESession       psessionEntry = limIsApSessionActive(pMac);
-               
+
     if (psessionEntry == NULL)
         return;
     
@@ -1596,7 +1596,7 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     if (!enable)
     {
 
-        PELOG2(limLog(pMac, LOG2, FL("Resetting OLBC cache\n"));)
+            PELOG2(limLog(pMac, LOG2, FL("Resetting OLBC cache\n"));)
             psessionEntry->gLimOlbcParams.numSta = 0;
             psessionEntry->gLimOverlap11gParams.numSta = 0;
             psessionEntry->gLimOverlapHt20Params.numSta = 0;
@@ -1618,7 +1618,7 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
                 if (!psessionEntry->gLim11bParams.protectionEnabled)
                 {
                     PELOG1(limLog(pMac, LOG1, FL("Overlap cache all clear and no 11B STA detected\n"));)
-                    limEnable11gProtection(pMac, false, true, &beaconParams,psessionEntry);
+                    limEnable11gProtection(pMac, false, true, &beaconParams, psessionEntry);
                 }
             }
         }
@@ -1883,20 +1883,20 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
         if (true == psessionEntry->htCapabality)
         {
             //check if we need protection from 11b station
-            if ((pStaDs->erpEnabled== eHAL_CLEAR) &&
+            if ((pStaDs->erpEnabled == eHAL_CLEAR) &&
                 (!pStaDs->mlmStaContext.htCapability))
             {
                 protStaCacheType = eLIM_PROT_STA_CACHE_TYPE_llB;
                 // enable protection
                 PELOG3(limLog(pMac, LOG3, FL("Enabling protection from 11B\n"));)
-                limEnable11gProtection(pMac, true, false, pBeaconParams, psessionEntry);
+                limEnable11gProtection(pMac, true, false, pBeaconParams,psessionEntry);
             }
             //station being joined is non-11b and non-ht ==> 11g device
             else if(!pStaDs->mlmStaContext.htCapability)
             {
                 protStaCacheType = eLIM_PROT_STA_CACHE_TYPE_llG;
                 //enable protection
-                limEnableHtProtectionFrom11g(pMac, true, false, pBeaconParams, psessionEntry);       
+                limEnableHtProtectionFrom11g(pMac, true, false, pBeaconParams, psessionEntry);
             }
             //ERP mode is enabled for the latest station joined
             //latest station joined is HT capable
@@ -1910,14 +1910,14 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
     {
         if(!pStaDs->htGreenfield)
         {
-          limEnableHTNonGfProtection(pMac, true, false, pBeaconParams,psessionEntry);
+          limEnableHTNonGfProtection(pMac, true, false, pBeaconParams, psessionEntry);
           gfSupported = eHAL_CLEAR;
         }
         //Station joining is HT 20Mhz
         if(eHT_CHANNEL_WIDTH_20MHZ == pStaDs->htSupportedChannelWidthSet)
         {
             protStaCacheType = eLIM_PROT_STA_CACHE_TYPE_HT20;
-            limEnableHT20Protection(pMac, true, false, pBeaconParams,psessionEntry);
+            limEnableHT20Protection(pMac, true, false, pBeaconParams, psessionEntry);
         }
         //Station joining does not support LSIG TXOP Protection
         if(!pStaDs->htLsigTXOPProtection)
@@ -1971,10 +1971,10 @@ void
 limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
     tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry)
 {
-    tANI_U16              tmpAid;
+    tANI_U16         tmpAid;
     tpDphHashNode    pStaDs;
-    tANI_U32 phyMode;
-    tANI_U16 i;
+    tANI_U32         phyMode;
+    tANI_U16         i;
 
     // check whether to enable protection or not
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
@@ -2006,22 +2006,22 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
             if (i >= LIM_PROT_STA_CACHE_SIZE)
             {
-                limLog(pMac, LOGE, FL("No space in Short cache (#active %d, #sta %d) for sta "),
-                        i, psessionEntry->gLimNoShortParams.numNonShortPreambleSta);
-                limPrintMacAddr(pMac, peerMacAddr, LOGE);
-                return;
-            }
+                    limLog(pMac, LOGE, FL("No space in Short cache (#active %d, #sta %d) for sta "),
+                            i, psessionEntry->gLimNoShortParams.numNonShortPreambleSta);
+                    limPrintMacAddr(pMac, peerMacAddr, LOGE);
+                    return;	
+                }
 
-            palCopyMemory( pMac->hHdd, psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
-                    peerMacAddr,  sizeof(tSirMacAddr));
-            psessionEntry->gLimNoShortParams.staNoShortCache[i].active = true;
-            psessionEntry->gLimNoShortParams.numNonShortPreambleSta++;
+                palCopyMemory( pMac->hHdd, psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
+                        peerMacAddr,  sizeof(tSirMacAddr));
+                psessionEntry->gLimNoShortParams.staNoShortCache[i].active = true;
+                psessionEntry->gLimNoShortParams.numNonShortPreambleSta++;	
 
             // enable long preamble
             PELOG1(limLog(pMac, LOG1, FL("Disabling short preamble\n"));)
 
-                if (limEnableShortPreamble(pMac, false, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
-                    PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
+            if (limEnableShortPreamble(pMac, false, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
+                PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
         }
     }
 }
@@ -2062,7 +2062,7 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             {
 #ifdef WLAN_SOFTAP_FEATURE
                 if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-                    psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
+				     psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                 {
                     if (palEqualMemory( pMac->hHdd,
                          psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
@@ -2072,7 +2072,7 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                 else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
 #endif
                 {
-                   if (pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
+                    if (pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                     {
                         if (palEqualMemory( pMac->hHdd,
                             pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
@@ -2087,7 +2087,7 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             {
 #ifdef WLAN_SOFTAP_FEATURE
                 if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-                    !psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
+                     !psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                     break;
                  else
 #endif
@@ -2109,15 +2109,15 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 #endif
                 {
                     limLog(pMac, LOGE, FL("No space in ShortSlot cache (#active %d, #sta %d) for sta "),
-                       i, pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta);
+                           i, pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta);
                     limPrintMacAddr(pMac, peerMacAddr, LOGE);
-                    return;
+                    return;	
                 }
             }
 
 #ifdef WLAN_SOFTAP_FEATURE
             if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
-                palCopyMemory( pMac->hHdd, psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
+	        palCopyMemory( pMac->hHdd, psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
                                peerMacAddr, sizeof(tSirMacAddr));
                 psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active = true;
                 psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta++;
@@ -2140,7 +2140,7 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                 pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
                 PELOG1(limLog(pMac, LOG1, FL("Disable short slot time. Enable long slot time.\n"));)
                 if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, false) != eSIR_SUCCESS)
-                    PELOGE(limLog(pMac, LOGE, FL("could not update short slot time at CFG\n"));)
+                    PELOGE(limLog(pMac, LOGE,   FL("could not update short slot time at CFG\n"));)
             }
             else if ( psessionEntry->limSystemRole != eLIM_AP_ROLE)
 #endif            
@@ -2152,8 +2152,8 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                     pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
                     PELOG1(limLog(pMac, LOG1, FL("Disable short slot time. Enable long slot time.\n"));)
                     if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, false) != eSIR_SUCCESS)
-                        PELOGE(limLog(pMac, LOGE, FL("could not update short slot time at CFG\n"));)
-                }
+                        PELOGE(limLog(pMac, LOGE,   FL("could not update short slot time at CFG\n"));)
+                 }
 
             }
         }
@@ -2269,8 +2269,8 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
 
     limGetRfBand(pMac, &rfBand);
     limGetPhyMode(pMac, &phyMode);      
-
-    if(SIR_BAND_5_GHZ == rfBand)
+	
+	if(SIR_BAND_5_GHZ == rfBand)
     {
         if((eSIR_HT_OP_MODE_MIXED == pBeaconStruct->HTInfo.opMode)  ||
                     (eSIR_HT_OP_MODE_OVERLAP_LEGACY == pBeaconStruct->HTInfo.opMode))
@@ -2298,7 +2298,7 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
         //11B device in the BSS
          /* TODO, This is not sessionized */
         if (phyMode != WNI_CFG_PHY_MODE_11B) 
-        {
+		{
             if (pMac->lim.cfgProtection.fromllb &&
                 pBeaconStruct->erpPresent &&
                 (pBeaconStruct->erpIEInfo.useProtection ||
@@ -2311,7 +2311,7 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
             {
                 psessionEntry->beaconParams.llbCoexist = false;
             }
-        }
+	 }
         //following code block is only for HT station.
         if((psessionEntry->htCapabality) &&
               (pBeaconStruct->HTInfo.present))
@@ -2357,7 +2357,7 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
 
     //protection related factors other than HT operating mode. Applies to 2.4 GHZ as well as 5 GHZ.
     if((psessionEntry->htCapabality) &&
-            (pBeaconStruct->HTInfo.present))
+          (pBeaconStruct->HTInfo.present))
     {
         tDot11fIEHTInfo htInfo = pBeaconStruct->HTInfo;
         psessionEntry->beaconParams.fRIFSMode = 
@@ -2425,7 +2425,7 @@ limDecideStaProtection(tpAniSirGlobal pMac,
          */
 
         if (phyMode != WNI_CFG_PHY_MODE_11B) 
-        {
+		{
             if (pBeaconStruct->erpPresent &&
                   (pBeaconStruct->erpIEInfo.useProtection ||
                   pBeaconStruct->erpIEInfo.nonErpPresent))
@@ -2438,7 +2438,7 @@ limDecideStaProtection(tpAniSirGlobal pMac,
                 //disable protection from 11b station
                 limEnable11gProtection(pMac, false, false, pBeaconParams, psessionEntry);
             }
-        }
+	}
 
         //following code block is only for HT station.
         if((psessionEntry->htCapabality) &&
@@ -2548,7 +2548,7 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
     tpPESession psessionEntry = NULL;
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
     tANI_U8    channel = pMac->lim.gLimChannelSwitch.primaryChannel;   // This is received and stored from channelSwitch Action frame
-
+   
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
@@ -2631,7 +2631,7 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
             return;  /* Please note, this is 'return' and not 'break' */
     }
 #endif
-}
+    }
 
 /**
  * limUpdateChannelSwitch()
@@ -3614,7 +3614,7 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel, t
 #endif
             break;
 
-        case eANI_DONOT_USE_SECONDARY_MODE:
+		case eANI_DONOT_USE_SECONDARY_MODE:
             break;
     }
 
@@ -3986,7 +3986,7 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
 #ifdef WLAN_SOFTAP_FEATURE
       if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
           retVal = psessionEntry->htOperMode;
-      else
+	  else
 #endif
           retVal = pMac->lim.gHTOperMode;
       break;
@@ -4088,9 +4088,9 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             {
                 pMac->lim.gLimOverlap11aParams.protectionEnabled = true;
                 if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != pMac->lim.gHTOperMode) &&
-                   (eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode))
+                	(eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode))
                 {
-                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
+                	pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
                     psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
                     limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);          
                     limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);         
@@ -4101,7 +4101,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 psessionEntry->gLim11aParams.protectionEnabled = true;
                 if(eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode)
                 {
-                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_MIXED;
+                	pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_MIXED;
                     limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
                     limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);         
                     
@@ -4132,55 +4132,55 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 //We need to take care of HT OP mode iff we are HT AP.
                 if(psessionEntry->htCapabality)
                 {
-                    // no HT op mode change if any of the overlap protection enabled.
+					// no HT op mode change if any of the overlap protection enabled.
                     if(!(pMac->lim.gLimOverlap11aParams.protectionEnabled ||
-                         pMac->lim.gLimOverlapHt20Params.protectionEnabled ||
-                         pMac->lim.gLimOverlapNonGfParams.protectionEnabled))
+                      	pMac->lim.gLimOverlapHt20Params.protectionEnabled ||
+                    	pMac->lim.gLimOverlapNonGfParams.protectionEnabled))
 
                     {
-                        //Check if there is a need to change HT OP mode.
-                        if(eSIR_HT_OP_MODE_OVERLAP_LEGACY == pMac->lim.gHTOperMode)
-                        {
+                    	//Check if there is a need to change HT OP mode.
+                     	if(eSIR_HT_OP_MODE_OVERLAP_LEGACY == pMac->lim.gHTOperMode)
+                    	{
                             limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
                             limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);        
 
                             if(psessionEntry->gLimHt20Params.protectionEnabled)
-                                pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
+                            	pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
                             else
-                                pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
+                            	pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
                         }
                     }
                 }
             }
             else
             {
-                //Disable protection from 11A stations.
+         	//Disable protection from 11A stations.
                 psessionEntry->gLim11aParams.protectionEnabled = false;
-                limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);
+        	limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);		  
 
-                //Check if any other non-HT protection enabled.
-                //Right now we are in HT OP Mixed mode.
-                //Change HT op mode appropriately.
+         	//Check if any other non-HT protection enabled.
+        	//Right now we are in HT OP Mixed mode.
+         	//Change HT op mode appropriately.
 
-                //Change HT OP mode to 01 if any overlap protection enabled
-                if(pMac->lim.gLimOverlap11aParams.protectionEnabled ||
-                   pMac->lim.gLimOverlapHt20Params.protectionEnabled ||
-                   pMac->lim.gLimOverlapNonGfParams.protectionEnabled)
+        	//Change HT OP mode to 01 if any overlap protection enabled
+        	if(pMac->lim.gLimOverlap11aParams.protectionEnabled ||
+		       pMac->lim.gLimOverlapHt20Params.protectionEnabled ||
+        	   pMac->lim.gLimOverlapNonGfParams.protectionEnabled)
 
-                {
-                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-                }
+	       {
+        		pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
+		        limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+	        }
                 else if(psessionEntry->gLimHt20Params.protectionEnabled)
-                {
-                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
-                    limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
-                }
-                else
-                {
-                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
-                    limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
-                }
+	       {
+        		pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
+		        limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
+	        }
+	        else
+	        {
+        		pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
+		        limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
+	        }
         }
         if(!pMac->lim.gLimOverlap11aParams.protectionEnabled &&
            !psessionEntry->gLim11aParams.protectionEnabled)
@@ -4231,16 +4231,16 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     else
     {
         //normal protection config check
-#ifdef WLAN_SOFTAP_FEATURE
+#ifdef WLAN_SOFTAP_FEATURE			
         if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-            !psessionEntry->cfgProtection.fromllb)
+                !psessionEntry->cfgProtection.fromllb)
         {
             // protection disabled.
             PELOG1(limLog(pMac, LOG1, FL("protection from 11b is disabled\n"));)
             return eSIR_SUCCESS;
-        } else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-#endif
-        {
+        }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
+#endif		
+        {   
             if(!pMac->lim.cfgProtection.fromllb)
             {
                 // protection disabled.
@@ -4255,29 +4255,33 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
 #ifdef WLAN_SOFTAP_FEATURE
-        if((eLIM_AP_ROLE == psessionEntry->limSystemRole) &&
-              (true == psessionEntry->htCapabality))
+        if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
         {
             if(overlap)
             {
                 psessionEntry->gLimOlbcParams.protectionEnabled = true;
                 PELOGE(limLog(pMac, LOGE, FL("protection from olbc is enabled\n"));)
-                if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != psessionEntry->htOperMode) &&
-                    (eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode))
+                if(true == psessionEntry->htCapabality)
                 {
-                    psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                }
-                //CR-263021: OBSS bit is not switching back to 0 after disabling the overlapping legacy BSS
-                // This fixes issue of OBSS bit not set after 11b, 11g station leaves
+                    if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != psessionEntry->htOperMode) &&
+                            (eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode))
+                    {
+                        psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
+                    }
+                    //CR-263021: OBSS bit is not switching back to 0 after disabling the overlapping legacy BSS
+                    // This fixes issue of OBSS bit not set after 11b, 11g station leaves
                     limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-              //Not processing OBSS bit from other APs, as we are already taking care
-              //of Protection from overlapping BSS based on erp IE or useProtection bit
-                limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams, psessionEntry);
+                    //Not processing OBSS bit from other APs, as we are already taking care
+                    //of Protection from overlapping BSS based on erp IE or useProtection bit
+                    limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams, psessionEntry);
+                }
             }
             else
             {
                 psessionEntry->gLim11bParams.protectionEnabled = true;
                 PELOGE(limLog(pMac, LOGE, FL("protection from 11b is enabled\n"));)
+                if(true == psessionEntry->htCapabality)
+                {
                 if(eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode)
                 {
                     psessionEntry->htOperMode = eSIR_HT_OP_MODE_MIXED;
@@ -4285,36 +4289,37 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                     limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);     
                 }
             }
+            }
         }else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&
-              (true == psessionEntry->htCapabality))
-#else
-        if(((eLIM_AP_ROLE == psessionEntry->limSystemRole)|| (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)) &&
-              (true == psessionEntry->htCapabality))
+                (true == psessionEntry->htCapabality))
+#else		
+            if(((eLIM_AP_ROLE == psessionEntry->limSystemRole)|| (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)) &&
+                    (true == psessionEntry->htCapabality))
 #endif
-        {
-            if(overlap)
             {
-                psessionEntry->gLimOlbcParams.protectionEnabled = true;
-                if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != pMac->lim.gHTOperMode) &&
-                   (eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode))
+                if(overlap)
                 {
-                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-                    //Not processing OBSS bit from other APs, as we are already taking care
-                    //of Protection from overlapping BSS based on erp IE or useProtection bit
+                psessionEntry->gLimOlbcParams.protectionEnabled = true;
+                    if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != pMac->lim.gHTOperMode) &&
+                            (eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode))
+                    {
+                        pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
+                        limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                        //Not processing OBSS bit from other APs, as we are already taking care
+                        //of Protection from overlapping BSS based on erp IE or useProtection bit
+                    }
                 }
-            }
-            else
-            {
+                else
+                {
                 psessionEntry->gLim11bParams.protectionEnabled = true;
-                if(eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode)
-                { 
-                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_MIXED;
-                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-                    limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);     
+                    if(eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode)
+                    { 
+                        pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_MIXED;
+                        limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                        limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);     
+                    }
                 }
             }
-        }
 
         //This part is common for staiton as well.
         if(false == psessionEntry->beaconParams.llbCoexist)
@@ -4342,8 +4347,8 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 {
                     // no HT op mode change if any of the overlap protection enabled.
                     if(!(psessionEntry->gLimOverlap11gParams.protectionEnabled ||
-                        psessionEntry->gLimOverlapHt20Params.protectionEnabled ||
-                        psessionEntry->gLimOverlapNonGfParams.protectionEnabled))
+                                psessionEntry->gLimOverlapHt20Params.protectionEnabled ||
+                                psessionEntry->gLimOverlapNonGfParams.protectionEnabled))
                     {
                         //Check if there is a need to change HT OP mode.
                         if(eSIR_HT_OP_MODE_OVERLAP_LEGACY == pMac->lim.gHTOperMode)
@@ -4366,7 +4371,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 //Disable protection from 11B stations.
                 psessionEntry->gLim11bParams.protectionEnabled = false;
                 PELOGE(limLog(pMac, LOGE, FL("===> 11B Protection Disabled\n"));)
-                //Check if any other non-HT protection enabled.
+                    //Check if any other non-HT protection enabled.
                 if(!psessionEntry->gLim11gParams.protectionEnabled)
                 {
                     //Right now we are in HT OP Mixed mode.
@@ -4375,9 +4380,9 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 
                     //Change HT OP mode to 01 if any overlap protection enabled
                     if(psessionEntry->gLimOlbcParams.protectionEnabled ||
-                        psessionEntry->gLimOverlap11gParams.protectionEnabled ||
-                        psessionEntry->gLimOverlapHt20Params.protectionEnabled ||
-                        psessionEntry->gLimOverlapNonGfParams.protectionEnabled)
+                            psessionEntry->gLimOverlap11gParams.protectionEnabled ||
+                            psessionEntry->gLimOverlapHt20Params.protectionEnabled ||
+                            psessionEntry->gLimOverlapNonGfParams.protectionEnabled)
                     {
                         psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
                         PELOGE(limLog(pMac, LOGE, FL("===> 11G Protection Disabled\n"));)
@@ -4399,7 +4404,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 }
             }
             if(!psessionEntry->gLimOlbcParams.protectionEnabled &&
-                  !psessionEntry->gLim11bParams.protectionEnabled)
+                    !psessionEntry->gLim11bParams.protectionEnabled)
             {
                 PELOGE(limLog(pMac, LOGE, FL("===> 11G Protection Disabled\n"));)
                 pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
@@ -4407,84 +4412,84 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
 #else
-        if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)))
+            if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)))
 #endif
-        {
-            if(overlap)
             {
-                //Overlap Legacy protection disabled.
+                if(overlap)
+                {
+                    //Overlap Legacy protection disabled.
                 psessionEntry->gLimOlbcParams.protectionEnabled = false;
 
-                //We need to take care of HT OP mode iff we are HT AP.
-                if(psessionEntry->htCapabality)
-                {
-                    // no HT op mode change if any of the overlap protection enabled.
-                    if(!(pMac->lim.gLimOverlap11gParams.protectionEnabled ||
-                        pMac->lim.gLimOverlapHt20Params.protectionEnabled ||
-                        pMac->lim.gLimOverlapNonGfParams.protectionEnabled))
-
+                    //We need to take care of HT OP mode iff we are HT AP.
+                    if(psessionEntry->htCapabality)
                     {
-                        //Check if there is a need to change HT OP mode.
-                        if(eSIR_HT_OP_MODE_OVERLAP_LEGACY == pMac->lim.gHTOperMode)
+                        // no HT op mode change if any of the overlap protection enabled.
+                        if(!(pMac->lim.gLimOverlap11gParams.protectionEnabled ||
+                                    pMac->lim.gLimOverlapHt20Params.protectionEnabled ||
+                                    pMac->lim.gLimOverlapNonGfParams.protectionEnabled))
+
                         {
-                            limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
-                            limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);            
+                            //Check if there is a need to change HT OP mode.
+                            if(eSIR_HT_OP_MODE_OVERLAP_LEGACY == pMac->lim.gHTOperMode)
+                            {
+                                limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
+                                limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);            
                             if(psessionEntry->gLimHt20Params.protectionEnabled)
-                                pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
-                            else
-                                pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
+                                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
+                                else
+                                    pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                //Disable protection from 11B stations.
-                psessionEntry->gLim11bParams.protectionEnabled = false;
-                //Check if any other non-HT protection enabled.
-                if(!psessionEntry->gLim11gParams.protectionEnabled)
+                else
                 {
-                    //Right now we are in HT OP Mixed mode.
-                    //Change HT op mode appropriately.
-                    limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);            
+                    //Disable protection from 11B stations.
+                psessionEntry->gLim11bParams.protectionEnabled = false;
+                    //Check if any other non-HT protection enabled.
+                if(!psessionEntry->gLim11gParams.protectionEnabled)
+                    {
+                        //Right now we are in HT OP Mixed mode.
+                        //Change HT op mode appropriately.
+                        limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);            
 
-                    //Change HT OP mode to 01 if any overlap protection enabled
+                        //Change HT OP mode to 01 if any overlap protection enabled
                     if(psessionEntry->gLimOlbcParams.protectionEnabled ||
-                        pMac->lim.gLimOverlap11gParams.protectionEnabled ||
-                        pMac->lim.gLimOverlapHt20Params.protectionEnabled ||
-                        pMac->lim.gLimOverlapNonGfParams.protectionEnabled)
+                                pMac->lim.gLimOverlap11gParams.protectionEnabled ||
+                                pMac->lim.gLimOverlapHt20Params.protectionEnabled ||
+                                pMac->lim.gLimOverlapNonGfParams.protectionEnabled)
 
-                    {
-                        pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                        limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-                    }
+                        {
+                            pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
+                            limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                        }
                     else if(psessionEntry->gLimHt20Params.protectionEnabled)
-                    {
-                        pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
-                        limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
-                    }
-                    else
-                    {
-                        pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
-                        limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
+                        {
+                            pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
+                            limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
+                        }
+                        else
+                        {
+                            pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
+                            limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
+                        }
                     }
                 }
-            }
             if(!psessionEntry->gLimOlbcParams.protectionEnabled &&
                   !psessionEntry->gLim11bParams.protectionEnabled)
+                {
+                    PELOG1(limLog(pMac, LOG1, FL("===> 11G Protection Disabled\n"));)
+                pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
+                    pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
+                }
+            }
+        //for station role
+            else
             {
                 PELOG1(limLog(pMac, LOG1, FL("===> 11G Protection Disabled\n"));)
-                pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
+            pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
                 pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
             }
-        }
-        //for station role
-        else
-        {
-            PELOG1(limLog(pMac, LOG1, FL("===> 11G Protection Disabled\n"));)
-            pBeaconParams->llbCoexist = psessionEntry->beaconParams.llbCoexist = false;
-            pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
-        }
     }
     return eSIR_SUCCESS;
 }
@@ -4509,11 +4514,11 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
     {
 #ifdef WLAN_SOFTAP_FEATURE
         if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) && (!psessionEntry->cfgProtection.overlapFromllg))
-        {
-            // protection disabled.
+		{
+			// protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("overlap protection from 11g is disabled\n")););
             return eSIR_SUCCESS;
-        }else if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) && (!pMac->lim.cfgProtection.overlapFromllg))
+		}else if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) && (!pMac->lim.cfgProtection.overlapFromllg))
 #else
         if(((psessionEntry->limSystemRole == eLIM_AP_ROLE ) ||(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)) && (!pMac->lim.cfgProtection.overlapFromllg))
 #endif
@@ -4522,20 +4527,20 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             PELOG3(limLog(pMac, LOG3, FL("overlap protection from 11g is disabled\n")););
             return eSIR_SUCCESS;
         }
-    }
+	}
     else
     {
         //normal protection config check
 #ifdef WLAN_SOFTAP_FEATURE
        if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) && 
-          !psessionEntry->cfgProtection.fromllg){
-            // protection disabled.
+		   !psessionEntry->cfgProtection.fromllg){
+			// protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("protection from 11g is disabled\n"));)
             return eSIR_SUCCESS;
-       }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
+		}else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
 #endif
        {
-           if(!pMac->lim.cfgProtection.fromllg)
+	       if(!pMac->lim.cfgProtection.fromllg)
            {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from 11g is disabled\n"));)
@@ -4704,7 +4709,7 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                 pBeaconParams->llgCoexist = psessionEntry->beaconParams.llgCoexist = false;
                 pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
             }
-        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
+		}else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
 #else
         if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
 #endif
@@ -4829,13 +4834,13 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
 #endif
         {
-            if(!pMac->lim.cfgProtection.obss) 
+		    if(!pMac->lim.cfgProtection.obss) 
             { //ToDo Update this field
                 // protection disabled.
                 PELOG1(limLog(pMac, LOG1, FL("protection from Obss is disabled\n"));)
                 return eSIR_SUCCESS;
-            }
-        }
+            }	
+		}
     }
 
 
@@ -4878,7 +4883,7 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_OBSS_MODE_CHANGED;
 
         }
-    }
+	}
     return eSIR_SUCCESS;
 }
 /** -------------------------------------------------------------
@@ -4911,33 +4916,33 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
         else
         {
             //normal protection config check
-#ifdef WLAN_SOFTAP_FEATURE
+#ifdef WLAN_SOFTAP_FEATURE			
             if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-               !psessionEntry->cfgProtection.ht20)
+			   !psessionEntry->cfgProtection.ht20)
             {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from HT20 is disabled\n"));)
                 return eSIR_SUCCESS;
             }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-#endif
+#endif		
             {
-                if(!pMac->lim.cfgProtection.ht20)
+				if(!pMac->lim.cfgProtection.ht20)
                 {
                     // protection disabled.
                     PELOG3(limLog(pMac, LOG3, FL("protection from HT20 is disabled\n"));)
                     return eSIR_SUCCESS;
                 }
-            }
+			}
         }
 
     if (enable)
     {
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
-
+		
 #ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole){
-            if(overlap)
+			if(overlap)
             {
                 psessionEntry->gLimOverlapHt20Params.protectionEnabled = true;
                 if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != psessionEntry->htOperMode) &&
@@ -4959,7 +4964,7 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
                     limEnableHtOBSSProtection(pMac,  false, overlap, pBeaconParams,psessionEntry);
                 }
             }
-        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
+		}else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
 #else
         if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
 #endif
@@ -5046,8 +5051,8 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
             PELOG1(limLog(pMac, LOG1, FL("===> Protection from HT 20 Disabled\n"));)
             pBeaconParams->ht20MhzCoexist = psessionEntry->beaconParams.ht20Coexist = false;
-            pBeaconParams->paramChangeBitmap |= PARAM_HT20MHZCOEXIST_CHANGED;
-        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
+            pBeaconParams->paramChangeBitmap |= PARAM_HT20MHZCOEXIST_CHANGED;			
+		}else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
 #else
         if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
 #endif
@@ -5141,7 +5146,7 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 #ifdef WLAN_SOFTAP_FEATURE
             //normal protection config check
             if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-               !psessionEntry->cfgProtection.nonGf)
+			    !psessionEntry->cfgProtection.nonGf)
             {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from NonGf is disabled\n"));)
@@ -5149,30 +5154,30 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
 #endif
             {
-                //normal protection config check
+				//normal protection config check
                 if(!pMac->lim.cfgProtection.nonGf)
                 {
                     // protection disabled.
                     PELOG3(limLog(pMac, LOG3, FL("protection from NonGf is disabled\n"));)
                     return eSIR_SUCCESS;
                  }
-            }
+			}
         }
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
         {
-                PELOG1(limLog(pMac, LOG1, FL(" => Prtection from non GF Enabled\n"));)
+            PELOG1(limLog(pMac, LOG1, FL(" => Prtection from non GF Enabled\n"));)
             pBeaconParams->llnNonGFCoexist = psessionEntry->beaconParams.llnNonGFCoexist = true;
-                pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
-            }
+            pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
+        }
         else if (!enable && (true == psessionEntry->beaconParams.llnNonGFCoexist))
         {
             PELOG1(limLog(pMac, LOG1, FL("===> Protection from Non GF Disabled\n"));)
             pBeaconParams->llnNonGFCoexist = psessionEntry->beaconParams.llnNonGFCoexist = false;
             pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
         }
-    } else
+	}else
 #endif
     {
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
@@ -5182,12 +5187,12 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
         }
         else if (!enable && (true == psessionEntry->beaconParams.llnNonGFCoexist))
-            {
-                PELOG1(limLog(pMac, LOG1, FL("===> Protection from Non GF Disabled\n"));)
+        {
+            PELOG1(limLog(pMac, LOG1, FL("===> Protection from Non GF Disabled\n"));)
             pBeaconParams->llnNonGFCoexist = psessionEntry->beaconParams.llnNonGFCoexist = false;
-                pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
-            }
+            pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
         }
+	}
 
     return eSIR_SUCCESS;
 }
@@ -5224,7 +5229,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 #ifdef WLAN_SOFTAP_FEATURE
             //normal protection config check
             if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-               !psessionEntry->cfgProtection.lsigTxop)
+			   !psessionEntry->cfgProtection.lsigTxop)
             {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL(" protection from LsigTxop not supported is disabled\n"));)
@@ -5239,7 +5244,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                     PELOG3(limLog(pMac, LOG3, FL(" protection from LsigTxop not supported is disabled\n"));)
                     return eSIR_SUCCESS;
                 }
-            }
+			}
         }
 
 
@@ -5257,7 +5262,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->fLsigTXOPProtectionFullSupport= psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = false;
             pBeaconParams->paramChangeBitmap |= PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED;
         }
-    }else
+	}else
 #endif
     {
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
@@ -5272,7 +5277,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         pBeaconParams->fLsigTXOPProtectionFullSupport= psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = false;
         pBeaconParams->paramChangeBitmap |= PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED;
     }
-    }
+	}
     return eSIR_SUCCESS;
 }
 //FIXME_PROTECTION : need to check for no APSD whenever we want to enable this protection.
@@ -5292,31 +5297,31 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     if(!psessionEntry->htCapabality)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
-    //overlapping protection configuration check.
-    if(overlap)
-    {
+        //overlapping protection configuration check.
+        if(overlap)
+        {
 #if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
         if(((psessionEntry->limSystemRole == eLIM_AP_ROLE) ||(psessionEntry == eLIM_BT_AMP_AP_ROLE))&& !pMac->lim.cfgProtection.overlapRifs)
-        {
-            // protection disabled.
+            {
+                // protection disabled.
             PELOG3(limLog(pMac, LOG3, FL(" overlap protection from Rifs is disabled\n"));)
                 return eSIR_SUCCESS;
+            }
+#endif
         }
-#endif
-    }
-    else
-    {
+        else
+        {
 #ifdef WLAN_SOFTAP_FEATURE
-        //normal protection config check
-        if((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
-           !psessionEntry->cfgProtection.rifs)
-        {
-            // protection disabled.
-            PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled\n"));)
-            return eSIR_SUCCESS;
-        }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
+             //normal protection config check
+            if((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
+			   !psessionEntry->cfgProtection.rifs)
+            {
+                // protection disabled.
+                PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled\n"));)
+                return eSIR_SUCCESS;
+            }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
 #endif
-        {
+            {
             //normal protection config check
             if(!pMac->lim.cfgProtection.rifs)
             {
@@ -5324,12 +5329,12 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled\n"));)
                 return eSIR_SUCCESS;
             }
+			}
         }
-    }
 
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
-        // Disabling the RIFS Protection means Enable the RIFS mode of operation in the BSS
+	    // Disabling the RIFS Protection means Enable the RIFS mode of operation in the BSS
         if ((!enable) && (false == psessionEntry->beaconParams.fRIFSMode))
         {
             PELOG1(limLog(pMac, LOG1, FL(" => Rifs protection Disabled\n"));)
@@ -5342,25 +5347,25 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             PELOG1(limLog(pMac, LOG1, FL("===> Rifs Protection Enabled\n"));)
             pBeaconParams->fRIFSMode = psessionEntry->beaconParams.fRIFSMode = false;
             pBeaconParams->paramChangeBitmap |= PARAM_RIFS_MODE_CHANGED;
-        }
-    } else
+        }	
+	}else
 #endif
     {
-        // Disabling the RIFS Protection means Enable the RIFS mode of operation in the BSS
+	// Disabling the RIFS Protection means Enable the RIFS mode of operation in the BSS
         if ((!enable) && (false == psessionEntry->beaconParams.fRIFSMode))
-        {
-            PELOG1(limLog(pMac, LOG1, FL(" => Rifs protection Disabled\n"));)
+    {
+        PELOG1(limLog(pMac, LOG1, FL(" => Rifs protection Disabled\n"));)
             pBeaconParams->fRIFSMode = psessionEntry->beaconParams.fRIFSMode = true;
-            pBeaconParams->paramChangeBitmap |= PARAM_RIFS_MODE_CHANGED;
-        }
-        // Enabling the RIFS Protection means Disable the RIFS mode of operation in the BSS
-        else if (enable && (true == psessionEntry->beaconParams.fRIFSMode))
-        {
-            PELOG1(limLog(pMac, LOG1, FL("===> Rifs Protection Enabled\n"));)
-            pBeaconParams->fRIFSMode = psessionEntry->beaconParams.fRIFSMode = false;
-            pBeaconParams->paramChangeBitmap |= PARAM_RIFS_MODE_CHANGED;
-        }
+        pBeaconParams->paramChangeBitmap |= PARAM_RIFS_MODE_CHANGED;
     }
+    // Enabling the RIFS Protection means Disable the RIFS mode of operation in the BSS
+        else if (enable && (true == psessionEntry->beaconParams.fRIFSMode))
+    {
+        PELOG1(limLog(pMac, LOG1, FL("===> Rifs Protection Enabled\n"));)
+            pBeaconParams->fRIFSMode = psessionEntry->beaconParams.fRIFSMode = false;
+        pBeaconParams->paramChangeBitmap |= PARAM_RIFS_MODE_CHANGED;
+    }	
+	}
     return eSIR_SUCCESS;
 }
 
@@ -5424,7 +5429,7 @@ limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams
     }
 
     return eSIR_SUCCESS;
-}
+        }
 
 
 /**
@@ -5467,24 +5472,24 @@ void limTxComplete( tHalHandle hHal, void *pData )
 #ifdef FIXME_PRIMA
   /* the trace logic needs to be fixed for Prima.  Refer to CR 306075 */
 #ifdef TRACE_RECORD
-    {
-        tpSirMacMgmtHdr mHdr;
-        v_U8_t         *pRxBd;
-        vos_pkt_t      *pVosPkt;
-        VOS_STATUS      vosStatus;
+	{
+	    tpSirMacMgmtHdr mHdr;
+	    v_U8_t         *pRxBd;
+	    vos_pkt_t      *pVosPkt;
+	    VOS_STATUS      vosStatus;
 
 
 
-        pVosPkt = (vos_pkt_t *)pData;
-        vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pRxBd, WLANHAL_RX_BD_HEADER_SIZE);
+	    pVosPkt = (vos_pkt_t *)pData;
+	    vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pRxBd, WLANHAL_RX_BD_HEADER_SIZE);
 
-        if(VOS_IS_STATUS_SUCCESS(vosStatus))
-        {
+	    if(VOS_IS_STATUS_SUCCESS(vosStatus))
+	    {
             mHdr = WDA_GET_RX_MAC_HEADER(pRxBd);
-            MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, 0, mHdr->fc.subType);)
+	        MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, 0, mHdr->fc.subType);)
 
-        }   
-    }
+	    }   
+	}
 #endif
 #endif
 
@@ -5880,17 +5885,17 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
     }
     else
     {
-        if((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) && 
+      if((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) && 
            psessionEntry->gLimEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
+      {
+        //send message to HAL to delete TS
+        if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req))
         {
-            //send message to HAL to delete TS
-            if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req))
-            {
-                limLog(pMac, LOGW, FL("DelTs with UP %d failed in limSendHalMsgDelTs - ignoring request\n"),
-                                 tsinfo->traffic.userPrio);
-                return eSIR_FAILURE;
-            }
+          limLog(pMac, LOGW, FL("DelTs with UP %d failed in limSendHalMsgDelTs - ignoring request\n"),
+                           tsinfo->traffic.userPrio);
+           return eSIR_FAILURE;
         }
+      }
     }
     return eSIR_SUCCESS;
 }
@@ -5991,8 +5996,8 @@ limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                PELOG2(limLog(pMac, LOG2, FL("BA setup for staId = %d, TID: %d, SSN:%d.\n"),
                         pSta->staIndex, tid, pBaCandidate->baInfo[tid].startingSeqNum);)
                 limPostMlmAddBAReq(pMac, pSta, tid, pBaCandidate->baInfo[tid].startingSeqNum,psessionEntry);  
-            }
-        }
+    }
+}
     }
     palFreeMemory(pMac->hHdd, limMsg->bodyptr);
     return;
@@ -7296,7 +7301,7 @@ void limSetTspecUapsdMask(tpAniSirGlobal pMac, tSirMacTSInfo *pTsInfo, tANI_U32 
 {
     tANI_U8   userPrio = (tANI_U8)pTsInfo->traffic.userPrio;
     tANI_U16  direction = pTsInfo->traffic.direction;  
-    tANI_U8   ac = upToAc(userPrio);
+	tANI_U8   ac = upToAc(userPrio);
 
     PELOG1(limLog(pMac, LOG1, FL(" Set UAPSD mask for AC %d, direction %d, action=%d (1=set,0=clear) \n"),ac, direction, action );)
 
@@ -7306,10 +7311,10 @@ void limSetTspecUapsdMask(tpAniSirGlobal pMac, tSirMacTSInfo *pTsInfo, tANI_U32 
      * AC_VI(2) --> UAPSD_BITOFFSET_ACVO(1)
      * AC_VO(3) --> UAPSD_BITOFFSET_ACVO(0)
      */
-    ac = ((~ac) & 0x3);
+	ac = ((~ac) & 0x3);
 
     if (action == CLEAR_UAPSD_MASK) 
-    {
+	{
         if (direction == SIR_MAC_DIRECTION_UPLINK)
             pMac->lim.gUapsdPerAcTriggerEnableMask &= ~(1 << ac);
         else if (direction == SIR_MAC_DIRECTION_DNLINK)   
@@ -7319,9 +7324,9 @@ void limSetTspecUapsdMask(tpAniSirGlobal pMac, tSirMacTSInfo *pTsInfo, tANI_U32 
             pMac->lim.gUapsdPerAcTriggerEnableMask &= ~(1 << ac);
             pMac->lim.gUapsdPerAcDeliveryEnableMask &= ~(1 << ac);
         }
-    }
-    else if (action == SET_UAPSD_MASK)
-    {
+	}
+	else if (action == SET_UAPSD_MASK)
+	{
         if (direction == SIR_MAC_DIRECTION_UPLINK)
             pMac->lim.gUapsdPerAcTriggerEnableMask |= (1 << ac);
         else if (direction == SIR_MAC_DIRECTION_DNLINK)   
@@ -7329,9 +7334,9 @@ void limSetTspecUapsdMask(tpAniSirGlobal pMac, tSirMacTSInfo *pTsInfo, tANI_U32 
         else if (direction == SIR_MAC_DIRECTION_BIDIR)
         {
             pMac->lim.gUapsdPerAcTriggerEnableMask |= (1 << ac);
-            pMac->lim.gUapsdPerAcDeliveryEnableMask |= (1 << ac);      
+			pMac->lim.gUapsdPerAcDeliveryEnableMask |= (1 << ac);      
         }
-    }
+	}
 
     limLog(pMac, LOGE, FL("New pMac->lim.gUapsdPerAcTriggerEnableMask = 0x%x \n"), pMac->lim.gUapsdPerAcTriggerEnableMask );
     limLog(pMac, LOGE, FL("New pMac->lim.gUapsdPerAcDeliveryEnableMask = 0x%x \n"), pMac->lim.gUapsdPerAcDeliveryEnableMask );
@@ -7345,7 +7350,7 @@ void limHandleHeartBeatTimeout(tpAniSirGlobal pMac )
 {
 
     tANI_U8 i;
-    for(i =0;i < pMac->lim.maxBssId;i++)
+	for(i =0;i < pMac->lim.maxBssId;i++)
     {
         if(pMac->lim.gpSession[i].valid == TRUE )
         {
@@ -7362,7 +7367,7 @@ void limHandleHeartBeatTimeout(tpAniSirGlobal pMac )
                 /* The following is to take care of the case where if heartbeat is fine for
                  * the first session but not for the second session */
                 if(tx_timer_running(&pMac->lim.limTimers.gLimProbeAfterHBTimer) == VOS_TRUE)
-                  break;
+                break;
             }
             
                         
@@ -7409,7 +7414,7 @@ void limUpdateBeacon(tpAniSirGlobal pMac)
             {
                 schSetFixedBeaconFields(pMac,&pMac->lim.gpSession[i]);
                 limSendBeaconInd(pMac, &pMac->lim.gpSession[i]);
-            }
+             }
             else
             {
                 if( (pMac->lim.gpSession[i].limSystemRole == eLIM_BT_AMP_AP_ROLE)||
@@ -7542,7 +7547,7 @@ void limDiagEventReport(tpAniSirGlobal pMac, tANI_U16 eventType, tpPESession pSe
        peEvent.mlm_state = (tANI_U16)pMac->lim.gLimMlmState;
 
     }
-    else
+	 else
     {
        palCopyMemory(pMac->hHdd, peEvent.bssid, pSessionEntry->bssId, sizeof(tSirMacAddr));
        peEvent.sme_state = (tANI_U16)pSessionEntry->limSmeState;

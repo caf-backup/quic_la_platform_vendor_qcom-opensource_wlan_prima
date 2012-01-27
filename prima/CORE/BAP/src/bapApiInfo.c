@@ -334,6 +334,31 @@ WLAN_BAPReadDataBlockSize
                                 /* Including "Read" Command Complete*/
 )
 {
+   /* Validate params */ 
+   if ((btampHandle == NULL) || (NULL == pBapHCIEvent))
+   {
+     return VOS_STATUS_E_FAULT;
+   }
+
+
+   VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %x", __FUNCTION__,  btampHandle); 
+
+
+   /* Format the command complete event to return... */ 
+   pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
+   pBapHCIEvent->u.btampCommandCompleteEvent.present = 1;
+   pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
+   pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode 
+       = BTAMP_TLV_HCI_READ_DATA_BLOCK_SIZE_CMD;
+   pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Data_Block_Size.status 
+       = WLANBAP_STATUS_SUCCESS;
+   /* Return the supported Block sizes */ 
+   pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Data_Block_Size.HC_Data_Block_Length
+       = WLANBAP_MAX_80211_PAL_PDU_SIZE;
+   pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Data_Block_Size.HC_Max_ACL_Data_Packet_Length
+       = WLANBAP_MAX_80211_PAL_PDU_SIZE;
+   pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Data_Block_Size.HC_Total_Num_Data_Blocks
+       = 16;
 
     return VOS_STATUS_SUCCESS;
 } /* WLAN_BAPReadDataBlockSize */

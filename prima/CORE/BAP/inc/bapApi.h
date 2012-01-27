@@ -177,6 +177,12 @@ Debug Commands
 #define WLANBAP_MAX_80211_PAL_PDU_SIZE                1492
 
 /*---------------------------------------------------------------------------
+  HCI Flow Control Modes.
+---------------------------------------------------------------------------*/      
+#define WLANBAP_FLOW_CONTROL_MODE_PACKET_BASED        0x00
+#define WLANBAP_FLOW_CONTROL_MODE_BLOCK_BASED         0x01
+
+/*---------------------------------------------------------------------------
   BT "assigned numbers"
 ---------------------------------------------------------------------------*/      
 // Qualcomm Company ID
@@ -216,9 +222,6 @@ supported, the feature underlying that command is also supported.
   The Supported Commands is a 64 octet bit field. If a bit is set to 1, then 
 this command is supported.
 
-  I have recently removed support for: 
-  1. HCI_SetControllerToHostFlowControl cmd 
-  2. HCI_ReadBufferSize cmd  (No! I added it back.)
 ---------------------------------------------------------------------------*/      
 //    0     1     2     3     4     5     6     7
 
@@ -348,6 +351,7 @@ typedef struct sBtampHCI_Event {
         tBtampTLVHCI_Qos_Violation_Event btampQosViolationEvent ;
         tBtampTLVHCI_Short_Range_Mode_Change_Complete_Event btampShortRangeModeChangeCompleteEvent ;
         tBtampTLVHCI_Num_Completed_Pkts_Event btampNumOfCompletedPktsEvent;
+        tBtampTLVHCI_Num_Completed_Data_Blocks_Event btampNumOfCompletedDataBlocksEvent;
     } u;
 } tBtampHCI_Event, *tpBtampHCI_Event;
 

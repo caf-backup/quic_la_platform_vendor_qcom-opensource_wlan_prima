@@ -204,6 +204,12 @@ typedef struct sBtampHCI_AMP_Assoc {
     v_U16_t      HC_pal_subversion;
 }  tBtampHCI_AMP_Assoc, *tpBtampHCI_AMP_Assoc ;
 
+typedef struct sBtampTLVHCI_Location_Data_Info {
+    v_U8_t       loc_domain_aware;
+    v_U8_t       loc_domain[3];
+    v_U8_t       loc_options;
+} tBtampTLVHCI_Location_Data_Info;
+
 /*----------------------------------------------------------------------------
  *  Type Declarations - For BAP logical link context information
  * -------------------------------------------------------------------------*/
@@ -405,6 +411,8 @@ typedef struct sBtampContext {
     // Remote AMP Assoc
     tBtampHCI_AMP_Assoc       btamp_Remote_AMP_Assoc;
 
+    tBtampTLVHCI_Location_Data_Info  btamp_Location_Data_Info;
+
     union
     {
         tAuthRsnFsm authFsm;
@@ -482,6 +490,8 @@ typedef struct sBtampContext {
     /*multiple data structures getting accessed/written from both north & south
     bound entities. To avoid multiple access, need a lock*/
     vos_lock_t           bapLock;
+    // Either Block mode or Pkt mode
+    v_U8_t               ucDataTrafficMode;
 }*ptBtampContext; 
 //tBtampContext, *ptBtampContext;
 

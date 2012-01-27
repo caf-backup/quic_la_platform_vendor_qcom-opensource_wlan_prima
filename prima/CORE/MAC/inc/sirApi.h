@@ -3792,6 +3792,7 @@ typedef struct
   tSirMacSSid ssId;
   tANI_U32    authentication; 
   tANI_U32    encryption; 
+  tANI_U32    bcastNetwType; 
   tANI_U8     ucChannelCount;
   tANI_U8     aChannels[SIR_PNO_MAX_NETW_CHANNELS]; 
   tANI_U8     rssiThreshold;

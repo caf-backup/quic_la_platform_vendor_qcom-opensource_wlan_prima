@@ -3721,6 +3721,22 @@ v_U32_t btampGetPackedTlvHCI_Num_Completed_Pkts_Event(void * pCtx, tBtampTLVHCI_
     return status;
 } /* End btampGetPackedTLVHCI_Num_Completed_Pkts_Event. */
 
+v_U32_t btampGetPackedTlvHCI_Num_Completed_Data_Blocks_Event(void * pCtx, tBtampTLVHCI_Num_Completed_Data_Blocks_Event *pTlv, v_U32_t *pnNeeded)
+{
+    v_U32_t status = BTAMP_PARSE_SUCCESS;
+    (void)pCtx; (void)pTlv; (void)pnNeeded;
+//    while ( pTlv->present )
+    {
+        *pnNeeded += 2;
+        *pnNeeded += 1;
+        *pnNeeded += 2;
+        *pnNeeded += 2;
+        *pnNeeded += 2;
+//        break;
+    }
+    return status;
+} /* End btampGetPackedTLVHCI_Num_Completed_Data_Blocks_Event. */
+
 //typedef v_U32_t (*pfnPackSizeTlvHCI_Num_Completed_Pkts_Event_t)(void *, tBtampTLVHCI_Command_Status_Event*, v_U32_t*);
 //#define SigPackSizeTlvHCI_Num_Completed_Pkts_Event ( 0x0048 )
 
@@ -6461,6 +6477,101 @@ v_U32_t btampPackTlvHCI_Num_Completed_Pkts_Event(void * pCtx,
     }
     return status;
 } /* End btampPackTlvHCI_Num_Completed_Pkts_Event. */
+
+v_U32_t btampPackTlvHCI_Num_Completed_Data_Blocks_Event(void * pCtx,
+                                             tBtampTLVHCI_Num_Completed_Data_Blocks_Event *pSrc,
+                                             v_U8_t *pBuf,
+                                             v_U32_t nBuf,
+                                             v_U32_t *pnConsumed)
+{
+    v_U8_t* pTlvLen = 0;
+    v_U32_t nConsumedOnEntry;
+    v_U32_t status = BTAMP_PARSE_SUCCESS;
+    v_U32_t nNeeded = 0U;
+    v_U32_t sType = 0U;
+    v_U32_t sLen = 0U;
+    sType = 1;
+    sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+    nConsumedOnEntry = *pnConsumed;
+
+    status = btampGetPackedTlvHCI_Num_Completed_Data_Blocks_Event(pCtx, pSrc, &nNeeded);
+    if ( ! BTAMP_SUCCEEDED( status ) ) return status;
+    nNeeded += sType + sLen;
+    if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+//    while ( pSrc->present )
+    {
+        if( sType == 2) frameshtons( pCtx, pBuf, 72, 0);
+        else *pBuf = 72;
+        pBuf += sType; nBuf -= sType; *pnConsumed += sType;
+        pTlvLen = pBuf;
+        pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
+        frameshtons(pCtx, pBuf, pSrc->total_num_data_blocks, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        *pBuf = pSrc->num_handles;
+        *pnConsumed += 1;
+        pBuf += 1;
+        nBuf -= 1;
+        frameshtons(pCtx, pBuf, pSrc->conn_handles[0], 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, pSrc->num_completed_pkts[0], 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, pSrc->num_completed_blocks[0], 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+#if 0
+        // New
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+// End of new
+#endif
+//        break;
+    }
+
+    if (pTlvLen && sLen == 2)
+    {
+        frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
+    return status;
+} /* End btampPackTlvHCI_Num_Completed_Data_Blocks_Event. */
 
 //typedef v_U32_t (*pfnPackTlvHCI_Num_Completed_Pkts_Event_t)(void *, tBtampTLVHCI_Num_Completed_Pkts_Event *, v_U8_t*, v_U32_t, v_U32_t*);
 //#define SigPackTlvHCI_Num_Completed_Pkts_Event ( 0x0085 )

@@ -1677,7 +1677,7 @@ btampFsm
           /*Advance outer statevar */
           btampfsmChangeToState(instanceVar,DISCONNECTED);
           /*Signal the disconnect */
-          signalHCIPhysLinkCompEvent( btampContext, WLANBAP_ERROR_CNCT_TIMEOUT);
+          signalHCIPhysLinkCompEvent( btampContext, WLANBAP_ERROR_HOST_TIMEOUT);
         }
         else if((msg==(BTAMPFSM_EVENT_T)eWLAN_BAP_HCI_PHYSICAL_LINK_DISCONNECT))
         {
@@ -1821,7 +1821,7 @@ btampFsm
           gotoDisconnecting(
                   btampContext, 
                   VOS_TRUE,
-                  WLANBAP_ERROR_CNCT_TIMEOUT, 
+                  WLANBAP_ERROR_HOST_TIMEOUT, 
                   VOS_FALSE,
                   0);
           /*Advance outer statevar */
@@ -2009,7 +2009,7 @@ btampFsm
           gotoDisconnecting(
                   btampContext,
                   VOS_TRUE, 
-                  WLANBAP_ERROR_CNCT_TIMEOUT,
+                  WLANBAP_ERROR_HOST_TIMEOUT,
                   VOS_FALSE, 
                   0);
           /*Advance outer statevar */
@@ -2075,7 +2075,7 @@ btampFsm
           gotoDisconnecting(
                   btampContext,
                   VOS_TRUE, 
-                  WLANBAP_ERROR_CNCT_TIMEOUT,
+                  WLANBAP_ERROR_HOST_TIMEOUT,
                   VOS_FALSE, 
                   0);
           /*Advance outer statevar */
@@ -2329,7 +2329,7 @@ btampFsm
           gotoDisconnecting(
                   btampContext,
                   VOS_TRUE, 
-                  WLANBAP_ERROR_CNCT_TIMEOUT,
+                  WLANBAP_ERROR_HOST_TIMEOUT,
                   VOS_FALSE, 
                   0);
           /*Advance outer statevar */
@@ -2409,7 +2409,7 @@ btampFsm
           /*Advance outer statevar */
           btampfsmChangeToState(instanceVar,DISCONNECTED);
 
-          signalHCIPhysLinkCompEvent( btampContext, WLANBAP_ERROR_CNCT_TIMEOUT);
+          signalHCIPhysLinkCompEvent( btampContext, WLANBAP_ERROR_HOST_TIMEOUT);
         }
         else if((msg==(BTAMPFSM_EVENT_T)eWLAN_BAP_HCI_PHYSICAL_LINK_DISCONNECT))
         {
@@ -2460,7 +2460,7 @@ btampFsm
           gotoDisconnecting(
                   btampContext,
                   VOS_TRUE, 
-                  WLANBAP_ERROR_CNCT_TIMEOUT,
+                  WLANBAP_ERROR_HOST_TIMEOUT,
                   VOS_FALSE, 
                   0);
           /*Advance outer statevar */

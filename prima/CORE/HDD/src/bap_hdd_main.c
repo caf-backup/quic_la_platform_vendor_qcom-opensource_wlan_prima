@@ -806,7 +806,8 @@ static VOS_STATUS WLANBAP_EventCB
         TODO: Change the TLV APIs to not to carry the client context; it doesn't use it anyway 
         */
         if (( AssocSpecificEvent ) && 
-            (BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT != pBapHCIEvent->bapHCIEventCode))
+            (BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT != pBapHCIEvent->bapHCIEventCode) &&
+            (BTAMP_TLV_HCI_DISCONNECT_PHYSICAL_LINK_COMPLETE_EVENT != pBapHCIEvent->bapHCIEventCode))
         {
             pctx = gpBslctx;
         }
@@ -936,6 +937,25 @@ static VOS_STATUS WLANBAP_EventCB
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
         {
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB: btampPackTlvHCI_Num_Completed_Pkts_Event failed status %d", PackStatus);
+            // handle the error
+            VosStatus = vos_pkt_return_packet( pVosPkt );
+
+            VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
+
+            return(VOS_STATUS_E_FAILURE);
+        }
+
+        break;
+    }
+    case BTAMP_TLV_HCI_NUM_OF_COMPLETED_DATA_BLOCKS_EVENT:
+    {
+        // pack
+        PackStatus = btampPackTlvHCI_Num_Completed_Data_Blocks_Event( pctx,
+                     &pBapHCIEvent->u.btampNumOfCompletedDataBlocksEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
+
+        if ( !BTAMP_SUCCEEDED( PackStatus ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB: btampPackTlvHCI_Num_Completed_Data_Blocks_Event failed status %d", PackStatus);
             // handle the error
             VosStatus = vos_pkt_return_packet( pVosPkt );
 
@@ -1110,7 +1130,7 @@ static VOS_STATUS WLANBAP_EventCB
             BslReleasePhyCtx( (BslPhyLinkCtxType *)pHddHdl );
         }
         else if ( pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.status ==
-                  WLANBAP_ERROR_CNCT_TIMEOUT )
+                  WLANBAP_ERROR_HOST_TIMEOUT )
         {
             //We need to update the phy link handle here to be able to reissue physical link accept
             // update the phy link handle based map so TX data can start flowing through
@@ -1133,7 +1153,7 @@ static VOS_STATUS WLANBAP_EventCB
             BslReleasePhyCtx( (BslPhyLinkCtxType *)pHddHdl );
         }
         else if ( pBapHCIEvent->u.btampPhysicalLinkCompleteEvent.status ==
-                  WLANBAP_ERROR_CNCT_TIMEOUT )
+                  WLANBAP_ERROR_HOST_TIMEOUT )
         {
             BslReleasePhyCtx( (BslPhyLinkCtxType *)pHddHdl );
         }

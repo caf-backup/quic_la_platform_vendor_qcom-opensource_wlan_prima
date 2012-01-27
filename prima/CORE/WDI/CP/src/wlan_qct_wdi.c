@@ -71,6 +71,11 @@
 #define WDI_SET_POWER_STATE_TIMEOUT  10000 /* in msec a very high upper limit */
 #define WDI_WCTS_ACTION_TIMEOUT       2000 /* in msec a very high upper limit */
 
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+#define WDI_PNO_VERSION_MASK 0x8000
+#endif
+
 /*-------------------------------------------------------------------------- 
    WLAN DAL  State Machine
  --------------------------------------------------------------------------*/
@@ -20985,40 +20990,33 @@ WDI_UpdateScanParamsReq
 }
 
 /**
- @brief Process Set Preferred Network List Request function
+ @brief Helper function to pack Set Preferred Network List 
+        Request parameters
  
  @param  pWDICtx:         pointer to the WLAN DAL context 
-         pEventData:      pointer to the event information structure 
+         pwdiPNOScanReqParams:      pointer to the info received
+         from upper layers
+         ppSendBuffer, pSize - out pointers of the packed buffer
+         and its size 
   
  @return Result of the function call
 */
+
 WDI_Status
-WDI_ProcessSetPreferredNetworkReq
-( 
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
+WDI_PackPreferredNetworkList
+(
+  WDI_ControlBlockType*      pWDICtx,
+  WDI_PNOScanReqParamsType*  pwdiPNOScanReqParams,
+  wpt_uint8**                ppSendBuffer,
+  wpt_uint16*                pSize
 )
 {
-   WDI_PNOScanReqParamsType*  pwdiPNOScanReqParams  = NULL;
-   WDI_PNOScanCb              wdiPNOScanCb          = NULL;
    wpt_uint8*                 pSendBuffer           = NULL; 
    wpt_uint16                 usDataOffset          = 0;
    wpt_uint16                 usSendSize            = 0;
-   wpt_uint8                  i;
    tPrefNetwListParams        pPrefNetwListParams;
-
-   /*-------------------------------------------------------------------------
-     Sanity check 
-   -------------------------------------------------------------------------*/
-   if (( NULL == pEventData ) ||
-       ( NULL == (pwdiPNOScanReqParams = (WDI_PNOScanReqParamsType*)pEventData->pEventData)) ||
-       ( NULL == (wdiPNOScanCb   = (WDI_PNOScanCb)pEventData->pCBfnc)))
-   {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-                  "%s: Invalid parameters", __FUNCTION__);
-      WDI_ASSERT(0);
-      return WDI_STATUS_E_FAILURE; 
-   }
+   wpt_uint8 i;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
    /*-----------------------------------------------------------------------
      Get message buffer
@@ -21029,8 +21027,8 @@ WDI_ProcessSetPreferredNetworkReq
        ( usSendSize < (usDataOffset + sizeof(pPrefNetwListParams) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-                  "Unable to get send buffer in Set PNO req %x %x %x",
-                  pEventData, pwdiPNOScanReqParams, wdiPNOScanCb);
+                  "Unable to get send buffer in Set PNO req %x ",
+                   pwdiPNOScanReqParams);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -21067,11 +21065,11 @@ WDI_ProcessSetPreferredNetworkReq
 
      /*Authentication type for the network*/
      pPrefNetwListParams.aNetworks[i].authentication = 
-        pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiAuth; 
+       (tAuthType)pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiAuth; 
 
      /*Encryption type for the network*/
      pPrefNetwListParams.aNetworks[i].encryption = 
-       pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiEncryption; 
+       (tEdType)pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiEncryption; 
 
      /*Indicate the channel on which the Network can be found 
        0 - if all channels */
@@ -21136,6 +21134,235 @@ WDI_ProcessSetPreferredNetworkReq
    /*Pack the buffer*/
    wpalMemoryCopy( pSendBuffer+usDataOffset, &pPrefNetwListParams, 
                    sizeof(pPrefNetwListParams)); 
+
+   /*Set the output values*/
+   *ppSendBuffer = pSendBuffer;
+   *pSize        = usSendSize; 
+
+   return WDI_STATUS_SUCCESS;
+}/*WDI_PackPreferredNetworkList*/
+
+/**
+ @brief Helper function to pack Set Preferred Network List 
+        Request parameters
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pwdiPNOScanReqParams:      pointer to the info received
+         from upper layers
+         ppSendBuffer, pSize - out pointers of the packed buffer
+         and its size 
+  
+ @return Result of the function call
+*/
+
+WDI_Status
+WDI_PackPreferredNetworkListNew
+(
+  WDI_ControlBlockType*      pWDICtx,
+  WDI_PNOScanReqParamsType*  pwdiPNOScanReqParams,
+  wpt_uint8**                ppSendBuffer,
+  wpt_uint16*                pSize
+)
+{
+   wpt_uint8*                 pSendBuffer           = NULL; 
+   wpt_uint16                 usDataOffset          = 0;
+   wpt_uint16                 usSendSize            = 0;
+   tPrefNetwListParamsNew     pPrefNetwListParams;
+   wpt_uint8 i;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+   -----------------------------------------------------------------------*/
+   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_SET_PREF_NETWORK_REQ, 
+                         sizeof(pPrefNetwListParams),
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+       ( usSendSize < (usDataOffset + sizeof(pPrefNetwListParams) )))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Unable to get send buffer in Set PNO req %x  ",
+                   pwdiPNOScanReqParams);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-------------------------------------------------------------------------
+     Fill prefNetwListParams from pwdiPNOScanReqParams->wdiPNOScanInfo
+   -------------------------------------------------------------------------*/
+   pPrefNetwListParams.enable  = 
+     pwdiPNOScanReqParams->wdiPNOScanInfo.bEnable;
+   pPrefNetwListParams.modePNO = 
+     pwdiPNOScanReqParams->wdiPNOScanInfo.wdiModePNO;
+
+   pPrefNetwListParams.ucNetworksCount = 
+     (pwdiPNOScanReqParams->wdiPNOScanInfo.ucNetworksCount < 
+      WLAN_HAL_PNO_MAX_SUPP_NETWORKS)?
+     pwdiPNOScanReqParams->wdiPNOScanInfo.ucNetworksCount : 
+      WLAN_HAL_PNO_MAX_SUPP_NETWORKS;
+
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+               "WDI SET PNO: Enable %d, Mode %d, Netw Count %d", 
+               pwdiPNOScanReqParams->wdiPNOScanInfo.bEnable,
+               pwdiPNOScanReqParams->wdiPNOScanInfo.wdiModePNO,
+               pwdiPNOScanReqParams->wdiPNOScanInfo.ucNetworksCount);
+
+   for ( i = 0; i < pPrefNetwListParams.ucNetworksCount; i++ )
+   {
+     /*SSID of the BSS*/
+     pPrefNetwListParams.aNetworks[i].ssId.length
+        = pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].ssId.ucLength;
+
+     wpalMemoryCopy( pPrefNetwListParams.aNetworks[i].ssId.ssId,
+          pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].ssId.sSSID,
+          pPrefNetwListParams.aNetworks[i].ssId.length);
+
+     /*Authentication type for the network*/
+     pPrefNetwListParams.aNetworks[i].authentication = 
+       (tAuthType)pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiAuth; 
+
+     /*Encryption type for the network*/
+     pPrefNetwListParams.aNetworks[i].encryption = 
+       (tEdType)pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiEncryption; 
+
+     /*SSID bcast type for the network*/
+     pPrefNetwListParams.aNetworks[i].bcastNetworkType = 
+       (tSSIDBcastType)pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].wdiBcastNetworkType; 
+
+     /*Indicate the channel on which the Network can be found 
+       0 - if all channels */
+     pPrefNetwListParams.aNetworks[i].ucChannelCount = 
+       pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].ucChannelCount;
+
+     wpalMemoryCopy(pPrefNetwListParams.aNetworks[i].aChannels,
+                    pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].aChannels,
+                    pPrefNetwListParams.aNetworks[i].ucChannelCount);
+
+     /*Indicates the RSSI threshold for the network to be considered*/
+     pPrefNetwListParams.aNetworks[i].rssiThreshold =
+       pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].rssiThreshold;
+
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI SET PNO: SSID %d %s", 
+               pPrefNetwListParams.aNetworks[i].ssId.length,
+               pPrefNetwListParams.aNetworks[i].ssId.ssId);
+   }
+
+   pPrefNetwListParams.scanTimers.ucScanTimersCount = 
+     (pwdiPNOScanReqParams->wdiPNOScanInfo.scanTimers.ucScanTimersCount < 
+      WLAN_HAL_PNO_MAX_SCAN_TIMERS)?
+     pwdiPNOScanReqParams->wdiPNOScanInfo.scanTimers.ucScanTimersCount :
+      WLAN_HAL_PNO_MAX_SCAN_TIMERS;
+
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI SET PNO: Scan timers count %d 24G P %d 5G Probe %d", 
+               pPrefNetwListParams.scanTimers.ucScanTimersCount,
+               pwdiPNOScanReqParams->wdiPNOScanInfo.us24GProbeSize,
+               pwdiPNOScanReqParams->wdiPNOScanInfo.us5GProbeSize);
+
+   for ( i = 0; i < pPrefNetwListParams.scanTimers.ucScanTimersCount; i++   )
+   {
+     pPrefNetwListParams.scanTimers.aTimerValues[i].uTimerValue  = 
+       pwdiPNOScanReqParams->wdiPNOScanInfo.scanTimers.aTimerValues[i].uTimerValue;
+     pPrefNetwListParams.scanTimers.aTimerValues[i].uTimerRepeat = 
+       pwdiPNOScanReqParams->wdiPNOScanInfo.scanTimers.aTimerValues[i].uTimerRepeat;
+   }
+
+   /*Copy the probe template*/
+   pPrefNetwListParams.us24GProbeSize = 
+     (pwdiPNOScanReqParams->wdiPNOScanInfo.us24GProbeSize<
+     WLAN_HAL_PNO_MAX_PROBE_SIZE)?
+     pwdiPNOScanReqParams->wdiPNOScanInfo.us24GProbeSize:
+     WLAN_HAL_PNO_MAX_PROBE_SIZE; 
+
+   wpalMemoryCopy(pPrefNetwListParams.a24GProbeTemplate, 
+                  pwdiPNOScanReqParams->wdiPNOScanInfo.a24GProbeTemplate, 
+                  pPrefNetwListParams.us24GProbeSize); 
+
+   pPrefNetwListParams.us5GProbeSize = 
+     (pwdiPNOScanReqParams->wdiPNOScanInfo.us5GProbeSize <
+     WLAN_HAL_PNO_MAX_PROBE_SIZE)?
+     pwdiPNOScanReqParams->wdiPNOScanInfo.us5GProbeSize:
+     WLAN_HAL_PNO_MAX_PROBE_SIZE; 
+
+   wpalMemoryCopy(pPrefNetwListParams.a5GProbeTemplate, 
+                  pwdiPNOScanReqParams->wdiPNOScanInfo.a5GProbeTemplate, 
+                  pPrefNetwListParams.us5GProbeSize); 
+
+   /*Pack the buffer*/
+   wpalMemoryCopy( pSendBuffer+usDataOffset, &pPrefNetwListParams, 
+                   sizeof(pPrefNetwListParams)); 
+
+   /*Set the output values*/
+   *ppSendBuffer = pSendBuffer;
+   *pSize        = usSendSize; 
+
+   return WDI_STATUS_SUCCESS;
+}/*WDI_PackPreferredNetworkListNew*/
+
+/**
+ @brief Process Set Preferred Network List Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetPreferredNetworkReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_PNOScanReqParamsType*  pwdiPNOScanReqParams  = NULL;
+   WDI_PNOScanCb              wdiPNOScanCb          = NULL;
+   wpt_uint8*                 pSendBuffer           = NULL; 
+   wpt_uint16                 usSendSize            = 0;
+   WDI_Status                 wdiStatus; 
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pEventData ) ||
+       ( NULL == (pwdiPNOScanReqParams = (WDI_PNOScanReqParamsType*)pEventData->pEventData)) ||
+       ( NULL == (wdiPNOScanCb   = (WDI_PNOScanCb)pEventData->pCBfnc)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-------------------------------------------------------------------------
+     Pack the PNO request structure based on version
+   -------------------------------------------------------------------------*/
+   if ( pWDICtx->wdiPNOVersion > 0 )
+   {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                  "%s: PNO new version %d ", __FUNCTION__, 
+                  pWDICtx->wdiPNOVersion);
+
+     wdiStatus = WDI_PackPreferredNetworkListNew( pWDICtx, pwdiPNOScanReqParams,
+                                      &pSendBuffer, &usSendSize);
+   }
+   else
+   {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                  "%s: PNO old version %d ", __FUNCTION__, 
+                  pWDICtx->wdiPNOVersion);
+
+     wdiStatus = WDI_PackPreferredNetworkList( pWDICtx, pwdiPNOScanReqParams,
+                                      &pSendBuffer, &usSendSize);
+   }
+
+   if (( WDI_STATUS_SUCCESS != wdiStatus )||
+       ( NULL == pSendBuffer )||( 0 == usSendSize ))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: failed to pack request parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return wdiStatus; 
+   }
 
    pWDICtx->wdiReqStatusCB     = pwdiPNOScanReqParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiPNOScanReqParams->pUserData; 
@@ -21490,6 +21717,7 @@ WDI_ProcessUpdateScanParamsRsp
    WDI_Status             wdiStatus;
    tUpdateScanParamsResp  halUpdScanParams; 
    WDI_UpdateScanParamsCb wdiUpdateScanParamsCb   = NULL;
+   wpt_uint32             uStatus; 
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -21516,7 +21744,15 @@ WDI_ProcessUpdateScanParamsRsp
                   pEventData->pEventData, 
                   sizeof(halUpdScanParams.status));
 
-  wdiStatus   =   WDI_HAL_2_WDI_STATUS(halUpdScanParams.status); 
+  uStatus  = halUpdScanParams.status;
+
+  /*Extract PNO version - 1st bit of the status */
+  pWDICtx->wdiPNOVersion = (uStatus & WDI_PNO_VERSION_MASK)? 1:0; 
+
+  /*Remove version bit*/
+  uStatus = uStatus & ( ~(WDI_PNO_VERSION_MASK)); 
+
+  wdiStatus   =   WDI_HAL_2_WDI_STATUS(uStatus); 
 
   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
               "UPD Scan Parameters rsp with status: %d", 

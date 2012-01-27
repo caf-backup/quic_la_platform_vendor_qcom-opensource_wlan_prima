@@ -864,13 +864,22 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             if( eLIM_QUIET_RUNNING == pMac->lim.gLimSpecMgmt.quietState &&
                 pMac->lim.gLimTriggerBackgroundScanDuringQuietBss )
             {
-              // gLimQuietDuration is already cached in units of
-              // system ticks. No conversion is reqd...
-              val = pMac->lim.gLimSpecMgmt.quietDuration;
+                // gLimQuietDuration is already cached in units of
+                // system ticks. No conversion is reqd...
+                val = pMac->lim.gLimSpecMgmt.quietDuration;
             }
             else
             {
-              val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime);
+                if(pMac->lim.gpLimMlmScanReq)
+                {
+                    val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime);
+                }
+                else
+                {
+                    limLog(pMac, LOGE, FL(" gpLimMlmScanReq is NULL "));
+                    //No need to change min timer. This is not a scan
+                    break;
+                }
             }
 
             if (tx_timer_change(&pMac->lim.limTimers.gLimMinChannelTimer,
@@ -910,7 +919,16 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 }
                 else
                 {
-                    val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->maxChannelTime);
+                    if(pMac->lim.gpLimMlmScanReq)
+                    {
+                        val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->maxChannelTime);
+                    }
+                    else
+                    {
+                        limLog(pMac, LOGE, FL(" gpLimMlmScanReq is NULL "));
+                        //No need to change max timer. This is not a scan
+                        break;
+                    }
                 }
             }
 #endif

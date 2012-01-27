@@ -9260,18 +9260,22 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
        txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
    }
 
-   // Divert Disassoc/Deauth frames thru self station, as by the time unicast 
-   // disassoc frame reaches the HW, HAL has already deleted the peer station
-   if ((pFc->type == SIR_MAC_MGMT_FRAME)) {
+   /* Divert Disassoc/Deauth frames thru self station, as by the time unicast 
+      disassoc frame reaches the HW, HAL has already deleted the peer station */
+   if ((pFc->type == SIR_MAC_MGMT_FRAME)) 
+   {
        if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
                (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
                (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP) || 
-               (pFc->subType == SIR_MAC_MGMT_PROBE_REQ)) {    /*Send Probe request frames on self sta idx*/
+               (pFc->subType == SIR_MAC_MGMT_PROBE_REQ)) 
+       {
+           /*Send Probe request frames on self sta idx*/
            txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
        } 
-       // Since we donot want probe responses to be retried, send probe responses
-       // through the NO_ACK queues
-       if (pFc->subType == SIR_MAC_MGMT_PROBE_RSP) {
+       /* Since we donot want probe responses to be retried, send probe responses
+          through the NO_ACK queues */
+       if (pFc->subType == SIR_MAC_MGMT_PROBE_RSP) 
+       {
            //probe response is sent out using self station and no retries options.
            txFlag |= (HAL_USE_NO_ACK_REQUESTED_MASK | HAL_USE_SELF_STA_REQUESTED_MASK);
        }
@@ -9904,6 +9908,9 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
    {
       case WDI_HAL_RSSI_NOTIFICATION_IND:
       {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                     "Received WDI_HAL_RSSI_NOTIFICATION_IND from WDI ");
+
 #if defined WLAN_FEATURE_NEIGHBOR_ROAMING
          rssiNotification.bReserved = 
             wdiLowLevelInd->wdiIndicationData.wdiLowRSSIInfo.bReserved;
@@ -9928,6 +9935,9 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
       }
       case WDI_MISSED_BEACON_IND:
       {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                     "Received WDI_MISSED_BEACON_IND from WDI ");
+
          /* send IND to PE */
          WDA_SendMsg(pWDA, WDA_MISSED_BEACON_IND, NULL, 0) ;
          break ;
@@ -10012,9 +10022,13 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
                     "%s: VOS MEM Alloc Failure - pBeaconGenParams", __FUNCTION__);
             break;
          }
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                  "Received WDA_BEACON_PRE_IND from WDI ");
+
          /* TODO: fill the pBeaconGenParams strucutre */
          WDA_SendMsg(pWDA, SIR_LIM_BEACON_GEN_IND, 
                                        (void *)pBeaconGenParams , 0) ;
+         break;
       }
       case WDI_DEL_STA_IND:
       {
@@ -10061,6 +10075,8 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
                              "%s: VOS MEM Alloc Failure-pSmeCoexInd", __FUNCTION__);
             break;
          }
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                  "Received WDI_COEX_IND from WDI ");
 
          /* Message Header */
          pSmeCoexInd->mesgType = eWNI_SME_COEX_IND;
@@ -10367,10 +10383,11 @@ void WDA_BaCheckActivity(tWDA_CbContext *pWDA)
             (VOS_STATUS_SUCCESS == WDA_TL_GET_TX_PKTCOUNT( pWDA->pVosContext,
                                                     curSta, tid, &txPktCount)))
          {
+#if 0
             VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_LOW,
              "************* %d:%d, %d ",curSta, txPktCount,
                                     pWDA->wdaStaInfo[curSta].framesTxed[tid]);
-
+#endif
             if(!WDA_GET_BA_TXFLAG(pWDA, curSta, tid) 
                    && (txPktCount >= WDA_LAST_POLLED_THRESHOLD(pWDA, 
                                                                curSta, tid)))
