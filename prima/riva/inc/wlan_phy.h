@@ -188,12 +188,13 @@ typedef tANI_U32 eGainSteps;
 
 
 //[RY] new for PRIMA
+#define DPD_RESPONSE_SIZE 128
 typedef PACKED_PRE struct PACKED_POST {
-    tANI_S16 dpd_threshold;
-    tANI_S16 dpd_aoffset;
-    tANI_S16 dpd_again;
-    tANI_S16 dpd_poffset;
-    tANI_S16 dpd_pgain;
+    tANI_S16 dpd_threshold[DPD_RESPONSE_SIZE];
+    tANI_S16 dpd_aoffset[DPD_RESPONSE_SIZE];
+    tANI_S16 dpd_again[DPD_RESPONSE_SIZE];
+    tANI_S16 dpd_poffset[DPD_RESPONSE_SIZE];
+    tANI_S16 dpd_pgain[DPD_RESPONSE_SIZE];
 }sDPDcorrectionCalValues;
 
 typedef PACKED_PRE struct PACKED_POST {

@@ -550,8 +550,8 @@
 
 /* QCOM_WLAN_CFG_MAX_TX_POWER_5 */
 #define QCOM_WLAN_CFG_MAX_TX_POWER_5_LEN     128
-/* byte[0] = 0x24 = 36 = First Channel; byte[1] =  0x7E = 126 = MaxChannels; byte[2] = 0x0E = 14 = Tx Power (dBm) */
-#define QCOM_WLAN_CFG_MAX_TX_POWER_5_DEFAULT  "247E0E"
+/* byte[0] = 0x24 = 36 = First Channel; byte[1] =  0x7E = 126 = MaxChannels; byte[2] = 0x14 = 20 = Tx Power (dBm) */
+#define QCOM_WLAN_CFG_MAX_TX_POWER_5_DEFAULT  "247E14"
 
 
 #define QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD_STAMIN    0

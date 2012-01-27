@@ -438,8 +438,8 @@ wpt_status wpalWriteRegister
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
-    wmb();
-   *((volatile wpt_uint32 *)(gpEnv->mmio + (address - WCNSS_BASE_ADDRESS))) = data;
+   wmb();
+   writel_relaxed(data, gpEnv->mmio + (address - WCNSS_BASE_ADDRESS));
 
    return eWLAN_PAL_STATUS_SUCCESS;
 }
@@ -482,7 +482,7 @@ wpt_status wpalReadRegister
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
-   *data = *((volatile wpt_uint32 *)(gpEnv->mmio + (address - WCNSS_BASE_ADDRESS)));
+   *data = readl_relaxed(gpEnv->mmio + (address - WCNSS_BASE_ADDRESS));
    rmb();
 
    return eWLAN_PAL_STATUS_SUCCESS;

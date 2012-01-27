@@ -13,6 +13,7 @@
 #ifdef CONFIG_CFG80211
 
 #include <wlan_hdd_includes.h>
+#include <wlan_hdd_hostapd.h>
 #include <net/cfg80211.h>
 #include "sme_Api.h"
 #include "wlan_hdd_p2p.h"
@@ -328,16 +329,40 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
          ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
        )
     {
-       /* Drop Probe response recieved from supplicant, as for GO and 
-          SAP PE itself sends probe response
-        */ 
-       if ( buf[0] == 
-               ( (SIR_MAC_MGMT_FRAME << 2)
-               | ( SIR_MAC_MGMT_PROBE_RSP << 4) ) 
-          )
-       {
-            goto err_rem_channel;
-       }
+        tANI_U8 type = WLAN_HDD_GET_TYPE_FRM_FC(buf[0]);
+        tANI_U8 subType = WLAN_HDD_GET_SUBTYPE_FRM_FC(buf[0]);
+        if (type == SIR_MAC_MGMT_FRAME)
+        {
+            if (subType == SIR_MAC_MGMT_PROBE_RSP)
+            {
+                /* Drop Probe response recieved from supplicant, as for GO and 
+                   SAP PE itself sends probe response
+                   */ 
+                goto err_rem_channel;
+            }
+            else if ((subType == SIR_MAC_MGMT_DISASSOC) ||
+                    (subType == SIR_MAC_MGMT_DEAUTH))
+            {
+                /* Deauth/Disassoc received from supplicant, If we simply 
+                 * transmit the frame over air, driver doesn't come to know 
+                 * about the deauth/disassoc. Because of this reason the 
+                 * supplicant and driver will be out of sync.
+                 * Drop the frame here and initiate the disassoc procedure 
+                 * from driver, the core stack will take care of sending
+                 * disassoc frame and indicating corresponding events to supplicant.
+                 */
+                tANI_U8 dstMac[ETH_ALEN] = {0};
+                memcpy(&dstMac, &buf[WLAN_HDD_80211_FRM_DA_OFFSET], ETH_ALEN);
+                hddLog(VOS_TRACE_LEVEL_INFO, 
+                        "%s: Deauth/Disassoc received for STA:"
+                        "%02x:%02x:%02x:%02x:%02x:%02x", 
+                        __func__, 
+                        dstMac[0], dstMac[1], dstMac[2], 
+                        dstMac[3], dstMac[4], dstMac[5]);
+                hdd_softap_sta_disassoc(pAdapter, (v_U8_t *)&dstMac);
+                goto err_rem_channel;
+            }
+        }
     }
 
     if( NULL != cfgState->buf )

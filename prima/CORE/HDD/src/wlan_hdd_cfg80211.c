@@ -717,10 +717,38 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
         if(require_ht)
             pConfig->SapHw_mode= eSAP_DOT11_MODE_11n_ONLY;
     }
+}
+
+static void wlan_hdd_cfg80211_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
+{
+
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA1, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+    {
+        hddLog(LOGE,
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM\n");
+    }
+
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+    {
+        hddLog(LOGE,
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM\n");
+    }
+
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+    {
+        hddLog(LOGE,
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM\n");
+    }
 
 }
 
-static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter, 
+static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
                             struct beacon_parameters *params)
 {
     v_U8_t *genie;
@@ -731,16 +759,16 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     genie = vos_mem_malloc(MAX_GENIE_LEN);
 
     if(genie == NULL) {
-       
+
         return -ENOMEM;
     }
-    
+
     pIe = wlan_hdd_get_wps_ie_ptr(pBeacon->tail, pBeacon->tail_len);
 
-    if(pIe) 
+    if(pIe)
     {
         /*Copy the wps IE*/
-        ielen = pIe[1] + 2;  
+        ielen = pIe[1] + 2;
         if( ielen <=MAX_GENIE_LEN)
         {
             vos_mem_copy(genie, pIe, ielen);
@@ -770,10 +798,10 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     }
 #endif
 
-#ifdef WLAN_FEATURE_P2P    
+#ifdef WLAN_FEATURE_P2P
     pIe = wlan_hdd_get_p2p_ie_ptr(pBeacon->tail,pBeacon->tail_len);
 
-    if(pIe) 
+    if(pIe)
     {
         ielen = pIe[1] + 2;
         if(total_ielen + ielen <= MAX_GENIE_LEN)
@@ -786,26 +814,26 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
                     "**Wps Ie+ P2pIE Length is too big***\n");
             return -EINVAL;
         }
-        total_ielen += ielen; 
+        total_ielen += ielen;
     }
 #endif
-    
-    if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal, 
-       WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, genie, total_ielen, NULL, 
+
+    if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+       WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, genie, total_ielen, NULL,
                eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-    {            
-        hddLog(LOGE, 
+    {
+        hddLog(LOGE,
                "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA to CCM");
         return -EINVAL;
     }
 
-    if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal, 
+    if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
           WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 1,NULL,
           test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
                    eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
           ==eHAL_STATUS_FAILURE)
     {
-        hddLog(LOGE, 
+        hddLog(LOGE,
             "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM");
         return -EINVAL;
     }
@@ -816,10 +844,10 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         u16 rem_probe_resp_ie_len = params->proberesp_ies_len;
         u8 probe_rsp_ie_len[3] = {0};
         u8 counter = 0;
-        /* Check Probe Resp Length if it is greater then 255 then Store 
-           Probe Resp IEs into WNI_CFG_PROBE_RSP_ADDNIE_DATA1 & 
+        /* Check Probe Resp Length if it is greater then 255 then Store
+           Probe Resp IEs into WNI_CFG_PROBE_RSP_ADDNIE_DATA1 &
            WNI_CFG_PROBE_RSP_ADDNIE_DATA2 CFG Variable As We are not able
-           Store More then 255 bytes into One Variable.   
+           Store More then 255 bytes into One Variable.
         */
         while ((rem_probe_resp_ie_len > 0) && (counter < 3))
         {
@@ -882,6 +910,28 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
             rem_probe_resp_ie_len += probe_rsp_ie_len[2];
         }
 
+        if (probe_rsp_ie_len[1] == 0 )
+        {
+            if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+            {
+                hddLog(LOGE,
+                   "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM\n");
+            }
+        }
+
+        if (probe_rsp_ie_len[2] == 0 )
+        {
+            if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+            {
+                hddLog(LOGE,
+                   "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM\n");
+            }
+        }
+
         if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
              WNI_CFG_PROBE_RSP_ADDNIE_FLAG, 1,NULL,
              test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
@@ -894,7 +944,10 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         }
     }
     else
-{
+    {
+        // Reset WNI_CFG_PROBE_RSP Flags
+        wlan_hdd_cfg80211_reset_prob_rspies(pHostapdAdapter);
+
         hddLog(VOS_TRACE_LEVEL_INFO,
                "%s: No Probe Response IE received in set beacon",
                __func__);
@@ -914,7 +967,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
        }
 
        if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-          WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 1,NULL,
+          WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 1, NULL,
           test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
                    eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
           == eHAL_STATUS_FAILURE)
@@ -929,6 +982,14 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         hddLog(VOS_TRACE_LEVEL_INFO,
                "%s: No Assoc Response IE received in set beacon",
                __func__);
+
+        if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+        {
+            hddLog(LOGE,
+               "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM\n");
+        }
     }
 
     vos_mem_free(genie);
@@ -1304,7 +1365,7 @@ static int wlan_hdd_cfg80211_set_beacon(struct wiphy *wiphy,
     return status;
 }
 
-static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy, 
+static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                                         struct net_device *dev)
 {
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
@@ -1325,16 +1386,16 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                               __func__,pAdapter->device_mode);
 
-    if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) 
+    if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
 #ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
 #endif
        )
     {
         beacon_data_t *old;
-             
+
         old = pAdapter->sessionCtx.ap.beacon;
-        
+
         if (!old)
             return -ENOENT;
 
@@ -1342,38 +1403,50 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
         hdd_cleanup_actionframe(pHddCtx, pAdapter);
 #endif
 
-        if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) 
+        if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
         {
             if ( VOS_STATUS_SUCCESS == (status = WLANSAP_StopBss((WLAN_HDD_GET_CTX(pAdapter))->pvosContext) ) )
             {
                 hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
 
                 status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
-   
+
                 if (!VOS_IS_STATUS_SUCCESS(status))
-                {  
-                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                              ("ERROR: HDD vos wait for single_event failed!!\n"));
                     VOS_ASSERT(0);
                 }
             }
             clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
         }
- 
-        if(status != VOS_STATUS_SUCCESS) 
+
+        if(status != VOS_STATUS_SUCCESS)
         {
             hddLog(VOS_TRACE_LEVEL_FATAL,
                     "%s:Error!!! Stopping the BSS\n",__func__);
             return -EINVAL;
         }
-        
-        if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal, 
-            WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 0,NULL, eANI_BOOLEAN_FALSE) 
+
+        if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+            WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 0,NULL, eANI_BOOLEAN_FALSE)
                                                     ==eHAL_STATUS_FAILURE)
         {
-            hddLog(LOGE, 
+            hddLog(LOGE,
                "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM\n");
-        } 
+        }
+
+        if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                            WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+        {
+            hddLog(LOGE,
+               "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM\n");
+        }
+
+        // Reset WNI_CFG_PROBE_RSP Flags
+        wlan_hdd_cfg80211_reset_prob_rspies(pAdapter);
+
         pAdapter->sessionCtx.ap.beacon = NULL;
         kfree(old);
     }
@@ -2784,11 +2857,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                                    __func__,pAdapter->device_mode);
 
     //Scan on any other interface is not supported.
-    if((pAdapter->device_mode != WLAN_HDD_INFRA_STATION) 
-#ifdef WLAN_FEATURE_P2P
-       && (pAdapter->device_mode != WLAN_HDD_P2P_CLIENT)
-#endif
-      )
+    if( pAdapter->device_mode == WLAN_HDD_SOFTAP ) 
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, 
                 "%s: Not scanning on device_mode = %d",
