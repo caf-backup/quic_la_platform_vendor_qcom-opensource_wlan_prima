@@ -602,6 +602,15 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
             // Found the same BSS description
             if (action == LIM_HASH_UPDATE)
             {
+
+                if(NULL != pMac->lim.gpLimMlmScanReq)
+                {
+                   if((pMac->lim.gpLimMlmScanReq->numSsid)&&
+                      ( limIsNullSsid((tSirMacSSid *)((tANI_U8 *)
+                      &pBssDescr->bssDescription.ieFields + 1))))
+                      return;
+                }
+
                 // Delete this entry
                 if (ptemp == pMac->lim.gLimCachedScanHashTable[index])
                     pprev = pMac->lim.gLimCachedScanHashTable[index] = ptemp->next;

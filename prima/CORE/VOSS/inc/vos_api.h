@@ -224,4 +224,31 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
                              
 v_BOOL_t vos_is_apps_power_collapse_allowed(void* pHddCtx);
 void vos_abort_mac_scan(void);
+
+/**---------------------------------------------------------------------------
+  
+  \brief vos_preventSuspend() - Prevent APPS to go to suspend
+  
+  This API prevents host to go to suspend by acquiring the 'suspend lock'.
+  
+  \param pVosContext - pointer to the global Vos context
+
+  \return - None
+  
+  --------------------------------------------------------------------------*/
+void  vos_preventSuspend ( v_CONTEXT_t vosContext );
+
+/**---------------------------------------------------------------------------
+  
+  \brief vos_allowSuspend() - Allow APPS to go to suspend
+  
+  This API will release the 'suspend lock' acquired by vos_preventSuspend
+  
+  \param pVosContext - pointer to the global Vos context
+
+  \return - None
+  
+  --------------------------------------------------------------------------*/
+void  vos_allowSuspend ( v_CONTEXT_t vosContext );
+
 #endif // if !defined __VOS_NVITEM_H

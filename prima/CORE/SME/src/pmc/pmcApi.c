@@ -1225,6 +1225,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
     tListElem *pEntry = NULL;
     tSmeCmd *pCommand = NULL;
     tANI_BOOLEAN fRemoveCommand = eANI_BOOLEAN_TRUE;
+    v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
 
     pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
     if(pEntry)
@@ -1250,7 +1251,10 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
         {
             /* Enter IMPS State if response indicates success. */
             if (pMsg->statusCode == eSIR_SME_SUCCESS)
+            {
                     pmcEnterImpsState(pMac);
+                    vos_allowSuspend ( pVosContext );
+            }
 
             /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into IMPS. */
             else {
@@ -1335,6 +1339,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                there will no entries for BMPS callback routines and
                pmcDoBmpsCallbacks will be a No-Op*/
                 pmcDoBmpsCallbacks(pMac, eHAL_STATUS_SUCCESS);
+                vos_allowSuspend ( pVosContext );
          }
         /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into BMPS. */
         else

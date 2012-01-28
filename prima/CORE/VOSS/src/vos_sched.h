@@ -48,6 +48,7 @@
 #include "i_vos_types.h"
 #include "i_vos_packet.h"
 #include <linux/wait.h>
+#include <linux/wakelock.h>
 #include <vos_power.h>
 
 #define TX_POST_EVENT_MASK               0x001
@@ -336,6 +337,8 @@ typedef struct _VosContextType
 
    volatile v_U8_t    isLoadUnloadInProgress;
 
+   /* wake lock for preventing suspend */ 
+   struct wake_lock   wake_lock_suspend;
 } VosContextType, *pVosContextType;
 
 

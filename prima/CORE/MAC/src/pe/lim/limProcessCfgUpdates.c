@@ -811,6 +811,13 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
     }
     if (phyMode == WNI_CFG_PHY_MODE_11G)
     {
+
+        if ((psessionEntry->pePersona == VOS_STA_SAP_MODE) ||
+           (psessionEntry->pePersona == VOS_P2P_GO_MODE))
+        {
+            val = 1;
+        }
+
         // Program Polaris based on AP capability
 
         if (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
