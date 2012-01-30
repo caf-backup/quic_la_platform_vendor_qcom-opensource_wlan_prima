@@ -2033,7 +2033,6 @@ static int wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
                     reasonCode = eCSR_DISCONNECT_REASON_UNSPECIFIED;
                     break;
             }
-            pAdapter->conn_info.connState = eConnectionState_NotConnected;
             INIT_COMPLETION(pAdapter->disconnect_comp_var);
 
             /*issue disconnect*/
