@@ -54,12 +54,12 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
 
     if( pRemainChanCtx == NULL )
     {
-       hddLog( LOGE,
+       hddLog( LOGW,
           "%s: No Rem on channel pending for which Rsp is received", __func__);
        return eHAL_STATUS_SUCCESS;
     }
 
-    hddLog( LOGE, "Received remain on channel rsp");
+    hddLog( LOG1, "Received remain on channel rsp");
 
     cfgState->remain_on_chan_ctx = NULL;
 
@@ -116,7 +116,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                                  __func__,pAdapter->device_mode);
 
-    hddLog( LOGE,
+    hddLog( LOG1,
         "chan(hw_val)0x%x chan(centerfreq) %d chan type 0x%x, duration %d",
         chan->hw_value, chan->center_freq, channel_type, duration );
 
@@ -246,7 +246,7 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
     }
     else
     {
-        hddLog( LOGE, "%s: No Pending Remain on channel Request", __func__);
+        hddLog( LOGW, "%s: No Pending Remain on channel Request", __func__);
     }
     return;
 }
@@ -258,7 +258,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
 
-    hddLog( LOGE, "Cancel remain on channel req");
+    hddLog( LOG1, "Cancel remain on channel req");
 
     /* FIXME cancel currently running remain on chan.
      * Need to check cookie and cancel accordingly
@@ -368,7 +368,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     if( NULL != cfgState->buf )
         return -EBUSY;
 
-    hddLog( LOGE, "Action frame tx request");
+    hddLog( LOG1, "Action frame tx request");
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     if( offchan && wait)
@@ -499,7 +499,7 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
 {
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
-    hddLog( LOGE, "Send Action cnf, actionSendSuccess %d", actionSendSuccess);
+    hddLog( LOG1, "Send Action cnf, actionSendSuccess %d", actionSendSuccess);
     if( NULL == cfgState->buf )
     {
         VOS_ASSERT( cfgState->buf );
@@ -659,7 +659,7 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
     int flag = HDD_RX_FLAG_IV_STRIPPED | HDD_RX_FLAG_DECRYPTED |
                HDD_RX_FLAG_MMIC_STRIPPED;
 
-    hddLog( LOGE, FL("Indicate Frame over Monitor Intf"));
+    hddLog( LOG1, FL("Indicate Frame over Monitor Intf"));
 
     VOS_ASSERT( (pbFrames != NULL) );
 
@@ -704,7 +704,7 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
      rxstat = netif_rx_ni(skb);
      if( NET_RX_SUCCESS == rxstat )
      {
-         hddLog( LOGE, FL("Success"));
+         hddLog( LOG1, FL("Success"));
      }
      else
          hddLog( LOGE, FL("Failed %d"), rxstat);                   
@@ -737,13 +737,13 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
 
         if( NULL != pMonAdapter )
         {
+            hddLog( LOG1, FL("Indicate Frame over Monitor Interface"));
             hdd_sendMgmtFrameOverMonitorIface( pMonAdapter, nFrameLength,
                     pbFrames, frameType);
             return;
         }
     }
 
-    hddLog( LOGE, FL("Indicate Action Frame over NL80211 Intf"));
     //Channel indicated may be wrong. TODO
     //Indicate an action frame.
     if( rxChan <= MAX_NO_OF_2_4_CHANNELS )
@@ -758,7 +758,7 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     }
 
     //Indicate Frame Over Normal Interface
-    hddLog( LOGE, FL("Indicate Frame over NL80211 Intf"));
+    hddLog( LOG1, FL("Indicate Frame over NL80211 Interface"));
     cfg80211_rx_mgmt( pAdapter->dev, freq,
                       pbFrames, nFrameLength, 
                       GFP_ATOMIC );

@@ -35,7 +35,7 @@
  ---------------------------------------------------------------------------*/
 #define WLAN_HAL_VER_MAJOR 0
 #define WLAN_HAL_VER_MINOR 0
-#define WLAN_HAL_VER_VERSION 1
+#define WLAN_HAL_VER_VERSION 2
 #define WLAN_HAL_VER_REVISION 0
 
 /*---------------------------------------------------------------------------
