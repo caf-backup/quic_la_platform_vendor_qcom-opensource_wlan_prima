@@ -908,11 +908,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
            know that the device is getting activated properly.
            */
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
-	if (pHddStaCtx->ft_carrier_on == FALSE)
-	{
+        if (pHddStaCtx->ft_carrier_on == FALSE)
+        {
 #endif
-		// Enable Linkup Event Servicing which allows the net device notifier to set the linkup event variable       
-		pAdapter->isLinkUpSvcNeeded = TRUE;
+            // Enable Linkup Event Servicing which allows the net device notifier to set the linkup event variable       
+            pAdapter->isLinkUpSvcNeeded = TRUE;
 
             // Switch on the Carrier to activate the device
             netif_carrier_on(dev);
@@ -920,14 +920,15 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             wait_for_completion_interruptible_timeout(&pAdapter->linkup_event_var,
                     msecs_to_jiffies(ASSOC_LINKUP_TIMEOUT));
 
-		// Disable Linkup Event Servicing - no more service required from the net device notifier call
-		pAdapter->isLinkUpSvcNeeded = FALSE;
+            // Disable Linkup Event Servicing - no more service required from the net device notifier call
+            pAdapter->isLinkUpSvcNeeded = FALSE;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
-	}
-	else { 
-		pHddStaCtx->ft_carrier_on = FALSE;
-		send_ft_resp_ie = TRUE;
-	}
+        }
+        else
+        { 
+            pHddStaCtx->ft_carrier_on = FALSE;
+            send_ft_resp_ie = TRUE;
+        }
 #endif
         pHddCtx->sta_to_adapter[pRoamInfo->staId] = pAdapter;
 
@@ -941,8 +942,16 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             v_U8_t rspRsnIe[DOT11F_IE_RSN_MAX_LEN];
             tANI_U32 reqRsnLength = DOT11F_IE_RSN_MAX_LEN;
             tANI_U32 rspRsnLength = DOT11F_IE_RSN_MAX_LEN;
+            struct cfg80211_bss* bss;
+
             /* add bss_id to cfg80211 data base */
-            wlan_hdd_cfg80211_update_bss_db(pAdapter, pRoamInfo);
+            bss = wlan_hdd_cfg80211_update_bss_db(pAdapter, pRoamInfo);
+
+            if(NULL == bss)
+            {
+                pr_err("wlan: Not able to create BSS entry\n");
+                return eHAL_STATUS_FAILURE;
+            }
 
             /* wpa supplicant expecting WPA/RSN IE in connect result */
             csrRoamGetWpaRsnReqIE(WLAN_HDD_GET_HAL_CTX(pAdapter),
@@ -955,18 +964,21 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                &rspRsnLength,
                                rspRsnIe);
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
-	    if(send_ft_resp_ie)
-		    hdd_SendReAssocEvent(dev, pAdapter, pRoamInfo, reqRsnIe, reqRsnLength);
-	    else
+            if(send_ft_resp_ie)
+                hdd_SendReAssocEvent(dev, pAdapter, pRoamInfo, reqRsnIe, reqRsnLength);
+            else
 #endif /* WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX */
+            {
+                /* inform connect result to nl80211 */
+                cfg80211_connect_result(dev, pRoamInfo->bssid, 
+                          reqRsnIe, reqRsnLength, 
+                          rspRsnIe, rspRsnLength,
+                          WLAN_STATUS_SUCCESS, 
+                          GFP_KERNEL);
 
-            /* inform connect result to nl80211 */
-            cfg80211_connect_result(dev, pRoamInfo->bssid, 
-                    reqRsnIe, reqRsnLength, 
-                    rspRsnIe, rspRsnLength,
-                    WLAN_STATUS_SUCCESS, 
-                    GFP_KERNEL); 
-#endif
+                cfg80211_put_bss(bss);
+            }
+#endif /* CONFIG_CFG80211 */
 
             // Register the Station with TL after associated...
             vosStatus = hdd_roamRegisterSTA( pAdapter,

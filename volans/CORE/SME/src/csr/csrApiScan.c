@@ -8525,10 +8525,10 @@ eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac)
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirMbMsg *pMsg;
     tANI_U16 msgLen;
-#ifdef WLAN_AP_STA_CONCURRENCY
     tListElem *pEntry;
     tSmeCmd *pCommand;
 
+#ifdef WLAN_AP_STA_CONCURRENCY
     while( NULL != ( pEntry = csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) ) )
     {
 
@@ -8542,15 +8542,23 @@ eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac)
     csrRemoveCmdFromPendingList( pMac, &pMac->sme.smeCmdPendingList,
             eSmeCommandScan);
 
-    msgLen = (tANI_U16)(sizeof( tSirMbMsg ));
-    status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, msgLen);
-    if(HAL_STATUS_SUCCESS(status))
+    //We need to abort scan only if we are scanning
+    if(NULL != (pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK)))
     {
-        palZeroMemory(pMac->hHdd, (void *)pMsg, msgLen);
-        pMsg->type = pal_cpu_to_be16((tANI_U16)eWNI_SME_SCAN_ABORT_IND);
-        pMsg->msgLen = pal_cpu_to_be16(msgLen);
-        status = palSendMBMessage(pMac->hHdd, pMsg);
-    }                             
+        pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+        if(eSmeCommandScan == pCommand->command)
+        {
+            msgLen = (tANI_U16)(sizeof( tSirMbMsg ));
+            status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, msgLen);
+            if(HAL_STATUS_SUCCESS(status))
+            {
+                palZeroMemory(pMac->hHdd, (void *)pMsg, msgLen);
+                pMsg->type = pal_cpu_to_be16((tANI_U16)eWNI_SME_SCAN_ABORT_IND);
+                pMsg->msgLen = pal_cpu_to_be16(msgLen);
+                status = palSendMBMessage(pMac->hHdd, pMsg);
+            }
+        }
+    }
 
     return( status );
 }

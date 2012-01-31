@@ -314,6 +314,7 @@ int iw_set_innav_measurements(
         pwextBuf->inNavMeasurementID = measurementSetID;
         pwextBuf->inNavMeasurementInProgress = TRUE;
 
+        vos_mem_free( measConfig.measBSSIDChannelInfo );
     } while(0);
     
     return status;

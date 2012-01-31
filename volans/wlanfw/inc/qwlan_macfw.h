@@ -387,7 +387,7 @@ See binary.lds.in in firmware source build tree */
 
 /* Noise signal floor for RSSI averaging in BMPS mode
  */
-#define QWLANFW_PWRSAVE_RSSI_NOISE_FLOOR                    5
+#define QWLANFW_PWRSAVE_RSSI_NOISE_FLOOR                    7
 
 /* Log code for All debug log to mimic UART
 */

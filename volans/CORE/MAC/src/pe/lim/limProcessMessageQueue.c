@@ -1053,6 +1053,12 @@ void limInNavHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U3
         limLog(pMac, LOGE, FL("innav failed to get the response for resume link\n"));
     }
 
+    if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
+    {
+        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmInNavMeasReq);
+        pMac->lim.gpLimMlmInNavMeasReq = NULL;
+    }
+
     //Post the meessage to MLM
     limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)(mlmInNavMeasRsp));
 

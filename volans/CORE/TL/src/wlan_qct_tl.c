@@ -755,7 +755,7 @@ WLANTL_Close
          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
-
+  vos_pkt_return_packet(pTLCb->vosDummyBuf);
   pmcDeregisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_SME, pvosGCtx),
                                    WLANTL_PowerStateChangedCB);
 

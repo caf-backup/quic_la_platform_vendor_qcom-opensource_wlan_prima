@@ -13,6 +13,7 @@
 #ifdef CONFIG_CFG80211
 
 #include <wlan_hdd_includes.h>
+#include <wlan_hdd_hostapd.h>
 #include <net/cfg80211.h>
 #include "sme_Api.h"
 #include "wlan_hdd_p2p.h"
@@ -47,12 +48,12 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
 
     if( pRemainChanCtx == NULL )
     {
-       hddLog( LOGE,
+       hddLog( LOGW,
           "%s: No Rem on channel pending for which Rsp is received", __func__);
        return eHAL_STATUS_SUCCESS;
     }
 
-    hddLog( LOGE, "Recieved remain on channel rsp");
+    hddLog( LOG1, "Received remain on channel rsp");
 
     cfgState->remain_on_chan_ctx = NULL;
 
@@ -109,7 +110,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                                  __func__,pAdapter->device_mode);
 
-    hddLog( LOGE,
+    hddLog( LOG1,
         "chan(hw_val)0x%x chan(centerfreq) %d chan type 0x%x, duration %d",
         chan->hw_value, chan->center_freq, channel_type, duration );
 
@@ -239,7 +240,7 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
     }
     else
     {
-        hddLog( LOGE, "%s: No Pending Remain on channel Request", __func__);
+        hddLog( LOGW, "%s: No Pending Remain on channel Request", __func__);
     }
     return;
 }
@@ -251,7 +252,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
 
-    hddLog( LOGE, "Cancel remain on channel req");
+    hddLog( LOG1, "Cancel remain on channel req");
 
     /* FIXME cancel currently running remain on chan.
      * Need to check cookie and cancel accordingly
@@ -322,22 +323,46 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
          ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
        )
     {
-       /* Drop Probe response recieved from supplicant, as for GO and 
-          SAP PE itself sends probe response
-        */ 
-       if ( buf[0] == 
-               ( (SIR_MAC_MGMT_FRAME << 2)
-               | ( SIR_MAC_MGMT_PROBE_RSP << 4) ) 
-          )
-       {
-            goto err_rem_channel;
-       }
+        tANI_U8 type = WLAN_HDD_GET_TYPE_FRM_FC(buf[0]);
+        tANI_U8 subType = WLAN_HDD_GET_SUBTYPE_FRM_FC(buf[0]);
+        if (type == SIR_MAC_MGMT_FRAME)
+        {
+            if (subType == SIR_MAC_MGMT_PROBE_RSP)
+            {
+                /* Drop Probe response recieved from supplicant, as for GO and 
+                   SAP PE itself sends probe response
+                   */ 
+                goto err_rem_channel;
+            }
+            else if ((subType == SIR_MAC_MGMT_DISASSOC) ||
+                    (subType == SIR_MAC_MGMT_DEAUTH))
+            {
+                /* Deauth/Disassoc received from supplicant, If we simply 
+                 * transmit the frame over air, driver doesn't come to know 
+                 * about the deauth/disassoc. Because of this reason the 
+                 * supplicant and driver will be out of sync.
+                 * Drop the frame here and initiate the disassoc procedure 
+                 * from driver, the core stack will take care of sending
+                 * disassoc frame and indicating corresponding events to supplicant.
+                 */
+                tANI_U8 dstMac[ETH_ALEN] = {0};
+                memcpy(&dstMac, &buf[WLAN_HDD_80211_FRM_DA_OFFSET], ETH_ALEN);
+                hddLog(VOS_TRACE_LEVEL_INFO, 
+                        "%s: Deauth/Disassoc received for STA:"
+                        "%02x:%02x:%02x:%02x:%02x:%02x", 
+                        __func__, 
+                        dstMac[0], dstMac[1], dstMac[2], 
+                        dstMac[3], dstMac[4], dstMac[5]);
+                hdd_softap_sta_disassoc(pAdapter, (v_U8_t *)&dstMac);
+                goto err_rem_channel;
+            }
+        }
     }
 
     if( NULL != cfgState->buf )
         return -EBUSY;
 
-    hddLog( LOGE, "Action frame tx request");
+    hddLog( LOG1, "Action frame tx request");
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     if( offchan && wait)
@@ -465,7 +490,7 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
 {
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
-    hddLog( LOGE, "Send Action cnf, actionSendSuccess %d", actionSendSuccess);
+    hddLog( LOG1, "Send Action cnf, actionSendSuccess %d", actionSendSuccess);
     if( NULL == cfgState->buf )
     {
         VOS_ASSERT( cfgState->buf );
@@ -625,7 +650,7 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
     int flag = HDD_RX_FLAG_IV_STRIPPED | HDD_RX_FLAG_DECRYPTED |
                HDD_RX_FLAG_MMIC_STRIPPED;
 
-    hddLog( LOGE, FL("Indicate Frame over Monitor Intf"));
+    hddLog( LOG1, FL("Indicate Frame over Monitor Intf"));
 
     VOS_ASSERT( (pbFrames != NULL) );
 
@@ -670,7 +695,7 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
      rxstat = netif_rx_ni(skb);
      if( NET_RX_SUCCESS == rxstat )
      {
-         hddLog( LOGE, FL("Success"));
+         hddLog( LOG1, FL("Success"));
      }
      else
          hddLog( LOGE, FL("Failed %d"), rxstat);                   
@@ -702,15 +727,13 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
         
         if( NULL != pMonAdapter )
         {
+            hddLog( LOG1, FL("Indicate Frame over Monitor Interface"));
             hdd_sendMgmtFrameOverMonitorIface( pMonAdapter, nFrameLength,
                                                pbFrames, frameType);
             return;
         }
     }
 
-    //Indicate Frame Over Normal Interface
-    hddLog( LOGE, FL("Indicate Frame over NL80211 Intf"));
-    
     //Channel indicated may be wrong. TODO
     //Indicate an action frame.
     if( rxChan <= MAX_NO_OF_2_4_CHANNELS )
@@ -723,9 +746,12 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
         freq = ieee80211_channel_to_frequency( rxChan,
                                                      IEEE80211_BAND_5GHZ);
     }
-    
-    cfg80211_rx_mgmt( pAdapter->dev, freq, pbFrames,
-    	                             nFrameLength, GFP_ATOMIC );
+
+    //Indicate Frame Over Normal Interface
+    hddLog( LOG1, FL("Indicate Frame over NL80211 Interface"));
+    cfg80211_rx_mgmt( pAdapter->dev, freq,
+                      pbFrames, nFrameLength, 
+                      GFP_ATOMIC );
 }
 
 /*
