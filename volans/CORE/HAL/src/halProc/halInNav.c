@@ -179,6 +179,8 @@ void halInNav_StartInNavMeasPostSetChannel(tpAniSirGlobal pMac,
 
     halInNav_SendStartInNavMeasMesg(pMac, pData);
 
+    palFreeMemory(pMac->hHdd, pData);
+
     return;
 }
 

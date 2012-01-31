@@ -919,7 +919,7 @@ static int iw_set_freq(struct net_device *dev, struct iw_request_info *info,
        eConnectionState_Associated == pHddStaCtx->conn_info.connState)
     {
         hddLog( LOGE, "IBSS Associated\n");
-        return -EOPNOTSUPP;
+        return 0;  //Return Success as we cant set channel when station is in associated state
     }
 
     /* Settings by Frequency as input */

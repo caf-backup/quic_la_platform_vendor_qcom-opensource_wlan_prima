@@ -2676,25 +2676,21 @@ limCheckAndAnnounceJoinSuccess(tpAniSirGlobal pMac,
                                tSirProbeRespBeacon *pBPR,
                                tpSirMacMgmtHdr pHdr,tpPESession psessionEntry)
 {
-    tSirMacAddr          currentBssId;
     tSirMacSSid          currentSSID;
     tLimMlmJoinCnf       mlmJoinCnf;
-	
-    #if 0
-    cfg = SIR_MAC_MAX_SSID_LENGTH;
-    if (wlan_cfgGetStr(pMac, WNI_CFG_SSID, currentSSID.ssId, &cfg) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("could not retrieve SSID\n"));
-    currentSSID.length = (tANI_U8) cfg;
-    #endif //TO SUPPORT BT-AMP
 
-	   
     palCopyMemory( pMac->hHdd, currentSSID.ssId,
                        psessionEntry->ssId.ssId,
                        psessionEntry->ssId.length);
    
     currentSSID.length = (tANI_U8)psessionEntry->ssId.length ;
 
-    if (currentSSID.length &&
+    if (
+        /* Check for SSID only in probe response. Beacons may not carry
+           SSID information in hidden SSID case */
+        ( (SIR_MAC_MGMT_FRAME  == pHdr->fc.type) &&
+          (SIR_MAC_MGMT_PROBE_RSP == pHdr->fc.subType) ) &&
+        currentSSID.length &&
         (!palEqualMemory( pMac->hHdd,(tANI_U8 *) &pBPR->ssId,
                    (tANI_U8 *) &currentSSID,
                    (tANI_U8) (1 + currentSSID.length)) ))
@@ -2710,14 +2706,6 @@ limCheckAndAnnounceJoinSuccess(tpAniSirGlobal pMac,
         return;
     }
 
-	#if 0  
-    cfg = sizeof(tSirMacAddr);
-    if (cfgSetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
-    #endif //TO SUPPORT BT-AMP
-
-	sirCopyMacAddr(currentBssId ,psessionEntry->bssId);
-
     if( (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)||(psessionEntry->limSystemRole == eLIM_STA_ROLE))
     {
         PELOG1(limLog(pMac, LOG1, FL("Received Beacon/PR with matching BSSID\n"));)
@@ -2726,12 +2714,6 @@ limCheckAndAnnounceJoinSuccess(tpAniSirGlobal pMac,
         limDeactivateAndChangeTimer(pMac, eLIM_JOIN_FAIL_TIMER);
 
         // Update Beacon Interval at CFG database
-
-        #if 0
-        if (cfgSetInt(pMac, WNI_CFG_BEACON_INTERVAL, pBPR->beaconInterval)
-            != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("could not set Beacon interval at CFG\n"));
-        #endif //TO SUPPORT BT-AMP
 
         if ( pBPR->HTCaps.present )
             limUpdateStaRunTimeHTCapability( pMac, &pBPR->HTCaps );

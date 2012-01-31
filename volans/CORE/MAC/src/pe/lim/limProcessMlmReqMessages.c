@@ -1323,42 +1323,27 @@ error:
     return;
 }
 /**
- * limSetInNavMeasMode()
+ * limSetInNavMeasModeFailed()
  *
- *FUNCTION:
- * This function is called to setup system into InNav Meas mode
+ * FUNCTION:
+ *  This function is used as callback to resume link after the suspend fails while
+ *  starting innav measurement mode.
+ * LOGIC:
+ *  NA
  *
- *LOGIC:
- * NA
+ * ASSUMPTIONS:
+ *  NA
  *
- *ASSUMPTIONS:
- * NA
+ * NOTE:
  *
- *NOTE:
- *
- * @param  pMac - Pointer to Global MAC structure
+ * @param pMac - Pointer to Global MAC structure
  * @return None
  */
 
-void limSetInNavMeasMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
+void limSetInNavMeasModeFailed(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
 {
     tpLimMlmInNavMeasRsp pMlmInNavMeasRsp;
 
-    if(status != eHAL_STATUS_SUCCESS)
-    {
-        limLog(pMac, LOGE, FL("INNAV: failed in suspend link\n"));
-        goto error;
-    }
-    else
-    {
-        /// Set current scan channel id to the first in the channel list
-        pMac->lim.gLimCurrentInNavMeasBssidIndex = 0;
-        PELOGE(limLog(pMac, LOGE, FL("INNAV: Calling limSendHalInitInNavMeasReq\n"));)
-        limSendHalInNavMeasReq(pMac);
-		return;
-    }
-
-error:
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
 
     if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmInNavMeasRsp), sizeof(tLimMlmInNavMeasRsp)))
@@ -1379,6 +1364,45 @@ error:
 
     limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)pMlmInNavMeasRsp);
 
+    return;
+}
+
+/**
+ * limSetInNavMeasMode()
+ *
+ *FUNCTION:
+ * This function is called to setup system into InNav Meas mode
+ *
+ *LOGIC:
+ * NA
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ *
+ * @param  pMac - Pointer to Global MAC structure
+ * @return None
+ */
+
+void limSetInNavMeasMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
+{
+    if(status != eHAL_STATUS_SUCCESS)
+    {
+        limLog(pMac, LOGE, FL("INNAV: failed in suspend link\n"));
+        goto error;
+    }
+    else
+    {
+        /// Set current scan channel id to the first in the channel list
+        pMac->lim.gLimCurrentInNavMeasBssidIndex = 0;
+        PELOGE(limLog(pMac, LOGE, FL("INNAV: Calling limSendHalInitInNavMeasReq\n"));)
+        limSendHalInNavMeasReq(pMac);
+		return;
+    }
+
+error:
+    limResumeLink(pMac, limSetInNavMeasModeFailed, NULL);
     return ;
 } /*** end limSetInNavMeasMode() ***/
 

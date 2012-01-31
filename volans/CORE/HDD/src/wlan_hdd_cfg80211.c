@@ -2350,20 +2350,37 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
  * This function is used to inform the BSS details to nl80211 interface.
  */
 static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
-                    hdd_adapter_t *pAdapter, tSirBssDescription *bss_desc)
+                    hdd_adapter_t *pAdapter, tCsrRoamConnectedProfile *roamProfile)
 {
     struct net_device *dev = pAdapter->dev;
     struct wireless_dev *wdev = dev->ieee80211_ptr;
     struct wiphy *wiphy = wdev->wiphy;
-    int chan_no = bss_desc->channelId;
-    int ie_length = GET_IE_LEN_IN_BSS_DESC( bss_desc->length );
-    const char *ie = 
-        ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
+    tSirBssDescription *pBssDesc = roamProfile->pBssDesc;
+    int chan_no;
+    int ie_length;
+    const char *ie;
     unsigned int freq;
     struct ieee80211_channel *chan;
     int rssi = 0;
+    struct cfg80211_bss *bss = NULL;
 
     ENTER();
+
+    if( NULL == pBssDesc )
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: pBssDesc is NULL\n", __func__);
+        return bss;
+    }
+
+    chan_no = pBssDesc->channelId;
+    ie_length = GET_IE_LEN_IN_BSS_DESC( pBssDesc->length );
+    ie =  ((ie_length != 0) ? (const char *)&pBssDesc->ieFields: NULL);
+
+    if( NULL == ie )
+    {
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: IE of BSS descriptor is NULL\n", __func__);
+       return bss;
+    }
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
     if (chan_no <= ARRAY_SIZE(hdd_2GHZ_channels))
@@ -2380,13 +2397,23 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
 
     chan = __ieee80211_get_channel(wiphy, freq);
 
-    rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
+    bss = cfg80211_get_bss(wiphy, chan, pBssDesc->bssId,
+                           &roamProfile->SSID.ssId[0], roamProfile->SSID.length,
+                           WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
+    if (bss == NULL)
+    {
+        rssi = (VOS_MIN ((pBssDesc->rssi + pBssDesc->sinr), 0))*100;
 
-    return (cfg80211_inform_bss(wiphy, chan, bss_desc->bssId, 
-                le64_to_cpu(*(__le64 *)bss_desc->timeStamp), 
-                bss_desc->capabilityInfo,
-                bss_desc->beaconInterval, ie, ie_length,
+        return (cfg80211_inform_bss(wiphy, chan, pBssDesc->bssId, 
+                le64_to_cpu(*(__le64 *)pBssDesc->timeStamp), 
+                pBssDesc->capabilityInfo,
+                pBssDesc->beaconInterval, ie, ie_length,
                 rssi, GFP_KERNEL ));
+    }
+    else
+    {
+        return bss;
+    }
 }
 
 
@@ -2478,12 +2505,13 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
  * FUNCTION: wlan_hdd_cfg80211_update_bss_db
  * This function is used to update the BSS data base of CFG8011
  */
-void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter, 
+struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter, 
                                       tCsrRoamInfo *pRoamInfo
                                       )
 {
     tCsrRoamConnectedProfile roamProfile;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    struct cfg80211_bss *bss = NULL;
 
     ENTER();
 
@@ -2492,11 +2520,10 @@ void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
 
     if (NULL != roamProfile.pBssDesc)
     {
-        struct cfg80211_bss *bss_status = NULL;
-        bss_status = wlan_hdd_cfg80211_inform_bss(pAdapter, 
-                roamProfile.pBssDesc);
+        bss = wlan_hdd_cfg80211_inform_bss(pAdapter, 
+                &roamProfile);
 
-        if (NULL == bss_status)
+        if (NULL == bss)
         {
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: cfg80211_inform_bss return NULL",
                     __func__);
@@ -2509,6 +2536,7 @@ void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s:  roamProfile.pBssDesc is NULL",
                 __func__);
     }
+    return bss;
 }
 
 /*
@@ -2548,10 +2576,6 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
 
     while (pScanResult)
     {
-#if 0
-        bss_status = wlan_hdd_cfg80211_inform_bss(pAdapter,
-                &pScanResult->BssDescriptor);
-#else
         /* 
          * cfg80211_inform_bss() is not updating ie field of bss entry, if 
          * entry already exists in bss data base of cfg80211 for that 
@@ -2565,7 +2589,6 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
 
         bss_status = wlan_hdd_cfg80211_inform_bss_frame(pAdapter,
                 &pScanResult->BssDescriptor);
-#endif
     
 
         if (NULL == bss_status)
@@ -2574,6 +2597,11 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
                     "%s: NULL returned by cfg80211_inform_bss\n", __func__);
             break;
         }
+        else
+        {
+            cfg80211_put_bss(bss_status);
+        }
+	
         pScanResult = sme_ScanResultGetNext(hHal, pResult);
     }
 
@@ -2751,11 +2779,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s",
                                                    j, SsidInfo->SSID.ssId);
             }
+            /* set the scan type to active */
+            scanRequest.scanType = eSIR_ACTIVE_SCAN;
         }
-
-        /*Set the scan type to default type, in this case it is ACTIVE*/
-        scanRequest.scanType = 
+        else
+        {
+            /*Set the scan type to default type, in this case it is ACTIVE*/
+            scanRequest.scanType = 
                     (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode;
+        }
         scanRequest.minChnTime = cfg_param->nActiveMinChnTime; 
         scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
     }

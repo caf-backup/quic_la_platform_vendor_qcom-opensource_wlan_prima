@@ -2577,7 +2577,10 @@ eHalStatus halRxp_disable(tpAniSirGlobal pMac, tANI_U8 bWaitRxpIdle)
             vos_sleep(10);
         }
 
-        VOS_ASSERT(!(value & QWLAN_MCU_MCU_WMAC_STATUS_RXP_MCU_STATUS_MASK));
+        if(value & QWLAN_MCU_MCU_WMAC_STATUS_RXP_MCU_STATUS_MASK)
+        {
+            HALLOGE( halLog(pMac, LOGE, FL("RXP did not goto IDLE state \n")));
+        }
     }
 
     return eHAL_STATUS_SUCCESS;
