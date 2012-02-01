@@ -52,6 +52,10 @@
 
 #include "wlan_qct_dev_defs.h"
 
+extern uint8 WDA_IsWcnssWlanCompiledVersionGreaterThanOrEqual(uint8 major, uint8 minor, uint8 version, uint8 revision);
+extern uint8 WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual(uint8 major, uint8 minor, uint8 version, uint8 revision);
+
+
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -364,6 +368,7 @@ WDI_FillTxBd
 #ifdef WLAN_PERF
     wpt_uint32      uTxBdSignature = pBd->txBdSignature;
 #endif
+    tANI_U8                 useStaRateForBcastFrames = 0;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
     /*------------------------------------------------------------------------
@@ -379,6 +384,17 @@ WDI_FillTxBd
                *((wpt_uint32 *) pDestMacAddr), 
                 ucTid, 
                !ucDisableFrmXtl, pTxBd, ucTxFlag );
+
+
+    //logic to determine the version match between host and riva to find out when to enable using STA rate for bcast frames.
+    //determine if Riva vsersion and host version both are greater than or equal to 0.0.2 (major, minor, version). if yes then use STA rate 
+    // instead of BD rate for BC/MC frames. Otherwise use old code to use BD rate instead.
+    {    
+        if (WDA_IsWcnssWlanCompiledVersionGreaterThanOrEqual(0, 0, 2, 0) &&
+            WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual(0, 0, 2, 0))
+            useStaRateForBcastFrames = 1;
+    }
+
 
     /*-----------------------------------------------------------------------
     * Set common fields in TxBD
@@ -472,7 +488,19 @@ WDI_FillTxBd
             bcast: (!! may want to revisit this during testing) 
          */
 
-        pBd->bdRate = (ucUnicastDst)? WDI_TXBD_BDRATE_DEFAULT : WDI_BDRATE_BCDATA_FRAME;
+        //Broadcast frames buffering don't work well if BD rate is used in AP mode.
+        //always use STA rate for data frames.
+        //never use BD rate for BC/MC frames in AP mode.
+
+
+        if (useStaRateForBcastFrames)
+        {
+            pBd->bdRate = WDI_TXBD_BDRATE_DEFAULT;
+        }
+        else
+        {
+            pBd->bdRate = (ucUnicastDst)? WDI_TXBD_BDRATE_DEFAULT : WDI_BDRATE_BCDATA_FRAME;
+        }
         pBd->rmf    = WDI_RMF_DISABLED;     
 
         /* sanity: Might already be set by caller, but enforce it here again */
@@ -526,18 +554,21 @@ WDI_FillTxBd
          *  Set common fields for mgmt frames
          *     bd_ssn: Always let DPU auto generate seq # from the nonQos
                sequence number counter.
-         *     bd_rate:Always use bcast mgmt rate for ucast/mcast mgmt frames
-                       Mgmt frames are relatively rare and so using a lower
-                       rate would have little or no impact on anything. The
-                       result of losing a mgmt frame (ba or tspec or other
-                       action frames) can be more severe than for losing a
-                       data frame, so it might be a good idea  to send all mgmt
-                       frames at lower rates.
+         *     bd_rate:unicast mgmt frames will go at lower rate (multicast rate).
+         *                  multicast mgmt frames will go at the STA rate as in AP mode
+         *                  buffering has an issue at HW if BD rate is used.
          *     rmf:    NOT SET here. would be set later after STA id lookup is done.
          * Sanity: Force HW frame translation OFF for mgmt frames.
          --------------------------------------------------------------------*/
          /* apply to both ucast/mcast mgmt frames */
-         pBd->bdRate = WDI_BDRATE_BCMGMT_FRAME; 
+         if (useStaRateForBcastFrames)
+         {
+             pBd->bdRate = (ucUnicastDst)? WDI_BDRATE_BCMGMT_FRAME : WDI_TXBD_BDRATE_DEFAULT; 
+         }
+         else
+         {
+             pBd->bdRate = WDI_BDRATE_BCMGMT_FRAME;
+         }
 
          if ( ucTxFlag & WDI_USE_BD_RATE2_FOR_MANAGEMENT_FRAME) 
          {

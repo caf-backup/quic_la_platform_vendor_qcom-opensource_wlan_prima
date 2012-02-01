@@ -1567,6 +1567,50 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext)
 }
 
 /*
+ * FUNCTION: WDA_IsWcnssWlanCompiledVersionGreaterThanOrEqual
+ * returns 1 if the compiled version is greater than or equal to the input version
+ */ 
+
+uint8 WDA_IsWcnssWlanCompiledVersionGreaterThanOrEqual(uint8 major, uint8 minor, uint8 version, uint8 revision)
+{    
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    v_CONTEXT_t vosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+    tSirVersionType compiledVersion;
+
+    status = WDA_GetWcnssWlanCompiledVersion(vosContext, &compiledVersion);
+
+    if ((compiledVersion.major > major) || ((compiledVersion.major == major)&& (compiledVersion.minor > minor)) ||
+        ((compiledVersion.major == major)&& (compiledVersion.minor == minor) &&(compiledVersion.version > version)) ||
+        ((compiledVersion.major == major)&& (compiledVersion.minor == minor) &&(compiledVersion.version == version) &&
+        (compiledVersion.revision >= revision)))        
+        return 1;
+    else
+        return 0;
+}
+
+/*
+ * FUNCTION: WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual
+ * returns 1 if the compiled version is greater than or equal to the input version
+ */ 
+
+uint8 WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual(uint8 major, uint8 minor, uint8 version, uint8 revision)
+{    
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    v_CONTEXT_t vosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+    tSirVersionType reportedVersion;
+
+    status = WDA_GetWcnssWlanReportedVersion(vosContext, &reportedVersion);
+
+    if ((reportedVersion.major > major) || ((reportedVersion.major == major)&& (reportedVersion.minor > minor)) ||
+        ((reportedVersion.major == major)&& (reportedVersion.minor == minor) &&(reportedVersion.version > version)) ||
+        ((reportedVersion.major == major)&& (reportedVersion.minor == minor) &&(reportedVersion.version == version) &&
+        (reportedVersion.revision >= revision)))        
+        return 1;
+    else
+        return 0;
+}
+
+/*
  * FUNCTION: WDA_GetWcnssWlanCompiledVersion
  * Returns the version of the WCNSS WLAN API with which the HOST
  * device driver was compiled

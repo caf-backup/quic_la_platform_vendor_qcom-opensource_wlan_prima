@@ -78,7 +78,7 @@
 int hdd_hostapd_open (struct net_device *dev)
 {
    ENTER();
-   printk("%s", __func__);
+
    //Turn ON carrier state
    netif_carrier_on(dev);
    //Enable all Tx queues  
@@ -100,12 +100,15 @@ int hdd_hostapd_open (struct net_device *dev)
   --------------------------------------------------------------------------*/
 int hdd_hostapd_stop (struct net_device *dev)
 {
-   printk("%s", __func__);
+   ENTER();
+
    //Stop all tx queues
    netif_tx_disable(dev);
    
    //Turn OFF carrier state
    netif_carrier_off(dev);
+
+   EXIT();
    return 0;
 }
 /**---------------------------------------------------------------------------
@@ -124,6 +127,8 @@ static void hdd_hostapd_uninit (struct net_device *dev)
 {
    hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
 
+   ENTER();
+
    if (pHostapdAdapter && pHostapdAdapter->pHddCtx)
    {
       hdd_deinit_adapter(pHostapdAdapter->pHddCtx, pHostapdAdapter);
@@ -131,6 +136,8 @@ static void hdd_hostapd_uninit (struct net_device *dev)
       /* after uninit our adapter structure will no longer be valid */
       pHostapdAdapter->dev = NULL;
    }
+
+   EXIT();
 }
 
 
@@ -1460,7 +1467,7 @@ static int iw_set_ap_encodeext(struct net_device *dev,
        case IW_ENCODE_ALG_WEP:
          setKey.encType = (ext->key_len== 5) ? eCSR_ENCRYPT_TYPE_WEP40:eCSR_ENCRYPT_TYPE_WEP104;
          pHddApCtx->uPrivacy = 1;
-         printk("(%s) uPrivacy=%d", __FUNCTION__, pHddApCtx->uPrivacy);
+         hddLog(LOG1, "(%s) uPrivacy=%d", __FUNCTION__, pHddApCtx->uPrivacy);
          break;
       
        case IW_ENCODE_ALG_TKIP:
@@ -1540,7 +1547,7 @@ static int iw_set_ap_mlme(struct net_device *dev,
     switch (mlme->cmd) {
         case IW_MLME_DISASSOC:
         case IW_MLME_DEAUTH:
-        printk("Station disassociate");    
+            hddLog(LOG1, "Station disassociate");    
             if( pAdapter->conn_info.connState == eConnectionState_Associated ) 
             {
                 eCsrRoamDisconnectReason reason = eCSR_DISCONNECT_REASON_UNSPECIFIED;
@@ -1663,7 +1670,7 @@ static int iw_softap_setwpsie(struct net_device *dev,
    pSap_WPSIe = vos_mem_malloc(sizeof(tSap_WPSIE));
    if (NULL == pSap_WPSIe) 
    {
-      hddLog(LOG1, "VOS unable to allocate memory\n");
+      hddLog(LOGE, "VOS unable to allocate memory\n");
       return -ENOMEM;
    }
    vos_mem_zero(pSap_WPSIe, sizeof(tSap_WPSIE));
@@ -2345,30 +2352,30 @@ VOS_STATUS hdd_register_hostapd( hdd_adapter_t *pAdapter, tANI_U8 rtnl_lock_held
 {
    struct net_device *dev = pAdapter->dev;
    VOS_STATUS status = VOS_STATUS_SUCCESS;
+
    ENTER();
    
-   hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s\n",__func__);
- 
    if( rtnl_lock_held )
    {
       if (strchr(dev->name, '%')) {
          if( dev_alloc_name(dev, dev->name) < 0 )
          {
-            printk(KERN_ERR"%s:Failed:dev_alloc_name",__func__);
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s:Failed:dev_alloc_name", __func__);
             return VOS_STATUS_E_FAILURE;            
          }
       }
       if (register_netdevice(dev))
       {
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s:Failed:register_netdev",__func__);
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s:Failed:register_netdevice", __func__);
          return VOS_STATUS_E_FAILURE;         
       }
    }
    else
    {
-      if(register_netdev(dev))
+      if (register_netdev(dev))
       {
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed:register_netdev",__func__);
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed:register_netdev", __func__);
          return VOS_STATUS_E_FAILURE;
       }
    }
@@ -2382,7 +2389,6 @@ VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter)
 {
    ENTER();
    
-   printk("%s", __func__);
    hdd_softap_deinit_tx_rx(pAdapter);
 
    /* if we are being called during driver unload, then the dev has already
