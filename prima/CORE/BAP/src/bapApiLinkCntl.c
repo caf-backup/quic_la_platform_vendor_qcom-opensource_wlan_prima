@@ -1629,8 +1629,79 @@ WLAN_BAPFlowSpecModify
                                 /* Including Command Complete and Command Status*/
 )
 {
+   v_U16_t                  index_for_logLinkHandle = 0;
+   ptBtampContext           btampContext;
+   tpBtampLogLinkCtx        pLogLinkContext;
+   v_U32_t                  retval;
+   VOS_STATUS               vosStatus = VOS_STATUS_SUCCESS;
+   tBtampHCI_Event          bapHCIEvent; /* This now encodes ALL event types */
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+   /* Validate params */ 
+   if ((btampHandle == NULL) || (pBapHCIFlowSpecModify == NULL) || 
+       (pBapHCIEvent == NULL))
+   {
+       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+           "%s: Null Parameters Not allowed", __FUNCTION__); 
+       return VOS_STATUS_E_FAULT;
+   }
 
-    return VOS_STATUS_SUCCESS;
+   btampContext = (ptBtampContext) btampHandle;
+
+   index_for_logLinkHandle = pBapHCIFlowSpecModify->log_link_handle >> 8; /*  Return the logical link index here */
+   VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
+              " %s:index_for_logLinkHandle=%d", __FUNCTION__,index_for_logLinkHandle);
+
+   bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_STATUS_EVENT;
+   bapHCIEvent.u.btampCommandStatusEvent.present = 1;
+   bapHCIEvent.u.btampCommandStatusEvent.num_hci_command_packets = 1;
+   bapHCIEvent.u.btampCommandStatusEvent.command_opcode 
+       = BTAMP_TLV_HCI_FLOW_SPEC_MODIFY_CMD;
+
+   /*------------------------------------------------------------------------
+     Evaluate the Tx and Rx Flow specification for this logical link.
+   ------------------------------------------------------------------------*/
+   // Currently we only support flow specs with service types of BE (0x01) 
+
+   /*------------------------------------------------------------------------
+     Now configure the Logical Link context.
+   ------------------------------------------------------------------------*/
+   pLogLinkContext = &(btampContext->btampLogLinkCtx[index_for_logLinkHandle]);
+
+   /* Extract Tx flow spec into the context structure */
+   retval = btampUnpackTlvFlow_Spec((void *)btampContext, pBapHCIFlowSpecModify->tx_flow_spec,
+                                    WLAN_BAP_PAL_FLOW_SPEC_TLV_LEN,
+                                    &pLogLinkContext->btampFlowSpec);
+   if (retval != BTAMP_PARSE_SUCCESS)
+   {
+     /* Flow spec parsing failed, return failure */
+     vosStatus = VOS_STATUS_E_FAILURE;
+     pBapHCIEvent->u.btampFlowSpecModifyCompleteEvent.status =
+         WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+     bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+   }
+   else
+   {
+      bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
+      pBapHCIEvent->u.btampFlowSpecModifyCompleteEvent.status 
+          = WLANBAP_STATUS_SUCCESS;
+
+   }
+           /* Notify the Command status Event */
+   vosStatus =   
+      (*btampContext->pBapHCIEventCB) 
+          (  
+           btampContext->pHddHdl,   /* this refers to the BSL per connection context */
+           &bapHCIEvent, /* This now encodes ALL event types */
+           VOS_TRUE /* Flag to indicate assoc-specific event */ 
+          );
+
+   /* Form and immediately return the command status event... */ 
+   pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_FLOW_SPEC_MODIFY_COMPLETE_EVENT;
+   pBapHCIEvent->u.btampFlowSpecModifyCompleteEvent.present = 1;
+   pBapHCIEvent->u.btampFlowSpecModifyCompleteEvent.log_link_handle = 
+      pBapHCIFlowSpecModify->log_link_handle;
+
+   return vosStatus;
 } /* WLAN_BAPFlowSpecModify */
 
 

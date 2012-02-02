@@ -9706,6 +9706,18 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          }
          break;
       }
+      case WDA_SIGNAL_BT_EVENT:
+      {
+         /*TODO: handle this while dealing with BTC */
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
+                                  "Handling msg type WDA_SIGNAL_BT_EVENT  " );
+         /* Do Nothing? MSG Body should be freed at here */
+         if(NULL != pMsg->bodyptr)
+         {
+            vos_mem_free(pMsg->bodyptr);
+         }
+         break;
+      }
       case WDA_CFG_RXP_FILTER_REQ:
       {
          WDA_ProcessConfigureRxpFilterReq(pWDA, 
@@ -9920,6 +9932,11 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                                   "No Handling for msg type %x in WDA " 
                                   ,pMsg->type);
+         /* Do Nothing? MSG Body should be freed at here */
+         if(NULL != pMsg->bodyptr)
+         {
+            vos_mem_free(pMsg->bodyptr);
+         }
          //WDA_VOS_ASSERT(0) ;
       }
    }

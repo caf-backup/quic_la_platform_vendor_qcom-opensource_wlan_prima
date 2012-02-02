@@ -71,6 +71,9 @@
 /* Magic value to validate a WCTS CB (value is little endian ASCII: WCTS */
 #define WCTS_CB_MAGIC     0x53544357
 
+/* time to wait for SMD channel to close (in msecs) */
+#define WCTS_SMD_CLOSE_TIMEOUT 5000
+
 /*----------------------------------------------------------------------------
  * Type Declarations
  * -------------------------------------------------------------------------*/
@@ -101,7 +104,6 @@ typedef struct
    wpt_uint32             wctsMagic;
    wpt_msg                wctsOpenMsg;
    wpt_msg                wctsDataMsg;
-   wpt_msg                wctsCloseMsg;
    wpt_event              wctsEvent;
 } WCTS_ControlBlockType;
 
@@ -191,51 +193,6 @@ WCTS_PALOpenCallback
    wpalEventSet(&pWCTSCb->wctsEvent);
 
 }/*WCTS_PALOpenCallback*/
-
-
-
-/**
- @brief    Callback function for serializing WCTS Close
-           processing in the control context
- @param
-
-    pMsg - pointer to the message
-
- @see
- @return void
-*/
-static void
-WCTS_PALCloseCallback
-(
-   wpt_msg *pMsg
-)
-{
-   WCTS_ControlBlockType*        pWCTSCb;
-   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   /* extract our context from the message */
-   pWCTSCb = pMsg->pContext;
-
-   /*--------------------------------------------------------------------
-     Sanity check
-     --------------------------------------------------------------------*/
-   if ((NULL == pWCTSCb) || (WCTS_CB_MAGIC != pWCTSCb->wctsMagic)) {
-      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "WCTS_PALCloseCallback: Invalid parameter received.");
-      return;
-   }
-
-   /* notified registered client that the channel is closed */
-   pWCTSCb->wctsState = WCTS_STATE_CLOSED;
-   pWCTSCb->wctsNotifyCB((WCTS_HandleType)pWCTSCb,
-                         WCTS_EVENT_CLOSE,
-                         pWCTSCb->wctsNotifyCBData);
-
-   /* release the resource */
-   pWCTSCb->wctsMagic = 0;
-   wpalMemoryFree(pWCTSCb);
-
-} /*WCTS_PALCloseCallback*/
 
 
 
@@ -510,18 +467,15 @@ WCTS_NotifyCallback
                  "%s: received SMD_EVENT_STATUS from SMD", __FUNCTION__);
       return;
 
-#if SMD_EVENT_STATUS != SMD_EVENT_REOPEN_READY
-      /* these were initially defined in error to have the same value
-         so we need conditional code to make sure 1) the same value
-         doesn't appear in two cases, and 2) to make sure we don't
-         process a STATUS event as a REOPEN READY event */
-
    case SMD_EVENT_REOPEN_READY:
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
                  "%s: received SMD_EVENT_REOPEN_READY from SMD", __FUNCTION__);
-      palMsg = &pWCTSCb->wctsCloseMsg;
-      break;
-#endif
+
+      /* unlike other events which occur when our kernel threads are
+         running, this one is received when the threads are closed and
+         the rmmod thread is waiting.  so just unblock that thread */
+      wpalEventSet(&pWCTSCb->wctsEvent);
+      return;
 
    default:
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
@@ -644,9 +598,6 @@ WCTS_OpenTransport
    pWCTSCb->wctsDataMsg.callback = WCTS_PALDataCallback;
    pWCTSCb->wctsDataMsg.pContext = pWCTSCb;
 
-   pWCTSCb->wctsCloseMsg.callback = WCTS_PALCloseCallback;
-   pWCTSCb->wctsCloseMsg.pContext = pWCTSCb;
-
    /* There are some scenarios where a channel is closed and then
       quickly reopened.  Since SMD uses a work queue to handle the
       close, there is a lag between when the channel is closed, and
@@ -722,7 +673,7 @@ WCTS_CloseTransport
    wpt_list_node*      pNode = NULL;
    WCTS_BufferType*    pBufferQueue = NULL;
    void*               pBuffer = NULL;
-   wpt_status          status = eWLAN_PAL_STATUS_SUCCESS;
+   wpt_status          status;
    int                 smdstatus;
 
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -757,38 +708,45 @@ WCTS_CloseTransport
    /* Reset the state */
    pWCTSCb->wctsState = WCTS_STATE_CLOSED;
 
+   wpalEventReset(&pWCTSCb->wctsEvent);
    smdstatus = smd_close(pWCTSCb->wctsChannel);
    if (0 != smdstatus) {
-
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: smd_close failed with status %d",
                  __FUNCTION__, smdstatus);
-
       /* SMD did not successfully close the channel, therefore we
-         won't receive an asynchronous close notification.  Since
-         we rely upon that notification to clean up our context,
-         replicate some of that logic here */
-      pWCTSCb->wctsNotifyCB((WCTS_HandleType)pWCTSCb,
-                            WCTS_EVENT_CLOSE,
-                            pWCTSCb->wctsNotifyCBData);
-      pWCTSCb->wctsMagic = 0;
-      wpalMemoryFree(pWCTSCb);
+         won't receive an asynchronous close notification so don't
+         bother to wait for an event that won't come */
 
-      /* nothing else we can do as we no longer have a context */
-      return status;
+   } else {
+      /* close command was sent -- wait for the callback to complete */
+      status = wpalEventWait(&pWCTSCb->wctsEvent, WCTS_SMD_CLOSE_TIMEOUT);
+      if (eWLAN_PAL_STATUS_SUCCESS != status) {
+         WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                    "%s: failed to receive SMD_EVENT_REOPEN_READY",
+                    __FUNCTION__);
+      }
+
+      /* During the close sequence we deregistered from SMD.  As part
+         of deregistration SMD will call back into our driver with an
+         event to let us know the channel is closed.  We need to
+         insert a brief delay to allow that thread of execution to
+         exit our module.  Otherwise our module may be unloaded while
+         there is still code running within the address space, and
+         that code will crash when the memory is unmapped  */
+      msleep(50);
    }
 
-   /* As part of
-      deregistration SMD will call back into our driver with an event to
-      let us know the channel is closed.  We need to insert a brief delay
-      to allow that thread of execution to exit our module.  Otherwise our
-      module may be unloaded while there is still code running within the
-      address space, and that code will crash when the memory is unmapped
-   */
-   msleep(50);
+   /* channel has (hopefully) been closed */
+   pWCTSCb->wctsNotifyCB((WCTS_HandleType)pWCTSCb,
+                         WCTS_EVENT_CLOSE,
+                         pWCTSCb->wctsNotifyCBData);
 
+   /* release the resource */
+   pWCTSCb->wctsMagic = 0;
    wpalMemoryFree(pWCTSCb);
-   return status;
+
+   return eWLAN_PAL_STATUS_SUCCESS;
 
 }/*WCTS_CloseTransport*/
 

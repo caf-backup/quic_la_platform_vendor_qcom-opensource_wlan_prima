@@ -993,7 +993,26 @@ static VOS_STATUS WLANBAP_EventCB
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB: btampUnpackTlvHCI_Create_Physical_Link_Cmd failed status %d", PackStatus);
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB: btampPackTlvHCI_Flush_Occurred_Event failed status %d", PackStatus);
+            // handle the error
+            VosStatus = vos_pkt_return_packet( pVosPkt );
+
+            VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
+
+            return(VOS_STATUS_E_FAILURE);
+        }
+
+        break;
+    }
+    case BTAMP_TLV_HCI_ENHANCED_FLUSH_COMPLETE_EVENT:
+    {
+        // pack
+        PackStatus = btampPackTlvHCI_Enhanced_Flush_Complete_Event( pctx,
+                     &pBapHCIEvent->u.btampEnhancedFlushCompleteEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
+
+        if ( !BTAMP_SUCCEEDED( PackStatus ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_EventCB: btampPackTlvHCI_Enhanced_Flush_Complete_Event failed status %d", PackStatus);
             // handle the error
             VosStatus = vos_pkt_return_packet( pVosPkt );
 
@@ -2168,7 +2187,57 @@ static BOOL BslProcessHCICommand
 
         if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: WLAN_BAPFlush failed status %d", VosStatus);
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessHCICommand: WLAN_BAPFlush failed status %d", VosStatus);
+            // handle the error
+            return(FALSE);
+        }
+
+        break;
+    }
+    case BTAMP_TLV_HCI_ENHANCED_FLUSH_CMD:
+    {
+        tBtampTLVHCI_Enhanced_Flush_Cmd FlushCmd;
+
+        // unpack
+        UnpackStatus = btampUnpackTlvHCI_Enhanced_Flush_Cmd( NULL,
+                                                             pBuf, Count, &FlushCmd );
+
+        if ( !BTAMP_SUCCEEDED( UnpackStatus ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessHCICommand: btampUnpackTlvHCI_Enhanced_Flush_Cmd failed status %d", UnpackStatus);
+            // handle the error
+            return(FALSE);
+        }
+
+        /* Flush the TX queue */
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s:HCI Flush command  - will flush Tx Queue for pkt type %d", __FUNCTION__, FlushCmd.packet_type);
+        // We support BE traffic only
+        if(WLANTL_AC_BE == FlushCmd.packet_type)
+        {
+            pPhyCtx = &BslPhyLinkCtx[0];
+            VosStatus = BslFlushTxQueues ( pPhyCtx);
+        }
+
+        /* Acknowledge the command */
+        VosStatus = WLAN_EnhancedBAPFlush( pctx->bapHdl, &FlushCmd, &HCIEvt );
+
+        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessHCICommand: WLAN_EnahncedBAPFlush failed status %d", VosStatus);
+            // handle the error
+            return(FALSE);
+        }
+
+        // this may look strange as this is the function registered
+        // with BAP for the EventCB but we are also going to use it
+        // as a helper function. The difference is that this invocation
+        // runs in HCI command sending caller context while the callback
+        // will happen in BAP's context whatever that may be
+        VosStatus = WLANBAP_EventCB( pctx, &HCIEvt, FALSE );
+
+        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessHCICommand: WLANBAP_EventCB failed status %d", VosStatus);
             // handle the error
             return(FALSE);
         }

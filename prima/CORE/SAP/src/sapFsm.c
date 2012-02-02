@@ -377,7 +377,6 @@ sapGotoDisconnecting
 static eHalStatus sapRoamSessionCloseCallback(void *pContext)
 {
     ptSapContext sapContext = (ptSapContext)pContext;
-    sapContext->isSapSessionOpen = eSAP_FALSE;
     return sapSignalHDDevent(sapContext, NULL, 
                     eSAP_STOP_BSS_EVENT, (v_PVOID_t) eSAP_STATUS_SUCCESS);
 }
@@ -706,7 +705,7 @@ sapFsm
                 {
                    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
                         "%s:SME Session is already opened\n",__FUNCTION__);
-                   VOS_ASSERT(0);
+                   return VOS_STATUS_E_EXISTS;
                 }
 
                 /* Set SAP device role */
@@ -844,21 +843,27 @@ sapFsm
                 if (eSAP_TRUE == sapContext->isSapSessionOpen) 
                 {
                     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+
                     if (NULL == hHal)
                     {
                        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                                   "In %s, NULL hHal in state %s, msg %d",
                                   __FUNCTION__, "eSAP_DISCONNECTING", msg);
-                    } else if (eHAL_STATUS_SUCCESS !=
+                    }
+                    else
+                    {
+                        sapContext->isSapSessionOpen = eSAP_FALSE;
+                        if (!HAL_STATUS_SUCCESS(
                             sme_CloseSession(hHal,
                                      sapContext->sessionId,
-                                     sapRoamSessionCloseCallback, sapContext))
+                                     sapRoamSessionCloseCallback, sapContext)))
                     {
                         vosStatus = sapSignalHDDevent(sapContext, NULL,
                                               eSAP_STOP_BSS_EVENT, 
                                               (v_PVOID_t) eSAP_STATUS_SUCCESS);
                     }
                 }
+            }
             }
             else 
             {

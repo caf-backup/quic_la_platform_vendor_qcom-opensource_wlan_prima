@@ -634,11 +634,15 @@ VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
    /**Track whether OS TX queue has been disabled.*/
    v_BOOL_t txSuspended[NUM_TX_QUEUES];
    v_U8_t tlAC;
+   hdd_hostapd_state_t *pHostapdState;
+
+   pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
 
    spin_lock_bh( &pAdapter->staInfo_lock );
    if (FALSE == pAdapter->aStaInfo[STAId].isUsed)
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, "%s: Deinit station not inited %d", __FUNCTION__, STAId );
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Deinit station not inited %d", __FUNCTION__, STAId );
       spin_unlock_bh( &pAdapter->staInfo_lock );
       return VOS_STATUS_E_FAILURE;
    }
@@ -646,22 +650,35 @@ VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
    status = hdd_softap_flush_tx_queues_sta(pAdapter, STAId);
 
    pAdapter->aStaInfo[STAId].isUsed = FALSE;
-   for(ac = HDD_LINUX_AC_VO; ac <= HDD_LINUX_AC_BK; ac++)
-   {
-     tlAC = hdd_QdiscAcToTlAC[ac];
-     txSuspended[ac] = pAdapter->aStaInfo[STAId].txSuspended[tlAC];
-   }
 
+   /* if this STA had any of its WMM TX queues suspended, then the
+      associated queue on the network interface was disabled.  check
+      to see if that is the case, in which case we need to re-enable
+      the interface queue.  but we only do this if the BSS is running
+      since, if the BSS is stopped, all of the interfaces have been
+      stopped and should not be re-enabled */
+
+   if (BSS_START == pHostapdState->bssState)
+   {
+      for (ac = HDD_LINUX_AC_VO; ac <= HDD_LINUX_AC_BK; ac++)
+      {
+         tlAC = hdd_QdiscAcToTlAC[ac];
+         txSuspended[ac] = pAdapter->aStaInfo[STAId].txSuspended[tlAC];
+      }
+   }
    vos_mem_zero(&pAdapter->aStaInfo[STAId], sizeof(hdd_station_info_t));
 
-   for(ac = HDD_LINUX_AC_VO; ac <= HDD_LINUX_AC_BK; ac++)
+   if (BSS_START == pHostapdState->bssState)
    {
-     if(txSuspended[ac])
-     {
-          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
-                     "%s: TX queue re-enabled", __FUNCTION__);
-          netif_wake_subqueue(pAdapter->dev, ac);
-       }
+      for (ac = HDD_LINUX_AC_VO; ac <= HDD_LINUX_AC_BK; ac++)
+      {
+         if (txSuspended[ac])
+         {
+            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
+                       "%s: TX queue re-enabled", __FUNCTION__);
+            netif_wake_subqueue(pAdapter->dev, ac);
+         }
+      }
    }
 
    spin_unlock_bh( &pAdapter->staInfo_lock );

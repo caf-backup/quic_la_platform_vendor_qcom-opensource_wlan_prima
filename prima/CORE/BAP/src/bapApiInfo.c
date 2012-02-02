@@ -415,5 +415,53 @@ WLAN_BAPSetConfig
    return VOS_STATUS_SUCCESS;
 }
 
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPGetMask()
+
+  DESCRIPTION 
+     The function gets the updated event mask from BAP core.
+   
+
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+    
+   
+    IN
+    pEvent_mask_page_2: a pointer to a caller allocated object of 8 bytes.
+   
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_FAULT:  pEvent_mask_page_2 or btampHandle is NULL 
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS 
+  
+----------------------------------------------------------------------------*/
+VOS_STATUS
+WLAN_BAPGetMask( ptBtampHandle btampHandle, 
+                 v_U8_t       *pEvent_mask_page_2)
+{
+   ptBtampContext btampContext;
+   /* Validate params */ 
+   if ((NULL == btampHandle)|| (NULL == pEvent_mask_page_2)) 
+   {
+     return VOS_STATUS_E_FAULT;
+   }
+   btampContext = (ptBtampContext) btampHandle; /* btampContext value */ 
+
+   vos_mem_copy( pEvent_mask_page_2, 
+                 btampContext->event_mask_page_2, 
+                 8 );
+   return VOS_STATUS_SUCCESS;
+}
+
 
 

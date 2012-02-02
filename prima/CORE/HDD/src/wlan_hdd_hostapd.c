@@ -619,25 +619,36 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     }
     wireless_send_event(dev, we_event, &wrqu, (char *)we_custom_event_generic);
     return VOS_STATUS_SUCCESS;
-    stopbss :
+
+stopbss :
     {
         v_BYTE_t we_custom_event[64];
         char *stopBssEvent = "STOP-BSS.response";//17
         int event_len = strlen(stopBssEvent);
+
+        hddLog(LOG1, FL("BSS stop status = %s"),
+               pSapEvent->sapevt.sapStopBssCompleteEvent.status ?
+                            "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
+
+        /* Change the BSS state now since, as we are shutting things down,
+         * we don't want interfaces to become re-enabled */
+        pHostapdState->bssState = BSS_STOP;
+
+        /* Stop the pkts from n/w stack as we are going to free all of
+         * the TX WMM queues for all STAID's */
+        hdd_hostapd_stop(dev);
+
+        /* reclaim all resources allocated to the BSS */
+        hdd_softap_stop_bss(pHostapdAdapter);
+
+        /* notify userspace that the BSS has stopped */
         memset(&we_custom_event, '\0', sizeof(we_custom_event));
         memcpy(&we_custom_event, stopBssEvent, event_len);
         memset(&wrqu, 0, sizeof(wrqu));
         wrqu.data.length = event_len;
-        hdd_hostapd_stop(dev);  //Stop the pkts from n/w stack as we are going free lists for all STAID's
-
-        hddLog(LOG1, FL("BSS stop status = %s\n"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ?
-                         "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
-        hdd_softap_stop_bss(pHostapdAdapter);
         we_event = IWEVCUSTOM;
         we_custom_event_generic = we_custom_event;
         wireless_send_event(dev, we_event, &wrqu, (char *)we_custom_event_generic);
-
-        pHostapdState->bssState = BSS_STOP;
     }
     return VOS_STATUS_SUCCESS;
 }

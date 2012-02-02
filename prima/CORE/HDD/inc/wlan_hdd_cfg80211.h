@@ -49,9 +49,9 @@
 #define BASIC_RATE_MASK   0x80
 #define RATE_MASK         0x7f
 
-void wlan_hdd_cfg80211_update_bss_db(hdd_adapter_t *pAdapter, 
-                                     tCsrRoamInfo *pRoamInfo
-                                     );
+struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
+                                      tCsrRoamInfo *pRoamInfo
+                                      );
 #ifdef FEATURE_WLAN_WAPI
 void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter,
               u8 key_index, const u8 *mac_addr, u8 *key , int key_Len);
@@ -61,7 +61,7 @@ struct wiphy *wlan_hdd_cfg80211_init(int priv_size);
 int wlan_hdd_cfg80211_register(struct device *dev,
                                struct wiphy *wiphy,
                                hdd_config_t *pCfg
-                               );
+                                         );
 
 void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter);
 

@@ -62,11 +62,19 @@ typedef struct
  */
 wpt_status wpalOpen(void **ppPalContext, void *pOSContext)
 {
-   gContext.devHandle = pOSContext;
-  
-   wpalDeviceInit(pOSContext);
+   wpt_status status;
 
-   return eWLAN_PAL_STATUS_SUCCESS;
+   gContext.devHandle = pOSContext;
+
+   status = wpalDeviceInit(pOSContext);
+   if (!WLAN_PAL_IS_STATUS_SUCCESS(status))
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "%s: wpalDeviceInit failed with status %u",
+                 __FUNCTION__, status);
+   }
+
+   return status;
 }
 
 /**

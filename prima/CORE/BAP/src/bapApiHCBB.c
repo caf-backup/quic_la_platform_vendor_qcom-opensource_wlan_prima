@@ -292,6 +292,89 @@ WLAN_BAPFlush
 
 /*----------------------------------------------------------------------------
 
+  FUNCTION    WLAN_EnhancedBAPFlush()
+
+  DESCRIPTION 
+    Implements the actual HCI Enhanced Flush command
+    Produces an asynchronous command complete event. Through the command status 
+    event callback. And an asynchronous Enhanced Flush Complete event. 
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+    pBapHCIFlush:  pointer to the "HCI Enhanced Flush" Structure.
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event. 
+                (The caller of this routine is responsible for sending 
+                the Command Complete event up the HCI interface.)
+   
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIFlush is NULL 
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS 
+  
+----------------------------------------------------------------------------*/
+VOS_STATUS  
+WLAN_EnhancedBAPFlush
+( 
+  ptBtampHandle btampHandle,
+  tBtampTLVHCI_Enhanced_Flush_Cmd     *pBapHCIFlush,
+  tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
+                                /* Including Command Complete and Command Status*/
+
+)
+{
+    VOS_STATUS  vosStatus = VOS_STATUS_SUCCESS;
+    tBtampHCI_Event bapHCIEvent; /* This now encodes ALL event types */
+    ptBtampContext btampContext;
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %x", __FUNCTION__,  btampHandle); 
+
+    /* Validate params */ 
+    /* Validate params */ 
+    if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "Invalid input parameters in %s", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    btampContext = (ptBtampContext) btampHandle;
+    /* Form and return the command status event... */
+    bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_STATUS_EVENT;
+    bapHCIEvent.u.btampCommandStatusEvent.present = 1;
+    bapHCIEvent.u.btampCommandStatusEvent.num_hci_command_packets = 1;
+    bapHCIEvent.u.btampCommandStatusEvent.command_opcode
+        = BTAMP_TLV_HCI_ENHANCED_FLUSH_CMD;
+    bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
+
+    /* Form and immediately return the command complete event... */ 
+    pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_ENHANCED_FLUSH_COMPLETE_EVENT;
+    pBapHCIEvent->u.btampEnhancedFlushCompleteEvent.present = 1;
+    pBapHCIEvent->u.btampEnhancedFlushCompleteEvent.log_link_handle = 
+        pBapHCIFlush->log_link_handle;
+
+    vosStatus = (*btampContext->pBapHCIEventCB) 
+        (  
+         //btampContext->pHddHdl,   /* this refers to the BSL per connection context */
+         btampContext->pAppHdl,   /* this refers the BSL per application context */
+         &bapHCIEvent, /* This now encodes ALL event types */
+         VOS_FALSE /* Flag to indicate assoc-specific event */ 
+        );
+
+    return vosStatus;
+} /* WLAN_EnhancedBAPFlush */
+
+/*----------------------------------------------------------------------------
+
   FUNCTION    WLAN_BAPReadConnectionAcceptTimeout()
 
   DESCRIPTION 

@@ -363,6 +363,8 @@ int hdd_stop (struct net_device *dev)
    VOS_STATUS status;
    v_BOOL_t enter_standby = TRUE;
    
+   ENTER();
+
    if (NULL == pAdapter)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
@@ -394,6 +396,7 @@ int hdd_stop (struct net_device *dev)
       )
    {
       /* SoftAP mode, so return from here */
+      EXIT();
       return 0;
    }
 
@@ -428,6 +431,7 @@ int hdd_stop (struct net_device *dev)
        }
    }
    
+   EXIT();
    return 0;
 }
 
@@ -447,6 +451,8 @@ static void hdd_uninit (struct net_device *dev)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
+   ENTER();
+
    if (pAdapter && pAdapter->pHddCtx)
    {
       hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
@@ -454,6 +460,8 @@ static void hdd_uninit (struct net_device *dev)
       /* after uninit our adapter structure will no longer be valid */
       pAdapter->dev = NULL;
    }
+
+   EXIT();
 }
 
 /**---------------------------------------------------------------------------
@@ -1092,6 +1100,7 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 
 void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 {
+   ENTER();
    switch ( pAdapter->device_mode )
    {
       case WLAN_HDD_INFRA_STATION:
@@ -1113,18 +1122,6 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
          hdd_cleanup_actionframe(pHddCtx, pAdapter);
 #endif
 
-         if(test_bit(SME_SESSION_OPENED, &pAdapter->event_flags)) 
-         {
-            INIT_COMPLETION(pAdapter->session_close_comp_var);
-            if( eHAL_STATUS_SUCCESS == 
-                    sme_CloseSession( pHddCtx->hHal, pAdapter->sessionId, 
-                                      hdd_smeCloseSessionCallback, pAdapter ) )
-            {
-               //Block on a completion variable. Can't wait forever though.
-               wait_for_completion_interruptible_timeout(&pAdapter->session_close_comp_var, 
-                          msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
-            }
-         }
          break;
       }
 
@@ -1132,46 +1129,10 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       case WLAN_HDD_P2P_GO:
 #ifdef WLAN_SOFTAP_FEATURE
       {
-         VOS_STATUS status = VOS_STATUS_E_FAILURE;
-
 #ifdef CONFIG_CFG80211
          hdd_cleanup_actionframe(pHddCtx, pAdapter);
 #endif
 
-         //Any softap specific cleanup here...
-         if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) 
-         {
-            //Stop Bss.
-            if(VOS_STATUS_SUCCESS == (status = 
-               WLANSAP_StopBss((WLAN_HDD_GET_CTX(pAdapter))->pvosContext)))
-            {
-               hdd_hostapd_state_t *pHostapdState = 
-                                  WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
-
-               status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
-   
-               if (!VOS_IS_STATUS_SUCCESS(status))
-               {  
-                  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-                          ("ERROR: HDD vos wait for single_event failed!!\n"));
-                  VOS_ASSERT(0);
-               }
-            }
-
-            if(status != VOS_STATUS_SUCCESS) 
-            {
-               hddLog(VOS_TRACE_LEVEL_FATAL,
-                        "%s:Error!!! Stopping the BSS\n",__func__);
-            }
-            clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
-         }
-         if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
-                WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 0,NULL, eANI_BOOLEAN_FALSE)
-                                                 ==eHAL_STATUS_FAILURE)
-         {
-             hddLog(LOGE,
-                "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM\n");
-         } 
          hdd_unregister_hostapd(pAdapter);
          hdd_set_conparam( 0 );
 #ifdef CONFIG_CFG80211
@@ -1204,6 +1165,8 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       default:
       break;
    }
+
+   EXIT();
 }
 
 void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_U8 rtnl_held )
@@ -1524,6 +1487,8 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_list_node_t *pHddAdapterNode;
    VOS_STATUS status;
 
+   ENTER();
+
    do
    {
       status = hdd_remove_front_adapter( pHddCtx, &pHddAdapterNode );
@@ -1534,20 +1499,21 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
       }
    }while( NULL != pHddAdapterNode && VOS_STATUS_E_EMPTY != status );
    
+   EXIT();
+
    return VOS_STATUS_SUCCESS;
 }
 
 VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 {
-  eHalStatus halStatus = eHAL_STATUS_SUCCESS;
-  hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-  union iwreq_data wrqu;
+   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+   hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+   union iwreq_data wrqu;
 
-  if( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-      (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
-  {
-    switch(pAdapter->device_mode)
-    {
+   ENTER();
+
+   switch(pAdapter->device_mode)
+   {
       case WLAN_HDD_INFRA_STATION:
       case WLAN_HDD_P2P_CLIENT:
          if( hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR( pAdapter )) )
@@ -1575,18 +1541,70 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
          {
             hdd_abort_mac_scan(pHddCtx);
          }
+
+         if (test_bit(SME_SESSION_OPENED, &pAdapter->event_flags)) 
+         {
+            INIT_COMPLETION(pAdapter->session_close_comp_var);
+            if (eHAL_STATUS_SUCCESS ==
+                sme_CloseSession(pHddCtx->hHal, pAdapter->sessionId, 
+                                 hdd_smeCloseSessionCallback, pAdapter))
+            {
+               //Block on a completion variable. Can't wait forever though.
+               wait_for_completion_interruptible_timeout(
+                          &pAdapter->session_close_comp_var, 
+                          msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+            }
+         }
+
          break;
 
       case WLAN_HDD_SOFTAP:
       case WLAN_HDD_P2P_GO:
+         //Any softap specific cleanup here...
+         if (test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) 
+         {
+            VOS_STATUS status;
+            hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+            //Stop Bss.
+            status = WLANSAP_StopBss(pHddCtx->pvosContext);
+            if (VOS_IS_STATUS_SUCCESS(status))
+            {
+               hdd_hostapd_state_t *pHostapdState = 
+                  WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
+
+               status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+   
+               if (!VOS_IS_STATUS_SUCCESS(status))
+               {
+                  hddLog(LOGE, "%s: failure waiting for WLANSAP_StopBss",
+                         __FUNCTION__);
+               }
+            }
+            else
+            {
+               hddLog(LOGE, "%s: failure in WLANSAP_StopBss", __FUNCTION__);
+            }
+            clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
+
+            if (eHAL_STATUS_FAILURE ==
+                ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG,
+                             0, NULL, eANI_BOOLEAN_FALSE))
+            {
+               hddLog(LOGE,
+                      "%s: Failed to set WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG",
+                      __FUNCTION__);
+            }
+         }
          break;
       case WLAN_HDD_MONITOR:
          break;
       default:
          break;
-    }
-  }
-  return VOS_STATUS_SUCCESS;
+   }
+
+   EXIT();
+   return VOS_STATUS_SUCCESS;
 }
 
 VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
@@ -1594,6 +1612,8 @@ VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    hdd_adapter_t      *pAdapter;
+
+   ENTER();
 
    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
@@ -1609,6 +1629,8 @@ VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
       pAdapterNode = pNext;
    }
 
+   EXIT();
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -1617,6 +1639,8 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    hdd_adapter_t *pAdapter;
+
+   ENTER();
 
    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
@@ -1638,6 +1662,8 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
       pAdapterNode = pNext;
    }
 
+   EXIT();
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -1646,6 +1672,8 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    hdd_adapter_t      *pAdapter;
+
+   ENTER();
 
    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
@@ -1697,6 +1725,9 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
+
+   EXIT();
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -1706,6 +1737,8 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_t *pAdapter;
    VOS_STATUS status;
    v_U32_t roamId;
+
+   ENTER();
 
    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
@@ -1738,6 +1771,8 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
+
+   EXIT();
 
    return VOS_STATUS_SUCCESS;
 }
@@ -2154,7 +2189,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    struct fullPowerContext powerContext;
    long lrc;
 
-   hddLog(VOS_TRACE_LEVEL_INFO, "In WLAN EXIT");
+   ENTER();
 
 #ifdef CONFIG_CFG80211
 #ifdef WLAN_SOFTAP_FEATURE
@@ -3656,6 +3691,8 @@ void hdd_softap_sta_deauth(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddress)
       hdd_softap_DeregisterSTA(pAdapter, STAId);
     }
 #endif
+
+    EXIT();
 }
 
 /**---------------------------------------------------------------------------
@@ -3784,7 +3821,7 @@ void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
             break;
 
    }
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: concurrency_mode = 0x%x NumberofSessions for mode %d = %d",
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: concurrency_mode = 0x%x NumberofSessions for mode %d = %d",
     __func__,pHddCtx->concurrency_mode,mode,pHddCtx->no_of_sessions[mode]);
 }
 
@@ -3806,7 +3843,7 @@ void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
        default:
             break;
    }
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: concurrency_mode = 0x%x NumberofSessions for mode %d = %d",
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: concurrency_mode = 0x%x NumberofSessions for mode %d = %d",
     __func__,pHddCtx->concurrency_mode,mode,pHddCtx->no_of_sessions[mode]);
 }
 
