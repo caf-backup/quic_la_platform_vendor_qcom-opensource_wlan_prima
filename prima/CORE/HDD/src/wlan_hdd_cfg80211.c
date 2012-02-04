@@ -1489,30 +1489,30 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
  */
 int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                                     struct net_device *ndev,
-                                    enum nl80211_iftype type, 
+                                    enum nl80211_iftype type,
                                     u32 *flags,
                                     struct vif_params *params
                                   )
 {
     struct wireless_dev *wdev;
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev ); //(hdd_adapter_t*) wiphy_priv(wiphy);
-    hdd_context_t *pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev );
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     tCsrRoamProfile *pRoamProfile = NULL;
     eCsrRoamBssType LastBSSType;
-    hdd_config_t *pConfig = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
+    hdd_config_t *pConfig = pHddCtx->cfg_ini;
     eMib_dot11DesiredBssType connectedBssType;
     VOS_STATUS status;
 
     ENTER();
-    
-    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
-                             __func__,pAdapter->device_mode);
- 
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
+                             __func__, pAdapter->device_mode);
+
     wdev = ndev->ieee80211_ptr;
 
     /* Reset the current device mode bit mask*/
     wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
-    
+
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
 #ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
@@ -1529,11 +1529,11 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
 #ifdef WLAN_FEATURE_P2P
             case NL80211_IFTYPE_P2P_CLIENT:
 #endif
-                hddLog(VOS_TRACE_LEVEL_INFO, 
+                hddLog(VOS_TRACE_LEVEL_INFO,
                    "%s: setting interface Type to INFRASTRUCTURE", __func__);
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
-                pRoamProfile->phyMode = 
-                hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
+                pRoamProfile->phyMode =
+                   hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
                 wdev->iftype = type;
 #ifdef WLAN_FEATURE_P2P
                 pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
@@ -1541,10 +1541,10 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
 #endif
                 break;
             case NL80211_IFTYPE_ADHOC:
-                hddLog(VOS_TRACE_LEVEL_INFO, 
+                hddLog(VOS_TRACE_LEVEL_INFO,
                   "%s: setting interface Type to ADHOC", __func__);
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_START_IBSS;
-                pRoamProfile->phyMode = 
+                pRoamProfile->phyMode =
                     hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
                 wdev->iftype = type;
                 break;
@@ -1554,40 +1554,41 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
             case NL80211_IFTYPE_P2P_GO:
 #endif
             {
-                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
-                      "%s: setting interface Type to %s", __func__, 
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                      "%s: setting interface Type to %s", __func__,
                       (type == NL80211_IFTYPE_AP) ? "SoftAP" : "P2pGo");
 
                 //De-init the adapter.
-                hdd_stop_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
-                hdd_deinit_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
+                hdd_stop_adapter( pHddCtx, pAdapter );
+                hdd_deinit_adapter( pHddCtx, pAdapter );
 #ifdef WLAN_SOFTAP_FEATURE
 #ifdef WLAN_FEATURE_P2P
-                pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ? 
+                pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ?
                                    WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
 #else
                 pAdapter->device_mode = WLAN_HDD_SOFTAP;
 #endif
                 hdd_set_ap_ops( pAdapter->dev );
-               
+
                 status = hdd_init_ap_mode(pAdapter);
                 if(status != VOS_STATUS_SUCCESS)
                 {
-                    hddLog(VOS_TRACE_LEVEL_FATAL,"Error initializing the ap mode\n");
+                    hddLog(VOS_TRACE_LEVEL_FATAL,
+                           "%s: Error initializing the ap mode", __func__);
                     return -EINVAL;
                 }
                 hdd_set_conparam(1);
 
 #endif
                 /*interface type changed update in wiphy structure*/
-                if(wdev) 
+                if(wdev)
                 {
                     wdev->iftype = type;
-                    (WLAN_HDD_GET_CTX(pAdapter))->change_iface = type;
+                    pHddCtx->change_iface = type;
                 }
-                else 
+                else
                 {
-                    hddLog(VOS_TRACE_LEVEL_ERROR, 
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
                             "%s: ERROR !!!! Wireless dev is NULL", __func__);
                     return -EINVAL;
                 }
@@ -1602,7 +1603,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     }
     else if ( (pAdapter->device_mode == WLAN_HDD_SOFTAP)
 #ifdef WLAN_FEATURE_P2P
-           || (pAdapter->device_mode == WLAN_HDD_P2P_GO) 
+           || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
 #endif
             )
     {
@@ -1610,7 +1611,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
        {
            case NL80211_IFTYPE_STATION:
 #ifdef WLAN_FEATURE_P2P
-           case NL80211_IFTYPE_P2P_CLIENT:               
+           case NL80211_IFTYPE_P2P_CLIENT:
 #endif
            case NL80211_IFTYPE_ADHOC:
                 wdev->iftype = type;
@@ -1619,8 +1620,9 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                                   WLAN_HDD_INFRA_STATION: WLAN_HDD_P2P_CLIENT;
 #endif
                 hdd_set_conparam(0);
-               (WLAN_HDD_GET_CTX(pAdapter))->change_iface = type;
-                hdd_deinit_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
+                pHddCtx->change_iface = type;
+                hdd_stop_adapter( pHddCtx, pAdapter );
+                hdd_deinit_adapter( pHddCtx, pAdapter );
 
                 hdd_set_station_ops( pAdapter->dev );
                 status = hdd_init_station_mode( pAdapter );
@@ -1641,11 +1643,11 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported interface Type",
                         __func__);
                 return -EOPNOTSUPP;
-               
+
        }
 
     }
-    else 
+    else
     {
       return -EOPNOTSUPP;
     }
@@ -1658,15 +1660,15 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
             /*interface type changed update in wiphy structure*/
             wdev->iftype = type;
 
-            /*the BSS mode changed, We need to issue disconnect 
+            /*the BSS mode changed, We need to issue disconnect
               if connected or in IBSS disconnect state*/
             if ( hdd_connGetConnectedBssType(
-                 WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), &connectedBssType ) || 
+                 WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), &connectedBssType ) ||
                 ( eCSR_BSS_TYPE_START_IBSS == LastBSSType ) )
             {
                 /*need to issue a disconnect to CSR.*/
                 INIT_COMPLETION(pAdapter->disconnect_comp_var);
-                if( eHAL_STATUS_SUCCESS == 
+                if( eHAL_STATUS_SUCCESS ==
                         sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                 pAdapter->sessionId,
                                 eCSR_DISCONNECT_REASON_UNSPECIFIED ) )
@@ -2520,20 +2522,37 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
  * This function is used to inform the BSS details to nl80211 interface.
  */
 static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
-                    hdd_adapter_t *pAdapter, tSirBssDescription *bss_desc)
+                    hdd_adapter_t *pAdapter, tCsrRoamConnectedProfile *roamProfile)
 {
     struct net_device *dev = pAdapter->dev;
     struct wireless_dev *wdev = dev->ieee80211_ptr;
     struct wiphy *wiphy = wdev->wiphy;
-    int chan_no = bss_desc->channelId;
-    int ie_length = GET_IE_LEN_IN_BSS_DESC( bss_desc->length );
-    const char *ie = 
-        ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
+    tSirBssDescription *pBssDesc = roamProfile->pBssDesc;
+    int chan_no;
+    int ie_length;
+    const char *ie;
     unsigned int freq;
     struct ieee80211_channel *chan;
     int rssi = 0;
+    struct cfg80211_bss *bss = NULL;
 
     ENTER();
+
+    if( NULL == pBssDesc )
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: pBssDesc is NULL\n", __func__);
+        return bss;
+    }
+
+    chan_no = pBssDesc->channelId;
+    ie_length = GET_IE_LEN_IN_BSS_DESC( pBssDesc->length );
+    ie =  ((ie_length != 0) ? (const char *)&pBssDesc->ieFields: NULL);
+
+    if( NULL == ie )
+    {
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: IE of BSS descriptor is NULL\n", __func__);
+       return bss;
+    }
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
     if (chan_no <= ARRAY_SIZE(hdd_channels_2_4_GHZ))
@@ -2550,13 +2569,23 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
 
     chan = __ieee80211_get_channel(wiphy, freq);
 
-    rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
+    bss = cfg80211_get_bss(wiphy, chan, pBssDesc->bssId,
+                           &roamProfile->SSID.ssId[0], roamProfile->SSID.length,
+                           WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
+    if (bss == NULL)
+    {
+        rssi = (VOS_MIN ((pBssDesc->rssi + pBssDesc->sinr), 0))*100;
 
-    return (cfg80211_inform_bss(wiphy, chan, bss_desc->bssId, 
-                le64_to_cpu(*(__le64 *)bss_desc->timeStamp), 
-                bss_desc->capabilityInfo,
-                bss_desc->beaconInterval, ie, ie_length,
+        return (cfg80211_inform_bss(wiphy, chan, pBssDesc->bssId, 
+                le64_to_cpu(*(__le64 *)pBssDesc->timeStamp), 
+                pBssDesc->capabilityInfo,
+                pBssDesc->beaconInterval, ie, ie_length,
                 rssi, GFP_KERNEL ));
+    }
+    else
+    {
+        return bss;
+    }
 }
 
 
@@ -2648,12 +2677,13 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
  * FUNCTION: wlan_hdd_cfg80211_update_bss_db
  * This function is used to update the BSS data base of CFG8011
  */
-void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter, 
+struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter, 
                                       tCsrRoamInfo *pRoamInfo
                                       )
 {
     tCsrRoamConnectedProfile roamProfile;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    struct cfg80211_bss *bss = NULL;
 
     ENTER();
 
@@ -2662,11 +2692,10 @@ void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
 
     if (NULL != roamProfile.pBssDesc)
     {
-        struct cfg80211_bss *bss_status = NULL;
-        bss_status = wlan_hdd_cfg80211_inform_bss(pAdapter, 
-                roamProfile.pBssDesc);
+        bss = wlan_hdd_cfg80211_inform_bss(pAdapter, 
+                &roamProfile);
 
-        if (NULL == bss_status)
+        if (NULL == bss)
         {
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: cfg80211_inform_bss return NULL",
                     __func__);
@@ -2679,6 +2708,7 @@ void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s:  roamProfile.pBssDesc is NULL",
                 __func__);
     }
+    return bss;
 }
 
 /*
@@ -2718,10 +2748,6 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
 
     while (pScanResult)
     {
-#if 0
-        bss_status = wlan_hdd_cfg80211_inform_bss(pAdapter,
-                &pScanResult->BssDescriptor);
-#else
         /* 
          * cfg80211_inform_bss() is not updating ie field of bss entry, if 
          * entry already exists in bss data base of cfg80211 for that 
@@ -2735,7 +2761,6 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
 
         bss_status = wlan_hdd_cfg80211_inform_bss_frame(pAdapter,
                 &pScanResult->BssDescriptor);
-#endif
     
 
         if (NULL == bss_status)
@@ -2744,6 +2769,11 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
                     "%s: NULL returned by cfg80211_inform_bss\n", __func__);
             break;
         }
+        else
+        {
+            cfg80211_put_bss(bss_status);
+        }
+
         pScanResult = sme_ScanResultGetNext(hHal, pResult);
     }
 
@@ -2921,11 +2951,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s",
                                                    j, SsidInfo->SSID.ssId);
             }
+            /* set the scan type to active */
+            scanRequest.scanType = eSIR_ACTIVE_SCAN;
         }
-
-        /*Set the scan type to default type, in this case it is ACTIVE*/
-        scanRequest.scanType = 
+        else
+        {
+            /*Set the scan type to default type, in this case it is ACTIVE*/
+            scanRequest.scanType = 
                     (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode;
+        }
         scanRequest.minChnTime = cfg_param->nActiveMinChnTime; 
         scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
     }

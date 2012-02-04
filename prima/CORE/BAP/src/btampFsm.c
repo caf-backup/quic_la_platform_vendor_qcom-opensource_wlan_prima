@@ -710,8 +710,8 @@ gotoStarting
     if ((BTAMP_PARSE_SUCCESS != parseStatus ) && (BTAMP_UNKNOWN_TLVS != parseStatus))  
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, parseStatus = %d", __FUNCTION__, parseStatus);
-//        *status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
-//        return VOS_STATUS_E_BADMSG;
+        *status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+        return VOS_STATUS_E_BADMSG;
     }
 
     //What about writing the peer MAC address, and other info to the BTAMP 

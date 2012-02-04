@@ -229,7 +229,7 @@ this command is supported.
     0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x02, 0x0c, \
     0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x88, 0x3c, \
     0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x07, \
-    0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+    0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
@@ -308,9 +308,28 @@ this command is supported.
 #define WLANBAP_ERROR_HOST_BUSY_PAIRING               (0x38)      
 
 /*----------------------------------------------------------------------------
+ *   Event_Mask_Page_2 defines for events
+ * -------------------------------------------------------------------------*/
+#define WLANBAP_EVENT_MASK_NONE                    0x0000000000000000 //No events specified (default)
+#define WLANBAP_EVENT_MASK_PHY_LINK_COMPLETE_EVENT 0x0000000000000001 //Physical Link Complete Event
+#define WLANBAP_EVENT_MASK_CHANNEL_SELECTED_EVENT  0x0000000000000002 //Channel Selected Event
+#define WLANBAP_EVENT_MASK_DISC_PHY_LINK_EVENT     0x0000000000000004 //Disconnection Physical Link Event
+#define WLANBAP_EVENT_MASK_PHY_LINK_LOSS_EARLY_WARNING_EVENT 0x0000000000000008 //Physical Link Loss Early Warning Event
+#define WLANBAP_EVENT_MASK_PHY_LINK_RECOVERY_EVENT 0x0000000000000010 //Physical Link Recovery Event
+#define WLANBAP_EVENT_MASK_LOG_LINK_COMPLETE_EVENT 0x0000000000000020 //Logical Link Complete Event
+#define WLANBAP_EVENT_MASK_DISC_LOG_LINK_COMPLETE_EVENT 0x0000000000000040 //Disconnection Logical Link Complete Event
+#define WLANBAP_EVENT_MASK_FLOW_SPEC_MOD_COMPLETE_EVENT 0x0000000000000080 //Flow Spec Modify Complete Event
+#define WLANBAP_EVENT_MASK_NUM_COMPLETED_DATA_BLOCKS_EVENT 0x0000000000000100 //Number of Completed Data Blocks Event
+#define WLANBAP_EVENT_MASK_AMP_START_TEST_EVENT    0x0000000000000200 //AMP Start Test Event
+#define WLANBAP_EVENT_MASK_AMP_TEST_END_EVENT      0x0000000000000400 //AMP Test End Event
+#define WLANBAP_EVENT_MASK_AMP_RCVR_REPORT_EVENT   0x0000000000000800 //AMP Receiver Report Event
+#define WLANBAP_EVENT_MASK_SHORT_RANGE_MODE_CHANGE_COMPLETE_EVENT 0x0000000000001000 //Short Range Mode Change Complete Event
+#define WLANBAP_EVENT_MASK_AMP_STATUS_CHANGE_EVENT 0x0000000000002000 //AMP Status Change Event
+#define WLANBAP_EVENT_MASK_RESERVED                0xFFFFFFFFFFFFC000 //Reserved for future use
+
+/*----------------------------------------------------------------------------
  *  Typedefs
  * -------------------------------------------------------------------------*/
-
 
 /*----------------------------------------------------------------------------
  *  Opaque BAP handle Type Declaration 
@@ -352,6 +371,7 @@ typedef struct sBtampHCI_Event {
         tBtampTLVHCI_Short_Range_Mode_Change_Complete_Event btampShortRangeModeChangeCompleteEvent ;
         tBtampTLVHCI_Num_Completed_Pkts_Event btampNumOfCompletedPktsEvent;
         tBtampTLVHCI_Num_Completed_Data_Blocks_Event btampNumOfCompletedDataBlocksEvent;
+        tBtampTLVHCI_Enhanced_Flush_Complete_Event btampEnhancedFlushCompleteEvent ;
     } u;
 } tBtampHCI_Event, *tpBtampHCI_Event;
 
@@ -1476,6 +1496,47 @@ WLAN_BAPFlush
 ( 
   ptBtampHandle btampHandle,
   tBtampTLVHCI_Flush_Cmd     *pBapHCIFlush
+);
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_EnhancedBAPFlush()
+
+  DESCRIPTION 
+    Implements the actual HCI Enhanced Flush command
+    Produces an asynchronous command complete event. Through the command status 
+    event callback. And an asynchronous Enhanced Flush Complete event. 
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+    pBapHCIFlush:  pointer to the "HCI Enhanced Flush" Structure.
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event. 
+                (The caller of this routine is responsible for sending 
+                the Command Complete event up the HCI interface.)
+   
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIFlush is NULL 
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS 
+  
+----------------------------------------------------------------------------*/
+VOS_STATUS  
+WLAN_EnhancedBAPFlush
+( 
+  ptBtampHandle btampHandle,
+  tBtampTLVHCI_Enhanced_Flush_Cmd     *pBapHCIFlush,
+  tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
+                                /* Including Command Complete and Command Status*/
+
 );
 
 /*----------------------------------------------------------------------------
@@ -2715,6 +2776,39 @@ WLANBAP_GetAcFromTxDataPkt
   WLANTL_ACEnumType *pucAC        /* Return the AC here */
 );
 
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPGetMask()
+
+  DESCRIPTION 
+     The function gets the updated event mask from BAP core.
+   
+
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+    
+   
+    IN
+    pEvent_mask_page_2: a pointer to a caller allocated object of 8 bytes.
+   
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_FAULT:  pEvent_mask_page_2 or btampHandle is NULL 
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS 
+  
+----------------------------------------------------------------------------*/
+VOS_STATUS
+WLAN_BAPGetMask( ptBtampHandle btampHandle, 
+                 v_U8_t       *pEvent_mask_page_2);
 
 #ifdef __cplusplus
  }

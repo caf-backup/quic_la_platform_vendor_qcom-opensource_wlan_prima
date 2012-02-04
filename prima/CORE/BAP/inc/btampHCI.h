@@ -915,6 +915,58 @@ v_U32_t btampGetPackedTlvHCI_Flush_Occurred_Event(void *, tBtampTLVHCI_Flush_Occ
 #ifdef __cplusplus
 }; /* End extern "C". */
 #endif /* C++ */
+// ID 3167 (0x0C5F)
+typedef struct sBtampTLVHCI_Enhanced_Flush_Cmd {
+    v_U8_t       present;
+    v_U16_t      log_link_handle;
+    v_U8_t       packet_type;
+} tBtampTLVHCI_Enhanced_Flush_Cmd;
+
+#define BTAMP_TLV_HCI_ENHANCED_FLUSH_CMD ( 3167 )
+
+// N.B. These #defines do *not* include the ID & length
+#define BTAMP_TLV_HCI_ENHANCED_FLUSH_CMD_MIN_LEN ( 5 )
+
+#define BTAMP_TLV_HCI_ENHANCED_FLUSH_CMD_MAX_LEN ( 5 )
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* C++ */
+v_U32_t btampUnpackTlvHCI_Enhanced_Flush_Cmd(void *, v_U8_t*,v_U16_t, tBtampTLVHCI_Enhanced_Flush_Cmd*);
+
+v_U32_t btampPackTlvHCI_Enhanced_Flush_Cmd(void *, tBtampTLVHCI_Enhanced_Flush_Cmd*, v_U8_t*, v_U32_t, v_U32_t*);
+
+v_U32_t btampGetPackedTlvHCI_Enhanced_Flush_Cmd(void *, tBtampTLVHCI_Enhanced_Flush_Cmd*, v_U32_t*);
+
+#ifdef __cplusplus
+}; /* End extern "C". */
+#endif /* C++ */
+// ID 57 (0x0039)
+typedef struct sBtampTLVHCI_Enhanced_Flush_Complete_Event {
+    v_U8_t       present;
+    v_U16_t      log_link_handle;
+} tBtampTLVHCI_Enhanced_Flush_Complete_Event;
+
+#define BTAMP_TLV_HCI_ENHANCED_FLUSH_COMPLETE_EVENT ( 57 )
+
+// N.B. These #defines do *not* include the ID & length
+#define BTAMP_TLV_HCI_ENHANCED_FLUSH_COMPLETE_EVENT_MIN_LEN ( 4 )
+
+#define BTAMP_TLV_HCI_ENHANCED_FLUSH_COMPLETE_EVENT_MAX_LEN ( 4 )
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* C++ */
+v_U32_t btampUnpackTlvHCI_Enhanced_Flush_Complete_Event(void *, v_U8_t*,v_U16_t, tBtampTLVHCI_Enhanced_Flush_Complete_Event*);
+
+v_U32_t btampPackTlvHCI_Enhanced_Flush_Complete_Event(void *, tBtampTLVHCI_Enhanced_Flush_Complete_Event*, v_U8_t*, v_U32_t, v_U32_t*);
+
+v_U32_t btampGetPackedTlvHCI_Enhanced_Flush_Complete_Event(void *, tBtampTLVHCI_Enhanced_Flush_Complete_Event*, v_U32_t*);
+
+#ifdef __cplusplus
+}; /* End extern "C". */
+#endif /* C++ */
+
 // ID 62 (0x003e)
 typedef struct sBtampTLVHCI_Generic_AMP_Link_Key_Notification_Event {
     v_U8_t       present;
