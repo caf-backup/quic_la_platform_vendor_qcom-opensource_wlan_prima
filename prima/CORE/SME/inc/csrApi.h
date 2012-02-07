@@ -615,6 +615,7 @@ typedef enum
     eCSR_BAND_ALL,
     eCSR_BAND_24,
     eCSR_BAND_5G,
+    eCSR_BAND_MAX,
 }eCsrBand;
 
 
@@ -1282,6 +1283,24 @@ typedef void ( *tCsrRssiCallback) (v_S7_t rssi, tANI_U32 staId, void *pContext);
 #ifdef WLAN_FEATURE_VOWIFI_11R
 eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tpSirBssDescription pBssDescription);
 #endif
+
+/*---------------------------------------------------------------------------
+  This is the function to change the Band configuraiton (ALL/2.4 GHZ/5 GHZ) 
+
+  \param hHal - handle to Hal context 
+  \param eBand - band value
+  \return  eHalStatus
+  
+---------------------------------------------------------------------------*/
+eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand);
+
+/*---------------------------------------------------------------------------
+  This is the function to get the current operating band value
+  \param hHal - handl to Hal context
+  \return eCsrband - band value
+  
+---------------------------------------------------------------------------*/
+eCsrBand csrGetCurrentBand (tHalHandle hHal);
 
 #endif
 

@@ -1161,6 +1161,32 @@ WLANSAP_getWpsSessionOverlap
 (
     v_PVOID_t pvosGCtx
 );
+/*==========================================================================
+  FUNCTION    WLANSAP_ClearACL
+
+  DESCRIPTION 
+    This api function removes all the entries in both accept and deny lists.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+    IN
+        pvosGCtx: Pointer to vos global context structure
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS 
+WLANSAP_ClearACL
+( 
+    v_PVOID_t  pvosGCtx
+);
 
 /*==========================================================================
   FUNCTION    WLANSAP_ModifyACL

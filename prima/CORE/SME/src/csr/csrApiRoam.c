@@ -982,6 +982,50 @@ static void initConfigParam(tpAniSirGlobal pMac)
     pMac->roam.configParam.addTSWhenACMIsOff = 0;
 }
 
+eCsrBand csrGetCurrentBand(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    return pMac->roam.configParam.bandCapability;
+}
+
+eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    
+    if (CSR_IS_PHY_MODE_A_ONLY(pMac) &&
+		    (eBand == eCSR_BAND_24))
+    {
+        /* DOT11 mode configured to 11a only and received 
+           request to change the band to 2.4 GHz */
+	    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+		    "failed to set band cfg80211 = %u, band = %u\n",  
+		    pMac->roam.configParam.uCfgDot11Mode, eBand);
+        return eHAL_STATUS_INVALID_PARAMETER;
+    }
+
+    if ((CSR_IS_PHY_MODE_B_ONLY(pMac) ||
+                CSR_IS_PHY_MODE_G_ONLY(pMac)) &&
+            (eBand == eCSR_BAND_5G))
+    {
+        /* DOT11 mode configured to 11b/11g only and received 
+           request to change the band to 5 GHz */
+	    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+		    "failed to set band dot11mode = %u, band = %u\n",  
+		    pMac->roam.configParam.uCfgDot11Mode, eBand);
+        return eHAL_STATUS_INVALID_PARAMETER;
+    }
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
+            "Band changed to %u (0 - ALL, 1 - 2.4 GHZ, 2 - 5GHZ)\n", eBand);
+    pMac->roam.configParam.eBand = eBand; 
+    pMac->roam.configParam.bandCapability = eBand; 
+    csrScanGetSupportedChannels( pMac );
+    status = csrInitGetChannels( pMac );
+    if (eHAL_STATUS_SUCCESS == status)
+        csrInitChannelList( hHal );
+    return status;
+}
 
 eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 {
@@ -3622,14 +3666,17 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     case eCsrHddIssuedReassocToSameAP:
     case eCsrSmeIssuedReassocToSameAP:
     {
-        tDot11fBeaconIEs Ies;
+        tDot11fBeaconIEs *pIes = NULL;
 
 
         if( pSession->pConnectBssDesc )
         {
-            palZeroMemory(pMac->hHdd, (void *)&Ies, sizeof(tDot11fBeaconIEs));
-            status = csrParseBssDescriptionIEs(pMac, pSession->pConnectBssDesc, &Ies);
-            if( HAL_STATUS_SUCCESS( status ) )
+            status = csrGetParsedBssDescriptionIEs(pMac, pSession->pConnectBssDesc, &pIes);
+            if(!HAL_STATUS_SUCCESS(status) )
+            {
+                smsLog(pMac, LOGE, FL("  fail to parse IEs\n"));
+            }
+            else
             {
                 roamInfo.reasonCode = eCsrRoamReasonStaCapabilityChanged;
                 csrRoamCallCallback(pMac, pSession->sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
@@ -3640,9 +3687,10 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 csrRoamCallCallback( pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, 
                                      eCSR_ROAM_ASSOCIATION_START, eCSR_ROAM_RESULT_NONE );
    
-                smsLog(pMac, LOGE, FL("  calling csrRoamIssueReassociate\n"));
-                csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, &Ies,
+                smsLog(pMac, LOG1, FL("  calling csrRoamIssueReassociate\n"));
+                csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, pIes,
                                          &pCommand->u.roamCmd.roamProfile );
+                palFreeMemory(pMac->hHdd, pIes);
             }
         }
         break;

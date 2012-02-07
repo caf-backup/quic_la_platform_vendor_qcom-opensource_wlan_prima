@@ -217,6 +217,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WLAN_SET_PNO (SIOCIWFIRSTPRIV + 24)
 #endif
 
+#define WLAN_SET_BAND_CONFIG  (SIOCIWFIRSTPRIV + 25)  /*Don't change this number*/
 
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
@@ -258,6 +259,10 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define TX_PER_TRACKING_MAX_RATIO                10
 #define TX_PER_TRACKING_DEFAULT_WATERMARK         5
 
+#define WLAN_HDD_UI_BAND_AUTO                     0
+#define WLAN_HDD_UI_BAND_5_GHZ                    1
+#define WLAN_HDD_UI_BAND_2_4_GHZ                  2
+#define WLAN_HDD_UI_SET_BAND_VALUE_OFFSET         8
 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 /**---------------------------------------------------------------------------
@@ -1504,6 +1509,7 @@ static int iw_get_rts_threshold(struct net_device *dev,
    return status;
 }
 
+extern int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand);
 static int iw_set_rts_threshold(struct net_device *dev,
                                 struct iw_request_info *info,
                                 union iwreq_data *wrqu, char *extra)
@@ -4796,6 +4802,74 @@ static int iw_set_pno_priv(struct net_device *dev,
   return iw_set_pno(dev,info,wrqu,extra,0);
 }
 
+static int iw_set_band_config(struct net_device *dev,
+                           struct iw_request_info *info,
+                           union iwreq_data *wrqu, char *extra)
+{
+    tANI_U8 *ptr = (tANI_U8*)wrqu->data.pointer;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    tANI_U8 band = 0;
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: ", __FUNCTION__);
+
+    if (memcmp(ptr, "SETBAND ", 8) == 0)
+    {
+        /* Change band request received */
+
+        /* First 8 bytes will have "SETBAND " and 
+         * 9 byte will have band setting value */
+        band = ptr[WLAN_HDD_UI_SET_BAND_VALUE_OFFSET] - '0'; /*convert the band value from ascii to integer*/
+        switch(band)
+        {
+            case WLAN_HDD_UI_BAND_AUTO:
+                band = eCSR_BAND_ALL;
+                break;
+            case WLAN_HDD_UI_BAND_5_GHZ:
+                band = eCSR_BAND_5G;
+                break;
+            case WLAN_HDD_UI_BAND_2_4_GHZ:
+                band = eCSR_BAND_24;
+                break;
+            default:
+                band = eCSR_BAND_MAX;
+        }
+
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: change band to %u", 
+                __FUNCTION__, band);
+
+        if (band == eCSR_BAND_MAX)
+        {
+            /* Received change band request with invalid band value */
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Invalid band value %u", __FUNCTION__, band);
+            return -EIO;
+        }
+
+        if (csrGetCurrentBand(hHal) != band)
+        {
+            /* Change band request received.
+             * Abort pending scan requests, flush the existing scan results,
+             * and change the band capability
+             */
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                    "%s: Current band value = %u, new setting %u ", 
+                    __FUNCTION__, csrGetCurrentBand(hHal), band);
+            hdd_abort_mac_scan(pHddCtx);
+            sme_ScanFlushResult(hHal, pAdapter->sessionId);
+            if(eHAL_STATUS_SUCCESS != csrSetBand(hHal, (eCsrBand)band))
+            {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                        "%s: failed to set the band value to %u ", 
+                        __FUNCTION__, band);
+                return -EINVAL;
+            }
+            wlan_hdd_cfg80211_update_band(pHddCtx->wiphy, (eCsrBand)band);
+        }
+    }
+    return 0;
+}
 #endif /*FEATURE_WLAN_SCAN_PNO*/
 
 // Define the Wireless Extensions to the Linux Network Device structure
@@ -4899,6 +4973,8 @@ static const iw_handler we_private[] = {
    ,
    [WLAN_SET_PNO                        - SIOCIWFIRSTPRIV]   = iw_set_pno_priv
 #endif
+   ,
+   [WLAN_SET_BAND_CONFIG                - SIOCIWFIRSTPRIV]   = iw_set_band_config
 };
 
 /*Maximum command length can be only 15 */
@@ -5202,6 +5278,11 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "setpno" },
 #endif
+    {  
+        WLAN_SET_BAND_CONFIG,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        0,
+        "SETBAND" },
    
 };
 

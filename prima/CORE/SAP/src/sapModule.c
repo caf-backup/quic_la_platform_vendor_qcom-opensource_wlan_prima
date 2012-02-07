@@ -870,6 +870,39 @@ WLANSAP_getWpsSessionOverlap
     return VOS_STATUS_SUCCESS;
 }
 
+/* This routine will clear all the entries in accept list as well as deny list  */
+
+VOS_STATUS 
+WLANSAP_ClearACL( v_PVOID_t  pvosGCtx)
+{
+    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    v_U8_t i;
+
+    if (pSapCtx->denyMacList != NULL) 
+    {
+        for (i = 0; i < (pSapCtx->nDenyMac-1); i++)
+        {
+            vos_mem_zero((pSapCtx->denyMacList+i)->bytes, sizeof(v_MACADDR_t));
+
+        }
+    }
+    sapPrintACL(pSapCtx->denyMacList, pSapCtx->nDenyMac);
+    pSapCtx->nDenyMac  = 0;
+
+    if (pSapCtx->acceptMacList!=NULL) 
+    {
+        for (i = 0; i < (pSapCtx->nAcceptMac-1); i++)
+        {
+            vos_mem_zero((pSapCtx->acceptMacList+i)->bytes, sizeof(v_MACADDR_t));
+
+        }
+    }
+    sapPrintACL(pSapCtx->acceptMacList, pSapCtx->nAcceptMac);
+    pSapCtx->nAcceptMac = 0;
+    
+    return VOS_STATUS_SUCCESS;
+}
+
 VOS_STATUS 
 WLANSAP_ModifyACL
 (

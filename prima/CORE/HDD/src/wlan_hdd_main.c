@@ -104,6 +104,18 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #define WLAN_MODULE_NAME  "wlan"
 #endif
 
+#ifdef TIMER_MANAGER
+#define TIMER_MANAGER_STR " +TIMER_MANAGER"
+#else
+#define TIMER_MANAGER_STR ""
+#endif
+
+#ifdef MEMORY_DEBUG
+#define MEMORY_DEBUG_STR " +MEMORY_DEBUG"
+#else
+#define MEMORY_DEBUG_STR ""
+#endif
+
 //internal function declaration
 v_U16_t hdd_select_queue(struct net_device *dev,
     struct sk_buff *skb);
@@ -2433,7 +2445,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
    vos_close(pVosContext);
 
-
 #ifdef ANI_BUS_TYPE_SDIO
    vosStatus = WLANBAL_Close(pVosContext);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -3359,7 +3370,8 @@ static int __init hdd_module_init ( void)
 
    ENTER();
 
-   pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME, QWLAN_VERSIONSTR);
+   pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME,
+           QWLAN_VERSIONSTR TIMER_MANAGER_STR MEMORY_DEBUG_STR);
 
    //Power Up Libra WLAN card first if not already powered up
    status = vos_chipPowerUp(NULL,NULL,NULL);

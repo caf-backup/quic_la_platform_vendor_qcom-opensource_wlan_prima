@@ -761,9 +761,14 @@ static iw_softap_setparam(struct net_device *dev,
     int set_value = value[1];
     eHalStatus status;
     int ret = 0; /* success */
+    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext; 
 
     switch(sub_cmd)
     {
+
+        case QCSAP_PARAM_CLR_ACL:
+            WLANSAP_ClearACL( pVosContext );
+            break;
 
         case QCSAP_PARAM_MAX_ASSOC:
             if (WNI_CFG_ASSOC_STA_LIMIT_STAMIN > set_value)
@@ -813,6 +818,7 @@ static iw_softap_getparam(struct net_device *dev,
     int sub_cmd = value[0];
     eHalStatus status;
     int ret = 0; /* success */
+    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext; 
 
     switch (sub_cmd)
     {
@@ -823,7 +829,12 @@ static iw_softap_getparam(struct net_device *dev,
             ret = -EIO;
         }
         break;
-
+        
+    case QCSAP_PARAM_CLR_ACL:
+        WLANSAP_ClearACL( pVosContext );
+        *value = 0;
+        break;
+        
     case QCSAP_PARAM_MODULE_DOWN_IND:
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -2132,6 +2143,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
   { QCSAP_PARAM_MODULE_DOWN_IND, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
+  { QCSAP_PARAM_CLR_ACL, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, "setClearAcl" },
   { QCSAP_IOCTL_COMMIT,
       IW_PRIV_TYPE_BYTE | sizeof(struct s_CommitConfig) | IW_PRIV_SIZE_FIXED, 0, "commit" },
   { QCSAP_IOCTL_SETMLME,

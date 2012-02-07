@@ -5693,12 +5693,13 @@ WLANTL_STATxAuth
 #endif
   if ( 0 == pStaClient->ucCurrentWeight ) 
   {
+    WLANTL_ACEnumType tempAC = ucAC;
     /*-----------------------------------------------------------------------
        Choose next AC - !!! optimize me
     -----------------------------------------------------------------------*/
     while ( 0 != ucACMask ) 
     {
-      ucNextAC = (WLANTL_ACEnumType)(( ucAC - 1 ) & WLANTL_MASK_AC); 
+      ucNextAC = (WLANTL_ACEnumType)(( tempAC - 1 ) & WLANTL_MASK_AC); 
       if ( 0 != pStaClient->aucACMask[ucNextAC] )
       {
          pStaClient->ucCurrentAC     = ucNextAC;
@@ -5711,7 +5712,7 @@ WLANTL_STATxAuth
                     pStaClient->ucCurrentWeight));
          break;
       }
-      ucAC = ucNextAC;
+      tempAC = ucNextAC;
     }
   }
 #ifdef WLAN_SOFTAP_FEATURE

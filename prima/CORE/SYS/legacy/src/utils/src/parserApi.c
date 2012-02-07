@@ -2212,19 +2212,27 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
                  tANI_U8                   *pPayload,
                  tANI_U32                   nPayload)
 {
-    tDot11fBeaconIEs bies;
+    tDot11fBeaconIEs *pBies;
     tANI_U32              status;
 
     // Zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pBeaconStruct, sizeof(tSirProbeRespBeacon) );
 
+    status = palAllocateMemory(pMac->hHdd, (void **)&pBies, sizeof(tDot11fBeaconIEs));
+    if(!HAL_STATUS_SUCCESS(status))
+    {
+        limLog(pMac, LOGE, FL("Failed to allocate memory\n") );
+        return eSIR_FAILURE;
+    }
     // delegate to the framesc-generated code,
-    status = dot11fUnpackBeaconIEs( pMac, pPayload, nPayload, &bies );
+    status = dot11fUnpackBeaconIEs( pMac, pPayload, nPayload, pBies );
+
     if ( DOT11F_FAILED( status ) )
     {
         limLog(pMac, LOGE, FL("Failed to parse Beacon IEs (0x%08x, %d bytes):\n"),
                   status, nPayload);
         PELOG2(sirDumpBuf(pMac, SIR_DBG_MODULE_ID, LOG2, pPayload, nPayload);)
+        palFreeMemory(pMac->hHdd, pBies);
         return eSIR_FAILURE;
     }
     else if ( DOT11F_WARNED( status ) )
@@ -2235,158 +2243,160 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
     }
 
     // & "transliterate" from a 'tDot11fBeaconIEs' to a 'tSirProbeRespBeacon'...
-    if ( ! bies.SSID.present )
+    if ( ! pBies->SSID.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE SSID not present!\n"));)
     }
     else
     {
         pBeaconStruct->ssidPresent = 1;
-        ConvertSSID( pMac, &pBeaconStruct->ssId, &bies.SSID );
+        ConvertSSID( pMac, &pBeaconStruct->ssId, &pBies->SSID );
     }
 
-    if ( ! bies.SuppRates.present )
+    if ( ! pBies->SuppRates.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE Supported Rates not present!\n"));)
     }
     else
     {
         pBeaconStruct->suppRatesPresent = 1;
-        ConvertSuppRates( pMac, &pBeaconStruct->supportedRates, &bies.SuppRates );
+        ConvertSuppRates( pMac, &pBeaconStruct->supportedRates, &pBies->SuppRates );
     }
 
-    if ( bies.ExtSuppRates.present )
+    if ( pBies->ExtSuppRates.present )
     {
         pBeaconStruct->extendedRatesPresent = 1;
-        ConvertExtSuppRates( pMac, &pBeaconStruct->extendedRates, &bies.ExtSuppRates );
+        ConvertExtSuppRates( pMac, &pBeaconStruct->extendedRates, &pBies->ExtSuppRates );
     }
 
-    if ( bies.CFParams.present )
+    if ( pBies->CFParams.present )
     {
         pBeaconStruct->cfPresent = 1;
-        ConvertCFParams( pMac, &pBeaconStruct->cfParamSet, &bies.CFParams );
+        ConvertCFParams( pMac, &pBeaconStruct->cfParamSet, &pBies->CFParams );
     }
 
-    if ( bies.TIM.present )
+    if ( pBies->TIM.present )
     {
         pBeaconStruct->timPresent = 1;
-        ConvertTIM( pMac, &pBeaconStruct->tim, &bies.TIM );
+        ConvertTIM( pMac, &pBeaconStruct->tim, &pBies->TIM );
     }
 
-    if ( bies.Country.present )
+    if ( pBies->Country.present )
     {
         pBeaconStruct->countryInfoPresent = 1;
-        ConvertCountry( pMac, &pBeaconStruct->countryInfoParam, &bies.Country );
+        ConvertCountry( pMac, &pBeaconStruct->countryInfoParam, &pBies->Country );
     }
 
     // 11h IEs
-    if(bies.TPCReport.present)
+    if(pBies->TPCReport.present)
     {
         pBeaconStruct->tpcReportPresent = 1;
         palCopyMemory(pMac,
                       &pBeaconStruct->tpcReport,
-                      &bies.TPCReport,
+                      &pBies->TPCReport,
                       sizeof( tDot11fIETPCReport));
     }
 
-    if(bies.PowerConstraints.present)
+    if(pBies->PowerConstraints.present)
     {
         pBeaconStruct->powerConstraintPresent = 1;
         palCopyMemory(pMac,
                       &pBeaconStruct->localPowerConstraint,
-                      &bies.PowerConstraints,
+                      &pBies->PowerConstraints,
                       sizeof(tDot11fIEPowerConstraints));
     }
 
-    if ( bies.EDCAParamSet.present )
+    if ( pBies->EDCAParamSet.present )
     {
         pBeaconStruct->edcaPresent = 1;
-        ConvertEDCAParam( pMac, &pBeaconStruct->edcaParams, &bies.EDCAParamSet );
+        ConvertEDCAParam( pMac, &pBeaconStruct->edcaParams, &pBies->EDCAParamSet );
     }
 
     // QOS Capabilities:
-    if ( bies.QOSCapsAp.present )
+    if ( pBies->QOSCapsAp.present )
     {
         pBeaconStruct->qosCapabilityPresent = 1;
-        ConvertQOSCaps( pMac, &pBeaconStruct->qosCapability, &bies.QOSCapsAp );
+        ConvertQOSCaps( pMac, &pBeaconStruct->qosCapability, &pBies->QOSCapsAp );
     }
 
 
 
-    if ( bies.ChanSwitchAnn.present )
+    if ( pBies->ChanSwitchAnn.present )
     {
         pBeaconStruct->channelSwitchPresent = 1;
-        palCopyMemory(pMac->hHdd, &pBeaconStruct->channelSwitchIE, &bies.ChanSwitchAnn,
+        palCopyMemory(pMac->hHdd, &pBeaconStruct->channelSwitchIE, &pBies->ChanSwitchAnn,
                       sizeof(tDot11fIEChanSwitchAnn));
     }
 
-    if ( bies.ExtChanSwitchAnn.present)
+    if ( pBies->ExtChanSwitchAnn.present)
     {
         pBeaconStruct->extChannelSwitchPresent= 1;
-        palCopyMemory(pMac->hHdd, &pBeaconStruct->extChannelSwitchIE, &bies.ExtChanSwitchAnn,
+        palCopyMemory(pMac->hHdd, &pBeaconStruct->extChannelSwitchIE, &pBies->ExtChanSwitchAnn,
                       sizeof(tDot11fIEExtChanSwitchAnn));
     }
 
-    if ( bies.Quiet.present )
+    if ( pBies->Quiet.present )
     {
         pBeaconStruct->quietIEPresent = 1;
-        palCopyMemory( pMac, &pBeaconStruct->quietIE, &bies.Quiet, sizeof(tDot11fIEQuiet) );
+        palCopyMemory( pMac, &pBeaconStruct->quietIE, &pBies->Quiet, sizeof(tDot11fIEQuiet) );
     }
 
-    if ( bies.HTCaps.present )
+    if ( pBies->HTCaps.present )
     {
-        palCopyMemory( pMac, &pBeaconStruct->HTCaps, &bies.HTCaps, sizeof( tDot11fIEHTCaps ) );
+        palCopyMemory( pMac, &pBeaconStruct->HTCaps, &pBies->HTCaps, sizeof( tDot11fIEHTCaps ) );
     }
 
-    if ( bies.HTInfo.present )
+    if ( pBies->HTInfo.present )
     {
-        palCopyMemory( pMac, &pBeaconStruct->HTInfo, &bies.HTInfo, sizeof( tDot11fIEHTInfo ) );
+        palCopyMemory( pMac, &pBeaconStruct->HTInfo, &pBies->HTInfo, sizeof( tDot11fIEHTInfo ) );
     }
 
-    if ( bies.DSParams.present )
+    if ( pBies->DSParams.present )
     {
         pBeaconStruct->dsParamsPresent = 1;
-        pBeaconStruct->channelNumber = bies.DSParams.curr_channel;
+        pBeaconStruct->channelNumber = pBies->DSParams.curr_channel;
     }
-    else if(bies.HTInfo.present)
+    else if(pBies->HTInfo.present)
     {
-        pBeaconStruct->channelNumber = bies.HTInfo.primaryChannel;
+        pBeaconStruct->channelNumber = pBies->HTInfo.primaryChannel;
     }
     
-    if ( bies.RSN.present )
+    if ( pBies->RSN.present )
     {
         pBeaconStruct->rsnPresent = 1;
-        ConvertRSN( pMac, &pBeaconStruct->rsn, &bies.RSN );
+        ConvertRSN( pMac, &pBeaconStruct->rsn, &pBies->RSN );
     }
 
-    if ( bies.WPA.present )
+    if ( pBies->WPA.present )
     {
         pBeaconStruct->wpaPresent = 1;
-        ConvertWPA( pMac, &pBeaconStruct->wpa, &bies.WPA );
+        ConvertWPA( pMac, &pBeaconStruct->wpa, &pBies->WPA );
     }
 
-    if ( bies.WMMParams.present )
+    if ( pBies->WMMParams.present )
     {
         pBeaconStruct->wmeEdcaPresent = 1;
-        ConvertWMMParams( pMac, &pBeaconStruct->edcaParams, &bies.WMMParams );
+        ConvertWMMParams( pMac, &pBeaconStruct->edcaParams, &pBies->WMMParams );
     }
 
-    if ( bies.WMMInfoAp.present )
+    if ( pBies->WMMInfoAp.present )
     {
         pBeaconStruct->wmeInfoPresent = 1;
     }
 
-    if ( bies.WMMCaps.present )
+    if ( pBies->WMMCaps.present )
     {
         pBeaconStruct->wsmCapablePresent = 1;
     }
 
 
-    if ( bies.ERPInfo.present )
+    if ( pBies->ERPInfo.present )
     {
         pBeaconStruct->erpPresent = 1;
-        ConvertERPInfo( pMac, &pBeaconStruct->erpIEInfo, &bies.ERPInfo );
+        ConvertERPInfo( pMac, &pBeaconStruct->erpIEInfo, &pBies->ERPInfo );
     }
+
+    palFreeMemory(pMac->hHdd, pBies);
 
     return eSIR_SUCCESS;
 

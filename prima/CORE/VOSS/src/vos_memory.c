@@ -189,6 +189,12 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
             }
             kfree((v_VOID_t*)memStruct);
         }
+        else
+        {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: Unallocated memory (double free?)", __FUNCTION__);
+            VOS_ASSERT(0);
+        }
     }
 }
 #else

@@ -206,6 +206,7 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
 enum { 
     QCSAP_PARAM_MAX_ASSOC = 1,
     QCSAP_PARAM_MODULE_DOWN_IND = 5,
+    QCSAP_PARAM_CLR_ACL = 6,
 };
 
 

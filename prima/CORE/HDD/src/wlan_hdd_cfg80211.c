@@ -316,6 +316,30 @@ struct wiphy *wlan_hdd_cfg80211_init(int priv_size)
 }
 
 /*
+ * FUNCTION: wlan_hdd_cfg80211_update_band
+ * This function is called from the supplicant through a 
+ * private ioctl to change the band value
+ */
+int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand)
+{
+    switch(eBand)
+    {
+        case eCSR_BAND_24:
+            wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2_4_GHZ;
+            wiphy->bands[IEEE80211_BAND_5GHZ] = NULL;
+            break;
+        case eCSR_BAND_5G:
+            wiphy->bands[IEEE80211_BAND_2GHZ] = NULL;
+            wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
+            break;
+        case eCSR_BAND_ALL:
+        default:
+            wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2_4_GHZ;
+            wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
+    }
+    return 0;
+}
+/*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_startup() 
  * during initialization. 
@@ -2581,7 +2605,7 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
                 pBssDesc->capabilityInfo,
                 pBssDesc->beaconInterval, ie, ie_length,
                 rssi, GFP_KERNEL ));
-    }
+}
     else
     {
         return bss;
@@ -2636,18 +2660,25 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         (u16)(IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_RESP);
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
-    if (chan_no <= ARRAY_SIZE(hdd_channels_2_4_GHZ))
+    if (chan_no <= ARRAY_SIZE(hdd_channels_2_4_GHZ) && 
+        (wiphy->bands[IEEE80211_BAND_2GHZ] != NULL))
     {
         freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
     }
-    else
+    else if ((chan_no > ARRAY_SIZE(hdd_channels_2_4_GHZ)) && 
+        (wiphy->bands[IEEE80211_BAND_5GHZ] != NULL))
+
     {
         freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_5GHZ);
+    }
+    else
+    {
+        kfree(mgmt);
+        return NULL;
     }
 #else
     freq = ieee80211_channel_to_frequency(chan_no);
 #endif
-
     chan = __ieee80211_get_channel(wiphy, freq);
 
     /*To keep the rssi icon of the connected AP in the scan window
@@ -2948,6 +2979,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                 SsidInfo->SSID.length = request->ssids[j].ssid_len;
                 vos_mem_copy(SsidInfo->SSID.ssId, &request->ssids[j].ssid[0],
                              SsidInfo->SSID.length);
+                SsidInfo->SSID.ssId[SsidInfo->SSID.length] = '\0';
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s",
                                                    j, SsidInfo->SSID.ssId);
             }
@@ -2956,8 +2988,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         }
         else
         {
-            /*Set the scan type to default type, in this case it is ACTIVE*/
-            scanRequest.scanType = 
+        /*Set the scan type to default type, in this case it is ACTIVE*/
+        scanRequest.scanType = 
                     (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode;
         }
         scanRequest.minChnTime = cfg_param->nActiveMinChnTime; 
