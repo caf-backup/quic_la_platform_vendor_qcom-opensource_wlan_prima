@@ -3900,14 +3900,15 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         case eCsrHddIssuedReassocToSameAP:
         case eCsrSmeIssuedReassocToSameAP:
             {
-                tDot11fBeaconIEs Ies;
-
-
                 if( pSession->pConnectBssDesc )
                 {
-                    palZeroMemory(pMac->hHdd, (void *)&Ies, sizeof(tDot11fBeaconIEs));
-                    status = csrParseBssDescriptionIEs(pMac, pSession->pConnectBssDesc, &Ies);
-                    if( HAL_STATUS_SUCCESS( status ) )
+                    tDot11fBeaconIEs *pIes = NULL;
+                    status = csrGetParsedBssDescriptionIEs(pMac, pSession->pConnectBssDesc, &pIes);
+                    if(!HAL_STATUS_SUCCESS(status) )
+                    {
+                        smsLog(pMac, LOGE, FL("  fail to parse IEs\n"));
+                    }
+                    else
                     {
                         roamInfo.reasonCode = eCsrRoamReasonStaCapabilityChanged;
                         csrRoamCallCallback(pMac, pSession->sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
@@ -3917,10 +3918,10 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                         roamInfo.pProfile = &pCommand->u.roamCmd.roamProfile;
                         csrRoamCallCallback( pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, 
                                 eCSR_ROAM_ASSOCIATION_START, eCSR_ROAM_RESULT_NONE );
-
-                        smsLog(pMac, LOGE, FL("  calling csrRoamIssueReassociate\n"));
-                        csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, &Ies,
-                                &pCommand->u.roamCmd.roamProfile );
+                        smsLog(pMac, LOG1, FL("  calling csrRoamIssueReassociate\n"));
+                        csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, pIes,
+                                                &pCommand->u.roamCmd.roamProfile );
+                        palFreeMemory(pMac->hHdd, pIes);
                     }
                 }
                 break;
@@ -6804,6 +6805,9 @@ static void csrRoamRoamingStateAuthRspProcessor( tpAniSirGlobal pMac, tSirSmeAut
 static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSmeJoinRsp pSmeJoinRsp )
 {
     eCsrRoamCompleteResult result;
+    tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
+    tCsrRoamInfo roamInfo;
+    tANI_U32 roamId = 0;
 
     if ( eSIR_SME_SUCCESS == pSmeJoinRsp->statusCode ) 
     {
@@ -6832,6 +6836,19 @@ static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tpSirSm
     {
         smsLog( pMac, LOGW, "CSR SmeReassocReq failed with statusCode= 0x%08lX [%d]\n", pSmeJoinRsp->statusCode, pSmeJoinRsp->statusCode );
         result = eCsrReassocFailure;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+	if ((eSIR_SME_FT_REASSOC_TIMEOUT_FAILURE == pSmeJoinRsp->statusCode) ||
+			(eSIR_SME_FT_REASSOC_FAILURE == pSmeJoinRsp->statusCode))
+	{
+		// Inform HDD to turn off FT flag in HDD 
+		if (pNeighborRoamInfo)
+		{
+			vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
+			csrRoamCallCallback(pMac, pNeighborRoamInfo->csrSessionId,
+					&roamInfo, roamId, eCSR_ROAM_FT_REASSOC_FAILED, eSIR_SME_SUCCESS);
+		}
+	}
+#endif
         // In the event that the Reassociation fails, then we need to Disassociate the current association and keep
         // roaming.  Note that we will attempt to Join the AP instead of a Reassoc since we may have attempted a
         // 'Reassoc to self', which AP's that don't support Reassoc will force a Disassoc.

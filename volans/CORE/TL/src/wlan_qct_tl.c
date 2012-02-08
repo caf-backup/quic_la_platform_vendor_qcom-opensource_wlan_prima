@@ -755,7 +755,7 @@ WLANTL_Close
          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
-  vos_pkt_return_packet(pTLCb->vosDummyBuf);
+  
   pmcDeregisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_SME, pvosGCtx),
                                    WLANTL_PowerStateChangedCB);
 
@@ -9041,14 +9041,22 @@ WLAN_TLGetNextTxIds
 
   *pucSTAId = pTLCb->ucCurrentSTA;
 
+  if ( WLANTL_STA_ID_INVALID( *pucSTAId ) )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:No station registered with TL at this point"));
+
+    return VOS_STATUS_E_FAULT;
+
+  }
+
   /*Convert the array to a mask for easier operation*/
   WLAN_TL_AC_ARRAY_2_MASK( &pTLCb->atlSTAClients[*pucSTAId], ucACMask, i); 
   
-  if ( ( WLANTL_STA_ID_INVALID( *pucSTAId ) ) ||
-       ( 0 == ucACMask ) )
+  if ( 0 == ucACMask )
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:No station registered with TL at this point or Mask 0"
+      "WLAN TL: Mask 0 "
       "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId));
 
      /*setting STA id to invalid if mask is 0*/
@@ -9543,6 +9551,11 @@ WLANTL_CleanCB
       ( NULL != pTLCb->tlBAPClient.vosPendingDataBuff ))
   {
     vos_pkt_return_packet(pTLCb->tlBAPClient.vosPendingDataBuff);
+  }
+  
+  if (( 0 != ucEmpty) &&
+      ( NULL != pTLCb->vosDummyBuf ))
+  {
     vos_pkt_return_packet(pTLCb->vosDummyBuf);
   }
 

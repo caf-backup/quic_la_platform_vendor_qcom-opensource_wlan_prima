@@ -744,6 +744,9 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
       return;
    }
 
+   /*We aquire the lock to check for logp so releasing it soon after the check*/
+   sd_release_host(sdio_func_dev);
+   
    /*loop through all adapters. TBD fix for Concurrency */
    status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
@@ -794,8 +797,7 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
       hdd_enter_standby(pHddCtx);
   }
 #endif
-   sd_release_host(sdio_func_dev);
-   
+
    return;
 }
 
@@ -933,6 +935,9 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
       return;
    }
 
+    /*We aquire the lock to check for logp so releasing it soon after the check*/
+   sd_release_host(sdio_func_dev);
+   
    /*loop through all adapters. Concurrency */
    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
@@ -971,8 +976,6 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
        hdd_exit_standby(pHddCtx);
    }    
 #endif
-
-   sd_release_host(sdio_func_dev);
 
    return;
 }

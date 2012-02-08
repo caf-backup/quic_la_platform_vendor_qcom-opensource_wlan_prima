@@ -5767,7 +5767,8 @@ eHalStatus halMsg_updateBeaconParam(tpAniSirGlobal pMac, tpUpdateBeaconParams pB
                 newMode = MODE_11G_PURE;
             }
         }
-        if(curMode != newMode)
+
+        if ((curMode != newMode) && (curMode != MODE_11B))
         {
             pMac->hal.halMac.fShortSlot  = pBeaconParams->fShortSlotTime;
             halMTU_update11gSlotTimingParams(pMac, newMode);

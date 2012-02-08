@@ -51,7 +51,12 @@
 
 #define CSR_IS_SESSION_VALID( pMac, sessionId ) ( ( (sessionId) < CSR_ROAM_SESSION_MAX ) \
                                                   && ( (pMac)->roam.roamSession[(sessionId)].sessionActive ) )
-#define CSR_GET_SESSION( pMac, sessionId ) (&(pMac)->roam.roamSession[(sessionId)])
+#define CSR_GET_SESSION( pMac, sessionId ) \
+( \
+    (sessionId < CSR_ROAM_SESSION_MAX) ? \
+     (&(pMac)->roam.roamSession[(sessionId)]) :\
+     NULL \
+)
 
 
 
