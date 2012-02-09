@@ -77,6 +77,14 @@ eHalStatus measInNavClose(tHalHandle hHal)
             break;
         }
 
+        if(pMac->innavMeas.pMeasurementResult != NULL)
+        {
+            vos_mem_free(pMac->innavMeas.pMeasurementResult);
+        }
+        if(pMac->innavMeas.measurementConfig.measBSSIDChannelInfo != NULL)
+        {
+            vos_mem_free(pMac->innavMeas.measurementConfig.measBSSIDChannelInfo);
+        }
         //free the timer for the measurement 
         palTimerFree(pMac->hHdd, pMac->innavMeas.hTimerMeasurement);
         

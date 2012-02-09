@@ -1002,6 +1002,13 @@ void limInNavHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U3
     {
         limLog(pMac, LOGE, FL("innav failed to get the response for resume link\n"));
     }
+
+    if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
+    {
+        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmInNavMeasReq);
+        pMac->lim.gpLimMlmInNavMeasReq = NULL;
+    }
+
     //"Failure" status doesn't mean that InNav measurement did not happen
     //and hence we need to respond to upper layers. Only Resume link is failed, but
     //innav measurements already happened.

@@ -311,7 +311,9 @@ typedef enum
    /*This is temp fix. Should be removed once 
     * Host and Riva code is in sync*/
    WLAN_HAL_INIT_SCAN_CON_REQ               = 165,
-    
+   
+  WLAN_HAL_SET_POWER_PARAMS_REQ             = 166,
+  WLAN_HAL_SET_POWER_PARAMS_RSP             = 167,
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -4825,6 +4827,43 @@ typedef PACKED_PRE struct PACKED_POST
 /*---------------------------------------------------------------------------
  *******************Packet Filtering Definitions End*******************
  *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   /*  Ignore DTIM */
+  tANI_U32 uIgnoreDTIM;
+
+  /*DTIM Period*/
+  tANI_U32 uDTIMPeriod; 
+
+  /* Listen Interval */
+  tANI_U32 uListenInterval;
+
+  /* Broadcast Multicast Filter  */
+  tANI_U32 uBcastMcastFilter;
+
+  /* Beacon Early Termination */
+  tANI_U32 uEnableBET;
+
+  /* Beacon Early Termination Interval */
+  tANI_U32 uBETInterval; 
+}tSetPowerParamsType, *tpSetPowerParamsType;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader               header;
+    tSetPowerParamsType         powerParams;
+} tSetPowerParamsReqMsg, *tpSetPowerParamsReqMsg;
+
+typedef PACKED_PRE struct PACKED_POST{
+
+   tHalMsgHeader header;
+
+   /*status of the request */
+   tANI_U32   status;
+
+}  tSetPowerParamsResp, *tpSetPowerParamsResp;
+
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)
 #elif defined(__ANI_COMPILER_PRAGMA_PACK)

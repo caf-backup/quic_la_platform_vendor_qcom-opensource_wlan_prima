@@ -767,7 +767,10 @@ static iw_softap_setparam(struct net_device *dev,
     {
 
         case QCSAP_PARAM_CLR_ACL:
-            WLANSAP_ClearACL( pVosContext );
+            if ( eHAL_STATUS_SUCCESS != WLANSAP_ClearACL( pVosContext ))
+            {
+               ret = -EIO;            
+            }
             break;
 
         case QCSAP_PARAM_MAX_ASSOC:
@@ -831,7 +834,10 @@ static iw_softap_getparam(struct net_device *dev,
         break;
         
     case QCSAP_PARAM_CLR_ACL:
-        WLANSAP_ClearACL( pVosContext );
+        if ( eHAL_STATUS_SUCCESS != WLANSAP_ClearACL( pVosContext ))
+        {
+               ret = -EIO;            
+        }               
         *value = 0;
         break;
         

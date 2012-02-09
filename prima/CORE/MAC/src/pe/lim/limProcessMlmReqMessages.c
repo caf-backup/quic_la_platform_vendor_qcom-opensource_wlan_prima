@@ -1243,6 +1243,51 @@ error:
     return;
 }
 /**
+ * limSetInNavMeasModeFailed()
+ *
+ * FUNCTION:
+ *  This function is used as callback to resume link after the suspend fails while
+ *  starting innav measurement mode.
+ * LOGIC:
+ *  NA
+ *
+ * ASSUMPTIONS:
+ *  NA
+ *
+ * NOTE:
+ *
+ * @param pMac - Pointer to Global MAC structure
+ * @return None
+ */
+
+void limSetInNavMeasModeFailed(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
+{
+    tpLimMlmInNavMeasRsp pMlmInNavMeasRsp;
+
+    pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
+
+    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmInNavMeasRsp), sizeof(tLimMlmInNavMeasRsp)))
+    {
+        limLog(pMac->hHdd, LOGP, FL("INNAV: memory allocation for pMlmInNavMeasRsp failed under suspend link failure\n"));
+	    return;
+    }
+
+    if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
+    {
+        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmInNavMeasReq);
+        pMac->lim.gpLimMlmInNavMeasReq = NULL;
+    }
+
+    pMlmInNavMeasRsp->resultCode = eSIR_SME_HAL_INNAV_MEAS_START_FAILED;
+    pMlmInNavMeasRsp->resultLength = 0;
+    pMlmInNavMeasRsp->numBSSIDs = 0;
+
+    limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)pMlmInNavMeasRsp);
+
+    return;
+}
+
+/**
  * limSetInNavMeasMode()
  *
  *FUNCTION:
@@ -1262,8 +1307,6 @@ error:
 
 void limSetInNavMeasMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
 {
-    tpLimMlmInNavMeasRsp pMlmInNavMeasRsp;
-
     if(status != eHAL_STATUS_SUCCESS)
     {
         limLog(pMac, LOGE, FL("INNAV: failed in suspend link\n"));
@@ -1279,26 +1322,7 @@ void limSetInNavMeasMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
     }
 
 error:
-    pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
-
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmInNavMeasRsp), sizeof(tLimMlmInNavMeasRsp)))
-    {
-        limLog(pMac->hHdd, LOGP, FL("INNAV: memory allocation for pMlmInNavMeasRsp failed under suspend link failure\n"));
-        return;
-    }
-
-    if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
-    {
-        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmInNavMeasReq);
-        pMac->lim.gpLimMlmInNavMeasReq = NULL;
-    }
-
-    pMlmInNavMeasRsp->resultCode = eSIR_SME_HAL_INNAV_MEAS_START_FAILED;
-    pMlmInNavMeasRsp->resultLength = 0;
-    pMlmInNavMeasRsp->numBSSIDs = 0;
-
-    limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)pMlmInNavMeasRsp);
-
+    limResumeLink(pMac, limSetInNavMeasModeFailed, NULL);
     return ;
 } /*** end limSetInNavMeasMode() ***/
 

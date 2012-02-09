@@ -878,6 +878,11 @@ WLANSAP_ClearACL( v_PVOID_t  pvosGCtx)
     ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
     v_U8_t i;
 
+    if (NULL == pSapCtx)
+    {
+        return VOS_STATUS_E_RESOURCES;
+    }
+
     if (pSapCtx->denyMacList != NULL) 
     {
         for (i = 0; i < (pSapCtx->nDenyMac-1); i++)
