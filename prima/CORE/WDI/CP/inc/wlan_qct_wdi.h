@@ -5796,8 +5796,6 @@ WDI_Stop
   void*                   pUserData
 );
 
-
-
 /**
  @brief WDI_Close will be called when the upper MAC no longer 
         needs to interract with DAL. DAL will free its control
@@ -5816,6 +5814,30 @@ WDI_Status
 WDI_Close
 (
   void
+);
+
+
+/**
+ @brief  WDI_Shutdown will be called during 'SSR shutdown' operation.
+         This will do most of the WDI stop & close
+         operations without doing any handshake with Riva
+
+         This will also make sure that the control transport
+         will NOT be closed.
+
+         This request will not be queued.
+
+
+ WDI_Start must have been called.
+
+ @param  None
+
+ @return Result of the function call
+*/
+WDI_Status
+WDI_Shutdown
+(
+ void
 );
 
 /*======================================================================== 

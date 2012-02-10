@@ -957,7 +957,7 @@ WLANBAP_CreateNewPhyLinkCtx
   pBtampCtx->csrRoamProfile.negotiatedAuthType = eCSR_AUTH_TYPE_RSN_PSK;   
   pBtampCtx->csrRoamProfile.negotiatedUCEncryptionType = eCSR_ENCRYPT_TYPE_AES;  
 
- 
+  pBtampCtx->phy_link_handle = phy_link_handle;
   /* For now, we know there is only one physical link context */ 
   //*hBtampContext = &btampCtx;
 

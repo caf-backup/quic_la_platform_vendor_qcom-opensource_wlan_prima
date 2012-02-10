@@ -20,6 +20,7 @@
 #ifndef MEMORY_DEBUG
 #include "vos_memory.h"
 #endif /* MEMORY_DEBUG */
+#include "vos_api.h"
 
 #include "dma-mapping.h"
 
@@ -279,4 +280,48 @@ wpt_status wpalDbgReadMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len)
 wpt_status wpalDbgWriteMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len)
 {
    return wpalWriteDeviceMemory(memAddr, buf, len);
+}
+
+/*---------------------------------------------------------------------------
+    wpalDriverShutdown -  Shutdown WLAN driver
+
+    This API is requied by SSR, call in to 'VOS shutdown' to shutdown WLAN 
+    driver when Riva crashes.
+
+    Param: 
+       None
+    Return:
+       eWLAN_PAL_STATUS_SUCCESS - when everything is OK
+---------------------------------------------------------------------------*/
+wpt_status wpalDriverShutdown(void)
+{
+    VOS_STATUS vosStatus;
+    vosStatus = vos_wlanShutdown();
+
+    if (VOS_STATUS_SUCCESS == vosStatus) {
+        return eWLAN_PAL_STATUS_SUCCESS; 
+    }
+    return eWLAN_PAL_STATUS_E_FAILURE; 
+}
+
+/*---------------------------------------------------------------------------
+    wpalDriverShutdown -  Re-init WLAN driver
+
+    This API is requied by SSR, call in to 'VOS re-init' to re-init WLAN
+    driver.
+
+    Param: 
+       None
+    Return:
+       eWLAN_PAL_STATUS_SUCCESS - when everything is OK
+---------------------------------------------------------------------------*/
+wpt_status wpalDriverReInit(void)
+{
+    VOS_STATUS vosStatus;
+
+    vosStatus = vos_wlanReInit();
+    if (VOS_STATUS_SUCCESS == vosStatus) {
+        return eWLAN_PAL_STATUS_SUCCESS; 
+    }
+    return eWLAN_PAL_STATUS_E_FAILURE; 
 }

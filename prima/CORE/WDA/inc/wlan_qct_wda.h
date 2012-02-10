@@ -415,6 +415,12 @@ VOS_STATUS WDA_stop(v_PVOID_t pVosContext,tANI_U8 reason);
  */
 VOS_STATUS WDA_close(v_PVOID_t pVosContext);
 /*
+ * FUNCTION: WDA_shutdown
+ * Shutdown will not close the control transport, added by SSR
+ */
+VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext);
+
+/*
  * FUNCTION: WDA_McProcessMsg
  * DAL-AL message processing entry function 
  */ 
@@ -468,8 +474,8 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
  * for now giving the value 1000 ms */
 #define WDA_WDI_COMPLETION_TIME_OUT 30000 /* in ms */
 
-#define WDA_TL_TX_FRAME_TIMEOUT  5000 /* in msec a very high upper limit of 5,000 msec */
-#define WDA_TL_SUSPEND_TIMEOUT  2000 /* in ms unit */
+#define WDA_TL_TX_FRAME_TIMEOUT  5000  /* in msec a very high upper limit of 5,000 msec */
+#define WDA_TL_SUSPEND_TIMEOUT   2000  /* in ms unit */
 
 #define WDA_TL_TX_SUSPEND_SUCCESS   0
 #define WDA_TL_TX_SUSPEND_FAILURE   1

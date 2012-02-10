@@ -380,12 +380,32 @@ void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data)
     tpPESession psessionEntry;
     tANI_U8             sessionId;
     tSirRemainOnChnReq *MsgRemainonChannel = pMac->lim.gpLimRemainOnChanReq;
+    tSirMacAddr             nullBssid = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
     if ( NULL == MsgRemainonChannel )
     {
         PELOGE(limLog( pMac, LOGP,
              "%s: No Pointer for Remain on Channel Req\n", __func__);)
         return;
+    }
+
+    //Incase of the Remain on Channel Failure Case
+    //Cleanup Everything
+    if(eHAL_STATUS_FAILURE == status)
+    {
+       //Deactivate Remain on Channel Timer
+       limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
+
+       //Set the Link State to Idle
+       /* get the previous valid LINK state */
+       if (limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid,
+           pMac->lim.gSelfMacAddr, NULL, NULL) != eSIR_SUCCESS)
+       {
+           limLog( pMac, LOGE, "Unable to change link state");
+       }
+
+       pMac->lim.gLimSystemInScanLearnMode = 0;
+       pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
     }
 
     /* delete the session */

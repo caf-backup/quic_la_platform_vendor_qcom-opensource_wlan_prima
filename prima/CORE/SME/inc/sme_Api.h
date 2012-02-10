@@ -1872,5 +1872,36 @@ eHalStatus sme_GetFilterMatchCount(tHalHandle hHal,
 eHalStatus sme_ReceiveFilterClearFilter(tHalHandle hHal,
                                         tpSirRcvFltPktClearParam pRcvFltPktClearParam);
 #endif // WLAN_FEATURE_PACKET_FILTERING
-   
+/* ---------------------------------------------------------------------------
+
+    \fn sme_IsChannelValid
+
+    \brief To check if the channel is valid for currently established domain
+    This is a synchronous API.
+
+    \param hHal - The handle returned by macOpen.
+    \param channel - channel to verify
+
+    \return TRUE/FALSE, TRUE if channel is valid
+
+  -------------------------------------------------------------------------------*/
+tANI_BOOLEAN sme_IsChannelValid(tHalHandle hHal, tANI_U8 channel);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetFreqBand
+    \brief  Used to set frequency band.
+    \param  hHal
+    \eBand  band value to be configured
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetFreqBand(tHalHandle hHal, eCsrBand eBand);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_GetFreqBand
+    \brief  Used to get the current band settings.
+    \param  hHal
+    \pBand  pointer to hold the current band value
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_GetFreqBand(tHalHandle hHal, eCsrBand *pBand);
 #endif //#if !defined( __SME_API_H )

@@ -236,5 +236,30 @@ wpt_status wpalDbgReadMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len)
 ---------------------------------------------------------------------------*/
 wpt_status wpalDbgWriteMemory(wpt_uint32 memAddr, wpt_uint8 *buf, wpt_uint32 len);
 
+/*---------------------------------------------------------------------------
+    wpalDriverShutdown -  Shutdown WLAN driver
+
+    This API is requied by SSR, call in to 'VOS shutdown' to shutdown WLAN 
+    driver when Riva crashes.
+
+    Param: 
+       None
+    Return:
+       eWLAN_PAL_STATUS_SUCCESS - when everything is OK
+---------------------------------------------------------------------------*/
+wpt_status wpalDriverShutdown(void);
+
+/*---------------------------------------------------------------------------
+    wpalDriverShutdown -  Re-init WLAN driver
+
+    This API is requied by SSR, call in to 'VOS re-init' to re-init WLAN
+    driver.
+
+    Param: 
+       None
+    Return:
+       eWLAN_PAL_STATUS_SUCCESS - when everything is OK
+---------------------------------------------------------------------------*/
+wpt_status wpalDriverReInit(void);
 
 #endif // __WLAN_QCT_PAL_API_H

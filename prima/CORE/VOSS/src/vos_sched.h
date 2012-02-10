@@ -67,6 +67,8 @@
 #define WD_POST_EVENT_MASK               0x001
 #define WD_SHUTDOWN_EVENT_MASK           0x002
 #define WD_CHIP_RESET_EVENT_MASK         0x004
+#define WD_WLAN_SHUTDOWN_EVENT_MASK      0x008
+#define WD_WLAN_REINIT_EVENT_MASK        0x010
 
  
  
@@ -503,5 +505,7 @@ void vos_sched_flush_rx_mqs  (pVosSchedContext pSchedContext);
 VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type reason );
 
 void vos_timer_module_init( void );
+VOS_STATUS vos_watchdog_wlan_shutdown(void);
+VOS_STATUS vos_watchdog_wlan_re_init(void);
 
 #endif // #if !defined __VOSS_SCHED_H

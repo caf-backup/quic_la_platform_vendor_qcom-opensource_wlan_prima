@@ -3301,6 +3301,33 @@ static BOOL BslProcessHCICommand
 
         break;
     }
+    case BTAMP_TLV_HCI_VENDOR_SPECIFIC_CMD_1:
+    {
+        VosStatus = WLAN_BAPVendorSpecificCmd1( pctx->bapHdl, &HCIEvt );
+
+        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: WLAN_BAPVendorSpecificCmd1 failed status %d", VosStatus);
+            // handle the error
+            return(FALSE);
+        }
+
+        // this may look strange as this is the function registered
+        // with BAP for the EventCB but we are also going to use it
+        // as a helper function. The difference is that this invocation
+        // runs in HCI command sending caller context while the callback
+        // will happen in BAP's context whatever that may be
+        VosStatus = WLANBAP_EventCB( pctx, &HCIEvt, FALSE );
+
+        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: WLANBAP_EventCB failed status %d", VosStatus);
+            // handle the error
+            return(FALSE);
+        }
+
+        break;
+    }
     default:
     {
         /* Unknow opcode. Return a command status event...with "Unknown Opcode" status  */

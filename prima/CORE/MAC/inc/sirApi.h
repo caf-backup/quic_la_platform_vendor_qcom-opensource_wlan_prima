@@ -3978,4 +3978,13 @@ typedef struct
   tANI_U8    major;
 } tSirVersionType;
 
+typedef struct sAniBtAmpLogLinkReq
+{
+    // Common for all types are requests
+    tANI_U16                msgType;    // message type is same as the request type
+    tANI_U16                msgLen;  // length of the entire request
+    void                   *btampHandle; //AMP context
+    
+} tAniBtAmpLogLinkReq, *tpAniBtAmpLogLinkReq;
+
 #endif /* __SIR_API_H */

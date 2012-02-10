@@ -1269,7 +1269,7 @@ void limSetInNavMeasModeFailed(tpAniSirGlobal pMac, eHalStatus status, tANI_U32*
     if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmInNavMeasRsp), sizeof(tLimMlmInNavMeasRsp)))
     {
         limLog(pMac->hHdd, LOGP, FL("INNAV: memory allocation for pMlmInNavMeasRsp failed under suspend link failure\n"));
-	    return;
+        return;
     }
 
     if(NULL != pMac->lim.gpLimMlmInNavMeasReq)

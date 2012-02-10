@@ -291,6 +291,8 @@ enum eWniMsgTypes
     eWNI_SME_POST_SWITCH_CHL_IND,
 
     eWNI_SME_MAX_ASSOC_EXCEEDED,
+
+    eWNI_SME_BTAMP_LOG_LINK_IND,//to serialize the create/accpet LL req from HCI
     eWNI_SME_MSG_TYPES_END
 };
 

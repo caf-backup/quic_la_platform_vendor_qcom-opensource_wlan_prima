@@ -87,7 +87,8 @@ WPT_STATIC const WDI_MainFsmEntryType wdiMainFSM[WDI_MAX_ST] =
     NULL,                       /*WDI_STOP_EVENT*/
     WDI_MainReqBusy,            /*WDI_REQUEST_EVENT*/
     WDI_MainRspInit,            /*WDI_RESPONSE_EVENT*/
-    WDI_MainClose               /*WDI_CLOSE_EVENT*/
+    WDI_MainClose,              /*WDI_CLOSE_EVENT*/
+    WDI_MainShutdown            /*WDI_SHUTDOWN_EVENT*/
   }},
 
   /*WDI_STARTED_ST*/
@@ -96,7 +97,8 @@ WPT_STATIC const WDI_MainFsmEntryType wdiMainFSM[WDI_MAX_ST] =
     WDI_MainStopStarted,        /*WDI_STOP_EVENT*/
     WDI_MainReqStarted,         /*WDI_REQUEST_EVENT*/
     WDI_MainRsp,                /*WDI_RESPONSE_EVENT*/
-    NULL                        /*WDI_CLOSE_EVENT*/
+    NULL,                       /*WDI_CLOSE_EVENT*/
+    WDI_MainShutdown            /*WDI_SHUTDOWN_EVENT*/
   }},
 
   /*WDI_STOPPED_ST*/
@@ -105,7 +107,8 @@ WPT_STATIC const WDI_MainFsmEntryType wdiMainFSM[WDI_MAX_ST] =
     WDI_MainStopStopped,        /*WDI_STOP_EVENT*/
     NULL,                       /*WDI_REQUEST_EVENT*/
     WDI_MainRsp,                /*WDI_RESPONSE_EVENT*/
-    WDI_MainClose               /*WDI_CLOSE_EVENT*/
+    WDI_MainClose,              /*WDI_CLOSE_EVENT*/
+    NULL                        /*WDI_SHUTDOWN_EVENT*/
   }},
 
   /*WDI_BUSY_ST*/
@@ -114,7 +117,8 @@ WPT_STATIC const WDI_MainFsmEntryType wdiMainFSM[WDI_MAX_ST] =
     WDI_MainStopBusy,           /*WDI_STOP_EVENT*/
     WDI_MainReqBusy,            /*WDI_REQUEST_EVENT*/
     WDI_MainRsp,                /*WDI_RESPONSE_EVENT*/
-    WDI_MainCloseBusy           /*WDI_CLOSE_EVENT*/
+    WDI_MainCloseBusy,          /*WDI_CLOSE_EVENT*/
+    WDI_MainShutdownBusy        /*WDI_SHUTDOWN_EVENT*/
   }}
 };
 
@@ -257,8 +261,8 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   NULL,
 #endif // WLAN_FEATURE_PACKET_FILTERING
   WDI_ProcessInitScanReq,               /* WDI_INIT_SCAN_CON_REQ */ 
-  
   WDI_ProcessHALDumpCmdReq,       /*WDI_HAL_DUMP_CMD_REQ */
+  WDI_ProcessShutdownReq,               /* WDI_SHUTDOWN_REQ  */
   /*-------------------------------------------------------------------------
     Indications
   -------------------------------------------------------------------------*/
@@ -1443,6 +1447,109 @@ WDI_Close
   return wptStatus;
 
 }/*WDI_Close*/
+
+/**
+ @brief  WDI_Shutdown will be called during 'SSR shutdown' operation.
+         This will do most of the WDI stop & close
+         operations without doing any handshake with Riva
+
+         This will also make sure that the control transport
+         will NOT be closed.
+
+         This request will not be queued.
+
+
+ WDI_Start must have been called.
+
+ @param  None
+
+ @return Result of the function call
+*/
+WDI_Status
+WDI_Shutdown
+(
+)
+{
+   WDI_EventInfoType      wdiEventData;
+   wpt_status             wptStatus;
+   int                    i = 0;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   /*------------------------------------------------------------------------
+     Sanity Check
+     ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+            "WDI API call before module is initialized - Fail request");
+
+      return WDI_STATUS_E_NOT_ALLOWED;
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+     ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_SHUTDOWN_REQ;
+   wdiEventData.pEventData      = NULL;
+   wdiEventData.uEventDataSize  = 0;
+
+   /* Shutdown will not be queued, if the state is busy timer will be
+    * stopped & this message will be processed.*/
+   wptStatus = WDI_PostMainEvent(&gWDICb, WDI_SHUTDOWN_EVENT, &wdiEventData);
+   if ( eWLAN_PAL_STATUS_SUCCESS != wptStatus )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+            "%s: Failed to process shutdown event", __FUNCTION__);
+   }
+   /* Destroy the Set Power State event */
+   wptStatus = wpalEventDelete(&gWDICb.setPowerStateEvent);
+   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+            "WDI Close failed to destroy an event");
+
+      WDI_ASSERT(0);
+   }
+   /*------------------------------------------------------------------------
+     Closes the Data Path Utility Module
+     ------------------------------------------------------------------------*/
+   if ( WDI_STATUS_SUCCESS != WDI_DP_UtilsExit(&gWDICb))
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+            "WDI Init failed to close the DP Util Module");
+
+      WDI_ASSERT(0);
+   }
+
+   /*destroy the BSS sessions pending Queue */
+   for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
+   {
+      wpal_list_destroy(&(gWDICb.aBSSSessions[i].wptPendingQueue));
+   }
+
+   /* destroy the WDI Pending Assoc Id Request Queue*/
+   wpal_list_destroy(&(gWDICb.wptPendingAssocSessionIdQueue));
+   /* destroy the WDI Pending Request Queue*/
+   wpal_list_destroy(&(gWDICb.wptPendingQueue));
+   /*destroy the response timer */
+   wptStatus = wpalTimerDelete( &gWDICb.wptResponseTimer);
+
+   /*invalidate the main synchro mutex */
+   wptStatus = wpalMutexDelete(&gWDICb.wptMutex);
+   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+            "%s: Failed to delete mutex %d",  __FUNCTION__, wptStatus);
+      WDI_ASSERT(0);
+   }
+
+   /*Clear control block.  note that this will clear the "magic"
+     which will inhibit all asynchronous callbacks*/
+   WDI_CleanCB(&gWDICb);
+   return wptStatus;
+
+}/*WDI_Shutdown*/
+
 
 /*======================================================================== 
  
@@ -5897,6 +6004,85 @@ WDI_MainCloseBusy
   return WDI_STATUS_PENDING;
   
 }/*WDI_MainCloseBusy*/
+
+/**
+ @brief Main FSM Shutdown function for INIT & STARTED states
+
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_MainShutdown
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  /*--------------------------------------------------------------------
+     Sanity Check
+  ----------------------------------------------------------------------*/
+  if (( NULL ==  pWDICtx ) || ( NULL == pEventData ))
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Invalid parameters on Main Start %x %x",
+               pWDICtx, pEventData);
+     return WDI_STATUS_E_FAILURE;
+  }
+
+  /*State at this point is BUSY - because we enter this state before posting
+    an event to the FSM in order to prevent potential race conditions*/
+
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+            "Processing shutdown request in FSM");
+
+  /*Return Success*/
+  return WDI_ProcessRequest( pWDICtx, pEventData );
+
+}/*WDI_MainShutdown*/
+
+/**
+ @brief Main FSM Shutdown function for BUSY state
+
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_MainShutdownBusy
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  /*--------------------------------------------------------------------
+     Sanity Check
+  ----------------------------------------------------------------------*/
+  if (( NULL ==  pWDICtx ) || ( NULL == pEventData ))
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Invalid parameters on Main Start %x %x",
+               pWDICtx, pEventData);
+     return WDI_STATUS_E_FAILURE;
+  }
+
+  /* If you are waiting for a HAL response at this stage, you are not
+   * going to get it. Riva is already shutdown/crashed.
+   */
+  wpalTimerStop(&gWDICb.wptResponseTimer);
+
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+            "Processing shutdown request in FSM: Busy state ");
+
+  return WDI_ProcessRequest( pWDICtx, pEventData );
+
+}/*WDI_MainShutdownBusy*/
 
 
 /*======================================================================= 
@@ -12728,6 +12914,85 @@ WDI_ProcessAggrAddTSpecReq
                        WDI_AGGR_ADD_TS_RESP); 
 }/*WDI_ProcessAggrAddTSpecReq*/
 #endif /* WLAN_FEATURE_VOWIFI_11R */
+
+/**
+ @brief Process Shutdown Request function (called when Main FSM
+        allows it)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessShutdownReq
+(
+ WDI_ControlBlockType*  pWDICtx,
+ WDI_EventInfoType*     pEventData
+ )
+{
+   wpt_status              wptStatus;
+
+
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+     -------------------------------------------------------------------------*/
+   if ( NULL == pEventData )
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+            "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE;
+   }
+
+   wpalMutexAcquire(&pWDICtx->wptMutex);
+
+
+   gWDIInitialized = eWLAN_PAL_FALSE;
+   /*! TO DO: stop the data services */
+   if ( eDRIVER_TYPE_MFG != pWDICtx->driverMode )
+   {
+      /*Stop the STA Table !UT- check this logic again
+        It is safer to do it here than on the response - because a stop is imminent*/
+      WDI_STATableStop(pWDICtx);
+
+      /* Stop Transport Driver, DXE */
+      WDTS_Stop(pWDICtx);
+   }
+
+   /*Clear all pending request*/
+   WDI_ClearPendingRequests(pWDICtx);
+   /* Close Data transport*/
+   /* FTM mode does not open Data Path */
+   if ( eDRIVER_TYPE_MFG != pWDICtx->driverMode )
+   {
+      WDTS_Close(pWDICtx);
+   }
+   /*Close the STA Table !UT- check this logic again*/
+   WDI_STATableClose(pWDICtx);
+   /*close the PAL */
+   wptStatus = wpalClose(pWDICtx->pPALContext);
+   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+            "Failed to wpal Close %d", wptStatus);
+      WDI_ASSERT(0);
+   }
+
+   /*Transition back to init state*/
+   WDI_STATE_TRANSITION( pWDICtx, WDI_INIT_ST);
+
+   wpalMutexRelease(&pWDICtx->wptMutex);
+
+   /*Make sure the expected state is properly defaulted to Init*/
+   pWDICtx->ucExpectedStateTransition = WDI_INIT_ST; 
+
+
+   return WDI_STATUS_SUCCESS; 
+}/*WDI_ProcessShutdownReq*/
 
 /*========================================================================
           Main DAL Control Path Response Processing API 
@@ -22376,7 +22641,6 @@ WDI_Process8023MulticastListRsp
    /*Notify UMAC*/
    wdi8023MulticastListCb(wdiStatus, pWDICtx->pRspCBUserData);
 
-
    return WDI_STATUS_SUCCESS; 
 }
 
@@ -22535,3 +22799,28 @@ WDI_ProcessReceiveFilterClearFilterRsp
    return WDI_STATUS_SUCCESS; 
 }
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+/**
+ @brief Process Shutdown Rsp function
+        There is no shutdown response comming from HAL
+        - function just kept for simmetry
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure 
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessShutdownRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  /*There is no shutdown response comming from HAL - function just kept for
+  simmetry */
+  WDI_ASSERT(0);
+  return WDI_STATUS_SUCCESS;
+}/*WDI_ProcessShutdownRsp*/
+

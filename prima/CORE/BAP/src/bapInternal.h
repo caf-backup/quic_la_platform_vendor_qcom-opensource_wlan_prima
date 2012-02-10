@@ -64,6 +64,9 @@ when        who    what, where, why
 #include "bapRsnErrors.h"
 
 #include "csrApi.h"
+#include "sirApi.h"
+#include "wniApi.h"
+#include "palApi.h"
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -270,6 +273,19 @@ typedef enum{
     BT_INITIATOR
 } tWLAN_BAPRole;
 
+/* BT-AMP device role */
+typedef enum{
+    WLAN_BAPLogLinkClosed,
+    WLAN_BAPLogLinkOpen,
+    WLAN_BAPLogLinkInProgress,
+} tWLAN_BAPLogLinkState;
+
+typedef struct{
+    v_U8_t       phyLinkHandle;
+    v_U8_t       txFlowSpec[18];
+    v_U8_t       rxFlowSpec[18];
+} tBtampLogLinkReqInfo;
+
 /*----------------------------------------------------------------------------
  *  BAP context Data Type Declaration
  * -------------------------------------------------------------------------*/
@@ -429,7 +445,14 @@ typedef struct sBtampContext {
     v_U16_t    lsPending;
     WLANTL_MetaInfoType  metaInfo;   
     tANI_BOOLEAN isBapSessionOpen;
-//End of LinkSupervision packet
+
+    tWLAN_BAPLogLinkState  btamp_logical_link_state;
+
+    tBtampLogLinkReqInfo   btamp_logical_link_req_info;
+
+    tANI_BOOLEAN           btamp_async_logical_link_create;
+
+    tANI_BOOLEAN           btamp_logical_link_cancel_pending;
 
 #else // defined(BTAMP_MULTIPLE_PHY_LINKS)
 
@@ -1250,6 +1273,8 @@ WLANBAP_DeInitLinkSupervision
 ( 
   ptBtampHandle     btampHandle 
 );
+
+void WLAN_BAPEstablishLogicalLink(ptBtampContext btampContext);
 
  #ifdef __cplusplus
  }

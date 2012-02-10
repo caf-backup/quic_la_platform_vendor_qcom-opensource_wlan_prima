@@ -63,4 +63,5 @@ bapSetKey( v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo );
 
 int bapSuppDisconnect(tBtampContext *ctx);
 int bapAuthDisconnect(tBtampContext *ctx);
+VOS_STATUS btampEstablishLogLink(ptBtampContext btampContext);
 #endif

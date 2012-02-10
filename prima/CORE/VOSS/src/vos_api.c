@@ -2210,3 +2210,185 @@ void vos_allowSuspend ( v_CONTEXT_t vosContext )
    if (wake_lock_active(&gpVosContext->wake_lock_suspend))
        wake_unlock(&gpVosContext->wake_lock_suspend);
 }
+
+/*---------------------------------------------------------------------------
+
+  \brief vos_shutdown() - shutdown VOS
+
+     - All VOS submodules are closed.
+
+     - All the WLAN SW components should have been opened. This includes
+       SYS, MAC, SME and TL.
+
+
+  \param  vosContext: Global vos context
+
+
+  \return VOS_STATUS_SUCCESS - Operation successfull & vos is shutdown
+
+          VOS_STATUS_E_FAILURE - Failure to close
+
+---------------------------------------------------------------------------*/
+VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
+{
+  VOS_STATUS vosStatus;
+
+#ifdef WLAN_BTAMP_FEATURE
+  vosStatus = WLANBAP_Close(vosContext);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close BAP", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+#endif // WLAN_BTAMP_FEATURE
+
+  vosStatus = WLANTL_Close(vosContext);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close TL", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  vosStatus = sme_Close( ((pVosContextType)vosContext)->pMACContext);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close SME", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  vosStatus = macClose( ((pVosContextType)vosContext)->pMACContext);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close MAC", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  ((pVosContextType)vosContext)->pMACContext = NULL;
+
+  vosStatus = vos_nv_close();
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close NV", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  vosStatus = sysClose( vosContext );
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close SYS", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+ /* Let DXE return packets in WDA_close and then free them here */
+  vosStatus = vos_packet_close( vosContext );
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close VOSS Packet", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  vos_mq_deinit(&((pVosContextType)vosContext)->freeVosMq);
+
+  vosStatus = vos_event_destroy(&gpVosContext->wdaCompleteEvent);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: failed to destroy wdaCompleteEvent", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  vosStatus = vos_event_destroy(&gpVosContext->ProbeEvent);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: failed to destroy ProbeEvent", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+  /* release suspend lock */
+  if (wake_lock_active(&gpVosContext->wake_lock_suspend))
+  {
+      wake_unlock(&gpVosContext->wake_lock_suspend);
+  }
+  wake_lock_destroy(&gpVosContext->wake_lock_suspend);
+
+
+  return VOS_STATUS_SUCCESS;
+}
+
+/*---------------------------------------------------------------------------
+
+  \brief vos_wda_shutdown() - VOS interface to wda shutdown
+
+     - WDA/WDI shutdown
+
+  \param  vosContext: Global vos context
+
+
+  \return VOS_STATUS_SUCCESS - Operation successfull
+
+          VOS_STATUS_E_FAILURE - Failure to close
+
+---------------------------------------------------------------------------*/
+VOS_STATUS vos_wda_shutdown(v_CONTEXT_t vosContext)
+{
+  VOS_STATUS vosStatus;
+  vosStatus = WDA_shutdown(vosContext);
+
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: failed to shutdown WDA", __func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+  return vosStatus;
+}
+/**
+  @brief vos_wlanShutdown() - This API will shutdown WLAN driver
+
+  This function is called when Riva subsystem crashes.  There are two
+  methods (or operations) in WLAN driver to handle Riva crash,
+    1. shutdown: Called when Riva goes down, this will shutdown WLAN
+                 driver without handshaking with Riva.
+    2. re-init:  Next API
+  @param
+       NONE
+  @return
+       VOS_STATUS_SUCCESS   - Operation completed successfully.
+       VOS_STATUS_E_FAILURE - Operation failed.
+
+*/
+VOS_STATUS vos_wlanShutdown(void)
+{
+   VOS_STATUS vstatus;
+   vstatus = vos_watchdog_wlan_shutdown();
+   return vstatus;
+}
+/**
+  @brief vos_wlanReInit() - This API will re-init WLAN driver
+
+  This function is called when Riva subsystem reboots.  There are two
+  methods (or operations) in WLAN driver to handle Riva crash,
+    1. shutdown: Previous API
+    2. re-init:  Called when Riva comes back after the crash. This will
+                 re-initialize WLAN driver. In some cases re-open may be
+                 referred instead of re-init.
+  @param
+       NONE
+  @return
+       VOS_STATUS_SUCCESS   - Operation completed successfully.
+       VOS_STATUS_E_FAILURE - Operation failed.
+
+*/
+VOS_STATUS vos_wlanReInit(void)
+{
+   VOS_STATUS vstatus;
+   vstatus = vos_watchdog_wlan_re_init();
+   return vstatus;
+}

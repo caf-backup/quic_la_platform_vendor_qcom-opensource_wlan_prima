@@ -171,8 +171,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_GOING_DOWN:
-
-        if( pAdapter->sessionCtx.station.WextState.mScanPending != FALSE )
+        if( pAdapter->scan_info.mScanPending != FALSE )
         { 
            int result;
            INIT_COMPLETION(pAdapter->abortscan_event_var);
@@ -906,6 +905,8 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
 #endif
       init_completion(&pHddCtx->mc_sus_event_var);
       init_completion(&pHddCtx->tx_sus_event_var);
+
+      init_completion(&pAdapter->scan_info.scan_req_completion_event);
 
       pAdapter->isLinkUpSvcNeeded = FALSE; 
       //Init the net_device structure
@@ -1700,7 +1701,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
             hdd_init_station_mode(pAdapter);
             /* Open the gates for HDD to receive Wext commands */
             pAdapter->isLinkUpSvcNeeded = FALSE; 
-            pAdapter->sessionCtx.station.WextState.mScanPending = FALSE;
+            pAdapter->scan_info.mScanPending = FALSE;
 
             //Trigger the initial scan
             hdd_wlan_initial_scan(pAdapter);
@@ -2480,6 +2481,13 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
 
+   /* free the power on lock from platform driver */
+   if (free_riva_power_on_lock("wlan"))
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: failed to free power on lock",
+                                           __func__);
+   }
+
 #ifdef ANI_MANF_DIAG
 free_hdd_ctx:   
 #endif
@@ -3196,9 +3204,17 @@ int hdd_wlan_startup(struct device *dev )
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
-      goto err_vosclose;
+      goto err_bap_stop;
    }
 #endif
+
+   /* register for riva power on lock to platform driver */
+   if (req_riva_power_on_lock("wlan"))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: req riva power on lock failed",
+                                     __func__);
+      goto err_unregister_pmops;
+   }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
    // Register suspend/resume callbacks
@@ -3214,11 +3230,7 @@ int hdd_wlan_startup(struct device *dev )
    if(ret < 0)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: register_netdevice_notifier failed",__func__);
-#ifdef WLAN_BTAMP_FEATURE
-      goto err_bap_stop;
-#else
-      goto err_close_adapter;
-#endif
+      goto err_free_power_on_lock;
    }
 
    //Initialize the nlink service
@@ -3277,13 +3289,17 @@ err_nl_srv:
 err_reg_netdev:
    unregister_netdevice_notifier(&hdd_netdev_notifier);
 
+err_free_power_on_lock:
+   free_riva_power_on_lock("wlan");
 
-#ifdef WLAN_BTAMP_FEATURE
+err_unregister_pmops:
+   hddDeregisterPmOps(pHddCtx);
+
 err_bap_stop:
   WLANBAP_Stop(pVosContext);
+
 err_bap_close:
    WLANBAP_Close(pVosContext);
-#endif
 
 err_close_adapter:
    hdd_close_all_adapters( pHddCtx );

@@ -64,12 +64,18 @@
 #include "msm_smd.h"
 #endif
 
+/* Global context for CTS handle, it is required to keep this 
+ * transport open during SSR shutdown */
+static WCTS_HandleType gwctsHandle;
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
 
 /* Magic value to validate a WCTS CB (value is little endian ASCII: WCTS */
 #define WCTS_CB_MAGIC     0x53544357
+
+/* time to wait for SMD channel to open (in msecs) */
+#define WCTS_SMD_OPEN_TIMEOUT 5000
 
 /* time to wait for SMD channel to close (in msecs) */
 #define WCTS_SMD_CLOSE_TIMEOUT 5000
@@ -86,6 +92,7 @@ typedef enum
    WCTS_STATE_OPEN_PENDING, /* Waiting for the OPEN event from SMD */
    WCTS_STATE_OPEN,         /* Open event received from SMD */
    WCTS_STATE_DEFERRED,     /* Write pending, SMD chennel is full */
+   WCTS_STATE_REM_CLOSED,   /* Remote end closed the SMD channel */
    WCTS_STATE_MAX
 } WCTS_StateType;
 
@@ -403,6 +410,46 @@ WCTS_PALDataCallback
 
 } /*WCTS_PALDataCallback*/
 
+/**
+ @brief    This helper function is used to clean up the pending 
+           messages in the transport queue
+
+ @param wctsHandlehandle:  transport handle
+
+ @see
+ @return   0 for success
+*/
+static wpt_uint32
+WCTS_ClearPendingQueue
+(
+   WCTS_HandleType      wctsHandle
+)
+{
+   WCTS_ControlBlockType* pWCTSCb = (WCTS_ControlBlockType*) wctsHandle;
+   wpt_list_node*      pNode = NULL;
+   WCTS_BufferType*    pBufferQueue = NULL;
+   void*               pBuffer = NULL;
+
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   if ((NULL == pWCTSCb) || (WCTS_CB_MAGIC != pWCTSCb->wctsMagic)) {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "WCTS_ClearPendingQueue: Invalid parameters received.");
+      return eWLAN_PAL_STATUS_E_INVAL;
+   }
+
+   /*Free the buffers in the pending queue.*/
+   while (eWLAN_PAL_STATUS_SUCCESS ==
+          wpal_list_remove_front(&pWCTSCb->wctsPendingQueue, &pNode)) {
+      pBufferQueue = container_of(pNode, WCTS_BufferType, node);
+      pBuffer = pBufferQueue->pBuffer;
+      wpalMemoryFree(pBuffer);
+      wpalMemoryFree(pBufferQueue);
+   }
+
+   return eWLAN_PAL_STATUS_SUCCESS;
+
+}/*WCTS_ClearPendingQueue*/
 
 
 /**
@@ -435,7 +482,8 @@ WCTS_NotifyCallback
      --------------------------------------------------------------------*/
    if (WCTS_CB_MAGIC != pWCTSCb->wctsMagic) {
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "%s: Invalid parameter received", __FUNCTION__);
+                 "%s: Received unexpected SMD event %u",
+                 __FUNCTION__, event);
 
       /* TODO_PRIMA what error recovery options do we have? */
       return;
@@ -446,10 +494,30 @@ WCTS_NotifyCallback
    case SMD_EVENT_OPEN:
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
                  "%s: received SMD_EVENT_OPEN from SMD", __FUNCTION__);
+      /* If the prev state was 'remote closed' then it is a Riva 'restart',
+       * subsystem restart re-init
+       */
+      if (WCTS_STATE_REM_CLOSED == pWCTSCb->wctsState)
+      {
+           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "%s: received SMD_EVENT_OPEN in WCTS_STATE_REM_CLOSED state",
+                 __FUNCTION__);
+           /* call subsystem restart re-init function */
+           wpalDriverReInit();
+           return;
+      }
       palMsg = &pWCTSCb->wctsOpenMsg;
       break;
 
    case SMD_EVENT_DATA:
+      if (WCTS_STATE_REM_CLOSED == pWCTSCb->wctsState)
+      {
+           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: received SMD data when the state is remote closed ",
+                 __FUNCTION__);
+           /* we should not be getting any data now */
+           return;
+      }
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
                  "%s: received SMD_EVENT_DATA from SMD", __FUNCTION__);
       palMsg = &pWCTSCb->wctsDataMsg;
@@ -458,8 +526,16 @@ WCTS_NotifyCallback
    case SMD_EVENT_CLOSE:
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
                  "%s: received SMD_EVENT_CLOSE from SMD", __FUNCTION__);
-      /* SMD channel was closed from the remote side
-         We currently have no way to handle this */
+      /* SMD channel was closed from the remote side,
+       * this would happen only when Riva crashed and SMD is
+       * closing the channel on behalf of Riva */
+      pWCTSCb->wctsState = WCTS_STATE_REM_CLOSED;
+      WCTS_ClearPendingQueue (pWCTSCb);
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "%s: received SMD_EVENT_CLOSE WLAN driver going down now",
+                 __FUNCTION__);
+      /* subsystem restart: shutdown */
+      wpalDriverShutdown();
       return;
 
    case SMD_EVENT_STATUS:
@@ -538,6 +614,31 @@ WCTS_OpenTransport
                  "WCTS_OpenTransport: Invalid parameters received.");
 
       return NULL;
+   }
+
+   /* This open is coming after a SSR, we don't need to reopen SMD,
+    * the SMD port was never closed during SSR*/
+   if (gwctsHandle) {
+       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+               "WCTS_OpenTransport port is already open\n");
+
+       pWCTSCb = gwctsHandle;
+       if (WCTS_CB_MAGIC != pWCTSCb->wctsMagic) {
+           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                   "WCTS_OpenTransport: Invalid magic.");
+           return NULL;
+       }   
+       pWCTSCb->wctsState = WCTS_STATE_OPEN;
+
+       pWCTSCb->wctsNotifyCB((WCTS_HandleType)pWCTSCb,
+               WCTS_EVENT_OPEN,
+               pWCTSCb->wctsNotifyCBData);
+
+       /* we initially don't want read interrupts
+         (we only want them if we get into deferred write mode) */
+       smd_disable_read_intr(pWCTSCb->wctsChannel);
+
+       return (WCTS_HandleType)pWCTSCb;
    }
 
 #ifdef FEATURE_R33D
@@ -624,12 +725,19 @@ WCTS_OpenTransport
       goto fail;
    }
 
-   /* wait for the channel to be opened before we proceed */
-   status = wpalEventWait(&pWCTSCb->wctsEvent, 1000);
+   /* wait for the channel to be fully opened before we proceed */
+   status = wpalEventWait(&pWCTSCb->wctsEvent, WCTS_SMD_OPEN_TIMEOUT);
    if (eWLAN_PAL_STATUS_SUCCESS != status) {
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: failed to receive SMD_EVENT_OPEN",
                  __FUNCTION__);
+      /* since we opened one end of the channel, close it */
+      smdstatus = smd_close(pWCTSCb->wctsChannel);
+      if (0 != smdstatus) {
+         WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                    "%s: smd_close failed with status %d",
+                    __FUNCTION__, smdstatus);
+      }
       goto fail;
    }
 
@@ -638,6 +746,7 @@ WCTS_OpenTransport
    smd_disable_read_intr(pWCTSCb->wctsChannel);
 
    /* we have successfully opened the SMD channel */
+   gwctsHandle = pWCTSCb;
    return (WCTS_HandleType)pWCTSCb;
 
  fail:

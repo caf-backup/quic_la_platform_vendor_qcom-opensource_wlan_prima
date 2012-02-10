@@ -714,7 +714,6 @@ VosWDThread
       break;
     }
     clear_bit(WD_POST_EVENT_MASK, &pWdContext->wdEventFlag);
-
     while(1)
     {
       // Check if Watchdog needs to shutdown
@@ -727,45 +726,65 @@ VosWDThread
         shutdown = VOS_TRUE;
         break;
       }
-      else if(test_bit(WD_CHIP_RESET_EVENT_MASK, &pWdContext->wdEventFlag))
+      /* subsystem restart: shutdown event handler */
+      else if(test_bit(WD_WLAN_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag))
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                "%s: Watchdog thread signaled to perform WLAN chip reset",__func__);
-        clear_bit(WD_CHIP_RESET_EVENT_MASK, &pWdContext->wdEventFlag);
+                "%s: Watchdog thread signaled to perform WLAN shutdown",__func__);
+        clear_bit(WD_WLAN_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
 
-        //Perform WLAN Reset
+        //Perform WLAN shutdown
         if(!pWdContext->resetInProgress)
         {
           pWdContext->resetInProgress = true;
-#ifdef CONFIG_HAS_EARLYSUSPEND
-          vosStatus = hdd_wlan_reset();
+          vosStatus = hdd_wlan_shutdown();
 
           if (! VOS_IS_STATUS_SUCCESS(vosStatus))
           {
-             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Failed to reset WLAN",__func__);
+             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                     "%s: Failed to shutdown WLAN",__func__);
              VOS_ASSERT(0);
              goto err_reset;
           }
-#endif
-             pWdContext->resetInProgress = false;
         }
-        else
+      }
+      /* subsystem restart: re-init event handler */
+      else if(test_bit(WD_WLAN_REINIT_EVENT_MASK, &pWdContext->wdEventFlag))
+      {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Watchdog thread signaled to perform WLAN re-init",__func__);
+        clear_bit(WD_WLAN_REINIT_EVENT_MASK, &pWdContext->wdEventFlag);
+
+        //Perform WLAN re-init
+        if(!pWdContext->resetInProgress)
         {
           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-               "%s: Reset already in progress. Ignore recursive reset cmd",__func__);
+          "%s: Trying to do WLAN re-init when it is not shutdown !!",__func__);
         }
-        break;
+        vosStatus = hdd_wlan_re_init();
+
+        if (! VOS_IS_STATUS_SUCCESS(vosStatus))
+        {
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: Failed to re-init WLAN",__func__);
+          VOS_ASSERT(0);
+          goto err_reset;
+        }
+        pWdContext->resetInProgress = false;
       }
-      //Unnecessary wakeup - Should never happen!!
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+      else
+      {
+        //Unnecessary wakeup - Should never happen!!
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
         "%s: Watchdog thread woke up unnecessarily",__func__);
+      }
       break;
     } // while message loop processing
-    
-  } // while TRUE
+  } // while shutdown
+
   // If we get here the Watchdog thread must exit
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-      "%s: Watchdog Thread exiting!!!!", __FUNCTION__);
+      "%s: Watchdog Thread exiting !!!!", __FUNCTION__);
   complete_and_exit(&pWdContext->WdShutdown, 0);
 
 err_reset:
@@ -1893,4 +1912,112 @@ pVosWatchdogContext get_vos_watchdog_ctxt(void)
          "%s: gpVosWatchdogContext == NULL",__FUNCTION__);
    }
    return (gpVosWatchdogContext);
+}
+/**
+  @brief vos_watchdog_wlan_shutdown()
+
+  This function is called to shutdown WLAN driver during SSR.
+  Adapters are disabled, and the watchdog task will be signalled
+  to shutdown WLAN driver.
+
+  @param
+         NONE
+  @return
+         VOS_STATUS_SUCCESS   - Operation completed successfully.
+         VOS_STATUS_E_FAILURE - Operation failed.
+
+*/
+VOS_STATUS vos_watchdog_wlan_shutdown(void)
+{
+    v_CONTEXT_t pVosContext = NULL;
+    hdd_context_t *pHddCtx = NULL;
+
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+        "%s: WLAN driver is shutting down ", __FUNCTION__);
+    if (gpVosWatchdogContext == NULL)
+    {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+           "%s: Watchdog not enabled. LOGP ignored.",__FUNCTION__);
+       return VOS_STATUS_E_FAILURE;
+    }
+
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+    pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+
+    /* Take the lock here */
+    spin_lock(&gpVosWatchdogContext->wdLock);
+
+    /* reuse the existing 'reset in progress' */
+    if (gpVosWatchdogContext->resetInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+            "%s: Shutdown already in Progress. Ignoring signaling Watchdog",
+                                                           __FUNCTION__);
+        /* Release the lock here */
+        spin_unlock(&gpVosWatchdogContext->wdLock);
+        return VOS_STATUS_E_FAILURE;
+    }
+    /* reuse the existing 'logp in progress', eventhough it is not
+     * exactly the same */
+    else if (pHddCtx->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+            "%s: shutdown/re-init already in Progress. Ignoring signaling Watchdog",
+                                                           __FUNCTION__);
+        /* Release the lock here */
+        spin_unlock(&gpVosWatchdogContext->wdLock);
+        return VOS_STATUS_E_FAILURE;
+    } 
+
+    /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
+    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+    pHddCtx->isLogpInProgress = TRUE;
+
+    /* Release the lock here */
+    spin_unlock(&gpVosWatchdogContext->wdLock);
+
+    if (pHddCtx->isLoadUnloadInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Load/unload in Progress. Ignoring signaling Watchdog",
+                __FUNCTION__);
+        return VOS_STATUS_E_FAILURE;
+    }
+    /* Update Riva Reset Statistics */
+    pHddCtx->hddRivaResetStats++;
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    if(VOS_STATUS_SUCCESS != hdd_wlan_reset_initialization())
+    {
+       VOS_ASSERT(0);
+    }
+#endif
+
+    set_bit(WD_WLAN_SHUTDOWN_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
+    set_bit(WD_POST_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
+    wake_up_interruptible(&gpVosWatchdogContext->wdWaitQueue);
+
+    return VOS_STATUS_SUCCESS;
+}
+
+/**
+  @brief vos_watchdog_wlan_re_init()
+
+  This function is called to re-initialize WLAN driver, and this is
+  called when Riva SS reboots.
+
+  @param
+         NONE
+  @return
+         VOS_STATUS_SUCCESS   - Operation completed successfully.
+         VOS_STATUS_E_FAILURE - Operation failed.
+
+*/
+VOS_STATUS vos_watchdog_wlan_re_init(void)
+{
+    /* watchdog task is still running, it is not closed in shutdown */
+    set_bit(WD_WLAN_REINIT_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
+    set_bit(WD_POST_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
+    wake_up_interruptible(&gpVosWatchdogContext->wdWaitQueue);
+
+    return VOS_STATUS_SUCCESS;
 }

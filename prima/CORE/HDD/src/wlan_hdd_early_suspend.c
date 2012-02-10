@@ -19,6 +19,7 @@
 #include <linux/pm.h>
 #include <linux/wait.h>
 #include <linux/earlysuspend.h>
+#include <linux/wcnss_wlan.h>
 #include <wlan_hdd_includes.h>
 #include <wlan_qct_driver.h>
 #include <linux/wakelock.h>
@@ -39,6 +40,7 @@
 #include <wlan_nlink_common.h>
 #include <wlan_hdd_main.h>
 #include <wlan_hdd_assoc.h>
+#include <wlan_hdd_dev_pwr.h>
 #ifdef ANI_BUS_TYPE_SDIO
 #include <wlan_sal_misc.h>
 #include <libra_sdioif.h>
@@ -49,6 +51,13 @@
 #ifdef WLAN_SOFTAP_FEATURE
 #include <linux/semaphore.h>
 #include <wlan_hdd_hostapd.h>
+#endif
+#include "cfgApi.h"
+
+#ifdef WLAN_BTAMP_FEATURE
+#include "bapApi.h"
+#include "bap_hdd_main.h"
+#include "bap_hdd_misc.h"
 #endif
 
 #include <linux/inetdevice.h>
@@ -70,6 +79,7 @@
 static struct early_suspend wlan_early_suspend;
 static struct wake_lock wlan_wake_lock;
 #endif
+
 static eHalStatus g_full_pwr_status;
 static eHalStatus g_standby_status;
 
@@ -721,45 +731,37 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
     hddLog(VOS_TRACE_LEVEL_INFO, 
       "%s: send wlan suspend indication", __func__);
 
-    if((pHddCtx->cfg_ini->fhostArpOffload) && 
-       (pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) &&
-       (eConnectionState_Associated == 
-            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)) 
+    if((pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER))
     {
-        halStatus = hdd_conf_hostarpoffload(pHddCtx, TRUE);
-        if (!VOS_IS_STATUS_SUCCESS(halStatus))
+        if((pHddCtx->cfg_ini->fhostArpOffload) && 
+           (eConnectionState_Associated == 
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState)) 
         {
-           wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                  pHddCtx->cfg_ini->mcastBcastFilterSetting;
-           hddLog(VOS_TRACE_LEVEL_INFO, "%s:Failed to enable ARPOFFLOAD Feature %d\n",
-                  __func__, halStatus);
+            halStatus = hdd_conf_hostarpoffload(pHddCtx, TRUE);
+            if (!VOS_IS_STATUS_SUCCESS(halStatus))
+            {
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                       "%s:Failed to enable ARPOFFLOAD Feature %d\n",
+                       __func__, halStatus);
+            }
+        }
+
+        if(pHddCtx->dynamic_mcbc_filter.enableCfg)
+        {
+            wlanSuspendParam->configuredMcstBcstFilterSetting = 
+                         pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting;
+            pHddCtx->dynamic_mcbc_filter.enableSuspend = TRUE;
+            pHddCtx->dynamic_mcbc_filter.mcBcFilterSuspend = 
+                         wlanSuspendParam->configuredMcstBcstFilterSetting;
         }
         else
         {
-           if (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
-                    pHddCtx->cfg_ini->mcastBcastFilterSetting)
-           {
-              wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                  HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST;
-           }
-           else if(HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST == 
-                   pHddCtx->cfg_ini->mcastBcastFilterSetting)
-           {
-              wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                           HDD_MCASTBCASTFILTER_FILTER_NONE;
-           }
-           else
-           {
-              wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                  pHddCtx->cfg_ini->mcastBcastFilterSetting;
-           }
+            pHddCtx->dynamic_mcbc_filter.enableSuspend = FALSE;
+            wlanSuspendParam->configuredMcstBcstFilterSetting = 
+                                    pHddCtx->cfg_ini->mcastBcastFilterSetting;
         }
     }
-    else
-    {
-       wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                  pHddCtx->cfg_ini->mcastBcastFilterSetting;
-    }
+
     halStatus = sme_ConfigureSuspendInd(pHddCtx->hHal, wlanSuspendParam);
     if(eHAL_STATUS_SUCCESS == halStatus)
     {
@@ -788,36 +790,19 @@ static void hdd_conf_resume_ind(hdd_context_t* pHddCtx)
         halStatus = hdd_conf_hostarpoffload(pHddCtx, FALSE);
         if (!VOS_IS_STATUS_SUCCESS(halStatus))
         {
-           wlanResumeParam->configuredMcstBcstFilterSetting = 
-                                  pHddCtx->cfg_ini->mcastBcastFilterSetting;
-           hddLog(VOS_TRACE_LEVEL_INFO, "%s:Failed to disable ARPOFFLOAD "
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s:Failed to disable ARPOFFLOAD "
                   "Feature %d\n", __func__, halStatus);
         }
-        else
-        {
-           if (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
-                    pHddCtx->cfg_ini->mcastBcastFilterSetting)
-           {
-              wlanResumeParam->configuredMcstBcstFilterSetting = 
-                                  HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST;
-           }
-           else if(HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST == 
-                   pHddCtx->cfg_ini->mcastBcastFilterSetting)
-           {
-              wlanResumeParam->configuredMcstBcstFilterSetting = 
-                                           HDD_MCASTBCASTFILTER_FILTER_NONE;
-           }
-           else
-           {
-              wlanResumeParam->configuredMcstBcstFilterSetting = 
-                                  pHddCtx->cfg_ini->mcastBcastFilterSetting;
-           }
-        }
+    }
+    if (pHddCtx->dynamic_mcbc_filter.enableSuspend)
+    {
+        wlanResumeParam->configuredMcstBcstFilterSetting = 
+                               pHddCtx->dynamic_mcbc_filter.mcBcFilterSuspend;
     }
     else
     {
-       wlanResumeParam->configuredMcstBcstFilterSetting = 
-                                  pHddCtx->cfg_ini->mcastBcastFilterSetting;
+        wlanResumeParam->configuredMcstBcstFilterSetting = 
+                                    pHddCtx->cfg_ini->mcastBcastFilterSetting;
     }
     sme_ConfigureResumeReq(pHddCtx->hHal, wlanResumeParam);
 }
@@ -1698,5 +1683,361 @@ void unregister_wlan_suspend(void)
    wake_lock_destroy(&wlan_wake_lock);
    unregister_early_suspend(&wlan_early_suspend);
 }
-
 #endif
+
+/* the HDD interface to WLAN driver shutdown,
+ * the primary shutdown function in SSR
+ */
+VOS_STATUS hdd_wlan_shutdown(void)
+{
+   VOS_STATUS       vosStatus;
+   v_CONTEXT_t      pVosContext = NULL;
+   hdd_context_t    *pHddCtx = NULL;
+   pVosSchedContext vosSchedContext = NULL;
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN driver shutting down! ",__func__);
+
+   /* Get the global VOSS context. */
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if(!pVosContext) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+   /* Get the HDD context. */
+   pHddCtx = (hdd_context_t*)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+   if(!pHddCtx) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+   hdd_reset_all_adapters(pHddCtx);
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    /* unregister suspend/resume callbacks */
+    if(pHddCtx->cfg_ini->nEnableSuspend)
+    {
+        unregister_wlan_suspend();
+    }
+#endif
+   /* DeRegister with platform driver as client for Suspend/Resume */
+   vosStatus = hddDeregisterPmOps(pHddCtx);
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDeregisterPmOps failed",__func__);
+   }
+   /* Disable IMPS/BMPS as we do not want the device to enter any power
+    * save mode on its own during reset sequence
+    */
+   sme_DisablePowerSave(pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+   sme_DisablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+   sme_DisablePowerSave(pHddCtx->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
+
+   vosSchedContext = get_vos_sched_ctxt();
+
+   /* Wakeup all driver threads */
+   if(TRUE == pHddCtx->isMcThreadSuspended){
+      complete(&vosSchedContext->ResumeMcEvent);
+      pHddCtx->isMcThreadSuspended= FALSE;
+   }
+   if(TRUE == pHddCtx->isTxThreadSuspended){
+      complete(&vosSchedContext->ResumeTxEvent);
+      pHddCtx->isTxThreadSuspended= FALSE;
+   }
+   if(TRUE == pHddCtx->isRxThreadSuspended){
+      complete(&vosSchedContext->ResumeRxEvent);
+      pHddCtx->isRxThreadSuspended= FALSE;
+   }
+   /* Reset the Suspend Variable */
+   pHddCtx->isWlanSuspended = FALSE;
+
+   /* Stop all the threads; we do not want any messages to be a processed,
+    * any more and the best way to ensure that is to terminate the threads
+    * gracefully.
+    */
+   /* Wait for MC to exit */
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down MC thread",__func__);
+   set_bit(MC_SHUTDOWN_EVENT_MASK, &vosSchedContext->mcEventFlag);
+   set_bit(MC_POST_EVENT_MASK, &vosSchedContext->mcEventFlag);
+   wake_up_interruptible(&vosSchedContext->mcWaitQueue);
+   wait_for_completion_interruptible(&vosSchedContext->McShutdown);
+
+   /* Wait for TX to exit */
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TX thread",__func__);
+   set_bit(TX_SHUTDOWN_EVENT_MASK, &vosSchedContext->txEventFlag);
+   set_bit(TX_POST_EVENT_MASK, &vosSchedContext->txEventFlag);
+   wake_up_interruptible(&vosSchedContext->txWaitQueue);
+   wait_for_completion_interruptible(&vosSchedContext->TxShutdown);
+
+   /* Wait for RX to exit */
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down RX thread",__func__);
+   set_bit(RX_SHUTDOWN_EVENT_MASK, &vosSchedContext->rxEventFlag);
+   set_bit(RX_POST_EVENT_MASK, &vosSchedContext->rxEventFlag);
+   wake_up_interruptible(&vosSchedContext->rxWaitQueue);
+   wait_for_completion_interruptible(&vosSchedContext->RxShutdown);
+
+#ifdef WLAN_BTAMP_FEATURE
+   vosStatus = WLANBAP_Stop(pVosContext);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to stop BAP",__func__);
+   }
+#endif //WLAN_BTAMP_FEATURE
+   vosStatus = vos_wda_shutdown(pVosContext);
+   VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing SME STOP",__func__);
+   /* Stop SME - Cannot invoke vos_stop as vos_stop relies
+    * on threads being running to process the SYS Stop
+    */
+   vosStatus = sme_Stop(pHddCtx->hHal, TRUE);
+   VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing MAC STOP",__func__);
+   /* Stop MAC (PE and HAL) */
+   vosStatus = macStop(pHddCtx->hHal, HAL_STOP_TYPE_SYS_RESET);
+   VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing TL STOP",__func__);
+   /* Stop TL */
+   vosStatus = WLANTL_Stop(pVosContext);
+   VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+   hdd_unregister_mcast_bcast_filter(pHddCtx);
+#endif
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Flush Queues",__func__);
+   /* Clean up message queues of TX and MC thread */
+   vos_sched_flush_mc_mqs(vosSchedContext);
+   vos_sched_flush_tx_mqs(vosSchedContext);
+   vos_sched_flush_rx_mqs(vosSchedContext);
+
+   /* Deinit all the TX and MC queues */
+   vos_sched_deinit_mqs(vosSchedContext);
+   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Doing VOS Shutdown",__func__);
+
+   /* shutdown VOSS */
+   vos_shutdown(pVosContext);
+   if (free_riva_power_on_lock("wlan"))
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: failed to free power on lock",
+                                           __func__);
+   }
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN driver shutdown complete"
+                                   ,__func__);
+   return VOS_STATUS_SUCCESS;
+}
+
+
+
+/* the HDD interface to WLAN driver re-init.
+ * This is called to initialize/start WLAN driver after a shutdown.
+ */
+VOS_STATUS hdd_wlan_re_init(void)
+{
+   VOS_STATUS       vosStatus;
+   v_CONTEXT_t      pVosContext = NULL;
+   hdd_context_t    *pHddCtx = NULL;
+   eHalStatus       halStatus;
+#ifdef WLAN_BTAMP_FEATURE
+   hdd_config_t     *pConfig = NULL;
+   WLANBAP_ConfigType btAmpConfig;
+#endif
+
+   /* Re-open VOSS, it is a re-open b'se control transport was never closed. */
+   vosStatus = vos_open(&pVosContext, 0);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
+      goto err_re_init;
+   }
+
+   /* Get the HDD context. */
+   pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+   if(!pHddCtx)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+      goto err_vosclose;
+   }
+
+   /* Save the hal context in Adapter */
+   pHddCtx->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pVosContext );
+   if ( NULL == pHddCtx->hHal )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HAL context is null",__func__);
+      goto err_vosclose;
+   }
+
+   /* Set the SME configuration parameters. */
+   vosStatus = hdd_set_sme_config(pHddCtx);
+   if ( VOS_STATUS_SUCCESS != vosStatus )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed hdd_set_sme_config",__func__);
+      goto err_vosclose;
+   }
+
+   /* Initialize the WMM module */
+   vosStatus = hdd_wmm_init(pHddCtx);
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __FUNCTION__);
+      goto err_vosclose;
+   }
+
+   vosStatus = vos_preStart( pHddCtx->pvosContext );
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_preStart failed",__func__);
+      goto err_vosclose;
+   }
+
+   /* In the integrated architecture we update the configuration from
+      the INI file and from NV before vOSS has been started so that
+      the final contents are available to send down to the cCPU   */
+   /* Apply the cfg.ini to cfg.dat */
+   if (FALSE == hdd_update_config_dat(pHddCtx))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: config update failed",__func__ );
+      goto err_vosclose;
+   }
+
+   /* Set the MAC Address, currently this is used by HAL to add self sta.
+    * Remove this once self sta is added as part of session open. */
+   halStatus = cfgSetStr(pHddCtx->hHal, WNI_CFG_STA_ID,
+         (v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[0],
+           sizeof(pHddCtx->cfg_ini->intfMacAddr[0]));
+   if (!HAL_STATUS_SUCCESS(halStatus))
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed to set MAC Address. "
+            "HALStatus is %08d [x%08x]",__func__, halStatus, halStatus);
+      goto err_vosclose;
+   }
+
+   /* Start VOSS which starts up the SME/MAC/HAL modules and everything else
+      Note: Firmware image will be read and downloaded inside vos_start API */
+   vosStatus = vos_start( pVosContext );
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
+      goto err_vosclose;
+   }
+
+   vosStatus = hdd_post_voss_start_config( pHddCtx );
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_post_voss_start_config failed",
+         __func__);
+      goto err_vosstop;
+   }
+
+#ifdef WLAN_BTAMP_FEATURE
+   vosStatus = WLANBAP_Open(pVosContext);
+   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: Failed to open BAP",__func__);
+      goto err_vosstop;
+   }
+   vosStatus = BSL_Init(pVosContext);
+   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: Failed to Init BSL",__func__);
+     goto err_bap_close;
+   }
+   vosStatus = WLANBAP_Start(pVosContext);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to start TL",__func__);
+       goto err_bap_close;
+   }
+   pConfig = pHddCtx->cfg_ini;
+   btAmpConfig.ucPreferredChannel = pConfig->preferredChannel;
+   vosStatus = WLANBAP_SetConfig(&btAmpConfig);
+#endif //WLAN_BTAMP_FEATURE
+
+    /* Restart all adapters */
+   hdd_start_all_adapters(pHddCtx);
+   pHddCtx->isLogpInProgress = FALSE;
+   pHddCtx->hdd_mcastbcast_filter_set = FALSE;
+#ifdef CONFIG_HAS_EARLYSUSPEND
+   hdd_register_mcast_bcast_filter(pHddCtx);
+#endif
+
+   /* Register with platform driver as client for Suspend/Resume */
+   vosStatus = hddRegisterPmOps(pHddCtx);
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
+      goto err_bap_stop;
+   }
+   // Register suspend/resume callbacks
+   if(pHddCtx->cfg_ini->nEnableSuspend)
+   {
+      register_wlan_suspend();
+   }
+   /* Allow the phone to go to sleep */
+   hdd_allow_suspend();
+   /* register for riva power on lock */
+   if (req_riva_power_on_lock("wlan"))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: req riva power on lock failed",
+                                        __func__);
+      goto err_unregister_pmops;
+   }
+   goto success;
+
+err_unregister_pmops:
+   hddDeregisterPmOps(pHddCtx);
+
+err_bap_stop:
+  WLANBAP_Stop(pVosContext);
+
+err_bap_close:
+   WLANBAP_Close(pVosContext);
+
+err_vosstop:
+   vos_stop(pVosContext);
+
+err_vosclose:
+   vos_close(pVosContext);
+   vos_sched_close(pVosContext);
+   if (pHddCtx)
+   {
+#ifdef CONFIG_HAS_EARLYSUSPEND
+       /* unregister suspend/resume callbacks */
+       if (pHddCtx->cfg_ini->nEnableSuspend)
+           unregister_wlan_suspend();
+#endif
+       /* Unregister the Net Device Notifier */
+       unregister_netdevice_notifier(&hdd_netdev_notifier);
+       /* Clean up HDD Nlink Service */
+       send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+       nl_srv_exit();
+       hdd_close_all_adapters(pHddCtx);
+       /* Free up dynamically allocated members inside HDD Adapter */
+       kfree(pHddCtx->cfg_ini);
+       pHddCtx->cfg_ini= NULL;
+
+#ifdef CONFIG_CFG80211
+       wiphy_unregister(pHddCtx->wiphy);
+       wiphy_free(pHddCtx->wiphy);
+#else
+       vos_mem_free(pHddCtx);
+#endif
+   }
+   vos_preClose(&pVosContext);
+
+#ifdef MEMORY_DEBUG
+   vos_mem_exit();
+#endif
+
+err_re_init:
+   /* Allow the phone to go to sleep */
+   hdd_allow_suspend();
+   return -1;
+
+success:
+   /* Trigger replay of BTC events */
+   send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+   return VOS_STATUS_SUCCESS;
+}

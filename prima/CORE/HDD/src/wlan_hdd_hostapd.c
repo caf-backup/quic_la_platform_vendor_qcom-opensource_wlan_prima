@@ -2373,6 +2373,8 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         init_completion(&pHostapdAdapter->offchannel_tx_event);
 #endif
 
+        init_completion(&pHostapdAdapter->scan_info.scan_req_completion_event);
+
         SET_NETDEV_DEV(pWlanHostapdDev, pHddCtx->parent_dev);
     }
     return pHostapdAdapter;

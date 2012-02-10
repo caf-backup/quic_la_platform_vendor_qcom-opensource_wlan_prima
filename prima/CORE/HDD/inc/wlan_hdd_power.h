@@ -60,6 +60,9 @@
  VOS_STATUS hdd_wlan_reset(void) ;
  VOS_STATUS hdd_wlan_reset_initialization(void) ;
 #endif
+ /* SSR shutdown & re-init functions */
+ VOS_STATUS hdd_wlan_shutdown(void);
+ VOS_STATUS hdd_wlan_re_init(void);
 
 void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter);
 VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable);

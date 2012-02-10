@@ -1557,6 +1557,78 @@ WLAN_BAPVendorSpecificCmd0
 
 /*----------------------------------------------------------------------------
 
+  FUNCTION    WLAN_BAPVendorSpecificCmd1()
+
+  DESCRIPTION
+    Implements the actual HCI Vendor Specific Command 1 (OGF 0x3f, OCF 0x0001).
+    There is no need for a callback because when this call returns the action has
+    been completed.
+
+    The command is received when:
+    - HCI wants to enable testability
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIEvent is NULL
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+
+----------------------------------------------------------------------------*/
+VOS_STATUS
+WLAN_BAPVendorSpecificCmd1
+(
+  ptBtampHandle btampHandle,
+  tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
+                                /* Including Command Complete and Command Status*/
+)
+{
+    ptBtampContext btampContext = (ptBtampContext) btampHandle;
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: btampHandle value: %x", __FUNCTION__,  btampHandle);
+
+    /* Validate params */
+    if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "Invalid input parameters in %s", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+
+    btampContext->btamp_async_logical_link_create = TRUE;
+
+
+    /* Format the Vendor Specific Command 1 Complete event to return... */
+    pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
+    pBapHCIEvent->u.btampCommandCompleteEvent.present = 1;
+    pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
+        = BTAMP_TLV_HCI_VENDOR_SPECIFIC_CMD_1;
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Vendor_Specific_Cmd_1.status
+        = WLANBAP_STATUS_SUCCESS;
+
+    return VOS_STATUS_SUCCESS;
+} /* WLAN_BAPVendorSpecificCmd1 */
+
+/*----------------------------------------------------------------------------
+
   DESCRIPTION   
     Callback registered with TL for BAP, this is required in order for
     TL to inform BAP, that the flush operation requested has been completed. 

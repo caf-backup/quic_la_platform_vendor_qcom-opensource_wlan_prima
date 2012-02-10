@@ -12,6 +12,12 @@
 #ifndef __WLAN_HDD_PACKET_FILTERING_H__
 #define __WLAN_HDD_PACKET_FILTERING_H__
 
+typedef struct
+{
+    v_U8_t       mcastBcastFilterSetting;
+}tMcBcFilterCfg, *tpMcBcFilterCfg;
+
+
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 #define HDD_MAX_CMP_PER_PACKET_FILTER     5     
 

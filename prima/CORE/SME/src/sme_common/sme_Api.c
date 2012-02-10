@@ -5889,3 +5889,76 @@ eHalStatus sme_HandlePostChannelSwitchInd(tHalHandle hHal)
 
    return (status);
 }
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_IsChannelValid
+
+    \brief To check if the channel is valid for currently established domain
+    This is a synchronous API.
+
+    \param hHal - The handle returned by macOpen.
+    \param channel - channel to verify
+
+    \return TRUE/FALSE, TRUE if channel is valid
+
+  -------------------------------------------------------------------------------*/
+tANI_BOOLEAN sme_IsChannelValid(tHalHandle hHal, tANI_U8 channel)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tANI_BOOLEAN valid = FALSE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+                   
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+
+      valid = csrRoamIsChannelValid( pMac, channel);
+
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (valid);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetFreqBand
+    \brief  Used to set frequency band.
+    \param  hHal
+    \eBand  band value to be configured
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetFreqBand(tHalHandle hHal, eCsrBand eBand)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      status = csrSetBand(hHal, eBand);
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return status;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_GetFreqBand
+    \brief  Used to get the current band settings.
+    \param  hHal
+    \pBand  pointer to hold band value
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_GetFreqBand(tHalHandle hHal, eCsrBand *pBand)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      *pBand = csrGetCurrentBand( hHal );
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return status;
+}

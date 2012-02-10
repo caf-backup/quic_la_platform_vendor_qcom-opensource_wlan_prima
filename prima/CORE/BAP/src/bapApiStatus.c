@@ -591,9 +591,19 @@ WLAN_BAPReadLocalAMPAssoc
         }
         else
         {
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0] = 0x01; 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] = 0x0B; //all channels for 1 to 11 
-        btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][2] = 0x11;
+            if (btampContext->config.ucPreferredChannel)
+            {
+                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0] = btampContext->config.ucPreferredChannel;
+                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] = 
+                    0x0B - btampContext->config.ucPreferredChannel + 1;  
+            }
+            else
+            {
+                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0] = 0x01; 
+                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1] = 0x0B; //all channels for 1 to 11 
+            }
+
+            btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][2] = 0x11;
         }
     } else 
     { 
@@ -745,6 +755,8 @@ WLAN_BAPWriteRemoteAMPAssoc
 {
     tWLAN_BAPEvent bapEvent; /* State machine event */
     VOS_STATUS  vosStatus;
+    tBtampHCI_Event bapHCIEvent;
+
     /* I am using btampContext, instead of pBapPhysLinkMachine */ 
     //tWLAN_BAPbapPhysLinkMachine *pBapPhysLinkMachine;
     ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */ 
@@ -776,6 +788,25 @@ WLAN_BAPWriteRemoteAMPAssoc
         = status;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Write_Remote_AMP_Assoc.phy_link_handle 
         = pBapHCIWriteRemoteAMPAssoc->phy_link_handle;
+
+    if(WLANBAP_ERROR_NO_SUITABLE_CHANNEL == status)
+    {
+        /* Format the Physical Link Complete event to return... */ 
+        bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT;
+        bapHCIEvent.u.btampPhysicalLinkCompleteEvent.present = 1;
+        bapHCIEvent.u.btampPhysicalLinkCompleteEvent.status = status;
+        bapHCIEvent.u.btampPhysicalLinkCompleteEvent.phy_link_handle 
+            = btampContext->phy_link_handle;
+        bapHCIEvent.u.btampPhysicalLinkCompleteEvent.ch_number 
+            = 0;
+    
+        vosStatus = (*btampContext->pBapHCIEventCB) 
+            (  
+             btampContext->pHddHdl,   /* this refers the BSL per application context */
+             &bapHCIEvent, /* This now encodes ALL event types */
+             VOS_TRUE /* Flag to indicate assoc-specific event */ 
+            );
+    }
 
     /* ... */ 
 

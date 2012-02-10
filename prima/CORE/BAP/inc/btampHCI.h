@@ -577,6 +577,10 @@ typedef struct sBtampTLVHCI_Command_Complete_Event {
         {
             v_U8_t status;
         } Vendor_Specific_Cmd_0; /* command_opcode = fc00 */
+        struct
+        {
+            v_U8_t status;
+        } Vendor_Specific_Cmd_1; /* command_opcode = fc01 */
     } cc_event;
 } tBtampTLVHCI_Command_Complete_Event;
 
@@ -1958,6 +1962,13 @@ typedef struct sBtampTLVHCI_Vendor_Specific_Cmd_0 {
 } tBtampTLVHCI_Vendor_Specific_0_Cmd;
 
 #define BTAMP_TLV_HCI_VENDOR_SPECIFIC_CMD_0 ( 64512 )
+
+// ID 64513 (0xfc01)
+typedef struct sBtampTLVHCI_Vendor_Specific_Cmd_1 {
+    v_U8_t       present;
+} tBtampTLVHCI_Vendor_Specific_1_Cmd;
+
+#define BTAMP_TLV_HCI_VENDOR_SPECIFIC_CMD_1 ( 64513 )
 
 /*********************************************************************
  * Information Elements                                              *

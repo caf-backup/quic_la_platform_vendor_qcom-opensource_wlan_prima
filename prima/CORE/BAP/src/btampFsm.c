@@ -549,21 +549,12 @@ convertToCsrProfile
     pProfile->nWPAReqIELength = 0;
 
     // Specify the channel
-    //pProfile->operationChannel = btampContext->channel;
-#if 0
-    // Needed in order to support the new csrRoamProfile ChannelInfo struct
-    pProfile->ChannelInfo.ChannelList = vos_mem_malloc(1);
-    if( !pProfile->ChannelInfo.ChannelList )
-    {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: failed to allocate memory\n", __FUNCTION__);
-        return NDIS_STATUS_FAILURE;
-    }
-    pProfile->ChannelInfo.numOfChannels = 1;
-    pProfile->ChannelInfo.ChannelList[0] = 1;
-#else
     /* Choose the operation channel from the preferred channel list
-     * Check how it is done for AP ????
      * Assume that for STA, only one preferred channel is available.
+     * If no preferred channel list, chose the one from user config
+     * If multi session on, we need to match the channel selected here 
+     * with the one we are currently operating on. The priority goes
+     * to the operating channel.
      */
     if (btampContext->btamp_Remote_AMP_Assoc.HC_pref_num_triplets)
     {
@@ -577,9 +568,7 @@ convertToCsrProfile
     }
     else
     {
-        /* No preferred channel list available, 
-           any channel can be chosen, choose default channel 1 */
-    pProfile->operationChannel = 1;
+        return VOS_STATUS_E_INVAL;
     }
 
     /*Set the selected channel */
@@ -592,15 +581,17 @@ convertToCsrProfile
             sme_GetInfraOperationChannel(hHal, 
                                          sessionid);
     }
+     
+    if(sme_IsChannelValid(hHal, pProfile->operationChannel))
+    {         
+        btampContext->channel = pProfile->operationChannel;
+    }
     else
     {
-        /*need the preferred channel from user config */
-        pProfile->operationChannel = btampContext->config.ucPreferredChannel;
+        //no valid channel, not proceeding with connection
+        return VOS_STATUS_E_INVAL;
     }
      
-     btampContext->channel = pProfile->operationChannel;
-#endif
-
     if ( BT_INITIATOR == btampContext->BAPDeviceRole ) 
     {
       pProfile->ChannelInfo.numOfChannels = 1;
@@ -837,6 +828,13 @@ gotoStarting
             btampContext, /* btampContext value */    
             bssType,
             &btampContext->csrRoamProfile);   /* return the profile info here */
+    if(VOS_STATUS_E_INVAL == vosStatus)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "Incorrect channel to create AMP link %s", __FUNCTION__);
+        *status = WLANBAP_ERROR_NO_SUITABLE_CHANNEL;
+        return VOS_STATUS_E_INVAL;
+    }
 #if 0
     halStatus = sme_RoamConnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
             &btampContext->csrRoamProfile, 
@@ -2510,3 +2508,61 @@ btampFsm
 
   return vosStatus;
 }
+
+VOS_STATUS btampEstablishLogLink(ptBtampContext btampContext)
+{  
+   VOS_STATUS      vosStatus = VOS_STATUS_SUCCESS;
+   vos_msg_t       msg;
+
+   tAniBtAmpLogLinkReq *pMsg;
+
+   pMsg = vos_mem_malloc(sizeof(tAniBtAmpLogLinkReq));
+   if ( NULL == pMsg ) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "In %s, failed to allocate mem for req", __FUNCTION__);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pMsg->msgType = pal_cpu_to_be16((tANI_U16)eWNI_SME_BTAMP_LOG_LINK_IND);
+   pMsg->msgLen = (tANI_U16)sizeof(tAniBtAmpLogLinkReq);
+   pMsg->btampHandle = btampContext;
+
+   msg.type = eWNI_SME_BTAMP_LOG_LINK_IND;
+   msg.bodyptr = pMsg;
+   msg.reserved = 0;
+
+   if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME, &msg))
+   {
+       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "In %s, failed to post msg to self", __FUNCTION__);
+       vos_mem_free(pMsg);
+       vosStatus = VOS_STATUS_E_FAILURE;
+   }
+   return vosStatus;
+}
+
+void btampEstablishLogLinkHdlr(void* pMsg)
+{
+    tAniBtAmpLogLinkReq *pBtAmpLogLinkReq = (tAniBtAmpLogLinkReq*)pMsg;
+    ptBtampContext btampContext;
+
+    if(pBtAmpLogLinkReq)
+    {
+        btampContext = (ptBtampContext)pBtAmpLogLinkReq->btampHandle;
+        if(NULL != btampContext)
+        {
+            WLAN_BAPEstablishLogicalLink(btampContext);
+        }
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "In %s, btampContext is NULL", __FUNCTION__);                  
+            return;
+        }
+            
+    }
+    else
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "In %s, pBtAmpLogLinkReq is NULL", __FUNCTION__);    
+    }
+    return;
+}
+

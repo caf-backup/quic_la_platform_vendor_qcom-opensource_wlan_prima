@@ -1156,32 +1156,76 @@ WLAN_BAPLogicalLinkCreate
     {
        /* Invalid Physical link handle */
         pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
-            WLANBAP_ERROR_NO_CNCT;
-        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_NO_CNCT;
+            WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
     }
     else
     {
-    /* Allocate a logical link index for these flow specs */
-    vosStatus = WLANBAP_CreateNewLogLinkCtx( 
-            btampContext, /* per assoc btampContext value */ 
-            pBapHCILogLinkCreate->phy_link_handle, /*  I get phy_link_handle from the Command */
-            pBapHCILogLinkCreate->tx_flow_spec, /*  I get tx_flow_spec from the Command */
-            pBapHCILogLinkCreate->rx_flow_spec, /*  I get rx_flow_spec from the Command */
-            &log_link_index /*  Return the logical link index here */
-            );
-        if (VOS_STATUS_SUCCESS != vosStatus)
+        btampContext->btamp_logical_link_state = WLAN_BAPLogLinkInProgress;
+
+        if( TRUE == btampContext->btamp_logical_link_cancel_pending )
         {
-            /* Invalid flow spec format */
             pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
-                WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
-            bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                WLANBAP_ERROR_NO_CNCT;
+            bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_NO_CNCT;
+            btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
+            btampContext->btamp_logical_link_cancel_pending = FALSE;
         }
         else
         {
-            retval = VOS_STATUS_SUCCESS;
-            bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
+            /* If btamp_async_logical_link_create is set, we will seralize the req
+               on MC thread & handle it there after; If the above flag is not set
+               respond to HCI the sync way as before */
+            if(FALSE == btampContext->btamp_async_logical_link_create)
+            {
+                 /* Allocate a logical link index for these flow specs */
+                 vosStatus = WLANBAP_CreateNewLogLinkCtx( 
+                   btampContext, /* per assoc btampContext value */ 
+                   pBapHCILogLinkCreate->phy_link_handle, /*  I get phy_link_handle from the Command */
+                   pBapHCILogLinkCreate->tx_flow_spec, /*  I get tx_flow_spec from the Command */
+                   pBapHCILogLinkCreate->rx_flow_spec, /*  I get rx_flow_spec from the Command */
+                   &log_link_index /*  Return the logical link index here */
+                   );
+                 if (VOS_STATUS_SUCCESS != vosStatus)
+                 {
+                     /* Invalid flow spec format */
+                     pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
+                        WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                     bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                     btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
+                 }
+                 else
+                 {
+                      retval = VOS_STATUS_SUCCESS;
+                      bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
 
-            pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status = WLANBAP_STATUS_SUCCESS;
+                      pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status = WLANBAP_STATUS_SUCCESS;
+                      btampContext->btamp_logical_link_state = WLAN_BAPLogLinkOpen;
+                 }
+            }
+            else
+            {
+                btampContext->btamp_logical_link_req_info.phyLinkHandle = 
+                    pBapHCILogLinkCreate->phy_link_handle;
+                vos_mem_copy(btampContext->btamp_logical_link_req_info.txFlowSpec,
+                             pBapHCILogLinkCreate->tx_flow_spec, 18);
+                vos_mem_copy(btampContext->btamp_logical_link_req_info.rxFlowSpec,
+                             pBapHCILogLinkCreate->rx_flow_spec, 18);
+                btampContext->btamp_async_logical_link_create = FALSE;
+                vosStatus = btampEstablishLogLink(btampContext);
+                if(VOS_STATUS_SUCCESS == vosStatus)
+                {
+                    retval = VOS_STATUS_E_BUSY;//this will make sure event complete is not sent to HCI
+                }
+                else
+                {
+                    pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
+                        WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                    bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                    btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
+                }
+    
+            }
         }
     }
 
@@ -1283,48 +1327,103 @@ WLAN_BAPLogicalLinkAccept
         = BTAMP_TLV_HCI_ACCEPT_LOGICAL_LINK_CMD;
 
     retval = VOS_STATUS_E_FAILURE;
-    if (CONNECTED != instanceVar->stateVar)
+    if(DISCONNECTED == instanceVar->stateVar)
+    {
+       /* Create Logical link request in invalid state */
+        pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
+            WLANBAP_ERROR_CMND_DISALLOWED;
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_NO_CNCT;
+
+    }
+    else if (CONNECTED != instanceVar->stateVar)
     {
         /* Create Logical link request in invalid state */
         pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
             WLANBAP_ERROR_CMND_DISALLOWED;
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_CMND_DISALLOWED;
     }
     else if (pBapHCILogLinkAccept->phy_link_handle != btampContext->phy_link_handle)
     {
        /* Invalid Physical link handle */
         pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
-            WLANBAP_ERROR_NO_CNCT;
+            WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
     }
     else
     {
-    /* Allocate a logical link index for these flow specs */
-    vosStatus = WLANBAP_CreateNewLogLinkCtx( 
-            btampContext, /* per assoc btampContext value */ 
-            pBapHCILogLinkAccept->phy_link_handle, /*  I get phy_link_handle from the Command */
-            pBapHCILogLinkAccept->tx_flow_spec, /*  I get tx_flow_spec from the Command */
-            pBapHCILogLinkAccept->rx_flow_spec, /*  I get rx_flow_spec from the Command */
-            &log_link_index /*  Return the logical link index here */
-            );
-        if (VOS_STATUS_SUCCESS != vosStatus)
+        btampContext->btamp_logical_link_state = WLAN_BAPLogLinkInProgress;
+        if( TRUE == btampContext->btamp_logical_link_cancel_pending )
         {
-            /* Invalid flow spec format */
             pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
-                WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                WLANBAP_ERROR_NO_CNCT;
+            bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_NO_CNCT;
+            btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
+            btampContext->btamp_logical_link_cancel_pending = FALSE;
         }
         else
         {
-            retval = VOS_STATUS_SUCCESS;
-            bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
+            /* If btamp_async_logical_link_create is set, we will seralize the req
+               on MC thread & handle it there after; If the above flag is not set
+               respond to HCI the sync way as before */
+            if(FALSE == btampContext->btamp_async_logical_link_create)
+            {
+                /* Allocate a logical link index for these flow specs */
+                vosStatus = WLANBAP_CreateNewLogLinkCtx( 
+                        btampContext, /* per assoc btampContext value */ 
+                        pBapHCILogLinkAccept->phy_link_handle, /*  I get phy_link_handle from the Command */
+                        pBapHCILogLinkAccept->tx_flow_spec, /*  I get tx_flow_spec from the Command */
+                        pBapHCILogLinkAccept->rx_flow_spec, /*  I get rx_flow_spec from the Command */
+                        &log_link_index /*  Return the logical link index here */
+                        );
+                if (VOS_STATUS_SUCCESS != vosStatus)
+                {
+                    /* Invalid flow spec format */
+                    pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
+                        WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                    bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                    btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
+                }
+                else
+                {
+                    retval = VOS_STATUS_SUCCESS;
+                    bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
 
-            vosStatus = (*btampContext->pBapHCIEventCB) 
-                (  
-                 btampContext->pHddHdl,   /* this refers to the BSL per connection context */
-                 &bapHCIEvent, /* This now encodes ALL event types */
-                 VOS_TRUE /* Flag to indicate assoc-specific event */ 
-                );
-        pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status = WLANBAP_STATUS_SUCCESS;
+                    pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status = WLANBAP_STATUS_SUCCESS;
+                    btampContext->btamp_logical_link_state = WLAN_BAPLogLinkOpen;
+                }
+            }
+            else
+            {
+                btampContext->btamp_logical_link_req_info.phyLinkHandle = 
+                    pBapHCILogLinkAccept->phy_link_handle;
+                vos_mem_copy(btampContext->btamp_logical_link_req_info.txFlowSpec,
+                             pBapHCILogLinkAccept->tx_flow_spec, 18);
+                vos_mem_copy(btampContext->btamp_logical_link_req_info.rxFlowSpec,
+                             pBapHCILogLinkAccept->rx_flow_spec, 18);
+                btampContext->btamp_async_logical_link_create = FALSE;
+                vosStatus = btampEstablishLogLink(btampContext);
+                if(VOS_STATUS_SUCCESS == vosStatus)
+                {
+                    retval = VOS_STATUS_E_BUSY;//this will make sure event complete is not sent to HCI
+                }
+                else
+                {
+                    pBapHCIEvent->u.btampLogicalLinkCompleteEvent.status =
+                        WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                    bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+                    btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
+                }
+    
+            }
+        }
     }
-    }
+    vosStatus = (*btampContext->pBapHCIEventCB) 
+            (  
+             btampContext->pHddHdl,   /* this refers to the BSL per connection context */
+             &bapHCIEvent, /* This now encodes ALL event types */
+             VOS_TRUE /* Flag to indicate assoc-specific event */ 
+             );
+
     index_for_logLinkCtx = log_link_index >> 8;
 
     /* Format the Logical Link Complete event to return... */ 
@@ -1472,6 +1571,7 @@ WLAN_BAPLogicalLinkDisconnect
         pLogLinkContext->log_link_handle = 0;
         /* Decrement the total logical link count */
         btampContext->total_log_link_index--;
+        btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
     }
     
     /* Notify the Command status Event */
@@ -1561,17 +1661,25 @@ WLAN_BAPLogicalLinkCancel
        created and so cancel can not return success.
        And it returns WLANBAP_ERROR_NO_CNCT if not connected or
        WLANBAP_ERROR_MAX_NUM_ACL_CNCTS if connected */
-    if(DISCONNECTED == instanceVar->stateVar)
+    if(WLAN_BAPLogLinkClosed == btampContext->btamp_logical_link_state )
     {
        /* Cancel Logical link request in invalid state */
        pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
            WLANBAP_ERROR_NO_CNCT;
     }
-    else if(CONNECTED == instanceVar->stateVar)
+    else if(WLAN_BAPLogLinkOpen == btampContext->btamp_logical_link_state )
     {
        /* Cancel Logical link request in conected state */
        pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
            WLANBAP_ERROR_MAX_NUM_ACL_CNCTS;       
+    }
+    else if(WLAN_BAPLogLinkInProgress == btampContext->btamp_logical_link_state )
+    {
+       /* Cancel Logical link request in progress state, need to fail logical link
+          creation as well */
+       btampContext->btamp_logical_link_cancel_pending = TRUE;
+       pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+           WLANBAP_STATUS_SUCCESS;       
     }
     else
     {
@@ -1705,7 +1813,69 @@ WLAN_BAPFlowSpecModify
 } /* WLAN_BAPFlowSpecModify */
 
 
+void WLAN_BAPEstablishLogicalLink(ptBtampContext btampContext)
+{
+    tBtampHCI_Event bapHCIEvent; /* This now encodes ALL event types */
+    v_U16_t         log_link_index = 0;
+    v_U16_t         index_for_logLinkCtx = 0;
+    VOS_STATUS      vosStatus = VOS_STATUS_SUCCESS;
 
+    if (btampContext == NULL) 
+    {
+        bapHCIEvent.u.btampLogicalLinkCompleteEvent.status =
+            WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+    }
+
+    if( TRUE == btampContext->btamp_logical_link_cancel_pending )
+    {
+        bapHCIEvent.u.btampCommandStatusEvent.status = WLANBAP_ERROR_NO_CNCT;
+        btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
+        btampContext->btamp_logical_link_cancel_pending = FALSE;
+    }
+    else
+    {
+        /* Allocate a logical link index for these flow specs */
+        vosStatus = WLANBAP_CreateNewLogLinkCtx( 
+            btampContext, /* per assoc btampContext value */ 
+            btampContext->btamp_logical_link_req_info.phyLinkHandle, /*  I get phy_link_handle from the Command */
+            btampContext->btamp_logical_link_req_info.txFlowSpec, /*  I get tx_flow_spec from the Command */
+            btampContext->btamp_logical_link_req_info.rxFlowSpec, /*  I get rx_flow_spec from the Command */
+            &log_link_index /*  Return the logical link index here */
+            );
+        if (VOS_STATUS_SUCCESS != vosStatus)
+        {
+            /* Invalid flow spec format */
+            bapHCIEvent.u.btampLogicalLinkCompleteEvent.status = WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+            btampContext->btamp_logical_link_state = WLAN_BAPLogLinkClosed;
+        }
+        else
+        {
+            bapHCIEvent.u.btampLogicalLinkCompleteEvent.status = WLANBAP_STATUS_SUCCESS;
+            btampContext->btamp_logical_link_state = WLAN_BAPLogLinkOpen;
+        }
+    }
+    
+    index_for_logLinkCtx = log_link_index >> 8;
+    /* Format the Logical Link Complete event to return... */ 
+    bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_LOGICAL_LINK_COMPLETE_EVENT;
+    bapHCIEvent.u.btampLogicalLinkCompleteEvent.present = 1;
+
+    /*  Return the logical link index here */
+    bapHCIEvent.u.btampLogicalLinkCompleteEvent.log_link_handle 
+        = log_link_index;
+    bapHCIEvent.u.btampLogicalLinkCompleteEvent.phy_link_handle 
+        = btampContext->btamp_logical_link_req_info.phyLinkHandle;
+    bapHCIEvent.u.btampLogicalLinkCompleteEvent.flow_spec_id
+        = btampContext->btampLogLinkCtx[index_for_logLinkCtx].btampFlowSpec.flow_spec_id;
+
+    vosStatus = (*btampContext->pBapHCIEventCB) 
+    (  
+     btampContext->pHddHdl,   /* this refers to the BSL per connection context */
+     &bapHCIEvent, /* This now encodes ALL event types */
+     VOS_TRUE /* Flag to indicate assoc-specific event */ 
+     );
+    return;
+}
 
 
 

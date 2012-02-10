@@ -105,6 +105,9 @@ typedef enum
     waiting for the response */
   WDI_BUSY_ST,  
 
+  /* Transition happens when 'SSR' shutdown request is recieved.*/
+  WDI_SHUTDOWN_ST,
+
   WDI_MAX_ST
 }WDI_MainStateType;
 
@@ -376,6 +379,9 @@ typedef enum
   /* WLAN HAL DUMP Command request */
   WDI_HAL_DUMP_CMD_REQ                          = 72,
   
+  /* WLAN DAL Shutdown Request */
+  WDI_SHUTDOWN_REQ                              = 73,
+
   WDI_MAX_REQ,
 
   /*Send a suspend Indication down to HAL*/
@@ -608,6 +614,9 @@ typedef enum
   /* WLAN HAL DUMP Command Response */
   WDI_HAL_DUMP_CMD_RESP                         = 71,
   
+  /* WLAN Shutdown Response */
+  WDI_SHUTDOWN_RESP                             = 72,
+
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
@@ -1047,6 +1056,9 @@ typedef enum
   /* Close request received from UMAC */
   WDI_CLOSE_EVENT          = 4,
 
+  /* Shutdown request received from UMAC */
+  WDI_SHUTDOWN_EVENT       = 5,
+
   WDI_MAX_EVENT
 
 }WDI_MainEventType;
@@ -1343,8 +1355,39 @@ WDI_MainCloseBusy
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Main FSM Shutdown function for INIT & STARTED states
 
 
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_MainShutdown
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Main FSM Shutdown function for BUSY state
+
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_MainShutdownBusy
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 
 /*========================================================================
           Main DAL Control Path Request Processing API 
@@ -1403,20 +1446,37 @@ WDI_ProcessCloseReq
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process Shutdown Request function (called when Main FSM
+        allows it)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessShutdownReq
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
 
 /**
  @brief Process Init Scan Request function (called when Main FSM
         allows it)
- 
- @param  pWDICtx:         pointer to the WLAN DAL context 
-         pEventData:      pointer to the event information structure 
-  
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
  @see
  @return Result of the function call
 */
 WDI_Status
 WDI_ProcessInitScanReq
-( 
+(
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 );
@@ -1427,8 +1487,8 @@ WDI_ProcessInitScanReq
         FSM allows it)
  
  @param  pWDICtx:         pointer to the WLAN DAL context 
-         pEventData:      pointer to the event information structure 
-  
+         pEventData:      pointer to the event information structure
+
  @see
  @return Result of the function call
 */
@@ -2500,6 +2560,23 @@ WDI_ProcessCloseRsp
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process Shutdown Rsp function
+        There is no shutdown response comming from HAL
+        - function just kept for simmetry
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessShutdownRsp
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 
 /**
  @brief Process Init Scan Rsp function (called when a response

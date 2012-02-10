@@ -219,6 +219,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 #define WLAN_SET_BAND_CONFIG  (SIOCIWFIRSTPRIV + 25)  /*Don't change this number*/
 
+#define WLAN_PRIV_SET_MCBC_FILTER    (SIOCIWFIRSTPRIV + 26)
+#define WLAN_PRIV_CLEAR_MCBC_FILTER  (SIOCIWFIRSTPRIV + 27)
+
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
 #define WLAN_STATS_MUL_RETRY_CNT      2
@@ -2179,7 +2182,6 @@ static int iw_set_priv(struct net_device *dev,
     int cmd_len = wrqu->data.length;
     int ret = 0;
     int status = 0;
-    hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     ENTER();
@@ -2248,17 +2250,17 @@ static int iw_set_priv(struct net_device *dev,
     }
     else if (strcasecmp(cmd, "scan-active") == 0)
     {
-        pWextState->scan_mode = eSIR_ACTIVE_SCAN; 
+        pAdapter->scan_info.scan_mode = eSIR_ACTIVE_SCAN; 
         ret = snprintf(cmd, cmd_len, "OK");
     }
     else if (strcasecmp(cmd, "scan-passive") == 0)
     {
-        pWextState->scan_mode = eSIR_PASSIVE_SCAN;
+        pAdapter->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
         ret = snprintf(cmd, cmd_len, "OK");
     }
     else if( strcasecmp(cmd, "scan-mode") == 0 ) 
     {
-        ret = snprintf(cmd, cmd_len, "ScanMode = %u", pWextState->scan_mode);
+        ret = snprintf(cmd, cmd_len, "ScanMode = %u", pAdapter->scan_info.scan_mode);
     }
     else if( strcasecmp(cmd, "linkspeed") == 0 ) 
     {
@@ -4187,6 +4189,37 @@ static int iw_set_fties(struct net_device *dev, struct iw_request_info *info,
 }
 #endif
 
+static int iw_set_dynamic_mcbc_filter(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{   
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tpMcBcFilterCfg pRequest = (tpMcBcFilterCfg)wrqu->data.pointer;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
+           "%s: Set MC BC Filter Config request: %d",
+           __FUNCTION__, pRequest->mcastBcastFilterSetting);
+
+    pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting = 
+                               pRequest->mcastBcastFilterSetting; 
+    pHddCtx->dynamic_mcbc_filter.enableCfg = TRUE; 
+
+    return 0;
+}
+
+static int iw_clear_dynamic_mcbc_filter(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{   
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: ", __FUNCTION__);
+
+    pHddCtx->dynamic_mcbc_filter.enableCfg = FALSE; 
+
+    return 0;
+}
+
 static int iw_set_host_offload(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {   
@@ -4801,6 +4834,7 @@ static int iw_set_pno_priv(struct net_device *dev,
                 "Set PNO Private");
   return iw_set_pno(dev,info,wrqu,extra,0);
 }
+#endif /*FEATURE_WLAN_SCAN_PNO*/
 
 static int iw_set_band_config(struct net_device *dev,
                            struct iw_request_info *info,
@@ -4811,6 +4845,7 @@ static int iw_set_band_config(struct net_device *dev,
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     tANI_U8 band = 0;
+    eCsrBand currBand = eCSR_BAND_MAX;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: ", __FUNCTION__);
 
@@ -4847,7 +4882,15 @@ static int iw_set_band_config(struct net_device *dev,
             return -EIO;
         }
 
-        if (csrGetCurrentBand(hHal) != band)
+        if (eHAL_STATUS_SUCCESS != sme_GetFreqBand(hHal, &currBand))
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                    "%s: Failed to get current band config", 
+                    __FUNCTION__);
+            return -EIO;
+        }
+
+        if (currBand != band)
         {
             /* Change band request received.
              * Abort pending scan requests, flush the existing scan results,
@@ -4855,10 +4898,10 @@ static int iw_set_band_config(struct net_device *dev,
              */
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "%s: Current band value = %u, new setting %u ", 
-                    __FUNCTION__, csrGetCurrentBand(hHal), band);
+                    __FUNCTION__, currBand, band);
             hdd_abort_mac_scan(pHddCtx);
             sme_ScanFlushResult(hHal, pAdapter->sessionId);
-            if(eHAL_STATUS_SUCCESS != csrSetBand(hHal, (eCsrBand)band))
+            if(eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, (eCsrBand)band))
             {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                         "%s: failed to set the band value to %u ", 
@@ -4870,7 +4913,6 @@ static int iw_set_band_config(struct net_device *dev,
     }
     return 0;
 }
-#endif /*FEATURE_WLAN_SCAN_PNO*/
 
 // Define the Wireless Extensions to the Linux Network Device structure
 // A number of these routines are NULL (meaning they are not implemented.) 
@@ -4974,7 +5016,9 @@ static const iw_handler we_private[] = {
    [WLAN_SET_PNO                        - SIOCIWFIRSTPRIV]   = iw_set_pno_priv
 #endif
    ,
-   [WLAN_SET_BAND_CONFIG                - SIOCIWFIRSTPRIV]   = iw_set_band_config
+   [WLAN_SET_BAND_CONFIG                - SIOCIWFIRSTPRIV]   = iw_set_band_config,
+   [WLAN_PRIV_SET_MCBC_FILTER           - SIOCIWFIRSTPRIV]   = iw_set_dynamic_mcbc_filter,
+   [WLAN_PRIV_CLEAR_MCBC_FILTER         - SIOCIWFIRSTPRIV]   = iw_clear_dynamic_mcbc_filter
 };
 
 /*Maximum command length can be only 15 */
@@ -5283,6 +5327,18 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         0,
         "SETBAND" },
+		
+    /* handlers for dynamic MC BC ioctl */
+    {
+        WLAN_PRIV_SET_MCBC_FILTER,
+        IW_PRIV_TYPE_BYTE | sizeof(tMcBcFilterCfg),
+        0,
+        "setMCBCFilter" },
+    {
+        WLAN_PRIV_CLEAR_MCBC_FILTER,
+        0,
+        0,
+        "clearMCBCFilter" },
    
 };
 
@@ -5334,7 +5390,7 @@ int hdd_set_wext(hdd_adapter_t *pAdapter)
     pwextBuf->wpaVersion = IW_AUTH_WPA_VERSION_DISABLED;
 
     /*Set the default scan mode*/
-    pwextBuf->scan_mode = eSIR_ACTIVE_SCAN;
+    pAdapter->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
 
     hdd_clearRoamProfileIe(pAdapter);
 

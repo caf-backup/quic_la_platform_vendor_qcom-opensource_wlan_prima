@@ -272,6 +272,8 @@ void csrRoamJoinRetryTimerHandler(void *pv);
 #endif
 extern void SysProcessMmhMsg(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 
+extern void btampEstablishLogLinkHdlr(void* pMsg);
+
 //Initialize global variables
 static void csrRoamInitGlobals(tpAniSirGlobal pMac)
 {
@@ -992,15 +994,15 @@ eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    
+
     if (CSR_IS_PHY_MODE_A_ONLY(pMac) &&
-		    (eBand == eCSR_BAND_24))
+            (eBand == eCSR_BAND_24))
     {
         /* DOT11 mode configured to 11a only and received 
            request to change the band to 2.4 GHz */
-	    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-		    "failed to set band cfg80211 = %u, band = %u\n",  
-		    pMac->roam.configParam.uCfgDot11Mode, eBand);
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                "failed to set band cfg80211 = %u, band = %u\n",  
+                pMac->roam.configParam.uCfgDot11Mode, eBand);
         return eHAL_STATUS_INVALID_PARAMETER;
     }
 
@@ -1010,9 +1012,9 @@ eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand)
     {
         /* DOT11 mode configured to 11b/11g only and received 
            request to change the band to 5 GHz */
-	    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-		    "failed to set band dot11mode = %u, band = %u\n",  
-		    pMac->roam.configParam.uCfgDot11Mode, eBand);
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                "failed to set band dot11mode = %u, band = %u\n",  
+                pMac->roam.configParam.uCfgDot11Mode, eBand);
         return eHAL_STATUS_INVALID_PARAMETER;
     }
 
@@ -8229,6 +8231,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED);
             break;
             
+        case eWNI_SME_BTAMP_LOG_LINK_IND:
+            smsLog( pMac, LOG1, FL("Establish logical link req from HCI serialized through MC thread\n"));
+            btampEstablishLogLinkHdlr( pSirMsg );
+            break;
+
         default:
             break;
 

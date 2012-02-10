@@ -193,7 +193,6 @@ VOS_STATUS WDA_GetWepKeysFromCfg( tWDA_CbContext *pWDA,
  * FUNCTION: WDA_open
  * Allocate the WDA context 
  */ 
-
 VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
                                                 tMacOpenParameters *pMacParams )
 {
@@ -1532,7 +1531,7 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext)
 
    wdaContext->wdaState = WDA_CLOSE_STATE;
 
-   /* Destroy the event */
+   /* Destroy the events */
    status = vos_event_destroy(&wdaContext->txFrameEvent);
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
@@ -11631,4 +11630,97 @@ VOS_STATUS WDA_ProcessTxControlInd(tWDA_CbContext *pWDA,
    }
 
    return wdaStatus;
+}
+
+/*
+ * FUNCTION: WDA_shutdown
+ * Shutdown WDA/WDI without handshaking with Riva.
+ * Synchronous function.
+ */
+VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext)
+{
+   WDI_Status wdiStatus;
+   //tANI_U8    eventIdx = 0;
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   tWDA_CbContext *pWDA = (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
+
+   if (NULL == pWDA)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+            "%s: Invoked with invalid pWDA", __FUNCTION__ );
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   /* FTM mode stay START_STATE */
+   if( (WDA_READY_STATE != pWDA->wdaState) &&
+         (WDA_INIT_STATE != pWDA->wdaState) &&
+         (WDA_START_STATE != pWDA->wdaState) )
+   {
+      VOS_ASSERT(0);
+   }
+
+   if(NULL != pWDA->wdaWdiApiMsgParam)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+            "%s:wdaWdiApiMsgParam is not NULL", __FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   if ( eDRIVER_TYPE_MFG != pWDA->driverMode )
+   {
+      wdaDestroyTimers(pWDA);
+   }
+   pWDA->wdaWdiApiMsgParam = NULL;
+
+   /* call WDI shutdown */
+   wdiStatus = WDI_Shutdown();
+
+   if (IS_WDI_STATUS_FAILURE(wdiStatus) )
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                  "error in WDA Stop" );
+      vos_mem_free(pWDA->wdaWdiApiMsgParam);
+      pWDA->wdaWdiApiMsgParam = NULL;
+      status = VOS_STATUS_E_FAILURE;
+   }
+   /* WDI stop is synchrnous, shutdown is complete when it returns */
+   pWDA->wdaState = WDA_STOP_STATE;
+
+
+   /* shutdown should perform the stop & close actions. */
+   /* Destroy the event */
+   status = vos_event_destroy(&pWDA->txFrameEvent);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                  "VOS Event destroy failed - status = %d\n", status);
+      status = VOS_STATUS_E_FAILURE;
+   }
+   status = vos_event_destroy(&pWDA->suspendDataTxEvent);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                  "VOS Event destroy failed - status = %d\n", status);
+      status = VOS_STATUS_E_FAILURE;
+   }
+   status = vos_event_destroy(&pWDA->waitOnWdiIndicationCallBack);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                  "VOS Event destroy failed - status = %d\n", status);
+      status = VOS_STATUS_E_FAILURE;
+   }
+
+   /* free WDA context */
+   status = vos_free_context(pVosContext,VOS_MODULE_ID_WDA,pWDA);
+   if ( !VOS_IS_STATUS_SUCCESS(status) )
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                  "error in WDA close " );
+      status = VOS_STATUS_E_FAILURE;
+   }
+
+   return status;
 }

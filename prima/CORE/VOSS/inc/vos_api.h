@@ -78,7 +78,7 @@
   
 ---------------------------------------------------------------------------*/
 VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext );
-  
+
 VOS_STATUS vos_preClose( v_CONTEXT_t *pVosContext );
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
@@ -97,7 +97,11 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext );
 
 VOS_STATUS vos_close( v_CONTEXT_t vosContext );
 
-                   
+/* vos shutdown will not close control transport and will not handshake with Riva */
+VOS_STATUS vos_shutdown( v_CONTEXT_t vosContext );
+
+/* the wda interface to shutdown */
+VOS_STATUS vos_wda_shutdown( v_CONTEXT_t vosContext );
 
 /**---------------------------------------------------------------------------
   
@@ -250,5 +254,41 @@ void  vos_preventSuspend ( v_CONTEXT_t vosContext );
   
   --------------------------------------------------------------------------*/
 void  vos_allowSuspend ( v_CONTEXT_t vosContext );
+
+/**
+  @brief vos_wlanShutdown() - This API will shutdown WLAN driver
+
+  This function is called when Riva subsystem crashes.  There are two
+  methods (or operations) in WLAN driver to handle Riva crash,
+    1. shutdown: Called when Riva goes down, this will shutdown WLAN
+                 driver without handshaking with Riva.
+    2. re-init:  Next API
+
+  @param
+       NONE
+  @return
+       VOS_STATUS_SUCCESS   - Operation completed successfully.
+       VOS_STATUS_E_FAILURE - Operation failed.
+
+*/
+VOS_STATUS vos_wlanShutdown(void);
+
+/**
+  @brief vos_wlanReInit() - This API will re-init WLAN driver
+
+  This function is called when Riva subsystem reboots.  There are two
+  methods (or operations) in WLAN driver to handle Riva crash,
+    1. shutdown: Previous API
+    2. re-init:  Called when Riva comes back after the crash. This will
+                 re-initialize WLAN driver. In some cases re-open may be
+                 referred instead of re-init.
+  @param
+       NONE
+  @return
+       VOS_STATUS_SUCCESS   - Operation completed successfully.
+       VOS_STATUS_E_FAILURE - Operation failed.
+
+*/
+VOS_STATUS vos_wlanReInit(void);
 
 #endif // if !defined __VOS_NVITEM_H

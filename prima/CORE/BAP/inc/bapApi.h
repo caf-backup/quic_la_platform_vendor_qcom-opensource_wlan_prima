@@ -306,6 +306,8 @@ this command is supported.
 #define WLANBAP_ERROR_EIR_TOO_LARGE                   (0x36)      
 #define WLANBAP_ERROR_SSP_NOT_SUPPORTED_BY_HOST       (0x37)      
 #define WLANBAP_ERROR_HOST_BUSY_PAIRING               (0x38)      
+#define WLANBAP_ERROR_NO_SUITABLE_CHANNEL             (0x39)
+#define WLANBAP_ERROR_CONTROLLER_BUSY                 (0x3A)      
 
 /*----------------------------------------------------------------------------
  *   Event_Mask_Page_2 defines for events
@@ -2142,6 +2144,45 @@ WLAN_BAPSetShortRangeMode
 ----------------------------------------------------------------------------*/
 VOS_STATUS
 WLAN_BAPVendorSpecificCmd0
+(
+  ptBtampHandle btampHandle,
+  tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
+                                /* Including Command Complete and Command Status*/
+);
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPVendorSpecificCmd1()
+
+  DESCRIPTION
+    Implements the actual HCI Vendor Specific Command 1 (OGF 0x3f, OCF 0x0001).
+    There is no need for a callback because when this call returns the action has
+    been completed.
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIEvent is NULL
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+
+----------------------------------------------------------------------------*/
+VOS_STATUS
+WLAN_BAPVendorSpecificCmd1
 (
   ptBtampHandle btampHandle,
   tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
