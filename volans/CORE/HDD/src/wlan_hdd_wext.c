@@ -2121,7 +2121,6 @@ static int iw_set_priv(struct net_device *dev,
    int cmd_len = wrqu->data.length;
    int ret = 0;
    int status = 0;
-   hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    ENTER();
@@ -2192,17 +2191,17 @@ static int iw_set_priv(struct net_device *dev,
    }
    else if (strcasecmp(cmd, "scan-active") == 0)
    {
-      pWextState->scan_mode = eSIR_ACTIVE_SCAN; 
+      pAdapter->scan_info.scan_mode = eSIR_ACTIVE_SCAN; 
       ret = snprintf(cmd, cmd_len, "OK");
    }
    else if (strcasecmp(cmd, "scan-passive") == 0)
    {
-      pWextState->scan_mode = eSIR_PASSIVE_SCAN;
+      pAdapter->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
       ret = snprintf(cmd, cmd_len, "OK");
    }
    else if( strcasecmp(cmd, "scan-mode") == 0 ) 
    {
-      ret = snprintf(cmd, cmd_len, "ScanMode = %u", pWextState->scan_mode);
+      ret = snprintf(cmd, cmd_len, "ScanMode = %u",  pAdapter->scan_info.scan_mode);
    }
    else if( strcasecmp(cmd, "linkspeed") == 0 ) 
    {
@@ -4631,7 +4630,7 @@ int hdd_set_wext(hdd_adapter_t *pAdapter)
     pwextBuf->wpaVersion = IW_AUTH_WPA_VERSION_DISABLED;
 
     /*Set the default scan mode*/
-    pwextBuf->scan_mode = eSIR_ACTIVE_SCAN;
+    pAdapter->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
 
     hdd_clearRoamProfileIe(pAdapter);
 

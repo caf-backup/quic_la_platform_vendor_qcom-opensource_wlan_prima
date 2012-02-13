@@ -223,17 +223,7 @@ typedef struct hdd_wext_state_s
    tCsrBssid req_bssId;
 
    /** The association status code */ 
-   v_U32_t statusCode; 
-   
-   /** The scan id  */
-   v_U32_t scanId; 
-
-   /** The scan pending  */
-   v_U32_t mScanPending; 
-
-#ifdef WLAN_FEATURE_P2P
-   v_BOOL_t p2pSearch;
-#endif
+   v_U32_t statusCode;
 
    /** wpa version WPA/WPA2/None*/
    v_S31_t wpaVersion; 
@@ -243,10 +233,7 @@ typedef struct hdd_wext_state_s
 
    /**gen IE */
    tSirAddie genIE;
-   
-   /**Addtional IE for scan */
-   tSirAddie scanAddIE; 
-   
+
    /**Addtional IE for assoc */
    tSirAddie assocAddIE; 
    
@@ -261,9 +248,6 @@ typedef struct hdd_wext_state_s
    /**Counter measure state, Started/Stopped*/
    v_BOOL_t mTKIPCounterMeasures;  
 
-   /**Scan mode*/
-   tSirScanType scan_mode;
-   
    /**Completion Variable*/
    struct completion completion_var;
 

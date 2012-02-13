@@ -72,6 +72,9 @@
 #define WLAN_WAIT_TIME_SESSIONOPENCLOSE  2000
 #define WLAN_WAIT_TIME_ABORTSCAN  2000
 
+/* Scan Req Timeout */
+#define WLAN_WAIT_TIME_SCAN_REQ 100
+
 #define MAX_NUMBER_OF_ADAPTERS 4
 
 #define MAX_CFG_STRING_LEN  255
@@ -463,6 +466,29 @@ struct hdd_mon_ctx_s
 };
 #endif
 
+typedef struct hdd_scaninfo_s
+{
+   /* The scan id  */
+   v_U32_t scanId; 
+
+   /* The scan pending  */
+   v_U32_t mScanPending;
+
+#ifdef WLAN_FEATURE_P2P
+   v_BOOL_t p2pSearch;
+#endif
+
+   /* Additional IE for scan */
+   tSirAddie scanAddIE; 
+
+   /* Scan mode*/
+   tSirScanType scan_mode;
+
+   /* Scan Completion Event */
+   struct completion scan_req_completion_event;
+
+}hdd_scaninfo_t;
+
 struct hdd_adapter_s
 {
    void *pHddCtx;
@@ -570,6 +596,8 @@ struct hdd_adapter_s
       hdd_mon_ctx_t monitor;
 #endif
    }sessionCtx;
+
+   hdd_scaninfo_t scan_info;
 
 };
 

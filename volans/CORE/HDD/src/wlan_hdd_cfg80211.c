@@ -1447,7 +1447,6 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 hdd_stop_adapter( pHddCtx, pAdapter );
                 hdd_deinit_adapter( pHddCtx, pAdapter );
                 memset(&pAdapter->sessionCtx, 0, sizeof(pAdapter->sessionCtx));
-
                 hdd_set_station_ops( pAdapter->dev );
                 status = hdd_init_station_mode( pAdapter );
                 if( VOS_STATUS_SUCCESS != status )
@@ -2622,9 +2621,9 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
 {
     struct net_device *dev = (struct net_device *) pContext;
     //struct wireless_dev *wdev = dev->ieee80211_ptr;    
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev ); 
-    hdd_wext_state_t *pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-    struct cfg80211_scan_request *req = pAdapter->request;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
+    hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
+    struct cfg80211_scan_request *req = NULL;
     int ret = 0;
 
     ENTER();
@@ -2634,23 +2633,33 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
             "scanID = %d, returned status = %d\n", 
             __func__, halHandle, pContext, (int) scanId, (int) status);
 
-    if(pwextBuf->mScanPending != VOS_TRUE)
+    //Block on scan req completion variable. Can't wait forever though.
+    ret = wait_for_completion_interruptible_timeout(
+                         &pScanInfo->scan_req_completion_event,
+                         msecs_to_jiffies(WLAN_WAIT_TIME_SCAN_REQ));
+    if (!ret)
     {
-        VOS_ASSERT(pwextBuf->mScanPending);
+       VOS_ASSERT(pScanInfo->mScanPending);
+       return 0;
+    }
+
+    if(pScanInfo->mScanPending != VOS_TRUE)
+    {
+        VOS_ASSERT(pScanInfo->mScanPending);
         return 0;
     }
 
     /* Check the scanId */
-    if (pwextBuf->scanId != scanId) 
+    if (pScanInfo->scanId != scanId) 
     {
         hddLog(VOS_TRACE_LEVEL_INFO,
-                "%s called with mismatched scanId pWextState->scanId = %d "
-                "scanId = %d \n", __func__, (int) pwextBuf->scanId, 
+                "%s called with mismatched scanId pScanInfo->scanId = %d "
+                "scanId = %d \n", __func__, (int) pScanInfo->scanId, 
                 (int) scanId);
     }
 
     /* Scan is no longer pending */
-    pwextBuf->mScanPending = VOS_FALSE;
+    pScanInfo->mScanPending = VOS_FALSE;
 
     ret = wlan_hdd_cfg80211_update_bss((WLAN_HDD_GET_CTX(pAdapter))->wiphy, 
                                         pAdapter);
@@ -2658,7 +2667,10 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (0 > ret)
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: NO SCAN result", __func__);    
 
-    if (!pAdapter->request)
+    /* Get the Scan Req */
+    req = pAdapter->request;
+
+    if (!req)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "request is became NULL\n");
         return 0;
@@ -2675,16 +2687,16 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
      * cfg80211_scan_done informing NL80211 about completion
      * of scanning
      */
-    cfg80211_scan_done(pAdapter->request, false);
+    cfg80211_scan_done(req, false);
     complete(&pAdapter->abortscan_event_var);
     pAdapter->request = NULL;
 
 #ifdef WLAN_FEATURE_P2P
     /* Flush out scan result after p2p_serach is done */
-    if( pwextBuf->p2pSearch )
+    if(pScanInfo->p2pSearch )
     {
         sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId);
-        pwextBuf->p2pSearch = 0;
+        pScanInfo->p2pSearch = 0;
     }
 #endif
 
@@ -2707,6 +2719,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     tANI_U8 *channelList = NULL, i;
     v_U32_t scanId = 0;
     int status = 0;
+    hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
 #ifdef WLAN_FEATURE_P2P
     v_U8_t* pP2pIe = NULL;
 #endif
@@ -2725,7 +2738,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         return -EOPNOTSUPP;
     }
 
-    if (TRUE == pwextBuf->mScanPending)
+    if (TRUE == pScanInfo->mScanPending)
     {
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: mScanPending is TRUE", __func__);
         return -EBUSY;                  
@@ -2784,11 +2797,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
             /* set the scan type to active */
             scanRequest.scanType = eSIR_ACTIVE_SCAN;
         }
+        else if(WLAN_HDD_P2P_GO == pAdapter->device_mode)
+        {
+            /* set the scan type to active */
+            scanRequest.scanType = eSIR_ACTIVE_SCAN;
+        }
         else
         {
             /*Set the scan type to default type, in this case it is ACTIVE*/
-            scanRequest.scanType = 
-                    (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode;
+            scanRequest.scanType = pScanInfo->scan_mode;
         }
         scanRequest.minChnTime = cfg_param->nActiveMinChnTime; 
         scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
@@ -2834,15 +2851,20 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         if( request->ie_len )
         {
             /* save this for future association (join requires this) */
-            memset( &pwextBuf->scanAddIE, 0, sizeof(pwextBuf->scanAddIE) );
-            memcpy( pwextBuf->scanAddIE.addIEdata, request->ie, request->ie_len);
-            pwextBuf->scanAddIE.length = request->ie_len;
+            memset( &pScanInfo->scanAddIE, 0, sizeof(pScanInfo->scanAddIE) );
+            memcpy( pScanInfo->scanAddIE.addIEdata, request->ie, request->ie_len);
+            pScanInfo->scanAddIE.length = request->ie_len;
 
-            pwextBuf->roamProfile.pAddIEScan = pwextBuf->scanAddIE.addIEdata;
-            pwextBuf->roamProfile.nAddIEScanLength = pwextBuf->scanAddIE.length;
-            
-            scanRequest.uIEFieldLen = pwextBuf->roamProfile.nAddIEScanLength;
-            scanRequest.pIEField = pwextBuf->roamProfile.pAddIEScan;
+            if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)
+              )
+            {
+               pwextBuf->roamProfile.pAddIEScan = pScanInfo->scanAddIE.addIEdata;
+               pwextBuf->roamProfile.nAddIEScanLength = pScanInfo->scanAddIE.length;
+            }
+
+            scanRequest.uIEFieldLen = pScanInfo->scanAddIE.length;
+            scanRequest.pIEField = pScanInfo->scanAddIE.addIEdata;
 
 #ifdef WLAN_FEATURE_P2P
             pP2pIe = wlan_hdd_get_p2p_ie_ptr((v_U8_t*)request->ie,
@@ -2862,7 +2884,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            "%s: This is a P2P Search", __func__);
                     scanRequest.p2pSearch = 1;
-                    pwextBuf->p2pSearch = 1;
+                    pScanInfo->p2pSearch = 1;
 
                     /* set requestType to P2P Discovery */
                     scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
@@ -2875,6 +2897,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         }
     }
 
+    INIT_COMPLETION(pScanInfo->scan_req_completion_event);
+
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
@@ -2883,13 +2907,16 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
                 "%s: sme_ScanRequest returned error %d", __func__, status);
+        complete(&pScanInfo->scan_req_completion_event);
         status = -EIO;
         goto free_mem;
     }
 
-    pwextBuf->mScanPending = TRUE;
+    pScanInfo->mScanPending = TRUE;
     pAdapter->request = request;
-    pwextBuf->scanId = scanId;
+    pScanInfo->scanId = scanId;
+
+    complete(&pScanInfo->scan_req_completion_event);
 
 free_mem:
     if( scanRequest.SSIDs.SSIDList )

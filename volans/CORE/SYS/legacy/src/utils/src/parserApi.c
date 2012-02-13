@@ -2425,7 +2425,7 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
     }
     if (pBies->QBSSLoad.present)
     {
-        palCopyMemory(pMac->hHdd, &pBeaconStruct->QBSSLoad, pBies.QBSSLoad, sizeof(tDot11fIEQBSSLoad));
+        palCopyMemory(pMac->hHdd, &pBeaconStruct->QBSSLoad, &pBies->QBSSLoad, sizeof(tDot11fIEQBSSLoad));
     }
 #endif
 

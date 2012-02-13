@@ -135,8 +135,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_GOING_DOWN:
-
-        if( pAdapter->sessionCtx.station.WextState.mScanPending != FALSE )
+        if( pAdapter->scan_info.mScanPending != FALSE )
         { 
            int result;
            INIT_COMPLETION(pAdapter->abortscan_event_var);
@@ -778,6 +777,8 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
       init_completion(&pHddCtx->mc_sus_event_var);
       init_completion(&pHddCtx->tx_sus_event_var);
 
+      init_completion(&pAdapter->scan_info.scan_req_completion_event);
+
       pAdapter->isLinkUpSvcNeeded = FALSE; 
       //Init the net_device structure
       strlcpy(pWlanDev->name, name, IFNAMSIZ);
@@ -967,7 +968,6 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
    if( NULL != cfgState->buf )
    {
       int rc;
-      INIT_COMPLETION(pAdapter->tx_action_cnf_event);
       rc = wait_for_completion_interruptible_timeout(
                      &pAdapter->tx_action_cnf_event,
                      msecs_to_jiffies(ACTION_FRAME_TX_TIMEOUT));
@@ -1498,7 +1498,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
             hdd_init_station_mode(pAdapter);
             /* Open the gates for HDD to receive Wext commands */
             pAdapter->isLinkUpSvcNeeded = FALSE; 
-            pAdapter->sessionCtx.station.WextState.mScanPending = FALSE;
+            pAdapter->scan_info.mScanPending = FALSE;
 
             //Trigger the initial scan
             hdd_wlan_initial_scan(pAdapter);

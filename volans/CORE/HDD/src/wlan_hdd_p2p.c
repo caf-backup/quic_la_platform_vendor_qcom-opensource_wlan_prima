@@ -425,6 +425,8 @@ send_frame:
 
     vos_mem_copy( cfgState->buf, buf, len);
 
+    INIT_COMPLETION(pAdapter->tx_action_cnf_event);
+ 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     if( cfgState->remain_on_chan_ctx )
     {

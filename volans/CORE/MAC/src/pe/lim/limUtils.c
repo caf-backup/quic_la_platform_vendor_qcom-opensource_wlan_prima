@@ -1652,6 +1652,7 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
 
     if(beaconParams.paramChangeBitmap)
     {
+        beaconParams.bssIdx = psessionEntry->bssIdx;
         schSetFixedBeaconFields(pMac,psessionEntry);
         limSendBeaconParams(pMac, &beaconParams, psessionEntry);
     }
