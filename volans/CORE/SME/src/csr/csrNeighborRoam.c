@@ -1563,7 +1563,7 @@ VOS_STATUS csrNeighborRoamCreateChanListFromNeighborReport(tpAniSirGlobal pMac)
 {
     tpRrmNeighborReportDesc pNeighborBssDesc;
     tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
-    tANI_U8         numChannels = 0, i = 0;
+    tANI_U8         numChannels = 0, i = 0, j = 0;
     tANI_U8         channelList[MAX_BSS_IN_NEIGHBOR_RPT];
 
     /* This should always start from 0 whenever we create a channel list out of neighbor AP list */
@@ -1610,7 +1610,31 @@ VOS_STATUS csrNeighborRoamCreateChanListFromNeighborReport(tpAniSirGlobal pMac)
     }
 
     if (pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList)
-        vos_mem_free(pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList);
+    {
+
+	/* Before we free the existing channel list for a safety net make sure
+	   we have a union of the IAPP and the already existing list. */
+	    for (i = 0; i < pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.numOfChannels; i++)
+	    {
+		    for (j = 0; j < numChannels; j++)
+		    {
+			    if (pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i] == channelList[j])
+				    break;
+		    }
+		    if (j == numChannels)
+		    {
+			    if (pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i])
+			    {
+				    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+						    "%s: [INFOLOG] Adding extra %d to Neighbor channel list\n", __func__,
+						    pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i]);
+				    channelList[numChannels] = pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i];
+				    numChannels++;
+			    }
+		    }
+	    }
+	    vos_mem_free(pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList);
+    }
 
     pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList = NULL;
     /* Store the obtained channel list to the Neighbor Control data structure */

@@ -734,8 +734,11 @@ assocReject:
         if (subType == LIM_ASSOC)
             limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
 #ifdef WLAN_FEATURE_VOWIFI_11R
-        else
-            limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
+	else
+	{
+	    mlmAssocCnf.resultCode = eSIR_SME_FT_REASSOC_FAILURE;
+	    limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
+	}
 #endif /* WLAN_FEATURE_VOWIFI_11R */
     } else {
         limRestorePreReassocState( pMac, 

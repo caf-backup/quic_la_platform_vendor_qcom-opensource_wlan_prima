@@ -1409,6 +1409,24 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             break;
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+	/* We did pre-auth,then we attempted a 11r or ccx reassoc.
+	   reassoc failed due to failure, timeout, reject from ap
+	   in any case tell the OS, our carrier is off and mark 
+	   interface down */
+	case eCSR_ROAM_FT_REASSOC_FAILED:
+	    halStatus = hdd_DisConnectHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+	    /* Check if Mcast/Bcast Filters are set, if yes clear the filters here */
+	    if ((WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set == TRUE) {
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+#ifdef MSM_PLATFORM
+		    hdd_conf_mcastbcast_filter((WLAN_HDD_GET_CTX(pAdapter)), FALSE);
+#endif
+#endif
+		    (WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set = FALSE;
+	    }
+	    pHddStaCtx->ft_carrier_on = FALSE;
+	    break;
+
         case eCSR_ROAM_FT_START:
             // When we roam for CCX and 11r, we dont want the 
             // OS to be informed that the link is down. So mark

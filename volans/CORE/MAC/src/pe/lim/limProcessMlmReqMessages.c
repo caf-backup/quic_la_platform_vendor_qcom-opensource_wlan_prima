@@ -3844,13 +3844,14 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
             
             /* Update PE session Id*/
             mlmAssocCnf.sessionId = psessionEntry->peSessionId;
-            if (LIM_ASSOC == MsgType) {
-                limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
-            } else {
-                // Will come here only in case of 11r, CCx FT when reassoc rsp 
-                // is not received and we receive a reassoc - timesout
-                limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
-            }
+	    if (LIM_ASSOC == MsgType) {
+		    limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
+	    } else {
+		    /* Will come here only in case of 11r, CCx FT when reassoc rsp 
+		       is not received and we receive a reassoc - timesout */
+		    mlmAssocCnf.resultCode = eSIR_SME_FT_REASSOC_TIMEOUT_FAILURE;
+		    limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
+	    }
         }
         else
         {

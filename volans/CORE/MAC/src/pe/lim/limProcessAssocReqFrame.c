@@ -971,6 +971,9 @@ sendIndToSme:
     pStaDs->qos.addts        = pAssocReq->addtsReq;
     pStaDs->qos.capability   = pAssocReq->qosCapability;
     pStaDs->versionPresent   = 0;
+    /* short slot and short preamble should be updated before doing limaddsta */
+    pStaDs->shortPreambleEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortPreamble;
+    pStaDs->shortSlotTimeEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortSlotTime;
  
     if (pAssocReq->propIEinfo.versionPresent) //update STA version info
     {
@@ -1197,8 +1200,6 @@ sendIndToSme:
 #endif
 
     }
-    pStaDs->shortPreambleEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortPreamble;
-    pStaDs->shortSlotTimeEnabled = (tANI_U8)pAssocReq->capabilityInfo.shortSlotTime;
 
     return;
 

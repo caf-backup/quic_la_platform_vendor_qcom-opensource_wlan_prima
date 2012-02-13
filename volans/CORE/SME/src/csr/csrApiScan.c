@@ -2053,6 +2053,8 @@ eHalStatus csrScanHandleCapChangeScanComplete(tpAniSirGlobal pMac, tANI_U32 sess
 
     do
     {
+        //Sanity check session pointer
+        if(NULL == pSession) break;
         //Here is the profile we need to connect to
         status = palAllocateMemory(pMac->hHdd, (void **)&pScanFilter, sizeof(tCsrScanResultFilter));
         if(!HAL_STATUS_SUCCESS(status))
