@@ -362,7 +362,6 @@ EXTRA_CFLAGS += $(DXE_INC)
 EXTRA_CFLAGS += $(WDA_INC)
 EXTRA_CFLAGS += $(WDI_INC)
 EXTRA_CFLAGS += $(RIVA_INC)
-EXTRA_LDFLAGS += --strip-debug
 
 # By default the compiler will complain about frames larger than 1K.
 # Some of the WLAN structures are larger, so we increase the size.
