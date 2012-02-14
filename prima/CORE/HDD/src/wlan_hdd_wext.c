@@ -117,6 +117,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_POWER         3
 #define WE_SET_MAX_ASSOC     4
 #define WE_SET_SAP_AUTO_CHANNEL_SELECTION     5
+#define WE_SET_DATA_INACTIVITY_TO  6  
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -129,7 +130,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_WDI_DBG       7
 #define WE_GET_SAP_AUTO_CHANNEL_SELECTION 8
 #define WE_GET_CONCURRENCY_MODE 9
-
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
 
@@ -3224,6 +3224,24 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             }
             break;
          }
+
+        case  WE_SET_DATA_INACTIVITY_TO:
+        {
+           if  ((set_value < CFG_DATA_INACTIVITY_TIMEOUT_MIN) ||
+		   	    (set_value > CFG_DATA_INACTIVITY_TIMEOUT_MAX) ||
+		   	    (ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal, 
+                    WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT,
+                    set_value, 
+                    NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE))
+           {
+               hddLog(LOGE,"Failure: Could not pass on "
+                "WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT configuration info "
+                "to CCM\n");
+               ret = -EINVAL;
+           }    
+           break;
+        }
+
         default:  
         {
             hddLog(LOGE, "Invalid IOCTL setvalue command %d value %d \n",
@@ -4350,6 +4368,13 @@ static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request
     tSirRcvFltPktClearParam    packetFilterClrReq;
     int i=0;
 
+    if ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->disablePacketFilter)
+    {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Packet Filtering Disabled. Returning ",
+           __FUNCTION__ );    
+        return 0;
+    }
+
     /* Debug display of request components. */
     hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Packet Filter Request : FA %d params %d", 
            __FUNCTION__, pRequest->filterAction, pRequest->numParams);    
@@ -5055,6 +5080,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, 
         "setAutoChannel" },
+
+    {   WE_SET_DATA_INACTIVITY_TO,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, 
+        "inactivityTO" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_INT,

@@ -948,16 +948,9 @@ limProcessAbortScanInd(tpAniSirGlobal pMac)
 
 void limMessageProcessor(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 {
-    
-    if (pMac->lim.gLimMlmState == eLIM_MLM_OFFLINE_STATE)
+    if (eLIM_MLM_OFFLINE_STATE == pMac->lim.gLimMlmState)
     {
-        if (limMsg->bodyptr != NULL)
-        {
-          if(limMsg->type == SIR_BB_XPORT_MGMT_MSG)
-            vos_pkt_return_packet((vos_pkt_t *)limMsg->bodyptr);
-          else
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
-        }
+        peFreeMsg(pMac, limMsg);
         return;
     }
 

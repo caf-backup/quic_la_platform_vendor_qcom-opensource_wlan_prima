@@ -494,6 +494,12 @@ REG_TABLE_ENTRY g_registry_table[] =
 
 
 #endif
+   REG_VARIABLE(CFG_DISABLE_PACKET_FILTER , WLAN_PARAM_Integer,
+                 hdd_config_t, disablePacketFilter,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DISABLE_PACKET_FILTER_DEFAULT,
+                 CFG_DISABLE_PACKET_FILTER_MIN,
+                 CFG_DISABLE_PACKET_FILTER_MAX ),
 
    REG_VARIABLE( CFG_BEACON_INTERVAL_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, nBeaconInterval, 

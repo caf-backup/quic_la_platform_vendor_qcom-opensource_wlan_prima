@@ -415,8 +415,8 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
   NULL,
 #endif // WLAN_FEATURE_PACKET_FILTERING
 
-  WDI_ProcessHALDumpCmdRsp,       /*WDI_HAL_DUMP_CMD_RESP */
-
+  WDI_ProcessHALDumpCmdRsp,       /* WDI_HAL_DUMP_CMD_RESP */
+  WDI_ProcessShutdownRsp,         /* WDI_SHUTDOWN_RESP */
   
   /*---------------------------------------------------------------------
     Indications
@@ -741,6 +741,7 @@ static char *WDI_getReqMsgString(wpt_uint16 wdiReqMsgId)
     CASE_RETURN_STRING( WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ );
     CASE_RETURN_STRING( WDI_INIT_SCAN_CON_REQ );
     CASE_RETURN_STRING( WDI_HAL_DUMP_CMD_REQ );
+    CASE_RETURN_STRING( WDI_SHUTDOWN_REQ );
     default:
         return "Unknown WDI MessageId";
   }
@@ -834,6 +835,7 @@ static char *WDI_getRespMsgString(wpt_uint16 wdiRespMsgId)
     CASE_RETURN_STRING( WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_RESP );
     CASE_RETURN_STRING( WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP );
     CASE_RETURN_STRING( WDI_HAL_DUMP_CMD_RESP );
+    CASE_RETURN_STRING( WDI_SHUTDOWN_RESP );
     default:
         return "Unknown WDI MessageId";
   }

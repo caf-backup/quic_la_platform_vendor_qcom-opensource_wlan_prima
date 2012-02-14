@@ -1139,11 +1139,18 @@ void peStop(tpAniSirGlobal pMac)
 -----------------------------------------------------------------*/
 v_VOID_t peFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg)
 {  
-    if(pMsg != NULL)
+    if (pMsg != NULL)
     {
-        if (pMsg->bodyptr)
+        if (NULL != pMsg->bodyptr)
         {
-            vos_mem_free((v_VOID_t*)pMsg->bodyptr);
+            if (SIR_BB_XPORT_MGMT_MSG == pMsg->type)
+            {
+                vos_pkt_return_packet((vos_pkt_t *)pMsg->bodyptr);
+            }
+            else
+            {
+                vos_mem_free((v_VOID_t*)pMsg->bodyptr);
+            }
         }
         pMsg->bodyptr = 0;
         pMsg->bodyval = 0;
