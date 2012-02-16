@@ -406,6 +406,11 @@ typedef enum
 #define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX               (0x4)
 #define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_DEFAULT           (0)
 
+#define CFG_DISABLE_PACKET_FILTER "gDisablePacketFilter"
+#define CFG_DISABLE_PACKET_FILTER_MIN       (0)
+#define CFG_DISABLE_PACKET_FILTER_MAX               (0x1)
+#define CFG_DISABLE_PACKET_FILTER_DEFAULT           (0)
+
 #endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
@@ -1084,11 +1089,10 @@ typedef struct
    v_U8_t        apOperatingBand;
    v_BOOL_t      apAutoChannelSelection;
 #endif
-
    v_U32_t       nBeaconInterval;
    v_U8_t        nTxPowerCap;   //In dBm
    v_BOOL_t      fIsLowGainOverride;
-
+   v_U8_t        disablePacketFilter;
 #if defined WLAN_FEATURE_VOWIFI
    v_BOOL_t      fRrmEnable;
    v_U8_t        nInChanMeasMaxDuration;
