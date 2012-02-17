@@ -73,6 +73,18 @@ LOCAL_MODULE_TAGS        := eng
 LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/volans
 include $(DLKM_DIR)/AndroidKernelModule.mk
 
+ifeq ($(call is-board-platform,msm7627a),true)
+MV_CFG80211_MODULE := $(KERNEL_MODULES_OUT)/volans/cfg80211.ko
+$(MV_CFG80211_MODULE): CFG80211_MODULE := $(KERNEL_MODULES_OUT)/cfg80211.ko
+$(MV_CFG80211_MODULE): $(TARGET_PREBUILT_INT_KERNEL)
+	@mkdir -p $(dir $@)
+	@mv -f $(CFG80211_MODULE) $@
+
+ALL_DEFAULT_INSTALLED_MODULES += $(MV_CFG80211_MODULE)
+ALL_MODULES.$(LOCAL_MODULE).INSTALLED := \
+    $(ALL_MODULES.$(LOCAL_MODULE).INSTALLED) $(MV_CFG80211_MODULE)
+endif
+
 #Create symbolic link
 ifeq ($(call is-board-platform-in-list,msm7627a msm8660),true)
 $(shell mkdir -p $(TARGET_OUT)/lib/modules; \
