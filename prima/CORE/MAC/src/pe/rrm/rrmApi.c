@@ -478,7 +478,7 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
    if (!sign)
       maxMeasduration = maxDuration * pSessionEntry->beaconParams.beaconInterval;
    else
-      maxMeasduration = pSessionEntry->beaconInterval / maxDuration;
+      maxMeasduration = pSessionEntry->beaconParams.beaconInterval / maxDuration;
 
    measDuration = pBeaconReq->measurement_request.Beacon.meas_duration; 
 

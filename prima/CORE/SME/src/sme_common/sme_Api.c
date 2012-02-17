@@ -5618,6 +5618,19 @@ eHalStatus sme_SetTxPerTracking(tHalHandle hHal,
 
     \brief Change Country code, Reg Domain and channel list
 
+    \details Country Code Priority
+    0 = 11D > Configured Country > NV
+    1 = Configured Country > 11D > NV
+    If Supplicant country code is priority than 11d is disabled.
+    If 11D is enabled, we update the country code after every scan.
+    Hence when Supplicant country code is priority, we don't need 11D info.
+    Country code from Supplicant is set as current courtry code.
+    User can send reset command XX (instead of country code) to reset the
+    country code to default values which is read from NV.
+    In case of reset, 11D is enabled and default NV code is Set as current country code
+    If 11D is priority,
+    Than Supplicant country code code is set to default code. But 11D code is set as current country code
+
     \param pMac - The handle returned by macOpen.
     \param pMsgBuf - MSG Buffer
 
@@ -5626,11 +5639,40 @@ eHalStatus sme_SetTxPerTracking(tHalHandle hHal,
   -------------------------------------------------------------------------------*/
 eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
 {
-   tANI_U8        Num2GChannels, bMaxNumChn;
-   eHalStatus     status = eHAL_STATUS_SUCCESS;
+   eHalStatus  status = eHAL_STATUS_SUCCESS;
    tAniChangeCountryCodeReq *pMsg;
-
+   v_REGDOMAIN_t domainIdIoctl; 
+   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+   static uNvTables nvTables;
    pMsg = (tAniChangeCountryCodeReq *)pMsgBuf;
+
+
+   /* if the reset Supplicant country code command is triggered, enable 11D, reset the NV country code and return */
+   if( VOS_TRUE == vos_mem_compare(pMsg->countryCode, "XX", 2) )
+   {
+       pMac->roam.configParam.Is11dSupportEnabled = pMac->roam.configParam.Is11dSupportEnabledOriginal;
+
+       vosStatus = vos_nv_readDefaultCountryTable( &nvTables );
+
+       /* read the country code from NV and use it */
+       if ( VOS_IS_STATUS_SUCCESS(vosStatus) )
+       {
+           palCopyMemory( pMac->hHdd, pMsg->countryCode , nvTables.defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
+       }
+       else
+       {
+           status = eHAL_STATUS_FAILURE;
+           return status;
+       }
+   }
+   else
+   {
+       /* if Supplicant country code has priority, disable 11d */
+       if(pMac->roam.configParam.fSupplicantCountryCodeHasPriority)
+       {
+           pMac->roam.configParam.Is11dSupportEnabled = eANI_BOOLEAN_FALSE;
+       }
+   }
 
    /* WEXT set country code means
     * 11D should be supported?
@@ -5644,38 +5686,63 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
       pMac->roam.configParam.fEnforceDefaultDomain &&
       !csrSave11dCountryString(pMac, pMsg->countryCode, eANI_BOOLEAN_TRUE))
    {
-      /* All 11D related options are already enabled
-       * Country string is not changed
-       * Do not need do anything for country code change request */
-      return eHAL_STATUS_SUCCESS;
+	/* All 11D related options are already enabled
+        * Country string is not changed
+        * Do not need do anything for country code change request */
+       return eHAL_STATUS_SUCCESS;
    }
-
-   /* Country code already updated */
 
    /* Set Current Country code and Current Regulatory domain */
    status = csrSetCountryCode(pMac, pMsg->countryCode, NULL);
    if(eHAL_STATUS_SUCCESS != status)
    {
-      smsLog(pMac, LOGE, "Set Country Code Fail %d", status);
-      return status;  
+       /* Supplicant country code failed. So give 11D priority */
+       pMac->roam.configParam.Is11dSupportEnabled = pMac->roam.configParam.Is11dSupportEnabledOriginal;
+       smsLog(pMac, LOGE, "Set Country Code Fail %d", status);
+       return status;  
    }
+
+   /* purge current scan results
+    if i don't do this than I still get old ap's (of different country code) as available (even if they are powered off). 
+    Looks like a bug in current scan sequence. 
+   */
+   csrScanFlushResult(pMac);
+
+   /* overwrite the defualt country code */
+   palCopyMemory(pMac->hHdd, pMac->scan.countryCodeDefault, pMac->scan.countryCodeCurrent, WNI_CFG_COUNTRY_CODE_LEN);
+
+   /* Get Domain ID from country code */
+   status = csrGetRegulatoryDomainForCountry( pMac, pMac->scan.countryCodeCurrent,(v_REGDOMAIN_t *) &domainIdIoctl );
+   if ( status != eHAL_STATUS_SUCCESS )
+   {
+       smsLog( pMac, LOGE, FL("  fail to get regId %d\n"), domainIdIoctl );
+       return status;
+   }
+
+   status = WDA_SetRegDomain(pMac, domainIdIoctl);
+
+   if ( status != eHAL_STATUS_SUCCESS )
+   {
+       smsLog( pMac, LOGE, FL("  fail to set regId %d\n"), domainIdIoctl );
+       return status;
+   }
+
+   /* set to default domain ID */
    pMac->scan.domainIdDefault = pMac->scan.domainIdCurrent;
 
-   /* Reset Country info based on new CC */
-   csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);
+   /* get the channels based on new cc */
+   status = csrInitGetChannels( pMac );	
 
-   csrSetOppositeBandChannelInfo(pMac);
-   bMaxNumChn = WNI_CFG_VALID_CHANNEL_LIST_LEN;
-   csrConstructCurrentValidChannelList( pMac, &pMac->scan.channelPowerInfoList24, pMac->scan.channels11d.channelList, 
-                                        bMaxNumChn, &Num2GChannels );
-   if(bMaxNumChn > Num2GChannels)
+   if ( status != eHAL_STATUS_SUCCESS )
    {
-      csrConstructCurrentValidChannelList( pMac, &pMac->scan.channelPowerInfoList5G, pMac->scan.channels11d.channelList + Num2GChannels,
-                                           bMaxNumChn - Num2GChannels,
-                                           &pMac->scan.channels11d.numChannels );
+       smsLog( pMac, LOGE, FL("  fail to get Channels \n"));
+       return status;
    }
-   csrApplyCountryInformation(pMac, TRUE);
-   if(pMsg->changeCCCallback)
+
+   /* reset info based on new cc, and we are done */
+   csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);							
+
+   if( pMsg->changeCCCallback )
    {
       ((tSmeChangeCountryCallback)(pMsg->changeCCCallback))((void *)pMsg->pDevContext);
    }

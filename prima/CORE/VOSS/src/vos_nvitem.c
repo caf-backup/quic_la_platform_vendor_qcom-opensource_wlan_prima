@@ -1429,28 +1429,6 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
    return status;
 }
 #endif
-
-/**------------------------------------------------------------------------
-  \brief vos_nv_readRegulatoryDomainTable() - return regulatory domain
-                 table
-  \param pTableData  - union that will contain the regulatory domain table
-  \return status of the NV read operation
-  \sa
-  -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_readRegulatoryDomainTable ( uNvTables *tableData )
-{
-   static sNvTables nvTable;
-   VOS_STATUS status;
-
-   status = vos_nv_read( VNV_REGULARTORY_DOMAIN_TABLE, &nvTable, NULL, sizeof(nvTable) );
-   
-   if (VOS_STATUS_SUCCESS == status)
-   {
-      memcpy( tableData, &nvTable.regDomains, sizeof(nvTable.regDomains) );
-   }
-
-   return status;
-}
   
 /**------------------------------------------------------------------------
   \brief vos_nv_getChannelListWithPower() - function to return the list of
@@ -1561,18 +1539,13 @@ VOS_STATUS vos_nv_getSupportedChannels( v_U8_t *p20MhzChannels, int *pNum20MhzCh
 VOS_STATUS vos_nv_readDefaultCountryTable( uNvTables *tableData )
 {
    
-   static sNvTables nvTable;
    VOS_STATUS status;
 
-   status = vos_nv_read( VNV_DEFAULT_LOCATION, &nvTable, NULL, sizeof(nvTable) );
-   
-   if (VOS_STATUS_SUCCESS == status)
-   {
-      memcpy( tableData, &nvTable.defaultCountryTable, sizeof(nvTable.defaultCountryTable) );
-   }
+   status = vos_nv_read( VNV_DEFAULT_LOCATION, tableData, NULL, sizeof(sDefaultCountry) );
 
    return status;
 }
+
 /**------------------------------------------------------------------------
   \brief vos_nv_getBuffer - 
   \param pBuffer  - to return the buffer address

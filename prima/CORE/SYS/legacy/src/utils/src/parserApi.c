@@ -583,6 +583,13 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     pDot11f->lsigTXOPProtection       = pHTCapabilityInfo->lsigTXOPProtection;
 #endif
 
+    /* Ensure that shortGI40MHz is Disabled if supportedChannelWidthSet is
+       eHT_CHANNEL_WIDTH_20MHZ */
+    if(pDot11f->supportedChannelWidthSet == eHT_CHANNEL_WIDTH_20MHZ)
+    {
+       pDot11f->shortGI40MHz = 0;
+    }
+
     dot11fLog(pMac, LOG1, FL("SupportedChnlWidth: %d, mimoPS: %d, GF: %d, shortGI20:%d, shortGI40: %d, dsssCck: %d\n"),
                                             pDot11f->supportedChannelWidthSet, pDot11f->mimoPowerSave,  pDot11f->greenField,
                                             pDot11f->shortGI20MHz, pDot11f->shortGI40MHz, pDot11f->dsssCckMode40MHz);

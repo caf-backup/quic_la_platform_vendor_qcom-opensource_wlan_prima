@@ -2550,6 +2550,7 @@ void btampEstablishLogLinkHdlr(void* pMsg)
         btampContext = (ptBtampContext)pBtAmpLogLinkReq->btampHandle;
         if(NULL != btampContext)
         {
+            vos_sleep( 200 );
             WLAN_BAPEstablishLogicalLink(btampContext);
         }
         else

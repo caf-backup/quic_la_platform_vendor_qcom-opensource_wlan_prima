@@ -301,10 +301,9 @@ static void csrRoamDeInitGlobals(tpAniSirGlobal pMac)
 eHalStatus csrOpen(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-    uNvTables nvTables;
+    static uNvTables nvTables;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-#endif
+
     v_REGDOMAIN_t regId;
     
     do
@@ -326,16 +325,16 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
         if(!HAL_STATUS_SUCCESS(csrLLOpen(pMac->hHdd, &pMac->roam.roamCmdPendingList)))
            break;
 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
         vosStatus = vos_nv_readDefaultCountryTable( &nvTables );
-        if ( VOS_STATUS_SUCCESS == vosStatus )
+        if ( VOS_IS_STATUS_SUCCESS(vosStatus) )
         {
             palCopyMemory( pMac->hHdd, pMac->scan.countryCodeDefault, 
                     nvTables.defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
             status = eHAL_STATUS_SUCCESS;
+			
         }
         else
-#endif
+
         {
             smsLog( pMac, LOGE, FL("  fail to get NV_FIELD_IMAGE\n") );
             //hardcoded for now
@@ -931,6 +930,7 @@ static void initConfigParam(tpAniSirGlobal pMac)
     pMac->roam.configParam.HeartbeatThresh24 = 40;
     pMac->roam.configParam.HeartbeatThresh50 = 40;
     pMac->roam.configParam.Is11dSupportEnabled = eANI_BOOLEAN_FALSE;
+	pMac->roam.configParam.Is11dSupportEnabledOriginal = eANI_BOOLEAN_FALSE;
     pMac->roam.configParam.Is11eSupportEnabled = eANI_BOOLEAN_TRUE;
     pMac->roam.configParam.Is11hSupportEnabled = eANI_BOOLEAN_TRUE;
     pMac->roam.configParam.RTSThreshold = 2346;
@@ -950,6 +950,8 @@ static void initConfigParam(tpAniSirGlobal pMac)
     csrAssignRssiForCategory(pMac, CSR_DEFAULT_RSSI_DB_GAP);
     pMac->roam.configParam.nRoamingTime = CSR_DEFAULT_ROAMING_TIME;
     pMac->roam.configParam.fEnforce11dChannels = eANI_BOOLEAN_FALSE;
+	pMac->roam.configParam.fSupplicantCountryCodeHasPriority = eANI_BOOLEAN_FALSE;
+
     pMac->roam.configParam.fEnforceCountryCodeMatch = eANI_BOOLEAN_FALSE;
     pMac->roam.configParam.fEnforceDefaultDomain = eANI_BOOLEAN_FALSE;
     pMac->roam.configParam.nActiveMaxChnTime = CSR_ACTIVE_MAX_CHANNEL_TIME;
@@ -1038,11 +1040,13 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.Is11eSupportEnabled = pParam->Is11eSupportEnabled;
         pMac->roam.configParam.FragmentationThreshold = pParam->FragmentationThreshold;
         pMac->roam.configParam.Is11dSupportEnabled = pParam->Is11dSupportEnabled;
+		pMac->roam.configParam.Is11dSupportEnabledOriginal = pParam->Is11dSupportEnabled;
         pMac->roam.configParam.Is11hSupportEnabled = pParam->Is11hSupportEnabled;
         //if 11h is enabled, so should 11d
         if(pMac->roam.configParam.Is11hSupportEnabled)
         {
             pMac->roam.configParam.Is11dSupportEnabled = eANI_BOOLEAN_TRUE;
+			pMac->roam.configParam.Is11dSupportEnabledOriginal = eANI_BOOLEAN_TRUE;
         }
         pMac->roam.configParam.channelBondingMode24GHz = pParam->channelBondingMode24GHz;
         pMac->roam.configParam.channelBondingMode5GHz = pParam->channelBondingMode5GHz;
@@ -1133,6 +1137,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         csrAssignRssiForCategory(pMac, pParam->bCatRssiOffset);
         pMac->roam.configParam.nRoamingTime = pParam->nRoamingTime;
         pMac->roam.configParam.fEnforce11dChannels = pParam->fEnforce11dChannels;
+		pMac->roam.configParam.fSupplicantCountryCodeHasPriority = pParam->fSupplicantCountryCodeHasPriority;
+		
         pMac->roam.configParam.fEnforceCountryCodeMatch = pParam->fEnforceCountryCodeMatch;
         pMac->roam.configParam.fEnforceDefaultDomain = pParam->fEnforceDefaultDomain;
 
@@ -1202,6 +1208,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->Is11eSupportEnabled = pMac->roam.configParam.Is11eSupportEnabled;
         pParam->FragmentationThreshold = pMac->roam.configParam.FragmentationThreshold;
         pParam->Is11dSupportEnabled = pMac->roam.configParam.Is11dSupportEnabled;
+		pParam->Is11dSupportEnabledOriginal = pMac->roam.configParam.Is11dSupportEnabledOriginal;
         pParam->Is11hSupportEnabled = pMac->roam.configParam.Is11hSupportEnabled;
         pParam->channelBondingMode24GHz = pMac->roam.configParam.channelBondingMode24GHz;
         pParam->channelBondingMode5GHz = pMac->roam.configParam.channelBondingMode5GHz;
@@ -1234,6 +1241,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->bCatRssiOffset = pMac->roam.configParam.bCatRssiOffset;
         pParam->nRoamingTime = pMac->roam.configParam.nRoamingTime;
         pParam->fEnforce11dChannels = pMac->roam.configParam.fEnforce11dChannels;
+		pParam->fSupplicantCountryCodeHasPriority = pMac->roam.configParam.fSupplicantCountryCodeHasPriority;
+		
         pParam->fEnforceCountryCodeMatch = pMac->roam.configParam.fEnforceCountryCodeMatch;
         pParam->vccRssiThreshold = pMac->roam.configParam.vccRssiThreshold;
         pParam->vccUlMacLossThreshold = pMac->roam.configParam.vccUlMacLossThreshold;

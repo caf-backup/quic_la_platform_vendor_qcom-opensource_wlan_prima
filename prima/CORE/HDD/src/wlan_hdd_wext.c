@@ -3228,8 +3228,8 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
         case  WE_SET_DATA_INACTIVITY_TO:
         {
            if  ((set_value < CFG_DATA_INACTIVITY_TIMEOUT_MIN) ||
-		   	    (set_value > CFG_DATA_INACTIVITY_TIMEOUT_MAX) ||
-		   	    (ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal, 
+                (set_value > CFG_DATA_INACTIVITY_TIMEOUT_MAX) ||
+                (ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal, 
                     WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT,
                     set_value, 
                     NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE))
@@ -4924,6 +4924,46 @@ static int iw_set_band_config(struct net_device *dev,
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "%s: Current band value = %u, new setting %u ", 
                     __FUNCTION__, currBand, band);
+
+            if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
+            {
+                hdd_station_ctx_t *pHddStaCtx = &(pAdapter)->sessionCtx.station;
+                eHalStatus status = eHAL_STATUS_SUCCESS;
+
+                /* STA already connected on current band, So issue disconnect first,
+                 * then change the band*/
+
+                hddLog(VOS_TRACE_LEVEL_INFO,
+                        "%s STA connected in band %u, Changing band to %u, Issuing Disconnect", 
+                        __func__, csrGetCurrentBand(hHal), band);
+
+                pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+                INIT_COMPLETION(pAdapter->disconnect_comp_var);
+
+                status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), 
+                        pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+
+                if ( 0 != status)
+                {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                            "%s csrRoamDisconnect failure, returned %d \n", 
+                            __func__, (int)status );
+                    return -EINVAL;
+                }
+
+                status = wait_for_completion_interruptible_timeout(
+                        &pAdapter->disconnect_comp_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+
+                if (VOS_STATUS_SUCCESS != status)
+                {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                            "%s Timeout occured while waiting for csrRoamDisconnect\n", 
+                            __func__);
+                    return -EINVAL;
+                }
+            }
+
             hdd_abort_mac_scan(pHddCtx);
             sme_ScanFlushResult(hHal, pAdapter->sessionId);
             if(eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, (eCsrBand)band))
@@ -5357,7 +5397,7 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         0,
         "SETBAND" },
-		
+
     /* handlers for dynamic MC BC ioctl */
     {
         WLAN_PRIV_SET_MCBC_FILTER,

@@ -373,6 +373,8 @@ typedef struct
 
    
    tSirLinkState        linkState;
+   /* set, when BT AMP session is going on */
+   v_BOOL_t             wdaAmpSessionOn;
 } tWDA_CbContext ; 
 
 typedef struct

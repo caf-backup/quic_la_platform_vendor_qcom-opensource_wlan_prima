@@ -8576,6 +8576,8 @@ VOS_STATUS WDA_ProcessFlushAcReq(tWDA_CbContext *pWDA,
 void WDA_BtAmpEventReqCallback(WDI_Status status, void* pUserData)
 {
    tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   WDI_BtAmpEventParamsType *wdiBtAmpEventParam; 
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
@@ -8586,6 +8588,13 @@ void WDA_BtAmpEventReqCallback(WDI_Status status, void* pUserData)
               "%s: pWdaParams received NULL", __FUNCTION__);
       VOS_ASSERT(0) ;
       return ;
+   }
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   wdiBtAmpEventParam = (WDI_BtAmpEventParamsType *)pWdaParams->wdaWdiApiMsgParam;
+   if(BTAMP_EVENT_CONNECTION_TERMINATED == 
+      wdiBtAmpEventParam->wdiBtAmpEventInfo.ucBtAmpEventType)
+   {
+      pWDA->wdaAmpSessionOn = VOS_FALSE;
    }
 
    vos_mem_free(pWdaParams->wdaMsgParam) ;
@@ -8656,6 +8665,10 @@ VOS_STATUS WDA_ProcessBtAmpEventReq(tWDA_CbContext *pWDA,
       vos_mem_free(pWdaParams) ;
    }
 
+   if(BTAMP_EVENT_CONNECTION_START == wdiBtAmpEventParam->wdiBtAmpEventInfo.ucBtAmpEventType)
+   {
+      pWDA->wdaAmpSessionOn = VOS_TRUE;
+   }
    return CONVERT_WDI2VOS_STATUS(status) ;
 
 }
@@ -9321,6 +9334,10 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
        {
            //probe response is sent out using self station and no retries options.
            txFlag |= (HAL_USE_NO_ACK_REQUESTED_MASK | HAL_USE_SELF_STA_REQUESTED_MASK);
+       }
+       if(VOS_TRUE == pWDA->wdaAmpSessionOn)
+       {
+          txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
        }
    }
 

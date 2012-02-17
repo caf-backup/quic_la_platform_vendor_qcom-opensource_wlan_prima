@@ -70,6 +70,12 @@
 #define CFG_ENFORCE_11D_CHANNELS_MAX           ( 1 )
 #define CFG_ENFORCE_11D_CHANNELS_DEFAULT       ( 0 )
 
+//COUNTRY Code Priority 
+#define CFG_COUNTRY_CODE_PRIORITY_NAME		   "gCountryCodePriority"
+#define CFG_COUNTRY_CODE_PRIORITY_MIN		   ( 0 )
+#define CFG_COUNTRY_CODE_PRIORITY_MAX		   ( 1 )
+#define CFG_COUNTRY_CODE_PRIORITY_DEFAULT	   ( 0 )
+
 #define CFG_ENFORCE_COUNTRY_CODE_MATCH_NAME    "gEnforceCountryCodeMatch"
 #define CFG_ENFORCE_COUNTRY_CODE_MATCH_MIN     ( 0 )
 #define CFG_ENFORCE_COUNTRY_CODE_MATCH_MAX     ( 1 )
@@ -1021,6 +1027,7 @@ typedef struct
    v_BOOL_t      ShortSlotTimeEnabled;
    v_BOOL_t      Is11dSupportEnabled;
    v_BOOL_t      fEnforce11dChannels;
+   v_BOOL_t		 fSupplicantCountryCodeHasPriority;
    v_BOOL_t      fEnforceCountryCodeMatch;
    v_BOOL_t      fEnforceDefaultDomain;
    v_U32_t       Cfg1Id;

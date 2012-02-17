@@ -1657,34 +1657,42 @@ WLAN_BAPLogicalLinkCancel
         BTAMP_TLV_HCI_LOGICAL_LINK_CANCEL_CMD;
     pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
 
-    /* As the logical link create is returned immediately, the logical link is
-       created and so cancel can not return success.
-       And it returns WLANBAP_ERROR_NO_CNCT if not connected or
-       WLANBAP_ERROR_MAX_NUM_ACL_CNCTS if connected */
-    if(WLAN_BAPLogLinkClosed == btampContext->btamp_logical_link_state )
+    if (pBapHCILogLinkCancel->phy_link_handle != btampContext->phy_link_handle) 
     {
-       /* Cancel Logical link request in invalid state */
-       pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
-           WLANBAP_ERROR_NO_CNCT;
-    }
-    else if(WLAN_BAPLogLinkOpen == btampContext->btamp_logical_link_state )
-    {
-       /* Cancel Logical link request in conected state */
-       pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
-           WLANBAP_ERROR_MAX_NUM_ACL_CNCTS;       
-    }
-    else if(WLAN_BAPLogLinkInProgress == btampContext->btamp_logical_link_state )
-    {
-       /* Cancel Logical link request in progress state, need to fail logical link
-          creation as well */
-       btampContext->btamp_logical_link_cancel_pending = TRUE;
-       pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
-           WLANBAP_STATUS_SUCCESS;       
+        pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+            WLANBAP_ERROR_NO_CNCT;
     }
     else
     {
-        pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
-            WLANBAP_ERROR_CMND_DISALLOWED;
+        /* As the logical link create is returned immediately, the logical link is
+           created and so cancel can not return success.
+           And it returns WLANBAP_ERROR_NO_CNCT if not connected or
+           WLANBAP_ERROR_MAX_NUM_ACL_CNCTS if connected */
+        if(WLAN_BAPLogLinkClosed == btampContext->btamp_logical_link_state )
+        {
+           /* Cancel Logical link request in invalid state */
+           pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+               WLANBAP_ERROR_NO_CNCT;
+        }
+        else if(WLAN_BAPLogLinkOpen == btampContext->btamp_logical_link_state )
+        {
+           /* Cancel Logical link request in conected state */
+           pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+               WLANBAP_ERROR_MAX_NUM_ACL_CNCTS;       
+        }
+        else if(WLAN_BAPLogLinkInProgress == btampContext->btamp_logical_link_state )
+        {
+           /* Cancel Logical link request in progress state, need to fail logical link
+            creation as well */
+            btampContext->btamp_logical_link_cancel_pending = TRUE;
+            pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+                WLANBAP_STATUS_SUCCESS;       
+        }
+        else
+        {
+            pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.status =
+                WLANBAP_ERROR_NO_CNCT;
+        }
     }
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Logical_Link_Cancel.phy_link_handle =
         pBapHCILogLinkCancel->phy_link_handle;

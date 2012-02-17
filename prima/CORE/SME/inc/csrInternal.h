@@ -450,6 +450,7 @@ typedef struct tagCsrConfig
     eCsrRoamWmmUserModeType WMMSupportMode;
     tANI_BOOLEAN Is11eSupportEnabled;
     tANI_BOOLEAN Is11dSupportEnabled;
+	tANI_BOOLEAN Is11dSupportEnabledOriginal;
     tANI_BOOLEAN Is11hSupportEnabled;
     tANI_BOOLEAN shortSlotTime;
     tANI_BOOLEAN ProprietaryRatesEnabled;
@@ -469,6 +470,10 @@ typedef struct tagCsrConfig
     //channels are limited to the default channel list. It is an "AND" operation between the 
     //default channels and the channels in the 802.11d IE.
     tANI_BOOLEAN fEnforce11dChannels;   
+	//Country Code Priority
+	//0 = 802.11D > Configured Country > NV 
+	//1 = Configured Country > 802.11D > NV
+	tANI_BOOLEAN fSupplicantCountryCodeHasPriority;
     //When true, AP with unknown country code won't be see. 
     //"Unknown country code" means either Ap doesn't have 11d IE or we cannot 
     //find a domain for the country code in its 11d IE.
@@ -894,6 +899,7 @@ void csrScanSuspendIMPS( tpAniSirGlobal pMac );
 //because IMPS maybe disabled.
 void csrScanResumeIMPS( tpAniSirGlobal pMac );
 
+eHalStatus csrInitGetChannels(tpAniSirGlobal pMac);
 
 eHalStatus csrSetModifyProfileFields(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                      tCsrRoamModifyProfileFields *pModifyProfileFields);

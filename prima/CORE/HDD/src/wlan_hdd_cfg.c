@@ -91,6 +91,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENFORCE_11D_CHANNELS_DEFAULT, 
                  CFG_ENFORCE_11D_CHANNELS_MIN, 
                  CFG_ENFORCE_11D_CHANNELS_MAX ),
+				 
+   REG_VARIABLE( CFG_COUNTRY_CODE_PRIORITY_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, fSupplicantCountryCodeHasPriority, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK, 
+                 CFG_COUNTRY_CODE_PRIORITY_DEFAULT, 
+                 CFG_COUNTRY_CODE_PRIORITY_MIN, 
+                 CFG_COUNTRY_CODE_PRIORITY_MAX),
 
    REG_VARIABLE( CFG_ENFORCE_COUNTRY_CODE_MATCH_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fEnforceCountryCodeMatch, 
@@ -2477,6 +2484,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.scanAgeTimeCPS           = pConfig->nScanAgeTimeCPS;
    smeConfig.csrConfig.AdHocChannel24           = pConfig->OperatingChannel;
    smeConfig.csrConfig.fEnforce11dChannels      = pConfig->fEnforce11dChannels;
+   smeConfig.csrConfig.fSupplicantCountryCodeHasPriority     = pConfig->fSupplicantCountryCodeHasPriority;
    smeConfig.csrConfig.fEnforceCountryCodeMatch = pConfig->fEnforceCountryCodeMatch;
    smeConfig.csrConfig.fEnforceDefaultDomain    = pConfig->fEnforceDefaultDomain;
    smeConfig.csrConfig.bCatRssiOffset           = pConfig->nRssiCatGap;
