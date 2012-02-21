@@ -185,6 +185,7 @@ typedef struct roaming_info_s
 /** WAPI AUTH mode definition */
 enum _WAPIAuthMode
 {
+   WAPI_AUTH_MODE_OPEN = 0,
    WAPI_AUTH_MODE_PSK = 1,
    WAPI_AUTH_MODE_CERT
 } __attribute__((packed));
