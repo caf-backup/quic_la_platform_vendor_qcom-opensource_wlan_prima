@@ -218,6 +218,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #endif
 
 #define WLAN_SET_BAND_CONFIG  (SIOCIWFIRSTPRIV + 25)  /*Don't change this number*/
+#define WLAN_SET_POWER_PARAMS (SIOCIWFIRSTPRIV + 26)
 
 #define WLAN_PRIV_SET_MCBC_FILTER    (SIOCIWFIRSTPRIV + 26)
 #define WLAN_PRIV_CLEAR_MCBC_FILTER  (SIOCIWFIRSTPRIV + 27)
@@ -2094,7 +2095,6 @@ VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
        {
            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "BMPS is not "
                    "enabled in the cfg");
-           return VOS_STATUS_E_FAILURE;
        }
    }
    return VOS_STATUS_SUCCESS;
@@ -2359,6 +2359,11 @@ static int iw_set_priv(struct net_device *dev,
         return status;
     }
 #endif /*FEATURE_WLAN_SCAN_PNO*/
+    else if( strncasecmp(cmd, "powerparams",11) == 0 ) {
+      hddLog( VOS_TRACE_LEVEL_INFO, "powerparams\n"); 
+      status = iw_set_power_params(dev, info, wrqu, extra, 11);
+      return status;
+    }
     else if( 0 == strncasecmp(cmd, "CONFIG-TX-TRACKING", 18) ) {
         tSirTxPerTrackingParam tTxPerTrackingParam;
         char *ptr = (char*)(cmd + 18);
@@ -3616,7 +3621,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
 #ifdef WLAN_SOFTAP_FEATURE
         case WE_INIT_AP:
         {
-          printk(KERN_ERR"Init AP trigger\n");
+          pr_info("Init AP trigger\n");
           hdd_open_adapter( WLAN_HDD_GET_CTX(pAdapter), WLAN_HDD_SOFTAP, "softap.%d", 
                  wlan_hdd_get_intf_addr( WLAN_HDD_GET_CTX(pAdapter) ),TRUE);
           break;
@@ -3630,11 +3635,19 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
                 hdd_get_adapter_by_name(WLAN_HDD_GET_CTX(pAdapter), "softap.0");
            if( pAdapter_to_stop )
            {
-              printk(KERN_ERR"Stopping AP mode\n");
-              wlan_hdd_release_intf_addr(WLAN_HDD_GET_CTX(pAdapter), 
-                                 pAdapter_to_stop->macAddressCurrent.bytes);
-              hdd_close_adapter(WLAN_HDD_GET_CTX(pAdapter), pAdapter_to_stop, 
-                                 TRUE);
+               hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+               
+               pr_info("Stopping AP mode\n");
+               
+               /*Make sure that pAdapter cleaned properly*/
+               hdd_stop_adapter( pHddCtx, pAdapter_to_stop );
+               hdd_deinit_adapter( pHddCtx, pAdapter_to_stop );
+               memset(&pAdapter_to_stop->sessionCtx, 0, sizeof(pAdapter_to_stop->sessionCtx));
+
+               wlan_hdd_release_intf_addr(WLAN_HDD_GET_CTX(pAdapter), 
+                       pAdapter_to_stop->macAddressCurrent.bytes);
+               hdd_close_adapter(WLAN_HDD_GET_CTX(pAdapter), pAdapter_to_stop, 
+                       TRUE);
            }
            else
            {
@@ -4979,6 +4992,132 @@ static int iw_set_band_config(struct net_device *dev,
     return 0;
 }
 
+
+static int iw_set_power_params_priv(struct net_device *dev,
+                           struct iw_request_info *info,
+                           union iwreq_data *wrqu, char *extra)
+{
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+                "Set power params Private");
+  return iw_set_power_params(dev,info,wrqu,extra,0);
+}
+
+
+
+/*string based input*/
+VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *info,
+                      union iwreq_data *wrqu, char *extra, int nOffset)
+{
+  hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+  tSirSetPowerParamsReq powerRequest;
+  char *ptr;
+  v_U8_t  ucType; 
+  v_U32_t  uTotalSize, uValue; 
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+            "Power Params data len %d data %s", 
+            wrqu->data.length, 
+            wrqu->data.pointer);
+  
+  if (wrqu->data.length <= nOffset )
+  {
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "set power param input is not correct");
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  uTotalSize = wrqu->data.length - nOffset; 
+
+  /*-----------------------------------------------------------------------
+    Input is string based and expected to be like this:
+
+    <param_type> <param_value> <param_type> <param_value> ...
+
+    e.g:
+    1 2 2 3 3 0 4 1 5 1
+   
+    e.g. setting just a few:
+    1 2 4 1 
+   
+    parameter types:
+    -----------------------------
+    1 - Ignore DTIM
+    2 - Listen Interval
+    3 - Broadcast Multicas Filter 
+    4 - Beacon Early Termination
+    5 - Beacon Early Termination Interval
+  -----------------------------------------------------------------------*/
+  powerRequest.uIgnoreDTIM       = SIR_NOCHANGE_POWER_VALUE;
+  powerRequest.uListenInterval   = SIR_NOCHANGE_POWER_VALUE;
+  powerRequest.uBcastMcastFilter = SIR_NOCHANGE_POWER_VALUE;
+  powerRequest.uEnableBET        = SIR_NOCHANGE_POWER_VALUE;
+  powerRequest.uBETInterval      = SIR_NOCHANGE_POWER_VALUE; 
+
+  ptr = (char*)(wrqu->data.pointer + nOffset);
+
+  while ( uTotalSize )
+  {
+    sscanf(ptr,"%hhu %n", &(ucType), &nOffset);
+  
+    uTotalSize -= nOffset; 
+
+    if (!uTotalSize)
+    {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                "Invalid input parametery type : %d with no value at offset %d", 
+                ucType, nOffset);
+      return VOS_STATUS_E_FAILURE;
+    }
+
+    ptr += nOffset; 
+    sscanf(ptr,"%lu %n", &(uValue), &nOffset);
+  
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+              "Power request parameter %d value %d offset %d", 
+              ucType, uValue, nOffset);
+
+    switch (ucType)
+    {
+      case eSIR_IGNORE_DTIM:
+      powerRequest.uIgnoreDTIM       = uValue;
+      break;
+      case eSIR_LISTEN_INTERVAL:
+      powerRequest.uListenInterval   = uValue;
+      break;
+      case eSIR_MCAST_BCAST_FILTER:
+      powerRequest.uBcastMcastFilter = uValue;
+      break;
+      case eSIR_ENABLE_BET:
+      powerRequest.uEnableBET        = uValue;
+      break;
+      case eSIR_BET_INTERVAL:
+      powerRequest.uBETInterval      = uValue;
+      break;
+      default:
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                "Invalid input parametery type : %d with value: %d at offset %d", 
+                ucType, uValue,  nOffset);
+      return VOS_STATUS_E_FAILURE;
+    }
+
+    uTotalSize -= nOffset; 
+    ptr += nOffset;
+
+  }/*Go for as long as we have a valid string*/
+
+  /* put the device into full power*/
+  wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_ACTIVE);
+
+  /* Apply the power save params*/
+  sme_SetPowerParams( WLAN_HDD_GET_HAL_CTX(pAdapter), &powerRequest);    
+
+  /* put the device back to power save*/
+  wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_AUTO);
+
+  return VOS_STATUS_SUCCESS; 
+}/*iw_set_power_params*/
+
+
 // Define the Wireless Extensions to the Linux Network Device structure
 // A number of these routines are NULL (meaning they are not implemented.) 
 
@@ -5083,7 +5222,8 @@ static const iw_handler we_private[] = {
    ,
    [WLAN_SET_BAND_CONFIG                - SIOCIWFIRSTPRIV]   = iw_set_band_config,
    [WLAN_PRIV_SET_MCBC_FILTER           - SIOCIWFIRSTPRIV]   = iw_set_dynamic_mcbc_filter,
-   [WLAN_PRIV_CLEAR_MCBC_FILTER         - SIOCIWFIRSTPRIV]   = iw_clear_dynamic_mcbc_filter
+   [WLAN_PRIV_CLEAR_MCBC_FILTER         - SIOCIWFIRSTPRIV]   = iw_clear_dynamic_mcbc_filter,
+   [WLAN_SET_POWER_PARAMS               - SIOCIWFIRSTPRIV]   = iw_set_power_params_priv
 };
 
 /*Maximum command length can be only 15 */
@@ -5409,6 +5549,11 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "clearMCBCFilter" },
+    {  
+        WLAN_SET_POWER_PARAMS,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        0,
+        "setpowerparams" },
    
 };
 

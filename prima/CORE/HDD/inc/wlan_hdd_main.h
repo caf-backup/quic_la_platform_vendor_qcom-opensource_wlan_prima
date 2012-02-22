@@ -702,9 +702,18 @@ struct hdd_context_s
    /* Track whether Mcast/Bcast Filter is enabled.*/
    v_BOOL_t hdd_mcastbcast_filter_set;
 
+   /* Track whether ignore DTIM is enabled*/
+   v_BOOL_t hdd_ignore_dtim_enabled;
+   v_U32_t hdd_actual_ignore_DTIM_value;
+   v_U32_t hdd_actual_LI_value; 
+
+   
    v_BOOL_t hdd_wlan_suspended;
    
    spinlock_t filter_lock;
+   
+   /* Lock to avoid race condtion during start/stop bss*/
+   struct mutex sap_lock;
    
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
@@ -783,4 +792,5 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
 #endif
 void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
 void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
+void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

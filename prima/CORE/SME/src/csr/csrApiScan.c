@@ -2711,6 +2711,13 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
                     }
                 }
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
+                if(pMac->scan.domainIdCurrent != domainId)
+                {
+                   /* Regulatory Domain Changed, Purge old scan result */
+                   smsLog(pMac, LOGW, FL("Domain Changed Old %d, new %d"),
+                                      pMac->scan.domainIdCurrent, domainId);
+                   csrScanFlushResult(pMac);
+                }
                 status = WDA_SetRegDomain(pMac, domainId);
                 if (status != eHAL_STATUS_SUCCESS)
                 {
@@ -4638,7 +4645,17 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                         break;
                     }
 
-                    if (HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac, pMac->roam.validChannelList, &len)))
+                    if((pSrcReq->scanType == eSIR_PASSIVE_SCAN) && (pSrcReq->requestType == eCSR_SCAN_REQUEST_11D_SCAN))
+                    {
+                       for ( index = 0; index < pSrcReq->ChannelInfo.numOfChannels ; index++ )
+                       {
+                          pDstReq->ChannelInfo.ChannelList[new_index] =
+                                             pSrcReq->ChannelInfo.ChannelList[index];
+                          new_index++;
+                    }
+                       pDstReq->ChannelInfo.numOfChannels = new_index;
+                    }
+                    else if(HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac, pMac->roam.validChannelList, &len)))
                     {
                         new_index = 0;
                         pMac->roam.numValidChannels = len;

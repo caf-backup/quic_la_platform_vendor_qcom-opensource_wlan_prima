@@ -382,6 +382,9 @@ typedef enum
   /* WLAN DAL Shutdown Request */
   WDI_SHUTDOWN_REQ                              = 73,
 
+  /*Set power parameters on the device*/
+  WDI_SET_POWER_PARAMS_REQ                      = 74, 
+
   WDI_MAX_REQ,
 
   /*Send a suspend Indication down to HAL*/
@@ -617,6 +620,8 @@ typedef enum
   /* WLAN Shutdown Response */
   WDI_SHUTDOWN_RESP                             = 72,
 
+  /*Set power parameters response */
+  WDI_SET_POWER_PARAMS_RESP                     = 73,
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
@@ -2481,6 +2486,22 @@ WDI_ProcessSetTxPerTrackingReq
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process Set Power Params Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetPowerParamsReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
 /*=========================================================================
                              Indications
 =========================================================================*/
@@ -3597,6 +3618,23 @@ WDI_ProcessHostResumeRsp
 */
 WDI_Status
 WDI_ProcessSetTxPerTrackingRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Power Params Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetPowerParamsRsp
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData

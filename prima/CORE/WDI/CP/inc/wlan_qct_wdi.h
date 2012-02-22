@@ -3863,6 +3863,48 @@ typedef struct
 #endif // FEATURE_WLAN_SCAN_PNO
 
 /*---------------------------------------------------------------------------
+  WDI_UpdateScanParamsInfo
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+   /*  Ignore DTIM */
+  wpt_uint32 uIgnoreDTIM;
+
+  /*DTIM Period*/
+  wpt_uint32 uDTIMPeriod;
+
+  /* Listen Interval */
+  wpt_uint32 uListenInterval;
+
+  /* Broadcast Multicas Filter  */
+  wpt_uint32 uBcastMcastFilter;
+
+  /* Beacon Early Termination */
+  wpt_uint32 uEnableBET;
+
+  /* Beacon Early Termination Interval */
+  wpt_uint32 uBETInterval; 
+
+} WDI_SetPowerParamsInfo;
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateScanParamsInfoType
+  UpdateScanParams info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /* Power params Info Type, same as tSetPowerParamsReq */ 
+   WDI_SetPowerParamsInfo     wdiSetPowerParamsInfo; 
+   /* Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /* The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData;
+}WDI_SetPowerParamsReqParamsType;
+
+/*---------------------------------------------------------------------------
   WDI_SetTxPerTrackingConfType
   Wowl add ptrn info passed to WDA form UMAC
 ---------------------------------------------------------------------------*/
@@ -5694,6 +5736,28 @@ response from
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_HALDumpCmdRspCb)(WDI_HALDumpCmdRspParamsType* wdiHalDumpCmdRsp,
                                                                        void*  pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_SetPowerParamsCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Set Power Param
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SetPowerParamsCb)(WDI_Status  wdiStatus,
+                                      void*       pUserData);
 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -8132,6 +8196,30 @@ WDI_Status WDI_HALDumpCmdReq(
   WDI_HALDumpCmdReqParamsType *halDumpCmdReqParams,
   WDI_HALDumpCmdRspCb    halDumpCmdRspCb,
   void                  *pUserData
+);
+
+
+/**
+ @brief WDI_SetPowerParamsReq
+
+ @param pwdiPowerParamsReqParams: the Set Power Params as 
+                      specified by the Device Interface
+  
+        wdiPowerParamsCb: callback for passing back the response
+        of the Set Power Params operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetPowerParamsReq
+(
+  WDI_SetPowerParamsReqParamsType* pwdiPowerParamsReqParams,
+  WDI_SetPowerParamsCb             wdiPowerParamsCb,
+  void*                            pUserData
 );
 
 #ifdef __cplusplus

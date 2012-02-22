@@ -3856,6 +3856,41 @@ typedef struct
 } tSirPrefNetworkFoundInd;
 #endif // FEATURE_WLAN_SCAN_PNO
 
+#define SIR_NOCHANGE_POWER_VALUE  0xFFFFFFFF
+
+//Power Parameters Type
+typedef enum
+{
+   eSIR_IGNORE_DTIM        = 1,
+   eSIR_LISTEN_INTERVAL    = 2, 
+   eSIR_MCAST_BCAST_FILTER = 3, 
+   eSIR_ENABLE_BET         = 4, 
+   eSIR_BET_INTERVAL       = 5 
+}tPowerParamType;
+
+//Power Parameters Value s
+typedef struct 
+{
+  /*  Ignore DTIM */
+  tANI_U32 uIgnoreDTIM;
+
+  /* DTIM Period */
+  tANI_U32 uDTIMPeriod; 
+
+  /* Listen Interval */
+  tANI_U32 uListenInterval;
+
+  /* Broadcast Multicas Filter  */
+  tANI_U32 uBcastMcastFilter;
+
+  /* Beacon Early Termination */
+  tANI_U32 uEnableBET;
+
+  /* Beacon Early Termination Interval */
+  tANI_U32 uBETInterval; 
+
+}tSirSetPowerParamsReq, *tpSirSetPowerParamsReq;
+
 typedef struct sSirTxPerTrackingParam
 {
     tANI_U8  ucTxPerTrackingEnable;           /* 0: disable, 1:enable */

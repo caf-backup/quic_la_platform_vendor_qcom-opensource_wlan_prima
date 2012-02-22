@@ -911,6 +911,42 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
        }
 #endif
 
+   if((pHddCtx->cfg_ini->enableDynamicDTIM) && 
+      (eConnectionState_Associated == 
+         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) &&
+         (BMPS == pmcGetPmcState(pHddCtx->hHal)))
+   {
+      tSirSetPowerParamsReq powerRequest = { 0 };
+
+      powerRequest.uIgnoreDTIM = 1;
+      powerRequest.uListenInterval = pHddCtx->cfg_ini->enableDynamicDTIM;
+      /*Back up the actual values from CFG */
+      wlan_cfgGetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, 
+                              &pHddCtx->hdd_actual_ignore_DTIM_value);
+      wlan_cfgGetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, 
+                              &pHddCtx->hdd_actual_LI_value);
+
+      /* Update ignoreDTIM and ListedInterval in CFG to remain at the DTIM 
+      *specified during Enter/Exit BMPS when LCD off*/
+      ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, powerRequest.uIgnoreDTIM,
+                       NULL, eANI_BOOLEAN_FALSE);
+      ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, powerRequest.uListenInterval, 
+                       NULL, eANI_BOOLEAN_FALSE);
+
+      /* switch to the DTIM specified in cfg.ini */
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+                     "Switch to DTIM%d \n", powerRequest.uListenInterval);
+      sme_SetPowerParams( WLAN_HDD_GET_HAL_CTX(pAdapter), &powerRequest);    
+
+      /* put the device into full power */
+      wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_ACTIVE);
+
+      /* put the device back into BMPS */
+      wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_AUTO);
+
+      pHddCtx->hdd_ignore_dtim_enabled = TRUE;
+   }
+
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    /*Suspend notification sent down to driver*/
       hdd_conf_suspend_ind(pHddCtx, pAdapter);
@@ -1100,6 +1136,33 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
           hdd_exit_deep_sleep(pAdapter);
        }
 #endif
+
+      if(pHddCtx->hdd_ignore_dtim_enabled == TRUE)
+      {
+         /*Switch back to DTIM 1*/
+         tSirSetPowerParamsReq powerRequest = { 0 }; 
+
+         powerRequest.uIgnoreDTIM = pHddCtx->hdd_actual_ignore_DTIM_value;
+         powerRequest.uListenInterval = pHddCtx->hdd_actual_LI_value;
+
+         /* Update ignoreDTIM and ListedInterval in CFG with default values */
+         ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, powerRequest.uIgnoreDTIM,
+                          NULL, eANI_BOOLEAN_FALSE);
+         ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, powerRequest.uListenInterval, 
+                          NULL, eANI_BOOLEAN_FALSE);
+
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+                        "Switch to DTIM%d \n",powerRequest.uListenInterval);
+         sme_SetPowerParams( WLAN_HDD_GET_HAL_CTX(pAdapter), &powerRequest);    
+
+         /* put the device into full power */
+         wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_ACTIVE);
+
+         /* put the device back into BMPS */
+         wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_AUTO);
+
+         pHddCtx->hdd_ignore_dtim_enabled = FALSE;
+      }
 
          if(pHddCtx->hdd_mcastbcast_filter_set == TRUE) {
 #ifdef FEATURE_WLAN_INTEGRATED_SOC

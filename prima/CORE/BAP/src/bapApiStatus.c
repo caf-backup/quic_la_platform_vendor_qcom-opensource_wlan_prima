@@ -520,7 +520,6 @@ WLAN_BAPReadLocalAMPAssoc
     ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */ 
     tHalHandle hHal;
     tBtampAMP_ASSOC btamp_ASSOC; 
-    //v_U8_t phy_link_handle = pBapHCIReadLocalAMPAssoc->phy_link_handle;
     v_U32_t nConsumed = 0;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
@@ -546,11 +545,6 @@ WLAN_BAPReadLocalAMPAssoc
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, 
             "In %s, phy_link_handle = %d", __FUNCTION__, 
             pBapHCIReadLocalAMPAssoc->phy_link_handle); 
-#if 0
-    DUMPLOG(1, __FUNCTION__, "amp_assoc_fragment",  
-            pBapHCIWriteRemoteAMPAssoc->amp_assoc_fragment, 
-            64);
-#endif //0
 
     /* Update the MAC address and SSID if in case the Read Local AMP Assoc
      * Request is made before Create Physical Link creation.

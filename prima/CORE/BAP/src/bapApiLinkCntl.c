@@ -1830,8 +1830,9 @@ void WLAN_BAPEstablishLogicalLink(ptBtampContext btampContext)
 
     if (btampContext == NULL) 
     {
-        bapHCIEvent.u.btampLogicalLinkCompleteEvent.status =
-            WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+            "%s: Null Parameters Not allowed", __FUNCTION__); 
+        return;
     }
 
     if( TRUE == btampContext->btamp_logical_link_cancel_pending )

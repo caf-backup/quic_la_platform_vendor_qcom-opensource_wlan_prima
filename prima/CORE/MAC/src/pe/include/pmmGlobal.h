@@ -156,6 +156,8 @@ typedef struct sAniSirPmm
     tSirPowerSaveCfg gPmmCfg;  //pmm keeps a copy of Power Save config parameters sent to softmac.
     /// Current PM state of the station
     tPmmState gPmmState;
+    /// Flag to track if we are in a missed beacon scenario
+    tANI_U8 inMissedBeaconScenario;
 
 #ifdef ANI_PRODUCT_TYPE_AP
     tPmmStaState *gpPmmStaState; // Used for HCF - PS Poll 

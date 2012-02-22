@@ -4982,6 +4982,20 @@ eHalStatus sme_SetRSSIFilter(tHalHandle hHal, v_U8_t rssiThreshold)
 
 #endif // FEATURE_WLAN_SCAN_PNO
 
+eHalStatus sme_SetPowerParams(tHalHandle hHal, tSirSetPowerParamsReq* pwParams)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status;
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        pmcSetPowerParams(hHal, pwParams);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
 /* ---------------------------------------------------------------------------
     \fn sme_AbortMacScan
     \brief  API to cancel MAC scan.
@@ -5686,10 +5700,10 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
       pMac->roam.configParam.fEnforceDefaultDomain &&
       !csrSave11dCountryString(pMac, pMsg->countryCode, eANI_BOOLEAN_TRUE))
    {
-	/* All 11D related options are already enabled
-        * Country string is not changed
-        * Do not need do anything for country code change request */
-       return eHAL_STATUS_SUCCESS;
+      /* All 11D related options are already enabled
+       * Country string is not changed
+       * Do not need do anything for country code change request */
+      return eHAL_STATUS_SUCCESS;
    }
 
    /* Set Current Country code and Current Regulatory domain */
@@ -5731,7 +5745,7 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
    pMac->scan.domainIdDefault = pMac->scan.domainIdCurrent;
 
    /* get the channels based on new cc */
-   status = csrInitGetChannels( pMac );	
+   status = csrInitGetChannels( pMac );
 
    if ( status != eHAL_STATUS_SUCCESS )
    {
@@ -5740,8 +5754,7 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
    }
 
    /* reset info based on new cc, and we are done */
-   csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);							
-
+   csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);
    if( pMsg->changeCCCallback )
    {
       ((tSmeChangeCountryCallback)(pMsg->changeCCCallback))((void *)pMsg->pDevContext);

@@ -266,6 +266,7 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"SAP_CHANNEL_SELECT_OPERATING_BAND",
     (unsigned char *)"AP_DATA_AVAIL_POLL_PERIOD",
     (unsigned char *)"ENABLE_CLOSE_LOOP",
+    (unsigned char *)"ENABLE_LTE_COEX",
 };
 
 

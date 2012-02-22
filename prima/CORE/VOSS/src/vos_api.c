@@ -51,7 +51,6 @@
 #include "wlan_qct_wda.h"
 #include "wlan_hdd_main.h"
 #include <linux/vmalloc.h>
-#include <linux/wakelock.h>
 
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -462,12 +461,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      VOS_ASSERT(0);
      goto err_sme_close;
    }
-
-   wake_lock_init(&gpVosContext->wake_lock_suspend, 
-                    WAKE_LOCK_SUSPEND, "suspend_wlan");
-   /* Acquire the wake lock, will be released when
-    * Riva is put in to IMPS or BMPS state */
-   wake_lock(&gpVosContext->wake_lock_suspend);
 
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: VOSS successfully Opened", __func__);
@@ -1092,12 +1085,6 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
          "%s: failed to destroy ProbeEvent", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-
-  if (wake_lock_active(&gpVosContext->wake_lock_suspend)) 
-  {
-      wake_unlock(&gpVosContext->wake_lock_suspend);
-  }
-  wake_lock_destroy(&gpVosContext->wake_lock_suspend);
 
   return VOS_STATUS_SUCCESS;
 }
@@ -2177,40 +2164,6 @@ void vos_abort_mac_scan(void)
     return;
 }
 
-/**---------------------------------------------------------------------------
-  
-  \brief vos_preventSuspend() - Prevent APPS to go to suspend
-  
-  This API prevents host to go to suspend by acquiring the 'suspend lock'.
-  
-  \param pVosContext - pointer to the global Vos context
-
-  \return - None
-  
-  --------------------------------------------------------------------------*/
-void vos_preventSuspend ( v_CONTEXT_t vosContext )
-{
-   if (!wake_lock_active(&gpVosContext->wake_lock_suspend))
-       wake_lock(&gpVosContext->wake_lock_suspend);
-}
-
-/**---------------------------------------------------------------------------
-  
-  \brief vos_allowSuspend() - Allow APPS to go to suspend
-  
-  This API will release the 'suspend lock' acquired by vos_preventSuspend
-  
-  \param pVosContext - pointer to the global Vos context
-
-  \return - None
-  
-  --------------------------------------------------------------------------*/
-void vos_allowSuspend ( v_CONTEXT_t vosContext )
-{
-   if (wake_lock_active(&gpVosContext->wake_lock_suspend))
-       wake_unlock(&gpVosContext->wake_lock_suspend);
-}
-
 /*---------------------------------------------------------------------------
 
   \brief vos_shutdown() - shutdown VOS
@@ -2311,13 +2264,6 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
          "%s: failed to destroy ProbeEvent", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-  /* release suspend lock */
-  if (wake_lock_active(&gpVosContext->wake_lock_suspend))
-  {
-      wake_unlock(&gpVosContext->wake_lock_suspend);
-  }
-  wake_lock_destroy(&gpVosContext->wake_lock_suspend);
-
 
   return VOS_STATUS_SUCCESS;
 }

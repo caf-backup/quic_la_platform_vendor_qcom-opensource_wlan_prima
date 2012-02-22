@@ -1819,6 +1819,15 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg);
 #endif // FEATURE_WLAN_SCAN_PNO
 
 /* ---------------------------------------------------------------------------
+    \fn sme_SetPowerParams
+    \brief  API to set Power Parameters 
+    \param  hHal - The handle returned by macOpen.
+    \param  pwParams -  Pointer to the power parameters requested.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetPowerParams(tHalHandle hHal, tSirSetPowerParamsReq* pwParams);
+
+/* ---------------------------------------------------------------------------
     \fn sme_SetTxPerTracking
     \brief  Set Tx PER tracking configuration parameters
     \param  hHal - The handle returned by macOpen.

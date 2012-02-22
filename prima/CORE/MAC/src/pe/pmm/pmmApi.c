@@ -89,6 +89,8 @@ pmmInitialize(tpAniSirGlobal pMac)
                     pMac->pmm.gpPmmPSState, sizeof(tANI_U8)*pMac->lim.maxStation);
 #endif
 
+    pMac->pmm.inMissedBeaconScenario = FALSE;
+
     return eSIR_SUCCESS;
 }
 
@@ -551,6 +553,8 @@ tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac,tpPESession psessionE
         pmmLog(pMac, LOGP, "PMM: Not able to allocate memory for Enter Bmps\n");
         return eSIR_FAILURE;
     }
+
+    pMac->pmm.inMissedBeaconScenario = FALSE;
     pBmpsParams->respReqd = TRUE;
 
     pBmpsParams->tbtt = psessionEntry->lastBeaconTimeStamp;
@@ -799,7 +803,12 @@ void pmmExitBmpsResponseHandler(tpAniSirGlobal pMac,  tpSirMsgQ limMsg)
     if ( pMac->pmm.gPmmExitBmpsReasonCode == eSME_MISSED_BEACON_IND_RCVD)
     {
         PELOGW(pmmLog(pMac, LOGW, FL("Rcvd SIR_HAL_EXIT_BMPS_RSP with MISSED_BEACON\n"));)
-            pmmMissedBeaconHandler(pMac);
+        pmmMissedBeaconHandler(pMac);
+    }
+    else if(pMac->pmm.inMissedBeaconScenario)
+    {
+        PELOGW(pmmLog(pMac, LOGW, FL("Rcvd SIR_HAL_EXIT_BMPS_RSP in missed beacon scenario but reason code not correct"));)
+        pmmMissedBeaconHandler(pMac);
     }
     else
     {
@@ -2623,6 +2632,8 @@ void pmmUpdateDroppedPktStats(tpAniSirGlobal pMac)
 void pmmResetPmmState(tpAniSirGlobal pMac)
 {
     pMac->pmm.gPmmState = ePMM_STATE_READY;
+    
+    pMac->pmm.inMissedBeaconScenario = FALSE;
     return;
 }
 

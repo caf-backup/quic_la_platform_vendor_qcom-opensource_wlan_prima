@@ -91,7 +91,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENFORCE_11D_CHANNELS_DEFAULT, 
                  CFG_ENFORCE_11D_CHANNELS_MIN, 
                  CFG_ENFORCE_11D_CHANNELS_MAX ),
-				 
+
    REG_VARIABLE( CFG_COUNTRY_CODE_PRIORITY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fSupplicantCountryCodeHasPriority, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK, 
@@ -1282,6 +1282,27 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_ENABLE_DFS_CHNL_SCAN_MIN, 
               CFG_ENABLE_DFS_CHNL_SCAN_MAX ),
 
+ REG_VARIABLE( CFG_ENABLE_DYNAMIC_DTIM_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, enableDynamicDTIM, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+              CFG_ENABLE_DYNAMIC_DTIM_DEFAULT, 
+              CFG_ENABLE_DYNAMIC_DTIM_MIN, 
+              CFG_ENABLE_DYNAMIC_DTIM_MAX ),
+
+ REG_VARIABLE( CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, enableAutomaticTxPowerControl, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+              CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_DEFAULT, 
+              CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MIN, 
+              CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MAX ),
+
+ REG_VARIABLE( CFG_SHORT_GI_40MHZ_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, ShortGI40MhzEnable, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+              CFG_SHORT_GI_40MHZ_DEFAULT, 
+              CFG_SHORT_GI_40MHZ_MIN, 
+              CFG_SHORT_GI_40MHZ_MAX ),
+
 };
 
 /*
@@ -2433,6 +2454,21 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    {
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_CLOSE_LOOP to CCM\n");
+   }
+
+   if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TX_PWR_CTRL_ENABLE, 
+                   pConfig->enableAutomaticTxPowerControl, NULL, eANI_BOOLEAN_FALSE)
+                   ==eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_TX_PWR_CTRL_ENABLE to CCM\n");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SHORT_GI_40MHZ, 
+      pConfig->ShortGI40MhzEnable, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_SHORT_GI_40MHZ to CCM\n");
    }
 
    return fStatus;

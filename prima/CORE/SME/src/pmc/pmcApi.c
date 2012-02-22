@@ -23,6 +23,7 @@
 #include "wlan_ps_wow_diag.h"
 
 #include "wlan_qct_wda.h"
+#include "limSessionUtils.h"
 
 extern void pmcReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 
@@ -1225,7 +1226,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
     tListElem *pEntry = NULL;
     tSmeCmd *pCommand = NULL;
     tANI_BOOLEAN fRemoveCommand = eANI_BOOLEAN_TRUE;
-    v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
 
     pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
     if(pEntry)
@@ -1253,7 +1253,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             if (pMsg->statusCode == eSIR_SME_SUCCESS)
             {
                     pmcEnterImpsState(pMac);
-                    vos_allowSuspend ( pVosContext );
             }
 
             /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into IMPS. */
@@ -1339,7 +1338,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                there will no entries for BMPS callback routines and
                pmcDoBmpsCallbacks will be a No-Op*/
                 pmcDoBmpsCallbacks(pMac, eHAL_STATUS_SUCCESS);
-                vos_allowSuspend ( pVosContext );
          }
         /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into BMPS. */
         else
@@ -2847,6 +2845,44 @@ eHalStatus pmcUpdateScanParams(tHalHandle hHal, tCsrConfig *pRequest, tCsrChanne
     return eHAL_STATUS_SUCCESS;
 }
 #endif // FEATURE_WLAN_SCAN_PNO
+
+eHalStatus pmcSetPowerParams(tHalHandle hHal,   tSirSetPowerParamsReq*  pwParams)
+{
+    tSirSetPowerParamsReq* pRequestBuf;
+    vos_msg_t msg;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tpPESession     psessionEntry;
+
+    if((psessionEntry = peGetValidPowerSaveSession(pMac))== NULL)
+    {
+        return eHAL_STATUS_NOT_INITIALIZED;
+    }
+
+    pRequestBuf = vos_mem_malloc(sizeof(tSirSetPowerParamsReq));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for Power Paramrequest", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+
+    vos_mem_copy(pRequestBuf, pwParams, sizeof(*pRequestBuf)); 
+
+    pRequestBuf->uDTIMPeriod = psessionEntry->dtimPeriod; 
+
+    msg.type = WDA_SET_POWER_PARAMS_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_POWER_PARAMS_REQ message to WDA", __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 eHalStatus pmcGetFilterMatchCount

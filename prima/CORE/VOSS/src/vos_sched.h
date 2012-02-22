@@ -339,8 +339,6 @@ typedef struct _VosContextType
 
    volatile v_U8_t    isLoadUnloadInProgress;
 
-   /* wake lock for preventing suspend */ 
-   struct wake_lock   wake_lock_suspend;
 } VosContextType, *pVosContextType;
 
 

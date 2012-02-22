@@ -63,6 +63,12 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
       VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_FATAL,"%s: Global VOS_SCHED context is Null",__func__);
       return 0;
    }
+   if(!vos_is_apps_power_collapse_allowed(pHddCtx))
+   {
+       /* Fail this suspend */
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Fail wlan suspend: not in IMPS/BMPS", __func__);
+       return -1;
+   }
 
    /* Set the Station state as Suspended */
    pHddCtx->isWlanSuspended = TRUE;

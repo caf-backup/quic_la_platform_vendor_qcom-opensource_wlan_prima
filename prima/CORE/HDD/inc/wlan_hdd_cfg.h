@@ -71,10 +71,10 @@
 #define CFG_ENFORCE_11D_CHANNELS_DEFAULT       ( 0 )
 
 //COUNTRY Code Priority 
-#define CFG_COUNTRY_CODE_PRIORITY_NAME		   "gCountryCodePriority"
-#define CFG_COUNTRY_CODE_PRIORITY_MIN		   ( 0 )
-#define CFG_COUNTRY_CODE_PRIORITY_MAX		   ( 1 )
-#define CFG_COUNTRY_CODE_PRIORITY_DEFAULT	   ( 0 )
+#define CFG_COUNTRY_CODE_PRIORITY_NAME         "gCountryCodePriority"
+#define CFG_COUNTRY_CODE_PRIORITY_MIN          ( 0 )
+#define CFG_COUNTRY_CODE_PRIORITY_MAX          ( 1 )
+#define CFG_COUNTRY_CODE_PRIORITY_DEFAULT      ( 0 )
 
 #define CFG_ENFORCE_COUNTRY_CODE_MATCH_NAME    "gEnforceCountryCodeMatch"
 #define CFG_ENFORCE_COUNTRY_CODE_MATCH_MIN     ( 0 )
@@ -1007,6 +1007,27 @@ typedef enum
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT    ( 0 )
 
 
+/*
+ * Enable Dynamic DTIM
+ * Options
+ * 0 -Disable DynamicDTIM
+ * 1 to 5 - SLM will switch to DTIM specified here when host suspends and 
+ *          switch DTIM1 when host resumes */
+#define CFG_ENABLE_DYNAMIC_DTIM_NAME            "gEnableDynamicDTIM"
+#define CFG_ENABLE_DYNAMIC_DTIM_MIN        ( 0 )
+#define CFG_ENABLE_DYNAMIC_DTIM_MAX        ( 5 )
+#define CFG_ENABLE_DYNAMIC_DTIM_DEFAULT    ( 0 )
+
+#define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME  "gEnableAutomaticTxPowerControl"
+#define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MIN        ( 0 )
+#define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MAX        ( 1 )
+#define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_DEFAULT    ( 1 )
+
+#define CFG_SHORT_GI_40MHZ_NAME                "gShortGI40Mhz"
+#define CFG_SHORT_GI_40MHZ_MIN                 0
+#define CFG_SHORT_GI_40MHZ_MAX                 1
+#define CFG_SHORT_GI_40MHZ_DEFAULT             1
+
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -1027,7 +1048,7 @@ typedef struct
    v_BOOL_t      ShortSlotTimeEnabled;
    v_BOOL_t      Is11dSupportEnabled;
    v_BOOL_t      fEnforce11dChannels;
-   v_BOOL_t		 fSupplicantCountryCodeHasPriority;
+   v_BOOL_t      fSupplicantCountryCodeHasPriority;
    v_BOOL_t      fEnforceCountryCodeMatch;
    v_BOOL_t      fEnforceDefaultDomain;
    v_U32_t       Cfg1Id;
@@ -1247,7 +1268,9 @@ typedef struct
    v_U32_t                     enableCloseLoop;
    v_U8_t                      enableBypass11d;
    v_U8_t                      enableDFSChnlScan;
-
+   v_U8_t                      enableDynamicDTIM;
+   v_U8_t                      enableAutomaticTxPowerControl;
+   v_U8_t                      ShortGI40MhzEnable;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

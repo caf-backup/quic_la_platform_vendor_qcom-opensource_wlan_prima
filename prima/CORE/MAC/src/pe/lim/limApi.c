@@ -449,7 +449,7 @@ static void __limInitHTVars(tpAniSirGlobal pMac)
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
 static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
 {
-   tANI_U32 val1, val2, len;
+   tANI_U32 val1, val2, val3, len;
    tANI_U16 val16;
    tANI_U8 val8;
    tSirMacHTCapabilityInfo   *pHTCapabilityInfo;
@@ -540,9 +540,17 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
       PELOGE(limLog(pMac, LOGE, FL("could not retrieve shortGI 20Mhz CFG\n"));)
       return eSIR_FAILURE;
    }
+   if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_40MHZ, &val3) != eSIR_SUCCESS) 
+   {
+      PELOGE(limLog(pMac, LOGE, FL("could not retrieve shortGI 20Mhz CFG\n"));)
+      return eSIR_FAILURE;
+   }
+
    val16 = ( tANI_U16 ) val1;
    pHTCapabilityInfo = ( tSirMacHTCapabilityInfo* ) &val16;
    pHTCapabilityInfo->shortGI20MHz = (tANI_U16)val2;
+   pHTCapabilityInfo->shortGI40MHz = (tANI_U16)val3;
+
    if(cfgSetInt(pMac,  WNI_CFG_HT_CAP_INFO, *(tANI_U16*)pHTCapabilityInfo) != 
       eSIR_SUCCESS)
    {
@@ -1810,6 +1818,7 @@ limReceivedHBHandler(tpAniSirGlobal pMac, tANI_U8 channelId, tpPESession psessio
     if((channelId == 0 ) || (channelId == psessionEntry->currentOperChannel) )
     psessionEntry->LimRxedBeaconCntDuringHB++;
 
+    pMac->pmm.inMissedBeaconScenario = FALSE;
 } /*** end limReceivedHBHandler() ***/
 
 
@@ -2509,6 +2518,7 @@ void limHandleMissedBeaconInd(tpAniSirGlobal pMac)
          (pMac->pmm.gPmmState == ePMM_STATE_UAPSD_SLEEP)||
          (pMac->pmm.gPmmState == ePMM_STATE_WOWLAN) )
     {
+        pMac->pmm.inMissedBeaconScenario = TRUE;
         PELOG1(limLog(pMac, LOG1, FL("Sending EXIT_BMPS_IND to SME \n"));)
         limSendExitBmpsInd(pMac, eSME_MISSED_BEACON_IND_RCVD);
     }
@@ -2555,6 +2565,11 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     if( (subType == SIR_MAC_MGMT_BEACON) ||
         (subType == SIR_MAC_MGMT_PROBE_RSP))
     {
+        if(pMac->pmm.inMissedBeaconScenario)
+        {
+           PELOGE(limLog(pMac, LOGE, FL("Do not drop beacon and probe response - Missed beacon sceanrio"));)
+           return eMGMT_DROP_NO_DROP;
+        }
         if (limIsSystemInScanState(pMac))
         {
             if( WDA_IS_RX_IN_SCAN(pRxPacketInfo) )

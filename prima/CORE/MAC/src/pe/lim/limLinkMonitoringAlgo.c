@@ -345,6 +345,7 @@ limTearDownLinkWithAp(tpAniSirGlobal pMac)
      * Trigger link tear down.
      */
 
+    pMac->pmm.inMissedBeaconScenario = FALSE;
     limLog(pMac, LOGW,
        FL("No ProbeRsp from AP after HB failure. Tearing down link\n"));
 

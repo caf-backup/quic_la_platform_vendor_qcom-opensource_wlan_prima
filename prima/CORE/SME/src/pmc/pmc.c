@@ -2096,7 +2096,6 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_BOOLEAN fRemoveCmd = eANI_BOOLEAN_TRUE;
-    v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
 
     do
     {
@@ -2141,8 +2140,6 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                     //Enable Idle scan in CSR
                     csrScanResumeIMPS(pMac);
                 }
-                // Prevent suspend until you put Riva into IMPS/BMPS
-                vos_preventSuspend ( pVosContext );
 
                 status = pmcSendMessage(pMac, eWNI_PMC_EXIT_IMPS_REQ, NULL, 0);
                 if ( HAL_STATUS_SUCCESS( status ) )
@@ -2216,8 +2213,6 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
             if( BMPS == pMac->pmc.pmcState )
             {
                 pMac->pmc.requestFullPowerPending = FALSE;
-                // Prevent suspend until you put Riva into IMPS/BMPS
-                vos_preventSuspend ( pVosContext );
 
                 status = pmcSendMessage( pMac, eWNI_PMC_EXIT_BMPS_REQ, 
                             &pCommand->u.pmcCmd.u.exitBmpsInfo, sizeof(tExitBmpsInfo) );
