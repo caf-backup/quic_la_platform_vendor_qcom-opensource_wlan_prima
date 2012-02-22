@@ -609,25 +609,26 @@ static void wlan_hdd_set_sapHwmode(hdd_adapter_t *pHostapdAdapter)
 
 static void wlan_hdd_cfg80211_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
 {
+    v_U8_t addIE[1] = {0};
 
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA1, 0, NULL,
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA1,(tANI_U8*)addIE, 0, NULL,
                             eANI_BOOLEAN_FALSE) )
     {
         hddLog(LOGE,
            "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM\n");
     }
 
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, 0, NULL,
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, (tANI_U8*)addIE, 0, NULL,
                             eANI_BOOLEAN_FALSE) )
     {
         hddLog(LOGE,
            "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM\n");
     }
 
-    if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, 0, NULL,
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, (tANI_U8*)addIE, 0, NULL,
                             eANI_BOOLEAN_FALSE) )
     {
         hddLog(LOGE,
@@ -642,6 +643,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     v_U8_t *genie;
     v_U8_t total_ielen = 0, ielen = 0;
     v_U8_t *pIe = NULL;
+    v_U8_t addIE[1] = {0};
     beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
 
     genie = vos_mem_malloc(MAX_GENIE_LEN);
@@ -760,7 +762,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
                             eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
             {
                  hddLog(LOGE,
-                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
+                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
                  return -EINVAL;
             }
             rem_probe_resp_ie_len += probe_rsp_ie_len[1];
@@ -775,7 +777,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
                             eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
             {
                  hddLog(LOGE,
-                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
+                       "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
                  return -EINVAL;
             }
             rem_probe_resp_ie_len += probe_rsp_ie_len[2];
@@ -783,8 +785,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
 
         if (probe_rsp_ie_len[1] == 0 )
         {
-            if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, 0, NULL,
+            if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, (tANI_U8*)addIE, 0, NULL,
                             eANI_BOOLEAN_FALSE) )
             {
                 hddLog(LOGE,
@@ -794,8 +796,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
 
         if (probe_rsp_ie_len[2] == 0 )
         {
-            if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
-                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, 0, NULL,
+            if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, (tANI_U8*)addIE, 0, NULL,
                             eANI_BOOLEAN_FALSE) )
             {
                 hddLog(LOGE,

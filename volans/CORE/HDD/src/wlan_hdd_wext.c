@@ -643,7 +643,10 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
          pWextState->roamProfile.Keys.KeyLength[i] = 0;
       }
    }
-
+#ifdef FEATURE_WLAN_WAPI
+   /*Clear WAPI IE information in the profile*/
+   pAdapter->wapi_info.wapiAuthMode = WAPI_AUTH_MODE_OPEN;
+#endif
    vos_mem_zero((void *)(pWextState->req_bssId), WNI_CFG_BSSID_LEN);
 
 }
