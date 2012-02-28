@@ -134,6 +134,7 @@ typedef enum {
     eSAP_ACCEPT_UNLESS_DENIED = 0,
     eSAP_DENY_UNLESS_ACCEPTED = 1,
     eSAP_SUPPORT_ACCEPT_AND_DENY = 2, /* this type is added to support both accept and deny lists at the same time */
+    eSAP_ALLOW_ALL = 3, /*In this mode all MAC addresses are allowed to connect*/
 } eSapMacAddrACL;
 
 typedef enum {
@@ -1186,6 +1187,34 @@ VOS_STATUS
 WLANSAP_ClearACL
 ( 
     v_PVOID_t  pvosGCtx
+);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_SetMode
+
+  DESCRIPTION 
+    This api is used to set mode for ACL
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+    IN
+        pvosGCtx: Pointer to vos global context structure
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS 
+WLANSAP_SetMode
+( 
+    v_PVOID_t  pvosGCtx,
+    v_U32_t mode
 );
 
 /*==========================================================================

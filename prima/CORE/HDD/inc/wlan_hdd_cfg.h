@@ -417,6 +417,11 @@ typedef enum
 #define CFG_DISABLE_PACKET_FILTER_MAX               (0x1)
 #define CFG_DISABLE_PACKET_FILTER_DEFAULT           (0)
 
+#define CFG_ENABLE_LTE_COEX              "gEnableLTECoex"
+#define CFG_ENABLE_LTE_COEX_MIN               ( 0 )
+#define CFG_ENABLE_LTE_COEX_MAX               ( 1 )
+#define CFG_ENABLE_LTE_COEX_DEFAULT           ( 0 )
+
 #endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
@@ -956,6 +961,11 @@ typedef enum
 #define CFG_ENABLE_DFS_CHNL_SCAN_MAX               ( 1 )
 #define CFG_ENABLE_DFS_CHNL_SCAN_DEFAULT           ( 1 )
 
+#define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
+#define CFG_REPORT_MAX_LINK_SPEED_MIN              ( 0 )
+#define CFG_REPORT_MAX_LINK_SPEED_MAX              ( 1 )
+#define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( 0 )
+
 /*
  * WDI Trace Enable Control
  * Notes:
@@ -1116,6 +1126,7 @@ typedef struct
    v_U8_t        apEndChannelNum;
    v_U8_t        apOperatingBand;
    v_BOOL_t      apAutoChannelSelection;
+   v_U8_t        enableLTECoex;
 #endif
    v_U32_t       nBeaconInterval;
    v_U8_t        nTxPowerCap;   //In dBm
@@ -1271,6 +1282,7 @@ typedef struct
    v_U8_t                      enableDynamicDTIM;
    v_U8_t                      enableAutomaticTxPowerControl;
    v_U8_t                      ShortGI40MhzEnable;
+   v_U8_t                      reportMaxLinkSpeed;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

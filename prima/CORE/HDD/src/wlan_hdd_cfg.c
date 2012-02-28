@@ -498,8 +498,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT,
                  CFG_SAP_AUTO_CHANNEL_SELECTION_MIN,
                  CFG_SAP_AUTO_CHANNEL_SELECTION_MAX ),
-
-
+   
+   REG_VARIABLE(CFG_ENABLE_LTE_COEX , WLAN_PARAM_Integer,
+                 hdd_config_t, enableLTECoex,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_LTE_COEX_DEFAULT,
+                 CFG_ENABLE_LTE_COEX_MIN,
+                 CFG_ENABLE_LTE_COEX_MAX ),
 #endif
    REG_VARIABLE(CFG_DISABLE_PACKET_FILTER , WLAN_PARAM_Integer,
                  hdd_config_t, disablePacketFilter,
@@ -1303,6 +1308,13 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_SHORT_GI_40MHZ_MIN, 
               CFG_SHORT_GI_40MHZ_MAX ),
 
+ REG_VARIABLE( CFG_REPORT_MAX_LINK_SPEED, WLAN_PARAM_Integer,
+              hdd_config_t, reportMaxLinkSpeed, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+              CFG_REPORT_MAX_LINK_SPEED_DEFAULT, 
+              CFG_REPORT_MAX_LINK_SPEED_MIN, 
+              CFG_REPORT_MAX_LINK_SPEED_MAX ),
+
 };
 
 /*
@@ -1645,6 +1657,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pHddCtx->cfg_ini->apDataAvailPollPeriodInMs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableBypass11d] Value = [%u] ",pHddCtx->cfg_ini->enableBypass11d);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableDFSChnlScan] Value = [%u] ",pHddCtx->cfg_ini->enableDFSChnlScan);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gReportMaxLinkSpeed] Value = [%u] ",pHddCtx->cfg_ini->reportMaxLinkSpeed);
 }
 
 
@@ -2308,6 +2321,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
    }
 
 #ifdef WLAN_SOFTAP_FEATURE
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ENABLE_LTE_COEX, pConfig->enableLTECoex, 
+        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+     {
+        fStatus = FALSE;
+        hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_LTE_COEX to CCM\n");
+     }
+
      if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE, pConfig->nEnableListenMode, 
         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
      {

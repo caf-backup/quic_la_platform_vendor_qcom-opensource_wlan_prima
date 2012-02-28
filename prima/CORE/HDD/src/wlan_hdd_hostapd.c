@@ -773,6 +773,18 @@ static iw_softap_setparam(struct net_device *dev,
             }
             break;
 
+        case QCSAP_PARAM_ACL_MODE:
+            if ((eSAP_ALLOW_ALL < (eSapMacAddrACL)set_value) || 
+                (eSAP_ACCEPT_UNLESS_DENIED > (eSapMacAddrACL)set_value))
+            {
+                hddLog(LOGE, FL("Invalid ACL Mode value %d"), set_value);
+                ret = -EINVAL;
+            }
+            else
+            {
+                WLANSAP_SetMode(pVosContext, set_value);
+            }
+            break;
         case QCSAP_PARAM_MAX_ASSOC:
             if (WNI_CFG_ASSOC_STA_LIMIT_STAMIN > set_value)
             {
@@ -1285,6 +1297,40 @@ static int iw_softap_set_channel_range(struct net_device *dev,
       ret = -EINVAL;
     }
     return ret;
+}
+
+static int iw_softap_get_channel_list(struct net_device *dev, 
+                          struct iw_request_info *info,
+                          union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+    v_U8_t channels[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    v_U32_t num_channels = sizeof(channels);
+
+   tpChannelListInfo channel_list = (tpChannelListInfo) extra;
+   wrqu->data.length = sizeof(tChannelListInfo);
+   ENTER();
+   if (ccmCfgGetStr((hHal), 
+                    WNI_CFG_VALID_CHANNEL_LIST,
+                    channel_list->channels,
+                    &num_channels) != eHAL_STATUS_SUCCESS)
+   {
+      hddLog(LOGE,FL(" Get Valid channel list failed\n")); 
+      return -EIO;
+   }
+   
+   hddLog(LOG1,FL(" number of channels %d\n"), num_channels); 
+
+   if (num_channels > IW_MAX_FREQUENCIES)
+   {
+      num_channels = IW_MAX_FREQUENCIES;
+   }
+  
+   channel_list->num_channels = num_channels;
+   EXIT();
+
+   return 0;
 }
 
 static 
@@ -2151,6 +2197,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
   { QCSAP_PARAM_CLR_ACL, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, "setClearAcl" },
+  { QCSAP_PARAM_ACL_MODE,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setAclMode" },
   { QCSAP_IOCTL_COMMIT,
       IW_PRIV_TYPE_BYTE | sizeof(struct s_CommitConfig) | IW_PRIV_SIZE_FIXED, 0, "commit" },
   { QCSAP_IOCTL_SETMLME,
@@ -2205,6 +2253,11 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0, 
         "modify_acl" },
 
+    /* handlers for main ioctl */
+    {   QCSAP_IOCTL_GET_CHANNEL_LIST,
+        0, 
+        IW_PRIV_TYPE_BYTE | sizeof(tChannelListInfo),
+        "getChannelList" },
 
 };
 static const iw_handler hostapd_private[] = {
@@ -2225,6 +2278,7 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
    [QCSAP_IOCTL_SET_CHANNEL_RANGE - SIOCIWFIRSTPRIV] = iw_softap_set_channel_range,
    [QCSAP_IOCTL_MODIFY_ACL - SIOCIWFIRSTPRIV]   = iw_softap_modify_acl,
+   [QCSAP_IOCTL_GET_CHANNEL_LIST - SIOCIWFIRSTPRIV]   = iw_softap_get_channel_list,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),

@@ -1107,6 +1107,9 @@ void sapPrintACL(v_MACADDR_t *macList, v_U8_t size)
 VOS_STATUS
 sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
 {
+    if (eSAP_ALLOW_ALL == sapContext->eSapMacAddrAclMode)
+              return VOS_STATUS_SUCCESS;
+
     if (sapSearchMacList(sapContext->acceptMacList, sapContext->nAcceptMac, peerMac, NULL))
         return VOS_STATUS_SUCCESS;
 
@@ -1154,6 +1157,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
     v_U8_t channelCount;
     v_U8_t bandStartChannel;
     v_U8_t bandEndChannel ;
+    v_U32_t enableLTECoex;
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
 
     if (NULL == hHal)
@@ -1168,6 +1172,7 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
     ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL, &startChannelNum);
     ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL, &endChannelNum);
     ccmCfgGetInt(hHal, WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND, &operatingBand);
+    ccmCfgGetInt(hHal, WNI_CFG_ENABLE_LTE_COEX, &enableLTECoex);
     
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
              "%s:sapGetChannelList: startChannel %d,EndChannel %d,Operatingband:%d",
@@ -1206,6 +1211,13 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
            bandStartChannel = RF_CHAN_1;
            bandEndChannel = RF_CHAN_14;
            break;
+    }
+    /*Check if LTE coex is enabled and 2.4GHz is selected*/
+    if (enableLTECoex && (bandStartChannel == RF_CHAN_1) 
+       && (bandEndChannel == RF_CHAN_14))
+    {
+        /*Set 2.4GHz upper limit to channel 9 for LTE COEX*/
+        bandEndChannel = RF_CHAN_9;
     }      
     /* Allocate the max number of channel supported */
     list = (v_U8_t *)vos_mem_malloc(NUM_5GHZ_CHANNELS);
@@ -1236,6 +1248,12 @@ static VOS_STATUS sapGetChannelList(ptSapContext sapContext,
     { 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
         "sapGetChannelList:No active channels present in the given range for the current region");
+        /*LTE COEX: channel range outside the restricted 2.4GHz band limits*/
+        if (enableLTECoex && (startChannelNum > bandEndChannel))
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL,
+            "sapGetChannelList:SAP cannot be started as LTE COEX restricted 2.4GHz limits");
+        }
     }
    
     /* return the channel list and number of channels to scan*/

@@ -870,6 +870,16 @@ WLANSAP_getWpsSessionOverlap
     return VOS_STATUS_SUCCESS;
 }
 
+
+/* This routine will set the mode of operation for ACL dynamically*/
+VOS_STATUS
+WLANSAP_SetMode ( v_PVOID_t  pvosGCtx, v_U32_t mode)
+{
+    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+    pSapCtx->eSapMacAddrAclMode = (eSapMacAddrACL)mode;
+    return VOS_STATUS_SUCCESS;
+}
+
 /* This routine will clear all the entries in accept list as well as deny list  */
 
 VOS_STATUS 

@@ -162,6 +162,15 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
     u_int8_t    probeReqIE[512]; 
 } sQcSapreq_WPSPBCProbeReqIES_t ;
 
+/*
+ * Channel List Info
+ */
+
+typedef struct
+{
+    v_U8_t            num_channels;    
+    v_U8_t            channels[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+}tChannelListInfo, *tpChannelListInfo;
 
 
 #ifdef __linux__
@@ -199,7 +208,8 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
 #define WE_P2P_NOA_CMD  2
 #endif
 
-#define QCSAP_IOCTL_MODIFY_ACL        (SIOCIWFIRSTPRIV+18)
+#define QCSAP_IOCTL_MODIFY_ACL          (SIOCIWFIRSTPRIV+18)
+#define QCSAP_IOCTL_GET_CHANNEL_LIST    (SIOCIWFIRSTPRIV+19)
 
 #define MAX_VAR_ARGS         7
 
@@ -207,6 +217,7 @@ enum {
     QCSAP_PARAM_MAX_ASSOC = 1,
     QCSAP_PARAM_MODULE_DOWN_IND = 5,
     QCSAP_PARAM_CLR_ACL = 6,
+    QCSAP_PARAM_ACL_MODE = 7,
 };
 
 

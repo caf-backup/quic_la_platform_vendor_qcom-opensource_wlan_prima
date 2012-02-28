@@ -914,7 +914,7 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
    if((pHddCtx->cfg_ini->enableDynamicDTIM) && 
       (eConnectionState_Associated == 
          (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) &&
-         (BMPS == pmcGetPmcState(pHddCtx->hHal)))
+         (pHddCtx->cfg_ini->fIsBmpsEnabled))
    {
       tSirSetPowerParamsReq powerRequest = { 0 };
 
@@ -938,13 +938,16 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
                      "Switch to DTIM%d \n", powerRequest.uListenInterval);
       sme_SetPowerParams( WLAN_HDD_GET_HAL_CTX(pAdapter), &powerRequest);    
 
-      /* put the device into full power */
-      wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_ACTIVE);
+      if (BMPS == pmcGetPmcState(pHddCtx->hHal))
+      {
+          /* put the device into full power */
+          wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_ACTIVE);
 
-      /* put the device back into BMPS */
-      wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_AUTO);
+          /* put the device back into BMPS */
+          wlan_hdd_enter_bmps(pAdapter, DRIVER_POWER_MODE_AUTO);
 
-      pHddCtx->hdd_ignore_dtim_enabled = TRUE;
+          pHddCtx->hdd_ignore_dtim_enabled = TRUE;
+      }
    }
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
@@ -986,6 +989,14 @@ static void hdd_PowerStateChangedCB
 {
    hdd_context_t *pHddCtx = callbackContext;
    
+   /* if the driver was not in BMPS during early suspend,
+    * the dynamic DTIM is now updated at Riva */
+   if ((newState == BMPS) && pHddCtx->hdd_wlan_suspended
+           && pHddCtx->cfg_ini->enableDynamicDTIM
+           && (pHddCtx->hdd_ignore_dtim_enabled == FALSE))
+   {
+       pHddCtx->hdd_ignore_dtim_enabled = TRUE;
+   }
    spin_lock(&pHddCtx->filter_lock);
    if((newState == BMPS) &&  pHddCtx->hdd_wlan_suspended
           && (pHddCtx->hdd_mcastbcast_filter_set != TRUE)) {

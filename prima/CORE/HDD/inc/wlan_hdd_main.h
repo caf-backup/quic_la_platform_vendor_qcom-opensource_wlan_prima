@@ -368,6 +368,12 @@ struct hdd_station_ctx
    hdd_cfg80211_state_t cfg80211State;
 #endif
    v_BOOL_t bSendDisconnect;
+
+   /* These elements are for MAX rate report to UI feature
+    * required for some customers, controlled by ini element */
+   tANI_U8 prevAssocBSSID[WNI_CFG_BSSID_LEN];
+   tANI_U8 BSSIDSet;
+   struct rate_info  storedrateInfo; 
 };
 
 #define BSS_STOP    0 
