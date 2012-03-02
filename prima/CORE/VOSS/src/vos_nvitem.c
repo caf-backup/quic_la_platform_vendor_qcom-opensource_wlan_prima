@@ -77,7 +77,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_HI_5GHZ,{ 'A', 'R'}},   //ARGENTINA
         { REGDOMAIN_FCC, { 'A', 'S'}},     //AMERICAN SOMOA
         { REGDOMAIN_ETSI, { 'A', 'T'}},      //AUSTRIA
-        { REGDOMAIN_ETSI, { 'A', 'U'}},      //AUSTRALIA
+        { REGDOMAIN_APAC, { 'A', 'U'}},      //AUSTRALIA
         { REGDOMAIN_NO_5GHZ, { 'A', 'W'}},     //ARUBA
         { REGDOMAIN_WORLD, { 'A', 'X'}},     //ALAND ISLANDS
         { REGDOMAIN_NO_5GHZ, { 'A', 'Z'}},     //AZERBAIJAN
@@ -105,7 +105,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD, { 'C', 'D'}},     //CONGO, THE DEMOCRATIC REPUBLIC OF THE
         { REGDOMAIN_WORLD, { 'C', 'F'}},     //CENTRAL AFRICAN REPUBLIC
         { REGDOMAIN_WORLD, { 'C', 'G'}},     //CONGO
-        { REGDOMAIN_WORLD, {'C', 'H'}},      //SWITZERLAND
+        { REGDOMAIN_ETSI, {'C', 'H'}},      //SWITZERLAND
         { REGDOMAIN_WORLD, { 'C', 'I'}},     //COTE D'IVOIRE
         { REGDOMAIN_WORLD, { 'C', 'K'}},     //COOK ISLANDS
         { REGDOMAIN_WORLD, {'C', 'L'}},       //CHILE
@@ -166,7 +166,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI, {'I', 'E'}},     //IRELAND
         { REGDOMAIN_WORLD, {'I', 'L'}},        //ISREAL
         { REGDOMAIN_ETSI, {'I', 'M'}},      //ISLE OF MAN
-        { REGDOMAIN_WORLD, {'I', 'N'}},      //INDIA
+        { REGDOMAIN_APAC, {'I', 'N'}},      //INDIA
         { REGDOMAIN_ETSI, { 'I', 'O'}},     //BRITISH INDIAN OCEAN TERRITORY
         { REGDOMAIN_WORLD, { 'I', 'Q'}},     //IRAQ
         { REGDOMAIN_WORLD, { 'I', 'R'}},     //IRAN, ISLAMIC REPUBLIC OF
@@ -239,7 +239,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD, { 'P', 'G'}},     //PAPUA NEW GUINEA
         { REGDOMAIN_WORLD, {'P', 'H'}},      //PHILIPPINES
         { REGDOMAIN_WORLD, { 'P', 'K'}},     //PAKISTAN
-        { REGDOMAIN_WORLD, {'P', 'L'}},      //POLAND
+        { REGDOMAIN_ETSI, {'P', 'L'}},      //POLAND
         { REGDOMAIN_WORLD, { 'P', 'M'}},     //SAINT PIERRE AND MIQUELON
         { REGDOMAIN_WORLD, { 'P', 'N'}},     //WORLDPITCAIRN
         { REGDOMAIN_FCC, {'P', 'R'}},       //PUERTO RICO
@@ -262,7 +262,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD, { 'S', 'H'}},     //SAINT HELENA
         { REGDOMAIN_HI_5GHZ, {'S', 'I'}},      //SLOVENNIA
         { REGDOMAIN_WORLD, { 'S', 'J'}},     //SVALBARD AND JAN MAYEN
-        { REGDOMAIN_HI_5GHZ, {'S', 'K'}},      //SLOVAKIA
+        { REGDOMAIN_ETSI, {'S', 'K'}},      //SLOVAKIA
         { REGDOMAIN_WORLD, { 'S', 'L'}},     //SIERRA LEONE
         { REGDOMAIN_WORLD, { 'S', 'M'}},     //SAN MARINO
         { REGDOMAIN_WORLD, { 'S', 'N'}},     //SENEGAL

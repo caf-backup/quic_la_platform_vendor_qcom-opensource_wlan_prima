@@ -2840,7 +2840,6 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
         {
             hddLog(VOS_TRACE_LEVEL_INFO,
                     "%s: NULL returned by cfg80211_inform_bss\n", __func__);
-            break;
         }
         else
         {

@@ -1729,6 +1729,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    hdd_adapter_t      *pAdapter;
+   v_MACADDR_t  bcastMac = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
 
    ENTER();
 
@@ -1769,9 +1770,19 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
             break;
 
          case WLAN_HDD_SOFTAP:
-         case WLAN_HDD_P2P_GO:
-            /* add softap interface start code here */
+            /* softAP can handle SSR */
             break;
+
+         case WLAN_HDD_P2P_GO:
+#ifdef CONFIG_CFG80211
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s [SSR] send restart supplicant",
+                                                       __func__);
+              /* event supplicant to restart */
+              cfg80211_del_sta(pAdapter->dev,
+                        (const u8 *)&bcastMac.bytes[0], GFP_KERNEL);
+#endif
+            break;
+
          case WLAN_HDD_MONITOR:
             /* monitor interface start */
             break;
@@ -2543,81 +2554,6 @@ free_hdd_ctx:
 #endif
 }
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-/**---------------------------------------------------------------------------
-
-  \brief hdd_wlan_stop() - HDD WLAN stop function
-
-  This is the driver stop point
-
-  \param  - pHddCtx - Pointer to the HDD Context
-
-  \return - None
-
-  --------------------------------------------------------------------------*/
-void hdd_wlan_stop(hdd_context_t *pHddCtx)
-{
-   v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
-   VOS_STATUS vosStatus;
-
-   hddLog(VOS_TRACE_LEVEL_ERROR,"In WLAN STOP");
-
-   // Unregister the Net Device Notifier
-   unregister_netdevice_notifier(&hdd_netdev_notifier);
-
-   hdd_stop_all_adapters( pHddCtx );
-   hdd_close_all_adapters( pHddCtx );
-
-   hddLog(VOS_TRACE_LEVEL_ERROR,"WLAN STOP ALL\n");
-
-   //Stop all the modules
-   vosStatus = vos_stop( pVosContext );
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-            "%s: Failed to stop VOSS",__func__);
-      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   }
-
-   //Assert Deep sleep signal now to put Libra HW in lowest power state
-   vosStatus = vos_chipAssertDeepSleep( NULL, NULL, NULL );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-   //Vote off any PMIC voltage supplies
-   vos_chipPowerDown(NULL, NULL, NULL);
-
-   vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
-
-   //Clean up HDD Nlink Service
-   send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
-   nl_srv_exit();
-
-   //Close the scheduler before closing other modules.
-   vosStatus = vos_sched_close( pVosContext );
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-            "%s: Failed to close VOSS Scheduler",__func__);
-      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   }
-
-   //Close VOSS
-   hddLog(VOS_TRACE_LEVEL_ERROR,"Calling WLAN VOS CLOSE\n\n\n\n");
-   vos_close(pVosContext);
-   hddLog(VOS_TRACE_LEVEL_ERROR,"Returned WLAN VOS CLOSE\n\n\n\n");
-
-   hddLog(VOS_TRACE_LEVEL_ERROR,"Calling WLAN BAL CLOSE\n\n\n\n");
-
-   //Close Watchdog
-   if(pHddCtx->cfg_ini->fIsLogpEnabled)
-      vos_watchdog_close(pVosContext);
-
-   //Free up dynamically allocated members inside HDD Adapter
-   kfree(pHddCtx->cfg_ini);
-   pHddCtx->cfg_ini= NULL;
-
-   vos_mem_free( pHddCtx );
-}
-#endif /*  FEATURE_WLAN_INTEGRATED_SOC */
 
 /**---------------------------------------------------------------------------
 
