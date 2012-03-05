@@ -170,23 +170,32 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                            (tANI_U8 *)SIR_MAC_BD_TO_MPDUHEADER(pBd))) \
                            != SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd)))
         {
-            tANI_U16 est_length = 0;
+            if((SIR_MAC_DATA_FRAME == type)) 
+            {
+                tANI_U16 est_length = 0;
 
-            est_length =   WLANHAL_RX_BD_HEADER_SIZE + 
-                           SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd) +  
-                           SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
-            /*For any VOID between MAC HDR and BD HDR*/
-            est_length += (WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pBd) - 
-                          WLANHAL_RX_BD_HEADER_SIZE);
-            /*For any VOID between MAC HDR and DATA*/
-            est_length += (WLANHAL_RX_BD_GET_MPDU_D_OFFSET(pBd) - 
-                          (WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pBd) + 
-                          SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd)));
+                est_length =   WLANHAL_RX_BD_HEADER_SIZE + 
+                               SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd) +  
+                               SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+                /*For any VOID between MAC HDR and BD HDR*/
+                est_length += (WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pBd) - 
+                              WLANHAL_RX_BD_HEADER_SIZE);
+                /*For any VOID between MAC HDR and DATA*/
+                est_length += (WLANHAL_RX_BD_GET_MPDU_D_OFFSET(pBd) - 
+                              (WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pBd) + 
+                              SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd)));
 
-            if ((SIR_MAC_DATA_FRAME == type) && 
-                         (!(SIR_MAC_BD_IS_VALID_HDR_OFFSET(pBd)) ||
-                         !(SIR_MAC_BD_IS_VALID_DATA_OFFSET(pBd)) ||
-                         (pkt_length != est_length))) 
+                if(!(SIR_MAC_BD_IS_VALID_HDR_OFFSET(pBd)) ||
+                   !(SIR_MAC_BD_IS_VALID_DATA_OFFSET(pBd)) ||
+                    (pkt_length != est_length))
+                {
+                    vos_pkt_return_packet(pVosPkt);
+                    PELOGE(sysLog(pMac, LOGE, FL("Corrupted Rx Data Frame type: " 
+                                                 " %d Subtype: %d\n"), type, subType););
+                    return eSIR_FAILURE;
+                }
+            }
+            else
             {
                 vos_pkt_return_packet(pVosPkt);
                 PELOGE(sysLog(pMac, LOGE, FL("Corrupted Rx Mgmt Frame type: " 
