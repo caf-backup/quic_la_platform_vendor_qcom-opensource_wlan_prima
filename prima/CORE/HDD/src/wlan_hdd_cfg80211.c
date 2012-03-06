@@ -4581,7 +4581,47 @@ static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
 static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                          struct net_device *dev, u8 *mac)
 {
-    // TODO: Implement this later.
+    hdd_adapter_t *pAdapter;
+
+    if (NULL == mac)
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Bad MAC ADDRESS " ,__func__);
+        return 0;
+    }
+
+    hddLog(VOS_TRACE_LEVEL_INFO,
+                        "%s: Delete STA with MAC::"
+                        "%02x:%02x:%02x:%02x:%02x:%02x",
+                        __func__,
+                        mac[0], mac[1], mac[2],
+                        mac[3], mac[4], mac[5]);
+
+    pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+
+    if ( NULL == pAdapter || NULL == pAdapter->pHddCtx)
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Invalid Adapter or HDD Context " ,__func__);
+        return -EINVAL;
+    }
+
+    if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadUnloadInProgress)
+    {
+         hddLog( LOGE,
+                 "%s: Wlan Load/Unload is in progress", __func__);
+         return -EBUSY;
+    }
+
+    if ( (WLAN_HDD_SOFTAP == pAdapter->device_mode)
+#ifdef WLAN_FEATURE_P2P
+       || (WLAN_HDD_P2P_GO == pAdapter->device_mode)
+#endif
+       )
+    {
+         hdd_softap_sta_deauth(pAdapter, mac);
+    }
+
+    EXIT();
+
     return 0;
 }
 
