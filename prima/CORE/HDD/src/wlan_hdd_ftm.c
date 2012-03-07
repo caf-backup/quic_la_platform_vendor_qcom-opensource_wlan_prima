@@ -144,9 +144,6 @@ extern const sHalNv nvDefaults;
 static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter);
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
 static v_VOID_t ftm_vos_sys_probe_thread_cback( v_VOID_t *pUserData );
-#else
-extern void hdd_wlan_stop(hdd_context_t *pHddCtx);
-extern int hdd_wlan_startup(struct device *dev );
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 /* for PRIMA: all the available frequency, channal pair i the table are defined for channel frequency @ RF center frequency 
@@ -2570,9 +2567,7 @@ void wlan_hdd_process_ftm_cmd
     v_U8_t *pftm_data;
     pVosContextType pVosContext = (pVosContextType)(pHddCtx->pvosContext);
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-    int startStatus;
     int hostState;
-    struct device  *allocatedDevice;
     tPttMsgbuffer *tempRspBuffer = NULL;
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */        
 
@@ -2610,35 +2605,10 @@ void wlan_hdd_process_ftm_cmd
             return;
         }
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-        if(VOS_FTM_MODE != hdd_get_conparam())
-        {
-           hddLog(VOS_TRACE_LEVEL_ERROR,
-                  "WLAN Driver is in Production mode, Stop it");
-           allocatedDevice = pHddCtx->parent_dev;
-
-           /* Stop Production WLAN Drive */
-           hdd_wlan_stop(pHddCtx);
-
-           /* Change Driver Mode */
-           hdd_set_conparam(VOS_FTM_MODE);
-
-           /* reStartup WLAN Driver with FTM mode */
-           startStatus = hdd_wlan_startup(allocatedDevice);
-           if(!startStatus)
-           {
-              hddLog(VOS_TRACE_LEVEL_ERROR,
-                     "%s: : Failed to startup WLAN for FTM\n",__func__);
-              pHddCtx->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_FAILURE;
-              wlan_ftm_send_response(pHddCtx);
-              return;
-           }
-        }
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
-
         if (wlan_hdd_ftm_start(pVosContext->pHDDContext) != VOS_STATUS_SUCCESS)
         {
-            hddLog(VOS_TRACE_LEVEL_ERROR,"%s: : Failed to start WLAN FTM\n",__func__);
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: : Failed to start WLAN FTM"
+                   ,__func__);
             pHddCtx->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_FAILURE;
             wlan_ftm_send_response(pHddCtx);
             return;
@@ -2648,15 +2618,11 @@ void wlan_hdd_process_ftm_cmd
         pHddCtx->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_SUCCESS;
         pHddCtx->ftm.pResponseBuf->ftmpkt.ftm_cmd_type = 0;
 
-
         wlan_ftm_send_response(pHddCtx);
 
         break;
 
     case WLAN_FTM_STOP:
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-        allocatedDevice = pHddCtx->parent_dev;
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
         if (pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED) {
 
             hddLog(VOS_TRACE_LEVEL_ERROR,"%s:: FTM has not started\n",__func__);
@@ -2782,89 +2748,34 @@ void wlan_hdd_process_ftm_cmd
 
   --------------------------------------------------------------------------*/
 
-static VOS_STATUS wlan_ftm_priv_start_stop_ftm(hdd_adapter_t *pAdapter,v_U16_t start)
+static VOS_STATUS wlan_ftm_priv_start_stop_ftm(hdd_adapter_t *pAdapter,
+                                               v_U16_t start)
 {
     VOS_STATUS status;
-
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-    int startStatus;
-    struct device  *allocatedDevice;
-    static tVOS_CON_MODE restoreConnMode;
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
-
-    if(start) 
+    if (start) 
     {
         pHddCtx->ftm.cmd_iwpriv = TRUE;
-
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-        if(VOS_FTM_MODE != hdd_get_conparam())
-        {
-           hddLog(VOS_TRACE_LEVEL_ERROR,
-                  "WLAN Driver is in Production mode, Stop it");
-           allocatedDevice = pHddCtx->parent_dev;
-
-           /* Stop Production WLAN Drive */
-           hdd_wlan_stop(pHddCtx);
-
-           /* Change Driver Mode */
-           hdd_set_conparam(VOS_FTM_MODE);
-
-           /* reStartup WLAN Driver with FTM mode */
-           startStatus = hdd_wlan_startup(allocatedDevice);
-           if(!startStatus)
-           {
-              hddLog(VOS_TRACE_LEVEL_ERROR,
-                     "%s: : Failed to startup WLAN for FTM\n",__func__);
-              pHddCtx->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_FAILURE;
-              wlan_ftm_send_response(pHddCtx);
-              return VOS_STATUS_E_FAILURE;
-           }
-        }
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
-
         status = wlan_hdd_ftm_start(pHddCtx);
 
-        if(status != VOS_STATUS_SUCCESS) {
-
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "FTM Start Failed");
+        if (status != VOS_STATUS_SUCCESS)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                      "FTM Start Failed");
             return VOS_STATUS_E_FAILURE;
         }
     }
     else
     {
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-        allocatedDevice = pHddCtx->parent_dev;
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
         status = wlan_ftm_stop(pHddCtx);
 
-        if(status != VOS_STATUS_SUCCESS) {
-
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "FTM Stop Failed");
+        if (status != VOS_STATUS_SUCCESS)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                      "FTM Stop Failed");
             return VOS_STATUS_E_FAILURE;
         }
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-        /* FTM Stop finished
-         * Goes back to normal Driver Mode */
-        if(VOS_FTM_MODE != restoreConnMode)
-        {
-           hdd_set_conparam(restoreConnMode);
-        }
-        else
-        {
-           hdd_set_conparam(VOS_STA_MODE);
-        }
-        startStatus = hdd_wlan_startup(allocatedDevice);
-        if(!startStatus)
-        {
-           hddLog(VOS_TRACE_LEVEL_ERROR,
-                  "%s: : Failed to startup WLAN after FTM Stop\n",__func__);
-           pHddCtx->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_FAILURE;
-           wlan_ftm_send_response(pHddCtx);
-           return VOS_STATUS_E_FAILURE;
-        }
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
     }
     return VOS_STATUS_SUCCESS;
 }

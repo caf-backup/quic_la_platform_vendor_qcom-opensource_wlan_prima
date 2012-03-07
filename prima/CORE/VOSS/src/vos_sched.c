@@ -1934,15 +1934,21 @@ VOS_STATUS vos_watchdog_wlan_shutdown(void)
 
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
         "%s: WLAN driver is shutting down ", __FUNCTION__);
-    if (gpVosWatchdogContext == NULL)
+    if (NULL == gpVosWatchdogContext)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-           "%s: Watchdog not enabled. LOGP ignored.",__FUNCTION__);
+           "%s: Watchdog not enabled. LOGP ignored.", __FUNCTION__);
        return VOS_STATUS_E_FAILURE;
     }
 
     pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
     pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+    if (NULL == pHddCtx)
+    {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+           "%s: Invalid HDD Context", __FUNCTION__);
+       return VOS_STATUS_E_FAILURE;
+    }
 
     /* Take the lock here */
     spin_lock(&gpVosWatchdogContext->wdLock);

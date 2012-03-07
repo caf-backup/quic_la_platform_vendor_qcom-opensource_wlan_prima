@@ -7703,8 +7703,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if( CSR_IS_SESSION_VALID(pMac, sessionId) )
                 {                    
                     pSession = CSR_GET_SESSION(pMac, sessionId);
-                    if (!pSession)
-                        break;
 
                     if ( CSR_IS_INFRA_AP(&pSession->connectedProfile) )
                     {
@@ -7729,8 +7727,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if( CSR_IS_SESSION_VALID(pMac, sessionId) )
                 {                    
                     pSession = CSR_GET_SESSION(pMac, sessionId);
-                    if (!pSession)
-                        break;
 
                     if ( CSR_IS_INFRA_AP(&pSession->connectedProfile) )
                     {

@@ -876,6 +876,14 @@ VOS_STATUS
 WLANSAP_SetMode ( v_PVOID_t  pvosGCtx, v_U32_t mode)
 {
     ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
+
+    if (NULL == pSapCtx)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid SAP pointer from pvosGCtx", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
+
     pSapCtx->eSapMacAddrAclMode = (eSapMacAddrACL)mode;
     return VOS_STATUS_SUCCESS;
 }
