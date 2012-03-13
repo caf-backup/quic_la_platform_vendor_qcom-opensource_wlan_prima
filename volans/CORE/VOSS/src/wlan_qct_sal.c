@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**=========================================================================
 
   @file  wlan_qct_sal.c
@@ -1313,4 +1319,23 @@ VOS_STATUS WLANSAL_SDIOReInit
    atomic_set(&((hdd_context_t *)(pHddAdapter->pHddCtx))->sdio_claim_count, 0);
 
    return VOS_STATUS_SUCCESS;
+}
+
+/*----------------------------------------------------------------------------
+
+   @brief API exported from SAL to enable interrupts from the chip. This needs to
+          have the libra_enable_sdio_irq_in_chip API exported from librasdioif driver
+   @param *card_id - To receive the card id
+
+   @return void
+
+----------------------------------------------------------------------------*/
+void WLANSAL_EnableInterruptsInChip
+(
+    v_PVOID_t   pAdapter,
+    v_U8_t      enable
+)
+{
+  VOS_ASSERT(NULL != gpsalHandle);
+  libra_enable_sdio_irq_in_chip(gpsalHandle->sdio_func_dev, enable);
 }

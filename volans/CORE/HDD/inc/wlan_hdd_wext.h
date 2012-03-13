@@ -7,7 +7,7 @@
     \brief Linux Wireless Extensions Common Control Plane Types and
     interfaces.
     
-    Copyright (c) 2011 Qualcomm Atheros, Inc. 
+    Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
     All Rights Reserved. 
     Qualcomm Atheros Confidential and Proprietary. 
   
@@ -331,6 +331,7 @@ extern int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_i
                        union iwreq_data *wrqu, char *extra);
 
 void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter);
+void hdd_GetClassA_statisticsCB(void *pStats, void *pContext);
 
 VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter);
 

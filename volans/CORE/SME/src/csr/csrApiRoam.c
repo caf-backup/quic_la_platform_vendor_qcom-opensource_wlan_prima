@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
 
@@ -2921,6 +2927,8 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
     tANI_U8 ProprietaryOperationalRates[ 4 ];    // leave enough room for the max number of proprietary rates
     tANI_U32 ProprietaryOperationalRatesLength = 0;
     tANI_U32 PropRatesEnable = 0;
+    tANI_U8 MCSRateIdxSet[ SIZE_OF_SUPPORTED_MCS_SET ];
+    tANI_U32 MCSRateLength = 0;
 
 #if defined(VOSS_ENABLED)
     VOS_ASSERT( pIes != NULL );
@@ -3001,6 +3009,20 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
             ProprietaryOperationalRatesLength = 0;
         }
 
+        /* Get MCS Rate */
+        pDstRate = MCSRateIdxSet;
+        if ( pIes->HTCaps.present )
+        {
+           for ( i = 0; i < VALID_MAX_MCS_INDEX; i++ )
+           {
+              if ( (unsigned int)pIes->HTCaps.supportedMCSSet[0] & (1 << i) )
+              {
+                 MCSRateLength++;
+                 *pDstRate++ = i;
+              }
+           }
+        }
+
         // Set the operational rate set CFG variables...
         ccmCfgSetStr(pMac, WNI_CFG_OPERATIONAL_RATE_SET, OperationalRates, 
                 OperationalRatesLength, NULL, eANI_BOOLEAN_FALSE);
@@ -3010,7 +3032,8 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
                 ProprietaryOperationalRates, 
                 ProprietaryOperationalRatesLength, NULL, eANI_BOOLEAN_FALSE);
         ccmCfgSetInt(pMac, WNI_CFG_PROPRIETARY_ANI_FEATURES_ENABLED, PropRatesEnable, NULL, eANI_BOOLEAN_FALSE);
-
+        ccmCfgSetStr(pMac, WNI_CFG_BASIC_MCS_SET, MCSRateIdxSet, 
+                        MCSRateLength, NULL, eANI_BOOLEAN_FALSE);        
     }//Parsing BSSDesc
     else
     {
@@ -3206,7 +3229,7 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     //Do we need to worry about sequence for OSs that are not Windows??
     if(pBssDesc)
     {
-        if(csrLearnCountryInformation(pMac, pBssDesc, pIes))
+        if(csrLearnCountryInformation(pMac, pBssDesc, pIes, eANI_BOOLEAN_TRUE))
         {
             //Make sure the 11d info from this BSSDesc can be applied
             pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_FALSE;
@@ -5521,7 +5544,6 @@ eHalStatus csrRoamConnectWithBSSList(tpAniSirGlobal pMac, tANI_U32 sessionId, tC
         if(!HAL_STATUS_SUCCESS(status))
         {
             smsLog(pMac, LOGE, FL("failed to start a join process\n"));
-            csrScanResultPurge(pMac, hBSSList);
         }
     }
 
@@ -5646,7 +5668,6 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
                                 roamId, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
                         if(!HAL_STATUS_SUCCESS(status))
                         {
-                            csrScanResultPurge(pMac, hBSSList);
                             fCallCallback = eANI_BOOLEAN_TRUE;
                         }
                     }//Have scan result
@@ -5813,7 +5834,6 @@ eHalStatus csrRoamJoinLastProfile(tpAniSirGlobal pMac, tANI_U32 sessionId)
                         roamId, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
                 if(!HAL_STATUS_SUCCESS(status))
                 {
-                    csrScanResultPurge(pMac, hBSSList);
                     break;
                 }
             }
@@ -15554,6 +15574,7 @@ void  csrRoamHandoffRemoveAllFromList( tpAniSirGlobal pMac,
         if(pTempStaEntry->sta.pBssDesc)
         {
             palFreeMemory(pMac->hHdd, pTempStaEntry->sta.pBssDesc);
+            pTempStaEntry->sta.pBssDesc = NULL;
         }
         pTmpEntry = csrLLNext( pStaList, pEntry, LL_ACCESS_NOLOCK );
         csrLLRemoveEntry( pStaList, pEntry, LL_ACCESS_LOCK );

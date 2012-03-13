@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef QWLAN_VERSION_H
 #define QWLAN_VERSION_H
 /*===========================================================================
@@ -19,8 +25,8 @@ BRIEF DESCRIPTION:
 #define QWLAN_VERSION_MINOR            2
 #define QWLAN_VERSION_PATCH            2
 #define QWLAN_VERSION_EXTRA            ""
-#define QWLAN_VERSION_BUILD            549
+#define QWLAN_VERSION_BUILD            561
 
-#define QWLAN_VERSIONSTR               "0.2.2.549"
+#define QWLAN_VERSIONSTR               "0.2.2.561"
 
 #endif /* QWLAN_VERSION_H */

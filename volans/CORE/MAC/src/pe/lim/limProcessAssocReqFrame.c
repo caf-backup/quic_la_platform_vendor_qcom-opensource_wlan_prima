@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  * 
@@ -167,6 +167,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
     tHalBitVal qosMode;
     tHalBitVal wsmMode, wmeMode;
     tANI_U8    *wpsIe = NULL;
+    tSirMacRateSet  basicRates;
+    tANI_U8 i = 0, j = 0;
 
     limGetPhyMode(pMac, &phyMode);
     limGetQosMode(psessionEntry, &qosMode);
@@ -344,8 +346,25 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
     }
 #endif
 
-    // Check if requested rates are among BSS basic rate set
-    if (limCheckRxBasicRates(pMac, pAssocReq->supportedRates, psessionEntry) == false)
+    /***************************************************************
+      ** Verify if the requested rates are available in supported rate
+      ** set or Extended rate set. Some APs are adding basic rates in
+      ** Extended rateset IE
+      ***************************************************************/
+    basicRates.numRates = 0;
+
+    for(i = 0; i < pAssocReq->supportedRates.numRates; i++)
+    {
+        basicRates.rate[i] = pAssocReq->supportedRates.rate[i];
+        basicRates.numRates++;
+    }
+
+    for(j = 0; (j < pAssocReq->extendedRates.numRates) && (i < SIR_MAC_RATESET_EID_MAX); i++,j++)
+    {
+        basicRates.rate[i] = pAssocReq->extendedRates.rate[j];
+        basicRates.numRates++;
+    }
+    if (limCheckRxBasicRates(pMac, basicRates, psessionEntry) == false)
     {
         /**
          * Requesting STA does not support ALL BSS basic

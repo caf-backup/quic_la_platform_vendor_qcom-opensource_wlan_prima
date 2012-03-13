@@ -63,7 +63,7 @@ ap_beacon_process(
     limGetPhyMode(pMac, &phyMode);    
     if(SIR_BAND_5_GHZ == rfBand)
     {
-        if(pMac->lim.htCapability)
+        if (psessionEntry->htCapabality)
         {
             if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)
             {
@@ -100,20 +100,24 @@ ap_beacon_process(
     {
         //We are 11G AP.
         if ((phyMode == WNI_CFG_PHY_MODE_11G) &&
-              (false == pMac->lim.htCapability))
+              (false == psessionEntry->htCapabality))
         {
             if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)        
             {
-                if (pBcnStruct->erpPresent &&
+                if (((!(pBcnStruct->erpPresent)) && 
+                      !(pBcnStruct->HTInfo.present))|| 
+                    //if erp not present then  11B AP overlapping
+                    (pBcnStruct->erpPresent &&
                     (pBcnStruct->erpIEInfo.useProtection ||
-                    pBcnStruct->erpIEInfo.nonErpPresent))
+                    pBcnStruct->erpIEInfo.nonErpPresent)))
                 {
                     limEnableOverlap11gProtection(pMac, pBeaconParams, pMh,psessionEntry);
                 }
+
             }
         }        
         // handling the case when HT AP has overlapping legacy BSS.
-        else if(pMac->lim.htCapability)
+        else if(psessionEntry->htCapabality)
         {
             if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)
             {

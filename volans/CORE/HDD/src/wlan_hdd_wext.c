@@ -10,7 +10,7 @@
     $Id: wlan_hdd_wext.c,v 1.34 2007/04/14 01:49:23 jimz Exp jimz $ 
   
     
-    Copyright (c) 2011 Qualcomm Atheros, Inc. 
+    Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
     All Rights Reserved. 
     Qualcomm Atheros Confidential and Proprietary. 
 
@@ -196,6 +196,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 /* Private ioctl to get the statistics */
 #define WLAN_GET_WLAN_STATISTICS (SIOCIWFIRSTPRIV + 21)
 
+#define WLAN_GET_LINK_SPEED          (SIOCIWFIRSTPRIV + 27)
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
 #define WLAN_STATS_MUL_RETRY_CNT      2
@@ -1729,7 +1730,7 @@ static void iw_power_callback_fn (void *pContext, eHalStatus status)
   complete(&pStatsContext->completion);
 }
 
-static void hdd_GetClassA_statisticsCB(void *pStats, void *pContext)
+void hdd_GetClassA_statisticsCB(void *pStats, void *pContext)
 {
    struct statsContext *pStatsContext;
    tCsrGlobalClassAStatsInfo *pClassAStats;
@@ -1850,8 +1851,8 @@ static int iw_get_linkspeed(struct net_device *dev,
                             union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   char *cmd = (char*)wrqu->data.pointer;
-   int len = wrqu->data.length;
+   char *pLinkSpeed = (char*)extra;
+   int len = sizeof(v_U16_t) + 1;
    v_U16_t link_speed;
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
    int rc;
@@ -1869,15 +1870,15 @@ static int iw_get_linkspeed(struct net_device *dev,
       link_speed = pAdapter->hdd_stats.ClassA_stat.tx_rate/2;
    }
 
-
+   wrqu->data.length = len;
    // return the linkspeed in the format required by the WiFi Framework
-   rc = snprintf(cmd, len, "LinkSpeed %u", link_speed);
+   rc = snprintf(pLinkSpeed, len, "%u", link_speed);
    if ((rc < 0) || (rc >= len))
    {
       // encoding or length error?
       hddLog(VOS_TRACE_LEVEL_ERROR,
             "%s: Unable to encode link speed, got [%s]",
-            __FUNCTION__, cmd);
+            __FUNCTION__, pLinkSpeed);
       return -EIO;
    }
 
@@ -2036,7 +2037,6 @@ VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
       {   
          hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "BMPS is not "
                "enabled in the cfg");
-         return VOS_STATUS_E_FAILURE;
       }
    }
    return VOS_STATUS_SUCCESS;
@@ -3464,7 +3464,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
         }
         case WE_INIT_AP:
         {
-          printk(KERN_ERR"Init AP trigger\n");
+          pr_info("Init AP trigger\n");
           hdd_open_adapter( WLAN_HDD_GET_CTX(pAdapter), WLAN_HDD_SOFTAP, "softap.%d", 
                  wlan_hdd_get_intf_addr( WLAN_HDD_GET_CTX(pAdapter) ),TRUE);
           break;
@@ -3476,10 +3476,26 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
            printk(KERN_ERR"Stopping AP mode\n");
            if( pAdapter_to_stop )
            {
-              wlan_hdd_release_intf_addr(WLAN_HDD_GET_CTX(pAdapter), 
-                                 pAdapter_to_stop->macAddressCurrent.bytes);
-              hdd_close_adapter(WLAN_HDD_GET_CTX(pAdapter), pAdapter_to_stop, 
-                                 TRUE);
+               hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+               
+               pr_info("Stopping AP mode\n");
+               
+               mutex_lock(&pHddCtx->sap_lock);
+               if(test_bit(SOFTAP_BSS_STARTED, &pAdapter_to_stop->event_flags))
+               {
+                   /* Trying to delete the softap adapter, But the bss is not yet deleted.
+                    * This will hit when we kill hostapd and execute iwpriv wlan0 exitAP.
+                    * hdd_stop_adapter will delete the BSS*/
+                   hdd_stop_adapter( pHddCtx, pAdapter_to_stop );
+                   hdd_deinit_adapter( pHddCtx, pAdapter_to_stop );
+                   memset(&pAdapter_to_stop->sessionCtx, 0, sizeof(pAdapter_to_stop->sessionCtx));
+               }
+               mutex_unlock(&pHddCtx->sap_lock);
+
+               wlan_hdd_release_intf_addr(WLAN_HDD_GET_CTX(pAdapter), 
+                       pAdapter_to_stop->macAddressCurrent.bytes);
+               hdd_close_adapter(WLAN_HDD_GET_CTX(pAdapter), pAdapter_to_stop, 
+                       TRUE);
            }
 
            break;
@@ -4321,7 +4337,8 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_FTIES                 - SIOCIWFIRSTPRIV]   = iw_set_fties,
 #endif
    [WLAN_PRIV_SET_HOST_OFFLOAD          - SIOCIWFIRSTPRIV]   = iw_set_host_offload,
-   [WLAN_GET_WLAN_STATISTICS            - SIOCIWFIRSTPRIV]   = iw_get_statistics
+   [WLAN_GET_WLAN_STATISTICS            - SIOCIWFIRSTPRIV]   = iw_get_statistics,
+   [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed
 };
 
 /*Maximum command length can be only 15 */
@@ -4582,6 +4599,10 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_BYTE | WE_MAX_STR_LEN,
         "getWlanStats" },
+    {
+        WLAN_GET_LINK_SPEED,
+        IW_PRIV_TYPE_CHAR | 18,
+        IW_PRIV_TYPE_CHAR | 3, "getLinkSpeed" },
    
 };
 

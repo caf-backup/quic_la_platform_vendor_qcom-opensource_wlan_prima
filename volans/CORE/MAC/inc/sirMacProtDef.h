@@ -1707,7 +1707,9 @@ typedef __ani_attr_pre_packed struct _BARFrmStruct {
 #define SIZE_OF_SUPPORTED_MCS_SET                          16
 #define SIZE_OF_BASIC_MCS_SET                              16
 #define VALID_MCS_SIZE                                     77 //0-76
-#define MCS_RX_HIGHEST_SUPPORTED_RATE_BYTE_OFFSET          10      
+#define MCS_RX_HIGHEST_SUPPORTED_RATE_BYTE_OFFSET          10  
+// This is not clear, Count 8 based from NV supported MCS count    
+#define VALID_MAX_MCS_INDEX                                8
 
 #if 0
 // Typedef Extended HT Capability Info Field

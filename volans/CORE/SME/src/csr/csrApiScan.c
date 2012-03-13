@@ -6,7 +6,7 @@
   
     Implementation for the Common Scan interfaces.
   
-   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
    All Rights Reserved. 
    Qualcomm Atheros Confidential and Proprietary.
  
@@ -1452,10 +1452,7 @@ eHalStatus csrIssueRoamAfterLostlinkScan(tpAniSirGlobal pMac, tANI_U32 sessionId
                 }
                 status = csrRoamIssueConnect(pMac, sessionId, pProfile, hBSSList, reason, 
                                                 roamId, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_TRUE);
-                if(!HAL_STATUS_SUCCESS(status))
-                {
-                    csrScanResultPurge(pMac, hBSSList);
-                }
+                
             }//Have scan result
         }
     }while(0);
@@ -1950,10 +1947,7 @@ eHalStatus csrScanHandleSearchForSSID(tpAniSirGlobal pMac, tSmeCmd *pCommand)
     }while(0);
     if(!HAL_STATUS_SUCCESS(status))
     {
-        if(CSR_INVALID_SCANRESULT_HANDLE != hBSSList)
-        {
-            csrScanResultPurge(pMac, hBSSList);
-        }
+        
         //We haven't done anything to this profile
         csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.scanCmd.roamId,
                      eCSR_ROAM_ASSOCIATION_FAILURE, eCSR_ROAM_RESULT_FAILURE);
@@ -2086,10 +2080,7 @@ eHalStatus csrScanHandleCapChangeScanComplete(tpAniSirGlobal pMac, tANI_U32 sess
                 csrMoveBssToHeadFromBSSID(pMac, &pSession->connectedProfile.bssid, hBSSList);
                 status = csrRoamIssueConnect(pMac, sessionId, pProfile, hBSSList, 
                                             eCsrCapsChange, 0, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_TRUE);
-                if(!HAL_STATUS_SUCCESS(status))
-                {
-                    csrScanResultPurge(pMac, hBSSList);
-                }
+                
             }//Have scan result
             else
             {
@@ -2860,7 +2851,7 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
                 {
                     cand_Bss_rssi = pBssDescription->Result.BssDescriptor.rssi;
                     // learn country information
-                    csrLearnCountryInformation( pMac, &pBssDescription->Result.BssDescriptor, pIesLocal );
+                    csrLearnCountryInformation( pMac, &pBssDescription->Result.BssDescriptor, pIesLocal, eANI_BOOLEAN_FALSE );
                 }
 
             }
@@ -3334,6 +3325,13 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
                 }
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
 
+                if(pMac->scan.domainIdCurrent != domainId)
+                {
+                    /* Regulatory Domain Changed, Purge old scan result */
+                    smsLog(pMac, LOGW, FL("Domain Changed Old %d, new %d"),
+                                       pMac->scan.domainIdCurrent, domainId);
+                    csrScanFlushResult(pMac);
+                }
                 pMac->scan.domainIdCurrent = domainId;
                 csrApplyChannelPowerCountryInfo( pMac, &pMac->scan.channels11d, pMac->scan.countryCode11d );
                 // switch to active scans using this new channel list
@@ -3350,7 +3348,7 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
 
 
 
-tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode )
+tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode, tANI_BOOLEAN fForce )
 {
     tANI_BOOLEAN fCountryStringChanged = FALSE, fUnknownCountryCode = FALSE;
     tANI_U32 i;
@@ -3390,20 +3388,13 @@ tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode
 
     if( !fUnknownCountryCode )
     {
-        if( 0 == pMac->scan.countryCode11d[ 0 ] && 0 == pMac->scan.countryCode11d[ 1 ] )
+        fCountryStringChanged = (!palEqualMemory( pMac->hHdd,
+              pMac->scan.countryCode11d, pCountryCode, 2));
+
+        if(( 0 == pMac->scan.countryCode11d[ 0 ] && 0 == pMac->scan.countryCode11d[ 1 ] ) || fForce)
         {
             // this is the first .11d information
             palCopyMemory( pMac->hHdd, pMac->scan.countryCode11d, pCountryCode, sizeof( pMac->scan.countryCode11d ) );
-        }
-        else
-        {
-            // check that country string has not changed, which it should not
-            // compare only the first two bytes as third byte specifies 'I' - Indoor or
-            // 'O' - Outdoor or ' ' - for ANY
-            if( !palEqualMemory( pMac->hHdd, pMac->scan.countryCode11d, pCountryCode, 2 ) )
-            {
-                fCountryStringChanged = TRUE;
-            }
         }
     }
 
@@ -3555,7 +3546,7 @@ void csrConstructCurrentValidChannelList( tpAniSirGlobal pMac, tDblLinkList *pCh
   * 802.11D only: Gather 11d IE via beacon or Probe response and store them in pAdapter->channels11d
 */
 tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
-                                         tDot11fBeaconIEs *pIes)
+                                         tDot11fBeaconIEs *pIes, tANI_BOOLEAN fForce)
 {
     tANI_U8 Num2GChannels, bMaxNumChn;
     eHalStatus status;
@@ -3583,7 +3574,7 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
             break;
         }
 
-        if( csrSave11dCountryString( pMac, pIesLocal->Country.country ) )
+        if( csrSave11dCountryString( pMac, pIesLocal->Country.country, fForce ) )
         {
             // country string changed, this should not happen
             //Need to check whether we care about this BSS' domain info
@@ -5027,9 +5018,35 @@ eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         }
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
 
+        /* Scan only channels given by supplicant that are present in CFG */
+        if(pCommand->u.scanCmd.u.scanRequest.requestType == eCSR_SCAN_REQUEST_FULL_SCAN)
+        {
+            tANI_U8 indxInChanList = 0;
+            tANI_U8 *givenChannelList;
+            tANI_U8 prunedChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+            tANI_U8 givenNumOfChans = 0, prunedNumOfChans = 0;
 
-	    status = csrSendMBScanReq(pMac, pCommand->sessionId,
-                                &pCommand->u.scanCmd.u.scanRequest, &scanReq);
+            givenChannelList = pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList;
+            givenNumOfChans = pCommand->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels;
+
+            for (indxInChanList = 0; indxInChanList < givenNumOfChans; indxInChanList++)
+            {
+                if(csrRoamIsChannelValid(pMac, givenChannelList[indxInChanList]))
+                {
+                    prunedChannelList[prunedNumOfChans++] = givenChannelList[indxInChanList];
+                }
+            }
+
+            if(prunedNumOfChans) 
+            {
+                palCopyMemory(pMac->hHdd, pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList, 
+                prunedChannelList, prunedNumOfChans);
+                pCommand->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = prunedNumOfChans;
+            }
+        }
+
+        status = csrSendMBScanReq(pMac, pCommand->sessionId,
+                                  &pCommand->u.scanCmd.u.scanRequest, &scanReq);
     }while(0);
     
   	return( status );

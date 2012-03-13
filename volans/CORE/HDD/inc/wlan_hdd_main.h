@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( WLAN_HDD_MAIN_H )
 #define WLAN_HDD_MAIN_H
 /**===========================================================================
@@ -370,6 +376,11 @@ struct hdd_station_ctx
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
    int     ft_carrier_on;
 #endif
+   /* These elements are for MAX rate report to UI feature
+    * required for some customers, controlled by ini element */
+   tANI_U8 prevAssocBSSID[WNI_CFG_BSSID_LEN];
+   tANI_U8 BSSIDSet;
+   struct rate_info  storedrateInfo;
 };
 
 #define BSS_STOP    0 
@@ -690,6 +701,9 @@ struct hdd_context_s
    
    spinlock_t filter_lock;
    
+   /* Lock to avoid race condtion during start/stop bss*/
+   struct mutex sap_lock;
+   
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
 
@@ -765,4 +779,5 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
 #endif
 void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
 void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
+void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

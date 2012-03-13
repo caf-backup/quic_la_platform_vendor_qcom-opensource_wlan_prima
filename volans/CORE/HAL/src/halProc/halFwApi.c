@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * File:        halFwApi.c
  * Description: This file contains all the interface functions to
  *              interact with the firmware

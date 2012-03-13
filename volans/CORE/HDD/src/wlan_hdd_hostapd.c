@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**========================================================================
   
   \file  wlan_hdd_hostapd.c
@@ -57,6 +63,14 @@
 #define    IS_UP_AUTO(_ic) \
     (IS_UP((_ic)->ic_dev) && (_ic)->ic_roaming == IEEE80211_ROAMING_AUTO)
 #define WE_WLAN_VERSION     1
+#define STATS_CONTEXT_MAGIC 0x53544154
+
+struct statsContext
+{
+   struct completion completion;
+   hdd_adapter_t *pAdapter;
+   unsigned int magic;
+};
 
 /*--------------------------------------------------------------------------- 
  *   Function definitions
@@ -1065,6 +1079,41 @@ int iw_softap_setmlme(struct net_device *dev,
     }
     return 0;
 }
+
+static int iw_softap_get_channel_list(struct net_device *dev, 
+                          struct iw_request_info *info,
+                          union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+    v_U8_t channels[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    v_U32_t num_channels = sizeof(channels);
+
+   tpChannelListInfo channel_list = (tpChannelListInfo) extra;
+   wrqu->data.length = sizeof(tChannelListInfo);
+   ENTER();
+   if (ccmCfgGetStr((hHal), 
+                    WNI_CFG_VALID_CHANNEL_LIST,
+                    channel_list->channels,
+                    &num_channels) != eHAL_STATUS_SUCCESS)
+   {
+      hddLog(LOGE,FL(" Get Valid channel list failed\n")); 
+      return -EIO;
+   }
+   
+   hddLog(LOG1,FL(" number of channels %d\n"), num_channels); 
+
+   if (num_channels > IW_MAX_FREQUENCIES)
+   {
+      num_channels = IW_MAX_FREQUENCIES;
+   }
+  
+   channel_list->num_channels = num_channels;
+   EXIT();
+
+   return 0;
+}
+
 static 
 int iw_get_genie(struct net_device *dev,
                         struct iw_request_info *info,
@@ -1845,6 +1894,104 @@ static int iw_set_ap_genie(struct net_device *dev,
     return halStatus; 
 }
 
+static VOS_STATUS  wlan_hdd_get_classAstats_for_station(hdd_adapter_t *pAdapter, u8 staid)
+{
+   eHalStatus hstatus;
+   long lrc;
+   struct statsContext context;
+
+   if (NULL == pAdapter)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Padapter is NULL", __func__);
+      return VOS_STATUS_E_FAULT;
+   }
+
+   init_completion(&context.completion);
+   context.pAdapter = pAdapter;
+   context.magic = STATS_CONTEXT_MAGIC;
+   hstatus = sme_GetStatistics( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                  eCSR_HDD,
+                                  SME_GLOBAL_CLASSA_STATS,
+                                  hdd_GetClassA_statisticsCB,
+                                  0, // not periodic
+                                  FALSE, //non-cached results
+                                  staid,
+                                  &context);
+   if (eHAL_STATUS_SUCCESS != hstatus)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+            "%s: Unable to retrieve statistics for link speed",
+            __FUNCTION__);
+   }
+   else
+   {
+      lrc = wait_for_completion_interruptible_timeout(&context.completion,
+            msecs_to_jiffies(WLAN_WAIT_TIME_STATS));
+      context.magic = 0;
+      if (lrc <= 0)
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: SME %s while retrieving link speed",
+              __FUNCTION__, (0 == lrc) ? "timeout" : "interrupt");
+         msleep(50);
+      }
+   }
+   return VOS_STATUS_SUCCESS;
+}
+
+int iw_get_softap_linkspeed(struct net_device *dev,
+        struct iw_request_info *info,
+        union iwreq_data *wrqu,
+        char *extra)
+
+{
+   hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+   char *pLinkSpeed = (char*)extra;
+   v_U16_t link_speed;
+   unsigned short staId;
+   int len = sizeof(v_U16_t)+1;
+   v_BYTE_t macAddress[VOS_MAC_ADDR_SIZE];
+   VOS_STATUS status;
+   int rc;
+
+   if ( hdd_string_to_hex ((char *)wrqu->data.pointer, wrqu->data.length, macAddress ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "ERROR: Command not found");
+      return -EINVAL;
+   }
+
+   status = hdd_softap_GetStaId(pHostapdAdapter, (v_MACADDR_t *)macAddress, (void *)(&staId));
+
+   if (!VOS_IS_STATUS_SUCCESS(status ))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD Failed to find sta id!!\n"));
+      link_speed = 0;
+   }
+   else
+   {
+      status = wlan_hdd_get_classAstats_for_station(pHostapdAdapter , staId);
+      if (!VOS_IS_STATUS_SUCCESS(status ))
+      {
+          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unable to retrieve SME statistics", __FUNCTION__);
+          return -EINVAL;
+      }
+      link_speed =(int)pHostapdAdapter->hdd_stats.ClassA_stat.tx_rate/2;
+   }
+
+   wrqu->data.length = len;
+   rc = snprintf(pLinkSpeed, len, "%u", link_speed);
+   if ((rc < 0) || (rc >= len))
+   {
+      // encoding or length error?
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+            "%s: Unable to encode link speed, got [%s]",
+             __FUNCTION__, pLinkSpeed);
+      return -EIO;
+   }
+
+   return 0;
+}
+
 static const iw_handler      hostapd_handler[] =
 {
    (iw_handler) NULL,           /* SIOCSIWCOMMIT */
@@ -1946,6 +2093,9 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 6 , "disassoc_sta" },
   { QCSAP_IOCTL_AP_STATS,
         IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE, 0, "ap_stats" },
+  { QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED,
+        IW_PRIV_TYPE_CHAR | 18,
+        IW_PRIV_TYPE_CHAR | 3, "getLinkSpeed" },
 
   { QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3, 0, "" },
@@ -1972,6 +2122,12 @@ static const struct iw_priv_args hostapd_private_args[] = {
        0, 
        "SetP2pPs" },
 #endif
+    /* handlers for main ioctl */
+    {   QCSAP_IOCTL_GET_CHANNEL_LIST,
+        0, 
+        IW_PRIV_TYPE_BYTE | sizeof(tChannelListInfo),
+        "getChannelList" },
+
 };
 static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_SETPARAM - SIOCIWFIRSTPRIV] = iw_softap_setparam,  //set priv ioctl
@@ -1989,6 +2145,8 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_AP_STATS - SIOCIWFIRSTPRIV] = iw_softap_ap_stats,
    [QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,   
    [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
+   [QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED - SIOCIWFIRSTPRIV]     = iw_get_softap_linkspeed,
+   [QCSAP_IOCTL_GET_CHANNEL_LIST - SIOCIWFIRSTPRIV]   = iw_softap_get_channel_list,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),

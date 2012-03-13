@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( HDD_CONFIG_H__ )
 #define HDD_CONFIG_H__
 
@@ -1103,6 +1109,11 @@ typedef enum
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST           0x02
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST 0x03
 
+#define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
+#define CFG_REPORT_MAX_LINK_SPEED_MIN              ( 0 )
+#define CFG_REPORT_MAX_LINK_SPEED_MAX              ( 1 )
+#define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( 0 )
+
 /*
  *
  * SAP Auto Channel Enable
@@ -1387,6 +1398,7 @@ typedef struct
 
    v_U32_t                     apDataAvailPollPeriodInMs;
    v_BOOL_t                    teleBcnWakeupEn;
+   v_U8_t                      reportMaxLinkSpeed;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

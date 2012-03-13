@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**=============================================================================
   wlan_hdd_dp_utils.c
   
@@ -170,3 +176,26 @@ VOS_STATUS hdd_list_peek_next( hdd_list_t *pList, hdd_list_node_t *pNode,
 
    return VOS_STATUS_SUCCESS;
 }
+
+VOS_STATUS hdd_string_to_hex( char *pSrcMac, int length, char *pDescMac )
+{
+   int i;
+   int k;
+   char temp[3] = {0};
+
+   //18 is MAC Address length plus the colons
+   if ( !pSrcMac && (length > 18 || length < 18) )
+   {
+      return VOS_STATUS_E_FAILURE;
+   }
+   i = k = 0;
+   while ( i < length )
+   {
+       memcpy(temp, pSrcMac+i, 2);
+       pDescMac[k++] = (char)simple_strtoul (temp, NULL, 16);
+       i += 3;
+   }
+
+   return VOS_STATUS_SUCCESS;
+}
+

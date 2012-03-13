@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Qualcomm Inc proprietary. All rights reserved.
  * halBmu.c:  Provides all the MAC APIs to the BMU Hardware Block.
  * Author:    Susan Tsao

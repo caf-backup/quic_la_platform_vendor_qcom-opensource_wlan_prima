@@ -7,7 +7,7 @@
     Define interface only used by CSR.
   
   
-   Copyright (c) 2011 Qualcomm Atheros, Inc. 
+   Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
    All Rights Reserved. 
    Qualcomm Atheros Confidential and Proprietary. 
  
@@ -236,7 +236,7 @@ eHalStatus csrScanGetScanChannelInfo(tpAniSirGlobal pMac);
 //The BSS is remove if the count reaches 0.
 eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInfo);
 tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
-                                         tDot11fBeaconIEs *pIes);
+                                         tDot11fBeaconIEs *pIes, tANI_BOOLEAN fForce);
 void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce );
 void csrSetCfgScanControlList( tpAniSirGlobal pMac, tANI_U8 *countryCode, tCsrChannel *pChannelList  );
 void csrReinitScanCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);

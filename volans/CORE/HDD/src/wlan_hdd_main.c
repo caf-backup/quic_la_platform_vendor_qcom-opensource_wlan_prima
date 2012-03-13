@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*========================================================================
 
   \file  wlan_hdd_main.c
@@ -1314,6 +1320,35 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
    return VOS_STATUS_SUCCESS;
 }
 
+void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter)
+{
+    v_U8_t addIE[1] = {0};
+
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA1,(tANI_U8*)addIE, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+    {
+        hddLog(LOGE,
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM\n");
+    }
+
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA2, (tANI_U8*)addIE, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+    {
+        hddLog(LOGE,
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM\n");
+    }
+
+    if ( eHAL_STATUS_FAILURE == ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
+                            WNI_CFG_PROBE_RSP_ADDNIE_DATA3, (tANI_U8*)addIE, 0, NULL,
+                            eANI_BOOLEAN_FALSE) )
+    {
+        hddLog(LOGE,
+           "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM\n");
+    }
+}
+
 VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
@@ -1405,6 +1440,19 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
                       "%s: Failed to set WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG",
                       __FUNCTION__);
             }
+
+            if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                     WNI_CFG_ASSOC_RSP_ADDNIE_FLAG, 0, NULL,
+                     eANI_BOOLEAN_FALSE) )
+            {
+               hddLog(LOGE,
+                     "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM");
+            }
+
+            // Reset WNI_CFG_PROBE_RSP Flags
+            wlan_hdd_reset_prob_rspies(pAdapter);
+            kfree(pAdapter->sessionCtx.ap.beacon);
+            pAdapter->sessionCtx.ap.beacon = NULL;
          }
          break;
       case WLAN_HDD_MONITOR:
@@ -2254,9 +2302,7 @@ free_hdd_ctx:
 VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx)
 {
    eHalStatus halStatus;
-   //v_BOOL_t itemIsValid = VOS_FALSE;
-   //VOS_STATUS status;
-
+   v_U8_t macAddr[6];
 
    //Apply the cfg.ini to cfg.dat
    if ( hdd_update_config_dat(pHddCtx) == FALSE)
@@ -2265,42 +2311,16 @@ VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx)
       return VOS_STATUS_E_FAILURE;
    }
 
-//**************************TODO*******************************************************
-#if 0
-   /*If the NV is valid then get the macaddress from nv else get it from qcom_cfg.ini*/
-   status = vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid);
-
-   if(status != VOS_STATUS_SUCCESS)
+   if( VOS_STATUS_SUCCESS != vos_get_mac_address_from_nv(macAddr) )
    {
-       hddLog(VOS_TRACE_LEVEL_FATAL," vos_nv_getValidity() failed\n ");
-       return VOS_STATUS_E_FAILURE;
+       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: nv.bin doesn't have valid mac", __func__);
    }
-
-   if (itemIsValid == VOS_TRUE) 
+   else
    {
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV\n ");
-        status = vos_nv_readMacAddress(&pAdapter->macAddressCurrent.bytes[0]);
-
-        if(status != VOS_STATUS_SUCCESS)
-        {
-            hddLog(VOS_TRACE_LEVEL_FATAL," vos_nv_readMacAddress() failed\n ");
-            return VOS_STATUS_E_FAILURE;
-        }
-   }
-//**************************TODO*******************************************************
-   else {
-   //Update the new mac address based on qcom_cfg.ini
-       vos_mem_copy(&pAdapter->macAddressCurrent, 
-                &pAdapter->cfg_ini->staMacAddr,
-                sizeof(v_MACADDR_t));
+      /* Update NV mac address in INI */
+      memcpy( &pHddCtx->cfg_ini->intfMacAddr[0].bytes[0], macAddr, sizeof(v_MACADDR_t) );
    }
 
-   vos_mem_copy(pWlanDev->dev_addr, 
-                &pAdapter->macAddressCurrent, 
-                sizeof(v_MACADDR_t));
-#endif
-
-#if 1 /* need to fix for concurrency */
    // Set the MAC Address
    // Currently this is used by HAL to add self sta. Remove this once self sta is added as part of session open.
    halStatus = ccmCfgSetStr( pHddCtx->hHal, WNI_CFG_STA_ID,
@@ -2314,7 +2334,6 @@ VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx)
           "HALStatus is %08d [x%08x]",__func__, halStatus, halStatus );
       return VOS_STATUS_E_FAILURE;
    }
-#endif
 
    // Send ready indication to the HDD.  This will kick off the MAC
    // into a 'running' state and should kick off an initial scan.
@@ -2493,11 +2512,6 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_balclose;
    }
 
-   sd_claim_host(sdio_func_dev);
-   /* Disable SDIO IRQ capabilities */
-   libra_disable_sdio_irq_capability(sdio_func_dev, 1);
-   libra_enable_sdio_irq(sdio_func_dev, 0);
-   sd_release_host(sdio_func_dev);
 
    status = WLANSAL_Start(pHddCtx->pvosContext);
    if (!VOS_IS_STATUS_SUCCESS(status))
@@ -2515,12 +2529,6 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
               "%s: Failed to start BAL",__func__);
      goto err_salstop;
   }
-
-   sd_claim_host(sdio_func_dev);
-   /* Enable SDIO IRQ capabilities */
-   libra_disable_sdio_irq_capability(sdio_func_dev, 0);
-   libra_enable_sdio_irq(sdio_func_dev, 1);
-   sd_release_host(sdio_func_dev);
 
 #ifdef MSM_PLATFORM_7x30
    /* FIXME: Volans 2.0 configuration. Reconfigure 1.3v SW supply to 1.3v. It will be configured to
@@ -2687,7 +2695,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       wlan_hdd_cfg80211_post_voss_start(pAdapter);
    }
 #endif
-
+   mutex_init(&pHddCtx->sap_lock);
    //Scanning only for station mode.
    //TODO if initial scan is required on AP mode, need to remove this condition.
    //Since AP session is not yet created and hence there is no self sta, active scan will fail.

@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**========================================================================
 
   \file  wlan_hdd_ftm.c
@@ -53,7 +59,6 @@
 #include "sys_api.h"
 #include "pttModuleApi.h"
 #include "qwlan_version.h"
-#include <wlan_sal_misc.h>
 
 #define RXMODE_DISABLE_ALL 0
 #define RXMODE_ENABLE_ALL  1
@@ -784,7 +789,7 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
     VOS_STATUS vStatus       = VOS_STATUS_SUCCESS;
     pVosContextType pVosContext= NULL;
     hdd_adapter_t *pAdapter;
-    struct sdio_func *sdio_func_dev = NULL;
+    v_U8_t macAddr[6];
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: Opening VOSS", __func__);
@@ -808,21 +813,6 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
       goto err_vos_status_failure;
    }
 
-    sdio_func_dev = libra_getsdio_funcdev();
-
-    if(sdio_func_dev != NULL)
-    {
-        sd_claim_host(sdio_func_dev);
-        /* Disable SDIO IRQ capabilities */
-        libra_disable_sdio_irq_capability(sdio_func_dev, 1);
-        libra_enable_sdio_irq(sdio_func_dev, 0);
-        sd_release_host(sdio_func_dev);
-    }
-    else
-    {
-        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
-    }
-
     /* Start SAL now */
     vStatus = WLANSAL_Start(pVosContext);
     if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -839,6 +829,18 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: HAL context is null",__func__);
        goto err_sal_close;
+    }
+
+    vStatus = vos_get_mac_address_from_nv(macAddr);
+    if( !VOS_IS_STATUS_SUCCESS( vStatus ) )
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: nv.bin doesn't have valid mac, \
+               reading from INI", __func__);
+    }
+    else
+    {
+       /* Update NV mac address in INI */
+       memcpy( &pHddCtx->cfg_ini->intfMacAddr[0].bytes[0], macAddr, sizeof(v_MACADDR_t) );
     }
 
     pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_FTM, "wlan%d",
@@ -1035,8 +1037,6 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     tSirRetStatus sirStatus      = eSIR_SUCCESS;
     pVosContextType pVosContext = (pVosContextType)(pHddCtx->pvosContext);
     tHalMacStartParameters halStartParams;
-    struct sdio_func *sdio_func_dev = NULL;
-
     if (WLAN_FTM_STARTED == pHddCtx->ftm.ftm_state)
     {
        printk(KERN_EMERG "*** FTM Driver Already Started ***\n");
@@ -1067,21 +1067,6 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
                "%s: TL NULL context",__FUNCTION__);
 
         goto err_status_failure;
-    }
-
-    sdio_func_dev = libra_getsdio_funcdev();
-
-    if(sdio_func_dev != NULL)
-    {
-        sd_claim_host(sdio_func_dev);
-        /* Enable SDIO IRQ capabilities */
-        libra_disable_sdio_irq_capability(sdio_func_dev, 0);
-        libra_enable_sdio_irq(sdio_func_dev, 1);
-        sd_release_host(sdio_func_dev);
-    }
-    else
-    {
-        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
     }
 
     /* Start BAL */

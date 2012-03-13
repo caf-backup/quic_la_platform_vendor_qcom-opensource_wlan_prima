@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  * 
@@ -6014,6 +6014,7 @@ limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     if((psessionEntry = peFindSessionByBssid(pMac,pBaActivityInd->bssId,&sessionId))== NULL)
     {
         limLog(pMac, LOGE,FL("session does not exist for given BSSId\n"));
+        palFreeMemory(pMac->hHdd, limMsg->bodyptr);
         return;
     }
        
@@ -6042,8 +6043,8 @@ limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                PELOG2(limLog(pMac, LOG2, FL("BA setup for staId = %d, TID: %d, SSN:%d.\n"),
                         pSta->staIndex, tid, pBaCandidate->baInfo[tid].startingSeqNum);)
                 limPostMlmAddBAReq(pMac, pSta, tid, pBaCandidate->baInfo[tid].startingSeqNum,psessionEntry);  
-    }
-}
+            }
+        }
     }
     palFreeMemory(pMac->hHdd, limMsg->bodyptr);
     return;

@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**========================================================================= 
 
                        EDIT HISTORY FOR FILE 
@@ -1436,7 +1442,16 @@ This is a Verizon required feature.
                 CFG_AP_DATA_AVAIL_POLL_PERIOD_DEFAULT, 
                 CFG_AP_DATA_AVAIL_POLL_PERIOD_MIN, 
                 CFG_AP_DATA_AVAIL_POLL_PERIOD_MAX ),
-};                                
+                              
+
+    REG_VARIABLE( CFG_REPORT_MAX_LINK_SPEED, WLAN_PARAM_Integer,
+                hdd_config_t, reportMaxLinkSpeed, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_REPORT_MAX_LINK_SPEED_DEFAULT, 
+                CFG_REPORT_MAX_LINK_SPEED_MIN, 
+                CFG_REPORT_MAX_LINK_SPEED_MAX ),
+
+};
 
 /*
  * This function returns a pointer to the character after the occurence
@@ -1773,6 +1788,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gValidateScanList] Value = [%u] ",pHddCtx->cfg_ini->fValidateScanList);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gStaKeepAlivePeriod] Value = [%u] ",pHddCtx->cfg_ini->infraStaKeepAlivePeriod);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pHddCtx->cfg_ini->apDataAvailPollPeriodInMs);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gReportMaxLinkSpeed] Value = [%u] ",pHddCtx->cfg_ini->reportMaxLinkSpeed);
 }
 
 

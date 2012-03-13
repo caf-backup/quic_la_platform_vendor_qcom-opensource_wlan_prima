@@ -1651,3 +1651,33 @@ VOS_STATUS  vos_conf_hostarpoffload(v_BOOL_t fenable)
 
     return hdd_conf_hostarpoffload(pHddCtx, fenable);
 }
+
+VOS_STATUS vos_get_mac_address_from_nv(v_U8_t* macAddress)
+{
+    v_BOOL_t itemIsValid = VOS_FALSE;
+    VOS_STATUS status = VOS_STATUS_E_FAILURE;
+
+    /*If the NV is valid then get the macaddress from nv 
+     * else get it from WCN1314_qcom_cfg.ini*/
+
+    status = vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid);
+    if(status != VOS_STATUS_SUCCESS)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+            "%s: vos_nv_getValidity() failed",__FUNCTION__);
+    }
+    else if (itemIsValid == VOS_TRUE) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+            "%s: Reading the Macaddress from NV",__FUNCTION__);
+         status = vos_nv_readMacAddress(macAddress);
+    }
+    else
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+            "%s: NV Macaddress is not valid",__FUNCTION__);
+        status = VOS_STATUS_E_FAILURE;
+    }
+
+    return status;
+}

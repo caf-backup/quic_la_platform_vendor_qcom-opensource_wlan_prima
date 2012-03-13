@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef QWLANFW_VERSION_H
 #define QWLANFW_VERSION_H
 /*===========================================================================
@@ -19,7 +25,7 @@ BRIEF DESCRIPTION:
 #define WLANFW_VERSION_MINOR            2
 #define WLANFW_VERSION_PATCH            1
 #define WLANFW_VERSION_EXTRA            ""
-#define WLANFW_VERSION_BUILD            220
+#define WLANFW_VERSION_BUILD            223
 
 
 #define WLANFW_VERSION \
@@ -28,7 +34,7 @@ BRIEF DESCRIPTION:
         WLANFW_VERSION_MINOR, \
         WLANFW_VERSION_PATCH)
 
-#define WLANFW_VERSIONSTR               "0.2.1.220"
+#define WLANFW_VERSIONSTR               "0.2.1.223"
 
 /*---------------------------------------------------------------------------
  * Encoding of version information

@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Qualcomm Inc Inc proprietary. All rights reserved.
  * halMsg.c:  Provides STA entry specific API to PEs
  * Author:    Arul Vasantharaj

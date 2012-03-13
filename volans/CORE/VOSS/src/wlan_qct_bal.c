@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*=========================================================================
 
   @file  wlan_qct_bal.c
@@ -891,6 +897,10 @@ VOS_STATUS WLANBAL_Start
       BEXIT();
       return VOS_STATUS_E_FAILURE;
    }
+
+   /* Enable interrupts from the chip. Note that interrupts from the chip are
+    * disabled by default in libra_sdio_configure() */
+   WLANSAL_EnableInterruptsInChip(pAdapter, 1);
 
    /**
     * FIXME

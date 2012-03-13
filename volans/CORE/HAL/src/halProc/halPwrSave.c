@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * File:        halPwrSave.c
  * Description: This file contains all the Power save related functions
  *              required for initialization, Idle Mode power save,

@@ -1,6 +1,6 @@
 //source/qcom/qct/wconnect/wlan/hal/volans/dev/sap-vsta/src/halMac/halLogDump.c#8 - integrate change 536152 (text)
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  * 

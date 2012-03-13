@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef WLAN_QCT_SAL_H
 #define WLAN_QCT_SAL_H
 
@@ -573,6 +579,21 @@ void WLANSAL_GetSDIOCardId
 (
     v_PVOID_t      pAdapter,
     v_U16_t        *sdioCardId
+);
+
+/*----------------------------------------------------------------------------
+
+   @brief API exported from SAL to enable interrupts from the chip. This needs to
+          have the libra_enable_sdio_irq_in_chip API exported from librasdioif driver
+   @param *card_id - To receive the card id
+
+   @return void
+
+----------------------------------------------------------------------------*/
+void WLANSAL_EnableInterruptsInChip
+(
+    v_PVOID_t   pAdapter,
+    v_U8_t      enable
 );
 
 #ifdef __cplusplus

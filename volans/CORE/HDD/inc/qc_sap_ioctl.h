@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef _QC_SAP_IOCTL_H_
 #define _QC_SAP_IOCTL_H_
 
@@ -162,6 +168,15 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
     u_int8_t    probeReqIE[512]; 
 } sQcSapreq_WPSPBCProbeReqIES_t ;
 
+/*
+ * Channel List Info
+ */
+
+typedef struct
+{
+    v_U8_t            num_channels;    
+    v_U8_t            channels[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+}tChannelListInfo, *tpChannelListInfo;
 
 
 #ifdef __linux__
@@ -198,7 +213,11 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
 #define WE_P2P_NOA_CMD  2
 #endif
 
-#define MAX_VAR_ARGS         7			
+#define MAX_VAR_ARGS         7
+
+#define QCSAP_IOCTL_GET_CHANNEL_LIST    (SIOCIWFIRSTPRIV+19)
+
+#define QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED (SIOCIWFIRSTPRIV + 27)
 
 enum { 
     QCSAP_PARAM_MAX_ASSOC = 1,
