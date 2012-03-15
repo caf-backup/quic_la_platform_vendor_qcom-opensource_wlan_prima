@@ -36,4 +36,9 @@ ifeq ($(call is-board-platform,msm7627a),true)
         include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
         include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
 endif
+
+endif
+
+ifeq ($(BOARD_HAS_ATH_WLAN), true)
+       include $(WLAN_BLD_DIR)/ath6kl-utils/Android.mk
 endif
