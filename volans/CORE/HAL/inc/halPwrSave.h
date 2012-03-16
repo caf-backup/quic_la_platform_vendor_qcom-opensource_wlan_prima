@@ -258,7 +258,13 @@ typedef struct sBeaconFilterIe
     tEidByteInfo    byte;
 } tBeaconFilterIe, *tpBeaconFilterIe;
 
-
+/* Structure used for computing RSSI average */
+typedef struct sRssAvgParam
+{
+    tANI_S32 totRssi;
+    tANI_U32 avgCount;
+    tANI_U32 isNonZero;
+} tRssAvgParam, *tpRssAvgParam;
 
 /* Power Save Initialization/Exit functions */
 eHalStatus halPS_Init(tHalHandle hHal, void *arg);

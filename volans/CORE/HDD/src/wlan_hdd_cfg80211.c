@@ -2642,7 +2642,6 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
         {
             hddLog(VOS_TRACE_LEVEL_INFO,
                     "%s: NULL returned by cfg80211_inform_bss\n", __func__);
-            break;
         }
         else
         {
@@ -4395,22 +4394,7 @@ static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
 static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                          struct net_device *dev, u8 *mac)
 {
-    hdd_adapter_t *pAdapter;
-
-    if (NULL == mac)
-    {
-        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Bad MAC ADDRESS " ,__func__);
-        return 0;
-    }
-
-    hddLog(VOS_TRACE_LEVEL_INFO,
-                        "%s: Delete STA with MAC::"
-                        "%02x:%02x:%02x:%02x:%02x:%02x",
-                        __func__,
-                        mac[0], mac[1], mac[2],
-                        mac[3], mac[4], mac[5]);
-
-    pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
     if ( NULL == pAdapter || NULL == pAdapter->pHddCtx)
     {
@@ -4431,12 +4415,39 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 #endif
        )
     {
-         hdd_softap_sta_deauth(pAdapter, mac);
+        if( NULL == mac )
+        {
+            v_U16_t i;
+            for(i = 0; i < WLAN_MAX_STA_COUNT; i++)
+            {
+                if(pAdapter->aStaInfo[i].isUsed)
+                {
+                    u8 *macAddr = pAdapter->aStaInfo[i].macAddrSTA.bytes;
+                    hddLog(VOS_TRACE_LEVEL_INFO,
+                                        "%s: Delete STA with MAC::"
+                                        "%02x:%02x:%02x:%02x:%02x:%02x",
+                                        __func__,
+                                        macAddr[0], macAddr[1], macAddr[2],
+                                        macAddr[3], macAddr[4], macAddr[5]);
+                    hdd_softap_sta_deauth(pAdapter, macAddr);
+                }
+            }
+        }
+        else
+        {
+            hddLog(VOS_TRACE_LEVEL_INFO,
+                                "%s: Delete STA with MAC::"
+                                "%02x:%02x:%02x:%02x:%02x:%02x",
+                                __func__,
+                                mac[0], mac[1], mac[2],
+                                mac[3], mac[4], mac[5]);
+            hdd_softap_sta_deauth(pAdapter, mac);
+        }
     }
 
     EXIT();
 
-    return eHAL_STATUS_SUCCESS;
+    return 0;
 }
 
 static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,

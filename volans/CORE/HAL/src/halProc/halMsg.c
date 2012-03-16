@@ -3219,6 +3219,7 @@ void halMsg_ScanComplete(tpAniSirGlobal pMac)
     tANI_U8 needToBeaconFlag = FALSE;
     tANI_U8 staId = 0;
     tBssSystemRole  BssSystemRole = eSYSTEM_UNKNOWN_ROLE;
+    tANI_U32 regValue;
 
     pMac->hal.scanParam.linkState = eSIR_LINK_FINISH_SCAN_STATE;
     pMac->hal.scanParam.isScanInProgress = eANI_BOOLEAN_FALSE;
@@ -3234,6 +3235,17 @@ void halMsg_ScanComplete(tpAniSirGlobal pMac)
     // Bss filter mode should be applicable now.
     halRxp_setSystemRxpFilterMode(pMac,
             eRXP_IDLE_MODE, eHAL_USE_BSS_RXP);
+
+    /* Asserting a RESET pulse for RSSI Antenna 0 & 1 related store function.
+       This is done to ensure that hardware does not capture the RSSI sensed for beacons during the time of Scan
+     */
+    halReadRegister(pMac, QWLAN_PMU_RSSI_CTRL_REG_REG, &regValue);
+    if(regValue & QWLAN_PMU_RSSI_CTRL_REG_SYNC_RST_RSSI_ANT_STORE_FUNC_MASK)
+    {
+        regValue &= (~QWLAN_PMU_RSSI_CTRL_REG_SYNC_RST_RSSI_ANT_STORE_FUNC_MASK);
+        halWriteRegister(pMac,QWLAN_PMU_RSSI_CTRL_REG_REG,regValue);
+    }
+    halReadRegister(pMac, QWLAN_PMU_RSSI_CTRL_REG_REG, &regValue);
 
     for( staId = 0 ; staId < pMac->hal.memMap.maxStations ; staId++ ) {
         BssSystemRole = halGetBssSystemRoleFromStaIdx(pMac, staId);
@@ -3318,6 +3330,7 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
 #endif
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U8 psState;
+    tANI_U32 regValue;
 
     // Suspend the transmission from TL, for ALL STA by passing NULL in the 
     // staID and then resume only the self sta
@@ -3365,6 +3378,17 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
     // Set RXP routing flag with scanbit, to distingiush packets recvd in scan mode.
     halRxp_setScanLearn( pMac, TRUE );
     status = eHAL_STATUS_SUCCESS;
+
+    /* Asserting a RESET pulse for RSSI Antenna 0 & 1 related store function.
+       This is done to ensure that hardware does not capture the RSSI sensed for beacons during the time of Scan
+     */
+    halReadRegister(pMac, QWLAN_PMU_RSSI_CTRL_REG_REG, &regValue);
+    if(!(regValue & QWLAN_PMU_RSSI_CTRL_REG_SYNC_RST_RSSI_ANT_STORE_FUNC_MASK))
+    {
+        regValue |= QWLAN_PMU_RSSI_CTRL_REG_SYNC_RST_RSSI_ANT_STORE_FUNC_MASK;
+        halWriteRegister(pMac,QWLAN_PMU_RSSI_CTRL_REG_REG,regValue);
+    }
+    halReadRegister(pMac, QWLAN_PMU_RSSI_CTRL_REG_REG, &regValue);
 
     // Check if notification to BSS/STAs is required by sending Data Null or self CTS
     if(param->notifyBss && param->frameLength) {

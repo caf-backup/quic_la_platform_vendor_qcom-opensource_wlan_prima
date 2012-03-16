@@ -522,6 +522,7 @@ WLANTL_Open
 #endif
 
   pTLCb->isBMPS = VOS_FALSE;
+  pTLCb->cachedRSSI = 0;
   pmcRegisterDeviceStateUpdateInd( smeContext,
                                    WLANTL_PowerStateChangedCB, pvosGCtx );
 
@@ -2152,6 +2153,20 @@ WLANTL_GetRssi
   if(pTLCb->isBMPS)
   {
     halPS_GetRssi(vos_get_context(VOS_MODULE_ID_SME, pvosGCtx), puRssi);
+    /*---------------------------------------------------------------------
+      TL implements a new caching logic to return cached RSSI to upper 
+      layer when above function returns 0 when TL state is in BMPS.
+      If we get a non-zero RSSI then the same will be cached and
+      returned to upper layer on a request.
+     ---------------------------------------------------------------------*/
+    if(*puRssi)
+    {
+        pTLCb->cachedRSSI = *puRssi;
+    }
+    else
+    {
+        *puRssi = pTLCb->cachedRSSI;
+    }
   }
   else
   {

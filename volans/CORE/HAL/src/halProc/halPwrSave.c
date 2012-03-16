@@ -507,7 +507,7 @@ eHalStatus halPS_SetRSSIThresholds(tpAniSirGlobal pMac, tpSirRSSIThresholds pThr
     return status;
 }
 
-static void computeRssAvg(tANI_U32 value, tANI_S32 *totRssi, tANI_U32 *avgCount)
+static void computeRssAvg(tANI_U32 value, tRssAvgParam* rssi_param)
 {
     tANI_U32 aCount = 0;
     tANI_S32 rssiAnt0 = 0, rssiAnt1 = 0, rssiAnt = 0;
@@ -527,8 +527,9 @@ static void computeRssAvg(tANI_U32 value, tANI_S32 *totRssi, tANI_U32 *avgCount)
         aCount++;
         rssiAnt = (rssiAnt0 > rssiAnt1) ? rssiAnt0 : rssiAnt1;
     }
-    *totRssi = rssiAnt;
-    *avgCount = aCount;
+    rssi_param->totRssi = rssiAnt;
+    rssi_param->avgCount = aCount;
+    rssi_param->isNonZero = (rssiAnt0 || rssiAnt1) ? 1 : 0;
 }
 
 /*
@@ -544,10 +545,11 @@ static void computeRssAvg(tANI_U32 value, tANI_S32 *totRssi, tANI_U32 *avgCount)
 eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
 {
     tANI_U32 value[WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX];
-    tANI_U32 i, avgCount, startPtr;
-    tANI_U32 reqd = WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX, max = WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX;
-    tANI_S32 totRssi, rssiVal = 0, rssiAvgCount = 0;
+    tANI_U32 i, startPtr;
+    tANI_U32 reqd=WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX, max=WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX;
+    tANI_S32 rssiVal=0, rssiAvgCount=0, nonZeroRSSIReg=0;
     eHalStatus halStatus;
+    tRssAvgParam rssi_param;
 
     //make sure it is pwr save, before we start reading the PMU BMPS RSSI registers
     if (!halUtil_CurrentlyInPowerSave(pMac))
@@ -584,28 +586,31 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
     {
         for(i = 0; i <= startPtr; i++)
         {
-            computeRssAvg(value[i], &totRssi, &avgCount);
-            rssiVal += totRssi;
-            rssiAvgCount += avgCount;
+            computeRssAvg(value[i], &rssi_param);
+            rssiVal += rssi_param.totRssi;
+            rssiAvgCount += rssi_param.avgCount;
+            nonZeroRSSIReg += rssi_param.isNonZero;
         }
         for(i = (max + startPtr - reqd + 1); i < max; i++)
         {
-            computeRssAvg(value[i], &totRssi, &avgCount);
-            rssiVal += totRssi;
-            rssiAvgCount += avgCount;
+            computeRssAvg(value[i], &rssi_param);
+            rssiVal += rssi_param.totRssi;
+            rssiAvgCount += rssi_param.avgCount;
+            nonZeroRSSIReg += rssi_param.isNonZero;
         }
     }
     else
     {
         for(i = (startPtr - reqd + 1); i <= startPtr; i++)
         {
-            computeRssAvg(value[i], &totRssi, &avgCount);
-            rssiVal += totRssi;
-            rssiAvgCount += avgCount;
+            computeRssAvg(value[i], &rssi_param);
+            rssiVal += rssi_param.totRssi;
+            rssiAvgCount += rssi_param.avgCount;
+            nonZeroRSSIReg += rssi_param.isNonZero;
         }
     }
 
-    if(rssiAvgCount)
+    if(rssiAvgCount && (nonZeroRSSIReg == reqd))
     {
         sRssiChannelOffsets  *pRssiOffset;
         eRfChannels curChan = rfGetCurChannel(pMac);

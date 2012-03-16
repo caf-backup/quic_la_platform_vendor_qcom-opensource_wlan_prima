@@ -368,9 +368,6 @@ struct hdd_station_ctx
 
    roaming_info_t roam_info;
 
-#ifdef CONFIG_CFG80211
-   hdd_cfg80211_state_t cfg80211State;
-#endif
    v_BOOL_t bSendDisconnect;
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
@@ -610,7 +607,9 @@ struct hdd_adapter_s
    }sessionCtx;
 
    hdd_scaninfo_t scan_info;
-
+#ifdef CONFIG_CFG80211
+   hdd_cfg80211_state_t cfg80211State;
+#endif
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) &(pAdapter)->sessionCtx.station
@@ -619,7 +618,7 @@ struct hdd_adapter_s
 #define WLAN_HDD_GET_CTX(pAdapter) (hdd_context_t*)pAdapter->pHddCtx
 #define WLAN_HDD_GET_HAL_CTX(pAdapter)  ((hdd_context_t*)(pAdapter->pHddCtx))->hHal
 #define WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter) &(pAdapter)->sessionCtx.ap.HostapdState
-#define WLAN_HDD_GET_CFG_STATE_PTR(pAdapter)  &(pAdapter)->sessionCtx.station.cfg80211State
+#define WLAN_HDD_GET_CFG_STATE_PTR(pAdapter)  &(pAdapter)->cfg80211State
 
 typedef struct hdd_adapter_list_node
 {

@@ -866,6 +866,12 @@ typedef struct
 #endif
   /*whether we are in BMPS/UAPSD/WOWL mode, since the latter 2 need to be BMPS first*/
   v_BOOL_t                  isBMPS;
+
+  /* Last calculated RSSI value needs to be updated here so that if we are
+     either in the middle of a scan or just after scan where the PMU RSSI 
+     Registers may  read 0, then we need to return this cached RSSI to 
+     upper layers on a RSSI request */
+  v_S7_t  cachedRSSI;
 }WLANTL_CbType;
 
 /*==========================================================================

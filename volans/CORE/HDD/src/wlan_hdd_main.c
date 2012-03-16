@@ -2164,7 +2164,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    unregister_netdevice_notifier(&hdd_netdev_notifier);
 
    hdd_stop_all_adapters( pHddCtx );
-   hdd_close_all_adapters( pHddCtx );
 
    sdio_func_dev = libra_getsdio_funcdev();
 
@@ -2276,6 +2275,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
                                         "Not returning failure."
                                         "Power consumed will be high\n");
    }  
+
+   hdd_close_all_adapters( pHddCtx );
 
    //Free up dynamically allocated members inside HDD Adapter
    kfree(pHddCtx->cfg_ini);
