@@ -1677,10 +1677,9 @@ void dxeRXEventHandler
    dxeCtxt = (WLANDXE_CtrlBlkType *)(msgContent->pContext);
 
    if((WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState) ||
-      (WLANDXE_POWER_STATE_BMPS == dxeCtxt->hostPowerState) ||
       (WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState))
    {
-      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
          "%s Riva is in %d, Just Pull frames without any register touch ",
            __FUNCTION__, dxeCtxt->hostPowerState);
 
@@ -1705,16 +1704,8 @@ void dxeRXEventHandler
                   "dxeRXEventHandler Pull from RX low channel fail");        
       }
 
-      if(WLANDXE_POWER_STATE_BMPS == dxeCtxt->hostPowerState)
-      {
-         wpalEnableInterrupt(DXE_INTERRUPT_RX_READY);
-      }
-      else
-      {
-         /* Interrupt will not enabled at here, it will be enabled at PS mode change */
-         tempDxeCtrlBlk->rxIntDisabledByIMPS = eWLAN_PAL_TRUE;
-      }
-
+      /* Interrupt will not enabled at here, it will be enabled at PS mode change */
+      tempDxeCtrlBlk->rxIntDisabledByIMPS = eWLAN_PAL_TRUE;
       return;
    }
 
@@ -1909,9 +1900,6 @@ static void dxeRXISR
    wpt_uint32                regValue;
 #endif /* FEATURE_R33D */
 
-   WLANDXE_ChannelCBType    *channelCb  = NULL;
-   wpt_uint32                chStat;
-
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
 
@@ -1921,16 +1909,6 @@ static void dxeRXISR
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "dxeRXFrameReadyISR input is not valid");
       return;
-   }
-
-   if((WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState) ||
-      (WLANDXE_POWER_STATE_BMPS == dxeCtxt->hostPowerState) ||
-      (WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState))
-   {
-      channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI];
-      dxeChannelCleanInt(channelCb, &chStat);
-      channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI];
-      dxeChannelCleanInt(channelCb, &chStat);
    }
 
 #ifdef FEATURE_R33D
@@ -3782,7 +3760,6 @@ wpt_status WLANDXE_SetPowerState
          hostPowerState = WLANDXE_POWER_STATE_FULL;
          break;
       case WDTS_POWER_STATE_BMPS:
-         pDxeCtrlBlk->hostPowerState = WLANDXE_POWER_STATE_BMPS;
          hostPowerState = WLANDXE_POWER_STATE_BMPS;
          break;
       case WDTS_POWER_STATE_IMPS:
