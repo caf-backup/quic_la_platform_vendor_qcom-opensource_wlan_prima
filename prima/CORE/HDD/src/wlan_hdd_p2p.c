@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 
 /**========================================================================
 
@@ -49,6 +55,7 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                                                 eHalStatus status )
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) pCtx;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx = cfgState->remain_on_chan_ctx;
 
@@ -83,8 +90,14 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
        )
     {
+        tANI_U8 sessionId = pAdapter->sessionId;
+        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+        {
+            if ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode )
+                sessionId = pAdapter->p2pSessionId;
+        }
         sme_DeregisterMgmtFrame(
-                   hHal, pAdapter->sessionId,
+                   hHal, sessionId,
                    (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
                     NULL, 0 );
     }
@@ -110,6 +123,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
                                    rem_on_channel_request_type_t request_type )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
@@ -164,14 +178,20 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
        )
     {
+        tANI_U8 sessionId = pAdapter->sessionId; 
+        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+        {
+            if ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode )
+                sessionId = pAdapter->p2pSessionId;
+        }
         //call sme API to start remain on channel.
         sme_RemainOnChannel(
-                       WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId,
+                       WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId,
                        chan->hw_value, duration,
                        wlan_hdd_remain_on_channel_callback, pAdapter );
 
         sme_RegisterMgmtFrame(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                              pAdapter->sessionId, (SIR_MAC_MGMT_FRAME << 2) |
+                              sessionId, (SIR_MAC_MGMT_FRAME << 2) |
                               (SIR_MAC_MGMT_PROBE_REQ << 4), NULL, 0 );
 
     }
@@ -255,6 +275,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
                                       struct net_device *dev, u64 cookie )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
 
@@ -281,8 +302,14 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
        )
     {
+        tANI_U8 sessionId = pAdapter->sessionId; 
+        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+        {
+            if ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode )
+                sessionId = pAdapter->p2pSessionId;
+        }
         sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
-                                            pAdapter->sessionId );
+                                            sessionId );
     }
     else if ( (WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
               (WLAN_HDD_P2P_GO == pAdapter->device_mode)
@@ -318,6 +345,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                             __func__,pAdapter->device_mode);
@@ -453,9 +481,20 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
          (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)
        )
     {
+        tANI_U8 sessionId = pAdapter->sessionId; 
+        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+        {
+            if ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode )
+            {
+                sessionId = pAdapter->p2pSessionId;
+                vos_mem_copy((void*) (&buf[10]), 
+                             (void*) (&pHddCtx->p2pDeviceAddress.bytes[0]),
+                                     sizeof(tSirMacAddr));
+            }
+        }
         if (eHAL_STATUS_SUCCESS !=
                sme_sendAction( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                               pAdapter->sessionId, buf, len) )
+                               sessionId, buf, len) )
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                      "%s: sme_sendAction returned fail", __func__);
@@ -545,6 +584,195 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
     complete(&pAdapter->tx_action_cnf_event);
 }
 
+/**
+ * hdd_setP2pNoa
+ *
+ *FUNCTION:
+ * This function is called from hdd_hostapd_ioctl function when Driver 
+ * get P2P_SET_NOA comand from wpa_supplicant using private ioctl
+ *
+ *LOGIC:
+ * Fill NoA Struct According to P2P Power save Option and Pass it to SME layer 
+ *
+ *ASSUMPTIONS:
+ *
+ *
+ *NOTE:
+ *
+ * @param  dev         Pointer to net device structure
+ * @param  command     Pointer to command 
+ *
+ * @return Status
+ */
+
+int hdd_setP2pNoa( struct net_device *dev, tANI_U8 *command )
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tP2pPsConfig NoA;
+    int count, duration, interval;
+    char *param;
+
+    param = strchr(command, ' ');
+    if (param == NULL)
+        return -1;
+    param++;
+    sscanf(param, "%d %d %d", &count, &duration, &interval);
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+               "%s: P2P_SET GO NoA: count=%d duration=%d interval=%d \n",
+                __func__, count, duration, interval);
+
+    /* PS Selection
+     * Periodic NoA (2)
+     * Single NOA   (4)
+     */
+    NoA.opp_ps = 0;
+    NoA.ctWindow = 0;
+    if (count == 1)
+    {
+        NoA.duration = 0;
+        NoA.single_noa_duration = duration;
+        NoA.psSelection = P2P_POWER_SAVE_TYPE_SINGLE_NOA;
+    }
+    else
+    {
+        NoA.duration = duration;
+        NoA.single_noa_duration = 0;
+        NoA.psSelection = P2P_POWER_SAVE_TYPE_PERIODIC_NOA;
+    }
+    NoA.interval = interval;
+    NoA.count = count;
+    NoA.sessionid = pAdapter->sessionId;
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "%s: P2P_PS_ATTR:oppPS %d ctWindow %d duration %d \
+                interval %d count %d single noa duration %d \
+                PsSelection %x \n", __func__, NoA.opp_ps, 
+                NoA.ctWindow, NoA.duration, NoA.interval, 
+                NoA.count, NoA.single_noa_duration,
+                NoA.psSelection);
+
+    sme_p2pSetPs(hHal, &NoA);
+    return status;
+}
+
+/**
+ * hdd_setP2pOpps
+ *
+ *FUNCTION:
+ * This function is called from hdd_hostapd_ioctl function when Driver
+ * get P2P_SET_PS comand from wpa_supplicant using private ioctl
+ *
+ *LOGIC:
+ * Fill NoA Struct According to P2P Power save Option and Pass it to SME layer
+ *
+ *ASSUMPTIONS:
+ *
+ *
+ *NOTE:
+ *
+ * @param  dev         Pointer to net device structure
+ * @param  command     Pointer to command
+ *
+ * @return Status
+ */
+
+int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command )
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tP2pPsConfig NoA;
+    char *param;
+    int legacy_ps, opp_ps, ctwindow;
+
+    param = strchr(command, ' ');
+    if (param == NULL)
+        return -1;
+    param++;
+    sscanf(param, "%d %d %d", &legacy_ps, &opp_ps, &ctwindow);
+    VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                 "%s: P2P_SET GO PS: legacy_ps=%d opp_ps=%d ctwindow=%d \n",
+                 __func__, legacy_ps, opp_ps, ctwindow);
+
+    /* PS Selection
+     * Opportunistic Power Save (1)
+     */
+
+    /* From wpa_cli user need to use separate command to set ctWindow and Opps
+     * When user want to set ctWindow during that time other parameters
+     * values are coming from wpa_supplicant as -1. 
+     * Example : User want to set ctWindow with 30 then wpa_cli command : 
+     * P2P_SET ctwindow 30 
+     * Command Received at hdd_hostapd_ioctl is as below: 
+     * P2P_SET_PS -1 -1 30 (legacy_ps = -1, opp_ps = -1, ctwindow = 30)
+     */ 
+    if (ctwindow != -1)
+    {
+
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                    "Opportunistic Power Save is %s \n", 
+                    (TRUE == pAdapter->ops) ? "Enable" : "Disable" );
+
+        if (ctwindow != pAdapter->ctw)
+        {
+            pAdapter->ctw = ctwindow;
+        
+            if(pAdapter->ops)
+            {
+                NoA.opp_ps = pAdapter->ops;
+                NoA.ctWindow = pAdapter->ctw;
+                NoA.duration = 0;
+                NoA.single_noa_duration = 0;
+                NoA.interval = 0;
+                NoA.count = 0;
+                NoA.psSelection = P2P_POWER_SAVE_TYPE_OPPORTUNISTIC;
+                NoA.sessionid = pAdapter->sessionId;
+ 
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                            "%s: P2P_PS_ATTR:oppPS %d ctWindow %d duration %d \
+                            interval %d count %d single noa duration %d \
+                            PsSelection %x \n", __func__, NoA.opp_ps, 
+                            NoA.ctWindow, NoA.duration, NoA.interval, 
+                            NoA.count, NoA.single_noa_duration,
+                            NoA.psSelection);
+
+               sme_p2pSetPs(hHal, &NoA);
+           }
+           return 0;
+        }
+    }
+
+    if (opp_ps != -1)
+    {
+        pAdapter->ops = opp_ps;
+
+        if ((opp_ps != -1) && (pAdapter->ctw)) 
+        {
+            NoA.opp_ps = opp_ps;
+            NoA.ctWindow = pAdapter->ctw;
+            NoA.duration = 0;
+            NoA.single_noa_duration = 0;
+            NoA.interval = 0;
+            NoA.count = 0;
+            NoA.psSelection = P2P_POWER_SAVE_TYPE_OPPORTUNISTIC;
+            NoA.sessionid = pAdapter->sessionId;
+
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                        "%s: P2P_PS_ATTR:oppPS %d ctWindow %d duration %d \
+                        interval %d count %d single noa duration %d \
+                        PsSelection %x \n", __func__, NoA.opp_ps, 
+                        NoA.ctWindow, NoA.duration, NoA.interval, 
+                        NoA.count, NoA.single_noa_duration,
+                        NoA.psSelection);
+
+           sme_p2pSetPs(hHal, &NoA);
+        }
+    }
+    return status;
+}
+
 int hdd_setP2pPs( struct net_device *dev, void *msgData )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -611,8 +839,27 @@ int wlan_hdd_add_virtual_intf( struct wiphy *wiphy, char *name,
 
     ENTER();
 
-    pAdapter = hdd_open_adapter( pHddCtx, wlan_hdd_get_session_type(type),
+    if ( pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated )
+    {
+        if( (NL80211_IFTYPE_P2P_GO == type) || 
+            (NL80211_IFTYPE_P2P_CLIENT == type) )
+        {
+            /* Generate the P2P Interface Address. this address must be
+             * different from the P2P Device Address.
+             */
+            v_MACADDR_t p2pDeviceAddress = pHddCtx->p2pDeviceAddress;
+            p2pDeviceAddress.bytes[4] ^= 0x80;
+            pAdapter = hdd_open_adapter( pHddCtx, 
+                                         wlan_hdd_get_session_type(type),
+                                         name, p2pDeviceAddress.bytes,
+                                         VOS_TRUE );
+        }
+    }
+    else
+    {
+       pAdapter = hdd_open_adapter( pHddCtx, wlan_hdd_get_session_type(type),
                           name, wlan_hdd_get_intf_addr(pHddCtx), VOS_TRUE );
+    }
 
     if( NULL == pAdapter)
     {

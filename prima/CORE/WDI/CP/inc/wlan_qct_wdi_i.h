@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef WLAN_QCT_WDI_I_H
 #define WLAN_QCT_WDI_I_H
 
@@ -2004,7 +2010,6 @@ WDI_ProcessNvDownloadReq
   WDI_EventInfoType*     pEventData
 );
 
-#ifdef WLAN_FEATURE_VOWIFI
 /**
  @brief Process Set Max Tx Power Request function (called when Main    
         FSM allows it)
@@ -2020,7 +2025,6 @@ WDI_Status WDI_ProcessSetMaxTxPowerReq
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 );
-#endif
 
 #ifdef WLAN_FEATURE_P2P
 /**
@@ -3123,7 +3127,6 @@ WDI_ProcessUpdateProbeRspTemplateRsp
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 );
-#ifdef WLAN_FEATURE_VOWIFI
   /**
  @brief Process Set Max Tx Power Rsp function (called when a response
         is being received over the bus from HAL)
@@ -3140,7 +3143,6 @@ WDI_ProcessSetMaxTxPowerRsp
   WDI_ControlBlockType*          pWDICtx,
   WDI_EventInfoType*             pEventData
 );
-#endif
 
 /**
  @brief Process Nv download(called when a response

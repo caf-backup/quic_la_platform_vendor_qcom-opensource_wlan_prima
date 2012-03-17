@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( HDD_CONFIG_H__ )
 #define HDD_CONFIG_H__
 
@@ -966,6 +972,13 @@ typedef enum
 #define CFG_REPORT_MAX_LINK_SPEED_MAX              ( 1 )
 #define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( 0 )
 
+#ifdef WLAN_FEATURE_P2P
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME                "isP2pDeviceAddrAdministrated"
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MIN                 ( 0 )
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MAX                 ( 1 )
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_DEFAULT             ( 0 )
+#endif
+
 /*
  * WDI Trace Enable Control
  * Notes:
@@ -1283,6 +1296,9 @@ typedef struct
    v_U8_t                      enableAutomaticTxPowerControl;
    v_U8_t                      ShortGI40MhzEnable;
    v_U8_t                      reportMaxLinkSpeed;
+#ifdef WLAN_FEATURE_P2P
+   v_BOOL_t                    isP2pDeviceAddrAdministrated;
+#endif
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

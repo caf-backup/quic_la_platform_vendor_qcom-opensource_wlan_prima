@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limApi.cc contains the functions that are
  * exported by LIM to other modules.

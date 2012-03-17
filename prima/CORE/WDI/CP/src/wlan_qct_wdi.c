@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*===========================================================================
 
                        W L A N _ Q C T _ W D I. C
@@ -178,11 +184,7 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   WDI_ProcessUpdateProbeRspTemplateReq, /* WDI_UPD_PROBE_RSP_TEMPLATE_REQ */
   WDI_ProcessSetStaBcastKeyReq,        /* WDI_SET_STA_BCAST_KEY_REQ  */
   WDI_ProcessRemoveStaBcastKeyReq,     /* WDI_RMV_STA_BCAST_KEY_REQ  */
-#ifdef WLAN_FEATURE_VOWIFI
   WDI_ProcessSetMaxTxPowerReq,         /*WDI_SET_MAX_TX_POWER_REQ*/
-#else
-  NULL,
-#endif
 #ifdef WLAN_FEATURE_P2P
   WDI_ProcessP2PGONOAReq,              /* WDI_P2P_GO_NOTICE_OF_ABSENCE_REQ */
 #else
@@ -330,11 +332,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
   WDI_ProcessUpdateProbeRspTemplateRsp,/*WDI_UPD_PROBE_RSP_TEMPLATE_RESP */
   WDI_ProcessSetStaBcastKeyRsp,        /*WDI_SET_STA_BCAST_KEY_RESP */
   WDI_ProcessRemoveStaBcastKeyRsp,     /*WDI_RMV_STA_BCAST_KEY_RESP */
-#ifdef WLAN_FEATURE_VOWIFI
   WDI_ProcessSetMaxTxPowerRsp,         /*WDI_SET_MAX_TX_POWER_RESP */
-#else
-  NULL,
-#endif
 
   /* PowerSave APIs */
   WDI_ProcessEnterImpsRsp,         /* WDI_ENTER_IMPS_RESP  */
@@ -2480,7 +2478,6 @@ WDI_RemoveSTABcastKeyReq
 
 }/*WDI_RemoveSTABcastKeyReq*/
 
-#ifdef WLAN_FEATURE_VOWIFI
 /**
  @brief WDI_SetMaxTxPowerReq will be called when the upper 
         MAC wants to set Max Tx Power to HW. Upon the
@@ -2540,7 +2537,6 @@ WDI_SetMaxTxPowerReq
 
   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
 }
-#endif
 
 /*======================================================================== 
  
@@ -11065,7 +11061,6 @@ WDI_ProcessNvDownloadReq
   return WDI_SendNvBlobReq(pWDICtx,pEventData);
 }
 
-#ifdef WLAN_FEATURE_VOWIFI
 /**
  @brief Process Set Max Tx Power Request function (called when Main    
         FSM allows it)
@@ -11150,7 +11145,6 @@ if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_SET_MAX_TX_POWER_
                                                       WDI_SET_MAX_TX_POWER_RESP); 
   
 }
-#endif
 
 #ifdef WLAN_FEATURE_P2P
 
@@ -16037,7 +16031,6 @@ WDI_ProcessUpdateProbeRspTemplateRsp
   return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessUpdateProbeRspTemplateRsp*/
 
-#ifdef WLAN_FEATURE_VOWIFI
   /**
  @brief Process Set Max Tx Power Rsp function (called when a response
         is being received over the bus from HAL)
@@ -16100,7 +16093,6 @@ WDI_ProcessSetMaxTxPowerRsp
 
   return WDI_STATUS_SUCCESS; 
 }
-#endif
 
 #ifdef WLAN_FEATURE_P2P
 /**
@@ -18702,7 +18694,14 @@ WDI_ResponseTimerCB
             " - catastrophic failure", 
             WDI_getRespMsgString(pWDICtx->wdiExpectedResponse),
             pWDICtx->wdiExpectedResponse);
-  WDI_DetectedDeviceError( pWDICtx, WDI_ERR_RSP_TIMEOUT); 
+#ifdef APPS_INITIATED_WCNSS_SSR
+  /* WDI timeout means Riva is not responding or SMD communication to Riva
+   * is not happening. The only possible way to recover from this error
+   * is to initiate SSR from APPS */
+  wpalRivaSubystemRestart();
+#else
+  WDI_DetectedDeviceError( pWDICtx, WDI_ERR_RSP_TIMEOUT);
+#endif
   return; 
 
 }/*WDI_ResponseTimerCB*/
@@ -19284,8 +19283,10 @@ WDI_ClearPendingRequests
       /*Fail the request*/
       pfnReqStatusCB( WDI_STATUS_E_FAILURE, pUserData);
     }
-    
-    wpal_list_remove_front(&(pWDICtx->wptPendingQueue), &pNode); 
+    if (wpal_list_remove_front(&(pWDICtx->wptPendingQueue), &pNode) !=  eWLAN_PAL_STATUS_SUCCESS)
+    {
+        break;
+    }
   } 
  
   return WDI_STATUS_SUCCESS;
@@ -19914,10 +19915,8 @@ WDI_2_HAL_REQ_TYPE
     return WLAN_HAL_SEND_BEACON_REQ; 
   case WDI_UPD_PROBE_RSP_TEMPLATE_REQ:
     return WLAN_HAL_UPDATE_PROBE_RSP_TEMPLATE_REQ;
-#ifdef WLAN_FEATURE_VOWIFI
    case WDI_SET_MAX_TX_POWER_REQ:
     return WLAN_HAL_SET_MAX_TX_POWER_REQ;
-#endif
 #ifdef WLAN_FEATURE_P2P
   case WDI_P2P_GO_NOTICE_OF_ABSENCE_REQ:
     return WLAN_HAL_SET_P2P_GONOA_REQ;
@@ -20120,10 +20119,8 @@ HAL_2_WDI_RSP_TYPE
 #endif
   case WLAN_HAL_TX_PER_HIT_IND:
     return WDI_HAL_TX_PER_HIT_IND;
-#ifdef WLAN_FEATURE_VOWIFI
   case WLAN_HAL_SET_MAX_TX_POWER_RSP:
     return WDI_SET_MAX_TX_POWER_RESP;
-#endif
 #ifdef WLAN_FEATURE_P2P
   case WLAN_HAL_SET_P2P_GONOA_RSP:
     return WDI_P2P_GO_NOTICE_OF_ABSENCE_RESP;

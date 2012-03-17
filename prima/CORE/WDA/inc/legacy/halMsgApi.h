@@ -1236,7 +1236,6 @@ typedef struct sEnterBmpsParams
 }tEnterBmpsParams, *tpEnterBmpsParams;
 
 
-#if defined WLAN_FEATURE_VOWIFI  
 //
 // Mesg header is used from tSirMsgQ
 // Mesg Type = SIR_HAL_SET_MAX_TX_POWER_REQ
@@ -1252,7 +1251,6 @@ typedef struct sMaxTxPowerParams
     //power == tx power used for management frames.
     tPowerdBm  power;
 }tMaxTxPowerParams, *tpMaxTxPowerParams;
-#endif
 
 typedef struct sAddStaSelfParams
 {

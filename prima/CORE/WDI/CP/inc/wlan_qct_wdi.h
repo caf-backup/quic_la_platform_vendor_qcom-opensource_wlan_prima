@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef WLAN_QCT_WDI_H
 #define WLAN_QCT_WDI_H
 
@@ -2672,7 +2678,6 @@ typedef struct
 
 }WDI_NvDownloadRspInfoType;
 
-#ifdef WLAN_FEATURE_VOWIFI
 /*---------------------------------------------------------------------------
   WDI_SetMaxTxPowerInfoType
 ---------------------------------------------------------------------------*/
@@ -2723,7 +2728,6 @@ typedef struct
   WDI_Status wdiStatus;
  
 }WDI_SetMaxTxPowerRspMsg;
-#endif
 
 #ifdef WLAN_FEATURE_P2P
 typedef struct
@@ -4815,7 +4819,6 @@ typedef void  (*WDI_UpdateBeaconParamsRspCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_SendBeaconParamsRspCb)(WDI_Status   wdiStatus,
                                 void*        pUserData);
 
-#ifdef WLAN_FEATURE_VOWIFI
 /*---------------------------------------------------------------------------
    WDA_SetMaxTxPowerRspCb
  
@@ -4837,7 +4840,6 @@ typedef void  (*WDI_SendBeaconParamsRspCb)(WDI_Status   wdiStatus,
 ---------------------------------------------------------------------------*/
 typedef void (*WDA_SetMaxTxPowerRspCb)(WDI_SetMaxTxPowerRspMsg *wdiSetMaxTxPowerRsp,
                                              void* pUserData);
-#endif
 
 /*---------------------------------------------------------------------------
    WDI_UpdateProbeRspTemplateRspCb
@@ -6422,7 +6424,6 @@ WDI_RemoveSTABcastKeyReq
   void*                          pUserData
 );
 
-#ifdef WLAN_FEATURE_VOWIFI
 /**
  @brief WDI_SetMaxTxPowerReq will be called when the upper 
         MAC wants to set Max Tx Power to HW. Upon the
@@ -6456,7 +6457,6 @@ WDI_SetMaxTxPowerReq
   WDA_SetMaxTxPowerRspCb         wdiReqStatusCb,
   void*                          pUserData
 );
-#endif
 
 /*======================================================================== 
  

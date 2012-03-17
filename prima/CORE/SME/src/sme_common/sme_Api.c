@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**=========================================================================
 
   \file  smeApi.c
@@ -41,6 +47,7 @@
 #include "smeInside.h"
 #include "csrInternal.h"
 #include "wlan_qct_wda.h"
+#include "halMsgApi.h"
 
 #ifdef WLAN_SOFTAP_FEATURE
 #include "sapApi.h"
@@ -6041,4 +6048,50 @@ eHalStatus sme_GetFreqBand(tHalHandle hHal, eCsrBand *pBand)
       sme_ReleaseGlobalLock( &pMac->sme );
    }
    return status;
+}
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_SetMaxTxPower
+
+    \brief Set the Maximum Transmit Power dynamically. Note: this setting will
+    not persist over reboots.
+
+    \param  hHal
+    \param pBssid  BSSID to set the power cap for
+    \param pBssid  pSelfMacAddress self MAC Address
+    \param pBssid  power to set in dB
+    \- return eHalStatus
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid, 
+                             tSirMacAddr pSelfMacAddress, v_S7_t dB)
+{
+    vos_msg_t msg;
+    tpMaxTxPowerParams pMaxTxParams = NULL;
+
+    pMaxTxParams = vos_mem_malloc(sizeof(tMaxTxPowerParams));
+    if (NULL == pMaxTxParams)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for pMaxTxParams", __FUNCTION__);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    vos_mem_copy(pMaxTxParams->bssId, pBssid, SIR_MAC_ADDR_LENGTH);
+    vos_mem_copy(pMaxTxParams->selfStaMacAddr , pSelfMacAddress, 
+                 SIR_MAC_ADDR_LENGTH);
+    pMaxTxParams->power = dB;
+
+    msg.type = WDA_SET_MAX_TX_POWER_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pMaxTxParams;
+
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_MAX_TX_POWER_REQ message to WDA", __FUNCTION__);
+        vos_mem_free(pMaxTxParams);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
 }

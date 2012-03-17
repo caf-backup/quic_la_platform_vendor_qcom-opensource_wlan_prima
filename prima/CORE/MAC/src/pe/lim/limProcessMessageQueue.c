@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file lim ProcessMessageQueue.cc contains the code
  * for processing LIM message Queue.
@@ -1793,11 +1799,16 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             //limProcessGetNoiseRsp(pMac, limMsg);
             break;
 
-#if defined WLAN_FEATURE_VOWIFI
         case WDA_SET_MAX_TX_POWER_RSP:
+#if defined WLAN_FEATURE_VOWIFI
             rrmSetMaxTxPowerRsp( pMac, limMsg );
-            break;
 #endif
+            if(limMsg->bodyptr != NULL)
+            {
+               vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+               limMsg->bodyptr = NULL;
+            }
+            break;
 
 #ifdef ANI_CHIPSET_VOLANS
        case SIR_LIM_ADDR2_MISS_IND:

@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**========================================================================= 
 
                        EDIT HISTORY FOR FILE 
@@ -1315,6 +1321,14 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_REPORT_MAX_LINK_SPEED_MIN, 
               CFG_REPORT_MAX_LINK_SPEED_MAX ),
 
+#ifdef WLAN_FEATURE_P2P
+ REG_VARIABLE( CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, isP2pDeviceAddrAdministrated,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_DEFAULT,
+              CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MIN,
+              CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MAX ),
+#endif
 };
 
 /*

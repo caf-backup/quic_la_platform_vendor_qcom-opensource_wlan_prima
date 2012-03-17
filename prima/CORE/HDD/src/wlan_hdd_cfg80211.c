@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**========================================================================
 
   \file  wlan_hdd_cfg80211.c
@@ -2866,6 +2872,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     //struct wireless_dev *wdev = dev->ieee80211_ptr;    
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     struct cfg80211_scan_request *req = NULL;
     int ret = 0;
 
@@ -2938,7 +2945,12 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     /* Flush out scan result after p2p_serach is done */
     if(pScanInfo->p2pSearch )
     {
-        sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId);
+        tANI_U8 sessionId = pAdapter->sessionId;
+        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+        { 
+            sessionId = pAdapter->p2pSessionId;
+        } 
+        sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId);
         pScanInfo->p2pSearch = 0;
     }
 #endif
@@ -2956,6 +2968,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         struct cfg80211_scan_request *request)
 {  
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev ); 
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_wext_state_t *pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
     tCsrScanRequest scanRequest;
@@ -3115,16 +3128,12 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                                                        request->ie_len);
             if (pP2pIe != NULL)
             {
-                /*
-                 * If Number of channel to scan are 3 and channels 
-                 * to be scan are 1, 6, 11, with p2p IE is provided in 
-                 * scan, then it is P2P search.
-                 */ 
-                if ( (request->n_channels == 3) &&
-                     ( (channelList[0]== 1) && (channelList[1] == 6 )
-                    && (channelList[2] == 11))
-                    )
+                if ( (request->n_ssids == 1) && 
+                     (request->ssids[0].ssid_len == P2P_WILDCARD_SSID_LEN) &&
+                     !memcmp(request->ssids[0].ssid, P2P_WILDCARD_SSID,
+                             P2P_WILDCARD_SSID_LEN ))
                 {
+                    tANI_U8 sessionId = pAdapter->sessionId;
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            "%s: This is a P2P Search", __func__);
                     scanRequest.p2pSearch = 1;
@@ -3132,9 +3141,12 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
                     /* set requestType to P2P Discovery */
                     scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
-
+                    if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+                    {
+                        sessionId = pAdapter->p2pSessionId;
+                    }
                     sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                         pAdapter->sessionId );
+                                          sessionId );
                 }
             }
 #endif
@@ -3143,10 +3155,20 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     INIT_COMPLETION(pScanInfo->scan_req_completion_event);
 
-    status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
+    if ((pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated) &&
+        (scanRequest.p2pSearch))
+    {
+        status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                              pAdapter->p2pSessionId, &scanRequest, &scanId,
+                              &hdd_cfg80211_scan_done_callback, dev );
+    }
+    else
+    {
+        status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
-
+    }
+    
     if (eHAL_STATUS_SUCCESS != status)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -4283,6 +4305,8 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
 {
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
     tHalHandle hHal = pHddCtx->hHal;
+    tSirMacAddr bssid = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    tSirMacAddr selfMac = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
     ENTER();
 
@@ -4297,6 +4321,29 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO_MED, "%s: set tx power level %d dbm", __func__,
             dbm);
+
+    switch(type)
+    {
+    case NL80211_TX_POWER_AUTOMATIC: /*automatically determine transmit power*/
+       /* Fall through */
+    case NL80211_TX_POWER_LIMITED: /*limit TX power by the mBm parameter*/
+       if( sme_SetMaxTxPower(hHal, bssid, selfMac, dbm) != eHAL_STATUS_SUCCESS )
+       {
+          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Setting maximum tx power failed", 
+                 __func__); 
+          return -EIO;          
+       }
+       break;
+    case NL80211_TX_POWER_FIXED: /*fix TX power to the mBm parameter*/
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: NL80211_TX_POWER_FIXED not supported", 
+              __func__);
+       return -EOPNOTSUPP;
+       break;
+    default:
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid power setting type %d", 
+              __func__, type); 
+       return -EIO;
+    }
 
     return 0;
 }
