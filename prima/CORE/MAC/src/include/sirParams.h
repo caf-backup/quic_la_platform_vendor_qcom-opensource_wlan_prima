@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirParams.h contains the common parameter definitions, which
  * are not dependent on threadX API. These can be used by all Firmware
@@ -409,10 +415,8 @@ typedef struct sSirMbMsgP2p
 #endif
 #endif
 
-#if defined WLAN_FEATURE_VOWIFI
 #define SIR_HAL_SET_MAX_TX_POWER_REQ       SIR_HAL_ITC_MSG_TYPES_BEGIN + 146
 #define SIR_HAL_SET_MAX_TX_POWER_RSP       SIR_HAL_ITC_MSG_TYPES_BEGIN + 147
-#endif
 
 #define SIR_HAL_SEND_MSG_COMPLETE          SIR_HAL_ITC_MSG_TYPES_BEGIN + 148
 

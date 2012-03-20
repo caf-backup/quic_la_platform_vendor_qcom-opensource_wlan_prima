@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 
 /**=========================================================================
   
@@ -188,7 +194,6 @@ rrmSetMaxTxPowerRsp ( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
       rrmCacheMgmtTxPower ( pMac, pMaxTxParams->power, pSessionEntry );
    }
 
-   palFreeMemory(pMac->hHdd, (void*)limMsgQ->bodyptr);
    return retCode;
 }
 // --------------------------------------------------------------------

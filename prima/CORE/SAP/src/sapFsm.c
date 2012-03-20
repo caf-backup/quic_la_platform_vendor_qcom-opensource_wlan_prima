@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*===========================================================================
 
                       s a p F s m . C
@@ -222,6 +228,15 @@ sapGotoChannelSel
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "SoftAP Configuring for default channel, Ch= %d", sapContext->channel);
             /* In case of error, switch to default channel */
             sapContext->channel = SAP_DEFAULT_CHANNEL;
+
+#ifdef SOFTAP_CHANNEL_RANGE
+            if(sapContext->channelList != NULL)
+            {
+                sapContext->channel = sapContext->channelList[0];
+                vos_mem_free(sapContext->channelList);
+                sapContext->channelList = NULL;
+            }
+#endif
             /* Fill in the event structure */
             sapEventInit(sapEvent);
             /* Handle event */

@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( __SME_API_H )
 #define __SME_API_H
 
@@ -1913,4 +1919,17 @@ eHalStatus sme_SetFreqBand(tHalHandle hHal, eCsrBand eBand);
     \- return eHalStatus
     -------------------------------------------------------------------------*/
 eHalStatus sme_GetFreqBand(tHalHandle hHal, eCsrBand *pBand);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetMaxTxPower
+    \brief  Used to set the Maximum Transmit Power dynamically. Note: this
+    setting will not persist over reboots
+    \param  hHal
+    \param pBssid  BSSID to set the power cap for
+    \param pBssid  pSelfMacAddress self MAC Address
+    \param pBssid  power to set in dB
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid, 
+                             tSirMacAddr pSelfMacAddress, v_S7_t dB);
 #endif //#if !defined( __SME_API_H )

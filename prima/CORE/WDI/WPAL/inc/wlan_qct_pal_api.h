@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( __WLAN_QCT_PAL_API_H )
 #define __WLAN_QCT_PAL_API_H
 
@@ -261,5 +267,17 @@ wpt_status wpalDriverShutdown(void);
        eWLAN_PAL_STATUS_SUCCESS - when everything is OK
 ---------------------------------------------------------------------------*/
 wpt_status wpalDriverReInit(void);
+
+/*---------------------------------------------------------------------------
+    wpalRivaSubystemRestart -  Initiate Riva SSR
+
+    This API is called by WLAN driver to initiate Riva SSR
+
+    Param:
+       None
+    Return:
+       eWLAN_PAL_STATUS_SUCCESS - when everything is OK
+---------------------------------------------------------------------------*/
+wpt_status wpalRivaSubystemRestart(void);
 
 #endif // __WLAN_QCT_PAL_API_H

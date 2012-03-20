@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*===========================================================================
 
                       s a p A p i L i n k C n t l . C
@@ -154,7 +160,6 @@ WLANSAP_ScanCallback
        if(psapContext->channelList != NULL)
        {
           psapContext->channel = psapContext->channelList[0];
-          vos_mem_free(psapContext->channelList);
        }
        else 
        {
@@ -177,6 +182,15 @@ WLANSAP_ScanCallback
       psapContext->channel = operChannel;
     }
     
+#ifdef SOFTAP_CHANNEL_RANGE
+    if(psapContext->channelList != NULL)
+    {
+        /* Always free up the memory for channel selection whatever 
+         * the result */
+        vos_mem_free(psapContext->channelList);
+        psapContext->channelList = NULL;
+    }
+#endif    
 
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Channel selected = %d", __FUNCTION__, psapContext->channel);
 

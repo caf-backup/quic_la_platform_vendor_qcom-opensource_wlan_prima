@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /** ------------------------------------------------------------------------ *
     ------------------------------------------------------------------------ *
 
@@ -118,6 +124,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_MAX_ASSOC     4
 #define WE_SET_SAP_AUTO_CHANNEL_SELECTION     5
 #define WE_SET_DATA_INACTIVITY_TO  6  
+#define WE_SET_MAX_TX_POWER  7
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -3250,7 +3257,23 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            }    
            break;
         }
+        case WE_SET_MAX_TX_POWER:
+        {
+           tSirMacAddr bssid = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+           tSirMacAddr selfMac = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
+           hddLog(VOS_TRACE_LEVEL_INFO, "%s: Setting maximum tx power %d dBm", 
+                  __func__, set_value); 
+           if( sme_SetMaxTxPower(hHal, bssid, selfMac, set_value) != 
+               eHAL_STATUS_SUCCESS )
+           {
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Setting maximum tx power failed", 
+              __func__); 
+              return -EIO;          
+           }
+
+           break;
+        }
         default:  
         {
             hddLog(LOGE, "Invalid IOCTL setvalue command %d value %d \n",
@@ -5269,6 +5292,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, 
         "inactivityTO" },
+
+    {   WE_SET_MAX_TX_POWER,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, 
+        "setMaxTxPower" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_INT,

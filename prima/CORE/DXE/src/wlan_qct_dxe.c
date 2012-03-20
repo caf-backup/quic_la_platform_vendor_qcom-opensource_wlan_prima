@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**=========================================================================
   
   @file  wlan_qct_dxe.c
@@ -1137,45 +1143,6 @@ static wpt_status dxeChannelCleanInt
       return eWLAN_PAL_STATUS_E_FAULT;         
    }
 
-   /* Clean up Error INT Bit */
-   if(WLANDXE_CH_STAT_INT_ERR_MASK & *chStat)
-   {
-      status = wpalWriteRegister(WLANDXE_INT_ERR_CLR_ADDRESS,
-                                      (1 << channelEntry->assignedDMAChannel));
-      if(eWLAN_PAL_STATUS_SUCCESS != status)
-      {
-         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                  "dxeChannelCleanInt Read CH STAT register fail");
-         return eWLAN_PAL_STATUS_E_FAULT;         
-      }
-   }
-
-   /* Clean up DONE INT Bit */
-   if(WLANDXE_CH_STAT_INT_DONE_MASK & *chStat)
-   {
-      status = wpalWriteRegister(WLANDXE_INT_DONE_CLR_ADDRESS,
-                                      (1 << channelEntry->assignedDMAChannel));
-      if(eWLAN_PAL_STATUS_SUCCESS != status)
-      {
-         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                  "dxeChannelCleanInt Read CH STAT register fail");
-         return eWLAN_PAL_STATUS_E_FAULT;         
-      }
-   }
-
-   /* Clean up ED INT Bit */
-   if(WLANDXE_CH_STAT_INT_ED_MASK & *chStat)
-   {
-      status = wpalWriteRegister(WLANDXE_INT_ED_CLR_ADDRESS,
-                                      (1 << channelEntry->assignedDMAChannel));
-      if(eWLAN_PAL_STATUS_SUCCESS != status)
-      {
-         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                  "dxeChannelCleanInt Read CH STAT register fail");
-         return eWLAN_PAL_STATUS_E_FAULT;         
-      }
-   }
-
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return status;
@@ -1662,6 +1629,8 @@ void dxeRXEventHandler
    wpt_uint32                intSrc     = 0;
    WLANDXE_ChannelCBType    *channelCb  = NULL;
    wpt_uint32                chStat;
+   wpt_uint32                chHighStat;
+   wpt_uint32                chLowStat;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
@@ -1707,7 +1676,26 @@ void dxeRXEventHandler
 
       if(WLANDXE_POWER_STATE_BMPS == dxeCtxt->hostPowerState)
       {
+         channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI];
+         dxeChannelCleanInt(channelCb, &chHighStat);
+         channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI];
+         dxeChannelCleanInt(channelCb, &chLowStat);
          wpalEnableInterrupt(DXE_INTERRUPT_RX_READY);
+
+         if(!(chHighStat & WLANDXE_CH_STAT_MASKED_MASK))
+         {
+            /* RX High channel not masked, it means within DXE RX high channel Q still has pending frames
+             * Trigger CH enable immediatly */
+            wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].channelRegister.chDXECtrlRegAddr,
+                              dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].extraConfig.chan_mask);
+         }
+         if(!(chLowStat & WLANDXE_CH_STAT_MASKED_MASK))
+         {
+            /* RX Low channel not masked, it means within DXE RX low channel Q still has pending frames
+             * Trigger CH enable immediatly */
+            wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].channelRegister.chDXECtrlRegAddr,
+                              dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].extraConfig.chan_mask);
+         }
       }
       else
       {
@@ -1909,9 +1897,6 @@ static void dxeRXISR
    wpt_uint32                regValue;
 #endif /* FEATURE_R33D */
 
-   WLANDXE_ChannelCBType    *channelCb  = NULL;
-   wpt_uint32                chStat;
-
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
 
@@ -1921,16 +1906,6 @@ static void dxeRXISR
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "dxeRXFrameReadyISR input is not valid");
       return;
-   }
-
-   if((WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState) ||
-      (WLANDXE_POWER_STATE_BMPS == dxeCtxt->hostPowerState) ||
-      (WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState))
-   {
-      channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI];
-      dxeChannelCleanInt(channelCb, &chStat);
-      channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI];
-      dxeChannelCleanInt(channelCb, &chStat);
    }
 
 #ifdef FEATURE_R33D

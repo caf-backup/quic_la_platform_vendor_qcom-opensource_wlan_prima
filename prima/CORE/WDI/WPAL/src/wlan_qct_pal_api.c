@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**=========================================================================
   
   \file  wlan_qct_pal_api.c
@@ -23,6 +29,7 @@
 #include "vos_api.h"
 
 #include "dma-mapping.h"
+#include <mach/subsystem_restart.h>
 
 typedef struct sPalStruct
 {
@@ -324,4 +331,23 @@ wpt_status wpalDriverReInit(void)
         return eWLAN_PAL_STATUS_SUCCESS; 
     }
     return eWLAN_PAL_STATUS_E_FAILURE; 
+}
+
+/*---------------------------------------------------------------------------
+    wpalRivaSubystemRestart -  Initiate Riva SSR
+
+    This API is called by WLAN driver to initiate Riva SSR
+
+    Param:
+       None
+    Return:
+       eWLAN_PAL_STATUS_SUCCESS - when everything is OK
+---------------------------------------------------------------------------*/
+wpt_status wpalRivaSubystemRestart(void)
+{
+    if (0 == subsystem_restart("riva")) 
+    {
+        return eWLAN_PAL_STATUS_SUCCESS;
+    }
+    return eWLAN_PAL_STATUS_E_FAILURE;
 }

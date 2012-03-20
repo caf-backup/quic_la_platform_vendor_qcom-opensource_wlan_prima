@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**========================================================================
 
   \file  wlan_hdd_ftm.c
@@ -886,21 +892,32 @@ static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
                       chain[ftm_status.chainSelect], rx[ftm_status.rxmode], 
                       tx[ftm_status.frameGenEnabled], 
                       ftm_status.frameParams.interFrameSpace);
-    if(lenRes < 0 || lenRes >= lenBuf)
+    if ((lenRes < 0) || (lenRes >= lenBuf))
+    {
        return VOS_STATUS_E_FAILURE;
+    }
 
     buf += lenRes;
     lenBuf -= lenRes;
 
-    for(ii = 0; ii < SIZE_OF_TABLE(rateName_rateIndex_tbl); ii++)
+    for (ii = 0; ii < SIZE_OF_TABLE(rateName_rateIndex_tbl); ii++)
     {
         if (rateName_rateIndex_tbl[ii].rate_index == ftm_status.frameParams.rate)
-          break;
+            break;
     }
 
-    lenRes = strlcpy(buf, rateName_rateIndex_tbl[ii].rate_str, lenBuf);
-    if(lenRes < 0 || lenRes >= lenBuf)
+    if (ii < SIZE_OF_TABLE(rateName_rateIndex_tbl))
+    {
+        lenRes = strlcpy(buf, rateName_rateIndex_tbl[ii].rate_str, lenBuf);
+    }
+    else
+    {
+        lenRes = strlcpy(buf, "invalid", lenBuf);
+    }
+    if ((lenRes < 0) || (lenRes >= lenBuf))
+    {
        return VOS_STATUS_E_FAILURE;
+    }
 
     buf += lenRes;
     lenBuf -= lenRes;
@@ -910,8 +927,10 @@ static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
                       ftm_status.frameParams.numTestPackets, 
                       ftm_status.frameParams.payloadLength);
 
-    if(lenRes < 0 || lenRes >= lenBuf)
+    if ((lenRes < 0) || (lenRes >= lenBuf))
+    {
        return VOS_STATUS_E_FAILURE;
+    }
 
     return VOS_STATUS_SUCCESS;
 }

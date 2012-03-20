@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 
 /*===========================================================================
 
@@ -6079,31 +6085,48 @@ VOS_STATUS WDA_ProcessUpdateProbeRspTemplate(tWDA_CbContext *pWDA,
 
 }
 
-#ifdef WLAN_FEATURE_VOWIFI
 /*
  * FUNCTION: WDA_SetMaxTxPowerCallBack
  * send the response to PE with power value received from WDI
  */ 
-void WDA_SetMaxTxPowerCallBack(WDI_SetMaxTxPowerRspMsg wdiSetMaxTxPowerRsp,
+void WDA_SetMaxTxPowerCallBack(WDI_SetMaxTxPowerRspMsg * pwdiSetMaxTxPowerRsp,
                                              void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ;
-   tMaxTxPowerParams *pMaxTxPowerParams = 
-                           (tMaxTxPowerParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+   tWDA_CbContext *pWDA = NULL;
+   tMaxTxPowerParams *pMaxTxPowerParams = NULL; 
    
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
+
+   pWDA = (tWDA_CbContext *) pWdaParams->pWdaContext;
+   pMaxTxPowerParams = (tMaxTxPowerParams *)pWdaParams->wdaMsgParam ;
+
+   if( NULL == pMaxTxPowerParams )
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                          "%s: pMaxTxPowerParams received NULL " ,__FUNCTION__);
+      VOS_ASSERT( 0 );
+      return ;
+   }
 
   
   /*need to free memory for the pointers used in the 
     WDA Process.Set Max Tx Power Req function*/
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   vos_mem_free(pWdaParams);
 
-   pMaxTxPowerParams->power = wdiSetMaxTxPowerRsp.ucPower;
-   
+   pMaxTxPowerParams->power = pwdiSetMaxTxPowerRsp->ucPower;
+
+  
   /* send response to UMAC*/
    WDA_SendMsg(pWDA, WDA_SET_MAX_TX_POWER_RSP, pMaxTxPowerParams , 0) ;
    
@@ -6118,13 +6141,22 @@ void WDA_SetMaxTxPowerCallBack(WDI_SetMaxTxPowerRspMsg wdiSetMaxTxPowerRsp,
                                           tMaxTxPowerParams *MaxTxPowerParams)
 {
    WDI_Status status = WDI_STATUS_SUCCESS;
-   WDI_SetMaxTxPowerParamsType *wdiSetMaxTxPowerParams = 
-             (WDI_SetMaxTxPowerParamsType *)vos_mem_malloc(
-                                 sizeof(WDI_SetMaxTxPowerParamsType));
-      
+   WDI_SetMaxTxPowerParamsType *wdiSetMaxTxPowerParams = NULL;
+   tWDA_ReqParams *pWdaParams = NULL;
+
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
+   if((NULL != pWDA->wdaMsgParam) ||(NULL != pWDA->wdaWdiApiMsgParam))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   wdiSetMaxTxPowerParams = (WDI_SetMaxTxPowerParamsType *)vos_mem_malloc(
+                                 sizeof(WDI_SetMaxTxPowerParamsType));
    if(NULL == wdiSetMaxTxPowerParams) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -6133,8 +6165,17 @@ void WDA_SetMaxTxPowerCallBack(WDI_SetMaxTxPowerRspMsg wdiSetMaxTxPowerRsp,
       return VOS_STATUS_E_NOMEM;
    }
 
-   /* Copy.Max.Tx.Power Params to WDI structure */
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__);
+      vos_mem_free(wdiSetMaxTxPowerParams);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
 
+   /* Copy.Max.Tx.Power Params to WDI structure */
    vos_mem_copy(wdiSetMaxTxPowerParams->wdiMaxTxPowerInfo.macBSSId,
                  MaxTxPowerParams->bssId, 
                  sizeof(tSirMacAddr));
@@ -6146,25 +6187,27 @@ void WDA_SetMaxTxPowerCallBack(WDI_SetMaxTxPowerRspMsg wdiSetMaxTxPowerRsp,
    wdiSetMaxTxPowerParams->wdiMaxTxPowerInfo.ucPower = 
                                               MaxTxPowerParams->power;
 
-   pWDA->wdaMsgParam = (void *)MaxTxPowerParams;
-   pWDA->wdaWdiApiMsgParam = (void *)wdiSetMaxTxPowerParams;
+   wdiSetMaxTxPowerParams->wdiReqStatusCB = NULL ;
+
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = (void *)MaxTxPowerParams ;
+
+   /* store Params pass it to WDI */
+   pWdaParams->wdaWdiApiMsgParam = (void *)wdiSetMaxTxPowerParams ;
 
    status = WDI_SetMaxTxPowerReq(wdiSetMaxTxPowerParams,
-                       (WDA_SetMaxTxPowerRspCb)WDA_SetMaxTxPowerCallBack,pWDA);
+                       (WDA_SetMaxTxPowerRspCb)WDA_SetMaxTxPowerCallBack, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
      "Failure in SET MAX TX Power REQ Params WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      vos_mem_free(pWDA->wdaMsgParam);
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      vos_mem_free(pWdaParams);
    }
    return CONVERT_WDI2VOS_STATUS(status);
    
 }
-#endif
 
 #ifdef WLAN_FEATURE_P2P
 
@@ -9817,14 +9860,12 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
                                       (tSendProbeRespParams *)pMsg->bodyptr);
           break;
       }
-#ifdef WLAN_FEATURE_VOWIFI
       case WDA_SET_MAX_TX_POWER_REQ:
       {
          WDA_ProcessSetMaxTxPowerReq(pWDA,
                                        (tMaxTxPowerParams *)pMsg->bodyptr);
          break;
       }
-#endif
 #ifdef WLAN_FEATURE_P2P
       case WDA_SET_P2P_GO_NOA_REQ:
       {
