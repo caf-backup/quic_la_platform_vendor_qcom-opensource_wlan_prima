@@ -460,6 +460,8 @@ typedef struct sBtampContext {
 
     tANI_BOOLEAN           btamp_logical_link_cancel_pending;
 
+    tANI_BOOLEAN           btamp_session_on;
+
 #else // defined(BTAMP_MULTIPLE_PHY_LINKS)
 
     // Include the enclosing VOSS context here

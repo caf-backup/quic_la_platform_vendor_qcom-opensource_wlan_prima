@@ -1245,8 +1245,15 @@ signalHCIPhysLinkCompEvent
     bapHCIEvent.u.btampPhysicalLinkCompleteEvent.ch_number 
         = btampContext->channel;
 
-    /* Start the Tx packet monitoring timer */
-    WLANBAP_StartTxPacketMonitorTimer(btampContext);
+    if(WLANBAP_STATUS_SUCCESS == status)
+    {
+        /* Start the Tx packet monitoring timer */
+        WLANBAP_StartTxPacketMonitorTimer(btampContext);
+    }
+    else
+    {   //reset the PL handle
+        btampContext->phy_link_handle = 0;
+    }
 
     vosStatus = (*btampContext->pBapHCIEventCB) 
         (  

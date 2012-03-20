@@ -692,14 +692,12 @@ AMP ASSOC Pal Capabilities: Size: 4 Octets
     if(pBapHCIReadLocalAMPAssoc->phy_link_handle != 
        btampContext->phy_link_handle) { 
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, 
-                "%s: Updating Physical Link handle in btampContext: before: %x, after: %x", __FUNCTION__,  
+                "%s: Wrong Physical Link handle in Read Local AMP Assoc cmd: current: %x, new: %x", __FUNCTION__,  
                 btampContext->phy_link_handle, 
                 pBapHCIReadLocalAMPAssoc->phy_link_handle);
 
-        btampContext->phy_link_handle = pBapHCIReadLocalAMPAssoc->phy_link_handle;
         pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.status
-            //= WLANBAP_ERROR_NO_CNCT;
-            = WLANBAP_STATUS_SUCCESS; 
+            = WLANBAP_ERROR_NO_CNCT;
     } else
         pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.status 
             = WLANBAP_STATUS_SUCCESS;

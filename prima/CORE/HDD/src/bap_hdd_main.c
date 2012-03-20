@@ -331,7 +331,26 @@ static void BSL_Destruct(struct hci_dev *hdev);
 /*----------------------------------------------------------------------------
  * Static Function Declarations and Definitions
  * -------------------------------------------------------------------------*/
+static v_BOOL_t WLANBAP_AmpConnectionAllowed(void)
+{
+    v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+    hdd_context_t *pHddCtx;
+    v_BOOL_t retVal = VOS_FALSE;
 
+    if (NULL != pVosContext)
+    {
+       pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+       if (NULL != pHddCtx)
+       {
+           return pHddCtx->isAmpAllowed;
+       }
+       else
+       {
+           return retVal;
+       }
+    }
+    return retVal;
+}
 
 /**
   @brief WLANBAP_STAFetchPktCB() - The fetch packet callback registered
@@ -841,7 +860,7 @@ static VOS_STATUS WLANBAP_EventCB
     if(NULL == pctx)
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "pctx is NULL in %s", __FILE__);
+                     "pctx is NULL in %s", __FUNCTION__);
 
         return VOS_STATUS_E_FAULT;
 
@@ -1436,6 +1455,31 @@ static VOS_STATUS WLANBAP_EventCB
     return(VOS_STATUS_SUCCESS);
 } // WLANBAP_EventCB()
 
+static VOS_STATUS  
+WLANBAP_PhyLinkFailure
+( 
+    BslClientCtxType* pctx,
+    v_U8_t       phy_link_handle
+)
+{
+    VOS_STATUS  vosStatus;
+    tBtampHCI_Event bapHCIEvent;
+
+    /* Format the Physical Link Complete event to return... */ 
+    bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT;
+    bapHCIEvent.u.btampPhysicalLinkCompleteEvent.present = 1;
+    bapHCIEvent.u.btampPhysicalLinkCompleteEvent.status = WLANBAP_ERROR_UNSPECIFIED_ERROR;
+    bapHCIEvent.u.btampPhysicalLinkCompleteEvent.phy_link_handle 
+        = phy_link_handle;
+    bapHCIEvent.u.btampPhysicalLinkCompleteEvent.ch_number 
+        = 0;
+    //TBD: Could be a cleaner way to get the PhyLinkCtx handle; For now works
+    BslPhyLinkCtx[0].pClientCtx = pctx;
+    vosStatus = WLANBAP_EventCB( &BslPhyLinkCtx[0], &bapHCIEvent, TRUE );
+
+    return vosStatus;
+}
+
 /**
   @brief BslFindAndInitClientCtx() - This function will find and initialize a client
   a.k.a app context
@@ -1766,6 +1810,18 @@ static BOOL BslProcessHCICommand
             return(FALSE);
         }
 
+        if(VOS_FALSE == WLANBAP_AmpConnectionAllowed())
+        {
+            VosStatus = WLANBAP_PhyLinkFailure(pctx, CreatePhysicalLinkCmd.phy_link_handle);
+            if ( VOS_STATUS_SUCCESS != VosStatus )
+            {
+                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessHCICommand: WLANBAP_PhyLinkFailure failed");
+                // handle the error
+                return(FALSE);
+            }
+            break;
+        }
+
         // setup the per PHY link BAP context
         Status = BslFindAndInitPhyCtx( pctx, CreatePhysicalLinkCmd.phy_link_handle,
                                        &pPhyCtx );
@@ -1820,6 +1876,18 @@ static BOOL BslProcessHCICommand
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BslProcessHCICommand: btampUnpackTlvHCI_Accept_Physical_Link_Cmd failed status %d", UnpackStatus);
             // handle the error
             return(FALSE);
+        }
+
+        if(VOS_FALSE == WLANBAP_AmpConnectionAllowed())
+        {
+            VosStatus = WLANBAP_PhyLinkFailure(pctx, AcceptPhysicalLinkCmd.phy_link_handle);
+            if ( VOS_STATUS_SUCCESS != VosStatus )
+            {
+                VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessHCICommand: WLANBAP_PhyLinkFailure failed");
+                // handle the error
+                return(FALSE);
+            }
+            break;
         }
 
         // setup the per PHY link BAP context
@@ -3663,7 +3731,7 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
         return -ENODEV;
     }
 
-
+    pHddCtx->isAmpAllowed = VOS_TRUE;
     return 0;
 } // BSL_Init()
 
@@ -3808,8 +3876,18 @@ static int BSL_Close ( struct hci_dev *hdev )
     BslClientCtxType* pctx;
     vos_list_node_t* pLink;
     v_U16_t i;
+    v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+    hdd_context_t *pHddCtx;
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BSL_Close");
+    if (NULL != pVosContext)
+    {
+       pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+       if (NULL != pHddCtx)
+       {
+          pHddCtx->isAmpAllowed = VOS_FALSE;
+       }
+    }
 
     // it may seem there is some risk here because we are using a value
     // passed into us as a pointer. what if this pointer is 0 or points to
@@ -4199,6 +4277,8 @@ VOS_STATUS WLANBAP_RegisterWithHCI(hdd_adapter_t *pAdapter)
     struct hci_dev *hdev = NULL;
     BslClientCtxType* pctx = NULL;
     int err = 0;
+    v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+    hdd_context_t *pHddCtx;
 
     pctx = gpBslctx;
 
@@ -4294,6 +4374,14 @@ VOS_STATUS WLANBAP_RegisterWithHCI(hdd_adapter_t *pAdapter)
         hci_free_dev(hdev);
         return VOS_STATUS_E_FAULT;
     }
+    if (NULL != pVosContext)
+    {
+       pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+       if (NULL != pHddCtx)
+       {
+          pHddCtx->isAmpAllowed = VOS_TRUE;
+       }
+    }
 
     return VOS_STATUS_SUCCESS;
 }
@@ -4333,4 +4421,30 @@ VOS_STATUS WLANBAP_DeregisterFromHCI(void)
 
     return VOS_STATUS_SUCCESS;
 }
+
+VOS_STATUS WLANBAP_StopAmp(void)
+{
+    BslClientCtxType* pctx;
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+    pctx = gpBslctx;
+
+    //is AMP session on, if so disconnect
+    if(VOS_TRUE == WLAN_BAPSessionOn(pctx->bapHdl))
+    {
+        status = WLAN_BAPDisconnect(pctx->bapHdl);
+    }
+    return status;
+}
+
+v_BOOL_t WLANBAP_AmpSessionOn(void)
+{
+    BslClientCtxType* pctx;
+
+    pctx = gpBslctx;
+
+    return( WLAN_BAPSessionOn(pctx->bapHdl));
+}
+
+
 #endif // WLAN_BTAMP_FEATURE

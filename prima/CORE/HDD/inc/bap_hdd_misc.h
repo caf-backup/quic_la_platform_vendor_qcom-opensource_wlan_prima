@@ -85,4 +85,37 @@ VOS_STATUS WLANBAP_RegisterWithHCI(hdd_adapter_t *pAdapter);
   --------------------------------------------------------------------------*/
 VOS_STATUS WLANBAP_DeregisterFromHCI(void);
 
+/**---------------------------------------------------------------------------
+  
+  \brief WLANBAP_StopAmp() - To stop the current AMP traffic/connection
+  
+  
+  \param - NA
+  
+  \return -
+      The result code associated with performing the operation  
+
+    VOS_STATUS_E_FAILURE:  failed to stop AMP connection 
+    VOS_STATUS_SUCCESS:  Success
+
+              
+  --------------------------------------------------------------------------*/
+VOS_STATUS WLANBAP_StopAmp(void);
+
+/**---------------------------------------------------------------------------
+  
+  \brief WLANBAP_AmpSessionOn() - To check if AMP connection is on currently
+  
+  
+  \param - NA
+  
+  \return -
+      The result code associated with performing the operation  
+
+    VOS_TRUE:  AMP connection is on 
+    VOS_FALSE: AMP connection is not on
+
+              
+  --------------------------------------------------------------------------*/
+v_BOOL_t WLANBAP_AmpSessionOn(void);
 #endif    // end #if !defined( BAP_HDD_MISC_H )

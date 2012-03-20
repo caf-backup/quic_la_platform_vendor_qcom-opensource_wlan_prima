@@ -4262,6 +4262,7 @@ WLANTL_ProcessBAPFrame
   vosStatus = vos_pkt_extract_data( vosTempBuff, ucOffset,
                                 (v_PVOID_t)ucOUI, &usOUISize);
 
+#if 0
   // Compare returns 1 if values are same and 0
   // if not the same.
   if (( WLANTL_LLC_OUI_SIZE != usOUISize ) ||
@@ -4275,7 +4276,7 @@ WLANTL_ProcessBAPFrame
     vos_pkt_return_packet(vosTempBuff);
     return VOS_TRUE;
   }
-
+#endif
   /*------------------------------------------------------------------------
     Extract LLC OUI and ensure that this is indeed a BT-AMP frame
    ------------------------------------------------------------------------*/

@@ -2353,7 +2353,8 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limSendAssocReqMgmtFrame(pMac, pMlmAssocReq,psessionEntry);
 
   //Set the link state to postAssoc, so HW can start receiving frames from AP.
-    if (psessionEntry->bssType == eSIR_BTAMP_STA_MODE)
+    if ((psessionEntry->bssType == eSIR_BTAMP_STA_MODE)||
+        ((psessionEntry->bssType == eSIR_BTAMP_AP_MODE) && (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)))
     {
        if(limSetLinkState(pMac, eSIR_LINK_BTAMP_POSTASSOC_STATE, currentBssId, 
            psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)

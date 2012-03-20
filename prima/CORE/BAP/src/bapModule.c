@@ -1308,12 +1308,14 @@ WLANBAP_NeedBTCoexPriority
     {
       case 0:  /* Idle */
           btAmpEvent.btAmpEventType = BTAMP_EVENT_CONNECTION_TERMINATED;
+          pBtampCtx->btamp_session_on = FALSE;
           sme_sendBTAmpEvent(pMac, btAmpEvent);
 
           break;
 
       case 1:  /* Associating */
           btAmpEvent.btAmpEventType = BTAMP_EVENT_CONNECTION_START;
+          pBtampCtx->btamp_session_on = TRUE;
           sme_sendBTAmpEvent(pMac, btAmpEvent);
 
           break;

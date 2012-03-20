@@ -61,6 +61,9 @@
 #include "sapInternal.h"
 #include "wlan_hdd_softap_tx_rx.h"
 #include "wlan_hdd_main.h"
+#ifdef WLAN_BTAMP_FEATURE
+#include "bap_hdd_misc.h"
+#endif
 #include <qc_sap_ioctl.h>
 
 #define g_mode_rates_size (12)
@@ -1556,7 +1559,24 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
 
     /* Reset the current device mode bit mask*/
     wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
-
+#ifdef WLAN_BTAMP_FEATURE
+    if((NL80211_IFTYPE_P2P_CLIENT == type)||
+       (NL80211_IFTYPE_ADHOC == type)||
+       (NL80211_IFTYPE_AP == type)||
+       (NL80211_IFTYPE_P2P_GO == type))
+    {
+        pHddCtx->isAmpAllowed = VOS_FALSE;
+        // stop AMP traffic
+        status = WLANBAP_StopAmp();
+        if(VOS_STATUS_SUCCESS != status )
+        {
+            pHddCtx->isAmpAllowed = VOS_TRUE;
+            hddLog(VOS_TRACE_LEVEL_FATAL,
+                   "%s: Failed to stop AMP", __func__);
+            return -EINVAL;
+        }
+    }
+#endif //WLAN_BTAMP_FEATURE
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
 #ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
@@ -1729,6 +1749,14 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
 done:
     /*set bitmask based on updated value*/
     wlan_hdd_set_concurrency_mode(pHddCtx, pAdapter->device_mode);
+#ifdef WLAN_BTAMP_FEATURE
+    if((NL80211_IFTYPE_STATION == type) && (pHddCtx->concurrency_mode <= 1) && 
+       (pHddCtx->no_of_sessions[WLAN_HDD_INFRA_STATION] <=1))
+    {
+        //we are ok to do AMP
+        pHddCtx->isAmpAllowed = VOS_TRUE;
+    }
+#endif //WLAN_BTAMP_FEATURE
     EXIT();
     return 0;
 }
@@ -2984,7 +3012,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                                    __func__,pAdapter->device_mode);
-
+#ifdef WLAN_BTAMP_FEATURE
+    //Scan not supported when AMP traffic is on.
+    if( VOS_TRUE == WLANBAP_AmpSessionOn() ) 
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR, 
+                "%s: No scanning when AMP is on", __func__);
+        return -EOPNOTSUPP;
+    }
+#endif
     //Scan on any other interface is not supported.
     if( pAdapter->device_mode == WLAN_HDD_SOFTAP ) 
     {
@@ -3833,6 +3869,15 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, 
              "%s: device_mode = %d\n",__func__,pAdapter->device_mode);
 
+#ifdef WLAN_BTAMP_FEATURE
+    //Infra connect not supported when AMP traffic is on.
+    if( VOS_TRUE == WLANBAP_AmpSessionOn() ) 
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR, 
+                "%s: No connection when AMP is on", __func__);
+        return -1;
+    }
+#endif
     /*initialise security parameters*/
     status = wlan_hdd_cfg80211_set_privacy(pAdapter, req); 
 
@@ -3851,7 +3896,7 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: connect failed", __func__);
         return status;
     }
-
+    (WLAN_HDD_GET_CTX(pAdapter))->isAmpAllowed = VOS_FALSE;
     EXIT();
     return status;
 }
@@ -3916,6 +3961,7 @@ static int wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
                     break;
             }
             pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+            (WLAN_HDD_GET_CTX(pAdapter))->isAmpAllowed = VOS_TRUE;
             INIT_COMPLETION(pAdapter->disconnect_comp_var);
 
             /*issue disconnect*/

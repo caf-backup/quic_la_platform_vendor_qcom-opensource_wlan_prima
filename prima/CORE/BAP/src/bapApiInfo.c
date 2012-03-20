@@ -49,7 +49,7 @@
  * -------------------------------------------------------------------------*/
 //#include "wlan_qct_tl.h"
 #include "vos_trace.h"
-
+#include "sme_Api.h"
 /* BT-AMP PAL API header file */ 
 #include "bapApi.h" 
 #include "bapInternal.h" 
@@ -469,5 +469,122 @@ WLAN_BAPGetMask( ptBtampHandle btampHandle,
    return VOS_STATUS_SUCCESS;
 }
 
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPDisconnect()
+
+  DESCRIPTION 
+     The function to request to BAP core to disconnect currecnt AMP connection.
+   
 
 
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+    
+   
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_FAULT:  btampHandle is NULL 
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS 
+  
+----------------------------------------------------------------------------*/
+VOS_STATUS  
+WLAN_BAPDisconnect
+( 
+  ptBtampHandle btampHandle
+)
+{
+    ptBtampContext btampContext = (ptBtampContext) btampHandle;
+    tWLAN_BAPEvent bapEvent; /* State machine event */
+    v_U8_t status;    /* return the BT-AMP status here */
+    VOS_STATUS  vosStatus;
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, "%s: btampHandle value: %x", __FUNCTION__,  btampHandle); 
+
+    /* Validate params */ 
+    if (btampHandle == NULL) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL,
+                     "btampHandle is NULL in %s", __FUNCTION__);
+
+      return VOS_STATUS_E_FAULT;
+    }
+
+    /* Fill in the event structure */ 
+    bapEvent.event = eWLAN_BAP_MAC_INDICATES_MEDIA_DISCONNECTION;
+    bapEvent.params = NULL;
+
+
+    /* Handle event */ 
+    vosStatus = btampFsm(btampContext, &bapEvent, &status);
+
+
+        /* Fill in the event structure */ 
+    bapEvent.event =  eWLAN_BAP_MAC_READY_FOR_CONNECTIONS;
+    bapEvent.params = NULL;
+
+        /* Handle event */ 
+    vosStatus = btampFsm(btampContext, &bapEvent, &status);
+
+
+    return VOS_STATUS_SUCCESS;
+}
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPSessionOn()
+
+  DESCRIPTION 
+     The function to check from BAP core if AMP connection is up right now.
+   
+
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+
+
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_TRUE:  AMP connection is on 
+    VOS_FALSE: AMP connection is not on
+  
+  SIDE EFFECTS 
+  
+----------------------------------------------------------------------------*/
+v_BOOL_t WLAN_BAPSessionOn
+( 
+  ptBtampHandle btampHandle
+)
+{
+   ptBtampContext btampContext = (ptBtampContext) btampHandle;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+   VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %x", __FUNCTION__,  btampHandle); 
+
+   /* Validate params */ 
+   if (btampHandle == NULL) 
+   {
+       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                    "btampHandle is NULL in %s", __FUNCTION__);
+
+       //?? shall we say true or false
+       return VOS_FALSE;
+   }
+
+   return btampContext->btamp_session_on;
+}

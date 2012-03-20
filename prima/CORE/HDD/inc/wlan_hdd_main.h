@@ -765,6 +765,9 @@ struct hdd_context_s
    
    hdd_dynamic_mcbcfilter_t dynamic_mcbc_filter;
    
+   /* Can we allow AMP connection right now*/
+   v_BOOL_t isAmpAllowed;
+   
 #ifdef WLAN_FEATURE_P2P
    /** P2P Device MAC Address for the adapter  */
    v_MACADDR_t p2pDeviceAddress;

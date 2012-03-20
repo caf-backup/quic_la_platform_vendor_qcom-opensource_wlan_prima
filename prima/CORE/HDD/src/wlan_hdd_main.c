@@ -1960,7 +1960,7 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
                                 msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
 
          pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
-
+         pHddCtx->isAmpAllowed = VOS_FALSE;
          sme_RoamConnect(pHddCtx->hHal,
                          pAdapter->sessionId, &(pWextState->roamProfile),
                          &roamId); 

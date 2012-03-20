@@ -234,7 +234,7 @@ this command is supported.
 #define WLANBAP_PAL_SUPPORTED_HCI_CMDS {  \
     0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x02, 0x0c, \
     0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x88, 0x3c, \
-    0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x07, \
+    0x00, 0x00, 0x00, 0x40, 0x00, 0xff, 0xff, 0x07, \
     0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
@@ -2856,6 +2856,71 @@ WLANBAP_GetAcFromTxDataPkt
 VOS_STATUS
 WLAN_BAPGetMask( ptBtampHandle btampHandle, 
                  v_U8_t       *pEvent_mask_page_2);
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPDisconnect()
+
+  DESCRIPTION 
+     The function to request to BAP core to disconnect currecnt AMP connection.
+   
+
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+    
+   
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_FAULT:  btampHandle is NULL 
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS 
+  
+----------------------------------------------------------------------------*/
+VOS_STATUS  
+WLAN_BAPDisconnect
+( 
+  ptBtampHandle btampHandle
+);
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPSessionOn()
+
+  DESCRIPTION 
+     The function to check from BAP core if AMP connection is up right now.
+   
+
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+    
+   
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_TRUE:  AMP connection is on 
+    VOS_FALSE: AMP connection is not on
+  
+  SIDE EFFECTS 
+  
+----------------------------------------------------------------------------*/
+v_BOOL_t WLAN_BAPSessionOn
+( 
+  ptBtampHandle btampHandle
+);
 
 #ifdef __cplusplus
  }

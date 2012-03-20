@@ -229,6 +229,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 #define WLAN_PRIV_SET_MCBC_FILTER    (SIOCIWFIRSTPRIV + 26)
 #define WLAN_PRIV_CLEAR_MCBC_FILTER  (SIOCIWFIRSTPRIV + 27)
+#define WLAN_GET_LINK_SPEED          (SIOCIWFIRSTPRIV + 31)
 
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
@@ -1799,7 +1800,7 @@ void hdd_tx_per_hit_cb (void *pCallbackContext)
     wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, tx_fail);
 }
 
-static void hdd_GetClassA_statisticsCB(void *pStats, void *pContext)
+void hdd_GetClassA_statisticsCB(void *pStats, void *pContext)
 {
    struct statsContext *pStatsContext;
    tCsrGlobalClassAStatsInfo *pClassAStats;
@@ -1920,8 +1921,8 @@ static int iw_get_linkspeed(struct net_device *dev,
                             union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   char *cmd = (char*)wrqu->data.pointer;
-   int len = wrqu->data.length;
+   char *pLinkSpeed = (char*)extra;
+   int len = sizeof(v_U16_t) + 1;
    v_U16_t link_speed;
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
    int rc;
@@ -1939,15 +1940,15 @@ static int iw_get_linkspeed(struct net_device *dev,
        link_speed = pAdapter->hdd_stats.ClassA_stat.tx_rate/2;
    }
 
-          
+   wrqu->data.length = len;
    // return the linkspeed in the format required by the WiFi Framework
-   rc = snprintf(cmd, len, "LinkSpeed %u", link_speed);
+   rc = snprintf(pLinkSpeed, len, "%u", link_speed);
    if ((rc < 0) || (rc >= len))
    {
        // encoding or length error?
        hddLog(VOS_TRACE_LEVEL_ERROR,
                 "%s: Unable to encode link speed, got [%s]",
-                __FUNCTION__, cmd);
+                __FUNCTION__,pLinkSpeed);
        return -EIO;
    }
 
@@ -5250,7 +5251,8 @@ static const iw_handler we_private[] = {
    [WLAN_SET_BAND_CONFIG                - SIOCIWFIRSTPRIV]   = iw_set_band_config,
    [WLAN_PRIV_SET_MCBC_FILTER           - SIOCIWFIRSTPRIV]   = iw_set_dynamic_mcbc_filter,
    [WLAN_PRIV_CLEAR_MCBC_FILTER         - SIOCIWFIRSTPRIV]   = iw_clear_dynamic_mcbc_filter,
-   [WLAN_SET_POWER_PARAMS               - SIOCIWFIRSTPRIV]   = iw_set_power_params_priv
+   [WLAN_SET_POWER_PARAMS               - SIOCIWFIRSTPRIV]   = iw_set_power_params_priv,
+   [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed
 };
 
 /*Maximum command length can be only 15 */
@@ -5586,6 +5588,10 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         0,
         "setpowerparams" },
+    {
+        WLAN_GET_LINK_SPEED,
+        IW_PRIV_TYPE_CHAR | 18,
+        IW_PRIV_TYPE_CHAR | 3, "getLinkSpeed" },
    
 };
 

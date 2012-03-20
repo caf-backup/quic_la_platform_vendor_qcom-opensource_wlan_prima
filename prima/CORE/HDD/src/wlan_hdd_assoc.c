@@ -557,7 +557,11 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     netif_carrier_off(dev);
 
     hdd_connSetConnectionState( pHddStaCtx, eConnectionState_NotConnected );
-
+    /* If only STA mode is on */
+    if((pHddCtx->concurrency_mode <= 1) && (pHddCtx->no_of_sessions[WLAN_HDD_INFRA_STATION] <=1))
+    {
+        pHddCtx->isAmpAllowed = VOS_TRUE;
+    }
     hdd_clearRoamProfileIe( pAdapter );
 
     // indicate 'disconnect' status to wpa_supplicant...
@@ -922,7 +926,10 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         /*Handle all failure conditions*/
         hdd_connSetConnectionState( pHddStaCtx, eConnectionState_NotConnected);
-
+        if((pHddCtx->concurrency_mode <= 1) && (pHddCtx->no_of_sessions[WLAN_HDD_INFRA_STATION] <=1))
+        {
+            pHddCtx->isAmpAllowed = VOS_TRUE;
+        }
 #ifdef CONFIG_CFG80211
         /* inform association failure event to nl80211 */
         cfg80211_connect_result(dev, pWextState->req_bssId,
@@ -1910,6 +1917,7 @@ int iw_set_essid(struct net_device *dev,
     sme_SetDHCPTillPowerActiveFlag(WLAN_HDD_GET_HAL_CTX(pAdapter), TRUE);
 
     pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
+    (WLAN_HDD_GET_CTX(pAdapter))->isAmpAllowed = VOS_FALSE;
     status = sme_RoamConnect( hHal,pAdapter->sessionId, &(pWextState->roamProfile),&roamId);
     pRoamProfile->ChannelInfo.ChannelList = NULL; 
     pRoamProfile->ChannelInfo.numOfChannels = 0;
