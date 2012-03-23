@@ -345,6 +345,16 @@ wpt_status wpalDriverReInit(void)
 ---------------------------------------------------------------------------*/
 wpt_status wpalRivaSubystemRestart(void)
 {
+    /* call SSR only if driver is not in load/unload process.
+     * A WDI timeout during load/unload cannot be fixed thru
+     * SSR */
+    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDI, NULL))
+    {
+         WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "%s: loading/unloading in progress, cannot do SSR",
+                                                    __FUNCTION__);
+         return eWLAN_PAL_STATUS_E_FAILURE;
+    }
     if (0 == subsystem_restart("riva")) 
     {
         return eWLAN_PAL_STATUS_SUCCESS;

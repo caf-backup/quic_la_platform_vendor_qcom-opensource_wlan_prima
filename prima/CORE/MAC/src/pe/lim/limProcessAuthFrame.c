@@ -135,7 +135,10 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     tANI_U8                 *pChallenge;
     tANI_U32                key_length=8;
     tANI_U8                 challengeTextArray[SIR_MAC_AUTH_CHALLENGE_LENGTH];
-
+#ifdef WLAN_SOFTAP_FEATURE
+    tpDphHashNode           pStaDs = NULL;
+    tANI_U16                assocId = 0;
+#endif
     /* Added For BT -AMP support */
     // Get pointer to Authentication frame header and body
  
@@ -543,10 +546,41 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                                     eLIM_AUTH_RSP_TIMER,
                                                     pAuthNode->authNodeIdx);
                     }
-
                     PELOGE(limLog(pMac, LOGE, FL("STA is initiating brand-new Authentication ...\n"));)
                     limDeletePreAuthNode(pMac,
                                          pHdr->sa);
+#ifdef WLAN_SOFTAP_FEATURE                    
+                    /**
+                     *  SAP Mode:Disassociate the station and 
+                     *  delete its entry if we have its entry 
+                     *  already and received "auth" from the 
+                     *  same station.
+                     */  
+
+                    for (assocId = 0; assocId < psessionEntry->dph.dphHashTable.size; assocId++)// Softap dphHashTable.size = 8
+                    {
+                        pStaDs = dphGetHashEntry(pMac, assocId, &psessionEntry->dph.dphHashTable);
+
+                        if (NULL == pStaDs)
+                             continue;
+
+                        if (pStaDs->valid)
+                        {
+                             if (palEqualMemory( pMac->hHdd,(tANI_U8 *) &pStaDs->staAddr,
+                                      (tANI_U8 *) &(pHdr->sa), (tANI_U8) (sizeof(tSirMacAddr))) )
+                                  break;
+                        }
+                    }
+
+                    if (NULL != pStaDs)
+                    {
+                        PELOGE(limLog(pMac, LOGE, FL("lim Delete Station Context (staId: %d, assocId: %d) \n"),pStaDs->staIndex, assocId);)
+                        limSendDeauthMgmtFrame(pMac,
+                               eSIR_MAC_UNSPEC_FAILURE_REASON, (tANI_U8 *) pAuthNode->peerMacAddr,psessionEntry);
+                        limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
+                        return;
+                    }
+#endif
                 }
                 else
                 {

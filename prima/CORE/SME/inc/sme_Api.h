@@ -57,6 +57,8 @@
 #define SME_GLOBAL_CLASSD_STATS  16
 #define SME_PER_STA_STATS        32
 
+#define SME_INVALID_COUNTRY_CODE "XX"
+
 /*-------------------------------------------------------------------------- 
   Type declarations
   ------------------------------------------------------------------------*/

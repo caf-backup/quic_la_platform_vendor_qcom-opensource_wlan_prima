@@ -13729,130 +13729,151 @@ WDI_ProcessConfigBSSRsp
 
   wdiConfigBSSParams.wdiStatus = WDI_HAL_2_WDI_STATUS(
                             halConfigBssRspMsg.configBssRspParams.status);
-  wpalMemoryCopy( wdiConfigBSSParams.macBSSID, 
-                  pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.macBSSID,
-                  WDI_MAC_ADDR_LEN);
-
-  wdiConfigBSSParams.ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
-
-  wdiConfigBSSParams.ucBcastSig = 
-     halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
-
-  wdiConfigBSSParams.ucUcastSig = 
-     halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
-
-  wdiConfigBSSParams.ucSTAIdx = halConfigBssRspMsg.configBssRspParams.bssStaIdx;
-
-#ifdef WLAN_FEATURE_VOWIFI
-  wdiConfigBSSParams.ucTxMgmtPower = 
-                             halConfigBssRspMsg.configBssRspParams.txMgmtPower;
-#endif
-   wpalMemoryCopy( wdiConfigBSSParams.macSTA,
-                   halConfigBssRspMsg.configBssRspParams.staMac,
-                   WDI_MAC_ADDR_LEN );
-
-  wpalMutexAcquire(&pWDICtx->wptMutex);
-  /*------------------------------------------------------------------------
-    Find the BSS for which the request is made 
-  ------------------------------------------------------------------------*/
-  ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, 
-                                             wdiConfigBSSParams.macBSSID, 
-                                            &pBSSSes); 
-
-  /*-----------------------------------------------------------------------
-    Config BSS response can only be received for an existing assoc that
-    is current and in progress 
-    -----------------------------------------------------------------------*/
-  if ( NULL == pBSSSes )
+  if(WDI_STATUS_SUCCESS == wdiConfigBSSParams.wdiStatus)
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist "
-              "- mysterious HAL response");
-
-    WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-    
-    wpalMutexRelease(&pWDICtx->wptMutex);
-    return WDI_STATUS_E_NOT_ALLOWED; 
-  }
-
-  /*Save data for this BSS*/
-  pBSSSes->wdiBssType = pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiBSSType;
-  pBSSSes->ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
-  pBSSSes->bcastDpuIndex     = 
-    halConfigBssRspMsg.configBssRspParams.bcastDpuDescIndx;
-  pBSSSes->bcastDpuSignature = 
-    halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
-  pBSSSes->bcastMgmtDpuIndex = 
-    halConfigBssRspMsg.configBssRspParams.mgmtDpuDescIndx;
-  pBSSSes->bcastMgmtDpuSignature = 
-    halConfigBssRspMsg.configBssRspParams.mgmtDpuSignature;
-  pBSSSes->ucRmfEnabled      = 
-    pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucRMFEnabled;
-  pBSSSes->bcastStaIdx =
-     halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx;
-
-  /* !TO DO: Shuould we be updating the RMF Capability of self STA here? */
-
-  /*-------------------------------------------------------------------------
-      Add Peer STA
-    -------------------------------------------------------------------------*/
-  wdiAddSTAParam.ucSTAIdx = halConfigBssRspMsg.configBssRspParams.bssStaIdx; 
-  wdiAddSTAParam.dpuIndex = halConfigBssRspMsg.configBssRspParams.dpuDescIndx;
-  wdiAddSTAParam.dpuSig   = halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
-   
-   /*This info can be retrieved from the cached initial request*/
-  wdiAddSTAParam.ucWmmEnabled = 
-      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucWMMEnabled;
-  wdiAddSTAParam.ucHTCapable  = 
-      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucHTCapable; 
-  wdiAddSTAParam.ucStaType    = 
-      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.wdiSTAType;  
-
-   /* MAC Address of STA */
-  wpalMemoryCopy(wdiAddSTAParam.staMacAddr, 
-                 halConfigBssRspMsg.configBssRspParams.staMac, 
-                 WDI_MAC_ADDR_LEN);
-
-  wpalMemoryCopy(wdiAddSTAParam.macBSSID, 
-                 pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.macBSSID , 
-                 WDI_MAC_ADDR_LEN); 
-   
-  /*Add BSS specific parameters*/
-  wdiAddSTAParam.bcastMgmtDpuIndex     = 
-      halConfigBssRspMsg.configBssRspParams.mgmtDpuDescIndx;
-  wdiAddSTAParam.bcastMgmtDpuSignature = 
-      halConfigBssRspMsg.configBssRspParams.mgmtDpuSignature;
-  wdiAddSTAParam.bcastDpuIndex         = 
+    wpalMemoryCopy( wdiConfigBSSParams.macBSSID, 
+                    pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.macBSSID,
+                    WDI_MAC_ADDR_LEN);
+  
+    wdiConfigBSSParams.ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
+  
+    wdiConfigBSSParams.ucBcastSig = 
+       halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
+  
+    wdiConfigBSSParams.ucUcastSig = 
+       halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
+  
+    wdiConfigBSSParams.ucSTAIdx = halConfigBssRspMsg.configBssRspParams.bssStaIdx;
+  
+  #ifdef WLAN_FEATURE_VOWIFI
+    wdiConfigBSSParams.ucTxMgmtPower = 
+                               halConfigBssRspMsg.configBssRspParams.txMgmtPower;
+  #endif
+     wpalMemoryCopy( wdiConfigBSSParams.macSTA,
+                     halConfigBssRspMsg.configBssRspParams.staMac,
+                     WDI_MAC_ADDR_LEN );
+  
+    wpalMutexAcquire(&pWDICtx->wptMutex);
+    /*------------------------------------------------------------------------
+      Find the BSS for which the request is made 
+    ------------------------------------------------------------------------*/
+    ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, 
+                                               wdiConfigBSSParams.macBSSID, 
+                                              &pBSSSes); 
+  
+    /*-----------------------------------------------------------------------
+      Config BSS response can only be received for an existing assoc that
+      is current and in progress 
+      -----------------------------------------------------------------------*/
+    if ( NULL == pBSSSes )
+    {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                "Association sequence for this BSS does not yet exist "
+                "- mysterious HAL response");
+  
+      WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
+      
+      wpalMutexRelease(&pWDICtx->wptMutex);
+      return WDI_STATUS_E_NOT_ALLOWED; 
+    }
+  
+    /*Save data for this BSS*/
+    pBSSSes->wdiBssType = pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiBSSType;
+    pBSSSes->ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
+    pBSSSes->bcastDpuIndex     = 
       halConfigBssRspMsg.configBssRspParams.bcastDpuDescIndx;
-  wdiAddSTAParam.bcastDpuSignature     = 
+    pBSSSes->bcastDpuSignature = 
       halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
-  wdiAddSTAParam.ucRmfEnabled          =  
+    pBSSSes->bcastMgmtDpuIndex = 
+      halConfigBssRspMsg.configBssRspParams.mgmtDpuDescIndx;
+    pBSSSes->bcastMgmtDpuSignature = 
+      halConfigBssRspMsg.configBssRspParams.mgmtDpuSignature;
+    pBSSSes->ucRmfEnabled      = 
       pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucRMFEnabled;
-  wdiAddSTAParam.ucBSSIdx = 
-     halConfigBssRspMsg.configBssRspParams.bssIdx;
-
-  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-              "Add STA to the table index: %d", wdiAddSTAParam.ucSTAIdx );
-
-  WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
-  /*-------------------------------------------------------------------------
-      Add Broadcast STA only in AP mode
-    -------------------------------------------------------------------------*/
-  if( pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucOperMode == 
-      WDI_BSS_OPERATIONAL_MODE_AP )
-  {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-                "Add BCAST STA to table for index: %d",
-                halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
-
-     wpalMemoryCopy( &wdiBcastAddSTAParam, &wdiAddSTAParam, 
-                     sizeof(WDI_AddStaParams) );
-
-     WDI_AddBcastSTAtoSTATable( pWDICtx, &wdiBcastAddSTAParam,
-                                halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
+    pBSSSes->bcastStaIdx =
+       halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx;
+  
+    /* !TO DO: Shuould we be updating the RMF Capability of self STA here? */
+  
+    /*-------------------------------------------------------------------------
+        Add Peer STA
+      -------------------------------------------------------------------------*/
+    wdiAddSTAParam.ucSTAIdx = halConfigBssRspMsg.configBssRspParams.bssStaIdx; 
+    wdiAddSTAParam.dpuIndex = halConfigBssRspMsg.configBssRspParams.dpuDescIndx;
+    wdiAddSTAParam.dpuSig   = halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
+     
+     /*This info can be retrieved from the cached initial request*/
+    wdiAddSTAParam.ucWmmEnabled = 
+        pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucWMMEnabled;
+    wdiAddSTAParam.ucHTCapable  = 
+        pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucHTCapable; 
+    wdiAddSTAParam.ucStaType    = 
+        pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.wdiSTAType;  
+  
+     /* MAC Address of STA */
+    wpalMemoryCopy(wdiAddSTAParam.staMacAddr, 
+                   halConfigBssRspMsg.configBssRspParams.staMac, 
+                   WDI_MAC_ADDR_LEN);
+  
+    wpalMemoryCopy(wdiAddSTAParam.macBSSID, 
+                   pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.macBSSID , 
+                   WDI_MAC_ADDR_LEN); 
+     
+    /*Add BSS specific parameters*/
+    wdiAddSTAParam.bcastMgmtDpuIndex     = 
+        halConfigBssRspMsg.configBssRspParams.mgmtDpuDescIndx;
+    wdiAddSTAParam.bcastMgmtDpuSignature = 
+        halConfigBssRspMsg.configBssRspParams.mgmtDpuSignature;
+    wdiAddSTAParam.bcastDpuIndex         = 
+        halConfigBssRspMsg.configBssRspParams.bcastDpuDescIndx;
+    wdiAddSTAParam.bcastDpuSignature     = 
+        halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
+    wdiAddSTAParam.ucRmfEnabled          =  
+        pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucRMFEnabled;
+    wdiAddSTAParam.ucBSSIdx = 
+       halConfigBssRspMsg.configBssRspParams.bssIdx;
+  
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                "Add STA to the table index: %d", wdiAddSTAParam.ucSTAIdx );
+  
+    WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
+    /*-------------------------------------------------------------------------
+        Add Broadcast STA only in AP mode
+      -------------------------------------------------------------------------*/
+    if( pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucOperMode == 
+        WDI_BSS_OPERATIONAL_MODE_AP )
+    {
+       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                  "Add BCAST STA to table for index: %d",
+                  halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
+  
+       wpalMemoryCopy( &wdiBcastAddSTAParam, &wdiAddSTAParam, 
+                       sizeof(WDI_AddStaParams) );
+  
+       WDI_AddBcastSTAtoSTATable( pWDICtx, &wdiBcastAddSTAParam,
+                                  halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
+    }
+    wpalMutexRelease(&pWDICtx->wptMutex);
   }
+  else
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "Config BSS RSP failed with status : %s(%d)",
+                  WDI_getHALStatusMsgString(
+                  halConfigBssRspMsg.configBssRspParams.status), 
+                  halConfigBssRspMsg.configBssRspParams.status);
 
-  wpalMutexRelease(&pWDICtx->wptMutex);
+    
+    /*Association was failed by HAL - remove session*/
+    WDI_DeleteSession(pWDICtx, pBSSSes);
+
+    /*Association no longer in progress  */
+    pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+
+    /*Association no longer in progress - prepare pending assoc for processing*/
+    WDI_DequeueAssocRequest(pWDICtx);
+
+  }
 
   /*Notify UMAC*/
   wdiConfigBSSRspCb( &wdiConfigBSSParams, pWDICtx->pRspCBUserData);
@@ -18834,6 +18855,9 @@ WDI_PALCtrlMsgCB
 {
   WDI_EventInfoType*     pEventData = NULL;
   WDI_ControlBlockType*  pWDICtx    = NULL; 
+  WDI_Status             wdiStatus; 
+  WDI_ReqStatusCb        pfnReqStatusCB; 
+  void*                  pUserData;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if (( NULL == pMsg )||
@@ -18861,13 +18885,24 @@ WDI_PALCtrlMsgCB
   {
      
   case WDI_STOP_REQ:
-    WDI_PostMainEvent(&gWDICb, WDI_STOP_EVENT, pEventData);
+    wdiStatus = WDI_PostMainEvent(&gWDICb, WDI_STOP_EVENT, pEventData);
     break;
   
   default: 
-    WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, pEventData);
+    wdiStatus = WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, pEventData);
     break;
   }/*switch ( pEventData->wdiRequest )*/
+
+  if ( WDI_STATUS_SUCCESS != wdiStatus  )
+  {
+    WDI_ExtractRequestCBFromEvent(pEventData, &pfnReqStatusCB, &pUserData);
+
+    if ( NULL != pfnReqStatusCB )
+    {
+      /*Fail the request*/
+      pfnReqStatusCB( wdiStatus, pUserData);
+    }
+  }
 
   /* Free data - that was allocated when queueing*/
   if( pEventData != NULL )
@@ -19283,6 +19318,13 @@ WDI_ClearPendingRequests
       /*Fail the request*/
       pfnReqStatusCB( WDI_STATUS_E_FAILURE, pUserData);
     }
+    /* Free data - that was allocated when queueing */
+    if ( pEventDataQueue->pEventData != NULL )
+    {
+      wpalMemoryFree(pEventDataQueue->pEventData);
+    }
+    wpalMemoryFree(pEventDataQueue);
+
     if (wpal_list_remove_front(&(pWDICtx->wptPendingQueue), &pNode) !=  eWLAN_PAL_STATUS_SUCCESS)
     {
         break;

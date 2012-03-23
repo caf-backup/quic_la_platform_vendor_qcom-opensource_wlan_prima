@@ -5669,7 +5669,7 @@ eHalStatus sme_HandleChangeCountryCode(tpAniSirGlobal pMac,  void *pMsgBuf)
 
 
    /* if the reset Supplicant country code command is triggered, enable 11D, reset the NV country code and return */
-   if( VOS_TRUE == vos_mem_compare(pMsg->countryCode, "XX", 2) )
+   if( VOS_TRUE == vos_mem_compare(pMsg->countryCode, SME_INVALID_COUNTRY_CODE, 2) )
    {
        pMac->roam.configParam.Is11dSupportEnabled = pMac->roam.configParam.Is11dSupportEnabledOriginal;
 

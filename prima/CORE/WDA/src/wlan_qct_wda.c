@@ -11855,7 +11855,9 @@ VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext)
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
             "%s:wdaWdiApiMsgParam is not NULL", __FUNCTION__);
       VOS_ASSERT(0);
-      return VOS_STATUS_E_FAILURE;
+      /* the last request was not freed, probably a SSR
+       * initiated by WLAN driver (WDI timeout) */
+      vos_mem_free(pWDA->wdaWdiApiMsgParam);
    }
 
    if ( eDRIVER_TYPE_MFG != pWDA->driverMode )
@@ -11871,8 +11873,6 @@ VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                                   "error in WDA Stop" );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam);
-      pWDA->wdaWdiApiMsgParam = NULL;
       status = VOS_STATUS_E_FAILURE;
    }
    /* WDI stop is synchrnous, shutdown is complete when it returns */

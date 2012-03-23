@@ -89,6 +89,9 @@ extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 
 #define HDD_FINISH_ULA_TIME_OUT    800
 
+extern int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand);
+int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr);
+
 static int ioctl_debug = 0;
 module_param(ioctl_debug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
@@ -1525,7 +1528,6 @@ static int iw_get_rts_threshold(struct net_device *dev,
    return status;
 }
 
-extern int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand);
 static int iw_set_rts_threshold(struct net_device *dev,
                                 struct iw_request_info *info,
                                 union iwreq_data *wrqu, char *extra)
@@ -4902,124 +4904,134 @@ static int iw_set_pno_priv(struct net_device *dev,
 }
 #endif /*FEATURE_WLAN_SCAN_PNO*/
 
-static int iw_set_band_config(struct net_device *dev,
-                           struct iw_request_info *info,
-                           union iwreq_data *wrqu, char *extra)
+//Common function to SetBand
+int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
 {
-    tANI_U8 *ptr = (tANI_U8*)wrqu->data.pointer;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     tANI_U8 band = 0;
     eCsrBand currBand = eCSR_BAND_MAX;
 
-    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: ", __FUNCTION__);
+    band = ptr[WLAN_HDD_UI_SET_BAND_VALUE_OFFSET] - '0'; /*convert the band value from ascii to integer*/
 
-    if (memcmp(ptr, "SETBAND ", 8) == 0)
+    switch(band)
     {
-        /* Change band request received */
-
-        /* First 8 bytes will have "SETBAND " and 
-         * 9 byte will have band setting value */
-        band = ptr[WLAN_HDD_UI_SET_BAND_VALUE_OFFSET] - '0'; /*convert the band value from ascii to integer*/
-        switch(band)
-        {
-            case WLAN_HDD_UI_BAND_AUTO:
-                band = eCSR_BAND_ALL;
-                break;
-            case WLAN_HDD_UI_BAND_5_GHZ:
-                band = eCSR_BAND_5G;
-                break;
-            case WLAN_HDD_UI_BAND_2_4_GHZ:
-                band = eCSR_BAND_24;
-                break;
-            default:
-                band = eCSR_BAND_MAX;
-        }
+        case WLAN_HDD_UI_BAND_AUTO:
+             band = eCSR_BAND_ALL;
+        break;
+        case WLAN_HDD_UI_BAND_5_GHZ:
+            band = eCSR_BAND_5G;
+        break;
+        case WLAN_HDD_UI_BAND_2_4_GHZ:
+            band = eCSR_BAND_24;
+        break;
+        default:
+            band = eCSR_BAND_MAX;
+    }
 
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: change band to %u", 
                 __FUNCTION__, band);
 
-        if (band == eCSR_BAND_MAX)
+    if (band == eCSR_BAND_MAX)
+    {
+        /* Received change band request with invalid band value */
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               "%s: Invalid band value %u", __FUNCTION__, band);
+        return -EIO;
+    }
+
+    if (eHAL_STATUS_SUCCESS != sme_GetFreqBand(hHal, &currBand))
+    {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              "%s: Failed to get current band config", 
+                 __FUNCTION__);
+         return -EIO;
+    }
+
+    if (currBand != band)
+    {
+        /* Change band request received.
+         * Abort pending scan requests, flush the existing scan results,
+         * and change the band capability
+         */
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "%s: Current band value = %u, new setting %u ", 
+                 __FUNCTION__, currBand, band);
+
+        if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
         {
-            /* Received change band request with invalid band value */
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Invalid band value %u", __FUNCTION__, band);
-            return -EIO;
-        }
+             hdd_station_ctx_t *pHddStaCtx = &(pAdapter)->sessionCtx.station;
+             eHalStatus status = eHAL_STATUS_SUCCESS;
 
-        if (eHAL_STATUS_SUCCESS != sme_GetFreqBand(hHal, &currBand))
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "%s: Failed to get current band config", 
-                    __FUNCTION__);
-            return -EIO;
-        }
+             /* STA already connected on current band, So issue disconnect first,
+                        * then change the band*/
 
-        if (currBand != band)
-        {
-            /* Change band request received.
-             * Abort pending scan requests, flush the existing scan results,
-             * and change the band capability
-             */
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "%s: Current band value = %u, new setting %u ", 
-                    __FUNCTION__, currBand, band);
-
-            if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
-            {
-                hdd_station_ctx_t *pHddStaCtx = &(pAdapter)->sessionCtx.station;
-                eHalStatus status = eHAL_STATUS_SUCCESS;
-
-                /* STA already connected on current band, So issue disconnect first,
-                 * then change the band*/
-
-                hddLog(VOS_TRACE_LEVEL_INFO,
-                        "%s STA connected in band %u, Changing band to %u, Issuing Disconnect", 
+             hddLog(VOS_TRACE_LEVEL_INFO,
+                     "%s STA connected in band %u, Changing band to %u, Issuing Disconnect", 
                         __func__, csrGetCurrentBand(hHal), band);
 
-                pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
-                INIT_COMPLETION(pAdapter->disconnect_comp_var);
+             pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
+             INIT_COMPLETION(pAdapter->disconnect_comp_var);
 
-                status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), 
-                        pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+             status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), 
+             pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
-                if ( 0 != status)
-                {
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                            "%s csrRoamDisconnect failure, returned %d \n", 
-                            __func__, (int)status );
-                    return -EINVAL;
-                }
+             if ( 0 != status)
+             {
+                 hddLog(VOS_TRACE_LEVEL_ERROR,
+                         "%s csrRoamDisconnect failure, returned %d \n", 
+                           __func__, (int)status );
+                 return -EINVAL;
+             }
 
-                status = wait_for_completion_interruptible_timeout(
-                        &pAdapter->disconnect_comp_var,
-                        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+             status = wait_for_completion_interruptible_timeout(
+                     &pAdapter->disconnect_comp_var,
+                     msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
 
-                if (VOS_STATUS_SUCCESS != status)
-                {
-                    hddLog(VOS_TRACE_LEVEL_ERROR,
-                            "%s Timeout occured while waiting for csrRoamDisconnect\n", 
-                            __func__);
-                    return -EINVAL;
-                }
-            }
-
-            hdd_abort_mac_scan(pHddCtx);
-            sme_ScanFlushResult(hHal, pAdapter->sessionId);
-            if(eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, (eCsrBand)band))
-            {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                        "%s: failed to set the band value to %u ", 
-                        __FUNCTION__, band);
-                return -EINVAL;
-            }
-            wlan_hdd_cfg80211_update_band(pHddCtx->wiphy, (eCsrBand)band);
+             if (VOS_STATUS_SUCCESS != status)
+             {
+                 hddLog(VOS_TRACE_LEVEL_ERROR,
+                         "%s Timeout occured while waiting for csrRoamDisconnect\n", 
+                           __func__);
+                 return -EINVAL;
+             }
         }
+
+        hdd_abort_mac_scan(pHddCtx);
+        sme_ScanFlushResult(hHal, pAdapter->sessionId);
+        if(eHAL_STATUS_SUCCESS != sme_SetFreqBand(hHal, (eCsrBand)band))
+        {
+             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                     "%s: failed to set the band value to %u ", 
+                        __FUNCTION__, band);
+             return -EINVAL;
+        }
+#ifdef CONFIG_CFG80211
+        wlan_hdd_cfg80211_update_band(pHddCtx->wiphy, (eCsrBand)band);
+#endif
     }
     return 0;
 }
 
+static int iw_set_band_config(struct net_device *dev,
+                           struct iw_request_info *info,
+                           union iwreq_data *wrqu, char *extra)
+{
+    tANI_U8 *ptr = (tANI_U8*)wrqu->data.pointer;
+    int ret = 0; 
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: ", __FUNCTION__);
+
+    if (memcmp(ptr, "SETBAND ", 8) == 0)
+    {
+        /* Change band request received */
+        ret = hdd_setBand_helper(dev, ptr);   
+        return ret;
+
+    }
+    return 0;
+}
 
 static int iw_set_power_params_priv(struct net_device *dev,
                            struct iw_request_info *info,

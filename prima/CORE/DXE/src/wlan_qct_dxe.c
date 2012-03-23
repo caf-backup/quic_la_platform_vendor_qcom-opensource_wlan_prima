@@ -1133,7 +1133,6 @@ static wpt_status dxeChannelCleanInt
             channelType[channelEntry->channelType], *chStat);
 
    /* Clean up all the INT within this channel */
-   /* !!!!! This is not working !!!! */
    status = wpalWriteRegister(WLANDXE_INT_CLR_ADDRESS,
                                    (1 << channelEntry->assignedDMAChannel));
    if(eWLAN_PAL_STATUS_SUCCESS != status)
@@ -1470,7 +1469,7 @@ static wpt_status dxeRXFrameReady
    channelEntry->headCtrlBlk = currentCtrlBlk;
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_HIGH,
             "Head Desc CW 0x%x, Num all RX frames %d",
-                   channelEntry->headCtrlBlk->linkedDesc->descCtrl.ctrl,
+            channelEntry->headCtrlBlk->linkedDesc->descCtrl.ctrl,
             channelEntry->numTotalFrame);
 
    dxeDescriptorDump(channelEntry, channelEntry->headCtrlBlk->linkedDesc, 0);
@@ -1852,7 +1851,7 @@ void dxeRXEventHandler
       HDXE_ASSERT(0);
    }
    wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].channelRegister.chDXECtrlRegAddr,
-                          dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].extraConfig.chan_mask);
+                     dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].extraConfig.chan_mask);
 
 
    /* Prepare Control Register EN Channel */
@@ -1861,7 +1860,7 @@ void dxeRXEventHandler
       HDXE_ASSERT(0);
    }
    wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].channelRegister.chDXECtrlRegAddr,
-                          dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].extraConfig.chan_mask);
+                     dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].extraConfig.chan_mask);
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);

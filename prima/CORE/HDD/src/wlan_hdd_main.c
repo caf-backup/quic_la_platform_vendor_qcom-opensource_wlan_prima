@@ -128,6 +128,8 @@ v_U16_t hdd_select_queue(struct net_device *dev,
 
 void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter);
 
+extern int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr);
+
 static int hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
                                          void *ndev)
@@ -329,6 +331,21 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                ret = -EFAULT;
            }
        }
+       if(strncmp(priv_data.buf, "SETBAND", 7) == 0)
+       {
+           tANI_U8 *ptr = (tANI_U8*)priv_data.buf ;
+           int ret = 0 ;
+        
+           /* Change band request received */
+   
+           /* First 8 bytes will have "SETBAND " and 
+            * 9 byte will have band setting value */
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: SetBandCommand Info  comm %s UL %d, TL %d", __FUNCTION__, priv_data.buf, priv_data.used_len, priv_data.total_len);
+        
+           /* Change band request received */
+           ret = hdd_setBand_helper(dev, ptr);   
+       } 
    }
 exit:
    if (command)
@@ -1043,13 +1060,13 @@ static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
    if(pContext != NULL)
    {
       clear_bit(SME_SESSION_OPENED, &((hdd_adapter_t*)pContext)->event_flags);
-      complete(&((hdd_adapter_t*)pContext)->session_close_comp_var);
 
       /* need to make sure all of our scheduled work has completed.
        * This callback is called from MC thread context, so it is safe to 
        * to call below flush workqueue API from here. 
        */
       flush_scheduled_work();
+      complete(&((hdd_adapter_t*)pContext)->session_close_comp_var);
    }
    return eHAL_STATUS_SUCCESS;
 }

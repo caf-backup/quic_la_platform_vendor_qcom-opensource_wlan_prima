@@ -107,7 +107,7 @@
 
 #define WLAN_HDD_GET_PRIV_PTR(__dev__) (hdd_adapter_t*)(netdev_priv((__dev__)))
 
-#define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
+#define MAX_EXIT_ATTEMPTS_DURING_LOGP 20
 
 #define MAX_NO_OF_2_4_CHANNELS 14
 
@@ -371,9 +371,6 @@ struct hdd_station_ctx
 
    roaming_info_t roam_info;
 
-#ifdef CONFIG_CFG80211
-   hdd_cfg80211_state_t cfg80211State;
-#endif
    v_BOOL_t bSendDisconnect;
 
    /* These elements are for MAX rate report to UI feature
@@ -625,7 +622,9 @@ struct hdd_adapter_s
    }sessionCtx;
 
    hdd_scaninfo_t scan_info;
-
+#ifdef CONFIG_CFG80211
+   hdd_cfg80211_state_t cfg80211State;
+#endif
 };
 
 typedef struct hdd_dynamic_mcbcfilter_s
@@ -642,7 +641,7 @@ typedef struct hdd_dynamic_mcbcfilter_s
 #define WLAN_HDD_GET_CTX(pAdapter) (hdd_context_t*)pAdapter->pHddCtx
 #define WLAN_HDD_GET_HAL_CTX(pAdapter)  ((hdd_context_t*)(pAdapter->pHddCtx))->hHal
 #define WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter) &(pAdapter)->sessionCtx.ap.HostapdState
-#define WLAN_HDD_GET_CFG_STATE_PTR(pAdapter)  &(pAdapter)->sessionCtx.station.cfg80211State
+#define WLAN_HDD_GET_CFG_STATE_PTR(pAdapter)  &(pAdapter)->cfg80211State
 
 typedef struct hdd_adapter_list_node
 {

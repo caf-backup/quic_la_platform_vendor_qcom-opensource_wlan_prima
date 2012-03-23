@@ -46,6 +46,7 @@
 #if defined CONFIG_CFG80211
 #include "wlan_hdd_p2p.h"
 #endif
+#include "sme_Api.h"
 
 v_BOOL_t mibIsDot11DesiredBssTypeInfrastructure( hdd_adapter_t *pAdapter );
 
@@ -75,6 +76,8 @@ v_U8_t ccpRSNOui05[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x05 }; // WEP-104
 #endif
 
 #define BEACON_FRAME_IES_OFFSET 12
+
+
 
 static inline v_VOID_t hdd_connSetConnectionState( hdd_station_ctx_t *pHddStaCtx, eConnectionState connState )
 {         
@@ -919,6 +922,10 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     }  
     else 
     {
+        char country_code[3] = SME_INVALID_COUNTRY_CODE;
+        eHalStatus status = eHAL_STATUS_SUCCESS;
+        hdd_context_t* pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
+
 #ifdef CONFIG_CFG80211
         hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 #endif
@@ -940,6 +947,21 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         netif_tx_disable(dev);
         netif_carrier_off(dev);
+
+        /* Association failed; Reset the country code information 
+         * so that it re-initialize the valid channel list*/
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                "%s: Association failed and resetting the country code"
+                "to default \n",__func__);
+
+        status = (int)sme_ChangeCountryCode(pHddCtx->hHal, NULL, 
+                                            &country_code[0], pAdapter,
+                                            pHddCtx->pvosContext);
+        if( 0 != status )
+        {
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: SME Change Country code to default failed \n",__func__);
+        }
     }
 
     return eHAL_STATUS_SUCCESS;
@@ -1334,13 +1356,33 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             break;
         case eCSR_ROAM_LOSTLINK:
         case eCSR_ROAM_DISASSOCIATED:
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "****eCSR_ROAM_DISASSOCIATED****");
-            halStatus = hdd_DisConnectHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
-            /* Check if Mcast/Bcast Filters are set, if yes clear the filters here */
-            if ((WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set == TRUE) {
-                hdd_conf_mcastbcast_filter((WLAN_HDD_GET_CTX(pAdapter)), FALSE);
-                (WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set = FALSE;
+            {
+                char country_code[3] = SME_INVALID_COUNTRY_CODE;
+                eHalStatus status = eHAL_STATUS_SUCCESS;
+                hdd_context_t* pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
+
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                        "****eCSR_ROAM_DISASSOCIATED****");
+                halStatus = hdd_DisConnectHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+                /* Check if Mcast/Bcast Filters are set, if yes clear the filters here */
+                if ((WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set == TRUE) {
+                    hdd_conf_mcastbcast_filter((WLAN_HDD_GET_CTX(pAdapter)), FALSE);
+                    (WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set = FALSE;
+                }
+               
+                VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                        "%s: Disconnected from the AP and "
+                        "resetting the country code to default\n",__func__);
+                /*reset the country code of previous connection*/
+                status = (int)sme_ChangeCountryCode(pHddCtx->hHal, NULL,
+                        &country_code[0], pAdapter,
+                        pHddCtx->pvosContext
+                        );
+                if( 0 != status )
+                {
+                    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                            "%s: SME Change Country code to default failed \n",__func__);
+                }
             }
             break;
         case eCSR_ROAM_IBSS_LEAVE:
