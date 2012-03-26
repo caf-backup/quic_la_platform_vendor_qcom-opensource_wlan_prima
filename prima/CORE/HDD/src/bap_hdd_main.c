@@ -525,6 +525,8 @@ static VOS_STATUS WLANBAP_STARxCB
     VOS_STATUS VosStatus = VOS_STATUS_SUCCESS;
     WLANTL_ACEnumType Ac; // this is not needed really
     struct sk_buff *skb = NULL;
+    vos_pkt_t* pVosPacket;
+    vos_pkt_t* pNextVosPacket;
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "WLANBAP_STARxCB\n" );
 
@@ -540,52 +542,70 @@ static VOS_STATUS WLANBAP_STARxCB
 
     VOS_ASSERT( ppctx != NULL );
 
-    // process the packet
-    VosStatus = WLANBAP_XlateRxDataPkt( ppctx->bapHdl, pctx->PhyLinkHdl,
-                                        &Ac, vosDataBuff );
+    // walk the chain until all are processed
+   pVosPacket = vosDataBuff;
+   do
+   {
+       // get the pointer to the next packet in the chain
+       // (but don't unlink the packet since we free the entire chain later)
+       VosStatus = vos_pkt_walk_packet_chain( pVosPacket, &pNextVosPacket, VOS_FALSE);
+       
+       // both "success" and "empty" are acceptable results
+       if (!((VosStatus == VOS_STATUS_SUCCESS) || (VosStatus == VOS_STATUS_E_EMPTY)))
+       {
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: Failure walking packet chain", __FUNCTION__);
+           return VOS_STATUS_E_FAILURE;
+       }
+       
+       // process the packet
+       VosStatus = WLANBAP_XlateRxDataPkt( ppctx->bapHdl, pctx->PhyLinkHdl,
+                                              &Ac, pVosPacket );
 
-    if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-    {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB WLANBAP_XlateRxDataPkt "
-          "failed status = %d\n", VosStatus );
+       if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+       {
+           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, "WLANBAP_STARxCB WLANBAP_XlateRxDataPkt "
+           "failed status = %d\n", VosStatus );
 
-        VosStatus = vos_pkt_return_packet( vosDataBuff );
+           VosStatus = VOS_STATUS_E_FAILURE;
 
-        VOS_ASSERT( VOS_IS_STATUS_SUCCESS( VosStatus ) );
+           break;
+       }
 
-        return VOS_STATUS_E_FAILURE;
-    }
+       // Extract the OS packet (skb).
+       // Tell VOS to detach the OS packet from the VOS packet
+       VosStatus = vos_pkt_get_os_packet( pVosPacket, (v_VOID_t **)&skb, VOS_TRUE );
+       if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
+       {
+           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. "
+             "VosStatus = %d\n", __FUNCTION__, VosStatus );
 
-    // Extract the OS packet (skb).
-    // Tell VOS to detach the OS packet from the VOS packet
-    VosStatus = vos_pkt_get_os_packet( vosDataBuff, (v_VOID_t **)&skb, VOS_TRUE );
-    if(!VOS_IS_STATUS_SUCCESS( VosStatus ))
-    {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: Failure extracting skb from vos pkt. "
-          "VosStatus = %d\n", __FUNCTION__, VosStatus );
+           VosStatus = VOS_STATUS_E_FAILURE;
 
-        // return the packet
-        VosStatus = vos_pkt_return_packet( vosDataBuff );
-        VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
+           break;
+       }
 
-        return(VOS_STATUS_E_FAILURE);
-    }
+       //JEZ100809: While an skb is being handled by the kernel, is "skb->dev" de-ref'd?
+       skb->dev = (struct net_device *) gpBslctx->hdev;
+       bt_cb(skb)->pkt_type = HCI_ACLDATA_PKT;
+       //skb->protocol = eth_type_trans(skb, skb->dev);
+       //skb->ip_summed = CHECKSUM_UNNECESSARY;
+ 
+       // This is my receive skb pointer
+       gpBslctx->rx_skb = skb;
+
+       // This is how data and events are passed up to BlueZ
+       hci_recv_frame(gpBslctx->rx_skb);
+
+       // now process the next packet in the chain
+       pVosPacket = pNextVosPacket;
+       
+   } while (pVosPacket);
+
 
     //JEZ100922: We are free to return the enclosing VOSS packet.
     VosStatus = vos_pkt_return_packet( vosDataBuff );
     VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
 
-    //JEZ100809: While an skb is being handled by the kernel, is "skb->dev" de-ref'd?
-    skb->dev = (struct net_device *) gpBslctx->hdev;
-    bt_cb(skb)->pkt_type = HCI_ACLDATA_PKT;
-    //skb->protocol = eth_type_trans(skb, skb->dev);
-    //skb->ip_summed = CHECKSUM_UNNECESSARY;
-
-    // This is my receive skb pointer
-    gpBslctx->rx_skb = skb;
-
-    // This is how data and events are passed up to BlueZ
-    hci_recv_frame(gpBslctx->rx_skb);
 
     return(VOS_STATUS_SUCCESS);
 } // WLANBAP_STARxCB()
@@ -658,7 +678,7 @@ static VOS_STATUS WLANBAP_TxCompCB
     pctx = (BslPhyLinkCtxType *)pHddHdl;
     ppctx = pctx->pClientCtx;
     num_packets = (num_packets + 1) % 4;
-    if (num_packets == 3 )
+    if (num_packets == 0 )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "%s: Sending up number of completed packets.  num_packets = %d.\n", __FUNCTION__, num_packets );
         WLANBAP_TxPacketMonitorHandler ( (v_PVOID_t) ppctx->bapHdl ); // our handle in BAP

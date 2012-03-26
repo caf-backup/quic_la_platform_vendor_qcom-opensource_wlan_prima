@@ -1557,8 +1557,6 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
 
     wdev = ndev->ieee80211_ptr;
 
-    /* Reset the current device mode bit mask*/
-    wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
 #ifdef WLAN_BTAMP_FEATURE
     if((NL80211_IFTYPE_P2P_CLIENT == type)||
        (NL80211_IFTYPE_ADHOC == type)||
@@ -1577,6 +1575,9 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
         }
     }
 #endif //WLAN_BTAMP_FEATURE
+    /* Reset the current device mode bit mask*/
+    wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
+
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
 #ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)

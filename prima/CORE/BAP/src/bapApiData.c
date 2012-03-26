@@ -966,12 +966,31 @@ WLANBAP_TxCompCB
     /* Typecast the handle into a context. Works as we have only one link*/ 
     bapContext = ((ptBtampContext) bapHdl);  
 
+    /*------------------------------------------------------------------------
+      Sanity check params
+    ------------------------------------------------------------------------*/
+    if ( NULL == vosDataBuff) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                "Invalid vosDataBuff value in %s", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    if ( NULL == bapContext) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                "Invalid bapContext value in %s", __FUNCTION__);
+        vos_pkt_return_packet( vosDataBuff ); 
+        return VOS_STATUS_E_FAULT;
+    }
+
     pHddHdl = bapContext->pHddHdl;
     vosStatus = VOS_STATUS_SUCCESS;
     if ( VOS_STATUS_SUCCESS != vosStatus ) 
     {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                    "Unable to retrieve BSL or BAP context from STA Id in WLANBAP_TxCompCB");
+      vos_pkt_return_packet( vosDataBuff ); 
       return VOS_STATUS_E_FAULT;
     }
 

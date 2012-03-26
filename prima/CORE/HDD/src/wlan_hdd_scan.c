@@ -875,6 +875,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
     tCsrScanRequest scanRequest;
     v_U32_t scanId = 0;
     eHalStatus status = eHAL_STATUS_SUCCESS;
+    v_U8_t channelIdx;
 
     ENTER();
 
@@ -900,7 +901,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
         return eHAL_STATUS_SUCCESS;
     }
-   
+
     vos_mem_zero( &scanRequest, sizeof(scanRequest));
     if (NULL != wrqu->data.pointer)
     {
@@ -958,7 +959,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
              SsidInfo++;
           }
        }
-#if 0
+
         /* Check for Channel IE */
         if ( WEXT_CSCAN_CHANNEL_SECTION == str_ptr[i]) 
         {
@@ -971,27 +972,38 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
             else {
 
                 /* increment the counter */
-                //printk("\n c found and channel prst  i = %d\n",i);
                 scanRequest.ChannelInfo.numOfChannels = str_ptr[i++];
                 /* store temp channel list */
-                scanRequest.ChannelInfo.ChannelList = vos_mem_malloc(scanRequest.ChannelInfo.numOfChannels * sizeof(v_U16_t));
+                /* SME expects 1 byte channel content */
+                scanRequest.ChannelInfo.ChannelList = vos_mem_malloc(scanRequest.ChannelInfo.numOfChannels * sizeof(v_U8_t));
                 if(NULL == scanRequest.ChannelInfo.ChannelList) 
                 {
                     hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "memory alloc failed for channel list creation");
                     status = -ENOMEM;
                     goto exit_point;
                 }
-                vos_mem_copy(scanRequest.ChannelInfo.ChannelList, &str_ptr[i], scanRequest.ChannelInfo.numOfChannels * sizeof(v_U16_t));
-                i += scanRequest.ChannelInfo.numOfChannels * sizeof(v_U16_t);//asume each channel size is 2 bytes
+
+                for(channelIdx = 0; channelIdx < scanRequest.ChannelInfo.numOfChannels; channelIdx++)
+                {
+                   /* SCAN request from upper layer has 2 bytes channel */
+                   scanRequest.ChannelInfo.ChannelList[channelIdx] = (v_U8_t)str_ptr[i];
+                   i += sizeof(v_U16_t);
+                }
             }
         }
+
+        /* Set default */
+        scanRequest.scanType = eSIR_ACTIVE_SCAN;
+        scanRequest.minChnTime = 0;
+        scanRequest.maxChnTime = 0;
 
         /* Now i is pointing to passive dwell dwell time */
         /* 'P',min dwell time, max dwell time */
         /* next two offsets contain min and max channel time */
         if( WEXT_CSCAN_PASV_DWELL_SECTION == (str_ptr[i]) ) 
         {
-            if (!num_ssid || (eSIR_PASSIVE_SCAN == pAdapter->pWextState->scan_mode))
+            /* No SSID specified, num_ssid == 0, then start paasive scan */
+            if (!num_ssid || (eSIR_PASSIVE_SCAN == pAdapter->scan_info.scan_mode))
             {
                 scanRequest.scanType = eSIR_PASSIVE_SCAN;
                 scanRequest.minChnTime = (v_U8_t)str_ptr[++i];//scanReq->min_channel_time;
@@ -1007,7 +1019,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
         /* H indicates active channel time */
         if( WEXT_CSCAN_HOME_DWELL_SECTION == (str_ptr[i]) ) 
         {
-            if (num_ssid || (eSIR_ACTIVE_SCAN == pAdapter->pWextState->scan_mode))
+            if (num_ssid || (eSIR_ACTIVE_SCAN == pAdapter->scan_info.scan_mode))
             {
                 scanRequest.scanType = eSIR_ACTIVE_SCAN;
                 scanRequest.minChnTime = str_ptr[++i];//scanReq->min_channel_time;
@@ -1019,22 +1031,6 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
                 i +=3;
             }
         }
-#endif
-        if((pAdapter->scan_info.scan_mode == eSIR_ACTIVE_SCAN)||
-           (num_ssid))
-        {
-            /* set the scan type to active */
-            scanRequest.scanType = eSIR_ACTIVE_SCAN;
-        } else {
-            scanRequest.scanType = eSIR_PASSIVE_SCAN;
-        }
-
-        vos_mem_set( scanRequest.bssid, sizeof( tCsrBssid ), 0xff );
-        //TODO
-        /* With channel times from wpa_supplicant, driver is not giving the scan result */
-        scanRequest.minChnTime = 0;//scanReq->min_channel_time;
-        scanRequest.maxChnTime = 0;//scanReq->max_channel_time;
-        /* set BSSType to default type */
         scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
         /* set requestType to full scan */
         scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;

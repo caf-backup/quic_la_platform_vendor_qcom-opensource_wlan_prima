@@ -840,38 +840,51 @@ WLAN_BAPPhysicalLinkCreate
     VOS_STATUS  vosStatus;
     /* I am using btampContext, instead of pBapPhysLinkMachine */ 
     //tWLAN_BAPbapPhysLinkMachine *pBapPhysLinkMachine;
-    ptBtampContext btampContext; /* btampContext value */ 
+    ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */ 
     v_U8_t status;    /* return the BT-AMP status here */
+    BTAMPFSM_INSTANCEDATA_T *instanceVar = &(btampContext->bapPhysLinkMachine);
 
     /* Validate params */ 
-    if (pBapHCIPhysLinkCreate == NULL) {
+    if ((pBapHCIPhysLinkCreate == NULL) || (NULL == btampContext))
+    {
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: btampHandle value: %x, pBapHCIPhysLinkCreate is %x", 
+                 __FUNCTION__,  btampHandle, pBapHCIPhysLinkCreate); 
       return VOS_STATUS_E_FAULT;
     }
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %x", __FUNCTION__,  btampHandle); 
 
-    /* Fill in the event structure */ 
-    bapEvent.event = eWLAN_BAP_HCI_PHYSICAL_LINK_CREATE;
-    bapEvent.params = pBapHCIPhysLinkCreate;
-    //bapEvent.callback = pBapHCIPhysLinkCreateCB;
+    if(DISCONNECTED != instanceVar->stateVar)
+    {
+       /* Create/Accept Phy link request in invalid state */
+        status = WLANBAP_ERROR_MAX_NUM_CNCTS;
 
-    /* Allocate a new state machine instance */ 
-    /* There will only ever be one of these (NB: Don't assume this.) */
-    /* So for now this returns a pointer to a static structure */ 
-    /* (With all state set to initial values) */
-    vosStatus = WLANBAP_CreateNewPhyLinkCtx ( 
-            btampHandle, 
-            pBapHCIPhysLinkCreate->phy_link_handle, /*  I get phy_link_handle from the Command */
-            pHddHdl,   /* BSL passes in its specific context */
-            &btampContext, /* Handle to return per assoc btampContext value in  */ 
-            BT_INITIATOR); /* BT_INITIATOR */ 
+    }
+    else
+    {
+        /* Fill in the event structure */ 
+        bapEvent.event = eWLAN_BAP_HCI_PHYSICAL_LINK_CREATE;
+        bapEvent.params = pBapHCIPhysLinkCreate;
+        //bapEvent.callback = pBapHCIPhysLinkCreateCB;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampContext value: %x", __FUNCTION__,  btampContext); 
+        /* Allocate a new state machine instance */ 
+        /* There will only ever be one of these (NB: Don't assume this.) */
+        /* So for now this returns a pointer to a static structure */ 
+        /* (With all state set to initial values) */
+        vosStatus = WLANBAP_CreateNewPhyLinkCtx ( 
+                btampHandle, 
+                pBapHCIPhysLinkCreate->phy_link_handle, /*  I get phy_link_handle from the Command */
+                pHddHdl,   /* BSL passes in its specific context */
+                &btampContext, /* Handle to return per assoc btampContext value in  */ 
+                BT_INITIATOR); /* BT_INITIATOR */ 
 
-    /* Handle event */ 
-    vosStatus = btampFsm(btampContext, &bapEvent, &status);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampContext value: %x", __FUNCTION__,  btampContext); 
+
+        /* Handle event */ 
+        vosStatus = btampFsm(btampContext, &bapEvent, &status);
+    }
   
-    /* Format the command status event to return... */ 
+        /* Format the command status event to return... */ 
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_STATUS_EVENT;
     pBapHCIEvent->u.btampCommandStatusEvent.present = 1;
     pBapHCIEvent->u.btampCommandStatusEvent.status = status;
@@ -930,37 +943,51 @@ WLAN_BAPPhysicalLinkAccept
     VOS_STATUS  vosStatus;
     /* I am using btampContext, instead of pBapPhysLinkMachine */ 
     //tWLAN_BAPbapPhysLinkMachine *pBapPhysLinkMachine;
-    ptBtampContext btampContext; /* btampContext value */ 
+    ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */ 
     v_U8_t status;    /* return the BT-AMP status here */
+    BTAMPFSM_INSTANCEDATA_T *instanceVar;
 
     /* Validate params */ 
-    if (pBapHCIPhysLinkAccept == NULL) {
+    if ((pBapHCIPhysLinkAccept == NULL) || (NULL == btampContext))
+    {
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "%s: btampHandle value: %x, pBapHCIPhysLinkAccept is %x", 
+                 __FUNCTION__,  btampHandle, pBapHCIPhysLinkAccept); 
       return VOS_STATUS_E_FAULT;
     }
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %x", __FUNCTION__,  btampHandle); 
 
-    /* Fill in the event structure */ 
-    bapEvent.event = eWLAN_BAP_HCI_PHYSICAL_LINK_ACCEPT;
-    bapEvent.params = pBapHCIPhysLinkAccept;
-    //bapEvent.callback = pBapHCIPhysLinkAcceptCB;
+    instanceVar = &(btampContext->bapPhysLinkMachine);
+    if(DISCONNECTED != instanceVar->stateVar)
+    {
+       /* Create/Accept Phy link request in invalid state */
+        status = WLANBAP_ERROR_MAX_NUM_CNCTS;
 
-    /* Allocate a new state machine instance */ 
-    /* There will only ever be one of these (NB: Don't assume this.) */
-    /* So for now this returns a pointer to a static structure */ 
-    /* (With all state set to initial values) */
-    vosStatus = WLANBAP_CreateNewPhyLinkCtx ( 
-            btampHandle, 
-            pBapHCIPhysLinkAccept->phy_link_handle, /*  I get phy_link_handle from the Command */
-            pHddHdl,   /* BSL passes in its specific context */
-            &btampContext, /* Handle to return per assoc btampContext value in  */ 
-            BT_RESPONDER); /* BT_RESPONDER */ 
+    }
+    else
+    {
+        /* Fill in the event structure */ 
+        bapEvent.event = eWLAN_BAP_HCI_PHYSICAL_LINK_ACCEPT;
+        bapEvent.params = pBapHCIPhysLinkAccept;
+        //bapEvent.callback = pBapHCIPhysLinkAcceptCB;
 
-    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampContext value: %x", __FUNCTION__,  btampContext); 
+        /* Allocate a new state machine instance */ 
+        /* There will only ever be one of these (NB: Don't assume this.) */
+        /* So for now this returns a pointer to a static structure */ 
+        /* (With all state set to initial values) */
+        vosStatus = WLANBAP_CreateNewPhyLinkCtx ( 
+                btampHandle, 
+                pBapHCIPhysLinkAccept->phy_link_handle, /*  I get phy_link_handle from the Command */
+                pHddHdl,   /* BSL passes in its specific context */
+                &btampContext, /* Handle to return per assoc btampContext value in  */ 
+                BT_RESPONDER); /* BT_RESPONDER */ 
 
-    /* Handle event */ 
-    vosStatus = btampFsm(btampContext, &bapEvent, &status);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampContext value: %x", __FUNCTION__,  btampContext); 
+
+        /* Handle event */ 
+        vosStatus = btampFsm(btampContext, &bapEvent, &status);
   
+    }
     /* Format the command status event to return... */ 
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_STATUS_EVENT;
     pBapHCIEvent->u.btampCommandStatusEvent.present = 1;
