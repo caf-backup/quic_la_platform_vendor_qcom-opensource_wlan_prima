@@ -569,8 +569,39 @@ convertToCsrProfile
          Check what do with the remaining channels if any ?
          Number of channels in this Triplet and 
          the Maximum Transmit power level (next 2 triplet values) */
-        pProfile->operationChannel =
-            btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][0];
+        /* Check if at least one channel match between local & remote and choose
+        the first common one */
+        if (btampContext->btamp_AMP_Assoc.HC_pref_num_triplets)
+        {
+
+            /* If no common subset, reject : going to be ugly for 5 Ghz(TBD) */
+            if(((btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][0] + btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][1])<=
+                btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][0]) ||
+               ((btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][0] + btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][1])<=
+                btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][0]))
+            {
+                return VOS_STATUS_E_INVAL;  
+            }
+            else if((btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][0] + btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][1])>
+                    btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][0])
+            {
+                pProfile->operationChannel =  btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][0];  
+            }
+            else if((btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][0] + btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][1])>
+                    btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][0])
+            {
+                pProfile->operationChannel =  btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][0];  
+            }
+            else
+            {
+                return VOS_STATUS_E_INVAL;  
+            }
+        }
+        else
+        {
+            pProfile->operationChannel =
+               btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0][0];
+        }
     }
     else
     {
@@ -616,6 +647,9 @@ convertToCsrProfile
     //set the phyMode to accept anything
     //Taurus means everything because it covers all the things we support
     pProfile->phyMode = eCSR_DOT11_MODE_11n; //eCSR_DOT11_MODE_TAURUS; //eCSR_DOT11_MODE_AUTO; /*eCSR_DOT11_MODE_BEST;*/
+
+    //set the mode in CFG as well
+    sme_CfgSetInt(hHal, WNI_CFG_DOT11_MODE, WNI_CFG_DOT11_MODE_11N, NULL, eANI_BOOLEAN_FALSE);
 
     pProfile->bWPSAssociation = eANI_BOOLEAN_FALSE;
 

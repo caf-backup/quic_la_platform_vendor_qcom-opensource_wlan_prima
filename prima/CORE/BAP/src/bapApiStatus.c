@@ -568,6 +568,12 @@ WLAN_BAPReadLocalAMPAssoc
             btampContext->self_mac_addr, 
             sizeof(btampContext->self_mac_addr)); 
 
+    /*Save the local AMP assoc info*/
+    vos_mem_copy(btampContext->btamp_AMP_Assoc.HC_mac_addr,
+                 btampContext->self_mac_addr, 
+                 sizeof(btampContext->self_mac_addr)); 
+
+
     /* JEZ090303: This logic should return a single channel list with the */ 
     /* selected channel, if we have one. */
     //if (btampContext->channel)  
@@ -577,6 +583,9 @@ WLAN_BAPReadLocalAMPAssoc
         /* Return both the Regulatory Info and one channel list */ 
         btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.present = 1; 
         memcpy (btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.country, "XXX", 3); 
+        /*Save the local AMP assoc info*/
+        vos_mem_copy(btampContext->btamp_AMP_Assoc.HC_pref_country, "XXX", 3);
+
         btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets = 2; 
         btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][0] = 201; 
         btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][1] = 254; 
@@ -617,6 +626,15 @@ WLAN_BAPReadLocalAMPAssoc
         btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][2] = 0;
 
     }  
+
+    /*Save the local AMP assoc info*/
+    btampContext->btamp_AMP_Assoc.HC_pref_num_triplets   = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets;
+    btampContext->btamp_AMP_Assoc.HC_pref_triplets[0][0] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][0];
+    btampContext->btamp_AMP_Assoc.HC_pref_triplets[0][1] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][1]; 
+    btampContext->btamp_AMP_Assoc.HC_pref_triplets[0][2] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[0][2];
+    btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][0] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][0];
+    btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][1] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][1]; 
+    btampContext->btamp_AMP_Assoc.HC_pref_triplets[1][2] = btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets[1][2];
 
     /* Also, at this point, lie and tell the other side we are connected on */
     /* the one channel we support. I hope this convinces the peer as BT-AMP AP */
