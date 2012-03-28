@@ -21,17 +21,23 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <assert.h>
+#include <ctype.h>
+#include <math.h>
+#include <time.h>
 
 #include "athtestcmd.h"
 #include "libtcmd.h"
 #include "testcmd.h"
+#include "sinit_eep.h"
+#include "sinit_common.h"
 
 const char *progname;
 const char commands[] = "commands:\n"
 	"--tx <sine/frame/tx99/tx100/off>\n"
 	"--txfreq <Tx channel or freq(default 2412)>\n"
 	"--txrate <rate index>\n"
-        "--txpwr <frame/tx99/tx100: 0-30dBm,0.5dBm resolution; sine: 0-60, PCDAC vaule>\n"
+	"--txpwr <frame/tx99/tx100: 0-30dBm,0.5dBm resolution; sine: 0-60, PCDAC vaule>\n"
 	"--txantenna <1/2/0 (auto)>\n"
 	"--txpktsz <pkt size, [32-1500](default 1500)>\n"
 	"--txpattern <tx data pattern, 0: all zeros; 1: all ones;"
@@ -43,7 +49,7 @@ const char commands[] = "commands:\n"
 	"--mode <ht40plus/ht40minus/ht20>\n"
 	"--setlongpreamble <1/0>\n"
 	"--numpackets <number of packets to send 0-65535>\n"
-        "--tx sine --txfreq <Tx channel or freq(default 2412)>\n"
+	"--tx sine --txfreq <Tx channel or freq(default 2412)>\n"
 	"--rx <promis/filter/report>\n"
 	"--rxfreq <Rx channel or freq(default 2412)>\n"
 	"--rxantenna <1/2/0 (auto)>\n"
@@ -53,38 +59,38 @@ const char commands[] = "commands:\n"
 	"--SetAntSwitchTable <table1 in decimal value>"
 	" <table2 in decimal value>  (Set table1=0 and table2=0 will"
 	" restore the default AntSwitchTable)\n"
-        "--efusedump --start <start address> --end <end address>\n"
-        "--efusewrite --start <start address> --data <data> (could be one or multiple data in quotation marks)\n"
-        "--otpwrite --data (could be one or multiple data in quotation marks)\n"
-        "--otpdump\n";
+	"--efusedump --start <start address> --end <end address>\n"
+	"--efusewrite --start <start address> --data <data> (could be one or multiple data in quotation marks)\n"
+	"--otpwrite --data (could be one or multiple data in quotation marks)\n"
+	"--otpdump\n";
 
 #define A_ERR(ret, args...) printf(args); exit(ret);
 
-#define A_FREQ_MIN              4920
-#define A_FREQ_MAX              5825
+#define A_FREQ_MIN		4920
+#define A_FREQ_MAX		5825
 
-#define A_CHAN0_FREQ            5000
-#define A_CHAN_MAX              ((A_FREQ_MAX - A_CHAN0_FREQ)/5)
+#define A_CHAN0_FREQ		5000
+#define A_CHAN_MAX		((A_FREQ_MAX - A_CHAN0_FREQ)/5)
 
-#define BG_FREQ_MIN             2412
-#define BG_FREQ_MAX             2484
+#define BG_FREQ_MIN		2412
+#define BG_FREQ_MAX		2484
 
-#define BG_CHAN0_FREQ           2407
-#define BG_CHAN_MIN             ((BG_FREQ_MIN - BG_CHAN0_FREQ)/5)
-#define BG_CHAN_MAX             14	/* corresponding to 2484 MHz */
+#define BG_CHAN0_FREQ		2407
+#define BG_CHAN_MIN		((BG_FREQ_MIN - BG_CHAN0_FREQ)/5)
+#define BG_CHAN_MAX		14	/* corresponding to 2484 MHz */
 
-#define A_20MHZ_BAND_FREQ_MAX   5000
+#define A_20MHZ_BAND_FREQ_MAX	5000
 
-#define INVALID_FREQ    0
-#define A_OK            0
+#define INVALID_FREQ	0
+#define A_OK		0
 
 #define ATH6KL_INTERFACE "wlan0"
 
-#define A_RATE_NUM      28
-#define G_RATE_NUM      28
+#define A_RATE_NUM	28
+#define G_RATE_NUM	28
 
-#define RATE_STR_LEN    20
-#define VENUS_OTP_SIZE  512
+#define RATE_STR_LEN	20
+#define VENUS_OTP_SIZE	512
 typedef const char RATE_STR[RATE_STR_LEN];
 
 const RATE_STR bgRateStrTbl[G_RATE_NUM] = {
@@ -101,23 +107,62 @@ const RATE_STR bgRateStrTbl[G_RATE_NUM] = {
 	{"48  Mb"},
 	{"54  Mb"},
 	{"HT20 MCS0 6.5  Mb"},
-	{"HT20 MCS1 13  Mb"},
+	{"HT20 MCS1 13	Mb"},
 	{"HT20 MCS2 19.5  Mb"},
-	{"HT20 MCS3 26  Mb"},
-	{"HT20 MCS4 39  Mb"},
-	{"HT20 MCS5 52  Mb"},
+	{"HT20 MCS3 26	Mb"},
+	{"HT20 MCS4 39	Mb"},
+	{"HT20 MCS5 52	Mb"},
 	{"HT20 MCS6 58.5  Mb"},
-	{"HT20 MCS7 65  Mb"},
+	{"HT20 MCS7 65	Mb"},
 	{"HT40 MCS0 13.5  Mb"},
 	{"HT40 MCS1 27.0  Mb"},
 	{"HT40 MCS2 40.5  Mb"},
-	{"HT40 MCS3 54  Mb"},
-	{"HT40 MCS4 81  Mb"},
+	{"HT40 MCS3 54	Mb"},
+	{"HT40 MCS4 81	Mb"},
 	{"HT40 MCS5 108  Mb"},
 	{"HT40 MCS6 121.5  Mb"},
 	{"HT40 MCS7 135  Mb"}
 };
+#if !defined(_printf)
+#define _printf printf
+#endif
 
+#define _NAME_MAX  256
+#define _LABEL_MAX  16
+
+typedef struct _calSetup {
+    double	   attenDUT2PM_5G;
+    double	   attenDUT2PM_2G;
+    char	   testflowBinFilename[_NAME_MAX];
+    char	   goldenBinFilename[_NAME_MAX];
+    char	   outputBinFilename[_NAME_MAX];
+    char	   label[_LABEL_MAX];
+} _CAL_SETUP;
+_CAL_SETUP  calSetup = {
+    19.0,
+    18.0,
+    "calTestFlow.bin",
+#ifdef ANDROID
+    "/system/etc/firmware/ath6k/AR6003/hw2.1.1/bdata.bin",
+#else
+    "/lib/firmware/ath6k/AR6003/hw2.1.1/bdata.bin",
+#endif
+#ifdef ANDROID
+    "/persist/bdata.bin",
+#else
+    "new_bdata.bin",
+#endif
+    "wbgf10_010_d0001",
+};
+
+uint32_t  AR6003_EEPROM_SIZE;
+uint32_t  AR6K_EEPROM_SIZE;
+static bool bCalResult;
+#define FIRST_WAIT_INTERVAL	2
+#define POLLING_INTERVAL	1
+#define MAX_WAIT_CYCLE		20
+
+static time_t startTime, endTime;
 static void rxReport(void *buf);
 static void rx_cb(void *buf, int len);
 static uint32_t freqValid(uint32_t val);
@@ -125,14 +170,16 @@ static uint16_t wmic_ieee2freq(uint32_t chan);
 static void prtRateTbl(uint32_t freq);
 static uint32_t rateValid(uint32_t val, uint32_t freq);
 static uint32_t antValid(uint32_t val);
-static uint32_t txPwrValid(TCMD_CONT_TX * txCmd);
+static bool txPwrValid(TCMD_CONT_TX * txCmd);
 static int ath_ether_aton(const char *orig, uint8_t * eth);
 static uint32_t pktSzValid(uint32_t val);
+static void updateCALData(_CAL_SETUP *pCalSetup, TC_MSG *pTCMsg);
+static bool dumpPSATCharResult2File(TC_MSG *pTCMsg);
 
 static bool isHex(char c) {
     return (((c >= '0') && (c <= '9')) ||
-            ((c >= 'A') && (c <= 'F')) ||
-            ((c >= 'a') && (c <= 'f')));
+	    ((c >= 'A') && (c <= 'F')) ||
+	    ((c >= 'a') && (c <= 'f')));
 }
 
 static int usage(void)
@@ -151,7 +198,7 @@ static TC_CMDS sTcCmds;
 
 int main(int argc, char **argv)
 {
-	int c, err;
+	int c, err,i;
 	char ifname[IFNAMSIZ];
 	progname = argv[0];
 	char buf[2048];
@@ -159,26 +206,29 @@ int main(int argc, char **argv)
 	TCMD_CONT_TX *txCmd = (TCMD_CONT_TX *) buf;
 	TCMD_CONT_RX *rxCmd = (TCMD_CONT_RX *) buf;
 	TCMD_PM *pmCmd = (TCMD_PM *) buf;
-        TCMD_SET_REG *setRegCmd = (TCMD_SET_REG *)buf;
-        TC_CMDS  *tCmds = (TC_CMDS *)buf;
-        char efuseBuf[VENUS_OTP_SIZE];
-        char efuseWriteBuf[VENUS_OTP_SIZE];
-        int bufferLength = sizeof(*txCmd);
+	TCMD_SET_REG *setRegCmd = (TCMD_SET_REG *)buf;
+	TC_CMDS  *tCmds = (TC_CMDS *)buf;
+	char efuseBuf[VENUS_OTP_SIZE];
+	char efuseWriteBuf[VENUS_OTP_SIZE];
+	int bufferLength = sizeof(*txCmd);
 
 	txCmd->numPackets = 0;
 	txCmd->wlanMode = TCMD_WLAN_MODE_NOHT;
-        txCmd->tpcm = TPC_TX_PWR;
+	txCmd->tpcm = TPC_TX_PWR;
 	rxCmd->u.para.wlanMode = TCMD_WLAN_MODE_NOHT;
-        rxCmd->u.para.freq = 2412;
+	rxCmd->u.para.freq = 2412;
 
 	if (argc == 1) {
 		usage();
 	}
 
+	/* Log The Start time */
+	startTime = time(NULL);
+
 	while (1) {
 		int option_index = 0;
 
-                static struct option long_options[] = {
+		static struct option long_options[] = {
 			{"version", 0, NULL, 'v'},
 			{"interface", 1, NULL, 'i'},
 			{"tx", 1, NULL, 't'},
@@ -217,374 +267,468 @@ int main(int argc, char **argv)
 			{"otpdump", 0, NULL, 'P'},
 			{"btaddr", 1, NULL, 'B'},
 			{"therm", 0, NULL, 'c'},
+			{"selfInit", 0, NULL, TCMD_PSAT_CAL},
+			{"selfInit_result", 0, NULL, TCMD_PSAT_CAL_RESULT},
+			{"psat_char", 1, NULL, TCMD_CHAR_PSAT},
+			{"psat_char_result", 0, NULL, TCMD_CHAR_PSAT_RESULT},
+			{"sinit", 0, NULL, TCMD_SINIT_WAIT},
 			{0, 0, 0, 0}
 		};
 
 		c = getopt_long(argc, argv, "vi:t:f:g:h:HI:r:p:q:x:u:ao:M:A:L:mU:WOP",
-                         long_options, &option_index);
+			 long_options, &option_index);
 
 		if (c == -1)
 			break;
 
-        switch (c) {
-        case 'i':
-            memset(ifname, '\0', 8);
-            strcpy(ifname, optarg);
-            break;
-        case 't':
-            cmd = TESTMODE_CONT_TX;
+	switch (c) {
+	case 'i':
+	    memset(ifname, '\0', 8);
+	    strcpy(ifname, optarg);
+	    break;
+	case 't':
+	    cmd = TESTMODE_CONT_TX;
 	    txCmd->testCmdId = TCMD_CONT_TX_ID;
-            if (!strcmp(optarg, "sine")) {
-                txCmd->mode = TCMD_CONT_TX_SINE;
-            } else if (!strcmp(optarg, "frame")) {
-                txCmd->mode = TCMD_CONT_TX_FRAME;
-            } else if (!strcmp(optarg, "tx99")) {
-                txCmd->mode = TCMD_CONT_TX_TX99;
-            } else if (!strcmp(optarg, "tx100")) {
-                txCmd->mode = TCMD_CONT_TX_TX100;
-            } else if (!strcmp(optarg, "off")) {
-                txCmd->mode = TCMD_CONT_TX_OFF;
-            }else {
-                cmd = 0;
-            }
-            break;
-        case 'f':
-            txCmd->freq = freqValid(atoi(optarg));
-            break;
-        case 'G':
-            txCmd->shortGuard = 1;
-            break;
-        case 'M':
-            if(cmd == TESTMODE_CONT_TX) {
-                if (!strcmp(optarg, "ht20")) {
-                    txCmd->wlanMode = TCMD_WLAN_MODE_HT20;
-                } else if (!strcmp(optarg, "ht40plus")) {
-                    txCmd->wlanMode = TCMD_WLAN_MODE_HT40PLUS;
-                } else if (!strcmp(optarg, "ht40minus")) {
-                    txCmd->wlanMode = TCMD_WLAN_MODE_HT40MINUS;
-                }
-            } else if(cmd == TESTMODE_CONT_RX) {
-                if (!strcmp(optarg, "ht20")) {
-                    rxCmd->u.para.wlanMode = TCMD_WLAN_MODE_HT20;
-                } else if (!strcmp(optarg, "ht40plus")) {
-                    rxCmd->u.para.wlanMode = TCMD_WLAN_MODE_HT40PLUS;
-                } else if (!strcmp(optarg, "ht40minus")) {
-                    rxCmd->u.para.wlanMode = TCMD_WLAN_MODE_HT40MINUS;
-                }
-            }
-            break;
-        case 'n':
-            txCmd->numPackets = atoi(optarg);
-            break;
-        case 'g':
-            /* let user input index of rateTable instead of string parse */
-            txCmd->dataRate = rateValid(atoi(optarg), txCmd->freq);
-            break;
-        case 'h':
-        {
-            int txPowerAsInt;
-            /* Get tx power from user.  This is given in the form of a number
-             * that's supposed to be either an integer, or an integer + 0.5
-             */
-            double txPowerIndBm = atof(optarg);
+	    if (!strcmp(optarg, "sine")) {
+		txCmd->mode = TCMD_CONT_TX_SINE;
+	    } else if (!strcmp(optarg, "offset")) {
+		txCmd->mode = TCMD_CONT_TX_OFFSETTONE;
+	    } else if (!strcmp(optarg, "frame")) {
+		txCmd->mode = TCMD_CONT_TX_FRAME;
+	    } else if (!strcmp(optarg, "tx99")) {
+		txCmd->mode = TCMD_CONT_TX_TX99;
+	    } else if (!strcmp(optarg, "tx100")) {
+		txCmd->mode = TCMD_CONT_TX_TX100;
+	    } else if (!strcmp(optarg, "off")) {
+		txCmd->mode = TCMD_CONT_TX_OFF;
+	    }else {
+		cmd = 0;
+	    }
+	    break;
+	case 'f':
+	  if (TESTMODE_CMDS == cmd) {
+		uint32_t freq = freqValid(atoi(optarg));
+		uint8_t  freqBin;
+		// TBD: temporarily borrow the length's high B for freq
+		if (freq < 4900) {
+		    freqBin = FREQ2FBIN(atoi(optarg), 1);
+		}
+		else {
+		    freqBin = FREQ2FBIN(atoi(optarg), 0);
+		}
+		tCmds->hdr.u.parm.length &= 0x00ff;
+		tCmds->hdr.u.parm.length |= (freqBin << 8) & 0xff00;
+		//printf("freq: %s %d 0x%x\n", optarg, freqBin, tCmds->hdr.u.parm.length );
+	    }
+	    else {
+		txCmd->freq = freqValid(atoi(optarg));
+	    }
+	    break;
+	case 'G':
+	    txCmd->shortGuard = 1;
+	    break;
+	case 'M':
+	    if(cmd == TESTMODE_CONT_TX) {
+		if (!strcmp(optarg, "ht20")) {
+		    txCmd->wlanMode = TCMD_WLAN_MODE_HT20;
+		} else if (!strcmp(optarg, "ht40plus")) {
+		    txCmd->wlanMode = TCMD_WLAN_MODE_HT40PLUS;
+		} else if (!strcmp(optarg, "ht40minus")) {
+		    txCmd->wlanMode = TCMD_WLAN_MODE_HT40MINUS;
+		}
+	    } else if(cmd == TESTMODE_CONT_RX) {
+		if (!strcmp(optarg, "ht20")) {
+		    rxCmd->u.para.wlanMode = TCMD_WLAN_MODE_HT20;
+		} else if (!strcmp(optarg, "ht40plus")) {
+		    rxCmd->u.para.wlanMode = TCMD_WLAN_MODE_HT40PLUS;
+		} else if (!strcmp(optarg, "ht40minus")) {
+		    rxCmd->u.para.wlanMode = TCMD_WLAN_MODE_HT40MINUS;
+		}
+	    }
+	    break;
+	case 'n':
+	    txCmd->numPackets = atoi(optarg);
+	    break;
+	case 'g':
+	    /* let user input index of rateTable instead of string parse */
+	    txCmd->dataRate = rateValid(atoi(optarg), txCmd->freq);
+	    break;
+	case 'h':
+	{
+	    int txPowerAsInt;
+	    /* Get tx power from user.	This is given in the form of a number
+	     * that's supposed to be either an integer, or an integer + 0.5
+	     */
+	    double txPowerIndBm = atof(optarg);
 
-            /*
-             * Check to make sure that the number given is either an integer
-             * or an integer + 0.5
-             */
-            txPowerAsInt = (int)txPowerIndBm;
-            if (((txPowerIndBm - (double)txPowerAsInt) == 0) ||
-                (((txPowerIndBm - (double)txPowerAsInt)) == 0.5) ||
-                (((txPowerIndBm - (double)txPowerAsInt)) == -0.5)) {
-                if (txCmd->mode != TCMD_CONT_TX_SINE) {
-                    txCmd->txPwr = txPowerIndBm * 2;
-                } else {
-                    txCmd->txPwr = txPowerIndBm;
-                }
-           } else {
-                printf("Bad argument to --txpwr, must be in steps of 0.5 dBm\n");
-                cmd = 0;
-           }
+	    /*
+	     * Check to make sure that the number given is either an integer
+	     * or an integer + 0.5
+	     */
+	    txPowerAsInt = (int)txPowerIndBm;
+	    if (((txPowerIndBm - (double)txPowerAsInt) == 0) ||
+		(((txPowerIndBm - (double)txPowerAsInt)) == 0.5) ||
+		(((txPowerIndBm - (double)txPowerAsInt)) == -0.5)) {
+		if ((txCmd->mode != TCMD_CONT_TX_SINE) && (txCmd->mode != TCMD_CONT_TX_OFFSETTONE)) {
+		    txCmd->txPwr = txPowerIndBm * 2;
+		} else {
+		    txCmd->txPwr = txPowerIndBm;
+		}
+	   } else {
+		printf("Bad argument to --txpwr, must be in steps of 0.5 dBm\n");
+		cmd = 0;
+	   }
 
-            txCmd->tpcm = TPC_TX_PWR;
-        }
-            break;
-        case 'H':
-            txCmd->tpcm = TPC_TGT_PWR;
-            break;
-        case 'I':
-            txCmd->tpcm = TPC_FORCED_GAIN;
-            txCmd->txPwr = atof(optarg);
-            break;
-        case 'j':
-            txCmd->antenna = antValid(atoi(optarg));
-            break;
-        case 'z':
-            txCmd->pktSz = pktSzValid(atoi(optarg));
-            break;
-        case 'e':
-            txCmd->txPattern = atoi(optarg);
-            break;
-        case 'r':
-            cmd = TESTMODE_CONT_RX;
+	    txCmd->tpcm = TPC_TX_PWR;
+	}
+	    break;
+	case 'H':
+	    txCmd->tpcm = TPC_TGT_PWR;
+	    break;
+	case 'I':
+	    txCmd->tpcm = TPC_FORCED_GAIN;
+	    txCmd->txPwr = atof(optarg);
+	    break;
+	case 'j':
+	    txCmd->antenna = antValid(atoi(optarg));
+	    break;
+	case 'z':
+	    txCmd->pktSz = pktSzValid(atoi(optarg));
+	    break;
+	case 'e':
+	    txCmd->txPattern = atoi(optarg);
+	    break;
+	case 'r':
+	    cmd = TESTMODE_CONT_RX;
 	    rxCmd->testCmdId = TCMD_CONT_RX_ID;
-            if (!strcmp(optarg, "promis")) {
-                rxCmd->act = TCMD_CONT_RX_PROMIS;
+	    if (!strcmp(optarg, "promis")) {
+		rxCmd->act = TCMD_CONT_RX_PROMIS;
 		printf(" Its cont Rx promis mode \n");
-            } else if (!strcmp(optarg, "filter")) {
-                rxCmd->act = TCMD_CONT_RX_FILTER;
+	    } else if (!strcmp(optarg, "filter")) {
+		rxCmd->act = TCMD_CONT_RX_FILTER;
 		printf(" Its cont Rx  filter  mode \n");
-            } else if (!strcmp(optarg, "report")) {
+	    } else if (!strcmp(optarg, "report")) {
 		printf(" Its cont Rx report  mode \n");
-                rxCmd->act = TCMD_CONT_RX_REPORT;
-                resp = true;
-            } else {
-                cmd = 0;
-            }
-            break;
-        case 'p':
-            rxCmd->u.para.freq = freqValid(atoi(optarg));
-            break;
-        case 'q':
-            rxCmd->u.para.antenna = antValid(atoi(optarg));
-            break;
-        case 'x':
-            cmd = TESTMODE_PM;
+		rxCmd->act = TCMD_CONT_RX_REPORT;
+		resp = true;
+	    } else {
+		cmd = 0;
+	    }
+	    break;
+	case 'p':
+	    rxCmd->u.para.freq = freqValid(atoi(optarg));
+	    break;
+	case 'q':
+	    rxCmd->u.para.antenna = antValid(atoi(optarg));
+	    break;
+	case 'x':
+	    cmd = TESTMODE_PM;
 	    pmCmd->testCmdId = TCMD_PM_ID;
-            if (!strcmp(optarg, "wakeup")) {
-                pmCmd->mode = TCMD_PM_WAKEUP;
-            } else if (!strcmp(optarg, "sleep")) {
-                pmCmd->mode = TCMD_PM_SLEEP;
-            } else if (!strcmp(optarg, "deepsleep")) {
-                pmCmd->mode = TCMD_PM_DEEPSLEEP;
-            } else {
-                cmd = 0;
-            }
-            break;
-        case 's':
-            {
-                uint8_t mac[ATH_MAC_LEN];
+	    if (!strcmp(optarg, "wakeup")) {
+		pmCmd->mode = TCMD_PM_WAKEUP;
+	    } else if (!strcmp(optarg, "sleep")) {
+		pmCmd->mode = TCMD_PM_SLEEP;
+	    } else if (!strcmp(optarg, "deepsleep")) {
+		pmCmd->mode = TCMD_PM_DEEPSLEEP;
+	    } else {
+		cmd = 0;
+	    }
+	    break;
+	case 's':
+	    {
+		uint8_t mac[ATH_MAC_LEN];
 
-                cmd = TESTMODE_CONT_RX;
-                rxCmd->testCmdId = TCMD_CONT_RX_ID;
-                rxCmd->act = TCMD_CONT_RX_SETMAC;
-                if (ath_ether_aton(optarg, mac) != 0) {
-                    printf("Invalid mac address format! \n");
-                }
-                memcpy(rxCmd->u.mac.addr, mac, ATH_MAC_LEN);
-                printf("JLU: tcmd: setmac 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n",
-                        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-                break;
-            }
-        case 'u':
-            {
-                txCmd->aifsn = atoi(optarg) & 0xff;
-                printf("AIFS:%d\n", txCmd->aifsn);
-            }
-            break;
-        case 'a':
-            if(cmd == TESTMODE_CONT_TX) {
-                txCmd->enANI = true;
-            } else if(cmd == TESTMODE_CONT_RX) {
-                rxCmd->enANI = true;
-            }
-            break;
-        case 'o':
-            txCmd->scramblerOff = true;
-            break;
-        case 'S':
-            if (argc < 4)
-                usage();
-            cmd = TESTMODE_CONT_RX;
-            rxCmd->testCmdId = TCMD_CONT_RX_ID;
-            rxCmd->act = TCMD_CONT_RX_SET_ANT_SWITCH_TABLE;
-            rxCmd->u.antswitchtable.antswitch1 = strtoul(argv[2], (char **)NULL,0);
-            rxCmd->u.antswitchtable.antswitch2 = strtoul(argv[3], (char **)NULL,0);
-            break;
-        case 'l':
-            printf("Not supported\n");
-            return 0;
-            break;
-        case 'R':
-            if (argc < 5) {
-                printf("usage:athtestcmd -i wlan0 --setreg 0x1234 --regval 0x01 --flag 0\n");
-            }
-            cmd = TESTMODE_SETREG;
-            setRegCmd->testCmdId = TCMD_SET_REG_ID;
-            setRegCmd->regAddr   = strtoul(optarg, (char **)NULL, 0);//atoi(optarg);
-            break;
-        case 'V':
-            setRegCmd->val = strtoul(optarg, (char **)NULL, 0);
-            break;
-        case 'F':
-            setRegCmd->flag = atoi(optarg);
-            break;
-        case 'w':
-            rxCmd->u.mac.otpWriteFlag = 1;
-            break;
-        case 'E':
-            rxCmd->u.mac.regDmn[0] = 0xffff&(strtoul(optarg, (char **)NULL, 0));
-            rxCmd->u.mac.regDmn[1] = 0xffff&(strtoul(optarg, (char **)NULL, 0)>>16);
-            break;
-        case 'B':
-            {
-                uint8_t btaddr[ATH_MAC_LEN];
-                if (ath_ether_aton(optarg, btaddr) != 0) {
-                    printf("Invalid mac address format! \n");
-                }
-                memcpy(rxCmd->u.mac.btaddr, btaddr, ATH_MAC_LEN);
-                printf("JLU: tcmd: setbtaddr 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n",
-                        btaddr[0], btaddr[1], btaddr[2], btaddr[3], btaddr[4], btaddr[5]);
-            }
-            break;
-        case 'c':
-            cmd = TESTMODE_CMDS;
-            tCmds->hdr.testCmdId = TC_CMDS_ID;
-            {
-                tCmds->hdr.u.parm.length = 0;
-                tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
-                act = tCmds->hdr.act = TC_CMDS_READTHERMAL;//TC_CMDS_CAL_THERMALVOLT;
-                resp = true;
-            }
-            break;
-        case 'A':
-            efuse_begin = atoi(optarg);
-            break;
+		cmd = TESTMODE_CONT_RX;
+		rxCmd->testCmdId = TCMD_CONT_RX_ID;
+		rxCmd->act = TCMD_CONT_RX_SETMAC;
+		if (ath_ether_aton(optarg, mac) != 0) {
+		    printf("Invalid mac address format! \n");
+		}
+		memcpy(rxCmd->u.mac.addr, mac, ATH_MAC_LEN);
+		printf("JLU: tcmd: setmac 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n",
+			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+		break;
+	    }
+	case 'u':
+	    {
+		txCmd->aifsn = atoi(optarg) & 0xff;
+		printf("AIFS:%d\n", txCmd->aifsn);
+	    }
+	    break;
+	case 'a':
+	    if(cmd == TESTMODE_CONT_TX) {
+		txCmd->enANI = true;
+	    } else if(cmd == TESTMODE_CONT_RX) {
+		rxCmd->enANI = true;
+	    }
+	    break;
+	case 'o':
+	    txCmd->scramblerOff = true;
+	    break;
+	case 'S':
+	    if (argc < 4)
+		usage();
+	    cmd = TESTMODE_CONT_RX;
+	    rxCmd->testCmdId = TCMD_CONT_RX_ID;
+	    rxCmd->act = TCMD_CONT_RX_SET_ANT_SWITCH_TABLE;
+	    rxCmd->u.antswitchtable.antswitch1 = strtoul(argv[2], (char **)NULL,0);
+	    rxCmd->u.antswitchtable.antswitch2 = strtoul(argv[3], (char **)NULL,0);
+	    break;
+	case 'l':
+	    printf("Not supported\n");
+	    return 0;
+	    break;
+	case 'R':
+	    if (argc < 5) {
+		printf("usage:athtestcmd -i wlan0 --setreg 0x1234 --regval 0x01 --flag 0\n");
+	    }
+	    cmd = TESTMODE_SETREG;
+	    setRegCmd->testCmdId = TCMD_SET_REG_ID;
+	    setRegCmd->regAddr	 = strtoul(optarg, (char **)NULL, 0);//atoi(optarg);
+	    break;
+	case 'V':
+	    setRegCmd->val = strtoul(optarg, (char **)NULL, 0);
+	    break;
+	case 'F':
+	    setRegCmd->flag = atoi(optarg);
+	    break;
+	case 'w':
+	    rxCmd->u.mac.otpWriteFlag = 1;
+	    break;
+	case 'E':
+	    rxCmd->u.mac.regDmn[0] = 0xffff&(strtoul(optarg, (char **)NULL, 0));
+	    rxCmd->u.mac.regDmn[1] = 0xffff&(strtoul(optarg, (char **)NULL, 0)>>16);
+	    break;
+	case 'B':
+	    {
+		uint8_t btaddr[ATH_MAC_LEN];
+		if (ath_ether_aton(optarg, btaddr) != 0) {
+		    printf("Invalid mac address format! \n");
+		}
+		memcpy(rxCmd->u.mac.btaddr, btaddr, ATH_MAC_LEN);
+		printf("JLU: tcmd: setbtaddr 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n",
+			btaddr[0], btaddr[1], btaddr[2], btaddr[3], btaddr[4], btaddr[5]);
+	    }
+	    break;
+	case 'c':
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId = TC_CMDS_ID;
+	    {
+		tCmds->hdr.u.parm.length = 0;
+		tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+		act = tCmds->hdr.act = TC_CMDS_READTHERMAL;//TC_CMDS_CAL_THERMALVOLT;
+		resp = true;
+	    }
+	    break;
+	case 'A':
+	    efuse_begin = atoi(optarg);
+	    break;
 
-        case 'L':
-            efuse_end = atoi(optarg);
-            break;
+	case 'L':
+	    efuse_end = atoi(optarg);
+	    break;
 
-        case 'U':
-            {
-                uint8_t* pucArg = (uint8_t*)optarg;
-                uint8_t  c;
-                uint8_t  strBuf[256];
-                uint8_t  pos = 0;
-                uint16_t length = 0;
-                uint32_t  data;
+	case 'U':
+	    {
+		uint8_t* pucArg = (uint8_t*)optarg;
+		uint8_t  c;
+		uint8_t  strBuf[256];
+		uint8_t  pos = 0;
+		uint16_t length = 0;
+		uint32_t  data;
 
-                /* Sweep string to end */
-                while (1) {
-                    c = *pucArg++;
-                    if (isHex(c)) {
-                        strBuf[pos++] = c;
-                    } else {
-                        strBuf[pos] = '\0';
-                        pos = 0;
-                        sscanf(((char *)&strBuf), "%x", &data);
-                        efuseWriteBuf[length++] = (data & 0xFF);
+		/* Sweep string to end */
+		while (1) {
+		    c = *pucArg++;
+		    if (isHex(c)) {
+			strBuf[pos++] = c;
+		    } else {
+			strBuf[pos] = '\0';
+			pos = 0;
+			sscanf(((char *)&strBuf), "%x", &data);
+			efuseWriteBuf[length++] = (data & 0xFF);
 
-                        /* End of arg string */
-                        if (c == '\0') {
-                            break;
-                        }
-                    }
-                }
+			/* End of arg string */
+			if (c == '\0') {
+			    break;
+			}
+		    }
+		}
 
-                data_length = length;
-            }
-            break;
+		data_length = length;
+	    }
+	    break;
 
-        case 'm':
-            cmd = TESTMODE_CMDS;
-            tCmds->hdr.testCmdId      = TC_CMDS_ID;
-            act = tCmds->hdr.act      = TC_CMDS_EFUSEDUMP;
-            resp = true;
-            break;
+	case 'm':
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId      = TC_CMDS_ID;
+	    act = tCmds->hdr.act      = TC_CMDS_EFUSEDUMP;
+	    resp = true;
+	    break;
 
-        case 'W':
-            cmd = TESTMODE_CMDS;
-            tCmds->hdr.testCmdId      = TC_CMDS_ID;
-            act = tCmds->hdr.act      = TC_CMDS_EFUSEWRITE;
-            resp = true;
-            break;
+	case 'W':
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId      = TC_CMDS_ID;
+	    act = tCmds->hdr.act      = TC_CMDS_EFUSEWRITE;
+	    resp = true;
+	    break;
 
-        case 'O':
-            cmd = TESTMODE_CMDS;
-            tCmds->hdr.testCmdId      = TC_CMDS_ID;
-            act = tCmds->hdr.act      = TC_CMDS_OTPSTREAMWRITE;
-            resp = true;
-            break;
+	case 'O':
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId      = TC_CMDS_ID;
+	    act = tCmds->hdr.act      = TC_CMDS_OTPSTREAMWRITE;
+	    resp = true;
+	    break;
 
-        case 'P':
-            cmd = TESTMODE_CMDS;
-            tCmds->hdr.testCmdId      = TC_CMDS_ID;
-            act = tCmds->hdr.act      = TC_CMDS_OTPDUMP;
-            resp = true;
-            break;
+	case 'P':
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId      = TC_CMDS_ID;
+	    act = tCmds->hdr.act      = TC_CMDS_OTPDUMP;
+	    resp = true;
+	    break;
 
-        default:
-            usage();
-        }
+	case TCMD_PSAT_CAL:
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId = TC_CMDS_ID;
+	    tCmds->hdr.u.parm.length = 0;
+	    tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+	    tCmds->hdr.act = TC_CMDS_PSAT_CAL;
+	    resp = true;
+	    break;
+
+	case TCMD_SINIT_WAIT:
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId = TC_CMDS_ID;
+	    tCmds->hdr.u.parm.length = (uint16_t)0;
+	    tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+	    tCmds->hdr.act = TC_CMDS_SINIT_WAIT;
+	    resp = true;
+	    break;
+
+	case TCMD_PSAT_CAL_RESULT:
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId = TC_CMDS_ID;
+	    {
+		tCmds->hdr.u.parm.length = 0;
+		tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+		tCmds->hdr.act = TC_CMDS_PSAT_CAL_RESULT;
+	    }
+	    resp = true;
+	    bCalResult = false;
+	    break;
+
+	case TCMD_CHAR_PSAT:
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId = TC_CMDS_ID;
+	    {
+		tCmds->hdr.u.parm.length = 0;
+		tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+		tCmds->hdr.act = TC_CMDS_CHAR_PSAT;
+	    }
+	    // TBD: temporarily borrow the length's lower B for sweep entry
+	    tCmds->hdr.u.parm.length &= 0xff00;
+	    tCmds->hdr.u.parm.length |= (atoi(optarg)) & 0xff;
+	    printf("optarg %s %d\n", optarg, tCmds->hdr.u.parm.length );
+
+	    break;
+
+	case TCMD_CHAR_PSAT_RESULT:
+	    cmd = TESTMODE_CMDS;
+	    tCmds->hdr.testCmdId = TC_CMDS_ID;
+	    {
+		tCmds->hdr.u.parm.length = NUM_PSAT_CHAR_PARMS;
+		tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+		tCmds->hdr.act = TC_CMDS_CHAR_PSAT_RESULT;
+	    }
+	    resp = true;
+	    break;
+
+	default:
+	    usage();
+	}
      }
 
      if ( cmd == TESTMODE_CMDS )
      {
-         if ( tCmds->hdr.act == TC_CMDS_EFUSEWRITE )
-         {
-            int i;
-            /* Error check */
-            if (data_length == 0) {
-                printf("No data to write, exit..\n");
-                return 0;
-            } else if ((efuse_begin + data_length + 4) > TC_CMDS_SIZE_MAX) {
-                printf("Exceed eFuse border: %d, exit..\n", (TC_CMDS_SIZE_MAX - 1));
-                return 0;
-            }
+	 if ( tCmds->hdr.act == TC_CMDS_EFUSEWRITE )
+	 {
+	    int i;
+	    /* Error check */
+	    if (data_length == 0) {
+		printf("No data to write, exit..\n");
+		return 0;
+	    } else if ((efuse_begin + data_length + 4) > TC_CMDS_SIZE_MAX) {
+		printf("Exceed eFuse border: %d, exit..\n", (TC_CMDS_SIZE_MAX - 1));
+		return 0;
+	    }
 
-            /* PRINT */
-            printf("eFuse data (%d Bytes): ", data_length);
-            for (i = 0; i < data_length; i++) {
-                printf("%02X ", efuseWriteBuf[i]);
-            }
-            printf("\n");
+	    /* PRINT */
+	    printf("eFuse data (%d Bytes): ", data_length);
+	    for (i = 0; i < data_length; i++) {
+		printf("%02X ", efuseWriteBuf[i]);
+	    }
+	    printf("\n");
 
-            /* Write address and data length */
-            tCmds->buf[0] = (efuse_begin & 0xFF);
-            tCmds->buf[1] = (efuse_begin >> 8) & 0xFF;
-            tCmds->buf[2] = (data_length & 0xFF);
-            tCmds->buf[3] = (data_length >> 8) & 0xFF;
+	    /* Write address and data length */
+	    tCmds->buf[0] = (efuse_begin & 0xFF);
+	    tCmds->buf[1] = (efuse_begin >> 8) & 0xFF;
+	    tCmds->buf[2] = (data_length & 0xFF);
+	    tCmds->buf[3] = (data_length >> 8) & 0xFF;
 
-            /* Copy data to tcmd buffer. The first 4 bytes are the ID and length */
-            memcpy((void*)&(tCmds->buf[4]), (void*)&(efuseWriteBuf[0]), data_length);
+	    /* Copy data to tcmd buffer. The first 4 bytes are the ID and length */
+	    memcpy((void*)&(tCmds->buf[4]), (void*)&(efuseWriteBuf[0]), data_length);
 
-            /* Construct eFuse Write */
-            tCmds->hdr.u.parm.length  = (4 + data_length);
-            tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
-        }
-        else if ( tCmds->hdr.act == TC_CMDS_OTPSTREAMWRITE )
-        {
-            int i;
+	    /* Construct eFuse Write */
+	    tCmds->hdr.u.parm.length  = (4 + data_length);
+	    tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+	}
+	else if ( tCmds->hdr.act == TC_CMDS_OTPSTREAMWRITE )
+	{
+	    int i;
 
-            /* Error check */
-            if (data_length == 0) {
-                printf("No data to write, exit..\n");
-                return 0;
-            } else if ((data_length + 4) > TC_CMDS_SIZE_MAX) {
-                printf("Exceed OTP size: %d, exit..\n", data_length);
-                return 0;
-            }
+	    /* Error check */
+	    if (data_length == 0) {
+		printf("No data to write, exit..\n");
+		return 0;
+	    } else if ((data_length + 4) > TC_CMDS_SIZE_MAX) {
+		printf("Exceed OTP size: %d, exit..\n", data_length);
+		return 0;
+	    }
 
-            /* PRINT */
-            printf("Write OTP data (%d Bytes): ", data_length);
-            for (i = 0; i < data_length; i++) {
-                printf("%02X ", efuseWriteBuf[i]);
-            }
-            printf("\n");
+	    /* PRINT */
+	    printf("Write OTP data (%d Bytes): ", data_length);
+	    for (i = 0; i < data_length; i++) {
+		printf("%02X ", efuseWriteBuf[i]);
+	    }
+	    printf("\n");
 
-            /* Copy data to tcmd buffer. The first 4 bytes are the ID and length */
-            memcpy((void*)&(tCmds->buf[0]), (void*)&(efuseWriteBuf[0]), data_length);
+	    /* Copy data to tcmd buffer. The first 4 bytes are the ID and length */
+	    memcpy((void*)&(tCmds->buf[0]), (void*)&(efuseWriteBuf[0]), data_length);
 
-            /* Construct eFuse Write */
-            tCmds->hdr.u.parm.length  = data_length;
-            tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
-        }
-        else if ( tCmds->hdr.act == TC_CMDS_OTPDUMP )
-        {
-            tCmds->hdr.u.parm.length  = 0;
-            tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
-        }
+	    /* Construct eFuse Write */
+	    tCmds->hdr.u.parm.length  = data_length;
+	    tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+	}
+	else if ( tCmds->hdr.act == TC_CMDS_OTPDUMP )
+	{
+	    tCmds->hdr.u.parm.length  = 0;
+	    tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+	}
+	else if ( tCmds->hdr.act == TC_CMDS_CHAR_PSAT )
+	{
+	    uint32_t ii = tCmds->hdr.u.parm.length & 0xff;
+	    uint8_t freq= (uint8_t)((tCmds->hdr.u.parm.length >> 8) & 0xff);
+	    tCmds->hdr.u.parm.length = NUM_PSAT_CHAR_PARMS;
+	    tCmds->buf[0] = psatSweepTbl[ii].an_txrf3_rdiv2g;
+	    tCmds->buf[1] = psatSweepTbl[ii].an_txrf3_pdpredist2g;
+	    tCmds->buf[2] = psatSweepTbl[ii].an_rxtx2_mxrgain;
+	    tCmds->buf[3] = psatSweepTbl[ii].an_rxrf_bias1_pwd_ic25mxr2gh;
+	    tCmds->buf[4] = psatSweepTbl[ii].an_bias2_pwd_ic25rxrf;
+	    tCmds->buf[5] = psatSweepTbl[ii].an_bb1_i2v_curr2x;
+	    tCmds->buf[6] = psatSweepTbl[ii].an_txrf3_capdiv2g;
+	    tCmds->buf[7] = freq;
+	    printf("freq %d %d %d %d %d %d %d %d\n", tCmds->buf[7], tCmds->buf[0], tCmds->buf[1], tCmds->buf[2], tCmds->buf[3],tCmds->buf[4], tCmds->buf[5], tCmds->buf[6]);
+	}
     }
 
     /* default bufferLength = sizeof(*txCmd)*/
@@ -614,82 +758,115 @@ int main(int argc, char **argv)
      err = tcmd_tx_init(ATH6KL_INTERFACE, rx_cb);
 
      if (err)
-        return err;
+	return err;
 
      if ( (cmd == TESTMODE_CMDS) && (tCmds->hdr.act == TC_CMDS_EFUSEDUMP) )
      {
-        int i, k;
-        int blkNum;
-        uint16_t efuseEnd   = efuse_end;
-        uint16_t efuseBegin = efuse_begin;
-        uint16_t efusePrintAnkor;
-        uint16_t numPlaceHolder;
+	int i, k;
+	int blkNum;
+	uint16_t efuseEnd   = efuse_end;
+	uint16_t efuseBegin = efuse_begin;
+	uint16_t efusePrintAnkor;
+	uint16_t numPlaceHolder;
 
-        /* Input check */
-        if (efuseEnd > (VENUS_OTP_SIZE - 1)) {
-            efuseEnd = (VENUS_OTP_SIZE - 1);
-        }
+	/* Input check */
+	if (efuseEnd > (VENUS_OTP_SIZE - 1)) {
+	    efuseEnd = (VENUS_OTP_SIZE - 1);
+	}
 
-        if (efuseBegin > efuseEnd) {
-            efuseBegin = efuseEnd;
-        }
+	if (efuseBegin > efuseEnd) {
+	    efuseBegin = efuseEnd;
+	}
 
-        efusePrintAnkor = efuseBegin;
+	efusePrintAnkor = efuseBegin;
 
-        blkNum = ((efuseEnd - efuseBegin) / TC_CMDS_SIZE_MAX) + 1;
+	blkNum = ((efuseEnd - efuseBegin) / TC_CMDS_SIZE_MAX) + 1;
 
-        /* Request data in several trys */
-        for (i = 0; i < blkNum; i++) {
-            tCmds->hdr.testCmdId      = TC_CMDS_ID;
-            tCmds->hdr.act            = TC_CMDS_EFUSEDUMP;
-            tCmds->hdr.u.parm.length  = 4;
-            tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+	/* Request data in several trys */
+	for (i = 0; i < blkNum; i++) {
+	    tCmds->hdr.testCmdId      = TC_CMDS_ID;
+	    tCmds->hdr.act	      = TC_CMDS_EFUSEDUMP;
+	    tCmds->hdr.u.parm.length  = 4;
+	    tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
 
-            tCmds->buf[0] = (efuseBegin & 0xFF);
-            tCmds->buf[1] = (efuseBegin >> 8) & 0xFF;
-            tCmds->buf[2] = (efuseEnd & 0xFF);
-            tCmds->buf[3] = (efuseEnd >> 8) & 0xFF;
+	    tCmds->buf[0] = (efuseBegin & 0xFF);
+	    tCmds->buf[1] = (efuseBegin >> 8) & 0xFF;
+	    tCmds->buf[2] = (efuseEnd & 0xFF);
+	    tCmds->buf[3] = (efuseEnd >> 8) & 0xFF;
 
-            if ((err = tcmd_tx(buf, bufferLength /* weak */, resp))) {
-	        fprintf(stderr, "tcmd_tx had error: %s!\n", strerror(-err));
-                return 0;
-            }
+	    if ((err = tcmd_tx(buf, bufferLength /* weak */, resp))) {
+		fprintf(stderr, "tcmd_tx had error: %s!\n", strerror(-err));
+		return 0;
+	    }
 
-            /* Last block? */
-            //sTcCmds populated in the callback..
-            if ((efuseEnd - efuseBegin + 1) < TC_CMDS_SIZE_MAX) {
-                memcpy((void*)(efuseBuf + efuseBegin), (void*)&(sTcCmds.buf[0]), (efuseEnd - efuseBegin + 1));
-            } else {
-                memcpy((void*)(efuseBuf + efuseBegin), (void*)&(sTcCmds.buf[0]), TC_CMDS_SIZE_MAX);
-            }
+	    /* Last block? */
+	    //sTcCmds populated in the callback..
+	    if ((efuseEnd - efuseBegin + 1) < TC_CMDS_SIZE_MAX) {
+		memcpy((void*)(efuseBuf + efuseBegin), (void*)&(sTcCmds.buf[0]), (efuseEnd - efuseBegin + 1));
+	    } else {
+		memcpy((void*)(efuseBuf + efuseBegin), (void*)&(sTcCmds.buf[0]), TC_CMDS_SIZE_MAX);
+	    }
 
-            /* Adjust the efuseBegin but keep efuseEnd unchanged */
-            efuseBegin += TC_CMDS_SIZE_MAX;
-         }
+	    /* Adjust the efuseBegin but keep efuseEnd unchanged */
+	    efuseBegin += TC_CMDS_SIZE_MAX;
+	 }
 
-         /* Output Dump */
-         printf("------------------- eFuse Dump ----------------------");
-         for (i = efusePrintAnkor; i <= efuseEnd; i++) {
-             /* Cosmetics */
-             if (i == efusePrintAnkor) {
-                 numPlaceHolder = (efusePrintAnkor & 0x0F);
-                 printf("\n%04X:", (efusePrintAnkor & 0xFFF0));
-                 for (k = 0; k < numPlaceHolder; k++) {
-                     printf("   ");
-                  }
-             } else if ((i & 0x0F) == 0) {
-                 printf("\n%04X:", i);
-             }
+	 /* Output Dump */
+	 printf("------------------- eFuse Dump ----------------------");
+	 for (i = efusePrintAnkor; i <= efuseEnd; i++) {
+	     /* Cosmetics */
+	     if (i == efusePrintAnkor) {
+		 numPlaceHolder = (efusePrintAnkor & 0x0F);
+		 printf("\n%04X:", (efusePrintAnkor & 0xFFF0));
+		 for (k = 0; k < numPlaceHolder; k++) {
+		     printf("	");
+		  }
+	     } else if ((i & 0x0F) == 0) {
+		 printf("\n%04X:", i);
+	     }
 
-             printf(" %02X", efuseBuf[i]);
-         }
-         printf("\n\n");
+	     printf(" %02X", efuseBuf[i]);
+	 }
+	 printf("\n\n");
+     }
+     else if ( (cmd == TESTMODE_CMDS) && (tCmds->hdr.act == TC_CMDS_SINIT_WAIT) )
+     {
+	 if ((err = tcmd_tx(buf, bufferLength /* weak */, resp))) {
+	    fprintf(stderr, "tcmd_tx had error: %s!\n", strerror(-err));
+	    return 0;
+	  }
+
+	 sleep(FIRST_WAIT_INTERVAL); /* Wait 2s first */
+
+	 /* Request data in several trys */
+	 for (i = 0; i < MAX_WAIT_CYCLE; i++) {
+	     tCmds->hdr.testCmdId      = TC_CMDS_ID;
+	     tCmds->hdr.u.parm.length  = (uint16_t)0;
+	     tCmds->hdr.u.parm.version = TC_CMDS_VERSION_TS;
+	     tCmds->hdr.act	       = TC_CMDS_PSAT_CAL_RESULT;
+	     resp = true;
+	     bCalResult = false;
+
+	     if ((err = tcmd_tx(buf, bufferLength /* weak */, resp))) {
+		/*don't let main return bcs the reply may not be ready. Try again.*/
+		/*fprintf(stderr, "tcmd_tx had error: %s!\n", strerror(-err));*/
+		/*return 0;*/
+	     }
+	     if (!bCalResult) {
+		 sleep(POLLING_INTERVAL);
+		 printf(".");
+	     } else {
+		 endTime = time(NULL);
+		 printf("Wait time = %ld(s)\n", (endTime - startTime));
+		 break;
+	     }
+	  }
      }
      else
      {
-         if ((err = tcmd_tx(buf, bufferLength /* weak */, resp))) {
+	 if ((err = tcmd_tx(buf, bufferLength /* weak */, resp))) {
 	    fprintf(stderr, "tcmd_tx had error: %s!\n", strerror(-err));
-          }
+	  }
     }
 
      return 0;
@@ -706,22 +883,22 @@ static void rxReport(void *buf)
 	uint16_t *rateCntShortGuard = report->rateCntShortGuard;
 
 	printf
-	    ("total pkt %d ; crcError pkt %d ; secErr pkt %d ;  average rssi %d\n",
+	    ("total pkt %d ; crcError pkt %d ; secErr pkt %d ;	average rssi %d\n",
 	     pkt, crcError, secErr,
 	     (int32_t) (pkt ? (rssi / (int32_t) pkt) : 0));
 
-	printf("1Mbps     %d\n", rateCnt[0]);
-	printf("2Mbps     %d\n", rateCnt[1]);
+	printf("1Mbps	  %d\n", rateCnt[0]);
+	printf("2Mbps	  %d\n", rateCnt[1]);
 	printf("5.5Mbps   %d\n", rateCnt[2]);
-	printf("11Mbps    %d\n", rateCnt[3]);
-	printf("6Mbps     %d\n", rateCnt[4]);
-	printf("9Mbps     %d\n", rateCnt[5]);
-	printf("12Mbps    %d\n", rateCnt[6]);
-	printf("18Mbps    %d\n", rateCnt[7]);
-	printf("24Mbps    %d\n", rateCnt[8]);
-	printf("36Mbps    %d\n", rateCnt[9]);
-	printf("48Mbps    %d\n", rateCnt[10]);
-	printf("54Mbps    %d\n", rateCnt[11]);
+	printf("11Mbps	  %d\n", rateCnt[3]);
+	printf("6Mbps	  %d\n", rateCnt[4]);
+	printf("9Mbps	  %d\n", rateCnt[5]);
+	printf("12Mbps	  %d\n", rateCnt[6]);
+	printf("18Mbps	  %d\n", rateCnt[7]);
+	printf("24Mbps	  %d\n", rateCnt[8]);
+	printf("36Mbps	  %d\n", rateCnt[9]);
+	printf("48Mbps	  %d\n", rateCnt[10]);
+	printf("54Mbps	  %d\n", rateCnt[11]);
 	printf("\n");
 	printf("HT20 MCS0 6.5Mbps   %d (SGI: %d)\n", rateCnt[12],
 	       rateCntShortGuard[12]);
@@ -774,66 +951,97 @@ static void readThermal(void *buf,int len)
 static void cmdReply(void *buf, int len)
 {
     TC_CMDS  tCmdReply;
+    TC_MSG *pTCMsg;
     uint32_t act;
     uint16_t wBytes;
     int i=0;
 
     printf("Length rx cb rcvd %d\n",len);
-    buf += 2 * sizeof(unsigned int);
+
+    //buf += 2 * sizeof(unsigned int);
+
+    buf = (void*)((uint8_t*)buf + (2 * sizeof(unsigned int)));
 
     uint8_t *reply = (uint8_t*)buf;
 
     tCmdReply.hdr.u.parm.length = *(uint16_t *)&(reply[0]);
     tCmdReply.hdr.u.parm.version = (uint8_t)(reply[2]);
     act = tCmdReply.hdr.u.parm.version;
+    pTCMsg = (TC_MSG *)&(tCmdReply.buf[0]);
 
     /* Error Check */
     if (tCmdReply.hdr.u.parm.length > (TC_CMDS_SIZE_MAX + 1)) {
-        printf("Error: Reply lenth=%d, limit=%d\n", tCmdReply.hdr.u.parm.length, TC_CMDS_SIZE_MAX);
-        return;
+	printf("Error: Reply lenth=%d, limit=%d\n", tCmdReply.hdr.u.parm.length, TC_CMDS_SIZE_MAX);
+	return;
     } else {
-        printf(">> Reply length = %d, type = %d ", tCmdReply.hdr.u.parm.length, tCmdReply.hdr.u.parm.version);
+	//printf(">> Reply length = %d, type = %d \n", tCmdReply.hdr.u.parm.length, tCmdReply.hdr.u.parm.version);
     }
 
     if (tCmdReply.hdr.u.parm.length > 0) {
-        memcpy((void*)&(tCmdReply.buf), (void*)(buf+4),  tCmdReply.hdr.u.parm.length);
-        memcpy((void*)&(sTcCmds.buf[0]), (void*)&(tCmdReply.buf[0]),  tCmdReply.hdr.u.parm.length);
-        sTcCmds.hdr.u.parm.length = tCmdReply.hdr.u.parm.length;
+	memcpy((void*)&(tCmdReply.buf), (void*)((uint8_t*)buf+4),  tCmdReply.hdr.u.parm.length);
+	memcpy((void*)&(sTcCmds.buf[0]), (void*)&(tCmdReply.buf[0]),  tCmdReply.hdr.u.parm.length);
+	sTcCmds.hdr.u.parm.length = tCmdReply.hdr.u.parm.length;
    }
 
     switch (act) {
-        case TC_CMDS_EFUSEDUMP:
-            printf("eFuse data:\n");
-            break;
-        case TC_CMDS_EFUSEWRITE:
-            printf("(write eFuse data)\n");
-            wBytes = ((sTcCmds.buf[1] << 8) | sTcCmds.buf[0]);
-            printf("%d bytes written to eFuse.\n", wBytes);
-            break;
-        case TC_CMDS_OTPSTREAMWRITE:
-            printf("(OTP stream write)\n");
+	case TC_CMDS_EFUSEDUMP:
+	    printf("eFuse data:\n");
+	    break;
+	case TC_CMDS_EFUSEWRITE:
+	    printf("(write eFuse data)\n");
+	    wBytes = ((sTcCmds.buf[1] << 8) | sTcCmds.buf[0]);
+	    printf("%d bytes written to eFuse.\n", wBytes);
+	    break;
+	case TC_CMDS_OTPSTREAMWRITE:
+	    printf("(OTP stream write)\n");
 
-            if (sTcCmds.buf[0] == A_OK) {
-                printf("Write %d bytes to OTP\n", data_length);
-            } else {
-                printf("Failed to write OTP\n");
-            }
-            break;
-        case TC_CMDS_OTPDUMP:
-            printf("OTP Dump\n");
-            if (sTcCmds.hdr.u.parm.length) {
-                /* Received bytes are in sTcCmds */
-                for (i = 0; i < sTcCmds.hdr.u.parm.length; i++) {
-                    printf("%02x ", sTcCmds.buf[i]);
-                }
-                printf("\n");
-            } else {
-                printf("No valid stream found in OTP!\n");
-            }
-            break;
-        default:
-            printf("Invalid action!\n");
-            break;
+	    if (sTcCmds.buf[0] == A_OK) {
+		printf("Write %d bytes to OTP\n", data_length);
+	    } else {
+		printf("Failed to write OTP\n");
+	    }
+	    break;
+	case TC_CMDS_OTPDUMP:
+	    printf("OTP Dump\n");
+	    if (sTcCmds.hdr.u.parm.length) {
+		/* Received bytes are in sTcCmds */
+		for (i = 0; i < sTcCmds.hdr.u.parm.length; i++) {
+		    printf("%02x ", sTcCmds.buf[i]);
+		}
+		printf("\n");
+	    } else {
+		printf("No valid stream found in OTP!\n");
+	    }
+	    break;
+	case TC_CMDS_PSAT_CAL:
+	    //printf("TC_CMDS_PSAT_CAL:\n");
+	    break;
+	case TC_CMDS_SINIT_WAIT:
+	    //printf("TC_CMDS_SINIT_WAIT:\n");
+	    if (TC_MSG_PSAT_CAL_ACK == (TC_MSG_ID)pTCMsg->msgId) {
+		printf("ACK Received.\n");
+	    }
+	    break;
+	case TC_CMDS_PSAT_CAL_RESULT:
+	    //printf("TC_CMDS_PSAT_CAL_RESULT:\n");
+	    if (TC_MSG_PSAT_CAL_RESULTS == (TC_MSG_ID)pTCMsg->msgId) {
+	      // update CAL data, read eeprom bin,  re-generate eeprom bin
+	      updateCALData(&calSetup, pTCMsg);
+	      bCalResult = true;
+	    }
+	    break;
+	case TC_CMDS_CHAR_PSAT:
+	    //printf("TC_CMDS_CHAR_PSAT:\n");
+	    break;
+	case TC_CMDS_CHAR_PSAT_RESULT:
+	    //printf("TC_CMDS_CHAR_PSAT_RESULT:\n");
+	    if (TC_MSG_CHAR_PSAT_RESULTS == (TC_MSG_ID)pTCMsg->msgId) {
+	      dumpPSATCharResult2File(pTCMsg);
+	    }
+	    break;
+	default:
+	    printf("Invalid action!\n");
+	    break;
     }
 }
 
@@ -842,18 +1050,18 @@ static void rx_cb(void *buf, int len)
 	TCMD_ID tcmd;
 
 	if ( cmd == TESTMODE_CMDS )
-        {
-            if ( act == TC_CMDS_READTHERMAL )
-            {
-                readThermal(buf,len);
+	{
+	    if ( act == TC_CMDS_READTHERMAL )
+	    {
+		readThermal(buf,len);
 	    }
-            else
-            {
-               cmdReply(buf,len);
-            }
+	    else
+	    {
+	       cmdReply(buf,len);
+	    }
 
-            return;
-        }
+	    return;
+	}
 
 	tcmd = * ((uint32_t *) buf + 1);
 
@@ -952,21 +1160,31 @@ static uint32_t antValid(uint32_t val)
 	return val;
 }
 
-static uint32_t txPwrValid(TCMD_CONT_TX * txCmd)
+static bool txPwrValid(TCMD_CONT_TX * txCmd)
 {
+	bool rc = false;
 	if (txCmd->mode == TCMD_CONT_TX_SINE) {
-		if ((txCmd->txPwr >= 0) && (txCmd->txPwr <= 10))
-			return txCmd->txPwr;
+		if ((txCmd->txPwr >= 0) && (txCmd->txPwr <= 150))
+			rc = true;
+	} else if (txCmd->mode == TCMD_CONT_TX_OFFSETTONE) {
+		if ((txCmd->txPwr >= 0) && (txCmd->txPwr <= 150))
+			rc = true;
 	} else if (txCmd->mode != TCMD_CONT_TX_OFF) {
-		if ((txCmd->txPwr >= -15) && (txCmd->txPwr <= 30))
-			return txCmd->txPwr;
+		if (txCmd->tpcm != TPC_FORCED_GAIN) {
+			if ((txCmd->txPwr >= -30) && (txCmd->txPwr <= 60))
+				rc = true;
+		} else {
+			if ((txCmd->txPwr >= 0) && (txCmd->txPwr <= 120))
+				rc = true;
+		}
 	} else if (txCmd->mode == TCMD_CONT_TX_OFF) {
-		return 0;
+		rc = true;
 	}
 
-	A_ERR(1,
-	      "Invalid Tx Power value! \nTx data: [-15 - 14]dBm  \nTx sine: [-15 - 11]dBm  \n");
-	return 0;
+	if (!rc)
+		A_ERR(1,
+		"Invalid Tx Power value! \nTx data: [-15 - 14]dBm  \nTx sine: [  0 - 150]PCDAC value\n");
+	return rc;
 }
 
 static uint32_t pktSzValid(uint32_t val)
@@ -1051,4 +1269,256 @@ static int ath_ether_aton(const char *orig, uint8_t * eth)
 		return 0;
 	}
 	return -1;
+}
+
+// Read "golden" eeprom bin
+// Update it with CAL data
+
+bool readCalDataFromFileBin(char *fileName, AR6003_EEPROM *eepromData)
+{
+    FILE *fp;
+    bool rc=true;
+    uint32_t numBytes;
+
+    printf("readCalDataFromFile - reading EEPROM file %s\n",fileName);
+    if( (fp = fopen(fileName, "rb")) == NULL) {
+	_printf("Could not open %s to read\n", fileName);
+	return false;
+    }
+
+    if (AR6K_EEPROM_SIZE_LARGEST == (numBytes = fread((uint8_t *)eepromData, 1, AR6K_EEPROM_SIZE_LARGEST, fp))) {
+	printf("Read %d from %s\n", numBytes, fileName);
+	rc = true;
+    }
+    else {
+	if (feof(fp)) {
+	    printf("good Read %d from %s\n", numBytes, fileName);
+	    rc = true;
+	}
+	else if (ferror(fp)) {
+	    _printf("Error reading %s\n", fileName);
+	    rc = false;
+	}
+	else { _printf("Unknown fread rc\n"); rc = false; }
+    }
+    if (fp) fclose(fp);
+
+    if (rc) {
+	if ((eepromData->baseEepHeader.version & AR6003_EEP_VER_MINOR_MASK) >= AR6003_EEP_MINOR_VER10) {
+	    if (AR6K_EEPROM_SIZE_LARGEST != numBytes) {
+		printf("Num of bytes read %d mismatch expected %d\n", numBytes, AR6K_EEPROM_SIZE_LARGEST);
+		rc = false;
+	    }
+	    else {
+		AR6K_EEPROM_SIZE = AR6003_EEPROM_SIZE = AR6K_EEPROM_SIZE_LARGEST;
+		printf("New TPC scheme selected! %x %d\n", eepromData->baseEepHeader.version, AR6K_EEPROM_SIZE);
+	    }
+	}
+	else {
+	    _printf("EEPROM file version %d not supported, please re-calibrate it.\n", eepromData->baseEepHeader.version);
+	    rc = false;
+	}
+    }
+    return rc;
+}
+
+#define _PSAT_COMMON_4_HOST
+
+// if host doesn't support math.h, this section can be skipped, it is purely for data gathering
+static double cmacPwr(double cmac)
+{
+    double pwr;
+    double vfull=1.0, cycles = -15.0;
+
+    pwr = 10*log10(4*((double)cmac)*((double)pow(2.0, cycles))*((double)pow(vfull/512, 2)));
+    return(pwr);
+}
+static bool dumpPSATCharResult2File(TC_MSG *pTCMsg)
+{
+    FILE *dbgFp;
+    int i;
+    uint32_t cmac_i;
+
+#ifdef ANDROID
+    if ( (dbgFp = fopen("/persist/psatCharData.csv", "a+")) == NULL) {
+	printf("Error: open _psatCharData.csv\n");
+	return(false);
+    }
+#else
+    if ( (dbgFp = fopen("_psatCharData.csv", "a+")) == NULL) {
+	printf("Error: open _psatCharData.csv\n");
+	return(false);
+    }
+#endif
+
+    fprintf(dbgFp, "%d, %d, %d, %d, %d, %d, %d, %d\n",
+    pTCMsg->msg.psatCharResults.freq,
+    pTCMsg->msg.psatCharResults.an_txrf3_rdiv2g,
+    pTCMsg->msg.psatCharResults.an_txrf3_pdpredist2g,
+    pTCMsg->msg.psatCharResults.an_rxtx2_mxrgain,
+    pTCMsg->msg.psatCharResults.an_rxrf_bias1_pwd_ic25mxr2gh,
+    pTCMsg->msg.psatCharResults.an_bias2_pwd_ic25rxrf,
+    pTCMsg->msg.psatCharResults.an_bb1_i2v_curr2x,
+    pTCMsg->msg.psatCharResults.an_txrf3_capdiv2g);
+    for (i=0;i<_MAX_TX_GAIN_ENTRIES;i++) {
+	cmac_i = pTCMsg->msg.psatCharResults.cmac_i[i];
+	//cmac_q = pTCMsg->msg.psatCharResults.cmac_q[i],
+	fprintf(dbgFp, "%d, %d, %f, %d\n", pTCMsg->msg.psatCharResults.pcdac[i], cmac_i, cmacPwr(cmac_i), cmac2Pwr_t10(cmac_i));
+    }
+
+    if (dbgFp) fclose(dbgFp);
+    return(true);
+}
+
+uint16_t computeChecksumOnly(uint16_t *pHalf, uint16_t length)
+{
+    uint16_t sum = 0, i;
+    for (i = 0; i < length; i++) { sum ^= *pHalf++; }
+    return(sum);
+}
+
+void computeChecksum(AR6003_EEPROM *pEepStruct)
+{
+  uint16_t sum, *pHalf;
+  uint8_t eepromVersion;
+
+  eepromVersion = pEepStruct->baseEepHeader.version & AR6003_EEP_VER_MINOR_MASK;
+  if (eepromVersion >= AR6003_EEP_MINOR_VER5) {
+    // first checksum
+    pEepStruct->baseEepHeader.checksum = 0x0000;
+    pHalf = (uint16_t *)pEepStruct;
+    sum = computeChecksumOnly(pHalf, AR6K_EEPROM_SIZE_PRIOR_VER4/2);
+    pEepStruct->baseEepHeader.checksum = 0xFFFF ^ sum;
+
+    // second (expanded checksum)
+    pEepStruct->checksumExpanded = 0x0000;
+    //pHalf = (uint16_t*)(pEepStruct->calFreqPier5GExpanded);
+    pHalf = (uint16_t *)pEepStruct;
+    pHalf += AR6K_EEPROM_SIZE_PRIOR_VER4/2;
+    sum = computeChecksumOnly(pHalf, (AR6003_EEPROM_SIZE - AR6K_EEPROM_SIZE_PRIOR_VER4)/2);
+    pEepStruct->checksumExpanded = 0xFFFF ^ sum;
+
+    _printf("--computeChecksum old 0x%x expanded 0x%x\n", pEepStruct->baseEepHeader.checksum, pEepStruct->checksumExpanded);
+  }
+  else {
+    pEepStruct->baseEepHeader.checksum = 0x0000;
+    pHalf = (uint16_t *)pEepStruct;
+    sum = computeChecksumOnly(pHalf, AR6K_EEPROM_SIZE_PRIOR_VER4/2);
+    pEepStruct->baseEepHeader.checksum = 0xFFFF ^ sum;
+    _printf("--computeChecksum old 0x%x\n", pEepStruct->baseEepHeader.checksum);
+  }
+}
+
+bool genEepromBinFile(char *fileName, AR6003_EEPROM *pEepStruct)
+{
+    FILE *fp;
+
+    // re-computing checksum
+    pEepStruct->baseEepHeader.checksum = 0;
+    computeChecksum(pEepStruct);
+
+    if ( (fp = fopen(fileName, "wb")) == NULL) {
+	_printf("Error: open to write eeprom bin %s \n", fileName);
+	return false;
+    }
+    if (sizeof(AR6003_EEPROM) != fwrite((uint8_t *)pEepStruct, 1, sizeof(AR6003_EEPROM), fp)) {
+	_printf("Error: writing to %s\n", fileName);
+    }
+    if (fp) fclose(fp);
+    return(true);
+}
+
+static void updateCALData(_CAL_SETUP *pCalSetup, TC_MSG *pTCMsg)
+{
+    bool rc;
+    AR6003_EEPROM     eepromData, *pEeprom=&eepromData;
+    AR6003_BASE_EEP_HEADER   *pBase;
+    AR6003_CAL_DATA_PER_FREQ_OLPC_EXPANDED *pRawDataSet2G_ext, *pRawDataSet5G_ext;
+    uint8_t  *pCalChans2G, *pCalChans5G;
+    uint32_t numPiers2G, numPiers5G;
+    uint32_t i;
+
+    // read in golden bin
+    rc = readCalDataFromFileBin(pCalSetup->goldenBinFilename, pEeprom);
+    assert(rc);
+    printf("Read %s\n", pCalSetup->goldenBinFilename);
+
+    numPiers2G = numPiers5G = 0;
+    pBase = &(pEeprom->baseEepHeader);
+
+    {
+	if (pBase->opCapFlags & WLAN_11G_CAPABILITY) {
+	    pRawDataSet2G_ext = pEeprom->calPierData2GExpanded;
+	    pCalChans2G = pEeprom->calFreqPier2GExpanded;
+	    for (numPiers2G = 0; numPiers2G < AR6003_NUM_2G_CAL_PIERS_EXPANDED; numPiers2G++) {
+		if (pCalChans2G[numPiers2G] == AR6003_BCHAN_UNUSED) {
+		    break;
+		}
+	    }
+	}
+
+	if (pBase->opCapFlags & WLAN_11A_CAPABILITY) {
+	    pRawDataSet5G_ext = pEeprom->calPierData5GExpanded;
+	    pCalChans5G = pEeprom->calFreqPier5GExpanded;
+	    for (numPiers5G = 0; numPiers5G < AR6003_NUM_5G_CAL_PIERS_EXPANDED; numPiers5G++) {
+		if (pCalChans5G[numPiers5G] == AR6003_BCHAN_UNUSED) {
+		    break;
+		}
+	    }
+	}
+    }
+
+    PSAT_CAL_RESULTS *pPsatCalResults = &(pTCMsg->msg.psatCalResults);
+
+    for (i=0;i<numPiers2G;i++) {
+		printf("%d %d %d %d %d %f %f %d %d 0x%x %d %d 0x%x\n", pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_diff, pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_abs, pPsatCalResults->olpcGainTherm2G[i].thermCalVal,
+		    pPsatCalResults->olpcGainTherm2G[i].cmac_psat, pPsatCalResults->olpcGainTherm2G[i].cmac_olpc,
+		    cmacPwr(pPsatCalResults->olpcGainTherm2G[i].cmac_psat), cmacPwr(pPsatCalResults->olpcGainTherm2G[i].cmac_olpc),
+		    pPsatCalResults->olpcGainTherm2G[i].cmac_psat_pcdac, pPsatCalResults->olpcGainTherm2G[i].cmac_olpc_pcdac,
+		    pPsatCalResults->olpcGainTherm2G[i].numTryBF,
+		    pPsatCalResults->olpcGainTherm2G[i].desiredScaleAddCCK, pPsatCalResults->olpcGainTherm2G[i].desiredScaleAddQAM,
+		    pPsatCalResults->olpcGainTherm2G[i].psatParm);
+	    //}
+    }
+    for (i=0;i<numPiers5G ;i++) {
+		printf("%d %d %d %d %d %f %f %d %d 0x%x\n", pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_diff, pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_abs, pPsatCalResults->olpcGainTherm5G[i].thermCalVal,
+		    pPsatCalResults->olpcGainTherm5G[i].cmac_psat, pPsatCalResults->olpcGainTherm5G[i].cmac_olpc,
+		    cmacPwr(pPsatCalResults->olpcGainTherm5G[i].cmac_psat), cmacPwr(pPsatCalResults->olpcGainTherm5G[i].cmac_olpc),
+		    pPsatCalResults->olpcGainTherm5G[i].cmac_psat_pcdac, pPsatCalResults->olpcGainTherm5G[i].cmac_olpc_pcdac,
+		    pPsatCalResults->olpcGainTherm5G[i].numTryBF);
+	    //}
+    }
+
+    for (i=0;i<numPiers2G;i++) {
+	if (pEeprom->baseEepHeader.boardFlagsExt & AR6003_BOARDFLAGSEXT_PSAT_CAL_ABS) {
+	    pRawDataSet2G_ext[i].olpcBasic.olpcGainDelta = (int8_t)  (pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_abs);
+	    pRawDataSet2G_ext[i].olpcGainDelta_t10	 = (int16_t) (pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_abs *5);
+	}
+	else {
+	    pRawDataSet2G_ext[i].olpcBasic.olpcGainDelta = (int8_t)  (pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_diff);
+	    pRawDataSet2G_ext[i].olpcGainDelta_t10	 = (int16_t) (pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_diff *5);
+	}
+	pRawDataSet2G_ext[i].olpcBasic.thermCalVal   = (uint8_t) pPsatCalResults->olpcGainTherm2G[i].thermCalVal;
+    }
+
+    for (i=0;i<numPiers5G;i++) {
+	if (pEeprom->baseEepHeader.boardFlagsExt & AR6003_BOARDFLAGSEXT_PSAT_CAL_ABS) {
+	pRawDataSet5G_ext[i].olpcBasic.olpcGainDelta = (int8_t)pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_abs;
+	}
+	else {
+	pRawDataSet5G_ext[i].olpcBasic.olpcGainDelta = (int8_t)pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_diff;
+	}
+	pRawDataSet5G_ext[i].olpcBasic.thermCalVal   = (uint8_t)pPsatCalResults->olpcGainTherm5G[i].thermCalVal;
+	pRawDataSet5G_ext[i].olpcGainDelta_t10	     = (int16_t)(pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_diff * 5);
+    }
+
+    memcpy((void*)&(pEeprom->baseEepHeader.custData[0]), pCalSetup->label, sizeof(pCalSetup->label));
+
+    // Generate bin
+    if (pEeprom->baseEepHeader.boardFlagsExt & AR6003_BOARDFLAGSEXT_PSAT_CAL_GEN_EEPROM) {
+    rc = genEepromBinFile(pCalSetup->outputBinFilename, pEeprom);
+    assert(rc);
+    }
+
+    return;
 }

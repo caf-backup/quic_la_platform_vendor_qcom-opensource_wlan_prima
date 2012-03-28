@@ -19,12 +19,15 @@ endef
 
 ar6k_hw21_dst_dir := $(TARGET_OUT)/etc/firmware/ath6k/AR6003/hw2.1.1
 $(call add-ar6k-prebuilt-file,hw2.1.1/fw-3.bin,$(ar6k_hw21_dst_dir),fw-3.bin,fw-3)
-$(call add-ar6k-prebuilt-file,hw2.1.1/bdata.bin,$(ar6k_hw21_dst_dir),bdata.bin,bdata)
 $(call add-ar6k-prebuilt-file,hw2.1.1/softmac,$(ar6k_hw21_dst_dir),softmac,softmac)
 $(call add-ar6k-prebuilt-file,hw2.1.1/athtcmd_ram.bin,$(ar6k_hw21_dst_dir),athtcmd_ram.bin,athtcmd_ram)
 $(call add-ar6k-prebuilt-file,hw2.1.1/nullTestFlow.bin,$(ar6k_hw21_dst_dir),nullTestFlow.bin,nullTestFlow)
 $(call add-ar6k-prebuilt-file,hw2.1.1/athwlan.bin,$(ar6k_hw21_dst_dir),athwlan.bin,athwlan)
 $(call add-ar6k-prebuilt-file,hw2.1.1/utf.bin,$(ar6k_hw21_dst_dir),utf.bin,utf)
+$(call add-ar6k-prebuilt-file,hw2.1.1/bdata.bin,$(TARGET_OUT)/../persist,bdata.bin,bdata)
 ar6k_hw21_dst_dir :=
 
+
+$(shell ln -sf /persist/bdata.bin \
+        $(TARGET_OUT)/etc/firmware/ath6k/AR6003/hw2.1.1/bdata.bin)
 endif

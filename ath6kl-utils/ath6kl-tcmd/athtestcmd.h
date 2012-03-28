@@ -12,7 +12,7 @@ extern "C" {
 
 
 enum {
-    TESTMODE_CONT_TX = 801,     /* something that doesn't collide with ascii */
+    TESTMODE_CONT_TX = 801,	/* something that doesn't collide with ascii */
     TESTMODE_CONT_RX,
     TESTMODE_PM,
     TESTMODE_SETLPREAMBLE,
@@ -30,6 +30,14 @@ enum {
     TCMD_OTP_DUMP=507,
     TCMD_OTP_WRITE=508,
     TCMD_READ_THERMAL=509,
+    TCMD_PSAT_CAL=510,
+    TCMD_PSAT_CAL_RESULT,
+    TCMD_PM_CAL_RESULT,
+    TCMD_PM_CAL,
+    TCMD_UPDATE_CAL_OTP,
+    TCMD_CHAR_PSAT,
+    TCMD_CHAR_PSAT_RESULT,
+    TCMD_SINIT_WAIT,
 };
 
 #ifdef __cplusplus
