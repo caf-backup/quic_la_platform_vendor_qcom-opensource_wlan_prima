@@ -153,6 +153,11 @@ VOS_STATUS halTLSuspendTxCallBack(v_PVOID_t pVosGCtx, v_U8_t* pStaId, VOS_STATUS
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);
 
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return vosStatus;
+    }
     if(VOS_IS_STATUS_SUCCESS(statusCode)) {
         pMac->hal.TLParam.txStatus = HAL_TL_TX_SUSPEND_SUCCESS;
     }
@@ -283,6 +288,11 @@ VOS_STATUS halTLTxCompleteCB(v_PVOID_t pVosGCtx, void* pData, VOS_STATUS statusC
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);
 
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return vosStatus;
+    }
     if(VOS_IS_STATUS_SUCCESS(statusCode)) {
         pMac->hal.TLParam.txStatus = HAL_TL_TX_SUCCESS;
     }
@@ -406,6 +416,11 @@ tANI_U32 WLANHAL_TxBdFastFwd(void *pVosGCtx, tANI_U8 *pDestMac, tANI_U8 tid, tAN
     tANI_U32        retval = 0;
     tANI_U16        swapped, *pU16 = (tANI_U16 *) pTxBd;
 
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return retval;
+    }
     if( pBd->txBdSignature ==  computeTxBdSignature(pMac, pDestMac, tid, unicastDst)){
 
 #ifdef ANI_LITTLE_BYTE_ENDIAN
@@ -470,6 +485,12 @@ void WLANHAL_RxAmsduBdFix(void *pVosGCtx, v_PVOID_t _pvBDHeader)
 {
     tpHalRxBd pRxBd = (tpHalRxBd) _pvBDHeader;
     tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);
+
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     if(pRxBd->asf){
 		if(pRxBd->sybFrameIdx == 0){
             //copy the BD of first AMSDU
@@ -552,6 +573,11 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
     tANI_U32        txBdSignature = pBd->txBdSignature;
 #endif
 
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return VOS_STATUS_E_FAILURE;
+    }
     type = (typeSubtype & HAL_FRAME_TYPE_MASK) >> HAL_FRAME_TYPE_OFFSET;
     subType = (typeSubtype & HAL_FRAME_SUBTYPE_MASK);
 
@@ -1006,10 +1032,16 @@ void halTLRSSINotification(tpAniSirGlobal pMac, tpSirRSSINotification pRSSINotif
 VOS_STATUS WLANHAL_EnableUapsdAcParams(void* pVosGCtx, tANI_U8 staIdx, tUapsdInfo *pUapsdInfo)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);
-    tHalFwParams *pFw = &pMac->hal.FwParam;
+    tHalFwParams *pFw;
     Qwlanfw_SysCfgType *pFwConfig;
     eHalStatus status = eHAL_STATUS_FAILURE;
 
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
+    pFw = &pMac->hal.FwParam;
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
 
     pFwConfig->acParam[pUapsdInfo->ac].usSrvIntrMs  = pUapsdInfo->srvInterval;
@@ -1102,7 +1134,13 @@ VOS_STATUS WLANHAL_FillFcTxBd(void *pVosGCtx, void *pFcParams, void *pFcTxBd)
  */
 VOS_STATUS WLANHAL_EnableIdleBdPduInterrupt(void* pVosGCtx, tANI_U8 idleBdPduThreshold)
 {
-    tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);    
+    tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);
+
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     return halBmu_EnableIdleBdPduInterrupt(pMac, idleBdPduThreshold);
 }
 

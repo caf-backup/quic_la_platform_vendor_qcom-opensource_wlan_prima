@@ -174,7 +174,68 @@ int hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
 
 int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
-   return 0;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_priv_data_t priv_data;
+    tANI_U8 *command = NULL;
+    int ret = 0;
+
+    if (NULL == pAdapter)
+    {
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+          "%s: HDD adapter context is Null", __FUNCTION__);
+       ret = -ENODEV;
+       goto exit;
+    }
+
+    if ((!ifr) && (!ifr->ifr_data))
+    {
+        ret = -EINVAL;
+        goto exit;
+    }
+
+    if (copy_from_user(&priv_data, ifr->ifr_data, sizeof(hdd_priv_data_t)))
+    {
+        ret = -EFAULT;
+        goto exit;
+    }
+
+    command = kmalloc(priv_data.total_len, GFP_KERNEL);
+    if (!command)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+           "%s: failed to allocate memory\n", __FUNCTION__);
+        ret = -ENOMEM;
+        goto exit;
+    }
+
+    if (copy_from_user(command, priv_data.buf, priv_data.total_len))
+    {
+        ret = -EFAULT;
+        goto exit;
+    }
+
+    if ((SIOCDEVPRIVATE + 1) == cmd)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+           "***HOSTAPD*** : Received %s cmd from Wi-Fi GUI***", command);
+
+#ifdef WLAN_FEATURE_P2P
+        if(strncmp(command, "P2P_SET_NOA", 11) == 0 )   
+        {
+            hdd_setP2pNoa(dev, command);
+        }
+        else if( strncmp(command, "P2P_SET_PS", 10) == 0 )
+        {
+            hdd_setP2pOpps(dev, command);
+        }
+#endif
+    }
+exit:
+   if (command)
+   {
+       kfree(command);
+   }
+   return ret;
 }
 
 /**---------------------------------------------------------------------------

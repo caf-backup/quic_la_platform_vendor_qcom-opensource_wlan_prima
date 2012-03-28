@@ -66,7 +66,8 @@ typedef enum
   VOS_CHIP_RESET_FW_EXCEPTION,               /* Reset Chip due to FW Failure */
   VOS_CHIP_RESET_MUTEX_READ_FAILURE,         /* Reset Chip due to  Mutex Read Failure */
   VOS_CHIP_RESET_MIF_EXCEPTION,              /* Reset Chip due to  MAC exception e.g. BMU fatal, MIF error */
-  VOS_CHIP_RESET_UNKNOWN_EXCEPTION           /* Reset Chip due to  any other exception */
+  VOS_CHIP_RESET_UNKNOWN_EXCEPTION,           /* Reset Chip due to  any other exception */
+  VOS_CHIP_SHUTDOWN                          /* Shutdown request by SDCC */
 }vos_chip_reset_reason_type;
 
 typedef enum

@@ -34,6 +34,11 @@ eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemaino
     tANI_U16 len;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, p2pRemainonChn->sessionId );
 
+    if( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     if( !pSession->sessionActive ) VOS_ASSERT(0);
 
     len = sizeof(tSirRemainOnChnReq) + pMac->p2pContext.probeRspIeLength;

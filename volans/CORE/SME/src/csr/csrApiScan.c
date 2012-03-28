@@ -594,7 +594,8 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 // If it is not, CSR will save the scan request in the pending cmd queue 
                 // & issue an 11d scan request to PE.
                 if((0 == pScanCmd->u.scanCmd.scanID)
-                   && (eCSR_SCAN_REQUEST_11D_SCAN != pScanRequest->requestType))
+                   && (eCSR_SCAN_REQUEST_11D_SCAN != pScanRequest->requestType)
+                   && (eANI_BOOLEAN_FALSE == pMac->scan.fEnableBypass11d))
                 {
                     tSmeCmd *p11dScanCmd;
                     tCsrScanRequest scanReq;
@@ -1407,6 +1408,11 @@ eHalStatus csrIssueRoamAfterLostlinkScan(tpAniSirGlobal pMac, tANI_U32 sessionId
     tCsrRoamProfile *pProfile = NULL;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     do
     {
         smsLog(pMac, LOG1, " csrIssueRoamAfterLostlinkScan called\n");
@@ -1512,6 +1518,11 @@ eHalStatus csrScanHandleFailedLostlink1(tpAniSirGlobal pMac, tANI_U32 sessionId)
     eHalStatus status = eHAL_STATUS_FAILURE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     smsLog(pMac, LOGW, "  Lostlink scan 1 failed\n");
     if(pSession->fCancelRoaming)
     {
@@ -1557,6 +1568,11 @@ eHalStatus csrScanHandleFailedLostlink2(tpAniSirGlobal pMac, tANI_U32 sessionId)
     eHalStatus status = eHAL_STATUS_FAILURE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     smsLog(pMac, LOGW, "  Lostlink scan 2 failed\n");
     if(pSession->fCancelRoaming)
     {
@@ -1611,6 +1627,11 @@ eHalStatus csrScanRequestLostLink1( tpAniSirGlobal pMac, tANI_U32 sessionId )
     tCsrScanResultInfo *pScanResult = NULL;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     smsLog(pMac, LOGW, FL(" called\n"));
     do
     {
@@ -1764,6 +1785,11 @@ eHalStatus csrScanRequestLostLink2( tpAniSirGlobal pMac, tANI_U32 sessionId )
     tSmeCmd *pCommand = NULL;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     smsLog(pMac, LOGW, FL(" called\n"));
     do
     {
@@ -1974,6 +2000,11 @@ eHalStatus csrScanHandleSearchForSSIDFailure(tpAniSirGlobal pMac, tSmeCmd *pComm
     tCsrRoamProfile *pProfile = pCommand->u.scanCmd.pToRoamProfile;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
 #if defined(WLAN_DEBUG)
     if(pCommand->u.scanCmd.u.scanRequest.SSIDs.numOfSSIDs == 1)
     {
@@ -2577,6 +2608,11 @@ eHalStatus csrAddPMKIDCandidateList( tpAniSirGlobal pMac, tANI_U32 sessionId,
     eHalStatus status = eHAL_STATUS_FAILURE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     smsLog(pMac, LOGW, "csrAddPMKIDCandidateList called pMac->scan.NumPmkidCandidate = %d\n", pSession->NumPmkidCandidate);
     if( pIes )
     {
@@ -2678,6 +2714,11 @@ eHalStatus csrAddBKIDCandidateList( tpAniSirGlobal pMac, tANI_U32 sessionId,
     eHalStatus status = eHAL_STATUS_FAILURE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     smsLog(pMac, LOGW, "csrAddBKIDCandidateList called pMac->scan.NumBkidCandidate = %d\n", pSession->NumBkidCandidate);
     if( pIes )
     {
@@ -4838,7 +4879,9 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
 
         //Verify the scan type first, if the scan is active scan, we need to make sure we 
         //are allowed to do so.
-            if( (eSIR_PASSIVE_SCAN != scanType) && (eCSR_SCAN_P2P_DISCOVERY != pScanReq->requestType) )
+            if( (eSIR_PASSIVE_SCAN != scanType) && 
+                (eCSR_SCAN_P2P_DISCOVERY != pScanReq->requestType) &&
+                (eANI_BOOLEAN_FALSE == pMac->scan.fEnableBypass11d) )
         {
             scanType = pMac->scan.curScanType;
             if(eSIR_PASSIVE_SCAN == pMac->scan.curScanType)
@@ -7877,6 +7920,11 @@ eHalStatus csrScanGetPMKIDCandidateList(tpAniSirGlobal pMac, tANI_U32 sessionId,
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     smsLog(pMac, LOGW, "  pMac->scan.NumPmkidCandidate = %d\n ", pSession->NumPmkidCandidate);
     csrResetPMKIDCandidateList(pMac, sessionId);
     if(csrIsConnStateConnected(pMac, sessionId) && pSession->pCurRoamProfile)
@@ -7930,6 +7978,11 @@ eHalStatus csrScanGetBKIDCandidateList(tpAniSirGlobal pMac, tANI_U32 sessionId,
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     smsLog(pMac, LOGW, "  pMac->scan.NumBkidCandidate = %d\n ", pSession->NumBkidCandidate);
     csrResetBKIDCandidateList(pMac, sessionId);
     if(csrIsConnStateConnected(pMac, sessionId) && pSession->pCurRoamProfile)
@@ -8593,6 +8646,12 @@ void csrRemoveCmdFromPendingList(tpAniSirGlobal pMac, tDblLinkList *pList,
     {
         pEntry = csrLLPeekHead( pList, LL_ACCESS_NOLOCK);
 
+        if( NULL == pEntry )
+        {
+            csrLLUnlock(pList);
+            VOS_ASSERT(0);
+            return;
+        }
         // Have to make sure we don't loop back to the head of the list, which will
         // happen if the entry is NOT on the list...
         do

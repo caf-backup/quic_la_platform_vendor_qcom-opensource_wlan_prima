@@ -52,6 +52,9 @@ when           who        what, where, why
 #include <vos_sched.h>
 #include <vos_api.h>
 
+#define WLANSAL_CARD_REMOVAL_WAIT_TIMEOUT 5000 //5000ms
+#define WLANSAL_SHUTDOWN_WAIT_TIMEOUT 2000 //2000ms
+
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -317,6 +320,147 @@ void wlan_sdio_resume_hdlr(struct sdio_func* sdio_func_dev)
    /* Resume the wlan driver */
    wlan_resume(pHddCtx);
 }
+
+/*----------------------------------------------------------------------------
+
+   @brief This function will get called when WLAN card is removed.
+   SDCC will wait for WLAN cleanup as part of logp recovery before
+   making sdio_func_dev as NULL.
+
+   @param None
+
+
+   @return None
+
+----------------------------------------------------------------------------*/
+void wlan_sdio_card_removal_hdlr(void)
+{
+   int rc;
+
+   if(NULL == gpsalHandle)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,
+        "%s: SAL context is Null",__func__);
+       return;
+   }
+
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
+    "%s: Wait for cleanup", __func__);
+
+   INIT_COMPLETION(gpsalHandle->card_rem_event_var);
+
+   /* Wait for Clean up (as part of logp) before making sdio_func_dev as NULL */
+   rc = wait_for_completion_interruptible_timeout(&gpsalHandle->card_rem_event_var,
+                        msecs_to_jiffies(WLANSAL_CARD_REMOVAL_WAIT_TIMEOUT));
+
+   if(!rc)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
+        "%s: Not able to wait for cleanup, timeout happened", __func__);
+   }
+
+   return;
+}
+
+/*----------------------------------------------------------------------------
+
+   @brief Function to unblock sdcc on card removal. 
+   sdio_func_dev can become NULL after this if card is removed.
+
+   @param None
+
+
+   @return None
+
+----------------------------------------------------------------------------*/
+void WLANSAL_allow_card_removal(void)
+{
+   if(NULL == gpsalHandle)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,
+        "%s: SAL context is Null",__func__);
+       return;
+   }
+
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
+    "%s: Done with cleanup, notifying SDCC ", __func__);
+
+   complete(&gpsalHandle->card_rem_event_var);
+
+   return;
+}
+
+/*----------------------------------------------------------------------------
+
+   @brief This function will get called when WLAN card is removed.
+   SDCC will wait for WLAN cleanup as part of logp recovery before
+   making sdio_func_dev as NULL.
+
+   @param None
+
+
+   @return None
+
+----------------------------------------------------------------------------*/
+void wlan_sdio_shutdown_hdlr(void)
+{
+   int rc;
+
+   if(NULL == gpsalHandle)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,
+        "%s: SAL context is Null",__func__);
+       return;
+   }
+
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
+    "%s: Wait for cleanup", __func__);
+
+   vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_SHUTDOWN);
+
+   INIT_COMPLETION(gpsalHandle->shutdown_event_var);
+
+   /* Wait for Clean up (as part of logp) before making sdio_func_dev as NULL */
+   rc = wait_for_completion_interruptible_timeout(&gpsalHandle->shutdown_event_var,
+                        msecs_to_jiffies(WLANSAL_SHUTDOWN_WAIT_TIMEOUT));
+
+   if(!rc)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
+        "%s: Not able to wait for cleanup, timeout happened", __func__);
+   }
+
+   return;
+}
+
+/*----------------------------------------------------------------------------
+
+   @brief Function to unblock sdcc on card removal. 
+   sdio_func_dev can become NULL after this if card is removed.
+
+   @param None
+
+
+   @return None
+
+----------------------------------------------------------------------------*/
+void WLANSAL_allow_shutdown(void)
+{
+   if(NULL == gpsalHandle)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,
+        "%s: SAL context is Null",__func__);
+       return;
+   }
+
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
+    "%s: Done with cleanup, notifying SDCC ", __func__);
+
+   complete(&gpsalHandle->shutdown_event_var);
+
+   return;
+}
+
 
 /*----------------------------------------------------------------------------
 
@@ -600,6 +744,12 @@ VOS_STATUS WLANSAL_Start
 
    gpsalHandle->isINTEnabled = VOS_TRUE;
 
+   init_completion(&gpsalHandle->card_rem_event_var);
+   libra_sdio_notify_card_removal(wlan_sdio_card_removal_hdlr);
+
+   init_completion(&gpsalHandle->shutdown_event_var);
+   libra_sdio_register_shutdown_hdlr(wlan_sdio_shutdown_hdlr);
+
 #ifndef LIBRA_LINUX_PC
    /* Register with SDIO driver as client for Suspend/Resume */
    libra_sdio_configure_suspend_resume(wlan_sdio_suspend_hdlr, wlan_sdio_resume_hdlr);
@@ -679,6 +829,12 @@ VOS_STATUS WLANSAL_Close
    {
       VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_WARN,"%s: Sal lock not released.\n");
    }
+
+   libra_sdio_notify_card_removal(NULL);
+   WLANSAL_allow_card_removal();
+
+   libra_sdio_register_shutdown_hdlr(NULL);
+   WLANSAL_allow_shutdown();
 
    vos_free_context(pAdapter, VOS_MODULE_ID_SAL, gpsalHandle);
 
@@ -1252,73 +1408,6 @@ void WLANSAL_GetSDIOCardId
 {
   VOS_ASSERT(NULL != gpsalHandle);
   libra_sdio_get_card_id(gpsalHandle->sdio_func_dev, sdioCardId);
-}
-
-/*----------------------------------------------------------------------------
-
-   @brief Reinitialize LIBRA's SDIO core
-          Deep sleep status is same with turn off power
-          So, standard SDIO init procedure is needed
-
-   @param v_PVOID_t pAdapter
-        Global adapter handle
-
-   @return General status code
-        VOS_STATUS_SUCCESS       Update success
-        VOS_STATUS_E_RESOURCES   SAL resources are not ready
-        VOS_STATUS_E_INVAL       Invalid argument
-      
-----------------------------------------------------------------------------*/
-VOS_STATUS WLANSAL_SDIOReInit
-(
-   v_PVOID_t             pAdapter
-)
-{
-   hdd_adapter_t *pHddAdapter = NULL;
-   v_CONTEXT_t pVosContext = NULL;
-   struct sdio_func *func;
-#ifndef LIBRA_LINUX_PC
-   int err = 0;
-#endif
-
-   //Get the global vos context
-   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-
-   if(!pVosContext) 
-   {
-      SMSGERROR("Global VOS context is Null", 0, 0, 0);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   //Get the HDD context.
-   pHddAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
-   if(!pHddAdapter) 
-   {
-      SMSGERROR("Hdd Adapter context is Null", 0, 0, 0);
-      return VOS_STATUS_E_FAILURE;;
-   }
-
-   func = libra_getsdio_funcdev();
-   if (func && func->card) {
-#ifndef LIBRA_LINUX_PC
-      err = sdio_reset_comm(func->card);
-#endif
-#ifndef LIBRA_LINUX_PC
-      if(err) {
-         SMSGERROR("%s: sdio_reset_comm failed %d", __func__, err, 0);
-         return VOS_STATUS_E_FAILURE;
-      }
-#endif
-   }
-   else
-   {
-      SMSGERROR("%s: sdio_func or mmc_card handle is null", __func__, 0, 0);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   atomic_set(&((hdd_context_t *)(pHddAdapter->pHddCtx))->sdio_claim_count, 0);
-
-   return VOS_STATUS_SUCCESS;
 }
 
 /*----------------------------------------------------------------------------

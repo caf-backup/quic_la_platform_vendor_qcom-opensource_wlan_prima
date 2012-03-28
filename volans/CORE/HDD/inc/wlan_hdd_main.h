@@ -512,6 +512,15 @@ struct hdd_adapter_s
    struct wireless_dev wdev ;
    struct cfg80211_scan_request *request ; 
 #endif
+#ifdef WLAN_FEATURE_P2P
+   /** ops checks if Opportunistic Power Save is Enable or Not
+    * ctw stores ctWindow value once we receive Opps command from 
+    * wpa_supplicant then using ctWindow value we need to Enable 
+    * Opportunistic Power Save
+    */
+    tANI_U8  ops;
+    tANI_U32 ctw;
+#endif
 
    /** Current MAC Address for the adapter  */       
    v_MACADDR_t macAddressCurrent;    
@@ -525,9 +534,14 @@ struct hdd_adapter_s
    hdd_stats_t hdd_stats;
    /**Mib information*/
    sHddMib_t  hdd_mib;
-   
            
    tANI_U8 sessionId;
+#ifdef WLAN_FEATURE_P2P   
+   /** p2pSessionId required to open new SME session for P2P 
+    *  Device address which is different from STA MAC Address
+    */ 
+   tANI_U8 p2pSessionId;
+#endif
 
    /* Completion variable for session close */
    struct completion session_close_comp_var;
@@ -626,6 +640,13 @@ typedef struct hdd_adapter_list_node
    hdd_adapter_t *pAdapter;
 }hdd_adapter_list_node_t;
 
+typedef struct hdd_priv_data_s
+{
+   tANI_U8 *buf;
+   int used_len;
+   int total_len;
+}hdd_priv_data_t;
+
 /** Adapter stucture definition */
 
 struct hdd_context_s
@@ -714,6 +735,11 @@ struct hdd_context_s
    v_U16_t no_of_sessions[VOS_MAX_CONCURRENCY_PERSONA];
 
    hdd_chip_reset_stats_t hddChipResetStats;
+
+#ifdef WLAN_FEATURE_P2P
+   /** P2P Device MAC Address for the adapter  */
+   v_MACADDR_t p2pDeviceAddress;
+#endif
 
    /* driver_type tells whether Driver need to configured to FTM or normal driver */
    tDriverType driver_type;

@@ -1031,7 +1031,15 @@ _raStartStaAutoRate(
         pur11g = false;
     }
 #ifdef WLAN_FEATURE_P2P
-	selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, pur11g, VOS_IS_P2P_PERSONA(bssTable->halBssPersona));
+    if ( NULL == bssTable )
+    {
+        raLog(pMac, RALOG_ERROR, FL("BssTable is NULL"));
+        return;
+    }
+    selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand,
+                                                 pRaInfo->opRateMode,
+                                                 pur11g,
+                                                 VOS_IS_P2P_PERSONA(bssTable->halBssPersona));
 #else
 	selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, pur11g);
 #endif

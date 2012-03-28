@@ -4418,6 +4418,48 @@ dump_hal_enable_disable_mutex_logs ( tpAniSirGlobal pMac,
     return p;
 }
 
+#define QWLAN_RXP_FRAME_FILTER_CONFIG_REG_N(index) \
+   (QWLAN_RXP_FRAME_FILTER_CONFIG_REG + (index) * 4)
+
+static char *
+dump_hal_allow_frames_from_other_bss ( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+   tANI_U32 tempVal, regVal;
+
+   /* Set CONFIG2 to enable all Destination MAC addresses */
+
+   halReadRegister(pMac, QWLAN_RXP_CONFIG2_REG, &regVal);
+   regVal |= QWLAN_RXP_CONFIG2_CFG_FLT_GENERATE_HW_RESPONSE_ENABLED_MASK;
+   halWriteRegister(pMac, QWLAN_RXP_CONFIG2_REG, regVal);
+
+   halReadRegister(pMac, QWLAN_RXP_PUSH_WQ_CTRL_REG, &regVal);
+   regVal &= ~QWLAN_RXP_PUSH_WQ_CTRL_ADDR2_254_CATEGORY_PUSH_WQ_INDEX_MASK;
+   regVal |= (BMUWQ_FW_RPE_RECV <<
+         QWLAN_RXP_PUSH_WQ_CTRL_ADDR2_254_CATEGORY_PUSH_WQ_INDEX_OFFSET);
+   halWriteRegister(pMac, QWLAN_RXP_PUSH_WQ_CTRL_REG, regVal);
+
+   // pass QosData frames
+   halReadRegister(pMac, QWLAN_RXP_FRAME_FILTER_CONFIG_REG_N(eDATA_QOSDATA), &tempVal);
+   tempVal &= ~(QWLAN_RXP_FRAME_FILTER_CONFIG_G5_DROP_AT_DMA_MASK);
+   tempVal |= (RXP_ADDR2_ACCEPT_REMAIN );
+   tempVal |= (RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST);
+   halWriteRegister(pMac, QWLAN_RXP_FRAME_FILTER_CONFIG_REG_N(eDATA_QOSDATA), tempVal);
+
+   // pass Data frames
+   halReadRegister(pMac, QWLAN_RXP_FRAME_FILTER_CONFIG_REG_N(eDATA_DATA), &tempVal);
+   tempVal &= ~(QWLAN_RXP_FRAME_FILTER_CONFIG_G5_DROP_AT_DMA_MASK);
+   tempVal |= (RXP_ADDR2_ACCEPT_REMAIN );
+   tempVal |= (RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST);
+   halWriteRegister(pMac, QWLAN_RXP_FRAME_FILTER_CONFIG_REG_N(eDATA_DATA), tempVal);
+
+   halReadRegister(pMac, QWLAN_RXP_CFG_FLT_TYPE_SUBTYPE_RX_DISABLE0_REG, &tempVal);
+   tempVal &= ~(RXP_TYPE_SUBTYPE_MASK(eDATA_DATA));
+   tempVal &= ~(RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA));
+   halWriteRegister(pMac, QWLAN_RXP_CFG_FLT_TYPE_SUBTYPE_RX_DISABLE0_REG, tempVal);
+
+    return p;
+}
+
 static tDumpFuncEntry halMenuDumpTable[] = {
     {0,     "HAL Specific (50-299)",                                    NULL},
     //----------------------------
@@ -4532,6 +4574,7 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {266,   "SAP:Config AGC Listen Mode <EDET threshold; 128-disable>", dump_hal_enable_listen_mode},
     {267,   "ap Enable/Disable HW Qos Null Feature at FW <1/0",         dump_hal_enable_hw_qosnull_feature},
 #endif
+    {268,   "Allow frames from other BSS",                              dump_hal_allow_frames_from_other_bss},
 };
 
 void halDumpInit(tpAniSirGlobal pMac)

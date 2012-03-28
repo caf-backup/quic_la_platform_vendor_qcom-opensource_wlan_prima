@@ -986,14 +986,31 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    return;
 }
 
+void hdd_set_parent_dev(hdd_context_t* pHddCtx, struct device* dev)
+{
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL; 
+    hdd_adapter_t *pAdapter = NULL; 
+    VOS_STATUS status;
+
+    /* loop through all adapters */
+    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+    {
+        pAdapter = pAdapterNode->pAdapter;
+        SET_NETDEV_DEV(pAdapter->dev, dev);
+        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+        pAdapterNode = pNext;
+    }
+    return;
+}
+
 VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason) 
 {
    VOS_STATUS vosStatus;
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext = NULL;
    pVosSchedContext vosSchedContext = NULL;
-   struct sdio_func *sdio_func_dev_new = NULL;
-   struct sdio_func *sdio_func_dev_current = NULL;
+   struct sdio_func *sdio_func_dev = NULL;
    unsigned int attempts = 0;
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN being reset",__func__);
@@ -1144,6 +1161,9 @@ VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
+   libra_sdio_notify_card_removal(NULL);
+   WLANSAL_allow_card_removal();
+
 #ifdef TIMER_MANAGER
    vos_timer_exit();
 #endif
@@ -1152,11 +1172,12 @@ VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason)
    vos_mem_clean();
 #endif
 
-   //Get the Current SDIO Func
-   sdio_func_dev_current = libra_getsdio_funcdev();   
-
-   //Reinitialize the variable
-   attempts = 0;
+   if(reset_reason == VOS_CHIP_SHUTDOWN)
+   {
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Request for shutdown, "
+              "exiting", __func__);
+       goto shutdown;
+   }
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Powering Up chip Again",__func__);
    //Power Up Libra WLAN card first if not already powered up
@@ -1168,75 +1189,49 @@ VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason)
       goto err_pwr_fail;
    }
 
-   if (reset_reason == VOS_CHIP_RESET_CMD53_FAILURE &&
-       sdio_func_dev_current == NULL)
-   {
-      // Trigger card detect
-      libra_detect_card_change();
+   // Trigger card detect
+   libra_detect_card_change();
 
-      //Reinitialize the variable
-      attempts = 0;
+   //Reinitialize the variable
+   attempts = 0;
 
-      do {
-         msleep(500);
+   do {
+      msleep(500);
 
-         //Get the SDIO func device
-         sdio_func_dev_new = libra_getsdio_funcdev();
-         if(sdio_func_dev_new != NULL)
-         {
-            //Not needed but in case it causes probs then put a loop and set for each adapter
-            //SET_NETDEV_DEV(pAdapter->dev, &sdio_func_dev_new->dev); 
-            libra_sdio_setprivdata (sdio_func_dev_new, pHddCtx);
-            atomic_set(&pHddCtx->sdio_claim_count, 0);
-            pHddCtx->hsdio_func_dev = sdio_func_dev_new;
-            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                    "%s: Card Detected Successfully %p",__func__, 
-                    sdio_func_dev_new);
-            break;
-         }
-         else
-         {
-            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                    "%s: Failed to detect card change %p",__func__, 
-                    sdio_func_dev_new);     
-            attempts++;
-         }
-      }while (attempts < LIBRA_CARD_INSERT_DETECT_MAX_COUNT);
-
-      if(LIBRA_CARD_INSERT_DETECT_MAX_COUNT == attempts)
+      //Get the SDIO func device
+      sdio_func_dev = libra_getsdio_funcdev();
+      if(sdio_func_dev != NULL)
       {
-         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN fail to detect in reset"
-                 "exiting", __func__);
-         goto err_fail;
+         hdd_set_parent_dev(pHddCtx, &sdio_func_dev->dev);
+         libra_sdio_setprivdata (sdio_func_dev, pHddCtx);
+         atomic_set(&pHddCtx->sdio_claim_count, 0);
+         pHddCtx->hsdio_func_dev = sdio_func_dev;
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                 "%s: Card Detected Successfully %p",__func__, 
+                 sdio_func_dev);
+         break;
       }
-   }
-   else
+      else
+      {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                 "%s: Failed to detect card change %p",__func__, 
+                 sdio_func_dev);     
+         attempts++;
+      }
+   }while (attempts < LIBRA_CARD_INSERT_DETECT_MAX_COUNT);
+
+   if(LIBRA_CARD_INSERT_DETECT_MAX_COUNT == attempts)
    {
-       vosStatus = WLANSAL_SDIOReInit( pHddCtx->pvosContext );
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-       if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-       {
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Failed in WLANSAL_SDIOReInit",__func__);
-           goto err_fail;
-       }
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN fail to detect in reset"
+              "exiting", __func__);
+      goto err_fail;
    }
-   //Get the SDIO func device
-   sdio_func_dev_new = libra_getsdio_funcdev();
-   if(sdio_func_dev_new != NULL)
-   {
-       sd_claim_host(sdio_func_dev_new);
-       /* Enable IRQ capabilities in host controller */
-       libra_disable_sdio_irq_capability(sdio_func_dev_new, 0);
-       libra_enable_sdio_irq(sdio_func_dev_new, 1);
-       sd_release_host(sdio_func_dev_new);
-   }
-   else
-   {
-        /* Our card got removed before LOGP. */
-        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
-        goto err_fail;
-   }
+
+   /* Enable IRQ capabilities in host controller */
+   sd_claim_host(sdio_func_dev);
+   libra_disable_sdio_irq_capability(sdio_func_dev, 0);
+   libra_enable_sdio_irq(sdio_func_dev, 1);
+   sd_release_host(sdio_func_dev);
 
    vosStatus = WLANBAL_Open(pVosContext);
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
@@ -1361,6 +1356,7 @@ err_fail:
    //Vote off any PMIC voltage supplies
    vos_chipPowerDown(NULL, NULL, NULL);
 
+shutdown:
 err_pwr_fail:
    vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
 

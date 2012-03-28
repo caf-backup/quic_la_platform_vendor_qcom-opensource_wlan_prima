@@ -551,6 +551,12 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
     eHalStatus halStatus;
     tRssAvgParam rssi_param;
 
+    if ( NULL == pMac )
+    {
+        *pRssi = 0;
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     //make sure it is pwr save, before we start reading the PMU BMPS RSSI registers
     if (!halUtil_CurrentlyInPowerSave(pMac))
     {
@@ -4246,9 +4252,15 @@ void halPSAppsCpuWakeupState( tpAniSirGlobal pMac, tANI_U32 isAppsAwake )
 {
     tANI_U32 offset = (tANI_U32)&((Qwlanfw_SysCfgType *)0)->isAppsCpuAwake;
     tANI_U32 appsCpuWakeupState = isAppsAwake;
-    tHalFwParams *pFw = &pMac->hal.FwParam;
+    tHalFwParams *pFw;
     Qwlanfw_SysCfgType *pFwConfig;
 
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return;
+    }
+    pFw = &pMac->hal.FwParam;
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
     pFwConfig->isAppsCpuAwake = isAppsAwake;
 

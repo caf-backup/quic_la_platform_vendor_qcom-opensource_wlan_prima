@@ -727,6 +727,12 @@ static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
           break;
     }
 
+    if ( ii == SIZE_OF_TABLE(rateName_rateIndex_tbl) )
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: rate is out of rateIndex_tbl",__func__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
     lenRes = strlcpy(buf, rateName_rateIndex_tbl[ii].rate_str, lenBuf);
     if(lenRes < 0 || lenRes >= lenBuf)
        return VOS_STATUS_E_FAILURE;

@@ -5002,6 +5002,12 @@ WLANTL_RxFrames
         tpAniSirGlobal pMac;
 
         pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
+        if ( NULL == pMac )
+        {
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                          "%s: pMac is NULL", __FUNCTION__));
+          return VOS_STATUS_E_FAULT;
+        }
         systemRole = halGetBssSystemRoleFromStaIdx(pMac, addr1Idx);
 
         if( eSYSTEM_AP_ROLE != systemRole )

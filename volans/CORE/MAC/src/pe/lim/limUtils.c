@@ -2599,7 +2599,12 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
     tSirMbMsg   *msg2Hdd;
 
     tANI_U8    channel = pMac->lim.gLimChannelSwitch.primaryChannel;   // This is received and stored from channelSwitch Action frame
-
+    psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId);
+    if( NULL == psessionEntry )
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
     {
         PELOGW(limLog(pMac, LOGW, "Channel switch can be done only in STA role, Current Role = %d\n", psessionEntry->limSystemRole);)

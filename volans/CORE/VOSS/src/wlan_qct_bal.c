@@ -1886,6 +1886,11 @@ VOS_STATUS WLANBAL_EnableASICInterruptEx
    WLANSSC_HandleType     sscHandle = (WLANSSC_HandleType)VOS_GET_SSC_CTXT(pAdapter);
    VOS_STATUS             status    = VOS_STATUS_SUCCESS;
 
+   if (NULL == sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAULT;
+   }
    return(WLANSSC_EnableASICInterruptEx(sscHandle, uIntMask));
 
    return status;
@@ -1940,6 +1945,11 @@ VOS_STATUS WLANBAL_DisableASICInterruptEx
 {
    WLANSSC_HandleType     sscHandle = (WLANSSC_HandleType)VOS_GET_SSC_CTXT(pAdapter);
 
+   if (NULL == sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAULT;
+   }
    return(WLANSSC_DisableASICInterruptEx(sscHandle, uIntMask));
 
 }
@@ -2129,6 +2139,12 @@ VOS_STATUS WLANBAL_SuspendChip_NoLock
 
    VOS_ASSERT(gbalHandle);
    VOS_ASSERT(sscHandle);
+
+   if (NULL == sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAULT;
+   }
 
    BENTER();
 

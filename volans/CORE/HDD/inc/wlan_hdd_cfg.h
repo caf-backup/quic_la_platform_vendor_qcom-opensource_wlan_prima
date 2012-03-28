@@ -1114,6 +1114,18 @@ typedef enum
 #define CFG_REPORT_MAX_LINK_SPEED_MAX              ( 1 )
 #define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( 0 )
 
+#ifdef WLAN_FEATURE_P2P
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME                "isP2pDeviceAddrAdministrated"
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MIN                 ( 0 )
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MAX                 ( 1 )
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_DEFAULT             ( 0 )
+#endif
+
+#define CFG_ENABLE_BYPASS_11D_NAME                 "gEnableBypass11d"
+#define CFG_ENABLE_BYPASS_11D_MIN                  ( 0 )
+#define CFG_ENABLE_BYPASS_11D_MAX                  ( 1 )
+#define CFG_ENABLE_BYPASS_11D_DEFAULT              ( 0 )
+
 /*
  *
  * SAP Auto Channel Enable
@@ -1399,6 +1411,10 @@ typedef struct
    v_U32_t                     apDataAvailPollPeriodInMs;
    v_BOOL_t                    teleBcnWakeupEn;
    v_U8_t                      reportMaxLinkSpeed;
+#ifdef WLAN_FEATURE_P2P
+   v_BOOL_t                    isP2pDeviceAddrAdministrated;
+#endif
+   v_U8_t                      enableBypass11d;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

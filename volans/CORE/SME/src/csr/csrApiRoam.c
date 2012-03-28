@@ -784,6 +784,11 @@ eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, tC
     tANI_U32 size = 0;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     if(pProfile)
     {
         if(pSession->pConnectBssDesc)
@@ -1312,7 +1317,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
 
         pMac->roam.configParam.addTSWhenACMIsOff = pParam->addTSWhenACMIsOff;
         pMac->scan.fValidateList = pParam->fValidateList;
-
+        pMac->scan.fEnableBypass11d = pParam->fEnableBypass11d;
     }
 
     return status;
@@ -1371,6 +1376,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 
         pParam->addTSWhenACMIsOff = pMac->roam.configParam.addTSWhenACMIsOff;
         pParam->fValidateList = pMac->roam.configParam.fValidateList;
+        pParam->fEnableBypass11d = pMac->scan.fEnableBypass11d;
 
         status = eHAL_STATUS_SUCCESS;
     }
@@ -2029,6 +2035,11 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
     tANI_U16 reasonCode;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     //Restore AC weight in case we change it 
     if ( csrIsConnStateConnectedInfra( pMac, sessionId ) )
     {
@@ -2245,6 +2256,11 @@ eHalStatus csrRoamIssueDeauth( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoam
     tCsrBssid bssId = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     if(pSession->pConnectBssDesc)
     {
         palCopyMemory(pMac->hHdd, &bssId, pSession->pConnectBssDesc->bssId, sizeof(tCsrBssid));
@@ -2269,6 +2285,11 @@ eHalStatus csrRoamSaveConnectedBssDesc( tpAniSirGlobal pMac, tANI_U32 sessionId,
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tANI_U32 size;
     
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     // If no BSS description was found in this connection (happens with start IBSS), then 
     // nix the BSS description that we keep around for the connected BSS) and get out...
     if(NULL == pBssDesc)
@@ -3331,6 +3352,11 @@ eHalStatus csrRoamStopNetwork( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
     tBssConfigParam *pBssConfig;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     status = palAllocateMemory(pMac->hHdd, (void **)&pBssConfig, sizeof(tBssConfigParam)); 
     if(HAL_STATUS_SUCCESS(status))
     {
@@ -3411,6 +3437,11 @@ eCsrJoinState csrRoamJoin( tpAniSirGlobal pMac, tANI_U32 sessionId,
     tDot11fBeaconIEs *pIesLocal = (tDot11fBeaconIEs *)( pScanResult->pvIes ); //This may be NULL
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     if( CSR_IS_WDS_STA( pProfile ) )
     {
         status = csrRoamStartWds( pMac, sessionId, pProfile, pBssDesc );
@@ -3570,6 +3601,11 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tCsrRoamProfile *pProfile = &pCommand->u.roamCmd.roamProfile;
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     do  
     {
         // Check for Cardbus eject condition, before trying to Roam to any BSS
@@ -3859,6 +3895,12 @@ eHalStatus csrProcessFTReassocRoamCommand ( tpAniSirGlobal pMac, tSmeCmd *pComma
     sessionId = pCommand->sessionId;
     pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+       VOS_ASSERT(0);
+       return eHAL_STATUS_FAILURE;
+    }
+
     if(CSR_IS_ROAMING(pSession) && pSession->fCancelRoaming)
     {
         //the roaming is cancelled. Simply complete the command
@@ -4070,6 +4112,12 @@ void csrResetPMKIDCandidateList( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return;
+    }
+
     palZeroMemory( pMac->hHdd, &(pSession->PmkidCandidateInfo[0]), sizeof(tPmkidCandidateInfo) * CSR_MAX_PMKID_ALLOWED );
     pSession->NumPmkidCandidate = 0;
 }
@@ -4078,6 +4126,12 @@ void csrResetPMKIDCandidateList( tpAniSirGlobal pMac, tANI_U32 sessionId )
 void csrResetBKIDCandidateList( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     palZeroMemory( pMac->hHdd, &(pSession->BkidCandidateInfo[0]), sizeof(tBkidCandidateInfo) * CSR_MAX_BKID_ALLOWED );
     pSession->NumBkidCandidate = 0;
 }
@@ -4095,6 +4149,11 @@ static eHalStatus csrRoamSaveSecurityRspIE(tpAniSirGlobal pMac, tANI_U32 session
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tDot11fBeaconIEs *pIesLocal = pIes;
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     if((eCSR_AUTH_TYPE_WPA == authType) ||
             (eCSR_AUTH_TYPE_WPA_PSK == authType) ||
             (eCSR_AUTH_TYPE_RSN == authType) ||
@@ -5799,6 +5858,11 @@ eHalStatus csrRoamJoinLastProfile(tpAniSirGlobal pMac, tANI_U32 sessionId)
     tCsrRoamProfile *pProfile = NULL;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     do
     {
         if(pSession->pCurRoamProfile)
@@ -6101,6 +6165,12 @@ eHalStatus csrRoamDisconnectInternal(tpAniSirGlobal pMac, tANI_U32 sessionId, eC
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     //Not to call cancel roaming here
     //Only issue disconnect when necessary
     if(csrIsConnStateConnected(pMac, sessionId) || csrIsBssTypeIBSS(pSession->connectedProfile.BSSType) 
@@ -6120,6 +6190,11 @@ eHalStatus csrRoamDisconnect(tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoamDi
 {
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+     if( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     csrRoamCancelRoaming(pMac, sessionId);
     pSession->ibss_join_pending = FALSE;
     csrRoamStopIbssJoinTimer(pMac, sessionId);
@@ -6136,8 +6211,14 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
     tDot11fBeaconIEs *pIesTemp = pIes;
     tANI_U8 index;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-    tCsrRoamConnectedProfile *pConnectProfile = &pSession->connectedProfile;
+    tCsrRoamConnectedProfile *pConnectProfile;
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
+    pConnectProfile = &pSession->connectedProfile;
     palZeroMemory(pMac->hHdd, &pSession->connectedProfile, sizeof(tCsrRoamConnectedProfile));
     pConnectProfile->AuthType = pProfile->negotiatedAuthType;
     pConnectProfile->AuthInfo = pProfile->AuthType;
@@ -6262,6 +6343,11 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
         if(pCommand)
         {
             roamId = pCommand->u.roamCmd.roamId;
+        }
+        if ( NULL == pSession )
+        {
+            VOS_ASSERT(0);
+            return;
         }
 
         pSession->joinFailStatusCode.statusCode = pSmeJoinRsp->statusCode;
@@ -6416,6 +6502,11 @@ void csrRoamReissueRoamCommand(tpAniSirGlobal pMac)
         {
             sessionId = pCommand->sessionId;
             pSession = CSR_GET_SESSION( pMac, sessionId );
+            if(NULL == pSession)
+            {
+               VOS_ASSERT(0);
+               return;
+            }
             if( pCommand->u.roamCmd.fStopWds )
             {
                 palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
@@ -6644,6 +6735,11 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
     pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
     sessionId = pCommand->sessionId;
     pSession = CSR_GET_SESSION( pMac, sessionId );
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     if(CSR_IS_ROAMING(pSession) && pSession->fCancelRoaming)
     {
         //the roaming is cancelled. Simply complete the command
@@ -6943,6 +7039,11 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
     //sessionId = pCommand->sessionId;
     sessionId  = pSmeDisassocRsp->sessionId;
     pSession = CSR_GET_SESSION( pMac, sessionId );
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     if ( CSR_IS_ROAM_SUBSTATE_DISASSOC_NO_JOIN( pMac ) )
     {
         csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
@@ -8212,6 +8313,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if ( csrIsConnStateInfra( pMac, sessionId ) )
                 {
                     pSession = CSR_GET_SESSION( pMac, sessionId );
+                    if ( NULL == pSession )
+                    {
+                        VOS_ASSERT(0);
+                        return;
+                    }
                     pSession->connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
                 }
 
@@ -8884,6 +8990,11 @@ tANI_BOOLEAN csrRoamCompleteRoaming(tpAniSirGlobal pMac, tANI_U32 sessionId,
     tANI_TIMESTAMP curTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if ( NULL == pSession )
+    {
+        VOS_ASSERT(0);
+        return eANI_BOOLEAN_FALSE;
+    }
     //Check whether time is up
     if(pSession->fCancelRoaming || fForce || 
             ((curTime - pSession->roamingStartTime) > roamTime) ||
@@ -8921,6 +9032,11 @@ void csrRoamCancelRoaming(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     if(CSR_IS_ROAMING(pSession))
     {
         smsLog(pMac, LOGW, "   Cancelling roaming\n");
@@ -8950,6 +9066,11 @@ void csrRoamRoamingTimerHandler(void *pv)
     tANI_U32 sessionId = pInfo->sessionId;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     if(eANI_BOOLEAN_FALSE == pSession->fCancelRoaming) 
     {
         if(!HAL_STATUS_SUCCESS(csrRoamStartRoaming(pMac, sessionId, eCsrLostlinkRoaming)))
@@ -8963,9 +9084,14 @@ void csrRoamRoamingTimerHandler(void *pv)
 
 eHalStatus csrRoamStartRoamingTimer(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 interval)
 {
-    eHalStatus status;
+    eHalStatus status = eHAL_STATUS_FAILURE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     smsLog(pMac, LOG1, " csrScanStartRoamingTimer \n ");
     pSession->roamingTimerInfo.sessionId = (tANI_U8)sessionId;
     status = palTimerStart(pMac->hHdd, pSession->hTimerRoaming, interval, eANI_BOOLEAN_FALSE);
@@ -9020,6 +9146,11 @@ void csrRoamIbssJoinTimerHandler(void *pv)
     tANI_U32 sessionId = pInfo->sessionId;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     pSession->ibss_join_pending = FALSE;
     // JEZ100225:  As of main/latest "tip", we are no longer doing this. Check on this.
     //csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_IBS_IND, eCSR_ROAM_RESULT_IBSS_JOIN_FAILED);
@@ -9030,9 +9161,14 @@ void csrRoamIbssJoinTimerHandler(void *pv)
 
 eHalStatus csrRoamStartIbssJoinTimer(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 interval)
 {
-    eHalStatus status;
+    eHalStatus status = eHAL_STATUS_FAILURE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     smsLog(pMac, LOG1, " csrRoamStartIbssJoinTimer \n ");
     pSession->ibssJoinTimerInfo.sessionId = (tANI_U8)sessionId;
     status = palTimerStart(pMac->hHdd, pSession->hTimerIbssJoining, interval, eANI_BOOLEAN_FALSE);
@@ -9082,8 +9218,14 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
     tCsrRoamInfo roamInfo;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     //Only need to roam for infra station. In this case P2P client will roam as well
-    tANI_BOOLEAN fToRoam = CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile);
+    tANI_BOOLEAN fToRoam;
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
+    fToRoam = CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile);
     pSession->fCancelRoaming = eANI_BOOLEAN_FALSE;
     if ( eWNI_SME_DISASSOC_IND == type )
     {
@@ -9201,6 +9343,12 @@ eHalStatus csrRoamLostLinkAfterhandoffFailure( tpAniSirGlobal pMac,tANI_U32 sess
     tListElem *pEntry = NULL;
     tSmeCmd *pCommand = NULL;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     pSession->fCancelRoaming =  eANI_BOOLEAN_FALSE;
 
     //Only remove the connected BSS in infrastructure mode
@@ -9282,6 +9430,11 @@ void csrRoamProcessWmStatusChangeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand
     tSirSmeRsp *pSirSmeMsg;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pCommand->sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     switch ( pCommand->u.wmStatusChangeCmd.Type )
     {
         case eCsrDisassociated:
@@ -10174,6 +10327,11 @@ static void csrRoamPrepareBssParams(tpAniSirGlobal pMac, tANI_U32 sessionId, tCs
     eCsrCBChoice cbChoice;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     if( pBssDesc )
     {
         csrRoamGetBssStartParmsFromBssDesc( pMac, pBssDesc, pIes, &pSession->bssParams );
@@ -10333,6 +10491,11 @@ static void csrRoamUpdateConnectedProfileFromNewBss( tpAniSirGlobal pMac, tANI_U
 {
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     if( pNewBss )
     {
         // Set the operating channel.
@@ -10427,6 +10590,11 @@ eHalStatus csrRoamSetPMKIDCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
     eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     smsLog(pMac, LOGW, "csrRoamSetPMKIDCache called, numItems = %d\n", numItems);
     if(numItems <= CSR_MAX_PMKID_ALLOWED)
     {
@@ -10471,6 +10639,11 @@ eHalStatus csrRoamGetPMKIDCache(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U3
     eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     if(pNum && pPmkidCache)
     {
         if(pSession->NumPmkidCache == 0)
@@ -10503,6 +10676,11 @@ eHalStatus csrRoamGetWpaRsnReqIE(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U
     tANI_U32 len;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     if(pLen)
     {
         len = *pLen;
@@ -10526,6 +10704,11 @@ eHalStatus csrRoamGetWpaRsnRspIE(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U
     tANI_U32 len;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     if(pLen)
     {
         len = *pLen;
@@ -10548,6 +10731,12 @@ eHalStatus csrRoamGetWapiReqIE(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32
     eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
     tANI_U32 len;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     if(pLen)
     {
         len = *pLen;
@@ -10570,6 +10759,11 @@ eHalStatus csrRoamGetWapiRspIE(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32
     tANI_U32 len;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     if(pLen)
     {
         len = *pLen;
@@ -10592,6 +10786,11 @@ eRoamCmdStatus csrGetRoamCompleteStatus(tpAniSirGlobal pMac, tANI_U32 sessionId)
     eRoamCmdStatus retStatus = eCSR_ROAM_CONNECT_COMPLETION;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eCSR_ROAM_FAILED;
+    }
     if(CSR_IS_ROAMING(pSession))
     {
         retStatus = eCSR_ROAM_ROAMING_COMPLETION;
@@ -10728,6 +10927,11 @@ static eHalStatus csrRoamStartWds( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsr
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tBssConfigParam bssConfig;
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     if ( csrIsConnStateIbss( pMac, sessionId ) ) 
     { 
         status = csrRoamIssueStopBss( pMac, sessionId, eCSR_ROAM_SUBSTATE_DISCONNECT_CONTINUE_ROAMING );
@@ -10880,6 +11084,11 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     tANI_U32 dwTmp;
     tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     do {
         pSession->joinFailStatusCode.statusCode = eSIR_SME_SUCCESS;
         pSession->joinFailStatusCode.reasonCode = 0;
@@ -11270,6 +11479,11 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     /* To satisfy klockworks */
     if (pBssDescription == NULL)
     {
@@ -12245,7 +12459,7 @@ eHalStatus csrSendMBSetContextReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId ,
 eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoamBssType bssType, 
                                     tCsrRoamStartBssParams *pParam, tSirBssDescription *pBssDesc )
 {
-    eHalStatus status;
+    eHalStatus status = eHAL_STATUS_FAILURE;
     tSirSmeStartBssReq *pMsg;
     tANI_U8 *pBuf = NULL;
     tANI_U8  *wTmpBuf  = NULL;
@@ -12258,6 +12472,13 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
 #endif
 
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
+
     do {
         pSession->joinFailStatusCode.statusCode = eSIR_SME_SUCCESS;
         pSession->joinFailStatusCode.reasonCode = 0;
@@ -12439,6 +12660,11 @@ eHalStatus csrSendMBStopBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId )
     tANI_U8 *pBuf;
     tANI_U16 msgLen;
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     do {
         status = palAllocateMemory(pMac, (void **)&pMsg, sizeof(tSirSmeStopBssReq));
         if ( !HAL_STATUS_SUCCESS(status) ) break;
@@ -12929,6 +13155,11 @@ static void csrInitSession( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     pSession->sessionActive = eANI_BOOLEAN_FALSE;
     pSession->sessionId = CSR_SESSION_ID_INVALID;
     pSession->callback = NULL;
@@ -13370,6 +13601,11 @@ static void csrRoamLinkDown(tpAniSirGlobal pMac, tANI_U32 sessionId)
 #endif
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return;
+    }
     //Only to handle the case for Handover on infra link
     if( eCSR_BSS_TYPE_INFRASTRUCTURE != pSession->connectedProfile.BSSType )
     {

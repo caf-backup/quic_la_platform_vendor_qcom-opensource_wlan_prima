@@ -114,6 +114,10 @@ typedef struct
    spinlock_t                        spinlock;         // Release of sdio device is controlled by this
    v_BOOL_t                          isINTEnabled;     // INT enabled flag
    struct sdio_func                  *sdio_func_dev;   // The handle to the sd/mmc sdio device
+    /* Completion  variable to unblock card removal */
+   struct completion                 card_rem_event_var;
+     /* Completion  variable to unblock shutdown request */
+   struct completion                 shutdown_event_var;
 } salHandleType;
 
 /*-------------------------------------------------------------------------

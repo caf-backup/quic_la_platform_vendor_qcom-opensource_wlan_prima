@@ -653,7 +653,11 @@ VosWDThread
 #ifdef CONFIG_HAS_EARLYSUSPEND
           vosStatus = hdd_wlan_reset(gpVosWatchdogContext->reason);
 #endif
-          if (! VOS_IS_STATUS_SUCCESS(vosStatus))
+          if(VOS_CHIP_SHUTDOWN == gpVosWatchdogContext->reason)
+          {
+              goto shutdown;
+          }
+          else if (! VOS_IS_STATUS_SUCCESS(vosStatus))
           {
              VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Failed to reset WLAN",__func__);
              VOS_ASSERT(0);
@@ -690,6 +694,10 @@ err_reset:
       "%s: Watchdog Thread Failed to Reset, Exiting!!!!", __FUNCTION__);
     return 0;
 
+shutdown:
+    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+      "%s: Watchdog Thread Completed Shutdown, Exiting!!!!", __FUNCTION__);
+    return 0;
 } /* VosMCThread() */
 
 /*---------------------------------------------------------------------------
@@ -974,6 +982,11 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
     pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
 
+    if(NULL == pHddCtx)
+    {
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+       return VOS_STATUS_E_FAULT;
+    }
     hdd_reset_all_adapters(pHddCtx);
 
     sdio_func_dev = libra_getsdio_funcdev();
@@ -1014,8 +1027,11 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
         return VOS_STATUS_E_FAILURE;
     } 
 
-    VOS_ASSERT(0);
-    
+    if(VOS_CHIP_SHUTDOWN != reason)
+    {
+      VOS_ASSERT(0);
+    }
+
     /* Store the reason for wlan_reset */
     gpVosWatchdogContext->reason = reason;
     /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
