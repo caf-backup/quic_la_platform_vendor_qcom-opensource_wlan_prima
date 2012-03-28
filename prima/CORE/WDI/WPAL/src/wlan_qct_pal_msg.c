@@ -1,4 +1,8 @@
-
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
 
 /**=========================================================================
   
@@ -22,15 +26,23 @@
 
 
 /*---------------------------------------------------------------------------
-     wpalPostCtrlMsg – Post a message to control context so it can be processed in that context.
+     wpalPostCtrlMsg - Post a message to control context so it can be processed in that context.
     Param: 
-        pPalContext – A PAL context
-        pMsg – a pointer to called allocated opaque object;
+        pPalContext - A PAL context
+        pMsg - a pointer to called allocated opaque object;
 ---------------------------------------------------------------------------*/
 wpt_status wpalPostCtrlMsg(void *pPalContext, wpt_msg *pMsg)
 {
    wpt_status status = eWLAN_PAL_STATUS_E_FAILURE;
    vos_msg_t msg;
+
+   if (NULL == pMsg)
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: NULL message pointer", __FUNCTION__);
+      WPAL_ASSERT(0);
+      return status;
+   }
 
    msg.type = 0;  //This field is not used because VOSS doesn't check it.
    msg.reserved = 0;
@@ -52,15 +64,23 @@ wpt_status wpalPostCtrlMsg(void *pPalContext, wpt_msg *pMsg)
 
 
 /*---------------------------------------------------------------------------
-     wpalPostTxMsg – Post a message to TX context so it can be processed in that context.
+     wpalPostTxMsg - Post a message to TX context so it can be processed in that context.
     Param: 
-        pPalContext – A PAL context PAL
-        pMsg – a pointer to called allocated opaque object;
+        pPalContext - A PAL context PAL
+        pMsg - a pointer to called allocated opaque object;
 ---------------------------------------------------------------------------*/
 wpt_status wpalPostTxMsg(void *pPalContext, wpt_msg *pMsg)
 {
    wpt_status status = eWLAN_PAL_STATUS_E_FAILURE;
    vos_msg_t msg;
+
+   if (NULL == pMsg)
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: NULL message pointer", __FUNCTION__);
+      WPAL_ASSERT(0);
+      return status;
+   }
 
    msg.type = 0; //This field is not used because VOSS doesn't check it.
    msg.reserved = 0;
@@ -81,15 +101,23 @@ wpt_status wpalPostTxMsg(void *pPalContext, wpt_msg *pMsg)
 
 
 /*---------------------------------------------------------------------------
-     wpalPostRxMsg – Post a message to RX context so it can be processed in that context.
+     wpalPostRxMsg - Post a message to RX context so it can be processed in that context.
     Param: 
-        pPalContext – A PAL context
-        pMsg – a pointer to called allocated opaque object;
+        pPalContext - A PAL context
+        pMsg - a pointer to called allocated opaque object;
 ---------------------------------------------------------------------------*/
 wpt_status wpalPostRxMsg(void *pPalContext, wpt_msg *pMsg)
 {
    wpt_status status = eWLAN_PAL_STATUS_E_FAILURE;
    vos_msg_t msg;
+
+   if (NULL == pMsg)
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: NULL message pointer", __FUNCTION__);
+      WPAL_ASSERT(0);
+      return status;
+   }
 
    msg.type = 0; //This field is not used because VOSS doesn't check it.
    msg.reserved = 0;

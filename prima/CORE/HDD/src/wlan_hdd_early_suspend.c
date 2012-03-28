@@ -83,7 +83,6 @@
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend wlan_early_suspend;
-static struct wake_lock wlan_wake_lock;
 #endif
 
 static eHalStatus g_full_pwr_status;
@@ -815,15 +814,6 @@ static void hdd_conf_resume_ind(hdd_context_t* pHddCtx)
 #endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-static inline void hdd_prevent_suspend(void)
-{
-    wake_lock(&wlan_wake_lock);
-}
-
-static inline void hdd_allow_suspend(void)
-{
-    wake_unlock(&wlan_wake_lock);
-}
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
 {
@@ -1746,9 +1736,6 @@ void register_wlan_suspend(void)
 {
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Register WLAN suspend/resume "
             "callbacks",__func__);
-
-   wake_lock_init(&wlan_wake_lock, WAKE_LOCK_SUSPEND, "wlan");
-
    wlan_early_suspend.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING;
    wlan_early_suspend.suspend = hdd_suspend_wlan;
    wlan_early_suspend.resume = hdd_resume_wlan;
@@ -1759,8 +1746,6 @@ void unregister_wlan_suspend(void)
 {
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Unregister WLAN suspend/resume "
             "callbacks",__func__);
-
-   wake_lock_destroy(&wlan_wake_lock);
    unregister_early_suspend(&wlan_early_suspend);
 }
 #endif
@@ -1922,6 +1907,7 @@ VOS_STATUS hdd_wlan_re_init(void)
    WLANBAP_ConfigType btAmpConfig;
 #endif
 
+   hdd_prevent_suspend();
    /* Re-open VOSS, it is a re-open b'se control transport was never closed. */
    vosStatus = vos_open(&pVosContext, 0);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))

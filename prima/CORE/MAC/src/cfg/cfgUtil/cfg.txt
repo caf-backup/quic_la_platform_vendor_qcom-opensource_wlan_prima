@@ -2644,6 +2644,19 @@ V    RW    P    RESTART
 LIM
 16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
+*
+* 7. Current supported MCS Set: 16 bytes size
+*
+* For now set this to zero and don't put any restrictions.
+*
+WNI_CFG_CURRENT_MCS_SET    S    16    7
+V    RW    P    RESTART
+LIM
+16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+V    RW    P    RESTART
+LIM
+16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
 
 
 *

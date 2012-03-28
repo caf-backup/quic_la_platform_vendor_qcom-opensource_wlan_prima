@@ -179,6 +179,7 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"HT_INFO_FIELD2",
     (unsigned char *)"HT_INFO_FIELD3",
     (unsigned char *)"BASIC_MCS_SET",
+    (unsigned char *)"CURRENT_MCS_SET",
     (unsigned char *)"GREENFIELD_CAPABILITY",
     (unsigned char *)"MAX_AMSDU_LENGTH",
     (unsigned char *)"MPDU_DENSITY",
