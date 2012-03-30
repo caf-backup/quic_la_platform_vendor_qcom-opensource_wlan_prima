@@ -317,9 +317,13 @@ typedef enum
    /*This is temp fix. Should be removed once 
     * Host and Riva code is in sync*/
    WLAN_HAL_INIT_SCAN_CON_REQ               = 165,
-   
-  WLAN_HAL_SET_POWER_PARAMS_REQ             = 166,
-  WLAN_HAL_SET_POWER_PARAMS_RSP             = 167,
+    
+   WLAN_HAL_SET_POWER_PARAMS_REQ            = 166,
+   WLAN_HAL_SET_POWER_PARAMS_RSP            = 167,
+    
+   WLAN_HAL_TSM_STATS_REQ                   = 168,
+   WLAN_HAL_TSM_STATS_RSP                   = 169,
+
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -2702,6 +2706,7 @@ typedef PACKED_PRE struct PACKED_POST
 }  tDelBARspMsg, *tpDelBARspMsg;
 
 
+
 /*---------------------------------------------------------------------------
  * WLAN_HAL_SET_KEYDONE_MSG
  *--------------------------------------------------------------------------*/
@@ -3210,6 +3215,11 @@ typedef PACKED_PRE struct PACKED_POST
    //DTIM period given to HAL during association may not be valid,
    //if association is based on ProbeRsp instead of beacon.
    tANI_U8 dtimPeriod;
+
+   // For CCX and 11R Roaming
+   tANI_U32 rssiFilterPeriod;
+   tANI_U32 numBeaconPerRssiAverage;
+   tANI_U8  bRssiFilterEnable;
 
 } tHalEnterBmpsReqParams, *tpHalEnterBmpsReqParams;
 

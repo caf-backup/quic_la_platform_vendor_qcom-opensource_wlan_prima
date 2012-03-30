@@ -201,6 +201,8 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: Scan is not Pending from user" , __FUNCTION__);
         }
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __FUNCTION__);
+        WLANBAP_DeregisterFromHCI();
         break;
 
    default:
