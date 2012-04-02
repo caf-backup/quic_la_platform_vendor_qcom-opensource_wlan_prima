@@ -28,6 +28,7 @@ $(call add-ar6k-prebuilt-file,hw2.1.1/bdata.bin,$(TARGET_OUT)/../persist,bdata.b
 ar6k_hw21_dst_dir :=
 
 
-$(shell ln -sf /persist/bdata.bin \
+$(shell mkdir -p $(TARGET_OUT)/etc/firmware/ath6k/AR6003/hw2.1.1; \
+        ln -sf /persist/bdata.bin \
         $(TARGET_OUT)/etc/firmware/ath6k/AR6003/hw2.1.1/bdata.bin)
 endif
