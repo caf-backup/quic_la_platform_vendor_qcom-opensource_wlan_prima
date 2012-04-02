@@ -713,6 +713,12 @@ halTable_FindStaidByAddr(tHalHandle hHalHandle, tSirMacAddr staAddr, tANI_U8 *id
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
     eHalStatus status = eHAL_STATUS_INVALID_STAIDX;
+
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
 #if defined(ANI_OS_TYPE_LINUX)
     status = halTable_StaIdCacheFind(pMac, staAddr, id);
 #ifdef HAL_TABLE_API_DEBUG
@@ -722,6 +728,7 @@ halTable_FindStaidByAddr(tHalHandle hHalHandle, tSirMacAddr staAddr, tANI_U8 *id
         staAddr[3], staAddr[4], staAddr[5], *id);
 #endif
 #else
+{
     tANI_U8 i;
     tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
 
@@ -739,6 +746,7 @@ halTable_FindStaidByAddr(tHalHandle hHalHandle, tSirMacAddr staAddr, tANI_U8 *id
         staAddr[0], staAddr[1], staAddr[2],
         staAddr[3], staAddr[4], staAddr[5], i, status );
 #endif
+}
 #endif
     return status;
 }

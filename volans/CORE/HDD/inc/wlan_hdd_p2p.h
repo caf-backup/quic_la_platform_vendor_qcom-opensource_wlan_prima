@@ -24,6 +24,8 @@
 #define WLAN_HDD_GET_TYPE_FRM_FC(__fc__)         (((__fc__) & 0x0F) >> 2)
 #define WLAN_HDD_GET_SUBTYPE_FRM_FC(__fc__)      (((__fc__) & 0xF0) >> 4)
 #define WLAN_HDD_80211_FRM_DA_OFFSET             4
+#define P2P_WILDCARD_SSID_LEN                    7
+#define P2P_WILDCARD_SSID                        "DIRECT-"
 
 enum hdd_rx_flags {
     HDD_RX_FLAG_DECRYPTED        = 1 << 0,
@@ -33,6 +35,10 @@ enum hdd_rx_flags {
 
 
 #ifdef WLAN_FEATURE_P2P
+#define P2P_POWER_SAVE_TYPE_OPPORTUNISTIC        1 << 0;
+#define P2P_POWER_SAVE_TYPE_PERIODIC_NOA         1 << 1;
+#define P2P_POWER_SAVE_TYPE_SINGLE_NOA           1 << 2;
+
 typedef struct p2p_app_setP2pPs{
    tANI_U8     opp_ps;
    tANI_U32     ctWindow;
@@ -60,6 +66,8 @@ int wlan_hdd_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy,
 #endif
 
 int hdd_setP2pPs( struct net_device *dev, void *msgData );
+int hdd_setP2pOpps( struct net_device *dev, tANI_U8 *command );
+int hdd_setP2pNoa( struct net_device *dev, tANI_U8 *command );
 
 void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                             tANI_U32 nFrameLength, tANI_U8* pbFrames,

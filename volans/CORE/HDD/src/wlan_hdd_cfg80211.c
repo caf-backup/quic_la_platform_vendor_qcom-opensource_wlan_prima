@@ -682,6 +682,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         else
         {
            hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie Length is too big***\n");
+           vos_mem_free(genie);
            return -EINVAL;
         }
         total_ielen = ielen;
@@ -701,6 +702,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         {
            hddLog( VOS_TRACE_LEVEL_ERROR,
                     "**Wps Ie+ P2pIE Length is too big***\n");
+           vos_mem_free(genie);
            return -EINVAL;
         }
         total_ielen += ielen;
@@ -713,6 +715,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     {
         hddLog(LOGE,
                "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA to CCM");
+        vos_mem_free(genie);
         return -EINVAL;
     }
 
@@ -724,6 +727,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     {
         hddLog(LOGE,
             "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM");
+        vos_mem_free(genie);
         return -EINVAL;
     }
 
@@ -764,6 +768,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
             {
                  hddLog(LOGE,
                        "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
+                 vos_mem_free(genie);
                  return -EINVAL;
             }
             rem_probe_resp_ie_len += probe_rsp_ie_len[0];
@@ -779,6 +784,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
             {
                  hddLog(LOGE,
                        "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
+                 vos_mem_free(genie);
                  return -EINVAL;
             }
             rem_probe_resp_ie_len += probe_rsp_ie_len[1];
@@ -794,6 +800,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
             {
                  hddLog(LOGE,
                        "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
+                 vos_mem_free(genie);
                  return -EINVAL;
             }
             rem_probe_resp_ie_len += probe_rsp_ie_len[2];
@@ -829,6 +836,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         {
            hddLog(LOGE,
              "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_FLAG to CCM");
+           vos_mem_free(genie);
            return -EINVAL;
         }
     }
@@ -852,6 +860,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
        {
             hddLog(LOGE,
                   "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_DATA to CCM");
+            vos_mem_free(genie);
             return -EINVAL;
        }
 
@@ -863,6 +872,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
        {
           hddLog(LOGE,
             "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM");
+          vos_mem_free(genie);
           return -EINVAL;
        }
     }
@@ -1400,6 +1410,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                       "%s: setting interface Type to %s", __func__,
                       (type == NL80211_IFTYPE_AP) ? "SoftAP" : "P2pGo");
 
+		        netif_tx_disable(pAdapter->dev);
                 //De-init the adapter.
                 hdd_stop_adapter( pHddCtx, pAdapter );
                 hdd_deinit_adapter( pHddCtx, pAdapter );
@@ -1411,7 +1422,6 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
 #else
                 pAdapter->device_mode = WLAN_HDD_SOFTAP;
 #endif
-                hdd_set_ap_ops( pAdapter->dev );
 
                 status = hdd_init_ap_mode(pAdapter);
                 if(status != VOS_STATUS_SUCCESS)
@@ -1420,6 +1430,8 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                            "%s: Error initializing the ap mode", __func__);
                     return -EINVAL;
                 }
+	
+                hdd_set_ap_ops( pAdapter->dev );
                 hdd_set_conparam(1);
 
 #endif
@@ -1463,6 +1475,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                                   WLAN_HDD_INFRA_STATION: WLAN_HDD_P2P_CLIENT;
 #endif
                 hdd_set_conparam(0);
+        		netif_tx_disable(pAdapter->dev);
                 pHddCtx->change_iface = type;
                 hdd_stop_adapter( pHddCtx, pAdapter );
                 hdd_deinit_adapter( pHddCtx, pAdapter );
@@ -2275,7 +2288,7 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
     v_U32_t num_ch = 0;
     u8 valid_ch[WNI_CFG_VALID_CHANNEL_LIST_LEN];    
     u32 indx = 0;
-    u32 channel = 0;
+    int channel = 0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev ); 
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     int freq = chan->center_freq; /* freq is in MHZ */ 
@@ -2500,6 +2513,12 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 
     ENTER();
 
+    if ( NULL == mgmt )
+    {
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Management frame is  NULL",__func__);
+       return bss_status;
+    }
+
     memcpy(mgmt->bssid, bss_desc->bssId, ETH_ALEN);
     memcpy(&mgmt->u.probe_resp.timestamp, bss_desc->timeStamp,
             sizeof (bss_desc->timeStamp));
@@ -2668,6 +2687,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     //struct wireless_dev *wdev = dev->ieee80211_ptr;    
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     struct cfg80211_scan_request *req = NULL;
     int ret = 0;
 
@@ -2740,7 +2760,12 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     /* Flush out scan result after p2p_serach is done */
     if(pScanInfo->p2pSearch )
     {
-        sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId);
+        tANI_U8 sessionId = pAdapter->sessionId;
+        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+        { 
+            sessionId = pAdapter->p2pSessionId;
+        } 
+        sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId);
         pScanInfo->p2pSearch = 0;
     }
 #endif
@@ -2758,6 +2783,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         struct cfg80211_scan_request *request)
 {  
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev ); 
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_wext_state_t *pwextBuf = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     hdd_config_t *cfg_param = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
     tCsrScanRequest scanRequest;
@@ -2916,16 +2942,12 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                                                        request->ie_len);
             if (pP2pIe != NULL)
             {
-                /*
-                 * If Number of channel to scan are 3 and channels 
-                 * to be scan are 1, 6, 11, with p2p IE is provided in 
-                 * scan, then it is P2P search.
-                 */ 
-                if ( (request->n_channels == 3) &&
-                     ( (channelList[0]== 1) && (channelList[1] == 6 )
-                    && (channelList[2] == 11))
-                    )
+                if ( (request->n_ssids == 1) && 
+                     (request->ssids[0].ssid_len == P2P_WILDCARD_SSID_LEN) &&
+                     !memcmp(request->ssids[0].ssid, P2P_WILDCARD_SSID,
+                             P2P_WILDCARD_SSID_LEN ))
                 {
+                    tANI_U8 sessionId = pAdapter->sessionId;
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            "%s: This is a P2P Search", __func__);
                     scanRequest.p2pSearch = 1;
@@ -2933,9 +2955,12 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
                     /* set requestType to P2P Discovery */
                     scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
-
+                    if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+                    {
+                        sessionId = pAdapter->p2pSessionId;
+                    }
                     sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                         pAdapter->sessionId );
+                                          sessionId );
                 }
             }
 #endif
@@ -2944,10 +2969,20 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     INIT_COMPLETION(pScanInfo->scan_req_completion_event);
 
-    status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
+    if ((pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated) &&
+        (scanRequest.p2pSearch))
+    {
+        status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                              pAdapter->p2pSessionId, &scanRequest, &scanId,
+                              &hdd_cfg80211_scan_done_callback, dev );
+    }
+    else
+    {
+        status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
-
+    }
+    
     if (eHAL_STATUS_SUCCESS != status)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -3435,7 +3470,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 akmlist= (int *)(tmp);
                 if(akmsuiteCount <= MAX_NUM_AKM_SUITES)
                 {
-                    memcpy(akmsuite, akmlist, (4*akmsuiteCount));
+                    memcpy(akmsuite, akmlist, (sizeof(v_U32_t)*akmsuiteCount));
                 }
                 else
                 {
@@ -3980,7 +4015,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
 
     if (changed & WIPHY_PARAM_RTS_THRESHOLD)
     {
-        u16 rts_threshold = (wiphy->rts_threshold == -1) ? \
+        int rts_threshold = (wiphy->rts_threshold == -1) ? \
                                WNI_CFG_RTS_THRESHOLD_STAMAX : \
                                wiphy->rts_threshold;
 
@@ -4009,7 +4044,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
 
     if (changed & WIPHY_PARAM_FRAG_THRESHOLD)
     {
-        u16 frag_threshold = (wiphy->frag_threshold == -1) ? \
+        int frag_threshold = (wiphy->frag_threshold == -1) ? \
                                 WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX : \
                                 wiphy->frag_threshold;
 

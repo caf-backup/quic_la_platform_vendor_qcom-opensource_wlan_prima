@@ -185,7 +185,70 @@ static int con_mode = 0;
 #endif
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
-   return 0;
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_priv_data_t priv_data;
+   tANI_U8 *command = NULL;
+   int ret = 0;
+
+   if (NULL == pAdapter)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+         "%s: HDD adapter context is Null", __FUNCTION__);
+      ret = -ENODEV;
+      goto exit; 
+   }
+
+   if ((!ifr) && (!ifr->ifr_data))
+   {
+       ret = -EINVAL;
+       goto exit; 
+   }
+
+   if (copy_from_user(&priv_data, ifr->ifr_data, sizeof(hdd_priv_data_t)))
+   {
+       ret = -EFAULT;
+       goto exit;
+   }
+
+   command = kmalloc(priv_data.total_len, GFP_KERNEL);
+   if (!command)
+   {
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+          "%s: failed to allocate memory\n", __FUNCTION__);
+       ret = -ENOMEM;
+       goto exit;
+   }
+
+   if (copy_from_user(command, priv_data.buf, priv_data.total_len))
+   {
+       ret = -EFAULT;
+       goto exit;
+   }
+
+   if ((SIOCDEVPRIVATE + 1) == cmd)
+   {
+       hdd_context_t *pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
+
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                   "***Received %s cmd from Wi-Fi GUI***", command);
+
+       if (strncmp(command, "P2P_DEV_ADDR", 12) == 0 )
+       {
+           if (copy_to_user(priv_data.buf, pHddCtx->p2pDeviceAddress.bytes,
+                                                           sizeof(tSirMacAddr)))
+           {
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                  "%s: failed to copy data to user buffer\n", __FUNCTION__);
+               ret = -EFAULT;
+           }
+       }
+   }
+exit:
+   if (command)
+   {
+       kfree(command);
+   }
+   return ret;
 }
 
 /**---------------------------------------------------------------------------
@@ -849,13 +912,13 @@ static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
    if(pContext != NULL)
    {
       clear_bit(SME_SESSION_OPENED, &((hdd_adapter_t*)pContext)->event_flags);
-      complete(&((hdd_adapter_t*)pContext)->session_close_comp_var);
 
       /* need to make sure all of our scheduled work has completed.
        * This callback is called from MC thread context, so it is safe to 
        * to call below flush workqueue API from here. 
        */
       flush_scheduled_work();
+      complete(&((hdd_adapter_t*)pContext)->session_close_comp_var);
    }
    return eHAL_STATUS_SUCCESS;
 }
@@ -963,6 +1026,65 @@ error_register_wext:
 error_sme_open:
    return status;
 }
+
+#ifdef WLAN_FEATURE_P2P
+/**
+ * hdd_init_p2p_device_mode
+ *
+ *FUNCTION:
+ * This function is called from hdd_wlan_startup function when wlan 
+ * driver module is loaded. 
+ *
+ *LOGIC:
+ * Open New SME session with P2P Device Mac Address which is different 
+ * from STA Mac Address SME session. When driver receive any frame on STA Mac 
+ * Address then we divert all the frame using P2P Device Mac Address instaed of 
+ * STA Mac address. 
+ *
+ *ASSUMPTIONS:
+ *
+ *
+ *NOTE:
+ *
+ * @param  pAdapter   Pointer to pAdapter structure
+ *
+ * @return None
+ */
+VOS_STATUS hdd_init_p2p_device_mode( hdd_adapter_t *pAdapter)
+{
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
+   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+   VOS_STATUS status = VOS_STATUS_E_FAILURE;
+   int rc = 0;
+
+   INIT_COMPLETION(pAdapter->session_open_comp_var);
+   //Open a SME session for future operation
+   halStatus = sme_OpenSession( pHddCtx->hHal, hdd_smeRoamCallback, pAdapter,
+               (tANI_U8 *)&pHddCtx->p2pDeviceAddress, &pAdapter->p2pSessionId);
+   if ( !HAL_STATUS_SUCCESS( halStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "sme_OpenSession() failed with status code %08d [x%08lx]",
+                                                 halStatus, halStatus );
+      status = VOS_STATUS_E_FAILURE;
+      return status;
+   }
+   
+   //Block on a completion variable. Can't wait forever though.
+   rc = wait_for_completion_interruptible_timeout(
+                        &pAdapter->session_open_comp_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+   if (!rc)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "Session is not opened within timeout period code %08d", rc );
+      status = VOS_STATUS_E_FAILURE;
+      return status;
+   }
+
+   return VOS_STATUS_SUCCESS;
+}
+#endif
 
 #ifdef CONFIG_CFG80211
 void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
@@ -1188,8 +1310,17 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 #endif
          /* This workqueue will be used to transmit management packet over
           * monitor interface. */
-         INIT_WORK(&pAdapter->sessionCtx.monitor.pAdapterForTx->monTxWorkQueue,
-                   hdd_mon_tx_work_queue);
+
+         if ( NULL != pAdapter->sessionCtx.monitor.pAdapterForTx )
+         {
+            INIT_WORK(&pAdapter->sessionCtx.monitor.pAdapterForTx->monTxWorkQueue,
+                      hdd_mon_tx_work_queue);
+         }
+         else
+         {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s Monitor TxWorkQueue not init", __func__);
+         }
+
 #endif
       }
          break;
@@ -1530,6 +1661,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    hdd_adapter_t      *pAdapter;
+   v_MACADDR_t  bcastMac = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
 
    ENTER();
 
@@ -1570,9 +1702,19 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
             break;
 
          case WLAN_HDD_SOFTAP:
-         case WLAN_HDD_P2P_GO:
-            /* add softap interface start code here */
+            /* softAP can handle SSR */
             break;
+
+         case WLAN_HDD_P2P_GO:
+#ifdef CONFIG_CFG80211
+              hddLog(VOS_TRACE_LEVEL_ERROR, "%s [SSR] send restart supplicant",
+                                                       __func__);
+              /* event supplicant to restart */
+              cfg80211_del_sta(pAdapter->dev,
+                        (const u8 *)&bcastMac.bytes[0], GFP_KERNEL);
+#endif
+            break;
+
          case WLAN_HDD_MONITOR:
             /* monitor interface start */
             break;
@@ -2162,7 +2304,25 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
    // Unregister the Net Device Notifier
    unregister_netdevice_notifier(&hdd_netdev_notifier);
+   
+#ifdef WLAN_FEATURE_P2P
+   if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+   {
+       hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
+                                    WLAN_HDD_INFRA_STATION);
 
+       INIT_COMPLETION(pAdapter->session_close_comp_var);
+       if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
+                                     pAdapter->p2pSessionId,
+                                     hdd_smeCloseSessionCallback, pAdapter ) )
+       {
+           //Block on a completion variable. Can't wait forever though.
+           wait_for_completion_interruptible_timeout(
+                      &pAdapter->session_close_comp_var,
+                      msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+       }
+   }
+#endif   
    hdd_stop_all_adapters( pHddCtx );
 
    sdio_func_dev = libra_getsdio_funcdev();
@@ -2599,6 +2759,29 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #endif
      pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
          wlan_hdd_get_intf_addr(pHddCtx), FALSE );
+     if (pAdapter != NULL)
+     {
+#ifdef WLAN_FEATURE_P2P
+         vos_mem_copy( pHddCtx->p2pDeviceAddress.bytes, 
+                       pHddCtx->cfg_ini->intfMacAddr[0].bytes,
+                       sizeof(tSirMacAddr));
+         if ( pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated )
+         {
+             /* Generate the P2P Device Address.  This consists of the device's
+              * primary MAC address with the locally administered bit set.
+              */
+             pHddCtx->p2pDeviceAddress.bytes[0] |= 0x02;
+             status = hdd_init_p2p_device_mode(pAdapter);
+             if ( VOS_STATUS_SUCCESS != status )
+             {
+                 hddLog(VOS_TRACE_LEVEL_FATAL,
+                         "%s: Init Session fail for P2P Device Address Mode ",
+                          __FUNCTION__);
+                 goto err_close_adapter;
+             }
+         }
+#endif
+    }
 #ifdef WLAN_SOFTAP_FEATURE
    }
 #endif
@@ -2616,7 +2799,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: Failed to open BAP",__func__);
-      goto err_close_adapter;
+      goto err_p2psession_close;
    }
 
    vStatus = BSL_Init(pVosContext);
@@ -2724,6 +2907,25 @@ err_bap_stop:
   WLANBAP_Stop(pVosContext);
 err_bap_close:
    WLANBAP_Close(pVosContext);
+err_p2psession_close:
+#ifdef WLAN_FEATURE_P2P
+   if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+   {
+       hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
+                                    WLAN_HDD_INFRA_STATION);
+
+       INIT_COMPLETION(pAdapter->session_close_comp_var);
+       if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
+                                     pAdapter->p2pSessionId,
+                                     hdd_smeCloseSessionCallback, pAdapter ) )
+       {
+           //Block on a completion variable. Can't wait forever though.
+           wait_for_completion_interruptible_timeout(
+                      &pAdapter->session_close_comp_var,
+                      msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+       }
+   }
+#endif
 #endif
 
 err_close_adapter:

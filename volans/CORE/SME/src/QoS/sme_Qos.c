@@ -3555,9 +3555,21 @@ eHalStatus sme_QosProcessFTReassocRspEv(tpAniSirGlobal pMac, v_U8_t sessionId, v
     tDot11fIERICDataDesc *pRicDataDesc = NULL;
     eHalStatus            status = eHAL_STATUS_SUCCESS;
     tCsrRoamSession *pCsrSession = CSR_GET_SESSION( pMac, sessionId );
-    tCsrRoamConnectedInfo *pCsrConnectedInfo = &pCsrSession->connectedInfo;
-    tANI_U32    ricRspLen = pCsrConnectedInfo->nRICRspLength;
+    tCsrRoamConnectedInfo *pCsrConnectedInfo;
+    tANI_U32    ricRspLen;
 
+    if ( NULL == pCsrSession )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
+    pCsrConnectedInfo = &pCsrSession->connectedInfo;
+    if ( NULL == pCsrConnectedInfo )
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
+    ricRspLen = pCsrConnectedInfo->nRICRspLength;
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: %d: invoked on session %d",
             __FUNCTION__, __LINE__,

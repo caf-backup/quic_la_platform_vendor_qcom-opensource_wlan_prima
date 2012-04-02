@@ -1451,6 +1451,21 @@ This is a Verizon required feature.
                 CFG_REPORT_MAX_LINK_SPEED_MIN, 
                 CFG_REPORT_MAX_LINK_SPEED_MAX ),
 
+#ifdef WLAN_FEATURE_P2P
+ REG_VARIABLE( CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, isP2pDeviceAddrAdministrated,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_DEFAULT,
+              CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MIN,
+              CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MAX ),
+#endif
+
+    REG_VARIABLE( CFG_ENABLE_BYPASS_11D_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, enableBypass11d, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_ENABLE_BYPASS_11D_DEFAULT, 
+                CFG_ENABLE_BYPASS_11D_MIN, 
+                CFG_ENABLE_BYPASS_11D_MAX ),
 };
 
 /*
@@ -1789,6 +1804,8 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gStaKeepAlivePeriod] Value = [%u] ",pHddCtx->cfg_ini->infraStaKeepAlivePeriod);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pHddCtx->cfg_ini->apDataAvailPollPeriodInMs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gReportMaxLinkSpeed] Value = [%u] ",pHddCtx->cfg_ini->reportMaxLinkSpeed);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableBypass11d] Value = [%u] ",pHddCtx->cfg_ini->enableBypass11d);
+
 }
 
 
@@ -2697,6 +2714,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.bgScanInterval            = 0; 
    smeConfig.csrConfig.eBand                     = eCSR_BAND_24; 
    smeConfig.csrConfig.nTxPowerCap = pConfig->nTxPowerCap;
+   smeConfig.csrConfig.fEnableBypass11d          = pConfig->enableBypass11d;
    
    //FIXME 11d config is hardcoded
 #ifdef WLAN_SOFTAP_FEATURE

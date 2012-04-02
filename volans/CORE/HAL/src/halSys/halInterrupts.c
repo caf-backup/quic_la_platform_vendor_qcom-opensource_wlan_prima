@@ -1355,6 +1355,11 @@ halIntHandler(v_PVOID_t pVosGCtx)
     eHalStatus status = eHAL_STATUS_SUCCESS;
 
 
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return VOS_STATUS_E_FAILURE;
+    }
     if (IS_PWRSAVE_STATE_IN_BMPS) { 
         status = halPS_SetHostBusy(pMac, HAL_PS_BUSY_INTR_CONTEXT); 
     }

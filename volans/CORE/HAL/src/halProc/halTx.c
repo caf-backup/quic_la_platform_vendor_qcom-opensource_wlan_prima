@@ -272,6 +272,11 @@ __DP_SRC_TX VOS_STATUS halTxComplete( v_PVOID_t pVosGCtx, vos_pkt_t *pData, VOS_
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
 
+    if ( NULL == pMac )
+    {
+        VOS_ASSERT(0);
+        return vosStatus;
+    }
     if(VOS_IS_STATUS_SUCCESS(status)) {
         pMac->hal.TLParam.txMgmtFrameStatus = HAL_TL_TX_SUCCESS;
         HALLOG1(halLog(pMac, LOG1, FL("NEW VOS Event SUCCESS = %d\n"), vosStatus));

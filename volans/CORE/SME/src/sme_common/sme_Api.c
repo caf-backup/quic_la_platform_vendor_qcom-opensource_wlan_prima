@@ -4638,7 +4638,12 @@ eHalStatus sme_DeregisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
         tSirRegisterMgmtFrame *pMsg;
         tANI_U16 len;
         tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-        
+
+        if( NULL == pSession )
+        {
+            VOS_ASSERT(0);
+            return eHAL_STATUS_FAILURE;
+        }
         if( !pSession->sessionActive ) 
             VOS_ASSERT(0);
         
@@ -4744,7 +4749,13 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal,
           pMac->p2pContext.probeRspIeLength = 0;
 	     }
 	     pMac->p2pContext.probeRspIe = vos_mem_malloc(p2pIeLength);
-	     pMac->p2pContext.probeRspIeLength = p2pIeLength;
+         if (NULL == pMac->p2pContext.probeRspIe)
+         {
+             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+                            "Not able to allocate memory for probeRspIe", __FUNCTION__);
+             return eHAL_STATUS_FAILURE;
+         }
+         pMac->p2pContext.probeRspIeLength = p2pIeLength;
 
          sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOGE, pMac->p2pContext.probeRspIe, pMac->p2pContext.probeRspIeLength ); 
 		 vos_mem_copy((tANI_U8 *)pMac->p2pContext.probeRspIe , p2pIe,
