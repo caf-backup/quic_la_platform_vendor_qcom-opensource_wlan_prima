@@ -2837,6 +2837,7 @@ eHalStatus pmcUpdateScanParams(tHalHandle hHal, tCsrConfig *pRequest, tCsrChanne
     pRequestBuf->usPassiveMaxChTime = pRequest->nPassiveMaxChnTime;
     pRequestBuf->usActiveMinChTime  = pRequest->nActiveMinChnTime;
     pRequestBuf->usActiveMaxChTime  = pRequest->nActiveMaxChnTime; 
+    pRequestBuf->ucCBState          = PHY_SINGLE_CHANNEL_CENTERED;
 
     msg.type = WDA_UPDATE_SCAN_PARAMS_REQ;
     msg.reserved = 0;

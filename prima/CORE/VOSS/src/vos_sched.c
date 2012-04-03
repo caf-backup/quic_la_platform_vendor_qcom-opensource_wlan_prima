@@ -1128,16 +1128,31 @@ static int VosRXThread ( void * Arg )
                   "%s: Servicing the VOS RX WDI Message queue",__func__);
 
         pMsgWrapper = vos_mq_get(&pSchedContext->wdiRxMq);
-        VOS_ASSERT(NULL != pMsgWrapper);
+        if ((NULL == pMsgWrapper) || (NULL == pMsgWrapper->pVosMsg))
+        {
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: wdiRxMq message is NULL", __FUNCTION__);
+          VOS_ASSERT(0);
+          // we won't return this wrapper since it is corrupt
+        }
+        else
+        {
+          pWdiMsg = (wpt_msg *)pMsgWrapper->pVosMsg->bodyptr;
+          if ((NULL == pWdiMsg) || (NULL == pWdiMsg->callback))
+          {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                      "%s: WDI Msg or callback is NULL", __FUNCTION__);
+            VOS_ASSERT(0);
+          }
+          else
+          {
+            // invoke the message handler
+            pWdiMsg->callback(pWdiMsg);
+          }
 
-        pWdiMsg = (wpt_msg *)pMsgWrapper->pVosMsg->bodyptr;
-        VOS_ASSERT(pWdiMsg->callback);
-
-        pWdiMsg->callback(pWdiMsg);
-
-        // return message to the Core
-        vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-
+          // return message to the Core
+          vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+        }
         continue;
       }
 

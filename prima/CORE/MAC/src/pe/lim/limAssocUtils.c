@@ -340,8 +340,8 @@ limCheckRxBasicRates(tpAniSirGlobal pMac, tSirMacRateSet rxRateSet,tpPESession p
 tANI_U8
 limCheckMCSSet(tpAniSirGlobal pMac, tANI_U8* supportedMCSSet)
 {
-    tANI_U8 basicMCSSet[SIZE_OF_BASIC_MCS_SET];
-    tANI_U32   cfgLen;
+    tANI_U8 basicMCSSet[SIZE_OF_BASIC_MCS_SET] = {0};
+    tANI_U32   cfgLen = 0;
     tANI_U8 i;
     tANI_U8 validBytes;
     tANI_U8 lastByteMCSMask = 0x1f;

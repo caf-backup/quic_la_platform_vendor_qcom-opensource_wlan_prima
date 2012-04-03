@@ -228,10 +228,10 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #endif
 
 #define WLAN_SET_BAND_CONFIG  (SIOCIWFIRSTPRIV + 25)  /*Don't change this number*/
-#define WLAN_SET_POWER_PARAMS (SIOCIWFIRSTPRIV + 26)
 
 #define WLAN_PRIV_SET_MCBC_FILTER    (SIOCIWFIRSTPRIV + 26)
 #define WLAN_PRIV_CLEAR_MCBC_FILTER  (SIOCIWFIRSTPRIV + 27)
+#define WLAN_SET_POWER_PARAMS        (SIOCIWFIRSTPRIV + 29)
 #define WLAN_GET_LINK_SPEED          (SIOCIWFIRSTPRIV + 31)
 
 #define WLAN_STATS_INVALID            0

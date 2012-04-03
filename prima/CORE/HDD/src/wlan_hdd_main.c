@@ -122,6 +122,8 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #define MEMORY_DEBUG_STR ""
 #endif
 
+static struct wake_lock wlan_wake_lock;
+
 //internal function declaration
 v_U16_t hdd_select_queue(struct net_device *dev,
     struct sk_buff *skb);
@@ -1356,7 +1358,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 {
    hdd_adapter_t *pAdapter = NULL;
    hdd_adapter_list_node_t *pHddAdapterNode = NULL;
-   hdd_adapter_t *pStaAdapter = NULL;
    eHalStatus halStatus;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
 
@@ -1501,12 +1502,15 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, TRUE);
    }
 #endif
-   /* If there are any concurrent sessions, disable BMPS */
 
-   pStaAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
-   if ((vos_concurrent_sessions_running()) && 
-       hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pStaAdapter)))
+   /* If there are any concurrent sessions running, disable powersave i.e disable 
+    * both IMPS and BMPS */
+   if (vos_concurrent_sessions_running())
    {
+        if (pHddCtx->cfg_ini->fIsImpsEnabled)
+        {
+           sme_DisablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+        }
         if (pHddCtx->cfg_ini->fIsBmpsEnabled)
         {
            sme_DisablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
@@ -1613,11 +1617,17 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
       }
 #endif
 
-      /* If there is a single session of STA/P2P client, re-enable BMPS */
+      /* If there is a single session of STA/P2P client, re-enable power save
+       * i.e re-enable both IMPS and BMPS */
       if ((!vos_concurrent_sessions_running()) && 
          ((pHddCtx->no_of_sessions[VOS_STA_MODE] >= 1) || 
           (pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE] >= 1)))
       {
+         if (pHddCtx->cfg_ini->fIsImpsEnabled)
+         {
+            sme_EnablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+         }
+
          if(pHddCtx->cfg_ini->fIsBmpsEnabled)
          {
            sme_EnablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
@@ -2887,6 +2897,18 @@ void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
 }
 #endif
 #endif
+
+/* wake lock APIs for HDD */
+void hdd_prevent_suspend(void)
+{
+    wake_lock(&wlan_wake_lock);
+}
+
+void hdd_allow_suspend(void)
+{
+    wake_unlock(&wlan_wake_lock);
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
@@ -2949,6 +2971,7 @@ int hdd_wlan_startup(struct device *dev )
 #ifdef CONFIG_CFG80211
    pHddCtx->wiphy = wiphy;
 #endif
+   hdd_prevent_suspend();
    pHddCtx->isLoadUnloadInProgress = TRUE;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
@@ -3500,6 +3523,7 @@ int hdd_wlan_startup(struct device *dev )
    pHddCtx->isLoadUnloadInProgress = FALSE;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+   hdd_allow_suspend();
   
    goto success;
 
@@ -3587,6 +3611,7 @@ err_config:
    pHddCtx->cfg_ini= NULL;
 
 err_free_hdd_context:
+   hdd_allow_suspend();
 #ifdef CONFIG_CFG80211
    wiphy_free(wiphy) ;
    //kfree(wdev) ;
@@ -3625,6 +3650,8 @@ static int __init hdd_module_init ( void)
    int ret_status = 0;
 
    ENTER();
+
+   wake_lock_init(&wlan_wake_lock, WAKE_LOCK_SUSPEND, "wlan");
 
    pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME,
            QWLAN_VERSIONSTR TIMER_MANAGER_STR MEMORY_DEBUG_STR);
@@ -3886,6 +3913,7 @@ static void __exit hdd_module_exit(void)
 #endif
 
 done:
+   wake_lock_destroy(&wlan_wake_lock);
    pr_info("%s: driver unloaded\n", WLAN_MODULE_NAME);
 }
 

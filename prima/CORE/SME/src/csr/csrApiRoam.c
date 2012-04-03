@@ -2788,7 +2788,7 @@ static void csrSetCfgRateSet( tpAniSirGlobal pMac, eCsrPhyMode phyMode, tCsrRoam
                         ProprietaryOperationalRates, 
                         ProprietaryOperationalRatesLength, NULL, eANI_BOOLEAN_FALSE);
         ccmCfgSetInt(pMac, WNI_CFG_PROPRIETARY_ANI_FEATURES_ENABLED, PropRatesEnable, NULL, eANI_BOOLEAN_FALSE);
-        ccmCfgSetStr(pMac, WNI_CFG_BASIC_MCS_SET, MCSRateIdxSet, 
+        ccmCfgSetStr(pMac, WNI_CFG_CURRENT_MCS_SET, MCSRateIdxSet, 
                         MCSRateLength, NULL, eANI_BOOLEAN_FALSE);        
     }//Parsing BSSDesc
     else
@@ -8589,10 +8589,9 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
 
        csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_LOSTLINK, result);
 
-       /*No need to start idle scan in case of IBSS/SAP or in case concurrent 
-         sessions are running */
-       if(CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile)
-         && !vos_concurrent_sessions_running())
+       /*No need to start idle scan in case of IBSS/SAP 
+         Still enable idle scan for polling in case concurrent sessions are running */
+       if(CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile))
        {
            csrScanStartIdleScan(pMac);
        }
@@ -13673,6 +13672,7 @@ eHalStatus csrIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pCommand,
 
     //Check PMC state first
     pmcState = pmcGetPmcState( pMac );
+
     switch( pmcState )
     {
     case REQUEST_IMPS:

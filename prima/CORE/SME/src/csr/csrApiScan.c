@@ -5026,7 +5026,7 @@ eHalStatus csrScanStartIdleScanTimer(tpAniSirGlobal pMac, tANI_U32 interval)
     }
     else
     {
-        if( pMac->scan.fScanEnable && interval )
+        if( pMac->scan.fScanEnable && (eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan) )
         {
             pMac->scan.fRestartIdleScan = eANI_BOOLEAN_TRUE;
         }
@@ -5218,6 +5218,11 @@ void csrScanCancelIdleScan(tpAniSirGlobal pMac)
 {
     if(eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)
     {
+#ifdef WLAN_SOFTAP_FEATURE
+        if (vos_concurrent_sessions_running()) {
+            return;
+        }
+#endif
         smsLog(pMac, LOG1, "  csrScanCancelIdleScan\n");
         pMac->scan.fCancelIdleScan = eANI_BOOLEAN_TRUE;
         //Set the restart flag in case later on it is uncancelled
