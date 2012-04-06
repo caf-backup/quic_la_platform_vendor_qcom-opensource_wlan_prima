@@ -2946,6 +2946,23 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (0 > ret)
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: NO SCAN result", __func__);    
 
+
+    /* If any client wait scan result through WEXT
+     * send scan done event to client */
+    if (pAdapter->scan_info.waitScanResult)
+    {
+        struct net_device *dev = pAdapter->dev;
+        union iwreq_data wrqu;
+        int we_event;
+        char *msg;
+
+        memset(&wrqu, '\0', sizeof(wrqu));
+        we_event = SIOCGIWSCAN;
+        msg = NULL;
+        wireless_send_event(dev, we_event, &wrqu, msg);
+    }
+    pAdapter->scan_info.waitScanResult = FALSE;
+
     /* Get the Scan Req */
     req = pAdapter->request;
 

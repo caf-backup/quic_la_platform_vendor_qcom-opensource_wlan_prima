@@ -82,9 +82,11 @@
 ** Maximum number of messages in the system
 ** These are buffers to account for all current messages 
 ** with some accounting of what we think is a 
-** worst-case scenario.
+** worst-case scenario.  Must be able to handle all
+** incoming frames, as well as overhead for internal
+** messaging
 */
-#define VOS_CORE_MAX_MESSAGES           120
+#define VOS_CORE_MAX_MESSAGES           (VPKT_NUM_RX_RAW_PACKETS + 32)
 
 
 /*

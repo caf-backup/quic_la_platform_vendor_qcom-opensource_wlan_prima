@@ -1906,6 +1906,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
             /* Open the gates for HDD to receive Wext commands */
             pAdapter->isLinkUpSvcNeeded = FALSE; 
             pAdapter->scan_info.mScanPending = FALSE;
+            pAdapter->scan_info.waitScanResult = FALSE;
 
             //Trigger the initial scan
             hdd_wlan_initial_scan(pAdapter);

@@ -337,6 +337,7 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     tLimScanResultNode   *pBssDescr;
     tANI_U32              frameLen, ieLen = 0;
     tANI_U8               rxChannelInBeacon = 0;
+    eHalStatus            status;
 
     /**
      * Compare SSID with the one sent in
@@ -430,9 +431,13 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
 
     //If it is not scanning, only save unique results
     if (pMac->lim.gLimReturnUniqueResults || (!fScanning))
-        limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_UPDATE);
+    {
+        status = limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_UPDATE);
+    }
     else
-         limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_ADD);
+    {
+        status = limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_ADD);
+    }
 
     if(fScanning)
     {
@@ -478,6 +483,11 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
             limSendHalFinishScanReq( pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE );
         }
     }//(eANI_BOOLEAN_TRUE == fScanning)
+
+    if( eHAL_STATUS_SUCCESS != status )
+    {
+        palFreeMemory( pMac->hHdd, pBssDescr );
+    }
 } /****** end limCheckAndAddBssDescription() ******/
 
 
@@ -570,7 +580,7 @@ limInitHashTable(tpAniSirGlobal pMac)
  * @return None
  */
 
-void
+eHalStatus
 limLookupNaddHashEntry(tpAniSirGlobal pMac,
                        tLimScanResultNode *pBssDescr, tANI_U8 action)
 {
@@ -614,7 +624,7 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
                    if((pMac->lim.gpLimMlmScanReq->numSsid)&&
                       ( limIsNullSsid((tSirMacSSid *)((tANI_U8 *)
                       &pBssDescr->bssDescription.ieFields + 1))))
-                      return;
+                      return eHAL_STATUS_FAILURE;
                 }
 
                 // Delete this entry
@@ -660,6 +670,7 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
     // Mesg - eWNI_SME_WM_STATUS_CHANGE_NTF
     // Status change code - eSIR_SME_CB_LEGACY_BSS_FOUND_BY_AP
     //
+    return eHAL_STATUS_SUCCESS;
 }
 
 

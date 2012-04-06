@@ -892,9 +892,11 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
 #endif
     if(pAdapter->scan_info.mScanPending == TRUE)
     {
+        pAdapter->scan_info.waitScanResult = TRUE;
         hddLog(LOG1,"%s: mScanPending is TRUE",__func__);
         return eHAL_STATUS_SUCCESS;                  
     }
+    pAdapter->scan_info.waitScanResult = FALSE;
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) 
     {

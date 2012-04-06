@@ -485,6 +485,9 @@ typedef struct hdd_scaninfo_s
    /* The scan pending  */
    v_U32_t mScanPending;
 
+   /* Client Wait Scan Result */
+   v_U32_t waitScanResult;
+
 #ifdef WLAN_FEATURE_P2P
    v_BOOL_t p2pSearch;
 #endif

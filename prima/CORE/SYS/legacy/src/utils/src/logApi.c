@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * logApi.cc - Handles log messages for all the modules.
  * Author:        Kevin Nguyen    
@@ -75,12 +81,6 @@ logInit(tpAniSirGlobal pMac)
 {
     tANI_U32    i;
 
-    if (palAllocateMemory(pMac->hHdd, ((void **)&pMac->gLogBuffer), MAX_LOG_SIZE) != eHAL_STATUS_SUCCESS)
-        return eSIR_FAILURE;
-
-    /* Initialize the pMac structure */
-    palZeroMemory(pMac->hHdd, pMac->gLogBuffer, MAX_LOG_SIZE);
-    
     // Add code to initialize debug level from CFG module
     // For now, enable all logging
     for (i = 0; i < LOG_ENTRY_NUM; i++)
@@ -102,7 +102,6 @@ logInit(tpAniSirGlobal pMac)
 void
 logDeinit(tpAniSirGlobal pMac)
 {
-    palFreeMemory(pMac->hHdd, pMac->gLogBuffer);
     return;
 }
 
@@ -209,86 +208,29 @@ static inline VOS_MODULE_ID getVosModuleId(tANI_U8 modId)
 }
 #endif // VOSS_ENABLED
 
+#define LOG_SIZE 256
 void logDebug(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 debugLevel, const char *pStr, va_list marker)
 {
-#ifdef VOSS_ENABLED
-
     VOS_TRACE_LEVEL  vosDebugLevel;
     VOS_MODULE_ID    vosModuleId;
+    char             logBuffer[LOG_SIZE];
 
     vosDebugLevel = getVosDebugLevel(debugLevel);
     vosModuleId = getVosModuleId(modId);
 
 #ifdef ANI_OS_TYPE_ANDROID
-    vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
+    vsnprintf(logBuffer, LOG_SIZE - 1, pStr, marker);
 #else
 
 #ifdef WINDOWS_DT
-    RtlStringCbVPrintfA( &pMac->gLogBuffer[ 0 ], MAX_LOG_SIZE - 1, pStr, marker );
+    RtlStringCbVPrintfA( &logBuffer[ 0 ], LOG_SIZE - 1, pStr, marker );
 #else
-    _vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
+    _vsnprintf(logBuffer, LOG_SIZE - 1, (char *)pStr, marker);
 #endif
 
 #endif
-    VOS_TRACE(vosModuleId, vosDebugLevel, pMac->gLogBuffer);
+    VOS_TRACE(vosModuleId, vosDebugLevel, "%s", logBuffer);
 
     // The caller must check loglevel
     VOS_ASSERT( ( debugLevel <= pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE( modId )] ) && ( LOGP != debugLevel ) );
-#else
-    tANI_U32          index;
-#if defined(ANI_OS_TYPE_LINUX) || defined(ANI_OS_TYPE_OSX)
-    int len;
-#endif
-
-    index = modId - LOG_FIRST_MODULE_ID;
-
-#if defined(ANI_OS_TYPE_WINDOWS)
-    _vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
-    // Log the message in the Windows Event Log, if this is a LOGE or
-    // LOGP message
-    if ((LOGE == debugLevel) || (LOGP == debugLevel))
-        utilLogLogDebugMessage(pMac->pAdapter, pMac->gLogBuffer);
-#endif
-
-    // Check for panic level
-    if (debugLevel == LOGP)
-    {
-#if defined(ANI_OS_TYPE_LINUX) || defined(ANI_OS_TYPE_OSX)
-        vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
-        printk("************* MODULE 0x%x radioId 0x%x **************\n",
-               modId, (int) pMac->sys.gSirRadioId);
-        printk(pMac->gLogBuffer);
-        printk("***************************************\n");
-#else // WINDOWS
-        _vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
-        dbgTraceInfo(DBG_MASK_LOG_MSGS, ("[%0u] ", tx_time_get()));
-        dbgTraceInfo(DBG_MASK_LOG_MSGS, (pMac->gLogBuffer));
-#endif
-
-        // Action taken
-        macSysResetReq(pMac, eSIR_LOGP_EXCEPTION);
-        return;
-    }
-
-    // Verify against current log level
-    if (debugLevel > pMac->utils.gLogDbgLevel[index])
-        return;
-
-#ifdef WNI_PRINT_DEBUG
-#if defined(ANI_OS_TYPE_LINUX) || defined(ANI_OS_TYPE_OSX)
-    len = vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
-    printk("[%d][%2x][%d][%0u] ",
-           (int) pMac->sys.gSirRadioId, modId, (int) debugLevel, (int) tx_time_get());
-    printk(pMac->gLogBuffer);
-    if (pMac->gLogBuffer[len-1] != '\n')
-        printk("\n");
-
-    return;
-#elif defined(ANI_OS_TYPE_WINDOWS)
-    _vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
-    //dbgTraceInfo(DBG_MASK_LOG_MSGS, (pMac->gLogBuffer));
-    vprintf(pStr, marker);
-#endif // ANI_OS_TYPE
-#endif // WNI_PRINT_DEBUG
-#endif // VOSS_ENABLED
 } /*** end logDebug() ***/

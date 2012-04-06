@@ -1706,29 +1706,52 @@ limIsNullSsid( tSirMacSSid *pSsid )
             break;
         }
 
-        if ( 0 == pSsid->ssId[0] )
+#define ASCII_SPACE_CHARACTER 0x20
+        /* If the first charactes is space, then check if all characters in 
+         * SSID are spaces to consider it as NULL SSID*/
+        if( ASCII_SPACE_CHARACTER == pSsid->ssId[0])
         {
-            fNullSsid = true;
-            break;
-        }
-
-        SsidLength = pSsid->length;
-        pSsidStr = pSsid->ssId;
-
-        while ( SsidLength )
-        {
-            if( *pSsidStr )
+            SsidLength = pSsid->length;
+            pSsidStr = pSsid->ssId;
+            /* check if all the charactes in SSID are spaces*/
+            while ( SsidLength )
+            {
+                if( ASCII_SPACE_CHARACTER != *pSsidStr )
+                    break;
+    
+                pSsidStr++;
+                SsidLength--;
+            }
+    
+            if( 0 == SsidLength )
+            {
+                fNullSsid = true;
                 break;
+            }
 
-            pSsidStr++;
-            SsidLength--;
         }
-
-        if( 0 == SsidLength )
+        else
         {
-            fNullSsid = true;
-            break;
+            /* check if all the charactes in SSID are NULL*/
+            SsidLength = pSsid->length;
+            pSsidStr = pSsid->ssId;
+    
+            while ( SsidLength )
+            {
+                if( *pSsidStr )
+                    break;
+    
+                pSsidStr++;
+                SsidLength--;
+            }
+    
+            if( 0 == SsidLength )
+            {
+                fNullSsid = true;
+                break;
+            }
         }
+
     }
     while( 0 );
 

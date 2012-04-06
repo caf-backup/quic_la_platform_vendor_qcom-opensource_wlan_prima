@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file schBeaconGen.cc contains beacon generation related
  * functions
@@ -220,7 +226,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
 
     bcn1.BeaconInterval.interval = pMac->sch.schObject.gSchBeaconInterval;
     PopulateDot11fCapabilities( pMac, &bcn1.Capabilities, psessionEntry );
-    PopulateDot11fSSID2( pMac, &bcn1.SSID );
+    PopulateDot11fSSID( pMac, &psessionEntry->ssId, &bcn1.SSID );
 
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &bcn1.SuppRates,psessionEntry);
     PopulateDot11fDSParams( pMac, &bcn1.DSParams, psessionEntry->currentOperChannel);

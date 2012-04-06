@@ -231,7 +231,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
 {
    VOS_STATUS vStatus      = VOS_STATUS_SUCCESS;
-   v_U8_t iter             = 0;
+   int iter                = 0;
    tSirRetStatus sirStatus = eSIR_SUCCESS;
    tMacOpenParameters macOpenParms;
    WLANTL_ConfigInfoType TLConfig;
@@ -293,7 +293,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #endif
    }
 
-   for (iter =0; iter < VOS_CORE_MAX_MESSAGES; iter++)
+   for (iter = 0; iter < VOS_CORE_MAX_MESSAGES; iter++)
    {
       (gpVosContext->aMsgWrappers[iter]).pVosMsg = 
          &(gpVosContext->aMsgBuffers[iter]); 

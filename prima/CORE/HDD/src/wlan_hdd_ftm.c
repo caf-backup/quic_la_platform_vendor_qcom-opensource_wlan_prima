@@ -365,7 +365,7 @@ static v_U32_t wlan_ftm_postmsg(v_U8_t *cmd_ptr, v_U16_t cmd_len)
 static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContextSize )
 {
    VOS_STATUS vStatus      = VOS_STATUS_SUCCESS;
-   v_U8_t iter             = 0;
+   int iter                = 0;
    tSirRetStatus sirStatus = eSIR_SUCCESS;
    tMacOpenParameters macOpenParms;
    pVosContextType gpVosContext = (pVosContextType)pVosContext;
@@ -417,7 +417,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
    }
 
-   for (iter =0; iter < VOS_CORE_MAX_MESSAGES; iter++)
+   for (iter = 0; iter < VOS_CORE_MAX_MESSAGES; iter++)
    {
       (gpVosContext->aMsgWrappers[iter]).pVosMsg =
          &(gpVosContext->aMsgBuffers[iter]);

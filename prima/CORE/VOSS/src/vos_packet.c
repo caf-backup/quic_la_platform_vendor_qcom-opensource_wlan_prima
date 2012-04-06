@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**=========================================================================
 
   \file        vos_packet.c
@@ -71,10 +77,10 @@ static VOS_STATUS vos_pkti_packet_init( struct vos_pkt_t *pPkt,
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
       /* Init PAL Packet */
-    WPAL_PACKET_SET_BD_POINTER(&(pPkt->palPacket), NULL);
-    WPAL_PACKET_SET_BD_PHYS(&(pPkt->palPacket),NULL);
-    WPAL_PACKET_SET_BD_LENGTH(&(pPkt->palPacket), 0);
-    WPAL_PACKET_SET_OS_STRUCT_POINTER(&(pPkt->palPacket), NULL);
+      WPAL_PACKET_SET_BD_POINTER(&(pPkt->palPacket), NULL);
+      WPAL_PACKET_SET_BD_PHYS(&(pPkt->palPacket), NULL);
+      WPAL_PACKET_SET_BD_LENGTH(&(pPkt->palPacket), 0);
+      WPAL_PACKET_SET_OS_STRUCT_POINTER(&(pPkt->palPacket), NULL);
 #endif
 
       break;
@@ -98,6 +104,7 @@ static VOS_STATUS vos_pkti_list_destroy( struct list_head *pList )
       // clean up this list since it is apparently hosed
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "VPKT [%d]: NULL pList", __LINE__);
+      VOS_ASSERT(0);
       return VOS_STATUS_E_INVAL;
    }
 
@@ -107,11 +114,13 @@ static VOS_STATUS vos_pkti_list_destroy( struct list_head *pList )
       // is this really an initialized vos packet?
       if (unlikely(VPKT_MAGIC_NUMBER != pVosPacket->magic))
       {
-         // no, so don't try any deinitialization on it, but keep
-         // destroying the list
+         // no, so don't try any deinitialization on it, and
+         // since we can't trust the linkages, stop trying
+         // to destroy the list
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                    "VPKT [%d]: Invalid magic", __LINE__);
-         continue;
+         VOS_ASSERT(0);
+         break;
       }
 
       // does this vos packet have an skb attached?
@@ -143,6 +152,7 @@ static void vos_pkti_replenish_raw_pool(void)
    v_BOOL_t didOne = VOS_FALSE;
    vos_pkt_get_packet_callback callback;
    int rc; 
+
    // if there are no packets in the replenish pool then we can't do anything
    if (likely(0 == gpVosPacketContext->rxReplenishListCount))
    {
@@ -234,8 +244,8 @@ static void vos_pkti_replenish_raw_pool(void)
    }
    else
    {
-   mutex_unlock(&gpVosPacketContext->mlock);
-}
+      mutex_unlock(&gpVosPacketContext->mlock);
+   }
 }
 
 
@@ -508,7 +518,7 @@ VOS_STATUS vos_packet_close( v_PVOID_t pVosContext )
    (void) vos_pkti_list_destroy(&gpVosPacketContext->rxReplenishList);
 
 #ifdef WLAN_SOFTAP_FEATURE
-      gpVosPacketContext->uctxDataFreeListCount = 0;
+   gpVosPacketContext->uctxDataFreeListCount = 0;
 #endif
 
    return VOS_STATUS_SUCCESS;

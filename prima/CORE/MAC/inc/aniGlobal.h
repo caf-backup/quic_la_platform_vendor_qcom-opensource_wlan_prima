@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Airgo Networks, Inc proprietary. All rights reserved
  * aniGlobal.h: MAC Modules Adapter Definitions.
  * Author:      V. K. Kandarpa
@@ -91,8 +97,6 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 //this featurization can be removed.
 #define PMAC_STRUCT( _hHal )  (  (tpAniSirGlobal)_hHal )
 #endif
-
-#define MAX_LOG_SIZE  2048
 
 #define ANI_DRIVER_TYPE(pMac)     (((tpAniSirGlobal)(pMac))->gDriverType)
 // -------------------------------------------------------------------
@@ -1088,7 +1092,6 @@ typedef struct sAniSirGlobal
 
     tANI_U32     gCurrentLogSize;
     tANI_U32     menuCurrent;
-    char*        gLogBuffer;
     /* logDump specific */
     tANI_U32 dumpTablecurrentId;
     /* Instead of static allocation I will dyanamically allocate memory for dumpTableEntry

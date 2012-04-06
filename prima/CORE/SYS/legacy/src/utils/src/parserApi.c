@@ -1925,7 +1925,7 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
         return eSIR_FAILURE;
     }
 
-    if (!pAssocReq->suppRatesPresent)
+    if ( !pAssocReq->suppRatesPresent && !pAssocReq->extendedRatesPresent )
     {
         PELOG2(limLog(pMac, LOG2, FL("Received Assoc without supp rate IE.\n"));)
         return eSIR_FAILURE;
@@ -2191,7 +2191,7 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
         return eSIR_FAILURE;
     }
 
-    if ( ! pAssocReq->suppRatesPresent )
+    if ( ! pAssocReq->suppRatesPresent && ! pAssocReq->extendedRatesPresent )
     {
         PELOG2(limLog(pMac, LOG2, FL("Received Assoc without supp rate IE.\n"));)
         return eSIR_FAILURE;
