@@ -3830,6 +3830,7 @@ static int __init hdd_module_init ( void)
       vos_mem_exit();
 #endif
 
+      wake_lock_destroy(&wlan_wake_lock);
       pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
    }
    else
