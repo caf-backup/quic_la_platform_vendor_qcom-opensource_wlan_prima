@@ -4285,7 +4285,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
             }
 
             /* Get MCS Rate Set */
-            ccmCfgGetStr(hHal, WNI_CFG_BASIC_MCS_SET, MCSRates, &MCSLeng);
+            ccmCfgGetStr(hHal, WNI_CFG_CURRENT_MCS_SET, MCSRates, &MCSLeng);
             if ((rate_flags & eHAL_TX_RATE_HT20) && (rate_flags & eHAL_TX_RATE_LGI))
             {
                 rateFlag = 0;
