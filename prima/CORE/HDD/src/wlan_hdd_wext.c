@@ -518,6 +518,14 @@ VOS_STATUS wlan_hdd_get_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value)
               "%s: Invalid context, pAdapter", __func__);
        return VOS_STATUS_E_FAULT;
    }
+   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s:LOGP in Progress. Ignore!!!",__func__);
+       /* return a cached value */
+       *rssi_value = pAdapter->rssi;
+       return VOS_STATUS_SUCCESS;
+   }
+
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
@@ -1865,7 +1873,12 @@ VOS_STATUS  wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter)
        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Padapter is NULL", __func__);
        return VOS_STATUS_E_FAULT;
    }
-      
+   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return VOS_STATUS_SUCCESS;
+   }
+
    /* we are connected
    prepare our callback context */
    init_completion(&context.completion);
@@ -2473,6 +2486,13 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
    
    ENTER();    
    
+   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+   {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                                  "%s:LOGP in Progress. Ignore!!!",__func__);
+        return 0;
+   }
+
    
    keyId = encoderq->flags & IW_ENCODE_INDEX;
       
@@ -2698,6 +2718,13 @@ static int iw_set_encodeext(struct net_device *dev,
     VOS_STATUS vos_status;
    
     ENTER();    
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                                  "%s:LOGP in Progress. Ignore!!!",__func__);
+        return 0;
+    }
    
     key_index = encoding->flags & IW_ENCODE_INDEX;
    
@@ -2951,7 +2978,14 @@ static int iw_set_mlme(struct net_device *dev,
     eHalStatus status = eHAL_STATUS_SUCCESS;
  
     ENTER();    
-   
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                                  "%s:LOGP in Progress. Ignore!!!",__func__);
+        return 0;
+    }
+
     //reason_code is unused. By default it is set to eCSR_DISCONNECT_REASON_UNSPECIFIED
     switch (mlme->cmd) {
         case IW_MLME_DISASSOC:
@@ -4352,6 +4386,12 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
     tpKeepAliveRequest pRequest = (tpKeepAliveRequest)wrqu->data.pointer;
     tSirKeepAliveReq keepaliveRequest;
 
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                                  "%s:LOGP in Progress. Ignore!!!",__func__);
+        return 0;
+    }
 
     /* Debug display of request components. */
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: Set Keep Alive Request : TimePeriod %d size %d", 
