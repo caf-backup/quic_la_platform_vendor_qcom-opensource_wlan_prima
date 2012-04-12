@@ -23061,3 +23061,15 @@ WDI_ProcessSetPowerParamsRsp
    return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessSetPowerParamsRsp*/
 
+
+void WDI_GetWcnssCompiledApiVersion
+(
+  WDI_WlanVersionType     *pWcnssApiVersion
+)
+{
+    pWcnssApiVersion->major    = WLAN_HAL_VER_MAJOR;
+    pWcnssApiVersion->minor    = WLAN_HAL_VER_MINOR;
+    pWcnssApiVersion->version  = WLAN_HAL_VER_VERSION;
+    pWcnssApiVersion->revision = WLAN_HAL_VER_REVISION;
+}
+

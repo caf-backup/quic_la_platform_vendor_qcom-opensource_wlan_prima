@@ -519,6 +519,7 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    v_PVOID_t      *configParam;
    tANI_U32       configParamSize;
    tANI_U32       *configDataValue;
+   WDI_WlanVersionType wcnssCompiledApiVersion;
 
    if ((NULL == pMac)||(NULL == wdaContext))
    {
@@ -1354,6 +1355,18 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    tlvStruct->length = sizeof(tANI_U32);
    configDataValue = (tANI_U32 *)(tlvStruct + 1);
    *configDataValue = pMac->btc.btcConfig.btcA2DPBtSubIntervalsDuringDhcp; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_WCNSS_API_VERSION */
+   tlvStruct->type = QWLAN_HAL_CFG_WCNSS_API_VERSION  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   WDI_GetWcnssCompiledApiVersion(&wcnssCompiledApiVersion);
+   *configDataValue = WLAN_HAL_CONSTRUCT_API_VERSION(wcnssCompiledApiVersion.major,
+		   wcnssCompiledApiVersion.minor,
+		   wcnssCompiledApiVersion.version,
+		   wcnssCompiledApiVersion.revision);
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
 

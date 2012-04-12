@@ -8222,6 +8222,22 @@ WDI_SetPowerParamsReq
   void*                            pUserData
 );
 
+/**
+ @brief WDI_GetWcnssCompiledApiVersion - Function to get wcnss compiled  
+        api version 
+        
+ @param  WDI_WlanVersionType: Wlan version structure 
+ @see
+ @return none
+*/
+
+void WDI_GetWcnssCompiledApiVersion
+(
+  WDI_WlanVersionType     *pWcnssApiVersion
+);
+
+
+
 #ifdef __cplusplus
  }
 #endif 
