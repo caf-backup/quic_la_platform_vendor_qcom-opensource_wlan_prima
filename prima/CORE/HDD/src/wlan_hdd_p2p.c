@@ -136,9 +136,29 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
 
     if( cfgState->remain_on_chan_ctx != NULL)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Already one Remain on Channel Pending", __func__);
-        return -EBUSY;
+        INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
+        
+        /* Issue abort remain on chan request to sme.
+         * The remain on channel callback will make sure the remain_on_chan
+         * expired event is sent.
+        */
+        if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
+             ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
+           )
+        {
+            sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
+                                                     pAdapter->sessionId );
+        }
+        else if ( (WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
+                  (WLAN_HDD_P2P_GO == pAdapter->device_mode)
+                )
+        {
+            WLANSAP_CancelRemainOnChannel(
+                                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+        }
+        
+        wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+               msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
     }
 
     /* When P2P-GO and if we are trying to unload the driver then 
@@ -412,9 +432,20 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
         if( goAdapter && ( ieee80211_frequency_to_channel(chan->center_freq)
                              == goAdapter->sessionCtx.ap.operatingChannel ) )
         {
-           goto send_frame;
+            goto send_frame;
         } 
 
+        // In case of P2P Client mode if we are already
+        // on the same channel then send the frame directly
+        
+        if((cfgState->remain_on_chan_ctx != NULL) &&
+           (cfgState->current_freq == chan->center_freq)
+          )
+        { 
+            goto send_frame;
+        }
+        
+	
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
 
         status = wlan_hdd_request_remain_on_channel(wiphy, dev,
