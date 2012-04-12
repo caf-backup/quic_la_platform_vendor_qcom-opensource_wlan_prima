@@ -482,8 +482,11 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
  * for now giving the value 1000 ms */
 #define WDA_WDI_COMPLETION_TIME_OUT 30000 /* in ms */
 
-#define WDA_TL_TX_FRAME_TIMEOUT  5000  /* in msec a very high upper limit of 5,000 msec */
+#define WDA_TL_TX_FRAME_TIMEOUT  10000  /* in msec a very high upper limit of 5,000 msec */
 #define WDA_TL_SUSPEND_TIMEOUT   2000  /* in ms unit */
+
+/*Tag used by WDA to mark a timed out frame*/
+#define WDA_TL_TX_MGMT_TIMED_OUT   0xDEAD 
 
 #define WDA_TL_TX_SUSPEND_SUCCESS   0
 #define WDA_TL_TX_SUSPEND_FAILURE   1

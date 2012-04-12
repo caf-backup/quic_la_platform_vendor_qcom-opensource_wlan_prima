@@ -2576,40 +2576,7 @@ WLANTL_TxMgmtFrm
   //vosTempBuff = pTLCb->tlMgmtFrmClient.vosPendingDataBuff;
   if ( NULL != pTLCb->tlMgmtFrmClient.vosPendingDataBuff )
   {
-#ifdef TEMP_WORKAROUND
-    if (wFrmType != 5)
-    {
-        // Ok we need to queue this one.
-        if (QdMgmtFrameCount < 10)
-        {
-           MgmtFrmQ[QdMgmtFrameTail].vosFrmBuf = vosFrmBuf;
-           MgmtFrmQ[QdMgmtFrameTail].wFrmType = wFrmType;
-           MgmtFrmQ[QdMgmtFrameTail].pvBDHeader = pvBDHeader;
-           QdMgmtFrameCount++;
-           QdMgmtFrameTail = (QdMgmtFrameTail + 1) % MGMT_FRAME_Q_SIZE;
 
-                TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Management Frame Qd Subtype=%d Qd Head=%d Tail=%d",
-                    wFrmType,QdMgmtFrameHead, QdMgmtFrameTail));
-                return VOS_STATUS_SUCCESS;
-        }
-        else
-        {
-                vos_pkt_return_packet(vosFrmBuf);
-                TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                   "WLAN TL:Management Frame already pending tx in TL %d: failing old one", wFrmType));
-                return VOS_STATUS_E_BUSY;
-        }
-    }
-    else
-    {
-        // Dont care about probe responses.
-        vos_pkt_return_packet(vosFrmBuf);
-        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Management Frame already pending tx in TL: failing old one")));
-        return VOS_STATUS_SUCCESS;
-    }
-#endif
     TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
         "WLAN TL:Management Frame already pending tx in TL: failing old one"));
 
@@ -2634,51 +2601,10 @@ WLANTL_TxMgmtFrm
     //return VOS_STATUS_E_BUSY;
 
 
-    pfnCompTxFunc( pvosGCtx, vosFrmBuf, VOS_STATUS_E_RESOURCES);
-    return VOS_STATUS_SUCCESS;
+    //pfnCompTxFunc( pvosGCtx, vosFrmBuf, VOS_STATUS_E_RESOURCES);
+    return VOS_STATUS_E_RESOURCES;
   }
 
-#ifdef TEMP_WORKAROUND
-  // OK we have received all acks now check our local queue.
-  if (QdMgmtFrameCount > 0)
-  {
-      if (wFrmType != 5)
-      {
-          // Ok we need to queue this one.
-          if (QdMgmtFrameCount < 10)
-          {
-                MgmtFrmQ[QdMgmtFrameTail].vosFrmBuf = vosFrmBuf;
-                MgmtFrmQ[QdMgmtFrameTail].wFrmType = wFrmType;
-                MgmtFrmQ[QdMgmtFrameTail].pvBDHeader = pvBDHeader;
-                QdMgmtFrameCount++;
-                QdMgmtFrameTail = (QdMgmtFrameTail + 1) % MGMT_FRAME_Q_SIZE;
-                TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Management Frame Qd Subtype=%d", wFrmType));
-                TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Management Frame Qd #2 Head=%d Tail=%d",
-                QdMgmtFrameHead, QdMgmtFrameTail));
-          }
-          else
-          {
-                vos_pkt_return_packet(vosFrmBuf);
-                TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Management Frame already pending tx in TL %d: failing old one", wFrmType));
-          }
-      }
-      pvBDHeader = MgmtFrmQ[QdMgmtFrameHead].pvBDHeader;
-      vosFrmBuf = MgmtFrmQ[QdMgmtFrameHead].vosFrmBuf;
-      wFrmType = MgmtFrmQ[QdMgmtFrameHead].wFrmType;
-      QdMgmtFrameHead = (QdMgmtFrameHead + 1) % MGMT_FRAME_Q_SIZE;
-      QdMgmtFrameCount--;
-      if (QdMgmtFrameCount == 0) {
-              QdMgmtFrameHead = 0;
-              QdMgmtFrameTail = 0;
-      }
-      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Management Frame Qd #3 Head=%d Tail=%d",
-                    QdMgmtFrameHead, QdMgmtFrameTail));
-  }
-#endif
 
   /*------------------------------------------------------------------------
     Check if BD header was build, if not construct
