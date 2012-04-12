@@ -838,4 +838,6 @@ void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
 void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter);
 void hdd_prevent_suspend(void);
 void hdd_allow_suspend(void);
+v_U8_t hdd_is_ssr_required(void);
+void hdd_set_ssr_required(v_U8_t value);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

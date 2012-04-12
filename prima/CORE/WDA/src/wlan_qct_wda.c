@@ -11869,7 +11869,7 @@ VOS_STATUS WDA_ProcessTxControlInd(tWDA_CbContext *pWDA,
  * Shutdown WDA/WDI without handshaking with Riva.
  * Synchronous function.
  */
-VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext)
+VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext, wpt_boolean closeTransport)
 {
    WDI_Status wdiStatus;
    //tANI_U8    eventIdx = 0;
@@ -11909,7 +11909,7 @@ VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext)
    pWDA->wdaWdiApiMsgParam = NULL;
 
    /* call WDI shutdown */
-   wdiStatus = WDI_Shutdown();
+   wdiStatus = WDI_Shutdown(closeTransport);
 
    if (IS_WDI_STATUS_FAILURE(wdiStatus) )
    {

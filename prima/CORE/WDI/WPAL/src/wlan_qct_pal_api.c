@@ -351,8 +351,8 @@ wpt_status wpalRivaSubystemRestart(void)
     if (vos_is_load_unload_in_progress(VOS_MODULE_ID_WDI, NULL))
     {
          WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                 "%s: loading/unloading in progress, cannot do SSR",
-                                                    __FUNCTION__);
+                 "%s: loading/unloading in progress,"
+                 " SSR will be done at the end of unload", __FUNCTION__);
          return eWLAN_PAL_STATUS_E_FAILURE;
     }
     if (0 == subsystem_restart("riva")) 

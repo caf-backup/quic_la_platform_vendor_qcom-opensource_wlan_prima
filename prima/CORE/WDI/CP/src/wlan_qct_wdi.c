@@ -1465,13 +1465,14 @@ WDI_Close
 
  WDI_Start must have been called.
 
- @param  None
+ @param  closeTransport:  Close control channel if this is set
 
  @return Result of the function call
 */
 WDI_Status
 WDI_Shutdown
 (
+ wpt_boolean closeTransport
 )
 {
    WDI_EventInfoType      wdiEventData;
@@ -1523,6 +1524,11 @@ WDI_Shutdown
             "WDI Init failed to close the DP Util Module");
 
       WDI_ASSERT(0);
+   }
+   if ( closeTransport )
+   {
+      /* Close control transport, called from module unload */
+      WCTS_CloseTransport(gWDICb.wctsHandle);
    }
 
    /*destroy the BSS sessions pending Queue */
@@ -18715,14 +18721,10 @@ WDI_ResponseTimerCB
             " - catastrophic failure", 
             WDI_getRespMsgString(pWDICtx->wdiExpectedResponse),
             pWDICtx->wdiExpectedResponse);
-#ifdef APPS_INITIATED_WCNSS_SSR
   /* WDI timeout means Riva is not responding or SMD communication to Riva
    * is not happening. The only possible way to recover from this error
    * is to initiate SSR from APPS */
   wpalRivaSubystemRestart();
-#else
-  WDI_DetectedDeviceError( pWDICtx, WDI_ERR_RSP_TIMEOUT);
-#endif
   return; 
 
 }/*WDI_ResponseTimerCB*/

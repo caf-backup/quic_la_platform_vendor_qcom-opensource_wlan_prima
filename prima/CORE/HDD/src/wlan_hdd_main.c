@@ -89,6 +89,7 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #ifdef WLAN_SOFTAP_FEATURE
 #include "sapApi.h"
 #include <linux/semaphore.h>
+#include <mach/subsystem_restart.h>
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #endif
@@ -123,6 +124,8 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #endif
 
 static struct wake_lock wlan_wake_lock;
+/* set when SSR is needed after unload */
+static v_U8_t      isSsrRequired;
 
 //internal function declaration
 v_U16_t hdd_select_queue(struct net_device *dev,
@@ -2005,6 +2008,16 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
    return VOS_STATUS_SUCCESS;
 }
 
+v_U8_t hdd_is_ssr_required( void)
+{
+    return isSsrRequired;
+}
+
+void hdd_set_ssr_required( v_U8_t value)
+{
+    isSsrRequired = value;
+}
+
 VOS_STATUS hdd_get_front_adapter( hdd_context_t *pHddCtx,
                                   hdd_adapter_list_node_t** ppAdapterNode)
 {
@@ -2730,6 +2743,13 @@ free_hdd_ctx:
 #else
    vos_mem_free( pHddCtx );
 #endif
+   if (hdd_is_ssr_required())
+   {
+       /* WDI timeout had happened during unload, so SSR is needed here */
+       subsystem_restart("riva");
+       msleep(5000);
+   }
+   hdd_set_ssr_required (VOS_FALSE);
 }
 
 
