@@ -2892,6 +2892,7 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
 VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx)
 {
    eHalStatus halStatus;
+   v_U32_t listenInterval;
 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
    /* In the non-integrated architecture we update the configuration from
@@ -2924,6 +2925,12 @@ VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx)
       return VOS_STATUS_E_FAILURE;
    }
 
+   // Set default LI into HDD context,
+   // otherwise under some race condition, HDD will set 0 LI value into RIVA,
+   // And RIVA will crash
+   wlan_cfgGetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, &listenInterval);
+   pHddCtx->hdd_actual_LI_value = listenInterval;
+   
    return VOS_STATUS_SUCCESS;
 }
 
