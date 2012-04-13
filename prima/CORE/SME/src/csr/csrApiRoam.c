@@ -11995,8 +11995,22 @@ eHalStatus csrProcessDelStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
 
             if(pCommand->u.delStaSessionCmd.callback)
             {
-                pCommand->u.delStaSessionCmd.callback(
-                                  pCommand->u.delStaSessionCmd.pContext);
+                 
+                status = sme_ReleaseGlobalLock( &pMac->sme );
+                if ( HAL_STATUS_SUCCESS( status ) )
+                {
+                    pCommand->u.delStaSessionCmd.callback(
+                                      pCommand->u.delStaSessionCmd.pContext);
+                    status = sme_AcquireGlobalLock( &pMac->sme );
+                    if (! HAL_STATUS_SUCCESS( status ) )
+                    {
+                        smsLog(pMac, LOGP, "%s: Failed to Acquire Lock\n", __FUNCTION__);
+                        return status;
+                    }
+                }
+                else {
+                    smsLog(pMac, LOGE, "%s: Failed to Release Lock\n", __FUNCTION__);
+                }
             } 
 
             //Remove this command out of the active list

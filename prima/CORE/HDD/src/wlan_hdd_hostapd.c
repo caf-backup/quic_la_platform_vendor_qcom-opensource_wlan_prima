@@ -431,10 +431,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                              "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
 
             pHddApCtx->operatingChannel = 0; //Invalidate the channel info.
-            /* need to make sure all of our scheduled work has completed.
-             * Right now we are in MC thread context, so it is safe to call this function from here.
-             */
-            flush_scheduled_work();
             vos_event_set(&pHostapdState->vosEvent);
             goto stopbss;
         case eSAP_STA_SET_KEY_EVENT:

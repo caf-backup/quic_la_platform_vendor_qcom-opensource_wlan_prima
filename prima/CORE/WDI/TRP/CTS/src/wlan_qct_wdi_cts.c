@@ -705,15 +705,6 @@ WCTS_OpenTransport
    pWCTSCb->wctsDataMsg.callback = WCTS_PALDataCallback;
    pWCTSCb->wctsDataMsg.pContext = pWCTSCb;
 
-   /* There are some scenarios where a channel is closed and then
-      quickly reopened.  Since SMD uses a work queue to handle the
-      close, there is a lag between when the channel is closed, and
-      when it is available to be reopened.  Since we don't know if we
-      are in a quick close/open scenario, wait for all scheduled work
-      to complete so that we have the best chance of finding the
-      channel available to be opened */
-   flush_scheduled_work();
-
    /*---------------------------------------------------------------------
      Open the SMD channel
      ---------------------------------------------------------------------*/
