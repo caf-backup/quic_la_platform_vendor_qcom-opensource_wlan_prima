@@ -4905,7 +4905,9 @@ static void csrStaApConcTimerHandler(void *pv)
     tListElem *pEntry;
     tSmeCmd *pScanCmd;
 
-    if ( NULL != ( pEntry = csrLLPeekHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) ) )
+    csrLLLock(&pMac->scan.scanCmdPendingList);
+
+    if ( NULL != ( pEntry = csrLLPeekHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK) ) )
     {    
         tCsrScanRequest scanReq;
         tSmeCmd *pSendScanCmd = NULL;
@@ -4926,6 +4928,7 @@ static void csrStaApConcTimerHandler(void *pv)
              if (!pSendScanCmd)
              {
                  smsLog( pMac, LOGE, FL(" Failed to get Queue command buffer\n") );
+                 csrLLUnlock(&pMac->scan.scanCmdPendingList);
                  return;
              }
              pSendScanCmd->command = pScanCmd->command; 
@@ -4958,6 +4961,7 @@ static void csrStaApConcTimerHandler(void *pv)
              if(!HAL_STATUS_SUCCESS(status))
              {
                  smsLog( pMac, LOGE, FL(" Failed to get copy csrScanRequest = %d\n"), status );
+                 csrLLUnlock(&pMac->scan.scanCmdPendingList);
                  return;
              }       
         }
@@ -4966,7 +4970,7 @@ static void csrStaApConcTimerHandler(void *pv)
              //last channel remaining to scan
              pSendScanCmd = pScanCmd;
              //remove this command from pending list 
-             if (csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) == NULL)
+             if (csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK) == NULL)
              { //In case between PeekHead and here, the entry got removed by another thread.
                  smsLog( pMac, LOGE, FL(" Failed to remove entry from scanCmdPendingList\n"));
              }
@@ -4976,11 +4980,12 @@ static void csrStaApConcTimerHandler(void *pv)
 
     }
 
-    if (!csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK ))
+    if (!csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK ))
     {
          palTimerStart(pMac->hHdd, pMac->scan.hTimerStaApConcTimer, 
                  CSR_SCAN_STAAP_CONC_INTERVAL, eANI_BOOLEAN_FALSE);
     }
+    csrLLUnlock(&pMac->scan.scanCmdPendingList);
     
 }
 #endif
@@ -6134,12 +6139,14 @@ eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac)
     tSmeCmd *pCommand;
 
 #ifdef WLAN_AP_STA_CONCURRENCY
-    while( NULL != ( pEntry = csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) ) )
+    csrLLLock(&pMac->scan.scanCmdPendingList);
+    while( NULL != ( pEntry = csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK) ) )
     {
 
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         csrAbortCommand( pMac, pCommand, eANI_BOOLEAN_FALSE);
     }
+    csrLLUnlock(&pMac->scan.scanCmdPendingList);
 #endif
 
     csrRemoveCmdFromPendingList( pMac, &pMac->roam.roamCmdPendingList, eSmeCommandScan);
