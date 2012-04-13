@@ -2560,7 +2560,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
    pWlanHostapdDev = alloc_etherdev_mq(sizeof(hdd_adapter_t), NUM_TX_QUEUES);
 #endif
 
-    if(pWlanHostapdDev!=NULL)
+    if (pWlanHostapdDev != NULL)
     {
         pHostapdAdapter = netdev_priv(pWlanHostapdDev);
 
@@ -2571,12 +2571,13 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         vos_mem_zero(pHostapdAdapter, sizeof( hdd_adapter_t ));
         pHostapdAdapter->dev = pWlanHostapdDev;
         pHostapdAdapter->pHddCtx = pHddCtx; 
+        pHostapdAdapter->magic = WLAN_HDD_ADAPTER_MAGIC;
 
         //Get the Global VOSS context.
         pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
         //Save the adapter context in global context for future.
         ((VosContextType*)(pVosContext))->pHDDSoftAPContext = (v_VOID_t*)pHostapdAdapter;
-    
+
         //Init the net_device structure
         strlcpy(pWlanHostapdDev->name, (const char *)iface_name, IFNAMSIZ);
 

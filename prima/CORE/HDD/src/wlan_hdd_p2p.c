@@ -44,12 +44,6 @@ static void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
                                                tANI_U8* pbFrames,
                                                tANI_U8 frameType );
 
-void hdd_indicateMgmtFrame( hdd_adapter_t *pMonAdapter,
-                            tANI_U32 nFrameLength, 
-                            tANI_U8* pbFrames,
-                            tANI_U8 frameType,
-                            tANI_U32 rxChan );
-
 #ifdef WLAN_FEATURE_P2P
 eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                                                 eHalStatus status )
@@ -998,8 +992,27 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                             tANI_U32 rxChan )
 {
     tANI_U16 freq;
+
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d\n",
             __func__, frameType, nFrameLength);
+
+    if (NULL == pAdapter)
+    {
+        hddLog( LOGE, FL("pAdapter is NULL"));
+        return;
+    }
+
+    if (NULL == pAdapter->dev)
+    {
+        hddLog( LOGE, FL("pAdapter->dev is NULL"));
+        return;
+    }
+
+    if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
+    {
+        hddLog( LOGE, FL("pAdapter has invalid magic"));
+        return;
+    }
 
     if( !nFrameLength )
     {
@@ -1039,7 +1052,7 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     //Indicate Frame Over Normal Interface
     hddLog( LOG1, FL("Indicate Frame over NL80211 Interface"));
     cfg80211_rx_mgmt( pAdapter->dev, freq,
-                      pbFrames, nFrameLength, 
+                      pbFrames, nFrameLength,
                       GFP_ATOMIC );
 }
 
