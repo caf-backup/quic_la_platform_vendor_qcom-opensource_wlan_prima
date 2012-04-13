@@ -756,6 +756,7 @@ typedef struct tagCsrRoamProfile
     tANI_BOOLEAN bWPSAssociation;
 
 #ifdef WLAN_SOFTAP_FEATURE
+    tANI_U8 ieee80211d;
     tANI_U8 privacy;
     tANI_BOOLEAN fwdWPSPBCProbeReq;
     tAniAuthType csr80211AuthType;
