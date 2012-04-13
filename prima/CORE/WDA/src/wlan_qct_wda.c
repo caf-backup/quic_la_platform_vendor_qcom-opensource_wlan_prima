@@ -126,6 +126,10 @@
 
 #define WDA_TX_COMPLETE_TIME_OUT_VALUE 1000
   
+
+#define WDA_MAX_RETRIES_TILL_RING_EMPTY  100   /* MAX 1000msec wait */
+
+#define WDA_WAIT_MSEC_TILL_RING_EMPTY    10    /* 10msec wait per cycle */
 /* extern declarations */
 extern void vos_WDAComplete_cback(v_PVOID_t pVosContext);
 
@@ -2870,6 +2874,22 @@ void WDA_ConfigBssReqCallback(WDI_ConfigBSSRspParamsType *wdiConfigBssRsp
                                                          WDA_VALID_STA_INDEX ;
       }
 
+      if(WDI_DS_SetStaIdxPerBssIdx(pWDA->pWdiContext,
+                                   wdiConfigBssRsp->ucBSSIdx,
+                                   wdiConfigBssRsp->ucSTAIdx))
+      {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "%s: fail to set STA idx associated with BSS index", __FUNCTION__);
+         VOS_ASSERT(0) ;
+      }
+
+      if(WDI_DS_AddSTAMemPool(pWDA->pWdiContext, wdiConfigBssRsp->ucSTAIdx))
+      {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "%s: add BSS into mempool fail", __FUNCTION__);
+         VOS_ASSERT(0) ;
+      }
+
 #ifdef WLAN_FEATURE_VOWIFI
       configBssReqParam->txMgmtPower = wdiConfigBssRsp->ucTxMgmtPower;
 #endif
@@ -3129,6 +3149,13 @@ void WDA_AddStaReqCallback(WDI_ConfigSTARspParamsType *wdiConfigStaRsp,
          pWDA->wdaStaInfo[addStaReqParam->staIdx].ucValidStaIndex = 
                                                          WDA_VALID_STA_INDEX ;
       }
+      if(WDI_DS_AddSTAMemPool(pWDA->pWdiContext, wdiConfigStaRsp->ucSTAIdx))
+      {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "%s: add STA into mempool fail", __FUNCTION__);
+         VOS_ASSERT(0) ;
+         return ;
+      }
    }
 
    vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
@@ -3236,6 +3263,28 @@ void WDA_DelBSSReqCallback(WDI_DelBSSRspParamsType *wdiDelBssRsp,
       vos_mem_copy(delBssReqParam->bssid, wdiDelBssRsp->macBSSID, 
                                              sizeof(tSirMacAddr)) ;
    }
+
+   if(WDI_DS_GetStaIdxFromBssIdx(pWDA->pWdiContext, delBssReqParam->bssIdx, &staIdx))
+   {
+     VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Get STA index from BSS index Fail", __FUNCTION__);
+     VOS_ASSERT(0) ;
+   }
+
+   if(WDI_DS_DelSTAMemPool(pWDA->pWdiContext, staIdx))
+   {
+     VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: DEL STA from MemPool Fail", __FUNCTION__);
+     VOS_ASSERT(0) ;
+   }
+
+   if(WDI_DS_ClearStaIdxPerBssIdx(pWDA->pWdiContext, delBssReqParam->bssIdx, staIdx))
+   {
+     VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Clear STA index form table Fail", __FUNCTION__);
+     VOS_ASSERT(0) ;
+   }
+
    vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
    vos_mem_free(pWdaParams) ;
 
@@ -3347,6 +3396,12 @@ void WDA_DelSTAReqCallback(WDI_DelSTARspParamsType *wdiDelStaRsp,
 
    if(WDI_STATUS_SUCCESS == wdiDelStaRsp->wdiStatus)
    {
+      if(WDI_DS_DelSTAMemPool(pWDA->pWdiContext, wdiDelStaRsp->ucSTAIdx))
+      {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "%s: DEL STA from MemPool Fail", __FUNCTION__);
+         VOS_ASSERT(0) ;
+      }
       delStaReqParam->staIdx = wdiDelStaRsp->ucSTAIdx ;
    }
    vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
@@ -9579,11 +9634,73 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       }
       case WDA_DELETE_BSS_REQ:
       {
+         wpt_uint8  staIdx;
+         wpt_uint8  bssIdx = ((tDeleteBssParams *)pMsg->bodyptr)->bssIdx;
+         wpt_uint8  reservedResourceBySta;
+         wpt_uint8  waitLoop = 0;
+
+         if (WDI_DS_GetStaIdxFromBssIdx(pWDA->pWdiContext, bssIdx, &staIdx))
+         {
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Get STA index from BSS index Fail", __FUNCTION__);
+            VOS_ASSERT(0) ;
+         }
+         while (1) 
+         {
+             reservedResourceBySta = WDI_DS_GetReservedResCountPerSTA(pWDA->pWdiContext, WDI_DATA_POOL_ID, staIdx);
+             /* Wait till reserved resource by STA must be none */
+             if (reservedResourceBySta == 0)
+             {
+                 VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                            "STA %d BSS %d TX RING empty %d", staIdx, bssIdx );
+                 break;
+
+             }
+             else
+             {
+                 if(waitLoop > WDA_MAX_RETRIES_TILL_RING_EMPTY)
+                 {
+                     VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
+                                "TX Ring could not empty, not normal" );
+                     VOS_ASSERT(0);
+                     break;
+                 }
+                 vos_sleep(WDA_WAIT_MSEC_TILL_RING_EMPTY);
+                 waitLoop++;
+             }
+         }
          WDA_ProcessDelBssReq(pWDA, (tDeleteBssParams *)pMsg->bodyptr) ;
          break ;
       }
       case WDA_DELETE_STA_REQ:
       {
+         tDeleteStaParams *delSta = (tDeleteStaParams *)pMsg->bodyptr;
+         wpt_uint8 reservedResourceBySta;
+         wpt_uint8  waitLoop = 0;
+
+         while (1) 
+         {
+             reservedResourceBySta = WDI_DS_GetReservedResCountPerSTA(pWDA->pWdiContext, WDI_DATA_POOL_ID, delSta->staIdx);
+             /* Wait till reserved resource by STA must be none */
+             if (reservedResourceBySta == 0)
+             {
+                 VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                            "STA %d TX RING empty %d", delSta->staIdx );
+                 break;
+             }
+             else
+             {
+                 if(waitLoop > WDA_MAX_RETRIES_TILL_RING_EMPTY)
+                 {
+                     VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
+                                "TX Ring could not empty, not normal" );
+                     VOS_ASSERT(0);
+                     break;
+                 }
+                 vos_sleep(WDA_WAIT_MSEC_TILL_RING_EMPTY);
+                 waitLoop++;
+             }
+         }
          WDA_ProcessDelStaReq(pWDA, (tDeleteStaParams *)pMsg->bodyptr) ;
          break ;
       }

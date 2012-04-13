@@ -223,4 +223,65 @@ WDI_Status WDI_DS_TxSuspend(void *pContext);
 
 
 WDI_Status WDI_DS_TxResume(void *pContext);
+
+/* DAL Get Reserved resource by STA 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  wdiResPool: MemPool, MGMT ot DATA
+ *  staId: STA ID
+ * Return Value: Number of reserved resouce count
+ *
+ */
+wpt_uint32 WDI_DS_GetReservedResCountPerSTA(void *pContext,
+                                                        WDI_ResPoolType wdiResPool,
+                                                        wpt_uint8 staId);
+
+/* DAL ADD STA into memPool
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  staId: STA ID
+ * Return Value: SUCCESS or FAIL
+ *
+ */
+WDI_Status WDI_DS_AddSTAMemPool(void *pContext, wpt_uint8 staIndex);
+
+/* DAL Remove STA from memPool
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  staId: STA ID
+ * Return Value: SUCCESS or FAIL
+ *
+ */
+WDI_Status WDI_DS_DelSTAMemPool(void *pContext, wpt_uint8 staIndex);
+
+/* DAL Set STA index associated with BSS index. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  bssIdx: BSS index
+ *  staId: STA index associated with BSS index
+ * Return Status: Found empty slot
+ *
+ */
+WDI_Status WDI_DS_SetStaIdxPerBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8 staIdx);
+
+/* DAL Get STA index associated with BSS index. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  bssIdx: BSS index
+ *  staId: STA index associated with BSS index
+ * Return Status: Found empty slot
+ *
+ */
+WDI_Status WDI_DS_GetStaIdxFromBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8 *staIdx);
+
+/* DAL Clear STA index associated with BSS index. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  bssIdx: BSS index
+ *  staId: STA index associated with BSS index
+ * Return Status: Found empty slot
+ *
+ */
+WDI_Status WDI_DS_ClearStaIdxPerBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8 staIdx);
+
 #endif

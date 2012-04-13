@@ -26,6 +26,7 @@
 #include "wlan_qct_wdi_ds_i.h"
 #include "wlan_qct_wdi_dts.h"
 #include "wlan_qct_wdi_dp.h"
+#include "wlan_qct_wdi_sta.h"
 
 
 
@@ -52,6 +53,7 @@ WDI_Status WDI_DS_Register( void *pContext,
   void *pCallbackContext)
 {
   WDI_DS_ClientDataType *pClientData;
+  wpt_uint8              bssLoop;
 
   // Do Sanity checks
   if (NULL == pContext ||
@@ -75,6 +77,12 @@ WDI_Status WDI_DS_Register( void *pContext,
   pClientData->txResourceCB = pfnTxFlowControlCallback;
   pClientData->pCallbackContext = pCallbackContext;
 
+  for(bssLoop = 0; bssLoop < WDI_DS_MAX_SUPPORTED_BSS; bssLoop++)
+  {
+    pClientData->staIdxPerBssIdxTable[bssLoop].isUsed = 0;
+    pClientData->staIdxPerBssIdxTable[bssLoop].bssIdx = WDI_DS_INDEX_INVALID;
+    pClientData->staIdxPerBssIdxTable[bssLoop].staIdx = WDI_DS_INDEX_INVALID;
+  }
   return WDI_STATUS_SUCCESS;
 }
 
@@ -108,6 +116,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   wpt_uint8      ucType;
   WDI_DS_BdMemPoolType *pMemPool;
   wpt_uint8      ucBdPoolType;
+  wpt_uint8      staId;
 
   // Do Sanity checks
   if (NULL == pContext)
@@ -152,7 +161,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   pvBDHeader = WDI_DS_MemPoolAlloc(pMemPool, &physBDHeader, ucBdPoolType);
   if(NULL == pvBDHeader)
     return WDI_STATUS_E_FAILURE;
-      
+
   WDI_SetBDPointers(pFrame, pvBDHeader, physBDHeader);
 
   alignment = 0;
@@ -160,7 +169,7 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
 
   if(WDI_STATUS_SUCCESS != 
       WDI_FillTxBd( pContext, ucTypeSubtype, pSTAMACAddress, pAddr2MACAddress, 
-        &ucUP, 1, pvBDHeader, ucTxFlag /* No ACK */, 0 )){
+        &ucUP, 1, pvBDHeader, ucTxFlag /* No ACK */, 0, &staId)){
     WDI_DS_MemPoolFree(pMemPool, pvBDHeader, physBDHeader);
     return WDI_STATUS_E_FAILURE;
   }
@@ -170,6 +179,11 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
     return WDI_STATUS_E_FAILURE;
   }  
 
+  /* resource count only for data packet */
+  if(WDI_MAC_DATA_FRAME == ucType)
+  {
+    WDI_DS_MemPoolIncreaseReserveCount(pMemPool, staId);
+  }
   return WDI_STATUS_SUCCESS;  
 }
  
@@ -258,4 +272,179 @@ wpt_uint32 WDI_GetAvailableResCount(void *pContext,WDI_ResPoolType wdiResPool)
     default:
       return 0;
   }
+}
+
+/* DAL Get resrved Resource Count per STA. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  wdiResPool: - identifier of resource pool
+ *  staId: STA ID
+ * Return Value: number of resources reserved per STA
+ *
+ */
+wpt_uint32 WDI_DS_GetReservedResCountPerSTA(void *pContext,WDI_ResPoolType wdiResPool, wpt_uint8 staId)
+{
+  WDI_DS_ClientDataType *pClientData =  
+    (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
+  switch(wdiResPool)
+  {
+    case WDI_MGMT_POOL_ID:
+      return WDI_DS_MemPoolGetRsvdResCountPerSTA(&pClientData->mgmtMemPool, staId);
+    case WDI_DATA_POOL_ID:
+      return WDI_DS_MemPoolGetRsvdResCountPerSTA(&pClientData->dataMemPool, staId);
+    default:
+      return 0;
+  }
+}
+
+/* DAL STA info add into memPool. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  staId: STA ID
+ * Return Value: number of resources reserved per STA
+ *
+ */
+WDI_Status WDI_DS_AddSTAMemPool(void *pContext, wpt_uint8 staIndex)
+{
+  WDI_Status status = WDI_STATUS_SUCCESS;
+  WDI_DS_ClientDataType *pClientData =  
+    (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
+
+  status = WDI_DS_MemPoolAddSTA(&pClientData->mgmtMemPool, staIndex);
+  if(WDI_STATUS_SUCCESS != status)
+  {
+    /* Add STA into MGMT memPool Fail */
+    return status;
+  }
+
+  status = WDI_DS_MemPoolAddSTA(&pClientData->dataMemPool, staIndex);
+  if(WDI_STATUS_SUCCESS != status)
+  {
+    /* Add STA into DATA memPool Fail */
+    return status;
+  }
+
+  return WDI_STATUS_SUCCESS; 
+}
+
+/* DAL STA info del from memPool. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  staId: STA ID
+ * Return Value: number of resources reserved per STA
+ *
+ */
+WDI_Status WDI_DS_DelSTAMemPool(void *pContext, wpt_uint8 staIndex)
+{
+  WDI_Status status = WDI_STATUS_SUCCESS;
+  WDI_DS_ClientDataType *pClientData =  
+    (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
+
+  status = WDI_DS_MemPoolDelSTA(&pClientData->mgmtMemPool, staIndex);
+  if(WDI_STATUS_SUCCESS != status)
+  {
+    /* Del STA from MGMT memPool Fail */
+    return status;
+  }
+  status = WDI_DS_MemPoolDelSTA(&pClientData->dataMemPool, staIndex);
+  if(WDI_STATUS_SUCCESS != status)
+  {
+    /* Del STA from DATA memPool Fail */
+    return status;
+  }
+  return WDI_STATUS_SUCCESS; 
+}
+
+/* DAL Set STA index associated with BSS index. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  bssIdx: BSS index
+ *  staId: STA index associated with BSS index
+ * Return Status: Found empty slot
+ *
+ */
+WDI_Status WDI_DS_SetStaIdxPerBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8 staIdx)
+{
+  WDI_DS_ClientDataType *pClientData;
+  wpt_uint8              bssLoop;
+
+  pClientData = (WDI_DS_ClientDataType *)WDI_DS_GetDatapathContext(pContext);
+  for (bssLoop = 0; bssLoop < WDI_DS_MAX_SUPPORTED_BSS; bssLoop++)
+  {
+    if ((pClientData->staIdxPerBssIdxTable[bssLoop].isUsed) &&
+        (bssIdx == pClientData->staIdxPerBssIdxTable[bssLoop].bssIdx) &&
+        (staIdx == pClientData->staIdxPerBssIdxTable[bssLoop].staIdx))
+    {
+      return WDI_STATUS_SUCCESS;
+    }
+
+    if (0 == pClientData->staIdxPerBssIdxTable[bssLoop].isUsed)
+    {
+      pClientData->staIdxPerBssIdxTable[bssLoop].bssIdx = bssIdx;
+      pClientData->staIdxPerBssIdxTable[bssLoop].staIdx = staIdx;
+      pClientData->staIdxPerBssIdxTable[bssLoop].isUsed = 1;
+      return WDI_STATUS_SUCCESS;
+    }
+  }
+
+  /* Could not find empty slot */
+  return WDI_STATUS_E_FAILURE;
+}
+
+/* DAL Get STA index associated with BSS index. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  bssIdx: BSS index
+ *  staId: STA index associated with BSS index
+ * Return Status: Found empty slot
+ *
+ */
+WDI_Status WDI_DS_GetStaIdxFromBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8 *staIdx)
+{
+  WDI_DS_ClientDataType *pClientData;
+  wpt_uint8              bssLoop;
+
+  pClientData = (WDI_DS_ClientDataType *)WDI_DS_GetDatapathContext(pContext);
+  for(bssLoop = 0; bssLoop < WDI_DS_MAX_SUPPORTED_BSS; bssLoop++)
+  {
+    if(bssIdx == pClientData->staIdxPerBssIdxTable[bssLoop].bssIdx)
+    {
+      /* Found BSS index from slot */
+      *staIdx = pClientData->staIdxPerBssIdxTable[bssLoop].staIdx;
+      return WDI_STATUS_SUCCESS;
+    }
+  }
+
+  /* Could not find associated STA index with BSS index */
+  return WDI_STATUS_E_FAILURE;
+}
+
+/* DAL Clear STA index associated with BSS index. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  bssIdx: BSS index
+ *  staId: STA index associated with BSS index
+ * Return Status: Found empty slot
+ *
+ */
+WDI_Status WDI_DS_ClearStaIdxPerBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uint8 staIdx)
+{
+  WDI_DS_ClientDataType *pClientData;
+  wpt_uint8              bssLoop;
+
+  pClientData = (WDI_DS_ClientDataType *)WDI_DS_GetDatapathContext(pContext);
+  for(bssLoop = 0; bssLoop < WDI_DS_MAX_SUPPORTED_BSS; bssLoop++)
+  {
+    if((bssIdx == pClientData->staIdxPerBssIdxTable[bssLoop].bssIdx) &&
+       (staIdx == pClientData->staIdxPerBssIdxTable[bssLoop].staIdx))
+    {
+      pClientData->staIdxPerBssIdxTable[bssLoop].bssIdx = WDI_DS_INDEX_INVALID;
+      pClientData->staIdxPerBssIdxTable[bssLoop].staIdx = WDI_DS_INDEX_INVALID;
+      pClientData->staIdxPerBssIdxTable[bssLoop].isUsed = 0;
+      return WDI_STATUS_SUCCESS;
+    }
+  }
+
+  /* Could not find associated STA index with BSS index */
+  return WDI_STATUS_E_FAILURE;
 }

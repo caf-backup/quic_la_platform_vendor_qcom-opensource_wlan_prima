@@ -73,6 +73,30 @@ typedef enum
 
 WPT_STATIC WPT_INLINE void DTI_TRACE ( DTI_TRACE_LEVEL level, ...) { };
 
+/* !!! MAX NUM STA is not identified yet, 16 is correct value,
+   but need to get from correct common def
+   This should be identified ASAP */
+#define WDI_DS_MAX_STA_ID 16
+
+/* !!! MAX NUM SUPPORTED BSS is not identified yet, 2 is correct value,
+    but need to get from correct common def
+   This should be identified ASAP */
+#define WDI_DS_MAX_SUPPORTED_BSS   2
+
+#define WDI_DS_INDEX_INVALID       0xFF
+
+/* Mem Pool resorce count per STA data type */
+typedef struct {
+  wpt_uint8    validIdx;
+  wpt_uint8    STAIndex;
+  wpt_uint32   numChunkReservedBySTA;
+  /* Mutex, is not needed for counter operation
+     since all TX Data frame operations will happen only TX thread
+     All of the TX data frame operations are serialized, no pre-emption will happen
+     This is just for place holder */
+  wpt_mutex    resourceCountLock;
+} WDI_DS_BdMemPoolSTAType;
+
 typedef struct {
   void *pVirtBaseAddress;
   void *pPhysBaseAddress;
@@ -80,8 +104,16 @@ typedef struct {
   wpt_uint32 numChunks;
   wpt_uint32 chunkSize;
   wpt_uint32* AllocationBitmap;
-
+  WDI_DS_BdMemPoolSTAType numChunkSTA[WDI_DS_MAX_STA_ID + 1];
 } WDI_DS_BdMemPoolType;
+
+/* STA index associated with BSS index data type */
+typedef struct
+{
+   wpt_uint8   isUsed;
+   wpt_uint8   bssIdx;
+   wpt_uint8   staIdx;
+} WDI_DS_staIdxPerBssIdxType;
 
 WDI_Status WDI_DS_MemPoolCreate(WDI_DS_BdMemPoolType *memPool, wpt_uint8 chunkSize, wpt_uint8 numChunks);
 void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress, WDI_ResPoolType wdiResPool);
@@ -98,6 +130,7 @@ typedef struct
   WDI_DS_RxPacketCallback          receiveFrameCB;
   WDI_DS_TxCompleteCallback        txCompleteCB;
   WDI_DS_TxFlowControlCallback     txResourceCB;
+  WDI_DS_staIdxPerBssIdxType       staIdxPerBssIdxTable[WDI_DS_MAX_SUPPORTED_BSS];
 } WDI_DS_ClientDataType;
 
 WPT_STATIC WPT_INLINE void WDI_GetBDPointers(wpt_packet *pFrame, void **pVirt, void **pPhys)
@@ -132,4 +165,60 @@ WDI_DS_PrepareBDHeader (
 */
 wpt_uint32 WDI_DS_GetAvailableResCount(WDI_DS_BdMemPoolType *pMemPool);
 
+/**
+ @brief WDI_DS_GetreservedResCountPerSTA
+        Returns the Reserved number of resources (BD headers)
+        available for TX
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+
+ @see
+ @return Result of the function call
+*/
+wpt_uint32 WDI_DS_MemPoolGetRsvdResCountPerSTA(WDI_DS_BdMemPoolType *pMemPool, wpt_uint8  staId);
+
+/**
+ @brief WDI_DS_MemPoolAddSTA
+        Add NEW STA into mempool
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status WDI_DS_MemPoolAddSTA(WDI_DS_BdMemPoolType *memPool, wpt_uint8 staIndex);
+
+/**
+ @brief WDI_DS_MemPoolAddSTA
+        Remove STA from mempool
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status WDI_DS_MemPoolDelSTA(WDI_DS_BdMemPoolType *memPool, wpt_uint8 staIndex);
+
+/**
+ @brief Increase reserved TX resource count by specific STA
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+ @see
+ @return Result of the function call
+*/
+void WDI_DS_MemPoolIncreaseReserveCount(WDI_DS_BdMemPoolType *memPool, wpt_uint8  staId);
+
+/**
+ @brief Decrease reserved TX resource count by specific STA
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+ @see
+ @return Result of the function call
+*/
+void WDI_DS_MemPoolDecreaseReserveCount(WDI_DS_BdMemPoolType *memPool, wpt_uint8  staId);
 #endif
