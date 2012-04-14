@@ -372,7 +372,8 @@ WDI_FillTxBd
     wpt_uint8              ucDisableFrmXtl, 
     void*                  pTxBd, 
     wpt_uint8              ucTxFlag, 
-    wpt_uint32             uTimeStamp
+    wpt_uint32             uTimeStamp,
+    wpt_uint8*             staIndex
 );
 
 /**

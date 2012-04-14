@@ -426,7 +426,7 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext);
  * FUNCTION: WDA_shutdown
  * Shutdown will not close the control transport, added by SSR
  */
-VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext);
+VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext, wpt_boolean closeTransport);
 
 /*
  * FUNCTION: WDA_McProcessMsg

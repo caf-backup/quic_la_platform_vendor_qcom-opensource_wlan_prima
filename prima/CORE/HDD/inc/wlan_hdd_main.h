@@ -503,6 +503,7 @@ typedef struct hdd_scaninfo_s
 
 }hdd_scaninfo_t;
 
+#define WLAN_HDD_ADAPTER_MAGIC 0x574c414e //ASCII "WLAN"
 struct hdd_adapter_s
 {
    void *pHddCtx;
@@ -597,7 +598,7 @@ struct hdd_adapter_s
  * TODO - Remove it later
  */
     /** Multiple station supports */
-   /** Per-statioin structure */
+   /** Per-station structure */
    spinlock_t staInfo_lock; //To protect access to station Info  
    hdd_station_info_t aStaInfo[WLAN_MAX_STA_COUNT];
    //v_U8_t uNumActiveStation;
@@ -628,6 +629,9 @@ struct hdd_adapter_s
 #ifdef CONFIG_CFG80211
    hdd_cfg80211_state_t cfg80211State;
 #endif
+
+   //Magic cookie for adapter sanity verification
+   v_U32_t magic;
 };
 
 typedef struct hdd_dynamic_mcbcfilter_s
@@ -838,4 +842,6 @@ void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
 void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter);
 void hdd_prevent_suspend(void);
 void hdd_allow_suspend(void);
+v_U8_t hdd_is_ssr_required(void);
+void hdd_set_ssr_required(v_U8_t value);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

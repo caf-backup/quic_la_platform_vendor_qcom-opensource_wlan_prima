@@ -359,7 +359,8 @@ WDI_FillTxBd
     wpt_uint8              ucDisableFrmXtl, 
     void*                  pTxBd, 
     wpt_uint8              ucTxFlag, 
-    wpt_uint32             uTimeStamp
+    wpt_uint32             uTimeStamp,
+    wpt_uint8*             staIndex
 )
 {
     wpt_uint8              ucTid        = *pTid; 
@@ -724,6 +725,8 @@ WDI_FillTxBd
 
         pBd->staIndex = ucStaId;
         
+        *staIndex = ucStaId;
+
         pSta += ucStaId;  // Go to the curresponding station's station table
 
         if(ucType == WDI_MAC_MGMT_FRAME)

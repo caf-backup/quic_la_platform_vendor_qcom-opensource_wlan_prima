@@ -5896,14 +5896,14 @@ WDI_Close
 
  WDI_Start must have been called.
 
- @param  None
+ @param  closeTransport:  Close control channel if this is set
 
  @return Result of the function call
 */
 WDI_Status
 WDI_Shutdown
 (
- void
+ wpt_boolean closeTransport
 );
 
 /*======================================================================== 

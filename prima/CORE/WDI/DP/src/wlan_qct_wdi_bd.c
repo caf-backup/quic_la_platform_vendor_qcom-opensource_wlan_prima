@@ -129,6 +129,8 @@ WDI_DS_BdMemPoolType:     Memory pool pointer
 WDI_Status WDI_DS_MemPoolCreate(WDI_DS_BdMemPoolType *memPool, wpt_uint8 chunkSize,
                                                                   wpt_uint8 numChunks)
 {
+  wpt_uint8 staLoop;
+
   //Allocate all the max size and align them to a double word boundary. The first 8 bytes are control bytes.
   memPool->numChunks = 0;
   memPool->chunkSize = chunkSize + 16 - (chunkSize%8);
@@ -142,6 +144,14 @@ WDI_Status WDI_DS_MemPoolCreate(WDI_DS_BdMemPoolType *memPool, wpt_uint8 chunkSi
   if( NULL == memPool->AllocationBitmap)
      return WDI_STATUS_E_FAILURE;
   wpalMemoryZero(memPool->AllocationBitmap, (numChunks/32+1)*sizeof(wpt_uint32));
+
+  //Initialize resource infor per STA
+  for(staLoop = 0; staLoop < WDI_DS_MAX_STA_ID; staLoop++)
+  {
+    memPool->numChunkSTA[staLoop].STAIndex = 0xFF;
+    memPool->numChunkSTA[staLoop].numChunkReservedBySTA = 0;
+    memPool->numChunkSTA[staLoop].validIdx = 0;
+  }
 
   return WDI_STATUS_SUCCESS;
 }
@@ -247,4 +257,108 @@ void  WDI_DS_MemPoolFree(WDI_DS_BdMemPoolType *memPool, void *pVirtAddress, void
 wpt_uint32 WDI_DS_GetAvailableResCount(WDI_DS_BdMemPoolType *pMemPool)
 {
   return pMemPool->numChunks;
+}
+
+/**
+ @brief WDI_DS_MemPoolAddSTA
+        Add NEW STA into mempool
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status WDI_DS_MemPoolAddSTA(WDI_DS_BdMemPoolType *memPool, wpt_uint8 staIndex)
+{
+  if(memPool->numChunkSTA[staIndex].STAIndex != 0xFF)
+  {
+    /* Already using this slot? Do nothing */
+    return WDI_STATUS_SUCCESS;
+  }
+
+  memPool->numChunkSTA[staIndex].STAIndex = staIndex;
+  memPool->numChunkSTA[staIndex].numChunkReservedBySTA = 0;
+  memPool->numChunkSTA[staIndex].validIdx = 1;
+  return WDI_STATUS_SUCCESS;
+}
+
+/**
+ @brief WDI_DS_MemPoolAddSTA
+        Remove STA from mempool
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status WDI_DS_MemPoolDelSTA(WDI_DS_BdMemPoolType *memPool, wpt_uint8 staIndex)
+{
+  if(memPool->numChunkSTA[staIndex].STAIndex == 0xFF)
+  {
+    /* Empty this slot? error, bad argument */
+      return WDI_STATUS_E_FAILURE;
+  }
+
+  memPool->numChunkSTA[staIndex].STAIndex = 0xFF;
+  memPool->numChunkSTA[staIndex].numChunkReservedBySTA = 0;
+  memPool->numChunkSTA[staIndex].validIdx = 0;
+  return WDI_STATUS_SUCCESS;
+}
+
+/**
+ @brief Returns the reserved number of resources (BD headers) per STA
+        available for TX
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+ @see
+ @return Result of the function call
+*/
+wpt_uint32 WDI_DS_MemPoolGetRsvdResCountPerSTA(WDI_DS_BdMemPoolType *pMemPool, wpt_uint8  staId)
+{
+  return pMemPool->numChunkSTA[staId].numChunkReservedBySTA;
+}
+
+/**
+ @brief Increase reserved TX resource count by specific STA
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+ @see
+ @return Result of the function call
+*/
+void WDI_DS_MemPoolIncreaseReserveCount(WDI_DS_BdMemPoolType *memPool, wpt_uint8  staId)
+{
+
+  if((memPool->numChunkSTA[staId].validIdx) && (staId < WDI_DS_MAX_STA_ID))
+  {
+    memPool->numChunkSTA[staId].numChunkReservedBySTA++;
+  }
+  return;
+}
+
+/**
+ @brief Decrease reserved TX resource count by specific STA
+
+ @param  pMemPool:         pointer to the BD memory pool
+ @param  staId             STA ID
+ @see
+ @return Result of the function call
+*/
+void WDI_DS_MemPoolDecreaseReserveCount(WDI_DS_BdMemPoolType *memPool, wpt_uint8  staId)
+{
+  if(0 == memPool->numChunkSTA[staId].numChunkReservedBySTA)
+  {
+    DTI_TRACE( DTI_TRACE_LEVEL_ERROR,
+               "SAT %d reserved resource count cannot be smaller than 0", staId );
+    return;
+  }
+
+  if((memPool->numChunkSTA[staId].validIdx) && (staId < WDI_DS_MAX_STA_ID))
+  {
+    memPool->numChunkSTA[staId].numChunkReservedBySTA--;
+  }
+  return;
 }

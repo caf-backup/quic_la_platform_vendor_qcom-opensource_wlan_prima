@@ -936,7 +936,7 @@ static void initConfigParam(tpAniSirGlobal pMac)
     pMac->roam.configParam.Is11dSupportEnabled = eANI_BOOLEAN_FALSE;
     pMac->roam.configParam.Is11dSupportEnabledOriginal = eANI_BOOLEAN_FALSE;
     pMac->roam.configParam.Is11eSupportEnabled = eANI_BOOLEAN_TRUE;
-    pMac->roam.configParam.Is11hSupportEnabled = eANI_BOOLEAN_TRUE;
+    pMac->roam.configParam.Is11hSupportEnabled = eANI_BOOLEAN_FALSE;
     pMac->roam.configParam.RTSThreshold = 2346;
     pMac->roam.configParam.shortSlotTime = eANI_BOOLEAN_TRUE;
     pMac->roam.configParam.WMMSupportMode = eCsrRoamWmmAuto;
@@ -1046,12 +1046,6 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.Is11dSupportEnabled = pParam->Is11dSupportEnabled;
         pMac->roam.configParam.Is11dSupportEnabledOriginal = pParam->Is11dSupportEnabled;
         pMac->roam.configParam.Is11hSupportEnabled = pParam->Is11hSupportEnabled;
-        //if 11h is enabled, so should 11d
-        if(pMac->roam.configParam.Is11hSupportEnabled)
-        {
-            pMac->roam.configParam.Is11dSupportEnabled = eANI_BOOLEAN_TRUE;
-            pMac->roam.configParam.Is11dSupportEnabledOriginal = eANI_BOOLEAN_TRUE;
-        }
         pMac->roam.configParam.channelBondingMode24GHz = pParam->channelBondingMode24GHz;
         pMac->roam.configParam.channelBondingMode5GHz = pParam->channelBondingMode5GHz;
         pMac->roam.configParam.RTSThreshold = pParam->RTSThreshold;
@@ -3017,11 +3011,14 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     csrSetCfgPrivacy(pMac, pProfile, (tANI_BOOLEAN)pBssConfig->BssCap.privacy );
     //short slot time
     ccmCfgSetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED, pBssConfig->uShortSlotTime, NULL, eANI_BOOLEAN_FALSE);
+
+#ifdef WLAN_SOFTAP_FEATURE
     //11d
-    /*ccmCfgSetInt(pMac, WNI_CFG_11D_ENABLED,
-                        ((pBssConfig->f11hSupport) ? pBssConfig->f11hSupport : pMac->roam.configParam.Is11dSupportEnabled), 
+    ccmCfgSetInt(pMac, WNI_CFG_11D_ENABLED,
+                        ((pBssConfig->f11hSupport) ? pBssConfig->f11hSupport : pProfile->ieee80211d),
                         NULL, eANI_BOOLEAN_FALSE);
-    //11h
+#endif
+    /*//11h
     ccmCfgSetInt(pMac, WNI_CFG_11H_ENABLED, pMac->roam.configParam.Is11hSupportEnabled, NULL, eANI_BOOLEAN_FALSE);
     */
     ccmCfgSetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, pBssConfig->uPowerLimit, NULL, eANI_BOOLEAN_FALSE);
@@ -5025,6 +5022,7 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         pDstProfile->obssProtEnabled   = pSrcProfile->obssProtEnabled;  
         pDstProfile->cfg_protection    = pSrcProfile->cfg_protection;
         pDstProfile->wps_state         = pSrcProfile->wps_state;
+        pDstProfile->ieee80211d        = pSrcProfile->ieee80211d;
 #endif
 
         palCopyMemory(pMac->hHdd, &pDstProfile->Keys, &pSrcProfile->Keys, sizeof(pDstProfile->Keys));
@@ -11997,8 +11995,22 @@ eHalStatus csrProcessDelStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
 
             if(pCommand->u.delStaSessionCmd.callback)
             {
-                pCommand->u.delStaSessionCmd.callback(
-                                  pCommand->u.delStaSessionCmd.pContext);
+                 
+                status = sme_ReleaseGlobalLock( &pMac->sme );
+                if ( HAL_STATUS_SUCCESS( status ) )
+                {
+                    pCommand->u.delStaSessionCmd.callback(
+                                      pCommand->u.delStaSessionCmd.pContext);
+                    status = sme_AcquireGlobalLock( &pMac->sme );
+                    if (! HAL_STATUS_SUCCESS( status ) )
+                    {
+                        smsLog(pMac, LOGP, "%s: Failed to Acquire Lock\n", __FUNCTION__);
+                        return status;
+                    }
+                }
+                else {
+                    smsLog(pMac, LOGE, "%s: Failed to Release Lock\n", __FUNCTION__);
+                }
             } 
 
             //Remove this command out of the active list

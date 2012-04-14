@@ -20,6 +20,7 @@
 #include "wlan_qct_wdi_ds_i.h"
 #include "wlan_qct_wdi_dts.h"
 #include "wlan_qct_wdi_dp.h"
+#include "wlan_qct_wdi_sta.h"
 
 static WDTS_TransportDriverTrype gTransportDriver = {
   WLANDXE_Open, 
@@ -49,6 +50,7 @@ wpt_status WDTS_TxPacketComplete(void *pContext, wpt_packet *pFrame, wpt_status 
   WDI_DS_ClientDataType *pClientData = (WDI_DS_ClientDataType*)(pContext);
   WDI_DS_TxMetaInfoType     *pTxMetadata;
   void *pvBDHeader, *physBDHeader;
+  wpt_uint8 staIndex;
 
   // Do Sanity checks
   if(NULL == pContext || NULL == pFrame){
@@ -65,7 +67,11 @@ wpt_status WDTS_TxPacketComplete(void *pContext, wpt_packet *pFrame, wpt_status 
   switch(pTxMetadata->frmType) 
   {
     case WDI_MAC_DATA_FRAME:
+      /* SWAP BD header to get STA index for completed frame */
+      WDI_SwapTxBd(pvBDHeader);
+      staIndex = (wpt_uint8)WDI_TX_BD_GET_STA_ID(pvBDHeader);
       WDI_DS_MemPoolFree(&(pClientData->dataMemPool), pvBDHeader, physBDHeader);
+      WDI_DS_MemPoolDecreaseReserveCount(&(pClientData->dataMemPool), staIndex);
       break;
     case WDI_MAC_MGMT_FRAME:
       WDI_DS_MemPoolFree(&(pClientData->mgmtMemPool), pvBDHeader, physBDHeader);

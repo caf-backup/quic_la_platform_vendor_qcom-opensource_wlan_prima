@@ -89,6 +89,7 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #ifdef WLAN_SOFTAP_FEATURE
 #include "sapApi.h"
 #include <linux/semaphore.h>
+#include <mach/subsystem_restart.h>
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #endif
@@ -123,6 +124,8 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #endif
 
 static struct wake_lock wlan_wake_lock;
+/* set when SSR is needed after unload */
+static v_U8_t      isSsrRequired;
 
 //internal function declaration
 v_U16_t hdd_select_queue(struct net_device *dev,
@@ -556,13 +559,42 @@ static void hdd_uninit (struct net_device *dev)
 
    ENTER();
 
-   if (pAdapter && pAdapter->pHddCtx)
+   do
    {
+      if (NULL == pAdapter)
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: NULL pAdapter", __func__);
+         break;
+      }
+
+      if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: Invalid magic", __func__);
+         break;
+      }
+
+      if (NULL == pAdapter->pHddCtx)
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: NULL pHddCtx", __func__);
+         break;
+      }
+
+      if (dev != pAdapter->dev)
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: Invalid device reference", __func__);
+         /* we haven't validated all cases so let this go for now */
+      }
+
       hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
 
       /* after uninit our adapter structure will no longer be valid */
       pAdapter->dev = NULL;
-   }
+      pAdapter->magic = 0;
+   } while (0);
 
    EXIT();
 }
@@ -982,6 +1014,7 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
 
       pAdapter->dev = pWlanDev;
       pAdapter->pHddCtx = pHddCtx; 
+      pAdapter->magic = WLAN_HDD_ADAPTER_MAGIC;
 
       init_completion(&pAdapter->session_open_comp_var);
       init_completion(&pAdapter->session_close_comp_var);
@@ -2005,6 +2038,16 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
    return VOS_STATUS_SUCCESS;
 }
 
+v_U8_t hdd_is_ssr_required( void)
+{
+    return isSsrRequired;
+}
+
+void hdd_set_ssr_required( v_U8_t value)
+{
+    isSsrRequired = value;
+}
+
 VOS_STATUS hdd_get_front_adapter( hdd_context_t *pHddCtx,
                                   hdd_adapter_list_node_t** ppAdapterNode)
 {
@@ -2730,6 +2773,13 @@ free_hdd_ctx:
 #else
    vos_mem_free( pHddCtx );
 #endif
+   if (hdd_is_ssr_required())
+   {
+       /* WDI timeout had happened during unload, so SSR is needed here */
+       subsystem_restart("riva");
+       msleep(5000);
+   }
+   hdd_set_ssr_required (VOS_FALSE);
 }
 
 
@@ -2842,6 +2892,7 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
 VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx)
 {
    eHalStatus halStatus;
+   v_U32_t listenInterval;
 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
    /* In the non-integrated architecture we update the configuration from
@@ -2874,6 +2925,12 @@ VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx)
       return VOS_STATUS_E_FAILURE;
    }
 
+   // Set default LI into HDD context,
+   // otherwise under some race condition, HDD will set 0 LI value into RIVA,
+   // And RIVA will crash
+   wlan_cfgGetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, &listenInterval);
+   pHddCtx->hdd_actual_LI_value = listenInterval;
+   
    return VOS_STATUS_SUCCESS;
 }
 

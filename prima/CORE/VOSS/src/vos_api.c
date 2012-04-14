@@ -868,7 +868,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   }
 
 #endif
-  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
             "%s: VOSS Start is successful!!", __func__);
 
   return VOS_STATUS_SUCCESS;
@@ -944,9 +944,20 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      else
      {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: WDA_stop reporting other error", __func__);
+         "%s: WDA_stop reporting other error", __func__ );
      }
-     VOS_ASSERT(0);
+     /* if WDA stop failed, call WDA shutdown to cleanup WDA/WDI */
+     vosStatus = WDA_shutdown( vosContext, VOS_TRUE );
+     if (VOS_IS_STATUS_SUCCESS( vosStatus ) )
+     {
+        hdd_set_ssr_required( VOS_TRUE );
+     }
+     else
+     {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                               "%s: Failed to shutdown WDA", __func__ );
+        VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+     }
   }
 #endif
 
@@ -2291,7 +2302,7 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
 VOS_STATUS vos_wda_shutdown(v_CONTEXT_t vosContext)
 {
   VOS_STATUS vosStatus;
-  vosStatus = WDA_shutdown(vosContext);
+  vosStatus = WDA_shutdown(vosContext, VOS_FALSE);
 
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
