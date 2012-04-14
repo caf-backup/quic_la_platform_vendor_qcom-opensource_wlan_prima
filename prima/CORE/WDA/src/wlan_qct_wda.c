@@ -9253,6 +9253,7 @@ VOS_STATUS WDA_TxComplete( v_PVOID_t pVosContext, vos_pkt_t *pData,
    tANI_U32 vosStatus = VOS_STATUS_SUCCESS ;
    tWDA_CbContext *wdaContext= (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
    tpAniSirGlobal pMac = VOS_GET_MAC_CTXT((void *)pVosContext) ;
+   tANI_U32 uUserData; 
 
    if(NULL == wdaContext)
    {
@@ -9262,6 +9263,18 @@ VOS_STATUS WDA_TxComplete( v_PVOID_t pVosContext, vos_pkt_t *pData,
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;
    }
+
+    /*Check if frame was timed out or not*/
+    vos_pkt_get_user_data_ptr(  pData, VOS_PKT_USER_DATA_ID_WDA,
+                               (v_PVOID_t)&uUserData);
+
+    if ( WDA_TL_TX_MGMT_TIMED_OUT == uUserData )
+    {
+       /*Discard frame - no further processing is needed*/
+       vos_pkt_return_packet(pData); 
+       return VOS_STATUS_SUCCESS; 
+    }
+
    /* 
     * Trigger the event to bring the HAL TL Tx complete function to come 
     * out of wait 
@@ -9403,6 +9416,12 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
        }
    }
 
+   /*Set frame tag to 0 
+     We will use the WDA user data in order to tag a frame as expired*/
+   vos_pkt_set_user_data_ptr( (vos_pkt_t *)pFrmBuf, VOS_PKT_USER_DATA_ID_WDA, 
+                       (v_PVOID_t)0);
+   
+
    if((status = WLANTL_TxMgmtFrm(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf, 
                      frmLen, ucTypeSubType, tid, 
                      WDA_TxComplete, NULL, txFlag)) != VOS_STATUS_SUCCESS) 
@@ -9434,7 +9453,13 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
                  "%s: Status %d when waiting for TX Frame Event",
                  __FUNCTION__, status);
-      pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf);
+
+      /*Tag Frame as timed out for later deletion*/
+     vos_pkt_set_user_data_ptr( (vos_pkt_t *)pFrmBuf, VOS_PKT_USER_DATA_ID_WDA, 
+                       (v_PVOID_t)WDA_TL_TX_MGMT_TIMED_OUT);
+
+      /* 
+      pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf); */
       if( pAckTxComp )
       {
          pWDA->pAckTxCbFunc = NULL;
