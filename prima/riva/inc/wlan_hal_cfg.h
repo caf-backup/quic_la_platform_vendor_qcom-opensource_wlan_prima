@@ -28,6 +28,10 @@
 /*-------------------------------------------------------------------------
   Preprocessor definitions and constants
 -------------------------------------------------------------------------*/
+/* RIVA API version in format W.X.Y.Z is converted to a UINT32 integer */
+#define WLAN_HAL_CONSTRUCT_API_VERSION(W,X,Y,Z) (((W)<<24)+((X)<<16)+((Y)<<8)+(Z))
+#define IS_VERSION_BEFORE_VOWIFI(VER_FROM_HOST) \
+	((VER_FROM_HOST)<=WLAN_HAL_CONSTRUCT_API_VERSION(0,0,2,0))?1:0
 
 /*-------------------------------------------------------------------------
   Configuration Parameter IDs
@@ -112,11 +116,12 @@
 #define QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK         77
 #define QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS     78
 #define QWLAN_HAL_CFG_PS_TX_INACTIVITY_TIMEOUT           79
-#define QWLAN_HAL_CFG_MAX_PARAMS                         80
+#define QWLAN_HAL_CFG_WCNSS_API_VERSION                  80
+#define QWLAN_HAL_CFG_MAX_PARAMS                         81
 
 
 /* Total number of Integer CFGs. This is used while allocating the memory for TLV */
-#define QWLAN_HAL_CFG_INTEGER_PARAM                      76
+#define QWLAN_HAL_CFG_INTEGER_PARAM                      77
 
 /*-------------------------------------------------------------------------
   Configuration Parameter min, max, defaults
@@ -589,6 +594,11 @@
 #define QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS_MAX  255
 #define QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS_DEF  15
 
+/* QWLAN_HAL_CFG_WCNSS_API_VERSION */
+#define QWLAN_HAL_CFG_WCNSS_API_VERSION_MIN  0           /* equivalent to 0.0.0.0 */
+#define QWLAN_HAL_CFG_WCNSS_API_VERSION_MAX  4294967295  /* equivalent to 255.255.255.255 */
+#define QWLAN_HAL_CFG_WCNSS_API_VERSION_DEF  0           /* equivalent to 0.0.0.0 */
+
 typedef struct 
 {
    uint8    cfgStaId[QCOM_WLAN_CFG_STA_ID_LEN]; //QWLAN_HAL_CFG_STA_ID
@@ -672,6 +682,7 @@ typedef struct
    uint32   cfgBtcExecutionMode;              //QWLAN_HAL_CFG_BTC_EXECUTION_MODE
    uint32   cfgBtcDhcpBtSlotsToBlock;         //QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK
    uint32   cfgBtcA2dpDhcpBtSubIntervals;     //QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS
+   uint32   cfgWcnssApiVersion;               //QWLAN_HAL_CFG_WCNSS_API_VERSION
 }tAniHalCfg, *tpAniHalCfg;
 
 #endif //__WLAN_HAL_CFG_H__
