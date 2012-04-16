@@ -535,7 +535,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tSmeCmd *pScanCmd = NULL;
-    
+    eCsrConnectState ConnectState;
     do
     {
         if(pMac->scan.fScanEnable)
@@ -568,6 +568,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 {
                     pScanCmd->u.scanCmd.reason = eCsrScanIdleScan;
                 }
+                /*Set Min and Max Channel time*/                
                 if(pScanRequest->minChnTime == 0 && pScanRequest->maxChnTime == 0)
                 {
                     //The caller doesn't set the time correctly. Set it here
@@ -582,6 +583,22 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                         pScanRequest->minChnTime = pMac->roam.configParam.nPassiveMinChnTime;
                     }
                 }
+                /*For Standalone wlan : channel time will remain the same.
+                For BTC with A2DP up: Channel time = Channel time * 2 , if station is not already associated.
+                This has been done to provide a larger scan window for faster connection during btc.Else Scan is seen 
+                to take a long time.
+                For BTC with A2DP up: Channel time will not be doubled, if station is already associated.
+                */                
+                status = csrRoamGetConnectState(pMac,sessionId,&ConnectState);
+                if(pMac->btc.fA2DPUp && 
+                   (eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED != ConnectState) &&
+                   (eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED != ConnectState))
+                {
+                    
+                    pScanRequest->maxChnTime = pScanRequest->maxChnTime << 1;
+                    pScanRequest->minChnTime = pScanRequest->minChnTime << 1;
+                }  
+               
                 //Need to make the following atomic
 				    pScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
                 
