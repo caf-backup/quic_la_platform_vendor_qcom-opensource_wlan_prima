@@ -1034,6 +1034,7 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
       init_completion(&pAdapter->scan_info.scan_req_completion_event);
 
       pAdapter->isLinkUpSvcNeeded = FALSE; 
+      pAdapter->higherDtimTransition = eANI_BOOLEAN_TRUE;
       //Init the net_device structure
       strlcpy(pWlanDev->name, name, IFNAMSIZ);
 

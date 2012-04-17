@@ -128,6 +128,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_SAP_AUTO_CHANNEL_SELECTION     5
 #define WE_SET_DATA_INACTIVITY_TO  6  
 #define WE_SET_MAX_TX_POWER  7
+#define WE_SET_HIGHER_DTIM_TRANSITION   8
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -1971,6 +1972,7 @@ static int iw_get_linkspeed(struct net_device *dev,
    return 0;
 }
 
+
 /*
  * Support for the RSSI & RSSI-APPROX private commands
  * Per the WiFi framework the response must be of the form
@@ -3309,6 +3311,25 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
               return -EIO;          
            }
 
+           break;
+        }
+        case WE_SET_HIGHER_DTIM_TRANSITION:
+        {
+            if(!((set_value == eANI_BOOLEAN_FALSE) ||
+                          (set_value == eANI_BOOLEAN_TRUE)))
+            {
+                hddLog(LOGE, "Dynamic DTIM Incorrect data:%d", set_value);
+                ret = -EINVAL;
+            }
+            else
+            {
+                if(pAdapter->higherDtimTransition != set_value)
+                {
+                    pAdapter->higherDtimTransition = set_value; 
+                    hddLog(LOG1, "%s: higherDtimTransition set to :%d", __FUNCTION__, pAdapter->higherDtimTransition);
+                }
+            }
+ 
            break;
         }
         default:  
@@ -5351,6 +5372,13 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, 
         "setMaxTxPower" },
+    /* set Higher DTIM Transition (DTIM1 to DTIM3) 
+     * 1 = enable and 0 = disable */
+    {
+        WE_SET_HIGHER_DTIM_TRANSITION,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setHDtimTransn" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -5623,7 +5651,6 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         0,
         "SETBAND" },
-
     /* handlers for dynamic MC BC ioctl */
     {
         WLAN_PRIV_SET_MCBC_FILTER,
@@ -5644,7 +5671,6 @@ static const struct iw_priv_args we_private_args[] = {
         WLAN_GET_LINK_SPEED,
         IW_PRIV_TYPE_CHAR | 18,
         IW_PRIV_TYPE_CHAR | 3, "getLinkSpeed" },
-   
 };
 
 
