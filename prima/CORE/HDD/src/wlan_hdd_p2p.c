@@ -439,7 +439,6 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             goto send_frame;
         }
         
-	
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
 
         status = wlan_hdd_request_remain_on_channel(wiphy, dev,

@@ -6389,8 +6389,8 @@ WLANTL_STARxAuth
           TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                      "WLAN TL:WAI frame was received encrypted - dropping"));
           /* Drop packet */
-		  /*Temporary fix added to fix wapi rekey issue*/
-          //vos_pkt_return_packet(vosDataBuff); 
+          /*Temporary fix added to fix wapi rekey issue*/
+          //vos_pkt_return_packet(vosDataBuff);
           //return vosStatus; //returning success
         }
       }
