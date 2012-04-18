@@ -176,8 +176,33 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                     return;
                 }
 
-                PELOG1(limLog(pMac, LOG1, FL("lim Delete Station Context (staId: %d, assocId: %d) \n"),pMsg->staId, pMsg->assocId);)
-                limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
+                if((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) ||
+                   (eLIM_AP_ROLE == psessionEntry->limSystemRole))
+                {
+                    PELOG1(limLog(pMac, LOG1, FL("SAP:lim Delete Station Context (staId: %d, assocId: %d) \n"),
+                                  pMsg->staId, pMsg->assocId);)
+                    limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
+                }
+                else
+                {
+                    //TearDownLink with AP
+                    tLimMlmDeauthInd  mlmDeauthInd;
+                    PELOG1(limLog(pMac, LOG1, FL("lim Delete Station Context (staId: %d, assocId: %d) \n"),
+                                  pMsg->staId, pMsg->assocId);)
+
+                    pStaDs->mlmStaContext.disassocReason = eSIR_MAC_UNSPEC_FAILURE_REASON;
+                    pStaDs->mlmStaContext.cleanupTrigger = eLIM_LINK_MONITORING_DEAUTH;
+
+                    // Issue Deauth Indication to SME.
+                    palCopyMemory( pMac->hHdd, (tANI_U8 *) &mlmDeauthInd.peerMacAddr,
+                                   pStaDs->staAddr, sizeof(tSirMacAddr));
+                    mlmDeauthInd.reasonCode    = (tANI_U8) pStaDs->mlmStaContext.disassocReason;
+                    mlmDeauthInd.deauthTrigger =  pStaDs->mlmStaContext.cleanupTrigger;
+
+                    limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
+ 
+                    limSendSmeDeauthInd(pMac, pStaDs, psessionEntry);
+                }
 #ifdef WLAN_SOFTAP_FEATURE
                 break;        
             

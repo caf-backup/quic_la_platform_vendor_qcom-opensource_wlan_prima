@@ -632,6 +632,7 @@ struct hdd_adapter_s
 
    //Magic cookie for adapter sanity verification
    v_U32_t magic;
+   v_BOOL_t higherDtimTransition;
 };
 
 typedef struct hdd_dynamic_mcbcfilter_s

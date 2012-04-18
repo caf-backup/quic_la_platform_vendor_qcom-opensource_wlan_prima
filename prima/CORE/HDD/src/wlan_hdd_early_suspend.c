@@ -907,7 +907,8 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
        }
 #endif
 
-   if((pHddCtx->cfg_ini->enableDynamicDTIM) && 
+   if((pHddCtx->cfg_ini->enableDynamicDTIM) &&
+       (eANI_BOOLEAN_TRUE == pAdapter->higherDtimTransition) &&
       (eConnectionState_Associated == 
          (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) &&
          (pHddCtx->cfg_ini->fIsBmpsEnabled))

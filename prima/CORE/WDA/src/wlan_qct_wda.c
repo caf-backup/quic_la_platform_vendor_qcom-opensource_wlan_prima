@@ -1368,9 +1368,9 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    configDataValue = (tANI_U32 *)(tlvStruct + 1);
    WDI_GetWcnssCompiledApiVersion(&wcnssCompiledApiVersion);
    *configDataValue = WLAN_HAL_CONSTRUCT_API_VERSION(wcnssCompiledApiVersion.major,
-		   wcnssCompiledApiVersion.minor,
-		   wcnssCompiledApiVersion.version,
-		   wcnssCompiledApiVersion.revision);
+                                      wcnssCompiledApiVersion.minor,
+                                      wcnssCompiledApiVersion.version,
+                                      wcnssCompiledApiVersion.revision);
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
 

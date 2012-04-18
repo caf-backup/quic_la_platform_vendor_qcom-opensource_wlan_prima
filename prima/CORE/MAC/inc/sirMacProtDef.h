@@ -38,7 +38,7 @@
 
 /// 11h MAC defaults
 #define SIR_11A_CHANNEL_BEGIN           34
-#define SIR_11A_CHANNEL_END             161
+#define SIR_11A_CHANNEL_END             165
 #define SIR_11B_CHANNEL_BEGIN           1
 #define SIR_11B_CHANNEL_END             14
 #define SIR_11A_FREQUENCY_OFFSET        4

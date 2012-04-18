@@ -31,7 +31,7 @@
 /* RIVA API version in format W.X.Y.Z is converted to a UINT32 integer */
 #define WLAN_HAL_CONSTRUCT_API_VERSION(W,X,Y,Z) (((W)<<24)+((X)<<16)+((Y)<<8)+(Z))
 #define IS_VERSION_BEFORE_VOWIFI(VER_FROM_HOST) \
-	((VER_FROM_HOST)<=WLAN_HAL_CONSTRUCT_API_VERSION(0,0,2,0))?1:0
+           ((VER_FROM_HOST)<=WLAN_HAL_CONSTRUCT_API_VERSION(0,0,2,0))?1:0
 
 /*-------------------------------------------------------------------------
   Configuration Parameter IDs
