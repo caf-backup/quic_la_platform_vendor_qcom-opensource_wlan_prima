@@ -944,6 +944,8 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimMinChannelTimer);
         tx_timer_deactivate(&pMac->lim.limTimers.gLimMaxChannelTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimMaxChannelTimer);
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
 
 
         // Deactivate and delete channel switch timer.

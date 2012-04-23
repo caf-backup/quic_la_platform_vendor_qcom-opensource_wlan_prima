@@ -1189,6 +1189,7 @@ tANI_U8 limIsTimerAllowedInPowerSaveState(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
             /* Don't allow following timer messages if in sleep */
             case SIR_LIM_MIN_CHANNEL_TIMEOUT:
             case SIR_LIM_MAX_CHANNEL_TIMEOUT:
+            case SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT:
                 retStatus = FALSE;
                 break;
             /* May allow following timer messages in sleep mode */
