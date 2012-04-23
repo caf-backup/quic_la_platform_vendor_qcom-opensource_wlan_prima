@@ -48,14 +48,13 @@ static size_t capture(FILE *out_log, FILE *in_log)
 
 static size_t get_residual(FILE *out_log, FILE *in_log)
 {
-	size_t res;
 	int fd = fileno(in_log);
 
 	/* just read as much from this file as possible since we can't make any
 	 * assumptions about its size  */
 	/* must align to RECLEN, so only write / seek whole packets */
 	memset(buf, 0, RECLEN);
-	while ((res = read(fd, buf, RECLEN)) > 0) {
+	while (read(fd, buf, RECLEN) > 0) {
 		printf("Read record timestamp=%u length=%u\n",
 		       get_le32(buf), get_le32(&buf[4]));
 		fseek(out_log, record * RECLEN, SEEK_SET);
@@ -67,7 +66,7 @@ static size_t get_residual(FILE *out_log, FILE *in_log)
 		memset(buf, 0, RECLEN);
 	}
 
-	return res;
+	return 0;
 }
 static void cleanup(void) {
 	fclose(fwlog_in);

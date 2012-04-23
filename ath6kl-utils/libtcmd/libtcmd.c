@@ -34,12 +34,26 @@ static void tcmd_expire(union sigval sig)
 	tcmd_cfg.timeout = true;
 }
 
-int tcmd_tx_init(char *iface, void (*rx_cb)(void *buf, int len))
+/* get driver ep from tcmd ep */
+static int tcmd_set_ep(uint32_t *driv_ep, enum tcmd_ep ep)
+{
+#ifdef WLAN_API_NL80211
+	return nl80211_set_ep(driv_ep, ep);
+#endif
+}
+int tcmd_init(char *iface, void (*rx_cb)(void *buf, int len), ...)
 {
 	int err;
+	enum tcmd_ep ep;
+	va_list ap;
+	va_start(ap, rx_cb);
+	ep = va_arg(ap, enum tcmd_ep);
+	va_end(ap);
 
 	strcpy(tcmd_cfg.iface, iface);
 	tcmd_cfg.rx_cb = rx_cb;
+	if ((err = tcmd_set_ep(&tcmd_cfg.ep, ep)))
+		return err;
 
 	tcmd_cfg.sev.sigev_notify = SIGEV_THREAD;
 	tcmd_cfg.sev.sigev_notify_function = tcmd_expire;
@@ -53,4 +67,9 @@ int tcmd_tx_init(char *iface, void (*rx_cb)(void *buf, int len))
 #endif
 
 	return 0;
+}
+
+int tcmd_tx_init(char *iface, void (*rx_cb)(void *buf, int len))
+{
+	return tcmd_init(iface, rx_cb, TCMD_EP_TCMD);
 }

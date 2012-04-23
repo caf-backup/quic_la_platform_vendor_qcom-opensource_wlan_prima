@@ -20,15 +20,22 @@
 #include <net/if.h>
 #include <signal.h>
 #include <time.h>
+#include <stdarg.h>
 
 #define A_ERR(ret, args...) printf(args); exit(ret);
 #define A_DBG(args...) fprintf(stderr, args);
 
 #define TCMD_TIMEOUT 2	/* s */
 
+enum tcmd_ep {
+	TCMD_EP_TCMD,
+	TCMD_EP_WMI,
+};
+
 struct tcmd_cfg {
 	char iface[100];
 	void (*rx_cb)(void *buf, int len);
+	uint32_t ep;
 #ifdef WLAN_API_NL80211
 /* XXX: eventually default to libnl-2.0 API */
 #ifdef LIBNL_2
@@ -55,4 +62,6 @@ int tcmd_tx(void *buf, int len, bool resp);
 /* Initialize tcmd transport layer on given iface. Call given rx_cb on tcmd
  * response */
 int tcmd_tx_init(char *iface, void (*rx_cb)(void *buf, int len));
+/* same as above, but takes optional testmode endpoint (e.g. WMI vs. TCMD) */
+int tcmd_init(char *iface, void (*rx_cb)(void *buf, int len), ...);
 #endif /* _LIBTCMD_H_ */

@@ -318,7 +318,6 @@ int main(int argc, char **argv)
 		}
 		tCmds->hdr.u.parm.length &= 0x00ff;
 		tCmds->hdr.u.parm.length |= (freqBin << 8) & 0xff00;
-		//printf("freq: %s %d 0x%x\n", optarg, freqBin, tCmds->hdr.u.parm.length );
 	    }
 	    else {
 		txCmd->freq = freqValid(atoi(optarg));
@@ -958,8 +957,6 @@ static void cmdReply(void *buf, int len)
 
     printf("Length rx cb rcvd %d\n",len);
 
-    //buf += 2 * sizeof(unsigned int);
-
     buf = (void*)((uint8_t*)buf + (2 * sizeof(unsigned int)));
 
     uint8_t *reply = (uint8_t*)buf;
@@ -974,7 +971,7 @@ static void cmdReply(void *buf, int len)
 	printf("Error: Reply lenth=%d, limit=%d\n", tCmdReply.hdr.u.parm.length, TC_CMDS_SIZE_MAX);
 	return;
     } else {
-	//printf(">> Reply length = %d, type = %d \n", tCmdReply.hdr.u.parm.length, tCmdReply.hdr.u.parm.version);
+	;
     }
 
     if (tCmdReply.hdr.u.parm.length > 0) {
@@ -1014,16 +1011,13 @@ static void cmdReply(void *buf, int len)
 	    }
 	    break;
 	case TC_CMDS_PSAT_CAL:
-	    //printf("TC_CMDS_PSAT_CAL:\n");
 	    break;
 	case TC_CMDS_SINIT_WAIT:
-	    //printf("TC_CMDS_SINIT_WAIT:\n");
 	    if (TC_MSG_PSAT_CAL_ACK == (TC_MSG_ID)pTCMsg->msgId) {
 		printf("ACK Received.\n");
 	    }
 	    break;
 	case TC_CMDS_PSAT_CAL_RESULT:
-	    //printf("TC_CMDS_PSAT_CAL_RESULT:\n");
 	    if (TC_MSG_PSAT_CAL_RESULTS == (TC_MSG_ID)pTCMsg->msgId) {
 	      // update CAL data, read eeprom bin,  re-generate eeprom bin
 	      updateCALData(&calSetup, pTCMsg);
@@ -1031,10 +1025,8 @@ static void cmdReply(void *buf, int len)
 	    }
 	    break;
 	case TC_CMDS_CHAR_PSAT:
-	    //printf("TC_CMDS_CHAR_PSAT:\n");
 	    break;
 	case TC_CMDS_CHAR_PSAT_RESULT:
-	    //printf("TC_CMDS_CHAR_PSAT_RESULT:\n");
 	    if (TC_MSG_CHAR_PSAT_RESULTS == (TC_MSG_ID)pTCMsg->msgId) {
 	      dumpPSATCharResult2File(pTCMsg);
 	    }
@@ -1362,7 +1354,6 @@ static bool dumpPSATCharResult2File(TC_MSG *pTCMsg)
     pTCMsg->msg.psatCharResults.an_txrf3_capdiv2g);
     for (i=0;i<_MAX_TX_GAIN_ENTRIES;i++) {
 	cmac_i = pTCMsg->msg.psatCharResults.cmac_i[i];
-	//cmac_q = pTCMsg->msg.psatCharResults.cmac_q[i],
 	fprintf(dbgFp, "%d, %d, %f, %d\n", pTCMsg->msg.psatCharResults.pcdac[i], cmac_i, cmacPwr(cmac_i), cmac2Pwr_t10(cmac_i));
     }
 
@@ -1392,7 +1383,6 @@ void computeChecksum(AR6003_EEPROM *pEepStruct)
 
     // second (expanded checksum)
     pEepStruct->checksumExpanded = 0x0000;
-    //pHalf = (uint16_t*)(pEepStruct->calFreqPier5GExpanded);
     pHalf = (uint16_t *)pEepStruct;
     pHalf += AR6K_EEPROM_SIZE_PRIOR_VER4/2;
     sum = computeChecksumOnly(pHalf, (AR6003_EEPROM_SIZE - AR6K_EEPROM_SIZE_PRIOR_VER4)/2);

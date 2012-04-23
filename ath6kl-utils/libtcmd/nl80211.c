@@ -42,6 +42,7 @@ enum ar6k_testmode_attr {
 
 enum ar6k_testmode_cmd {
 	AR6K_TM_CMD_TCMD		= 0,
+	AR6K_TM_CMD_WMI_CMD		= 0xF000,
 };
 
 int nl80211_rx_cb(struct nl_msg *msg, void *arg);
@@ -229,6 +230,21 @@ int nl_get_multicast_id(struct nl_handle *sock, const char *family, const char *
 	return ret;
 }
 
+int nl80211_set_ep(uint32_t *driv_ep, enum tcmd_ep ep)
+{
+	switch(ep) {
+	case TCMD_EP_TCMD:
+		*driv_ep = AR6K_TM_CMD_TCMD;
+	break;
+	case TCMD_EP_WMI:
+		*driv_ep = AR6K_TM_CMD_WMI_CMD;
+	break;
+	default:
+		fprintf(stderr, "nl80211: unknown ep!");
+		return -1;
+	}
+	return 0;
+}
 int nl80211_init(struct tcmd_cfg *cfg)
 {
 	struct nl_cb *cb;
@@ -326,7 +342,7 @@ int nl80211_tcmd_tx(struct tcmd_cfg *cfg, void *buf, int len)
 		goto out_free_msg;
 	}
 
-	NLA_PUT_U32(msg, AR6K_TM_ATTR_CMD, AR6K_TM_CMD_TCMD);
+	NLA_PUT_U32(msg, AR6K_TM_ATTR_CMD, cfg->ep);
 	NLA_PUT(msg, AR6K_TM_ATTR_DATA, len, buf);
 
 	nla_nest_end(msg, nest);
