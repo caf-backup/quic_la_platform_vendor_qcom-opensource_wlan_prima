@@ -63,7 +63,7 @@
  * -------------------------------------------------------------------------*/
 //#define WLANTL_REORDER_DEBUG_MSG_ENABLE
 #define WLANTL_BA_REORDERING_AGING_TIMER   30   /* 30 millisec */
-#define WLANTL_BA_MIN_FREE_RX_VOS_BUFFER   5    /* RX VOS buffer low threshold */
+#define WLANTL_BA_MIN_FREE_RX_VOS_BUFFER   0    /* RX VOS buffer low threshold */
 
 
 /*==========================================================================
