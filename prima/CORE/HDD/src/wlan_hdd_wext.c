@@ -4728,7 +4728,7 @@ void found_pref_network_cb (void *callbackContext,
   char buf[MAX_PNO_NOTIFY_LEN+1];
 
   hddLog(VOS_TRACE_LEVEL_WARN, "A preferred network was found: %s with rssi: -%d", 
-         pPrefNetworkFoundInd->ssId, pPrefNetworkFoundInd->rssi);
+         pPrefNetworkFoundInd->ssId.ssId, pPrefNetworkFoundInd->rssi);
   
   // create the event
   memset(&wrqu, 0, sizeof(wrqu));

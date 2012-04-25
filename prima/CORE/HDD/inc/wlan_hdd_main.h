@@ -501,6 +501,10 @@ typedef struct hdd_scaninfo_s
    /* Scan Completion Event */
    struct completion scan_req_completion_event;
 
+   vos_event_t scan_finished_event;
+
+   hdd_scan_pending_option_e scan_pending_option;
+
 }hdd_scaninfo_t;
 
 #define WLAN_HDD_ADAPTER_MAGIC 0x574c414e //ASCII "WLAN"

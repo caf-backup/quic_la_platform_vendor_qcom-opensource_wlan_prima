@@ -49,7 +49,7 @@ enum
 #ifdef WLAN_FEATURE_P2P
     eLIM_REMAIN_CHN_TIMER,
 #endif
-
+    eLIM_PERIODIC_PROBE_REQ_TIMER
 };
 
 // Timer Handler functions

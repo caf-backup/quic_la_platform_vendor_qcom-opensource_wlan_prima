@@ -2951,15 +2951,25 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
      * send scan done event to client */
     if (pAdapter->scan_info.waitScanResult)
     {
-        struct net_device *dev = pAdapter->dev;
-        union iwreq_data wrqu;
-        int we_event;
-        char *msg;
+        /* The other scan request waiting for current scan finish
+         * Send event to notify current scan finished */
+        if(WEXT_SCAN_PENDING_DELAY == pAdapter->scan_info.scan_pending_option)
+        {
+            vos_event_set(&pAdapter->scan_info.scan_finished_event);
+        }
+        /* Send notify to WEXT client */
+        else if(WEXT_SCAN_PENDING_PIGGYBACK == pAdapter->scan_info.scan_pending_option)
+        {
+            struct net_device *dev = pAdapter->dev;
+            union iwreq_data wrqu;
+            int we_event;
+            char *msg;
 
-        memset(&wrqu, '\0', sizeof(wrqu));
-        we_event = SIOCGIWSCAN;
-        msg = NULL;
-        wireless_send_event(dev, we_event, &wrqu, msg);
+            memset(&wrqu, '\0', sizeof(wrqu));
+            we_event = SIOCGIWSCAN;
+            msg = NULL;
+            wireless_send_event(dev, we_event, &wrqu, msg);
+        }
     }
     pAdapter->scan_info.waitScanResult = FALSE;
 

@@ -550,6 +550,7 @@ typedef struct
    WLANDXE_ChannelRegisterType     channelRegister;
    WLANDXE_ChannelExConfigType     extraConfig;
    WLANDXE_DMAChannelType          assignedDMAChannel;
+   wpt_uint64                      rxDoneHistogram;
 } WLANDXE_ChannelCBType;
 
 typedef struct
@@ -572,6 +573,7 @@ typedef struct
    wpt_uint32                      interruptPath;
    wpt_msg                        *rxIsrMsg;
    wpt_msg                        *txIsrMsg;
+   wpt_msg                        *rxPktAvailMsg;   
    volatile WLANDXE_PowerStateType hostPowerState;
    wpt_boolean                     rxIntDisabledByIMPS;
    wpt_boolean                     txIntDisabledByIMPS;
@@ -583,8 +585,8 @@ typedef struct
    wpt_uint8                       ucTxMsgCnt; 
    wpt_uint16                      lastKickOffDxe; 
    wpt_uint32                      dxeCookie;
-   wpt_event                       rxPalPacketAvailableEvent;
    wpt_packet                     *freeRXPacket;
+   wpt_boolean                     rxPalPacketUnavailable;
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================

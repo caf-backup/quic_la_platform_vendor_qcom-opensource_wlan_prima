@@ -201,6 +201,15 @@ typedef enum
     DRIVER_POWER_MODE_AUTO = 0,
     DRIVER_POWER_MODE_ACTIVE = 1,
 } hdd_power_mode_e;
+
+typedef enum
+{
+    WEXT_SCAN_PENDING_GIVEUP = 0,
+    WEXT_SCAN_PENDING_PIGGYBACK = 1,
+    WEXT_SCAN_PENDING_DELAY = 2,
+    WEXT_SCAN_PENDING_MAX
+} hdd_scan_pending_option_e;
+
 /* 
  * This structure contains the interface level (granularity) 
  * configuration information in support of wireless extensions. 

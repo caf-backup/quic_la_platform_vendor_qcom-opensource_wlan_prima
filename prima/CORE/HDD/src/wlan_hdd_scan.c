@@ -64,6 +64,7 @@
 #define WEXT_CSCAN_PASV_DWELL_SECTION   'P'
 #define WEXT_CSCAN_HOME_DWELL_SECTION   'H'
 #define WEXT_CSCAN_TYPE_SECTION         'T'
+#define WEXT_CSCAN_PENDING_SECTION      'O'
 #define WEXT_CSCAN_TYPE_DEFAULT         0
 #define WEXT_CSCAN_TYPE_PASSIVE         1
 #define WEXT_CSCAN_PASV_DWELL_TIME      130
@@ -71,6 +72,9 @@
 #define WEXT_CSCAN_PASV_DWELL_TIME_MAX  3000
 #define WEXT_CSCAN_HOME_DWELL_TIME      130
 #define MAX_RATES                       12
+
+#define WEXT_CSCAN_SCAN_DONE_WAIT_TIME  2000
+
 typedef struct hdd_scan_info{
     struct net_device *dev;
     struct iw_request_info *info;
@@ -878,9 +882,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
     v_U8_t channelIdx;
 
     ENTER();
-
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter !!!",__func__);
-    ENTER();
 
 #ifdef WLAN_BTAMP_FEATURE
     //Scan not supported when AMP traffic is on.
@@ -890,13 +892,6 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
         return eHAL_STATUS_SUCCESS;
     }
 #endif
-    if(pAdapter->scan_info.mScanPending == TRUE)
-    {
-        pAdapter->scan_info.waitScanResult = TRUE;
-        hddLog(LOG1,"%s: mScanPending is TRUE",__func__);
-        return eHAL_STATUS_SUCCESS;                  
-    }
-    pAdapter->scan_info.waitScanResult = FALSE;
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) 
     {
@@ -911,11 +906,51 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
         tCsrSSIDInfo *SsidInfo = NULL;
         int num_ssid = 0;
         int i, j, ssid_start;
+        hdd_scan_pending_option_e scanPendingOption = WEXT_SCAN_PENDING_GIVEUP;
 
         /* save the original buffer */
         str_ptr = wrqu->data.pointer;
 
         i = WEXT_CSCAN_HEADER_SIZE;
+
+        if( WEXT_CSCAN_PENDING_SECTION == str_ptr[i] )
+        {
+            scanPendingOption = (hdd_scan_pending_option_e)str_ptr[++i];
+            ++i;
+        }
+        pAdapter->scan_info.scan_pending_option = scanPendingOption;
+
+        if(pAdapter->scan_info.mScanPending == TRUE)
+        {
+            hddLog(LOG1,"%s: mScanPending is TRUE",__func__);
+            /* If any scan is pending, just giveup this scan request */
+            if(WEXT_SCAN_PENDING_GIVEUP == scanPendingOption)
+            {
+                pAdapter->scan_info.waitScanResult = FALSE;
+                return eHAL_STATUS_SUCCESS; 
+            }
+            /* If any scan pending, wait till finish current scan,
+               and try this scan request when previous scan finish */
+            else if(WEXT_SCAN_PENDING_DELAY == scanPendingOption)
+            {
+                pAdapter->scan_info.waitScanResult = TRUE;
+                vos_event_reset(&pAdapter->scan_info.scan_finished_event);
+                if(vos_wait_single_event(&pAdapter->scan_info.scan_finished_event,
+                                          WEXT_CSCAN_SCAN_DONE_WAIT_TIME))
+                {
+                    hddLog(LOG1,"%s: Previous SCAN does not finished on time",__func__);
+                    return eHAL_STATUS_SUCCESS; 
+                }
+            }
+            /* Piggyback previous scan result */
+            else if(WEXT_SCAN_PENDING_PIGGYBACK == scanPendingOption)
+            {
+                pAdapter->scan_info.waitScanResult = TRUE;
+                return eHAL_STATUS_SUCCESS; 
+            }
+        }
+        pAdapter->scan_info.waitScanResult = FALSE;
+		
         /* Check for scan IE */
         while( WEXT_CSCAN_SSID_SECTION == str_ptr[i] ) 
         {

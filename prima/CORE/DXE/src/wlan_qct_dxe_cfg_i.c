@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**=========================================================================
   
   @file  wlan_qct_dxe_cfg_i.c
@@ -155,7 +161,7 @@ WLANDXE_ChannelConfigType chanRXLowPriConfig =
    WLANDXE_CHANNEL_HANDLE_CIRCULA,
 
    /* Number of Descriptor, NOT CLEAR YET !!! */
-   40,
+   256,
 
    /* MAX num RX Buffer, NOT CLEAR YET !!! */
    1,
@@ -195,7 +201,7 @@ WLANDXE_ChannelConfigType chanRXHighPriConfig =
    WLANDXE_CHANNEL_HANDLE_CIRCULA,
 
    /* Number of Descriptor, NOT CLEAR YET !!! */
-   10,
+   40,
 
    /* MAX num RX Buffer, NOT CLEAR YET !!! */
    1,
