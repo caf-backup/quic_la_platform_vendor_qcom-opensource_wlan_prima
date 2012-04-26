@@ -22,7 +22,8 @@
 // Scan result hash related functions
 tANI_U8 limScanHashFunction(tSirMacAddr);
 void    limInitHashTable(tpAniSirGlobal);
-void    limLookupNaddHashEntry(tpAniSirGlobal, tLimScanResultNode *, tANI_U8);
+eHalStatus 
+        limLookupNaddHashEntry(tpAniSirGlobal, tLimScanResultNode *, tANI_U8);
 void    limDeleteHashEntry(tLimScanResultNode *);
 void    limDeleteCachedScanResults(tpAniSirGlobal);
 void    limRestorePreScanState(tpAniSirGlobal);

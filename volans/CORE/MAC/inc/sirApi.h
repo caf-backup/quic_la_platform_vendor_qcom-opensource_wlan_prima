@@ -3636,6 +3636,7 @@ typedef struct sSirUpdateAPWPARSNIEsReq
 #define SIR_OFFLOAD_ENABLE                          1
 #define SIR_OFFLOAD_BCAST_FILTER_ENABLE             0x2
 #define SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE     (SIR_OFFLOAD_ENABLE|SIR_OFFLOAD_BCAST_FILTER_ENABLE)
+#define SIR_OFFLOAD_MCAST_FILTER_ENABLE             0x4
 
 typedef struct sSirHostOffloadReq
 {

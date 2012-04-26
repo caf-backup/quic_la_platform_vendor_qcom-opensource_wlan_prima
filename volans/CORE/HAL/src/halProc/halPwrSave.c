@@ -371,7 +371,7 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     // Max frame retries
     pFwConfig->ucMaxFrmRetries = HAL_PWR_SAVE_FW_FRAME_RETRIES;
 
-    pFwConfig->ucBcastDataRecepTimeoutMs = HAL_PWR_SAVE_FW_MAX_BCAST_DATA_RECEPTION_TIME_MS;
+    /*pFwConfig->ucBcastDataRecepTimeoutMs = HAL_PWR_SAVE_FW_MAX_BCAST_DATA_RECEPTION_TIME_MS;*/
     /* Commented since this gets configured through registry */
     /*
     pFwConfig->ucUcastDataRecepTimeoutMs = HAL_PWR_SAVE_FW_MAX_UCAST_DATA_RECEPTION_TIME_MS;
@@ -3952,6 +3952,40 @@ void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId )
 }
 
 /*
+ * halPSFirstBcastPktRxTimeout
+ *
+ * DESCRIPTION:
+ *      First Bcast reception timeout.
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      cfgId:  This will read from the CFG file set by HDD.
+ *
+ * RETURN:
+ *      void
+ */
+
+void halPSFirstBcastPktRxTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId )
+{
+    tANI_U32 nFirstBcastPktTimeout;
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
+
+    if (cfgId == WNI_CFG_PS_FIRST_BCAST_PKT_RX_TIMEOUT) {
+        if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &nFirstBcastPktTimeout )) {
+             HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration file for Data Inactivity Timeout with cfgId %d"), cfgId));
+             return;
+        }
+        /* Data InActivity Timeout value as read from CFG */
+        pFwConfig->ucBcastDataRecepTimeoutMs = (tANI_U8)nFirstBcastPktTimeout;
+
+        /* Update FW SysConfig with first bcast reception timeout Value */
+        halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
+                     (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
+     }
+     return;
+}
+
+/*
  * halPSNullDataAPProcessDelay
  *
  * DESCRIPTION:
@@ -4132,25 +4166,28 @@ eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRe
     {
         case SIR_IPV4_ARP_REPLY_OFFLOAD:
             pFwMsg->offloadType = HOST_OFFLOAD_IPV4_ARP_REPLY;
-            switch (pRequest->enableOrDisable)
+            if(SIR_OFFLOAD_DISABLE == pRequest->enableOrDisable)
             {
-                case SIR_OFFLOAD_DISABLE:
-                    pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
-                    break;
-                case SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE:
+                pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
+            }
+            else if(pRequest->enableOrDisable & SIR_OFFLOAD_ENABLE)
+            {
+                pFwMsg->enableOrDisable |= HOST_OFFLOAD_ENABLE;
+                palCopyMemory(pMac->hHdd, pFwMsg->params.hostIpv4Addr,
+                        pRequest->params.hostIpv4Addr, 4);
+                sirSwapU32BufIfNeeded((tANI_U32 *)pFwMsg->params.hostIpv4Addr, 1);
+
+                if(pRequest->enableOrDisable & SIR_OFFLOAD_BCAST_FILTER_ENABLE)
                     pFwMsg->enableOrDisable |= HOST_OFFLOAD_BC_FILTER_ENABLE;
-                case SIR_OFFLOAD_ENABLE:
-                    pFwMsg->enableOrDisable |= HOST_OFFLOAD_ENABLE;
-                    palCopyMemory(pMac->hHdd, pFwMsg->params.hostIpv4Addr,
-                            pRequest->params.hostIpv4Addr, 4);
-                    sirSwapU32BufIfNeeded((tANI_U32 *)pFwMsg->params.hostIpv4Addr, 1);
-                    break;
-                default:
-                    HALLOGE(halLog(pMac, LOGE, 
-                                FL("Invalid option %d for ARP offload, disabling it by default!\n"),
-                                pRequest->enableOrDisable));
-                    pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
-                    break;
+                if(pRequest->enableOrDisable & SIR_OFFLOAD_MCAST_FILTER_ENABLE)
+                    pFwMsg->enableOrDisable |= HOST_OFFLOAD_MCAST_FILTER_ENABLE;
+            }
+            else
+            {
+                HALLOGE(halLog(pMac, LOGE, 
+                            FL("Invalid option %d for ARP offload, disabling it by default!\n"),
+                            pRequest->enableOrDisable));
+                pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
             }
             break;
         case SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD:

@@ -894,7 +894,14 @@ This is a Verizon required feature.
                 CFG_DATA_INACTIVITY_TIMEOUT_DEFAULT, 
                 CFG_DATA_INACTIVITY_TIMEOUT_MIN, 
                 CFG_DATA_INACTIVITY_TIMEOUT_MAX ),
-                
+
+   REG_VARIABLE( CFG_FIRST_BCAST_PKT_TIMEOUT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, nFirstBcastPktTimeout, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_FIRST_BCAST_PKT_TIMEOUT_DEFAULT, 
+                CFG_FIRST_BCAST_PKT_TIMEOUT_MIN, 
+                CFG_FIRST_BCAST_PKT_TIMEOUT_MAX ),
+
    REG_VARIABLE( CFG_NTH_BEACON_FILTER_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, nthBeaconFilter, 
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -2521,6 +2528,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT configuration info to CCM\n"  );
 	 }
 
+	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_PS_FIRST_BCAST_PKT_RX_TIMEOUT, pConfig->nFirstBcastPktTimeout, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_FIRST_BCAST_PKT_RX_TIMEOUT configuration info to CCM\n"  );
+	 }
+
 	 if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_NTH_BEACON_FILTER, pConfig->nthBeaconFilter, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
@@ -2558,10 +2572,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RRM_OUT_CHAN_MAX configuration info to CCM\n"  );
 	 }
+#endif
 
      //Changing the mcastbcastFiltersetting if ARPOFFLOAD feature is enabled
      if(pConfig->fhostArpOffload)
      {
+        mcastBcastFilter = HDD_MCASTBCASTFILTER_FILTER_NONE;
+#if 0
         if (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
                     pConfig->mcastBcastFilterSetting)
         {
@@ -2574,6 +2591,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
            //BROADCAST filter is configured at host arp offload
            mcastBcastFilter = HDD_MCASTBCASTFILTER_FILTER_NONE;
         }
+#endif
      }
 
      if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MCAST_BCAST_FILTER_SETTING, 
@@ -2584,7 +2602,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_MCAST_BCAST_FILTER_ \
 			 SETTING configuration info to CCM\n"  );
      }
-#endif
 
      if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SINGLE_TID_RC, pConfig->bSingleTidRc, 
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)

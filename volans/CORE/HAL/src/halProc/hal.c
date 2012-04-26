@@ -1011,6 +1011,10 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                     halPSDataInActivityTimeout(pMac, pMsg->bodyval);
                     break;
 
+                case WNI_CFG_PS_FIRST_BCAST_PKT_RX_TIMEOUT:
+                    halPSFirstBcastPktRxTimeout(pMac, pMsg->bodyval);
+                    break;
+
                 case WNI_CFG_PS_ENABLE_HEART_BEAT:
                     halPSFWHeartBeatCfg(pMac, pMsg->bodyval);
                     break;

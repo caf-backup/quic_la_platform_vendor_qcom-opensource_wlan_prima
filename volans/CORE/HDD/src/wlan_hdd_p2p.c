@@ -962,6 +962,24 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d\n",
                             __func__, frameType, nFrameLength);
 
+    if (NULL == pAdapter)
+    {
+        hddLog( LOGE, FL("pAdapter is NULL"));
+        return;
+    }
+
+    if (NULL == pAdapter->dev)
+    {
+        hddLog( LOGE, FL("pAdapter->dev is NULL"));
+        return;
+    }
+
+    if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
+    {
+        hddLog( LOGE, FL("pAdapter has invalid magic"));
+        return;
+    }
+
     if( !nFrameLength )
     {
         hddLog( LOGE, FL("Frame Length is Invalid ZERO"));

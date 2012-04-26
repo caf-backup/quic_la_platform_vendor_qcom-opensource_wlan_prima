@@ -100,7 +100,7 @@
 
 #define WLAN_HDD_GET_PRIV_PTR(__dev__) (hdd_adapter_t*)(netdev_priv((__dev__)))
 
-#define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
+#define MAX_EXIT_ATTEMPTS_DURING_LOGP 20
 
 #define MAX_NO_OF_2_4_CHANNELS 14
 
@@ -498,6 +498,7 @@ typedef struct hdd_scaninfo_s
 
 }hdd_scaninfo_t;
 
+#define WLAN_HDD_ADAPTER_MAGIC 0x574c414e //ASCII "WLAN"
 struct hdd_adapter_s
 {
    void *pHddCtx;
@@ -593,7 +594,7 @@ struct hdd_adapter_s
  * TODO - Remove it later
  */
     /** Multiple station supports */
-   /** Per-statioin structure */
+   /** Per-station structure */
    spinlock_t staInfo_lock; //To protect access to station Info  
    hdd_station_info_t aStaInfo[WLAN_MAX_STA_COUNT];
    //v_U8_t uNumActiveStation;
@@ -624,6 +625,8 @@ struct hdd_adapter_s
 #ifdef CONFIG_CFG80211
    hdd_cfg80211_state_t cfg80211State;
 #endif
+   //Magic cookie for adapter sanity verification
+   v_U32_t magic;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) &(pAdapter)->sessionCtx.station

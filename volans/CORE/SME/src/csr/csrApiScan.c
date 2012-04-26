@@ -2442,6 +2442,101 @@ eHalStatus csrScanFlushResult(tpAniSirGlobal pMac)
 } 
 
 
+/**
+ * csrCheck11dChannel
+ *
+ *FUNCTION:
+ * This function is called from csrScanFilter11dResult function and
+ * compare channel number with given channel list.
+ *
+ *LOGIC:
+ * Check Scan result channel number with CFG channel list
+ *
+ *ASSUMPTIONS:
+ *
+ *
+ *NOTE:
+ *
+ * @param  channelId      channel number
+ * @param  pChannelList   Pointer to channel list
+ * @param  numChannels    Number of channel in channel list
+ *
+ * @return Status
+ */
+
+eHalStatus csrCheck11dChannel(tANI_U8 channelId, tANI_U8 *pChannelList, tANI_U32 numChannels)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tANI_U8 i = 0;
+
+    for (i = 0; i < numChannels; i++)
+    {
+        if(pChannelList[ i ] == channelId)
+        {
+            status = eHAL_STATUS_SUCCESS;
+            break;
+        }
+    }
+    return status;
+}
+
+/**
+ * csrScanFilter11dResult
+ *
+ *FUNCTION:
+ * This function is called from csrApplyCountryInformation function and
+ * filter scan result based on valid channel list number.
+ *
+ *LOGIC:
+ * Get scan result from scan list and Check Scan result channel number
+ * with 11d channel list if channel number is found in 11d channel list
+ * then do not remove scan result entry from scan list
+ *
+ *ASSUMPTIONS:
+ *
+ *
+ *NOTE:
+ *
+ * @param  pMac        Pointer to Global MAC structure
+ *
+ * @return Status
+ */
+
+eHalStatus csrScanFilter11dResult(tpAniSirGlobal pMac)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tListElem *pEntry,*pTempEntry;
+    tCsrScanResult *pBssDesc;
+    tANI_U32 len = sizeof(pMac->roam.validChannelList);
+
+    /* Get valid channels list from CFG */
+    if (!HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac,
+                                      pMac->roam.validChannelList, &len)))
+    {
+        smsLog( pMac, LOG1, "Failed to get Channel list from CFG");
+    }
+
+    pEntry = csrLLPeekHead( &pMac->scan.scanResultList, LL_ACCESS_LOCK );
+    while( pEntry )
+    {
+        pBssDesc = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
+        pTempEntry = csrLLNext( &pMac->scan.scanResultList, pEntry, 
+                                                            LL_ACCESS_LOCK );
+        if(csrCheck11dChannel(pBssDesc->Result.BssDescriptor.channelId,
+                                              pMac->roam.validChannelList, len))
+        {
+            /* Remove Scan result which does not have 11d channel */
+            if( csrLLRemoveEntry( &pMac->scan.scanResultList, pEntry,
+                                                              LL_ACCESS_LOCK ))
+            {
+                csrFreeScanResultEntry( pMac, pBssDesc );
+            }
+        }
+        pEntry = pTempEntry;
+    }
+    return status;
+}
+
 eHalStatus csrScanCopyResultList(tpAniSirGlobal pMac, tScanResultHandle hIn, tScanResultHandle *phResult)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -3385,10 +3480,13 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
 
                 if(pMac->scan.domainIdCurrent != domainId)
                 {
-                    /* Regulatory Domain Changed, Purge old scan result */
+                    /* Regulatory Domain Changed, Purge Only scan result 
+                    * which does not have channel number belong to 11d 
+                    * channel list
+                    * */
                     smsLog(pMac, LOGW, FL("Domain Changed Old %d, new %d"),
                                        pMac->scan.domainIdCurrent, domainId);
-                    csrScanFlushResult(pMac);
+                    csrScanFilter11dResult(pMac);
                 }
                 pMac->scan.domainIdCurrent = domainId;
                 csrApplyChannelPowerCountryInfo( pMac, &pMac->scan.channels11d, pMac->scan.countryCode11d );
@@ -5531,7 +5629,9 @@ static void csrStaApConcTimerHandler(void *pv)
     tListElem *pEntry;
     tSmeCmd *pScanCmd;
 
-    if ( NULL != ( pEntry = csrLLPeekHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) ) )
+    csrLLLock(&pMac->scan.scanCmdPendingList);
+
+    if ( NULL != ( pEntry = csrLLPeekHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK) ) )
     {    
         tCsrScanRequest scanReq;
         tSmeCmd *pSendScanCmd = NULL;
@@ -5552,6 +5652,7 @@ static void csrStaApConcTimerHandler(void *pv)
              if (!pSendScanCmd)
              {
                  smsLog( pMac, LOGE, FL(" Failed to get Queue command buffer\n") );
+                 csrLLUnlock(&pMac->scan.scanCmdPendingList);
                  return;
              }
              pSendScanCmd->command = pScanCmd->command; 
@@ -5584,6 +5685,7 @@ static void csrStaApConcTimerHandler(void *pv)
              if(!HAL_STATUS_SUCCESS(status))
              {
                  smsLog( pMac, LOGE, FL(" Failed to get copy csrScanRequest = %d\n"), status );
+                 csrLLUnlock(&pMac->scan.scanCmdPendingList);
                  return;
              }       
         }
@@ -5592,7 +5694,7 @@ static void csrStaApConcTimerHandler(void *pv)
              //last channel remaining to scan
              pSendScanCmd = pScanCmd;
              //remove this command from pending list 
-             if (csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) == NULL)
+             if (csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK) == NULL)
              { //In case between PeekHead and here, the entry got removed by another thread.
                  continue;
              }
@@ -5602,11 +5704,12 @@ static void csrStaApConcTimerHandler(void *pv)
 
     }
 
-    if (!csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK ))
+    if (!csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK ))
     {
          palTimerStart(pMac->hHdd, pMac->scan.hTimerStaApConcTimer, 
                  CSR_SCAN_STAAP_CONC_INTERVAL, eANI_BOOLEAN_FALSE);
     }
+    csrLLUnlock(&pMac->scan.scanCmdPendingList);
     
 }
 #endif
@@ -8618,12 +8721,14 @@ eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac)
     tSmeCmd *pCommand;
 
 #ifdef WLAN_AP_STA_CONCURRENCY
-    while( NULL != ( pEntry = csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) ) )
+    csrLLLock(&pMac->scan.scanCmdPendingList);
+    while( NULL != ( pEntry = csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK) ) )
     {
 
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         csrAbortCommand( pMac, pCommand, eANI_BOOLEAN_FALSE);
     }
+    csrLLUnlock(&pMac->scan.scanCmdPendingList);
 #endif
 
     csrRemoveCmdFromPendingList( pMac, &pMac->roam.roamCmdPendingList,
