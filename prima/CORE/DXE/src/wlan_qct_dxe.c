@@ -1478,10 +1478,12 @@ static wpt_status dxeRXFrameReady
    currentDesc    = currentCtrlBlk->linkedDesc;
 
    /* Descriptoe should be SWAPPED ???? */
-   /* Get frames while VAL bit is set */
    descCtrl = currentDesc->descCtrl.ctrl;
 
-   while(!(WLANDXE_U32_SWAP_ENDIAN(descCtrl) & WLANDXE_DESC_CTRL_VALID))
+   /* Get frames while VALID bit is not set (DMA complete) and a data 
+    * associated with it */
+   while(!(WLANDXE_U32_SWAP_ENDIAN(descCtrl) & WLANDXE_DESC_CTRL_VALID) &&
+         (currentCtrlBlk->xfrFrame->pInternalData != NULL))
    {
       channelEntry->numTotalFrame++;
       channelEntry->numFreeDesc++;
@@ -2294,7 +2296,7 @@ static wpt_status dxeTXPushFrame
       {
          //HDXE_ASSERT(0);
       }
-   	
+
       /* Everything is ready
        * Trigger to start DMA */
       status = wpalWriteRegister(channelEntry->channelRegister.chDXECtrlRegAddr,
