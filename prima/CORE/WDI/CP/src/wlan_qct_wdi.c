@@ -5768,7 +5768,7 @@ WDI_MainRsp
     pWDICtx->ucExpectedStateTransition = WDI_STARTED_ST;
 
     /* we are no longer expecting a response */
-    pWDICtx->wdiExpectedResponse = -1;
+     pWDICtx->wdiExpectedResponse = WDI_MAX_RESP;
   }
   else
   {
@@ -18715,6 +18715,8 @@ WDI_ResponseTimerCB
     return; 
   }
 
+  if ( WDI_MAX_RESP != pWDICtx->wdiExpectedResponse )
+  {
 
   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
             "Timeout occurred while waiting for %s (%d) message from device "
@@ -18725,6 +18727,14 @@ WDI_ResponseTimerCB
    * is not happening. The only possible way to recover from this error
    * is to initiate SSR from APPS */
   wpalRivaSubystemRestart();
+  }
+  else
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "Timeout occurred but not waiting for any response %d", 
+                 pWDICtx->wdiExpectedResponse);
+  }
+
   return; 
 
 }/*WDI_ResponseTimerCB*/
