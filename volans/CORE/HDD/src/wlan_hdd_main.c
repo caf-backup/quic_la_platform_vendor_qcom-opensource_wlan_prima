@@ -442,13 +442,42 @@ static void hdd_uninit (struct net_device *dev)
 
    ENTER();
 
-   if (pAdapter && pAdapter->pHddCtx)
+   do
    {
+      if (NULL == pAdapter)
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: NULL pAdapter", __func__);
+         break;
+      }
+
+      if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: Invalid magic", __func__);
+         break;
+      }
+
+      if (NULL == pAdapter->pHddCtx)
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: NULL pHddCtx", __func__);
+         break;
+      }
+
+      if (dev != pAdapter->dev)
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: Invalid device reference", __func__);
+         /* we haven't validated all cases so let this go for now */
+      }
+
       hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
 
       /* after uninit our adapter structure will no longer be valid */
       pAdapter->dev = NULL;
-   }
+      pAdapter->magic = 0;
+   } while (0);
 
    EXIT();
 }
@@ -829,7 +858,8 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
       vos_mem_zero( pAdapter, sizeof( hdd_adapter_t ) );
 
       pAdapter->dev = pWlanDev;
-      pAdapter->pHddCtx = pHddCtx; 
+      pAdapter->pHddCtx = pHddCtx;
+      pAdapter->magic = WLAN_HDD_ADAPTER_MAGIC;
 
       init_completion(&pAdapter->session_open_comp_var);
       init_completion(&pAdapter->session_close_comp_var);

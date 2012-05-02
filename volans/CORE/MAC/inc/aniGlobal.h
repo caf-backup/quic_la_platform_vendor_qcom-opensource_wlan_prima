@@ -90,8 +90,6 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 extern tpAniSirGlobal pMac;
 #endif
 
-#define MAX_LOG_SIZE  2048
-
 #define ANI_DRIVER_TYPE(pMac)     (((tpAniSirGlobal)(pMac))->gDriverType)
 // -------------------------------------------------------------------
 // Bss Qos Caps bit map definition
@@ -1069,7 +1067,6 @@ typedef struct sAniSirGlobal
 
     tANI_U32     gCurrentLogSize;
     tANI_U32     menuCurrent;
-    char*        gLogBuffer;
     /* logDump specific */
     tANI_U32 dumpTablecurrentId;
     /* Instead of static allocation I will dyanamically allocate memory for dumpTableEntry

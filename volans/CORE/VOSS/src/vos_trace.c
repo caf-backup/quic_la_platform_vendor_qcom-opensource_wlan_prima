@@ -41,7 +41,7 @@
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 
-#define VOS_TRACE_BUFFER_SIZE ( 1024 )
+#define VOS_TRACE_BUFFER_SIZE ( 512 )
 
 // macro to map vos trace levels into the bitmask
 #define VOS_TRACE_LEVEL_TO_MODULE_BITMASK( _level ) ( ( 1 << (_level) ) )

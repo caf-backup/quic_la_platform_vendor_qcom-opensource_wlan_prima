@@ -221,7 +221,15 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
 
     bcn1.BeaconInterval.interval = pMac->sch.schObject.gSchBeaconInterval;
     PopulateDot11fCapabilities( pMac, &bcn1.Capabilities, psessionEntry );
-    PopulateDot11fSSID2( pMac, &bcn1.SSID );
+
+    if (psessionEntry->ssidHidden)
+    {
+       bcn1.SSID.present = 1; //rest of the fileds are 0 for hidden ssid
+    }
+    else
+    {
+       PopulateDot11fSSID( pMac, &psessionEntry->ssId, &bcn1.SSID );
+    }
 
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &bcn1.SuppRates,psessionEntry);
     PopulateDot11fDSParams( pMac, &bcn1.DSParams, psessionEntry->currentOperChannel);

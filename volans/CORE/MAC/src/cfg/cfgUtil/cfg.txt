@@ -3899,3 +3899,14 @@ V    RW    NP
 LIM
 1    10    5
 
+*
+* PS First Bcast Data Reception Timeout (TU)
+*
+
+WNI_CFG_PS_FIRST_BCAST_PKT_RX_TIMEOUT    I    4    7
+V    RW    NP
+HAL
+1    255    12
+NV    RW    NP
+NONE
+1    255    12

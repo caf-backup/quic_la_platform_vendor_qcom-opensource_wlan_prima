@@ -359,6 +359,7 @@ eHalStatus halPS_ExitWowlReq(tpAniSirGlobal pMac, tANI_U16 dialogToken);
 /* Control chip power up/down during power save */
 eHalStatus halPS_CtrlChipPowerDown(tpAniSirGlobal pMac, tANI_U8 enable);
 void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId );
+void halPSFirstBcastPktRxTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );

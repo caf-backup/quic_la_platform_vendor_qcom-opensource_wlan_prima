@@ -703,6 +703,11 @@ typedef enum
 #define CFG_DATA_INACTIVITY_TIMEOUT_MAX        ( 255 )
 #define CFG_DATA_INACTIVITY_TIMEOUT_DEFAULT    ( 20 )
 
+#define CFG_FIRST_BCAST_PKT_TIMEOUT_NAME       "gFirstBcastPktTimeout"
+#define CFG_FIRST_BCAST_PKT_TIMEOUT_MIN        ( 1 )
+#define CFG_FIRST_BCAST_PKT_TIMEOUT_MAX        ( 255 )
+#define CFG_FIRST_BCAST_PKT_TIMEOUT_DEFAULT    ( 12 )
+
 #define CFG_NTH_BEACON_FILTER_NAME             "gNthBeaconFilter"
 #define CFG_NTH_BEACON_FILTER_MIN              ( WNI_CFG_NTH_BEACON_FILTER_STAMIN )
 #define CFG_NTH_BEACON_FILTER_MAX              ( WNI_CFG_NTH_BEACON_FILTER_STAMAX )
@@ -1323,6 +1328,7 @@ typedef struct
    v_U8_t         fEnableFwBeaconFiltering;
    v_U8_t         fEnableFwRssiMonitoring;
    v_U8_t         nDataInactivityTimeout;
+   v_U8_t         nFirstBcastPktTimeout;
    v_U8_t         nthBeaconFilter;
 	
 										 

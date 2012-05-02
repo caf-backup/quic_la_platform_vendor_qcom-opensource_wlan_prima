@@ -593,6 +593,28 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
            offLoadRequest.offloadType =  SIR_IPV4_ARP_REPLY_OFFLOAD;
            offLoadRequest.enableOrDisable = SIR_OFFLOAD_ENABLE;
 
+           if(HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST ==
+                   pHddCtx->cfg_ini->mcastBcastFilterSetting )
+           {
+               offLoadRequest.enableOrDisable |= 
+                       SIR_OFFLOAD_BCAST_FILTER_ENABLE;
+           }
+           else if(HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST ==
+                   pHddCtx->cfg_ini->mcastBcastFilterSetting )
+           {
+               offLoadRequest.enableOrDisable |= 
+                       SIR_OFFLOAD_MCAST_FILTER_ENABLE;
+           }
+           else if(HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST ==
+                   pHddCtx->cfg_ini->mcastBcastFilterSetting )
+           {
+               offLoadRequest.enableOrDisable |= 
+                       SIR_OFFLOAD_BCAST_FILTER_ENABLE;
+               offLoadRequest.enableOrDisable |= 
+                       SIR_OFFLOAD_MCAST_FILTER_ENABLE;
+           }
+ 
+#if 0
            if((HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST ==
                    pHddCtx->cfg_ini->mcastBcastFilterSetting )
                     || (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST ==
@@ -602,7 +624,7 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
                offLoadRequest.enableOrDisable = 
                        SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE;
            }
-           
+#endif           
            //converting u32 to IPV4 address
            for(i = 0 ; i < 4; i++)
            {
@@ -644,7 +666,9 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
 void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
+#if 0
     tpAniSirGlobal pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_SME, pHddCtx->pvosContext);
+#endif
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
 
     hddLog(VOS_TRACE_LEVEL_INFO,
@@ -665,6 +689,7 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
         }
     }
 
+#if 0
     if ( pMac ) 
     {
       halStatus = halRxp_configureRxpFilterMcstBcst( pMac, setfilter);
@@ -673,7 +698,7 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
     {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: pMac is initialised to NULL",__func__ );
     }
-
+#endif
     if(setfilter && (eHAL_STATUS_SUCCESS == halStatus))
        pHddCtx->hdd_mcastbcast_filter_set = TRUE;
 }
