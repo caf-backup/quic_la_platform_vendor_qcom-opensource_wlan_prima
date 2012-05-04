@@ -1633,6 +1633,13 @@ tANI_BOOLEAN pmcAllowImps( tHalHandle hHal )
        return eANI_BOOLEAN_FALSE;
     }
 
+    //All sessions must be disconnected to allow IMPS
+    if ( !csrIsAllSessionDisconnected( pMac ) )
+    {
+       smsLog(pMac, LOGW, "PMC: Atleast one connected session. IMPS cannot be entered\n");
+       return eANI_BOOLEAN_FALSE;
+    }
+
     return eANI_BOOLEAN_TRUE;
 }
 
