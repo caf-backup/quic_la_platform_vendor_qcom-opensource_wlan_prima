@@ -3943,3 +3943,14 @@ NONE
 V    RW    NP
 NONE
 0    1     0
+
+*
+* AP Keep Alive Timeout (TU)
+*
+WNI_CFG_AP_KEEP_ALIVE_TIMEOUT    I    4    7
+V    RW    NP
+HAL
+1    255    20
+V    RW    NP
+HAL
+1    255    20

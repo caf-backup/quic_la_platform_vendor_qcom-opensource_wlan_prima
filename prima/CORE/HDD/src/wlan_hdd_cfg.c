@@ -511,6 +511,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_LTE_COEX_DEFAULT,
                  CFG_ENABLE_LTE_COEX_MIN,
                  CFG_ENABLE_LTE_COEX_MAX ),
+
+   REG_VARIABLE( CFG_AP_KEEP_ALIVE_PERIOD_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, apKeepAlivePeriod,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_AP_KEEP_ALIVE_PERIOD_DEFAULT,
+                 CFG_AP_KEEP_ALIVE_PERIOD_MIN,
+                 CFG_AP_KEEP_ALIVE_PERIOD_MAX),
+
 #endif
    REG_VARIABLE(CFG_DISABLE_PACKET_FILTER , WLAN_PARAM_Integer,
                  hdd_config_t, disablePacketFilter,
@@ -2350,6 +2358,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      }
 
      WLANSAP_SetChannelRange(pHddCtx->hHal, pConfig->apStartChannelNum, pConfig->apEndChannelNum, pConfig->apOperatingBand);
+
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_AP_KEEP_ALIVE_TIMEOUT, pConfig->apKeepAlivePeriod, 
+        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+     {
+        fStatus = FALSE;
+        hddLog(LOGE, "Could not pass on WNI_CFG_AP_KEEP_ALIVE_TIMEOUT to CCM\n");
+     }	 
 #endif
    
 #if defined WLAN_FEATURE_VOWIFI

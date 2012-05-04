@@ -117,11 +117,12 @@
 #define QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS     78
 #define QWLAN_HAL_CFG_PS_TX_INACTIVITY_TIMEOUT           79
 #define QWLAN_HAL_CFG_WCNSS_API_VERSION                  80
-#define QWLAN_HAL_CFG_MAX_PARAMS                         81
+#define QWLAN_HAL_CFG_AP_KEEPALIVE_TIMEOUT               81
+#define QWLAN_HAL_CFG_MAX_PARAMS                         82
 
 
 /* Total number of Integer CFGs. This is used while allocating the memory for TLV */
-#define QWLAN_HAL_CFG_INTEGER_PARAM                      77
+#define QWLAN_HAL_CFG_INTEGER_PARAM                      78
 
 /*-------------------------------------------------------------------------
   Configuration Parameter min, max, defaults
@@ -599,6 +600,12 @@
 #define QWLAN_HAL_CFG_WCNSS_API_VERSION_MAX  4294967295  /* equivalent to 255.255.255.255 */
 #define QWLAN_HAL_CFG_WCNSS_API_VERSION_DEF  0           /* equivalent to 0.0.0.0 */
 
+/* QWLAN_HAL_CFG_AP_KEEPALIVE_TIMEOUT */
+#define QWLAN_HAL_CFG_AP_KEEPALIVE_TIMEOUT_MIN  1
+#define QWLAN_HAL_CFG_AP_KEEPALIVE_TIMEOUT_MAX  255
+#define QWLAN_HAL_CFG_AP_KEEPALIVE_TIMEOUT_DEF  20
+
+
 typedef struct 
 {
    uint8    cfgStaId[QCOM_WLAN_CFG_STA_ID_LEN]; //QWLAN_HAL_CFG_STA_ID
@@ -683,6 +690,7 @@ typedef struct
    uint32   cfgBtcDhcpBtSlotsToBlock;         //QWLAN_HAL_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK
    uint32   cfgBtcA2dpDhcpBtSubIntervals;     //QWLAN_HAL_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS
    uint32   cfgWcnssApiVersion;               //QWLAN_HAL_CFG_WCNSS_API_VERSION
+   uint32   cfgApKeepAliveTimeout;            //QWLAN_HAL_CFG_AP_KEEPALIVE_TIMEOUT   
 }tAniHalCfg, *tpAniHalCfg;
 
 #endif //__WLAN_HAL_CFG_H__

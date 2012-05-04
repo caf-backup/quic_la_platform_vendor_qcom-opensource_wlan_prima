@@ -428,6 +428,11 @@ typedef enum
 #define CFG_ENABLE_LTE_COEX_MAX               ( 1 )
 #define CFG_ENABLE_LTE_COEX_DEFAULT           ( 0 )
 
+#define CFG_AP_KEEP_ALIVE_PERIOD_NAME          "gApKeepAlivePeriod"
+#define CFG_AP_KEEP_ALIVE_PERIOD_MIN           ( 0 )
+#define CFG_AP_KEEP_ALIVE_PERIOD_MAX           ( 255)
+#define CFG_AP_KEEP_ALIVE_PERIOD_DEFAULT       ( 20 )
+
 #endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
@@ -1140,6 +1145,7 @@ typedef struct
    v_U8_t        apOperatingBand;
    v_BOOL_t      apAutoChannelSelection;
    v_U8_t        enableLTECoex;
+   v_U32_t 		 apKeepAlivePeriod;
 #endif
    v_U32_t       nBeaconInterval;
    v_U8_t        nTxPowerCap;   //In dBm
