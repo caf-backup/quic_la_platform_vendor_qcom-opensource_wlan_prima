@@ -4507,95 +4507,109 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
                                            pHddStaCtx->conn_info.bssId,
                                            WNI_CFG_BSSID_LEN))
             {
-                    /* BSSID Changed from before */
-                    BSSIDChanged = 1;
+                /* BSSID Changed from before */
+                BSSIDChanged = 1;
                 vos_mem_copy(pHddStaCtx->prevAssocBSSID,
                              pHddStaCtx->conn_info.bssId,
                              WNI_CFG_BSSID_LEN);
             }
         }
 
-        /* BSSID changed or newly assoc
-         * In this case need to get new MAX Rate from lower layer */
         if (BSSIDChanged)
         {
-            wlan_hdd_get_classAstats(pAdapter);
-            rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
+            // invalidate our cache
+            pHddStaCtx->lastReportedRate = 0;
+        }
 
-            maxRate = 0;
-            /* Get Basic Rate Set */
-            ccmCfgGetStr(hHal, WNI_CFG_OPERATIONAL_RATE_SET, OperationalRates, &ORLeng);
-            for (i = 0; i < ORLeng; i++)
-            {
-                for (j = 0; j < sizeof(supported_data_rate); j ++)
-                {
-                    /* Validate Rate Set */
-                    if (supported_data_rate[j].beacon_rate_index == (OperationalRates[i] & 0x7F))
-                    {
-                        currentRate = supported_data_rate[j].supported_rate[0];
-                        break;
-                    }
-                }
-                /* Update MAX rate */
-                maxRate = (currentRate > maxRate)?currentRate:maxRate;
-            }
+        wlan_hdd_get_classAstats(pAdapter);
+        rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
 
-            /* Get Extended Rate Set */
-            ccmCfgGetStr(hHal, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET, ExtendedRates, &ERLeng);
-            for (i = 0; i < ERLeng; i++)
+        maxRate = 0;
+        /* Get Basic Rate Set */
+        ccmCfgGetStr(hHal, WNI_CFG_OPERATIONAL_RATE_SET, OperationalRates, &ORLeng);
+        for (i = 0; i < ORLeng; i++)
+        {
+            for (j = 0; j < sizeof(supported_data_rate); j ++)
             {
-                for (j = 0; j < sizeof(supported_data_rate); j ++)
+                /* Validate Rate Set */
+                if (supported_data_rate[j].beacon_rate_index == (OperationalRates[i] & 0x7F))
                 {
-                    if (supported_data_rate[j].beacon_rate_index == (ExtendedRates[i] & 0x7F))
-                    {
-                        currentRate = supported_data_rate[j].supported_rate[0];
-                        break;
-                    }
-                }
-                /* Update MAX rate */
-                maxRate = (currentRate > maxRate)?currentRate:maxRate;
-            }
-
-            /* Get MCS Rate Set */
-            ccmCfgGetStr(hHal, WNI_CFG_CURRENT_MCS_SET, MCSRates, &MCSLeng);
-            if ((rate_flags & eHAL_TX_RATE_HT20) && (rate_flags & eHAL_TX_RATE_LGI))
-            {
-                rateFlag = 0;
-            }
-            else if ((rate_flags & eHAL_TX_RATE_HT40) && (rate_flags & eHAL_TX_RATE_LGI))
-            {
-                rateFlag = 1;
-            }
-            else if ((rate_flags & eHAL_TX_RATE_HT20) && (rate_flags & eHAL_TX_RATE_SGI))
-            {
-                rateFlag = 2;
-            }
-            else if ((rate_flags & eHAL_TX_RATE_HT40) && (rate_flags & eHAL_TX_RATE_SGI))
-            {
-                rateFlag = 3;
-            }
-            else
-            {
-                rateFlag = 0;
-            }
-
-            for (i = 0; i < MCSLeng; i++)
-            {
-                for (j = 0; j < sizeof(supported_mcs_rate); j++)
-                {
-                    if (supported_mcs_rate[j].beacon_rate_index == MCSRates[i])
-                    {
-                        currentRate = supported_mcs_rate[j].supported_rate[rateFlag];
-                        break;
-                     }
-                }
-                if (currentRate > maxRate)
-                {
-                    maxRate     = currentRate;
-                    maxSpeedMCS = 1;
-                    maxMCSIdx   = supported_mcs_rate[j].beacon_rate_index;
+                    currentRate = supported_data_rate[j].supported_rate[0];
+                    break;
                 }
             }
+            /* Update MAX rate */
+            maxRate = (currentRate > maxRate)?currentRate:maxRate;
+        }
+
+        /* Get Extended Rate Set */
+        ccmCfgGetStr(hHal, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET, ExtendedRates, &ERLeng);
+        for (i = 0; i < ERLeng; i++)
+        {
+            for (j = 0; j < sizeof(supported_data_rate); j ++)
+            {
+                if (supported_data_rate[j].beacon_rate_index == (ExtendedRates[i] & 0x7F))
+                {
+                    currentRate = supported_data_rate[j].supported_rate[0];
+                    break;
+                }
+            }
+            /* Update MAX rate */
+            maxRate = (currentRate > maxRate)?currentRate:maxRate;
+        }
+
+        /* Get MCS Rate Set */
+        ccmCfgGetStr(hHal, WNI_CFG_CURRENT_MCS_SET, MCSRates, &MCSLeng);
+        if ((rate_flags & eHAL_TX_RATE_HT20) && (rate_flags & eHAL_TX_RATE_LGI))
+        {
+            rateFlag = 0;
+        }
+        else if ((rate_flags & eHAL_TX_RATE_HT40) && (rate_flags & eHAL_TX_RATE_LGI))
+        {
+            rateFlag = 1;
+        }
+        else if ((rate_flags & eHAL_TX_RATE_HT20) && (rate_flags & eHAL_TX_RATE_SGI))
+        {
+            rateFlag = 2;
+        }
+        else if ((rate_flags & eHAL_TX_RATE_HT40) && (rate_flags & eHAL_TX_RATE_SGI))
+        {
+            rateFlag = 3;
+        }
+        else
+        {
+            rateFlag = 0;
+        }
+
+        for (i = 0; i < MCSLeng; i++)
+        {
+            for (j = 0; j < sizeof(supported_mcs_rate); j++)
+            {
+                if (supported_mcs_rate[j].beacon_rate_index == MCSRates[i])
+                {
+                    currentRate = supported_mcs_rate[j].supported_rate[rateFlag];
+                    break;
+                }
+            }
+            if (currentRate > maxRate)
+            {
+                maxRate     = currentRate;
+                maxSpeedMCS = 1;
+                maxMCSIdx   = supported_mcs_rate[j].beacon_rate_index;
+            }
+        }
+
+        if (maxRate <= pHddStaCtx->lastReportedRate)
+        {
+            // report the cached max values
+            sinfo->txrate.legacy = pHddStaCtx->storedrateInfo.legacy;
+            sinfo->txrate.mcs = pHddStaCtx->storedrateInfo.mcs;
+            sinfo->txrate.flags = pHddStaCtx->storedrateInfo.flags;
+        }
+        else
+        {
+            // we have a new max value
+            pHddStaCtx->lastReportedRate = maxRate;
 
             if (!maxSpeedMCS)
             {
@@ -4612,29 +4626,20 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
                 { 
                     sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
                 }
+                if (rate_flags & eHAL_TX_RATE_HT40)
+                {
+                    sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
+                }
                 pHddStaCtx->storedrateInfo.legacy = 0;
                 pHddStaCtx->storedrateInfo.mcs    = sinfo->txrate.mcs;
                 pHddStaCtx->storedrateInfo.flags  = sinfo->txrate.flags;
             }
         }
-        /* BSSID does not changed, MAX Rate supposed not changed
-         * Get MAX rate from stored location, remove overhead most of the time
-         * !!! How about AP capabilities Change */
-        else
-        {
-            if (0 == pHddStaCtx->storedrateInfo.legacy)
-            {
-                sinfo->txrate.mcs   = pHddStaCtx->storedrateInfo.mcs;
-                sinfo->txrate.flags = pHddStaCtx->storedrateInfo.flags;
-            }
-            else
-            {
-                sinfo->txrate.legacy = pHddStaCtx->storedrateInfo.legacy;
-            }
-        }
     }
     else
     {
+        // report current rate instead of max rate
+
         wlan_hdd_get_classAstats(pAdapter);
         rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
 
@@ -4643,13 +4648,18 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
             //provide to the UI in units of 100kbps
             sinfo->txrate.legacy = pAdapter->hdd_stats.ClassA_stat.tx_rate * 5;
         }
-        else if (rate_flags & eHAL_TX_RATE_HT20)
+        else
         {
+            //must be MCS
             sinfo->txrate.mcs = pAdapter->hdd_stats.ClassA_stat.mcs_index;
             sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
             if (rate_flags & eHAL_TX_RATE_SGI)
             { 
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
+            }
+            if (rate_flags & eHAL_TX_RATE_HT40)
+            {
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
             }
         }
     }

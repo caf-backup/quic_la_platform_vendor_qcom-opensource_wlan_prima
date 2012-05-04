@@ -378,6 +378,7 @@ struct hdd_station_ctx
    tANI_U8 prevAssocBSSID[WNI_CFG_BSSID_LEN];
    tANI_U8 BSSIDSet;
    struct rate_info  storedrateInfo; 
+   tANI_U16 lastReportedRate;
 };
 
 #define BSS_STOP    0 
