@@ -20809,6 +20809,7 @@ WDI_CopyWDIConfigBSSToHALConfigBSS
   phalConfigBSS->currentExtChannel  = pwdiConfigBSS->ucCurrentExtChannel;
   phalConfigBSS->action             = pwdiConfigBSS->wdiAction;
   phalConfigBSS->htCapable          = pwdiConfigBSS->ucHTCapable;
+  phalConfigBSS->obssProtEnabled    = pwdiConfigBSS->ucObssProtEnabled;
   phalConfigBSS->rmfEnabled         = pwdiConfigBSS->ucRMFEnabled;
 
   phalConfigBSS->htOperMode = 

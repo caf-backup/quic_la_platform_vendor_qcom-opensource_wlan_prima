@@ -1691,6 +1691,9 @@ typedef struct
   /*Enable/Disable HT capabilities of the BSS*/
   wpt_uint8                ucHTCapable;
 
+  /* Enable/Disable OBSS protection */
+  wpt_uint8                ucObssProtEnabled;
+
   /*RMF enabled/disabled*/
   wpt_uint8                ucRMFEnabled;
 

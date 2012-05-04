@@ -3735,6 +3735,7 @@ void WDA_UpdateBSSParams(tWDA_CbContext *pWDA,
    wdiBssParams->ucllbCoexist  = wdaBssParams->llbCoexist ;
    wdiBssParams->ucllgCoexist  = wdaBssParams->llgCoexist ;
    wdiBssParams->ucHT20Coexist = wdaBssParams->ht20Coexist ;
+   wdiBssParams->ucObssProtEnabled = wdaBssParams->obssProtEnabled ;
 
    wdiBssParams->ucllnNonGFCoexist = wdaBssParams->llnNonGFCoexist ;
    wdiBssParams->ucTXOPProtectionFullSupport =
