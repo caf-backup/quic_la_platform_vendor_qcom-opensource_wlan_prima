@@ -1386,16 +1386,131 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
 
 }
 
+VOS_STATUS hdd_enable_bmps(hdd_context_t *pHddCtx)
+{
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+
+   if(pHddCtx->cfg_ini->fIsBmpsEnabled)
+   {
+      sme_EnablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+   }
+
+   if(pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled)
+   {
+      sme_StartAutoBmpsTimer(pHddCtx->hHal); 
+   }
+
+   return status;
+}
+
+VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
+{
+   hdd_adapter_t *pStaAdapter = NULL;
+   eHalStatus halStatus;
+   VOS_STATUS status = VOS_STATUS_E_INVAL;
+   v_BOOL_t disableBmps = FALSE;
+   
+   switch(session_type)
+   {
+       case WLAN_HDD_INFRA_STATION:
+       case WLAN_HDD_SOFTAP:
+#ifdef WLAN_FEATURE_P2P
+       case WLAN_HDD_P2P_CLIENT:
+       case WLAN_HDD_P2P_GO:
+#endif
+          //Exit BMPS -> Is Sta/P2P Client is already connected
+          pStaAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+          if((NULL != pStaAdapter)&&
+              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pStaAdapter)))
+          {
+             disableBmps = TRUE;
+          }
+
+          pStaAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
+          if((NULL != pStaAdapter)&&
+              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pStaAdapter)))
+          {
+             disableBmps = TRUE;
+          }
+
+          if(TRUE == disableBmps)
+          {
+             if(pHddCtx->cfg_ini->fIsBmpsEnabled)
+             {
+                 halStatus = sme_DisablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+
+                 if(eHAL_STATUS_SUCCESS != halStatus)
+                 {
+                    status = VOS_STATUS_E_FAILURE;
+                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Fail to Disable Power Save\n", __func__);
+                    VOS_ASSERT(0);
+                    return status;
+                 }
+              }
+
+              if(pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled)
+              {
+                 halStatus = sme_StopAutoBmpsTimer(pHddCtx->hHal);
+
+                 if(eHAL_STATUS_SUCCESS != halStatus)
+                 {
+                    status = VOS_STATUS_E_FAILURE;
+                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Fail to Stop Auto Bmps Timer\n", __func__);
+                    VOS_ASSERT(0);
+                    return status;
+                 }
+              }
+
+              /* Now, get the chip into Full Power now */
+              INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
+              halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_full_pwr_cbk,
+                                   pHddCtx, eSME_FULL_PWR_NEEDED_BY_HDD);
+
+              if(halStatus != eHAL_STATUS_SUCCESS)
+              {
+                 if(halStatus == eHAL_STATUS_PMC_PENDING)
+                 {
+                    //Block on a completion variable. Can't wait forever though
+                    wait_for_completion_interruptible_timeout(
+                         &pHddCtx->full_pwr_comp_var, msecs_to_jiffies(1000));
+                 }
+                 else
+                 {
+                    status = VOS_STATUS_E_FAILURE;
+                    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed\n", __func__);
+                    VOS_ASSERT(0);
+                    return status;
+                 }
+              }
+
+              status = VOS_STATUS_SUCCESS;
+          }
+          break;
+   }
+   return status;
+}
+
 hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                  char *iface_name, tSirMacAddr macAddr, 
                                  tANI_U8 rtnl_held )
 {
    hdd_adapter_t *pAdapter = NULL;
    hdd_adapter_list_node_t *pHddAdapterNode = NULL;
-   eHalStatus halStatus;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
+   VOS_STATUS exitbmpsStatus;
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
+
+   //Disable BMPS incase of Concurrency
+   exitbmpsStatus = hdd_disable_bmps(pHddCtx, session_type);
+
+   if(VOS_STATUS_E_FAILURE == exitbmpsStatus)
+   {
+      //Fail to Exit BMPS
+      VOS_ASSERT(0);
+      return NULL;
+   }
 
    switch(session_type)
    {
@@ -1524,57 +1639,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       }
    }
 
-   wlan_hdd_set_concurrency_mode(pHddCtx, session_type);
-   
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-   /* If there are concurrent session enable SW frame translation 
-    * for all registered STA
-    * This is not required in case of PRIMA as HW frame translation
-    * is disabled in PRIMA*/ 
-   if (vos_concurrent_sessions_running())
-   {
-      WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, TRUE);
-   }
-#endif
-
-   /* If there are any concurrent sessions running, disable powersave i.e disable 
-    * both IMPS and BMPS */
-   if (vos_concurrent_sessions_running())
-   {
-        if (pHddCtx->cfg_ini->fIsImpsEnabled)
-        {
-           sme_DisablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
-        }
-        if (pHddCtx->cfg_ini->fIsBmpsEnabled)
-        {
-           sme_DisablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
-        }
-        if (pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled)
-        { 
-           sme_StopAutoBmpsTimer(pHddCtx->hHal);
-        }
-
-        /* Now, get the chip into Full Power now */
-        INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
-        halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_full_pwr_cbk,
-            pHddCtx, eSME_FULL_PWR_NEEDED_BY_HDD);
-
-        if(halStatus != eHAL_STATUS_SUCCESS)
-        {  
-           if(halStatus == eHAL_STATUS_PMC_PENDING)
-           {  
-             //Block on a completion variable. Can't wait forever though
-              wait_for_completion_interruptible_timeout(&pHddCtx->full_pwr_comp_var,
-                 msecs_to_jiffies(1000));
-           } 
-           else
-           {
-              hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed\n", __func__);
-              VOS_ASSERT(0);
-              return NULL;
-           }
-        }
-   }
 
    if( VOS_STATUS_SUCCESS == status )
    {
@@ -1603,6 +1667,24 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       {
          vos_mem_free( pHddAdapterNode );
       }
+
+      goto resume_bmps;
+   }
+
+   if(VOS_STATUS_SUCCESS == status)
+   {
+      wlan_hdd_set_concurrency_mode(pHddCtx, session_type);
+
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+      /* If there are concurrent session enable SW frame translation 
+            * for all registered STA
+            * This is not required in case of PRIMA as HW frame translation
+            * is disabled in PRIMA*/ 
+      if (vos_concurrent_sessions_running())
+      {
+         WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, TRUE);
+      }
+#endif
    }
 
    return pAdapter;
@@ -1611,6 +1693,13 @@ err_free_netdev:
    free_netdev(pAdapter->dev);
    wlan_hdd_release_intf_addr( pHddCtx,
                                pAdapter->macAddressCurrent.bytes );
+
+resume_bmps:
+   //If bmps disabled enable it
+   if(VOS_STATUS_SUCCESS == exitbmpsStatus)
+   {
+      hdd_enable_bmps(pHddCtx);
+   }
    return NULL;
 }
 
@@ -1651,37 +1740,14 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
       }
 #endif
 
-      /* If there is a single session of STA/P2P client, re-enable power save
-       * i.e re-enable both IMPS and BMPS */
+      /* If there is a single session of STA/P2P client, re-enable BMPS */
       if ((!vos_concurrent_sessions_running()) && 
-         ((pHddCtx->no_of_sessions[VOS_STA_MODE] >= 1) || 
-          (pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE] >= 1)))
+           ((pHddCtx->no_of_sessions[VOS_STA_MODE] >= 1) || 
+           (pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE] >= 1)))
       {
-         if (pHddCtx->cfg_ini->fIsImpsEnabled)
-         {
-            sme_EnablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
-         }
-
-         if(pHddCtx->cfg_ini->fIsBmpsEnabled)
-         {
-           sme_EnablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
-         }
-
-         INIT_COMPLETION(pHddCtx->req_bmps_comp_var);
-         status = sme_RequestBmps(WLAN_HDD_GET_HAL_CTX(pAdapter), 
-                      hdd_req_bmps_cbk, &pHddCtx->req_bmps_comp_var);
-
-         if (eHAL_STATUS_PMC_PENDING == status)
-         {
-            wait_for_completion_interruptible_timeout(&pHddCtx->req_bmps_comp_var,
-                   msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
-         }
-         if(pHddCtx->cfg_ini->fIsAutoBmpsTimerEnabled)
-         {
-            sme_StartAutoBmpsTimer(pHddCtx->hHal); 
-         }
-         
+         hdd_enable_bmps(pHddCtx);
       }
+
       return VOS_STATUS_SUCCESS;
    }
 
