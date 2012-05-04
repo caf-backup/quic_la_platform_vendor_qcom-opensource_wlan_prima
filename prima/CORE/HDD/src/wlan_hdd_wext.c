@@ -5041,6 +5041,7 @@ int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
         {
              hdd_station_ctx_t *pHddStaCtx = &(pAdapter)->sessionCtx.station;
              eHalStatus status = eHAL_STATUS_SUCCESS;
+             long lrc;
 
              /* STA already connected on current band, So issue disconnect first,
                         * then change the band*/
@@ -5055,7 +5056,7 @@ int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
              status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), 
              pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
-             if ( 0 != status)
+             if ( VOS_STATUS_SUCCESS != status)
              {
                  hddLog(VOS_TRACE_LEVEL_ERROR,
                          "%s csrRoamDisconnect failure, returned %d \n", 
@@ -5063,16 +5064,16 @@ int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr)
                  return -EINVAL;
              }
 
-             status = wait_for_completion_interruptible_timeout(
+             lrc = wait_for_completion_interruptible_timeout(
                      &pAdapter->disconnect_comp_var,
                      msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
 
-             if (VOS_STATUS_SUCCESS != status)
-             {
-                 hddLog(VOS_TRACE_LEVEL_ERROR,
-                         "%s Timeout occured while waiting for csrRoamDisconnect\n", 
-                           __func__);
-                 return -EINVAL;
+             if(lrc <= 0) {
+              
+                hddLog(VOS_TRACE_LEVEL_ERROR,"%s: %s while while waiting for csrRoamDisconnect ",
+                 __FUNCTION__, (0 == lrc) ? "Timeout" : "Interrupt");
+
+                return (0 == lrc) ? -ETIMEDOUT : -EINTR;
              }
         }
 
