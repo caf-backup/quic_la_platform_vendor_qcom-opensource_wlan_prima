@@ -534,13 +534,22 @@ static VOS_STATUS WLANBAP_STARxCB
     if ( pHddHdl == NULL || vosDataBuff == NULL || pRxMetaInfo == NULL )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB bad input\n" );
+        if(NULL != vosDataBuff)
+        {
+            VosStatus = vos_pkt_return_packet( vosDataBuff );
+        }
         return VOS_STATUS_E_FAILURE;
     }
 
     pctx = (BslPhyLinkCtxType *)pHddHdl;
     ppctx = pctx->pClientCtx;
 
-    VOS_ASSERT( ppctx != NULL );
+    if( NULL == ppctx )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STARxCB ClientCtx is NULL\n" );
+        VosStatus = vos_pkt_return_packet( vosDataBuff );
+        return VOS_STATUS_E_FAILURE;
+    }
 
     // walk the chain until all are processed
    pVosPacket = vosDataBuff;

@@ -3693,7 +3693,9 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int sub_cmd = wrqu->data.flags;
     int ret = 0; /* sucess */
-    
+    VOS_STATUS status;
+    hdd_context_t *pHddCtx;
+
     switch (sub_cmd)
     {
         case WE_CLEAR_STATS:
@@ -3751,7 +3753,22 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
         case WE_DISABLE_AMP:
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __FUNCTION__);
-            WLANBAP_DeregisterFromHCI();
+            pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
+            status = WLANBAP_StopAmp();
+            if(VOS_STATUS_SUCCESS != status )
+            {
+               pHddCtx->isAmpAllowed = VOS_TRUE;
+               hddLog(VOS_TRACE_LEVEL_FATAL,
+                      "%s: Failed to stop AMP", __func__);
+            }
+            else
+            {
+               //a state m/c implementation in PAL is TBD to avoid this delay
+               msleep(500);
+               pHddCtx->isAmpAllowed = VOS_FALSE;
+               WLANBAP_DeregisterFromHCI();
+            }
+
             break;
         }
 
