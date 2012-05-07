@@ -49,7 +49,7 @@
 
 //Support for multiple session
 #define CSR_SESSION_ID_INVALID    0xFF   // session ID invalid
-#define CSR_ROAM_SESSION_MAX      3   // No of sessions to be supported, and a
+#define CSR_ROAM_SESSION_MAX      4   // No of sessions to be supported, and a
                                       // session is for Infra, IBSS or BT-AMP
 
 #define CSR_IS_SESSION_VALID( pMac, sessionId ) ( ( (sessionId) < CSR_ROAM_SESSION_MAX ) \
