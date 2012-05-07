@@ -1446,6 +1446,16 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
             
 #endif
+        /* eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER Message comes after the
+         * device comes out of full power for the full power request sent 
+         * because of channel switch with switch count as 0, so call the same 
+         * function used in timeout case(i.e SIR_LIM_CHANNEL_SWITCH_TIMEOUT) 
+         * for switching the channel*/
+        case eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER:
+            limProcessChannelSwitchTimeout(pMac);
+            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
+            break;
 
         //Power Save Related Messages From HAL
         case WDA_ENTER_BMPS_RSP:

@@ -67,6 +67,8 @@ typedef enum
 -----------------------------------------------------------------*/
 void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
+    tANI_U8 isFullPowerRequested = 0;
+
     PELOG1(limLog(pMac, LOG1, FL("Channel switch Mode == %d\n"), 
                        pMac->lim.gLimChannelSwitch.switchMode);)
 
@@ -76,8 +78,13 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
         /* Freeze the transmission */
         limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_STOP_TX);
 
-       /* Request Full Power */
-       limSendSmePreChannelSwitchInd(pMac);
+        /*Request for Full power only if the device is in powersave*/
+        if(!limIsSystemInActiveState(pMac))
+        {
+            /* Request Full Power */
+            limSendSmePreChannelSwitchInd(pMac);
+            isFullPowerRequested = 1;
+        }
     }
     else
     {
@@ -85,12 +92,26 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
         limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_RESUME_TX);
     }
 
-    if (pMac->lim.gLimChannelSwitch.switchCount == 0)
+    /* change the channel immediatly only if the channel switch count is 0 and the 
+     * device is not in powersave 
+     * If the device is in powersave channel switch should happen only after the
+     * device comes out of the powersave */
+    if (pMac->lim.gLimChannelSwitch.switchCount == 0) 
     {
-        /** If switch Count == 0 switch the channel right away */
-        limProcessChannelSwitchTimeout(pMac);
+        if(limIsSystemInActiveState(pMac))
+        {
+            limProcessChannelSwitchTimeout(pMac);
+        }
+        else if(!isFullPowerRequested)
+        {
+            /* If the Full power is already not requested 
+             * Request Full Power so the channel switch happens 
+             * after device comes to full power */
+            limSendSmePreChannelSwitchInd(pMac);
+        }
         return;
     }
+
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_CHANNEL_SWITCH_TIMER));
 
     pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId = sessionId;
