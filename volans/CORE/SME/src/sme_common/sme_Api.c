@@ -3367,7 +3367,11 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamSetKey *pS
       smsLog(pMac, LOGE, "\n sessionId=%d roamId=%d\n", sessionId, roamId);
 
       pSession = CSR_GET_SESSION(pMac, sessionId);
-
+      if(NULL == pSession)
+      {
+          VOS_ASSERT(0);
+          return eHAL_STATUS_FAILURE;
+      }
       if(CSR_IS_INFRA_AP(&pSession->connectedProfile))
       {
 
@@ -4592,10 +4596,18 @@ eHalStatus sme_RegisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
         tSirRegisterMgmtFrame *pMsg;
         tANI_U16 len;
         tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-        
-        if( !pSession->sessionActive ) 
+
+        if( NULL != pSession )
+        {
+            if( !pSession->sessionActive )
+                VOS_ASSERT(0);
+        }
+        else
+        {
             VOS_ASSERT(0);
-        
+            return eHAL_STATUS_FAILURE;
+        }
+
         len = sizeof(tSirRegisterMgmtFrame) + matchLen;
         
         status = palAllocateMemory(pMac->hHdd, (void**)&pMsg, len );

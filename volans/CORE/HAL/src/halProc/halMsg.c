@@ -1908,7 +1908,7 @@ halMsg_DelSta(
 
             delBAParams.staIdx = pDelStaReq->staIdx;
 
-            for( tid = 1; tid <= STACFG_MAX_TC; tid++ )
+            for( tid = 0; tid < STACFG_MAX_TC; tid++ )
             {
                 tidBitSet = (pSta->baInitiatorTidBitMap & (1 << tid)) ;
                 delBAParams.baTID  = tid;
@@ -2948,6 +2948,8 @@ halMsg_DelBss(
 
     // Validate the bssIdx
     status = halTable_ValidateBssIndex(pMac, (tANI_U8) pDelBssReq->bssIdx);
+    palZeroMemory(pMac->hHdd, bssId, sizeof(bssId));
+    palZeroMemory(pMac->hHdd, selfAddr, sizeof(selfAddr));
     if (status != eHAL_STATUS_SUCCESS)
     {
         HALLOGW( halLog(pMac, LOGW, FL("Invalid BSSindex %d\n"), pDelBssReq->bssIdx));

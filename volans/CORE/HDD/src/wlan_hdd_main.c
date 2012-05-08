@@ -198,7 +198,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
       goto exit; 
    }
 
-   if ((!ifr) && (!ifr->ifr_data))
+   if ((NULL == ifr) || (NULL == ifr->ifr_data))
    {
        ret = -EINVAL;
        goto exit; 
@@ -2341,6 +2341,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
        hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
                                     WLAN_HDD_INFRA_STATION);
 
+       if (NULL == pAdapter)
+       {
+           VOS_ASSERT(0);
+           return;
+       }
        INIT_COMPLETION(pAdapter->session_close_comp_var);
        if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
                                      pAdapter->p2pSessionId,

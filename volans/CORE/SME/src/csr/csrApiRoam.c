@@ -3930,11 +3930,16 @@ eHalStatus csrProcessFTReassocRoamCommand ( tpAniSirGlobal pMac, tSmeCmd *pComma
 
 eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 {
-    eHalStatus status = eHAL_STATUS_SUCCESS;
+    eHalStatus status = eHAL_STATUS_FAILURE;
     tCsrRoamInfo roamInfo;
     tANI_U32 sessionId = pCommand->sessionId;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return status;
+    }
     switch ( pCommand->u.roamCmd.roamReason )
     {
         case eCsrForcedDisassoc:
@@ -4450,6 +4455,12 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 
 
     smsLog( pMac, LOG1, FL("Processsing ROAM results...\n"));
+
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
 
     switch( Result )
     {
@@ -8354,6 +8365,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if ( csrIsConnStateInfra( pMac, sessionId ) )
                 {
                     pSession = CSR_GET_SESSION( pMac, sessionId );
+                    if ( NULL == pSession )
+                    {
+                        VOS_ASSERT(0);
+                        return;
+                    }
                     pSession->connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
                 }
 
@@ -8374,6 +8390,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             if( HAL_STATUS_SUCCESS( status ) )
             {
                 pSession = CSR_GET_SESSION( pMac, sessionId );
+                if ( NULL == pSession )
+                {
+                    VOS_ASSERT(0);
+                    return;
+                }
                 pSession->connectedProfile.operationChannel = (tANI_U8)pSwitchChnInd->newChannelId;
                 if(pSession->pConnectBssDesc)
                 {
@@ -8388,12 +8409,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             {
                 tSirSmeDeauthRsp* pDeauthRsp = (tSirSmeDeauthRsp *)pSirMsg;
                 sessionId = pDeauthRsp->sessionId;
+                pSession = CSR_GET_SESSION(pMac, sessionId);
+                if (NULL == pSession)
+                    break;
                 if( CSR_IS_SESSION_VALID(pMac, sessionId) )
-                {                    
-                    pSession = CSR_GET_SESSION(pMac, sessionId);
-                    if (!pSession)
-                        break;
-
+                {
                     if ( CSR_IS_INFRA_AP(&pSession->connectedProfile) )
                     {
                         pRoamInfo = &roamInfo;
@@ -8414,12 +8434,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             {
                 tSirSmeDisassocRsp *pDisassocRsp = (tSirSmeDisassocRsp *)pSirMsg;
                 sessionId = pDisassocRsp->sessionId;
+                pSession = CSR_GET_SESSION(pMac, sessionId);
+                if (NULL == pSession)
+                    break;
                 if( CSR_IS_SESSION_VALID(pMac, sessionId) )
-                {                    
-                    pSession = CSR_GET_SESSION(pMac, sessionId);
-                    if (!pSession)
-                        break;
-
+                {
                     if ( CSR_IS_INFRA_AP(&pSession->connectedProfile) )
                     {
                         pRoamInfo = &roamInfo;

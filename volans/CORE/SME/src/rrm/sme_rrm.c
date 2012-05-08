@@ -871,6 +871,7 @@ eHalStatus sme_RrmProcessNeighborReport(tpAniSirGlobal pMac, void *pMsgBuf)
        {
            smsLog( pMac, LOGE, "Failed to allocate memory for RRM Neighbor report BSS Description\n");
            status = eHAL_STATUS_FAILED_ALLOC;
+           vos_mem_free(pNeighborReportDesc);
            goto end;
        }
        vos_mem_zero(pNeighborReportDesc->pNeighborBssDescription, sizeof(tSirNeighborBssDescription));

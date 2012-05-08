@@ -608,11 +608,6 @@ halSetPerStaKey(
                 txPN[WLAN_WAPI_KEY_RSC_LEN - 1] = 0x37;
                 rxPN[WLAN_WAPI_KEY_RSC_LEN - 1] = 0x36;
             }
-            if( NULL != keyRsc )
-            {
-                palCopyMemory(pMac->hHdd, rxPN, keyRsc, WLAN_WAPI_KEY_RSC_LEN);
-            }
-
             HALLOGE(halLog(pMac, LOGE, "  HAL Set WAPI RCIdx (%d) encType(%d)" 
                 "TX = %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X"
                 "RX = %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",

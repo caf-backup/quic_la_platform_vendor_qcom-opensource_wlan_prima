@@ -1153,9 +1153,9 @@ _raRateIsSupportedAndValid(
         return eSIR_FAILURE;
     }
 
-    if ((RA_RATE_SUPPORTED(rate, psRates)) &&
+    if ((HALRATE_IS_DISABLED(rate)==0)     &&
+        (RA_RATE_SUPPORTED(rate, psRates)) &&
         (RA_RATE_SUPPORTED(rate, pvRates)) &&
-        (HALRATE_IS_DISABLED(rate)==0)     &&
         (HALRATE_IS_BELOW_MAX(rate, maxDataRate))) {
         return eSIR_SUCCESS;
     }

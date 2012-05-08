@@ -749,6 +749,8 @@ VOS_STATUS WLANSAL_Start
 
    init_completion(&gpsalHandle->shutdown_event_var);
    libra_sdio_register_shutdown_hdlr(wlan_sdio_shutdown_hdlr);
+   
+   gpsalHandle->isSALStarted = VOS_TRUE ;
 
 #ifndef LIBRA_LINUX_PC
    /* Register with SDIO driver as client for Suspend/Resume */
@@ -829,13 +831,19 @@ VOS_STATUS WLANSAL_Close
    {
       VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_WARN,"%s: Sal lock not released.\n");
    }
+    
+   if (TRUE == gpsalHandle->isSALStarted)
+   {
+	  libra_sdio_notify_card_removal(NULL);
+	  WLANSAL_allow_card_removal();
 
-   libra_sdio_notify_card_removal(NULL);
-   WLANSAL_allow_card_removal();
-
-   libra_sdio_register_shutdown_hdlr(NULL);
-   WLANSAL_allow_shutdown();
-
+	  libra_sdio_register_shutdown_hdlr(NULL);
+	  WLANSAL_allow_shutdown();
+   }
+   else 
+   {
+	  VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_WARN,"%s: Sal not started successfully\n");
+   }
    vos_free_context(pAdapter, VOS_MODULE_ID_SAL, gpsalHandle);
 
    SEXIT();

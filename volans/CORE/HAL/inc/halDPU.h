@@ -32,13 +32,14 @@
 #define HAL_DPU_KEY_ID_4    4
 #define HAL_DPU_KEY_ID_5    5
 
-//For Libra, this is 2, for Volans, this is 3. 
+//For Libra, this is 2, for Volans, this is 4 since since memory allocation for 
+//each replay descriptor is 64bytes. 
 //It specifies the number of 16-byte units needed for one RC descriptor for WAPI
 #ifdef FEATURE_WLAN_WAPI
 #ifdef LIBRA_WAPI_SUPPORT
 #define HAL_WAPI_RC_DESCRIPTOR_COUNT    2
 #else
-#define HAL_WAPI_RC_DESCRIPTOR_COUNT    3
+#define HAL_WAPI_RC_DESCRIPTOR_COUNT    4
 #endif
 #endif /* FEATURE_WLAN_WAPI.*/
 
