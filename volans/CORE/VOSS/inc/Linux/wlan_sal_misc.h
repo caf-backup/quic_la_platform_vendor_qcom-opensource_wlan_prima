@@ -118,6 +118,7 @@ typedef struct
    struct completion                 card_rem_event_var;
      /* Completion  variable to unblock shutdown request */
    struct completion                 shutdown_event_var;
+   v_BOOL_t                          isSALStarted;      // Check for SAL Started
 } salHandleType;
 
 /*-------------------------------------------------------------------------

@@ -1952,6 +1952,11 @@ eHalStatus pmcDeregisterDeviceStateUpdateInd (tHalHandle hHal,
     tListElem *pEntry;
     tpDeviceStateUpdateIndEntry pDeviceStateUpdateIndEntry;
 
+    if(NULL == pMac)
+    {
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
     smsLog(pMac, LOG2, FL("Entering pmcDeregisterDeviceStateUpdateInd"));
 
     /* Find entry in the power save update routine list that matches

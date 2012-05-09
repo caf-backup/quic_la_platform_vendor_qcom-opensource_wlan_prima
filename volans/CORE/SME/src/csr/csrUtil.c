@@ -2896,6 +2896,11 @@ tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *p
     tANI_U32 Index;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return fRC;
+    }
     do
     {
         for( Index=0; Index < pSession->NumPmkidCache; Index++ )
@@ -3146,6 +3151,11 @@ tANI_BOOLEAN csrLookupBKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *pB
     tANI_U32 Index;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
+    if(NULL == pSession)
+    {
+        VOS_ASSERT(0);
+        return fRC;
+    }
     do
     {
         for( Index=0; Index < pSession->NumBkidCache; Index++ )

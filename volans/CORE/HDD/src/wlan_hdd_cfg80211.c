@@ -4078,8 +4078,7 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
                          wiphy->retry_short : \
                          wiphy->retry_long;
 
-        if ((WNI_CFG_LONG_RETRY_LIMIT_STAMIN > retry_value) || \
-                (WNI_CFG_LONG_RETRY_LIMIT_STAMAX < retry_value))
+        if (WNI_CFG_LONG_RETRY_LIMIT_STAMAX < retry_value)
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid Retry count %hu", 
                     __func__, retry_value);
@@ -4255,7 +4254,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
             ccmCfgGetStr(hHal, WNI_CFG_OPERATIONAL_RATE_SET, OperationalRates, &ORLeng);
             for (i = 0; i < ORLeng; i++)
             {
-                for (j = 0; j < sizeof(supported_data_rate); j ++)
+                for (j = 0; j < (sizeof(supported_data_rate)/sizeof(supported_data_rate[0])); j ++)
                 {
                     /* Validate Rate Set */
                     if (supported_data_rate[j].beacon_rate_index == (OperationalRates[i] & 0x7F))
@@ -4272,7 +4271,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
             ccmCfgGetStr(hHal, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET, ExtendedRates, &ERLeng);
             for (i = 0; i < ERLeng; i++)
             {
-                for (j = 0; j < sizeof(supported_data_rate); j ++)
+                for (j = 0; j < (sizeof(supported_data_rate)/sizeof(supported_data_rate[0])); j ++)
                 {
                     if (supported_data_rate[j].beacon_rate_index == (ExtendedRates[i] & 0x7F))
                     {
@@ -4309,7 +4308,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
 
             for (i = 0; i < MCSLeng; i++)
             {
-                for (j = 0; j < sizeof(supported_mcs_rate); j++)
+                for (j = 0; j < (sizeof(supported_mcs_rate)/sizeof(supported_mcs_rate[0])); j++)
                 {
                     if (supported_mcs_rate[j].beacon_rate_index == MCSRates[i])
                     {
