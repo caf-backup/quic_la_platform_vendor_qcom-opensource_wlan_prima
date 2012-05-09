@@ -3082,6 +3082,7 @@ typedef enum eRequestFullPowerReason
    eSME_FULL_PWR_NEEDED_BY_BAP,    /* BAP request full power for BT_AMP */
    eSME_FULL_PWR_NEEDED_BY_CSR,    /* CSR requests full power */
    eSME_FULL_PWR_NEEDED_BY_QOS,    /* QOS requests full power */
+   eSME_FULL_PWR_NEEDED_BY_CHANNEL_SWITCH, /* channel switch request full power*/
    eSME_REASON_OTHER               /* No specific reason. General reason code */ 
 } tRequestFullPowerReason, tExitBmpsReason;
 
@@ -3732,7 +3733,9 @@ typedef struct sSirSmeMgmtFrameInd
 #endif
 
 #define SIR_IS_FULL_POWER_REASON_DISCONNECTED(eReason) \
-    ( ( eSME_LINK_DISCONNECTED_BY_HDD == (eReason) ) || ( eSME_LINK_DISCONNECTED_BY_OTHER == (eReason) ) )
+    ( ( eSME_LINK_DISCONNECTED_BY_HDD == (eReason) ) || \
+      ( eSME_LINK_DISCONNECTED_BY_OTHER == (eReason) ) || \
+      (eSME_FULL_PWR_NEEDED_BY_CHANNEL_SWITCH == (eReason)))
 #define SIR_IS_FULL_POWER_NEEDED_BY_HDD(eReason) \
     ( ( eSME_LINK_DISCONNECTED_BY_HDD == (eReason) ) || ( eSME_FULL_PWR_NEEDED_BY_HDD == (eReason) ) )
 

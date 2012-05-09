@@ -32,6 +32,7 @@
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 #include "limIbssPeerMgmt.h"
 #include "limSession.h"
+#include "vos_nvitem.h"
 
 /* Static global used to mark situations where pMac->lim.gLimTriggerBackgroundScanDuringQuietBss is SET
  * and limTriggerBackgroundScanDuringQuietBss() returned failure.  In this case, we will stop data
@@ -2625,7 +2626,8 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
          * then we cannot switch the channel. Just disassociate from AP. 
          * We will find a better AP !!!
          */
-        limTearDownLinkWithAp(pMac);
+        limTearDownLinkWithAp(pMac, 
+                        pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId);
         return;
     }
     switch(pMac->lim.gLimChannelSwitch.state)
@@ -7406,6 +7408,23 @@ void limHandleHeartBeatTimeout(tpAniSirGlobal pMac )
      }
 }  
 
+tANI_U8 limGetCurrentOperatingChannel(tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+    for(i =0;i < pMac->lim.maxBssId;i++)
+    {
+        if(pMac->lim.gpSession[i].valid == TRUE )
+        {
+            if((pMac->lim.gpSession[i].bssType == eSIR_INFRASTRUCTURE_MODE) &&
+                (pMac->lim.gpSession[i].limSystemRole == eLIM_STA_ROLE))
+            {
+                return pMac->lim.gpSession[i].currentOperChannel;
+            }
+        }
+    }
+    return 0;
+}
+
 void limProcessAddStaRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 {
      
@@ -7478,7 +7497,8 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
         {
             tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
             /* AP did not respond to Probe Request. Tear down link with it.*/
-            limTearDownLinkWithAp(pMac);
+            limTearDownLinkWithAp(pMac, 
+                      pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId);
             pMac->lim.gLimProbeFailureAfterHBfailedCnt++ ;
         }
         else // restart heartbeat timer  
@@ -7856,3 +7876,15 @@ v_U8_t limGetNoaAttrStream(tpAniSirGlobal pMac, v_U8_t*pNoaStream,tpPESession ps
         
 }
 #endif
+
+tANI_BOOLEAN limIsconnectedOnDFSChannel(tANI_U8 currentChannel)
+{
+    if(NV_CHANNEL_DFS == vos_nv_getChannelEnabledState(currentChannel))
+    {
+        return eANI_BOOLEAN_TRUE;
+    }
+    else
+    {
+        return eANI_BOOLEAN_FALSE;
+    }
+}

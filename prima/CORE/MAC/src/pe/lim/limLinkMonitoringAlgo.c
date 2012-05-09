@@ -358,14 +358,14 @@ limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession pse
  */
 
 void
-limTearDownLinkWithAp(tpAniSirGlobal pMac)
+limTearDownLinkWithAp(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
     tpDphHashNode pStaDs = NULL;
 
     //tear down the following sessionEntry
     tpPESession psessionEntry;
 
-    if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId))== NULL)
+    if((psessionEntry = peFindSessionBySessionId(pMac, sessionId))== NULL)
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
         return;
@@ -491,25 +491,38 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
         pMac->lim.gLimHBfailureCntInLinkEstState++;
 
         /**
-         * Send Probe Request frame to AP to see if
-         * it is still around. Wait until certain
-         * timeout for Probe Response from AP.
+         * Check if connected on the DFS channel, if not connected on
+         * DFS channel then only send the probe request otherwise tear down the link
          */
-        PELOGW(limLog(pMac, LOGW, FL("Heart Beat missed from AP. Sending Probe Req\n"));)
-        /* for searching AP, we don't include any additional IE */
-        limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId, psessionEntry->bssId,
-                                  psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
-                                  psessionEntry->dot11mode, 0, NULL);
-
-        //assign the sessionId to the timer object
-
-        limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PROBE_AFTER_HB_TIMER));
-        pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId = psessionEntry->peSessionId;
-        if (tx_timer_activate(&pMac->lim.limTimers.gLimProbeAfterHBTimer) != TX_SUCCESS)
+        if(!limIsconnectedOnDFSChannel(psessionEntry->currentOperChannel))
         {
-            limLog(pMac, LOGP, FL("Fail to re-activate Probe-after-heartbeat timer\n"));
-            limReactivateHeartBeatTimer(pMac, psessionEntry);
+            /**
+             * Send Probe Request frame to AP to see if
+             * it is still around. Wait until certain
+             * timeout for Probe Response from AP.
+             */
+            PELOGW(limLog(pMac, LOGW, FL("Heart Beat missed from AP. Sending Probe Req\n"));)
+            /* for searching AP, we don't include any additional IE */
+            limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId, psessionEntry->bssId,
+                                      psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
+                                      psessionEntry->dot11mode, 0, NULL);
+    
+            //assign the sessionId to the timer object
+    
+            limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
+            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PROBE_AFTER_HB_TIMER));
+            pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId = psessionEntry->peSessionId;
+            if (tx_timer_activate(&pMac->lim.limTimers.gLimProbeAfterHBTimer) != TX_SUCCESS)
+            {
+                limLog(pMac, LOGP, FL("Fail to re-activate Probe-after-heartbeat timer\n"));
+                limReactivateHeartBeatTimer(pMac, psessionEntry);
+            }
+        }
+        else
+        {
+            /* Connected on DFS channel so should not send the probe request
+            * tear down the link directly */
+            limTearDownLinkWithAp(pMac, psessionEntry->peSessionId);
         }
     }
     else

@@ -5937,6 +5937,33 @@ eHalStatus sme_ReceiveFilterClearFilter(tHalHandle hHal, tpSirRcvFltPktClearPara
 #endif // WLAN_FEATURE_PACKET_FILTERING
 
 /* ---------------------------------------------------------------------------
+    \fn sme_PreChannelSwitchIndFullPowerCB
+    \brief  call back function for the PMC full power request because of pre 
+             channel switch.
+    \param callbackContext
+    \param status
+  ---------------------------------------------------------------------------*/
+void sme_PreChannelSwitchIndFullPowerCB(void *callbackContext, 
+                eHalStatus status)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)callbackContext;
+    tSirMbMsg *pMsg;
+    tANI_U16 msgLen;
+
+    msgLen = (tANI_U16)(sizeof( tSirMbMsg ));
+    status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, msgLen);
+    if(HAL_STATUS_SUCCESS(status))
+    {
+        palZeroMemory(pMac->hHdd, (void *)pMsg, msgLen);
+        pMsg->type = pal_cpu_to_be16((tANI_U16)eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER);
+        pMsg->msgLen = pal_cpu_to_be16(msgLen);
+        status = palSendMBMessage(pMac->hHdd, pMsg);
+    }                             
+
+    return;
+}
+
+/* ---------------------------------------------------------------------------
     \fn sme_HandlePreChannelSwitchInd
     \brief  Processes the indcation from PE for pre-channel switch.
     \param hHal
@@ -5949,7 +5976,8 @@ eHalStatus sme_HandlePreChannelSwitchInd(tHalHandle hHal)
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = pmcRequestFullPower(hHal, NULL, NULL, eSME_REASON_OTHER); 
+       status = pmcRequestFullPower(hHal, sme_PreChannelSwitchIndFullPowerCB, 
+                            pMac, eSME_FULL_PWR_NEEDED_BY_CHANNEL_SWITCH); 
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 

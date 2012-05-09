@@ -215,6 +215,7 @@ enum eWniMsgTypes
     eWNI_SME_ABORT_REMAIN_ON_CHAN_IND,
     eWNI_SME_UPDATE_NOA,
 #endif
+    eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER,
     //General Power Save Messages
     eWNI_PMC_MSG_TYPES_BEGIN,
     eWNI_PMC_PWR_SAVE_CFG,

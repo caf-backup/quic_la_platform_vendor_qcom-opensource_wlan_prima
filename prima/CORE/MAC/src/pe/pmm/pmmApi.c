@@ -481,6 +481,7 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
     tSirRetStatus  retStatus = eSIR_SUCCESS;
     tpExitBmpsParams  pExitBmpsParams;
     tSirMsgQ msgQ;
+    tANI_U8  currentOperatingChannel = limGetCurrentOperatingChannel(pMac);
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pExitBmpsParams, sizeof(*pExitBmpsParams)) )
     {
@@ -496,10 +497,14 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
     msgQ.bodyval = 0;
 
     /* If reason for full power is disconnecting (ie. link is
-     * disconnected), then we should not send data null.
+     * disconnected) or becasue of channel switch or full power requested 
+     * because of beacon miss and connected on DFS channel 
+     * then we should not send data null.
      * For all other reason code, send data null.
      */
-    if ( !SIR_IS_FULL_POWER_REASON_DISCONNECTED(pMac->pmm.gPmmExitBmpsReasonCode)  )
+    if ( !(SIR_IS_FULL_POWER_REASON_DISCONNECTED(pMac->pmm.gPmmExitBmpsReasonCode) ||
+          ( (eSME_MISSED_BEACON_IND_RCVD == pMac->pmm.gPmmExitBmpsReasonCode) && 
+             limIsconnectedOnDFSChannel(currentOperatingChannel))))
         pExitBmpsParams->sendDataNull = 1;
 
     /* we need to defer any incoming messages until we

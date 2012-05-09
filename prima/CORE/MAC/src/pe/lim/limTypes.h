@@ -731,7 +731,7 @@ void limAbortBackgroundScan(tpAniSirGlobal);
 void limHandleHeartBeatFailure(tpAniSirGlobal,tpPESession);
 
 /// Function that triggers link tear down with AP upon HB failure
-void limTearDownLinkWithAp(tpAniSirGlobal);
+void limTearDownLinkWithAp(tpAniSirGlobal,tANI_U8);
 
 #ifdef ANI_PRODUCT_TYPE_AP
 /// Function that performs periodic release of AIDs
