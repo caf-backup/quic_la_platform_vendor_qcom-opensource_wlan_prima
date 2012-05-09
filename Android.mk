@@ -28,6 +28,9 @@ ifeq ($(call is-board-platform,msm8960),true)
         include $(WLAN_BLD_DIR)/prima/CORE/HDD/src/Android.mk
         include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
         include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
+        ifeq ($(BOARD_HAS_ATH_WLAN_AR6004), true)
+                include $(WLAN_BLD_DIR)/ath6kl-utils/ath6kl_fw/AR6004/Android.mk
+        endif
 endif
 
 #Build/Package Volans Module only in case of 7627a target
