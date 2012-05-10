@@ -282,6 +282,9 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
 
     wiphy->mgmt_stypes = wlan_hdd_txrx_stypes;
 
+    wiphy->flags |= WIPHY_FLAG_HAVE_AP_SME |
+                    WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD;
+
     wiphy->max_scan_ssids = MAX_SCAN_SSID; 
     
     wiphy->max_scan_ie_len = 200 ; //TODO: define a macro
