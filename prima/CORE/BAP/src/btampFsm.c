@@ -847,16 +847,23 @@ gotoStarting
     if (btampContext->isBapSessionOpen == FALSE)
     {
 
-    halStatus = sme_OpenSession(hHal, 
-            WLANBAP_RoamCallback, 
-            btampContext,
-            // <=== JEZ081210: FIXME
-            //(tANI_U8 *) btampContext->self_mac_addr,  
-            btampContext->self_mac_addr,  
-            &btampContext->sessionId);
-    if(eHAL_STATUS_SUCCESS == halStatus)
-    {
-        btampContext->isBapSessionOpen = TRUE;
+        halStatus = sme_OpenSession(hHal, 
+                                    WLANBAP_RoamCallback, 
+                                    btampContext,
+                                    // <=== JEZ081210: FIXME
+                                    //(tANI_U8 *) btampContext->self_mac_addr,  
+                                    btampContext->self_mac_addr,  
+                                    &btampContext->sessionId);
+        if(eHAL_STATUS_SUCCESS == halStatus)
+        {
+            btampContext->isBapSessionOpen = TRUE;
+        }
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                         "sme_OpenSession failed in %s", __FUNCTION__);
+            *status = WLANBAP_ERROR_NO_CNCT;
+            return VOS_STATUS_E_FAILURE;
         }
     }
     /* Update the SME Session info for this Phys Link (i.e., for this Phys State Machine instance) */
