@@ -1040,6 +1040,48 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     vos_mem_free(genie);
     return 0;
 }
+/* 
+ * FUNCTION: wlan_hdd_validate_operation_channel
+ * called by wlan_hdd_cfg80211_start_bss() and
+ * wlan_hdd_cfg80211_set_channel()
+ * This function validates whether given channel is part of valid
+ * channel list. 
+ */ 
+static VOS_STATUS wlan_hdd_validate_operation_channel(hdd_adapter_t *pAdapter,int channel)
+{
+        
+    v_U32_t num_ch = 0;
+    u8 valid_ch[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    u32 indx = 0;
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+     
+    num_ch = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+
+    if (0 != ccmCfgGetStr(hHal, WNI_CFG_VALID_CHANNEL_LIST,
+            valid_ch, &num_ch))
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: failed to get valid channel list\n", __func__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    for (indx = 0; indx < num_ch; indx++)
+    {
+        if (channel == valid_ch[indx])
+        {
+            break;
+        }
+    }
+
+    if (indx >= num_ch)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Invalid Channel [%d] \n", __func__, channel);
+        return VOS_STATUS_E_FAILURE;
+    }
+    return VOS_STATUS_SUCCESS;
+         
+}
 
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                             struct beacon_parameters *params)
@@ -1089,8 +1131,21 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                                        WLAN_EID_COUNTRY);
     if(pIe)
     { 
+        tANI_BOOLEAN restartNeeded;
+        tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+
         pConfig->ieee80211d = 1;
         vos_mem_copy(pConfig->countryCode, &pIe[2], 3);
+        sme_setRegInfo(hHal, pConfig->countryCode);
+        sme_ResetCountryCodeInformation(hHal, &restartNeeded);
+        
+        if(VOS_STATUS_SUCCESS != wlan_hdd_validate_operation_channel(pHostapdAdapter,pConfig->channel))
+        {
+
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                    "%s: Invalid Channel [%d] \n", __func__, pConfig->channel);
+            return -EINVAL;
+        }
     }
     else 
     {
@@ -2498,11 +2553,8 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
                                  )
 {
     v_U32_t num_ch = 0;
-    u8 valid_ch[WNI_CFG_VALID_CHANNEL_LIST_LEN];    
-    u32 indx = 0;
     u32 channel = 0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev ); 
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     int freq = chan->center_freq; /* freq is in MHZ */ 
  
     ENTER();
@@ -2531,33 +2583,22 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
 
     num_ch = WNI_CFG_VALID_CHANNEL_LIST_LEN;
 
-    if (0 != ccmCfgGetStr(hHal, WNI_CFG_VALID_CHANNEL_LIST, 
-                valid_ch, &num_ch))
+    if ((WLAN_HDD_SOFTAP != pAdapter->device_mode)
+#ifdef WLAN_FEATURE_P2P
+     && (WLAN_HDD_P2P_GO != pAdapter->device_mode)
+#endif
+      )
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR, 
-                "%s: failed to get valid channel list\n", __func__);
-        return -EIO;
-    }
-
-    for (indx = 0; indx < num_ch; indx++) 
-    {
-        if (channel == valid_ch[indx])
+        if(VOS_STATUS_SUCCESS != wlan_hdd_validate_operation_channel(pAdapter,channel))
         {
-            break;
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                    "%s: Invalid Channel [%d] \n", __func__, channel);
+            return -EINVAL;
         }
-    }
-
-    if (indx >= num_ch)
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR, 
-                "%s: Invalid Channel [%d] \n", __func__, channel);
-        return -EINVAL;
-    }
-    
-    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
-             "%s: set channel to [%d] for device mode =%d", 
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
+                "%s: set channel to [%d] for device mode =%d", 
                           __func__, channel,pAdapter->device_mode);
-
+    }
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
 #ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)

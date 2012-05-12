@@ -3616,7 +3616,9 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
     hdd_adapter_t *pAdapter = NULL;  // Used to retrieve the parent WLAN device
     hdd_context_t *pHddCtx = NULL;
     hdd_config_t *pConfig = NULL;
- 
+    hdd_adapter_list_node_t *pAdapterNode = NULL;
+    VOS_STATUS status;
+
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BSL_Init");
 
     /*------------------------------------------------------------------------
@@ -3676,7 +3678,20 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
 
 #ifdef WLAN_SOFTAP_FEATURE
     if (VOS_STA_SAP_MODE == hdd_get_conparam())
-        pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
+    {
+        status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+        if ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+        {
+            if ( WLAN_HDD_SOFTAP == pAdapterNode->pAdapter->device_mode)
+            {
+                pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
+            }
+            else if (WLAN_HDD_P2P_GO == pAdapterNode->pAdapter->device_mode)
+            {
+                pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_GO);
+            }
+        }
+     }
     else
 #endif
         pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
