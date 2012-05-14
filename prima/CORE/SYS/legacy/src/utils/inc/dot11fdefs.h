@@ -5,8 +5,12 @@
  *
  * \brief C defines customizing our framesc-generated code
  *
- * Copyright (C) 2006 Airgo Networks, Incorporated
  *
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
+ * Copyright (C) 2006 Airgo Networks, Incorporated
  *
  * 'framesc' generates code written in terms of a number of macros
  * intended for customization.

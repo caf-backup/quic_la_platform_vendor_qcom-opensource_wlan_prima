@@ -1,6 +1,9 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
  *
+ * Airgo Networks, Inc proprietary. All rights reserved.
  * Author:      Sandesh Goel
  * Date:        02/09/03
  * History:-

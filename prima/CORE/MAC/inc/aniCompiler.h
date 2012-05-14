@@ -1,8 +1,12 @@
 /*
  * Compiler abstraction layer
  *
- * Copyright (C) 2005-2006 Airgo Networks, Inc
  *
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
+ * Copyright (C) 2005-2006 Airgo Networks, Inc
  * This file tries to abstract the differences among compilers.
  * Supported compilers are :
  *

@@ -1,5 +1,7 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
  * This file limAssocUtils.h contains the utility definitions
  * LIM uses while processing Re/Association messages.
  * Author:        Chandra Modumudi

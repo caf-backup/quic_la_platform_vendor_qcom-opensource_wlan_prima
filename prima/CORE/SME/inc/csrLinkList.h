@@ -1,13 +1,14 @@
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
-
-  
     \file csrLinkList.h
   
     Exports and types for the Common link list interfaces.
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
-  
+   Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary.  
+
+   Copyright (C) 2006 Airgo Networks, Incorporated
  
    ========================================================================== */
 #ifndef CSR_LINK_LIST_H__

@@ -7,8 +7,11 @@
     $Id$ 
   
   
+    Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+    All Rights Reserved. 
+    Qualcomm Atheros Confidential and Proprietary. 
+
     Copyright (C) 2006 Airgo Networks, Incorporated
-  
   
     This file contains function implementations for the Platform Abstration Layer.    
   
