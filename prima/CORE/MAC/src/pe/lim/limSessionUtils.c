@@ -6,10 +6,11 @@
 
   \author Sunit Bhatia
   
-   Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
-   Qualcomm Confidential and Proprietary.
-  
+  Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+  All Rights Reserved. 
+  Qualcomm Atheros Confidential and Proprietary. 
+
+  Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
   ========================================================================*/
 
 
@@ -110,8 +111,9 @@ tpPESession peGetValidPowerSaveSession(tpAniSirGlobal pMac)
 
     for(i = 0; i < pMac->lim.maxBssId; i++)
     {
-        if(pMac->lim.gpSession[i].valid == TRUE) 
-        {
+        if( (pMac->lim.gpSession[i].valid == TRUE)&&
+            (pMac->lim.gpSession[i].limSystemRole == eLIM_STA_ROLE)&&
+            (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)) {
             sessioncount++;
             sessionId = i;
 

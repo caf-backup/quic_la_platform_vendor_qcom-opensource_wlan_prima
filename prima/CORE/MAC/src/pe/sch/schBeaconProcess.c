@@ -116,6 +116,16 @@ ap_beacon_process(
                     (pBcnStruct->erpIEInfo.useProtection ||
                     pBcnStruct->erpIEInfo.nonErpPresent)))
                 {
+#ifdef FEATURE_WLAN_CCX
+                    if( psessionEntry->isCCXconnection )
+                    {
+                        VOS_TRACE (VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO, 
+                            "%s: [INFOLOG]CCX 11g erpPresent=%d useProtection=%d nonErpPresent=%d\n", __func__,
+                            pBcnStruct->erpPresent,
+                            pBcnStruct->erpIEInfo.useProtection,
+                            pBcnStruct->erpIEInfo.nonErpPresent);
+                    } 
+#endif 
                     limEnableOverlap11gProtection(pMac, pBeaconParams, pMh,psessionEntry);
                 }
 
@@ -130,6 +140,16 @@ ap_beacon_process(
                     (pBcnStruct->erpIEInfo.useProtection ||
                     pBcnStruct->erpIEInfo.nonErpPresent))
               {
+#ifdef FEATURE_WLAN_CCX
+                  if( psessionEntry->isCCXconnection )
+                  {
+                      VOS_TRACE (VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO, 
+                          "%s: [INFOLOG]CCX 11g erpPresent=%d useProtection=%d nonErpPresent=%d\n", __func__,
+                          pBcnStruct->erpPresent,
+                          pBcnStruct->erpIEInfo.useProtection,
+                          pBcnStruct->erpIEInfo.nonErpPresent);
+                  }  
+#endif 
                   limEnableOverlap11gProtection(pMac, pBeaconParams, pMh,psessionEntry);
               }
 
@@ -464,6 +484,29 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         }   
     }
 #endif
+
+#if defined FEATURE_WLAN_CCX
+        if( psessionEntry->isCCXconnection )
+        {
+           tPowerdBm  localConstraint = 0, regMax = 0, maxTxPower = 0;
+           if (pBeacon->ccxTxPwr.present)
+           {
+              localConstraint = pBeacon->ccxTxPwr.power_limit;
+              regMax = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel ); 
+              maxTxPower = limGetMaxTxPower(regMax, localConstraint);
+
+              //If maxTxPower is increased or decreased
+             if( maxTxPower != psessionEntry->maxTxPower )
+             {
+                limLog( pMac, LOG1, "RegMax = %d, lpc = %d, MaxTx = %d", regMax, localConstraint, maxTxPower );
+                limLog( pMac, LOG1, "Local power constraint change..updating new maxTx power to HAL");
+                if( limSendSetMaxTxPowerReq ( pMac, maxTxPower, psessionEntry ) == eHAL_STATUS_SUCCESS )
+                   psessionEntry->maxTxPower = maxTxPower;
+             }
+           }
+        }
+#endif
+
 
 #if defined WLAN_FEATURE_VOWIFI
         if( pMac->rrm.rrmPEContext.rrmEnable )

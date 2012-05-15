@@ -1,7 +1,7 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved. 
+* Qualcomm Atheros Confidential and Proprietary. 
 */
 
 /*
@@ -649,9 +649,10 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
         pMac->lim.gLastBeaconDtimCount = 0;
         pMac->lim.gLastBeaconDtimPeriod = 0;
 
-        
+#ifdef FEATURE_WLAN_CCX
+        limDeactivateAndChangeTimer(pMac,eLIM_TSM_TIMER);
+#endif
 
-        
         /**
          * Update the status for PMM module
          */
@@ -1865,7 +1866,6 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
                     }
                     else
                         rates->llbRates[bRateIndex++] = tempRateSet2.rate[i];
-            
                     break;
                 }
             }

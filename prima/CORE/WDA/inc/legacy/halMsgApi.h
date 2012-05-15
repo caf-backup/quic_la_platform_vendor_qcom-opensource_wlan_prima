@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * */
 #ifndef _HALMSGAPI_H_
 #define _HALMSGAPI_H_
 
@@ -1231,6 +1236,12 @@ typedef struct sEnterBmpsParams
     //DTIM period given to HAL during association may not be valid,
     //if association is based on ProbeRsp instead of beacon.
     tANI_U8 dtimPeriod;
+
+    // For CCX and 11R Roaming
+    tANI_U8  bRssiFilterEnable;
+    tANI_U32 rssiFilterPeriod;
+    tANI_U32 numBeaconPerRssiAverage;
+
     eHalStatus status;
     tANI_U8 respReqd;
 }tEnterBmpsParams, *tpEnterBmpsParams;

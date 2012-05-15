@@ -1,6 +1,9 @@
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
  *
+ * Airgo Networks, Inc proprietary. All rights reserved.
  * Author:      Dinesh Upadhyay
  * Date:        10/24/06
  * History:-
@@ -70,7 +73,7 @@ limUpdateAdmitPolicy(
 
 tSirRetStatus limAdmitControlInit(tpAniSirGlobal pMac);
 
-tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U8 tspecIdx, tSirMacTspecIE tspecIE);
+tSirRetStatus limSendHalMsgAddTs(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U8 tspecIdx, tSirMacTspecIE tspecIE, tANI_U8 sessionId);
 tSirRetStatus limSendHalMsgDelTs(tpAniSirGlobal pMac,  tANI_U16 staIdx,  tANI_U8 tspecIdx,  tSirDeltsReqInfo delts);
 void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
 

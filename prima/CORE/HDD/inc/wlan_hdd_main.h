@@ -164,6 +164,7 @@ typedef struct hdd_stats_s
    tCsrGlobalClassDStatsInfo  ClassD_stat;
    tCsrPerStaStatsInfo        perStaStats;
    hdd_tx_rx_stats_t          hddTxRxStats;
+   hdd_chip_reset_stats_t     hddChipResetStats;
 } hdd_stats_t;
 
 typedef enum
@@ -373,6 +374,9 @@ struct hdd_station_ctx
 
    v_BOOL_t bSendDisconnect;
 
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+   int     ft_carrier_on;
+#endif
    /* These elements are for MAX rate report to UI feature
     * required for some customers, controlled by ini element */
    tANI_U8 prevAssocBSSID[WNI_CFG_BSSID_LEN];
@@ -523,6 +527,7 @@ struct hdd_adapter_s
    struct wireless_dev wdev ;
    struct cfg80211_scan_request *request ; 
 #endif
+
 #ifdef WLAN_FEATURE_P2P
    /** ops checks if Opportunistic Power Save is Enable or Not
     * ctw stores ctWindow value once we receive Opps command from 
@@ -566,6 +571,7 @@ struct hdd_adapter_s
 
    /* completion variable for Linkup Event */
    struct completion linkup_event_var;
+
 
    /* completion variable for abortscan */
    struct completion abortscan_event_var;

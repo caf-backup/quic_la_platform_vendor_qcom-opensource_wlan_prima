@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * */
 #ifndef WLAN_QCT_TLI_H
 #define WLAN_QCT_TLI_H
 
@@ -657,6 +662,7 @@ typedef struct
    v_S7_t                             historyRSSI;
    v_U8_t                             alpha;
    v_U32_t                            sampleTime;
+   v_U32_t                            fwNotification;
 } WLANTL_CURRENT_HO_STATE_TYPE;
 
 typedef struct

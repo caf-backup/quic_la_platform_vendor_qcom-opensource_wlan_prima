@@ -1,7 +1,7 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved. 
+* Qualcomm Atheros Confidential and Proprietary. 
 */
 
 /*
@@ -1065,10 +1065,17 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimFTPreAuthRspTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimFTPreAuthRspTimer);
 #endif
+
 #ifdef WLAN_FEATURE_P2P
         // Deactivate and delete remain on channel timer
         tx_timer_deactivate(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimRemainOnChannelTimer);
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+        // Deactivate and delete TSM
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimCcxTsmTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimCcxTsmTimer);
 #endif
 
         pMac->lim.gLimTimersCreated = 0;
@@ -1731,30 +1738,28 @@ limIsNullSsid( tSirMacSSid *pSsid )
                 fNullSsid = true;
                 break;
             }
-
         }
         else
         {
             /* check if all the charactes in SSID are NULL*/
             SsidLength = pSsid->length;
             pSsidStr = pSsid->ssId;
-    
+
             while ( SsidLength )
             {
                 if( *pSsidStr )
                     break;
-    
+
                 pSsidStr++;
                 SsidLength--;
             }
-    
+
             if( 0 == SsidLength )
             {
                 fNullSsid = true;
                 break;
             }
         }
-
     }
     while( 0 );
 
@@ -2021,39 +2026,90 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
                 for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
                 {
-                    if (psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
+#ifdef WLAN_SOFTAP_FEATURE                                
+                if ((psessionEntry->limSystemRole == eLIM_AP_ROLE )  &&
+                     psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
                     {
                         if (palEqualMemory( pMac->hHdd,
                                     psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
                                     peerMacAddr, sizeof(tSirMacAddr)))
                             return;
+                }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
+#endif
+                {
+                    if (pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
+                     {
+                         if (palEqualMemory( pMac->hHdd,
+                                             pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
+                                             peerMacAddr, sizeof(tSirMacAddr)))
+                             return;
+                      }
                     }
                 }
 
+
             for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
             {
-                if (!psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
+#ifdef WLAN_SOFTAP_FEATURE                                
+                if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE )  &&
+                      !psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
+                     break;
+                else        
+#endif        
+                {
+                    if (!pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
                     break;
+                }
             }
 
             if (i >= LIM_PROT_STA_CACHE_SIZE)
             {
+#ifdef WLAN_SOFTAP_FEATURE
+                if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
                     limLog(pMac, LOGE, FL("No space in Short cache (#active %d, #sta %d) for sta "),
                             i, psessionEntry->gLimNoShortParams.numNonShortPreambleSta);
                     limPrintMacAddr(pMac, peerMacAddr, LOGE);
                     return;
                 }
+                else
+#endif
+                {
+                    limLog(pMac, LOGE, FL("No space in Short cache (#active %d, #sta %d) for sta "),
+                            i, pMac->lim.gLimNoShortParams.numNonShortPreambleSta);
+                    limPrintMacAddr(pMac, peerMacAddr, LOGE);
+                    return;
+                }
 
+            }
+
+
+#ifdef WLAN_SOFTAP_FEATURE
+            if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
                 palCopyMemory( pMac->hHdd, psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
                         peerMacAddr,  sizeof(tSirMacAddr));
                 psessionEntry->gLimNoShortParams.staNoShortCache[i].active = true;
                 psessionEntry->gLimNoShortParams.numNonShortPreambleSta++;
+            }else
+#endif
+            {
+                palCopyMemory( pMac->hHdd, pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
+                               peerMacAddr,  sizeof(tSirMacAddr));
+                pMac->lim.gLimNoShortParams.staNoShortCache[i].active = true;
+                pMac->lim.gLimNoShortParams.numNonShortPreambleSta++;        
+            } 
+
 
             // enable long preamble
             PELOG1(limLog(pMac, LOG1, FL("Disabling short preamble\n"));)
 
+#ifdef WLAN_SOFTAP_FEATURE
             if (limEnableShortPreamble(pMac, false, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
                 PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
+#else
+            if (limEnableShortPreamble(pMac, false, pBeaconParams) != eSIR_SUCCESS)
+                PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
+
+#endif
         }
     }
 }
@@ -2112,7 +2168,6 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                             return;
                      }
                 }
-                
             }
 
             for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
@@ -2146,6 +2201,7 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                     return;
                 }
             }
+
 
 #ifdef WLAN_SOFTAP_FEATURE
             if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
@@ -2186,7 +2242,6 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                     if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, false) != eSIR_SUCCESS)
                         PELOGE(limLog(pMac, LOGE,   FL("could not update short slot time at CFG\n"));)
                  }
-
             }
         }
     }
@@ -4315,13 +4370,13 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 PELOGE(limLog(pMac, LOGE, FL("protection from 11b is enabled\n"));)
                 if(true == psessionEntry->htCapabality)
                 {
-                if(eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode)
-                {
-                    psessionEntry->htOperMode = eSIR_HT_OP_MODE_MIXED;
-                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-                    limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);     
+                    if(eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode)
+                    {
+                        psessionEntry->htOperMode = eSIR_HT_OP_MODE_MIXED;
+                        limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                        limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);     
+                    }
                 }
-            }
             }
         }else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&
                 (true == psessionEntry->htCapabality))
@@ -4332,19 +4387,22 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             {
                 if(overlap)
                 {
-                psessionEntry->gLimOlbcParams.protectionEnabled = true;
+                    psessionEntry->gLimOlbcParams.protectionEnabled = true;
                     if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != pMac->lim.gHTOperMode) &&
                             (eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode))
                     {
                         pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                        limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-                        //Not processing OBSS bit from other APs, as we are already taking care
-                        //of Protection from overlapping BSS based on erp IE or useProtection bit
                     }
+                    //CR-263021: OBSS bit is not switching back to 0 after disabling the overlapping legacy BSS
+                    // This fixes issue of OBSS bit not set after 11b, 11g station leaves
+                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                    //Not processing OBSS bit from other APs, as we are already taking care
+                    //of Protection from overlapping BSS based on erp IE or useProtection bit
+                    limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams, psessionEntry);
                 }
                 else
                 {
-                psessionEntry->gLim11bParams.protectionEnabled = true;
+                    psessionEntry->gLim11bParams.protectionEnabled = true;
                     if(eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode)
                     { 
                         pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_MIXED;
@@ -5330,6 +5388,7 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     if(!psessionEntry->htCapabality)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
+
         //overlapping protection configuration check.
         if(overlap)
         {
@@ -5464,7 +5523,6 @@ limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams
     return eSIR_SUCCESS;
         }
 
-
 /**
  * limTxComplete
  *
@@ -5510,6 +5568,8 @@ void limTxComplete( tHalHandle hHal, void *pData )
         v_U8_t         *pRxBd;
         vos_pkt_t      *pVosPkt;
         VOS_STATUS      vosStatus;
+
+
 
         pVosPkt = (vos_pkt_t *)pData;
         vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pRxBd, WLANHAL_RX_BD_HEADER_SIZE);
@@ -5905,7 +5965,7 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
     if (limAdmitControlDeleteTS(pMac, pSta->assocId, tsinfo, &tsStatus, &tspecIdx)
         != eSIR_SUCCESS)
     {
-       PELOG1(limLog(pMac, LOG1, "DELTS request for sta assocId %d (tsid %d, up %d): OK\n",
+       PELOGE(limLog(pMac, LOGE, "ERROR DELTS request for sta assocId %d (tsid %d, up %d)\n",
                pSta->assocId, tsinfo->traffic.tsid, tsinfo->traffic.userPrio);)
         return eSIR_FAILURE;
     }

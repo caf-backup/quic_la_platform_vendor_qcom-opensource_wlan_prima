@@ -1,5 +1,8 @@
-
 /*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessDeauthFrame.cc contains the code
  * for processing Deauthentication Frame.
@@ -298,11 +301,17 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
                     case eLIM_MLM_WT_REASSOC_RSP_STATE:
                         break;
 
+                    case eLIM_MLM_WT_FT_REASSOC_RSP_STATE:
+                        PELOG1(limLog(pMac, LOG1,
+                           FL("received Deauth frame in FT state %X with reasonCode=%d from "),
+                           psessionEntry->limMlmState, reasonCode);)
+                        break;
+
                     default:
                         PELOG1(limLog(pMac, LOG1,
                            FL("received Deauth frame in state %X with reasonCode=%d from "),
-                           psessionEntry->limMlmState, reasonCode);
-                        limPrintMacAddr(pMac, pHdr->sa, LOG1);)
+                           psessionEntry->limMlmState, reasonCode);)
+                        limPrintMacAddr(pMac, pHdr->sa, LOG1);
                         return;
                 }
                 break;

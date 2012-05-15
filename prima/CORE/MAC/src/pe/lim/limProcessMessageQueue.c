@@ -1,7 +1,7 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved. 
+* Qualcomm Atheros Confidential and Proprietary. 
 */
 
 /*
@@ -47,6 +47,9 @@
 
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
+#endif
+#if defined FEATURE_WLAN_CCX
+#include "ccxApi.h"
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI_11R
@@ -110,6 +113,7 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         (limMsg->type != WDA_SET_STA_BCASTKEY_RSP) &&
         (limMsg->type != SIR_LIM_RESUME_ACTIVITY_NTF)&&
         (limMsg->type != eWNI_SME_START_REQ) &&
+        (limMsg->type != WDA_AGGR_QOS_RSP) &&
         (limMsg->type != WDA_REMOVE_BSSKEY_RSP) &&
         (limMsg->type != WDA_REMOVE_STAKEY_RSP) &&
         (limMsg->type != WDA_SET_MIMOPS_RSP)&&
@@ -664,19 +668,55 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 {
     tANI_U8          *pRxPacketInfo = NULL;
     tSirMacFrameCtl  fc;
-    tpSirMacMgmtHdr    pHdr;
-    tpPESession         psessionEntry;
+    tpSirMacMgmtHdr    pHdr=NULL;
+    tpPESession         psessionEntry=NULL;
     tANI_U8             sessionId;
+    tAniBool            isFrmFt = FALSE;
+    tANI_U16            fcOffset = WLANHAL_RX_BD_HEADER_SIZE;
 
     *pDeferMsg= false;
     limGetBDfromRxPacket(pMac, limMsg->bodyptr, (tANI_U32 **)&pRxPacketInfo);
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    isFrmFt = WDA_GET_RX_FT_DONE(pRxPacketInfo);
+    fcOffset = (v_U8_t)WDA_GET_RX_MPDU_HEADER_OFFSET(pRxPacketInfo);
     fc = pHdr->fc;
+
     limLog( pMac, LOG1, FL("ProtVersion %d, Type %d, Subtype %d rateIndex=%d\n"),
             fc.protVer, fc.type, fc.subType, WDA_GET_RX_MAC_RATE_IDX(pRxPacketInfo));
    
 
+#ifdef FEATURE_WLAN_CCX
+    if (fc.type == SIR_MAC_DATA_FRAME && isFrmFt) 
+    {
+#if 0 // CCX TBD Need to PORT
+        tpSirMacDot3Hdr pDataFrmHdr;
+
+        pDataFrmHdr = (tpSirMacDot3Hdr)((tANI_U8 *)pBD+ WLANHAL_RX_BD_GET_MPDU_H_OFFSET(pBD));
+        if((psessionEntry = peFindSessionByBssid(pMac,pDataFrmHdr->sa,&sessionId))== NULL)
+        {
+            limLog( pMac, LOGE, FL("Session not found for Frm type %d, subtype %d, SA: "), fc.type, fc.subType);
+            limPrintMacAddr(pMac, pDataFrmHdr->sa, LOGE);
+            limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pBD, limMsg->bodyptr);
+            return;
+        }
+
+        if (!psessionEntry->isCCXconnection)
+        {
+            limLog( pMac, LOGE, FL("LIM received Type %d, Subtype %d in Non CCX connection\n"),
+                    fc.type, fc.subType);
+            limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pBD, limMsg->bodyptr);
+            return;
+        }
+        limLog( pMac, LOGE, FL("Processing IAPP Frm from SA:"));
+        limPrintMacAddr(pMac, pDataFrmHdr->sa, LOGE);
+#else
+        printk("%s: Need to port handling of IAPP frames to PRIMA for CCX\n", __func__);
+#endif
+
+
+    } else
+#endif
     /* Added For BT-AMP Support */
     if((psessionEntry = peFindSessionByBssid(pMac,pHdr->bssId,&sessionId))== NULL)
         {
@@ -877,6 +917,19 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 
         }
         break;
+#ifdef FEATURE_WLAN_CCX
+        case SIR_MAC_DATA_FRAME:
+        {
+             /* We accept data frame (IAPP frame) only if Session is
+              * present and ccx connection is established on that
+              * session
+              */
+             if (psessionEntry && psessionEntry->isCCXconnection) {
+                 limProcessIappFrame(pMac, pRxPacketInfo, psessionEntry);
+             }
+        }
+        break;
+#endif
         default:
             // Received frame of type 'reserved'
             break;
@@ -1328,6 +1381,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_NEIGHBOR_REPORT_REQ_IND:
         case eWNI_SME_BEACON_REPORT_RESP_XMIT_IND:
 #endif
+#if defined FEATURE_WLAN_CCX
+        case eWNI_SME_CCX_ADJACENT_AP_REPORT:
+#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case eWNI_SME_FT_UPDATE_KEY:
         case eWNI_SME_FT_PRE_AUTH_REQ:
@@ -1382,12 +1438,11 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 }
             }
 #endif
-        }
-
-            // not currently handled
-            // return the message
+            if(limMsg->bodyptr){
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
+            }
+        }
             break;
 #if defined WLAN_FEATURE_P2P
         case eWNI_SME_SEND_ACTION_FRAME_IND:
@@ -1559,7 +1614,14 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case SIR_LIM_ADDTS_RSP_TIMEOUT:
             limProcessSmeReqMessages(pMac,limMsg);
             break;
-
+#ifdef FEATURE_WLAN_CCX
+        case SIR_LIM_CCX_TSM_TIMEOUT:
+            limProcessTsmTimeoutHandler(pMac,limMsg);
+            break;
+        case WDA_TSM_STATS_RSP:
+            limProcessHalCcxTsmRsp(pMac, limMsg);
+            break;
+#endif
         case WDA_ADD_TS_RSP:
             limProcessHalAddTsRsp(pMac, limMsg);
             break;
@@ -1843,6 +1905,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        limProcessFTAggrQoSRsp( pMac, limMsg );
        break;
 #endif
+
     case WDA_SET_LINK_STATE_RSP:
        linkStateParams = (tLinkStateParams *)limMsg->bodyptr;
 #if defined WLAN_FEATURE_VOWIFI_11R

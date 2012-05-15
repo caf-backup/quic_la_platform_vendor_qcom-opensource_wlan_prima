@@ -1,12 +1,13 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
 
  
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
+ * Airgo Networks, Inc proprietary. All rights reserved. 
+ * 
  * This file limSerDesUtils.cc contains the serializer/deserializer
  * utility functions LIM uses while communicating with upper layer
  * software entities
@@ -104,6 +105,14 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
                   pBuf, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
     len  -= sizeof(tSirMacAddr);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
+    // Extract timer
+    palCopyMemory( pMac->hHdd, (tANI_U8 *) (&pBssDescription->scanSysTimeMsec),
+                  pBuf, sizeof(v_TIME_t));
+    pBuf += sizeof(v_TIME_t);
+    len  -= sizeof(v_TIME_t);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
@@ -211,6 +220,21 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
 #endif
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+    pBssDescription->QBSSLoad_present = limGetU16(pBuf);
+    pBuf += sizeof(tANI_U16);
+    len  -= sizeof(tANI_U16);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
+    // Extract QBSSLoad_avail
+    pBssDescription->QBSSLoad_avail = limGetU16(pBuf);
+    pBuf += sizeof(tANI_U16);
+    len  -= sizeof(tANI_U16);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+#endif
+
     if (len)
     {
         palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->ieFields,
@@ -263,6 +287,12 @@ limCopyBssDescription(tpAniSirGlobal pMac, tANI_U8 *pBuf, tSirBssDescription *pB
        FL("Copying BSSdescr:channel is %d, aniInd is %d, bssId is "),
        pBssDescription->channelId, pBssDescription->aniIndicator);
     limPrintMacAddr(pMac, pBssDescription->bssId, LOG3);)
+
+    palCopyMemory( pMac->hHdd, pBuf,
+                  (tANI_U8 *) (&pBssDescription->scanSysTimeMsec),
+                  sizeof(v_TIME_t));
+    pBuf       += sizeof(v_TIME_t);
+    len        += sizeof(v_TIME_t);
 
     limCopyU32(pBuf, pBssDescription->timeStamp[0]);
     pBuf       += sizeof(tANI_U32);
@@ -1791,6 +1821,31 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
             return eSIR_FAILURE;
     }
 
+#ifdef FEATURE_WLAN_CCX
+    // Extract CCKM IE
+    pJoinReq->cckmIE.length = limGetU16(pBuf);
+    pBuf += sizeof(tANI_U16);
+    len -= sizeof(tANI_U16);
+    if (pJoinReq->cckmIE.length)
+    {
+        // Check for CCKM IE length (that includes length of type & length)
+        if ((pJoinReq->cckmIE.length > SIR_MAC_MAX_IE_LENGTH) ||
+             (pJoinReq->cckmIE.length != (2 + *(pBuf + 1))))
+        {
+            limLog(pMac, LOGW,
+                   FL("Invalid CCKM IE length %d/%d in SME_JOIN/REASSOC_REQ\n"),
+                   pJoinReq->cckmIE.length, 2 + *(pBuf + 1));
+            return eSIR_FAILURE;
+        }
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->cckmIE.cckmIEdata,
+                      pBuf, pJoinReq->cckmIE.length);
+        pBuf += pJoinReq->cckmIE.length;
+        len  -= pJoinReq->cckmIE.length; // skip CCKM IE
+        if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+            return eSIR_FAILURE;
+    }
+#endif
+
     // Extract Add IE for scan
     pJoinReq->addIEScan.length = limGetU16(pBuf);
     pBuf += sizeof(tANI_U16);
@@ -1850,6 +1905,43 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     len -= sizeof(tANI_U32);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;    
+    
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    //is11Rconnection;
+    pJoinReq->is11Rconnection = (tAniBool)limGetU32(pBuf);
+    pBuf += sizeof(tAniBool);
+    len -= sizeof(tAniBool);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;    
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+    //isCCXconnection;
+    pJoinReq->isCCXconnection = (tAniBool)limGetU32(pBuf);
+    pBuf += sizeof(tAniBool);
+    len -= sizeof(tAniBool);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;    
+
+    // TSPEC information
+    pJoinReq->ccxTspecInfo.numTspecs = *pBuf++;
+    len -= sizeof(tANI_U8);
+    palCopyMemory(pMac->hHdd, (void*)&pJoinReq->ccxTspecInfo.tspec[0], pBuf, (sizeof(tTspecInfo)* pJoinReq->ccxTspecInfo.numTspecs));
+    pBuf += sizeof(tTspecInfo)*SIR_CCX_MAX_TSPEC_IES;
+    len  -= sizeof(tTspecInfo)*SIR_CCX_MAX_TSPEC_IES;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+#endif
+    
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX
+    //isFastTransitionEnabled;
+    pJoinReq->isFastTransitionEnabled = (tAniBool)limGetU32(pBuf);
+    pBuf += sizeof(tAniBool);
+    len -= sizeof(tAniBool);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;    
+#endif
+
     
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
     // Extract BP Indicator

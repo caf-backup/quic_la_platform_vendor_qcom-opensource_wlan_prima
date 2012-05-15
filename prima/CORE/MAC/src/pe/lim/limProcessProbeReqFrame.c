@@ -32,11 +32,6 @@
 #include "parserApi.h"
 #include "limSession.h"
 
-#if defined WLAN_FEATURE_P2P
-void
-limProcessP2PProbeReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession psessionEntry);
-#endif
-
 #ifdef WLAN_SOFTAP_FEATURE
 void
 
@@ -440,7 +435,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                 if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
                 {
                     tANI_U8 i = 0, rate_11b = 0, other_rates = 0;
-
                     // Check 11b rates in supported rates
                     for ( i = 0 ; i < probeReq.supportedRates.numRates;
                                                                   i++ )
@@ -847,5 +841,3 @@ limSendSmeProbeReqInd(tpAniSirGlobal pMac,
         
 } /*** end limSendSmeProbeReqInd() ***/
 #endif
-
-

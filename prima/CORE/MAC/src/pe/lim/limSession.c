@@ -1,4 +1,8 @@
-
+/*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * */
 /**=========================================================================
   
   \file  limSession.c
@@ -21,6 +25,9 @@
 #include "limDebug.h"
 #include "limSession.h"
 #include "limUtils.h"
+#ifdef FEATURE_WLAN_CCX
+#include "ccxApi.h"
+#endif
 
 /*--------------------------------------------------------------------------
   
@@ -111,6 +118,17 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             pMac->lim.gpSession[i].limSmeState = eLIM_SME_IDLE_STATE;
             pMac->lim.gpSession[i].limCurrentAuthType = eSIR_OPEN_SYSTEM;
             peInitBeaconParams(pMac, &pMac->lim.gpSession[i]);
+#ifdef WLAN_FEATURE_VOWIFI_11R
+            pMac->lim.gpSession[i].is11Rconnection = FALSE;
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+            pMac->lim.gpSession[i].isCCXconnection = FALSE;
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX
+            pMac->lim.gpSession[i].isFastTransitionEnabled = FALSE;
+#endif
             *sessionId = i;
 
             return(&pMac->lim.gpSession[i]);
@@ -274,6 +292,10 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
         palFreeMemory(pMac->hHdd, (void *)psessionEntry->parsedAssocReq);
         psessionEntry->parsedAssocReq = NULL;
     }
+
+#ifdef FEATURE_WLAN_CCX
+    limCleanupCcxCtxt(pMac, psessionEntry); 
+#endif
 
     psessionEntry->valid = FALSE;
     return;

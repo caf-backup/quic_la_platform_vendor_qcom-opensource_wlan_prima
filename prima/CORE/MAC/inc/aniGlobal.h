@@ -75,7 +75,10 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "smeRrmInternal.h"
 #include "rrmGlobal.h"
 #endif
-
+#if defined FEATURE_WLAN_CCX
+#include "ccxApi.h"
+#include "ccxGlobal.h"
+#endif
 #ifdef WLAN_FEATURE_P2P
 #include "p2p_Api.h"
 #endif
@@ -215,6 +218,9 @@ typedef struct sLimTimers
     TX_TIMER           gLimFTPreAuthRspTimer;
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+    TX_TIMER           gLimCcxTsmTimer;
+#endif
 #ifdef WLAN_FEATURE_P2P
     TX_TIMER           gLimRemainOnChannelTimer;
 #endif

@@ -6047,6 +6047,130 @@ VOS_STATUS WDA_ProcessUpdateBeaconParams(tWDA_CbContext *pWDA,
 
 }
 
+#ifdef FEATURE_WLAN_CCX
+
+/*
+ * FUNCTION: WDA_TSMStatsReqCallback
+ * send TSM Stats RSP back to PE
+ */ 
+void WDA_TSMStatsReqCallback(WDI_TSMStatsRspParamsType *pwdiTSMStatsRspParams, void* pUserData)
+{
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA = NULL; 
+   tTSMStats *pTsmRspParams = NULL;
+ 
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ Entering: %s " ,__FUNCTION__);
+
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
+   pWDA = (tWDA_CbContext *) pWdaParams->pWdaContext;
+   pTsmRspParams = (tTSMStats *)pWdaParams->wdaMsgParam ;
+
+   if( NULL == pTsmRspParams )
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                          "%s: pTsmRspParams received NULL " ,__FUNCTION__);
+      VOS_ASSERT( 0 );
+      return ;
+   }
+
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   vos_mem_free(pWdaParams);
+   
+   pTsmRspParams->tsmMetrics.UplinkPktQueueDly = pwdiTSMStatsRspParams->UplinkPktQueueDly;
+   vos_mem_copy(pTsmRspParams->tsmMetrics.UplinkPktQueueDlyHist,
+                 pwdiTSMStatsRspParams->UplinkPktQueueDlyHist,
+                 sizeof(pwdiTSMStatsRspParams->UplinkPktQueueDlyHist)/
+                 sizeof(pwdiTSMStatsRspParams->UplinkPktQueueDlyHist[0]));
+   pTsmRspParams->tsmMetrics.UplinkPktTxDly = pwdiTSMStatsRspParams->UplinkPktTxDly;
+   pTsmRspParams->tsmMetrics.UplinkPktLoss = pwdiTSMStatsRspParams->UplinkPktLoss;
+   pTsmRspParams->tsmMetrics.UplinkPktCount = pwdiTSMStatsRspParams->UplinkPktCount;
+   pTsmRspParams->tsmMetrics.RoamingCount = pwdiTSMStatsRspParams->RoamingCount;
+   pTsmRspParams->tsmMetrics.RoamingDly = pwdiTSMStatsRspParams->RoamingDly;
+
+   WDA_SendMsg(pWDA, WDA_TSM_STATS_RSP, (void *)pTsmRspParams , 0) ;
+
+   return ;
+}
+
+
+
+
+/*
+ * FUNCTION: WDA_ProcessTsmStatsReq
+ * Request to WDI to get the TSM Stats params.
+ */ 
+VOS_STATUS WDA_ProcessTsmStatsReq(tWDA_CbContext *pWDA, 
+                                    tTSMStats *pTsmStats)
+{
+   WDI_Status status = WDI_STATUS_SUCCESS ;
+   WDI_TSMStatsReqParamsType *wdiTSMReqParam = NULL;
+   tWDA_ReqParams *pWdaParams = NULL;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> Entering: %s " ,__FUNCTION__);
+
+   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+             "%s: wdaMsgParam or  wdaWdiApiMsgParam is not NULL", __FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   wdiTSMReqParam = (WDI_TSMStatsReqParamsType *)vos_mem_malloc(
+                                 sizeof(WDI_TSMStatsReqParamsType));
+   if(NULL == wdiTSMReqParam) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(wdiTSMReqParam);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   wdiTSMReqParam->wdiTsmStatsParamsInfo.ucTid = pTsmStats->tid;
+   vos_mem_copy(wdiTSMReqParam->wdiTsmStatsParamsInfo.bssid,
+                                           pTsmStats->bssId,
+                                         sizeof(wpt_macAddr));
+   wdiTSMReqParam->wdiReqStatusCB = NULL ;
+   
+   pWdaParams->pWdaContext = pWDA;
+   /* Store TSM Stats pointer, as this will be used for response */
+   pWdaParams->wdaMsgParam = (void *)pTsmStats ;
+
+   /* store Params pass it to WDI */
+   pWdaParams->wdaWdiApiMsgParam = (void *)wdiTSMReqParam ;
+
+   status = WDI_TSMStatsReq(wdiTSMReqParam,
+                           (WDI_TsmRspCb)WDA_TSMStatsReqCallback, pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+             "Failure in TSM STATS REQ Params WDI API, free all the memory " );
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      vos_mem_free(pWdaParams) ;
+   }
+
+  return CONVERT_WDI2VOS_STATUS(status) ;
+} 
+#endif
 /*
  * FUNCTION: WDA_SendBeaconParamsCallback
  * No need to send any response to PE in this case
@@ -6168,6 +6292,7 @@ VOS_STATUS WDA_ProcessUpdateProbeRspTemplate(tWDA_CbContext *pWDA,
 
 }
 
+#if defined(WLAN_FEATURE_VOWIFI) || defined(FEATURE_WLAN_CCX)
 /*
  * FUNCTION: WDA_SetMaxTxPowerCallBack
  * send the response to PE with power value received from WDI
@@ -6291,6 +6416,8 @@ void WDA_SetMaxTxPowerCallBack(WDI_SetMaxTxPowerRspMsg * pwdiSetMaxTxPowerRsp,
    return CONVERT_WDI2VOS_STATUS(status);
    
 }
+
+#endif
 
 #ifdef WLAN_FEATURE_P2P
 
@@ -6701,6 +6828,10 @@ VOS_STATUS WDA_ProcessEnterBmpsReq(tWDA_CbContext *pWDA,
    wdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucDtimPeriod = pEnterBmpsReqParams->dtimPeriod;
    wdiEnterBmpsReqParams->wdiEnterBmpsInfo.uTbtt = pEnterBmpsReqParams->tbtt;
 
+   // For CCX and 11R Roaming
+   wdiEnterBmpsReqParams->wdiEnterBmpsInfo.rssiFilterPeriod = (wpt_uint32)pEnterBmpsReqParams->rssiFilterPeriod;
+   wdiEnterBmpsReqParams->wdiEnterBmpsInfo.numBeaconPerRssiAverage = (wpt_uint32)pEnterBmpsReqParams->numBeaconPerRssiAverage;
+   wdiEnterBmpsReqParams->wdiEnterBmpsInfo.bRssiFilterEnable = (wpt_uint8)pEnterBmpsReqParams->bRssiFilterEnable;
    wdiEnterBmpsReqParams->wdiReqStatusCB = NULL;
 
    // we are done with the input
@@ -7875,8 +8006,20 @@ VOS_STATUS WDA_SetRSSIThresholdsReq(tpAniSirGlobal pMac, tSirRSSIThresholds *pBm
       return VOS_STATUS_E_NOMEM;
    }
 
-   vos_mem_copy(&wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo, pBmpsThresholds,
-                sizeof(WDI_RSSIThresholdsType));
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.bReserved10 = pBmpsThresholds->bReserved10;
+
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.ucRssiThreshold1 = pBmpsThresholds->ucRssiThreshold1;
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.ucRssiThreshold2 = pBmpsThresholds->ucRssiThreshold2;
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.ucRssiThreshold3 = pBmpsThresholds->ucRssiThreshold3;
+
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.bRssiThres1NegNotify = pBmpsThresholds->bRssiThres1NegNotify;
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.bRssiThres2NegNotify = pBmpsThresholds->bRssiThres2NegNotify;
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.bRssiThres3NegNotify = pBmpsThresholds->bRssiThres3NegNotify;
+
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.bRssiThres1PosNotify = pBmpsThresholds->bRssiThres1PosNotify;
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.bRssiThres2PosNotify = pBmpsThresholds->bRssiThres2PosNotify;
+   wdiRSSIThresholdsInfo->wdiRSSIThresholdsInfo.bRssiThres3PosNotify = pBmpsThresholds->bRssiThres3PosNotify;
+
    wdiRSSIThresholdsInfo->wdiReqStatusCB = NULL;
 
    pVosContext = vos_get_global_context(VOS_MODULE_ID_PE, (void *)pMac);
@@ -9456,7 +9599,11 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
    systemRole = wdaGetGlobalSystemRole(pMac);
 
    if (( eSYSTEM_UNKNOWN_ROLE == systemRole ) || 
-       ( eSYSTEM_STA_ROLE == systemRole )) 
+       (( eSYSTEM_STA_ROLE == systemRole )
+#ifdef FEATURE_WLAN_CCX
+      && frmType == HAL_TXRX_FRM_802_11_MGMT
+#endif
+            ))
    {
        txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
    }
@@ -9757,6 +9904,13 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          handling this request when UMAC supports */
          break;
       }
+#ifdef FEATURE_WLAN_CCX
+      case WDA_TSM_STATS_REQ:
+      {
+         WDA_ProcessTsmStatsReq(pWDA, (tTSMStats *)pMsg->bodyptr);
+         break;
+      }
+#endif
       case WDA_UPDATE_EDCA_PROFILE_IND:
       {
          WDA_ProcessUpdateEDCAParamReq(pWDA, (tEdcaParams *)pMsg->bodyptr);
@@ -10034,12 +10188,14 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
                                       (tSendProbeRespParams *)pMsg->bodyptr);
           break;
       }
+#if defined(WLAN_FEATURE_VOWIFI) || defined(FEATURE_WLAN_CCX)
       case WDA_SET_MAX_TX_POWER_REQ:
       {
          WDA_ProcessSetMaxTxPowerReq(pWDA,
                                        (tMaxTxPowerParams *)pMsg->bodyptr);
          break;
       }
+#endif
 #ifdef WLAN_FEATURE_P2P
       case WDA_SET_P2P_GO_NOA_REQ:
       {
@@ -10206,7 +10362,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
    
    switch(wdiLowLevelInd->wdiIndicationType)
    {
-      case WDI_HAL_RSSI_NOTIFICATION_IND:
+      case WDI_RSSI_NOTIFICATION_IND:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                      "Received WDI_HAL_RSSI_NOTIFICATION_IND from WDI ");

@@ -211,23 +211,22 @@ typedef enum {
 
 // Suffix'ed Message ID to differential from existing Message name.
 // ===============================================================
-    PTT_MSG_GET_NV_TABLE_PRIMA_V1 = 0x32BD,
-    PTT_MSG_SET_NV_TABLE_PRIMA_V1 = 0x32BE,
-    PTT_MSG_RX_IQ_CAL_PRIMA_V1 = 0x32BF,
-    PTT_MSG_TX_IQ_CAL_PRIMA_V1 = 0x32C0,
-    PTT_MSG_SET_TX_IQ_CORRECT_PRIMA_V1 = 0x32C1,
-    PTT_MSG_GET_TX_IQ_CORRECT_PRIMA_V1 = 0x32C2,
-    PTT_MSG_SET_RX_IQ_CORRECT_PRIMA_V1 = 0x32C3,
-    PTT_MSG_GET_RX_IQ_CORRECT_PRIMA_V1 = 0x32C4,
-    PTT_MSG_START_WAVEFORM_PRIMA_V1 = 0x32C5,
-    PTT_MSG_FORCE_PACKET_TX_GAIN_PRIMA_V1 = 0x32C6,
-    PTT_MSG_CLPC_CAL_SETUP_PRIMA_V1 = 0x32C7,
-    PTT_MSG_CLPC_CAL_RESTORE_PRIMA_V1 = 0x32C8,
-    PTT_MSG_CLOSE_TPC_LOOP_PRIMA_V1 = 0x32C9,
-    PTT_MSG_SW_CLPC_CAL_PRIMA_V1 = 0x32CA,
+   PTT_MSG_GET_NV_TABLE_PRIMA_V1 = 0x32BD,
+   PTT_MSG_SET_NV_TABLE_PRIMA_V1 = 0x32BE,
+   PTT_MSG_RX_IQ_CAL_PRIMA_V1 = 0x32BF,
+   PTT_MSG_TX_IQ_CAL_PRIMA_V1 = 0x32C0,
+   PTT_MSG_SET_TX_IQ_CORRECT_PRIMA_V1 = 0x32C1,
+   PTT_MSG_GET_TX_IQ_CORRECT_PRIMA_V1 = 0x32C2,
+   PTT_MSG_SET_RX_IQ_CORRECT_PRIMA_V1 = 0x32C3,
+   PTT_MSG_GET_RX_IQ_CORRECT_PRIMA_V1 = 0x32C4,
+   PTT_MSG_START_WAVEFORM_PRIMA_V1 = 0x32C5,
+   PTT_MSG_FORCE_PACKET_TX_GAIN_PRIMA_V1 = 0x32C6,
+   PTT_MSG_CLPC_CAL_SETUP_PRIMA_V1 = 0x32C7,
+   PTT_MSG_CLPC_CAL_RESTORE_PRIMA_V1 = 0x32C8,
+   PTT_MSG_CLOSE_TPC_LOOP_PRIMA_V1 = 0x32C9,
+   PTT_MSG_SW_CLPC_CAL_PRIMA_V1 = 0x32CA,
    PTT_MSG_CLPC_CAL_EXTRA_MEASUREMENT_PRIMA_V1 = 0x32CB,
-
-
+   PTT_MSG_DIGITAL_PIN_CONNECTIVITY_TEST_RES = 0X32CC,
    PTT_MSG_EXIT = 0x32ff,
    PTT_MAX_MSG_ID = PTT_MSG_EXIT
 } ePttMsgId;
@@ -772,6 +771,10 @@ typedef PACKED_PRE struct PACKED_POST {
     eGainSteps gain;
 }tMsgPttGetDPDCorrect;
 
+typedef PACKED_PRE struct PACKED_POST {
+   tANI_U16 testID;
+   tANI_U16 result;
+} tMsgPttPinConnTestRes;
 //#endif
 
 /******************************************************************************************************************
@@ -885,6 +888,7 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttGetDPDCorrect GetDPDCorrect;
    tMsgPttSetDPDCorrect SetDPDCorrect;
    tMsgPttDpdCal DPDCal;
+   tMsgPttPinConnTestRes PinConnTestRes;
 } uPttMsgs;
 
 typedef PACKED_PRE struct PACKED_POST {
@@ -897,7 +901,7 @@ typedef PACKED_PRE struct PACKED_POST {
 
 typedef PACKED_PRE struct PACKED_POST {
    /*
-    * success or failure 
+    * success or failure
     */
    tANI_U32 status;
    tPttMsgbuffer pttMsgBuffer;

@@ -6,8 +6,11 @@
   
     Exports and types for the Common Scan and Roaming supporting interfaces.
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
-  
+   Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+   All Rights Reserved. 
+   Qualcomm Atheros Confidential and Proprietary.  
+
+   Copyright (C) 2006 Airgo Networks, Incorporated
  
    ========================================================================== */
 #ifndef CSR_SUPPORT_H__
@@ -765,6 +768,16 @@ eHalStatus csrGetPhyModeFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBSSDes
 eHalStatus csrReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId,
                       tCsrRoamModifyProfileFields *pModProfileFields,
                       tANI_U32 *pRoamId, v_BOOL_t fForce);
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+tANI_BOOLEAN csrIsProfile11r( tCsrRoamProfile *pProfile );
+tANI_BOOLEAN csrIsAuthType11r( eCsrAuthType AuthType );
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+tANI_BOOLEAN csrIsAuthTypeCCX( eCsrAuthType AuthType );
+tANI_BOOLEAN csrIsProfileCCX( tCsrRoamProfile *pProfile );
+#endif
 
 #endif
 

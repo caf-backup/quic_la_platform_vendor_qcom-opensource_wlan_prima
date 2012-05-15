@@ -294,7 +294,7 @@ typedef enum
 {
   /*When RSSI monitoring is enabled of the Lower MAC and a threshold has been
     passed. */
-  WDI_HAL_RSSI_NOTIFICATION_IND,
+  WDI_RSSI_NOTIFICATION_IND,
 
   /*Link loss in the low MAC */
   WDI_MISSED_BEACON_IND,
@@ -2537,6 +2537,54 @@ typedef struct
    * structure depending on statsMask.*/
 }WDI_GetStatsRspParamsType;
 
+#ifdef FEATURE_WLAN_CCX
+/*---------------------------------------------------------------------------
+  WDI_TSMStatsParamsInfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Indicates the station for which Get Stats are requested..*/
+  wpt_uint8        ucTid;
+
+  wpt_macAddr      bssid;
+}WDI_TSMStatsParamsInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_TSMStatsReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Get TSM Stats Params  Info*/
+  WDI_TSMStatsParamsInfoType  wdiTsmStatsParamsInfo;
+
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+
+}WDI_TSMStatsReqParamsType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_TSMStatsRspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Indicates the status of the operation */
+  WDI_Status      wdiStatus;
+
+  wpt_uint16      UplinkPktQueueDly;
+  wpt_uint16      UplinkPktQueueDlyHist[4];
+  wpt_uint32      UplinkPktTxDly;
+  wpt_uint16      UplinkPktLoss;
+  wpt_uint16      UplinkPktCount;
+  wpt_uint8       RoamingCount;
+  wpt_uint16      RoamingDly;
+}WDI_TSMStatsRspParamsType;
+
+
+#endif
 /*---------------------------------------------------------------------------
   WDI_UpdateCfgReqParamsType
 ---------------------------------------------------------------------------*/
@@ -2903,6 +2951,11 @@ typedef struct
    /* DXE physical addr to be passed down to RIVA. RIVA HAL will use it to program
    DXE when DXE wakes up from power save*/
    unsigned int      dxePhyAddr;
+
+   // For CCX and 11R Roaming
+   wpt_uint32 rssiFilterPeriod;
+   wpt_uint32 numBeaconPerRssiAverage;
+   wpt_uint8  bRssiFilterEnable;
 }WDI_EnterBmpsReqinfoType;
 
 /*---------------------------------------------------------------------------
@@ -4512,6 +4565,29 @@ typedef void  (*WDI_SetSTAKeyRspCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_RemoveSTAKeyRspCb)(WDI_Status   wdiStatus,
                                        void*        pUserData);
 
+
+#ifdef FEATURE_WLAN_CCX 
+/*---------------------------------------------------------------------------
+   WDI_TsmRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a TSM Stats response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    pTSMStats:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_TsmRspCb)(WDI_TSMStatsRspParamsType *pTSMStats,
+                                void*        pUserData);
+#endif
 
 /*---------------------------------------------------------------------------
    WDI_StartRspCb
@@ -6461,6 +6537,36 @@ WDI_SetMaxTxPowerReq
   WDA_SetMaxTxPowerRspCb         wdiReqStatusCb,
   void*                          pUserData
 );
+
+#ifdef FEATURE_WLAN_CCX
+/**
+ @brief WDI_TSMStatsReq will be called by the upper MAC to fetch 
+        Traffic Stream metrics. 
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ @param wdiAddTsReqParams: the add TS parameters as specified by
+                      the Device Interface
+  
+        wdiAddTsRspCb: callback for passing back the response of
+        the add TS operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_TSMStatsReq
+(
+  WDI_TSMStatsReqParamsType* pwdiTsmStatsReqParams,
+  WDI_TsmRspCb          wdiTsmStatsRspCb,
+  void*                   pUserData
+);
+
+
+#endif
 
 /*======================================================================== 
  

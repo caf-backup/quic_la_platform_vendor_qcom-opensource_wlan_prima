@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file aniSystemDefs.h contains definitions used by
  * various ANI entities
@@ -56,6 +60,9 @@ typedef enum eAniAuthType
     eSIR_SHARED_KEY,
 #if defined WLAN_FEATURE_VOWIFI_11R
     eSIR_FT_AUTH,
+#endif
+#if defined FEATURE_WLAN_CCX
+    eSIR_LEAP_AUTH = 0x80,
 #endif
     eSIR_AUTO_SWITCH,
     eSIR_DONOT_USE_AUTH_TYPE = SIR_MAX_ENUM_SIZE
@@ -133,6 +140,18 @@ typedef struct sSirAddie
     tANI_U16       length;
     tANI_U8        addIEdata[SIR_MAC_MAX_IE_LENGTH+2];
 } tSirAddie, *tpSirAddie;
+
+#ifdef FEATURE_WLAN_CCX
+
+// The CCKM IE needs to be in the 
+// Join and Reassoc Req. 
+typedef struct sSirCCKMie
+{
+    tANI_U16       length;
+    tANI_U8        cckmIEdata[SIR_MAC_MAX_IE_LENGTH+2];  
+} tSirCCKMie, *tpSirCCKMie;
+
+#endif
 
 /// Need to refine structure definitions for Keying material,
 /// QoS policy, etc
