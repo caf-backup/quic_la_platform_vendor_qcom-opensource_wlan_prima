@@ -42,13 +42,13 @@ KBUILD_OPTIONS := WLAN_PRIMA=../$(WLAN_BLD_DIR)/prima
 KBUILD_OPTIONS += MODNAME=wlan
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
-include $(CLEAR_VARS)
-LOCAL_MODULE              := prima_wlan.ko
-LOCAL_MODULE_KBUILD_NAME  := wlan.ko
-LOCAL_MODULE_TAGS         := eng
-LOCAL_MODULE_DEBUG_ENABLE := true
-LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/prima
-include $(DLKM_DIR)/AndroidKernelModule.mk
+#include $(CLEAR_VARS)
+#LOCAL_MODULE              := prima_wlan.ko
+#LOCAL_MODULE_KBUILD_NAME  := wlan.ko
+#LOCAL_MODULE_TAGS         := eng
+#LOCAL_MODULE_DEBUG_ENABLE := true
+#LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/prima
+#include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 MV_CFG80211_MODULE := $(KERNEL_MODULES_OUT)/prima/cfg80211.ko
