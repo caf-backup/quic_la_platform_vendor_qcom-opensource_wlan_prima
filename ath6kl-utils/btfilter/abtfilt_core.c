@@ -364,7 +364,7 @@ AdjustBtControlAction(ATHBT_FILTER_INFO      *pInfo,
             if (pInfo->Flags & ABF_BT_CHIP_IS_QCOM) {
                     pA2dpGenericConfig->a2dpFlags |= A2DP_CONFIG_ALLOW_OPTIMIZATION;
                     pA2dpPspollConfig->a2dpWlanMaxDur = 25;
-                    pA2dpPspollConfig->a2dpMinBurstCnt = 5;
+                    pA2dpPspollConfig->a2dpMinBurstCnt = 3;
                     pA2dpOptModeConfig->a2dpPktStompCnt = 2;
             } else {
                 if (pInfo->Flags & ABF_BT_CHIP_IS_ATHEROS) {
