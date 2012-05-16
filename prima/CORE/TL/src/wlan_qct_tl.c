@@ -7769,8 +7769,8 @@ WLANTL_Translate8023To80211Header
         *ucWDSEnabled = 0; // WDS off.
         pw80211Header->wFrmCtrl.toDS          = 0;
         pw80211Header->wFrmCtrl.fromDS        = 1;
-        vos_copy_macaddr( (v_MACADDR_t*)&pw80211Header->vA1,
-              &pTLCb->atlSTAClients[ucStaId].wSTADesc.vSTAMACAddress);
+        /*Copy the DA to A1*/
+        vos_mem_copy( pw80211Header->vA1, w8023Header.vDA , VOS_MAC_ADDR_SIZE);   
         vos_copy_macaddr( (v_MACADDR_t*)&pw80211Header->vA2,
               &pTLCb->atlSTAClients[ucStaId].wSTADesc.vSelfMACAddress);
         vos_mem_copy( pw80211Header->vA3,
