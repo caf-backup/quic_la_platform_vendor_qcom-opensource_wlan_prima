@@ -2010,8 +2010,8 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
 
     if ( ! ar.SuppRates.present )
     {
+        pAssocRsp->suppRatesPresent = 0;
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE Supported Rates not present!\n"));)
-        return eSIR_FAILURE;
     }
     else
     {
