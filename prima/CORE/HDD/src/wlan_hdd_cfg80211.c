@@ -1486,6 +1486,11 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                    "%s: HDD adapter context is Null", __FUNCTION__);
         return -ENODEV;
     }
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+        return -EAGAIN;
+    }
 
     pHddCtx  =  (hdd_context_t*)pAdapter->pHddCtx;
 
@@ -1612,6 +1617,12 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     VOS_STATUS status;
 
     ENTER();
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+        return -EAGAIN;
+    }
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                              __func__, pAdapter->device_mode);
