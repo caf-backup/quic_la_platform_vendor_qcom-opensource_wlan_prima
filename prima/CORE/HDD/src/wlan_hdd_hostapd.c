@@ -1371,34 +1371,35 @@ static int iw_softap_get_channel_list(struct net_device *dev,
                           struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
-    v_U8_t channels[WNI_CFG_VALID_CHANNEL_LIST_LEN];
-    v_U32_t num_channels = sizeof(channels);
+    v_U32_t num_channels = 0;
+    v_U8_t i = 0;
+    v_U8_t bandStartChannel = RF_CHAN_1;
+    v_U8_t bandEndChannel = RF_CHAN_165;
 
-   tpChannelListInfo channel_list = (tpChannelListInfo) extra;
-   wrqu->data.length = sizeof(tChannelListInfo);
-   ENTER();
-   if (ccmCfgGetStr((hHal), 
-                    WNI_CFG_VALID_CHANNEL_LIST,
-                    channel_list->channels,
-                    &num_channels) != eHAL_STATUS_SUCCESS)
-   {
-      hddLog(LOGE,FL(" Get Valid channel list failed\n")); 
-      return -EIO;
-   }
-   
-   hddLog(LOG1,FL(" number of channels %d\n"), num_channels); 
+    tpChannelListInfo channel_list = (tpChannelListInfo) extra;
+    wrqu->data.length = sizeof(tChannelListInfo);
+    ENTER();
 
-   if (num_channels > IW_MAX_FREQUENCIES)
-   {
-      num_channels = IW_MAX_FREQUENCIES;
-   }
-  
-   channel_list->num_channels = num_channels;
-   EXIT();
+    for( i = bandStartChannel; i <= bandEndChannel; i++ )
+    {
+        if( NV_CHANNEL_ENABLE == regChannels[i].enabled )
+        {
+            channel_list->channels[num_channels] = rfChannels[i].channelNum; 
+            num_channels++;
+        }
+    }
 
-   return 0;
+    hddLog(LOG1,FL(" number of channels %d\n"), num_channels); 
+
+    if (num_channels > IW_MAX_FREQUENCIES)
+    {
+        num_channels = IW_MAX_FREQUENCIES;
+    }
+
+    channel_list->num_channels = num_channels;
+    EXIT();
+
+    return 0;
 }
 
 static 
