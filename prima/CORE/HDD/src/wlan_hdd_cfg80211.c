@@ -99,12 +99,6 @@
     .flags = flag, \
 }
 
-#define g_ht_capability \
-             IEEE80211_HT_CAP_SGI_20 |        \
-             IEEE80211_HT_CAP_GRN_FLD |       \
-             IEEE80211_HT_CAP_DSSSCCK40 |     \
-             IEEE80211_HT_CAP_LSIG_TXOP_PROT
-
 static const u32 hdd_cipher_suites[] = 
 {
     WLAN_CIPHER_SUITE_WEP40,
@@ -211,7 +205,7 @@ static struct ieee80211_rate a_mode_rates[] =
     HDD_G_MODE_RATETAB(540, 0x800, 0),
 };
 
-static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ = 
+struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
 {
     .channels = hdd_channels_2_4_GHZ,
     .n_channels = ARRAY_SIZE(hdd_channels_2_4_GHZ),
@@ -219,7 +213,10 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
     .bitrates = g_mode_rates,
     .n_bitrates = g_mode_rates_size,
     .ht_cap.ht_supported   = 1,
-    .ht_cap.cap            = g_ht_capability,
+    .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
+                            | IEEE80211_HT_CAP_GRN_FLD
+                            | IEEE80211_HT_CAP_DSSSCCK40
+                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
     .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -228,7 +225,7 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
 };
 
 #ifdef WLAN_FEATURE_P2P
-static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ = 
+struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
 {
     .channels = hdd_social_channels_2_4_GHZ,
     .n_channels = ARRAY_SIZE(hdd_social_channels_2_4_GHZ),
@@ -236,7 +233,10 @@ static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
     .bitrates = g_mode_rates,
     .n_bitrates = g_mode_rates_size,
     .ht_cap.ht_supported   = 1,
-    .ht_cap.cap            = g_ht_capability,
+    .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
+                            | IEEE80211_HT_CAP_GRN_FLD
+                            | IEEE80211_HT_CAP_DSSSCCK40
+                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
     .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -245,7 +245,7 @@ static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
 };
 #endif
 
-static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
+struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
 {
     .channels = hdd_channels_5_GHZ,
     .n_channels = ARRAY_SIZE(hdd_channels_5_GHZ),
@@ -253,7 +253,10 @@ static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
     .bitrates = a_mode_rates,
     .n_bitrates = a_mode_rates_size,
     .ht_cap.ht_supported   = 1,
-    .ht_cap.cap            = g_ht_capability,
+    .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
+                            | IEEE80211_HT_CAP_GRN_FLD
+                            | IEEE80211_HT_CAP_DSSSCCK40
+                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
     .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -425,6 +428,18 @@ int wlan_hdd_cfg80211_register(struct device *dev,
 #endif                       
                              | BIT(NL80211_IFTYPE_AP);
 
+    /* Before registering we need to update the ht capabilitied based
+     * on ini values*/
+    if( pCfg->ShortGI20MhzEnable )
+    {
+        wlan_hdd_band_2_4_GHZ.ht_cap.cap     |= IEEE80211_HT_CAP_SGI_20;
+        wlan_hdd_band_5_GHZ.ht_cap.cap       |= IEEE80211_HT_CAP_SGI_20;
+        wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_SGI_20;
+    }
+    if( pCfg->ShortGI40MhzEnable )
+    {
+        wlan_hdd_band_5_GHZ.ht_cap.cap       |= IEEE80211_HT_CAP_SGI_40;
+    }
 
     /*Initialize band capability*/
     switch(pCfg->nBandCapability)

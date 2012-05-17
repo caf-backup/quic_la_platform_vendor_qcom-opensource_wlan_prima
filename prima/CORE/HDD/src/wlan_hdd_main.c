@@ -123,6 +123,10 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #define MEMORY_DEBUG_STR ""
 #endif
 
+extern struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ;
+extern struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ;
+extern struct ieee80211_supported_band wlan_hdd_band_5_GHZ;
+
 static struct wake_lock wlan_wake_lock;
 /* set when SSR is needed after unload */
 static v_U8_t      isSsrRequired;
@@ -3393,6 +3397,39 @@ int hdd_wlan_startup(struct device *dev )
       }
    }
 #endif // FEATURE_WLAN_INTEGRATED_SOC
+
+   /* Update the HT capability info from cfg.dat info */
+   {
+
+      v_U32_t cfgValue;
+      wlan_cfgGetInt( pHddCtx->hHal, WNI_CFG_GREENFIELD_CAPABILITY, &cfgValue);
+      if( cfgValue )
+      {
+          wlan_hdd_band_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_GRN_FLD;
+          wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_GRN_FLD;
+          wlan_hdd_band_5_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_GRN_FLD;
+      }
+
+      memset(&cfgValue,0,sizeof(v_U32_t));
+      wlan_cfgGetInt( pHddCtx->hHal, WNI_CFG_HT_CAP_INFO_DSSS_CCK_MODE_40MHZ,
+                      &cfgValue);
+      if( cfgValue )
+      {
+          wlan_hdd_band_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_DSSSCCK40;
+          wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_DSSSCCK40;
+          wlan_hdd_band_5_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_DSSSCCK40;
+      }
+
+      memset(&cfgValue,0,sizeof(v_U32_t));
+      wlan_cfgGetInt( pHddCtx->hHal,WNI_CFG_HT_CAP_INFO_LSIG_TXOP_PROTECTION,
+                      &cfgValue);
+      if( cfgValue )
+      {
+          wlan_hdd_band_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_LSIG_TXOP_PROT;
+          wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_LSIG_TXOP_PROT;
+          wlan_hdd_band_5_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_LSIG_TXOP_PROT;
+      }
+   }
 
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
      Note: Firmware image will be read and downloaded inside vos_start API */
