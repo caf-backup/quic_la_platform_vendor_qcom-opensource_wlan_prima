@@ -814,13 +814,14 @@ typedef struct
 
     The result code associated with performing the operation
 
-    TRUE: if there are still frames to fetch
-    FALSE: error or HDD queues are drained
+    1 or more: number of required resources if there are still frames to fetch
+               For Volans, it's BD/PDU numbers. For Prima, it's free DXE descriptors.
+    0 : error or HDD queues are drained
 
   SIDE EFFECTS
 
 ============================================================================*/
-v_BOOL_t
+v_U32_t
 WLANTL_GetFrames
 (
   v_PVOID_t       pAdapter,

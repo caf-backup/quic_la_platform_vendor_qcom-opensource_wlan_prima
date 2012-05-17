@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**=========================================================================
  *     
  *       \file  wlan_qct_wdi_dts.c
@@ -30,7 +36,8 @@ static WDTS_TransportDriverTrype gTransportDriver = {
   WLANDXE_CompleteTX,
   WLANDXE_SetPowerState,
   WLANDXE_Stop,
-  WLANDXE_Close
+  WLANDXE_Close,
+  WLANDXE_GetFreeTxDataResNumber
 };
 
 static WDTS_SetPowerStateCbInfoType gSetPowerStateCbInfo;
@@ -395,6 +402,11 @@ wpt_status WDTS_openTransport( void *pContext)
   WDI_DS_AssignDatapathContext(pContext, (void*)pClientData);
 
   pDTDriverContext = gTransportDriver.open(); 
+  if( NULL == pDTDriverContext )
+  {
+     DTI_TRACE( DTI_TRACE_LEVEL_ERROR, " %s fail from transport open", __FUNCTION__);
+     return eWLAN_PAL_STATUS_E_FAILURE;
+  }
   WDT_AssignTransportDriverContext(pContext, pDTDriverContext);
   gTransportDriver.register_client(pDTDriverContext, WDTS_RxPacket, WDTS_TxPacketComplete, 
     WDTS_OOResourceNotification, (void*)pClientData);
@@ -470,16 +482,17 @@ wpt_status WDTS_TxPacket(void *pContext, wpt_packet *pFrame)
  * This function should be invoked by the DAL Dataservice to notify tx completion to DXE/SDIO.
  * Parameters:
  * pContext:Cookie that should be passed back to the caller along with the callback.
+ * ucTxResReq:TX resource number required by TL
  * Return Value: SUCCESS  Completed successfully.
  *     FAILURE_XXX  Request was rejected due XXX Reason.
  *
  */
-wpt_status WDTS_CompleteTx(void *pContext)
+wpt_status WDTS_CompleteTx(void *pContext, wpt_uint32 ucTxResReq)
 {
   void *pDTDriverContext = WDT_GetTransportDriverContext(pContext);
   
   // Notify completion to  Transport Driver. 
-  return gTransportDriver.txComplete(pDTDriverContext);
+  return gTransportDriver.txComplete(pDTDriverContext, ucTxResReq);
 }
 
 /* DXE Set power state ACK callback. 
@@ -575,4 +588,16 @@ wpt_status WDTS_Close(void *pContext)
   wpalMemoryFree(pClientData);
 
   return status;
+}
+
+/* Get free TX data descriptor number from DXE
+ * Parameters:
+ * pContext: Cookie that should be passed back to the caller along with the callback.
+ * Return Value: number of free descriptors for TX data channel
+ *
+ */
+wpt_uint32 WDTS_GetFreeTxDataResNumber(void *pContext)
+{
+  return 
+     gTransportDriver.getFreeTxDataResNumber(WDT_GetTransportDriverContext(pContext));
 }

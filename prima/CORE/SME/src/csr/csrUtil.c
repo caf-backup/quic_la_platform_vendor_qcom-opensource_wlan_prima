@@ -34,19 +34,6 @@
 #include "csrCcx.h"
 #endif /* FEATURE_WLAN_CCX */
 
-#define CSR_OUI_USE_GROUP_CIPHER_INDEX 0x00
-#define CSR_OUI_WEP40_OR_1X_INDEX      0x01
-#define CSR_OUI_TKIP_OR_PSK_INDEX      0x02
-#define CSR_OUI_RESERVED_INDEX         0x03
-#define CSR_OUI_AES_INDEX              0x04
-#define CSR_OUI_WEP104_INDEX           0x05
-
-#ifdef FEATURE_WLAN_WAPI
-#define CSR_OUI_WAPI_RESERVED_INDEX    0x00
-#define CSR_OUI_WAPI_WAI_CERT_OR_SMS4_INDEX    0x01
-#define CSR_OUI_WAPI_WAI_PSK_INDEX     0x02
-#endif /* FEATURE_WLAN_WAPI */
-
 tANI_U8 csrWpaOui[][ CSR_WPA_OUI_SIZE ] = {
     { 0x00, 0x50, 0xf2, 0x00 },
     { 0x00, 0x50, 0xf2, 0x01 },
@@ -66,9 +53,13 @@ tANI_U8 csrRSNOui[][ CSR_RSN_OUI_SIZE ] = {
     { 0x00, 0x0F, 0xAC, 0x03 }, // Reserved
     { 0x00, 0x0F, 0xAC, 0x04 }, // AES-CCMP
     { 0x00, 0x0F, 0xAC, 0x05 }, // WEP-104
+#ifdef WLAN_FEATURE_11W
+    { 0x00, 0x0F, 0xAC, 0x06 },  // BIP(encryption type) or (RSN-PSK-SHA256(authentication type)
+#endif
 #ifdef FEATURE_WLAN_CCX
-    { 0x00, 0x40, 0x96, 0x00 }, // CCKM
+    { 0x00, 0x40, 0x96, 0x00 } // CCKM
 #endif /* FEATURE_WLAN_CCX */
+    
 };
 
 #ifdef FEATURE_WLAN_WAPI
@@ -80,7 +71,6 @@ tANI_U8 csrWapiOui[][ CSR_WAPI_OUI_SIZE ] = {
 #endif /* FEATURE_WLAN_WAPI */
 tANI_U8 csrWmeInfoOui[ CSR_WME_OUI_SIZE ] = { 0x00, 0x50, 0xf2, 0x02 };
 tANI_U8 csrWmeParmOui[ CSR_WME_OUI_SIZE ] = { 0x00, 0x50, 0xf2, 0x02 };
-
 
 static tCsrIELenInfo gCsrIELengthTable[] = {
 /* 000 */ { SIR_MAC_SSID_EID_MIN, SIR_MAC_SSID_EID_MAX },
@@ -344,7 +334,6 @@ static tCsrIELenInfo gCsrIELengthTable[] = {
 /* 254 */ { 0, 255 },
 /* 255 */ { SIR_MAC_ANI_WORKAROUND_EID_MIN, SIR_MAC_ANI_WORKAROUND_EID_MAX }
 };
-
 
 #if 0
 //Don't not insert entry into the table, put it to the end. If you have to insert, make sure it is also
@@ -1159,6 +1148,9 @@ tCsrDomainChnInfo gCsrDomainChnInfo[NUM_REG_DOMAINS] =
     },
 };
 #endif
+
+extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
+
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -2719,13 +2711,23 @@ static tANI_BOOLEAN csrIsAuthRSN( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_R
                                   tANI_U8 cAllSuites,
                                   tANI_U8 Oui[] )
 {
+#ifdef WLAN_FEATURE_11W
+    return( csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[01], Oui ) ||
+            csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[05], Oui ));
+#else
     return( csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[01], Oui ) );
+#endif
 }
 static tANI_BOOLEAN csrIsAuthRSNPsk( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_RSN_OUI_SIZE],
                                       tANI_U8 cAllSuites,
                                       tANI_U8 Oui[] )
 {
+#ifdef WLAN_FEATURE_11W
+    return( csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[02], Oui ) ||
+            csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[06], Oui ) );
+#else
     return( csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[02], Oui ) );
+#endif
 }
 
 static tANI_BOOLEAN csrIsAuthWpa( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_WPA_OUI_SIZE],
@@ -3905,6 +3907,11 @@ tAniEdType csrTranslateEncryptTypeToEdType( eCsrEncryptionType EncryptType )
 #ifdef FEATURE_WLAN_WAPI
         case eCSR_ENCRYPT_TYPE_WPI:
             edType = eSIR_ED_WPI;
+#endif
+#ifdef WLAN_FEATURE_11W
+        //11w BIP
+        case eCSR_ENCRYPT_TYPE_AES_CMAC:
+            edType = eSIR_ED_AES_128_CMAC;
             break;
 #endif
     }
@@ -4701,7 +4708,10 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
             pIes = *ppIes;
         }
         
-        fCheck = eANI_BOOLEAN_TRUE;
+        //Check if caller wants P2P
+        fCheck = (!pFilter->p2pResult || pIes->P2PBeaconProbeRes.present);
+        if(!fCheck) break;
+
         if(pIes->SSID.present)
         {
             for(i = 0; i < pFilter->SSIDs.numOfSSIDs; i++)
@@ -4718,6 +4728,14 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
         {
             fCheck = csrIsBssidMatch( pMac, (tCsrBssid *)&pFilter->BSSIDs.bssid[i], (tCsrBssid *)pBssDesc->bssId );
             if ( fCheck ) break;
+
+            if (pFilter->p2pResult && pIes->P2PBeaconProbeRes.present)
+            {
+               fCheck = csrIsBssidMatch( pMac, (tCsrBssid *)&pFilter->BSSIDs.bssid[i], 
+                              (tCsrBssid *)pIes->P2PBeaconProbeRes.P2PDeviceInfo.P2PDeviceAddress );
+
+               if ( fCheck ) break;
+            }
         }
         if(!fCheck) break;
 
@@ -5265,24 +5283,6 @@ eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(eCsrPhyMode phyMode, tANI_BOOL
 }
 
 
-tANI_BOOLEAN csrIs40MhzChannel(tpAniSirGlobal pMac, tANI_U8 chnId)
-{
-    tANI_BOOLEAN fRet = eANI_BOOLEAN_FALSE;
-    tANI_U8 count;
-
-    for(count = 0; count < pMac->scan.base40MHzChannels.numChannels; count++)
-    {
-        if(chnId == pMac->scan.base40MHzChannels.channelList[count])
-        {
-            fRet = eANI_BOOLEAN_TRUE;
-            break;
-        }
-    }
-
-    return (fRet);
-}
-
-
 eHalStatus csrSetRegulatoryDomain(tpAniSirGlobal pMac, v_REGDOMAIN_t domainId, tANI_BOOLEAN *pfRestartNeeded)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -5639,7 +5639,7 @@ eHalStatus csrGetSupportedCountryCode(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U
   -------------------------------------------------------------------------------*/
 eHalStatus csrGetSupportedCountryCode(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U32 *pbLen)
 {
-    eHalStatus status;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
     VOS_STATUS vosStatus;
     v_SIZE_t size = (v_SIZE_t)*pbLen;
 
@@ -5647,9 +5647,10 @@ eHalStatus csrGetSupportedCountryCode(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U
     //eiter way, return the value back
     *pbLen = (tANI_U32)size;
 
-    if( VOS_IS_STATUS_SUCCESS( vosStatus ) )
+    //If pBuf is NULL, caller just want to get the size, consider it success
+    if(pBuf)
     {
-        if( pBuf )
+        if( VOS_IS_STATUS_SUCCESS( vosStatus ) )
         {
             tANI_U32 i, n = *pbLen / 3;
 
@@ -5658,11 +5659,10 @@ eHalStatus csrGetSupportedCountryCode(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U
                 pBuf[i*3 + 2] = ' ';
             }
         }
-        status = eHAL_STATUS_SUCCESS;
-    }
-    else
-    {
-        status = eHAL_STATUS_FAILURE;
+        else
+        {
+            status = eHAL_STATUS_FAILURE;
+        }
     }
 
     return (status);
@@ -5734,3 +5734,19 @@ tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId)
     return ( fRet );
 }
 
+
+//no need to acquire lock for this basic function
+tANI_U16 sme_ChnToFreq(tANI_U8 chanNum)
+{
+   int i;
+
+   for (i = 0; i < NUM_RF_CHANNELS; i++) 
+   {
+      if (rfChannels[i].channelNum == chanNum) 
+      {
+         return rfChannels[i].targetFreq;
+      }
+   }
+
+   return (0);
+}

@@ -218,6 +218,11 @@
 #define SIR_MAC_ACTION_P2P_SUBTYPE_PRESENCE_RSP     2
 #endif
 
+#ifdef WLAN_FEATURE_11W
+//11w SA query request/response action frame category code
+#define SIR_MAC_ACTION_SA_QUERY               8 
+#endif
+
 #define SIR_MAC_MAX_RANDOM_LENGTH   2306
 
 //-----------------------------------------------------------------------------
@@ -432,6 +437,12 @@
 #define SIR_MAC_OUI_SUBTYPE_WSM_SCHEDULE    9
 #define SIR_MAC_OUI_WSM_SCHEDULE_MIN        20
 #define SIR_MAC_OUI_WSM_SCHEDULE_MAX        20
+
+#ifdef WLAN_NS_OFFLOAD
+#define SIR_MAC_NS_OFFLOAD_SIZE        1  //support only one IPv6 offload
+#define SIR_MAC_NUM_TARGET_IPV6_NS_OFFLOAD_NA   2 //Number of target IP in NA frames. It must be at least 2
+#endif //WLAN_NS_OFFLOAD
+#define SIR_MAC_ARP_OFFLOAD_SIZE        1
 
 // total length of an Info element including T/L fields
 #define EID_LEN(eid) (2 + (eid))
@@ -690,6 +701,7 @@ typedef enum eSirMacReasonCodes
     eSIR_MAC_CIPHER_NOT_SUPPORTED_REASON             = 45,  //Peer STA does not support the requested cipher suite
     eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON        = 46, //FT reason
     //reserved                                         47 - 65535.
+    eSIR_BEACON_MISSED                               = 65534, //We invented this to tell beacon missed case
 } tSirMacReasonCodes;
 
 

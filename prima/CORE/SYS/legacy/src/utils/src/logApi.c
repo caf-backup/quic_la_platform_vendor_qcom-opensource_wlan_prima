@@ -49,7 +49,7 @@
 
 #define dbgTraceInfo(_Mask, _InParams)                 \
   {                                                      \
-    DbgPrint _InParams ;                                 \
+    KdPrint (_InParams) ;                                 \
   }
 
 #define utilLogLogDebugMessage(HddAdapter, _LogBuffer)   \

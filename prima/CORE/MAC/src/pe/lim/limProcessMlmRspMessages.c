@@ -1007,6 +1007,13 @@ limProcessMlmReassocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  eWNI_SME_REASSOC_IND);
     limReassocIndSerDes(pMac, (tpLimMlmReassocInd) pMsgBuf,
                         (tANI_U8 *) &(pSirSmeReassocInd->length), psessionEntry);
+
+    // Required for indicating the frames to upper layer
+    pSirSmeReassocInd->assocReqLength = ((tpLimMlmReassocInd) pMsgBuf)->assocReqLength;
+    pSirSmeReassocInd->assocReqPtr = ((tpLimMlmReassocInd) pMsgBuf)->assocReqPtr;
+    pSirSmeReassocInd->beaconPtr = psessionEntry->beacon;
+    pSirSmeReassocInd->beaconLength = psessionEntry->bcnLen;
+    
     msgQ.type = eWNI_SME_REASSOC_IND;
     msgQ.bodyptr = pSirSmeReassocInd;
     msgQ.bodyval = 0;
@@ -1090,6 +1097,14 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
                                             tpPESession psessionEntry)
 {
     pSirSmeAssocInd->length = sizeof(tSirSmeAssocInd);
+
+    // Required for indicating the frames to upper layer
+    pSirSmeAssocInd->assocReqLength = pAssocInd->assocReqLength;
+    pSirSmeAssocInd->assocReqPtr = pAssocInd->assocReqPtr;
+
+    pSirSmeAssocInd->beaconPtr = psessionEntry->beacon;
+    pSirSmeAssocInd->beaconLength = psessionEntry->bcnLen;    
+
     // Fill in peerMacAddr
     palCopyMemory( pMac->hHdd, pSirSmeAssocInd->peerMacAddr, pAssocInd->peerMacAddr, sizeof(tSirMacAddr));
     // Fill in aid
@@ -3619,7 +3634,10 @@ void limProcessInitScanRsp(tpAniSirGlobal pMac,  void *body)
     pInitScanParam = (tpInitScanParams) body;
     status = pInitScanParam->status;
     palFreeMemory( pMac->hHdd, (char *)body);
-    if( pMac->lim.abortScan )
+
+    //Only abort scan if the we are scanning.
+    if( pMac->lim.abortScan && 
+       (eLIM_HAL_INIT_SCAN_WAIT_STATE == pMac->lim.gLimHalScanState) )
     {
         limLog( pMac, LOGW, FL(" finish scan\n") );
         pMac->lim.abortScan = 0;
@@ -4966,6 +4984,12 @@ limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBu
 end:
     if ( psessionEntry->parsedAssocReq[pStaDs->assocId] != NULL )
     {
+        if ( ((tpSirAssocReq)(psessionEntry->parsedAssocReq[pStaDs->assocId]))->assocReqFrame) 
+        {
+            palFreeMemory(pMac->hHdd,((tpSirAssocReq)(psessionEntry->parsedAssocReq[pStaDs->assocId]))->assocReqFrame);
+            ((tpSirAssocReq)(psessionEntry->parsedAssocReq[pStaDs->assocId]))->assocReqFrame = NULL;
+        }        
+
         palFreeMemory(pMac->hHdd, psessionEntry->parsedAssocReq[pStaDs->assocId]);
         psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
     }

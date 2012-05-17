@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef WLAN_QCT_TL_HOSUPPORT_H
 #define WLAN_QCT_TL_HOSUPPORT_H
 
@@ -196,6 +202,25 @@ VOS_STATUS WLANTL_HSInit
 (
    v_PVOID_t   pAdapter
 );
+
+
+/*==========================================================================
+
+   FUNCTION    WLANTL_HSDeInit
+
+   DESCRIPTION 
+    
+   PARAMETERS 
+
+   RETURN VALUE
+
+============================================================================*/
+
+VOS_STATUS WLANTL_HSDeInit
+(
+   v_PVOID_t   pAdapter
+);
+
 
 /*==========================================================================
 

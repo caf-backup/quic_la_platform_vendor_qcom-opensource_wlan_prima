@@ -580,6 +580,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
     tpLimMgmtFrameRegistration pLimMgmtRegistration = NULL, pNext = NULL;
     tANI_U16 frameType;
     tANI_U16 framelen;
+    tANI_U8 type,subType;
     tANI_BOOLEAN match = VOS_FALSE;
     VOS_STATUS vosStatus;
 
@@ -594,6 +595,17 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
 
     while(pLimMgmtRegistration != NULL)
     {
+        type = (pLimMgmtRegistration->frameType >> 2) & 0x03;
+        subType = (pLimMgmtRegistration->frameType >> 4) & 0x0f;
+        if ( (type == SIR_MAC_MGMT_FRAME) && (fc.type == SIR_MAC_MGMT_FRAME)
+              && (subType == SIR_MAC_MGMT_RESERVED15) )
+        {
+            limLog( pMac, LOG3, 
+                FL("rcvd frame match with SIR_MAC_MGMT_RESERVED15\n"));
+            match = VOS_TRUE;
+            break;
+        }
+
         if (pLimMgmtRegistration->frameType == frameType)
         { 
             if (pLimMgmtRegistration->matchLen > 0)
@@ -635,6 +647,14 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
                      WDA_GET_RX_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      pLimMgmtRegistration->sessionId,
                      WDA_GET_RX_CH(pBd) );
+    
+        if ( (type == SIR_MAC_MGMT_FRAME) && (fc.type == SIR_MAC_MGMT_FRAME)
+              && (subType == SIR_MAC_MGMT_RESERVED15) )
+        {
+            // These packets needs to be processed by PE/SME as well as HDD.
+            // If it returns TRUE here, the packet is forwarded to HDD only.
+            match = VOS_FALSE;
+        }
     }
 
     return match;
@@ -719,39 +739,40 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 #endif
     /* Added For BT-AMP Support */
     if((psessionEntry = peFindSessionByBssid(pMac,pHdr->bssId,&sessionId))== NULL)
-        {
+    {
 #ifdef WLAN_FEATURE_VOWIFI_11R
-            if (fc.subType == SIR_MAC_MGMT_AUTH) 
-            {
+        if (fc.subType == SIR_MAC_MGMT_AUTH) 
+        {
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
-                limLog( pMac, LOGE, FL("ProtVersion %d, Type %d, Subtype %d rateIndex=%d\n"),
+            limLog( pMac, LOGE, FL("ProtVersion %d, Type %d, Subtype %d rateIndex=%d\n"),
                     fc.protVer, fc.type, fc.subType, WDA_GET_RX_MAC_RATE_IDX(pRxPacketInfo));
-                limPrintMacAddr(pMac, pHdr->bssId, LOGE);
+            limPrintMacAddr(pMac, pHdr->bssId, LOGE);
 #endif
-                if (limProcessAuthFrameNoSession(pMac, pRxPacketInfo, limMsg->bodyptr) == eSIR_SUCCESS)
-                {
-                    limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
-                    return;
-                }
-            }
-#endif
-            if((fc.subType != SIR_MAC_MGMT_PROBE_RSP )&&
-                (fc.subType != SIR_MAC_MGMT_BEACON)&&
-                (fc.subType != SIR_MAC_MGMT_PROBE_REQ)
-#if defined WLAN_FEATURE_P2P
-                && (fc.subType != SIR_MAC_MGMT_ACTION ) //Public action frame can be received from non-associated stations.
-#endif
-              )
+            if (limProcessAuthFrameNoSession(pMac, pRxPacketInfo, limMsg->bodyptr) == eSIR_SUCCESS)
             {
-
-               if((psessionEntry = peFindSessionByPeerSta(pMac,pHdr->sa,&sessionId))== NULL) 
-               {
-                  limLog(pMac, LOGW, FL("session does not exist for given bssId\n"));
-                  limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
-                  return;
-               }
-            } 
+                limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
+                return;
+            }
         }
+#endif
+        if((fc.subType != SIR_MAC_MGMT_PROBE_RSP )&&
+            (fc.subType != SIR_MAC_MGMT_BEACON)&&
+            (fc.subType != SIR_MAC_MGMT_PROBE_REQ)
+#if defined WLAN_FEATURE_P2P
+            && (fc.subType != SIR_MAC_MGMT_ACTION ) //Public action frame can be received from non-associated stations.
+#endif
+          )
+        {
+
+            if((psessionEntry = peFindSessionByPeerSta(pMac,pHdr->sa,&sessionId))== NULL) 
+            {
+               limLog(pMac, LOG1, FL("session does not exist for given bssId\n"));
+               limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
+               return;
+            }
+        } 
+    }
+
 
 #ifdef WLAN_FEATURE_P2P 
     /* Check if frame is registered by HDD */
@@ -1935,16 +1956,28 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        vos_mem_free((v_VOID_t *)(limMsg->bodyptr));
        break;
 
-        default:
-            vos_mem_free((v_VOID_t*)limMsg->bodyptr);
-            limMsg->bodyptr = NULL;
-            // Unwanted messages
-            // Log error
-            limLog(pMac, LOGE,
-                   FL("Discarding unexpected message received %X\n"),
-                   limMsg->type);
-            limPrintMsgName(pMac, LOGE, limMsg->type);
-            break;
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+    case WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP:
+        pmmProcessMessage(pMac, limMsg);
+        break;
+#endif // WLAN_FEATURE_PACKET_FILTERING
+
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+    case WDA_GTK_OFFLOAD_GETINFO_RSP:
+        pmmProcessMessage(pMac, limMsg);
+        break;
+#endif // WLAN_FEATURE_GTK_OFFLOAD
+
+    default:
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        // Unwanted messages
+        // Log error
+        limLog(pMac, LOGE,
+                FL("Discarding unexpected message received %X\n"),
+                limMsg->type);
+        limPrintMsgName(pMac, LOGE, limMsg->type);
+        break;
 
     } // switch (limMsg->type)
 

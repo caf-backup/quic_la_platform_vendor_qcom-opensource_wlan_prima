@@ -65,8 +65,17 @@ when           who        what, where, why
 #define WLANDXE_DEFAULT_RX_OS_BUFFER_SIZE  1792
 
 /*The maximum number of packets that can be chained in dxe for the Low 
-  priority channel */
+  priority channel
+  Note: Increased it to 240 from 128 for Windows(EA) becase Windows is
+  able to push 2~6 packet chain in one NET_BUFFER. It causes TX low
+  resource condition more easily than LA. It ends up to cause low 
+  throughut number and spend more CPU time*/
+#ifdef WINDOWS_DT
+#define WLANDXE_LO_PRI_RES_NUM 240
+#else
 #define WLANDXE_LO_PRI_RES_NUM 128
+#endif
+
 
 /*The maximum number of packets that can be chained in dxe for the HI 
   priority channel */
@@ -259,6 +268,7 @@ wpt_status WLANDXE_TxFrame
 
   @  Parameters
       pDXEContext : DXE Control Block
+      ucTxResReq          TX resource number required by TL/WDI
 
   @  Return
       wpt_status
@@ -266,7 +276,8 @@ wpt_status WLANDXE_TxFrame
 wpt_status
 WLANDXE_CompleteTX
 (
-  void* pDXEContext
+  void* pDXEContext,
+  wpt_uint32 ucTxResReq
 );
 
 /*==========================================================================
@@ -346,6 +357,24 @@ wpt_status WLANDXE_SetPowerState
    void                    *pDXEContext,
    WDTS_PowerStateType      powerState,
    WDTS_SetPSCbType         cBack
+);
+
+/*==========================================================================
+  @  Function Name 
+      WLANDXE_GetFreeTxDataResNumber
+
+  @  Description 
+      Returns free descriptor numbers for TX data channel (TX high priority)
+
+  @  Parameters
+      pVoid            pDXEContext : DXE Control Block
+
+  @  Return
+      wpt_uint32      Free descriptor number of TX high pri ch
+===========================================================================*/
+wpt_uint32 WLANDXE_GetFreeTxDataResNumber
+(
+   void *pDXEContext
 );
 
 #ifdef WLANDXE_TEST_CHANNEL_ENABLE

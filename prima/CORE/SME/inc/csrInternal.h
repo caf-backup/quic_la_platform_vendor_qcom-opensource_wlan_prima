@@ -31,6 +31,8 @@
 #include "csrNeighborRoam.h"
 #endif
 
+#define CSR_MAX_STA (HAL_NUM_STA)
+
 #define CSR_SME_SCAN_FLAGS_DELETE_CACHE     0x80
 
 #define CSR_TITAN_MAX_RATE_MIMO_CB 240
@@ -47,7 +49,7 @@
 
 //Support for multiple session
 #define CSR_SESSION_ID_INVALID    0xFF   // session ID invalid
-#define CSR_ROAM_SESSION_MAX      4   // No of sessions to be supported, and a
+#define CSR_ROAM_SESSION_MAX      5   // No of sessions to be supported, and a
                                       // session is for Infra, IBSS or BT-AMP
 
 #define CSR_IS_SESSION_VALID( pMac, sessionId ) ( ( (sessionId) < CSR_ROAM_SESSION_MAX ) \
@@ -115,6 +117,7 @@ typedef enum
     eCsrScanProbeBss, // directed probe on an entry from the candidate list - HO
     eCsrScanAbortBgScan,    //aborting a BG scan (meaning the scan is triggered by LIM timer)
     eCsrScanAbortNormalScan, //aborting a normal scan (the scan is trigger by eWNI_SME_SCAN_REQ)
+    eCsrScanP2PFindPeer    
 }eCsrScanReason;
 
 typedef enum 
@@ -137,6 +140,8 @@ typedef enum
     eCsrForcedIbssLeave,
     eCsrStopBss,
     eCsrSmeIssuedFTReassoc,
+    eCsrForcedDisassocSta,
+    eCsrForcedDeauthSta,
     
 }eCsrRoamReason;
 
@@ -187,7 +192,8 @@ typedef enum
 typedef enum
 {
     eCsrNotRoaming,
-    eCsrLostlinkRoaming,
+    eCsrLostlinkRoamingDisassoc,
+    eCsrLostlinkRoamingDeauth,
     eCsrDynamicRoaming,
    eCsrReassocRoaming,
 }eCsrRoamingReason;
@@ -351,6 +357,8 @@ typedef struct tagRoamCmd
     tANI_BOOLEAN fReassocToSelfNoCapChange;    
 
     tANI_BOOLEAN fStopWds;
+    tSirMacAddr peerMac;
+    tSirMacReasonCodes reason;
 }tRoamCmd;
 
 typedef struct tagSetKeyCmd
@@ -533,6 +541,9 @@ typedef struct tagCsrConfig
 
     tANI_BOOLEAN fValidateList;
 
+    //To enable/disable scanning 2.4Ghz channels twice on a single scan request from HDD
+    tANI_BOOLEAN fScanTwice;
+
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo 
@@ -628,6 +639,8 @@ typedef struct tagCsrScanStruct
     * (apprx 1.3 sec) */
     tANI_BOOLEAN fEnableDFSChnlScan;
 
+    tANI_BOOLEAN fDropScanCmd; //true means we don't accept scan commands
+
 #ifdef WLAN_AP_STA_CONCURRENCY
     tDblLinkList scanCmdPendingList;
 #endif    
@@ -671,6 +684,9 @@ typedef struct tagCsrPeStatsReqInfo
    tANI_U8                staId;
    tANI_U8                numClient;
    tpAniSirGlobal         pMac;
+   /* To remember if the peStats timer is stopped successfully or not */   
+   tANI_BOOLEAN           timerStopFailed;
+
 }tCsrPeStatsReqInfo;
 
 typedef struct tagCsrStatsClientReqInfo
@@ -772,6 +788,7 @@ typedef struct tagCsrRoamSession
     tANI_U16 clientDissSecs;
     tANI_U32 roamTS1;
 #endif
+    tANI_U8 bRefAssocStartCnt;   //Tracking assoc start indication
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
@@ -800,7 +817,7 @@ typedef struct tagCsrRoamStruct
     tCsrGlobalClassBStatsInfo  classBStatsInfo;
     tCsrGlobalClassCStatsInfo  classCStatsInfo;
     tCsrGlobalClassDStatsInfo  classDStatsInfo;
-    tCsrPerStaStatsInfo        perStaStatsInfo[5];
+    tCsrPerStaStatsInfo        perStaStatsInfo[CSR_MAX_STA];
     tDblLinkList  statsClientReqList;
     tDblLinkList  peStatsReqList;
     tCsrTlStatsReqInfo  tlStatsReqInfo;
@@ -914,8 +931,8 @@ typedef struct tagCsrRoamStruct
 
 #define CSR_IS_11D_INFO_FOUND(pMac) \
         (0 != (pMac)->scan.channelOf11dInfo)
-
-#define CSR_IS_ROAMING(pSession) ((eCsrLostlinkRoaming == (pSession)->roamingReason) || \
+// DEAUTHIND
+#define CSR_IS_ROAMING(pSession) ((CSR_IS_LOSTLINK_ROAMING((pSession)->roamingReason)) || \
                               (eCsrDynamicRoaming == (pSession)->roamingReason)  || \
                               (eCsrReassocRoaming == (pSession)->roamingReason))   
 
@@ -923,6 +940,8 @@ typedef struct tagCsrRoamStruct
 #define CSR_IS_SET_KEY_COMMAND( pCommand )    ( eSmeCommandSetKey == (pCommand)->command )
 
 #define CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) (pMac->roam.configParam.addTSWhenACMIsOff)
+// DEAUTHIND
+#define CSR_IS_LOSTLINK_ROAMING(reason)  ((eCsrLostlinkRoamingDisassoc == (reason)) || (eCsrLostlinkRoamingDeauth == (reason)))
 
 //Stop CSR from asking for IMPS, This function doesn't disable IMPS from CSR
 void csrScanSuspendIMPS( tpAniSirGlobal pMac );

@@ -376,16 +376,20 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
     tANI_U8 i = 0;
     tSirRetStatus status = eSIR_SUCCESS;
     
-    if( pMac->lim.abortScan || (NULL == pMac->lim.gpLimMlmScanReq ) )
+    if( pMac->lim.abortScan || (NULL == pMac->lim.gpLimMlmScanReq ) ||
+        (pMac->lim.gLimCurrentScanChannelId >
+            (tANI_U32)(pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1)))
     {
         pMac->lim.abortScan = 0;
+        limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+        limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
         //Set the resume channel to Any valid channel (invalid). 
         //This will instruct HAL to set it to any previous valid channel.
         peSetResumeChannel(pMac, 0, 0);
+
         limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
         return;
     }
-
 
     channelNum = limGetCurrentScanChannel(pMac);
     if ((pMac->lim.gpLimMlmScanReq->scanType == eSIR_ACTIVE_SCAN) &&
@@ -1132,10 +1136,13 @@ limContinueChannelScan(tpAniSirGlobal pMac)
     {
 #ifndef ANI_SNIFFER
         pMac->lim.abortScan = 0;
+        limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+        limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
 
         //Set the resume channel to Any valid channel (invalid). 
         //This will instruct HAL to set it to any previous valid channel.
         peSetResumeChannel(pMac, 0, 0);
+
         /// Done scanning all required channels
         limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
 #endif
@@ -1166,6 +1173,9 @@ limContinueChannelScan(tpAniSirGlobal pMac)
         if (pMac->lim.gLimCurrentScanChannelId >
             (tANI_U32) (pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1))
         {
+            pMac->lim.abortScan = 0;
+            limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+            limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
             /// Done scanning all required channels
             //Set the resume channel to Any valid channel (invalid). 
             //This will instruct HAL to set it to any previous valid channel.
@@ -1176,7 +1186,7 @@ limContinueChannelScan(tpAniSirGlobal pMac)
     }
 
     channelNum = limGetCurrentScanChannel(pMac);
-   PELOG2(limLog(pMac, LOG2, FL("Current Channel to be scanned is %d\n"),
+    PELOG2(limLog(pMac, LOG2, FL("Current Channel to be scanned is %d\n"),
            channelNum);)
 
     limSendHalStartScanReq(pMac, channelNum, eLIM_HAL_START_SCAN_WAIT_STATE);
@@ -3292,6 +3302,10 @@ tpPESession        psessionEntry;
           */
         switch( pMlmSetKeysReq->edType ) {
       case eSIR_ED_CCMP:
+         
+#ifdef WLAN_FEATURE_11W
+      case eSIR_ED_AES_128_CMAC:
+#endif
         staIdx = psessionEntry->staId;
         break;
 
@@ -3560,7 +3574,25 @@ limProcessMinChannelTimeout(tpAniSirGlobal pMac)
         pMac->lim.limTimers.gLimPeriodicProbeReqTimer.sessionId = 0xff;
         limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
         limDeactivateAndChangeTimer(pMac, eLIM_PERIODIC_PROBE_REQ_TIMER);
-        channelNum = (tANI_U8)limGetCurrentScanChannel(pMac);
+        if (pMac->lim.gLimCurrentScanChannelId <=
+                (tANI_U32)(pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1))
+        {
+            channelNum = (tANI_U8)limGetCurrentScanChannel(pMac);
+        }
+        else
+        {
+            // This shouldn't be the case, but when this happens, this timeout should be for the last channelId. 
+            // Get the channelNum as close to correct as possible.
+            if(pMac->lim.gpLimMlmScanReq->channelList.channelNumber)
+            {
+                channelNum = pMac->lim.gpLimMlmScanReq->channelList.channelNumber[pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1];
+            }
+            else
+            {
+               channelNum = 1;
+            }
+        }
+
         limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
     }
     else
@@ -3613,7 +3645,22 @@ limProcessMaxChannelTimeout(tpAniSirGlobal pMac)
         limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
         limDeactivateAndChangeTimer(pMac, eLIM_PERIODIC_PROBE_REQ_TIMER);
         pMac->lim.limTimers.gLimPeriodicProbeReqTimer.sessionId = 0xff;
+        if (pMac->lim.gLimCurrentScanChannelId <=
+                (tANI_U32)(pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1))
+        {
         channelNum = limGetCurrentScanChannel(pMac);
+        }
+        else
+        {
+            if(pMac->lim.gpLimMlmScanReq->channelList.channelNumber)
+            {
+                channelNum = pMac->lim.gpLimMlmScanReq->channelList.channelNumber[pMac->lim.gpLimMlmScanReq->channelList.numChannels - 1];
+            }
+            else
+            {
+               channelNum = 1;
+            }
+        }
         limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
     }
     else

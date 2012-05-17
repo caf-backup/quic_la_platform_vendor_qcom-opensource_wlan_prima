@@ -3085,7 +3085,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
             tSmeConfigParams smeConfig;;
             if((ENABLE_11D == set_value) || (DISABLE_11D == set_value)) {
 
-                sme_GetConfigParam(hHal,&smeConfig.csrConfig);
+                sme_GetConfigParam(hHal,&smeConfig);
                 smeConfig.csrConfig.Is11dSupportEnabled = (v_BOOL_t)set_value;
 
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("11D state=%ld!!\n"),smeConfig.csrConfig.Is11dSupportEnabled);
@@ -3459,11 +3459,11 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
     {
         case WE_GET_11D_STATE:
         {
-           tCsrConfigParam configInfo;
-
-           sme_GetConfigParam(hHal,&configInfo);
-
-           *value = configInfo.Is11dSupportEnabled;
+           tSmeConfigParams smeConfig;;
+           
+           sme_GetConfigParam(hHal,&smeConfig);
+           
+           *value = smeConfig.csrConfig.Is11dSupportEnabled;
 
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("11D state=%ld!!\n"),*value);
 

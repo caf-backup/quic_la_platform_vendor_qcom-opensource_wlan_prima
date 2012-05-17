@@ -138,7 +138,7 @@ void csrLLLock( tDblLinkList *pList )
 
     if ( LIST_FLAG_OPEN == pList->Flag )
     {
-        vos_lock_acquire(&pList->Lock);
+        vos_spin_lock_acquire(&pList->Lock);
     }
 }
 
@@ -154,7 +154,7 @@ void csrLLUnlock( tDblLinkList *pList )
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
-        vos_lock_release(&pList->Lock);
+        vos_spin_lock_release(&pList->Lock);
     }
 }
 
@@ -238,7 +238,7 @@ eHalStatus csrLLOpen( tHddHandle hHdd, tDblLinkList *pList )
     {
         pList->Count = 0;
 
-        vosStatus = vos_lock_init(&pList->Lock);
+        vosStatus = vos_spin_lock_init(&pList->Lock);
 
         if(VOS_IS_STATUS_SUCCESS(vosStatus))
         {
@@ -266,7 +266,7 @@ void csrLLClose( tDblLinkList *pList )
     {
         // Make sure the list is empty...
         csrLLPurge( pList, LL_ACCESS_LOCK );
-        vos_lock_destroy( &pList->Lock );
+        vos_spin_lock_destroy( &pList->Lock );
         pList->Flag = LIST_FLAG_CLOSE;
     }
 }

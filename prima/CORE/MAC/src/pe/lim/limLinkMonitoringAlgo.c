@@ -358,7 +358,7 @@ limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession pse
  */
 
 void
-limTearDownLinkWithAp(tpAniSirGlobal pMac, tANI_U8 sessionId)
+limTearDownLinkWithAp(tpAniSirGlobal pMac, tANI_U8 sessionId, tSirMacReasonCodes reasonCode)
 {
     tpDphHashNode pStaDs = NULL;
 
@@ -393,7 +393,7 @@ limTearDownLinkWithAp(tpAniSirGlobal pMac, tANI_U8 sessionId)
     {
         tLimMlmDeauthInd  mlmDeauthInd;
 
-        pStaDs->mlmStaContext.disassocReason = eSIR_MAC_UNSPEC_FAILURE_REASON;
+        pStaDs->mlmStaContext.disassocReason = reasonCode;
         pStaDs->mlmStaContext.cleanupTrigger = eLIM_LINK_MONITORING_DEAUTH;
 
         /// Issue Deauth Indication to SME.
@@ -522,7 +522,7 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
         {
             /* Connected on DFS channel so should not send the probe request
             * tear down the link directly */
-            limTearDownLinkWithAp(pMac, psessionEntry->peSessionId);
+            limTearDownLinkWithAp(pMac, psessionEntry->peSessionId, eSIR_MAC_UNSPEC_FAILURE_REASON);
         }
     }
     else

@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef WLAN_QCT_TLI_BA_H
 #define WLAN_QCT_TLI_BA_H
 
@@ -193,7 +199,7 @@ VOS_STATUS
 WLANTL_AMSDUProcess
 ( 
   v_PVOID_t   pvosGCtx,
-  vos_pkt_t*  vosDataBuff, 
+  vos_pkt_t** ppVosDataBuff, 
   v_PVOID_t   pvBDHeader,
   v_U8_t      ucSTAId,
   v_U8_t      ucMPDUHLen,

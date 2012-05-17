@@ -619,9 +619,12 @@ v_VOID_t WLANTL_HSTrafficStatusTimerExpired
    trafficHandle->nrtRXFrameCount = 0;
    trafficHandle->nrtTXFrameCount = 0;
 
-   /* restart timer */
-   vos_timer_start(&trafficHandle->trafficTimer, trafficHandle->measurePeriod);
-
+   if(NULL != trafficHandle->trafficCB)
+   {
+      /* restart timer  only when the callback is not NULL */
+      vos_timer_start(&trafficHandle->trafficTimer, trafficHandle->measurePeriod);
+   }
+   
    return;
 }
 
@@ -1361,7 +1364,11 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
    if(VOS_TRUE == tlCtxt->isBMPS)
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Register into FW, now BMPS"));
+      /* this function holds the lock across a downstream WDA function call, this is violates some lock
+         ordering checks done on some HLOS see CR323221*/
+      THSRELEASELOCK("WLANTL_HSRegRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
       WLANTL_SetFWRSSIThresholds(pAdapter);
+      THSGETLOCK("WLANTL_HSRegRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
    }
 
    WLANTL_HSDebugDisplay(pAdapter);
@@ -1515,7 +1522,11 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
    if(VOS_TRUE == tlCtxt->isBMPS)
    {
       TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Register into FW, now BMPS"));
-      WLANTL_SetFWRSSIThresholds(pAdapter);
+       /* this function holds the lock across a downstream WDA function call, this is violates some lock
+         ordering checks done on some HLOS see CR323221*/
+      THSRELEASELOCK("WLANTL_HSDeregRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
+      WLANTL_SetFWRSSIThresholds(pAdapter); 
+      THSGETLOCK("WLANTL_HSDeregRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
    }
 
    /* Based on new threshold set recalculated current RSSI status */
@@ -1688,6 +1699,43 @@ VOS_STATUS WLANTL_HSInit
    return status;
 }
 
+
+/*==========================================================================
+
+   FUNCTION    WLANTL_HSDeInit
+
+   DESCRIPTION 
+    
+   PARAMETERS 
+
+   RETURN VALUE
+
+============================================================================*/
+
+VOS_STATUS WLANTL_HSDeInit
+(
+   v_PVOID_t   pAdapter
+)
+{
+   WLANTL_CbType   *tlCtxt = VOS_GET_TL_CB(pAdapter);
+   VOS_STATUS       status = VOS_STATUS_SUCCESS;
+
+   if(NULL == tlCtxt)
+   {
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Invalid TL handle"));
+      return VOS_STATUS_E_INVAL;
+   }
+
+   // Destroy the timer...      
+   status = vos_timer_destroy( &tlCtxt->hoSupport.currentTraffic.trafficTimer );
+   if ( !VOS_IS_STATUS_SUCCESS( status ) )
+   {
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_HSStop: Timer Destroy Fail Status %d", status));
+   }
+   return status;   
+}
+
+
 /*==========================================================================
 
    FUNCTION
@@ -1724,11 +1772,13 @@ VOS_STATUS WLANTL_HSStop
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer Stop Failed, Status %d", status));
    }
-   status = vos_timer_destroy(&tlCtxt->hoSupport.currentTraffic.trafficTimer);
-   if(VOS_STATUS_SUCCESS != status)
-   {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer Destroy Failed, Status %d", status));
-   }
+
+   //Deregister the traffic Status
+   tlCtxt->hoSupport.currentTraffic.idleThreshold = 0;
+   tlCtxt->hoSupport.currentTraffic.measurePeriod = 0;
+   tlCtxt->hoSupport.currentTraffic.trafficCB     = NULL;
+   tlCtxt->hoSupport.currentTraffic.usrCtxt       = NULL;
+
    return status;   
 }
 #endif //FEATURE_WLAN_GEN6_ROAMING

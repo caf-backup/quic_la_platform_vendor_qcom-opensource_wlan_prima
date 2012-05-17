@@ -73,6 +73,10 @@ typedef enum
 #ifdef FEATURE_WLAN_CCX
     eCSR_ENCRYPT_TYPE_KRK,
 #endif /* FEATURE_WLAN_CCX */
+#ifdef WLAN_FEATURE_11W
+    //11w BIP
+    eCSR_ENCRYPT_TYPE_AES_CMAC,
+#endif
     eCSR_ENCRYPT_TYPE_ANY,
     eCSR_NUM_OF_ENCRYPT_TYPE = eCSR_ENCRYPT_TYPE_ANY,
 
@@ -143,7 +147,9 @@ typedef enum {
     eCSR_SCAN_HO_PROBE_SCAN, // directed probe on an entry from the candidate list
     eCSR_SCAN_HO_NT_BG_SCAN, // bg scan request in NT  sub-state
     eCSR_SCAN_P2P_DISCOVERY,
+
     eCSR_SCAN_SOFTAP_CHANNEL_RANGE,
+    eCSR_SCAN_P2P_FIND_PEER,
 }eCsrRequestType;
 
 typedef enum {
@@ -156,6 +162,7 @@ typedef enum
     eCSR_SCAN_SUCCESS,
     eCSR_SCAN_FAILURE,
     eCSR_SCAN_ABORT,
+   eCSR_SCAN_FOUND_PEER,    
 }eCsrScanStatus;
 
 #define CSR_SCAN_TIME_DEFAULT       0
@@ -308,6 +315,7 @@ typedef struct tagCsrScanResultFilter
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tCsrMobilityDomainInfo MDID;
 #endif
+    tANI_BOOLEAN p2pResult;
 }tCsrScanResultFilter;
 
 
@@ -956,6 +964,9 @@ typedef struct tagCsrConfigParam
     * (apprx 1.3 sec) */
     tANI_BOOLEAN fEnableDFSChnlScan;
 
+    //To enable/disable scanning 2.4Ghz channels twice on a single scan request from HDD
+    tANI_BOOLEAN fScanTwice;
+
 }tCsrConfigParam;   
 
 //Tush
@@ -1023,6 +1034,11 @@ typedef struct tagCsrRoamInfo
     tANI_U32 rxChan;
 #endif
 
+    // Required for indicating the frames to upper layer
+    tANI_U32 beaconLength;
+    tANI_U8* beaconPtr;
+    tANI_U32 assocReqLength;
+    tANI_U8* assocReqPtr;    
 }tCsrRoamInfo;
 
 

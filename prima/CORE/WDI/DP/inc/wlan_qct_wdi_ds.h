@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( __WLAN_QCT_WTI_DS_H )
 #define __WLAN_QCT_WTI_DS_H
 
@@ -195,13 +201,14 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
 /* DAL Transmit Complete function. 
  * Parameters:
  *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  ucTxResReq:TX resource number required by TL
  * Return Value: SUCCESS  Completed successfully.
  *     FAILURE_XXX  Request was rejected due XXX Reason.
  *
  */
 
 
-WDI_Status WDI_DS_TxComplete(void *pContext);
+WDI_Status WDI_DS_TxComplete(void *pContext, wpt_uint32 ucTxResReq);
 
 /* DAL Suspend Transmit function. 
  * Parameters:

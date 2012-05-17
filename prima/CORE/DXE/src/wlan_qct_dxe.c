@@ -599,7 +599,7 @@ static wpt_status dxeDescAllocAndLink
          status = dxeRXFrameSingleBufferAlloc(dxeCtrlBlk,
                                               channelEntry,
                                               currentCtrlBlk);
-         if(eWLAN_PAL_STATUS_SUCCESS != status)
+         if( !WLAN_PAL_IS_STATUS_SUCCESS(status) )
          {
             HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                      "dxeDescLinkAlloc RX Buffer Alloc Fail for channel %d",
@@ -1002,6 +1002,8 @@ static wpt_status dxeChannelStop
       return status;         
    }
 
+   channelEntry->extraConfig.chEnabled    = eWLAN_PAL_FALSE;
+
    /* Stop Channel ??? */
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
@@ -1058,17 +1060,25 @@ static wpt_status dxeChannelClose
       currentDescriptor = currentCtrlBlk->linkedDesc;
       for(idx = 0; idx < channelEntry->numDesc; idx++)
       {
-         nextCtrlBlk    = currentCtrlBlk->nextCtrlBlk;
-         nextDescriptor = nextCtrlBlk->linkedDesc;
-         if((WDTS_CHANNEL_RX_LOW_PRI  == channelEntry->channelType) ||
-            (WDTS_CHANNEL_RX_HIGH_PRI == channelEntry->channelType))
-         {
+          if (idx + 1 != channelEntry->numDesc)
+          {
+              nextCtrlBlk    = currentCtrlBlk->nextCtrlBlk;
+              nextDescriptor = nextCtrlBlk->linkedDesc;
+          }
+          else
+          {
+              nextCtrlBlk = NULL;
+              nextDescriptor = NULL;
+          }
+          if((WDTS_CHANNEL_RX_LOW_PRI  == channelEntry->channelType) ||
+             (WDTS_CHANNEL_RX_HIGH_PRI == channelEntry->channelType))
+          {
             if (NULL != currentCtrlBlk->xfrFrame)
             {
                wpalUnlockPacket(currentCtrlBlk->xfrFrame);
                wpalPacketFree(currentCtrlBlk->xfrFrame);
             }
-         }
+          }
 #if (defined(FEATURE_R33D) || defined(WLANDXE_TEST_CHANNEL_ENABLE))
          // descriptors allocated individually so free them individually
          wpalDmaMemoryFree(currentDescriptor);
@@ -1364,6 +1374,8 @@ static wpt_status dxeRXFrameSingleBufferAlloc
    return status;
 }
 
+
+
 /*==========================================================================
   @  Function Name 
       dxeRXFrameRefillRing
@@ -1510,13 +1522,13 @@ static wpt_status dxeRXFrameReady
       }
 
 #else /* FEATURE_R33D */
-   status = wpalUnlockPacket(currentCtrlBlk->xfrFrame);
-   if (eWLAN_PAL_STATUS_SUCCESS != status)
-   {
-      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeRXFrameReady unable to unlock packet");
-      return status;
-   }
+      status = wpalUnlockPacket(currentCtrlBlk->xfrFrame);
+      if (eWLAN_PAL_STATUS_SUCCESS != status)
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "dxeRXFrameReady unable to unlock packet");
+         return status;
+      }
 #endif /* FEATURE_R33D */
       if(NULL == dxeCtxt->rxReadyCB)
       {
@@ -1536,6 +1548,7 @@ static wpt_status dxeRXFrameReady
 
       /* Now try to refill the ring with empty Rx buffers to keep DXE busy */
       dxeRXFrameRefillRing(dxeCtxt,channelEntry);
+
 
       /* Test next contorl block
        * if valid, this control block also has new RX frame must be handled */
@@ -1723,6 +1736,14 @@ void dxeRXEventHandler
    }
 
    dxeCtxt = (WLANDXE_CtrlBlkType *)(msgContent->pContext);
+      
+   if((!dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_HIGH_PRI].extraConfig.chEnabled) ||
+      (!dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].extraConfig.chEnabled))
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+         "DXE already stopped in RX event handler. Just return");
+      return;
+   }
 
    if((WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState) ||
       (WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState))
@@ -2494,6 +2515,7 @@ static wpt_status dxeTXCompFrame
    WLANDXE_DescCtrlBlkType  *currentCtrlBlk = NULL;
    WLANDXE_DescType         *currentDesc    = NULL;
    wpt_uint32                descCtrlValue  = 0;
+   unsigned int             *lowThreshold   = NULL;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
@@ -2520,6 +2542,7 @@ static wpt_status dxeTXCompFrame
 
    if( currentCtrlBlk == channelEntry->headCtrlBlk )
    {
+      wpalMutexRelease(&channelEntry->dxeChannelLock);
       return eWLAN_PAL_STATUS_E_EMPTY;
    }
 
@@ -2552,6 +2575,7 @@ static wpt_status dxeTXCompFrame
          {
             HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                      "dxeRXFrameReady unable to unlock packet");
+            wpalMutexRelease(&channelEntry->dxeChannelLock);
             return status;
          }
 #endif /* FEATURE_R33D */
@@ -2580,10 +2604,24 @@ static wpt_status dxeTXCompFrame
    /* Tail and Head Control block must be same */
    channelEntry->tailCtrlBlk = currentCtrlBlk;
 
+   lowThreshold = channelEntry->channelType == WDTS_CHANNEL_TX_LOW_PRI?
+      &(hostCtxt->txCompInt.txLowResourceThreshold_LoPriCh):
+      &(hostCtxt->txCompInt.txLowResourceThreshold_HiPriCh);
+
    /* If specific channel hit low resource condition send notification to upper layer */
    if((eWLAN_PAL_TRUE == channelEntry->hitLowResource) &&
-      (channelEntry->numFreeDesc > hostCtxt->txCompInt.txLowResourceThreshold))
+      (channelEntry->numFreeDesc > *lowThreshold))
    {
+      /* Change it back if we raised it for fetching a remaining packet from TL */
+      if(WLANDXE_TX_LOW_RES_THRESHOLD > *lowThreshold)
+      {
+         *lowThreshold = WLANDXE_TX_LOW_RES_THRESHOLD;
+      }
+
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,
+               "recovered from TX low res with free desc %d", 
+               channelEntry->numFreeDesc);
+
       hostCtxt->lowResourceCB(hostCtxt->clientCtxt,
                               channelEntry->channelType,
                               eWLAN_PAL_TRUE);
@@ -2637,6 +2675,14 @@ void dxeTXEventHandler
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
          "%s Riva is in %d, return from here ", __FUNCTION__, dxeCtxt->hostPowerState);
+      return;
+   }
+
+   if((!dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI].extraConfig.chEnabled) ||
+      (!dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].extraConfig.chEnabled))
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+         "DXE already stopped in TX event handler. Just return");
       return;
    }
 
@@ -2792,7 +2838,7 @@ void dxeTXEventHandler
 
 /*==========================================================================
   @  Function Name 
-      dxeTXEventHandler
+      dxeTXCompleteProcessing
 
   @  Description 
       If DXE HW sends TX related interrupt, this event handler will be called
@@ -2801,15 +2847,14 @@ void dxeTXEventHandler
       TX complete or error happen
 
   @  Parameters
-         void               *msgPtr
-                             Even MSG
+      dxeCtxt      DXE context 
 
   @  Return
       PAL_STATUS_T
 ===========================================================================*/
 void dxeTXCompleteProcessing
 (
-   WLANDXE_CtrlBlkType      *dxeCtxt
+   WLANDXE_CtrlBlkType *dxeCtxt
 )
 {
    wpt_status                status     = eWLAN_PAL_STATUS_SUCCESS;
@@ -3146,6 +3191,7 @@ void *WLANDXE_Open
       wpalMemoryFree((void *)&tempDxeCtrlBlk->rxIsrMsg);
       wpalMemoryFree((void *)&tempDxeCtrlBlk->txIsrMsg);
       wpalMemoryFree(tempDxeCtrlBlk);
+
       return NULL;
    }
 
@@ -3390,6 +3436,7 @@ wpt_status WLANDXE_TxFrame
    wpt_status                 status         = eWLAN_PAL_STATUS_SUCCESS;
    WLANDXE_ChannelCBType     *currentChannel = NULL;
    WLANDXE_CtrlBlkType       *dxeCtxt        = NULL;
+   unsigned int              *lowThreshold   = NULL;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
@@ -3423,13 +3470,16 @@ wpt_status WLANDXE_TxFrame
 
    wpalMutexAcquire(&currentChannel->dxeChannelLock);
 
+   lowThreshold = currentChannel->channelType == WDTS_CHANNEL_TX_LOW_PRI?
+      &(dxeCtxt->txCompInt.txLowResourceThreshold_LoPriCh):
+      &(dxeCtxt->txCompInt.txLowResourceThreshold_HiPriCh);
+
    /* Decide have to activate TX complete event or not */
    switch(dxeCtxt->txCompInt.txIntEnable)
    {
       /* TX complete interrupt will be activated when low DXE resource */
       case WLANDXE_TX_COMP_INT_LR_THRESHOLD:
-         if((currentChannel->numFreeDesc <= 
-             dxeCtxt->txCompInt.txLowResourceThreshold) &&
+         if((currentChannel->numFreeDesc <= *lowThreshold) &&
             (eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
          {
             dxeCtxt->txIntEnable = eWLAN_PAL_TRUE;
@@ -3452,6 +3502,8 @@ wpt_status WLANDXE_TxFrame
          break;
    }
 
+   dxeCtxt->txCompletedFrames++;
+
    /* Update DXE descriptor, this is frame based
     * if a frame consist of N fragments, N Descriptor will be programed */
    status = dxeTXPushFrame(currentChannel, pPacket);
@@ -3459,12 +3511,12 @@ wpt_status WLANDXE_TxFrame
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "WLANDXE_TxFrame TX Push Frame fail");
+      wpalMutexRelease(&currentChannel->dxeChannelLock);
       return status;
    }
 
-   dxeCtxt->txCompletedFrames++;
-   /* If specific channel hit low resource condition send notification to upper layer */
-   if(currentChannel->numFreeDesc <= dxeCtxt->txCompInt.txLowResourceThreshold)
+   /* If specific channel hit low resource condition, send notification to upper layer */
+   if(currentChannel->numFreeDesc <= *lowThreshold)
    {
       dxeCtxt->lowResourceCB(dxeCtxt->clientCtxt,
                              channel,
@@ -3488,6 +3540,7 @@ wpt_status WLANDXE_TxFrame
 
   @  Parameters
       pContext            pDXEContext : DXE Control Block
+      ucTxResReq          TX resource number required by TL/WDI
 
   @  Return
       wpt_status
@@ -3495,11 +3548,14 @@ wpt_status WLANDXE_TxFrame
 wpt_status
 WLANDXE_CompleteTX
 (
-  void* pContext
+  void* pContext,
+  wpt_uint32 ucTxResReq
 )
 {
   wpt_status                status  = eWLAN_PAL_STATUS_SUCCESS;
   WLANDXE_CtrlBlkType      *dxeCtxt = (WLANDXE_CtrlBlkType *)(pContext);
+  WLANDXE_ChannelCBType    *channelCb  = NULL;
+  wpt_boolean               inLowRes;
 
   /* Sanity Check */
   if( NULL == pContext )
@@ -3509,10 +3565,63 @@ WLANDXE_CompleteTX
       return eWLAN_PAL_STATUS_E_INVAL;
   }
 
+  channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI];
+  inLowRes  = channelCb->hitLowResource;
+
+  if(WLANDXE_TX_LOW_RES_THRESHOLD < ucTxResReq)
+  {
+    /* Raise threshold temporarily if necessary */
+    dxeCtxt->txCompInt.txLowResourceThreshold_LoPriCh = ucTxResReq;
+
+    if(eWLAN_PAL_FALSE == inLowRes)
+    {
+      /* Put the channel to low resource condition */
+      dxeCtxt->lowResourceCB(dxeCtxt->clientCtxt,
+                             WDTS_CHANNEL_TX_LOW_PRI,
+                             eWLAN_PAL_FALSE);
+      inLowRes = channelCb->hitLowResource = eWLAN_PAL_TRUE;
+    }
+  }
+
   /*Try to reclaim resources*/
   dxeTXCompleteProcessing(dxeCtxt);
 
-
+  /* In previous WLANTL_GetFrames call, TL didn't fetch a packet 
+     because its fragment size is larger than DXE free resource. */
+  if(0 < ucTxResReq)
+  {
+    /* DXE successfully claimed enough free DXE resouces for next fetch. */
+    if(WLANDXE_GetFreeTxDataResNumber(dxeCtxt) >= ucTxResReq)
+    {
+      /* DXE has not been in low resource condition. DXE forces to kick off
+         TX tranmit */
+      if((eWLAN_PAL_FALSE == inLowRes) && 
+         (eWLAN_PAL_FALSE == channelCb->hitLowResource))
+      {
+        dxeCtxt->lowResourceCB(dxeCtxt->clientCtxt,
+                               WDTS_CHANNEL_TX_LOW_PRI,
+                               eWLAN_PAL_FALSE);
+        dxeCtxt->lowResourceCB(dxeCtxt->clientCtxt,
+                               WDTS_CHANNEL_TX_LOW_PRI,
+                               eWLAN_PAL_TRUE);
+        channelCb->hitLowResource = eWLAN_PAL_FALSE;
+      }
+    }
+    else
+    {
+      /* DXE doesn't have enough free DXE resources. Put the channel
+         to low resource condition. */
+      if(eWLAN_PAL_FALSE == channelCb->hitLowResource)
+      {
+        /* Put the channel to low resource condition */
+        dxeCtxt->lowResourceCB(dxeCtxt->clientCtxt,
+                             WDTS_CHANNEL_TX_LOW_PRI,
+                             eWLAN_PAL_FALSE);
+        channelCb->hitLowResource = eWLAN_PAL_TRUE;
+      }
+    }
+  }
+ 
   return status; 
 }
 
@@ -3618,6 +3727,7 @@ wpt_status WLANDXE_Close
    dxeCtxt = (WLANDXE_CtrlBlkType *)pDXEContext;
    for(idx = 0; idx < WDTS_CHANNEL_MAX; idx++)
    {
+      wpalMutexDelete(&dxeCtxt->dxeChannel[idx].dxeChannelLock);
       dxeChannelClose(dxeCtxt, &dxeCtxt->dxeChannel[idx]);
 #ifdef WLANDXE_TEST_CHANNEL_ENABLE
       channel    = &dxeCtxt->dxeChannel[idx];
@@ -3964,4 +4074,36 @@ wpt_status WLANDXE_SetPowerState
             "%s Exit", __FUNCTION__);
 
    return status;
+}
+
+/*==========================================================================
+  @  Function Name 
+      WLANDXE_GetFreeTxDataResNumber
+
+  @  Description 
+      Returns free descriptor numbers for TX data channel (TX high priority)
+
+  @  Parameters
+      pVoid            pDXEContext : DXE Control Block
+
+  @  Return
+      wpt_uint32      Free descriptor number of TX high pri ch
+===========================================================================*/
+wpt_uint32 WLANDXE_GetFreeTxDataResNumber
+(
+   void *pDXEContext
+)
+{
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
+            "%s Enter", __FUNCTION__);
+
+   if(NULL == pDXEContext)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "NULL parameter passed by caller", 0, 0, 0);
+      return (0);
+   }
+
+   return 
+      ((WLANDXE_CtrlBlkType *)pDXEContext)->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].numFreeDesc;
 }

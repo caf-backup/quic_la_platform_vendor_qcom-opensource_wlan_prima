@@ -234,6 +234,23 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 #endif
+    
+    if (pBssDescription->WscIeLen)
+    {
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->WscIeProbeRsp,
+                       pBuf,
+                       pBssDescription->WscIeLen);
+    }
+    
+    pBuf += (sizeof(pBssDescription->WscIeProbeRsp) + 
+             sizeof(pBssDescription->WscIeLen) + 
+             sizeof(pBssDescription->fProbeRsp) + 
+             sizeof(tANI_U32));
+    
+    len -= (sizeof(pBssDescription->WscIeProbeRsp) + 
+             sizeof(pBssDescription->WscIeLen) + 
+             sizeof(pBssDescription->fProbeRsp) + 
+             sizeof(tANI_U32));
 
     if (len)
     {

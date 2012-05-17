@@ -75,6 +75,19 @@
 #define CSR_PASSIVE_SCAN_CAT3_LOW       5500 
 #define CSR_PASSIVE_SCAN_CAT3_HIGH      5560
 
+#define CSR_OUI_USE_GROUP_CIPHER_INDEX 0x00
+#define CSR_OUI_WEP40_OR_1X_INDEX      0x01
+#define CSR_OUI_TKIP_OR_PSK_INDEX      0x02
+#define CSR_OUI_RESERVED_INDEX         0x03
+#define CSR_OUI_AES_INDEX              0x04
+#define CSR_OUI_WEP104_INDEX           0x05
+
+#ifdef FEATURE_WLAN_WAPI
+#define CSR_OUI_WAPI_RESERVED_INDEX    0x00
+#define CSR_OUI_WAPI_WAI_CERT_OR_SMS4_INDEX    0x01
+#define CSR_OUI_WAPI_WAI_PSK_INDEX     0x02
+#endif /* FEATURE_WLAN_WAPI */
+
 
 typedef enum 
 {

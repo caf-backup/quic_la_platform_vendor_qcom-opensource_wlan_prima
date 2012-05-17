@@ -1798,6 +1798,13 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
         palCopyMemory(pMac->hHdd, &pProbeResp->QBSSLoad, &pr.QBSSLoad, sizeof(tDot11fIEQBSSLoad));
     }
 #endif
+#ifdef WLAN_FEATURE_P2P
+    if (pr.P2PProbeRes.present)
+    {
+       palCopyMemory( pMac, &pProbeResp->P2PProbeRes, &pr.P2PProbeRes,
+			                                    sizeof(tDot11fIEP2PProbeRes) );
+    }
+#endif
     return eSIR_SUCCESS;
 
 } // End sirConvertProbeFrame2Struct.

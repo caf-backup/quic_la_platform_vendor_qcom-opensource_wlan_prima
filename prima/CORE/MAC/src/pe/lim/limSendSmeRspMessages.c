@@ -572,6 +572,10 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
 
 
 
+#define LIM_MAX_NUM_OF_SCAN_RESULTS_REPORTED  20
+#define LIM_SIZE_OF_EACH_BSS  400 // this is a rough estimate
+
+
 /**
  * limSendSmeScanRsp()
  *
@@ -604,10 +608,11 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
 {
     tSirMsgQ              mmhMsg;
     tpSirSmeScanRsp       pSirSmeScanRsp=NULL;
-    tLimScanResultNode    *ptemp;
-    tANI_U16              msgLen;
-    tANI_U8               found = false;
-    tANI_U16              i;
+    tLimScanResultNode    *ptemp = NULL;
+    tANI_U16              msgLen, allocLength, curMsgLen = 0;
+    tANI_U16              i, bssCount;
+    tANI_U8               *pbBuf;
+    tSirBssDescription    *pDesc;
 
     PELOG1(limLog(pMac, LOG1,
        FL("Sending message SME_SCAN_RSP with length=%d reasonCode %s\n"),
@@ -615,75 +620,111 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
 
     if (resultCode != eSIR_SME_SUCCESS)
     {
-        limPostSmeScanRspMessage(pMac, length, resultCode,smesessionId,smetranscationId);   
+        limPostSmeScanRspMessage(pMac, length, resultCode,smesessionId,smetranscationId);
         return;
     }
-    
 
     mmhMsg.type = eWNI_SME_SCAN_RSP;
+    i = 0;
+    bssCount = 0;
+    msgLen = 0;
+    allocLength = LIM_MAX_NUM_OF_SCAN_RESULTS_REPORTED * LIM_SIZE_OF_EACH_BSS;
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeScanRsp, allocLength))
+    {
+        // Log error
+        limLog(pMac, LOGP,
+                   FL("call to palAllocateMemory failed for eWNI_SME_SCAN_RSP\n"));
+
+        return;
+    }
     for (i = 0; i < LIM_MAX_NUM_OF_SCAN_RESULTS; i++)
     {
-        if ((ptemp = pMac->lim.gLimCachedScanHashTable[i]) != NULL)
+        //when ptemp is not NULL it is a left over
+        ptemp = pMac->lim.gLimCachedScanHashTable[i];
+        while(ptemp)
         {
-            while(ptemp)
+            pbBuf = ((tANI_U8 *)pSirSmeScanRsp) + msgLen;
+            if(0 == bssCount)
             {
-                if (found)
-                {
-                    pSirSmeScanRsp->statusCode  =
-                                        eSIR_SME_MORE_SCAN_RESULTS_FOLLOW;
-                    mmhMsg.bodyptr = pSirSmeScanRsp;
-                    mmhMsg.bodyval = 0;
-                    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
-                    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
-                    PELOG2(limLog(pMac, LOG2, FL("statusCode : eSIR_SME_MORE_SCAN_RESULTS_FOLLOW\n"));)
-                }
                 msgLen = sizeof(tSirSmeScanRsp) -
-                         sizeof(tSirBssDescription) +
-                         ptemp->bssDescription.length + 2;
-                if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeScanRsp, msgLen))
-                {
-                    // Log error
-                    limLog(pMac, LOGP,
-                        FL("call to palAllocateMemory failed for eWNI_SME_SCAN_RSP\n"));
-
-                    return;
-                }
-
-               PELOG2(limLog(pMac, LOG2, FL("ScanRsp : msgLen %d, bssDescr Len=%d\n"),
-                       msgLen, ptemp->bssDescription.length);)
-#if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
-                sirStoreU16N((tANI_U8*)&pSirSmeScanRsp->bssDescription[0].length,
-                             ptemp->bssDescription.length);
-#else
-                pSirSmeScanRsp->bssDescription[0].length
-                    = ptemp->bssDescription.length;
-#endif
-                palCopyMemory( pMac->hHdd, (tANI_U8 *) &pSirSmeScanRsp->bssDescription[0].bssId,
-                              (tANI_U8 *) &ptemp->bssDescription.bssId,
-                              ptemp->bssDescription.length);
-
+                           sizeof(tSirBssDescription) +
+                           ptemp->bssDescription.length + 2;
+                pDesc = pSirSmeScanRsp->bssDescription;
+            }
+            else
+            {
+                msgLen += sizeof(tSirBssDescription) +
+                       ptemp->bssDescription.length + 2;
+                pDesc = (tSirBssDescription *)pbBuf;
+            }
+            if( (allocLength < msgLen) || 
+                 (LIM_MAX_NUM_OF_SCAN_RESULTS_REPORTED <= bssCount++) )
+            {
+                pSirSmeScanRsp->statusCode  =
+                    eSIR_SME_MORE_SCAN_RESULTS_FOLLOW;
 #if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
                 sirStoreU16N((tANI_U8*)&pSirSmeScanRsp->messageType,
                              eWNI_SME_SCAN_RSP);
-                sirStoreU16N((tANI_U8*)&pSirSmeScanRsp->length, msgLen);
+                sirStoreU16N((tANI_U8*)&pSirSmeScanRsp->length, curMsgLen);
 #else
                 pSirSmeScanRsp->messageType = eWNI_SME_SCAN_RSP;
-                pSirSmeScanRsp->length      = msgLen;
+                pSirSmeScanRsp->length      = curMsgLen;
 #endif
-                PELOG2(limLog(pMac, LOG2, FL("BssId "));
-                limPrintMacAddr(pMac, ptemp->bssDescription.bssId, LOG2);)
-
-                found = true;
-
-                ptemp = ptemp->next;
+                mmhMsg.bodyptr = pSirSmeScanRsp;
+                mmhMsg.bodyval = 0;
+                MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+                limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
+                if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeScanRsp, allocLength))
+                {
+                    // Log error
+                    limLog(pMac, LOGP,
+                                 FL("call to palAllocateMemory failed for eWNI_SME_SCAN_RSP\n"));
+                    return;
+                }
+                msgLen = sizeof(tSirSmeScanRsp) -
+                           sizeof(tSirBssDescription) +
+                           ptemp->bssDescription.length + 2;
+                pDesc = pSirSmeScanRsp->bssDescription;
+                bssCount = 1;
             }
-        }
-    }
+            curMsgLen = msgLen;
 
-    if (found)
+            PELOG2(limLog(pMac, LOG2, FL("ScanRsp : msgLen %d, bssDescr Len=%d\n"),
+                          msgLen, ptemp->bssDescription.length);)
+#if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
+            sirStoreU16N((tANI_U8*)&pDesc->length,
+                         ptemp->bssDescription.length);
+#else
+            pDesc->length
+                    = ptemp->bssDescription.length;
+#endif
+            palCopyMemory( pMac->hHdd, (tANI_U8 *) &pDesc->bssId,
+                              (tANI_U8 *) &ptemp->bssDescription.bssId,
+                              ptemp->bssDescription.length);
+
+            PELOG2(limLog(pMac, LOG2, FL("BssId "));
+            limPrintMacAddr(pMac, ptemp->bssDescription.bssId, LOG2);)
+
+            ptemp = ptemp->next;
+        } //while(ptemp)
+    } //for (i = 0; i < LIM_MAX_NUM_OF_SCAN_RESULTS; i++)
+
+    if(0 == bssCount)
+    {
+       limPostSmeScanRspMessage(pMac, length, resultCode, smesessionId, smetranscationId);
+    }
+    else
     {
         // send last message
         pSirSmeScanRsp->statusCode  = eSIR_SME_SUCCESS;
+#if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
+        sirStoreU16N((tANI_U8*)&pSirSmeScanRsp->messageType,
+                             eWNI_SME_SCAN_RSP);
+        sirStoreU16N((tANI_U8*)&pSirSmeScanRsp->length, curMsgLen);
+#else
+        pSirSmeScanRsp->messageType = eWNI_SME_SCAN_RSP;
+        pSirSmeScanRsp->length = curMsgLen;
+#endif
 
         /* Update SME session Id and SME transcation Id */
         pSirSmeScanRsp->sessionId   = smesessionId;
@@ -696,10 +737,7 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
         limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
         PELOG2(limLog(pMac, LOG2, FL("statusCode : eSIR_SME_SUCCESS\n"));)
     }
-    else 
-    {
-        limPostSmeScanRspMessage(pMac, length, resultCode,smesessionId,smetranscationId);    
-    }
+
     return;
 
 } /*** end limSendSmeScanRsp() ***/
@@ -748,6 +786,11 @@ limPostSmeScanRspMessage(tpAniSirGlobal    pMac,
     pSirSmeScanRsp->messageType = eWNI_SME_SCAN_RSP;
     pSirSmeScanRsp->length      = length;
 #endif
+
+	if(sizeof(tSirSmeScanRsp) <= length)
+	{
+		pSirSmeScanRsp->bssDescription->length = sizeof(tSirBssDescription);
+	}
 
     pSirSmeScanRsp->statusCode  = resultCode;
 
@@ -1269,7 +1312,15 @@ limSendSmeDeauthInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession psess
 #ifdef WLAN_SOFTAP_FEATURE
     pSirSmeDeauthInd->sessionId = psessionEntry->smeSessionId;
     pSirSmeDeauthInd->transactionId = psessionEntry->transactionId;
-    pSirSmeDeauthInd->statusCode = pStaDs->mlmStaContext.cleanupTrigger;
+    if(eSIR_INFRA_AP_MODE == psessionEntry->bssType)
+    {
+        pSirSmeDeauthInd->statusCode = (tSirResultCodes)pStaDs->mlmStaContext.cleanupTrigger;
+    }
+    else
+    {
+        //Need to indicatet he reascon code over the air
+        pSirSmeDeauthInd->statusCode = (tSirResultCodes)pStaDs->mlmStaContext.disassocReason;
+    }
     //BSSID
     palCopyMemory( pMac->hHdd, pSirSmeDeauthInd->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
     //peerMacAddr

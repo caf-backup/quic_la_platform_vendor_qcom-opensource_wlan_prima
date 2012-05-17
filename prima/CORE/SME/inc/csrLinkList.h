@@ -29,14 +29,14 @@ typedef struct tagListElem
 typedef enum
 {
     LIST_FLAG_CLOSE = 0,
-    LIST_FLAG_OPEN = 1,
+    LIST_FLAG_OPEN = 0xa1b2c4d7,
 }tListFlag;
 
 //This is a circular double link list
 typedef struct tagDblLinkList
 {
   tListElem ListHead;
-  vos_lock_t Lock;
+  vos_spin_lock_t Lock;
   tANI_U32  Count;
   tHddHandle hHdd;
   tListFlag Flag;

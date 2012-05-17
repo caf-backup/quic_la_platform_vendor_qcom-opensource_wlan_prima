@@ -1,3 +1,8 @@
+/*
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
 
 #if !defined( __SMEINTERNAL_H )
 #define __SMEINTERNAL_H
@@ -31,6 +36,7 @@
   Type declarations
   ------------------------------------------------------------------------*/
 
+// Mask can be only have one bit set
 typedef enum eSmeCommandType 
 {
     eSmeNoCommand = 0, 

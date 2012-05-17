@@ -2709,7 +2709,8 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
          * We will find a better AP !!!
          */
         limTearDownLinkWithAp(pMac, 
-                        pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId);
+                        pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId,
+                        eSIR_MAC_UNSPEC_FAILURE_REASON);
         return;
     }
     switch(pMac->lim.gLimChannelSwitch.state)
@@ -7595,7 +7596,8 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
             tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
             /* AP did not respond to Probe Request. Tear down link with it.*/
             limTearDownLinkWithAp(pMac, 
-                      pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId);
+                      pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId,
+                      eSIR_BEACON_MISSED);
             pMac->lim.gLimProbeFailureAfterHBfailedCnt++ ;
         }
         else // restart heartbeat timer  

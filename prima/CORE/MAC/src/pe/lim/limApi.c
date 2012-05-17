@@ -541,7 +541,7 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
    }
    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_40MHZ, &val3) != eSIR_SUCCESS) 
    {
-      PELOGE(limLog(pMac, LOGE, FL("could not retrieve shortGI 20Mhz CFG\n"));)
+      PELOGE(limLog(pMac, LOGE, FL("could not retrieve shortGI 40Mhz CFG\n"));)
       return eSIR_FAILURE;
    }
 

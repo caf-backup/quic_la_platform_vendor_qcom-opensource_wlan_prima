@@ -126,7 +126,11 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #if defined WLAN_FEATURE_P2P
 #define P2P_WILDCARD_SSID "DIRECT-" //TODO Put it in proper place;
 #define P2P_WILDCARD_SSID_LEN 7
-#endif
+
+#ifdef WLAN_FEATURE_CONCURRENT_P2P
+#define MAX_NO_OF_P2P_SESSIONS  5
+#endif //WLAN_FEATURE_CONCURRENT_P2P
+#endif //WLAN_FEATURE_P2P
 
 // -------------------------------------------------------------------
 // Change channel generic scheme
@@ -1093,7 +1097,11 @@ typedef struct sAniSirGlobal
     tRrmContext rrm;
 #endif
 #ifdef WLAN_FEATURE_P2P
+#ifdef WLAN_FEATURE_CONCURRENT_P2P
+    tp2pContext p2pContext[MAX_NO_OF_P2P_SESSIONS];
+#else
     tp2pContext p2pContext;
+#endif
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI_11R

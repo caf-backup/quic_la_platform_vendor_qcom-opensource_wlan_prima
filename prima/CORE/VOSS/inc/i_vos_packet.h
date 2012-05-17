@@ -67,7 +67,6 @@
 //   MSDU and the payload portion of this BD is unused which means to cover
 //   1500 bytes we require 13 PDUs.
 //   So 13 PDUs + 1 BD = 14 BD/PDUs = 1792 bytes.
-#define VPKT_SIZE_BUFFER ( 1792 )
 
 // the number of VOS Packets we need.  This is the memory we need to
 // allocate for the vos Packet structures themselves.  We need vos

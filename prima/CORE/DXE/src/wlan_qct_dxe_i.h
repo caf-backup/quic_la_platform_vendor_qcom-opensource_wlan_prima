@@ -343,6 +343,8 @@ when           who        what, where, why
 #define WLANDXE_INT_MASK_CHAN_5          0x00000020
 #define WLANDXE_INT_MASK_CHAN_6          0x00000040
 
+#define WLANDXE_TX_LOW_RES_THRESHOLD     (5)
+
 /* DXE Descriptor Endian swap macro */
 #ifdef WLANDXE_ENDIAN_SWAP_ENABLE
 #define WLANDXE_U32_SWAP_ENDIAN(a) (((a & 0x000000FF) << 24) |    \
@@ -556,7 +558,8 @@ typedef struct
 typedef struct
 {
    WLANDXE_TXCompIntEnableType     txIntEnable;
-   unsigned int                    txLowResourceThreshold;
+   unsigned int                    txLowResourceThreshold_LoPriCh;
+   unsigned int                    txLowResourceThreshold_HiPriCh;
    unsigned int                    rxLowResourceThreshold;
    unsigned int                    txInterruptEnableFrameCount;
    unsigned int                    txInterruptEnablePeriod;

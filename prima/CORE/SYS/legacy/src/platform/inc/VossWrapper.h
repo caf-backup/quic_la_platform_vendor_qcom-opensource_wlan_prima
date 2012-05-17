@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef __VOSS_WRAPPER_H
 #define __VOSS_WRAPPER_H
 
@@ -57,6 +63,7 @@ extern "C" {
 #include "vos_types.h"
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include "vos_trace.h"
+#include "vos_memory.h"
 #endif
 
 /* Interlocked Compare Exchange related definitions */

@@ -301,8 +301,11 @@ typedef enum eSirResultCodes
 #ifdef WLAN_FEATURE_PACKET_FILTERING
     eSIR_SME_PC_FILTER_MATCH_COUNT_REQ_FAILED,
 #endif // WLAN_FEATURE_PACKET_FILTERING
-    eSIR_DONOT_USE_RESULT_CODE = SIR_MAX_ENUM_SIZE
     
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+    eSIR_SME_GTK_OFFLOAD_GETINFO_REQ_FAILED,
+#endif // WLAN_FEATURE_GTK_OFFLOAD
+    eSIR_DONOT_USE_RESULT_CODE = SIR_MAX_ENUM_SIZE    
 } tSirResultCodes;
 
 //
@@ -717,6 +720,8 @@ typedef struct sSirSmeStartBssReq
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
               ((int) OFFSET_OF( tSirBssDescription, ieFields)))
 
+#define WSCIE_PROBE_RSP_LEN (317 + 2)
+
 typedef struct sSirBssDescription
 {
     //offset of the ieFields from bssId.
@@ -756,6 +761,11 @@ typedef struct sSirBssDescription
     tANI_U16             QBSSLoad_avail; 
 #endif
     // Please keep the structure 4 bytes aligned above the ieFields
+
+    tANI_U8              fProbeRsp; //whether it is from a probe rsp
+    tANI_U32             WscIeLen;
+    tANI_U8              WscIeProbeRsp[WSCIE_PROBE_RSP_LEN];
+
     tANI_U32             ieFields[1];
 } tSirBssDescription, *tpSirBssDescription;
 
@@ -1432,6 +1442,11 @@ typedef struct sSirSmeAssocInd
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool             wmmEnabledSta; /* if present - STA is WMM enabled */
     tAniBool             reassocReq;
+    // Required for indicating the frames to upper layer
+    tANI_U32             beaconLength;
+    tANI_U8*             beaconPtr;
+    tANI_U32             assocReqLength;
+    tANI_U8*             assocReqPtr;
 #endif
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
@@ -1577,6 +1592,14 @@ typedef struct sSirSmeReassocInd
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
+#ifdef WLAN_SOFTAP_FEATURE
+    // Required for indicating the frames to upper layer
+    // TODO: use the appropriate names to distinguish between the other similar names used above for station mode of operation
+    tANI_U32             beaconLength;
+    tANI_U8*             beaconPtr;
+    tANI_U32             assocReqLength;
+    tANI_U8*             assocReqPtr;
+#endif
 } tSirSmeReassocInd, *tpSirSmeReassocInd;
 
 /// Definition for Reassociation confirm
@@ -3444,7 +3467,7 @@ typedef __ani_attr_pre_packed struct sSirBoardCapabilities
 /// WOW related structures
 // SME -> PE <-> HAL
 #define SIR_WOWL_BCAST_PATTERN_MAX_SIZE 128
-#define SIR_WOWL_BCAST_MAX_NUM_PATTERNS 8
+#define SIR_WOWL_BCAST_MAX_NUM_PATTERNS 16
 
 // SME -> PE -> HAL - This is to add WOWL BCAST wake-up pattern. 
 // SME/HDD maintains the list of the BCAST wake-up patterns.
@@ -3459,7 +3482,9 @@ typedef struct sSirWowlAddBcastPtrn
     tANI_U8  ucPattern[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern
     tANI_U8  ucPatternMaskSize;     // Non-zero pattern mask size
     tANI_U8  ucPatternMask[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
-    
+    // Extra pattern data beyond 128 bytes
+    tANI_U8  ucPatternExt[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra Pattern
+    tANI_U8  ucPatternMaskExt[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra Pattern mask
 } tSirWowlAddBcastPtrn, *tpSirWowlAddBcastPtrn;
 
 
@@ -3485,7 +3510,31 @@ typedef struct sSirSmeWowlEnterParams
     /* Enables/disables packet pattern filtering */
     tANI_U8   ucPatternFilteringEnable; 
 
-} tSirSmeWowlEnterParams, * tpSirSmeWowlEnterParams;
+#ifdef WLAN_WAKEUP_EVENTS
+    /* This configuration directs the WoW packet filtering to look for EAP-ID
+     * requests embedded in EAPOL frames and use this as a wake source.
+     */
+    tANI_U8   ucWoWEAPIDRequestEnable;
+
+    /* This configuration directs the WoW packet filtering to look for EAPOL-4WAY
+     * requests and use this as a wake source.
+     */
+    tANI_U8   ucWoWEAPOL4WayEnable;
+
+    /* This configuration allows a host wakeup on an network scan offload match.
+     */
+    tANI_U8   ucWowNetScanOffloadMatch;
+
+    /* This configuration allows a host wakeup on any GTK rekeying error.
+     */
+    tANI_U8   ucWowGTKRekeyError;
+
+    /* This configuration allows a host wakeup on BSS connection loss.
+     */
+    tANI_U8   ucWoWBSSConnLoss;
+#endif // WLAN_WAKEUP_EVENTS
+
+} tSirSmeWowlEnterParams, *tpSirSmeWowlEnterParams;
 
 
 // PE<->HAL: Enter WOWLAN parameters 
@@ -3545,11 +3594,34 @@ typedef struct sSirHalWowlEnterParams
      */
     tANI_U8   ucWowMaxSleepUsec;
 
+#ifdef WLAN_WAKEUP_EVENTS
+    /* This configuration directs the WoW packet filtering to look for EAP-ID
+     * requests embedded in EAPOL frames and use this as a wake source.
+     */
+    tANI_U8   ucWoWEAPIDRequestEnable;
+
+    /* This configuration directs the WoW packet filtering to look for EAPOL-4WAY
+     * requests and use this as a wake source.
+     */
+    tANI_U8   ucWoWEAPOL4WayEnable;
+
+    /* This configuration allows a host wakeup on an network scan offload match.
+     */
+    tANI_U8   ucWowNetScanOffloadMatch;
+
+    /* This configuration allows a host wakeup on any GTK rekeying error.
+     */
+    tANI_U8   ucWowGTKRekeyError;
+
+    /* This configuration allows a host wakeup on BSS connection loss.
+     */
+    tANI_U8   ucWoWBSSConnLoss;
+#endif // WLAN_WAKEUP_EVENTS
+
     /* Status code to be filled by HAL when it sends
      * SIR_HAL_WOWL_ENTER_RSP to PE. 
      */  
     eHalStatus  status;
-
 } tSirHalWowlEnterParams, *tpSirHalWowlEnterParams;
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -3705,10 +3777,24 @@ typedef struct sSirUpdateAPWPARSNIEsReq
 // SME -> HAL - This is the host offload request. 
 #define SIR_IPV4_ARP_REPLY_OFFLOAD                  0
 #define SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD         1
+#define SIR_IPV6_NS_OFFLOAD                         2
 #define SIR_OFFLOAD_DISABLE                         0
 #define SIR_OFFLOAD_ENABLE                          1
 #define SIR_OFFLOAD_BCAST_FILTER_ENABLE             0x2
 #define SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE     (SIR_OFFLOAD_ENABLE|SIR_OFFLOAD_BCAST_FILTER_ENABLE)
+
+#ifdef WLAN_NS_OFFLOAD
+typedef struct sSirNsOffloadReq
+{
+    tANI_U8 srcIPv6Addr[16];
+    tANI_U8 selfIPv6Addr[16];
+    //Only support 2 possible Network Advertisement IPv6 address
+    tANI_U8 targetIPv6Addr[SIR_MAC_NUM_TARGET_IPV6_NS_OFFLOAD_NA][16];
+    tANI_U8 selfMacAddr[6];
+    tANI_U8 srcIPv6AddrValid;
+    tANI_U8 targetIPv6AddrValid[SIR_MAC_NUM_TARGET_IPV6_NS_OFFLOAD_NA];
+} tSirNsOffloadReq, *tpSirNsOffloadReq;
+#endif //WLAN_NS_OFFLOAD
 
 typedef struct sSirHostOffloadReq
 {
@@ -3719,6 +3805,9 @@ typedef struct sSirHostOffloadReq
         tANI_U8 hostIpv4Addr [4];
         tANI_U8 hostIpv6Addr [16];
     } params;
+#ifdef WLAN_NS_OFFLOAD
+    tSirNsOffloadReq nsOffloadInfo;
+#endif //WLAN_NS_OFFLOAD
 } tSirHostOffloadReq, *tpSirHostOffloadReq;
 
 /* Packet Types. */
@@ -3928,7 +4017,7 @@ typedef struct
   tSirMacSSid ssId;
   /* Indicates the RSSI */
   tANI_U8        rssi;
-} tSirPrefNetworkFoundInd;
+} tSirPrefNetworkFoundInd, *tpSirPrefNetworkFoundInd;
 #endif // FEATURE_WLAN_SCAN_PNO
 
 #define SIR_NOCHANGE_POWER_VALUE  0xFFFFFFFF
@@ -3978,6 +4067,8 @@ typedef struct sSirTxPerTrackingParam
 /*---------------------------------------------------------------------------
   Packet Filtering Parameters
 ---------------------------------------------------------------------------*/
+#define    SIR_IPV4_ADDR_LEN     			4
+#define    SIR_MAC_ADDR_LEN      			6
 #define    SIR_MAX_FILTER_TEST_DATA_LEN       8
 #define    SIR_MAX_NUM_MULTICAST_ADDRESS    240
 #define    SIR_MAX_NUM_FILTERS               20 
@@ -4097,5 +4188,52 @@ typedef struct sAniBtAmpLogLinkReq
     void                   *btampHandle; //AMP context
     
 } tAniBtAmpLogLinkReq, *tpAniBtAmpLogLinkReq;
+
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+/*---------------------------------------------------------------------------
+* WDA_GTK_OFFLOAD_REQ
+*--------------------------------------------------------------------------*/
+typedef struct
+{
+  tANI_U32     ulFlags;             /* optional flags */
+  tANI_U8      aKCK[16];            /* Key confirmation key */ 
+  tANI_U8      aKEK[16];            /* key encryption key */
+  tANI_U64     ullKeyReplayCounter; /* replay counter */
+} tSirGtkOffloadParams, *tpSirGtkOffloadParams;
+
+/*---------------------------------------------------------------------------
+* WDA_GTK_OFFLOAD_GETINFO_REQ
+*--------------------------------------------------------------------------*/
+typedef struct
+{
+   tANI_U16   mesgType;
+   tANI_U16   mesgLen;
+
+   tANI_U32   ulStatus;             /* success or failure */
+   tANI_U64   ullKeyReplayCounter;  /* current replay counter value */
+   tANI_U32   ulTotalRekeyCount;    /* total rekey attempts */
+   tANI_U32   ulGTKRekeyCount;      /* successful GTK rekeys */
+   tANI_U32   ulIGTKRekeyCount;     /* successful iGTK rekeys */
+} tSirGtkOffloadGetInfoRspParams, *tpSirGtkOffloadGetInfoRspParams;
+#endif // WLAN_FEATURE_GTK_OFFLOAD
+
+#ifdef WLAN_WAKEUP_EVENTS
+/*---------------------------------------------------------------------------
+  tSirWakeReasonInd    
+---------------------------------------------------------------------------*/
+typedef struct
+{  
+    tANI_U16      mesgType;
+    tANI_U16      mesgLen;
+    tANI_U32      ulReason;        /* see tWakeReasonType */
+    tANI_U32      ulReasonArg;     /* argument specific to the reason type */
+    tANI_U32      ulStoredDataLen; /* length of optional data stored in this message, in case
+                              HAL truncates the data (i.e. data packets) this length
+                              will be less than the actual length */
+    tANI_U32      ulActualDataLen; /* actual length of data */
+    tANI_U8       aDataStart[1];  /* variable length start of data (length == storedDataLen)
+                             see specific wake type */ 
+} tSirWakeReasonInd, *tpSirWakeReasonInd;
+#endif // WLAN_WAKEUP_EVENTS
 
 #endif /* __SIR_API_H */

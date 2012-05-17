@@ -166,6 +166,19 @@ eHalStatus csrProcessAddStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg);
 eHalStatus csrProcessDelStaSessionCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 eHalStatus csrProcessDelStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg);
 
+#ifdef WLAN_NS_OFFLOAD
+/* ---------------------------------------------------------------------------
+    \fn pmcSetNSOffload
+    \brief  Set the host offload feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest - Pointer to the offload request.
+    \return eHalStatus
+            eHAL_STATUS_FAILURE  Cannot set the offload.
+            eHAL_STATUS_SUCCESS  Request accepted. 
+  ---------------------------------------------------------------------------*/
+eHalStatus pmcSetNSOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
+#endif //WLAN_NS_OFFLOAD
+
 #ifdef FEATURE_WLAN_SCAN_PNO
 eHalStatus pmcSetPreferredNetworkList(tHalHandle hHal, tpSirPNOScanReq pRequest, tANI_U8 sessionId, preferredNetworkFoundIndCallback callbackRoutine,  void *callbackContext);
 eHalStatus pmcUpdateScanParams(tHalHandle hHal, tCsrConfig *pRequest, tCsrChannel *pChannelList, tANI_U8 b11dResolved);
