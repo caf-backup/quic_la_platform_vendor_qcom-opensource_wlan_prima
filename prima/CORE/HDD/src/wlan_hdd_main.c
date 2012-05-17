@@ -1406,10 +1406,9 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
 
 }
 
-VOS_STATUS hdd_enable_bmps(hdd_context_t *pHddCtx)
+VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
-
 
    if(pHddCtx->cfg_ini->fIsBmpsEnabled)
    {
@@ -1421,15 +1420,21 @@ VOS_STATUS hdd_enable_bmps(hdd_context_t *pHddCtx)
       sme_StartAutoBmpsTimer(pHddCtx->hHal); 
    }
 
+   if (pHddCtx->cfg_ini->fIsImpsEnabled)
+   {
+      sme_EnablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+   }
+
    return status;
 }
 
-VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
+VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type)
 {
-   hdd_adapter_t *pStaAdapter = NULL;
+   hdd_adapter_t *pAdapter = NULL;
    eHalStatus halStatus;
    VOS_STATUS status = VOS_STATUS_E_INVAL;
    v_BOOL_t disableBmps = FALSE;
+   v_BOOL_t disableImps = FALSE;
    
    switch(session_type)
    {
@@ -1440,18 +1445,34 @@ VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
        case WLAN_HDD_P2P_GO:
 #endif
           //Exit BMPS -> Is Sta/P2P Client is already connected
-          pStaAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
-          if((NULL != pStaAdapter)&&
-              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pStaAdapter)))
+          pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+          if((NULL != pAdapter)&&
+              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
           {
              disableBmps = TRUE;
           }
 
-          pStaAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
-          if((NULL != pStaAdapter)&&
-              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pStaAdapter)))
+          pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
+          if((NULL != pAdapter)&&
+              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
           {
              disableBmps = TRUE;
+          }
+
+          //Exit both Bmps and Imps incase of Go/SAP Mode
+          if((WLAN_HDD_SOFTAP == session_type) ||
+              (WLAN_HDD_P2P_GO == session_type))
+          {
+             disableBmps = TRUE;
+             disableImps = TRUE;
+          }
+
+          if(TRUE == disableImps)
+          {
+             if (pHddCtx->cfg_ini->fIsImpsEnabled)
+             {
+                sme_DisablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+             }
           }
 
           if(TRUE == disableBmps)
@@ -1481,7 +1502,11 @@ VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
                     return status;
                  }
               }
+          }
 
+          if((TRUE == disableBmps) ||
+              (TRUE == disableImps))
+          {
               /* Now, get the chip into Full Power now */
               INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
               halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_full_pwr_cbk,
@@ -1506,6 +1531,7 @@ VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
 
               status = VOS_STATUS_SUCCESS;
           }
+
           break;
    }
    return status;
@@ -1523,7 +1549,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
 
    //Disable BMPS incase of Concurrency
-   exitbmpsStatus = hdd_disable_bmps(pHddCtx, session_type);
+   exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, session_type);
 
    if(VOS_STATUS_E_FAILURE == exitbmpsStatus)
    {
@@ -1720,7 +1746,7 @@ resume_bmps:
    //If bmps disabled enable it
    if(VOS_STATUS_SUCCESS == exitbmpsStatus)
    {
-      hdd_enable_bmps(pHddCtx);
+      hdd_enable_bmps_imps(pHddCtx);
    }
    return NULL;
 }
@@ -1767,7 +1793,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
            ((pHddCtx->no_of_sessions[VOS_STA_MODE] >= 1) || 
            (pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE] >= 1)))
       {
-         hdd_enable_bmps(pHddCtx);
+         hdd_enable_bmps_imps(pHddCtx);
       }
 
       return VOS_STATUS_SUCCESS;

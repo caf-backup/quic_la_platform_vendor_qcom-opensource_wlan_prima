@@ -3998,7 +3998,9 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 {
     int status = 0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev ); 
-    
+    VOS_STATUS exitbmpsStatus = VOS_STATUS_E_INVAL;
+    hdd_context_t *pHddCtx = NULL;
+
     ENTER();
 
     hddLog(VOS_TRACE_LEVEL_INFO, 
@@ -4023,11 +4025,36 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return status;
     }
 
+    //If Device Mode is Station Concurrent Sessions Exit BMps
+    //P2P Mode will be taken care in Open/close adaptor
+    if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+        (vos_concurrent_sessions_running()))
+    {
+        v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+
+        if (NULL != pVosContext)
+        {
+            pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+            if(NULL != pHddCtx)
+            {
+               exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+            }
+        }
+    }
+
     status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid, 
                                                 req->ssid_len, req->bssid);
 
     if (0 > status)
     {
+        //ReEnable BMPS if disabled
+        if((VOS_STATUS_SUCCESS == exitbmpsStatus) &&
+            (NULL != pHddCtx))
+        {
+           //ReEnable Bmps and Imps back
+           hdd_enable_bmps_imps(pHddCtx);
+        }
+
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: connect failed", __func__);
         return status;
     }
