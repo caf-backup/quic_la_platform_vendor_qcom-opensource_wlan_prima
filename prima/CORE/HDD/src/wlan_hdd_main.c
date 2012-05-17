@@ -1646,7 +1646,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
          if( NULL == pAdapter )
             return NULL;
-     
+         /* Assign NL80211_IFTYPE_STATION as interface type to resolve Kernel Warning
+          * message while loading driver in FTM mode. */
+         pAdapter->wdev.iftype = NL80211_IFTYPE_STATION;
          pAdapter->device_mode = session_type;
          status = hdd_register_interface( pAdapter, rtnl_held );
       }
