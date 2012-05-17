@@ -1169,7 +1169,8 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                       pScanReq->bssId,
                       sizeof(tSirMacAddr));
         pMlmScanReq->numSsid = pScanReq->numSsid;
-                   
+
+		i = 0;
         while (i < pMlmScanReq->numSsid)
         {
             palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmScanReq->ssId[i],
