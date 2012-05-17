@@ -2541,6 +2541,33 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
 #ifdef CONFIG_CFG80211
     wlan_hdd_set_monitor_tx_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
 #endif
+#ifdef WLAN_FEATURE_P2P
+    /* If administrative interface is enabled then one interface being
+     * created for p2p device address. This will take one HW STA and 
+     * the max number of clients that can connect to softAP will be 
+     * reduced by one. So as soon as SoftAP interface got created remove 
+     * the session for p2p device address.
+     */
+    if ( VOS_IS_STATUS_SUCCESS( status ) && 
+            ( pAdapter->device_mode == WLAN_HDD_SOFTAP ) && 
+            ( !strncmp( pAdapter->dev->name, "wlan", 4 )) )
+    {
+        hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
+        {
+            INIT_COMPLETION(pAdapter->session_close_comp_var);
+            if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
+                        pAdapter->p2pSessionId,
+                        hdd_smeCloseSessionCallback, pAdapter ) )
+            {
+                //Block on a completion variable. Can't wait forever though.
+                wait_for_completion_interruptible_timeout(
+                        &pAdapter->session_close_comp_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+            }
+        }
+    }
+#endif
     EXIT();
     return status;
 }

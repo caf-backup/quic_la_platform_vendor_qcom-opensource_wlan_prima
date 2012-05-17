@@ -1113,7 +1113,7 @@ VOS_STATUS hdd_register_interface( hdd_adapter_t *pAdapter, tANI_U8 rtnl_lock_he
    return VOS_STATUS_SUCCESS;
 }
 
-static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
+eHalStatus hdd_smeCloseSessionCallback(void *pContext)
 {
    if(pContext != NULL)
    {

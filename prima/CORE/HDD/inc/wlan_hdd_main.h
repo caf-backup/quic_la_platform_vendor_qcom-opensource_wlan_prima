@@ -860,4 +860,5 @@ void hdd_set_ssr_required(v_U8_t value);
 VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx);
 VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type);
 
+eHalStatus hdd_smeCloseSessionCallback(void *pContext);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
