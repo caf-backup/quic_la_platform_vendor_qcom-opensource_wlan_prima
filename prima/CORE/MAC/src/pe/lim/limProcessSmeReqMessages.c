@@ -273,7 +273,12 @@ __limIsDeferedMsgForLearn(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
          * from HAL like init scan rsp, start scan rsp etc.
          */        
         if (GET_LIM_PROCESS_DEFD_MESGS(pMac))
+        {
+            //Set the resume channel to Any valid channel (invalid). 
+            //This will instruct HAL to set it to any previous valid channel.
+            peSetResumeChannel(pMac, 0, 0);
             limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_LEARN_WAIT_STATE);
+        }
 
         return eANI_BOOLEAN_TRUE;
     }
@@ -551,6 +556,9 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,FL("PE PERSONA=%d\n"),
             psessionEntry->pePersona);
 
+        /*Update the phymode*/
+        psessionEntry->gLimPhyMode = pSmeStartBssReq->nwType;
+
         psessionEntry->maxTxPower = cfgGetRegulatoryMaxTransmitPower( pMac, 
             psessionEntry->currentOperChannel );
         /* Store the dot 11 mode in to the session Table*/
@@ -637,6 +645,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             channelNumber = pSmeStartBssReq->channelId;
             /*Update cbMode received from sme with LIM's updated cbMode*/
             pSmeStartBssReq->cbMode =  pMac->lim.gCbMode;
+
             setupCBState( pMac, pSmeStartBssReq->cbMode );
             pMac->lim.gHTSecondaryChannelOffset = limGetHTCBState(pSmeStartBssReq->cbMode);
 #ifdef WLAN_SOFTAP_FEATURE
@@ -1424,6 +1433,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             psessionEntry->dot11mode  = pSmeJoinReq->dot11mode;
             psessionEntry->nwType = pSmeJoinReq->bssDescription.nwType;
 
+            /*Phy mode*/
+			psessionEntry->gLimPhyMode = pSmeJoinReq->bssDescription.nwType;
 
             /* Copy The channel Id to the session Table */
             psessionEntry->currentOperChannel = pSmeJoinReq->bssDescription.channelId;
@@ -1528,7 +1539,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 pMac->lim.gpLimJoinReq->neighborBssList.bssList[0].channelId;
 
             limCopyNeighborInfoToCfg(pMac,
-                pMac->lim.gpLimJoinReq->neighborBssList.bssList[0]);
+                pMac->lim.gpLimJoinReq->neighborBssList.bssList[0], psessionEntry);
 
             palCopyMemory( pMac->hHdd, pMac->lim.gLimCurrentBssId,
                 pMac->lim.gpLimJoinReq->neighborBssList.bssList[0].bssId,
@@ -1962,7 +1973,8 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
     limCopyNeighborInfoToCfg(pMac,
-        psessionEntry->pLimReAssocReq->neighborBssList.bssList[0]);
+        psessionEntry->pLimReAssocReq->neighborBssList.bssList[0],
+        psessionEntry);
 
     palCopyMemory( pMac->hHdd,
              pMac->lim.gLimReassocBssId,
@@ -2269,6 +2281,19 @@ __limProcessSmeDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                     psessionEntry->limSmeState= eLIM_SME_WT_DISASSOC_STATE;
                     MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
                     limLog(pMac, LOG1, FL("Rcvd SME_DISASSOC_REQ while in SME_WT_DEAUTH_STATE. \n"));
+                    break;
+
+                case eLIM_SME_WT_DISASSOC_STATE:
+                    /* PE Recieved a Disassoc frame. Normally it gets DISASSOC_CNF but it
+                     * received DISASSOC_REQ. Which means host is also trying to disconnect.
+                     * PE can continue processing DISASSOC_REQ and send the response instead
+                     * of failing the request. SME will anyway ignore DEAUTH_IND that was sent
+                     * for disassoc frame.
+                     *
+                     * It will send a disassoc, which is ok. However, we can use the global flag
+                     * sendDisassoc to not send disassoc frame.
+                     */
+                    limLog(pMac, LOG1, FL("Rcvd SME_DISASSOC_REQ while in SME_WT_DISASSOC_STATE. \n"));
                     break;
 
                 case eLIM_SME_JOIN_FAILURE_STATE: {

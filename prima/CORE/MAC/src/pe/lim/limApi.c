@@ -257,14 +257,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimNoShortParams, sizeof(tLimNoShortParams));
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimNoShortSlotParams, sizeof(tLimNoShortSlotParams));
 
-   // psessionEntry->dot11mode = WNI_CFG_DOT11_MODE_ALL;
-
-
-
-    //FIXME : right now initialiazing to 2.4 GHZ. But this should be filled in from cfg.
-    pMac->lim.gLimRFBand = SIR_BAND_2_4_GHZ;
-
-    pMac->lim.gLimPhyMode = 0;
+    pMac->lim.gLimPhyMode = 0; 
     pMac->lim.scanStartTime = 0;    // used to measure scan time
 
     palZeroMemory(pMac->hHdd, pMac->lim.gLimBssid, sizeof(pMac->lim.gLimBssid));

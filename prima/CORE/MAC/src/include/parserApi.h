@@ -414,7 +414,8 @@ PopulateDot11fCountry(tpAniSirGlobal    pMac,
 /// Populated a PopulateDot11fDSParams
 tSirRetStatus
 PopulateDot11fDSParams(tpAniSirGlobal     pMac,
-                       tDot11fIEDSParams *pDot11f, tANI_U8 channel);
+                       tDot11fIEDSParams *pDot11f, tANI_U8 channel,
+                       tpPESession psessionEntry);
 
 
 /// Populated a tDot11fIEEDCAParamSet

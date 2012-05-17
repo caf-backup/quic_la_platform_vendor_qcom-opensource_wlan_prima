@@ -566,6 +566,9 @@ typedef struct
      such algorithm. */
   v_U32_t uLwmThreshold;
 
+  //tx disable forced by Riva software
+  v_U16_t fcStaTxDisabled;
+
   /** HDD buffer status for packet scheduling. Once HDD
    *  stores a new packet in a previously empty queue, it
    *  will call TL interface to set the fields. The fields

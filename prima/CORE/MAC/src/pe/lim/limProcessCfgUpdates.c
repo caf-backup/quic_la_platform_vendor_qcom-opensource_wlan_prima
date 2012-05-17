@@ -797,6 +797,11 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     psessionEntry->limSentCapsChangeNtf = false;
 
+    if(psessionEntry)
+        limGetPhyMode(psessionEntry, &phyMode);
+    else
+        phyMode = pMac->lim.gLimPhyMode;
+
     if (wlan_cfgGetInt(pMac, WNI_CFG_PHY_MODE, &phyMode) != eSIR_SUCCESS)
     {
         limLog(pMac, LOGP, FL("could not retrieve PHY mode from CFG\n"));

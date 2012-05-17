@@ -280,11 +280,13 @@ PopulateDot11fCountry(tpAniSirGlobal    pMac,
     tANI_U32           len, maxlen, codelen;
     tANI_U16           item;
     tSirRetStatus nSirStatus;
+    tSirRFBand         rfBand;
     tANI_U8            temp[CFG_MAX_STR_LEN], code[3];
 
     if (psessionEntry->lim11dEnabled )
     {
-        if (pMac->lim.gLimPhyMode == WNI_CFG_PHY_MODE_11A)
+        limGetRfBand(pMac, &rfBand, psessionEntry);
+        if (rfBand == SIR_BAND_5_GHZ)
         {
             item   = WNI_CFG_MAX_TX_POWER_5;
             maxlen = WNI_CFG_MAX_TX_POWER_5_LEN;
@@ -326,13 +328,17 @@ PopulateDot11fCountry(tpAniSirGlobal    pMac,
 
 tSirRetStatus
 PopulateDot11fDSParams(tpAniSirGlobal     pMac,
-                       tDot11fIEDSParams *pDot11f, tANI_U8 channel)
+                       tDot11fIEDSParams *pDot11f, tANI_U8 channel,
+                       tpPESession psessionEntry)
 {
-    tSirRetStatus       nSirStatus;
+//    tSirRetStatus       nSirStatus;
     tANI_U32            nPhyMode;
 
     // Get PHY mode and based on that add DS Parameter Set IE
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_PHY_MODE, nPhyMode );
+    if(psessionEntry != NULL )
+	    limGetPhyMode(psessionEntry, &nPhyMode);
+	else
+		nPhyMode = pMac->lim.gLimPhyMode;
 
     if ( WNI_CFG_PHY_MODE_11A != nPhyMode )
     {
@@ -404,7 +410,7 @@ PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
     tANI_U32            val;
     tSirRFBand          rfBand = SIR_BAND_UNKNOWN;
 
-    limGetRfBand(pMac, &rfBand);
+    limGetRfBand(pMac, &rfBand, psessionEntry);
     if(SIR_BAND_2_4_GHZ == rfBand)
     {
         pDot11f->present = 1;

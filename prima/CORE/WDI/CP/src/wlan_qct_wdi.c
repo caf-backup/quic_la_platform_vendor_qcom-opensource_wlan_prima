@@ -14133,6 +14133,8 @@ WDI_ProcessDelBSSRsp
   wpalMemoryCopy(wdiDelBSSParams.macBSSID, 
                  pBSSSes->macBSSID, WDI_MAC_ADDR_LEN);
 
+  wdiDelBSSParams.ucBssIdx = halDelBssRspMsg.deleteBssRspParams.bssIdx;
+
   /*-----------------------------------------------------------------------
     The current session will be deleted 
   -----------------------------------------------------------------------*/
@@ -20582,6 +20584,8 @@ WDI_2_HAL_SCAN_MODE
     return eHAL_SYS_MODE_SCAN;
   case WDI_SCAN_MODE_PROMISC:
     return eHAL_SYS_MODE_PROMISC; 
+  case WDI_SCAN_MODE_SUSPEND_LINK:
+    return eHAL_SYS_MODE_SUSPEND_LINK;
   }
 
   return eHAL_SYS_MODE_MAX; 

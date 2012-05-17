@@ -1941,6 +1941,7 @@ VOS_STATUS WDA_SuspendDataTx(tWDA_CbContext *pWDA)
 {
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    tANI_U8 eventIdx = 0;
+   tANI_U8 ucSTAId = 0;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                       "%s: Entered " ,__FUNCTION__);
@@ -1963,8 +1964,9 @@ VOS_STATUS WDA_SuspendDataTx(tWDA_CbContext *pWDA)
       return VOS_STATUS_E_FAILURE;
    }
 
-   /*Indicate TL to suspend transmission */
-   status = WLANTL_SuspendDataTx(pWDA->pVosContext, NULL,
+   /*Indicate TL to suspend transmission for all Sta Id */
+   ucSTAId = WLAN_ALL_STA;
+   status = WLANTL_SuspendDataTx(pWDA->pVosContext, &ucSTAId,
                                                 WDA_SuspendDataTxCallback);
    if(status != VOS_STATUS_SUCCESS)
    {
@@ -2006,11 +2008,12 @@ VOS_STATUS WDA_SuspendDataTx(tWDA_CbContext *pWDA)
 VOS_STATUS WDA_ResumeDataTx(tWDA_CbContext *pWDA)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
+   tANI_U8 ucSTAId = 0;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                       "%s: Entered " ,__FUNCTION__);
-
-   status = WLANTL_ResumeDataTx(pWDA->pVosContext, NULL);
+   ucSTAId = WLAN_ALL_STA;
+   status = WLANTL_ResumeDataTx(pWDA->pVosContext, &ucSTAId);
    return status;
 }
 
@@ -2763,10 +2766,11 @@ VOS_STATUS WDA_ProcessChannelSwitchReq(tWDA_CbContext *pWDA,
    vos_mem_copy(wdiSwitchChanParam->wdiChInfo.macSelfStaMacAddr, 
                     pSwitchChanParams ->selfStaMacAddr,
                     sizeof(tSirMacAddr));
+#endif
    vos_mem_copy(wdiSwitchChanParam->wdiChInfo.macBSSId, 
                      pSwitchChanParams->bssId,
                      sizeof(tSirMacAddr));
-#endif
+
    status = WDI_SwitchChReq(wdiSwitchChanParam, 
                      (WDI_SwitchChRspCb)WDA_SwitchChannelReqCallback, pWdaParams);
 
@@ -2884,6 +2888,8 @@ void WDA_ConfigBssReqCallback(WDI_ConfigBSSRspParamsType *wdiConfigBssRsp
       if(staConfigBssParam->staType == STA_ENTRY_PEER && 
                                     staConfigBssParam->htCapable)
       {
+         pWDA->wdaStaInfo[staConfigBssParam->staIdx].bssIdx = 
+                                                    wdiConfigBssRsp->ucBSSIdx;
          pWDA->wdaStaInfo[staConfigBssParam->staIdx].ucValidStaIndex = 
                                                          WDA_VALID_STA_INDEX ;
       }
@@ -3160,6 +3166,8 @@ void WDA_AddStaReqCallback(WDI_ConfigSTARspParamsType *wdiConfigStaRsp,
       /* update staIndex as valid index for BA if STA is HT capable*/
       if(addStaReqParam->staType == STA_ENTRY_PEER && addStaReqParam->htCapable)
       {
+         pWDA->wdaStaInfo[addStaReqParam->staIdx].bssIdx = 
+                                                    wdiConfigStaRsp->ucBssIdx;
          pWDA->wdaStaInfo[addStaReqParam->staIdx].ucValidStaIndex = 
                                                          WDA_VALID_STA_INDEX ;
       }
@@ -3308,13 +3316,16 @@ void WDA_DelBSSReqCallback(WDI_DelBSSRspParamsType *wdiDelBssRsp,
    /* Reset the BA related information */
    for(staIdx=0; staIdx < WDA_MAX_STA; staIdx++)
    {
-      pWDA->wdaStaInfo[staIdx].ucValidStaIndex = WDA_INVALID_STA_INDEX;
-      pWDA->wdaStaInfo[staIdx].ucUseBaBitmap = 0;
-      /* Reset framesTxed counters here */
-      for(tid = 0; tid < STACFG_MAX_TC; tid++)
+      if( pWDA->wdaStaInfo[staIdx].bssIdx == wdiDelBssRsp->ucBssIdx )
       {
-         pWDA->wdaStaInfo[staIdx].framesTxed[tid] = 0;
-      } 
+         pWDA->wdaStaInfo[staIdx].ucValidStaIndex = WDA_INVALID_STA_INDEX;
+         pWDA->wdaStaInfo[staIdx].ucUseBaBitmap = 0;
+         /* Reset framesTxed counters here */
+         for(tid = 0; tid < STACFG_MAX_TC; tid++)
+         {
+            pWDA->wdaStaInfo[staIdx].framesTxed[tid] = 0;
+         }
+      }
    }
 
    WDA_SendMsg(pWDA, WDA_DELETE_BSS_RSP, (void *)delBssReqParam , 0) ;

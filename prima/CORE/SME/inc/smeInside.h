@@ -77,6 +77,7 @@ typedef struct sGenericQosCmd
 typedef struct sRemainChlCmd
 {
     tANI_U8 chn;
+	tANI_U8 phyMode;
     tANI_U32 duration;
     void* callback;
     void* callbackCtx;

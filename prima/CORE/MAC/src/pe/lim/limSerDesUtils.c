@@ -3319,12 +3319,19 @@ limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInf
     tANI_U32    localPowerConstraints = 0;
     tANI_U16    caps;
     tANI_U8     qosCap = 0;
-    
-    if (cfgSetInt(pMac, WNI_CFG_PHY_MODE,
-                  neighborBssInfo.nwType) != eSIR_SUCCESS)
+
+    if(psessionEntry)
     {
-        limLog(pMac, LOGP, FL("could not set networkType at CFG\n"));
-    }
+        psessionEntry->gLimPhyMode = neighborBssInfo.nwType;
+    }	
+	else
+	{
+        if (cfgSetInt(pMac, WNI_CFG_PHY_MODE,
+                      neighborBssInfo.nwType) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("could not set networkType at CFG\n"));
+        }
+	}
 
     cfgSetCapabilityInfo(pMac, neighborBssInfo.capabilityInfo);
 

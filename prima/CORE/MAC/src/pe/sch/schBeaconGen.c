@@ -236,7 +236,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     }
 
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &bcn1.SuppRates,psessionEntry);
-    PopulateDot11fDSParams( pMac, &bcn1.DSParams, psessionEntry->currentOperChannel);
+    PopulateDot11fDSParams( pMac, &bcn1.DSParams, psessionEntry->currentOperChannel, psessionEntry);
     PopulateDot11fIBSSParams( pMac, &bcn1.IBSSParams,psessionEntry);
 
     offset = sizeof( tAniBeaconStruct );

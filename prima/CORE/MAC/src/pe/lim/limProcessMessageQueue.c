@@ -988,6 +988,9 @@ limProcessAbortScanInd(tpAniSirGlobal pMac)
             pMac->lim.abortScan = 0;
             limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
             limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
+            //Set the resume channel to Any valid channel (invalid). 
+            //This will instruct HAL to set it to any previous valid channel.
+            peSetResumeChannel(pMac, 0, 0);
             limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
         }
     }
@@ -1095,6 +1098,9 @@ void limProcessInNavMeasRsp(tpAniSirGlobal pMac, tANI_U32* body)
     //Now free the incoming memory
     palFreeMemory(pMac->hHdd, (void*)(innavMeasRsp));
 
+    //Set the resume channel to Any valid channel (invalid). 
+    //This will instruct HAL to set it to any previous valid channel.
+    peSetResumeChannel(pMac, 0, 0);
     limResumeLink(pMac, limInNavHandleResumeLinkRsp, (tANI_U32*)mlmInNavMeasRsp);
 
     return;
@@ -1562,7 +1568,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 if (limMsg->type == eWNI_SME_MEASUREMENT_REQ)
                 {
                     if (GET_LIM_PROCESS_DEFD_MESGS(pMac))
+                    {
+                        //Set the resume channel to Any valid channel (invalid). 
+                        //This will instruct HAL to set it to any previous valid channel.
+                        peSetResumeChannel(pMac, 0, 0);
                         limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_LEARN_WAIT_STATE);
+                    }
                 }
             }
             else

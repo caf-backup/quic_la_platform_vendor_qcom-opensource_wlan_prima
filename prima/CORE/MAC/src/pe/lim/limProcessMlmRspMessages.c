@@ -3625,6 +3625,9 @@ void limProcessInitScanRsp(tpAniSirGlobal pMac,  void *body)
         pMac->lim.abortScan = 0;
         limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
         limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
+        //Set the resume channel to Any valid channel (invalid). 
+        //This will instruct HAL to set it to any previous valid channel.
+        peSetResumeChannel(pMac, 0, 0);
         limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
     }
     switch(pMac->lim.gLimHalScanState)
@@ -4008,6 +4011,9 @@ void limProcessStartScanRsp(tpAniSirGlobal pMac,  void *body)
         pMac->lim.abortScan = 0;
         limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
         limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
+        //Set the resume channel to Any valid channel (invalid). 
+        //This will instruct HAL to set it to any previous valid channel.
+        peSetResumeChannel(pMac, 0, 0);
         limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
     }
     switch(pMac->lim.gLimHalScanState)
@@ -4021,6 +4027,9 @@ void limProcessStartScanRsp(tpAniSirGlobal pMac,  void *body)
                // eWNI_SME_SCAN_CNF maybe reporting an incorrect
                // status back to the SME
                //
+               //Set the resume channel to Any valid channel (invalid). 
+               //This will instruct HAL to set it to any previous valid channel.
+               peSetResumeChannel(pMac, 0, 0);
                limSendHalFinishScanReq( pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE );
                //limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_INIT_FAILED);
             }
@@ -4036,6 +4045,9 @@ void limProcessStartScanRsp(tpAniSirGlobal pMac,  void *body)
             {
                 if (status != (tANI_U32) eHAL_STATUS_SUCCESS)
                 {
+                    //Set the resume channel to Any valid channel (invalid). 
+                    //This will instruct HAL to set it to any previous valid channel.
+                    peSetResumeChannel(pMac, 0, 0);
                     limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_LEARN_WAIT_STATE);
                 }
                 else
@@ -4082,6 +4094,9 @@ void limProcessEndScanRsp(tpAniSirGlobal pMac,  void *body)
         case eLIM_HAL_END_LEARN_WAIT_STATE:
             if (status != (tANI_U32) eHAL_STATUS_SUCCESS)
             {
+                //Set the resume channel to Any valid channel (invalid). 
+                //This will instruct HAL to set it to any previous valid channel.
+                peSetResumeChannel(pMac, 0, 0);
                 limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_LEARN_WAIT_STATE);
             }
 #if 0 /* Will we be in UNKNOWN ROLE ever in this context: Veerendra */

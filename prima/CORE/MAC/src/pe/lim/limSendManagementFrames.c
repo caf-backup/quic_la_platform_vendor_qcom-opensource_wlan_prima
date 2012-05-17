@@ -247,7 +247,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     //DS params "can" be present in RRM is disabled and "is" present if 
     //RRM is enabled. It should be ok even if we add it into probe req when 
     //RRM is not enabled. 
-    PopulateDot11fDSParams( pMac, &pr.DSParams, nChannelNum );
+    PopulateDot11fDSParams( pMac, &pr.DSParams, nChannelNum, psessionEntry );
     //Call RRM module to get the tx power for management used.
     {
        tANI_U8 txPower = (tANI_U8) rrmGetMgmtTxPower( pMac, psessionEntry );
@@ -493,7 +493,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
                              &frm.SuppRates,psessionEntry);
 
-    PopulateDot11fDSParams( pMac, &frm.DSParams, psessionEntry->currentOperChannel);
+    PopulateDot11fDSParams( pMac, &frm.DSParams, psessionEntry->currentOperChannel, psessionEntry);
     PopulateDot11fIBSSParams( pMac, &frm.IBSSParams, psessionEntry );
 
 #ifdef ANI_PRODUCT_TYPE_AP

@@ -61,9 +61,9 @@ static tSirRetStatus
 limValidateTspecHcca(tpAniSirGlobal, tSirMacTspecIE *);
 #endif
 static tSirRetStatus
-limValidateTspecEdca(tpAniSirGlobal, tSirMacTspecIE *);
+limValidateTspecEdca(tpAniSirGlobal, tSirMacTspecIE *, tpPESession);
 static tSirRetStatus
-limValidateTspec(tpAniSirGlobal, tSirMacTspecIE *);
+limValidateTspec(tpAniSirGlobal, tSirMacTspecIE *, tpPESession);
 static void
 limComputeMeanBwUsed(tpAniSirGlobal, tANI_U32 *, tANI_U32, tpLimTspecInfo, tpPESession);
 static void
@@ -269,12 +269,17 @@ limValidateTspecHcca(
 static tSirRetStatus
 limValidateTspecEdca(
     tpAniSirGlobal  pMac,
-    tSirMacTspecIE *pTspec)
+    tSirMacTspecIE *pTspec,
+    tpPESession  psessionEntry)
 {
     tANI_U32           maxPhyRate, minPhyRate;
     tANI_U32 phyMode;
     tSirRetStatus retval = eSIR_SUCCESS;
-    limGetPhyMode(pMac, &phyMode);
+    
+    if(psessionEntry)
+        limGetPhyMode(psessionEntry, &phyMode);
+    else
+        phyMode = pMac->lim.gLimPhyMode;
     //limGetAvailableBw(pMac, &maxPhyRate, &minPhyRate, pMac->dph.gDphPhyMode,
     //                  1 /* bandwidth mult factor */);
     limGetAvailableBw(pMac, &maxPhyRate, &minPhyRate, phyMode,
@@ -306,13 +311,14 @@ limValidateTspecEdca(
 static tSirRetStatus
 limValidateTspec(
     tpAniSirGlobal  pMac,
-    tSirMacTspecIE *pTspec)
+    tSirMacTspecIE *pTspec,
+     tpPESession psessionEntry)
 {
     tSirRetStatus retval = eSIR_SUCCESS;
     switch (pTspec->tsinfo.traffic.accessPolicy)
     {
         case SIR_MAC_ACCESSPOLICY_EDCA:
-            if ((retval = limValidateTspecEdca(pMac, pTspec)) != eSIR_SUCCESS)
+            if ((retval = limValidateTspecEdca(pMac, pTspec, psessionEntry)) != eSIR_SUCCESS)
                 PELOGW(limLog(pMac, LOGW, FL("EDCA tspec invalid\n"));)
             break;
 
@@ -448,7 +454,10 @@ limAdmitPolicyOversubscription(
     tANI_U32 phyMode;
 
     // determine total bandwidth used so far
-    limGetPhyMode(pMac, &phyMode);
+    if(psessionEntry)
+        limGetPhyMode(psessionEntry, &phyMode);
+    else
+        phyMode = pMac->lim.gLimPhyMode;
     //limComputeMeanBwUsed(pMac, &usedbw, pMac->dph.gDphPhyMode, pTspecInfo);
     limComputeMeanBwUsed(pMac, &usedbw, phyMode, pTspecInfo, psessionEntry);
 
@@ -863,7 +872,7 @@ tSirRetStatus limAdmitControlAddTS(
     }
 
     // check that the tspec's are well formed and acceptable
-    if (limValidateTspec(pMac, &pAddts->tspec) != eSIR_SUCCESS)
+    if (limValidateTspec(pMac, &pAddts->tspec, psessionEntry) != eSIR_SUCCESS)
     {
         PELOGW(limLog(pMac, LOGW, FL("tspec validation failed\n"));)
         return eSIR_FAILURE;

@@ -526,6 +526,11 @@ typedef struct sAniSirLim
     tANI_U32 *gpLimResumeData;
 //end WLAN_SUSPEND_LINK Related
     tANI_U8    fScanDisabled;
+    //Can be set to invalid channel. If it is invalid, HAL
+    //should move to previous valid channel or stay in the
+    //current channel.
+    tANI_U16   gResumeChannel;
+    //TODO - Add CB state here.
 #endif // GEN4_SCAN
 
     // Change channel generic scheme
@@ -550,10 +555,6 @@ typedef struct sAniSirLim
     tLimProtStaParams  gLimOverlap11aParams;
     tLimProtStaParams gLimOverlapHt20Params;
     tLimProtStaParams gLimOverlapNonGfParams;
-
-  //  tANI_U32 gLimDot11Mode;
-    tSirRFBand gLimRFBand;
-
 
     //
     // ---------------- DPH -----------------------
@@ -944,6 +945,8 @@ typedef struct sAniSirLim
     vos_list_t  gLimMgmtFrameRegistratinQueue;
     tANI_U32    actionFrameSessionId;
 #endif
+    tANI_U8 	recentSessionCreated; //If MCC not supported use this
+
 } tAniSirLim, *tpAniSirLim;
 
 #ifdef WLAN_FEATURE_P2P

@@ -2820,6 +2820,7 @@ WLANTL_ResetNotification
   SIDE EFFECTS
 
 ============================================================================*/
+
 VOS_STATUS
 WLANTL_SuspendDataTx
 (
@@ -2829,7 +2830,10 @@ WLANTL_SuspendDataTx
 )
 {
   WLANTL_CbType*  pTLCb = NULL;
-  vos_msg_t   vosMsg;
+  vos_msg_t       vosMsg;
+  v_U8_t          ucTxSuspendReq, ucTxSuspended;
+  v_U32_t         STAId = 0;
+
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -2837,7 +2841,7 @@ WLANTL_SuspendDataTx
     Extract TL control block
    ------------------------------------------------------------------------*/
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
-  if ( NULL == pTLCb )
+  if ( NULL == pTLCb || NULL == pucSTAId )
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
           "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_SuspendDataTx"));
@@ -2847,32 +2851,58 @@ WLANTL_SuspendDataTx
   /*------------------------------------------------------------------------
     Check the type of request: generic suspend, or per station suspend
    ------------------------------------------------------------------------*/
-  if ( NULL == pucSTAId )
+  /* Station IDs for Suspend request are received as bitmap                  */
+  ucTxSuspendReq = *pucSTAId;
+  ucTxSuspended = pTLCb->ucTxSuspended;
+
+  if (WLAN_ALL_STA == ucTxSuspended)
   {
+	/* All Stations are in Suspend mode. Nothing to do */
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "WLAN TL:All stations already suspended"));
+	return VOS_STATUS_E_EXISTS;
+  }
+
+  if (WLAN_ALL_STA == *pucSTAId)
+  {
+    /* General Suspend Request received */
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
               "WLAN TL:General suspend requested"));
-    vos_atomic_set_U8( &pTLCb->ucTxSuspended, 1);
+    vos_atomic_set_U8( &pTLCb->ucTxSuspended, WLAN_ALL_STA);
     vosMsg.reserved = WLAN_MAX_STA_COUNT;
   }
   else
   {
-    if ( WLANTL_STA_ID_INVALID( *pucSTAId ) )
+    /* Station specific Suspend Request received */
+    /* Update Station Id Bit map for suspend request */
+    do
     {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-             "WLAN TL:Invalid station id requested on WLANTL_SuspendDataTx"));
-      return VOS_STATUS_E_FAULT;
-    }
+	   /* If Bit set for this station with STAId */
+      if (ucTxSuspendReq >> (STAId +1) )
+      {
+        /* If it is Not a valid station ID */
+        if ( WLANTL_STA_ID_INVALID( STAId ) )
+        {
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Invalid station id requested on WLANTL_SuspendDataTx"));
+          STAId++;
+          continue;
+        }
+        /* If this station is Not registered with TL */
+        if ( 0 == pTLCb->atlSTAClients[STAId].ucExists )
+        {
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Station was not previously registered on WLANTL_SuspendDataTx"));
+          STAId++;
+          continue;
+        }
 
-    if ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucExists )
-    {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Station was not previously registered on WLANTL_SuspendDataTx"));
-      return VOS_STATUS_E_EXISTS;
-    }
-
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Suspend request for station: %d", *pucSTAId));
-    vos_atomic_set_U8( &pTLCb->atlSTAClients[*pucSTAId].ucTxSuspended, 1);
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Suspend request for station: %d", STAId));
+        vos_atomic_set_U8( &pTLCb->atlSTAClients[STAId].ucTxSuspended, 1);
+      }
+      STAId++;
+    } while ( STAId < WLAN_MAX_STA_COUNT );
     vosMsg.reserved = *pucSTAId;
   }
 
@@ -2918,6 +2948,7 @@ WLANTL_SuspendDataTx
   SIDE EFFECTS
 
 ============================================================================*/
+
 VOS_STATUS
 WLANTL_ResumeDataTx
 (
@@ -2926,6 +2957,8 @@ WLANTL_ResumeDataTx
 )
 {
   WLANTL_CbType*  pTLCb = NULL;
+  v_U8_t          ucTxResumeReq;
+  v_U32_t         STAId = 0;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -2933,48 +2966,63 @@ WLANTL_ResumeDataTx
     Extract TL control block
    ------------------------------------------------------------------------*/
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
-  if ( NULL == pTLCb )
+  if ( NULL == pTLCb || NULL == pucSTAId)
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
            "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ResumeDataTx"));
     return VOS_STATUS_E_FAULT;
   }
 
+  ucTxResumeReq = *pucSTAId;
   /*------------------------------------------------------------------------
     Check to see the type of resume
    ------------------------------------------------------------------------*/
-  if ( NULL == pucSTAId )
+  if ( WLAN_ALL_STA == *pucSTAId)
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
               "WLAN TL:General resume requested"));
     vos_atomic_set_U8( &pTLCb->ucTxSuspended, 0);
+
+	/* Set to Resume for all stations */
+	for (STAId = 0; STAId < WLAN_MAX_STA_COUNT; STAId++)
+		 vos_atomic_set_U8( &pTLCb->atlSTAClients[STAId].ucTxSuspended, 0);
   }
   else
   {
-    if ( WLANTL_STA_ID_INVALID( *pucSTAId ) )
-    {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    do
+	{
+      /* If Bit Set for this station with STAId */
+      if (ucTxResumeReq >> (STAId + 1))
+      {
+        /* If it is Not a valid station ID */
+        if ( WLANTL_STA_ID_INVALID( STAId ))
+        {
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                 "WLAN TL:Invalid station id requested on WLANTL_ResumeDataTx"));
-      return VOS_STATUS_E_FAULT;
-    }
+          STAId++;
+          continue;
+        }
+        /* If this station is Not registered with TL */
+        if ( 0 == pTLCb->atlSTAClients[STAId].ucExists )
+        {
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Station was not previously registered on WLANTL_ResumeDataTx"));
+          STAId++;
+          continue;
+        }
 
-    if ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucExists )
-    {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Station was not previously registered on WLANTL_ResumeDataTx"));
-      return VOS_STATUS_E_EXISTS;
-    }
-
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Resume request for station: %d", *pucSTAId));
-    vos_atomic_set_U8( &pTLCb->atlSTAClients[*pucSTAId].ucTxSuspended, 0);
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Resume request for station: %d", STAId));
+        vos_atomic_set_U8( &pTLCb->atlSTAClients[STAId].ucTxSuspended, 0);
+      }
+      STAId++;
+    } while ( STAId < WLAN_MAX_STA_COUNT );
   }
 
   /*------------------------------------------------------------------------
     Resuming transmission
    ------------------------------------------------------------------------*/
-  if (( pTLCb->uResCount >=  WDA_TLI_MIN_RES_MF ) &&
-      ( 0 == pTLCb->ucTxSuspended ))
+  if ( pTLCb->uResCount >=  WDA_TLI_MIN_RES_MF )
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL:Resuming transmission"));
@@ -3029,9 +3077,9 @@ WLANTL_SuspendCB
    ------------------------------------------------------------------------*/
   if ( NULL == pfnSuspendCB )
   {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_SuspendCB"));
-    return VOS_STATUS_E_INVAL;
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
+               "WLAN TL: No Call back processing requested WLANTL_SuspendCB"));
+    return VOS_STATUS_SUCCESS;
   }
 
   /*------------------------------------------------------------------------
@@ -3564,7 +3612,8 @@ WLANTL_GetFrames
         Check to see that STA is valid and tx is not suspended
          -------------------------------------------------------------------*/
         if ( ( ! WLANTL_STA_ID_INVALID( ucSTAId ) ) &&
-           ( 0 == pTLCb->atlSTAClients[ucSTAId].ucTxSuspended ) )
+           ( 0 == pTLCb->atlSTAClients[ucSTAId].ucTxSuspended ) &&
+           ( 0 == pTLCb->atlSTAClients[ucSTAId].fcStaTxDisabled) )
         {
           TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
                    "WLAN TL: %s sta id valid and not suspended ",__FUNCTION__));
@@ -4434,6 +4483,7 @@ WLANTL_ProcessBAPFrame
 }/*WLANTL_ProcessBAPFrame*/
 
 #ifdef WLAN_SOFTAP_FEATURE
+
 /*==========================================================================
 
   FUNCTION    WLANTL_ProcessFCFrame
@@ -4449,9 +4499,10 @@ WLANTL_ProcessBAPFrame
   PARAMETERS
 
     IN
-    
+    pvosGCtx                pointer to vos global context
     pvBDHeader:             pointer to the BD header
     pTLCb:                  TL control block
+    pvBDHeader              pointer to BD header.
 
     IN/OUT
     pFirstDataPktArrived:   static from caller function; used for rssi 
@@ -4472,12 +4523,50 @@ WLANTL_ProcessBAPFrame
 v_BOOL_t
 WLANTL_ProcessFCFrame
 (
+  v_PVOID_t         pvosGCtx,
   vos_pkt_t*        pvosDataBuff,
-  WLANTL_CbType*    pTLCb
+  v_PVOID_t         pvBDHeader
 )
 {
-/* FIXME Revisit it */
-#if 0
+#if 1 //enable processing of only fcStaTxDisabled bitmap for now. the else part is old better qos code.
+      // need to revisit the old code for full implementation.
+  v_U8_t               ucTxSuspended = 0, ucTxSuspendReq = 0, ucTxResumeReq = 0;
+  WLANTL_CbType*       pTLCb = NULL;
+
+  /*------------------------------------------------------------------------
+     Extract TL control block
+  ------------------------------------------------------------------------*/
+  pTLCb = VOS_GET_TL_CB(pvosGCtx);
+  if ( NULL == pTLCb )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_SuspendDataTx"));
+    return VOS_STATUS_E_FAULT;
+  }
+
+  /* Existing Stations with Tx suspended */
+  ucTxSuspended = pTLCb->ucTxSuspended;
+
+  /* Suspend Request Received */
+  ucTxSuspendReq = (v_U8_t) WDA_GET_RX_FC_STA_TX_DISABLED_BITMAP(pvBDHeader);
+  TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLANTL_ProcessFCFrame called for Stations:: Current: %x Requested: %x ", ucTxSuspended, ucTxSuspendReq));
+
+  ucTxResumeReq = ucTxSuspendReq ^ ( ucTxSuspended | ucTxSuspendReq );
+  ucTxSuspendReq = ucTxSuspendReq ^ ( ucTxSuspended & ucTxSuspendReq );
+  TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "Station Suspend request processed :: Suspend: %x :Resume: %x ", ucTxSuspendReq, ucTxResumeReq));
+
+  if ( 0 != ucTxSuspendReq )
+  {
+    WLANTL_SuspendDataTx(pvosGCtx, &ucTxSuspendReq, NULL);
+  }
+  if ( 0 != ucTxResumeReq )
+  {
+    WLANTL_ResumeDataTx(pvosGCtx, &ucTxResumeReq);
+  }
+
+#else
   VOS_STATUS          vosStatus;
   tpHalFcRxBd         pvFcRxBd = NULL;
   v_U8_t              ucBitCheck = 0x1;
@@ -4696,7 +4785,8 @@ WLANTL_RxFrames
     {
       TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                  "WLAN TL:receive one FC frame"));
-      WLANTL_ProcessFCFrame(vosTempBuff, pTLCb);
+
+      WLANTL_ProcessFCFrame(pvosGCtx, vosTempBuff, pvBDHeader);
       /* Drop packet */
       vos_pkt_return_packet(vosTempBuff);
       vosTempBuff = vosDataBuff;
@@ -4720,14 +4810,14 @@ WLANTL_RxFrames
     vosStatus = WDA_DS_GetFrameTypeSubType( pvosGCtx, vosTempBuff,
                          pvBDHeader, &ucFrmType );
     if ( VOS_STATUS_SUCCESS != vosStatus )
-      {
-        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    {
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                    "WLAN TL:Cannot extract Frame Control Field"));
-        /* Drop packet */
-        vos_pkt_return_packet(vosTempBuff);
-        vosTempBuff = vosDataBuff;
-        continue;
-      }
+      /* Drop packet */
+      vos_pkt_return_packet(vosTempBuff);
+      vosTempBuff = vosDataBuff;
+      continue;
+    }
 
 #ifdef WLAN_SOFTAP_FEATURE
     vos_pkt_get_packet_length(vosTempBuff, &usPktLen);

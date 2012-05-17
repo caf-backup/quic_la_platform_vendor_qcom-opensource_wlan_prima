@@ -369,6 +369,9 @@ void limExitRemainOnChannel(tpAniSirGlobal pMac, eHalStatus status,
         PELOGE(limLog( pMac, LOGE, "Remain on Channel Failed\n");)
         goto error;
     }
+    //Set the resume channel to Any valid channel (invalid). 
+    //This will instruct HAL to set it to any previous valid channel.
+    peSetResumeChannel(pMac, 0, 0);
     limResumeLink(pMac, limRemainOnChnRsp, NULL);
     return;
 error:

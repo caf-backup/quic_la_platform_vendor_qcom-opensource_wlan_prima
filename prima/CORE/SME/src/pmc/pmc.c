@@ -2501,9 +2501,9 @@ tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac )
 
     /* Check if there is an Infra session. BMPS is possible only if there is 
      * an Infra session */
-    if (!csrIsInfraConnected(pMac))
+    if ((!csrIsInfraConnected(pMac)) || (vos_concurrent_sessions_running()))
     {
-        smsLog(pMac, LOG1, FL("No Infra Session. BMPS need not be started"));
+        smsLog(pMac, LOG1, FL("No Infra Session or multiple sessions. BMPS should not be started"));
         return eANI_BOOLEAN_FALSE;
     }
     return eANI_BOOLEAN_TRUE;

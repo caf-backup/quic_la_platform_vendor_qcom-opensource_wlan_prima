@@ -3053,7 +3053,7 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     //ccmCfgSetInt(pMac, WNI_CFG_RTS_THRESHOLD, csrGetRTSThresh(pMac), NULL, eANI_BOOLEAN_FALSE);
     //Phymode
     //*** do we need to set both???
-    ccmCfgSetInt(pMac, WNI_CFG_PHY_MODE, csrRoamGetPhyModeFromDot11Mode(pBssConfig->uCfgDot11Mode, pBssConfig->eBand), NULL, eANI_BOOLEAN_FALSE);
+
     //ccmCfgSetInt(pMac, WNI_CFG_DOT11_MODE, csrTranslateToWNICfgDot11Mode(pMac, pBssConfig->uCfgDot11Mode), NULL, eANI_BOOLEAN_FALSE);
         
     //Auth type

@@ -707,7 +707,8 @@ typedef enum
   WDI_SCAN_MODE_NORMAL = 0,
   WDI_SCAN_MODE_LEARN,
   WDI_SCAN_MODE_SCAN,
-  WDI_SCAN_MODE_PROMISC
+  WDI_SCAN_MODE_PROMISC,
+  WDI_SCAN_MODE_SUSPEND_LINK
 } WDI_ScanMode;
 
 /*---------------------------------------------------------------------------
@@ -897,13 +898,16 @@ typedef struct
 
 #ifdef WLAN_FEATURE_VOWIFI
   wpt_int8      cMaxTxPower;
-  /*BSSID is needed to identify which session issued this request. As the 
-  request has power constraints, this should be applied only to that session */
-  wpt_macAddr   macBSSId;
 
   /*Self STA Mac address*/
   wpt_macAddr   macSelfStaMacAddr;
 #endif
+  /* VO Wifi comment: BSSID is needed to identify which session issued this request. As the 
+     request has power constraints, this should be applied only to that session */
+  /* V IMP: Keep bssId field at the end of this msg. It is used to mantain backward compatbility
+   * by way of ignoring if using new host/old FW or old host/new FW since it is at the end of this struct
+   */
+  wpt_macAddr   macBSSId;
 
 }WDI_SwitchChReqInfoType;
 
@@ -1359,6 +1363,8 @@ typedef struct
 
   /*BSSID of the BSS*/
   wpt_macAddr  macBSSID; 
+
+  wpt_uint8    ucBssIdx;
 
 }WDI_DelBSSRspParamsType;
 

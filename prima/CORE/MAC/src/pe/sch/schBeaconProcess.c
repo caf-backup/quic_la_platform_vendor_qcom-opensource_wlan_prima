@@ -65,7 +65,14 @@ ap_beacon_process(
     tSirRFBand          rfBand = SIR_BAND_UNKNOWN;
     //Get RF band from psessionEntry
     rfBand = psessionEntry->limRFBand;
-    limGetPhyMode(pMac, &phyMode);    
+    if(psessionEntry)
+    { 
+        limGetPhyMode(psessionEntry, &phyMode); 
+    }
+    else
+    {
+        phyMode = pMac->lim.gLimPhyMode; 
+    } 
     if(SIR_BAND_5_GHZ == rfBand)
     {
         if (psessionEntry->htCapabality)
@@ -552,7 +559,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
    PELOG2(schLog(pMac, LOG2, "Received Beacon's SeqNum=%d\n",
            (pMh->seqControl.seqNumHi << 4) | (pMh->seqControl.seqNumLo));)
 
-    if(beaconParams.paramChangeBitmap)
+    if(beaconParams.paramChangeBitmap &&
+       ((psessionEntry->limSystemRole == eLIM_AP_ROLE) || (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)))
     {
         PELOGW(schLog(pMac, LOGW, FL("Beacon for session[%d] got changed. \n"), psessionEntry->peSessionId);)
         PELOGW(schLog(pMac, LOGW, FL("sending beacon param change bitmap: 0x%x \n"), beaconParams.paramChangeBitmap);)

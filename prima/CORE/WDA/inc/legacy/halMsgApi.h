@@ -932,9 +932,15 @@ typedef struct
     tPowerdBm txMgmtPower; //HAL fills in the tx power used for mgmt frames in this field.
     tPowerdBm maxTxPower;
     tSirMacAddr selfStaMacAddr;
-    tSirMacAddr bssId;  // BSSID is needed to identify which session issued this request. As 
                         //the request has power constraints, this should be applied only to that session
 #endif
+    /* VO Wifi comment: BSSID is needed to identify which session issued this request. As the 
+       request has power constraints, this should be applied only to that session */
+    /* V IMP: Keep bssId field at the end of this msg. It is used to mantain backward compatbility
+     * by way of ignoring if using new host/old FW or old host/new FW since it is at the end of this struct
+     */
+    tSirMacAddr bssId;
+
     eHalStatus status;
 
 }tSwitchChannelParams, *tpSwitchChannelParams;

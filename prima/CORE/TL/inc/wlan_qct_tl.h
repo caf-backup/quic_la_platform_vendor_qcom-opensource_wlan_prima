@@ -96,6 +96,9 @@ when        who    what, where, why
 
 #ifdef WLAN_SOFTAP_FEATURE
 
+/* Bit Mask to represent All Stations */
+#define WLAN_ALL_STA                         0xFF
+
 /* Maximum number of station supported by TL, including BC. */
 #define WLAN_MAX_STA_COUNT  (HAL_NUM_STA)
 

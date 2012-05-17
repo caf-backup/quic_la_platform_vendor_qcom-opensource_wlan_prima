@@ -106,13 +106,15 @@ typedef struct
    wpt_uint32  mclkRxTimestamp;
 
    //Flow control frames
-   wpt_uint32 fcSTATxQStatus:8;
-   wpt_uint32 fcSTAThreshIndMask:8;
-   wpt_uint32 fcSTAPwrSaveStateMask:8;
-   wpt_uint32 fcSTAValidMask:8;
+   wpt_uint8  fc;
+   wpt_uint32 fcSTATxQStatus:16;
+   wpt_uint32 fcSTAThreshIndMask:16;
+   wpt_uint32 fcSTAPwrSaveStateMask:16;
+   wpt_uint32 fcSTAValidMask:16;
 
-   wpt_uint8 fcSTATxQLen[8]; // one byte per STA. 
-   wpt_uint8 fcSTACurTxRate[8]; // current Tx rate for each sta.
+   wpt_uint16 fcStaTxDisabledBitmap;
+   wpt_uint8 fcSTATxQLen[12]; // one byte per STA. 
+   wpt_uint8 fcSTACurTxRate[12]; // current Tx rate for each sta.
 
    wpt_uint64 replayCount;
 

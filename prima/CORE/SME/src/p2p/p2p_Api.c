@@ -48,6 +48,7 @@ eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemaino
         pMsg->length = len;
         palCopyMemory( pMac, pMsg->selfMacAddr, pSession->selfMacAddr, sizeof(tSirMacAddr) ); 
         pMsg->chnNum = p2pRemainonChn->u.remainChlCmd.chn;
+		pMsg->phyMode = p2pRemainonChn->u.remainChlCmd.phyMode;
         pMsg->duration = p2pRemainonChn->u.remainChlCmd.duration;
         pMsg->sessionId = p2pRemainonChn->sessionId;
         if( pMac->p2pContext.probeRspIeLength )

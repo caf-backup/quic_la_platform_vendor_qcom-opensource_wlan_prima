@@ -25,39 +25,6 @@
 
 
 /*--------------------------------------------------------------------------
-  
-  \brief peGetCurrentChannel() - Returns the  channel number for scanning, from a valid session.
-
-  This function itrates the session Table and returns the channel number from first valid session
-   if no sessions are valid/present  it returns zero
-    
-  \param pMac                   - pointer to global adapter context
-  \return                           - channel to scan from valid session else zero.
-  
-  \sa
-  
-  --------------------------------------------------------------------------*/
-
-tANI_U8 peGetCurrentChannel(tpAniSirGlobal pMac)
-
-{
-    tANI_U8 i;
-    //assumption here is that all the sessions will be on the same channel.
-    //This function will not work, once we have multiple channel support.
-    for(i =0; i < pMac->lim.maxBssId; i++)
-    {
-        if(pMac->lim.gpSession[i].valid)
-        {
-            return(pMac->lim.gpSession[i].currentOperChannel);
-        
-        }
-
-    }
-    return(HAL_INVALID_CHANNEL_ID);
-
-}
-
-/*--------------------------------------------------------------------------
   \brief peValidateJoinReq() - validates the Join request .
 
   This function is called to validate the Join Request for a BT-AMP station. If start BSS session is present
@@ -161,3 +128,70 @@ tANI_U8 peIsAnySessionActive(tpAniSirGlobal pMac)
     return(FALSE);
 
 }
+
+/*--------------------------------------------------------------------------
+  \brief isLimSessionOffChannel() - Determines if the there is any other off channel 
+                                    session.
+
+  This function returns TRUE if the session Id passed needs to be on a different
+  channel than atleast one session already active.
+    
+  \param pMac                   - pointer to global adapter context
+  \param sessionId              - session ID of the session to be verified.  
+  
+  \return tANI_U8               - Boolean value for off-channel operation.
+  
+  \sa
+  --------------------------------------------------------------------------*/
+
+tANI_U8
+isLimSessionOffChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
+{
+    tANI_U8 i;
+
+    if(sessionId >=  pMac->lim.maxBssId)
+    {
+        limLog(pMac, LOGE, FL("Invalid sessionId: %d \n "), sessionId);
+        return FALSE;
+    }
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if( i == sessionId )
+        {
+          //Skip the sessionId that is to be joined.
+          continue;
+        }
+        //if snother ession is valid and it is on different channel
+        //it is an off channel operation.
+        if( (pMac->lim.gpSession[i].valid) && 
+            (pMac->lim.gpSession[i].currentOperChannel != 
+             pMac->lim.gpSession[sessionId].currentOperChannel) )
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+
+}
+
+tANI_U8
+peGetActiveSessionChannel (tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        //if snother ession is valid and it is on different channel
+        //it is an off channel operation.
+        if(pMac->lim.gpSession[i].valid)
+        {
+            return pMac->lim.gpSession[i].currentOperChannel;
+        }
+    }
+
+    return 0;
+
+}
+

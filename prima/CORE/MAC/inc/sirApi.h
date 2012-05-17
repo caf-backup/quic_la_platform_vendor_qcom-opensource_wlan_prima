@@ -410,6 +410,7 @@ typedef struct sSirRemainOnChnReq
     tANI_U16 sessionId;
     tSirMacAddr selfMacAddr;
     tANI_U8  chnNum;
+    tANI_U8  phyMode;
     tANI_U32 duration;
     tANI_U8  probeRspIe[1];
 }tSirRemainOnChnReq, *tpSirRemainOnChnReq;

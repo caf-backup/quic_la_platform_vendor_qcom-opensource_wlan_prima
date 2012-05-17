@@ -109,6 +109,11 @@ typedef enum
 
 #define WDA_TLI_CEIL( _a, _b)  (( 0 != (_a)%(_b))? (_a)/(_b) + 1: (_a)/(_b))
 
+/*
+ * Check the version number and find if MCC feature is supported or not
+ */
+//#define IS_MCC_SUPPORTED (WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual( 0, 0, 3, 0))
+#define IS_MCC_SUPPORTED (0)
 
 /*--------------------------------------------------------------------------
   Definitions for Data path APIs
@@ -303,6 +308,7 @@ typedef struct
     * tid0 ..bit0, tid1..bit1 and so on..
     */
    tANI_U8    ucUseBaBitmap ;
+   tANI_U8    bssIdx;
    tANI_U32   framesTxed[STACFG_MAX_TC];
 }tWdaStaInfo, *tpWdaStaInfo ;
 
@@ -812,7 +818,7 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
 /* FIXME WDA should provide the meta info which indicates FC frame 
           In the meantime, use hardcoded FALSE, since we don't support FC yet */
-#  define WDA_IS_RX_FC(pRxMeta)    VOS_FALSE 
+#  define WDA_IS_RX_FC(pRxMeta)    (((WDI_DS_RxMetaInfoType*)(pRxMeta))->fc)
 #else
 #  define WDA_IS_RX_FC(bdHd)        WLANHAL_RX_BD_GET_FC(bdHd)
 #endif
@@ -843,6 +849,10 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 #  define WDA_GET_RX_FC_STA_THRD_IND_MASK(bdHd) \
                                     WLANHAL_RX_BD_GET_STA_TH_IND(bdHd)
 #endif
+
+/* WDA_GET_RX_FC_FORCED_STA_TX_DISABLED_BITMAP ********************************************/
+#  define WDA_GET_RX_FC_STA_TX_DISABLED_BITMAP(pRxMeta) \
+                     (((WDI_DS_RxMetaInfoType*)(pRxMeta))->fcStaTxDisabledBitmap)
 
 /* WDA_GET_RX_FC_STA_TXQ_LEN *************************************************/
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
