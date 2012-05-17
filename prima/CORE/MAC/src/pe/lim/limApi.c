@@ -1,7 +1,7 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved. 
+* Qualcomm Atheros Confidential and Proprietary. 
 */
 
 /*
@@ -1404,11 +1404,14 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
         return VOS_STATUS_E_FAILURE;
     }
 
+
     //
     //  The MPDU header is now present at a certain "offset" in
     // the BD and is specified in the BD itself
     //
     mHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    if(mHdr->fc.type == SIR_MAC_MGMT_FRAME) 
+    {
     PELOG1(limLog( pMac, LOG1,
        FL ( "RxBd=%p mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d\n"),
        pRxBd, mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
@@ -1416,7 +1419,7 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, 0, 
                         LIM_TRACE_MAKE_RXMGMT(mHdr->fc.subType,  
                         (tANI_U16) (((tANI_U16) (mHdr->seqControl.seqNumHi << 4)) | mHdr->seqControl.seqNumLo)));)
-
+    }
 
 
     // Forward to MAC via mesg = SIR_BB_XPORT_MGMT_MSG
@@ -1704,7 +1707,8 @@ limContinueChannelLearn(tpAniSirGlobal pMac)
     {
         /// Prepare and send Probe Request frame
         ssId.length = 0;
-        limSendProbeReqMgmtFrame(pMac, &ssId, bssId, chanNum,pMac->lim.gSelfMacAddr);
+        /* for learning channel, we don't include any additional IE */
+        limSendProbeReqMgmtFrame(pMac, &ssId, bssId, chanNum,pMac->lim.gSelfMacAddr, 0 , NULL);
     }
 
     // Activate Learn duration timer during which

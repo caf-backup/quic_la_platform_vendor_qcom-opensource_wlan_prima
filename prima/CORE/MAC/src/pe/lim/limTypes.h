@@ -722,6 +722,10 @@ tSirRetStatus limSendLinkReportActionFrame(tpAniSirGlobal, tpSirMacLinkReport, t
 tSirRetStatus limSendRadioMeasureReportActionFrame(tpAniSirGlobal, tANI_U8, tANI_U8, tpSirMacRadioMeasureReport, tSirMacAddr, tpPESession);
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+void limProcessIappFrame(tpAniSirGlobal, tANI_U8 *,tpPESession);
+#endif
+
 // Algorithms & Link Monitoring related functions
 tSirBackgroundScanMode limSelectsBackgroundScanMode(tpAniSirGlobal);
 void limTriggerBackgroundScan(tpAniSirGlobal);

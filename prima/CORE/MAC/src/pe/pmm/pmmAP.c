@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file pmmAP.cc contains AP PM functions
  *
@@ -219,13 +223,19 @@ void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength, tA
     *timLength = N2 - N1 + 4;
     val = dtimPeriod;
 
-
+    /* 
+     * 09/23/2011 - ASW team decision; 
+     * Write 0xFF to firmware's field to detect firmware's mal-function early.
+     * DTIM count and bitmap control usually cannot be 0xFF, so it is easy to know that 
+     * firmware never updated DTIM count/bitmap control field after host driver downloaded
+     * beacon template if end-user complaints that DTIM count and bitmapControl is 0xFF.
+     */
     *ptr++ = SIR_MAC_TIM_EID;
     *ptr++ = (tANI_U8)(*timLength);
-    ptr++; // location for dtimCount. will be filled in by FW.
+    *ptr++ = 0xFF; // location for dtimCount. will be filled in by FW.
     *ptr++ = (tANI_U8)val;
 
-    ptr++; //bitmap contorl will be filled in by FW.
+    *ptr++ = 0xFF; // location for bitmap contorl. will be filled in by FW.
     ptr += (N2 - N1 + 1);
 
     PELOG2(sirDumpBuf(pMac, SIR_PMM_MODULE_ID, LOG2, *pPtr, (*timLength)+2);)

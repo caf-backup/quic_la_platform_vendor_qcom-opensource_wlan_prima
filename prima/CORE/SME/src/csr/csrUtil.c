@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -12,9 +12,8 @@
 
     Implementation supporting routines for CSR.
 
+
     Copyright (C) 2006 Airgo Networks, Incorporated
-
-
    ========================================================================== */
 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
@@ -30,7 +29,10 @@
 #include "csrInsideApi.h"
 #include "smsDebug.h"
 #include "smeQosInternal.h"
-
+#ifdef FEATURE_WLAN_CCX
+#include "vos_utils.h"
+#include "csrCcx.h"
+#endif /* FEATURE_WLAN_CCX */
 
 #define CSR_OUI_USE_GROUP_CIPHER_INDEX 0x00
 #define CSR_OUI_WEP40_OR_1X_INDEX      0x01
@@ -51,7 +53,10 @@ tANI_U8 csrWpaOui[][ CSR_WPA_OUI_SIZE ] = {
     { 0x00, 0x50, 0xf2, 0x02 },
     { 0x00, 0x50, 0xf2, 0x03 },
     { 0x00, 0x50, 0xf2, 0x04 },
-    { 0x00, 0x50, 0xf2, 0x05 }
+    { 0x00, 0x50, 0xf2, 0x05 },
+#ifdef FEATURE_WLAN_CCX
+    { 0x00, 0x40, 0x96, 0x00 }, // CCKM
+#endif /* FEATURE_WLAN_CCX */
 };
 
 tANI_U8 csrRSNOui[][ CSR_RSN_OUI_SIZE ] = {
@@ -60,7 +65,10 @@ tANI_U8 csrRSNOui[][ CSR_RSN_OUI_SIZE ] = {
     { 0x00, 0x0F, 0xAC, 0x02 }, // TKIP or RSN-PSK
     { 0x00, 0x0F, 0xAC, 0x03 }, // Reserved
     { 0x00, 0x0F, 0xAC, 0x04 }, // AES-CCMP
-    { 0x00, 0x0F, 0xAC, 0x05 }  // WEP-104
+    { 0x00, 0x0F, 0xAC, 0x05 }, // WEP-104
+#ifdef FEATURE_WLAN_CCX
+    { 0x00, 0x40, 0x96, 0x00 }, // CCKM
+#endif /* FEATURE_WLAN_CCX */
 };
 
 #ifdef FEATURE_WLAN_WAPI
@@ -1344,7 +1352,7 @@ tANI_BOOLEAN csrIsConnStateConnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId
 tANI_BOOLEAN csrIsConnStateConnectedInfraAp( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
     return( (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pMac->roam.roamSession[sessionId].connectState) ||
-        (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState) );
+        (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState ) );
 }
 #endif
 
@@ -2340,6 +2348,9 @@ tANI_BOOLEAN csrIsProfileWpa( tCsrRoamProfile *pProfile )
         case eCSR_AUTH_TYPE_WPA:
         case eCSR_AUTH_TYPE_WPA_PSK:
         case eCSR_AUTH_TYPE_WPA_NONE:
+#ifdef FEATURE_WLAN_CCX
+        case eCSR_AUTH_TYPE_CCKM_WPA:
+#endif
             fWpaProfile = TRUE;
             break;
 
@@ -2379,6 +2390,9 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
         case eCSR_AUTH_TYPE_FT_RSN:
         case eCSR_AUTH_TYPE_FT_RSN_PSK:
 #endif 
+#ifdef FEATURE_WLAN_CCX
+        case eCSR_AUTH_TYPE_CCKM_RSN:
+#endif 
             fRSNProfile = TRUE;
             break;
 
@@ -2409,6 +2423,55 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
     return( fRSNProfile );
 }
 
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/* Function to return TRUE if the authtype is 11r */
+tANI_BOOLEAN csrIsAuthType11r( eCsrAuthType AuthType )
+{
+    switch ( AuthType )
+    {
+        case eCSR_AUTH_TYPE_FT_RSN_PSK:
+        case eCSR_AUTH_TYPE_FT_RSN:
+            return TRUE;
+            break;
+        default:
+            break;
+    }
+    return FALSE;
+}
+
+/* Function to return TRUE if the profile is 11r */
+tANI_BOOLEAN csrIsProfile11r( tCsrRoamProfile *pProfile )
+{
+    return csrIsAuthType11r( pProfile->negotiatedAuthType );
+}
+
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+
+/* Function to return TRUE if the authtype is CCX */
+tANI_BOOLEAN csrIsAuthTypeCCX( eCsrAuthType AuthType )
+{
+    switch ( AuthType )
+    {
+        case eCSR_AUTH_TYPE_CCKM_WPA:
+        case eCSR_AUTH_TYPE_CCKM_RSN:
+            return TRUE;
+            break;
+        default:
+            break;
+    }
+    return FALSE;
+}
+
+/* Function to return TRUE if the profile is CCX */
+tANI_BOOLEAN csrIsProfileCCX( tCsrRoamProfile *pProfile )
+{
+    return (csrIsAuthTypeCCX( pProfile->negotiatedAuthType ));
+}
+
+#endif
 
 #ifdef FEATURE_WLAN_WAPI
 tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile )
@@ -2629,6 +2692,29 @@ static tANI_BOOLEAN csrIsFTAuthRSNPsk( tpAniSirGlobal pMac, tANI_U8 AllSuites[][
 
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+
+/* 
+ * Function for CCX CCKM AKM Authentication. We match the CCKM AKM Authentication Key Management suite
+ * here. This matches for CCKM AKM Auth with the 802.1X exchange.
+ *
+ */
+static tANI_BOOLEAN csrIsCcxCckmAuthRSN( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_RSN_OUI_SIZE],
+                                  tANI_U8 cAllSuites,
+                                  tANI_U8 Oui[] )
+{
+    return( csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[06], Oui ) );
+}
+
+static tANI_BOOLEAN csrIsCcxCckmAuthWpa( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_WPA_OUI_SIZE],
+                                tANI_U8 cAllSuites,
+                                tANI_U8 Oui[] )
+{
+    return( csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrWpaOui[06], Oui ) );
+}
+
+#endif
+
 static tANI_BOOLEAN csrIsAuthRSN( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_RSN_OUI_SIZE],
                                   tANI_U8 cAllSuites,
                                   tANI_U8 Oui[] )
@@ -2831,6 +2917,14 @@ tANI_BOOLEAN csrGetRSNInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCs
                 {
                     if (eCSR_AUTH_TYPE_FT_RSN_PSK == pAuthType->authType[i])
                         negAuthType = eCSR_AUTH_TYPE_FT_RSN_PSK;
+                }
+#endif
+#ifdef FEATURE_WLAN_CCX
+                /* CCX only supports 802.1X.  No PSK. */
+                if ( (negAuthType == eCSR_AUTH_TYPE_UNKNOWN) && csrIsCcxCckmAuthRSN( pMac, AuthSuites, cAuthSuites, Authentication ) )
+                {
+                    if (eCSR_AUTH_TYPE_CCKM_RSN == pAuthType->authType[i])
+                        negAuthType = eCSR_AUTH_TYPE_CCKM_RSN;
                 }
 #endif
                 if ( (negAuthType == eCSR_AUTH_TYPE_UNKNOWN) && csrIsAuthRSN( pMac, AuthSuites, cAuthSuites, Authentication ) )
@@ -3333,37 +3427,39 @@ tANI_BOOLEAN csrGetWpaCyphers( tpAniSirGlobal pMac, tCsrAuthList *pAuthType, eCs
             if( pNegotiatedMCCipher )
                 *pNegotiatedMCCipher = pMCEncryption->encryptionType[i];
 
-            //Ciphers are supported, Match authentication algorithm and pick first matching authtype.
-            if ( fAcceptableCyphers )
+                /* Initializing with FALSE as it has TRUE value already */
+            fAcceptableCyphers = FALSE;
+            for (i = 0 ; i < pAuthType->numEntries; i++)
             {
+            //Ciphers are supported, Match authentication algorithm and pick first matching authtype.
                 if ( csrIsAuthWpa( pMac, pWpaIe->auth_suites, cAuthSuites, Authentication ) )
                 {
+                    if (eCSR_AUTH_TYPE_WPA == pAuthType->authType[i])
                     negAuthType = eCSR_AUTH_TYPE_WPA;
                 }
-                else if ( csrIsAuthWpaPsk( pMac, pWpaIe->auth_suites, cAuthSuites, Authentication ) )
+                if ( (negAuthType == eCSR_AUTH_TYPE_UNKNOWN) && csrIsAuthWpaPsk( pMac, pWpaIe->auth_suites, cAuthSuites, Authentication ) )
                 {
+                    if (eCSR_AUTH_TYPE_WPA_PSK == pAuthType->authType[i])
                     negAuthType = eCSR_AUTH_TYPE_WPA_PSK;
                 }
-                else
+#ifdef FEATURE_WLAN_CCX
+                if ( (negAuthType == eCSR_AUTH_TYPE_UNKNOWN) && csrIsCcxCckmAuthWpa( pMac, pWpaIe->auth_suites, cAuthSuites, Authentication ) )
                 {
-                    fAcceptableCyphers = FALSE;
-                    negAuthType = eCSR_AUTH_TYPE_UNKNOWN;
+                    if (eCSR_AUTH_TYPE_CCKM_WPA == pAuthType->authType[i])
+                        negAuthType = eCSR_AUTH_TYPE_CCKM_WPA;
                 }
-                if( 0 == pAuthType->numEntries )
+#endif /* FEATURE_WLAN_CCX */
+
+                // The 1st auth type in the APs WPA IE, to match stations connecting
+                // profiles auth type will cause us to exit this loop
+                // This is added as some APs advertise multiple akms in the WPA IE.
+                if (eCSR_AUTH_TYPE_UNKNOWN != negAuthType)
                 {
-                    break;
-                }
-                fAcceptableCyphers = FALSE; 
-                for(i = 0; i < pAuthType->numEntries ; i++ )
-                {
-                    if ( pAuthType->authType[i] == negAuthType )
-                    {
                         fAcceptableCyphers = TRUE;
                         break;
                     }
-                }
+            } // for
             }
-        }
     }while(0);
 
     if ( fAcceptableCyphers )

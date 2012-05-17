@@ -391,6 +391,9 @@ typedef enum
   /*Set power parameters on the device*/
   WDI_SET_POWER_PARAMS_REQ                      = 74, 
 
+  /* Traffic Stream Metrics statistic request */
+  WDI_TSM_STATS_REQ                             = 75,
+
   WDI_MAX_REQ,
 
   /*Send a suspend Indication down to HAL*/
@@ -622,12 +625,15 @@ typedef enum
 
   /* WLAN HAL DUMP Command Response */
   WDI_HAL_DUMP_CMD_RESP                         = 71,
-  
+
   /* WLAN Shutdown Response */
   WDI_SHUTDOWN_RESP                             = 72,
 
   /*Set power parameters response */
   WDI_SET_POWER_PARAMS_RESP                     = 73,
+
+  WDI_TSM_STATS_RESP                            = 74,
+
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
@@ -635,7 +641,7 @@ typedef enum
   WDI_HAL_IND_MIN                     , 
   /*When RSSI monitoring is enabled of the Lower MAC and a threshold has been
     passed. */
-  WDI_HAL_LOW_RSSI_IND                = WDI_HAL_IND_MIN, 
+  WDI_HAL_RSSI_NOTIFICATION_IND       = WDI_HAL_IND_MIN, 
 
   /*Link loss in the low MAC */
   WDI_HAL_MISSED_BEACON_IND           = WDI_HAL_IND_MIN + 1,
@@ -1822,6 +1828,25 @@ WDI_ProcessDelBAReq
   WDI_EventInfoType*     pEventData
 );
 
+#ifdef FEATURE_WLAN_CCX
+/**
+ @brief Process TSM Stats Request function (called when Main FSM
+        allows it)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessTSMStatsReq
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif
+
 /**
  @brief Process Channel Switch Request function (called when 
         Main FSM allows it)
@@ -2953,6 +2978,26 @@ WDI_ProcessDelBARsp
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 );
+
+#ifdef FEATURE_WLAN_CCX
+/**
+ @brief Process TSM stats Rsp function (called when a response
+        is being received over the bus from HAL)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessTsmStatsRsp
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+#endif
 
 
 /**

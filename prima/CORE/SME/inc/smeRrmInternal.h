@@ -1,4 +1,8 @@
-
+/*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * */
 #if !defined( __SMERRMINTERNAL_H )
 #define __SMERRMINTERNAL_H
 
@@ -62,7 +66,7 @@ typedef struct sRrmNeighborRequestControlInfo
 
 typedef struct sRrmSMEContext
 {
-   tANI_U8 token;
+   tANI_U16 token;
    tCsrBssid sessionBssId;
    tANI_U8 regClass;
    tCsrChannelInfo channelList; //list of all channels to be measured.

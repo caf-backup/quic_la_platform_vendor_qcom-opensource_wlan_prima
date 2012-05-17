@@ -1,7 +1,7 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved. 
+* Qualcomm Atheros Confidential and Proprietary. 
 */
 
 /*
@@ -374,8 +374,9 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
             /* Prepare and send Probe Request frame for all the SSIDs present in the saved MLM 
                     */
        
-            PELOGE(limLog(pMac, LOGW, FL("sending ProbeReq number %d, for SSID %s on channel: %d\n"), 
+            PELOGE(limLog(pMac, LOG1, FL("sending ProbeReq number %d, for SSID %s on channel: %d\n"), 
                                                 i, pMac->lim.gpLimMlmScanReq->ssId[i].ssId, channelNum);)
+            // include additional IE if there is
             status = limSendProbeReqMgmtFrame( pMac, &pMac->lim.gpLimMlmScanReq->ssId[i],
                pMac->lim.gpLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr, 
                pMac->lim.gpLimMlmScanReq->dot11mode,
@@ -1547,7 +1548,8 @@ limMlmAddBss (
 #ifdef WLAN_SOFTAP_FEATURE
     pAddBssParams->bHiddenSSIDEn = pMlmStartReq->ssidHidden;
     limLog( pMac, LOGE, FL( "TRYING TO HIDE SSID %d\n" ),pAddBssParams->bHiddenSSIDEn);
-    pAddBssParams->bProxyProbeRespEn = 1;
+    // CR309183. Disable Proxy Probe Rsp.  Host handles Probe Requests.  Until FW fixed. 
+    pAddBssParams->bProxyProbeRespEn = 0;
     pAddBssParams->obssProtEnabled = pMlmStartReq->obssProtEnabled;
 
 #endif
@@ -2616,6 +2618,7 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     pMlmDisassocReq = (tLimMlmDisassocReq *) pMsgBuf;
 
+
     if((psessionEntry = peFindSessionBySessionId(pMac,pMlmDisassocReq->sessionId))== NULL)
     {
     
@@ -2740,6 +2743,20 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             mlmDisassocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
             goto end;
         }
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    if  ( (psessionEntry->limSystemRole == eLIM_STA_ROLE ) && 
+          ( 
+#ifdef FEATURE_WLAN_CCX
+          (psessionEntry->isCCXconnection ) || 
+#endif
+          (psessionEntry->is11Rconnection )) &&
+          (pMlmDisassocReq->reasonCode != eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON))
+    {
+          PELOGE(limLog(pMac, LOGE, FL("FT Preauth Session Cleanup \n"));)
+          limFTCleanup(pMac);
+    }
+#endif
 
     /// Free up buffer allocated for mlmDisassocReq
     palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmDisassocReq);
@@ -3839,7 +3856,8 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
 
     if (( (psessionEntry->limSystemRole == eLIM_AP_ROLE) || (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )||
         ( (psessionEntry->limMlmState != eLIM_MLM_WT_ASSOC_RSP_STATE) &&
-          (psessionEntry->limMlmState != eLIM_MLM_WT_REASSOC_RSP_STATE) ) )
+          (psessionEntry->limMlmState != eLIM_MLM_WT_REASSOC_RSP_STATE)  && 
+          (psessionEntry->limMlmState != eLIM_MLM_WT_FT_REASSOC_RSP_STATE)))
     {
         /**
          * Re/Assoc failure timer should not have timedout on AP
@@ -3855,10 +3873,10 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
     else
     {
 
-        if (MsgType == LIM_ASSOC)
+        if ((MsgType == LIM_ASSOC) || 
+            ((MsgType == LIM_REASSOC) && (psessionEntry->limMlmState == eLIM_MLM_WT_FT_REASSOC_RSP_STATE)))
         {
-
-            PELOGE(limLog(pMac, LOGE,  FL("Assoc Failure Timeout occurred.\n"));)
+            PELOGE(limLog(pMac, LOGE,  FL("(Re)Assoc Failure Timeout occurred.\n"));)
 
             psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
             MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
@@ -3897,9 +3915,15 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
             
             /* Update PE session Id*/
             mlmAssocCnf.sessionId = psessionEntry->peSessionId;
-            limPostSmeMessage(pMac,
-                              LIM_MLM_ASSOC_CNF,
-                              (tANI_U32 *) &mlmAssocCnf);
+            if (MsgType == LIM_ASSOC)
+                limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
+            else 
+            {
+                /* Will come here only in case of 11r, CCx FT when reassoc rsp 
+                   is not received and we receive a reassoc - timesout */
+                mlmAssocCnf.resultCode = eSIR_SME_FT_REASSOC_TIMEOUT_FAILURE;
+                limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
+        }
         }
         else
         {

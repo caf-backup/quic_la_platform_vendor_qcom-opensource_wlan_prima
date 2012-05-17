@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -12,9 +12,7 @@
   
     Implementation for the Common Scan interfaces.
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
-  
- 
+    Copyright (C) 2006 Airgo Networks, Incorporated 
    ========================================================================== */
 
 #include "aniGlobal.h"
@@ -48,6 +46,7 @@ tpAniSirGlobal g_pMac = NULL;
 ** for broadcast probe request, during update SSID with saved SSID we will diff current time with saved SSID time if it is greater than 1 min
 ** then we are not updating with old one
 */
+                                                                     
 #define HIDDEN_TIMER (1*60*1000)                                                                     
 #define CSR_SCAN_RESULT_RSSI_WEIGHT     80 // must be less than 100, represent the persentage of new RSSI
                                                                      
@@ -1412,6 +1411,7 @@ eHalStatus csrScanHandleCapChangeScanComplete(tpAniSirGlobal pMac, tANI_U32 sess
         if(!HAL_STATUS_SUCCESS(status))
             break;
         palZeroMemory(pMac->hHdd, pScanFilter, sizeof(tCsrScanResultFilter));
+        if(NULL == pSession) break;
         if(NULL == pSession->pCurRoamProfile)
         {
             pScanFilter->EncryptionType.numEntries = 1;
@@ -1672,7 +1672,6 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                 pResult->authType = auth;
                 pResult->Result.ssId = pBssDesc->Result.ssId;
                 pResult->Result.timer = 0;
-
                 //save the pIes for later use
                 pResult->Result.pvIes = pNewIes;
                 //save bss description
@@ -4479,8 +4478,9 @@ eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 pScanLog->numChannel = (v_U8_t)pCommand->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels;
                 if(pScanLog->numChannel && (pScanLog->numChannel < VOS_LOG_MAX_NUM_CHANNEL))
                 {
-                    palCopyMemory(pMac->hHdd, pScanLog->channels, pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList,
-                        pScanLog->numChannel);
+                    palCopyMemory(pMac->hHdd, pScanLog->channels,
+                                  pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList,
+                                  pScanLog->numChannel);
                 }
                 WLAN_VOS_DIAG_LOG_REPORT(pScanLog);
             }
@@ -4852,9 +4852,10 @@ void csrScanCallCallback(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatus 
 {
     if(pCommand->u.scanCmd.callback)
     {
+//        sme_ReleaseGlobalLock( &pMac->sme );
         pCommand->u.scanCmd.callback(pMac, pCommand->u.scanCmd.pContext, pCommand->u.scanCmd.scanID, scanStatus); 
-    } 
-    else {
+//        sme_AcquireGlobalLock( &pMac->sme );
+    } else {
         smsLog( pMac, LOGW, "%s:%d - Callback NULL!!!\n", __FUNCTION__, __LINE__);
     }
 }

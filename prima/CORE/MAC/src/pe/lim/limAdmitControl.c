@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file contains TSPEC and STA admit control related functions
  * NOTE: applies only to AP builds
@@ -1046,7 +1050,8 @@ limSendHalMsgAddTs(
   tpAniSirGlobal pMac,
   tANI_U16       staIdx,
   tANI_U8         tspecIdx,
-  tSirMacTspecIE tspecIE)
+  tSirMacTspecIE tspecIE,
+  tANI_U8        sessionId)
 {
     tSirMsgQ msg;
     tpAddTsParams pAddTsParam;
@@ -1061,6 +1066,7 @@ limSendHalMsgAddTs(
     pAddTsParam->staIdx = staIdx;
     pAddTsParam->tspecIdx = tspecIdx;
     palCopyMemory(pMac->hHdd, &pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
+    pAddTsParam->sessionId = sessionId;
  
     msg.type = WDA_ADD_TS_REQ;
     msg.bodyptr = pAddTsParam;

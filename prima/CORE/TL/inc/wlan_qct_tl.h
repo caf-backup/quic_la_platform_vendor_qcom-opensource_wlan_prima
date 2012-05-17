@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ * */
+
 #ifndef WLAN_QCT_WLANTL_H
 #define WLAN_QCT_WLANTL_H
 
@@ -74,6 +80,12 @@ when        who    what, where, why
 
 /*Size of the OUI type field inside the LLC/SNAP header*/
 #define WLANTL_LLC_OUI_SIZE                   3
+
+/*Offset of the LLC/SNAP header*/
+#define WLANTL_LLC_SNAP_OFFSET                0
+
+/*Size of the LLC/SNAP header*/
+#define WLANTL_LLC_SNAP_SIZE                   8
 
 /*============================================================================
  *     GENERIC STRUCTURES - not belonging to TL 
@@ -237,6 +249,11 @@ typedef struct
   v_U8_t              ucUcastSig;
  /*Flag to indicate if STA is a WAPI STA*/
   v_U8_t         ucIsWapiSta;
+
+#ifdef FEATURE_WLAN_CCX
+ /*Flag to indicate if STA is a CCX STA*/
+  v_U8_t         ucIsCcxSta;
+#endif
 
   /*DPU Signature used for broadcast data - used for data caching*/
   v_U8_t              ucBcastSig;

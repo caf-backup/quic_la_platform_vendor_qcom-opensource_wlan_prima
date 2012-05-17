@@ -759,6 +759,39 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_MIN, 
                  CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_MAX ),
 
+#ifdef FEATURE_WLAN_CCX
+   REG_VARIABLE( CFG_QOS_WMM_INFRA_INACTIVITY_INTERVAL_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, InfraInactivityInterval, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_QOS_WMM_INFRA_INACTIVITY_INTERVAL_DEFAULT, 
+                 CFG_QOS_WMM_INFRA_INACTIVITY_INTERVAL_MIN, 
+                 CFG_QOS_WMM_INFRA_INACTIVITY_INTERVAL_MAX),
+   REG_VARIABLE( CFG_CCX_FEATURE_ENABLED_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, isCcxIniFeatureEnabled, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_CCX_FEATURE_ENABLED_DEFAULT, 
+                 CFG_CCX_FEATURE_ENABLED_MIN, 
+                 CFG_CCX_FEATURE_ENABLED_MAX),
+#endif // FEATURE_WLAN_CCX
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+   REG_VARIABLE( CFG_FT_RSSI_FILTER_PERIOD_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, FTRssiFilterPeriod,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_FT_RSSI_FILTER_PERIOD_DEFAULT, 
+                 CFG_FT_RSSI_FILTER_PERIOD_MIN, 
+                 CFG_FT_RSSI_FILTER_PERIOD_MAX ),
+
+
+   // flag to turn ON/OFF 11r and CCX FastTransition
+   REG_VARIABLE( CFG_FAST_TRANSITION_ENABLED_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, isFastTransitionEnabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_FAST_TRANSITION_ENABLED_NAME_DEFAULT, 
+                 CFG_FAST_TRANSITION_ENABLED_NAME_MIN, 
+                 CFG_FAST_TRANSITION_ENABLED_NAME_MAX),
+#endif
+
    REG_VARIABLE( CFG_QOS_WMM_PKT_CLASSIFY_BASIS_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, PktClassificationBasis, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -1177,6 +1210,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_NULLDATA_AP_RESP_TIMEOUT_MIN, 
                 CFG_NULLDATA_AP_RESP_TIMEOUT_MAX ),
 
+    REG_VARIABLE( CFG_AP_DATA_AVAIL_POLL_PERIOD_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, apDataAvailPollPeriodInMs, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_AP_DATA_AVAIL_POLL_PERIOD_DEFAULT, 
+                CFG_AP_DATA_AVAIL_POLL_PERIOD_MIN, 
+                CFG_AP_DATA_AVAIL_POLL_PERIOD_MAX ),
+                                
    REG_VARIABLE( CFG_ENABLE_BTAMP_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableBtAmp, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -1461,7 +1501,11 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
              __FUNCTION__, WLAN_INI_FILE);
       return VOS_STATUS_E_FAILURE;
    } 
+
+   hddLog(LOG1, "%s: qcom_cfg.ini Size %d\n",__FUNCTION__, fw->size);
+
    buffer = (char*)vos_mem_malloc(fw->size);
+   
    if(NULL == buffer) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__FUNCTION__);
       release_firmware(fw);
@@ -1611,7 +1655,12 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSrvIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBkSrvIntv);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSuspIntv] Value = [%lu] ",pHddCtx->cfg_ini->InfraUapsdBkSuspIntv);
-
+#ifdef FEATURE_WLAN_CCX
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraInactivityInterval] Value = [%lu] ",pHddCtx->cfg_ini->InfraInactivityInterval);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [CcxEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isCcxIniFeatureEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [FastTransitionEnabled] Value = [%lu] ",pHddCtx->cfg_ini->isFastTransitionEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gTxPowerCap] Value = [%lu] dBm ",pHddCtx->cfg_ini->nTxPowerCap);
+#endif 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVo] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcVo);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcVo);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVo] Value = [0x%lx] ",pHddCtx->cfg_ini->InfraMeanDataRateAcVo);
@@ -1664,6 +1713,9 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gDynamicPSPollvalue] Value = [%u] ",pHddCtx->cfg_ini->dynamicPsPollValue);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAddTSWhenACMIsOff] Value = [%u] ",pHddCtx->cfg_ini->AddTSWhenACMIsOff);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gValidateScanList] Value = [%u] ",pHddCtx->cfg_ini->fValidateScanList);
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gStaKeepAlivePeriod] Value = [%u] ",pHddCtx->cfg_ini->infraStaKeepAlivePeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pHddCtx->cfg_ini->apDataAvailPollPeriodInMs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableBtAmp] Value = [%u] ",pHddCtx->cfg_ini->enableBtAmp);
 #ifdef WLAN_BTAMP_FEATURE
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [BtAmpPreferredChannel] Value = [%u] ",pHddCtx->cfg_ini->preferredChannel);
@@ -2300,6 +2352,15 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
       hddLog(LOGE, "Could not pass on WNI_CFG_RSSI_FILTER_PERIOD to CCM\n");
    }
 
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_FT_RSSI_FILTER_PERIOD, pConfig->FTRssiFilterPeriod,
+         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+      fStatus = FALSE;
+      hddLog(LOGE, "Could not pass on WNI_CFG_FT_RSSI_FILTER_PERIOD to CCM\n");
+   }
+#endif
+
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, pConfig->fIgnoreDtim,
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
@@ -2364,7 +2425,7 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
      {
         fStatus = FALSE;
         hddLog(LOGE, "Could not pass on WNI_CFG_AP_KEEP_ALIVE_TIMEOUT to CCM\n");
-     }	 
+     } 
 #endif
    
 #if defined WLAN_FEATURE_VOWIFI
@@ -2462,6 +2523,12 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
        hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_NULLDATA_DELAY_TIMEOUT configuration info to CCM\n"  );
     } 
 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD, pConfig->apDataAvailPollPeriodInMs,
+               NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+       fStatus = FALSE;
+       hddLog(LOGE,"Failure: Could not pass on WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD configuration info to CCM\n"  );
+   } 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
     if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_FRAGMENTATION_THRESHOLD, pConfig->FragmentationThreshold, 
                    NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
@@ -2636,8 +2703,13 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    hdd_set_btc_config(pHddCtx);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R   
-   smeConfig.csrConfig.csr11rConfig.IsFTSupportEnabled = pConfig->fFTEnable;
    smeConfig.csrConfig.csr11rConfig.IsFTResourceReqSupported = pConfig->fFTResourceReqSupported;
+#endif
+#ifdef FEATURE_WLAN_CCX
+   smeConfig.csrConfig.isCcxIniFeatureEnabled = pConfig->isCcxIniFeatureEnabled;
+#endif
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+   smeConfig.csrConfig.isFastTransitionEnabled = pConfig->isFastTransitionEnabled;
 #endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING

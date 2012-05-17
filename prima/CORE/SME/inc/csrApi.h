@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -7,15 +7,11 @@
 
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
-
-  
     \file csrApi.h
   
     Exports and types for the Common Scan and Roaming Module interfaces.
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
-  
- 
+    Copyright (C) 2006 Airgo Networks, Incorporated 
    ========================================================================== */
 #ifndef CSRAPI_H__
 #define CSRAPI_H__
@@ -50,6 +46,10 @@ typedef enum
     eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE,
     eCSR_AUTH_TYPE_WAPI_WAI_PSK,
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef FEATURE_WLAN_CCX
+    eCSR_AUTH_TYPE_CCKM_WPA,
+    eCSR_AUTH_TYPE_CCKM_RSN,
+#endif /* FEATURE_WLAN_CCX */
     eCSR_NUM_OF_SUPPORT_AUTH_TYPE,
     eCSR_AUTH_TYPE_FAILED = 0xff,
     eCSR_AUTH_TYPE_UNKNOWN = eCSR_AUTH_TYPE_FAILED,
@@ -70,6 +70,9 @@ typedef enum
 #ifdef FEATURE_WLAN_WAPI
     eCSR_ENCRYPT_TYPE_WPI, //WAPI
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef FEATURE_WLAN_CCX
+    eCSR_ENCRYPT_TYPE_KRK,
+#endif /* FEATURE_WLAN_CCX */
     eCSR_ENCRYPT_TYPE_ANY,
     eCSR_NUM_OF_ENCRYPT_TYPE = eCSR_ENCRYPT_TYPE_ANY,
 
@@ -173,6 +176,11 @@ typedef enum
 #else
 #define CSR_MAX_KEY_LEN         ( CSR_TKIP_KEY_LEN )  //longest one is for TKIP
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef FEATURE_WLAN_CCX
+#define CSR_KRK_KEY_LEN 16
+#endif
+
+
 
 typedef struct tagCsrChannelInfo
 {
@@ -263,6 +271,15 @@ typedef struct tagCsrMobilityDomainInfo
     tANI_U8 mdiePresent;
     tANI_U16 mobilityDomain;
 } tCsrMobilityDomainInfo;
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+typedef struct tagCsrCcxCckmInfo
+{
+    tANI_U32       reassoc_req_num;
+    tANI_BOOLEAN   krk_plumbed;
+    tANI_U8        krk[CSR_KRK_KEY_LEN];
+} tCsrCcxCckmInfo;
 #endif
 
 
@@ -364,11 +381,13 @@ typedef enum
 #ifdef WLAN_FEATURE_VOWIFI_11R
     eCSR_ROAM_FT_RESPONSE,
 #endif
+    eCSR_ROAM_FT_START,
     eCSR_ROAM_INDICATE_MGMT_FRAME,
     eCSR_ROAM_REMAIN_CHAN_READY,
     eCSR_ROAM_SEND_ACTION_CNF,
     //this mean error happens before association_start or roaming_start is called.
     eCSR_ROAM_SESSION_OPENED,
+    eCSR_ROAM_FT_REASSOC_FAILED,
 }eRoamCmdStatus;
 
 
@@ -754,6 +773,8 @@ typedef struct tagCsrRoamProfile
     tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
     /*WPS Association if true => auth and ecryption should be ignored*/
     tANI_BOOLEAN bWPSAssociation;
+    tANI_U32 nWSCReqIELength;   //The byte count in the pWSCReqIE
+    tANI_U8 *pWSCReqIE;   //If not null, it has the IE byte stream for WSC
 
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U8 ieee80211d;
@@ -772,6 +793,7 @@ typedef struct tagCsrRoamProfile
     tCsrMobilityDomainInfo MDID;
 #endif
     tVOS_CON_MODE csrPersona;
+
 }tCsrRoamProfile;
 
 
@@ -804,13 +826,16 @@ typedef struct tagCsrRoamConnectedProfile
     tCsrMobilityDomainInfo MDID;
 #endif
     
+#ifdef FEATURE_WLAN_CCX
+    tCsrCcxCckmInfo ccxCckmInfo;
+    tANI_BOOLEAN    isCCXAssoc; 
+#endif
 }tCsrRoamConnectedProfile;
 
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 typedef struct tagCsr11rConfigParams
 {
-    tANI_BOOLEAN   IsFTSupportEnabled;
     tANI_BOOLEAN   IsFTResourceReqSupported;
 } tCsr11rConfigParams;
 #endif
@@ -898,6 +923,13 @@ typedef struct tagCsrConfigParam
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tCsr11rConfigParams  csr11rConfig;
 #endif
+#ifdef FEATURE_WLAN_CCX
+    tANI_U8   isCcxIniFeatureEnabled;
+#endif
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+    tANI_U8   isFastTransitionEnabled;
+#endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
     tCsrNeighborRoamConfigParams    neighborRoamConfig;
@@ -983,6 +1015,9 @@ typedef struct tagCsrRoamInfo
     tANI_U32 dtimPeriod;
 #endif
 
+#ifdef FEATURE_WLAN_CCX
+    tANI_BOOLEAN isCCXAssoc;
+#endif
 #ifdef WLAN_FEATURE_P2P
     void* pRemainCtx; 
     tANI_U32 rxChan;

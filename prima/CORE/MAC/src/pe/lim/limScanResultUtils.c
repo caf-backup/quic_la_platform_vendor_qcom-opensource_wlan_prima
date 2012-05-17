@@ -1,7 +1,7 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved. 
+* Qualcomm Atheros Confidential and Proprietary. 
 */
 
 /*
@@ -145,6 +145,8 @@ limCollectBssDescription(tpAniSirGlobal pMac,
                   sizeof(tSirMacAddr));
 
     // Copy Timestamp, Beacon Interval and Capability Info
+    pBssDescr->scanSysTimeMsec = vos_timer_get_system_time();
+
     pBssDescr->timeStamp[0]   = pBPR->timeStamp[0];
     pBssDescr->timeStamp[1]   = pBPR->timeStamp[1];
     pBssDescr->beaconInterval = pBPR->beaconInterval;
@@ -239,12 +241,24 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     pBssDescr->mdie[1] = 0;
     pBssDescr->mdie[2] = 0;
     pBssDescr->mdiePresent = FALSE;
+    // If mdie is present in the probe resp we 
+    // fill it in the bss description
     if( pBPR->mdiePresent) 
     {
         pBssDescr->mdiePresent = TRUE;
         pBssDescr->mdie[0] = pBPR->mdie[0];
         pBssDescr->mdie[1] = pBPR->mdie[1];
         pBssDescr->mdie[2] = pBPR->mdie[2];
+    }
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+    pBssDescr->QBSSLoad_present = FALSE;
+    pBssDescr->QBSSLoad_avail = 0; 
+    if( pBPR->QBSSLoad.present) 
+    {
+        pBssDescr->QBSSLoad_present = TRUE;
+        pBssDescr->QBSSLoad_avail = pBPR->QBSSLoad.avail;
     }
 #endif
     // Copy IE fields

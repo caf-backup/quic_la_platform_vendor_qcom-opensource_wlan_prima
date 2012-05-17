@@ -78,6 +78,12 @@ void limPrintMsgName(tpAniSirGlobal pMac, tANI_U16 logLevel, tANI_U32 msgType);
 void limPrintMsgInfo(tpAniSirGlobal pMac, tANI_U16 logLevel, tSirMsgQ *msg);
 char* limBssTypeStr(tSirBssType bssType);
 
+#if defined FEATURE_WLAN_CCX || defined WLAN_FEATURE_VOWIFI
+extern tSirRetStatus limSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, 
+                                  tPowerdBm txPower, 
+                                  tpPESession pSessionEntry );
+extern tANI_U8 limGetMaxTxPower(tPowerdBm regMax, tPowerdBm apTxPower);
+#endif
 
 tANI_U32            limPostMsgApiNoWait(tpAniSirGlobal, tSirMsgQ *);
 tANI_U8           limIsAddrBC(tSirMacAddr);
@@ -360,6 +366,7 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac);
 void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ);
 void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ);
 v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid,eSizeOfLenField size_of_len_field);
+
 tANI_U8 limUnmapChannel(tANI_U8 mapChannel);
 
 #define limGetWscIEPtr(pMac, ie, ie_len) \

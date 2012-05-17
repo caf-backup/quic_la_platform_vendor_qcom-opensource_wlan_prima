@@ -280,6 +280,10 @@ enum eWniMsgTypes
     eWNI_SME_FT_AGGR_QOS_RSP,
 #endif
 
+#if defined FEATURE_WLAN_CCX
+    eWNI_SME_CCX_ADJACENT_AP_REPORT,
+#endif
+
 #ifdef WLAN_FEATURE_P2P
     eWNI_SME_REGISTER_MGMT_FRAME_REQ,
 #endif

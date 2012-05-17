@@ -110,9 +110,15 @@ static const u32 hdd_cipher_suites[] =
     WLAN_CIPHER_SUITE_WEP40,
     WLAN_CIPHER_SUITE_WEP104,
     WLAN_CIPHER_SUITE_TKIP,
+#ifdef FEATURE_WLAN_CCX
+#define WLAN_CIPHER_SUITE_KRK 0x004096ff /* use for KRK */
+    WLAN_CIPHER_SUITE_KRK,
     WLAN_CIPHER_SUITE_CCMP,
+#else
+    WLAN_CIPHER_SUITE_CCMP,
+#endif
 #ifdef FEATURE_WLAN_WAPI
-    WLAN_CIPHER_SUITE_SMS4
+    WLAN_CIPHER_SUITE_SMS4,
 #endif
 };
 
@@ -1972,6 +1978,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         case WLAN_CIPHER_SUITE_CCMP:
             setKey.encType = eCSR_ENCRYPT_TYPE_AES;
             break;
+
 #ifdef FEATURE_WLAN_WAPI
         case WLAN_CIPHER_SUITE_SMS4:
             {
@@ -1980,6 +1987,11 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                         params->key, params->key_len);
                 return 0;
             }
+#endif
+#ifdef FEATURE_WLAN_CCX
+        case WLAN_CIPHER_SUITE_KRK:
+            setKey.encType = eCSR_ENCRYPT_TYPE_KRK;
+            break;
 #endif
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: unsupported cipher type %lu",
@@ -2069,7 +2081,8 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
 
         pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_SETTING_KEY;
 
-        if (!( (IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) 
+    if (!(  ( IW_AUTH_KEY_MGMT_802_1X 
+                    == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)) 
                     && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType)
              )
                 &&
@@ -2213,7 +2226,8 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
          * IBSS join, group key intialized with NULL key, so re-initialize group key 
          * with correct value*/
         if ( (eCSR_BSS_TYPE_START_IBSS == pWextState->roamProfile.BSSType) && 
-                !(  (IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) 
+            !(  ( IW_AUTH_KEY_MGMT_802_1X 
+                    == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)) 
                     && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pHddStaCtx->conn_info.authType)
                  )
                 &&
@@ -3483,6 +3497,14 @@ static int wlan_hdd_cfg80211_set_auth_type(hdd_adapter_t *pAdapter,
                     "%s: set authentication type to SHARED", __func__);
             pHddStaCtx->conn_info.authType = eCSR_AUTH_TYPE_SHARED_KEY;
             break;
+#ifdef FEATURE_WLAN_CCX
+        case NL80211_AUTHTYPE_NETWORK_EAP:
+            hddLog(VOS_TRACE_LEVEL_INFO, 
+                            "%s: set authentication type to CCKM WPA", __func__);
+            pHddStaCtx->conn_info.authType = eCSR_AUTH_TYPE_CCKM_WPA;//eCSR_AUTH_TYPE_CCKM_RSN needs to be handled as well if required.
+            break;
+#endif
+
 
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, 
@@ -3515,14 +3537,23 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
         case WLAN_AKM_SUITE_PSK:
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: setting key mgmt type to PSK", 
                     __func__);
-            pWextState->authKeyMgmt = IW_AUTH_KEY_MGMT_PSK;
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_PSK;
             break;
 
         case WLAN_AKM_SUITE_8021X:
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: setting key mgmt type to 8021x", 
                     __func__);
-            pWextState->authKeyMgmt = IW_AUTH_KEY_MGMT_802_1X;
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
             break;
+#ifdef FEATURE_WLAN_CCX
+#define WLAN_AKM_SUITE_CCKM         0x00409600 /* Should be in ieee802_11_defs.h */
+#define IW_AUTH_KEY_MGMT_CCKM       8  /* Should be in linux/wireless.h */
+        case WLAN_AKM_SUITE_CCKM:
+            hddLog(VOS_TRACE_LEVEL_INFO, "%s: setting key mgmt type to CCKM",
+                            __func__);
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_CCKM;
+            break;
+#endif
 
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported key mgmt type %d", 
@@ -3591,6 +3622,12 @@ static int wlan_hdd_cfg80211_set_cipher( hdd_adapter_t *pAdapter,
 #ifdef FEATURE_WLAN_WAPI
         case WLAN_CIPHER_SUITE_SMS4:
             encryptionType = eCSR_ENCRYPT_TYPE_WPI;
+            break;
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+        case WLAN_CIPHER_SUITE_KRK:
+            encryptionType = eCSR_ENCRYPT_TYPE_KRK;
             break;
 #endif
             default:
@@ -3888,7 +3925,8 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
                 || (WLAN_CIPHER_SUITE_WEP104 == req->crypto.ciphers_pairwise[0])
           )
         {
-            if (IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt)
+            if ( IW_AUTH_KEY_MGMT_802_1X 
+                    == (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X  ))
             {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Dynamic WEP not supported", 
                         __func__);

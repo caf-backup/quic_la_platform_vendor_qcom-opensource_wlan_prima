@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -12,9 +12,7 @@
   
     Define internal data structure for MAC.
   
-    Copyright (C) 2006 Airgo Networks, Incorporated
-  
- 
+    Copyright (C) 2006 Airgo Networks, Incorporated 
    ========================================================================== */
 #ifndef CSRINTERNAL_H__
 #define CSRINTERNAL_H__
@@ -54,7 +52,12 @@
 
 #define CSR_IS_SESSION_VALID( pMac, sessionId ) ( ( (sessionId) < CSR_ROAM_SESSION_MAX ) \
                                                   && ( (pMac)->roam.roamSession[(sessionId)].sessionActive ) )
-#define CSR_GET_SESSION( pMac, sessionId ) (&(pMac)->roam.roamSession[(sessionId)])
+#define CSR_GET_SESSION( pMac, sessionId ) \
+( \
+    (sessionId < CSR_ROAM_SESSION_MAX) ? \
+     (&(pMac)->roam.roamSession[(sessionId)]) :\
+     NULL \
+)
 
 
 
@@ -128,12 +131,12 @@ typedef enum
     eCsrSmeIssuedReassocToSameAP,
     eCsrSmeIssuedReassocToDiffAP,
     eCsrForcedDeauth,        // roaming becuase someone asked us to deauth and stay disassociated.
-    
     eCsrSmeIssuedDisassocForHandoff, // will be issued by Handoff logic to disconect from current AP
     eCsrSmeIssuedAssocToSimilarAP, // will be issued by Handoff logic to join a new AP with same profile
     eCsrSmeIssuedIbssJoinFailure, // ibss join timer fired before any perr showed up, so shut down the network
     eCsrForcedIbssLeave,
     eCsrStopBss,
+    eCsrSmeIssuedFTReassoc,
     
 }eCsrRoamReason;
 
@@ -419,7 +422,6 @@ typedef struct tagCsrCmd
 #ifdef WLAN_FEATURE_VOWIFI_11R
 typedef struct tagCsr11rConfig
 {
-    tANI_BOOLEAN   IsFTSupportEnabled;
     tANI_BOOLEAN   IsFTResourceReqSupported;
 } tCsr11rConfig;
 #endif
@@ -511,6 +513,14 @@ typedef struct tagCsrConfig
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tCsr11rConfig csr11rConfig;
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+    tANI_U8   isCcxIniFeatureEnabled;
+#endif
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+    tANI_U8   isFastTransitionEnabled;
 #endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
@@ -633,7 +643,10 @@ typedef struct tagRoamCsrConnectedInfo
     tANI_U32 nAssocRspLength;   //The length, in bytes, of the assoc rsp frame, can be 0
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tANI_U32 nRICRspLength; //Length of the parsed RIC response IEs received in reassoc response
-#endif
+#endif    
+#ifdef FEATURE_WLAN_CCX
+    tANI_U32 nTspecIeLength;
+#endif    
     tANI_U8 *pbFrames;  //Point to a buffer contain the beacon, assoc req, assoc rsp frame, in that order
                         //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
                         //each frame starts and ends.
@@ -750,6 +763,15 @@ typedef struct tagCsrRoamSession
     tCsrTimerInfo joinRetryTimerInfo;
     tANI_U32 maxRetryCount;
 #endif
+#ifdef FEATURE_WLAN_CCX
+    tCsrCcxCckmInfo ccxCckmInfo;
+    tANI_BOOLEAN isPrevApInfoValid;
+    tSirMacSSid prevApSSID;
+    tCsrBssid prevApBssid;
+    tANI_U8 prevOpChannel;
+    tANI_U16 clientDissSecs;
+    tANI_U32 roamTS1;
+#endif
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
@@ -795,6 +817,9 @@ typedef struct tagCsrRoamStruct
     tANI_U32 transactionId;        // Current transaction ID for internal use. 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING    
     tCsrNeighborRoamControlInfo neighborRoamInfo;
+#endif
+#ifdef FEATURE_WLAN_CCX
+    tANI_U8   isCcxIniFeatureEnabled;
 #endif
 }tCsrRoamStruct;
 
@@ -1094,7 +1119,7 @@ tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId);
 tANI_U8 csrGetConcurrentOperationChannel( tpAniSirGlobal pMac );
 
 eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, 
-                                   tCsrRoamConnectedProfile *pProfile);
+                               tCsrRoamConnectedProfile *pProfile);
 tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId);
 
 void csrSetOppositeBandChannelInfo( tpAniSirGlobal pMac );
@@ -1102,4 +1127,15 @@ void csrConstructCurrentValidChannelList( tpAniSirGlobal pMac, tDblLinkList *pCh
                                             tANI_U8 *pChannelList, tANI_U8 bSize, tANI_U8 *pNumChannels );
 
 #endif
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+//Returns whether the current association is a 11r assoc or not
+tANI_BOOLEAN csrRoamIs11rAssoc(tpAniSirGlobal pMac);
+#endif
+
+#ifdef FEATURE_WLAN_CCX
+//Returns whether the current association is a CCX assoc or not
+tANI_BOOLEAN csrRoamIsCCXAssoc(tpAniSirGlobal pMac);
+#endif
+
 

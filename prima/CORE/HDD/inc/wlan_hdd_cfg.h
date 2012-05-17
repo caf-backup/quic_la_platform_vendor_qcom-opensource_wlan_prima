@@ -508,6 +508,9 @@ typedef enum
 #define CFG_RSSI_FILTER_PERIOD_NAME            "gRssiFilterPeriod"
 #define CFG_RSSI_FILTER_PERIOD_MIN             WNI_CFG_RSSI_FILTER_PERIOD_STAMIN
 #define CFG_RSSI_FILTER_PERIOD_MAX             WNI_CFG_RSSI_FILTER_PERIOD_STAMAX
+// Increased this value for Non-CCX AP. This is cause FW RSSI Monitoring
+// the consumer of this value is ON by default. So to impact power numbers
+// we are setting this to a high value.
 #define CFG_RSSI_FILTER_PERIOD_DEFAULT         WNI_CFG_RSSI_FILTER_PERIOD_STADEF
 
 #define CFG_IGNORE_DTIM_NAME                   "gIgnoreDtim"
@@ -533,7 +536,7 @@ typedef enum
 #define CFG_FW_RSSI_MONITORING_NAME            "gEnableFWRssiMonitoring"
 #define CFG_FW_RSSI_MONITORING_MIN             ( 0 )
 #define CFG_FW_RSSI_MONITORING_MAX             ( 1 )
-#define CFG_FW_RSSI_MONITORING_DEFAULT         ( 1 )
+#define CFG_FW_RSSI_MONITORING_DEFAULT         WNI_CFG_PS_ENABLE_RSSI_MONITOR_STADEF
 
 #define CFG_DATA_INACTIVITY_TIMEOUT_NAME       "gDataInactivityTimeout"
 #define CFG_DATA_INACTIVITY_TIMEOUT_MIN        ( 1 )
@@ -615,6 +618,36 @@ typedef enum
 #define CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_MIN             (0)
 #define CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_MAX             (4294967295UL)             
 #define CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_DEFAULT         (2000)
+
+#ifdef FEATURE_WLAN_CCX
+#define CFG_QOS_WMM_INFRA_INACTIVITY_INTERVAL_NAME         "InfraInactivityInterval"
+#define CFG_QOS_WMM_INFRA_INACTIVITY_INTERVAL_MIN           (0)
+#define CFG_QOS_WMM_INFRA_INACTIVITY_INTERVAL_MAX           (4294967295UL)
+#define CFG_QOS_WMM_INFRA_INACTIVITY_INTERVAL_DEFAULT       (0) //disabled
+
+#define CFG_CCX_FEATURE_ENABLED_NAME                       "CcxEnabled"
+#define CFG_CCX_FEATURE_ENABLED_MIN                         (0)
+#define CFG_CCX_FEATURE_ENABLED_MAX                         (1)
+#define CFG_CCX_FEATURE_ENABLED_DEFAULT                     (0) //disabled
+#endif // FEATURE_WLAN_CCX
+
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+#define CFG_FT_RSSI_FILTER_PERIOD_NAME                     "FTRssiFilterPeriod"
+#define CFG_FT_RSSI_FILTER_PERIOD_MIN                      WNI_CFG_FT_RSSI_FILTER_PERIOD_STAMIN
+#define CFG_FT_RSSI_FILTER_PERIOD_MAX                      WNI_CFG_FT_RSSI_FILTER_PERIOD_STAMAX
+#define CFG_FT_RSSI_FILTER_PERIOD_DEFAULT                  WNI_CFG_FT_RSSI_FILTER_PERIOD_STADEF 
+
+// This flag will control fasttransition in case of 11r and ccx.
+// Basically with this the whole neighbor roam, pre-auth, reassoc
+// can be turned ON/OFF. 
+// With this turned OFF 11r will completely not work.
+// For 11r this flag has to be ON.
+// For CCX fastroam will not work.
+#define CFG_FAST_TRANSITION_ENABLED_NAME                    "FastTransitionEnabled"
+#define CFG_FAST_TRANSITION_ENABLED_NAME_MIN                (0)
+#define CFG_FAST_TRANSITION_ENABLED_NAME_MAX                (1)
+#define CFG_FAST_TRANSITION_ENABLED_NAME_DEFAULT            (0) //disabled
+#endif
 
 #define CFG_QOS_WMM_PKT_CLASSIFY_BASIS_NAME                "PktClassificationBasis" // DSCP or 802.1Q
 #define CFG_QOS_WMM_PKT_CLASSIFY_BASIS_MIN                  (0)
@@ -874,6 +907,7 @@ typedef enum
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_MAX            (4)
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_DEFAULT        (1)
 
+
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_NAME         "gNeighborScanRefreshPeriod"
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MIN          (1000)
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MAX          (60000)
@@ -1129,7 +1163,7 @@ typedef struct
    
    v_U8_t        intfAddrMask;
    v_MACADDR_t   intfMacAddr[VOS_MAX_CONCURRENCY_PERSONA];
-   
+
 #ifdef WLAN_SOFTAP_FEATURE
    v_BOOL_t      apUapsdEnabled;
    v_BOOL_t      apProtEnabled;
@@ -1145,7 +1179,7 @@ typedef struct
    v_U8_t        apOperatingBand;
    v_BOOL_t      apAutoChannelSelection;
    v_U8_t        enableLTECoex;
-   v_U32_t 		 apKeepAlivePeriod;
+   v_U32_t       apKeepAlivePeriod;
 #endif
    v_U32_t       nBeaconInterval;
    v_U8_t        nTxPowerCap;   //In dBm
@@ -1214,6 +1248,15 @@ typedef struct
    v_U32_t                      InfraUapsdBeSuspIntv;
    v_U32_t                      InfraUapsdBkSrvIntv;
    v_U32_t                      InfraUapsdBkSuspIntv;
+#ifdef FEATURE_WLAN_CCX
+   v_U32_t                      InfraInactivityInterval;
+   v_BOOL_t                     isCcxIniFeatureEnabled;
+#endif
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+   v_U8_t                       FTRssiFilterPeriod;
+   v_BOOL_t                     isFastTransitionEnabled;
+#endif
+
    hdd_wmm_classification_t     PktClassificationBasis; // DSCP or 802.1Q
    v_BOOL_t                     bImplicitQosEnabled;
 

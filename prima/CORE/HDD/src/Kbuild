@@ -132,6 +132,10 @@ SYS_OBJS :=	$(SYS_COMMON_SRC_DIR)/wlan_qct_sys.o \
         $(SYS_LEGACY_SRC_DIR)/utils/src/utilsApi.o \
         $(SYS_LEGACY_SRC_DIR)/utils/src/utilsParser.o
 
+ifeq ($(CONFIG_QCOM_CCX),y)
+SYS_OBJS += $(SYS_LEGACY_SRC_DIR)/utils/src/limCcxparserApi.o
+endif
+
 ############# MAC ##################### 
 MAC_INC := 	-I$(WLAN_DIR)/MAC/inc \
         -I$(WLAN_DIR)/MAC/src/include \
@@ -190,6 +194,10 @@ MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
             $(MAC_SRC_DIR)/pe/lim/limFT.o \
             $(MAC_SRC_DIR)/pe/lim/limP2P.o
 
+ifeq ($(CONFIG_QCOM_CCX),y)
+MAC_LIM_OBJS += $(MAC_SRC_DIR)/pe/lim/limProcessCcxFrame.o
+endif
+
 MAC_PMM_OBJS = $(MAC_SRC_DIR)/pe/pmm/pmmApi.o    \
             $(MAC_SRC_DIR)/pe/pmm/pmmDebug.o     \
             $(MAC_SRC_DIR)/pe/pmm/pmmAP.o
@@ -223,7 +231,11 @@ SME_CSR_OBJS := $(SME_SRC_DIR)/csr/csrLinkList.o \
         $(SME_SRC_DIR)/csr/csrCmdProcess.o \
         $(SME_SRC_DIR)/csr/csrUtil.o \
         $(SME_SRC_DIR)/csr/csrLogDump.o \
-        $(SME_SRC_DIR)/csr/csrNeighborRoam.o 
+        $(SME_SRC_DIR)/csr/csrNeighborRoam.o
+
+ifeq ($(CONFIG_QCOM_CCX),y)
+SME_CSR_OBJS += $(SME_SRC_DIR)/csr/csrCcx.o 
+endif
 
 SME_PMC_OBJS := $(SME_SRC_DIR)/pmc/pmcApi.o \
         $(SME_SRC_DIR)/pmc/pmc.o \
@@ -413,11 +425,10 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DSOFTAP_CHANNEL_RANGE \
         -DWLAN_AP_STA_CONCURRENCY \
         -DFEATURE_WLAN_SCAN_PNO \
-        -DWLAN_FEATURE_PACKET_FILTERING 
-        #-DBAP_DEBUG \
+        -DWLAN_FEATURE_PACKET_FILTERING \
+        -DWLAN_FEATURE_VOWIFI
         #-DFEATURE_WLAN_BTAMP_UT \
         #-DVOLANS_PERF \
-        #-DWLAN_FEATURE_VOWIFI \
         #-DRSSI_HACK \
         #-DWLAN_FEATURE_VOWIFI_11R \
         #-DWLAN_FEATURE_NEIGHBOR_ROAMING \
@@ -446,6 +457,10 @@ endif
 ifeq ($(HAVE_CFG80211),1)
 CDEFINES += -DWLAN_FEATURE_P2P
 CDEFINES += -DWLAN_FEATURE_WFD
+endif
+
+ifeq ($(CONFIG_QCOM_CCX),y)
+CDEFINES += -DFEATURE_WLAN_CCX
 endif
 
 ifeq ($(BUILD_DIAG_VERSION),1)

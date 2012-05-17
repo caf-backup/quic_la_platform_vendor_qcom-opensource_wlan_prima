@@ -23,6 +23,9 @@
 #include "sirMacProtDef.h"
 #include "aniSystemDefs.h"
 
+#ifdef FEATURE_WLAN_CCX
+#include "ccxGlobal.h"
+#endif
 
 /// Maximum number of STAs allowed in the BSS
 #define SIR_MAX_NUM_STA                256
@@ -289,6 +292,7 @@ typedef enum eSirResultCodes
     eSIR_SME_WOWL_ENTER_REQ_FAILED,
     eSIR_SME_WOWL_EXIT_REQ_FAILED,
 #if defined WLAN_FEATURE_VOWIFI_11R
+    eSIR_SME_FT_REASSOC_TIMEOUT_FAILURE,
     eSIR_SME_FT_REASSOC_FAILURE,
 #endif
 #ifdef WLAN_FEATURE_P2P
@@ -717,6 +721,7 @@ typedef struct sSirBssDescription
     //offset of the ieFields from bssId.
     tANI_U16             length;
     tSirMacAddr          bssId;
+    v_TIME_t             scanSysTimeMsec;
     tANI_U32             timeStamp[2];
     tANI_U16             beaconInterval;
     tANI_U16             capabilityInfo;
@@ -745,6 +750,11 @@ typedef struct sSirBssDescription
     tANI_U8              mdiePresent;
     tANI_U8              mdie[SIR_MDIE_SIZE];                // MDIE for 11r, picked from the beacons
 #endif
+#ifdef FEATURE_WLAN_CCX
+    tANI_U16             QBSSLoad_present;
+    tANI_U16             QBSSLoad_avail; 
+#endif
+    // Please keep the structure 4 bytes aligned above the ieFields
     tANI_U32             ieFields[1];
 } tSirBssDescription, *tpSirBssDescription;
 
@@ -810,6 +820,18 @@ typedef struct sSirChannelList
     tANI_U8          channelNumber[1];
 } tSirChannelList, *tpSirChannelList;
 
+#ifdef FEATURE_WLAN_CCX
+typedef struct sTspecInfo {
+    tANI_U8         valid;
+    tSirMacTspecIE  tspec;
+} tTspecInfo;
+
+#define SIR_CCX_MAX_TSPEC_IES   4
+typedef struct sCCXTspecTspecInfo {
+    tANI_U8 numTspecs;
+    tTspecInfo tspec[SIR_CCX_MAX_TSPEC_IES];
+} tCCXTspecInfo;
+#endif
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
 /// Definition for Neighbor BSS info
@@ -1059,7 +1081,6 @@ typedef struct sSirSmeScanReq
 
     tANI_U8              hiddenSsid;
 
-    
     /* Number of SSIDs to scan */
     tANI_U8             numSsid;
     
@@ -1267,6 +1288,11 @@ typedef struct sSirSmeJoinReq
     tSirMacRateSet      extendedRateSet;    // Has 11g rates
     tSirRSNie           rsnIE;                  // RSN IE to be sent in
                                                 // (Re) Association Request
+#ifdef FEATURE_WLAN_CCX
+    tSirCCKMie          cckmIE;             // CCMK IE to be included as handler for join and reassoc is 
+                                            // the same. The join will never carry cckm, but will be set to
+                                            // 0. 
+#endif
 
     tSirAddie           addIEScan;              // Additional IE to be sent in
                                                 // (unicast) Probe Request at the time of join
@@ -1277,6 +1303,17 @@ typedef struct sSirSmeJoinReq
     tAniEdType          UCEncryptionType;
 
     tAniEdType          MCEncryptionType;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tAniBool            is11Rconnection;
+#endif
+#ifdef FEATURE_WLAN_CCX
+    tAniBool            isCCXconnection;
+    tCCXTspecInfo       ccxTspecInfo;
+#endif
+    
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX
+    tAniBool            isFastTransitionEnabled;
+#endif
     
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tAniBool            bpIndicator;
@@ -1291,6 +1328,7 @@ typedef struct sSirSmeJoinReq
 //#if (WNI_POLARIS_FW_PRODUCT == WLAN_STA )
     tSirBssDescription  bssDescription;
 //#endif
+
 } tSirSmeJoinReq, *tpSirSmeJoinReq;
 
 /// Definition for reponse message to previously issued join request
@@ -1320,6 +1358,9 @@ typedef struct sSirSmeJoinRsp
     tANI_U32        assocRspLength;
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tANI_U32        parsedRicRspLen;
+#endif
+#ifdef FEATURE_WLAN_CCX
+    tANI_U32        tspecIeLen;
 #endif
     tANI_U32        staId;//Station ID for peer
 
@@ -1447,7 +1488,10 @@ typedef struct sSirSmeReassocReq
     tSirRSNie           rsnIE;     // RSN IE to be sent in
                                    // (Re) Association Request
 
-    tSirAddie           addIEScan; // Additional IE to be sent in
+#ifdef FEATURE_WLAN_CCX
+    tSirCCKMie          cckmIE;    // CCMK IE to be included in ReAssoc if length != 0.
+#endif
+    tSirAddie           addIEScan; // Addtional IE to be sent in
                                    // (unicast) Probe Request at the time of join
 
     tSirAddie           addIEAssoc; // Additional IE to be sent in 
@@ -1455,6 +1499,16 @@ typedef struct sSirSmeReassocReq
                                    
     tAniEdType          UCEncryptionType;
     tAniEdType          MCEncryptionType;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tAniBool            is11Rconnection;
+#endif
+#ifdef FEATURE_WLAN_CCX
+    tAniBool            isCCXconnection;
+    tCCXTspecInfo       ccxTspecInfo;
+#endif
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX
+    tAniBool            isFastTransitionEnabled;
+#endif
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tAniBool             bpIndicator;
@@ -2849,7 +2903,10 @@ typedef struct sSirAddtsReqInfo
     tANI_U8               numTclas; // number of Tclas elements
     tSirTclasInfo    tclasInfo[SIR_MAC_TCLASIE_MAXNUM];
     tANI_U8               tclasProc;
-
+#ifdef FEATURE_WLAN_CCX
+    tSirMacCCXTSRSIE      tsrsIE;
+    tANI_U8               tsrsPresent:1;
+#endif
     tANI_U8               wmeTspecPresent:1;
     tANI_U8               wsmTspecPresent:1;
     tANI_U8               lleTspecPresent:1;
@@ -2867,7 +2924,10 @@ typedef struct sSirAddtsRspInfo
     tSirTclasInfo      tclasInfo[SIR_MAC_TCLASIE_MAXNUM];
     tANI_U8                 tclasProc;
     tSirMacScheduleIE  schedule;
-
+#ifdef FEATURE_WLAN_CCX
+    tSirMacCCXTSMIE    tsmIE;
+    tANI_U8                 tsmPresent:1;
+#endif
     tANI_U8                 wmeTspecPresent:1;
     tANI_U8                 wsmTspecPresent:1;
     tANI_U8                 lleTspecPresent:1;
@@ -2932,15 +2992,15 @@ typedef struct sSirDeltsRsp
     tSirDeltsReqInfo        rsp;
 } tSirDeltsRsp, *tpSirDeltsRsp;
 
-#ifdef WLAN_FEATURE_VOWIFI_11R
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX
 
-#define SME_QOS_NUM_TSPEC_MAX 2
-#define SME_QOS_NUM_AC_MAX 4
+#define SIR_QOS_NUM_TSPEC_MAX 2
+#define SIR_QOS_NUM_AC_MAX 4
 
 typedef struct sSirAggrQosReqInfo
 {
     tANI_U16 tspecIdx;
-    tSirAddtsReqInfo aggrAddTsInfo[SME_QOS_NUM_AC_MAX];
+    tSirAddtsReqInfo aggrAddTsInfo[SIR_QOS_NUM_AC_MAX];
 }tSirAggrQosReqInfo, *tpSirAggrQosReqInfo;
 
 typedef struct sSirAggrQosReq
@@ -2955,16 +3015,21 @@ typedef struct sSirAggrQosReq
     tSirAggrQosReqInfo      aggrInfo;
 }tSirAggrQosReq, *tpSirAggrQosReq;
 
+typedef struct sSirAggrQosRspInfo
+{
+    tANI_U16                tspecIdx;
+    tSirAddtsRspInfo        aggrRsp[SIR_QOS_NUM_AC_MAX];
+} tSirAggrQosRspInfo, *tpSirAggrQosRspInfo;
+
 typedef struct sSirAggrQosRsp
 {
     tANI_U16                messageType;
     tANI_U16                length;
     tANI_U8                 sessionId;
-    tANI_U16                tspecIdx;
-    tSirAddtsRspInfo        aggrRsp[SME_QOS_NUM_AC_MAX];
+    tSirAggrQosRspInfo      aggrInfo;
 } tSirAggrQosRsp, *tpSirAggrQosRsp;
 
-#endif/*WLAN_FEATURE_VOWIFI_11R*/
+#endif/*WLAN_FEATURE_VOWIFI_11R || FEATURE_WLAN_CCX*/
 
 typedef struct sSirSetTxPowerReq
 {

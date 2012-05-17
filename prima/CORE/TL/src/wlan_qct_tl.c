@@ -132,6 +132,11 @@
 /*LLC header value*/
 static v_U8_t WLANTL_LLC_HEADER[] =  {0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00 };
 
+#ifdef FEATURE_WLAN_CCX
+/*Aironet SNAP header value*/
+static v_U8_t WLANTL_AIRONET_SNAP_HEADER[] =  {0xAA, 0xAA, 0x03, 0x00, 0x40, 0x96, 0x00, 0x00 };
+#endif //FEATURE_WLAN_CCX
+
 /*BT-AMP packet LLC OUI value*/
 const v_U8_t WLANTL_BT_AMP_OUI[] =  {0x00, 0x19, 0x58 };
 
@@ -154,6 +159,9 @@ int bdPduInterruptGetThreshold = WLANTL_BD_PDU_INTERRUPT_GET_THRESHOLD;
 #define WLANTL_IS_DATA_FRAME(_type_sub)                               \
                      ( WLANTL_DATA_FRAME_TYPE == ( (_type_sub) & 0x30 ))
 
+#define WLANTL_IS_QOS_DATA_FRAME(_type_sub)                                      \
+                     (( WLANTL_DATA_FRAME_TYPE == ( (_type_sub) & 0x30 )) &&     \
+                      ( WLANTL_80211_DATA_QOS_SUBTYPE == ( (_type_sub) & 0xF ))) 
 
 #define WLANTL_IS_MGMT_FRAME(_type_sub)                                     \
                      ( WLANTL_MGMT_FRAME_TYPE == ( (_type_sub) & 0x30 ))
@@ -1111,6 +1119,19 @@ WLANTL_RegisterSTAClient
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.ucProtectedFrame =
     pwSTADescType->ucProtectedFrame;
 
+#ifdef FEATURE_WLAN_CCX
+  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.ucIsCcxSta =
+    pwSTADescType->ucIsCcxSta;
+
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Registering STA Client ID: %d QoS %d Add LLC %d ProtFrame %d CcxSta %d", 
+             pwSTADescType->ucSTAId, 
+             pwSTADescType->ucQosEnabled,
+             pwSTADescType->ucAddRmvLLC,
+             pwSTADescType->ucProtectedFrame,
+             pwSTADescType->ucIsCcxSta));
+#else
+
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Registering STA Client ID: %d QoS %d Add LLC %d ProtFrame %d", 
              pwSTADescType->ucSTAId, 
@@ -1118,6 +1139,7 @@ WLANTL_RegisterSTAClient
              pwSTADescType->ucAddRmvLLC,
              pwSTADescType->ucProtectedFrame));
 
+#endif //FEATURE_WLAN_CCX
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
   // if this station was not allocated resources to perform HW-based
   // TX frame translation then force SW-based TX frame translation
@@ -2612,6 +2634,7 @@ WLANTL_TxMgmtFrm
   if ( NULL == pvBDHeader )
   {
      v_MACADDR_t*     pvAddr2MacAddr;
+     v_U8_t   uQosHdr = VOS_FALSE;
 
      /* Get address 2 of Mangement Frame to give to WLANHAL_FillTxBd */
      vosStatus = vos_pkt_peek_data( vosFrmBuf, 
@@ -2624,12 +2647,20 @@ WLANTL_TxMgmtFrm
                 "WLAN TL:Failed while attempting to get addr2 %d", vosStatus));
        return vosStatus;
      }
-
+#ifdef FEATURE_WLAN_CCX
+    /* CCX IAPP Frame which are data frames but technically used
+     * for management functionality comes through route.
+     */
+    if (WLANTL_IS_QOS_DATA_FRAME(wFrmType))                                      \
+    {
+        uQosHdr = VOS_TRUE;
+    }
+#endif
     /*----------------------------------------------------------------------
       Call WDA to build TX header
      ----------------------------------------------------------------------*/
     vosStatus = WDA_DS_BuildTxPacketInfo( pvosGCtx, vosFrmBuf , &vDestMacAddr, 
-                   1 /* always 802.11 frames*/, &usPktLen, 0 /*qos not enabled !!!*/, 
+                   1 /* always 802.11 frames*/, &usPktLen, uQosHdr /*qos not enabled !!!*/, 
                    0 /* WDS off */, 0, wFrmType, pvAddr2MacAddr, ucTid, 
                    ucAckResponse, usTimeStamp, 0, 0 );
 
@@ -4109,6 +4140,94 @@ done:
 
 }/*WLANTL_ForwardSTAFrames*/
 
+
+#ifdef FEATURE_WLAN_CCX
+/*==========================================================================
+
+  FUNCTION    WLANTL_IsIAPPFrame
+
+  DESCRIPTION
+    Internal utility function for detecting incoming CCX IAPP frames
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+    IN
+    
+    pvBDHeader:             pointer to the BD header
+    vosTempBuff:            the data packet
+
+    IN/OUT
+    pFirstDataPktArrived:   static from caller function; used for rssi 
+                            computation
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_TRUE:   It is a IAPP frame
+    VOS_FALSE:  It is NOT IAPP frame
+
+  SIDE EFFECTS
+
+============================================================================*/
+v_BOOL_t
+WLANTL_IsIAPPFrame
+(
+  v_PVOID_t         pvBDHeader,
+  vos_pkt_t*        vosTempBuff
+)
+{
+  v_U16_t             usMPDUDOffset;
+  v_U8_t              ucOffset;
+  v_U8_t              ucSnapHdr[WLANTL_LLC_SNAP_SIZE];
+  v_SIZE_t            usSnapHdrSize = WLANTL_LLC_SNAP_SIZE;
+  VOS_STATUS          vosStatus;
+
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+  /*------------------------------------------------------------------------
+    Check if OUI field is present.
+  -------------------------------------------------------------------------*/
+  if ( VOS_FALSE == WDA_IS_RX_LLC_PRESENT(pvBDHeader) )
+  {
+      TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+                  "WLAN TL:LLC header removed, cannot determine BT-AMP type -"
+                  "dropping pkt"));
+      /* Drop packet */
+      vos_pkt_return_packet(vosTempBuff);
+      return VOS_TRUE;
+  }
+  usMPDUDOffset = (v_U8_t)WDA_GET_RX_MPDU_DATA_OFFSET(pvBDHeader);
+  ucOffset      = (v_U8_t)usMPDUDOffset + WLANTL_LLC_SNAP_OFFSET;
+
+  vosStatus = vos_pkt_extract_data( vosTempBuff, ucOffset,
+                                (v_PVOID_t)ucSnapHdr, &usSnapHdrSize);
+
+  if (( VOS_STATUS_SUCCESS != vosStatus)) 
+  {
+    TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+                "Unable to extract Snap Hdr of data  packet -"
+                "dropping pkt"));
+    return VOS_FALSE;
+  }
+
+ /*------------------------------------------------------------------------
+    Check if this is IAPP frame by matching Aironet Snap hdr.
+  -------------------------------------------------------------------------*/
+  // Compare returns 1 if values are same and 0
+  // if not the same.
+  if (( WLANTL_LLC_SNAP_SIZE != usSnapHdrSize ) ||
+     ( 0 == vos_mem_compare(ucSnapHdr, (v_PVOID_t)WLANTL_AIRONET_SNAP_HEADER,
+                            WLANTL_LLC_SNAP_SIZE ) ))
+  {
+    return VOS_FALSE;
+  }
+
+  return VOS_TRUE;
+
+}
+#endif //FEATURE_WLAN_CCX
+
 /*==========================================================================
 
   FUNCTION    WLANTL_ProcessBAPFrame
@@ -4725,11 +4844,41 @@ WLANTL_RxFrames
       {
         uDPUSig = WDA_GET_RX_DPUSIG( pvBDHeader );
           //Station has not yet been registered with TL - cache the frame
-          WLANTL_CacheSTAFrame( pTLCb, ucSTAId, vosTempBuff, uDPUSig, broadcast, ucFrmType);
+        WLANTL_CacheSTAFrame( pTLCb, ucSTAId, vosTempBuff, uDPUSig, broadcast, ucFrmType);
+        vosTempBuff = vosDataBuff;
+        continue;
+      }
 
+
+#ifdef FEATURE_WLAN_CCX
+      if ((pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucIsCcxSta)|| broadcast)
+      {
+        /*--------------------------------------------------------------------
+          Filter the IAPP frames for CCX connection; 
+          if data it will return false and it 
+          will be routed through the regular data path
+        --------------------------------------------------------------------*/
+        if ( WLANTL_IsIAPPFrame(pvBDHeader,
+                                vosTempBuff))
+        {
+            if ( VOS_STATUS_SUCCESS != vos_pkt_flatten_rx_pkt(&vosTempBuff))
+            {
+               TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                        "WLAN TL:Cannot flatten packet - dropping"));
+               /* Drop packet */
+               vos_pkt_return_packet(vosTempBuff);
+            } else {
+
+               TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
+                        "WLAN TL: Received CCX IAPP Frame"));
+
+               pTLCb->tlMgmtFrmClient.pfnTlMgmtFrmRx( pvosGCtx, vosTempBuff); 
+            }
             vosTempBuff = vosDataBuff;
             continue;
         }
+      }
+#endif
 
       if ( WLAN_STA_BT_AMP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
       {
