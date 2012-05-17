@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSmeReqUtils.h contains the utility definitions
  * LIM uses while processing SME request messsages.

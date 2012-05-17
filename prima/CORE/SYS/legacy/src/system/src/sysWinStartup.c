@@ -1,5 +1,9 @@
 
 /*
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * sysWinStartup.cpp: System startup file for Windows platform.
  * Author:         Rajesh Bhagwat

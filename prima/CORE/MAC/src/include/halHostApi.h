@@ -1,20 +1,22 @@
 /**
  *
-   Airgo Networks, Inc proprietary.
-   All Rights Reserved, Copyright 2005
-   This program is the confidential and proprietary product of Airgo Networks Inc.
-   Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
+ * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+ *
+ * Airgo Networks, Inc proprietary.
+ * All Rights Reserved, Copyright 2005
+ * This program is the confidential and proprietary product of Airgo Networks Inc.
+ * Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
+ * 
+ * halhostApi.h: Interfaces that the host system provides
+ * Author:  Mark Nelson
+ * Date:    4/9/05
 
-
-   halhostApi.h: Interfaces that the host system provides
-   Author:  Mark Nelson
-   Date:    4/9/05
-
-   History -
-   Date        Modified by              Modification Information
+ * History -
+ * Date        Modified by              Modification Information
   --------------------------------------------------------------------------
-
- */
+*/
 
 #ifndef HALHOSTAPI_H
 #define HALHOSTAPI_H
