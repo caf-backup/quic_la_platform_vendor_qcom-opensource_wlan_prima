@@ -332,6 +332,7 @@ typedef enum
 
    WLAN_HAL_FEATURE_CAPS_EXCHANGE_REQ       = 175,
    WLAN_HAL_FEATURE_CAPS_EXCHANGE_RSP       = 176,
+   WLAN_HAL_EXCLUDE_UNENCRYPTED_IND         = 177,
 
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
@@ -3488,6 +3489,8 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8  ucPattern[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern
     tANI_U8  ucPatternMaskSize;     // Non-zero pattern mask size
     tANI_U8  ucPatternMask[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
+    tANI_U8  ucPatternExt[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern
+    tANI_U8  ucPatternMaskExt[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern mask
 } tHalWowlAddBcastPtrn, *tpHalWowlAddBcastPtrn;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4346,6 +4349,22 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalWlanHostSuspendIndParam suspendIndParams;
 }tHalWlanHostSuspendIndMsg, *tpHalWlanHostSuspendIndMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXCLUDE_UNENCRYTED_IND
+ *-------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_BOOLEAN bDot11ExcludeUnencrypted;
+    tSirMacAddr bssId; 
+}tHalWlanExcludeUnEncryptedIndParam,*tpHalWlanExcludeUnEncryptedIndParam;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalWlanExcludeUnEncryptedIndParam excludeUnEncryptedIndParams;
+}tHalWlanExcludeUnEncrptedIndMsg, *tpHalWlanExcludeUnEncrptedIndMsg;
 
 #ifdef WLAN_FEATURE_P2P
 /*---------------------------------------------------------------------------
