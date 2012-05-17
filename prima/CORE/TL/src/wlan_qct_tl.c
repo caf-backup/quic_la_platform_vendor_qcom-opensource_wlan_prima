@@ -2873,10 +2873,10 @@ WLANTL_SuspendDataTx
 
   if (WLAN_ALL_STA == ucTxSuspended)
   {
-	/* All Stations are in Suspend mode. Nothing to do */
+    /* All Stations are in Suspend mode. Nothing to do */
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
               "WLAN TL:All stations already suspended"));
-	return VOS_STATUS_E_EXISTS;
+    return VOS_STATUS_E_EXISTS;
   }
 
   if (WLAN_ALL_STA == *pucSTAId)
@@ -2893,7 +2893,7 @@ WLANTL_SuspendDataTx
     /* Update Station Id Bit map for suspend request */
     do
     {
-	   /* If Bit set for this station with STAId */
+       /* If Bit set for this station with STAId */
       if (ucTxSuspendReq >> (STAId +1) )
       {
         /* If it is Not a valid station ID */
@@ -3003,14 +3003,14 @@ WLANTL_ResumeDataTx
               "WLAN TL:General resume requested"));
     vos_atomic_set_U8( &pTLCb->ucTxSuspended, 0);
 
-	/* Set to Resume for all stations */
-	for (STAId = 0; STAId < WLAN_MAX_STA_COUNT; STAId++)
-		 vos_atomic_set_U8( &pTLCb->atlSTAClients[STAId].ucTxSuspended, 0);
+    /* Set to Resume for all stations */
+    for (STAId = 0; STAId < WLAN_MAX_STA_COUNT; STAId++)
+         vos_atomic_set_U8( &pTLCb->atlSTAClients[STAId].ucTxSuspended, 0);
   }
   else
   {
     do
-	{
+    {
       /* If Bit Set for this station with STAId */
       if (ucTxResumeReq >> (STAId + 1))
       {

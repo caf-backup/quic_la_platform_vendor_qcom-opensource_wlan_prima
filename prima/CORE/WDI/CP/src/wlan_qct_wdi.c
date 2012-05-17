@@ -23533,9 +23533,9 @@ WDI_GTKOffloadReq
 
 /**
  @brief WDI_GTKOffloadGetInfoReq will be called when the upper 
-  		MAC wants to get GTK Rekey Counter while in power save.
-  		Upon the call of this API the WLAN DAL will pack and
-  		send a HAL GTK offload request message to the lower RIVA
+          MAC wants to get GTK Rekey Counter while in power save.
+          Upon the call of this API the WLAN DAL will pack and
+          send a HAL GTK offload request message to the lower RIVA
         sub-system if DAL is in state STARTED.
 
         In state BUSY this request will be queued. Request won't
@@ -23544,12 +23544,12 @@ WDI_GTKOffloadReq
  WDI_PostAssocReq must have been called.
 
  @param pwdiGtkOffloadGetInfoReqMsg: the GTK Offload 
-  					  Information Message as specified by the
-  					  Device Interface
+                        Information Message as specified by the
+                        Device Interface
   
-  		wdiGtkOffloadGetInfoCb: callback for passing back the
-  		response of the GTK offload operation received from the
-  		device
+          wdiGtkOffloadGetInfoCb: callback for passing back the
+          response of the GTK offload operation received from the
+          device
   
         pUserData: user data will be passed back with the
         callback 
@@ -23562,7 +23562,7 @@ WDI_GTKOffloadGetInfoReq
 (
   WDI_GtkOffloadGetInfoReqMsg*  pwdiGtkOffloadGetInfoReqMsg,
   WDI_GtkOffloadGetInfoCb       wdiGtkOffloadGetInfoCb,
-  void*                      	pUserData
+  void*                          pUserData
 )
 {
    WDI_EventInfoType      wdiEventData = {0};
@@ -23888,7 +23888,7 @@ WDI_ProcessWakeReasonInd
   pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulReason = pWakeReasonParams->ulReason;
   pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulReasonArg = pWakeReasonParams->ulReasonArg;
   pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulStoredDataLen = pWakeReasonParams->ulStoredDataLen;
-  pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulActualDataLen = pWakeReasonParams->ulActualDataLen;	
+  pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulActualDataLen = pWakeReasonParams->ulActualDataLen;    
   wpalMemoryCopy( (void *)&(pWdiInd->wdiIndicationData.wdiWakeReasonInd.aDataStart[0]), 
                   &(pWakeReasonParams->aDataStart[0]), 
                   pWakeReasonParams->ulStoredDataLen);

@@ -229,19 +229,19 @@ typedef struct sap_StopBssCompleteEvent_s {
 typedef struct sap_StationAssocIndication_s {
     v_MACADDR_t  staMac;
     v_U8_t       assoId;
-	v_U8_t       staId;
+    v_U8_t       staId;
     v_U8_t       status;
-	// Required for indicating the frames to upper layer
-	tANI_U32     beaconLength;
-	tANI_U8*     beaconPtr;
-	tANI_U32     assocReqLength;
-	tANI_U8*     assocReqPtr;
-	tANI_BOOLEAN fWmmEnabled;
+    // Required for indicating the frames to upper layer
+    tANI_U32     beaconLength;
+    tANI_U8*     beaconPtr;
+    tANI_U32     assocReqLength;
+    tANI_U8*     assocReqPtr;
+    tANI_BOOLEAN fWmmEnabled;
 #if WLAN_SOFTAP_FEATURE
-	eCsrAuthType negotiatedAuthType;
-	eCsrEncryptionType negotiatedUCEncryptionType;
-	eCsrEncryptionType negotiatedMCEncryptionType;
-	tANI_BOOLEAN fAuthRequired;
+    eCsrAuthType negotiatedAuthType;
+    eCsrEncryptionType negotiatedUCEncryptionType;
+    eCsrEncryptionType negotiatedMCEncryptionType;
+    tANI_BOOLEAN fAuthRequired;
 #endif
 } tSap_StationAssocIndication;
 

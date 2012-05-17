@@ -787,10 +787,10 @@ limPostSmeScanRspMessage(tpAniSirGlobal    pMac,
     pSirSmeScanRsp->length      = length;
 #endif
 
-	if(sizeof(tSirSmeScanRsp) <= length)
-	{
-		pSirSmeScanRsp->bssDescription->length = sizeof(tSirBssDescription);
-	}
+    if(sizeof(tSirSmeScanRsp) <= length)
+    {
+        pSirSmeScanRsp->bssDescription->length = sizeof(tSirBssDescription);
+    }
 
     pSirSmeScanRsp->statusCode  = resultCode;
 

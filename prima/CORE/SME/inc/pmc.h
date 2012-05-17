@@ -171,7 +171,7 @@ typedef struct sPmcInfo
 #endif // WLAN_FEATURE_PACKET_FILTERING
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
     GTKOffloadGetInfoCallback  GtkOffloadGetInfoCB; /* routine to call for GTK Offload Information */ 
-    void *GtkOffloadGetInfoCBContext;		/* value to be passed as parameter to routine specified above */
+    void *GtkOffloadGetInfoCBContext;        /* value to be passed as parameter to routine specified above */
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
 #ifdef WLAN_WAKEUP_EVENTS

@@ -306,7 +306,7 @@ enum eWniMsgTypes
     eWNI_SME_BTAMP_LOG_LINK_IND,//to serialize the create/accpet LL req from HCI
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
-	eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP,
+    eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
 #ifdef WLAN_WAKEUP_EVENTS

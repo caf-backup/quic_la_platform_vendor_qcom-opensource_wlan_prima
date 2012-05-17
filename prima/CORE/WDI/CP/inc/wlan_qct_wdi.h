@@ -5870,7 +5870,7 @@ typedef void  (*WDI_UpdateScanParamsCb)(WDI_Status  wdiStatus,
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_SetTxPerTrackingRspCb)(WDI_Status   wdiStatus,
                                            void*        pUserData);
-									 
+                                     
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 /*---------------------------------------------------------------------------
    WDI_8023MulticastListCb
@@ -6050,7 +6050,7 @@ typedef void  (*WDI_GtkOffloadCb)(WDI_Status   wdiStatus,
     The result code associated with performing the operation
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_GtkOffloadGetInfoCb)(WDI_Status   wdiStatus,
-										 void*        pUserData);
+                                         void*        pUserData);
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
 /*========================================================================
@@ -8579,9 +8579,9 @@ WDI_GTKOffloadReq
 
 /**
  @brief WDI_GTKOffloadGetInfoReq will be called when the upper 
-  		MAC wants to get GTK Rekey Counter while in power save.
-  		Upon the call of this API the WLAN DAL will pack and
-  		send a HAL GTK offload request message to the lower RIVA
+          MAC wants to get GTK Rekey Counter while in power save.
+          Upon the call of this API the WLAN DAL will pack and
+          send a HAL GTK offload request message to the lower RIVA
         sub-system if DAL is in state STARTED.
 
         In state BUSY this request will be queued. Request won't
@@ -8590,12 +8590,12 @@ WDI_GTKOffloadReq
  WDI_PostAssocReq must have been called.
 
  @param pwdiGtkOffloadGetInfoReqMsg: the GTK Offload 
-  					  Information Message as specified by the
-  					  Device Interface
+                        Information Message as specified by the
+                        Device Interface
   
-  		wdiGtkOffloadGetInfoCb: callback for passing back the
-  		response of the GTK offload operation received from the
-  		device
+          wdiGtkOffloadGetInfoCb: callback for passing back the
+          response of the GTK offload operation received from the
+          device
   
         pUserData: user data will be passed back with the
         callback 
@@ -8608,7 +8608,7 @@ WDI_GTKOffloadGetInfoReq
 (
   WDI_GtkOffloadGetInfoReqMsg*  pwdiGtkOffloadGetInfoReqMsg,
   WDI_GtkOffloadGetInfoCb       wdiGtkOffloadGetInfoCb,
-  void*                      	pUserData
+  void*                          pUserData
 );
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 

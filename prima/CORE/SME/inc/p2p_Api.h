@@ -218,7 +218,7 @@ typedef struct _p2p_group_owner_capability_config {
 } tp2p_group_owner_capability_config;
 
 typedef struct _tP2P_ProvDiscoveryReq {
-   tANI_U8	 dialogToken;
+   tANI_U8     dialogToken;
    tANI_U8  PeerDeviceAddress[P2P_MAC_ADDRESS_LEN];
    tANI_U32 uSendTimeout;
    tANI_U8  GroupCapability;
@@ -237,23 +237,23 @@ typedef struct _tP2P_ProvDiscoveryRes {
 } tP2P_ProvDiscoveryRes;
 
 typedef struct p2p_go_request {
-   tANI_U8	 dialogToken;
-   tANI_U8	peerDeviceAddress[P2P_MAC_ADDRESS_LEN];
+   tANI_U8     dialogToken;
+   tANI_U8    peerDeviceAddress[P2P_MAC_ADDRESS_LEN];
    tANI_U32 uSendTimeout;
    tANI_U8 GoIntent;
    tANI_U32 GoTimeout;
    tANI_U32 ClientTimeout;
-   tANI_U8	IntendedInterfaceAddress[P2P_MAC_ADDRESS_LEN];
+   tANI_U8    IntendedInterfaceAddress[P2P_MAC_ADDRESS_LEN];
    tANI_U8 GroupCapability;
    tANI_U32 uIELength;
    tANI_U8 *IEdata;
 } tP2P_go_request;
 
 typedef struct p2p_go_confirm {
-   tANI_U8	peerDeviceAddress[P2P_MAC_ADDRESS_LEN];
-   tANI_U8	dialog_token;
+   tANI_U8    peerDeviceAddress[P2P_MAC_ADDRESS_LEN];
+   tANI_U8    dialog_token;
    tANI_U32 uSendTimeout;
-   tANI_U8	status;
+   tANI_U8    status;
    tANI_U8 GroupCapability;
    tP2PGroupId GroupId;
    tANI_BOOLEAN bUsedGroupId;
@@ -262,14 +262,14 @@ typedef struct p2p_go_confirm {
 } tP2P_go_confirm;
 
 typedef struct p2p_go_response {
-   tANI_U8	peerDeviceAddress[P2P_MAC_ADDRESS_LEN];
-   tANI_U8	dialog_token;
+   tANI_U8    peerDeviceAddress[P2P_MAC_ADDRESS_LEN];
+   tANI_U8    dialog_token;
    tANI_U32 uSendTimeout;
-   tANI_U8	status;
+   tANI_U8    status;
    tANI_U8 GoIntent;
    tANI_U32 GoTimeout;
    tANI_U32 ClientTimeout;
-   tANI_U8	IntendedInterfaceAddress[P2P_MAC_ADDRESS_LEN];
+   tANI_U8    IntendedInterfaceAddress[P2P_MAC_ADDRESS_LEN];
    tANI_U8 GroupCapability;
    tP2PGroupId GroupId;
    tANI_BOOLEAN bUsedGroupId;
@@ -279,33 +279,33 @@ typedef struct p2p_go_response {
 
 //Invitation Req parameters
 typedef struct p2p_invitation_request {
-	tANI_U8 DialogToken;
-	tANI_U8 PeerDeviceAddress[P2P_MAC_ADDRESS_LEN];
-	tANI_U32 uSendTimeout;
-	tANI_U32 GoTimeout;
-	tANI_U32 ClientTimeout; 
-	tANI_U8 InvitationFlags;
-	tP2PGroupBssid GroupBSSID;
-	tP2P_OperatingChannel OperatingChannel;
-	tP2PGroupId GroupID;
-	tANI_U32 uIELength;
-	tANI_U8 *IEdata;
+    tANI_U8 DialogToken;
+    tANI_U8 PeerDeviceAddress[P2P_MAC_ADDRESS_LEN];
+    tANI_U32 uSendTimeout;
+    tANI_U32 GoTimeout;
+    tANI_U32 ClientTimeout; 
+    tANI_U8 InvitationFlags;
+    tP2PGroupBssid GroupBSSID;
+    tP2P_OperatingChannel OperatingChannel;
+    tP2PGroupId GroupID;
+    tANI_U32 uIELength;
+    tANI_U8 *IEdata;
 } tP2P_invitation_request;
 
 
 //Invitation Response parameters
 typedef struct p2p_invitation_response {
-	tANI_U8 ReceiverDeviceAddress[P2P_MAC_ADDRESS_LEN];
-	tANI_U8 DialogToken;
-	void* RequestContext;
-	tANI_U32 uSendTimeout;
-	tANI_U8	 status;
-	tANI_U32 GoTimeout;
-	tANI_U32 ClientTimeout; 
-	tP2PGroupBssid GroupBSSID;
-	tP2P_OperatingChannel OperatingChannel;
-	tANI_U32 uIELength;
-	tANI_U8 *IEdata;
+    tANI_U8 ReceiverDeviceAddress[P2P_MAC_ADDRESS_LEN];
+    tANI_U8 DialogToken;
+    void* RequestContext;
+    tANI_U32 uSendTimeout;
+    tANI_U8     status;
+    tANI_U32 GoTimeout;
+    tANI_U32 ClientTimeout; 
+    tP2PGroupBssid GroupBSSID;
+    tP2P_OperatingChannel OperatingChannel;
+    tANI_U32 uIELength;
+    tANI_U8 *IEdata;
 } tP2P_invitation_response;
 
 typedef enum eOUISubType {

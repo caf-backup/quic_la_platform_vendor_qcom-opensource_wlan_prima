@@ -85,7 +85,7 @@ eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemaino
         pMsg->length = len;
         palCopyMemory( pMac, pMsg->selfMacAddr, pSession->selfMacAddr, sizeof(tSirMacAddr) ); 
         pMsg->chnNum = p2pRemainonChn->u.remainChlCmd.chn;
-		pMsg->phyMode = p2pRemainonChn->u.remainChlCmd.phyMode;
+        pMsg->phyMode = p2pRemainonChn->u.remainChlCmd.phyMode;
         pMsg->duration = p2pRemainonChn->u.remainChlCmd.duration;
         pMsg->sessionId = p2pRemainonChn->sessionId;
 #ifdef WLAN_FEATURE_P2P_INTERNAL
@@ -102,7 +102,7 @@ eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemaino
 #endif
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }
-	
+    
     return status;
 }
 

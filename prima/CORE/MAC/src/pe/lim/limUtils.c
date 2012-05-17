@@ -8004,7 +8004,7 @@ tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac)
     //TODO: Comeup with a better alternative. Sending NULL with PM=0 on other BSS means
     //there will be trouble. But since it is sent on current channel, it will be missed by peer
     //and hence shpuld be ok. Need to discuss this further
-    if( !IS_MCC_SUPPORTED )	
+    if( !IS_MCC_SUPPORTED )    
     {
         tANI_U8 i;    
         if( pMac->lim.gpSession[pMac->lim.recentSessionCreated].valid && 
@@ -8027,7 +8027,7 @@ tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac)
          }
          return(HAL_INVALID_CHANNEL_ID);
     }
-	else
+    else
     {
         return pMac->lim.gResumeChannel;
     }

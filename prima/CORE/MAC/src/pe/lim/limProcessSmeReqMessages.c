@@ -638,7 +638,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
                 goto free;
             }
-            palZeroMemory(pMac->hHdd, psessionEntry->parsedAssocReq, (psessionEntry->dph.dphHashTable.size * sizeof(tpSirAssocReq)) );			
+            palZeroMemory(pMac->hHdd, psessionEntry->parsedAssocReq, (psessionEntry->dph.dphHashTable.size * sizeof(tpSirAssocReq)) );            
         }
 
         /* Channel Bonding is not addressd yet for BT-AMP Support.. sunit will address channel bonding   */
@@ -1175,7 +1175,7 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                       sizeof(tSirMacAddr));
         pMlmScanReq->numSsid = pScanReq->numSsid;
 
-		i = 0;
+        i = 0;
         while (i < pMlmScanReq->numSsid)
         {
             palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmScanReq->ssId[i],

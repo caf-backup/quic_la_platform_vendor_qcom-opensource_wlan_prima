@@ -392,7 +392,7 @@ typedef enum
   /* Traffic Stream Metrics statistic request */
   WDI_TSM_STATS_REQ                             = 75,
   /* GTK Rekey Offload */
-  WDI_GTK_OFFLOAD_REQ     		= 76, 
+  WDI_GTK_OFFLOAD_REQ             = 76, 
   WDI_GTK_OFFLOAD_GETINFO_REQ   = 77, 
 
   WDI_MAX_REQ,
@@ -638,7 +638,7 @@ typedef enum
 
   WDI_TSM_STATS_RESP                            = 74,
   /* GTK Rekey Offload */
-  WDI_GTK_OFFLOAD_RESP     		       = 75, 
+  WDI_GTK_OFFLOAD_RESP                    = 75, 
   WDI_GTK_OFFLOAD_GETINFO_RESP         = 76, 
 
   /*-------------------------------------------------------------------------

@@ -4075,8 +4075,8 @@ typedef struct sSirTxPerTrackingParam
 /*---------------------------------------------------------------------------
   Packet Filtering Parameters
 ---------------------------------------------------------------------------*/
-#define    SIR_IPV4_ADDR_LEN     			4
-#define    SIR_MAC_ADDR_LEN      			6
+#define    SIR_IPV4_ADDR_LEN                 4
+#define    SIR_MAC_ADDR_LEN                  6
 #define    SIR_MAX_FILTER_TEST_DATA_LEN       8
 #define    SIR_MAX_NUM_MULTICAST_ADDRESS    240
 #define    SIR_MAX_NUM_FILTERS               20 

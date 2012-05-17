@@ -248,7 +248,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
         limLog(pMac, LOGE, FL("Unable to allocate memory for the assoc req, length=%d from \n"),framelen);
         goto error;
     }
-	
+    
     palCopyMemory( pMac->hHdd, (tANI_U8 *) pAssocReq->assocReqFrame,
                   (tANI_U8 *) pBody, framelen);
     pAssocReq->assocReqFrameLength = framelen;    
@@ -1460,7 +1460,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         // Required for indicating the frames to upper layer
         pMlmAssocInd->assocReqLength = pAssocReq->assocReqFrameLength;
         pMlmAssocInd->assocReqPtr = pAssocReq->assocReqFrame;
-		
+        
         pMlmAssocInd->beaconPtr = psessionEntry->beacon;
         pMlmAssocInd->beaconLength = psessionEntry->bcnLen;
 

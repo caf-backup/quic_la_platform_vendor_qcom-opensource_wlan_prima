@@ -1029,13 +1029,13 @@ eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand)
     eHalStatus status = eHAL_STATUS_SUCCESS;
     
     if (CSR_IS_PHY_MODE_A_ONLY(pMac) &&
-		    (eBand == eCSR_BAND_24))
+            (eBand == eCSR_BAND_24))
     {
         /* DOT11 mode configured to 11a only and received 
            request to change the band to 2.4 GHz */
-	    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-		    "failed to set band cfg80211 = %u, band = %u\n",  
-		    pMac->roam.configParam.uCfgDot11Mode, eBand);
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+            "failed to set band cfg80211 = %u, band = %u\n",  
+            pMac->roam.configParam.uCfgDot11Mode, eBand);
         return eHAL_STATUS_INVALID_PARAMETER;
     }
 
@@ -1045,9 +1045,9 @@ eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand)
     {
         /* DOT11 mode configured to 11b/11g only and received 
            request to change the band to 5 GHz */
-	    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-		    "failed to set band dot11mode = %u, band = %u\n",  
-		    pMac->roam.configParam.uCfgDot11Mode, eBand);
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+            "failed to set band dot11mode = %u, band = %u\n",  
+            pMac->roam.configParam.uCfgDot11Mode, eBand);
         return eHAL_STATUS_INVALID_PARAMETER;
     }
 

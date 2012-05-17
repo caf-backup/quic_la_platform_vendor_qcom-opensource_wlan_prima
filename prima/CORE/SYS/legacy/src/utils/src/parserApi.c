@@ -336,9 +336,9 @@ PopulateDot11fDSParams(tpAniSirGlobal     pMac,
 
     // Get PHY mode and based on that add DS Parameter Set IE
     if(psessionEntry != NULL )
-	    limGetPhyMode(psessionEntry, &nPhyMode);
-	else
-		nPhyMode = pMac->lim.gLimPhyMode;
+        limGetPhyMode(psessionEntry, &nPhyMode);
+    else
+        nPhyMode = pMac->lim.gLimPhyMode;
 
     if ( WNI_CFG_PHY_MODE_11A != nPhyMode )
     {
@@ -1802,7 +1802,7 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
     if (pr.P2PProbeRes.present)
     {
        palCopyMemory( pMac, &pProbeResp->P2PProbeRes, &pr.P2PProbeRes,
-			                                    sizeof(tDot11fIEP2PProbeRes) );
+                                                sizeof(tDot11fIEP2PProbeRes) );
     }
 #endif
     return eSIR_SUCCESS;
