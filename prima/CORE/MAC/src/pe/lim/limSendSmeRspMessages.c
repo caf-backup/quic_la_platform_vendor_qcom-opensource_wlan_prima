@@ -392,7 +392,7 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
     pSirSmeJoinRsp->sessionId = smesessionId;
     pSirSmeJoinRsp->transactionId = smetransactionId;
     
-    if( limIsLinkSuspended( pMac ) )
+    if(IS_MCC_SUPPORTED && limIsLinkSuspended( pMac ) )
     {
         if( psessionEntry && psessionEntry->limSmeState == eLIM_SME_LINK_EST_STATE )
         {
@@ -1176,7 +1176,7 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
         peDeleteSession(pMac,psessionEntry);
     }
         
-    if( limIsLinkSuspended( pMac ) )
+    if( IS_MCC_SUPPORTED && limIsLinkSuspended( pMac ) )
     {
         //Resume on the first active session channel.
         peSetResumeChannel( pMac, peGetActiveSessionChannel( pMac ), 0);
@@ -1519,7 +1519,7 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
         peDeleteSession(pMac,psessionEntry);
     }   
 
-    if( limIsLinkSuspended( pMac ) )
+    if( IS_MCC_SUPPORTED && limIsLinkSuspended( pMac ) )
     {
         //Resume on the first active session channel.
         peSetResumeChannel( pMac, peGetActiveSessionChannel( pMac ), 0);

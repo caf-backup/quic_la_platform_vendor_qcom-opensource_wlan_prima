@@ -1744,13 +1744,6 @@ limProcessMlmStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
          
    // pMac->lim.gLimCurrentSSID.length = pMlmStartReq->ssId.length;
 
-    #if 0
-    
-    /* WNI_CFG_PHY_MODE is to made sessio specific  ???*/
-    if (cfgSetInt(pMac, WNI_CFG_PHY_MODE, psessionEntry->pLimStartBssReq->nwType)!= eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("could not set networkType at CFG\n"));
-    #endif
-
         #if 0
         if (cfgSetStr(pMac, WNI_CFG_OPERATIONAL_RATE_SET,
            (tANI_U8 *) &pMac->lim.gpLimStartBssReq->operationalRateSet.rate,

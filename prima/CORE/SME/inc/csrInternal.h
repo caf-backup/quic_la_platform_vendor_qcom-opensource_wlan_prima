@@ -470,6 +470,7 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN Is11hSupportEnabled;
     tANI_BOOLEAN shortSlotTime;
     tANI_BOOLEAN ProprietaryRatesEnabled;
+    tANI_BOOLEAN  fenableMCCMode;
     tANI_U16 TxRate;
     tANI_U8 AdHocChannel24;
     tANI_U8 AdHocChannel5G;
@@ -987,6 +988,7 @@ tANI_BOOLEAN csrIsIBSSStarted( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsBTAMPStarted( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsBTAMP( tpAniSirGlobal pMac, tANI_U32 sessionId );
 eHalStatus csrIsBTAMPAllowed( tpAniSirGlobal pMac, tANI_U32 chnId );
+tANI_BOOLEAN csrIsValidMcConcurrentSession(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #ifdef WLAN_SOFTAP_FEATURE
 tANI_BOOLEAN csrIsConnStateConnectedInfraAp( tpAniSirGlobal pMac, tANI_U32 sessionId );
 #endif

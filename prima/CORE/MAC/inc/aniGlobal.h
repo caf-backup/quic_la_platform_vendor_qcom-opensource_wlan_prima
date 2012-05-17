@@ -949,8 +949,6 @@ typedef struct sAniSirLim
     vos_list_t  gLimMgmtFrameRegistratinQueue;
     tANI_U32    actionFrameSessionId;
 #endif
-    tANI_U8     recentSessionCreated; //If MCC not supported use this
-
 } tAniSirLim, *tpAniSirLim;
 
 #ifdef WLAN_FEATURE_P2P

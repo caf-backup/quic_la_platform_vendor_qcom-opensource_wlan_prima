@@ -1090,6 +1090,14 @@ typedef enum
 #define CFG_SHORT_GI_40MHZ_MAX                 1
 #define CFG_SHORT_GI_40MHZ_DEFAULT             1
 
+/*
+ * Enable / Disable MCC feature
+ * Default: Enable
+ */
+#define CFG_ENABLE_MCC_ENABLED_NAME             "gEnableMCCMode"      
+#define CFG_ENABLE_MCC_ENABLED_MIN              ( 0 )
+#define CFG_ENABLE_MCC_ENABLED_MAX              ( 1 )
+#define CFG_ENABLE_MCC_ENABLED_DEFAULT          ( 1 ) 
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -1345,6 +1353,7 @@ typedef struct
    v_U8_t                      enableAutomaticTxPowerControl;
    v_U8_t                      ShortGI40MhzEnable;
    v_U8_t                      reportMaxLinkSpeed;
+   v_U8_t                      enableMCC;
 #ifdef WLAN_FEATURE_P2P
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
 #endif

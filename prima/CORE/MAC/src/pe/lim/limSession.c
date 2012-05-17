@@ -130,10 +130,6 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             pMac->lim.gpSession[i].isFastTransitionEnabled = FALSE;
 #endif
             *sessionId = i;
- 
-            //Store the session as most recent one created.
-            if( !IS_MCC_SUPPORTED )
-                pMac->lim.recentSessionCreated = i;
 
             pMac->lim.gpSession[i].gLimPhyMode = WNI_CFG_PHY_MODE_11G; //TODO :Check with the team what should be default mode 
             return(&pMac->lim.gpSession[i]);

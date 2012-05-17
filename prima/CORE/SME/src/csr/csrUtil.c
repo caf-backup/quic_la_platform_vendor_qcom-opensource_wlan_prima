@@ -1546,6 +1546,61 @@ tANI_BOOLEAN csrIsConnStateDisconnected(tpAniSirGlobal pMac, tANI_U32 sessionId)
     return (eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED == pMac->roam.roamSession[sessionId].connectState);
 }
 
+tANI_BOOLEAN csrIsValidMcConcurrentSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
+{
+    tCsrRoamSession *pSession = NULL;
+    tANI_U8 Index = 0, ConnId = 0;
+    tVOS_CON_MODE Mode[CSR_ROAM_SESSION_MAX];
+
+    //Check for MCC support
+    if (!pMac->roam.configParam.fenableMCCMode)
+    {
+        return eANI_BOOLEAN_FALSE;
+    }
+
+    for( Index = 0; Index < CSR_ROAM_SESSION_MAX; Index++ ) 
+        Mode[Index] = VOS_MAX_NO_OF_MODE;
+ 
+    for( Index = 0; Index < CSR_ROAM_SESSION_MAX; Index++ )
+    {
+        if( CSR_IS_SESSION_VALID( pMac, Index ) )
+        {
+            pSession = CSR_GET_SESSION( pMac, Index );
+
+            if (NULL != pSession->pCurRoamProfile)
+            {
+                Mode[ConnId] = pSession->pCurRoamProfile->csrPersona;
+                ConnId++;
+             }
+         }
+    }
+
+    Index  = 0;
+    if (Mode[Index] == VOS_STA_MODE && ConnId > Index)
+    {
+        switch (Mode[Index+1])
+        {
+            case VOS_P2P_CLIENT_MODE :
+              return eANI_BOOLEAN_TRUE;
+            case VOS_MAX_NO_OF_MODE :
+            default :
+                 break;
+        }
+    }
+    else if (Mode[Index] == VOS_P2P_CLIENT_MODE && ConnId > Index)
+    {
+        switch (Mode[Index +1])
+        {
+            case VOS_STA_MODE :
+                return eANI_BOOLEAN_TRUE;
+            case VOS_MAX_NO_OF_MODE :
+            default :
+                break;
+         }
+    }
+
+    return eANI_BOOLEAN_FALSE;
+}
 
 static tSirMacCapabilityInfo csrGetBssCapabilities( tSirBssDescription *pSirBssDesc )
 {
@@ -1604,6 +1659,11 @@ tANI_BOOLEAN csrIs11eSupported(tpAniSirGlobal pMac)
     return(pMac->roam.configParam.Is11eSupportEnabled);
 }
 
+tANI_BOOLEAN csrIsMCCSupported ( tpAniSirGlobal pMac )
+{
+   return(pMac->roam.configParam.fenableMCCMode);
+
+}
 
 tANI_BOOLEAN csrIsWmmSupported(tpAniSirGlobal pMac)
 {

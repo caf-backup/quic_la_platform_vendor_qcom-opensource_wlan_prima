@@ -1445,8 +1445,8 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->dot11mode  = pSmeJoinReq->dot11mode;
         psessionEntry->nwType = pSmeJoinReq->bssDescription.nwType;
 
-            /*Phy mode*/
-            psessionEntry->gLimPhyMode = pSmeJoinReq->bssDescription.nwType;
+        /*Phy mode*/
+        psessionEntry->gLimPhyMode = pSmeJoinReq->bssDescription.nwType;
 
         /* Copy The channel Id to the session Table */
         psessionEntry->currentOperChannel = pSmeJoinReq->bssDescription.channelId;

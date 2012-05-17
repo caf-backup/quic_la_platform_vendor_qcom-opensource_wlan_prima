@@ -559,8 +559,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
    PELOG2(schLog(pMac, LOG2, "Received Beacon's SeqNum=%d\n",
            (pMh->seqControl.seqNumHi << 4) | (pMh->seqControl.seqNumLo));)
 
-    if(beaconParams.paramChangeBitmap &&
-       ((psessionEntry->limSystemRole == eLIM_AP_ROLE) || (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)))
+    if(beaconParams.paramChangeBitmap)
     {
         PELOGW(schLog(pMac, LOGW, FL("Beacon for session[%d] got changed. \n"), psessionEntry->peSessionId);)
         PELOGW(schLog(pMac, LOGW, FL("sending beacon param change bitmap: 0x%x \n"), beaconParams.paramChangeBitmap);)

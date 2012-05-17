@@ -894,6 +894,7 @@ typedef struct tagCsrConfigParam
     tANI_U32 scanAgeTimeCPS;   //scan result aging time threshold when Connect-Power-Savein seconds
     tANI_U32 nRoamingTime;  //In seconds, CSR will try this long before gives up. 0 means no roaming
     tANI_U8 bCatRssiOffset;     //to set the RSSI difference for each category
+    tANI_U8 fEnableMCCMode; //to set MCC Enable/Disable mode
 
     tCsr11dinfo  Csr11dinfo;
     //Whether to limit the channels to the ones set in Csr11dInfo. If true, the opertaional

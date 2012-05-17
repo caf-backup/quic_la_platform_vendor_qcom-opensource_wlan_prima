@@ -805,7 +805,7 @@ schProcessPreBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     // If SME is not in normal mode, no need to generate beacon
     if (psessionEntry->limSmeState  != eLIM_SME_NORMAL_STATE)
     {
-        PELOGE(schLog(pMac, LOGE, FL("PreBeaconInd received in invalid state: %d\n"), psessionEntry->limSmeState);)
+        PELOGE(schLog(pMac, LOG1, FL("PreBeaconInd received in invalid state: %d\n"), psessionEntry->limSmeState);)
         goto end;
     }
 

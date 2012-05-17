@@ -112,8 +112,7 @@ typedef enum
 /*
  * Check the version number and find if MCC feature is supported or not
  */
-//#define IS_MCC_SUPPORTED (WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual( 0, 0, 3, 0))
-#define IS_MCC_SUPPORTED (0)
+#define IS_MCC_SUPPORTED (WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual( 0, 1, 1, 0))
 
 /*--------------------------------------------------------------------------
   Definitions for Data path APIs

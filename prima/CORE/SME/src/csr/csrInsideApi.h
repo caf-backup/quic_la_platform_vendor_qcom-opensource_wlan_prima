@@ -534,7 +534,9 @@ tANI_BOOLEAN csrSave11dCountryString( tpAniSirGlobal pMac, tANI_U8 *pCountryCode
 tANI_BOOLEAN csrIs11dSupported(tpAniSirGlobal pMac);
 tANI_BOOLEAN csrIs11hSupported(tpAniSirGlobal pMac);
 tANI_BOOLEAN csrIs11eSupported(tpAniSirGlobal pMac);
-tANI_BOOLEAN csrIsWmmSupported(tpAniSirGlobal pMac); 
+tANI_BOOLEAN csrIsWmmSupported(tpAniSirGlobal pMac);
+tANI_BOOLEAN csrIsMCCSupported(tpAniSirGlobal pMac);
+
 //Upper layer to get the list of the base channels to scan for passively 11d info from csr
 eHalStatus csrScanGetBaseChannels( tpAniSirGlobal pMac, tCsrChannelInfo * pChannelInfo );
 //Return SUCCESS is the command is queued, failed

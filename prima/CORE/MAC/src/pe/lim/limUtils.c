@@ -31,6 +31,7 @@
 #include "vos_diag_core_event.h"
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 #include "limIbssPeerMgmt.h"
+#include "limSessionUtils.h"
 #include "limSession.h"
 #include "vos_nvitem.h"
 
@@ -4179,7 +4180,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         if(overlap)
         {
 #if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
-        if(psessionEntry->limSystemRole == eLIM_AP_ROLE && !psessionEntry->cfgProtection.overlapFromlla)
+        if(psessionEntry->limSystemRole == eLIM_AP_ROLE && !pMac->lim.cfgProtection.overlapFromlla)
             {
                 // protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("overlap protection from 11a is disabled\n"));)
@@ -4190,7 +4191,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         else
         {
             //normal protection config check
-            if(!psessionEntry->cfgProtection.fromlla)
+            if(!pMac->lim.cfgProtection.fromlla)
             {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from 11a is disabled\n"));)
@@ -7998,7 +7999,7 @@ void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, tANI_U8 cbState)
 tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac)
 
 {
-    //Choose the most recently created session's channel.
+
     //Rationale - this could be the suspend/resume for assoc and it is essential that
     //the new BSS is active for some time. Other BSS was anyway suspended.
     //TODO: Comeup with a better alternative. Sending NULL with PM=0 on other BSS means
@@ -8006,26 +8007,8 @@ tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac)
     //and hence shpuld be ok. Need to discuss this further
     if( !IS_MCC_SUPPORTED )    
     {
-        tANI_U8 i;    
-        if( pMac->lim.gpSession[pMac->lim.recentSessionCreated].valid && 
-            pMac->lim.gpSession[pMac->lim.recentSessionCreated].limSmeState == 
-                          eLIM_SME_LINK_EST_STATE )
-        {
-            return pMac->lim.gpSession[pMac->lim.recentSessionCreated].currentOperChannel;
-        }
-
-        //assumption here is that all the sessions will be on the same channel.
-        //This function will not work, once we have multiple channel support.
-        for(i =0; i < pMac->lim.maxBssId; i++)
-        {
-            if(pMac->lim.gpSession[i].valid)
-            {
-                return(pMac->lim.gpSession[i].currentOperChannel);
-        
-             }
-
-         }
-         return(HAL_INVALID_CHANNEL_ID);
+        //Get current active session channel
+        return peGetActiveSessionChannel(pMac);
     }
     else
     {

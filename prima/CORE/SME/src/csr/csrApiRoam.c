@@ -1074,6 +1074,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.Is11dSupportEnabled = pParam->Is11dSupportEnabled;
         pMac->roam.configParam.Is11dSupportEnabledOriginal = pParam->Is11dSupportEnabled;
         pMac->roam.configParam.Is11hSupportEnabled = pParam->Is11hSupportEnabled;
+
+        pMac->roam.configParam.fenableMCCMode = pParam->fEnableMCCMode;
         pMac->roam.configParam.channelBondingMode24GHz = pParam->channelBondingMode24GHz;
         pMac->roam.configParam.channelBondingMode5GHz = pParam->channelBondingMode5GHz;
         pMac->roam.configParam.RTSThreshold = pParam->RTSThreshold;
@@ -3130,8 +3132,6 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     //ccmCfgSetInt(pMac, WNI_CFG_FRAGMENTATION_THRESHOLD, csrGetFragThresh(pMac), NULL, eANI_BOOLEAN_FALSE);
     //RTS threshold
     //ccmCfgSetInt(pMac, WNI_CFG_RTS_THRESHOLD, csrGetRTSThresh(pMac), NULL, eANI_BOOLEAN_FALSE);
-    //Phymode
-    //*** do we need to set both???
 
     //ccmCfgSetInt(pMac, WNI_CFG_DOT11_MODE, csrTranslateToWNICfgDot11Mode(pMac, pBssConfig->uCfgDot11Mode), NULL, eANI_BOOLEAN_FALSE);
         
@@ -3427,7 +3427,6 @@ static void csrRoamAssignDefaultParam( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     pCommand->u.roamCmd.roamProfile.EncryptionType.encryptionType[0];
 }
 
-
 static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fUseSameBss )
 {
     eHalStatus status;
@@ -3485,7 +3484,8 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                     pScanResult = GET_BASE_ADDR(pCommand->u.roamCmd.pRoamBssEntry, tCsrScanResult, Link);
 
                     /*If concurrency enabled take the concurrent connected channel first. */
-                    if (vos_concurrent_sessions_running())
+                    /* Valid multichannel concurrent sessions exempted */
+                    if (vos_concurrent_sessions_running() && !csrIsValidMcConcurrentSession(pMac, sessionId))
                     {
                         concurrentChannel = 
                             csrGetConcurrentOperationChannel(pMac);

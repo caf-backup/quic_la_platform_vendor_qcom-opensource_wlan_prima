@@ -720,7 +720,7 @@ eHalStatus pmcStartAutoBmpsTimer (tHalHandle hHal)
    /* Check if there is an Infra session. If there is no Infra session, timer will be started 
          when STA associates to AP */
 
-   if(pmcShouldBmpsTimerRun(pMac))
+   if (pmcShouldBmpsTimerRun(pMac))
    {
       if (pmcStartTrafficTimer(hHal, pMac->pmc.bmpsConfig.trafficMeasurePeriod) != eHAL_STATUS_SUCCESS)
          return eHAL_STATUS_FAILURE;
