@@ -1080,15 +1080,20 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         pMac->lim.gLimReturnUniqueResults   =
               ((pScanReq->returnUniqueResults) > 0 ? true : false);
-        /* De-activate Heartbeat timers for connected sessions while scan is in progress */
-        for(i=0;i<pMac->lim.maxBssId;i++)
+        /* De-activate Heartbeat timers for connected sessions while
+         * scan is in progress if the system is in Active mode */
+        if((ePMM_STATE_BMPS_WAKEUP == pMac->pmm.gPmmState) ||
+           (ePMM_STATE_READY == pMac->pmm.gPmmState))
         {
-           if(pMac->lim.gpSession[i].valid == FALSE)
-               break;
-           if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
-           {
+          for(i=0;i<pMac->lim.maxBssId;i++)
+          {
+            if(pMac->lim.gpSession[i].valid == FALSE)
+              break;
+            if(eLIM_MLM_LINK_ESTABLISHED_STATE == pMac->lim.gpSession[i].limMlmState)
+            {
                limHeartBeatDeactivateAndChangeTimer(pMac, peFindSessionBySessionId(pMac,i));
-           }   
+            }   
+          }
         }
 
         if (pScanReq->channelList.numChannels == 0)
@@ -1434,7 +1439,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             psessionEntry->nwType = pSmeJoinReq->bssDescription.nwType;
 
             /*Phy mode*/
-			psessionEntry->gLimPhyMode = pSmeJoinReq->bssDescription.nwType;
+            psessionEntry->gLimPhyMode = pSmeJoinReq->bssDescription.nwType;
 
             /* Copy The channel Id to the session Table */
             psessionEntry->currentOperChannel = pSmeJoinReq->bssDescription.channelId;
