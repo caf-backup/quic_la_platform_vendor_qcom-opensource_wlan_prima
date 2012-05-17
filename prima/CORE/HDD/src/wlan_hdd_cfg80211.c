@@ -413,7 +413,9 @@ int wlan_hdd_cfg80211_register(struct device *dev,
 
     wiphy->mgmt_stypes = wlan_hdd_txrx_stypes;
 
-    wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+    wiphy->flags |=   WIPHY_FLAG_HAVE_AP_SME 
+                    | WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD
+                    | WIPHY_FLAG_CUSTOM_REGULATORY;
 
     wiphy->max_scan_ssids = MAX_SCAN_SSID; 
     
