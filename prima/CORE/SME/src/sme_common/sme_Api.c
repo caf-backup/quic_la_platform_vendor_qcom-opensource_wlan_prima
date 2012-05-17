@@ -6337,3 +6337,49 @@ eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
 
     return eHAL_STATUS_SUCCESS;
 }
+#ifdef WLAN_SOFTAP_FEATURE
+/* ---------------------------------------------------------------------------
+
+    \fn sme_HideSSID
+
+    \brief hide/show SSID dynamically. Note: this setting will
+    not persist over reboots.
+
+    \param hHal
+    \param sessionId
+    \param ssidHidden 0 - Broadcast SSID, 1 - Disable broadcast SSID
+    \- return eHalStatus
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_HideSSID(tHalHandle hHal, v_U8_t sessionId, v_U8_t ssidHidden)
+{
+    eHalStatus status   = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tANI_U16 len;
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        tpSirUpdateParams pMsg;
+        tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+        
+        if( !pSession->sessionActive ) 
+            VOS_ASSERT(0);
+
+        /* Create the message and send to lim */
+        len = sizeof(tSirUpdateParams); 
+        status = palAllocateMemory( pMac->hHdd, (void **)&pMsg, len );
+        if(HAL_STATUS_SUCCESS(status))
+        {
+            palZeroMemory(pMac->hHdd, pMsg, sizeof(tSirUpdateParams) );
+            pMsg->messageType     = eWNI_SME_HIDE_SSID_REQ;
+            pMsg->length          = len;
+            /* Data starts from here */
+            pMsg->sessionId       = sessionId;
+            pMsg->ssidHidden      = ssidHidden; 
+            status = palSendMBMessage(pMac->hHdd, pMsg);
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+   return status;
+}
+#endif

@@ -879,6 +879,20 @@ static iw_softap_setparam(struct net_device *dev,
             }
             break;
 
+        case QCSAP_PARAM_HIDE_SSID:
+            {
+                eHalStatus status = eHAL_STATUS_SUCCESS;
+                status = sme_HideSSID(hHal, pHostapdAdapter->sessionId, set_value);
+                if(eHAL_STATUS_SUCCESS != status)
+                {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                            "%s: QCSAP_PARAM_HIDE_SSID failed",
+                            __FUNCTION__);
+                    return status;
+                }
+                break;
+            }
+
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -2353,6 +2367,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "" },
   { QCSAP_PARAM_MAX_ASSOC,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setMaxAssoc" },
+   { QCSAP_PARAM_HIDE_SSID,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0,  "hideSSID" },
   { QCSAP_IOCTL_GETPARAM,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },

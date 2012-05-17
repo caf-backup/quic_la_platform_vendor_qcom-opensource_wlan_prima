@@ -4596,6 +4596,39 @@ end:
     return;
 } /*** end __limProcessSmeUpdateAPWPSIEs(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf) ***/
 
+static void
+__limProcessSmeHideSSID(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
+{
+    tpSirUpdateParams       pUpdateParams;
+    tpPESession             psessionEntry;
+
+    PELOG1(limLog(pMac, LOG1,
+           FL("received HIDE_SSID message\n")););
+    
+    if(pMsgBuf == NULL)
+    {
+        limLog(pMac, LOGE,FL("Buffer is Pointing to NULL\n"));
+        return;
+    }
+
+    pUpdateParams = (tpSirUpdateParams)pMsgBuf;
+    
+    if((psessionEntry = peFindSessionBySessionId(pMac, pUpdateParams->sessionId)) == NULL)
+    {
+        limLog(pMac, LOGW, "Session does not exist for given sessionId %d\n",
+                      pUpdateParams->sessionId);
+        return;
+    }
+
+    /* Update the session entry */
+    psessionEntry->ssidHidden = pUpdateParams->ssidHidden;
+   
+    /* Update beacon */
+    schSetFixedBeaconFields(pMac, psessionEntry);
+    limSendBeaconInd(pMac, psessionEntry); 
+
+    return;
+} /*** end __limProcessSmeHideSSID(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf) ***/
 
 static void
 __limProcessSmeSetWPARSNIEs(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
@@ -5187,6 +5220,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             limProcessTkipCounterMeasures(pMac, pMsgBuf);
             break;
 
+       case eWNI_SME_HIDE_SSID_REQ: 
+            __limProcessSmeHideSSID(pMac, pMsgBuf);
+            break;
        case eWNI_SME_UPDATE_APWPSIE_REQ: 
             __limProcessSmeUpdateAPWPSIEs(pMac, pMsgBuf);
             break;
