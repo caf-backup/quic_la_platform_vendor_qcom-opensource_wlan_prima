@@ -240,6 +240,7 @@ eHalStatus halPS_Exit(tHalHandle hHal, void *arg)
 static void halPS_FwRspTimeoutFunc(void* pData)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)pData;
+    tANI_U32 uCodes[3];     
     HALLOGP( tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam);
 
     (void)pMac;
@@ -247,6 +248,10 @@ static void halPS_FwRspTimeoutFunc(void* pData)
     // Should do a LOGP here, if the response timeout occured
     HALLOGP( halLog(pMac, LOGP, FL("CRITICAL: FW response timedout for msg rsp type %d (%s)!!!\n"),
             pHalPwrSave->rspType, halUtil_getMsgString(pHalPwrSave->rspType)));
+
+    halReadDeviceMemory(pMac, QWLANFW_MEMMAP_UCODES_ADDR, &uCodes, 3*sizeof(tANI_U32));
+    VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "uCodes[0]: %x uCodes[1]: %x "
+                    "uCodes[2]: %x\n", uCodes[0], uCodes[1], uCodes[2]);
 
     macSysResetReq(pMac, eSIR_FW_EXCEPTION);
 

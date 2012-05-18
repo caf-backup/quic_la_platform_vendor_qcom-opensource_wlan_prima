@@ -90,6 +90,29 @@ limCreateTimers(tpAniSirGlobal pMac)
 #endif
 
     PELOG2(limLog(pMac, LOG2, FL("Created MinChannelTimer\n"));)
+    /* Periodic probe request timer value is half of the Min channel
+     * timer. Probe request sends periodically till min/max channel
+     * timer expires
+     */
+    if(pMac->btc.btcAclCount)
+	{
+        cfgValue = cfgValue/2 ;
+        if( cfgValue >= 1)
+        {
+            // Create periodic probe request timer and activate them later
+            if (tx_timer_create(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer,
+                           "Periodic Probe Request Timer",
+                           limTimerHandler, SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT,
+                           cfgValue, 0,
+                           TX_NO_ACTIVATE) != TX_SUCCESS)
+            {
+             /// Could not start Periodic Probe Req timer.
+             // Log error
+             limLog(pMac, LOGP, FL("could not create periodic probe timer\n"));
+               return;
+            }
+         }
+     }
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_ACTIVE_MAXIMUM_CHANNEL_TIME,
                   &cfgValue) != eSIR_SUCCESS)
@@ -913,7 +936,26 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             }
 
             break;
+         case eLIM_PERIODIC_PROBE_REQ_TIMER:
+            if (tx_timer_deactivate(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer)
+                                         != TX_SUCCESS)
+            {
+                // Could not deactivate min channel timer.
+                // Log error
+                limLog(pMac, LOGP,
+                       FL("Unable to deactivate periodic timer\n"));
+            }
 
+            val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime)/2;
+            if (tx_timer_change(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer,
+                                val, 0) != TX_SUCCESS)
+            {
+                // Could not change min channel timer.
+                // Log error
+                limLog(pMac, LOGP, FL("Unable to change periodic timer\n"));
+            }
+
+            break;
         case eLIM_MAX_CHANNEL_TIMER:
             if (tx_timer_deactivate(&pMac->lim.limTimers.gLimMaxChannelTimer)
                                       != TX_SUCCESS)
@@ -1549,7 +1591,6 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP, FL("Unable to change timer\n"));
             }
             break;
-			break;
 #endif
 
         default:

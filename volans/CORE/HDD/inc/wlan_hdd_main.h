@@ -353,6 +353,7 @@ typedef struct hdd_cfg80211_state_s
   u64 action_cookie;
   tANI_U8 *buf;
   size_t len;
+  spinlock_t p2p_lock;
   struct sk_buff *skb;
   hdd_remain_on_chan_ctx_t* remain_on_chan_ctx;
 }hdd_cfg80211_state_t;
@@ -570,6 +571,8 @@ struct hdd_adapter_s
 #endif
    /* Completion variable for action frame */
    struct completion tx_action_cnf_event;
+   /* Completion variable for remain on channel ready */
+   struct completion rem_on_chan_ready_event;
 #endif
 
    /* Track whether the linkup handling is needed  */

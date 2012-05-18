@@ -487,6 +487,7 @@ static inline void halMemoryMap_ShowInfo(tpAniSirGlobal pMac, QWlanfw_MemMapInfo
     HALLOGW( halLog(pMac, LOGW, FL("fwPSCountersAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->fwPSCountersAddr)));
     HALLOGW( halLog(pMac, LOGW, FL("phyFtmInfoAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->phyFtmInfoAddr)));
     HALLOGW( halLog(pMac, LOGW, FL("raTableAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->raTableAddr)));
+    HALLOGW( halLog(pMac, LOGW, FL("uCodesAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->uCodesAddr)));
     HALLOGW( halLog(pMac, LOGW, FL("reserved1 = 0x%x\n"), sirSwapU32(pMemMapInfo->reserved1)));
     HALLOGW( halLog(pMac, LOGW, FL("reserved2 = 0x%x\n"), sirSwapU32(pMemMapInfo->reserved2)));
 }

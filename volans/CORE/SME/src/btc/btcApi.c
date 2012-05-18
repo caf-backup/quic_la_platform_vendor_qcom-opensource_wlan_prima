@@ -52,7 +52,7 @@ VOS_STATUS btcOpen (tHalHandle hHal)
    pMac->btc.btcReady = VOS_FALSE;
    pMac->btc.btcEventState = 0;
    pMac->btc.btcHBActive = VOS_TRUE;
-
+   pMac->btc.btcAclCount = 0;
    vosStatus = vos_timer_init( &pMac->btc.restoreHBTimer,
                       VOS_TIMER_TYPE_SW,
                       btcRestoreHeartBeatMonitoringHandle,
@@ -161,7 +161,13 @@ static VOS_STATUS btcSendBTEvent(tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent)
             return VOS_STATUS_E_FAILURE;
          }
          break;
-      case BT_EVENT_MODE_CHANGED:
+     case BT_EVENT_ACL_CONNECTION_COMPLETE:
+           pMac->btc.btcAclCount++;
+           break;
+     case BT_EVENT_DISCONNECTION_COMPLETE:
+           pMac->btc.btcAclCount--;
+           break;
+     case BT_EVENT_MODE_CHANGED:
          if(pBtEvent->uEventParam.btAclModeChange.mode >= BT_ACL_MODE_MAX)
          {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "

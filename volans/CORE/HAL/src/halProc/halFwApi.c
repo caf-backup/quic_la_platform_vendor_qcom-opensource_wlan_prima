@@ -1042,6 +1042,7 @@ void halFW_HeartBeatMonitor(tpAniSirGlobal pMac)
 #ifdef FW_PRESENT
     tANI_U32  uFwHeartBeat;
     tANI_U8   psState = 0;
+    tANI_U32  uCodes[3];
 
     /** Don't check for heartbeat if the device is in a Idle mode power save.*/
     psState = halPS_GetState(pMac);
@@ -1059,6 +1060,10 @@ void halFW_HeartBeatMonitor(tpAniSirGlobal pMac)
         VOS_ASSERT(0);
         VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL,
 			"%s Firmware Not Responding!!!uFwHeartBeat %d", __FUNCTION__, uFwHeartBeat);
+
+        halReadDeviceMemory(pMac, QWLANFW_MEMMAP_UCODES_ADDR, &uCodes, 3*sizeof(tANI_U32));
+        VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "uCodes[0]: %x uCodes[1]: %x "
+                        "uCodes[2]: %x\n", uCodes[0], uCodes[1], uCodes[2]);
 
         pMac->hal.halMac.fwMonitorthr++;
         if (pMac->hal.halMac.fwMonitorthr > HAL_FW_HEARTBEAT_MONITOR_TH)

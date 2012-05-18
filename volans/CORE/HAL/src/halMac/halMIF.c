@@ -109,6 +109,7 @@ eHalStatus halIntMIFErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
     tANI_U32 acpuInvalidAddr = 0, ahbInvalidAddr = 0;
 #endif
     tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
+    tANI_U32 uCodes[3];
 
     /** Read Interrupt Status.*/
     status = halIntGetErrorStatus(hHalHandle, intSource, &intRegStatus, &intRegMask);
@@ -126,6 +127,9 @@ eHalStatus halIntMIFErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
     halReadRegister(hHalHandle, QWLAN_MIF_MIF_AHB_INVALID_ADDR_REG, &ahbInvalidAddr);    
     VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "AHB invalid addr" 
                     ": %x, ACPU invalid addr = %x\n", ahbInvalidAddr, acpuInvalidAddr);
+    halReadDeviceMemory(hHalHandle, QWLANFW_MEMMAP_UCODES_ADDR, &uCodes, 3*sizeof(tANI_U32));
+    VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "uCodes[0]: %x uCodes[1]: %x "
+                    "uCodes[2]: %x\n", uCodes[0], uCodes[1], uCodes[2]);    
 #endif
 
     /** Fatal Issue mac Reset.*/

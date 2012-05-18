@@ -65,6 +65,7 @@ static void limProcessMlmDelBAReq( tpAniSirGlobal, tANI_U32 * );
 // MLM Timeout event handler templates
 static void limProcessMinChannelTimeout(tpAniSirGlobal);
 static void limProcessMaxChannelTimeout(tpAniSirGlobal);
+static void limProcessPeriodicProbeReqTimer(tpAniSirGlobal pMac);
 static void limProcessJoinFailureTimeout(tpAniSirGlobal);
 static void limProcessAuthFailureTimeout(tpAniSirGlobal);
 static void limProcessAuthRspTimeout(tpAniSirGlobal, tANI_U32);
@@ -142,6 +143,8 @@ limProcessMlmReqMessages(tpAniSirGlobal pMac, tpSirMsgQ Msg)
         case LIM_MLM_REMOVEKEY_REQ:         limProcessMlmRemoveKeyReq(pMac, Msg->bodyptr); break;
         case SIR_LIM_MIN_CHANNEL_TIMEOUT:   limProcessMinChannelTimeout(pMac);  break;
         case SIR_LIM_MAX_CHANNEL_TIMEOUT:   limProcessMaxChannelTimeout(pMac);  break;
+		case SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT:
+                                            limProcessPeriodicProbeReqTimer(pMac);  break;
         case SIR_LIM_JOIN_FAIL_TIMEOUT:     limProcessJoinFailureTimeout(pMac);  break;
         case SIR_LIM_AUTH_FAIL_TIMEOUT:     limProcessAuthFailureTimeout(pMac);  break;
         case SIR_LIM_AUTH_RSP_TIMEOUT:      limProcessAuthRspTimeout(pMac, Msg->bodyval);  break;
@@ -440,6 +443,20 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 
     }
 #endif
+        }
+		/* Start peridic timer which will trigger probe req based on min/max
+           channel timer */
+        if(pMac->btc.btcAclCount)
+        {
+            TX_TIMER *periodicScanTimer;
+            periodicScanTimer = &pMac->lim.limTimers.gLimPeriodicProbeReqTimer;
+            if (tx_timer_activate(periodicScanTimer) != TX_SUCCESS)
+            {
+                limLog(pMac, LOGP, FL("could not start periodic probe req "
+                                                                  "timer\n"));
+                return;
+            }
+            periodicScanTimer->sessionId = channelNum;
         }
     }
     else
@@ -3425,7 +3442,11 @@ limProcessMinChannelTimeout(tpAniSirGlobal pMac)
         PELOG1(limLog(pMac, LOG1, FL("Scanning : min channel timeout occurred\n"));)
 
         /// Min channel timer timed out
+        if(pMac->btc.btcAclCount)
+		    pMac->lim.limTimers.gLimPeriodicProbeReqTimer.sessionId = 0xff;
         limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+	    if(pMac->btc.btcAclCount)
+		    limDeactivateAndChangeTimer(pMac, eLIM_PERIODIC_PROBE_REQ_TIMER);
         channelNum = (tANI_U8)limGetCurrentScanChannel(pMac);
         limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
     }
@@ -3477,6 +3498,11 @@ limProcessMaxChannelTimeout(tpAniSirGlobal pMac)
          * Continue channel scan.
          */
         limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
+        if(pMac->btc.btcAclCount)
+		{
+		    limDeactivateAndChangeTimer(pMac, eLIM_PERIODIC_PROBE_REQ_TIMER);
+            pMac->lim.limTimers.gLimPeriodicProbeReqTimer.sessionId = 0xff;
+        }
         channelNum = limGetCurrentScanChannel(pMac);
         limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
     }
@@ -3494,7 +3520,96 @@ limProcessMaxChannelTimeout(tpAniSirGlobal pMac)
     }
 } /*** limProcessMaxChannelTimeout() ***/
 
+/**
+ * limProcessPeriodicProbeReqTimer()
+ *
+ *FUNCTION:
+ * This function is called to process periodic probe request
+ *  to send during scan.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac      Pointer to Global MAC structure
+ * @return None
+ */
 
+static void
+limProcessPeriodicProbeReqTimer(tpAniSirGlobal pMac)
+{
+    tANI_U8 channelNum;
+    tANI_U8 i = 0;
+    tSirRetStatus status = eSIR_SUCCESS;
+    TX_TIMER *pPeriodicProbeReqTimer;
+    pPeriodicProbeReqTimer = &pMac->lim.limTimers.gLimPeriodicProbeReqTimer;
+
+    if(vos_timer_getCurrentState(&pPeriodicProbeReqTimer->vosTimer)
+         != VOS_TIMER_STATE_STOPPED)
+    {
+       PELOG1(limLog(pMac, LOG1, FL("Invalid state of timer\n"));)
+       return;
+    }
+
+    if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) &&
+        (pPeriodicProbeReqTimer->sessionId != 0xff))
+    {
+        tLimMlmScanReq *pLimMlmScanReq = pMac->lim.gpLimMlmScanReq;
+        PELOG1(limLog(pMac, LOG1, FL("Scanning : Periodic scanning\n"));)
+        /**
+         * Periodic channel timer timed out
+         * to send probe request.
+         */
+        channelNum = limGetCurrentScanChannel(pMac);
+        do
+        {
+            /* Prepare and send Probe Request frame for all the SSIDs
+             * present in the saved MLM
+             */
+
+            PELOGE(limLog(pMac, LOGW, FL("sending ProbeReq number %d,"
+                                         " for SSID %s on channel: %d\n"),
+                                          i, pLimMlmScanReq->ssId[i].ssId,
+                                                             channelNum);)
+            status = limSendProbeReqMgmtFrame( pMac, &pLimMlmScanReq->ssId[i],
+                     pLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr,
+                     pLimMlmScanReq->dot11mode, pLimMlmScanReq->uIEFieldLen,
+               (tANI_U8 *)(pLimMlmScanReq) + pLimMlmScanReq->uIEFieldOffset);
+
+
+            if ( status != eSIR_SUCCESS)
+            {
+                PELOGE(limLog(pMac, LOGE, FL("send ProbeReq failed for SSID "
+                                             "%s on channel: %d\n"),
+                                              pLimMlmScanReq->ssId[i].ssId,
+                                              channelNum);)
+                return;
+            }
+            i++;
+        } while (i < pLimMlmScanReq->numSsid);
+
+        /* Activate timer again */
+        if (tx_timer_activate(pPeriodicProbeReqTimer) != TX_SUCCESS)
+        {
+             limLog(pMac, LOGP, FL("could not start periodic probe"
+                                                   " req timer\n"));
+             return;
+        }
+    }
+    else
+    {
+        /**
+         * Periodic scan is timeout is happening in
+         * in states other than wait_scan.
+         * Log error.
+         */
+        limLog(pMac, LOGW,
+           FL("received unexpected Periodic scan timeout in state %X\n"),
+           pMac->lim.gLimMlmState);
+    }
+} /*** limProcessPeriodicProbeReqTimer() ***/
 
 /**
  * limProcessJoinFailureTimeout()

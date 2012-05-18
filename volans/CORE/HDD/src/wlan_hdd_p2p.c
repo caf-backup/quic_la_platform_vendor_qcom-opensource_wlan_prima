@@ -53,16 +53,19 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx = cfgState->remain_on_chan_ctx;
 
-    if( pRemainChanCtx == NULL )
+    spin_lock(&cfgState->p2p_lock);
+    if( cfgState->remain_on_chan_ctx == NULL )
     {
+       spin_unlock(&cfgState->p2p_lock);
        hddLog( LOGW,
           "%s: No Rem on channel pending for which Rsp is received", __func__);
        return eHAL_STATUS_SUCCESS;
     }
 
-    hddLog( LOG1, "Received remain on channel rsp");
-
     cfgState->remain_on_chan_ctx = NULL;
+    spin_unlock(&cfgState->p2p_lock);
+
+    hddLog( LOG1, "Received remain on channel rsp");
 
     if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request )
     {
@@ -120,6 +123,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    int ret = 0;
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                                  __func__,pAdapter->device_mode);
@@ -128,11 +132,50 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         "chan(hw_val)0x%x chan(centerfreq) %d chan type 0x%x, duration %d",
         chan->hw_value, chan->center_freq, channel_type, duration );
 
+    INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
+
+    spin_lock(&cfgState->p2p_lock);
     if( cfgState->remain_on_chan_ctx != NULL)
     {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Already one Remain on Channel Pending", __func__);
-        return -EBUSY;
+        spin_unlock(&cfgState->p2p_lock);
+        ret = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
+                      msecs_to_jiffies(WAIT_REM_CHAN_READY));
+
+        if(0 == ret)
+        {
+            VOS_ASSERT(0);
+        }
+
+        /* Issue abort remain on chan request to sme.
+         * The remain on channel callback will make sure the remain_on_chan
+         * expired event is sent.
+        */
+        if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
+             ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
+           )
+        {
+            sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
+                                                     pAdapter->sessionId );
+        }
+        else if ( (WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
+                  (WLAN_HDD_P2P_GO == pAdapter->device_mode)
+                )
+        {
+            WLANSAP_CancelRemainOnChannel(
+                                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+        }
+
+        ret = wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+                msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
+
+        if(0 == ret)
+        {
+            VOS_ASSERT(0);
+        }
+    }
+    else
+    {
+        spin_unlock(&cfgState->p2p_lock);
     }
 
     /* When P2P-GO and if we are trying to unload the driver then 
@@ -146,6 +189,8 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         return -EBUSY;
     }
 
+    INIT_COMPLETION(pAdapter->rem_on_chan_ready_event);
+
     pRemainChanCtx = vos_mem_malloc( sizeof(hdd_remain_on_chan_ctx_t) );
     if( NULL == pRemainChanCtx )
     {
@@ -158,6 +203,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     vos_mem_copy( &pRemainChanCtx->chan, chan,
                    sizeof(struct ieee80211_channel) );
 
+    spin_lock(&cfgState->p2p_lock);
     pRemainChanCtx->chan_type = channel_type;
     pRemainChanCtx->duration = duration;
     pRemainChanCtx->dev = dev;
@@ -166,6 +212,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     pRemainChanCtx->rem_on_chan_request = request_type;
     cfgState->remain_on_chan_ctx = pRemainChanCtx;
     cfgState->current_freq = chan->center_freq;
+    spin_unlock(&cfgState->p2p_lock);
 
     //call sme API to start remain on channel.
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
@@ -257,6 +304,7 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
             complete(&pAdapter->offchannel_tx_event);
         }
 #endif
+        complete(&pAdapter->rem_on_chan_ready_event);
     }
     else
     {
@@ -271,23 +319,37 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    int ret = 0;
 
 
     hddLog( LOG1, "Cancel remain on channel req");
+    INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
 
     /* FIXME cancel currently running remain on chan.
      * Need to check cookie and cancel accordingly
      */
+    spin_lock(&cfgState->p2p_lock);
     if( (cfgState->remain_on_chan_ctx == NULL) ||
         (cfgState->remain_on_chan_ctx->cookie != cookie) )
     {
+        spin_unlock(&cfgState->p2p_lock);
         hddLog( LOGE,
             "%s: No Remain on channel pending with specified cookie value",
              __func__);
         return -EINVAL;
     }
+    spin_unlock(&cfgState->p2p_lock);
 
-    INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
+    /* wait until remain on channel ready event received
+     * for already issued remain on channel request */
+    ret = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
+                  msecs_to_jiffies(WAIT_REM_CHAN_READY));
+
+    if(0 == ret)
+    {
+        VOS_ASSERT(0);
+    }
+
     /* Issue abort remain on chan request to sme.
      * The remain on channel callback will make sure the remain_on_chan
      * expired event is sent.
@@ -318,8 +380,22 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
                             __func__, pAdapter->device_mode);
        return -EIO;
     }
-    wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
-            msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
+    spin_lock(&cfgState->p2p_lock);
+    if( NULL != cfgState->remain_on_chan_ctx )
+    {
+        spin_unlock(&cfgState->p2p_lock);
+        ret = wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+                msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
+
+        if(0 == ret)
+        {
+            VOS_ASSERT(0);
+        }
+    }
+    else
+    {
+        spin_unlock(&cfgState->p2p_lock);
+    }
     return 0;
 }
 
@@ -407,6 +483,22 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
            goto send_frame;
         } 
 
+        // In case of P2P Client mode if we are already
+        // on the same channel then send the frame directly
+
+        spin_lock(&cfgState->p2p_lock);
+        if((cfgState->remain_on_chan_ctx != NULL) &&
+           (cfgState->current_freq == chan->center_freq)
+          )
+        {
+            spin_unlock(&cfgState->p2p_lock);
+            goto send_frame;
+        }
+        else
+        {
+            spin_unlock(&cfgState->p2p_lock);
+        }
+
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
         status = wlan_hdd_request_remain_on_channel(wiphy, dev,
                                         chan, channel_type, wait, cookie,
@@ -436,9 +528,15 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     {
         /* Check before sending action frame 
            whether we already remain on channel */ 
+        spin_lock(&cfgState->p2p_lock);
         if(NULL == cfgState->remain_on_chan_ctx)
         {
+            spin_unlock(&cfgState->p2p_lock);
             goto err_rem_channel;
+        }
+        else
+        {
+            spin_unlock(&cfgState->p2p_lock);
         }
     }	
 
@@ -456,13 +554,16 @@ send_frame:
     INIT_COMPLETION(pAdapter->tx_action_cnf_event);
  
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+    spin_lock(&cfgState->p2p_lock);
     if( cfgState->remain_on_chan_ctx )
     {
+        spin_unlock(&cfgState->p2p_lock);
         cfgState->action_cookie = cfgState->remain_on_chan_ctx->cookie;
         *cookie = cfgState->action_cookie;
     }
     else
     {
+        spin_unlock(&cfgState->p2p_lock);
 #endif
         *cookie = (tANI_U32) cfgState->buf;
         cfgState->action_cookie = *cookie;
