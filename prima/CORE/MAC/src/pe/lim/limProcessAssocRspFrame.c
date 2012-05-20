@@ -67,7 +67,10 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
     tANI_BOOLEAN    qosMode; 
     tANI_U16        rxHighestRate = 0;
 
-    phyMode = pMac->lim.gLimPhyMode;
+    if(psessionEntry)
+        limGetPhyMode(psessionEntry, &phyMode);
+    else
+        phyMode = pMac->lim.gLimPhyMode;
     pStaDs->staType= STA_ENTRY_SELF;
 
     limGetQosMode(psessionEntry, &qosMode);    
@@ -177,7 +180,7 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
             * local EDCA params. This is needed (refer to bug #14989) as we'll 
             * be passing the gLimEdcaParams to HAL in limProcessStaMlmAddBssRsp().
             */ 
-           schSetDefaultEdcaParams(pMac);
+           schSetDefaultEdcaParams(pMac, psessionEntry);
        }
 
 
@@ -383,6 +386,13 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
         }
         PELOGE(limLog(pMac, LOGE, FL("Parse error Assoc resp subtype %d, length=%d\n"), frameLen,subType);)
         return;
+    }
+
+    if(!pAssocRsp->suppRatesPresent)
+    {
+        PELOGE(limLog(pMac, LOGW, FL("assoc response does not have supported rate set"));)
+        palCopyMemory(pMac->hHdd, &pAssocRsp->supportedRates,
+                      &psessionEntry->rateSet, sizeof(tSirMacRateSet));
     }
 
     mlmAssocCnf.protStatusCode = pAssocRsp->statusCode;

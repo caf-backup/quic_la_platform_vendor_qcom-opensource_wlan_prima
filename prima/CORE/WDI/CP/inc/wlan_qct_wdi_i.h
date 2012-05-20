@@ -360,16 +360,14 @@ typedef enum
   
   WDI_KEEP_ALIVE_REQ       = 62,  
 
-#ifdef FEATURE_WLAN_SCAN_PNO
-   /* Set PNO */
-   WDI_SET_PREF_NETWORK_REQ     = 63,
+  /* Set PNO */
+  WDI_SET_PREF_NETWORK_REQ     = 63,
 
-   /*RSSI Filter Request*/
-   WDI_SET_RSSI_FILTER_REQ      = 64,
+  /*RSSI Filter Request*/
+  WDI_SET_RSSI_FILTER_REQ      = 64,
 
-   /* Update Scan Parameters*/
-   WDI_UPDATE_SCAN_PARAMS_REQ   = 65,
-#endif // FEATURE_WLAN_SCAN_PNO
+  /* Update Scan Parameters*/
+  WDI_UPDATE_SCAN_PARAMS_REQ   = 65,
 
   WDI_SET_TX_PER_TRACKING_REQ = 66,
 
@@ -377,10 +375,10 @@ typedef enum
   WDI_RECEIVE_FILTER_SET_FILTER_REQ             = 68,
   WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ  = 69,
   WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ           = 70,
-
+  
   /*This is temp fix. Should be removed once 
    * Host and Riva code is in sync*/
-  WDI_INIT_SCAN_CON_REQ                         = 71,
+  WDI_INIT_SCAN_CON_REQ                         = 71, 
 
   /* WLAN HAL DUMP Command request */
   WDI_HAL_DUMP_CMD_REQ                          = 72,
@@ -393,6 +391,9 @@ typedef enum
 
   /* Traffic Stream Metrics statistic request */
   WDI_TSM_STATS_REQ                             = 75,
+  /* GTK Rekey Offload */
+  WDI_GTK_OFFLOAD_REQ             = 76, 
+  WDI_GTK_OFFLOAD_GETINFO_REQ   = 77, 
 
   WDI_MAX_REQ,
 
@@ -615,6 +616,8 @@ typedef enum
   WDI_SET_TX_PER_TRACKING_RESP       = 66,
 
 
+  
+  /* Packet Filtering Response */
   WDI_8023_MULTICAST_LIST_RESP                  = 67,
 
   WDI_RECEIVE_FILTER_SET_FILTER_RESP            = 68,
@@ -623,6 +626,7 @@ typedef enum
 
   WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP          = 70,
 
+  
   /* WLAN HAL DUMP Command Response */
   WDI_HAL_DUMP_CMD_RESP                         = 71,
 
@@ -633,6 +637,9 @@ typedef enum
   WDI_SET_POWER_PARAMS_RESP                     = 73,
 
   WDI_TSM_STATS_RESP                            = 74,
+  /* GTK Rekey Offload */
+  WDI_GTK_OFFLOAD_RESP                    = 75, 
+  WDI_GTK_OFFLOAD_GETINFO_RESP         = 76, 
 
   /*-------------------------------------------------------------------------
     Indications
@@ -672,8 +679,11 @@ typedef enum
   /* Preferred Network Found Indication */
   WDI_HAL_PREF_NETWORK_FOUND_IND      = WDI_HAL_IND_MIN + 9,
 
+  /* Wakeup Reason Indication */
+  WDI_HAL_WAKE_REASON_IND              = WDI_HAL_IND_MIN + 10,
+
   /* Tx PER Hit Indication */
-  WDI_HAL_TX_PER_HIT_IND              = WDI_HAL_IND_MIN + 10,
+  WDI_HAL_TX_PER_HIT_IND              = WDI_HAL_IND_MIN + 11,
   
   WDI_MAX_RESP
 }WDI_ResponseEnumType; 
@@ -871,7 +881,7 @@ typedef struct
   /*WDI Pending Association Session Id Queue - it keeps track of the
     order in which queued assoc requests came in*/
   wpt_list                    wptPendingAssocSessionIdQueue;
-  ;
+
   /*! TO DO : - group these in a union, only one cached req can exist at a
       time  */
 
@@ -4752,6 +4762,82 @@ WDI_ProcessReceiveFilterClearFilterRsp
   WDI_EventInfoType*     pEventData
 );
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+/**
+ @brief Process set GTK Offload Request function 
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessGTKOffloadReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process GTK Offload Get Information Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessGTKOffloadGetInfoReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process host offload Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessGtkOffloadRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process GTK Offload Get Information Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessGTKOffloadGetInfoRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif // WLAN_FEATURE_GTK_OFFLOAD
+
+#ifdef WLAN_WAKEUP_EVENTS
+WDI_Status
+WDI_ProcessWakeReasonInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif // WLAN_WAKEUP_EVENTS
 
 #endif /*WLAN_QCT_WDI_I_H*/
 

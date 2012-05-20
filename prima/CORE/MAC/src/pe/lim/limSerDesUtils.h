@@ -40,7 +40,7 @@ void            limGetSessionInfo(tpAniSirGlobal pMac, tANI_U8 *, tANI_U8 *, tAN
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
 tSirRetStatus   limMeasurementReqSerDes(tpAniSirGlobal, tpSirSmeMeasurementReq, tANI_U8 *);
 void            limMeasurementIndSerDes(tpAniSirGlobal, tANI_U8 *);
-void            limCopyNeighborInfoToCfg(tpAniSirGlobal, tSirNeighborBssInfo);
+void            limCopyNeighborInfoToCfg(tpAniSirGlobal, tSirNeighborBssInfo, tpPESession);
 tSirRetStatus   limWdsReqSerDes(tpAniSirGlobal, tpSirSmeSetWdsInfoReq, tANI_U8 *); 
 tSirRetStatus   limRadioInfoSerDes(tpAniSirGlobal, tpSirRadarInfo, tANI_U8 *, tANI_U16 *, tANI_U32);
 tSirRetStatus   limSmeWmStatusChangeHeaderSerDes(tpAniSirGlobal, tSirSmeStatusChangeCode, tANI_U8 *, tANI_U16 *, tANI_U32);

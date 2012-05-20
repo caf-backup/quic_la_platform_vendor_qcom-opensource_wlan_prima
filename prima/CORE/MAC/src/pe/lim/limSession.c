@@ -131,6 +131,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
 #endif
             *sessionId = i;
 
+            pMac->lim.gpSession[i].gLimPhyMode = WNI_CFG_PHY_MODE_11G; //TODO :Check with the team what should be default mode 
             return(&pMac->lim.gpSession[i]);
         }
     }
@@ -199,7 +200,7 @@ tpPESession peFindSessionByBssid(tpAniSirGlobal pMac,  tANI_U8*  bssid,    tANI_
     {
         return(&pMac->lim.gpSession[sessionId]);
     }
-    limLog(pMac, LOGW, FL("Session %d  not active\n "), sessionId);
+    limLog(pMac, LOG1, FL("Session %d  not active\n "), sessionId);
     return(NULL);
 
 }
@@ -279,11 +280,18 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
     if(psessionEntry->parsedAssocReq != NULL)
     {
-       // Cleanup the individual allocation first
+        // Cleanup the individual allocation first
         for (i=0; i < psessionEntry->dph.dphHashTable.size; i++)
         {
             if ( psessionEntry->parsedAssocReq[i] != NULL )
             {
+                if( ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame )
+                {
+                   palFreeMemory(pMac->hHdd, 
+                      ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame);
+                   ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrame = NULL;
+                   ((tpSirAssocReq)(psessionEntry->parsedAssocReq[i]))->assocReqFrameLength = 0;
+                }
                 palFreeMemory(pMac->hHdd, (void *)psessionEntry->parsedAssocReq[i]);
                 psessionEntry->parsedAssocReq[i] = NULL;
             }
@@ -300,6 +308,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
     psessionEntry->valid = FALSE;
     return;
 }
+
 
 /*--------------------------------------------------------------------------
   \brief peFindSessionByPeerSta() - looks up the PE session given the Station Address.

@@ -984,10 +984,14 @@ limIbssDecideProtection(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaco
       return;
     }
 
-    limGetRfBand(pMac, &rfBand);
+    limGetRfBand(pMac, &rfBand, psessionEntry);
     if(SIR_BAND_2_4_GHZ== rfBand)
     {
-        limGetPhyMode(pMac, &phyMode);
+        if(psessionEntry)
+            limGetPhyMode(psessionEntry, &phyMode);
+        else
+            phyMode = pMac->lim.gLimPhyMode;
+
         //We are 11G or 11n. Check if we need protection from 11b Stations.
         if ((phyMode == WNI_CFG_PHY_MODE_11G) || (pMac->lim.htCapability))
         {
@@ -1611,10 +1615,13 @@ limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac,
     if(NULL == pStaDs)
       return;
 
-    limGetRfBand(pMac, &rfBand);
+    limGetRfBand(pMac, &rfBand, psessionEntry);
     if(SIR_BAND_2_4_GHZ == rfBand)
     {
-        limGetPhyMode(pMac, &phyMode);
+        if(psessionEntry)
+            limGetPhyMode(psessionEntry, &phyMode);
+        else
+            phyMode = pMac->lim.gLimPhyMode;
         erpEnabled = pStaDs->erpEnabled;
         //we are HT or 11G and 11B station is getting deleted.
         if ( ((phyMode == WNI_CFG_PHY_MODE_11G) || pMac->lim.htCapability) 

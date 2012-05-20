@@ -646,7 +646,8 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
         limGetIElenFromBssDescription(pbssDescription),
         &pftSessionEntry->limCurrentBssQosCaps,
         &pftSessionEntry->limCurrentBssPropCap,
-        &currentBssUapsd , &localPowerConstraint); 
+        &currentBssUapsd , &localPowerConstraint);
+
     pftSessionEntry->limReassocBssQosCaps =
         pftSessionEntry->limCurrentBssQosCaps;
     pftSessionEntry->limReassocBssPropCap =
@@ -729,6 +730,9 @@ void limFTProcessPreAuthResult(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 
 void limPerformPostFTPreAuthAndChannelChange(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data, 
     tpPESession psessionEntry)
 {
+    //Set the resume channel to Any valid channel (invalid). 
+    //This will instruct HAL to set it to any previous valid channel.
+    peSetResumeChannel(pMac, 0, 0);
     limResumeLink(pMac, limFTProcessPreAuthResult, (tANI_U32 *)psessionEntry);
 }
 

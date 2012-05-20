@@ -35,8 +35,11 @@
 #ifdef FEATURE_WLAN_CCX
 #include <limCcxparserApi.h>
 #endif
-
 #include "wlan_qct_wda.h"
+#ifdef WLAN_FEATURE_11W
+#include "dot11fdefs.h"
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -247,7 +250,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     //DS params "can" be present in RRM is disabled and "is" present if 
     //RRM is enabled. It should be ok even if we add it into probe req when 
     //RRM is not enabled. 
-    PopulateDot11fDSParams( pMac, &pr.DSParams, nChannelNum );
+    PopulateDot11fDSParams( pMac, &pr.DSParams, nChannelNum, psessionEntry );
     //Call RRM module to get the tx power for management used.
     {
        tANI_U8 txPower = (tANI_U8) rrmGetMgmtTxPower( pMac, psessionEntry );
@@ -384,6 +387,14 @@ tSirRetStatus limGetAddnIeForProbeResp(tpAniSirGlobal pMac,
         int left = *addnIELen;
         v_U8_t *ptr = addIE;
         v_U8_t elem_id, elem_len;
+
+        if(NULL == addIE)
+        {
+           PELOGE(limLog(pMac, LOGE,
+                 FL(" NULL addIE pointer"));)
+            return eSIR_FAILURE;
+        }
+
         if( (palAllocateMemory(pMac->hHdd, (void**)&tempbuf,
              left)) != eSIR_SUCCESS)
         {
@@ -493,7 +504,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
                              &frm.SuppRates,psessionEntry);
 
-    PopulateDot11fDSParams( pMac, &frm.DSParams, psessionEntry->currentOperChannel);
+    PopulateDot11fDSParams( pMac, &frm.DSParams, psessionEntry->currentOperChannel, psessionEntry);
     PopulateDot11fIBSSParams( pMac, &frm.IBSSParams, psessionEntry );
 
 #ifdef ANI_PRODUCT_TYPE_AP
@@ -618,21 +629,25 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+    addnIEPresent = false;
+    
 #ifdef WLAN_FEATURE_P2P
     if( pMac->lim.gpLimRemainOnChanReq )
     {
         nBytes += (pMac->lim.gpLimRemainOnChanReq->length - sizeof( tSirRemainOnChnReq ) );
     }
+    //Only use CFG for non-listen mode. This CFG is not working for concurrency
+    //In listening mode, probe rsp IEs is passed in the message from SME to PE
+    else
 #endif
-
-
-    addnIEPresent = false;
-
-    if (wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_ADDNIE_FLAG,
-                      &addnIEPresent) != eSIR_SUCCESS)
     {
-        limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_FLAG"));
-        return;
+
+        if (wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_ADDNIE_FLAG,
+                           &addnIEPresent) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_FLAG"));
+            return;
+        }
     }
 
     if (addnIEPresent)
@@ -647,7 +662,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         
         //Probe rsp IE available
         if ( eSIR_SUCCESS != wlan_cfgGetStrLen(pMac,
-                                  WNI_CFG_PROBE_RSP_ADDNIE_DATA1,&addnIE1Len) )
+                                  WNI_CFG_PROBE_RSP_ADDNIE_DATA1, &addnIE1Len) )
         {
             limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA1 length"));
             palFreeMemory(pMac->hHdd, addIE);
@@ -669,7 +684,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
         //Probe rsp IE available
         if ( eSIR_SUCCESS != wlan_cfgGetStrLen(pMac,
-                                  WNI_CFG_PROBE_RSP_ADDNIE_DATA2,&addnIE2Len) )
+                                  WNI_CFG_PROBE_RSP_ADDNIE_DATA2, &addnIE2Len) )
         {
             limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA2 length"));
             palFreeMemory(pMac->hHdd, addIE);
@@ -691,7 +706,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
         //Probe rsp IE available
         if ( eSIR_SUCCESS != wlan_cfgGetStrLen(pMac,
-                                  WNI_CFG_PROBE_RSP_ADDNIE_DATA3,&addnIE3Len) )
+                                  WNI_CFG_PROBE_RSP_ADDNIE_DATA3, &addnIE3Len) )
         {
             limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_ADDNIE_DATA3 length"));
             palFreeMemory(pMac->hHdd, addIE);
@@ -726,18 +741,18 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         if (probeReqP2pIe)
         {
             pP2pIe = limGetP2pIEPtr(pMac, &addIE[0], totalAddnIeLen);
-        if (pP2pIe != NULL)
-        {
-            //get NoA attribute stream P2P IE
-            noaLen = limGetNoaAttrStream(pMac, noaStream, psessionEntry);
-            if (noaLen != 0)
+            if (pP2pIe != NULL)
             {
-                total_noaLen = limBuildP2pIe(pMac, &noaIe[0], 
+                //get NoA attribute stream P2P IE
+                noaLen = limGetNoaAttrStream(pMac, noaStream, psessionEntry);
+                if (noaLen != 0)
+                {
+                    total_noaLen = limBuildP2pIe(pMac, &noaIe[0], 
                                             &noaStream[0], noaLen); 
-                nBytes = nBytes + total_noaLen;
+                    nBytes = nBytes + total_noaLen;
+                }
             }
         }
-       }
 #endif
     }
 
@@ -5361,4 +5376,98 @@ returnAfterError:
    return statusCode;
 } // End limSendBeaconReportActionFrame.
 
+#endif
+
+#ifdef WLAN_FEATURE_11W
+/**
+ * \brief Send SA query response action frame to peer 
+ *
+ * \sa limSendSaQueryResponseFrame
+ * 
+ *
+ * \param pMac    The global tpAniSirGlobal object
+ *
+ * \param peer    The Mac address of the AP to which this action frame is 
+addressed
+ *
+ * \param transId Transaction identifier received in SA query request action 
+frame 
+ * 
+ * \return eSIR_SUCCESS if setup completes successfully
+ *         eSIR_FAILURE is some problem is encountered
+ */
+
+tSirRetStatus limSendSaQueryResponseFrame( tpAniSirGlobal pMac, tANI_U16 transId,
+tSirMacAddr peer,tpPESession psessionEntry)
+{
+
+   tDot11wSaQueryRsp  frm; // SA query reponse action frame
+   tANI_U8            *pFrame;
+   tSirRetStatus      nSirStatus;
+   tpSirMacMgmtHdr    pMacHdr;
+   tANI_U32           nBytes, nPayload;
+   void               *pPacket;
+   eHalStatus         halstatus;
+   // Local variables used to dump prepared SA query response frame
+   tANI_U8            *pDump; 
+   tANI_U16           dumpCount;
+   tANI_U8             txFlag = 0;
+   //tANI_U16 nBytes
+   
+   palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
+   frm.category  = SIR_MAC_ACTION_SA_QUERY;
+   /*11w action  fiedl is :
+    action: 0 --> SA query request action frame
+    action: 1 --> SA query response action frame */ 
+   frm.action    = 1;
+   /*11w Draft9.0 SA query response transId is same as
+     SA query request transId*/
+   frm.transId   = transId;
+
+   nPayload = sizeof(tDot11wSaQueryRsp);
+   nBytes = nPayload + sizeof( tSirMacMgmtHdr );
+   halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,  nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
+   if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
+   {
+      limLog( pMac, LOGP, FL("Failed to allocate %d bytes for a SA query response"
+                               " action frame\n"), nBytes );
+      return eSIR_FAILURE;
+   }
+
+   // Paranoia:
+   palZeroMemory( pMac->hHdd, pFrame, nBytes );
+
+   // Next, we fill out the buffer descriptor:
+   nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
+                                SIR_MAC_MGMT_ACTION, peer,psessionEntry->selfMacAddr );
+   if ( eSIR_SUCCESS != nSirStatus )
+   {
+      limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
+                              "tor for a TPC Report (%d).\n"),
+               nSirStatus );
+      palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+      return eSIR_FAILURE;    // just allocated...
+   }
+
+   pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
+
+   // Pack 11w SA query response frame
+   DOT11F_MEMCPY(pMac, (tANI_U8 *)(pFrame + sizeof(tSirMacMgmtHdr)),(tANI_U8 *)&frm, nPayload);
+   pDump = (tANI_U8 *) pFrame;
+
+   halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
+                            HAL_TXRX_FRM_802_11_MGMT,
+                            ANI_TXDIR_TODS,
+                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
+                            limTxComplete, pFrame,txFlag);
+   if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
+   {
+      limLog( pMac, LOGE, FL("Failed to send a SA Query resp frame "
+                             "(%X)!\n"),halstatus );
+        //Pkt will be freed up by the callback
+      return eSIR_FAILURE;    // just allocated...
+   }
+
+   return eSIR_SUCCESS;
+}
 #endif

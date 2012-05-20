@@ -257,14 +257,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimNoShortParams, sizeof(tLimNoShortParams));
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimNoShortSlotParams, sizeof(tLimNoShortSlotParams));
 
-   // psessionEntry->dot11mode = WNI_CFG_DOT11_MODE_ALL;
-
-
-
-    //FIXME : right now initialiazing to 2.4 GHZ. But this should be filled in from cfg.
-    pMac->lim.gLimRFBand = SIR_BAND_2_4_GHZ;
-
-    pMac->lim.gLimPhyMode = 0;
+    pMac->lim.gLimPhyMode = 0; 
     pMac->lim.scanStartTime = 0;    // used to measure scan time
 
     palZeroMemory(pMac->hHdd, pMac->lim.gLimBssid, sizeof(pMac->lim.gLimBssid));
@@ -548,7 +541,7 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
    }
    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_GI_40MHZ, &val3) != eSIR_SUCCESS) 
    {
-      PELOGE(limLog(pMac, LOGE, FL("could not retrieve shortGI 20Mhz CFG\n"));)
+      PELOGE(limLog(pMac, LOGE, FL("could not retrieve shortGI 40Mhz CFG\n"));)
       return eSIR_FAILURE;
    }
 

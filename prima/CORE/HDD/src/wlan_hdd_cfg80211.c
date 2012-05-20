@@ -99,12 +99,6 @@
     .flags = flag, \
 }
 
-#define g_ht_capability \
-             IEEE80211_HT_CAP_SGI_20 |        \
-             IEEE80211_HT_CAP_GRN_FLD |       \
-             IEEE80211_HT_CAP_DSSSCCK40 |     \
-             IEEE80211_HT_CAP_LSIG_TXOP_PROT
-
 static const u32 hdd_cipher_suites[] = 
 {
     WLAN_CIPHER_SUITE_WEP40,
@@ -211,7 +205,7 @@ static struct ieee80211_rate a_mode_rates[] =
     HDD_G_MODE_RATETAB(540, 0x800, 0),
 };
 
-static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ = 
+struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
 {
     .channels = hdd_channels_2_4_GHZ,
     .n_channels = ARRAY_SIZE(hdd_channels_2_4_GHZ),
@@ -219,7 +213,10 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
     .bitrates = g_mode_rates,
     .n_bitrates = g_mode_rates_size,
     .ht_cap.ht_supported   = 1,
-    .ht_cap.cap            = g_ht_capability,
+    .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
+                            | IEEE80211_HT_CAP_GRN_FLD
+                            | IEEE80211_HT_CAP_DSSSCCK40
+                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
     .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -228,7 +225,7 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
 };
 
 #ifdef WLAN_FEATURE_P2P
-static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ = 
+struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
 {
     .channels = hdd_social_channels_2_4_GHZ,
     .n_channels = ARRAY_SIZE(hdd_social_channels_2_4_GHZ),
@@ -236,7 +233,10 @@ static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
     .bitrates = g_mode_rates,
     .n_bitrates = g_mode_rates_size,
     .ht_cap.ht_supported   = 1,
-    .ht_cap.cap            = g_ht_capability,
+    .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
+                            | IEEE80211_HT_CAP_GRN_FLD
+                            | IEEE80211_HT_CAP_DSSSCCK40
+                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
     .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -245,7 +245,7 @@ static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
 };
 #endif
 
-static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
+struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
 {
     .channels = hdd_channels_5_GHZ,
     .n_channels = ARRAY_SIZE(hdd_channels_5_GHZ),
@@ -253,7 +253,10 @@ static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
     .bitrates = a_mode_rates,
     .n_bitrates = a_mode_rates_size,
     .ht_cap.ht_supported   = 1,
-    .ht_cap.cap            = g_ht_capability,
+    .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
+                            | IEEE80211_HT_CAP_GRN_FLD
+                            | IEEE80211_HT_CAP_DSSSCCK40
+                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
     .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -410,7 +413,9 @@ int wlan_hdd_cfg80211_register(struct device *dev,
 
     wiphy->mgmt_stypes = wlan_hdd_txrx_stypes;
 
-    wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+    wiphy->flags |=   WIPHY_FLAG_HAVE_AP_SME 
+                    | WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD
+                    | WIPHY_FLAG_CUSTOM_REGULATORY;
 
     wiphy->max_scan_ssids = MAX_SCAN_SSID; 
     
@@ -425,6 +430,18 @@ int wlan_hdd_cfg80211_register(struct device *dev,
 #endif                       
                              | BIT(NL80211_IFTYPE_AP);
 
+    /* Before registering we need to update the ht capabilitied based
+     * on ini values*/
+    if( pCfg->ShortGI20MhzEnable )
+    {
+        wlan_hdd_band_2_4_GHZ.ht_cap.cap     |= IEEE80211_HT_CAP_SGI_20;
+        wlan_hdd_band_5_GHZ.ht_cap.cap       |= IEEE80211_HT_CAP_SGI_20;
+        wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_SGI_20;
+    }
+    if( pCfg->ShortGI40MhzEnable )
+    {
+        wlan_hdd_band_5_GHZ.ht_cap.cap       |= IEEE80211_HT_CAP_SGI_40;
+    }
 
     /*Initialize band capability*/
     switch(pCfg->nBandCapability)
@@ -1486,6 +1503,11 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
                    "%s: HDD adapter context is Null", __FUNCTION__);
         return -ENODEV;
     }
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+        return -EAGAIN;
+    }
 
     pHddCtx  =  (hdd_context_t*)pAdapter->pHddCtx;
 
@@ -1612,6 +1634,12 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     VOS_STATUS status;
 
     ENTER();
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+        return -EAGAIN;
+    }
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                              __func__, pAdapter->device_mode);
@@ -3970,7 +3998,9 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 {
     int status = 0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev ); 
-    
+    VOS_STATUS exitbmpsStatus = VOS_STATUS_E_INVAL;
+    hdd_context_t *pHddCtx = NULL;
+
     ENTER();
 
     hddLog(VOS_TRACE_LEVEL_INFO, 
@@ -3995,11 +4025,36 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return status;
     }
 
+    //If Device Mode is Station Concurrent Sessions Exit BMps
+    //P2P Mode will be taken care in Open/close adaptor
+    if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+        (vos_concurrent_sessions_running()))
+    {
+        v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+
+        if (NULL != pVosContext)
+        {
+            pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+            if(NULL != pHddCtx)
+            {
+               exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+            }
+        }
+    }
+
     status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid, 
                                                 req->ssid_len, req->bssid);
 
     if (0 > status)
     {
+        //ReEnable BMPS if disabled
+        if((VOS_STATUS_SUCCESS == exitbmpsStatus) &&
+            (NULL != pHddCtx))
+        {
+           //ReEnable Bmps and Imps back
+           hdd_enable_bmps_imps(pHddCtx);
+        }
+
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: connect failed", __func__);
         return status;
     }

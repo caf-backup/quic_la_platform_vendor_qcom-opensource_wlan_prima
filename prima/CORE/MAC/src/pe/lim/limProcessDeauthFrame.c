@@ -425,26 +425,6 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     /// Deauthentication from peer MAC entity
     limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
 
-    /* We received disassoc request and about to send disassoc frame
-     * to AP. PE shall reset the EDCA parameters to default parameters 
-     * as advertised by AP and send the update to HAL;
-     */
-    if (psessionEntry->limSystemRole == eLIM_STA_ROLE )
-    {
-        schSetDefaultEdcaParams(pMac);
-        if (pStaDs != NULL)
-        {
-            if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) 
-                limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
-            else
-                limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
-        }
-        else
-        {
-            limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
-        }
-    }
-
     // send eWNI_SME_DEAUTH_IND to SME  
     limSendSmeDeauthInd(pMac, pStaDs, psessionEntry);
     return;

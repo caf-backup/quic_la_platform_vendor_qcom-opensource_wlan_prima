@@ -72,6 +72,9 @@ typedef struct sSirProbeRespBeacon
     tDot11fIEQuiet            quietIE;
     tDot11fIEHTCaps           HTCaps;
     tDot11fIEHTInfo           HTInfo;
+#ifdef WLAN_FEATURE_P2P
+    tDot11fIEP2PProbeRes      P2PProbeRes;
+#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tANI_U8                   mdie[SIR_MDIE_SIZE];
 #endif
@@ -167,6 +170,12 @@ typedef struct sSirAssocReq
 
     tANI_U8                   powerCapabilityPresent;
     tANI_U8                   supportedChannelsPresent;
+#ifdef WLAN_SOFTAP_FEATURE
+    // keeing copy of assoction request received, this is 
+    // required for indicating the frame to upper layers
+    tANI_U32                  assocReqFrameLength;
+    tANI_U8*                  assocReqFrame;
+#endif
 } tSirAssocReq, *tpSirAssocReq;
 
 
@@ -414,7 +423,8 @@ PopulateDot11fCountry(tpAniSirGlobal    pMac,
 /// Populated a PopulateDot11fDSParams
 tSirRetStatus
 PopulateDot11fDSParams(tpAniSirGlobal     pMac,
-                       tDot11fIEDSParams *pDot11f, tANI_U8 channel);
+                       tDot11fIEDSParams *pDot11f, tANI_U8 channel,
+                       tpPESession psessionEntry);
 
 
 /// Populated a tDot11fIEEDCAParamSet

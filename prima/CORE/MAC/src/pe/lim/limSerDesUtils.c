@@ -234,6 +234,23 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 #endif
+    
+    if (pBssDescription->WscIeLen)
+    {
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->WscIeProbeRsp,
+                       pBuf,
+                       pBssDescription->WscIeLen);
+    }
+    
+    pBuf += (sizeof(pBssDescription->WscIeProbeRsp) + 
+             sizeof(pBssDescription->WscIeLen) + 
+             sizeof(pBssDescription->fProbeRsp) + 
+             sizeof(tANI_U32));
+    
+    len -= (sizeof(pBssDescription->WscIeProbeRsp) + 
+             sizeof(pBssDescription->WscIeLen) + 
+             sizeof(pBssDescription->fProbeRsp) + 
+             sizeof(tANI_U32));
 
     if (len)
     {
@@ -3319,11 +3336,18 @@ limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInf
     tANI_U32    localPowerConstraints = 0;
     tANI_U16    caps;
     tANI_U8     qosCap = 0;
-    
-    if (cfgSetInt(pMac, WNI_CFG_PHY_MODE,
-                  neighborBssInfo.nwType) != eSIR_SUCCESS)
+
+    if(psessionEntry)
     {
-        limLog(pMac, LOGP, FL("could not set networkType at CFG\n"));
+        psessionEntry->gLimPhyMode = neighborBssInfo.nwType;
+    }    
+    else
+    {
+        if (cfgSetInt(pMac, WNI_CFG_PHY_MODE,
+                      neighborBssInfo.nwType) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("could not set networkType at CFG\n"));
+        }
     }
 
     cfgSetCapabilityInfo(pMac, neighborBssInfo.capabilityInfo);

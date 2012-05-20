@@ -41,7 +41,7 @@
  ---------------------------------------------------------------------------*/
 #define WLAN_HAL_VER_MAJOR 0
 #define WLAN_HAL_VER_MINOR 1
-#define WLAN_HAL_VER_VERSION 0
+#define WLAN_HAL_VER_VERSION 1
 #define WLAN_HAL_VER_REVISION 0
 
 /*---------------------------------------------------------------------------
@@ -318,17 +318,21 @@ typedef enum
     
    WLAN_HAL_SET_POWER_PARAMS_REQ            = 166,
    WLAN_HAL_SET_POWER_PARAMS_RSP            = 167,
-    
+
    WLAN_HAL_TSM_STATS_REQ                   = 168,
    WLAN_HAL_TSM_STATS_RSP                   = 169,
 
    // wake reason indication (WOW)
-   WLAN_HAL_WAKE_REASON_IND          = 170,
+   WLAN_HAL_WAKE_REASON_IND                 = 170,
    // GTK offload support 
-   WLAN_HAL_GTK_OFFLOAD_REQ          = 171,
-   WLAN_HAL_GTK_OFFLOAD_RSP          = 172,
-   WLAN_HAL_GTK_OFFLOAD_GETINFO_REQ  = 173,
-   WLAN_HAL_GTK_OFFLOAD_GETINFO_RSP  = 174,
+   WLAN_HAL_GTK_OFFLOAD_REQ                 = 171,
+   WLAN_HAL_GTK_OFFLOAD_RSP                 = 172,
+   WLAN_HAL_GTK_OFFLOAD_GETINFO_REQ         = 173,
+   WLAN_HAL_GTK_OFFLOAD_GETINFO_RSP         = 174,
+
+   WLAN_HAL_FEATURE_CAPS_EXCHANGE_REQ       = 175,
+   WLAN_HAL_FEATURE_CAPS_EXCHANGE_RSP       = 176,
+   WLAN_HAL_EXCLUDE_UNENCRYPTED_IND         = 177,
 
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
@@ -1989,8 +1993,13 @@ typedef PACKED_PRE struct PACKED_POST
     /* Self STA MAC */
     tSirMacAddr selfStaMacAddr;
 
-    /*BSSID needed to identify session. As the request has power constraints,
-      this should be applied only to that session*/
+    /*VO WIFI comment: BSSID needed to identify session. As the request has power constraints,
+       this should be applied only to that session*/
+    /* Since MTU timing and EDCA are sessionized, this struct needs to be sessionized and
+     * bssid needs to be out of the VOWifi feature flag */
+    /* V IMP: Keep bssId field at the end of this msg. It is used to mantain backward compatbility
+     * by way of ignoring if using new host/old FW or old host/new FW since it is at the end of this struct
+     */
     tSirMacAddr bssId;
    
 }tSwitchChannelParams, *tpSwitchChannelParams;
@@ -3480,6 +3489,8 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8  ucPattern[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern
     tANI_U8  ucPatternMaskSize;     // Non-zero pattern mask size
     tANI_U8  ucPatternMask[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
+    tANI_U8  ucPatternExt[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern
+    tANI_U8  ucPatternMaskExt[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern mask
 } tHalWowlAddBcastPtrn, *tpHalWowlAddBcastPtrn;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4339,6 +4350,22 @@ typedef PACKED_PRE struct PACKED_POST
    tHalWlanHostSuspendIndParam suspendIndParams;
 }tHalWlanHostSuspendIndMsg, *tpHalWlanHostSuspendIndMsg;
 
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXCLUDE_UNENCRYTED_IND
+ *-------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_BOOLEAN bDot11ExcludeUnencrypted;
+    tSirMacAddr bssId; 
+}tHalWlanExcludeUnEncryptedIndParam,*tpHalWlanExcludeUnEncryptedIndParam;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalWlanExcludeUnEncryptedIndParam excludeUnEncryptedIndParams;
+}tHalWlanExcludeUnEncrptedIndMsg, *tpHalWlanExcludeUnEncrptedIndMsg;
+
 #ifdef WLAN_FEATURE_P2P
 /*---------------------------------------------------------------------------
  *WLAN_HAL_NOA_ATTR_IND
@@ -4967,6 +4994,52 @@ typedef PACKED_PRE struct PACKED_POST{
    tANI_U32   status;
 
 }  tSetPowerParamsResp, *tpSetPowerParamsResp;
+
+/*---------------------------------------------------------------------------
+ ****************Capability bitmap exchange definitions and macros starts*************
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST{
+
+   tANI_U32 featCaps[4];
+
+}  tWlanFeatCaps, *tpWlanFeatCaps;
+
+typedef PACKED_PRE struct PACKED_POST{
+
+   tHalMsgHeader header;    
+   tWlanFeatCaps wlanFeatCaps;
+
+}  tWlanFeatCapsMsg, *tpWlanFeatCapsMsg;
+
+
+typedef enum {
+    MCC        = 0,
+    P2P        = 1,
+    MAX_FEATURE_SUPPORTED = 128,
+} placeHolderInCapBitmap;
+
+#define setFeatCaps(a,b)   {  tANI_U32 arr_index, bit_index; \
+                              if ((b>=0) && (b<=127)) { \
+                                arr_index = b/32; \
+                                bit_index = b % 32; \
+                                (a)->featCaps[arr_index] |= (1<<bit_index); \
+                              } \
+                           }
+#define getFeatCaps(a,b,c) {  tANI_U32 arr_index, bit_index; \
+                              if ((b>=0) && (b<=127)) { \
+                                arr_index = b/32; \
+                                bit_index = b % 32; \
+                                c = (a)->featCaps[arr_index] & (1<<bit_index); \
+                              } \
+                           }
+#define clearFeatCaps(a,b) {  tANI_U32 arr_index, bit_index; \
+                              if ((b>=0) && (b<=127)) { \
+                                arr_index = b/32; \
+                                bit_index = b % 32; \
+                                (a)->featCaps[arr_index] |= (0<<bit_index); \
+                              } \
+                           }
 
 /*---------------------------------------------------------------------------
  * WLAN_HAL_WAKE_REASON_IND

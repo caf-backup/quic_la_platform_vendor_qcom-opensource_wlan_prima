@@ -65,7 +65,14 @@ ap_beacon_process(
     tSirRFBand          rfBand = SIR_BAND_UNKNOWN;
     //Get RF band from psessionEntry
     rfBand = psessionEntry->limRFBand;
-    limGetPhyMode(pMac, &phyMode);    
+    if(psessionEntry)
+    { 
+        limGetPhyMode(psessionEntry, &phyMode); 
+    }
+    else
+    {
+        phyMode = pMac->lim.gLimPhyMode; 
+    } 
     if(SIR_BAND_5_GHZ == rfBand)
     {
         if (psessionEntry->htCapabality)
@@ -277,7 +284,7 @@ static void __schBeaconProcessNoSession(tpAniSirGlobal pMac, tpSchBeaconStruct p
     //If station(STA/BT-STA/BT-AP/IBSS) mode, Always save the beacon in the scan results, if atleast one session is active
     //schBeaconProcessNoSession will be called only when there is atleast one session active, so not checking 
     //it again here.
-    limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo, eANI_BOOLEAN_FALSE);
+    limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
     return;  
 }
 
@@ -352,7 +359,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         
     
         //Always save the beacon into LIM's cached scan results
-        limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo, eANI_BOOLEAN_FALSE);
+        limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
         
         /**
                * This is the Beacon received from the AP  we're currently associated with. Check

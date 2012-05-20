@@ -657,6 +657,7 @@ tANI_BOOLEAN pmcPowerSaveCheck (tHalHandle hHal)
     tListElem *pEntry;
     tpPowerSaveCheckEntry pPowerSaveCheckEntry;
     tANI_BOOLEAN (*checkRoutine) (void *checkContext);
+    tANI_BOOLEAN bResult=FALSE;
 
     smsLog(pMac, LOG2, FL("Entering pmcPowerSaveCheck\n"));
 
@@ -667,17 +668,26 @@ tANI_BOOLEAN pmcPowerSaveCheck (tHalHandle hHal)
     {
         pPowerSaveCheckEntry = GET_BASE_ADDR(pEntry, tPowerSaveCheckEntry, link);
         checkRoutine = pPowerSaveCheckEntry->checkRoutine;
-        if (!checkRoutine(pPowerSaveCheckEntry->checkContext))
+
+        /* If the checkRoutine is NULL for a paricular entry, proceed with other entries
+         * in the list */
+        if (NULL != checkRoutine)
         {
-            smsLog(pMac, LOGE, FL(" CheckRoutine is missing. pmcPowerSaveCheck fail!\n"));
-            /* If the checkRoutine is NULL for a paricular entry, proceed with other entries
-             * in the list */
-            // return FALSE; 
+            if (!checkRoutine(pPowerSaveCheckEntry->checkContext))
+            {
+                smsLog(pMac, LOGE, FL("pmcPowerSaveCheck fail!\n"));
+                bResult = FALSE; 
+                break;
+            }
+            else
+            {
+                bResult = TRUE;
+            }
         }
         pEntry = csrLLNext(&pMac->pmc.powerSaveCheckList, pEntry, FALSE);
     }
 
-    return TRUE;
+    return bResult;
 }
 
 
@@ -857,9 +867,7 @@ void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
     }
 
     /* Call the routines in the request full power callback routine list. */
-    csrLLLock(&pMac->pmc.requestFullPowerList);
-    pEntry = csrLLRemoveHead(&pMac->pmc.requestFullPowerList, FALSE);
-    while (pEntry != NULL)
+    while (NULL != (pEntry = csrLLRemoveHead(&pMac->pmc.requestFullPowerList, TRUE)))
     {
         pRequestFullPowerEntry = GET_BASE_ADDR(pEntry, tRequestFullPowerEntry, link);
         if (pRequestFullPowerEntry->callbackRoutine)
@@ -869,10 +877,8 @@ void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
             smsLog(pMac, LOGE, FL("Cannot free request full power routine list entry\n"));
             PMC_ABORT;
         }
-        pEntry = csrLLRemoveHead(&pMac->pmc.requestFullPowerList, FALSE);
     }
 
-    csrLLUnlock(&pMac->pmc.requestFullPowerList);
 }
 
 
@@ -2503,7 +2509,7 @@ tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac )
      * an Infra session */
     if (!csrIsInfraConnected(pMac))
     {
-        smsLog(pMac, LOG1, FL("No Infra Session. BMPS need not be started"));
+        smsLog(pMac, LOG1, FL("No Infra Session or multiple sessions. BMPS should not be started"));
         return eANI_BOOLEAN_FALSE;
     }
     return eANI_BOOLEAN_TRUE;

@@ -566,6 +566,9 @@ limProcessLearnDurationTimeout(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     if (pMac->lim.gLimMeasParams.nextLearnChannelId ==
         pMac->lim.gpLimMeasReq->channelList.numChannels - 1)
     {
+        //Set the resume channel to Any valid channel (invalid). 
+        //This will instruct HAL to set it to any previous valid channel.
+        peSetResumeChannel(pMac, 0, 0);
         // Send WDA_END_SCAN_REQ to HAL first
         limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_LEARN_WAIT_STATE);
     }
@@ -583,6 +586,9 @@ limProcessLearnDurationTimeout(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         }
         else
         {
+            //Set the resume channel to Any valid channel (invalid). 
+            //This will instruct HAL to set it to any previous valid channel.
+            peSetResumeChannel(pMac, 0, 0);
             // Send WDA_FINISH_SCAN_REQ to HAL first
             limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_LEARN_WAIT_STATE);
         }

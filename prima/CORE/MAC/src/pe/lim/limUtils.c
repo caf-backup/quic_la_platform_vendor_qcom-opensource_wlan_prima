@@ -31,6 +31,7 @@
 #include "vos_diag_core_event.h"
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 #include "limIbssPeerMgmt.h"
+#include "limSessionUtils.h"
 #include "limSession.h"
 #include "vos_nvitem.h"
 
@@ -1882,7 +1883,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
       PELOG1(limLog(pMac, LOG1, FL("pStaDs is NULL\n"));)
       return;
     }
-    limGetRfBand(pMac, &rfBand);
+    limGetRfBand(pMac, &rfBand, psessionEntry);
     //if we are in 5 GHZ band
     if(SIR_BAND_5_GHZ == rfBand)
     {
@@ -1901,7 +1902,11 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
     }
     else if(SIR_BAND_2_4_GHZ== rfBand)
     {
-        limGetPhyMode(pMac, &phyMode);
+        if(psessionEntry)
+            limGetPhyMode(psessionEntry, &phyMode);
+        else
+            phyMode = pMac->lim.gLimPhyMode;
+
         //We are 11G. Check if we need protection from 11b Stations.
         if ((phyMode == WNI_CFG_PHY_MODE_11G) &&
               (false == psessionEntry->htCapabality))
@@ -2015,7 +2020,11 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
     // check whether to enable protection or not
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
-    limGetPhyMode(pMac, &phyMode);
+    if(psessionEntry)
+        limGetPhyMode(psessionEntry, &phyMode);
+    else
+        phyMode = pMac->lim.gLimPhyMode;
+
     if (pStaDs != NULL && phyMode == WNI_CFG_PHY_MODE_11G)
 
     {        
@@ -2136,7 +2145,11 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
     // check whether to enable protection or not
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
-    limGetPhyMode(pMac, &phyMode);
+    if(psessionEntry)
+        limGetPhyMode(psessionEntry, &phyMode);
+    else
+        phyMode = pMac->lim.gLimPhyMode;
+
     if (pStaDs != NULL && phyMode == WNI_CFG_PHY_MODE_11G)
     {
         if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &cShortSlot) != eSIR_SUCCESS)
@@ -2354,8 +2367,15 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
     tSirRFBand rfBand = SIR_BAND_UNKNOWN;
     tANI_U32 phyMode = WNI_CFG_PHY_MODE_NONE;
 
-    limGetRfBand(pMac, &rfBand);
-    limGetPhyMode(pMac, &phyMode);      
+    limGetRfBand(pMac, &rfBand, psessionEntry);
+    if(psessionEntry)
+    {
+        limGetPhyMode(psessionEntry, &phyMode);
+    }
+    else
+    {
+        phyMode = pMac->lim.gLimPhyMode;
+    }
 
     if(SIR_BAND_5_GHZ == rfBand)
     {
@@ -2472,8 +2492,16 @@ limDecideStaProtection(tpAniSirGlobal pMac,
     tSirRFBand rfBand = SIR_BAND_UNKNOWN;
     tANI_U32 phyMode = WNI_CFG_PHY_MODE_NONE;
 
-    limGetRfBand(pMac, &rfBand);
-    limGetPhyMode(pMac, &phyMode);
+    limGetRfBand(pMac, &rfBand, psessionEntry);
+    if(psessionEntry)
+    {
+        limGetPhyMode(psessionEntry, &phyMode);
+    }
+    else
+    {
+        phyMode = pMac->lim.gLimPhyMode;
+    }
+
        
     if(SIR_BAND_5_GHZ == rfBand)
     {
@@ -2682,7 +2710,8 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
          * We will find a better AP !!!
          */
         limTearDownLinkWithAp(pMac, 
-                        pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId);
+                        pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId,
+                        eSIR_MAC_UNSPEC_FAILURE_REASON);
         return;
     }
     switch(pMac->lim.gLimChannelSwitch.state)
@@ -3285,7 +3314,12 @@ void limUpdateQuietIEFromBeacon( struct sAniSirGlobal *pMac,
         PELOGW(limLog(pMac, LOGW, FL("Posting finish scan as we are in scan state\n"));)
         /* Stop ongoing scanning if any */
         if (GET_LIM_PROCESS_DEFD_MESGS(pMac))
+        {
+            //Set the resume channel to Any valid channel (invalid). 
+            //This will instruct HAL to set it to any previous valid channel.
+            peSetResumeChannel(pMac, 0, 0);
             limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
+        }
         else
         {
             limRestorePreQuietState(pMac);
@@ -3583,7 +3617,7 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
     PELOG3(limLog(pMac, LOG3, FL("limSwitchPrimaryChannel: old chnl %d --> new chnl %d \n"),
            psessionEntry->currentOperChannel, newChannel);)
     psessionEntry->currentReqChannel = newChannel;
-    pMac->lim.gLimRFBand = limGetRFBand(newChannel);
+    psessionEntry->limRFBand = limGetRFBand(newChannel);
 
     psessionEntry->channelChangeReasonCode=LIM_SWITCH_CHANNEL_OPERATION;
 
@@ -7271,7 +7305,12 @@ limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
         PELOGE(limLog(pMac, LOGE, FL("Posting finish scan as we are in scan state\n"));)
         /* Stop ongoing scanning if any */
         if (GET_LIM_PROCESS_DEFD_MESGS(pMac))
+        {
+            //Set the resume channel to Any valid channel (invalid). 
+            //This will instruct HAL to set it to any previous valid channel.
+            peSetResumeChannel(pMac, 0, 0);
             limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
+        }
         else
         {
             limRestorePreChannelSwitchState(pMac, psessionEntry);
@@ -7558,7 +7597,8 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
             tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
             /* AP did not respond to Probe Request. Tear down link with it.*/
             limTearDownLinkWithAp(pMac, 
-                      pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId);
+                      pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId,
+                      eSIR_BEACON_MISSED);
             pMac->lim.gLimProbeFailureAfterHBfailedCnt++ ;
         }
         else // restart heartbeat timer  
@@ -7935,6 +7975,48 @@ v_U8_t limGetNoaAttrStream(tpAniSirGlobal pMac, v_U8_t*pNoaStream,tpPESession ps
     return 0;
         
 }
+void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, tANI_U8 cbState)
+{
+
+   pMac->lim.gResumeChannel = channel;
+   //TODO : Save Cb State also.
+
+}
+/*--------------------------------------------------------------------------
+  
+  \brief peGetResumeChannel() - Returns the  channel number for scanning, from a valid session.
+
+  This function itrates the session Table and returns the channel number from first valid session
+   if no sessions are valid/present  it returns zero
+    
+  \param pMac                   - pointer to global adapter context
+  \return                           - channel to scan from valid session else zero.
+  
+  \sa
+  
+  --------------------------------------------------------------------------*/
+
+tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac)
+
+{
+
+    //Rationale - this could be the suspend/resume for assoc and it is essential that
+    //the new BSS is active for some time. Other BSS was anyway suspended.
+    //TODO: Comeup with a better alternative. Sending NULL with PM=0 on other BSS means
+    //there will be trouble. But since it is sent on current channel, it will be missed by peer
+    //and hence shpuld be ok. Need to discuss this further
+    if( !IS_MCC_SUPPORTED )    
+    {
+        //Get current active session channel
+        return peGetActiveSessionChannel(pMac);
+    }
+    else
+    {
+        return pMac->lim.gResumeChannel;
+    }
+
+}
+
 #endif
 
 tANI_BOOLEAN limIsconnectedOnDFSChannel(tANI_U8 currentChannel)

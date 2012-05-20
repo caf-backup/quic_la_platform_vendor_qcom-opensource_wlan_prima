@@ -1723,6 +1723,60 @@ __limProcessNeighborReport( tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo ,tpPESes
 
 #endif
 
+#ifdef WLAN_FEATURE_11W
+/**
+ * limProcessActionFrame
+ *
+ *FUNCTION:
+ * This function is called by limProcessActionFrame() upon
+ * SA query request Action frame reception.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac - Pointer to Global MAC structure
+ * @param  *pBd - A pointer to Buffer descriptor + associated PDUs
+ * @return None
+ */
+static void __limProcessSAQueryRequestActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession psessionEntry)
+{
+    tpSirMacMgmtHdr     pHdr;
+    tANI_U8             *pBody;
+    tANI_U16            transId = 0;           
+
+    /* Prima  --- Below Macro not available in prima 
+       pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
+       pBody = SIR_MAC_BD_TO_MPDUDATA(pBd); */
+
+    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+
+    /*Extract 11w trsansId from SA query request action frame
+      In SA query response action frame we will send same transId
+      In SA query request action frame:
+      Category       : 1 byte
+      Action         : 1 byte
+      Transaction ID : 2 bbytes */
+
+    transId = pBody[2];
+    transId = transId << 8;
+    transId |= pBody[3];
+    
+    //Send 11w SA query response action frame
+    if (limSendSaQueryResponseFrame(pMac,
+                              transId,
+                              pHdr->sa,psessionEntry) != eSIR_SUCCESS)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("fail to send SA query response action frame. \n"));)
+        return;
+    }
+}
+
+#endif
+
 /**
  * limProcessActionFrame
  *
@@ -1934,6 +1988,16 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         }
         break;
 #endif
+
+#ifdef WLAN_FEATURE_11W
+    case SIR_MAC_ACTION_SA_QUERY:
+    {
+        /**11w SA query request action frame received**/
+        __limProcessSAQueryRequestActionFrame(pMac,(tANI_U8*) pRxPacketInfo, psessionEntry );
+        break;
+     }
+#endif
+
     default:
        PELOGE(limLog(pMac, LOGE, FL("Action category %d not handled\n"), pActionHdr->category);)
        break;

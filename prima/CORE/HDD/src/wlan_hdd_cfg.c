@@ -1377,6 +1377,13 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MIN,
               CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MAX ),
 #endif
+
+REG_VARIABLE( CFG_ENABLE_MCC_ENABLED_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, enableMCC, 
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+             CFG_ENABLE_MCC_ENABLED_DEFAULT, 
+             CFG_ENABLE_MCC_ENABLED_MIN, 
+             CFG_ENABLE_MCC_ENABLED_MAX ),
 };
 
 /*
@@ -2728,6 +2735,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig.csrConfig.addTSWhenACMIsOff = pConfig->AddTSWhenACMIsOff;
    smeConfig.csrConfig.fValidateList = pConfig->fValidateScanList;
+
+   //Enable/Disable MCC 
+   smeConfig.csrConfig.fEnableMCCMode = pConfig->enableMCC;
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);    
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

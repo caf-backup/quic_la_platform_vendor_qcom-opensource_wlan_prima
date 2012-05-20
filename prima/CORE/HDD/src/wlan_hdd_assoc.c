@@ -657,6 +657,33 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
             {
                 cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0, GFP_KERNEL); 
             }
+
+            //If the Device Mode is Station
+            // and the P2P Client is Connected
+            //Enable BMPS
+            if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+                (vos_concurrent_sessions_running()))
+            {
+               //Enable BMPS only of other Session is P2P Client
+               hdd_context_t *pHddCtx = NULL;
+               v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );    
+
+               if (NULL != pVosContext)
+               {
+                   pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+
+                   if(NULL != pHddCtx)
+                   {
+                       //Only P2P Client is there Enable Bmps back
+                       if((0 == pHddCtx->no_of_sessions[VOS_STA_SAP_MODE]) &&
+                          (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]) &&
+                          (1 == pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE]))
+                       {
+                           hdd_enable_bmps_imps(pHddCtx);
+                       }
+                   }
+               }
+            }
         }
     }
 #endif
@@ -1073,6 +1100,34 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         {
             pHddCtx->isAmpAllowed = VOS_TRUE;
         }
+
+        //If the Device Mode is Station
+        // and the P2P Client is Connected
+        //Enable BMPS
+        if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+            (vos_concurrent_sessions_running()))
+        {
+           //Enable BMPS only of other Session is P2P Client
+           hdd_context_t *pHddCtx = NULL;
+           v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+
+           if (NULL != pVosContext)
+           {
+               pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+
+               if(NULL != pHddCtx)
+               {
+                   //Only P2P Client is there Enable Bmps back
+                   if((0 == pHddCtx->no_of_sessions[VOS_STA_SAP_MODE]) &&
+                      (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]) &&
+                      (1 == pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE]))
+                   {
+                       hdd_enable_bmps_imps(pHddCtx);
+                   }
+               }
+           }
+        }
+
 #ifdef CONFIG_CFG80211
         /* inform association failure event to nl80211 */
         cfg80211_connect_result(dev, pWextState->req_bssId,

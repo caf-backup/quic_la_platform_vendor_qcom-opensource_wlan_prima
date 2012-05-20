@@ -31,7 +31,6 @@ typedef enum
     TWO_BYTE   = 2
 } eSizeOfLenField;
 
-
 #define LIM_STA_ID_MASK                        0x00FF
 #define LIM_AID_MASK                              0xC000
 #define LIM_SPECTRUM_MANAGEMENT_BIT_MASK          0x0100
@@ -449,5 +448,22 @@ typedef enum
 
 void limDiagEventReport(tpAniSirGlobal pMac, tANI_U16 eventType, tpPESession pSessionEntry, tANI_U16 status, tANI_U16 reasonCode);
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
+
+void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, tANI_U8 cbState);
+/*--------------------------------------------------------------------------
+  
+  \brief peGetResumeChannel() - Returns the  channel number for scanning, from a valid session.
+
+  This function itrates the session Table and returns the channel number from first valid session
+   if no sessions are valid it returns 0
+    
+  \param pMac                   - pointer to global adapter context
+  \return                            - channel to scan from valid session else zero.
+  
+  \sa
+  
+  --------------------------------------------------------------------------*/
+tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac);
+
 
 #endif /* __LIM_UTILS_H */

@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( __VOS_NVITEM_H )
 #define __VOS_NVITEM_H
 
@@ -82,6 +88,13 @@ ADD_VNV_ITEM( VNV_TABLE_VIRTUAL_RATE, 1, 4, VNV_TABLE_VIRTUAL_RATE_I ) \
 #define VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_3P2MH 0   //3.2 Mhz
 #define VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_1P6MH 1   //1.6 Mhz
 
+
+/*! 
+ * The path (from the root of the DPP_FOLDER_PATH\QCOM) to the file containing
+ * the CLPC provisioning data. This is being temporarily put here. This should go
+ * to esp_dpp.h where the WLAN_PROVISION_DATA is present.
+ */
+#define CLPC_PROVISION_DATA L"WLAN_CLPC.PROVISION"
 
 /*--------------------------------------------------------------------------
   Type declarations
@@ -502,8 +515,7 @@ VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress );
   \sa
 
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_readMultiMacAddress( v_MAC_ADDRESS_t pMacAddress,
-                                              v_U8_t macCount );
+VOS_STATUS vos_nv_readMultiMacAddress( v_U8_t* pMacAddr, v_U8_t  macCount);
 
 /**------------------------------------------------------------------------
   \brief vos_nv_getDefaultRegDomain() - return the default regulatory domain
@@ -609,6 +621,7 @@ VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
              * DFS
   \sa
   -------------------------------------------------------------------------*/
+
 eNVChannelEnabledType vos_nv_getChannelEnabledState
 (
    v_U32_t    rfChannel

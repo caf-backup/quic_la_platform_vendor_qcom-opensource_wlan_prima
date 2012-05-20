@@ -272,11 +272,19 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
 #else
   NULL,
 #endif
+
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+  WDI_ProcessGTKOffloadReq,          /* WDI_GTK_OFFLOAD_REQ  */
+  WDI_ProcessGTKOffloadGetInfoReq,   /* WDI_GTK_OFFLOAD_GETINFO_REQ  */
+#else
+  NULL,
+  NULL,
+#endif // WLAN_FEATURE_GTK_OFFLOAD
+
   /*-------------------------------------------------------------------------
     Indications
   -------------------------------------------------------------------------*/
   WDI_ProcessHostSuspendInd,            /* WDI_HOST_SUSPEND_IND*/
-
 };
 
 
@@ -404,6 +412,9 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 
   WDI_ProcessSetTxPerTrackingRsp,      /* WDI_SET_TX_PER_TRACKING_RESP  */
   
+  /*---------------------------------------------------------------------
+    Indications
+  ---------------------------------------------------------------------*/
 #ifdef WLAN_FEATURE_PACKET_FILTERING
   /* WDI_8023_MULTICAST_LIST_RESP */
   WDI_Process8023MulticastListRsp,          
@@ -429,6 +440,15 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #else
   NULL,
 #endif
+  
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+  WDI_ProcessGtkOffloadRsp,           /* WDI_GTK_OFFLOAD_RESP  */
+  WDI_ProcessGTKOffloadGetInfoRsp,    /* WDI_GTK_OFFLOAD_GETINFO_RESP  */
+#else
+  NULL,
+  NULL,
+#endif // WLAN_FEATURE_GTK_OFFLOAD
+
   /*---------------------------------------------------------------------
     Indications
   ---------------------------------------------------------------------*/
@@ -454,7 +474,13 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #else
   NULL,
 #endif // FEATURE_WLAN_SCAN_PNO
-  
+
+#ifdef WLAN_WAKEUP_EVENTS
+  WDI_ProcessWakeReasonInd,          /* WDI_WAKE_REASON_IND */
+#else // WLAN_WAKEUP_EVENTS
+  NULL,
+#endif // WLAN_WAKEUP_EVENTS
+
   WDI_ProcessTxPerHitInd,               /* WDI_HAL_TX_PER_HIT_IND  */
 };
 
@@ -1200,6 +1226,8 @@ WDI_Init
  fail_wpalOpen:
   WDI_STATableClose(&gWDICb);
  fail_STATableInit:
+  gWDIInitialized = eWLAN_PAL_FALSE; 
+
   return WDI_STATUS_E_FAILURE; 
 
 }/*WDI_Init*/;
@@ -4901,7 +4929,7 @@ WDI_NvDownloadReq
 )
 {
   WDI_EventInfoType      wdiEventData;
-  
+
   /*------------------------------------------------------------------------
     Sanity Check 
   ------------------------------------------------------------------------*/
@@ -6483,7 +6511,6 @@ WDI_ProcessInitScanReq
 
   if (pwdiInitScanParams->wdiReqInfo.bUseNOA)
   {
-
     /*This is temporary fix. 
      * It shold be removed once host and riva changes are in sync*/
     /*-----------------------------------------------------------------------
@@ -11187,7 +11214,7 @@ WDI_ProcessNvDownloadReq
 
   WDI_NvDownloadReqParamsType*  pwdiNvDownloadReqParams = NULL;
   WDI_NvDownloadRspCb      wdiNvDownloadRspCb = NULL;
-  
+
   /*-------------------------------------------------------------------------
      Sanity check       
    -------------------------------------------------------------------------*/
@@ -11206,13 +11233,17 @@ WDI_ProcessNvDownloadReq
   /*Intialize the Nv Blob Info */
   pWDICtx->wdiNvBlobInfo.usTotalFragment = 
                 TOTALFRAGMENTS(pwdiNvDownloadReqParams->wdiBlobInfo.uBlobSize);
+
   /*cache the wdi nv request message here if the the first fragment
    * To issue the request to HAL for the next fragment */
   if( 0 == pWDICtx->wdiNvBlobInfo.usCurrentFragment)
   {
     wpalMemoryCopy(&pWDICtx->wdiCachedNvDownloadReq, 
                  pwdiNvDownloadReqParams, 
-                 sizeof(pWDICtx->wdiCachedNvDownloadReq));
+                 sizeof(pWDICtx->wdiCachedNvDownloadReq)); 
+
+    pWDICtx->pfncRspCB = pEventData->pCBfnc;
+    pWDICtx->pRspCBUserData = pEventData->pUserData;
   }
 
   return WDI_SendNvBlobReq(pWDICtx,pEventData);
@@ -12369,7 +12400,9 @@ WDI_ProcessHostOffloadReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
-   tHalHostOffloadReq       hostOffloadReq;
+   tHalHostOffloadReq       hostOffloadParams;
+   tHalNSOffloadParams      nsOffloadParams;
+
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -12390,9 +12423,9 @@ WDI_ProcessHostOffloadReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_HOST_OFFLOAD_REQ, 
-                         sizeof(hostOffloadReq),
+                         sizeof(hostOffloadParams)+sizeof(nsOffloadParams),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(hostOffloadReq) )))
+       ( usSendSize < (usDataOffset + sizeof(hostOffloadParams) + sizeof(nsOffloadParams) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                   "Unable to get send buffer in host offload req %x %x %x",
@@ -12401,23 +12434,59 @@ WDI_ProcessHostOffloadReq
       return WDI_STATUS_E_FAILURE; 
    }
 
-   hostOffloadReq.offloadType = pwdiHostOffloadParams->wdiHostOffloadInfo.ucOffloadType;
-   hostOffloadReq.enableOrDisable = pwdiHostOffloadParams->wdiHostOffloadInfo.ucEnableOrDisable;
-   if( 0 == hostOffloadReq.offloadType )
+   hostOffloadParams.offloadType = pwdiHostOffloadParams->wdiHostOffloadInfo.ucOffloadType;
+   hostOffloadParams.enableOrDisable = pwdiHostOffloadParams->wdiHostOffloadInfo.ucEnableOrDisable;
+   if( HAL_IPV4_ARP_REPLY_OFFLOAD == hostOffloadParams.offloadType )
    {
-      wpalMemoryCopy(hostOffloadReq.params.hostIpv4Addr,
+      // ARP Offload
+      wpalMemoryCopy(hostOffloadParams.params.hostIpv4Addr,
                      pwdiHostOffloadParams->wdiHostOffloadInfo.params.aHostIpv4Addr,
                      4);
    }
    else
    {
-      wpalMemoryCopy(hostOffloadReq.params.hostIpv6Addr,
+      // NS Offload
+      wpalMemoryCopy(hostOffloadParams.params.hostIpv6Addr,
                      pwdiHostOffloadParams->wdiHostOffloadInfo.params.aHostIpv6Addr,
                      16);
+
+#ifdef WLAN_NS_OFFLOAD
+        // copy pwdiHostOffloadParams->wdiNsOffloadParams into nsOffloadParams
+        wpalMemoryCopy(nsOffloadParams.srcIPv6Addr,
+                        pwdiHostOffloadParams->wdiNsOffloadParams.srcIPv6Addr,
+                        16);
+        wpalMemoryCopy(nsOffloadParams.selfIPv6Addr,
+                        pwdiHostOffloadParams->wdiNsOffloadParams.selfIPv6Addr,
+                        16);
+        wpalMemoryCopy(nsOffloadParams.targetIPv6Addr1,
+                        pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr1,
+                        16);
+        wpalMemoryCopy(nsOffloadParams.targetIPv6Addr2,
+                        pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr2,
+                        16);
+        wpalMemoryCopy(nsOffloadParams.selfMacAddr,
+                        pwdiHostOffloadParams->wdiNsOffloadParams.selfMacAddr,
+                        6);
+        nsOffloadParams.srcIPv6AddrValid = pwdiHostOffloadParams->wdiNsOffloadParams.srcIPv6AddrValid;
+        nsOffloadParams.targetIPv6Addr1Valid = pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr1Valid;
+        nsOffloadParams.targetIPv6Addr2Valid = pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr2Valid;
+#endif // WLAN_NS_OFFLOAD
    }
+
+   // copy hostOffloadParams into pSendBuffer
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &hostOffloadReq, 
-                   sizeof(hostOffloadReq)); 
+                   &hostOffloadParams, 
+                   sizeof(hostOffloadParams)); 
+
+#ifdef WLAN_NS_OFFLOAD
+   if( HAL_IPV6_NS_OFFLOAD == hostOffloadParams.offloadType )
+   {
+       // copy nsOffloadParams into pSendBuffer
+       wpalMemoryCopy( pSendBuffer+usDataOffset+sizeof(hostOffloadParams), 
+                       &nsOffloadParams, 
+                       sizeof(nsOffloadParams)); 
+   }
+#endif // WLAN_NS_OFFLOAD
 
    pWDICtx->wdiReqStatusCB     = pwdiHostOffloadParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiHostOffloadParams->pUserData; 
@@ -12585,12 +12654,32 @@ WDI_ProcessWowlAddBcPtrnReq
       pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMaskSize;
    wowlAddBcPtrnReq.ucPatternSize = 
       pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternSize;
-   wpalMemoryCopy(wowlAddBcPtrnReq.ucPattern,
-                  pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPattern,
-                  pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternSize);
-   wpalMemoryCopy(wowlAddBcPtrnReq.ucPatternMask,
-                  pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMask,
-                  pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMaskSize);
+
+   if (pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternSize <= HAL_WOWL_BCAST_PATTERN_MAX_SIZE)
+   {
+       wpalMemoryCopy(wowlAddBcPtrnReq.ucPattern,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPattern,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternSize);
+       wpalMemoryCopy(wowlAddBcPtrnReq.ucPatternMask,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMask,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMaskSize);
+   }
+   else
+   {
+       wpalMemoryCopy(wowlAddBcPtrnReq.ucPattern,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPattern,
+                      HAL_WOWL_BCAST_PATTERN_MAX_SIZE);
+       wpalMemoryCopy(wowlAddBcPtrnReq.ucPatternMask,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMask,
+                      HAL_WOWL_BCAST_PATTERN_MAX_SIZE);
+
+       wpalMemoryCopy(wowlAddBcPtrnReq.ucPattern,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPattern,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMaskSize - HAL_WOWL_BCAST_PATTERN_MAX_SIZE);
+       wpalMemoryCopy(wowlAddBcPtrnReq.ucPatternMask,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMask,
+                      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMaskSize - HAL_WOWL_BCAST_PATTERN_MAX_SIZE);
+   }
 
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
                    &wowlAddBcPtrnReq, 
@@ -12746,6 +12835,24 @@ WDI_ProcessWowlEnterReq
       pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowMaxMissedBeacons;
    wowlEnterReq.ucWowMaxSleepUsec = 
       pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowMaxSleepUsec;
+
+#ifdef WLAN_WAKEUP_EVENTS
+   wowlEnterReq.ucWoWEAPIDRequestEnable = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWoWEAPIDRequestEnable;
+
+   wowlEnterReq.ucWoWEAPOL4WayEnable =
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWoWEAPOL4WayEnable;
+
+   wowlEnterReq.ucWowNetScanOffloadMatch = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowNetScanOffloadMatch;
+
+   wowlEnterReq.ucWowGTKRekeyError = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowGTKRekeyError;
+
+   wowlEnterReq.ucWoWBSSConnLoss = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWoWBSSConnLoss;
+#endif // WLAN_WAKEUP_EVENTS
+
    wpalMemoryCopy(wowlEnterReq.magicPtrn,
                   pwdiWowlEnterParams->wdiWowlEnterInfo.magicPtrn,
                   sizeof(tSirMacAddr));
@@ -13244,10 +13351,10 @@ WDI_ProcessStartRsp
                                startRspParams->wcnssWlanVersion.version;
   wdiRspParams.wlanReportedVersion.revision =
                                startRspParams->wcnssWlanVersion.revision;
-  strlcpy(wdiRspParams.wcnssSoftwareVersion,
+  wpalMemoryCopy(wdiRspParams.wcnssSoftwareVersion,
           startRspParams->wcnssCrmVersionString,
           sizeof(wdiRspParams.wcnssSoftwareVersion));
-  strlcpy(wdiRspParams.wcnssHardwareVersion,
+  wpalMemoryCopy(wdiRspParams.wcnssHardwareVersion,
           startRspParams->wcnssWlanVersionString,
           sizeof(wdiRspParams.wcnssHardwareVersion));
   wdiRspParams.wdiStatus     = WDI_HAL_2_WDI_STATUS(startRspParams->status);
@@ -14132,6 +14239,8 @@ WDI_ProcessDelBSSRsp
   /*Extract BSSID for the response to UMAC*/
   wpalMemoryCopy(wdiDelBSSParams.macBSSID, 
                  pBSSSes->macBSSID, WDI_MAC_ADDR_LEN);
+
+  wdiDelBSSParams.ucBssIdx = halDelBssRspMsg.deleteBssRspParams.bssIdx;
 
   /*-----------------------------------------------------------------------
     The current session will be deleted 
@@ -17378,7 +17487,6 @@ WDI_ProcessNvDownloadRsp
   tHalNvImgDownloadRspParams halNvDownloadRsp;
   WDI_NvDownloadRspInfoType wdiNvDownloadRsp;
 
-
   /*-------------------------------------------------------------------------
    Sanity check 
   -------------------------------------------------------------------------*/
@@ -18588,6 +18696,9 @@ WDI_RXMsgCTSCB
     return;
   }
 
+  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+           "Rx smth from HAL: %d", wdiEventData.wdiResponse);
+
   /*Post response event to the state machine*/
   WDI_PostMainEvent(pWDICtx, WDI_RESPONSE_EVENT, &wdiEventData);
 
@@ -19129,11 +19240,29 @@ WDI_PALCtrlMsgCB
   -----------------------------------------------------------------------*/
   switch ( pEventData->wdiRequest )
   {
-     
+
   case WDI_STOP_REQ:
-    wdiStatus = WDI_PostMainEvent(&gWDICb, WDI_STOP_EVENT, pEventData);
-    break;
-  
+      
+      wdiStatus = WDI_PostMainEvent(&gWDICb, WDI_STOP_EVENT, pEventData);
+      break;
+
+
+  case WDI_NV_DOWNLOAD_REQ:
+      // When WDI State is WDI_STARTED_ST, send WDI request message with event type WDI_REQUEST_EVENT.
+      // In this case, because this request is called from response process, we could call WDI_ProcessRequest() directly.
+      if (pWDICtx->uGlobalState == WDI_STARTED_ST)  
+      {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "%s: WDI_NV_DOWNLOAD_REQ called in WDI_STARTED_ST - send with WDI_REQUEST_EVENT", __FUNCTION__);
+        wdiStatus = WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, pEventData);
+      }
+      else
+      {
+        wdiStatus = WDI_PostMainEvent(&gWDICb, WDI_START_EVENT, pEventData);
+      }
+      
+      break;
+
   default: 
     wdiStatus = WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, pEventData);
     break;
@@ -19950,7 +20079,6 @@ WDI_Status WDI_SendNvBlobReq
   WDI_NvDownloadReqParamsType*  pwdiNvDownloadReqParams =NULL ;
   WDI_NvDownloadRspCb      wdiNvDownloadRspCb;
 
-
   wdiNvDownloadRspCb = (WDI_NvDownloadRspCb)pEventData->pCBfnc;
   WDI_ASSERT(NULL != wdiNvDownloadRspCb);
   pwdiNvDownloadReqParams = (WDI_NvDownloadReqParamsType*)pEventData->pEventData;
@@ -19991,7 +20119,6 @@ WDI_Status WDI_SendNvBlobReq
     halNvImgDownloadParam.nvImageReqParams.isLastFragment =0;
     halNvImgDownloadParam.nvImageReqParams.nvImgBufferSize = usCurrentFragmentSize;
   }
-
 
   /*-----------------------------------------------------------------------
    Get message buffer
@@ -20300,8 +20427,13 @@ WDI_2_HAL_REQ_TYPE
 #endif // WLAN_FEATURE_PACKET_FILTERING
   case WDI_HAL_DUMP_CMD_REQ:
     return WLAN_HAL_DUMP_COMMAND_REQ;
-  /*This is temporary change and should be 
-   * removed once host and riva changes are in sync*/
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+  case WDI_GTK_OFFLOAD_REQ:
+    return WLAN_HAL_GTK_OFFLOAD_REQ;
+  case WDI_GTK_OFFLOAD_GETINFO_REQ:
+    return WLAN_HAL_GTK_OFFLOAD_GETINFO_REQ;
+#endif /* WLAN_FEATURE_GTK_OFFLOAD */
+
   case WDI_INIT_SCAN_CON_REQ:
     return WLAN_HAL_INIT_SCAN_CON_REQ; 
 
@@ -20501,6 +20633,7 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
   case WLAN_HAL_CLEAR_PACKET_FILTER_RSP:
     return WDI_RECEIVE_FILTER_CLEAR_FILTER_RESP;
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
   case WLAN_HAL_DUMP_COMMAND_RSP:
     return WDI_HAL_DUMP_CMD_RESP;
 
@@ -20510,6 +20643,17 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
   case WLAN_HAL_AGGR_ADD_TS_RSP:
     return WDI_AGGR_ADD_TS_RESP;
 #endif
+
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+  case WLAN_HAL_GTK_OFFLOAD_RSP:
+    return WDI_GTK_OFFLOAD_RESP;
+  case WLAN_HAL_GTK_OFFLOAD_GETINFO_RSP:
+    return WDI_GTK_OFFLOAD_GETINFO_RESP;
+#endif /* WLAN_FEATURE_GTK_OFFLOAD */
+#ifdef WLAN_WAKEUP_EVENTS
+  case WLAN_HAL_WAKE_REASON_IND:
+    return WDI_HAL_WAKE_REASON_IND;
+#endif // WLAN_WAKEUP_EVENTS
   default:
     return eDRIVER_TYPE_MAX; 
   }
@@ -20582,6 +20726,8 @@ WDI_2_HAL_SCAN_MODE
     return eHAL_SYS_MODE_SCAN;
   case WDI_SCAN_MODE_PROMISC:
     return eHAL_SYS_MODE_PROMISC; 
+  case WDI_SCAN_MODE_SUSPEND_LINK:
+    return eHAL_SYS_MODE_SUSPEND_LINK;
   }
 
   return eHAL_SYS_MODE_MAX; 
@@ -21444,7 +21590,7 @@ WDI_SetPreferredNetworkReq
   void*                      pUserData
 )
 {
-   WDI_EventInfoType      wdiEventData;
+   WDI_EventInfoType      wdiEventData = {{0}};
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*------------------------------------------------------------------------
@@ -21494,7 +21640,7 @@ WDI_SetRssiFilterReq
   void*                           pUserData
 )
 {
-   WDI_EventInfoType      wdiEventData;
+   WDI_EventInfoType      wdiEventData = {{0}};
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*------------------------------------------------------------------------
@@ -21543,7 +21689,7 @@ WDI_UpdateScanParamsReq
   void*                         pUserData
 )
 {
-   WDI_EventInfoType      wdiEventData;
+   WDI_EventInfoType      wdiEventData = {{0}};
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*------------------------------------------------------------------------
@@ -21594,7 +21740,7 @@ WDI_PackPreferredNetworkList
    wpt_uint8*                 pSendBuffer           = NULL; 
    wpt_uint16                 usDataOffset          = 0;
    wpt_uint16                 usSendSize            = 0;
-   tPrefNetwListParams        pPrefNetwListParams;
+   tPrefNetwListParams        pPrefNetwListParams = {0};
    wpt_uint8 i;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
@@ -21821,7 +21967,7 @@ WDI_PackPreferredNetworkListNew
      pPrefNetwListParams.aNetworks[i].rssiThreshold =
        pwdiPNOScanReqParams->wdiPNOScanInfo.aNetworks[i].rssiThreshold;
 
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
                "WDI SET PNO: SSID %d %s", 
                pPrefNetwListParams.aNetworks[i].ssId.length,
                pPrefNetwListParams.aNetworks[i].ssId.ssId);
@@ -21833,7 +21979,7 @@ WDI_PackPreferredNetworkListNew
      pwdiPNOScanReqParams->wdiPNOScanInfo.scanTimers.ucScanTimersCount :
       WLAN_HAL_PNO_MAX_SCAN_TIMERS;
 
-   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
                "WDI SET PNO: Scan timers count %d 24G P %d 5G Probe %d", 
                pPrefNetwListParams.scanTimers.ucScanTimersCount,
                pwdiPNOScanReqParams->wdiPNOScanInfo.us24GProbeSize,
@@ -22043,7 +22189,8 @@ WDI_ProcessUpdateScanParamsReq
    wpt_uint8*                    pSendBuffer           = NULL; 
    wpt_uint16                    usDataOffset          = 0;
    wpt_uint16                    usSendSize            = 0;
-   tUpdateScanParams             updateScanParams;
+   tUpdateScanParams             updateScanParams = {0};
+
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -22130,7 +22277,8 @@ WDI_ProcessPrefNetworkFoundInd
 )
 {
   WDI_LowLevelIndType  wdiInd;
-  tPrefNetwFoundInd    prefNetwFoundInd;
+  tPrefNetwFoundInd    prefNetwFoundInd = {{0}};
+
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -22543,7 +22691,6 @@ WDI_Process8023MulticastListReq
 
    /*-----------------------------------------------------------------------
      Get message buffer
-     ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, 
                          WDI_8023_MULTICAST_LIST_REQ, 
@@ -22649,7 +22796,6 @@ WDI_ProcessReceiveFilterSetFilterReq
 
    /*-----------------------------------------------------------------------
      Get message buffer
-     ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_RECEIVE_FILTER_SET_FILTER_REQ, 
                          usRcvPktFilterCfgSize,
@@ -22706,7 +22852,7 @@ WDI_ProcessReceiveFilterSetFilterReq
            pRcvPktFilterCfg->paramsData[i].protocolLayer, 
            pRcvPktFilterCfg->paramsData[i].cmpFlag);
 
-      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
            "Data Offset %d Data Len %d\n",
            pRcvPktFilterCfg->paramsData[i].dataOffset, 
            pRcvPktFilterCfg->paramsData[i].dataLength);
@@ -22768,7 +22914,7 @@ WDI_ProcessFilterMatchCountReq
 {
    WDI_RcvFltPktMatchCntReqParamsType*    pwdiRcvFltPktMatchCntReqParamsType =
                                                                          NULL;
-   WDI_FilterMatchCountCb               wdiFilterMatchCountCb            =
+   WDI_FilterMatchCountCb                 wdiFilterMatchCountCb              =
                                                                          NULL;
    wpt_uint8*                             pSendBuffer           = NULL; 
    wpt_uint16                             usDataOffset          = 0;
@@ -22794,7 +22940,6 @@ WDI_ProcessFilterMatchCountReq
 
    /*-----------------------------------------------------------------------
      Get message buffer
-     ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, 
                          WDI_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ, 
@@ -22870,7 +23015,6 @@ WDI_ProcessReceiveFilterClearFilterReq
 
    /*-----------------------------------------------------------------------
      Get message buffer
-     ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx,
                          WDI_RECEIVE_FILTER_CLEAR_FILTER_REQ, 
@@ -23327,6 +23471,440 @@ WDI_ProcessSetPowerParamsRsp
 }/*WDI_ProcessSetPowerParamsRsp*/
 
 
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+/**
+ @brief WDI_GTKOffloadReq will be called when the upper MAC 
+        wants to set GTK Rekey Counter while in power save. Upon
+        the call of this API the WLAN DAL will pack and send a
+        HAL GTK offload request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiGtkOffloadParams: the GTK offload as specified 
+                      by the Device Interface
+  
+        wdiGtkOffloadCb: callback for passing back the response
+        of the GTK offload operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_GTKOffloadReq
+(
+  WDI_GtkOffloadReqMsg*      pwdiGtkOffloadReqMsg,
+  WDI_GtkOffloadCb           wdiGtkOffloadCb,
+  void*                      pUserData
+)
+{
+   WDI_EventInfoType      wdiEventData = {0};
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+
+     return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_GTK_OFFLOAD_REQ;
+   wdiEventData.pEventData      = pwdiGtkOffloadReqMsg; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiGtkOffloadReqMsg);; 
+   wdiEventData.pCBfnc          = wdiGtkOffloadCb; 
+   wdiEventData.pUserData       = pUserData;
+
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
+
+
+/**
+ @brief WDI_GTKOffloadGetInfoReq will be called when the upper 
+          MAC wants to get GTK Rekey Counter while in power save.
+          Upon the call of this API the WLAN DAL will pack and
+          send a HAL GTK offload request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiGtkOffloadGetInfoReqMsg: the GTK Offload 
+                        Information Message as specified by the
+                        Device Interface
+  
+          wdiGtkOffloadGetInfoCb: callback for passing back the
+          response of the GTK offload operation received from the
+          device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_GTKOffloadGetInfoReq
+(
+  WDI_GtkOffloadGetInfoReqMsg*  pwdiGtkOffloadGetInfoReqMsg,
+  WDI_GtkOffloadGetInfoCb       wdiGtkOffloadGetInfoCb,
+  void*                          pUserData
+)
+{
+   WDI_EventInfoType      wdiEventData = {0};
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+
+     return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_GTK_OFFLOAD_GETINFO_REQ;
+   wdiEventData.pEventData      = pwdiGtkOffloadGetInfoReqMsg; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiGtkOffloadGetInfoReqMsg);
+   wdiEventData.pCBfnc          = wdiGtkOffloadGetInfoCb; 
+   wdiEventData.pUserData       = pUserData;
+
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
+
+
+/**
+ @brief Process set GTK Offload Request function 
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessGTKOffloadReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_GtkOffloadReqMsg*    pwdiGtkOffloadReqMsg = NULL;
+   WDI_GtkOffloadCb         wdiGtkOffloadCb      = NULL;
+   wpt_uint8*               pSendBuffer          = NULL; 
+   wpt_uint16               usDataOffset         = 0;
+   wpt_uint16               usSendSize           = 0;
+   tHalGtkOffloadReqParams  gtkOffloadReqParams = {0};
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pEventData ) ||
+       ( NULL == (pwdiGtkOffloadReqMsg = (WDI_GtkOffloadReqMsg*)pEventData->pEventData)) ||
+       ( NULL == (wdiGtkOffloadCb   = (WDI_GtkOffloadCb)pEventData->pCBfnc)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+   -----------------------------------------------------------------------*/
+   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_GTK_OFFLOAD_REQ, 
+                         sizeof(gtkOffloadReqParams),
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+       ( usSendSize < (usDataOffset + sizeof(gtkOffloadReqParams) )))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Unable to get send buffer in GTK offload req %x %x %x",
+                  pEventData, pwdiGtkOffloadReqMsg, wdiGtkOffloadCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   //
+   // Fill gtkOffloadReqParams from pwdiGtkOffloadReqMsg->gtkOffloadReqParams
+   //
+   gtkOffloadReqParams.ulFlags = pwdiGtkOffloadReqMsg->gtkOffloadReqParams.ulFlags;
+   // Copy KCK
+   wpalMemoryCopy(&(gtkOffloadReqParams.aKCK[0]), &(pwdiGtkOffloadReqMsg->gtkOffloadReqParams.aKCK[0]), 16);
+   // Copy KEK
+   wpalMemoryCopy(&(gtkOffloadReqParams.aKEK[0]), &(pwdiGtkOffloadReqMsg->gtkOffloadReqParams.aKEK[0]), 16);
+   // Copy KeyReplayCounter
+   wpalMemoryCopy(&(gtkOffloadReqParams.ullKeyReplayCounter), &(pwdiGtkOffloadReqMsg->gtkOffloadReqParams.ullKeyReplayCounter), sizeof(v_U64_t));
+
+   wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                   &gtkOffloadReqParams, 
+                   sizeof(gtkOffloadReqParams)); 
+
+   pWDICtx->wdiReqStatusCB     = pwdiGtkOffloadReqMsg->wdiReqStatusCB;
+   pWDICtx->pReqStatusUserData = pwdiGtkOffloadReqMsg->pUserData; 
+
+   /*-------------------------------------------------------------------------
+     Send Get STA Request to HAL 
+   -------------------------------------------------------------------------*/
+   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiGtkOffloadCb, pEventData->pUserData, WDI_GTK_OFFLOAD_RESP); 
+}
+
+
+/**
+ @brief Process GTK Offload Get Information Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessGTKOffloadGetInfoReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_GtkOffloadGetInfoReqMsg*     pwdiGtkOffloadGetInfoReqMsg = NULL;
+   WDI_GtkOffloadGetInfoCb          wdiGtkOffloadGetInfoCb      = NULL;
+   wpt_uint8*                       pSendBuffer           = NULL; 
+   wpt_uint16                       usDataOffset          = 0;
+   wpt_uint16                       usSendSize            = 0;
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pEventData ) ||
+       ( NULL == (pwdiGtkOffloadGetInfoReqMsg = (WDI_GtkOffloadGetInfoReqMsg*)pEventData->pEventData)) ||
+       ( NULL == (wdiGtkOffloadGetInfoCb = (WDI_GtkOffloadGetInfoCb)pEventData->pCBfnc)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+   -----------------------------------------------------------------------*/
+   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_GTK_OFFLOAD_GETINFO_REQ, 
+                         0,
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+       ( usSendSize < usDataOffset))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Unable to get send buffer in WDI_ProcessGTKOffloadGetInfoReq() %x %x %x",
+                  pEventData, pwdiGtkOffloadGetInfoReqMsg, wdiGtkOffloadGetInfoCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   //
+   // Don't need to fill send buffer other than header
+   //
+
+   pWDICtx->wdiReqStatusCB     = pwdiGtkOffloadGetInfoReqMsg->wdiReqStatusCB;
+   pWDICtx->pReqStatusUserData = pwdiGtkOffloadGetInfoReqMsg->pUserData; 
+
+   /*-------------------------------------------------------------------------
+     Send Get STA Request to HAL 
+   -------------------------------------------------------------------------*/
+   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiGtkOffloadGetInfoCb, pEventData->pUserData, WDI_GTK_OFFLOAD_GETINFO_RESP); 
+}
+
+/**
+ @brief Process host offload Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessGtkOffloadRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_Status           wdiStatus;
+   eHalStatus           halStatus;
+   WDI_GtkOffloadCb    wdiGtkOffloadCb   = NULL;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   wdiGtkOffloadCb = (WDI_GtkOffloadCb)pWDICtx->pfncRspCB; 
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+   halStatus = *((eHalStatus*)pEventData->pEventData);
+   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+   /*Notify UMAC*/
+   wdiGtkOffloadCb( wdiStatus, pWDICtx->pRspCBUserData);
+
+   return WDI_STATUS_SUCCESS; 
+}
+
+/**
+ @brief Process GTK Offload Get Information Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessGTKOffloadGetInfoRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_Status           wdiStatus;
+   eHalStatus           halStatus;
+
+   WDI_GtkOffloadGetInfoCb   wdiGtkOffloadGetInfoCb = NULL;
+
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   wdiGtkOffloadGetInfoCb = (WDI_GtkOffloadGetInfoCb)pWDICtx->pfncRspCB; 
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData ))
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+   halStatus = *((eHalStatus*)pEventData->pEventData);
+   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+   /*Notify UMAC*/
+   //wdiUpdateScanParamsCb(wdiStatus, pWDICtx->pRspCBUserData);
+   //wdiReceiveFilterClearFilterCb(wdiStatus, pWDICtx->pRspCBUserData);
+   wdiGtkOffloadGetInfoCb(wdiStatus, pWDICtx->pRspCBUserData);
+
+   return WDI_STATUS_SUCCESS; 
+}
+#endif // WLAN_FEATURE_GTK_OFFLOAD
+
+#ifdef WLAN_WAKEUP_EVENTS
+WDI_Status
+WDI_ProcessWakeReasonInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_LowLevelIndType *pWdiInd;
+  tpWakeReasonParams pWakeReasonParams;
+  wpt_uint32 allocSize = 0;
+
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+            "+%s", __FUNCTION__);
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData ))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
+     WDI_ASSERT( 0 );
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  /*-------------------------------------------------------------------------
+    Extract indication and send it to UMAC
+  -------------------------------------------------------------------------*/
+  pWakeReasonParams = (tpWakeReasonParams)(pEventData->pEventData);
+  
+  allocSize = sizeof(WDI_LowLevelIndType) + (pWakeReasonParams->ulStoredDataLen - 1);
+
+  //Allocate memory for WDI_WakeReasonIndType structure
+  pWdiInd = wpalMemoryAllocate(allocSize) ;
+
+  if(NULL == pWdiInd)
+  {
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+            "%s: Failed to allocate memory for WDI_WakeReasonIndType: %x %x %x ",
+                __FUNCTION__, pWDICtx, pEventData, pEventData->pEventData);
+    WDI_ASSERT(0);
+    return WDI_STATUS_E_FAILURE; 
+  }
+
+  wpalMemoryZero(pWdiInd, allocSize);
+
+  /* Fill in the indication parameters*/
+  // Fill wdiInd.wdiIndicationData.wakeReasonInd structure from wakeReasonInd.wakeReasonParams
+  pWdiInd->wdiIndicationType = WDI_WAKE_REASON_IND; 
+  pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulReason = pWakeReasonParams->ulReason;
+  pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulReasonArg = pWakeReasonParams->ulReasonArg;
+  pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulStoredDataLen = pWakeReasonParams->ulStoredDataLen;
+  pWdiInd->wdiIndicationData.wdiWakeReasonInd.ulActualDataLen = pWakeReasonParams->ulActualDataLen;    
+  wpalMemoryCopy( (void *)&(pWdiInd->wdiIndicationData.wdiWakeReasonInd.aDataStart[0]), 
+                  &(pWakeReasonParams->aDataStart[0]), 
+                  pWakeReasonParams->ulStoredDataLen);
+
+  /*Notify UMAC*/
+  pWDICtx->wdiLowLevelIndCB( pWdiInd, pWDICtx->pIndUserData );
+  
+  //Free memory allocated for WDI_WakeReasonIndType structure
+  wpalMemoryFree(pWdiInd);
+
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+            "-%s", __FUNCTION__);
+
+  return WDI_STATUS_SUCCESS; 
+}
+#endif // WLAN_WAKEUP_EVENTS
 void WDI_GetWcnssCompiledApiVersion
 (
   WDI_WlanVersionType     *pWcnssApiVersion

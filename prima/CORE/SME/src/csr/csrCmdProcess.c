@@ -121,13 +121,12 @@ void csrFullPowerCallback(void *pv, eHalStatus status)
 
     (void)status;
     
-    csrLLLock(&pMac->roam.roamCmdPendingList);
-    while( NULL != ( pEntry = csrLLRemoveHead( &pMac->roam.roamCmdPendingList, eANI_BOOLEAN_FALSE ) ) )
+    while( NULL != ( pEntry = csrLLRemoveHead( &pMac->roam.roamCmdPendingList, eANI_BOOLEAN_TRUE ) ) )
     {
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         smePushCommand( pMac, pCommand, eANI_BOOLEAN_FALSE );
     }
-    csrLLUnlock(&pMac->roam.roamCmdPendingList);
+
 }
 
 

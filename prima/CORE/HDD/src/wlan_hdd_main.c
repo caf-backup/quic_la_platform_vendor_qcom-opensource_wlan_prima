@@ -123,6 +123,10 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #define MEMORY_DEBUG_STR ""
 #endif
 
+extern struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ;
+extern struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ;
+extern struct ieee80211_supported_band wlan_hdd_band_5_GHZ;
+
 static struct wake_lock wlan_wake_lock;
 /* set when SSR is needed after unload */
 static v_U8_t      isSsrRequired;
@@ -1109,7 +1113,7 @@ VOS_STATUS hdd_register_interface( hdd_adapter_t *pAdapter, tANI_U8 rtnl_lock_he
    return VOS_STATUS_SUCCESS;
 }
 
-static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
+eHalStatus hdd_smeCloseSessionCallback(void *pContext)
 {
    if(pContext != NULL)
    {
@@ -1402,10 +1406,9 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
 
 }
 
-VOS_STATUS hdd_enable_bmps(hdd_context_t *pHddCtx)
+VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
-
 
    if(pHddCtx->cfg_ini->fIsBmpsEnabled)
    {
@@ -1417,15 +1420,21 @@ VOS_STATUS hdd_enable_bmps(hdd_context_t *pHddCtx)
       sme_StartAutoBmpsTimer(pHddCtx->hHal); 
    }
 
+   if (pHddCtx->cfg_ini->fIsImpsEnabled)
+   {
+      sme_EnablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+   }
+
    return status;
 }
 
-VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
+VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type)
 {
-   hdd_adapter_t *pStaAdapter = NULL;
+   hdd_adapter_t *pAdapter = NULL;
    eHalStatus halStatus;
    VOS_STATUS status = VOS_STATUS_E_INVAL;
    v_BOOL_t disableBmps = FALSE;
+   v_BOOL_t disableImps = FALSE;
    
    switch(session_type)
    {
@@ -1436,18 +1445,34 @@ VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
        case WLAN_HDD_P2P_GO:
 #endif
           //Exit BMPS -> Is Sta/P2P Client is already connected
-          pStaAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
-          if((NULL != pStaAdapter)&&
-              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pStaAdapter)))
+          pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+          if((NULL != pAdapter)&&
+              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
           {
              disableBmps = TRUE;
           }
 
-          pStaAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
-          if((NULL != pStaAdapter)&&
-              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pStaAdapter)))
+          pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
+          if((NULL != pAdapter)&&
+              hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)))
           {
              disableBmps = TRUE;
+          }
+
+          //Exit both Bmps and Imps incase of Go/SAP Mode
+          if((WLAN_HDD_SOFTAP == session_type) ||
+              (WLAN_HDD_P2P_GO == session_type))
+          {
+             disableBmps = TRUE;
+             disableImps = TRUE;
+          }
+
+          if(TRUE == disableImps)
+          {
+             if (pHddCtx->cfg_ini->fIsImpsEnabled)
+             {
+                sme_DisablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+             }
           }
 
           if(TRUE == disableBmps)
@@ -1477,7 +1502,11 @@ VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
                     return status;
                  }
               }
+          }
 
+          if((TRUE == disableBmps) ||
+              (TRUE == disableImps))
+          {
               /* Now, get the chip into Full Power now */
               INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
               halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_full_pwr_cbk,
@@ -1502,6 +1531,7 @@ VOS_STATUS hdd_disable_bmps(hdd_context_t *pHddCtx, tANI_U8 session_type)
 
               status = VOS_STATUS_SUCCESS;
           }
+
           break;
    }
    return status;
@@ -1519,7 +1549,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
 
    //Disable BMPS incase of Concurrency
-   exitbmpsStatus = hdd_disable_bmps(pHddCtx, session_type);
+   exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, session_type);
 
    if(VOS_STATUS_E_FAILURE == exitbmpsStatus)
    {
@@ -1642,7 +1672,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
          if( NULL == pAdapter )
             return NULL;
-     
+         /* Assign NL80211_IFTYPE_STATION as interface type to resolve Kernel Warning
+          * message while loading driver in FTM mode. */
+         pAdapter->wdev.iftype = NL80211_IFTYPE_STATION;
          pAdapter->device_mode = session_type;
          status = hdd_register_interface( pAdapter, rtnl_held );
       }
@@ -1714,7 +1746,7 @@ resume_bmps:
    //If bmps disabled enable it
    if(VOS_STATUS_SUCCESS == exitbmpsStatus)
    {
-      hdd_enable_bmps(pHddCtx);
+      hdd_enable_bmps_imps(pHddCtx);
    }
    return NULL;
 }
@@ -1761,7 +1793,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
            ((pHddCtx->no_of_sessions[VOS_STA_MODE] >= 1) || 
            (pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE] >= 1)))
       {
-         hdd_enable_bmps(pHddCtx);
+         hdd_enable_bmps_imps(pHddCtx);
       }
 
       return VOS_STATUS_SUCCESS;
@@ -3393,6 +3425,39 @@ int hdd_wlan_startup(struct device *dev )
       }
    }
 #endif // FEATURE_WLAN_INTEGRATED_SOC
+
+   /* Update the HT capability info from cfg.dat info */
+   {
+
+      v_U32_t cfgValue;
+      wlan_cfgGetInt( pHddCtx->hHal, WNI_CFG_GREENFIELD_CAPABILITY, &cfgValue);
+      if( cfgValue )
+      {
+          wlan_hdd_band_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_GRN_FLD;
+          wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_GRN_FLD;
+          wlan_hdd_band_5_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_GRN_FLD;
+      }
+
+      memset(&cfgValue,0,sizeof(v_U32_t));
+      wlan_cfgGetInt( pHddCtx->hHal, WNI_CFG_HT_CAP_INFO_DSSS_CCK_MODE_40MHZ,
+                      &cfgValue);
+      if( cfgValue )
+      {
+          wlan_hdd_band_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_DSSSCCK40;
+          wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_DSSSCCK40;
+          wlan_hdd_band_5_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_DSSSCCK40;
+      }
+
+      memset(&cfgValue,0,sizeof(v_U32_t));
+      wlan_cfgGetInt( pHddCtx->hHal,WNI_CFG_HT_CAP_INFO_LSIG_TXOP_PROTECTION,
+                      &cfgValue);
+      if( cfgValue )
+      {
+          wlan_hdd_band_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_LSIG_TXOP_PROT;
+          wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_LSIG_TXOP_PROT;
+          wlan_hdd_band_5_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_LSIG_TXOP_PROT;
+      }
+   }
 
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
      Note: Firmware image will be read and downloaded inside vos_start API */

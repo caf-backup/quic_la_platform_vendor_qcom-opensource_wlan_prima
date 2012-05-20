@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( __WLAN_QCT_PAL_PACKET_H )
 #define __WLAN_QCT_PAL_PACKET_H
 
@@ -17,6 +23,8 @@
 
 #include "wlan_qct_pal_type.h"
 #include "wlan_qct_pal_status.h"
+
+#define VPKT_SIZE_BUFFER  (1792) // It should be the same with VPKT_SIZE_RX_RAW_BUFFER 
 
 typedef enum
 {
@@ -234,5 +242,16 @@ wpt_status wpalLockPacketForTransfer( wpt_packet *pPacket);
         eWLAN_PAL_STATUS_SUCCESS - success
 ---------------------------------------------------------------------------*/
 wpt_status wpalUnlockPacket( wpt_packet *pPacket);
+
+/*---------------------------------------------------------------------------
+    wpalPacketGetFragCount – Get count of memory chains (fragments)
+                       in a packet
+    Param: 
+        pPacket – pointer to a wpt_packet
+ 
+    Return:
+        memory fragment count in a packet
+---------------------------------------------------------------------------*/
+wpt_int32 wpalPacketGetFragCount(wpt_packet *pPkt);
 
 #endif // __WLAN_QCT_PAL_PACKET_H

@@ -43,7 +43,7 @@
 
 // local functions
 static tSirRetStatus getWmmLocalParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN]);
-static void setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN]);
+static void setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN], tpPESession psessionEntry);
 
 // --------------------------------------------------------------------
 /**
@@ -456,15 +456,13 @@ schQosUpdateBroadcast(tpAniSirGlobal pMac, tpPESession psessionEntry)
         PELOGE(schLog(pMac, LOGE, FL("QosUpdateBroadcast: failed\n"));)
         return;
     }
-#ifdef  WLAN_SOFTAP_FEATURE
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    if(psessionEntry)
     {
-         phyMode=psessionEntry->nwType;
+        limGetPhyMode(psessionEntry, &phyMode);
     }
     else
-#endif  /*WLAN_SOFTAP_FEATURE*/
     {
-      limGetPhyMode(pMac, &phyMode);
+        phyMode = pMac->lim.gLimPhyMode;
     }
     PELOG1(schLog(pMac, LOG1, "QosUpdBcast: mode %d\n", phyMode);)
 
@@ -522,7 +520,7 @@ schQosUpdateLocal(tpAniSirGlobal pMac, tpPESession psessionEntry)
         return;
     }
 
-    setSchEdcaParams(pMac, params);
+    setSchEdcaParams(pMac, params, psessionEntry);
 
     if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
     {
@@ -548,7 +546,7 @@ schQosUpdateLocal(tpAniSirGlobal pMac, tpPESession psessionEntry)
 \return  none
 \ ------------------------------------------------------------ */
 void
-schSetDefaultEdcaParams(tpAniSirGlobal pMac)
+schSetDefaultEdcaParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
     tANI_U32 params[4][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN];
 
@@ -558,7 +556,7 @@ schSetDefaultEdcaParams(tpAniSirGlobal pMac)
         return;
     }
 
-    setSchEdcaParams(pMac, params);
+    setSchEdcaParams(pMac, params, psessionEntry);
     return;
 }
 
@@ -571,21 +569,18 @@ schSetDefaultEdcaParams(tpAniSirGlobal pMac)
 \return  none
 \ ------------------------------------------------------------ */
 static void
-setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN])
+setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN], tpPESession psessionEntry)
 {
     tANI_U32 i;
     tANI_U32 cwminidx, cwmaxidx, txopidx;
     tANI_U32 phyMode;
-#ifdef  WLAN_SOFTAP_FEATURE
-    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    if(psessionEntry)
     {
-         phyMode=psessionEntry->nwType;
+        limGetPhyMode(psessionEntry, &phyMode);
     }
     else
-#endif /* WLAN_SOFTAP_FEATURE*/
     {
-       limGetPhyMode(pMac, &phyMode);
+        phyMode = pMac->lim.gLimPhyMode;
     }
     PELOG1(schLog(pMac, LOG1, FL("limGetPhyMode() = %d\n"), phyMode);)
 

@@ -1253,6 +1253,14 @@ void pmmProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             pmmFilterMatchCountResponseHandler(pMac, pMsg);
             break;
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+        case WDA_GTK_OFFLOAD_GETINFO_RSP:
+            pmmGTKOffloadGetInfoResponseHandler(pMac, pMsg);
+            break;
+#endif // WLAN_FEATURE_GTK_OFFLOAD
+
         default:
             PELOGW(pmmLog(pMac, LOGW, 
                 FL("PMM: Unknown message in pmmMsgQ type %d, potential memory leak!!\n"),
@@ -2081,6 +2089,14 @@ void pmmEnterWowlRequestHandler(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     pHalWowlParams->ucPatternFilteringEnable = pSmeWowlParams->ucPatternFilteringEnable;
     (void)palCopyMemory( pMac->hHdd, (tANI_U8 *)pHalWowlParams->magicPtrn, (tANI_U8 *)pSmeWowlParams->magicPtrn, sizeof(tSirMacAddr) );
 
+#ifdef WLAN_WAKEUP_EVENTS
+    pHalWowlParams->ucWoWEAPIDRequestEnable = pSmeWowlParams->ucWoWEAPIDRequestEnable;
+    pHalWowlParams->ucWoWEAPOL4WayEnable = pSmeWowlParams->ucWoWEAPOL4WayEnable;
+    pHalWowlParams->ucWowNetScanOffloadMatch = pSmeWowlParams->ucWowNetScanOffloadMatch;
+    pHalWowlParams->ucWowGTKRekeyError = pSmeWowlParams->ucWowGTKRekeyError;
+    pHalWowlParams->ucWoWBSSConnLoss = pSmeWowlParams->ucWoWBSSConnLoss;
+#endif // WLAN_WAKEUP_EVENTS
+
     if(wlan_cfgGetInt(pMac, WNI_CFG_WOWLAN_UCAST_PATTERN_FILTER_ENABLE, &cfgValue) != eSIR_SUCCESS)
     {
         limLog(pMac, LOGP, FL("cfgGet failed for WNI_CFG_WOWLAN_UCAST_PATTERN_FILTER_ENABLE"));
@@ -2758,3 +2774,40 @@ void pmmFilterMatchCountResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     return;
 }
 #endif // WLAN_FEATURE_PACKET_FILTERING
+
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+void pmmGTKOffloadGetInfoResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
+{
+    tpSirGtkOffloadGetInfoRspParams  pGtkOffloadGetInfoRspParams;
+    eHalStatus                       rspStatus;
+    tSirResultCodes                  smeRspCode = eSIR_SME_SUCCESS;
+
+    /* we need to process all the deferred messages enqueued
+     * since the initiating the WDA_GTK_OFFLOAD_GETINFO_REQ.
+     */
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+
+    pGtkOffloadGetInfoRspParams = (tpSirGtkOffloadGetInfoRspParams)(limMsg->bodyptr);
+    if (NULL == pGtkOffloadGetInfoRspParams)
+    {
+        pmmLog(pMac, LOGE, FL("Received WDA_GTK_OFFLOAD_GETINFO_RSP with NULL msg "));
+        smeRspCode = eSIR_SME_GTK_OFFLOAD_GETINFO_REQ_FAILED;
+    }
+    else
+    {
+        rspStatus = pGtkOffloadGetInfoRspParams->ulStatus;
+        if(rspStatus == eHAL_STATUS_SUCCESS)
+        {
+            pmmLog(pMac, LOGW, FL("Rcv successful response from HAL to get GTK Offload Information\n"));
+        }
+        else
+        {
+            pmmLog(pMac, LOGE, FL("HAL failed to get GTK Offload Information, informing SME\n"));
+            smeRspCode = eSIR_SME_GTK_OFFLOAD_GETINFO_REQ_FAILED;
+        }
+    }
+
+    limSendSmeRsp(pMac, eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP, smeRspCode, 0, 0);
+    return;
+}
+#endif // WLAN_FEATURE_GTK_OFFLOAD
