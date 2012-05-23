@@ -62,7 +62,7 @@ when           who        what, where, why
 
 /* Default RX OS frame buffer size
  * Size must be same with Vos Packet Size */
-#define WLANDXE_DEFAULT_RX_OS_BUFFER_SIZE  1792
+#define WLANDXE_DEFAULT_RX_OS_BUFFER_SIZE  (VPKT_SIZE_BUFFER)
 
 /*The maximum number of packets that can be chained in dxe for the Low 
   priority channel

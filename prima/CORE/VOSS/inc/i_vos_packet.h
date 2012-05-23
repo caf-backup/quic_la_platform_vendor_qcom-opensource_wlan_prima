@@ -54,20 +54,6 @@
 // VOS_PKT_TYPE_TX_802_11_DATA
 #define VPKT_NUM_TX_DATA_PACKETS ( 128 )
 
-// The size of the data buffer in the VOS_PKT_TYPE_RX_RAW vos packets
-// Explanation:
-// MTU size  = 1500 bytes
-// Max number of BD/PDUs required to hold payload of 1500 =
-//   12 PDUs (124 bytes each) + 1 BD (12 bytes for payload) =
-//   13 BD/PDUs = 13 x 128 = 1664 bytes
-//
-// In case of A-MSDU with each MSDU having payload of 1500 bytes:
-//   1st MSDU = requires 13 BD/PDUs as per the above equation.
-//   2nd MSDU = HW inserts an extra BD to hold the information of the 2nd
-//   MSDU and the payload portion of this BD is unused which means to cover
-//   1500 bytes we require 13 PDUs.
-//   So 13 PDUs + 1 BD = 14 BD/PDUs = 1792 bytes.
-
 // the number of VOS Packets we need.  This is the memory we need to
 // allocate for the vos Packet structures themselves.  We need vos
 // packet structures for all of the packet types (RX_RAW, TX_MGMT, and

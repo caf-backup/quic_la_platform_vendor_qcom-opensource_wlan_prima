@@ -24,7 +24,31 @@
 #include "wlan_qct_pal_type.h"
 #include "wlan_qct_pal_status.h"
 
-#define VPKT_SIZE_BUFFER  (1792) // It should be the same with VPKT_SIZE_RX_RAW_BUFFER 
+// The size of the data buffer in vos/pal packets
+// Explanation:
+// MTU size  = 1500 bytes
+// Max number of BD/PDUs required to hold payload of 1500 =
+//   12 PDUs (124 bytes each) + 1 BD (12 bytes for payload) =
+//   13 BD/PDUs = 13 x 128 = 1664 bytes
+//
+// In case of A-MSDU with each MSDU having payload of 1500 bytes:
+//   1st MSDU = requires 13 BD/PDUs as per the above equation.
+//   2nd MSDU = HW inserts an extra BD to hold the information of the 2nd
+//   MSDU and the payload portion of this BD is unused which means to cover
+//   1500 bytes we require 13 PDUs.
+//   So 13 PDUs + 1 BD = 14 BD/PDUs = 1792 bytes.
+//
+// HOWEVER
+// In case of A-MSDU with errors, the ADU will push to the host up to
+// 2346 bytes.  If that is the 2nd or later MSDU the worst case is:
+//   1 Prepended BD/PDU
+//   1 BD/PDU containing the 1st 4 bytes of the delimiter
+//   1 BD/PDU containing the last 10 bytes of the delimiter
+//     plus the first 114 of the payload
+//   18 BD/PDUs containing the remaining 2232 bytes of the payload
+//     2346 - 114 = 2232; 2232 / 124 = 18
+//   So 21 BD/PDUs are required
+#define VPKT_SIZE_BUFFER  (21 * 128)
 
 typedef enum
 {
