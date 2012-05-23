@@ -4296,6 +4296,12 @@ VOS_STATUS WLANBAP_SetConfig
         return VOS_STATUS_E_FAILURE;
     }
     pctx = gpBslctx;
+    if ( NULL == pctx )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "Invalid BSL pointer from pctx on WLANBAP_SetConfig");
+        return VOS_STATUS_E_FAULT;
+    }
 
     // get a handle from BAP
     status = WLANBAP_GetNewHndl(&pctx->bapHdl);
@@ -4329,13 +4335,13 @@ VOS_STATUS WLANBAP_RegisterWithHCI(hdd_adapter_t *pAdapter)
     if ( NULL == pctx )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                   "Invalid BSL pointer from pctx on BSL_Init");
+                   "Invalid BSL pointer from pctx on WLANBAP_RegisterWithHCI");
         return VOS_STATUS_E_FAULT;
     }
     if ( NULL == pAdapter )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                   "Invalid HDD Adapter pointer from pvosGCtx on BSL_Init");
+                   "Invalid HDD Adapter pointer from pvosGCtx on WLANBAP_RegisterWithHCI");
         return VOS_STATUS_E_FAULT;
     }
 
@@ -4440,7 +4446,7 @@ VOS_STATUS WLANBAP_DeregisterFromHCI(void)
     if ( NULL == pctx )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                   "Invalid BSL pointer from pvosGCtx on BSL_Init");
+                   "Invalid BSL pointer from pvosGCtx on WLANBAP_DeregisterFromHCI");
         return VOS_STATUS_E_FAULT;
     }
 
@@ -4473,10 +4479,19 @@ VOS_STATUS WLANBAP_StopAmp(void)
 
     pctx = gpBslctx;
 
-    //is AMP session on, if so disconnect
-    if(VOS_TRUE == WLAN_BAPSessionOn(pctx->bapHdl))
+    if(NULL == pctx)
     {
-        status = WLAN_BAPDisconnect(pctx->bapHdl);
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "Invalid BSL pointer from pvosGCtx on WLANBAP_StopAmp");
+        status = VOS_STATUS_E_FAULT;
+    }
+    else
+    {
+        //is AMP session on, if so disconnect
+        if(VOS_TRUE == WLAN_BAPSessionOn(pctx->bapHdl))
+        {
+            status = WLAN_BAPDisconnect(pctx->bapHdl);
+        }
     }
     return status;
 }
@@ -4486,8 +4501,16 @@ v_BOOL_t WLANBAP_AmpSessionOn(void)
     BslClientCtxType* pctx;
 
     pctx = gpBslctx;
-
-    return( WLAN_BAPSessionOn(pctx->bapHdl));
+    if(NULL == pctx)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "Invalid BSL pointer from pvosGCtx on WLANBAP_AmpSessionOn");
+        return VOS_FALSE;
+    }
+    else
+    {
+        return( WLAN_BAPSessionOn(pctx->bapHdl));
+    }
 }
 
 
