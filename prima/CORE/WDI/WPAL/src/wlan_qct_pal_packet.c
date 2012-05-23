@@ -659,11 +659,20 @@ wpt_status wpalUnlockPacket( wpt_packet *pPacket)
    if (unlikely(NULL == pPacket))
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "%s : NULL input pointer", __FUNCTION__);
+                "%s : NULL input pointer pPacket", __FUNCTION__);
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
    pInfo  = (wpt_iterator_info*)pPacket->pInternalData;
+
+   // Validate pInfo
+   if (unlikely(NULL == pInfo))
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "%s : NULL input pointer pInfo", __FUNCTION__);
+      return eWLAN_PAL_STATUS_E_INVAL;
+   }
+
    switch(WPAL_PACKET_GET_TYPE(pPacket))
    {
       /* For management frames, BD is allocated by WDI, header is in raw buffer,
@@ -709,5 +718,34 @@ wpt_status wpalUnlockPacket( wpt_packet *pPacket)
   wpalMemoryFree(pInfo);
   pPacket->pInternalData = NULL;
   return eWLAN_PAL_STATUS_SUCCESS;
+}/*wpalUnlockPacket*/
+
+/*---------------------------------------------------------------------------
+    wpalIsPacketLocked –  Check whether the Packet is locked for DMA.
+    Param: 
+        pPacket – pointer to a wpt_packet
+ 
+    Return:
+        eWLAN_PAL_STATUS_SUCCESS
+        eWLAN_PAL_STATUS_E_FAILURE
+        eWLAN_PAL_STATUS_E_INVAL
+---------------------------------------------------------------------------*/
+wpt_status wpalIsPacketLocked( wpt_packet *pPacket)
+{
+
+   wpt_iterator_info* pInfo;
+
+   /* Validate the parameter pointers */
+   if (unlikely(NULL == pPacket))
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                "%s : NULL input pointer", __FUNCTION__);
+      return eWLAN_PAL_STATUS_E_INVAL;
+   }
+
+   /* Validate pInternalData */
+   pInfo  = (wpt_iterator_info*)pPacket->pInternalData;
+   return (NULL == pInfo)? eWLAN_PAL_STATUS_E_FAILURE : 
+                    eWLAN_PAL_STATUS_SUCCESS;
 }/*wpalUnlockPacket*/
 

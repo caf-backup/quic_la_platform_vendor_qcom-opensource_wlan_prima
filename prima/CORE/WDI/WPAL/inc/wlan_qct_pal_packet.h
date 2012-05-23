@@ -278,4 +278,16 @@ wpt_status wpalUnlockPacket( wpt_packet *pPacket);
 ---------------------------------------------------------------------------*/
 wpt_int32 wpalPacketGetFragCount(wpt_packet *pPkt);
 
+/*---------------------------------------------------------------------------
+    wpalIsPacketLocked –  Check whether the Packet is locked for DMA.
+    Param: 
+        pPacket – pointer to a wpt_packet
+ 
+    Return:
+        eWLAN_PAL_STATUS_SUCCESS
+        eWLAN_PAL_STATUS_E_FAILURE
+        eWLAN_PAL_STATUS_E_INVAL
+---------------------------------------------------------------------------*/
+wpt_status wpalIsPacketLocked( wpt_packet *pPacket);
+
 #endif // __WLAN_QCT_PAL_PACKET_H

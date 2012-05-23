@@ -1075,7 +1075,21 @@ static wpt_status dxeChannelClose
                wpalUnlockPacket(currentCtrlBlk->xfrFrame);
                wpalPacketFree(currentCtrlBlk->xfrFrame);
             }
-          }
+         }
+         /*  
+          *  It is the responsibility of DXE to walk through the 
+          *  descriptor chain and unlock any pending packets (if 
+          *  locked). 
+          */
+         if((WDTS_CHANNEL_TX_LOW_PRI  == channelEntry->channelType) ||
+            (WDTS_CHANNEL_TX_HIGH_PRI == channelEntry->channelType))
+         {
+             if(eWLAN_PAL_STATUS_SUCCESS == wpalIsPacketLocked(currentCtrlBlk->xfrFrame))
+               {
+                  wpalUnlockPacket(currentCtrlBlk->xfrFrame);
+                  wpalPacketFree(currentCtrlBlk->xfrFrame);
+               }
+         }
 #if (defined(FEATURE_R33D) || defined(WLANDXE_TEST_CHANNEL_ENABLE))
          // descriptors allocated individually so free them individually
          wpalDmaMemoryFree(currentDescriptor);
@@ -1495,7 +1509,7 @@ static wpt_status dxeRXFrameReady
    /* Get frames while VALID bit is not set (DMA complete) and a data 
     * associated with it */
    while(!(WLANDXE_U32_SWAP_ENDIAN(descCtrl) & WLANDXE_DESC_CTRL_VALID) &&
-         (currentCtrlBlk->xfrFrame->pInternalData != NULL))
+         (eWLAN_PAL_STATUS_SUCCESS == wpalIsPacketLocked(currentCtrlBlk->xfrFrame)))
    {
       channelEntry->numTotalFrame++;
       channelEntry->numFreeDesc++;
