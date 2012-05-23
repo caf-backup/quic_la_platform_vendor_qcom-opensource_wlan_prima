@@ -593,10 +593,17 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  }
                  else
                  {
-                     /* CR309183. Disable Proxy Probe Rsp.
-                      * Host handles Probe Requests. Until FW fixed. */ 
-                     // FIXME should be 1, for CCX made it 0 
-                     psessionEntry->proxyProbeRspEn = 0;
+                     /* To detect PBC overlap in SAP WPS mode, Host handles 
+                      * Probe Requests. 
+                      */    			 
+                     if(SAP_WPS_DISABLED == pSmeStartBssReq->wps_state)
+                     {
+                         psessionEntry->proxyProbeRspEn = 1;
+                     }
+                     else
+                     {
+                         psessionEntry->proxyProbeRspEn = 0;
+                     }
                  }
                  psessionEntry->ssidHidden = pSmeStartBssReq->ssidHidden;
                  psessionEntry->wps_state = pSmeStartBssReq->wps_state;
