@@ -124,6 +124,7 @@
 /* Total number of Integer CFGs. This is used while allocating the memory for TLV */
 #define QWLAN_HAL_CFG_INTEGER_PARAM                      78
 
+
 /*-------------------------------------------------------------------------
   Configuration Parameter min, max, defaults
 -------------------------------------------------------------------------*/
@@ -221,17 +222,17 @@
 /* QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ZERO */
 #define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ZERO_STAMIN    0
 #define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ZERO_STAMAX    255
-#define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ZERO_STADEF    4
+#define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ZERO_STADEF    5
 
 /* QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ONE */
 #define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ONE_STAMIN    0
 #define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ONE_STAMAX    255
-#define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ONE_STADEF    8
+#define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_ONE_STADEF    10
 
 /* QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_TWO */
 #define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_TWO_STAMIN    0
 #define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_TWO_STAMAX    255
-#define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_TWO_STADEF    12
+#define QWLAN_HAL_CFG_DYNAMIC_THRESHOLD_TWO_STADEF    15
 
 /* QWLAN_HAL_CFG_FIXED_RATE
  * Follwing rates in user configuration are mapped to TPE rates

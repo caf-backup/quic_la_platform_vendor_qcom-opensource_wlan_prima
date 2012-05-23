@@ -226,11 +226,17 @@ typedef enum {
    PTT_MSG_CLOSE_TPC_LOOP_PRIMA_V1 = 0x32C9,
    PTT_MSG_SW_CLPC_CAL_PRIMA_V1 = 0x32CA,
    PTT_MSG_CLPC_CAL_EXTRA_MEASUREMENT_PRIMA_V1 = 0x32CB,
-   PTT_MSG_DIGITAL_PIN_CONNECTIVITY_TEST_RES = 0X32CC,
+   PTT_MSG_PRIMA_GENERIC_CMD = 0x32CC,
+   PTT_MSG_DIGITAL_PIN_CONNECTIVITY_TEST_RES = 0X32CD,
+
    PTT_MSG_EXIT = 0x32ff,
    PTT_MAX_MSG_ID = PTT_MSG_EXIT
 } ePttMsgId;
 
+enum 
+{
+   PTT_MSG_PRIMA_GENERIC_CMD_FAST_SET_CHANNEL = 0x0,
+};
 
 #define PTT_MSG_TYPES_BEGIN_30          PTT_MSG_TYPES_BEGIN
 #define PTT_MSG_TYPES_BEGIN_31          PTT_MSG_TYPES_BEGIN + 0x100
@@ -772,6 +778,14 @@ typedef PACKED_PRE struct PACKED_POST {
 }tMsgPttGetDPDCorrect;
 
 typedef PACKED_PRE struct PACKED_POST {
+   tQWPTT_U32 cmdIdx;
+   tQWPTT_U32 param1;
+   tQWPTT_U32 param2;
+   tQWPTT_U32 param3;
+   tQWPTT_U32 param4;
+} tMsgPttPrimaGenericCmd;
+
+typedef PACKED_PRE struct PACKED_POST {
    tANI_U16 testID;
    tANI_U16 result;
 } tMsgPttPinConnTestRes;
@@ -888,6 +902,7 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttGetDPDCorrect GetDPDCorrect;
    tMsgPttSetDPDCorrect SetDPDCorrect;
    tMsgPttDpdCal DPDCal;
+   tMsgPttPrimaGenericCmd PrimaGenericCmd;
    tMsgPttPinConnTestRes PinConnTestRes;
 } uPttMsgs;
 
