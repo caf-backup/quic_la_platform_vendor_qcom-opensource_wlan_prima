@@ -648,16 +648,17 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
             {
                 msgLen = sizeof(tSirSmeScanRsp) -
                            sizeof(tSirBssDescription) +
-                           ptemp->bssDescription.length + 2;
+                           ptemp->bssDescription.length +
+                           sizeof(ptemp->bssDescription.length);
                 pDesc = pSirSmeScanRsp->bssDescription;
             }
             else
             {
-                msgLen += sizeof(tSirBssDescription) +
-                       ptemp->bssDescription.length + 2;
+                msgLen += ptemp->bssDescription.length +
+                          sizeof(ptemp->bssDescription.length);
                 pDesc = (tSirBssDescription *)pbBuf;
             }
-            if( (allocLength < msgLen) || 
+            if( (allocLength < msgLen) ||
                  (LIM_MAX_NUM_OF_SCAN_RESULTS_REPORTED <= bssCount++) )
             {
                 pSirSmeScanRsp->statusCode  =
@@ -683,7 +684,8 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
                 }
                 msgLen = sizeof(tSirSmeScanRsp) -
                            sizeof(tSirBssDescription) +
-                           ptemp->bssDescription.length + 2;
+                           ptemp->bssDescription.length +
+                           sizeof(ptemp->bssDescription.length);
                 pDesc = pSirSmeScanRsp->bssDescription;
                 bssCount = 1;
             }
