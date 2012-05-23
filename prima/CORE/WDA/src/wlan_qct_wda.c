@@ -5032,7 +5032,16 @@ VOS_STATUS WDA_ProcessSetLinkState(tWDA_CbContext *pWDA,
                   (WDI_SetLinkReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_SetLinkReqParamsType)) ;
    tWDA_ReqParams *pWdaParams ;
+   tpAniSirGlobal pMac;
+   pMac = (tpAniSirGlobal )VOS_GET_MAC_CTXT(pWDA->pVosContext);
 
+   if(NULL == pMac)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s:pMac is NULL", __FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
@@ -5076,9 +5085,10 @@ VOS_STATUS WDA_ProcessSetLinkState(tWDA_CbContext *pWDA,
 
       /* store Params pass it to WDI */
       pWdaParams->wdaWdiApiMsgParam = (void *)wdiSetLinkStateParam ;
-
-      if( linkStateParams->state == eSIR_LINK_IDLE_STATE 
-          && !(vos_concurrent_sessions_running()))
+      /* Stop Timer only other than GO role and concurrent session */
+      if( (linkStateParams->state == eSIR_LINK_IDLE_STATE)
+          && !vos_concurrent_sessions_running() &&
+          (wdaGetGlobalSystemRole(pMac) != eSYSTEM_AP_ROLE) )
       {
          WDA_STOP_TIMER(&pWDA->wdaTimers.baActivityChkTmr);
       }
