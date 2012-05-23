@@ -759,7 +759,7 @@ eHalStatus p2pSendAction(tHalHandle hHal, tANI_U8 sessionId,
     tSirMbMsgP2p *pMsg;
     tANI_U16 msgLen;
 
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER,
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
        " %s sends action frame", __FUNCTION__);
     msgLen = (tANI_U16)((sizeof( tSirMbMsg )) + len);
     status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, msgLen);
@@ -949,7 +949,7 @@ eHalStatus p2pPS(tHalHandle hHal, tANI_U8 sessionId)
       pNoA.single_noa_duration = pMac->p2pContext[sessionId].pNoA.duration;
    }
 
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, 
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
       " %s HDDSession %d set NoA parameters. Selection %d, opp_ps %d, ctWindow %d, count %d, "
       "duration %d, interval %d single NoA duration %d",
       __FUNCTION__, sessionId, pMac->p2pContext[sessionId].pNoA.psSelection,
@@ -1241,12 +1241,12 @@ static eHalStatus p2pSendActionFrame(tpAniSirGlobal pMac, tANI_U8 HDDSessionID, 
          if(pScanResult)
          {
 
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, "%s found match on channel %d", 
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, "%s found match on channel %d", 
                __FUNCTION__, pScanResult->BssDescriptor.channelId);
             pP2pContext->formationReq.targetListenChannel = pScanResult->BssDescriptor.channelId;
             if(pP2pContext->P2PListenChannel != pScanResult->BssDescriptor.channelId)
             {
-               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, 
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
                   "%s adapt listen channel to %d", 
                   __FUNCTION__, pScanResult->BssDescriptor.channelId);
                p2pSetListenChannel(pMac, pP2pContext->sessionId, pScanResult->BssDescriptor.channelId);
@@ -1497,7 +1497,7 @@ eHalStatus P2P_ListenStateDiscoverable(tHalHandle hHal, tANI_U8 sessionId,
       }
       else
       {
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, "%s P2P_NOT_DISCOVERABLE not in right state (%d)",
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, "%s P2P_NOT_DISCOVERABLE not in right state (%d)",
             __FUNCTION__, pMac->p2pContext[sessionId].state);
       }
       break;
@@ -1518,7 +1518,7 @@ eHalStatus P2P_ListenStateDiscoverable(tHalHandle hHal, tANI_U8 sessionId,
       }
       else
       {
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, "%s P2P_AUTO_DISCOVERABLE not in right state (%d)",
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, "%s P2P_AUTO_DISCOVERABLE not in right state (%d)",
             __FUNCTION__, pMac->p2pContext[sessionId].state);
       }
       break;
@@ -1539,7 +1539,7 @@ eHalStatus P2P_ListenStateDiscoverable(tHalHandle hHal, tANI_U8 sessionId,
       }
       else
       {
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, "%s P2P_HIGH_DISCOVERABLE not in right state (%d)",
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, "%s P2P_HIGH_DISCOVERABLE not in right state (%d)",
             __FUNCTION__, pMac->p2pContext[sessionId].state);
       }
       break;
@@ -1599,7 +1599,7 @@ void p2pDiscoverTimerHandler(void *pContext)
    tp2pContext *p2pContext = (tp2pContext*) pContext;
    eHalStatus status = eHAL_STATUS_SUCCESS;
 
-   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, "%s enter", __FUNCTION__);
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, "%s enter", __FUNCTION__);
    p2pCallDiscoverCallback(p2pContext, 
          (p2pContext->directedDiscovery) ? eP2P_DIRECTED_DISCOVER : eP2P_DISCOVER_SUCCESS);
 
@@ -1864,12 +1864,12 @@ eHalStatus P2P_DiscoverRequest(tHalHandle hHal,
       }
       else
       {
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, 
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
                "%s while group formation", __FUNCTION__);
       }
 
       pP2pContext->uDiscoverTimeout = pDiscoverRequest->uDiscoverTimeout;
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_USER, "%s Start discover", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, "%s Start discover", __FUNCTION__);
       status = palTimerStart(pMac->hHdd, pP2pContext->discoverTimer, 
                      pP2pContext->uDiscoverTimeout * 1000, eANI_BOOLEAN_FALSE);
       if(!HAL_STATUS_SUCCESS(status))
