@@ -990,7 +990,7 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
 
         PopulateDot11fWMMTSPEC( &pAddTS->tspec, &WMMAddTSReq.WMMTSPEC );
 #ifdef FEATURE_WLAN_CCX
-        limGetPhyMode(pMac, &phyMode);
+        limGetPhyMode(psessionEntry, &phyMode);
         if( phyMode == WNI_CFG_PHY_MODE_11G || phyMode == WNI_CFG_PHY_MODE_11A)
         {
             pAddTS->tsrsIE.rates[0] = TSRS_11AG_RATE_6MBPS;
@@ -2724,7 +2724,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
             {
                 tANI_U32 phyMode;
                 tSirMacCCXTSRSIE    tsrsIE; 
-                limGetPhyMode(pMac, &phyMode);
+                limGetPhyMode(psessionEntry, &phyMode);
 
                 tsrsIE.tsid = 0;
                 if( phyMode == WNI_CFG_PHY_MODE_11G || phyMode == WNI_CFG_PHY_MODE_11A)
