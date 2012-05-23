@@ -4853,21 +4853,27 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
     <enabled> <netw_count>
     for each network:
     <ssid_len> <ssid> <authentication> <encryption>
-    <ch_num> <channel_list optional> <rssi_threshold>
+    <ch_num> <channel_list optional> <bcast_type> <rssi_threshold>
+    <scan_timers> <scan_time> <scan_repeat> <scan_time> <scan_repeat>
 
     e.g:
-    1 2 4 test 0 0 3 1 6 11 40 5 test2 4 4 6 1 2 3 4 5 6 0
+    1 2 4 test 0 0 3 1 6 11 2 40 5 test2 4 4 6 1 2 3 4 5 6 1 0 2 5 2 300 0 
 
     this translates into:
     -----------------------------
     enable PNO
     look for 2 networks:
     test - with authentication type 0 and encryption type 0,
-    that can be found on 3 channels: 1 6 and 11 , and must meet -40dBm RSSI
+    that can be found on 3 channels: 1 6 and 11 ,
+    SSID bcast type is unknown (directed probe will be sent if AP not found)
+    and must meet -40dBm RSSI
 
     test2 - with auth and enrytption type 4/4
     that can be found on 6 channels 1, 2, 3, 4, 5 and 6
+    bcast type is non-bcast (directed probe will be sent)
     and must not meet any RSSI threshold
+
+    scan every 5 seconds 2 times, scan every 300 seconds until stopped 
   -----------------------------------------------------------------------*/
   ptr = (char*)(wrqu->data.pointer + nOffset);
 
@@ -4990,6 +4996,62 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
   }/*For ucNetworkCount*/
 
   ucParams = sscanf(ptr,"%hhu %n",
+              &(pnoRequest.scanTimers.ucScanTimersCount), &nOffset);
+
+  /*Read the scan timers*/
+  if (( 1 == ucParams )&&(  pnoRequest.scanTimers.ucScanTimersCount >= 0 ))
+  {
+     ptr += nOffset;
+
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+        "Scan timer count %d offset %d", 
+        pnoRequest.scanTimers.ucScanTimersCount,
+        nOffset );
+
+     if ( SIR_PNO_MAX_SCAN_TIMERS < pnoRequest.scanTimers.ucScanTimersCount )
+     {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                    "Incorrect cmd - too many scan timers");
+       return VOS_STATUS_E_FAILURE;
+     }
+
+     for ( i = 0; i < pnoRequest.scanTimers.ucScanTimersCount; i++ )
+     {
+        ucParams = sscanf(ptr,"%lu %lu %n",
+           &(pnoRequest.scanTimers.aTimerValues[i].uTimerValue),
+           &( pnoRequest.scanTimers.aTimerValues[i].uTimerRepeat),
+           &nOffset);
+
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+            "PNO Timer value %d Timer repeat %d offset %d", 
+            pnoRequest.scanTimers.aTimerValues[i].uTimerValue, 
+            pnoRequest.scanTimers.aTimerValues[i].uTimerRepeat,
+            nOffset );
+
+        if ( 2 != ucParams )
+        {
+          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                    "Incorrect cmd - diff params then expected %d", ucParams);
+          return VOS_STATUS_E_FAILURE;
+        }
+
+        ptr += nOffset;
+     }
+
+  }
+  else
+  {
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+       "No scan timers provided param count %d scan timers %d", 
+        ucParams,  pnoRequest.scanTimers.ucScanTimersCount );
+
+    /*Scan timers defaults to 5 minutes*/
+    pnoRequest.scanTimers.ucScanTimersCount = 1;
+    pnoRequest.scanTimers.aTimerValues[0].uTimerValue  = 60;
+    pnoRequest.scanTimers.aTimerValues[0].uTimerRepeat = 0;
+  }
+
+  ucParams = sscanf(ptr,"%hhu %n",
               &(ucMode), &nOffset);
 
   pnoRequest.modePNO = ucMode;
@@ -4998,9 +5060,6 @@ VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
   {
      pnoRequest.modePNO = SIR_PNO_MODE_ON_SUSPEND;
   }
-
-  /*no scan timers provided on LA*/
-  pnoRequest.scanTimers.ucScanTimersCount = 0;
 
   sme_SetPreferredNetworkList(WLAN_HDD_GET_HAL_CTX(pAdapter), &pnoRequest,
                                 pAdapter->sessionId,
