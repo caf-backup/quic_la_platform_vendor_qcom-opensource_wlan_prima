@@ -198,6 +198,7 @@ rrmSetMaxTxPowerRsp ( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
    }
 
    palFreeMemory(pMac->hHdd, (void*)limMsgQ->bodyptr);
+   limMsgQ->bodyptr = NULL;
    return retCode;
 }
 // --------------------------------------------------------------------
