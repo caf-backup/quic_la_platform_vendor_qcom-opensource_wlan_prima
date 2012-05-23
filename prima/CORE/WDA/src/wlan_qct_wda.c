@@ -112,7 +112,7 @@
 #define WDA_STOP_TIMER(a) tx_timer_deactivate(a)
 #define WDA_DESTROY_TIMER(a) tx_timer_delete(a)
 
-#define WDA_WDI_START_TIMEOUT 5000
+#define WDA_WDI_START_TIMEOUT 15000
 
 #define WDA_LAST_POLLED_THRESHOLD(a, curSta, tid) \
    ((a)->wdaStaInfo[curSta].framesTxed[tid] + WDA_BA_TX_FRM_THRESHOLD)
