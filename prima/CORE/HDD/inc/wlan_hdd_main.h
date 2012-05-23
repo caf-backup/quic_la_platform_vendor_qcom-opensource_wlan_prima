@@ -585,6 +585,8 @@ struct hdd_adapter_s
 #endif
    /* Completion variable for action frame */
    struct completion tx_action_cnf_event;
+   /* Completion variable for remain on channel ready */
+   struct completion rem_on_chan_ready_event;
 #endif
 
    /* Track whether the linkup handling is needed  */

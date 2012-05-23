@@ -2638,6 +2638,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         init_completion(&pHostapdAdapter->tx_action_cnf_event);
 #endif 
         init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
+        init_completion(&pHostapdAdapter->rem_on_chan_ready_event);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
         init_completion(&pHostapdAdapter->offchannel_tx_event);
 #endif

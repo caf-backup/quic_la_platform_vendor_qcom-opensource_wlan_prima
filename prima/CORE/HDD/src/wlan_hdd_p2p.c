@@ -120,7 +120,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
-
+    int status = 0;
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                                  __func__,pAdapter->device_mode);
 
@@ -130,6 +130,20 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
 
     if( cfgState->remain_on_chan_ctx != NULL)
     {
+        /* Wait till remain on channel ready indication before issuing cancel 
+         * remain on channel request, otherwise if remain on channel not 
+         * received and if the driver issues cancel remain on channel then lim 
+         * will be in unknown state.
+         */
+        status = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
+               msecs_to_jiffies(WAIT_REM_CHAN_READY));
+        if (!status)
+        {
+            hddLog( LOGE, 
+                    "%s: timeout waiting for remain on channel ready indication",
+                    __func__);
+        }
+
         INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
         
         /* Issue abort remain on chan request to sme.
@@ -186,6 +200,8 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     pRemainChanCtx->rem_on_chan_request = request_type;
     cfgState->remain_on_chan_ctx = pRemainChanCtx;
     cfgState->current_freq = chan->center_freq;
+    
+    INIT_COMPLETION(pAdapter->rem_on_chan_ready_event);
 
     //call sme API to start remain on channel.
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
@@ -277,6 +293,7 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
             complete(&pAdapter->offchannel_tx_event);
         }
 #endif
+        complete(&pAdapter->rem_on_chan_ready_event);
     }
     else
     {
@@ -291,7 +308,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
-
+    int status = 0;
 
     hddLog( LOG1, "Cancel remain on channel req");
 
@@ -306,7 +323,17 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
              __func__);
         return -EINVAL;
     }
-
+    
+    /* wait until remain on channel ready event received 
+     * for already issued remain on channel request */
+    status = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
+            msecs_to_jiffies(WAIT_REM_CHAN_READY));
+    if (!status)
+    {
+        hddLog( LOGE, 
+                "%s: timeout waiting for remain on channel ready indication",
+                __func__);
+    }
     INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
     /* Issue abort remain on chan request to sme.
      * The remain on channel callback will make sure the remain_on_chan
