@@ -205,6 +205,8 @@ static VOS_STATUS WDA_ProcessGTKOffloadReq(tWDA_CbContext *pWDA, tpSirGtkOffload
 static VOS_STATUS WDA_ProcessGTKOffloadGetInfoReq(tWDA_CbContext *pWDA, tpSirGtkOffloadGetInfoRspParams pGtkOffloadGetInfoRsp);
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
+VOS_STATUS WDA_ProcessSetTmLevelReq(tWDA_CbContext *pWDA,
+                                    tAniSetTmLevelReq *setTmLevelReq);
 /*
  * FUNCTION: WDA_open
  * Allocate the WDA context 
@@ -10712,6 +10714,12 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       }
 #endif //WLAN_FEATURE_GTK_OFFLOAD
 
+      case WDA_SET_TM_LEVEL_REQ:
+      {
+         WDA_ProcessSetTmLevelReq(pWDA, (tAniSetTmLevelReq *)pMsg->bodyptr);
+         break;
+      }
+
       default:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -12566,7 +12574,92 @@ VOS_STATUS WDA_ProcessSetPowerParamsReq(tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 
+/*
+ * FUNCTION: WDA_SetTmLevelRspCallback
+ * Set TM Level response
+ */ 
+void WDA_SetTmLevelRspCallback(WDI_Status status, void* pUserData)
+{
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
 
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "%s: pWdaParams received NULL", __FUNCTION__);
+      VOS_ASSERT(0) ;
+      return ;
+   }
+
+   /* Dose not need to send notification to upper layer
+    * Just free allocated resources */
+   if( pWdaParams != NULL )
+   {
+      if( pWdaParams->wdaWdiApiMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      }
+      vos_mem_free(pWdaParams->wdaMsgParam) ;
+      vos_mem_free(pWdaParams) ;
+   }
+}
+
+/*
+ * FUNCTION: WDA_ProcessSetTmLevelReq
+ * Set TM Level request
+ */
+VOS_STATUS WDA_ProcessSetTmLevelReq(tWDA_CbContext *pWDA,
+                                             tAniSetTmLevelReq *setTmLevelReq)
+{
+   WDI_Status status = WDI_STATUS_SUCCESS ;
+   tWDA_ReqParams *pWdaParams ;
+   WDI_SetTmLevelReqType *wdiSetTmLevelReq = 
+               (WDI_SetTmLevelReqType *)vos_mem_malloc(
+                                       sizeof(WDI_SetTmLevelReqType)) ;
+   if(NULL == wdiSetTmLevelReq) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(wdiSetTmLevelReq);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+
+   wdiSetTmLevelReq->tmMode  = setTmLevelReq->tmMode;
+   wdiSetTmLevelReq->tmLevel = setTmLevelReq->newTmLevel;
+
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = setTmLevelReq;
+   pWdaParams->wdaWdiApiMsgParam = wdiSetTmLevelReq;
+
+   status = WDI_SetTmLevelReq(wdiSetTmLevelReq, 
+                           (WDI_SetTmLevelCb)WDA_SetTmLevelRspCallback, pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "Failure set thernal mitigation level free all the memory " );
+      vos_mem_free(pWdaParams->wdaMsgParam) ;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
+   }
+
+   return CONVERT_WDI2VOS_STATUS(status) ;
+}
 
 VOS_STATUS WDA_ProcessTxControlInd(tWDA_CbContext *pWDA,
                                    tpTxControlParams pTxCtrlParam)

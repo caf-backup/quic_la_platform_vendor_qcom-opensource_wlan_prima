@@ -496,6 +496,8 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_WAKE_REASON_IND            SIR_HAL_ITC_MSG_TYPES_BEGIN + 186
 #endif //WLAN_WAKEUP_EVENTS
 
+#define SIR_HAL_SET_TM_LEVEL_REQ           SIR_HAL_ITC_MSG_TYPES_BEGIN + 187
+
 #define SIR_HAL_MSG_TYPES_END              SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
 // CFG message types
 #define SIR_CFG_MSG_TYPES_BEGIN        (SIR_CFG_MODULE_ID << 8)

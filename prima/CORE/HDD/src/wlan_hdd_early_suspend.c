@@ -1789,6 +1789,13 @@ VOS_STATUS hdd_wlan_shutdown(void)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDeregisterPmOps failed",__func__);
    }
+
+   vosStatus = hddDevTmUnregisterNotifyCallback(pHddCtx);
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
+   }
+
    /* Disable IMPS/BMPS as we do not want the device to enter any power
     * save mode on its own during reset sequence
     */

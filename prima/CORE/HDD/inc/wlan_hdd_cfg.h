@@ -1099,6 +1099,15 @@ typedef enum
 #define CFG_ENABLE_MCC_ENABLED_MAX              ( 1 )
 #define CFG_ENABLE_MCC_ENABLED_DEFAULT          ( 1 ) 
 
+/*
+ * Enable/Disable Thermal Mitigation feature
+ * Default: Disable
+ */
+#define CFG_THERMAL_MIGRATION_ENABLE_NAME      "gThermalMitigationEnable"   
+#define CFG_THERMAL_MIGRATION_ENABLE_MIN       ( 0 ) 
+#define CFG_THERMAL_MIGRATION_ENABLE_MAX       ( 1 ) 
+#define CFG_THERMAL_MIGRATION_ENABLE_DEFAULT   ( 0 ) 
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1357,6 +1366,7 @@ typedef struct
 #ifdef WLAN_FEATURE_P2P
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
 #endif
+   v_U8_t                      thermalMitigationEnable;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

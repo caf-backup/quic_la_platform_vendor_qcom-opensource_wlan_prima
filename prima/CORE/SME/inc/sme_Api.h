@@ -2064,4 +2064,15 @@ eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
   -------------------------------------------------------------------------------*/
 eHalStatus sme_HideSSID(tHalHandle hHal, v_U8_t sessionId, v_U8_t ssidHidden);
 #endif
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_SetTmLevel
+    \brief  Set Thermal Mitigation Level to RIVA
+    \param  hHal - The handle returned by macOpen.
+    \param  newTMLevel - new Thermal Mitigation Level
+    \param  tmMode - Thermal Mitigation handle mode, default 0
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetTmLevel(tHalHandle hHal, v_U16_t newTMLevel, v_U16_t tmMode);
 #endif //#if !defined( __SME_API_H )

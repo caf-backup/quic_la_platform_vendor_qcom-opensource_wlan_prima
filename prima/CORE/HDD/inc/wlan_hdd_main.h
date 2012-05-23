@@ -340,6 +340,41 @@ typedef enum rem_on_channel_request_type
    OFF_CHANNEL_ACTION_TX,
 }rem_on_channel_request_type_t;
 
+/* Thermal mitigation Level Enum Type */
+typedef enum
+{
+   WLAN_HDD_TM_LEVEL_0,
+   WLAN_HDD_TM_LEVEL_1,
+   WLAN_HDD_TM_LEVEL_2,
+   WLAN_HDD_TM_LEVEL_3,
+   WLAN_HDD_TM_LEVEL_4,
+   WLAN_HDD_TM_LEVEL_MAX
+} WLAN_TmLevelEnumType;
+
+/* Driver Action based on thermal mitigation level structure */
+typedef struct
+{
+   v_BOOL_t  ampduEnable;
+   v_BOOL_t  enterImps;
+   v_U32_t   txSleepDuration;
+   v_U32_t   txOperationDuration;
+   v_U32_t   txBlockFrameCountThreshold;
+} hdd_tmLevelAction_t;
+
+/* Thermal Mitigation control context structure */
+typedef struct
+{
+   WLAN_TmLevelEnumType currentTmLevel;
+   hdd_tmLevelAction_t  tmAction;
+   vos_timer_t          txSleepTimer;
+   struct mutex         tmOperationLock;
+   vos_event_t          setTmDoneEvent;
+   v_U32_t              txFrameCount;
+   v_TIME_t             lastblockTs;
+   v_TIME_t             lastOpenTs;
+   struct netdev_queue *blockedQueue;
+} hdd_thermal_mitigation_info_t;
+
 #if defined CONFIG_CFG80211
 typedef struct hdd_remain_on_chan_ctx
 {
@@ -792,6 +827,9 @@ struct hdd_context_s
    /** P2P Device MAC Address for the adapter  */
    v_MACADDR_t p2pDeviceAddress;
 #endif
+
+   /* Thermal mitigation information */
+   hdd_thermal_mitigation_info_t tmInfo;
 };
 
 

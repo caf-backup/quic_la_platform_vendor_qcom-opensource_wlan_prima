@@ -281,6 +281,7 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   NULL,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
+  WDI_ProcessSetTmLevelReq,             /*WDI_SET_TM_LEVEL_REQ*/
   /*-------------------------------------------------------------------------
     Indications
   -------------------------------------------------------------------------*/
@@ -448,6 +449,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
   NULL,
   NULL,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
+  WDI_ProcessSetTmLevelRsp,       /* WDI_SET_TM_LEVEL_RESP */
 
   /*---------------------------------------------------------------------
     Indications
@@ -5341,6 +5343,54 @@ WDI_SetTxPerTrackingReq
    return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
 
 }/*WDI_SetTxPerTrackingReq*/
+
+/**
+ @brief WDI_SetTmLevelReq
+        If HW Thermal condition changed, driver should react based on new 
+        HW thermal condition.
+
+ @param pwdiSetTmLevelReq: New thermal condition information
+  
+        pwdiSetTmLevelRspCb: callback
+  
+        usrData: user data will be passed back with the
+        callback 
+  
+ @return Result of the function call
+*/
+WDI_Status
+WDI_SetTmLevelReq
+(
+   WDI_SetTmLevelReqType        *pwdiSetTmLevelReq,
+   WDI_SetTmLevelCb              pwdiSetTmLevelRspCb,
+   void                         *usrData  
+)
+{
+   WDI_EventInfoType      wdiEventData;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+
+     return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_SET_TM_LEVEL_REQ;
+   wdiEventData.pEventData      = pwdiSetTmLevelReq; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiSetTmLevelReq);
+   wdiEventData.pCBfnc          = pwdiSetTmLevelRspCb; 
+   wdiEventData.pUserData       = usrData;
+
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
 
 /**
  @brief WDI_HostSuspendInd 
@@ -20439,6 +20489,10 @@ WDI_2_HAL_REQ_TYPE
 
   case WDI_SET_POWER_PARAMS_REQ:
     return WLAN_HAL_SET_POWER_PARAMS_REQ; 
+
+  case WDI_SET_TM_LEVEL_REQ:
+    return WLAN_HAL_SET_THERMAL_MITIGATION_REQ; 
+
   default:
     return WLAN_HAL_MSG_MAX; 
   }
@@ -20654,6 +20708,10 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
   case WLAN_HAL_WAKE_REASON_IND:
     return WDI_HAL_WAKE_REASON_IND;
 #endif // WLAN_WAKEUP_EVENTS
+
+  case WLAN_HAL_SET_THERMAL_MITIGATION_RSP:
+    return WDI_SET_TM_LEVEL_RESP;
+
   default:
     return eDRIVER_TYPE_MAX; 
   }
@@ -23905,6 +23963,7 @@ WDI_ProcessWakeReasonInd
   return WDI_STATUS_SUCCESS; 
 }
 #endif // WLAN_WAKEUP_EVENTS
+
 void WDI_GetWcnssCompiledApiVersion
 (
   WDI_WlanVersionType     *pWcnssApiVersion
@@ -23916,3 +23975,117 @@ void WDI_GetWcnssCompiledApiVersion
     pWcnssApiVersion->revision = WLAN_HAL_VER_REVISION;
 }
 
+/**
+ @brief Process Set TM Level Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetTmLevelRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_Status           wdiStatus;
+   eHalStatus           halStatus;
+   WDI_SetTmLevelCb     wdiSetTmLevelCb;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData ))
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   wdiSetTmLevelCb = (WDI_SetPowerParamsCb)pWDICtx->pfncRspCB; 
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+   halStatus = *((eHalStatus*)pEventData->pEventData);
+   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+   /*Notify UMAC*/
+   wdiSetTmLevelCb(wdiStatus, pWDICtx->pRspCBUserData);
+
+   return WDI_STATUS_SUCCESS; 
+}/*WDI_ProcessSetTmLevelRsp*/
+
+/**
+ @brief Process Set Thermal Mitigation level Changed request
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetTmLevelReq
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_SetTmLevelReqType           *pwdiSetTmLevelReq = NULL;
+   WDI_SetTmLevelCb                 wdiSetTmLevelCb   = NULL;
+   wpt_uint8*                       pSendBuffer       = NULL; 
+   wpt_uint16                       usDataOffset      = 0;
+   wpt_uint16                       usSendSize        = 0;
+   tSetThermalMitgationType         halTmMsg;
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pEventData ) ||
+       ( NULL == (pwdiSetTmLevelReq = (WDI_SetTmLevelReqType*)pEventData->pEventData)) ||
+       ( NULL == (wdiSetTmLevelCb   = (WDI_SetTmLevelCb)pEventData->pCBfnc)))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+   -----------------------------------------------------------------------*/
+   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_SET_TM_LEVEL_REQ, 
+                         sizeof(halTmMsg),
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+       ( usSendSize < (usDataOffset + sizeof(halTmMsg) )))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Unable to get send buffer in Set PNO req %x %x %x",
+                  pEventData, pwdiSetTmLevelReq, wdiSetTmLevelCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   halTmMsg.thermalMitMode = pwdiSetTmLevelReq->tmMode;
+   halTmMsg.thermalMitLevel = pwdiSetTmLevelReq->tmLevel;
+
+   wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                   &halTmMsg, 
+                   sizeof(halTmMsg)); 
+
+   pWDICtx->pReqStatusUserData = pwdiSetTmLevelReq->pUserData; 
+   pWDICtx->pfncRspCB = NULL;
+   /*-------------------------------------------------------------------------
+     Send Get STA Request to HAL 
+   -------------------------------------------------------------------------*/
+   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiSetTmLevelCb, pEventData->pUserData, WDI_SET_TM_LEVEL_RESP); 
+}

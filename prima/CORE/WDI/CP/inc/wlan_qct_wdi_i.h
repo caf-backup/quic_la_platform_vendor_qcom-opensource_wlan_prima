@@ -395,6 +395,8 @@ typedef enum
   WDI_GTK_OFFLOAD_REQ             = 76, 
   WDI_GTK_OFFLOAD_GETINFO_REQ   = 77, 
 
+  /*Set Thermal Migration level to RIVA*/
+  WDI_SET_TM_LEVEL_REQ                          = 78, 
   WDI_MAX_REQ,
 
   /*Send a suspend Indication down to HAL*/
@@ -640,6 +642,8 @@ typedef enum
   /* GTK Rekey Offload */
   WDI_GTK_OFFLOAD_RESP                    = 75, 
   WDI_GTK_OFFLOAD_GETINFO_RESP         = 76, 
+
+  WDI_SET_TM_LEVEL_RESP                         = 77,
 
   /*-------------------------------------------------------------------------
     Indications
@@ -2541,6 +2545,22 @@ WDI_ProcessSetPowerParamsReq
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process Set Thermal Mitigation level Changed request
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetTmLevelReq
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
 /*=========================================================================
                              Indications
 =========================================================================*/
@@ -3692,6 +3712,23 @@ WDI_ProcessSetTxPerTrackingRsp
 */
 WDI_Status
 WDI_ProcessSetPowerParamsRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Set TM Level Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetTmLevelRsp
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData

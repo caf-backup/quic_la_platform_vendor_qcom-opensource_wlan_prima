@@ -4387,6 +4387,25 @@ typedef struct
 }WDI_HALDumpCmdRspParamsType;
 
 
+/*---------------------------------------------------------------------------
+  WDI_SetTmLevelReqType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  wpt_uint16       tmMode;
+  wpt_uint16       tmLevel;
+  void*            pUserData;
+}WDI_SetTmLevelReqType;
+
+/*---------------------------------------------------------------------------
+  WDI_SetTmLevelRspType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  WDI_Status       wdiStatus;
+  void*            pUserData;
+}WDI_SetTmLevelRspType;
+
 /*----------------------------------------------------------------------------
  *   WDI callback types
  *--------------------------------------------------------------------------*/
@@ -6052,6 +6071,28 @@ typedef void  (*WDI_GtkOffloadCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_GtkOffloadGetInfoCb)(WDI_Status   wdiStatus,
                                          void*        pUserData);
 #endif // WLAN_FEATURE_GTK_OFFLOAD
+
+/*---------------------------------------------------------------------------
+   WDI_SetTmLevelCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Set New TM Level
+   done response from the underlying device.
+
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SetTmLevelCb)(WDI_Status  wdiStatus,
+                                  void*       pUserData);
 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -8402,6 +8443,28 @@ WDI_SetTxPerTrackingReq
   WDI_SetTxPerTrackingReqParamsType*      pwdiSetTxPerTrackingReqParams,
   WDI_SetTxPerTrackingRspCb               pwdiSetTxPerTrackingRspCb,
   void*                                   pUserData
+);
+
+/**
+ @brief WDI_SetTmLevelReq
+        If HW Thermal condition changed, driver should react based on new 
+        HW thermal condition.
+
+ @param pwdiSetTmLevelReq: New thermal condition information
+  
+        pwdiSetTmLevelRspCb: callback
+  
+        usrData: user data will be passed back with the
+        callback 
+  
+ @return Result of the function call
+*/
+WDI_Status
+WDI_SetTmLevelReq
+(
+   WDI_SetTmLevelReqType        *pwdiSetTmLevelReq,
+   WDI_SetTmLevelCb              pwdiSetTmLevelRspCb,
+   void                         *usrData  
 );
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING

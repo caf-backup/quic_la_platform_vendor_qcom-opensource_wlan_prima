@@ -3162,6 +3162,21 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         return -EAGAIN;
     }
 
+    if (mutex_lock_interruptible(&pHddCtx->tmInfo.tmOperationLock))
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_ERROR,
+                  "%s: Aquire lock fail", __func__);
+        return -EAGAIN;
+    }    
+    if (TRUE == pHddCtx->tmInfo.tmAction.enterImps)
+    {
+        hddLog(VOS_TRACE_LEVEL_WARN,
+               "%s: MAX TM Level Scan not allowed", __func__);
+        mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);
+        return -EBUSY;                  
+    }
+    mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);
+
     vos_mem_zero( &scanRequest, sizeof(scanRequest));
 
     if (NULL != request)
@@ -3786,32 +3801,6 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                        return -ENOMEM;
                     }
                     // P2P IE is saved to Additional IE ; it should be accumulated to handle WPS IE + P2P IE
-                    memcpy( pWextState->assocAddIE.addIEdata + curAddIELen, genie - 2, eLen + 2);
-                    pWextState->assocAddIE.length += eLen + 2;
-                    
-                    pWextState->roamProfile.pAddIEAssoc = pWextState->assocAddIE.addIEdata;
-                    pWextState->roamProfile.nAddIEAssocLength = pWextState->assocAddIE.length;
-                }
-#endif
-#ifdef WLAN_FEATURE_WFD
-                else if ( (0 == memcmp(&genie[0], WFD_OUI_TYPE, 
-                                                         WFD_OUI_TYPE_SIZE)) 
-                        /*Consider WFD IE, only for P2P Client */
-                         && (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
-                {
-                    v_U16_t curAddIELen = pWextState->assocAddIE.length;
-                    hddLog (VOS_TRACE_LEVEL_INFO, "%s Set WFD IE(len %d)", 
-                            __func__, eLen + 2);
-                    
-                    if( SIR_MAC_MAX_IE_LENGTH < (pWextState->assocAddIE.length + eLen) )
-                    {
-                       hddLog(VOS_TRACE_LEVEL_FATAL, "Cannot accomadate assocAddIE "
-                                                      "Need bigger buffer space\n");
-                       VOS_ASSERT(0);
-                       return -ENOMEM;
-                    }
-                    // WFD IE is saved to Additional IE ; it should be accumulated to handle
-                    // WPS IE + P2P IE + WFD IE
                     memcpy( pWextState->assocAddIE.addIEdata + curAddIELen, genie - 2, eLen + 2);
                     pWextState->assocAddIE.length += eLen + 2;
                     

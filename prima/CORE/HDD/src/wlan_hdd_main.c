@@ -2643,6 +2643,12 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDeregisterPmOps failed",__func__);
       VOS_ASSERT(0);
    }
+
+   vosStatus = hddDevTmUnregisterNotifyCallback(pHddCtx);
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
+   }
 #endif //FEATURE_WLAN_INTEGRATED_SOC
 
    // Cancel any outstanding scan requests.  We are about to close all
@@ -3619,6 +3625,14 @@ int hdd_wlan_startup(struct device *dev )
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
       goto err_bap_stop;
    }
+
+   /* Register TM level change handler function to the platform */
+   status = hddDevTmRegisterNotifyCallback(pHddCtx);
+   if ( !VOS_IS_STATUS_SUCCESS( status ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmRegisterNotifyCallback failed",__func__);
+      goto err_unregister_pmops;
+   }
 #endif
 
    /* register for riva power on lock to platform driver */
@@ -3710,6 +3724,7 @@ err_free_power_on_lock:
    free_riva_power_on_lock("wlan");
 
 err_unregister_pmops:
+   hddDevTmUnregisterNotifyCallback(pHddCtx);
    hddDeregisterPmOps(pHddCtx);
 
 err_bap_stop:

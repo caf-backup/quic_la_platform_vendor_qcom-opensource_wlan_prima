@@ -4244,4 +4244,13 @@ typedef struct
 } tSirWakeReasonInd, *tpSirWakeReasonInd;
 #endif // WLAN_WAKEUP_EVENTS
 
+/*---------------------------------------------------------------------------
+  sAniSetTmLevelReq    
+---------------------------------------------------------------------------*/
+typedef struct sAniSetTmLevelReq
+{
+    tANI_U16                tmMode;
+    tANI_U16                newTmLevel;
+} tAniSetTmLevelReq, *tpAniSetTmLevelReq;
+
 #endif /* __SIR_API_H */

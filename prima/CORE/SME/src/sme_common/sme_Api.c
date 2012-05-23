@@ -6383,3 +6383,49 @@ eHalStatus sme_HideSSID(tHalHandle hHal, v_U8_t sessionId, v_U8_t ssidHidden)
    return status;
 }
 #endif
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_SetTmLevel
+    \brief  Set Thermal Mitigation Level to RIVA
+    \param  hHal - The handle returned by macOpen.
+    \param  newTMLevel - new Thermal Mitigation Level
+    \param  tmMode - Thermal Mitigation handle mode, default 0
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetTmLevel(tHalHandle hHal, v_U16_t newTMLevel, v_U16_t tmMode)
+{
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS          vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
+    vos_msg_t           vosMessage;
+    tAniSetTmLevelReq  *setTmLevelReq = NULL;
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        setTmLevelReq = (tAniSetTmLevelReq *)vos_mem_malloc(sizeof(tAniSetTmLevelReq));
+        if(NULL == setTmLevelReq)
+        {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Not able to allocate memory for sme_SetTmLevel", __FUNCTION__);
+           return eHAL_STATUS_FAILURE;
+        }
+
+        setTmLevelReq->tmMode     = tmMode;
+        setTmLevelReq->newTmLevel = newTMLevel;
+
+        /* serialize the req through MC thread */
+        vosMessage.bodyptr = setTmLevelReq;
+        vosMessage.type    = WDA_SET_TM_LEVEL_REQ;
+        vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
+        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
+        {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Post Set TM Level MSG fail", __FUNCTION__);
+           vos_mem_free(setTmLevelReq);
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return(status);
+}
