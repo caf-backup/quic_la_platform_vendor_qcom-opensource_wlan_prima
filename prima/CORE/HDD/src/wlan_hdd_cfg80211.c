@@ -205,7 +205,7 @@ static struct ieee80211_rate a_mode_rates[] =
     HDD_G_MODE_RATETAB(540, 0x800, 0),
 };
 
-struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
+static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
 {
     .channels = hdd_channels_2_4_GHZ,
     .n_channels = ARRAY_SIZE(hdd_channels_2_4_GHZ),
@@ -225,7 +225,7 @@ struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
 };
 
 #ifdef WLAN_FEATURE_P2P
-struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
+static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
 {
     .channels = hdd_social_channels_2_4_GHZ,
     .n_channels = ARRAY_SIZE(hdd_social_channels_2_4_GHZ),
@@ -245,7 +245,7 @@ struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
 };
 #endif
 
-struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
+static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
 {
     .channels = hdd_channels_5_GHZ,
     .n_channels = ARRAY_SIZE(hdd_channels_5_GHZ),
@@ -256,7 +256,9 @@ struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
     .ht_cap.cap            =  IEEE80211_HT_CAP_SGI_20
                             | IEEE80211_HT_CAP_GRN_FLD
                             | IEEE80211_HT_CAP_DSSSCCK40
-                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT,
+                            | IEEE80211_HT_CAP_LSIG_TXOP_PROT
+                            | IEEE80211_HT_CAP_SGI_40
+                            | IEEE80211_HT_CAP_SUP_WIDTH_20_40,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
     .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
     .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -432,15 +434,21 @@ int wlan_hdd_cfg80211_register(struct device *dev,
 
     /* Before registering we need to update the ht capabilitied based
      * on ini values*/
-    if( pCfg->ShortGI20MhzEnable )
+    if( !pCfg->ShortGI20MhzEnable )
     {
-        wlan_hdd_band_2_4_GHZ.ht_cap.cap     |= IEEE80211_HT_CAP_SGI_20;
-        wlan_hdd_band_5_GHZ.ht_cap.cap       |= IEEE80211_HT_CAP_SGI_20;
-        wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap |= IEEE80211_HT_CAP_SGI_20;
+        wlan_hdd_band_2_4_GHZ.ht_cap.cap     &= ~IEEE80211_HT_CAP_SGI_20;
+        wlan_hdd_band_5_GHZ.ht_cap.cap       &= ~IEEE80211_HT_CAP_SGI_20;
+        wlan_hdd_band_p2p_2_4_GHZ.ht_cap.cap &= ~IEEE80211_HT_CAP_SGI_20;
     }
-    if( pCfg->ShortGI40MhzEnable )
+
+    if( !pCfg->ShortGI40MhzEnable )
     {
-        wlan_hdd_band_5_GHZ.ht_cap.cap       |= IEEE80211_HT_CAP_SGI_40;
+        wlan_hdd_band_5_GHZ.ht_cap.cap       &= ~IEEE80211_HT_CAP_SGI_40;
+    }
+
+    if( !pCfg->nChannelBondingMode5GHz )
+    {
+        wlan_hdd_band_5_GHZ.ht_cap.cap &= ~IEEE80211_HT_CAP_SUP_WIDTH_20_40;
     }
 
     /*Initialize band capability*/
