@@ -3718,11 +3718,13 @@ limProcessPeriodicProbeReqTimer(tpAniSirGlobal pMac)
             /* Prepare and send Probe Request frame for all the SSIDs
              * present in the saved MLM
              */
-
-            PELOGE(limLog(pMac, LOGW, FL("sending ProbeReq number %d,"
-                                         " for SSID %s on channel: %d\n"),
-                                          i, pLimMlmScanReq->ssId[i].ssId,
-                                                             channelNum);)
+             
+            /*
+             * PELOGE(limLog(pMac, LOGW, FL("sending ProbeReq number %d,"
+             *                            " for SSID %s on channel: %d\n"),
+             *                             i, pLimMlmScanReq->ssId[i].ssId,
+             *                                                channelNum);)
+             */
             status = limSendProbeReqMgmtFrame( pMac, &pLimMlmScanReq->ssId[i],
                      pLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr,
                      pLimMlmScanReq->dot11mode, pLimMlmScanReq->uIEFieldLen,
