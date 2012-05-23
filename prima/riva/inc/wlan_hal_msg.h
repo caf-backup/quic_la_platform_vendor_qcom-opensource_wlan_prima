@@ -334,6 +334,9 @@ typedef enum
    WLAN_HAL_FEATURE_CAPS_EXCHANGE_RSP       = 176,
    WLAN_HAL_EXCLUDE_UNENCRYPTED_IND         = 177,
 
+   WLAN_HAL_SET_THERMAL_MITIGATION_REQ      = 178,
+   WLAN_HAL_SET_THERMAL_MITIGATION_RSP      = 179,
+
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -5178,6 +5181,73 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalGtkOffloadGetInfoRspParams gtkOffloadGetInfoRspParams;
 }  tHalGtkOffloadGetInfoRspMsg, *tpHalGtkOffloadGetInfoRspMsg;
+
+/*
+   Thermal Mitigation mode of operation.
+   HAL_THERMAL_MITIGATION_MODE_0 - Based on AMPDU disabling aggregation
+   HAL_THERMAL_MITIGATION_MODE_1 - Based on AMPDU disabling aggregation and
+   reducing transmit power
+   HAL_THERMAL_MITIGATION_MODE_2 - Not supported
+*/
+typedef enum
+{
+  HAL_THERMAL_MITIGATION_MODE_INVALID = -1,
+  HAL_THERMAL_MITIGATION_MODE_0,
+  HAL_THERMAL_MITIGATION_MODE_1,
+  HAL_THERMAL_MITIGATION_MODE_2,
+  HAL_THERMAL_MITIGATION_MODE_MAX = WLAN_HAL_MAX_ENUM_SIZE,
+}tHalThermalMitigationModeType;
+//typedef tANI_S16 tHalThermalMitigationModeType;
+
+/*
+   Thermal Mitigation level.
+   Note the levels are incremental i.e HAL_THERMAL_MITIGATION_LEVEL_2 =
+   HAL_THERMAL_MITIGATION_LEVEL_0 + HAL_THERMAL_MITIGATION_LEVEL_1
+
+   HAL_THERMAL_MITIGATION_LEVEL_0 - lowest level of thermal mitigation. This
+   level indicates normal mode of operation
+   HAL_THERMAL_MITIGATION_LEVEL_1 - 1st level of thermal mitigation
+   HAL_THERMAL_MITIGATION_LEVEL_2 - 2nd level of thermal mitigation
+   HAL_THERMAL_MITIGATION_LEVEL_3 - 3rd level of thermal mitigation
+   HAL_THERMAL_MITIGATION_LEVEL_4 - 4th level of thermal mitigation
+*/
+typedef enum 
+{
+  HAL_THERMAL_MITIGATION_LEVEL_INVALID = -1,
+  HAL_THERMAL_MITIGATION_LEVEL_0,
+  HAL_THERMAL_MITIGATION_LEVEL_1,
+  HAL_THERMAL_MITIGATION_LEVEL_2,
+  HAL_THERMAL_MITIGATION_LEVEL_3,
+  HAL_THERMAL_MITIGATION_LEVEL_4,
+  HAL_THERMAL_MITIGATION_LEVEL_MAX = WLAN_HAL_MAX_ENUM_SIZE,
+}tHalThermalMitigationLevelType;
+//typedef tANI_S16 tHalThermalMitigationLevelType;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   /* Thermal Mitigation Operation Mode */
+   tHalThermalMitigationModeType thermalMitMode;
+
+   /* Thermal Mitigation Level */
+   tHalThermalMitigationLevelType thermalMitLevel;
+    
+}tSetThermalMitgationType, *tpSetThermalMitgationType;
+
+/* WLAN_HAL_SET_THERMAL_MITIGATION_REQ */
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader               header;
+    tSetThermalMitgationType    thermalMitParams;
+} tSetThermalMitigationReqMsg, *tpSetThermalMitigationReqMsg;
+
+typedef PACKED_PRE struct PACKED_POST{
+
+   tHalMsgHeader header;
+
+   /*status of the request */
+   tANI_U32   status;
+
+}  tSetThermalMitigationResp, *tpSetThermalMitigationResp;
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)
