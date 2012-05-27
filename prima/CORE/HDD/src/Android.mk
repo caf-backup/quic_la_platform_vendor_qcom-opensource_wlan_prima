@@ -51,6 +51,17 @@ LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/prima
 include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
+MV_CFG80211_MODULE := $(KERNEL_MODULES_OUT)/prima/cfg80211.ko
+$(MV_CFG80211_MODULE): CFG80211_MODULE := $(KERNEL_MODULES_OUT)/cfg80211.ko
+$(MV_CFG80211_MODULE): $(TARGET_PREBUILT_INT_KERNEL)
+	@mkdir -p $(dir $@)
+	@mv -f $(CFG80211_MODULE) $@
+
+ALL_DEFAULT_INSTALLED_MODULES += $(MV_CFG80211_MODULE)
+ALL_MODULES.$(LOCAL_MODULE).INSTALLED := \
+    $(ALL_MODULES.$(LOCAL_MODULE).INSTALLED) $(MV_CFG80211_MODULE)
+
+
 #Create symbolic link
 $(shell mkdir -p $(TARGET_OUT)/lib/modules; \
         ln -sf /system/lib/modules/prima/prima_wlan.ko \
