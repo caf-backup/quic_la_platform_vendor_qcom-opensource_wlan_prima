@@ -412,12 +412,6 @@ struct hdd_station_ctx
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
    int     ft_carrier_on;
 #endif
-   /* These elements are for MAX rate report to UI feature
-    * required for some customers, controlled by ini element */
-   tANI_U8 prevAssocBSSID[WNI_CFG_BSSID_LEN];
-   tANI_U8 BSSIDSet;
-   struct rate_info  storedrateInfo; 
-   tANI_U16 lastReportedRate;
 };
 
 #define BSS_STOP    0 
