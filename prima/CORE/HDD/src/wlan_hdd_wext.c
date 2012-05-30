@@ -77,7 +77,7 @@
 #include "bap_hdd_misc.h"
 
 #include "wlan_hdd_dev_pwr.h"
-
+#include "qc_sap_ioctl.h"
 #define WE_MAX_STR_LEN 1024
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -168,6 +168,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_STATS         2
 #define WE_GET_CFG           3
 #define WE_GET_WMM_STATUS    4
+#define WE_GET_CHANNEL_LIST  5
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
@@ -3743,8 +3744,44 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             wrqu->data.length = strlen(extra)+1;
             break;
         }
+        case WE_GET_CHANNEL_LIST:
+        {
+            VOS_STATUS status;
+            v_U8_t i, len;
+            char* buf ;
+            tChannelListInfo channel_list;
 
-        default:
+            status = iw_softap_get_channel_list(dev, info, wrqu, (char *)&channel_list);
+            if ( !VOS_IS_STATUS_SUCCESS( status ) ) 
+            {
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s GetChannelList Failed!!!\n",__func__);
+                return -EINVAL;
+            }
+            buf = extra;
+
+            /**
+                       * Maximum channels = WNI_CFG_VALID_CHANNEL_LIST_LEN. Maximum buffer
+                       * needed = 5 * number of channels. Check if sufficient buffer is available and 
+                       * then proceed to fill the buffer.
+                       */
+            if(WE_MAX_STR_LEN < (5 * WNI_CFG_VALID_CHANNEL_LIST_LEN))
+            {
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s Insufficient Buffer to populate channel list\n",__func__);
+                return -EINVAL;
+            }
+            len = snprintf(buf, 5, "%u ", channel_list.num_channels);
+            buf += len;
+            for(i = 0 ; i < channel_list.num_channels; i++)
+            {
+                len = snprintf(buf, 5,
+                               "%u ", channel_list.channels[i]);
+                buf += len;
+            }
+            wrqu->data.length = strlen(extra)+1;
+
+            break;
+        }
+        default:  
         {
             hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
             break;
@@ -5664,6 +5701,11 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "getWmmStatus" },
+    {
+        WE_GET_CHANNEL_LIST,
+        0, 
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        "getChannelList" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_NONE,

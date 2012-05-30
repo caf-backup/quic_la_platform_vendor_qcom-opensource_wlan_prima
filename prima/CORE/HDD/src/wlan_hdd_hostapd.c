@@ -1381,7 +1381,7 @@ static int iw_softap_set_channel_range(struct net_device *dev,
     return ret;
 }
 
-static int iw_softap_get_channel_list(struct net_device *dev, 
+int iw_softap_get_channel_list(struct net_device *dev, 
                           struct iw_request_info *info,
                           union iwreq_data *wrqu, char *extra)
 {
