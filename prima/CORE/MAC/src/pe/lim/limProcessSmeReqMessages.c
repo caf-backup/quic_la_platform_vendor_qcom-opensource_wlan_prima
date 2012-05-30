@@ -568,13 +568,13 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->dot11mode = pSmeStartBssReq->dot11mode;
         psessionEntry->htCapabality = IS_DOT11_MODE_HT(psessionEntry->dot11mode);
 
-        palCopyMemory(pMac->hHdd, (void*)&psessionEntry->rateSet, 
+        palCopyMemory(pMac->hHdd, (void*)&psessionEntry->rateSet,
             (void*)&pSmeStartBssReq->operationalRateSet,
             sizeof(tSirMacRateSet));
-        palCopyMemory(pMac->hHdd, (void*)&psessionEntry->extRateSet, 
+        palCopyMemory(pMac->hHdd, (void*)&psessionEntry->extRateSet,
             (void*)&pSmeStartBssReq->extendedRateSet,
             sizeof(tSirMacRateSet));
-        
+
         switch(pSmeStartBssReq->bssType)
         {
 #ifdef WLAN_SOFTAP_FEATURE
@@ -585,7 +585,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->authType = pSmeStartBssReq->authType;
                  /* Store the DTIM period */
                  psessionEntry->dtimPeriod = (tANI_U8)pSmeStartBssReq->dtimPeriod;
-                 /*Enable/disable UAPSD*/  
+                 /*Enable/disable UAPSD*/
                  psessionEntry->apUapsdEnable = pSmeStartBssReq->apUapsdEnable;
                  if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
                  {
@@ -593,9 +593,9 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  }
                  else
                  {
-                     /* To detect PBC overlap in SAP WPS mode, Host handles 
-                      * Probe Requests. 
-                      */    			 
+                     /* To detect PBC overlap in SAP WPS mode, Host handles
+                      * Probe Requests.
+                      */
                      if(SAP_WPS_DISABLED == pSmeStartBssReq->wps_state)
                      {
                          psessionEntry->proxyProbeRspEn = 1;
@@ -608,24 +608,24 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->ssidHidden = pSmeStartBssReq->ssidHidden;
                  psessionEntry->wps_state = pSmeStartBssReq->wps_state;
                  break;
-#endif                 
+#endif
             case eSIR_IBSS_MODE:
                  psessionEntry->limSystemRole = eLIM_STA_IN_IBSS_ROLE;
                  break;
-                 
+
             case eSIR_BTAMP_AP_MODE:
                  psessionEntry->limSystemRole = eLIM_BT_AMP_AP_ROLE;
                  break;
-                 
+
             case eSIR_BTAMP_STA_MODE:
-                 psessionEntry->limSystemRole = eLIM_BT_AMP_STA_ROLE;  
+                 psessionEntry->limSystemRole = eLIM_BT_AMP_STA_ROLE;
                  break;
 
                  /* There is one more mode called auto mode. which is used no where */
 
                  //FORBUILD -TEMPFIX.. HOW TO use AUTO MODE?????
-                 
-                 
+
+
             default:
                                    //not used anywhere...used in scan function
                  break;
@@ -645,7 +645,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
                 goto free;
             }
-            palZeroMemory(pMac->hHdd, psessionEntry->parsedAssocReq, (psessionEntry->dph.dphHashTable.size * sizeof(tpSirAssocReq)) );            
+            palZeroMemory(pMac->hHdd, psessionEntry->parsedAssocReq, (psessionEntry->dph.dphHashTable.size * sizeof(tpSirAssocReq)) );
         }
 
         /* Channel Bonding is not addressd yet for BT-AMP Support.. sunit will address channel bonding   */
@@ -683,10 +683,10 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                         limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG\n"));
                         retCode = eSIR_LOGP_EXCEPTION;
                         goto free;
-                    }                
+                    }
                 }
         }
-        
+
         else
         {
             PELOGW(limLog(pMac, LOGW, FL("Received invalid eWNI_SME_START_BSS_REQ\n"));)
@@ -696,7 +696,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         // Delete pre-auth list if any
         limDeletePreAuthList(pMac);
-        
+
         // Delete IBSS peer BSSdescription list if any
         //limIbssDelete(pMac); sep 26 review
 
@@ -706,7 +706,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /// Initialize MLM state machine
 #ifdef ANI_PRODUCT_TYPE_AP
             /* The Role is not set yet. Currently assuming the AddBss in Linux will be called by AP only.
-             * This should be handled when IBSS functionality is implemented in the Linux 
+             * This should be handled when IBSS functionality is implemented in the Linux
              * TODO */
             pMac->lim.gLimMlmState = eLIM_MLM_IDLE_STATE;
             MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
@@ -714,7 +714,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limInitMlm(pMac);
 #endif
 #endif
-        
+
         psessionEntry->htCapabality = IS_DOT11_MODE_HT(pSmeStartBssReq->dot11mode);
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -722,7 +722,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
              * later will be using this to check when received (Re)Assoc req
              * */
         limSetRSNieWPAiefromSmeStartBSSReqMessage(pMac,&pSmeStartBssReq->rsnIE,psessionEntry);
-        
+
 #endif
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -735,8 +735,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             palCopyMemory( pMac->hHdd, (void *) &psessionEntry->cfgProtection,
                           (void *) &pSmeStartBssReq->ht_capab,
                           sizeof( tCfgProtection ));
-            psessionEntry->pAPWPSPBCSession = NULL; // Initialize WPS PBC session link list          
-        }   
+            psessionEntry->pAPWPSPBCSession = NULL; // Initialize WPS PBC session link list
+        }
 #endif
 
         // Prepare and Issue LIM_MLM_START_REQ to MLM
@@ -766,7 +766,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         if( (pMlmStartReq->bssType == eSIR_BTAMP_STA_MODE) || (pMlmStartReq->bssType == eSIR_BTAMP_AP_MODE )
 #ifdef WLAN_SOFTAP_FEATURE
-            || (pMlmStartReq->bssType == eSIR_INFRA_AP_MODE) 
+            || (pMlmStartReq->bssType == eSIR_INFRA_AP_MODE)
 #endif
         )
         {
@@ -778,11 +778,11 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             /* Copy the BSSId from sessionTable to mlmStartReq struct */
             sirCopyMacAddr(pMlmStartReq->bssId,psessionEntry->bssId);
         }
-            
+
         else // ibss mode
         {
             pMac->lim.gLimIbssCoalescingHappened = false;
-                
+
             if((retStatus = wlan_cfgGetInt(pMac, WNI_CFG_IBSS_AUTO_BSSID, &autoGenBssId)) != eSIR_SUCCESS)
             {
                 limLog(pMac, LOGP, FL("Could not retrieve Auto Gen BSSID, retStatus=%d\n"), retStatus);
