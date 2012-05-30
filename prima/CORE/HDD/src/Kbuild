@@ -9,6 +9,9 @@ BUILD_FTM_DRIVER := 0
 #KERNEL include dir
 KERNEL_INC ?= ./include/linux
 
+#Do we panic on bug?  default is to warn
+PANIC_ON_BUG := 0
+
 WLAN_DIR 		:= $(WLAN_PRIMA)/CORE
 
 ifeq ($(CONFIG_CFG80211),y)
@@ -515,6 +518,10 @@ endif
 
 ifeq ($(WLAN_DBG),1)
 CDEFINES += -DWLAN_DEBUG
+endif
+
+ifeq ($(PANIC_ON_BUG),1)
+CDEFINES += -DPANIC_ON_BUG
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)

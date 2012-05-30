@@ -3811,6 +3811,7 @@ err_free_hdd_context:
 #else
    vos_mem_free( pHddCtx );
 #endif
+   VOS_BUG(1);
 
    return -1;
 
