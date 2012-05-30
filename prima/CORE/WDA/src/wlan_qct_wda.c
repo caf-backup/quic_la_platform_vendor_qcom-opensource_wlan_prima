@@ -3773,6 +3773,7 @@ void WDA_UpdateBSSParams(tWDA_CbContext *pWDA,
    wdiBssParams->ucTXChannelWidthSet = wdaBssParams->txChannelWidthSet ;
    wdiBssParams->ucCurrentOperChannel = wdaBssParams->currentOperChannel ;
    wdiBssParams->ucCurrentExtChannel = wdaBssParams->currentExtChannel ;
+   wdiBssParams->bHiddenSSIDEn = wdaBssParams->bHiddenSSIDEn ;
 
    /* copy SSID into WDI structure */
    wdiBssParams->wdiSSID.ucLength = wdaBssParams->ssId.length ;
