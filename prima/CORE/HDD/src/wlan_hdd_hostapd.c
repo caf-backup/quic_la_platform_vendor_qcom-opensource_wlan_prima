@@ -679,7 +679,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             we_custom_event_generic = (v_BYTE_t *)maxAssocExceededEvent;
             hddLog(LOG1,"%s\n", maxAssocExceededEvent);
             break;
-
+        case eSAP_STA_ASSOC_IND:
+            return VOS_STATUS_SUCCESS;
         default:
             hddLog(LOG1,"SAP message is not handled\n");
             goto stopbss;
