@@ -433,6 +433,11 @@ typedef enum
 #define CFG_AP_KEEP_ALIVE_PERIOD_MAX           ( 255)
 #define CFG_AP_KEEP_ALIVE_PERIOD_DEFAULT       ( 20 )
 
+#define CFG_GO_KEEP_ALIVE_PERIOD_NAME          "gGoKeepAlivePeriod"
+#define CFG_GO_KEEP_ALIVE_PERIOD_MIN           ( 0 )
+#define CFG_GO_KEEP_ALIVE_PERIOD_MAX           ( 255)
+#define CFG_GO_KEEP_ALIVE_PERIOD_DEFAULT       ( 20 )
+
 #endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
@@ -1225,6 +1230,7 @@ typedef struct
    v_BOOL_t      apAutoChannelSelection;
    v_U8_t        enableLTECoex;
    v_U32_t       apKeepAlivePeriod;
+   v_U32_t       goKeepAlivePeriod;
 #endif
    v_U32_t       nBeaconInterval;
    v_U8_t        nTxPowerCap;   //In dBm

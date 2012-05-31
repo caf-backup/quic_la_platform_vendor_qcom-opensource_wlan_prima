@@ -3969,3 +3969,14 @@ HAL
 V    RW    NP
 HAL
 1    255    20
+
+*
+* GO Keep Alive Timeout (TU)
+*
+WNI_CFG_GO_KEEP_ALIVE_TIMEOUT    I    4    7
+V    RW    NP
+HAL
+1    255    20
+V    RW    NP
+HAL
+1    255    20

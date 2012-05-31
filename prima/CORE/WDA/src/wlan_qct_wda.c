@@ -1352,6 +1352,20 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
 
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
+   /* QWLAN_HAL_CFG_GO_KEEPALIVE_TIMEOUT   */
+   tlvStruct->type = QWLAN_HAL_CFG_GO_KEEPALIVE_TIMEOUT  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   if(wlan_cfgGetInt(pMac, WNI_CFG_GO_KEEP_ALIVE_TIMEOUT, 
+                                            configDataValue ) != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+               "Failed to get value for WNI_CFG_GO_KEEP_ALIVE_TIMEOUT");
+      goto handle_failure;
+   }
+
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
 
    /* [COEX] strictly speaking, the Coex parameters are not part of the WLAN_CFG_FILE binary, 
    * but are from the WLAN_INI_FILE file.  However, this is the only parameter download routine
