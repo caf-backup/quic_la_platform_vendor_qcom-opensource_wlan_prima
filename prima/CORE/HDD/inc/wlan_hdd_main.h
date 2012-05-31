@@ -692,6 +692,7 @@ typedef struct hdd_dynamic_mcbcfilter_s
 #define WLAN_HDD_GET_HAL_CTX(pAdapter)  ((hdd_context_t*)(pAdapter->pHddCtx))->hHal
 #define WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter) &(pAdapter)->sessionCtx.ap.HostapdState
 #define WLAN_HDD_GET_CFG_STATE_PTR(pAdapter)  &(pAdapter)->cfg80211State
+#define WLAN_HDD_MAX_MC_ADDR_LIST 10
 
 typedef struct hdd_adapter_list_node
 {
@@ -705,6 +706,15 @@ typedef struct hdd_priv_data_s
    int used_len;
    int total_len;
 }hdd_priv_data_t;
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+typedef struct multicast_addr_list
+{
+   v_U8_t isFilterApplied;
+   v_U8_t mc_cnt;
+   v_U8_t addr[WLAN_HDD_MAX_MC_ADDR_LIST][ETH_ALEN];
+} t_multicast_add_list;
+#endif
 
 /** Adapter stucture definition */
 
@@ -824,6 +834,9 @@ struct hdd_context_s
 
    /* Thermal mitigation information */
    hdd_thermal_mitigation_info_t tmInfo;
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+   t_multicast_add_list mc_addr_list;
+#endif
 };
 
 

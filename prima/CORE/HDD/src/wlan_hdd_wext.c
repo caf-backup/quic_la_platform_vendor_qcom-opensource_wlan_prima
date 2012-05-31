@@ -286,6 +286,11 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WLAN_HDD_UI_BAND_2_4_GHZ                  2
 #define WLAN_HDD_UI_SET_BAND_VALUE_OFFSET         8
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+int wlan_hdd_set_filter(hdd_context_t *pHddCtx, tpPacketFilterCfg pRequest);
+void wlan_hdd_set_mc_addr_list(hdd_context_t *pHddCtx, v_U8_t set);
+#endif
+
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 /**---------------------------------------------------------------------------
 
@@ -4588,79 +4593,77 @@ static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_inf
 
     return 0;
 }
+
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request_info *info,
-        union iwreq_data *wrqu, char *extra)
+int wlan_hdd_set_filter(hdd_context_t *pHddCtx, tpPacketFilterCfg pRequest)
 {
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    tpPacketFilterCfg pRequest = (tpPacketFilterCfg)wrqu->data.pointer;
     tSirRcvPktFilterCfgType    packetFilterSetReq;
     tSirRcvFltPktClearParam    packetFilterClrReq;
     int i=0;
 
-    if ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->disablePacketFilter)
+    if (pHddCtx->cfg_ini->disablePacketFilter)
     {
-         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Packet Filtering Disabled. Returning ",
-           __FUNCTION__ );
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Packet Filtering Disabled. Returning ",
+                __FUNCTION__ );
         return 0;
     }
 
     /* Debug display of request components. */
     hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Packet Filter Request : FA %d params %d",
-           __FUNCTION__, pRequest->filterAction, pRequest->numParams);
+            __FUNCTION__, pRequest->filterAction, pRequest->numParams);
 
     switch (pRequest->filterAction)
     {
         case HDD_RCV_FILTER_SET:
             hddLog(VOS_TRACE_LEVEL_INFO, "%s: Set Packet Filter Request for Id: %d",
-                __FUNCTION__, pRequest->filterId);
+                    __FUNCTION__, pRequest->filterId);
 
             packetFilterSetReq.filterId = pRequest->filterId;
             if ( pRequest->numParams >= HDD_MAX_CMP_PER_PACKET_FILTER)
             {
-              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Number of Params exceed Max limit %d\n",
-                     __func__, pRequest->numParams);
-              return -EINVAL;
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Number of Params exceed Max limit %d\n",
+                        __func__, pRequest->numParams);
+                return -EINVAL;
             }
             packetFilterSetReq.numFieldParams = pRequest->numParams;
             packetFilterSetReq.coalesceTime = 0;
             packetFilterSetReq.filterType = 1;
             for (i=0; i < pRequest->numParams; i++)
             {
-              packetFilterSetReq.paramsData[i].protocolLayer = pRequest->paramsData[i].protocolLayer;
-              packetFilterSetReq.paramsData[i].cmpFlag = pRequest->paramsData[i].cmpFlag;
-              packetFilterSetReq.paramsData[i].dataOffset = pRequest->paramsData[i].dataOffset;
-              packetFilterSetReq.paramsData[i].dataLength = pRequest->paramsData[i].dataLength;
-              packetFilterSetReq.paramsData[i].reserved = 0;
+                packetFilterSetReq.paramsData[i].protocolLayer = pRequest->paramsData[i].protocolLayer;
+                packetFilterSetReq.paramsData[i].cmpFlag = pRequest->paramsData[i].cmpFlag;
+                packetFilterSetReq.paramsData[i].dataOffset = pRequest->paramsData[i].dataOffset;
+                packetFilterSetReq.paramsData[i].dataLength = pRequest->paramsData[i].dataLength;
+                packetFilterSetReq.paramsData[i].reserved = 0;
 
-              hddLog(VOS_TRACE_LEVEL_INFO, "Proto %d Comp Flag %d Filter Type\n",
-                     pRequest->paramsData[i].protocolLayer, pRequest->paramsData[i].cmpFlag,
-                     packetFilterSetReq.filterType);
+                hddLog(VOS_TRACE_LEVEL_INFO, "Proto %d Comp Flag %d Filter Type\n",
+                        pRequest->paramsData[i].protocolLayer, pRequest->paramsData[i].cmpFlag,
+                        packetFilterSetReq.filterType);
 
-              hddLog(VOS_TRACE_LEVEL_INFO, "Data Offset %d Data Len %d\n",
-                     pRequest->paramsData[i].dataOffset, pRequest->paramsData[i].dataLength);
+                hddLog(VOS_TRACE_LEVEL_INFO, "Data Offset %d Data Len %d\n",
+                        pRequest->paramsData[i].dataOffset, pRequest->paramsData[i].dataLength);
 
-              memcpy(&packetFilterSetReq.paramsData[i].compareData,
-                      pRequest->paramsData[i].compareData, pRequest->paramsData[i].dataLength);
-              memcpy(&packetFilterSetReq.paramsData[i].dataMask,
-                      pRequest->paramsData[i].dataMask, pRequest->paramsData[i].dataLength);
+                memcpy(&packetFilterSetReq.paramsData[i].compareData,
+                        pRequest->paramsData[i].compareData, pRequest->paramsData[i].dataLength);
+                memcpy(&packetFilterSetReq.paramsData[i].dataMask,
+                        pRequest->paramsData[i].dataMask, pRequest->paramsData[i].dataLength);
 
-              hddLog(VOS_TRACE_LEVEL_INFO, "CData %d CData %d CData %d CData %d CData %d CData %d\n",
-                     pRequest->paramsData[i].compareData[0], pRequest->paramsData[i].compareData[1],
-                     pRequest->paramsData[i].compareData[2], pRequest->paramsData[i].compareData[3],
-                     pRequest->paramsData[i].compareData[4], pRequest->paramsData[i].compareData[5]);
+                hddLog(VOS_TRACE_LEVEL_INFO, "CData %d CData %d CData %d CData %d CData %d CData %d\n",
+                        pRequest->paramsData[i].compareData[0], pRequest->paramsData[i].compareData[1],
+                        pRequest->paramsData[i].compareData[2], pRequest->paramsData[i].compareData[3],
+                        pRequest->paramsData[i].compareData[4], pRequest->paramsData[i].compareData[5]);
 
-              hddLog(VOS_TRACE_LEVEL_INFO, "MData %d MData %d MData %d MData %d MData %d MData %d\n",
-                     pRequest->paramsData[i].dataMask[0], pRequest->paramsData[i].dataMask[1],
-                     pRequest->paramsData[i].dataMask[2], pRequest->paramsData[i].dataMask[3],
-                     pRequest->paramsData[i].dataMask[4], pRequest->paramsData[i].dataMask[5]);
+                hddLog(VOS_TRACE_LEVEL_INFO, "MData %d MData %d MData %d MData %d MData %d MData %d\n",
+                        pRequest->paramsData[i].dataMask[0], pRequest->paramsData[i].dataMask[1],
+                        pRequest->paramsData[i].dataMask[2], pRequest->paramsData[i].dataMask[3],
+                        pRequest->paramsData[i].dataMask[4], pRequest->paramsData[i].dataMask[5]);
             }
 
-            if (eHAL_STATUS_SUCCESS != sme_ReceiveFilterSetFilter(WLAN_HDD_GET_HAL_CTX(pAdapter), &packetFilterSetReq))
+            if (eHAL_STATUS_SUCCESS != sme_ReceiveFilterSetFilter(pHddCtx, &packetFilterSetReq))
             {
-              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Set Filter\n",
-                     __func__);
-              return -EINVAL;
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Set Filter\n",
+                        __func__);
+                return -EINVAL;
             }
 
             break;
@@ -4668,24 +4671,70 @@ static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request
         case HDD_RCV_FILTER_CLEAR:
 
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Clear Packet Filter Request for Id: %d\n",
-               __FUNCTION__, pRequest->filterId);
+                    __FUNCTION__, pRequest->filterId);
             packetFilterClrReq.filterId = pRequest->filterId;
-
-            if (eHAL_STATUS_SUCCESS != sme_ReceiveFilterClearFilter(WLAN_HDD_GET_HAL_CTX(pAdapter), &packetFilterClrReq))
+            if (eHAL_STATUS_SUCCESS != sme_ReceiveFilterClearFilter(pHddCtx, &packetFilterClrReq))
             {
-              hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Clear Filter\n",
-                     __func__);
-              return -EINVAL;
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Clear Filter\n",
+                        __func__);
+                return -EINVAL;
             }
             break;
 
         default :
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Packet Filter Request: Invalid %d\n",
-               __FUNCTION__, pRequest->filterAction);
+                    __FUNCTION__, pRequest->filterAction);
             return -EINVAL;
     }
-
     return 0;
+}
+
+void wlan_hdd_set_mc_addr_list(hdd_context_t *pHddCtx, v_U8_t set)
+{
+    v_U8_t filterAction = 0; 
+    tPacketFilterCfg request = {0}; 
+    v_U8_t i = 0;
+
+    filterAction = set ? HDD_RCV_FILTER_SET : HDD_RCV_FILTER_CLEAR;
+
+    /*set mulitcast addr list*/
+    for (i = 0; i < pHddCtx->mc_addr_list.mc_cnt; i++)
+    {
+        memset(&request, 0, sizeof (tPacketFilterCfg));
+        request.filterAction = filterAction;
+        request.filterId = i; 
+        if (set)
+        {
+            request.numParams = 1; 
+            request.paramsData[0].protocolLayer = HDD_FILTER_PROTO_TYPE_MAC; 
+            request.paramsData[0].cmpFlag = HDD_FILTER_CMP_TYPE_EQUAL;   
+            request.paramsData[0].dataOffset = WLAN_HDD_80211_FRM_DA_OFFSET;
+            request.paramsData[0].dataLength = ETH_ALEN;
+            memcpy(&(request.paramsData[0].compareData[0]), 
+                    &(pHddCtx->mc_addr_list.addr[i][0]), ETH_ALEN);
+            /*set mulitcast filters*/
+            hddLog(VOS_TRACE_LEVEL_INFO, 
+                    "%s: %s multicast filter: addr =" 
+                    "%02x:%02x:%02x:%02x:%02x:%02x", 
+                    __func__, set ? "setting" : "clearing", 
+                    request.paramsData[0].compareData[0], 
+                    request.paramsData[0].compareData[1],
+                    request.paramsData[0].compareData[2], 
+                    request.paramsData[0].compareData[3],
+                    request.paramsData[0].compareData[4], 
+                    request.paramsData[0].compareData[5]);
+        }
+        wlan_hdd_set_filter(pHddCtx, &request);
+    }
+    pHddCtx->mc_addr_list.isFilterApplied = set ? TRUE : FALSE;
+}
+
+static int iw_set_packet_filter_params(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{   
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tpPacketFilterCfg pRequest = (tpPacketFilterCfg)wrqu->data.pointer;
+    return wlan_hdd_set_filter(WLAN_HDD_GET_CTX(pAdapter), pRequest);
 }
 #endif
 static int iw_get_statistics(struct net_device *dev,

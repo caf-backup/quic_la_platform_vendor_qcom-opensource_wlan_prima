@@ -12162,16 +12162,6 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
       return VOS_STATUS_E_NOMEM;
    }
 
-   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
-      VOS_ASSERT(0);
-      vos_mem_free(pwdiSetRcvPktFilterReqParamsType);
-      vos_mem_free(pWdaParams);
-      return VOS_STATUS_E_FAILURE;
-   }
-
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterId = pRcvPktFilterCfg->filterId;
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterType = pRcvPktFilterCfg->filterType;   
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.numFieldParams = pRcvPktFilterCfg->numFieldParams;
@@ -12451,16 +12441,6 @@ VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA,
       VOS_ASSERT(0);
       vos_mem_free(pwdiRcvFltPktClearReqParamsType);
       return VOS_STATUS_E_NOMEM;
-   }
-
-   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__);
-      VOS_ASSERT(0);
-      vos_mem_free(pwdiRcvFltPktClearReqParamsType);
-      vos_mem_free(pWdaParams);
-      return VOS_STATUS_E_FAILURE;
    }
 
    pwdiRcvFltPktClearReqParamsType->filterClearParam.status = pRcvFltPktClearParam->status;

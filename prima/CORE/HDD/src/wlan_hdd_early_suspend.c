@@ -80,6 +80,7 @@
 *   Function and variables declarations
 * ----------------------------------------------------------------------------*/
 #include "wlan_hdd_power.h"
+#include "wlan_hdd_packet_filtering.h"
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend wlan_early_suspend;
@@ -100,6 +101,11 @@ extern struct notifier_block hdd_netdev_notifier;
 #ifdef WLAN_SOFTAP_FEATURE
 extern tVOS_CON_MODE hdd_get_conparam ( void );
 #endif
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+extern void wlan_hdd_set_mc_addr_list(hdd_context_t *pHddCtx, v_U8_t set);
+#endif
+
 //Callback invoked by PMC to report status of standby request
 void hdd_suspend_standby_cbk (void *callbackContext, eHalStatus status)
 {
@@ -596,18 +602,43 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
    tSirHostOffloadReq  offLoadRequest;
 
    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: \n", __func__);
-
-   pAdapter = hdd_get_adapter(pHddCtx,WLAN_HDD_INFRA_STATION);
-   if(pAdapter == NULL)
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+   if (pHddCtx->cfg_ini->isMcAddrListFilter)
    {
-      pAdapter = hdd_get_adapter(pHddCtx,WLAN_HDD_P2P_CLIENT);
+      pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_GO);
+      if (pAdapter != NULL)
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               "%s: Can't set multicast addr filtering in P2P-GO HDD", __FUNCTION__);
+         return VOS_STATUS_E_FAILURE;
+      }
+
+      pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
+      if (pAdapter == NULL)    
+         pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
+
       if(pAdapter == NULL)
       {
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
          return VOS_STATUS_E_FAILURE;
       }
    }
-
+   else
+   {
+#endif
+      pAdapter = hdd_get_adapter(pHddCtx,WLAN_HDD_INFRA_STATION);
+      if(pAdapter == NULL)
+      {
+         pAdapter = hdd_get_adapter(pHddCtx,WLAN_HDD_P2P_CLIENT);
+         if(pAdapter == NULL)
+         {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
+            return VOS_STATUS_E_FAILURE;
+         }
+      }
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+   }
+#endif
    if(fenable)
    {
        if ((in_dev = __in_dev_get_rtnl(pAdapter->dev)) != NULL)
@@ -765,6 +796,22 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
             wlanSuspendParam->configuredMcstBcstFilterSetting = 
                                     pHddCtx->cfg_ini->mcastBcastFilterSetting;
         }
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+        if (pHddCtx->cfg_ini->isMcAddrListFilter)
+        {
+           /*Multicast addr list filter is enabled during suspend*/
+           if (((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) || 
+                    (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT))
+                 && pHddCtx->mc_addr_list.mc_cnt
+                 && (eConnectionState_Associated == 
+                    (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+           {
+              /*set the filter*/
+              wlan_hdd_set_mc_addr_list(pHddCtx, TRUE);
+           }
+        }
+#endif
     }
 
     halStatus = sme_ConfigureSuspendInd(pHddCtx->hHal, wlanSuspendParam);
@@ -810,6 +857,19 @@ static void hdd_conf_resume_ind(hdd_context_t* pHddCtx)
                                     pHddCtx->cfg_ini->mcastBcastFilterSetting;
     }
     sme_ConfigureResumeReq(pHddCtx->hHal, wlanResumeParam);
+
+#ifdef WLAN_FEATURE_PACKET_FILTERING    
+    if (pHddCtx->cfg_ini->isMcAddrListFilter)
+    {
+       /*Mutlicast addr filtering is enabled*/
+       if(pHddCtx->mc_addr_list.isFilterApplied)
+       {
+          /*Filter applied during suspend mode*/
+          /*Clear it here*/
+          wlan_hdd_set_mc_addr_list(pHddCtx, FALSE);
+       }
+    }
+#endif
 }
 #endif
 

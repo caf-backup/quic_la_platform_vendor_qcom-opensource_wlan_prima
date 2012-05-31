@@ -1039,6 +1039,13 @@ typedef enum
 #define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_DEFAULT             ( 0 )
 #endif
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+#define CFG_MC_ADDR_LIST_FILTER_NAME               "isMcAddrListFilter"
+#define CFG_MC_ADDR_LIST_FILTER_MIN                ( 0 )
+#define CFG_MC_ADDR_LIST_FILTER_MAX                ( 1 )
+#define CFG_MC_ADDR_LIST_FILTER_DEFAULT            ( 0 )
+#endif
+
 /*
  * WDI Trace Enable Control
  * Notes:
@@ -1390,6 +1397,9 @@ typedef struct
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
 #endif
    v_U8_t                      thermalMitigationEnable;
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+   v_BOOL_t                    isMcAddrListFilter;
+#endif
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
