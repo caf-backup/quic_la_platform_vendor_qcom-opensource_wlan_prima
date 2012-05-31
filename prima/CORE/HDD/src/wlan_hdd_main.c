@@ -145,8 +145,10 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
 {
    struct net_device *dev = ndev;
    hdd_adapter_t *pAdapter = NULL;
+#ifdef WLAN_BTAMP_FEATURE
    VOS_STATUS status;
    hdd_context_t *pHddCtx;
+#endif
 
    //Make sure that this callback corresponds to our device.
    if((strncmp( dev->name, "wlan", 4 )) && 
@@ -212,6 +214,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: Scan is not Pending from user" , __FUNCTION__);
         }
+#ifdef WLAN_BTAMP_FEATURE
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __FUNCTION__);
         pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
         status = WLANBAP_StopAmp();
@@ -228,6 +231,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
            pHddCtx->isAmpAllowed = VOS_FALSE;
            WLANBAP_DeregisterFromHCI();
         }
+#endif //WLAN_BTAMP_FEATURE
         break;
 
    default:
@@ -3693,7 +3697,11 @@ int hdd_wlan_startup(struct device *dev )
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
+#ifdef WLAN_BTAMP_FEATURE
       goto err_bap_stop;
+#else
+      goto err_p2psession_close; 
+#endif //WLAN_BTAMP_FEATURE
    }
 
    /* Register TM level change handler function to the platform */
@@ -3797,11 +3805,15 @@ err_unregister_pmops:
    hddDevTmUnregisterNotifyCallback(pHddCtx);
    hddDeregisterPmOps(pHddCtx);
 
+#ifdef WLAN_BTAMP_FEATURE
 err_bap_stop:
   WLANBAP_Stop(pVosContext);
+#endif
 
+#ifdef WLAN_BTAMP_FEATURE
 err_bap_close:
    WLANBAP_Close(pVosContext);
+#endif
 
 err_p2psession_close:
 #ifdef WLAN_FEATURE_P2P
