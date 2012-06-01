@@ -1635,7 +1635,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limDeleteStaContext(pMac, limMsg);
             break;
 
-        case SIR_LIM_MIN_CHANNEL_TIMEOUT:
+        case SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT:
+		case SIR_LIM_MIN_CHANNEL_TIMEOUT:
         case SIR_LIM_MAX_CHANNEL_TIMEOUT:
         case SIR_LIM_JOIN_FAIL_TIMEOUT:
         case SIR_LIM_AUTH_FAIL_TIMEOUT:

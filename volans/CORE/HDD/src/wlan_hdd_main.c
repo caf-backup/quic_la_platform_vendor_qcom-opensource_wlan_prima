@@ -868,9 +868,11 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
       init_completion(&pAdapter->abortscan_event_var);
 #ifdef CONFIG_CFG80211
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+      spin_lock_init(&pAdapter->cfg80211State.p2p_lock);
       init_completion(&pAdapter->offchannel_tx_event);
 #endif
       init_completion(&pAdapter->cancel_rem_on_chan_var);
+      init_completion(&pAdapter->rem_on_chan_ready_event);
       init_completion(&pAdapter->tx_action_cnf_event);
 #endif
       init_completion(&pHddCtx->mc_sus_event_var);
@@ -2434,16 +2436,19 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 #endif
 
-   //Close VOSS
-   //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
-   vos_close(pVosContext);
-   //Close the scheduler before closing other modules.
+   //Close the scheduler before closing other modules to make sure no thread is 
+   // scheduled after the each module close is called i.e after all the data 
+   // structures are freed.
    vosStatus = vos_sched_close( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
          "%s: Failed to close VOSS Scheduler",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
+
+      //Close VOSS
+   //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
+   vos_close(pVosContext);
    
    vosStatus = WLANBAL_Close(pVosContext);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))

@@ -3617,6 +3617,7 @@ typedef PACKED_PRE struct PACKED_POST _QWlanfw_MemMapInfo
     tANI_U32 raTableAddr;           /* gEntry_RATableAddr */
     tANI_U32 fwHPhyPMTable2Start;   /* gEntry_HPhyPMTable2Start */
     tANI_U32 fwHPhyPMTable2End;     /* gEntry_HPhyPMTable2End */
+    tANI_U32 uCodesAddr;
     tANI_U32 reserved1;
     tANI_U32 reserved2;
     tANI_U32 reserved3;

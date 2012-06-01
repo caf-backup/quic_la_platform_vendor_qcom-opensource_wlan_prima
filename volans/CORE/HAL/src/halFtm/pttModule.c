@@ -1357,17 +1357,13 @@ void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
     /*average the value over valid reads*/
     rssi0 = ((rssi0Stats == 0)?0:(rssi0Stats/validCounterRssi0));
 
-    /*assign rssiValues to response*/
-    if(rssi0 > 0)
-    {
-        pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] = (tANI_S8)rssi0;
-    }
 }
 
 void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
 {
     eRfChannels curChan = rfGetChannelIndex(pMac->hphy.phy.test.testChannelId, pMac->hphy.phy.test.testCbState);
     t2Decimal rssiOffset0;
+	tANI_U32 rssi0 = 0;
 
     if(curChan == INVALID_RF_CHANNEL)
     {
@@ -1391,6 +1387,13 @@ void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
             rssiOffset0 = (rssiChanOffsets[PHY_RX_CHAIN_0].gnRssiOffset[curChan] -
                             rssiChanOffsets[PHY_RX_CHAIN_0].bRssiOffset[curChan]) / 100;
         }
+    }
+
+    palReadRegister(pMac->hHdd, QWLAN_PMI_LAST_STATS0_REG, &rssi0);
+
+    if(rssi0 > 0)
+    {
+        pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] = (tANI_S8)rssi0;
     }
 
     rssi->rx[PHY_RX_CHAIN_0] = (tANI_S8)(pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] + RSSI_TO_DBM_OFFSET + rssiOffset0);

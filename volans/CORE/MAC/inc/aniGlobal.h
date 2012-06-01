@@ -180,6 +180,7 @@ typedef struct sLimTimers
     // Scan related timers
     TX_TIMER    gLimMinChannelTimer;
     TX_TIMER    gLimMaxChannelTimer;
+	TX_TIMER    gLimPeriodicProbeReqTimer;
 
     // CNF_WAIT timer
     TX_TIMER            *gpLimCnfWaitTimer;

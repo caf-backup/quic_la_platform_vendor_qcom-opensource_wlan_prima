@@ -765,7 +765,6 @@ void limAbortRemainOnChan(tpAniSirGlobal pMac)
                                 &pMac->lim.limTimers.gLimRemainOnChannelTimer))
     {
         //TODO check for state and take appropriate actions
-        limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
         limProcessRemainOnChnTimeout(pMac);
     }
     return;
