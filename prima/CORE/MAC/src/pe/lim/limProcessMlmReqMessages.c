@@ -2811,6 +2811,13 @@ limProcessMlmDisassocReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatu
        sendDisassocFrame = 1;    
     }
 
+    if (psessionEntry->limSystemRole == eLIM_AP_ROLE) 
+    {
+       //SAP mode delay DEL STA for 300ms such that disassoc can be delivered at TIM
+       //100 ms for normal TIM and 300 ms for dynamic TIM
+       vos_sleep(300); 
+    }
+
     /// Receive path cleanup with dummy packet
     if(eSIR_SUCCESS != limCleanupRxPath(pMac, pStaDs,psessionEntry))
         {
