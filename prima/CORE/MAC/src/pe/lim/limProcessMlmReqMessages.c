@@ -3112,6 +3112,14 @@ limProcessMlmDeauthReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatus,
     limSendDeauthMgmtFrame(pMac, pMlmDeauthReq->reasonCode,
                            pMlmDeauthReq->peerMacAddr,psessionEntry);
 
+    if( (psessionEntry->limSystemRole == eSYSTEM_AP_ROLE))
+    {
+      // Delay DEL STA for 300ms such that unicast deauth is 
+      // delivered at TIM(100 for normal or 300ms for dynamic) 
+      // to power save stations after setting PVB
+      vos_sleep(300);
+    }
+
     /// Receive path cleanup with dummy packet
     limCleanupRxPath(pMac, pStaDs,psessionEntry);
 
