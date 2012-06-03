@@ -834,12 +834,12 @@ limCleanup(tpAniSirGlobal pMac)
     tpLimMgmtFrameRegistration pLimMgmtRegistration = NULL;
     
     while(vos_list_remove_front(&pMac->lim.gLimMgmtFrameRegistratinQueue,
-    		(vos_list_node_t**)&pLimMgmtRegistration) == VOS_STATUS_SUCCESS)
+            (vos_list_node_t**)&pLimMgmtRegistration) == VOS_STATUS_SUCCESS)
     {
         VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-        		FL("Fixing leak! Deallocating pLimMgmtRegistration node"));
+                FL("Fixing leak! Deallocating pLimMgmtRegistration node"));
 
-    	palFreeMemory(pMac, pLimMgmtRegistration);
+        palFreeMemory(pMac, pLimMgmtRegistration);
     }
 
     vos_list_destroy(&pMac->lim.gLimMgmtFrameRegistratinQueue);

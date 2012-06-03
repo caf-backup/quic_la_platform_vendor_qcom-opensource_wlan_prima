@@ -1352,6 +1352,20 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
 
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
+   /* QWLAN_HAL_CFG_GO_KEEPALIVE_TIMEOUT   */
+   tlvStruct->type = QWLAN_HAL_CFG_GO_KEEPALIVE_TIMEOUT  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   if(wlan_cfgGetInt(pMac, WNI_CFG_GO_KEEP_ALIVE_TIMEOUT, 
+                                            configDataValue ) != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+               "Failed to get value for WNI_CFG_GO_KEEP_ALIVE_TIMEOUT");
+      goto handle_failure;
+   }
+
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
 
    /* [COEX] strictly speaking, the Coex parameters are not part of the WLAN_CFG_FILE binary, 
    * but are from the WLAN_INI_FILE file.  However, this is the only parameter download routine
@@ -9971,8 +9985,8 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
        txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
    }
 
-   /* Divert Disassoc/Deauth frames thru self station, as by the time unicast 
-      disassoc frame reaches the HW, HAL has already deleted the peer station */
+   /* Do not divert Disassoc/Deauth frames through self station because a delay of
+    * 300ms is added beofre trigerring DEL STA so let deuath gets delivered at TIM */
    if ((pFc->type == SIR_MAC_MGMT_FRAME)) 
    {
        if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
@@ -9980,8 +9994,17 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
                (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP) || 
                (pFc->subType == SIR_MAC_MGMT_PROBE_REQ)) 
        {
-           /*Send Probe request frames on self sta idx*/
-           txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
+           if( (systemRole == eSYSTEM_AP_ROLE) && ( (pFc->subType == SIR_MAC_MGMT_DEAUTH) ||
+                                                    (pFc->subType == SIR_MAC_MGMT_DISASSOC) ) )
+           {
+              /*Do not request self STA for deauth/disassoc let it go through peer STA and
+               *broadcast STA and get delivered at TIM for power save stations*/
+           }
+           else
+           {
+             /*Send Probe request frames on self sta idx*/
+             txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
+           }
        } 
        /* Since we donot want probe responses to be retried, send probe responses
           through the NO_ACK queues */
@@ -11574,6 +11597,12 @@ void WDA_PNOScanReqCallback(WDI_Status status, void* pUserData)
       {
          vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
       }
+
+      if( pWdaParams->wdaMsgParam != NULL)
+      {
+         vos_mem_free(pWdaParams->wdaMsgParam);
+      }
+
       vos_mem_free(pWdaParams) ;
    }
 
@@ -12162,16 +12191,6 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
       return VOS_STATUS_E_NOMEM;
    }
 
-   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__); 
-      VOS_ASSERT(0);
-      vos_mem_free(pwdiSetRcvPktFilterReqParamsType);
-      vos_mem_free(pWdaParams);
-      return VOS_STATUS_E_FAILURE;
-   }
-
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterId = pRcvPktFilterCfg->filterId;
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterType = pRcvPktFilterCfg->filterType;   
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.numFieldParams = pRcvPktFilterCfg->numFieldParams;
@@ -12451,16 +12470,6 @@ VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA,
       VOS_ASSERT(0);
       vos_mem_free(pwdiRcvFltPktClearReqParamsType);
       return VOS_STATUS_E_NOMEM;
-   }
-
-   if((NULL != pWDA->wdaMsgParam) || (NULL != pWDA->wdaWdiApiMsgParam))
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-             "%s: wdaMsgParam or wdaWdiApiMsgParam is not NULL", __FUNCTION__);
-      VOS_ASSERT(0);
-      vos_mem_free(pwdiRcvFltPktClearReqParamsType);
-      vos_mem_free(pWdaParams);
-      return VOS_STATUS_E_FAILURE;
    }
 
    pwdiRcvFltPktClearReqParamsType->filterClearParam.status = pRcvFltPktClearParam->status;

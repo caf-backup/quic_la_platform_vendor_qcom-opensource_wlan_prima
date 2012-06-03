@@ -398,7 +398,7 @@ WLANSAP_RoamCallback
             sapContext->SapQosCfg.WmmIsEnabled = pCsrRoamInfo->wmmEnabledSta;
             // MAC filtering
             vosStatus = sapIsPeerMacAllowed(sapContext, (v_U8_t *)pCsrRoamInfo->peerMac);
-            /*
+            
             if ( VOS_STATUS_SUCCESS == vosStatus )
             {
                 vosStatus = sapSignalHDDevent( sapContext, pCsrRoamInfo, eSAP_STA_ASSOC_IND, (v_PVOID_t)eSAP_STATUS_SUCCESS);
@@ -423,7 +423,7 @@ WLANSAP_RoamCallback
                    pCsrRoamInfo->peerMac[1], pCsrRoamInfo->peerMac[2],
                    pCsrRoamInfo->peerMac[3], pCsrRoamInfo->peerMac[4], pCsrRoamInfo->peerMac[5]);
                 halStatus = eHAL_STATUS_FAILURE;
-            } */
+            } 
 
             break;
 

@@ -83,6 +83,9 @@ v_U8_t ccpRSNOui06[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x40, 0x96, 0x00 }; // CCKM
 
 #define BEACON_FRAME_IES_OFFSET 12
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+extern void wlan_hdd_set_mc_addr_list(hdd_context_t *pHddCtx, v_U8_t set);
+#endif
 
 
 static inline v_VOID_t hdd_connSetConnectionState( hdd_station_ctx_t *pHddStaCtx, eConnectionState connState )
@@ -1605,7 +1608,19 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                     hdd_conf_mcastbcast_filter((WLAN_HDD_GET_CTX(pAdapter)), FALSE);
                     (WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set = FALSE;
                 }
-               
+#ifdef WLAN_FEATURE_PACKET_FILTERING    
+                if (pHddCtx->cfg_ini->isMcAddrListFilter)
+                {
+                    /*Multicast addr filtering is enabled*/
+                    if(pHddCtx->mc_addr_list.isFilterApplied)
+                    {
+                        /*Filter applied during suspend mode*/
+                        /*Clear it here*/
+                        wlan_hdd_set_mc_addr_list(pHddCtx, FALSE);
+                    }
+                }
+#endif
+
                 VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                         "%s: Disconnected from the AP and "
                         "resetting the country code to default\n",__func__);

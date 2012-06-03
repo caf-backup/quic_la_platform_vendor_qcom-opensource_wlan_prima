@@ -131,6 +131,10 @@ static v_U8_t      isSsrRequired;
 v_U16_t hdd_select_queue(struct net_device *dev,
     struct sk_buff *skb);
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+static void hdd_set_multicast_list(struct net_device *dev);
+#endif
+
 void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter);
 
 extern int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr);
@@ -141,8 +145,10 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
 {
    struct net_device *dev = ndev;
    hdd_adapter_t *pAdapter = NULL;
+#ifdef WLAN_BTAMP_FEATURE
    VOS_STATUS status;
    hdd_context_t *pHddCtx;
+#endif
 
    //Make sure that this callback corresponds to our device.
    if((strncmp( dev->name, "wlan", 4 )) && 
@@ -208,6 +214,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: Scan is not Pending from user" , __FUNCTION__);
         }
+#ifdef WLAN_BTAMP_FEATURE
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __FUNCTION__);
         pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
         status = WLANBAP_StopAmp();
@@ -224,6 +231,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
            pHddCtx->isAmpAllowed = VOS_FALSE;
            WLANBAP_DeregisterFromHCI();
         }
+#endif //WLAN_BTAMP_FEATURE
         break;
 
    default:
@@ -964,7 +972,9 @@ void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr)
       .ndo_do_ioctl = hdd_ioctl,
       .ndo_set_mac_address = hdd_set_mac_address,
       .ndo_select_queue    = hdd_select_queue,
-
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+      .ndo_set_multicast_list = hdd_set_multicast_list,
+#endif
  };
 #ifdef CONFIG_CFG80211   
  static struct net_device_ops wlan_mon_drv_ops = {
@@ -2407,6 +2417,71 @@ v_U8_t hdd_get_operating_channel( hdd_context_t *pHddCtx, device_mode_t mode )
    return operatingChannel;
 }
 
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+/**---------------------------------------------------------------------------
+
+  \brief hdd_set_multicast_list() - 
+
+  This used to set the multicast address list.
+
+  \param  - dev - Pointer to the WLAN device.
+  - skb - Pointer to OS packet (sk_buff).
+  \return - success/fail 
+
+  --------------------------------------------------------------------------*/
+static void hdd_set_multicast_list(struct net_device *dev)
+{
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   hdd_context_t *pHddCtx;
+   int mc_count;
+   int i = 0;
+   struct netdev_hw_addr *ha;
+   pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
+   if (NULL == pHddCtx)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+            "%s: HDD context is Null", __FUNCTION__);
+      return;
+   }
+
+   if (dev->flags & IFF_ALLMULTI)
+   {
+      hddLog(VOS_TRACE_LEVEL_INFO,
+            "%s: allow all multicast frames", __FUNCTION__);
+      pHddCtx->mc_addr_list.mc_cnt = 0;
+   }
+   else 
+   {
+      mc_count = netdev_mc_count(dev);
+      hddLog(VOS_TRACE_LEVEL_INFO,
+            "%s: mc_count = %u", __FUNCTION__, mc_count);
+      if (mc_count > WLAN_HDD_MAX_MC_ADDR_LIST)
+      {
+         hddLog(VOS_TRACE_LEVEL_INFO,
+               "%s: No free filter available; allow all multicast frames", __FUNCTION__);
+         pHddCtx->mc_addr_list.mc_cnt = 0;
+         return;
+      }
+
+      pHddCtx->mc_addr_list.mc_cnt = mc_count;
+
+      netdev_for_each_mc_addr(ha, dev) {
+         if (i == mc_count)
+            break;
+         memset(&(pHddCtx->mc_addr_list.addr[i][0]), 0, ETH_ALEN);
+         memcpy(&(pHddCtx->mc_addr_list.addr[i][0]), ha->addr, ETH_ALEN);
+         hddLog(VOS_TRACE_LEVEL_INFO, "\n%s: mlist[%d] = %02x:%02x:%02x:%02x:%02x:%02x", 
+               __func__, i, 
+               pHddCtx->mc_addr_list.addr[i][0], pHddCtx->mc_addr_list.addr[i][1], 
+               pHddCtx->mc_addr_list.addr[i][2], pHddCtx->mc_addr_list.addr[i][3], 
+               pHddCtx->mc_addr_list.addr[i][4], pHddCtx->mc_addr_list.addr[i][5]);
+         i++;
+      }
+   }
+   return;
+}
+#endif
+
 /**---------------------------------------------------------------------------
   
   \brief hdd_select_queue() - 
@@ -3622,7 +3697,11 @@ int hdd_wlan_startup(struct device *dev )
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
+#ifdef WLAN_BTAMP_FEATURE
       goto err_bap_stop;
+#else
+      goto err_p2psession_close; 
+#endif //WLAN_BTAMP_FEATURE
    }
 
    /* Register TM level change handler function to the platform */
@@ -3726,11 +3805,15 @@ err_unregister_pmops:
    hddDevTmUnregisterNotifyCallback(pHddCtx);
    hddDeregisterPmOps(pHddCtx);
 
+#ifdef WLAN_BTAMP_FEATURE
 err_bap_stop:
   WLANBAP_Stop(pVosContext);
+#endif
 
+#ifdef WLAN_BTAMP_FEATURE
 err_bap_close:
    WLANBAP_Close(pVosContext);
+#endif
 
 err_p2psession_close:
 #ifdef WLAN_FEATURE_P2P

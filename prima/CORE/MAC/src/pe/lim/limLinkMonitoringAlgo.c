@@ -313,8 +313,10 @@ limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession pse
     pBuf += sizeof(tANI_U16);
     msgLength += sizeof(tANI_U16);
 
-    //send disassoc OTA
-    pBuf[0]= 1;
+    //Do not send disassoc OTA
+    //pBuf[0] = 1 means do not send the disassoc frame over the air
+    //pBuf[0] = 0 means send the disassoc frame over the air
+    pBuf[0]= 0;
     pBuf += sizeof(tANI_U8);
     msgLength += sizeof(tANI_U8);
 

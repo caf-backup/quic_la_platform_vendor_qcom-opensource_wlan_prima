@@ -519,6 +519,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_AP_KEEP_ALIVE_PERIOD_MIN,
                  CFG_AP_KEEP_ALIVE_PERIOD_MAX),
 
+   REG_VARIABLE( CFG_GO_KEEP_ALIVE_PERIOD_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, goKeepAlivePeriod,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_GO_KEEP_ALIVE_PERIOD_DEFAULT,
+                 CFG_GO_KEEP_ALIVE_PERIOD_MIN,
+                 CFG_GO_KEEP_ALIVE_PERIOD_MAX),
+
 #endif
    REG_VARIABLE(CFG_DISABLE_PACKET_FILTER , WLAN_PARAM_Integer,
                  hdd_config_t, disablePacketFilter,
@@ -1405,6 +1412,14 @@ REG_VARIABLE( CFG_ENABLE_MCC_ENABLED_NAME, WLAN_PARAM_Integer,
               CFG_THERMAL_MIGRATION_ENABLE_DEFAULT, 
               CFG_THERMAL_MIGRATION_ENABLE_MIN, 
               CFG_THERMAL_MIGRATION_ENABLE_MAX ),
+#ifdef WLAN_FEATURE_PACKET_FILTERING
+ REG_VARIABLE( CFG_MC_ADDR_LIST_FILTER_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, isMcAddrListFilter,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_MC_ADDR_LIST_FILTER_DEFAULT,
+              CFG_MC_ADDR_LIST_FILTER_MIN,
+              CFG_MC_ADDR_LIST_FILTER_MAX ),
+#endif
 };
 
 /*
@@ -2520,6 +2535,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         fStatus = FALSE;
         hddLog(LOGE, "Could not pass on WNI_CFG_AP_KEEP_ALIVE_TIMEOUT to CCM\n");
      } 
+
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_GO_KEEP_ALIVE_TIMEOUT, pConfig->goKeepAlivePeriod, 
+        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+     {
+        fStatus = FALSE;
+        hddLog(LOGE, "Could not pass on WNI_CFG_GO_KEEP_ALIVE_TIMEOUT to CCM\n");
+     }
 #endif
    
 #if defined WLAN_FEATURE_VOWIFI

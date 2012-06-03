@@ -2754,7 +2754,7 @@ void dxeTXEventHandler
 
       if(WLANDXE_CH_STAT_MASKED_MASK & chStat)
       {
-         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_HIGH,
                   "dxeTXEventHandler TX HIGH Channel Masked Unmask it!!!!");
       }
 
@@ -2800,7 +2800,7 @@ void dxeTXEventHandler
 
       if(WLANDXE_CH_STAT_MASKED_MASK & chStat)
       {
-         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_HIGH,
                   "dxeTXEventHandler TX Low Channel Masked Unmask it!!!!");
       }
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,

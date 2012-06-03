@@ -2811,6 +2811,13 @@ limProcessMlmDisassocReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatu
        sendDisassocFrame = 1;    
     }
 
+    if (psessionEntry->limSystemRole == eLIM_AP_ROLE) 
+    {
+       //SAP mode delay DEL STA for 300ms such that disassoc can be delivered at TIM
+       //100 ms for normal TIM and 300 ms for dynamic TIM
+       vos_sleep(300); 
+    }
+
     /// Receive path cleanup with dummy packet
     if(eSIR_SUCCESS != limCleanupRxPath(pMac, pStaDs,psessionEntry))
         {
@@ -3111,6 +3118,14 @@ limProcessMlmDeauthReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatus,
     /// Send Deauthentication frame to peer entity
     limSendDeauthMgmtFrame(pMac, pMlmDeauthReq->reasonCode,
                            pMlmDeauthReq->peerMacAddr,psessionEntry);
+
+    if( (psessionEntry->limSystemRole == eSYSTEM_AP_ROLE))
+    {
+      // Delay DEL STA for 300ms such that unicast deauth is 
+      // delivered at TIM(100 for normal or 300ms for dynamic) 
+      // to power save stations after setting PVB
+      vos_sleep(300);
+    }
 
     /// Receive path cleanup with dummy packet
     limCleanupRxPath(pMac, pStaDs,psessionEntry);

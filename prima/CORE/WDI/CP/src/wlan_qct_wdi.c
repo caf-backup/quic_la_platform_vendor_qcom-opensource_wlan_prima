@@ -14296,11 +14296,14 @@ WDI_ProcessDelBSSRsp
     The current session will be deleted 
   -----------------------------------------------------------------------*/
   WDI_DeleteSession(pWDICtx, pBSSSes);
- 
-  /* Delete the BCAST STA entry from the STA table */
-  (void)WDI_STATableDelSta( pWDICtx, pBSSSes->bcastStaIdx );
 
-  /* Delete the STA's in this BSS */
+  /* Delete the BCAST STA entry from the STA table if SAP/GO session is deleted */
+  if(WDI_INFRA_AP_MODE == pBSSSes->wdiBssType)
+  {
+    (void)WDI_STATableDelSta( pWDICtx, pBSSSes->bcastStaIdx );
+  }
+  
+   /* Delete the STA's in this BSS */
   WDI_STATableBSSDelSta(pWDICtx, halDelBssRspMsg.deleteBssRspParams.bssIdx);
   
   wpalMutexRelease(&pWDICtx->wptMutex);
