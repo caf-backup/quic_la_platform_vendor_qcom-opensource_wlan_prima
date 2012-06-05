@@ -1141,6 +1141,15 @@ typedef enum
 #define CFG_THERMAL_MIGRATION_ENABLE_MAX       ( 1 ) 
 #define CFG_THERMAL_MIGRATION_ENABLE_DEFAULT   ( 0 ) 
 
+/*
+ * Enable/Disable Modulated DTIM feature
+ * Default: Disable
+ */
+#define CFG_ENABLE_MODULATED_DTIM_NAME       "gEnableModulatedDTIM"
+#define CFG_ENABLE_MODULATED_DTIM_MIN        ( 0 )
+#define CFG_ENABLE_MODULATED_DTIM_MAX        ( 5 )
+#define CFG_ENABLE_MODULATED_DTIM_DEFAULT    ( 0 )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1406,6 +1415,7 @@ typedef struct
 #ifdef WLAN_FEATURE_PACKET_FILTERING
    v_BOOL_t                    isMcAddrListFilter;
 #endif
+   v_U8_t                      enableModulatedDTIM;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

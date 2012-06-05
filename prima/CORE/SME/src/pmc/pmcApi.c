@@ -2941,7 +2941,6 @@ eHalStatus pmcSetPowerParams(tHalHandle hHal,   tSirSetPowerParamsReq*  pwParams
 
     vos_mem_copy(pRequestBuf, pwParams, sizeof(*pRequestBuf)); 
 
-    pRequestBuf->uDTIMPeriod = psessionEntry->dtimPeriod; 
 
     msg.type = WDA_SET_POWER_PARAMS_REQ;
     msg.reserved = 0;

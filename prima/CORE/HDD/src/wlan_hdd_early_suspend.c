@@ -967,7 +967,8 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
        }
 #endif
 
-   if((pHddCtx->cfg_ini->enableDynamicDTIM) &&
+   if((pHddCtx->cfg_ini->enableDynamicDTIM ||
+       pHddCtx->cfg_ini->enableModulatedDTIM) && 
        (eANI_BOOLEAN_TRUE == pAdapter->higherDtimTransition) &&
       (eConnectionState_Associated == 
          (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) &&
@@ -976,12 +977,22 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
       tSirSetPowerParamsReq powerRequest = { 0 };
 
       powerRequest.uIgnoreDTIM = 1;
-      powerRequest.uListenInterval = pHddCtx->cfg_ini->enableDynamicDTIM;
+  
       /*Back up the actual values from CFG */
       wlan_cfgGetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, 
                               &pHddCtx->hdd_actual_ignore_DTIM_value);
       wlan_cfgGetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, 
                               &pHddCtx->hdd_actual_LI_value);
+      
+      if(pHddCtx->cfg_ini->enableModulatedDTIM)
+      {
+          powerRequest.uDTIMPeriod = pHddCtx->cfg_ini->enableModulatedDTIM;
+          powerRequest.uListenInterval = pHddCtx->hdd_actual_LI_value;
+      }
+      else
+      {
+          powerRequest.uListenInterval = pHddCtx->cfg_ini->enableDynamicDTIM;
+      }   
 
       /* Update ignoreDTIM and ListedInterval in CFG to remain at the DTIM 
       *specified during Enter/Exit BMPS when LCD off*/
@@ -1212,6 +1223,10 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
 
          powerRequest.uIgnoreDTIM = pHddCtx->hdd_actual_ignore_DTIM_value;
          powerRequest.uListenInterval = pHddCtx->hdd_actual_LI_value;
+
+         /*Disabled ModulatedDTIM if enabled on suspend*/
+         if(pHddCtx->cfg_ini->enableModulatedDTIM)
+             powerRequest.uDTIMPeriod = 0;
 
          /* Update ignoreDTIM and ListedInterval in CFG with default values */
          ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, powerRequest.uIgnoreDTIM,
