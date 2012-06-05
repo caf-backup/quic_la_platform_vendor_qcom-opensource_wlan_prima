@@ -67,6 +67,7 @@
 #include "wlan_qct_tli_ba.h"
 #include "limUtils.h"
 #include "btcApi.h"
+#include "vos_sched.h"
 
 #ifdef ANI_MANF_DIAG
 #include "pttMsgApi.h"
@@ -9686,7 +9687,6 @@ VOS_STATUS WDA_HALDumpCmdReq(tpAniSirGlobal   pMac, tANI_U32  cmd,
                  tANI_U32   arg4, tANI_U8   *pBuffer)
 {
    WDI_Status             status = WDI_STATUS_SUCCESS;
-#if 0
    WDI_HALDumpCmdReqParamsType *wdiHALDumpCmdReqParam = NULL;
    WDI_HALDumpCmdReqInfoType *wdiHalDumpCmdInfo = NULL ;
    tWDA_ReqParams *pWdaParams ;
@@ -9753,7 +9753,6 @@ VOS_STATUS WDA_HALDumpCmdReq(tpAniSirGlobal   pMac, tANI_U32  cmd,
       }
       VOS_ASSERT(0);
    }
-#endif
    return status;
 }
 
