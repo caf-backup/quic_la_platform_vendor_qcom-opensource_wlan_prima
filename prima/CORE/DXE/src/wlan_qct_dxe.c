@@ -1084,7 +1084,8 @@ static wpt_status dxeChannelClose
          if((WDTS_CHANNEL_TX_LOW_PRI  == channelEntry->channelType) ||
             (WDTS_CHANNEL_TX_HIGH_PRI == channelEntry->channelType))
          {
-             if(eWLAN_PAL_STATUS_SUCCESS == wpalIsPacketLocked(currentCtrlBlk->xfrFrame))
+             if((NULL != currentCtrlBlk->xfrFrame) && 
+                     (eWLAN_PAL_STATUS_SUCCESS == wpalIsPacketLocked(currentCtrlBlk->xfrFrame)))
                {
                   wpalUnlockPacket(currentCtrlBlk->xfrFrame);
                   wpalPacketFree(currentCtrlBlk->xfrFrame);
