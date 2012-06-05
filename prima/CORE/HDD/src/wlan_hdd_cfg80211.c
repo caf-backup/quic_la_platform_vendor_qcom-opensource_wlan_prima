@@ -641,6 +641,7 @@ void wlan_hdd_cfg80211_set_key_wapi(hdd_adapter_t* pAdapter, u8 key_index,
 }
 #endif /* FEATURE_WLAN_WAPI*/
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter, 
                                        beacon_data_t **ppBeacon,
                                        struct beacon_parameters *params)
@@ -717,6 +718,7 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     return 0;
 
 }
+#endif //LINUX_VERSION_CODE
 
 v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid)
 {
@@ -747,6 +749,7 @@ v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid)
     return NULL;
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 /* Check if rate is 11g rate or not */
 static int wlan_hdd_rate_is_11g(u8 rate)
 {
@@ -1084,6 +1087,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     vos_mem_free(genie);
     return 0;
 }
+#endif //LINUX_VERSION_CODE
+
 /* 
  * FUNCTION: wlan_hdd_validate_operation_channel
  * called by wlan_hdd_cfg80211_start_bss() and
@@ -1127,6 +1132,7 @@ static VOS_STATUS wlan_hdd_validate_operation_channel(hdd_adapter_t *pAdapter,in
          
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                             struct beacon_parameters *params)
 {
@@ -1636,6 +1642,7 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
     EXIT();
     return status;
 }
+#endif //LINUX_VERSION_CODE
 
 static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
                                       struct net_device *dev,
@@ -4950,13 +4957,22 @@ static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
 {
     return 0;
 }
+#endif //LINUX_VERSION_CODE 
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
+                   struct net_device *dev,
+                   struct ieee80211_txq_params *params)
+{
+    return 0;
+}
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
 static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
                    struct ieee80211_txq_params *params)
 {
     return 0;
 }
-#endif
+#endif //LINUX_VERSION_CODE
 
 static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                                          struct net_device *dev, u8 *mac)
@@ -5031,9 +5047,11 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .del_virtual_intf = wlan_hdd_del_virtual_intf,
     .change_virtual_intf = wlan_hdd_cfg80211_change_iface,
     .change_station = wlan_hdd_change_station,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
     .add_beacon = wlan_hdd_cfg80211_add_beacon,
     .del_beacon = wlan_hdd_cfg80211_del_beacon,
     .set_beacon = wlan_hdd_cfg80211_set_beacon,
+#endif
     .change_bss = wlan_hdd_cfg80211_change_bss,
     .add_key = wlan_hdd_cfg80211_add_key,
     .get_key = wlan_hdd_cfg80211_get_key,
