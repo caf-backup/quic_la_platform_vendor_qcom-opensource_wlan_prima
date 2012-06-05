@@ -7493,19 +7493,36 @@ void limHandleHeartBeatTimeout(tpAniSirGlobal pMac )
 
             if((pMac->lim.gpSession[i].bssType == eSIR_INFRASTRUCTURE_MODE) &&
                 (pMac->lim.gpSession[i].limSystemRole == eLIM_STA_ROLE))
-            {           
+            {
                 limHandleHeartBeatFailure(pMac,&pMac->lim.gpSession[i]);
-                /* The following is to take care of the case where if heartbeat is fine for
-                 * the first session but not for the second session */
-                if(tx_timer_running(&pMac->lim.limTimers.gLimProbeAfterHBTimer) == VOS_TRUE)
-                break;
             }
-            
-                        
         }
-                 
      }
-}  
+     for(i=0; i< pMac->lim.maxBssId; i++)
+     {
+        if(pMac->lim.gpSession[i].valid == TRUE )
+        {
+            if((pMac->lim.gpSession[i].bssType == eSIR_INFRASTRUCTURE_MODE) &&
+                (pMac->lim.gpSession[i].limSystemRole == eLIM_STA_ROLE))
+            {
+                if(pMac->lim.gpSession[i].LimHBFailureStatus == eANI_BOOLEAN_TRUE)
+                {
+                    /* Activate Probe After HeartBeat Timer incase HB Failure detected */
+                    PELOGW(limLog(pMac, LOGW,FL("Sending Probe for Session: %d\n"),
+                            i);)
+                    limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
+                    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PROBE_AFTER_HB_TIMER));
+                    if (tx_timer_activate(&pMac->lim.limTimers.gLimProbeAfterHBTimer) != TX_SUCCESS)
+                    {
+                        limLog(pMac, LOGP, FL("Fail to re-activate Probe-after-heartbeat timer\n"));
+                        limReactivateHeartBeatTimer(pMac, &pMac->lim.gpSession[i]);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
 
 tANI_U8 limGetCurrentOperatingChannel(tpAniSirGlobal pMac)
 {
@@ -7581,42 +7598,46 @@ void limUpdateBeacon(tpAniSirGlobal pMac)
 
 void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
 {
+    tANI_U8 i;
     tpPESession psessionEntry;
-    if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId))== NULL) 
-    {
-        limLog(pMac, LOGE,FL("Session Does not exist for given sessionID\n"));
-        return;
-    }
-    
     /* Probe response is not received  after HB failure.  This is handled by LMM sub module. */
-    limLog(pMac, LOGE, FL("Probe_hb_failure: SME %d, MLME %d, HB-Count %d\n"),psessionEntry->limSmeState, psessionEntry->limMlmState, psessionEntry->LimRxedBeaconCntDuringHB);
-    if (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
+    for(i =0; i < pMac->lim.maxBssId; i++)
     {
-        if (!LIM_IS_CONNECTION_ACTIVE(psessionEntry))
+        if(pMac->lim.gpSession[i].valid == TRUE)
         {
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
-            /* AP did not respond to Probe Request. Tear down link with it.*/
-            limTearDownLinkWithAp(pMac, 
-                      pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId,
-                      eSIR_BEACON_MISSED);
-            pMac->lim.gLimProbeFailureAfterHBfailedCnt++ ;
+            psessionEntry = &pMac->lim.gpSession[i];
+            if(psessionEntry->LimHBFailureStatus == eANI_BOOLEAN_TRUE)
+            {
+                limLog(pMac, LOGE, FL("Probe_hb_failure: SME %d, MLME %d, HB-Count %d\n"),psessionEntry->limSmeState,
+                        psessionEntry->limMlmState, psessionEntry->LimRxedBeaconCntDuringHB);
+                if (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
+                {
+                    if (!LIM_IS_CONNECTION_ACTIVE(psessionEntry))
+                    {
+                        limLog(pMac, LOGE, FL("Probe_hb_failure: for session:%d \n" ),psessionEntry->peSessionId);
+                        /* AP did not respond to Probe Request. Tear down link with it.*/
+                        limTearDownLinkWithAp(pMac,
+                                              psessionEntry->peSessionId,
+                                              eSIR_BEACON_MISSED);
+                        pMac->lim.gLimProbeFailureAfterHBfailedCnt++ ;
+                    }
+                    else // restart heartbeat timer
+                    {
+                        limReactivateHeartBeatTimer(pMac, psessionEntry);
+                    }
+                }
+                else
+                {
+                    limLog(pMac, LOGE, FL("Unexpected wt-probe-timeout in state \n"));
+                    limPrintMlmState(pMac, LOGE, psessionEntry->limMlmState);
+                    limReactivateHeartBeatTimer(pMac, psessionEntry);
+                }
+
+            }
         }
-        else // restart heartbeat timer  
-        {
-            limLog(pMac, LOGE, FL("***** **** ProbeReponse timeout with RxedBeaconCount = %d\n"), psessionEntry->LimRxedBeaconCntDuringHB);
-            limReactivateHeartBeatTimer(pMac, psessionEntry);
-        }
-              
     }
-    else
-    {
-        limLog(pMac, LOGE, FL("Unexpected wt-probe-timeout in state \n"));
-        limPrintMlmState(pMac, LOGE, psessionEntry->limMlmState);
-        limReactivateHeartBeatTimer(pMac, psessionEntry);  
-    }
-    
-              
-    
+    /* Deactivate Timer ProbeAfterHB Timer -> As its a oneshot timer, need not deactivate the timer */
+    // tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
 }
 
 

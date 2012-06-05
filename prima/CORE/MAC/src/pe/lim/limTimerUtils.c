@@ -33,6 +33,8 @@
 // Lim KeepAlive timer default (3000)ms
 #define LIM_KEEPALIVE_TIMER_MS                   3000
 
+//default beacon interval value used in HB timer interval calculation
+#define LIM_HB_TIMER_BEACON_INTERVAL             100
 /**
  * limCreateTimers()
  *
@@ -1623,12 +1625,20 @@ limHeartBeatDeactivateAndChangeTimer(tpAniSirGlobal pMac, tpPESession psessionEn
     if (tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
         limLog(pMac, LOGP, FL("Fail to deactivate HeartBeatTimer \n"));
 
-    val = psessionEntry->beaconParams.beaconInterval;
-    PELOGW(limLog(pMac, LOGW, FL("session beaconInterval = %d\n"), val);)
+    /* HB Timer sessionisation: In case of 2 or more sessions, the HB interval keeps
+       changing. to avoid this problem, HeartBeat interval is made constant, by
+       fixing beacon interval to 100ms immaterial of the beacon interval of the session */
 
+    //val = psessionEntry->beaconParams.beaconInterval;
+    val = LIM_HB_TIMER_BEACON_INTERVAL;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &val1) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("Fail to get WNI_CFG_HEART_BEAT_THRESHOLD \n"));
+
+    PELOGW(limLog(pMac,LOGW,
+                 FL("HB Timer Int.=100ms * %d, Beacon Int.=%dms,Session Id=%d \n"),
+                 val1, psessionEntry->beaconParams.beaconInterval,
+                 psessionEntry->peSessionId);)
 
     // Change timer to reactivate it in future
     val = SYS_MS_TO_TICKS(val * val1);

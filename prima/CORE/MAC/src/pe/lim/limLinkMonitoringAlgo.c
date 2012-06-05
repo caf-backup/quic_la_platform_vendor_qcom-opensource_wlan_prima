@@ -455,6 +455,8 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
     WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
+    /* Ensure HB Status for the session has been reseted */
+    psessionEntry->LimHBFailureStatus = eANI_BOOLEAN_FALSE;
     /** Re Activate Timer if the system is Waiting for ReAssoc Response*/
     if(((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) || 
         (psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
@@ -498,6 +500,8 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
          */
         if(!limIsconnectedOnDFSChannel(psessionEntry->currentOperChannel))
         {
+            /*** Detected continuous Beacon Misses ***/
+             psessionEntry->LimHBFailureStatus= eANI_BOOLEAN_TRUE;
             /**
              * Send Probe Request frame to AP to see if
              * it is still around. Wait until certain
@@ -508,17 +512,6 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
             limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId, psessionEntry->bssId,
                                       psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
                                       psessionEntry->dot11mode, 0, NULL);
-    
-            //assign the sessionId to the timer object
-    
-            limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
-            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PROBE_AFTER_HB_TIMER));
-            pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId = psessionEntry->peSessionId;
-            if (tx_timer_activate(&pMac->lim.limTimers.gLimProbeAfterHBTimer) != TX_SUCCESS)
-            {
-                limLog(pMac, LOGP, FL("Fail to re-activate Probe-after-heartbeat timer\n"));
-                limReactivateHeartBeatTimer(pMac, psessionEntry);
-            }
         }
         else
         {

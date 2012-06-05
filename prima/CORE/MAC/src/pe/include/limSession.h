@@ -271,6 +271,8 @@ typedef struct sPESession           // Added to Support BT-AMP
 
     tANI_U8            spectrumMgtEnabled;
 
+    /*Flag to Track Status/Indicate HBFailure on this session */
+    tANI_BOOLEAN LimHBFailureStatus;
     tANI_U32           gLimPhyMode;
 }tPESession, *tpPESession;
 
