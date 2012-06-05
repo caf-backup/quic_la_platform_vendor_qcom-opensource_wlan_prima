@@ -1425,6 +1425,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx );
 v_BOOL_t hdd_update_config_dat ( hdd_context_t *pHddCtx );
 VOS_STATUS hdd_cfg_get_config(hdd_context_t *pHddCtx, char *pBuf, int buflen);
 eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
+VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command);
 
 #define FIELD_OFFSET(__type, __field) ((unsigned int)(&((__type *)0)->__field))
 #define VAR_OFFSET( _Struct, _Var ) ( (unsigned int) FIELD_OFFSET(_Struct, _Var ) )
@@ -1444,12 +1445,10 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
                                                          // If less than MIN, assume DEFAULT,
                                                          // If grateer than MAX, assume DEFAULT.
 
-#define VAR_FLAGS_XLATION_REQD ( 1 << 3 ) // Bit 3 indicates that
-                                          // translation from a raw
-                                          // integer to an enumeration
-                                          // is required
-
-#define CFG_BAD_ENUM_XLATION ( 0xffffffff )
+#define VAR_FLAGS_DYNAMIC_CFG ( 1 << 3 )  // Bit 3 indicates that
+                                          // the config item can be
+                                          // modified dynamicially
+                                          // on a running system
 
 typedef enum 
 {
@@ -1471,7 +1470,24 @@ typedef enum
   ( _Default ),                                                  \
   ( _Min ),                                                      \
   ( _Max ),                                                      \
-  NULL                                                           \
+  NULL,                                                          \
+  0                                                              \
+}
+
+#define REG_DYNAMIC_VARIABLE( _Name, _Type,  _Struct, _VarName,  \
+                              _Flags, _Default, _Min, _Max,      \
+                              _CBFunc, _CBParam )                \
+{                                                                \
+  ( _Name ),                                                     \
+  ( _Type ),                                                     \
+  ( VAR_FLAGS_DYNAMIC_CFG | ( _Flags ) ),                        \
+  VAR_OFFSET( _Struct, _VarName ),                               \
+  VAR_SIZE( _Struct, _VarName ),                                 \
+  ( _Default ),                                                  \
+  ( _Min ),                                                      \
+  ( _Max ),                                                      \
+  ( _CBFunc ),                                                   \
+  ( _CBParam )                                                   \
 }
 
 #define REG_VARIABLE_STRING( _Name, _Type,  _Struct, _VarName,   \
@@ -1485,7 +1501,8 @@ typedef enum
   (unsigned long)( _Default ),                                   \
   0,                                                             \
   0,                                                             \
-  NULL                                                           \
+  NULL,                                                          \
+  0                                                              \
 }
 
 typedef struct tREG_TABLE_ENTRY {
@@ -1498,7 +1515,9 @@ typedef struct tREG_TABLE_ENTRY {
   unsigned long       VarDefault;         // default value to use
   unsigned long       VarMin;             // minimum value, for range checking
   unsigned long       VarMax;             // maximum value, for range checking
-  unsigned int        (*pfnXlate)(char*); // Reg value in, enumeration out
+                                          // Dynamic modification notifier
+  void (*pfnDynamicNotify)(hdd_context_t *pHddCtx, unsigned long NotifyId);
+  unsigned long       NotifyId;           // Dynamic modification identifier
 } REG_TABLE_ENTRY;
 
 static __inline unsigned long utilMin( unsigned long a, unsigned long b )

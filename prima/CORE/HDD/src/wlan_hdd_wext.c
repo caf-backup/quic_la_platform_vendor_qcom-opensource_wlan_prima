@@ -155,6 +155,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_NEIGHBOR_REPORT_REQUEST 3
 #endif
 #define WE_SET_AP_WPS_IE     4  //This is called in station mode to set probe rsp ie.
+#define WE_SET_CONFIG        5
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
@@ -3394,13 +3395,12 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
 {
+    VOS_STATUS vstatus;
     int sub_cmd = wrqu->data.flags;
-    int ret = 0; /* sucess */
-#if defined(WLAN_FEATURE_VOWIFI) || defined(WLAN_FEATURE_P2P)
+    int ret = 0; /* success */
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
-#endif
-#ifdef WLAN_FEATURE_VOWIFI
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+#ifdef WLAN_FEATURE_VOWIFI
     hdd_config_t  *pConfig = pHddCtx->cfg_ini;
 #endif /* WLAN_FEATURE_VOWIFI */
 
@@ -3454,6 +3454,13 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
 #endif // WLAN_FEATURE_P2P
           break;
 #endif
+       case WE_SET_CONFIG:
+          vstatus = hdd_execute_config_command(pHddCtx, wrqu->data.pointer);
+          if (VOS_STATUS_SUCCESS != vstatus)
+          {
+             ret = -EINVAL;
+          }
+          break;
        default:
        {
            hddLog(LOGE, "%s: Invalid sub command %d\n",__FUNCTION__, sub_cmd);
@@ -5702,6 +5709,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| 512,
         0,
         "set_ap_wps_ie" },
+
+    {   WE_SET_CONFIG,
+        IW_PRIV_TYPE_CHAR| 512,
+        0,
+        "setConfig" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_THREE_INT_GET_NONE,

@@ -1369,26 +1369,29 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_SHORT_GI_40MHZ_MIN, 
               CFG_SHORT_GI_40MHZ_MAX ),
 
- REG_VARIABLE( CFG_REPORT_MAX_LINK_SPEED, WLAN_PARAM_Integer,
-              hdd_config_t, reportMaxLinkSpeed, 
-              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-              CFG_REPORT_MAX_LINK_SPEED_DEFAULT, 
-              CFG_REPORT_MAX_LINK_SPEED_MIN, 
-              CFG_REPORT_MAX_LINK_SPEED_MAX ),
+ REG_DYNAMIC_VARIABLE( CFG_REPORT_MAX_LINK_SPEED, WLAN_PARAM_Integer,
+                       hdd_config_t, reportMaxLinkSpeed, 
+                       VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                       CFG_REPORT_MAX_LINK_SPEED_DEFAULT, 
+                       CFG_REPORT_MAX_LINK_SPEED_MIN, 
+                       CFG_REPORT_MAX_LINK_SPEED_MAX,
+                       NULL, 0 ),
 
- REG_VARIABLE( CFG_LINK_SPEED_RSSI_HIGH, WLAN_PARAM_SignedInteger,
-              hdd_config_t, linkSpeedRssiHigh,
-              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-              CFG_LINK_SPEED_RSSI_HIGH_DEFAULT,
-              CFG_LINK_SPEED_RSSI_HIGH_MIN,
-              CFG_LINK_SPEED_RSSI_HIGH_MAX ),
+ REG_DYNAMIC_VARIABLE( CFG_LINK_SPEED_RSSI_HIGH, WLAN_PARAM_SignedInteger,
+                       hdd_config_t, linkSpeedRssiHigh,
+                       VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                       CFG_LINK_SPEED_RSSI_HIGH_DEFAULT,
+                       CFG_LINK_SPEED_RSSI_HIGH_MIN,
+                       CFG_LINK_SPEED_RSSI_HIGH_MAX,
+                       NULL, 0 ),
 
- REG_VARIABLE( CFG_LINK_SPEED_RSSI_LOW, WLAN_PARAM_SignedInteger,
-              hdd_config_t, linkSpeedRssiLow,
-              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-              CFG_LINK_SPEED_RSSI_LOW_DEFAULT,
-              CFG_LINK_SPEED_RSSI_LOW_MIN,
-              CFG_LINK_SPEED_RSSI_LOW_MAX ),
+ REG_DYNAMIC_VARIABLE( CFG_LINK_SPEED_RSSI_LOW, WLAN_PARAM_SignedInteger,
+                       hdd_config_t, linkSpeedRssiLow,
+                       VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                       CFG_LINK_SPEED_RSSI_LOW_DEFAULT,
+                       CFG_LINK_SPEED_RSSI_LOW_MIN,
+                       CFG_LINK_SPEED_RSSI_LOW_MAX,
+                       NULL, 0 ),
 
 #ifdef WLAN_FEATURE_P2P
  REG_VARIABLE( CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME, WLAN_PARAM_Integer,
@@ -2864,4 +2867,242 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    
    return status;   
+}
+
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_execute_config_command() -
+
+   This function executes an arbitrary configuration set command
+
+  \param - pHddCtx - Pointer to the HDD Adapter.
+  \parmm - command - a configuration command of the form:
+                     <name>=<value>
+
+  \return - 0 for success, non zero for failure
+
+  --------------------------------------------------------------------------*/
+
+VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
+{
+   size_t tableSize = sizeof(g_registry_table)/sizeof(g_registry_table[0]);
+   REG_TABLE_ENTRY *pRegEntry;
+   char *clone;
+   char *pCmd;
+   void *pField;
+   char *name;
+   char *value_str;
+   v_U32_t value;
+   v_S31_t svalue;
+   size_t len_value_str;
+   unsigned int idx;
+   unsigned int i;
+   VOS_STATUS vstatus;
+
+   // assume failure until proven otherwise
+   vstatus = VOS_STATUS_E_FAILURE;
+
+   // clone the command so that we can manipulate it
+   clone = kstrdup(command, GFP_ATOMIC);
+   if (NULL == clone)
+   {
+      hddLog(LOGE, "%s: memory allocation failure, unable to process [%s]",
+             __FUNCTION__, command);
+      return vstatus;
+   }
+
+   // 'clone' will point to the beginning of the string so it can be freed
+   // 'pCmd' will be used to walk/parse the command
+   pCmd = clone;
+
+   // get rid of leading/trailing whitespace
+   pCmd = i_trim(pCmd);
+   if ('\0' == *pCmd)
+   {
+      // only whitespace
+      hddLog(LOGE, "%s: invalid command, only whitespace:[%s]",
+             __FUNCTION__, command);
+      goto done;
+   }
+
+   // parse the <name> = <value>
+   name = pCmd;
+   while (('=' != *pCmd) && ('\0' != *pCmd))
+   {
+      pCmd++;
+   }
+   if ('\0' == *pCmd)
+   {
+      // did not find '='
+      hddLog(LOGE, "%s: invalid command, no '=':[%s]",
+             __FUNCTION__, command);
+      goto done;
+   }
+
+   // replace '=' with NUL to terminate the <name>
+   *pCmd++ = '\0';
+   name = i_trim(name);
+   if ('\0' == *name)
+   {
+      // did not find a name
+      hddLog(LOGE, "%s: invalid command, no <name>:[%s]",
+             __FUNCTION__, command);
+      goto done;
+   }
+
+   value_str = i_trim(pCmd);
+   if ('\0' == *value_str)
+   {
+      // did not find a value
+      hddLog(LOGE, "%s: invalid command, no <value>:[%s]",
+             __FUNCTION__, command);
+      goto done;
+   }
+
+   // lookup the configuration item
+   for (idx = 0; idx < tableSize; idx++)
+   {
+      if (0 == strcmp(name, g_registry_table[idx].RegName))
+      {
+         // found a match
+         break;
+      }
+   }
+   if (tableSize == idx)
+   {
+      // did not match the name
+      hddLog(LOGE, "%s: invalid command, unknown configuration item:[%s]",
+             __FUNCTION__, command);
+      goto done;
+   }
+
+   pRegEntry = &g_registry_table[idx];
+   if (!(pRegEntry->Flags & VAR_FLAGS_DYNAMIC_CFG))
+   {
+      // does not support dynamic configuration
+      hddLog(LOGE, "%s: invalid command, %s does not support "
+             "dynamic configuration", __FUNCTION__, name);
+      goto done;
+   }
+
+   pField = ((v_U8_t *)pHddCtx->cfg_ini) + pRegEntry->VarOffset;
+
+   switch (pRegEntry->RegType)
+   {
+   case WLAN_PARAM_Integer:
+      value = simple_strtoul(value_str, NULL, 10);
+      if (value < pRegEntry->VarMin)
+      {
+         // out of range
+         hddLog(LOGE, "%s: invalid command, value %u < min value %u",
+                __FUNCTION__, value, pRegEntry->VarMin);
+         goto done;
+      }
+      if (value > pRegEntry->VarMax)
+      {
+         // out of range
+         hddLog(LOGE, "%s: invalid command, value %u > max value %u",
+                __FUNCTION__, value, pRegEntry->VarMax);
+         goto done;
+      }
+      memcpy(pField, &value, pRegEntry->VarSize);
+      break;
+
+   case WLAN_PARAM_HexInteger:
+      value = simple_strtoul(value_str, NULL, 16);
+      if (value < pRegEntry->VarMin)
+      {
+         // out of range
+         hddLog(LOGE, "%s: invalid command, value %x < min value %x",
+                __FUNCTION__, value, pRegEntry->VarMin);
+         goto done;
+      }
+      if (value > pRegEntry->VarMax)
+      {
+         // out of range
+         hddLog(LOGE, "%s: invalid command, value %x > max value %x",
+                __FUNCTION__, value, pRegEntry->VarMax);
+         goto done;
+      }
+      memcpy(pField, &value, pRegEntry->VarSize);
+      break;
+
+   case WLAN_PARAM_SignedInteger:
+      svalue = simple_strtol(value_str, NULL, 10);
+      if (svalue < (v_S31_t)pRegEntry->VarMin)
+      {
+         // out of range
+         hddLog(LOGE, "%s: invalid command, value %d < min value %d",
+                __FUNCTION__, svalue, (int)pRegEntry->VarMin);
+         goto done;
+      }
+      if (svalue > (v_S31_t)pRegEntry->VarMax)
+      {
+         // out of range
+         hddLog(LOGE, "%s: invalid command, value %d > max value %d",
+                __FUNCTION__, svalue, (int)pRegEntry->VarMax);
+         goto done;
+      }
+      memcpy(pField, &svalue, pRegEntry->VarSize);
+      break;
+
+   case WLAN_PARAM_String:
+      len_value_str = strlen(value_str);
+      if (len_value_str > (pRegEntry->VarSize - 1))
+      {
+         // too big
+         hddLog(LOGE,
+                "%s: invalid command, string [%s] length "
+                "%u exceeds maximum length %u",
+                __FUNCTION__, value_str,
+                len_value_str, (pRegEntry->VarSize - 1));
+         goto done;
+      }
+      // copy string plus NUL
+      memcpy(pField, value_str, (len_value_str + 1));
+      break;
+
+   case WLAN_PARAM_MacAddr:
+      len_value_str = strlen(value_str);
+      if (len_value_str != (VOS_MAC_ADDR_SIZE * 2))
+      {
+         // out of range
+         hddLog(LOGE,
+                "%s: invalid command, MAC address [%s] length "
+                "%u is not expected length %u",
+                __FUNCTION__, value_str,
+                len_value_str, (VOS_MAC_ADDR_SIZE * 2));
+         goto done;
+      }
+      //parse the string and store it in the byte array
+      for (i = 0; i < VOS_MAC_ADDR_SIZE; i++)
+      {
+         ((char*)pField)[i] = (char)
+            ((parseHexDigit(value_str[(i * 2)]) * 16) +
+             parseHexDigit(value_str[(i * 2) + 1]));
+      }
+      break;
+
+   default:
+      goto done;
+   }
+
+   // if we get here, we had a successful modification
+   vstatus = VOS_STATUS_SUCCESS;
+
+   // config table has been modified, is there a notifier?
+   if (NULL != pRegEntry->pfnDynamicNotify)
+   {
+      (pRegEntry->pfnDynamicNotify)(pHddCtx, pRegEntry->NotifyId);
+   }
+
+   // note that this item was explicitly configured
+   if (idx < MAX_CFG_INI_ITEMS)
+   {
+      set_bit(idx, (void *)&pHddCtx->cfg_ini->bExplicitCfg);
+   }
+ done:
+   kfree(clone);
+   return vstatus;
 }
