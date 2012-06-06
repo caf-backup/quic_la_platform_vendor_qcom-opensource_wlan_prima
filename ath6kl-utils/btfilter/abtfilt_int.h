@@ -179,7 +179,7 @@ typedef struct _ATHBT_FILTER_INFO {
     A_BOOL                          FilterThreadValid;
     ATHBT_SCO_CONNECTION_INFO       SCOConnectInfo;
     A_UCHAR                         LMPVersion;
-    A_BOOL                          AdapterAvailable;
+    A_BOOL                          WlanAdapterAvailable;
     A_TASK_HANDLE                   hBtThread;
     A_TASK_HANDLE                   hWlanThread;
     struct _ABF_WLAN_INFO          *pWlanInfo;

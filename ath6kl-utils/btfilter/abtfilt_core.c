@@ -69,37 +69,32 @@ AthBtFilter_State_Off(ATHBT_FILTER_INFO *pInfo)
              * adapter can be surprise removed before the BT stack can clean
              * up HCI connections and states
              */
-            if (pInfo->AdapterAvailable) {
-                int         indication, newIndication;
-                ATHBT_STATE newState;
+             int         indication, newIndication;
+             ATHBT_STATE newState;
 
-                /*
-                 * the BT adapter is going away, indicate that all indications
-                 * are now in the OFF state, this may queue up control action
-                 * messages, which is okay
-                 */
-                for (indication = 0; indication < ATH_BT_MAX_STATE_INDICATION;
-                     indication++)
-                {
-                    A_LOCK_FILTER(pInfo);
-                    newIndication =
-                        FCore_FilterIndicatePreciseState(&pInfo->FilterCore,
-                                          indication, STATE_OFF, &newState);
-                    A_UNLOCK_FILTER(pInfo);
+            /*
+             * the BT adapter is going away, indicate that all indications
+             * are now in the OFF state, this may queue up control action
+             * messages, which is okay
+             */
+            for (indication = 0; indication < ATH_BT_MAX_STATE_INDICATION;
+                 indication++)
+            {
+                A_LOCK_FILTER(pInfo);
+                newIndication =
+                    FCore_FilterIndicatePreciseState(&pInfo->FilterCore,
+                                      indication, STATE_OFF, &newState);
+                A_UNLOCK_FILTER(pInfo);
 
-                    if (newIndication == ATH_BT_NOOP) {
-                        continue;
-                    }
+                if (newIndication == ATH_BT_NOOP)
+                    continue;
 
-                    DoBtStateAction(pInfo, indication, newState);
-                }
-
-                /* issue control actions */
-                ProcessBTActionMessages(pInfo, BTACTION_QUEUE_SYNC_STATE,
-                                        ATH_BT_NOOP);
+                DoBtStateAction(pInfo, indication, newState);
             }
 
-
+            /* issue control actions */
+            ProcessBTActionMessages(pInfo, BTACTION_QUEUE_SYNC_STATE,
+                                    ATH_BT_NOOP);
 }
 
 int
@@ -125,7 +120,7 @@ AthBtFilter_Attach(ATH_BT_FILTER_INSTANCE *pInstance, A_UINT32 flags)
         pInstance->pContext = pInfo;
         pInfo->pInstance = pInstance;
         pInfo->MaxBtActionMessages = (int)maxBTActionMsgs;
-        pInfo->AdapterAvailable = FALSE;
+        pInfo->WlanAdapterAvailable = FALSE;
         pInfo->Shutdown = FALSE;
 
         status = A_MUTEX_INIT(&pInfo->CritSection);
@@ -734,7 +729,8 @@ BtStateActionProper(ATHBT_FILTER_INFO *pInfo,
 
     A_UNLOCK_FILTER(pInfo);
 
-    if (queued > 0) {
+    /* wake only when the wifi is on */
+    if ((queued > 0) && (pInfo->WlanAdapterAvailable == TRUE)) {
         /* wake thread to process all the queued up actions */
         A_MUTEX_LOCK(&pInfo->hWakeEventLock);
         A_COND_SIGNAL(&pInfo->hWakeEvent);
@@ -868,9 +864,7 @@ AthFilterCmdEventsCallback(void *pContext, ATHBT_HCI_CTRL_TYPE Type,
             indication, (state == STATE_ON) ? "ON" : "OFF",
             FCore_GetCurrentBTStateBitMap(&pInfo->FilterCore));
 
-    if (pInfo->AdapterAvailable) {
-        DoBtStateAction(pInfo, indication, state);
-    }
+    DoBtStateAction(pInfo, indication, state);
 }
 
 static ATHBT_STATE_INDICATION
@@ -919,10 +913,7 @@ AthFilterAclDataOutCallback(void *pContext, unsigned char *pBuffer, int Length)
             indication, (state == STATE_ON) ? "ON" : "OFF",
             FCore_GetCurrentBTStateBitMap(&pInfo->FilterCore));
 
-    if (pInfo->AdapterAvailable) {
-        DoBtStateAction(pInfo, indication, state);
-    }
-
+    DoBtStateAction(pInfo, indication, state);
 }
 
 static void
@@ -960,9 +951,7 @@ AthFilterAclDataInCallback(void *pContext, unsigned char *pBuffer, int Length)
             indication, (state == STATE_ON) ? "ON" : "OFF",
             FCore_GetCurrentBTStateBitMap(&pInfo->FilterCore));
 
-    if (pInfo->AdapterAvailable) {
-        DoBtStateAction(pInfo, indication, state);
-    }
+    DoBtStateAction(pInfo, indication, state);
 }
 
 static void
@@ -994,9 +983,7 @@ AthFilterIndicateStateCallback(void *pContext,
         pInfo->LMPVersion = LMPVersion;
     }
 
-    if (pInfo->AdapterAvailable) {
-        DoBtStateAction(pInfo, Indication, newState);
-    }
+    DoBtStateAction(pInfo, Indication, newState);
 }
 
 static void *
@@ -1011,9 +998,10 @@ FilterThread(void *pContext)
         A_COND_WAIT(&pInfo->hWakeEvent, &pInfo->hWakeEventLock, WAITFOREVER);
         A_MUTEX_UNLOCK(&pInfo->hWakeEventLock);
 
-        if (pInfo->AdapterAvailable) {
-            ProcessBTActionMessages(pInfo, BTACTION_QUEUE_NORMAL, ATH_BT_NOOP);
-        }
+        /* As BT messages will be posted only when wlan is active,
+         * wait here also for wlan to be active
+         */
+        ProcessBTActionMessages(pInfo, BTACTION_QUEUE_NORMAL, ATH_BT_NOOP);
 
         if (pInfo->Shutdown) {
             /*
@@ -1024,35 +1012,32 @@ FilterThread(void *pContext)
              * adapter can be surprise removed before the BT stack can clean
              * up HCI connections and states
              */
-            if (pInfo->AdapterAvailable) {
-                int         indication, newIndication;
-                ATHBT_STATE newState;
+             int         indication, newIndication;
+             ATHBT_STATE newState;
 
-                /*
-                 * the BT adapter is going away, indicate that all indications
-                 * are now in the OFF state, this may queue up control action
-                 * messages, which is okay
-                 */
-                for (indication = 0; indication < ATH_BT_MAX_STATE_INDICATION;
-                     indication++)
-                {
-                    A_LOCK_FILTER(pInfo);
-                    newIndication =
-                        FCore_FilterIndicatePreciseState(&pInfo->FilterCore,
-                                          indication, STATE_OFF, &newState);
-                    A_UNLOCK_FILTER(pInfo);
+            /*
+             * the BT adapter is going away, indicate that all indications
+             * are now in the OFF state, this may queue up control action
+             * messages, which is okay
+             */
+            for (indication = 0; indication < ATH_BT_MAX_STATE_INDICATION;
+                 indication++)
+            {
+                A_LOCK_FILTER(pInfo);
+                newIndication =
+                    FCore_FilterIndicatePreciseState(&pInfo->FilterCore,
+                                      indication, STATE_OFF, &newState);
+                A_UNLOCK_FILTER(pInfo);
 
-                    if (newIndication == ATH_BT_NOOP) {
-                        continue;
-                    }
+                if (newIndication == ATH_BT_NOOP)
+                    continue;
 
-                    DoBtStateAction(pInfo, indication, newState);
-                }
-
-                /* issue control actions */
-                ProcessBTActionMessages(pInfo, BTACTION_QUEUE_SYNC_STATE,
-                                        ATH_BT_NOOP);
+                DoBtStateAction(pInfo, indication, newState);
             }
+
+            /* issue control actions */
+            ProcessBTActionMessages(pInfo, BTACTION_QUEUE_SYNC_STATE,
+                                     ATH_BT_NOOP);
 
             break;
         }
@@ -1233,13 +1218,20 @@ HandleAdapterEvent(ATHBT_FILTER_INFO *pInfo, ATH_ADAPTER_EVENT Event)
                 }
             }
 
-            pInfo->AdapterAvailable = TRUE;
-
             Abf_WlanIssueFrontEndConfig(pInfo);
 
-	        Abf_WlanGetCurrentWlanOperatingFreq(pInfo);
+            Abf_WlanGetCurrentWlanOperatingFreq(pInfo);
             /* sync BT state */
             SyncBTState(pInfo);
+
+            pInfo->WlanAdapterAvailable = TRUE;
+
+            /* Wake the BT thread to process all the queued up actions
+             * that are not processed in the absensce of wlan
+             */
+            A_MUTEX_LOCK(&pInfo->hWakeEventLock);
+            A_COND_SIGNAL(&pInfo->hWakeEvent);
+            A_MUTEX_UNLOCK(&pInfo->hWakeEventLock);
 
 #if 0
             /*
@@ -1253,7 +1245,9 @@ HandleAdapterEvent(ATHBT_FILTER_INFO *pInfo, ATH_ADAPTER_EVENT Event)
 
         case ATH_ADAPTER_REMOVED:
             A_INFO("BT Filter Core : WLAN removed \n");
-            pInfo->AdapterAvailable = FALSE;
+
+            /* Disable the flag so that no messages are processed in the absense of wifi */
+            pInfo->WlanAdapterAvailable = FALSE;
 
             /* flush messages */
             ProcessBTActionMessages(pInfo, BTACTION_QUEUE_FLUSH_ALL,
