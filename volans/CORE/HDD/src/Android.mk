@@ -66,12 +66,12 @@ KBUILD_OPTIONS := WLAN_VOLANS=../$(WLAN_BLD_DIR)/volans
 KBUILD_OPTIONS += MODNAME=wlan
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
-include $(CLEAR_VARS)
-LOCAL_MODULE             := WCN1314_rf.ko
-LOCAL_MODULE_KBUILD_NAME := wlan.ko
-LOCAL_MODULE_TAGS        := eng
-LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/volans
-include $(DLKM_DIR)/AndroidKernelModule.mk
+#include $(CLEAR_VARS)
+#LOCAL_MODULE             := WCN1314_rf.ko
+#LOCAL_MODULE_KBUILD_NAME := wlan.ko
+#LOCAL_MODULE_TAGS        := eng
+#LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/volans
+#include $(DLKM_DIR)/AndroidKernelModule.mk
 
 ifeq ($(call is-board-platform,msm7627a),true)
 MV_CFG80211_MODULE := $(KERNEL_MODULES_OUT)/volans/cfg80211.ko
