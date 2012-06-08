@@ -68,12 +68,12 @@ KBUILD_OPTIONS := WLAN_LIBRA=../$(WLAN_BLD_DIR)/libra
 KBUILD_OPTIONS += MODNAME=wlan
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
-include $(CLEAR_VARS)
-LOCAL_MODULE             := libra.ko
-LOCAL_MODULE_KBUILD_NAME := wlan.ko
-LOCAL_MODULE_TAGS        := eng
-LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/libra
-include $(DLKM_DIR)/AndroidKernelModule.mk
+#include $(CLEAR_VARS)
+#LOCAL_MODULE             := libra.ko
+#LOCAL_MODULE_KBUILD_NAME := wlan.ko
+#LOCAL_MODULE_TAGS        := eng
+#LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/libra
+#include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 # Build libra_ftm.ko
@@ -85,11 +85,11 @@ KBUILD_OPTIONS := BUILD_FTM_DRIVER=1
 KBUILD_OPTIONS += WLAN_LIBRA=../$(WLAN_BLD_DIR)/libra
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
-include $(CLEAR_VARS)
-LOCAL_MODULE      := libra_ftm.ko
-LOCAL_MODULE_TAGS := eng
-LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/libra
-include $(DLKM_DIR)/AndroidKernelModule.mk
+#include $(CLEAR_VARS)
+#LOCAL_MODULE      := libra_ftm.ko
+#LOCAL_MODULE_TAGS := eng
+#LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/libra
+#include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 #Create symbolic link
