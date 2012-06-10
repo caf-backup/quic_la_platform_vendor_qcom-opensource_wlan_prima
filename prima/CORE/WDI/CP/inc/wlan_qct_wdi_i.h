@@ -382,12 +382,12 @@ typedef enum
 
   /* WLAN HAL DUMP Command request */
   WDI_HAL_DUMP_CMD_REQ                          = 72,
-  
+
   /* WLAN DAL Shutdown Request */
   WDI_SHUTDOWN_REQ                              = 73,
 
   /*Set power parameters on the device*/
-  WDI_SET_POWER_PARAMS_REQ                      = 74, 
+  WDI_SET_POWER_PARAMS_REQ                      = 74,
 
   /* Traffic Stream Metrics statistic request */
   WDI_TSM_STATS_REQ                             = 75,
@@ -397,10 +397,14 @@ typedef enum
 
   /*Set Thermal Migration level to RIVA*/
   WDI_SET_TM_LEVEL_REQ                          = 78, 
+
+  /* Send a capability exchange message to HAL */
+  WDI_FEATURE_CAPS_EXCHANGE_REQ                 = 79,
+
   WDI_MAX_REQ,
 
   /*Send a suspend Indication down to HAL*/
-  WDI_HOST_SUSPEND_IND          = WDI_MAX_REQ , 
+  WDI_HOST_SUSPEND_IND          = WDI_MAX_REQ ,
 
   /*Keep adding the indications to the max request
     such that we keep them sepparate */
@@ -644,6 +648,9 @@ typedef enum
   WDI_GTK_OFFLOAD_GETINFO_RESP         = 76, 
 
   WDI_SET_TM_LEVEL_RESP                         = 77,
+
+  /* FW sends its capability bitmap as a response */
+  WDI_FEATURE_CAPS_EXCHANGE_RESP                = 78,
 
   /*-------------------------------------------------------------------------
     Indications
@@ -4875,6 +4882,38 @@ WDI_ProcessWakeReasonInd
   WDI_EventInfoType*     pEventData
 );
 #endif // WLAN_WAKEUP_EVENTS
+
+/**
+ @brief Process Host-FW Capability Exchange Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessFeatureCapsExchangeReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Host-FW Capability Exchange Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessFeatureCapsExchangeRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 
 #endif /*WLAN_QCT_WDI_I_H*/
 

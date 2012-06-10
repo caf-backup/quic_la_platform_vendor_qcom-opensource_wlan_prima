@@ -3525,6 +3525,7 @@ int hdd_wlan_startup(struct device *dev )
       tSirVersionType versionCompiled;
       tSirVersionType versionReported;
       tSirVersionString versionString;
+      tANI_U8 fwFeatCapsMsgSupported = 0;
       VOS_STATUS vstatus;
 
       vstatus = sme_GetWcnssWlanCompiledVersion(pHddCtx->hHal,
@@ -3601,6 +3602,12 @@ int hdd_wlan_startup(struct device *dev )
 
       pr_info("%s: WCNSS hardware version %s\n",
               WLAN_MODULE_NAME, versionString);
+
+      /* Check if FW version is greater than 0.1.1.0. Only then send host-FW capability exchange message */
+      if ((versionReported.major>0) || (versionReported.minor>1) || ((versionReported.minor>=1) && (versionReported.version>=1)))
+         fwFeatCapsMsgSupported = 1;
+      if (fwFeatCapsMsgSupported)
+        sme_featureCapsExchange(pHddCtx->hHal);
    } while (0);
 
 #endif // FEATURE_WLAN_INTEGRATED_SOC

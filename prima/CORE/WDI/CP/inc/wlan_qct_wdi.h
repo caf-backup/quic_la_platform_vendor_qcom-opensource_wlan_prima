@@ -6025,7 +6025,6 @@ typedef void  (*WDI_HALDumpCmdRspCb)(WDI_HALDumpCmdRspParamsType* wdiHalDumpCmdR
 typedef void  (*WDI_SetPowerParamsCb)(WDI_Status  wdiStatus,
                                       void*       pUserData);
 
-
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 /*---------------------------------------------------------------------------
    WDI_GtkOffloadCb
@@ -6093,6 +6092,27 @@ typedef void  (*WDI_GtkOffloadGetInfoCb)(WDI_Status   wdiStatus,
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_SetTmLevelCb)(WDI_Status  wdiStatus,
                                   void*       pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_featureCapsExchangeCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a HAL Feature Capbility 
+   Exchange Response the HAL layer. This callback is put to mantain code
+   similarity and is not being used right now.
+ 
+   PARAMETERS 
+
+   IN
+   wdiFeatCapRspParams:  response parameters received from HAL
+   pUserData:  user data     
+  
+   RETURN VALUE 
+   The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_featureCapsExchangeCb)(void* wdiFeatCapRspParams,
+                                                void*        pUserData);
 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -8674,6 +8694,70 @@ WDI_GTKOffloadGetInfoReq
   void*                          pUserData
 );
 #endif // WLAN_FEATURE_GTK_OFFLOAD
+
+/**
+ @brief WDI_featureCapsExchangeReq
+        Post feature capability bitmap exchange event.
+        Host will send its own capability to FW in this req and 
+        expect FW to send its capability back as a bitmap in Response
+ 
+ @param 
+  
+        wdiFeatCapsExcRspCb: callback called on getting the response.
+        It is kept to mantain similarity between WDI reqs and if needed, can
+        be used in future. Currently, It is set to NULL
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_featureCapsExchangeReq
+(
+  WDI_featureCapsExchangeCb     wdiFeatureCapsExchangeCb,
+  void*                         pUserData
+);
+
+/**
+ @brief WDI_getHostWlanFeatCaps
+        WDI API that returns whether the feature passed to it as enum value in
+        "placeHolderInCapBitmap" is supported by Host or not. It uses WDI global
+        variable storing host capability bitmap to find this. This can be used by
+        other moduels to decide certain things like call different APIs based on
+        whether a particular feature is supported.
+ 
+ @param 
+  
+        feat_enum_value: enum value for the feature as in placeHolderInCapBitmap in wlan_hal_msg.h.
+
+ @see
+ @return 
+        0 - if the feature is NOT supported in host
+        any non-zero value - if the feature is SUPPORTED in host.
+*/
+wpt_uint8 WDI_getHostWlanFeatCaps(wpt_uint8 feat_enum_value);
+
+/**
+ @brief WDI_getFwWlanFeatCaps
+        WDI API that returns whether the feature passed to it as enum value in
+        "placeHolderInCapBitmap" is supported by FW or not. It uses WDI global
+        variable storing host capability bitmap to find this. This can be used by
+        other moduels to decide certain things like call different APIs based on
+        whether a particular feature is supported.
+ 
+ @param 
+  
+        feat_enum_value: enum value for the feature as in placeHolderInCapBitmap
+                                    in wlan_hal_msg.h.
+
+ @see
+ @return 
+        0 - if the feature is NOT supported in FW
+        any non-zero value - if the feature is SUPPORTED in FW.
+*/
+wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value);
 
 /**
  @brief WDI_GetWcnssCompiledApiVersion - Function to get wcnss compiled  

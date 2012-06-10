@@ -6338,6 +6338,7 @@ eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
 
     return eHAL_STATUS_SUCCESS;
 }
+
 #ifdef WLAN_SOFTAP_FEATURE
 /* ---------------------------------------------------------------------------
 
@@ -6429,4 +6430,20 @@ eHalStatus sme_SetTmLevel(tHalHandle hHal, v_U16_t newTMLevel, v_U16_t tmMode)
         sme_ReleaseGlobalLock( &pMac->sme );
     }
     return(status);
+}
+
+/*---------------------------------------------------------------------------
+
+  \brief sme_featureCapsExchange() - SME interface to exchange capabilities between
+  Host and FW.
+
+  \param  hHal - HAL handle for device
+
+  \return NONE
+
+---------------------------------------------------------------------------*/
+void sme_featureCapsExchange( tHalHandle hHal)
+{
+    v_CONTEXT_t vosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
+    WDA_featureCapsExchange(vosContext);
 }

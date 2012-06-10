@@ -82,6 +82,16 @@
 #define WDI_PNO_VERSION_MASK 0x8000
 #endif
 
+/* host capability bitmap global */
+static tWlanFeatCaps *gpHostWlanFeatCaps = NULL;
+/* FW capability bitmap global */
+static tWlanFeatCaps *gpFwWlanFeatCaps = NULL;
+/* array of features supported. Need to add a new feature
+ * and other two places - wlan_hal_msg.h and halMsg.c (FW file)
+ */
+static placeHolderInCapBitmap supportEnabledFeatures[] =
+   {MCC, P2P};
+
 /*-------------------------------------------------------------------------- 
    WLAN DAL  State Machine
  --------------------------------------------------------------------------*/
@@ -282,6 +292,7 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
   WDI_ProcessSetTmLevelReq,             /*WDI_SET_TM_LEVEL_REQ*/
+  WDI_ProcessFeatureCapsExchangeReq,    /* WDI_FEATURE_CAPS_EXCHANGE_REQ */
   /*-------------------------------------------------------------------------
     Indications
   -------------------------------------------------------------------------*/
@@ -450,6 +461,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
   NULL,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
   WDI_ProcessSetTmLevelRsp,       /* WDI_SET_TM_LEVEL_RESP */
+  WDI_ProcessFeatureCapsExchangeRsp,	 /* WDI_FEATURE_CAPS_EXCHANGE_RESP */  
 
   /*---------------------------------------------------------------------
     Indications
@@ -1341,6 +1353,10 @@ WDI_Stop
 
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
+
+  /* Free the global variables */
+  wpalMemoryFree(gpHostWlanFeatCaps);
+  wpalMemoryFree(gpFwWlanFeatCaps);
 
   /*------------------------------------------------------------------------
     Fill in Event data and post to the Main FSM
@@ -19102,7 +19118,7 @@ WDI_ResponseTimerCB
   void *pUserData
 )
 {
-  WDI_ControlBlockType*  pWDICtx = (WDI_ControlBlockType*)pUserData; 
+  WDI_ControlBlockType*  pWDICtx = (WDI_ControlBlockType*)pUserData;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if (NULL == pWDICtx )
@@ -20489,13 +20505,12 @@ WDI_2_HAL_REQ_TYPE
 
   case WDI_INIT_SCAN_CON_REQ:
     return WLAN_HAL_INIT_SCAN_CON_REQ; 
-
   case WDI_SET_POWER_PARAMS_REQ:
     return WLAN_HAL_SET_POWER_PARAMS_REQ; 
-
   case WDI_SET_TM_LEVEL_REQ:
     return WLAN_HAL_SET_THERMAL_MITIGATION_REQ; 
-
+  case WDI_FEATURE_CAPS_EXCHANGE_REQ:
+    return WLAN_HAL_FEATURE_CAPS_EXCHANGE_REQ;
   default:
     return WLAN_HAL_MSG_MAX; 
   }
@@ -20693,7 +20708,6 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
 
   case WLAN_HAL_DUMP_COMMAND_RSP:
     return WDI_HAL_DUMP_CMD_RESP;
-
   case WLAN_HAL_SET_POWER_PARAMS_RSP:
     return WDI_SET_POWER_PARAMS_RESP;
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -20714,7 +20728,8 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
 
   case WLAN_HAL_SET_THERMAL_MITIGATION_RSP:
     return WDI_SET_TM_LEVEL_RESP;
-
+  case WLAN_HAL_FEATURE_CAPS_EXCHANGE_RSP:
+      return WDI_FEATURE_CAPS_EXCHANGE_RESP;
   default:
     return eDRIVER_TYPE_MAX; 
   }
@@ -23531,7 +23546,6 @@ WDI_ProcessSetPowerParamsRsp
    return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessSetPowerParamsRsp*/
 
-
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 /**
  @brief WDI_GTKOffloadReq will be called when the upper MAC 
@@ -24091,4 +24105,309 @@ WDI_ProcessSetTmLevelReq
    -------------------------------------------------------------------------*/
    return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
                         wdiSetTmLevelCb, pEventData->pUserData, WDI_SET_TM_LEVEL_RESP); 
+}
+
+/* Fill the value from the global features enabled array to the global capabilities
+ * bitmap struct 
+ */
+static void 
+FillAllFeatureCaps(tWlanFeatCaps *fCaps, placeHolderInCapBitmap *enabledFeat, wpt_int8 len)
+{
+   wpt_int8 i;
+   for (i=0; i<len; i++)
+   {
+      setFeatCaps(fCaps, enabledFeat[i]);
+   }
+}
+
+/**
+ @brief WDI_featureCapsExchangeReq
+        Post feature capability bitmap exchange event.
+        Host will send its own capability to FW in this req and 
+        expect FW to send its capability back as a bitmap in Response
+ 
+ @param 
+  
+        wdiFeatureCapsExchangeCb: callback called on getting the response.
+        It is kept to mantain similarity between WDI reqs and if needed, can
+        be used in future. Currently, It is set to NULL
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_featureCapsExchangeReq
+(
+  WDI_featureCapsExchangeCb     wdiFeatureCapsExchangeCb,
+  void*                         pUserData
+)
+{
+   WDI_EventInfoType   wdiEventData;
+   wpt_int32           fCapsStructSize;
+   
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+   
+      return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /* Allocate memory separately for global variable carrying FW caps */
+   fCapsStructSize = sizeof(tWlanFeatCaps);
+   gpHostWlanFeatCaps = wpalMemoryAllocate(fCapsStructSize);
+   if ( NULL ==  gpHostWlanFeatCaps )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Cannot allocate memory for host capability info\n"); 
+      WDI_ASSERT(0);
+      return WDI_STATUS_MEM_FAILURE;
+   }
+
+   wpalMemoryZero(gpHostWlanFeatCaps, fCapsStructSize);
+   
+   /*------------------------------------------------------------------------
+   Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   FillAllFeatureCaps(gpHostWlanFeatCaps, supportEnabledFeatures,
+      (sizeof(supportEnabledFeatures)/sizeof(supportEnabledFeatures[0])));
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
+      "bit 0 - %x %x %x %x - bit 128\n",
+      gpHostWlanFeatCaps->featCaps[0],
+      gpHostWlanFeatCaps->featCaps[1],
+      gpHostWlanFeatCaps->featCaps[2],
+      gpHostWlanFeatCaps->featCaps[3]
+   );
+   
+   wdiEventData.wdiRequest      = WDI_FEATURE_CAPS_EXCHANGE_REQ;
+   wdiEventData.pEventData      = gpHostWlanFeatCaps; 
+   wdiEventData.uEventDataSize  = fCapsStructSize; 
+   wdiEventData.pCBfnc          = wdiFeatureCapsExchangeCb; 
+   wdiEventData.pUserData       = pUserData;
+   
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
+
+/**
+ @brief Process Host-FW Capability Exchange Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessFeatureCapsExchangeReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  wpt_uint8*              pSendBuffer        = NULL; 
+  wpt_uint16              usDataOffset       = 0;
+  wpt_uint16              usSendSize         = 0;
+  wpt_uint16              usLen              = 0; 
+
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+         "%s", __FUNCTION__);
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  /* Call back function is NULL since not required for cap exchange req */
+  if (( NULL == pEventData ) ||
+      ( NULL == (tWlanFeatCaps *)pEventData->pEventData))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "%s: Invalid parameters", __FUNCTION__);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  /*-----------------------------------------------------------------------
+    Get message buffer
+  -----------------------------------------------------------------------*/
+  usLen = sizeof(tWlanFeatCaps);
+
+  if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx,
+                        WDI_FEATURE_CAPS_EXCHANGE_REQ, 
+                        usLen,
+                        &pSendBuffer, &usDataOffset, &usSendSize))||
+      ( usSendSize < (usDataOffset + usLen )))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
+              "Unable to get send buffer in feat caps exchange req %x %x",
+                pEventData, (tWlanFeatCaps *)pEventData->pEventData);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+       "bit 0 - %x %x %x %x - bit 128\n",
+      ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[0],
+      ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[1],
+      ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[2],
+      ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[3]
+    );
+
+  /* Copy host caps after the offset in the send buffer */  
+  wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                  (tWlanFeatCaps *)pEventData->pEventData, 
+                  usLen); 
+
+  /*-------------------------------------------------------------------------
+    Send Start Request to HAL 
+  -------------------------------------------------------------------------*/
+  return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                       (WDI_StartRspCb)pEventData->pCBfnc,
+                       pEventData->pUserData, WDI_FEATURE_CAPS_EXCHANGE_RESP);
+  
+}/*WDI_ProcessFeatureCapsExchangeReq*/
+
+/**
+ @brief Process Host-FW Capability Exchange Response function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessFeatureCapsExchangeRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_featureCapsExchangeCb    wdiFeatureCapsExchangeCb;   
+   wpt_int32                   fCapsStructSize;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+          "%s", __FUNCTION__);
+
+   /*-------------------------------------------------------------------------
+     Sanity check 
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData ))
+   {
+      /* It will go here when riva is old (doesn't understand this msg) and host is new */
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+   }
+
+   /* Allocate memory separately for global variable carrying FW caps */
+   fCapsStructSize = sizeof(tWlanFeatCaps);
+   gpFwWlanFeatCaps = wpalMemoryAllocate(fCapsStructSize);   
+   if ( NULL ==  gpFwWlanFeatCaps )
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Cannot allocate memory for host capability info\n"); 
+      WDI_ASSERT(0);
+      return WDI_STATUS_MEM_FAILURE;
+   }
+
+   /*-------------------------------------------------------------------------
+     Unpack HAL Response Message - the header was already extracted by the
+     main Response Handling procedure 
+   -------------------------------------------------------------------------*/   
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+
+   wpalMemoryCopy(gpFwWlanFeatCaps,(tWlanFeatCaps *) pEventData -> pEventData,
+                    fCapsStructSize);
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
+      "bit 0 - %x %x %x %x - bit 128\n",
+      gpFwWlanFeatCaps->featCaps[0],
+      gpFwWlanFeatCaps->featCaps[1],
+      gpFwWlanFeatCaps->featCaps[2],
+      gpFwWlanFeatCaps->featCaps[3]
+     );
+   
+   wdiFeatureCapsExchangeCb = (WDI_featureCapsExchangeCb) pWDICtx -> pfncRspCB; 
+
+   /*Notify UMAC - there is no callback right now but can be used in future if reqd */
+   if (wdiFeatureCapsExchangeCb != NULL)
+      wdiFeatureCapsExchangeCb(NULL, NULL);
+
+   return WDI_STATUS_SUCCESS; 
+}
+
+/**
+ @brief WDI_getHostWlanFeatCaps
+        WDI API that returns whether the feature passed to it as enum value in
+        "placeHolderInCapBitmap" is supported by Host or not. It uses WDI global
+        variable storing host capability bitmap to find this. This can be used by
+        other moduels to decide certain things like call different APIs based on
+        whether a particular feature is supported.
+ 
+ @param 
+  
+        feat_enum_value: enum value for the feature as in placeHolderInCapBitmap in wlan_hal_msg.h.
+
+ @see
+ @return 
+        0 - if the feature is NOT supported in host
+        any non-zero value - if the feature is SUPPORTED in host.
+*/
+wpt_uint8 WDI_getHostWlanFeatCaps(wpt_uint8 feat_enum_value)
+{
+   wpt_uint8 featSupported = 0;
+   if (gpHostWlanFeatCaps != NULL)
+   {
+      getFeatCaps(gpHostWlanFeatCaps, feat_enum_value, featSupported);
+   }
+   else
+   {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+        "Caps exchange feature NOT supported. Return NOT SUPPORTED for %u feature\n", feat_enum_value);
+   }
+   return featSupported;
+}
+
+/**
+ @brief WDI_getFwWlanFeatCaps
+        WDI API that returns whether the feature passed to it as enum value in
+        "placeHolderInCapBitmap" is supported by FW or not. It uses WDI global
+        variable storing host capability bitmap to find this. This can be used by
+        other moduels to decide certain things like call different APIs based on
+        whether a particular feature is supported.
+ 
+ @param 
+  
+        feat_enum_value: enum value for the feature as in placeHolderInCapBitmap
+                                    in wlan_hal_msg.h.
+
+ @see
+ @return 
+        0 - if the feature is NOT supported in FW
+        any non-zero value - if the feature is SUPPORTED in FW.
+*/
+wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value)
+{
+    wpt_uint8 featSupported = 0;
+    if (gpFwWlanFeatCaps != NULL)
+    {
+      getFeatCaps(gpFwWlanFeatCaps, feat_enum_value, featSupported);
+    }
+    else
+    {
+       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+         "Caps exchange feature NOT supported. Return NOT SUPPORTED for %u feature\n", feat_enum_value);
+    }
+    return featSupported;
 }

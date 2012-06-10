@@ -1937,4 +1937,78 @@ WDA_DS_GetTxFlowMask
 VOS_STATUS WDA_HALDumpCmdReq(tpAniSirGlobal   pMac,tANI_U32 cmd, 
                  tANI_U32   arg1, tANI_U32   arg2, tANI_U32   arg3,
                  tANI_U32   arg4, tANI_U8   *pBuffer);
+
+/*==========================================================================
+   FUNCTION    WDA_featureCapsExchange
+
+  DESCRIPTION
+    WDA API to invoke capability exchange between host and FW
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+    pVosContext         VOS context
+
+   OUT
+    NONE
+
+  RETURN VALUE
+    NONE
+    
+  SIDE EFFECTS
+============================================================================*/
+void WDA_featureCapsExchange(v_PVOID_t pVosContext);
+
+/*==========================================================================
+   FUNCTION    WDA_getHostWlanFeatCaps
+
+  DESCRIPTION
+    Wrapper for WDI API, that will return if the feature (enum value).passed
+    to this API is supported or not in Host
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+    featEnumValue     enum value for the feature as in placeHolderInCapBitmap in wlan_hal_msg.h.
+
+   OUT
+    NONE
+
+  RETURN VALUE
+    0 - implies feature is NOT Supported
+    any non zero value - implies feature is SUPPORTED
+    
+  SIDE EFFECTS
+============================================================================*/
+tANI_U8 WDA_getHostWlanFeatCaps(tANI_U8 featEnumValue);
+
+/*==========================================================================
+   FUNCTION    WDA_getFwWlanFeatCaps
+
+  DESCRIPTION
+    Wrapper for WDI API, that will return if the feature (enum value).passed
+    to this API is supported or not in FW
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+    featEnumValue     enum value for the feature as in placeHolderInCapBitmap in wlan_hal_msg.h.
+
+   OUT
+    NONE
+
+  RETURN VALUE
+    0 - implies feature is NOT Supported
+    any non zero value - implies feature is SUPPORTED
+    
+  SIDE EFFECTS
+============================================================================*/
+tANI_U8 WDA_getFwWlanFeatCaps(tANI_U8 featEnumValue);
+
 #endif

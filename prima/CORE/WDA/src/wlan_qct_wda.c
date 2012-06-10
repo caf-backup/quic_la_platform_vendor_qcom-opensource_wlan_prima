@@ -12695,6 +12695,40 @@ VOS_STATUS WDA_ProcessTxControlInd(tWDA_CbContext *pWDA,
    return wdaStatus;
 }
 
+ /*  FUNCTION    WDA_featureCapsExchange
+  *  WDA API to invoke capability exchange between host and FW.
+  */
+void WDA_featureCapsExchange(v_PVOID_t pVosContext)
+{
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+      "%s:enter", __FUNCTION__ );
+   WDI_featureCapsExchangeReq( NULL, pVosContext);
+}
+
+ /*  FUNCTION    WDA_getHostWlanFeatCaps
+  *  Wrapper for WDI API, that will return if the feature (enum value).passed
+  *  to this API is supported or not in Host
+  *  return value
+  *     0 - implies feature is NOT Supported
+  *     any non zero value - implies feature is SUPPORTED
+  */
+tANI_U8 WDA_getHostWlanFeatCaps(tANI_U8 featEnumValue)
+{
+   return WDI_getHostWlanFeatCaps(featEnumValue);
+}
+
+ /*  FUNCTION    WDA_getFwWlanFeatCaps
+  *  Wrapper for WDI API, that will return if the feature (enum value).passed
+  *  to this API is supported or not in FW
+  *  return value
+  *     0 - implies feature is NOT Supported
+  *     any non zero value - implies feature is SUPPORTED
+  */
+tANI_U8 WDA_getFwWlanFeatCaps(tANI_U8 featEnumValue)
+{
+   return WDI_getFwWlanFeatCaps(featEnumValue);
+}
+
 /*
  * FUNCTION: WDA_shutdown
  * Shutdown WDA/WDI without handshaking with Riva.
