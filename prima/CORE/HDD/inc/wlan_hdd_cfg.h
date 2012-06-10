@@ -1130,7 +1130,7 @@ typedef enum
 #define CFG_ENABLE_MCC_ENABLED_NAME             "gEnableMCCMode"      
 #define CFG_ENABLE_MCC_ENABLED_MIN              ( 0 )
 #define CFG_ENABLE_MCC_ENABLED_MAX              ( 1 )
-#define CFG_ENABLE_MCC_ENABLED_DEFAULT          ( 1 ) 
+#define CFG_ENABLE_MCC_ENABLED_DEFAULT          ( 0 ) 
 
 /*
  * Enable/Disable Thermal Mitigation feature
