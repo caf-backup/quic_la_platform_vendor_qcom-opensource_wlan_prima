@@ -3590,7 +3590,6 @@ static BOOL BslProcessACLDataTx
 } // BslProcessACLDataTx()
 
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
 static inline void *hci_get_drvdata(struct hci_dev *hdev)
 {
     return hdev->driver_data;
@@ -3600,7 +3599,6 @@ static inline void hci_set_drvdata(struct hci_dev *hdev, void *data)
 {
     hdev->driver_data = data;
 }
-#endif
 
 /*---------------------------------------------------------------------------
  *   Function definitions
