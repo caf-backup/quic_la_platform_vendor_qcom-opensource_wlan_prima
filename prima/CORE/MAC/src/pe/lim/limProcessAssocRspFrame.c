@@ -67,10 +67,8 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
     tANI_BOOLEAN    qosMode; 
     tANI_U16        rxHighestRate = 0;
 
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
+
     pStaDs->staType= STA_ENTRY_SELF;
 
     limGetQosMode(psessionEntry, &qosMode);    

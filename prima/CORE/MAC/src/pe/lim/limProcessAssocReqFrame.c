@@ -171,10 +171,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     tSirMacRateSet  basicRates;
     tANI_U8 i = 0, j = 0;
 
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     limGetQosMode(psessionEntry, &qosMode);
 
@@ -1295,10 +1292,7 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
     pAssocReq = (tpSirAssocReq) psessionEntry->parsedAssocReq[pStaDs->assocId];
 
     // Get the phyMode
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
  
     // Extract pre-auth context for the peer BTAMP-STA, if any.
  

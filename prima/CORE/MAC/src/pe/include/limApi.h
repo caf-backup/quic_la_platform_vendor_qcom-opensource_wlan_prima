@@ -257,8 +257,13 @@ extern tSirRetStatus limCheckRxSeqNumber(tpAniSirGlobal pMac, tANI_U8 *pRxPacket
 #define limGetWmeMode(psessionEntry, pVal) *(pVal) = (psessionEntry)->limWmeEnabled
 #define limGetWsmMode(psessionEntry, pVal) *(pVal) = (psessionEntry)->limWsmEnabled
 #define limGet11dMode(psessionEntry, pVal) *(pVal) = (psessionEntry)->lim11dEnabled
-#define limGetPhyMode(psessionEntry, pVal) *(pVal) = (psessionEntry)->gLimPhyMode
 #define limGetAckPolicy(pMac, pVal)         *(pVal) = pMac->lim.ackPolicy
+
+/* ----------------------------------------------------------------------- */
+static inline void limGetPhyMode(tpAniSirGlobal pMac, tANI_U32 *phyMode, tpPESession psessionEntry)
+{
+   *phyMode = psessionEntry ? psessionEntry->gLimPhyMode : pMac->lim.gLimPhyMode;
+}
 
 /* ----------------------------------------------------------------------- */
 static inline void limGetRfBand(tpAniSirGlobal pMac, tSirRFBand *band, tpPESession psessionEntry)

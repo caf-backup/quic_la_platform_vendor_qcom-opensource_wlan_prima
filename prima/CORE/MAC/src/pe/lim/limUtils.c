@@ -1902,10 +1902,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
     }
     else if(SIR_BAND_2_4_GHZ== rfBand)
     {
-        if(psessionEntry)
-            limGetPhyMode(psessionEntry, &phyMode);
-        else
-            phyMode = pMac->lim.gLimPhyMode;
+        limGetPhyMode(pMac, &phyMode, psessionEntry);
 
         //We are 11G. Check if we need protection from 11b Stations.
         if ((phyMode == WNI_CFG_PHY_MODE_11G) &&
@@ -2020,10 +2017,8 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
     // check whether to enable protection or not
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     if (pStaDs != NULL && phyMode == WNI_CFG_PHY_MODE_11G)
 
@@ -2145,10 +2140,7 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
     // check whether to enable protection or not
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     if (pStaDs != NULL && phyMode == WNI_CFG_PHY_MODE_11G)
     {
@@ -2368,14 +2360,7 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
     tANI_U32 phyMode = WNI_CFG_PHY_MODE_NONE;
 
     limGetRfBand(pMac, &rfBand, psessionEntry);
-    if(psessionEntry)
-    {
-        limGetPhyMode(psessionEntry, &phyMode);
-    }
-    else
-    {
-        phyMode = pMac->lim.gLimPhyMode;
-    }
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     if(SIR_BAND_5_GHZ == rfBand)
     {
@@ -2493,15 +2478,7 @@ limDecideStaProtection(tpAniSirGlobal pMac,
     tANI_U32 phyMode = WNI_CFG_PHY_MODE_NONE;
 
     limGetRfBand(pMac, &rfBand, psessionEntry);
-    if(psessionEntry)
-    {
-        limGetPhyMode(psessionEntry, &phyMode);
-    }
-    else
-    {
-        phyMode = pMac->lim.gLimPhyMode;
-    }
-
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
        
     if(SIR_BAND_5_GHZ == rfBand)
     {

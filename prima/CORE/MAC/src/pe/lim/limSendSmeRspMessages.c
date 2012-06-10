@@ -500,12 +500,9 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
                 != eSIR_SUCCESS)
                 limLog(pMac, LOGP, FL("could not retrieve Capabilities value\n"));
 
-                limGetPhyMode(psessionEntry,&pSirSmeRsp->bssDescription.nwType);
-#if 0
-                if (wlan_cfgGetInt(pMac, WNI_CFG_PHY_MODE, (tANI_U32 *) &pSirSmeRsp->bssDescription.nwType)
-                != eSIR_SUCCESS)
-                    limLog(pMac, LOGP, FL("could not retrieve nwType from CFG\n"));
+                limGetPhyMode(pMac, (tANI_U32 *)&pSirSmeRsp->bssDescription.nwType, psessionEntry);
 
+#if 0
             if (wlan_cfgGetInt(pMac, WNI_CFG_CURRENT_CHANNEL, &len) != eSIR_SUCCESS)
                 limLog(pMac, LOGP, FL("could not retrieve CURRENT_CHANNEL from CFG\n"));
            

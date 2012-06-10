@@ -3331,7 +3331,7 @@ limDeauthReqSerDes(tpAniSirGlobal pMac, tSirSmeDeauthReq *pDeauthReq, tANI_U8 *p
  */
 
 void
-limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInfo)
+limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInfo, tpPESession psessionEntry)
 {
     tANI_U32    localPowerConstraints = 0;
     tANI_U16    caps;
@@ -3340,14 +3340,10 @@ limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInf
     if(psessionEntry)
     {
         psessionEntry->gLimPhyMode = neighborBssInfo.nwType;
-    }    
+    }
     else
     {
-        if (cfgSetInt(pMac, WNI_CFG_PHY_MODE,
-                      neighborBssInfo.nwType) != eSIR_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("could not set networkType at CFG\n"));
-        }
+        pMac->lim.gLimPhyMode = neighborBssInfo.nwType;
     }
 
     cfgSetCapabilityInfo(pMac, neighborBssInfo.capabilityInfo);
