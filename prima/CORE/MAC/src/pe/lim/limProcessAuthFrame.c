@@ -956,6 +956,24 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 break;
             }
 
+            if (pRxAuthFrameBody->authStatusCode ==
+                eSIR_MAC_AUTH_ALGO_NOT_SUPPORTED_STATUS)
+            {
+                /**
+                 * Interoperability workaround: Linksys WAP4400N is returning
+                 * wrong authType in OpenAuth response in case of 
+                 * SharedKey AP configuration. Pretend we don't see that,
+                 * so upper layer can fallback to SharedKey authType,
+                 * and successfully connect to the AP.
+                 */
+                if (pRxAuthFrameBody->authAlgoNumber !=
+                    pMac->lim.gpLimMlmAuthReq->authType)
+                {
+                    pRxAuthFrameBody->authAlgoNumber =
+                    pMac->lim.gpLimMlmAuthReq->authType;
+                }
+            }
+
             if (pRxAuthFrameBody->authAlgoNumber !=
                 pMac->lim.gpLimMlmAuthReq->authType)
             {
