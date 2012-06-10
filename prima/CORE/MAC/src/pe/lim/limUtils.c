@@ -2313,7 +2313,7 @@ limDetectRadar(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     limSendSmeWmStatusChangeNtf(pMac,
                                 eSIR_SME_RADAR_DETECTED,
                                 pMsg,
-                                (tANI_U16)sizeof(*pRadarInfo));
+                                (tANI_U16)sizeof(*pRadarInfo),0);
     
 }
 #endif
@@ -3530,7 +3530,10 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
                            tANI_U32 *data, tpPESession psessionEntry)
 {
    tSirMsgQ    mmhMsg = {0};
-   tSirMbMsg   *msg2Hdd = NULL;
+   tSirSmeSwitchChannelInd *pSirSmeSwitchChInd;
+
+   PELOG1(limLog(pMac, LOG1,FL("Sending message %s with reasonCode %s\n"),
+		 limMsgStr(msgType), limResultCodeStr(resultCode));)
 
    psessionEntry->currentOperChannel = psessionEntry->currentReqChannel; 
    
@@ -3542,22 +3545,19 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
    }
    
    mmhMsg.type = eWNI_SME_SWITCH_CHL_REQ;
-   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&msg2Hdd, sizeof(tSirMbMsg)))
+   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeSwitchChInd, sizeof(tSirSmeSwitchChannelInd)))
    {
       limLog(pMac, LOGP, FL("Failed to allocate buffer for buffer descriptor\n"));
       return;
    }
-   
-#if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
-   sirStoreU16N((tANI_U8*)&msg2Hdd->type, eWNI_SME_SWITCH_CHL_REQ);
-   sirStoreU16N((tANI_U8*)&msg2Hdd->msgLen, sizeof(tSirMbMsg));
-#else
-   msg2Hdd->type = eWNI_SME_SWITCH_CHL_REQ;
-   msg2Hdd->msgLen = sizeof(tSirMbMsg);
-#endif
-   
-   msg2Hdd->data[0] = (tANI_U32) pMac->lim.gLimChannelSwitch.primaryChannel;
-   mmhMsg.bodyptr = msg2Hdd;
+  
+   pSirSmeSwitchChInd->messageType = eWNI_SME_SWITCH_CHL_REQ;
+   pSirSmeSwitchChInd->length = sizeof(tSirSmeSwitchChannelInd);
+   pSirSmeSwitchChInd->newChannelId = pMac->lim.gLimChannelSwitch.primaryChannel;
+   pSirSmeSwitchChInd->sessionId = psessionEntry->smeSessionId;
+   //BSS ID
+   palCopyMemory( pMac->hHdd, pSirSmeSwitchChInd->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
+   mmhMsg.bodyptr = pSirSmeSwitchChInd;
    mmhMsg.bodyval = 0;
    
    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));

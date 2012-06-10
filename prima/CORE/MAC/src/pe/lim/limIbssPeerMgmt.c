@@ -457,7 +457,8 @@ ibss_status_chg_notify(
     tANI_U16                staIndex,
     tANI_U8                 ucastSig, 
     tANI_U8                 bcastSig, 
-    tANI_U16                status)
+    tANI_U16                status,
+    tANI_U8                 sessionId)
 {
 
     tLimIbssPeerNode *peerNode;
@@ -476,7 +477,7 @@ ibss_status_chg_notify(
     }
 
     limSendSmeIBSSPeerInd(pMac,peerAddr, staIndex, ucastSig, bcastSig,
-                          beacon, bcnLen, status);
+                          beacon, bcnLen, status, sessionId);
 
     if(beacon != NULL)
     {
@@ -730,7 +731,7 @@ void limIbssDeleteAllPeers( tpAniSirGlobal pMac ,tpPESession psessionEntry)
 
             ibss_status_chg_notify( pMac, pCurrNode->peerMacAddr, pStaDs->staIndex, 
                                     pStaDs->ucUcastSig, pStaDs->ucBcastSig,
-                                    eWNI_SME_IBSS_PEER_DEPARTED_IND );
+                                    eWNI_SME_IBSS_PEER_DEPARTED_IND, psessionEntry->smeSessionId );
             dphDeleteHashEntry(pMac, pStaDs->staAddr, aid, &psessionEntry->dph.dphHashTable);
         }
 
@@ -1150,7 +1151,8 @@ limIbssAddStaRsp(
 
     ibss_status_chg_notify(pMac, pAddStaParams->staMac, pStaDs->staIndex, 
                            pStaDs->ucUcastSig, pStaDs->ucBcastSig,
-                           eWNI_SME_IBSS_NEW_PEER_IND);
+                           eWNI_SME_IBSS_NEW_PEER_IND,
+                           psessionEntry->smeSessionId);
     palFreeMemory( pMac->hHdd, (void *) pAddStaParams );
 
     return eSIR_SUCCESS;
@@ -1219,7 +1221,7 @@ void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void *msg, tpPESession
 
     limSendSmeWmStatusChangeNtf(pMac, eSIR_SME_JOINED_NEW_BSS,
                                 (tANI_U32 *) &newBssInfo,
-                                infoLen);
+                                infoLen,pSessionEntry->smeSessionId);
 #ifdef WLAN_SOFTAP_FEATURE
     {
         //Configure beacon and send beacons to HAL
@@ -1462,7 +1464,7 @@ limIbssCoalesce(
         limResetHBPktCount(psessionEntry);
         PELOGW(limLog(pMac, LOGW, FL("Partner joined our IBSS, Sending IBSS_ACTIVE Notification to SME\n"));)
         psessionEntry->limIbssActive = true;
-        limSendSmeWmStatusChangeNtf(pMac, eSIR_SME_IBSS_ACTIVE, NULL, 0);
+        limSendSmeWmStatusChangeNtf(pMac, eSIR_SME_IBSS_ACTIVE, NULL, 0, psessionEntry->smeSessionId);
         limHeartBeatDeactivateAndChangeTimer(pMac, psessionEntry);
         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
         if (limActivateHearBeatTimer(pMac) != TX_SUCCESS)
@@ -1534,7 +1536,8 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
                     //Send indication.
                     ibss_status_chg_notify( pMac, pTempNode->peerMacAddr, staIndex, 
                                             ucUcastSig, ucBcastSig,
-                                            eWNI_SME_IBSS_PEER_DEPARTED_IND );
+                                            eWNI_SME_IBSS_PEER_DEPARTED_IND,
+                                            psessionEntry->smeSessionId );
                 }
                 if(pTempNode == pMac->lim.gLimIbssPeerList)
                 {
@@ -1585,7 +1588,7 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
             psessionEntry->limIbssActive = false;
 
             limSendSmeWmStatusChangeNtf(pMac, eSIR_SME_IBSS_INACTIVE,
-                                          NULL, 0);
+                                          NULL, 0, psessionEntry->smeSessionId);
         }
     }
 }

@@ -243,7 +243,7 @@ void limHandleLowRssiInd(tpAniSirGlobal pMac);
 void limHandleBmpsStatusInd(tpAniSirGlobal pMac);
 void limHandleMissedBeaconInd(tpAniSirGlobal pMac);
 tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U32 subType);
-
+void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 
 
 /* ----------------------------------------------------------------------- */

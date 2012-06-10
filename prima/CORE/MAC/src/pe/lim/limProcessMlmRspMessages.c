@@ -1097,6 +1097,7 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
                                             tpPESession psessionEntry)
 {
     pSirSmeAssocInd->length = sizeof(tSirSmeAssocInd);
+    pSirSmeAssocInd->sessionId = psessionEntry->smeSessionId;
 
     // Required for indicating the frames to upper layer
     pSirSmeAssocInd->assocReqLength = pAssocInd->assocReqLength;

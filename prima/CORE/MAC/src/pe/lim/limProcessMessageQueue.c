@@ -1564,6 +1564,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case WDA_MISSED_BEACON_IND:
             limHandleMissedBeaconInd(pMac);
             break;
+        case WDA_MIC_FAILURE_IND:
+           limMicFailureInd(pMac, limMsg);
+           palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+           limMsg->bodyptr = NULL;
+           break;
+    
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
         case eWNI_SME_MEASUREMENT_REQ:

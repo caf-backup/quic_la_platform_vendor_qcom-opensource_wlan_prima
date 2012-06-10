@@ -176,6 +176,7 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
     smeScanReq.numSsid = 1;
 
     smeScanReq.scanType    = eSIR_ACTIVE_SCAN;
+    smeScanReq.sessionId = 0;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_ACTIVE_MINIMUM_CHANNEL_TIME,
                   &smeScanReq.minChannelTime) != eSIR_SUCCESS)

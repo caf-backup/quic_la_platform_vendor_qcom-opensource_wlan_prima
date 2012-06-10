@@ -4487,6 +4487,7 @@ eHalStatus csrSendMBScanResultReq( tpAniSirGlobal pMac, tScanReqParam *pScanReqP
         palZeroMemory(pMac->hHdd, pMsg, msgLen);
         pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_SCAN_REQ);
         pMsg->length = pal_cpu_to_be16(msgLen);
+	pMsg->sessionId = 0;
         pMsg->returnFreshResults = pScanReqParam->freshScan;
         //Always ask for unique result
         pMsg->returnUniqueResults = pScanReqParam->fUniqueResult;
@@ -4599,10 +4600,15 @@ eHalStatus csrProcessScanCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     tANI_U32 len = 0;
 
     // Transition to Scanning state...
-    pCommand->u.scanCmd.lastRoamState = csrRoamStateChange( pMac, eCSR_ROAMING_STATE_SCANNING );
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+       if(CSR_IS_SESSION_VALID(pMac, i))
+       {
+      pCommand->u.scanCmd.lastRoamState[i] = csrRoamStateChange( pMac, eCSR_ROAMING_STATE_SCANNING, i);
+      smsLog( pMac, LOG3, "starting SCAN command from %d state.... reason is %d\n", pCommand->u.scanCmd.lastRoamState[i], pCommand->u.scanCmd.reason );
+       }
+    }
 
-    smsLog( pMac, LOG3, "starting SCAN command from %d state.... reason is %d\n", pCommand->u.scanCmd.lastRoamState, pCommand->u.scanCmd.reason );
-    
     switch(pCommand->u.scanCmd.reason)
     {
     case eCsrScanGetResult:
@@ -5621,8 +5627,12 @@ tANI_BOOLEAN csrScanRemoveFreshScanCommand(tpAniSirGlobal pMac, tANI_U8 sessionI
 void csrReleaseScanCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatus scanStatus)
 {
     eCsrScanReason reason = pCommand->u.scanCmd.reason;
-
-    csrRoamStateChange( pMac, pCommand->u.scanCmd.lastRoamState );            
+    tANI_U32 i;
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+       if(CSR_IS_SESSION_VALID(pMac, i))
+           csrRoamStateChange( pMac, pCommand->u.scanCmd.lastRoamState[i], i);
+    }
 
         csrScanCallCallback(pMac, pCommand, scanStatus);
 

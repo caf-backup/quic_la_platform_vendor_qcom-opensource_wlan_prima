@@ -1059,6 +1059,7 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
 {
     tANI_U16             messageType; // eWNI_SME_ASSOC_CNF
     tANI_U16             length;
+    tANI_U8              sessionId;
     tSirResultCodes      statusCode;
     tSirMacAddr          bssId;      // Self BSSID
     tSirMacAddr          peerMacAddr;

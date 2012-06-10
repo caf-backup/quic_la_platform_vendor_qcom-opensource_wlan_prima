@@ -721,7 +721,7 @@ eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId
 
 eHalStatus sme_GetRssi(tHalHandle hHal, 
                              tCsrRssiCallback callback, 
-                             tANI_U8 staId, void *pContext, void* pVosContext);
+                             tANI_U8 staId, tCsrBssid bssId, void *pContext, void* pVosContext);
 
 /* ---------------------------------------------------------------------------
     \fn sme_CfgSetInt
