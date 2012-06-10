@@ -3542,6 +3542,12 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
 
                         }
                     }
+                    if ((vos_concurrent_sessions_running()) && 
+                         csrIsConcurrentInfraConnected( pMac ))
+                    {
+                        pMac->roam.configParam.concurrencyEnabled = 1;
+                    }
+
                     if (!concurrentChannel)
                     {
                         

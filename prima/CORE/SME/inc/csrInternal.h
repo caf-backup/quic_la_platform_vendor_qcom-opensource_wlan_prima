@@ -541,6 +541,7 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN addTSWhenACMIsOff;
 
     tANI_BOOLEAN fValidateList;
+    tANI_BOOLEAN concurrencyEnabled;
 
     //To enable/disable scanning 2.4Ghz channels twice on a single scan request from HDD
     tANI_BOOLEAN fScanTwice;
@@ -1158,4 +1159,4 @@ tANI_BOOLEAN csrRoamIs11rAssoc(tpAniSirGlobal pMac);
 tANI_BOOLEAN csrRoamIsCCXAssoc(tpAniSirGlobal pMac);
 #endif
 
-
+void csrDisconnectAllActiveSessions(tpAniSirGlobal pMac);

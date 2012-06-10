@@ -2487,6 +2487,14 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
       smsLog(pMac, LOGE, "PMC: Power save check failed. BMPS cannot be entered now\n");
       return eHAL_STATUS_PMC_NOT_NOW;
    }
+
+   smsLog(pMac, LOG1, FL("concurrency enabled %u\n"), pMac->roam.configParam.concurrencyEnabled);
+   if (pMac->roam.configParam.concurrencyEnabled)
+   {
+      pMac->roam.configParam.concurrencyEnabled = 0;
+      smsLog(pMac, LOG1, FL("reset concurrency to disabled %u\n"), pMac->roam.configParam.concurrencyEnabled);
+      csrDisconnectAllActiveSessions(pMac);
+   }
    return ( eHAL_STATUS_SUCCESS );
 }
 
