@@ -2801,19 +2801,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    {
        hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
                                     WLAN_HDD_INFRA_STATION);
-
-       INIT_COMPLETION(pAdapter->session_close_comp_var);
-       if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
-                                     pAdapter->p2pSessionId,
-                                     hdd_smeCloseSessionCallback, pAdapter ) )
+       if (pAdapter != NULL)
        {
-           //Block on a completion variable. Can't wait forever though.
-           wait_for_completion_interruptible_timeout(
-                      &pAdapter->session_close_comp_var,
-                      msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+          INIT_COMPLETION(pAdapter->session_close_comp_var);
+          if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
+                                        pAdapter->p2pSessionId,
+                                        hdd_smeCloseSessionCallback, pAdapter ) )
+          {
+              //Block on a completion variable. Can't wait forever though.
+              wait_for_completion_interruptible_timeout(
+                         &pAdapter->session_close_comp_var,
+                         msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+          }
        }
    }
-#endif   
+#endif
    hdd_stop_all_adapters( pHddCtx );
 
 #ifdef ANI_BUS_TYPE_SDIO
@@ -3826,15 +3828,18 @@ err_p2psession_close:
        hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
                                     WLAN_HDD_INFRA_STATION);
 
-       INIT_COMPLETION(pAdapter->session_close_comp_var);
-       if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
-                                     pAdapter->p2pSessionId,
-                                     hdd_smeCloseSessionCallback, pAdapter ) )
+       if (pAdapter != NULL)
        {
-           //Block on a completion variable. Can't wait forever though.
-           wait_for_completion_interruptible_timeout(
-                      &pAdapter->session_close_comp_var,
-                      msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+          INIT_COMPLETION(pAdapter->session_close_comp_var);
+          if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
+                                        pAdapter->p2pSessionId,
+                                        hdd_smeCloseSessionCallback, pAdapter ) )
+          {
+              //Block on a completion variable. Can't wait forever though.
+              wait_for_completion_interruptible_timeout(
+                         &pAdapter->session_close_comp_var,
+                         msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+          }
        }
    }
 #endif
