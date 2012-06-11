@@ -793,6 +793,9 @@ int main(int argc, char **argv)
 	    tCmds->buf[2] = (efuseEnd & 0xFF);
 	    tCmds->buf[3] = (efuseEnd >> 8) & 0xFF;
 
+	    /* This field may get polluted so needs a refresh here */
+            tCmds->hdr.u.parm.bufLen = 4;
+
 	    if ((err = tcmd_tx(buf, bufferLength /* weak */, resp))) {
 		fprintf(stderr, "tcmd_tx had error: %s!\n", strerror(-err));
 		return 0;
@@ -1466,7 +1469,7 @@ static void updateCALData(_CAL_SETUP *pCalSetup, TC_MSG *pTCMsg)
 		    cmacPwr(pPsatCalResults->olpcGainTherm2G[i].cmac_psat), cmacPwr(pPsatCalResults->olpcGainTherm2G[i].cmac_olpc),
 		    pPsatCalResults->olpcGainTherm2G[i].cmac_psat_pcdac, pPsatCalResults->olpcGainTherm2G[i].cmac_olpc_pcdac,
 		    pPsatCalResults->olpcGainTherm2G[i].numTryBF,
-		    pPsatCalResults->olpcGainTherm2G[i].desiredScaleAddCCK, pPsatCalResults->olpcGainTherm2G[i].desiredScaleAddQAM,
+		    pPsatCalResults->olpcGainTherm2G[i].lineSlope, pPsatCalResults->olpcGainTherm2G[i].lineVariance,
 		    pPsatCalResults->olpcGainTherm2G[i].psatParm);
 	    //}
     }

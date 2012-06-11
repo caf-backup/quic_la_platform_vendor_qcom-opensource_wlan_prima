@@ -277,8 +277,8 @@ typedef PREPACK struct {
     uint32_t  cmac_psat;
     uint16_t  cmac_olpc_pcdac;
     uint16_t  cmac_psat_pcdac;
-    int16_t desiredScaleAddCCK;
-    int16_t desiredScaleAddQAM;
+    int16_t   lineSlope;
+    int16_t   lineVariance;
     uint16_t  psatParm;
     uint8_t reserved[2];
 } POSTPACK OLPCGAIN_THERM_DUPLET;
