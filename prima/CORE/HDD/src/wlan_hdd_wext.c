@@ -3811,8 +3811,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int sub_cmd = wrqu->data.flags;
     int ret = 0; /* sucess */
-    VOS_STATUS status;
-    hdd_context_t *pHddCtx;
 
     switch (sub_cmd)
     {
@@ -3862,6 +3860,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
            break;
         }
 #endif
+#ifdef WLAN_BTAMP_FEATURE
         case WE_ENABLE_AMP:
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: enabling AMP", __FUNCTION__);
@@ -3870,7 +3869,11 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
         }
         case WE_DISABLE_AMP:
         {
+            hdd_context_t *p pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
+            VOS_STATUS status;
+
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __FUNCTION__);
+
             pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
             status = WLANBAP_StopAmp();
             if(VOS_STATUS_SUCCESS != status )
@@ -3889,6 +3892,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
 
             break;
         }
+#endif
 
         default:
         {
