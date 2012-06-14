@@ -12,7 +12,7 @@ LOCAL_SRC_FILES:= \ artagent.c
 
 LOCAL_LDLIBS += -lpthread -lrt
 
-LOCAL_MODULE_TAGS := optional eng
+LOCAL_MODULE_TAGS := optional debug
 
 LOCAL_SHARED_LIBRARIES += libcutils
 LOCAL_SHARED_LIBRARIES += libnl_2
