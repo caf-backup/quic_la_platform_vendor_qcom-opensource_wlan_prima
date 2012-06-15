@@ -3539,7 +3539,7 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                         }
                     }
                     if ((vos_concurrent_sessions_running()) && 
-                         csrIsConcurrentInfraConnected( pMac ))
+                         csrIsAnySessionInConnectState( pMac ))
                     {
                         pMac->roam.configParam.concurrencyEnabled = 1;
                     }
