@@ -18961,7 +18961,11 @@ WDI_SendMsg
       if ( NULL != pWDICtx->wdiReqStatusCB )
       {
         pWDICtx->wdiReqStatusCB( WDI_STATUS_E_FAILURE, 
-                                 pWDICtx->pReqStatusUserData); 
+                                 pWDICtx->pReqStatusUserData ); 
+        //Setting the wdiReqStatusCB and pReqStatusUserData to NULL
+        //just in case the following request fails to set them.
+        pWDICtx->wdiReqStatusCB = NULL;
+        pWDICtx->pReqStatusUserData = NULL;
       }
 
       /*Free the buffer to prevent memory leak*/
@@ -18977,6 +18981,10 @@ WDI_SendMsg
    if ( NULL != pWDICtx->wdiReqStatusCB )
    {
      pWDICtx->wdiReqStatusCB( WDI_STATUS_SUCCESS, pWDICtx->pReqStatusUserData); 
+     //Setting the wdiReqStatusCB and pReqStatusUserData to NULL
+     //just in case the following request fails to set them.
+     pWDICtx->wdiReqStatusCB = NULL;
+     pWDICtx->pReqStatusUserData = NULL;
    }
 
    /*Start timer for the expected response */
@@ -21454,6 +21462,11 @@ WDI_ExtractRequestCBFromEvent
     *ppfnReqCB   =  ((WDI_DelSTAReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_DelSTAReqParamsType*)pEvent->pEventData)->pUserData;
     break;
+  case WDI_DEL_STA_SELF_REQ:
+    *ppfnReqCB   =  ((WDI_DelSTASelfReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
+    *ppUserData  =  ((WDI_DelSTASelfReqParamsType*)pEvent->pEventData)->pUserData;
+    break;
+
   case WDI_SET_BSS_KEY_REQ:
     *ppfnReqCB   =  ((WDI_SetBSSKeyReqParamsType*)pEvent->pEventData)->wdiReqStatusCB;
     *ppUserData  =  ((WDI_SetBSSKeyReqParamsType*)pEvent->pEventData)->pUserData;
