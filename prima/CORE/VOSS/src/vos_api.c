@@ -81,6 +81,9 @@
    WDI should handle that timeout */
 #define VOS_WDA_TIMEOUT 15000
 
+/* Approximate amount of time to wait for WDA to stop WDI */
+#define VOS_WDA_STOP_TIMEOUT WDA_STOP_TIMEOUT 
+
 /*---------------------------------------------------------------------------
  * Data definitions
  * ------------------------------------------------------------------------*/
@@ -929,7 +932,7 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
   }
 
   vosStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent),
-                                     VOS_WDA_TIMEOUT );
+                                     VOS_WDA_STOP_TIMEOUT );
    
   if ( vosStatus != VOS_STATUS_SUCCESS )
   {
