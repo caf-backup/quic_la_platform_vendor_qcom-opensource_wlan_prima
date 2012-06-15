@@ -460,7 +460,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
   NULL,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
   WDI_ProcessSetTmLevelRsp,       /* WDI_SET_TM_LEVEL_RESP */
-  WDI_ProcessFeatureCapsExchangeRsp,	 /* WDI_FEATURE_CAPS_EXCHANGE_RESP */  
+  WDI_ProcessFeatureCapsExchangeRsp,     /* WDI_FEATURE_CAPS_EXCHANGE_RESP */  
 
   /*---------------------------------------------------------------------
     Indications

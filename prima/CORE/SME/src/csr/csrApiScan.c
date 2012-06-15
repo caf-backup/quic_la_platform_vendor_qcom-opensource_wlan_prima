@@ -4487,7 +4487,7 @@ eHalStatus csrSendMBScanResultReq( tpAniSirGlobal pMac, tScanReqParam *pScanReqP
         palZeroMemory(pMac->hHdd, pMsg, msgLen);
         pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_SCAN_REQ);
         pMsg->length = pal_cpu_to_be16(msgLen);
-	pMsg->sessionId = 0;
+        pMsg->sessionId = 0;
         pMsg->returnFreshResults = pScanReqParam->freshScan;
         //Always ask for unique result
         pMsg->returnUniqueResults = pScanReqParam->fUniqueResult;

@@ -547,7 +547,7 @@ eHalStatus csrStop(tpAniSirGlobal pMac)
     pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
     csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);
 
-    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )	
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
     {
        csrRoamStateChange( pMac, eCSR_ROAMING_STATE_STOP ,i );
        pMac->roam.curSubState[i] = eCSR_ROAM_SUBSTATE_NONE;
