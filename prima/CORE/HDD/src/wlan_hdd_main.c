@@ -123,6 +123,12 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #define MEMORY_DEBUG_STR ""
 #endif
 
+/* the Android framework expects this param even though we don't use it */
+#define BUF_LEN 20
+static char fwpath[BUF_LEN];
+module_param_string(fwpath, fwpath, BUF_LEN,
+                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
 static struct wake_lock wlan_wake_lock;
 /* set when SSR is needed after unload */
 static v_U8_t      isSsrRequired;
@@ -4440,7 +4446,7 @@ module_init(hdd_module_init);
 module_exit(hdd_module_exit);
 
 MODULE_LICENSE("Proprietary");
-MODULE_AUTHOR("QUALCOMM");
+MODULE_AUTHOR("Qualcomm Atheros, Inc.");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 
 #if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
