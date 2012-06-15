@@ -721,7 +721,7 @@ eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId
 
 eHalStatus sme_GetRssi(tHalHandle hHal, 
                              tCsrRssiCallback callback, 
-                             tANI_U8 staId, void *pContext, void* pVosContext);
+                             tANI_U8 staId, tCsrBssid bssId, void *pContext, void* pVosContext);
 
 /* ---------------------------------------------------------------------------
     \fn sme_CfgSetInt
@@ -2048,6 +2048,7 @@ eHalStatus sme_p2pGetResultFilter(tHalHandle hHal, tANI_U8 HDDSessionId,
     -------------------------------------------------------------------------*/
 eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid, 
                              tSirMacAddr pSelfMacAddress, v_S7_t dB);
+
 #ifdef WLAN_SOFTAP_FEATURE
 /* ---------------------------------------------------------------------------
 
@@ -2075,4 +2076,17 @@ eHalStatus sme_HideSSID(tHalHandle hHal, v_U8_t sessionId, v_U8_t ssidHidden);
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
 eHalStatus sme_SetTmLevel(tHalHandle hHal, v_U16_t newTMLevel, v_U16_t tmMode);
+
+/*---------------------------------------------------------------------------
+
+  \brief sme_featureCapsExchange() - SME interface to exchange capabilities between
+  Host and FW.
+
+  \param  hHal - HAL handle for device
+
+  \return NONE
+
+---------------------------------------------------------------------------*/
+void sme_featureCapsExchange(tHalHandle hHal);
+
 #endif //#if !defined( __SME_API_H )

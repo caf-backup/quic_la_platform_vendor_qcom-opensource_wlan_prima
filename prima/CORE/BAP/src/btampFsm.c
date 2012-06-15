@@ -2648,6 +2648,7 @@ VOS_STATUS btampEstablishLogLink(ptBtampContext btampContext)
 
    pMsg->msgType = pal_cpu_to_be16((tANI_U16)eWNI_SME_BTAMP_LOG_LINK_IND);
    pMsg->msgLen = (tANI_U16)sizeof(tAniBtAmpLogLinkReq);
+   pMsg->sessionId = btampContext->sessionId;
    pMsg->btampHandle = btampContext;
 
    msg.type = eWNI_SME_BTAMP_LOG_LINK_IND;

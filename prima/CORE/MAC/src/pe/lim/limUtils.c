@@ -1902,10 +1902,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
     }
     else if(SIR_BAND_2_4_GHZ== rfBand)
     {
-        if(psessionEntry)
-            limGetPhyMode(psessionEntry, &phyMode);
-        else
-            phyMode = pMac->lim.gLimPhyMode;
+        limGetPhyMode(pMac, &phyMode, psessionEntry);
 
         //We are 11G. Check if we need protection from 11b Stations.
         if ((phyMode == WNI_CFG_PHY_MODE_11G) &&
@@ -2020,10 +2017,8 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
     // check whether to enable protection or not
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     if (pStaDs != NULL && phyMode == WNI_CFG_PHY_MODE_11G)
 
@@ -2145,10 +2140,7 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
     // check whether to enable protection or not
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     if (pStaDs != NULL && phyMode == WNI_CFG_PHY_MODE_11G)
     {
@@ -2321,7 +2313,7 @@ limDetectRadar(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     limSendSmeWmStatusChangeNtf(pMac,
                                 eSIR_SME_RADAR_DETECTED,
                                 pMsg,
-                                (tANI_U16)sizeof(*pRadarInfo));
+                                (tANI_U16)sizeof(*pRadarInfo),0);
     
 }
 #endif
@@ -2368,14 +2360,7 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
     tANI_U32 phyMode = WNI_CFG_PHY_MODE_NONE;
 
     limGetRfBand(pMac, &rfBand, psessionEntry);
-    if(psessionEntry)
-    {
-        limGetPhyMode(psessionEntry, &phyMode);
-    }
-    else
-    {
-        phyMode = pMac->lim.gLimPhyMode;
-    }
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     if(SIR_BAND_5_GHZ == rfBand)
     {
@@ -2493,15 +2478,7 @@ limDecideStaProtection(tpAniSirGlobal pMac,
     tANI_U32 phyMode = WNI_CFG_PHY_MODE_NONE;
 
     limGetRfBand(pMac, &rfBand, psessionEntry);
-    if(psessionEntry)
-    {
-        limGetPhyMode(psessionEntry, &phyMode);
-    }
-    else
-    {
-        phyMode = pMac->lim.gLimPhyMode;
-    }
-
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
        
     if(SIR_BAND_5_GHZ == rfBand)
     {
@@ -3553,7 +3530,10 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
                            tANI_U32 *data, tpPESession psessionEntry)
 {
    tSirMsgQ    mmhMsg = {0};
-   tSirMbMsg   *msg2Hdd = NULL;
+   tSirSmeSwitchChannelInd *pSirSmeSwitchChInd;
+
+   PELOG1(limLog(pMac, LOG1,FL("Sending message %s with reasonCode %s\n"),
+		 limMsgStr(msgType), limResultCodeStr(resultCode));)
 
    psessionEntry->currentOperChannel = psessionEntry->currentReqChannel; 
    
@@ -3565,22 +3545,19 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
    }
    
    mmhMsg.type = eWNI_SME_SWITCH_CHL_REQ;
-   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&msg2Hdd, sizeof(tSirMbMsg)))
+   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeSwitchChInd, sizeof(tSirSmeSwitchChannelInd)))
    {
       limLog(pMac, LOGP, FL("Failed to allocate buffer for buffer descriptor\n"));
       return;
    }
-   
-#if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
-   sirStoreU16N((tANI_U8*)&msg2Hdd->type, eWNI_SME_SWITCH_CHL_REQ);
-   sirStoreU16N((tANI_U8*)&msg2Hdd->msgLen, sizeof(tSirMbMsg));
-#else
-   msg2Hdd->type = eWNI_SME_SWITCH_CHL_REQ;
-   msg2Hdd->msgLen = sizeof(tSirMbMsg);
-#endif
-   
-   msg2Hdd->data[0] = (tANI_U32) pMac->lim.gLimChannelSwitch.primaryChannel;
-   mmhMsg.bodyptr = msg2Hdd;
+  
+   pSirSmeSwitchChInd->messageType = eWNI_SME_SWITCH_CHL_REQ;
+   pSirSmeSwitchChInd->length = sizeof(tSirSmeSwitchChannelInd);
+   pSirSmeSwitchChInd->newChannelId = pMac->lim.gLimChannelSwitch.primaryChannel;
+   pSirSmeSwitchChInd->sessionId = psessionEntry->smeSessionId;
+   //BSS ID
+   palCopyMemory( pMac->hHdd, pSirSmeSwitchChInd->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
+   mmhMsg.bodyptr = pSirSmeSwitchChInd;
    mmhMsg.bodyval = 0;
    
    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));

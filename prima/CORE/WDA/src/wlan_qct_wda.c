@@ -5140,11 +5140,14 @@ void WDA_GetStatsReqParamsCallback(
                               void* pUserData)
 {
    tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ;
-   tAniGetPEStatsRsp *pGetPEStatsRspParams = 
-         (tAniGetPEStatsRsp *)vos_mem_malloc(wdiGetStatsRsp->usMsgLen);
+   tAniGetPEStatsRsp *pGetPEStatsRspParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+
+   pGetPEStatsRspParams = 
+       (tAniGetPEStatsRsp *)vos_mem_malloc(sizeof(tAniGetPEStatsRsp) +
+       (wdiGetStatsRsp->usMsgLen - sizeof(WDI_GetStatsRspParamsType)));
 
    if(NULL == pGetPEStatsRspParams)
    {
@@ -5156,8 +5159,13 @@ void WDA_GetStatsReqParamsCallback(
 
    vos_mem_set(pGetPEStatsRspParams, wdiGetStatsRsp->usMsgLen, 0);
    pGetPEStatsRspParams->msgType = wdiGetStatsRsp->usMsgType;
-   pGetPEStatsRspParams->msgLen  = wdiGetStatsRsp->usMsgLen;
-   pGetPEStatsRspParams->rc      = 
+   pGetPEStatsRspParams->msgLen = sizeof(tAniGetPEStatsRsp) + 
+                   (wdiGetStatsRsp->usMsgLen - sizeof(WDI_GetStatsRspParamsType));
+   pGetPEStatsRspParams->msgLen  = wdiGetStatsRsp->usMsgLen + sizeof(tANI_U8);
+
+  //Fill the Session Id Properly in PE
+   pGetPEStatsRspParams->sessionId = 0;
+   pGetPEStatsRspParams->rc = 
                       CONVERT_WDI2VOS_STATUS(wdiGetStatsRsp->wdiStatus);
    pGetPEStatsRspParams->staId   = wdiGetStatsRsp->ucSTAIdx;
    pGetPEStatsRspParams->statsMask = wdiGetStatsRsp->uStatsMask;
@@ -10829,10 +10837,8 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
        
       case WDI_MIC_FAILURE_IND:
       {
-         vos_msg_t vosMsg;
-         VOS_STATUS vosStatus;
          tpSirSmeMicFailureInd pMicInd =
-          (tpSirSmeMicFailureInd)vos_mem_malloc(sizeof(tSirSmeMicFailureInd));
+           (tpSirSmeMicFailureInd)vos_mem_malloc(sizeof(tSirSmeMicFailureInd));
 
          if(NULL == pMicInd)
          {
@@ -10869,16 +10875,8 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          vos_mem_copy(pMicInd->info.TSC,
              wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.TSC,SIR_CIPHER_SEQ_CTR_SIZE);
 
-         /* VOS message wrapper */
-         vosMsg.type = eWNI_SME_MIC_FAILURE_IND;
-         vosMsg.bodyptr = (void *)pMicInd;
-         vosMsg.bodyval = 0;
-         vosStatus = vos_mq_post_message(VOS_MQ_ID_SME, &vosMsg);
-         if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-         {
-            vos_mem_free(pMicInd);
-            vosStatus = VOS_STATUS_E_BADMSG;
-         }
+         WDA_SendMsg(pWDA, SIR_HAL_MIC_FAILURE_IND, 
+                                       (void *)pMicInd , 0) ;
          break ;
       }
       case WDI_FATAL_ERROR_IND:
@@ -12695,6 +12693,40 @@ VOS_STATUS WDA_ProcessTxControlInd(tWDA_CbContext *pWDA,
    }
 
    return wdaStatus;
+}
+
+ /*  FUNCTION    WDA_featureCapsExchange
+  *  WDA API to invoke capability exchange between host and FW.
+  */
+void WDA_featureCapsExchange(v_PVOID_t pVosContext)
+{
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+      "%s:enter", __FUNCTION__ );
+   WDI_featureCapsExchangeReq( NULL, pVosContext);
+}
+
+ /*  FUNCTION    WDA_getHostWlanFeatCaps
+  *  Wrapper for WDI API, that will return if the feature (enum value).passed
+  *  to this API is supported or not in Host
+  *  return value
+  *     0 - implies feature is NOT Supported
+  *     any non zero value - implies feature is SUPPORTED
+  */
+tANI_U8 WDA_getHostWlanFeatCaps(tANI_U8 featEnumValue)
+{
+   return WDI_getHostWlanFeatCaps(featEnumValue);
+}
+
+ /*  FUNCTION    WDA_getFwWlanFeatCaps
+  *  Wrapper for WDI API, that will return if the feature (enum value).passed
+  *  to this API is supported or not in FW
+  *  return value
+  *     0 - implies feature is NOT Supported
+  *     any non zero value - implies feature is SUPPORTED
+  */
+tANI_U8 WDA_getFwWlanFeatCaps(tANI_U8 featEnumValue)
+{
+   return WDI_getFwWlanFeatCaps(featEnumValue);
 }
 
 /*

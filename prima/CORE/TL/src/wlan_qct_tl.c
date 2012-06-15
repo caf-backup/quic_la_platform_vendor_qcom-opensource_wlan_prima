@@ -8636,6 +8636,7 @@ WLAN_TLAPGetNextTxIds
         // Find a station. Weight is updated already.
         *pucSTAId = ucNextSTA;
         pTLCb->ucCurrentSTA = ucNextSTA;
+        pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC = pTLCb->uCurServedAC;
   
         TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
                    " TL serve one station AC: %d  W: %d StaId: %d",
@@ -8676,6 +8677,7 @@ WLAN_TLAPGetNextTxIds
   pTLCb->ucCurrentSTA = WLAN_MAX_STA_COUNT; 
 
   *pucSTAId = pTLCb->ucCurrentSTA;
+  pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC = pTLCb->uCurServedAC;
   return VOS_STATUS_E_FAULT;
 }
 

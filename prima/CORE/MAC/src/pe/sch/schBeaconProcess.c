@@ -65,14 +65,9 @@ ap_beacon_process(
     tSirRFBand          rfBand = SIR_BAND_UNKNOWN;
     //Get RF band from psessionEntry
     rfBand = psessionEntry->limRFBand;
-    if(psessionEntry)
-    { 
-        limGetPhyMode(psessionEntry, &phyMode); 
-    }
-    else
-    {
-        phyMode = pMac->lim.gLimPhyMode; 
-    } 
+
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
+
     if(SIR_BAND_5_GHZ == rfBand)
     {
         if (psessionEntry->htCapabality)

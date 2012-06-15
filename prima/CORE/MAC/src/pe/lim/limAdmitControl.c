@@ -275,11 +275,9 @@ limValidateTspecEdca(
     tANI_U32           maxPhyRate, minPhyRate;
     tANI_U32 phyMode;
     tSirRetStatus retval = eSIR_SUCCESS;
-    
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
+
     //limGetAvailableBw(pMac, &maxPhyRate, &minPhyRate, pMac->dph.gDphPhyMode,
     //                  1 /* bandwidth mult factor */);
     limGetAvailableBw(pMac, &maxPhyRate, &minPhyRate, phyMode,
@@ -454,10 +452,8 @@ limAdmitPolicyOversubscription(
     tANI_U32 phyMode;
 
     // determine total bandwidth used so far
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
+
     //limComputeMeanBwUsed(pMac, &usedbw, pMac->dph.gDphPhyMode, pTspecInfo);
     limComputeMeanBwUsed(pMac, &usedbw, phyMode, pTspecInfo, psessionEntry);
 

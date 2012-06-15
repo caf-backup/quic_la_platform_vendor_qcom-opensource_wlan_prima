@@ -2801,19 +2801,21 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    {
        hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
                                     WLAN_HDD_INFRA_STATION);
-
-       INIT_COMPLETION(pAdapter->session_close_comp_var);
-       if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
-                                     pAdapter->p2pSessionId,
-                                     hdd_smeCloseSessionCallback, pAdapter ) )
+       if (pAdapter != NULL)
        {
-           //Block on a completion variable. Can't wait forever though.
-           wait_for_completion_interruptible_timeout(
-                      &pAdapter->session_close_comp_var,
-                      msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+          INIT_COMPLETION(pAdapter->session_close_comp_var);
+          if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
+                                        pAdapter->p2pSessionId,
+                                        hdd_smeCloseSessionCallback, pAdapter ) )
+          {
+              //Block on a completion variable. Can't wait forever though.
+              wait_for_completion_interruptible_timeout(
+                         &pAdapter->session_close_comp_var,
+                         msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+          }
        }
    }
-#endif   
+#endif
    hdd_stop_all_adapters( pHddCtx );
 
 #ifdef ANI_BUS_TYPE_SDIO
@@ -3523,6 +3525,7 @@ int hdd_wlan_startup(struct device *dev )
       tSirVersionType versionCompiled;
       tSirVersionType versionReported;
       tSirVersionString versionString;
+      tANI_U8 fwFeatCapsMsgSupported = 0;
       VOS_STATUS vstatus;
 
       vstatus = sme_GetWcnssWlanCompiledVersion(pHddCtx->hHal,
@@ -3599,6 +3602,12 @@ int hdd_wlan_startup(struct device *dev )
 
       pr_info("%s: WCNSS hardware version %s\n",
               WLAN_MODULE_NAME, versionString);
+
+      /* Check if FW version is greater than 0.1.1.0. Only then send host-FW capability exchange message */
+      if ((versionReported.major>0) || (versionReported.minor>1) || ((versionReported.minor>=1) && (versionReported.version>=1)))
+         fwFeatCapsMsgSupported = 1;
+      if (fwFeatCapsMsgSupported)
+        sme_featureCapsExchange(pHddCtx->hHal);
    } while (0);
 
 #endif // FEATURE_WLAN_INTEGRATED_SOC
@@ -3826,15 +3835,18 @@ err_p2psession_close:
        hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
                                     WLAN_HDD_INFRA_STATION);
 
-       INIT_COMPLETION(pAdapter->session_close_comp_var);
-       if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
-                                     pAdapter->p2pSessionId,
-                                     hdd_smeCloseSessionCallback, pAdapter ) )
+       if (pAdapter != NULL)
        {
-           //Block on a completion variable. Can't wait forever though.
-           wait_for_completion_interruptible_timeout(
-                      &pAdapter->session_close_comp_var,
-                      msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+          INIT_COMPLETION(pAdapter->session_close_comp_var);
+          if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
+                                        pAdapter->p2pSessionId,
+                                        hdd_smeCloseSessionCallback, pAdapter ) )
+          {
+              //Block on a completion variable. Can't wait forever though.
+              wait_for_completion_interruptible_timeout(
+                         &pAdapter->session_close_comp_var,
+                         msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
+          }
        }
    }
 #endif

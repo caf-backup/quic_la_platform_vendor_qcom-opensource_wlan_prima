@@ -2183,7 +2183,7 @@ limDetectChangeInApCapabilities(tpAniSirGlobal pMac,
         psessionEntry->limSentCapsChangeNtf = true;
         limSendSmeWmStatusChangeNtf(pMac, eSIR_SME_AP_CAPS_CHANGED,
                                     (tANI_U32 *) &apNewCaps,
-                                    len);
+                                    len, psessionEntry->smeSessionId);
     }
 #endif
 } /*** limDetectChangeInApCapabilities() ***/
@@ -2546,6 +2546,85 @@ void limHandleMissedBeaconInd(tpAniSirGlobal pMac)
             FL("Received SIR_HAL_MISSED_BEACON_IND while in incorrect state: %d\n"),
             pMac->pmm.gPmmState);
     }
+    return;
+}
+
+/** -----------------------------------------------------------------
+  \brief limMicFailureInd() - handles mic failure  indication
+ 
+  This function process the SIR_HAL_MIC_FAILURE_IND message from HAL,
+
+  \param pMac - global mac structure
+  \return - none 
+  \sa
+  ----------------------------------------------------------------- */
+void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
+{
+    tpSirSmeMicFailureInd pSirSmeMicFailureInd;
+    tpSirSmeMicFailureInd pSirMicFailureInd = (tpSirSmeMicFailureInd)pMsg->bodyptr;
+    tSirMsgQ            mmhMsg;
+    tpPESession psessionEntry ;
+    tANI_U8     sessionId;
+
+    if((psessionEntry = peFindSessionByBssid(pMac,pSirMicFailureInd->bssId,&sessionId))== NULL)
+    {
+         limLog(pMac, LOGE,
+               FL("session does not exist for given BSSId\n"));
+         return;
+    }
+
+    if (eHAL_STATUS_SUCCESS !=
+                    palAllocateMemory(pMac->hHdd,
+                                      (void **) &pSirSmeMicFailureInd,
+                                      sizeof(tSirSmeMicFailureInd)))
+    {
+        // Log error
+       limLog(pMac, LOGP,
+               FL("memory allocate failed for eWNI_SME_MIC_FAILURE_IND\n"));
+       return;
+    }
+
+    pSirSmeMicFailureInd->messageType = eWNI_SME_MIC_FAILURE_IND;
+    pSirSmeMicFailureInd->length = sizeof(pSirSmeMicFailureInd);
+    pSirSmeMicFailureInd->sessionId = psessionEntry->smeSessionId;
+
+    vos_mem_copy(pSirSmeMicFailureInd->bssId,
+        pSirMicFailureInd->bssId,
+        sizeof(tSirMacAddr));
+
+    vos_mem_copy(pSirSmeMicFailureInd->info.srcMacAddr,
+        pSirMicFailureInd->info.srcMacAddr,
+        sizeof(tSirMacAddr));
+
+    vos_mem_copy(pSirSmeMicFailureInd->info.taMacAddr,
+        pSirMicFailureInd->info.taMacAddr,
+        sizeof(tSirMacAddr));
+
+    vos_mem_copy(pSirSmeMicFailureInd->info.dstMacAddr,
+        pSirMicFailureInd->info.dstMacAddr,
+        sizeof(tSirMacAddr));
+
+    vos_mem_copy(pSirSmeMicFailureInd->info.rxMacAddr,
+        pSirMicFailureInd->info.rxMacAddr,
+        sizeof(tSirMacAddr));
+
+    pSirSmeMicFailureInd->info.multicast = 
+                                   pSirMicFailureInd->info.multicast;
+
+    pSirSmeMicFailureInd->info.keyId= 
+                                  pSirMicFailureInd->info.keyId;
+
+    pSirSmeMicFailureInd->info.IV1= 
+                                  pSirMicFailureInd->info.IV1;
+
+    vos_mem_copy(pSirSmeMicFailureInd->info.TSC,
+         pSirMicFailureInd->info.TSC,SIR_CIPHER_SEQ_CTR_SIZE);
+
+    mmhMsg.type = eWNI_SME_MIC_FAILURE_IND;
+    mmhMsg.bodyptr = pSirSmeMicFailureInd;
+    mmhMsg.bodyval = 0;
+    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
     return;
 }
 

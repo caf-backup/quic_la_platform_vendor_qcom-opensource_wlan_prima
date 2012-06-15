@@ -500,12 +500,9 @@ limSendSmeStartBssRsp(tpAniSirGlobal pMac,
                 != eSIR_SUCCESS)
                 limLog(pMac, LOGP, FL("could not retrieve Capabilities value\n"));
 
-                limGetPhyMode(psessionEntry,&pSirSmeRsp->bssDescription.nwType);
-#if 0
-                if (wlan_cfgGetInt(pMac, WNI_CFG_PHY_MODE, (tANI_U32 *) &pSirSmeRsp->bssDescription.nwType)
-                != eSIR_SUCCESS)
-                    limLog(pMac, LOGP, FL("could not retrieve nwType from CFG\n"));
+                limGetPhyMode(pMac, (tANI_U32 *)&pSirSmeRsp->bssDescription.nwType, psessionEntry);
 
+#if 0
             if (wlan_cfgGetInt(pMac, WNI_CFG_CURRENT_CHANNEL, &len) != eSIR_SUCCESS)
                 limLog(pMac, LOGP, FL("could not retrieve CURRENT_CHANNEL from CFG\n"));
            
@@ -706,6 +703,9 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
 
             PELOG2(limLog(pMac, LOG2, FL("BssId "));
             limPrintMacAddr(pMac, ptemp->bssDescription.bssId, LOG2);)
+
+            pSirSmeScanRsp->sessionId   = smesessionId;
+            pSirSmeScanRsp->transcationId = smetranscationId;
 
             ptemp = ptemp->next;
         } //while(ptemp)
@@ -1328,18 +1328,18 @@ limSendSmeDeauthInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession psess
     //peerMacAddr
     palCopyMemory( pMac->hHdd, pSirSmeDeauthInd->peerMacAddr, pStaDs->staAddr, sizeof(tSirMacAddr));
 #else
-    //statusCode
-    pBuf  = (tANI_U8 *) &pSirSmeDeauthInd->statusCode;
-    limCopyU32(pBuf, pStaDs->mlmStaContext.cleanupTrigger);
-    pBuf += sizeof(tSirResultCodes);
 
     //sessionId
-    *pBuf = psessionEntry->peSessionId;
-    pBuf += sizeof(tANI_U16);
+    pBuf = (tANI_U8 *) &pSirSmeDeauthInd->sessionId;
+    *pBuf++ = psessionEntry->smeSessionId;
 
     //transactionId
     limCopyU16(pBuf, 0);
     pBuf += sizeof(tANI_U16);
+
+    // status code
+    limCopyU32(pBuf, pStaDs->mlmStaContext.cleanupTrigger);
+    pBuf += sizeof(tSirResultCodes);
     
     //bssid
     palCopyMemory( pMac->hHdd, pBuf, psessionEntry->bssId, sizeof(tSirMacAddr));
@@ -1482,18 +1482,18 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
             pSirSmeDeauthInd->messageType = eWNI_SME_DEAUTH_IND;
             pSirSmeDeauthInd->length      = sizeof(tSirSmeDeauthInd);
 #endif
-            // status code
-            pBuf  = (tANI_U8 *) &pSirSmeDeauthInd->statusCode;
-            limCopyU32(pBuf, reasonCode);
-            pBuf += sizeof(tSirResultCodes);
 
             // sessionId
-            *pBuf = smesessionId;
-            pBuf += sizeof(tANI_U16); /* Align the memory */
+            pBuf = (tANI_U8*) &pSirSmeDeauthInd->sessionId;
+            *pBuf++ = smesessionId;
 
             //transaction ID
             limCopyU16(pBuf, smetransactionId);
             pBuf += sizeof(tANI_U16);
+
+            // status code
+            limCopyU32(pBuf, reasonCode);
+            pBuf += sizeof(tSirResultCodes);
 
             //bssId
             palCopyMemory( pMac->hHdd, pBuf, psessionEntry->bssId, sizeof(tSirMacAddr));
@@ -1563,7 +1563,7 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
  */
 void
 limSendSmeWmStatusChangeNtf(tpAniSirGlobal pMac, tSirSmeStatusChangeCode statusChangeCode,
-                                 tANI_U32 *pStatusChangeInfo, tANI_U16 infoLen)
+                                 tANI_U32 *pStatusChangeInfo, tANI_U16 infoLen, tANI_U8 sessionId)
 {
     tSirMsgQ                  mmhMsg;
     tSirSmeWmStatusChangeNtf  *pSirSmeWmStatusChangeNtf;
@@ -1604,7 +1604,8 @@ limSendSmeWmStatusChangeNtf(tpAniSirGlobal pMac, tSirSmeStatusChangeCode statusC
                                                   statusChangeCode,
                                           pBuf,
                                           &length,
-                                          bufLen) != eSIR_SUCCESS))
+                                          bufLen,
+                                          sessionId) != eSIR_SUCCESS))
             {
                 palFreeMemory(pMac->hHdd, (void *) pSirSmeWmStatusChangeNtf);
                 limLog(pMac, LOGP, FL("Header SerDes failed \n"));
@@ -1635,7 +1636,8 @@ limSendSmeWmStatusChangeNtf(tpAniSirGlobal pMac, tSirSmeStatusChangeCode statusC
             if( eSIR_SUCCESS != nonTitanBssFoundSerDes( pMac,
                                 (tpSirNeighborBssWdsInfo) pStatusChangeInfo,
                                 pBuf,
-                                &length ))
+                                &length,
+                                sessionId))
             {
                 palFreeMemory(pMac->hHdd, (void *) pSirSmeWmStatusChangeNtf);
                 limLog( pMac, LOGP,
@@ -1649,7 +1651,7 @@ limSendSmeWmStatusChangeNtf(tpAniSirGlobal pMac, tSirSmeStatusChangeCode statusC
             limPackBkgndScanFailNotify(pMac,
                                        statusChangeCode,
                                        (tpSirBackgroundScanInfo)pStatusChangeInfo,
-                                       pSirSmeWmStatusChangeNtf);
+                                       pSirSmeWmStatusChangeNtf, sessionId);
             break;
 
         default:
@@ -1658,12 +1660,14 @@ limSendSmeWmStatusChangeNtf(tpAniSirGlobal pMac, tSirSmeStatusChangeCode statusC
                     eWNI_SME_WM_STATUS_CHANGE_NTF );
         sirStoreU16N((tANI_U8*)&pSirSmeWmStatusChangeNtf->length,
                     (sizeof(tSirSmeWmStatusChangeNtf)));
+        pSirSmeWmStatusChangeNtf->sessionId = sessionId;
         sirStoreU32N((tANI_U8*)&pSirSmeWmStatusChangeNtf->statusChangeCode,
                     statusChangeCode);
 #else
         pSirSmeWmStatusChangeNtf->messageType = eWNI_SME_WM_STATUS_CHANGE_NTF;
         pSirSmeWmStatusChangeNtf->statusChangeCode = statusChangeCode;
         pSirSmeWmStatusChangeNtf->length = sizeof(tSirSmeWmStatusChangeNtf);
+        pSirSmeWmStatusChangeNtf->sessionId = sessionId;
 #endif
         if(sizeof(pSirSmeWmStatusChangeNtf->statusChangeInfo) >= infoLen)
         {
@@ -1954,7 +1958,7 @@ limSendSmeNeighborBssInd(tpAniSirGlobal pMac,
      * Length of buffer is length of BSS description
      * and length of header itself
      */
-    val = pBssDescr->bssDescription.length + sizeof(tANI_U16) + sizeof(tANI_U32);
+    val = pBssDescr->bssDescription.length + sizeof(tANI_U16) + sizeof(tANI_U32) + sizeof(tANI_U8);
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pNewBssInd, val))
     {
         // Log error
@@ -1972,6 +1976,7 @@ limSendSmeNeighborBssInd(tpAniSirGlobal pMac,
     pNewBssInd->messageType = eWNI_SME_NEIGHBOR_BSS_IND;
     pNewBssInd->length      = (tANI_U16) val;
 #endif
+    pNewBssInd->sessionId = 0;
 
 #if (WNI_POLARIS_FW_PRODUCT == WLAN_STA)
     palCopyMemory( pMac->hHdd, (tANI_U8 *) pNewBssInd->bssDescription,
@@ -2246,11 +2251,25 @@ void
 limSendSmePEStatisticsRsp(tpAniSirGlobal pMac, tANI_U16 msgType, void* stats)
 {
     tSirMsgQ              mmhMsg;
-    tSirSmeRsp           *pMsgHdr = (tSirSmeRsp*) stats;
+    tANI_U8 sessionId;
+    tAniGetPEStatsRsp *pPeStats = (tAniGetPEStatsRsp *) stats;
+    tpPESession pPeSessionEntry;
+
+    //Get the Session Id based on Sta Id
+    pPeSessionEntry = peFindSessionByStaId(pMac, pPeStats->staId, &sessionId);
+
+    //Fill the Session Id
+    if(NULL != pPeSessionEntry)
+    {
+      //Fill the Session Id
+      pPeStats->sessionId = pPeSessionEntry->smeSessionId;
+    }
+ 
+    pPeStats->msgType = eWNI_SME_GET_STATISTICS_RSP;
+    
 
     //msgType should be WDA_GET_STATISTICS_RSP
     mmhMsg.type = eWNI_SME_GET_STATISTICS_RSP;
-    pMsgHdr->messageType = mmhMsg.type; 
 
     mmhMsg.bodyptr = stats;
     mmhMsg.bodyval = 0;
@@ -2270,7 +2289,9 @@ limSendSmeIBSSPeerInd(
     tANI_U8     ucastIdx,
     tANI_U8     bcastIdx,
     tANI_U8  *beacon, 
-    tANI_U16 beaconLen, tANI_U16 msgType)
+    tANI_U16 beaconLen, 
+    tANI_U16 msgType,
+    tANI_U8 sessionId)
 {
     tSirMsgQ                  mmhMsg;
     tSmeIbssPeerInd *pNewPeerInd;
@@ -2291,6 +2312,7 @@ limSendSmeIBSSPeerInd(
     pNewPeerInd->bcastSig = bcastIdx;
     pNewPeerInd->mesgLen = sizeof(tSmeIbssPeerInd) + beaconLen;
     pNewPeerInd->mesgType = msgType;
+    pNewPeerInd->sessionId = sessionId;
 
     if ( beacon != NULL )
     {

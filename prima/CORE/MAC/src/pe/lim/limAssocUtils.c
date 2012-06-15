@@ -1073,10 +1073,7 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
     }
     else if(SIR_BAND_2_4_GHZ == rfBand)
     {
-        if(psessionEntry)
-            limGetPhyMode(psessionEntry, &phyMode);
-        else
-            phyMode = pMac->lim.gLimPhyMode;
+        limGetPhyMode(pMac, &phyMode, psessionEntry);
 
         erpEnabled = pStaDs->erpEnabled;
         //we are HT or 11G and 11B station is getting deleted.
@@ -1508,16 +1505,7 @@ limPopulateOwnRateSet(tpAniSirGlobal pMac,
 
     isArate = 0;
 
-    if(psessionEntry)
-        limGetPhyMode(psessionEntry, &phyMode);
-    else
-        phyMode = pMac->lim.gLimPhyMode;
-
-#if 0
-    if (wlan_cfgGetInt(pMac, WNI_CFG_PHY_MODE, &phyMode) != eSIR_SUCCESS)
-        PELOGE(limLog(pMac, LOGE, FL("cfg get failed for PHY_MODE\n"));)
-#endif
-    
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     // Get own rate set
     #if 0
@@ -1716,11 +1704,7 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
    isArate=0;
 
    // limGetPhyMode(pMac, &phyMode);
-   // FIXME
-   if(psessionEntry)
-       limGetPhyMode(psessionEntry, &phyMode);
-   else
-       phyMode = pMac->lim.gLimPhyMode;
+   limGetPhyMode(pMac, &phyMode, psessionEntry);
 
    // get own rate set
    // val = WNI_CFG_OPERATIONAL_RATE_SET_LEN;

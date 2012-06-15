@@ -206,6 +206,45 @@ tpPESession peFindSessionByBssid(tpAniSirGlobal pMac,  tANI_U8*  bssid,    tANI_
 }
 
 
+/*--------------------------------------------------------------------------
+  \brief peFindSessionByStaId() - looks up the PE session given staid.
+
+  This function returns the session context and the session ID if the session 
+  corresponding to the given StaId is found in the PE session table.
+    
+  \param pMac                   - pointer to global adapter context
+  \param staid                   - StaId of the session
+  \param sessionId             -session ID is returned here, if session is found. 
+  
+  \return tpPESession          - pointer to the session context or NULL if session is not found.
+  
+  \sa
+  --------------------------------------------------------------------------*/
+tpPESession peFindSessionByStaId(tpAniSirGlobal pMac,  tANI_U8  staid,    tANI_U8* sessionId)
+{
+    tANI_U8 i, j;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+       if(pMac->lim.gpSession[i].valid)
+       {
+          for(j = 0; j < pMac->lim.gpSession[i].dph.dphHashTable.size; j++)
+          {
+             if((pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray[j].valid) &&
+                 (pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray[j].added) &&
+                (staid == pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray[j].staIndex))
+             {
+                *sessionId = i;
+                return(&pMac->lim.gpSession[i]);
+             }
+          }
+       }
+    }
+
+    limLog(pMac, LOG4, FL("Session lookup fails for StaId: \n "));
+    return(NULL);
+}
+
 
 
 /*--------------------------------------------------------------------------

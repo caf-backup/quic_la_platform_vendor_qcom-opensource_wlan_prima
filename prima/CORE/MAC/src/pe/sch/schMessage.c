@@ -456,14 +456,8 @@ schQosUpdateBroadcast(tpAniSirGlobal pMac, tpPESession psessionEntry)
         PELOGE(schLog(pMac, LOGE, FL("QosUpdateBroadcast: failed\n"));)
         return;
     }
-    if(psessionEntry)
-    {
-        limGetPhyMode(psessionEntry, &phyMode);
-    }
-    else
-    {
-        phyMode = pMac->lim.gLimPhyMode;
-    }
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
+
     PELOG1(schLog(pMac, LOG1, "QosUpdBcast: mode %d\n", phyMode);)
 
     if (phyMode == WNI_CFG_PHY_MODE_11G)
@@ -574,14 +568,9 @@ setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LO
     tANI_U32 i;
     tANI_U32 cwminidx, cwmaxidx, txopidx;
     tANI_U32 phyMode;
-    if(psessionEntry)
-    {
-        limGetPhyMode(psessionEntry, &phyMode);
-    }
-    else
-    {
-        phyMode = pMac->lim.gLimPhyMode;
-    }
+
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
+
     PELOG1(schLog(pMac, LOG1, FL("limGetPhyMode() = %d\n"), phyMode);)
 
     //if (pMac->lim.gLimPhyMode == WNI_CFG_PHY_MODE_11G)

@@ -330,6 +330,7 @@ typedef struct sLimMlmAuthInd
 {
     tSirMacAddr    peerMacAddr;
     tAniAuthType   authType;
+    tANI_U8        sessionId;
 } tLimMlmAuthInd, *tpLimMlmAuthInd;
 
 typedef struct sLimMlmDeauthReq

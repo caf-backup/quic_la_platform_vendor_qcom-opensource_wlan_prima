@@ -4107,6 +4107,13 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     hddLog(VOS_TRACE_LEVEL_INFO, 
              "%s: device_mode = %d\n",__func__,pAdapter->device_mode);
 
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
+
 #ifdef WLAN_BTAMP_FEATURE
     //Infra connect not supported when AMP traffic is on.
     if( VOS_TRUE == WLANBAP_AmpSessionOn() ) 
@@ -4341,6 +4348,13 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
     
     hddLog(VOS_TRACE_LEVEL_INFO, 
                   "%s: device_mode = %d\n",__func__,pAdapter->device_mode);
+
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
 
     if (NULL == pWextState)
     {

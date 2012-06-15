@@ -335,10 +335,7 @@ PopulateDot11fDSParams(tpAniSirGlobal     pMac,
     tANI_U32            nPhyMode;
 
     // Get PHY mode and based on that add DS Parameter Set IE
-    if(psessionEntry != NULL )
-        limGetPhyMode(psessionEntry, &nPhyMode);
-    else
-        nPhyMode = pMac->lim.gLimPhyMode;
+    limGetPhyMode(pMac, &nPhyMode, psessionEntry);
 
     if ( WNI_CFG_PHY_MODE_11A != nPhyMode )
     {

@@ -2076,7 +2076,10 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
 #endif
 
     mLen   = sizeof(tANI_U32);
+    mLen   += sizeof(tANI_U8);
     pBuf  += sizeof(tANI_U16);
+    *pBuf = psessionEntry->smeSessionId;
+    pBuf   += sizeof(tANI_U8);
 
      // Fill in peerMacAddr
     palCopyMemory( pMac->hHdd, pBuf, pAssocInd->peerMacAddr, sizeof(tSirMacAddr));
@@ -2635,6 +2638,8 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
 
     mLen   = sizeof(tANI_U32);
     pBuf  += sizeof(tANI_U16);
+    *pBuf++ = psessionEntry->smeSessionId;
+    mLen += sizeof(tANI_U8);
 
     // Fill in peerMacAddr
     palCopyMemory( pMac->hHdd, pBuf, pReassocInd->peerMacAddr, sizeof(tSirMacAddr));
@@ -2816,6 +2821,8 @@ limAuthIndSerDes(tpAniSirGlobal pMac, tpLimMlmAuthInd pAuthInd, tANI_U8 *pBuf)
 
     mLen   = sizeof(tANI_U32);
     pBuf  += sizeof(tANI_U16);
+    *pBuf++ = pAuthInd->sessionId;
+    mLen += sizeof(tANI_U8);
 
     // BTAMP TODO:  Fill in bssId
     palZeroMemory(pMac->hHdd, pBuf, sizeof(tSirMacAddr));
@@ -2894,20 +2901,6 @@ limSetContextReqSerDes(tpAniSirGlobal pMac, tpSirSmeSetContextReq pSetContextReq
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-    palCopyMemory( pMac->hHdd, (tANI_U8 *) pSetContextReq->peerMacAddr,
-                  pBuf, sizeof(tSirMacAddr));
-    pBuf += sizeof(tSirMacAddr);
-    len  -= sizeof(tSirMacAddr);
-    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-        return eSIR_FAILURE;
-
-    // Extract bssId
-    palCopyMemory( pMac->hHdd, pSetContextReq->bssId, pBuf, sizeof(tSirMacAddr));
-    pBuf += sizeof(tSirMacAddr);
-    len -= sizeof(tSirMacAddr);
-    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-        return eSIR_FAILURE;
-
     // Extract sessionId
     pSetContextReq->sessionId = *pBuf++;
     len--;
@@ -2918,6 +2911,17 @@ limSetContextReqSerDes(tpAniSirGlobal pMac, tpSirSmeSetContextReq pSetContextReq
     pSetContextReq->transactionId = sirReadU16N(pBuf);
     pBuf += sizeof(tANI_U16);
     len  -= sizeof(tANI_U16);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+    palCopyMemory( pMac->hHdd, (tANI_U8 *) pSetContextReq->peerMacAddr,
+                   pBuf, sizeof(tSirMacAddr));
+    pBuf += sizeof(tSirMacAddr);
+    len  -= sizeof(tSirMacAddr);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+    palCopyMemory( pMac->hHdd, pSetContextReq->bssId, pBuf, sizeof(tSirMacAddr));
+    pBuf += sizeof(tSirMacAddr);
+    len  -= sizeof(tSirMacAddr);
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
@@ -3331,7 +3335,7 @@ limDeauthReqSerDes(tpAniSirGlobal pMac, tSirSmeDeauthReq *pDeauthReq, tANI_U8 *p
  */
 
 void
-limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInfo)
+limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInfo, tpPESession psessionEntry)
 {
     tANI_U32    localPowerConstraints = 0;
     tANI_U16    caps;
@@ -3340,14 +3344,10 @@ limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInf
     if(psessionEntry)
     {
         psessionEntry->gLimPhyMode = neighborBssInfo.nwType;
-    }    
+    }
     else
     {
-        if (cfgSetInt(pMac, WNI_CFG_PHY_MODE,
-                      neighborBssInfo.nwType) != eSIR_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("could not set networkType at CFG\n"));
-        }
+        pMac->lim.gLimPhyMode = neighborBssInfo.nwType;
     }
 
     cfgSetCapabilityInfo(pMac, neighborBssInfo.capabilityInfo);
@@ -3556,7 +3556,8 @@ limSmeWmStatusChangeHeaderSerDes(tpAniSirGlobal pMac,
                                  tSirSmeStatusChangeCode statusChangeCode,
                                  tANI_U8 *pBuf,
                                  tANI_U16 *len,
-                                 tANI_U32 buflen)
+                                 tANI_U32 buflen,
+                                 tANI_U8 sessionId)
 {
     if (buflen < ((sizeof(tANI_U16) * 2) + sizeof(tANI_U32)))
     {
@@ -3574,6 +3575,9 @@ limSmeWmStatusChangeHeaderSerDes(tpAniSirGlobal pMac,
     // Actual length value shall be filled later
     pBuf += sizeof(tANI_U16);
     *len += sizeof(tANI_U16);
+    
+    *pBuf++ = sessionId;
+    *len += sizeof(tANI_U8);
 
     limCopyU32(pBuf, statusChangeCode);
     pBuf += sizeof(tANI_U32);
@@ -3649,16 +3653,18 @@ void
 limPackBkgndScanFailNotify(tpAniSirGlobal pMac,
                            tSirSmeStatusChangeCode statusChangeCode,
                            tpSirBackgroundScanInfo pScanInfo,
-                           tSirSmeWmStatusChangeNtf *pSmeNtf)
+                           tSirSmeWmStatusChangeNtf *pSmeNtf,
+                           tANI_U8 sessionId)
 {
 
-    tANI_U16    length = (sizeof(tANI_U16) * 2) +
+    tANI_U16    length = (sizeof(tANI_U16) * 2) + sizeof(tANI_U8) +
                     sizeof(tSirSmeStatusChangeCode) +
                     sizeof(tSirBackgroundScanInfo);
 
 #if defined (ANI_PRODUCT_TYPE_AP) && defined(ANI_LITTLE_BYTE_ENDIAN)
         sirStoreU16N((tANI_U8*)&pSmeNtf->messageType, eWNI_SME_WM_STATUS_CHANGE_NTF );
         sirStoreU16N((tANI_U8*)&pSmeNtf->length, length);
+        pSmeNtf->sessionId = sessionId;
         sirStoreU32N((tANI_U8*)&pSmeNtf->statusChangeCode, statusChangeCode);
 
         sirStoreU32N((tANI_U8*)&pSmeNtf->statusChangeInfo.bkgndScanInfo.numOfScanSuccess,
@@ -3671,6 +3677,7 @@ limPackBkgndScanFailNotify(tpAniSirGlobal pMac,
         pSmeNtf->messageType = eWNI_SME_WM_STATUS_CHANGE_NTF;
         pSmeNtf->statusChangeCode = statusChangeCode;
         pSmeNtf->length = length;
+        pSmeNtf->sessionId = sessionId;
         pSmeNtf->statusChangeInfo.bkgndScanInfo.numOfScanSuccess = pScanInfo->numOfScanSuccess;
         pSmeNtf->statusChangeInfo.bkgndScanInfo.numOfScanFailure = pScanInfo->numOfScanFailure;
         pSmeNtf->statusChangeInfo.bkgndScanInfo.reserved = pScanInfo->reserved;
@@ -3709,7 +3716,8 @@ limPackBkgndScanFailNotify(tpAniSirGlobal pMac,
 tSirRetStatus nonTitanBssFoundSerDes( tpAniSirGlobal pMac,
     tpSirNeighborBssWdsInfo pNewBssInfo,
     tANI_U8 *pBuf,
-    tANI_U16 *len )
+    tANI_U16 *len,
+    tANI_U8 sessionId )
 {
 tANI_U8 *pTemp = pBuf;
 tANI_U16 length = 0;
@@ -3721,7 +3729,8 @@ tANI_U32 bufLen = sizeof( tSirSmeWmStatusChangeNtf );
         eSIR_SME_CB_LEGACY_BSS_FOUND_BY_AP,
         pBuf,
         &length,
-        bufLen ))
+        bufLen,
+        sessionId))
   {
     limLog( pMac, LOGE,
         FL("Header SerDes failed \n"));

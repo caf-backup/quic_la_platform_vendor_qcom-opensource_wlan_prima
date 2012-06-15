@@ -487,7 +487,7 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
             {
                 pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
                 //We cannot execute any command in wait-for-key state until setKey is through.
-                if( CSR_IS_WAIT_FOR_KEY( pMac ) )
+                if( CSR_IS_WAIT_FOR_KEY( pMac, pCommand->sessionId ) )
                 {
                     if( !CSR_IS_SET_KEY_COMMAND( pCommand ) )
                     {
@@ -3601,7 +3601,8 @@ eHalStatus sme_RoamRemoveKey(tHalHandle hHal, tANI_U8 sessionId,
   ---------------------------------------------------------------------------*/
 eHalStatus sme_GetRssi(tHalHandle hHal,
                              tCsrRssiCallback callback,
-                             tANI_U8 staId, void *pContext, void* pVosContext)
+                             tANI_U8 staId, tCsrBssid bssId, 
+                             void *pContext, void* pVosContext)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -3610,7 +3611,7 @@ eHalStatus sme_GetRssi(tHalHandle hHal,
    if ( HAL_STATUS_SUCCESS( status ) )
    {
       status = csrGetRssi( pMac, callback,
-                                 staId, pContext, pVosContext);
+                                 staId, bssId, pContext, pVosContext);
       sme_ReleaseGlobalLock( &pMac->sme );
    }
    return (status);
@@ -6337,6 +6338,7 @@ eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid,
 
     return eHAL_STATUS_SUCCESS;
 }
+
 #ifdef WLAN_SOFTAP_FEATURE
 /* ---------------------------------------------------------------------------
 
@@ -6428,4 +6430,20 @@ eHalStatus sme_SetTmLevel(tHalHandle hHal, v_U16_t newTMLevel, v_U16_t tmMode)
         sme_ReleaseGlobalLock( &pMac->sme );
     }
     return(status);
+}
+
+/*---------------------------------------------------------------------------
+
+  \brief sme_featureCapsExchange() - SME interface to exchange capabilities between
+  Host and FW.
+
+  \param  hHal - HAL handle for device
+
+  \return NONE
+
+---------------------------------------------------------------------------*/
+void sme_featureCapsExchange( tHalHandle hHal)
+{
+    v_CONTEXT_t vosContext = vos_get_global_context(VOS_MODULE_ID_SME, NULL);
+    WDA_featureCapsExchange(vosContext);
 }
