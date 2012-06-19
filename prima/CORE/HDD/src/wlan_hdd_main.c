@@ -234,8 +234,11 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         {
            //a state m/c implementation in PAL is TBD to avoid this delay
            msleep(500);
-           pHddCtx->isAmpAllowed = VOS_FALSE;
-           WLANBAP_DeregisterFromHCI();
+           if ( pHddCtx->isAmpAllowed )
+           {
+                WLANBAP_DeregisterFromHCI();
+                pHddCtx->isAmpAllowed = VOS_FALSE;
+           }
         }
 #endif //WLAN_BTAMP_FEATURE
         break;
