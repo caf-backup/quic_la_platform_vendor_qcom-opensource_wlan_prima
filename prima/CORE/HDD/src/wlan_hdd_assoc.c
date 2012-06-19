@@ -626,6 +626,15 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     struct net_device *dev = pAdapter->dev;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+    // Sanity check
+    if(dev == NULL)
+    {
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
+          "%s: net_dev is released return", __func__);
+        return eHAL_STATUS_FAILURE;
+    }
+
     // notify apps that we can't pass traffic anymore
     netif_tx_disable(dev);
     netif_carrier_off(dev);
@@ -1515,6 +1524,15 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "CSR Callback: status= %d result= %d roamID=%ld", 
                     roamStatus, roamResult, roamId ); 
+
+    /*Sanity check*/
+    if (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)
+    {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+          "pAdapter has invalid magic return"); 
+       return eHAL_STATUS_FAILURE;
+    }
+
     switch( roamStatus )
     {
         case eCSR_ROAM_SESSION_OPENED:
