@@ -193,6 +193,7 @@ void pmmInitBmpsResponseHandler(tpAniSirGlobal pMac, eHalStatus rspStatus)
 
     tPmmState nextState = pMac->pmm.gPmmState;
     tSirResultCodes retStatus = eSIR_SME_SUCCESS;
+    tpPESession     psessionEntry;
 
     /* we need to process all the deferred messages enqueued since
      * the initiating the SIR_HAL_ENTER_BMPS_REQ.
@@ -250,6 +251,18 @@ void pmmInitBmpsResponseHandler(tpAniSirGlobal pMac, eHalStatus rspStatus)
     return;
 
 failure:
+    psessionEntry = peGetValidPowerSaveSession(pMac);
+    if(psessionEntry != NULL)
+    {
+       if (pMac->lim.gLimTimersCreated && pMac->lim.limTimers.gLimHeartBeatTimer.pMac)
+       {
+           if(VOS_TRUE != tx_timer_running(&pMac->lim.limTimers.gLimHeartBeatTimer))
+           {
+               PELOGE(pmmLog(pMac, LOGE, FL("Unexpected heartbeat timer not running"));)
+               limReactivateHeartBeatTimer(pMac, psessionEntry);
+           }
+       }
+    }
 
     //Generate an error response back to PMC
     pMac->pmm.gPmmState = nextState;
@@ -289,7 +302,7 @@ void pmmExitBmpsRequestHandler(tpAniSirGlobal pMac, tpExitBmpsInfo pExitBmpsInfo
 
     if (NULL == pExitBmpsInfo)
     {
-        respStatus = eSIR_SME_BMPS_REQ_FAILED;
+        respStatus = eSIR_SME_BMPS_REQ_REJECT;
         PELOGW(pmmLog(pMac, LOGW, FL("pmmBmps: Rcvd EXIT_BMPS with NULL body\n"));)
         goto failure;
     }
@@ -327,7 +340,7 @@ void pmmExitBmpsRequestHandler(tpAniSirGlobal pMac, tpExitBmpsInfo pExitBmpsInfo
         if(pmmSendChangePowerSaveMsg(pMac) !=  eSIR_SUCCESS)
         {
             /* Wakeup request failed */
-            respStatus = eSIR_SME_BMPS_REQ_FAILED;
+            respStatus = eSIR_SME_BMPS_REQ_REJECT;
             pmmBmpsUpdateHalReqFailureCnt(pMac);
             goto failure;
         }
@@ -390,7 +403,7 @@ void pmmInitBmpsPwrSave(tpAniSirGlobal pMac)
 
     if((psessionEntry = peGetValidPowerSaveSession(pMac))== NULL)
     {
-        respStatus = eSIR_SME_BMPS_REQ_FAILED;
+        respStatus = eSIR_SME_BMPS_REQ_REJECT;
         goto failure;
     }
 #ifdef FEATURE_WLAN_DIAG_SUPPORT 
@@ -412,6 +425,20 @@ void pmmInitBmpsPwrSave(tpAniSirGlobal pMac)
         goto failure;
     }
 
+    //If we are in a missed beacon scenario, we should not be attempting to enter BMPS as heartbeat probe is going on
+    if(pMac->pmm.inMissedBeaconScenario)
+    {
+       if (pMac->lim.gLimTimersCreated && pMac->lim.limTimers.gLimHeartBeatTimer.pMac)
+       {
+           if(VOS_TRUE != tx_timer_running(&pMac->lim.limTimers.gLimHeartBeatTimer))
+           {
+               PELOGE(pmmLog(pMac, LOGE, FL("Unexpected heartbeat timer not running"));)
+               limReactivateHeartBeatTimer(pMac, psessionEntry);
+           }
+       }
+       respStatus = eSIR_SME_BMPS_REQ_REJECT;
+       goto failure;
+    }
 
     /* At this point, device is associated and PMM is not in BMPS_SLEEP state. 
      * Heartbeat timer not running is an indication that PE have detected a
@@ -442,7 +469,7 @@ void pmmInitBmpsPwrSave(tpAniSirGlobal pMac)
             FL("pmmBmps: Init Power Save Request Failed: Sending Response: %d\n"), 
             retStatus);)
 
-        respStatus = eSIR_SME_BMPS_REQ_FAILED;
+        respStatus = eSIR_SME_BMPS_REQ_REJECT;
         pmmBmpsUpdateHalReqFailureCnt(pMac);
         goto failure;
     }
