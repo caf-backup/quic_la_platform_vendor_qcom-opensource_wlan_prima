@@ -6711,11 +6711,9 @@ WLANTL_STARxAuth
     else //could not extract EtherType - this should not happen
     {
       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLAN TL:Could not extract EtherType -dropping frame"));
-      /* Drop packet */
-      vos_pkt_return_packet(vosDataBuff); 
+                 "WLAN TL:Could not extract EtherType"));
+      //Packet is already freed
       return vosStatus; //returning failure
-        
     }
   }
 #endif /* FEATURE_WLAN_WAPI */
@@ -6741,7 +6739,7 @@ WLANTL_STARxAuth
                          ucMPDUHLen, usMPDULen );
     if(NULL == vosDataBuff)
     {
-       //Packet is alrady freed
+       //Packet is already freed
        return VOS_STATUS_SUCCESS;
     }
   }
