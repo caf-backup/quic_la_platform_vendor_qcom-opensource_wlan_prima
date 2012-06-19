@@ -3032,6 +3032,74 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     return 0; 
 }
 
+void
+hddPrintMacAddr(tCsrBssid macAddr, tANI_U8 logLevel)
+{
+    VOS_TRACE(VOS_MODULE_ID_HDD, logLevel, 
+           "%X:%X:%X:%X:%X:%X\n",
+           macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4],
+           macAddr[5]);
+} /****** end hddPrintMacAddr() ******/
+
+void
+hddPrintPmkId(tCsrBssid pmkId, tANI_U8 logLevel)
+{
+    VOS_TRACE(VOS_MODULE_ID_HDD, logLevel, 
+           "%X:%X:%X:%X:%X:%X:%X:%X:%X:%X:%X:%X:%X:%X:%X:%X\n",
+           pmkId[0], pmkId[1], pmkId[2], pmkId[3], pmkId[4],
+           pmkId[5], pmkId[6], pmkId[7], pmkId[8], pmkId[9],
+           pmkId[10], pmkId[11], pmkId[12], pmkId[13], pmkId[14],
+           pmkId[15]);
+} /****** end hddPrintPmkId() ******/
+
+//hddPrintMacAddr(tCsrBssid macAddr, tANI_U8 logLevel);
+//hddPrintMacAddr(macAddr, VOS_TRACE_LEVEL_FATAL);
+
+//void sirDumpBuf(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 level, tANI_U8 *buf, tANI_U32 size);
+//sirDumpBuf(pMac, VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, pmkid, 16);
+
+#define dump_bssid(bssid) \
+    { \
+        hddLog(VOS_TRACE_LEVEL_FATAL, "BSSID (MAC) address:\t"); \
+        hddPrintMacAddr(bssid, VOS_TRACE_LEVEL_FATAL);\
+        hddLog(VOS_TRACE_LEVEL_FATAL, "\n"); \
+    }
+
+#define dump_pmkid(pMac, pmkid) \
+    { \
+        hddLog(VOS_TRACE_LEVEL_FATAL, "PMKSA-ID:\t"); \
+        hddPrintPmkId(pmkid, VOS_TRACE_LEVEL_FATAL);\
+        hddLog(VOS_TRACE_LEVEL_FATAL, "\n"); \
+    }
+
+#ifdef FEATURE_WLAN_LFR
+/*
+ * FUNCTION: wlan_hdd_cfg80211_pmksa_candidate_notify
+ * This function is used to notify the supplicant of a new PMKSA candidate.
+ */
+int wlan_hdd_cfg80211_pmksa_candidate_notify(
+                    hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
+                    int index, bool preauth )
+{
+    struct net_device *dev = pAdapter->dev;
+
+    ENTER();
+    printk("%s is going to notify supplicant of:", __func__);
+
+    if( NULL == pRoamInfo )
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: pRoamInfo is NULL\n", __func__);
+        return -EINVAL;
+    }
+
+    dump_bssid(pRoamInfo->bssid);
+    cfg80211_pmksa_candidate_notify(dev, index,
+                                    pRoamInfo->bssid, preauth, GFP_KERNEL);
+
+    return 0; 
+}
+#endif //FEATURE_WLAN_LFR
+
 /*
  * FUNCTION: hdd_cfg80211_scan_done_callback
  * scanning callback function, called after finishing scan
@@ -5054,6 +5122,103 @@ static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
     return 0;
 }
 
+
+#ifdef FEATURE_WLAN_LFR
+static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *dev,
+				struct cfg80211_pmksa *pmksa)
+{
+#define MAX_PMKSAIDS_IN_CACHE 8
+    static tPmkidCacheInfo PMKIDCache[MAX_PMKSAIDS_IN_CACHE]; // HDD Local cache
+    static tANI_U32 i = 0; // HDD Local Cache index 
+    tANI_U32 j=0;  
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle halHandle;
+    eHalStatus result; 
+    tANI_U8  BSSIDMatched = 0;
+   
+    // Validate pAdapter  
+    if ( NULL == pAdapter || NULL == pAdapter->pHddCtx)
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Invalid Adapter or HDD Context " ,__func__);
+        return -EINVAL;
+    }
+
+    if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadUnloadInProgress)
+    {
+         hddLog( LOGE,
+                 "%s: Wlan Load/Unload is in progress", __func__);
+         return -EBUSY;
+    }
+
+    // Retrieve halHandle  
+    halHandle = WLAN_HDD_GET_HAL_CTX(pAdapter);
+
+    for (j = 0; j < i; j++)
+    {
+        if(vos_mem_compare(PMKIDCache[j].BSSID, 
+                    pmksa->bssid, WNI_CFG_BSSID_LEN))
+        {
+            /* BSSID matched previous entry.  Overwrite it. */
+            BSSIDMatched = 1;
+            vos_mem_copy(PMKIDCache[j].BSSID, 
+                    pmksa->bssid, WNI_CFG_BSSID_LEN);
+            vos_mem_copy(PMKIDCache[j].PMKID, 
+                    pmksa->pmkid,   
+                    CSR_RSN_PMKID_SIZE);
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Reusing cache entry %d.", 
+                    __FUNCTION__, j );
+            dump_bssid(pmksa->bssid);
+            dump_pmkid(halHandle, pmksa->pmkid);
+            break;
+        }
+    }
+
+    if (!BSSIDMatched)
+    { 
+        // Now, we DON'T have a BSSID match, so take a new entry in the cache.  
+        vos_mem_copy(PMKIDCache[i].BSSID, 
+                pmksa->bssid, ETHER_ADDR_LEN); 
+        vos_mem_copy(PMKIDCache[i].PMKID, 
+                pmksa->pmkid,   
+                CSR_RSN_PMKID_SIZE);
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Adding a new cache entry %d.", 
+                __FUNCTION__, i );
+        dump_bssid(pmksa->bssid);
+        dump_pmkid(halHandle, pmksa->pmkid);
+        // Increment the HDD Local Cache index 
+        // The "i=0" doesn't work for the call to sme_RoamSetPMKIDCache() - LFR FIXME
+        if (i<=(MAX_PMKSAIDS_IN_CACHE-1)) i++; else i=0; 
+    }
+
+
+    // Calling csrRoamSetPMKIDCache to configure the PMKIDs into the cache
+    //hddLog(LOG1, FL("%s: Calling csrRoamSetPMKIDCache with %d cache entries."), 
+    //        __FUNCTION__, i );
+    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Calling csrRoamSetPMKIDCache with %d cache entries.", 
+            __FUNCTION__, i );
+    // Finally set the PMKSA ID Cache in CSR
+    result = sme_RoamSetPMKIDCache(halHandle,pAdapter->sessionId, 
+                                    PMKIDCache, 
+                                    i );
+    return 0;
+}
+
+
+static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *dev,
+				struct cfg80211_pmksa *pmksa)
+{
+    // TODO: Implement this later.
+    return 0;
+}
+
+static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device *dev)
+{
+    // TODO: Implement this later.
+    return 0;
+}
+#endif
+
+
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops = 
 {
@@ -5093,7 +5258,12 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .get_station = wlan_hdd_cfg80211_get_station,
      .set_power_mgmt = wlan_hdd_cfg80211_set_power_mgmt,
      .del_station  = wlan_hdd_cfg80211_del_station,
-     .add_station  = wlan_hdd_cfg80211_add_station
+     .add_station  = wlan_hdd_cfg80211_add_station,
+#ifdef FEATURE_WLAN_LFR
+     .set_pmksa = wlan_hdd_cfg80211_set_pmksa,
+     .del_pmksa = wlan_hdd_cfg80211_del_pmksa,
+     .flush_pmksa = wlan_hdd_cfg80211_flush_pmksa,
+#endif
 };
 
 #endif // CONFIG_CFG80211
