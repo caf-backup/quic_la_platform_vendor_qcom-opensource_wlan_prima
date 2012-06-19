@@ -237,10 +237,20 @@ WlanEventThread(void *arg)
     ATHBT_FILTER_INFO *pInfo = pAbfWlanInfo->pInfo;
     ATH_BT_FILTER_INSTANCE *pInstance = pInfo->pInstance;
     A_STATUS status;
+    A_CHAR wlan_status[IFNAMSIZ] = "";
 
     A_INFO("Starting the WLAN Event Handler task\n");
 
-    A_INFO("Checking WLAN adapter on startup .. \n");
+    /* Eventhough WLAN thread is started, wlan related configurations
+     * are started only after verifying the presence of wifi
+     */
+    property_get("wlan.driver.status", wlan_status, NULL);
+    if(strcmp(wlan_status, "ok") == 0)
+    {
+        if (btcoex_nl_init(&pInstance->nlstate) != 0)
+            A_ERR("NL80211 initialization failed\n");
+
+        Abf_WlanCheckSettings(pInstance->pWlanAdapterName);
 
 	if (!pInstance->pWlanAdapterName) {
 		Abf_WlanCheckSettings(pAbfWlanInfo->IfName);
@@ -248,14 +258,15 @@ WlanEventThread(void *arg)
 			pAbfWlanInfo->IfIndex = if_nametoindex(
 							pAbfWlanInfo->IfName);
 	}
-    status = AcquireWlanAdapter(pAbfWlanInfo);
+	status = AcquireWlanAdapter(pAbfWlanInfo);
 
-    if (A_FAILED(status)) {
-        A_INFO("No WLAN adapter on startup (OKAY) \n");
-    }else {
-        /* Communicate this to the Filter task */
-        HandleAdapterEvent(pInfo, ATH_ADAPTER_ARRIVED);
-        A_INFO("WLAN Adapter Added\n");
+	if (A_FAILED(status))
+		A_INFO("No WLAN adapter on startup (OKAY) \n");
+	else {
+		/* Communicate this to the Filter task */
+		HandleAdapterEvent(pInfo, ATH_ADAPTER_ARRIVED);
+		A_INFO("WLAN Adapter Added\n");
+	}
     }
 
 
@@ -688,6 +699,15 @@ WirelessCustomEvent(ATH_BT_FILTER_INSTANCE *pInstance, char *buf, int len)
                     (pAbfWlanInfo->AdapterName[3]),
                     (pAbfWlanInfo->AdapterName[4]),
                     (pAbfWlanInfo->AdapterName[5]));
+
+		/* nl init has to happen only after wifi is on, so has been added */
+		if(!pInstance->nlstate)
+		{
+			Abf_WlanCheckSettings(pInstance->pWlanAdapterName);
+
+			if (btcoex_nl_init(&pInstance->nlstate) != 0)
+			    A_ERR("NL80211 initialization failed\n");
+		}
 
             /*
              * Open a handle for the ioctls that will be issued later

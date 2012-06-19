@@ -168,15 +168,6 @@ main(int argc, char *argv[])
 
     /* Initialize the Filter core */
     do {
-
-		Abf_wait_for_wlan();
-
-        if (btcoex_nl_init(&g_AthBtFilterInstance.nlstate) != 0) {
-            A_ERR("NL80211 initialization failed\n");
-            break;
-        }
-
-		Abf_WlanCheckSettings(wifname);
         ret = AthBtFilter_Attach(&g_AthBtFilterInstance, btfiltFlags );
         if (ret) {
             A_ERR("Filter initialization failed\n");
