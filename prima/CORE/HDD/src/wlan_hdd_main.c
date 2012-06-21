@@ -3562,7 +3562,7 @@ int hdd_wlan_startup(struct device *dev )
           (versionCompiled.version != versionReported.version) ||
           (versionCompiled.revision != versionReported.revision))
       {
-         pr_err("%s: WCNSS WlAN Version %u.%u.%u.%u, "
+         pr_err("%s: WCNSS WLAN Version %u.%u.%u.%u, "
                 "Host expected %u.%u.%u.%u\n",
                 WLAN_MODULE_NAME,
                 (int)versionReported.major,
