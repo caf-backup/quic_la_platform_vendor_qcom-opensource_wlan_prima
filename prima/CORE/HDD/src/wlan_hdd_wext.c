@@ -1090,7 +1090,7 @@ static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
 
    if( pHddStaCtx->conn_info.connState== eConnectionState_Associated )
    {
-       if (sme_GetOperationChannel(hHal, &channel) != eHAL_STATUS_SUCCESS)
+       if (sme_GetOperationChannel(hHal, &channel, pAdapter->sessionId) != eHAL_STATUS_SUCCESS)
        {
            return -EIO;
        }

@@ -1653,11 +1653,11 @@ eHalStatus sme_AbortMacScan(tHalHandle hHal);
    \fn sme_GetOperationChannel
    \brief API to get current channel on which STA is parked
    this function gives channel information only of infra station or IBSS station.
-   \param hHal and poiter to memory location 
+   \param hHal, pointer to memory location and sessionId 
    \returns eHAL_STATUS_SUCCESS
             eHAL_STATUS_FAILURE
 -------------------------------------------------------------------------------*/
-eHalStatus sme_GetOperationChannel(tHalHandle hHal, tANI_U32 *pChannel);
+eHalStatus sme_GetOperationChannel(tHalHandle hHal, tANI_U32 *pChannel, tANI_U8 sessionId);
 
 #ifdef WLAN_FEATURE_P2P
 /* ---------------------------------------------------------------------------
