@@ -601,6 +601,9 @@ struct hdd_adapter_s
    /** completion variable for disconnect callback */
    struct completion disconnect_comp_var;
 
+   /** Completion of change country code */
+   struct completion change_country_code;
+
    /* completion variable for Linkup Event */
    struct completion linkup_event_var;
 
