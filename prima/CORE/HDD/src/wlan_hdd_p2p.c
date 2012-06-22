@@ -394,6 +394,9 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+    hdd_adapter_t *goAdapter;
+#endif
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                             __func__,pAdapter->device_mode);
@@ -447,32 +450,32 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     hddLog( LOG1, "Action frame tx request");
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+    goAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_P2P_GO );
+
+    //If GO adapter exists and operating on same frequency
+    //then we will not request remain on channel
+    if( goAdapter && ( ieee80211_frequency_to_channel(chan->center_freq)
+                         == goAdapter->sessionCtx.ap.operatingChannel ) )
+    {
+        goto send_frame;
+    }
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     if( offchan && wait)
     {
         int status;
 
-        hdd_adapter_t *goAdapter;
-
-        goAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_P2P_GO );
-
-        //If GO adapter exists and operating on same frequency 
-        //then we will not request remain on channel 
-        if( goAdapter && ( ieee80211_frequency_to_channel(chan->center_freq)
-                             == goAdapter->sessionCtx.ap.operatingChannel ) )
-        {
-            goto send_frame;
-        } 
-
         // In case of P2P Client mode if we are already
         // on the same channel then send the frame directly
-        
+
         if((cfgState->remain_on_chan_ctx != NULL) &&
            (cfgState->current_freq == chan->center_freq)
           )
-        { 
+        {
             goto send_frame;
         }
-        
+
         INIT_COMPLETION(pAdapter->offchannel_tx_event);
 
         status = wlan_hdd_request_remain_on_channel(wiphy, dev,
@@ -481,7 +484,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 
         if(0 != status)
         {
-            if( (-EBUSY == status) && 
+            if( (-EBUSY == status) &&
                 (cfgState->current_freq == chan->center_freq) )
             {
                 goto send_frame;

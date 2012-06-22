@@ -74,7 +74,6 @@
 /*===========================================================================
    WLAN DAL Control Path Internal Data Definitions and Declarations 
  ===========================================================================*/
-#define WDI_SET_POWER_STATE_TIMEOUT  10000 /* in msec a very high upper limit */
 #define WDI_WCTS_ACTION_TIMEOUT       2000 /* in msec a very high upper limit */
 
 
