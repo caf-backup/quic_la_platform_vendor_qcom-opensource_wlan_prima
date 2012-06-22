@@ -12,7 +12,7 @@ LOCAL_SRC_FILES:= \
 
 LOCAL_LDLIBS += -lpthread -lrt
 
-LOCAL_MODULE_TAGS := eng optional
+LOCAL_MODULE_TAGS := debug optional
 
 LOCAL_SHARED_LIBRARIES += libcutils
 LOCAL_SHARED_LIBRARIES += libnl_2
@@ -32,7 +32,7 @@ LOCAL_SRC_FILES:= \
 
 LOCAL_LDLIBS += -lpthread -lrt
 
-LOCAL_MODULE_TAGS := eng optional
+LOCAL_MODULE_TAGS := debug optional
 
 LOCAL_SHARED_LIBRARIES += libcutils
 LOCAL_SHARED_LIBRARIES += libnl_2

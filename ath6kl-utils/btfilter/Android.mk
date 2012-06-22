@@ -55,6 +55,6 @@ LOCAL_CFLAGS+= -DABF_DEBUG
 LOCAL_CFLAGS+= -DCONFIG_LIBNL20
 
 LOCAL_MODULE := abtfilt
-LOCAL_MODULE_TAGS := debug eng optional
+LOCAL_MODULE_TAGS := debug optional
 
 include $(BUILD_EXECUTABLE)

@@ -5,7 +5,7 @@ define include-ar6004-prebuilt
     include $$(CLEAR_VARS)
     LOCAL_MODULE := $(4)
     LOCAL_MODULE_STEM := $(3)
-    LOCAL_MODULE_TAGS := debug eng optional
+    LOCAL_MODULE_TAGS := debug optional
     LOCAL_MODULE_CLASS := ETC
     LOCAL_MODULE_PATH := $(2)
     LOCAL_SRC_FILES := $(1)
