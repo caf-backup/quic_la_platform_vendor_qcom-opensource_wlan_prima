@@ -120,7 +120,7 @@ when        who    what, where, why
 #define  WLANTL_802_11_HEADER_LEN            24
 
 /*802.11 header length + QOS ctrl field*/
-#define  WLANTL_MPDU_HEADER_LEN              26
+#define  WLANTL_MPDU_HEADER_LEN              32
 
 /*802.11 header definitions*/
 #define  WLANTL_802_11_MAX_HEADER_LEN        40

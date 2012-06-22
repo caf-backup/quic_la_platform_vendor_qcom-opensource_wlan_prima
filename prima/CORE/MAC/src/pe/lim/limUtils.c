@@ -3533,7 +3533,7 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
    tSirSmeSwitchChannelInd *pSirSmeSwitchChInd;
 
    PELOG1(limLog(pMac, LOG1,FL("Sending message %s with reasonCode %s\n"),
-		 limMsgStr(msgType), limResultCodeStr(resultCode));)
+                    limMsgStr(msgType), limResultCodeStr(resultCode));)
 
    psessionEntry->currentOperChannel = psessionEntry->currentReqChannel; 
    

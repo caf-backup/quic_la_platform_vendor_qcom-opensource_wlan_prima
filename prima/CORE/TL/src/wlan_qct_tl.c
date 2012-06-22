@@ -1219,7 +1219,7 @@ WLANTL_RegisterSTAClient
      WLAN_MAX_TID);
 
   vos_mem_zero( pTLCb->atlSTAClients[pwSTADescType->ucSTAId].aucMPDUHeader,
-                WLANTL_802_11_HEADER_LEN);
+                WLANTL_MPDU_HEADER_LEN);
 
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].ucMPDUHeaderLen   = 0;
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].vosAMSDUChain     = NULL;
@@ -9412,7 +9412,7 @@ WLANTL_CleanSTA
   ptlSTAClient->vosAMSDUChainRoot = NULL;
 
   vos_mem_zero( (v_PVOID_t)ptlSTAClient->aucMPDUHeader,
-                 WLANTL_802_11_HEADER_LEN);
+                 WLANTL_MPDU_HEADER_LEN);
   ptlSTAClient->ucMPDUHeaderLen    = 0;
 
   /*-------------------------------------------------------------------------
