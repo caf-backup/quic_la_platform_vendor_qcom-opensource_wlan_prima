@@ -76,7 +76,10 @@
 #define WLAN_WAIT_TIME_DISCONNECT  500
 #define WLAN_WAIT_TIME_STATS       800
 #define WLAN_WAIT_TIME_POWER       800
-#define WLAN_WAIT_TIME_SESSIONOPENCLOSE  2000
+/* Amount of time to wait for sme close session callback.
+   This value should be larger than the timeout used by WDI to wait for
+   a response from WCNSS */
+#define WLAN_WAIT_TIME_SESSIONOPENCLOSE  15000
 #define WLAN_WAIT_TIME_ABORTSCAN  2000
 
 /* Scan Req Timeout */
@@ -409,7 +412,7 @@ struct hdd_station_ctx
 
    v_BOOL_t bSendDisconnect;
 
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
    int     ft_carrier_on;
 #endif
 };

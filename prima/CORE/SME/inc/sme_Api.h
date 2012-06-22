@@ -69,13 +69,16 @@ typedef struct _smeConfigParams
 #if defined WLAN_FEATURE_VOWIFI
    tRrmConfigParam  rrmConfig;
 #endif
+#if defined FEATURE_WLAN_LFR
+    tANI_U8   isFastRoamIniFeatureEnabled;
+#endif
 #if defined FEATURE_WLAN_CCX
     tANI_U8   isCcxIniFeatureEnabled;
 #endif
 #if defined WLAN_FEATURE_P2P_INTERNAL
    tP2PConfigParam  p2pConfig;
 #endif
-#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX)
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
     tANI_U8   isFastTransitionEnabled;
 #endif
 } tSmeConfigParams, *tpSmeConfigParams;

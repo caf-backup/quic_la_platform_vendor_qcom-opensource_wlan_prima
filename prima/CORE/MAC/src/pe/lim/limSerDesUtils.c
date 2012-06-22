@@ -1950,7 +1950,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
         return eSIR_FAILURE;
 #endif
     
-#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX
+#if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
     //isFastTransitionEnabled;
     pJoinReq->isFastTransitionEnabled = (tAniBool)limGetU32(pBuf);
     pBuf += sizeof(tAniBool);
