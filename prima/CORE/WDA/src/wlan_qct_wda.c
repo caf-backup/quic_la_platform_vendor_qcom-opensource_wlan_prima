@@ -3619,10 +3619,10 @@ VOS_STATUS WDA_ProcessAddStaSelfReq( tWDA_CbContext *pWDA, tpAddStaSelfParams pA
 }
 
 /*
- * FUNCTION: WDA_DelSTASelfReqReqCallback
+ * FUNCTION: WDA_DelSTASelfRespCallback
  * 
  */ 
-void WDA_DelSTASelfReqCallback(WDI_DelSTASelfRspParamsType *
+void WDA_DelSTASelfRespCallback(WDI_DelSTASelfRspParamsType *
                                       wdiDelStaSelfRspParams , void* pUserData)
 {
    tWDA_ReqParams        *pWdaParams = (tWDA_ReqParams *)pUserData; 
@@ -3635,10 +3635,9 @@ void WDA_DelSTASelfReqCallback(WDI_DelSTASelfRspParamsType *
    if (NULL == pWdaParams)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "Invalid pWdaParams pointer in WDA_DelSTASelfReqCallback");
+              "%s: Invalid pWdaParams pointer", __FUNCTION__);
       VOS_ASSERT(0);
       return;
-
    }
 
    pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
@@ -3656,6 +3655,45 @@ void WDA_DelSTASelfReqCallback(WDI_DelSTASelfRspParamsType *
 }
 
 /*
+ * FUNCTION: WDA_DelSTASelfReqCallback
+ * 
+ */
+void WDA_DelSTASelfReqCallback(WDI_Status   wdiStatus,
+                                void*        pUserData)
+{
+   tWDA_ReqParams        *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext        *pWDA; 
+   tDelStaSelfParams     *delStaSelfParams;
+   
+   VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+             "<------ %s, wdiStatus: %d pWdaParams: 0x%x",
+              __FUNCTION__, wdiStatus, pWdaParams); 
+
+   if (NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "%s: Invalid pWdaParams pointer", __FUNCTION__);
+      VOS_ASSERT(0);
+      return;
+   }
+
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   delStaSelfParams = (tDelStaSelfParams *)pWdaParams->wdaMsgParam;
+
+   delStaSelfParams->status = CONVERT_WDI2SIR_STATUS(wdiStatus) ;
+
+   if(IS_WDI_STATUS_FAILURE(wdiStatus))
+   {
+         VOS_ASSERT(0);
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+         vos_mem_free(pWdaParams) ;
+         WDA_SendMsg(pWDA, WDA_DEL_STA_SELF_RSP, (void *)delStaSelfParams , 0) ;
+   }
+
+   return ;
+}
+
+/*
  * FUNCTION: WDA_DelSTASelfReq
  * Trigger Config STA processing in WDI
  */ 
@@ -3663,7 +3701,7 @@ VOS_STATUS WDA_ProcessDelSTASelfReq(tWDA_CbContext *pWDA,
                                     tDelStaSelfParams* pDelStaSelfReqParam)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
-   tWDA_ReqParams *pWdaParams; 
+   tWDA_ReqParams *pWdaParams = NULL; 
    WDI_DelSTASelfReqParamsType *wdiDelStaSelfReq = 
                 (WDI_DelSTASelfReqParamsType *)vos_mem_malloc(
                               sizeof(WDI_DelSTASelfReqParamsType)) ;
@@ -3689,7 +3727,6 @@ VOS_STATUS WDA_ProcessDelSTASelfReq(tWDA_CbContext *pWDA,
       return( VOS_STATUS_E_NOMEM );
    }
 
-   wdiDelStaSelfReq->wdiReqStatusCB = NULL;
    pWdaParams->pWdaContext = pWDA;
    /* Store param pointer as passed in by caller */
    pWdaParams->wdaMsgParam = pDelStaSelfReqParam;
@@ -3699,13 +3736,17 @@ VOS_STATUS WDA_ProcessDelSTASelfReq(tWDA_CbContext *pWDA,
    vos_mem_copy( wdiDelStaSelfReq->wdiDelStaSelfInfo.selfMacAddr, 
                  pDelStaSelfReqParam->selfMacAddr, sizeof(tSirMacAddr));
    
+    wdiDelStaSelfReq->wdiReqStatusCB = WDA_DelSTASelfReqCallback;
+    wdiDelStaSelfReq->pUserData = pWdaParams;
+
    status = WDI_DelSTASelfReq(wdiDelStaSelfReq, 
-                      (WDI_DelSTASelfRspCb)WDA_DelSTASelfReqCallback, pWdaParams);
+                      (WDI_DelSTASelfRspCb)WDA_DelSTASelfRespCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
               "Failure in Del Sta Self REQ WDI API, free all the memory " );
+      VOS_ASSERT(0);
       vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
       vos_mem_free(pWdaParams) ;
       pDelStaSelfReqParam->status = eSIR_FAILURE ;
