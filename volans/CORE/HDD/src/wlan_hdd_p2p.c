@@ -399,7 +399,14 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,3,0))
+int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
+                     struct ieee80211_channel *chan, bool offchan,
+                     enum nl80211_channel_type channel_type,
+                     bool channel_type_valid, unsigned int wait,
+                     const u8 *buf, size_t len,  bool no_cck,
+                     bool dont_wait_for_ack, u64 *cookie )
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
 int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
                      struct ieee80211_channel *chan, bool offchan,
                      enum nl80211_channel_type channel_type,
@@ -411,7 +418,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
                      enum nl80211_channel_type channel_type,
                      bool channel_type_valid,
                      const u8 *buf, size_t len, u64 *cookie )
-#endif
+#endif //LINUX_VERSION_CODE
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
@@ -1118,9 +1125,15 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
 
     //Indicate Frame Over Normal Interface
     hddLog( LOG1, FL("Indicate Frame over NL80211 Interface"));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
+    cfg80211_rx_mgmt( pAdapter->dev, freq, 0,
+                      pbFrames, nFrameLength,
+                      GFP_ATOMIC );
+#else
     cfg80211_rx_mgmt( pAdapter->dev, freq,
                       pbFrames, nFrameLength, 
                       GFP_ATOMIC );
+#endif //LINUX_VERSION_CODE
 }
 
 /*
