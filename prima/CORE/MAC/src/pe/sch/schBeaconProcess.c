@@ -498,7 +498,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
            {
               localConstraint = pBeacon->ccxTxPwr.power_limit;
               regMax = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel ); 
-              maxTxPower = limGetMaxTxPower(regMax, localConstraint);
+              maxTxPower = limGetMaxTxPower(regMax, localConstraint, pMac->roam.configParam.nTxPowerCap);
 
               //If maxTxPower is increased or decreased
              if( maxTxPower != psessionEntry->maxTxPower )

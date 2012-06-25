@@ -1613,7 +1613,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                , &localPowerConstraint
                ); 
 #ifdef FEATURE_WLAN_CCX
-            psessionEntry->maxTxPower = limGetMaxTxPower(regMax, localPowerConstraint);
+            psessionEntry->maxTxPower = limGetMaxTxPower(regMax, localPowerConstraint, pMac->roam.configParam.nTxPowerCap);
 #else
             psessionEntry->maxTxPower = VOS_MIN( regMax , (localPowerConstraint) );
 #endif
@@ -1714,10 +1714,11 @@ end:
 
 
 #ifdef FEATURE_WLAN_CCX
-tANI_U8 limGetMaxTxPower(tPowerdBm regMax, tPowerdBm apTxPower)
+tANI_U8 limGetMaxTxPower(tPowerdBm regMax, tPowerdBm apTxPower, tPowerdBm iniTxPower)
 {
     tANI_U8 maxTxPower = 0;
     tANI_U8 txPower = VOS_MIN( regMax , (apTxPower) );
+    txPower = VOS_MIN(txPower, iniTxPower);
     if((txPower >= MIN_TX_PWR_CAP) && (txPower <= MAX_TX_PWR_CAP))
         maxTxPower =  txPower;
     else if (txPower < MIN_TX_PWR_CAP)
