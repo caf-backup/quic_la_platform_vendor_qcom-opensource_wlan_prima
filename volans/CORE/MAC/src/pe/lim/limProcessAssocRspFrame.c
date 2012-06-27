@@ -386,6 +386,13 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
         return;
     }
 
+    if(!pAssocRsp->suppRatesPresent)
+    {
+        PELOGE(limLog(pMac, LOGW, FL("assoc response does not have supported rate set"));)
+        palCopyMemory(pMac->hHdd, &pAssocRsp->supportedRates,
+                      &psessionEntry->rateSet, sizeof(tSirMacRateSet));
+    }
+
     mlmAssocCnf.protStatusCode = pAssocRsp->statusCode;
 
     if( psessionEntry->assocRsp != NULL )

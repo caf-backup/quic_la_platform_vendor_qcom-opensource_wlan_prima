@@ -559,6 +559,7 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     return 0;
 
 }
+
 v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid)
 {
     int left = length;
@@ -587,6 +588,7 @@ v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid)
     }
     return NULL;
 }
+
 /* Check if rate is 11g rate or not */
 static int wlan_hdd_rate_is_11g(u8 rate)
 {
@@ -979,7 +981,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         pConfig->authType = eSAP_OPEN_SYSTEM;
     else if(params->auth_type == NL80211_AUTHTYPE_SHARED_KEY)
         pConfig->authType = eSAP_SHARED_KEY;
-    else
+    else 
         pConfig->authType = eSAP_AUTO_SWITCH;
 #else
     pConfig->authType = eSAP_AUTO_SWITCH;
@@ -1092,7 +1094,6 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             pConfig->SSIDinfo.ssidHidden = VOS_TRUE;
     }
 #endif
-
     vos_mem_copy(pConfig->self_macaddr.bytes, 
                pHostapdAdapter->macAddressCurrent.bytes, sizeof(v_MACADDR_t));
     
@@ -1183,6 +1184,13 @@ static int wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "device mode=%d\n",pAdapter->device_mode);
 
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
+
     if ( (pAdapter->device_mode == WLAN_HDD_SOFTAP) 
 #ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -1225,6 +1233,13 @@ static int wlan_hdd_cfg80211_set_beacon(struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                                 __func__,pAdapter->device_mode);
+
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) 
 #ifdef WLAN_FEATURE_P2P
@@ -1277,6 +1292,11 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
                    "%s: HDD adapter context is Null", __FUNCTION__);
         return -ENODEV;
     }
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+        return -EAGAIN;
+    }
 
     pHddCtx  =  (hdd_context_t*)pAdapter->pHddCtx;
 
@@ -1303,6 +1323,9 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         mutex_lock(&pHddCtx->sap_lock);
         if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags))
         {
+            hdd_hostapd_stop(dev);
+            hdd_softap_stop_bss(pAdapter);
+            
             if ( VOS_STATUS_SUCCESS == (status = WLANSAP_StopBss((WLAN_HDD_GET_CTX(pAdapter))->pvosContext) ) )
             {
                 hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter);
@@ -1487,6 +1510,12 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     VOS_STATUS status;
 
     ENTER();
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+        return -EAGAIN;
+    }
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                              __func__, pAdapter->device_mode);
@@ -1683,6 +1712,13 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     v_MACADDR_t STAMacAddress;
 
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
+
     vos_mem_copy(STAMacAddress.bytes, mac, sizeof(v_MACADDR_t));
 
     if ( ( pAdapter->device_mode == WLAN_HDD_SOFTAP )
@@ -1759,6 +1795,13 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
     VOS_STATUS vos_status;
 
     ENTER();
+
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
             __func__,pAdapter->device_mode);
@@ -2333,6 +2376,12 @@ static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
         return -EINVAL;
     }
 
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
     
     if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
 #ifdef WLAN_FEATURE_P2P
@@ -4105,6 +4154,13 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
 
     ENTER();
 
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
+
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",__func__,pAdapter->device_mode);
     if (NULL == pWextState)
     {
@@ -4143,6 +4199,13 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
     tHalHandle hHal = pHddCtx->hHal;
 
     ENTER();
+
+    if ( pHddCtx->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
 
     if (changed & WIPHY_PARAM_RTS_THRESHOLD)
     {
@@ -4266,6 +4329,13 @@ static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
 
     ENTER();
 
+    if ( pHddCtx->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
+
     if (0 != ccmCfgSetInt(hHal, WNI_CFG_CURRENT_TX_POWER_LEVEL, 
                 dbm, ccmCfgSetCallback, 
                 eANI_BOOLEAN_TRUE)) 
@@ -4295,6 +4365,13 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
         *dbm = 0;
         return -ENOENT;
+    }
+
+    if ( pHddCtx->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
     }
 
     pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
@@ -4343,6 +4420,13 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
                 "Invalid ssid, %d", __func__, ssidlen);
         /*To keep GUI happy*/
         return 0;
+    }
+
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
     }
 
     wlan_hdd_get_rssi(pAdapter, &sinfo->signal);
@@ -4527,6 +4611,12 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Adapter is NULL\n", __func__);
         return -ENODEV;
     }
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
 
     /**The get power cmd from the supplicant gets updated by the nl only
      *on successful execution of the function call
@@ -4582,6 +4672,13 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
          return -EBUSY;
     }
 
+    if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:LOGP in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
+
     if ( (WLAN_HDD_SOFTAP == pAdapter->device_mode)
 #ifdef WLAN_FEATURE_P2P
        || (WLAN_HDD_P2P_GO == pAdapter->device_mode)
@@ -4629,7 +4726,6 @@ static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
     // TODO: Implement this later.
     return 0;
 }
-
 
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops = 

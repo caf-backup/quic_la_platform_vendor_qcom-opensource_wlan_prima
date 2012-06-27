@@ -586,8 +586,9 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
                     PELOG2(limLog(pMac, LOG2, FL("statusCode : eSIR_SME_MORE_SCAN_RESULTS_FOLLOW\n"));)
                 }
                 msgLen = sizeof(tSirSmeScanRsp) -
-                         sizeof(tSirBssDescription) +
-                         ptemp->bssDescription.length + 2;
+                           sizeof(tSirBssDescription) +
+                           ptemp->bssDescription.length +
+                           sizeof(ptemp->bssDescription.length);
                 if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeScanRsp, msgLen))
                 {
                     // Log error
@@ -596,6 +597,7 @@ limSendSmeScanRsp(tpAniSirGlobal pMac, tANI_U16 length,
 
                     return;
                 }
+
 
                PELOG2(limLog(pMac, LOG2, FL("ScanRsp : msgLen %d, bssDescr Len=%d\n"),
                        msgLen, ptemp->bssDescription.length);)

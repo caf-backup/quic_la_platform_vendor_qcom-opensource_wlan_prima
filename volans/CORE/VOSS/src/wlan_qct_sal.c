@@ -55,6 +55,8 @@ when           who        what, where, why
 #define WLANSAL_CARD_REMOVAL_WAIT_TIMEOUT 5000 //5000ms
 #define WLANSAL_SHUTDOWN_WAIT_TIMEOUT 2000 //2000ms
 
+#define WLANSAL_MAX_ATTEMPTS_FOR_DEFERRING_SHUTDOWN 10 // 5 sec
+
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -72,6 +74,8 @@ extern int sdio_reset_comm(struct mmc_card *card);
 /*-------------------------------------------------------------------------
  * Global variables.
  *-------------------------------------------------------------------------*/
+/* Completion  variable to unblock shutdown request */
+static struct completion gShutdown_event_var;
 static salHandleType *gpsalHandle;
 static v_U8_t gSDCmdFailed = 0;
 
@@ -405,6 +409,10 @@ void WLANSAL_allow_card_removal(void)
 void wlan_sdio_shutdown_hdlr(void)
 {
    int rc;
+   hdd_context_t *pHddCtx = NULL;
+   v_CONTEXT_t pVosContext = NULL;
+   pVosWatchdogContext WdContext = NULL;
+   int attempts = 0;
 
    if(NULL == gpsalHandle)
    {
@@ -413,15 +421,61 @@ void wlan_sdio_shutdown_hdlr(void)
        return;
    }
 
+   //Get the global VOSS context.
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if(!pVosContext)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,
+        "%s: Global VOS context is Null",__func__);
+       return;
+   }
+
+   //Get the HDD context.
+   pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+   if(!pHddCtx)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,
+        "%s: HDD context is Null",__func__);
+       return;
+   }
+
+   while(pHddCtx->isLogpInProgress)
+   {
+       WdContext = get_vos_watchdog_ctxt();
+       if(!WdContext) 
+       {
+	        VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,
+             "%s: WD context is Null, Nothing to do",__func__);
+            return;
+       }
+
+       VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL,
+        "%s: LOGP in Progress...Block shutdown for 500ms!!!",__func__);
+
+       msleep(500); 
+       attempts++;
+       if(attempts == WLANSAL_MAX_ATTEMPTS_FOR_DEFERRING_SHUTDOWN)
+         break;
+   }
+
+   if(attempts == WLANSAL_MAX_ATTEMPTS_FOR_DEFERRING_SHUTDOWN)
+   {
+       //We should never be here.
+       VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL,
+        "%s: Ongoing LOGP taking really long time....Aborting Shutdown",__func__);
+       VOS_ASSERT(0);
+       return;
+   }
+
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
     "%s: Wait for cleanup", __func__);
 
    vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_SHUTDOWN);
 
-   INIT_COMPLETION(gpsalHandle->shutdown_event_var);
+   INIT_COMPLETION(gShutdown_event_var);
 
    /* Wait for Clean up (as part of logp) before making sdio_func_dev as NULL */
-   rc = wait_for_completion_interruptible_timeout(&gpsalHandle->shutdown_event_var,
+   rc = wait_for_completion_interruptible_timeout(&gShutdown_event_var,
                         msecs_to_jiffies(WLANSAL_SHUTDOWN_WAIT_TIMEOUT));
 
    if(!rc)
@@ -456,7 +510,7 @@ void WLANSAL_allow_shutdown(void)
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
     "%s: Done with cleanup, notifying SDCC ", __func__);
 
-   complete(&gpsalHandle->shutdown_event_var);
+   complete(&gShutdown_event_var);
 
    return;
 }
@@ -747,7 +801,7 @@ VOS_STATUS WLANSAL_Start
    init_completion(&gpsalHandle->card_rem_event_var);
    libra_sdio_notify_card_removal(wlan_sdio_card_removal_hdlr);
 
-   init_completion(&gpsalHandle->shutdown_event_var);
+   init_completion(&gShutdown_event_var);
    libra_sdio_register_shutdown_hdlr(wlan_sdio_shutdown_hdlr);
    
    gpsalHandle->isSALStarted = VOS_TRUE ;

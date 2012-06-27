@@ -123,6 +123,8 @@ VOS_STATUS sysMcStart( v_CONTEXT_t pVosContext, sysResponseCback userCallback, v
    vosStatus = vos_mq_post_message( VOS_MQ_ID_SYS, &sysMsg );
    if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
    {
+      VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
+                    "Fail to post message in SYS queue"  );
       vosStatus = VOS_STATUS_E_BADMSG;
    }
 

@@ -688,15 +688,19 @@ VosWDThread
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
       "%s: Watchdog Thread exiting!!!!", __FUNCTION__);
   complete_and_exit(&pWdContext->WdShutdown, 0);
+  gpVosWatchdogContext = NULL;
+  return 0;
 
 err_reset:
     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
       "%s: Watchdog Thread Failed to Reset, Exiting!!!!", __FUNCTION__);
+    gpVosWatchdogContext = NULL;
     return 0;
 
 shutdown:
     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
       "%s: Watchdog Thread Completed Shutdown, Exiting!!!!", __FUNCTION__);
+    gpVosWatchdogContext = NULL;
     return 0;
 } /* VosMCThread() */
 
@@ -987,6 +991,13 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
        return VOS_STATUS_E_FAULT;
     }
+    if( VOS_STATUS_SUCCESS == hdd_wlan_send_reset(pHddCtx) )
+    {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Reseted wlan using Android LOGP",__FUNCTION__);
+       return VOS_STATUS_SUCCESS;
+    }
+
     hdd_reset_all_adapters(pHddCtx);
 
     sdio_func_dev = libra_getsdio_funcdev();

@@ -1204,14 +1204,14 @@ eHalStatus sme_Start(tHalHandle hHal)
 
       status = csrStart(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "csrStart failed during smeStart with status=%d\n",
+         smsLog( pMac, LOGP, "csrStart failed during smeStart with status=%d\n",
                  status );
          break;
       }
 
       status = pmcStart(hHal);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "pmcStart failed during smeStart with status=%d\n",
+         smsLog( pMac, LOGP, "pmcStart failed during smeStart with status=%d\n",
                  status );
          break;
       }
@@ -1220,7 +1220,7 @@ eHalStatus sme_Start(tHalHandle hHal)
 //      if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
          status = WLANSAP_Start(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
          if ( ! HAL_STATUS_SUCCESS( status ) ) {
-	   	   smsLog( pMac, LOGE, "WLANSAP_Start failed during smeStart with status=%d\n",
+           smsLog( pMac, LOGP, "WLANSAP_Start failed during smeStart with status=%d\n",
                  status );
 		   break;
         }

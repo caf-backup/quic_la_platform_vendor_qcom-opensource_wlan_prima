@@ -454,7 +454,6 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
          goto err_deep_sleep;
    }
 
-   SET_NETDEV_DEV(pAdapter->dev, &sdio_func_dev->dev);
    libra_sdio_setprivdata (sdio_func_dev, pHddCtx);
    atomic_set(&pHddCtx->sdio_claim_count, 0);
    pHddCtx->hsdio_func_dev = sdio_func_dev;
@@ -1011,24 +1010,6 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    return;
 }
 
-void hdd_set_parent_dev(hdd_context_t* pHddCtx, struct device* dev)
-{
-    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL; 
-    hdd_adapter_t *pAdapter = NULL; 
-    VOS_STATUS status;
-
-    /* loop through all adapters */
-    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
-    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
-    {
-        pAdapter = pAdapterNode->pAdapter;
-        SET_NETDEV_DEV(pAdapter->dev, dev);
-        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
-        pAdapterNode = pNext;
-    }
-    return;
-}
-
 VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason) 
 {
    VOS_STATUS vosStatus;
@@ -1227,7 +1208,6 @@ VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason)
       sdio_func_dev = libra_getsdio_funcdev();
       if(sdio_func_dev != NULL)
       {
-         hdd_set_parent_dev(pHddCtx, &sdio_func_dev->dev);
          libra_sdio_setprivdata (sdio_func_dev, pHddCtx);
          atomic_set(&pHddCtx->sdio_claim_count, 0);
          pHddCtx->hsdio_func_dev = sdio_func_dev;

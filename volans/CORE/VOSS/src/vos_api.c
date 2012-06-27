@@ -70,6 +70,7 @@
 /*---------------------------------------------------------------------------
  * Data definitions
  * ------------------------------------------------------------------------*/
+static VosContextType  gVosContext;
 static pVosContextType gpVosContext;
 
 /*---------------------------------------------------------------------------
@@ -116,7 +117,7 @@ VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext )
 
    /* Allocate the VOS Context */
    *pVosContext = NULL;
-   gpVosContext = (VosContextType*) kmalloc(sizeof(VosContextType), GFP_KERNEL);
+   gpVosContext = &gVosContext;
 
    if (NULL == gpVosContext)
    {
@@ -169,10 +170,6 @@ VOS_STATUS vos_preClose( v_CONTEXT_t *pVosContext )
                 "%s: Context mismatch",__func__);
       return VOS_STATUS_E_FAILURE;
    }
-
-   /* Free the VOS Context */
-   if(gpVosContext != NULL)
-      kfree(gpVosContext);
 
    *pVosContext = gpVosContext = NULL;
 
@@ -468,7 +465,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   /* We support only one instance for now ...*/
   if (gpVosContext != pVosContext)
   {
-     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
            "%s: mismatch in context",__FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   }
@@ -477,13 +474,13 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      || ( pVosContext->pTLContext == NULL))
   {
      if (pVosContext->pBALContext == NULL)
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
             "%s: BAL NULL context",__FUNCTION__);
      else if (pVosContext->pMACContext == NULL)
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
             "%s: MAC NULL context",__FUNCTION__);
      else
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
             "%s: TL NULL context",__FUNCTION__);
 
      return VOS_STATUS_E_FAILURE;
@@ -501,7 +498,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   if ( !VOS_IS_STATUS_SUCCESS( vStatus ) )
   {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
              "%s: Failed to get firmware binary",__func__);
     return VOS_STATUS_E_FAILURE;
   }
@@ -536,7 +533,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   if (eSIR_SUCCESS != sirStatus)
   {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
               "%s: Failed to start MAC", __func__);
     return VOS_STATUS_E_FAILURE;
   }
@@ -549,7 +546,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   if (!HAL_STATUS_SUCCESS(hStatus))
   {
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Failed to start SME",__func__);
     goto err_mac_stop;
   }
@@ -561,7 +558,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   vStatus = WLANTL_Start(pVosContext);
   if (!VOS_IS_STATUS_SUCCESS(vStatus))
   {
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Failed to start TL",__func__);
     goto err_sme_stop;
   }
@@ -571,9 +568,9 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   /* START SYS. This will trigger the CFG download */
   sysMcStart(pVosContext, vos_sys_start_complete_cback, pVosContext);
 
-  if (vos_wait_single_event(&gpVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
+  if (vos_wait_single_event(&gpVosContext->ProbeEvent, 3000)!= VOS_STATUS_SUCCESS)
   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Failed to start SYS module",__func__);
      goto err_tl_stop;
   }
@@ -598,7 +595,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
     freq.freqFor1p3VSupply = VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_3P2MH;
 
     if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, freq.freqFor1p3VSupply) != VOS_STATUS_SUCCESS)
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Failed to set the freq %d for 1.3V Supply",__func__,freq.freqFor1p3VSupply );
   }
 

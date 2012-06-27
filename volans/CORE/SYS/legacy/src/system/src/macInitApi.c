@@ -90,7 +90,7 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
                 i--;
                 palFreeMemory(pMac, pMac->dumpTableEntry[i]);
             }
-            sysLog(pMac, LOGE, FL("pMac->dumpTableEntry is NULL\n"));
+            sysLog(pMac, LOGP, FL("pMac->dumpTableEntry is NULL\n"));
             status = eSIR_FAILURE;
             break;
 	    }
@@ -107,7 +107,7 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 #endif
 	    if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, ((void **)&pMac->pResetMsg), sizeof(tSirMbMsg))))
 	    {
-            sysLog(pMac, LOGE, FL("pMac->pResetMsg is NULL\n"));
+            sysLog(pMac, LOGP, FL("pMac->pResetMsg is NULL\n"));
             status = eSIR_FAILURE;
             break;
 	    }
@@ -120,7 +120,7 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 
 	    if ( !HAL_STATUS_SUCCESS(halStatus) )
 	    {
-            sysLog(pMac,LOGE, FL("halStart failed with error code = %d\n"), halStatus);
+            sysLog(pMac,LOGP, FL("halStart failed with error code = %d\n"), halStatus);
             status = eSIR_FAILURE;
 	    }
 	    else if(pMac->gDriverType != eDRIVER_TYPE_MFG)

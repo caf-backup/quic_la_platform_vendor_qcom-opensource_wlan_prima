@@ -66,7 +66,7 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
 void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter);
 
 void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter);
-
+int hdd_hostapd_stop (struct net_device *dev);
 
 #endif // CONFIG_CFG80211
 

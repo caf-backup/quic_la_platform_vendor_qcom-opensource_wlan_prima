@@ -897,10 +897,8 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
       pAdapter->wdev.wiphy = pHddCtx->wiphy;  
       pAdapter->wdev.netdev =  pWlanDev;
 #endif  
-      /* set pWlanDev's parent to sdio device */
-      SET_NETDEV_DEV(pWlanDev, &pHddCtx->hsdio_func_dev->dev);
+      SET_NETDEV_DEV(pWlanDev, wiphy_dev(pAdapter->wdev.wiphy));
    }
-
    return pAdapter;
 }
 
@@ -1573,7 +1571,9 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
          {
             VOS_STATUS status;
             hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-
+            hdd_hostapd_stop(pAdapter->dev);
+            hdd_softap_stop_bss(pAdapter);
+    
             //Stop Bss.
             status = WLANSAP_StopBss(pHddCtx->pvosContext);
             if (VOS_IS_STATUS_SUCCESS(status))
@@ -2387,6 +2387,16 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
+   //Close the scheduler before closing other modules to make sure no thread is 
+   // scheduled after the each module close is called i.e after all the data 
+   // structures are freed.
+   vosStatus = vos_sched_close( pVosContext );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))    {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: Failed to close VOSS Scheduler",__func__);
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   }
+
    vosStatus = WLANBAL_Stop( pVosContext );
 
    hddLog(VOS_TRACE_LEVEL_ERROR,"WLAN BAL STOP\n");
@@ -2435,16 +2445,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 #ifdef CONFIG_HAS_EARLYSUSPEND
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 #endif
-
-   //Close the scheduler before closing other modules to make sure no thread is 
-   // scheduled after the each module close is called i.e after all the data 
-   // structures are freed.
-   vosStatus = vos_sched_close( pVosContext );
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-         "%s: Failed to close VOSS Scheduler",__func__);
-      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   }
 
       //Close VOSS
    //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
@@ -2763,6 +2763,9 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
          goto err_vosclose;
       }
 
+   //Disable IMPS till driver load  is complete
+   sme_DisablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+
    //Initialize the WMM module
    status = hdd_wmm_init(pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(status))
@@ -2929,6 +2932,11 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
      hdd_wlan_initial_scan(pAdapter);
    }
 
+  if (pHddCtx->cfg_ini->fIsImpsEnabled)
+  {
+      sme_EnablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+  }
+
    pHddCtx->isLoadUnloadInProgress = FALSE;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
@@ -2975,6 +2983,7 @@ err_vosstop:
    vos_stop(pVosContext);
 
 err_vosclose:    
+   vos_sched_close(pVosContext); 
    vos_close(pVosContext ); 
 
 err_balstop:
@@ -3303,6 +3312,66 @@ void hdd_set_conparam ( v_UINT_t newParam )
 {
   con_mode = newParam;
 }
+/**---------------------------------------------------------------------------
+  \brief hdd_wlan_send_reset()
+
+   This function will send disconnect indication with reason code as
+   WLAN_REASON_DISASSOC_LOW_ACK. Supplicant on receving disconnect indication
+   with this reason code will send HANG command to GUI, which in turn will
+   reload driver.
+
+  \param - pHddCtx
+  \return -  VOS_STATUS_E_FAILURE for failure
+             VOS_STATUS_SUCCESS for success
+
+  --------------------------------------------------------------------------*/
+VOS_STATUS hdd_wlan_send_reset( hdd_context_t *pHddCtx )
+{
+    VOS_STATUS status = VOS_STATUS_E_FAILURE;
+    if (pHddCtx->cfg_ini->fIsLogpEnabled)
+    {
+        hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+        hdd_adapter_t *pAdapter;
+        status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode);
+        hddLog(VOS_TRACE_LEVEL_INFO, "%s LOGP is enabled: %d\n ", __func__,__LINE__);
+        while ( (NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status) )
+        {
+            pAdapter = pAdapterNode->pAdapter;
+            if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION )
+                 || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
+              )
+               {
+                   hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+                   /* If STA is not in connected state, then disconnect indication
+                      will be dropped by cfg80211. In these cases we will use driver
+                      LOGP to reset driver.
+                   */
+                   if(pHddStaCtx->conn_info.connState == eConnectionState_Associated)
+                   {
+                       /* Send Diconnect indication with reason code to indicate that the 
+                          firmware has crashed.This event trigger reloading of WLAN driver.
+                          Supplicant on receving disconnect indication with this reason code 
+                          will send a HANGED event to GUI, which reload the driver
+                       */
+                       hddLog(VOS_TRACE_LEVEL_INFO, "%s:Sending HANGED event to Supllicant %d\n ",
+                                            __func__,__LINE__);
+                       cfg80211_disconnected(pAdapter->dev,
+                                             WLAN_REASON_DISASSOC_LOW_ACK, NULL, 0, GFP_KERNEL);
+                       return VOS_STATUS_SUCCESS;
+                   }
+                   else
+                   {
+                       return  VOS_STATUS_E_FAILURE;
+                   }
+               }
+               status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext);
+               pAdapterNode = pNext;
+        }
+    }
+    return VOS_STATUS_E_FAILURE;
+}
+
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_softap_sta_deauth() - function

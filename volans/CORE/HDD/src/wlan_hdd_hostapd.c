@@ -627,13 +627,6 @@ stopbss :
          * we don't want interfaces to become re-enabled */
         pHostapdState->bssState = BSS_STOP;
 
-        /* Stop the pkts from n/w stack as we are going to free all of
-         * the TX WMM queues for all STAID's */
-        hdd_hostapd_stop(dev);
-
-        /* reclaim all resources allocated to the BSS */
-        hdd_softap_stop_bss(pHostapdAdapter);
-
         /* notify userspace that the BSS has stopped */
         memset(&we_custom_event, '\0', sizeof(we_custom_event));
         memcpy(&we_custom_event, stopBssEvent, event_len);
@@ -1878,6 +1871,8 @@ static int iw_softap_stopbss(struct net_device *dev,
     ENTER();
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) 
     {
+        hdd_hostapd_stop(dev);
+        hdd_softap_stop_bss(pHostapdAdapter);
         if ( VOS_STATUS_SUCCESS == (status = WLANSAP_StopBss((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext) ) )
         {
             hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
@@ -2364,7 +2359,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
 
         init_completion(&pHostapdAdapter->scan_info.scan_req_completion_event);
 
-        SET_NETDEV_DEV(pWlanHostapdDev, &pHddCtx->hsdio_func_dev->dev);
+        SET_NETDEV_DEV(pWlanHostapdDev, wiphy_dev(pHostapdAdapter->wdev.wiphy));
     }
     return pHostapdAdapter;
 }
