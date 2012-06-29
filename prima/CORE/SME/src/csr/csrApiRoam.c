@@ -13912,12 +13912,16 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
       {
          //clean up & return
          pStaEntry = GET_BASE_ADDR( pEntry, tCsrStatsClientReqInfo, link );
-         pStaEntry->pPeStaEntry->numClient--;
-         //check if we need to delete the entry from peStatsReqList too
-         if(!pStaEntry->pPeStaEntry->numClient)
+         if(NULL != pStaEntry->pPeStaEntry)
          {
-            csrRoamRemoveEntryFromPeStatsReqList(pMac, pStaEntry->pPeStaEntry);
+            pStaEntry->pPeStaEntry->numClient--;
+            //check if we need to delete the entry from peStatsReqList too
+            if(!pStaEntry->pPeStaEntry->numClient)
+            {
+               csrRoamRemoveEntryFromPeStatsReqList(pMac, pStaEntry->pPeStaEntry);
+            }
          }
+
          //check if we need to stop the tl stats timer too 
          pMac->roam.tlStatsReqInfo.numClient--;
          if(!pMac->roam.tlStatsReqInfo.numClient)
