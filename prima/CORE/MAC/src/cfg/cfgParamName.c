@@ -273,6 +273,7 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"ENABLE_LTE_COEX",
     (unsigned char *)"AP_KEEP_ALIVE_TIMEOUT",
     (unsigned char *)"GO_KEEP_ALIVE_TIMEOUT",
+    (unsigned char *)"ENABLE_MC_ADDR_LIST",
 };
 
 
