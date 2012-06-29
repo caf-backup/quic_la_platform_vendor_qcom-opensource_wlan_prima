@@ -15159,3 +15159,34 @@ static void csrSerDesUnpackDiassocRsp(tANI_U8 *pBuf, tSirSmeDisassocRsp *pRsp)
    }
 }
 
+eHalStatus csrGetDefaultCountryCodeFrmNv(tpAniSirGlobal pMac, tANI_U8 *pCountry)
+{
+   static uNvTables nvTables;
+   eHalStatus status = eHAL_STATUS_SUCCESS;
+   VOS_STATUS vosStatus = vos_nv_readDefaultCountryTable( &nvTables );
+
+   /* read the country code from NV and use it */
+   if ( VOS_IS_STATUS_SUCCESS(vosStatus) )
+   {
+      palCopyMemory( pMac->hHdd, pCountry,
+            nvTables.defaultCountryTable.countryCode,
+            WNI_CFG_COUNTRY_CODE_LEN );
+      return status;
+   }
+   else
+   {
+      palCopyMemory( pMac->hHdd, pCountry,
+            "XXX",
+            WNI_CFG_COUNTRY_CODE_LEN );
+      status = eHAL_STATUS_FAILURE;
+      return status;
+   }
+}
+
+eHalStatus csrGetCurrentCountryCode(tpAniSirGlobal pMac, tANI_U8 *pCountry)
+{
+   palCopyMemory( pMac->hHdd, pCountry,
+         pMac->scan.countryCode11d,
+         WNI_CFG_COUNTRY_CODE_LEN );
+   return eHAL_STATUS_SUCCESS;
+}
