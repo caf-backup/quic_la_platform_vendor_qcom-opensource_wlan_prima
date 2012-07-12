@@ -2227,6 +2227,7 @@ __limProcessSmeDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tANI_U16                disassocTrigger, reasonCode;
     tLimMlmDisassocReq      *pMlmDisassocReq;
     tSirResultCodes         retCode = eSIR_SME_SUCCESS;
+    tSirRetStatus           status;
     tSirSmeDisassocReq      smeDisassocReq;
     tpPESession             psessionEntry = NULL; 
     tANI_U8                 sessionId;
@@ -2235,17 +2236,18 @@ __limProcessSmeDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     PELOG1(limLog(pMac, LOG1,FL("received DISASSOC_REQ message\n"));)
     
-    if(pMsgBuf == NULL)
+    if (pMsgBuf == NULL)
     {
-        limLog(pMac, LOGE,FL("Buffer is Pointing to NULL\n"));
+        limLog(pMac, LOGE, FL("Buffer is Pointing to NULL\n"));
         return;
     }
 
-    limGetSessionInfo(pMac,(tANI_U8 *)pMsgBuf,&smesessionId,&smetransactionId);
+    limGetSessionInfo(pMac, (tANI_U8 *)pMsgBuf,&smesessionId, &smetransactionId);
 
-    retCode = limDisassocReqSerDes(pMac, &smeDisassocReq, (tANI_U8 *) pMsgBuf);
+    status = limDisassocReqSerDes(pMac, &smeDisassocReq, (tANI_U8 *) pMsgBuf);
     
-    if ( (retCode == eSIR_FAILURE) ||(!limIsSmeDisassocReqValid(pMac, &smeDisassocReq, psessionEntry)) )
+    if ( (eSIR_FAILURE == status) ||
+         (!limIsSmeDisassocReqValid(pMac, &smeDisassocReq, psessionEntry)) )
     {
         PELOGE(limLog(pMac, LOGE,
                FL("received invalid SME_DISASSOC_REQ message\n"));)
