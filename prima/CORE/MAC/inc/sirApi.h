@@ -1532,6 +1532,9 @@ typedef struct sSirSmeReassocReq
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
     tAniBool            isFastTransitionEnabled;
 #endif
+#ifdef FEATURE_WLAN_LFR
+    tAniBool            isFastRoamIniFeatureEnabled;
+#endif
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tAniBool             bpIndicator;
