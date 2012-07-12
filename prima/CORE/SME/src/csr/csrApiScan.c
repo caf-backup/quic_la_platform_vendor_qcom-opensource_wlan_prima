@@ -4608,11 +4608,8 @@ eHalStatus csrProcessScanCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     // Transition to Scanning state...
     for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
     {
-       if(CSR_IS_SESSION_VALID(pMac, i))
-       {
       pCommand->u.scanCmd.lastRoamState[i] = csrRoamStateChange( pMac, eCSR_ROAMING_STATE_SCANNING, i);
       smsLog( pMac, LOG3, "starting SCAN command from %d state.... reason is %d\n", pCommand->u.scanCmd.lastRoamState[i], pCommand->u.scanCmd.reason );
-       }
     }
 
     switch(pCommand->u.scanCmd.reason)
@@ -5639,8 +5636,7 @@ void csrReleaseScanCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatu
     tANI_U32 i;
     for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
     {
-       if(CSR_IS_SESSION_VALID(pMac, i))
-           csrRoamStateChange( pMac, pCommand->u.scanCmd.lastRoamState[i], i);
+         csrRoamStateChange( pMac, pCommand->u.scanCmd.lastRoamState[i], i);
     }
 
         csrScanCallCallback(pMac, pCommand, scanStatus);
