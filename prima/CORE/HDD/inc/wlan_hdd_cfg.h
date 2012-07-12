@@ -666,10 +666,10 @@ typedef enum
  * in terms of RoamRssiDiff,and RoamRssiDiff is the number of units (typically measured in dB) AP2
  * is better than AP1. 
  * This check is not done if the value is Zero */
-#define CFG_ROAM_RSSI_DIFF_NAME				    "RoamRssiDiff"
-#define CFG_ROAM_RSSI_DIFF_MIN				    0
-#define CFG_ROAM_RSSI_DIFF_MAX				    125
-#define CFG_ROAM_RSSI_DIFF_DEFAULT			    0
+#define CFG_ROAM_RSSI_DIFF_NAME                             "RoamRssiDiff"
+#define CFG_ROAM_RSSI_DIFF_MIN                              (0)
+#define CFG_ROAM_RSSI_DIFF_MAX                              (125)
+#define CFG_ROAM_RSSI_DIFF_DEFAULT                          (0)
 #endif /* (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR) */
 
 #define CFG_QOS_WMM_PKT_CLASSIFY_BASIS_NAME                "PktClassificationBasis" // DSCP or 802.1Q
@@ -1345,7 +1345,7 @@ typedef struct
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
    v_U8_t                       FTRssiFilterPeriod;
    v_BOOL_t                     isFastTransitionEnabled;
-   v_U8_t			RoamRssiDiff;	
+   v_U8_t                       RoamRssiDiff;
 #endif
 
    hdd_wmm_classification_t     PktClassificationBasis; // DSCP or 802.1Q
