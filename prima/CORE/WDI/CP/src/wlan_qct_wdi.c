@@ -1340,6 +1340,7 @@ WDI_Stop
 )
 {
   WDI_EventInfoType      wdiEventData;
+  WDI_ControlBlockType*  pWDICtx = &gWDICb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*------------------------------------------------------------------------
@@ -1352,6 +1353,15 @@ WDI_Stop
 
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
+
+  /*Access to the global state must be locked before cleaning */
+  wpalMutexAcquire(&pWDICtx->wptMutex);
+
+  /*Clear all pending request*/
+  WDI_ClearPendingRequests(pWDICtx);
+
+  /*We have completed cleaning unlock now*/
+  wpalMutexRelease(&pWDICtx->wptMutex);
 
   /* Free the global variables */
   wpalMemoryFree(gpHostWlanFeatCaps);
