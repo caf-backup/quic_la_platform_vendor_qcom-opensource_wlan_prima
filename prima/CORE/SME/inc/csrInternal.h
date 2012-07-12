@@ -534,6 +534,7 @@ typedef struct tagCsrConfig
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
     tANI_U8   isFastTransitionEnabled;
+    tANI_U8   RoamRssiDiff;
 #endif
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
@@ -846,6 +847,9 @@ typedef struct tagCsrRoamStruct
 #endif
 #ifdef FEATURE_WLAN_CCX
     tANI_U8   isCcxIniFeatureEnabled;
+#endif
+#if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
+    tANI_U8   RoamRssiDiff;
 #endif
 }tCsrRoamStruct;
 

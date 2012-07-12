@@ -847,6 +847,37 @@ eHalStatus csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac, tCsrScan
     return eHAL_STATUS_SUCCESS;
 }
 
+tANI_U32 csrGetCurrentAPRssi(tpAniSirGlobal pMac, tScanResultHandle *pScanResultList)
+{
+	tCsrScanResultInfo *pScanResult;
+	tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
+	tANI_U32 CurrAPRssi = -125; /* We are setting this as default value to make sure we return this value,
+				       when we do not see this AP in the scan result for some reason.However,it is 
+				       less likely that we are associated to an AP and do not see it in the scan list*/
+
+	while (NULL != (pScanResult = csrScanResultGetNext(pMac, *pScanResultList)))
+	{
+
+		if (VOS_TRUE == vos_mem_compare(pScanResult->BssDescriptor.bssId,
+					pNeighborRoamInfo->currAPbssid, sizeof(tSirMacAddr)))
+		{
+			/* We got a match with the currently associated AP.
+			 * Capture the RSSI value and complete the while loop.
+			 * The while loop is completed in order to make the current entry go back to NULL,
+			 * and in the next while loop, it properly starts searching from the head of the list.
+			 * TODO: Can also try setting the current entry directly to NULL as soon as we find the new AP*/
+
+			CurrAPRssi = (int)pScanResult->BssDescriptor.rssi * (-1) ;
+
+		} else {
+			continue;
+		}
+	}
+
+	return CurrAPRssi;
+
+}
+
 /* ---------------------------------------------------------------------------
 
     \fn csrNeighborRoamProcessScanResults
@@ -866,6 +897,16 @@ static void csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac, tScanResultHa
     tCsrScanResultInfo *pScanResult;
     tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
     tpCsrNeighborRoamBSSInfo    pBssInfo;
+    tANI_U32 CurrAPRssi;
+    tANI_U8 RoamRssiDiff = pMac->roam.configParam.RoamRssiDiff;
+
+    /***************************************************************
+     * Find out the Current AP RSSI and keep it handy to check if
+     * it is better than the RSSI of the AP which we are
+     * going to roam.If so, we are going to continue with the
+     * current AP.
+     ***************************************************************/
+    CurrAPRssi = csrGetCurrentAPRssi(pMac, pScanResultList);
 
     /* Expecting the scan result already to be in the sorted order based on the RSSI */
     /* Based on the previous state we need to check whether the list should be sorted again taking neighbor score into consideration */
@@ -887,20 +928,37 @@ static void csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac, tScanResultHa
        if (VOS_TRUE == vos_mem_compare(pScanResult->BssDescriptor.bssId, 
                        pNeighborRoamInfo->currAPbssid, sizeof(tSirMacAddr)))
         {
-            //currently associated AP. Do not have this in the roamable AP list
+            /* currently associated AP. Do not have this in the roamable AP list */
             continue;
         }
 
-#if 0
-    if (abs(pNeighborRoamInfo->cfgParams.neighborReassocThreshold) < abs(pScanResult->BssDescriptor.rssi))
+       /* This condition is to ensure to roam to an AP with better RSSI. if the value of RoamRssiDiff is Zero, this feature
+	* is disabled and we continue to roam without any check*/
+    if(RoamRssiDiff > 0)
     {
-            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                 "%s: [INFOLOG]Current reassoc threshold %d new ap rssi worse=%d\n", __func__,
-                     (int)pNeighborRoamInfo->cfgParams.neighborReassocThreshold * (-1),
-                     (int)pScanResult->BssDescriptor.rssi * (-1) );
-        continue;
-    }        
-#endif //0
+    if (abs(CurrAPRssi) < abs(pScanResult->BssDescriptor.rssi))
+    {
+		    /*Do not roam to an AP with worse RSSI than the current*/
+		    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+				    "%s: [INFOLOG]Current AP rssi=%d new ap rssi worse=%d\n", __func__,
+				    CurrAPRssi,
+				    (int)pScanResult->BssDescriptor.rssi * (-1) );
+		    continue;
+	    } else {
+		    /*Do not roam to an AP which is having better RSSI than the current AP, but still less than the
+		     * margin that is provided by user from the ini file (RoamRssiDiff)*/
+		    if (abs(abs(CurrAPRssi) - abs(pScanResult->BssDescriptor.rssi)) < RoamRssiDiff)
+		    {
+			    continue;
+		    }
+		    else {
+			    VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+				    "%s: [INFOLOG]Current AP rssi=%d new ap rssi better=%d\n", __func__,
+				    CurrAPRssi,
+				    (int)pScanResult->BssDescriptor.rssi * (-1) );
+		    }
+	    }
+    }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
         if (pNeighborRoamInfo->is11rAssoc)

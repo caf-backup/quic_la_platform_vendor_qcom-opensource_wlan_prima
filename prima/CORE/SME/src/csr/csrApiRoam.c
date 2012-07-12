@@ -1204,6 +1204,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
         pMac->roam.configParam.isFastTransitionEnabled = pParam->isFastTransitionEnabled;
+        pMac->roam.configParam.RoamRssiDiff = pParam->RoamRssiDiff;
 #endif
 
 #ifdef FEATURE_WLAN_LFR 
@@ -13914,12 +13915,12 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
          pStaEntry = GET_BASE_ADDR( pEntry, tCsrStatsClientReqInfo, link );
          if(NULL != pStaEntry->pPeStaEntry)
          {
-            pStaEntry->pPeStaEntry->numClient--;
-            //check if we need to delete the entry from peStatsReqList too
-            if(!pStaEntry->pPeStaEntry->numClient)
-            {
-               csrRoamRemoveEntryFromPeStatsReqList(pMac, pStaEntry->pPeStaEntry);
-            }
+         pStaEntry->pPeStaEntry->numClient--;
+         //check if we need to delete the entry from peStatsReqList too
+         if(!pStaEntry->pPeStaEntry->numClient)
+         {
+            csrRoamRemoveEntryFromPeStatsReqList(pMac, pStaEntry->pPeStaEntry);
+         }
          }
 
          //check if we need to stop the tl stats timer too 
