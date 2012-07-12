@@ -2715,7 +2715,8 @@ eHalStatus csrResetCountryCodeInformation(tpAniSirGlobal pMac, tANI_BOOLEAN *pfR
     //Use the Country code and domain from EEPROM
     palCopyMemory(pMac->hHdd, pMac->scan.countryCodeCurrent, pMac->scan.countryCodeDefault, WNI_CFG_COUNTRY_CODE_LEN);
     csrSetRegulatoryDomain(pMac, pMac->scan.domainIdCurrent, &fRestart);
-    if(eANI_BOOLEAN_FALSE == fRestart || (pfRestartNeeded == NULL))
+    if( ((eANI_BOOLEAN_FALSE == fRestart) || (pfRestartNeeded == NULL) )
+          && !csrIsInfraConnected(pMac))
     {
         //Only reset the country info if we don't need to restart
         csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);
