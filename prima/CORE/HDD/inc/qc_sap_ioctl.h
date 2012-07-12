@@ -227,6 +227,7 @@ enum {
     QCSAP_PARAM_CLR_ACL = 6,
     QCSAP_PARAM_ACL_MODE = 7,
     QCSAP_PARAM_HIDE_SSID = 8,
+    QCSAP_PARAM_AUTO_CHANNEL = 9,
 };
 
 int iw_softap_get_channel_list(struct net_device *dev, 
