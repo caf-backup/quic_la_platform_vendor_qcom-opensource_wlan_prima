@@ -1684,8 +1684,11 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
 #endif
 #ifdef FEATURE_WLAN_LFR
         case eCSR_ROAM_PMK_NOTIFY:
-           /* Notify the supplicant of a new candidate */
-           halStatus = wlan_hdd_cfg80211_pmksa_candidate_notify(pAdapter, pRoamInfo, 1, false);
+           if (eCSR_AUTH_TYPE_RSN == pHddStaCtx->conn_info.authType) 
+           {
+               /* Notify the supplicant of a new candidate */
+               halStatus = wlan_hdd_cfg80211_pmksa_candidate_notify(pAdapter, pRoamInfo, 1, false);
+           }
            break;
 #endif
 
