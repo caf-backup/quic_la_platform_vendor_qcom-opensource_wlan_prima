@@ -2088,7 +2088,7 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
                 ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X) 
                  == IW_AUTH_KEY_MGMT_802_1X)) {
                pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_FT_RSN;   
-            }
+            }else
             if ((RSNAuthType == eCSR_AUTH_TYPE_FT_RSN_PSK) && 
                 ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_PSK)
                  == IW_AUTH_KEY_MGMT_PSK)) {
