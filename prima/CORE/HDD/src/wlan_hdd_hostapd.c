@@ -951,7 +951,14 @@ static iw_softap_getparam(struct net_device *dev,
 #endif            
             *value = 0;
             break;
-         }
+        }
+
+    case QCSAP_PARAM_GET_WLAN_DBG:
+        {
+            vos_trace_display();
+            *value = 0;
+            break;
+        }
     
     default:
         hddLog(LOGE, FL("Invalid getparam command %d"), sub_cmd);
@@ -2412,6 +2419,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "" },
   { QCSAP_PARAM_MAX_ASSOC, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
+  { QCSAP_PARAM_GET_WLAN_DBG, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getwlandbg" },
   { QCSAP_PARAM_MODULE_DOWN_IND, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
   { QCSAP_PARAM_CLR_ACL, 0,
