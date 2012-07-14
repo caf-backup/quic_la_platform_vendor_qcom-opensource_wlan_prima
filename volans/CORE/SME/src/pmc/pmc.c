@@ -2096,6 +2096,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     eHalStatus status = eHAL_STATUS_SUCCESS;
     VOS_STATUS vstatus;
     tANI_BOOLEAN fRemoveCmd = eANI_BOOLEAN_TRUE;
+    tPmcState pmcLastState = STOPPED;
 
     do
     {
@@ -2131,6 +2132,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
             break;
 
         case eSmeCommandExitImps:
+            pmcLastState = pMac->pmc.pmcState;
             pMac->pmc.requestFullPowerPending = FALSE;
             if( ( IMPS == pMac->pmc.pmcState ) || ( STANDBY == pMac->pmc.pmcState ) )
             {
@@ -2140,15 +2142,16 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                     //Enable Idle scan in CSR
                     csrScanResumeIMPS(pMac);
                 }
+                pMac->pmc.pmcState = REQUEST_FULL_POWER;
                 status = pmcSendMessage(pMac, eWNI_PMC_EXIT_IMPS_REQ, NULL, 0);
                 if ( HAL_STATUS_SUCCESS( status ) )
                 {
-                    pMac->pmc.pmcState = REQUEST_FULL_POWER;
                     smsLog(pMac, LOGW, FL("eWNI_PMC_EXIT_IMPS_REQ sent to PE\n")); 
                     fRemoveCmd = eANI_BOOLEAN_FALSE;
                 }
                 else
                 {
+                    pMac->pmc.pmcState = pmcLastState;
                     smsLog(pMac, LOGE, FL("eWNI_PMC_EXIT_IMPS_REQ fail to be sent to PE status %d\n"), status); 
                     //Callbacks are called with success srarus, do we need to pass in real status??
                     pmcEnterFullPowerState(pMac);

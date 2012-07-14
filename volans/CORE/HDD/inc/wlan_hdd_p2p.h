@@ -105,7 +105,7 @@ struct net_device* wlan_hdd_add_virtual_intf(
                   u32 *flags, struct vif_params *params );
 
 int wlan_hdd_del_virtual_intf( struct wiphy *wiphy, struct net_device *dev );
-
+void hdd_p2p_cleanup( hdd_context_t *pHddCtx );
 #endif // CONFIG_CFG80211
 
 #endif // __P2P_H

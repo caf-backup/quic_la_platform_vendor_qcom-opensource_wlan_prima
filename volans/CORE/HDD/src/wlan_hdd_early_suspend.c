@@ -42,6 +42,7 @@
 #include <wlan_btc_svc.h>
 #include <wlan_nlink_common.h>
 #include <wlan_hdd_main.h>
+#include <wlan_hdd_p2p.h>
 #include <wlan_hdd_assoc.h>
 #include <wlan_sal_misc.h>
 #include <libra_sdioif.h>
@@ -1064,6 +1065,10 @@ VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason)
    if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_1P6MH) != VOS_STATUS_SUCCESS)
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                "%s: Failed to set the freq to 1.6Mhz for 1.3V Supply",__func__ );
+
+#ifdef CONFIG_CFG80211
+   hdd_p2p_cleanup(pHddCtx);
+#endif
 
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode on its own during reset sequence
