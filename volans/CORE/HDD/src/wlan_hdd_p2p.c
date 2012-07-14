@@ -1250,4 +1250,44 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
     netif_tx_start_all_queues( pAdapter->dev ); 
 
 }
+
+void hdd_p2p_cleanup( hdd_context_t *pHddCtx )
+{
+
+   VOS_STATUS status = VOS_STATUS_E_FAILURE;
+   hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+   hdd_adapter_t *pAdapter;
+   hdd_cfg80211_state_t *cfgState;
+
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode);
+   while ( (NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status) )
+   {
+      pAdapter = pAdapterNode->pAdapter;
+      cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+      if( (pAdapter->device_mode == WLAN_HDD_P2P_GO )
+                 || (pAdapter->device_mode ==  WLAN_HDD_P2P_CLIENT )
+                 || (pAdapter->device_mode == WLAN_HDD_SOFTAP ))
+      {
+         hdd_cleanup_actionframe(pHddCtx, pAdapter);
+         if( NULL == cfgState->remain_on_chan_ctx )
+         {
+            continue;
+         }
+	 if( REMAIN_ON_CHANNEL_REQUEST
+                   == cfgState->remain_on_chan_ctx->rem_on_chan_request )
+         {
+            cfg80211_remain_on_channel_expired( cfgState->remain_on_chan_ctx->dev,
+                              cfgState->remain_on_chan_ctx->cookie,
+                              &cfgState->remain_on_chan_ctx->chan,
+                              cfgState->remain_on_chan_ctx->chan_type, GFP_KERNEL );
+         }
+
+         vos_mem_free( cfgState->remain_on_chan_ctx );
+         cfgState->remain_on_chan_ctx = NULL;
+     }
+     status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext);
+     pAdapterNode = pNext;
+   }
+
+}
 #endif // CONFIG_CFG80211

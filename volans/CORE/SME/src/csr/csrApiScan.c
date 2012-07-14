@@ -590,7 +590,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                 For BTC with A2DP up: Channel time will not be doubled, if station is already associated.
                 */                
                 status = csrRoamGetConnectState(pMac,sessionId,&ConnectState);
-                if(pMac->btc.fA2DPUp &&
+                if(pMac->btc.btcAclCount && 
                    (eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED != ConnectState) &&
                    (eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED != ConnectState))
                 {
