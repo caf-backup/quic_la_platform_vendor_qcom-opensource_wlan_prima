@@ -1893,7 +1893,7 @@ void csrRoamRemoveDuplicateCommand(tpAniSirGlobal pMac, tANI_U32 sessionId, tSme
                    eCsrHddIssued == pCommand->u.roamCmd.roamReason))) 
                 ||
                 //below the pCommand is NULL
-                ( (sessionId == pDupCommand->sessionId) && (eCsrRoamCommandRoam == pDupCommand->command) &&
+                ( (sessionId == pDupCommand->sessionId) && (eSmeCommandRoam == pDupCommand->command) &&
                   ((eCsrForcedDisassoc == eRoamReason) ||
                    (eCsrHddIssued == eRoamReason))
                 )
@@ -8835,7 +8835,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                 csrRoamLinkUp(pMac, pSession->connectedProfile.bssid);
                             }
                         }
-                        if( eSIR_SUCCESS == pRsp->statusCode )
+                        if( eSIR_SME_SUCCESS == pRsp->statusCode )
                         {
                             palCopyMemory( pMac, &roamInfo.peerMac, &pRsp->peerMacAddr, sizeof(tCsrBssid) );
                             //Make sure we install the GTK before indicating to HDD as authenticated
@@ -8930,7 +8930,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-                        if( eSIR_SUCCESS == pRsp->statusCode )
+                        if( eSIR_SME_SUCCESS == pRsp->statusCode )
                         {
                             palCopyMemory( pMac, &roamInfo.peerMac, &pRsp->peerMacAddr, sizeof(tCsrBssid) );
                             result = eCSR_ROAM_RESULT_NONE;
@@ -12356,7 +12356,7 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
         msgQ.bodyptr = pMsg;
         msgQ.bodyval = 0;
 
-        if((status = halMmhPostMsgApi(pMac, &msgQ, ePROT)) != eSIR_SUCCESS)
+        if((status = halMmhPostMsgApi(pMac, &msgQ, ePROT)) != eHAL_STATUS_SUCCESS)
         {
             palFreeMemory(pMac->hHdd, (void *)pMsg);
         }

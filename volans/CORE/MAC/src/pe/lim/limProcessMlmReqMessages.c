@@ -1569,7 +1569,7 @@ limMlmAddBss (
     }
 
 #ifdef WLAN_SOFTAP_FEATURE  
-    if( wlan_cfgGetInt ( pMac, WNI_CFG_SHORT_SLOT_TIME, &val ) != eSIR_SME_SUCCESS)
+    if( wlan_cfgGetInt ( pMac, WNI_CFG_SHORT_SLOT_TIME, &val ) != eSIR_SUCCESS)
     {
         limLog ( pMac, LOGP, FL(" Error : unable to fetch the WNI_CFG_SHORT_SLOT_TIME\n"));
         palFreeMemory(pMac->hHdd,(void *)pAddBssParams);
@@ -1825,7 +1825,7 @@ static tANI_U8 __limMlmScanAllowed(tpAniSirGlobal pMac)
 {
     int i;
 
-    if(pMac->lim.gLimMlmState != eLIM_SME_IDLE_STATE)
+    if(pMac->lim.gLimMlmState != eLIM_MLM_IDLE_STATE)
     {
         return FALSE;
     }

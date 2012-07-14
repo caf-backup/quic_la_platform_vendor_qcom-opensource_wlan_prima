@@ -237,7 +237,7 @@ void halUtil_processDeferredMsgQ(tpAniSirGlobal pMac)
                                sizeof(tSirMsgQ)) != eHAL_STATUS_SUCCESS )
                 HALLOGP( halLog(pMac, LOGP, FL("palCopyMemory() failed \n")));
 
-            if(halHandleMsg(pMac, &msg) != eHAL_STATUS_SUCCESS )
+            if(halHandleMsg(pMac, &msg) != eSIR_SUCCESS )
                 HALLOGE( halLog(pMac, LOGE, FL("halHandleMsg() returned error \n")));
         }
     }

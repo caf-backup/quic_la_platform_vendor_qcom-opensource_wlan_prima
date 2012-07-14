@@ -354,7 +354,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             //Check if there is any group key pending to set.
             if( pHddApCtx->groupKey.keyLength )
             {
-                 if( eHAL_STATUS_SUCCESS !=  WLANSAP_SetKeySta( 
+                 if( VOS_STATUS_SUCCESS !=  WLANSAP_SetKeySta( 
                                (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
                                &pHddApCtx->groupKey ) )
                  {
@@ -368,7 +368,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 int i=0;
                 for ( i = 0; i < CSR_MAX_NUM_KEY; i++ ) 
                 {
-                    if( eHAL_STATUS_SUCCESS !=  WLANSAP_SetKeySta(
+                    if( VOS_STATUS_SUCCESS !=  WLANSAP_SetKeySta(
                                 (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
                                 &pHddApCtx->wepKey[i] ) )
                     {   
@@ -403,7 +403,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             msg.src_addr.sa_family = ARPHRD_ETHER;
             memcpy(msg.src_addr.sa_data, &pSapEvent->sapevt.sapStationMICFailureEvent.staMac, sizeof(msg.src_addr.sa_data));
             hddLog(LOG1, "MIC MAC "MAC_ADDRESS_STR"\n", MAC_ADDR_ARRAY(msg.src_addr.sa_data));
-            if(pSapEvent->sapevt.sapStationMICFailureEvent.multicast == eCSR_ROAM_RESULT_MIC_ERROR_GROUP)
+            if((eCsrRoamResult)pSapEvent->sapevt.sapStationMICFailureEvent.multicast 
+                                 == eCSR_ROAM_RESULT_MIC_ERROR_GROUP )
              msg.flags = IW_MICFAILURE_GROUP;
             else 
              msg.flags = IW_MICFAILURE_PAIRWISE;
@@ -417,7 +418,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
         cfg80211_michael_mic_failure(dev, 
                                      pSapEvent->sapevt.
                                      sapStationMICFailureEvent.staMac.bytes,
-                                     ((pSapEvent->sapevt.sapStationMICFailureEvent.multicast == eSIR_TRUE) ? 
+                                     ((pSapEvent->sapevt.sapStationMICFailureEvent.multicast == eSAP_TRUE) ? 
                                       NL80211_KEYTYPE_GROUP :
                                       NL80211_KEYTYPE_PAIRWISE),
                                      pSapEvent->sapevt.sapStationMICFailureEvent.keyId, 
@@ -1272,7 +1273,8 @@ static int iw_set_ap_encodeext(struct net_device *dev,
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext;    
     hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
-    eHalStatus halStatus= eHAL_STATUS_SUCCESS;
+    int retval = 0;
+    VOS_STATUS vstatus;
     struct iw_encode_ext *ext = (struct iw_encode_ext*)extra;
     v_U8_t groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
     int key_index;
@@ -1280,6 +1282,7 @@ static int iw_set_ap_encodeext(struct net_device *dev,
     tCsrRoamSetKey  setKey;   
 //    tCsrRoamRemoveKey RemoveKey;
     int i;
+
     ENTER();    
    
     key_index = encoding->flags & IW_ENCODE_INDEX;
@@ -1314,7 +1317,7 @@ static int iw_set_ap_encodeext(struct net_device *dev,
               break;
            case IW_ENCODE_ALG_TKIP:
               RemoveKey.encType = eCSR_ENCRYPT_TYPE_TKIP;
-           break;
+              break;
            case IW_ENCODE_ALG_CCMP:
               RemoveKey.encType = eCSR_ENCRYPT_TYPE_AES;
               break;
@@ -1327,16 +1330,17 @@ static int iw_set_ap_encodeext(struct net_device *dev,
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Peer Mac = "MAC_ADDRESS_STR"\n",
                     __FUNCTION__, MAC_ADDR_ARRAY(RemoveKey.peerMac));
           );
-         halStatus = WLANSAP_DelKeySta( pVosContext, &RemoveKey);
-         if ( halStatus != eHAL_STATUS_SUCCESS )
+         vstatus = WLANSAP_DelKeySta( pVosContext, &RemoveKey);
+         if ( vstatus != VOS_STATUS_SUCCESS )
          {
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "[%4d] WLANSAP_DeleteKeysSta returned ERROR status= %d",
-                        __LINE__, halStatus );
+                        __LINE__, vstatus );
+             retval = -EINVAL;
          }
-#endif         
-         return halStatus;
+#endif
+         return retval;
 
-    }   
+    }
     
     vos_mem_zero(&setKey,sizeof(tCsrRoamSetKey));
    
@@ -1430,16 +1434,19 @@ static int iw_set_ap_encodeext(struct net_device *dev,
           ("%02x"), setKey.Key[i]);    
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
           ("\n"));
-    halStatus = WLANSAP_SetKeySta( pVosContext, &setKey);
-    
-    if ( halStatus != eHAL_STATUS_SUCCESS )
+
+    vstatus = WLANSAP_SetKeySta( pVosContext, &setKey);
+    if ( vstatus != VOS_STATUS_SUCCESS )
     {
        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "[%4d] WLANSAP_SetKeySta returned ERROR status= %d", __LINE__, halStatus );
-    }   
+                   "[%4d] WLANSAP_SetKeySta returned ERROR status= %d", __LINE__, vstatus );
+       retval = -EINVAL;
+    }
    
-   return halStatus;
+   return retval;
 }
+
+
 static int iw_set_ap_mlme(struct net_device *dev,
                        struct iw_request_info *info,
                        union iwreq_data *wrqu,

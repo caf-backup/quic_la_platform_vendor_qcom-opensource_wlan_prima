@@ -152,13 +152,13 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
         else if (psessionEntry->limMlmState ==
                                      eLIM_MLM_WT_JOIN_BEACON_STATE)
         {
-            if( psessionEntry->beacon != NULL ) //Either Beacon/probe response is required. Hence store it in same buffer.
+            if( psessionEntry->beacon != NULL )//Either Beacon/probe response is required. Hence store it in same buffer.
             {
                 palFreeMemory(pMac->hHdd, psessionEntry->beacon);
                 psessionEntry->beacon = NULL;
              }
              psessionEntry->bcnLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
-             if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->beacon, psessionEntry->bcnLen)) != eSIR_SUCCESS)
+             if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->beacon, psessionEntry->bcnLen)) != eHAL_STATUS_SUCCESS)
              {
                 PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store beacon"));)
               }

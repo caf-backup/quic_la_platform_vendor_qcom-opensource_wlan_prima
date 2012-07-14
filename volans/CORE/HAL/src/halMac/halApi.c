@@ -815,14 +815,14 @@ eHalStatus halInitWmParam(tHalHandle hHal, void *arg)
     aEdcaTxop[MTU_BKID_AC_VO] = CONVERT_TXOP_TO_US(pMac->hal.edcaParam[SIR_MAC_EDCAACI_VOICE].txoplimit);
                 
     // update TXOP
-    if (halTpe_UpdateEdcaTxOp(pMac, aEdcaTxop) != eSIR_SUCCESS)
+    if (halTpe_UpdateEdcaTxOp(pMac, aEdcaTxop) !=eHAL_STATUS_SUCCESS)
     {
         HALLOGE( halLog(pMac, LOGE, FL("halTpe_UpdateEdcaTxOp() failed \n")));
         return eHAL_STATUS_FAILURE;
     }
 
     // update Short retry and Long Retry limit
-    if (halMsg_updateRetryLimit(pMac) != eSIR_SUCCESS)
+    if (halMsg_updateRetryLimit(pMac) !=eHAL_STATUS_SUCCESS)
     {
         HALLOGE( halLog(pMac, LOGE, FL("halMsg_updateRetryLimit() failed \n")));
         return eHAL_STATUS_FAILURE;

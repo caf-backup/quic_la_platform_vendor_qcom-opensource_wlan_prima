@@ -77,7 +77,7 @@ tSirRetStatus halTLProcessFlushReq(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
     // Flush the Queues, cleanup the queues.
     status = halBmu_sta_enable_disable_control(pMac, 
         FlushACReqPtr->ucSTAId, eBMU_DIS_TX_QUE_DIS_TRANS_CLEANUP_QUE); 
-    if ( eHAL_STATUS_SUCCESS != status )
+    if ( eSIR_SUCCESS != status )
     {
         HALLOGE(halLog( pMac, LOGE, FL("Unable to update cleanup BMU queues")));
         // Send the response back to TL with the status
@@ -90,7 +90,7 @@ tSirRetStatus halTLProcessFlushReq(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
     // Enable the TX queues in the BMU
     status = halBmu_sta_enable_disable_control(pMac, 
         FlushACReqPtr->ucSTAId, eBMU_ENB_TX_QUE_ENB_TRANS); 
-    if ( eHAL_STATUS_SUCCESS != status )
+    if ( eSIR_SUCCESS != status )
     {
         HALLOGE(halLog( pMac, LOGE, FL("Unable to enable BMU queues")));
         halTLSendFlushResponse(pMac, FlushACReqPtr->ucSTAId, 

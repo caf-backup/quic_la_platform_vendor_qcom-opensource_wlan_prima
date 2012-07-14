@@ -4492,13 +4492,13 @@ eHalStatus halMsg_updateRetryLimit(tpAniSirGlobal pMac)
 {
     tANI_U32   shortRetry, longRetry;
     // Update Short retry and Long Retry limit
-    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_RETRY_LIMIT, &shortRetry) != eHAL_STATUS_SUCCESS)
+    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_RETRY_LIMIT, &shortRetry) != eSIR_SUCCESS)
     {
         HALLOGE( halLog(pMac, LOGE, FL("cfgGet WNI_CFG_SHORT_RETRY_LIMIT failed \n")));
         return eHAL_STATUS_FAILURE;
     }
 
-    if (wlan_cfgGetInt(pMac, WNI_CFG_LONG_RETRY_LIMIT, &longRetry) != eHAL_STATUS_SUCCESS)
+    if (wlan_cfgGetInt(pMac, WNI_CFG_LONG_RETRY_LIMIT, &longRetry) != eSIR_SUCCESS)
     {
         HALLOGE( halLog(pMac, LOGE, FL("cfgGet WNI_CFG_LONG_RETRY_LIMIT failed \n")));
         return eHAL_STATUS_FAILURE;
@@ -5877,7 +5877,7 @@ eHalStatus halMsg_updateEdcaParam(tpAniSirGlobal pMac, tEdcaParams *pEdcaParams)
     HALLOGW( halLog(pMac, LOGW, FL("dump EDCA reg before update EDCA \n")));
     halTpe_DumpEdcaTxOp(pMac);
     // update TXOP
-    if (halTpe_UpdateEdcaTxOp(pMac, aEdcaTxop) != eSIR_SUCCESS)
+    if (halTpe_UpdateEdcaTxOp(pMac, aEdcaTxop) != eHAL_STATUS_SUCCESS)
     {
         HALLOGE( halLog(pMac, LOGE, FL("halTpe_UpdateEdcaTxOp() failed \n")));
         return eHAL_STATUS_FAILURE;
@@ -5886,7 +5886,7 @@ eHalStatus halMsg_updateEdcaParam(tpAniSirGlobal pMac, tEdcaParams *pEdcaParams)
     halTpe_DumpEdcaTxOp(pMac);
 
     // update Short retry and Long Retry limit
-    if (halMsg_updateRetryLimit(pMac) != eSIR_SUCCESS)
+    if (halMsg_updateRetryLimit(pMac) != eHAL_STATUS_SUCCESS)
     {
         HALLOGE( halLog(pMac, LOGE, FL("halMsg_updateRetryLimit() failed \n")));
         return eHAL_STATUS_FAILURE;
