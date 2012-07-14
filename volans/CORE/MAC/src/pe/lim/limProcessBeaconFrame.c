@@ -129,7 +129,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
                 psessionEntry->beacon = NULL;
              }
              psessionEntry->bcnLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
-             if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->beacon, psessionEntry->bcnLen)) != eSIR_SUCCESS)
+             if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->beacon, psessionEntry->bcnLen)) != eHAL_STATUS_SUCCESS)
              {
                 PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store beacon"));)
               }

@@ -2143,7 +2143,7 @@ limSendSmeIBSSPeerInd(
     tSirMsgQ                  mmhMsg;
     tSmeIbssPeerInd *pNewPeerInd;
     
-    if(eSIR_SUCCESS !=
+    if(eHAL_STATUS_SUCCESS !=
         palAllocateMemory(pMac->hHdd,(void * *) &pNewPeerInd,(sizeof(tSmeIbssPeerInd) + beaconLen)))
     {
         PELOGE(limLog(pMac, LOGE, FL("Failed to allocate memory"));)
@@ -2286,7 +2286,5 @@ tANI_U8 smesessionId)
     return;
 }
 #endif
-
-
 
 

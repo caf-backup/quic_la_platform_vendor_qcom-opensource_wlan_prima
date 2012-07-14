@@ -533,7 +533,7 @@ eHalStatus halPhyGetChannelListWithPower(tHalHandle hHal,
     int i, count;
 
     //Ignore 40MHz channels for now
-    if( channels20MHz && num20MHzChannelsFound && ( pMac->hphy.phy.curRegDomain < REGDOMAIN_COUNT ) )
+    if( channels20MHz && num20MHzChannelsFound && ( pMac->hphy.phy.curRegDomain < NUM_REG_DOMAINS ) )
     {
         status = halGetNvTableLoc(pMac, NV_TABLE_REGULATORY_DOMAINS, (uNvTables **)&pRegDomain);
         if( HAL_STATUS_SUCCESS(status) )

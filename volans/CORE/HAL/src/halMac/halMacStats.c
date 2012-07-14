@@ -822,7 +822,7 @@ static void __halMacHandlePerStaStatsReq( tpAniSirGlobal pMac, tpAniGetStatsReq 
     }
 
     //Update stats before sending response.
-    if ((status = __halGetPeriodicPerStaStats(pMac, staId)) != eSIR_SUCCESS)
+    if ((status = __halGetPeriodicPerStaStats(pMac, staId)) !=eHAL_STATUS_SUCCESS)
     {
         goto end;
     }
@@ -963,7 +963,7 @@ static void __halMacHandleAggrStatsReq( tpAniSirGlobal pMac, tpAniGetStatsReq pR
     {
         if ( (status = halTable_ValidateStaIndex(pMac, i)) == eHAL_STATUS_SUCCESS )
         {
-            if ((status = __halGetPeriodicPerStaStats(pMac, i)) != eSIR_SUCCESS) break;
+            if ((status = __halGetPeriodicPerStaStats(pMac, i)) != eHAL_STATUS_SUCCESS) break;
 
 
             __halAddTxRxCounters ( &pSta->ucStats, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.ucStats );

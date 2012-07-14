@@ -840,9 +840,11 @@ _fillSupportedPreTitanRatesByIeRates(
                         RA_BITVAL_SET((_convert2ShortPreambleRate(halRate)), pRaInfo->supportedRates);
                         halRate = halMacRaConvert2DupRate(halRate);
                         if(halRate < HALRATE_INVALID)
-                            break;
+                        {
                         //set supported  11b duplicate mode rate
                         RA_BITVAL_SET((halRate), pRaInfo->supportedRates);
+                        }
+                        break;
                         halRate = _convert2ShortPreambleRate(halRate);
                         //set supported 11b duplicate mode, short preamble rate
                         if(halRate < HALRATE_INVALID)
@@ -2414,7 +2416,7 @@ eHalStatus halMacRaStaSetCfg(tpAniSirGlobal pMac, tANI_U32 staid,
     pSta = ((tpStaStruct) pMac->hal.halMac.staTable)+staid;
     pRaInfo = HAL_RAINFO_PTR_GET(pSta);
 
-    if(item != RA_STACFG_NONE){
+    if(item != (tHalRaGlobalCfg)RA_STACFG_NONE){
         raLog(pMac, RALOG_CLI, "Set item %d = %d \n", item, value);
 
         switch(item){

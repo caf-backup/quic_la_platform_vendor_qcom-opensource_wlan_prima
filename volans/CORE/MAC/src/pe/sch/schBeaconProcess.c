@@ -496,7 +496,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
               limLog( pMac, LOGE, "Regulatory max = %d, local power constraint = %d, max tx = %d", regMax, localConstraint, maxTxPower );
               limLog( pMac, LOGE, "Local power constraint change..updating mew maxTx power to HAL");
 #endif
-              if( limSendSetMaxTxPowerReq ( pMac, maxTxPower, psessionEntry ) == eHAL_STATUS_SUCCESS )
+              if( limSendSetMaxTxPowerReq ( pMac, maxTxPower, psessionEntry ) == eSIR_SUCCESS )
                  psessionEntry->maxTxPower = maxTxPower;
 
            }

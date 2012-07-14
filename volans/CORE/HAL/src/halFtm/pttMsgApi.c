@@ -892,7 +892,7 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
                                  msgBody->GrabRam.grabRam
                                );
 
-            if (retVal == eHAL_STATUS_SUCCESS)
+            if (retVal ==PTT_STATUS_SUCCESS)
             {
                 /* Use NTOH on message body in response */
                 tANI_U32 i;

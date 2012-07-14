@@ -400,7 +400,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
         palFreeMemory(pMac->hHdd, psessionEntry->assocRsp);
         psessionEntry->assocRsp = NULL;
     }
-    if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocRsp, frameLen)) != eSIR_SUCCESS)
+    if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocRsp, frameLen)) != eHAL_STATUS_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc response, len = %d"), frameLen);)
     }
@@ -420,7 +420,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
     if(pAssocRsp->ricPresent)
     {
         psessionEntry->RICDataLen = pAssocRsp->num_RICData * sizeof(tDot11fIERICDataDesc);
-        if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->ricData, psessionEntry->RICDataLen)) != eSIR_SUCCESS)
+        if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->ricData, psessionEntry->RICDataLen)) != eHAL_STATUS_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc response"));)
         }
@@ -445,7 +445,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
     if(pAssocRsp->tspecPresent)
     {
         psessionEntry->tspecLen = pAssocRsp->num_tspecs * sizeof(tDot11fIEWMMTSPEC);
-        if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->tspecIes, psessionEntry->tspecLen)) != eSIR_SUCCESS)
+        if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->tspecIes, psessionEntry->tspecLen)) != eHAL_STATUS_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc response"));)
         }

@@ -646,7 +646,7 @@ void halLog_setCfg(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 val)
     HALLOGE( halLog(pMac, LOGE, FL("Set %s(0x%x) to value 0x%x\n"),
            gCfgParamName[cfgId], cfgId, val));
 
-    if (cfgSetInt(pMac, (tANI_U16)cfgId, val) != eHAL_STATUS_SUCCESS)
+    if (cfgSetInt(pMac, (tANI_U16)cfgId, val) != eSIR_SUCCESS)
         HALLOGE( halLog(pMac, LOGE, FL("setting cfgId 0x%x to value 0x%x failed \n"),
                cfgId, val));
      return;
@@ -664,7 +664,7 @@ void halLog_getCfg(tpAniSirGlobal pMac, tANI_U16 cfgId)
     tANI_U32  val;
 
         // Get integer parameter
-    if (wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &val) != eHAL_STATUS_SUCCESS)
+    if (wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &val) != eSIR_SUCCESS)
         {
             HALLOGE( halLog(pMac, LOGE, FL("Get cfgId 0x%x failed\n"), cfgId));
         }
@@ -2284,7 +2284,7 @@ halLog_testAddBss(tpAniSirGlobal pMac, tANI_U32 bssType, tANI_U32 bssidNum)
     halMsg.bodyptr = pMsg;
     halMsg.bodyval = 0;
 
-    if (halPostMsgApi(pMac, &halMsg) != eHAL_STATUS_SUCCESS)
+    if (halPostMsgApi(pMac, &halMsg) != eSIR_SUCCESS)
         palFreeMemory(pMac->hHdd, pMsg);
 
     return;
@@ -2316,7 +2316,7 @@ halLog_updateUapsd(tpAniSirGlobal pMac, tANI_U32 staIdx, tANI_U32 uapsdACMask, t
     halMsg.bodyptr = pMsg;
     halMsg.bodyval = 0;
 
-    if (halPostMsgApi(pMac, &halMsg) != eHAL_STATUS_SUCCESS)
+    if (halPostMsgApi(pMac, &halMsg) != eSIR_SUCCESS)
         palFreeMemory(pMac->hHdd, pMsg);
 
     return p;
@@ -2431,7 +2431,7 @@ dump_addStaWithUapsd(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, t
     halMsg.bodyptr = pMsg;
     halMsg.bodyval = 0;
 
-    if (halPostMsgApi(pMac, &halMsg) != eHAL_STATUS_SUCCESS)
+    if (halPostMsgApi(pMac, &halMsg) != eSIR_SUCCESS)
         palFreeMemory(pMac->hHdd, pMsg);
 
     return p;
@@ -2517,7 +2517,7 @@ halLog_testAddSta(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, tANI
     halMsg.bodyptr = pMsg;
     halMsg.bodyval = 0;
 
-    if (halPostMsgApi(pMac, &halMsg) != eHAL_STATUS_SUCCESS)
+    if (halPostMsgApi(pMac, &halMsg) !=  eSIR_SUCCESS)
         palFreeMemory(pMac->hHdd, pMsg);
 
     return;
@@ -2552,7 +2552,7 @@ halLog_testDeleteBss(tpAniSirGlobal pMac, tANI_U32 bssidNum)
     halMsg.bodyptr = pMsg;
     halMsg.bodyval = 0;
 
-    if (halPostMsgApi(pMac, &halMsg) != eHAL_STATUS_SUCCESS)
+    if (halPostMsgApi(pMac, &halMsg) !=  eSIR_SUCCESS)
         palFreeMemory(pMac->hHdd, pMsg);
 
     return;
@@ -2586,7 +2586,7 @@ halLog_testDeleteSta(tpAniSirGlobal pMac, tANI_U32 staid)
     halMsg.bodyptr = pMsg;
     halMsg.bodyval = 0;
 
-    if (halPostMsgApi(pMac, &halMsg) != eHAL_STATUS_SUCCESS)
+    if (halPostMsgApi(pMac, &halMsg) !=  eSIR_SUCCESS)
         palFreeMemory(pMac->hHdd, pMsg);
 
     return;
@@ -2951,7 +2951,7 @@ static char *dump_hal_send_wowl_enter(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U
     HALLOGW(halLog(pMac, LOGW, FL("      Max sleep (%d)\n"), pWowParams->ucWowMaxSleepUsec));
 
     /* send the message */
-    if (eHAL_STATUS_SUCCESS != halPostMsgApi(pMac, &halMsg))
+    if ( eSIR_SUCCESS != halPostMsgApi(pMac, &halMsg))
     {
         palFreeMemory(pMac->hHdd, pWowParams);
     }
@@ -3063,7 +3063,7 @@ static char *dump_hal_send_wowl_add_ptrn(tpAniSirGlobal pMac, tANI_U32 arg1, tAN
                                                               pBcastPat->ucPatternMask[3]));
 
     /* send the message */
-    if (eHAL_STATUS_SUCCESS != halPostMsgApi(pMac, &halMsg))
+    if ( eSIR_SUCCESS != halPostMsgApi(pMac, &halMsg))
     {
         palFreeMemory(pMac->hHdd, pBcastPat);
     }
@@ -3101,7 +3101,7 @@ static char *dump_hal_send_wowl_rm_ptrn(tpAniSirGlobal pMac, tANI_U32 arg1, tANI
     HALLOGW(halLog(pMac, LOGW, FL("      Pattern ID (%d)\n"), pDelBcastPat->ucPatternId));
 
     /* send the message */
-    if (eHAL_STATUS_SUCCESS != halPostMsgApi(pMac, &halMsg))
+    if ( eSIR_SUCCESS != halPostMsgApi(pMac, &halMsg))
     {
         palFreeMemory(pMac->hHdd, pDelBcastPat);
     }

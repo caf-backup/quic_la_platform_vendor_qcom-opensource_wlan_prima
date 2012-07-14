@@ -2911,8 +2911,8 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
                 if(curCnt)
                     break;
             }
-
-            if(!VOS_IS_STATUS_SUCCESS(status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
+            
+            if(!VOS_IS_STATUS_SUCCESS((VOS_STATUS)status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
             {
                 VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress.", __func__);
                 return VOS_STATUS_E_FAILURE;
@@ -2935,7 +2935,7 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
             status = palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, uRegValue);
             mutexFailCnt--;
 
-            if(!VOS_IS_STATUS_SUCCESS(status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
+            if(!VOS_IS_STATUS_SUCCESS((VOS_STATUS)status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
             {
                 VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress.", __func__);
                 return VOS_STATUS_E_FAILURE;

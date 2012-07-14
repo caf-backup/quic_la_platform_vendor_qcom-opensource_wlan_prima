@@ -2261,7 +2261,7 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
                         if(uplinkFlowsPresent && downlinkFlowsPresent)
                         {
                             // Need to split the uni-directional flows into SME_QOS_TSPEC_INDEX_0 and SME_QOS_TSPEC_INDEX_1
-
+                            vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
                             // Mark all downstream flows as using tspec index 1
                             search_key.key.ac_type = ac;
                             search_key.index = SME_QOS_SEARCH_KEY_INDEX_4;
@@ -5196,6 +5196,7 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
    if((pACInfo->curr_QoSInfo[pACInfo->tspec_pending - 1].ts_info.direction == SME_QOS_WMM_TS_DIR_BOTH) &&
       (pACInfo->num_flows[SME_QOS_TSPEC_INDEX_1] > 0))
    {
+     vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
      /* update tspec_mask for all the flows having SME_QOS_TSPEC_MASK_BIT_2_SET to SME_QOS_TSPEC_MASK_BIT_1_SET */
      search_key.key.ac_type = ac;
      search_key.index = SME_QOS_SEARCH_KEY_INDEX_5;
