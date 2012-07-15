@@ -329,6 +329,7 @@ typedef enum device_mode
 {  /* MAINTAIN 1 - 1 CORRESPONDENCE WITH tVOS_CON_MODE*/
    WLAN_HDD_INFRA_STATION,
    WLAN_HDD_SOFTAP,
+   WLAN_HDD_P2P_DEVICE,
    WLAN_HDD_P2P_CLIENT,
    WLAN_HDD_P2P_GO,
    WLAN_HDD_MONITOR
@@ -584,12 +585,6 @@ struct hdd_adapter_s
    sHddMib_t  hdd_mib;
            
    tANI_U8 sessionId;
-#ifdef WLAN_FEATURE_P2P   
-   /** p2pSessionId required to open new SME session for P2P 
-    *  Device address which is different from STA MAC Address
-    */ 
-   tANI_U8 p2pSessionId;
-#endif
 
    /* Completion variable for session close */
    struct completion session_close_comp_var;

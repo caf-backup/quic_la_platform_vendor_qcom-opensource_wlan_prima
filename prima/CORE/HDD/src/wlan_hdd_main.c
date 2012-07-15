@@ -1254,6 +1254,7 @@ error_sme_open:
 }
 
 #ifdef WLAN_FEATURE_P2P
+#if 0
 /**
  * hdd_init_p2p_device_mode
  *
@@ -1311,6 +1312,7 @@ VOS_STATUS hdd_init_p2p_device_mode( hdd_adapter_t *pAdapter)
    return VOS_STATUS_SUCCESS;
 }
 #endif
+#endif
 
 #ifdef CONFIG_CFG80211
 void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
@@ -1343,6 +1345,7 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
    {
       case WLAN_HDD_INFRA_STATION:
       case WLAN_HDD_P2P_CLIENT:
+      case WLAN_HDD_P2P_DEVICE:
       {
          if(test_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags))
          {
@@ -1583,6 +1586,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       case WLAN_HDD_INFRA_STATION:
 #ifdef WLAN_FEATURE_P2P
       case WLAN_HDD_P2P_CLIENT:
+      case WLAN_HDD_P2P_DEVICE:
 #endif
       {
          pAdapter = hdd_alloc_station_adapter( pHddCtx, macAddr, iface_name );
@@ -1591,11 +1595,10 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
             return NULL;
 
 #ifdef CONFIG_CFG80211
-         pAdapter->wdev.iftype = (session_type == WLAN_HDD_INFRA_STATION) ?
-                                  NL80211_IFTYPE_STATION :
-                                  NL80211_IFTYPE_P2P_CLIENT;
+         pAdapter->wdev.iftype = (session_type == WLAN_HDD_P2P_CLIENT) ?
+                                  NL80211_IFTYPE_P2P_CLIENT:
+                                  NL80211_IFTYPE_STATION;
 #endif
-
 
          pAdapter->device_mode = session_type;
 
@@ -1885,6 +1888,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
    {
       case WLAN_HDD_INFRA_STATION:
       case WLAN_HDD_P2P_CLIENT:
+      case WLAN_HDD_P2P_DEVICE:
          if( hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR( pAdapter )) )
          {
             if (pWextState->roamProfile.BSSType == eCSR_BSS_TYPE_START_IBSS)
@@ -2070,6 +2074,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
       {
          case WLAN_HDD_INFRA_STATION:
          case WLAN_HDD_P2P_CLIENT:
+         case WLAN_HDD_P2P_DEVICE:
             hdd_init_station_mode(pAdapter);
             /* Open the gates for HDD to receive Wext commands */
             pAdapter->isLinkUpSvcNeeded = FALSE; 
@@ -2805,26 +2810,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    // Unregister the Net Device Notifier
    unregister_netdevice_notifier(&hdd_netdev_notifier);
    
-#ifdef WLAN_FEATURE_P2P
-   if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-   {
-       hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
-                                    WLAN_HDD_INFRA_STATION);
-       if (pAdapter != NULL)
-       {
-          INIT_COMPLETION(pAdapter->session_close_comp_var);
-          if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
-                                        pAdapter->p2pSessionId,
-                                        hdd_smeCloseSessionCallback, pAdapter ) )
-          {
-              //Block on a completion variable. Can't wait forever though.
-              wait_for_completion_interruptible_timeout(
-                         &pAdapter->session_close_comp_var,
-                         msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
-          }
-       }
-   }
-#endif
    hdd_stop_all_adapters( pHddCtx );
 
 #ifdef ANI_BUS_TYPE_SDIO
@@ -3191,6 +3176,7 @@ int hdd_wlan_startup(struct device *dev )
 {
    VOS_STATUS status;
    hdd_adapter_t *pAdapter = NULL;
+   hdd_adapter_t *pP2pAdapter = NULL;
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext= NULL;
 #ifdef WLAN_BTAMP_FEATURE
@@ -3643,26 +3629,44 @@ int hdd_wlan_startup(struct device *dev )
      if (pAdapter != NULL)
      {
 #ifdef WLAN_FEATURE_P2P
-         vos_mem_copy( pHddCtx->p2pDeviceAddress.bytes, 
-                       pHddCtx->cfg_ini->intfMacAddr[0].bytes,
-                       sizeof(tSirMacAddr));
          if ( pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated )
          {
+             vos_mem_copy( pHddCtx->p2pDeviceAddress.bytes,
+                       pHddCtx->cfg_ini->intfMacAddr[0].bytes,
+                       sizeof(tSirMacAddr));
              /* Generate the P2P Device Address.  This consists of the device's
               * primary MAC address with the locally administered bit set.
               */
              pHddCtx->p2pDeviceAddress.bytes[0] |= 0x02;
-             status = hdd_init_p2p_device_mode(pAdapter);
-             if ( VOS_STATUS_SUCCESS != status )
+         }
+         else
+         {
+             tANI_U8* p2p_dev_addr = wlan_hdd_get_intf_addr(pHddCtx);
+             if (p2p_dev_addr != NULL)
              {
-                 hddLog(VOS_TRACE_LEVEL_FATAL,
-                         "%s: Init Session fail for P2P Device Address Mode ",
-                          __FUNCTION__);
-                 goto err_close_adapter;
+                vos_mem_copy(&pHddCtx->p2pDeviceAddress.bytes[0],
+                             p2p_dev_addr, VOS_MAC_ADDR_SIZE);
+             }
+             else
+             {
+                hddLog(VOS_TRACE_LEVEL_FATAL,
+                    "%s: Failed to allocate mac_address for p2p_device",
+                    __FUNCTION__);
+                goto err_close_adapter;
              }
          }
+
+         pP2pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
+                           &pHddCtx->p2pDeviceAddress.bytes[0], FALSE );
+         if ( NULL == pP2pAdapter )
+         {
+             hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to do hdd_open_adapter for P2P Device Interface",
+                __FUNCTION__);
+             goto err_close_adapter;
+         }
 #endif
-    }
+     }
 #ifdef WLAN_SOFTAP_FEATURE
    }
 #endif
@@ -3676,15 +3680,14 @@ int hdd_wlan_startup(struct device *dev )
      goto err_clkvote;
 #endif
    }
-   
-     
+
 #ifdef WLAN_BTAMP_FEATURE
    vStatus = WLANBAP_Open(pVosContext);
    if(!VOS_IS_STATUS_SUCCESS(vStatus))
    {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: Failed to open BAP",__func__);
-      goto err_p2psession_close;
+      goto err_close_adapter;
    }
 
    vStatus = BSL_Init(pVosContext);
@@ -3707,7 +3710,7 @@ int hdd_wlan_startup(struct device *dev )
    status = WLANBAP_SetConfig(&btAmpConfig);
 
 #endif //WLAN_BTAMP_FEATURE
- 
+
 #ifdef FEATURE_WLAN_SCAN_PNO
    /*SME must send channel update configuration to RIVA*/
    sme_UpdateChannelConfig(pHddCtx->hHal); 
@@ -3722,7 +3725,7 @@ int hdd_wlan_startup(struct device *dev )
 #ifdef WLAN_BTAMP_FEATURE
       goto err_bap_stop;
 #else
-      goto err_p2psession_close; 
+      goto err_close_adapter; 
 #endif //WLAN_BTAMP_FEATURE
    }
 
@@ -3835,29 +3838,6 @@ err_bap_stop:
 #ifdef WLAN_BTAMP_FEATURE
 err_bap_close:
    WLANBAP_Close(pVosContext);
-#endif
-
-err_p2psession_close:
-#ifdef WLAN_FEATURE_P2P
-   if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-   {
-       hdd_adapter_t* pAdapter = hdd_get_adapter(pHddCtx,
-                                    WLAN_HDD_INFRA_STATION);
-
-       if (pAdapter != NULL)
-       {
-          INIT_COMPLETION(pAdapter->session_close_comp_var);
-          if( eHAL_STATUS_SUCCESS == sme_CloseSession( pHddCtx->hHal,
-                                        pAdapter->p2pSessionId,
-                                        hdd_smeCloseSessionCallback, pAdapter ) )
-          {
-              //Block on a completion variable. Can't wait forever though.
-              wait_for_completion_interruptible_timeout(
-                         &pAdapter->session_close_comp_var,
-                         msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
-          }
-       }
-   }
 #endif
 
 err_close_adapter:
@@ -4411,8 +4391,8 @@ void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
        case WLAN_HDD_P2P_GO:
 #endif
        case WLAN_HDD_SOFTAP:
-    pHddCtx->concurrency_mode |= (1 << mode);
-    pHddCtx->no_of_sessions[mode]++;
+            pHddCtx->concurrency_mode |= (1 << mode);
+            pHddCtx->no_of_sessions[mode]++;
             break;
        default:
             break;
