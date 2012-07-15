@@ -2,7 +2,11 @@
 
 LOCAL_PATH := $(call my-dir)
 WLAN_BLD_DIR  := vendor/qcom/proprietary/wlan
-DLKM_DIR      := build/dlkm
+ifeq ($(call is-android-codename,JELLY_BEAN),true)
+      DLKM_DIR := $(TOP)/device/qcom/common/dlkm
+else
+      DLKM_DIR := build/dlkm
+endif
 
 # Default nv.bin to move to persist
 FW_NV_FILE := WCN1314_qcom_wlan_nv.bin
