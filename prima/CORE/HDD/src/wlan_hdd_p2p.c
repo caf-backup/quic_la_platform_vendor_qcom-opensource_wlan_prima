@@ -375,6 +375,11 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    tANI_U16 extendedWait = 0;
+    tANI_U8 type = WLAN_HDD_GET_TYPE_FRM_FC(buf[0]);
+    tANI_U8 subType = WLAN_HDD_GET_SUBTYPE_FRM_FC(buf[0]);
+    tActionFrmType actionFrmType;
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     hdd_adapter_t *goAdapter;
 #endif
@@ -389,8 +394,6 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
          ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
        )
     {
-        tANI_U8 type = WLAN_HDD_GET_TYPE_FRM_FC(buf[0]);
-        tANI_U8 subType = WLAN_HDD_GET_SUBTYPE_FRM_FC(buf[0]);
         if (type == SIR_MAC_MGMT_FRAME)
         {
             if (subType == SIR_MAC_MGMT_PROBE_RSP)
@@ -454,6 +457,8 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
            (cfgState->current_freq == chan->center_freq)
           )
         {
+            hddLog(LOG1,"action frame: extending the wait time\n");
+            extendedWait = (tANI_U16)wait;
             goto send_frame;
         }
 
@@ -524,9 +529,28 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId; 
+        
+        if ((type == SIR_MAC_MGMT_FRAME) && 
+                (subType == SIR_MAC_MGMT_ACTION) &&
+                (buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_PUBLIC_ACTION_FRAME))
+        {
+            actionFrmType = buf[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
+            hddLog(LOG1, "Tx Action Frame %u \n", actionFrmType);
+            if (actionFrmType == WLAN_HDD_PROV_DIS_REQ)
+            {
+                cfgState->actionFrmState = HDD_PD_REQ_ACK_PENDING;
+                hddLog(LOG1, "%s: HDD_PD_REQ_ACK_PENDING \n", __func__);
+            }
+            else if (actionFrmType == WLAN_HDD_GO_NEG_REQ)
+            {
+                cfgState->actionFrmState = HDD_GO_NEG_REQ_ACK_PENDING;
+                hddLog(LOG1, "%s: HDD_GO_NEG_REQ_ACK_PENDING \n", __func__);
+            }
+        }
+        
         if (eHAL_STATUS_SUCCESS !=
                sme_sendAction( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                               sessionId, buf, len) )
+                               sessionId, buf, len, extendedWait))
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                      "%s: sme_sendAction returned fail", __func__);
@@ -539,7 +563,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
      {
         if( VOS_STATUS_SUCCESS !=
              WLANSAP_SendAction( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                  buf, len ) )
+                                  buf, len, 0 ) )
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: WLANSAP_SendAction returned fail", __func__);
@@ -570,10 +594,11 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
 {
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
+    cfgState->actionFrmState = HDD_IDLE;
+
     hddLog( LOG1, "Send Action cnf, actionSendSuccess %d", actionSendSuccess);
     if( NULL == cfgState->buf )
     {
-        VOS_ASSERT( cfgState->buf );
         return;
     }
 
@@ -1006,6 +1031,10 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                             tANI_U32 rxChan )
 {
     tANI_U16 freq;
+    tANI_U8 type = 0;
+    tANI_U8 subType = 0; 
+    tActionFrmType actionFrmType;
+    hdd_cfg80211_state_t *cfgState = NULL;
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d\n",
             __func__, frameType, nFrameLength);
@@ -1061,6 +1090,27 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     {
         freq = ieee80211_channel_to_frequency( rxChan,
                 IEEE80211_BAND_5GHZ);
+    }
+
+    type = WLAN_HDD_GET_TYPE_FRM_FC(pbFrames[0]);
+    subType = WLAN_HDD_GET_SUBTYPE_FRM_FC(pbFrames[0]);
+    cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    
+    if ((type == SIR_MAC_MGMT_FRAME) && 
+            (subType == SIR_MAC_MGMT_ACTION) &&
+            (pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_PUBLIC_ACTION_FRAME))
+    {
+        actionFrmType = pbFrames[WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET];
+        hddLog(LOG1, "Rx Action Frame %u \n", actionFrmType);
+        if (((actionFrmType == WLAN_HDD_PROV_DIS_RESP) &&
+                    (cfgState->actionFrmState == HDD_PD_REQ_ACK_PENDING)) ||
+                ((actionFrmType == WLAN_HDD_GO_NEG_RESP) &&
+                 (cfgState->actionFrmState == HDD_GO_NEG_REQ_ACK_PENDING)))
+        {
+            hddLog(LOG1, "%s: ACK_PENDING and But received RESP for Action frame ", 
+                    __func__);
+            hdd_sendActionCnf(pAdapter, TRUE);
+        }
     }
 
     //Indicate Frame Over Normal Interface

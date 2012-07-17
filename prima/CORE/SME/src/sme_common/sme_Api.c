@@ -5452,7 +5452,8 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal, void *p2pIe, tANI_U32 p2pIeLength)
   ---------------------------------------------------------------------------*/
 
 eHalStatus sme_sendAction(tHalHandle hHal, tANI_U8 sessionId,
-                          const tANI_U8 *pBuf, tANI_U32 len)
+                          const tANI_U8 *pBuf, tANI_U32 len,
+                          tANI_U16 wait)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
@@ -5461,7 +5462,7 @@ eHalStatus sme_sendAction(tHalHandle hHal, tANI_U8 sessionId,
     status = sme_AcquireGlobalLock(&pMac->sme);
     if(HAL_STATUS_SUCCESS(status))
     {
-        p2pSendAction(hHal, sessionId, pBuf, len);
+        p2pSendAction(hHal, sessionId, pBuf, len, wait);
         //release the lock for the sme object
         sme_ReleaseGlobalLock( &pMac->sme );
     }
