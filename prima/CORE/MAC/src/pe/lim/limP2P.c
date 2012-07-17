@@ -530,7 +530,21 @@ void limSendSmeMgmtFrameInd(
     pSirSmeMgmtFrame->mesgLen = length;
     pSirSmeMgmtFrame->sessionId = sessionId;
     pSirSmeMgmtFrame->frameType = frameType;
-    pSirSmeMgmtFrame->rxChan = rxChannel;
+
+    /* work around for 5Ghz channel is not correct since rxhannel 
+     * is 4 bits. So we don't indicate more than 16 channels 
+     */
+    if( (VOS_FALSE == 
+        tx_timer_running(&pMac->lim.limTimers.gLimRemainOnChannelTimer)) &&
+        (psessionEntry != NULL) && 
+        (SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel)) ) 
+    {
+        pSirSmeMgmtFrame->rxChan = psessionEntry->currentOperChannel;
+    }
+    else
+    {
+        pSirSmeMgmtFrame->rxChan = rxChannel;
+    }
 
     vos_mem_zero(pSirSmeMgmtFrame->frameBuf,frameLen);
     vos_mem_copy(pSirSmeMgmtFrame->frameBuf,frame,frameLen);
