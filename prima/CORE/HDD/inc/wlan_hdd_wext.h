@@ -38,6 +38,8 @@
 #define HDD_WLAN_WMM_PARAM_MAX_SERVICE_INTERVAL        17
 #define HDD_WLAN_WMM_PARAM_COUNT                       18
 
+#define MHZ 6
+
 typedef enum
 {
    HDD_WLAN_WMM_DIRECTION_UPSTREAM      = 0,

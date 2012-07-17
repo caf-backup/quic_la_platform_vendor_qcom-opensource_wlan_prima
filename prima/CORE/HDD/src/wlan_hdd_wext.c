@@ -401,13 +401,12 @@ int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
 
 int hdd_wlan_get_freq(v_U32_t channel, v_U32_t *pfreq)
 {
-     if((channel > 0) && (channel <= (FREQ_CHAN_MAP_TABLE_SIZE - 1)))
-     {
-       *pfreq = freq_chan_map[channel - 1].freq * 100000;
-       return 0;
-     }
-     else
-       return -EINVAL;
+    if((channel > 0) && (channel <= (FREQ_CHAN_MAP_TABLE_SIZE - 1)))
+    {
+         *pfreq = freq_chan_map[channel - 1].freq;
+         return 1;
+    }
+    return -EINVAL;
 }
 
 static v_BOOL_t
@@ -1069,7 +1068,7 @@ static int iw_set_freq(struct net_device *dev, struct iw_request_info *info,
 static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
              struct iw_freq *fwrq, char *extra)
 {
-   v_U32_t status = 0,channel,freq = 0;
+   v_U32_t status = FALSE, channel = 0, freq = 0;
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal;
    hdd_wext_state_t *pWextState;
@@ -1096,18 +1095,31 @@ static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
        }
        else
        {
-          fwrq->m = channel;
-          fwrq->e = 0;
+           status = hdd_wlan_get_freq(channel, &freq);
+           if( TRUE == status )
+           {
+               /* Set Exponent parameter as 6 (MHZ) in struct iw_freq
+                * iwlist & iwconfig command shows frequency into proper
+                * format (2.412 GHz instead of 246.2 MHz)*/
+               fwrq->m = freq;
+               fwrq->e = MHZ;
+           }
        }
     }
     else
     {
        channel = pHddStaCtx->conn_info.operationChannel;
-       status = hdd_wlan_get_freq(channel,&freq);
-       fwrq->m = freq;
-       fwrq->e = 0;
+       status = hdd_wlan_get_freq(channel, &freq);
+       if( TRUE == status )
+       {
+          /* Set Exponent parameter as 6 (MHZ) in struct iw_freq
+           * iwlist & iwconfig command shows frequency into proper
+           * format (2.412 GHz instead of 246.2 MHz)*/
+           fwrq->m = freq;
+           fwrq->e = MHZ;
+       }
     }
-   return status;
+   return 0;
 }
 
 static int iw_get_tx_power(struct net_device *dev,
