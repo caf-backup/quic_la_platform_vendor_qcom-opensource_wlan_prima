@@ -1723,7 +1723,6 @@ static eHalStatus CsrInit11dInfo(tpAniSirGlobal pMac, tCsr11dinfo *ps11dinfo)
 /* Initialize the Channel + Power List in the local cache and in the CFG */
 eHalStatus csrInitChannelPowerList( tpAniSirGlobal pMac, tCsr11dinfo *ps11dinfo)
 {
-  eHalStatus status = eHAL_STATUS_FAILURE;
   tANI_U8  index;
   tANI_U32 count=0;
   tSirMacChanInfo *pChanInfo;
@@ -1731,7 +1730,7 @@ eHalStatus csrInitChannelPowerList( tpAniSirGlobal pMac, tCsr11dinfo *ps11dinfo)
 
   if(!ps11dinfo || !pMac)
   {
-     return (status);
+     return eHAL_STATUS_FAILURE;
   }
 
   if(HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pChanInfo, sizeof(tSirMacChanInfo) * WNI_CFG_VALID_CHANNEL_LIST_LEN)))
@@ -1753,15 +1752,8 @@ eHalStatus csrInitChannelPowerList( tpAniSirGlobal pMac, tCsr11dinfo *ps11dinfo)
       }
       palFreeMemory(pMac->hHdd, pChanInfoStart);
   }
-  
-  //Only apply them to CFG when not in STOP state. Otherwise they will be applied later
-  if( HAL_STATUS_SUCCESS(status) && ( !CSR_IS_ROAM_STOP(pMac) ) )
-  {
-    // Store the channel+power info in the global place: Cfg 
-    csrApplyPower2Current( pMac );
-  }
 
-  return (status);
+  return eHAL_STATUS_SUCCESS;
 }
 
 //pCommand may be NULL
