@@ -19733,6 +19733,7 @@ WDI_DequeueAssocRequest
         wpal_list_insert_front( &(pWDICtx->wptPendingQueue), &pNode); 
         wpal_list_remove_back(&(pSession->wptPendingQueue), &pNode); 
       }
+      pSession->bAssocReqQueued = eWLAN_PAL_FALSE;
   }
   else
   {
