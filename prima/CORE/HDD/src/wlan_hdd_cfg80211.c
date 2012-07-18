@@ -3249,6 +3249,7 @@ int wlan_hdd_cfg80211_pmksa_candidate_notify(
                     hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
                     int index, bool preauth )
 {
+#ifdef FEATURE_WLAN_OKC
     struct net_device *dev = pAdapter->dev;
 
     ENTER();
@@ -3263,7 +3264,7 @@ int wlan_hdd_cfg80211_pmksa_candidate_notify(
     dump_bssid(pRoamInfo->bssid);
     cfg80211_pmksa_candidate_notify(dev, index,
                                     pRoamInfo->bssid, preauth, GFP_KERNEL);
-
+#endif  /* FEATURE_WLAN_OKC */
     return 0; 
 }
 #endif //FEATURE_WLAN_LFR
