@@ -453,14 +453,14 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #endif
   
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
-  WDI_ProcessGtkOffloadRsp,           /* WDI_GTK_OFFLOAD_RESP  */
-  WDI_ProcessGTKOffloadGetInfoRsp,    /* WDI_GTK_OFFLOAD_GETINFO_RESP  */
+  WDI_ProcessGtkOffloadRsp,             /* WDI_GTK_OFFLOAD_RESP  */
+  WDI_ProcessGTKOffloadGetInfoRsp,      /* WDI_GTK_OFFLOAD_GETINFO_RESP  */
 #else
   NULL,
   NULL,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
-  WDI_ProcessSetTmLevelRsp,       /* WDI_SET_TM_LEVEL_RESP */
-  WDI_ProcessFeatureCapsExchangeRsp,     /* WDI_FEATURE_CAPS_EXCHANGE_RESP */  
+  WDI_ProcessSetTmLevelRsp,             /* WDI_SET_TM_LEVEL_RESP */
+  WDI_ProcessFeatureCapsExchangeRsp,    /* WDI_FEATURE_CAPS_EXCHANGE_RESP */
 
   /*---------------------------------------------------------------------
     Indications
@@ -24210,8 +24210,8 @@ WDI_featureCapsExchangeReq
    ------------------------------------------------------------------------*/
    FillAllFeatureCaps(gpHostWlanFeatCaps, supportEnabledFeatures,
       (sizeof(supportEnabledFeatures)/sizeof(supportEnabledFeatures[0])));
-   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-      "bit 0 - %x %x %x %x - bit 128\n",
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+      "Host caps %x %x %x %x\n",
       gpHostWlanFeatCaps->featCaps[0],
       gpHostWlanFeatCaps->featCaps[1],
       gpHostWlanFeatCaps->featCaps[2],
@@ -24285,7 +24285,7 @@ WDI_ProcessFeatureCapsExchangeReq
   }
 
   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-       "bit 0 - %x %x %x %x - bit 128\n",
+       "Host Caps - %x %x %x %x\n",
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[0],
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[1],
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[2],
@@ -24363,14 +24363,14 @@ WDI_ProcessFeatureCapsExchangeRsp
 
    wpalMemoryCopy(gpFwWlanFeatCaps,(tWlanFeatCaps *) pEventData -> pEventData,
                     fCapsStructSize);
-   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-      "bit 0 - %x %x %x %x - bit 128\n",
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+      "FW caps %x %x %x %x\n",
       gpFwWlanFeatCaps->featCaps[0],
       gpFwWlanFeatCaps->featCaps[1],
       gpFwWlanFeatCaps->featCaps[2],
       gpFwWlanFeatCaps->featCaps[3]
      );
-   
+
    wdiFeatureCapsExchangeCb = (WDI_featureCapsExchangeCb) pWDICtx -> pfncRspCB; 
 
    /*Notify UMAC - there is no callback right now but can be used in future if reqd */
