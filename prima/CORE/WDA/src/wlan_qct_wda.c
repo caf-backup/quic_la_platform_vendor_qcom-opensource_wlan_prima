@@ -7755,8 +7755,6 @@ VOS_STATUS WDA_ProcessWlanSuspendInd(tWDA_CbContext *pWDA,
    wdiSuspendParams.pUserData = pWDA;
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, "%s: %d" ,__FUNCTION__, pWlanSuspendParam->configuredMcstBcstFilterSetting);
 
-   WDA_STOP_TIMER(&pWDA->wdaTimers.baActivityChkTmr);
-
    wdiStatus = WDI_HostSuspendInd(&wdiSuspendParams);
    if(WDI_STATUS_PENDING == wdiStatus)
    {
@@ -7850,8 +7848,6 @@ VOS_STATUS WDA_ProcessWlanResumeReq(tWDA_CbContext *pWDA,
    pWdaParams->wdaMsgParam = pWlanResumeParam;
    pWdaParams->wdaWdiApiMsgParam = wdiResumeParams;
    pWdaParams->pWdaContext = pWDA;
-
-   WDA_START_TIMER(&pWDA->wdaTimers.baActivityChkTmr) ;
 
    wdiStatus = WDI_HostResumeReq(wdiResumeParams, 
                       (WDI_HostResumeEventRspCb)WDA_ProcessWlanResumeCallback,
