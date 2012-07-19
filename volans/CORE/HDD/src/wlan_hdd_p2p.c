@@ -49,7 +49,6 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                                                 eHalStatus status )
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) pCtx;
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx = cfgState->remain_on_chan_ctx;
 
@@ -88,11 +87,6 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId;
-        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-        {
-            if ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode )
-                sessionId = pAdapter->p2pSessionId;
-        }
         sme_DeregisterMgmtFrame(
                    hHal, sessionId,
                    (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
@@ -120,7 +114,6 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
                                    rem_on_channel_request_type_t request_type )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     int ret = 0;
@@ -220,11 +213,6 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId; 
-        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-        {
-            if ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode )
-                sessionId = pAdapter->p2pSessionId;
-        }
         //call sme API to start remain on channel.
         sme_RemainOnChannel(
                        WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId,
@@ -317,7 +305,6 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
                                       struct net_device *dev, u64 cookie )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     int ret = 0;
 
@@ -359,11 +346,6 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId; 
-        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-        {
-            if ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode )
-                sessionId = pAdapter->p2pSessionId;
-        }
         sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
                                             sessionId );
     }
@@ -422,7 +404,6 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                             __func__,pAdapter->device_mode);
@@ -583,16 +564,6 @@ send_frame:
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId; 
-        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-        {
-            if ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode )
-            {
-                sessionId = pAdapter->p2pSessionId;
-                vos_mem_copy((void*) (&buf[10]), 
-                             (void*) (&pHddCtx->p2pDeviceAddress.bytes[0]),
-                                     sizeof(tSirMacAddr));
-            }
-        }
         if (eHAL_STATUS_SUCCESS !=
                sme_sendAction( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                sessionId, buf, len) )
