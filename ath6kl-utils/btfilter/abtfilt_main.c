@@ -28,6 +28,9 @@ usage(void)
     fprintf(stderr, "  -b   : Use only d-bus filtering (on interfaces which doesnt support hciX\n");
     fprintf(stderr, "  -s   : Front End is single antenna (if not specified, its assumed to be dual antenna with atleast 25 dB of isolation)\n");
     fprintf(stderr, "  -q   : col-located BT is Qualcomm \n");
+    fprintf(stderr, "  -t   : Front End is 2x2 dual antenna with shared BT on chain 0. Isolation between antennas is < 20dB\n");
+    fprintf(stderr, "  -u   : Front End is un-shared BT and 2x2 WLAN\n");
+    fprintf(stderr, "  -m   : WLAN chip is mckinley\n");
 }
 
 void
@@ -77,7 +80,7 @@ main(int argc, char *argv[])
      */
 
     /* Get user specified options */
-    while ((opt = getopt(argc, argv, "bsvandczxqf:w:")) != EOF) {
+    while ((opt = getopt(argc, argv, "bsvandczxqtumf:w:")) != EOF) {
         switch (opt) {
         case 'n':
             daemonize = 0;
@@ -105,6 +108,10 @@ main(int argc, char *argv[])
             btfiltFlags |= ABF_WIFI_CHIP_IS_VENUS ;
             A_DEBUG("wifi chip is venus\n");
             break;
+        case 'm':
+            btfiltFlags |= ABF_WIFI_CHIP_IS_MCKINLEY;
+            A_DEBUG("wifi chip is mckinley\n");
+            break;
         case 'x':
             btfiltFlags |= ABF_BT_CHIP_IS_ATHEROS ;
             A_DEBUG("bt chip is atheros\n");
@@ -123,6 +130,12 @@ main(int argc, char *argv[])
 	    break;
         case 'q':
             btfiltFlags |= ABF_BT_CHIP_IS_QCOM;
+            break;
+        case 't':
+            btfiltFlags |= ABF_FE_ANT_IS_DA_SB_LI;
+            break;
+        case 'u':
+            btfiltFlags |= ABF_FE_ANT_IS_3A;
             break;
         default:
             usage();

@@ -531,6 +531,186 @@ AdjustBtControlAction(ATHBT_FILTER_INFO      *pInfo,
 
         }
     }
+    else if (pInfo->Flags & ABF_WIFI_CHIP_IS_MCKINLEY) {
+        if (pActionMsg->IndicationForControlAction == ATH_BT_A2DP) {
+            WMI_SET_BTCOEX_A2DP_CONFIG_CMD *pA2dpParamsCmd =
+                                (WMI_SET_BTCOEX_A2DP_CONFIG_CMD *)
+                                (pActionMsg->ControlAction.Buffer);
+            BTCOEX_A2DP_CONFIG *pA2dpGenericConfig =
+                                &pA2dpParamsCmd->a2dpConfig;
+            BTCOEX_PSPOLLMODE_A2DP_CONFIG *pA2dpPspollConfig =
+                                &pA2dpParamsCmd->a2dppspollConfig;
+            BTCOEX_OPTMODE_A2DP_CONFIG *pA2dpOptModeConfig =
+                                &pA2dpParamsCmd->a2dpOptConfig;
+	
+            pA2dpGenericConfig->a2dpFlags = 0;
+            /* Role = 0 is Master, Role = 1 is slave */
+            if(pInfo->A2DPConnection_Role == 0) {
+                pA2dpGenericConfig->a2dpFlags |= A2DP_CONFIG_IS_COLOCATED_IS_MASTER;
+            } else {
+                pA2dpGenericConfig->a2dpFlags &= ~A2DP_CONFIG_IS_COLOCATED_IS_MASTER;
+            }
+	
+            switch (pInfo->A2DPConnection_LMPVersion) {
+                case 0: // 1.0
+                case 1: // 1.1
+                case 2: // 1.2
+                    pA2dpPspollConfig->a2dpWlanMaxDur = 30;
+                    pA2dpPspollConfig->a2dpDataRespTimeout = 10;
+                    pA2dpPspollConfig->a2dpMinBurstCnt = 4;
+                    pA2dpOptModeConfig->a2dpMaxAggrSize = 1;
+                    pA2dpOptModeConfig->a2dpMinlowRateMbps =52;
+                    break;
+                case 3: // 2.0
+                case 4: // 2.1
+                default:
+                    pA2dpPspollConfig->a2dpDataRespTimeout = 20;
+                    pA2dpPspollConfig->a2dpWlanMaxDur = 50;
+                    pA2dpPspollConfig->a2dpMinBurstCnt = 2;
+                    pA2dpOptModeConfig->a2dpMaxAggrSize = 16;
+                    pA2dpOptModeConfig->a2dpMinlowRateMbps = 36;
+
+                    /* Indicate that remote device is EDR capable */
+                    pA2dpGenericConfig->a2dpFlags |= A2DP_CONFIG_EDR_CAPABLE;
+                    break;
+            }
+
+            if (pInfo->Flags & ABF_BT_CHIP_IS_QCOM) {
+                pA2dpGenericConfig->a2dpFlags |= A2DP_CONFIG_ALLOW_OPTIMIZATION;
+                pA2dpPspollConfig->a2dpWlanMaxDur = 25;
+                pA2dpPspollConfig->a2dpMinBurstCnt = 3;
+                pA2dpOptModeConfig->a2dpPktStompCnt = 2;
+            } else {
+                if (pInfo->Flags & ABF_BT_CHIP_IS_ATHEROS) {
+                    pA2dpGenericConfig->a2dpFlags |= A2DP_CONFIG_A2DP_IS_HIGH_PRI;
+                }
+                pA2dpGenericConfig->a2dpFlags &= ~A2DP_CONFIG_ALLOW_OPTIMIZATION;
+            }
+
+            A_DEBUG(("ATHBT: BT PARAMS A2DP Adjustments :\r\n"));
+            A_DEBUG(("	  a2dpWlanUsageLimit  : %d\r\n"),
+                        pA2dpPspollConfig->a2dpWlanMaxDur);
+            A_DEBUG(("	  a2dpBurstCntMin	  : %d\r\n"),
+                        pA2dpPspollConfig->a2dpMinBurstCnt);
+            A_DEBUG(("	  a2dpDataRespTimeout : %d\r\n"),
+                        pA2dpPspollConfig->a2dpDataRespTimeout);
+            A_DEBUG(("	  A2DP OptMode Config-MaxAggrSize : %d\r\n"),
+                        pA2dpOptModeConfig->a2dpMaxAggrSize);
+            A_DEBUG(("	 A2DP Flags : %d\r\n"),
+                        pA2dpGenericConfig->a2dpFlags);
+            A_DEBUG(("	 A2DP OptMode Config - MinLowRateMbps : %d\r\n"),
+                        pA2dpOptModeConfig->a2dpMinlowRateMbps);
+            A_DEBUG(("	 A2DP OptMode Config - LowRateCnt : %d\r\n"),
+                        pA2dpOptModeConfig->a2dpLowRateCnt );
+            A_DEBUG(("	 A2DP High Pkt Ratio Config- PktRatio : %d\r\n"),
+                        pA2dpOptModeConfig->a2dpHighPktRatio );
+            A_DEBUG(("	 A2DP High Pkt Ratio Config- StompCnt : %d\r\n"),
+                        pA2dpOptModeConfig->a2dpPktStompCnt );
+        }
+
+        /* adjust control action for BT_PARAMS_SCO control action  */
+        if ((pActionMsg->IndicationForControlAction == ATH_BT_SCO) ||
+            (pActionMsg->IndicationForControlAction == ATH_BT_ESCO))
+        {
+            WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD *pScoParamsCmd =
+                    (WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD *)
+                    (pActionMsg->ControlAction.Buffer);
+            BTCOEX_SCO_CONFIG *pScoGenericConfig =
+                    &pScoParamsCmd->scoConfig;
+            BTCOEX_PSPOLLMODE_SCO_CONFIG * pScoPspollConfig =
+                    &pScoParamsCmd->scoPspollConfig;
+            BTCOEX_OPTMODE_SCO_CONFIG_EXT * pScoOptModeConfig =
+                    &pScoParamsCmd->scoOptModeConfig;
+            BTCOEX_WLANSCAN_SCO_CONFIG * pScoWlanScanConfig =
+                    &pScoParamsCmd->scoWlanScanConfig;
+	
+            pScoGenericConfig->scoFlags = 0;
+            do {
+                if ((pInfo->SCOConnectInfo.LinkType == BT_LINK_TYPE_ESCO) &&
+                    (pInfo->SCOConnectInfo.Valid))
+                {
+                    A_UCHAR scoSlots;
+                    /* decode packet length to get packet type */
+                    if (pInfo->SCOConnectInfo.TxPacketLength <= 90) {
+                        /* EV3 */ /* 2-EV3 */ /* 3-EV3 */
+                        scoSlots = 1;
+                    } else {
+                        /* EV4 */ /* EV5: */ /* 2-EV5 */ /* 3-EV5 */
+                        scoSlots = 3;
+                    }
+	
+                    scoSlots *= 2;
+                    pScoGenericConfig->scoSlots = scoSlots;
+	
+                    if (pInfo->SCOConnectInfo.TransmissionInterval >= scoSlots) {
+                        pScoGenericConfig->scoIdleSlots =
+                        pInfo->SCOConnectInfo.TransmissionInterval - scoSlots;
+                    } else {
+                        A_DEBUG(("Invalid scoSlot,	got:%d, transInt: %d\n"),
+                            scoSlots,
+                            pInfo->SCOConnectInfo.TransmissionInterval);
+                    }
+                } else {
+                    /* legacy SCO */
+                    pScoGenericConfig->scoSlots = 2;
+                    pScoGenericConfig->scoIdleSlots = 4;
+                }
+	
+                if (pScoGenericConfig->scoIdleSlots >= 10) {
+                    pScoOptModeConfig->scoMaxAggrSize = 8;
+                }
+
+                if(pInfo->SCOConnectInfo.LinkType == BT_LINK_TYPE_ESCO) {
+                    pScoGenericConfig->scoFlags |= WMI_SCO_CONFIG_FLAG_IS_EDR_CAPABLE;
+
+                    if(pScoGenericConfig->scoIdleSlots >= 10) {
+                        pScoPspollConfig->scoPsPollLatencyFraction = 3;
+                        pScoPspollConfig->scoStompDutyCyleVal = 2;
+                        pScoWlanScanConfig->maxScanStompCnt = 2;
+                    } else {
+                        pScoPspollConfig->scoPsPollLatencyFraction = 2;
+                        pScoPspollConfig->scoStompDutyCyleVal = 5;
+                        pScoWlanScanConfig->maxScanStompCnt = 4;
+                    }
+                } else {
+                    if(pScoGenericConfig->scoIdleSlots >= 10) {
+                        pScoPspollConfig->scoPsPollLatencyFraction = 2;
+                        pScoPspollConfig->scoStompDutyCyleVal = 2;
+                        pScoWlanScanConfig->maxScanStompCnt = 2;
+                    }
+                }
+            } while(FALSE);
+	
+            A_DEBUG(("ATHBT: BT PARAMS SCO adjustment (%s) \n"),
+                pInfo->SCOConnectInfo.LinkType == BT_LINK_TYPE_ESCO ? "eSCO":"SCO");
+            A_DEBUG(("    numScoCyclesForceTrigger : %d \n"),
+                pScoPspollConfig->scoCyclesForceTrigger);
+            A_DEBUG(("    dataResponseTimeout		: %d \n"),
+                pScoPspollConfig->scoDataResponseTimeout = 20);
+            A_DEBUG(("    stompDutyCyleVal 		: %d \n"),
+                pScoPspollConfig->scoStompDutyCyleVal);
+            A_DEBUG(("    psPollLatencyFraction	: %d \n"),
+                pScoPspollConfig->scoPsPollLatencyFraction);
+            A_DEBUG(("    noSCOSlots				: %d \n"),
+                pScoGenericConfig->scoSlots);
+            A_DEBUG(("    noIdleSlots				: %d \n"),
+                pScoGenericConfig->scoIdleSlots);
+            A_DEBUG((" scoFlags 					 : %d \n"),
+                pScoGenericConfig->scoFlags);
+	
+            pScoOptModeConfig->scoStompCntIn100ms = 3;
+            pScoOptModeConfig->scoContStompMax = 3;
+            pScoOptModeConfig->scoMinlowRateMbps = 36;
+            pScoOptModeConfig->scoLowRateCnt = 5;
+            pScoOptModeConfig->scoHighPktRatio = 5;
+	
+            if(pScoGenericConfig->scoIdleSlots >= 10) {
+                pScoOptModeConfig->scoMaxAggrSize = 8;
+            }else {
+                pScoOptModeConfig->scoMaxAggrSize = 1;
+            }
+        }
+    }
     else
     {
         WMI_SET_BT_PARAMS_CMD   *pParamsCmd;
@@ -1205,10 +1385,10 @@ HandleAdapterEvent(ATHBT_FILTER_INFO *pInfo, ATH_ADAPTER_EVENT Event)
             if (btfiltFlags != pInfo->Flags) {
                 A_STATUS status;
                 BT_FILTER_CORE_INFO *pCoreInfo = &pInfo->FilterCore;
-                pInfo->Flags &= ~ABF_WIFI_CHIP_IS_VENUS;
-                pInfo->Flags |= (btfiltFlags & ABF_WIFI_CHIP_IS_VENUS);
-                pCoreInfo->FilterState.btFilterFlags &= ~ABF_WIFI_CHIP_IS_VENUS;
-                pCoreInfo->FilterState.btFilterFlags |= (btfiltFlags & ABF_WIFI_CHIP_IS_VENUS);
+                pInfo->Flags &= ~(ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY);
+                pInfo->Flags |= (btfiltFlags & (ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY));
+                pCoreInfo->FilterState.btFilterFlags &= ~(ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY);
+                pCoreInfo->FilterState.btFilterFlags |= (btfiltFlags & (ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY));
                 FCore_ResetActionDescriptors(pCoreInfo);
                 GetActionStringOverrides(pInfo);
                 status = FCore_RefreshActionList(pCoreInfo);
@@ -1269,7 +1449,7 @@ ExecuteBtAction(ATHBT_FILTER_INFO *pInfo, BT_ACTION_MSG *pBtActionMsg)
     A_STATUS status;
 
 	A_INFO("BT Action\n");
-    if(pInfo->Flags & ABF_WIFI_CHIP_IS_VENUS) {
+    if(pInfo->Flags & (ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY)) {
         if (pBtActionMsg->ControlAction.Type == BT_CONTROL_ACTION_STATUS) {
             /* this action issues a STATUS OID command */
             controlCode = AR6000_XIOCTL_WMI_SET_BT_OPERATING_STATUS;
@@ -1279,7 +1459,11 @@ ExecuteBtAction(ATHBT_FILTER_INFO *pInfo, BT_ACTION_MSG *pBtActionMsg)
                pBtActionMsg->IndicationForControlAction == ATH_BT_ESCO)
             {
                 controlCode = AR6000_XIOCTL_WMI_SET_BTCOEX_SCO_CONFIG;
-                size = sizeof(WMI_SET_BTCOEX_SCO_CONFIG_CMD);
+                if (pInfo->Flags & ABF_WIFI_CHIP_IS_MCKINLEY) {
+                    size = sizeof(WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD);
+                } else {
+                    size = sizeof(WMI_SET_BTCOEX_SCO_CONFIG_CMD);
+                }
             }
             if(pBtActionMsg->IndicationForControlAction == ATH_BT_A2DP){
                 controlCode = AR6000_XIOCTL_WMI_SET_BTCOEX_A2DP_CONFIG;
