@@ -235,7 +235,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
     /**
      * Initialize state to eLIM_MLM_OFFLINE_STATE
      */
-    pMac->lim.gLimSmeState     = eLIM_MLM_OFFLINE_STATE;
+    pMac->lim.gLimSmeState     = eLIM_SME_OFFLINE_STATE;
 #else
     /**
      * Initialize state to suspended state and wait for

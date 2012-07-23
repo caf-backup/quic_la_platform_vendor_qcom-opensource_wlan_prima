@@ -709,7 +709,7 @@ tSirRetStatus pmmSendPowerSaveCfg(tpAniSirGlobal pMac, tpSirPowerSaveCfg pUpdate
     if(pMac->lim.gLimSmeState != eLIM_SME_IDLE_STATE  )
     {
         pmmLog(pMac, LOGE,
-            FL("pmmCfg: Power Save Configuration received in invalid state %d"),
+            FL("pmmCfg: Power Save Configuration received in invalid global sme state %d"),
             pMac->lim.gLimSmeState);
         retCode = eSIR_SME_INVALID_STATE;
         goto returnFailure;
@@ -1482,7 +1482,7 @@ void pmmEnterImpsRequestHandler (tpAniSirGlobal pMac)
          (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
     {
         PELOGE(pmmLog(pMac, LOGE, 
-              FL("pmmImps: PMM State = %d, MLM State = %d, SME State = %d, rejecting the sleep mode request\n"),
+              FL("pmmImps: PMM State = %d, Global MLM State = %d, Global SME State = %d, rejecting the sleep mode request\n"),
               pMac->pmm.gPmmState, pMac->lim.gLimMlmState, pMac->lim.gLimSmeState);)
 
         resultCode = eSIR_SME_INVALID_PMM_STATE;
@@ -1768,7 +1768,7 @@ void pmmEnterUapsdRequestHandler (tpAniSirGlobal pMac)
          limIsSystemInScanState(pMac) )
     {
         PELOGE(pmmLog(pMac, LOGE,
-            FL("pmmUapsd: PMM State = %d, MLM State = %d, SME State = %d, rejecting the sleep mode request\n"),
+            FL("pmmUapsd: PMM State = %d, Global MLM State = %d, Global SME State = %d, rejecting the sleep mode request\n"),
             pMac->pmm.gPmmState, pMac->lim.gLimMlmState, pMac->lim.gLimSmeState);)
 
         resultCode = eSIR_SME_INVALID_PMM_STATE;

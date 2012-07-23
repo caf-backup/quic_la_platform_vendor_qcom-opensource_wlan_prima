@@ -83,8 +83,7 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
 
 /* this function should not changed */
-  if((pMac->lim.gLimSmeState == eLIM_SME_SUSPEND_STATE) &&
-      (limMsg->type != SIR_LIM_RESUME_ACTIVITY_NTF))
+  if(pMac->lim.gLimSmeState == eLIM_SME_OFFLINE_STATE)
   {
       // Defer processsing this message
       if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
