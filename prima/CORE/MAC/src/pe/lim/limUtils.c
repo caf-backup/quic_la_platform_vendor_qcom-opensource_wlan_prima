@@ -530,10 +530,6 @@ char *limMsgStr(tANI_U32 msgType)
         case eWNI_SME_DELTS_IND:
             return "eWNI_SME_DELTS_IND\n";
 
-        case SIR_LIM_RESUME_ACTIVITY_NTF:
-            return "SIR_LIM_RESUME_ACTIVITY_NTF\n";
-        case SIR_LIM_SUSPEND_ACTIVITY_REQ:
-            return "SIR_LIM_SUSPEND_ACTIVITY_REQ\n";
         case WDA_SUSPEND_ACTIVITY_RSP:
             return "WDA_SUSPEND_ACTIVITY_RSP\n";
         case SIR_LIM_RETRY_INTERRUPT_MSG:
@@ -562,22 +558,10 @@ char *limMsgStr(tANI_U32 msgType)
             return "SIR_LIM_REASSOC_FAIL_TIMEOUT\n";
         case SIR_LIM_HEART_BEAT_TIMEOUT:
             return "SIR_LIM_HEART_BEAT_TIMEOUT\n";
-#ifdef ANI_PRODUCT_TYPE_AP
-        case SIR_LIM_PREAUTH_CLNUP_TIMEOUT:
-            return "SIR_LIM_PREAUTH_CLNUP_TIMEOUT\n";
-#endif
         case SIR_LIM_ADDTS_RSP_TIMEOUT:
             return "SIR_LIM_ADDTS_RSP_TIMEOUT\n";
         case SIR_LIM_CHANNEL_SCAN_TIMEOUT:
             return "SIR_LIM_CHANNEL_SCAN_TIMEOUT\n";
-#if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-        case SIR_LIM_MEASUREMENT_IND_TIMEOUT:
-            return "SIR_LIM_MEASUREMENT_IND_TIMEOUT\n";
-        case SIR_LIM_LEARN_INTERVAL_TIMEOUT:
-            return "SIR_LIM_LEARN_INTERVAL_TIMEOUT\n";
-        case SIR_LIM_LEARN_DURATION_TIMEOUT:
-            return "SIR_LIM_LEARN_DURATION_TIMEOUT\n";
-#endif
         case SIR_LIM_LINK_TEST_DURATION_TIMEOUT:
             return "SIR_LIM_LINK_TEST_DURATION_TIMEOUT\n";
         case SIR_LIM_HASH_MISS_THRES_TIMEOUT:

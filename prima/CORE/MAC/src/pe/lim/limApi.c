@@ -1484,49 +1484,6 @@ void peRegisterTLHandle(tpAniSirGlobal pMac)
 
 
 /**
- * limCheckStateForLearnMode()
- *
- *FUNCTION:
- * This function is called by SCH to verify if LIM is in a state
- * to put system into Learn mode
- *
- *LOGIC:
- * NA
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- *
- * @param  pMac - Pointer to Global MAC structure
- * @return eSIR_SUCCESS - LIM is in a state to put system
- *                        into Learn Mode
- *         eSIR_FAILURE - LIM is NOT in a state to put system
- *                        into Learn Mode
- */
-
-tSirRetStatus
-limCheckStateForLearnMode(tpAniSirGlobal pMac)
-{
-    switch (pMac->lim.gLimSmeState)
-    {
-        case eLIM_SME_OFFLINE_STATE:
-        case eLIM_SME_IDLE_STATE:
-        case eLIM_SME_JOIN_FAILURE_STATE:
-        case eLIM_SME_NORMAL_STATE:
-        case eLIM_SME_LINK_EST_STATE:
-            // LIM is in a state to put system into Learn mode
-            return eSIR_SUCCESS;
-
-        default:
-            // LIM is NOT in a state to put system into Learn mode
-            return eSIR_FAILURE;
-    }
-} /*** end limCheckStateForLearnMode() ***/
-
-
-
-/**
  * limIsSystemInScanState()
  *
  *FUNCTION:
