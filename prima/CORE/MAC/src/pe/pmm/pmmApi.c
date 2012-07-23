@@ -413,8 +413,8 @@ void pmmInitBmpsPwrSave(tpAniSirGlobal pMac)
     if ( ((pMac->pmm.gPmmState != ePMM_STATE_READY) &&
          (pMac->pmm.gPmmState != ePMM_STATE_BMPS_WAKEUP)) ||
          limIsSystemInScanState(pMac) ||
-         (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING) ||
-         (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
+         limIsChanSwitchRunning(pMac) ||
+         limIsInQuietDuration(pMac) )
     {
         PELOGE(pmmLog(pMac, LOGE, 
             FL("pmmBmps: BMPS Request received in invalid state PMM=%d, SME=%d, rejecting the initpwrsave request\n"), 
@@ -1478,8 +1478,8 @@ void pmmEnterImpsRequestHandler (tpAniSirGlobal pMac)
          ((pMac->lim.gLimSmeState != eLIM_SME_IDLE_STATE) &&
           (pMac->lim.gLimSmeState != eLIM_SME_JOIN_FAILURE_STATE)) ||
          (pMac->lim.gLimMlmState != eLIM_MLM_IDLE_STATE) ||
-         (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING) ||
-         (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
+         limIsChanSwitchRunning (pMac) ||
+         limIsInQuietDuration (pMac) )
     {
         PELOGE(pmmLog(pMac, LOGE, 
               FL("pmmImps: PMM State = %d, Global MLM State = %d, Global SME State = %d, rejecting the sleep mode request\n"),

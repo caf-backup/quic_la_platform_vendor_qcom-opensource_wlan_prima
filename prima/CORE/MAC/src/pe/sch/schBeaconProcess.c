@@ -470,8 +470,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         {
             limUpdateQuietIEFromBeacon(pMac, &(pBeacon->quietIE), psessionEntry);
         }
-        else if ((pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) ||
-             (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
+        else if ((psessionEntry->gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) ||
+             (psessionEntry->gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
         {
             PELOG1(limLog(pMac, LOG1, FL("Received a beacon without Quiet IE\n"));)
             limCancelDot11hQuiet(pMac, psessionEntry);
@@ -483,7 +483,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         {
             limUpdateChannelSwitch(pMac, pBeacon, psessionEntry);
         }
-        else if (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
+        else if (psessionEntry->gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
         {
             limCancelDot11hChannelSwitch(pMac, psessionEntry);
         }   

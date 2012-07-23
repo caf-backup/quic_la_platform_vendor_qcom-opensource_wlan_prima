@@ -408,12 +408,14 @@ PopulateDot11fCapabilities2(tpAniSirGlobal         pMac,
 /// Populate a tDot11fIEChanSwitchAnn
 void
 PopulateDot11fChanSwitchAnn(tpAniSirGlobal          pMac,
-                            tDot11fIEChanSwitchAnn *pDot11f);
+                            tDot11fIEChanSwitchAnn *pDot11f,
+                            tpPESession psessionEntry);
 
 /// Populate a tDot11fIEChanSwitchAnn
 void
 PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal          pMac,
-                             tDot11fIEExtChanSwitchAnn *pDot11f);
+                             tDot11fIEExtChanSwitchAnn *pDot11f,
+                             tpPESession psessionEntry);
 
 /// Populate a tDot11fIECountry
 tSirRetStatus

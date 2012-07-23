@@ -273,10 +273,17 @@ typedef struct sPESession           // Added to Support BT-AMP
     tBeaconParams beaconParams;
 
     tANI_U8            spectrumMgtEnabled;
+    /* *********************11H related*****************************/
+    //tANI_U32           gLim11hEnable;
+    tLimSpecMgmtInfo   gLimSpecMgmt;
+    // CB Primary/Secondary Channel Switch Info
+    tLimChannelSwitchInfo  gLimChannelSwitch;
+    /* *********************End 11H related*****************************/
 
     /*Flag to Track Status/Indicate HBFailure on this session */
     tANI_BOOLEAN LimHBFailureStatus;
     tANI_U32           gLimPhyMode;
+
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

@@ -516,6 +516,8 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
                 tANI_U32 val1 = 0;
 
                 val = SYS_MS_TO_TICKS(val);
+                //TODO: consider sessions.
+#if 0
 #ifdef ANI_PRODUCT_TYPE_CLIENT
                 // If a background was triggered via Quiet BSS,
                 // then we need to adjust the MIN and MAX channel
@@ -532,6 +534,7 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
                 {
                     val1 = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->maxChannelTime);
                 }
+#endif
 #endif
                 //Pick the longer stay time
                 val = (val > val1) ? val : val1;

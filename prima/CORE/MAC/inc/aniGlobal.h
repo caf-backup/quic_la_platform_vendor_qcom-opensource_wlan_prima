@@ -568,7 +568,7 @@ typedef struct sAniSirLim
     tANI_U32           propRateAdjustPeriod;
     tANI_U32           scanStartTime;    // used to measure scan time
 
-    tANI_U8            gLimBssid[6];
+    //tANI_U8            gLimBssid[6];
     tANI_U8            gLimMyMacAddr[6];
     tANI_U8            ackPolicy;
 
@@ -693,7 +693,7 @@ typedef struct sAniSirLim
 
     // Place holder for Join request that we're
     // currently attempting
-    tLimMlmJoinReq       *gpLimMlmJoinReq;
+    //tLimMlmJoinReq       *gpLimMlmJoinReq;
 
     // Reason code to determine the channel change context while sending 
     // WDA_CHNL_SWITCH_REQ message to HAL       
@@ -727,10 +727,12 @@ typedef struct sAniSirLim
 
 
     // 11h Spectrum Management Related Flag
+#if 0
     tANI_U32           gLim11hEnable;
     tLimSpecMgmtInfo   gLimSpecMgmt;
     // CB Primary/Secondary Channel Switch Info
     tLimChannelSwitchInfo  gLimChannelSwitch;
+#endif
 
 
     // Channel Bonding mode, as configured by SME

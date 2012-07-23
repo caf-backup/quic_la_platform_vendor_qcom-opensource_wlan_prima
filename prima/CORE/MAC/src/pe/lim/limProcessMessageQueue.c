@@ -1465,7 +1465,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
          * function used in timeout case(i.e SIR_LIM_CHANNEL_SWITCH_TIMEOUT) 
          * for switching the channel*/
         case eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER:
-            limProcessChannelSwitchTimeout(pMac);
+            if ( !tx_timer_running(&pMac->lim.limTimers.gLimChannelSwitchTimer) )
+            {  
+                limProcessChannelSwitchTimeout(pMac);
+            }
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             break;
@@ -2028,8 +2031,8 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
     }
 
     /* limInsystemInscanState() refers the psessionEntry,  how to get session Entry????*/
-    if (((pMac->lim.gLimAddtsSent) || (limIsSystemInScanState(pMac)) ||
-                (LIM_IS_RADAR_DETECTED(pMac))) && fDeferMsg)
+    if (((pMac->lim.gLimAddtsSent) || (limIsSystemInScanState(pMac)) /*||
+                (LIM_IS_RADAR_DETECTED(pMac))*/) && fDeferMsg)
     {
         // System is in DFS (Learn) mode or awaiting addts response
         // or if radar is detected, Defer processsing this message

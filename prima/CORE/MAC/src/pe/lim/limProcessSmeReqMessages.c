@@ -301,7 +301,9 @@ __limIsDeferedMsgForRadar(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 {
     /** fRadarDetCurOperChan will be set only if we detect radar in current
      * operating channel and System Role == AP ROLE */
-    if (LIM_IS_RADAR_DETECTED(pMac))
+    //TODO: Need to take care radar detection.
+    //if (LIM_IS_RADAR_DETECTED(pMac))
+    if( 0 )
     {
         if (limDeferMsg(pMac, pMsg) != TX_SUCCESS)
         {
@@ -868,11 +870,11 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         }
 
 #ifdef ANI_PRODUCT_TYPE_AP
-        PELOGE(limLog(pMac, LOGE, FL("Dot 11h is %s\n"), pMac->lim.gLim11hEnable?"Enabled":"Disabled");)
-        if (pMac->lim.gLim11hEnable)
+        PELOGE(limLog(pMac, LOGE, FL("Dot 11h is %s\n"), pSessionEntry->gLim11hEnable?"Enabled":"Disabled");)
+        if (pSessionEntry->lim11hEnable)
         { 
-           PELOG2(limLog(pMac, LOG2, FL("Cb state = %d, SecChanOffset = %d\n"),
-                   pMac->lim.gCbState, pMac->lim.gHTSecondaryChannelOffset);)
+            //PELOG2(limLog(pMac, LOG2, FL("Cb state = %d, SecChanOffset = %d\n"),
+            //        pMac->lim.gCbState, pMac->lim.gHTSecondaryChannelOffset);)
             limRadarInit(pMac);
         }
 #endif
