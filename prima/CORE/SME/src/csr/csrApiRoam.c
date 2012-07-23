@@ -917,9 +917,9 @@ void csrRoamSubstateChange( tpAniSirGlobal pMac, eCsrRoamSubState NewSubstate, t
     if(pMac->roam.curSubState[sessionId] == NewSubstate)
     {
        return;
-                }
+    }
     pMac->roam.curSubState[sessionId] = NewSubstate;
-}
+    }
 
 
 eCsrRoamState csrRoamStateChange( tpAniSirGlobal pMac, eCsrRoamState NewRoamState, tANI_U8 sessionId)
@@ -6376,8 +6376,8 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
         }    
         else
         {
-           csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
-        }
+               csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+           }
     } /*else: ( eSIR_SME_SUCCESS == pSmeJoinRsp->statusCode ) */
 }
 
@@ -8037,6 +8037,28 @@ static void csrUpdateRssi(tpAniSirGlobal pMac, void* pMsg)
     return;
 }
 
+static void csrRoamRssiIndHdlr(tpAniSirGlobal pMac, void* pMsg)
+{
+    WLANTL_TlIndicationReq *pTlRssiInd = (WLANTL_TlIndicationReq*)pMsg;
+    if(pTlRssiInd)
+    {
+        if(NULL != pTlRssiInd->tlCallback)
+        {
+            ((WLANTL_RSSICrossThresholdCBType)(pTlRssiInd->tlCallback))
+            (pTlRssiInd->pAdapter, pTlRssiInd->rssiNotification, pTlRssiInd->pUserCtxt);
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL("pTlRssiInd->tlCallback is NULL\n"));                
+        }
+    }
+    else
+    {
+        smsLog( pMac, LOGE, FL("pTlRssiInd is NULL\n"));    
+    }
+    return;
+}
+
 void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 {
     tSirSmeAssocInd *pAssocInd;
@@ -8866,6 +8888,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             smsLog( pMac, LOG1, FL("Establish logical link req from HCI serialized through MC thread\n"));
             btampEstablishLogLinkHdlr( pSirMsg );
             break;
+        case eWNI_SME_RSSI_IND:
+            smsLog( pMac, LOG1, FL("RSSI indication from TL serialized through MC thread\n"));
+            csrRoamRssiIndHdlr( pMac, pSirMsg );
+        break;
+
 
         default:
             break;
@@ -13271,7 +13298,7 @@ static void csrRoamLinkUp(tpAniSirGlobal pMac, tCsrBssid bssid)
       CSR_VCC_UL_MAC_LOSS_THRESHOLD : pMac->roam.configParam.vccUlMacLossThreshold;
 
 #if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
-    {
+   {
         tANI_U32 sessionId = 0;
 
         /* Indicate the neighbor roal algorithm about the connect indication */
