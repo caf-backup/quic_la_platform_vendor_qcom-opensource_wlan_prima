@@ -1869,13 +1869,6 @@ void limProcessMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession 
     //in the case of nested request the new request initiated from the response will take care of resetting
     //the deffered flag.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-#ifdef ANI_PRODUCT_TYPE_AP
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-    {
-        limProcessApMlmAddStaRsp(pMac, limMsgQ);
-        return;
-    }
-#endif
     if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)
 #ifdef WLAN_SOFTAP_FEATURE
     || (psessionEntry->limSystemRole == eLIM_AP_ROLE)
@@ -1979,13 +1972,6 @@ void limProcessMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession 
    //     return;
   //  }
   SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
- #ifdef ANI_PRODUCT_TYPE_AP
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-    {
-        limProcessApMlmDelBssRsp(pMac, limMsgQ);
-        return;
-    }
-#endif
 
     if (((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)  ||
          (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)
@@ -2064,58 +2050,6 @@ void limProcessStaMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESessi
     return;
 }
 
-
-#ifdef ANI_PRODUCT_TYPE_AP
-void limProcessApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ)
-{
-    tSirResultCodes rc = eSIR_SME_SUCCESS;
-    tpDeleteBssParams pDelBss = (tpDeleteBssParams) limMsgQ->bodyptr;
-    if (pDelBss == NULL)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("BSS: DEL_BSS_RSP with no body!\n"));)
-        rc = eSIR_SME_REFUSED;
-        goto end;
-    }
-    if( eLIM_MLM_WT_DEL_BSS_RSP_STATE != pMac->lim.gLimMlmState)
-    {
-            limLog( pMac, LOGE,
-                        FL( "Received unexpected WDA_DEL_BSS_RSP in state %X\n" ), pMac->lim.gLimMlmState);
-            rc = eSIR_SME_REFUSED;
-           goto end;
-    }
-    if (pDelBss->status != eHAL_STATUS_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("BSS: DEL_BSS_RSP error (%x) Bss %d "),
-               pDelBss->status, pDelBss->bssIdx);
-        rc = eSIR_SME_STOP_BSS_FAILURE;
-        goto end;
-    }
-    //Not used for station or softap.
-    rc = limSetLinkState(pMac, eSIR_LINK_IDLE_STATE);
-    if( rc != eSIR_SUCCESS )
-        goto end;
-    /** Softmac may send all the buffered packets right after resuming the transmission hence
-     * to occupy the medium during non channel occupancy period. So resume the transmission after
-     * HAL gives back the response.
-     */
-    if (LIM_IS_RADAR_DETECTED(pMac))
-    {
-         limFrameTransmissionControl(pMac, eLIM_TX_BSS_BUT_BEACON, eLIM_RESUME_TX);
-         LIM_SET_RADAR_DETECTED(pMac, eANI_BOOLEAN_FALSE);
-    }
-    dphHashTableClassInit(pMac);
-    limDeletePreAuthList(pMac);
-    //Is it ok to put LIM into IDLE state.
-    pMac->lim.gLimMlmState->limMlmState = eLIM_MLM_IDLE_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
-
-    end:
-    limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, rc);
-    if(pDelBss != NULL)
-        palFreeMemory( pMac->hHdd, (void *) pDelBss );
-}
-#endif
-/* This code is same as limProcessApMlmDelBssRsp used for BT-AMP  */
 void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession psessionEntry)
 {
     tSirResultCodes rc = eSIR_SME_SUCCESS;
@@ -2197,13 +2131,6 @@ void limProcessMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
         return;
     }
 
-#ifdef ANI_PRODUCT_TYPE_AP
-    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-    {
-        limProcessApMlmDelStaRsp(pMac, limMsgQ);
-        return;
-    }
-#endif
     if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)
 #ifdef WLAN_SOFTAP_FEATURE
       || (psessionEntry->limSystemRole == eLIM_AP_ROLE)
@@ -2218,89 +2145,6 @@ void limProcessMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 #endif
 }
 
-#ifdef ANI_PRODUCT_TYPE_AP
-void limProcessApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
-{
-    tpDeleteStaParams pDelStaParams = (tpDeleteStaParams) limMsgQ->bodyptr;
-    tpDphHashNode pStaDs = dphGetHashEntry(pMac, pDelStaParams->assocId);
-    tSirResultCodes statusCode = eSIR_SME_SUCCESS;
-    if( eHAL_STATUS_SUCCESS == pDelStaParams->status )
-    {
-           limLog( pMac, LOGW,
-                      FL( "AP received the DEL_STA_RSP for assocID: %X.\n"), pDelStaParams->assocId);
-        if(pStaDs == NULL)
-        {
-             limLog( pMac, LOGE,
-                  FL( "DPH Entry for STA %X missing.\n"), pDelStaParams->assocId);
-             statusCode = eSIR_SME_REFUSED;
-             goto end;
-        }
-         if(( eLIM_MLM_WT_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState) &&
-            ( eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState))
-        {
-            limLog( pMac, LOGE,
-              FL( "Received unexpected WDA_DEL_STA_RSP in state %s for staId %d assocId %d \n" ),
-               limMlmStateStr(pStaDs->mlmStaContext.mlmState), pStaDs->staIndex, pStaDs->assocId);
-            statusCode = eSIR_SME_REFUSED;
-           goto end;
-        }
-
-        PELOG1(limLog( pMac, LOG1,
-            FL("Deleted STA AssocID %d staId %d MAC "),
-            pStaDs->assocId, pStaDs->staIndex);
-        limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
-       if(eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE == pStaDs->mlmStaContext.mlmState)
-       {
-            if( 0 != limMsgQ->bodyptr )
-            {
-              palFreeMemory( pMac->hHdd, (void *) pDelStaParams );
-            }
-            if (limAddSta(pMac, pStaDs,psessionEntry) != eSIR_SUCCESS)
-            {
-                PELOGE(limLog(pMac, LOGE,
-                       FL("could not Add STA with assocId=%d\n"),
-                       pStaDs->assocId);)
-              // delete the TS if it has already been added.
-               // send the response with error status.
-                if(pStaDs->qos.addtsPresent)
-                {
-                  tpLimTspecInfo pTspecInfo;
-                  if(eSIR_SUCCESS == limTspecFindByAssocId(pMac, pStaDs->assocId,
-                            &pStaDs->qos.addts.tspec, &pMac->lim.tspecInfo[0], &pTspecInfo))
-                  {
-                    limAdmitControlDeleteTS(pMac, pStaDs->assocId, &pStaDs->qos.addts.tspec.tsinfo,
-                                                            NULL, &pTspecInfo->idx);
-                  }
-                }
-                limRejectAssociation(pMac,
-                         pStaDs->staAddr,
-                         pStaDs->mlmStaContext.subType,
-                         true, pStaDs->mlmStaContext.authType,
-                         pStaDs->assocId, true,
-                         (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS);
-            }
-            return;
-        }
-   }
-    else
-    {
-        limLog( pMac, LOGW,
-             FL( "DEL STA failed!\n" ));
-        statusCode = eSIR_SME_REFUSED;
-    }
-    end:
-    if( 0 != limMsgQ->bodyptr )
-    {
-      palFreeMemory( pMac->hHdd, (void *) pDelStaParams );
-    }
-    if(eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState)
-    {
-       limPrepareAndSendDelStaCnf(pMac, pStaDs, statusCode,psessionEntry);
-    }
-      return;
-}
-#endif
-/* This is the copy of  limProcessApMlmDelStaRsp used for BT-AMP Support  */
 void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession psessionEntry)
 {
     tpDeleteStaParams pDelStaParams = (tpDeleteStaParams) limMsgQ->bodyptr;
@@ -2439,95 +2283,6 @@ end:
     return;
 }
 
-#ifdef ANI_PRODUCT_TYPE_AP
-void limProcessApMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
-{
-    tpAddStaParams pAddStaParams = (tpAddStaParams) limMsgQ->bodyptr;
-    tpDphHashNode pStaDs = dphGetHashEntry(pMac, pAddStaParams->assocId);
-    if(pStaDs == NULL)
-    {
-        //TODO: any response to be sent out here ?
-        limLog( pMac, LOGE, FL( "DPH Entry for STA %X missing.\n"), pAddStaParams->assocId);
-        goto end;
-    }
-    //
-    // TODO & FIXME_GEN4
-    // Need to inspect tSirMsgQ.reserved for a valid Dialog token!
-    //
-    //TODO: any check for pMac->lim.gLimMlmState ?
-    if( eLIM_MLM_WT_ADD_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState)
-    {
-        //TODO: any response to be sent out here ?
-        limLog( pMac, LOGE,
-                FL( "Received unexpected WDA_ADD_STA_RSP in state %X\n" ),
-                pStaDs->mlmStaContext.mlmState);
-        goto end;
-    }
-    if(eHAL_STATUS_SUCCESS != pAddStaParams->status)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("Error! rcvd delSta rsp from HAL with status %d\n"),pAddStaParams->status);)
-        limRejectAssociation(pMac, pStaDs->staAddr,
-                 pStaDs->mlmStaContext.subType,
-                 true, pStaDs->mlmStaContext.authType,
-                 pStaDs->assocId, true,
-                 (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS);
-        goto end;
-    }
-    pStaDs->bssId = pAddStaParams->bssIdx;
-    pStaDs->staIndex = pAddStaParams->staIdx;
-    pStaDs->ucUcastSig    = pAddStaParams->ucUcastSig;
-    pStaDs->ucBcastSig    = pAddStaParams->ucBcastSig;
-    if(pStaDs->qos.addtsPresent)
-    {
-        //need to send halMsg_AddTs to HAL.
-        tpLimTspecInfo pTspecInfo;
-        if(eSIR_SUCCESS ==
-           limTspecFindByAssocId(pMac, pStaDs->assocId, &pStaDs->qos.addts.tspec,
-                                 &pMac->lim.tspecInfo[0], &pTspecInfo))
-        {
-            if(eSIR_SUCCESS != limSendHalMsgAddTs(pMac, pStaDs->staIndex, pTspecInfo->idx, pStaDs->qos.addts.tspec))
-            {
-                // delete the TS that has already been added.
-                // send the response with error status.
-                limAdmitControlDeleteTS(pMac, pStaDs->assocId, &pStaDs->qos.addts.tspec.tsinfo, NULL, &pTspecInfo->idx);
-                PELOGE(limLog(pMac, LOGE,
-                 FL("limSendHalMsgAddTs failed for STA with assocId=%d\n"),
-                 pStaDs->assocId);)
-                limRejectAssociation(pMac,
-                   pStaDs->staAddr, pStaDs->mlmStaContext.subType,
-                   true, pStaDs->mlmStaContext.authType,
-                   pStaDs->assocId, false,
-                   (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS);
-                if( 0 != limMsgQ->bodyptr )
-                {
-                    palFreeMemory( pMac->hHdd, (void *) pAddStaParams );
-                }
-                limDelSta(pMac, pStaDs, true,psessionEntry);
-                return;
-            }
-        }
-    }
-    //if the AssocRsp frame is not acknowledged, then keep alive timer will take care of the state
-    pStaDs->valid = 1;
-    pStaDs->mlmStaContext.mlmState = eLIM_MLM_LINK_ESTABLISHED_STATE;
-    PELOG1(limLog( pMac, LOG1,
-            FL("STA AssocID %d staId %d MAC "),
-            pStaDs->assocId,
-            pStaDs->staIndex);
-    limPrintMacAddr(pMac, pStaDs->staAddr, LOG1);)
-    // Send Re/Association Response with
-    // status code to requesting STA.
-    limSendAssocRspMgmtFrame(pMac, eSIR_SUCCESS, pStaDs->assocId, pStaDs->staAddr,
-                             pStaDs->mlmStaContext.subType, pStaDs,psessionEntry);
-end:
-    if( 0 != limMsgQ->bodyptr )
-    {
-        palFreeMemory( pMac->hHdd, (void *) pAddStaParams );
-    }
-    return;
-}
-#endif
-/* This is the copy of  limProcessApMlmAddStaRsp function .... used for BT-AMP AP Support */
 void limProcessBtAmpApMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession psessionEntry)
 {
     tpAddStaParams pAddStaParams = (tpAddStaParams) limMsgQ->bodyptr;

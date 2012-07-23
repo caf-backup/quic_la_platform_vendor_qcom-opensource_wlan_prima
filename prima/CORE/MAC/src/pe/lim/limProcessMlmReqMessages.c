@@ -707,53 +707,9 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
         pInitScanParam->notifyHost = FALSE;
         pInitScanParam->scanMode = eHAL_SYS_MODE_LEARN;
 
-#if defined(ANI_AP_CLIENT_SDK) 
-        if (GET_LIM_SYSTEM_ROLE(pMac) == eLIM_STA_ROLE)
-        {
-            pInitScanParam->frameType = SIR_MAC_DATA_NULL;
-            // We need to inform the AP only when we are
-            // in the LINK_ESTABLISHED state
-            if( eLIM_SME_LINK_EST_WT_SCAN_STATE != pMac->lim.gLimSmeState )
-            {
-                pInitScanParam->notifyBss = FALSE;
-                // FIXME - Handle this one carefully
-                pInitScanParam->notifyHost = FALSE;
-            }
-            __limCreateInitScanRawFrame(pMac, pInitScanParam);
-            pInitScanParam->checkLinkTraffic = trafficCheck;
-        }
-        else
-#endif
-        {
-            pInitScanParam->frameType = SIR_MAC_CTRL_CTS;
-            __limCreateInitScanRawFrame(pMac, pInitScanParam);
-            pInitScanParam->checkLinkTraffic = trafficCheck;
-        }
-
-#if (defined(ANI_PRODUCT_TYPE_AP) ||defined(ANI_PRODUCT_TYPE_AP_SDK))
-        /* Currently using the AP's scanDuration values for Linux station also. This should
-         * be revisited if this needs to changed depending on AP or Station */
-        {
-            if (pMac->lim.gpLimMeasReq->measControl.longChannelScanPeriodicity &&
-                    (pMac->lim.gLimMeasParams.shortDurationCount ==
-                     pMac->lim.gpLimMeasReq->measControl.longChannelScanPeriodicity))
-            {
-#ifdef ANI_AP_SDK
-                pInitScanParam->scanDuration = (tANI_U16)pMac->lim.gLimScanDurationConvert.longChannelScanDuration_tick;
-#else
-                pInitScanParam->scanDuration = (tANI_U16)pMac->lim.gpLimMeasReq->measDuration.longChannelScanDuration;
-#endif /* ANI_AP_SDK */
-            }
-            else
-            {
-#ifdef ANI_AP_SDK
-                pInitScanParam->scanDuration = pMac->lim.gLimScanDurationConvert.shortChannelScanDuration_tick;
-#else
-                pInitScanParam->scanDuration = (tANI_U16)pMac->lim.gpLimMeasReq->measDuration.shortChannelScanDuration;
-#endif /* ANI_AP_SDK */
-            }
-        }
-#endif       //#if (defined(ANI_PRODUCT_TYPE_AP) ||defined(ANI_PRODUCT_TYPE_AP_SDK))
+        pInitScanParam->frameType = SIR_MAC_CTRL_CTS;
+        __limCreateInitScanRawFrame(pMac, pInitScanParam);
+        pInitScanParam->checkLinkTraffic = trafficCheck;
     }
     else
     {

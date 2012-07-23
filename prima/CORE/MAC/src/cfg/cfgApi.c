@@ -169,15 +169,6 @@ cfgSetInt(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 value)
         PELOGE(cfgLog(pMac, LOGE, FL("Not valid cfg id %d\n"), cfgId);)
         retVal = eSIR_CFG_INVALID_ID;
     }
-#if 0
-    else if (((control & CFG_CTL_RESTART) && !Restarting(pMac)) ||
-             ((control & CFG_CTL_RELOAD) && !Reloading(pMac)))
-    {
-        cfgLog(pMac, LOGE, FL("Change requires a restart/reload cfg id %d state %d\n"),
-               cfgId, pMac->lim.gLimSmeState);
-        retVal = eSIR_CFG_INVALID_ID;
-    }
-#endif
     else if ((pMac->cfg.gCfgIBufMin[index] > value) ||
              (pMac->cfg.gCfgIBufMax[index] < value))
     {
