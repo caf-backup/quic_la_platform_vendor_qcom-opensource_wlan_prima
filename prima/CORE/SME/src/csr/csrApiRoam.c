@@ -12450,11 +12450,18 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         {
             wTmp = pal_cpu_to_be16( WNI_CFG_BEACON_INTERVAL_STADEF );
         }
-
-        if(IS_MCC_SUPPORTED)
-        {
-            csrValidateBeaconInterval(pMac, pParam->operationChn, &wTmp, sessionId,
+        if(csrIsconcurrentsessionValid (pMac, sessionId, 
+                                   pParam->bssPersona) 
+                                   == eHAL_STATUS_SUCCESS )
+        {    
+           csrValidateBeaconInterval(pMac, pParam->operationChn, &wTmp, sessionId,
                                       pParam->bssPersona);
+        }
+        else
+        {
+            smsLog( pMac,LOGE, FL("****Start BSS failed persona already exists***\n"));
+            status = eHAL_STATUS_FAILURE;
+            return status;
         }
 
         palCopyMemory( pMac->hHdd, pBuf, &wTmp, sizeof( tANI_U16 ) ); 
