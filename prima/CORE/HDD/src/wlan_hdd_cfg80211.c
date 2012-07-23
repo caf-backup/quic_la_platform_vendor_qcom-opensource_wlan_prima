@@ -433,7 +433,8 @@ int wlan_hdd_cfg80211_register(struct device *dev,
                     | WIPHY_FLAG_CUSTOM_REGULATORY;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-    wiphy->flags |=   WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
+    wiphy->flags |=   WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL 
+                    | WIPHY_FLAG_OFFCHAN_TX;
 #endif
 
     wiphy->max_scan_ssids = MAX_SCAN_SSID; 
