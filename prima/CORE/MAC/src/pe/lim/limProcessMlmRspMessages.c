@@ -47,8 +47,8 @@
 static void limHandleSmeJoinResult(tpAniSirGlobal, tSirResultCodes, tANI_U16,tpPESession);
 static void limHandleSmeReaasocResult(tpAniSirGlobal, tSirResultCodes, tANI_U16, tpPESession);
 void limProcessMlmScanCnf(tpAniSirGlobal, tANI_U32 *);
-#ifdef FEATURE_INNAV_SUPPORT
-void limProcessMlmInNavMeasCnf(tpAniSirGlobal, tANI_U32 *);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+void limProcessMlmOemDataReqCnf(tpAniSirGlobal, tANI_U32 *);
 #endif
 void limProcessMlmJoinCnf(tpAniSirGlobal, tANI_U32 *);
 void limProcessMlmAuthCnf(tpAniSirGlobal, tANI_U32 *);
@@ -105,9 +105,9 @@ limProcessMlmRspMessages(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBu
             limProcessMlmScanCnf(pMac, pMsgBuf);
             break;
 
-#ifdef FEATURE_INNAV_SUPPORT
-        case LIM_MLM_INNAV_MEAS_CNF:
-            limProcessMlmInNavMeasCnf(pMac, pMsgBuf);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case LIM_MLM_OEM_DATA_CNF:
+            limProcessMlmOemDataReqCnf(pMac, pMsgBuf);
             break;
 #endif
 
@@ -266,13 +266,13 @@ limProcessMlmScanCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 } /*** end limProcessMlmScanCnf() ***/
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
 /**
- * limProcessMlmInNavMeasCnf()
+ * limProcessMlmOemDataReqCnf()
  *
  *FUNCTION:
- * This function is called to processes LIM_MLM_INNAV_MEAS_CNF
+ * This function is called to processes LIM_MLM_OEM_DATA_REQ_CNF
  * message from MLM State machine.
  *
  *LOGIC:
@@ -287,21 +287,16 @@ limProcessMlmScanCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
  * @return None
  */
 
-void limProcessMlmInNavMeasCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
+void limProcessMlmOemDataReqCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tLimMlmInNavMeasRsp*    measRsp;
+    tLimMlmOemDataRsp*    measRsp;
 
     tSirResultCodes resultCode = eSIR_SME_SUCCESS;
 
-    measRsp = (tLimMlmInNavMeasRsp*)(pMsgBuf);
-
-    if(measRsp->numBSSIDs == 0)
-    {
-        resultCode = eSIR_SME_HAL_INNAV_MEAS_START_FAILED;
-    }
+    measRsp = (tLimMlmOemDataRsp*)(pMsgBuf);
 
     //Now send the meas confirm message to the sme
-    limSendSmeInNavMeasRsp(pMac, (tANI_U32*)measRsp, resultCode);
+    limSendSmeOemDataRsp(pMac, (tANI_U32*)measRsp, resultCode);
 
     //Dont free the memory here. It will be freed up by the callee
 

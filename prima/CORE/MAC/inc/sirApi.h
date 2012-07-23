@@ -279,8 +279,8 @@ typedef enum eSirResultCodes
     eSIR_SME_CHANNEL_SWITCH_DISABLED,    // either 11h is disabled or channelSwitch is currently active
     eSIR_SME_HAL_SEND_MESSAGE_FAIL,      // Failed to send a message to HAL
 #endif // GEN4_SCAN
-#ifdef FEATURE_INNAV_SUPPORT
-    eSIR_SME_HAL_INNAV_MEAS_START_FAILED,
+#ifdef FEATURE_OEM_DATA_SUPPORT
+    eSIR_SME_HAL_OEM_DATA_REQ_START_FAILED,
 #endif
     eSIR_SME_STOP_BSS_FAILURE,           // Failed to stop the bss
     eSIR_SME_STA_ASSOCIATED,
@@ -1127,57 +1127,30 @@ typedef struct sSirSmeScanReq
       -----------------------------*/
 } tSirSmeScanReq, *tpSirSmeScanReq;
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
-typedef enum
-{
-    eRTS_CTS_BASED = 1,
-    eFRAME_BASED,
-} eSirInNavMeasurementMode;
+#ifndef OEM_DATA_REQ_SIZE
+#define OEM_DATA_REQ_SIZE 70
+#endif
+#ifndef OEM_DATA_RSP_SIZE
+#define OEM_DATA_RSP_SIZE 968
+#endif
 
-typedef struct sSirBSSIDChannelInfo
+typedef struct sSirOemDataReq
 {
-    tSirMacAddr     bssid;
-    tANI_U16        channel;
-} tSirBSSIDChannelInfo;
-
-typedef struct sSirMeasInNavMeasurementReq
-{
-    tANI_U16              messageType; // eWNI_SME_INNAV_MEAS_REQ
-    tANI_U16              length;
+    tANI_U16              messageType; //eWNI_SME_OEM_DATA_REQ
     tSirMacAddr           selfMacAddr;
-    tANI_U8               numBSSIDs;
-    tANI_U8               numInNavMeasurements;
-    eSirInNavMeasurementMode measurementMode;
-    tSirBSSIDChannelInfo  bssidChannelInfo[1];
-} tSirMeasInNavMeasurementReq, *tpSirMeasInNavMeasurementReq;
+    tANI_U8               oemDataReq[OEM_DATA_REQ_SIZE];
+} tSirOemDataReq, *tpSirOemDataReq;
 
-typedef struct sSirRttRssiTimeData
+typedef struct sSirOemDataRsp
 {
-    tANI_U8     rssi;
-    tANI_U16    rtt;
-    tANI_U16    snr;
-    tANI_U32    measurementTime;
-    tANI_U32    measurementTimeHi;
-} tSirRttRssiTimeData, *tpSirRttRssiTimeData;
-
-typedef struct sSirRttRssiResults
-{
-    tSirMacAddr          bssid;
-    tANI_U8              numSuccessfulMeasurements;
-    tSirRttRssiTimeData  rttRssiTimeData[1];
-} tSirRttRssiResults, *tpSirRttRssiResults;
-
-typedef struct sSirMeasInNavMeasurementRsp
-{
-    tANI_U16             messageType; // eWNI_SME_INNAV_MEAS_RSP
+    tANI_U16             messageType;
     tANI_U16             length;
-    tSirResultCodes      statusCode;
-    tANI_U8              numBSSIDs;
-    tSirRttRssiResults   rttRssiResults[1];
-} tSirMeasInNavMeasurementRsp, *tpSirMeasInNavMeasurementRsp;
-
-#endif //FEATURE_INNAV_SUPPORT
+    tANI_U8              oemDataRsp[OEM_DATA_RSP_SIZE];
+} tSirOemDataRsp, *tpSirOemDataRsp;
+    
+#endif //FEATURE_OEM_DATA_SUPPORT
 
 /// Definition for response message to previously issued scan request
 typedef struct sSirSmeScanRsp

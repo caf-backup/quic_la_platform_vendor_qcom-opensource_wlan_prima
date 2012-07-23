@@ -39,8 +39,8 @@
 #include "halFw.h"
 #endif
 
-#ifdef FEATURE_INNAV_SUPPORT
-#include "measApi.h"
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#include "oemDataApi.h"
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -1536,38 +1536,35 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
                                         tANI_U32 *pNumItems );
 #endif /* FEATURE_WLAN_WAPI */
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 /********************************************************************************************
-  InNav related modifications
+  Oem data related modifications
 *********************************************************************************************/
 /* ---------------------------------------------------------------------------
-    \fn sme_InNavMeasurementRequest
-    \brief a wrapper function to Request RSSI/RTT measurements
-    \param sessionId - session id of session to be used for measurement.
-    \param pMeasurementRequestID - pointer to an object to get back the request ID
-    \param callback - a callback function that meas calls upon finish, will not 
-                      be called if measMeasurementRequest returns error
+    \fn sme_OemDataReq
+    \param sessionId - session id of session to be used for oem data req.
+    \param pOemDataReqID - pointer to an object to get back the request ID
+    \param callback - a callback function that is called upon finish
     \param pContext - a pointer passed in for the callback
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal, 
+eHalStatus sme_OemDataReq(tHalHandle hHal, 
                                        tANI_U8 sessionId,
-                                       tInNavMeasurementConfig *, 
-                                       tANI_U32 *pMeasurementRequestID, 
-                                       measMeasurementCompleteCallback callback, 
+                                       tOemDataReqConfig *, 
+                                       tANI_U32 *pOemDataReqID, 
+                                       oemData_OemDataReqCompleteCallback callback, 
                                        void *pContext);
 
 /* ---------------------------------------------------------------------------
-    \fn sme_getInNavMeasurementResult
-    \brief a wrapper function to obtain the RSSI/RTT measurement results
-    \param pInNavMeasRsp - A pointer to the response object
-    \param pMeasurementRequestID - pointer to an object to get back the request ID
+    \fn sme_getOemDataRsp
+    \param pOemDataRsp - A pointer to the response object
+    \param pOemDataReqID - pointer to an object to get back the request ID
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal, 
-                                         tInNavMeasurementResponse **pInNavMeasRsp);
+eHalStatus sme_getOemDataRsp(tHalHandle hHal, 
+                                         tOemDataRsp **pOemDataRsp);
 
-#endif /*FEATURE_INNAV_SUPPORT*/
+#endif /*FEATURE_OEM_DATA_SUPPORT*/
 
 
 #ifdef WLAN_SOFTAP_FEATURE

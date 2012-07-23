@@ -819,14 +819,14 @@ limPostSmeScanRspMessage(tpAniSirGlobal    pMac,
 
 }  /*** limPostSmeScanRspMessage ***/
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
 /**
- * limSendSmeInNavMeasRsp()
+ * limSendSmeOemDataRsp()
  *
  *FUNCTION:
  * This function is called by limProcessSmeReqMessages() to send
- * eWNI_SME_INNAV_MEAS_RSP message to applications above MAC
+ * eWNI_SME_OEM_DATA_RSP message to applications above MAC
  * Software.
  *
  *PARAMS:
@@ -842,72 +842,52 @@ limPostSmeScanRspMessage(tpAniSirGlobal    pMac,
  * @param pMac         Pointer to Global MAC structure
  * @param pMsgBuf      Indicates the mlm message
  * @param resultCode   Indicates the result of previously issued
- *                     eWNI_SME_INNAV_MEAS_RSP message
+ *                     eWNI_SME_OEM_DATA_RSP message
  *
  * @return None
  */
 
-void limSendSmeInNavMeasRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCodes resultCode)
+void limSendSmeOemDataRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCodes resultCode)
 {
     tSirMsgQ                      mmhMsg;
-    tSirMeasInNavMeasurementRsp*  pSirSmeInNavMeasRsp=NULL;
-    tLimMlmInNavMeasRsp*          pMlmInNavMeasRsp=NULL;
+    tSirOemDataRsp*               pSirSmeOemDataRsp=NULL;
+    tLimMlmOemDataRsp*            pMlmOemDataRsp=NULL;
     tANI_U16                      msgLength;
 
-    tANI_U32* pDest = NULL;
-    tANI_U32* pSrc = NULL;
-
+    
     //get the pointer to the mlm message
-    pMlmInNavMeasRsp = (tLimMlmInNavMeasRsp*)(pMsgBuf);
+    pMlmOemDataRsp = (tLimMlmOemDataRsp*)(pMsgBuf);
 
-    //now compute the message length
-    if(pMlmInNavMeasRsp->numBSSIDs == 0)
-    {
-        msgLength = sizeof(tSirMeasInNavMeasurementRsp);
-    }
-    else
-    {
-        msgLength = pMlmInNavMeasRsp->resultLength - sizeof(tLimMlmInNavMeasRsp) + sizeof(tSirMeasInNavMeasurementRsp);
-    }
+    msgLength = sizeof(tSirOemDataRsp);
 
     //now allocate memory for the char buffer
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)&pSirSmeInNavMeasRsp, msgLength))
+    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)&pSirSmeOemDataRsp, msgLength))
     {
-        limLog(pMac, LOGP, FL("call to palAllocateMemory failed for pSirSmeInNavMeasRsp\n"));
+        limLog(pMac, LOGP, FL("call to palAllocateMemory failed for pSirSmeOemDataRsp\n"));
         return;
     }
 
-    pSirSmeInNavMeasRsp->numBSSIDs = pMlmInNavMeasRsp->numBSSIDs;
-
 #if defined (ANI_LITTLE_BYTE_ENDIAN)
-    sirStoreU16N((tANI_U8*)&pSirSmeInNavMeasRsp->length, msgLength);
-    sirStoreU16N((tANI_U8*)&pSirSmeInNavMeasRsp->messageType, eWNI_SME_INNAV_MEAS_RSP);
+    sirStoreU16N((tANI_U8*)&pSirSmeOemDataRsp->length, msgLength);
+    sirStoreU16N((tANI_U8*)&pSirSmeOemDataRsp->messageType, eWNI_SME_OEM_DATA_RSP);
 #else
-    pSirSmeInNavMeasRsp->length = msgLength;
-    pSirSmeInNavMeasRsp->messageType = eWNI_SME_INNAV_MEAS_RSP;
+    pSirSmeOemDataRsp->length = msgLength;
+    pSirSmeOemDataRsp->messageType = eWNI_SME_OEM_DATA_RSP;
 #endif
 
-    pSirSmeInNavMeasRsp->statusCode = resultCode;
-
-    if(pSirSmeInNavMeasRsp->numBSSIDs > 0)
-    {
-        pDest = (tANI_U32*)((tANI_U32)(pSirSmeInNavMeasRsp) + sizeof(tSirMeasInNavMeasurementRsp) - sizeof(tSirRttRssiResults));
-        pSrc = (tANI_U32*)((tANI_U32)(pMlmInNavMeasRsp) + sizeof(tLimMlmInNavMeasRsp) - sizeof(tSirRttRssiResults));
-
-        palCopyMemory(pMac->hHdd, (tANI_U8*)(pDest), (tANI_U8*)(pSrc), msgLength - sizeof(tSirMeasInNavMeasurementRsp) + sizeof(tSirRttRssiResults));
-    }
+    palCopyMemory(pMac->hHdd, pSirSmeOemDataRsp->oemDataRsp, pMlmOemDataRsp->oemDataRsp, OEM_DATA_RSP_SIZE);
 
     //Now free the memory from MLM Rsp Message
-    palFreeMemory(pMac->hHdd, pMlmInNavMeasRsp);
+    palFreeMemory(pMac->hHdd, pMlmOemDataRsp);
 
-    mmhMsg.type = eWNI_SME_INNAV_MEAS_RSP;
-    mmhMsg.bodyptr = pSirSmeInNavMeasRsp;
+    mmhMsg.type = eWNI_SME_OEM_DATA_RSP;
+    mmhMsg.bodyptr = pSirSmeOemDataRsp;
     mmhMsg.bodyval = 0;
 
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
 
     return;
-}  /*** limSendSmeInNavMeasRsp ***/
+}  /*** limSendSmeOemDataRsp ***/
 
 #endif
 

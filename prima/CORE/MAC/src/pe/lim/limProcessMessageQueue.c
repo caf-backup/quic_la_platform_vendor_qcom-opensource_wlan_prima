@@ -128,8 +128,8 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #ifdef WLAN_FEATURE_P2P 
         (limMsg->type != WDA_P2P_NOA_ATTR_IND) &&
 #endif
-#ifdef FEATURE_INNAV_SUPPORT
-        (limMsg->type != WDA_START_INNAV_MEAS_RSP) &&
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        (limMsg->type != WDA_START_OEM_DATA_RSP) &&
 #endif
         (limMsg->type != WDA_ADD_TS_RSP))
     {
@@ -1068,59 +1068,56 @@ void limMessageProcessor(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     }
 }
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
-void limInNavHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* mlmInNavMeasRsp)
+void limOemDataRspHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* mlmOemDataRsp)
 {
     if(status != eHAL_STATUS_SUCCESS)
     {
-        limLog(pMac, LOGE, FL("innav failed to get the response for resume link\n"));
+        limLog(pMac, LOGE, FL("OEM Data Rsp failed to get the response for resume link\n"));
     }
 
-    if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
+    if(NULL != pMac->lim.gpLimMlmOemDataReq)
     {
-        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmInNavMeasReq);
-        pMac->lim.gpLimMlmInNavMeasReq = NULL;
+        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmOemDataReq);
+        pMac->lim.gpLimMlmOemDataReq = NULL;
     }
 
-    //"Failure" status doesn't mean that InNav measurement did not happen
+    //"Failure" status doesn't mean that Oem Data Rsp did not happen
     //and hence we need to respond to upper layers. Only Resume link is failed, but
-    //innav measurements already happened.
+    //we got the oem data response already.
     //Post the meessage to MLM
-    limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)(mlmInNavMeasRsp));
+    limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)(mlmOemDataRsp));
 
     return;
 }
 
-void limProcessInNavMeasRsp(tpAniSirGlobal pMac, tANI_U32* body)
+void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tpLimMlmInNavMeasRsp mlmInNavMeasRsp = NULL;
-    tpStartInNavMeasRsp innavMeasRsp = NULL;
+    tpLimMlmOemDataRsp mlmOemDataRsp = NULL;
+    tpStartOemDataRsp oemDataRsp = NULL;
 
     //Process all the messages for the lim queue
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-    
-    innavMeasRsp = (tpStartInNavMeasRsp)(body);
 
-    status = palAllocateMemory(pMac->hHdd, (void**)(&mlmInNavMeasRsp), innavMeasRsp->rspLen);
+    oemDataRsp = (tpStartOemDataRsp)(body);
+
+    status = palAllocateMemory(pMac->hHdd, (void**)(&mlmOemDataRsp), sizeof(tLimMlmOemDataRsp));
     if(status != eHAL_STATUS_SUCCESS)
     {
-        limLog(pMac, LOGP, FL("could not allocate memory for mlmInNavMeasRsp\n"));
+        limLog(pMac, LOGP, FL("could not allocate memory for mlmOemDataRsp\n"));
         return;
     }
 
-    //copy the memory into tLimMlmInNavMeasRsp and free the tStartInNavMeasRsp
-    //the structures tStartInNavMeasRsp and tLimMlmInNavMeasRsp have the same structure
-    palCopyMemory(pMac->hHdd, (void*)(mlmInNavMeasRsp), (void*)(innavMeasRsp), innavMeasRsp->rspLen);
+    //copy the memory into tLimMlmOemDataRsp and free the tStartOemDataRsp
+    //the structures tStartOemDataRsp and tLimMlmOemDataRsp have the same structure
+    palCopyMemory(pMac->hHdd, (void*)(mlmOemDataRsp), (void*)(oemDataRsp), sizeof(tLimMlmOemDataRsp));
 
     //Now free the incoming memory
-    palFreeMemory(pMac->hHdd, (void*)(innavMeasRsp));
+    palFreeMemory(pMac->hHdd, (void*)(oemDataRsp));
 
-    //Set the resume channel to Any valid channel (invalid). 
-    //This will instruct HAL to set it to any previous valid channel.
-    peSetResumeChannel(pMac, 0, 0);
-    limResumeLink(pMac, limInNavHandleResumeLinkRsp, (tANI_U32*)mlmInNavMeasRsp);
+    limResumeLink(pMac, limOemDataRspHandleResumeLinkRsp, (tANI_U32*)mlmOemDataRsp);
 
     return;
 }
@@ -1221,10 +1218,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case WDA_FINISH_SCAN_RSP:
             limProcessFinishScanRsp(pMac, limMsg->bodyptr);
             break;
-#ifdef FEATURE_INNAV_SUPPORT
-        case WDA_START_INNAV_MEAS_RSP:
-            PELOG1(limLog(pMac, LOG1, FL("Processing WDA_START_INNAV_MEAS_RSP\n")););
-            limProcessInNavMeasRsp(pMac, limMsg->bodyptr);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case WDA_START_OEM_DATA_RSP:
+            limProcessOemDataRsp(pMac, limMsg->bodyptr);
             break;
 #endif
 
@@ -1309,8 +1305,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_STAT_SUMM_REQ:
         case eWNI_SME_GET_SCANNED_CHANNEL_REQ:
         case eWNI_SME_GET_STATISTICS_REQ:
-#ifdef FEATURE_INNAV_SUPPORT
-        case eWNI_SME_INNAV_MEAS_REQ:
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case eWNI_SME_OEM_DATA_REQ:
 #endif
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, true);  //need to response to hdd

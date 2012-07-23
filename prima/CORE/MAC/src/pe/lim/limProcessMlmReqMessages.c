@@ -46,8 +46,8 @@
 // MLM REQ processing function templates
 static void limProcessMlmStartReq(tpAniSirGlobal, tANI_U32 *);
 static void limProcessMlmScanReq(tpAniSirGlobal, tANI_U32 *);
-#ifdef FEATURE_INNAV_SUPPORT
-static void limProcessMlmInNavMeasurementReq(tpAniSirGlobal, tANI_U32 *);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+static void limProcessMlmOemDataReq(tpAniSirGlobal, tANI_U32 *);
 #endif
 static void limProcessMlmJoinReq(tpAniSirGlobal, tANI_U32 *);
 static void limProcessMlmAuthReq(tpAniSirGlobal, tANI_U32 *);
@@ -129,8 +129,8 @@ limProcessMlmReqMessages(tpAniSirGlobal pMac, tpSirMsgQ Msg)
     {
         case LIM_MLM_START_REQ:             limProcessMlmStartReq(pMac, Msg->bodyptr);   break;
         case LIM_MLM_SCAN_REQ:              limProcessMlmScanReq(pMac, Msg->bodyptr);    break;
-#ifdef FEATURE_INNAV_SUPPORT
-        case LIM_MLM_INNAV_MEAS_REQ: limProcessMlmInNavMeasurementReq(pMac, Msg->bodyptr); break;
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case LIM_MLM_OEM_DATA_REQ: limProcessMlmOemDataReq(pMac, Msg->bodyptr); break;
 #endif
         case LIM_MLM_JOIN_REQ:              limProcessMlmJoinReq(pMac, Msg->bodyptr);    break;
         case LIM_MLM_AUTH_REQ:              limProcessMlmAuthReq(pMac, Msg->bodyptr);    break;
@@ -1206,55 +1206,39 @@ limRestorePreScanState(tpAniSirGlobal pMac)
     PELOG1(limLog(pMac, LOG1, FL("Scan ended, took %d tu\n"), (tx_time_get() - pMac->lim.scanStartTime));)
 } /*** limRestorePreScanState() ***/
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
-void limSendHalInNavMeasReq(tpAniSirGlobal pMac)
+void limSendHalOemDataReq(tpAniSirGlobal pMac)
 {
     tSirMsgQ msg;
-    tpStartInNavMeasReq pStartInNavMeasReq = NULL;
+    tpStartOemDataReq pStartOemDataReq = NULL;
     tSirRetStatus rc = eSIR_SUCCESS;
-    tpLimMlmInNavMeasRsp pMlmInNavMeasRsp;
+    tpLimMlmOemDataRsp pMlmOemDataRsp;
     tANI_U32 reqLen = 0;
-    if(NULL == pMac->lim.gpLimMlmInNavMeasReq)
+    if(NULL == pMac->lim.gpLimMlmOemDataReq)
     {
         PELOGE(limLog(pMac, LOGE,  FL("Null pointer\n"));)
         goto error;
     }
 
-    PELOG3(limLog(pMac, LOG3, FL("INNAV: Number of bssids to measure are %d \n"), 
-        pMac->lim.gpLimMlmInNavMeasReq->numBSSIDs););
+    reqLen = sizeof(tStartOemDataReq);
 
-    reqLen = sizeof(tStartInNavMeasReq) - 
-                sizeof(tSirBSSIDChannelInfo) + 
-                sizeof(tSirBSSIDChannelInfo)*pMac->lim.gpLimMlmInNavMeasReq->numBSSIDs;
-
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)&pStartInNavMeasReq, 
-                        sizeof(tStartInNavMeasReq) - sizeof(tSirBSSIDChannelInfo) +
-                        pMac->lim.gpLimMlmInNavMeasReq->numBSSIDs*sizeof(tSirBSSIDChannelInfo)))
-
+    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)&pStartOemDataReq, reqLen))
     {
-        PELOGE(limLog(pMac, LOGE,  FL("INNAV: Could not allocate memory for pStartInNavMeasReq\n"));)
+        PELOGE(limLog(pMac, LOGE,  FL("OEM_DATA: Could not allocate memory for pStartOemDataReq\n"));)
         goto error;
     }
 
-    palZeroMemory(pMac->hHdd, (tANI_U8*)(pStartInNavMeasReq), reqLen);
+    palZeroMemory(pMac->hHdd, (tANI_U8*)(pStartOemDataReq), reqLen);
 
-    //Now copy over the information to the measurement req to HAL
-    palCopyMemory(pMac->hHdd, pStartInNavMeasReq->selfMacAddr, pMac->lim.gpLimMlmInNavMeasReq->selfMacAddr,
-                        sizeof(tSirMacAddr));
-    pStartInNavMeasReq->numBSSIDs = pMac->lim.gpLimMlmInNavMeasReq->numBSSIDs;
-    pStartInNavMeasReq->numInNavMeasurements = pMac->lim.gpLimMlmInNavMeasReq->numInNavMeasurements;
-    pStartInNavMeasReq->measurementMode = pMac->lim.gpLimMlmInNavMeasReq->measurementMode;
+    //Now copy over the information to the OEM DATA REQ to HAL
+    palCopyMemory(pMac->hHdd, pStartOemDataReq->selfMacAddr, pMac->lim.gpLimMlmOemDataReq->selfMacAddr, sizeof(tSirMacAddr));
 
-    //copy the bssid Channel info
-    palCopyMemory(pMac->hHdd, 
-        pStartInNavMeasReq->bssidChannelInfo, 
-            pMac->lim.gpLimMlmInNavMeasReq->bssidChannelInfo,
-                sizeof(tSirBSSIDChannelInfo)*pStartInNavMeasReq->numBSSIDs);
+    palCopyMemory(pMac->hHdd, pStartOemDataReq->oemDataReq, pMac->lim.gpLimMlmOemDataReq->oemDataReq, OEM_DATA_REQ_SIZE);
 
     //Create the message to be passed to HAL
-    msg.type = WDA_START_INNAV_MEAS_REQ;
-    msg.bodyptr = pStartInNavMeasReq;
+    msg.type = WDA_START_OEM_DATA_REQ;
+    msg.bodyptr = pStartOemDataReq;
     msg.bodyval = 0;
 
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
@@ -1267,38 +1251,34 @@ void limSendHalInNavMeasReq(tpAniSirGlobal pMac)
     }
 
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-    palFreeMemory(pMac->hHdd, (void*)pStartInNavMeasReq);
-    PELOGE(limLog(pMac, LOGE,  FL("INNAV: posting WDA_START_INNAV_MEAS_REQ to HAL failed\n"));)
+    palFreeMemory(pMac->hHdd, (void*)pStartOemDataReq);
+    PELOGE(limLog(pMac, LOGE,  FL("OEM_DATA: posting WDA_START_OEM_DATA_REQ to HAL failed\n"));)
 
 error:
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
 
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmInNavMeasRsp), sizeof(tLimMlmInNavMeasRsp)))
+    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmOemDataRsp), sizeof(tLimMlmOemDataRsp)))
     {
-        limLog(pMac->hHdd, LOGP, FL("INNAV: memory allocation for pMlmInNavMeasRsp failed under suspend link failure\n"));
+        limLog(pMac->hHdd, LOGP, FL("OEM_DATA: memory allocation for pMlmOemDataRsp failed under suspend link failure\n"));
         return;
     }
 
-    if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
+    if(NULL != pMac->lim.gpLimMlmOemDataReq)
     {
-        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmInNavMeasReq);
-        pMac->lim.gpLimMlmInNavMeasReq = NULL;
+        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmOemDataReq);
+        pMac->lim.gpLimMlmOemDataReq = NULL;
     }
 
-    pMlmInNavMeasRsp->resultCode = eSIR_SME_HAL_INNAV_MEAS_START_FAILED;
-    pMlmInNavMeasRsp->resultLength = 0;
-    pMlmInNavMeasRsp->numBSSIDs = 0;
-
-    limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)pMlmInNavMeasRsp);
+    limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)pMlmOemDataRsp);
 
     return;
 }
 /**
- * limSetInNavMeasModeFailed()
+ * limSetOemDataReqModeFailed()
  *
  * FUNCTION:
  *  This function is used as callback to resume link after the suspend fails while
- *  starting innav measurement mode.
+ *  starting oem data req mode.
  * LOGIC:
  *  NA
  *
@@ -1311,38 +1291,36 @@ error:
  * @return None
  */
 
-void limSetInNavMeasModeFailed(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
+void limSetOemDataReqModeFailed(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
 {
-    tpLimMlmInNavMeasRsp pMlmInNavMeasRsp;
+    tpLimMlmOemDataRsp pMlmOemDataRsp;
 
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
 
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmInNavMeasRsp), sizeof(tLimMlmInNavMeasRsp)))
+    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmOemDataRsp), sizeof(tLimMlmOemDataRsp)))
     {
-        limLog(pMac->hHdd, LOGP, FL("INNAV: memory allocation for pMlmInNavMeasRsp failed under suspend link failure\n"));
+        limLog(pMac->hHdd, LOGP, FL("OEM_DATA: memory allocation for pMlmOemDataRsp failed under suspend link failure\n"));
         return;
     }
 
-    if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
+    if(NULL != pMac->lim.gpLimMlmOemDataReq)
     {
-        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmInNavMeasReq);
-        pMac->lim.gpLimMlmInNavMeasReq = NULL;
+        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmOemDataReq);
+        pMac->lim.gpLimMlmOemDataReq = NULL;
     }
 
-    pMlmInNavMeasRsp->resultCode = eSIR_SME_HAL_INNAV_MEAS_START_FAILED;
-    pMlmInNavMeasRsp->resultLength = 0;
-    pMlmInNavMeasRsp->numBSSIDs = 0;
+    palZeroMemory(pMac->hHdd, pMlmOemDataRsp, sizeof(tLimMlmOemDataRsp));
 
-    limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)pMlmInNavMeasRsp);
+    limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)pMlmOemDataRsp);
 
     return;
 }
 
 /**
- * limSetInNavMeasMode()
+ * limSetOemDataReqMode()
  *
  *FUNCTION:
- * This function is called to setup system into InNav Meas mode
+ * This function is called to setup system into OEM DATA REQ mode
  *
  *LOGIC:
  * NA
@@ -1356,31 +1334,26 @@ void limSetInNavMeasModeFailed(tpAniSirGlobal pMac, eHalStatus status, tANI_U32*
  * @return None
  */
 
-void limSetInNavMeasMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
+void limSetOemDataReqMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
 {
     if(status != eHAL_STATUS_SUCCESS)
     {
-        limLog(pMac, LOGE, FL("INNAV: failed in suspend link\n"));
+        limLog(pMac, LOGE, FL("OEM_DATA: failed in suspend link\n"));
         goto error;
     }
     else
     {
-        /// Set current scan channel id to the first in the channel list
-        pMac->lim.gLimCurrentInNavMeasBssidIndex = 0;
-        PELOGE(limLog(pMac, LOGE, FL("INNAV: Calling limSendHalInitInNavMeasReq\n"));)
-        limSendHalInNavMeasReq(pMac);
+        PELOGE(limLog(pMac, LOGE, FL("OEM_DATA: Calling limSendHalOemDataReq\n"));)
+        limSendHalOemDataReq(pMac);
         return;
     }
 
 error:
-    //Set the resume channel to Any valid channel (invalid). 
-    //This will instruct HAL to set it to any previous valid channel.
-    peSetResumeChannel(pMac, 0, 0);
-    limResumeLink(pMac, limSetInNavMeasModeFailed, NULL);
+    limResumeLink(pMac, limSetOemDataReqModeFailed, NULL);
     return ;
-} /*** end limSetInNavMeasMode() ***/
+} /*** end limSendHalOemDataReq() ***/
 
-#endif //FEATURE_INNAV_SUPPORT
+#endif //FEATURE_OEM_DATA_SUPPORT
 
 static void
 mlm_add_sta(
@@ -1900,68 +1873,57 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 } /*** limProcessMlmScanReq() ***/
 
-#ifdef FEATURE_INNAV_SUPPORT
-static void limProcessMlmInNavMeasurementReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
+#ifdef FEATURE_OEM_DATA_SUPPORT
+static void limProcessMlmOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tLimMlmInNavMeasRsp*     pMlmInNavMeasRsp;
+    tLimMlmOemDataRsp*     pMlmOemDataRsp;
     
     if (((pMac->lim.gLimMlmState == eLIM_MLM_IDLE_STATE) ||
          (pMac->lim.gLimMlmState == eLIM_MLM_JOINED_STATE) ||
          (pMac->lim.gLimMlmState == eLIM_MLM_AUTHENTICATED_STATE) ||
          (pMac->lim.gLimMlmState == eLIM_MLM_BSS_STARTED_STATE) ||
-         (pMac->lim.gLimMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)) &&
-        (((tLimMlmInNavMeasReq*) pMsgBuf)->numBSSIDs != 0))
+         (pMac->lim.gLimMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)))
     {
-        //Hold onto the innav measurement request criteria
-        pMac->lim.gpLimMlmInNavMeasReq = (tLimMlmInNavMeasReq*)pMsgBuf;
-
-        PELOG1(limLog(pMac, LOG1, FL("INNAV: #bssids:%d #measurements:%d\n"),
-            pMac->lim.gpLimMlmInNavMeasReq->numBSSIDs, 
-            pMac->lim.gpLimMlmInNavMeasReq->numInNavMeasurements););
+        //Hold onto the oem data request criteria
+        pMac->lim.gpLimMlmOemDataReq = (tLimMlmOemDataReq*)pMsgBuf;
 
         pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
 
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
 
         //Now request for link suspension
-        limSuspendLink(pMac, eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN, limSetInNavMeasMode, NULL);
+        limSuspendLink(pMac, eSIR_CHECK_LINK_TRAFFIC_BEFORE_SCAN, limSetOemDataReqMode, NULL);
     }
     else
     {
         /**
-         * Should not have received MEAS req in other states
-         * OR should not have received LIM_MLM_INNAV_MEAS_REQ with
-         * zero number of bssids
+         * Should not have received oem data req in other states
          * Log error
          */
-        PELOGW(limLog(pMac, LOGW, FL("INNAV: unexpected LIM_MLM_INNAV_MEAS_REQ in state %X OR #bssids=0: %X\n"),
-               pMac->lim.gLimMlmState, ((tLimMlmInNavMeasReq *) pMsgBuf)->numBSSIDs););
+
+        PELOGW(limLog(pMac, LOGW, FL("OEM_DATA: unexpected LIM_MLM_OEM_DATA_REQ in invalid state %X\n"),pMac->lim.gLimMlmState);)
+
         limPrintMlmState(pMac, LOGW, pMac->lim.gLimMlmState);
 
-        /// Free up buffer allocated for
-        /// pMac->lim.gLimMlmScanReq
+        /// Free up buffer allocated
         palFreeMemory( pMac->hHdd, (tANI_U8 *) pMsgBuf);
 
         /// Return Meas confirm with INVALID_PARAMETERS
-        if(eHAL_STATUS_SUCCESS == palAllocateMemory(pMac->hHdd, (void**)&pMlmInNavMeasRsp, sizeof(tLimMlmInNavMeasRsp)))
+        if(eHAL_STATUS_SUCCESS == palAllocateMemory(pMac->hHdd, (void**)&pMlmOemDataRsp, sizeof(tLimMlmOemDataRsp)))
         {
-            pMlmInNavMeasRsp->resultCode = eSIR_SME_INVALID_PARAMETERS;
-            pMlmInNavMeasRsp->resultLength = 0;
-
-            limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)pMlmInNavMeasRsp);
-
-            palFreeMemory(pMac->hHdd, pMlmInNavMeasRsp);
+            limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)pMlmOemDataRsp);
+            palFreeMemory(pMac->hHdd, pMlmOemDataRsp);
         }
         else
         {
-            limLog(pMac, LOGP, FL("Could not allocate memory for pMlmInNavMeasRsp\n"));
+            limLog(pMac, LOGP, FL("Could not allocate memory for pMlmOemDataRsp\n"));
             return;
         }
     }
 
     return;
 }
-#endif //FEATURE_INNAV_SUPPORT
+#endif //FEATURE_OEM_DATA_SUPPORT
 
 
 /**

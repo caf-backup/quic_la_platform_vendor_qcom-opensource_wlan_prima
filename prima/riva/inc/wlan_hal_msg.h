@@ -90,9 +90,6 @@ typedef tANI_U8 tHalIpv4Addr[4];
 /*Version string max length (including NUL) */
 #define WLAN_HAL_VERSION_LENGTH  64
 
-/*Max Num Of BSSIDS in INNAV_MEAS_REQ*/
-#define MAX_BSSIDS_IN_INNAV_MEAS_REQ 1
-
 /* Message types for messages exchanged between WDI and HAL */
 typedef enum 
 {
@@ -251,9 +248,9 @@ typedef enum
    WLAN_HAL_DUMP_COMMAND_REQ       = 121,
    WLAN_HAL_DUMP_COMMAND_RSP       = 122,
 
-   //INNAV FEATURE SUPPORT
-   WLAN_HAL_START_INNAV_MEAS_REQ   = 123,
-   WLAN_HAL_START_INNAV_MEAS_RSP   = 124,
+   //OEM_DATA FEATURE SUPPORT
+   WLAN_HAL_START_OEM_DATA_REQ   = 123,
+   WLAN_HAL_START_OEM_DATA_RSP   = 124,
 
    //ADD SELF STA REQ and RSP
    WLAN_HAL_ADD_STA_SELF_REQ       = 125,
@@ -1892,81 +1889,46 @@ typedef PACKED_PRE struct PACKED_POST
    tRemoveStaKeyRspParams removeStaKeyRspParams;
 }  tRemoveStaKeyRspMsg, *tpRemoveStaKeyRspMsg;
 
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
-#ifdef FEATURE_INNAV_SUPPORT
-/*-------------------------------------------------------------------------
-WLAN_HAL_START_INNAV_MEAS_REQ
---------------------------------------------------------------------------*/
-typedef enum
-{
-  eRTS_CTS_BASED = 1,
-  eFRAME_BASED,
-}tInNavMeasurementMode;
+#ifndef OEM_DATA_REQ_SIZE
+#define OEM_DATA_REQ_SIZE 70
+#endif
 
-typedef PACKED_PRE struct PACKED_POST
-{
-   tSirMacAddr       bssid;
-   tANI_U16      channel;
-}tBSSIDChannelInfo;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    /* The return status of SIR_HAL_INIT_INNAV_MEAS_REQ is reported here */
-    tANI_U32                 status;
-
-    tSirMacAddr              selfMacAddr;
-    /* Request Parameters */
-
-    /* Number of BSSIDs */
-    tANI_U8                  numBSSIDs;
-    /* Number of Measurements required */
-    tANI_U8                  numInNavMeasurements;
-    /*.Type of measurements (RTS-CTS or FRAME-BASED) */
-    tANI_U16                 measurementMode;
-    tANI_U16                 reserved;
-    /* bssid channel info for doing the measurements */
-    tBSSIDChannelInfo       bssidChannelInfo[1];
-
-}tStartInNavMeasReqParams, *tpStartInNavMeasReqParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tHalMsgHeader                header;
-    tStartInNavMeasReqParams     StartInNavMeasParams;
-} tStartInNavReqMsg, *tpStartInNavReqMsg;
+#ifndef OEM_DATA_RSP_SIZE
+#define OEM_DATA_RSP_SIZE 968
+#endif
 
 /*-------------------------------------------------------------------------
-WLAN_HAL_START_INNAV_MEAS_RSP
+WLAN_HAL_START_OEM_DATA_REQ
 --------------------------------------------------------------------------*/
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_U32     rssi;
-    tANI_U16     rtt;
-    tANI_U16     snr;
-    tANI_U32     measurementTime;
-    tANI_U32     measurementTimeHi;
-}tRttRssiTimeData;
+    tANI_U32                status;
+    tSirMacAddr             selfMacAddr;
+    tANI_U8                 oemDataReq[OEM_DATA_REQ_SIZE];
+} tStartOemDataReqParams, *tpStartOemDataReqParams;
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    tSirMacAddr          bssid;
-    tANI_U16             numSuccessfulMeasurements;
-    tRttRssiTimeData    rttRssiTimeData[1];
-}tRttRssiResults;
+    tHalMsgHeader           header;
+    tStartOemDataReqParams  startOemDataReqParams;
+} tStartOemDataReqMsg, *tpStartOemDataReqMsg;
+
+/*-------------------------------------------------------------------------
+WLAN_HAL_START_OEM_DATA_RSP
+--------------------------------------------------------------------------*/
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_U16            numBSSIDs;
-    tANI_U16            rspLen;
-    tANI_U32            status;
-    tRttRssiResults  rttRssiResults[1];
-}tStartInNavMeasRspParams, *tpStartInNavRspParams;
+   tANI_U8                   oemDataRsp[OEM_DATA_RSP_SIZE];
+} tStartOemDataRspParams, *tpStartOemDataRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader             header;
-   tStartInNavMeasRspParams  StartInNavMeasRspParams;
-}  tStartInNavMeasRspMsg, *tpStartInNavMeasRspMsg;
+   tStartOemDataRspParams    startOemDataRspParams;
+} tStartOemDataRspMsg, *tpStartOemDataRspMsg;
 
 #endif
 
