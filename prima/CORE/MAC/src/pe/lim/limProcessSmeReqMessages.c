@@ -109,7 +109,7 @@ __limBackgroundScanInitiate(tpAniSirGlobal pMac)
     if (TX_TIMER_VALID(pMac->lim.limTimers.gLimBackgroundScanTimer))
     {
         limDeactivateAndChangeTimer(pMac, eLIM_BACKGROUND_SCAN_TIMER);
-     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_BACKGROUND_SCAN_TIMER));
+     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_BACKGROUND_SCAN_TIMER));
         if (tx_timer_activate(&pMac->lim.limTimers.gLimBackgroundScanTimer) != TX_SUCCESS)
             limLog(pMac, LOGP, FL("could not activate background scan timer\n"));
         pMac->lim.gLimBackgroundScanStarted   = true;
@@ -350,7 +350,7 @@ __limProcessSmeStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     {
         pMac->lim.gLimSmeState = eLIM_SME_IDLE_STATE;
         
-        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
         
         /// By default do not return after first scan match
         pMac->lim.gLimReturnAfterFirstMatch = 0;
@@ -418,7 +418,7 @@ __limProcessSmeSysReadyInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 #endif
     PELOGW(limLog(pMac, LOGW, FL("sending WDA_SYS_READY_IND msg to HAL\n"));)
-    MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
 
     if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
     {
@@ -886,7 +886,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif
         psessionEntry ->limPrevSmeState = psessionEntry->limSmeState;
         psessionEntry ->limSmeState     =  eLIM_SME_WT_START_BSS_STATE;
-     MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, psessionEntry ->limSmeState));
+        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry ->limSmeState));
 
         limPostMlmMessage(pMac, LIM_MLM_START_REQ, (tANI_U32 *) pMlmStartReq);
         return;
@@ -1077,7 +1077,7 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
          pMac->lim.gLimPrevSmeState = pMac->lim.gLimSmeState;
         
         pMac->lim.gLimSmeState = eLIM_SME_WT_SCAN_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
 
         if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_RESUTLS)
         {
@@ -1652,7 +1652,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
             psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
             psessionEntry->limSmeState = eLIM_SME_WT_JOIN_STATE;
-         MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, psessionEntry->limSmeState));
+            MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
 
         PELOG1(limLog(pMac, LOG1, FL("SME JoinReq: SSID %d.%c%c%c%c%c%c\n"),
                psessionEntry->ssId.length,
@@ -2168,7 +2168,7 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
     psessionEntry->limSmeState    = eLIM_SME_WT_REASSOC_STATE;
 
-    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, psessionEntry->limSmeState));
+    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
 
     limPostMlmMessage(pMac,
                       LIM_MLM_REASSOC_REQ,
@@ -2297,7 +2297,7 @@ __limProcessSmeDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 case eLIM_SME_LINK_EST_STATE:
                     psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
                     psessionEntry->limSmeState= eLIM_SME_WT_DISASSOC_STATE;
-                      MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, psessionEntry->limSmeState));
+                    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
                     break;
 
                 case eLIM_SME_WT_DEAUTH_STATE:
@@ -2307,7 +2307,7 @@ __limProcessSmeDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                      * its been set when PE entered WT_DEAUTH_STATE. 
                      */                  
                     psessionEntry->limSmeState= eLIM_SME_WT_DISASSOC_STATE;
-                    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, psessionEntry->limSmeState));
+                    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
                     limLog(pMac, LOG1, FL("Rcvd SME_DISASSOC_REQ while in SME_WT_DEAUTH_STATE. \n"));
                     break;
 
@@ -2633,7 +2633,7 @@ __limProcessSmeDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 case eLIM_SME_IDLE_STATE:
                     psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
                     psessionEntry->limSmeState = eLIM_SME_WT_DEAUTH_STATE;
-              MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+              MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, pMac->lim.gLimSmeState));
 
                     // Send Deauthentication request to MLM below
 
@@ -3284,7 +3284,7 @@ void limProcessSmeGetScanChannelInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     mmhMsg.bodyval = 0;
   
     pMac->lim.gLimRspReqd = false;
-    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
     limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 }
 
@@ -3603,7 +3603,7 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     prevState = psessionEntry->limSmeState;
 
     psessionEntry->limSmeState = eLIM_SME_IDLE_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, psessionEntry->limSmeState));
+    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
 
     /* Update SME session Id and Transaction Id */
     psessionEntry->smeSessionId = smesessionId;
@@ -3631,7 +3631,7 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         PELOGE(limLog(pMac, LOGE, FL("delBss failed for bss %d\n"), psessionEntry->bssIdx);)
         psessionEntry->limSmeState= prevState;
 
-        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, psessionEntry->limSmeState));
+        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
    
         limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, eSIR_SME_STOP_BSS_FAILURE,smesessionId,smetransactionId);
     }
@@ -4280,7 +4280,7 @@ __limProcessSmeAddtsReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limLog(pMac, LOGP, FL("AddtsRsp timer change failed!\n"));
         return;
     }
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_ADDTS_RSP_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_ADDTS_RSP_TIMER));
     
     //add the sessionId to the timer object
     pMac->lim.limTimers.gLimAddtsRspTimer.sessionId = sessionId;
@@ -4504,7 +4504,7 @@ __limProcessSmeStatsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     msgQ.reserved = 0;
     msgQ.bodyptr = pMsgBuf;
     msgQ.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 
     if( eSIR_SUCCESS != (wdaPostCtrlMsg( pMac, &msgQ ))){
         limLog(pMac, LOGP, "Unable to forward request\n");
@@ -4552,7 +4552,7 @@ __limProcessSmeGetStatisticsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     msgQ.reserved = 0;
     msgQ.bodyptr = pMsgBuf;
     msgQ.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
 
     if( eSIR_SUCCESS != (wdaPostCtrlMsg( pMac, &msgQ ))){
         palFreeMemory( pMac, pMsgBuf );
@@ -4888,7 +4888,7 @@ __limProcessSmeAddStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    msg.bodyval = 0;
 
    PELOGW(limLog(pMac, LOG1, FL("sending SIR_HAL_ADD_STA_SELF_REQ msg to HAL\n"));)
-      MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+      MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
 
    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
    {
@@ -4938,7 +4938,7 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    msg.bodyval = 0;
 
    PELOGW(limLog(pMac, LOG1, FL("sending SIR_HAL_ADD_STA_SELF_REQ msg to HAL\n"));)
-      MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+      MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
 
    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
    {

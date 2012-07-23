@@ -287,11 +287,11 @@ limDeferMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 #endif
     if(retCode == TX_SUCCESS)
         {
-            MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DEFERRED));)
+            MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DEFERRED));)
         }
     else
         {
-            MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DROPPED));)
+            MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DROPPED));)
         }
 
 
@@ -1175,7 +1175,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
       limMsgStr(limMsg->type), limSmeStateStr(pMac->lim.gLimSmeState),
       limMlmStateStr(pMac->lim.gLimMlmState));)
 
-    MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(limMsg->type, LIM_MSG_PROCESSED));)
+    MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(limMsg->type, LIM_MSG_PROCESSED));)
 
     switch (limMsg->type)
     {

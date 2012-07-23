@@ -241,7 +241,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
                         mlmDeauthInd.reasonCode = reasonCode;
 
                         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-                        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
+                        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
 
                         
                         limPostSmeMessage(pMac,
@@ -272,7 +272,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
 
                         psessionEntry->limMlmState =
                                    psessionEntry->limPrevMlmState;
-                        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
+                        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
 
                         // Deactive Association response timeout
                         limDeactivateAndChangeTimer(

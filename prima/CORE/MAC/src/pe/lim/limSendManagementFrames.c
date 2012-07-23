@@ -2402,7 +2402,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
                     "sociation Request.\n"), nBytes );
 
         psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
 
 
         /* Update PE session id*/
@@ -2788,7 +2788,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
         limLog( pMac, LOGP, FL("Failed to allocate %d bytes for a Re-As"
                     "sociation Request.\n"), nBytes );
         goto end;
@@ -3104,7 +3104,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
         limLog( pMac, LOGP, FL("Failed to allocate %d bytes for a Re-As"
                                "sociation Request.\n"), nBytes );
         goto end;

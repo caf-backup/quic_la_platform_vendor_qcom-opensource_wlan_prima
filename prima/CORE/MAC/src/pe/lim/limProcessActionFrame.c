@@ -116,8 +116,7 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
         }
         return;
     }
-
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_CHANNEL_SWITCH_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_CHANNEL_SWITCH_TIMER));
 
     pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId = sessionId;
 
@@ -149,7 +148,7 @@ tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEnt
     //so stop timer for a safer side.
     if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN)
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_QUIET_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_QUIET_TIMER));
         if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("tx_timer_deactivate failed\n"));
@@ -158,7 +157,7 @@ tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEnt
     }
     else if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING)
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_QUIET_BSS_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_QUIET_BSS_TIMER));
         if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("tx_timer_deactivate failed\n"));
@@ -764,7 +763,7 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     else
     {
       //send message to HAL to delete TS
-      if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, delts))
+      if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, delts, psessionEntry->peSessionId))
       {
         limLog(pMac, LOGW, FL("DelTs with UP %d failed in limSendHalMsgDelTs - ignoring request\n"),
                          tsinfo->traffic.userPrio);

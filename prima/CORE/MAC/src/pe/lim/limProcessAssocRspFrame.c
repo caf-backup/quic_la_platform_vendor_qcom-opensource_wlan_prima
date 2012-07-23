@@ -225,7 +225,7 @@ void limUpdateReAssocGlobals(tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,tpPESe
     psessionEntry->limAID = pAssocRsp->aid & 0x3FFF;
     /** Set the State Back to ReAssoc Rsp*/
     psessionEntry->limMlmState = eLIM_MLM_WT_REASSOC_RSP_STATE; 
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
 
     
 }
@@ -731,7 +731,7 @@ assocReject:
        ) {
         PELOGE(limLog(pMac, LOGE,  FL("Assoc Rejected by the peer. Reason: %d\n"), mlmAssocCnf.resultCode);)
         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
 
         if (psessionEntry->pLimMlmJoinReq)
         {

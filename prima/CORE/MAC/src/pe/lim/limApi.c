@@ -220,7 +220,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
     pMac->lim.gLimPrevSmeState = eLIM_SME_OFFLINE_STATE;
 
     /// MLM State visible across all Sirius modules
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_IDLE_STATE));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, eLIM_MLM_IDLE_STATE));
     pMac->lim.gLimMlmState = eLIM_MLM_IDLE_STATE;
 
     /// Previous MLM State
@@ -241,7 +241,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
      * Initialize state to suspended state and wait for
      * HAL to send LIM_RESUME_ACTIVITY_NTF message.
      */
-    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
     pMac->lim.gLimSmeState     = eLIM_SME_SUSPEND_STATE;
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
@@ -656,7 +656,7 @@ tSirRetStatus limStart(tpAniSirGlobal pMac)
    {
       pMac->lim.gLimSmeState = eLIM_SME_IDLE_STATE;
 
-      MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+      MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
 
       // By default do not return after first scan match
       pMac->lim.gLimReturnAfterFirstMatch = 0;
@@ -1426,7 +1426,7 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
        FL ( "RxBd=%p mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d\n"),
        pRxBd, mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
 
-    MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, 0, 
+    MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, NO_SESSION, 
                         LIM_TRACE_MAKE_RXMGMT(mHdr->fc.subType,  
                         (tANI_U16) (((tANI_U16) (mHdr->seqControl.seqNumHi << 4)) | mHdr->seqControl.seqNumLo)));)
     }
@@ -1683,7 +1683,7 @@ limContinueChannelLearn(tpAniSirGlobal pMac)
     pMac->lim.gLimMeasParams.shortDurationCount++;
     limDeactivateAndChangeTimer(pMac, eLIM_LEARN_DURATION_TIMER);
 
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_LEARN_DURATION_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_LEARN_DURATION_TIMER));
     if (tx_timer_activate(&pMac->lim.gLimMeasParams.learnDurationTimer)
                                            != TX_SUCCESS)
     {
@@ -1731,7 +1731,7 @@ limReEnableLearnMode(tpAniSirGlobal pMac)
 
     if (pMac->lim.gLimSpecMgmt.fQuietEnabled)
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_QUIET_BSS_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_QUIET_BSS_TIMER));
 #ifdef GEN6_TODO
         /* revisit this piece of code to assign the appropriate sessionId below
          * priority - HIGH
@@ -1750,7 +1750,7 @@ limReEnableLearnMode(tpAniSirGlobal pMac)
     else
     {
         limDeactivateAndChangeTimer(pMac, eLIM_LEARN_INTERVAL_TIMER);
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_LEARN_INTERVAL_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_LEARN_INTERVAL_TIMER));
 #ifdef GEN6_TODO
         /* revisit this piece of code to assign the appropriate sessionId below
         */
@@ -1905,7 +1905,7 @@ void limProcessWdsInfo(tpAniSirGlobal pMac,
                 mmhMsg.type = eWNI_SME_WDS_INFO_IND;
                 mmhMsg.bodyptr = pSirSmeWdsInfoInd;
                 mmhMsg.bodyval = 0;
-                MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+                MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
                 limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
                 pMac->lim.gLimNumWdsInfoInd++;
             }
@@ -2392,7 +2392,7 @@ void limRadarInit(tpAniSirGlobal pMac)
     msg.type = WDA_INIT_RADAR_IND;
     msg.bodyptr = NULL;
     msg.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
     status = wdaPostCtrlMsg(pMac, &msg);
     if (status != eHAL_STATUS_SUCCESS)
     {

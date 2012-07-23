@@ -1156,7 +1156,7 @@ Notify(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 ntfMask)
     mmhMsg.bodyval = (tANI_U32)cfgId;
     mmhMsg.bodyptr = NULL;
 
-    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
 
     if ((ntfMask & CFG_CTL_NTF_SCH) != 0)
         schPostMessage(pMac, &mmhMsg);
