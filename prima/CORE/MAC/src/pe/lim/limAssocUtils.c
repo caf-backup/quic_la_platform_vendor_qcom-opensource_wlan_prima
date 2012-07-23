@@ -830,17 +830,33 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
         psessionEntry->limSmeState = eLIM_SME_JOIN_FAILURE_STATE;
         MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, psessionEntry->peSessionId, psessionEntry->limSmeState));
 
+        //if it is a reassoc failure to join new AP
+        if(mlmStaContext.resultCode == eSIR_SME_FT_REASSOC_TIMEOUT_FAILURE)
+        {
+            if(mlmStaContext.resultCode != eSIR_SME_SUCCESS )
+            {
+                peDeleteSession(pMac, psessionEntry);
+                psessionEntry = NULL;
+            } 
+
+            limSendSmeJoinReassocRsp(pMac, eWNI_SME_REASSOC_RSP,
+                               mlmStaContext.resultCode, mlmStaContext.protStatusCode, psessionEntry,
+                               smesessionId, smetransactionId);
+        }
+        else
+        {
         palFreeMemory( pMac->hHdd, psessionEntry->pLimJoinReq);
         psessionEntry->pLimJoinReq = NULL;
 
         if(mlmStaContext.resultCode != eSIR_SME_SUCCESS)
-        {
+		{
             peDeleteSession(pMac,psessionEntry);
             psessionEntry = NULL;
         } 
         
         limSendSmeJoinReassocRsp(pMac, eWNI_SME_JOIN_RSP, mlmStaContext.resultCode, mlmStaContext.protStatusCode,
                                  psessionEntry, smesessionId, smetransactionId);
+        }
         
     } 
 

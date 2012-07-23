@@ -5072,6 +5072,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 // If this transition is because of an 802.11 OID, then we transition
                 // back to INIT state so we sit waiting for more OIDs to be issued and
                 // we don't start the IDLE timer.
+                case eCsrSmeIssuedFTReassoc:
                 case eCsrSmeIssuedAssocToSimilarAP:
                 case eCsrHddIssued:
                     csrRoamStateChange( pMac, eCSR_ROAMING_STATE_IDLE, sessionId );
@@ -5085,13 +5086,10 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     /* If Join fails while Handoff is in progress, indicate disassociated event to supplicant to reconnect */
                     if (csrRoamIsHandoffInProgress(pMac))
                     {
-                        csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.roamCmd.roamId, eCSR_ROAM_DISASSOCIATED, eCSR_ROAM_RESULT_FORCED);
                         /* Should indicate neighbor roam algorithm about the connect failure here */
                         csrNeighborRoamIndicateConnect(pMac, (tANI_U8)sessionId, VOS_STATUS_E_FAILURE);
                     }
-                    else
 #endif
-                    {
                         if(pSession->bRefAssocStartCnt > 0)
                         {
                             pSession->bRefAssocStartCnt--;
@@ -5099,7 +5097,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                                                 eCSR_ROAM_ASSOCIATION_COMPLETION, 
                                                 eCSR_ROAM_RESULT_FAILURE);
                         }
-                    }
                     smsLog(pMac, LOG1, FL("  roam(reason %d) failed\n"), pCommand->u.roamCmd.roamReason);
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
                     sme_QosCsrEventInd(pMac, (tANI_U8)sessionId, SME_QOS_CSR_DISCONNECT_IND, NULL);
