@@ -1253,67 +1253,6 @@ error_sme_open:
    return status;
 }
 
-#ifdef WLAN_FEATURE_P2P
-#if 0
-/**
- * hdd_init_p2p_device_mode
- *
- *FUNCTION:
- * This function is called from hdd_wlan_startup function when wlan 
- * driver module is loaded. 
- *
- *LOGIC:
- * Open New SME session with P2P Device Mac Address which is different 
- * from STA Mac Address SME session. When driver receive any frame on STA Mac 
- * Address then we divert all the frame using P2P Device Mac Address instaed of 
- * STA Mac address. 
- *
- *ASSUMPTIONS:
- *
- *
- *NOTE:
- *
- * @param  pAdapter   Pointer to pAdapter structure
- *
- * @return None
- */
-VOS_STATUS hdd_init_p2p_device_mode( hdd_adapter_t *pAdapter)
-{
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
-   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
-   VOS_STATUS status = VOS_STATUS_E_FAILURE;
-   int rc = 0;
-
-   INIT_COMPLETION(pAdapter->session_open_comp_var);
-   //Open a SME session for future operation
-   halStatus = sme_OpenSession( pHddCtx->hHal, hdd_smeRoamCallback, pAdapter,
-               (tANI_U8 *)&pHddCtx->p2pDeviceAddress, &pAdapter->p2pSessionId);
-   if ( !HAL_STATUS_SUCCESS( halStatus ) )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-             "sme_OpenSession() failed with status code %08d [x%08lx]",
-                                                 halStatus, halStatus );
-      status = VOS_STATUS_E_FAILURE;
-      return status;
-   }
-   
-   //Block on a completion variable. Can't wait forever though.
-   rc = wait_for_completion_interruptible_timeout(
-                        &pAdapter->session_open_comp_var,
-                        msecs_to_jiffies(WLAN_WAIT_TIME_SESSIONOPENCLOSE));
-   if (!rc)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-             "Session is not opened within timeout period code %08d", rc );
-      status = VOS_STATUS_E_FAILURE;
-      return status;
-   }
-
-   return VOS_STATUS_SUCCESS;
-}
-#endif
-#endif
-
 #ifdef CONFIG_CFG80211
 void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 {
@@ -3801,7 +3740,7 @@ int hdd_wlan_startup(struct device *dev )
    if (VOS_STA_SAP_MODE != hdd_get_conparam())
 #endif
    {
-      wlan_hdd_cfg80211_post_voss_start(pAdapter);
+      wlan_hdd_cfg80211_post_voss_start(pP2pAdapter);
    }
 #endif
 
