@@ -401,11 +401,20 @@ int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
 
 int hdd_wlan_get_freq(v_U32_t channel, v_U32_t *pfreq)
 {
-    if((channel > 0) && (channel <= (FREQ_CHAN_MAP_TABLE_SIZE - 1)))
+    int i;
+    if (channel > 0)
     {
-         *pfreq = freq_chan_map[channel - 1].freq;
-         return 1;
+        for (i=0; i < FREQ_CHAN_MAP_TABLE_SIZE; i++)
+        {
+            if (channel == freq_chan_map[i].chan)
+            {
+                *pfreq = freq_chan_map[i].freq;
+                return 1;
+            }
+        }
     }
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                               ("Invalid channel no=%d!!\n"), channel);
     return -EINVAL;
 }
 
