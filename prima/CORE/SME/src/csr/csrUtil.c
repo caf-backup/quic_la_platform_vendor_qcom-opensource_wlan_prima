@@ -2519,7 +2519,7 @@ eHalStatus csrValidateBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                 case VOS_STA_MODE:
                     if(pMac->roam.roamSession[sessionId].pCurRoamProfile &&
                       (pMac->roam.roamSession[sessionId].pCurRoamProfile->csrPersona 
-                                      == VOS_P2P_CLIENT)) //check for P2P client mode
+                                      == VOS_P2P_CLIENT_MODE)) //check for P2P client mode
                     {
                         smsLog(pMac, LOG1, FL(" Beacon Interval Validation not required for STA/CLIENT\n"));
                     }
