@@ -1679,6 +1679,9 @@ bits:    meaning:
 		WMI_BTCOEX_FE_ANT_SINGLE =1,
 		WMI_BTCOEX_FE_ANT_DUAL=2,
 		WMI_BTCOEX_FE_ANT_DUAL_HIGH_ISO=3,
+		WMI_BTCOEX_FE_ANT_DUAL_SH_BT_LOW_ISO = 4,
+		WMI_BTCOEX_FE_ANT_DUAL_SH_BT_HIGH_ISO = 5,
+		WMI_BTCOEX_FE_ANT_TRIPLE = 6,
 		WMI_BTCOEX_FE_ANT_TYPE_MAX
 	}WMI_BTCOEX_FE_ANT_TYPE;
 
@@ -1824,6 +1827,44 @@ bits:    meaning:
 		BTCOEX_OPTMODE_SCO_CONFIG scoOptModeConfig;
 		BTCOEX_WLANSCAN_SCO_CONFIG scoWlanScanConfig;
 	}POSTPACK WMI_SET_BTCOEX_SCO_CONFIG_CMD;
+
+	typedef PREPACK struct {
+		A_UINT32 scoStompCntIn100ms;/* max number of SCO stomp in 100ms allowed in
+									   opt mode. If exceeds the configured value,
+									   switch to ps-poll mode
+									   default = 3 */
+
+		A_UINT32 scoContStompMax;   /* max number of continous stomp allowed in opt mode.
+									   if excedded switch to pspoll mode
+									   default = 3 */
+
+		A_UINT32 scoMinlowRateMbps; /* Low rate threshold */
+
+		A_UINT32 scoLowRateCnt;     /* number of low rate pkts (< scoMinlowRateMbps) allowed in 100 ms.
+									   If exceeded switch/stay to ps-poll mode, lower stay in opt mode.
+									   default = 36
+									*/
+
+		A_UINT32 scoHighPktRatio;   /* (Total Rx pkts in 100 ms + 1)/
+									   ((Total tx pkts in 100 ms - No of high rate pkts in 100 ms) + 1) in 100 ms,
+									   if exceeded switch/stay in opt mode and if lower switch/stay in  pspoll mode.
+									   default = 5 (80% of high rates)
+									*/
+
+		A_UINT32 scoMaxAggrSize;    /* Max number of Rx subframes allowed in this mode. (Firmware re-negogiates
+									   max number of aggregates if it was negogiated to higher value
+									   default = 1
+									   Recommended value Basic rate headsets = 1, EDR (2-EV3)  =4.
+									*/
+		A_UINT32 NullBackoff;       /* Number of us the Null frame should go out before the next SCO slot */
+	}POSTPACK BTCOEX_OPTMODE_SCO_CONFIG_EXT;
+
+	typedef PREPACK struct {
+		BTCOEX_SCO_CONFIG scoConfig;
+		BTCOEX_PSPOLLMODE_SCO_CONFIG scoPspollConfig;
+		BTCOEX_OPTMODE_SCO_CONFIG_EXT scoOptModeConfig;
+		BTCOEX_WLANSCAN_SCO_CONFIG scoWlanScanConfig;
+	}POSTPACK WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD;
 
 	/* ------------------WMI_SET_BTCOEX_A2DP_CONFIG_CMDID -------------------*/
 	/* Configure A2DP profile parameters. These parameters would be used whenver firmware is indicated
@@ -2037,6 +2078,7 @@ bits:    meaning:
 		A_UINT32 linkId; /* not used */
 		PREPACK union {
 			WMI_SET_BTCOEX_SCO_CONFIG_CMD scoConfigCmd;
+			WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD scoConfigExtCmd;
 			WMI_SET_BTCOEX_A2DP_CONFIG_CMD a2dpConfigCmd;
 			WMI_SET_BTCOEX_ACLCOEX_CONFIG_CMD aclcoexConfig;
 			WMI_SET_BTCOEX_BTINQUIRY_PAGE_CONFIG_CMD btinquiryPageConfigCmd;

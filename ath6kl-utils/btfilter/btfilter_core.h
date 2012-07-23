@@ -21,6 +21,7 @@ typedef union _BT_CONTROL_ACTION_BUFFER {
     WMI_SET_BT_STATUS_CMD AsStatusCmd;              /* parameters for a status command */
     WMI_SET_BT_PARAMS_CMD AsParamCmd;               /* parameters for a set params command */
     WMI_SET_BTCOEX_SCO_CONFIG_CMD scoConfigCmd;
+    WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD scoConfigExtCmd;
     WMI_SET_BTCOEX_A2DP_CONFIG_CMD a2dpConfigCmd;
 } BT_CONTROL_ACTION_BUFFER;
 
@@ -45,7 +46,7 @@ typedef struct _BT_FILTER_CORE_STATE {
 } BT_FILTER_CORE_STATE;
 
 #define BT_ACTION_STRING_MAX_LENGTH 64  /* maximum action string length */
-#define BT_ACTION_MAX_ARGS          18  /* maximum number of numberic arguments */
+#define BT_ACTION_MAX_ARGS          19  /* maximum number of numberic arguments */
 
 #define BT_CA_DESC_FLAGS_ALLOCATED (1 << 0)
 

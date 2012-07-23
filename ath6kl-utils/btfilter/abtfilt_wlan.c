@@ -164,6 +164,10 @@ int send_btcoex_wmi_cmd(ATHBT_FILTER_INFO *pInfo, void *data, int len)
 	if (nl_cmd == NL80211_WMI_SET_BT_FT_ANT) {
 		if (pInfo->Flags & ABF_FE_ANT_IS_SA)
 			A_INFO("Issue FE antenna configuration as single\n");
+		else if (pInfo->Flags & ABF_FE_ANT_IS_DA_SB_LI) 
+			A_INFO("Issue FE antenna configuration as dual antenna shared BT\n");
+		else if (pInfo->Flags & ABF_FE_ANT_IS_3A)
+			A_INFO("Issue FE antenna configuration as 2x2 WLAN and non-shared BT\n");
 		else
 			A_INFO("Issue FE antenna configuration as dual\n");
 	}
@@ -391,7 +395,15 @@ Abf_WlanIssueFrontEndConfig(ATHBT_FILTER_INFO * pInfo)
         /* Indicate front end antenna configuration as single antenna  */
         A_INFO("FLAGS = %x, Issue FE antenna configuration as single \n", pInfo->Flags);
         btcoexFeAntCmd.btcoexFeAntType = WMI_BTCOEX_FE_ANT_SINGLE;
-    }else {
+    }
+    else if (pInfo->Flags & ABF_FE_ANT_IS_DA_SB_LI) {
+        A_INFO("FLAGS = %x, Issue FE antenna configuration as dual antenna shared BT \n", pInfo->Flags);
+        btcoexFeAntCmd.btcoexFeAntType = WMI_BTCOEX_FE_ANT_DUAL_SH_BT_LOW_ISO;
+    } else if (pInfo->Flags & ABF_FE_ANT_IS_3A) {
+        A_INFO("FLAGS = %x, Issue FE antenna configuration as 2x2 WLAN and non-shared BT\n", pInfo->Flags);
+        btcoexFeAntCmd.btcoexFeAntType = WMI_BTCOEX_FE_ANT_TRIPLE;
+    }
+    else {
         A_INFO("FLAGS = %x, Issue FE antenna configuration as dual \n", pInfo->Flags);
         btcoexFeAntCmd.btcoexFeAntType = WMI_BTCOEX_FE_ANT_DUAL;
     }

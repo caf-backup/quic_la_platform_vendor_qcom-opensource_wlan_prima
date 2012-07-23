@@ -234,6 +234,9 @@ A_STATUS Abf_WlanDispatchIO(ATHBT_FILTER_INFO *pInfo, unsigned long int req,
 #define ABF_USE_ONLY_DBUS_FILTERING             (1 << 4)
 #define ABF_FE_ANT_IS_SA                        (1 << 5)
 #define ABF_BT_CHIP_IS_QCOM                     (1 << 6)
+#define ABF_FE_ANT_IS_DA_SB_LI                  (1 << 7)
+#define ABF_FE_ANT_IS_3A                        (1 << 8)
+#define ABF_WIFI_CHIP_IS_MCKINLEY               (1 << 9)
 
 A_STATUS Abf_BtStackNotificationInit(ATH_BT_FILTER_INSTANCE *pInstance, A_UINT32 Flags);
 void Abf_BtStackNotificationDeInit(ATH_BT_FILTER_INSTANCE *pInstance);

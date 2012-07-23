@@ -51,6 +51,19 @@ static const BT_CONTROL_ACTION_DESC_STATE g_ActionDefaultsVenus[ATH_BT_MAX_STATE
     /* ATH_BT_ESCO     */     {{{ "-s 4 2 0",             0, NULL }, { "-pSCO 2 10 1 0 10 20 2 6 2 3 3 36 5 5 1 100 2; -s 4 1 0", 0, NULL }}},
 };
 
+static const BT_CONTROL_ACTION_DESC_STATE g_ActionDefaultsMcKinley[ATH_BT_MAX_STATE_INDICATION] =
+{
+                                        /* STATE OFF */                     /* STATE ON */
+    /* ATH_BT_NOOP    */      {{{ ACTION_NOOP,          0, NULL }, { ACTION_NOOP,          0, NULL }}},
+    /* ATH_BT_INQUIRY */      {{{ "-s 3 2 0",             0, NULL }, { "-s 3 1 0",             0, NULL }}},
+    /* ATH_BT_CONNECT */      {{{ ACTION_TODO_TBD,      0, NULL }, { ACTION_TODO_TBD,      0, NULL }}},
+    /* ATH_BT_SCO     */      {{{ "-s 1 2 0",             0, NULL }, { "-pSCO 2 4 0 0 10 20 2 6 2 3 3 36 5 5 1 0 100 2; -s 1 1 0 ", 0, NULL }}},
+    /* ATH_BT_ACL     */      {{{ ACTION_TODO_TBD,      0, NULL }, { ACTION_TODO_TBD,      0, NULL }}},
+    /* ATH_BT_A2DP    */      {{{ "-s 2 2 0",             0, NULL }, { "-pA2DP 0 0 30 3 20 36 5 5 1 6; -s 2 1 0", 0, NULL }}},
+    /* ATH_BT_ESCO     */     {{{ "-s 4 2 0",             0, NULL }, { "-pSCO 2 10 1 0 10 20 5 4 1 3 3 36 5 5 1 0 100 2; -s 4 1 0", 0, NULL }}},
+};
+
+
 typedef enum _BT_COMMAND_TAG {
     BT_STATUS_TAG               = 0,
     BT_PARAM_SCO_TAG            = 1,
@@ -221,7 +234,7 @@ static A_STATUS BuildActionFromString(BT_FILTER_CORE_INFO * pCore, A_CHAR *pActi
         case BT_STATUS_TAG:
            /* set up item and struct pointer */
             pItem->ControlAction.Type = BT_CONTROL_ACTION_STATUS;
-            if(pCore->FilterState.btFilterFlags & ABF_WIFI_CHIP_IS_VENUS) {
+            if(pCore->FilterState.btFilterFlags & (ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY)) {
                 WMI_SET_BTCOEX_BT_OPERATING_STATUS_CMD   *pOperatingStatus =
                        (WMI_SET_BTCOEX_BT_OPERATING_STATUS_CMD *)pItem->ControlAction.Buffer;
 
@@ -281,6 +294,38 @@ static A_STATUS BuildActionFromString(BT_FILTER_CORE_INFO * pCore, A_CHAR *pActi
                     pScoOptModeConfig->scoMaxAggrSize          = (A_UINT32) args[14];
                     pScoWlanScanConfig->scanInterval           = (A_UINT32) args[15];
                     pScoWlanScanConfig->maxScanStompCnt        = (A_UINT32) args[16];
+
+                } else if(pCore->FilterState.btFilterFlags & ABF_WIFI_CHIP_IS_MCKINLEY) {
+                    WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD * pScoConfigCmd =
+                            (WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD *)pItem->ControlAction.Buffer;
+                    pItem->ControlAction.Length = sizeof(WMI_SET_BTCOEX_SCO_CONFIG_EXT_CMD);
+                    BTCOEX_SCO_CONFIG * pScoGenericConfig = &pScoConfigCmd->scoConfig;
+                    BTCOEX_PSPOLLMODE_SCO_CONFIG  * pScoPspollConfig = &pScoConfigCmd->scoPspollConfig;
+                    BTCOEX_OPTMODE_SCO_CONFIG_EXT * pScoOptModeConfig = &pScoConfigCmd->scoOptModeConfig;
+                    BTCOEX_WLANSCAN_SCO_CONFIG * pScoWlanScanConfig = &pScoConfigCmd->scoWlanScanConfig;
+                    if (argCount != 18) {
+                        status = A_EINVAL;
+                        break;
+                    }
+                    pScoGenericConfig->scoSlots 			   = (A_UINT32) args[0];
+                    pScoGenericConfig->scoIdleSlots 		   = (A_UINT32) args[1];
+                    pScoGenericConfig->scoFlags 			   = (A_UINT32) args[2];
+                    pScoGenericConfig->linkId				   = (A_UINT32) args[3];
+                    pScoPspollConfig->scoCyclesForceTrigger    = (A_UINT32) args[4];
+                    pScoPspollConfig->scoDataResponseTimeout   = (A_UINT32) args[5];
+                    pScoPspollConfig->scoStompDutyCyleVal	   = (A_UINT32) args[6];
+                    pScoPspollConfig->scoStompDutyCyleMaxVal   = (A_UINT32) args[7];
+                    pScoPspollConfig->scoPsPollLatencyFraction = (A_UINT32) args[8];
+                    pScoOptModeConfig->scoStompCntIn100ms	   = (A_UINT32) args[9];
+                    pScoOptModeConfig->scoContStompMax		   = (A_UINT32) args[10];
+                    pScoOptModeConfig->scoMinlowRateMbps	   = (A_UINT32) args[11];
+                    pScoOptModeConfig->scoLowRateCnt		   = (A_UINT32) args[12];
+                    pScoOptModeConfig->scoHighPktRatio		   = (A_UINT32) args[13];
+                    pScoOptModeConfig->scoMaxAggrSize		   = (A_UINT32) args[14];
+                    pScoOptModeConfig->NullBackoff			   = (A_UINT32) args[15];
+                    pScoWlanScanConfig->scanInterval		   = (A_UINT32) args[16];
+                    pScoWlanScanConfig->maxScanStompCnt 	   = (A_UINT32) args[17];
+
                 } else {
                     pItem->ControlAction.Type = BT_CONTROL_ACTION_PARAMS;
                     pItem->ControlAction.Length = sizeof(WMI_SET_BT_PARAMS_CMD);
@@ -312,7 +357,7 @@ static A_STATUS BuildActionFromString(BT_FILTER_CORE_INFO * pCore, A_CHAR *pActi
                 break;
         case BT_PARAM_A2DP_TAG:
                 pItem->ControlAction.Type = BT_CONTROL_ACTION_PARAMS;
-                if(pCore->FilterState.btFilterFlags & ABF_WIFI_CHIP_IS_VENUS) {
+                if(pCore->FilterState.btFilterFlags & (ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY)) {
                     WMI_SET_BTCOEX_A2DP_CONFIG_CMD * pA2dpConfigCmd =
                                         (WMI_SET_BTCOEX_A2DP_CONFIG_CMD *)pItem->ControlAction.Buffer;
                     pItem->ControlAction.Length = sizeof(WMI_SET_BTCOEX_A2DP_CONFIG_CMD);
@@ -452,6 +497,8 @@ void FCore_ResetActionDescriptors(BT_FILTER_CORE_INFO *pCore)
 
     if(pCore->FilterState.btFilterFlags & ABF_WIFI_CHIP_IS_VENUS) {
         memcpy(pCore->ActionDescriptors, g_ActionDefaultsVenus, sizeof(pCore->ActionDescriptors));
+    } else if (pCore->FilterState.btFilterFlags & ABF_WIFI_CHIP_IS_MCKINLEY) {
+        memcpy(pCore->ActionDescriptors, g_ActionDefaultsMcKinley, sizeof(pCore->ActionDescriptors));
     }else {
         memcpy(pCore->ActionDescriptors, g_ActionDefaults, sizeof(pCore->ActionDescriptors));
     }
