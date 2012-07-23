@@ -849,7 +849,7 @@ limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,
         psessionEntry->pLimJoinReq = NULL;
 
         if(mlmStaContext.resultCode != eSIR_SME_SUCCESS)
-		{
+        {
             peDeleteSession(pMac,psessionEntry);
             psessionEntry = NULL;
         } 

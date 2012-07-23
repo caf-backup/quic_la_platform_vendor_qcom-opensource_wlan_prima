@@ -1869,7 +1869,7 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
         if( pRoamInfo )
         {
             pRoamInfo->sessionId = (tANI_U8)sessionId;
-        }
+		}
 
         /* avoid holding the global lock when making the roaming callback , original change came 
         from a raised CR (CR304874).  Since this callback is in HDD a potential deadlock 
@@ -3269,7 +3269,7 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
         else
         {
            //cfgCb = pBssConfig->cbMode;
-           cfgCb = pMac->roam.configParam.channelBondingMode5GHz;
+			cfgCb = pMac->roam.configParam.channelBondingMode5GHz;
         }
     }
     ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, cfgCb, NULL, eANI_BOOLEAN_FALSE);
@@ -3401,10 +3401,10 @@ eCsrJoinState csrRoamJoin( tpAniSirGlobal pMac, tANI_U32 sessionId,
         // If we are connected in infrastructure mode and the Join Bss description is for the same BssID, then we are
         // attempting to join the AP we are already connected with.  In that case, see if the Bss or Sta capabilities
         // have changed and handle the changes (without disturbing the current association).
-
+                
         if ( csrIsConnStateConnectedInfra(pMac, sessionId) && 
              csrIsBssIdEqual( pMac, pBssDesc, pSession->pConnectBssDesc ) &&
-             csrIsSsidEqual( pMac, pSession->pConnectBssDesc, pBssDesc, pIesLocal )
+                 csrIsSsidEqual( pMac, pSession->pConnectBssDesc, pBssDesc, pIesLocal )
            )               
         {   
             // Check to see if the Auth type has changed in the Profile.  If so, we don't want to Reassociate
@@ -7031,7 +7031,7 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
 
         palCopyMemory(pMac->hHdd, roamInfo.bssid, pMac->roam.neighborRoamInfo.csrNeighborRoamProfile.BSSIDs.bssid, sizeof(tSirMacAddr));
 
-        csrRoamCallCallback(pMac,sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
+            csrRoamCallCallback(pMac,sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
 
         status = palAllocateMemory(pMac->hHdd, (void **)&pScanFilter, sizeof(tCsrScanResultFilter));
         if(HAL_STATUS_SUCCESS(status))
@@ -8729,17 +8729,17 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         if( eSIR_SME_SUCCESS == pRsp->statusCode )
                         {
                             palCopyMemory( pMac, &roamInfo.peerMac, &pRsp->peerMacAddr, sizeof(tCsrBssid) );
-                            //Make sure we install the GTK before indicating to HDD as authenticated
-                            //This is to prevent broadcast packets go out after PTK and before GTK.
-                            if( palEqualMemory( pMac->hHdd, &Broadcastaddr, pRsp->peerMacAddr, 
-                                        sizeof(tSirMacAddr) ) )
-                            {
-                                result = eCSR_ROAM_RESULT_AUTHENTICATED;
-                            }
-                            else
-                            {
-                            result = eCSR_ROAM_RESULT_NONE;
-                            }
+                                //Make sure we install the GTK before indicating to HDD as authenticated
+                                //This is to prevent broadcast packets go out after PTK and before GTK.
+                                if( palEqualMemory( pMac->hHdd, &Broadcastaddr, pRsp->peerMacAddr, 
+                                           sizeof(tSirMacAddr) ) )
+                                {
+                                    result = eCSR_ROAM_RESULT_AUTHENTICATED;
+                                }
+                                else
+                                {
+                                    result = eCSR_ROAM_RESULT_NONE;
+                                }
                             pRoamInfo = &roamInfo;
                         }
                         else
@@ -9213,16 +9213,16 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
 #ifdef WLAN_SOFTAP_FEATURE
     if( eWNI_SME_DISASSOC_IND == type)
     {
-        //staMacAddr
-        palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDisassocIndMsg->peerMacAddr, sizeof(tSirMacAddr));
-        roamInfo.staId = (tANI_U8)pDisassocIndMsg->staId;
-    }
+            //staMacAddr
+            palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDisassocIndMsg->peerMacAddr, sizeof(tSirMacAddr));
+            roamInfo.staId = (tANI_U8)pDisassocIndMsg->staId;
+        }
     else if( eWNI_SME_DEAUTH_IND == type )
     {
-        //staMacAddr
-        palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDeauthIndMsg->peerMacAddr, sizeof(tSirMacAddr));
-        roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
-    }
+            //staMacAddr
+            palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDeauthIndMsg->peerMacAddr, sizeof(tSirMacAddr));
+            roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
+        }
 #endif
     smsLog(pMac, LOGW, FL("roamInfo.staId (%d)\n"), roamInfo.staId);
     csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_LOSTLINK, result);
@@ -9249,7 +9249,7 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
                 {
                    roamInfo.reasonCode = eCsrRoamReasonSmeIssuedForLostLink;
                 }
-                pRoamInfo = &roamInfo;
+                    pRoamInfo = &roamInfo;
                 pSession->roamingReason = ( eWNI_SME_DEAUTH_IND == type ) ? 
                         eCsrLostlinkRoamingDeauth : eCsrLostlinkRoamingDisassoc;
                 pSession->roamingStartTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
@@ -13325,7 +13325,7 @@ static void csrRoamLinkDown(tpAniSirGlobal pMac, tANI_U32 sessionId)
    /* Indicate the neighbor roal algorithm about the disconnect indication */
    csrNeighborRoamIndicateDisconnect(pMac, sessionId);
 #endif
-
+   
 #ifndef BMPS_WORKAROUND_NOT_NEEDED
    if(csrIsInfraApStarted( pMac ) &&  pMac->roam.configParam.doBMPSWorkaround)
    {
@@ -13719,9 +13719,9 @@ tListElem * csrRoamChecknUpdateClientReqList(tpAniSirGlobal pMac, tCsrStatsClien
          smsLog(pMac, LOGW, "csrRoamChecknUpdateClientReqList: match found\n");
          if(update)
          {
-         pTempStaEntry->periodicity = pStaEntry->periodicity;
-         pTempStaEntry->callback = pStaEntry->callback;
-         pTempStaEntry->pContext = pStaEntry->pContext;
+            pTempStaEntry->periodicity = pStaEntry->periodicity;
+            pTempStaEntry->callback = pStaEntry->callback;
+            pTempStaEntry->pContext = pStaEntry->pContext;
          }
          break;
       }
@@ -14060,12 +14060,12 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
          pStaEntry = GET_BASE_ADDR( pEntry, tCsrStatsClientReqInfo, link );
          if(NULL != pStaEntry->pPeStaEntry)
          {
-         pStaEntry->pPeStaEntry->numClient--;
-         //check if we need to delete the entry from peStatsReqList too
-         if(!pStaEntry->pPeStaEntry->numClient)
-         {
-            csrRoamRemoveEntryFromPeStatsReqList(pMac, pStaEntry->pPeStaEntry);
-         }
+            pStaEntry->pPeStaEntry->numClient--;
+            //check if we need to delete the entry from peStatsReqList too
+            if(!pStaEntry->pPeStaEntry->numClient)
+            {
+               csrRoamRemoveEntryFromPeStatsReqList(pMac, pStaEntry->pPeStaEntry);
+            }
          }
 
          //check if we need to stop the tl stats timer too 
@@ -14168,16 +14168,16 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                {
 #if 0
                                    // TODO Session Specific info connectedInfo
-                  //req TL for class D stats
+                     //req TL for class D stats
                   if(WLANTL_GetStatistics(pMac->roam.gVosContext, &tlStats, pMac->roam.connectedInfo.staId))
-                  {
-                     smsLog(pMac, LOGE, FL("csrGetStatistics:couldn't get the stats from TL\n"));
-                  }
-                  else
-                  {
-                     //save in SME
+                     {
+                        smsLog(pMac, LOGE, FL("csrGetStatistics:couldn't get the stats from TL\n"));
+                     }
+                     else
+                     {
+                        //save in SME
                      csrRoamSaveStatsFromTl(pMac, tlStats);
-                  }
+                     }
 #endif
                   if(pMac->roam.tlStatsReqInfo.periodicity)
                   {
@@ -14219,16 +14219,16 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
          {
 #if 0
                          // TODO : Per Session info connectedInfo
-            //req TL for class D stats
+               //req TL for class D stats
             if(WLANTL_GetStatistics(pMac->roam.gVosContext, &tlStats, pMac->roam.connectedInfo.staId))
-            {
-               smsLog(pMac, LOGE, FL("csrGetStatistics:couldn't get the stats from TL\n"));
-            }
-            else
-            {
-               //save in SME
+               {
+                  smsLog(pMac, LOGE, FL("csrGetStatistics:couldn't get the stats from TL\n"));
+               }
+               else
+               {
+                  //save in SME
                csrRoamSaveStatsFromTl(pMac, tlStats);
-            }
+               }
 #endif
 
          }
@@ -14397,9 +14397,9 @@ static void csrRoamRemoveStatListEntry(tpAniSirGlobal pMac, tListElem *pEntry)
         if(csrLLRemoveEntry(&pMac->roam.statsClientReqList, pEntry, LL_ACCESS_LOCK))
         {
             palFreeMemory(pMac->hHdd, GET_BASE_ADDR( pEntry, tCsrStatsClientReqInfo, link ));
+            }
         }
     }
-}
 
 
 void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInfo *pPeStaEntry)
@@ -14448,7 +14448,7 @@ void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInf
                // memory for the PE stat entry in the timer CB.
                pTempStaEntry->timerStopFailed = TRUE;
             }
-         }
+         } 
 
          if(csrLLRemoveEntry(&pMac->roam.peStatsReqList, pEntry, LL_ACCESS_LOCK))
          {
@@ -14644,12 +14644,12 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
 
       if (pTempStaEntry->pPeStaEntry)  //pPeStaEntry can be NULL
       {
-      pTempStaEntry->pPeStaEntry->numClient--;
-      //check if we need to delete the entry from peStatsReqList too
-      if(!pTempStaEntry->pPeStaEntry->numClient)
-      {
-         csrRoamRemoveEntryFromPeStatsReqList(pMac, pTempStaEntry->pPeStaEntry);
-      }
+         pTempStaEntry->pPeStaEntry->numClient--;
+         //check if we need to delete the entry from peStatsReqList too
+         if(!pTempStaEntry->pPeStaEntry->numClient)
+         {
+            csrRoamRemoveEntryFromPeStatsReqList(pMac, pTempStaEntry->pPeStaEntry);
+         }
       }
 
       //check if we need to stop the tl stats timer too 
@@ -14676,14 +14676,14 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
           //So Stop and Destroy timer only when periodicity is set.
           
 
-      vos_timer_stop( &pTempStaEntry->timer );
+          vos_timer_stop( &pTempStaEntry->timer );
 
-      // Destroy the vos timer...      
-      vosStatus = vos_timer_destroy( &pTempStaEntry->timer );
-      if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
-      {
-         smsLog(pMac, LOGE, FL("csrRoamDeregStatisticsReq:failed to destroy Client req timer\n"));
-      }
+          // Destroy the vos timer...      
+          vosStatus = vos_timer_destroy( &pTempStaEntry->timer );
+          if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+          {
+              smsLog(pMac, LOGE, FL("csrRoamDeregStatisticsReq:failed to destroy Client req timer\n"));
+          }
       }
 
       
