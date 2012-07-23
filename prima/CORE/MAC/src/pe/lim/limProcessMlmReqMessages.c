@@ -1625,7 +1625,7 @@ limMlmAddBss (
 
     // Set a new state for MLME
     psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
     pAddBssParams->halPersona=psessionEntry->pePersona; //pass on the session persona to hal
 
@@ -2043,7 +2043,7 @@ limProcessMlmPostJoinSuspendLink(tpAniSirGlobal pMac, eHalStatus status, tANI_U3
     }
     psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
     psessionEntry->limMlmState = eLIM_MLM_WT_JOIN_BEACON_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
     limDeactivateAndChangeTimer(pMac, eLIM_JOIN_FAIL_TIMER);
 
@@ -2059,7 +2059,8 @@ limProcessMlmPostJoinSuspendLink(tpAniSirGlobal pMac, eHalStatus status, tANI_U3
     {
         limLog(pMac, LOGE, FL("limSetLinkState to eSIR_LINK_PREASSOC_STATE Failed!!\n"));
         mlmJoinCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
-        pMac->lim.gLimMlmState = eLIM_MLM_IDLE_STATE;
+        psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
         goto error;
     }
 
@@ -2177,7 +2178,7 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limPrintMlmState(pMac, LOGE, psessionEntry->limMlmState);
         
         limLog(pMac, LOGE, FL("Unexpected Join request for role %d state %X\n"),
-               psessionEntry->limSystemRole, pMac->lim.gLimMlmState);
+               psessionEntry->limSystemRole, psessionEntry->limMlmState);
     }
 
 error: 
@@ -2345,7 +2346,7 @@ limProcessMlmAuthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
         psessionEntry->limMlmState = eLIM_MLM_WT_AUTH_FRAME2_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
         /// Prepare & send Authentication frame
         authFrameBody.authAlgoNumber =
@@ -2461,7 +2462,7 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
         psessionEntry->limMlmState = eLIM_MLM_WT_ASSOC_RSP_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
  
         /// Prepare and send Association request frame
         limSendAssocReqMgmtFrame(pMac, pMlmAssocReq,psessionEntry);
@@ -2606,7 +2607,7 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
         psessionEntry->limMlmState    = eLIM_MLM_WT_REASSOC_RSP_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
 #if 0
         // Update BSSID at CFG database
@@ -3003,7 +3004,7 @@ limProcessMlmDeauthReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatus,
                         /// Prepare and Send LIM_MLM_DEAUTH_CNF
                         mlmDeauthCnf.resultCode = eSIR_SME_SUCCESS;
                         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-                        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+                        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
                         goto end;
                     }
                     else
@@ -3364,7 +3365,7 @@ tpPESession        psessionEntry;
     if(limIsAddrBC( pMlmSetKeysReq->peerMacAddr )) {
   psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
   psessionEntry->limMlmState = eLIM_MLM_WT_SET_BSS_KEY_STATE;
-  MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+  MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
         limLog( pMac, LOG1, FL("Trying to set Group Keys...%d \n"), 
             psessionEntry->peSessionId);
 
@@ -3477,7 +3478,7 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
     if(limIsAddrBC( pMlmRemoveKeyReq->peerMacAddr )) //Second condition for IBSS or AP role.
     {
         psessionEntry->limMlmState = eLIM_MLM_WT_REMOVE_BSS_KEY_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));    
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));    
         // Package WDA_REMOVE_BSSKEY_REQ message parameters
         limSendRemoveBssKeyReq( pMac,pMlmRemoveKeyReq,psessionEntry);
         return;
@@ -3515,7 +3516,7 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
 
 
     psessionEntry->limMlmState = eLIM_MLM_WT_REMOVE_STA_KEY_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
     // Package WDA_REMOVE_STAKEY_REQ message parameters
     limSendRemoveStaKeyReq( pMac,pMlmRemoveKeyReq,staIdx,psessionEntry);
@@ -3523,6 +3524,7 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
  
 end:
     limPostSmeRemoveKeyCnf( pMac,
+      psessionEntry,
       pMlmRemoveKeyReq,
       &mlmRemoveKeyCnf );
 
@@ -3826,7 +3828,7 @@ limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
         mlmJoinCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
 
         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
         if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, psessionEntry->bssId, 
             psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
@@ -4137,7 +4139,7 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
              * Set BSSID to currently associated AP address.
              */
             psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-            MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+            MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
             limRestorePreReassocState(pMac, 
                 eSIR_SME_REASSOC_TIMEOUT_RESULT_CODE, eSIR_MAC_UNSPEC_FAILURE_STATUS,psessionEntry);
@@ -4269,7 +4271,7 @@ tpLimMlmAddBACnf pMlmAddBACnf;
 
     // Restore MLME state
     psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
   }
 

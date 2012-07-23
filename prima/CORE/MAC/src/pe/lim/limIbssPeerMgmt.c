@@ -1300,7 +1300,7 @@ limIbssDelBssRsp(
     limIbssDelete(pMac,psessionEntry);
     psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
 
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
     psessionEntry->limSystemRole = eLIM_STA_ROLE;
 

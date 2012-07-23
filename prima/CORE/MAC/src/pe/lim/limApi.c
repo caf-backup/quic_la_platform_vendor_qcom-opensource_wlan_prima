@@ -233,7 +233,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
     /**
-     * Initialize state to eLIM_MLM_OFFLINE_STATE
+     * Initialize state to eLIM_SME_OFFLINE_STATE
      */
     pMac->lim.gLimSmeState     = eLIM_SME_OFFLINE_STATE;
 #else

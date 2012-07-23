@@ -3075,7 +3075,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_ASSOC_STATE;
     else
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_REASSOC_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
     //we need to defer the message until we get the response back from HAL.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
@@ -3309,7 +3309,7 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     //pMac->lim.gLimMlmState = eLIM_MLM_WT_ADD_BSS_RSP_PREASSOC_STATE;
     psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_PREASSOC_STATE;
     
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
     //we need to defer the message until we get the response back from HAL.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
@@ -3523,7 +3523,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_ASSOC_STATE;
     else
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_REASSOC_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
     //we need to defer the message until we get the response back from HAL.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
@@ -3596,7 +3596,7 @@ limPrepareAndSendDelStaCnf(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tSirResult
     if ( (psessionEntry->limSystemRole == eLIM_STA_ROLE)||(psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE))
     {
         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
     }
 
     limSendDelStaCnf(pMac, staDsAddr, staDsAssocId, mlmStaContext, statusCode,psessionEntry);

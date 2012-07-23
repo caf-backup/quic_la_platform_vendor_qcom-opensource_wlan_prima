@@ -1349,7 +1349,7 @@ tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     **/
     if (pMac->lim.gLimDeferredMsgQ.size > 0)
     {
-        PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, sme %d, mlme %d, addts %d)\n"),
+        PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, global sme %d, global mlme %d, addts %d)\n"),
                pMac->lim.gLimDeferredMsgQ.size, limMsg->type,
                limIsSystemInScanState(pMac),
                pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
@@ -1458,7 +1458,7 @@ tSirMsgQ* limReadDeferredMsgQ(tpAniSirGlobal pMac)
            pMac->lim.gLimDeferredMsgQ.size, pMac->lim.gLimDeferredMsgQ.read,
            msg->type);)
 
-   PELOG1(limLog(pMac, LOG1, FL("DQ msg -- scan %d, sme %d, mlme %d, addts %d\n"),
+   PELOG1(limLog(pMac, LOG1, FL("DQ msg -- scan %d, global sme %d, global mlme %d, addts %d\n"),
            limIsSystemInScanState(pMac),
            pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
            pMac->lim.gLimAddtsSent);)

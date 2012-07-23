@@ -621,7 +621,7 @@ limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U1
 
     sessionEntry->limMlmState = sessionEntry->limPrevMlmState;
     
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, sessionEntry->limMlmState));
 
 
     // 'Change' timer for future activations
@@ -979,6 +979,7 @@ void limPostSmeSetKeysCnf( tpAniSirGlobal pMac,
  * A utility API to send MLM_REMOVEKEY_CNF to SME
  */
 void limPostSmeRemoveKeyCnf( tpAniSirGlobal pMac,
+    tpPESession psessionEntry,
     tLimMlmRemoveKeyReq *pMlmRemoveKeyReq,
     tLimMlmRemoveKeyCnf *mlmRemoveKeyCnf)
 {
@@ -991,8 +992,8 @@ void limPostSmeRemoveKeyCnf( tpAniSirGlobal pMac,
   palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmRemoveKeyReq );
   pMac->lim.gpLimMlmRemoveKeyReq = NULL;
 
-  pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState; //Restore the state.
-  MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+  psessionEntry->limMlmState = psessionEntry->limPrevMlmState; //Restore the state.
+  MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, psessionEntry->limMlmState));
 
   limPostSmeMessage( pMac,
       LIM_MLM_REMOVEKEY_CNF,
@@ -1187,7 +1188,7 @@ tANI_U32 val = 0;
       sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
       msgQ.type = WDA_SET_STAKEY_REQ;
   }
-  MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+  MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, sessionEntry->limMlmState));
 
   /**
    * In the Case of WEP_DYNAMIC, ED_TKIP and ED_CCMP
@@ -1211,7 +1212,7 @@ tANI_U32 val = 0;
 #endif
           pSetStaKeyParams->wepType = eSIR_WEP_STATIC;
           sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
-          MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+          MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, sessionEntry->limMlmState));
       }else {
           pSetStaKeyParams->wepType = eSIR_WEP_DYNAMIC;
           palCopyMemory( pMac->hHdd,
@@ -1340,6 +1341,7 @@ tSirRetStatus      retCode;
 
 end:
   limPostSmeRemoveKeyCnf( pMac,
+      psessionEntry,
       pMlmRemoveKeyReq,
       &mlmRemoveKeysCnf );
 
@@ -1369,7 +1371,7 @@ end:
 void limSendRemoveStaKeyReq( tpAniSirGlobal pMac,
     tLimMlmRemoveKeyReq *pMlmRemoveKeyReq,
     tANI_U16 staIdx ,
-    tpPESession sessionEntry)
+    tpPESession psessionEntry)
 {
 tSirMsgQ           msgQ;
 tpRemoveStaKeyParams  pRemoveStaKeyParams = NULL;
@@ -1409,7 +1411,7 @@ tSirRetStatus      retCode;
   pRemoveStaKeyParams->unicast = pMlmRemoveKeyReq->unicast;
 
   /* Update PE session ID*/
-  pRemoveStaKeyParams->sessionId = sessionEntry->peSessionId;
+  pRemoveStaKeyParams->sessionId = psessionEntry->peSessionId;
 
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
   
@@ -1440,6 +1442,7 @@ tSirRetStatus      retCode;
 
 end:
   limPostSmeRemoveKeyCnf( pMac,
+      psessionEntry,
       pMlmRemoveKeyReq,
       &mlmRemoveKeyCnf );
 
