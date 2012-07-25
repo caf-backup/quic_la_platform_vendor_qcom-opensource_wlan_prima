@@ -285,7 +285,8 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
     wiphy->flags |= WIPHY_FLAG_HAVE_AP_SME |
                     WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-    wiphy->flags |=   WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
+    wiphy->flags |=   WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL
+                    | WIPHY_FLAG_OFFCHAN_TX;
 #endif
 
 
@@ -3141,10 +3142,10 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     INIT_COMPLETION(pScanInfo->scan_req_completion_event);
 
-        status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                              pAdapter->p2pSessionId, &scanRequest, &scanId,
+    status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                              pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
-    
+
     if (eHAL_STATUS_SUCCESS != status)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,

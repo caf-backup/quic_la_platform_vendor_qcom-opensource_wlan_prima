@@ -4790,20 +4790,21 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal,
   ---------------------------------------------------------------------------*/
 
 eHalStatus sme_sendAction(tHalHandle hHal, tANI_U8 sessionId,
-	     const tANI_U8 *pBuf, tANI_U32 len)
+                          const tANI_U8 *pBuf, tANI_U32 len,
+                          tANI_BOOLEAN noack)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-	 
-	  //acquire the lock for the sme object
-	  status = sme_AcquireGlobalLock(&pMac->sme);
-	  if(HAL_STATUS_SUCCESS(status))
-	  {
-          p2pSendAction(hHal, sessionId, pBuf, len);
-			  //release the lock for the sme object
-	      sme_ReleaseGlobalLock( &pMac->sme );
-	  }
-   
+
+    //acquire the lock for the sme object
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if(HAL_STATUS_SUCCESS(status))
+    {
+        p2pSendAction(hHal, sessionId, pBuf, len, noack);
+        //release the lock for the sme object
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
     smsLog(pMac, LOGW, "exiting function %s\n", __FUNCTION__);
 
     return(status);

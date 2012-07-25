@@ -83,7 +83,8 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
     vos_mem_free( pRemainChanCtx );
 
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
-         ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
+         ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
+         ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId;
@@ -130,6 +131,11 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     spin_lock(&cfgState->p2p_lock);
     if( cfgState->remain_on_chan_ctx != NULL)
     {
+        /* Wait till remain on channel ready indication before issuing cancel
+        * remain on channel request, otherwise if remain on channel not
+        * received and if the driver issues cancel remain on channel then lim
+        * will be in unknown state.
+        */
         spin_unlock(&cfgState->p2p_lock);
         ret = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
                       msecs_to_jiffies(WAIT_REM_CHAN_READY));
@@ -144,7 +150,8 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
          * expired event is sent.
         */
         if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
-             ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
+             ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
+             ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
            )
         {
             sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
@@ -171,9 +178,9 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         spin_unlock(&cfgState->p2p_lock);
     }
 
-    /* When P2P-GO and if we are trying to unload the driver then 
+    /* When P2P-GO and if we are trying to unload the driver then
      * wlan driver is keep on receiving the remain on channel command
-     * and which is resulting in crash. So not allowing any remain on 
+     * and which is resulting in crash. So not allowing any remain on
      * channel requets when Load/Unload is in progress*/
     if (((hdd_context_t*)pAdapter->pHddCtx)->isLoadUnloadInProgress)
     {
@@ -209,10 +216,11 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
 
     //call sme API to start remain on channel.
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
-         ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
+         ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
+         ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
        )
     {
-        tANI_U8 sessionId = pAdapter->sessionId; 
+        tANI_U8 sessionId = pAdapter->sessionId;
         //call sme API to start remain on channel.
         sme_RemainOnChannel(
                        WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId,
@@ -238,7 +246,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: WLANSAP_RemainOnChannel returned fail", __func__);
            cfgState->remain_on_chan_ctx = NULL;
-           vos_mem_free (pRemainChanCtx);             
+           vos_mem_free (pRemainChanCtx);
            return -EINVAL;
         }
 
@@ -342,7 +350,8 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
      * expired event is sent.
      */
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
-         ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
+         ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
+         ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId; 
@@ -404,6 +413,11 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    bool noack = 0;
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,3,0))
+    noack = dont_wait_for_ack;
+#endif
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                             __func__,pAdapter->device_mode);
@@ -531,42 +545,46 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 send_frame:
 #endif
 
-    cfgState->buf = vos_mem_malloc( len ); //buf;
-    if( cfgState->buf == NULL )
-        return -ENOMEM;
+    if(!noack)
+    {
+        cfgState->buf = vos_mem_malloc( len ); //buf;
+        if( cfgState->buf == NULL )
+            return -ENOMEM;
 
-    cfgState->len = len;
+        cfgState->len = len;
 
-    vos_mem_copy( cfgState->buf, buf, len);
+        vos_mem_copy( cfgState->buf, buf, len);
 
-    INIT_COMPLETION(pAdapter->tx_action_cnf_event);
+        INIT_COMPLETION(pAdapter->tx_action_cnf_event);
  
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
-    spin_lock(&cfgState->p2p_lock);
-    if( cfgState->remain_on_chan_ctx )
-    {
-        spin_unlock(&cfgState->p2p_lock);
-        cfgState->action_cookie = cfgState->remain_on_chan_ctx->cookie;
-        *cookie = cfgState->action_cookie;
-    }
-    else
-    {
-        spin_unlock(&cfgState->p2p_lock);
+        spin_lock(&cfgState->p2p_lock);
+        if( cfgState->remain_on_chan_ctx )
+        {
+            spin_unlock(&cfgState->p2p_lock);
+            cfgState->action_cookie = cfgState->remain_on_chan_ctx->cookie;
+            *cookie = cfgState->action_cookie;
+        }
+        else
+        {
+            spin_unlock(&cfgState->p2p_lock);
 #endif
-        *cookie = (tANI_U32) cfgState->buf;
-        cfgState->action_cookie = *cookie;
+            *cookie = (tANI_U32) cfgState->buf;
+            cfgState->action_cookie = *cookie;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
-    }
+        }
 #endif
+    } 
 
     if ( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-         (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)
+         (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
+         ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId; 
         if (eHAL_STATUS_SUCCESS !=
                sme_sendAction( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                               sessionId, buf, len) )
+                               sessionId, buf, len, noack))
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                      "%s: sme_sendAction returned fail", __func__);
@@ -589,7 +607,10 @@ send_frame:
 
     return 0;
 err:
-    hdd_sendActionCnf( pAdapter, FALSE );
+    if(!noack)
+    {
+       hdd_sendActionCnf( pAdapter, FALSE );
+    }
     return 0;
 err_rem_channel:
     *cookie = (tANI_U32)cfgState;

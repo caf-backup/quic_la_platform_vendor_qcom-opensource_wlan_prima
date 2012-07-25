@@ -1575,7 +1575,7 @@ VOS_STATUS WLANSAP_SendAction( v_PVOID_t pvosGCtx, const tANI_U8 *pBuf,
             return VOS_STATUS_E_FAULT;
         }
 
-        halStatus = sme_sendAction( hHal, pSapCtx->sessionId, pBuf, len );
+        halStatus = sme_sendAction( hHal, pSapCtx->sessionId, pBuf, len, 0 );
 
         if ( eHAL_STATUS_SUCCESS == halStatus )
         {
