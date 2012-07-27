@@ -252,22 +252,24 @@ PopulateDot11fCapabilities2(tpAniSirGlobal         pMac,
 
 void
 PopulateDot11fChanSwitchAnn(tpAniSirGlobal          pMac,
-                            tDot11fIEChanSwitchAnn *pDot11f)
+                            tDot11fIEChanSwitchAnn *pDot11f,
+                            tpPESession psessionEntry)
 {
-    pDot11f->switchMode = pMac->lim.gLimChannelSwitch.switchMode;
-    pDot11f->newChannel = pMac->lim.gLimChannelSwitch.primaryChannel;
-    pDot11f->switchCount = ( tANI_U8 ) pMac->lim.gLimChannelSwitch.switchCount;
+    pDot11f->switchMode = psessionEntry->gLimChannelSwitch.switchMode;
+    pDot11f->newChannel = psessionEntry->gLimChannelSwitch.primaryChannel;
+    pDot11f->switchCount = ( tANI_U8 ) psessionEntry->gLimChannelSwitch.switchCount;
 
     pDot11f->present = 1;
 } // End PopulateDot11fChanSwitchAnn.
 
 void
 PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal pMac,
-                               tDot11fIEExtChanSwitchAnn *pDot11f)
+                               tDot11fIEExtChanSwitchAnn *pDot11f,
+                               tpPESession psessionEntry)
 {
     //Has to be updated on the cb state basis
     pDot11f->secondaryChannelOffset = 
-             limGetHTCBState(pMac->lim.gLimChannelSwitch.secondarySubBand);
+             limGetHTCBState(psessionEntry->gLimChannelSwitch.secondarySubBand);
 
     pDot11f->present = 1;
 }

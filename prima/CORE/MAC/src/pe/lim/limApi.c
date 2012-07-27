@@ -260,7 +260,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
     pMac->lim.gLimPhyMode = 0; 
     pMac->lim.scanStartTime = 0;    // used to measure scan time
 
-    palZeroMemory(pMac->hHdd, pMac->lim.gLimBssid, sizeof(pMac->lim.gLimBssid));
+    //palZeroMemory(pMac->hHdd, pMac->lim.gLimBssid, sizeof(pMac->lim.gLimBssid));
     palZeroMemory(pMac->hHdd, pMac->lim.gLimMyMacAddr, sizeof(pMac->lim.gLimMyMacAddr));
     pMac->lim.ackPolicy = 0;
 
@@ -310,6 +310,7 @@ static void __limInitVars(tpAniSirGlobal pMac)
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimAlternateRadio, sizeof(tSirAlternateRadioInfo));
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
+#if 0
     // 11h Spectrum Management Related Flag
     //pMac->lim.gLim11hEnable = 0;
     pMac->lim.gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_INIT;
@@ -323,7 +324,7 @@ static void __limInitVars(tpAniSirGlobal pMac)
     pMac->lim.gLimSpecMgmt.quietCount = 0;
     pMac->lim.gLimSpecMgmt.fQuietEnabled = eANI_BOOLEAN_FALSE;
     pMac->lim.gLimSpecMgmt.fRadarIntrConfigured = eANI_BOOLEAN_FALSE;
-
+#endif
     // WMM Related Flag
     pMac->lim.gUapsdEnable = 0;
     pMac->lim.gUapsdPerAcBitmask = 0;
@@ -361,7 +362,7 @@ static void __limInitAssocVars(tpAniSirGlobal pMac)
     // Place holder for current authentication request
     // being handled
     pMac->lim.gpLimMlmAuthReq = NULL;
-    pMac->lim.gpLimMlmJoinReq = NULL;
+    //pMac->lim.gpLimMlmJoinReq = NULL;
 
     /// MAC level Pre-authentication related globals
     pMac->lim.gLimPreAuthChannelNumber = 0;
@@ -394,10 +395,12 @@ static void __limInitTitanVars(tpAniSirGlobal pMac)
 {
     pMac->lim.gCbMode = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
     SET_CB_STATE_DISABLE( pMac->lim.gCbState );
+#if 0
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimChannelSwitch, sizeof(tLimChannelSwitchInfo));
 
     pMac->lim.gLimChannelSwitch.state               = eLIM_CHANNEL_SWITCH_IDLE;
     pMac->lim.gLimChannelSwitch.secondarySubBand    = eANI_CB_SECONDARY_NONE;
+#endif
 
     // Debug workaround for BEACON's
     // State change triggered by "dump 222"
@@ -448,7 +451,7 @@ static void __limInitHTVars(tpAniSirGlobal pMac)
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
 static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
 {
-   tANI_U32 val1, val2, val3, len;
+   tANI_U32 val1, val2, val3/*, len*/;
    tANI_U16 val16;
    tANI_U8 val8;
    tSirMacHTCapabilityInfo   *pHTCapabilityInfo;
@@ -586,7 +589,7 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
       limLog(pMac, LOGP, FL("cfg get short preamble failed\n"));
       return eSIR_FAILURE;
    }
-
+#if 0
    /* WNI_CFG_BSSID - this one is not updated in limHandleCFGparamUpdate do we
       want to update this? */
    len = 6;
@@ -596,7 +599,7 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
       limLog(pMac, LOGP, FL("cfg get bssid failed\n"));
       return eSIR_FAILURE;
    }
-
+#endif
    /* WNI_CFG_MAX_PS_POLL */
 
    /* Allocate and fill in power save configuration. */
@@ -895,11 +898,13 @@ limCleanup(tpAniSirGlobal pMac)
         pMac->lim.gpLimMlmAuthReq = NULL;
     }
 
+#if 0
     if (pMac->lim.gpLimMlmJoinReq != NULL)
     {
         palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmJoinReq);
         pMac->lim.gpLimMlmJoinReq = NULL;
     }
+#endif
 
     #if 0
     if (pMac->lim.gpLimReassocReq != NULL)

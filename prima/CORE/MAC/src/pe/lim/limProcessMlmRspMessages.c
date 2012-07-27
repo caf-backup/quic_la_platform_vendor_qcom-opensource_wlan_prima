@@ -35,6 +35,7 @@
 #include "limSendMessages.h"
 #include "limIbssPeerMgmt.h"
 #include "limSession.h"
+#include "limSessionUtils.h"
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
 #endif
@@ -2096,11 +2097,13 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
      * to occupy the medium during non channel occupancy period. So resume the transmission after
      * HAL gives back the response.
      */
+#if 0 //TODO: How to handle this per session
     if (LIM_IS_RADAR_DETECTED(pMac))
     {
          limFrameTransmissionControl(pMac, eLIM_TX_BSS_BUT_BEACON, eLIM_RESUME_TX);
          LIM_SET_RADAR_DETECTED(pMac, eANI_BOOLEAN_FALSE);
     }
+#endif
     dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);//TBD-RAJESH is it needed ?
     limDeletePreAuthList(pMac);
 #ifdef WLAN_SOFTAP_FEATURE
@@ -3928,10 +3931,69 @@ void limProcessEndScanRsp(tpAniSirGlobal pMac,  void *body)
     }
     return;
 }
+/**
+ *  limStopTxAndSwitch()
+ *
+ *FUNCTION:
+ * Start channel switch on all sessions that is in channel switch state.
+ *
+ * @param pMac                   - pointer to global adapter context
+ *
+ * @return None
+ *
+ */
+static void
+limStopTxAndSwitch (tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid && 
+            pMac->lim.gpSession[i].gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
+        {
+            limStopTxAndSwitchChannel(pMac, i);
+        }
+    }
+    return; 
+}
+/**
+ * limStartQuietOnSession()
+ *
+ *FUNCTION:
+ * This function is called to start quiet timer after finish scan if there is  
+ *      qeuieting on any session.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac    - Pointer to Global MAC structure
+ *
+ * @return None
+ */
+static void
+limStartQuietOnSession (tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid && 
+            pMac->lim.gpSession[i].gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN)
+        {
+            limStartQuietTimer(pMac, i);
+        }
+    }
+    return;
+}
 void limProcessFinishScanRsp(tpAniSirGlobal pMac,  void *body)
 {
     tpFinishScanParams      pFinishScanParam;
-    tANI_U8                 dummySessionId = 0;
     eHalStatus              status;
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
     pFinishScanParam = (tpFinishScanParams) body;
@@ -3942,21 +4004,21 @@ void limProcessFinishScanRsp(tpAniSirGlobal pMac,  void *body)
         case eLIM_HAL_FINISH_SCAN_WAIT_STATE:
             pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
             limCompleteMlmScan(pMac, eSIR_SME_SUCCESS);
-            if (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
+            if (limIsChanSwitchRunning(pMac))
             {
                 /** Right time to stop tx and start the timer for channel switch */
                 /* Sending Session ID 0, may not be correct, since SCAN is global there should not
                  * be any associated session id
                 */
-                limStopTxAndSwitchChannel(pMac, dummySessionId);
+                limStopTxAndSwitch(pMac);
             }
-            else if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN)
+            else if (limIsQuietBegin(pMac))
             {
                 /** Start the quieting */
                 /* Sending Session ID 0, may not be correct, since SCAN is global there should not
                  * be any associated session id
                 */
-                limStartQuietTimer(pMac, dummySessionId);
+                limStartQuietOnSession(pMac);
             }
 #ifdef ANI_PRODUCT_TYPE_AP
             /* For handling the measurement request from WSM as scan request in LIM*/

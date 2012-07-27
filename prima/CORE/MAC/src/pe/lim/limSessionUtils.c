@@ -176,6 +176,16 @@ isLimSessionOffChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
 
 }
 
+/*--------------------------------------------------------------------------
+  \brief peGetActiveSessionChannel() - Gets the operating channel of first  
+                                    valid session.
+
+  \param pMac                   - pointer to global adapter context
+  
+  \return tANI_U8               - operating channel.
+  
+  \sa
+  --------------------------------------------------------------------------*/
 tANI_U8
 peGetActiveSessionChannel (tpAniSirGlobal pMac)
 {
@@ -183,15 +193,89 @@ peGetActiveSessionChannel (tpAniSirGlobal pMac)
 
     for(i =0; i < pMac->lim.maxBssId; i++)
     {
-        //if snother ession is valid and it is on different channel
-        //it is an off channel operation.
         if(pMac->lim.gpSession[i].valid)
         {
             return pMac->lim.gpSession[i].currentOperChannel;
         }
     }
-
     return 0;
-
 }
 
+/*--------------------------------------------------------------------------
+  \brief limIsChanSwitchRunning() - Check if channel switch is running on any  
+                                    valid session.
+
+  \param pMac                   - pointer to global adapter context
+  
+  \return tANI_U8               - 1 - if chann switching running.
+                                  0 - if chann switching is not running. 
+  
+  \sa
+  --------------------------------------------------------------------------*/
+tANI_U8
+limIsChanSwitchRunning (tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid && 
+            pMac->lim.gpSession[i].gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+/*--------------------------------------------------------------------------
+  \brief limIsInQuietDuration() - Check if channel quieting is running on any  
+                                    valid session.
+
+  \param pMac                   - pointer to global adapter context
+  
+  \return tANI_U8               - 1 - if chann quiet running.
+                                  0 - if chann quiet is not running. 
+  
+  \sa
+  --------------------------------------------------------------------------*/
+tANI_U8
+limIsInQuietDuration (tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid && 
+            pMac->lim.gpSession[i].gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+/*--------------------------------------------------------------------------
+  \brief limIsQuietBegin() - Check if channel quieting is begining on any  
+                                    valid session.
+
+  \param pMac                   - pointer to global adapter context
+  
+  \return tANI_U8               - 1 - if chann quiet running.
+                                  0 - if chann quiet is not running. 
+  
+  \sa
+  --------------------------------------------------------------------------*/
+tANI_U8
+limIsQuietBegin (tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid && 
+            pMac->lim.gpSession[i].gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}

@@ -288,14 +288,14 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
         PopulateDot11fEDCAParamSet( pMac, &bcn2.EDCAParamSet, psessionEntry);
     }
 
-    if(pMac->lim.gLim11hEnable)
+    if(psessionEntry->lim11hEnable)
     {
       PopulateDot11fPowerConstraints( pMac, &bcn2.PowerConstraints );
       PopulateDot11fTPCReport( pMac, &bcn2.TPCReport, psessionEntry);
     }
 
 #ifdef ANI_PRODUCT_TYPE_AP
-    if( pMac->lim.gLim11hEnable && (eLIM_QUIET_RUNNING == pMac->lim.gLimSpecMgmt.quietState))
+    if( psessionEntry->lim11hEnable && (eLIM_QUIET_RUNNING == psessionEntry->gLimSpecMgmt.quietState))
     {
       PopulateDot11fQuiet( pMac, &bcn2.Quiet );
     }
@@ -306,13 +306,13 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
      * populate the 802.11h channel switch IE in its Beacons and Probe
      * Responses.
      */
-    if ( (pMac->lim.gLim11hEnable) &&
-         (pMac->lim.gLimChannelSwitch.switchCount != 0) &&
-         (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING))
+    if ( (psessionEntry->lim11hEnable) &&
+         (psessionEntry->gLimChannelSwitch.switchCount != 0) &&
+         (psessionEntry->gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING))
 
     {
-      PopulateDot11fChanSwitchAnn( pMac, &bcn2.ChanSwitchAnn );
-      PopulateDot11fExtChanSwitchAnn(pMac, &bcn2.ExtChanSwitchAnn);
+      PopulateDot11fChanSwitchAnn( pMac, &bcn2.ChanSwitchAnn, psessionEntry );
+      PopulateDot11fExtChanSwitchAnn(pMac, &bcn2.ExtChanSwitchAnn, psessionEntry );
     }
 #endif
 

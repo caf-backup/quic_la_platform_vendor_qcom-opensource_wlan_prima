@@ -3411,7 +3411,7 @@ limCopyNeighborInfoToCfg(tpAniSirGlobal pMac, tSirNeighborBssInfo neighborBssInf
         pMac->lim.htCapabilityPresentInBeacon = 1;
     else
         pMac->lim.htCapabilityPresentInBeacon = 0;
-    if (neighborBssInfo.localPowerConstraints && pMac->lim.gLim11hEnable)
+    if (neighborBssInfo.localPowerConstraints && pSessionEntry->lim11hEnable)
     {
         localPowerConstraints = neighborBssInfo.localPowerConstraints;
     }
