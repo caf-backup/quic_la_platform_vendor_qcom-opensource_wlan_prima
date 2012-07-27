@@ -1618,21 +1618,21 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext)
    }
 
    vstatus = vos_event_destroy(&wdaContext->txFrameEvent);
-   if(!VOS_IS_STATUS_SUCCESS(status))
+   if(!VOS_IS_STATUS_SUCCESS(vstatus))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                   "VOS Event destroy failed - status = %d\n", status);
       status = VOS_STATUS_E_FAILURE;
    }
    vstatus = vos_event_destroy(&wdaContext->suspendDataTxEvent);
-   if(!VOS_IS_STATUS_SUCCESS(status))
+   if(!VOS_IS_STATUS_SUCCESS(vstatus))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                   "VOS Event destroy failed - status = %d\n", status);
       status = VOS_STATUS_E_FAILURE;
    }
    vstatus = vos_event_destroy(&wdaContext->waitOnWdiIndicationCallBack);
-   if(!VOS_IS_STATUS_SUCCESS(status))
+   if(!VOS_IS_STATUS_SUCCESS(vstatus))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                   "VOS Event destroy failed - status = %d\n", status);
@@ -1641,7 +1641,7 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext)
 
    /* free WDA context */
    vstatus = vos_free_context(pVosContext, VOS_MODULE_ID_WDA, wdaContext);
-   if ( !VOS_IS_STATUS_SUCCESS(status) )
+   if ( !VOS_IS_STATUS_SUCCESS(vstatus) )
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                                   "error in WDA close " );

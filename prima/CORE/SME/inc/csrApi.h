@@ -823,6 +823,7 @@ typedef struct tagCsrRoamConnectedProfile
     tCsrEncryptionList mcEncryptionInfo;
     eCsrCBChoice CBMode; //up, down or auto
     tANI_U8 operationChannel;
+    tANI_U16   beaconInterval;
     tCsrKeys Keys;
     // meaningless on connect. It's an OUT param from CSR's point of view
     // During assoc response carries the ACM bit-mask i.e. what

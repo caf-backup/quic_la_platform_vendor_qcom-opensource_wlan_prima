@@ -462,7 +462,7 @@ eHalStatus sme_updateP2pIe( tHalHandle hHal, void *p2pIe,
                             tANI_U32 p2pIeLength );
 eHalStatus sme_sendAction( tHalHandle hHal, tANI_U8 sessionId,
                            const tANI_U8 *pBuf, tANI_U32 len,
-                           tANI_U16 wait);
+                           tANI_U16 wait, tANI_BOOLEAN noack);
 eHalStatus sme_CancelRemainOnChannel( tHalHandle hHal, tANI_U8 sessionId );
 eHalStatus sme_p2pOpen( tHalHandle hHal );
 eHalStatus p2pStop( tHalHandle hHal );
@@ -480,7 +480,7 @@ eHalStatus p2pRemainOnChannel( tHalHandle hHal, tANI_U8 sessionId,
 #endif
 eHalStatus p2pSendAction( tHalHandle hHal, tANI_U8 sessionId,
                           const tANI_U8 *pBuf, tANI_U32 len,
-                          tANI_U16 wait);
+                           tANI_U16 wait, tANI_BOOLEAN noack);
 eHalStatus p2pCancelRemainOnChannel( tHalHandle hHal, tANI_U8 sessionId );
 eHalStatus p2pSetPs( tHalHandle hHal, tP2pPsConfig *pNoA );
 #ifdef WLAN_FEATURE_P2P_INTERNAL

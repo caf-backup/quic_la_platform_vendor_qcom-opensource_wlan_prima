@@ -2374,11 +2374,11 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
         }
         //Join timeout
         // if we find a BeaconInterval in the BssDescription, then set the Join Timeout to 
-        // be 3 x the BeaconInterval.                          
+        // be 10 x the BeaconInterval.                          
         if ( pBssDesc->beaconInterval )
         {
             //Make sure it is bigger than the minimal
-            pBssConfig->uJoinTimeOut = CSR_ROAM_MAX(3 * pBssDesc->beaconInterval, CSR_JOIN_FAILURE_TIMEOUT_MIN);
+            pBssConfig->uJoinTimeOut = CSR_ROAM_MAX(10 * pBssDesc->beaconInterval, CSR_JOIN_FAILURE_TIMEOUT_MIN);
         }
         else 
         {
@@ -3388,10 +3388,10 @@ eCsrJoinState csrRoamJoin( tpAniSirGlobal pMac, tANI_U32 sessionId,
         // If we are connected in infrastructure mode and the Join Bss description is for the same BssID, then we are
         // attempting to join the AP we are already connected with.  In that case, see if the Bss or Sta capabilities
         // have changed and handle the changes (without disturbing the current association).
-                
+
         if ( csrIsConnStateConnectedInfra(pMac, sessionId) && 
              csrIsBssIdEqual( pMac, pBssDesc, pSession->pConnectBssDesc ) &&
-                 csrIsSsidEqual( pMac, pSession->pConnectBssDesc, pBssDesc, pIesLocal )
+             csrIsSsidEqual( pMac, pSession->pConnectBssDesc, pBssDesc, pIesLocal )
            )               
         {   
             // Check to see if the Auth type has changed in the Profile.  If so, we don't want to Reassociate
@@ -3569,7 +3569,8 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
 
                     /*If concurrency enabled take the concurrent connected channel first. */
                     /* Valid multichannel concurrent sessions exempted */
-                    if (vos_concurrent_sessions_running() && !csrIsValidMcConcurrentSession(pMac, sessionId))
+                    if (vos_concurrent_sessions_running() && 
+                        !csrIsValidMcConcurrentSession(pMac, sessionId, &pScanResult->Result.BssDescriptor))
                     {
                         concurrentChannel = 
                             csrGetConcurrentOperationChannel(pMac);
@@ -6208,6 +6209,8 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
     pConnectProfile->BSSType = pProfile->BSSType;
     pConnectProfile->modifyProfileFields.uapsd_mask = pProfile->uapsd_mask;
     pConnectProfile->operationChannel = pSirBssDesc->channelId;
+    pConnectProfile->beaconInterval = pSirBssDesc->beaconInterval;
+
     palCopyMemory(pMac->hHdd, &pConnectProfile->Keys, &pProfile->Keys, sizeof(tCsrKeys));
     //Save bssid
     csrGetBssIdBssDesc(pMac, pSirBssDesc, &pConnectProfile->bssid);
@@ -12447,6 +12450,13 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         {
             wTmp = pal_cpu_to_be16( WNI_CFG_BEACON_INTERVAL_STADEF );
         }
+
+        if(IS_MCC_SUPPORTED)
+        {
+            csrValidateBeaconInterval(pMac, pParam->operationChn, &wTmp, sessionId,
+                                      pParam->bssPersona);
+        }
+
         palCopyMemory( pMac->hHdd, pBuf, &wTmp, sizeof( tANI_U16 ) ); 
         pBuf += sizeof(tANI_U16);
         // dot11mode
