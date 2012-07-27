@@ -136,14 +136,6 @@ extern void limMessageProcessor(tpAniSirGlobal, tpSirMsgQ);
 extern void limProcessMessages(tpAniSirGlobal, tpSirMsgQ); // DT test alt deferred 2
 
 /**
- * Function to check the LIM state if system can be put in
- * Learn Mode.
- * This is called by SCH upon receiving SCH_START_LEARN_MODE
- * message from LIM.
- */
-extern tSirRetStatus limCheckStateForLearnMode(tpAniSirGlobal);
-
-/**
  * Function to check the LIM state if system is in Scan/Learn state.
  */
 extern tANI_U8 limIsSystemInScanState(tpAniSirGlobal);

@@ -513,10 +513,10 @@ typedef struct sSirMbMsgP2p
 // LIM message types
 #define SIR_LIM_MSG_TYPES_BEGIN        (SIR_LIM_MODULE_ID << 8)
 #define SIR_LIM_ITC_MSG_TYPES_BEGIN    SIR_LIM_MSG_TYPES_BEGIN+0xB0
+
 // Messages to/from HAL
-#define SIR_LIM_RESUME_ACTIVITY_NTF        SIR_LIM_ITC_MSG_TYPES_BEGIN
-#define SIR_LIM_SUSPEND_ACTIVITY_REQ       SIR_LIM_ITC_MSG_TYPES_BEGIN + 1
-#define SIR_HAL_SUSPEND_ACTIVITY_RSP       SIR_LIM_ITC_MSG_TYPES_BEGIN + 2
+// Removed as part of moving HAL down to FW
+
 // Message from ISR upon TFP retry interrupt
 #define SIR_LIM_RETRY_INTERRUPT_MSG        SIR_LIM_ITC_MSG_TYPES_BEGIN + 3
 // Message from BB Transport

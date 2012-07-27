@@ -1610,9 +1610,23 @@ tANI_BOOLEAN csrIsValidMcConcurrentSession(tpAniSirGlobal pMac, tANI_U32 session
         pSession = CSR_GET_SESSION( pMac, sessionId );
         if (NULL != pSession->pCurRoamProfile)
         {
-            if(csrValidateBeaconInterval( pMac, pBssDesc->channelId, &pBssDesc->beaconInterval, 
-                                        sessionId, pSession->pCurRoamProfile->csrPersona) 
-                                        != eHAL_STATUS_SUCCESS)
+            if(csrIsconcurrentsessionValid (pMac, sessionId, 
+                                       pSession->pCurRoamProfile->csrPersona) 
+                                       == eHAL_STATUS_SUCCESS )
+            {
+                if(csrValidateBeaconInterval( pMac, pBssDesc->channelId, 
+                               &pBssDesc->beaconInterval, sessionId, 
+                               pSession->pCurRoamProfile->csrPersona) 
+                               != eHAL_STATUS_SUCCESS)
+                {
+                    status = eANI_BOOLEAN_FALSE;
+                }
+                else
+                {
+                    status = eANI_BOOLEAN_TRUE;
+                }
+            }
+            else
             {
                 status = eANI_BOOLEAN_FALSE;
             }
@@ -2494,9 +2508,87 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
     return( fRSNProfile );
 }
 
+eHalStatus
+csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
+                                 tVOS_CON_MODE currBssPersona)
+{
+    tANI_U32 sessionId = 0;
+
+    for (sessionId = 0; sessionId < CSR_ROAM_SESSION_MAX; sessionId++ )
+    {
+        if (cursessionId != sessionId )
+        {
+            if (!CSR_IS_SESSION_VALID( pMac, sessionId ))
+            {
+                continue;
+            }
+
+            switch (currBssPersona)
+            {
+                case VOS_STA_MODE:
+                    if(pMac->roam.roamSession[sessionId].pCurRoamProfile &&
+                      (pMac->roam.roamSession[sessionId].pCurRoamProfile->csrPersona 
+                                      == VOS_STA_MODE)) //check for P2P client mode
+                    {
+                        smsLog(pMac, LOGE, FL(" ****STA mode already exists ****\n"));
+                        return eHAL_STATUS_FAILURE;
+                    }
+                    break;
+
+                case VOS_STA_SAP_MODE:
+                    if(pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_STA_SAP_MODE)
+                    {
+                        smsLog(pMac, LOGE, FL(" ****SoftAP mode already exists ****\n"));
+                        return eHAL_STATUS_FAILURE;
+                    }
+                    
+                    else if(pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_P2P_GO_MODE)
+                    {
+                        smsLog(pMac, LOGE, FL(" ****Cannot start Multiple Beaconing Role ****\n"));
+                        return eHAL_STATUS_FAILURE;
+                    }
+                    break;
+
+                case VOS_P2P_CLIENT_MODE:
+                    if(pMac->roam.roamSession[sessionId].pCurRoamProfile &&
+                      (pMac->roam.roamSession[sessionId].pCurRoamProfile->csrPersona 
+                                                  == VOS_P2P_CLIENT_MODE)) //check for P2P client mode
+                    {
+                        smsLog(pMac, LOGE, FL(" ****CLIENT mode already exists ****\n"));
+                        return eHAL_STATUS_FAILURE;
+                    }
+                    break;
+
+                case VOS_P2P_GO_MODE:
+                    if(pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_P2P_GO_MODE)
+                    {
+                        smsLog(pMac, LOGE, FL(" ****P2P GO mode already exists ****\n"));
+                        return eHAL_STATUS_FAILURE;
+                    }
+                    else if(pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_STA_SAP_MODE)
+                    {
+                        smsLog(pMac, LOGE, FL(" ****Cannot start Multiple Beaconing Role ****\n"));
+                        return eHAL_STATUS_FAILURE;
+                    }
+                    break;
+
+                default :
+                    smsLog(pMac, LOGE, FL("***Persona not handled = %d*****\n"),currBssPersona);
+                    break;
+            }
+        }
+    }
+    return eHAL_STATUS_SUCCESS;
+
+}
+
 eHalStatus csrValidateBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId, 
                                      tANI_U16 *beaconInterval, tANI_U32 cursessionId,
-                                     tVOS_CON_MODE currbssPersona)
+                                     tVOS_CON_MODE currBssPersona)
 {
     tANI_U32 sessionId = 0;
 
@@ -2514,14 +2606,26 @@ eHalStatus csrValidateBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                 continue;
             }
 
-            switch (currbssPersona)
+            switch (currBssPersona)
             {
                 case VOS_STA_MODE:
                     if(pMac->roam.roamSession[sessionId].pCurRoamProfile &&
                       (pMac->roam.roamSession[sessionId].pCurRoamProfile->csrPersona 
-                                      == VOS_P2P_CLIENT)) //check for P2P client mode
+                                      == VOS_P2P_CLIENT_MODE)) //check for P2P client mode
                     {
                         smsLog(pMac, LOG1, FL(" Beacon Interval Validation not required for STA/CLIENT\n"));
+                    }
+                    //IF SAP has started and STA wants to connect on different channel MCC should
+                    //MCC should not be enabled so making it false to enforce on same channel
+                    else if (pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_STA_SAP_MODE)
+                    {
+                        if (pMac->roam.roamSession[sessionId].bssParams.operationChn 
+                                                        != channelId )
+                        {
+                            smsLog(pMac, LOGE, FL("***MCC is not enabled for SAP +STA****\n"));
+                            return eHAL_STATUS_FAILURE;
+                        }
                     }
                     else if(pMac->roam.roamSession[sessionId].bssParams.bssPersona
                                       == VOS_P2P_GO_MODE) //Check for P2P go scenario
@@ -2543,6 +2647,18 @@ eHalStatus csrValidateBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                                                                 == VOS_STA_MODE)) //check for P2P client mode
                     {
                         smsLog(pMac, LOG1, FL(" Ignore Beacon Interval Validation...\n"));
+                    }
+                    //IF SAP has started and STA wants to connect on different channel MCC should
+                    //MCC should not be enabled so making it false to enforce on same channel
+                    else if (pMac->roam.roamSession[sessionId].bssParams.bssPersona
+                                      == VOS_STA_SAP_MODE)
+                    {
+                        if (pMac->roam.roamSession[sessionId].bssParams.operationChn 
+                                                        != channelId )
+                        {
+                            smsLog(pMac, LOGE, FL("***MCC is not enabled for SAP + CLIENT****\n"));
+                            return eHAL_STATUS_FAILURE;
+                        }
                     }
                     else if(pMac->roam.roamSession[sessionId].bssParams.bssPersona
                                     == VOS_P2P_GO_MODE) //Check for P2P go scenario
@@ -2592,7 +2708,7 @@ eHalStatus csrValidateBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                     break;
 
                 default :
-                    smsLog(pMac, LOG1, FL(" Persona not supported \n"));
+                    smsLog(pMac, LOG1, FL(" Persona not supported : %d\n"),currBssPersona);
                     return eHAL_STATUS_FAILURE;
             }
         }

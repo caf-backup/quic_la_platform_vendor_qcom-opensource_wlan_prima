@@ -231,7 +231,7 @@ void pmmInitBmpsResponseHandler(tpAniSirGlobal pMac, eHalStatus rspStatus)
             /* Disable heartbeat timer as well */
             if(pMac->lim.limTimers.gLimHeartBeatTimer.pMac)
             {
-                MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+                MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_HEART_BEAT_TIMER));
                 tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer);
             }
         }
@@ -539,7 +539,7 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
      * get a WDA_EXIT_BMPS_RSP from HAL.
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
     retStatus = wdaPostCtrlMsg( pMac, &msgQ);
     if( eSIR_SUCCESS != retStatus )
     {
@@ -664,7 +664,7 @@ tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac,tpPESession psessionE
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
     {
         palFreeMemory(pMac->hHdd, pBmpsParams);
@@ -709,7 +709,7 @@ tSirRetStatus pmmSendPowerSaveCfg(tpAniSirGlobal pMac, tpSirPowerSaveCfg pUpdate
     if(pMac->lim.gLimSmeState != eLIM_SME_IDLE_STATE  )
     {
         pmmLog(pMac, LOGE,
-            FL("pmmCfg: Power Save Configuration received in invalid state %d"),
+            FL("pmmCfg: Power Save Configuration received in invalid global sme state %d"),
             pMac->lim.gLimSmeState);
         retCode = eSIR_SME_INVALID_STATE;
         goto returnFailure;
@@ -770,7 +770,7 @@ tSirRetStatus pmmSendPowerSaveCfg(tpAniSirGlobal pMac, tpSirPowerSaveCfg pUpdate
     msgQ.bodyval = 0;
 
     PELOG1(pmmLog( pMac, LOG1, FL( "pmmBmps: Sending WDA_PWR_SAVE_CFG to HAL"));)
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
     {
         pmmLog( pMac, LOGP,
@@ -1482,7 +1482,7 @@ void pmmEnterImpsRequestHandler (tpAniSirGlobal pMac)
          (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
     {
         PELOGE(pmmLog(pMac, LOGE, 
-              FL("pmmImps: PMM State = %d, MLM State = %d, SME State = %d, rejecting the sleep mode request\n"),
+              FL("pmmImps: PMM State = %d, Global MLM State = %d, Global SME State = %d, rejecting the sleep mode request\n"),
               pMac->pmm.gPmmState, pMac->lim.gLimMlmState, pMac->lim.gLimSmeState);)
 
         resultCode = eSIR_SME_INVALID_PMM_STATE;
@@ -1768,7 +1768,7 @@ void pmmEnterUapsdRequestHandler (tpAniSirGlobal pMac)
          limIsSystemInScanState(pMac) )
     {
         PELOGE(pmmLog(pMac, LOGE,
-            FL("pmmUapsd: PMM State = %d, MLM State = %d, SME State = %d, rejecting the sleep mode request\n"),
+            FL("pmmUapsd: PMM State = %d, Global MLM State = %d, Global SME State = %d, rejecting the sleep mode request\n"),
             pMac->pmm.gPmmState, pMac->lim.gLimMlmState, pMac->lim.gLimSmeState);)
 
         resultCode = eSIR_SME_INVALID_PMM_STATE;
@@ -2409,7 +2409,7 @@ tSirRetStatus pmmImpsSendChangePwrSaveMsg(tpAniSirGlobal pMac, tANI_U8 mode)
      * WDA_ENTER_IMPS_REQ or WDA_EXIT_IMPS_RSP from HAL.
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
     retStatus = wdaPostCtrlMsg(pMac, &msgQ);
     if ( eSIR_SUCCESS != retStatus )
     {
@@ -2499,7 +2499,7 @@ tSirRetStatus pmmUapsdSendChangePwrSaveMsg (tpAniSirGlobal pMac, tANI_U8 mode)
 
     msgQ.reserved = 0;
     msgQ.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
     retStatus = wdaPostCtrlMsg(pMac, &msgQ);
     if ( eSIR_SUCCESS != retStatus )
     {

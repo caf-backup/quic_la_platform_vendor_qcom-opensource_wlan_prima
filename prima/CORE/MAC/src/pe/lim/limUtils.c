@@ -530,10 +530,6 @@ char *limMsgStr(tANI_U32 msgType)
         case eWNI_SME_DELTS_IND:
             return "eWNI_SME_DELTS_IND\n";
 
-        case SIR_LIM_RESUME_ACTIVITY_NTF:
-            return "SIR_LIM_RESUME_ACTIVITY_NTF\n";
-        case SIR_LIM_SUSPEND_ACTIVITY_REQ:
-            return "SIR_LIM_SUSPEND_ACTIVITY_REQ\n";
         case WDA_SUSPEND_ACTIVITY_RSP:
             return "WDA_SUSPEND_ACTIVITY_RSP\n";
         case SIR_LIM_RETRY_INTERRUPT_MSG:
@@ -562,22 +558,10 @@ char *limMsgStr(tANI_U32 msgType)
             return "SIR_LIM_REASSOC_FAIL_TIMEOUT\n";
         case SIR_LIM_HEART_BEAT_TIMEOUT:
             return "SIR_LIM_HEART_BEAT_TIMEOUT\n";
-#ifdef ANI_PRODUCT_TYPE_AP
-        case SIR_LIM_PREAUTH_CLNUP_TIMEOUT:
-            return "SIR_LIM_PREAUTH_CLNUP_TIMEOUT\n";
-#endif
         case SIR_LIM_ADDTS_RSP_TIMEOUT:
             return "SIR_LIM_ADDTS_RSP_TIMEOUT\n";
         case SIR_LIM_CHANNEL_SCAN_TIMEOUT:
             return "SIR_LIM_CHANNEL_SCAN_TIMEOUT\n";
-#if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-        case SIR_LIM_MEASUREMENT_IND_TIMEOUT:
-            return "SIR_LIM_MEASUREMENT_IND_TIMEOUT\n";
-        case SIR_LIM_LEARN_INTERVAL_TIMEOUT:
-            return "SIR_LIM_LEARN_INTERVAL_TIMEOUT\n";
-        case SIR_LIM_LEARN_DURATION_TIMEOUT:
-            return "SIR_LIM_LEARN_DURATION_TIMEOUT\n";
-#endif
         case SIR_LIM_LINK_TEST_DURATION_TIMEOUT:
             return "SIR_LIM_LINK_TEST_DURATION_TIMEOUT\n";
         case SIR_LIM_HASH_MISS_THRES_TIMEOUT:
@@ -886,7 +870,7 @@ limPrintMsgInfo(tpAniSirGlobal pMac, tANI_U16 logLevel, tSirMsgQ *msg)
 void
 limInitMlm(tpAniSirGlobal pMac)
 {
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
 
     /// Initialize scan result hash table
     limReInitScanResults(pMac); //sep26th review
@@ -1349,7 +1333,7 @@ tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     **/
     if (pMac->lim.gLimDeferredMsgQ.size > 0)
     {
-        PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, sme %d, mlme %d, addts %d)\n"),
+        PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, global sme %d, global mlme %d, addts %d)\n"),
                pMac->lim.gLimDeferredMsgQ.size, limMsg->type,
                limIsSystemInScanState(pMac),
                pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
@@ -1458,7 +1442,7 @@ tSirMsgQ* limReadDeferredMsgQ(tpAniSirGlobal pMac)
            pMac->lim.gLimDeferredMsgQ.size, pMac->lim.gLimDeferredMsgQ.read,
            msg->type);)
 
-   PELOG1(limLog(pMac, LOG1, FL("DQ msg -- scan %d, sme %d, mlme %d, addts %d\n"),
+   PELOG1(limLog(pMac, LOG1, FL("DQ msg -- scan %d, global sme %d, global mlme %d, addts %d\n"),
            limIsSystemInScanState(pMac),
            pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
            pMac->lim.gLimAddtsSent);)
@@ -2855,7 +2839,7 @@ void limCancelDot11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry
         return;
         
     PELOGW(limLog(pMac, LOGW, FL("Received a beacon without channel switch IE\n"));)
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_CHANNEL_SWITCH_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_CHANNEL_SWITCH_TIMER));
 
     if (tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer) != eSIR_SUCCESS)
     {
@@ -2887,7 +2871,7 @@ void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
     if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) 
     {
-         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_QUIET_TIMER));
+         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_QUIET_TIMER));
         if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer) != TX_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("tx_timer_deactivate failed\n"));)
@@ -2895,7 +2879,7 @@ void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry)
     }
     else if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING)
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_QUIET_BSS_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_QUIET_BSS_TIMER));
         if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer) != TX_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("tx_timer_deactivate failed\n"));)
@@ -2964,7 +2948,7 @@ void limProcessQuietTimeout(tpAniSirGlobal pMac)
     case eLIM_QUIET_BEGIN:
       // Time to Stop data traffic for quietDuration
       limDeactivateAndChangeTimer(pMac, eLIM_QUIET_BSS_TIMER);
-      MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_QUIET_BSS_TIMER));
+      MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_QUIET_BSS_TIMER));
 #ifdef GEN6_TODO
         /* revisit this piece of code to assign the appropriate sessionId below
          * priority - HIGH
@@ -3340,7 +3324,7 @@ void limStartQuietTimer(tpAniSirGlobal pMac, tANI_U8 sessionId)
     limCancelDot11hQuiet(pMac, psessionEntry);
     
     limDeactivateAndChangeTimer(pMac, eLIM_QUIET_TIMER);
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_QUIET_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, sessionId, eLIM_QUIET_TIMER));
     
     pMac->lim.limTimers.gLimQuietTimer.sessionId = sessionId;
     if( TX_SUCCESS != tx_timer_activate(&pMac->lim.limTimers.gLimQuietTimer))
@@ -3560,7 +3544,7 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
    mmhMsg.bodyptr = pSirSmeSwitchChInd;
    mmhMsg.bodyval = 0;
    
-   MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+   MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, mmhMsg.type));
    
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
    SysProcessMmhMsg(pMac, &mmhMsg);
@@ -5588,7 +5572,7 @@ void limTxComplete( tHalHandle hHal, void *pData )
         if(VOS_IS_STATUS_SUCCESS(vosStatus))
         {
             mHdr = WDA_GET_RX_MAC_HEADER(pRxBd);
-            MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, 0, mHdr->fc.subType);)
+            MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, NO_SESSION, mHdr->fc.subType);)
 
         }   
     }
@@ -5991,7 +5975,7 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
            psessionEntry->gLimEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
       {
         //send message to HAL to delete TS
-        if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req))
+        if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req, psessionEntry->peSessionId))
         {
           limLog(pMac, LOGW, FL("DelTs with UP %d failed in limSendHalMsgDelTs - ignoring request\n"),
                            tsinfo->traffic.userPrio);
@@ -6026,7 +6010,7 @@ limRegisterHalIndCallBack(tpAniSirGlobal pMac)
     msg.bodyptr = pHalCB;
     msg.bodyval = 0;
     
-    MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
     if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
     {
         palFreeMemory(pMac->hHdd, pHalCB);
@@ -6655,7 +6639,7 @@ tSirMsgQ msgQ;
   //defer any other message until we get response back.
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-  MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+  MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT 
     limDiagEventReport(pMac, WLAN_PE_DIAG_HAL_ADDBA_REQ_EVENT, psessionEntry, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
@@ -6748,7 +6732,7 @@ tSirMsgQ msgQ;
   limLog( pMac, LOGW,
       FL( "Sending SIR_HAL_DELBA_IND..." ));
 
-  MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+  MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT 
     limDiagEventReport(pMac, WLAN_PE_DIAG_HAL_DELBA_IND_EVENT, psessionEntry, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
@@ -6828,7 +6812,7 @@ limPostSMStateUpdate(tpAniSirGlobal pMac,
 
     limLog( pMac, LOG2, FL( "Sending WDA_SET_MIMOPS_REQ..." ));
 
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
     retCode = wdaPostCtrlMsg( pMac, &msgQ );
     if (eSIR_SUCCESS != retCode)
     {
@@ -7080,7 +7064,7 @@ void limFrameTransmissionControl(tpAniSirGlobal pMac, tLimQuietTxMode type, tLim
     msgQ.reserved = 0;
     msgQ.type = WDA_TRANSMISSION_CONTROL_IND;
 
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
     if(wdaPostCtrlMsg( pMac, &msgQ) != eSIR_SUCCESS)
     {
         palFreeMemory(pMac->hHdd, (void *) pTxCtrlMsg);
@@ -7152,7 +7136,7 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
         if (val > 0 && TX_TIMER_VALID(pMac->lim.limTimers.gLimBackgroundScanTimer))
         {
-            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_BACKGROUND_SCAN_TIMER));
+            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_BACKGROUND_SCAN_TIMER));
             if(tx_timer_activate(&pMac->lim.limTimers.gLimBackgroundScanTimer) != TX_SUCCESS)
             {
                 limLog(pMac, LOGP, FL("Could not restart background scan timer, doing LOGP"));
@@ -7165,7 +7149,7 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry)
     /* Enable heartbeat timer */
     if (TX_TIMER_VALID(pMac->lim.limTimers.gLimHeartBeatTimer))
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_HEART_BEAT_TIMER));
         if(limActivateHearBeatTimer(pMac) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Could not restart heartbeat timer, doing LOGP"));
@@ -7216,7 +7200,7 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac)
 
         if (val > 0 && TX_TIMER_VALID(pMac->lim.limTimers.gLimBackgroundScanTimer))
         {
-            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_BACKGROUND_SCAN_TIMER));
+            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_BACKGROUND_SCAN_TIMER));
             if(tx_timer_activate(&pMac->lim.limTimers.gLimBackgroundScanTimer) != TX_SUCCESS)
             {
                 limLog(pMac, LOGP, FL("Could not restart background scan timer, doing LOGP"));
@@ -7229,7 +7213,7 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac)
     /* Enable heartbeat timer */
     if (TX_TIMER_VALID(pMac->lim.limTimers.gLimHeartBeatTimer))
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_HEART_BEAT_TIMER));
         if(limActivateHearBeatTimer(pMac) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Could not restart heartbeat timer, doing LOGP"));
@@ -7741,7 +7725,7 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    mmhMsg.type = eWNI_SME_ADD_STA_SELF_RSP;
    mmhMsg.bodyptr = pRsp;
    mmhMsg.bodyval = 0;
-   MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+   MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
    limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 
 }
@@ -7776,7 +7760,7 @@ void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    mmhMsg.type = eWNI_SME_DEL_STA_SELF_RSP;
    mmhMsg.bodyptr = pRsp;
    mmhMsg.bodyval = 0;
-   MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+   MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
    limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 
 }

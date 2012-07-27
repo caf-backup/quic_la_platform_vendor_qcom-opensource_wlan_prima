@@ -924,7 +924,7 @@ limSendSmeMeasurementInd(tpAniSirGlobal pMac)
     mmhMsg.type = eWNI_SME_MEASUREMENT_IND;
     mmhMsg.bodyptr = pMeasInd;
     mmhMsg.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
     limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 
     // Cleanup neighbor information
@@ -1016,7 +1016,7 @@ limStopMeasTimers(tpAniSirGlobal pMac)
         }
     }
     pMac->lim.gLimMeasParams.isMeasIndTimerActive = 0;
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_LEARN_INTERVAL_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_LEARN_INTERVAL_TIMER));
     if (tx_timer_deactivate(&pMac->lim.gLimMeasParams.learnIntervalTimer) != TX_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn interval timer\n"));)
@@ -1024,14 +1024,14 @@ limStopMeasTimers(tpAniSirGlobal pMac)
 
     if (pMac->lim.gLimSpecMgmt.fQuietEnabled)
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_LEARN_DURATION_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_LEARN_DURATION_TIMER));
         if (tx_timer_deactivate(&pMac->lim.gLimMeasParams.learnDurationTimer) != TX_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn duration timer\n"));)
         }
     }
 
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_LEARN_DURATION_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_LEARN_DURATION_TIMER));
     if (tx_timer_deactivate(&pMac->lim.gLimMeasParams.learnDurationTimer) != TX_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn duration timer\n"));)
@@ -1210,8 +1210,8 @@ limRestorePreLearnState(tpAniSirGlobal pMac)
     // Go back to previous state.
     pMac->lim.gLimSmeState = pMac->lim.gLimPrevSmeState;
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
-    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
 
    PELOG4(limLog(pMac, LOG4,
            FL("Restored from Learn mode on RadioId %d\n"),

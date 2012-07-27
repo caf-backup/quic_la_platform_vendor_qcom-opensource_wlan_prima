@@ -421,7 +421,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
                    (pMac->lim.gLimSmeState == eLIM_SME_NORMAL_STATE)))
             {
                 // Reactivate Background scan timer
-                MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_BACKGROUND_SCAN_TIMER));
+                MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_BACKGROUND_SCAN_TIMER));
                 if (tx_timer_activate(
                       &pMac->lim.limTimers.gLimBackgroundScanTimer) != TX_SUCCESS)
                 {
@@ -458,7 +458,7 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
                 pMac->lim.limTimers.gLimPreAuthClnupTimer.sessionId = sessionId;
 #endif
                 // Reactivate pre-auth cleanup timer
-                MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PRE_AUTH_CLEANUP_TIMER));
+                MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_PRE_AUTH_CLEANUP_TIMER));
                 if (tx_timer_activate(&pMac->lim.limTimers.gLimPreAuthClnupTimer)
                                                        != TX_SUCCESS)
                 {

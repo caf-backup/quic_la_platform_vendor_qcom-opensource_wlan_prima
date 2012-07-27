@@ -86,6 +86,7 @@ void macTraceMsgTxNew(tpAniSirGlobal pMac, tANI_U8 module, tANI_U8 session, tANI
 
 
 #define MTRACE(p) p
+#define NO_SESSION 0xFF
 
 #else
 #define MTRACE(p) {  }

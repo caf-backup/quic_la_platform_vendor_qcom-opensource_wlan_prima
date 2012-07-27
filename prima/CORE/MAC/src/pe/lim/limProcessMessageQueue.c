@@ -83,8 +83,7 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
 
 /* this function should not changed */
-  if((pMac->lim.gLimSmeState == eLIM_SME_SUSPEND_STATE) &&
-      (limMsg->type != SIR_LIM_RESUME_ACTIVITY_NTF))
+  if(pMac->lim.gLimSmeState == eLIM_SME_OFFLINE_STATE)
   {
       // Defer processsing this message
       if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
@@ -111,7 +110,6 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         (limMsg->type != WDA_SET_BSSKEY_RSP)&&
         (limMsg->type != WDA_SET_STAKEY_RSP)&&
         (limMsg->type != WDA_SET_STA_BCASTKEY_RSP) &&
-        (limMsg->type != SIR_LIM_RESUME_ACTIVITY_NTF)&&
         (limMsg->type != eWNI_SME_START_REQ) &&
         (limMsg->type != WDA_AGGR_QOS_RSP) &&
         (limMsg->type != WDA_REMOVE_BSSKEY_RSP) &&
@@ -289,11 +287,11 @@ limDeferMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 #endif
     if(retCode == TX_SUCCESS)
         {
-            MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DEFERRED));)
+            MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DEFERRED));)
         }
     else
         {
-            MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DROPPED));)
+            MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DROPPED));)
         }
 
 
@@ -1177,59 +1175,13 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
       limMsgStr(limMsg->type), limSmeStateStr(pMac->lim.gLimSmeState),
       limMlmStateStr(pMac->lim.gLimMlmState));)
 
-    MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(limMsg->type, LIM_MSG_PROCESSED));)
+    MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(limMsg->type, LIM_MSG_PROCESSED));)
 
     switch (limMsg->type)
     {
-#if defined(ANI_DVT_DEBUG)
-        case SIR_LIM_SUSPEND_ACTIVITY_REQ:
-            // This message is from HAL notifying LIM
-            // to suspend activity. (PTT needs)
-            // Disable TFP & RHP
-            //halSetStaTxEnable(pMac, 1, eHAL_CLEAR);
-            //halStopDataTraffic(pMac);
-            //halSetRxEnable(pMac, eHAL_CLEAR);
-
-            pMac->lim.gLimPrevSmeState = pMac->lim.gLimSmeState;
-            pMac->lim.gLimSmeState     = eLIM_SME_SUSPEND_STATE;
-         MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
-
-            // Post message back to HAL
-            msgQ.type = WDA_SUSPEND_ACTIVITY_RSP;
-            MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
-            wdaPostCtrlMsg(pMac, &msgQ);
-            break;
-#endif
 
         case SIR_LIM_UPDATE_BEACON:
             limUpdateBeacon(pMac);
-            break;
-
-        case SIR_LIM_RESUME_ACTIVITY_NTF:
-            // This message is from HAL notifying LIM
-            // to resume activity.
-            if (pMac->lim.gLimSmeState == eLIM_SME_SUSPEND_STATE)
-            {
-                limLog(pMac, LOGE,
-                   FL("Received RESUME_NTF in State %s on Role %d\n"),
-                   limSmeStateStr(pMac->lim.gLimSmeState), pMac->lim.gLimSystemRole);
-                pMac->lim.gLimSmeState = pMac->lim.gLimPrevSmeState;
-             MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
-
-                 handleCBCFGChange( pMac, ANI_IGNORE_CFG_ID );
-                 handleHTCapabilityandHTInfo(pMac);
-                 //initialize the TSPEC admission control table.
-                 limAdmitControlInit(pMac);
-                 limRegisterHalIndCallBack(pMac);
-            }
-            else
-            {
-                limLog(pMac, LOGE,
-                   FL("Received RESUME_NTF in inval State %X on Role %d\n"),
-                   pMac->lim.gLimSmeState, pMac->lim.gLimSystemRole);
-                limPrintSmeState(pMac, LOGE, pMac->lim.gLimSmeState);
-            }
-
             break;
 
         case SIR_CFG_PARAM_UPDATE_IND:
@@ -1444,28 +1396,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
         case eWNI_PMC_SMPS_STATE_IND :
         {
-#ifdef SUPPORT_eWNI_PMC_SMPS_STATE_IND
-            tSirMbMsg *pMBMsg;
-            tSirMacHTMIMOPowerSaveState mimoPSstate;
-            /** Is System processing any SMPS Indication*/
-            if (!limIsSystemInSetMimopsState(pMac))
-            {
-                pMBMsg = (tSirMbMsg *)limMsg->bodyptr;
-                palCopyMemory(pMac->hHdd, &mimoPSstate, pMBMsg->data, sizeof(tSirMacHTMIMOPowerSaveState));
-                limSMPowerSaveStateInd(pMac, mimoPSstate);
-            }
-            else
-            {
-                if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
-                {
-                    PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
-                        limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
-                        pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
-                    limLogSessionStates(pMac);
-                    limPrintMsgName(pMac, LOGE, limMsg->type);
-                }
-            }
-#endif
             if(limMsg->bodyptr){
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
