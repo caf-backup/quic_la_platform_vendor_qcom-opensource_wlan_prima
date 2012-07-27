@@ -1244,44 +1244,36 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
 } /*** end __limProcessSmeScanReq() ***/
 
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
-#ifdef FEATURE_INNAV_SUPPORT
-
-static void __limProcessSmeInNavMeasReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
+static void __limProcessSmeOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tpSirMeasInNavMeasurementReq    pInNavMeasReq;
-    tLimMlmInNavMeasReq* pMlmInNavMeasReq;
+    tpSirOemDataReq    pOemDataReq;
+    tLimMlmOemDataReq* pMlmOemDataReq;
 
-    pInNavMeasReq = (tpSirMeasInNavMeasurementReq) pMsgBuf; 
+    pOemDataReq = (tpSirOemDataReq) pMsgBuf; 
 
     //post the lim mlm message now
-    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)&pMlmInNavMeasReq,
-                                                (sizeof(tLimMlmInNavMeasReq) - sizeof(tSirBSSIDChannelInfo) + 
-                                                sizeof(tSirBSSIDChannelInfo)*pInNavMeasReq->numBSSIDs)))
+    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)&pMlmOemDataReq, (sizeof(tLimMlmOemDataReq))))
     {
-        limLog(pMac, LOGP, FL("palAllocateMemory failed for mlmInNavMeasReq\n"));
+        limLog(pMac, LOGP, FL("palAllocateMemory failed for mlmOemDataReq\n"));
         return;
     }
 
     //Initialize this buffer
-    palZeroMemory(pMac->hHdd, pMlmInNavMeasReq, (sizeof(tLimMlmInNavMeasReq) - sizeof(tSirBSSIDChannelInfo) + 
-                                                sizeof(tSirBSSIDChannelInfo)*pInNavMeasReq->numBSSIDs));
+    palZeroMemory(pMac->hHdd, pMlmOemDataReq, (sizeof(tLimMlmOemDataReq)));
 
-    pMlmInNavMeasReq->numBSSIDs = pInNavMeasReq->numBSSIDs;
-    pMlmInNavMeasReq->numInNavMeasurements = pInNavMeasReq->numInNavMeasurements;
-    palCopyMemory(pMac->hHdd, pMlmInNavMeasReq->selfMacAddr, pInNavMeasReq->selfMacAddr, sizeof(tSirMacAddr)); 
-    pMlmInNavMeasReq->measurementMode = pInNavMeasReq->measurementMode;
-    palCopyMemory(pMac->hHdd, pMlmInNavMeasReq->bssidChannelInfo, pInNavMeasReq->bssidChannelInfo, 
-                        sizeof(tSirBSSIDChannelInfo)*pInNavMeasReq->numBSSIDs);
+    palCopyMemory(pMac->hHdd, pMlmOemDataReq->selfMacAddr, pOemDataReq->selfMacAddr, sizeof(tSirMacAddr)); 
+    palCopyMemory(pMac->hHdd, pMlmOemDataReq->oemDataReq, pOemDataReq->oemDataReq, OEM_DATA_REQ_SIZE);
 
-    //Issue LIM_MLM_INNAV_MEAS_REQ to MLM
-    limPostMlmMessage(pMac, LIM_MLM_INNAV_MEAS_REQ, (tANI_U32*)pMlmInNavMeasReq);
+    //Issue LIM_MLM_OEM_DATA_REQ to MLM
+    limPostMlmMessage(pMac, LIM_MLM_OEM_DATA_REQ, (tANI_U32*)pMlmOemDataReq);
 
     return;
 
-} /*** end __limProcessSmeInavMeasReq() ***/
+} /*** end __limProcessSmeOemDataReq() ***/
 
-#endif //FEATURE_INNAV_SUPPORT
+#endif //FEATURE_OEM_DATA_SUPPORT
 
 
 /**
@@ -4779,9 +4771,9 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
             break;
 
-#ifdef FEATURE_INNAV_SUPPORT
-        case eWNI_SME_INNAV_MEAS_REQ:
-            __limProcessSmeInNavMeasReq(pMac, pMsgBuf);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case eWNI_SME_OEM_DATA_REQ:
+            __limProcessSmeOemDataReq(pMac, pMsgBuf);
 
             break;
 #endif

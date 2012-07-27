@@ -427,11 +427,11 @@ char *limMsgStr(tANI_U32 msgType)
             return "eWNI_SME_SYS_READY_IND\n";
         case eWNI_SME_SCAN_REQ:
             return "eWNI_SME_SCAN_REQ\n";
-#ifdef FEATURE_INNAV_SUPPORT
-        case eWNI_SME_INNAV_MEAS_REQ:
-            return "eWNI_SME_INNAV_MEAS_REQ\n";
-        case eWNI_SME_INNAV_MEAS_RSP:
-            return "eWNI_SME_INNAV_MEAS_RSP\n";
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case eWNI_SME_OEM_DATA_REQ:
+            return "eWNI_SME_OEM_DATA_REQ\n";
+        case eWNI_SME_OEM_DATA_RSP:
+            return "eWNI_SME_OEM_DATA_RSP\n";
 #endif
         case eWNI_SME_SCAN_RSP:
             return "eWNI_SME_SCAN_RSP\n";

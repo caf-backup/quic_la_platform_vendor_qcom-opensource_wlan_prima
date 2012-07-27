@@ -9255,24 +9255,18 @@ VOS_STATUS WDA_ProcessFTMCommand(tWDA_CbContext *pWDA,
    return status;
 }
 #endif /* ANI_MANF_DIAG */
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 /*
- * FUNCTION: WDA_StartInNavMeasCallback
+ * FUNCTION: WDA_StartOemDataReqCallback
  * 
  */
-void WDA_StartInNavMeasReqCallback(
-                   WDI_InNavMeasRspParamsType *wdiInNavMeasRspParams, 
+void WDA_StartOemDataReqCallback(
+                   WDI_oemDataRspParamsType *wdiOemDataRspParams, 
                                                         void* pUserData)
 {
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
    tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tStartInNavMeasRsp *pInNavMeasRspParams = NULL ;
-   tANI_U8 i = 0;
-   tANI_U8 j = 0;
-   tANI_U32 allocSize = 0 ;
-
-   tSirRttRssiResults* rttRssiResults    = NULL;
-   WDI_RttRssiResults* wdiRttRssiResults = NULL;
+   tStartOemDataRsp *pOemDataRspParams = NULL ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
@@ -9286,31 +9280,16 @@ void WDA_StartInNavMeasReqCallback(
    }
    
    /* 
-    * Allocate memory for response params sent to PE. Enough memory 
-    * to populate RttRssiResults of all BSSIDs is created.
+    * Allocate memory for response params sent to PE
     */
-   allocSize = sizeof(tStartInNavMeasRsp) - sizeof(tSirRttRssiResults) ;
 
-   wdiRttRssiResults = &wdiInNavMeasRspParams->rttRssiResults[0] ;
-   for(i = 0; i < wdiInNavMeasRspParams->ucNumBSSIDs ; i++)
-   {
-      allocSize += (wdiRttRssiResults->ucNumSuccessfulMeasurements - 1)
-                                           * sizeof(WDI_RttRssiTimeData) ;
+   pOemDataRspParams = vos_mem_malloc(sizeof(tStartOemDataRsp));
 
-      allocSize += sizeof(WDI_RttRssiResults) ;
-      wdiRttRssiResults = (WDI_RttRssiResults *)((uint8 *)wdiRttRssiResults +
-                         sizeof(WDI_RttRssiResults) + 
-                           (wdiRttRssiResults->ucNumSuccessfulMeasurements -1) * 
-                                sizeof(WDI_RttRssiTimeData));
-   }
-
-   pInNavMeasRspParams = vos_mem_malloc(allocSize);
-
-   // Check if memory is allocated for InNavMeasRsp Params.
-   if(NULL == pInNavMeasRspParams)
+   // Check if memory is allocated for OemdataMeasRsp Params.
+   if(NULL == pOemDataRspParams)
    {
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "InNav WDA callback alloc fail");
+                "OEM DATA WDA callback alloc fail");
       VOS_ASSERT(0) ;
       return;
    }
@@ -9321,104 +9300,39 @@ void WDA_StartInNavMeasReqCallback(
    pWDA->wdaWdiApiMsgParam = NULL;
    pWDA->wdaMsgParam = NULL;
 
-   /* copy status and rsp Len, that is needed by PE in any case */
-   pInNavMeasRspParams->status = 
-                    CONVERT_WDI2SIR_STATUS(wdiInNavMeasRspParams->wdiStatus) ;
-   if(WDI_STATUS_SUCCESS != wdiInNavMeasRspParams->wdiStatus)
-   {
-      pInNavMeasRspParams->numBSSIDs = wdiInNavMeasRspParams->ucNumBSSIDs;
-   }
-
-   /* 
-    * after converting HAL<->WDA messages, the size PE is expecting is 
-    * the size of response struct send by the WDA.
-    */
-   pInNavMeasRspParams->rspLen = allocSize ;
-
-
    /* 
     * Now go ahead and copy other stuff for PE in incase of sucess only 
     * Also, here success always means that we have atleast one BSSID.
     */
-   if(WDI_STATUS_SUCCESS == wdiInNavMeasRspParams->wdiStatus)
-   {
-      pInNavMeasRspParams->numBSSIDs = wdiInNavMeasRspParams->ucNumBSSIDs;
 
-      rttRssiResults    = &pInNavMeasRspParams->rttRssiResults[0] ;
-      wdiRttRssiResults = &wdiInNavMeasRspParams->rttRssiResults[0] ;
-
-      /* copy RTT/RSSI results */
-      for(i = 0 ; i < wdiInNavMeasRspParams->ucNumBSSIDs ; i++)
-      {
-         
-         rttRssiResults->numSuccessfulMeasurements = 
-                         wdiRttRssiResults->ucNumSuccessfulMeasurements;
-         vos_mem_copy(rttRssiResults->bssid,
-                         wdiRttRssiResults->ucBssid,
-                                     sizeof(tSirMacAddr));
-         for( j = 0; j < rttRssiResults->numSuccessfulMeasurements ; j++)
-         {
-            tSirRttRssiTimeData *rttRssiTimeData =
-                                 &rttRssiResults->rttRssiTimeData[j] ;
-            WDI_RttRssiTimeData *wdiRttRssiTimeData =
-                                 &wdiRttRssiResults->rttRssiTimeData[j] ;
-            rttRssiTimeData->rssi = wdiRttRssiTimeData->ucRssi ;
-            rttRssiTimeData->rtt = wdiRttRssiTimeData->usRtt ;
-            rttRssiTimeData->snr = wdiRttRssiTimeData->usSnr ;
-            rttRssiTimeData->measurementTime = 
-                             wdiRttRssiTimeData->uslMeasurementTime ;
-            rttRssiTimeData->measurementTimeHi = 
-                             wdiRttRssiTimeData->uslMeasurementTimeHi ;
-         } /* for j = 0... */
-         rttRssiResults = (tSirRttRssiResults *)((uint8 *)rttRssiResults +
-                             sizeof(tSirRttRssiResults) + 
-                               (rttRssiResults->numSuccessfulMeasurements -1) * 
-                                    sizeof(tSirRttRssiTimeData));
-         
-         wdiRttRssiResults = (WDI_RttRssiResults *)((uint8 *)wdiRttRssiResults +
-                              sizeof(WDI_RttRssiResults) + 
-                               (wdiRttRssiResults->ucNumSuccessfulMeasurements - 1) * 
-                                    sizeof(WDI_RttRssiTimeData));
-      }  /* for i = 0 .. */
-      
-   }
+   vos_mem_copy(pOemDataRspParams->oemDataRsp, wdiOemDataRspParams->oemDataRsp, OEM_DATA_RSP_SIZE);
+ 
    //enable Tx
    status = WDA_ResumeDataTx(pWDA);
 
    if(status != VOS_STATUS_SUCCESS)
    {
-      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
-                 "WDA Resume Data Tx fail");
-      pInNavMeasRspParams->status = VOS_STATUS_E_FAILURE;
+      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL, "WDA Resume Data Tx fail");
    }
 
-   WDA_SendMsg(pWDA, WDA_START_INNAV_MEAS_RSP,  
-                           (void *)pInNavMeasRspParams, 0) ;
+   WDA_SendMsg(pWDA, WDA_START_OEM_DATA_RSP,  (void *)pOemDataRspParams, 0) ;
    return ;
 }
 
 /*
- * FUNCTION: WDA_ProcessStartInNavMeasReq
- * Send Start InNav Meas Req to WDI
+ * FUNCTION: WDA_ProcessStartOemDataReq
+ * Send Start Oem Data Req to WDI
  */
 
-VOS_STATUS WDA_ProcessStartInNavMeasReq(tWDA_CbContext *pWDA, 
-                                 tStartInNavMeasReq  *pInNavMeasReqParams)
+VOS_STATUS WDA_ProcessStartOemDataReq(tWDA_CbContext *pWDA, 
+                                 tStartOemDataReq  *pOemDataReqParams)
 {
    WDI_Status             status = WDI_STATUS_SUCCESS;
-   WDI_InNavMeasReqParamsType     *wdiInNavMeasReqParams = NULL;
-   tANI_U32 reqLen = 0;
+   WDI_oemDataReqParamsType     *wdiOemDataReqParams = NULL;
 
-   /*
-    * Calculate how much memory is required to populate WDI structure
-    * with the information of all BSSIDs
-    */
-   reqLen = sizeof(WDI_InNavMeasReqParamsType) + 
-                           sizeof(WDI_BSSIDChannelInfo) * 
-                                   pInNavMeasReqParams->numBSSIDs;
-   wdiInNavMeasReqParams = 
-                     (WDI_InNavMeasReqParamsType*)vos_mem_malloc(reqLen) ;
-    if(NULL == wdiInNavMeasReqParams)
+   wdiOemDataReqParams = (WDI_oemDataReqParamsType*)vos_mem_malloc(sizeof(WDI_oemDataReqParamsType)) ;
+   
+   if(NULL == wdiOemDataReqParams)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s: VOS MEM Alloc Failure", __FUNCTION__); 
@@ -9426,25 +9340,10 @@ VOS_STATUS WDA_ProcessStartInNavMeasReq(tWDA_CbContext *pWDA,
       return VOS_STATUS_E_NOMEM;
    }
    
-    //copy INNAV parameters to WDI structure 
-   wdiInNavMeasReqParams->wdiInNavMeasInfo.measurementMode= 
-                                pInNavMeasReqParams->measurementMode;
-   wdiInNavMeasReqParams->wdiInNavMeasInfo.ucNumBSSIDs = 
-                                pInNavMeasReqParams->numBSSIDs;
-   wdiInNavMeasReqParams->wdiInNavMeasInfo.ucNumInNavMeasurements = 
-                                pInNavMeasReqParams->numInNavMeasurements;
+   vos_mem_copy(wdiOemDataReqParams->wdiOemDataReqInfo.selfMacAddr, pOemDataReqParams->selfMacAddr, sizeof(tSirMacAddr));
+   vos_mem_copy(wdiOemDataReqParams->wdiOemDataReqInfo.oemDataReq, pOemDataReqParams->oemDataReq, OEM_DATA_REQ_SIZE);
 
-   vos_mem_copy(wdiInNavMeasReqParams->wdiInNavMeasInfo.selfMacAddr,
-                         pInNavMeasReqParams->selfMacAddr,
-                                 sizeof(tSirMacAddr));
-
-    //copy the bssid Channel info for all the BSSIDS
-   vos_mem_copy(wdiInNavMeasReqParams->wdiInNavMeasInfo.bssidChannelInfo,
-                  pInNavMeasReqParams->bssidChannelInfo,
-                     sizeof(pInNavMeasReqParams->bssidChannelInfo) * 
-                                        (pInNavMeasReqParams->numBSSIDs));
-
-   wdiInNavMeasReqParams->wdiReqStatusCB = NULL;
+   wdiOemDataReqParams->wdiReqStatusCB = NULL;
 
    if((NULL != pWDA->wdaMsgParam) ||
                            (NULL != pWDA->wdaWdiApiMsgParam))
@@ -9452,21 +9351,19 @@ VOS_STATUS WDA_ProcessStartInNavMeasReq(tWDA_CbContext *pWDA,
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s:wdaWdiApiMsgParam is Not NULL", __FUNCTION__); 
       VOS_ASSERT(0);
-      vos_mem_free(wdiInNavMeasReqParams);
+      vos_mem_free(wdiOemDataReqParams);
       return VOS_STATUS_E_FAILURE;
    }
 
-   pWDA->wdaMsgParam          =          (void *)pInNavMeasReqParams;
-   pWDA->wdaWdiApiMsgParam    =          (void *)wdiInNavMeasReqParams;
+   pWDA->wdaMsgParam          =          (void *)pOemDataReqParams;
+   pWDA->wdaWdiApiMsgParam    =          (void *)wdiOemDataReqParams;
 
-    status = WDI_StartInNavMeasReq(wdiInNavMeasReqParams, 
-               (WDI_InNavMeasRspCb)WDA_StartInNavMeasReqCallback, 
-                                                                   pWDA);
+    status = WDI_StartOemDataReq(wdiOemDataReqParams, (WDI_oemDataRspCb)WDA_StartOemDataReqCallback, pWDA);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-         "Failure in Start In Nav  REQ Params WDI API, free all the memory " );
+         "Failure in Start OEM DATA REQ Params WDI API, free all the memory " );
       vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
       vos_mem_free(pWDA->wdaMsgParam);
       pWDA->wdaWdiApiMsgParam = NULL;
@@ -9476,7 +9373,7 @@ VOS_STATUS WDA_ProcessStartInNavMeasReq(tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status) ;
 
 }
-#endif /* FEATURE_INNAV_SUPPORT */
+#endif /* FEATURE_OEM_DATA_SUPPORT */
 
 /*
  * FUNCTION: WDA_SetTxPerTrackingReqCallback
@@ -10725,13 +10622,13 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       }
 #endif /* ANI_MANF_DIAG */
 
-#ifdef FEATURE_INNAV_SUPPORT
-      case WDA_START_INNAV_MEAS_REQ:
+#ifdef FEATURE_OEM_DATA_SUPPORT
+      case WDA_START_OEM_DATA_REQ:
       {
-         WDA_ProcessStartInNavMeasReq(pWDA, (tStartInNavMeasReq *)pMsg->bodyptr) ;
+         WDA_ProcessStartOemDataReq(pWDA, (tStartOemDataReq *)pMsg->bodyptr) ;
          break;
       }
-#endif /* FEATURE_INNAV_SUPPORT */
+#endif /* FEATURE_OEM_DATA_SUPPORT */
 
       /* Tx Complete Time out Indication */
       case WDA_TX_COMPLETE_TIMEOUT_IND:

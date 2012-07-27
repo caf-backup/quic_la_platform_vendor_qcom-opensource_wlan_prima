@@ -67,8 +67,8 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "btcApi.h"
 #include "csrInternal.h"
 
-#ifdef FEATURE_INNAV_SUPPORT
-#include "measInternal.h" 
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#include "oemDataInternal.h" 
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -937,14 +937,9 @@ typedef struct sAniSirLim
     tANI_U8   gSmeSessionId;
     tANI_U16 gTransactionId;
 
-#ifdef FEATURE_INNAV_SUPPORT
-    //Place holder for current bssid that is being 
-    //measured
-    tANI_U8              gLimCurrentInNavMeasBssidIndex;
-    tLimMlmInNavMeasReq* gpLimMlmInNavMeasReq;
-
-    tANI_U32 innavMeasurementRspLen;
-    tLimMlmInNavMeasRsp* gpLimMlmInNavMeasRsp;
+#ifdef FEATURE_OEM_DATA_SUPPORT
+tLimMlmOemDataReq       *gpLimMlmOemDataReq;
+tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
 #endif
 
 #ifdef WLAN_FEATURE_P2P
@@ -1083,8 +1078,8 @@ typedef struct sAniSirGlobal
     tCsrScanStruct scan;
     tCsrRoamStruct roam;
 
-#ifdef FEATURE_INNAV_SUPPORT
-    tMeasInNavMeasurementStruct innavMeas;
+#ifdef FEATURE_OEM_DATA_SUPPORT
+    tOemDataStruct oemData;
 #endif
 
 #ifdef ANI_PRODUCT_TYPE_CLIENT

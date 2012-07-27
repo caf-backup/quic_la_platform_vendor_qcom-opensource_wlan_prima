@@ -243,6 +243,24 @@ VOS_STATUS WLANTL_SetFWRSSIThresholds
    v_PVOID_t                       pAdapter
 );
 
+/*==========================================================================
+
+   FUNCTION
+
+   DESCRIPTION 
+    
+   PARAMETERS 
+
+   RETURN VALUE
+
+============================================================================*/
+VOS_STATUS WLANTL_HSSerializeTlIndication
+(
+   v_PVOID_t   pAdapter,
+   v_U8_t      rssiNotification,
+   v_PVOID_t   pUserCtxt,
+   WLANTL_RSSICrossThresholdCBType cbFunction
+);
 
 #endif //FEATURE_WLAN_GEN6_ROAMING
 

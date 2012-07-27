@@ -917,9 +917,9 @@ void csrRoamSubstateChange( tpAniSirGlobal pMac, eCsrRoamSubState NewSubstate, t
     if(pMac->roam.curSubState[sessionId] == NewSubstate)
     {
        return;
-                }
+    }
     pMac->roam.curSubState[sessionId] = NewSubstate;
-}
+    }
 
 
 eCsrRoamState csrRoamStateChange( tpAniSirGlobal pMac, eCsrRoamState NewRoamState, tANI_U8 sessionId)
@@ -5072,6 +5072,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 // If this transition is because of an 802.11 OID, then we transition
                 // back to INIT state so we sit waiting for more OIDs to be issued and
                 // we don't start the IDLE timer.
+                case eCsrSmeIssuedFTReassoc:
                 case eCsrSmeIssuedAssocToSimilarAP:
                 case eCsrHddIssued:
                     csrRoamStateChange( pMac, eCSR_ROAMING_STATE_IDLE, sessionId );
@@ -5085,13 +5086,10 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     /* If Join fails while Handoff is in progress, indicate disassociated event to supplicant to reconnect */
                     if (csrRoamIsHandoffInProgress(pMac))
                     {
-                        csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.roamCmd.roamId, eCSR_ROAM_DISASSOCIATED, eCSR_ROAM_RESULT_FORCED);
                         /* Should indicate neighbor roam algorithm about the connect failure here */
                         csrNeighborRoamIndicateConnect(pMac, (tANI_U8)sessionId, VOS_STATUS_E_FAILURE);
                     }
-                    else
 #endif
-                    {
                         if(pSession->bRefAssocStartCnt > 0)
                         {
                             pSession->bRefAssocStartCnt--;
@@ -5099,7 +5097,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                                                 eCSR_ROAM_ASSOCIATION_COMPLETION, 
                                                 eCSR_ROAM_RESULT_FAILURE);
                         }
-                    }
                     smsLog(pMac, LOG1, FL("  roam(reason %d) failed\n"), pCommand->u.roamCmd.roamReason);
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
                     sme_QosCsrEventInd(pMac, (tANI_U8)sessionId, SME_QOS_CSR_DISCONNECT_IND, NULL);
@@ -6376,8 +6373,8 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
         }    
         else
         {
-           csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
-        }
+               csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+           }
     } /*else: ( eSIR_SME_SUCCESS == pSmeJoinRsp->statusCode ) */
 }
 
@@ -8037,6 +8034,28 @@ static void csrUpdateRssi(tpAniSirGlobal pMac, void* pMsg)
     return;
 }
 
+static void csrRoamRssiIndHdlr(tpAniSirGlobal pMac, void* pMsg)
+{
+    WLANTL_TlIndicationReq *pTlRssiInd = (WLANTL_TlIndicationReq*)pMsg;
+    if(pTlRssiInd)
+    {
+        if(NULL != pTlRssiInd->tlCallback)
+        {
+            ((WLANTL_RSSICrossThresholdCBType)(pTlRssiInd->tlCallback))
+            (pTlRssiInd->pAdapter, pTlRssiInd->rssiNotification, pTlRssiInd->pUserCtxt);
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL("pTlRssiInd->tlCallback is NULL\n"));                
+        }
+    }
+    else
+    {
+        smsLog( pMac, LOGE, FL("pTlRssiInd is NULL\n"));    
+    }
+    return;
+}
+
 void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 {
     tSirSmeAssocInd *pAssocInd;
@@ -8866,6 +8885,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             smsLog( pMac, LOG1, FL("Establish logical link req from HCI serialized through MC thread\n"));
             btampEstablishLogLinkHdlr( pSirMsg );
             break;
+        case eWNI_SME_RSSI_IND:
+            smsLog( pMac, LOG1, FL("RSSI indication from TL serialized through MC thread\n"));
+            csrRoamRssiIndHdlr( pMac, pSirMsg );
+        break;
+
 
         default:
             break;
@@ -13271,7 +13295,7 @@ static void csrRoamLinkUp(tpAniSirGlobal pMac, tCsrBssid bssid)
       CSR_VCC_UL_MAC_LOSS_THRESHOLD : pMac->roam.configParam.vccUlMacLossThreshold;
 
 #if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
-    {
+   {
         tANI_U32 sessionId = 0;
 
         /* Indicate the neighbor roal algorithm about the connect indication */

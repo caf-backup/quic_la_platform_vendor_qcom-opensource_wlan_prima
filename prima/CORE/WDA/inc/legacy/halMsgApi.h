@@ -108,8 +108,8 @@ typedef enum eRxpMode {
     eRXP_BTAMP_AP_MODE          = 0x400,
     eRXP_BTAMP_STA_MODE         = 0x800,
     eRXP_MULTI_BSS_MODE         = 0x1000
-#ifdef FEATURE_INNAV_SUPPORT
-   ,eRXP_INNAV_MODE             = 0x2000
+#ifdef FEATURE_OEM_DATA_SUPPORT
+   ,eRXP_OEM_DATA_MODE             = 0x2000
 #endif
 #ifndef WLAN_FTM_STUB
     ,eRXP_FTM_MODE         = 0x4000
@@ -680,29 +680,26 @@ typedef struct {
 } tFinishScanParams, * tpFinishScanParams;
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-#ifdef FEATURE_INNAV_SUPPORT 
-typedef struct {
-    eHalStatus                 status;
+#ifdef FEATURE_OEM_DATA_SUPPORT 
 
-    //Number of BSSIDs
-    tANI_U8                    numBSSIDs;
-    //Number of Measurements required
-    tANI_U8                    numInNavMeasurements;
-    //Type of measurements (RTS-CTS or FRAME-BASED)
-    eSirInNavMeasurementMode   measurementMode;
-    //bssid channel info for doing the measurements
-    tSirMacAddr                selfMacAddr;
-    tSirBSSIDChannelInfo       bssidChannelInfo[1];
+#ifndef OEM_DATA_REQ_SIZE
+#define OEM_DATA_REQ_SIZE 70
+#endif
+#ifndef OEM_DATA_RSP_SIZE
+#define OEM_DATA_RSP_SIZE 968
+#endif
 
-}tStartInNavMeasReq,*tpStartInNavMeasReq;
+typedef struct
+{
+    tSirMacAddr          selfMacAddr;
+    eHalStatus           status;
+    tANI_U8              oemDataReq[OEM_DATA_REQ_SIZE];
+} tStartOemDataReq, *tpStartOemDataReq;
 
 typedef struct 
 {
-    tANI_U8             numBSSIDs;
-    tANI_U16            rspLen;
-    eHalStatus          status;
-    tSirRttRssiResults  rttRssiResults[1];
-} tStartInNavMeasRsp, *tpStartInNavMeasRsp;
+    tANI_U8             oemDataRsp[OEM_DATA_RSP_SIZE];
+} tStartOemDataRsp, *tpStartOemDataRsp;
 #endif
 #endif
 
