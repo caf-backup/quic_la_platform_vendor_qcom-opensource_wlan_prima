@@ -76,6 +76,9 @@
  ===========================================================================*/
 #define WDI_WCTS_ACTION_TIMEOUT       2000 /* in msec a very high upper limit */
 
+#define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
+#define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
+
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 #define WDI_PNO_VERSION_MASK 0x8000
@@ -7341,7 +7344,10 @@ WDI_ProcessConfigBSSReq
     else
     {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "Association sequence for this BSS does not yet exist");
+                "%s: Association sequence for this BSS does not yet exist." MAC_ADDRESS_STR "wdiBssType %d",
+                __func__, MAC_ADDR_ARRAY(pwdiConfigBSSParams->wdiReqInfo.macBSSID), 
+                pwdiConfigBSSParams->wdiReqInfo.wdiBSSType);
+      
       /* for IBSS testing */
       wpalMutexRelease(&pWDICtx->wptMutex);
       return WDI_STATUS_E_NOT_ALLOWED; 
@@ -7355,8 +7361,10 @@ WDI_ProcessConfigBSSReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. " MAC_ADDRESS_STR " bssIdx %d", 
+              __func__, MAC_ADDR_ARRAY(pwdiConfigBSSParams->wdiReqInfo.macBSSID), 
+              ucCurrentBSSSesIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
 
@@ -7474,7 +7482,8 @@ WDI_ProcessDelBSSReq
   if ( NULL == pBSSSes ) 
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+        "%s: BSS does not yet exist. ucBssIdx %d",
+        __func__, pwdiDelBSSParams->ucBssIdx);
 
     wpalMutexRelease(&pWDICtx->wptMutex);
 
@@ -7487,8 +7496,9 @@ WDI_ProcessDelBSSReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. ucBssIdx %d", 
+              __func__, pwdiDelBSSParams->ucBssIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
 
@@ -7612,9 +7622,10 @@ WDI_ProcessPostAssocReq
 
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist - "
-              "operation not allowed");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist - " 
+              "operation not allowed. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiPostAssocParams->wdiBSSParams.macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -7626,8 +7637,9 @@ WDI_ProcessPostAssocReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiPostAssocParams->wdiBSSParams.macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
 
@@ -7816,8 +7828,9 @@ WDI_ProcessDelSTAReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -7829,8 +7842,9 @@ WDI_ProcessDelSTAReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -7933,7 +7947,8 @@ WDI_ProcessSetBssKeyReq
   if ( NULL == pBSSSes ) 
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+              "%s: Association sequence for this BSS does not yet exist. ucBssIdx %d", 
+              __func__, pwdiSetBSSKeyParams->wdiBSSKeyInfo.ucBssIdx);
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -7945,8 +7960,9 @@ WDI_ProcessSetBssKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. ucBssIdx %d",
+              __func__, pwdiSetBSSKeyParams->wdiBSSKeyInfo.ucBssIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8077,7 +8093,8 @@ WDI_ProcessRemoveBssKeyReq
   if ( NULL == pBSSSes ) 
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+              "%s: Association sequence for this BSS does not yet exist. ucBssIdx %d", 
+              __func__, pwdiRemoveBSSKeyParams->wdiKeyInfo.ucBssIdx);
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -8089,8 +8106,9 @@ WDI_ProcessRemoveBssKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. ucBssIdx %d",
+              __func__, pwdiRemoveBSSKeyParams->wdiKeyInfo.ucBssIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8209,8 +8227,9 @@ WDI_ProcessSetStaKeyReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -8222,8 +8241,9 @@ WDI_ProcessSetStaKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8382,8 +8402,9 @@ WDI_ProcessRemoveStaKeyReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -8395,8 +8416,9 @@ WDI_ProcessRemoveStaKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8521,7 +8543,8 @@ WDI_ProcessSetStaBcastKeyReq
   if ( NULL == pBSSSes ) 
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+              "Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -8533,8 +8556,9 @@ WDI_ProcessSetStaBcastKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8693,8 +8717,9 @@ WDI_ProcessRemoveStaBcastKeyReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -8706,8 +8731,9 @@ WDI_ProcessRemoveStaBcastKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+               __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8833,8 +8859,9 @@ WDI_ProcessAddTSpecReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -8846,8 +8873,9 @@ WDI_ProcessAddTSpecReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9004,9 +9032,10 @@ WDI_ProcessDelTSpecReq
 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
-
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+            "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+            __func__, MAC_ADDR_ARRAY(pwdiDelTSParams->wdiDelTSInfo.macBSSID));
+    
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
@@ -9017,8 +9046,9 @@ WDI_ProcessDelTSpecReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiDelTSParams->wdiDelTSInfo.macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9114,7 +9144,8 @@ WDI_ProcessUpdateEDCAParamsReq
   if ( NULL == pBSSSes ) 
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+            "%s: Association sequence for this BSS does not yet exist. ucBssIdx %d", 
+            __func__, pwdiUpdateEDCAParams->wdiEDCAInfo.ucBssIdx);
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -9126,8 +9157,9 @@ WDI_ProcessUpdateEDCAParamsReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. ucBssIdx %d",
+              __func__, pwdiUpdateEDCAParams->wdiEDCAInfo.ucBssIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9237,9 +9269,10 @@ WDI_ProcessAddBASessionReq
 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
-
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+          "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+          __func__, MAC_ADDR_ARRAY(macBSSID));
+      
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
@@ -9250,8 +9283,9 @@ WDI_ProcessAddBASessionReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+               __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9376,8 +9410,9 @@ WDI_ProcessDelBAReq
 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+            "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+            __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -9389,8 +9424,9 @@ WDI_ProcessDelBAReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9472,8 +9508,9 @@ WDI_ProcessTSMStatsReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, pwdiTSMParams->wdiTsmStatsParamsInfo.bssid, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+            "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+            __func__, MAC_ADDR_ARRAY(pwdiTSMParams->wdiTsmStatsParamsInfo.bssid));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -9485,8 +9522,9 @@ WDI_ProcessTSMStatsReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiTSMParams->wdiTsmStatsParamsInfo.bssid));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10305,8 +10343,9 @@ WDI_ProcessConfigStaReq
 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+          "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+          __func__, MAC_ADDR_ARRAY(pwdiConfigSTAParams->wdiReqInfo.macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -10318,8 +10357,9 @@ WDI_ProcessConfigStaReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiConfigSTAParams->wdiReqInfo.macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10446,8 +10486,9 @@ WDI_ProcessSetLinkStateReq
 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-              "Set link request received outside association session");
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+     "%s: Set link request received outside association session. macBSSID " MAC_ADDRESS_STR, 
+     __func__, MAC_ADDR_ARRAY(pwdiSetLinkParams->wdiLinkInfo.macBSSID));
   }
   else
   {
@@ -10457,8 +10498,9 @@ WDI_ProcessSetLinkStateReq
     ------------------------------------------------------------------------*/
     if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
     {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "Association sequence for this BSS exists but currently queued");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+                __func__, MAC_ADDR_ARRAY(pwdiSetLinkParams->wdiLinkInfo.macBSSID));
   
       wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
       wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10579,8 +10621,9 @@ WDI_ProcessGetStatsReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+        "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+        __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -10592,8 +10635,9 @@ WDI_ProcessGetStatsReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10781,8 +10825,9 @@ WDI_ProcessAddBAReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+            "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+            __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -10794,8 +10839,9 @@ WDI_ProcessAddBAReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10915,8 +10961,9 @@ WDI_ProcessTriggerBAReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+        "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+        __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -10928,8 +10975,9 @@ WDI_ProcessTriggerBAReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -13151,8 +13199,9 @@ WDI_ProcessAggrAddTSpecReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+        "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+        __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -13164,8 +13213,9 @@ WDI_ProcessAggrAddTSpecReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -13984,8 +14034,9 @@ WDI_ProcessJoinRsp
       ( eWLAN_PAL_FALSE == pWDICtx->bAssociationInProgress ))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist or "
-              "association no longer in progress - mysterious HAL response");
+              "%s: Association sequence for this BSS does not yet exist (bssIdx %d) or "
+              "association no longer in progress %d - mysterious HAL response",
+              __func__, pWDICtx->ucCurrentBSSSesIdx, pWDICtx->bAssociationInProgress);
 
     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
     wpalMutexRelease(&pWDICtx->wptMutex);
