@@ -90,7 +90,7 @@ ALL_MODULES.$(LOCAL_MODULE).INSTALLED := \
 endif
 
 #Create symbolic link
-ifeq ($(call is-board-platform-in-list,msm7627a msm8660),true)
+ifeq ($(call is-board-platform-in-list,msm7627a msm8660 msm7630_surf),true)
 $(shell mkdir -p $(TARGET_OUT)/lib/modules; \
         ln -sf /system/lib/modules/volans/WCN1314_rf.ko \
                $(TARGET_OUT)/lib/modules/wlan.ko)
