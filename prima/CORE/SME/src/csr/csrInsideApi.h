@@ -111,6 +111,7 @@ typedef enum
     eCsrSilentlyStopRoaming,
     eCsrSilentlyStopRoamingSaveState,
     eCsrJoinWdsFailure,
+    eCsrJoinFailureDueToConcurrency,
     
 }eCsrRoamCompleteResult;
 

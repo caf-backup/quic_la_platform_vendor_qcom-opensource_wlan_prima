@@ -186,6 +186,7 @@ typedef enum
     eCsrStartIbss,
     eCsrStartIbssSameIbss,
     eCsrReassocToSelfNoCapChange,
+    eCsrStopRoamingDueToConcurrency,
     
 }eCsrJoinState;
 

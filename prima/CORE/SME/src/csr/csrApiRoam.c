@@ -3616,6 +3616,10 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                             break;
                         }
                      }
+                     else
+                     {
+                         eRoamState = eCsrStopRoamingDueToConcurrency;
+                     }
                     pCommand->u.roamCmd.pRoamBssEntry = csrLLNext(&pBSSList->List, pCommand->u.roamCmd.pRoamBssEntry, LL_ACCESS_LOCK);
                     if(NULL == pCommand->u.roamCmd.pRoamBssEntry)
                     {
@@ -3802,9 +3806,9 @@ static eHalStatus csrRoam( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     {
         // Attept to join a Bss...
         RoamState = csrRoamJoinNextBss( pMac, pCommand, eANI_BOOLEAN_FALSE );
-    
+
         // if nothing to join..
-        if ( eCsrStopRoaming == RoamState ) 
+        if (( eCsrStopRoaming == RoamState ) || ( eCsrStopRoamingDueToConcurrency == RoamState))
         {
             tANI_BOOLEAN fComplete = eANI_BOOLEAN_FALSE;
 
@@ -3849,7 +3853,14 @@ static eHalStatus csrRoam( tpAniSirGlobal pMac, tSmeCmd *pCommand )
             if(fComplete)
             {
                // ... otherwise, we can complete the Roam command here.
-               csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+               if(eCsrStopRoamingDueToConcurrency == RoamState)
+               {
+                   csrRoamComplete( pMac, eCsrJoinFailureDueToConcurrency, NULL );
+               }
+               else
+               {
+                   csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+               }
             }    
        }
        else if ( eCsrReassocToSelfNoCapChange == RoamState )
@@ -5054,6 +5065,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 
         case eCsrJoinFailure:
         case eCsrNothingToJoin:
+        case eCsrJoinFailureDueToConcurrency:
         default:
         {
             smsLog(pMac, LOGW, FL("receives no association indication\n"));
@@ -5093,9 +5105,18 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                         if(pSession->bRefAssocStartCnt > 0)
                         {
                             pSession->bRefAssocStartCnt--;
-                            csrRoamCallCallback(pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, 
+                            if(eCsrJoinFailureDueToConcurrency == Result)
+                            {
+                                csrRoamCallCallback(pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, 
+                                                eCSR_ROAM_ASSOCIATION_COMPLETION, 
+                                                eCSR_ROAM_RESULT_ASSOC_FAIL_CON_CHANNEL);
+                            }
+                            else
+                            {
+                                csrRoamCallCallback(pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, 
                                                 eCSR_ROAM_ASSOCIATION_COMPLETION, 
                                                 eCSR_ROAM_RESULT_FAILURE);
+                            }
                         }
                     smsLog(pMac, LOG1, FL("  roam(reason %d) failed\n"), pCommand->u.roamCmd.roamReason);
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
