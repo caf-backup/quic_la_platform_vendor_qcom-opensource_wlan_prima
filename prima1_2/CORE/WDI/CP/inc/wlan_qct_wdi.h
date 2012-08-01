@@ -1284,6 +1284,7 @@ typedef struct
   wpt_uint8                 ucP2pCapableSta;
 #ifdef WLAN_FEATURE_11AC
   wpt_uint8                 ucVhtCapableSta;
+  wpt_uint8                 ucVhtTxChannelWidthSet;
 #endif
 }WDI_ConfigStaReqInfoType;
 
@@ -1820,6 +1821,7 @@ typedef struct
 
 #ifdef WLAN_FEATURE_11AC
   wpt_uint8                 ucVhtCapableSta;
+  wpt_uint8                 ucVhtTxChannelWidthSet;
 #endif
 
 }WDI_ConfigBSSReqInfoType;
@@ -3584,42 +3586,26 @@ typedef struct
   void*             pUserData;
 }WDI_BtAmpEventParamsType;
 
-#ifdef FEATURE_INNAV_SUPPORT
-/*----------------------------------------------------------------------------
-  WDI_InNavMeasurementMode,
-----------------------------------------------------------------------------*/
-typedef enum
-{
-  WDI_RTS_CTS_BASED = 1,
-  WDI_FRAME_BASED,
-}WDI_InNavMeasurementMode;
+#ifdef FEATURE_OEM_DATA_SUPPORT
+
+#ifndef OEM_DATA_REQ_SIZE
+#define OEM_DATA_REQ_SIZE 70
+#endif
+#ifndef OEM_DATA_RSP_SIZE
+#define OEM_DATA_RSP_SIZE 968
+#endif
 
 /*----------------------------------------------------------------------------
-  WDI_BSSIDChannelInfo
-----------------------------------------------------------------------------*/
-typedef struct 
-{
-  wpt_macAddr     ucBssid;
-  wpt_uint16      usChannel;
-} WDI_BSSIDChannelInfo;
-
-/*----------------------------------------------------------------------------
-  WDI_InNavMeasReqInfoType
+  WDI_oemDataReqInfoType
 ----------------------------------------------------------------------------*/
 typedef struct
 {
-//  wpt_uint16                 usMessageType;
-//  wpt_uint16                 usLength;
-  wpt_uint8                  ucNumBSSIDs;
-  wpt_uint8                  ucNumInNavMeasurements;
-  WDI_InNavMeasurementMode   measurementMode;
-  wpt_macAddr                selfMacAddr;
-  WDI_BSSIDChannelInfo       bssidChannelInfo[1];
-
-}WDI_InNavMeasReqInfoType;
+  wpt_macAddr                  selfMacAddr;
+  wpt_uint8                    oemDataReq[OEM_DATA_REQ_SIZE];
+}WDI_oemDataReqInfoType;
 
 /*----------------------------------------------------------------------------
-  WDI_InNavMeasReqParamsType
+  WDI_oemDataReqParamsType
 ----------------------------------------------------------------------------*/
 typedef struct
 {
@@ -3632,38 +3618,20 @@ typedef struct
     function pointer will be called */
   void*                          pUserData;
 
-  /*In Nav Meas Info */
-  WDI_InNavMeasReqInfoType       wdiInNavMeasInfo;
+  /*OEM DATA REQ Info */
+  WDI_oemDataReqInfoType         wdiOemDataReqInfo;
 
-}WDI_InNavMeasReqParamsType;
+}WDI_oemDataReqParamsType;
+
 /*----------------------------------------------------------------------------
-  WDI_InNavMeasRspParamsType
+  WDI_oemDataRspParamsType
 ----------------------------------------------------------------------------*/
 typedef struct
 {
-    wpt_uint8      ucRssi;
-    wpt_uint16     usRtt;
-    wpt_uint16     usSnr;
-    wpt_uint32     uslMeasurementTime;
-    wpt_uint32     uslMeasurementTimeHi;
-}WDI_RttRssiTimeData;
+  wpt_uint8           oemDataRsp[OEM_DATA_RSP_SIZE];
+}WDI_oemDataRspParamsType;
 
-typedef struct
-{
-    wpt_macAddr            ucBssid;
-    wpt_uint8              ucNumSuccessfulMeasurements;
-    WDI_RttRssiTimeData    rttRssiTimeData[1];
-}WDI_RttRssiResults;
-
-typedef struct
-{
-  wpt_uint8           ucNumBSSIDs;
-  wpt_uint16          usRspLen;
-  WDI_Status          wdiStatus;
-  WDI_RttRssiResults  rttRssiResults[1];
-}WDI_InNavMeasRspParamsType;
-
-#endif /* FEATURE_INNAV_SUPPORT */
+#endif /* FEATURE_OEM_DATA_SUPPORT */
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /*---------------------------------------------------------------------------
@@ -5702,13 +5670,13 @@ typedef void  (*WDI_FlushAcRspCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_BtAmpEventRspCb)(WDI_Status   wdiStatus,
                                      void*        pUserData);
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 /*---------------------------------------------------------------------------
-   WDI_StartInNavMeasRspCb
+   WDI_oemDataRspCb
  
    DESCRIPTION   
  
-   This callback is invoked by DAL when it has received a Start In Nav Meas response from
+   This callback is invoked by DAL when it has received a Start oem data response from
    the underlying device.
  
    PARAMETERS 
@@ -5722,11 +5690,8 @@ typedef void  (*WDI_BtAmpEventRspCb)(WDI_Status   wdiStatus,
   RETURN VALUE 
     The result code associated with performing the operation
 ---------------------------------------------------------------------------*/
-typedef void  (*WDI_InNavMeasRspCb)
-(
-WDI_InNavMeasRspParamsType* wdiInNavMeasRspParams,
-void* pUserData
-);
+typedef void  (*WDI_oemDataRspCb)(WDI_oemDataRspParamsType* wdiOemDataRspParams, 
+                                  void*                     pUserData);
 
 #endif
 
@@ -7920,23 +7885,23 @@ WDI_BtAmpEventReq
   void*                     pUserData
 );
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 /**
- @brief WDI_Start In Nav Meas Req will be called when the upper MAC 
-        wants to notify the lower mac on a In Nav Meas Req event.Upon
+ @brief WDI_Start oem data Req will be called when the upper MAC 
+        wants to notify the lower mac on a oem data Req event.Upon
         the call of this API the WLAN DAL will pack and send a
-        HAL In Nav Meas event request message to the lower RIVA
+        HAL OEM Data Req event request message to the lower RIVA
         sub-system if DAL is in state STARTED.
 
         In state BUSY this request will be queued. Request won't
         be allowed in any other state. 
 
   
- @param pwdiInNavMeasReqParams: the IN NAV MEAS Req parameters as 
+ @param pWdiOemDataReqParams: the oem data req parameters as 
                       specified by the Device Interface
   
-        wdiStartInNavMeasRspCb: callback for passing back the
-        response of the In Nav Meas Req received from the
+        wdiStartOemDataRspCb: callback for passing back the
+        response of the Oem Data Req received from the
         device
   
         pUserData: user data will be passed back with the
@@ -7945,11 +7910,11 @@ WDI_BtAmpEventReq
  @return Result of the function call
 */
 WDI_Status 
-WDI_StartInNavMeasReq
+WDI_StartOemDataReq
 (
-  WDI_InNavMeasReqParamsType*       pwdiInNavMeasReqParams,
-  WDI_InNavMeasRspCb                wdiInNavMeasRspCb,
-  void*                             pUserData
+  WDI_oemDataReqParamsType*       pWdiOemDataReqParams,
+  WDI_oemDataRspCb                wdiOemDataRspCb,
+  void*                           pUserData
 );
 #endif
 

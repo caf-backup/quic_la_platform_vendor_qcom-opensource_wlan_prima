@@ -427,11 +427,11 @@ char *limMsgStr(tANI_U32 msgType)
             return "eWNI_SME_SYS_READY_IND\n";
         case eWNI_SME_SCAN_REQ:
             return "eWNI_SME_SCAN_REQ\n";
-#ifdef FEATURE_INNAV_SUPPORT
-        case eWNI_SME_INNAV_MEAS_REQ:
-            return "eWNI_SME_INNAV_MEAS_REQ\n";
-        case eWNI_SME_INNAV_MEAS_RSP:
-            return "eWNI_SME_INNAV_MEAS_RSP\n";
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case eWNI_SME_OEM_DATA_REQ:
+            return "eWNI_SME_OEM_DATA_REQ\n";
+        case eWNI_SME_OEM_DATA_RSP:
+            return "eWNI_SME_OEM_DATA_RSP\n";
 #endif
         case eWNI_SME_SCAN_RSP:
             return "eWNI_SME_SCAN_RSP\n";
@@ -530,10 +530,6 @@ char *limMsgStr(tANI_U32 msgType)
         case eWNI_SME_DELTS_IND:
             return "eWNI_SME_DELTS_IND\n";
 
-        case SIR_LIM_RESUME_ACTIVITY_NTF:
-            return "SIR_LIM_RESUME_ACTIVITY_NTF\n";
-        case SIR_LIM_SUSPEND_ACTIVITY_REQ:
-            return "SIR_LIM_SUSPEND_ACTIVITY_REQ\n";
         case WDA_SUSPEND_ACTIVITY_RSP:
             return "WDA_SUSPEND_ACTIVITY_RSP\n";
         case SIR_LIM_RETRY_INTERRUPT_MSG:
@@ -562,22 +558,10 @@ char *limMsgStr(tANI_U32 msgType)
             return "SIR_LIM_REASSOC_FAIL_TIMEOUT\n";
         case SIR_LIM_HEART_BEAT_TIMEOUT:
             return "SIR_LIM_HEART_BEAT_TIMEOUT\n";
-#ifdef ANI_PRODUCT_TYPE_AP
-        case SIR_LIM_PREAUTH_CLNUP_TIMEOUT:
-            return "SIR_LIM_PREAUTH_CLNUP_TIMEOUT\n";
-#endif
         case SIR_LIM_ADDTS_RSP_TIMEOUT:
             return "SIR_LIM_ADDTS_RSP_TIMEOUT\n";
         case SIR_LIM_CHANNEL_SCAN_TIMEOUT:
             return "SIR_LIM_CHANNEL_SCAN_TIMEOUT\n";
-#if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-        case SIR_LIM_MEASUREMENT_IND_TIMEOUT:
-            return "SIR_LIM_MEASUREMENT_IND_TIMEOUT\n";
-        case SIR_LIM_LEARN_INTERVAL_TIMEOUT:
-            return "SIR_LIM_LEARN_INTERVAL_TIMEOUT\n";
-        case SIR_LIM_LEARN_DURATION_TIMEOUT:
-            return "SIR_LIM_LEARN_DURATION_TIMEOUT\n";
-#endif
         case SIR_LIM_LINK_TEST_DURATION_TIMEOUT:
             return "SIR_LIM_LINK_TEST_DURATION_TIMEOUT\n";
         case SIR_LIM_HASH_MISS_THRES_TIMEOUT:
@@ -886,7 +870,7 @@ limPrintMsgInfo(tpAniSirGlobal pMac, tANI_U16 logLevel, tSirMsgQ *msg)
 void
 limInitMlm(tpAniSirGlobal pMac)
 {
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
 
     /// Initialize scan result hash table
     limReInitScanResults(pMac); //sep26th review
@@ -1349,7 +1333,7 @@ tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     **/
     if (pMac->lim.gLimDeferredMsgQ.size > 0)
     {
-        PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, sme %d, mlme %d, addts %d)\n"),
+        PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, global sme %d, global mlme %d, addts %d)\n"),
                pMac->lim.gLimDeferredMsgQ.size, limMsg->type,
                limIsSystemInScanState(pMac),
                pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
@@ -1458,7 +1442,7 @@ tSirMsgQ* limReadDeferredMsgQ(tpAniSirGlobal pMac)
            pMac->lim.gLimDeferredMsgQ.size, pMac->lim.gLimDeferredMsgQ.read,
            msg->type);)
 
-   PELOG1(limLog(pMac, LOG1, FL("DQ msg -- scan %d, sme %d, mlme %d, addts %d\n"),
+   PELOG1(limLog(pMac, LOG1, FL("DQ msg -- scan %d, global sme %d, global mlme %d, addts %d\n"),
            limIsSystemInScanState(pMac),
            pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
            pMac->lim.gLimAddtsSent);)
@@ -2639,7 +2623,7 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
 {
     tpPESession psessionEntry = NULL;
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
-    tANI_U8    channel = pMac->lim.gLimChannelSwitch.primaryChannel;   // This is received and stored from channelSwitch Action frame
+    tANI_U8    channel; // This is received and stored from channelSwitch Action frame
    
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId))== NULL) 
     {
@@ -2652,6 +2636,7 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
         PELOGW(limLog(pMac, LOGW, "Channel switch can be done only in STA role, Current Role = %d\n", psessionEntry->limSystemRole);)
         return;
     }
+    channel = psessionEntry->gLimChannelSwitch.primaryChannel;
     /*
      *  This potentially can create issues if the function tries to set
      * channel while device is in power-save, hence putting an extra check
@@ -2664,10 +2649,10 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
     }
          
     // Restore Channel Switch parameters to default
-    pMac->lim.gLimChannelSwitch.switchTimeoutValue = 0;
+    psessionEntry->gLimChannelSwitch.switchTimeoutValue = 0;
 
     /* Channel-switch timeout has occurred. reset the state */
-    pMac->lim.gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_END;
+    psessionEntry->gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_END;
     
     /* Check if the AP is switching to a channel that we support.
      * Else, just don't bother to switch. Indicate HDD to look for a 
@@ -2691,28 +2676,28 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
                         eSIR_MAC_UNSPEC_FAILURE_REASON);
         return;
     }
-    switch(pMac->lim.gLimChannelSwitch.state)
+    switch(psessionEntry->gLimChannelSwitch.state)
     {
         case eLIM_CHANNEL_SWITCH_PRIMARY_ONLY:
             PELOGW(limLog(pMac, LOGW, FL("CHANNEL_SWITCH_PRIMARY_ONLY \n"));)
-            limSwitchPrimaryChannel(pMac, pMac->lim.gLimChannelSwitch.primaryChannel,psessionEntry);
-            pMac->lim.gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_IDLE;
+            limSwitchPrimaryChannel(pMac, psessionEntry->gLimChannelSwitch.primaryChannel,psessionEntry);
+            psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_IDLE;
             break;
 
         case eLIM_CHANNEL_SWITCH_SECONDARY_ONLY:
             PELOGW(limLog(pMac, LOGW, FL("CHANNEL_SWITCH_SECONDARY_ONLY \n"));)
             limSwitchPrimarySecondaryChannel(pMac,
                                              psessionEntry->currentOperChannel,
-                                             pMac->lim.gLimChannelSwitch.secondarySubBand);
-            pMac->lim.gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_IDLE;
+                                             psessionEntry->gLimChannelSwitch.secondarySubBand);
+            psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_IDLE;
             break;
 
         case eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY:
             PELOGW(limLog(pMac, LOGW, FL("CHANNEL_SWITCH_PRIMARY_AND_SECONDARY\n"));)
             limSwitchPrimarySecondaryChannel(pMac,
-                                             pMac->lim.gLimChannelSwitch.primaryChannel,
-                                             pMac->lim.gLimChannelSwitch.secondarySubBand);
-            pMac->lim.gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_IDLE;
+                                             psessionEntry->gLimChannelSwitch.primaryChannel,
+                                             psessionEntry->gLimChannelSwitch.secondarySubBand);
+            psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_IDLE;
             break;
 
         case eLIM_CHANNEL_SWITCH_IDLE:
@@ -2725,7 +2710,7 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
             return;  /* Please note, this is 'return' and not 'break' */
     }
 #endif
-    }
+}
 
 /**
  * limUpdateChannelSwitch()
@@ -2745,18 +2730,11 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
 {
 
     tANI_U16                         beaconPeriod;
-    tANI_U32                         val;
     tChannelSwitchPropIEStruct       *pPropChnlSwitch;
     tDot11fIEChanSwitchAnn           *pChnlSwitch;
 
  
-
-    if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL, &val) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("Could not retrieve Beacon interval\n"));
-        return;
-    }
-    beaconPeriod = (tANI_U16) val;
+    beaconPeriod = psessionEntry->beaconParams.beaconInterval;
 
     /* STA either received proprietary channel switch IE or 802.11h
      * standard channel switch IE.
@@ -2767,26 +2745,26 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
 
         /* Add logic to determine which change this is:  */
         /*      primary, secondary, both.  For now assume both. */
-        pMac->lim.gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-        pMac->lim.gLimChannelSwitch.primaryChannel = pPropChnlSwitch->primaryChannel;
-        pMac->lim.gLimChannelSwitch.secondarySubBand = (tAniCBSecondaryMode)pPropChnlSwitch->subBand;
-        pMac->lim.gLimChannelSwitch.switchCount = pPropChnlSwitch->channelSwitchCount;
-        pMac->lim.gLimChannelSwitch.switchTimeoutValue =
+        psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+        psessionEntry->gLimChannelSwitch.primaryChannel = pPropChnlSwitch->primaryChannel;
+        psessionEntry->gLimChannelSwitch.secondarySubBand = (tAniCBSecondaryMode)pPropChnlSwitch->subBand;
+        psessionEntry->gLimChannelSwitch.switchCount = pPropChnlSwitch->channelSwitchCount;
+        psessionEntry->gLimChannelSwitch.switchTimeoutValue =
                  SYS_MS_TO_TICKS(beaconPeriod)* (pPropChnlSwitch->channelSwitchCount);
-        pMac->lim.gLimChannelSwitch.switchMode = pPropChnlSwitch->mode;
+        psessionEntry->gLimChannelSwitch.switchMode = pPropChnlSwitch->mode;
     }
     else
     {
        pChnlSwitch = &(pBeacon->channelSwitchIE);
-       pMac->lim.gLimChannelSwitch.primaryChannel = pChnlSwitch->newChannel;
-       pMac->lim.gLimChannelSwitch.switchCount = pChnlSwitch->switchCount;
-       pMac->lim.gLimChannelSwitch.switchTimeoutValue =
+       psessionEntry->gLimChannelSwitch.primaryChannel = pChnlSwitch->newChannel;
+       psessionEntry->gLimChannelSwitch.switchCount = pChnlSwitch->switchCount;
+       psessionEntry->gLimChannelSwitch.switchTimeoutValue =
                  SYS_MS_TO_TICKS(beaconPeriod)* (pChnlSwitch->switchCount);
-       pMac->lim.gLimChannelSwitch.switchMode = pChnlSwitch->switchMode; 
+       psessionEntry->gLimChannelSwitch.switchMode = pChnlSwitch->switchMode; 
 
         /* Only primary channel switch element is present */
-        pMac->lim.gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
-        pMac->lim.gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_NONE;
+        psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
+        psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_NONE;
 
         /* Do not bother to look and operate on extended channel switch element
          * if our own channel-bonding state is not enabled
@@ -2798,13 +2776,13 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
                 switch(pBeacon->extChannelSwitchIE.secondaryChannelOffset)
                 {
                     case eHT_SECONDARY_CHANNEL_OFFSET_UP:
-                        pMac->lim.gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-                        pMac->lim.gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_UP;
+                        psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+                        psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_UP;
                         break;
 
                     case eHT_SECONDARY_CHANNEL_OFFSET_DOWN:
-                        pMac->lim.gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-                        pMac->lim.gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_DOWN;
+                        psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+                        psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_DOWN;
                         break;
 
                     case eHT_SECONDARY_CHANNEL_OFFSET_NONE:
@@ -2822,11 +2800,12 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
     }
 
     limLog(pMac, LOGW,
-        FL("primary chl %d, subband %d, count  %d (%d ticks) \n"),
-        pMac->lim.gLimChannelSwitch.primaryChannel,
-        pMac->lim.gLimChannelSwitch.secondarySubBand,
-        pMac->lim.gLimChannelSwitch.switchCount,
-        pMac->lim.gLimChannelSwitch.switchTimeoutValue);
+        FL("session %d primary chl %d, subband %d, count  %d (%d ticks) \n"),
+        psessionEntry->peSessionId,
+        psessionEntry->gLimChannelSwitch.primaryChannel,
+        psessionEntry->gLimChannelSwitch.secondarySubBand,
+        psessionEntry->gLimChannelSwitch.switchCount,
+        psessionEntry->gLimChannelSwitch.switchTimeoutValue);
     return;
 }
 
@@ -2855,7 +2834,7 @@ void limCancelDot11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry
         return;
         
     PELOGW(limLog(pMac, LOGW, FL("Received a beacon without channel switch IE\n"));)
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_CHANNEL_SWITCH_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_CHANNEL_SWITCH_TIMER));
 
     if (tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer) != eSIR_SUCCESS)
     {
@@ -2885,17 +2864,17 @@ void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry)
     if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
         return;
 
-    if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) 
+    if (psessionEntry->gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) 
     {
-         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_QUIET_TIMER));
+         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_QUIET_TIMER));
         if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer) != TX_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("tx_timer_deactivate failed\n"));)
         }
     }
-    else if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING)
+    else if (psessionEntry->gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING)
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_QUIET_BSS_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_QUIET_BSS_TIMER));
         if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer) != TX_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("tx_timer_deactivate failed\n"));)
@@ -2904,14 +2883,14 @@ void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry)
          * If the channel switch is already running in silent mode, dont resume the
          * transmission. Channel switch timer when timeout, transmission will be resumed.
          */
-        if(!((pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING) &&
-                (pMac->lim.gLimChannelSwitch.switchMode == eSIR_CHANSW_MODE_SILENT)))
+        if(!((psessionEntry->gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING) &&
+                (psessionEntry->gLimChannelSwitch.switchMode == eSIR_CHANSW_MODE_SILENT)))
         {
             limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_RESUME_TX);
-            limRestorePreQuietState(pMac);
+            limRestorePreQuietState(pMac, psessionEntry);
         }
     }
-    pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
+    psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
 #endif
 }
 
@@ -2946,25 +2925,40 @@ void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry)
  */
 void limProcessQuietTimeout(tpAniSirGlobal pMac)
 {
-#ifdef GEN6_TODO
     //fetch the sessionEntry based on the sessionId
     //priority - MEDIUM
-    tpPESession sessionEntry;
+    tpPESession psessionEntry;
 
-    if((sessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimQuietTimer.sessionId))== NULL) 
+    if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimQuietTimer.sessionId))== NULL) 
     {
-        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
+        limLog(pMac, LOGE,FL("Session Does not exist for given sessionID\n"));
         return;
     }
-#endif
 
-  PELOG1(limLog(pMac, LOG1, FL("quietState = %d\n"), pMac->lim.gLimSpecMgmt.quietState);)
-  switch( pMac->lim.gLimSpecMgmt.quietState )
+  PELOG1(limLog(pMac, LOG1, FL("quietState = %d\n"), psessionEntry->gLimSpecMgmt.quietState);)
+  switch( psessionEntry->gLimSpecMgmt.quietState )
   {
     case eLIM_QUIET_BEGIN:
       // Time to Stop data traffic for quietDuration
-      limDeactivateAndChangeTimer(pMac, eLIM_QUIET_BSS_TIMER);
-      MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_QUIET_BSS_TIMER));
+      //limDeactivateAndChangeTimer(pMac, eLIM_QUIET_BSS_TIMER);
+      if (TX_SUCCESS !=
+      tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer))
+      {
+          limLog( pMac, LOGE,
+            FL("Unable to de-activate gLimQuietBssTimer! Will attempt to activate anyway...\n"));
+      }
+
+      // gLimQuietDuration appears to be in units of ticks
+      // Use it as is
+      if (TX_SUCCESS !=
+          tx_timer_change( &pMac->lim.limTimers.gLimQuietBssTimer,
+            psessionEntry->gLimSpecMgmt.quietDuration,
+            0))
+      {
+          limLog( pMac, LOGE,
+            FL("Unable to change gLimQuietBssTimer! Will still attempt to activate anyway...\n"));
+      }
+      MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_QUIET_BSS_TIMER));
 #ifdef GEN6_TODO
         /* revisit this piece of code to assign the appropriate sessionId below
          * priority - HIGH
@@ -2980,7 +2974,7 @@ void limProcessQuietTimeout(tpAniSirGlobal pMac)
       else
       {
         // Transition to eLIM_QUIET_RUNNING
-        pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_RUNNING;
+        psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_RUNNING;
 
         /* If we have sta bk scan triggered and trigger bk scan actually started successfully, */
         /* print message, otherwise, stop data traffic and stay quiet */
@@ -2998,7 +2992,7 @@ void limProcessQuietTimeout(tpAniSirGlobal pMac)
 
            limLog( pMac, LOG2,
                 FL("Quiet BSS: STA shutting down for %d ticks\n"),
-                pMac->lim.gLimSpecMgmt.quietDuration );
+                psessionEntry->gLimSpecMgmt.quietDuration );
         }
       }
       break;
@@ -3054,57 +3048,57 @@ void limProcessQuietTimeout(tpAniSirGlobal pMac)
  */
 void limProcessQuietBssTimeout( tpAniSirGlobal pMac )
 {
-    tpPESession sessionEntry;
+    tpPESession psessionEntry;
 
-    if((sessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimQuietBssTimer.sessionId))== NULL) 
+    if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimQuietBssTimer.sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
         return;
     }
 
   PELOG1(limLog(pMac, LOG1, FL("quietState = %d\n"), pMac->lim.gLimSpecMgmt.quietState);)
-  if (eLIM_AP_ROLE == sessionEntry->limSystemRole)
+  if (eLIM_AP_ROLE == psessionEntry->limSystemRole)
   {
 #ifdef ANI_PRODUCT_TYPE_AP
     if (!pMac->sys.gSysEnableLearnMode)
     {
-        pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_END;
+        psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_END;
         return;
     }
 
-    if( eLIM_QUIET_INIT == pMac->lim.gLimSpecMgmt.quietState )
+    if( eLIM_QUIET_INIT == psessionEntry->gLimSpecMgmt.quietState )
     {
         //QuietCount = 0 is reserved
-        pMac->lim.gLimSpecMgmt.quietCount  = 2;
+        psessionEntry->gLimSpecMgmt.quietCount  = 2;
         // In ms.
-        pMac->lim.gLimSpecMgmt.quietDuration = 
+        psessionEntry->gLimSpecMgmt.quietDuration = 
         pMac->lim.gpLimMeasReq->measDuration.shortChannelScanDuration;
         // TU is in multiples of 1024 (2^10) us.
-        pMac->lim.gLimSpecMgmt.quietDuration_TU = 
-            SYS_MS_TO_TU(pMac->lim.gLimSpecMgmt.quietDuration); 
+        psessionEntry->gLimSpecMgmt.quietDuration_TU = 
+            SYS_MS_TO_TU(psessionEntry->gLimSpecMgmt.quietDuration); 
         // Transition to eLIM_QUIET_BEGIN
         limLog( pMac, LOG2, FL("Quiet BSS state = eLIM_QUIET_BEGIN\n"));
-        pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_BEGIN;
+        psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_BEGIN;
     }
 #endif
   }
   else
   {
     // eLIM_STA_ROLE
-    switch( pMac->lim.gLimSpecMgmt.quietState )
+    switch( psessionEntry->gLimSpecMgmt.quietState )
     {
       case eLIM_QUIET_RUNNING:
         // Transition to eLIM_QUIET_INIT
-        pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
+        psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
 
         if( !pMac->lim.gLimTriggerBackgroundScanDuringQuietBss || (glimTriggerBackgroundScanDuringQuietBss_Status == eSIR_FALSE) )
         {
           // Resume data traffic only if channel switch is not running in silent mode.
-          if (!((pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING) &&
-                  (pMac->lim.gLimChannelSwitch.switchMode == eSIR_CHANSW_MODE_SILENT)))
+          if (!((psessionEntry->gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING) &&
+                  (psessionEntry->gLimChannelSwitch.switchMode == eSIR_CHANSW_MODE_SILENT)))
           {
               limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_RESUME_TX);
-              limRestorePreQuietState(pMac);
+              limRestorePreQuietState(pMac, psessionEntry);
           }
       
           /* Reset status flag */
@@ -3132,8 +3126,8 @@ void limProcessQuietBssTimeout( tpAniSirGlobal pMac )
         PELOG2(limLog(pMac, LOG2, FL("Quiet state not in RUNNING\n"));)
         /* If the quiet period has ended, then resume the frame transmission */
         limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_RESUME_TX);
-        limRestorePreQuietState(pMac);
-        pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
+        limRestorePreQuietState(pMac, psessionEntry);
+        psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
         break;
 
       default:
@@ -3236,7 +3230,7 @@ void limUpdateQuietIEFromBeacon( struct sAniSirGlobal *pMac,
     
    PELOG1(limLog(pMac, LOG1, FL("Quiet state = %d, Quiet Count = %d\n"),
         pMac->lim.gLimSpecMgmt.quietState, pQuietIE->count);)
-    if (!pMac->lim.gLim11hEnable)
+    if (!psessionEntry->lim11hEnable)
         return;
     // The (Titan) AP is requesting this (Titan) STA to
     // honor this Quiet IE REQ and shut-off Tx/Rx. If we're
@@ -3258,26 +3252,26 @@ void limUpdateQuietIEFromBeacon( struct sAniSirGlobal *pMac,
         beaconPeriod = (tANI_U16) val;
 
      /* (qd * 2^10)/1000 */
-    pMac->lim.gLimSpecMgmt.quietDuration_TU = pQuietIE->duration;
+    psessionEntry->gLimSpecMgmt.quietDuration_TU = pQuietIE->duration;
     // The STA needs to shut-off Tx/Rx "for" this interval (in milliSeconds)
     /* Need to convert from TU to system TICKS */
-    pMac->lim.gLimSpecMgmt.quietDuration = SYS_MS_TO_TICKS(
-                           SYS_TU_TO_MS(pMac->lim.gLimSpecMgmt.quietDuration_TU));
+    psessionEntry->gLimSpecMgmt.quietDuration = SYS_MS_TO_TICKS(
+                           SYS_TU_TO_MS(psessionEntry->gLimSpecMgmt.quietDuration_TU));
 
-    if (pMac->lim.gLimSpecMgmt.quietDuration_TU == 0)
+    if (psessionEntry->gLimSpecMgmt.quietDuration_TU == 0)
     {
         PELOG1(limLog(pMac, LOG1, FL("Zero duration in quiet IE\n"));)
         return;
     }
     
     // The STA needs to shut-off Tx/Rx "after" this interval
-    pMac->lim.gLimSpecMgmt.quietTimeoutValue =
+    psessionEntry->gLimSpecMgmt.quietTimeoutValue =
               (beaconPeriod * pQuietIE->count) + pQuietIE->offset;
 
     limLog( pMac, LOG2,
         FL( "STA shut-off will begin in %d milliseconds & last for %d ticks\n"),
-        pMac->lim.gLimSpecMgmt.quietTimeoutValue,
-        pMac->lim.gLimSpecMgmt.quietDuration );
+        psessionEntry->gLimSpecMgmt.quietTimeoutValue,
+        psessionEntry->gLimSpecMgmt.quietDuration );
 
     /* Disable, Stop background scan if enabled and running */
     limDeactivateAndChangeTimer(pMac, eLIM_BACKGROUND_SCAN_TIMER);
@@ -3299,7 +3293,7 @@ void limUpdateQuietIEFromBeacon( struct sAniSirGlobal *pMac,
         }
         else
         {
-            limRestorePreQuietState(pMac);
+            limRestorePreQuietState(pMac, psessionEntry);
         }
     }
     else
@@ -3310,7 +3304,7 @@ void limUpdateQuietIEFromBeacon( struct sAniSirGlobal *pMac,
     }
     
     // Transition to eLIM_QUIET_BEGIN
-    pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_BEGIN;
+    psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_BEGIN;
 #endif
 }
 
@@ -3339,17 +3333,29 @@ void limStartQuietTimer(tpAniSirGlobal pMac, tANI_U8 sessionId)
     // First, de-activate Timer, if its already active
     limCancelDot11hQuiet(pMac, psessionEntry);
     
-    limDeactivateAndChangeTimer(pMac, eLIM_QUIET_TIMER);
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_QUIET_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, sessionId, eLIM_QUIET_TIMER));
+    if( TX_SUCCESS != tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer))
+    {
+        limLog( pMac, LOGE,
+            FL( "Unable to deactivate gLimQuietTimer! Will still attempt to re-activate anyway...\n" ));
+    }
+
+    // Set the NEW timeout value, in ticks
+    if( TX_SUCCESS != tx_timer_change( &pMac->lim.limTimers.gLimQuietTimer,
+                      SYS_MS_TO_TICKS(psessionEntry->gLimSpecMgmt.quietTimeoutValue), 0))
+    {
+        limLog( pMac, LOGE,
+            FL( "Unable to change gLimQuietTimer! Will still attempt to re-activate anyway...\n" ));
+    }
     
     pMac->lim.limTimers.gLimQuietTimer.sessionId = sessionId;
     if( TX_SUCCESS != tx_timer_activate(&pMac->lim.limTimers.gLimQuietTimer))
     {
         limLog( pMac, LOGE,
             FL("Unable to activate gLimQuietTimer! STA cannot honor Quiet BSS!\n"));
-        limRestorePreQuietState(pMac);
+        limRestorePreQuietState(pMac, psessionEntry);
 
-        pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
+        psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
         return;
     }
 #endif
@@ -3553,14 +3559,14 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
   
    pSirSmeSwitchChInd->messageType = eWNI_SME_SWITCH_CHL_REQ;
    pSirSmeSwitchChInd->length = sizeof(tSirSmeSwitchChannelInd);
-   pSirSmeSwitchChInd->newChannelId = pMac->lim.gLimChannelSwitch.primaryChannel;
+   pSirSmeSwitchChInd->newChannelId = psessionEntry->gLimChannelSwitch.primaryChannel;
    pSirSmeSwitchChInd->sessionId = psessionEntry->smeSessionId;
    //BSS ID
    palCopyMemory( pMac->hHdd, pSirSmeSwitchChInd->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
    mmhMsg.bodyptr = pSirSmeSwitchChInd;
    mmhMsg.bodyval = 0;
    
-   MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+   MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, mmhMsg.type));
    
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
    SysProcessMmhMsg(pMac, &mmhMsg);
@@ -3732,7 +3738,7 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel, t
     // if this is 11h enabled.
     if (
 #if 0
-        pMac->lim.gLim11hEnable &&
+        pSessionEntry->lim11hEnable &&
 #endif
         psessionEntry->currentOperChannel != newChannel)
     {
@@ -3848,7 +3854,7 @@ tAniBool limTriggerBackgroundScanDuringQuietBss( tpAniSirGlobal pMac )
     if (psessionEntry->limSystemRole != eLIM_STA_ROLE)
         return bScanTriggered;
     
-    if( !pMac->lim.gLim11hEnable )
+    if( !psessionEntry->lim11hEnable )
     {
         tSirMacChanNum bgScanChannelList[WNI_CFG_BG_SCAN_CHANNEL_LIST_LEN];
         tANI_U32 len = WNI_CFG_BG_SCAN_CHANNEL_LIST_LEN;
@@ -5602,7 +5608,7 @@ void limTxComplete( tHalHandle hHal, void *pData )
         if(VOS_IS_STATUS_SUCCESS(vosStatus))
         {
             mHdr = WDA_GET_RX_MAC_HEADER(pRxBd);
-            MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, 0, mHdr->fc.subType);)
+            MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, NO_SESSION, mHdr->fc.subType);)
 
         }   
     }
@@ -6005,7 +6011,7 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
            psessionEntry->gLimEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
       {
         //send message to HAL to delete TS
-        if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req))
+        if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req, psessionEntry->peSessionId))
         {
           limLog(pMac, LOGW, FL("DelTs with UP %d failed in limSendHalMsgDelTs - ignoring request\n"),
                            tsinfo->traffic.userPrio);
@@ -6040,7 +6046,7 @@ limRegisterHalIndCallBack(tpAniSirGlobal pMac)
     msg.bodyptr = pHalCB;
     msg.bodyval = 0;
     
-    MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
     if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
     {
         palFreeMemory(pMac->hHdd, pHalCB);
@@ -6669,7 +6675,7 @@ tSirMsgQ msgQ;
   //defer any other message until we get response back.
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-  MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+  MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT 
     limDiagEventReport(pMac, WLAN_PE_DIAG_HAL_ADDBA_REQ_EVENT, psessionEntry, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
@@ -6762,7 +6768,7 @@ tSirMsgQ msgQ;
   limLog( pMac, LOGW,
       FL( "Sending SIR_HAL_DELBA_IND..." ));
 
-  MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+  MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT 
     limDiagEventReport(pMac, WLAN_PE_DIAG_HAL_DELBA_IND_EVENT, psessionEntry, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
@@ -6842,7 +6848,7 @@ limPostSMStateUpdate(tpAniSirGlobal pMac,
 
     limLog( pMac, LOG2, FL( "Sending WDA_SET_MIMOPS_REQ..." ));
 
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
     retCode = wdaPostCtrlMsg( pMac, &msgQ );
     if (eSIR_SUCCESS != retCode)
     {
@@ -7094,7 +7100,7 @@ void limFrameTransmissionControl(tpAniSirGlobal pMac, tLimQuietTxMode type, tLim
     msgQ.reserved = 0;
     msgQ.type = WDA_TRANSMISSION_CONTROL_IND;
 
-    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
     if(wdaPostCtrlMsg( pMac, &msgQ) != eSIR_SUCCESS)
     {
         palFreeMemory(pMac->hHdd, (void *) pTxCtrlMsg);
@@ -7144,7 +7150,7 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry)
         return retCode;
     
     /* Channel switch should be ready for the next time */
-    pMac->lim.gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_INIT;
+    psessionEntry->gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_INIT;
 
     /* Restore the frame transmission, all the time. */
     limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_RESUME_TX);
@@ -7166,7 +7172,7 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
         if (val > 0 && TX_TIMER_VALID(pMac->lim.limTimers.gLimBackgroundScanTimer))
         {
-            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_BACKGROUND_SCAN_TIMER));
+            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_BACKGROUND_SCAN_TIMER));
             if(tx_timer_activate(&pMac->lim.limTimers.gLimBackgroundScanTimer) != TX_SUCCESS)
             {
                 limLog(pMac, LOGP, FL("Could not restart background scan timer, doing LOGP"));
@@ -7179,7 +7185,7 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry)
     /* Enable heartbeat timer */
     if (TX_TIMER_VALID(pMac->lim.limTimers.gLimHeartBeatTimer))
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_HEART_BEAT_TIMER));
         if(limActivateHearBeatTimer(pMac) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Could not restart heartbeat timer, doing LOGP"));
@@ -7198,7 +7204,7 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry)
 \param pMac
 \return NONE
 ---------------------------------------------*/
-tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac)
+tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
 
     tSirRetStatus retCode = eSIR_SUCCESS;
@@ -7209,10 +7215,10 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac)
              return retCode;
  
     /* Quiet should be ready for the next time */
-    pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
+    psessionEntry->gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
 
     /* Restore the frame transmission, all the time. */
-    if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING)
+    if (psessionEntry->gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING)
         limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_RESUME_TX);
 
 
@@ -7230,7 +7236,7 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac)
 
         if (val > 0 && TX_TIMER_VALID(pMac->lim.limTimers.gLimBackgroundScanTimer))
         {
-            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_BACKGROUND_SCAN_TIMER));
+            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_BACKGROUND_SCAN_TIMER));
             if(tx_timer_activate(&pMac->lim.limTimers.gLimBackgroundScanTimer) != TX_SUCCESS)
             {
                 limLog(pMac, LOGP, FL("Could not restart background scan timer, doing LOGP"));
@@ -7243,7 +7249,7 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac)
     /* Enable heartbeat timer */
     if (TX_TIMER_VALID(pMac->lim.limTimers.gLimHeartBeatTimer))
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_HEART_BEAT_TIMER));
         if(limActivateHearBeatTimer(pMac) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Could not restart heartbeat timer, doing LOGP"));
@@ -7282,7 +7288,7 @@ limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
         return;
      
     /* Flag to indicate 11h channel switch in progress */
-    pMac->lim.gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_RUNNING;
+    psessionEntry->gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_RUNNING;
 
     /* Disable, Stop background scan if enabled and running */
     limDeactivateAndChangeTimer(pMac, eLIM_BACKGROUND_SCAN_TIMER);
@@ -7755,7 +7761,7 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    mmhMsg.type = eWNI_SME_ADD_STA_SELF_RSP;
    mmhMsg.bodyptr = pRsp;
    mmhMsg.bodyval = 0;
-   MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+   MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
    limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 
 }
@@ -7790,7 +7796,7 @@ void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    mmhMsg.type = eWNI_SME_DEL_STA_SELF_RSP;
    mmhMsg.bodyptr = pRsp;
    mmhMsg.bodyval = 0;
-   MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+   MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
    limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
 
 }

@@ -37,8 +37,8 @@
 #include "smeQosInternal.h"
 
 
-#ifdef FEATURE_INNAV_SUPPORT
-#include "measInternal.h"
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#include "oemDataInternal.h"
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -103,8 +103,8 @@ typedef struct tagSmeCmd
         tRemoveKeyCmd removeKeyCmd;
         tGenericPmcCmd pmcCmd;
         tGenericQosCmd qosCmd;
-#ifdef FEATURE_INNAV_SUPPORT
-        tMeasCmd measCmd;
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        tOemDataCmd oemDataCmd;
 #endif
 #ifdef WLAN_FEATURE_P2P
         tRemainChlCmd remainChlCmd;
@@ -157,8 +157,8 @@ void csrAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme);
 eHalStatus sme_ReleaseGlobalLock( tSmeStruct *psSme);
 
-#ifdef FEATURE_INNAV_SUPPORT
-eHalStatus measProcessInNavMeasCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+eHalStatus oemData_ProcessOemDataReqCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 #endif
 
 eHalStatus csrProcessAddStaSessionCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );

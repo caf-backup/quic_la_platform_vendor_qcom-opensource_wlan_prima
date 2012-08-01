@@ -253,8 +253,13 @@ typedef enum
 
 #define CFG_DOT11_MODE_NAME                    "gDot11Mode"
 #define CFG_DOT11_MODE_MIN                     eHDD_DOT11_MODE_AUTO
+#ifdef WLAN_FEATURE_11AC
+#define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11ac
+#define CFG_DOT11_MODE_DEFAULT                 eHDD_DOT11_MODE_11ac
+#else
 #define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11b_ONLY
 #define CFG_DOT11_MODE_DEFAULT                 eHDD_DOT11_MODE_11n
+#endif
 
 #define CFG_CHANNEL_BONDING_MODE_24GHZ_NAME    "gChannelBondingMode24GHz"
 #define CFG_CHANNEL_BONDING_MODE_MIN           WNI_CFG_CHANNEL_BONDING_MODE_STAMIN 
@@ -1050,6 +1055,16 @@ typedef enum
 #define CFG_VHT_CHANNEL_WIDTH_MAX            ( 2 )
 #define CFG_VHT_CHANNEL_WIDTH_DEFAULT        ( 2 )
 
+#define CFG_VHT_ENABLE_RX_MCS_8_9               "gVhtRxMCS"
+#define CFG_VHT_ENABLE_RX_MCS_8_9_MIN           ( 0 )
+#define CFG_VHT_ENABLE_RX_MCS_8_9_MAX           ( 2 )
+#define CFG_VHT_ENABLE_RX_MCS_8_9_DEFAULT       ( 0 )
+
+#define CFG_VHT_ENABLE_TX_MCS_8_9               "gVhtTxMCS"
+#define CFG_VHT_ENABLE_TX_MCS_8_9_MIN           ( 0 )
+#define CFG_VHT_ENABLE_TX_MCS_8_9_MAX           ( 2 )
+#define CFG_VHT_ENABLE_TX_MCS_8_9_DEFAULT       ( 0 )
+
 #endif
 
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
@@ -1465,6 +1480,8 @@ typedef struct
 #ifdef WLAN_FEATURE_11AC
    v_BOOL_t                    vhtEnable;
    v_U8_t                      vhtChannelWidth;
+   v_U8_t                      vhtRxMCS;
+   v_U8_t                      vhtTxMCS;
 #endif
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;

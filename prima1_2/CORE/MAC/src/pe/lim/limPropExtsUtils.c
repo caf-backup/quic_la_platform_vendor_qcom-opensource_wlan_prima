@@ -152,11 +152,15 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
             *localConstraint = beaconStruct.ccxTxPwr.power_limit;
         }
 #endif
-        if (beaconStruct.powerConstraintPresent && ( pMac->lim.gLim11hEnable
+        if (beaconStruct.powerConstraintPresent)
+#if 0
+        //Remove this check. This function is expected to return localPowerConsraints
+        //and it should just do that. Check for 11h enabled or not can be done at the caller
 #if defined WLAN_FEATURE_VOWIFI
-                 || pMac->rrm.rrmPEContext.rrmEnable
+          && ( pMac->lim.gLim11hEnable
+           || pMac->rrm.rrmPEContext.rrmEnable
 #endif
-                 ))
+#endif
         {
 #if defined WLAN_FEATURE_VOWIFI 
            *localConstraint -= beaconStruct.localPowerConstraint.localPowerConstraints;
@@ -843,7 +847,7 @@ limSendSmeMeasurementInd(tpAniSirGlobal pMac)
     mmhMsg.type = eWNI_SME_MEASUREMENT_IND;
     mmhMsg.bodyptr = pMeasInd;
     mmhMsg.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
     limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
     // Cleanup neighbor information
     limCleanupNeighborBssNodes(pMac);
@@ -920,20 +924,20 @@ limStopMeasTimers(tpAniSirGlobal pMac)
         }
     }
     pMac->lim.gLimMeasParams.isMeasIndTimerActive = 0;
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_LEARN_INTERVAL_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_LEARN_INTERVAL_TIMER));
     if (tx_timer_deactivate(&pMac->lim.gLimMeasParams.learnIntervalTimer) != TX_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn interval timer\n"));)
     }
     if (pMac->lim.gLimSpecMgmt.fQuietEnabled)
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_LEARN_DURATION_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_LEARN_DURATION_TIMER));
         if (tx_timer_deactivate(&pMac->lim.gLimMeasParams.learnDurationTimer) != TX_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn duration timer\n"));)
         }
     }
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_LEARN_DURATION_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_LEARN_DURATION_TIMER));
     if (tx_timer_deactivate(&pMac->lim.gLimMeasParams.learnDurationTimer) != TX_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn duration timer\n"));)
@@ -1092,8 +1096,8 @@ limRestorePreLearnState(tpAniSirGlobal pMac)
     // Go back to previous state.
     pMac->lim.gLimSmeState = pMac->lim.gLimPrevSmeState;
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
-    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
    PELOG4(limLog(pMac, LOG4,
            FL("Restored from Learn mode on RadioId %d\n"),
            pMac->sys.gSirRadioId);)

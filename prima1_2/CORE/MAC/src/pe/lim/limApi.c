@@ -220,7 +220,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
     pMac->lim.gLimPrevSmeState = eLIM_SME_OFFLINE_STATE;
 
     /// MLM State visible across all Sirius modules
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_IDLE_STATE));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, eLIM_MLM_IDLE_STATE));
     pMac->lim.gLimMlmState = eLIM_MLM_IDLE_STATE;
 
     /// Previous MLM State
@@ -233,15 +233,15 @@ static void __limInitStates(tpAniSirGlobal pMac)
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
     /**
-     * Initialize state to eLIM_MLM_OFFLINE_STATE
+     * Initialize state to eLIM_SME_OFFLINE_STATE
      */
-    pMac->lim.gLimSmeState     = eLIM_MLM_OFFLINE_STATE;
+    pMac->lim.gLimSmeState     = eLIM_SME_OFFLINE_STATE;
 #else
     /**
      * Initialize state to suspended state and wait for
      * HAL to send LIM_RESUME_ACTIVITY_NTF message.
      */
-    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
     pMac->lim.gLimSmeState     = eLIM_SME_SUSPEND_STATE;
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
@@ -260,7 +260,7 @@ static void __limInitStates(tpAniSirGlobal pMac)
     pMac->lim.gLimPhyMode = 0; 
     pMac->lim.scanStartTime = 0;    // used to measure scan time
 
-    palZeroMemory(pMac->hHdd, pMac->lim.gLimBssid, sizeof(pMac->lim.gLimBssid));
+    //palZeroMemory(pMac->hHdd, pMac->lim.gLimBssid, sizeof(pMac->lim.gLimBssid));
     palZeroMemory(pMac->hHdd, pMac->lim.gLimMyMacAddr, sizeof(pMac->lim.gLimMyMacAddr));
     pMac->lim.ackPolicy = 0;
 
@@ -310,6 +310,7 @@ static void __limInitVars(tpAniSirGlobal pMac)
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimAlternateRadio, sizeof(tSirAlternateRadioInfo));
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
+#if 0
     // 11h Spectrum Management Related Flag
     //pMac->lim.gLim11hEnable = 0;
     pMac->lim.gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_INIT;
@@ -323,7 +324,7 @@ static void __limInitVars(tpAniSirGlobal pMac)
     pMac->lim.gLimSpecMgmt.quietCount = 0;
     pMac->lim.gLimSpecMgmt.fQuietEnabled = eANI_BOOLEAN_FALSE;
     pMac->lim.gLimSpecMgmt.fRadarIntrConfigured = eANI_BOOLEAN_FALSE;
-
+#endif
     // WMM Related Flag
     pMac->lim.gUapsdEnable = 0;
     pMac->lim.gUapsdPerAcBitmask = 0;
@@ -361,7 +362,7 @@ static void __limInitAssocVars(tpAniSirGlobal pMac)
     // Place holder for current authentication request
     // being handled
     pMac->lim.gpLimMlmAuthReq = NULL;
-    pMac->lim.gpLimMlmJoinReq = NULL;
+    //pMac->lim.gpLimMlmJoinReq = NULL;
 
     /// MAC level Pre-authentication related globals
     pMac->lim.gLimPreAuthChannelNumber = 0;
@@ -394,10 +395,12 @@ static void __limInitTitanVars(tpAniSirGlobal pMac)
 {
     pMac->lim.gCbMode = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
     SET_CB_STATE_DISABLE( pMac->lim.gCbState );
+#if 0
     palZeroMemory(pMac->hHdd, &pMac->lim.gLimChannelSwitch, sizeof(tLimChannelSwitchInfo));
 
     pMac->lim.gLimChannelSwitch.state               = eLIM_CHANNEL_SWITCH_IDLE;
     pMac->lim.gLimChannelSwitch.secondarySubBand    = eANI_CB_SECONDARY_NONE;
+#endif
 
     // Debug workaround for BEACON's
     // State change triggered by "dump 222"
@@ -448,7 +451,7 @@ static void __limInitHTVars(tpAniSirGlobal pMac)
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
 static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
 {
-   tANI_U32 val1, val2, val3, len;
+   tANI_U32 val1, val2, val3/*, len*/;
    tANI_U16 val16;
    tANI_U8 val8;
    tSirMacHTCapabilityInfo   *pHTCapabilityInfo;
@@ -586,7 +589,7 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
       limLog(pMac, LOGP, FL("cfg get short preamble failed\n"));
       return eSIR_FAILURE;
    }
-
+#if 0
    /* WNI_CFG_BSSID - this one is not updated in limHandleCFGparamUpdate do we
       want to update this? */
    len = 6;
@@ -596,7 +599,7 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
       limLog(pMac, LOGP, FL("cfg get bssid failed\n"));
       return eSIR_FAILURE;
    }
-
+#endif
    /* WNI_CFG_MAX_PS_POLL */
 
    /* Allocate and fill in power save configuration. */
@@ -656,7 +659,7 @@ tSirRetStatus limStart(tpAniSirGlobal pMac)
    {
       pMac->lim.gLimSmeState = eLIM_SME_IDLE_STATE;
 
-      MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+      MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
 
       // By default do not return after first scan match
       pMac->lim.gLimReturnAfterFirstMatch = 0;
@@ -895,11 +898,13 @@ limCleanup(tpAniSirGlobal pMac)
         pMac->lim.gpLimMlmAuthReq = NULL;
     }
 
+#if 0
     if (pMac->lim.gpLimMlmJoinReq != NULL)
     {
         palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmJoinReq);
         pMac->lim.gpLimMlmJoinReq = NULL;
     }
+#endif
 
     #if 0
     if (pMac->lim.gpLimReassocReq != NULL)
@@ -1059,6 +1064,9 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
     }
 #endif
 
+#ifdef WLAN_FEATURE_P2P
+    pMac->lim.actionFrameSessionId = 0xff;
+#endif
 
     return eSIR_SUCCESS;
 }
@@ -1423,7 +1431,7 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
        FL ( "RxBd=%p mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d\n"),
        pRxBd, mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
 
-    MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, 0, 
+    MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, NO_SESSION, 
                         LIM_TRACE_MAKE_RXMGMT(mHdr->fc.subType,  
                         (tANI_U16) (((tANI_U16) (mHdr->seqControl.seqNumHi << 4)) | mHdr->seqControl.seqNumLo)));)
     }
@@ -1478,49 +1486,6 @@ void peRegisterTLHandle(tpAniSirGlobal pMac)
 
 }
 #endif
-
-
-/**
- * limCheckStateForLearnMode()
- *
- *FUNCTION:
- * This function is called by SCH to verify if LIM is in a state
- * to put system into Learn mode
- *
- *LOGIC:
- * NA
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- *
- * @param  pMac - Pointer to Global MAC structure
- * @return eSIR_SUCCESS - LIM is in a state to put system
- *                        into Learn Mode
- *         eSIR_FAILURE - LIM is NOT in a state to put system
- *                        into Learn Mode
- */
-
-tSirRetStatus
-limCheckStateForLearnMode(tpAniSirGlobal pMac)
-{
-    switch (pMac->lim.gLimSmeState)
-    {
-        case eLIM_SME_OFFLINE_STATE:
-        case eLIM_SME_IDLE_STATE:
-        case eLIM_SME_JOIN_FAILURE_STATE:
-        case eLIM_SME_NORMAL_STATE:
-        case eLIM_SME_LINK_EST_STATE:
-            // LIM is in a state to put system into Learn mode
-            return eSIR_SUCCESS;
-
-        default:
-            // LIM is NOT in a state to put system into Learn mode
-            return eSIR_FAILURE;
-    }
-} /*** end limCheckStateForLearnMode() ***/
-
 
 
 /**
@@ -1723,7 +1688,7 @@ limContinueChannelLearn(tpAniSirGlobal pMac)
     pMac->lim.gLimMeasParams.shortDurationCount++;
     limDeactivateAndChangeTimer(pMac, eLIM_LEARN_DURATION_TIMER);
 
-    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_LEARN_DURATION_TIMER));
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_LEARN_DURATION_TIMER));
     if (tx_timer_activate(&pMac->lim.gLimMeasParams.learnDurationTimer)
                                            != TX_SUCCESS)
     {
@@ -1771,7 +1736,7 @@ limReEnableLearnMode(tpAniSirGlobal pMac)
 
     if (pMac->lim.gLimSpecMgmt.fQuietEnabled)
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_QUIET_BSS_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_QUIET_BSS_TIMER));
 #ifdef GEN6_TODO
         /* revisit this piece of code to assign the appropriate sessionId below
          * priority - HIGH
@@ -1790,7 +1755,7 @@ limReEnableLearnMode(tpAniSirGlobal pMac)
     else
     {
         limDeactivateAndChangeTimer(pMac, eLIM_LEARN_INTERVAL_TIMER);
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_LEARN_INTERVAL_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_LEARN_INTERVAL_TIMER));
 #ifdef GEN6_TODO
         /* revisit this piece of code to assign the appropriate sessionId below
         */
@@ -1945,7 +1910,7 @@ void limProcessWdsInfo(tpAniSirGlobal pMac,
                 mmhMsg.type = eWNI_SME_WDS_INFO_IND;
                 mmhMsg.bodyptr = pSirSmeWdsInfoInd;
                 mmhMsg.bodyval = 0;
-                MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+                MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
                 limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
                 pMac->lim.gLimNumWdsInfoInd++;
             }
@@ -2432,7 +2397,7 @@ void limRadarInit(tpAniSirGlobal pMac)
     msg.type = WDA_INIT_RADAR_IND;
     msg.bodyptr = NULL;
     msg.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, 0, msg.type));
+    MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
     status = wdaPostCtrlMsg(pMac, &msg);
     if (status != eHAL_STATUS_SUCCESS)
     {

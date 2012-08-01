@@ -485,6 +485,8 @@ typedef enum
 #endif
     // peer rejected assoc because max assoc limit reached. callback gets pointer to peer
     eCSR_ROAM_RESULT_MAX_ASSOC_EXCEEDED,
+    //Assoc rejected due to concurrent session running on a different channel
+    eCSR_ROAM_RESULT_ASSOC_FAIL_CON_CHANNEL,
 }eCsrRoamResult;
 
 
@@ -827,6 +829,7 @@ typedef struct tagCsrRoamConnectedProfile
     tCsrEncryptionList mcEncryptionInfo;
     eCsrCBChoice CBMode; //up, down or auto
     tANI_U8 operationChannel;
+    tANI_U16   beaconInterval;
     tCsrKeys Keys;
     // meaningless on connect. It's an OUT param from CSR's point of view
     // During assoc response carries the ACM bit-mask i.e. what

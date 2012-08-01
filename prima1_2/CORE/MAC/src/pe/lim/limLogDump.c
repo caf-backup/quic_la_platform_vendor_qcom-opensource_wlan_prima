@@ -363,7 +363,7 @@ char *triggerBeaconGen( tpAniSirGlobal pMac, char *p )
     tSirMsgQ mesg = { (tANI_U16) SIR_LIM_BEACON_GEN_IND, (tANI_U16) 0, (tANI_U32) 0 };
     
     pMac->lim.gLimSmeState = eLIM_SME_NORMAL_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
     pMac->lim.gLimSystemRole = eLIM_AP_ROLE;
     
     p += log_sprintf( pMac, p,
@@ -1697,6 +1697,7 @@ dump_lim_sme_reassoc_req( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
 static char *
 dump_lim_dot11h_stats( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
+#if 0
     unsigned int i;
     (void) arg1; (void) arg2; (void) arg3; (void) arg4;
 
@@ -1765,6 +1766,7 @@ dump_lim_dot11h_stats( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U
     }
     p += log_sprintf(pMac, p, "\n");
     
+#endif
     return p;
 }
 
@@ -1791,7 +1793,7 @@ static char *
 dump_lim_enable_quietIE( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg2; (void) arg3; (void) arg4;
-
+#if 0
     if (arg1)
     {
         pMac->lim.gLimSpecMgmt.fQuietEnabled = eANI_BOOLEAN_TRUE;
@@ -1802,6 +1804,7 @@ dump_lim_enable_quietIE( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
         pMac->lim.gLimSpecMgmt.fQuietEnabled = eANI_BOOLEAN_FALSE;
         p += log_sprintf(pMac, p, "QuietIE disabled\n");
     }
+#endif
 
     return p;
 }
@@ -2290,7 +2293,58 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
     return p;    
 }
 #endif
+static char *
+dump_lim_channel_switch_announcement( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    tpPESession psessionEntry;
+    tANI_U8 nMode = arg2;
+    tANI_U8 nNewChannel = arg3;
+    tANI_U8 nCount = arg4;
+  tANI_U8 peer[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
+    if((psessionEntry = peFindSessionBySessionId(pMac,(tANI_U8)arg1) )== NULL)
+    {
+        p += log_sprintf( pMac,
+            p,"Session does not exist usage: 363 <0> sessionid channel \n");
+        printk("Session Not found!!!!\n");
+        return p;
+    }
+
+    limSendChannelSwitchMgmtFrame( pMac, peer, nMode, nNewChannel, nCount, psessionEntry );
+
+    psessionEntry->gLimChannelSwitch.switchCount = nCount;
+    psessionEntry->gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_RUNNING;
+    psessionEntry->gLimChannelSwitch.switchMode = nMode;
+    psessionEntry->gLimChannelSwitch.primaryChannel = nNewChannel;
+
+    schSetFixedBeaconFields(pMac, psessionEntry);
+    limSendBeaconInd(pMac, psessionEntry); 
+
+  return p;
+}
+
+static char *
+dump_lim_cancel_channel_switch_announcement( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    tpPESession psessionEntry;
+
+    if((psessionEntry = peFindSessionBySessionId(pMac,(tANI_U8)arg1) )== NULL)
+    {
+        p += log_sprintf( pMac,
+            p,"Session does not exist usage: 363 <0> sessionid channel \n");
+        printk("Session Not found!!!!\n");
+        return p;
+    }
+    psessionEntry->gLimChannelSwitch.switchCount = 0;
+    psessionEntry->gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_INIT;
+    psessionEntry->gLimChannelSwitch.switchMode = 0;
+    psessionEntry->gLimChannelSwitch.primaryChannel = 0;
+
+    schSetFixedBeaconFields(pMac, psessionEntry);
+    limSendBeaconInd(pMac, psessionEntry); 
+
+  return p;
+}
 static tDumpFuncEntry limMenuDumpTable[] = {
     {0,     "PE (300-499)",                                          NULL},
     {300,   "LIM: Dump state(s)/statistics",                         dump_lim_info},
@@ -2355,6 +2409,8 @@ static tDumpFuncEntry limMenuDumpTable[] = {
 #ifdef WLAN_FEATURE_VOWIFI_11R
     {363,   "PE.LIM: trigger pre auth/reassoc event",                dump_lim_ft_event},
 #endif
+    {364,   "PE.LIM: Send a channel switch announcement",            dump_lim_channel_switch_announcement},
+    {365,   "PE.LIM: Cancel channel switch announcement",            dump_lim_cancel_channel_switch_announcement},
 
 };
 

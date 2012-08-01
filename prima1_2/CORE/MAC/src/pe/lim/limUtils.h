@@ -191,7 +191,7 @@ void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry);
 tAniBool limIsChannelValidForChannelSwitch(tpAniSirGlobal pMac, tANI_U8 channel);
 void limFrameTransmissionControl(tpAniSirGlobal pMac, tLimQuietTxMode type, tLimControlTx mode);
 tSirRetStatus limRestorePreChannelSwitchState(tpAniSirGlobal pMac, tpPESession psessionEntry);
-tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac);
+tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
 void limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry);
 void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status, 

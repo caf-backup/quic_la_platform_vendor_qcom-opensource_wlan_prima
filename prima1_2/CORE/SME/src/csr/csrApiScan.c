@@ -2376,6 +2376,14 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
             }
         }
 
+        else if( csrIs11hSupported( pMac ) && pIesLocal->Country.present && 
+                 !pMac->roam.configParam.fSupplicantCountryCodeHasPriority )
+        {
+             /* If 11h is supported, store the power information received in the Country IE */
+            csrSaveToChannelPower2G_5G( pMac, pIesLocal->Country.num_triplets * sizeof(tSirMacChanInfo), 
+                                        (tSirMacChanInfo *)(&pIesLocal->Country.triplets[0]) );
+        }
+
         // append to main list
         csrScanAddResult(pMac, pBssDescription, pIesLocal);
         if( (pBssDescription->Result.pvIes == NULL) && pIesLocal )
@@ -3290,7 +3298,15 @@ static void csrSaveScanResults( tpAniSirGlobal pMac )
 
     // Now check if we gathered any domain/country specific information
     // If so, we should update channel list and apply Tx power settings
-    csrApplyCountryInformation( pMac, FALSE );
+    if( csrIs11dSupported(pMac) )
+    {
+        csrApplyCountryInformation( pMac, FALSE );
+    }
+    else if( csrIs11hSupported(pMac) && !pMac->roam.configParam.fSupplicantCountryCodeHasPriority) 
+    {
+        // If llh is enabled, store the channel + power information gathered  in the cfg
+        csrApplyPower2Current( pMac );
+    }     
 }
 
 
@@ -3744,6 +3760,7 @@ tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescripti
     tANI_BOOLEAN fMatch = FALSE;
     tSirMacCapabilityInfo *pCap1, *pCap2;
     tDot11fBeaconIEs *pIes1 = NULL;
+    tDot11fBeaconIEs *pIesTemp = pIes2;
 
     pCap1 = (tSirMacCapabilityInfo *)&pSirBssDesc1->capabilityInfo;
     pCap2 = (tSirMacCapabilityInfo *)&pSirBssDesc2->capabilityInfo;
@@ -3753,10 +3770,30 @@ tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescripti
                 csrIsMacAddressEqual( pMac, (tCsrBssid *)pSirBssDesc1->bssId, (tCsrBssid *)pSirBssDesc2->bssId))
         {
             fMatch = TRUE;
+            // Check for SSID match, if exists
+            do
+            {
+                if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc1, &pIes1)))
+                {
+                    break;
+                }
+                if( NULL == pIesTemp )
+                {
+                    if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc2, &pIesTemp)))
+                    {
+                        break;
+                    }
+                }
+                if(pIes1->SSID.present && pIesTemp->SSID.present)
+                {
+                    fMatch = csrIsSsidMatch(pMac, pIes1->SSID.ssid, pIes1->SSID.num_ssid, 
+                                            pIesTemp->SSID.ssid, pIesTemp->SSID.num_ssid, eANI_BOOLEAN_TRUE);
+                } 
+            }while(0);
+
         }
         else if (pCap1->ibss && (pSirBssDesc1->channelId == pSirBssDesc2->channelId))
         {
-            tDot11fBeaconIEs *pIesTemp = pIes2;
 
             do
             {
@@ -3778,11 +3815,6 @@ tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescripti
                                             pIesTemp->SSID.ssid, pIesTemp->SSID.num_ssid, eANI_BOOLEAN_TRUE);
                 }
             }while(0);
-            if( (NULL == pIes2) && pIesTemp )
-            {
-                //locally allocated
-                palFreeMemory(pMac->hHdd, pIesTemp);
-            }
         }
 #if defined WLAN_FEATURE_P2P
         /* In case of P2P devices, ess and ibss will be set to zero */
@@ -3797,6 +3829,12 @@ tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescripti
     if(pIes1)
     {
         palFreeMemory(pMac->hHdd, pIes1);
+    }
+    
+    if( (NULL == pIes2) && pIesTemp )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesTemp);
     }
 
     return( fMatch );

@@ -7,7 +7,7 @@ WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
 ifeq ($(call is-android-codename,JELLY_BEAN),true)
        DLKM_DIR := $(TOP)/device/qcom/common/dlkm
 else
-DLKM_DIR     := build/dlkm
+       DLKM_DIR := build/dlkm
 endif
 
 include $(CLEAR_VARS)

@@ -67,8 +67,8 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "btcApi.h"
 #include "csrInternal.h"
 
-#ifdef FEATURE_INNAV_SUPPORT
-#include "measInternal.h" 
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#include "oemDataInternal.h" 
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -330,6 +330,7 @@ typedef struct sAniSirLim
 #ifdef WLAN_FEATURE_P2P
     // This variable store the total duration to do scan
     tANI_U32 gTotalScanDuration;
+    tANI_U32 p2pRemOnChanTimeStamp;
 #endif    
 
     // abort scan is used to abort an on-going scan
@@ -567,7 +568,7 @@ typedef struct sAniSirLim
     tANI_U32           propRateAdjustPeriod;
     tANI_U32           scanStartTime;    // used to measure scan time
 
-    tANI_U8            gLimBssid[6];
+    //tANI_U8            gLimBssid[6];
     tANI_U8            gLimMyMacAddr[6];
     tANI_U8            ackPolicy;
 
@@ -692,7 +693,7 @@ typedef struct sAniSirLim
 
     // Place holder for Join request that we're
     // currently attempting
-    tLimMlmJoinReq       *gpLimMlmJoinReq;
+    //tLimMlmJoinReq       *gpLimMlmJoinReq;
 
     // Reason code to determine the channel change context while sending 
     // WDA_CHNL_SWITCH_REQ message to HAL       
@@ -726,10 +727,12 @@ typedef struct sAniSirLim
 
 
     // 11h Spectrum Management Related Flag
+#if 0
     tANI_U32           gLim11hEnable;
     tLimSpecMgmtInfo   gLimSpecMgmt;
     // CB Primary/Secondary Channel Switch Info
     tLimChannelSwitchInfo  gLimChannelSwitch;
+#endif
 
 
     // Channel Bonding mode, as configured by SME
@@ -934,14 +937,9 @@ typedef struct sAniSirLim
     tANI_U8   gSmeSessionId;
     tANI_U16 gTransactionId;
 
-#ifdef FEATURE_INNAV_SUPPORT
-    //Place holder for current bssid that is being 
-    //measured
-    tANI_U8              gLimCurrentInNavMeasBssidIndex;
-    tLimMlmInNavMeasReq* gpLimMlmInNavMeasReq;
-
-    tANI_U32 innavMeasurementRspLen;
-    tLimMlmInNavMeasRsp* gpLimMlmInNavMeasRsp;
+#ifdef FEATURE_OEM_DATA_SUPPORT
+tLimMlmOemDataReq       *gpLimMlmOemDataReq;
+tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
 #endif
 
 #ifdef WLAN_FEATURE_P2P
@@ -1085,8 +1083,8 @@ typedef struct sAniSirGlobal
     tCsrScanStruct scan;
     tCsrRoamStruct roam;
 
-#ifdef FEATURE_INNAV_SUPPORT
-    tMeasInNavMeasurementStruct innavMeas;
+#ifdef FEATURE_OEM_DATA_SUPPORT
+    tOemDataStruct oemData;
 #endif
 
 #ifdef ANI_PRODUCT_TYPE_CLIENT

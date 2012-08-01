@@ -83,8 +83,7 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
 
 /* this function should not changed */
-  if((pMac->lim.gLimSmeState == eLIM_SME_SUSPEND_STATE) &&
-      (limMsg->type != SIR_LIM_RESUME_ACTIVITY_NTF))
+  if(pMac->lim.gLimSmeState == eLIM_SME_OFFLINE_STATE)
   {
       // Defer processsing this message
       if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
@@ -111,7 +110,6 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         (limMsg->type != WDA_SET_BSSKEY_RSP)&&
         (limMsg->type != WDA_SET_STAKEY_RSP)&&
         (limMsg->type != WDA_SET_STA_BCASTKEY_RSP) &&
-        (limMsg->type != SIR_LIM_RESUME_ACTIVITY_NTF)&&
         (limMsg->type != eWNI_SME_START_REQ) &&
         (limMsg->type != WDA_AGGR_QOS_RSP) &&
         (limMsg->type != WDA_REMOVE_BSSKEY_RSP) &&
@@ -130,8 +128,8 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #ifdef WLAN_FEATURE_P2P 
         (limMsg->type != WDA_P2P_NOA_ATTR_IND) &&
 #endif
-#ifdef FEATURE_INNAV_SUPPORT
-        (limMsg->type != WDA_START_INNAV_MEAS_RSP) &&
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        (limMsg->type != WDA_START_OEM_DATA_RSP) &&
 #endif
         (limMsg->type != WDA_ADD_TS_RSP))
     {
@@ -289,11 +287,11 @@ limDeferMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 #endif
     if(retCode == TX_SUCCESS)
         {
-            MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DEFERRED));)
+            MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DEFERRED));)
         }
     else
         {
-            MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DROPPED));)
+            MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DROPPED));)
         }
 
 
@@ -646,7 +644,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
         limSendSmeMgmtFrameInd( pMac, pHdr->fc.subType, (tANI_U8*)pHdr, 
                      WDA_GET_RX_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      pLimMgmtRegistration->sessionId,
-                     WDA_GET_RX_CH(pBd) );
+                     WDA_GET_RX_CH(pBd), psessionEntry );
     
         if ( (type == SIR_MAC_MGMT_FRAME) && (fc.type == SIR_MAC_MGMT_FRAME)
               && (subType == SIR_MAC_MGMT_RESERVED15) )
@@ -1070,59 +1068,56 @@ void limMessageProcessor(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     }
 }
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
-void limInNavHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* mlmInNavMeasRsp)
+void limOemDataRspHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* mlmOemDataRsp)
 {
     if(status != eHAL_STATUS_SUCCESS)
     {
-        limLog(pMac, LOGE, FL("innav failed to get the response for resume link\n"));
+        limLog(pMac, LOGE, FL("OEM Data Rsp failed to get the response for resume link\n"));
     }
 
-    if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
+    if(NULL != pMac->lim.gpLimMlmOemDataReq)
     {
-        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmInNavMeasReq);
-        pMac->lim.gpLimMlmInNavMeasReq = NULL;
+        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmOemDataReq);
+        pMac->lim.gpLimMlmOemDataReq = NULL;
     }
 
-    //"Failure" status doesn't mean that InNav measurement did not happen
+    //"Failure" status doesn't mean that Oem Data Rsp did not happen
     //and hence we need to respond to upper layers. Only Resume link is failed, but
-    //innav measurements already happened.
+    //we got the oem data response already.
     //Post the meessage to MLM
-    limPostSmeMessage(pMac, LIM_MLM_INNAV_MEAS_CNF, (tANI_U32*)(mlmInNavMeasRsp));
+    limPostSmeMessage(pMac, LIM_MLM_OEM_DATA_CNF, (tANI_U32*)(mlmOemDataRsp));
 
     return;
 }
 
-void limProcessInNavMeasRsp(tpAniSirGlobal pMac, tANI_U32* body)
+void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tpLimMlmInNavMeasRsp mlmInNavMeasRsp = NULL;
-    tpStartInNavMeasRsp innavMeasRsp = NULL;
+    tpLimMlmOemDataRsp mlmOemDataRsp = NULL;
+    tpStartOemDataRsp oemDataRsp = NULL;
 
     //Process all the messages for the lim queue
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
-    
-    innavMeasRsp = (tpStartInNavMeasRsp)(body);
 
-    status = palAllocateMemory(pMac->hHdd, (void**)(&mlmInNavMeasRsp), innavMeasRsp->rspLen);
+    oemDataRsp = (tpStartOemDataRsp)(body);
+
+    status = palAllocateMemory(pMac->hHdd, (void**)(&mlmOemDataRsp), sizeof(tLimMlmOemDataRsp));
     if(status != eHAL_STATUS_SUCCESS)
     {
-        limLog(pMac, LOGP, FL("could not allocate memory for mlmInNavMeasRsp\n"));
+        limLog(pMac, LOGP, FL("could not allocate memory for mlmOemDataRsp\n"));
         return;
     }
 
-    //copy the memory into tLimMlmInNavMeasRsp and free the tStartInNavMeasRsp
-    //the structures tStartInNavMeasRsp and tLimMlmInNavMeasRsp have the same structure
-    palCopyMemory(pMac->hHdd, (void*)(mlmInNavMeasRsp), (void*)(innavMeasRsp), innavMeasRsp->rspLen);
+    //copy the memory into tLimMlmOemDataRsp and free the tStartOemDataRsp
+    //the structures tStartOemDataRsp and tLimMlmOemDataRsp have the same structure
+    palCopyMemory(pMac->hHdd, (void*)(mlmOemDataRsp), (void*)(oemDataRsp), sizeof(tLimMlmOemDataRsp));
 
     //Now free the incoming memory
-    palFreeMemory(pMac->hHdd, (void*)(innavMeasRsp));
+    palFreeMemory(pMac->hHdd, (void*)(oemDataRsp));
 
-    //Set the resume channel to Any valid channel (invalid). 
-    //This will instruct HAL to set it to any previous valid channel.
-    peSetResumeChannel(pMac, 0, 0);
-    limResumeLink(pMac, limInNavHandleResumeLinkRsp, (tANI_U32*)mlmInNavMeasRsp);
+    limResumeLink(pMac, limOemDataRspHandleResumeLinkRsp, (tANI_U32*)mlmOemDataRsp);
 
     return;
 }
@@ -1177,59 +1172,13 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
       limMsgStr(limMsg->type), limSmeStateStr(pMac->lim.gLimSmeState),
       limMlmStateStr(pMac->lim.gLimMlmState));)
 
-    MTRACE(macTraceMsgRx(pMac, 0, LIM_TRACE_MAKE_RXMSG(limMsg->type, LIM_MSG_PROCESSED));)
+    MTRACE(macTraceMsgRx(pMac, NO_SESSION, LIM_TRACE_MAKE_RXMSG(limMsg->type, LIM_MSG_PROCESSED));)
 
     switch (limMsg->type)
     {
-#if defined(ANI_DVT_DEBUG)
-        case SIR_LIM_SUSPEND_ACTIVITY_REQ:
-            // This message is from HAL notifying LIM
-            // to suspend activity. (PTT needs)
-            // Disable TFP & RHP
-            //halSetStaTxEnable(pMac, 1, eHAL_CLEAR);
-            //halStopDataTraffic(pMac);
-            //halSetRxEnable(pMac, eHAL_CLEAR);
-
-            pMac->lim.gLimPrevSmeState = pMac->lim.gLimSmeState;
-            pMac->lim.gLimSmeState     = eLIM_SME_SUSPEND_STATE;
-         MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
-
-            // Post message back to HAL
-            msgQ.type = WDA_SUSPEND_ACTIVITY_RSP;
-            MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
-            wdaPostCtrlMsg(pMac, &msgQ);
-            break;
-#endif
 
         case SIR_LIM_UPDATE_BEACON:
             limUpdateBeacon(pMac);
-            break;
-
-        case SIR_LIM_RESUME_ACTIVITY_NTF:
-            // This message is from HAL notifying LIM
-            // to resume activity.
-            if (pMac->lim.gLimSmeState == eLIM_SME_SUSPEND_STATE)
-            {
-                limLog(pMac, LOGE,
-                   FL("Received RESUME_NTF in State %s on Role %d\n"),
-                   limSmeStateStr(pMac->lim.gLimSmeState), pMac->lim.gLimSystemRole);
-                pMac->lim.gLimSmeState = pMac->lim.gLimPrevSmeState;
-             MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
-
-                 handleCBCFGChange( pMac, ANI_IGNORE_CFG_ID );
-                 handleHTCapabilityandHTInfo(pMac);
-                 //initialize the TSPEC admission control table.
-                 limAdmitControlInit(pMac);
-                 limRegisterHalIndCallBack(pMac);
-            }
-            else
-            {
-                limLog(pMac, LOGE,
-                   FL("Received RESUME_NTF in inval State %X on Role %d\n"),
-                   pMac->lim.gLimSmeState, pMac->lim.gLimSystemRole);
-                limPrintSmeState(pMac, LOGE, pMac->lim.gLimSmeState);
-            }
-
             break;
 
         case SIR_CFG_PARAM_UPDATE_IND:
@@ -1269,10 +1218,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case WDA_FINISH_SCAN_RSP:
             limProcessFinishScanRsp(pMac, limMsg->bodyptr);
             break;
-#ifdef FEATURE_INNAV_SUPPORT
-        case WDA_START_INNAV_MEAS_RSP:
-            PELOG1(limLog(pMac, LOG1, FL("Processing WDA_START_INNAV_MEAS_RSP\n")););
-            limProcessInNavMeasRsp(pMac, limMsg->bodyptr);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case WDA_START_OEM_DATA_RSP:
+            limProcessOemDataRsp(pMac, limMsg->bodyptr);
             break;
 #endif
 
@@ -1357,8 +1305,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_STAT_SUMM_REQ:
         case eWNI_SME_GET_SCANNED_CHANNEL_REQ:
         case eWNI_SME_GET_STATISTICS_REQ:
-#ifdef FEATURE_INNAV_SUPPORT
-        case eWNI_SME_INNAV_MEAS_REQ:
+#ifdef FEATURE_OEM_DATA_SUPPORT
+        case eWNI_SME_OEM_DATA_REQ:
 #endif
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, true);  //need to response to hdd
@@ -1444,28 +1392,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
         case eWNI_PMC_SMPS_STATE_IND :
         {
-#ifdef SUPPORT_eWNI_PMC_SMPS_STATE_IND
-            tSirMbMsg *pMBMsg;
-            tSirMacHTMIMOPowerSaveState mimoPSstate;
-            /** Is System processing any SMPS Indication*/
-            if (!limIsSystemInSetMimopsState(pMac))
-            {
-                pMBMsg = (tSirMbMsg *)limMsg->bodyptr;
-                palCopyMemory(pMac->hHdd, &mimoPSstate, pMBMsg->data, sizeof(tSirMacHTMIMOPowerSaveState));
-                limSMPowerSaveStateInd(pMac, mimoPSstate);
-            }
-            else
-            {
-                if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
-                {
-                    PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
-                        limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
-                        pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
-                    limLogSessionStates(pMac);
-                    limPrintMsgName(pMac, LOGE, limMsg->type);
-                }
-            }
-#endif
             if(limMsg->bodyptr){
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
@@ -1535,7 +1461,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
          * function used in timeout case(i.e SIR_LIM_CHANNEL_SWITCH_TIMEOUT) 
          * for switching the channel*/
         case eWNI_SME_PRE_CHANNEL_SWITCH_FULL_POWER:
-            limProcessChannelSwitchTimeout(pMac);
+            if ( !tx_timer_running(&pMac->lim.limTimers.gLimChannelSwitchTimer) )
+            {  
+                limProcessChannelSwitchTimeout(pMac);
+            }
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             break;
@@ -2098,8 +2027,8 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
     }
 
     /* limInsystemInscanState() refers the psessionEntry,  how to get session Entry????*/
-    if (((pMac->lim.gLimAddtsSent) || (limIsSystemInScanState(pMac)) ||
-                (LIM_IS_RADAR_DETECTED(pMac))) && fDeferMsg)
+    if (((pMac->lim.gLimAddtsSent) || (limIsSystemInScanState(pMac)) /*||
+                (LIM_IS_RADAR_DETECTED(pMac))*/) && fDeferMsg)
     {
         // System is in DFS (Learn) mode or awaiting addts response
         // or if radar is detected, Defer processsing this message

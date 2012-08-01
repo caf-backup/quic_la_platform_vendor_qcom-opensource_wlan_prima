@@ -85,9 +85,9 @@
 #define LIM_MLM_REMOVEKEY_REQ  LIM_MLM_MSG_START + 39
 #define LIM_MLM_REMOVEKEY_CNF  LIM_MLM_MSG_START + 40
 
-#ifdef FEATURE_INNAV_SUPPORT
-#define LIM_MLM_INNAV_MEAS_REQ            LIM_MLM_MSG_START + 41
-#define LIM_MLM_INNAV_MEAS_CNF            LIM_MLM_MSG_START + 42
+#ifdef FEATURE_OEM_DATA_SUPPORT
+#define LIM_MLM_OEM_DATA_REQ            LIM_MLM_MSG_START + 41
+#define LIM_MLM_OEM_DATA_CNF            LIM_MLM_MSG_START + 42
 #endif
 
 #define LIM_HASH_ADD            0
@@ -723,8 +723,8 @@ void limSendDeauthMgmtFrame(tpAniSirGlobal, tANI_U16, tSirMacAddr,tpPESession);
 void limContinueChannelScan(tpAniSirGlobal);
 tSirResultCodes limMlmAddBss(tpAniSirGlobal, tLimMlmStartReq *,tpPESession psessionEntry);
 
-#if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
-tSirRetStatus limSendChannelSwitchMgmtFrame(tpAniSirGlobal, tSirMacAddr, tANI_U8, tANI_U8, tANI_U8);
+#if 1 //(WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
+tSirRetStatus limSendChannelSwitchMgmtFrame(tpAniSirGlobal, tSirMacAddr, tANI_U8, tANI_U8, tANI_U8, tpPESession);
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -783,9 +783,9 @@ void limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tP
 /// Function that completes channel scan
 void limCompleteMlmScan(tpAniSirGlobal, tSirResultCodes);
 
-#ifdef FEATURE_INNAV_SUPPORT
-/// Funtion that sets system into meas mode for InNav
-void limSetInNavMeasMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+/// Funtion that sets system into meas mode for oem data req
+void limSetOemDataReqMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data);
 #endif
 
 #ifdef ANI_SUPPORT_11H
@@ -804,11 +804,6 @@ void limProcessMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
 void limProcessMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQt,tpPESession psessionEntry);
 void limProcessMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
 void limProcessMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession);
-#ifdef ANI_PRODUCT_TYPE_AP
-void limProcessApMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
-void limProcessApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
-void limProcessApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
-#endif
 void limProcessStaMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession psessionEntry);
 void limProcessStaMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession psessionEntry);
 void limProcessStaMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession psessionEntry);
@@ -1070,7 +1065,7 @@ limChangeChannelWithCallback(tpAniSirGlobal pMac, tANI_U8 newChannel,
 void limSendSmeMgmtFrameInd(
                     tpAniSirGlobal pMac, tANI_U8 frameType,
                     tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId,
-                    tANI_U32 rxChan);
+                    tANI_U32 rxChan, tpPESession psessionEntry);
 void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac);
 void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 void limAbortRemainOnChan(tpAniSirGlobal pMac);

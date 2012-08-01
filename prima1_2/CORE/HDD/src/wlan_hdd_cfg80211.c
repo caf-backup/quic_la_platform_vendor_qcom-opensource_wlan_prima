@@ -395,6 +395,7 @@ struct wiphy *wlan_hdd_cfg80211_init(int priv_size)
  */
 int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand)
 {
+    ENTER();
     switch(eBand)
     {
         case eCSR_BAND_24:
@@ -423,6 +424,8 @@ int wlan_hdd_cfg80211_register(struct device *dev,
                                hdd_config_t *pCfg
                                )
 {
+    ENTER();
+
     /* Now bind the underlying wlan device with wiphy */
     set_wiphy_dev(wiphy, dev);
 
@@ -433,7 +436,8 @@ int wlan_hdd_cfg80211_register(struct device *dev,
                     | WIPHY_FLAG_CUSTOM_REGULATORY;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-    wiphy->flags |=   WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
+    wiphy->flags |=   WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL 
+                    | WIPHY_FLAG_OFFCHAN_TX;
 #endif
 
     wiphy->max_scan_ssids = MAX_SCAN_SSID; 
@@ -521,6 +525,8 @@ void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter)
     /* Register for all P2P action, public action etc frames */
     v_U16_t type = (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_ACTION << 4);
 
+    ENTER();
+
    /* Right now we are registering these frame when driver is getting
       initialized. Once we will move to 2.6.37 kernel, in which we have
       frame register ops, we will move this code as a part of that */
@@ -558,6 +564,8 @@ void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     /* Register for all P2P action, public action etc frames */
     v_U16_t type = (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_ACTION << 4);
+
+    ENTER();
 
    /* Right now we are registering these frame when driver is getting
       initialized. Once we will move to 2.6.37 kernel, in which we have
@@ -661,6 +669,7 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     beacon_data_t *old = NULL;
     int head_len,tail_len;
 
+    ENTER();
     if (params->head && !params->head_len)
         return -EINVAL;
 
@@ -1431,9 +1440,9 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     wlan_hdd_set_sapHwmode(pHostapdAdapter);
 
 #ifdef WLAN_FEATURE_11AC
-    if ((pConfig->SapHw_mode == eSAP_DOT11_MODE_11n || 
-         pConfig->SapHw_mode == eSAP_DOT11_MODE_11n_ONLY ) &&
-         (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->vhtEnable)
+    if(((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_AUTO) || 
+       ((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac) ||
+       ((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY) )
     {
         pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac;
     }
@@ -1886,6 +1895,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
 #ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
+      || (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE)
 #endif
       )
     {
@@ -1903,7 +1913,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                    "%s: setting interface Type to INFRASTRUCTURE", __func__);
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
 #ifdef WLAN_FEATURE_11AC
-                if(pConfig->vhtEnable && pConfig->dot11Mode == eHDD_DOT11_MODE_AUTO)
+                if(pConfig->dot11Mode == eHDD_DOT11_MODE_AUTO)
                 {
                     pConfig->dot11Mode = eHDD_DOT11_MODE_11ac;
                 }
@@ -2082,6 +2092,8 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     v_MACADDR_t STAMacAddress;
 
+    ENTER();
+
     if ( (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress )
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -2108,6 +2120,7 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
         }
     }
     
+    EXIT();
     return status;
 }
 
@@ -2711,6 +2724,7 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
         }
     }
 #endif
+    EXIT();
     return status;
 }
 
@@ -3263,6 +3277,7 @@ int wlan_hdd_cfg80211_pmksa_candidate_notify(
                     hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
                     int index, bool preauth )
 {
+#ifdef FEATURE_WLAN_OKC
     struct net_device *dev = pAdapter->dev;
 
     ENTER();
@@ -3277,7 +3292,7 @@ int wlan_hdd_cfg80211_pmksa_candidate_notify(
     dump_bssid(pRoamInfo->bssid);
     cfg80211_pmksa_candidate_notify(dev, index,
                                     pRoamInfo->bssid, preauth, GFP_KERNEL);
-
+#endif  /* FEATURE_WLAN_OKC */
     return 0; 
 }
 #endif //FEATURE_WLAN_LFR
@@ -3294,7 +3309,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     //struct wireless_dev *wdev = dev->ieee80211_ptr;    
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     struct cfg80211_scan_request *req = NULL;
     int ret = 0;
 
@@ -3395,10 +3409,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if(pScanInfo->p2pSearch )
     {
         tANI_U8 sessionId = pAdapter->sessionId;
-        if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-        { 
-            sessionId = pAdapter->p2pSessionId;
-        } 
         sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId);
         pScanInfo->p2pSearch = 0;
     }
@@ -3585,7 +3595,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
             pScanInfo->scanAddIE.length = request->ie_len;
 
             if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-                (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)
+                (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) ||
+                (WLAN_HDD_P2P_DEVICE == pAdapter->device_mode)
               )
             {
                pwextBuf->roamProfile.pAddIEScan = pScanInfo->scanAddIE.addIEdata;
@@ -3613,10 +3624,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
                     /* set requestType to P2P Discovery */
                     scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
-                    if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated)
-                    {
-                        sessionId = pAdapter->p2pSessionId;
-                    }
                     sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                           sessionId );
                 }
@@ -3627,20 +3634,10 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     INIT_COMPLETION(pScanInfo->scan_req_completion_event);
 
-    if ((pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated) &&
-        (scanRequest.p2pSearch))
-    {
-        status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                              pAdapter->p2pSessionId, &scanRequest, &scanId,
-                              &hdd_cfg80211_scan_done_callback, dev );
-    }
-    else
-    {
-        status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
+    status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
-    }
-    
+
     if (eHAL_STATUS_SUCCESS != status)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -4952,6 +4949,8 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
     hdd_adapter_t *pAdapter;
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
 
+    ENTER();
+
     if (NULL == pHddCtx)
     {
         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
@@ -4976,6 +4975,7 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
     wlan_hdd_get_classAstats(pAdapter);
     *dbm = pAdapter->hdd_stats.ClassA_stat.max_pwr;
 
+    EXIT();
     return 0;
 }
 
@@ -5004,6 +5004,8 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     tANI_U8  maxMCSIdx = 0;
     tANI_U8  rateFlag = 1;
     tANI_U8  i, j, rssidx;
+
+    ENTER();
 
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
             (0 == ssidlen))
@@ -5220,6 +5222,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     }
     sinfo->filled |= STATION_INFO_TX_BITRATE;
 
+    EXIT();
     return 0;
 }
 
@@ -5228,6 +5231,8 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     VOS_STATUS vos_status;
+
+    ENTER();
 
     if (NULL == pAdapter)
     {
@@ -5247,6 +5252,7 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
      **/
     vos_status =  wlan_hdd_enter_bmps(pAdapter, !mode);
 
+    EXIT();
     if (VOS_STATUS_E_FAILURE == vos_status)
     {
         return -EINVAL;
@@ -5260,6 +5266,7 @@ static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
                          struct net_device *netdev,
                          u8 key_index)
 {
+    ENTER();
     return 0;
 }
 #endif //LINUX_VERSION_CODE 
@@ -5269,12 +5276,14 @@ static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
                    struct net_device *dev,
                    struct ieee80211_txq_params *params)
 {
+    ENTER();
     return 0;
 }
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
 static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
                    struct ieee80211_txq_params *params)
 {
+    ENTER();
     return 0;
 }
 #endif //LINUX_VERSION_CODE
@@ -5284,6 +5293,7 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
+    ENTER();
     if ( NULL == pAdapter || NULL == pAdapter->pHddCtx)
     {
         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Invalid Adapter or HDD Context " ,__func__);
@@ -5349,6 +5359,7 @@ static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
           struct net_device *dev, u8 *mac, struct station_parameters *params)
 {
     // TODO: Implement this later.
+    ENTER();
     return 0;
 }
 
@@ -5366,6 +5377,8 @@ static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *d
     eHalStatus result; 
     tANI_U8  BSSIDMatched = 0;
    
+    ENTER();
+
     // Validate pAdapter  
     if ( NULL == pAdapter || NULL == pAdapter->pHddCtx)
     {
@@ -5444,12 +5457,14 @@ static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *d
 static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *dev,
             struct cfg80211_pmksa *pmksa)
 {
+    ENTER();
     // TODO: Implement this later.
     return 0;
 }
 
 static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device *dev)
 {
+    ENTER();
     // TODO: Implement this later.
     return 0;
 }

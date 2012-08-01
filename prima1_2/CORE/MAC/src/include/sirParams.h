@@ -140,7 +140,10 @@ typedef struct sSirMbMsgP2p
      */
     tANI_U16 msgLen;
 
-    tANI_U32 sessionId;
+    tANI_U8 sessionId;
+    tANI_U8 noack;
+    tANI_U16 wait;
+
     /**
      * This is the first data word in the mailbox message.
      * It is followed by n words of data.
@@ -428,11 +431,11 @@ typedef struct sSirMbMsgP2p
 #ifdef ANI_CHIPSET_VOLANS
 /* PE <-> HAL addr2 mismatch message */
 #define SIR_LIM_ADDR2_MISS_IND             SIR_HAL_ITC_MSG_TYPES_BEGIN + 142
-#ifdef FEATURE_INNAV_SUPPORT
-/* PE <-> HAL INNAV RELATED MESSAGES */
-#define SIR_HAL_START_INNAV_MEAS_REQ       SIR_HAL_ITC_MSG_TYPES_BEGIN + 143
-#define SIR_HAL_START_INNAV_MEAS_RSP       SIR_HAL_ITC_MSG_TYPES_BEGIN + 144
-#define SIR_HAL_FINISH_INNAV_MEAS_REQ      SIR_HAL_ITC_MSG_TYPES_BEGIN + 145
+#ifdef FEATURE_OEM_DATA_SUPPORT
+/* PE <-> HAL OEM_DATA RELATED MESSAGES */
+#define SIR_HAL_START_OEM_DATA_REQ         SIR_HAL_ITC_MSG_TYPES_BEGIN + 143
+#define SIR_HAL_START_OEM_DATA_RSP       SIR_HAL_ITC_MSG_TYPES_BEGIN + 144
+#define SIR_HAL_FINISH_OEM_DATA_REQ      SIR_HAL_ITC_MSG_TYPES_BEGIN + 145
 #endif
 #endif
 
@@ -530,10 +533,10 @@ typedef struct sSirMbMsgP2p
 // LIM message types
 #define SIR_LIM_MSG_TYPES_BEGIN        (SIR_LIM_MODULE_ID << 8)
 #define SIR_LIM_ITC_MSG_TYPES_BEGIN    SIR_LIM_MSG_TYPES_BEGIN+0xB0
+
 // Messages to/from HAL
-#define SIR_LIM_RESUME_ACTIVITY_NTF        SIR_LIM_ITC_MSG_TYPES_BEGIN
-#define SIR_LIM_SUSPEND_ACTIVITY_REQ       SIR_LIM_ITC_MSG_TYPES_BEGIN + 1
-#define SIR_HAL_SUSPEND_ACTIVITY_RSP       SIR_LIM_ITC_MSG_TYPES_BEGIN + 2
+// Removed as part of moving HAL down to FW
+
 // Message from ISR upon TFP retry interrupt
 #define SIR_LIM_RETRY_INTERRUPT_MSG        SIR_LIM_ITC_MSG_TYPES_BEGIN + 3
 // Message from BB Transport

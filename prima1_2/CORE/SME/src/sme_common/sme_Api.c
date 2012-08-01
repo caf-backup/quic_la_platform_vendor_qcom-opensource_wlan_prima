@@ -383,9 +383,9 @@ static eSmeCommandType smeIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pComm
         fFullPowerNeeded = ( ( eSmeCommandAddTs == pCommand->command ) ||
                     ( eSmeCommandDelTs ==  pCommand->command ) );
         if( fFullPowerNeeded ) break;
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
         fFullPowerNeeded = (pmcState == IMPS && 
-                                       eSmeCommandMeas == pCommand->command);
+                                       eSmeCommandOemDataReq == pCommand->command);
         if(fFullPowerNeeded) break;
 #endif
 #ifdef WLAN_FEATURE_P2P
@@ -609,10 +609,10 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                             csrProcessDelStaSessionCommand( pMac, pCommand );
                             break;
 
-#ifdef FEATURE_INNAV_SUPPORT
-                        case eSmeCommandMeas:
+#ifdef FEATURE_OEM_DATA_SUPPORT
+                        case eSmeCommandOemDataReq:
                             csrLLUnlock(&pMac->sme.smeCmdActiveList);
-                            measProcessInNavMeasCommand(pMac, pCommand);
+                            oemData_ProcessOemDataReqCommand(pMac, pCommand);
                             break;
 #endif
 #if defined WLAN_FEATURE_P2P
@@ -867,11 +867,11 @@ eHalStatus sme_Open(tHalHandle hHal)
          break;
       }
 #endif
-#ifdef FEATURE_INNAV_SUPPORT
-      status = measInNavOpen(pMac);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+      status = oemData_OemDataReqOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
          smsLog(pMac, LOGE,
-                "measInNavOpen failed during initialization with status=%d", status );
+                "oemData_OemDataReqOpen failed during initialization with status=%d", status );
          break;
       }
 #endif
@@ -1451,17 +1451,17 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
              break;
 #endif
 
-#ifdef FEATURE_INNAV_SUPPORT
-          //Handle the eWNI_SME_INNAV_MEAS_RSP:
-          case eWNI_SME_INNAV_MEAS_RSP:
+#ifdef FEATURE_OEM_DATA_SUPPORT
+          //Handle the eWNI_SME_OEM_DATA_RSP:
+          case eWNI_SME_OEM_DATA_RSP:
                 if(pMsg->bodyptr)
                 {
-                        status = sme_MeasHandleInNavMeasRsp(pMac, pMsg->bodyptr);
+                        status = sme_HandleOemDataRsp(pMac, pMsg->bodyptr);
                         vos_mem_free(pMsg->bodyptr);
                 }
                 else
                 {
-                        smsLog( pMac, LOGE, "Empty rsp message for meas (eWNI_SME_INNAV_MEAS_RSP), nothing to process\n");
+                        smsLog( pMac, LOGE, "Empty rsp message for oemData_ (eWNI_SME_OEM_DATA_RSP), nothing to process\n");
                 }
                 smeProcessPendingQueue( pMac );
                 break;
@@ -1490,7 +1490,6 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 }
                 break;
 #ifdef WLAN_FEATURE_P2P
-          //Handle the eWNI_SME_INNAV_MEAS_RSP:
           case eWNI_SME_REMAIN_ON_CHN_RSP:
                 if(pMsg->bodyptr)
                 {
@@ -1806,10 +1805,10 @@ eHalStatus sme_Close(tHalHandle hHal)
       fail_status = status;
    }
 #endif
-#ifdef FEATURE_INNAV_SUPPORT
-   status = measInNavClose(hHal);
+#ifdef FEATURE_OEM_DATA_SUPPORT
+   status = oemData_OemDataReqClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
-       smsLog( pMac, LOGE, "INNAV close failed during sme close with status=%d\n", 
+       smsLog( pMac, LOGE, "OEM DATA REQ close failed during sme close with status=%d\n", 
               status );
       fail_status = status;
    }
@@ -4725,21 +4724,21 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
 }
 #endif /* FEATURE_WLAN_WAPI */
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
 /*****************************************************************************
- INNAV related modifications and function additions
+ OEM DATA related modifications and function additions
  *****************************************************************************/
 
 /* ---------------------------------------------------------------------------
-    \fn sme_getInNavMeasurementResult
-    \brief a wrapper function to obtain the RSSI/RTT measurement results
-    \param pInNavMeasRsp - A pointer to the response object
+    \fn sme_getOemDataRsp
+    \brief a wrapper function to obtain the OEM DATA RSP
+    \param pOemDataRsp - A pointer to the response object
     \param pContext - a pointer passed in for the callback
-    \return eHalStatus
+    \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal,
-        tInNavMeasurementResponse **pInNavMeasRsp)
+eHalStatus sme_getOemDataRsp(tHalHandle hHal, 
+        tOemDataRsp **pOemDataRsp)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
@@ -4754,9 +4753,9 @@ eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal,
             break;
         }
 
-        if(pMac->innavMeas.pMeasurementResult != NULL)
+        if(pMac->oemData.pOemDataRsp != NULL)
         {
-            *pInNavMeasRsp = pMac->innavMeas.pMeasurementResult;
+            *pOemDataRsp = pMac->oemData.pOemDataRsp;
         }
         else
         {
@@ -4772,31 +4771,23 @@ eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal,
 }
 
 /* ---------------------------------------------------------------------------
-    \fn sme_InNavMeasurementRequest
-    \brief a wrapper function to Request RSSI/RTT measurements
-    \param sessionId - session id to be used for measurement.
-    \param pMeasurementRequestID - pointer to an object to get back the request ID
-    \param callback - a callback function that meas calls upon finish, will not
-                      be called if measMeasurementRequest returns error
+    \fn sme_OemDataReq
+    \brief a wrapper function for OEM DATA REQ
+    \param sessionId - session id to be used.
+    \param pOemDataReqId - pointer to an object to get back the request ID
+    \param callback - a callback function that is called upon finish
     \param pContext - a pointer passed in for the callback
-    \return eHalStatus
+    \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal, 
+eHalStatus sme_OemDataReq(tHalHandle hHal, 
         tANI_U8 sessionId,
-        tInNavMeasurementConfig *pInNavMeasConfig, 
-        tANI_U32 *pMeasurementRequestID, 
-        measMeasurementCompleteCallback callback, 
+        tOemDataReqConfig *pOemDataReqConfig, 
+        tANI_U32 *pOemDataReqID, 
+        oemData_OemDataReqCompleteCallback callback, 
         void *pContext)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-
-    smsLog(pMac, LOG1, "%s new innav measurement request\n", __FUNCTION__);
-    smsLog(pMac, LOG1, "%s sessionId               = %d\n", __FUNCTION__, sessionId);
-    smsLog(pMac, LOG1, "%s #bssids                 = %u\n", __FUNCTION__, pInNavMeasConfig->numBSSIDs);
-    smsLog(pMac, LOG1, "%s #measurements           = %u\n", __FUNCTION__, pInNavMeasConfig->numInNavMeasurements);
-    smsLog(pMac, LOG1, "%s #repetitions            = %u\n", __FUNCTION__, pInNavMeasConfig->numSetRepetitions);
-    smsLog(pMac, LOG1, "%s time-interval (ms)      = %u\n", __FUNCTION__, pInNavMeasConfig->measurementTimeInterval);
 
     do
     {
@@ -4804,16 +4795,16 @@ eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal,
         status = sme_AcquireGlobalLock(&pMac->sme);
         if(HAL_STATUS_SUCCESS(status))
         {
-            tANI_U32 lMeasId = pMac->innavMeas.nextMeasurementId++; //let it wrap around
+            tANI_U32 lOemDataReqId = pMac->oemData.oemDataReqID++; //let it wrap around
 
-            if(pMeasurementRequestID)
+            if(pOemDataReqID)
             {
-               *pMeasurementRequestID = lMeasId;
+               *pOemDataReqID = lOemDataReqId;
             }
             else
                return eHAL_STATUS_FAILURE;
 
-            status = measInNavMeasurementRequest(hHal, sessionId, pInNavMeasConfig, pMeasurementRequestID, callback, pContext);
+            status = oemData_OemDataReq(hHal, sessionId, pOemDataReqConfig, pOemDataReqID, callback, pContext);
 
             //release the lock for the sme object
             sme_ReleaseGlobalLock( &pMac->sme );
@@ -4825,7 +4816,7 @@ eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal,
     return(status);
 }
 
-#endif /*FEATURE_INNAV_SUPPORT*/
+#endif /*FEATURE_OEM_DATA_SUPPORT*/
 
 /*--------------------------------------------------------------------------
 
@@ -5452,7 +5443,8 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal, void *p2pIe, tANI_U32 p2pIeLength)
   ---------------------------------------------------------------------------*/
 
 eHalStatus sme_sendAction(tHalHandle hHal, tANI_U8 sessionId,
-                          const tANI_U8 *pBuf, tANI_U32 len)
+                          const tANI_U8 *pBuf, tANI_U32 len,
+                          tANI_U16 wait, tANI_BOOLEAN noack)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
@@ -5461,7 +5453,7 @@ eHalStatus sme_sendAction(tHalHandle hHal, tANI_U8 sessionId,
     status = sme_AcquireGlobalLock(&pMac->sme);
     if(HAL_STATUS_SUCCESS(status))
     {
-        p2pSendAction(hHal, sessionId, pBuf, len);
+        p2pSendAction(hHal, sessionId, pBuf, len, wait, noack);
         //release the lock for the sme object
         sme_ReleaseGlobalLock( &pMac->sme );
     }
