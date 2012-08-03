@@ -236,7 +236,7 @@ void limUpdateReAssocGlobals(tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,tpPESe
     psessionEntry->limAID = pAssocRsp->aid & 0x3FFF;
     /** Set the State Back to ReAssoc Rsp*/
     psessionEntry->limMlmState = eLIM_MLM_WT_REASSOC_RSP_STATE; 
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
 
     
 }
@@ -741,17 +741,15 @@ assocReject:
 #endif
        ) {
         PELOGE(limLog(pMac, LOGE,  FL("Assoc Rejected by the peer. Reason: %d\n"), mlmAssocCnf.resultCode);)
-        pMac->lim.gLimMlmState = eLIM_MLM_IDLE_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, psessionEntry->limMlmState));
 
         if (psessionEntry->pLimMlmJoinReq)
         {
             palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmJoinReq);
             psessionEntry->pLimMlmJoinReq = NULL;
         }
-        if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId, 
-             psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
-            PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
+
         if (subType == LIM_ASSOC)
         {
            limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);

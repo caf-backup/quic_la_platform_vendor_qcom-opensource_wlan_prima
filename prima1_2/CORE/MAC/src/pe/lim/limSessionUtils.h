@@ -123,7 +123,59 @@ tANI_U8
 isLimSessionOffChannel(tpAniSirGlobal pMac, tANI_U8 sessionId);
 /* --------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------
+  \brief peGetActiveSessionChannel() - Gets the operating channel of first  
+                                    valid session.
+
+  \param pMac                   - pointer to global adapter context
+  
+  \return tANI_U8               - operating channel.
+  
+  \sa
+  --------------------------------------------------------------------------*/
 tANI_U8
 peGetActiveSessionChannel( tpAniSirGlobal pMac );
+
+/*--------------------------------------------------------------------------
+  \brief limIsChanSwitchRunning() - Check if channel switch is running on any  
+                                    valid session.
+
+  \param pMac                   - pointer to global adapter context
+  
+  \return tANI_U8               - 1 - if chann switching running.
+                                  0 - if chann switching is not running. 
+  
+  \sa
+  --------------------------------------------------------------------------*/
+tANI_U8
+limIsChanSwitchRunning (tpAniSirGlobal pMac);
+
+/*--------------------------------------------------------------------------
+  \brief limIsInQuietDuration() - Check if channel quieting is running on any  
+                                    valid session.
+
+  \param pMac                   - pointer to global adapter context
+  
+  \return tANI_U8               - 1 - if chann quiet running.
+                                  0 - if chann quiet is not running. 
+  
+  \sa
+  --------------------------------------------------------------------------*/
+tANI_U8
+limIsInQuietDuration (tpAniSirGlobal pMac);
+
+/*--------------------------------------------------------------------------
+  \brief limIsQuietBegin() - Check if channel quieting is begining on any  
+                                    valid session.
+
+  \param pMac                   - pointer to global adapter context
+  
+  \return tANI_U8               - 1 - if chann quiet running.
+                                  0 - if chann quiet is not running. 
+  
+  \sa
+  --------------------------------------------------------------------------*/
+tANI_U8
+limIsQuietBegin (tpAniSirGlobal pMac);
 #endif //#if !defined( __LIM_SESSION_UTILS_H )
 

@@ -1470,6 +1470,20 @@ REG_VARIABLE( CFG_VHT_CHANNEL_WIDTH, WLAN_PARAM_Integer,
               CFG_VHT_CHANNEL_WIDTH_DEFAULT, 
               CFG_VHT_CHANNEL_WIDTH_MIN, 
               CFG_VHT_CHANNEL_WIDTH_MAX),
+
+REG_VARIABLE( CFG_VHT_ENABLE_RX_MCS_8_9, WLAN_PARAM_Integer,
+              hdd_config_t, vhtRxMCS, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK, 
+              CFG_VHT_ENABLE_RX_MCS_8_9_DEFAULT, 
+              CFG_VHT_ENABLE_RX_MCS_8_9_MIN, 
+              CFG_VHT_ENABLE_RX_MCS_8_9_MAX),
+
+REG_VARIABLE( CFG_VHT_ENABLE_TX_MCS_8_9, WLAN_PARAM_Integer,
+              hdd_config_t, vhtTxMCS, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK, 
+              CFG_VHT_ENABLE_TX_MCS_8_9_DEFAULT, 
+              CFG_VHT_ENABLE_TX_MCS_8_9_MIN, 
+              CFG_VHT_ENABLE_TX_MCS_8_9_MAX),
 #endif
 };
 
@@ -2239,9 +2253,7 @@ static void hdd_set_btc_config(hdd_context_t *pHddCtx)
    sme_BtcGetConfig(pHddCtx->hHal, &btcParams);
 
    btcParams.btcExecutionMode = pConfig->btcExecutionMode;
-
    btcParams.btcConsBtSlotsToBlockDuringDhcp = pConfig->btcConsBtSlotsToBlockDuringDhcp;
-
    btcParams.btcA2DPBtSubIntervalsDuringDhcp = pConfig->btcA2DPBtSubIntervalsDuringDhcp;
 
    sme_BtcSetConfig(pHddCtx->hHal, &btcParams);
@@ -2778,6 +2790,53 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_MC_ADDR_LIST to CCM\n");
      }
 
+#ifdef WLAN_FEATURE_11AC
+   /* Based on cfg.ini, update the Basic MCS set, RX/TX MCS map in the cfg.dat */
+   /* valid values are 0(MCS0-7), 1(MCS0-8), 2(MCS0-9) */
+   /* we update only the least significant 2 bits in the corresponding fields */
+   if( (pConfig->dot11Mode == eHDD_DOT11_MODE_AUTO) ||
+       (pConfig->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY) ||
+       (pConfig->dot11Mode == eHDD_DOT11_MODE_11ac) )
+   {
+       {
+           tANI_U32 temp = 0;
+
+           ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_VHT_BASIC_MCS_SET, &temp);
+           temp = (temp & 0xFFFC) | pConfig->vhtRxMCS; 
+
+           if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_BASIC_MCS_SET, 
+                           temp, NULL, eANI_BOOLEAN_FALSE)
+               ==eHAL_STATUS_FAILURE)
+           {
+               fStatus = FALSE;
+               hddLog(LOGE, "Could not pass on WNI_CFG_VHT_BASIC_MCS_SET to CCM\n");
+           }
+
+           ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_VHT_RX_MCS_MAP, &temp);
+           temp = (temp & 0xFFFC) | pConfig->vhtRxMCS; 
+
+           if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_RX_MCS_MAP, 
+                           temp, NULL, eANI_BOOLEAN_FALSE)
+               ==eHAL_STATUS_FAILURE)
+           {
+              fStatus = FALSE;
+              hddLog(LOGE, "Could not pass on WNI_CFG_VHT_RX_MCS_MAP to CCM\n");
+           }
+
+           ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_VHT_TX_MCS_MAP, &temp);
+           temp = (temp & 0xFFFC) | pConfig->vhtTxMCS; 
+
+           if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_TX_MCS_MAP, 
+                           temp, NULL, eANI_BOOLEAN_FALSE)
+               ==eHAL_STATUS_FAILURE)
+           {
+               fStatus = FALSE;
+               hddLog(LOGE, "Could not pass on WNI_CFG_VHT_TX_MCS_MAP to CCM\n");
+           }
+       }
+   }
+#endif
+
    return fStatus;
 }
 
@@ -2854,14 +2913,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.AdHocChannel5G            = 44; 
    smeConfig.csrConfig.ProprietaryRatesEnabled   = 0;  
    smeConfig.csrConfig.HeartbeatThresh50         = 40; 
-   if( smeConfig.csrConfig.Is11dSupportEnabled )
-   {
-      smeConfig.csrConfig.Is11hSupportEnabled    = 1;
-   }
-   else
-   {
-      smeConfig.csrConfig.Is11hSupportEnabled    = 0;
-   }
+   smeConfig.csrConfig.Is11hSupportEnabled       = 1;
    smeConfig.csrConfig.bandCapability            = pConfig->nBandCapability; 
    smeConfig.csrConfig.cbChoice                  = 0;   
    smeConfig.csrConfig.bgScanInterval            = 0; 

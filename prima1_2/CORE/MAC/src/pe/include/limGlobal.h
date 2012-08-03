@@ -377,24 +377,26 @@ struct tLimScanResultNode
     tSirBssDescription bssDescription;
 };
 
-#ifdef FEATURE_INNAV_SUPPORT
-// InNav related structure definitions
-typedef struct sLimMlmInNavMeasReq
-{
-    tANI_U8               numBSSIDs;
-    tANI_U8               numInNavMeasurements;
-    tSirMacAddr           selfMacAddr;
-    eSirInNavMeasurementMode measurementMode;
-    tSirBSSIDChannelInfo  bssidChannelInfo[1];
-} tLimMlmInNavMeasReq, *tpLimMlmInNavMeasReq;
+#ifdef FEATURE_OEM_DATA_SUPPORT
 
-typedef struct sLimMlmInNavMeasRsp
+#ifndef OEM_DATA_REQ_SIZE 
+#define OEM_DATA_REQ_SIZE 70
+#endif
+#ifndef OEM_DATA_RSP_SIZE
+#define OEM_DATA_RSP_SIZE 968
+#endif
+
+// OEM Data related structure definitions
+typedef struct sLimMlmOemDataReq
 {
-    tANI_U8             numBSSIDs;
-    tANI_U16            resultLength;
-    tSirResultCodes     resultCode;
-    tSirRttRssiResults  rttRssiResults[1];
-} tLimMlmInNavMeasRsp, *tpLimMlmInNavMeasRsp;
+    tSirMacAddr           selfMacAddr;
+    tANI_U8               oemDataReq[OEM_DATA_REQ_SIZE];
+} tLimMlmOemDataReq, *tpLimMlmOemDataReq;
+
+typedef struct sLimMlmOemDataRsp
+{
+   tANI_U8                oemDataRsp[OEM_DATA_RSP_SIZE];
+} tLimMlmOemDataRsp, *tpLimMlmOemDataRsp;
 #endif
 
 // Pre-authentication structure definition

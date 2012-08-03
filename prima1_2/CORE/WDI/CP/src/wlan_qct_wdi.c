@@ -76,6 +76,9 @@
  ===========================================================================*/
 #define WDI_WCTS_ACTION_TIMEOUT       2000 /* in msec a very high upper limit */
 
+#define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
+#define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
+
 
 #ifdef FEATURE_WLAN_SCAN_PNO
 #define WDI_PNO_VERSION_MASK 0x8000
@@ -235,11 +238,11 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   NULL,
 #endif /* ANI_MANF_DIAG */
 
-#ifdef FEATURE_INNAV_SUPPORT
-  WDI_ProcessStartInNavMeasReq,     /*WDI_START_INNAV_MEAS_REQ*/
+#ifdef FEATURE_OEM_DATA_SUPPORT
+  WDI_ProcessStartOemDataReq,     /*WDI_START_OEM_DATA_REQ*/
 #else
   NULL,
-#endif /*FEATURE_INNAV_SUPPORT*/
+#endif /*FEATURE_OEM_DATA_SUPPORT*/
   WDI_ProcessHostResumeReq,            /*WDI_HOST_RESUME_REQ*/
 
   WDI_ProcessKeepAliveReq,       /* WDI_KEEP_ALIVE_REQ */
@@ -390,11 +393,11 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #endif /* WLAN_FEATURE_VOWIFI_11R */
   WDI_ProcessAddSTASelfRsp,          /* WDI_ADD_STA_SELF_RESP */
   WDI_ProcessDelSTASelfRsp,          /* WDI_DEL_STA_SELF_RESP */
-#ifdef FEATURE_INNAV_SUPPORT
-  WDI_ProcessStartInNavMeasRsp,     /*WDI_START_INNAV_MEAS_RESP*/
+#ifdef FEATURE_OEM_DATA_SUPPORT
+  WDI_ProcessStartOemDataRsp,     /*WDI_START_OEM_DATA_RESP*/
 #else
   NULL,
-#endif /*FEATURE_INNAV_SUPPORT*/
+#endif /*FEATURE_OEM_DATA_SUPPORT*/
   WDI_ProcessHostResumeRsp,        /*WDI_HOST_RESUME_RESP*/
 
 #ifdef WLAN_FEATURE_P2P
@@ -453,14 +456,14 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #endif
   
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
-  WDI_ProcessGtkOffloadRsp,           /* WDI_GTK_OFFLOAD_RESP  */
-  WDI_ProcessGTKOffloadGetInfoRsp,    /* WDI_GTK_OFFLOAD_GETINFO_RESP  */
+  WDI_ProcessGtkOffloadRsp,             /* WDI_GTK_OFFLOAD_RESP  */
+  WDI_ProcessGTKOffloadGetInfoRsp,      /* WDI_GTK_OFFLOAD_GETINFO_RESP  */
 #else
   NULL,
   NULL,
 #endif // WLAN_FEATURE_GTK_OFFLOAD
-  WDI_ProcessSetTmLevelRsp,       /* WDI_SET_TM_LEVEL_RESP */
-  WDI_ProcessFeatureCapsExchangeRsp,     /* WDI_FEATURE_CAPS_EXCHANGE_RESP */  
+  WDI_ProcessSetTmLevelRsp,             /* WDI_SET_TM_LEVEL_RESP */
+  WDI_ProcessFeatureCapsExchangeRsp,    /* WDI_FEATURE_CAPS_EXCHANGE_RESP */
 
   /*---------------------------------------------------------------------
     Indications
@@ -776,7 +779,7 @@ static char *WDI_getReqMsgString(wpt_uint16 wdiReqMsgId)
     CASE_RETURN_STRING( WDI_ADD_STA_SELF_REQ );
     CASE_RETURN_STRING( WDI_DEL_STA_SELF_REQ );
     CASE_RETURN_STRING( WDI_FTM_CMD_REQ );
-    CASE_RETURN_STRING( WDI_START_INNAV_MEAS_REQ );
+    CASE_RETURN_STRING( WDI_START_OEM_DATA_REQ );
     CASE_RETURN_STRING( WDI_HOST_RESUME_REQ );
     CASE_RETURN_STRING( WDI_KEEP_ALIVE_REQ);
   #ifdef FEATURE_WLAN_SCAN_PNO
@@ -872,7 +875,7 @@ static char *WDI_getRespMsgString(wpt_uint16 wdiRespMsgId)
     CASE_RETURN_STRING( WDI_ADD_STA_SELF_RESP );
     CASE_RETURN_STRING( WDI_DEL_STA_SELF_RESP );
     CASE_RETURN_STRING( WDI_FTM_CMD_RESP );
-    CASE_RETURN_STRING( WDI_START_INNAV_MEAS_RESP );
+    CASE_RETURN_STRING( WDI_START_OEM_DATA_RESP );
     CASE_RETURN_STRING( WDI_HOST_RESUME_RESP );
     CASE_RETURN_STRING( WDI_KEEP_ALIVE_RESP);
   #ifdef FEATURE_WLAN_SCAN_PNO
@@ -4258,23 +4261,24 @@ WDI_BtAmpEventReq
 
 }/*WDI_BtAmpEventReq*/
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 /**
- @brief WDI_Start In Nav Meas Req will be called when the upper MAC
-        wants to notify the lower mac on a In Nav Meas Req event.Upon
+ @brief WDI_Start Oem Data Req will be called when the upper MAC 
+        wants to notify the lower mac on a oem data Req event.Upon
         the call of this API the WLAN DAL will pack and send a
-        HAL In Nav Meas event request message to the lower RIVA
+        HAL OEM Data Req event request message to the lower RIVA
         sub-system if DAL is in state STARTED.
 
         In state BUSY this request will be queued. Request won't
         be allowed in any other state.
 
 
- @param pwdiInNavMeasReqParams: the IN NAV MEAS Req parameters as
-                      specified by the Device Interface
+  
+ @param pwdiOemDataReqParams: the Oem Data Req as 
+        specified by the Device Interface
 
-        wdiStartInNavMeasRspCb: callback for passing back the
-        response of the In Nav Meas Req received from the
+        wdiStartOemDataRspCb: callback for passing back the
+        response of the Oem Data Req received from the
         device
 
         pUserData: user data will be passed back with the
@@ -4283,10 +4287,10 @@ WDI_BtAmpEventReq
  @return Result of the function call
 */
 WDI_Status
-WDI_StartInNavMeasReq
+WDI_StartOemDataReq
 (
-  WDI_InNavMeasReqParamsType*       pwdiInNavMeasReqParams,
-  WDI_InNavMeasRspCb                wdiInNavMeasRspCb,
+  WDI_oemDataReqParamsType*         pwdiOemDataReqParams,
+  WDI_oemDataRspCb                  wdiOemDataRspCb,
   void*                             pUserData
 )
 {
@@ -4307,10 +4311,10 @@ WDI_StartInNavMeasReq
    /*------------------------------------------------------------------------
      Fill in Event data and post to the Main FSM
    ------------------------------------------------------------------------*/
-   wdiEventData.wdiRequest      = WDI_START_INNAV_MEAS_REQ;
-   wdiEventData.pEventData      = pwdiInNavMeasReqParams;
-   wdiEventData.uEventDataSize  = sizeof(*pwdiInNavMeasReqParams);
-   wdiEventData.pCBfnc          = wdiInNavMeasRspCb;
+   wdiEventData.wdiRequest      = WDI_START_OEM_DATA_REQ;
+   wdiEventData.pEventData      = pwdiOemDataReqParams; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiOemDataReqParams); 
+   wdiEventData.pCBfnc          = wdiOemDataRspCb; 
    wdiEventData.pUserData       = pUserData;
 
    return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
@@ -7340,7 +7344,10 @@ WDI_ProcessConfigBSSReq
     else
     {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "Association sequence for this BSS does not yet exist");
+                "%s: Association sequence for this BSS does not yet exist." MAC_ADDRESS_STR "wdiBssType %d",
+                __func__, MAC_ADDR_ARRAY(pwdiConfigBSSParams->wdiReqInfo.macBSSID), 
+                pwdiConfigBSSParams->wdiReqInfo.wdiBSSType);
+      
       /* for IBSS testing */
       wpalMutexRelease(&pWDICtx->wptMutex);
       return WDI_STATUS_E_NOT_ALLOWED;
@@ -7354,8 +7361,10 @@ WDI_ProcessConfigBSSReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. " MAC_ADDRESS_STR " bssIdx %d", 
+              __func__, MAC_ADDR_ARRAY(pwdiConfigBSSParams->wdiReqInfo.macBSSID), 
+              ucCurrentBSSSesIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
 
@@ -7406,7 +7415,7 @@ WDI_ProcessConfigBSSReq
 
   wpalMemoryCopy( pSendBuffer+usDataOffset,
                   &halConfigBssReqMsg.uBssParams.configBssParams,
-                  sizeof(halConfigBssReqMsg.uBssParams.configBssParams));
+                  uMsgSize);
 
   pWDICtx->wdiReqStatusCB     = pwdiConfigBSSParams->wdiReqStatusCB;
   pWDICtx->pReqStatusUserData = pwdiConfigBSSParams->pUserData;
@@ -7479,7 +7488,8 @@ WDI_ProcessDelBSSReq
   if ( NULL == pBSSSes )
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+        "%s: BSS does not yet exist. ucBssIdx %d",
+        __func__, pwdiDelBSSParams->ucBssIdx);
 
     wpalMutexRelease(&pWDICtx->wptMutex);
 
@@ -7492,8 +7502,9 @@ WDI_ProcessDelBSSReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. ucBssIdx %d", 
+              __func__, pwdiDelBSSParams->ucBssIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
 
@@ -7617,9 +7628,10 @@ WDI_ProcessPostAssocReq
 
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist - "
-              "operation not allowed");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist - " 
+              "operation not allowed. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiPostAssocParams->wdiBSSParams.macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -7631,8 +7643,9 @@ WDI_ProcessPostAssocReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiPostAssocParams->wdiBSSParams.macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
 
@@ -7821,8 +7834,9 @@ WDI_ProcessDelSTAReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -7834,8 +7848,9 @@ WDI_ProcessDelSTAReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -7938,7 +7953,8 @@ WDI_ProcessSetBssKeyReq
   if ( NULL == pBSSSes )
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+              "%s: Association sequence for this BSS does not yet exist. ucBssIdx %d", 
+              __func__, pwdiSetBSSKeyParams->wdiBSSKeyInfo.ucBssIdx);
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -7950,8 +7966,9 @@ WDI_ProcessSetBssKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. ucBssIdx %d",
+              __func__, pwdiSetBSSKeyParams->wdiBSSKeyInfo.ucBssIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8082,7 +8099,8 @@ WDI_ProcessRemoveBssKeyReq
   if ( NULL == pBSSSes )
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+              "%s: Association sequence for this BSS does not yet exist. ucBssIdx %d", 
+              __func__, pwdiRemoveBSSKeyParams->wdiKeyInfo.ucBssIdx);
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -8094,8 +8112,9 @@ WDI_ProcessRemoveBssKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. ucBssIdx %d",
+              __func__, pwdiRemoveBSSKeyParams->wdiKeyInfo.ucBssIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8214,8 +8233,9 @@ WDI_ProcessSetStaKeyReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -8227,8 +8247,9 @@ WDI_ProcessSetStaKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8387,8 +8408,9 @@ WDI_ProcessRemoveStaKeyReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -8400,8 +8422,9 @@ WDI_ProcessRemoveStaKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8526,7 +8549,8 @@ WDI_ProcessSetStaBcastKeyReq
   if ( NULL == pBSSSes )
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+              "Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -8538,8 +8562,9 @@ WDI_ProcessSetStaBcastKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8698,8 +8723,9 @@ WDI_ProcessRemoveStaBcastKeyReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -8711,8 +8737,9 @@ WDI_ProcessRemoveStaBcastKeyReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+               __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -8838,8 +8865,9 @@ WDI_ProcessAddTSpecReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+              "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -8851,8 +8879,9 @@ WDI_ProcessAddTSpecReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9009,9 +9038,10 @@ WDI_ProcessDelTSpecReq
 
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
-
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+            "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+            __func__, MAC_ADDR_ARRAY(pwdiDelTSParams->wdiDelTSInfo.macBSSID));
+    
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
   }
@@ -9022,8 +9052,9 @@ WDI_ProcessDelTSpecReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiDelTSParams->wdiDelTSInfo.macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9119,7 +9150,8 @@ WDI_ProcessUpdateEDCAParamsReq
   if ( NULL == pBSSSes )
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+            "%s: Association sequence for this BSS does not yet exist. ucBssIdx %d", 
+            __func__, pwdiUpdateEDCAParams->wdiEDCAInfo.ucBssIdx);
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -9131,8 +9163,9 @@ WDI_ProcessUpdateEDCAParamsReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. ucBssIdx %d",
+              __func__, pwdiUpdateEDCAParams->wdiEDCAInfo.ucBssIdx);
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9242,9 +9275,10 @@ WDI_ProcessAddBASessionReq
 
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
-
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+          "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+          __func__, MAC_ADDR_ARRAY(macBSSID));
+      
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
   }
@@ -9255,8 +9289,9 @@ WDI_ProcessAddBASessionReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+               __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9381,8 +9416,9 @@ WDI_ProcessDelBAReq
 
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+            "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+            __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -9394,8 +9430,9 @@ WDI_ProcessDelBAReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9477,8 +9514,9 @@ WDI_ProcessTSMStatsReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, pwdiTSMParams->wdiTsmStatsParamsInfo.bssid, &pBSSSes); 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+            "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+            __func__, MAC_ADDR_ARRAY(pwdiTSMParams->wdiTsmStatsParamsInfo.bssid));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
@@ -9490,8 +9528,9 @@ WDI_ProcessTSMStatsReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiTSMParams->wdiTsmStatsParamsInfo.bssid));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -9834,9 +9873,9 @@ WDI_ProcessDelSTASelfReq
 
 }
 
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 /**
- @brief Process Start In Nav Meas Request function (called when Main
+ @brief Process Start Oem Data Request function (called when Main 
         FSM allows it)
 
  @param  pWDICtx:         pointer to the WLAN DAL context
@@ -9846,24 +9885,19 @@ WDI_ProcessDelSTASelfReq
  @return Result of the function call
 */
 WDI_Status
-WDI_ProcessStartInNavMeasReq
+WDI_ProcessStartOemDataReq
 (
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_InNavMeasReqParamsType*    pwdiInNavMeasParams = NULL;
-  WDI_InNavMeasRspCb             wdiInNavMeasRspCb;
-  wpt_uint8*                     pSendBuffer         = NULL;
-  wpt_uint16                     usDataOffset        = 0;
-  wpt_uint16                     usSendSize          = 0;
-  wpt_uint16                     reqLen;
-  wpt_uint32                     i                   = 0;
-  tStartInNavMeasReqParams*      halStartInNavMeasParams;
-  tBSSIDChannelInfo*             halBssidChannelInfo;
-
-  WDI_BSSIDChannelInfo* chInfo = NULL;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+  WDI_oemDataReqParamsType*    pwdiOemDataReqParams = NULL;
+  WDI_oemDataRspCb             wdiOemDataRspCb;
+  wpt_uint8*                   pSendBuffer         = NULL; 
+  wpt_uint16                   usDataOffset        = 0;
+  wpt_uint16                   usSendSize          = 0;
+  wpt_uint16                   reqLen;
+  tStartOemDataReqParams*      halStartOemDataReqParams;
 
   /*-------------------------------------------------------------------------
   Sanity check
@@ -9877,64 +9911,43 @@ WDI_ProcessStartInNavMeasReq
       return WDI_STATUS_E_FAILURE;
   }
 
-   pwdiInNavMeasParams = (WDI_InNavMeasReqParamsType*)pEventData->pEventData;
-   wdiInNavMeasRspCb   = (WDI_InNavMeasRspCb)pEventData->pCBfnc;
+  pwdiOemDataReqParams = (WDI_oemDataReqParamsType*)pEventData->pEventData;
+  wdiOemDataRspCb   = (WDI_oemDataRspCb)pEventData->pCBfnc;
 
-  /*----------------------------------------*/
-  reqLen = sizeof(tStartInNavMeasReqParams) +
-                 sizeof(tBSSIDChannelInfo) *
-                      (pwdiInNavMeasParams->wdiInNavMeasInfo.ucNumBSSIDs - 1);
   /*-----------------------------------------------------------------------
      Get message buffer
    -----------------------------------------------------------------------*/
-  if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx,
-                         WDI_START_INNAV_MEAS_REQ, reqLen,
+
+  reqLen = sizeof(tStartOemDataReqParams);
+
+  if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, 
+                         WDI_START_OEM_DATA_REQ, reqLen,
                               &pSendBuffer, &usDataOffset, &usSendSize))||
         (usSendSize < (usDataOffset + reqLen)))
   {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Unable to get send buffer in Start In Nav Meas req %x %x %x",
-                 pEventData, pwdiInNavMeasParams, wdiInNavMeasRspCb);
+               "Unable to get send buffer in Start Oem Data req %x %x %x",
+                 pEventData, pwdiOemDataReqParams, wdiOemDataRspCb);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE;
   }
 
-  //copying WDI INNAV REQ PARAMS to shared memory
-  halStartInNavMeasParams =
-              (tStartInNavMeasReqParams *)(pSendBuffer + usDataOffset );
-  halStartInNavMeasParams->numBSSIDs =
-                  pwdiInNavMeasParams->wdiInNavMeasInfo.ucNumBSSIDs;
-  halStartInNavMeasParams->numInNavMeasurements =
-                  pwdiInNavMeasParams->wdiInNavMeasInfo.ucNumInNavMeasurements;
-  halStartInNavMeasParams->measurementMode =
-                  pwdiInNavMeasParams->wdiInNavMeasInfo.measurementMode;
-  wpalMemoryCopy(&halStartInNavMeasParams->selfMacAddr,
-                  &pwdiInNavMeasParams->wdiInNavMeasInfo.selfMacAddr,
-                                 sizeof(wpt_macAddr));
+  //copying WDI OEM DATA REQ PARAMS to shared memory
+  halStartOemDataReqParams = (tStartOemDataReqParams *)(pSendBuffer + usDataOffset );
 
+  wpalMemoryCopy(&halStartOemDataReqParams->selfMacAddr, &pwdiOemDataReqParams->wdiOemDataReqInfo.selfMacAddr, sizeof(wpt_macAddr));
+  wpalMemoryCopy(&halStartOemDataReqParams->oemDataReq, &pwdiOemDataReqParams->wdiOemDataReqInfo.oemDataReq, OEM_DATA_REQ_SIZE);
 
-  chInfo = &pwdiInNavMeasParams->wdiInNavMeasInfo.bssidChannelInfo[0] ;
-  halBssidChannelInfo =
-                (tBSSIDChannelInfo *)(pSendBuffer + usDataOffset +
-                      sizeof(tStartInNavMeasReqParams));
-
-  //copy BSSIDs' channel info to shared memory
-  for(i = 0; i < halStartInNavMeasParams->numBSSIDs ; i++)
-  {
-     wpalMemoryCopy(halBssidChannelInfo - 1 + i , &chInfo[i],
-                                              sizeof(WDI_BSSIDChannelInfo));
-  }
-
-  pWDICtx->wdiReqStatusCB     = pwdiInNavMeasParams->wdiReqStatusCB;
-  pWDICtx->pReqStatusUserData = pwdiInNavMeasParams->pUserData;
+  pWDICtx->wdiReqStatusCB     = pwdiOemDataReqParams->wdiReqStatusCB;
+  pWDICtx->pReqStatusUserData = pwdiOemDataReqParams->pUserData; 
 
   /*-------------------------------------------------------------------------
     Send Start Request to HAL
   -------------------------------------------------------------------------*/
-  return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize,
-                        wdiInNavMeasRspCb, pEventData->pUserData,
-                                            WDI_START_INNAV_MEAS_RESP);
-}/*WDI_ProcessStartInNavMeasReq*/
+  return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiOemDataRspCb, pEventData->pUserData, 
+                                            WDI_START_OEM_DATA_RESP); 
+}/*WDI_ProcessStartOemDataReq*/
 #endif
 
 /**
@@ -9987,7 +10000,7 @@ WDI_ProcessHostResumeReq
         (usSendSize < (usDataOffset + sizeof(halResumeReqParams))))
   {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Unable to get send buffer in Start In Nav Meas req %x %x %x",
+               "Unable to get send buffer in Start Oem Data req %x %x %x",
                  pEventData, pwdiHostResumeParams, wdiHostResumeRspCb);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE;
@@ -10311,8 +10324,9 @@ WDI_ProcessConfigStaReq
 
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+          "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+          __func__, MAC_ADDR_ARRAY(pwdiConfigSTAParams->wdiReqInfo.macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -10324,8 +10338,9 @@ WDI_ProcessConfigStaReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(pwdiConfigSTAParams->wdiReqInfo.macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10461,8 +10476,9 @@ WDI_ProcessSetLinkStateReq
 
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-              "Set link request received outside association session");
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+     "%s: Set link request received outside association session. macBSSID " MAC_ADDRESS_STR, 
+     __func__, MAC_ADDR_ARRAY(pwdiSetLinkParams->wdiLinkInfo.macBSSID));
   }
   else
   {
@@ -10472,8 +10488,9 @@ WDI_ProcessSetLinkStateReq
     ------------------------------------------------------------------------*/
     if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
     {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "Association sequence for this BSS exists but currently queued");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+                __func__, MAC_ADDR_ARRAY(pwdiSetLinkParams->wdiLinkInfo.macBSSID));
 
       wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
       wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10594,8 +10611,9 @@ WDI_ProcessGetStatsReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+        "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+        __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -10607,8 +10625,9 @@ WDI_ProcessGetStatsReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10796,8 +10815,9 @@ WDI_ProcessAddBAReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+            "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+            __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -10809,8 +10829,9 @@ WDI_ProcessAddBAReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -10930,8 +10951,9 @@ WDI_ProcessTriggerBAReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+        "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+        __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -10943,8 +10965,9 @@ WDI_ProcessTriggerBAReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR, 
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -13166,8 +13189,9 @@ WDI_ProcessAggrAddTSpecReq
   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, macBSSID, &pBSSSes);
   if ( NULL == pBSSSes )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+        "%s: Association sequence for this BSS does not yet exist. macBSSID " MAC_ADDRESS_STR, 
+        __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED;
@@ -13179,8 +13203,9 @@ WDI_ProcessAggrAddTSpecReq
   ------------------------------------------------------------------------*/
   if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "%s: Association sequence for this BSS exists but currently queued. macBSSID " MAC_ADDRESS_STR,
+              __func__, MAC_ADDR_ARRAY(macBSSID));
 
     wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -13999,8 +14024,9 @@ WDI_ProcessJoinRsp
       ( eWLAN_PAL_FALSE == pWDICtx->bAssociationInProgress ))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist or "
-              "association no longer in progress - mysterious HAL response");
+              "%s: Association sequence for this BSS does not yet exist (bssIdx %d) or "
+              "association no longer in progress %d - mysterious HAL response",
+              __func__, pWDICtx->ucCurrentBSSSesIdx, pWDICtx->bAssociationInProgress);
 
     WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE);
     wpalMutexRelease(&pWDICtx->wptMutex);
@@ -15586,10 +15612,9 @@ WDI_ProcessDelSTASelfRsp
   return WDI_STATUS_SUCCESS;
 }
 
-
-#ifdef FEATURE_INNAV_SUPPORT
+#ifdef FEATURE_OEM_DATA_SUPPORT
 /**
- @brief Start In Nav Meas Rsp function (called when a
+ @brief Start Oem Data Rsp function (called when a 
         response is being received over the bus from HAL)
 
  @param  pWDICtx:         pointer to the WLAN DAL context
@@ -15601,22 +15626,15 @@ WDI_ProcessDelSTASelfRsp
 #define OFFSET_OF(structType,fldName)   (&((structType*)0)->fldName)
 
 WDI_Status
-WDI_ProcessStartInNavMeasRsp
+WDI_ProcessStartOemDataRsp
 (
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_InNavMeasRspCb           wdiInNavMeasRspCb;
-  WDI_InNavMeasRspParamsType*  wdiInNavMeasRspParams;
-  tStartInNavMeasRspParams*    halStartInNavMeasRspParams;
-  wpt_uint32 allocSize = 0;
-  wpt_uint8 i = 0;
-  wpt_uint8 j = 0;
-
-  tRttRssiResults* rttRssiResults       =        NULL;
-  WDI_RttRssiResults* wdiRttRssiResults =        NULL;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+  WDI_oemDataRspCb           wdiOemDataRspCb;
+  WDI_oemDataRspParamsType*  wdiOemDataRspParams;
+  tStartOemDataRspParams*    halStartOemDataRspParams;
 
   /*-------------------------------------------------------------------------
     Sanity check
@@ -15630,118 +15648,40 @@ WDI_ProcessStartInNavMeasRsp
      return WDI_STATUS_E_FAILURE;
   }
 
-  wdiInNavMeasRspCb = (WDI_InNavMeasRspCb)pWDICtx->pfncRspCB;
+  wdiOemDataRspCb = (WDI_oemDataRspCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
    -------------------------------------------------------------------------*/
-  halStartInNavMeasRspParams =
-                     (tStartInNavMeasRspParams *)pEventData->pEventData;
+  halStartOemDataRspParams = (tStartOemDataRspParams *)pEventData->pEventData;
 
-  /* calculate amount of memory required to populate WDI INNAV MEAS RSP structure
-   * Here, multiple RTT RSSI values need to be copied
-   */
 
-  allocSize = sizeof(WDI_InNavMeasRspParamsType) - sizeof(WDI_RttRssiResults) ;
+  //It is the responsibility of the application code to check for failure
+  //conditions!
 
-  rttRssiResults = &halStartInNavMeasRspParams->rttRssiResults[0] ;
-  for(i = 0; i < halStartInNavMeasRspParams->numBSSIDs ; i++)
-  {
-    allocSize += (rttRssiResults->numSuccessfulMeasurements - 1)
-                                           * sizeof(WDI_RttRssiTimeData) ;
-    allocSize += sizeof(WDI_RttRssiResults) ;
-    rttRssiResults = (tRttRssiResults *)((uint8 *)rttRssiResults +
-                            sizeof(tRttRssiResults) +
-                             (rttRssiResults->numSuccessfulMeasurements -1) *
-                                sizeof(tRttRssiTimeData));
-  }
+  //Allocate memory for WDI OEM DATA RSP structure
+  wdiOemDataRspParams = wpalMemoryAllocate(sizeof(WDI_oemDataRspParamsType)) ;
 
-  //Allocate memory for WDI INNAV MEAS RSP structure
-  wdiInNavMeasRspParams = wpalMemoryAllocate(allocSize) ;
-
-  if(NULL == wdiInNavMeasRspParams)
+  if(NULL == wdiOemDataRspParams)
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-            "Failed to allocate memory in INNAV MEAS Response %x %x %x ",
+            "Failed to allocate memory in OEM DATA Response %x %x %x ",
                 pWDICtx, pEventData, pEventData->pEventData);
     WDI_ASSERT(0);
     return WDI_STATUS_E_FAILURE;
   }
 
-  /* Populate WDI structure members
-   * Copy status and rspLen at first which are needed by PE in any case.(success
-   * or failure).
-   */
-  wdiInNavMeasRspParams->wdiStatus =
-                     WDI_HAL_2_WDI_STATUS(halStartInNavMeasRspParams->status);
-  wdiInNavMeasRspParams->usRspLen  =   halStartInNavMeasRspParams->rspLen;
-  if ( WDI_STATUS_SUCCESS != wdiInNavMeasRspParams->wdiStatus)
-  {
-    wdiInNavMeasRspParams->ucNumBSSIDs = halStartInNavMeasRspParams->numBSSIDs ;
-
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-            "WDI INNAV RSP STATUS %d RSPLEN %d NUMBSSIDS %d \n ",
-               wdiInNavMeasRspParams->wdiStatus, wdiInNavMeasRspParams->usRspLen,
-                                          wdiInNavMeasRspParams->ucNumBSSIDs);
-    wdiInNavMeasRspParams->rttRssiResults->ucNumSuccessfulMeasurements = 0;
-  }
-
-  //Copy RTT RSSI values only if status is success
-  if ( WDI_STATUS_SUCCESS == wdiInNavMeasRspParams->wdiStatus)
-  {
-    wdiInNavMeasRspParams->ucNumBSSIDs =
-                               halStartInNavMeasRspParams->numBSSIDs;
-
-    /* copy RTT/RSSI results */
-
-    rttRssiResults    = &halStartInNavMeasRspParams->rttRssiResults[0] ;
-    wdiRttRssiResults = &wdiInNavMeasRspParams->rttRssiResults[0] ;
-    for(i = 0 ; i < wdiInNavMeasRspParams->ucNumBSSIDs ; i++)
-    {
-      wdiRttRssiResults->ucNumSuccessfulMeasurements =
-                       rttRssiResults->numSuccessfulMeasurements;
-
-      wpalMemoryCopy(wdiRttRssiResults->ucBssid,
-                     rttRssiResults->bssid,
-                     sizeof(wpt_macAddr));
-
-      for( j = 0; j < rttRssiResults->numSuccessfulMeasurements ; j++)
-      {
-        tRttRssiTimeData *rttRssiTimeData =
-                              &rttRssiResults->rttRssiTimeData[j] ;
-        WDI_RttRssiTimeData *wdiRttRssiTimeData =
-                              &wdiRttRssiResults->rttRssiTimeData[j] ;
-        wdiRttRssiTimeData->ucRssi = rttRssiTimeData->rssi ;
-        wdiRttRssiTimeData->usRtt = rttRssiTimeData->rtt ;
-        wdiRttRssiTimeData->usSnr = rttRssiTimeData->snr ;
-        wdiRttRssiTimeData->uslMeasurementTime =
-                                rttRssiTimeData->measurementTime ;
-        wdiRttRssiTimeData->uslMeasurementTimeHi =
-                                rttRssiTimeData->measurementTimeHi ;
-        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-                   "bssid num %d Iteration %d RSSI = %lu RTT = %d \n ",
-                         i, j, rttRssiTimeData->rssi, rttRssiTimeData->rtt);
-
-      } /* for j = 0... */
-      rttRssiResults = (tRttRssiResults *)((uint8 *)rttRssiResults +
-                            sizeof(tRttRssiResults) +
-                             (rttRssiResults->numSuccessfulMeasurements -1) *
-                                sizeof(tRttRssiTimeData));
-      wdiRttRssiResults = (WDI_RttRssiResults *)((uint8 *)wdiRttRssiResults +
-                            sizeof(WDI_RttRssiResults) +
-                             (wdiRttRssiResults->ucNumSuccessfulMeasurements - 1) *
-                                 sizeof(WDI_RttRssiTimeData));
-    }  /* for i = 0 .. */
-  } /* if status .. */
+  /* Populate WDI structure members */
+  wpalMemoryCopy(wdiOemDataRspParams->oemDataRsp, halStartOemDataRspParams->oemDataRsp, OEM_DATA_RSP_SIZE);
 
   /*Notify UMAC*/
-  wdiInNavMeasRspCb(wdiInNavMeasRspParams, pWDICtx->pRspCBUserData);
+  wdiOemDataRspCb(wdiOemDataRspParams, pWDICtx->pRspCBUserData);
 
-  //Free memory allocated for WDI INNAV MEAS RSP structure
-  wpalMemoryFree(wdiInNavMeasRspParams);
+  //Free memory allocated for WDI OEM_DATA MEAS RSP structure
+  wpalMemoryFree(wdiOemDataRspParams);
 
   return WDI_STATUS_SUCCESS;
-}/*WDI_PrcoessStartInNavMeasRsp*/
+}/*WDI_PrcoessStartOemDataRsp*/
 #endif
 
 /*===========================================================================
@@ -19755,6 +19695,7 @@ WDI_DequeueAssocRequest
         wpal_list_insert_front( &(pWDICtx->wptPendingQueue), &pNode);
         wpal_list_remove_back(&(pSession->wptPendingQueue), &pNode);
       }
+      pSession->bAssocReqQueued = eWLAN_PAL_FALSE;
   }
   else
   {
@@ -20513,10 +20454,10 @@ WDI_2_HAL_REQ_TYPE
     return WLAN_HAL_ADD_STA_SELF_REQ;
   case WDI_DEL_STA_SELF_REQ:
     return WLAN_HAL_DEL_STA_SELF_REQ;
-#ifdef FEATURE_INNAV_SUPPORT
-  case WDI_START_INNAV_MEAS_REQ:
-    return WLAN_HAL_START_INNAV_MEAS_REQ;
-#endif /* FEATURE_INNAV_SUPPORT */
+#ifdef FEATURE_OEM_DATA_SUPPORT
+  case WDI_START_OEM_DATA_REQ:
+    return WLAN_HAL_START_OEM_DATA_REQ;
+#endif /* FEATURE_OEM_DATA_SUPPORT */
   case WDI_HOST_RESUME_REQ:
     return WLAN_HAL_HOST_RESUME_REQ;
   case WDI_HOST_SUSPEND_IND:
@@ -20725,10 +20666,10 @@ HAL_2_WDI_RSP_TYPE
     return WDI_ADD_STA_SELF_RESP;
 case WLAN_HAL_DEL_STA_SELF_RSP:
     return WDI_DEL_STA_SELF_RESP;
-#ifdef FEATURE_INNAV_SUPPORT
-  case WLAN_HAL_START_INNAV_MEAS_RSP:
-    return WDI_START_INNAV_MEAS_RESP;
-#endif /* FEATURE_INNAV_SUPPORT */
+#ifdef FEATURE_OEM_DATA_SUPPORT
+  case WLAN_HAL_START_OEM_DATA_RSP:
+    return WDI_START_OEM_DATA_RESP;
+#endif /* FEATURE_OEM_DATA_SUPPORT */
   case WLAN_HAL_HOST_RESUME_RSP:
     return WDI_HOST_RESUME_RESP;
   case WLAN_HAL_KEEP_ALIVE_RSP:
@@ -21261,6 +21202,7 @@ WDI_CopyWDIStaCtxToHALStaCtx
   if(phalConfigSta_V1 != NULL)
   {
 	  phalConfigSta_V1->vhtCapable = pwdiConfigSta->ucVhtCapableSta;
+	  phalConfigSta_V1->vhtTxChannelWidthSet = pwdiConfigSta->ucVhtTxChannelWidthSet;
   }
 #endif
 }/*WDI_CopyWDIStaCtxToHALStaCtx*/;
@@ -21515,7 +21457,10 @@ WDI_CopyWDIConfigBSSToHALConfigBSS
 
 #ifdef WLAN_FEATURE_11AC
   if(phalConfigBSS_V1 != NULL)
-	  phalConfigBSS_V1->vhtCapable = pwdiConfigBSS->ucVhtCapableSta;
+  {
+      phalConfigBSS_V1->vhtCapable = pwdiConfigBSS->ucVhtCapableSta;
+      phalConfigBSS_V1->vhtTxChannelWidthSet = pwdiConfigBSS->ucVhtTxChannelWidthSet;
+  }
 #endif
 
 }/*WDI_CopyWDIConfigBSSToHALConfigBSS*/
@@ -24306,8 +24251,8 @@ WDI_featureCapsExchangeReq
    ------------------------------------------------------------------------*/
    FillAllFeatureCaps(gpHostWlanFeatCaps, supportEnabledFeatures,
       (sizeof(supportEnabledFeatures)/sizeof(supportEnabledFeatures[0])));
-   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-      "bit 0 - %x %x %x %x - bit 128\n",
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+      "Host caps %x %x %x %x\n",
       gpHostWlanFeatCaps->featCaps[0],
       gpHostWlanFeatCaps->featCaps[1],
       gpHostWlanFeatCaps->featCaps[2],
@@ -24381,7 +24326,7 @@ WDI_ProcessFeatureCapsExchangeReq
   }
 
   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-       "bit 0 - %x %x %x %x - bit 128\n",
+       "Host Caps - %x %x %x %x\n",
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[0],
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[1],
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[2],
@@ -24459,14 +24404,14 @@ WDI_ProcessFeatureCapsExchangeRsp
 
    wpalMemoryCopy(gpFwWlanFeatCaps,(tWlanFeatCaps *) pEventData -> pEventData,
                     fCapsStructSize);
-   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-      "bit 0 - %x %x %x %x - bit 128\n",
+   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+      "FW caps %x %x %x %x\n",
       gpFwWlanFeatCaps->featCaps[0],
       gpFwWlanFeatCaps->featCaps[1],
       gpFwWlanFeatCaps->featCaps[2],
       gpFwWlanFeatCaps->featCaps[3]
      );
-   
+
    wdiFeatureCapsExchangeCb = (WDI_featureCapsExchangeCb) pWDICtx -> pfncRspCB; 
 
    /*Notify UMAC - there is no callback right now but can be used in future if reqd */

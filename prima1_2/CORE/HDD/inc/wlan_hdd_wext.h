@@ -257,13 +257,14 @@ typedef struct hdd_wext_state_s
    /**Completion Variable*/
    struct completion completion_var;
 
-#ifdef FEATURE_INNAV_SUPPORT
-   /* Measurement in Progress */
-   v_BOOL_t inNavMeasurementInProgress;
+#ifdef FEATURE_OEM_DATA_SUPPORT
+   /* oem data req in Progress */
+   v_BOOL_t oemDataReqInProgress;
 
-   /* Measurement ID */
-   v_U32_t inNavMeasurementID;
+   /* oem data req ID */
+   v_U32_t oemDataReqID;
 #endif
+
 #ifdef FEATURE_WLAN_CCX
    /* CCX state variables */
    v_BOOL_t isCCXConnection;
