@@ -310,10 +310,16 @@ ibss_sta_rates_update(
     tLimIbssPeerNode *pPeer,
     tpPESession       psessionEntry)
 {
+#ifdef WLAN_FEATURE_11AC
+    limPopulateMatchingRateSet(pMac, pStaDs, &pPeer->supportedRates,
+                               &pPeer->extendedRates, pPeer->supportedMCSSet,
+                               &pStaDs->mlmStaContext.propRateSet,psessionEntry,NULL);
+#else
     // Populate supported rateset
     limPopulateMatchingRateSet(pMac, pStaDs, &pPeer->supportedRates,
                                &pPeer->extendedRates, pPeer->supportedMCSSet,
                                &pStaDs->mlmStaContext.propRateSet,psessionEntry);
+#endif
 
     pStaDs->mlmStaContext.capabilityInfo = pPeer->capabilityInfo;
 } /*** end ibss_sta_info_update() ***/

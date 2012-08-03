@@ -114,9 +114,13 @@ typedef enum
     eCSR_DOT11_MODE_TAURUS_ONLY = 0x0200,
     eCSR_DOT11_MODE_11b_ONLY = 0x0400,
     eCSR_DOT11_MODE_11a_ONLY = 0x0800,
+#ifdef WLAN_FEATURE_11AC
+    eCSR_DOT11_MODE_11ac     = 0x1000,
+    eCSR_DOT11_MODE_11ac_ONLY = 0x2000,
+#endif
     //This is for WIFI test. It is same as eWNIAPI_MAC_PROTOCOL_ALL except when it starts IBSS in 11B of 2.4GHz
     //It is for CSR internal use
-    eCSR_DOT11_MODE_AUTO = 0x1000,
+    eCSR_DOT11_MODE_AUTO = 0x4000,
 
     eCSR_NUM_PHY_MODE = 16,     //specify the number of maximum bits for phyMode
 }eCsrPhyMode;
@@ -977,6 +981,9 @@ typedef struct tagCsrConfigParam
 
     //To enable/disable scanning 2.4Ghz channels twice on a single scan request from HDD
     tANI_BOOLEAN fScanTwice;
+#ifdef WLAN_FEATURE_11AC
+    tANI_U32  nVhtChannelWidth;
+#endif
 
 }tCsrConfigParam;   
 

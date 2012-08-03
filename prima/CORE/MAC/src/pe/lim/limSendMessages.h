@@ -16,18 +16,14 @@
 #ifndef __LIM_SEND_MESSAGES_H
 #define __LIM_SEND_MESSAGES_H
 
-
-
 #include "aniGlobal.h"
 #include "limTypes.h"
 #include "halMsgApi.h"
 #include "sirParams.h"    
-
 tSirRetStatus limSendCFParams(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 cfpCount, tANI_U8 cfpPeriod);
 tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, 
                                   tpUpdateBeaconParams pUpdatedBcnParams,
                                   tpPESession  psessionEntry );
-
 //tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, tpUpdateBeaconParams pUpdatedBcnParams);
 #if defined WLAN_FEATURE_VOWIFI  
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, tANI_U8 chnlNumber, 
@@ -48,9 +44,7 @@ state,tSirMacAddr bssId, tSirMacAddr selfMacAddr, int ft, tpPESession psessionEn
 #endif
 tSirRetStatus limSendSetTxPowerReq(tpAniSirGlobal pMac, tpSirSetTxPowerReq pTxPowerReq);
 tSirRetStatus limSendGetTxPowerReq(tpAniSirGlobal pMac, tpSirGetTxPowerReq pTxPowerReq);
-
 void limSetActiveEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *plocalEdcaParams, tpPESession psessionEntry);
-
 #define CAPABILITY_FILTER_MASK  0x73CF
 #define ERP_FILTER_MASK         0xF8
 #define EDCA_FILTER_MASK        0xF0
@@ -60,8 +54,6 @@ void limSetActiveEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *plocalE
 #define HT_BYTE5_FILTER_MASK    0xFD
 #define DS_PARAM_CHANNEL_MASK   0x0
 
-
 tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac);
-
 
 #endif

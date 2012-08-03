@@ -495,9 +495,14 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
             pAddBssParams->staContext.wmmEnabled = 0;
 
         //Update the rates
-        
+#ifdef WLAN_FEATURE_11AC
+        limPopulateOwnRateSet(pMac, &pAddBssParams->staContext.supportedRates, 
+                             beaconStruct.HTCaps.supportedMCSSet, 
+                             false,pftSessionEntry,&beaconStruct.VHTCaps);
+#else
         limPopulateOwnRateSet(pMac, &pAddBssParams->staContext.supportedRates, 
                                                     beaconStruct.HTCaps.supportedMCSSet, false,pftSessionEntry);
+#endif
         limFillSupportedRatesInfo(pMac, NULL, &pAddBssParams->staContext.supportedRates,pftSessionEntry);
 
     }

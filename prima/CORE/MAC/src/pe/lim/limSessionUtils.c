@@ -1,9 +1,7 @@
 /**=========================================================================
-  
-  \file  limSessionUtils.c
-  
-  \brief implementation for lim Session Utility  APIs
 
+  \file  limSessionUtils.c
+  \brief implementation for lim Session Utility  APIs
   \author Sunit Bhatia
   
   Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
@@ -23,8 +21,63 @@
 #include "limSessionUtils.h"
 #include "limUtils.h"
 
+/*--------------------------------------------------------------------------
+  \brief peGetVhtCapable() - Returns the Vht capable from a valid session.
+
+  This function itrates the session Table and returns the VHT capable from first valid session
+   if no sessions are valid/present  it returns FALSE
+    
+  \param pMac                   - pointer to global adapter context
+  \return                           - channel to scan from valid session else zero.
+  
+  \sa
+  
+  --------------------------------------------------------------------------*/
+tANI_U8 peGetVhtCapable(tpAniSirGlobal pMac)
+
+{
+#ifdef WLAN_FEATURE_11AC
+    tANI_U8 i;
+    //assumption here is that all the sessions will be on the same channel.
+    //This function will not work, once we have multiple channel support.
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid)
+        {
+            return(pMac->lim.gpSession[i].vhtCapability);  
+        }
+    }
+#endif
+    return FALSE;
+}
+/*--------------------------------------------------------------------------
+  \brief peGetCurrentChannel() - Returns the  channel number for scanning, 
+                                from a valid session.
+   This function itrates the session Table and returns the channel number 
+   from first valid session if no sessions are valid/present  it returns zero
+
+  \param pMac                   - pointer to global adapter context
+  \return                       - channel to scan from valid session else zero.
+  \sa
+  --------------------------------------------------------------------------*/
+tANI_U8 peGetCurrentChannel(tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+    //assumption here is that all the sessions will be on the same channel.
+    //This function will not work, once we have multiple channel support.
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid)
+        {
+            return(pMac->lim.gpSession[i].currentOperChannel);
+        }
+    }
+    return(HAL_INVALID_CHANNEL_ID);
+}
+
 
 /*--------------------------------------------------------------------------
+
   \brief peValidateJoinReq() - validates the Join request .
 
   This function is called to validate the Join Request for a BT-AMP station. If start BSS session is present

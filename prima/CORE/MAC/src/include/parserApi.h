@@ -109,6 +109,12 @@ typedef struct sSirProbeRespBeacon
     tANI_U8                   mdiePresent;
 #endif
 
+#ifdef WLAN_FEATURE_11AC
+    tDot11fIEVHTCaps          VHTCaps;
+    tDot11fIEVHTOperation     VHTOperation;
+    tDot11fIEVHTExtBssLoad    VHTExtBssLoad;
+#endif
+
 } tSirProbeRespBeacon, *tpSirProbeRespBeacon;
 
 // probe Request structure
@@ -124,6 +130,10 @@ typedef struct sSirProbeReq
     tANI_U8                   extendedRatesPresent;
     tANI_U8                   wscIePresent;
     tANI_U8                   p2pIePresent;
+#ifdef WLAN_FEATURE_11AC
+    tDot11fIEVHTCaps          VHTCaps;
+#endif
+
 
 } tSirProbeReq, *tpSirProbeReq;
 
@@ -176,6 +186,9 @@ typedef struct sSirAssocReq
     tANI_U32                  assocReqFrameLength;
     tANI_U8*                  assocReqFrame;
 #endif
+#ifdef WLAN_FEATURE_11AC
+    tDot11fIEVHTCaps          VHTCaps;
+#endif
 } tSirAssocReq, *tpSirAssocReq;
 
 
@@ -223,6 +236,10 @@ typedef struct sSirAssocRsp
     tANI_U8                   tspecPresent;
     tANI_U8                   tsmPresent;
 #endif    
+#ifdef WLAN_FEATURE_11AC
+    tDot11fIEVHTCaps          VHTCaps;
+    tDot11fIEVHTOperation     VHTOperation;
+#endif
 } tSirAssocRsp, *tpSirAssocRsp;
 
 tANI_U8
@@ -829,4 +846,16 @@ void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSup
 int FindIELocation( tpAniSirGlobal pMac,
                            tpSirRSNie pRsnIe,
                            tANI_U8 EID);
+#endif
+
+#ifdef WLAN_FEATURE_11AC
+tSirRetStatus
+PopulateDot11fVHTCaps(tpAniSirGlobal  pMac, tDot11fIEVHTCaps *pDot11f);
+
+tSirRetStatus
+PopulateDot11fVHTOperation(tpAniSirGlobal  pMac, tDot11fIEVHTOperation  *pDot11f);
+
+tSirRetStatus
+PopulateDot11fVHTExtBssLoad(tpAniSirGlobal  pMac, tDot11fIEVHTExtBssLoad   *pDot11f);
+
 #endif

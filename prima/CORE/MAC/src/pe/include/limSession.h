@@ -271,7 +271,10 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8  gLimEdcaParamSetCount;
 
     tBeaconParams beaconParams;
-
+#ifdef WLAN_FEATURE_11AC
+    tANI_U8 vhtCapability;
+    tANI_U8 vhtTxChannelWidthSet;
+#endif
     tANI_U8            spectrumMgtEnabled;
     /* *********************11H related*****************************/
     //tANI_U32           gLim11hEnable;

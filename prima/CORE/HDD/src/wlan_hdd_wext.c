@@ -170,6 +170,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_CFG           3
 #define WE_GET_WMM_STATUS    4
 #define WE_GET_CHANNEL_LIST  5
+#ifdef WLAN_FEATURE_11AC
+#define WE_GET_RSSI          6
+#endif
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
@@ -3774,7 +3777,17 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             wrqu->data.length = strlen(extra)+1;
             break;
         }
-
+#ifdef WLAN_FEATURE_11AC
+        case WE_GET_RSSI:
+        {
+            v_S7_t s7Rssi = 0;
+            wlan_hdd_get_rssi(pAdapter, &s7Rssi);
+            snprintf(extra, WE_MAX_STR_LEN, "rssi=%d",s7Rssi);
+            wrqu->data.length = strlen(extra)+1;
+            break;
+        }
+#endif
+           
         case WE_GET_WMM_STATUS:
         {
             snprintf(extra, WE_MAX_STR_LEN,
@@ -3799,6 +3812,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                     pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BK].wmmAcAccessRequired,
                     pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BK].wmmAcAccessAllowed?"YES":"NO",
                     pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BK].wmmAcTspecInfo.ts_info.direction);
+
 
             wrqu->data.length = strlen(extra)+1;
             break;
@@ -5819,6 +5833,12 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "getConfig" },
+#ifdef WLAN_FEATURE_11AC
+    {   WE_GET_RSSI,
+        0,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        "getRSSI" },
+#endif
     {   WE_GET_WMM_STATUS,
         0,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,

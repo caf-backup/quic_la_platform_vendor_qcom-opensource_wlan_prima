@@ -74,9 +74,15 @@ typedef enum
     eCSR_CFG_DOT11_MODE_11N,   
     eCSR_CFG_DOT11_MODE_POLARIS,    
     eCSR_CFG_DOT11_MODE_TITAN,    
+#ifdef WLAN_FEATURE_11AC
+    eCSR_CFG_DOT11_MODE_11AC,
+#endif
 #ifdef WLAN_SOFTAP_FEATURE
     eCSR_CFG_DOT11_MODE_11G_ONLY,    
     eCSR_CFG_DOT11_MODE_11N_ONLY,   
+#endif 
+#ifdef WLAN_FEATURE_11AC
+    eCSR_CFG_DOT11_MODE_11AC_ONLY,
 #endif 
     //This value can never set to CFG. It is for CSR's internal use
     eCSR_CFG_DOT11_MODE_AUTO,
@@ -553,6 +559,9 @@ typedef struct tagCsrConfig
 
     //To enable/disable scanning 2.4Ghz channels twice on a single scan request from HDD
     tANI_BOOLEAN fScanTwice;
+#ifdef WLAN_FEATURE_11AC
+    tANI_U32  nVhtChannelWidth;
+#endif
 
 }tCsrConfig;
 
@@ -897,10 +906,19 @@ typedef struct tagCsrRoamStruct
         ((eCSR_DOT11_MODE_11a == (pMac)->roam.configParam.phyMode) ||\
         (eCSR_DOT11_MODE_11a_ONLY == (pMac)->roam.configParam.phyMode))
         
+#ifdef WLAN_FEATURE_11AC
+#define CSR_IS_PHY_MODE_DUAL_BAND(phyMode) \
+        ((eCSR_DOT11_MODE_abg & (phyMode)) || (eCSR_DOT11_MODE_11n & (phyMode)) || \
+        (eCSR_DOT11_MODE_11ac & (phyMode)) || \
+        (eCSR_DOT11_MODE_TAURUS & (phyMode)) || \
+        (eCSR_DOT11_MODE_AUTO & (phyMode)))
+#else
 #define CSR_IS_PHY_MODE_DUAL_BAND(phyMode) \
         ((eCSR_DOT11_MODE_abg & (phyMode)) || (eCSR_DOT11_MODE_11n & (phyMode)) || \
         (eCSR_DOT11_MODE_TAURUS & (phyMode)) || \
         (eCSR_DOT11_MODE_AUTO & (phyMode)))
+#endif
+
 
 // this function returns TRUE if the NIC is operating exclusively in the 2.4 GHz band, meaning
 // it is NOT operating in the 5.0 GHz band.

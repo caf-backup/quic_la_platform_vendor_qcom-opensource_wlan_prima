@@ -100,11 +100,22 @@
 #define IS_DOT11_MODE_HT(dot11Mode) \
         (((dot11Mode == WNI_CFG_DOT11_MODE_11N) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_11N_ONLY) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_11AC) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_11AC_ONLY) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_TAURUS) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
 #else
 #define IS_DOT11_MODE_HT(dot11Mode) \
         (((dot11Mode == WNI_CFG_DOT11_MODE_11N) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_TAURUS) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_11AC) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
+#endif
+
+#ifdef WLAN_FEATURE_11AC
+#define IS_DOT11_MODE_VHT(dot11Mode) \
+        (((dot11Mode == WNI_CFG_DOT11_MODE_11AC) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_11AC_ONLY) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_TAURUS) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
 #endif

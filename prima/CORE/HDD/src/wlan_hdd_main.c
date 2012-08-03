@@ -3553,7 +3553,7 @@ int hdd_wlan_startup(struct device *dev )
          */
       if (((versionReported.major>0) || (versionReported.minor>1) || 
          ((versionReported.minor>=1) && (versionReported.version>=1)))
-         && ((versionReported.major == 1) && (versionReported.minor == 1)))
+         && ((versionReported.major == 1) && (versionReported.minor >= 1)))
          fwFeatCapsMsgSupported = 1;
       if (fwFeatCapsMsgSupported)
          sme_featureCapsExchange(pHddCtx->hHal);

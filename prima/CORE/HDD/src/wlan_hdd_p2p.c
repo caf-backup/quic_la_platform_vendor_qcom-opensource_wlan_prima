@@ -204,7 +204,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
          ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
        )
     {
-        tANI_U8 sessionId = pAdapter->sessionId; 
+        tANI_U8 sessionId = pAdapter->sessionId;
         //call sme API to start remain on channel.
         sme_RemainOnChannel(
                        WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId,
@@ -541,9 +541,8 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
          ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
        )
     {
-        tANI_U8 sessionId = pAdapter->sessionId;         
-        
-        if ((type == SIR_MAC_MGMT_FRAME) && 
+        tANI_U8 sessionId = pAdapter->sessionId;
+        if ((type == SIR_MAC_MGMT_FRAME) &&
                 (subType == SIR_MAC_MGMT_ACTION) &&
                 (buf[WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET] == WLAN_HDD_PUBLIC_ACTION_FRAME))
         {

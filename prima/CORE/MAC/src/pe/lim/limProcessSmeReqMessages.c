@@ -430,7 +430,62 @@ __limProcessSmeSysReadyInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     return eANI_BOOLEAN_FALSE;
 }
 
+#ifdef WLAN_FEATURE_11AC
 
+tANI_U32 limGetCenterChannel(tpAniSirGlobal pMac,tANI_U8 primarychanNum,tANI_U8 secondaryChanOffset, tANI_U8 chanWidth)
+{
+    if (chanWidth == WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
+    {
+        switch(secondaryChanOffset)
+        {
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_CENTERED_40MHZ_CENTERED:
+                return primarychanNum;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_LOW_40MHZ_CENTERED:
+               return primarychanNum + 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_HIGH_40MHZ_CENTERED:
+               return primarychanNum - 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_LOW_40MHZ_LOW:
+               return primarychanNum + 6;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_HIGH_40MHZ_LOW:
+               return primarychanNum + 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_LOW_40MHZ_HIGH:
+               return primarychanNum - 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_HIGH_40MHZ_HIGH:
+               return primarychanNum - 6;
+            default :
+               return eSIR_CFG_INVALID_ID;
+        }
+    }
+    else if (chanWidth == WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
+    {
+        switch(secondaryChanOffset)
+        {
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_LOWER:
+                return primarychanNum + 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_HIGHER:
+                return primarychanNum - 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_CENTERED_40MHZ_CENTERED:
+                return primarychanNum;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_LOW_40MHZ_CENTERED:
+               return primarychanNum + 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_HIGH_40MHZ_CENTERED:
+               return primarychanNum - 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_LOW_40MHZ_LOW:
+               return primarychanNum + 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_HIGH_40MHZ_LOW:
+               return primarychanNum - 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_LOW_40MHZ_HIGH:
+               return primarychanNum + 2;
+            case WNI_CFG_CB_SECONDARY_CHANNEL_STATE_11AC_20MHZ_HIGH_40MHZ_HIGH:
+               return primarychanNum - 2;
+            default :
+               return eSIR_CFG_INVALID_ID;
+        }
+    }
+    return primarychanNum;
+}
+
+#endif
 /**
  * __limHandleSmeStartBssRequest()
  *
@@ -569,7 +624,11 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->dot11mode = pSmeStartBssReq->dot11mode;
         psessionEntry->htCapabality = IS_DOT11_MODE_HT(psessionEntry->dot11mode);
-
+#ifdef WLAN_FEATURE_11AC
+        psessionEntry->vhtCapability = IS_DOT11_MODE_VHT(psessionEntry->dot11mode);
+        VOS_TRACE(VOS_MODULE_ID_PE,VOS_TRACE_LEVEL_FATAL,
+            FL("*****psessionEntry->vhtCapability = %d\n"),psessionEntry->vhtCapability);
+#endif
         palCopyMemory(pMac->hHdd, (void*)&psessionEntry->rateSet,
             (void*)&pSmeStartBssReq->operationalRateSet,
             sizeof(tSirMacRateSet));
@@ -654,8 +713,93 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         if (pSmeStartBssReq->channelId)
         {
             channelNumber = pSmeStartBssReq->channelId;
-            /*Update cbMode received from sme with LIM's updated cbMode*/
-            pSmeStartBssReq->cbMode = (tAniCBSecondaryMode)pMac->lim.gCbMode;
+#ifdef WLAN_FEATURE_11AC
+            if(psessionEntry->vhtCapability)
+            {
+                tANI_U32 sChanState;
+                tANI_U32 centerChan;
+                tANI_U32 chanWidth;
+
+                if (wlan_cfgGetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE,
+                          &sChanState) != eSIR_SUCCESS)
+                {
+                    limLog(pMac, LOGP,
+                      FL("Unable to retrieve Secondary Channel State from CFG\n"));
+                }
+                if (wlan_cfgGetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
+                          &chanWidth) != eSIR_SUCCESS)
+                {
+                    limLog(pMac, LOGP,
+                      FL("Unable to retrieve Channel Width from CFG\n"));
+                }
+                pSmeStartBssReq->cbMode = sChanState;
+
+                if(chanWidth == eHT_CHANNEL_WIDTH_40MHZ || chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
+                {
+                    pMac->lim.gHTRecommendedTxWidthSet = eHT_CHANNEL_WIDTH_40MHZ;
+                }
+                else if( chanWidth == eHT_CHANNEL_WIDTH_20MHZ)
+                {
+                    pMac->lim.gHTRecommendedTxWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
+                }
+                else {
+                    limLog(pMac, LOGP, FL("Invalid Channel Width\n"));
+                }
+
+                if(chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
+                {
+                    if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH, WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
+                                                                     != eSIR_SUCCESS)
+                    {
+                        limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG\n"));
+                        retCode = eSIR_LOGP_EXCEPTION;
+                         goto free;
+                    }
+                }
+                if(chanWidth == eHT_CHANNEL_WIDTH_40MHZ || chanWidth == eHT_CHANNEL_WIDTH_20MHZ)
+                {
+                    if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH, WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
+                                                                     != eSIR_SUCCESS)
+                    {
+                        limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG\n"));
+                        retCode = eSIR_LOGP_EXCEPTION;
+                         goto free;
+                    }
+                }
+                if (chanWidth == eHT_CHANNEL_WIDTH_80MHZ)
+                {
+                    centerChan = limGetCenterChannel(pMac,channelNumber,sChanState,WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ);
+                    if(centerChan != eSIR_CFG_INVALID_ID)
+                    {
+                        limLog(pMac, LOGW, FL("***Center Channel for 80MHZ channel width = %ld\n"),centerChan);
+                        if (cfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_CENTER_FREQ_SEGMENT1, centerChan)
+                                                                     != eSIR_SUCCESS)
+                        {
+                            limLog(pMac, LOGP, FL("could not set  WNI_CFG_CHANNEL_BONDING_MODE at CFG\n"));
+                            retCode = eSIR_LOGP_EXCEPTION;
+                            goto free;
+                        }
+                    }
+                }
+
+                /* All the translation is done by now for gVhtChannelWidth from .ini file to 
+                 * the actual values as defined in spec. So, grabing the spec value which is 
+                 * updated in .dat file by the above logic */
+                if (wlan_cfgGetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,
+                                   &chanWidth) != eSIR_SUCCESS)
+                {
+                    limLog(pMac, LOGP,
+                      FL("Unable to retrieve Channel Width from CFG\n"));
+                }
+
+                psessionEntry->vhtTxChannelWidthSet = chanWidth;
+            }
+            else
+#endif
+            {
+                /*Update cbMode received from sme with LIM's updated cbMode*/
+                 pSmeStartBssReq->cbMode = (tAniCBSecondaryMode)pMac->lim.gCbMode;
+            }
 
             setupCBState( pMac, pSmeStartBssReq->cbMode );
             pMac->lim.gHTSecondaryChannelOffset = limGetHTCBState(pSmeStartBssReq->cbMode);
@@ -1436,6 +1580,11 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->dot11mode  = pSmeJoinReq->dot11mode;
         psessionEntry->nwType = pSmeJoinReq->bssDescription.nwType;
+#ifdef WLAN_FEATURE_11AC
+        psessionEntry->vhtCapability = IS_DOT11_MODE_VHT(psessionEntry->dot11mode);
+        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL,
+            "***__limProcessSmeJoinReq: vhtCapability=%d****\n",psessionEntry->vhtCapability);
+#endif
 
         /*Phy mode*/
         psessionEntry->gLimPhyMode = pSmeJoinReq->bssDescription.nwType;

@@ -162,7 +162,17 @@ typedef enum
 {
   WDI_SECONDARY_CHANNEL_OFFSET_NONE   = 0,
   WDI_SECONDARY_CHANNEL_OFFSET_UP     = 1,
-  WDI_SECONDARY_CHANNEL_OFFSET_DOWN   = 3
+  WDI_SECONDARY_CHANNEL_OFFSET_DOWN   = 3,
+#ifdef WLAN_FEATURE_11AC
+  WDI_CHANNEL_20MHZ_LOW_40MHZ_CENTERED = 4, //20/40MHZ offset LOW 40/80MHZ offset CENTERED
+  WDI_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED = 5, //20/40MHZ offset CENTERED 40/80MHZ offset CENTERED
+  WDI_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED = 6, //20/40MHZ offset HIGH 40/80MHZ offset CENTERED
+  WDI_CHANNEL_20MHZ_LOW_40MHZ_LOW = 7,//20/40MHZ offset LOW 40/80MHZ offset LOW
+  WDI_CHANNEL_20MHZ_HIGH_40MHZ_LOW = 8, //20/40MHZ offset HIGH 40/80MHZ offset LOW
+  WDI_CHANNEL_20MHZ_LOW_40MHZ_HIGH = 9, //20/40MHZ offset LOW 40/80MHZ offset HIGH
+  WDI_CHANNEL_20MHZ_HIGH_40MHZ_HIGH = 10,//20/40MHZ offset-HIGH 40/80MHZ offset HIGH
+#endif
+  WDI_SECONDARY_CHANNEL_OFFSET_MAX
 }WDI_HTSecondaryChannelOffset;
 
 /*---------------------------------------------------------------------------
@@ -868,7 +878,17 @@ typedef enum
   WDI_PHY_SINGLE_CHANNEL_CENTERED = 0,            
   WDI_PHY_DOUBLE_CHANNEL_LOW_PRIMARY = 1,     
   WDI_PHY_DOUBLE_CHANNEL_CENTERED = 2,            
-  WDI_PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3     
+  WDI_PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3,
+#ifdef WLAN_FEATURE_11AC
+  WDI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED = 4, //20/40MHZ offset LOW 40/80MHZ offset CENTERED
+  WDI_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED = 5, //20/40MHZ offset CENTERED 40/80MHZ offset CENTERED
+  WDI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED = 6, //20/40MHZ offset HIGH 40/80MHZ offset CENTERED
+  WDI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW = 7,//20/40MHZ offset LOW 40/80MHZ offset LOW
+  WDI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW = 8, //20/40MHZ offset HIGH 40/80MHZ offset LOW
+  WDI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH = 9, //20/40MHZ offset LOW 40/80MHZ offset HIGH
+  WDI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH = 10,//20/40MHZ offset-HIGH 40/80MHZ offset HIGH
+#endif
+  WDI_MAX_CB_STATE
 } WDI_PhyChanBondState;
 
 /*---------------------------------------------------------------------------
@@ -1136,6 +1156,20 @@ typedef struct
      */
     wpt_uint16         aRxHighestDataRate;
 
+   
+#ifdef WLAN_FEATURE_11AC
+   /*Indicates the Maximum MCS that can be received for each number
+        of spacial streams */
+    wpt_uint16         vhtRxMCSMap;
+  /*Indicate the highest VHT data rate that the STA is able to receive*/
+    wpt_uint16         vhtRxHighestDataRate;
+  /*Indicates the Maximum MCS that can be transmitted  for each number
+       of spacial streams */
+    wpt_uint16         vhtTxMCSMap;
+  /*Indicate the highest VHT data rate that the STA is able to transmit*/
+    wpt_uint16         vhtTxHighestDataRate;
+#endif
+
 } WDI_SupportedRates;
 
 /*-------------------------------------------------------------------------- 
@@ -1248,6 +1282,10 @@ typedef struct
   wpt_uint8                 ucDsssCckMode40Mhz;
 
   wpt_uint8                 ucP2pCapableSta;
+#ifdef WLAN_FEATURE_11AC
+  wpt_uint8                 ucVhtCapableSta;
+  wpt_uint8                 ucVhtTxChannelWidthSet;
+#endif
 }WDI_ConfigStaReqInfoType;
 
 
@@ -1779,6 +1817,11 @@ typedef struct
 #ifdef WLAN_FEATURE_VOWIFI_11R
   wpt_uint8                 bExtSetStaKeyParamValid;
   WDI_SetSTAKeyReqInfoType  wdiExtSetKeyParam;
+#endif
+
+#ifdef WLAN_FEATURE_11AC
+  wpt_uint8                 ucVhtCapableSta;
+  wpt_uint8                 ucVhtTxChannelWidthSet;
 #endif
 
 }WDI_ConfigBSSReqInfoType;
@@ -8720,8 +8763,8 @@ wpt_uint8 WDI_getHostWlanFeatCaps(wpt_uint8 feat_enum_value);
  
  @param 
   
-        feat_enum_value: enum value for the feature as in placeHolderInCapBitmap
-                                    in wlan_hal_msg.h.
+        feat_enum_value: enum value for the feature as in placeHolderInCapBitmap 
+        in wlan_hal_msg.h.
 
  @see
  @return 

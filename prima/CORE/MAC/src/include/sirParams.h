@@ -38,8 +38,28 @@ typedef enum
     PHY_DOUBLE_CHANNEL_LOW_PRIMARY = 1,     // 40MHz IF bandwidth with lower 20MHz supporting the primary channel
     //not allowed PHY_DOUBLE_CHANNEL_CENTERED = 2,        // 40MHz IF bandwidth centered on IF carrier
     PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3     // 40MHz IF bandwidth with higher 20MHz supporting the primary channel
+#ifdef WLAN_FEATURE_11AC
+    ,     
+    PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED = 4, //20/40MHZ offset LOW 40/80MHZ offset CENTERED
+    PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED = 5, //20/40MHZ offset CENTERED 40/80MHZ offset CENTERED
+    PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED = 6, //20/40MHZ offset HIGH 40/80MHZ offset CENTERED
+    PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW = 7,//20/40MHZ offset LOW 40/80MHZ offset LOW
+    PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW = 8, //20/40MHZ offset HIGH 40/80MHZ offset LOW
+    PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH = 9, //20/40MHZ offset LOW 40/80MHZ offset HIGH
+    PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH = 10//20/40MHZ offset-HIGH 40/80MHZ offset HIGH
+#endif
 }ePhyChanBondState;
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
+
+#define SIR_MIN(a,b)   (((a) < (b)) ? (a) : (b))
+#define SIR_MAX(a,b)   (((a) > (b)) ? (a) : (b))
+
+typedef enum {
+   MCC	   = 0,
+   P2P	   = 1,
+   DOT11AC = 2,
+   MAX_FEATURE_SUPPORTED = 128,
+} placeHolderInCapBitmap;
 
 typedef enum eSriLinkState {
     eSIR_LINK_IDLE_STATE        = 0,

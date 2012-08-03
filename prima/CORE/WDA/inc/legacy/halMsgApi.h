@@ -284,6 +284,11 @@ typedef struct
     tANI_U8     p2pCapableSta;
 #endif
 
+#ifdef WLAN_FEATURE_11AC
+    tANI_U8    vhtCapable;
+    tANI_U8    vhtTxChannelWidthSet;
+#endif
+
 } tAddStaParams, *tpAddStaParams;
 
 
@@ -487,7 +492,10 @@ typedef struct
 
     //Spectrum Management Capability, 1 - Enabled, 0 - Disabled.
     tANI_U8 bSpectrumMgtEnabled;
-
+#ifdef WLAN_FEATURE_11AC
+    tANI_U8 vhtCapable;
+    tANI_U8    vhtTxChannelWidthSet;
+#endif
 } tAddBssParams, * tpAddBssParams;
 
 typedef struct

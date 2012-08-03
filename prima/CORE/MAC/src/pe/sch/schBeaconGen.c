@@ -328,6 +328,16 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
         PopulateDot11fHTInfo( pMac, &bcn2.HTInfo );
 #endif
     }
+#ifdef WLAN_FEATURE_11AC
+    if(psessionEntry->vhtCapability)
+    {        
+        limLog( pMac, LOGW, FL("Populate VHT IEs in Beacon\n"));
+        PopulateDot11fVHTCaps( pMac, &bcn2.VHTCaps );
+        PopulateDot11fVHTOperation( pMac, &bcn2.VHTOperation);
+        // we do not support multi users yet
+        //PopulateDot11fVHTExtBssLoad( pMac, &bcn2.VHTExtBssLoad);
+    }
+#endif
 
     PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
                                 &bcn2.ExtSuppRates, psessionEntry );
@@ -612,6 +622,30 @@ void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal pMac,
                             (void *)&beacon2->HTInfo,
                             sizeof(beacon2->HTInfo));
     }
+
+#ifdef WLAN_FEATURE_11AC
+    if(beacon2->VHTCaps.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_VHT_CAPABILITIES_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->VHTCaps,
+                            (void *)&beacon2->VHTCaps,
+                            sizeof(beacon2->VHTCaps));
+    }
+    if(beacon2->VHTOperation.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_VHT_OPERATION_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->VHTOperation,
+                            (void *)&beacon2->VHTOperation,
+                            sizeof(beacon2->VHTOperation));
+    }
+    if(beacon2->VHTExtBssLoad.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_VHT_EXT_BSS_LOAD_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->VHTExtBssLoad,
+                            (void *)&beacon2->VHTExtBssLoad,
+                            sizeof(beacon2->VHTExtBssLoad));
+    }
+#endif
 
     //WMM IE
     if(beacon2->WMMParams.present)

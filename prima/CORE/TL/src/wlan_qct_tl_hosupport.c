@@ -440,6 +440,11 @@ VOS_STATUS WLANTL_StatHandleRXFrame
 
    /* TODO caculation is needed, dimension of 500kbps */
    statistics->rxRate = WDA_GET_RX_MAC_RATE_IDX(pBDHeader);
+   
+   TLLOG1(VOS_TRACE (VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_MED,
+                  "****Received rate Index = %ld type=%d subtype=%d****\n",
+                  statistics->rxRate,WDA_GET_RX_TYPE(pBDHeader),WDA_GET_RX_SUBTYPE(pBDHeader)));
+
    statistics->rxBcnt += (packetSize - WLANHAL_RX_BD_HEADER_SIZE);
 
 #ifdef WLANTL_HO_DEBUG_MSG

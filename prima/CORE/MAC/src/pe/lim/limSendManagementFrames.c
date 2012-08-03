@@ -267,11 +267,29 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
            PopulateDot11fHTCaps( pMac, &pr.HTCaps );
        }
     } else {
-           if (pMac->lim.htCapability)
-           {
-               PopulateDot11fHTCaps( pMac, &pr.HTCaps );
-           }
+         if (pMac->lim.htCapability)
+         {
+             PopulateDot11fHTCaps( pMac, &pr.HTCaps );
+         }
     }
+#ifdef WLAN_FEATURE_11AC
+    if (psessionEntry != NULL ) {
+       psessionEntry->vhtCapability = IS_DOT11_MODE_VHT(dot11mode);
+       //Include HT Capability IE
+       if (psessionEntry->vhtCapability)
+       {
+          limLog( pMac, LOGW, FL("Populate VHT IEs in Probe Request\n"));
+          PopulateDot11fVHTCaps( pMac, &pr.VHTCaps );
+       }
+    }  else {
+       if (IS_DOT11_MODE_VHT(dot11mode))
+       {
+          limLog( pMac, LOGW, FL("Populate VHT IEs in Probe Request\n"));
+          PopulateDot11fVHTCaps( pMac, &pr.VHTCaps );
+       }
+    }
+#endif
+
 
     // That's it-- now we pack it.  First, how much space are we going to
     // need?
@@ -590,6 +608,16 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         PopulateDot11fHTInfo( pMac, &frm.HTInfo );
 #endif
     }
+#ifdef WLAN_FEATURE_11AC
+    if(psessionEntry->vhtCapability)
+    {
+        limLog( pMac, LOGW, FL("Populate VHT IE in Probe Response\n"));
+        PopulateDot11fVHTCaps( pMac, &frm.VHTCaps );
+        PopulateDot11fVHTOperation( pMac, &frm.VHTOperation );
+        // we do not support multi users yet
+        //PopulateDot11fVHTExtBssLoad( pMac, &frm.VHTExtBssLoad );
+    }
+#endif
 
     if ( psessionEntry->pLimStartBssReq ) 
     {
@@ -1518,6 +1546,17 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
             PopulateDot11fHTInfo( pMac, &frm.HTInfo );
 #endif
         }
+
+#ifdef WLAN_FEATURE_11AC
+        if( pSta->mlmStaContext.vhtCapability && 
+            psessionEntry->vhtCapability )
+        {
+            limLog( pMac, LOGW, FL("Populate VHT IEs in Assoc Response\n"));
+            PopulateDot11fVHTCaps( pMac, &frm.VHTCaps );
+            PopulateDot11fVHTOperation( pMac, &frm.VHTOperation);
+        }
+#endif
+
     } // End if on non-NULL 'pSta'.
 
 
@@ -2347,6 +2386,15 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 #endif
 
     }
+#ifdef WLAN_FEATURE_11AC
+    if ( psessionEntry->vhtCapability &&
+        pMac->lim.vhtCapabilityPresentInBeacon)
+    {
+        limLog( pMac, LOGW, FL("Populate VHT IEs in Assoc Request\n"));
+        PopulateDot11fVHTCaps( pMac, &frm.VHTCaps );
+    }
+#endif
+
 
 #if defined WLAN_FEATURE_VOWIFI_11R
     if (psessionEntry->pLimJoinReq->is11Rconnection)
@@ -3079,6 +3127,14 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     {
         PopulateDot11fHTCaps( pMac, &frm.HTCaps );
     }
+#ifdef WLAN_FEATURE_11AC
+    if ( psessionEntry->vhtCapability &&
+             pMac->lim.vhtCapabilityPresentInBeacon)
+    {
+        limLog( pMac, LOGW, FL("Populate VHT IEs in Re-Assoc Request\n"));
+        PopulateDot11fVHTCaps( pMac, &frm.VHTCaps );
+    }
+#endif
 
     nStatus = dot11fGetPackedReAssocRequestSize( pMac, &frm, &nPayload );
     if ( DOT11F_FAILED( nStatus ) )

@@ -998,6 +998,9 @@ sendIndToSme:
     psessionEntry->parsedAssocReq[pStaDs->assocId] = pAssocReq;
 
     pStaDs->mlmStaContext.htCapability = pAssocReq->HTCaps.present;
+#ifdef WLAN_FEATURE_11AC
+    pStaDs->mlmStaContext.vhtCapability = pAssocReq->VHTCaps.present;
+#endif
     pStaDs->qos.addtsPresent = (pAssocReq->addtsPresent==0) ? false : true;
     pStaDs->qos.addts        = pAssocReq->addtsReq;
     pStaDs->qos.capability   = pAssocReq->qosCapability;
@@ -1053,10 +1056,26 @@ sendIndToSme:
         pStaDs->htShortGI20Mhz = (tANI_U8)pAssocReq->HTCaps.shortGI20MHz;
         pStaDs->htShortGI40Mhz = (tANI_U8)pAssocReq->HTCaps.shortGI40MHz;
         pStaDs->htSupportedChannelWidthSet = (tANI_U8)pAssocReq->HTCaps.supportedChannelWidthSet;
+#ifdef WLAN_FEATURE_11AC
+        if (pAssocReq->VHTCaps.present)
+        {
+            pStaDs->vhtSupportedChannelWidthSet = (tANI_U8)pAssocReq->VHTCaps.supportedChannelWidthSet; 
+        }
+#endif
         pStaDs->baPolicyFlag = 0xFF;
     }
 
 
+#ifdef WLAN_FEATURE_11AC
+if (limPopulateMatchingRateSet(pMac,
+                               pStaDs,
+                               &(pAssocReq->supportedRates),
+                               &(pAssocReq->extendedRates),
+                               pAssocReq->HTCaps.supportedMCSSet,
+                               &(pAssocReq->propIEinfo.propRates),
+                               psessionEntry , &pAssocReq->VHTCaps) 
+                               != eSIR_SUCCESS)
+#else
 
     if (limPopulateMatchingRateSet(pMac,
                                    pStaDs,
@@ -1064,6 +1083,7 @@ sendIndToSme:
                                    &(pAssocReq->extendedRates),
                                    pAssocReq->HTCaps.supportedMCSSet,
                                    &(pAssocReq->propIEinfo.propRates), psessionEntry) != eSIR_SUCCESS)
+#endif
     {
         // Could not update hash table entry at DPH with rateset
         limLog(pMac, LOGE,

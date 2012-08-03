@@ -37,6 +37,20 @@
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
   ------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------
+  
+          \brief peGetVhtCapable() - Returns the Vht capable from a valid session.
+ 
+          This function itrates the session Table and returns the VHT capable from first valid session
+          if no sessions are valid/present  it returns FALSE
+
+         \param pMac	                - pointer to global adapter context
+          \return                        - channel to scan from valid session else zero.
+          
+          \sa
+           
+ --------------------------------------------------------------------------*/
+   tANI_U8 peGetVhtCapable(tpAniSirGlobal pMac);
 
 
 /*--------------------------------------------------------------------------

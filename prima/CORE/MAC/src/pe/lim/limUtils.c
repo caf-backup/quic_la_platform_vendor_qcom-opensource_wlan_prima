@@ -3718,7 +3718,17 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel, t
             limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_DOWN, (tPowerdBm)localPwrConstraint, psessionEntry->peSessionId);
 #endif
             break;
-
+  //      case eANI_CB_SECONDARY_CENTERED:
+#ifdef WLAN_FEATURE_11AC
+        case eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED:
+        case eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED:
+        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED:
+        case eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW:
+        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW:
+        case eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH:
+        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH:
+#endif
+            break;
         case eANI_DONOT_USE_SECONDARY_MODE:
             break;
     }
@@ -4207,6 +4217,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 if(eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode)
                 {
                     pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_MIXED;
+                    psessionEntry->htOperMode = eSIR_HT_OP_MODE_MIXED;
                     limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
                     limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);         
                     
@@ -4274,16 +4285,19 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 
                 {
                         pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
+                        psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
                         limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
                 }
                 else if(psessionEntry->gLimHt20Params.protectionEnabled)
                 {
                         pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
+                        psessionEntry->htOperMode = eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT;
                         limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
                 }
                 else
                 {
                         pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
+                        psessionEntry->htOperMode = eSIR_HT_OP_MODE_PURE;
                         limEnableHtRifsProtection(pMac, false, overlap, pBeaconParams,psessionEntry);
                 }
             }

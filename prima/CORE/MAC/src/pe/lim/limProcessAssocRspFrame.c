@@ -117,8 +117,19 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
                    pStaDs->baPolicyFlag = 0xFF;
            }
        }
-    
-       if (limPopulateOwnRateSet(pMac, &pStaDs->supportedRates, pAssocRsp->HTCaps.supportedMCSSet, false,psessionEntry) != eSIR_SUCCESS) {
+
+#ifdef WLAN_FEATURE_11AC
+       if(IS_DOT11_MODE_VHT(psessionEntry->dot11mode))
+       {
+           pStaDs->mlmStaContext.vhtCapability = pAssocRsp->VHTCaps.present;
+       }
+       if (limPopulateOwnRateSet(pMac, &pStaDs->supportedRates, 
+                                pAssocRsp->HTCaps.supportedMCSSet,
+                                false,psessionEntry , &pAssocRsp->VHTCaps) != eSIR_SUCCESS) 
+#else
+       if (limPopulateOwnRateSet(pMac, &pStaDs->supportedRates, pAssocRsp->HTCaps.supportedMCSSet, false,psessionEntry) != eSIR_SUCCESS) 
+#endif
+       {
            limLog(pMac, LOGP, FL("could not get rateset and extended rate set\n"));
            return;
        }

@@ -87,6 +87,22 @@ mlm_get_ext_chnl(
         return PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
     if (chnl == eANI_CB_SECONDARY_DOWN)
         return PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
+#ifdef WLAN_FEATURE_11AC
+    if (chnl == eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED)
+        return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED;
+    if (chnl == eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED)
+        return PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED;
+    if (chnl == eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED)
+        return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED;
+    if (chnl == eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW)
+        return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW;
+    if (chnl == eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW)
+        return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW;
+    if (chnl == eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH)
+        return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH;
+    if (chnl == eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH)
+        return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH;
+#endif
     return PHY_SINGLE_CHANNEL_CENTERED;
 
 }
@@ -962,6 +978,9 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
     tSirMsgQ            msg;
     tpFinishScanParams  pFinishScanParam;
     tSirRetStatus       rc = eSIR_SUCCESS;
+#ifdef WLAN_FEATURE_11AC
+    tANI_U8             isVhtCap;
+#endif
 
     if(pMac->lim.gLimHalScanState == nextState)
     {
@@ -998,6 +1017,18 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
         pFinishScanParam->notifyBss = FALSE;
         pFinishScanParam->notifyHost = FALSE;
         pFinishScanParam->frameType = 0;
+#ifdef WLAN_FEATURE_11AC
+        if (pFinishScanParam->currentOperChannel != HAL_INVALID_CHANNEL_ID)
+        {
+            isVhtCap = peGetVhtCapable(pMac);
+            if (isVhtCap)
+            {
+                pFinishScanParam->cbState = limGet11ACPhyCBState(pMac, 
+                                    pFinishScanParam->currentOperChannel,
+                                    pMac->lim.gHTSecondaryChannelOffset);
+            }
+        }
+#endif
         pFinishScanParam->frameLength = 0;
         pMac->lim.gLimHalScanState = nextState;
     }
@@ -1017,6 +1048,18 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
         }
         pFinishScanParam->notifyHost = FALSE;
         __limCreateFinishScanRawFrame(pMac, pFinishScanParam);
+#ifdef WLAN_FEATURE_11AC
+        if (pFinishScanParam->currentOperChannel != HAL_INVALID_CHANNEL_ID)
+        {
+            isVhtCap = peGetVhtCapable(pMac);
+            if (isVhtCap)
+            {
+                pFinishScanParam->cbState = limGet11ACPhyCBState(pMac, 
+                                  pFinishScanParam->currentOperChannel,
+                                  pMac->lim.gHTSecondaryChannelOffset);
+            }
+        }
+#endif
         //WLAN_SUSPEND_LINK Related
         pMac->lim.gLimHalScanState = nextState;
         //end WLAN_SUSPEND_LINK Related
@@ -1421,8 +1464,17 @@ mlm_add_sta(
 
 #endif
     }
-
+#ifdef WLAN_FEATURE_11AC
+    if (psessionEntry->vhtCapability)
+    {
+        pSta->vhtCapable = VOS_TRUE;
+    }
+#endif
+#ifdef WLAN_FEATURE_11AC
+    limPopulateOwnRateSet(pMac, &pSta->supportedRates, NULL, false,psessionEntry,NULL);
+#else
     limPopulateOwnRateSet(pMac, &pSta->supportedRates, NULL, false,psessionEntry);
+#endif
     limFillSupportedRatesInfo(pMac, NULL, &pSta->supportedRates,psessionEntry);
     
     limLog( pMac, LOGE, FL( "GF: %d, ChnlWidth: %d, MimoPS: %d, lsigTXOP: %d, dsssCCK: %d, SGI20: %d, SGI40%d\n") ,
@@ -1523,6 +1575,10 @@ limMlmAddBss (
     pAddBssParams->nwType = pMlmStartReq->nwType;
 
     pAddBssParams->htCapable            = pMlmStartReq->htCapable;
+#ifdef WLAN_FEATURE_11AC
+    pAddBssParams->vhtCapable           = psessionEntry->vhtCapability;
+    pAddBssParams->vhtTxChannelWidthSet = psessionEntry->vhtTxChannelWidthSet; 
+#endif
     pAddBssParams->htOperMode           = pMlmStartReq->htOperMode;
     pAddBssParams->dualCTSProtection    = pMlmStartReq->dualCTSProtection;
     pAddBssParams->txChannelWidthSet    = pMlmStartReq->txChannelWidthSet;
@@ -4457,12 +4513,58 @@ limSMPowerSaveStateInd(tpAniSirGlobal pMac, tSirMacHTMIMOPowerSaveState state)
 return eSIR_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_11AC
+ePhyChanBondState limGet11ACPhyCBState(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 htSecondaryChannelOffset )
+{
+    ePhyChanBondState cbState = PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED;
+
+    if(!pMac->lim.apChanWidth)
+    {
+        return htSecondaryChannelOffset;
+    }
+
+    if ( (htSecondaryChannelOffset 
+                 == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+       )
+    {
+        if ((channel + 2 ) == pMac->lim.apCenterChan )
+            cbState =  PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED;
+        else if ((channel + 6 ) == pMac->lim.apCenterChan )
+            cbState =  PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW;
+        else if ((channel - 2 ) == pMac->lim.apCenterChan )
+            cbState =  PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH;
+        else 
+            limLog (pMac, LOGP, 
+                       FL("Invalid Channel Number = %d Center Chan = %d \n"), 
+                                 channel, pMac->lim.apCenterChan);
+    }
+    if ( (htSecondaryChannelOffset 
+                 == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
+       )
+    {
+        if ((channel - 2 ) == pMac->lim.apCenterChan )
+            cbState =  PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED;
+        else if ((channel + 2 ) == pMac->lim.apCenterChan )
+            cbState =  PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW;
+        else if ((channel - 6 ) == pMac->lim.apCenterChan )
+            cbState =  PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH;
+        else 
+           limLog (pMac, LOGP, 
+                         FL("Invalid Channel Number = %d Center Chan = %d \n"),
+                                            channel, pMac->lim.apCenterChan);
+    }
+    return cbState;
+}
+
+#endif
+
 void 
 limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tPowerdBm maxTxPower, tANI_U8 peSessionId)
 {
 #if !defined WLAN_FEATURE_VOWIFI
     tANI_U32 localPwrConstraint;
 #endif
+    tpPESession peSession;
 
     // Setup the CB State appropriately, prior to
     // issuing a dphChannelChange(). This is done
@@ -4488,16 +4590,41 @@ limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tPowerd
            return;
     }
     #endif // TO SUPPORT BT-AMP
+    peSession = peFindSessionBySessionId (pMac, peSessionId);
 
+    if ( NULL == peSession)
+    {
+       limLog (pMac, LOGP, FL("Invalid PE session = %d\n"), peSessionId);
+       return;
+    }
 #if defined WLAN_FEATURE_VOWIFI  
+#ifdef WLAN_FEATURE_11AC
+    if ( peSession->vhtCapability )
+    {
+        limSendSwitchChnlParams( pMac, channel, limGet11ACPhyCBState( pMac,channel,pMac->lim.gHTSecondaryChannelOffset ), maxTxPower, peSessionId);
+    }
+    else
+#endif
+    {
     limSendSwitchChnlParams( pMac, channel, limGetPhyCBState( pMac ), maxTxPower, peSessionId);
+    }
 #else
     if (wlan_cfgGetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, &localPwrConstraint) != eSIR_SUCCESS) {
            limLog(pMac, LOGP, FL("could not read WNI_CFG_LOCAL_POWER_CONSTRAINT from CFG\n"));
            return;
     }
     // Send WDA_CHNL_SWITCH_IND to HAL
+#ifdef WLAN_FEATURE_11AC
+
+    if ( peSession->vhtCapability && pMac->lim.vhtCapabilityPresentInBeacon)
+    {
+        limSendSwitchChnlParams( pMac, channel, limGet11ACPhyCBState( pMac,channel,pMac->lim.gHTSecondaryChannelOffset ), maxTxPower, peSessionId);
+    }
+    else
+#endif
+    {
     limSendSwitchChnlParams( pMac, channel, limGetPhyCBState( pMac ), (tPowerdBm)localPwrConstraint, peSessionId);
+    }
 #endif
    
  }

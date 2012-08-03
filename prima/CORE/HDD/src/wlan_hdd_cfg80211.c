@@ -1439,6 +1439,15 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     }
     wlan_hdd_set_sapHwmode(pHostapdAdapter);
 
+#ifdef WLAN_FEATURE_11AC
+    if(((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_AUTO) || 
+       ((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac) ||
+       ((WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY) )
+    {
+        pConfig->SapHw_mode = eSAP_DOT11_MODE_11ac;
+    }
+#endif
+
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab =
                  (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->apProtection;
@@ -1903,8 +1912,14 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 hddLog(VOS_TRACE_LEVEL_INFO,
                    "%s: setting interface Type to INFRASTRUCTURE", __func__);
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
-                pRoamProfile->phyMode =
-                   hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
+#ifdef WLAN_FEATURE_11AC
+                if(pConfig->dot11Mode == eHDD_DOT11_MODE_AUTO)
+                {
+                    pConfig->dot11Mode = eHDD_DOT11_MODE_11ac;
+                }
+#endif
+                pRoamProfile->phyMode = 
+                hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
                 wdev->iftype = type;
 #ifdef WLAN_FEATURE_P2P
                 pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?

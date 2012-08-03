@@ -15,7 +15,6 @@
  * --------------------------------------------------------------------
  *
  */
-
 #include "aniGlobal.h"
 #ifdef ANI_PRODUCT_TYPE_AP
 #include "wniCfgAp.h"
@@ -37,7 +36,6 @@
 #include "limSerDesUtils.h"
 #include "limTrace.h"
 #include "limSession.h"
-
 #define LIM_GET_NOISE_MAX_TRY 5
 #if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
 /**
@@ -64,11 +62,9 @@ tANI_U8
 limGetCurrentLearnChannel(tpAniSirGlobal pMac)
 {
     tANI_U8 *pChanNum = pMac->lim.gpLimMeasReq->channelList.channelNumber;
-
     return (*(pChanNum + pMac->lim.gLimMeasParams.nextLearnChannelId));
 } /*** end limGetCurrentLearnChannel() ***/
 #endif //#if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
-
 /**
  * limExtractApCapability()
  *
@@ -89,7 +85,6 @@ limGetCurrentLearnChannel(tpAniSirGlobal pMac)
  * @param   qosCap    Bits are set according to capabilities
  * @return  0 - If AP does not assert HCF capability & 1 - otherwise
  */
-
 void
 limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
                        tANI_U8 *qosCap, tANI_U16 *propCap, tANI_U8 *uapsd, 
@@ -100,13 +95,10 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
 #if !defined WLAN_FEATURE_VOWIFI
     tANI_U32            localPowerConstraints = 0;
 #endif
-
     palZeroMemory( pMac->hHdd, (tANI_U8 *) &beaconStruct, sizeof(beaconStruct));
-
     *qosCap = 0;
     *propCap = 0;
     *uapsd = 0;
-
     PELOG3(limLog( pMac, LOG3,
         FL("In limExtractApCapability: The IE's being received are:\n"));
     sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG3, pIE, ieLen );)
@@ -128,10 +120,28 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
         else
             pMac->lim.htCapabilityPresentInBeacon = 0;
 
+#ifdef WLAN_FEATURE_11AC
+        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL,
+            "***beacon.VHTCaps.present*****=%d\n",beaconStruct.VHTCaps.present);
+
+        if ( beaconStruct.VHTCaps.present && beaconStruct.VHTOperation.present)
+        {
+            pMac->lim.vhtCapabilityPresentInBeacon = 1;
+            pMac->lim.apCenterChan = beaconStruct.VHTOperation.chanCenterFreqSeg1;
+            pMac->lim.apChanWidth = beaconStruct.VHTOperation.chanWidth;
+           if (beaconStruct.HTInfo.present)
+           {
+               pMac->lim.gHTSecondaryChannelOffset = beaconStruct.HTInfo.secondaryChannelOffset;
+           }
+        }
+        else
+        {
+            pMac->lim.vhtCapabilityPresentInBeacon = 0;
+        }
+#endif
         // Extract the UAPSD flag from WMM Parameter element
         if (beaconStruct.wmeEdcaPresent)
             *uapsd = beaconStruct.edcaParams.qosInfo.uapsd;
-
 #if defined FEATURE_WLAN_CCX
         /* If there is Power Constraint Element specifically,
          * adapt to it. Hence there is else condition check
@@ -142,7 +152,6 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
             *localConstraint = beaconStruct.ccxTxPwr.power_limit;
         }
 #endif
-
         if (beaconStruct.powerConstraintPresent)
 #if 0
         //Remove this check. This function is expected to return localPowerConsraints
@@ -159,7 +168,6 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
            localPowerConstraints = (tANI_U32)beaconStruct.localPowerConstraint.localPowerConstraints;
 #endif
         }
-
 #if !defined WLAN_FEATURE_VOWIFI
         if (cfgSetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, localPowerConstraints) != eSIR_SUCCESS)
         {
@@ -167,11 +175,8 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
         }
 #endif
     }
-
     return;
 } /****** end limExtractApCapability() ******/
-
-
 
 #if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
 /**
@@ -196,17 +201,13 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
  * @param   duration  Specifies quiet duration in millisec
  * @return  None
  */
-
 void
 limQuietBss(tpAniSirGlobal pMac, tANI_U32 duration)
 {
-
     // Temporarily not quieting BSS
     (void) pMac; (void) duration;
     return;
 } /****** end limQuietBss() ******/
-
-
 
 /**
  * limIsMatrixNodePresent()
@@ -226,16 +227,13 @@ limQuietBss(tpAniSirGlobal pMac, tANI_U32 duration)
  * @param   pMac  - Pointer to Global MAC structure
  * @return  pNode - Pointer to Matrix node if found. Else NULL
  */
-
 static tpLimMeasMatrixNode
 limIsMatrixNodePresent(tpAniSirGlobal pMac)
 {
     tANI_U8   i, chanNum = limGetCurrentLearnChannel(pMac);
     tpLimMeasMatrixNode pNode = pMac->lim.gpLimMeasData->pMeasMatrixInfo;
-
     if (!pNode)
         return NULL;
-
     for (i = 0; i < pMac->lim.gpLimMeasReq->channelList.numChannels; i++)
     {
         if (pNode->matrix.channelNumber == chanNum)
@@ -250,11 +248,8 @@ limIsMatrixNodePresent(tpAniSirGlobal pMac)
                 break;
         }
     }
-
     return NULL;
 } /****** end limIsMatrixNodePresent() ******/
-
-
 
 /**
  * limGetMatrixNode()
@@ -275,13 +270,11 @@ limIsMatrixNodePresent(tpAniSirGlobal pMac)
  * @param   pMac      Pointer to Global MAC structure
  * @return  None
  */
-
 static tpLimMeasMatrixNode
 limGetMatrixNode(tpAniSirGlobal pMac)
 {
     tpLimMeasMatrixNode       pNewMatrix;
     eHalStatus          status;
-
     pNewMatrix = limIsMatrixNodePresent(pMac);
     if (!pNewMatrix)
     {
@@ -296,7 +289,6 @@ limGetMatrixNode(tpAniSirGlobal pMac)
                FL("palAllocateMemory failed for new measMatrix Node\n"));
             return NULL;
         }
-
         status = palZeroMemory( pMac->hHdd, (void *)pNewMatrix, sizeof(*pNewMatrix));
         if (status != eHAL_STATUS_SUCCESS)
         {
@@ -310,19 +302,14 @@ limGetMatrixNode(tpAniSirGlobal pMac)
         pNewMatrix->matrix.channelNumber =
                                    limGetCurrentLearnChannel(pMac);
         pNewMatrix->avgRssi              = 0;
-
        PELOG3(limLog(pMac, LOG3, FL("Adding new Matrix info:channel#=%d\n"),
                pNewMatrix->matrix.channelNumber);)
-
         pNewMatrix->next = pMac->lim.gpLimMeasData->pMeasMatrixInfo;
         pMac->lim.gpLimMeasData->pMeasMatrixInfo = pNewMatrix;
         pMac->lim.gpLimMeasData->numMatrixNodes++;
     }
-
     return pNewMatrix;
 } /****** end limGetMatrixNode() ******/
-
-
 
 /**
  * limComputeAvg()
@@ -344,7 +331,6 @@ limGetMatrixNode(tpAniSirGlobal pMac)
  * @param   newVal    New averaged value
  * @return  None
  */
-
 tANI_U32
 limComputeAvg(tpAniSirGlobal pMac, tANI_U32 oldVal, tANI_U32 newVal)
 {
@@ -352,8 +338,6 @@ limComputeAvg(tpAniSirGlobal pMac, tANI_U32 oldVal, tANI_U32 newVal)
                       oldVal,
                       pMac->lim.gLimMeasParams.rssiAlpha));
 } /****** end limComputeAvg() ******/
-
-
 
 /**
  * limCollectRSSI()
@@ -373,13 +357,11 @@ limComputeAvg(tpAniSirGlobal pMac, tANI_U32 oldVal, tANI_U32 newVal)
  * @param   pMac      Pointer to Global MAC structure
  * @return  None
  */
-
 void
 limCollectRSSI(tpAniSirGlobal pMac)
 {
     tpLimMeasMatrixNode  pNewMatrix = limGetMatrixNode(pMac);
     tANI_U32 i, noise;
-
     for (i = 0; i < LIM_GET_NOISE_MAX_TRY; i++)
         if ((noise = halGetNoise(pMac)) != HAL_NOISE_INVALID)
         {
@@ -390,17 +372,14 @@ limCollectRSSI(tpAniSirGlobal pMac)
         }
 } /****** end limCollectRSSI() ******/
 
-
 /**----------------------------------------------------------------------------
 \fn        limGetNeighbourBssNode
-
 \brief    returns neighbour bss node if it is already present in the list.
 \param pMac
 \param bssid - Bssid of new beacon or data packet.
 \param pSsId - Pointer to SSID of new packet.
 \param nwType - 11b/g/a
 \param chanId - Channel in which we received the packet.
-
 \return tpLimNeighborBssWdsNode or NULL
 -------------------------------------------------------------------------------*/
 static tpLimNeighborBssWdsNode
@@ -408,7 +387,6 @@ limGetNeighbourBssNode(tpAniSirGlobal pMac, tANI_U8 *bssId, tANI_U8 chanId,
                                             tSirNwType nwType, tpAniSSID pSsId, tANI_U8 type)
 {
     tpLimNeighborBssWdsNode pNode = pMac->lim.gpLimMeasData->pNeighborWdsInfo;
-
     while (pNode)
     {
         //Do we need to check for ssId also ?
@@ -434,16 +412,13 @@ eventhough not possible if packet type is DATA. */
 #endif
                 return pNode;
         }
-
         if (!pNode->next)
             break;
         else
             pNode = pNode->next;
     }
-
     return NULL;
 }
-
 
 /**
  * limCollectMeasurementData()
@@ -465,7 +440,6 @@ eventhough not possible if packet type is DATA. */
  * @param  pBeacon  - Pointer to parsed BSS info
  * @return None
  */
-
 void
 limCollectMeasurementData(tpAniSirGlobal pMac,
                           tANI_U32 *pRxPacketInfo, tpSchBeaconStruct pBeacon)
@@ -482,10 +456,8 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
     tpLimMeasMatrixNode     pNewMatrix;
     eHalStatus status;
     tpSirMacMgmtHdr       pHdr;
-
    PELOG3(limLog(pMac, LOG3, FL("Collecting measurement data for RadioId %d\n"),
            pMac->sys.gSirRadioId);)
-
     tANI_U32 ignore = 0;
     limGetBssidFromBD(pMac, (tpHalBufDesc) pRxPacketInfo, bssIdRcv, &ignore);
     if (palEqualMemory( pMac->hHdd, bssIdRcv, pMac->lim.gLimBssid, sizeof(tSirMacAddr)))
@@ -495,7 +467,6 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
     }
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     fc = pHdr->fc;
-
     if (fc.type == SIR_MAC_DATA_FRAME)
     {
         PELOG2(limLog(pMac, LOG2, FL("Received DATA packet\n"));)
@@ -510,7 +481,6 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
         chanId = limGetChannelFromBeacon(pMac, pBeacon);
         ieLen = pBeacon->wpa.length + pBeacon->propIEinfo.wdsLength;
     }
-
     if (chanId == 0)
     {
       /* If the channel Id is not retrieved from Beacon, extract the channel from BD */
@@ -522,30 +492,24 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
            chanId = pMac->lim.gLimCurrentScanChannelId;
       }
     }
-
     /*
      * Now always returns nwType as 11G for data packets - FIXIT
      */
     nwType = limGetNwType(pMac, chanId, fc.type, pBeacon);
-
     pNewMatrix = limGetMatrixNode(pMac);
     /** LOGP would result in freeing all dynamicall allocated memories. So
       *  return from here if limGetMatrixNode returns NULL
       */
     if (!pNewMatrix)
         return;
-
     pNewMatrix->matrix.aggrRssi += WDA_GET_RX_RSSI_DB(pRxPacketInfo);
     pNewMatrix->matrix.totalPackets++;
-
     // Find if this neighbor is already 'learned'
     // If found, update its information.
     pNode = limGetNeighbourBssNode(pMac, bssIdRcv, chanId, nwType, &ssId, fc.type);
-
     if (!pNode)
     {
         realLen = sizeof(tSirNeighborBssWdsInfo);
-
         /** Newly discovered neighbor. Inform WSM of this
           * and add this BSS info at the beginning
           * Need to limit the number newly discovered BSS added
@@ -556,14 +520,12 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
                  sizeof(tSirMeasMatrixInfo)));
        PELOG2(limLog(pMac, LOG2, FL("Current BSS length %d, Real length %d\n"),
                 pMac->lim.gpLimMeasData->totalBssSize, realLen);)
-
         /** Check if we have enough room for adding a new node.
           */
         if (pMac->lim.gpLimMeasData->totalBssSize + realLen < len)
         {
             pMac->lim.gpLimMeasData->numBssWds++;
             pMac->lim.gpLimMeasData->totalBssSize += realLen;
-
             PELOG2(limPrintMacAddr(pMac, bssIdRcv, LOG2);)
         }
         else
@@ -571,20 +533,17 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
             PELOG2(limLog(pMac, LOG2, FL("Dropping the measurement packets: No memory!\n"));)
             return;
     }
-
         /** Allocate max memory required even if the packet is of type DATA,
           * So that next time we receive a beacon, won't run out of memory to
           * update the information.
           */
         allocLen = sizeof(tLimNeighborBssWdsNode) + 4 + ieLen;
         status = palAllocateMemory( pMac->hHdd, (void **)&pNode, allocLen);
-
     if (status != eHAL_STATUS_SUCCESS)
     {
             limLog(pMac, LOGP, FL("palAllocateMemory failed for new NeighborBssWds Node\n"));
         return;
     }
-
         status = palZeroMemory(pMac->hHdd, pNode, allocLen);
         if (status != eHAL_STATUS_SUCCESS)
         {
@@ -595,13 +554,11 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
         pMac->lim.gpLimMeasData->pNeighborWdsInfo = pNode;
         found = eANI_BOOLEAN_FALSE;
     }
-
     pNode->info.neighborBssInfo.rssi = WDA_GET_RX_RSSI_DB(pRxPacketInfo);
     pNode->info.neighborBssInfo.aggrRssi += pNode->info.neighborBssInfo.rssi;
     if (fc.type == SIR_MAC_DATA_FRAME)
         pNode->info.neighborBssInfo.dataCount++;
     pNode->info.neighborBssInfo.totalPackets++;
-
     /** If node not found or previous learn was not from a beacon/probe rsp
       * then learn again.
       */
@@ -616,12 +573,10 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
         // Data frame received from other BSS.
         // Collect as much information as possible
             pNode->info.neighborBssInfo.wniIndicator = (tAniBool) 0;
-
         if (fc.toDS || fc.fromDS)
                 pNode->info.neighborBssInfo.bssType = eSIR_INFRASTRUCTURE_MODE;
         else
                 pNode->info.neighborBssInfo.bssType = eSIR_IBSS_MODE;
-
             pNode->info.neighborBssInfo.load.numStas = 0;
             pNode->info.neighborBssInfo.load.channelUtilization = 0;
             pNode->info.neighborBssInfo.ssId.length = 0;
@@ -643,7 +598,6 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
                             &pNode->info.neighborBssInfo.titanHtCaps);
             }
         }
-
         // This must be either Beacon frame or
         // Probe Response. Copy all relevant information.
             pNode->info.neighborBssInfo.wniIndicator = (tAniBool) pBeacon->propIEinfo.aniIndicator;
@@ -656,7 +610,6 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
             pNode->info.neighborBssInfo.apName.length = pBeacon->propIEinfo.apName.length;
             palCopyMemory( pMac->hHdd, (tANI_U8 *) pNode->info.neighborBssInfo.apName.name,
                     pBeacon->propIEinfo.apName.name, pBeacon->propIEinfo.apName.length);
-
             pNode->info.neighborBssInfo.rsnIE.length = 0;
             // Add WPA2 information. Before that make sure that memory is available
             if (pBeacon->rsnPresent && (pBeacon->rsn.length < SIR_MAC_MAX_IE_LENGTH))
@@ -666,12 +619,10 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
                 pNode->info.neighborBssInfo.rsnIE.rsnIEdata[1] = pBeacon->rsn.length;
                 palCopyMemory( pMac->hHdd, (tANI_U8 *) &pNode->info.neighborBssInfo.rsnIE.rsnIEdata[2],
                         pBeacon->rsn.info, pBeacon->rsn.length);
-
                PELOG2(limLog(pMac, LOG2, FL("NeighborBss RSN IE, type=%x, length=%x\n"), 
                         pNode->info.neighborBssInfo.rsnIE.rsnIEdata[0],
                         pNode->info.neighborBssInfo.rsnIE.rsnIEdata[1]);)
             }
-
             // Add WPA information. Before that make sure that memory is available
             if (pBeacon->wpaPresent && ((pBeacon->rsn.length + pBeacon->wpa.length) < (SIR_MAC_MAX_IE_LENGTH-2)))
             {
@@ -679,11 +630,9 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
                     SIR_MAC_WPA_EID;
                 pNode->info.neighborBssInfo.rsnIE.rsnIEdata[pNode->info.neighborBssInfo.rsnIE.length + 1] =
                     pBeacon->wpa.length;
-
                 palCopyMemory( pMac->hHdd,
                         (tANI_U8 *) &pNode->info.neighborBssInfo.rsnIE.rsnIEdata[pNode->info.neighborBssInfo.rsnIE.length + 2],
                         pBeacon->wpa.info, pBeacon->wpa.length);
-
                PELOG2(limLog(pMac, LOG2, FL("NeighborBss WPA IE, type=%x, length=%x\n"),
                         pNode->info.neighborBssInfo.rsnIE.rsnIEdata[pNode->info.neighborBssInfo.rsnIE.length],
                         pNode->info.neighborBssInfo.rsnIE.rsnIEdata[pNode->info.neighborBssInfo.rsnIE.length + 1]);)
@@ -693,28 +642,23 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
             palCopyMemory( pMac->hHdd, (tANI_U8 *) pNode->info.wdsInfo.wdsBytes,
                       pBeacon->propIEinfo.wdsData,
                       pBeacon->propIEinfo.wdsLength);
-
             pNode->info.neighborBssInfo.capabilityInfo = *((tANI_U16*)&pBeacon->capabilityInfo);
-
 #if 0
             if (pBeacon->HTCaps.present)
                 palCopyMemory( pMac->hHdd, (tANI_U8 *)&pNode->info.neighborBssInfo.HTCaps,
                         (tANI_U8 *)&pBeacon->HTCaps, HT_CAPABILITY_IE_SIZE);
         else
                 pNode->info.neighborBssInfo.HTCaps.present = 0;
-
             if (pBeacon->HTInfo.present)
                 palCopyMemory( pMac->hHdd, (tANI_U8 *)&pNode->info.neighborBssInfo.HTInfo,
                         (tANI_U8 *)&pBeacon->HTInfo, HT_INFO_IE_SIZE);
         else
                 pNode->info.neighborBssInfo.HTInfo.present = 0;
 #endif
-
             if (pBeacon->suppRatesPresent && (pBeacon->supportedRates.numRates <= 
                                               SIR_MAC_RATESET_EID_MAX))
             {
                 pNode->info.neighborBssInfo.operationalRateSet.numRates = pBeacon->supportedRates.numRates;
-
                PELOG4(limLog(pMac, LOG4, FL("Supported Rates (%d) : "),
                         pNode->info.neighborBssInfo.operationalRateSet.numRates);)
                 for (i=0; i<pBeacon->supportedRates.numRates; i++)
@@ -724,12 +668,10 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
                 }
                 PELOG4(limLog(pMac, LOG4, FL("\n"));)
             }
-
             if (pBeacon->extendedRatesPresent && (pBeacon->extendedRates.numRates <= 
                                                   SIR_MAC_RATESET_EID_MAX))
             {
                 pNode->info.neighborBssInfo.extendedRateSet.numRates = pBeacon->extendedRates.numRates;
-
                PELOG4(limLog(pMac, LOG4, FL("Extended Rates (%d) : "),
                         pNode->info.neighborBssInfo.extendedRateSet.numRates);)
                 for (i=0; i<pBeacon->extendedRates.numRates; i++)
@@ -756,7 +698,6 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
         }
     }
 } /****** end limCollectMeasurementData() ******/
-
 /**
  * limCleanupMatrixNodes()
  *
@@ -775,7 +716,6 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
  * @param  pMac      Pointer to Global MAC structure
  * @return None
  */
-
 static void
 limCleanupMatrixNodes(tpAniSirGlobal pMac)
 {
@@ -783,26 +723,21 @@ limCleanupMatrixNodes(tpAniSirGlobal pMac)
     {
         tpLimMeasMatrixNode pNode = pMac->lim.gpLimMeasData->pMeasMatrixInfo;
         tpLimMeasMatrixNode pNext;
-
       while (pNode)
       {
             pNext = pNode->next;
             palFreeMemory( pMac->hHdd, pNode);
-
             if (pNext)
                 pNode = pNext;
             else
               break;
           }
       }
-
     pMac->lim.gpLimMeasData->numMatrixNodes = 0;
          PELOG2(limLog(pMac, LOG2,
            FL("Cleaned up channel matrix nodes\n"));)
-
     pMac->lim.gpLimMeasData->pMeasMatrixInfo = NULL;
 } /****** end limCleanupMatrixNodes() ******/
-
 /**
  * limCleanupNeighborBssNodes()
  *
@@ -821,7 +756,6 @@ limCleanupMatrixNodes(tpAniSirGlobal pMac)
  * @param  pMac      Pointer to Global MAC structure
  * @return None
  */
-
 static void
 limCleanupNeighborBssNodes(tpAniSirGlobal pMac)
 {
@@ -835,22 +769,18 @@ limCleanupNeighborBssNodes(tpAniSirGlobal pMac)
             pNext = pNode->next;
             pMac->lim.gpLimMeasData->numBssWds--;
             palFreeMemory( pMac->hHdd, pNode);
-
             if (pNext)
                 pNode = pNext;
             else
                 break;
         }
     }
-
    PELOG2(limLog(pMac, LOG2,
            FL("Cleaned up neighbor nodes\n"));)
-
     pMac->lim.gpLimMeasData->numBssWds        = 0;
     pMac->lim.gpLimMeasData->totalBssSize     = 0;
     pMac->lim.gpLimMeasData->pNeighborWdsInfo = NULL;
 } /****** end limCleanupNeighborBssNodes() ******/
-
 
 /**
  * limSendSmeMeasurementInd()
@@ -868,32 +798,27 @@ limCleanupNeighborBssNodes(tpAniSirGlobal pMac)
  * @param  pMac - Pointer to Global MAC structure
  * @return None
  */
-
 void
 limSendSmeMeasurementInd(tpAniSirGlobal pMac)
 {
     tANI_U8          *pMeasInd;
     tANI_U16         len = 0;
     tSirMsgQ    mmhMsg;
-
 #ifdef GEN6_TODO
     //fetch the sessionEntry based on the sessionId
     //priority - MEDIUM
     tpPESession sessionEntry;
-
     if((sessionEntry = peFindSessionBySessionId(pMac, pMac->lim.gLimMeasParams.measurementIndTimer.sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
         return;
     }
 #endif
-
     if (!pMac->sys.gSysEnableLearnMode ||
         (pMac->lim.gpLimMeasReq == NULL))
     {
         return;
     }
-
     len = sizeof(tSirSmeMeasurementInd) +
           (pMac->lim.gpLimMeasReq->channelList.numChannels *
            sizeof(tSirMeasMatrixInfo)) +
@@ -907,36 +832,27 @@ limSendSmeMeasurementInd(tpAniSirGlobal pMac)
                pMac->lim.gpLimMeasData->numBssWds,
                pMac->lim.gpLimMeasData->totalBssSize);
     }
-
     PELOG2(limLog(pMac, LOG2, FL("*****  Measurement IND size %d\n"), len);)
-
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMeasInd, len))
     {
         /// Buffer not available. Log error
         limLog(pMac, LOGP,
                FL("call to palAllocateMemory failed for eWNI_SME_MEAS_IND\n"));
-
         return;
     }
-
    PELOG3(limLog(pMac, LOG3,
        FL("Sending eWNI_SME_MEAS_IND on Radio %d, requested len=%d\n"),
        pMac->sys.gSirRadioId, len);)
-
     limMeasurementIndSerDes(pMac, pMeasInd);
-
     mmhMsg.type = eWNI_SME_MEASUREMENT_IND;
     mmhMsg.bodyptr = pMeasInd;
     mmhMsg.bodyval = 0;
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
     limSysProcessMmhMsgApi(pMac, &mmhMsg,  ePROT);
-
     // Cleanup neighbor information
     limCleanupNeighborBssNodes(pMac);
     limCleanupMatrixNodes(pMac);
 } /*** end limSendSmeMeasurementInd() ***/
-
-
 
 /**
  * limCleanupMeasData()
@@ -958,51 +874,40 @@ limSendSmeMeasurementInd(tpAniSirGlobal pMac)
  * @param  pMac      Pointer to Global MAC structure
  * @return None
  */
-
 void
 limCleanupMeasData(tpAniSirGlobal pMac)
 {
     if (pMac->lim.gpLimMeasReq)
         palFreeMemory( pMac->hHdd, pMac->lim.gpLimMeasReq);
-
     pMac->lim.gpLimMeasReq = NULL;
-
     if (!pMac->lim.gpLimMeasData)
         return;
-
     if (pMac->lim.gpLimMeasData->pMeasMatrixInfo)
     {
         // Retain current channel's data and flush remaining
         tpLimMeasMatrixNode pMatrix =
                         (pMac->lim.gpLimMeasData->pMeasMatrixInfo)->next;
         tpLimMeasMatrixNode pNext;
-
         while (pMatrix)
         {
             pNext = pMatrix->next;
             palFreeMemory( pMac->hHdd, pMatrix);
-
             if (pNext)
                 pMatrix = pNext;
             else
                 break;
         }
-
         pMac->lim.gpLimMeasData->pMeasMatrixInfo->next = NULL;
     }
-
     pMac->lim.gpLimMeasData->numMatrixNodes = 0;
    PELOG2(limLog(pMac, LOG2,
            FL("Cleaned up measurement metrics nodes\n"));)
-
     // Cleanup neighbor information
     limCleanupNeighborBssNodes(pMac);
 } /****** end limCleanupMeasData() ******/
-
 /**---------------------------------------------------------
 \fn     limStopMeasTimers
 \brief  Stops all measurement related timers.
-
 \param  pMac
 \return None
  ----------------------------------------------------------*/
@@ -1011,7 +916,6 @@ limStopMeasTimers(tpAniSirGlobal pMac)
 {
     if (pMac->lim.gpLimMeasReq == NULL)
         return;
-
     if (pMac->lim.gpLimMeasReq->measControl.periodicMeasEnabled)
     {
         if (tx_timer_deactivate(&pMac->lim.gLimMeasParams.measurementIndTimer) != TX_SUCCESS)
@@ -1025,7 +929,6 @@ limStopMeasTimers(tpAniSirGlobal pMac)
     {
         PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn interval timer\n"));)
     }
-
     if (pMac->lim.gLimSpecMgmt.fQuietEnabled)
     {
         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_LEARN_DURATION_TIMER));
@@ -1034,14 +937,12 @@ limStopMeasTimers(tpAniSirGlobal pMac)
             PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn duration timer\n"));)
         }
     }
-
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, NO_SESSION, eLIM_LEARN_DURATION_TIMER));
     if (tx_timer_deactivate(&pMac->lim.gLimMeasParams.learnDurationTimer) != TX_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Cannot stop learn duration timer\n"));)
     }
 }
-
 /**
  * limDeleteMeasTimers()
  *
@@ -1059,7 +960,6 @@ limStopMeasTimers(tpAniSirGlobal pMac)
  * @param  pMac      Pointer to Global MAC structure
  * @return None
  */
-
 void
 limDeleteMeasTimers(tpAniSirGlobal pMac)
 {
@@ -1068,8 +968,6 @@ limDeleteMeasTimers(tpAniSirGlobal pMac)
     tx_timer_delete(&pMac->lim.gLimMeasParams.learnIntervalTimer);
     tx_timer_delete(&pMac->lim.gLimMeasParams.learnDurationTimer);
 } /*** end limDeleteMeasTimers() ***/
-
-
 
 /**
  * limCleanupMeasResources()
@@ -1091,29 +989,23 @@ limDeleteMeasTimers(tpAniSirGlobal pMac)
  * @param  pMac      Pointer to Global MAC structure
  * @return None
  */
-
 void
 limCleanupMeasResources(tpAniSirGlobal pMac)
 {
    PELOG1( limLog(pMac, LOG1,
            FL("Cleaning up Learn mode Measurement resources\n"));)
-
     if (pMac->lim.gpLimMeasReq == NULL)
         return;
-
     limDeleteMeasTimers(pMac);
-
     if (pMac->lim.gpLimMeasData)
     {
         limCleanupMeasData(pMac);
         if (pMac->lim.gpLimMeasData->pMeasMatrixInfo)
             palFreeMemory( pMac->hHdd, pMac->lim.gpLimMeasData->pMeasMatrixInfo);
-
         palFreeMemory( pMac->hHdd, pMac->lim.gpLimMeasData);
         pMac->lim.gpLimMeasData = NULL;
     }
 } /****** end limCleanupMeasResources() ******/
-
 
 /**
  * limDeleteCurrentBssWdsNode()
@@ -1138,7 +1030,6 @@ void limDeleteCurrentBssWdsNode(tpAniSirGlobal pMac)
 {
     tANI_U32                 cfg = sizeof(tSirMacAddr);
     tSirMacAddr         currentBssId;
-
 #if 0
     if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
                                 eSIR_SUCCESS)
@@ -1148,10 +1039,8 @@ void limDeleteCurrentBssWdsNode(tpAniSirGlobal pMac)
     }
 #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,sessionEntry->bssId);
-
     if (!pMac->lim.gpLimMeasData)
         return;
-
     if (pMac->lim.gpLimMeasData->pNeighborWdsInfo)
     {
         tpLimNeighborBssWdsNode pNode =
@@ -1169,19 +1058,15 @@ void limDeleteCurrentBssWdsNode(tpAniSirGlobal pMac)
                 break;
             }
             pPrev = pNode;
-
             if (pNode->next)
                 pNode = pNode->next;
             else
                 break;
         }
-
         if (!pMac->lim.gpLimMeasData->numBssWds)
             pMac->lim.gpLimMeasData->pNeighborWdsInfo = NULL;
     }
 } /****** end limDeleteCurrentBssWdsNode() ******/
-
-
 
 /**
  * limRestorePreLearnState()
@@ -1201,29 +1086,23 @@ void limDeleteCurrentBssWdsNode(tpAniSirGlobal pMac)
  * @param  pMac      Pointer to Global MAC structure
  * @return None
  */
-
 void
 limRestorePreLearnState(tpAniSirGlobal pMac)
 {
    PELOG4(limLog(pMac, LOG4,
            FL("Restoring from Learn mode on RadioId %d\n"),
            pMac->sys.gSirRadioId);)
-
     pMac->lim.gLimSystemInScanLearnMode = 0;
-
     // Go back to previous state.
     pMac->lim.gLimSmeState = pMac->lim.gLimPrevSmeState;
     pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
     MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
-
    PELOG4(limLog(pMac, LOG4,
            FL("Restored from Learn mode on RadioId %d\n"),
            pMac->sys.gSirRadioId);)
 } /****** end limRestorePreLearnState() ******/
-
 #endif //#if (defined(ANI_PRODUCT_TYPE_AP) || (ANI_PRODUCT_TYPE_AP_SDK))
-
 /**
  * limGetPhyCBState
  *
@@ -1244,7 +1123,6 @@ limRestorePreLearnState(tpAniSirGlobal pMac)
 ePhyChanBondState limGetPhyCBState( tpAniSirGlobal pMac )
 {
     ePhyChanBondState cbState = PHY_SINGLE_CHANNEL_CENTERED;
-
     if( GET_CB_OPER_STATE( pMac->lim.gCbState ))
     {
       if( GET_CB_SEC_CHANNEL( pMac->lim.gCbState ))
@@ -1254,7 +1132,6 @@ ePhyChanBondState limGetPhyCBState( tpAniSirGlobal pMac )
     }
   return cbState;
 }
-
 
 /**
  * limGetHTCBState
@@ -1270,15 +1147,32 @@ ePhyChanBondState limGetPhyCBState( tpAniSirGlobal pMac )
  * @param  pMac - Pointer to Global MAC structure
  * @return The corresponding HT enumeration
  */
-
 tSirMacHTSecondaryChannelOffset    limGetHTCBState(tAniCBSecondaryMode aniCBMode) 
 {
-    if(aniCBMode == eANI_CB_SECONDARY_DOWN)
+    switch ( aniCBMode )
+    {
+    
+#ifdef WLAN_FEATURE_11AC
+        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW:
+        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED:
+        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH:
+#endif
+        case eANI_CB_SECONDARY_DOWN:
         return eHT_SECONDARY_CHANNEL_OFFSET_DOWN;
-    else if(aniCBMode == eANI_CB_SECONDARY_UP)
+#ifdef WLAN_FEATURE_11AC
+        case eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW:
+        case eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED:
+        case eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH:
+#endif
+        case eANI_CB_SECONDARY_UP:
         return eHT_SECONDARY_CHANNEL_OFFSET_UP;
-    else
-        return eHT_SECONDARY_CHANNEL_OFFSET_NONE;
+#ifdef WLAN_FEATURE_11AC
+        case eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED:
+           return eHT_SECONDARY_CHANNEL_OFFSET_CENTERED;
+#endif
+        default :
+           return eHT_SECONDARY_CHANNEL_OFFSET_NONE;
+     }
 }
 
 
@@ -1296,7 +1190,6 @@ tSirMacHTSecondaryChannelOffset    limGetHTCBState(tAniCBSecondaryMode aniCBMode
  * @param  pMac - Pointer to Global MAC structure
  * @return The corresponding ANI enumeration
  */
-
 tAniCBSecondaryMode     limGetAniCBState( tSirMacHTSecondaryChannelOffset htCBMode) 
 {
     if(eHT_SECONDARY_CHANNEL_OFFSET_DOWN == htCBMode)
@@ -1306,7 +1199,6 @@ tAniCBSecondaryMode     limGetAniCBState( tSirMacHTSecondaryChannelOffset htCBMo
     else
         return eANI_CB_SECONDARY_NONE;
 }
-
 
 /**
  * limGetStaPeerType
@@ -1333,7 +1225,6 @@ tStaRateMode limGetStaPeerType( tpAniSirGlobal pMac,
     tpPESession   psessionEntry)
 {
 tStaRateMode staPeerType = eSTA_11b;
-
   // Determine the peer-STA type
   if( pStaDs->aniPeer )
   {
@@ -1344,16 +1235,18 @@ tStaRateMode staPeerType = eSTA_11b;
     else
         staPeerType = eSTA_POLARIS;
   }
+#ifdef WLAN_FEATURE_11AC
+  else if(pStaDs->mlmStaContext.vhtCapability)
+      staPeerType = eSTA_11ac;
+#endif
   else if(pStaDs->mlmStaContext.htCapability)
         staPeerType = eSTA_11n;
   else if(pStaDs->erpEnabled)
         staPeerType = eSTA_11bg;
   else if(psessionEntry->limRFBand == SIR_BAND_5_GHZ)
         staPeerType = eSTA_11a;
-
   return staPeerType;
 }
-
 /**
  * setupCBState()
  *
@@ -1378,6 +1271,14 @@ void setupCBState( tpAniSirGlobal pMac,
     tAniCBSecondaryMode cbMode )
 {
 
+#ifdef WLAN_FEATURE_11AC
+     if(cbMode > eANI_CB_SECONDARY_UP)
+     {
+         SET_CB_OPER_STATE( pMac->lim.gCbState, eHAL_SET );
+         return;
+     }
+#endif
+
   switch( cbMode )
   {
     case eANI_CB_SECONDARY_DOWN:
@@ -1387,7 +1288,6 @@ void setupCBState( tpAniSirGlobal pMac,
           limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
       // AU state is set via CFG
       break;
-
     case eANI_CB_SECONDARY_UP:
       SET_CB_OPER_STATE( pMac->lim.gCbState, eHAL_SET );
       SET_CB_SEC_CHANNEL( pMac->lim.gCbState, eHAL_SET );
@@ -1395,24 +1295,19 @@ void setupCBState( tpAniSirGlobal pMac,
           limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
       // AU state is set via CFG
       break;
-
     case eANI_CB_SECONDARY_NONE:
       if (cfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, WNI_CFG_CB_SECONDARY_CHANNEL_STATE_NONE) != eSIR_SUCCESS)
           limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
-
     default:
       SET_CB_OPER_STATE( pMac->lim.gCbState, eHAL_CLEAR );
       break;
   }
-
-
 
   limLog( pMac, LOG2,
       FL("New CB State: 0x%1x for Mode %d\n"),
       pMac->lim.gCbState,
       cbMode );
 }
-
 /**
  * limGetCurrentCBSecChannel()
  *
@@ -1436,7 +1331,6 @@ void setupCBState( tpAniSirGlobal pMac,
 tANI_U8 limGetCurrentCBSecChannel( tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
 tANI_U8 chanNum;
-
   //
   // FIXME - This is a HACK!!
   // Need to have a clean way of determining the current
@@ -1450,12 +1344,9 @@ tANI_U8 chanNum;
     else
       chanNum -= 4;
   }
-
   limLog( pMac, LOG4,
       FL("Returning CB Sec Channel %1d\n"),
       chanNum );
-
   return chanNum;
 }
-
 

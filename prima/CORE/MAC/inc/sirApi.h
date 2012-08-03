@@ -319,6 +319,15 @@ typedef enum eAniCBSecondaryMode
     eANI_CB_SECONDARY_NONE,
     eANI_CB_SECONDARY_DOWN,
     eANI_CB_SECONDARY_UP,
+#ifdef WLAN_FEATURE_11AC
+    eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED,
+    eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED,
+    eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED,
+    eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW,
+    eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW,
+    eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH,
+    eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH,
+#endif
     eANI_DONOT_USE_SECONDARY_MODE = SIR_MAX_ENUM_SIZE
 } tAniCBSecondaryMode;
 
@@ -334,6 +343,9 @@ typedef enum eStaRateMode {
     eSTA_11bg,
     eSTA_11a,
     eSTA_11n,
+#ifdef WLAN_FEATURE_11AC
+    eSTA_11ac,
+#endif
     eSTA_INVALID_RATE_MODE
 } tStaRateMode, *tpStaRateMode;
 
@@ -382,6 +394,18 @@ typedef struct sSirSupportedRates {
      */
     tANI_U16 rxHighestDataRate;
 
+#ifdef WLAN_FEATURE_11AC
+   /*Indicates the Maximum MCS that can be received for each number
+        of spacial streams */
+    tANI_U16 vhtRxMCSMap;
+   /*Indicate the highest VHT data rate that the STA is able to receive*/
+    tANI_U16 vhtRxHighestDataRate;
+   /*Indicates the Maximum MCS that can be transmitted	for each number
+        of spacial streams */
+    tANI_U16 vhtTxMCSMap;
+   /*Indicate the highest VHT data rate that the STA is able to transmit*/
+    tANI_U16 vhtTxHighestDataRate;
+#endif
 } tSirSupportedRates, *tpSirSupportedRates;
 
 
@@ -631,6 +655,9 @@ typedef enum eSirNwType
     eSIR_11B_NW_TYPE,
     eSIR_11G_NW_TYPE,
     eSIR_11N_NW_TYPE,
+#ifdef WLAN_FEATURE_11AC
+    eSIR_11AC_NW_TYPE,
+#endif
     eSIR_DONOT_USE_NW_TYPE = SIR_MAX_ENUM_SIZE
 } tSirNwType;
 
