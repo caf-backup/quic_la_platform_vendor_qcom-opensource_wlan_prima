@@ -613,7 +613,8 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     netif_tx_disable(dev);
     netif_carrier_off(dev);
 
-    hdd_connSetConnectionState( pHddStaCtx, eConnectionState_NotConnected );
+    INIT_COMPLETION(pAdapter->disconnect_comp_var);
+    hdd_connSetConnectionState( pHddStaCtx, eConnectionState_Disconnecting );
 
     hdd_clearRoamProfileIe( pAdapter );
 

@@ -627,7 +627,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U32 *pBd,
                      SIR_MAC_BD_TO_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      ( psessionEntry != NULL ) ? psessionEntry->smeSessionId :
                      pLimMgmtRegistration->sessionId, 
-                     SIR_MAC_BD_TO_RX_CHANNEL(pBd) );
+                     SIR_MAC_BD_TO_RX_CHANNEL(pBd), psessionEntry );
     }
 
     return match;
@@ -800,7 +800,6 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 #ifdef WLAN_DEBUG    
     pMac->lim.numMAC[fc.type][fc.subType]++;
 #endif
-    
     switch (fc.type)
     {
         case SIR_MAC_MGMT_FRAME:

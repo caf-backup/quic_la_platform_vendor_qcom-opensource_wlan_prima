@@ -29,7 +29,7 @@
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
 #include <net/ieee80211_radiotap.h>
-
+#define WLAN_HDD_TX_ACTION_CNF_TIMEOUT 500
 extern struct net_device_ops net_ops_struct;
 
 static int hdd_wlan_add_rx_radiotap_hdr( struct sk_buff *skb,
@@ -88,23 +88,80 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
        )
     {
         tANI_U8 sessionId = pAdapter->sessionId;
-        sme_DeregisterMgmtFrame(
+        if(REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request)
+        {
+            sme_DeregisterMgmtFrame(
                    hHal, sessionId,
                    (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
                     NULL, 0 );
+        }
     }
     else if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
               ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
             )
     {
-        WLANSAP_DeRegisterMgmtFrame(
+        if(REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request)
+        {
+            WLANSAP_DeRegisterMgmtFrame(
                 (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                 (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
                 NULL, 0 );
+       }
     }
-
     complete(&pAdapter->cancel_rem_on_chan_var);
     return eHAL_STATUS_SUCCESS;
+}
+
+void wlan_hdd_cancel_existing_remain_on_channel(struct net_device *dev)
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+
+    if( cfgState->remain_on_chan_ctx != NULL)
+    {
+        //If ack for any action frame is pending then wait for
+        //the completion or 100 ms
+        if(NULL != cfgState->buf)
+        {
+            tANI_U32 rc;
+            INIT_COMPLETION(pAdapter->tx_action_cnf_event);
+            rc = wait_for_completion_interruptible_timeout(
+                        &pAdapter->tx_action_cnf_event,
+                        msecs_to_jiffies(WLAN_HDD_TX_ACTION_CNF_TIMEOUT));
+            if(!rc)
+            {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                                    ("HDD Wait for Action Confirmation Failed!!\n"));
+            }
+        }
+
+        INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
+
+        /* Issue abort remain on chan request to sme.
+         * The remain on channel callback will make sure the remain_on_chan
+         * expired event is sent.
+         */
+
+        if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
+                   ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
+                 ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
+           )
+        {
+            sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
+            pAdapter->sessionId );
+        }
+        else if ( (WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
+                       (WLAN_HDD_P2P_GO == pAdapter->device_mode)
+                )
+        {
+            WLANSAP_CancelRemainOnChannel(
+                               (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+        }
+
+        wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+                                                    msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
+    }
+    return;
 }
 
 static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
@@ -126,8 +183,6 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         "chan(hw_val)0x%x chan(centerfreq) %d chan type 0x%x, duration %d",
         chan->hw_value, chan->center_freq, channel_type, duration );
 
-    INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
-
     spin_lock(&cfgState->p2p_lock);
     if( cfgState->remain_on_chan_ctx != NULL)
     {
@@ -137,41 +192,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         * will be in unknown state.
         */
         spin_unlock(&cfgState->p2p_lock);
-        ret = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
-                      msecs_to_jiffies(WAIT_REM_CHAN_READY));
-
-        if(0 == ret)
-        {
-            VOS_ASSERT(0);
-        }
-
-        /* Issue abort remain on chan request to sme.
-         * The remain on channel callback will make sure the remain_on_chan
-         * expired event is sent.
-        */
-        if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
-             ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
-             ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
-           )
-        {
-            sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
-                                                     pAdapter->sessionId );
-        }
-        else if ( (WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
-                  (WLAN_HDD_P2P_GO == pAdapter->device_mode)
-                )
-        {
-            WLANSAP_CancelRemainOnChannel(
-                                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
-        }
-
-        ret = wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
-                msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
-
-        if(0 == ret)
-        {
-            VOS_ASSERT(0);
-        }
+        wlan_hdd_cancel_existing_remain_on_channel(dev);
     }
     else
     {
@@ -227,10 +248,13 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
                        chan->hw_value, duration,
                        wlan_hdd_remain_on_channel_callback, pAdapter );
 
-        sme_RegisterMgmtFrame(WLAN_HDD_GET_HAL_CTX(pAdapter),
+        if ( REMAIN_ON_CHANNEL_REQUEST == request_type )
+        {
+            sme_RegisterMgmtFrame(WLAN_HDD_GET_HAL_CTX(pAdapter),
                               sessionId, (SIR_MAC_MGMT_FRAME << 2) |
                               (SIR_MAC_MGMT_PROBE_REQ << 4), NULL, 0 );
 
+        }
     }
     else if ( ( WLAN_HDD_SOFTAP == pAdapter->device_mode ) ||
               ( WLAN_HDD_P2P_GO == pAdapter->device_mode )
@@ -250,22 +274,33 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
            return -EINVAL;
         }
 
-
-        if (VOS_STATUS_SUCCESS != WLANSAP_RegisterMgmtFrame(
+        if ( REMAIN_ON_CHANNEL_REQUEST == request_type )
+        {
+            if (VOS_STATUS_SUCCESS != WLANSAP_RegisterMgmtFrame(
                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                     (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
                     NULL, 0 ))
-        {
-           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+            {
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: WLANSAP_RegisterMgmtFrame returned fail", __func__);
-           WLANSAP_CancelRemainOnChannel(
+                WLANSAP_CancelRemainOnChannel(
                                 (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
-           return -EINVAL;
+                return -EINVAL;
+            }
        }
-
     }
-    return 0;
 
+   /* wait until remain on channel ready event received
+    * for already issued remain on channel request */
+    ret = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
+                                msecs_to_jiffies(WAIT_REM_CHAN_READY));
+    if (!ret)
+    {
+        hddLog( LOGE, "%s: timeout waiting for remain on channel ready indication", __func__);
+        VOS_ASSERT(0);
+    }
+
+    return 0;
 }
 
 int wlan_hdd_cfg80211_remain_on_channel( struct wiphy *wiphy,
@@ -314,6 +349,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
     int ret = 0;
 
 
@@ -335,15 +371,7 @@ int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     }
     spin_unlock(&cfgState->p2p_lock);
 
-    /* wait until remain on channel ready event received
-     * for already issued remain on channel request */
-    ret = wait_for_completion_interruptible_timeout(&pAdapter->rem_on_chan_ready_event,
-                  msecs_to_jiffies(WAIT_REM_CHAN_READY));
-
-    if(0 == ret)
-    {
-        VOS_ASSERT(0);
-    }
+    hdd_cleanup_actionframe(pHddCtx, pAdapter);
 
     /* Issue abort remain on chan request to sme.
      * The remain on channel callback will make sure the remain_on_chan
@@ -414,6 +442,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( dev );
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     bool noack = 0;
+    tANI_U32 waitChan = wait;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,3,0))
     noack = dont_wait_for_ack;
@@ -466,7 +495,21 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     }
 
     if( NULL != cfgState->buf )
-        return -EBUSY;
+    {
+        tANI_U32 cnt = 0;
+        hdd_cleanup_actionframe(pAdapter->pHddCtx, pAdapter);
+
+        while( NULL != cfgState->buf && cnt < 5)
+        {
+            msleep(1);
+            cnt++;
+        }
+
+        if( NULL != cfgState->buf )
+        {
+            return -EBUSY;
+        }
+    }
 
     hddLog( LOG1, "Action frame tx request");
 
@@ -513,16 +556,6 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             {
                 goto send_frame;
             }
-            goto err_rem_channel;
-        }
-
-        status = wait_for_completion_interruptible_timeout(
-                     &pAdapter->offchannel_tx_event,
-                     msecs_to_jiffies(WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
-        if(!status)
-        {
-            hddLog( LOGE, "Not able to complete remain on channel request"
-                          " within timeout period");
             goto err_rem_channel;
         }
     }
@@ -584,7 +617,7 @@ send_frame:
         tANI_U8 sessionId = pAdapter->sessionId; 
         if (eHAL_STATUS_SUCCESS !=
                sme_sendAction( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                               sessionId, buf, len, noack))
+                               sessionId, buf, len, noack, waitChan))
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                      "%s: sme_sendAction returned fail", __func__);
@@ -597,7 +630,7 @@ send_frame:
      {
         if( VOS_STATUS_SUCCESS !=
              WLANSAP_SendAction( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                  buf, len ) )
+                                  buf, len, waitChan ) )
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: WLANSAP_SendAction returned fail", __func__);
@@ -651,7 +684,6 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
          cfg80211_mgmt_tx_status( pAdapter->dev, cfgState->action_cookie,
                 cfgState->buf, cfgState->len, actionSendSuccess, GFP_KERNEL );
          vos_mem_free( cfgState->buf );
-         cfgState->buf = NULL;
     }
     else
     {
@@ -662,19 +694,19 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
             hddLog( LOGE, "Not able to get Monitor Adapter");
             cfgState->skb = NULL;
             vos_mem_free( cfgState->buf );
-            cfgState->buf = NULL;
             complete(&pAdapter->tx_action_cnf_event);
+            cfgState->buf = NULL;	    
             return;
         }
         /* Send TX completion feedback over monitor interface. */
         hdd_wlan_tx_complete( pMonAdapter, cfgState, actionSendSuccess );
         cfgState->skb = NULL;
         vos_mem_free( cfgState->buf );
-        cfgState->buf = NULL;
         /* Look for the next Mgmt packet to TX */
         hdd_mon_tx_mgmt_pkt(pAdapter);
     }
     complete(&pAdapter->tx_action_cnf_event);
+    cfgState->buf = NULL;
 }
 
 /**
@@ -1101,7 +1133,6 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
             return;
         }
     }
-
     //Channel indicated may be wrong. TODO
     //Indicate an action frame.
     if( rxChan <= MAX_NO_OF_2_4_CHANNELS )

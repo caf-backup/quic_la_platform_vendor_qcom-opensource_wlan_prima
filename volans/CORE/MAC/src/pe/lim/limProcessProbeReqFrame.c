@@ -715,7 +715,7 @@ limIndicateProbeReqToHDD(tpAniSirGlobal pMac, tANI_U32 *pBd,
     //send the probe req to SME.
     limSendSmeMgmtFrameInd( pMac, pHdr->fc.subType,
                (tANI_U8*)pHdr, (frameLen + sizeof(tSirMacMgmtHdr)), 
-               psessionEntry->smeSessionId, SIR_MAC_BD_TO_RX_CHANNEL(pBd) );
+               psessionEntry->smeSessionId, SIR_MAC_BD_TO_RX_CHANNEL(pBd) , psessionEntry);
 } /*** end limIndicateProbeReqToHDD() ***/
 #endif
 

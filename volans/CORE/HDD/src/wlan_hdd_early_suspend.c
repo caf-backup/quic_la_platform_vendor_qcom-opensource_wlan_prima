@@ -71,9 +71,7 @@
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend wlan_early_suspend;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
 static struct wake_lock wlan_wake_lock;
-#endif
 #endif
 static eHalStatus g_full_pwr_status;
 static eHalStatus g_standby_status;
@@ -708,16 +706,12 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static inline void hdd_prevent_suspend(void)
 {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
     wake_lock(&wlan_wake_lock);
-#endif
 }
 
 static inline void hdd_allow_suspend(void)
 {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
     wake_unlock(&wlan_wake_lock);
-#endif
 }
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
@@ -1496,9 +1490,7 @@ void register_wlan_suspend(void)
    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Register WLAN suspend/resume "
             "callbacks",__func__);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
    wake_lock_init(&wlan_wake_lock, WAKE_LOCK_SUSPEND, "wlan");
-#endif
 
    wlan_early_suspend.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING;
    wlan_early_suspend.suspend = hdd_suspend_wlan;
@@ -1511,9 +1503,7 @@ void unregister_wlan_suspend(void)
    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unregister WLAN suspend/resume "
             "callbacks",__func__);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
    wake_lock_destroy(&wlan_wake_lock);
-#endif
    unregister_early_suspend(&wlan_early_suspend);
 }
 

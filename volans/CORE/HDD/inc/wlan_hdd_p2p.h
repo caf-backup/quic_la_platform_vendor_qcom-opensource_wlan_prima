@@ -19,7 +19,7 @@
 #ifdef CONFIG_CFG80211
 #define ACTION_FRAME_TX_TIMEOUT 1000
 #define WAIT_CANCEL_REM_CHAN    1000
-#define WAIT_REM_CHAN_READY     1000
+#define WAIT_REM_CHAN_READY     3000
 #define WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX 3000
 
 #define WLAN_HDD_GET_TYPE_FRM_FC(__fc__)         (((__fc__) & 0x0F) >> 2)
@@ -97,7 +97,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
                      bool channel_type_valid,
                      const u8 *buf, size_t len, u64 *cookie );
 #endif
-
+void wlan_hdd_cancel_existing_remain_on_channel(struct net_device *dev);
 #endif // WLAN_FEATURE_P2P
 
 struct net_device* wlan_hdd_add_virtual_intf(

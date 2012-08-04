@@ -1887,7 +1887,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
                             limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
                                     (tANI_U8*)pHdr,
                                     frameLen + sizeof(tSirMacMgmtHdr),
-                                    0, SIR_MAC_BD_TO_RX_CHANNEL(pBd) );
+                                    0, SIR_MAC_BD_TO_RX_CHANNEL(pBd), psessionEntry );
                         }
                         else
                         {
@@ -1957,7 +1957,7 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
                   // type is ACTION
                   limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
                       (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
-                      SIR_MAC_BD_TO_RX_CHANNEL(pBd) );
+                      SIR_MAC_BD_TO_RX_CHANNEL(pBd), NULL );
                 }
                 else
                 {

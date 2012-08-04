@@ -575,6 +575,15 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      goto err_tl_stop;
   }
 
+  {
+      tpAniSirGlobal pMac = PMAC_STRUCT( pVosContext->pMACContext );
+
+      if(pMac->lim.gLimTimersCreated == 0)
+      {
+          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,"%s: Failed to create lim timers",__func__);
+          goto err_tl_stop;
+      }
+  }
 
    /**
    EVM issue is observed with 1.6Mhz freq for 1.3V RF supply in wlan standalone case.

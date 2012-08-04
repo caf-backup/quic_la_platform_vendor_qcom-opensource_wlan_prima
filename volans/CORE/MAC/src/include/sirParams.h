@@ -110,8 +110,9 @@ typedef struct sSirMbMsgP2p
      */
     tANI_U16 msgLen;
 
-    tANI_U16 sessionId;
-    tANI_U16 noack;
+    tANI_U8 sessionId;
+    tANI_U8 noack;
+    tANI_U16 wait;
 
     /**
      * This is the first data word in the mailbox message.
