@@ -1141,10 +1141,20 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
 #ifdef CONFIG_CFG80211
         /* inform association failure event to nl80211 */
-        cfg80211_connect_result(dev, pWextState->req_bssId,
+        if(eCSR_ROAM_RESULT_ASSOC_FAIL_CON_CHANNEL == roamResult)
+        {
+           cfg80211_connect_result(dev, pWextState->req_bssId,
+                NULL, 0, NULL, 0,
+                WLAN_STATUS_ASSOC_DENIED_UNSPEC, 
+                GFP_KERNEL);
+        }
+        else
+        {
+           cfg80211_connect_result(dev, pWextState->req_bssId,
                 NULL, 0, NULL, 0,
                 WLAN_STATUS_UNSPECIFIED_FAILURE, 
                 GFP_KERNEL);
+        }
 #endif 
 
         netif_tx_disable(dev);

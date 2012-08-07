@@ -1077,6 +1077,14 @@ VOS_STATUS WLANTL_HSHandleRXFrame
    }
    currentHO->sampleTime = currentTimestamp;
 
+   /* Get Current RSSI from BD Heaser */
+   status = WLANTL_HSGetRSSI(pAdapter, pBDHeader, STAid, &currentAvgRSSI);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Get RSSI Fail"));
+      return status;
+   }
+
    /* If any threshold is not registerd, DO NOTHING! */
    if(0 == tlCtxt->hoSupport.currentHOState.numThreshold)
    {
@@ -1084,13 +1092,6 @@ VOS_STATUS WLANTL_HSHandleRXFrame
    }
    else
    {
-      /* Get Current RSSI from BD Heaser */
-      status = WLANTL_HSGetRSSI(pAdapter, pBDHeader, STAid, &currentAvgRSSI);
-      if(!VOS_IS_STATUS_SUCCESS(status))
-      {
-         TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Get RSSI Fail"));
-         return status;
-      }
       /* Handle current RSSI value, region, notification, etc */
       status = WLANTL_HSHandleRSSIChange(pAdapter, currentAvgRSSI);
       if(!VOS_IS_STATUS_SUCCESS(status))
@@ -1322,7 +1323,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
             if((WLANTL_HO_THRESHOLD_DOWN == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent))
             {
                TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Registered RSSI value larger than Current RSSI, and DOWN event, Send Notification"));
-               crossCBFunction(pAdapter, WLANTL_HO_THRESHOLD_DOWN, usrCtxt);
+               WLANTL_HSSerializeTlIndication(pAdapter, WLANTL_HO_THRESHOLD_DOWN, usrCtxt, crossCBFunction);
             }
          }
          else if((currentHO->regionNumber < (currentHO->numThreshold - 1)) &&
@@ -1351,14 +1352,14 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
       ((WLANTL_HO_THRESHOLD_DOWN == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent)))
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Registered RSSI value larger than Current RSSI, and DOWN event, Send Notification"));
-      crossCBFunction(pAdapter, WLANTL_HO_THRESHOLD_DOWN, usrCtxt);
+      WLANTL_HSSerializeTlIndication(pAdapter, WLANTL_HO_THRESHOLD_DOWN, usrCtxt, crossCBFunction);
    }
    else if((VOS_FALSE == tlCtxt->isBMPS) &&
            (rssiValue < currentHO->historyRSSI) && (0 != currentHO->historyRSSI) &&
            ((WLANTL_HO_THRESHOLD_UP == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent)))
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Registered RSSI value smaller than Current RSSI, and UP event, Send Notification"));
-      crossCBFunction(pAdapter, WLANTL_HO_THRESHOLD_UP, usrCtxt);
+      WLANTL_HSSerializeTlIndication(pAdapter, WLANTL_HO_THRESHOLD_UP, usrCtxt, crossCBFunction);
    }
 
    if(VOS_TRUE == tlCtxt->isBMPS)
