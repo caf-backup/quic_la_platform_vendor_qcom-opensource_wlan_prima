@@ -129,7 +129,9 @@ static char fwpath[BUF_LEN];
 module_param_string(fwpath, fwpath, BUF_LEN,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
 static struct wake_lock wlan_wake_lock;
+#endif
 /* set when SSR is needed after unload */
 static v_U8_t      isSsrRequired;
 
@@ -3091,12 +3093,16 @@ void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
 /* wake lock APIs for HDD */
 void hdd_prevent_suspend(void)
 {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
     wake_lock(&wlan_wake_lock);
+#endif
 }
 
 void hdd_allow_suspend(void)
 {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
     wake_unlock(&wlan_wake_lock);
+#endif
 }
 
 /**---------------------------------------------------------------------------
@@ -3881,7 +3887,9 @@ static int __init hdd_module_init ( void)
 
    ENTER();
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
    wake_lock_init(&wlan_wake_lock, WAKE_LOCK_SUSPEND, "wlan");
+#endif
 
    pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME,
            QWLAN_VERSIONSTR TIMER_MANAGER_STR MEMORY_DEBUG_STR);
@@ -4059,7 +4067,9 @@ static int __init hdd_module_init ( void)
       vos_mem_exit();
 #endif
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
       wake_lock_destroy(&wlan_wake_lock);
+#endif
       pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
    }
    else
@@ -4144,7 +4154,9 @@ static void __exit hdd_module_exit(void)
 #endif
 
 done:
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
    wake_lock_destroy(&wlan_wake_lock);
+#endif
    pr_info("%s: driver unloaded\n", WLAN_MODULE_NAME);
 }
 
