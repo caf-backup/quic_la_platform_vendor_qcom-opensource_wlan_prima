@@ -1213,9 +1213,6 @@ typedef PACKED_PRE struct PACKED_POST
     /*Short GI support for 20Mhz packets*/
     tANI_U8 fShortGI20Mhz;
 
-    /*These rates are the intersection of peer and self capabilities.*/
-    tSirSupportedRates supportedRates;
-
     /*Robust Management Frame (RMF) enabled/disabled*/
     tANI_U8 rmfEnabled;
 
@@ -1262,6 +1259,12 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8 bssIdx;
 
     tANI_U8  p2pCapableSta;
+
+    /*Reserved to align next field on a dword boundary*/
+    tANI_U8  reserved;
+
+    /*These rates are the intersection of peer and self capabilities.*/
+    tSirSupportedRates supportedRates;
 
 } tConfigStaParams, *tpConfigStaParams;
 
@@ -1377,9 +1380,6 @@ typedef PACKED_PRE struct PACKED_POST
     /*Short GI support for 20Mhz packets*/
     tANI_U8 fShortGI20Mhz;
 
-    /*These rates are the intersection of peer and self capabilities.*/
-    tSirSupportedRates_V1 supportedRates;
-
     /*Robust Management Frame (RMF) enabled/disabled*/
     tANI_U8 rmfEnabled;
 
@@ -1426,6 +1426,11 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8 bssIdx;
 
     tANI_U8  p2pCapableSta;
+
+    /*Reserved to align next field on a dword boundary*/
+    tANI_U8  reserved;
+        /*These rates are the intersection of peer and self capabilities.*/
+    tSirSupportedRates_V1 supportedRates;
 
     tANI_U8  vhtCapable;
     tANI_U8  vhtTxChannelWidthSet;
@@ -1662,12 +1667,6 @@ typedef PACKED_PRE struct PACKED_POST
     /*Reserved to align next field on a dword boundary*/
     tANI_U8 reserved;
 
-    /*Context of the station being added in HW
-      Add a STA entry for "itself" -
-      On AP  - Add the AP itself in an "STA context"
-      On STA - Add the AP to which this STA is joining in an "STA context" */
-    tConfigStaParams staContext;
-
     /*SSID of the BSS*/
     tSirMacSSid ssId;
 
@@ -1734,6 +1733,11 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_S8     txMgmtPower;
     /*maxTxPower has max power to be used after applying the power constraint if any */
     tANI_S8     maxTxPower;
+    /*Context of the station being added in HW
+      Add a STA entry for "itself" -
+      On AP  - Add the AP itself in an "STA context"
+      On STA - Add the AP to which this STA is joining in an "STA context" */
+    tConfigStaParams staContext;
 } tConfigBssParams, * tpConfigBssParams;
 
 
@@ -1800,12 +1804,6 @@ typedef PACKED_PRE struct PACKED_POST
     /*Reserved to align next field on a dword boundary*/
     tANI_U8 reserved;
 
-    /*Context of the station being added in HW
-      Add a STA entry for "itself" -
-      On AP  - Add the AP itself in an "STA context"
-      On STA - Add the AP to which this STA is joining in an "STA context" */
-    tConfigStaParams_V1 staContext;
-
     /*SSID of the BSS*/
     tSirMacSSid ssId;
 
@@ -1872,6 +1870,11 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_S8     txMgmtPower;
     /*maxTxPower has max power to be used after applying the power constraint if any */
     tANI_S8     maxTxPower;
+    /*Context of the station being added in HW
+      Add a STA entry for "itself" -
+      On AP  - Add the AP itself in an "STA context"
+      On STA - Add the AP to which this STA is joining in an "STA context" */
+    tConfigStaParams_V1 staContext;
 
     tANI_U8   vhtCapable;
     tANI_U8   vhtTxChannelWidthSet;
