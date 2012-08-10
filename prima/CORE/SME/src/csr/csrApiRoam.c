@@ -35,6 +35,7 @@
 #include "halPhyApi.h"
 #include "halInternal.h"
 #endif
+#include "limUtils.h"
 #include "palApi.h"
 #include "csrInsideApi.h"
 #include "smsDebug.h"
@@ -2916,6 +2917,26 @@ tANI_U32 csrRoamGetPhyModeFromDot11Mode(eCsrCfgDot11Mode dot11Mode, eCsrBand ban
 }
         
         
+#ifdef WLAN_FEATURE_11AC
+tAniCBSecondaryMode csrGetHTCBStateFromVHTCBState(tAniCBSecondaryMode aniCBMode)
+{
+    switch ( aniCBMode )
+    {
+	    case eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW:
+	    case eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED:
+	    case eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH:
+		    return eANI_CB_SECONDARY_DOWN;
+	    case eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW:
+	    case eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED:
+	    case eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH:
+		    return eANI_CB_SECONDARY_UP;
+	    case eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED:
+	    default :
+		    return eANI_CB_SECONDARY_NONE;
+    }
+}
+#endif
+
 //pIes may be NULL
 eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile,
                           tSirBssDescription *pBssDesc, tBssConfigParam *pBssConfig,
@@ -2991,9 +3012,16 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
 #ifdef WLAN_FEATURE_11AC
     if(cfgCb > 2 )
     {
-        ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, WNI_CFG_CHANNEL_BONDING_MODE_ENABLE, NULL, eANI_BOOLEAN_FALSE);
-        ccmCfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, cfgCb, NULL, eANI_BOOLEAN_FALSE);
-        ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,  pMac->roam.configParam.nVhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
+	if(!WDA_getFwWlanFeatCaps(DOT11AC)) {
+	    cfgCb = csrGetHTCBStateFromVHTCBState((tAniCBSecondaryMode)pMac->roam.configParam.channelBondingMode5GHz);
+	    ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, cfgCb, NULL, eANI_BOOLEAN_FALSE);
+	}
+	else 
+	{
+            ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, WNI_CFG_CHANNEL_BONDING_MODE_ENABLE, NULL, eANI_BOOLEAN_FALSE);
+            ccmCfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, cfgCb, NULL, eANI_BOOLEAN_FALSE);
+            ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,  pMac->roam.configParam.nVhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
+        }
     }
     else
 #endif
