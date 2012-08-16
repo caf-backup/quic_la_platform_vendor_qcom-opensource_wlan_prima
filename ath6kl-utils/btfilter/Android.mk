@@ -31,6 +31,7 @@ LOCAL_CFLAGS += -DQCC_OS_ANDROID -DQCC_CPU_ARM -DANDROID
 
 LOCAL_CFLAGS += -include bionic/libc/kernel/arch-arm/asm/posix_types.h
 LOCAL_CFLAGS += -include bionic/libc/kernel/common/linux/socket.h
+LOCAL_CFLAGS += -include bionic/libc/kernel/common/linux/netlink.h
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH) \
