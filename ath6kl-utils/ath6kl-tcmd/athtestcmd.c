@@ -56,6 +56,7 @@ const char commands[] = "commands:\n"
 	"--mode <ht40plus/ht40minus>\n"
 	"--pm <wakeup/sleep/deepsleep>\n"
 	"--setmac <mac addr like 00:03:7f:be:ef:11>\n"
+	"--getmac\n"
 	"--SetAntSwitchTable <table1 in decimal value>"
 	" <table2 in decimal value>  (Set table1=0 and table2=0 will"
 	" restore the default AntSwitchTable)\n"
@@ -245,6 +246,7 @@ int main(int argc, char **argv)
 			{"rxantenna", 1, NULL, 'q'},
 			{"pm", 1, NULL, 'x'},
 			{"setmac", 1, NULL, 's'},
+			{"getmac", 0, NULL, 'C'},
 			{"ani", 0, NULL, 'a'},
 			{"scrambleroff", 0, NULL, 'o'},
 			{"aifsn", 1, NULL, 'u'},
@@ -448,6 +450,15 @@ int main(int argc, char **argv)
 			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 		break;
 	    }
+
+	case 'C':
+
+	    cmd = TESTMODE_CONT_RX;
+	    rxCmd->testCmdId = TCMD_CONT_RX_ID;
+	    act = rxCmd->act = TCMD_CONT_RX_GETMAC;
+	    resp = true;
+	    break;
+
 	case 'u':
 	    {
 		txCmd->aifsn = atoi(optarg) & 0xff;
@@ -950,6 +961,23 @@ static void readThermal(void *buf,int len)
     return;
 }
 
+static void getMac(void *buf, int len)
+{
+    TC_CMDS *tCmd;
+
+    tCmd = (TC_CMDS *)buf;
+
+    printf("Length rx cb rcvd %d\n", len);
+    printf("act %d version %d length %d\n", tCmd->hdr.act, 
+           tCmd->hdr.u.parm.version, tCmd->hdr.u.parm.length);
+
+    printf("MAC address : %02x:%02x:%02x:%02x:%02x:%02x\n", 
+           tCmd->buf[0], tCmd->buf[1], tCmd->buf[2], 
+           tCmd->buf[3], tCmd->buf[4], tCmd->buf[5]);
+
+    return;
+}
+
 static void cmdReply(void *buf, int len)
 {
     TC_CMDS  tCmdReply;
@@ -1056,6 +1084,12 @@ static void rx_cb(void *buf, int len)
 	    }
 
 	    return;
+	}
+
+	if (cmd == TESTMODE_CONT_RX) {
+            if (act == TCMD_CONT_RX_GETMAC) {
+                getMac(buf, len);
+            }
 	}
 
 	tcmd = * ((uint32_t *) buf + 1);
@@ -1464,7 +1498,10 @@ static void updateCALData(_CAL_SETUP *pCalSetup, TC_MSG *pTCMsg)
     PSAT_CAL_RESULTS *pPsatCalResults = &(pTCMsg->msg.psatCalResults);
 
     for (i=0;i<numPiers2G;i++) {
-		printf("%d %d %d %d %d %f %f %d %d 0x%x %d %d 0x%x\n", pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_diff, pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_abs, pPsatCalResults->olpcGainTherm2G[i].thermCalVal,
+		printf("%d %d %d %d %d %.2f %.2f %d %d 0x%x %d %d 0x%x\n", 
+                    pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_diff, 
+                    pPsatCalResults->olpcGainTherm2G[i].olpcGainDelta_abs, 
+                    pPsatCalResults->olpcGainTherm2G[i].thermCalVal, 
 		    pPsatCalResults->olpcGainTherm2G[i].cmac_psat, pPsatCalResults->olpcGainTherm2G[i].cmac_olpc,
 		    cmacPwr(pPsatCalResults->olpcGainTherm2G[i].cmac_psat), cmacPwr(pPsatCalResults->olpcGainTherm2G[i].cmac_olpc),
 		    pPsatCalResults->olpcGainTherm2G[i].cmac_psat_pcdac, pPsatCalResults->olpcGainTherm2G[i].cmac_olpc_pcdac,
@@ -1474,7 +1511,10 @@ static void updateCALData(_CAL_SETUP *pCalSetup, TC_MSG *pTCMsg)
 	    //}
     }
     for (i=0;i<numPiers5G ;i++) {
-		printf("%d %d %d %d %d %f %f %d %d 0x%x\n", pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_diff, pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_abs, pPsatCalResults->olpcGainTherm5G[i].thermCalVal,
+		printf("%d %d %d %d %d %.2f %.2f %d %d 0x%x\n", 
+                    pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_diff, 
+                    pPsatCalResults->olpcGainTherm5G[i].olpcGainDelta_abs, 
+                    pPsatCalResults->olpcGainTherm5G[i].thermCalVal, 
 		    pPsatCalResults->olpcGainTherm5G[i].cmac_psat, pPsatCalResults->olpcGainTherm5G[i].cmac_olpc,
 		    cmacPwr(pPsatCalResults->olpcGainTherm5G[i].cmac_psat), cmacPwr(pPsatCalResults->olpcGainTherm5G[i].cmac_olpc),
 		    pPsatCalResults->olpcGainTherm5G[i].cmac_psat_pcdac, pPsatCalResults->olpcGainTherm5G[i].cmac_olpc_pcdac,
