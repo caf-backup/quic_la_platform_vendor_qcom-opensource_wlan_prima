@@ -3370,13 +3370,13 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (!ret)
     {
        VOS_ASSERT(pScanInfo->mScanPending);
-       return 0;
+       goto allow_suspend;
     }
 
     if(pScanInfo->mScanPending != VOS_TRUE)
     {
         VOS_ASSERT(pScanInfo->mScanPending);
-        return 0;
+        goto allow_suspend;
     }
 
     /* Check the scanId */
@@ -3427,8 +3427,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (!req)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "request is became NULL\n");
-        pScanInfo->mScanPending = VOS_FALSE;
-        return 0;
+        goto allow_suspend;
     }
 
     /*
@@ -3458,6 +3457,14 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     }
 #endif
 
+allow_suspend:
+    /* release the wake lock */
+    if((eConnectionState_NotConnected == 
+         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+    {
+        hdd_allow_suspend();
+    }
+
     EXIT();
     return 0;
 }
@@ -3479,6 +3486,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     v_U32_t scanId = 0;
     int status = 0;
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
+    v_U8_t preventSuspend = 0;
 #ifdef WLAN_FEATURE_P2P
     v_U8_t* pP2pIe = NULL;
 #endif
@@ -3676,6 +3684,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     INIT_COMPLETION(pScanInfo->scan_req_completion_event);
 
+    /*If the station is not connected and recieved a scan request, acquire the 
+     * wake lock to not request the suspend from Android*/
+    if((eConnectionState_NotConnected == 
+         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+    {
+        preventSuspend = 1;
+        hdd_prevent_suspend();
+    }
+
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
@@ -3686,6 +3703,10 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                 "%s: sme_ScanRequest returned error %d", __func__, status);
         complete(&pScanInfo->scan_req_completion_event);
         status = -EIO;
+        if(preventSuspend)
+        {
+            hdd_allow_suspend();
+        }
         goto free_mem;
     }
 
