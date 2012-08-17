@@ -393,6 +393,11 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     noack = dont_wait_for_ack;
 #endif
 
+    //If the wait is coming as 0 with off channel set
+    //then set the wait to 200 ms
+    if (offchan && !wait)
+        wait = ACTION_FRAME_DEFAULT_WAIT;
+
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                             __func__,pAdapter->device_mode);
 
