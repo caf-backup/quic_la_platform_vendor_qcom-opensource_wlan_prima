@@ -136,7 +136,6 @@ module_param_string(fwpath, fwpath, BUF_LEN,
  */
 #define WLAN_HDD_RESTART_RETRY_DELAY_MS 5000  /* 5 second */
 #define WLAN_HDD_RESTART_RETRY_MAX_CNT  5     /* 5 retries */
-
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
 static struct wake_lock wlan_wake_lock;
 #endif
@@ -3111,6 +3110,8 @@ void hdd_prevent_suspend(void)
 {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
     wake_lock(&wlan_wake_lock);
+#else
+    wcnss_prevent_suspend();
 #endif
 }
 
@@ -3118,6 +3119,8 @@ void hdd_allow_suspend(void)
 {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
     wake_unlock(&wlan_wake_lock);
+#else
+    wcnss_allow_suspend();
 #endif
 }
 
