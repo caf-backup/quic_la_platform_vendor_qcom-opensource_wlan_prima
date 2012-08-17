@@ -1629,7 +1629,12 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 {
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx;
+    hdd_scaninfo_t *pScanInfo;
+    hdd_adapter_t *staAdapter;
     VOS_STATUS status = 0;
+
+    staAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_INFRA_STATION);
+    pScanInfo =  &staAdapter->scan_info;
 
     ENTER();
 
@@ -1649,6 +1654,22 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                               __func__,pAdapter->device_mode);
+
+    if(pScanInfo->mScanPending)
+    {
+        INIT_COMPLETION(staAdapter->abortscan_event_var);
+        hdd_abort_mac_scan(staAdapter->pHddCtx);
+        status = wait_for_completion_interruptible_timeout(
+                             &staAdapter->abortscan_event_var,
+                             msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
+        if (!status)
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s: Timeout occured while waiting for abortscan" ,
+                          __FUNCTION__);
+            return 0;
+        }
+    }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
 #ifdef WLAN_FEATURE_P2P
