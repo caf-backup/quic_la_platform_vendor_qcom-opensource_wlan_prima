@@ -937,7 +937,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
             hddLog( VOS_TRACE_LEVEL_ERROR, 
                     "**Wps Ie+ P2pIE Length is too big***\n");
             ret = -EINVAL;
-            goto done:
+            goto done;
         }
         total_ielen += ielen;
     }

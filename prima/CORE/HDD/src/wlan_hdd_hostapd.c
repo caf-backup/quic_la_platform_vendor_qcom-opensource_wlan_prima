@@ -1042,6 +1042,7 @@ static iw_softap_getchannel(struct net_device *dev,
     return 0;
 }
 
+#if 0
 int
 static iw_softap_set_tx_power(struct net_device *dev,
                         struct iw_request_info *info,
@@ -1078,7 +1079,7 @@ static iw_softap_set_tx_power(struct net_device *dev,
 
     return 0;
 }
-
+#endif
 #define IS_BROADCAST_MAC(x) (((x[0] & x[1] & x[2] & x[3] & x[4] & x[5]) == 0xff) ? 1 : 0)
 
 int
