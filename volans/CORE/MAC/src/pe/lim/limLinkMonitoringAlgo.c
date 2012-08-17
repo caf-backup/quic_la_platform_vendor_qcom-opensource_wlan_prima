@@ -256,7 +256,7 @@ limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession pse
     msgLength += sizeof(tANI_U16);
     
     //sessionId
-    *pBuf = psessionEntry->peSessionId;
+    *pBuf = psessionEntry->smeSessionId;
     pBuf++;
     msgLength++;
   

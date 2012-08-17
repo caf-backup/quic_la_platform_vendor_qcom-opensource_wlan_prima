@@ -39,7 +39,7 @@ typedef struct
 
 typedef struct
 {
-    tTpcPowerTable curTpcPwrLUT;
+    tANI_U32 curTpcPwrLUT[PHY_MAX_TX_CHAINS][TPC_MEM_POWER_LUT_DEPTH];
     tPhyTxPowerBand combinedBands;
 }tPhyTxPower;
 

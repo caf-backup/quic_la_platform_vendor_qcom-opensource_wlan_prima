@@ -1513,8 +1513,7 @@ void unregister_wlan_suspend(void)
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,5))
    wake_lock_destroy(&wlan_wake_lock);
-#endif
-
+#endif 
    unregister_early_suspend(&wlan_early_suspend);
 }
 

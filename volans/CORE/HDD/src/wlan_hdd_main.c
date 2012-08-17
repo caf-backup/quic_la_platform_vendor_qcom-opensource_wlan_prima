@@ -3234,65 +3234,6 @@ void hdd_set_conparam ( v_UINT_t newParam )
 {
   con_mode = newParam;
 }
-/**---------------------------------------------------------------------------
-  \brief hdd_wlan_send_reset()
-
-   This function will send disconnect indication with reason code as
-   WLAN_REASON_DISASSOC_LOW_ACK. Supplicant on receving disconnect indication
-   with this reason code will send HANG command to GUI, which in turn will
-   reload driver.
-
-  \param - pHddCtx
-  \return -  VOS_STATUS_E_FAILURE for failure
-             VOS_STATUS_SUCCESS for success
-
-  --------------------------------------------------------------------------*/
-VOS_STATUS hdd_wlan_send_reset( hdd_context_t *pHddCtx )
-{
-    VOS_STATUS status = VOS_STATUS_E_FAILURE;
-    if (pHddCtx->cfg_ini->fIsLogpEnabled)
-    {
-        hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
-        hdd_adapter_t *pAdapter;
-        status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode);
-        hddLog(VOS_TRACE_LEVEL_INFO, "%s LOGP is enabled: %d\n ", __func__,__LINE__);
-        while ( (NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status) )
-        {
-            pAdapter = pAdapterNode->pAdapter;
-            if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION )
-                 || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
-              )
-               {
-                   hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-                   /* If STA is not in connected state, then disconnect indication
-                      will be dropped by cfg80211. In these cases we will use driver
-                      LOGP to reset driver.
-                   */
-                   if(pHddStaCtx->conn_info.connState == eConnectionState_Associated)
-                   {
-                       /* Send Diconnect indication with reason code to indicate that the 
-                          firmware has crashed.This event trigger reloading of WLAN driver.
-                          Supplicant on receving disconnect indication with this reason code 
-                          will send a HANGED event to GUI, which reload the driver
-                       */
-                       hddLog(VOS_TRACE_LEVEL_INFO, "%s:Sending HANGED event to Supllicant %d\n ",
-                                            __func__,__LINE__);
-                       cfg80211_disconnected(pAdapter->dev,
-                                             WLAN_REASON_DISASSOC_LOW_ACK, NULL, 0, GFP_KERNEL);
-                       return VOS_STATUS_SUCCESS;
-                   }
-                   else
-                   {
-                       return  VOS_STATUS_E_FAILURE;
-                   }
-               }
-               status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext);
-               pAdapterNode = pNext;
-        }
-    }
-    return VOS_STATUS_E_FAILURE;
-}
-
 
 /**---------------------------------------------------------------------------
 
