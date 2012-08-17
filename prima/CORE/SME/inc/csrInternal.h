@@ -658,6 +658,11 @@ typedef struct tagCsrScanStruct
     * (apprx 1.3 sec) */
     tANI_BOOLEAN fEnableDFSChnlScan;
 
+    /*
+    * To enable/disable scanning only 2.4Ghz channels on first scan
+    */
+    tANI_BOOLEAN fFirstScanOnly2GChnl;
+
     tANI_BOOLEAN fDropScanCmd; //true means we don't accept scan commands
 
 #ifdef WLAN_AP_STA_CONCURRENCY

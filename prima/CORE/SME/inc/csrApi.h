@@ -985,6 +985,11 @@ typedef struct tagCsrConfigParam
     tANI_U32  nVhtChannelWidth;
 #endif
 
+    /*
+    * To enable/disable scanning only 2.4Ghz channels on first scan
+    */
+    tANI_BOOLEAN fFirstScanOnly2GChnl;
+
 }tCsrConfigParam;   
 
 //Tush

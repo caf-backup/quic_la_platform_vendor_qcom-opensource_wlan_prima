@@ -87,6 +87,7 @@ void csrScanIdleScanTimerHandler(void *);
 #ifdef WLAN_AP_STA_CONCURRENCY
 static void csrStaApConcTimerHandler(void *);
 #endif
+tANI_BOOLEAN csrIsSupportedChannel(tpAniSirGlobal pMac, tANI_U8 channelId);
 eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 void csrSetCfgValidChannelList( tpAniSirGlobal pMac, tANI_U8 *pChannelList, tANI_U8 NumChannels );
 void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfgId );
@@ -477,6 +478,42 @@ eHalStatus csrQueueScanRequest( tpAniSirGlobal pMac, tSmeCmd *pScanCmd )
 }
 #endif
 
+/* ---------------------------------------------------------------------------
+    \fn csrScan2GOnyRequest
+    \brief This function will update the scan request with only 
+           2.4GHz valid cahnnel list.
+    \param pMac
+    \param pScanCmd
+    \param pScanRequest
+    \return None
+  -------------------------------------------------------------------------------*/
+static void csrScan2GOnyRequest(tpAniSirGlobal pMac,tSmeCmd *pScanCmd, 
+                                tCsrScanRequest *pScanRequest)
+{
+    tANI_U8 index, channelId, channelListSize = 0;
+    tANI_U8 channelList2G[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+    static tANI_U8 validchannelList[CSR_MAX_2_4_GHZ_SUPPORTED_CHANNELS] = {0};
+
+    VOS_ASSERT(pScanCmd && pScanRequest);
+
+    if (pScanCmd->u.scanCmd.scanID ||
+       (eCSR_SCAN_REQUEST_FULL_SCAN != pScanRequest->requestType))
+           return;
+
+    //Contsruct valid Supported 2.4 GHz Channel List
+    for( index = 0; index < ARRAY_SIZE(channelList2G); index++ )
+    {
+        channelId = channelList2G[index];
+        if ( csrIsSupportedChannel( pMac, channelId ) )
+        {
+            validchannelList[channelListSize++] = channelId;
+        }
+    }
+
+    pScanRequest->ChannelInfo.numOfChannels = channelListSize;
+    pScanRequest->ChannelInfo.ChannelList = validchannelList;
+}
+
 eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId, 
               tCsrScanRequest *pScanRequest, tANI_U32 *pScanRequestID, 
               csrScanCompleteCallback callback, void *pContext)
@@ -608,6 +645,15 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                             scanReq.maxChnTime = pMac->roam.configParam.nActiveMaxChnTime;
                             scanReq.minChnTime = pMac->roam.configParam.nActiveMinChnTime;
                         }
+
+                        //Scan only 2G Channels if set in ini file
+                        //This is mainly to reduce the First Scan duration
+                        //Once we turn on Wifi
+                        if(pMac->scan.fFirstScanOnly2GChnl)
+                        {
+                            csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
+                        }
+
                         status = csrScanCopyRequest(pMac, &p11dScanCmd->u.scanCmd.u.scanRequest, &scanReq);
                         //Free the channel list
                         palFreeMemory( pMac->hHdd, pChnInfo->ChannelList );

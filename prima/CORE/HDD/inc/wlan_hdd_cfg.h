@@ -1157,6 +1157,18 @@ typedef enum
 #define CFG_ENABLE_DYNAMIC_DTIM_MAX        ( 5 )
 #define CFG_ENABLE_DYNAMIC_DTIM_DEFAULT    ( 0 )
 
+/*
+ * Enable First Scan 2G Only
+ * Options
+ * 0 - Disable First Scan 2G Option
+ * 1 - Enable First Scan 2G Option
+ */
+#define CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME            "gEnableFirstScan2GOnly"
+#define CFG_ENABLE_FIRST_SCAN_2G_ONLY_MIN        ( 0 )
+#define CFG_ENABLE_FIRST_SCAN_2G_ONLY_MAX        ( 1 )
+#define CFG_ENABLE_FIRST_SCAN_2G_ONLY_DEFAULT    ( 0 )
+
+
 #define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME  "gEnableAutomaticTxPowerControl"
 #define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MIN        ( 0 )
 #define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MAX        ( 1 )
@@ -1479,7 +1491,7 @@ typedef struct
 #endif
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;
-   
+   v_BOOL_t                    enableFirstScan2GOnly;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

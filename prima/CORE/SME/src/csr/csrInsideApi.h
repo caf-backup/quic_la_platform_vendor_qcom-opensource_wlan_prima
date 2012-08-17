@@ -36,6 +36,8 @@
 
 #define CSR_MAX_NUM_SUPPORTED_CHANNELS 55
 
+#define CSR_MAX_2_4_GHZ_SUPPORTED_CHANNELS 14
+
 #define CSR_MAX_BSS_SUPPORT            100
 
 //This number minus 1 means the number of times a channel is scanned before a BSS is remvoed from
