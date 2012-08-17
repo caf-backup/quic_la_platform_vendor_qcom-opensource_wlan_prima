@@ -640,7 +640,8 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     netif_tx_disable(dev);
     netif_carrier_off(dev);
     
-    hdd_connSetConnectionState( pHddStaCtx, eConnectionState_NotConnected );
+    INIT_COMPLETION(pAdapter->disconnect_comp_var);
+    hdd_connSetConnectionState( pHddStaCtx, eConnectionState_Disconnecting );
     /* If only STA mode is on */
     if((pHddCtx->concurrency_mode <= 1) && (pHddCtx->no_of_sessions[WLAN_HDD_INFRA_STATION] <=1))
     {

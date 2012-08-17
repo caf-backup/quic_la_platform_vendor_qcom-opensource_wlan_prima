@@ -3758,9 +3758,14 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
 
     if (pRoamProfile) 
     {
-        if (hdd_connGetConnectedBssType(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
-            &connectedBssType ) || ( eMib_dot11DesiredBssType_independent == 
-              connectedBssType))
+        int ret = 0;
+        hdd_station_ctx_t *pHddStaCtx;
+        pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+        hdd_connGetConnectedBssType(pHddStaCtx,&connectedBssType );
+
+        if((eMib_dot11DesiredBssType_independent == connectedBssType) ||
+           (eConnectionState_Associated == pHddStaCtx->conn_info.connState) ||
+           (eConnectionState_IbssConnected == pHddStaCtx->conn_info.connState))
         {
             /* Issue disconnect to CSR */
             INIT_COMPLETION(pAdapter->disconnect_comp_var);
@@ -3769,9 +3774,23 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
                             pAdapter->sessionId,
                             eCSR_DISCONNECT_REASON_UNSPECIFIED ) )
             {
-                wait_for_completion_interruptible_timeout(
-                        &pAdapter->disconnect_comp_var,
-                        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+                ret = wait_for_completion_interruptible_timeout(
+                             &pAdapter->disconnect_comp_var,
+                             msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+                if (0 == ret)
+                {
+                    VOS_ASSERT(0);
+                }
+            }
+        }
+        else if(eConnectionState_Disconnecting == pHddStaCtx->conn_info.connState)
+        {
+            ret = wait_for_completion_interruptible_timeout(
+                         &pAdapter->disconnect_comp_var,
+                         msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+            if (0 == ret)
+            {
+                VOS_ASSERT(0);
             }
         }
 
