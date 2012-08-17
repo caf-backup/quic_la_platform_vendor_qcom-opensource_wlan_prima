@@ -26,7 +26,6 @@ endif
 #Build/Package Prima Module only in case of 8960 target variants
 ifeq ($(call is-board-platform,msm8960),true)
         include $(WLAN_BLD_DIR)/prima/CORE/HDD/src/Android.mk
-        include $(WLAN_BLD_DIR)/prima1_2/CORE/HDD/src/Android.mk
         include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
         include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
         ifeq ($(BOARD_HAS_ATH_WLAN_AR6004), true)
