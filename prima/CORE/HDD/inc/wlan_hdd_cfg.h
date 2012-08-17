@@ -1045,11 +1045,6 @@ typedef enum
     eHDD_LINK_SPEED_REPORT_MAX_SCALED = 2,
 }eHddLinkSpeedReportType;
 #ifdef WLAN_FEATURE_11AC
-#define CFG_ENABLE_VHT_MODE_NAME             "gVhtEnable" // ACs to setup U-APSD for at assoc
-#define CFG_ENABLE_VHT_MODE_MIN              ( 0 )
-#define CFG_ENABLE_VHT_MODE_MAX              ( 1 ) 
-#define CFG_ENABLE_VHT_MODE_DEFAULT          ( 0 )   
-
 #define CFG_VHT_CHANNEL_WIDTH                "gVhtChannelWidth"
 #define CFG_VHT_CHANNEL_WIDTH_MIN            ( 0 )
 #define CFG_VHT_CHANNEL_WIDTH_MAX            ( 2 )
@@ -1478,7 +1473,6 @@ typedef struct
    v_BOOL_t                    isMcAddrListFilter;
 #endif
 #ifdef WLAN_FEATURE_11AC
-   v_BOOL_t                    vhtEnable;
    v_U8_t                      vhtChannelWidth;
    v_U8_t                      vhtRxMCS;
    v_U8_t                      vhtTxMCS;
