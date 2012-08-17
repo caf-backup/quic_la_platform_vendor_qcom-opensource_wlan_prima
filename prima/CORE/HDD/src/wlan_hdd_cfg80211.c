@@ -3642,10 +3642,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                                                        request->ie_len);
             if (pP2pIe != NULL)
             {
-                if ( (request->n_ssids == 1) && 
-                     (request->ssids[0].ssid_len == P2P_WILDCARD_SSID_LEN) &&
-                     !memcmp(request->ssids[0].ssid, P2P_WILDCARD_SSID,
-                             P2P_WILDCARD_SSID_LEN ))
+                /* no_cck will be set during p2p find to disable 11b rates */
+                if(TRUE == request->no_cck)
                 {
                     tANI_U8 sessionId = pAdapter->sessionId;
                     hddLog(VOS_TRACE_LEVEL_INFO,
