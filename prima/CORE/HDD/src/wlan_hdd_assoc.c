@@ -1159,10 +1159,13 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         netif_tx_disable(dev);
         netif_carrier_off(dev);
-
-        /* Association failed; Reset the country code information
-         * so that it re-initialize the valid channel list*/
-        hdd_ResetCountryCodeAfterDisAssoc(pAdapter);
+        
+        if (WLAN_HDD_P2P_CLIENT != pAdapter->device_mode)
+        {
+            /* Association failed; Reset the country code information
+             * so that it re-initialize the valid channel list*/
+            hdd_ResetCountryCodeAfterDisAssoc(pAdapter);
+        }
     }
 
     return eHAL_STATUS_SUCCESS;
@@ -1633,10 +1636,13 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                     }
                 }
 #endif
-                /* Disconnected from current AP. Reset the country code information
-                 * so that it re-initialize the valid channel list*/
-                hdd_ResetCountryCodeAfterDisAssoc(pAdapter);
 
+                if (WLAN_HDD_P2P_CLIENT != pAdapter->device_mode)
+                {
+                    /* Disconnected from current AP. Reset the country code information
+                     * so that it re-initialize the valid channel list*/
+                    hdd_ResetCountryCodeAfterDisAssoc(pAdapter);
+                }
             }
             break;
         case eCSR_ROAM_IBSS_LEAVE:
