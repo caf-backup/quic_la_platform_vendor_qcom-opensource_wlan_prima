@@ -804,15 +804,14 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
     limUpdateConfig(pMac,psessionEntry);
 
-    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &val)
-            != eSIR_SUCCESS)
+    if (phyMode == WNI_CFG_PHY_MODE_11A)
     {
-        limLog(pMac, LOGP, FL("cfg get WNI_CFG_SHORT_SLOT_TIME failed\n"));
-        return;
+        // 11a mode always uses short slot
+        // Check this since some APs in 11a mode broadcast long slot in their beacons. As per standard, always use what PHY mandates.
+        psessionEntry->shortSlotTimeSupported = true;
     }
-    if (phyMode == WNI_CFG_PHY_MODE_11G)
+    else if (phyMode == WNI_CFG_PHY_MODE_11G)
     {
-
         if ((psessionEntry->pePersona == VOS_STA_SAP_MODE) ||
            (psessionEntry->pePersona == VOS_P2P_GO_MODE))
         {
@@ -827,22 +826,12 @@ limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
         else if (psessionEntry->limMlmState == eLIM_MLM_WT_REASSOC_RSP_STATE)
             // Reassociating with AP.
             val = SIR_MAC_GET_SHORT_SLOT_TIME( psessionEntry->limReassocBssCaps);
-
- 
-        if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, val) != eSIR_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
-            return;
-        }
+        psessionEntry->shortSlotTimeSupported = val;
     }
-    else
+    else // if (phyMode == WNI_CFG_PHY_MODE_11B) - use this if another phymode is added later ON
     {
-        // Reset short slot time at CFG
-        if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, 0) != eSIR_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
-            return;
-    }
+        // Will reach here in 11b case
+        psessionEntry->shortSlotTimeSupported = false;
     }
     //apply protection related config.
 

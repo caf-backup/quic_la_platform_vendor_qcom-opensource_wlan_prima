@@ -930,20 +930,10 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
     if(sessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11B)
         return eSIR_SUCCESS;
 
-
-    
     // Short slot time bit
     if (systemRole == eLIM_AP_ROLE)
     {
-        if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &val)
-                       != eSIR_SUCCESS)
-        {
-            cfgLog(pMac, LOGP,
-                   FL("cfg get WNI_CFG_SHORT_SLOT_TIME failed\n"));
-            return eSIR_FAILURE;
-        }
-        if (val)
-            pCapInfo->shortSlotTime = 1;
+        pCapInfo->shortSlotTime = sessionEntry->shortSlotTimeSupported;
     }
     else
     {
@@ -962,16 +952,8 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
          */
         if (val)
         {
-            if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &val)
-                           != eSIR_SUCCESS)
-            {
-                cfgLog(pMac, LOGP,
-                       FL("cfg get WNI_CFG_SHORT_SLOT_TIME failed\n"));
-                return eSIR_FAILURE;
-            }
-            if (val)
-            pCapInfo->shortSlotTime = 1;
-    }
+            pCapInfo->shortSlotTime = sessionEntry->shortSlotTimeSupported;
+        }
     }
 
     // Spectrum Management bit

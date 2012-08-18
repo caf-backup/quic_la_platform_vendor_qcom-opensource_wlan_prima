@@ -2145,12 +2145,27 @@ tSirRetStatus limUpdateShortSlot(tpAniSirGlobal pMac, tpSirProbeRespBeacon pBeac
 {
 
     tSirSmeApNewCaps   apNewCaps;
-    tANI_U32                cShortSlot, nShortSlot;
- 
-    apNewCaps.capabilityInfo = limGetU16((tANI_U8 *) &pBeacon->capabilityInfo);
+    tANI_U32           nShortSlot;
+    tANI_U32 val = 0;
+    tANI_U32 phyMode;
 
-    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &cShortSlot) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("unable to get short slot time\n"));
+    // Check Admin mode first. If it is disabled just return
+    if (wlan_cfgGetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED, &val)
+                   != eSIR_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+               FL("cfg get WNI_CFG_11G_SHORT_SLOT_TIME failed\n"));
+        return eSIR_FAILURE;
+    }
+    if (val == false)
+        return eSIR_SUCCESS;
+
+    // Check for 11a mode or 11b mode. In both cases return since slot time is constant and cannot/should not change in beacon
+    limGetPhyMode(pMac, &phyMode, psessionEntry);
+    if ((phyMode == WNI_CFG_PHY_MODE_11A) || (phyMode == WNI_CFG_PHY_MODE_11B))
+        return eSIR_SUCCESS;
+
+    apNewCaps.capabilityInfo = limGetU16((tANI_U8 *) &pBeacon->capabilityInfo);
 
     //  Earlier implementation: determine the appropriate short slot mode based on AP advertised modes
     // when erp is present, apply short slot always unless, prot=on  && shortSlot=off
@@ -2173,16 +2188,14 @@ tSirRetStatus limUpdateShortSlot(tpAniSirGlobal pMac, tpSirProbeRespBeacon pBeac
     */
     nShortSlot = SIR_MAC_GET_SHORT_SLOT_TIME(apNewCaps.capabilityInfo);
 
-    if (nShortSlot != cShortSlot)
+    if (nShortSlot != psessionEntry->shortSlotTimeSupported)
     {
         // Short slot time capability of AP has changed. Adopt to it.
         PELOG1(limLog(pMac, LOG1, FL("Shortslot capability of AP changed: %d\n"),  nShortSlot);)
         ((tpSirMacCapabilityInfo)&psessionEntry->limCurrentBssCaps)->shortSlotTime = (tANI_U16)nShortSlot;
+        psessionEntry->shortSlotTimeSupported = nShortSlot;
         pBeaconParams->fShortSlotTime = (tANI_U8) nShortSlot;
         pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
-
-        if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, nShortSlot) != eSIR_SUCCESS)
-            PELOGE(limLog(pMac, LOGE,  FL("could not update short slot time at CFG\n"));)
     }
     return eSIR_SUCCESS;
 }

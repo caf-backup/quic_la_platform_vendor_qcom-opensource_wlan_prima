@@ -692,9 +692,10 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
             pMlmAssocReq->capabilityInfo = caps;
            PELOG3(limLog(pMac, LOG3,
-               FL("Capabilities to be used in AssocReq=0x%X, privacy bit=%x\n"),
+               FL("Capabilities to be used in AssocReq=0x%X, privacy bit=%x shortSlotTime %x\n"),
                caps,
-               ((tpSirMacCapabilityInfo) &pMlmAssocReq->capabilityInfo)->privacy);)
+               ((tpSirMacCapabilityInfo) &pMlmAssocReq->capabilityInfo)->privacy,
+               ((tpSirMacCapabilityInfo) &pMlmAssocReq->capabilityInfo)->shortSlotTime);)
 
            /* If telescopic beaconing is enabled, set listen interval to
               WNI_CFG_TELE_BCN_MAX_LI */

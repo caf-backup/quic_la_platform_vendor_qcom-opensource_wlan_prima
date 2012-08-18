@@ -1511,10 +1511,6 @@ limMlmAddBss (
     tpAddBssParams pAddBssParams = NULL;
     tANI_U32 retCode;
 
-#ifdef WLAN_SOFTAP_FEATURE
-    tANI_U32 val = 0;
-#endif
-    
     // Package WDA_ADD_BSS_REQ message parameters
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
@@ -1551,15 +1547,8 @@ limMlmAddBss (
     }
 
 #ifdef WLAN_SOFTAP_FEATURE  
-    if( wlan_cfgGetInt ( pMac, WNI_CFG_SHORT_SLOT_TIME, &val ) != eSIR_SUCCESS)
-    {
-        limLog ( pMac, LOGP, FL(" Error : unable to fetch the WNI_CFG_SHORT_SLOT_TIME\n"));
-        palFreeMemory(pMac->hHdd,(void *)pAddBssParams);
-        return eSIR_SME_HAL_SEND_MESSAGE_FAIL;
-    }
-    pAddBssParams->shortSlotTimeSupported = (tANI_U8)val;
+    pAddBssParams->shortSlotTimeSupported = psessionEntry->shortSlotTimeSupported;
 #endif
-
 
     pAddBssParams->beaconInterval               = pMlmStartReq->beaconPeriod;
     pAddBssParams->dtimPeriod                   = pMlmStartReq->dtimPeriod;

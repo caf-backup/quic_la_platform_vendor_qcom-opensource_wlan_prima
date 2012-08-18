@@ -541,20 +541,10 @@ ibss_bss_add(
      * so that the IBSS doesnt blindly start with short slot = 1. If IBSS start is part of coalescing then it will adapt
      * to peer's short slot using code below.
      */
-    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &cfg)
-                   != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("cfg get WNI_CFG_SHORT_SLOT_TIME failed\n"));
-        return;
-    }
     /* If cfg is already set to current peer's capability then no need to set it again */
-    if (cfg != pBeacon->capabilityInfo.shortSlotTime)
+    if (psessionEntry->shortSlotTimeSupported != pBeacon->capabilityInfo.shortSlotTime)
     {
-        if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, pBeacon->capabilityInfo.shortSlotTime) != eSIR_SUCCESS)
-        {
-            limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
-            return;
-        }
+        psessionEntry->shortSlotTimeSupported = pBeacon->capabilityInfo.shortSlotTime;
     }
     palCopyMemory( pMac->hHdd,
        (tANI_U8 *) &psessionEntry->pLimStartBssReq->operationalRateSet,
@@ -1313,11 +1303,7 @@ limIbssDelBssRsp(
     /* Change the short slot operating mode to Default (which is 1 for now) so that when IBSS starts next time with Libra
      * as originator, it picks up the default. This enables us to remove hard coding of short slot = 1 from limApplyConfiguration 
      */
-    if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, WNI_CFG_SHORT_SLOT_TIME_STADEF) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
-        return;
-    }
+    psessionEntry->shortSlotTimeSupported = WNI_CFG_SHORT_SLOT_TIME_STADEF;
 
     end:
     if(pDelBss != NULL)
