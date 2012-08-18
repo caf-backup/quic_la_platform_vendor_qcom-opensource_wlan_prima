@@ -2895,8 +2895,27 @@ void dxeTXEventHandler
    /* Return from here if the RIVA is in IMPS, to avoid register access */
    if(WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState)
    {
-      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_FATAL,
-         "%s Riva is in %d, return from here ", __FUNCTION__, dxeCtxt->hostPowerState);
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "dxeTXEventHandler TX COMP INT");
+      status = dxeTXCompFrame(dxeCtxt, &dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI]);
+      if(eWLAN_PAL_STATUS_SUCCESS != status)
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "dxeTXEventHandler IMPS COMP interrupt fail");
+         return;         
+      }
+      if((dxeCtxt->txCompletedFrames) &&
+         (eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
+      {
+         dxeCtxt->txIntEnable =  eWLAN_PAL_TRUE; 
+         wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "TX COMP INT Enabled, remain TX frame count on ring %d",
+                  dxeCtxt->txCompletedFrames);
+         /*Kicking the DXE after the TX Complete interrupt was enabled - to avoid 
+           the posibility of a race*/
+         dxePsComplete(dxeCtxt, eWLAN_PAL_TRUE);
+      }
       return;
    }
 
@@ -3172,8 +3191,7 @@ static void dxeTXISR
             "%s Enter", __FUNCTION__);
 
    /* Return from here if the RIVA is in IMPS, to avoid register access */
-   if((WLANDXE_POWER_STATE_IMPS == dxeCtxt->hostPowerState) ||
-      (WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState))
+   if(WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState)
    {
       /* Disable interrupt at here,
          IMPS or IMPS Pending state should not access RIVA register */
