@@ -11644,6 +11644,8 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         {    
            csrValidateBeaconInterval(pMac, pParam->operationChn, &wTmp, sessionId,
                                       pParam->bssPersona);
+           //Update the beacon Interval 
+           pParam->beaconInterval = wTmp;
         }
         else
         {
