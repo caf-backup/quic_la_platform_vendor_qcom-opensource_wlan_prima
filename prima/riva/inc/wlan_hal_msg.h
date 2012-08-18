@@ -287,7 +287,7 @@ typedef enum
    WLAN_HAL_RADAR_DETECT_INTR_IND    = 144,
    WLAN_HAL_KEEP_ALIVE_REQ           = 145,
    WLAN_HAL_KEEP_ALIVE_RSP           = 146,
-
+   
    /*PNO messages*/
    WLAN_HAL_SET_PREF_NETWORK_REQ     = 147,
    WLAN_HAL_SET_PREF_NETWORK_RSP     = 148,
@@ -316,10 +316,10 @@ typedef enum
 
    WLAN_HAL_SET_POWER_PARAMS_REQ            = 166,
    WLAN_HAL_SET_POWER_PARAMS_RSP            = 167,
-
+    
    WLAN_HAL_TSM_STATS_REQ                   = 168,
    WLAN_HAL_TSM_STATS_RSP                   = 169,
-
+   
    // wake reason indication (WOW)
    WLAN_HAL_WAKE_REASON_IND          = 170,
    // GTK offload support
@@ -335,7 +335,7 @@ typedef enum
    WLAN_HAL_SET_THERMAL_MITIGATION_REQ      = 178,
    WLAN_HAL_SET_THERMAL_MITIGATION_RSP      = 179,
 
-   WLAN_HAL_MSG_MAX = WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE
+  WLAN_HAL_MSG_MAX = WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
 /* Enumeration for Version */
@@ -4303,6 +4303,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* TX Power in milli watts */
     tANI_U32  txPower;
+    tANI_U8   bssIdx;
 }tSetTxPwrReqParams, *tpSetTxPwrReqParams;
 
 
@@ -4879,7 +4880,7 @@ typedef PACKED_PRE struct PACKED_POST {
     ePNOMode         modePNO;
 
     /*Number of networks sent for PNO*/
-    tANI_U32          ucNetworksCount;
+    tANI_U32          ucNetworksCount; 
 
     /*The networks that PNO needs to look for*/
     tNetworkType     aNetworks[WLAN_HAL_PNO_MAX_SUPP_NETWORKS];
