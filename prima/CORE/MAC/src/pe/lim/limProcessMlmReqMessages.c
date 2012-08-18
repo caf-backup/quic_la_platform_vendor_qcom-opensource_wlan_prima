@@ -2769,7 +2769,7 @@ limProcessMlmDisassocReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatu
     pStaDs->mlmStaContext.cleanupTrigger = pMlmDisassocReq->disassocTrigger;
 
     /// Send Disassociate frame to peer entity
-    if (sendDisassocFrame)
+    if (sendDisassocFrame && (pMlmDisassocReq->reasonCode != eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON))
     {
     limSendDisassocMgmtFrame(pMac,
                              pMlmDisassocReq->reasonCode,
