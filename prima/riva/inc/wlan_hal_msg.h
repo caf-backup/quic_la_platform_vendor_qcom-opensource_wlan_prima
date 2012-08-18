@@ -41,8 +41,8 @@
  ---------------------------------------------------------------------------*/
 #define WLAN_HAL_VER_MAJOR 1
 #define WLAN_HAL_VER_MINOR 3
-#define WLAN_HAL_VER_VERSION 0
-#define WLAN_HAL_VER_REVISION 2
+#define WLAN_HAL_VER_VERSION 1
+#define WLAN_HAL_VER_REVISION 0
 
 /*---------------------------------------------------------------------------
   Commom Type definitons
@@ -1441,8 +1441,8 @@ typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader header;
    PACKED_PRE union PACKED_POST {
-	tConfigStaParams    configStaParams;
-	tConfigStaParams_V1 configStaParams_V1;
+    tConfigStaParams    configStaParams;
+    tConfigStaParams_V1 configStaParams_V1;
    } uStaParams;
 }  tConfigStaReqMsg, *tpConfigStaReqMsg;
 
@@ -1884,8 +1884,8 @@ typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader header;
    PACKED_PRE union PACKED_POST {
-	tConfigBssParams configBssParams;
-	tConfigBssParams_V1 configBssParams_V1;
+    tConfigBssParams configBssParams;
+    tConfigBssParams_V1 configBssParams_V1;
    }uBssParams;
 }  tConfigBssReqMsg, *tpConfigBssReqMsg;
 
