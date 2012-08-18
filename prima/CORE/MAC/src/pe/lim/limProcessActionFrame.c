@@ -85,7 +85,7 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
     }
 
     PELOG1(limLog(pMac, LOG1, FL("Channel switch Mode == %d\n"), 
-                       pMac->lim.gLimChannelSwitch.switchMode);)
+                       psessionEntry->gLimChannelSwitch.switchMode);)
 
     if (psessionEntry->gLimChannelSwitch.switchMode == eSIR_CHANSW_MODE_SILENT ||
         psessionEntry->gLimChannelSwitch.switchCount <= SIR_CHANSW_TX_STOP_MAX_COUNT)
@@ -300,7 +300,7 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
         psessionEntry->gLimChannelSwitch.switchMode = pChannelSwitchFrame->ChanSwitchAnn.switchMode;
 
        PELOG3(limLog(pMac, LOG3, FL("Rcv Chnl Swtch Frame: Timeout in %d ticks\n"),
-                             pMac->lim.gLimChannelSwitch.switchTimeoutValue);)
+                             psessionEntry->gLimChannelSwitch.switchTimeoutValue);)
 
         /* Only primary channel switch element is present */
         psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;

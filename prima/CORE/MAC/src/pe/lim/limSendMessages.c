@@ -232,7 +232,7 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
     msgQ.reserved = 0;
     msgQ.bodyptr = pChnlParams;
     msgQ.bodyval = 0;
-#if !defined WLAN_FEATURE_VOWIFI  
+#if defined WLAN_FEATURE_VOWIFI  
     PELOG3(limLog( pMac, LOG3,
         FL( "Sending WDA_CHNL_SWITCH_REQ with SecondaryChnOffset - %d, ChannelNumber - %d, maxTxPower - %d"),
         pChnlParams->secondaryChannelOffset, pChnlParams->channelNumber, pChnlParams->maxTxPower);)

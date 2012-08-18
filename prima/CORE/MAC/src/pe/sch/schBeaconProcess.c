@@ -554,9 +554,6 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
             psessionEntry->bssId, psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
             psessionEntry->dot11mode, 0, NULL);
 
-   PELOG2(schLog(pMac, LOG2, "Received Beacon's SeqNum=%d\n",
-           (pMh->seqControl.seqNumHi << 4) | (pMh->seqControl.seqNumLo));)
-
     if(beaconParams.paramChangeBitmap)
     {
         PELOGW(schLog(pMac, LOGW, FL("Beacon for session[%d] got changed. \n"), psessionEntry->peSessionId);)

@@ -260,7 +260,6 @@ static void __limInitStates(tpAniSirGlobal pMac)
     pMac->lim.gLimPhyMode = 0; 
     pMac->lim.scanStartTime = 0;    // used to measure scan time
 
-    //palZeroMemory(pMac->hHdd, pMac->lim.gLimBssid, sizeof(pMac->lim.gLimBssid));
     palZeroMemory(pMac->hHdd, pMac->lim.gLimMyMacAddr, sizeof(pMac->lim.gLimMyMacAddr));
     pMac->lim.ackPolicy = 0;
 
@@ -312,18 +311,8 @@ static void __limInitVars(tpAniSirGlobal pMac)
 
 #if 0
     // 11h Spectrum Management Related Flag
-    //pMac->lim.gLim11hEnable = 0;
-    pMac->lim.gLimSpecMgmt.dot11hChanSwState = eLIM_11H_CHANSW_INIT;
     LIM_SET_RADAR_DETECTED(pMac, eANI_BOOLEAN_FALSE);
     pMac->sys.gSysEnableLearnMode = eANI_BOOLEAN_TRUE;
-
-    // 11h Quiet Element Related Flag
-    pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
-    // A count-down value, used on the AP, to send out the
-    // Quiet BSS IE in that many Beacon's
-    pMac->lim.gLimSpecMgmt.quietCount = 0;
-    pMac->lim.gLimSpecMgmt.fQuietEnabled = eANI_BOOLEAN_FALSE;
-    pMac->lim.gLimSpecMgmt.fRadarIntrConfigured = eANI_BOOLEAN_FALSE;
 #endif
     // WMM Related Flag
     pMac->lim.gUapsdEnable = 0;
@@ -385,9 +374,6 @@ static void __limInitAssocVars(tpAniSirGlobal pMac)
     palZeroMemory(pMac->hHdd, pMac->lim.protStaOverlapCache, sizeof(tCacheParams) * LIM_PROT_STA_OVERLAP_CACHE_SIZE);
     palZeroMemory(pMac->hHdd, pMac->lim.protStaCache, sizeof(tCacheParams) * LIM_PROT_STA_CACHE_SIZE);
 
-    // Initialize Assoc/ReAssoc Response Data/Frame
-    //pMac->lim.gLimAssocResponseData = NULL;
-
 }
 
 
@@ -395,12 +381,6 @@ static void __limInitTitanVars(tpAniSirGlobal pMac)
 {
     pMac->lim.gCbMode = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
     SET_CB_STATE_DISABLE( pMac->lim.gCbState );
-#if 0
-    palZeroMemory(pMac->hHdd, &pMac->lim.gLimChannelSwitch, sizeof(tLimChannelSwitchInfo));
-
-    pMac->lim.gLimChannelSwitch.state               = eLIM_CHANNEL_SWITCH_IDLE;
-    pMac->lim.gLimChannelSwitch.secondarySubBand    = eANI_CB_SECONDARY_NONE;
-#endif
 
     // Debug workaround for BEACON's
     // State change triggered by "dump 222"
@@ -451,7 +431,7 @@ static void __limInitHTVars(tpAniSirGlobal pMac)
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
 static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
 {
-   tANI_U32 val1, val2, val3/*, len*/;
+   tANI_U32 val1, val2, val3;
    tANI_U16 val16;
    tANI_U8 val8;
    tSirMacHTCapabilityInfo   *pHTCapabilityInfo;
@@ -589,17 +569,7 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
       limLog(pMac, LOGP, FL("cfg get short preamble failed\n"));
       return eSIR_FAILURE;
    }
-#if 0
-   /* WNI_CFG_BSSID - this one is not updated in limHandleCFGparamUpdate do we
-      want to update this? */
-   len = 6;
-   if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, pMac->lim.gLimBssid, &len) != 
-       eSIR_SUCCESS)
-   {
-      limLog(pMac, LOGP, FL("cfg get bssid failed\n"));
-      return eSIR_FAILURE;
-   }
-#endif
+
    /* WNI_CFG_MAX_PS_POLL */
 
    /* Allocate and fill in power save configuration. */
@@ -1427,7 +1397,7 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     {
     PELOG1(limLog( pMac, LOG1,
        FL ( "RxBd=%p mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d\n"),
-       pRxBd, mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
+       pRxPacketInfo, mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
 
     MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, NO_SESSION, 
                         LIM_TRACE_MAKE_RXMGMT(mHdr->fc.subType,  
