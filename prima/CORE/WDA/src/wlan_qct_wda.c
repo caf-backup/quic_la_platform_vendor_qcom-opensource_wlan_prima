@@ -8707,27 +8707,19 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
    {
        txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
    }
-   /* Do not divert Disassoc/Deauth frames through self station because a delay of
-    * 300ms is added beofre trigerring DEL STA so let deuath gets delivered at TIM */
-   if ((pFc->type == SIR_MAC_MGMT_FRAME)) 
+
+   /* Divert Disassoc/Deauth frames thru self station, as by the time unicast
+      disassoc frame reaches the HW, HAL has already deleted the peer station */
+   if ((pFc->type == SIR_MAC_MGMT_FRAME))
    {
-       if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
-               (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
-               (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP) || 
-               (pFc->subType == SIR_MAC_MGMT_PROBE_REQ)) 
+       if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) ||
+               (pFc->subType == SIR_MAC_MGMT_DEAUTH) ||
+               (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP) ||
+               (pFc->subType == SIR_MAC_MGMT_PROBE_REQ))
        {
-           if( (systemRole == eSYSTEM_AP_ROLE) && ( (pFc->subType == SIR_MAC_MGMT_DEAUTH) ||
-                                                    (pFc->subType == SIR_MAC_MGMT_DISASSOC) ) )
-           {
-              /*Do not request self STA for deauth/disassoc let it go through peer STA and
-               *broadcast STA and get delivered at TIM for power save stations*/
-           }
-           else
-           {
              /*Send Probe request frames on self sta idx*/
              txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
-           }
-       } 
+       }
        /* Since we donot want probe responses to be retried, send probe responses
           through the NO_ACK queues */
        if (pFc->subType == SIR_MAC_MGMT_PROBE_RSP) 
