@@ -248,8 +248,15 @@ WlanEventThread(void *arg)
     /* Eventhough WLAN thread is started, wlan related configurations
      * are started only after verifying the presence of wifi
      */
+
+#ifdef ANDROID
     property_get("wlan.driver.status", wlan_status, NULL);
     if(strcmp(wlan_status, "ok") == 0)
+#else
+    memset(pInstance->pWlanAdapterName, '\0', IFNAMSIZ);
+    Abf_WlanCheckSettings(pInstance->pWlanAdapterName);
+    if(pInstance->pWlanAdapterName[0])
+#endif
     {
         if (btcoex_nl_init(&pInstance->nlstate) != 0)
             A_ERR("NL80211 initialization failed\n");
