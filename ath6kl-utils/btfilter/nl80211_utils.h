@@ -32,8 +32,8 @@ int nl80211_send_btcoex_cmd(struct btcoex_nl_info *state, int devidx,
  * so when private patch to nl80211.h
  * changes below macros change here too
  */
-#define NL80211_CMD_BTCOEX 89
-#define NL80211_ATTR_BTCOEX_DATA 153
+#define NL80211_CMD_BTCOEX 90
+#define NL80211_ATTR_BTCOEX_DATA 158
 
 enum nl80211_btcoex_cmds {
 	NL80211_WMI_SET_BT_STATUS = 0,
