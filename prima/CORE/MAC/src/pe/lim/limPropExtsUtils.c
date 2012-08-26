@@ -1133,6 +1133,7 @@ ePhyChanBondState limGetPhyCBState( tpAniSirGlobal pMac )
   return cbState;
 }
 
+
 /**
  * limGetHTCBState
  *

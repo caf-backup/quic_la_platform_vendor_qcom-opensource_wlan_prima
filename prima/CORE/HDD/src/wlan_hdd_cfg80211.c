@@ -3344,9 +3344,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
                 (int) scanId);
     }
 
-    /* Scan is no longer pending */
-    pScanInfo->mScanPending = VOS_FALSE;
-
     ret = wlan_hdd_cfg80211_update_bss((WLAN_HDD_GET_CTX(pAdapter))->wiphy, 
                                         pAdapter);
 
@@ -3386,6 +3383,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (!req)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "request is became NULL\n");
+        pScanInfo->mScanPending = VOS_FALSE;
         return 0;
     }
 
@@ -3403,6 +3401,8 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     cfg80211_scan_done(req, false);
     complete(&pAdapter->abortscan_event_var);
     pAdapter->request = NULL;
+    /* Scan is no longer pending */
+    pScanInfo->mScanPending = VOS_FALSE;
 
 #ifdef WLAN_FEATURE_P2P
     /* Flush out scan result after p2p_serach is done */
