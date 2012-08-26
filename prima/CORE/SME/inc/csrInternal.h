@@ -1021,8 +1021,8 @@ tANI_BOOLEAN csrIsAnySessionInConnectState( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsAllSessionDisconnected( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsInfraConnected( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsConcurrentInfraConnected( tpAniSirGlobal pMac );
-#ifndef BMPS_WORKAROUND_NOT_NEEDED
 tANI_BOOLEAN csrIsConcurrentSessionRunning( tpAniSirGlobal pMac );
+#ifndef BMPS_WORKAROUND_NOT_NEEDED
 tANI_BOOLEAN csrIsInfraApStarted( tpAniSirGlobal pMac );
 #endif
 tANI_BOOLEAN csrIsIBSSStarted( tpAniSirGlobal pMac );

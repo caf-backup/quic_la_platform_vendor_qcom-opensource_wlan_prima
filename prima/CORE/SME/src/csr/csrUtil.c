@@ -1551,7 +1551,6 @@ tANI_BOOLEAN csrIsBTAMPStarted( tpAniSirGlobal pMac )
     return ( fRc );
 }
 
-#ifndef BMPS_WORKAROUND_NOT_NEEDED
 tANI_BOOLEAN csrIsConcurrentSessionRunning( tpAniSirGlobal pMac )
 {
     tANI_U32 sessionId, noOfCocurrentSession = 0;
@@ -1582,6 +1581,7 @@ tANI_BOOLEAN csrIsConcurrentSessionRunning( tpAniSirGlobal pMac )
     return ( fRc );
 }
 
+#ifndef BMPS_WORKAROUND_NOT_NEEDED
 tANI_BOOLEAN csrIsInfraApStarted( tpAniSirGlobal pMac )
 {
     tANI_U32 sessionId;

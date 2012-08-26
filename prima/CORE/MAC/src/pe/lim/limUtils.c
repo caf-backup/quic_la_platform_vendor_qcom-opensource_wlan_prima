@@ -2119,18 +2119,21 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
     tpDphHashNode    pStaDs;
     tANI_U32 phyMode;
     tANI_U32 val;
-    tANI_U32 cShortSlot;
     tANI_U16 i;
 
     // check whether to enable protection or not
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
     limGetPhyMode(pMac, &phyMode, psessionEntry);
 
+    /* Only in case of softap in 11g mode, slot time might change depending on the STA being added. In 11a case, it should
+     * be always 1 and in 11b case, it should be always 0
+     */
     if (pStaDs != NULL && phyMode == WNI_CFG_PHY_MODE_11G)
     {
-        if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &cShortSlot) != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("unable to get short slot time\n"));
-
+        /* Only when the new STA has short slot time disabled, we need to change softap's overall slot time settings
+         * else the default for softap is always short slot enabled. When the last long slot STA leaves softAP, we take care of
+         * it in limDecideShortSlot
+         */
         if (pStaDs->shortSlotTimeEnabled == eHAL_CLEAR)
         {
             PELOG1(limLog(pMac, LOG1, FL("Short Slot Time is not enabled in Assoc Req from "));
@@ -2209,27 +2212,28 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             wlan_cfgGetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED, &val);
 
 #ifdef WLAN_SOFTAP_FEATURE
+            /* Here we check if we are AP role and short slot enabled (both admin and oper modes) but we have atleast one STA connected with
+             * only long slot enabled, we need to change our beacon/pb rsp to broadcast short slot disabled
+             */
             if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) && 
-                 (val && psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta && cShortSlot))
+                 (val && psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta && psessionEntry->shortSlotTimeSupported))
             {
                 // enable long slot time
                 pBeaconParams->fShortSlotTime = false;
                 pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
                 PELOG1(limLog(pMac, LOG1, FL("Disable short slot time. Enable long slot time.\n"));)
-                if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, false) != eSIR_SUCCESS)
-                    PELOGE(limLog(pMac, LOGE,   FL("could not update short slot time at CFG\n"));)
+                psessionEntry->shortSlotTimeSupported = false;
             }
             else if ( psessionEntry->limSystemRole != eLIM_AP_ROLE)
 #endif            
             {
-                if (val && pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta && cShortSlot)
+                if (val && pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta && psessionEntry->shortSlotTimeSupported)
                 {
                     // enable long slot time
                     pBeaconParams->fShortSlotTime = false;
                     pBeaconParams->paramChangeBitmap |= PARAM_SHORT_SLOT_TIME_CHANGED;
                     PELOG1(limLog(pMac, LOG1, FL("Disable short slot time. Enable long slot time.\n"));)
-                    if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, false) != eSIR_SUCCESS)
-                        PELOGE(limLog(pMac, LOGE,   FL("could not update short slot time at CFG\n"));)
+                    psessionEntry->shortSlotTimeSupported = false;
                  }
             }
         }
