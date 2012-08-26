@@ -862,6 +862,18 @@ struct hdd_context_s
 #ifdef WLAN_FEATURE_PACKET_FILTERING
    t_multicast_add_list mc_addr_list;
 #endif
+
+   /* 
+    * Framework initiated driver restarting 
+    *    hdd_reload_timer   : Restart retry timer
+    *    isRestartInProgress: Restart in progress
+    *    hdd_restart_retries: Restart retries
+    *
+    */
+   vos_timer_t hdd_restart_timer;
+   atomic_t isRestartInProgress;
+   u_int8_t hdd_restart_retries;
+   
 };
 
 
@@ -933,4 +945,5 @@ VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx);
 VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type);
 
 eHalStatus hdd_smeCloseSessionCallback(void *pContext);
+VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

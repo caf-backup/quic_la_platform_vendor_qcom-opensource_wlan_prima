@@ -1045,11 +1045,6 @@ typedef enum
     eHDD_LINK_SPEED_REPORT_MAX_SCALED = 2,
 }eHddLinkSpeedReportType;
 #ifdef WLAN_FEATURE_11AC
-#define CFG_ENABLE_VHT_MODE_NAME             "gVhtEnable" // ACs to setup U-APSD for at assoc
-#define CFG_ENABLE_VHT_MODE_MIN              ( 0 )
-#define CFG_ENABLE_VHT_MODE_MAX              ( 1 ) 
-#define CFG_ENABLE_VHT_MODE_DEFAULT          ( 0 )   
-
 #define CFG_VHT_CHANNEL_WIDTH                "gVhtChannelWidth"
 #define CFG_VHT_CHANNEL_WIDTH_MIN            ( 0 )
 #define CFG_VHT_CHANNEL_WIDTH_MAX            ( 2 )
@@ -1161,6 +1156,18 @@ typedef enum
 #define CFG_ENABLE_DYNAMIC_DTIM_MIN        ( 0 )
 #define CFG_ENABLE_DYNAMIC_DTIM_MAX        ( 5 )
 #define CFG_ENABLE_DYNAMIC_DTIM_DEFAULT    ( 0 )
+
+/*
+ * Enable First Scan 2G Only
+ * Options
+ * 0 - Disable First Scan 2G Option
+ * 1 - Enable First Scan 2G Option
+ */
+#define CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME            "gEnableFirstScan2GOnly"
+#define CFG_ENABLE_FIRST_SCAN_2G_ONLY_MIN        ( 0 )
+#define CFG_ENABLE_FIRST_SCAN_2G_ONLY_MAX        ( 1 )
+#define CFG_ENABLE_FIRST_SCAN_2G_ONLY_DEFAULT    ( 0 )
+
 
 #define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME  "gEnableAutomaticTxPowerControl"
 #define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MIN        ( 0 )
@@ -1478,14 +1485,13 @@ typedef struct
    v_BOOL_t                    isMcAddrListFilter;
 #endif
 #ifdef WLAN_FEATURE_11AC
-   v_BOOL_t                    vhtEnable;
    v_U8_t                      vhtChannelWidth;
    v_U8_t                      vhtRxMCS;
    v_U8_t                      vhtTxMCS;
 #endif
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;
-   
+   v_BOOL_t                    enableFirstScan2GOnly;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

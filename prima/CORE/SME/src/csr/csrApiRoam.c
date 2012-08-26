@@ -222,7 +222,7 @@ tCsrPeStatsReqInfo *  csrRoamCheckPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  
                                                  tANI_U32 periodicity, tANI_BOOLEAN *pFound, tANI_U8 staId);
 void csrRoamReportStatistics(tpAniSirGlobal pMac, tANI_U32 statsMask, 
                              tCsrStatsCallback callback, tANI_U8 staId, void *pContext);
-void csrRoamSaveStatsFromTl(tpAniSirGlobal pMac, WLANTL_TRANSFER_STA_TYPE tlStats);
+void csrRoamSaveStatsFromTl(tpAniSirGlobal pMac, WLANTL_TRANSFER_STA_TYPE *pTlStats);
 void csrRoamTlStatsTimerHandler(void *pv);
 void csrRoamPeStatsTimerHandler(void *pv);
 tListElem * csrRoamCheckClientReqList(tpAniSirGlobal pMac, tANI_U32 statsMask);
@@ -1107,6 +1107,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->scan.fEnableBypass11d = pParam->fEnableBypass11d;
         pMac->scan.fEnableDFSChnlScan = pParam->fEnableDFSChnlScan;
         pMac->roam.configParam.fScanTwice = pParam->fScanTwice;
+        pMac->scan.fFirstScanOnly2GChnl = pParam->fFirstScanOnly2GChnl;
         /* This parameter is not available in cfg and not passed from upper layers. Instead it is initialized here
          * This paramtere is used in concurrency to determine if there are concurrent active sessions.
          * Is used as a temporary fix to disconnect all active sessions when BMPS enabled so the active session if Infra STA
@@ -1178,6 +1179,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->fEnableBypass11d = pMac->scan.fEnableBypass11d;
         pParam->fEnableDFSChnlScan = pMac->scan.fEnableDFSChnlScan;
         pParam->fScanTwice = pMac->roam.configParam.fScanTwice;
+        pParam->fFirstScanOnly2GChnl = pMac->scan.fFirstScanOnly2GChnl;
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
         palCopyMemory( pMac->hHdd, &pParam->neighborRoamConfig, &pMac->roam.configParam.neighborRoamConfig, sizeof(tCsrNeighborRoamConfigParams) );
@@ -12377,6 +12379,9 @@ void csrRoamTlStatsTimerHandler(void *pv)
    tpAniSirGlobal pMac = PMAC_STRUCT( pv );
    eHalStatus status;
    pMac->roam.tlStatsReqInfo.timerRunning = FALSE;
+
+   smsLog(pMac, LOG1, FL(" TL stat timer is no-op. It needs to support multiple stations"));
+
 #if 0
    // TODO Persession .???
    //req TL for stats
@@ -12974,6 +12979,8 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
    eHalStatus status = eHAL_STATUS_SUCCESS;
    tANI_BOOLEAN insertInClientList = FALSE;
    VOS_STATUS vosStatus;
+   WLANTL_TRANSFER_STA_TYPE *pTlStats;
+
    if( csrIsAllSessionDisconnected(pMac) )
    {
       //smsLog(pMac, LOGW, "csrGetStatistics: wrong state curState(%d) not connected\n", pMac->roam.curState);
@@ -13108,19 +13115,27 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                
                if(!pMac->roam.tlStatsReqInfo.timerRunning)
                {
-#if 0
-                                   // TODO Session Specific info connectedInfo
+                  pTlStats = (WLANTL_TRANSFER_STA_TYPE *)vos_mem_malloc(sizeof(WLANTL_TRANSFER_STA_TYPE));
+                  if(NULL != pTlStats)
+                  {
                      //req TL for class D stats
-                  if(WLANTL_GetStatistics(pMac->roam.gVosContext, &tlStats, pMac->roam.connectedInfo.staId))
+                     if(WLANTL_GetStatistics(pMac->roam.gVosContext, pTlStats, staId))
                      {
                         smsLog(pMac, LOGE, FL("csrGetStatistics:couldn't get the stats from TL\n"));
                      }
                      else
                      {
                         //save in SME
-                     csrRoamSaveStatsFromTl(pMac, tlStats);
+                        csrRoamSaveStatsFromTl(pMac, pTlStats);
                      }
-#endif
+                     vos_mem_free(pTlStats);
+                     pTlStats = NULL;
+                  }
+                  else
+                  {
+                     smsLog(pMac, LOGE, FL("cannot allocate memory for TL stat"));
+                  }
+
                   if(pMac->roam.tlStatsReqInfo.periodicity)
                   {
                      //start timer
@@ -13158,19 +13173,27 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
          }
          if(statsMask & (1 << eCsrGlobalClassDStats))
          {
-#if 0
-                         // TODO : Per Session info connectedInfo
+            pTlStats = (WLANTL_TRANSFER_STA_TYPE *)vos_mem_malloc(sizeof(WLANTL_TRANSFER_STA_TYPE));
+            if(NULL != pTlStats)
+            {
                //req TL for class D stats
-            if(WLANTL_GetStatistics(pMac->roam.gVosContext, &tlStats, pMac->roam.connectedInfo.staId))
+               if(!VOS_IS_STATUS_SUCCESS(WLANTL_GetStatistics(pMac->roam.gVosContext, pTlStats, staId)))
                {
                   smsLog(pMac, LOGE, FL("csrGetStatistics:couldn't get the stats from TL\n"));
                }
                else
                {
                   //save in SME
-               csrRoamSaveStatsFromTl(pMac, tlStats);
+                  csrRoamSaveStatsFromTl(pMac, pTlStats);
                }
-#endif
+               vos_mem_free(pTlStats);
+               pTlStats = NULL;
+            }
+            else
+            {
+               smsLog(pMac, LOGE, FL("cannot allocate memory for TL stat"));
+            }
+
          }
          //if looking for stats from TL only 
          if(!insertInClientList)
@@ -13188,6 +13211,7 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
             smsLog(pMac, LOGW, "csrGetStatistics: Failed to insert req in statsClientReqList\n");
             return eHAL_STATUS_FAILURE;
          }
+         pStaEntry->periodicity = periodicity;
          //Init & start timer if needed
          if(periodicity)
          {
@@ -13391,25 +13415,28 @@ void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInf
    return;
 }
 
-void csrRoamSaveStatsFromTl(tpAniSirGlobal pMac, WLANTL_TRANSFER_STA_TYPE tlStats)
+
+void csrRoamSaveStatsFromTl(tpAniSirGlobal pMac, WLANTL_TRANSFER_STA_TYPE *pTlStats)
 {
-   pMac->roam.classDStatsInfo.num_rx_bytes_crc_ok = tlStats.rxBcntCRCok;
-   pMac->roam.classDStatsInfo.rx_bc_byte_cnt = tlStats.rxBCBcnt;
-   pMac->roam.classDStatsInfo.rx_bc_frm_cnt = tlStats.rxBCFcnt;
-   pMac->roam.classDStatsInfo.rx_byte_cnt = tlStats.rxBcnt;
-   pMac->roam.classDStatsInfo.rx_mc_byte_cnt = tlStats.rxMCBcnt;
-   pMac->roam.classDStatsInfo.rx_mc_frm_cnt = tlStats.rxMCFcnt;
-   pMac->roam.classDStatsInfo.rx_rate = tlStats.rxRate;
+
+   pMac->roam.classDStatsInfo.num_rx_bytes_crc_ok = pTlStats->rxBcntCRCok;
+   pMac->roam.classDStatsInfo.rx_bc_byte_cnt = pTlStats->rxBCBcnt;
+   pMac->roam.classDStatsInfo.rx_bc_frm_cnt = pTlStats->rxBCFcnt;
+   pMac->roam.classDStatsInfo.rx_byte_cnt = pTlStats->rxBcnt;
+   pMac->roam.classDStatsInfo.rx_mc_byte_cnt = pTlStats->rxMCBcnt;
+   pMac->roam.classDStatsInfo.rx_mc_frm_cnt = pTlStats->rxMCFcnt;
+   pMac->roam.classDStatsInfo.rx_rate = pTlStats->rxRate;
    //?? need per AC
-   pMac->roam.classDStatsInfo.rx_uc_byte_cnt[0] = tlStats.rxUCBcnt;
-   pMac->roam.classDStatsInfo.rx_uc_frm_cnt = tlStats.rxUCFcnt;
-   pMac->roam.classDStatsInfo.tx_bc_byte_cnt = tlStats.txBCBcnt;
-   pMac->roam.classDStatsInfo.tx_bc_frm_cnt = tlStats.txBCFcnt;
-   pMac->roam.classDStatsInfo.tx_mc_byte_cnt = tlStats.txMCBcnt;
-   pMac->roam.classDStatsInfo.tx_mc_frm_cnt = tlStats.txMCFcnt;
+   pMac->roam.classDStatsInfo.rx_uc_byte_cnt[0] = pTlStats->rxUCBcnt;
+   pMac->roam.classDStatsInfo.rx_uc_frm_cnt = pTlStats->rxUCFcnt;
+   pMac->roam.classDStatsInfo.tx_bc_byte_cnt = pTlStats->txBCBcnt;
+   pMac->roam.classDStatsInfo.tx_bc_frm_cnt = pTlStats->txBCFcnt;
+   pMac->roam.classDStatsInfo.tx_mc_byte_cnt = pTlStats->txMCBcnt;
+   pMac->roam.classDStatsInfo.tx_mc_frm_cnt = pTlStats->txMCFcnt;
    //?? need per AC
-   pMac->roam.classDStatsInfo.tx_uc_byte_cnt[0] = tlStats.txUCBcnt;
-   pMac->roam.classDStatsInfo.tx_uc_frm_cnt = tlStats.txUCFcnt;
+   pMac->roam.classDStatsInfo.tx_uc_byte_cnt[0] = pTlStats->txUCBcnt;
+   pMac->roam.classDStatsInfo.tx_uc_frm_cnt = pTlStats->txUCFcnt;
+
 }
 
 void csrRoamReportStatistics(tpAniSirGlobal pMac, tANI_U32 statsMask, 

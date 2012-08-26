@@ -2769,7 +2769,7 @@ limProcessMlmDisassocReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatu
     pStaDs->mlmStaContext.cleanupTrigger = pMlmDisassocReq->disassocTrigger;
 
     /// Send Disassociate frame to peer entity
-    if (sendDisassocFrame)
+    if (sendDisassocFrame && (pMlmDisassocReq->reasonCode != eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON))
     {
     limSendDisassocMgmtFrame(pMac,
                              pMlmDisassocReq->reasonCode,
@@ -3323,15 +3323,23 @@ tpPESession        psessionEntry;
   }
 
     if ((pMlmSetKeysReq->numKeys == 0) && (pMlmSetKeysReq->edType != eSIR_ED_NONE)) {
-    //
-    // Broadcast/Multicast Keys (for WEP!!) are NOT sent
-    // via this interface!!
-    //
-    // This indicates to HAL that the WEP Keys need to be
-    // extracted from the CFG and applied to hardware
-    defaultKeyId = 0xff;
-      }else
-    defaultKeyId = 0;
+        //
+        // Broadcast/Multicast Keys (for WEP!!) are NOT sent
+        // via this interface!!
+        //
+        // This indicates to HAL that the WEP Keys need to be
+        // extracted from the CFG and applied to hardware
+        defaultKeyId = 0xff;
+    }else if(pMlmSetKeysReq->key[0].keyId && 
+             ((pMlmSetKeysReq->edType == eSIR_ED_WEP40) || 
+              (pMlmSetKeysReq->edType == eSIR_ED_WEP104))){
+        /* If the Key Id is non zero and encryption mode is WEP, 
+         * the key index is coming from the upper layers so that key only 
+         * need to be used as the default tx key, This is being used only 
+         * in case of WEP mode in HAL */
+        defaultKeyId = pMlmSetKeysReq->key[0].keyId;
+    }else
+        defaultKeyId = 0;
 
     limLog( pMac, LOG1,
       FL( "Trying to set keys for STA Index [%d], using defaultKeyId [%d]\n" ),

@@ -188,7 +188,7 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        goto exit;
     }
 
-    if ((!ifr) && (!ifr->ifr_data))
+    if ((!ifr) || (!ifr->ifr_data))
     {
         ret = -EINVAL;
         goto exit;
@@ -1042,6 +1042,44 @@ static iw_softap_getchannel(struct net_device *dev,
     return 0;
 }
 
+#if 0
+int
+static iw_softap_set_tx_power(struct net_device *dev,
+                        struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+    int cmd_len = wrqu->data.length;
+    int *value = (int *) kmalloc(cmd_len+1, GFP_KERNEL);
+    int set_value;
+    tSirMacAddr bssid = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    tSirMacAddr selfMac = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+
+    if(value == NULL)
+        return -ENOMEM;
+
+    if(copy_from_user((char *) value, (char*)(wrqu->data.pointer), cmd_len)) {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s -- copy_from_user --data pointer failed! bailing",
+                __FUNCTION__);
+        kfree(value);
+        return -EFAULT;
+    }
+
+    set_value = value[0];
+    kfree(value);
+
+    if( sme_SetMaxTxPower(hHal, bssid, selfMac, set_value) !=
+            eHAL_STATUS_SUCCESS )
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Setting maximum tx power failed",
+                __func__);
+        return -EIO;
+    }
+
+    return 0;
+}
+#endif
 #define IS_BROADCAST_MAC(x) (((x[0] & x[1] & x[2] & x[3] & x[4] & x[5]) == 0xff) ? 1 : 0)
 
 int
@@ -2515,7 +2553,13 @@ static const struct iw_priv_args hostapd_private_args[] = {
         IW_PRIV_TYPE_BYTE | sizeof(tChannelListInfo),
         "getChannelList" },
 
+    /* handlers for main ioctl */
+    {   QCSAP_IOCTL_SET_TX_POWER,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "" },
 };
+
 static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_SETPARAM - SIOCIWFIRSTPRIV] = iw_softap_setparam,  //set priv ioctl
    [QCSAP_IOCTL_GETPARAM - SIOCIWFIRSTPRIV] = iw_softap_getparam,  //get priv ioctl   

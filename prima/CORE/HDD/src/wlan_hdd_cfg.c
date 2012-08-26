@@ -1458,12 +1458,6 @@ REG_VARIABLE( CFG_ENABLE_MODULATED_DTIM_NAME, WLAN_PARAM_Integer,
               CFG_MC_ADDR_LIST_ENABLE_MAX ),
 
 #ifdef WLAN_FEATURE_11AC              
-REG_VARIABLE( CFG_ENABLE_VHT_MODE_NAME , WLAN_PARAM_Integer,
-              hdd_config_t, vhtEnable, 
-              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-              CFG_ENABLE_VHT_MODE_DEFAULT, 
-              CFG_ENABLE_VHT_MODE_MIN, 
-              CFG_ENABLE_VHT_MODE_MAX ),
 REG_VARIABLE( CFG_VHT_CHANNEL_WIDTH, WLAN_PARAM_Integer,
               hdd_config_t, vhtChannelWidth, 
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK, 
@@ -1485,6 +1479,13 @@ REG_VARIABLE( CFG_VHT_ENABLE_TX_MCS_8_9, WLAN_PARAM_Integer,
               CFG_VHT_ENABLE_TX_MCS_8_9_MIN, 
               CFG_VHT_ENABLE_TX_MCS_8_9_MAX),
 #endif
+
+REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, enableFirstScan2GOnly, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+              CFG_ENABLE_FIRST_SCAN_2G_ONLY_DEFAULT, 
+              CFG_ENABLE_FIRST_SCAN_2G_ONLY_MIN, 
+              CFG_ENABLE_FIRST_SCAN_2G_ONLY_MAX ),
 };
 
 /*
@@ -1848,9 +1849,9 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gReportMaxLinkSpeed] Value = [%u] ",pHddCtx->cfg_ini->reportMaxLinkSpeed);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [thermalMitigationEnable] Value = [%u] ",pHddCtx->cfg_ini->thermalMitigationEnable);
 #ifdef WLAN_FEATURE_11AC
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gVhtEnable] value = [%u]\n",pHddCtx->cfg_ini->vhtEnable);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gVhtChannelWidth] value = [%u]\n",pHddCtx->cfg_ini->vhtChannelWidth);
 #endif
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [enableFirstScan2GOnly] Value = [%u] ",pHddCtx->cfg_ini->enableFirstScan2GOnly);
 }
 
 
@@ -2923,7 +2924,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.nTxPowerCap = pConfig->nTxPowerCap;
    smeConfig.csrConfig.fEnableBypass11d          = pConfig->enableBypass11d;
    smeConfig.csrConfig.fEnableDFSChnlScan        = pConfig->enableDFSChnlScan;
-   
+   smeConfig.csrConfig.fFirstScanOnly2GChnl      = pConfig->enableFirstScan2GOnly;
+
    //FIXME 11d config is hardcoded
 #ifdef WLAN_SOFTAP_FEATURE
    if ( VOS_STA_SAP_MODE != hdd_get_conparam()){

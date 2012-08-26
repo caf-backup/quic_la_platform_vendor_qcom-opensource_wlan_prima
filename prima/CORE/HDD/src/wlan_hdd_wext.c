@@ -263,6 +263,13 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WLAN_STATS_RX_RATE            14
 #define WLAN_STATS_TX_RATE            15
 
+#define WLAN_STATS_RX_UC_BYTE_CNT     16
+#define WLAN_STATS_RX_MC_BYTE_CNT     17
+#define WLAN_STATS_RX_BC_BYTE_CNT     18
+#define WLAN_STATS_TX_UC_BYTE_CNT     19
+#define WLAN_STATS_TX_MC_BYTE_CNT     20
+#define WLAN_STATS_TX_BC_BYTE_CNT     21
+
 #define FILL_TLV(__p, __type, __size, __val, __tlen) \
 {\
     if ((__tlen + __size + 2) < WE_MAX_STR_LEN) \
@@ -4932,9 +4939,9 @@ static int iw_get_statistics(struct net_device *dev,
               (char*) &(pStats->rx_error_cnt),
               tlen);
 
-    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BYTE_CNT,
-              (tANI_U8) sizeof (pStats->tx_byte_cnt),
-              (char*) &(pStats->tx_byte_cnt),
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BYTE_CNT, 
+              (tANI_U8) sizeof (dStats->tx_uc_byte_cnt[0]),
+              (char*) &(dStats->tx_uc_byte_cnt[0]), 
               tlen);
 
     FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BYTE_CNT,
@@ -4951,6 +4958,31 @@ static int iw_get_statistics(struct net_device *dev,
     FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_RATE,
               (tANI_U8) sizeof (aStats->tx_rate),
               (char*) &(aStats->tx_rate),
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_UC_BYTE_CNT, 
+              (tANI_U8) sizeof (dStats->rx_uc_byte_cnt[0]), 
+              (char*) &(dStats->rx_uc_byte_cnt[0]), 
+              tlen);
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_MC_BYTE_CNT, 
+              (tANI_U8) sizeof (dStats->rx_mc_byte_cnt), 
+              (char*) &(dStats->rx_mc_byte_cnt), 
+              tlen);
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_BC_BYTE_CNT, 
+              (tANI_U8) sizeof (dStats->rx_bc_byte_cnt), 
+              (char*) &(dStats->rx_bc_byte_cnt), 
+              tlen);
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_UC_BYTE_CNT, 
+              (tANI_U8) sizeof (dStats->tx_uc_byte_cnt[0]), 
+              (char*) &(dStats->tx_uc_byte_cnt[0]), 
+              tlen);
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_MC_BYTE_CNT, 
+              (tANI_U8) sizeof (dStats->tx_mc_byte_cnt), 
+              (char*) &(dStats->tx_mc_byte_cnt), 
+              tlen);
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BC_BYTE_CNT, 
+              (tANI_U8) sizeof (dStats->tx_bc_byte_cnt), 
+              (char*) &(dStats->tx_bc_byte_cnt), 
               tlen);
 
     wrqu->data.length = tlen;

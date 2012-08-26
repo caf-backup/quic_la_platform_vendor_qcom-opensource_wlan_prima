@@ -87,6 +87,7 @@ void csrScanIdleScanTimerHandler(void *);
 #ifdef WLAN_AP_STA_CONCURRENCY
 static void csrStaApConcTimerHandler(void *);
 #endif
+tANI_BOOLEAN csrIsSupportedChannel(tpAniSirGlobal pMac, tANI_U8 channelId);
 eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 void csrSetCfgValidChannelList( tpAniSirGlobal pMac, tANI_U8 *pChannelList, tANI_U8 NumChannels );
 void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfgId );
@@ -477,6 +478,42 @@ eHalStatus csrQueueScanRequest( tpAniSirGlobal pMac, tSmeCmd *pScanCmd )
 }
 #endif
 
+/* ---------------------------------------------------------------------------
+    \fn csrScan2GOnyRequest
+    \brief This function will update the scan request with only 
+           2.4GHz valid cahnnel list.
+    \param pMac
+    \param pScanCmd
+    \param pScanRequest
+    \return None
+  -------------------------------------------------------------------------------*/
+static void csrScan2GOnyRequest(tpAniSirGlobal pMac,tSmeCmd *pScanCmd, 
+                                tCsrScanRequest *pScanRequest)
+{
+    tANI_U8 index, channelId, channelListSize = 0;
+    tANI_U8 channelList2G[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+    static tANI_U8 validchannelList[CSR_MAX_2_4_GHZ_SUPPORTED_CHANNELS] = {0};
+
+    VOS_ASSERT(pScanCmd && pScanRequest);
+
+    if (pScanCmd->u.scanCmd.scanID ||
+       (eCSR_SCAN_REQUEST_FULL_SCAN != pScanRequest->requestType))
+           return;
+
+    //Contsruct valid Supported 2.4 GHz Channel List
+    for( index = 0; index < ARRAY_SIZE(channelList2G); index++ )
+    {
+        channelId = channelList2G[index];
+        if ( csrIsSupportedChannel( pMac, channelId ) )
+        {
+            validchannelList[channelListSize++] = channelId;
+        }
+    }
+
+    pScanRequest->ChannelInfo.numOfChannels = channelListSize;
+    pScanRequest->ChannelInfo.ChannelList = validchannelList;
+}
+
 eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId, 
               tCsrScanRequest *pScanRequest, tANI_U32 *pScanRequestID, 
               csrScanCompleteCallback callback, void *pContext)
@@ -608,6 +645,15 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                             scanReq.maxChnTime = pMac->roam.configParam.nActiveMaxChnTime;
                             scanReq.minChnTime = pMac->roam.configParam.nActiveMinChnTime;
                         }
+
+                        //Scan only 2G Channels if set in ini file
+                        //This is mainly to reduce the First Scan duration
+                        //Once we turn on Wifi
+                        if(pMac->scan.fFirstScanOnly2GChnl)
+                        {
+                            csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
+                        }
+
                         status = csrScanCopyRequest(pMac, &p11dScanCmd->u.scanCmd.u.scanRequest, &scanReq);
                         //Free the channel list
                         palFreeMemory( pMac->hHdd, pChnInfo->ChannelList );
@@ -2506,7 +2552,7 @@ void csrPurgeChannelPower( tpAniSirGlobal pMac, tDblLinkList *pChannelList )
  * Save the channelList into the ultimate storage as the final stage of channel 
  * Input: pCountryInfo -- the country code (e.g. "USI"), channel list, and power limit are all stored inside this data structure
  */
-void csrSaveToChannelPower2G_5G( tpAniSirGlobal pMac, tANI_U32 tableSize, tSirMacChanInfo *channelTable )
+eHalStatus csrSaveToChannelPower2G_5G( tpAniSirGlobal pMac, tANI_U32 tableSize, tSirMacChanInfo *channelTable )
 {
     tANI_U32 i = tableSize / sizeof( tSirMacChanInfo );
     tSirMacChanInfo *pChannelInfo;
@@ -2527,16 +2573,26 @@ void csrSaveToChannelPower2G_5G( tpAniSirGlobal pMac, tANI_U32 tableSize, tSirMa
             pChannelSet->numChannels = pChannelInfo->numChannels;
 
             // Now set the inter-channel offset based on the frequency band the channel set lies in
-            if( CSR_IS_CHANNEL_24GHZ(pChannelSet->firstChannel) )
+            if( (CSR_IS_CHANNEL_24GHZ(pChannelSet->firstChannel)) &&
+                    ((pChannelSet->firstChannel + pChannelSet->numChannels) <= CSR_MAX_24GHz_CHANNEL_NUMBER) )
+
             {
                 pChannelSet->interChannelOffset = 1;
                 f2GHzInfoFound = TRUE;
             }
-            else
+            else if ( (CSR_IS_CHANNEL_5GHZ(pChannelSet->firstChannel)) &&
+                ((pChannelSet->firstChannel + (pChannelSet->numChannels * 4)) <= CSR_MAX_5GHz_CHANNEL_NUMBER) )
             {
                 pChannelSet->interChannelOffset = 4;
                 f2GHzInfoFound = FALSE;
             }
+            else
+            {
+                smsLog( pMac, LOGW, FL("Invalid Channel Present in Country IE"),
+                        pChannelSet->firstChannel);
+                return eHAL_STATUS_FAILURE;
+            }
+
             pChannelSet->txPower = CSR_ROAM_MIN( pChannelInfo->maxTxPower, pMac->roam.configParam.nTxPowerCap );
 
             if( f2GHzInfoFound )
@@ -2585,7 +2641,7 @@ void csrSaveToChannelPower2G_5G( tpAniSirGlobal pMac, tANI_U32 tableSize, tSirMa
         pChannelInfo++;                // move to next entry
     }
 
-    return;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -3249,8 +3305,13 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
         smsLog(pMac, LOGE, FL("  %d sets each one is %d\n"), pIesLocal->Country.num_triplets, sizeof(tSirMacChanInfo));
         // save the channel/power information from the Channel IE.
         //sizeof(tSirMacChanInfo) has to be 3
-        csrSaveToChannelPower2G_5G( pMac, pIesLocal->Country.num_triplets * sizeof(tSirMacChanInfo), 
-                                        (tSirMacChanInfo *)(&pIesLocal->Country.triplets[0]) );
+        if (eHAL_STATUS_SUCCESS != csrSaveToChannelPower2G_5G( pMac, pIesLocal->Country.num_triplets * sizeof(tSirMacChanInfo),
+                    (tSirMacChanInfo *)(&pIesLocal->Country.triplets[0]) ))
+        {
+            fRet = eANI_BOOLEAN_FALSE;
+            return fRet;
+        }
+
         // set the indicator of the channel where the country IE was found...
         pMac->scan.channelOf11dInfo = pSirBssDesc->channelId;
         // Populate both band channel lists based on what we found in the country information...

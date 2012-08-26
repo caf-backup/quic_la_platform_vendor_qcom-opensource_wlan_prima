@@ -876,6 +876,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     v_U8_t *pIe = NULL;
     v_U8_t addIE[1] = {0};
     beacon_data_t *pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
+    int ret = 0;
 
     genie = vos_mem_malloc(MAX_GENIE_LEN);
 
@@ -897,7 +898,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         else 
         {
             hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie Length is too big***\n");
-            return -EINVAL;
+            ret = -EINVAL;
+            goto done;
         }
         total_ielen = ielen;
     }
@@ -913,7 +915,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         }
         else {
            hddLog( VOS_TRACE_LEVEL_ERROR, "**Wps Ie + P2p Ie + Wfd Ie Length is too big***\n");
-           return -EINVAL;
+           ret = -EINVAL;
+           goto done;
         }
         total_ielen += ielen; 
     }
@@ -933,7 +936,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         {
             hddLog( VOS_TRACE_LEVEL_ERROR, 
                     "**Wps Ie+ P2pIE Length is too big***\n");
-            return -EINVAL;
+            ret = -EINVAL;
+            goto done;
         }
         total_ielen += ielen;
     }
@@ -945,7 +949,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     {
         hddLog(LOGE,
                "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA to CCM");
-        return -EINVAL;
+        ret = -EINVAL;
+        goto done;
     }
 
     if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
@@ -956,7 +961,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     {
         hddLog(LOGE,
             "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM");
-        return -EINVAL;
+        ret = -EINVAL;
+        goto done;
     }
 
     // Added for ProResp IE
@@ -996,7 +1002,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
             {
                  hddLog(LOGE,
                        "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA1 to CCM");
-                 return -EINVAL;
+                 ret = -EINVAL;
+                 goto done;
             }
             rem_probe_resp_ie_len += probe_rsp_ie_len[0];
         }
@@ -1011,7 +1018,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
             {
                  hddLog(LOGE,
                        "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA2 to CCM");
-                 return -EINVAL;
+                 ret = -EINVAL;
+                 goto done;
             }
             rem_probe_resp_ie_len += probe_rsp_ie_len[1];
         }
@@ -1026,7 +1034,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
             {
                  hddLog(LOGE,
                        "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_DATA3 to CCM");
-                 return -EINVAL;
+                 ret = -EINVAL;
+                 goto done;
             }
             rem_probe_resp_ie_len += probe_rsp_ie_len[2];
         }
@@ -1061,7 +1070,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         {
            hddLog(LOGE,
              "Could not pass on WNI_CFG_PROBE_RSP_ADDNIE_FLAG to CCM");
-           return -EINVAL;
+           ret = -EINVAL;
+           goto done;
         }
     }
     else
@@ -1084,7 +1094,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
        {
             hddLog(LOGE,
                   "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_DATA to CCM");
-            return -EINVAL;
+            ret = -EINVAL;
+            goto done;
        }
 
        if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
@@ -1095,7 +1106,8 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
        {
           hddLog(LOGE,
             "Could not pass on WNI_CFG_ASSOC_RSP_ADDNIE_FLAG to CCM");
-          return -EINVAL;
+          ret = -EINVAL;
+          goto done;
        }
     }
     else
@@ -1113,6 +1125,7 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         }
     }
 
+done:
     vos_mem_free(genie);
     return 0;
 }
@@ -1628,8 +1641,22 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 #endif
 {
     hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_context_t *pHddCtx;
+    hdd_context_t  *pHddCtx    = NULL;
+    hdd_scaninfo_t *pScanInfo  = NULL;
+    hdd_adapter_t  *staAdapter = NULL;
     VOS_STATUS status = 0;
+
+    staAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_INFRA_STATION);
+
+    if (!staAdapter)
+    {
+        staAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_P2P_CLIENT);
+    }
+
+    if (staAdapter != NULL)
+    {
+        pScanInfo =  &staAdapter->scan_info;
+    }
 
     ENTER();
 
@@ -1649,6 +1676,23 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                               __func__,pAdapter->device_mode);
+
+    if ((pScanInfo != NULL) && pScanInfo->mScanPending)
+    {
+        INIT_COMPLETION(staAdapter->abortscan_event_var);
+        hdd_abort_mac_scan(staAdapter->pHddCtx);
+        status = wait_for_completion_interruptible_timeout(
+                           &staAdapter->abortscan_event_var,
+                           msecs_to_jiffies(WLAN_WAIT_TIME_ABORTSCAN));
+        if (!status)
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                         "%s: Timeout occured while waiting for abortscan" ,
+                         __FUNCTION__);
+            VOS_ASSERT(pScanInfo->mScanPending);
+            return 0;
+        }
+    }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
 #ifdef WLAN_FEATURE_P2P
@@ -3326,13 +3370,13 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (!ret)
     {
        VOS_ASSERT(pScanInfo->mScanPending);
-       return 0;
+       goto allow_suspend;
     }
 
     if(pScanInfo->mScanPending != VOS_TRUE)
     {
         VOS_ASSERT(pScanInfo->mScanPending);
-        return 0;
+        goto allow_suspend;
     }
 
     /* Check the scanId */
@@ -3383,8 +3427,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (!req)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "request is became NULL\n");
-        pScanInfo->mScanPending = VOS_FALSE;
-        return 0;
+        goto allow_suspend;
     }
 
     /*
@@ -3414,6 +3457,14 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     }
 #endif
 
+allow_suspend:
+    /* release the wake lock */
+    if((eConnectionState_NotConnected == 
+         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+    {
+        hdd_allow_suspend();
+    }
+
     EXIT();
     return 0;
 }
@@ -3435,6 +3486,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     v_U32_t scanId = 0;
     int status = 0;
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
+    v_U8_t preventSuspend = 0;
 #ifdef WLAN_FEATURE_P2P
     v_U8_t* pP2pIe = NULL;
 #endif
@@ -3611,10 +3663,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                                                        request->ie_len);
             if (pP2pIe != NULL)
             {
-                if ( (request->n_ssids == 1) && 
-                     (request->ssids[0].ssid_len == P2P_WILDCARD_SSID_LEN) &&
-                     !memcmp(request->ssids[0].ssid, P2P_WILDCARD_SSID,
-                             P2P_WILDCARD_SSID_LEN ))
+                /* no_cck will be set during p2p find to disable 11b rates */
+                if(TRUE == request->no_cck)
                 {
                     tANI_U8 sessionId = pAdapter->sessionId;
                     hddLog(VOS_TRACE_LEVEL_INFO,
@@ -3634,6 +3684,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     INIT_COMPLETION(pScanInfo->scan_req_completion_event);
 
+    /*If the station is not connected and recieved a scan request, acquire the 
+     * wake lock to not request the suspend from Android*/
+    if((eConnectionState_NotConnected == 
+         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+    {
+        preventSuspend = 1;
+        hdd_prevent_suspend();
+    }
+
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
@@ -3644,6 +3703,10 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                 "%s: sme_ScanRequest returned error %d", __func__, status);
         complete(&pScanInfo->scan_req_completion_event);
         status = -EIO;
+        if(preventSuspend)
+        {
+            hdd_allow_suspend();
+        }
         goto free_mem;
     }
 
@@ -3695,9 +3758,14 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
 
     if (pRoamProfile) 
     {
-        if (hdd_connGetConnectedBssType(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
-            &connectedBssType ) || ( eMib_dot11DesiredBssType_independent == 
-              connectedBssType))
+        int ret = 0;
+        hdd_station_ctx_t *pHddStaCtx;
+        pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+        hdd_connGetConnectedBssType(pHddStaCtx,&connectedBssType );
+
+        if((eMib_dot11DesiredBssType_independent == connectedBssType) ||
+           (eConnectionState_Associated == pHddStaCtx->conn_info.connState) ||
+           (eConnectionState_IbssConnected == pHddStaCtx->conn_info.connState))
         {
             /* Issue disconnect to CSR */
             INIT_COMPLETION(pAdapter->disconnect_comp_var);
@@ -3706,9 +3774,23 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
                             pAdapter->sessionId,
                             eCSR_DISCONNECT_REASON_UNSPECIFIED ) )
             {
-                wait_for_completion_interruptible_timeout(
-                        &pAdapter->disconnect_comp_var,
-                        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+                ret = wait_for_completion_interruptible_timeout(
+                             &pAdapter->disconnect_comp_var,
+                             msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+                if (0 == ret)
+                {
+                    VOS_ASSERT(0);
+                }
+            }
+        }
+        else if(eConnectionState_Disconnecting == pHddStaCtx->conn_info.connState)
+        {
+            ret = wait_for_completion_interruptible_timeout(
+                         &pAdapter->disconnect_comp_var,
+                         msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+            if (0 == ret)
+            {
+                VOS_ASSERT(0);
             }
         }
 
@@ -5083,7 +5165,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
         ccmCfgGetStr(hHal, WNI_CFG_OPERATIONAL_RATE_SET, OperationalRates, &ORLeng);
         for (i = 0; i < ORLeng; i++)
         {
-            for (j = 0; j < sizeof(supported_data_rate); j ++)
+            for (j = 0; j < (sizeof(supported_data_rate) / sizeof(supported_data_rate[0])); j ++)
             {
                 /* Validate Rate Set */
                 if (supported_data_rate[j].beacon_rate_index == (OperationalRates[i] & 0x7F))
@@ -5100,7 +5182,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
         ccmCfgGetStr(hHal, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET, ExtendedRates, &ERLeng);
         for (i = 0; i < ERLeng; i++)
         {
-            for (j = 0; j < sizeof(supported_data_rate); j ++)
+            for (j = 0; j < (sizeof(supported_data_rate) / sizeof(supported_data_rate[0])); j ++)
             {
                 if (supported_data_rate[j].beacon_rate_index == (ExtendedRates[i] & 0x7F))
                 {
@@ -5130,7 +5212,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
 
             for (i = 0; i < MCSLeng; i++)
             {
-                for (j = 0; j < sizeof(supported_mcs_rate); j++)
+                for (j = 0; j < (sizeof(supported_mcs_rate) / sizeof(supported_mcs_rate[0])); j++)
                 {
                     if (supported_mcs_rate[j].beacon_rate_index == MCSRates[i])
                     {

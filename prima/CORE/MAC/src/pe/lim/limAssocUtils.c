@@ -1529,17 +1529,13 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
 
             // Aquire PEER MCS map if we exceed.
             // We compare/update only the last 2 bits of the map as we support only single BSS.
-            //if((pRates->vhtRxMCSMap & 0x3) > (pPeerVHTCaps->rxMCSMap & 0x3)) // Firmware takes care of this comparison
-            {
-                pRates->vhtRxMCSMap &= ~(0x3); // Clearing the last 2 bits in the bitmap
-                pRates->vhtRxMCSMap |= (pPeerVHTCaps->rxMCSMap & 0x3); // Updating the last 2 bits in the bitmap
-            }
+            // Firmware takes care of this comparison
+            pRates->vhtRxMCSMap &= ~(0x3); // Clearing the last 2 bits in the bitmap
+            pRates->vhtRxMCSMap |= (pPeerVHTCaps->rxMCSMap & 0x3); // Updating the last 2 bits in the bitmap
 
-            //if((pRates->vhtTxMCSMap & 0x3) > (pPeerVHTCaps->txMCSMap & 0x3)) // Firmware takes care of this comparison
-            {
-                pRates->vhtTxMCSMap &= ~(0x3); // Clearing the last 2 bits in the bitmap
-                pRates->vhtTxMCSMap |= (pPeerVHTCaps->txMCSMap & 0x3); // Updating the last 2 bits in the bitmap
-            }
+            // Firmware takes care of this comparison
+            pRates->vhtTxMCSMap &= ~(0x3); // Clearing the last 2 bits in the bitmap
+            pRates->vhtTxMCSMap |= (pPeerVHTCaps->txMCSMap & 0x3); // Updating the last 2 bits in the bitmap
         }
     }
     return eSIR_SUCCESS;
