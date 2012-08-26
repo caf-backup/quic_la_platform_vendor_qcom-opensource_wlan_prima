@@ -2183,6 +2183,14 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
     }
 #endif
 
+#ifdef WLAN_FEATURE_WFD
+    if(ar.WFDIEOpaque.present)
+    {
+        pAssocReq->addIEPresent = 1;
+        ConvertWFDOpaque( pMac, &pAssocReq->addIE, &ar.WFDIEOpaque);
+    }
+#endif
+
     // Power Capabilities
     if ( ar.PowerCaps.present )
     {
@@ -2561,6 +2569,14 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
     {
         pAssocReq->addIEPresent = 1;
         ConvertP2POpaque( pMac, &pAssocReq->addIE, &ar.P2PIEOpaque);
+    }
+#endif
+
+#ifdef WLAN_FEATURE_WFD
+    if(ar.WFDIEOpaque.present)
+    {
+        pAssocReq->addIEPresent = 1;
+        ConvertWFDOpaque( pMac, &pAssocReq->addIE, &ar.WFDIEOpaque);
     }
 #endif
 

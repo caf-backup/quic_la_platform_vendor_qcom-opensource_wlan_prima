@@ -3056,7 +3056,7 @@ void limProcessQuietBssTimeout( tpAniSirGlobal pMac )
         return;
     }
 
-  PELOG1(limLog(pMac, LOG1, FL("quietState = %d\n"), pMac->lim.gLimSpecMgmt.quietState);)
+  PELOG1(limLog(pMac, LOG1, FL("quietState = %d\n"), psessionEntry->gLimSpecMgmt.quietState);)
   if (eLIM_AP_ROLE == psessionEntry->limSystemRole)
   {
 #ifdef ANI_PRODUCT_TYPE_AP
@@ -3229,7 +3229,7 @@ void limUpdateQuietIEFromBeacon( struct sAniSirGlobal *pMac,
         return;
     
    PELOG1(limLog(pMac, LOG1, FL("Quiet state = %d, Quiet Count = %d\n"),
-        pMac->lim.gLimSpecMgmt.quietState, pQuietIE->count);)
+        psessionEntry->gLimSpecMgmt.quietState, pQuietIE->count);)
     if (!psessionEntry->lim11hEnable)
         return;
     // The (Titan) AP is requesting this (Titan) STA to
@@ -3537,9 +3537,6 @@ void limSwitchChannelCback(tpAniSirGlobal pMac, eHalStatus status,
 {
    tSirMsgQ    mmhMsg = {0};
    tSirSmeSwitchChannelInd *pSirSmeSwitchChInd;
-
-   PELOG1(limLog(pMac, LOG1,FL("Sending message %s with reasonCode %s\n"),
-                    limMsgStr(msgType), limResultCodeStr(resultCode));)
 
    psessionEntry->currentOperChannel = psessionEntry->currentReqChannel; 
    

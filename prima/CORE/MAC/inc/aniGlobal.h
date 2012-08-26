@@ -726,14 +726,6 @@ typedef struct sAniSirLim
     //////////////////////////////////////////     ASSOC RELATED END ///////////////////////////////////////////
 
 
-    // 11h Spectrum Management Related Flag
-#if 0
-    tANI_U32           gLim11hEnable;
-    tLimSpecMgmtInfo   gLimSpecMgmt;
-    // CB Primary/Secondary Channel Switch Info
-    tLimChannelSwitchInfo  gLimChannelSwitch;
-#endif
-
 
     // Channel Bonding mode, as configured by SME
     tANI_U8 gCbMode;

@@ -4793,9 +4793,8 @@ __limProcessSmeRegisterMgmtFrameReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tpLimMgmtFrameRegistration pLimMgmtRegistration = NULL, pNext = NULL;
     tANI_BOOLEAN match = VOS_FALSE;
     PELOG1(limLog(pMac, LOG1, 
-           FL("%s: registerFrame %d, frameType %d, matchLen %d\n", 
-           __func__, pSmeReq->registerFrame, pSmeReq->frameType, 
-       pSmeReq->matchLen)));
+           FL("registerFrame %d, frameType %d, matchLen %d\n"), 
+            pSmeReq->registerFrame, pSmeReq->frameType, pSmeReq->matchLen);)
 
     /* First check whether entry exists already*/
 
