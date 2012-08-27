@@ -3449,11 +3449,11 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
 
 #ifdef WLAN_FEATURE_P2P
     /* Flush out scan result after p2p_serach is done */
-    if(pScanInfo->p2pSearch )
+    if(pScanInfo->flushP2pScanResults)
     {
         tANI_U8 sessionId = pAdapter->sessionId;
         sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId);
-        pScanInfo->p2pSearch = 0;
+        pScanInfo->flushP2pScanResults = 0;
     }
 #endif
 
@@ -3670,12 +3670,18 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            "%s: This is a P2P Search", __func__);
                     scanRequest.p2pSearch = 1;
-                    pScanInfo->p2pSearch = 1;
+
+                    /* Flush the scan results only for P2P search.
+                       P2P search happens on 3 social channels (1, 6, 11) */
+                    if( request->n_channels == WLAN_HDD_P2P_SOCIAL_CHANNELS )
+                    {
+                         pScanInfo->flushP2pScanResults = 1;
+                         sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                          sessionId );
+                    }
 
                     /* set requestType to P2P Discovery */
                     scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
-                    sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                          sessionId );
                 }
             }
 #endif

@@ -117,6 +117,7 @@
 #define WLAN_HDD_PUBLIC_ACTION_FRAME 4
 #define WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET 24
 #define WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET 30
+#define WLAN_HDD_P2P_SOCIAL_CHANNELS 3
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -551,7 +552,7 @@ typedef struct hdd_scaninfo_s
    v_U32_t waitScanResult;
 
 #ifdef WLAN_FEATURE_P2P
-   v_BOOL_t p2pSearch;
+  v_BOOL_t flushP2pScanResults;
 #endif
 
    /* Additional IE for scan */
