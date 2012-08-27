@@ -2748,7 +2748,7 @@ static wpt_status dxeTXCompFrame
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "dxeTXCompFrame TXCompCB is not registered");
-      return eWLAN_PAL_STATUS_E_EMPTY;
+      return eWLAN_PAL_STATUS_SUCCESS;
    }
 
    wpalMutexAcquire(&channelEntry->dxeChannelLock);
@@ -2759,7 +2759,7 @@ static wpt_status dxeTXCompFrame
    if( currentCtrlBlk == channelEntry->headCtrlBlk )
    {
       wpalMutexRelease(&channelEntry->dxeChannelLock);
-      return eWLAN_PAL_STATUS_E_EMPTY;
+      return eWLAN_PAL_STATUS_SUCCESS;
    }
 
    /*  */
@@ -2884,7 +2884,8 @@ void dxeTXEventHandler
             "%s Enter", __FUNCTION__);
 
    dxeCtxt = (WLANDXE_CtrlBlkType *)(msgContent->pContext);
-
+   dxeCtxt->ucTxMsgCnt = 0;
+   
    if(eWLAN_PAL_TRUE == dxeCtxt->driverReloadInProcessing)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
@@ -2902,7 +2903,6 @@ void dxeTXEventHandler
       {
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                   "dxeTXEventHandler IMPS COMP interrupt fail");
-         return;         
       }
       if((dxeCtxt->txCompletedFrames) &&
          (eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
@@ -2927,8 +2927,6 @@ void dxeTXEventHandler
       return;
    }
 
-   dxeCtxt->ucTxMsgCnt = 0;   
-   
    /* Disable device interrupt */
    /* Read whole interrupt mask register and exclusive only this channel int */
    status = wpalReadRegister(WLANDXE_INT_SRC_RAW_ADDRESS,
@@ -3193,6 +3191,7 @@ static void dxeTXISR
    /* Return from here if the RIVA is in IMPS, to avoid register access */
    if(WLANDXE_POWER_STATE_DOWN == dxeCtxt->hostPowerState)
    {
+      dxeCtxt->txIntEnable = eWLAN_PAL_FALSE;
       /* Disable interrupt at here,
          IMPS or IMPS Pending state should not access RIVA register */
       status = wpalDisableInterrupt(DXE_INTERRUPT_TX_COMPLE);
@@ -4296,6 +4295,7 @@ wpt_status WLANDXE_SetPowerState
             if(eWLAN_PAL_TRUE == pDxeCtrlBlk->txIntDisabledByIMPS)
             {
                pDxeCtrlBlk->txIntDisabledByIMPS = eWLAN_PAL_FALSE;
+               pDxeCtrlBlk->txIntEnable =  eWLAN_PAL_TRUE;
                /* Enable RX interrupt at here, if new PS is not IMPS */
                status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
                if(eWLAN_PAL_STATUS_SUCCESS != status)
