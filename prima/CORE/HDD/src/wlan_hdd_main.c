@@ -2865,7 +2865,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
          "%s: Failed to close VOSS Scheduler",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
-   
+
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+   /* Destroy the wake lock */
+   wake_lock_destroy(&pHddCtx->rx_wake_lock);
+#endif
 
    //Close VOSS
    //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
@@ -3781,6 +3785,13 @@ int hdd_wlan_startup(struct device *dev )
    mutex_init(&pHddCtx->sap_lock);
 
    pHddCtx->isLoadUnloadInProgress = FALSE;
+
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+   /* Initialize the wake lcok */
+   wake_lock_init(&pHddCtx->rx_wake_lock,
+           WAKE_LOCK_SUSPEND,
+           "qcom_rx_wakelock");
+#endif
 
    vos_event_init(&pAdapter->scan_info.scan_finished_event);
    pAdapter->scan_info.scan_pending_option = WEXT_SCAN_PENDING_GIVEUP;
