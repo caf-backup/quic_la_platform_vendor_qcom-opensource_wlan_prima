@@ -646,14 +646,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                             scanReq.minChnTime = pMac->roam.configParam.nActiveMinChnTime;
                         }
 
-                        //Scan only 2G Channels if set in ini file
-                        //This is mainly to reduce the First Scan duration
-                        //Once we turn on Wifi
-                        if(pMac->scan.fFirstScanOnly2GChnl)
-                        {
-                            csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
-                        }
-
                         status = csrScanCopyRequest(pMac, &p11dScanCmd->u.scanCmd.u.scanRequest, &scanReq);
                         //Free the channel list
                         palFreeMemory( pMac->hHdd, pChnInfo->ChannelList );
@@ -683,6 +675,15 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                         break;
                     }
                 }
+
+                //Scan only 2G Channels if set in ini file
+                //This is mainly to reduce the First Scan duration
+                //Once we turn on Wifi
+                if(pMac->scan.fFirstScanOnly2GChnl)
+                {
+                    csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
+                }
+
                 status = csrScanCopyRequest(pMac, &pScanCmd->u.scanCmd.u.scanRequest, pScanRequest);
                 if(HAL_STATUS_SUCCESS(status))
                 {
