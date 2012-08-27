@@ -8028,8 +8028,8 @@ tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac)
     //the new BSS is active for some time. Other BSS was anyway suspended.
     //TODO: Comeup with a better alternative. Sending NULL with PM=0 on other BSS means
     //there will be trouble. But since it is sent on current channel, it will be missed by peer
-    //and hence shpuld be ok. Need to discuss this further
-    if( !IS_MCC_SUPPORTED )    
+    //and hence should be ok. Need to discuss this further
+    if( !limIsInMCC(pMac) )    
     {
         //Get current active session channel
         return peGetActiveSessionChannel(pMac);
