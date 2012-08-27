@@ -1486,6 +1486,14 @@ REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
               CFG_ENABLE_FIRST_SCAN_2G_ONLY_DEFAULT, 
               CFG_ENABLE_FIRST_SCAN_2G_ONLY_MIN, 
               CFG_ENABLE_FIRST_SCAN_2G_ONLY_MAX ),
+
+REG_VARIABLE( CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, skipDfsChnlInP2pSearch, 
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+              CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_DEFAULT, 
+              CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_MIN, 
+              CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_MAX ),
+
 };
 
 /*
@@ -1852,6 +1860,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gVhtChannelWidth] value = [%u]\n",pHddCtx->cfg_ini->vhtChannelWidth);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [enableFirstScan2GOnly] Value = [%u] ",pHddCtx->cfg_ini->enableFirstScan2GOnly);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [skipDfsChnlInP2pSearch] Value = [%u] ",pHddCtx->cfg_ini->skipDfsChnlInP2pSearch);
 }
 
 

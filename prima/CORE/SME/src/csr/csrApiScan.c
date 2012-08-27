@@ -4572,6 +4572,7 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
             }
 #ifdef WLAN_FEATURE_P2P
             pMsg->p2pSearch = pScanReq->p2pSearch;
+            pMsg->skipDfsChnlInP2pSearch = pScanReq->skipDfsChnlInP2pSearch;
 #endif
 
         }while(0);
@@ -5058,6 +5059,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
             }//Allocate memory for SSID List
 #ifdef WLAN_FEATURE_P2P
             pDstReq->p2pSearch = pSrcReq->p2pSearch;
+            pDstReq->skipDfsChnlInP2pSearch = pSrcReq->skipDfsChnlInP2pSearch;
 #endif
 
         }

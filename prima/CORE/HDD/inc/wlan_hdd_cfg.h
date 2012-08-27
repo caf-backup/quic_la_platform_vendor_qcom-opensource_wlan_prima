@@ -1168,6 +1168,17 @@ typedef enum
 #define CFG_ENABLE_FIRST_SCAN_2G_ONLY_MAX        ( 1 )
 #define CFG_ENABLE_FIRST_SCAN_2G_ONLY_DEFAULT    ( 0 )
 
+/*
+ * Skip DFS Channel in case of P2P Search
+ * Options
+ * 0 - Don't Skip DFS Channel in case of P2P Search
+ * 1 - Skip DFS Channel in case of P2P Search
+ */
+#define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_NAME       "gSkipDfsChannelInP2pSearch"
+#define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_MIN        ( 0 )
+#define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_MAX        ( 1 )
+#define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_DEFAULT    ( 0 )
+
 
 #define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_NAME  "gEnableAutomaticTxPowerControl"
 #define CFG_ENABLE_AUTOMATIC_TX_POWER_CONTROL_MIN        ( 0 )
@@ -1492,6 +1503,7 @@ typedef struct
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;
    v_BOOL_t                    enableFirstScan2GOnly;
+   v_BOOL_t                    skipDfsChnlInP2pSearch;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

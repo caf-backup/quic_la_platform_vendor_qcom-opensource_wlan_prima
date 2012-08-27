@@ -234,6 +234,7 @@ typedef struct tagCsrScanRequest
     eCsrRequestType requestType;    //11d scan or full scan
 #ifdef WLAN_FEATURE_P2P
     tANI_BOOLEAN p2pSearch;
+    tANI_BOOLEAN skipDfsChnlInP2pSearch;
 #endif
 }tCsrScanRequest;
 

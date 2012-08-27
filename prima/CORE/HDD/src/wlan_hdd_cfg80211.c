@@ -3680,6 +3680,19 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                                           sessionId );
                     }
 
+                    /*
+                       Skip Dfs Channel in case of P2P Search
+                       if it is set in ini file
+                    */
+                    if(cfg_param->skipDfsChnlInP2pSearch)
+                    {
+                       scanRequest.skipDfsChnlInP2pSearch = 1;
+                    }
+                    else
+                    {
+                       scanRequest.skipDfsChnlInP2pSearch = 0;
+                    }
+
                     /* set requestType to P2P Discovery */
                     scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
                 }
