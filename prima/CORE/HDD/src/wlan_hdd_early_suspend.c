@@ -25,7 +25,6 @@
 #include <linux/pm.h>
 #include <linux/wait.h>
 #include <linux/earlysuspend.h>
-#include <linux/wcnss_wlan.h>
 #include <wlan_hdd_includes.h>
 #include <wlan_qct_driver.h>
 #include <linux/wakelock.h>
@@ -66,6 +65,7 @@
 #include "bap_hdd_misc.h"
 #endif
 
+#include <linux/wcnss_wlan.h>
 #include <linux/inetdevice.h>
 #include <wlan_hdd_cfg.h>
 /**-----------------------------------------------------------------------------
@@ -749,6 +749,7 @@ void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter)
        pHddCtx->hdd_mcastbcast_filter_set = TRUE;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
                                  hdd_adapter_t *pAdapter)
@@ -921,7 +922,6 @@ static void hdd_conf_resume_ind(hdd_context_t* pHddCtx)
 }
 #endif
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
 {
@@ -2172,11 +2172,13 @@ VOS_STATUS hdd_wlan_re_init(void)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
       goto err_bap_stop;
    }
+#ifdef CONFIG_HAS_EARLYSUSPEND
    // Register suspend/resume callbacks
    if(pHddCtx->cfg_ini->nEnableSuspend)
    {
       register_wlan_suspend();
    }
+#endif
    /* Allow the phone to go to sleep */
    hdd_allow_suspend();
    /* register for riva power on lock */
