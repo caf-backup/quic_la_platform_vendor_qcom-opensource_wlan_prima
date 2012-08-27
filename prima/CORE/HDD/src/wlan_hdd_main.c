@@ -172,7 +172,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
 
    //Make sure that this callback corresponds to our device.
    if((strncmp( dev->name, "wlan", 4 )) && 
-      (strncmp( dev->name, "p2p-wlan", 8))
+      (strncmp( dev->name, "p2p", 3))
      )
       return NOTIFY_DONE;
 
@@ -206,11 +206,8 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_CHANGE:
-        if(VOS_STA_MODE == hdd_get_conparam()) 
-        {
-            if(TRUE == pAdapter->isLinkUpSvcNeeded)
-               complete(&pAdapter->linkup_event_var);
-           }
+        if(TRUE == pAdapter->isLinkUpSvcNeeded)
+           complete(&pAdapter->linkup_event_var);
         break;
 
    case NETDEV_GOING_DOWN:

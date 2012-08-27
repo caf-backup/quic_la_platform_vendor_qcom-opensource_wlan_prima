@@ -2059,6 +2059,10 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 status = hdd_init_station_mode( pAdapter );
                 if( VOS_STATUS_SUCCESS != status )
                     return -EOPNOTSUPP;
+                /* In case of JB, for P2P-GO, only change interface will be called,
+                 * This is the right place to enable back bmps_imps()
+                 */
+                hdd_enable_bmps_imps(pHddCtx);
                 goto done;
             case NL80211_IFTYPE_AP:
 #ifdef WLAN_FEATURE_P2P
