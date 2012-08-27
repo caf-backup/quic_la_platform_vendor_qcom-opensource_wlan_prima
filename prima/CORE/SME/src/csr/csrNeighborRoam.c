@@ -1714,25 +1714,11 @@ VOS_STATUS csrNeighborRoamCreateChanListFromNeighborReport(tpAniSirGlobal pMac)
         {
             if (pNeighborBssDesc->pNeighborBssDescription->channel)
             {
-                // Make sure to add only if its the same band
-                if ((pNeighborRoamInfo->currAPoperationChannel <= (RF_CHAN_14+1)) &&
-                    (pNeighborBssDesc->pNeighborBssDescription->channel <= (RF_CHAN_14+1)))
-                {
                         VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
                                 "%s: [INFOLOG] Adding %d to Neighbor channel list\n", __func__,
                                 pNeighborBssDesc->pNeighborBssDescription->channel);
                         channelList[numChannels] = pNeighborBssDesc->pNeighborBssDescription->channel;
                         numChannels++;
-                }
-                else if ((pNeighborRoamInfo->currAPoperationChannel >= RF_CHAN_128) &&
-                    (pNeighborBssDesc->pNeighborBssDescription->channel >= RF_CHAN_128))
-                {
-                        VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
-                                "%s: [INFOLOG] Adding %d to Neighbor channel list\n", __func__,
-                                pNeighborBssDesc->pNeighborBssDescription->channel);
-                        channelList[numChannels] = pNeighborBssDesc->pNeighborBssDescription->channel;
-                        numChannels++;
-                }
             }
         }
             
@@ -1754,27 +1740,12 @@ VOS_STATUS csrNeighborRoamCreateChanListFromNeighborReport(tpAniSirGlobal pMac)
             {
                 if (pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i])
                 {
-                    // Make sure to add only if its the same band
-                    if ((pNeighborRoamInfo->currAPoperationChannel <= (RF_CHAN_14+1)) &&
-                        (pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i] <= (RF_CHAN_14+1)))
-                    {
                             VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
                                     "%s: [INFOLOG] Adding extra %d to Neighbor channel list\n", __func__,
                             pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i]);
                             channelList[numChannels] = 
                             pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i];
                             numChannels++;
-                    }
-                    if ((pNeighborRoamInfo->currAPoperationChannel >= RF_CHAN_128) &&
-                         (pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i] >= RF_CHAN_128))
-                    {
-                            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
-                                    "%s: [INFOLOG] Adding extra %d to Neighbor channel list\n", __func__,
-                                pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i]);
-                            channelList[numChannels] = 
-                                pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[i];
-                            numChannels++;
-                    }
                 }
             }
         }
@@ -1953,25 +1924,11 @@ VOS_STATUS csrNeighborRoamTransitToCFGChanScan(tpAniSirGlobal pMac)
         {
             if (pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i])
             {
-                // Make sure to add only if its the same band
-                if ((pNeighborRoamInfo->currAPoperationChannel <= (RF_CHAN_14+1)) &&
-                    (pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i] <= (RF_CHAN_14+1)))
-                {
                         VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
                                 "%s: [INFOLOG] Adding %d to Neighbor channel list\n", __func__,
                                 pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i]);
                         channelList[numOfChannels] = pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i];
                         numOfChannels++;
-                }
-                if ((pNeighborRoamInfo->currAPoperationChannel >= RF_CHAN_128) &&
-                    (pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i] >= RF_CHAN_128))
-                {
-                        VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                                "%s: [INFOLOG] Adding %d to Neighbor channel list\n", __func__,
-                                pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i]);
-                        channelList[numOfChannels] = pNeighborRoamInfo->cfgParams.channelInfo.ChannelList[i];
-                        numOfChannels++;
-                }
             }
         }
 
