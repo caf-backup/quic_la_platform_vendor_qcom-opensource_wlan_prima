@@ -656,6 +656,8 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
             (palEqualMemory( pMac->hHdd,(tANI_U8 *) pBssDescr->bssDescription.bssId,
                       (tANI_U8 *) ptemp->bssDescription.bssId,
                       sizeof(tSirMacAddr))) &&   //matching BSSID
+            (pBssDescr->bssDescription.channelId ==
+                                      ptemp->bssDescription.channelId) &&
             palEqualMemory( pMac->hHdd,((tANI_U8 *) &pBssDescr->bssDescription.ieFields + 1),
                            ((tANI_U8 *) &ptemp->bssDescription.ieFields + 1),
                            (tANI_U8) (ssidLen + 1)) &&
