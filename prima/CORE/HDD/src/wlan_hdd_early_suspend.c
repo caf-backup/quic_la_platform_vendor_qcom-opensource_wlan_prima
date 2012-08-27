@@ -1015,8 +1015,13 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
        }
 #endif
 
+   //Apply Dynamic Dtim For P2P
+   //Only if ignoreDynamicDtimInP2pMode is not set in ini
    if((pHddCtx->cfg_ini->enableDynamicDTIM ||
-       pHddCtx->cfg_ini->enableModulatedDTIM) && 
+       pHddCtx->cfg_ini->enableModulatedDTIM) &&
+       ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+        ((WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) &&
+         !(pHddCtx->cfg_ini->ignoreDynamicDtimInP2pMode))) &&
        (eANI_BOOLEAN_TRUE == pAdapter->higherDtimTransition) &&
       (eConnectionState_Associated == 
          (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) &&
