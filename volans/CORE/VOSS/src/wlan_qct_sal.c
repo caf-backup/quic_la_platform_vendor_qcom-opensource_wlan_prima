@@ -75,7 +75,8 @@ extern int sdio_reset_comm(struct mmc_card *card);
  * Global variables.
  *-------------------------------------------------------------------------*/
 /* Completion  variable to unblock shutdown request */
-static struct completion gShutdown_event_var;
+extern struct completion gCard_rem_event_var;
+extern struct completion gShutdown_event_var;
 static salHandleType *gpsalHandle;
 static v_U8_t gSDCmdFailed = 0;
 
@@ -351,10 +352,10 @@ void wlan_sdio_card_removal_hdlr(void)
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
     "%s: Wait for cleanup", __func__);
 
-   INIT_COMPLETION(gpsalHandle->card_rem_event_var);
+   INIT_COMPLETION(gCard_rem_event_var);
 
    /* Wait for Clean up (as part of logp) before making sdio_func_dev as NULL */
-   rc = wait_for_completion_interruptible_timeout(&gpsalHandle->card_rem_event_var,
+   rc = wait_for_completion_interruptible_timeout(&gCard_rem_event_var,
                         msecs_to_jiffies(WLANSAL_CARD_REMOVAL_WAIT_TIMEOUT));
 
    if(!rc)
@@ -389,7 +390,7 @@ void WLANSAL_allow_card_removal(void)
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
     "%s: Done with cleanup, notifying SDCC ", __func__);
 
-   complete(&gpsalHandle->card_rem_event_var);
+   complete(&gCard_rem_event_var);
 
    return;
 }
@@ -798,7 +799,7 @@ VOS_STATUS WLANSAL_Start
 
    gpsalHandle->isINTEnabled = VOS_TRUE;
 
-   init_completion(&gpsalHandle->card_rem_event_var);
+   init_completion(&gCard_rem_event_var);
    libra_sdio_notify_card_removal(wlan_sdio_card_removal_hdlr);
 
    init_completion(&gShutdown_event_var);
