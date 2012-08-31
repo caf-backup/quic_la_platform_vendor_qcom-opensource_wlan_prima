@@ -5551,7 +5551,16 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
     }
 
     uTotalSize -= nOffset;
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
+              "Power request parameter %d Total size", 
+              uTotalSize);
     ptr += nOffset;
+    /* This is added for dynamic Tele LI enable (0xF1) /disable (0xF0)*/
+    if(!(uTotalSize - nOffset) && 
+       (powerRequest.uListenInterval != SIR_NOCHANGE_POWER_VALUE))
+    {
+        uTotalSize = 0;
+    }
 
   }/*Go for as long as we have a valid string*/
 
