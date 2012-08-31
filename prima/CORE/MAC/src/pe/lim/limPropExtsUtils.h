@@ -46,6 +46,10 @@ tANI_U8 limGetCurrentLearnChannel(tpAniSirGlobal);
 void handleNonTitanBss( tpAniSirGlobal, tSirNeighborBssWdsInfo );
 #endif
 tStaRateMode limGetStaPeerType( tpAniSirGlobal, tpDphHashNode ,tpPESession);
+#ifdef WLAN_FEATURE_11AC
+ePhyChanBondState  limGetHTCBState(ePhyChanBondState aniCBMode) ;
+#endif
+
 
 #endif /* __LIM_PROP_EXTS_UTILS_H */
 
