@@ -12562,7 +12562,6 @@ WDI_ProcessHostOffloadReq
    hostOffloadParams.offloadType = pwdiHostOffloadParams->wdiHostOffloadInfo.ucOffloadType;
    hostOffloadParams.enableOrDisable = pwdiHostOffloadParams->wdiHostOffloadInfo.ucEnableOrDisable;
 
-   hostOffloadParams.bssIdx = pwdiHostOffloadParams->wdiHostOffloadInfo.bssIdx;
    if( HAL_IPV4_ARP_REPLY_OFFLOAD == hostOffloadParams.offloadType )
    {
       // ARP Offload
@@ -23006,7 +23005,7 @@ WDI_ProcessReceiveFilterSetFilterReq
    pRcvPktFilterCfg->numParams = pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.numFieldParams;
    pRcvPktFilterCfg->coalesceTime = pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.coalesceTime;
 
-   pRcvPktFilterCfg->bssIdx = pBSSSes->ucBSSIdx;
+   //pRcvPktFilterCfg->bssIdx = pBSSSes->ucBSSIdx;
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
               "Out: FID %d FT %d",pRcvPktFilterCfg->filterId,

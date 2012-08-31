@@ -3362,6 +3362,7 @@ typedef struct
    wpt_uint8  ucPatternMask[WDI_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
    wpt_uint8  ucPatternExt[WDI_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern
    wpt_uint8  ucPatternMaskExt[WDI_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern mask
+   wpt_uint8  bssIdx;
 } WDI_WowlAddBcPtrnInfoType;
 
 /*---------------------------------------------------------------------------

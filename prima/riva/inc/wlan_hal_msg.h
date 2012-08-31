@@ -24,7 +24,6 @@
 #include "halCompiler.h"
 #include "wlan_qct_dev_defs.h"
 #include "wlan_nv.h"
-
 /*---------------------------------------------------------------------------
   API VERSIONING INFORMATION
 
@@ -287,7 +286,7 @@ typedef enum
    WLAN_HAL_RADAR_DETECT_INTR_IND    = 144,
    WLAN_HAL_KEEP_ALIVE_REQ           = 145,
    WLAN_HAL_KEEP_ALIVE_RSP           = 146,
-   
+
    /*PNO messages*/
    WLAN_HAL_SET_PREF_NETWORK_REQ     = 147,
    WLAN_HAL_SET_PREF_NETWORK_RSP     = 148,
@@ -316,17 +315,17 @@ typedef enum
 
    WLAN_HAL_SET_POWER_PARAMS_REQ            = 166,
    WLAN_HAL_SET_POWER_PARAMS_RSP            = 167,
-    
+
    WLAN_HAL_TSM_STATS_REQ                   = 168,
    WLAN_HAL_TSM_STATS_RSP                   = 169,
-   
+
    // wake reason indication (WOW)
-   WLAN_HAL_WAKE_REASON_IND          = 170,
+   WLAN_HAL_WAKE_REASON_IND                 = 170,
    // GTK offload support
-   WLAN_HAL_GTK_OFFLOAD_REQ          = 171,
-   WLAN_HAL_GTK_OFFLOAD_RSP          = 172,
-   WLAN_HAL_GTK_OFFLOAD_GETINFO_REQ  = 173,
-   WLAN_HAL_GTK_OFFLOAD_GETINFO_RSP  = 174,
+   WLAN_HAL_GTK_OFFLOAD_REQ                 = 171,
+   WLAN_HAL_GTK_OFFLOAD_RSP                 = 172,
+   WLAN_HAL_GTK_OFFLOAD_GETINFO_REQ         = 173,
+   WLAN_HAL_GTK_OFFLOAD_GETINFO_RSP         = 174,
 
    WLAN_HAL_FEATURE_CAPS_EXCHANGE_REQ       = 175,
    WLAN_HAL_FEATURE_CAPS_EXCHANGE_RSP       = 176,
@@ -1424,7 +1423,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader header;
    PACKED_PRE union PACKED_POST {
-    tConfigStaParams    configStaParams;
+   tConfigStaParams configStaParams;
     tConfigStaParams_V1 configStaParams_V1;
    } uStaParams;
 }  tConfigStaReqMsg, *tpConfigStaReqMsg;
@@ -1867,7 +1866,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader header;
    PACKED_PRE union PACKED_POST {
-    tConfigBssParams configBssParams;
+   tConfigBssParams configBssParams;
     tConfigBssParams_V1 configBssParams_V1;
    }uBssParams;
 }  tConfigBssReqMsg, *tpConfigBssReqMsg;
@@ -2234,14 +2233,14 @@ WLAN_HAL_START_OEM_DATA_REQ
 --------------------------------------------------------------------------*/
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_U32                status;
-    tSirMacAddr             selfMacAddr;
+    tANI_U32                 status;
+    tSirMacAddr              selfMacAddr;
     tANI_U8                 oemDataReq[OEM_DATA_REQ_SIZE];
 } tStartOemDataReqParams, *tpStartOemDataReqParams;
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    tHalMsgHeader           header;
+    tHalMsgHeader                header;
     tStartOemDataReqParams  startOemDataReqParams;
 } tStartOemDataReqMsg, *tpStartOemDataReqMsg;
 
@@ -2289,7 +2288,7 @@ typedef PACKED_PRE struct PACKED_POST
     tSirMacAddr selfStaMacAddr;
 
     /*VO WIFI comment: BSSID needed to identify session. As the request has power constraints,
-      this should be applied only to that session*/
+       this should be applied only to that session*/
     /* Since MTU timing and EDCA are sessionized, this struct needs to be sessionized and
      * bssid needs to be out of the VOWifi feature flag */
     /* V IMP: Keep bssId field at the end of this msg. It is used to mantain backward compatbility
@@ -3682,7 +3681,6 @@ typedef PACKED_PRE struct PACKED_POST
         tANI_U8 hostIpv4Addr [4];
         tANI_U8 hostIpv6Addr [HAL_IPV6_ADDR_LEN];
     } params;
-    tANI_U8 bssIdx;
 } tHalHostOffloadReq, *tpHalHostOffloadReq;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3771,6 +3769,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader header;
+   tANI_U8       bssIdx;
 }  tHalExitUapsdReqMsg, *tpHalExitUapsdReqMsg;
 
 /*---------------------------------------------------------------------------
@@ -3791,6 +3790,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8  ucPatternMask[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
     tANI_U8  ucPatternExt[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern
     tANI_U8  ucPatternMaskExt[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern mask
+    tANI_U8  bssIdx;
 } tHalWowlAddBcastPtrn, *tpHalWowlAddBcastPtrn;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3799,6 +3799,8 @@ typedef PACKED_PRE struct PACKED_POST
    tHalWowlAddBcastPtrn ptrnParams;
 }  tHalWowlAddBcastPtrnReqMsg, *tpHalWowlAddBcastPtrnReqMsg;
 
+
+
 /*---------------------------------------------------------------------------
  * WLAN_HAL_DEL_WOWL_BCAST_PTRN
  *--------------------------------------------------------------------------*/
@@ -3806,6 +3808,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* Pattern ID of the wakeup pattern to be deleted */
     tANI_U8  ucPatternId;
+    tANI_U8  bssIdx;
 } tHalWowlDelBcastPtrn, *tpHalWowlDelBcastPtrn;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3895,6 +3898,8 @@ typedef PACKED_PRE struct PACKED_POST
      */
     tANI_U8   ucWoWBSSConnLoss;
 
+    tANI_U8   bssIdx;
+
 } tHalWowlEnterParams, *tpHalWowlEnterParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3906,9 +3911,17 @@ typedef PACKED_PRE struct PACKED_POST
 /*---------------------------------------------------------------------------
  * WLAN_HAL_EXIT_WOWL_REQ
  *--------------------------------------------------------------------------*/
+
 typedef PACKED_PRE struct PACKED_POST
 {
-   tHalMsgHeader header;
+    tANI_U8   bssIdx;
+
+} tHalWowlExitParams, *tpHalWowlExitParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader     header;
+   tHalWowlExitParams exitWowlParams;
 }  tHalWowlExitReqMsg, *tpHalWowlExitReqMsg;
 
 /*---------------------------------------------------------------------------
@@ -3988,6 +4001,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
     tANI_U32   status;
+    tANI_U8    bssIdx;
 } tHalEnterBmpsRspParams, *tpHalEnterBmpsRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4086,7 +4100,8 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
-    tANI_U32   status;
+   tANI_U32   status;
+   tANI_U8    bssIdx;
 } tHalEnterWowlRspParams, *tpHalEnterWowlRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4101,7 +4116,8 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
-    tANI_U32   status;
+   tANI_U32   status;
+   tANI_U8    bssIdx;
 } tHalExitWowlRspParams, *tpHalExitWowlRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4146,7 +4162,8 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
-    tANI_U32   status;
+   tANI_U32   status;
+   tANI_U8    bssIdx;
 } tHalAddWowlBcastPtrnRspParams, *tpHalAddWowlBcastPtrnRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4161,7 +4178,8 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
-    tANI_U32   status;
+   tANI_U32   status;
+   tANI_U8    bssIdx;
 } tHalDelWowlBcastPtrnRspParams, *tpHalDelWowlBcastPtrnRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4871,7 +4889,7 @@ typedef PACKED_PRE struct PACKED_POST {
     ePNOMode         modePNO;
 
     /*Number of networks sent for PNO*/
-    tANI_U32          ucNetworksCount; 
+    tANI_U32          ucNetworksCount;
 
     /*The networks that PNO needs to look for*/
     tNetworkType     aNetworks[WLAN_HAL_PNO_MAX_SUPP_NETWORKS];
@@ -5170,15 +5188,23 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8                         numParams;
     tANI_U32                        coalesceTime;
     tHalRcvPktFilterParams          paramsData[1];
-    tANI_U8                         bssIdx;
 }tHalRcvPktFilterCfgType, *tpHalRcvPktFilterCfgType;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8                         filterId;
+    tANI_U8                         filterType;
+    tANI_U8                         numParams;
+    tANI_U32                        coleasceTime;
+    tANI_U8                         bssIdx;
+    tHalRcvPktFilterParams          paramsData[1];
+}tHalSessionizedRcvPktFilterCfgType, *tpHalSessionizedRcvPktFilterCfgType;
 
 typedef PACKED_PRE struct PACKED_POST
 {
   tHalMsgHeader                 header;
   tHalRcvPktFilterCfgType       pktFilterCfg;
 } tHalSetRcvPktFilterReqMsg, *tpHalSetRcvPktFilterReqMsg;
-
 
 typedef PACKED_PRE struct PACKED_POST
 {
@@ -5192,6 +5218,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
     tANI_U32   status;
+    tANI_U8    bssIdx;
 } tHalSetPktFilterRspParams, *tpHalSetPktFilterRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -5200,11 +5227,17 @@ typedef PACKED_PRE struct PACKED_POST
    tHalSetPktFilterRspParams   pktFilterRspParams;
 }  tHalSetPktFilterRspMsg, *tpHalSetPktFilterRspMsg;
 
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8    bssIdx;
+} tHalRcvFltPktMatchCntReqParams, *tpHalRcvFltPktMatchCntReqParams;
 
 typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader        header;
+   tHalRcvFltPktMatchCntReqParams   pktMatchCntReqParams;
 } tHalRcvFltPktMatchCntReqMsg, *tpHalRcvFltPktMatchCntReqMsg;
+
 
 typedef PACKED_PRE struct PACKED_POST
 {
@@ -5217,6 +5250,7 @@ typedef PACKED_PRE struct PACKED_POST
    tANI_U32                 status;
    tANI_U32                 matchCnt;
    tHalRcvFltPktMatchCnt    filterMatchCnt[HAL_MAX_NUM_FILTERS];
+   tANI_U8                  bssIdx;
 } tHalRcvFltPktMatchRspParams, *tptHalRcvFltPktMatchRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -5247,6 +5281,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     tANI_U32   status;
+    tANI_U8    bssIdx;
 }tHalRcvFltPktSetMcListRspType, *tpHalRcvFltPktSetMcListRspType;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -5324,8 +5359,16 @@ typedef enum {
     MCC        = 0,
     P2P        = 1,
     DOT11AC    = 2,
+    SLM_SESSIONIZATION = 3,
     MAX_FEATURE_SUPPORTED = 128,
 } placeHolderInCapBitmap;
+
+
+#define IS_MCC_SUPPORTED_BY_HOST (!!(halMsg_GetHostWlanFeatCaps(MCC)))
+#define IS_SLM_SESSIONIZATION_SUPPORTED_BY_HOST (!!(halMsg_GetHostWlanFeatCaps(SLM_SESSIONIZATION)))
+
+
+tANI_U8 halMsg_GetHostWlanFeatCaps(tANI_U8 feat_enum_value);
 
 #define setFeatCaps(a,b)   {  tANI_U32 arr_index, bit_index; \
                               if ((b>=0) && (b<=127)) { \
@@ -5419,6 +5462,8 @@ typedef PACKED_PRE struct PACKED_POST
 {
     tHalMsgHeader       header;
     tWakeReasonParams   wakeReasonParams;
+    tANI_U32            uBssIdx : 8;
+    tANI_U32            bReserved : 24;
 } tHalWakeReasonInd, *tpHalWakeReasonInd;
 
 /*---------------------------------------------------------------------------
@@ -5436,6 +5481,7 @@ typedef PACKED_PRE struct PACKED_POST
   tANI_U8      aKCK[HAL_GTK_KCK_BYTES];  /* Key confirmation key */
   tANI_U8      aKEK[HAL_GTK_KEK_BYTES];  /* key encryption key */
   tANI_U64     ullKeyReplayCounter; /* replay counter */
+  tANI_U8      bssIdx;
 } tHalGtkOffloadReqParams, *tpHalGtkOffloadReqParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -5450,6 +5496,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     tANI_U32   ulStatus;   /* success or failure */
+    tANI_U8    bssIdx;
 } tHalGtkOffloadRspParams, *tpHalGtkOffloadRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -5462,10 +5509,16 @@ typedef PACKED_PRE struct PACKED_POST
 /*---------------------------------------------------------------------------
 * WLAN_HAL_GTK_OFFLOAD_GETINFO_REQ
 *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8    bssIdx;
+
+} tHalGtkOffloadGetInfoReqParams, *tptHalGtkOffloadGetInfoReqParams;
 
 typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader header;
+   tHalGtkOffloadGetInfoReqParams gtkOffloadGetInfoReqParams;
 }  tHalGtkOffloadGetInfoReqMsg, *tpHalGtkOffloadGetInfoReqMsg;
 
 /*---------------------------------------------------------------------------
@@ -5479,6 +5532,7 @@ typedef PACKED_PRE struct PACKED_POST
    tANI_U32   ulTotalRekeyCount;    /* total rekey attempts */
    tANI_U32   ulGTKRekeyCount;      /* successful GTK rekeys */
    tANI_U32   ulIGTKRekeyCount;     /* successful iGTK rekeys */
+   tANI_U8    bssIdx;
 } tHalGtkOffloadGetInfoRspParams, *tptHalGtkOffloadGetInfoRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
