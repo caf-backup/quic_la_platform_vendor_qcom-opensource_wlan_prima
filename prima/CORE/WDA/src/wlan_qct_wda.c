@@ -11331,3 +11331,25 @@ VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext, wpt_boolean closeTransport)
    }
    return status;
 }
+/*
+ * FUNCTION: WDA_stopFailed
+ * WDA stop failed
+ */
+
+void WDA_stopFailed(v_PVOID_t pVosContext)
+{
+   tWDA_CbContext *pWDA = (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
+   pWDA->needShutdown  = TRUE;
+}
+/*
+ * FUNCTION: WDA_needShutdown
+ * WDA needs a shutdown
+ */
+
+v_BOOL_t WDA_needShutdown(v_PVOID_t pVosContext)
+{
+   tWDA_CbContext *pWDA = (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
+   return pWDA->needShutdown;   
+}
+
+
