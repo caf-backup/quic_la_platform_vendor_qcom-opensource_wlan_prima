@@ -465,23 +465,6 @@ typedef enum eSirMacHTOperatingMode
   eSIR_HT_OP_MODE_MAX = WLAN_HAL_MAX_ENUM_SIZE
 } tSirMacHTOperatingMode;
 
-typedef enum eSirMacHTSecondaryChannelOffset
-{
-    eHT_SECONDARY_CHANNEL_OFFSET_NONE = 0,
-    eHT_SECONDARY_CHANNEL_OFFSET_UP = 1,
-    eHT_SECONDARY_CHANNEL_OFFSET_DOWN = 3,
- #ifdef WLAN_FEATURE_11AC
-    eVHT_CHANNEL_20MHZ_LOW_40MHZ_CENTERED = 4, //20/40MHZ offset LOW 40/80MHZ offset CENTERED
-    eVHT_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED = 5, //20/40MHZ offset CENTERED 40/80MHZ offset CENTERED
-    eVHT_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED = 6, //20/40MHZ offset HIGH 40/80MHZ offset CENTERED
-    eVHT_CHANNEL_20MHZ_LOW_40MHZ_LOW = 7,//20/40MHZ offset LOW 40/80MHZ offset LOW
-    eVHT_CHANNEL_20MHZ_HIGH_40MHZ_LOW = 8, //20/40MHZ offset HIGH 40/80MHZ offset LOW
-    eVHT_CHANNEL_20MHZ_LOW_40MHZ_HIGH = 9, //20/40MHZ offset LOW 40/80MHZ offset HIGH
-    eVHT_CHANNEL_20MHZ_HIGH_40MHZ_HIGH = 10,//20/40MHZ offset-HIGH 40/80MHZ offset HIGH
-#endif
-    eHT_SECONDARY_CHANNEL_OFFSET_MAX = WLAN_HAL_MAX_ENUM_SIZE
-} tSirMacHTSecondaryChannelOffset;
-
 /// Encryption type enum used with peer
 typedef enum eAniEdType
 {
@@ -1998,7 +1981,7 @@ typedef PACKED_PRE struct PACKED_POST
   tANI_U8         ucLocalPowerConstraint;
 
   /*Secondary channel offset */
-  tSirMacHTSecondaryChannelOffset  secondaryChannelOffset;
+  ePhyChanBondState  secondaryChannelOffset;
 
   /*link State*/
   tSirLinkState   linkState;
@@ -2294,7 +2277,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8 localPowerConstraint;
 
     /*Secondary channel offset */
-    tSirMacHTSecondaryChannelOffset secondaryChannelOffset;
+    ePhyChanBondState secondaryChannelOffset;
 
     //HAL fills in the tx power used for mgmt frames in this field.
     tPowerdBm txMgmtPower;
