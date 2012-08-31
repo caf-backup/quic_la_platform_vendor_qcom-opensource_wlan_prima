@@ -298,7 +298,7 @@ typedef struct tagBssConfigParam
     tANI_U32 uJoinTimeOut;
     tSirMacCapabilityInfo BssCap;
     tANI_BOOLEAN f11hSupport;
-    tAniCBSecondaryMode cbMode;
+    ePhyChanBondState cbMode;
 }tBssConfigParam;
 
 
@@ -307,7 +307,7 @@ typedef struct tagCsrRoamStartBssParams
     tSirMacSSid         ssId;
     tCsrBssid           bssid;    //this is the BSSID for the party we want to join (only use for IBSS or WDS)
     tSirNwType          sirNwType;
-    tAniCBSecondaryMode cbMode;
+    ePhyChanBondState   cbMode;
     tSirMacRateSet      operationalRateSet;
     tSirMacRateSet      extendedRateSet;
     tANI_U8             operationChn;

@@ -129,10 +129,6 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
             pMac->lim.vhtCapabilityPresentInBeacon = 1;
             pMac->lim.apCenterChan = beaconStruct.VHTOperation.chanCenterFreqSeg1;
             pMac->lim.apChanWidth = beaconStruct.VHTOperation.chanWidth;
-           if (beaconStruct.HTInfo.present)
-           {
-               pMac->lim.gHTSecondaryChannelOffset = beaconStruct.HTInfo.secondaryChannelOffset;
-           }
         }
         else
         {
@@ -586,18 +582,6 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
     }
     else
     {
-        //FIXME_CBMODE: need to seperate out TITAN and HT cb modes.
-        if(pBeacon->HTCaps.present)
-        {
-            limGetHtCbAdminState(pMac, pBeacon->HTCaps, 
-                        &pNode->info.neighborBssInfo.titanHtCaps);
-        
-            if( pBeacon->HTInfo.present)
-            {
-                    limGetHtCbOpState(pMac, pBeacon->HTInfo, 
-                            &pNode->info.neighborBssInfo.titanHtCaps);
-            }
-        }
         // This must be either Beacon frame or
         // Probe Response. Copy all relevant information.
             pNode->info.neighborBssInfo.wniIndicator = (tAniBool) pBeacon->propIEinfo.aniIndicator;
@@ -1104,37 +1088,6 @@ limRestorePreLearnState(tpAniSirGlobal pMac)
 } /****** end limRestorePreLearnState() ******/
 #endif //#if (defined(ANI_PRODUCT_TYPE_AP) || (ANI_PRODUCT_TYPE_AP_SDK))
 /**
- * limGetPhyCBState
- *
- *FUNCTION:
- * Based on the current state of LIM, this routine determines
- * the correct PHY enumeration "ePhyChanBondState" to use
- *
- *LOGIC:
- * Is it possible to have a common enumeration?
- *
- *ASSUMPTIONS:
- *
- *NOTE:
- *
- * @param  pMac - Pointer to Global MAC structure
- * @return The corresponding PHY enumeration ePhyChanBondState
- */
-ePhyChanBondState limGetPhyCBState( tpAniSirGlobal pMac )
-{
-    ePhyChanBondState cbState = PHY_SINGLE_CHANNEL_CENTERED;
-    if( GET_CB_OPER_STATE( pMac->lim.gCbState ))
-    {
-      if( GET_CB_SEC_CHANNEL( pMac->lim.gCbState ))
-        cbState = PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
-      else
-        cbState = PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
-    }
-  return cbState;
-}
-
-
-/**
  * limGetHTCBState
  *
  *FUNCTION:
@@ -1148,60 +1101,34 @@ ePhyChanBondState limGetPhyCBState( tpAniSirGlobal pMac )
  * @param  pMac - Pointer to Global MAC structure
  * @return The corresponding HT enumeration
  */
-tSirMacHTSecondaryChannelOffset    limGetHTCBState(tAniCBSecondaryMode aniCBMode) 
+ePhyChanBondState  limGetHTCBState(ePhyChanBondState aniCBMode) 
 {
     switch ( aniCBMode )
     {
-    
 #ifdef WLAN_FEATURE_11AC
-        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW:
-        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED:
-        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
 #endif
-        case eANI_CB_SECONDARY_DOWN:
-        return eHT_SECONDARY_CHANNEL_OFFSET_DOWN;
+        case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+        return PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
 #ifdef WLAN_FEATURE_11AC
-        case eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW:
-        case eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED:
-        case eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
 #endif
-        case eANI_CB_SECONDARY_UP:
-        return eHT_SECONDARY_CHANNEL_OFFSET_UP;
+        case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+        return PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
 #ifdef WLAN_FEATURE_11AC
-        case eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED:
-           return eHT_SECONDARY_CHANNEL_OFFSET_CENTERED;
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED:
+           return PHY_SINGLE_CHANNEL_CENTERED;
 #endif
         default :
-           return eHT_SECONDARY_CHANNEL_OFFSET_NONE;
+           return PHY_SINGLE_CHANNEL_CENTERED;
      }
 }
 
-
-/**
- * limGetAniCBState
- *
- *FUNCTION:
- * This routing provides the translation of HT Enum to Airgo enum for determining 
- * secondary channel offset.
- * Airgo Enum is required for backward compatibility purposes.
- *
- *
- *NOTE:
- *
- * @param  pMac - Pointer to Global MAC structure
- * @return The corresponding ANI enumeration
- */
-tAniCBSecondaryMode     limGetAniCBState( tSirMacHTSecondaryChannelOffset htCBMode) 
-{
-    if(eHT_SECONDARY_CHANNEL_OFFSET_DOWN == htCBMode)
-        return eANI_CB_SECONDARY_DOWN;
-    else if(eHT_SECONDARY_CHANNEL_OFFSET_UP == htCBMode)
-        return eANI_CB_SECONDARY_UP;
-    else
-        return eANI_CB_SECONDARY_NONE;
-}
-
-/**
+ /*
  * limGetStaPeerType
  *
  *FUNCTION:
@@ -1247,107 +1174,5 @@ tStaRateMode staPeerType = eSTA_11b;
   else if(psessionEntry->limRFBand == SIR_BAND_5_GHZ)
         staPeerType = eSTA_11a;
   return staPeerType;
-}
-/**
- * setupCBState()
- *
- *FUNCTION:
- * This function is called during eWNI_SME_START_BSS_REQ.
- * Based on the configured Channel Bonding mode, the
- * appropriate Channel Bonding state is setup in the global
- * LIM object - gCbState. This will then be subsequently used
- * in the proprietary IE field
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- *
- *NOTE:
- *
- * @param  pMac   Pointer to Global MAC structure
- * @param  cbMode The CB mode as set by SME (WSM)
- * @return None
- */
-void setupCBState( tpAniSirGlobal pMac,
-    tAniCBSecondaryMode cbMode )
-{
-
-#ifdef WLAN_FEATURE_11AC
-     if(cbMode > eANI_CB_SECONDARY_UP)
-     {
-         SET_CB_OPER_STATE( pMac->lim.gCbState, eHAL_SET );
-         return;
-     }
-#endif
-
-  switch( cbMode )
-  {
-    case eANI_CB_SECONDARY_DOWN:
-      SET_CB_OPER_STATE( pMac->lim.gCbState, eHAL_SET );
-      SET_CB_SEC_CHANNEL( pMac->lim.gCbState, eHAL_CLEAR );
-      if (cfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, WNI_CFG_CB_SECONDARY_CHANNEL_STATE_LOWER) != eSIR_SUCCESS)
-          limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
-      // AU state is set via CFG
-      break;
-    case eANI_CB_SECONDARY_UP:
-      SET_CB_OPER_STATE( pMac->lim.gCbState, eHAL_SET );
-      SET_CB_SEC_CHANNEL( pMac->lim.gCbState, eHAL_SET );
-      if (cfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, WNI_CFG_CB_SECONDARY_CHANNEL_STATE_HIGHER) != eSIR_SUCCESS)
-          limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
-      // AU state is set via CFG
-      break;
-    case eANI_CB_SECONDARY_NONE:
-      if (cfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, WNI_CFG_CB_SECONDARY_CHANNEL_STATE_NONE) != eSIR_SUCCESS)
-          limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
-    default:
-      SET_CB_OPER_STATE( pMac->lim.gCbState, eHAL_CLEAR );
-      break;
-  }
-
-  limLog( pMac, LOG2,
-      FL("New CB State: 0x%1x for Mode %d\n"),
-      pMac->lim.gCbState,
-      cbMode );
-}
-/**
- * limGetCurrentCBSecChannel()
- *
- *FUNCTION:
- * This function is called to determine the current
- * "secondary" channel when Channel Bonding is enabled
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * NA
- *
- * @param  pMac      Pointer to Global MAC structure
- * @return Channel number
- */
-tANI_U8 limGetCurrentCBSecChannel( tpAniSirGlobal pMac,tpPESession psessionEntry)
-{
-tANI_U8 chanNum;
-  //
-  // FIXME - This is a HACK!!
-  // Need to have a clean way of determining the current
-  // CB secondary channel!!
-  //
-  chanNum = psessionEntry->currentOperChannel;
-  if( GET_CB_OPER_STATE( pMac->lim.gCbState ))
-  {
-    if( GET_CB_SEC_CHANNEL( pMac->lim.gCbState ))
-      chanNum += 4;
-    else
-      chanNum -= 4;
-  }
-  limLog( pMac, LOG4,
-      FL("Returning CB Sec Channel %1d\n"),
-      chanNum );
-  return chanNum;
 }
 

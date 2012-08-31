@@ -500,8 +500,8 @@ typedef struct sDphHashNode
     //
 
     tANI_U8 htSupportedChannelWidthSet:1;
-
-    tANI_U8 rsvd1:5;
+    tANI_U8 htSecondaryChannelOffset:2;
+    tANI_U8 rsvd1:3;
 
 
     ///////////////////////////////////////////////////////////////////////

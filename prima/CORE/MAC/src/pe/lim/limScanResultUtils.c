@@ -181,33 +181,6 @@ limCollectBssDescription(tpAniSirGlobal pMac,
    }
 
     pBssDescr->channelIdSelf = rxChannel;
-    pBssDescr->titanHtCaps = 0;
-
-    //FIXME_CBMODE : need to seperate out TITAN and HT CB mode.
-    //HT neighbor with channel bonding
-    if( pBPR->HTCaps.present  )
-    {
-        tAniTitanHtCapabilityInfo titanHtCaps = 0;
-        limGetHtCbAdminState(pMac, pBPR->HTCaps, &titanHtCaps);
-        if( pBPR->HTInfo.present &&
-          pBPR->HTInfo.secondaryChannelOffset )
-        {
-
-            limGetHtCbOpState( pMac,
-                pBPR->HTInfo,
-                &titanHtCaps );
-        }
-        pBssDescr->titanHtCaps = (tANI_U32) titanHtCaps;
-    }
-
-    // Is this is a TITAN neighbor?
-    else if( pBPR->propIEinfo.aniIndicator &&
-        pBPR->propIEinfo.titanPresent )
-    {
-    tAniTitanHtCapabilityInfo titanHtCaps = 0;
-      pBssDescr->titanHtCaps = (tANI_U32) titanHtCaps;
-    }
-
     //set the network type in bss description
     channelNum = pBssDescr->channelId;
     pBssDescr->nwType = limGetNwType(pMac, channelNum, SIR_MAC_MGMT_FRAME, pBPR);

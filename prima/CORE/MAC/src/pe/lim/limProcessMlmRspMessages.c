@@ -1124,7 +1124,6 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
                                 pAssocInd->addIE.length);
 
     // Copy the new TITAN capabilities
-    pSirSmeAssocInd->titanHtCaps = pAssocInd->titanHtCaps;
     pSirSmeAssocInd->spectrumMgtIndicator = pAssocInd->spectrumMgtIndicator;
     if (pAssocInd->spectrumMgtIndicator == eSIR_TRUE)
     {
@@ -2862,16 +2861,16 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
     limPopulateOwnRateSet(pMac, &pAddStaParams->supportedRates, NULL, false,psessionEntry);
 #endif
 
-    if( psessionEntry->htCapabality)
+    if( psessionEntry->htCapability)
     {
-        pAddStaParams->htCapable = psessionEntry->htCapabality;
+        pAddStaParams->htCapable = psessionEntry->htCapability;
 #ifdef DISABLE_GF_FOR_INTEROP
         /*
          * To resolve the interop problem with Broadcom AP,
          * where TQ STA could not pass traffic with GF enabled,
          * TQ STA will do Greenfield only with TQ AP, for
          * everybody else it will be turned off.
-        */
+         */
         if( (psessionEntry->pLimJoinReq != NULL) && (!psessionEntry->pLimJoinReq->bssDescription.aniIndicator))
         {
             limLog( pMac, LOGE, FL(" Turning off Greenfield, when adding self entry"));

@@ -2724,7 +2724,7 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
     
     if (IS_DOT11_MODE_HT(dot11mode))
     {
-       PopulateDot11fHTCaps( pMac, &pr.HTCaps );
+       PopulateDot11fHTCaps( pMac, NULL, &pr.HTCaps );
     }
     
     // That's it-- now we pack it.  First, how much space are we going to

@@ -3356,6 +3356,17 @@ int hdd_wlan_startup(struct device *dev )
       goto err_vosclose;
    }
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+      /* Vos preStart is calling */
+      /* vos preStart which does cfg download should be called before set sme config which accesses/sets some cfgs */
+      status = vos_preStart( pHddCtx->pvosContext );
+      if ( !VOS_IS_STATUS_SUCCESS( status ) )
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_preStart failed",__func__);
+         goto err_vosclose;
+      }
+#endif
+
    // Set the SME configuration parameters...
    status = hdd_set_sme_config( pHddCtx );
 
@@ -3372,16 +3383,6 @@ int hdd_wlan_startup(struct device *dev )
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __FUNCTION__);
       goto err_vosclose;
    }
-
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-   /* Vos preStart is calling */
-   status = vos_preStart( pHddCtx->pvosContext );
-   if ( !VOS_IS_STATUS_SUCCESS( status ) )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_preStart failed",__func__);
-      goto err_vosclose;
-   }
-#endif
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    /* In the integrated architecture we update the configuration from

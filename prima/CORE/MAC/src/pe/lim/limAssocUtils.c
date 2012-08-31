@@ -1051,7 +1051,7 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
     if(SIR_BAND_5_GHZ == rfBand)
     {
         //we are HT. if we are 11A, then protection is not required.
-        if(true == psessionEntry->htCapabality)
+        if(true == psessionEntry->htCapability)
         {
             //we are HT and 11A station is leaving.
             //protection consideration required.
@@ -1094,7 +1094,7 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
         erpEnabled = pStaDs->erpEnabled;
         //we are HT or 11G and 11B station is getting deleted.
         if (((phyMode == WNI_CFG_PHY_MODE_11G) ||
-              psessionEntry->htCapabality) &&
+              psessionEntry->htCapability) &&
               (erpEnabled == eHAL_CLEAR))
         {
             PELOG1(limLog(pMac, LOG1, FL("(%d) A legacy STA is disassociated. Addr is "),
@@ -1125,7 +1125,7 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
             }
         }
         //(non-11B station is leaving) or (we are not 11G or HT AP)
-        else if(psessionEntry->htCapabality)
+        else if(psessionEntry->htCapability)
         { //we are HT AP and non-11B station is leaving.
 
             //11g station is leaving            
@@ -1161,7 +1161,7 @@ limDecideApProtectionOnDelete(tpAniSirGlobal pMac,
     }
 
     //LSIG TXOP not supporting staiton leaving. applies to 2.4 as well as 5 GHZ.
-    if((true == psessionEntry->htCapabality) &&
+    if((true == psessionEntry->htCapability) &&
         (true == pStaDs->mlmStaContext.htCapability))
     {
         //HT non-GF leaving
@@ -1406,7 +1406,7 @@ limRestorePreReassocState(tpAniSirGlobal pMac,
                           tSirResultCodes resultCode,
                           tANI_U16 protStatusCode,tpPESession psessionEntry)
 {
-    tANI_U8                  chanNum;
+    tANI_U8             chanNum, secChanOffset;
     tLimMlmReassocCnf   mlmReassocCnf;
 
     psessionEntry->limMlmState = eLIM_MLM_LINK_ESTABLISHED_STATE;
@@ -1431,8 +1431,9 @@ limRestorePreReassocState(tpAniSirGlobal pMac,
 
    /*  To support BT-AMP */
    chanNum = psessionEntry->currentOperChannel;
+   secChanOffset = psessionEntry->htSecondaryChannelOffset;
 
-    limSetChannel(pMac, psessionEntry->limCurrentTitanHtCaps, chanNum, psessionEntry->maxTxPower, psessionEntry->peSessionId);
+    limSetChannel(pMac, chanNum, secChanOffset, psessionEntry->maxTxPower, psessionEntry->peSessionId);
 
     /** @ToDo : Need to Integrate the STOP the DataTransfer to the AP from 11H code */
 
@@ -2133,7 +2134,7 @@ limAddSta(
     }
     else
     {
-          pAddStaParams->htCapable = psessionEntry->htCapabality;
+        pAddStaParams->htCapable = psessionEntry->htCapability;
 #ifdef WLAN_FEATURE_11AC
         pAddStaParams->vhtCapable = psessionEntry->vhtCapability;
 #endif
@@ -2476,9 +2477,9 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
 #else
     limPopulateOwnRateSet(pMac, &pAddStaParams->supportedRates, NULL, false,psessionEntry);
 #endif
-    if( psessionEntry->htCapabality)
+    if( psessionEntry->htCapability)
     {
-        pAddStaParams->htCapable = psessionEntry->htCapabality;
+        pAddStaParams->htCapable = psessionEntry->htCapability;
 #ifdef DISABLE_GF_FOR_INTEROP
         /*
          * To resolve the interop problem with Broadcom AP, 
@@ -3081,7 +3082,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             else
             {
                 pAddBssParams->txChannelWidthSet = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
-                pAddBssParams->currentExtChannel = eHT_SECONDARY_CHANNEL_OFFSET_NONE;
+                pAddBssParams->currentExtChannel = PHY_SINGLE_CHANNEL_CENTERED;
             }
             pAddBssParams->llnNonGFCoexist = (tANI_U8)pAssocRsp->HTInfo.nonGFDevicesPresent;
             pAddBssParams->fLsigTXOPProtectionFullSupport = (tANI_U8)pAssocRsp->HTInfo.lsigTXOPProtectionFullSupport;
@@ -3365,7 +3366,7 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
             else
             {
                 pAddBssParams->txChannelWidthSet = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
-                pAddBssParams->currentExtChannel = eHT_SECONDARY_CHANNEL_OFFSET_NONE;
+                pAddBssParams->currentExtChannel = PHY_SINGLE_CHANNEL_CENTERED;
             }
             pAddBssParams->llnNonGFCoexist = (tANI_U8)beaconStruct.HTInfo.nonGFDevicesPresent;
             pAddBssParams->fLsigTXOPProtectionFullSupport = (tANI_U8)beaconStruct.HTInfo.lsigTXOPProtectionFullSupport;
@@ -3614,7 +3615,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             else
             {
                 pAddBssParams->txChannelWidthSet = (tANI_U8)pAssocRsp->HTCaps.supportedChannelWidthSet;
-                pAddBssParams->currentExtChannel = eHT_SECONDARY_CHANNEL_OFFSET_NONE;
+                pAddBssParams->currentExtChannel = PHY_SINGLE_CHANNEL_CENTERED;
             }
             pAddBssParams->llnNonGFCoexist = (tANI_U8)pAssocRsp->HTInfo.nonGFDevicesPresent;
             pAddBssParams->fLsigTXOPProtectionFullSupport = (tANI_U8)pAssocRsp->HTInfo.lsigTXOPProtectionFullSupport;

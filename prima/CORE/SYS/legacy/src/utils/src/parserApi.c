@@ -269,7 +269,7 @@ PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal pMac,
 {
     //Has to be updated on the cb state basis
     pDot11f->secondaryChannelOffset = 
-             limGetHTCBState(psessionEntry->gLimChannelSwitch.secondarySubBand);
+             psessionEntry->gLimChannelSwitch.secondarySubBand;
 
     pDot11f->present = 1;
 }
@@ -529,7 +529,8 @@ PopulateDot11fExtSuppRates1(tpAniSirGlobal         pMac,
 
 tSirRetStatus
 PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
-                             tDot11fIEHTCaps *pDot11f)
+                           tpPESession      psessionEntry,
+                           tDot11fIEHTCaps *pDot11f)
 {
     tANI_U32                         nCfgValue, nCfgLen;
     tANI_U8                          nCfgValue8;
@@ -559,12 +560,8 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     pHTCapabilityInfo = ( tSirMacHTCapabilityInfo* ) &nCfgValue16;
 #endif
 
-    dot11fLog( pMac, LOG1, FL( "HT Caps: %x\n" ), nCfgValue);
-
-
 #ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     pDot11f->advCodingCap             = uHTCapabilityInfo.htCapInfo.advCodingCap;
-    pDot11f->supportedChannelWidthSet = uHTCapabilityInfo.htCapInfo.supportedChannelWidthSet;
     pDot11f->mimoPowerSave            = uHTCapabilityInfo.htCapInfo.mimoPowerSave;
     pDot11f->greenField               = uHTCapabilityInfo.htCapInfo.greenField;
     pDot11f->shortGI20MHz             = uHTCapabilityInfo.htCapInfo.shortGI20MHz;
@@ -579,7 +576,6 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     pDot11f->lsigTXOPProtection       = uHTCapabilityInfo.htCapInfo.lsigTXOPProtection;
 #else
     pDot11f->advCodingCap             = pHTCapabilityInfo->advCodingCap;
-    pDot11f->supportedChannelWidthSet = pHTCapabilityInfo->supportedChannelWidthSet;
     pDot11f->mimoPowerSave            = pHTCapabilityInfo->mimoPowerSave;
     pDot11f->greenField               = pHTCapabilityInfo->greenField;
     pDot11f->shortGI20MHz             = pHTCapabilityInfo->shortGI20MHz;
@@ -593,6 +589,16 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     pDot11f->stbcControlFrame         = pHTCapabilityInfo->stbcControlFrame;
     pDot11f->lsigTXOPProtection       = pHTCapabilityInfo->lsigTXOPProtection;
 #endif
+
+    // All sessionized entries will need the check below
+    if (psessionEntry == NULL) // Only in case of NO session
+    {
+        pDot11f->supportedChannelWidthSet = uHTCapabilityInfo.htCapInfo.supportedChannelWidthSet;
+    }
+    else
+    {
+        pDot11f->supportedChannelWidthSet = psessionEntry->htSupportedChannelWidthSet;
+    }
 
     /* Ensure that shortGI40MHz is Disabled if supportedChannelWidthSet is
        eHT_CHANNEL_WIDTH_20MHZ */
@@ -964,11 +970,19 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     htInfoField1 = ( tANI_U8 ) nCfgValue;
 
     pHTInfoField1 = ( tSirMacHTInfoField1* ) &htInfoField1;
-    pHTInfoField1->secondaryChannelOffset     = pMac->lim.gHTSecondaryChannelOffset;
-    pHTInfoField1->recommendedTxWidthSet      = pMac->lim.gHTRecommendedTxWidthSet;
     pHTInfoField1->rifsMode                   = psessionEntry->beaconParams.fRIFSMode;
     pHTInfoField1->serviceIntervalGranularity = pMac->lim.gHTServiceIntervalGranularity;
 
+    if (psessionEntry == NULL)
+    {
+        PELOGE(limLog(pMac, LOG1,
+            FL("Keep the value retrieved from cfg for secondary channel offset and recommended Tx Width set\n"));)
+    }
+    else
+    {
+        pHTInfoField1->secondaryChannelOffset     = psessionEntry->htSecondaryChannelOffset;
+        pHTInfoField1->recommendedTxWidthSet      = psessionEntry->htRecommendedTxWidthSet;
+    }
 
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){

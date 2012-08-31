@@ -319,9 +319,9 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     if (psessionEntry->dot11mode != WNI_CFG_DOT11_MODE_11B)
         PopulateDot11fERPInfo( pMac, &bcn2.ERPInfo, psessionEntry );
 
-    if(psessionEntry->htCapabality)
+    if(psessionEntry->htCapability)
     {
-        PopulateDot11fHTCaps( pMac, &bcn2.HTCaps );
+        PopulateDot11fHTCaps( pMac, psessionEntry, &bcn2.HTCaps );
 #ifdef WLAN_SOFTAP_FEATURE
         PopulateDot11fHTInfo( pMac, &bcn2.HTInfo, psessionEntry );
 #else
@@ -976,12 +976,12 @@ specialBeaconProcessing( tpAniSirGlobal pMac, tANI_U32 beaconSize)
                     limSwitchPrimaryChannel(pMac, pMac->lim.gLimChannelSwitch.primaryChannel);
                     break;
                 case eLIM_CHANNEL_SWITCH_SECONDARY_ONLY:
-                    limSwitchPrimarySecondaryChannel(pMac,
+                    limSwitchPrimarySecondaryChannel(pMac, psessionEntry,
                                              psessionEntry->currentOperChannel,
                                              pMac->lim.gLimChannelSwitch.secondarySubBand);
                     break;
                 case eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY:
-                    limSwitchPrimarySecondaryChannel(pMac,
+                    limSwitchPrimarySecondaryChannel(pMac, psessionEntry,
                                              pMac->lim.gLimChannelSwitch.primaryChannel,
                                              pMac->lim.gLimChannelSwitch.secondarySubBand);
                     break;

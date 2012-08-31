@@ -45,11 +45,7 @@ tANI_U8 limGetCurrentLearnChannel(tpAniSirGlobal);
 // Determine if a newly discovered BSS is TITAN-compatible
 void handleNonTitanBss( tpAniSirGlobal, tSirNeighborBssWdsInfo );
 #endif
-ePhyChanBondState limGetPhyCBState( tpAniSirGlobal );
 tStaRateMode limGetStaPeerType( tpAniSirGlobal, tpDphHashNode ,tpPESession);
-void setupCBState( tpAniSirGlobal, tAniCBSecondaryMode );
-
-tANI_U8 limGetCurrentCBSecChannel( tpAniSirGlobal,tpPESession );
 
 #endif /* __LIM_PROP_EXTS_UTILS_H */
 

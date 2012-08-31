@@ -427,7 +427,7 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
             else
             {
                 pAddBssParams->txChannelWidthSet = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
-                pAddBssParams->currentExtChannel = eHT_SECONDARY_CHANNEL_OFFSET_NONE;
+                pAddBssParams->currentExtChannel = PHY_SINGLE_CHANNEL_CENTERED;
             }
             pAddBssParams->llnNonGFCoexist = (tANI_U8)beaconStruct.HTInfo.nonGFDevicesPresent;
             pAddBssParams->fLsigTXOPProtectionFullSupport = (tANI_U8)beaconStruct.HTInfo.lsigTXOPProtectionFullSupport;
@@ -573,7 +573,7 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
     pftSessionEntry->peSessionId = sessionId;
 
     pftSessionEntry->dot11mode = psessionEntry->dot11mode;
-    pftSessionEntry->htCapabality = psessionEntry->htCapabality;
+    pftSessionEntry->htCapability = psessionEntry->htCapability;
 
     pftSessionEntry->limWmeEnabled = psessionEntry->limWmeEnabled;
     pftSessionEntry->limQosEnabled = psessionEntry->limQosEnabled;
@@ -639,11 +639,6 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
                        
     pftSessionEntry->limCurrentBssCaps = pbssDescription->capabilityInfo;
     pftSessionEntry->limReassocBssCaps = pbssDescription->capabilityInfo;
-            
-    pftSessionEntry->limCurrentTitanHtCaps=
-                    pbssDescription->titanHtCaps;
-    pftSessionEntry->limReassocTitanHtCaps=
-        pftSessionEntry->limCurrentTitanHtCaps;
 
     regMax = cfgGetRegulatoryMaxTransmitPower( pMac, pftSessionEntry->currentOperChannel ); 
     localPowerConstraint = regMax;

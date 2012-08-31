@@ -186,12 +186,12 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
 #if !defined WLAN_FEATURE_VOWIFI  
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
                                       tANI_U8 chnlNumber,
-                                      tSirMacHTSecondaryChannelOffset secondaryChnlOffset,
+                                      ePhyChanBondState secondaryChnlOffset,
                                       tANI_U8 localPwrConstraint, tANI_U8 peSessionId)
 #else
 tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
                                       tANI_U8 chnlNumber,
-                                      tSirMacHTSecondaryChannelOffset secondaryChnlOffset,
+                                      ePhyChanBondState secondaryChnlOffset,
                                       tPowerdBm maxTxPower, tANI_U8 peSessionId)
 #endif
 {

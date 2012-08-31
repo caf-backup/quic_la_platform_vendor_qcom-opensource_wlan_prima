@@ -502,7 +502,8 @@ PopulateDot11fHCF(tpAniSirGlobal  pMac,
 
 tSirRetStatus
 PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
-                             tDot11fIEHTCaps *pDot11f);
+                           tpPESession      psessionEntry,
+                           tDot11fIEHTCaps *pDot11f);
 
 #ifdef WLAN_SOFTAP_FEATURE
 tSirRetStatus

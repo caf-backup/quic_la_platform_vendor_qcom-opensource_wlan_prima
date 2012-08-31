@@ -231,7 +231,8 @@ isLimSessionOffChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
 
 /*--------------------------------------------------------------------------
   \brief peGetActiveSessionChannel() - Gets the operating channel of first  
-                                    valid session.
+                                    valid session. Returns 0 if there is no
+									valid session.
 
   \param pMac                   - pointer to global adapter context
   
@@ -239,19 +240,33 @@ isLimSessionOffChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
   
   \sa
   --------------------------------------------------------------------------*/
-tANI_U8
-peGetActiveSessionChannel (tpAniSirGlobal pMac)
+void
+peGetActiveSessionChannel (tpAniSirGlobal pMac, tANI_U8* resumeChannel, ePhyChanBondState* resumePhyCbState)
 {
     tANI_U8 i;
 
+    // Initialize the pointers passed to INVALID values in case we don't find a valid session
+    *resumeChannel = 0;
+    *resumePhyCbState = 0;
     for(i =0; i < pMac->lim.maxBssId; i++)
     {
         if(pMac->lim.gpSession[i].valid)
         {
-            return pMac->lim.gpSession[i].currentOperChannel;
+            *resumeChannel = pMac->lim.gpSession[i].currentOperChannel;
+            *resumePhyCbState = pMac->lim.gpSession[i].htSecondaryChannelOffset;
+            
+#ifdef WLAN_FEATURE_11AC
+            if ((pMac->lim.gpSession[i].vhtCapability))
+            {
+               /*Get 11ac cbState from 11n cbState*/
+                *resumePhyCbState = limGet11ACPhyCBState(pMac, 
+                                    pMac->lim.gpSession[i].currentOperChannel,
+                                    pMac->lim.gpSession[i].htSecondaryChannelOffset);
+            }
+#endif
         }
     }
-    return 0;
+    return;
 }
 
 /*--------------------------------------------------------------------------

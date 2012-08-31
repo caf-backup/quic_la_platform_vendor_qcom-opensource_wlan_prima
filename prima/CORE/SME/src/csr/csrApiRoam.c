@@ -81,6 +81,8 @@
 //Flag to send/do not send disassoc frame over the air
 #define CSR_DONT_SEND_DISASSOC_OVER_THE_AIR 1
 #define RSSI_HACK_BMPS (-40)
+#define MAX_CB_VALUE_IN_INI (2)
+
 /*-------------------------------------------------------------------------- 
   Static Type declarations
   ------------------------------------------------------------------------*/
@@ -164,8 +166,8 @@ static eHalStatus csrRoamStartIbss( tpAniSirGlobal pMac, tANI_U32 sessionId,
                                     tANI_BOOLEAN *pfSameIbss );
 static void csrRoamUpdateConnectedProfileFromNewBss( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirSmeNewBssInfo *pNewBss );
 static void csrRoamPrepareBssParams(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile, 
-                                     tSirBssDescription *pBssDesc, tDot11fBeaconIEs *pIes);
-static tAniCBSecondaryMode csrGetCBModeFromIes(tpAniSirGlobal pMac, tANI_U8 primaryChn, tDot11fBeaconIEs *pIes);
+                                     tSirBssDescription *pBssDesc, tBssConfigParam *pBssConfig, tDot11fBeaconIEs *pIes);
+static ePhyChanBondState csrGetCBModeFromIes(tpAniSirGlobal pMac, tANI_U8 primaryChn, tDot11fBeaconIEs *pIes);
 eHalStatus csrInitGetChannels(tpAniSirGlobal pMac);
 static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 result );
 eHalStatus csrRoamOpen(tpAniSirGlobal pMac);
@@ -507,14 +509,17 @@ void csrSetDefaultDot11Mode( tpAniSirGlobal pMac )
 }
 void csrSetGlobalCfgs( tpAniSirGlobal pMac )
 {
+
     ccmCfgSetInt(pMac, WNI_CFG_FRAGMENTATION_THRESHOLD, csrGetFragThresh(pMac), NULL, eANI_BOOLEAN_FALSE);
     ccmCfgSetInt(pMac, WNI_CFG_RTS_THRESHOLD, csrGetRTSThresh(pMac), NULL, eANI_BOOLEAN_FALSE);
     ccmCfgSetInt(pMac, WNI_CFG_11D_ENABLED,
                         ((pMac->roam.configParam.Is11hSupportEnabled) ? pMac->roam.configParam.Is11dSupportEnabled : pMac->roam.configParam.Is11dSupportEnabled), 
                         NULL, eANI_BOOLEAN_FALSE);
     ccmCfgSetInt(pMac, WNI_CFG_11H_ENABLED, pMac->roam.configParam.Is11hSupportEnabled, NULL, eANI_BOOLEAN_FALSE);
-    //Enable channel bonding at init; for 2.4 Ghz we will update this CFG at start BSS or join 
-    ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, WNI_CFG_CHANNEL_BONDING_MODE_ENABLE, NULL, eANI_BOOLEAN_FALSE);
+    /* For now we will just use the 5GHz CB mode ini parameter to decide whether CB supported or not in Probes when there is no session
+     * Once session is established we will use the session related params stored in PE session for CB mode
+     */
+    ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, !!(pMac->roam.configParam.channelBondingMode5GHz), NULL, eANI_BOOLEAN_FALSE);
     ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->roam.configParam.HeartbeatThresh24, NULL, eANI_BOOLEAN_FALSE);
     
     //Update the operating mode to configured value during initialization,
@@ -838,6 +843,7 @@ static void initConfigParam(tpAniSirGlobal pMac)
     pMac->roam.configParam.agingCount = CSR_AGING_COUNT;
     pMac->roam.configParam.channelBondingMode24GHz = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
     pMac->roam.configParam.channelBondingMode5GHz = WNI_CFG_CHANNEL_BONDING_MODE_ENABLE;
+
     pMac->roam.configParam.phyMode = eCSR_DOT11_MODE_TAURUS;
     pMac->roam.configParam.eBand = eCSR_BAND_ALL;
     pMac->roam.configParam.uCfgDot11Mode = eCSR_CFG_DOT11_MODE_TAURUS;
@@ -943,6 +949,119 @@ eHalStatus csrSetBand(tHalHandle hHal, eCsrBand eBand)
         csrInitChannelList( hHal );
     return status;
 }
+/* The funcns csrConvertCBIniValueToPhyCBState and csrConvertPhyCBStateToIniValue have been
+ * introduced to convert the ini value to the ENUM used in csr and MAC for CB state
+ * Ideally we should have kept the ini value and enum value same and representing the same
+ * cb values as in 11n standard i.e. 
+ * Set to 1 (SCA) if the secondary channel is above the primary channel 
+ * Set to 3 (SCB) if the secondary channel is below the primary channel 
+ * Set to 0 (SCN) if no secondary channel is present 
+ * However, since our driver is already distributed we will keep the ini definition as it is which is:
+ * 0 - secondary none
+ * 1 - secondary LOW
+ * 2 - secondary HIGH
+ * and convert to enum value used within the driver in csrChangeDefaultConfigParam using this funcn
+ * The enum values are as follows:
+ * PHY_SINGLE_CHANNEL_CENTERED          = 0
+ * PHY_DOUBLE_CHANNEL_LOW_PRIMARY   = 1
+ * PHY_DOUBLE_CHANNEL_HIGH_PRIMARY  = 3
+ */
+ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue)
+{
+
+   ePhyChanBondState phyCbState;
+   switch (cbIniValue) {
+      // secondary none
+      case 0:
+        phyCbState = PHY_SINGLE_CHANNEL_CENTERED;
+        break;
+      // secondary LOW
+      case 1:
+        phyCbState = PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
+        break;
+      // secondary HIGH
+      case 2:
+        phyCbState = PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
+        break;
+#ifdef WLAN_FEATURE_11AC
+      case 3:
+        phyCbState = PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED; 
+        break;
+      case 4:
+        phyCbState = PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED;
+        break;
+      case 5:
+        phyCbState = PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED;
+        break; 
+      case 6:
+        phyCbState = PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW;
+        break;
+      case 7:
+        phyCbState = PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW;
+        break; 
+      case 8:
+        phyCbState = PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH;
+        break;
+      case 9:
+        phyCbState = PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH;
+        break; 
+#endif 
+      default:
+        // If an invalid value is passed, disable CHANNEL BONDING
+        phyCbState = PHY_SINGLE_CHANNEL_CENTERED;
+        break;
+   }
+   return phyCbState;
+}
+
+v_U32_t csrConvertPhyCBStateToIniValue(ePhyChanBondState phyCbState)
+{
+
+   v_U32_t cbIniValue;
+   switch (phyCbState) {
+      // secondary none
+      case PHY_SINGLE_CHANNEL_CENTERED:
+        cbIniValue = 0;
+        break;
+      // secondary LOW
+      case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+        cbIniValue = 1;
+        break;
+      // secondary HIGH
+      case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+        cbIniValue = 2;
+        break;
+#ifdef WLAN_FEATURE_11AC
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED:
+        cbIniValue = 3;
+        break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED:
+        cbIniValue = 4;
+        break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED:
+        cbIniValue = 5;
+        break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
+        cbIniValue = 6;
+        break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
+        cbIniValue = 7;
+        break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
+        cbIniValue = 8;
+        break;
+      case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
+        cbIniValue = 9;
+        break;
+#endif
+      default:
+        // return some invalid value
+        cbIniValue = 10;
+        break;
+   }
+   return cbIniValue;
+}
+
 eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -957,8 +1076,20 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.Is11hSupportEnabled = pParam->Is11hSupportEnabled;
 
         pMac->roam.configParam.fenableMCCMode = pParam->fEnableMCCMode;
-        pMac->roam.configParam.channelBondingMode24GHz = pParam->channelBondingMode24GHz;
-        pMac->roam.configParam.channelBondingMode5GHz = pParam->channelBondingMode5GHz;
+        /* channelBondingMode5GHz plays a dual role right now
+         * INFRA STA will use this non zero value as CB enabled and SOFTAP will use this non-zero value to determine the secondary channel offset
+         * This is how channelBondingMode5GHz works now and this is kept intact to avoid any cfg.ini change
+         */
+        if (pParam->channelBondingMode24GHz > MAX_CB_VALUE_IN_INI)
+        {
+            smsLog( pMac, LOGW, "Invalid CB value from ini in 2.4GHz band %d, CB DISABLED\n", pParam->channelBondingMode24GHz); 
+        }
+        pMac->roam.configParam.channelBondingMode24GHz = csrConvertCBIniValueToPhyCBState(pParam->channelBondingMode24GHz);
+        if (pParam->channelBondingMode5GHz > MAX_CB_VALUE_IN_INI)
+        {
+            smsLog( pMac, LOGW, "Invalid CB value from ini in 5GHz band %d, CB DISABLED\n", pParam->channelBondingMode5GHz); 
+        }
+        pMac->roam.configParam.channelBondingMode5GHz = csrConvertCBIniValueToPhyCBState(pParam->channelBondingMode5GHz);
         pMac->roam.configParam.RTSThreshold = pParam->RTSThreshold;
         pMac->roam.configParam.phyMode = pParam->phyMode;
         pMac->roam.configParam.shortSlotTime = pParam->shortSlotTime;
@@ -1136,8 +1267,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->Is11dSupportEnabled = pMac->roam.configParam.Is11dSupportEnabled;
         pParam->Is11dSupportEnabledOriginal = pMac->roam.configParam.Is11dSupportEnabledOriginal;
         pParam->Is11hSupportEnabled = pMac->roam.configParam.Is11hSupportEnabled;
-        pParam->channelBondingMode24GHz = pMac->roam.configParam.channelBondingMode24GHz;
-        pParam->channelBondingMode5GHz = pMac->roam.configParam.channelBondingMode5GHz;
+        pParam->channelBondingMode24GHz = csrConvertPhyCBStateToIniValue(pMac->roam.configParam.channelBondingMode24GHz);
+        pParam->channelBondingMode5GHz = csrConvertPhyCBStateToIniValue(pMac->roam.configParam.channelBondingMode5GHz);
         pParam->RTSThreshold = pMac->roam.configParam.RTSThreshold;
         pParam->phyMode = pMac->roam.configParam.phyMode;
         pParam->shortSlotTime = pMac->roam.configParam.shortSlotTime;
@@ -2052,7 +2183,7 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
 #if defined(VOSS_ENABLED)
     VOS_ASSERT( pIes != NULL );
 #endif
-    
+
     do
     {
         palCopyMemory(pMac->hHdd, &pBssConfig->BssCap, &pBssDesc->capabilityInfo, sizeof(tSirMacCapabilityInfo));
@@ -2289,7 +2420,7 @@ static eHalStatus csrRoamPrepareBssConfigFromProfile(tpAniSirGlobal pMac, tCsrRo
     }
     //Join timeout
     pBssConfig->uJoinTimeOut = CSR_JOIN_FAILURE_TIMEOUT_DEFAULT;
-    
+
     return (status);
 }
 static eHalStatus csrRoamGetQosInfoFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBssDesc)
@@ -2920,21 +3051,21 @@ tANI_U32 csrRoamGetPhyModeFromDot11Mode(eCsrCfgDot11Mode dot11Mode, eCsrBand ban
         
         
 #ifdef WLAN_FEATURE_11AC
-tAniCBSecondaryMode csrGetHTCBStateFromVHTCBState(tAniCBSecondaryMode aniCBMode)
+ePhyChanBondState csrGetHTCBStateFromVHTCBState(ePhyChanBondState aniCBMode)
 {
     switch ( aniCBMode )
     {
-	    case eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW:
-	    case eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED:
-	    case eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH:
-		    return eANI_CB_SECONDARY_DOWN;
-	    case eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW:
-	    case eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED:
-	    case eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH:
-		    return eANI_CB_SECONDARY_UP;
-	    case eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
+            return PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED:
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
+            return PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
+        case PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED:
 	    default :
-		    return eANI_CB_SECONDARY_NONE;
+            return PHY_SINGLE_CHANNEL_CENTERED;
     }
 }
 #endif
@@ -3007,22 +3138,18 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
         }
         else
         {
-           //cfgCb = pBssConfig->cbMode;
-            cfgCb = pMac->roam.configParam.channelBondingMode5GHz;
+           cfgCb = pBssConfig->cbMode;
         }
     }
 #ifdef WLAN_FEATURE_11AC
     if(cfgCb > 2 )
     {
 	if(!WDA_getFwWlanFeatCaps(DOT11AC)) {
-		cfgCb = csrGetHTCBStateFromVHTCBState((tAniCBSecondaryMode)pMac->roam.configParam.channelBondingMode5GHz);
-		ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, cfgCb, NULL, eANI_BOOLEAN_FALSE);
+            cfgCb = csrGetHTCBStateFromVHTCBState(cfgCb);
 	}
 	else 
 	{
-		ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, WNI_CFG_CHANNEL_BONDING_MODE_ENABLE, NULL, eANI_BOOLEAN_FALSE);
-		ccmCfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, cfgCb, NULL, eANI_BOOLEAN_FALSE);
-		ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,  pMac->roam.configParam.nVhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
+            ccmCfgSetInt(pMac, WNI_CFG_VHT_CHANNEL_WIDTH,  pMac->roam.configParam.nVhtChannelWidth, NULL, eANI_BOOLEAN_FALSE);
 	}
     }
     else
@@ -3060,6 +3187,8 @@ eHalStatus csrRoamStopNetwork( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
         if(HAL_STATUS_SUCCESS(status))
         {
             pSession->bssParams.uCfgDot11Mode = pBssConfig->uCfgDot11Mode;
+            /* This will allow to pass cbMode during join req */
+            pSession->bssParams.cbMode= pBssConfig->cbMode;
             //For IBSS, we need to prepare some more information
             if( csrIsBssTypeIBSS(pProfile->BSSType) || CSR_IS_WDS( pProfile )
 #ifdef WLAN_SOFTAP_FEATURE
@@ -3067,7 +3196,7 @@ eHalStatus csrRoamStopNetwork( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 #endif
             )
             {
-                csrRoamPrepareBssParams(pMac, sessionId, pProfile, pBssDesc, pIes);
+                csrRoamPrepareBssParams(pMac, sessionId, pProfile, pBssDesc, pBssConfig, pIes);
             }
             // If we are in an IBSS, then stop the IBSS...
             ////Not worry about WDS connection for now
@@ -3176,6 +3305,7 @@ eCsrJoinState csrRoamJoin( tpAniSirGlobal pMac, tANI_U32 sessionId,
                     if(HAL_STATUS_SUCCESS(status))
                     {
                         pSession->bssParams.uCfgDot11Mode = bssConfig.uCfgDot11Mode;
+                        pSession->bssParams.cbMode = bssConfig.cbMode;
                         //Reapply the config including Keys so reassoc is happening.
                         status = csrRoamSetBssConfigCfg(pMac, sessionId, pProfile, pBssDesc, &bssConfig, pIesLocal);
                         if(!HAL_STATUS_SUCCESS(status))
@@ -3283,7 +3413,7 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tCsrRoamProfile *pProfile = &pCommand->u.roamCmd.roamProfile;
     tANI_U8  concurrentChannel = 0;
-    
+
     do  
     {
         // Check for Cardbus eject condition, before trying to Roam to any BSS
@@ -3535,7 +3665,6 @@ static eHalStatus csrRoam( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     eCsrJoinState RoamState;
     tANI_U32 sessionId = pCommand->sessionId;
     
-    smsLog(pMac, LOG2, FL("is called\n"));
     //***if( hddIsRadioStateOn( pAdapter ) )
     {
         // Attept to join a Bss...
@@ -9026,9 +9155,9 @@ tANI_BOOLEAN csrRoamIsValid40MhzChannel(tpAniSirGlobal pMac, tANI_U8 channel)
 }
 
 //This function check and validate whether the NIC can do CB (40MHz)
-static tAniCBSecondaryMode csrGetCBModeFromIes(tpAniSirGlobal pMac, tANI_U8 primaryChn, tDot11fBeaconIEs *pIes)
+ static ePhyChanBondState csrGetCBModeFromIes(tpAniSirGlobal pMac, tANI_U8 primaryChn, tDot11fBeaconIEs *pIes)
 {
-    tAniCBSecondaryMode eRet = eANI_CB_SECONDARY_NONE;
+    ePhyChanBondState eRet = PHY_SINGLE_CHANNEL_CENTERED;
     tANI_U8 centerChn;
     tANI_U32 ChannelBondingMode;
     if(CSR_IS_CHANNEL_24GHZ(primaryChn))
@@ -9046,26 +9175,34 @@ static tAniCBSecondaryMode csrGetCBModeFromIes(tpAniSirGlobal pMac, tANI_U8 prim
         {
             if(pIes->HTInfo.present)
             {
-                if(PHY_DOUBLE_CHANNEL_LOW_PRIMARY == pIes->HTInfo.secondaryChannelOffset)
-                {
-                    eRet = eANI_CB_SECONDARY_UP;
-                    centerChn = primaryChn + CSR_CB_CENTER_CHANNEL_OFFSET;
-                }
-                else if(PHY_DOUBLE_CHANNEL_HIGH_PRIMARY == pIes->HTInfo.secondaryChannelOffset)
-                {
-                    eRet = eANI_CB_SECONDARY_DOWN;
-                    centerChn = primaryChn - CSR_CB_CENTER_CHANNEL_OFFSET;
-                }
+                /* This is called during INFRA STA/CLIENT and should use the merged value of 
+                 * supported channel width and recommended tx width as per standard
+                 */
+                smsLog(pMac, LOG1, "scws %u rtws %u sco %u\n",
+                    pIes->HTCaps.supportedChannelWidthSet,
+                    pIes->HTInfo.recommendedTxWidthSet,
+                    pIes->HTInfo.secondaryChannelOffset);
+
+                if (pIes->HTInfo.recommendedTxWidthSet == eHT_CHANNEL_WIDTH_40MHZ)
+                    eRet = (ePhyChanBondState)pIes->HTInfo.secondaryChannelOffset;
                 else
-                {
-                    //PHY_SINGLE_CHANNEL_CENTERED
-                    centerChn = primaryChn;
-                    eRet = eANI_CB_SECONDARY_NONE;
+                    eRet = PHY_SINGLE_CHANNEL_CENTERED;
+                switch (eRet) {
+                    case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+                        centerChn = primaryChn + CSR_CB_CENTER_CHANNEL_OFFSET;
+                        break;
+                    case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+                        centerChn = primaryChn - CSR_CB_CENTER_CHANNEL_OFFSET;
+                        break;
+                    case PHY_SINGLE_CHANNEL_CENTERED:
+                    default:
+                        centerChn = primaryChn;
+                        break;
                 }
-                if((eANI_CB_SECONDARY_NONE != eRet) && !csrRoamIsValid40MhzChannel(pMac, centerChn))
+                if((PHY_SINGLE_CHANNEL_CENTERED != eRet) && !csrRoamIsValid40MhzChannel(pMac, centerChn))
                 {
-                    smsLog(pMac, LOGW, "  Invalid center channel (%d), disable 40MHz mode\n", centerChn);
-                    eRet = eANI_CB_SECONDARY_NONE;
+                    smsLog(pMac, LOGE, "  Invalid center channel (%d), disable 40MHz mode\n", centerChn);
+                    //eRet = PHY_SINGLE_CHANNEL_CENTERED;
                 }
             }
         }
@@ -9454,7 +9591,7 @@ static void csrRoamGetBssStartParmsFromBssDesc( tpAniSirGlobal pMac, tSirBssDesc
     if( pParam )
     {
         pParam->sirNwType = pBssDesc->nwType;
-        pParam->cbMode = eANI_CB_SECONDARY_NONE;
+        pParam->cbMode = PHY_SINGLE_CHANNEL_CENTERED;
         pParam->operationChn = pBssDesc->channelId;
         palCopyMemory( pMac->hHdd, &pParam->bssid, pBssDesc->bssId, sizeof(tCsrBssid) );
     
@@ -9633,10 +9770,10 @@ eHalStatus csrRoamIssueStartBss( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRo
 }
 
 static void csrRoamPrepareBssParams(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile, 
-                                     tSirBssDescription *pBssDesc, tDot11fBeaconIEs *pIes)
+                                     tSirBssDescription *pBssDesc, tBssConfigParam *pBssConfig, tDot11fBeaconIEs *pIes)
 {
     tANI_U8 Channel, SecondChn;
-    tAniCBSecondaryMode cbMode = eANI_CB_SECONDARY_NONE;
+    ePhyChanBondState cbMode = PHY_SINGLE_CHANNEL_CENTERED;
     eCsrCBChoice cbChoice;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     if( pBssDesc )
@@ -9687,6 +9824,21 @@ static void csrRoamPrepareBssParams(tpAniSirGlobal pMac, tANI_U32 sessionId, tCs
     {
   
         csrRoamDetermineMaxRateForAdHoc( pMac, &pSession->bssParams.operationalRateSet );
+        if (CSR_IS_INFRA_AP(pProfile))
+        {
+            if(CSR_IS_CHANNEL_24GHZ(Channel))
+            {
+                cbMode = pMac->roam.configParam.channelBondingMode24GHz;
+            }
+            else
+            {
+                cbMode = pMac->roam.configParam.channelBondingMode5GHz;
+            }
+            smsLog(pMac, LOG1, "##softap cbMode %d\n", cbMode);
+            pBssConfig->cbMode = cbMode;
+            pSession->bssParams.cbMode = cbMode;
+        }
+
         if( CSR_IS_START_IBSS( pProfile ) )
         {
            //TBH: channel bonding is not supported for Libra
@@ -9725,21 +9877,21 @@ static void csrRoamPrepareBssParams(tpAniSirGlobal pMac, tANI_U32 sessionId, tCs
                     SecondChn = csrRoamGetSecondaryChannel(pMac, Channel, cbChoice);
                     if(SecondChn > Channel)
                     {
-                        cbMode = eANI_CB_SECONDARY_UP;
+                        cbMode = PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
                     }
                     else if(SecondChn && SecondChn < Channel)
                     {
-                        cbMode =eANI_CB_SECONDARY_DOWN;
+                        cbMode = PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
                     }
                     else
                     {
-                        cbMode = eANI_CB_SECONDARY_NONE;
+                        cbMode = PHY_SINGLE_CHANNEL_CENTERED;
                     }
                     pSession->bssParams.cbMode = cbMode;
                 }
                 else
                 {
-                    pSession->bssParams.cbMode = eANI_CB_SECONDARY_NONE;
+                    pSession->bssParams.cbMode = PHY_SINGLE_CHANNEL_CENTERED;
                 }
             }
         }
@@ -9786,7 +9938,7 @@ static eHalStatus csrRoamStartIbss( tpAniSirGlobal pMac, tANI_U32 sessionId, tCs
                 //save dotMode
                 pMac->roam.roamSession[sessionId].bssParams.uCfgDot11Mode = pBssConfig->uCfgDot11Mode;
                 //Prepare some more parameters for this IBSS
-                csrRoamPrepareBssParams(pMac, sessionId, pProfile, NULL, NULL);
+                csrRoamPrepareBssParams(pMac, sessionId, pProfile, NULL, pBssConfig, NULL);
                 status = csrRoamSetBssConfigCfg(pMac, sessionId, pProfile, NULL, pBssConfig, NULL);
             }
             
@@ -10193,7 +10345,7 @@ static eHalStatus csrRoamStartWds( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsr
                 csrRoamCopyProfile(pMac, pSession->pCurRoamProfile, pProfile);
             }
             //Prepare some more parameters for this WDS
-            csrRoamPrepareBssParams(pMac, sessionId, pProfile, NULL, NULL);
+            csrRoamPrepareBssParams(pMac, sessionId, pProfile, NULL, &bssConfig, NULL);
             status = csrRoamSetBssConfigCfg(pMac, sessionId, pProfile, NULL, &bssConfig, NULL);
         }
     }
@@ -10351,9 +10503,13 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         //Persona
         *pBuf = (tANI_U8)pProfile->csrPersona;
         pBuf++;
+        //CBMode
+        *pBuf = (tANI_U8)pSession->bssParams.cbMode;
+        pBuf++;
+
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                  FL("CSR PERSONA=%d"), pProfile->csrPersona);
-        
+                  FL("CSR PERSONA=%d CSR CbMode %d"), pProfile->csrPersona, pSession->bssParams.cbMode);
+
         // uapsdPerAcBitmask
         *pBuf = pProfile->uapsd_mask;
         pBuf++;
@@ -10739,8 +10895,13 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
         //Persona
         *pBuf = (tANI_U8)pProfile->csrPersona;
         pBuf++;
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, FL("CSR PERSONA=%d\n"), pProfile->csrPersona);
-        
+        //CBMode
+        *pBuf = (tANI_U8)pSession->bssParams.cbMode;
+        pBuf++;
+
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+            FL("CSR PERSONA=%d CSR CBMode=%u\n"), pProfile->csrPersona, pSession->bssParams.cbMode);
+
         // uapsdPerAcBitmask
         *pBuf = pProfile->uapsd_mask;
         pBuf++;
@@ -11595,7 +11756,7 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
     tANI_U16 msgLen, wTmp;
     tANI_U32 dwTmp;
     tSirNwType nwType;
-    tAniCBSecondaryMode cbMode;
+    ePhyChanBondState cbMode;
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32 authType;
 #endif
@@ -11681,9 +11842,10 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         *pBuf = pParam->operationChn;
         pBuf++;
         //What should we really do for the cbmode.
-        cbMode = (tAniCBSecondaryMode)pal_cpu_to_be32(pParam->cbMode);
-        palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *)&cbMode, sizeof(tAniCBSecondaryMode) );
-        pBuf += sizeof(tAniCBSecondaryMode);
+        cbMode = (ePhyChanBondState)pal_cpu_to_be32(pParam->cbMode);
+        palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *)&cbMode, sizeof(ePhyChanBondState) );
+        pBuf += sizeof(ePhyChanBondState);
+
 #ifdef WLAN_SOFTAP_FEATURE
         // Set privacy
         *pBuf = pParam->privacy;

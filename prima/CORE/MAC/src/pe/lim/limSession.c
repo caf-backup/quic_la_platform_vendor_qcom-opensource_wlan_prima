@@ -134,7 +134,11 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
 #endif
             *sessionId = i;
 
-            pMac->lim.gpSession[i].gLimPhyMode = WNI_CFG_PHY_MODE_11G; //TODO :Check with the team what should be default mode 
+            pMac->lim.gpSession[i].gLimPhyMode = WNI_CFG_PHY_MODE_11G; //TODO :Check with the team what should be default mode
+            /* Initialize CB mode variables when session is created */
+            pMac->lim.gpSession[i].htSupportedChannelWidthSet = 0;
+            pMac->lim.gpSession[i].htRecommendedTxWidthSet = 0;
+            pMac->lim.gpSession[i].htSecondaryChannelOffset = 0;
             return(&pMac->lim.gpSession[i]);
         }
     }
@@ -244,7 +248,7 @@ tpPESession peFindSessionByStaId(tpAniSirGlobal pMac,  tANI_U8  staid,    tANI_U
        }
     }
 
-    limLog(pMac, LOG4, FL("Session lookup fails for StaId: \n "));
+    limLog(pMac, LOG4, FL("Session lookup fails for StaId: %d\n "), staid);
     return(NULL);
 }
 
@@ -401,7 +405,9 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac,  tANI_U8*  sa,    tANI_U
          }
       }
    }   
-   
+
+   limLog(pMac, LOG1, FL("Session lookup fails for Peer StaId: \n "));
+   limPrintMacAddr(pMac, sa, LOG1);
    return NULL;
 }
 
