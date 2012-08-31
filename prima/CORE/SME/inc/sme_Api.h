@@ -1625,7 +1625,8 @@ eHalStatus sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEvent btAmpEvent);
     \param  pRequest -  Pointer to the offload request.
     \return eHalStatus
    ---------------------------------------------------------------------------*/
-eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
+eHalStatus sme_SetHostOffload (tHalHandle hHal, tANI_U8 sessionId,
+                                    tpSirHostOffloadReq pRequest);
 
 /* ---------------------------------------------------------------------------
     \fn sme_SetKeepAlive
@@ -1634,7 +1635,8 @@ eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
     \param  pRequest -  Pointer to the Keep Alive request.
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_SetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest);
+eHalStatus sme_SetKeepAlive (tHalHandle hHal, tANI_U8 sessionId,
+                                  tpSirKeepAliveReq pRequest);
 
 
 /* ---------------------------------------------------------------------------
@@ -1923,7 +1925,8 @@ eHalStatus sme_8023MulticastList(tHalHandle hHal, tpSirRcvFltMcAddrList pMultica
     \param  pRcvPktFilterCfg - Receive Packet Filter parameter
     \return eHalStatus   
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ReceiveFilterSetFilter(tHalHandle hHal, tpSirRcvPktFilterCfgType pRcvPktFilterCfg);
+eHalStatus sme_ReceiveFilterSetFilter(tHalHandle hHal, tpSirRcvPktFilterCfgType pRcvPktFilterCfg,
+                                           tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_GetFilterMatchCount
@@ -1945,7 +1948,8 @@ eHalStatus sme_GetFilterMatchCount(tHalHandle hHal,
     \return eHalStatus   
   ---------------------------------------------------------------------------*/
 eHalStatus sme_ReceiveFilterClearFilter(tHalHandle hHal,
-                                        tpSirRcvFltPktClearParam pRcvFltPktClearParam);
+                                        tpSirRcvFltPktClearParam pRcvFltPktClearParam,
+                                        tANI_U8  sessionId);
 #endif // WLAN_FEATURE_PACKET_FILTERING
 /* ---------------------------------------------------------------------------
 

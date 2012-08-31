@@ -3586,6 +3586,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
    tANI_U8     sendDataNull;
+   tANI_U8     bssIdx;
 } tHalExitBmpsReqParams, *tpHalExitBmpsReqParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3669,6 +3670,7 @@ typedef PACKED_PRE struct PACKED_POST _tHalNSOffloadParams
    tANI_U8 targetIPv6Addr2Valid : 1;
    tANI_U8 reserved1 : 5;
    tANI_U8 reserved2;   //make it DWORD aligned
+   tANI_U8 bssIdx;
 } tHalNSOffloadParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3680,6 +3682,7 @@ typedef PACKED_PRE struct PACKED_POST
         tANI_U8 hostIpv4Addr [4];
         tANI_U8 hostIpv6Addr [HAL_IPV6_ADDR_LEN];
     } params;
+    tANI_U8 bssIdx;
 } tHalHostOffloadReq, *tpHalHostOffloadReq;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3708,6 +3711,7 @@ typedef PACKED_PRE struct PACKED_POST
     tHalIpv4Addr     hostIpv4Addr;
     tHalIpv4Addr     destIpv4Addr;
     tSirMacAddr      destMacAddr;
+    tANI_U8          bssIdx;
 } tHalKeepAliveReq, *tpHalKeepAliveReq;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3752,6 +3756,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8     beTriggerEnabled:1;
     tANI_U8     viTriggerEnabled:1;
     tANI_U8     voTriggerEnabled:1;
+    tANI_U8     bssIdx;
 } tUapsdReqParams, *tpUapsdReqParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3998,6 +4003,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
     tANI_U32   status;
+    tANI_U8    bssIdx;
 } tHalExitBmpsRspParams, *tpHalExitBmpsRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4013,6 +4019,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
     tANI_U32    status;
+    tANI_U8     bssIdx;
 }tUapsdRspParams, *tpUapsdRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -4028,6 +4035,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
     tANI_U32   status;
+    tANI_U8    bssIdx;
 } tHalExitUapsdRspParams, *tpHalExitUapsdRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -5162,6 +5170,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8                         numParams;
     tANI_U32                        coalesceTime;
     tHalRcvPktFilterParams          paramsData[1];
+    tANI_U8                         bssIdx;
 }tHalRcvPktFilterCfgType, *tpHalRcvPktFilterCfgType;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -5176,6 +5185,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8         dataOffset; /* from start of the respective frame header */
     tANI_U32       cMulticastAddr;
     tSirMacAddr    multicastAddr[HAL_MAX_NUM_MULTICAST_ADDRESS];
+    tANI_U8        bssIdx;
 } tHalRcvFltMcAddrListType, *tpHalRcvFltMcAddrListType;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -5219,6 +5229,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     tANI_U32   status;  /* only valid for response message */
     tANI_U8    filterId;
+    tANI_U8    bssIdx;
 }tHalRcvFltPktClearParam, *tpHalRcvFltPktClearParam;
 
 typedef PACKED_PRE struct PACKED_POST

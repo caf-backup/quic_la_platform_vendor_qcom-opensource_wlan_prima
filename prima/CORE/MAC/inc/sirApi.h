@@ -3726,6 +3726,7 @@ typedef struct sSirHostOffloadReq
 #ifdef WLAN_NS_OFFLOAD
     tSirNsOffloadReq nsOffloadInfo;
 #endif //WLAN_NS_OFFLOAD
+    tANI_U8 bssIdx;
 } tSirHostOffloadReq, *tpSirHostOffloadReq;
 
 /* Packet Types. */
@@ -3744,7 +3745,7 @@ typedef struct sSirKeepAliveReq
     tSirIpv4Addr    hostIpv4Addr; 
     tSirIpv4Addr    destIpv4Addr;
     tSirMacAddr     destMacAddr;
-
+    v_U8_t          bssIdx;
 } tSirKeepAliveReq, *tpSirKeepAliveReq;
 
 typedef struct sSirSmeAddStaSelfReq
@@ -4047,6 +4048,8 @@ typedef struct sSirRcvPktFilterCfg
   tANI_U32                        numFieldParams;
   tANI_U32                        coalesceTime;
   tSirRcvPktFilterFieldParams     paramsData[SIR_MAX_NUM_TESTS_PER_FILTER];
+  tSirMacAddr                     selfMacAddr;
+  tSirMacAddr                     bssId; //Bssid of the connected AP
 }tSirRcvPktFilterCfgType, *tpSirRcvPktFilterCfgType;
 
 //
@@ -4075,6 +4078,8 @@ typedef struct sSirRcvFltPktClearParam
 {
   tANI_U32   status;  /* only valid for response message */
   tANI_U8    filterId;
+  tSirMacAddr selfMacAddr;
+  tSirMacAddr bssId;
 }tSirRcvFltPktClearParam, *tpSirRcvFltPktClearParam;
 
 //
@@ -4084,6 +4089,8 @@ typedef struct sSirRcvFltMcAddrList
 {
   tANI_U32       ulMulticastAddrCnt;
   tSirMacAddr    multicastAddr[SIR_MAX_NUM_MULTICAST_ADDRESS];
+  tSirMacAddr    selfMacAddr;
+  tSirMacAddr    bssId;
 } tSirRcvFltMcAddrList, *tpSirRcvFltMcAddrList;
 #endif // WLAN_FEATURE_PACKET_FILTERING
 

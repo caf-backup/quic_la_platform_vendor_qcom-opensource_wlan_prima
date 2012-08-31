@@ -11898,9 +11898,11 @@ WDI_ProcessExitBmpsReq
    }
    exitBmpsReq.sendDataNull = pwdiExitBmpsReqParams->wdiExitBmpsInfo.ucSendDataNull;
 
-   wpalMemoryCopy( pSendBuffer+usDataOffset,
-                   &exitBmpsReq,
-                   sizeof(exitBmpsReq));
+   exitBmpsReq.bssIdx = pwdiExitBmpsReqParams->wdiExitBmpsInfo.bssIdx;
+
+   wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                   &exitBmpsReq, 
+                   sizeof(exitBmpsReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiExitBmpsReqParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiExitBmpsReqParams->pUserData;
@@ -11974,6 +11976,7 @@ WDI_ProcessEnterUapsdReq
    enterUapsdReq.viTriggerEnabled   = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucViTriggerEnabled;
    enterUapsdReq.voDeliveryEnabled  = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucVoDeliveryEnabled;
    enterUapsdReq.voTriggerEnabled   = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucVoTriggerEnabled;
+   enterUapsdReq.bssIdx             = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.bssIdx;
 
    wpalMemoryCopy( pSendBuffer+usDataOffset,
                    &enterUapsdReq,
@@ -12558,6 +12561,8 @@ WDI_ProcessHostOffloadReq
 
    hostOffloadParams.offloadType = pwdiHostOffloadParams->wdiHostOffloadInfo.ucOffloadType;
    hostOffloadParams.enableOrDisable = pwdiHostOffloadParams->wdiHostOffloadInfo.ucEnableOrDisable;
+
+   hostOffloadParams.bssIdx = pwdiHostOffloadParams->wdiHostOffloadInfo.bssIdx;
    if( HAL_IPV4_ARP_REPLY_OFFLOAD == hostOffloadParams.offloadType )
    {
       // ARP Offload
@@ -12592,6 +12597,9 @@ WDI_ProcessHostOffloadReq
         nsOffloadParams.srcIPv6AddrValid = pwdiHostOffloadParams->wdiNsOffloadParams.srcIPv6AddrValid;
         nsOffloadParams.targetIPv6Addr1Valid = pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr1Valid;
         nsOffloadParams.targetIPv6Addr2Valid = pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr2Valid;
+
+        nsOffloadParams.bssIdx = pwdiHostOffloadParams->wdiNsOffloadParams.bssIdx;
+
 #endif // WLAN_NS_OFFLOAD
    }
 
@@ -12676,6 +12684,8 @@ WDI_ProcessKeepAliveReq
 
    keepAliveReq.packetType = pwdiKeepAliveParams->wdiKeepAliveInfo.ucPacketType;
    keepAliveReq.timePeriod = pwdiKeepAliveParams->wdiKeepAliveInfo.ucTimePeriod;
+
+   keepAliveReq.bssIdx = pwdiKeepAliveParams->wdiKeepAliveInfo.bssIdx;
 
    if(pwdiKeepAliveParams->wdiKeepAliveInfo.ucPacketType == 2)
    {
@@ -22819,6 +22829,8 @@ WDI_Process8023MulticastListReq
    wpt_uint16                 usSendSize            = 0;
    tHalRcvFltMcAddrListType   rcvFltMcAddrListType;
    wpt_uint8                  i;
+   wpt_uint8                  ucCurrentBSSSesIdx = 0;
+   WDI_BSSSessionType*        pBSSSes = NULL;
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
              "%s",__FUNCTION__);
@@ -22836,6 +22848,16 @@ WDI_Process8023MulticastListReq
                   "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE;
+   }
+
+   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, 
+                            pwdiFltPktSetMcListReqParamsType->mcAddrList.bssId, 
+                            &pBSSSes);  
+   if ( NULL == pBSSSes )
+   {
+       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 " %s : Association for this BSSID does not exist",__FUNCTION__);
+       return WDI_STATUS_E_FAILURE; 
    }
 
    /*-----------------------------------------------------------------------
@@ -22865,9 +22887,10 @@ WDI_Process8023MulticastListReq
                  sizeof(tSirMacAddr));
    }
 
-   wpalMemoryCopy( pSendBuffer+usDataOffset,
-                   &rcvFltMcAddrListType,
-                   sizeof(rcvFltMcAddrListType));
+   rcvFltMcAddrListType.bssIdx = pBSSSes->ucBSSIdx;
+   wpalMemoryCopy( pSendBuffer+usDataOffset, 
+                   &rcvFltMcAddrListType, 
+                   sizeof(rcvFltMcAddrListType)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiFltPktSetMcListReqParamsType->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiFltPktSetMcListReqParamsType->pUserData;
@@ -22905,6 +22928,8 @@ WDI_ProcessReceiveFilterSetFilterReq
    wpt_uint32                 usRcvPktFilterCfgSize;
    tHalRcvPktFilterCfgType    *pRcvPktFilterCfg;
    wpt_uint8                  i;
+   wpt_uint8                  ucCurrentBSSSesIdx = 0;
+   WDI_BSSSessionType*        pBSSSes = NULL;
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
              "%s",__FUNCTION__);
@@ -22924,7 +22949,17 @@ WDI_ProcessReceiveFilterSetFilterReq
       return WDI_STATUS_E_FAILURE;
    }
 
-   usRcvPktFilterCfgSize = sizeof(tHalRcvPktFilterCfgType) +
+   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, 
+                            pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.bssId, 
+                            &pBSSSes);  
+   if ( NULL == pBSSSes )
+   {
+       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 " %s : Association for this BSSID does not exist",__FUNCTION__);
+       return WDI_STATUS_E_FAILURE; 
+   }
+
+   usRcvPktFilterCfgSize = sizeof(tHalRcvPktFilterCfgType) + 
        ((pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.numFieldParams - 1)
         * sizeof(tHalRcvPktFilterParams));
 
@@ -22971,6 +23006,7 @@ WDI_ProcessReceiveFilterSetFilterReq
    pRcvPktFilterCfg->numParams = pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.numFieldParams;
    pRcvPktFilterCfg->coalesceTime = pwdiSetRcvPktFilterReqInfo->wdiPktFilterCfg.coalesceTime;
 
+   pRcvPktFilterCfg->bssIdx = pBSSSes->ucBSSIdx;
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
               "Out: FID %d FT %d",pRcvPktFilterCfg->filterId,
@@ -23144,6 +23180,8 @@ WDI_ProcessReceiveFilterClearFilterReq
    wpt_uint16                       usDataOffset          = 0;
    wpt_uint16                       usSendSize            = 0;
    tHalRcvFltPktClearParam          rcvFltPktClearParam;
+   wpt_uint8                        ucCurrentBSSSesIdx = 0;
+   WDI_BSSSessionType*              pBSSSes = NULL;
 
    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
              "%s",__FUNCTION__);
@@ -23161,6 +23199,16 @@ WDI_ProcessReceiveFilterClearFilterReq
                   "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE;
+   }
+
+   ucCurrentBSSSesIdx = WDI_FindAssocSession( pWDICtx, 
+                            pwdiRcvFltPktClearReqParamsType->filterClearParam.bssId, 
+                            &pBSSSes);  
+   if ( NULL == pBSSSes )
+   {
+       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 " %s : Association for this BSSID does not exist",__FUNCTION__);
+       return WDI_STATUS_E_FAILURE; 
    }
 
    /*-----------------------------------------------------------------------
@@ -23187,6 +23235,7 @@ WDI_ProcessReceiveFilterClearFilterReq
    rcvFltPktClearParam.filterId = pwdiRcvFltPktClearReqParamsType->
                                                     filterClearParam.filterId;
 
+   rcvFltPktClearParam.bssIdx = pBSSSes->ucBSSIdx;
    wpalMemoryCopy( pSendBuffer+usDataOffset,
                    &rcvFltPktClearParam,
                    sizeof(rcvFltPktClearParam));
