@@ -35,6 +35,9 @@
 #include <wlan_hdd_wmm.h>
 #include <wlan_hdd_cfg.h>
 #include <linux/spinlock.h>
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+#include <linux/wakelock.h>
+#endif
 #ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
 #endif
@@ -117,6 +120,11 @@
 #define WLAN_HDD_PUBLIC_ACTION_FRAME 4
 #define WLAN_HDD_PUBLIC_ACTION_FRAME_OFFSET 24
 #define WLAN_HDD_PUBLIC_ACTION_FRAME_TYPE_OFFSET 30
+#define WLAN_HDD_P2P_SOCIAL_CHANNELS 3
+
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+#define HDD_WAKE_LOCK_DURATION 50
+#endif
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -551,7 +559,7 @@ typedef struct hdd_scaninfo_s
    v_U32_t waitScanResult;
 
 #ifdef WLAN_FEATURE_P2P
-   v_BOOL_t p2pSearch;
+  v_BOOL_t flushP2pScanResults;
 #endif
 
    /* Additional IE for scan */
@@ -861,6 +869,10 @@ struct hdd_context_s
    hdd_thermal_mitigation_info_t tmInfo;
 #ifdef WLAN_FEATURE_PACKET_FILTERING
    t_multicast_add_list mc_addr_list;
+#endif
+
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+   struct wake_lock rx_wake_lock;
 #endif
 
    /* 

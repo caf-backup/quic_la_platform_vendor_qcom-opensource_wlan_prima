@@ -646,14 +646,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                             scanReq.minChnTime = pMac->roam.configParam.nActiveMinChnTime;
                         }
 
-                        //Scan only 2G Channels if set in ini file
-                        //This is mainly to reduce the First Scan duration
-                        //Once we turn on Wifi
-                        if(pMac->scan.fFirstScanOnly2GChnl)
-                        {
-                            csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
-                        }
-
                         status = csrScanCopyRequest(pMac, &p11dScanCmd->u.scanCmd.u.scanRequest, &scanReq);
                         //Free the channel list
                         palFreeMemory( pMac->hHdd, pChnInfo->ChannelList );
@@ -683,6 +675,15 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                         break;
                     }
                 }
+
+                //Scan only 2G Channels if set in ini file
+                //This is mainly to reduce the First Scan duration
+                //Once we turn on Wifi
+                if(pMac->scan.fFirstScanOnly2GChnl)
+                {
+                    csrScan2GOnyRequest(pMac, pScanCmd, pScanRequest);
+                }
+
                 status = csrScanCopyRequest(pMac, &pScanCmd->u.scanCmd.u.scanRequest, pScanRequest);
                 if(HAL_STATUS_SUCCESS(status))
                 {
@@ -3828,7 +3829,8 @@ tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescripti
     if(pCap1->ess == pCap2->ess)
     {
         if (pCap1->ess && 
-                csrIsMacAddressEqual( pMac, (tCsrBssid *)pSirBssDesc1->bssId, (tCsrBssid *)pSirBssDesc2->bssId))
+                csrIsMacAddressEqual( pMac, (tCsrBssid *)pSirBssDesc1->bssId, (tCsrBssid *)pSirBssDesc2->bssId)&&
+                (pSirBssDesc1->channelId == pSirBssDesc2->channelId))
         {
             fMatch = TRUE;
             // Check for SSID match, if exists
@@ -4572,6 +4574,7 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
             }
 #ifdef WLAN_FEATURE_P2P
             pMsg->p2pSearch = pScanReq->p2pSearch;
+            pMsg->skipDfsChnlInP2pSearch = pScanReq->skipDfsChnlInP2pSearch;
 #endif
 
         }while(0);
@@ -5058,6 +5061,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
             }//Allocate memory for SSID List
 #ifdef WLAN_FEATURE_P2P
             pDstReq->p2pSearch = pSrcReq->p2pSearch;
+            pDstReq->skipDfsChnlInP2pSearch = pSrcReq->skipDfsChnlInP2pSearch;
 #endif
 
         }
@@ -5900,7 +5904,7 @@ eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
                 break;
             pScanCmd->u.scanCmd.roamId = roamId;
             pScanCmd->command = eSmeCommandScan;
-            pScanCmd->sessionId = (tANI_U8)sessionId; 
+            pScanCmd->sessionId = (tANI_U8)sessionId;
             pScanCmd->u.scanCmd.callback = NULL;
             pScanCmd->u.scanCmd.pContext = NULL;
             pScanCmd->u.scanCmd.reason = eCsrScanForSsid;
@@ -5910,7 +5914,31 @@ eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
             pScanCmd->u.scanCmd.u.scanRequest.maxChnTime = pMac->roam.configParam.nActiveMaxChnTime;
             pScanCmd->u.scanCmd.u.scanRequest.minChnTime = pMac->roam.configParam.nActiveMinChnTime;
             pScanCmd->u.scanCmd.u.scanRequest.BSSType = pProfile->BSSType;
-            pScanCmd->u.scanCmd.u.scanRequest.uIEFieldLen = 0;
+            // To avoid 11b rate in probe request Set p2pSearch flag as 1 for P2P Client Mode
+            if(VOS_P2P_CLIENT_MODE == pProfile->csrPersona)
+            {
+                pScanCmd->u.scanCmd.u.scanRequest.p2pSearch = 1;
+            }
+            if(pProfile->pAddIEScan)
+            {
+                status = palAllocateMemory(pMac->hHdd,
+                                (void **)&pScanCmd->u.scanCmd.u.scanRequest.pIEField,
+                                pProfile->nAddIEScanLength);
+                palZeroMemory(pMac->hHdd, pScanCmd->u.scanCmd.u.scanRequest.pIEField, pProfile->nAddIEScanLength);
+                if(HAL_STATUS_SUCCESS(status))
+                {
+                    palCopyMemory(pMac->hHdd, pScanCmd->u.scanCmd.u.scanRequest.pIEField, pProfile->pAddIEScan, pProfile->nAddIEScanLength);
+                    pScanCmd->u.scanCmd.u.scanRequest.uIEFieldLen = pProfile->nAddIEScanLength;
+                }
+                else
+                {
+                    smsLog(pMac, LOGE, "No memory for scanning IE fields\n");
+                }
+            } //Allocate memory for IE field
+            else
+            {
+                pScanCmd->u.scanCmd.u.scanRequest.uIEFieldLen = 0;
+            }
             if(pProfile->BSSIDs.numOfBSSIDs == 1)
             {
                 palCopyMemory(pMac->hHdd, pScanCmd->u.scanCmd.u.scanRequest.bssid, pProfile->BSSIDs.bssid, sizeof(tCsrBssid));

@@ -988,7 +988,9 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
     int needed_headroom = 0;
     int flag = HDD_RX_FLAG_IV_STRIPPED | HDD_RX_FLAG_DECRYPTED |
                HDD_RX_FLAG_MMIC_STRIPPED;
-
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+    hdd_context_t* pHddCtx = (hdd_context_t*)(pMonAdapter->pHddCtx);
+#endif
     hddLog( LOG1, FL("Indicate Frame over Monitor Intf"));
 
     VOS_ASSERT( (pbFrames != NULL) );
@@ -1031,6 +1033,9 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
      skb->dev = pMonAdapter->dev;
      skb->protocol = eth_type_trans( skb, skb->dev );
      skb->ip_summed = CHECKSUM_UNNECESSARY;
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+     wake_lock_timeout(&pHddCtx->rx_wake_lock, HDD_WAKE_LOCK_DURATION);
+#endif
      rxstat = netif_rx_ni(skb);
      if( NET_RX_SUCCESS == rxstat )
      {
@@ -1191,6 +1196,9 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
     struct ieee80211_radiotap_header *rthdr;
     unsigned char *pos;
     struct sk_buff *skb = cfgState->skb;
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+    hdd_context_t *pHddCtx = (hdd_context_t*)(pAdapter->pHddCtx);
+#endif
 
     /* 2 Byte for TX flags and 1 Byte for Retry count */
     u32 rtHdrLen = sizeof(*rthdr) + 3;
@@ -1250,6 +1258,9 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
     skb->pkt_type  = PACKET_OTHERHOST;
     skb->protocol  = htons(ETH_P_802_2);
     memset( skb->cb, 0, sizeof( skb->cb ) );
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+    wake_lock_timeout(&pHddCtx->rx_wake_lock, HDD_WAKE_LOCK_DURATION);
+#endif
     if (in_interrupt())
         netif_rx( skb );
     else

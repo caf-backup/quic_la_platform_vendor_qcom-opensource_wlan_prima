@@ -12,6 +12,9 @@ KERNEL_INC ?= ./include/linux
 #Do we panic on bug?  default is to warn
 PANIC_ON_BUG := 0
 
+#Flag to enable Legacy Fast Roaming(LFR), default is y
+CONFIG_QCOM_LFR := y
+
 WLAN_DIR 		:= $(WLAN_PRIMA)/CORE
 
 ifeq ($(CONFIG_CFG80211),y)
