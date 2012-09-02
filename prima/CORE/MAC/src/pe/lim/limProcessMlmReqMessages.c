@@ -2861,7 +2861,8 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    if( isLimSessionOffChannel(pMac, pMlmDisassocReq->sessionId) )
+    if( (psessionEntry->limSystemRole == eLIM_STA_ROLE) &&
+        isLimSessionOffChannel(pMac, pMlmDisassocReq->sessionId) )
     {
       //suspend link
       limSuspendLink(pMac, eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN, 
@@ -3145,7 +3146,8 @@ limProcessMlmDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    if( isLimSessionOffChannel(pMac, pMlmDeauthReq->sessionId) )
+    if( (psessionEntry->limSystemRole == eLIM_STA_ROLE) &&
+        isLimSessionOffChannel(pMac, pMlmDeauthReq->sessionId) )
     {
       //suspend link
       limSuspendLink(pMac, eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN, 
