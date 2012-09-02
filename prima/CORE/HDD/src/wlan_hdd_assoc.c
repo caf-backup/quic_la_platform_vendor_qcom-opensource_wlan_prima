@@ -681,7 +681,11 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
             //If the Device Mode is Station
             // and the P2P Client is Connected
             //Enable BMPS
-            if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+
+            // In case of JB, as Change-Iface may or maynot be called for p2p0
+            // Enable BMPS/IMPS in case P2P_CLIENT disconnected   
+            if(((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)) &&
                 (vos_concurrent_sessions_running()))
             {
                //Enable BMPS only of other Session is P2P Client
@@ -696,8 +700,7 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
                    {
                        //Only P2P Client is there Enable Bmps back
                        if((0 == pHddCtx->no_of_sessions[VOS_STA_SAP_MODE]) &&
-                          (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]) &&
-                          (1 == pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE]))
+                          (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]))
                        {
                            hdd_enable_bmps_imps(pHddCtx);
                        }
@@ -1122,7 +1125,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         //If the Device Mode is Station
         // and the P2P Client is Connected
         //Enable BMPS
-        if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+
+        // In case of JB, as Change-Iface may or maynot be called for p2p0
+        // Enable BMPS/IMPS in case P2P_CLIENT disconnected   
+        if(((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+            (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)) &&
             (vos_concurrent_sessions_running()))
         {
            //Enable BMPS only of other Session is P2P Client
@@ -1137,8 +1144,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                {
                    //Only P2P Client is there Enable Bmps back
                    if((0 == pHddCtx->no_of_sessions[VOS_STA_SAP_MODE]) &&
-                      (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]) &&
-                      (1 == pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE]))
+                      (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]))
                    {
                        hdd_enable_bmps_imps(pHddCtx);
                    }

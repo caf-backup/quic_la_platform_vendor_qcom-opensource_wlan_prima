@@ -2059,6 +2059,10 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 status = hdd_init_station_mode( pAdapter );
                 if( VOS_STATUS_SUCCESS != status )
                     return -EOPNOTSUPP;
+                /* In case of JB, for P2P-GO, only change interface will be called,
+                 * This is the right place to enable back bmps_imps()
+                 */
+                hdd_enable_bmps_imps(pHddCtx);
                 goto done;
             case NL80211_IFTYPE_AP:
 #ifdef WLAN_FEATURE_P2P
@@ -3300,16 +3304,16 @@ hddPrintPmkId(tCsrBssid pmkId, tANI_U8 logLevel)
 
 #define dump_bssid(bssid) \
     { \
-        hddLog(VOS_TRACE_LEVEL_FATAL, "BSSID (MAC) address:\t"); \
-        hddPrintMacAddr(bssid, VOS_TRACE_LEVEL_FATAL);\
-        hddLog(VOS_TRACE_LEVEL_FATAL, "\n"); \
+        hddLog(VOS_TRACE_LEVEL_INFO, "BSSID (MAC) address:\t"); \
+        hddPrintMacAddr(bssid, VOS_TRACE_LEVEL_INFO);\
+        hddLog(VOS_TRACE_LEVEL_INFO, "\n"); \
     }
 
 #define dump_pmkid(pMac, pmkid) \
     { \
-        hddLog(VOS_TRACE_LEVEL_FATAL, "PMKSA-ID:\t"); \
-        hddPrintPmkId(pmkid, VOS_TRACE_LEVEL_FATAL);\
-        hddLog(VOS_TRACE_LEVEL_FATAL, "\n"); \
+        hddLog(VOS_TRACE_LEVEL_INFO, "PMKSA-ID:\t"); \
+        hddPrintPmkId(pmkid, VOS_TRACE_LEVEL_INFO);\
+        hddLog(VOS_TRACE_LEVEL_INFO, "\n"); \
     }
 
 #ifdef FEATURE_WLAN_LFR
@@ -3325,7 +3329,7 @@ int wlan_hdd_cfg80211_pmksa_candidate_notify(
     struct net_device *dev = pAdapter->dev;
 
     ENTER();
-    printk("%s is going to notify supplicant of:", __func__);
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s is going to notify supplicant of:", __func__);
 
     if( NULL == pRoamInfo )
     {
