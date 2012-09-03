@@ -6167,7 +6167,9 @@ VOS_STATUS WDA_ProcessExitBmpsReq(tWDA_CbContext *pWDA,
       return VOS_STATUS_E_NOMEM;
    }
    wdiExitBmpsReqParams->wdiExitBmpsInfo.ucSendDataNull = pExitBmpsReqParams->sendDataNull;
-      
+
+   wdiExitBmpsReqParams->wdiExitBmpsInfo.bssIdx = pExitBmpsReqParams->bssIdx;
+
    wdiExitBmpsReqParams->wdiReqStatusCB = NULL;
       
    /* Store param pointer as passed in by caller */
@@ -6259,6 +6261,8 @@ VOS_STATUS WDA_ProcessEnterUapsdReq(tWDA_CbContext *pWDA,
       pEnterUapsdReqParams->voDeliveryEnabled;
    wdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucVoTriggerEnabled = 
       pEnterUapsdReqParams->voTriggerEnabled;
+   wdiEnterUapsdReqParams->wdiEnterUapsdInfo.bssIdx = pEnterUapsdReqParams->bssIdx;
+
    wdiEnterUapsdReqParams->wdiReqStatusCB = NULL; 
 
    /* Store param pointer as passed in by caller */
@@ -7181,6 +7185,8 @@ VOS_STATUS WDA_ProcessHostOffloadReq(tWDA_CbContext *pWDA,
    wdiHostOffloadInfo->wdiHostOffloadInfo.ucEnableOrDisable = 
       pHostOffloadParams->enableOrDisable;
 
+   wdiHostOffloadInfo->wdiHostOffloadInfo.bssIdx = 
+                                    pHostOffloadParams->bssIdx;
    switch (wdiHostOffloadInfo->wdiHostOffloadInfo.ucOffloadType)
    {
       case SIR_IPV4_ARP_REPLY_OFFLOAD:
@@ -7328,6 +7334,9 @@ VOS_STATUS WDA_ProcessKeepAliveReq(tWDA_CbContext *pWDA,
       pKeepAliveParams->packetType;
     wdiKeepAliveInfo->wdiKeepAliveInfo.ucTimePeriod = 
       pKeepAliveParams->timePeriod;
+    wdiKeepAliveInfo->wdiKeepAliveInfo.bssIdx = 
+                                pKeepAliveParams->bssIdx;
+
     if(pKeepAliveParams->packetType == SIR_KEEP_ALIVE_UNSOLICIT_ARP_RSP)
     {
        vos_mem_copy(&wdiKeepAliveInfo->wdiKeepAliveInfo.aHostIpv4Addr,
@@ -10642,7 +10651,13 @@ VOS_STATUS WDA_Process8023MulticastListReq (tWDA_CbContext *pWDA,
    // Fill pwdiFltPktSetMcListReqParamsType from pRcvFltMcAddrList
    //
    pwdiFltPktSetMcListReqParamsType->mcAddrList.ulMulticastAddrCnt = 
-                                   pRcvFltMcAddrList->ulMulticastAddrCnt; 
+                                   pRcvFltMcAddrList->ulMulticastAddrCnt;
+
+    vos_mem_copy(pwdiFltPktSetMcListReqParamsType->mcAddrList.selfMacAddr,
+                 pRcvFltMcAddrList->selfMacAddr, sizeof(tSirMacAddr));
+    vos_mem_copy(pwdiFltPktSetMcListReqParamsType->mcAddrList.bssId,
+                 pRcvFltMcAddrList->bssId, sizeof(tSirMacAddr));
+
    for( i = 0; i < pRcvFltMcAddrList->ulMulticastAddrCnt; i++ )
    {
       vos_mem_copy(&(pwdiFltPktSetMcListReqParamsType->mcAddrList.multicastAddr[i]),
@@ -10733,6 +10748,12 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterType = pRcvPktFilterCfg->filterType;   
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.numFieldParams = pRcvPktFilterCfg->numFieldParams;
    pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.coalesceTime = pRcvPktFilterCfg->coalesceTime;
+   vos_mem_copy(pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.selfMacAddr,
+                pRcvPktFilterCfg->selfMacAddr, sizeof(wpt_macAddr));
+
+   vos_mem_copy(pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.bssId,
+                      pRcvPktFilterCfg->bssId, sizeof(wpt_macAddr));
+
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
               "FID %d FT %d NParams %d CT %d",
               pwdiSetRcvPktFilterReqParamsType->wdiPktFilterCfg.filterId, 
@@ -10985,6 +11006,11 @@ VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA,
    }
    pwdiRcvFltPktClearReqParamsType->filterClearParam.status = pRcvFltPktClearParam->status;
    pwdiRcvFltPktClearReqParamsType->filterClearParam.filterId = pRcvFltPktClearParam->filterId;
+   vos_mem_copy(pwdiRcvFltPktClearReqParamsType->filterClearParam.selfMacAddr,
+                     pRcvFltPktClearParam->selfMacAddr, sizeof(wpt_macAddr));
+   vos_mem_copy(pwdiRcvFltPktClearReqParamsType->filterClearParam.bssId,
+                         pRcvFltPktClearParam->bssId, sizeof(wpt_macAddr));
+
    pwdiRcvFltPktClearReqParamsType->wdiReqStatusCB = NULL;
    /* Store Params pass it to WDI */
    pWdaParams->wdaWdiApiMsgParam = (void *)pwdiRcvFltPktClearReqParamsType;
@@ -11305,3 +11331,25 @@ VOS_STATUS WDA_shutdown(v_PVOID_t pVosContext, wpt_boolean closeTransport)
    }
    return status;
 }
+/*
+ * FUNCTION: WDA_stopFailed
+ * WDA stop failed
+ */
+
+void WDA_stopFailed(v_PVOID_t pVosContext)
+{
+   tWDA_CbContext *pWDA = (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
+   pWDA->needShutdown  = TRUE;
+}
+/*
+ * FUNCTION: WDA_needShutdown
+ * WDA needs a shutdown
+ */
+
+v_BOOL_t WDA_needShutdown(v_PVOID_t pVosContext)
+{
+   tWDA_CbContext *pWDA = (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
+   return pWDA->needShutdown;   
+}
+
+

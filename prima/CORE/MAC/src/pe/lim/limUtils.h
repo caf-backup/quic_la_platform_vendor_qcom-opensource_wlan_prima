@@ -178,10 +178,8 @@ void limProcessWPSOverlapTimeout(tpAniSirGlobal pMac);
 
 void limStartQuietTimer(tpAniSirGlobal pMac, tANI_U8 sessionId);
 void limUpdateQuietIEFromBeacon(tpAniSirGlobal, tDot11fIEQuiet *, tpPESession);
-void limGetHtCbAdminState(tpAniSirGlobal pMac, tDot11fIEHTCaps htCaps, tANI_U8 * titanHtCaps);
-void limGetHtCbOpState(tpAniSirGlobal pMac, tDot11fIEHTInfo htInfo, tANI_U8 * titanHtCaps);
 void limSwitchPrimaryChannel(tpAniSirGlobal, tANI_U8,tpPESession);
-void limSwitchPrimarySecondaryChannel(tpAniSirGlobal, tANI_U8, tAniCBSecondaryMode);
+void limSwitchPrimarySecondaryChannel(tpAniSirGlobal, tpPESession, tANI_U8, ePhyChanBondState);
 tAniBool limTriggerBackgroundScanDuringQuietBss(tpAniSirGlobal);
 void limUpdateStaRunTimeHTSwtichChnlParams(tpAniSirGlobal pMac, tDot11fIEHTInfo *pRcvdHTInfo, tANI_U8 bssIdx);
 void limUpdateStaRunTimeHTCapability(tpAniSirGlobal pMac, tDot11fIEHTCaps *pHTCaps);
@@ -449,13 +447,13 @@ typedef enum
 void limDiagEventReport(tpAniSirGlobal pMac, tANI_U16 eventType, tpPESession pSessionEntry, tANI_U16 status, tANI_U16 reasonCode);
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
-void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, tANI_U8 cbState);
+void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, ePhyChanBondState cbState);
 /*--------------------------------------------------------------------------
   
   \brief peGetResumeChannel() - Returns the  channel number for scanning, from a valid session.
 
-  This function itrates the session Table and returns the channel number from first valid session
-   if no sessions are valid it returns 0
+  This function returns the channel to resume to during link resume. channel id of 0 means HAL will
+  resume to previous channel before link suspend
     
   \param pMac                   - pointer to global adapter context
   \return                            - channel to scan from valid session else zero.
@@ -463,7 +461,6 @@ void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, tANI_U8 cbState);
   \sa
   
   --------------------------------------------------------------------------*/
-tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac);
-
+void peGetResumeChannel(tpAniSirGlobal pMac, tANI_U8* resumeChannel, ePhyChanBondState* resumePhyCbState);
 
 #endif /* __LIM_UTILS_H */

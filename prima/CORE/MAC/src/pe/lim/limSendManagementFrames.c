@@ -266,20 +266,19 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
        PopulateDot11fWFATPC( pMac, &pr.WFATPC, txPower, 0 );
     }
 #endif
-    pMac->lim.htCapability = IS_DOT11_MODE_HT(dot11mode);
 
     if (psessionEntry != NULL ) {
-       psessionEntry->htCapabality = IS_DOT11_MODE_HT(dot11mode);
+       psessionEntry->htCapability = IS_DOT11_MODE_HT(dot11mode);
        //Include HT Capability IE
-       if (psessionEntry->htCapabality)
+       if (psessionEntry->htCapability)
        {
-           PopulateDot11fHTCaps( pMac, &pr.HTCaps );
+           PopulateDot11fHTCaps( pMac, psessionEntry, &pr.HTCaps );
        }
-    } else {
-         if (pMac->lim.htCapability)
-         {
-             PopulateDot11fHTCaps( pMac, &pr.HTCaps );
-         }
+    } else { //psessionEntry == NULL
+           if (IS_DOT11_MODE_HT(dot11mode))
+           {
+               PopulateDot11fHTCaps( pMac, psessionEntry, &pr.HTCaps );
+           }
     }
 #ifdef WLAN_FEATURE_11AC
     if (psessionEntry != NULL ) {
@@ -608,9 +607,9 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                                 &frm.ExtSuppRates, psessionEntry );
 
     //Populate HT IEs, when operating in 11n or Taurus modes.
-    if ( psessionEntry->htCapabality )
+    if ( psessionEntry->htCapability )
     {
-        PopulateDot11fHTCaps( pMac, &frm.HTCaps );
+        PopulateDot11fHTCaps( pMac, psessionEntry, &frm.HTCaps );
 #ifdef WLAN_SOFTAP_FEATURE
         PopulateDot11fHTInfo( pMac, &frm.HTInfo, psessionEntry );
 #else
@@ -1274,10 +1273,10 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         } // End if on Airgo peer.
 
         if ( pSta->mlmStaContext.htCapability  && 
-             pMac->lim.htCapability )
+             psessionEntry->htCapability )
         {
-            PopulateDot11fHTCaps( pMac, &frm.HTCaps );
-            PopulateDot11fHTInfo( pMac, &frm.HTInfo );
+            PopulateDot11fHTCaps( pMac, psessionEntry, &frm.HTCaps );
+            PopulateDot11fHTInfo( pMac, &frm.HTInfo, psessionEntry);
         }
     } // End if on non-NULL 'pSta'.
 
@@ -1546,9 +1545,9 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         } // End if on Airgo peer.
 
         if ( pSta->mlmStaContext.htCapability  && 
-             psessionEntry->htCapabality )
+             psessionEntry->htCapability )
         {
-            PopulateDot11fHTCaps( pMac, &frm.HTCaps );
+            PopulateDot11fHTCaps( pMac, psessionEntry, &frm.HTCaps );
 #ifdef WLAN_SOFTAP_FEATURE
             PopulateDot11fHTInfo( pMac, &frm.HTInfo, psessionEntry );
 #else
@@ -2374,10 +2373,10 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
     //Populate HT IEs, when operating in 11n or Taurus modes AND
     //when AP is also operating in 11n mode.
-    if ( psessionEntry->htCapabality &&
+    if ( psessionEntry->htCapability &&
             pMac->lim.htCapabilityPresentInBeacon)
     {
-        PopulateDot11fHTCaps( pMac, &frm.HTCaps );
+        PopulateDot11fHTCaps( pMac, psessionEntry, &frm.HTCaps );
 #ifdef DISABLE_GF_FOR_INTEROP
 
         /*
@@ -2803,10 +2802,10 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 #endif    
     }
 
-    if ( psessionEntry->htCapabality &&
+    if ( psessionEntry->htCapability &&
             pMac->lim.htCapabilityPresentInBeacon)
     {
-        PopulateDot11fHTCaps( pMac, &frm.HTCaps );
+        PopulateDot11fHTCaps( pMac, psessionEntry, &frm.HTCaps );
     }
 
     nStatus = dot11fGetPackedReAssocRequestSize( pMac, &frm, &nPayload );
@@ -3131,10 +3130,10 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
         }
     }
 
-    if ( psessionEntry->htCapabality &&
+    if ( psessionEntry->htCapability &&
           pMac->lim.htCapabilityPresentInBeacon)
     {
-        PopulateDot11fHTCaps( pMac, &frm.HTCaps );
+        PopulateDot11fHTCaps( pMac, psessionEntry, &frm.HTCaps );
     }
 #ifdef WLAN_FEATURE_11AC
     if ( psessionEntry->vhtCapability &&

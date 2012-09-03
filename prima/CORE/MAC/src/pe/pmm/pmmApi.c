@@ -509,12 +509,19 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
     tSirRetStatus  retStatus = eSIR_SUCCESS;
     tpExitBmpsParams  pExitBmpsParams;
     tSirMsgQ msgQ;
+    tpPESession psessionEntry;
     tANI_U8  currentOperatingChannel = limGetCurrentOperatingChannel(pMac);
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pExitBmpsParams, sizeof(*pExitBmpsParams)) )
     {
         pmmLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));
         retStatus = eSIR_MEM_ALLOC_FAILED;
+        return retStatus;
+    }
+
+    if((psessionEntry = peGetValidPowerSaveSession(pMac)) == NULL )
+    {
+        retStatus = eSIR_FAILURE;
         return retStatus;
     }
 
@@ -535,6 +542,8 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
              limIsconnectedOnDFSChannel(currentOperatingChannel))))
         pExitBmpsParams->sendDataNull = 1;
 
+    pExitBmpsParams->bssIdx = psessionEntry->bssIdx;
+   
     /* we need to defer any incoming messages until we
      * get a WDA_EXIT_BMPS_RSP from HAL.
      */
@@ -887,7 +896,15 @@ void pmmExitBmpsResponseHandler(tpAniSirGlobal pMac,  tpSirMsgQ limMsg)
     pMac->sys.gSysEnableScanMode = true;
 
     // send response to PMC
-    limSendSmeRsp(pMac, eWNI_PMC_EXIT_BMPS_RSP, retStatus, 0, 0);
+   if(IS_SLM_SESSIONIZED )
+   {
+       limSendSmeRsp(pMac, eWNI_PMC_EXIT_BMPS_RSP, retStatus, 
+                  psessionEntry->smeSessionId, psessionEntry->transactionId);
+   }
+   else
+   {
+       limSendSmeRsp(pMac, eWNI_PMC_EXIT_BMPS_RSP, retStatus, 0, 0);
+   }
 
     if ( pMac->pmm.gPmmExitBmpsReasonCode == eSME_MISSED_BEACON_IND_RCVD)
     {
@@ -1814,11 +1831,16 @@ void pmmEnterUapsdResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     tpUapsdParams    pUapsdRspMsg;
     tSirResultCodes  retStatus = eSIR_SME_SUCCESS;
 
+    tANI_U8 PowersavesessionId;
+    tpPESession psessionEntry;
+
     /* we need to process all the deferred messages enqueued since
      * the initiating the SIR_HAL_ENTER_UAPSD_REQ.
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
+    /* Copy the power save sessionId to the local variable */
+    PowersavesessionId = pMac->pmm.sessionId;
 
     if (NULL == limMsg->bodyptr)
     {
@@ -1827,6 +1849,12 @@ void pmmEnterUapsdResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     }
 
     pUapsdRspMsg = (tpUapsdParams)(limMsg->bodyptr);
+
+    if((psessionEntry = peFindSessionBySessionId(pMac,PowersavesessionId))==NULL)
+    {
+        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
+        return;
+    }
 
     if(pMac->pmm.gPmmState != ePMM_STATE_UAPSD_WT_SLEEP_RSP)
     {
@@ -1851,7 +1879,16 @@ void pmmEnterUapsdResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
         retStatus = eSIR_SME_UAPSD_REQ_FAILED;
     }
 
-    limSendSmeRsp(pMac, eWNI_PMC_ENTER_UAPSD_RSP, retStatus, 0, 0);    
+    if(IS_SLM_SESSIONIZED )
+    {
+        limSendSmeRsp(pMac, eWNI_PMC_ENTER_UAPSD_RSP, retStatus, 
+                        psessionEntry->smeSessionId, psessionEntry->transactionId);
+    }
+    else
+    {
+        limSendSmeRsp(pMac, eWNI_PMC_ENTER_UAPSD_RSP, retStatus, 0, 0);
+    }
+
     return;
 }
 
@@ -1933,6 +1970,8 @@ failure:
 void pmmExitUapsdResponseHandler(tpAniSirGlobal pMac, eHalStatus rspStatus)
 {
     tSirResultCodes resultCode = eSIR_SME_SUCCESS;
+    tANI_U8 PowersavesessionId;
+    tpPESession psessionEntry;
 
     /* we need to process all the deferred messages enqueued since
      * the initiating the SIR_HAL_EXIT_UAPSD_REQ.
@@ -1945,6 +1984,13 @@ void pmmExitUapsdResponseHandler(tpAniSirGlobal pMac, eHalStatus rspStatus)
             FL("Received HAL_EXIT_UAPSD_RSP in invalid state: %d\n"),
             pMac->pmm.gPmmState);)
         limSendSmeRsp(pMac, eWNI_PMC_EXIT_UAPSD_RSP, eSIR_SME_INVALID_PMM_STATE, 0, 0);
+        return;
+    }
+
+    PowersavesessionId = pMac->pmm.sessionId;
+    if((psessionEntry = peFindSessionBySessionId(pMac,PowersavesessionId))==NULL)
+    {
+        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
         return;
     }
 
@@ -1963,7 +2009,16 @@ void pmmExitUapsdResponseHandler(tpAniSirGlobal pMac, eHalStatus rspStatus)
     }
 
     pMac->pmm.gPmmState = ePMM_STATE_BMPS_SLEEP;
-    limSendSmeRsp(pMac, eWNI_PMC_EXIT_UAPSD_RSP, resultCode, 0, 0);
+
+    if(IS_SLM_SESSIONIZED)
+    {
+        limSendSmeRsp(pMac, eWNI_PMC_EXIT_UAPSD_RSP, resultCode, psessionEntry->smeSessionId,
+                      psessionEntry->transactionId);
+    }
+    else
+    {
+        limSendSmeRsp(pMac, eWNI_PMC_EXIT_UAPSD_RSP, resultCode, 0, 0);
+    }
     return;
 }
 
@@ -2441,6 +2496,7 @@ tSirRetStatus pmmUapsdSendChangePwrSaveMsg (tpAniSirGlobal pMac, tANI_U8 mode)
     tANI_U8  uapsdDeliveryMask = 0;
     tANI_U8  uapsdTriggerMask = 0;
     tSirMsgQ msgQ;
+    tpPESession pSessionEntry;
 
     if (SIR_PM_SLEEP_MODE == mode)
     {
@@ -2448,6 +2504,13 @@ tSirRetStatus pmmUapsdSendChangePwrSaveMsg (tpAniSirGlobal pMac, tANI_U8 mode)
         {
             PELOGW(pmmLog(pMac, LOGW, FL("pmmUapsd :palAllocateMemory() failed\n"));)
             retStatus = eSIR_MEM_ALLOC_FAILED;
+            return retStatus;
+        }
+
+        if((pSessionEntry = peGetValidPowerSaveSession(pMac)) == NULL )
+        {
+            PELOGW(pmmLog(pMac, LOGW, FL("pmmUapsd :palAllocateMemory() failed\n"));)
+            retStatus = eSIR_FAILURE;
             return retStatus;
         }
         palZeroMemory( pMac->hHdd, (tANI_U8 *)pUapsdParams, sizeof(tUapsdParams));
@@ -2465,6 +2528,8 @@ tSirRetStatus pmmUapsdSendChangePwrSaveMsg (tpAniSirGlobal pMac, tANI_U8 mode)
         pUapsdParams->beTriggerEnabled = LIM_UAPSD_GET(ACBE, uapsdTriggerMask);
         pUapsdParams->viTriggerEnabled = LIM_UAPSD_GET(ACVI, uapsdTriggerMask);
         pUapsdParams->voTriggerEnabled = LIM_UAPSD_GET(ACVO, uapsdTriggerMask);
+        pUapsdParams->bssIdx = pSessionEntry->bssIdx;
+
         PELOGE(pmmLog(pMac, LOGE, 
                       FL("UAPSD Mask:  static = 0x%x, DeliveryEnabled = 0x%x, TriggerEnabled = 0x%x \n"),
             pMac->lim.gUapsdPerAcBitmask,

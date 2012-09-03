@@ -124,17 +124,14 @@ isLimSessionOffChannel(tpAniSirGlobal pMac, tANI_U8 sessionId);
 /* --------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------
-  \brief peGetActiveSessionChannel() - Gets the operating channel of first  
-                                    valid session.
-
-  \param pMac                   - pointer to global adapter context
-  
-  \return tANI_U8               - operating channel.
-  
-  \sa
-  --------------------------------------------------------------------------*/
-tANI_U8
-peGetActiveSessionChannel( tpAniSirGlobal pMac );
+  \brief peGetActiveSessionChannel() - Gets the first valid sessions primary and secondary
+                                        channel. If not found returns invalid channel ID (=0)
+  \param pMac              - pointer to global adapter context
+  \param resumeChannel     - Primary channel of the first valid session. This is an output argument.
+  \return resumePhyCbState - Secondary channel of the first valid session. This is an output argument.
+--------------------------------------------------------------------------*/
+void
+peGetActiveSessionChannel(tpAniSirGlobal pMac, tANI_U8* resumeChannel, ePhyChanBondState* resumePhyCbState);
 
 /*--------------------------------------------------------------------------
   \brief limIsChanSwitchRunning() - Check if channel switch is running on any  

@@ -72,42 +72,7 @@ static void limProcessAssocFailureTimeout(tpAniSirGlobal, tANI_U32);
 
 static void limProcessMlmRemoveKeyReq(tpAniSirGlobal pMac, tANI_U32 * pMsgBuf);
 void 
-limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tPowerdBm maxTxPower, tANI_U8 peSessionId);
-
-
-/*
- * determine the secondary channel state for hal
- */
-static ePhyChanBondState
-mlm_get_ext_chnl(
-    tpAniSirGlobal      pMac,
-    tAniCBSecondaryMode chnl)
-{
-    if (chnl == eANI_CB_SECONDARY_UP)
-        return PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
-    if (chnl == eANI_CB_SECONDARY_DOWN)
-        return PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
-#ifdef WLAN_FEATURE_11AC
-    if (chnl == eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED)
-        return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED;
-    if (chnl == eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED)
-        return PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED;
-    if (chnl == eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED)
-        return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED;
-    if (chnl == eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW)
-        return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW;
-    if (chnl == eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW)
-        return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW;
-    if (chnl == eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH)
-        return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH;
-    if (chnl == eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH)
-        return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH;
-#endif
-    return PHY_SINGLE_CHANNEL_CENTERED;
-
-}
-
-
+limSetChannel(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 secChannelOffset, tPowerdBm maxTxPower, tANI_U8 peSessionId);
 #define IS_MLM_SCAN_REQ_BACKGROUND_SCAN_AGGRESSIVE(pMac)    (pMac->lim.gpLimMlmScanReq->backgroundScanMode == eSIR_AGGRESSIVE_BACKGROUND_SCAN)
 
 
@@ -359,7 +324,7 @@ limChangeChannelWithCallback(tpAniSirGlobal pMac, tANI_U8 newChannel,
     pMac->lim.gpchangeChannelData = cbdata;
 
     limSendSwitchChnlParams(pMac, newChannel,
-        eHT_SECONDARY_CHANNEL_OFFSET_NONE,
+        PHY_SINGLE_CHANNEL_CENTERED,
         psessionEntry->maxTxPower, psessionEntry->peSessionId);
 
     return;
@@ -978,9 +943,6 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
     tSirMsgQ            msg;
     tpFinishScanParams  pFinishScanParam;
     tSirRetStatus       rc = eSIR_SUCCESS;
-#ifdef WLAN_FEATURE_11AC
-    tANI_U8             isVhtCap;
-#endif
 
     if(pMac->lim.gLimHalScanState == nextState)
     {
@@ -1005,9 +967,9 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
     msg.type = WDA_FINISH_SCAN_REQ;
     msg.bodyptr = pFinishScanParam;
     msg.bodyval = 0;
-    pFinishScanParam->currentOperChannel = peGetResumeChannel(pMac);
-    //TODO: Fix CB State. Get it from session. similar to getChannel. 
-    pFinishScanParam->cbState = limGetPhyCBState( pMac );
+    
+    peGetResumeChannel(pMac, &pFinishScanParam->currentOperChannel, &pFinishScanParam->cbState);
+
     palZeroMemory( pMac->hHdd, (tANI_U8 *)&pFinishScanParam->macMgmtHdr, sizeof(tSirMacMgmtHdr));
 
     if (nextState == eLIM_HAL_FINISH_LEARN_WAIT_STATE)
@@ -1017,18 +979,7 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
         pFinishScanParam->notifyBss = FALSE;
         pFinishScanParam->notifyHost = FALSE;
         pFinishScanParam->frameType = 0;
-#ifdef WLAN_FEATURE_11AC
-        if (pFinishScanParam->currentOperChannel != HAL_INVALID_CHANNEL_ID)
-        {
-            isVhtCap = peGetVhtCapable(pMac);
-            if (isVhtCap)
-            {
-                pFinishScanParam->cbState = limGet11ACPhyCBState(pMac, 
-                                    pFinishScanParam->currentOperChannel,
-                                    pMac->lim.gHTSecondaryChannelOffset);
-            }
-        }
-#endif
+
         pFinishScanParam->frameLength = 0;
         pMac->lim.gLimHalScanState = nextState;
     }
@@ -1048,18 +999,6 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
         }
         pFinishScanParam->notifyHost = FALSE;
         __limCreateFinishScanRawFrame(pMac, pFinishScanParam);
-#ifdef WLAN_FEATURE_11AC
-        if (pFinishScanParam->currentOperChannel != HAL_INVALID_CHANNEL_ID)
-        {
-            isVhtCap = peGetVhtCapable(pMac);
-            if (isVhtCap)
-            {
-                pFinishScanParam->cbState = limGet11ACPhyCBState(pMac, 
-                                  pFinishScanParam->currentOperChannel,
-                                  pMac->lim.gHTSecondaryChannelOffset);
-            }
-        }
-#endif
         //WLAN_SUSPEND_LINK Related
         pMac->lim.gLimHalScanState = nextState;
         //end WLAN_SUSPEND_LINK Related
@@ -1573,7 +1512,7 @@ limMlmAddBss (
     pAddBssParams->txChannelWidthSet    = pMlmStartReq->txChannelWidthSet;
 
     pAddBssParams->currentOperChannel   = pMlmStartReq->channelNumber;
-    pAddBssParams->currentExtChannel    = mlm_get_ext_chnl(pMac, pMlmStartReq->cbMode);
+    pAddBssParams->currentExtChannel    = pMlmStartReq->cbMode;
 
     /* Update PE sessionId*/
     pAddBssParams->sessionId            = pMlmStartReq->sessionId; 
@@ -1998,7 +1937,7 @@ static void limProcessMlmOemDataReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 static void
 limProcessMlmPostJoinSuspendLink(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *ctx)
 {
-    tANI_U8             chanNum;
+    tANI_U8             chanNum, secChanOffset;
     tLimMlmJoinCnf      mlmJoinCnf;
     tpPESession         psessionEntry = (tpPESession)ctx;
     tSirLinkState       linkState;
@@ -2035,11 +1974,11 @@ limProcessMlmPostJoinSuspendLink(tpAniSirGlobal pMac, eHalStatus status, tANI_U3
     // chanNum = pMac->lim.gpLimMlmJoinReq->bssDescription.channelId;
     
     chanNum = psessionEntry->currentOperChannel;
+    secChanOffset = psessionEntry->htSecondaryChannelOffset;
     //store the channel switch sessionEntry in the lim global var
     psessionEntry->channelChangeReasonCode = LIM_SWITCH_CHANNEL_JOIN;
 
-    limSetChannel(pMac, psessionEntry->pLimMlmJoinReq->bssDescription.titanHtCaps,
-                        chanNum, psessionEntry->maxTxPower, psessionEntry->peSessionId); 
+    limSetChannel(pMac, chanNum, secChanOffset, psessionEntry->maxTxPower, psessionEntry->peSessionId); 
 
     return;
 error:
@@ -2521,7 +2460,7 @@ end:
 static void
 limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tANI_U8                       chanNum;
+    tANI_U8                       chanNum, secChannelOffset;
     struct tLimPreAuthNode  *pAuthNode;
     tLimMlmReassocReq       *pMlmReassocReq;
     tLimMlmReassocCnf       mlmReassocCnf;
@@ -2597,7 +2536,7 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
          */
 
         chanNum = psessionEntry->limReassocChannelId;
-
+        secChannelOffset = psessionEntry->reAssocHtSecondaryChannelOffset;
 
         /* To Support BT-AMP .. read channel number from psessionEntry*/
         //chanNum = psessionEntry->currentOperChannel;
@@ -2610,8 +2549,8 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         //psessionEntry->pLimReAssocReq = (void *)pMlmReassocReq;
         psessionEntry->channelChangeReasonCode = LIM_SWITCH_CHANNEL_REASSOC;
 
-        /** Switch channell to the new Operating channel for Reassoc*/
-        limSetChannel(pMac, psessionEntry->limReassocTitanHtCaps, chanNum, psessionEntry->maxTxPower, psessionEntry->peSessionId);
+        /** Switch channel to the new Operating channel for Reassoc*/
+        limSetChannel(pMac, chanNum, secChannelOffset, psessionEntry->maxTxPower, psessionEntry->peSessionId);
 
         return;
     }
@@ -4509,7 +4448,7 @@ return eSIR_SUCCESS;
 #ifdef WLAN_FEATURE_11AC
 ePhyChanBondState limGet11ACPhyCBState(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 htSecondaryChannelOffset )
 {
-    ePhyChanBondState cbState = PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED;
+    ePhyChanBondState cbState = PHY_SINGLE_CHANNEL_CENTERED;
 
     if(!pMac->lim.apChanWidth)
     {
@@ -4552,37 +4491,13 @@ ePhyChanBondState limGet11ACPhyCBState(tpAniSirGlobal pMac, tANI_U8 channel, tAN
 #endif
 
 void 
-limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tPowerdBm maxTxPower, tANI_U8 peSessionId)
+limSetChannel(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 secChannelOffset, tPowerdBm maxTxPower, tANI_U8 peSessionId)
 {
 #if !defined WLAN_FEATURE_VOWIFI
     tANI_U32 localPwrConstraint;
 #endif
     tpPESession peSession;
 
-    // Setup the CB State appropriately, prior to
-    // issuing a dphChannelChange(). This is done
-    // so that if CB is enabled, the CB Secondary
-    // Channel is setup correctly
-    
-     /* if local CB admin state is off or join req CB admin state is off, don't bother with CB channel setup */
-    PELOG1(limLog(pMac, LOG1, FL("Before : gCbState = 0x%x, gCbmode = %x\n"), pMac->lim.gCbState, pMac->lim.gCbMode);)
-    if(GET_CB_ADMIN_STATE(pMac->lim.gCbState) &&
-                    SME_GET_CB_ADMIN_STATE(titanHtcap)) {
-        PELOG1(limLog(pMac, LOG1, FL("station doing channel bonding\n"));)
-        setupCBState( pMac, (tAniCBSecondaryMode)SME_GET_CB_OPER_STATE(titanHtcap));
-    }else {
-        PELOG1(limLog(pMac, LOG1, FL("station not doing channel bonding\n"));)
-        setupCBState(pMac, eANI_CB_SECONDARY_NONE);
-    }
-
-    PELOG1(limLog(pMac, LOG1, FL("After :gCbState = 0x%x, gCbmode = %x\n"), pMac->lim.gCbState, pMac->lim.gCbMode);)
-
-    #if 0
-    if (wlan_cfgSetInt(pMac, WNI_CFG_CURRENT_CHANNEL, channel) != eSIR_SUCCESS) {
-           limLog(pMac, LOGP, FL("could not set CURRENT_CHANNEL at CFG\n"));
-           return;
-    }
-    #endif // TO SUPPORT BT-AMP
     peSession = peFindSessionBySessionId (pMac, peSessionId);
 
     if ( NULL == peSession)
@@ -4594,12 +4509,12 @@ limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tPowerd
 #ifdef WLAN_FEATURE_11AC
     if ( peSession->vhtCapability )
     {
-        limSendSwitchChnlParams( pMac, channel, limGet11ACPhyCBState( pMac,channel,pMac->lim.gHTSecondaryChannelOffset ), maxTxPower, peSessionId);
+        limSendSwitchChnlParams( pMac, channel, limGet11ACPhyCBState( pMac,channel,secChannelOffset ), maxTxPower, peSessionId);
     }
     else
 #endif
     {
-    limSendSwitchChnlParams( pMac, channel, limGetPhyCBState( pMac ), maxTxPower, peSessionId);
+        limSendSwitchChnlParams( pMac, channel, secChannelOffset, maxTxPower, peSessionId);
     }
 #else
     if (wlan_cfgGetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, &localPwrConstraint) != eSIR_SUCCESS) {
@@ -4608,18 +4523,15 @@ limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tPowerd
     }
     // Send WDA_CHNL_SWITCH_IND to HAL
 #ifdef WLAN_FEATURE_11AC
-
     if ( peSession->vhtCapability && pMac->lim.vhtCapabilityPresentInBeacon)
     {
-        limSendSwitchChnlParams( pMac, channel, limGet11ACPhyCBState( pMac,channel,pMac->lim.gHTSecondaryChannelOffset ), maxTxPower, peSessionId);
+        limSendSwitchChnlParams( pMac, channel, limGet11ACPhyCBState( pMac,channel,secChannelOffset ), maxTxPower, peSessionId);
     }
     else
 #endif
     {
-    limSendSwitchChnlParams( pMac, channel, limGetPhyCBState( pMac ), (tPowerdBm)localPwrConstraint, peSessionId);
+        limSendSwitchChnlParams( pMac, channel, secChannelOffset, (tPowerdBm)localPwrConstraint, peSessionId);
     }
 #endif
-   
+
  }
-
-

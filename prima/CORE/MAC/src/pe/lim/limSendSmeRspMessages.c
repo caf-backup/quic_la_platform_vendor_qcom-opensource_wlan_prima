@@ -394,9 +394,23 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
     
     if(IS_MCC_SUPPORTED && limIsLinkSuspended( pMac ) )
     {
+        ePhyChanBondState htSecondaryChannelOffset;
         if( psessionEntry && psessionEntry->limSmeState == eLIM_SME_LINK_EST_STATE )
         {
-            peSetResumeChannel( pMac, psessionEntry->currentOperChannel, 0);
+            
+#ifdef WLAN_FEATURE_11AC
+            if (psessionEntry->vhtCapability)
+            {
+               /*Get 11ac cbState from 11n cbState*/
+                 htSecondaryChannelOffset = limGet11ACPhyCBState(pMac, 
+                                    psessionEntry->currentOperChannel,
+                                    psessionEntry->htSecondaryChannelOffset);
+                peSetResumeChannel( pMac, psessionEntry->currentOperChannel, htSecondaryChannelOffset);
+            }
+            else {
+#endif
+            peSetResumeChannel( pMac, psessionEntry->currentOperChannel, psessionEntry->htSecondaryChannelOffset);
+        }
         }
         else
         {
@@ -1166,7 +1180,10 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
     if( IS_MCC_SUPPORTED && limIsLinkSuspended( pMac ) )
     {
         //Resume on the first active session channel.
-        peSetResumeChannel( pMac, peGetActiveSessionChannel( pMac ), 0);
+        tANI_U8 resumeChannel;
+        ePhyChanBondState resumePhyCbState;
+        peGetActiveSessionChannel( pMac, &resumeChannel, &resumePhyCbState );
+        peSetResumeChannel( pMac, resumeChannel, resumePhyCbState );
 
         limResumeLink( pMac, limSendSmeDisassocDeauthNtfPostResume, 
                                               (tANI_U32*) pMsg );
@@ -1509,7 +1526,10 @@ limSendSmeDeauthNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCode
     if( IS_MCC_SUPPORTED && limIsLinkSuspended( pMac ) )
     {
         //Resume on the first active session channel.
-        peSetResumeChannel( pMac, peGetActiveSessionChannel( pMac ), 0);
+        tANI_U8 resumeChannel;
+        ePhyChanBondState resumePhyCbState;
+        peGetActiveSessionChannel( pMac, &resumeChannel, &resumePhyCbState );
+        peSetResumeChannel( pMac, resumeChannel, resumePhyCbState );
 
         limResumeLink( pMac, limSendSmeDisassocDeauthNtfPostResume, 
                                               (tANI_U32*) pMsg );

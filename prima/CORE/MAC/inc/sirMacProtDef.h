@@ -457,7 +457,7 @@
 
 
 // Length of Channel Switch related message
-#define SIR_SME_CHANNEL_SWITCH_SIZE        (sizeof(tANI_U8) + 2 *sizeof(tANI_U16) + sizeof(tANI_U32) + sizeof(tAniCBSecondaryMode))
+#define SIR_SME_CHANNEL_SWITCH_SIZE        (sizeof(tANI_U8) + 2 *sizeof(tANI_U16) + sizeof(tANI_U32) + sizeof(ePhyChanBondState))
 #define SIR_CHANNEL_SWITCH_IE_SIZE         EID_LEN(SIR_MAC_CHNL_SWITCH_ANN_EID_MIN)
 
 //Measurement Request/Report messages
@@ -1559,24 +1559,6 @@ typedef enum eSirMacHTMIMOPowerSaveState
   eSIR_HT_MIMO_PS_NO_LIMIT = 3 // SM Power Save disabled
 } tSirMacHTMIMOPowerSaveState;
 
-
-typedef enum eSirMacHTSecondaryChannelOffset
-{
-    eHT_SECONDARY_CHANNEL_OFFSET_NONE = 0,
-    eHT_SECONDARY_CHANNEL_OFFSET_CENTERED = eHT_SECONDARY_CHANNEL_OFFSET_NONE,
-    eHT_SECONDARY_CHANNEL_OFFSET_UP = 1,
-    eHT_SECONDARY_CHANNEL_OFFSET_DOWN = 3,
-#ifdef WLAN_FEATURE_11AC
-    eVHT_CHANNEL_20MHZ_LOW_40MHZ_CENTERED = 4, //20/40MHZ offset LOW 40/80MHZ offset CENTERED
-    eVHT_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED = 5, //20/40MHZ offset CENTERED 40/80MHZ offset CENTERED
-    eVHT_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED = 6, //20/40MHZ offset HIGH 40/80MHZ offset CENTERED
-    eVHT_CHANNEL_20MHZ_LOW_40MHZ_LOW = 7,//20/40MHZ offset LOW 40/80MHZ offset LOW
-    eVHT_CHANNEL_20MHZ_HIGH_40MHZ_LOW = 8, //20/40MHZ offset HIGH 40/80MHZ offset LOW
-    eVHT_CHANNEL_20MHZ_LOW_40MHZ_HIGH = 9, //20/40MHZ offset LOW 40/80MHZ offset HIGH
-    eVHT_CHANNEL_20MHZ_HIGH_40MHZ_HIGH = 10,//20/40MHZ offset-HIGH 40/80MHZ offset HIGH
-#endif
-    eVHT_MAX_SECONDARY_CHANNEL_OFFSET
-} tSirMacHTSecondaryChannelOffset;
 
 typedef enum eSirMacHTChannelWidth
 {

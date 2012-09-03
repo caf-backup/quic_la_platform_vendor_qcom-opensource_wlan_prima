@@ -304,26 +304,15 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
 
         /* Only primary channel switch element is present */
         psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
-        psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_NONE;
+        psessionEntry->gLimChannelSwitch.secondarySubBand = PHY_SINGLE_CHANNEL_CENTERED;
 
-        if(GET_CB_ADMIN_STATE(pMac->lim.gCbState))
+        if (psessionEntry->htSupportedChannelWidthSet)
         {
-            switch(pChannelSwitchFrame->ExtChanSwitchAnn.secondaryChannelOffset)
+            if ((pChannelSwitchFrame->ExtChanSwitchAnn.secondaryChannelOffset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY) ||
+                (pChannelSwitchFrame->ExtChanSwitchAnn.secondaryChannelOffset == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY))
             {
-                case eHT_SECONDARY_CHANNEL_OFFSET_UP:
-                    psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-                    psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_UP;
-                    break;
-
-                case eHT_SECONDARY_CHANNEL_OFFSET_DOWN:
-                    psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-                    psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_DOWN;
-                    break;
-
-                case eHT_SECONDARY_CHANNEL_OFFSET_NONE:
-                default:
-                    /* Nothing to be done here */
-                    break;
+                psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+                psessionEntry->gLimChannelSwitch.secondarySubBand = pChannelSwitchFrame->ExtChanSwitchAnn.secondaryChannelOffset;
             }
         }
 

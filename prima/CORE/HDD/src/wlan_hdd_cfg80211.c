@@ -3110,12 +3110,27 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     struct cfg80211_bss *bss_status = NULL;
     size_t frame_len = sizeof (struct ieee80211_mgmt) + ie_length;
     int rssi = 0;
+#ifdef WLAN_OPEN_SOURCE
+    struct timespec ts;
+#endif
 
     ENTER();
 
     memcpy(mgmt->bssid, bss_desc->bssId, ETH_ALEN);
+
+#ifdef WLAN_OPEN_SOURCE
+    /* Android does not want the timestamp from the frame.
+       Instead it wants a monotonic increasing value */
+    get_monotonic_boottime(&ts);
+    mgmt->u.probe_resp.timestamp =
+         ((u64)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
+#else
+    /* keep old behavior for non-open source (for now) */
     memcpy(&mgmt->u.probe_resp.timestamp, bss_desc->timeStamp,
             sizeof (bss_desc->timeStamp));
+
+#endif
+
     mgmt->u.probe_resp.beacon_int = bss_desc->beaconInterval;
     mgmt->u.probe_resp.capab_info = bss_desc->capabilityInfo;
     memcpy(mgmt->u.probe_resp.variable, ie, ie_length);

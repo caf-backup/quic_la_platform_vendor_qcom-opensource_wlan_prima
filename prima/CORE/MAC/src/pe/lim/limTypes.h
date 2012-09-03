@@ -163,7 +163,7 @@ typedef struct sLimMlmStartReq
     tANI_U8               dtimPeriod;
     tSirMacCfParamSet     cfParamSet;
     tSirMacChanNum        channelNumber;
-    tAniCBSecondaryMode   cbMode;
+    ePhyChanBondState     cbMode;
     tANI_U16              atimWindow;
     tSirMacRateSet        rateSet;
     tANI_U8               sessionId; //Added For BT-AMP Support   
@@ -233,8 +233,6 @@ typedef struct sLimMlmAssocInd
     tSirRSNie            rsnIE;
     tSirAddie            addIE; // additional IE recevied from the peer, which possibly includes WSC IE and/or P2P IE.
     tSirMacCapabilityInfo capabilityInfo;
-    tAniTitanHtCapabilityInfo titanHtCaps;
-
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
@@ -289,8 +287,6 @@ typedef struct sLimMlmReassocInd
     tSirRSNie            rsnIE;
     tSirAddie            addIE; // additional IE recevied from the peer, which can be WSC IE and/or P2P IE.
     tSirMacCapabilityInfo capabilityInfo;
-    tAniTitanHtCapabilityInfo titanHtCaps;
-
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
@@ -636,11 +632,8 @@ void limProcessSmeDelBssRsp( tpAniSirGlobal , tANI_U32,tpPESession);
 
 void limGetRandomBssid(tpAniSirGlobal pMac ,tANI_U8 *data);
 
-// Function to handle CB CFG parameter updates
-void handleCBCFGChange( tpAniSirGlobal pMac, tANI_U32 cfgId );
-
 // Function to handle HT and HT IE CFG parameter intializations
-void handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac);
+void handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac, tpPESession psessionEntry);
 
 // Function to handle CFG parameter updates
 void limHandleCFGparamUpdate(tpAniSirGlobal, tANI_U32);
@@ -663,7 +656,6 @@ void limCleanupMlm(tpAniSirGlobal);
 
 // Function to cleanup LMM state machine
 void limCleanupLmm(tpAniSirGlobal);
-
 
 // Management frame handling functions
 void limProcessBeaconFrame(tpAniSirGlobal, tANI_U8 *,tpPESession);
@@ -778,7 +770,7 @@ tANI_U32 limDeferMsg(tpAniSirGlobal, tSirMsgQ *);
 void limSetScanMode(tpAniSirGlobal pMac);
 
 /// Function that Switches the Channel and sets the CB Mode 
-void limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tPowerdBm maxTxPower, tANI_U8 peSessionId);
+void limSetChannel(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 secChannelOffset, tPowerdBm maxTxPower, tANI_U8 peSessionId);
 
 /// Function that completes channel scan
 void limCompleteMlmScan(tpAniSirGlobal, tSirResultCodes);

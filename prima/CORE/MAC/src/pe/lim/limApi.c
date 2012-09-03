@@ -379,20 +379,15 @@ static void __limInitAssocVars(tpAniSirGlobal pMac)
 
 static void __limInitTitanVars(tpAniSirGlobal pMac)
 {
-    pMac->lim.gCbMode = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
-    SET_CB_STATE_DISABLE( pMac->lim.gCbState );
-
+#if 0
+    palZeroMemory(pMac->hHdd, &pMac->lim.gLimChannelSwitch, sizeof(tLimChannelSwitchInfo));
+    pMac->lim.gLimChannelSwitch.state               = eLIM_CHANNEL_SWITCH_IDLE;
+    pMac->lim.gLimChannelSwitch.secondarySubBand    = PHY_SINGLE_CHANNEL_CENTERED;
+#endif
     // Debug workaround for BEACON's
     // State change triggered by "dump 222"
     pMac->lim.gLimScanOverride = 1;
     pMac->lim.gLimScanOverrideSaved = eSIR_ACTIVE_SCAN;
-
-
-    // Caches the CB State as desired by SME
-    SET_CB_STATE_DISABLE( pMac->lim.gCbStateProtected );
-
-    // TODO - This needs to be read off of a CFG variable
-
     pMac->lim.gLimTitanStaCount = 0;
     pMac->lim.gLimBlockNonTitanSta = 0;
 }
@@ -400,9 +395,7 @@ static void __limInitTitanVars(tpAniSirGlobal pMac)
 static void __limInitHTVars(tpAniSirGlobal pMac)
 {
     pMac->lim.htCapabilityPresentInBeacon = 0;
-    pMac->lim.htCapability = 0;
     pMac->lim.gHTGreenfield = 0;
-    pMac->lim.gHTSupportedChannelWidthSet = 0;
     pMac->lim.gHTShortGI40Mhz = 0;
     pMac->lim.gHTShortGI20Mhz = 0;
     pMac->lim.gHTMaxAmsduLength = 0;
@@ -416,8 +409,6 @@ static void __limInitHTVars(tpAniSirGlobal pMac)
     pMac->lim.gHTMaxRxAMpduFactor = 0;
     pMac->lim.gHTServiceIntervalGranularity = 0;
     pMac->lim.gHTControlledAccessOnly = 0;
-    pMac->lim.gHTRecommendedTxWidthSet = 0;
-    pMac->lim.gHTSecondaryChannelOffset = eHT_SECONDARY_CHANNEL_OFFSET_NONE;
     pMac->lim.gHTOperMode = eSIR_HT_OP_MODE_PURE;
     pMac->lim.gHTPCOActive = 0;
 
@@ -440,14 +431,10 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
    tSirMacHTParametersInfo   *pAmpduParamInfo;
 
    /* Read all the CFGs here that were updated before peStart is called */
+   /* All these CFG READS/WRITES are only allowed in init, at start when there is no session 
+    * and they will be used throughout when there is no session
+    */
 
-   /* WNI_CFG_CHANNEL_BONDING_MODE */
-
-   handleCBCFGChange( pMac, WNI_CFG_CHANNEL_BONDING_MODE );
-         
-   //for Secondary channel, change setupCBMode function OR the caller of that
-   //function during Join (STA) or Start BSS(AP/IBSS) Now update the HT Capability
-   //CFG based on Channel Bonding CFG
    if(wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
    {
       PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap CFG\n"));)
@@ -483,7 +470,6 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
    pHTInfoField1 = ( tSirMacHTInfoField1* ) &val8;
    pHTInfoField1->recommendedTxWidthSet = 
      (tANI_U8)pHTCapabilityInfo->supportedChannelWidthSet;
-   pMac->lim.gHTRecommendedTxWidthSet = pHTInfoField1->recommendedTxWidthSet;
    if(cfgSetInt(pMac, WNI_CFG_HT_INFO_FIELD1, *(tANI_U8*)pHTInfoField1) 
       != eSIR_SUCCESS)
    {
@@ -607,8 +593,7 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
 
    /* This was initially done after resume notification from HAL. Now, DAL is
       started before PE so this can be done here */
-   handleCBCFGChange( pMac, ANI_IGNORE_CFG_ID );
-   handleHTCapabilityandHTInfo(pMac);
+   handleHTCapabilityandHTInfo(pMac, NULL);
 
    return eSIR_SUCCESS;
 }

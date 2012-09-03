@@ -114,101 +114,6 @@ limSetDefaultKeyIdAndKeys(tpAniSirGlobal pMac)
 
 } /*** end limSetDefaultKeyIdAndKeys() ***/
 
-
-/**
- * handleCBCFGChange()
- *
- *FUNCTION:
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * If this API is invoked with
- *   cfgId == ANI_IGNORE_CFG_ID
- * Then,
- *   this routine will traverse thru' ALL the
- *   related CFG's that are statically setup
- * Else,
- *   only update this "1" CFG identified by cfgId
- *
- *NOTE:
- *
- * @param  pMac  - Pointer to Global MAC structure
- * @param  cfgId - ID of CFG parameter that got updated
- * @return None
- */
-void handleCBCFGChange( tpAniSirGlobal pMac, tANI_U32 cfgId )
-{
-tANI_U32 cfg, val, i = 0;
-tANI_U32 defaultCfgList[] = { 
-  WNI_CFG_CHANNEL_BONDING_MODE,
-  ANI_IGNORE_CFG_ID };
-
-  do
-  {
-    //
-    // Determine if we have to use our own default CFG list
-    // OR should we use the argument passed to us
-    //
-    if( ANI_IGNORE_CFG_ID == cfgId )
-      cfg = defaultCfgList[i]; // "n" iterations reqd
-    else
-      cfg = cfgId; // Just "1" iteration reqd
-
-    switch( cfg )
-    {
-      case WNI_CFG_CHANNEL_BONDING_MODE:
-        if( eSIR_SUCCESS != wlan_cfgGetInt( pMac,
-              WNI_CFG_CHANNEL_BONDING_MODE,
-              &val ))
-        {
-          limLog( pMac, LOGW,
-              FL("Unable to retrieve CHANNEL BONDING Mode from CFG. Defaulting to DISABLE\n"));
-          pMac->lim.gCbMode = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
-        }
-        else
-          pMac->lim.gCbMode = (tANI_U8) val;
-
-        // Now, set the CHANNEL BONDING state apropriately
-        switch( pMac->lim.gCbMode )
-        {
-          // Always OFF
-          case WNI_CFG_CHANNEL_BONDING_MODE_DISABLE:
-            SET_CB_STATE_DISABLE( pMac->lim.gCbState );
-            break;
-
-          // Always ON
-          case WNI_CFG_CHANNEL_BONDING_MODE_ENABLE:
-            SET_CB_STATE_ENABLE( pMac->lim.gCbState );
-            break;
-
-          default:
-            SET_CB_STATE_ENABLE( pMac->lim.gCbState );
-            break;
-        }
-        break;
-
-      default:
-          break;
-    }
-
-    // DEBUG LOG the TITAN CFG's
-    limLog( pMac, LOG1,
-        FL("The TITAN related global CFG's are: "
-          "cbMode - %1d cbState - %1d\n"),
-        pMac->lim.gCbMode, pMac->lim.gCbState);
-
-    // If only "1" CFG needs an update, then return
-    if( ANI_IGNORE_CFG_ID == cfgId )
-      i++;
-    else
-      break;
-
-  } while( ANI_IGNORE_CFG_ID != defaultCfgList[i] ); // End-Of-List?
-}
-
 /** -------------------------------------------------------------
 \fn limSetCfgProtection
 \brief sets lim global cfg cache from the config.
@@ -356,10 +261,8 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
 {
     tANI_U32 val1, val2;
     tANI_U16 val16;
-    tANI_U8 val8;
     tSirMacHTCapabilityInfo   *pHTCapabilityInfo;
     tSirMacHTParametersInfo *pAmpduParamInfo;
-    tSirMacHTInfoField1         *pHTInfoField1;
 
     PELOG3(limLog(pMac, LOG3, FL("Handling CFG parameter id %X update\n"), cfgId);)
     switch (cfgId)
@@ -483,44 +386,6 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
 #endif
 
             break;
-
-    case WNI_CFG_CHANNEL_BONDING_MODE:
-         handleCBCFGChange( pMac, cfgId );
-         //for Secondary channel, change setupCBMode function OR the caller of that function during Join (STA) or Start BSS(AP/IBSS)
-         //Now update the HT Capability CFG based on Channel Bonding CFG
-         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
-            {
-                PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT Cap CFG\n"));)
-                break;
-            }
-        if (wlan_cfgGetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, &val2) != eSIR_SUCCESS) 
-            {
-                PELOGE(limLog(pMac, LOGE, FL("could not retrieve Channel Bonding CFG\n"));)
-                break;
-            }
-        val16 = ( tANI_U16 ) val1;
-        pHTCapabilityInfo = ( tSirMacHTCapabilityInfo* ) &val16;
-
-        //channel bonding mode could be set to anything from 0 to 4(Titan had these modes)
-        //But for Taurus we have only two modes: enable(>0) or disable(=0)
-        pHTCapabilityInfo->supportedChannelWidthSet = val2 ? WNI_CFG_CHANNEL_BONDING_MODE_ENABLE : WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
-        if(cfgSetInt(pMac, WNI_CFG_HT_CAP_INFO, *(tANI_U16*)pHTCapabilityInfo) != eSIR_SUCCESS)
-            PELOGE(limLog(pMac, LOGE, FL("could not update HT Cap Info CFG\n"));)
-
-         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_INFO_FIELD1, &val1) != eSIR_SUCCESS) 
-            {
-                PELOGE(limLog(pMac, LOGE, FL("could not retrieve HT INFO Field1 CFG\n"));)
-                break;
-            }
-        val8 = ( tANI_U8 ) val1;
-        pHTInfoField1 = ( tSirMacHTInfoField1* ) &val8;
-        pHTInfoField1->recommendedTxWidthSet = (tANI_U8)pHTCapabilityInfo->supportedChannelWidthSet;
-        pMac->lim.gHTRecommendedTxWidthSet = pHTInfoField1->recommendedTxWidthSet;
-        if(cfgSetInt(pMac, WNI_CFG_HT_INFO_FIELD1, *(tANI_U8*)pHTInfoField1) != eSIR_SUCCESS)
-            PELOGE(limLog(pMac, LOGE, FL("could not update HT Info Field\n"));)
-
-        break;
-
 
     case WNI_CFG_TRIG_STA_BK_SCAN:
         if(limUpdateTriggerStaBkScanFlag(pMac) != eSIR_SUCCESS)

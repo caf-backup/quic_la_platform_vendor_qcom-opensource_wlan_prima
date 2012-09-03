@@ -596,10 +596,10 @@ ibss_bss_add(
     mlmStartReq.bssType             = eSIR_IBSS_MODE;
     mlmStartReq.beaconPeriod        = pBeacon->beaconInterval;
     mlmStartReq.nwType              = psessionEntry->pLimStartBssReq->nwType; //psessionEntry->nwType is also OK????
-    mlmStartReq.htCapable           = psessionEntry->htCapabality;
+    mlmStartReq.htCapable           = psessionEntry->htCapability;
     mlmStartReq.htOperMode          = pMac->lim.gHTOperMode;
     mlmStartReq.dualCTSProtection   = pMac->lim.gHTDualCTSProtection;
-    mlmStartReq.txChannelWidthSet   = pMac->lim.gHTRecommendedTxWidthSet;
+    mlmStartReq.txChannelWidthSet   = psessionEntry->htRecommendedTxWidthSet;
 
     #if 0
     if (wlan_cfgGetInt(pMac, WNI_CFG_CURRENT_CHANNEL, &cfg) != eSIR_SUCCESS)
@@ -987,7 +987,7 @@ limIbssDecideProtection(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaco
         limGetPhyMode(pMac, &phyMode, psessionEntry);
 
         //We are 11G or 11n. Check if we need protection from 11b Stations.
-        if ((phyMode == WNI_CFG_PHY_MODE_11G) || (pMac->lim.htCapability))
+        if ((phyMode == WNI_CFG_PHY_MODE_11G) || (psessionEntry->htCapability))
         {
             /* As we found in the past, it is possible that a 11n STA sends
              * Beacon with HT IE but not ERP IE.  So the absense of ERP IE
@@ -1613,7 +1613,7 @@ limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac,
         limGetPhyMode(pMac, &phyMode, psessionEntry);
         erpEnabled = pStaDs->erpEnabled;
         //we are HT or 11G and 11B station is getting deleted.
-        if ( ((phyMode == WNI_CFG_PHY_MODE_11G) || pMac->lim.htCapability) 
+        if ( ((phyMode == WNI_CFG_PHY_MODE_11G) || psessionEntry->htCapability)
               && (erpEnabled == eHAL_CLEAR))
         {
             PELOGE(limLog(pMac, LOGE, FL("(%d) A legacy STA is disassociated. Addr is "),

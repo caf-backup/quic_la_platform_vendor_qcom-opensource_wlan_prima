@@ -931,7 +931,7 @@ typedef struct
 #ifndef WLAN_FEATURE_VOWIFI    
     tANI_U8 localPowerConstraint;
 #endif /* WLAN_FEATURE_VOWIFI  */
-    tSirMacHTSecondaryChannelOffset secondaryChannelOffset;
+    ePhyChanBondState secondaryChannelOffset;
     tANI_U8 peSessionId;
 #if defined WLAN_FEATURE_VOWIFI
     tPowerdBm txMgmtPower; //HAL fills in the tx power used for mgmt frames in this field.
@@ -1143,6 +1143,7 @@ typedef struct sExitBmpsParams
 {
     tANI_U8     sendDataNull;
     eHalStatus  status;
+    tANI_U8     bssIdx;
 } tExitBmpsParams, *tpExitBmpsParams;
 
 //
@@ -1160,6 +1161,7 @@ typedef struct sUapsdParams
     tANI_U8     viTriggerEnabled:1;
     tANI_U8     voTriggerEnabled:1;
     eHalStatus  status;
+    tANI_U8     bssIdx;
 }tUapsdParams, *tpUapsdParams;
 
 //

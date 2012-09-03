@@ -622,7 +622,7 @@ typedef struct sLimChannelSwitchInfo
 {
     tLimChannelSwitchState   state;
     tANI_U8                  primaryChannel;
-    tAniCBSecondaryMode      secondarySubBand;
+    ePhyChanBondState        secondarySubBand;
     tANI_U32                 switchCount;
     tANI_U32                 switchTimeoutValue;
     tANI_U8                  switchMode;

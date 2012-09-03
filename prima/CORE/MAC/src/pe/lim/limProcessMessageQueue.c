@@ -2071,7 +2071,7 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
 }
 
 void
-handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac)
+handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac, tpPESession psessionEntry)
 {
     tSirMacHTCapabilityInfo macHTCapabilityInfo;
     tSirMacHTParametersInfo macHTParametersInfo;
@@ -2080,13 +2080,7 @@ handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac)
     tSirMacHTInfoField3 macHTInfoField3;
     tANI_U32  cfgValue;
     tANI_U8 *ptr;
-    tpPESession psessionEntry = &pMac->lim.gpSession[0];//TBD-RAJESH HOW TO GET sessionEntry?????
 
-    pMac->lim.htCapability = IS_DOT11_MODE_HT(psessionEntry->dot11mode);  
-
-
-
-    // Get HT Capabilities
     if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &cfgValue) != eSIR_SUCCESS)
     {
         limLog(pMac, LOGP, FL("Fail to retrieve WNI_CFG_HT_CAP_INFO value\n"));
@@ -2100,7 +2094,6 @@ handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac)
     pMac->lim.gHTMaxAmsduLength = (tANI_U8)macHTCapabilityInfo.maximalAMSDUsize;
     pMac->lim.gHTShortGI20Mhz = (tANI_U8)macHTCapabilityInfo.shortGI20MHz;
     pMac->lim.gHTShortGI40Mhz = (tANI_U8)macHTCapabilityInfo.shortGI40MHz;
-    pMac->lim.gHTSupportedChannelWidthSet = (tANI_U8)macHTCapabilityInfo.supportedChannelWidthSet;
     pMac->lim.gHTPSMPSupport = (tANI_U8)macHTCapabilityInfo.psmp;
     pMac->lim.gHTDsssCckRate40MHzSupport = (tANI_U8)macHTCapabilityInfo.dsssCckMode40MHz;
 
@@ -2125,8 +2118,6 @@ handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac)
     pMac->lim.gHTServiceIntervalGranularity = (tANI_U8)macHTInfoField1.serviceIntervalGranularity;
     pMac->lim.gHTControlledAccessOnly = (tANI_U8)macHTInfoField1.controlledAccessOnly;
     pMac->lim.gHTRifsMode = (tANI_U8)macHTInfoField1.rifsMode;
-    pMac->lim.gHTRecommendedTxWidthSet = (tANI_U8)macHTInfoField1.recommendedTxWidthSet;
-    pMac->lim.gHTSecondaryChannelOffset = (tSirMacHTSecondaryChannelOffset)macHTInfoField1.secondaryChannelOffset;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_HT_INFO_FIELD2, &cfgValue) != eSIR_SUCCESS)
     {
@@ -2146,10 +2137,20 @@ handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac)
     *((tANI_U16 *)ptr) = (tANI_U16) (cfgValue & 0xffff);
     pMac->lim.gHTPCOActive = (tANI_U8)macHTInfoField3.pcoActive;
     pMac->lim.gHTPCOPhase = (tANI_U8)macHTInfoField3.pcoPhase;
-    psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = (tANI_U8)macHTInfoField3.lsigTXOPProtectionFullSupport;
     pMac->lim.gHTSecondaryBeacon = (tANI_U8)macHTInfoField3.secondaryBeacon;
     pMac->lim.gHTDualCTSProtection = (tANI_U8)macHTInfoField3.dualCTSProtection;
     pMac->lim.gHTSTBCBasicMCS = (tANI_U8)macHTInfoField3.basicSTBCMCS;
+
+    /* The lim globals for channelwidth and secondary chnl have been removed and should not be used during no session;
+     * instead direct cfg is read and used when no session for transmission of mgmt frames (same as old);
+     * For now, we might come here during init and join with sessionEntry = NULL; in that case just fill the globals which exist
+     * Sessionized entries values will be filled in join or add bss req. The ones which are missed in join are filled below
+     */
+    if (psessionEntry != NULL)
+    {
+        psessionEntry->htCapability = IS_DOT11_MODE_HT(psessionEntry->dot11mode);  
+        psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport = (tANI_U8)macHTInfoField3.lsigTXOPProtectionFullSupport;
+    }
 }
 
 void limLogSessionStates(tpAniSirGlobal pMac)

@@ -103,7 +103,7 @@ extern tVOS_CON_MODE hdd_get_conparam ( void );
 #endif
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
-extern void wlan_hdd_set_mc_addr_list(hdd_context_t *pHddCtx, v_U8_t set);
+extern void wlan_hdd_set_mc_addr_list(hdd_context_t *pHddCtx, v_U8_t set, v_U8_t sessionId);
 #endif
 
 //Callback invoked by PMC to report status of standby request
@@ -683,7 +683,8 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
                   offLoadRequest.params.hostIpv4Addr[3]);
 
           if (eHAL_STATUS_SUCCESS != 
-                    sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter) , &offLoadRequest))
+                    sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter), 
+                                       pAdapter->sessionId, &offLoadRequest))
           {
               hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to enable HostOffload "
                       "feature\n", __func__);
@@ -703,7 +704,8 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
        offLoadRequest.enableOrDisable = SIR_OFFLOAD_DISABLE;
        offLoadRequest.offloadType =  SIR_IPV4_ARP_REPLY_OFFLOAD;
 
-       if (eHAL_STATUS_SUCCESS != sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter), &offLoadRequest))
+       if (eHAL_STATUS_SUCCESS != sme_SetHostOffload(WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId, 
+                                                     &offLoadRequest))
        {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to disable host "
                              "offload feature\n", __func__);
@@ -857,7 +859,7 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
                     (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
            {
               /*set the filter*/
-              wlan_hdd_set_mc_addr_list(pHddCtx, TRUE);
+              wlan_hdd_set_mc_addr_list(pHddCtx, TRUE, pAdapter->sessionId);
            }
         }
 #endif
@@ -870,7 +872,7 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
     }
 }
 
-static void hdd_conf_resume_ind(hdd_context_t* pHddCtx)
+static void hdd_conf_resume_ind(hdd_context_t* pHddCtx, v_U8_t sessionId)
 {
     VOS_STATUS vstatus;
     tpSirWlanResumeParam wlanResumeParam =
@@ -915,7 +917,7 @@ static void hdd_conf_resume_ind(hdd_context_t* pHddCtx)
        {
           /*Filter applied during suspend mode*/
           /*Clear it here*/
-          wlan_hdd_set_mc_addr_list(pHddCtx, FALSE);
+          wlan_hdd_set_mc_addr_list(pHddCtx, FALSE, sessionId);
        }
     }
 #endif
@@ -1302,7 +1304,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
 
          if(pHddCtx->hdd_mcastbcast_filter_set == TRUE) {
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-           hdd_conf_resume_ind(pHddCtx);
+           hdd_conf_resume_ind(pHddCtx, pAdapter->sessionId);
 #else
                   hdd_conf_mcastbcast_filter(pHddCtx, FALSE);
                               pHddCtx->hdd_mcastbcast_filter_set = FALSE;

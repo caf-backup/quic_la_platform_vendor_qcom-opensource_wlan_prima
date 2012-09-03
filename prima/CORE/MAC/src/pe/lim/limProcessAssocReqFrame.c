@@ -205,6 +205,18 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     limLog(pMac, LOG2, FL("Received AssocReq Frame: "));
     sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG2, (tANI_U8 *) pBody, framelen);
 
+    if( palEqualMemory( pMac->hHdd,  (tANI_U8* ) pHdr->sa, (tANI_U8 *) pHdr->da, 
+                        (tANI_U8) (sizeof(tSirMacAddr))))
+    {
+        limSendAssocRspMgmtFrame(pMac,
+                    eSIR_MAC_UNSPEC_FAILURE_STATUS,
+                    1,
+                    pHdr->sa,
+                    subType, 0,psessionEntry);
+        limLog(pMac, LOGE, FL("Rejected Assoc Req frame Since same mac as SAP/GO\n"));
+        return ;
+    }
+
 #ifdef WLAN_SOFTAP_FEATURE
     // If TKIP counter measures active send Assoc Rsp frame to station with eSIR_MAC_MIC_FAILURE_REASON
     if ((psessionEntry->bTkipCntrMeasActive) && (psessionEntry->limSystemRole == eLIM_AP_ROLE))
@@ -586,7 +598,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
     // Check for 802.11n HT caps compatibility; are HT Capabilities
     // turned on in lim?
-    if ( psessionEntry->htCapabality )
+    if ( psessionEntry->htCapability )
     {
         // There are; are they turned on in the STA?
         if ( pAssocReq->HTCaps.present )
@@ -1056,6 +1068,10 @@ sendIndToSme:
         pStaDs->htShortGI20Mhz = (tANI_U8)pAssocReq->HTCaps.shortGI20MHz;
         pStaDs->htShortGI40Mhz = (tANI_U8)pAssocReq->HTCaps.shortGI40MHz;
         pStaDs->htSupportedChannelWidthSet = (tANI_U8)pAssocReq->HTCaps.supportedChannelWidthSet;
+        /* peer just follows AP; so when we are softAP/GO, we just store our session entry's secondary channel offset here in peer INFRA STA
+         * However, if peer's 40MHz channel width support is disabled then secondary channel will be zero
+         */
+        pStaDs->htSecondaryChannelOffset = (pStaDs->htSupportedChannelWidthSet)?psessionEntry->htSecondaryChannelOffset:0;
 #ifdef WLAN_FEATURE_11AC
         if (pAssocReq->VHTCaps.present)
         {
@@ -1405,10 +1421,6 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
                            pAssocReq->rsn.length);
         }
 
-        //FIXME: we need to have the cb information seprated between HT and Titan later. 
-        if(pAssocReq->HTCaps.present)
-            limGetHtCbAdminState(pMac, pAssocReq->HTCaps, &pMlmAssocInd->titanHtCaps);
-
         // Fill in 802.11h related info
         if (pAssocReq->powerCapabilityPresent && pAssocReq->supportedChannelsPresent)
         {
@@ -1562,9 +1574,6 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             pMlmReassocInd->rsnIE.rsnIEdata[1] = pAssocReq->rsn.length;
             palCopyMemory( pMac->hHdd, &pMlmReassocInd->rsnIE.rsnIEdata[2], pAssocReq->rsn.info, pAssocReq->rsn.length);
         }
-
-        if(pAssocReq->HTCaps.present)
-              limGetHtCbAdminState(pMac, pAssocReq->HTCaps,  &pMlmReassocInd->titanHtCaps );
 
         // 802.11h support
         if (pAssocReq->powerCapabilityPresent && pAssocReq->supportedChannelsPresent)

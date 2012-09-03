@@ -3060,6 +3060,7 @@ typedef struct
 typedef struct
 {
    wpt_uint8     ucSendDataNull;
+   wpt_uint8     bssIdx;
 }WDI_ExitBmpsReqinfoType;
 
 /*---------------------------------------------------------------------------
@@ -3093,6 +3094,7 @@ typedef struct
    wpt_uint8     ucBeTriggerEnabled:1;
    wpt_uint8     ucViTriggerEnabled:1;
    wpt_uint8     ucVoTriggerEnabled:1;
+   wpt_uint8     bssIdx;
 }WDI_EnterUapsdReqinfoType;
 
 /*---------------------------------------------------------------------------
@@ -3277,6 +3279,7 @@ typedef struct
    wpt_uint8 srcIPv6AddrValid : 1;
    wpt_uint8 targetIPv6Addr1Valid : 1;
    wpt_uint8 targetIPv6Addr2Valid : 1;
+   wpt_uint8 bssIdx;
 } WDI_NSOffloadParams;
 #endif //WLAN_NS_OFFLOAD
 
@@ -3284,6 +3287,7 @@ typedef struct
 {
    wpt_uint8 ucOffloadType;
    wpt_uint8 ucEnableOrDisable;
+   wpt_uint8 bssIdx;
    union
    {
        wpt_uint8 aHostIpv4Addr [4];
@@ -3322,6 +3326,7 @@ typedef struct
     wpt_uint8  aHostIpv4Addr[4];
     wpt_uint8  aDestIpv4Addr[4];
     wpt_uint8  aDestMacAddr[6];
+    wpt_uint8  bssIdx;
 } WDI_KeepAliveReqType;
 
 /*---------------------------------------------------------------------------
@@ -3357,6 +3362,7 @@ typedef struct
    wpt_uint8  ucPatternMask[WDI_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
    wpt_uint8  ucPatternExt[WDI_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern
    wpt_uint8  ucPatternMaskExt[WDI_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra pattern mask
+   wpt_uint8  bssIdx;
 } WDI_WowlAddBcPtrnInfoType;
 
 /*---------------------------------------------------------------------------
@@ -4239,6 +4245,8 @@ typedef struct
   wpt_uint32                      numFieldParams;
   wpt_uint32                      coalesceTime;
   WDI_RcvPktFilterFieldParams     paramsData[1];
+  wpt_macAddr                     selfMacAddr;
+  wpt_macAddr                     bssId;
 }WDI_RcvPktFilterCfgType;
 
 typedef struct 
@@ -4314,6 +4322,8 @@ typedef struct
 {
   wpt_uint32   status;  /* only valid for response message */
   wpt_uint8    filterId;
+  wpt_macAddr  selfMacAddr;
+  wpt_macAddr  bssId;
 }WDI_RcvFltPktClearParam;
 
 typedef struct
@@ -4336,6 +4346,8 @@ typedef struct
 {
   wpt_uint32     ulMulticastAddrCnt;
   wpt_macAddr    multicastAddr[WDI_MAX_NUM_MULTICAST_ADDRESS];
+  wpt_macAddr    selfMacAddr;
+  wpt_macAddr    bssId;
 } WDI_RcvFltMcAddrListType;
 
 typedef struct

@@ -1873,7 +1873,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
     {
         //We are 11N. we need to protect from 11A and Ht20. we don't need any other protection in 5 GHZ.
         //HT20 case is common between both the bands and handled down as common code.
-        if(true == psessionEntry->htCapabality)
+        if(true == psessionEntry->htCapability)
         {
             //we are 11N and 11A station is joining.        
             //protection from 11A required.            
@@ -1890,7 +1890,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
 
         //We are 11G. Check if we need protection from 11b Stations.
         if ((phyMode == WNI_CFG_PHY_MODE_11G) &&
-              (false == psessionEntry->htCapabality))
+              (false == psessionEntry->htCapability))
         {
 
             if (pStaDs->erpEnabled== eHAL_CLEAR)
@@ -1903,7 +1903,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
         }
 
         //HT station.
-        if (true == psessionEntry->htCapabality)
+        if (true == psessionEntry->htCapability)
         {
             //check if we need protection from 11b station
             if ((pStaDs->erpEnabled == eHAL_CLEAR) &&
@@ -1928,7 +1928,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
     }
 
     //we are HT and HT station is joining. This code is common for both the bands.
-    if((true == psessionEntry->htCapabality) &&
+    if((true == psessionEntry->htCapability) &&
         (true == pStaDs->mlmStaContext.htCapability))
     {
         if(!pStaDs->htGreenfield)
@@ -2393,7 +2393,7 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
             }
         }
         //following code block is only for HT station.
-        if((psessionEntry->htCapabality) &&
+        if((psessionEntry->htCapability) &&
               (pBeaconStruct->HTInfo.present))
         {
             tDot11fIEHTInfo htInfo = pBeaconStruct->HTInfo;
@@ -2436,7 +2436,7 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
     }
 
     //protection related factors other than HT operating mode. Applies to 2.4 GHZ as well as 5 GHZ.
-    if((psessionEntry->htCapabality) &&
+    if((psessionEntry->htCapability) &&
           (pBeaconStruct->HTInfo.present))
     {
         tDot11fIEHTInfo htInfo = pBeaconStruct->HTInfo;
@@ -2471,7 +2471,7 @@ limDecideStaProtection(tpAniSirGlobal pMac,
     if(SIR_BAND_5_GHZ == rfBand)
     {
         //we are HT capable.
-        if((true == psessionEntry->htCapabality) &&
+        if((true == psessionEntry->htCapability) &&
             (pBeaconStruct->HTInfo.present))
         {
             //we are HT capable, AP's HT OPMode is mixed / overlap legacy ==> need protection from 11A.        
@@ -2521,7 +2521,7 @@ limDecideStaProtection(tpAniSirGlobal pMac,
          }
 
         //following code block is only for HT station.
-        if((psessionEntry->htCapabality) &&
+        if((psessionEntry->htCapability) &&
               (pBeaconStruct->HTInfo.present))
         {
           
@@ -2565,7 +2565,7 @@ limDecideStaProtection(tpAniSirGlobal pMac,
     }
 
     //following code block is only for HT station. ( 2.4 GHZ as well as 5 GHZ)
-    if((psessionEntry->htCapabality) &&
+    if((psessionEntry->htCapability) &&
           (pBeaconStruct->HTInfo.present))
     {
         tDot11fIEHTInfo htInfo = pBeaconStruct->HTInfo;    
@@ -2690,7 +2690,7 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
 
         case eLIM_CHANNEL_SWITCH_SECONDARY_ONLY:
             PELOGW(limLog(pMac, LOGW, FL("CHANNEL_SWITCH_SECONDARY_ONLY \n"));)
-            limSwitchPrimarySecondaryChannel(pMac,
+            limSwitchPrimarySecondaryChannel(pMac, psessionEntry,
                                              psessionEntry->currentOperChannel,
                                              psessionEntry->gLimChannelSwitch.secondarySubBand);
             psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_IDLE;
@@ -2698,7 +2698,7 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
 
         case eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY:
             PELOGW(limLog(pMac, LOGW, FL("CHANNEL_SWITCH_PRIMARY_AND_SECONDARY\n"));)
-            limSwitchPrimarySecondaryChannel(pMac,
+            limSwitchPrimarySecondaryChannel(pMac, psessionEntry,
                                              psessionEntry->gLimChannelSwitch.primaryChannel,
                                              psessionEntry->gLimChannelSwitch.secondarySubBand);
             psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_IDLE;
@@ -2751,7 +2751,7 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
         /*      primary, secondary, both.  For now assume both. */
         psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
         psessionEntry->gLimChannelSwitch.primaryChannel = pPropChnlSwitch->primaryChannel;
-        psessionEntry->gLimChannelSwitch.secondarySubBand = (tAniCBSecondaryMode)pPropChnlSwitch->subBand;
+        psessionEntry->gLimChannelSwitch.secondarySubBand = (ePhyChanBondState)pPropChnlSwitch->subBand;
         psessionEntry->gLimChannelSwitch.switchCount = pPropChnlSwitch->channelSwitchCount;
         psessionEntry->gLimChannelSwitch.switchTimeoutValue =
                  SYS_MS_TO_TICKS(beaconPeriod)* (pPropChnlSwitch->channelSwitchCount);
@@ -2768,34 +2768,23 @@ limUpdateChannelSwitch(struct sAniSirGlobal *pMac,  tpSirProbeRespBeacon pBeacon
 
         /* Only primary channel switch element is present */
         psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
-        psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_NONE;
+        psessionEntry->gLimChannelSwitch.secondarySubBand = PHY_SINGLE_CHANNEL_CENTERED;
 
         /* Do not bother to look and operate on extended channel switch element
          * if our own channel-bonding state is not enabled
          */
-        if(GET_CB_ADMIN_STATE(pMac->lim.gCbState))
+        if (psessionEntry->htSupportedChannelWidthSet)
         {
             if (pBeacon->extChannelSwitchPresent)
             {
-                switch(pBeacon->extChannelSwitchIE.secondaryChannelOffset)
+                if ((pBeacon->extChannelSwitchIE.secondaryChannelOffset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY) || 
+                    (pBeacon->extChannelSwitchIE.secondaryChannelOffset == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY))
                 {
-                    case eHT_SECONDARY_CHANNEL_OFFSET_UP:
-                        psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-                        psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_UP;
-                        break;
-
-                    case eHT_SECONDARY_CHANNEL_OFFSET_DOWN:
-                        psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
-                        psessionEntry->gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_DOWN;
-                        break;
-
-                    case eHT_SECONDARY_CHANNEL_OFFSET_NONE:
-                    default:
-                        /* Nothing to be done here as of now!! */
-                        break;
+                    psessionEntry->gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY;
+                    psessionEntry->gLimChannelSwitch.secondarySubBand = pBeacon->extChannelSwitchIE.secondaryChannelOffset;
                 }
-           }
-       }
+            }
+        }
     }
 
     if (eSIR_SUCCESS != limStartChannelSwitch(pMac, psessionEntry))
@@ -3469,59 +3458,6 @@ limUtilCountStaDel(
     schEdcaProfileUpdate(pMac, psessionEntry);
 }
 
-/** -------------------------------------------------------------
-\fn limGetHtCbAdminState
-\brief provides CB Admin state
-\param     tpAniSirGlobal    pMac
-\param     tDot11fIEHTCaps htCaps,
-\param     tANI_U8 *titanHtCaps 
-\return     none
-  -------------------------------------------------------------*/
-void limGetHtCbAdminState( tpAniSirGlobal pMac,
-        tDot11fIEHTCaps htCaps,
-        tANI_U8 *titanHtCaps )
-{
-    // Extract secondary channel info wrt Channel Bonding
-    if(htCaps.supportedChannelWidthSet)
-        SME_SET_CB_ADMIN_STATE( *titanHtCaps, eHAL_SET );    
-    else
-        SME_SET_CB_ADMIN_STATE( *titanHtCaps, eHAL_CLEAR);
-    
-
-  // And the final TITAN HT capabilities bitmap is...
-  limLog( pMac, LOG2,
-      FL("TITAN HT capabilities in BSS Description = %1d\n"),
-        *titanHtCaps);
-}
-/** -------------------------------------------------------------
-\fn limGetHtCbOpState
-\brief provides CB operational state
-\param     tpAniSirGlobal    pMac
-\param     tDot11fIEHTInfo htInfo,
-\param     tANI_U8 *titanHtCaps
-\return     none
-  -------------------------------------------------------------*/
-void limGetHtCbOpState( tpAniSirGlobal pMac,
-        tDot11fIEHTInfo htInfo,
-        tANI_U8 *titanHtCaps )
-{
-    // Extract secondary channel info wrt Channel Bonding
-    if(htInfo.secondaryChannelOffset)
-    {
-      if(PHY_DOUBLE_CHANNEL_LOW_PRIMARY == htInfo.secondaryChannelOffset)
-          SME_SET_CB_OPER_STATE( *titanHtCaps,
-            eANI_CB_SECONDARY_UP );
-      else if(PHY_DOUBLE_CHANNEL_HIGH_PRIMARY == htInfo.secondaryChannelOffset)
-          SME_SET_CB_OPER_STATE( *titanHtCaps,
-            eANI_CB_SECONDARY_DOWN );
-    }
-
-  // And the final TITAN HT capabilities bitmap is...
-  limLog( pMac, LOG2,
-      FL("TITAN HT capabilities in BSS Description = %1d\n"),
-        *titanHtCaps);
-}
-
 /**
  * limSwitchChannelCback()
  *
@@ -3609,7 +3545,7 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
     pMac->lim.gpchangeChannelData = NULL;
 
 #if defined WLAN_FEATURE_VOWIFI  
-    limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_NONE,
+    limSendSwitchChnlParams(pMac, newChannel, PHY_SINGLE_CHANNEL_CENTERED,
                                                    psessionEntry->maxTxPower, psessionEntry->peSessionId);
 #else
     if(wlan_cfgGetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, &localPwrConstraint) != eSIR_SUCCESS)
@@ -3617,7 +3553,7 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
         limLog( pMac, LOGP, FL( "Unable to read Local Power Constraint from cfg\n" ));
         return;
     }
-    limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_NONE,
+    limSendSwitchChnlParams(pMac, newChannel, PHY_SINGLE_CHANNEL_CENTERED,
                                                    (tPowerdBm)localPwrConstraint, psessionEntry->peSessionId);
 #endif
     return;
@@ -3642,13 +3578,12 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
  *                       - eANI_CB_SECONDARY_DOWN
  * @return NONE
  */
-void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel, tAniCBSecondaryMode subband)
+void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 newChannel, ePhyChanBondState subband)
 {
 #if !defined WLAN_FEATURE_VOWIFI  
     tANI_U32 localPwrConstraint;
 #endif
 
-    tpPESession psessionEntry =  &pMac->lim.gpSession[0]; //TBD-RAJESH HOW TO GET sessionEntry?????
 #if !defined WLAN_FEATURE_VOWIFI  
     if(wlan_cfgGetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, &localPwrConstraint) != eSIR_SUCCESS) {
         limLog( pMac, LOGP, FL( "Unable to get Local Power Constraint from cfg\n" ));
@@ -3656,104 +3591,35 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel, t
     }
 #endif
 
-    switch(subband)
-    {
-        case eANI_CB_SECONDARY_NONE:
-            PELOGW(limLog(pMac, LOGW, FL("Disable CB SECONDARY\n"));)
-            /* If CB was on, turn it off, otherwise, do nothing */
-            if(GET_CB_OPER_STATE(pMac->lim.gCbState))
-            {
-                /* Turn off CB in HW and SW.  SW and HW cbstate must match!  Otherwise, will hit ASSERT case */
-                SET_CB_OPER_STATE(pMac->lim.gCbState, eHAL_CLEAR);
-                /* Clean up station entry if we're not STA */
-            }
-            if (cfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, WNI_CFG_CB_SECONDARY_CHANNEL_STATE_NONE) != eSIR_SUCCESS)
-                limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
-
 #if defined WLAN_FEATURE_VOWIFI  
-            limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_NONE, psessionEntry->maxTxPower, psessionEntry->peSessionId);
+                limSendSwitchChnlParams(pMac, newChannel, subband, psessionEntry->maxTxPower, psessionEntry->peSessionId);
 #else
-            //Send Message to HAL to update the channel
-            limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_NONE, (tPowerdBm)localPwrConstraint, psessionEntry->peSessionId);
+                limSendSwitchChnlParams(pMac, newChannel, subband, (tPowerdBm)localPwrConstraint, psessionEntry->peSessionId);
 #endif
-            break;
 
-        case eANI_CB_SECONDARY_UP:
-            PELOGW(limLog(pMac, LOGW, FL("Switch CB SECONDARY to UP.\n"));)
-            SET_CB_SEC_CHANNEL(pMac->lim.gCbState, eHAL_SET);
-            if (cfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, WNI_CFG_CB_SECONDARY_CHANNEL_STATE_HIGHER) != eSIR_SUCCESS)
-                limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
-
-            /* If CB was off, turn it on, otherwise, do nothing */
-            if(!GET_CB_OPER_STATE(pMac->lim.gCbState))
-            {
-                /* Turn on CB in HW and SW.  SW and HW cbstate must match!  Otherwise, will hit ASSERT case */
-                SET_CB_OPER_STATE(pMac->lim.gCbState, eHAL_SET);
-            }
-            //Send Message to HAL to update the channel
-            //enums for secondary channel offset for Titan and 11n are different
-#if defined WLAN_FEATURE_VOWIFI  
-            limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_UP, psessionEntry->maxTxPower, psessionEntry->peSessionId);
-#else
-            limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_UP, (tPowerdBm)localPwrConstraint, psessionEntry->peSessionId);
-#endif
-            break;
-
-        case eANI_CB_SECONDARY_DOWN:
-            PELOGW(limLog(pMac, LOGW, FL("Switch CB SECONDARY to LOWER.\n"));)
-            SET_CB_SEC_CHANNEL(pMac->lim.gCbState, eHAL_CLEAR);
-            if (cfgSetInt(pMac, WNI_CFG_CB_SECONDARY_CHANNEL_STATE, WNI_CFG_CB_SECONDARY_CHANNEL_STATE_LOWER) != eSIR_SUCCESS)
-                limLog(pMac, LOGP, FL("cfgSetInt WNI_CFG_CB_SECONDARY_CHANNEL_STATE failed \n"));
-            /* If CB was off, turn it on, otherwise, do nothing */
-            if(!GET_CB_OPER_STATE(pMac->lim.gCbState))
-            {
-                /* Turn on CB in HW and SW.  SW and HW cbstate must match!  Otherwise, will hit ASSERT case */
-                SET_CB_OPER_STATE(pMac->lim.gCbState, eHAL_SET);
-                /* Update station entry if we're not STA */
-            }
-            //Send Message to HAL to update the channel
-            //enums for secondary channel offset for Titan and 11n are different
-#if defined WLAN_FEATURE_VOWIFI  
-            limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_NONE, psessionEntry->maxTxPower, psessionEntry->peSessionId);
-#else
-            limSendSwitchChnlParams(pMac, newChannel, eHT_SECONDARY_CHANNEL_OFFSET_DOWN, (tPowerdBm)localPwrConstraint, psessionEntry->peSessionId);
-#endif
-            break;
-  //      case eANI_CB_SECONDARY_CENTERED:
-#ifdef WLAN_FEATURE_11AC
-        case eANI_CB_11AC_20MHZ_LOW_40MHZ_CENTERED:
-        case eANI_CB_11AC_20MHZ_CENTERED_40MHZ_CENTERED:
-        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_CENTERED:
-        case eANI_CB_11AC_20MHZ_LOW_40MHZ_LOW:
-        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_LOW:
-        case eANI_CB_11AC_20MHZ_LOW_40MHZ_HIGH:
-        case eANI_CB_11AC_20MHZ_HIGH_40MHZ_HIGH:
-#endif
-            break;
-        case eANI_DONOT_USE_SECONDARY_MODE:
-            break;
-    }
-
-
-    // We should only be changing primary and secondary channels on the fly
-    // if this is 11h enabled.
-    if (
-#if 0
-        pSessionEntry->lim11hEnable &&
-#endif
-        psessionEntry->currentOperChannel != newChannel)
+    // Store the new primary and secondary channel in session entries if different
+    if (psessionEntry->currentOperChannel != newChannel)
     {
         limLog(pMac, LOGW,
             FL("switch old chnl %d --> new chnl %d \n"),
             psessionEntry->currentOperChannel, newChannel);
-
-        #if 0
-
-        if (cfgSetInt(pMac, WNI_CFG_CURRENT_CHANNEL, newChannel) != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("set CURRENT_CHANNEL at CFG fail.\n"));
-        #endif // TO SUPPORT BT-AMP
-
         psessionEntry->currentOperChannel = newChannel;
+    }
+    if (psessionEntry->htSecondaryChannelOffset != subband)
+    {
+        limLog(pMac, LOGW,
+            FL("switch old sec chnl %d --> new sec chnl %d \n"),
+            psessionEntry->htSecondaryChannelOffset, subband);
+        psessionEntry->htSecondaryChannelOffset = subband;
+        if (psessionEntry->htSecondaryChannelOffset == PHY_SINGLE_CHANNEL_CENTERED)
+        {
+            psessionEntry->htSupportedChannelWidthSet = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+        }
+        else
+        {
+            psessionEntry->htSupportedChannelWidthSet = WNI_CFG_CHANNEL_BONDING_MODE_ENABLE;
+        }
+        psessionEntry->htRecommendedTxWidthSet = psessionEntry->htSupportedChannelWidthSet;
     }
 
     return;
@@ -4043,7 +3909,7 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
       break;
 
     case eHT_SUPPORTED_CHANNEL_WIDTH_SET:
-      retVal = (tANI_U8) macHTCapabilityInfo.supportedChannelWidthSet;
+      retVal = (tANI_U8) psessionEntry->htSupportedChannelWidthSet;
       break;
 
     case eHT_ADVANCED_CODING:
@@ -4091,11 +3957,11 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
       break;
 
     case eHT_RECOMMENDED_TX_WIDTH_SET:
-      retVal = pMac->lim.gHTRecommendedTxWidthSet;
+      retVal = psessionEntry->htRecommendedTxWidthSet;
       break;
 
     case eHT_EXTENSION_CHANNEL_OFFSET:
-      retVal = pMac->lim.gHTSecondaryChannelOffset;
+      retVal = psessionEntry->htSecondaryChannelOffset;
       break;
 
     case eHT_OP_MODE:
@@ -4134,20 +4000,6 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
   return retVal;
 }
 
-#if 0
-void limSetBssid(tpAniSirGlobal pMac, tANI_U8 *bssId)
-{
-    palCopyMemory( pMac->hHdd, pMac->lim.gLimBssid, bssId, sizeof(tSirMacAddr));
-    return;
-}
-
-void limGetBssid(tpAniSirGlobal pMac, tANI_U8 *bssId)
-{
-    palCopyMemory( pMac->hHdd, bssId, pMac->lim.gLimBssid, sizeof(tSirMacAddr));
-    return;
-}
-
-#endif
 void limGetMyMacAddr(tpAniSirGlobal pMac, tANI_U8 *mac)
 {
     palCopyMemory( pMac->hHdd, mac, pMac->lim.gLimMyMacAddr, sizeof(tSirMacAddr));
@@ -4199,7 +4051,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
         if(((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))&&
-              (true == psessionEntry->htCapabality))
+              (true == psessionEntry->htCapability))
         {
             if(overlap)
             {
@@ -4248,7 +4100,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 pMac->lim.gLimOverlap11aParams.protectionEnabled = false;
 
                 //We need to take care of HT OP mode iff we are HT AP.
-                if(psessionEntry->htCapabality)
+                if(psessionEntry->htCapability)
                 {
                    // no HT op mode change if any of the overlap protection enabled.
                     if(!(pMac->lim.gLimOverlap11aParams.protectionEnabled ||
@@ -4382,7 +4234,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             {
                 psessionEntry->gLimOlbcParams.protectionEnabled = true;
                 PELOGE(limLog(pMac, LOGE, FL("protection from olbc is enabled\n"));)
-                if(true == psessionEntry->htCapabality)
+                if(true == psessionEntry->htCapability)
                 {
                     if((eSIR_HT_OP_MODE_OVERLAP_LEGACY != psessionEntry->htOperMode) &&
                             (eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode))
@@ -4401,7 +4253,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             {
                 psessionEntry->gLim11bParams.protectionEnabled = true;
                 PELOGE(limLog(pMac, LOGE, FL("protection from 11b is enabled\n"));)
-                if(true == psessionEntry->htCapabality)
+                if(true == psessionEntry->htCapability)
                 {
                     if(eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode)
                     {
@@ -4412,10 +4264,10 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 }
             }
         }else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&
-                (true == psessionEntry->htCapabality))
+                (true == psessionEntry->htCapability))
 #else
             if(((eLIM_AP_ROLE == psessionEntry->limSystemRole)|| (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)) &&
-                    (true == psessionEntry->htCapabality))
+                    (true == psessionEntry->htCapability))
 #endif
             {
                 if(overlap)
@@ -4467,7 +4319,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 psessionEntry->gLimOlbcParams.protectionEnabled = false;
 
                 //We need to take care of HT OP mode if we are HT AP.
-                if(psessionEntry->htCapabality)
+                if(psessionEntry->htCapability)
                 {
                     // no HT op mode change if any of the overlap protection enabled.
                     if(!(psessionEntry->gLimOverlap11gParams.protectionEnabled ||
@@ -4545,7 +4397,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 psessionEntry->gLimOlbcParams.protectionEnabled = false;
 
                     //We need to take care of HT OP mode iff we are HT AP.
-                    if(psessionEntry->htCapabality)
+                    if(psessionEntry->htCapability)
                     {
                         // no HT op mode change if any of the overlap protection enabled.
                         if(!(pMac->lim.gLimOverlap11gParams.protectionEnabled ||
@@ -4630,7 +4482,7 @@ tSirRetStatus
 limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-    if(!psessionEntry->htCapabality)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // protection from 11g is only for HT stations.
 
     //overlapping protection configuration check.
@@ -4930,7 +4782,7 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 {
 
 
-    if(!psessionEntry->htCapabality)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
     //overlapping protection configuration check.
@@ -5022,7 +4874,7 @@ tSirRetStatus
 limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-    if(!psessionEntry->htCapabality)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
@@ -5250,7 +5102,7 @@ tSirRetStatus
 limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-    if(!psessionEntry->htCapabality)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
@@ -5333,7 +5185,7 @@ tSirRetStatus
 limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-    if(!psessionEntry->htCapabality)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
@@ -5418,7 +5270,7 @@ tSirRetStatus
 limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-    if(!psessionEntry->htCapabality)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
 
@@ -5648,7 +5500,7 @@ void limUpdateStaRunTimeHTSwitchChnlParams( tpAniSirGlobal   pMac,
                                   tANI_U8          bssIdx,
                                   tpPESession      psessionEntry)
 {
-    tSirMacHTSecondaryChannelOffset secondaryChnlOffset = eHT_SECONDARY_CHANNEL_OFFSET_NONE;
+    ePhyChanBondState secondaryChnlOffset = PHY_SINGLE_CHANNEL_CENTERED;
 #if !defined WLAN_FEATURE_VOWIFI  
     tANI_U32 localPwrConstraint;
 #endif
@@ -5668,20 +5520,13 @@ void limUpdateStaRunTimeHTSwitchChnlParams( tpAniSirGlobal   pMac,
     }
 #endif
 
-    if ( pMac->lim.gHTSecondaryChannelOffset != ( tANI_U8 ) pHTInfo->secondaryChannelOffset ||
-         pMac->lim.gHTRecommendedTxWidthSet  != ( tANI_U8 ) pHTInfo->recommendedTxWidthSet )
+    if ( psessionEntry->htSecondaryChannelOffset != ( tANI_U8 ) pHTInfo->secondaryChannelOffset ||
+         psessionEntry->htRecommendedTxWidthSet  != ( tANI_U8 ) pHTInfo->recommendedTxWidthSet )
     {
-        pMac->lim.gHTSecondaryChannelOffset = ( tSirMacHTSecondaryChannelOffset ) pHTInfo->secondaryChannelOffset;
-        pMac->lim.gHTRecommendedTxWidthSet  = ( tANI_U8 ) pHTInfo->recommendedTxWidthSet;
-        //Also update the Proprietary(Titan) CB mode settings, as this setting is used during 
-        //background scanning to set the original channel and CB mode as part of finish scan.
-        setupCBState( pMac,  limGetAniCBState(pMac->lim.gHTSecondaryChannelOffset));
-
-        // If the Channel Width is 20Mhz, set the channel offset to
-        // NONE.  If the Channel Width is 40Mhz, set the channel offset
-        // to what ever is present in beacon.
-        if ( eHT_CHANNEL_WIDTH_40MHZ == pMac->lim.gHTRecommendedTxWidthSet )
-            secondaryChnlOffset = (tSirMacHTSecondaryChannelOffset)pHTInfo->secondaryChannelOffset;
+        psessionEntry->htSecondaryChannelOffset = ( ePhyChanBondState ) pHTInfo->secondaryChannelOffset;
+        psessionEntry->htRecommendedTxWidthSet  = ( tANI_U8 ) pHTInfo->recommendedTxWidthSet;
+        if ( eHT_CHANNEL_WIDTH_40MHZ == psessionEntry->htRecommendedTxWidthSet )
+            secondaryChnlOffset = (ePhyChanBondState)pHTInfo->secondaryChannelOffset;
 
         // Notify HAL
         limLog( pMac, LOGW,  FL( "Channel Information in HT IE change"
@@ -5689,7 +5534,7 @@ void limUpdateStaRunTimeHTSwitchChnlParams( tpAniSirGlobal   pMac,
         limLog( pMac, LOGW,  FL( "Primary Channel: %d, Secondary Chan"
                                  "nel Offset: %d, Channel Width: %d\n" ),
                 pHTInfo->primaryChannel, secondaryChnlOffset,
-                pMac->lim.gHTRecommendedTxWidthSet );
+                psessionEntry->htRecommendedTxWidthSet );
 
 #if defined WLAN_FEATURE_VOWIFI  
         limSendSwitchChnlParams( pMac, ( tANI_U8 ) pHTInfo->primaryChannel,
@@ -5763,15 +5608,15 @@ void limUpdateStaRunTimeHTCapability( tpAniSirGlobal   pMac,
 void limUpdateStaRunTimeHTInfo( tpAniSirGlobal  pMac,
                                 tDot11fIEHTInfo *pHTInfo , tpPESession psessionEntry)
 {
-    if ( pMac->lim.gHTSecondaryChannelOffset != ( tANI_U8)pHTInfo->secondaryChannelOffset)
+    if ( psessionEntry->htSecondaryChannelOffset != ( tANI_U8)pHTInfo->secondaryChannelOffset)
     {
-        pMac->lim.gHTSecondaryChannelOffset = ( tSirMacHTSecondaryChannelOffset )pHTInfo->secondaryChannelOffset;
+        psessionEntry->htSecondaryChannelOffset = ( ePhyChanBondState )pHTInfo->secondaryChannelOffset;
         // Send change notification to HAL
     }
 
-    if ( pMac->lim.gHTRecommendedTxWidthSet != ( tANI_U8 )pHTInfo->recommendedTxWidthSet )
+    if ( psessionEntry->htRecommendedTxWidthSet != ( tANI_U8 )pHTInfo->recommendedTxWidthSet )
     {
-        pMac->lim.gHTRecommendedTxWidthSet = ( tANI_U8 )pHTInfo->recommendedTxWidthSet;
+        psessionEntry->htRecommendedTxWidthSet = ( tANI_U8 )pHTInfo->recommendedTxWidthSet;
         // Send change notification to HAL
     }
 
@@ -6097,7 +5942,7 @@ limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     }
        
     //if we are not HT capable we don't need to handle BA timeout indication from HAL.
-    if( (baCandidateCnt  > pMac->lim.maxStation) || !psessionEntry->htCapabality )
+    if( (baCandidateCnt  > pMac->lim.maxStation) || !psessionEntry->htCapability )
     {
         palFreeMemory(pMac->hHdd, limMsg->bodyptr);
         return;
@@ -7999,19 +7844,20 @@ v_U8_t limGetNoaAttrStream(tpAniSirGlobal pMac, v_U8_t*pNoaStream,tpPESession ps
     return 0;
         
 }
-void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, tANI_U8 cbState)
+
+void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, ePhyChanBondState phyCbState)
 {
 
    pMac->lim.gResumeChannel = channel;
-   //TODO : Save Cb State also.
-
+   pMac->lim.gResumePhyCbState = phyCbState;
 }
+
 /*--------------------------------------------------------------------------
   
   \brief peGetResumeChannel() - Returns the  channel number for scanning, from a valid session.
 
-  This function itrates the session Table and returns the channel number from first valid session
-   if no sessions are valid/present  it returns zero
+  This function returns the channel to resume to during link resume. channel id of 0 means HAL will
+  resume to previous channel before link suspend
     
   \param pMac                   - pointer to global adapter context
   \return                           - channel to scan from valid session else zero.
@@ -8019,9 +7865,7 @@ void peSetResumeChannel(tpAniSirGlobal pMac, tANI_U16 channel, tANI_U8 cbState)
   \sa
   
   --------------------------------------------------------------------------*/
-
-tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac)
-
+void peGetResumeChannel(tpAniSirGlobal pMac, tANI_U8* resumeChannel, ePhyChanBondState* resumePhyCbState)
 {
 
     //Rationale - this could be the suspend/resume for assoc and it is essential that
@@ -8032,14 +7876,16 @@ tANI_U8 peGetResumeChannel(tpAniSirGlobal pMac)
     if( !limIsInMCC(pMac) )    
     {
         //Get current active session channel
-        return peGetActiveSessionChannel(pMac);
+        peGetActiveSessionChannel(pMac, resumeChannel, resumePhyCbState);
     }
     else
     {
-        return pMac->lim.gResumeChannel;
+        *resumeChannel = pMac->lim.gResumeChannel;
+        *resumePhyCbState = pMac->lim.gResumePhyCbState;
     }
-
+    return;
 }
+
 
 #endif
 

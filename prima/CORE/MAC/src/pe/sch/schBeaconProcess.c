@@ -70,7 +70,7 @@ ap_beacon_process(
 
     if(SIR_BAND_5_GHZ == rfBand)
     {
-        if (psessionEntry->htCapabality)
+        if (psessionEntry->htCapability)
         {
             if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)
             {
@@ -107,7 +107,7 @@ ap_beacon_process(
     {
         //We are 11G AP.
         if ((phyMode == WNI_CFG_PHY_MODE_11G) &&
-              (false == psessionEntry->htCapabality))
+              (false == psessionEntry->htCapability))
         {
             if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)        
             {
@@ -134,7 +134,7 @@ ap_beacon_process(
             }
         }        
         // handling the case when HT AP has overlapping legacy BSS.
-        else if(psessionEntry->htCapabality)
+        else if(psessionEntry->htCapability)
         {             
             if (pBcnStruct->channelNumber == psessionEntry->currentOperChannel)
             {
@@ -457,7 +457,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
             sendProbeReq = TRUE;
     }
 
-    if ( pMac->lim.htCapability && pBeacon->HTInfo.present )
+    if ( psessionEntry->htCapability && pBeacon->HTInfo.present )
     {
         limUpdateStaRunTimeHTSwitchChnlParams( pMac, &pBeacon->HTInfo, bssIdx,psessionEntry);
     }
