@@ -9425,10 +9425,35 @@ WLANTL_STAFetchPktDefaultCb
   WLANTL_MetaInfoType*   tlMetaInfo
 )
 {
-  TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
-             "WLAN TL:Fatal failure: No registered STA client on data pkt RX"));
-  VOS_ASSERT(0);
-  return VOS_STATUS_E_FAILURE;
+
+  WLANTL_CbType*  pTLCb = NULL;
+  pTLCb = VOS_GET_TL_CB(pvosGCtx);
+
+  vos_pkt_return_packet(*vosDataBuff);
+
+  if ( NULL == pTLCb )
+  {
+	TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+	  "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_RegisterSTAClient"));
+	return VOS_STATUS_E_FAULT;
+  }
+  
+  if ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucExists )
+  {
+ 
+	TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+	   "WLAN TL:Station is not registered on WLANTL_RegisterSTAClient"));
+	return VOS_STATUS_E_EXISTS;
+  }
+
+  else
+  {
+
+    TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+        "WLAN TL:Fatal failure: No registered STA client on data pkt RX"));
+    VOS_ASSERT(0);
+    return VOS_STATUS_E_FAILURE;
+  }
 }/*WLANTL_MgmtFrmRxDefaultCb*/
 
 /*==========================================================================

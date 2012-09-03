@@ -2718,14 +2718,18 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
     unsigned int freq;
     struct ieee80211_channel *chan;
+    struct cfg80211_bss *bss_status = NULL;
+    int rssi = 0;
+
+#if (LINUX_VERSION_CODE <=  KERNEL_VERSION(3,0,0))
     struct ieee80211_mgmt *mgmt =
         kzalloc((sizeof (struct ieee80211_mgmt) + ie_length), GFP_KERNEL);
-    struct cfg80211_bss *bss_status = NULL;
     size_t frame_len = sizeof (struct ieee80211_mgmt) + ie_length;
-    int rssi = 0;
+#endif
 
     ENTER();
 
+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(3,0,0))
     if ( NULL == mgmt )
     {
        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Management frame is  NULL",__func__);
@@ -2741,6 +2745,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 
     mgmt->frame_control |=
         (u16)( (SIR_MAC_MGMT_FRAME << 2) | (SIR_MAC_MGMT_PROBE_RSP << 4));
+#endif
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
     if (chan_no <= ARRAY_SIZE(hdd_2GHZ_channels))
@@ -2774,9 +2779,17 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
        rssi = (VOS_MIN ((bss_desc->rssi + bss_desc->sinr), 0))*100;
     }
 
+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(3,0,0))
     bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt,
             frame_len, rssi, GFP_KERNEL);
     kfree(mgmt);
+#else
+    bss_status = cfg80211_inform_bss(wiphy, chan, bss_desc->bssId,
+                le64_to_cpu(*(__le64 *)bss_desc->timeStamp),
+                bss_desc->capabilityInfo,
+                bss_desc->beaconInterval, ie, ie_length,
+                rssi, GFP_KERNEL );
+#endif
 
     return bss_status;
 }
@@ -2971,11 +2984,11 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
 
 #ifdef WLAN_FEATURE_P2P
     /* Flush out scan result after p2p_serach is done */
-    if(pScanInfo->p2pSearch )
+    if(pScanInfo->flushP2pScanResults)
     {
         tANI_U8 sessionId = pAdapter->sessionId;
         sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId);
-        pScanInfo->p2pSearch = 0;
+        pScanInfo->flushP2pScanResults = 0;
     }
 #endif
 
@@ -3160,12 +3173,18 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                     hddLog(VOS_TRACE_LEVEL_INFO,
                            "%s: This is a P2P Search", __func__);
                     scanRequest.p2pSearch = 1;
-                    pScanInfo->p2pSearch = 1;
+
+                    /* Flush the scan results only for P2P search.
+                       P2P search happens on 3 social channels (1, 6, 11) */
+                    if( request->n_channels == WLAN_HDD_P2P_SOCIAL_CHANNELS )
+                    {
+                         pScanInfo->flushP2pScanResults = 1;
+                         sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                          sessionId );
+                    }
 
                     /* set requestType to P2P Discovery */
                     scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
-                    sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                          sessionId );
                 }
             }
 #endif

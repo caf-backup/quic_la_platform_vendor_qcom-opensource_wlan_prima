@@ -218,4 +218,20 @@ v_BOOL_t vos_is_apps_power_collapse_allowed(void* pHddCtx);
 void vos_abort_mac_scan(void);
 VOS_STATUS  vos_conf_hostarpoffload(v_BOOL_t fenable);
 VOS_STATUS vos_get_mac_address_from_nv(v_U8_t* macAddress);
+/**
+  @brief vos_wlanRestart() - This API will reload WLAN driver.
+
+  This function is called if driver detects any fatal state which
+  can be recovered by a WLAN module reload ( Android framwork initiated ).
+  Note that this API will not initiate any RIVA subsystem restart.
+
+  @param
+       NONE
+  @return
+       VOS_STATUS_SUCCESS   - Operation completed successfully.
+       VOS_STATUS_E_FAILURE - Operation failed.
+
+*/
+VOS_STATUS vos_wlanRestart(void);
+
 #endif // if !defined __VOS_NVITEM_H

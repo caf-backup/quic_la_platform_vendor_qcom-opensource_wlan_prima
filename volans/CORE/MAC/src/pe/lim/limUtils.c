@@ -948,11 +948,11 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimMinChannelTimer);
         tx_timer_deactivate(&pMac->lim.limTimers.gLimMaxChannelTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimMaxChannelTimer);
-        if(pMac->btc.btcAclCount)
-        {
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
-        }
+
+        //timers used for BTC
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
+
 
         // Deactivate and delete channel switch timer.
         tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer);
