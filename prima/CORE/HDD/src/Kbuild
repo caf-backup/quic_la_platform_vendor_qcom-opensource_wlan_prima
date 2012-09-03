@@ -15,6 +15,9 @@ PANIC_ON_BUG := 0
 #Flag to enable Legacy Fast Roaming(LFR), default is y
 CONFIG_QCOM_LFR := y
 
+#JB kernel has PMKSA patches, hence enabling this flag
+CONFIG_QCOM_OKC := y
+
 WLAN_DIR 		:= $(WLAN_PRIMA)/CORE
 
 ifeq ($(CONFIG_CFG80211),y)
