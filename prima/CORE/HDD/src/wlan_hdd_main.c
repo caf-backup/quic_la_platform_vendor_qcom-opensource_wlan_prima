@@ -380,7 +380,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                ret = -EFAULT;
            }
        }
-       if(strncmp(priv_data.buf, "SETBAND", 7) == 0)
+       else if(strncmp(priv_data.buf, "SETBAND", 7) == 0)
        {
            tANI_U8 *ptr = (tANI_U8*)priv_data.buf ;
            int ret = 0 ;
@@ -395,6 +395,20 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
            /* Change band request received */
            ret = hdd_setBand_helper(dev, ptr);   
        } 
+       else if ( strncasecmp(command, "COUNTRY", 7) == 0 )
+       {
+           char *country_code;
+
+           country_code = command + 8;
+           ret = (int)sme_ChangeCountryCode(pHddCtx->hHal, NULL, country_code,
+                    pAdapter, pHddCtx->pvosContext);
+           if( 0 != ret )
+           {
+               VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                       "%s: SME Change Country code fail ret=%d\n",__func__, ret);
+
+           }
+       }
    }
 exit:
    if (command)
