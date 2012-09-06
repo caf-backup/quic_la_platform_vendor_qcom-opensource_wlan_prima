@@ -93,26 +93,24 @@ limCreateTimers(tpAniSirGlobal pMac)
      * timer. Probe request sends periodically till min/max channel
      * timer expires
      */
-    if(pMac->btc.btcAclCount)
-	{
-        cfgValue = cfgValue/2 ;
-        if( cfgValue >= 1)
-        {
-            // Create periodic probe request timer and activate them later
-            if ((tx_timer_create(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer,
-                           "Periodic Probe Request Timer",
-                           limTimerHandler, SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT,
-                           cfgValue, 0,
-                           TX_NO_ACTIVATE)) != TX_SUCCESS)
-            {
+
+    cfgValue = cfgValue/2 ;
+    if( cfgValue >= 1)
+    {
+         // Create periodic probe request timer and activate them later
+         if ((tx_timer_create(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer,
+               "Periodic Probe Request Timer",
+               limTimerHandler, SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT,
+               cfgValue, 0,
+               TX_NO_ACTIVATE)) != TX_SUCCESS)
+         {
              /// Could not start Periodic Probe Req timer.
              // Log error
                 limLog(pMac, LOGP, FL("could not create periodic probe timer\n"));
                 goto err_timer;
-            }
          }
-     }
-
+    }
+ 
     if (wlan_cfgGetInt(pMac, WNI_CFG_ACTIVE_MAXIMUM_CHANNEL_TIME,
                   &cfgValue) != eSIR_SUCCESS)
     {

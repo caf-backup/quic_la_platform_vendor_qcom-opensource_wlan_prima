@@ -104,6 +104,8 @@
 
 #define MAX_NO_OF_2_4_CHANNELS 14
 
+#define WLAN_HDD_P2P_SOCIAL_CHANNELS 3
+
 typedef struct hdd_tx_rx_stats_s
 {
    // start_xmit stats
@@ -486,7 +488,7 @@ typedef struct hdd_scaninfo_s
    v_U32_t mScanPending;
 
 #ifdef WLAN_FEATURE_P2P
-   v_BOOL_t p2pSearch;
+  v_BOOL_t flushP2pScanResults;
 #endif
 
    /* Additional IE for scan */
@@ -745,6 +747,17 @@ struct hdd_context_s
    /* driver_type tells whether Driver need to configured to FTM or normal driver */
    tDriverType driver_type;
 
+   /* 
+    * Framework initiated driver restarting 
+    *    hdd_reload_timer   : Restart retry timer
+    *    isRestartInProgress: Restart in progress
+    *    hdd_restart_retries: Restart retries
+    *
+    */
+   vos_timer_t hdd_restart_timer;
+   atomic_t isRestartInProgress;
+   u_int8_t hdd_restart_retries;
+ 
 };
 
 
@@ -806,4 +819,5 @@ void hdd_cleanup_actionframe( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
 void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
 void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
 void wlan_hdd_reset_prob_rspies(hdd_adapter_t* pHostapdAdapter);
+VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

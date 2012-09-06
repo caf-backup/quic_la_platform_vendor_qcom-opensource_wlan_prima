@@ -1061,6 +1061,11 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
        VOS_ASSERT(0);
     }
 #endif
+    if (VOS_CHIP_SHUTDOWN != reason)
+    {
+       vos_wlanRestart();
+       return VOS_STATUS_SUCCESS;
+    }
 
     /* Update Reset Statistics */
     pResetStats = &pHddCtx->hddChipResetStats;
