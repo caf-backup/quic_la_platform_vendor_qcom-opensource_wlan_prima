@@ -1195,7 +1195,111 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    *configDataValue = pMac->btc.btcConfig.btcA2DPBtSubIntervalsDuringDhcp; 
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
-   /* [COEX] QWLAN_HAL_CFG_WCNSS_API_VERSION */
+   /* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_INQ_BT */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_STATIC_LEN_INQ_BT  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcStaticLenInqBt; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_PAGE_BT */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_STATIC_LEN_PAGE_BT  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcStaticLenPageBt; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_CONN_BT */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_STATIC_LEN_CONN_BT  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcStaticLenConnBt; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_LE_BT */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_STATIC_LEN_LE_BT  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcStaticLenLeBt; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_INQ_WLAN */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_STATIC_LEN_INQ_WLAN  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcStaticLenInqWlan; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_PAGE_WLAN */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_STATIC_LEN_PAGE_WLAN  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcStaticLenPageWlan; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_CONN_WLAN */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_STATIC_LEN_CONN_WLAN  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcStaticLenConnWlan; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_STATIC_LEN_LE_WLAN */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_STATIC_LEN_LE_WLAN  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcStaticLenLeWlan; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_DYN_MAX_LEN_BT */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_DYN_MAX_LEN_BT  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcDynMaxLenBt; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_DYN_MAX_LEN_WLAN */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_DYN_MAX_LEN_WLAN  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcDynMaxLenWlan; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_MAX_SCO_BLOCK_PERC */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_MAX_SCO_BLOCK_PERC  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcMaxScoBlockPerc; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_DHCP_PROT_ON_A2DP */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_DHCP_PROT_ON_A2DP  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcDhcpProtOnA2dp; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* [COEX] QWLAN_HAL_CFG_BTC_DHCP_PROT_ON_SCO */
+   tlvStruct->type = QWLAN_HAL_CFG_BTC_DHCP_PROT_ON_SCO  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = pMac->btc.btcConfig.btcDhcpProtOnSco; 
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* QWLAN_HAL_CFG_WCNSS_API_VERSION */
    tlvStruct->type = QWLAN_HAL_CFG_WCNSS_API_VERSION  ;
    tlvStruct->length = sizeof(tANI_U32);
    configDataValue = (tANI_U32 *)(tlvStruct + 1);
