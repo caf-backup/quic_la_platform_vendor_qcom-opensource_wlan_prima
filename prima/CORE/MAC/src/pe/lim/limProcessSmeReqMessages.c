@@ -1171,7 +1171,8 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         {
           for(i=0;i<pMac->lim.maxBssId;i++)
           {
-            if((pMac->lim.gpSession[i].valid == TRUE) &&
+            if((peFindSessionBySessionId(pMac,i) != NULL) &&
+				(pMac->lim.gpSession[i].valid == TRUE) &&
                (eLIM_MLM_LINK_ESTABLISHED_STATE == pMac->lim.gpSession[i].limMlmState))
             {
                limHeartBeatDeactivateAndChangeTimer(pMac, peFindSessionBySessionId(pMac,i));
