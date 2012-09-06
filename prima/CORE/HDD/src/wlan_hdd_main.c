@@ -126,8 +126,6 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 /* the Android framework expects this param even though we don't use it */
 #define BUF_LEN 20
 static char fwpath[BUF_LEN];
-module_param_string(fwpath, fwpath, BUF_LEN,
-                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 /*
  * The rate at which the driver sends RESTART event to supplicant
@@ -3895,17 +3893,17 @@ success:
 
 /**---------------------------------------------------------------------------
 
-  \brief hdd_module_init() - Init Function
+  \brief hdd_driver_init() - Core Driver Init Function
 
-   This is the driver entry point (invoked when module is loaded using insmod)
+   This is the driver entry point - called in different timeline depending
+   on whether the driver is statically or dynamically linked
 
   \param  - None
 
   \return - 0 for success, non zero for failure
 
   --------------------------------------------------------------------------*/
-
-static int __init hdd_module_init ( void)
+static int hdd_driver_init( void)
 {
    VOS_STATUS status;
    v_CONTEXT_t pVosContext = NULL;
@@ -4116,6 +4114,63 @@ static int __init hdd_module_init ( void)
 
    return ret_status;
 }
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_module_init() - Init Function
+
+   This is the driver entry point (invoked when module is loaded using insmod)
+
+  \param  - None
+
+  \return - 0 for success, non zero for failure
+
+  --------------------------------------------------------------------------*/
+#ifdef MODULE
+static int __init hdd_module_init ( void)
+{
+   return hdd_driver_init();
+}
+
+static int fwpath_changed_handler(const char *kmessage,
+                                 struct kernel_param *kp)
+{
+   /* nothing to do when driver is DLKM */
+   return 0;
+}
+#else /* #ifdef MODULE */
+static int __init hdd_module_init ( void)
+{
+   /* Driver initialization is delayed to fwpath_changed_handler */
+   return 0;
+}
+
+/**---------------------------------------------------------------------------
+
+  \brief fwpath_changed_handler() - Handler Function
+
+   This is the driver entry point 
+   - delayed driver initialization when driver is statically linked
+   - invoked when module parameter is modified from userpspace to signal 
+    initializing the WLAN driver
+
+  \return - 0 for success, non zero for failure
+
+  --------------------------------------------------------------------------*/
+static int fwpath_changed_handler(const char *kmessage,
+                                 struct kernel_param *kp)
+{
+   static int drv_inited = 0;
+
+   if (drv_inited) {
+      return 0;
+   }
+
+   drv_inited = 1;
+
+   return hdd_driver_init();
+}
+#endif /* #ifdef MODULE */
 
 
 /**---------------------------------------------------------------------------
@@ -4605,3 +4660,6 @@ MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 #if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
 module_param(con_mode, int, 0);
 #endif
+
+module_param_call(fwpath, fwpath_changed_handler, param_get_string, fwpath,
+                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
