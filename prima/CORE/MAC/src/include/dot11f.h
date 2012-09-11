@@ -323,6 +323,28 @@ void dot11fUnpackFfNumOfRepetitions(tpAniSirGlobal, tANI_U8*, tDot11fFfNumOfRepe
 
 void dot11fPackFfNumOfRepetitions(tpAniSirGlobal, tDot11fFfNumOfRepetitions*, tANI_U8*);
 
+typedef struct sDot11fFfOperatingMode {
+    tANI_U8  chanWidth: 2;
+    tANI_U8   reserved: 2;
+    tANI_U8      rxNSS: 3;
+    tANI_U8  rxNSSType: 1;
+} tDot11fFfOperatingMode;
+
+#define DOT11F_FF_OPERATINGMODE_LEN ( 1 )
+
+void dot11fUnpackFfOperatingMode(tpAniSirGlobal, tANI_U8*, tDot11fFfOperatingMode*);
+
+void dot11fPackFfOperatingMode(tpAniSirGlobal, tDot11fFfOperatingMode*, tANI_U8*);
+
+#define OPERATINGMODE_CHANWIDTH_OFFSET 0
+#define OPERATINGMODE_CHANWIDTH_WIDTH  2
+#define OPERATINGMODE_RESERVED_OFFSET  2
+#define OPERATINGMODE_RESERVED_WIDTH   2
+#define OPERATINGMODE_RXNSS_OFFSET     4
+#define OPERATINGMODE_RXNSS_WIDTH      3
+#define OPERATINGMODE_RXNSSTYPE_OFFSET 7
+#define OPERATINGMODE_RXNSSTYPE_WIDTH  1
+
 typedef struct sDot11fFfP2POUI {
     tANI_U32 oui;
 } tDot11fFfP2POUI;
@@ -3389,6 +3411,80 @@ tANI_U32 dot11fGetPackedIEERPInfo(tpAniSirGlobal, tDot11fIEERPInfo*, tANI_U32*);
 #ifdef __cplusplus
 }; /* End extern "C". */
 #endif /* C++ */
+// EID 127 (0x7f)
+typedef struct sDot11fIEExtCap {
+    tANI_U8      present;
+    tANI_U32 bssCoexistMgmtSupport: 1;
+    tANI_U32        reserved1: 1;
+    tANI_U32    extChanSwitch: 1;
+    tANI_U32        reserved2: 1;
+    tANI_U32          psmpCap: 1;
+    tANI_U32        reserved3: 1;
+    tANI_U32         spsmpCap: 1;
+    tANI_U32            event: 1;
+    tANI_U32      diagnostics: 1;
+    tANI_U32 multiDiagnostics: 1;
+    tANI_U32      locTracking: 1;
+    tANI_U32              FMS: 1;
+    tANI_U32  proxyARPService: 1;
+    tANI_U32 coLocIntfReporting: 1;
+    tANI_U32         civicLoc: 1;
+    tANI_U32    geospatialLoc: 1;
+    tANI_U32              TFS: 1;
+    tANI_U32     wnmSleepMode: 1;
+    tANI_U32     timBroadcast: 1;
+    tANI_U32    bssTransition: 1;
+    tANI_U32    qosTrafficCap: 1;
+    tANI_U32         acStaCnt: 1;
+    tANI_U32       multiBSSID: 1;
+    tANI_U32       timingMeas: 1;
+    tANI_U32        chanUsage: 1;
+    tANI_U32         ssidList: 1;
+    tANI_U32              DMS: 1;
+    tANI_U32     UTCTSFOffset: 1;
+    tANI_U32 TDLSPeerUAPSDBufferSTA: 1;
+    tANI_U32 TDLSChannelSwitching: 1;
+    tANI_U32 interworkingService: 1;
+    tANI_U32           qosMap: 1;
+    tANI_U16              EBR: 1;
+    tANI_U16    sspnInterface: 1;
+    tANI_U16        reserved4: 1;
+    tANI_U16         msgCFCap: 1;
+    tANI_U16      TDLSSupport: 1;
+    tANI_U16   TDLSProhibited: 1;
+    tANI_U16 TDLSChanSwitProhibited: 1;
+    tANI_U16 rejectUnadmittedTraffic: 1;
+    tANI_U16 serviceIntervalGranularity: 3;
+    tANI_U16    identifierLoc: 1;
+    tANI_U16 uapsdCoexistence: 1;
+    tANI_U16  wnmNotification: 1;
+    tANI_U16        reserved5: 1;
+    tANI_U16         UTF8SSID: 1;
+    tANI_U16        reserved6: 13;
+    tANI_U16      TDLSWiderBW: 1;
+    tANI_U16 operModeNotification: 1;
+    tANI_U16        reserved7: 1;
+} tDot11fIEExtCap;
+
+#define DOT11F_EID_EXTCAP ( 127 )
+
+// N.B. These #defines do *not* include the EID & length
+#define DOT11F_IE_EXTCAP_MIN_LEN ( 8 )
+
+#define DOT11F_IE_EXTCAP_MAX_LEN ( 8 )
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* C++ */
+tANI_U32 dot11fUnpackIeExtCap(tpAniSirGlobal, tANI_U8*,tANI_U8, tDot11fIEExtCap*);
+
+tANI_U32 dot11fPackIeExtCap(tpAniSirGlobal, tDot11fIEExtCap*, tANI_U8*, tANI_U32, tANI_U32*);
+
+tANI_U32 dot11fGetPackedIEExtCap(tpAniSirGlobal, tDot11fIEExtCap*, tANI_U32*);
+
+#ifdef __cplusplus
+}; /* End extern "C". */
+#endif /* C++ */
 // EID 62 (0x3e)
 typedef struct sDot11fIEExtChanSwitchAnn {
     tANI_U8      present;
@@ -3943,6 +4039,34 @@ tANI_U32 dot11fUnpackIeNeighborReport(tpAniSirGlobal, tANI_U8*,tANI_U8, tDot11fI
 tANI_U32 dot11fPackIeNeighborReport(tpAniSirGlobal, tDot11fIENeighborReport*, tANI_U8*, tANI_U32, tANI_U32*);
 
 tANI_U32 dot11fGetPackedIENeighborReport(tpAniSirGlobal, tDot11fIENeighborReport*, tANI_U32*);
+
+#ifdef __cplusplus
+}; /* End extern "C". */
+#endif /* C++ */
+// EID 199 (0xc7)
+typedef struct sDot11fIEOperatingMode {
+    tANI_U8      present;
+    tANI_U8        chanWidth: 2;
+    tANI_U8         reserved: 2;
+    tANI_U8            rxNSS: 3;
+    tANI_U8        rxNSSType: 1;
+} tDot11fIEOperatingMode;
+
+#define DOT11F_EID_OPERATINGMODE ( 199 )
+
+// N.B. These #defines do *not* include the EID & length
+#define DOT11F_IE_OPERATINGMODE_MIN_LEN ( 1 )
+
+#define DOT11F_IE_OPERATINGMODE_MAX_LEN ( 1 )
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* C++ */
+tANI_U32 dot11fUnpackIeOperatingMode(tpAniSirGlobal, tANI_U8*,tANI_U8, tDot11fIEOperatingMode*);
+
+tANI_U32 dot11fPackIeOperatingMode(tpAniSirGlobal, tDot11fIEOperatingMode*, tANI_U8*, tANI_U32, tANI_U32*);
+
+tANI_U32 dot11fGetPackedIEOperatingMode(tpAniSirGlobal, tDot11fIEOperatingMode*, tANI_U32*);
 
 #ifdef __cplusplus
 }; /* End extern "C". */
@@ -5853,6 +5977,7 @@ typedef struct sDot11fAssocRequest{
     tDot11fIEP2PIEOpaque    P2PIEOpaque;
     tDot11fIEWFDIEOpaque    WFDIEOpaque;
     tDot11fIEVHTCaps        VHTCaps;
+    tDot11fIEExtCap         ExtCap;
     tDot11fIEOperatingMode  OperatingMode;
 } tDot11fAssocRequest;
 
@@ -5899,6 +6024,7 @@ typedef struct sDot11fAssocResponse{
     tDot11fIEP2PAssocRes    P2PAssocRes;
     tDot11fIEVHTCaps        VHTCaps;
     tDot11fIEVHTOperation   VHTOperation;
+    tDot11fIEExtCap         ExtCap;
 } tDot11fAssocResponse;
 
 #define DOT11F_ASSOCRESPONSE ( 6 )
@@ -5986,6 +6112,8 @@ typedef struct sDot11fBeacon{
     tDot11fIEVHTCaps          VHTCaps;
     tDot11fIEVHTOperation     VHTOperation;
     tDot11fIEVHTExtBssLoad    VHTExtBssLoad;
+    tDot11fIEExtCap           ExtCap;
+    tDot11fIEOperatingMode    OperatingMode;
 } tDot11fBeacon;
 
 #define DOT11F_BEACON ( 8 )
@@ -6056,6 +6184,8 @@ typedef struct sDot11fBeacon2{
     tDot11fIEVHTCaps          VHTCaps;
     tDot11fIEVHTOperation     VHTOperation;
     tDot11fIEVHTExtBssLoad    VHTExtBssLoad;
+    tDot11fIEExtCap           ExtCap;
+    tDot11fIEOperatingMode    OperatingMode;
 } tDot11fBeacon2;
 
 #define DOT11F_BEACON2 ( 10 )
@@ -6114,6 +6244,8 @@ typedef struct sDot11fBeaconIEs{
     tDot11fIEVHTCaps           VHTCaps;
     tDot11fIEVHTOperation      VHTOperation;
     tDot11fIEVHTExtBssLoad     VHTExtBssLoad;
+    tDot11fIEExtCap            ExtCap;
+    tDot11fIEOperatingMode     OperatingMode;
 } tDot11fBeaconIEs;
 
 #define DOT11F_BEACONIES ( 11 )
@@ -6573,6 +6705,26 @@ tANI_U32 dot11fGetPackedNoticeOfAbsSize(tpAniSirGlobal pCtx, tDot11fNoticeOfAbs 
 } /* End extern "C". */
 #endif /* C++ */
 
+typedef struct sDot11fOperatingMode{
+    tDot11fFfCategory      Category;
+    tDot11fFfAction        Action;
+    tDot11fFfOperatingMode OperatingMode;
+} tDot11fOperatingMode;
+
+#define DOT11F_OPERATINGMODE ( 32 )
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* C++ */
+
+tANI_U32 dot11fUnpackOperatingMode(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 nBuf, tDot11fOperatingMode *pFrm);
+tANI_U32 dot11fPackOperatingMode(tpAniSirGlobal pCtx, tDot11fOperatingMode *pFrm, tANI_U8 *pBuf, tANI_U32 nBuf, tANI_U32 *pnConsumed);
+tANI_U32 dot11fGetPackedOperatingModeSize(tpAniSirGlobal pCtx, tDot11fOperatingMode *pFrm, tANI_U32 *pnNeeded);
+
+#ifdef __cplusplus
+} /* End extern "C". */
+#endif /* C++ */
+
 typedef struct sDot11fPresenceReq{
     tDot11fFfCategory           Category;
     tDot11fFfP2POUI             P2POUI;
@@ -6581,7 +6733,7 @@ typedef struct sDot11fPresenceReq{
     tDot11fIEP2PNoticeOfAbsence P2PNoticeOfAbsence;
 } tDot11fPresenceReq;
 
-#define DOT11F_PRESENCEREQ ( 32 )
+#define DOT11F_PRESENCEREQ ( 33 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6603,7 +6755,7 @@ typedef struct sDot11fPresenceRes{
     tDot11fIEP2PPresenceResponse P2PPresenceResponse;
 } tDot11fPresenceRes;
 
-#define DOT11F_PRESENCERES ( 33 )
+#define DOT11F_PRESENCERES ( 34 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6630,7 +6782,7 @@ typedef struct sDot11fProbeRequest{
     tDot11fIEVHTCaps       VHTCaps;
 } tDot11fProbeRequest;
 
-#define DOT11F_PROBEREQUEST ( 34 )
+#define DOT11F_PROBEREQUEST ( 35 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6686,9 +6838,10 @@ typedef struct sDot11fProbeResponse{
     tDot11fIEVHTCaps          VHTCaps;
     tDot11fIEVHTOperation     VHTOperation;
     tDot11fIEVHTExtBssLoad    VHTExtBssLoad;
+    tDot11fIEExtCap           ExtCap;
 } tDot11fProbeResponse;
 
-#define DOT11F_PROBERESPONSE ( 35 )
+#define DOT11F_PROBERESPONSE ( 36 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6711,7 +6864,7 @@ typedef struct sDot11fProvisionDiscoveryReq{
     tDot11fIEP2PProvisionDiscoveryReq P2PProvisionDiscoveryReq;
 } tDot11fProvisionDiscoveryReq;
 
-#define DOT11F_PROVISIONDISCOVERYREQ ( 36 )
+#define DOT11F_PROVISIONDISCOVERYREQ ( 37 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6734,7 +6887,7 @@ typedef struct sDot11fProvisionDiscoveryRes{
     tDot11fIEP2PWSCProvisionDiscoveryRes P2PWSCProvisionDiscoveryRes;
 } tDot11fProvisionDiscoveryRes;
 
-#define DOT11F_PROVISIONDISCOVERYRES ( 37 )
+#define DOT11F_PROVISIONDISCOVERYRES ( 38 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6756,7 +6909,7 @@ typedef struct sDot11fRadioMeasurementReport{
     tDot11fIEMeasurementReport MeasurementReport[4];
 } tDot11fRadioMeasurementReport;
 
-#define DOT11F_RADIOMEASUREMENTREPORT ( 38 )
+#define DOT11F_RADIOMEASUREMENTREPORT ( 39 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6779,7 +6932,7 @@ typedef struct sDot11fRadioMeasurementRequest{
     tDot11fIEMeasurementRequest MeasurementRequest[2];
 } tDot11fRadioMeasurementRequest;
 
-#define DOT11F_RADIOMEASUREMENTREQUEST ( 39 )
+#define DOT11F_RADIOMEASUREMENTREQUEST ( 40 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6825,10 +6978,11 @@ typedef struct sDot11fReAssocRequest{
     tDot11fIEP2PIEOpaque        P2PIEOpaque;
     tDot11fIEWFDIEOpaque        WFDIEOpaque;
     tDot11fIEVHTCaps            VHTCaps;
+    tDot11fIEExtCap             ExtCap;
     tDot11fIEOperatingMode      OperatingMode;
 } tDot11fReAssocRequest;
 
-#define DOT11F_REASSOCREQUEST ( 40 )
+#define DOT11F_REASSOCREQUEST ( 41 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6872,9 +7026,10 @@ typedef struct sDot11fReAssocResponse{
     tDot11fIEP2PAssocRes        P2PAssocRes;
     tDot11fIEVHTCaps            VHTCaps;
     tDot11fIEVHTOperation       VHTOperation;
+    tDot11fIEExtCap             ExtCap;
 } tDot11fReAssocResponse;
 
-#define DOT11F_REASSOCRESPONSE ( 41 )
+#define DOT11F_REASSOCRESPONSE ( 42 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6894,7 +7049,7 @@ typedef struct sDot11fSMPowerSave{
     tDot11fFfSMPowerModeSet SMPowerModeSet;
 } tDot11fSMPowerSave;
 
-#define DOT11F_SMPOWERSAVE ( 42 )
+#define DOT11F_SMPOWERSAVE ( 43 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6915,7 +7070,7 @@ typedef struct sDot11fTPCReport{
     tDot11fIETPCReport   TPCReport;
 } tDot11fTPCReport;
 
-#define DOT11F_TPCREPORT ( 43 )
+#define DOT11F_TPCREPORT ( 44 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6936,7 +7091,7 @@ typedef struct sDot11fTPCRequest{
     tDot11fIETPCRequest  TPCRequest;
 } tDot11fTPCRequest;
 
-#define DOT11F_TPCREQUEST ( 44 )
+#define DOT11F_TPCREQUEST ( 45 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6959,7 +7114,7 @@ typedef struct sDot11fWMMAddTSRequest{
     tDot11fIECCXTrafStrmRateSet CCXTrafStrmRateSet;
 } tDot11fWMMAddTSRequest;
 
-#define DOT11F_WMMADDTSREQUEST ( 45 )
+#define DOT11F_WMMADDTSREQUEST ( 46 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -6982,7 +7137,7 @@ typedef struct sDot11fWMMAddTSResponse{
     tDot11fIECCXTrafStrmMet CCXTrafStrmMet;
 } tDot11fWMMAddTSResponse;
 
-#define DOT11F_WMMADDTSRESPONSE ( 46 )
+#define DOT11F_WMMADDTSRESPONSE ( 47 )
 
 #ifdef __cplusplus
 extern "C" {
@@ -7004,7 +7159,7 @@ typedef struct sDot11fWMMDelTS{
     tDot11fIEWMMTSPEC    WMMTSPEC;
 } tDot11fWMMDelTS;
 
-#define DOT11F_WMMDELTS ( 47 )
+#define DOT11F_WMMDELTS ( 48 )
 
 #ifdef __cplusplus
 extern "C" {
