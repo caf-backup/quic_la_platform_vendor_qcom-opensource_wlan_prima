@@ -4424,12 +4424,12 @@ eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInf
             pResult = GET_BASE_ADDR( pEntry, tCsrScanResult, Link );
             if(pResult->Result.BssDescriptor.channelId == pChnInfo->channelId)
             {
-                pResult->AgingCount--;
                 if(pResult->AgingCount <= 0)
                 {
                     smsLog(pMac, LOGW, " age out due to ref count");
                     csrScanAgeOutBss(pMac, pResult);
                 }
+                pResult->AgingCount--;
             }
             pEntry = tmpEntry;
         }
