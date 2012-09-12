@@ -924,4 +924,6 @@ typedef PACKED_PRE struct PACKED_POST {
 
 /* End of Ptt Parameters */
 
+void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg);
+
 #endif
