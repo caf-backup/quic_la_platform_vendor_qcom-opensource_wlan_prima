@@ -334,6 +334,9 @@ typedef enum
    WLAN_HAL_SET_THERMAL_MITIGATION_REQ      = 178,
    WLAN_HAL_SET_THERMAL_MITIGATION_RSP      = 179,
 
+   WLAN_HAL_UPDATE_VHT_OP_MODE_REQ          = 182,
+   WLAN_HAL_UPDATE_VHT_OP_MODE_RSP          = 183,
+ 
   WLAN_HAL_MSG_MAX = WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -3170,6 +3173,29 @@ typedef PACKED_PRE struct PACKED_POST
    tSirMicFailureInd micFailureInd;
 }  tMicFailureIndMsg, *tpMicFailureIndMsg;
 
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U16  opMode;
+   tANI_U16  staId;
+}tUpdateVHTOpMode, *tpUpdateVHTOpMode; 
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tUpdateVHTOpMode updateVhtOpMode;
+}  tUpdateVhtOpModeReqMsg, *tpUpdateVhtOpModeReqMsg;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U32   status;
+} tUpdateVhtOpModeParamsRsp, *tpUpdateVhtOpModeParamsRsp;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tUpdateVhtOpModeParamsRsp updateVhtOpModeRspParam;
+}  tUpdateVhtOpModeParamsRspMsg,  *tpUpdateVhtOpModeParamsRspMsg;
+
 /*---------------------------------------------------------------------------
  * WLAN_HAL_UPDATE_BEACON_REQ
  *--------------------------------------------------------------------------*/
@@ -5344,6 +5370,7 @@ typedef enum {
     P2P        = 1,
     DOT11AC    = 2,
     SLM_SESSIONIZATION = 3,
+    DOT11AC_OPMODE    = 4,
     MAX_FEATURE_SUPPORTED = 128,
 } placeHolderInCapBitmap;
 
@@ -5355,23 +5382,23 @@ typedef enum {
 tANI_U8 halMsg_GetHostWlanFeatCaps(tANI_U8 feat_enum_value);
 
 #define setFeatCaps(a,b)   {  tANI_U32 arr_index, bit_index; \
-                              if ((b<=127)) { \
-                                arr_index = b/32; \
-                                bit_index = b % 32; \
+                              if ((b)<=127) { \
+                                arr_index = (b)/32; \
+                                bit_index = (b)%32; \
                                 (a)->featCaps[arr_index] |= (1<<bit_index); \
                               } \
                            }
 #define getFeatCaps(a,b,c) {  tANI_U32 arr_index, bit_index; \
-                              if ((b<=127)) { \
-                                arr_index = b/32; \
-                                bit_index = b % 32; \
-                                c = (a)->featCaps[arr_index] & (1<<bit_index); \
+                              if ((b)<=127) { \
+                                arr_index = (b)/32; \
+                                bit_index = (b)%32; \
+                                (c) = ((a)->featCaps[arr_index] & (1<<bit_index))?1:0; \
                               } \
                            }
 #define clearFeatCaps(a,b) {  tANI_U32 arr_index, bit_index; \
-                              if ((b<=127)) { \
-                                arr_index = b/32; \
-                                bit_index = b % 32; \
+                              if ((b)<=127) { \
+                                arr_index = (b)/32; \
+                                bit_index = (b)%32; \
                                 (a)->featCaps[arr_index] &= ~(1<<bit_index); \
                               } \
                            }
