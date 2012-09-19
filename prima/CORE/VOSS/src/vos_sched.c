@@ -834,7 +834,10 @@ static int VosTXThread ( void * Arg )
   v_CONTEXT_t pVosContext        = NULL;
 
   set_user_nice(current, -1);
+  
+#ifdef WLAN_FEATURE_11AC_HIGH_TP
   set_wake_up_idle(true);
+#endif
 
   if (Arg == NULL)
   {
@@ -1058,7 +1061,10 @@ static int VosRXThread ( void * Arg )
   VOS_STATUS       vStatus       = VOS_STATUS_SUCCESS;
 
   set_user_nice(current, -1);
+  
+#ifdef WLAN_FEATURE_11AC_HIGH_TP
   set_wake_up_idle(true);
+#endif
 
   if (Arg == NULL)
   {
