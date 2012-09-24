@@ -2442,11 +2442,11 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
         }
         //Join timeout
         // if we find a BeaconInterval in the BssDescription, then set the Join Timeout to 
-        // be 3 x the BeaconInterval.                          
+        // be 10 x the BeaconInterval.
         if ( pBssDesc->beaconInterval )
         {
             //Make sure it is bigger than the minimal
-            pBssConfig->uJoinTimeOut = CSR_ROAM_MAX(3 * pBssDesc->beaconInterval, CSR_JOIN_FAILURE_TIMEOUT_MIN);
+            pBssConfig->uJoinTimeOut = CSR_ROAM_MAX(10 * pBssDesc->beaconInterval, CSR_JOIN_FAILURE_TIMEOUT_MIN);
         }
         else 
         {
@@ -6283,7 +6283,7 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
             pConnectProfile->qap = FALSE;
         }
 
-        if( ( NULL == pIes ) && pIesTemp )
+        if( NULL == pIes )
         {
             //Free memory if it allocated locally
             palFreeMemory(pMac->hHdd, pIesTemp);
@@ -9251,17 +9251,20 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
         result = eCSR_ROAM_RESULT_DISASSOC_IND;
         pDisassocIndMsg = (tSirSmeDisassocInd *)pSirMsg;
         pSession->roamingStatusCode = pDisassocIndMsg->statusCode;
+        pSession->joinFailStatusCode.reasonCode = pDisassocIndMsg->reasonCode;
     }
     else if ( eWNI_SME_DEAUTH_IND == type )
     {
         result = eCSR_ROAM_RESULT_DEAUTH_IND;
         pDeauthIndMsg = (tSirSmeDeauthInd *)pSirMsg;
         pSession->roamingStatusCode = pDeauthIndMsg->statusCode;
+        pSession->joinFailStatusCode.reasonCode = pDeauthIndMsg->reasonCode;
     }
     else
     {
         smsLog(pMac, LOGW, FL("gets an unknown type (%d)\n"), type);
         result = eCSR_ROAM_RESULT_NONE;
+        pSession->joinFailStatusCode.reasonCode = 1;
     }
 
     // call profile lost link routine here
