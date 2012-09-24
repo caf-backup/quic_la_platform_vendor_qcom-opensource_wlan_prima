@@ -1794,7 +1794,7 @@ static wpt_status dxeRXFrameReady
          }
       }
    }
-   
+   channelEntry->numFragmentCurrentChain = frameCount;
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return status;
