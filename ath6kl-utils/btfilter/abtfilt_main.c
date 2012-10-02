@@ -216,12 +216,14 @@ main(int argc, char *argv[])
         }
     } while(FALSE);
 
-	btcoex_nl_deinit(g_AthBtFilterInstance.nlstate);
     /* Initiate the shutdown sequence */
     if(GpInfo != NULL) {
         AthBtFilter_State_Off(GpInfo);
     }
     Abf_ShutDown();
+
+    if(g_AthBtFilterInstance.nlstate)
+	btcoex_nl_deinit(g_AthBtFilterInstance.nlstate);
 
     Abf_HciLibDeInit();
     /* Shutdown */
