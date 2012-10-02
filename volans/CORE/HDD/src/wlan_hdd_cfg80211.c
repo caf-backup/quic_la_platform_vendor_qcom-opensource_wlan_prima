@@ -1287,6 +1287,15 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     hdd_adapter_t  *staAdapter = NULL;
     VOS_STATUS status = 0;
 
+    ENTER();
+
+    if (NULL == pAdapter)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                   "%s: HDD adapter context is Null", __FUNCTION__);
+        return -ENODEV;
+    }
+
     staAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_INFRA_STATION);
 
     if (!staAdapter)
@@ -1299,14 +1308,6 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
         pScanInfo =  &staAdapter->scan_info;
     }
 
-    ENTER();
-
-    if (NULL == pAdapter)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                   "%s: HDD adapter context is Null", __FUNCTION__);
-        return -ENODEV;
-    }
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
@@ -1535,6 +1536,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     struct wireless_dev *wdev;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev );
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
+    hdd_adapter_t  *pP2pAdapter = NULL;
     tCsrRoamProfile *pRoamProfile = NULL;
     eCsrRoamBssType LastBSSType;
     hdd_config_t *pConfig = pHddCtx->cfg_ini;
@@ -1603,7 +1605,27 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                       "%s: setting interface Type to %s", __func__,
                       (type == NL80211_IFTYPE_AP) ? "SoftAP" : "P2pGo");
 
-		        netif_tx_disable(pAdapter->dev);
+                if (NL80211_IFTYPE_AP == type)
+                {
+                     /* As Loading WLAN Driver one interface being created for p2p device
+                      * address. This will take one HW STA and the max number of clients
+                      * that can connect to softAP will be reduced by one. so while changing
+                      * the interface type to NL80211_IFTYPE_AP (SoftAP) remove p2p0
+                      * interface as it is not required in SoftAP mode.
+                      */
+
+                    // Get P2P Adapter
+                    pP2pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE);
+
+                    if (pP2pAdapter)
+                    {
+                        hdd_stop_adapter(pHddCtx, pP2pAdapter);
+                        hdd_deinit_adapter(pHddCtx, pP2pAdapter);
+                        hdd_close_adapter(pHddCtx, pP2pAdapter, VOS_TRUE);
+                    }
+                }
+                netif_tx_disable(pAdapter->dev);
+
                 //De-init the adapter.
                 hdd_stop_adapter( pHddCtx, pAdapter );
                 hdd_deinit_adapter( pHddCtx, pAdapter );
@@ -3042,6 +3064,13 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                   "%s:LOGP in Progress. Ignore!!!", __func__);
         return -EAGAIN;
     }
+    
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLoadUnloadInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                  "%s:Unloading/Loading in Progress. Ignore!!!", __func__);
+        return -EAGAIN;
+    }
 
     vos_mem_zero( &scanRequest, sizeof(scanRequest));
 
@@ -3236,7 +3265,7 @@ free_mem:
  * This function is used to start the association process 
  */
 int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter, 
-        const u8 *ssid, size_t ssid_len, const u8 *bssid)
+        const u8 *ssid, size_t ssid_len, const u8 *bssid, u8 operatingChannel)
 {
     int status = 0;
     hdd_wext_state_t *pWextState;
@@ -3387,10 +3416,16 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
 #endif /* FEATURE_WLAN_WAPI */
         pRoamProfile->csrPersona = pAdapter->device_mode;
 
+        if( operatingChannel )
+        {
+           pRoamProfile->ChannelInfo.ChannelList = &operatingChannel;
+           pRoamProfile->ChannelInfo.numOfChannels = 1;
+        }
+
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter), 
                             pAdapter->sessionId, pRoamProfile, &roamId);
 
-        pRoamProfile->ChannelInfo.ChannelList = NULL; 
+        pRoamProfile->ChannelInfo.ChannelList = NULL;
         pRoamProfile->ChannelInfo.numOfChannels = 0;
     }
     else
@@ -3916,8 +3951,18 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return status;
     }
 
-    status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid, 
-                                                req->ssid_len, req->bssid);
+    if ( req->channel )
+    {
+        status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
+                                                  req->ssid_len, req->bssid,
+                                                  req->channel->hw_value);
+    }
+    else
+    {
+        status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
+                                                  req->ssid_len, req->bssid,
+                                                  0);
+    }
 
     if (0 > status)
     {
@@ -4187,7 +4232,7 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
 
     /* Issue connect start */
     status = wlan_hdd_cfg80211_connect_start(pAdapter, params->ssid, 
-            params->ssid_len, params->bssid);
+            params->ssid_len, params->bssid, 0);
 
     if (0 > status)
     {

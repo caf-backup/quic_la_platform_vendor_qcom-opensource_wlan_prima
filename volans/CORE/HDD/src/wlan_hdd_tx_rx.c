@@ -16,6 +16,7 @@
 #include <wlan_hdd_softap_tx_rx.h>
 #include <wlan_hdd_dp_utils.h>
 #include <wlan_qct_tl.h>
+#include <wlan_qct_tli.h>
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
@@ -868,6 +869,8 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    WLANTL_ACEnumType ac, newAc;
    v_SIZE_t size = 0;
    tANI_U8   acAdmitted, i;
+   WLANTL_CbType*  pTLCb = NULL;
+   
 
    //Sanity check on inputs
    if ( ( NULL == vosContext ) || 
@@ -888,8 +891,15 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
  
+   pTLCb = (WLANTL_CbType*)VOS_GET_TL_CB(vosContext);
+   if ( NULL == pTLCb )
+   {
+	   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+	     "%s:NULL TLCB pointer from vosContext", __FUNCTION__);
+	   return VOS_STATUS_E_FAULT;
+   }
    pAdapter = pHddCtx->sta_to_adapter[*pStaId];
-   if( NULL == pAdapter )
+   if( (NULL == pAdapter) && ((pTLCb->atlSTAClients[*pStaId]).ucExists != 0) )
    {
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAILURE;

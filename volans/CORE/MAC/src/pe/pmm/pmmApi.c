@@ -340,7 +340,8 @@ void pmmExitBmpsRequestHandler(tpAniSirGlobal pMac, tpExitBmpsInfo pExitBmpsInfo
             pMac->pmm.gPmmState );)
 
         respStatus = eSIR_SME_INVALID_PMM_STATE;
-		pmmBmpsUpdateInvalidStateCnt(pMac);
+        pmmBmpsUpdateInvalidStateCnt(pMac);
+        palFreeMemory( pMac->hHdd, (tANI_U8 *) pExitBmpsInfo);
         goto failure;
     }
     return;

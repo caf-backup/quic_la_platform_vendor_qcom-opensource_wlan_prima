@@ -80,8 +80,6 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                               pRemainChanCtx->chan_type, GFP_KERNEL );
     }
 
-    vos_mem_free( pRemainChanCtx );
-
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
          ( WLAN_HDD_P2P_DEVICE == pAdapter->device_mode )
@@ -108,6 +106,7 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                 NULL, 0 );
        }
     }
+    vos_mem_free( pRemainChanCtx );
     complete(&pAdapter->cancel_rem_on_chan_var);
     return eHAL_STATUS_SUCCESS;
 }
