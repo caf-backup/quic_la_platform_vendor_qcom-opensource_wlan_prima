@@ -1586,7 +1586,10 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     tpPESession       psessionEntry = limIsApSessionActive(pMac);
 
     if (psessionEntry == NULL)
+    {
+        PELOGE(limLog(pMac, LOGE, FL(" Session not found\n"));)
         return;
+    }
     
     beaconParams.paramChangeBitmap = 0;
     /*
@@ -1612,7 +1615,7 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     else
     {
 
-        if (!psessionEntry->gLimOverlap11gParams.numSta)
+        if (!psessionEntry->gLimOlbcParams.numSta)
         {
             if (psessionEntry->gLimOlbcParams.protectionEnabled)
             {
