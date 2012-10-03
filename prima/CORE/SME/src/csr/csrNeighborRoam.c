@@ -74,7 +74,7 @@ VOS_STATUS csrNeighborRoamIssueNeighborRptRequest(tpAniSirGlobal pMac);
 {\
     pMac->roam.neighborRoamInfo.prevNeighborRoamState = pMac->roam.neighborRoamInfo.neighborRoamState;\
     pMac->roam.neighborRoamInfo.neighborRoamState = newState;\
-    smsLog(pMac, LOGE, FL("Neighbor Roam Transition from state %d ==> %d"), pMac->roam.neighborRoamInfo.prevNeighborRoamState, newState);\
+    smsLog(pMac, LOG1, FL("Neighbor Roam Transition from state %d ==> %d"), pMac->roam.neighborRoamInfo.prevNeighborRoamState, newState);\
 }
 
 /* ---------------------------------------------------------------------------
@@ -2330,7 +2330,7 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac, tANI_U8 sessionId
     int  init_ft_flag = FALSE;
 #endif
 
-    smsLog(pMac, LOGE, FL("Connect indication received with session id %d in state %d"), sessionId, pNeighborRoamInfo->neighborRoamState);
+    smsLog(pMac, LOG2, FL("Connect indication received with session id %d in state %d"), sessionId, pNeighborRoamInfo->neighborRoamState);
 
     switch (pNeighborRoamInfo->neighborRoamState)
     {
@@ -2370,7 +2370,7 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac, tANI_U8 sessionId
             }
             else
                 pNeighborRoamInfo->is11rAssoc = eANI_BOOLEAN_FALSE;
-            NEIGHBOR_ROAM_DEBUG(pMac, LOGE, FL("11rAssoc is = %d"), pNeighborRoamInfo->is11rAssoc);
+            NEIGHBOR_ROAM_DEBUG(pMac, LOG2, FL("11rAssoc is = %d"), pNeighborRoamInfo->is11rAssoc);
 #endif
 
 #ifdef FEATURE_WLAN_CCX
@@ -2383,9 +2383,8 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac, tANI_U8 sessionId
             }
             else
                 pNeighborRoamInfo->isCCXAssoc = eANI_BOOLEAN_FALSE;
-            NEIGHBOR_ROAM_DEBUG(pMac, LOGE, FL("isCCXAssoc is = %d"), pNeighborRoamInfo->isCCXAssoc);
-            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, 
-                        "ccx=%d ft=%d\n", pNeighborRoamInfo->isCCXAssoc, init_ft_flag);
+            NEIGHBOR_ROAM_DEBUG(pMac, LOG2, FL("isCCXAssoc is = %d ft = %d"),
+                                pNeighborRoamInfo->isCCXAssoc, init_ft_flag);
                             
 #endif
 
