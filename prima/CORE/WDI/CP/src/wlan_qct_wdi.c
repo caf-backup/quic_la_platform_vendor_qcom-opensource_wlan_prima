@@ -1609,7 +1609,7 @@ WDI_Shutdown
    }
    else
    {
-      /* Riva is crashed then SMD is already closed so cleaning all
+      /* Riva is crashed then SMD is already closed so cleaning all 
          the pending messages in the transport queue  */
       WCTS_ClearPendingQueue(gWDICb.wctsHandle);
    }
@@ -24585,7 +24585,7 @@ wpt_uint8 WDI_getHostWlanFeatCaps(wpt_uint8 feat_enum_value)
    }
    else
    {
-      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
         "Caps exchange feature NOT supported. Return NOT SUPPORTED for %u feature", feat_enum_value);
    }
    return featSupported;
@@ -24618,7 +24618,7 @@ wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value)
     }
     else
     {
-       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
          "Caps exchange feature NOT supported. Return NOT SUPPORTED for %u feature", feat_enum_value);
     }
     return featSupported;
@@ -24728,7 +24728,7 @@ WDI_UpdateVHTOpModeReq
     Display DXE Channel debugging information
     User may request to display DXE channel snapshot
     Or if host driver detects any abnormal stcuk may display
-
+        
  @param  displaySnapshot : Dispaly DXE snapshot option
  @param  enableStallDetect : Enable stall detect feature
                         This feature will take effect to data performance
@@ -24742,6 +24742,6 @@ void WDI_TransportChannelDebug
    wpt_boolean  toggleStallDetect
 )
 {
-   WDTS_ChannelDebug(displaySnapshot, toggleStallDetect);
+   WDTS_ChannelDebug(displaySnapshot, toggleStallDetect);   
    return;
 }
