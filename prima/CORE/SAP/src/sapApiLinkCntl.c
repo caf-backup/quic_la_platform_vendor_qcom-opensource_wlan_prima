@@ -146,7 +146,8 @@ WLANSAP_ScanCallback
                 break;
             }
 
-            operChannel = sapSelectChannel(halHandle, pResult);
+            operChannel = sapSelectChannel(halHandle, psapContext, pResult);
+
             sme_ScanResultPurge(halHandle, pResult);
             break;
 
