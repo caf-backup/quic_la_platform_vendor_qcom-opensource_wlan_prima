@@ -1375,6 +1375,8 @@ WDI_Stop
   /* Free the global variables */
   wpalMemoryFree(gpHostWlanFeatCaps);
   wpalMemoryFree(gpFwWlanFeatCaps);
+  gpHostWlanFeatCaps = NULL;
+  gpFwWlanFeatCaps = NULL;
 
   /*------------------------------------------------------------------------
     Fill in Event data and post to the Main FSM
@@ -1630,6 +1632,8 @@ WDI_Shutdown
    /* Free the global variables */
    wpalMemoryFree(gpHostWlanFeatCaps);
    wpalMemoryFree(gpFwWlanFeatCaps);
+   gpHostWlanFeatCaps = NULL;
+   gpFwWlanFeatCaps = NULL;
    /*Clear control block.  note that this will clear the "magic"
      which will inhibit all asynchronous callbacks*/
    WDI_CleanCB(&gWDICb);
