@@ -3397,6 +3397,7 @@ typedef struct sSirWowlAddBcastPtrn
     // Extra pattern data beyond 128 bytes
     tANI_U8  ucPatternExt[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra Pattern
     tANI_U8  ucPatternMaskExt[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra Pattern mask
+    tSirMacAddr    bssId;           // BSSID
 } tSirWowlAddBcastPtrn, *tpSirWowlAddBcastPtrn;
 
 
@@ -3407,6 +3408,7 @@ typedef struct sSirWowlDelBcastPtrn
 {
     /* Pattern ID of the wakeup pattern to be deleted */
     tANI_U8  ucPatternId;
+    tSirMacAddr    bssId;           // BSSID
 }tSirWowlDelBcastPtrn, *tpSirWowlDelBcastPtrn;
 
 
@@ -3446,6 +3448,7 @@ typedef struct sSirSmeWowlEnterParams
     tANI_U8   ucWoWBSSConnLoss;
 #endif // WLAN_WAKEUP_EVENTS
 
+    tSirMacAddr bssId;
 } tSirSmeWowlEnterParams, *tpSirSmeWowlEnterParams;
 
 
@@ -3534,7 +3537,24 @@ typedef struct sSirHalWowlEnterParams
      * SIR_HAL_WOWL_ENTER_RSP to PE. 
      */  
     eHalStatus  status;
+
+   /*BSSID to find the current session
+      */
+    tANI_U8  bssIdx;
 } tSirHalWowlEnterParams, *tpSirHalWowlEnterParams;
+
+// PE<->HAL: Exit WOWLAN parameters 
+typedef struct sSirHalWowlExitParams
+{
+    /* Status code to be filled by HAL when it sends
+     * SIR_HAL_WOWL_EXIT_RSP to PE. 
+     */  
+    eHalStatus  status;
+
+   /*BSSIDX to find the current session
+      */
+    tANI_U8  bssIdx;
+} tSirHalWowlExitParams, *tpSirHalWowlExitParams;
 
 #ifdef WLAN_SOFTAP_FEATURE
 
@@ -3729,7 +3749,7 @@ typedef struct sSirHostOffloadReq
 #ifdef WLAN_NS_OFFLOAD
     tSirNsOffloadReq nsOffloadInfo;
 #endif //WLAN_NS_OFFLOAD
-    tANI_U8 bssIdx;
+    tSirMacAddr  bssId;
 } tSirHostOffloadReq, *tpSirHostOffloadReq;
 
 /* Packet Types. */
@@ -3748,7 +3768,7 @@ typedef struct sSirKeepAliveReq
     tSirIpv4Addr    hostIpv4Addr; 
     tSirIpv4Addr    destIpv4Addr;
     tSirMacAddr     destMacAddr;
-    v_U8_t          bssIdx;
+    tSirMacAddr     bssId;
 } tSirKeepAliveReq, *tpSirKeepAliveReq;
 
 typedef struct sSirSmeAddStaSelfReq
@@ -4050,9 +4070,9 @@ typedef struct sSirRcvPktFilterCfg
   eSirReceivePacketFilterType     filterType;
   tANI_U32                        numFieldParams;
   tANI_U32                        coalesceTime;
-  tSirRcvPktFilterFieldParams     paramsData[SIR_MAX_NUM_TESTS_PER_FILTER];
   tSirMacAddr                     selfMacAddr;
   tSirMacAddr                     bssId; //Bssid of the connected AP
+  tSirRcvPktFilterFieldParams     paramsData[SIR_MAX_NUM_TESTS_PER_FILTER];
 }tSirRcvPktFilterCfgType, *tpSirRcvPktFilterCfgType;
 
 //
@@ -4072,6 +4092,7 @@ typedef struct sSirRcvFltPktMatchRsp
   /* Success or Failure */
   tANI_U32                 status;
   tSirRcvFltPktMatchCnt    filterMatchCnt[SIR_MAX_NUM_FILTERS];
+  tSirMacAddr      bssId;
 } tSirRcvFltPktMatchRsp, *tpSirRcvFltPktMatchRsp;
 
 //
@@ -4128,6 +4149,7 @@ typedef struct
   tANI_U8      aKCK[16];            /* Key confirmation key */ 
   tANI_U8      aKEK[16];            /* key encryption key */
   tANI_U64     ullKeyReplayCounter; /* replay counter */
+  tSirMacAddr  bssId;
 } tSirGtkOffloadParams, *tpSirGtkOffloadParams;
 
 /*---------------------------------------------------------------------------
@@ -4143,6 +4165,7 @@ typedef struct
    tANI_U32   ulTotalRekeyCount;    /* total rekey attempts */
    tANI_U32   ulGTKRekeyCount;      /* successful GTK rekeys */
    tANI_U32   ulIGTKRekeyCount;     /* successful iGTK rekeys */
+   tSirMacAddr bssId;
 } tSirGtkOffloadGetInfoRspParams, *tpSirGtkOffloadGetInfoRspParams;
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 

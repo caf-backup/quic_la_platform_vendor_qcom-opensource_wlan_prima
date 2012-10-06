@@ -1091,7 +1091,8 @@ extern eHalStatus sme_DeregisterDeviceStateUpdateInd (
   ---------------------------------------------------------------------------*/
 extern eHalStatus sme_WowlAddBcastPattern (
    tHalHandle hHal, 
-   tpSirWowlAddBcastPtrn pattern);
+   tpSirWowlAddBcastPtrn pattern,
+   tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_WowlDelBcastPattern
@@ -1104,7 +1105,8 @@ extern eHalStatus sme_WowlAddBcastPattern (
   ---------------------------------------------------------------------------*/
 extern eHalStatus sme_WowlDelBcastPattern (
    tHalHandle hHal, 
-   tpSirWowlDelBcastPtrn pattern);
+   tpSirWowlDelBcastPtrn pattern,
+   tANI_U8   sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_EnterWowl
@@ -1148,7 +1150,7 @@ extern eHalStatus sme_EnterWowl (
     void (*wakeReasonIndCB) (void *callbackContext, tpSirWakeReasonInd pWakeReasonInd),
     void *wakeReasonIndCBContext,
 #endif // WLAN_WAKEUP_EVENTS
-    tpSirSmeWowlEnterParams wowlEnterParams);
+    tpSirSmeWowlEnterParams wowlEnterParams, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_ExitWowl
@@ -1938,7 +1940,8 @@ eHalStatus sme_ReceiveFilterSetFilter(tHalHandle hHal, tpSirRcvPktFilterCfgType 
   ---------------------------------------------------------------------------*/
 eHalStatus sme_GetFilterMatchCount(tHalHandle hHal, 
                                    FilterMatchCountCallback callbackRoutine, 
-                                   void *callbackContext );
+                                   void *callbackContext,
+                                   tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_ReceiveFilterClearFilter
@@ -2005,7 +2008,7 @@ eHalStatus sme_SetTxPerTracking (
     \param  pRequest -  Pointer to the GTK offload request.
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_SetGTKOffload (tHalHandle hHal, tpSirGtkOffloadParams pRequest);
+eHalStatus sme_SetGTKOffload (tHalHandle hHal, tpSirGtkOffloadParams pRequest, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_GetGTKOffload
@@ -2014,7 +2017,8 @@ eHalStatus sme_SetGTKOffload (tHalHandle hHal, tpSirGtkOffloadParams pRequest);
     \param  pRequest -  Pointer to the GTK offload response.
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_GetGTKOffload (tHalHandle hHal, GTKOffloadGetInfoCallback callbackRoutine, void *callbackContext );
+eHalStatus sme_GetGTKOffload (tHalHandle hHal, GTKOffloadGetInfoCallback callbackRoutine, 
+                                    void *callbackContext, tANI_U8 sessionId);
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
 #ifdef WLAN_WAKEUP_EVENTS
