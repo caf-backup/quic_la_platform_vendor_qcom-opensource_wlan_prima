@@ -8779,7 +8779,6 @@ WLAN_TLAPGetNextTxIds
   pTLCb->ucCurrentSTA = WLAN_MAX_STA_COUNT; 
 
   *pucSTAId = pTLCb->ucCurrentSTA;
-  pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC = pTLCb->uCurServedAC;
   return VOS_STATUS_E_FAULT;
 }
 
