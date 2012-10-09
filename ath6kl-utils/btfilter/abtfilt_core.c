@@ -916,6 +916,14 @@ BtStateActionProper(ATHBT_FILTER_INFO *pInfo,
         A_COND_SIGNAL(&pInfo->hWakeEvent);
         A_MUTEX_UNLOCK(&pInfo->hWakeEventLock);
     }
+    else if ((queued > 0) && (pInfo->WlanAdapterAvailable == FALSE)
+                && State == STATE_OFF) {
+        /* wifi is off and state of bt profile is off, flush the
+         * action messages with indicated profile
+         */
+        ProcessBTActionMessages(pInfo, BTACTION_QUEUE_FLUSH_STATE,
+            Indication);
+    }
 
     /* check if we need to block until the dispatch thread issued the
      * last action if the adapter becomes unavailable we cannot block
@@ -1277,7 +1285,7 @@ ProcessBTActionMessages(ATHBT_FILTER_INFO      *pInfo,
                  * caller wants to just flush action messages matching a
                  * state
                  */
-                if (pActionMsg->StateForControlAction == StateToFlush) {
+                if (pActionMsg->IndicationForControlAction == StateToFlush) {
                     A_DEBUG(("Removed action for state=%d from queue\n"),
                             StateToFlush);
 
