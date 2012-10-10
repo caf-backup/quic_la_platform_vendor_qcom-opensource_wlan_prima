@@ -72,7 +72,6 @@ typedef struct
     v_U8_t            filterId;
     v_U8_t            numParams;
     struct PacketFilterParamsCfg paramsData [HDD_MAX_CMP_PER_PACKET_FILTER];
-    v_U8_t            bssIdx;
 }tPacketFilterCfg, *tpPacketFilterCfg;
 
 #endif

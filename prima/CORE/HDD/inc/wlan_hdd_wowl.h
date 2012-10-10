@@ -98,7 +98,7 @@
   @return     : FALSE if any errors encountered
               : TRUE otherwise
   ===========================================================================*/
-v_BOOL_t hdd_add_wowl_ptrn (const char * ptrn);
+v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn);
 
 /**============================================================================
   @brief hdd_del_wowl_ptrn() - Function which will remove a WoWL pattern
@@ -108,7 +108,7 @@ v_BOOL_t hdd_add_wowl_ptrn (const char * ptrn);
   @return     : FALSE if any errors encountered
               : TRUE otherwise
   ===========================================================================*/
-v_BOOL_t hdd_del_wowl_ptrn (const char * ptrn);
+v_BOOL_t hdd_del_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn);
 
 /**============================================================================
   @brief hdd_enter_wowl() - Function which will enable WoWL. Atleast one
@@ -128,7 +128,7 @@ v_BOOL_t hdd_enter_wowl (hdd_adapter_t *pAdapter, v_BOOL_t enable_mp, v_BOOL_t e
   @return           : FALSE if any errors encountered
                     : TRUE otherwise
   ===========================================================================*/
-v_BOOL_t hdd_exit_wowl (void);
+v_BOOL_t hdd_exit_wowl (hdd_adapter_t*pAdapter);
 
 /**============================================================================
   @brief hdd_init_wowl() - Init function which will initialize the WoWL module
@@ -137,6 +137,6 @@ v_BOOL_t hdd_exit_wowl (void);
   @return           : FALSE if any errors encountered
                     : TRUE otherwise
   ===========================================================================*/
-v_BOOL_t hdd_init_wowl (void* pAdapter);
+v_BOOL_t hdd_init_wowl (hdd_adapter_t* pAdapter);
 
 #endif /* #ifndef _WLAN_HDD_WOWL_H */
