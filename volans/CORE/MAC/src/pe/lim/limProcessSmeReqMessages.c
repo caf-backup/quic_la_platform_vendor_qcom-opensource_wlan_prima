@@ -1051,6 +1051,16 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         pMac->lim.gLimReturnUniqueResults   =
               ((pScanReq->returnUniqueResults) > 0 ? true : false);
+        /* De-activate Heartbeat timers for connected sessions while scan is in progress */
+        for(i=0;i<pMac->lim.maxBssId;i++)
+        {
+           if(pMac->lim.gpSession[i].valid == FALSE)
+               break;
+           if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
+           {
+               limHeartBeatDeactivateAndChangeTimer(pMac, peFindSessionBySessionId(pMac,i));
+           }   
+        }
 
         if (pScanReq->channelList.numChannels == 0)
         {

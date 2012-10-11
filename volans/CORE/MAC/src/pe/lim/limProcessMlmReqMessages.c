@@ -1236,10 +1236,22 @@ limContinueChannelScan(tpAniSirGlobal pMac)
 void
 limRestorePreScanState(tpAniSirGlobal pMac)
 {
-    
+    tANI_U8 i = 0;
+
     /// Deactivate MIN/MAX channel timers if running
     limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
     limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
+
+    /* Re-activate Heartbeat timers for connected sessions as scan is done */
+    for(i=0;i<pMac->lim.maxBssId;i++)
+    {
+       if(pMac->lim.gpSession[i].valid == FALSE)
+          break;
+       if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
+       {
+          limReactivateHeartBeatTimer(pMac, peFindSessionBySessionId(pMac,i));
+       }  
+    }
 
     /**
      * clean up message queue.
