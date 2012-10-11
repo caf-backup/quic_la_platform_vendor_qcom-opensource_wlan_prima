@@ -153,6 +153,7 @@ typedef enum
     eCsrSmeIssuedFTReassoc,
     eCsrForcedDisassocSta,
     eCsrForcedDeauthSta,
+    eCsrPerformPreauth,
     
 }eCsrRoamReason;
 
