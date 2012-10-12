@@ -381,6 +381,8 @@ typedef enum
    eHAL_SYS_MODE_SCAN,
    eHAL_SYS_MODE_PROMISC,
    eHAL_SYS_MODE_SUSPEND_LINK,
+   eHAL_SYS_MODE_ROAM_SCAN,
+   eHAL_SYS_MODE_ROAM_SUSPEND_LINK,
    eHAL_SYS_MODE_MAX = WLAN_HAL_MAX_ENUM_SIZE
 } eHalSysMode;
 
@@ -3622,6 +3624,8 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U16    capabilityMask;
     tANI_U16    beaconInterval;
     tANI_U16    ieNum;
+    tANI_U8     bssIdx;
+    tANI_U8     reserved;
 } tBeaconFilterMsg, *tpBeaconFilterMsg;
 
 /* The above structure would be followed by multiple of below mentioned structure */
