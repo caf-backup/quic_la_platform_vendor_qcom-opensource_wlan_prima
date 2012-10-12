@@ -1907,9 +1907,18 @@ limDetectChangeInApCapabilities(tpAniSirGlobal pMac,
         {
             PELOGE(limLog(pMac, LOGE, FL("Channel Change from %d --> %d \n"), psessionEntry->currentOperChannel, newChannel);)
             apNewCaps.channelId = newChannel;
+
+            /**
+             * Channel number is not updated with the latest channel number either in the scan list
+             * or in the roam profile. So, treating this as a Herat Beat failure and sending an
+             * indication(DEAUTH_IND) to the upper layer, to start a new connection
+             */
+            limTearDownLinkWithAp(pMac);
+            return;
         }
         else
             apNewCaps.channelId = psessionEntry->currentOperChannel;
+
         palCopyMemory( pMac->hHdd, (tANI_U8 *) &apNewCaps.ssId,
                       (tANI_U8 *) &pBeacon->ssId,
                       pBeacon->ssId.length + 1);

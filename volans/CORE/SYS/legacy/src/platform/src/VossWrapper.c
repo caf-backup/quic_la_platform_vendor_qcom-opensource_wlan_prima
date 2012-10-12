@@ -481,6 +481,8 @@ v_UINT_t tx_timer_delete( TX_TIMER *timer_ptr )
    {
       return TX_TIMER_ERROR;      
    }
+   timer_ptr->initScheduleTimeInMsecs = 0;
+   timer_ptr->rescheduleTimeInMsecs = 0;
 
    vos_timer_destroy( &timer_ptr->vosTimer );
    return TX_SUCCESS;     
