@@ -434,6 +434,31 @@ Abf_WlanIssueFrontEndConfig(ATHBT_FILTER_INFO * pInfo)
 }
 
 A_STATUS
+Abf_WlanIssueBtOnOff(ATHBT_FILTER_INFO * pInfo, A_BOOL bOn)
+{
+    A_STATUS status;
+    A_UINT32  buf_debug_cmd[sizeof(A_UINT32) + sizeof(WMI_SET_BTCOEX_DEBUG_CMD)];
+    WMI_SET_BTCOEX_DEBUG_CMD btcoexDebugCmd;
+
+    A_INFO(bOn ? "BT ON" : "BT OFF");
+    buf_debug_cmd[0] = AR6000_XIOCTL_WMI_SET_BTCOEX_DEBUG;
+    btcoexDebugCmd.btcoexDbgParam5 = bOn ? 0xFEFE: 0xEFEF;
+    A_MEMCPY(&buf_debug_cmd[1], (void *)&btcoexDebugCmd,
+	     sizeof(WMI_SET_BTCOEX_DEBUG_CMD));
+
+    status = Abf_WlanDispatchIO(pInfo, AR6000_IOCTL_EXTENDED,
+                                (void *)buf_debug_cmd,
+				                (sizeof(WMI_SET_BTCOEX_DEBUG_CMD) + sizeof(A_UINT32)));
+    if (A_FAILED(status)) {
+	    A_ERR("[%s] Failed to Abf_WlanIssueBtOnOff(%s)\n", __FUNCTION__, bOn ? "ON" : "OFF");
+	    return A_ERROR;
+    }
+
+    return A_OK;
+}
+
+
+A_STATUS
 Abf_WlanGetSleepState(ATHBT_FILTER_INFO * pInfo)
 {
     /* setup ioctl cmd */

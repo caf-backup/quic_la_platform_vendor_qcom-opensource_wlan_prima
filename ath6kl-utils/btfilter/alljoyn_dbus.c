@@ -1685,6 +1685,7 @@ static void *HCIFilterThread(void *arg)
 			}
 
 			if (*packedOpCode == HCI_RESET_CMD) {
+				Abf_WlanIssueBtOnOff(pInfo, STATE_OFF);
 				A_INFO("HCI command reset\n");
 				Abf_BToff();
 			}

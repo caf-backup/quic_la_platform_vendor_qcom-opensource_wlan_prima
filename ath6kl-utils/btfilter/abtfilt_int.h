@@ -263,6 +263,7 @@ void IndicateCurrentWLANOperatingChannel(ATHBT_FILTER_INFO *pFilterInfo, int Cur
 A_STATUS Abf_WlanGetSleepState(ATHBT_FILTER_INFO * pInfo);
 A_STATUS Abf_WlanGetCurrentWlanOperatingFreq(ATHBT_FILTER_INFO * pInfo);
 A_STATUS Abf_WlanIssueFrontEndConfig(ATHBT_FILTER_INFO * pInfo);
+A_STATUS Abf_WlanIssueBtOnOff(ATHBT_FILTER_INFO * pInfo, A_BOOL bOn);
 void AthBtFilter_State_Off(ATHBT_FILTER_INFO *pInfo);
 int Abf_wait_for_wlan();
 #endif /* ABTFILT_INT_H_ */
