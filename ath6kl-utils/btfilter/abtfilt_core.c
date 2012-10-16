@@ -357,10 +357,18 @@ AdjustBtControlAction(ATHBT_FILTER_INFO      *pInfo,
             }
 
             if (pInfo->Flags & ABF_BT_CHIP_IS_QCOM) {
+                if (pA2dpGenericConfig->a2dpFlags & A2DP_CONFIG_EDR_CAPABLE) {
                     pA2dpGenericConfig->a2dpFlags |= A2DP_CONFIG_ALLOW_OPTIMIZATION;
                     pA2dpPspollConfig->a2dpWlanMaxDur = 25;
                     pA2dpPspollConfig->a2dpMinBurstCnt = 3;
                     pA2dpOptModeConfig->a2dpPktStompCnt = 2;
+                } else {
+                    pA2dpGenericConfig->a2dpFlags |= A2DP_CONFIG_ALLOW_OPTIMIZATION;
+                    pA2dpPspollConfig->a2dpWlanMaxDur = 10;
+                    pA2dpPspollConfig->a2dpMinBurstCnt = 4;
+                    pA2dpPspollConfig->a2dpDataRespTimeout = 9;
+                    pA2dpOptModeConfig->a2dpPktStompCnt= 1;
+                }
             } else {
                 if (pInfo->Flags & ABF_BT_CHIP_IS_ATHEROS) {
                     pA2dpGenericConfig->a2dpFlags |= A2DP_CONFIG_A2DP_IS_HIGH_PRI ;
@@ -1406,6 +1414,7 @@ HandleAdapterEvent(ATHBT_FILTER_INFO *pInfo, ATH_ADAPTER_EVENT Event)
                 }
             }
 
+            Abf_WlanIssueBtOnOff(pInfo, STATE_ON);
             Abf_WlanIssueFrontEndConfig(pInfo);
 
             Abf_WlanGetCurrentWlanOperatingFreq(pInfo);
