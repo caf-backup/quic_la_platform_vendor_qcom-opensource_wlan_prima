@@ -35,4 +35,15 @@ $(shell mkdir -p $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw1.3; \
                $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw1.3/fw.ram.bin; \
         ln -sf /system/etc/firmware/ath6k/AR6004/hw1.3/bdata.bin_usb \
                $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw1.3/bdata.bin)
+
+ifeq ($(BOARD_FORCE_ATH_WLAN_AR6004), true)
+include $(CLEAR_VARS)
+LOCAL_MODULE       := ar6004_wlan.conf
+LOCAL_MODULE_TAGS  := debug optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH  := $(TARGET_OUT)/etc/firmware/ath6k/AR6004
+LOCAL_SRC_FILES    := $(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+endif
+
 endif
