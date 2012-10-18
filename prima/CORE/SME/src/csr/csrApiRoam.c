@@ -4348,7 +4348,7 @@ tANI_BOOLEAN csrRoamIsCCXAssoc(tpAniSirGlobal pMac)
 tANI_BOOLEAN csrRoamIsFastRoamEnabled(tpAniSirGlobal pMac)
 {
     return (pMac->roam.configParam.isFastRoamIniFeatureEnabled &&
-            (!csrIsConcurrentInfraConnected(pMac)));
+            (!csrIsConcurrentSessionRunning(pMac)));
 }
 #endif
 
