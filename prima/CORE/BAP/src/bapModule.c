@@ -96,7 +96,7 @@ static tWLAN_BAPbapPhysLinkMachine bapPhysLinkMachineInitial
 //  No!  Get this from VOS.
 //  The main per-Physical Link (per WLAN association) context.
 //tBtampContext btampCtx;
-ptBtampContext  gpBtampCtx = NULL; 
+ptBtampContext  gpBtampCtx; 
 
 //  Include the Local AMP Info structure.
 tBtampHCI_AMP_Info        btampHCI_AMP_Info;
@@ -1255,7 +1255,7 @@ WLANBAP_ReadMacConfig
   
 ============================================================================*/
 // Global
-static int gBapCoexPriority = 0;
+static int gBapCoexPriority;
 
 void
 WLANBAP_NeedBTCoexPriority

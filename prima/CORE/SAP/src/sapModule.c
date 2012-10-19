@@ -79,7 +79,7 @@
  * -------------------------------------------------------------------------*/
 //  No!  Get this from VOS.
 //  The main per-Physical Link (per WLAN association) context.
-ptSapContext  gpSapCtx = NULL;
+ptSapContext  gpSapCtx;
 
 /*----------------------------------------------------------------------------
  * Static Variable Definitions

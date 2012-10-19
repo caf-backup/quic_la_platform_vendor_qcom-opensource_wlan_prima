@@ -21,8 +21,8 @@
 #include "vos_memory.h"
 
 
-static pnfTxCompleteHandler bapRsnFsmTxCmpHandler = NULL;
-static pnfRxFrameHandler bapRsnFsmRxFrameHandler = NULL;
+static pnfTxCompleteHandler bapRsnFsmTxCmpHandler;
+static pnfRxFrameHandler bapRsnFsmRxFrameHandler;
 
 extern int gReadToSetKey;
 
