@@ -6109,9 +6109,8 @@ eHalStatus sme_ReceiveFilterSetFilter(tHalHandle hHal, tpSirRcvPktFilterCfgType 
                "filterId = %d", __FUNCTION__,
                pRcvPktFilterCfg->filterType, pRcvPktFilterCfg->filterId);
   
-    allocSize = sizeof(tSirRcvPktFilterCfgType) + 
-                      ((pRcvPktFilterCfg->numFieldParams - 1) * 
-                      sizeof(tSirRcvPktFilterFieldParams));
+    allocSize = sizeof(tSirRcvPktFilterCfgType);
+    
     pRequestBuf = vos_mem_malloc(allocSize);
 
     if (NULL == pRequestBuf)
