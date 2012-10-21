@@ -748,13 +748,15 @@ static eHalStatus csrNeighborRoamIssuePreauthReq(tpAniSirGlobal pMac)
     \param  pMac - The handle returned by macOpen.
             vosStatus - VOS_STATUS_SUCCESS/FAILURE/TIMEOUT status from PE
 
-    \return VOID
+    \return eHAL_STATUS_SUCCESS on success (i.e. pre-auth processed),
+            eHAL_STATUS_FAILURE otherwise
 
 ---------------------------------------------------------------------------*/
-void csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
+eHalStatus csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
 {
     tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
     eHalStatus  status = eHAL_STATUS_SUCCESS;
+    eHalStatus  preauthProcessed = eHAL_STATUS_SUCCESS;
     tpCsrNeighborRoamBSSInfo pPreauthRspNode = NULL;
 
     if (eANI_BOOLEAN_FALSE == pNeighborRoamInfo->FTRoamInfo.preauthRspPending)
@@ -768,6 +770,7 @@ void csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
             NEIGHBOR_ROAM_DEBUG(pMac, LOGW, 
                                 FL("Unexpected pre-auth response in state %d\n"), 
                                 pNeighborRoamInfo->neighborRoamState);
+            preauthProcessed = eHAL_STATUS_FAILURE;
             goto DEQ_PREAUTH;
     }    
 
@@ -777,6 +780,7 @@ void csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
     {
         NEIGHBOR_ROAM_DEBUG(pMac, LOGW, FL("Preauth response received in state %d\n"), 
                             pNeighborRoamInfo->neighborRoamState);
+        preauthProcessed = eHAL_STATUS_FAILURE;
         goto DEQ_PREAUTH;
     }
 
@@ -851,7 +855,7 @@ void csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
 
 DEQ_PREAUTH:
     csrRoamDequeuePreauth(pMac);
-    return;
+    return preauthProcessed;
 }
 #endif  /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
