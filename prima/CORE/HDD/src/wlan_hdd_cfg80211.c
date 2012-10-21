@@ -3855,6 +3855,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                          pScanInfo->flushP2pScanResults = 1;
                          sme_ScanFlushP2PResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                           sessionId );
+                         /* set requestType to P2P Discovery */
+                         scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
                     }
 
                     /*
@@ -3870,8 +3872,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                        scanRequest.skipDfsChnlInP2pSearch = 0;
                     }
 
-                    /* set requestType to P2P Discovery */
-                    scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
                 }
             }
 #endif
