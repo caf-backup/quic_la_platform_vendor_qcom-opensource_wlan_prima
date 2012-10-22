@@ -869,7 +869,7 @@ limInitMlm(tpAniSirGlobal pMac)
     tANI_U32 retVal;
 
     pMac->lim.gLimTimersCreated = 0;
-	
+
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION, pMac->lim.gLimMlmState));
 
     /// Initialize scan result hash table
@@ -7937,7 +7937,7 @@ tANI_BOOLEAN limIsconnectedOnDFSChannel(tANI_U8 currentChannel)
         return eANI_BOOLEAN_FALSE;
     }
 }
-	    
+
 #ifdef WLAN_FEATURE_11AC
 tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 chanWidth, tANI_U8 staId)
 {

@@ -69,8 +69,8 @@
 #define SPACE_ASCII_VALUE  32
 
 typedef struct sSapChannelListInfo{
-	v_U8_t numChannel;
-	v_U8_t *channelList;
+    v_U8_t numChannel;
+    v_U8_t *channelList;
 } tSapChannelListInfo;
 
 typedef struct {
