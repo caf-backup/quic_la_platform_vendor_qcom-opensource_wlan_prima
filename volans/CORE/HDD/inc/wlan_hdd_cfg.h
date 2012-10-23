@@ -1114,10 +1114,36 @@ typedef enum
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST           0x02
 #define HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST 0x03
 
+typedef enum
+{
+    eHDD_LINK_SPEED_REPORT_ACTUAL = 0,
+    eHDD_LINK_SPEED_REPORT_MAX = 1,
+    eHDD_LINK_SPEED_REPORT_MAX_SCALED = 2,
+}eHddLinkSpeedReportType;
+
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
-#define CFG_REPORT_MAX_LINK_SPEED_MIN              ( 0 )
-#define CFG_REPORT_MAX_LINK_SPEED_MAX              ( 1 )
-#define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( 0 )
+#define CFG_REPORT_MAX_LINK_SPEED_MIN              ( eHDD_LINK_SPEED_REPORT_ACTUAL )
+#define CFG_REPORT_MAX_LINK_SPEED_MAX              ( eHDD_LINK_SPEED_REPORT_MAX_SCALED )
+#define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( eHDD_LINK_SPEED_REPORT_ACTUAL )
+
+/*
+ * RSSI Thresholds
+ * Used when eHDD_LINK_SPEED_REPORT_SCALED is selected
+ */
+#define CFG_LINK_SPEED_RSSI_HIGH                   "gLinkSpeedRssiHigh"
+#define CFG_LINK_SPEED_RSSI_HIGH_MIN               ( -127 )
+#define CFG_LINK_SPEED_RSSI_HIGH_MAX               (  0 )
+#define CFG_LINK_SPEED_RSSI_HIGH_DEFAULT           ( -55 )
+
+#define CFG_LINK_SPEED_RSSI_MID                    "gLinkSpeedRssiHigh"
+#define CFG_LINK_SPEED_RSSI_MID_MIN                ( -127 )
+#define CFG_LINK_SPEED_RSSI_MID_MAX                (  0 )
+#define CFG_LINK_SPEED_RSSI_MID_DEFAULT            ( -65 )
+
+#define CFG_LINK_SPEED_RSSI_LOW                    "gLinkSpeedRssiLow"
+#define CFG_LINK_SPEED_RSSI_LOW_MIN                ( -127 )
+#define CFG_LINK_SPEED_RSSI_LOW_MAX                (  0 )
+#define CFG_LINK_SPEED_RSSI_LOW_DEFAULT            ( -80 )
 
 #ifdef WLAN_FEATURE_P2P
 #define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME                "isP2pDeviceAddrAdministrated"
@@ -1416,7 +1442,10 @@ typedef struct
 
    v_U32_t                     apDataAvailPollPeriodInMs;
    v_BOOL_t                    teleBcnWakeupEn;
-   v_U8_t                      reportMaxLinkSpeed;
+   eHddLinkSpeedReportType     reportMaxLinkSpeed;
+   v_S31_t                     linkSpeedRssiHigh;
+   v_S31_t                     linkSpeedRssiMid;
+   v_S31_t                     linkSpeedRssiLow;
 #ifdef WLAN_FEATURE_P2P
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
 #endif
@@ -1459,6 +1488,7 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
 typedef enum 
 {
   WLAN_PARAM_Integer,
+  WLAN_PARAM_SignedInteger,
   WLAN_PARAM_HexInteger,
   WLAN_PARAM_String,
   WLAN_PARAM_MacAddr,

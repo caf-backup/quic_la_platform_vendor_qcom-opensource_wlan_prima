@@ -769,6 +769,13 @@ eHalStatus csrReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId,
                       tCsrRoamModifyProfileFields *pModProfileFields,
                       tANI_U32 *pRoamId, v_BOOL_t fForce);
 
+#ifdef FILTER_NON_PRINTABLE_SSID
+// (1) The function below returns eANI_BOOLEAN_TRUE, if the SSID has non-displayable ASCII characters;
+//       In the above case, SSID will eventually be filtered out from the Scan Result of GUI.
+// (2) Else eANI_BOOLEAN_FALSE, in this case, CSR will not filter out Scan Result since SSID has
+//      displayable ASCII characters.
+tANI_BOOLEAN csrIsNonPrintableSSID(tAniSSID ssId);
+#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
 tANI_BOOLEAN csrIsProfile11r( tCsrRoamProfile *pProfile );
 tANI_BOOLEAN csrIsAuthType11r( eCsrAuthType AuthType );

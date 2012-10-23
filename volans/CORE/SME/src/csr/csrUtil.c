@@ -5619,3 +5619,23 @@ tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId)
     return ( fRet );
 }
 
+#ifdef FILTER_NON_PRINTABLE_SSID
+tANI_BOOLEAN csrIsNonPrintableSSID(tAniSSID ssId)
+{
+    tANI_U8* ssid;
+    int idx;
+
+    ssid = ssId.ssId;
+
+    for(idx = 0; idx < ssId.length; idx++)
+    {
+        if((ssid[idx] != 0) && ( (ssid[idx] < 0x20) || (ssid[idx] > 0x7E)))
+        {
+            return eANI_BOOLEAN_TRUE;
+        }
+    }
+
+    return eANI_BOOLEAN_FALSE;
+}
+#endif
+

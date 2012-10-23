@@ -341,6 +341,7 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     tLimScanResultNode   *pBssDescr;
     tANI_U32             frameLen, ieLen = 0;
     eHalStatus            status;
+    tPktType              chMisMatchAndIsUnicast = 0;
 
     /**
      * Compare SSID with the one sent in
@@ -376,17 +377,29 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
         return;
     }
 
-	/* If beacon/probe resp DS param channel does not match with 
-	 * RX BD channel then don't save the results. It might be a beacon 
-	 * from another channel heard as noise on the current scanning channel
-	 */
-	if (SIR_MAC_BD_TO_RX_CHANNEL(pBd) != limGetChannelFromBeacon(pMac, pBPR))
-	{
-        limLog(pMac, LOGW,
-           FL("Beacon/Probe Rsp dropped. Channel in BD %d. Channel in beacon %d\n"),
-           		SIR_MAC_BD_TO_RX_CHANNEL(pBd),limGetChannelFromBeacon(pMac, pBPR));
-		return;
-	}
+    /**
+     * If beacon/probe resp DS param channel does not match with
+     * RX BD channel then it might be a beacon from another channel
+     * heard as noise on the current scanning channel.
+     * In this case here is the criterion to add to scan list.
+     * 1. If unicast probe resp and channel mismatch then add to
+     *     scan list with old rssi.
+     * 2. If broadcast probe resp or beacon then add it to the scan list
+     *    if entry dosent exist else ignore.
+     */
+    if (SIR_MAC_BD_TO_RX_CHANNEL(pBd) != limGetChannelFromBeacon(pMac, pBPR))
+    {
+        tANI_U8 addr1 = WLANHAL_RX_BD_GET_ADDR1_IDX(pBd);
+
+        if(BROADCAST_STAID == addr1)
+        {
+            chMisMatchAndIsUnicast = eBROADCAST;
+        }
+        else
+        {
+            chMisMatchAndIsUnicast = eUNICAST;
+        }
+   }
 
     /**
      * Allocate buffer to hold BSS description from
@@ -425,11 +438,11 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     //If it is not scanning, only save unique results
     if (pMac->lim.gLimReturnUniqueResults || (!fScanning))
     {
-        status = limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_UPDATE);
+        status = limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_UPDATE, chMisMatchAndIsUnicast);
     }
     else
     {
-        status =limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_ADD);
+        status =limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_ADD, chMisMatchAndIsUnicast);
     }
 
     if(fScanning)
@@ -575,12 +588,13 @@ limInitHashTable(tpAniSirGlobal pMac)
 
 eHalStatus
 limLookupNaddHashEntry(tpAniSirGlobal pMac,
-                       tLimScanResultNode *pBssDescr, tANI_U8 action)
+                       tLimScanResultNode *pBssDescr, tANI_U8 action, tPktType chMisMatchAndIsUnicast)
 {
     tANI_U8                  index, ssidLen = 0;
     tANI_U8                found = false;
     tLimScanResultNode *ptemp, *pprev;
     tSirMacCapabilityInfo *pSirCap, *pSirCapTemp;
+    tANI_S8  rssi = 0;
 
     index = limScanHashFunction(pBssDescr->bssDescription.bssId);
     ptemp = pMac->lim.gLimCachedScanHashTable[index];
@@ -610,9 +624,26 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
                                       ptemp->bssDescription.channelId))))
         )
         {
+            /**
+             * Dont consider beacons or broadcast probe resp with channel
+             * mismatch as that entry is already present in scan list.
+             */
+            if(eBROADCAST == chMisMatchAndIsUnicast)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
+
             // Found the same BSS description
             if (action == LIM_HASH_UPDATE)
             {
+                /**
+                 * For unicast probe resp with channel mismatch dont update
+                 * RSSI from probe resp instead keep the old RSSI.
+                 */
+                if(chMisMatchAndIsUnicast)
+                {
+	                rssi = ptemp->bssDescription.rssi;
+                }
 
                 if(NULL != pMac->lim.gpLimMlmScanReq)
                 {
@@ -636,6 +667,12 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
             found = true;
             break;
         }
+    }
+
+    //for now, only rssi, we can add more if needed
+    if((eUNICAST == chMisMatchAndIsUnicast) && (action == LIM_HASH_UPDATE))
+    {
+        pBssDescr->bssDescription.rssi = rssi;
     }
 
     // Add this BSS description at same index

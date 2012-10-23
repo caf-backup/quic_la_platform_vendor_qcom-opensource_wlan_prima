@@ -1452,11 +1452,32 @@ This is a Verizon required feature.
                               
 
     REG_VARIABLE( CFG_REPORT_MAX_LINK_SPEED, WLAN_PARAM_Integer,
-                hdd_config_t, reportMaxLinkSpeed, 
-                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-                CFG_REPORT_MAX_LINK_SPEED_DEFAULT, 
-                CFG_REPORT_MAX_LINK_SPEED_MIN, 
+                hdd_config_t, reportMaxLinkSpeed,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_REPORT_MAX_LINK_SPEED_DEFAULT,
+                CFG_REPORT_MAX_LINK_SPEED_MIN,
                 CFG_REPORT_MAX_LINK_SPEED_MAX ),
+
+    REG_VARIABLE( CFG_LINK_SPEED_RSSI_HIGH, WLAN_PARAM_SignedInteger,
+                  hdd_config_t, linkSpeedRssiHigh,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_LINK_SPEED_RSSI_HIGH_DEFAULT,
+                  CFG_LINK_SPEED_RSSI_HIGH_MIN,
+                  CFG_LINK_SPEED_RSSI_HIGH_MAX ),
+
+    REG_VARIABLE( CFG_LINK_SPEED_RSSI_MID, WLAN_PARAM_SignedInteger,
+                  hdd_config_t, linkSpeedRssiMid,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_LINK_SPEED_RSSI_MID_DEFAULT,
+                  CFG_LINK_SPEED_RSSI_MID_MIN,
+                  CFG_LINK_SPEED_RSSI_MID_MAX ),
+
+    REG_VARIABLE( CFG_LINK_SPEED_RSSI_LOW, WLAN_PARAM_SignedInteger,
+                  hdd_config_t, linkSpeedRssiLow,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_LINK_SPEED_RSSI_LOW_DEFAULT,
+                  CFG_LINK_SPEED_RSSI_LOW_MIN,
+                  CFG_LINK_SPEED_RSSI_LOW_MAX ),
 
 #ifdef WLAN_FEATURE_P2P
  REG_VARIABLE( CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME, WLAN_PARAM_Integer,
@@ -1839,14 +1860,19 @@ VOS_STATUS hdd_cfg_get_config(hdd_context_t *pHddCtx, char *pBuf, int buflen)
    {
       pField = ( (v_U8_t *)pHddCtx->cfg_ini) + pRegEntry->VarOffset;
 
-      if ( ( WLAN_PARAM_Integer    == pRegEntry->RegType ) ||
-           ( WLAN_PARAM_HexInteger == pRegEntry->RegType ) ) 
+      if ( ( WLAN_PARAM_Integer       == pRegEntry->RegType ) ||
+           ( WLAN_PARAM_SignedInteger == pRegEntry->RegType ) ||
+           ( WLAN_PARAM_HexInteger    == pRegEntry->RegType ) )
       {
          value = 0;
          memcpy( &value, pField, pRegEntry->VarSize );
          if ( WLAN_PARAM_HexInteger == pRegEntry->RegType )
          {
             fmt = "%x";
+         }
+         else if ( WLAN_PARAM_SignedInteger == pRegEntry->RegType )
+         {
+            fmt = "%d";
          }
          else
          {
@@ -1950,9 +1976,10 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
    unsigned int idx;
    void *pField;
    char *value_str = NULL;
-   unsigned long len_value_str; 
+   unsigned long len_value_str;
    char *candidate;
    v_U32_t value;
+   v_S31_t svalue;
    void *pStructBase = pHddCtx->cfg_ini;
    REG_TABLE_ENTRY *pRegEntry = g_registry_table;
    unsigned long cRegTableEntries  = sizeof(g_registry_table) / sizeof( g_registry_table[ 0 ]);
@@ -1962,30 +1989,30 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
    // sanity test
    if (MAX_CFG_INI_ITEMS < cRegTableEntries)
    {
-      hddLog(LOGE, "%s: MAX_CFG_INI_ITEMS too small, must be at least %d", 
+      hddLog(LOGE, "%s: MAX_CFG_INI_ITEMS too small, must be at least %d",
              __FUNCTION__, cRegTableEntries);
    }
 
-   for ( idx = 0; idx < cRegTableEntries; idx++, pRegEntry++ ) 
+   for ( idx = 0; idx < cRegTableEntries; idx++, pRegEntry++ )
    {
       //Calculate the address of the destination field in the structure.
       pField = ( (v_U8_t *)pStructBase )+ pRegEntry->VarOffset;
 
-      match_status = find_cfg_item(iniTable, entries, pRegEntry->RegName, &value_str); 
+      match_status = find_cfg_item(iniTable, entries, pRegEntry->RegName, &value_str);
 
       if( (match_status != VOS_STATUS_SUCCESS) && ( pRegEntry->Flags & VAR_FLAGS_REQUIRED ) )
       {
          // If we could not read the cfg item and it is required, this is an error.
-         hddLog(LOGE, "%s: Failed to read required config parameter %s", 
+         hddLog(LOGE, "%s: Failed to read required config parameter %s",
             __FUNCTION__, pRegEntry->RegName);
          ret_status = VOS_STATUS_E_FAILURE;
          break;
       }
 
       if ( ( WLAN_PARAM_Integer    == pRegEntry->RegType ) ||
-           ( WLAN_PARAM_HexInteger == pRegEntry->RegType ) ) 
+           ( WLAN_PARAM_HexInteger == pRegEntry->RegType ) )
       {
-         // If successfully read from the registry, use the value read.  
+         // If successfully read from the registry, use the value read.
          // If not, use the default value.
          if ( match_status == VOS_STATUS_SUCCESS && (WLAN_PARAM_Integer == pRegEntry->RegType)) {
             value = simple_strtoul(value_str, NULL, 10);
@@ -1998,42 +2025,101 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
          }
 
          // If this parameter needs range checking, do it here.
-         if ( pRegEntry->Flags & VAR_FLAGS_RANGE_CHECK ) 
+         if ( pRegEntry->Flags & VAR_FLAGS_RANGE_CHECK )
          {
             if ( value > pRegEntry->VarMax )
             {
-                hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Maximum\n", 
-                   __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMax );
-                  value = pRegEntry->VarMax;
+               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Maximum",
+                      __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMax );
+               value = pRegEntry->VarMax;
             }
 
-            if ( value < pRegEntry->VarMin ) 
+            if ( value < pRegEntry->VarMin )
             {
-                 hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Minimum", 
-                    __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMin);
-                  value = pRegEntry->VarMin;
-            } 
+               hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Minimum",
+                      __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMin);
+               value = pRegEntry->VarMin;
+            }
          }
          // If this parameter needs range checking, do it here.
-         else if ( pRegEntry->Flags & VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT ) 
+         else if ( pRegEntry->Flags & VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT )
          {
-            if ( value > pRegEntry->VarMax ) 
+            if ( value > pRegEntry->VarMax )
             {
-               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Default= %lu", 
+               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Default= %lu",
                   __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMax, pRegEntry->VarDefault  );
                value = pRegEntry->VarDefault;
             }
 
-            if ( value < pRegEntry->VarMin ) 
+            if ( value < pRegEntry->VarMin )
             {
-               hddLog(LOGE, "%s:Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Default= %lu", 
+               hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Default= %lu",
                   __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMin, pRegEntry->VarDefault  );
                value = pRegEntry->VarDefault;
-            } 
+            }
          }
 
          // Move the variable into the output field.
          memcpy( pField, &value, pRegEntry->VarSize );
+      }
+      else if ( WLAN_PARAM_SignedInteger == pRegEntry->RegType )
+      {
+         // If successfully read from the registry, use the value read.
+         // If not, use the default value.
+         if (VOS_STATUS_SUCCESS == match_status)
+         {
+            svalue = simple_strtol(value_str, NULL, 10);
+         }
+         else
+         {
+            svalue = (v_S31_t)pRegEntry->VarDefault;
+         }
+
+         // If this parameter needs range checking, do it here.
+         if ( pRegEntry->Flags & VAR_FLAGS_RANGE_CHECK )
+         {
+            if ( svalue > (v_S31_t)pRegEntry->VarMax )
+            {
+               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum "
+                      "[%ld > %ld]. Enforcing Maximum", __FUNCTION__,
+                      pRegEntry->RegName, svalue, (int)pRegEntry->VarMax );
+               svalue = (v_S31_t)pRegEntry->VarMax;
+            }
+
+            if ( svalue < (v_S31_t)pRegEntry->VarMin )
+            {
+               hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum "
+                      "[%ld < %ld]. Enforcing Minimum",  __FUNCTION__,
+                      pRegEntry->RegName, svalue, (int)pRegEntry->VarMin);
+               svalue = (v_S31_t)pRegEntry->VarMin;
+            }
+         }
+         // If this parameter needs range checking, do it here.
+         else if ( pRegEntry->Flags & VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT )
+         {
+            if ( svalue > (v_S31_t)pRegEntry->VarMax )
+            {
+               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum "
+                      "[%ld > %ld]. Enforcing Default= %ld",
+                      __FUNCTION__, pRegEntry->RegName, svalue,
+                      (int)pRegEntry->VarMax,
+                      (int)pRegEntry->VarDefault  );
+               svalue = (v_S31_t)pRegEntry->VarDefault;
+            }
+
+            if ( svalue < (v_S31_t)pRegEntry->VarMin )
+            {
+               hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum "
+                      "[%ld < %ld]. Enforcing Default= %ld",
+                      __FUNCTION__, pRegEntry->RegName, svalue,
+                      (int)pRegEntry->VarMin,
+                      (int)pRegEntry->VarDefault);
+               svalue = pRegEntry->VarDefault;
+            }
+         }
+
+         // Move the variable into the output field.
+         memcpy( pField, &svalue, pRegEntry->VarSize );
       }
       // Handle string parameters
       else if ( WLAN_PARAM_String == pRegEntry->RegType )
@@ -2041,7 +2127,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
 #ifdef WLAN_CFG_DEBUG
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "RegName = %s, VarOffset %u VarSize %u VarDefault %s\n",
             pRegEntry->RegName, pRegEntry->VarOffset, pRegEntry->VarSize, (char*)pRegEntry->VarDefault); 
-#endif    
+#endif
 
          if ( match_status == VOS_STATUS_SUCCESS) 
          {
@@ -2103,7 +2189,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
           (idx < MAX_CFG_INI_ITEMS) )
       {
          set_bit(idx, (void *)&pHddCtx->cfg_ini->bExplicitCfg);
-   }
+      }
    }
 
    print_hdd_cfg(pHddCtx);
