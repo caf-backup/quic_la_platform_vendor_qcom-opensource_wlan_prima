@@ -61,7 +61,7 @@
  * Data definitions
  * ------------------------------------------------------------------------*/
 static pVosSchedContext gpVosSchedContext;
-static pVosWatchdogContext gpVosWatchdogContext=NULL;
+static pVosWatchdogContext gpVosWatchdogContext;
 
 /*---------------------------------------------------------------------------
  * Forward declaration
