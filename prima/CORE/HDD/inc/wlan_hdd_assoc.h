@@ -22,7 +22,7 @@ typedef enum
 
    /** Disconnecting in an Infrastructure network.*/
    eConnectionState_Disconnecting
-	
+
 }eConnectionState;
 /**This structure stores the connection information */
 typedef struct connection_info_s

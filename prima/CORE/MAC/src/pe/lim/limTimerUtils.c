@@ -356,7 +356,7 @@ limCreateTimers(tpAniSirGlobal pMac)
             // Log error
             limLog(pMac, LOGP,
                FL("call to create heartbeat timer failed\n"));
-			goto err_timer;
+            goto err_timer;
         }
 
         if (wlan_cfgGetInt(pMac, WNI_CFG_PROBE_AFTER_HB_FAIL_TIMEOUT,
@@ -385,7 +385,7 @@ limCreateTimers(tpAniSirGlobal pMac)
             // Log error
             limLog(pMac, LOGP,
                    FL("unable to create ProbeAfterHBTimer\n"));
-			goto err_timer;
+            goto err_timer;
         }
 
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
@@ -433,7 +433,7 @@ limCreateTimers(tpAniSirGlobal pMac)
             // Log error
             limLog(pMac, LOGP,
                FL("call to create background scan timer failed\n"));
-			goto err_timer;
+            goto err_timer;
         }
 #endif
     }
@@ -454,7 +454,7 @@ limCreateTimers(tpAniSirGlobal pMac)
         // Log error
         limLog(pMac, LOGP,
                FL("create Disassociate throttle timer failed\n"));
-		goto err_timer;
+        goto err_timer;
     }
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
     tx_timer_set_expiry_list(
@@ -502,7 +502,7 @@ limCreateTimers(tpAniSirGlobal pMac)
     {
         // Cannot create keepalive timer.  Log error.
         limLog(pMac, LOGP, FL("Cannot create keepalive timer.\n"));
-		goto err_timer;
+        goto err_timer;
     }
 
     /**
@@ -533,7 +533,7 @@ limCreateTimers(tpAniSirGlobal pMac)
         {
             // Cannot create timer.  Log error.
             limLog(pMac, LOGP, FL("Cannot create CNF wait timer.\n"));
-			goto err_timer;
+            goto err_timer;
         }
     }
 
@@ -599,7 +599,7 @@ limCreateTimers(tpAniSirGlobal pMac)
             // Cannot create update OLBC cache timer
             // Log error
             limLog(pMac, LOGP, FL("Cannot create update OLBC cache timer\n"));
-			goto err_timer;
+            goto err_timer;
         }
     }
 #endif
@@ -657,7 +657,7 @@ limCreateTimers(tpAniSirGlobal pMac)
     }
 
 #endif
-	return TX_SUCCESS;
+    return TX_SUCCESS;
 
     err_timer:
     #ifdef FEATURE_WLAN_CCX
