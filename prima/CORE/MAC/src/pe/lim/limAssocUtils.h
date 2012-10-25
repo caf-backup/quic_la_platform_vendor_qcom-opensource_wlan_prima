@@ -92,6 +92,9 @@ void            limTeardownInfraBss(tpAniSirGlobal,tpPESession);
 void            limRestorePreReassocState(tpAniSirGlobal,
                                           tSirResultCodes,
                                           tANI_U16,tpPESession); 
+void            limPostReassocFailure(tpAniSirGlobal,
+                                      tSirResultCodes,
+                                      tANI_U16,tpPESession);
 eAniBoolean     limIsReassocInProgress(tpAniSirGlobal,tpPESession);
 void
 limSendDelStaCnf(tpAniSirGlobal pMac, tSirMacAddr staDsAddr,

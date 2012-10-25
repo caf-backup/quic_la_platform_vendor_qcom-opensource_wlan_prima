@@ -201,8 +201,6 @@ limGetBssidFromBD(tpAniSirGlobal pMac, tANI_U8 * pRxPacketInfo, tANI_U8 *bssId, 
 char *
 limMlmStateStr(tLimMlmStates state)
 {
-
-#ifdef FIXME_GEN6
     switch (state)
     {
         case eLIM_MLM_OFFLINE_STATE:
@@ -264,8 +262,6 @@ limMlmStateStr(tLimMlmStates state)
         default:
             return "INVALID MLM state\n";
     }
-#endif
-return "";
 }
 
 void
