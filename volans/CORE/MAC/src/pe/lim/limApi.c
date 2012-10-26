@@ -1910,8 +1910,8 @@ limDetectChangeInApCapabilities(tpAniSirGlobal pMac,
 
             /**
              * Channel number is not updated with the latest channel number either in the scan list
-             * or in the roam profile. So, treating this as a Herat Beat failure and sending an
-             * indication(DEAUTH_IND) to the upper layer, to start a new connection
+             * or in the roam profile. So, treating this as a Heart Beat failure and sending an
+             * indication(DEAUTH_IND) to the upper layer, to start a new connection.
              */
             limTearDownLinkWithAp(pMac);
             return;

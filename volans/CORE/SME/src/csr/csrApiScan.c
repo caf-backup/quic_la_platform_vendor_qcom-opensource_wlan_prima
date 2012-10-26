@@ -2341,71 +2341,84 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
             }
             if(NULL == pFilter || fMatch)
             {
-                bssLen = pBssDesc->Result.BssDescriptor.length + sizeof(pBssDesc->Result.BssDescriptor.length);
-                allocLen = sizeof( tCsrScanResult ) + bssLen;
-                status = palAllocateMemory(pMac->hHdd, (void **)&pResult, allocLen);
-                if(!HAL_STATUS_SUCCESS(status))
+#ifdef FILTER_NON_PRINTABLE_SSID
+                /* Adding code here to check for SSID advertised in the beacon which has characters
+                   outside the printable ASCII range. If we find one, then that scan result is not forwarded
+                   to the upper layers & hence user can never see this SSID bearing AP in the scan result
+                   which is displayed in GUI.
+                   Since, we are not interested to save the result here, we fetch the next scan result available
+                   in scanResultList populated by LIM */
+                if(!csrIsNonPrintableSSID(pBssDesc->Result.ssId))
                 {
-                    smsLog(pMac, LOGE, FL("  fail to allocate memory for scan result, len=%d\n"), allocLen);
-                    if(pNewIes)
+#endif
+                    bssLen = pBssDesc->Result.BssDescriptor.length + sizeof(pBssDesc->Result.BssDescriptor.length);
+                    allocLen = sizeof( tCsrScanResult ) + bssLen;
+                    status = palAllocateMemory(pMac->hHdd, (void **)&pResult, allocLen);
+                    if(!HAL_STATUS_SUCCESS(status))
                     {
-                        palFreeMemory(pMac->hHdd, pNewIes);
-                    }
-                    break;
-                }
-                palZeroMemory(pMac->hHdd, pResult, allocLen);
-                pResult->capValue = pBssDesc->capValue;
-                pResult->preferValue = pBssDesc->preferValue;
-                pResult->ucEncryptionType = uc;
-                pResult->mcEncryptionType = mc;
-                pResult->authType = auth;
-                pResult->Result.ssId = pBssDesc->Result.ssId;
-                pResult->Result.timer = 0;
-				//save the pIes for later use
-                pResult->Result.pvIes = pNewIes;
-				//save bss description
-                status = palCopyMemory(pMac->hHdd, &pResult->Result.BssDescriptor, &pBssDesc->Result.BssDescriptor, bssLen);
-                if(!HAL_STATUS_SUCCESS(status))
-                {
-                    smsLog(pMac, LOGE, FL("  fail to copy memory for scan result\n"));
-                    palFreeMemory(pMac->hHdd, pResult);
-                    if(pNewIes)
-                    {
-                        palFreeMemory(pMac->hHdd, pNewIes);
-                    }
-                    break;
-                }
-                //No need to lock pRetList because it is locally allocated and no outside can access it at this time
-                if(csrLLIsListEmpty(&pRetList->List, LL_ACCESS_NOLOCK))
-                {
-                    csrLLInsertTail(&pRetList->List, &pResult->Link, LL_ACCESS_NOLOCK);
-                }
-                else
-                {
-                    //To sort the list
-                    tListElem *pTmpEntry;
-                    tCsrScanResult *pTmpResult;
-                    
-                    pTmpEntry = csrLLPeekHead(&pRetList->List, LL_ACCESS_NOLOCK);
-                    while(pTmpEntry)
-                    {
-                        pTmpResult = GET_BASE_ADDR( pTmpEntry, tCsrScanResult, Link );
-                        if(csrIsBetterBss(pResult, pTmpResult))
+                        smsLog(pMac, LOGE, FL("  fail to allocate memory for scan result, len=%d\n"), allocLen);
+                        if(pNewIes)
                         {
-                            csrLLInsertEntry(&pRetList->List, pTmpEntry, &pResult->Link, LL_ACCESS_NOLOCK);
-                            //To indicate we are done
-                            pResult = NULL;
-                            break;
+                            palFreeMemory(pMac->hHdd, pNewIes);
                         }
-                        pTmpEntry = csrLLNext(&pRetList->List, pTmpEntry, LL_ACCESS_NOLOCK);
+                        break;
                     }
-                    if(pResult != NULL)
+                    palZeroMemory(pMac->hHdd, pResult, allocLen);
+                    pResult->capValue = pBssDesc->capValue;
+                    pResult->preferValue = pBssDesc->preferValue;
+                    pResult->ucEncryptionType = uc;
+                    pResult->mcEncryptionType = mc;
+                    pResult->authType = auth;
+                    pResult->Result.ssId = pBssDesc->Result.ssId;
+                    pResult->Result.timer = 0;
+                    //save the pIes for later use
+                    pResult->Result.pvIes = pNewIes;
+                    //save bss description
+                    status = palCopyMemory(pMac->hHdd, &pResult->Result.BssDescriptor, &pBssDesc->Result.BssDescriptor, bssLen);
+                    if(!HAL_STATUS_SUCCESS(status))
                     {
-                        //This one is not better than any one
+                        smsLog(pMac, LOGE, FL("  fail to copy memory for scan result\n"));
+                        palFreeMemory(pMac->hHdd, pResult);
+                        if(pNewIes)
+                        {
+                            palFreeMemory(pMac->hHdd, pNewIes);
+                        }
+                        break;
+                    }
+                    //No need to lock pRetList because it is locally allocated and no outside can access it at this time
+                    if(csrLLIsListEmpty(&pRetList->List, LL_ACCESS_NOLOCK))
+                    {
                         csrLLInsertTail(&pRetList->List, &pResult->Link, LL_ACCESS_NOLOCK);
                     }
+                    else
+                    {
+                        //To sort the list
+                        tListElem *pTmpEntry;
+                        tCsrScanResult *pTmpResult;
+
+                        pTmpEntry = csrLLPeekHead(&pRetList->List, LL_ACCESS_NOLOCK);
+                        while(pTmpEntry)
+                        {
+                            pTmpResult = GET_BASE_ADDR( pTmpEntry, tCsrScanResult, Link );
+                            if(csrIsBetterBss(pResult, pTmpResult))
+                            {
+                                csrLLInsertEntry(&pRetList->List, pTmpEntry, &pResult->Link, LL_ACCESS_NOLOCK);
+                                //To indicate we are done
+                                pResult = NULL;
+                                break;
+                            }
+                            pTmpEntry = csrLLNext(&pRetList->List, pTmpEntry, LL_ACCESS_NOLOCK);
+                        }
+                        if(pResult != NULL)
+                        {
+                            //This one is not better than any one
+                            csrLLInsertTail(&pRetList->List, &pResult->Link, LL_ACCESS_NOLOCK);
+                        }
+                    }
+                    count++;
+#ifdef FILTER_NON_PRINTABLE_SSID
                 }
-                count++;
+#endif
             }
             pEntry = csrLLNext( &pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK );
         }//while

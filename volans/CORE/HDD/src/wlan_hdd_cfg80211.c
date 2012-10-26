@@ -62,6 +62,8 @@
 #include "wlan_hdd_softap_tx_rx.h"
 #include "wlan_hdd_main.h"
 
+#define LINKSPEED_DEBUG_ENABLED
+
 #define g_mode_rates_size (12)
 #define FREQ_BASE_80211G          (2407)
 #define FREQ_BAND_DIFF_80211G     (5)
@@ -214,23 +216,36 @@ struct index_data_rate_type
    v_U16_t  supported_rate[4];
 };
 
-/* 11B, 11G Rate tablem include Basic rate and Extended rate */
-static struct index_data_rate_type supported_data_rate[] =
+/* 11B, 11G Rate table include Basic rate and Extended rate
+   The IDX field is the rate index
+   The HI field is the rate when RSSI is strong or being ignored
+    (in this case we report actual rate)
+   The MID field is the rate when RSSI is moderate
+    (in this case we cap 11b rates at 5.5 and 11g rates at 24)
+   The LO field is the rate when RSSI is low
+    (in this case we don't report rates, actual current rate used)
+ */
+static const struct
 {
-   {2,   {10,  0, 0, 0}},
-   {4,   {20,  0, 0, 0}},
-   {11,  {55,  0, 0, 0}},
-   {12,  {60,  0, 0, 0}},
-   {18,  {90,  0, 0, 0}},
-   {22,  {110, 0, 0, 0}},
-   {24,  {120, 0, 0, 0}},
-   {36,  {180, 0, 0, 0}},
-   {44,  {220, 0, 0, 0}},
-   {48,  {240, 0, 0, 0}},
-   {66,  {330, 0, 0, 0}},
-   {72,  {360, 0, 0, 0}},
-   {96,  {480, 0, 0, 0}},
-   {108, {540, 0, 0, 0}}
+   v_U8_t   beacon_rate_index;
+   v_U16_t  supported_rate[4];
+} supported_data_rate[] =
+{
+/* IDX     HI  HM  LM LO (RSSI-based index */
+   {2,   { 10,  10, 10, 0}},
+   {4,   { 20,  20, 10, 0}},
+   {11,  { 55,  20, 10, 0}},
+   {12,  { 60,  55, 20, 0}},
+   {18,  { 90,  55, 20, 0}},
+   {22,  {110,  55, 20, 0}},
+   {24,  {120,  90, 60, 0}},
+   {36,  {180, 120, 60, 0}},
+   {44,  {220, 180, 60, 0}},
+   {48,  {240, 180, 90, 0}},
+   {66,  {330, 180, 90, 0}},
+   {72,  {360, 240, 90, 0}},
+   {96,  {480, 240, 120, 0}},
+   {108, {540, 240, 120, 0}}
 };
 
 /* MCS Based rate table */
@@ -266,8 +281,8 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
     ENTER();
 
     /* 
-         *   Create wiphy device 
-        */
+     *   Create wiphy device
+     */
     wiphy = wiphy_new(&wlan_hdd_cfg80211_ops, priv_size);
 
     if (!wiphy)
@@ -2971,9 +2986,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
                 (int) scanId);
     }
 
-    /* Scan is no longer pending */
-    pScanInfo->mScanPending = VOS_FALSE;
-
     ret = wlan_hdd_cfg80211_update_bss((WLAN_HDD_GET_CTX(pAdapter))->wiphy, 
                                         pAdapter);
 
@@ -2986,6 +2998,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (!req)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "request is became NULL\n");
+        pScanInfo->mScanPending = VOS_FALSE;
         return 0;
     }
 
@@ -2996,14 +3009,16 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     req->n_channels = 0;
     req->ie = 0;
 
+    complete(&pAdapter->abortscan_event_var);
+    pAdapter->request = NULL;
+    /* Scan is no longer pending */
+    pScanInfo->mScanPending = VOS_FALSE;
+
     /*
      * cfg80211_scan_done informing NL80211 about completion
      * of scanning
      */
     cfg80211_scan_done(req, false);
-    complete(&pAdapter->abortscan_event_var);
-    pAdapter->request = NULL;
-
 #ifdef WLAN_FEATURE_P2P
     /* Flush out scan result after p2p_serach is done */
     if(pScanInfo->flushP2pScanResults)
@@ -4509,12 +4524,12 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     tANI_U8  MCSRates[SIZE_OF_BASIC_MCS_SET];
     tANI_U32 MCSLeng = SIZE_OF_BASIC_MCS_SET;
     tANI_U16 maxRate = 0;
+    tANI_U16 myRate;
     tANI_U16 currentRate = 0;
     tANI_U8  maxSpeedMCS = 0;
     tANI_U8  maxMCSIdx = 0;
     tANI_U8  rateFlag = 1;
-    tANI_U8  i, j;
-    tANI_U8  BSSIDChanged = 0;
+    tANI_U8  i, j, rssidx;
 
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
             (0 == ssidlen))
@@ -4535,93 +4550,116 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     wlan_hdd_get_rssi(pAdapter, &sinfo->signal);
     sinfo->filled |= STATION_INFO_SIGNAL;
 
-    /* Report MAX available RATE to GUI */
-    if (pCfg->reportMaxLinkSpeed)
+    wlan_hdd_get_classAstats(pAdapter);
+    rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
+
+    //convert to the UI units of 100kbps
+    myRate = pAdapter->hdd_stats.ClassA_stat.tx_rate * 5;
+
+#ifdef LINKSPEED_DEBUG_ENABLED
+    pr_info("RSSI %d, RLMS %u, rate %d, rssi high %d, rssi mid %d, rssi low %d, rate_flags 0x%x\n",
+            sinfo->signal,
+            pCfg->reportMaxLinkSpeed,
+            myRate,
+            (int) pCfg->linkSpeedRssiHigh,
+            (int) pCfg->linkSpeedRssiMid,
+            (int) pCfg->linkSpeedRssiLow,
+            (int) rate_flags);
+#endif //LINKSPEED_DEBUG_ENABLED
+
+    if (eHDD_LINK_SPEED_REPORT_ACTUAL != pCfg->reportMaxLinkSpeed)
     {
-        if (!pHddStaCtx->BSSIDSet)
+        // we do not want to necessarily report the current speed
+        if (eHDD_LINK_SPEED_REPORT_MAX == pCfg->reportMaxLinkSpeed)
         {
-            vos_mem_copy(pHddStaCtx->prevAssocBSSID,
-                         pHddStaCtx->conn_info.bssId,
-                         WNI_CFG_BSSID_LEN);
-            BSSIDChanged = 1;
-            pHddStaCtx->BSSIDSet = 1;
+            // report the max possible speed
+            rssidx = 0;
         }
-        else
+        else if (eHDD_LINK_SPEED_REPORT_MAX_SCALED == pCfg->reportMaxLinkSpeed)
         {
-            if(VOS_TRUE != vos_mem_compare(pHddStaCtx->prevAssocBSSID,
-                                           pHddStaCtx->conn_info.bssId,
-                                           WNI_CFG_BSSID_LEN))
+            // report the max possible speed with RSSI scaling
+            if (sinfo->signal >= pCfg->linkSpeedRssiHigh)
             {
-                    /* BSSID Changed from before */
-                    BSSIDChanged = 1;
-                vos_mem_copy(pHddStaCtx->prevAssocBSSID,
-                             pHddStaCtx->conn_info.bssId,
-                             WNI_CFG_BSSID_LEN);
+                // report the max possible speed
+                rssidx = 0;
             }
-        }
-
-        /* BSSID changed or newly assoc
-         * In this case need to get new MAX Rate from lower layer */
-        if (BSSIDChanged)
-        {
-            wlan_hdd_get_classAstats(pAdapter);
-            rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
-
-            maxRate = 0;
-            /* Get Basic Rate Set */
-            ccmCfgGetStr(hHal, WNI_CFG_OPERATIONAL_RATE_SET, OperationalRates, &ORLeng);
-            for (i = 0; i < ORLeng; i++)
+            else if (sinfo->signal >= pCfg->linkSpeedRssiMid)
             {
-                for (j = 0; j < (sizeof(supported_data_rate)/sizeof(supported_data_rate[0])); j ++)
-                {
-                    /* Validate Rate Set */
-                    if (supported_data_rate[j].beacon_rate_index == (OperationalRates[i] & 0x7F))
-                    {
-                        currentRate = supported_data_rate[j].supported_rate[0];
-                        break;
-                    }
-                }
-                /* Update MAX rate */
-                maxRate = (currentRate > maxRate)?currentRate:maxRate;
+                // report middle speed
+                rssidx = 1;
             }
-
-            /* Get Extended Rate Set */
-            ccmCfgGetStr(hHal, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET, ExtendedRates, &ERLeng);
-            for (i = 0; i < ERLeng; i++)
+            else if (sinfo->signal >= pCfg->linkSpeedRssiLow)
             {
-                for (j = 0; j < (sizeof(supported_data_rate)/sizeof(supported_data_rate[0])); j ++)
-                {
-                    if (supported_data_rate[j].beacon_rate_index == (ExtendedRates[i] & 0x7F))
-                    {
-                        currentRate = supported_data_rate[j].supported_rate[0];
-                        break;
-                    }
-                }
-                /* Update MAX rate */
-                maxRate = (currentRate > maxRate)?currentRate:maxRate;
-            }
-
-            /* Get MCS Rate Set */
-            ccmCfgGetStr(hHal, WNI_CFG_CURRENT_MCS_SET, MCSRates, &MCSLeng);
-            if ((rate_flags & eHAL_TX_RATE_HT20) && (rate_flags & eHAL_TX_RATE_LGI))
-            {
-                rateFlag = 0;
-            }
-            else if ((rate_flags & eHAL_TX_RATE_HT40) && (rate_flags & eHAL_TX_RATE_LGI))
-            {
-                rateFlag = 1;
-            }
-            else if ((rate_flags & eHAL_TX_RATE_HT20) && (rate_flags & eHAL_TX_RATE_SGI))
-            {
-                rateFlag = 2;
-            }
-            else if ((rate_flags & eHAL_TX_RATE_HT40) && (rate_flags & eHAL_TX_RATE_SGI))
-            {
-                rateFlag = 3;
+                // report middle speed
+                rssidx = 2;
             }
             else
             {
-                rateFlag = 0;
+                // report actual speed
+                rssidx = 3;
+            }
+        }
+        else
+        {
+            // unknown, treat as eHDD_LINK_SPEED_REPORT_MAX
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid value for reportMaxLinkSpeed: %u",
+                    __func__, pCfg->reportMaxLinkSpeed);
+            rssidx = 0;
+        }
+
+        maxRate = 0;
+        /* Get Basic Rate Set */
+        ccmCfgGetStr(hHal, WNI_CFG_OPERATIONAL_RATE_SET, OperationalRates, &ORLeng);
+        for (i = 0; i < ORLeng; i++)
+        {
+            for (j = 0; j < (sizeof(supported_data_rate)/sizeof(supported_data_rate[0])); j ++)
+            {
+                /* Validate Rate Set */
+                if (supported_data_rate[j].beacon_rate_index == (OperationalRates[i] & 0x7F))
+                {
+                    currentRate = supported_data_rate[j].supported_rate[rssidx];
+                    break;
+                }
+            }
+            /* Update MAX rate */
+            maxRate = (currentRate > maxRate)?currentRate:maxRate;
+        }
+
+        /* Get Extended Rate Set */
+        ccmCfgGetStr(hHal, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET, ExtendedRates, &ERLeng);
+        for (i = 0; i < ERLeng; i++)
+        {
+            for (j = 0; j < (sizeof(supported_data_rate)/sizeof(supported_data_rate[0])); j ++)
+            {
+                if (supported_data_rate[j].beacon_rate_index == (ExtendedRates[i] & 0x7F))
+                {
+                    currentRate = supported_data_rate[j].supported_rate[rssidx];
+                    break;
+                }
+            }
+            /* Update MAX rate */
+            maxRate = (currentRate > maxRate)?currentRate:maxRate;
+        }
+
+#ifdef LINKSPEED_DEBUG_ENABLED
+         pr_info("legacy max rate %d\n", maxRate);
+#endif //LINKSPEED_DEBUG_ENABLED
+
+        /* Get MCS Rate Set -- but only if we are connected at MCS
+           rates or if we are always reporting max speed or if we have
+           good rssi */
+        if ((0 == rssidx) && !(rate_flags & eHAL_TX_RATE_LEGACY))
+        {
+            ccmCfgGetStr(hHal, WNI_CFG_CURRENT_MCS_SET, MCSRates, &MCSLeng);
+            rateFlag = 0;
+            if (rate_flags & eHAL_TX_RATE_HT40)
+            {
+                rateFlag |= 1;
+            }
+            if (rate_flags & eHAL_TX_RATE_SGI)
+            {
+                rateFlag |= 2;
             }
 
             for (i = 0; i < MCSLeng; i++)
@@ -4632,7 +4670,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
                     {
                         currentRate = supported_mcs_rate[j].supported_rate[rateFlag];
                         break;
-                     }
+                    }
                 }
                 if (currentRate > maxRate)
                 {
@@ -4641,61 +4679,73 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
                     maxMCSIdx   = supported_mcs_rate[j].beacon_rate_index;
                 }
             }
-
-            if (!maxSpeedMCS)
-            {
-                sinfo->txrate.legacy  = maxRate;
-                pHddStaCtx->storedrateInfo.legacy = maxRate;
-                pHddStaCtx->storedrateInfo.mcs    = 0;
-                pHddStaCtx->storedrateInfo.flags  = 0;
-            }
-            else
-            {
-                sinfo->txrate.mcs    = maxMCSIdx;
-                sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
-                if (rate_flags & eHAL_TX_RATE_SGI)
-                { 
-                    sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
-                }
-                pHddStaCtx->storedrateInfo.legacy = 0;
-                pHddStaCtx->storedrateInfo.mcs    = sinfo->txrate.mcs;
-                pHddStaCtx->storedrateInfo.flags  = sinfo->txrate.flags;
-            }
         }
-        /* BSSID does not changed, MAX Rate supposed not changed
-         * Get MAX rate from stored location, remove overhead most of the time
-         * !!! How about AP capabilities Change */
+
+        // make sure we report a value at least as big as our current rate
+        if (((maxRate < myRate) && (0 == rssidx)) ||
+             (0 == maxRate))
+        {
+           maxRate = myRate;
+           if (rate_flags & eHAL_TX_RATE_LEGACY)
+           {
+              maxSpeedMCS = 0;
+           }
+           else
+           {
+              maxSpeedMCS = 1;
+              maxMCSIdx = pAdapter->hdd_stats.ClassA_stat.mcs_index;
+           }
+        }
+
+        if ((!maxSpeedMCS) || (0 != rssidx))
+        {
+            sinfo->txrate.legacy  = maxRate;
+#ifdef LINKSPEED_DEBUG_ENABLED
+            pr_info("Reporting legacy rate %d\n", sinfo->txrate.legacy);
+#endif //LINKSPEED_DEBUG_ENABLED
+        }
         else
         {
-            if (0 == pHddStaCtx->storedrateInfo.legacy)
+            sinfo->txrate.mcs    = maxMCSIdx;
+            sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+            if (rate_flags & eHAL_TX_RATE_SGI)
             {
-                sinfo->txrate.mcs   = pHddStaCtx->storedrateInfo.mcs;
-                sinfo->txrate.flags = pHddStaCtx->storedrateInfo.flags;
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
             }
-            else
+            if (rate_flags & eHAL_TX_RATE_HT40)
             {
-                sinfo->txrate.legacy = pHddStaCtx->storedrateInfo.legacy;
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
             }
+#ifdef LINKSPEED_DEBUG_ENABLED
+            pr_info("Reporting MCS rate %d flags %x\n",
+                    sinfo->txrate.mcs,
+                    sinfo->txrate.flags );
+#endif //LINKSPEED_DEBUG_ENABLED
         }
     }
     else
     {
-        wlan_hdd_get_classAstats(pAdapter);
-        rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
-
         if (rate_flags & eHAL_TX_RATE_LEGACY)
         {
             //provide to the UI in units of 100kbps
-            sinfo->txrate.legacy = pAdapter->hdd_stats.ClassA_stat.tx_rate * 5;
+            sinfo->txrate.legacy = myRate;
+#ifdef LINKSPEED_DEBUG_ENABLED
+            pr_info("Reporting actual legacy rate %d\n", sinfo->txrate.legacy);
+#endif //LINKSPEED_DEBUG_ENABLED
         }
         else if (rate_flags & eHAL_TX_RATE_HT20)
         {
             sinfo->txrate.mcs = pAdapter->hdd_stats.ClassA_stat.mcs_index;
             sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
             if (rate_flags & eHAL_TX_RATE_SGI)
-            { 
+            {
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
             }
+#ifdef LINKSPEED_DEBUG_ENABLED
+            pr_info("Reporting actual MCS rate %d flags %x\n",
+                    sinfo->txrate.mcs,
+                    sinfo->txrate.flags );
+#endif //LINKSPEED_DEBUG_ENABLED
         }
     }
     sinfo->filled |= STATION_INFO_TX_BITRATE;

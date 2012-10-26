@@ -9661,6 +9661,7 @@ WLANTL_CleanSTA
              "WLAN TL: Clearing STA Client ID: %d, Empty flag: %d",
              ptlSTAClient->wSTADesc.ucSTAId, ucEmpty ));
 
+  ptlSTAClient->ucExists       = 0;
   ptlSTAClient->pfnSTARx          = WLANTL_STARxDefaultCb;
   ptlSTAClient->pfnSTATxComp      = WLANTL_TxCompDefaultCb;
   ptlSTAClient->pfnSTAFetchPkt    = WLANTL_STAFetchPktDefaultCb;
@@ -9745,7 +9746,6 @@ WLANTL_CleanSTA
     ptlSTAClient->wSTADesc.ucBcastSig       = WLAN_TL_INVALID_B_SIG;
   }
 
-  ptlSTAClient->ucExists       = 0;
 
   /*--------------------------------------------------------------------
     Statistics info 

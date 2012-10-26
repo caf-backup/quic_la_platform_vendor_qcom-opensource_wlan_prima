@@ -19,11 +19,16 @@
 #include "parserApi.h"
 #include "limTypes.h"
 
+typedef enum {
+    eUNICAST = 1,
+    eBROADCAST
+}tPktType;
+
 // Scan result hash related functions
 tANI_U8 limScanHashFunction(tSirMacAddr);
 void    limInitHashTable(tpAniSirGlobal);
 eHalStatus 
-        limLookupNaddHashEntry(tpAniSirGlobal, tLimScanResultNode *, tANI_U8);
+        limLookupNaddHashEntry(tpAniSirGlobal, tLimScanResultNode *, tANI_U8, tPktType);
 void    limDeleteHashEntry(tLimScanResultNode *);
 void    limDeleteCachedScanResults(tpAniSirGlobal);
 void    limRestorePreScanState(tpAniSirGlobal);
