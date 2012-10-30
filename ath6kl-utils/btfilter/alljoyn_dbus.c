@@ -1673,6 +1673,14 @@ static void *HCIFilterThread(void *arg)
 					AthBtIndicateState(pInstance, ATH_BT_INQUIRY, STATE_OFF);
 				}
 			}
+
+			if (*eventCode == EVT_CONN_REQUEST) {
+				A_DEBUG("Conn request\n");
+				/* record BD_ADDR of remote device */
+				bdaddr_to_str((const bdaddr_t *)&pBuffer[3],
+					&pAbfBtInfo->DefaultRemoteAudioDeviceAddress[0]);
+			}
+
 			/* revive deprecated "DiscoveryStarted" signal by capturing INQUIRY commands */
 		} else if (pBuffer[0] == HCI_COMMAND_PKT) {
 			A_UINT16 *packedOpCode = (A_UINT16 *)&pBuffer[1];
