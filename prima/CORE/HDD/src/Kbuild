@@ -387,12 +387,6 @@ EXTRA_CFLAGS += $(WDA_INC)
 EXTRA_CFLAGS += $(WDI_INC)
 EXTRA_CFLAGS += $(RIVA_INC)
 
-# By default the compiler will complain about frames larger than 1K.
-# Some of the WLAN structures are larger, so we increase the size.
-# Note that Linux kernel threads have an 8K stack, so take care not
-# to exceed that value in a "normal" call tree
-EXTRA_CFLAGS += -Wframe-larger-than=4096
-
 CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DANI_BUS_TYPE_PLATFORM=1 \
         -DANI_LITTLE_BYTE_ENDIAN \
@@ -441,14 +435,6 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DWLAN_FEATURE_11AC \
         -DWLAN_FEATURE_P2P_DEBUG \
         -DWLAN_FEATURE_11AC_HIGH_TP
-        #-DBAP_DEBUG \
-        #-DFEATURE_WLAN_BTAMP_UT \
-        #-DVOLANS_PERF \
-        #-DRSSI_HACK \
-        #-DWLAN_FEATURE_VOWIFI_11R \
-        #-DWLAN_FEATURE_NEIGHBOR_ROAMING \
-        #-DWLAN_FEATURE_VOWIFI_11R_DEBUG \
-        #-DWLAN_VOWIFI_DEBUG \
 
 
 # there are still pieces of code which are conditional upon these
