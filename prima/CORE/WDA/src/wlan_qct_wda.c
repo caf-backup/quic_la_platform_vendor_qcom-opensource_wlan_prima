@@ -5995,7 +5995,7 @@ VOS_STATUS WDA_ProcessSetP2PGONOAReq(tWDA_CbContext *pWDA,
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s: VOS MEM Alloc Failure", __FUNCTION__);
       vos_mem_free(pP2pPsConfigParams);
-	  vos_mem_free(wdiSetP2PGONOAReqParam);
+      vos_mem_free(wdiSetP2PGONOAReqParam);
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
@@ -6104,7 +6104,7 @@ VOS_STATUS WDA_ProcessAggrAddTSReq(tWDA_CbContext *pWDA,
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s: VOS MEM Alloc Failure", __FUNCTION__);
       vos_mem_free(pAggrAddTsReqParams);
-	  vos_mem_free(wdiAggrAddTSReqParam);
+      vos_mem_free(wdiAggrAddTSReqParam);
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
@@ -7002,7 +7002,7 @@ VOS_STATUS WDA_UpdateUapsdParamsReq(tWDA_CbContext *pWDA,
       status = CONVERT_WDI2VOS_STATUS(wstatus) ;
       vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
       vos_mem_free(pWdaParams->wdaMsgParam);
-	  vos_mem_free(pWdaParams);
+      vos_mem_free(pWdaParams);
    }
    return status;
 }
@@ -7397,7 +7397,7 @@ VOS_STATUS WDA_RemBeaconFilterReq(tWDA_CbContext *pWDA,
       status = CONVERT_WDI2VOS_STATUS(wstatus);
       vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
       vos_mem_free(pWdaParams->wdaMsgParam);
-	  vos_mem_free(pWdaParams);
+      vos_mem_free(pWdaParams);
    }
    return status;
 }
@@ -7791,7 +7791,7 @@ VOS_STATUS WDA_ProcessKeepAliveReq(tWDA_CbContext *pWDA,
         status = CONVERT_WDI2VOS_STATUS(wstatus);
         vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
         vos_mem_free(pWdaParams->wdaMsgParam);
-		vos_mem_free(pWdaParams);
+        vos_mem_free(pWdaParams);
     }
     return status;
 
