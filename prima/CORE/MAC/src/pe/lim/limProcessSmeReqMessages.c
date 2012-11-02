@@ -2442,6 +2442,8 @@ __limProcessSmeDisassocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             limPrintMacAddr(pMac, smeDisassocCnf.peerMacAddr, LOGW);)
             return;
         }
+        /* Delete FT session if there exists one */
+        limFTCleanup(pMac);
         limCleanupRxPath(pMac, pStaDs, psessionEntry);
     }
 
