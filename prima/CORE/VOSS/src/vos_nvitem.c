@@ -473,7 +473,7 @@ VOS_STATUS vos_nv_open(void)
     {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                    "%s: unable to download NV file %s",
-                   __FUNCTION__, WLAN_NV_FILE);
+                   __func__, WLAN_NV_FILE);
          return VOS_STATUS_E_RESOURCES;
     }
 
@@ -484,7 +484,7 @@ VOS_STATUS vos_nv_open(void)
         if (NULL == pnvEFSTable)
         {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                      "%s : failed to allocate memory for NV", __FUNCTION__);
+                      "%s : failed to allocate memory for NV", __func__);
             return VOS_STATUS_E_NOMEM;
         }
 
@@ -971,7 +971,7 @@ VOS_STATUS vos_nv_setValidity( VNV_TYPE type, v_BOOL_t itemIsValid )
    if (VNV_TYPE_COUNT <= type)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                 ("%s: invalid type=%d"), __FUNCTION__, type );
+                 ("%s: invalid type=%d"), __func__, type );
       return VOS_STATUS_E_INVAL;
    }
    // read the validity bitmap
@@ -1024,7 +1024,7 @@ VOS_STATUS vos_nv_getValidity( VNV_TYPE type, v_BOOL_t *pItemIsValid )
    if (VNV_TYPE_COUNT <= type)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                 ("%s: invalid type=%d"), __FUNCTION__, type );
+                 ("%s: invalid type=%d"), __func__, type );
       return VOS_STATUS_E_INVAL;
    }
    *pItemIsValid = (v_BOOL_t)((nvValidityBitmap >> type) & 1);
@@ -1060,7 +1060,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
     if (VNV_TYPE_COUNT <= type)
     {
        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                 ("%s: invalid type=%d"), __FUNCTION__, type );
+                 ("%s: invalid type=%d"), __func__, type );
        return VOS_STATUS_E_INVAL;
     }
     if (NULL == outputVoidBuffer)
@@ -1295,7 +1295,7 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
     if (VNV_TYPE_COUNT <= type)
     {
        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                  ("%s: invalid type=%d"), __FUNCTION__, type );
+                  ("%s: invalid type=%d"), __func__, type );
        return VOS_STATUS_E_INVAL;
     }
     if (NULL == inputVoidBuffer)

@@ -670,7 +670,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   if (gpVosContext != pVosContext)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: mismatch in context", __FUNCTION__);
+           "%s: mismatch in context", __func__);
      return VOS_STATUS_E_FAILURE;
   }
 
@@ -680,13 +680,13 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   {
      if (pVosContext->pBALContext == NULL)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: BAL NULL context", __FUNCTION__);
+            "%s: BAL NULL context", __func__);
      else if (pVosContext->pMACContext == NULL)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: MAC NULL context", __FUNCTION__);
+            "%s: MAC NULL context", __func__);
      else
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: TL NULL context", __FUNCTION__);
+            "%s: TL NULL context", __func__);
      
      return VOS_STATUS_E_FAILURE;
   }
@@ -696,13 +696,13 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   {
      if (pVosContext->pWDAContext == NULL)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: WDA NULL context", __FUNCTION__);
+            "%s: WDA NULL context", __func__);
      else if (pVosContext->pMACContext == NULL)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: MAC NULL context", __FUNCTION__);
+            "%s: MAC NULL context", __func__);
      else
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-            "%s: TL NULL context", __FUNCTION__);
+            "%s: TL NULL context", __func__);
      
      return VOS_STATUS_E_FAILURE;
   }
@@ -1162,14 +1162,14 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
   if (pVosContext == NULL)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: vos context pointer is null", __FUNCTION__);
+        "%s: vos context pointer is null", __func__);
     return NULL;
   }
 
   if (gpVosContext != pVosContext)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: pVosContext != gpVosContext", __FUNCTION__);
+        "%s: pVosContext != gpVosContext", __func__);
     return NULL;
   }
 
@@ -1300,7 +1300,7 @@ v_CONTEXT_t vos_get_global_context( VOS_MODULE_ID moduleId,
   if (gpVosContext == NULL)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: global voss context is NULL", __FUNCTION__);
+        "%s: global voss context is NULL", __func__);
   }
 
   return gpVosContext;
@@ -1313,7 +1313,7 @@ v_U8_t vos_is_logp_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
   if (gpVosContext == NULL)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: global voss context is NULL", __FUNCTION__);
+        "%s: global voss context is NULL", __func__);
     return 1;
   }
 
@@ -1325,7 +1325,7 @@ void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
   if (gpVosContext == NULL)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: global voss context is NULL", __FUNCTION__);
+        "%s: global voss context is NULL", __func__);
     return;
   }
 
@@ -1337,7 +1337,7 @@ v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleCo
   if (gpVosContext == NULL)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: global voss context is NULL", __FUNCTION__);
+        "%s: global voss context is NULL", __func__);
     return 0; 
   }
 
@@ -1349,7 +1349,7 @@ void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
   if (gpVosContext == NULL)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: global voss context is NULL", __FUNCTION__);
+        "%s: global voss context is NULL", __func__);
     return;
   }
 
@@ -1401,13 +1401,13 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 
   if ( pVosContext == NULL) {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: vos context is null", __FUNCTION__);
+        "%s: vos context is null", __func__);
     return VOS_STATUS_E_FAILURE;
   }
 
   if (( gpVosContext != pVosContext) || ( ppModuleContext == NULL)) {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: context mismatch or null param passed", __FUNCTION__);
+        "%s: context mismatch or null param passed", __func__);
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -1644,7 +1644,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   if (*pGpModContext != pModuleContext)
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-        "%s: pGpModContext != pModuleContext", __FUNCTION__);
+        "%s: pGpModContext != pModuleContext", __func__);
     return VOS_STATUS_E_FAILURE;
   } 
   
@@ -1774,7 +1774,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pTargetMq == NULL", __FUNCTION__);
+         "%s: pTargetMq == NULL", __func__);
      return VOS_STATUS_E_FAILURE;
   } 
 
@@ -1900,7 +1900,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pTargetMq == NULL", __FUNCTION__);
+         "%s: pTargetMq == NULL", __func__);
      return VOS_STATUS_E_FAILURE;
   } 
     
@@ -2011,7 +2011,7 @@ VOS_STATUS vos_rx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: pTargetMq == NULL", __FUNCTION__);
+         "%s: pTargetMq == NULL", __func__);
      return VOS_STATUS_E_FAILURE;
   }
 
@@ -2054,14 +2054,14 @@ vos_sys_probe_thread_cback
   if (gpVosContext != pUserData)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: gpVosContext != pUserData", __FUNCTION__);
+         "%s: gpVosContext != pUserData", __func__);
      return;
   } 
 
   if (vos_event_set(&gpVosContext->ProbeEvent)!= VOS_STATUS_SUCCESS)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: vos_event_set failed", __FUNCTION__);
+         "%s: vos_event_set failed", __func__);
      return;
   }
 
@@ -2077,14 +2077,14 @@ v_VOID_t vos_sys_start_complete_cback
   if (gpVosContext != pUserData)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: gpVosContext != pUserData", __FUNCTION__);
+         "%s: gpVosContext != pUserData", __func__);
      return;
   } 
 
   if (vos_event_set(&gpVosContext->ProbeEvent)!= VOS_STATUS_SUCCESS)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: vos_event_set failed", __FUNCTION__);
+         "%s: vos_event_set failed", __func__);
      return;
   }
 
@@ -2099,14 +2099,14 @@ v_VOID_t vos_WDAComplete_cback
   if (gpVosContext != pUserData)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: gpVosContext != pUserData", __FUNCTION__);
+         "%s: gpVosContext != pUserData", __func__);
      return;
   }
 
   if (vos_event_set(&gpVosContext->wdaCompleteEvent)!= VOS_STATUS_SUCCESS)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: vos_event_set failed", __FUNCTION__);
+         "%s: vos_event_set failed", __func__);
      return;
   }
 
@@ -2126,7 +2126,7 @@ v_VOID_t vos_core_return_msg
   if (gpVosContext != pVosContext)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: gpVosContext != pVosContext", __FUNCTION__);
+         "%s: gpVosContext != pVosContext", __func__);
      return;
   } 
 
@@ -2135,7 +2135,7 @@ v_VOID_t vos_core_return_msg
   if (pMsgWrapper == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pMsgWrapper == NULL in function", __FUNCTION__);
+         "%s: pMsgWrapper == NULL in function", __func__);
      return;
   } 
   
@@ -2167,7 +2167,7 @@ vos_fetch_tl_cfg_parms
 {
   if (pTLConfig == NULL)
   {
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s NULL ptr passed in!", __FUNCTION__);
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s NULL ptr passed in!", __func__);
    return;
   }
 

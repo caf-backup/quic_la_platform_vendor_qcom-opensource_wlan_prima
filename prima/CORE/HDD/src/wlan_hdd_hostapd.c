@@ -183,7 +183,7 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
     if (NULL == pAdapter)
     {
        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-          "%s: HDD adapter context is Null", __FUNCTION__);
+          "%s: HDD adapter context is Null", __func__);
        ret = -ENODEV;
        goto exit;
     }
@@ -204,7 +204,7 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
     if (!command)
     {
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-           "%s: failed to allocate memory\n", __FUNCTION__);
+           "%s: failed to allocate memory\n", __func__);
         ret = -ENOMEM;
         goto exit;
     }
@@ -238,7 +238,7 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
         if(strncmp(command, "SET_SAP_CHANNEL_LIST", 20) == 0)
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                       " Received Command to Set Preferred Channels for SAP in %s", __FUNCTION__);
+                       " Received Command to Set Preferred Channels for SAP in %s", __func__);
 
             ret = sapSetPreferredChannel(dev,command);
         }
@@ -783,9 +783,9 @@ int hdd_softap_unpackIE(
                             &dot11RSNIE);
         // Copy out the encryption and authentication types 
         hddLog(LOG1, FL("%s: pairwise cipher suite count: %d\n"), 
-                __FUNCTION__, dot11RSNIE.pwise_cipher_suite_count );
+                __func__, dot11RSNIE.pwise_cipher_suite_count );
         hddLog(LOG1, FL("%s: authentication suite count: %d\n"), 
-                __FUNCTION__, dot11RSNIE.akm_suite_count);
+                __func__, dot11RSNIE.akm_suite_count);
         /*Here we have followed the apple base code, 
           but probably I suspect we can do something different*/
         //dot11RSNIE.akm_suite_count
@@ -818,9 +818,9 @@ int hdd_softap_unpackIE(
                             &dot11WPAIE);
         // Copy out the encryption and authentication types 
         hddLog(LOG1, FL("%s: WPA unicast cipher suite count: %d\n"), 
-                __FUNCTION__, dot11WPAIE.unicast_cipher_count );
+                __func__, dot11WPAIE.unicast_cipher_count );
         hddLog(LOG1, FL("%s: WPA authentication suite count: %d\n"), 
-                __FUNCTION__, dot11WPAIE.auth_suite_count);
+                __func__, dot11WPAIE.auth_suite_count);
         //dot11WPAIE.auth_suite_count
         // Just translate the FIRST one 
         *pAuthType =  hdd_TranslateWPAToCsrAuthType(dot11WPAIE.auth_suites[0]); 
@@ -831,7 +831,7 @@ int hdd_softap_unpackIE(
     } 
     else 
     { 
-        hddLog(LOGW, FL("%s: gen_ie[0]: %d\n"), __FUNCTION__, gen_ie[0]);
+        hddLog(LOGW, FL("%s: gen_ie[0]: %d\n"), __func__, gen_ie[0]);
         return VOS_STATUS_E_FAILURE; 
     }
     return VOS_STATUS_SUCCESS;
@@ -906,7 +906,7 @@ static iw_softap_setparam(struct net_device *dev,
                 {
                     hddLog(VOS_TRACE_LEVEL_ERROR,
                             "%s: QCSAP_PARAM_HIDE_SSID failed",
-                            __FUNCTION__);
+                            __func__);
                     return status;
                 }
                 break;
@@ -957,11 +957,11 @@ static iw_softap_getparam(struct net_device *dev,
     case QCSAP_PARAM_MODULE_DOWN_IND:
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                "%s: sending WLAN_MODULE_DOWN_IND", __FUNCTION__);
+                "%s: sending WLAN_MODULE_DOWN_IND", __func__);
             send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
 #ifdef WLAN_BTAMP_FEATURE 
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                "%s: Take down AMP PAL", __FUNCTION__);
+                "%s: Take down AMP PAL", __func__);
             BSL_Deinit(vos_get_global_context(VOS_MODULE_ID_HDD, NULL));
 #endif            
             *value = 0;
@@ -1031,7 +1031,7 @@ int iw_softap_modify_acl(struct net_device *dev, struct iw_request_info *info,
     cmd = (int)(*(value+i));
 
     hddLog(LOG1, "%s: SAP Modify ACL arg0 %02x:%02x:%02x:%02x:%02x:%02x arg1 %d arg2 %d\n",
-            __FUNCTION__, pPeerStaMac[0], pPeerStaMac[1], pPeerStaMac[2], 
+            __func__, pPeerStaMac[0], pPeerStaMac[1], pPeerStaMac[2], 
             pPeerStaMac[3], pPeerStaMac[4], pPeerStaMac[5], listType, cmd);
 
     if (WLANSAP_ModifyACL(pVosContext, pPeerStaMac,(eSapACLType)listType,(eSapACLCmdType)cmd)
@@ -1075,7 +1075,7 @@ static iw_softap_set_tx_power(struct net_device *dev,
 
     if(copy_from_user((char *) value, (char*)(wrqu->data.pointer), cmd_len)) {
         hddLog(VOS_TRACE_LEVEL_FATAL, "%s -- copy_from_user --data pointer failed! bailing",
-                __FUNCTION__);
+                __func__);
         kfree(value);
         return -EFAULT;
     }
@@ -1627,7 +1627,7 @@ int iw_set_auth_hostap(struct net_device *dev,struct iw_request_info *info,
          
       default:
          
-         hddLog(LOGW, "%s called with unsupported auth type %d", __FUNCTION__, 
+         hddLog(LOGW, "%s called with unsupported auth type %d", __func__, 
                wrqu->param.flags & IW_AUTH_INDEX);
       break;
    }
@@ -1696,9 +1696,9 @@ static int iw_set_ap_encodeext(struct net_device *dev,
               break;
          }
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Remove key cipher_alg:%d key_len%d *pEncryptionType :%d \n",
-                    __FUNCTION__,(int)ext->alg,(int)ext->key_len,RemoveKey.encType);
+                    __func__,(int)ext->alg,(int)ext->key_len,RemoveKey.encType);
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Peer Mac = "MAC_ADDRESS_STR"\n",
-                    __FUNCTION__, MAC_ADDR_ARRAY(RemoveKey.peerMac));
+                    __func__, MAC_ADDR_ARRAY(RemoveKey.peerMac));
           );
          vstatus = WLANSAP_DelKeySta( pVosContext, &RemoveKey);
          if ( vstatus != VOS_STATUS_SUCCESS )
@@ -1749,7 +1749,7 @@ static int iw_set_ap_encodeext(struct net_device *dev,
        case IW_ENCODE_ALG_WEP:
          setKey.encType = (ext->key_len== 5) ? eCSR_ENCRYPT_TYPE_WEP40:eCSR_ENCRYPT_TYPE_WEP104;
          pHddApCtx->uPrivacy = 1;
-         hddLog(LOG1, "(%s) uPrivacy=%d", __FUNCTION__, pHddApCtx->uPrivacy);
+         hddLog(LOG1, "(%s) uPrivacy=%d", __func__, pHddApCtx->uPrivacy);
          break;
       
        case IW_ENCODE_ALG_TKIP:
@@ -1797,7 +1797,7 @@ static int iw_set_ap_encodeext(struct net_device *dev,
     }
          
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-          ("%s:EncryptionType:%d key_len:%d, :%d, KeyId:%d \n"),__FUNCTION__, setKey.encType, setKey.keyLength,
+          ("%s:EncryptionType:%d key_len:%d, :%d, KeyId:%d \n"),__func__, setKey.encType, setKey.keyLength,
             setKey.keyId);
     for(i=0; i< ext->key_len; i++)
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -1845,7 +1845,7 @@ static int iw_set_ap_mlme(struct net_device *dev,
                 //clear all the reason codes
                 if (status != 0)
                 {
-                    hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n", __FUNCTION__, (int)mlme->cmd, (int)status );
+                    hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n", __func__, (int)mlme->cmd, (int)status );
                 }
                 
                netif_stop_queue(dev);
@@ -1853,10 +1853,10 @@ static int iw_set_ap_mlme(struct net_device *dev,
             }
             else
             {
-                hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate called but station is not in associated state \n", __FUNCTION__, (int)mlme->cmd );
+                hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate called but station is not in associated state \n", __func__, (int)mlme->cmd );
             }
         default:
-            hddLog(LOGE,"%s %d Command should be Disassociate/Deauthenticate \n", __FUNCTION__, (int)mlme->cmd );
+            hddLog(LOGE,"%s %d Command should be Disassociate/Deauthenticate \n", __func__, (int)mlme->cmd );
             return -EINVAL;
     }//end of switch
     EXIT();
@@ -1972,7 +1972,7 @@ static int iw_softap_setwpsie(struct net_device *dev,
    }
    vos_mem_zero(pSap_WPSIe, sizeof(tSap_WPSIE));
  
-   hddLog(LOG1,"%s WPS IE type[0x%X] IE[0x%X], LEN[%d]\n", __FUNCTION__, wps_genie[0], wps_genie[1], wps_genie[2]);
+   hddLog(LOG1,"%s WPS IE type[0x%X] IE[0x%X], LEN[%d]\n", __func__, wps_genie[0], wps_genie[1], wps_genie[2]);
    WPSIeType = wps_genie[0];
    if ( wps_genie[0] == eQC_WPS_BEACON_IE)
    {
@@ -1988,7 +1988,7 @@ static int iw_softap_setwpsie(struct net_device *dev,
             }
             else if (memcmp(&wps_genie[2], "\x00\x50\xf2\x04", 4) == 0) 
             {
-             hddLog (LOG1, "%s Set WPS BEACON IE(len %d)",__FUNCTION__, wps_genie[1]+2);
+             hddLog (LOG1, "%s Set WPS BEACON IE(len %d)",__func__, wps_genie[1]+2);
              pos = &wps_genie[6];
              while (((size_t)pos - (size_t)&wps_genie[6])  < (wps_genie[1] - 4) )
              {
@@ -2063,12 +2063,12 @@ static int iw_softap_setwpsie(struct net_device *dev,
             }
             else { 
                  hddLog (LOGE, "%s WPS IE Mismatch %X",
-                         __FUNCTION__, wps_genie[0]);
+                         __func__, wps_genie[0]);
             }     
             break;
                  
          default:
-            hddLog (LOGE, "%s Set UNKNOWN IE %X",__FUNCTION__, wps_genie[0]);
+            hddLog (LOGE, "%s Set UNKNOWN IE %X",__func__, wps_genie[0]);
             vos_mem_free(pSap_WPSIe);
             return 0;
       }
@@ -2087,7 +2087,7 @@ static int iw_softap_setwpsie(struct net_device *dev,
             }
             else if (memcmp(&wps_genie[2], "\x00\x50\xf2\x04", 4) == 0) 
             {
-             hddLog (LOG1, "%s Set WPS PROBE RSP IE(len %d)",__FUNCTION__, wps_genie[1]+2);
+             hddLog (LOG1, "%s Set WPS PROBE RSP IE(len %d)",__func__, wps_genie[1]+2);
              pos = &wps_genie[6];
              while (((size_t)pos - (size_t)&wps_genie[6])  < (wps_genie[1] - 4) )
              {
@@ -2232,7 +2232,7 @@ static int iw_softap_setwpsie(struct net_device *dev,
          } 
          else
          {
-            hddLog (LOGE, "%s WPS IE Mismatch %X",__FUNCTION__, wps_genie[0]);
+            hddLog (LOGE, "%s WPS IE Mismatch %X",__func__, wps_genie[0]);
          }
          
       } // switch
@@ -2331,7 +2331,7 @@ static int iw_set_ap_genie(struct net_device *dev,
             break;
             
         default:
-            hddLog (LOGE, "%s Set UNKNOWN IE %X",__FUNCTION__, genie[0]);
+            hddLog (LOGE, "%s Set UNKNOWN IE %X",__func__, genie[0]);
             halStatus = 0;
     }
     
@@ -2366,7 +2366,7 @@ static VOS_STATUS  wlan_hdd_get_classAstats_for_station(hdd_adapter_t *pAdapter,
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,
             "%s: Unable to retrieve statistics for link speed",
-            __FUNCTION__);
+            __func__);
    }
    else
    {
@@ -2377,7 +2377,7 @@ static VOS_STATUS  wlan_hdd_get_classAstats_for_station(hdd_adapter_t *pAdapter,
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: SME %s while retrieving link speed",
-              __FUNCTION__, (0 == lrc) ? "timeout" : "interrupt");
+              __func__, (0 == lrc) ? "timeout" : "interrupt");
          msleep(50);
       }
    }
@@ -2417,7 +2417,7 @@ int iw_get_softap_linkspeed(struct net_device *dev,
       status = wlan_hdd_get_classAstats_for_station(pHostapdAdapter , staId);
       if (!VOS_IS_STATUS_SUCCESS(status ))
       {
-          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unable to retrieve SME statistics", __FUNCTION__);
+          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unable to retrieve SME statistics", __func__);
           return -EINVAL;
       }
       link_speed =(int)pHostapdAdapter->hdd_stats.ClassA_stat.tx_rate/2;
@@ -2430,7 +2430,7 @@ int iw_get_softap_linkspeed(struct net_device *dev,
       // encoding or length error?
       hddLog(VOS_TRACE_LEVEL_ERROR,
             "%s: Unable to encode link speed, got [%s]",
-             __FUNCTION__, pLinkSpeed);
+             __func__, pLinkSpeed);
       return -EIO;
    }
 
@@ -2702,7 +2702,7 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
     status = hdd_softap_init_tx_rx(pAdapter);
     if ( !VOS_IS_STATUS_SUCCESS( status ))
     {
-       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_softap_init_tx_rx failed", __FUNCTION__);
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_softap_init_tx_rx failed", __func__);
     }
     
 #ifdef CONFIG_CFG80211

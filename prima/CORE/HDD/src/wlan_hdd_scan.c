@@ -250,7 +250,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
        break;
    default:
        hddLog( LOGW, "%s: Unknown network type [%d]",
-              __FUNCTION__, descriptor->nwType);
+              __func__, descriptor->nwType);
        modestr = "?";
        break;
    }
@@ -545,7 +545,7 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     ENTER();
 
     hddLog(LOGW,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
-           " returned status = %d", __FUNCTION__, halHandle, pContext,
+           " returned status = %d", __func__, halHandle, pContext,
            (int) scanId, (int) status);
 
     /* if there is a scan request pending when the wlan driver is unloaded
@@ -555,7 +555,7 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     if (pAdapter->dev != dev)
     {
        hddLog(LOGW, "%s: device mismatch %p vs %p",
-               __FUNCTION__, pAdapter->dev, dev);
+               __func__, pAdapter->dev, dev);
         return eHAL_STATUS_SUCCESS;
     }
 
@@ -563,7 +563,7 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     if (pHddCtx->scan_info.scanId != scanId)
     {
         hddLog(LOGW, "%s called with mismatched scanId pHddCtx->scan_info.scanId = %d "
-               "scanId = %d ", __FUNCTION__, (int) pHddCtx->scan_info.scanId,
+               "scanId = %d ", __func__, (int) pHddCtx->scan_info.scanId,
                 (int) scanId);
     }
 
@@ -662,7 +662,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
               else
               {
                 scanRequest.SSIDs.numOfSSIDs = 0;
-                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Unable to allocate memory",__FUNCTION__);
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Unable to allocate memory",__func__);
                 VOS_ASSERT(0);
               }
           }
@@ -843,14 +843,14 @@ static eHalStatus hdd_CscanRequestCallback(tHalHandle halHandle, void *pContext,
     ENTER();
 
     hddLog(LOG1,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
-           " returned status = %d", __FUNCTION__, halHandle, pContext,
+           " returned status = %d", __func__, halHandle, pContext,
             (int) scanId, (int) status);
 
     /* Check the scanId */
     if (pwextBuf->scanId != scanId)
     {
         hddLog(LOGW, "%s called with mismatched scanId pWextState->scanId = %d "
-               "scanId = %d ", __FUNCTION__, (int) pwextBuf->scanId,
+               "scanId = %d ", __func__, (int) pwextBuf->scanId,
                 (int) scanId);
     }
 
