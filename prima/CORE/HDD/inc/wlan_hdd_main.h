@@ -230,7 +230,7 @@ enum _WAPIAuthMode
    WAPI_AUTH_MODE_OPEN = 0,
    WAPI_AUTH_MODE_PSK = 1,
    WAPI_AUTH_MODE_CERT
-} __attribute__((packed));
+} __packed;
 typedef enum _WAPIAuthMode WAPIAuthMode;
 
 /** WAPI Work mode structure definition */
@@ -240,7 +240,7 @@ typedef enum _WAPIAuthMode WAPIAuthMode;
 struct _WAPI_FUNCTION_MODE
 {
    unsigned char wapiMode;
-}__attribute__((packed));
+}__packed;
 
 typedef struct _WAPI_FUNCTION_MODE WAPI_FUNCTION_MODE;
 
@@ -263,7 +263,7 @@ struct _WAPI_AssocInfo
    v_U16_t     wapiCability;
    v_U16_t     bkidCount;
    WAPI_BKID   bkidList[MAX_NUM_BKIDS];
-} __attribute__((packed));
+} __packed;
 
 typedef struct _WAPI_AssocInfo WAPI_AssocInfo;
 typedef struct _WAPI_AssocInfo *pWAPI_IEAssocInfo;
@@ -273,7 +273,7 @@ enum _WAPIKeyType
 {
    PAIRWISE_KEY, //0
    GROUP_KEY     //1
-}__attribute__((packed));
+}__packed;
 typedef enum _WAPIKeyType WAPIKeyType;
 
 /** WAPI KEY Direction definition */
@@ -283,7 +283,7 @@ enum _KEY_DIRECTION
    Rx,
    Tx,
    Rx_Tx
-}__attribute__((packed));
+}__packed;
 
 typedef enum _KEY_DIRECTION WAPI_KEY_DIRECTION;
 
@@ -299,7 +299,7 @@ struct WLAN_WAPI_KEY
    int             wpickLen;
    v_U8_t          wpick[MAX_WPI_KEY_LENGTH];
    v_U8_t          pn[MAX_NUM_PN];        /*reserved for future use*/
-}__attribute__((packed));
+}__packed;
 
 typedef struct WLAN_WAPI_KEY WLAN_WAPI_KEY;
 typedef struct WLAN_WAPI_KEY *pWLAN_WAPI_KEY;
@@ -315,7 +315,7 @@ struct _WLAN_BKID_LIST
    v_U32_t          length;
    v_U32_t          BKIDCount;
    WAPI_BKID        BKID[1];
-}__attribute__((packed));
+}__packed;
 
 typedef struct _WLAN_BKID_LIST WLAN_BKID_LIST;
 typedef struct _WLAN_BKID_LIST *pWLAN_BKID_LIST;
@@ -328,7 +328,7 @@ struct hdd_wapi_info_s
    v_BOOL_t    fIsWapiSta;
    v_MACADDR_t cachedMacAddr;
    v_UCHAR_t   wapiAuthMode;
-}__attribute__((packed));
+}__packed;
 typedef struct hdd_wapi_info_s hdd_wapi_info_t;
 #endif /* FEATURE_WLAN_WAPI */
 

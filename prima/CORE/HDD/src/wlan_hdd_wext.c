@@ -3277,7 +3277,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
     {
         case WE_SET_11D_STATE:
         {
-            tSmeConfigParams smeConfig;;
+            tSmeConfigParams smeConfig;
             if((ENABLE_11D == set_value) || (DISABLE_11D == set_value)) {
 
                 sme_GetConfigParam(hHal,&smeConfig);
@@ -3670,7 +3670,7 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
     {
         case WE_GET_11D_STATE:
         {
-           tSmeConfigParams smeConfig;;
+           tSmeConfigParams smeConfig;
            
            sme_GetConfigParam(hHal,&smeConfig);
            
