@@ -1596,7 +1596,7 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
         PELOGE(limLog(pMac, LOGE, FL(" Session not found\n"));)
         return;
     }
-
+	
 	palZeroMemory( pMac->hHdd, ( tANI_U8* )&beaconParams, sizeof( tUpdateBeaconParams) );
 	beaconParams.bssIdx = psessionEntry->bssIdx;
     
@@ -4064,7 +4064,11 @@ tSirRetStatus
 limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-
+    if(NULL == psessionEntry)
+    {
+        PELOG3(limLog(pMac, LOG3, FL("psessionEntry is NULL\n"));)
+        return eSIR_FAILURE;
+    }        
         //overlapping protection configuration check.
         if(overlap)
         {
@@ -4080,7 +4084,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         else
         {
             //normal protection config check
-            if (( psessionEntry != NULL ) && (psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
+            if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
                 (!psessionEntry->cfgProtection.fromlla))
             {
                 // protection disabled.
