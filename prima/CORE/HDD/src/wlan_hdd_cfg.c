@@ -1772,22 +1772,22 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
    
    if(status)
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: request_firmware failed %d\n",__FUNCTION__, status);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: request_firmware failed %d\n",__func__, status);
       return VOS_STATUS_E_FAILURE;   
    }
    if(!fw || !fw->data || !fw->size) 
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: %s download failed\n",
-             __FUNCTION__, WLAN_INI_FILE);
+             __func__, WLAN_INI_FILE);
       return VOS_STATUS_E_FAILURE;
    } 
 
-   hddLog(LOG1, "%s: qcom_cfg.ini Size %d\n",__FUNCTION__, fw->size);
+   hddLog(LOG1, "%s: qcom_cfg.ini Size %d\n",__func__, fw->size);
 
    buffer = (char*)vos_mem_malloc(fw->size);
    
    if(NULL == buffer) {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__FUNCTION__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__func__);
       release_firmware(fw);
       return VOS_STATUS_E_FAILURE;
    } 
@@ -1829,7 +1829,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
                   cfgIniTable[i++].value= value;
                   if(i >= MAX_CFG_INI_ITEMS) {
                      hddLog(LOGE,"%s: Number of items in %s > %d \n",
-                        __FUNCTION__, WLAN_INI_FILE, MAX_CFG_INI_ITEMS);
+                        __func__, WLAN_INI_FILE, MAX_CFG_INI_ITEMS);
                      break;
                   }
                }
@@ -2181,7 +2181,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
    if (MAX_CFG_INI_ITEMS < cRegTableEntries)
    {
       hddLog(LOGE, "%s: MAX_CFG_INI_ITEMS too small, must be at least %d",
-             __FUNCTION__, cRegTableEntries);
+             __func__, cRegTableEntries);
    }
 
    for ( idx = 0; idx < cRegTableEntries; idx++, pRegEntry++ )
@@ -2195,7 +2195,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
       {
          // If we could not read the cfg item and it is required, this is an error.
          hddLog(LOGE, "%s: Failed to read required config parameter %s",
-            __FUNCTION__, pRegEntry->RegName);
+            __func__, pRegEntry->RegName);
          ret_status = VOS_STATUS_E_FAILURE;
          break;
       }
@@ -2221,14 +2221,14 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             if ( value > pRegEntry->VarMax )
             {
                hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Maximum",
-                      __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMax );
+                      __func__, pRegEntry->RegName, value, pRegEntry->VarMax );
                value = pRegEntry->VarMax;
             }
 
             if ( value < pRegEntry->VarMin )
             {
                hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Minimum",
-                      __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMin);
+                      __func__, pRegEntry->RegName, value, pRegEntry->VarMin);
                value = pRegEntry->VarMin;
             }
          }
@@ -2238,14 +2238,14 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             if ( value > pRegEntry->VarMax )
             {
                hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Default= %lu",
-                  __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMax, pRegEntry->VarDefault  );
+                  __func__, pRegEntry->RegName, value, pRegEntry->VarMax, pRegEntry->VarDefault  );
                value = pRegEntry->VarDefault;
             }
 
             if ( value < pRegEntry->VarMin )
             {
                hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Default= %lu",
-                  __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMin, pRegEntry->VarDefault  );
+                  __func__, pRegEntry->RegName, value, pRegEntry->VarMin, pRegEntry->VarDefault  );
                value = pRegEntry->VarDefault;
             }
          }
@@ -2272,7 +2272,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             if ( svalue > (v_S31_t)pRegEntry->VarMax )
             {
                hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum "
-                      "[%ld > %ld]. Enforcing Maximum", __FUNCTION__,
+                      "[%ld > %ld]. Enforcing Maximum", __func__,
                       pRegEntry->RegName, svalue, (int)pRegEntry->VarMax );
                svalue = (v_S31_t)pRegEntry->VarMax;
             }
@@ -2280,7 +2280,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             if ( svalue < (v_S31_t)pRegEntry->VarMin )
             {
                hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum "
-                      "[%ld < %ld]. Enforcing Minimum",  __FUNCTION__,
+                      "[%ld < %ld]. Enforcing Minimum",  __func__,
                       pRegEntry->RegName, svalue, (int)pRegEntry->VarMin);
                svalue = (v_S31_t)pRegEntry->VarMin;
             }
@@ -2292,7 +2292,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             {
                hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum "
                       "[%ld > %ld]. Enforcing Default= %ld",
-                      __FUNCTION__, pRegEntry->RegName, svalue,
+                      __func__, pRegEntry->RegName, svalue,
                       (int)pRegEntry->VarMax,
                       (int)pRegEntry->VarDefault  );
                svalue = (v_S31_t)pRegEntry->VarDefault;
@@ -2302,7 +2302,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             {
                hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum "
                       "[%ld < %ld]. Enforcing Default= %ld",
-                      __FUNCTION__, pRegEntry->RegName, svalue,
+                      __func__, pRegEntry->RegName, svalue,
                       (int)pRegEntry->VarMin,
                       (int)pRegEntry->VarDefault);
                svalue = pRegEntry->VarDefault;
@@ -2326,7 +2326,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
 
             if(len_value_str > (pRegEntry->VarSize - 1)) {
                hddLog(LOGE, "%s: Invalid Value=[%s] specified for Name=[%s] in %s\n", 
-                  __FUNCTION__, value_str, pRegEntry->RegName, WLAN_INI_FILE);
+                  __func__, value_str, pRegEntry->RegName, WLAN_INI_FILE);
                cbOutString = utilMin( strlen( (char *)pRegEntry->VarDefault ), pRegEntry->VarSize - 1 );
                memcpy( pField, (void *)(pRegEntry->VarDefault), cbOutString );
                ( (v_U8_t *)pField )[ cbOutString ] = '\0';
@@ -2349,7 +2349,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
       {
          if(pRegEntry->VarSize != VOS_MAC_ADDR_SIZE) {
                hddLog(LOGE, "%s: Invalid VarSize %u for Name=[%s]\n", 
-                   __FUNCTION__, pRegEntry->VarSize, pRegEntry->RegName); 
+                   __func__, pRegEntry->VarSize, pRegEntry->RegName); 
             continue;
          }
          candidate = (char*)pRegEntry->VarDefault;
@@ -2357,7 +2357,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
             len_value_str = strlen(value_str);
             if(len_value_str != (VOS_MAC_ADDR_SIZE*2)) {
                hddLog(LOGE, "%s: Invalid MAC addr [%s] specified for Name=[%s] in %s\n", 
-                  __FUNCTION__, value_str, pRegEntry->RegName, WLAN_INI_FILE);
+                  __func__, value_str, pRegEntry->RegName, WLAN_INI_FILE);
             }
             else
                candidate = value_str;
@@ -2372,7 +2372,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTa
       else
       {
          hddLog(LOGE, "%s: Unknown param type for name[%s] in registry table\n", 
-            __FUNCTION__, pRegEntry->RegName);
+            __func__, pRegEntry->RegName);
       }
 
       // did we successfully parse a cfg item for this parameter?
@@ -3227,7 +3227,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    if (NULL == clone)
    {
       hddLog(LOGE, "%s: memory allocation failure, unable to process [%s]",
-             __FUNCTION__, command);
+             __func__, command);
       return vstatus;
    }
 
@@ -3241,7 +3241,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    {
       // only whitespace
       hddLog(LOGE, "%s: invalid command, only whitespace:[%s]",
-             __FUNCTION__, command);
+             __func__, command);
       goto done;
    }
 
@@ -3255,7 +3255,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    {
       // did not find '='
       hddLog(LOGE, "%s: invalid command, no '=':[%s]",
-             __FUNCTION__, command);
+             __func__, command);
       goto done;
    }
 
@@ -3266,7 +3266,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    {
       // did not find a name
       hddLog(LOGE, "%s: invalid command, no <name>:[%s]",
-             __FUNCTION__, command);
+             __func__, command);
       goto done;
    }
 
@@ -3275,7 +3275,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    {
       // did not find a value
       hddLog(LOGE, "%s: invalid command, no <value>:[%s]",
-             __FUNCTION__, command);
+             __func__, command);
       goto done;
    }
 
@@ -3292,7 +3292,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    {
       // did not match the name
       hddLog(LOGE, "%s: invalid command, unknown configuration item:[%s]",
-             __FUNCTION__, command);
+             __func__, command);
       goto done;
    }
 
@@ -3301,7 +3301,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
    {
       // does not support dynamic configuration
       hddLog(LOGE, "%s: invalid command, %s does not support "
-             "dynamic configuration", __FUNCTION__, name);
+             "dynamic configuration", __func__, name);
       goto done;
    }
 
@@ -3315,14 +3315,14 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
       {
          // out of range
          hddLog(LOGE, "%s: invalid command, value %u < min value %u",
-                __FUNCTION__, value, pRegEntry->VarMin);
+                __func__, value, pRegEntry->VarMin);
          goto done;
       }
       if (value > pRegEntry->VarMax)
       {
          // out of range
          hddLog(LOGE, "%s: invalid command, value %u > max value %u",
-                __FUNCTION__, value, pRegEntry->VarMax);
+                __func__, value, pRegEntry->VarMax);
          goto done;
       }
       memcpy(pField, &value, pRegEntry->VarSize);
@@ -3334,14 +3334,14 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
       {
          // out of range
          hddLog(LOGE, "%s: invalid command, value %x < min value %x",
-                __FUNCTION__, value, pRegEntry->VarMin);
+                __func__, value, pRegEntry->VarMin);
          goto done;
       }
       if (value > pRegEntry->VarMax)
       {
          // out of range
          hddLog(LOGE, "%s: invalid command, value %x > max value %x",
-                __FUNCTION__, value, pRegEntry->VarMax);
+                __func__, value, pRegEntry->VarMax);
          goto done;
       }
       memcpy(pField, &value, pRegEntry->VarSize);
@@ -3353,14 +3353,14 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
       {
          // out of range
          hddLog(LOGE, "%s: invalid command, value %d < min value %d",
-                __FUNCTION__, svalue, (int)pRegEntry->VarMin);
+                __func__, svalue, (int)pRegEntry->VarMin);
          goto done;
       }
       if (svalue > (v_S31_t)pRegEntry->VarMax)
       {
          // out of range
          hddLog(LOGE, "%s: invalid command, value %d > max value %d",
-                __FUNCTION__, svalue, (int)pRegEntry->VarMax);
+                __func__, svalue, (int)pRegEntry->VarMax);
          goto done;
       }
       memcpy(pField, &svalue, pRegEntry->VarSize);
@@ -3374,7 +3374,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
          hddLog(LOGE,
                 "%s: invalid command, string [%s] length "
                 "%u exceeds maximum length %u",
-                __FUNCTION__, value_str,
+                __func__, value_str,
                 len_value_str, (pRegEntry->VarSize - 1));
          goto done;
       }
@@ -3390,7 +3390,7 @@ VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command)
          hddLog(LOGE,
                 "%s: invalid command, MAC address [%s] length "
                 "%u is not expected length %u",
-                __FUNCTION__, value_str,
+                __func__, value_str,
                 len_value_str, (VOS_MAC_ADDR_SIZE * 2));
          goto done;
       }

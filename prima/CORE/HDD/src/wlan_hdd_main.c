@@ -224,16 +224,16 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
            {
               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                          "%s: Timeout occured while waiting for abortscan" ,
-                          __FUNCTION__);
+                          __func__);
            }
         }
         else
         {
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-               "%s: Scan is not Pending from user" , __FUNCTION__);
+               "%s: Scan is not Pending from user" , __func__);
         }
 #ifdef WLAN_BTAMP_FEATURE
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: disabling AMP", __func__);
         status = WLANBAP_StopAmp();
         if(VOS_STATUS_SUCCESS != status )
         {
@@ -341,7 +341,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
    if (NULL == pAdapter)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD adapter context is Null", __FUNCTION__);
+         "%s: HDD adapter context is Null", __func__);
       ret = -ENODEV;
       goto exit; 
    }
@@ -362,7 +362,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
    if (!command)
    {
        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-          "%s: failed to allocate memory\n", __FUNCTION__);
+          "%s: failed to allocate memory\n", __func__);
        ret = -ENOMEM;
        goto exit;
    }
@@ -386,7 +386,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                                                            sizeof(tSirMacAddr)))
            {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                  "%s: failed to copy data to user buffer\n", __FUNCTION__);
+                  "%s: failed to copy data to user buffer\n", __func__);
                ret = -EFAULT;
            }
        }
@@ -400,7 +400,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
            /* First 8 bytes will have "SETBAND " and 
             * 9 byte will have band setting value */
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                    "%s: SetBandCommand Info  comm %s UL %d, TL %d", __FUNCTION__, priv_data.buf, priv_data.used_len, priv_data.total_len);
+                    "%s: SetBandCommand Info  comm %s UL %d, TL %d", __func__, priv_data.buf, priv_data.used_len, priv_data.total_len);
         
            /* Change band request received */
            ret = hdd_setBand_helper(dev, ptr);   
@@ -428,7 +428,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
            tANI_U8 *ptr = (tANI_U8*)priv_data.buf;
 
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                      " Received Command to Set Preferred Channels for SAP in %s", __FUNCTION__);
+                      " Received Command to Set Preferred Channels for SAP in %s", __func__);
 
            ret = sapSetPreferredChannel(dev, ptr);
        }
@@ -468,7 +468,7 @@ int hdd_open (struct net_device *dev)
    if (NULL == pAdapter) 
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD adapter context is Null", __FUNCTION__);
+         "%s: HDD adapter context is Null", __func__);
       return -ENODEV;
    }
    
@@ -476,7 +476,7 @@ int hdd_open (struct net_device *dev)
    if (NULL == pHddCtx)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD context is Null", __FUNCTION__);
+         "%s: HDD context is Null", __func__);
       return -ENODEV;
    }
 
@@ -511,7 +511,7 @@ int hdd_open (struct net_device *dev)
    if (hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))) 
    {
        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                 "%s: Enabling Tx Queues", __FUNCTION__);
+                 "%s: Enabling Tx Queues", __func__);
        /* Enable TX queues only when we are connected */
        netif_tx_start_all_queues(dev);
    }
@@ -525,7 +525,7 @@ int hdd_mon_open (struct net_device *dev)
 
    if(pAdapter == NULL) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD adapter context is Null", __FUNCTION__);
+         "%s: HDD adapter context is Null", __func__);
       return -1;
    }
 
@@ -558,7 +558,7 @@ int hdd_stop (struct net_device *dev)
    if (NULL == pAdapter)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD adapter context is Null", __FUNCTION__);
+         "%s: HDD adapter context is Null", __func__);
       return -ENODEV;
    }
 
@@ -566,7 +566,7 @@ int hdd_stop (struct net_device *dev)
    if (NULL == pHddCtx)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: HDD context is Null", __FUNCTION__);
+         "%s: HDD context is Null", __func__);
       return -ENODEV;
    }
 
@@ -1950,12 +1950,12 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
                if (!VOS_IS_STATUS_SUCCESS(status))
                {
                   hddLog(LOGE, "%s: failure waiting for WLANSAP_StopBss",
-                         __FUNCTION__);
+                         __func__);
                }
             }
             else
             {
-               hddLog(LOGE, "%s: failure in WLANSAP_StopBss", __FUNCTION__);
+               hddLog(LOGE, "%s: failure in WLANSAP_StopBss", __func__);
             }
             clear_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags);
 
@@ -1965,7 +1965,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
             {
                hddLog(LOGE,
                       "%s: Failed to set WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG",
-                      __FUNCTION__);
+                      __func__);
             }
 
             if ( eHAL_STATUS_FAILURE == ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
@@ -2460,25 +2460,25 @@ static void hdd_set_multicast_list(struct net_device *dev)
    if (NULL == pHddCtx)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,
-            "%s: HDD context is Null", __FUNCTION__);
+            "%s: HDD context is Null", __func__);
       return;
    }
 
    if (dev->flags & IFF_ALLMULTI)
    {
       hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: allow all multicast frames", __FUNCTION__);
+            "%s: allow all multicast frames", __func__);
       pHddCtx->mc_addr_list.mc_cnt = 0;
    }
    else 
    {
       mc_count = netdev_mc_count(dev);
       hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s: mc_count = %u", __FUNCTION__, mc_count);
+            "%s: mc_count = %u", __func__, mc_count);
       if (mc_count > WLAN_HDD_MAX_MC_ADDR_LIST)
       {
          hddLog(VOS_TRACE_LEVEL_INFO,
-               "%s: No free filter available; allow all multicast frames", __FUNCTION__);
+               "%s: No free filter available; allow all multicast frames", __func__);
          pHddCtx->mc_addr_list.mc_cnt = 0;
          return;
       }
@@ -2615,7 +2615,7 @@ static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,
              "%s: Bad param, context [%p]",
-             __FUNCTION__, callbackContext);
+             __func__, callbackContext);
       return;
    }
 
@@ -2629,7 +2629,7 @@ static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
       /* the caller presumably timed out so there is nothing we can do */
       hddLog(VOS_TRACE_LEVEL_WARN,
              "%s: Invalid context, magic [%08x]",
-              __FUNCTION__, pContext->magic);
+              __func__, pContext->magic);
       return;
    }
 
@@ -2791,7 +2791,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
          if (lrc <= 0)
          {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: %s while requesting full power",
-                   __FUNCTION__, (0 == lrc) ? "timeout" : "interrupt");
+                   __func__, (0 == lrc) ? "timeout" : "interrupt");
             /* there is a race condition such that the callback
                function could be executing at the same time we are. of
                primary concern is if the callback function had already
@@ -2806,7 +2806,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,
                 "%s: Request for Full Power failed, status %d",
-                __FUNCTION__, halStatus);
+                __func__, halStatus);
          VOS_ASSERT(0);
          /* continue -- need to clean up as much as possible */
       }
@@ -3222,7 +3222,7 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,
                 "%s: unable to retrieve WCNSS WLAN compiled version",
-                __FUNCTION__);
+                __func__);
          break;
       }
 
@@ -3232,7 +3232,7 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,
                 "%s: unable to retrieve WCNSS WLAN reported version",
-                __FUNCTION__);
+                __func__);
          break;
       }
 
@@ -3270,7 +3270,7 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,
                 "%s: unable to retrieve WCNSS software version string",
-                __FUNCTION__);
+                __func__);
          break;
       }
 
@@ -3284,7 +3284,7 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,
                 "%s: unable to retrieve WCNSS hardware version string",
-                __FUNCTION__);
+                __func__);
          break;
       }
 
@@ -3566,7 +3566,7 @@ int hdd_wlan_startup(struct device *dev )
    status = hdd_wmm_init(pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __FUNCTION__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __func__);
       goto err_vosclose;
    }
 
@@ -3709,7 +3709,7 @@ int hdd_wlan_startup(struct device *dev )
          {
              hddLog(VOS_TRACE_LEVEL_FATAL,
                  "%s: Failed to allocate mac_address for p2p_device",
-                 __FUNCTION__);
+                 __func__);
              goto err_close_adapter;
          }
 
@@ -3719,7 +3719,7 @@ int hdd_wlan_startup(struct device *dev )
          {
              hddLog(VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to do hdd_open_adapter for P2P Device Interface",
-                __FUNCTION__);
+                __func__);
              goto err_close_adapter;
          }
 #endif
@@ -4520,7 +4520,7 @@ tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
     }
 
     /* we are in an invalid state :( */
-    hddLog(LOGE, "%s: Invalid context", __FUNCTION__);
+    hddLog(LOGE, "%s: Invalid context", __func__);
     return VOS_STA;
 }
 

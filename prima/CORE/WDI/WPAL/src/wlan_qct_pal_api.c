@@ -80,7 +80,7 @@ wpt_status wpalOpen(void **ppPalContext, void *pOSContext)
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_FATAL,
                  "%s: wpalDeviceInit failed with status %u",
-                 __FUNCTION__, status);
+                 __func__, status);
    }
 
    return status;
@@ -199,7 +199,7 @@ void *wpalDmaMemoryAllocate(wpt_uint32 size, void **ppPhysicalAddr)
    if ( NULL == pv ) 
    {
      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
-                 "%s Unable to allocate DMA buffer\n", __FUNCTION__);
+                 "%s Unable to allocate DMA buffer\n", __func__);
      return NULL;
    }
 
@@ -353,7 +353,7 @@ wpt_status wpalRivaSubystemRestart(void)
     {
          WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_FATAL,
                  "%s: loading/unloading in progress,"
-                 " SSR will be done at the end of unload", __FUNCTION__);
+                 " SSR will be done at the end of unload", __func__);
          return eWLAN_PAL_STATUS_E_FAILURE;
     }
     if (0 == subsystem_restart("wcnss")) 

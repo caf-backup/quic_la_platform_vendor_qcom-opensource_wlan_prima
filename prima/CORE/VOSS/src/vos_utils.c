@@ -589,7 +589,7 @@ err_req:
 err_tfm:
     //return ret;
     if (ret != 0) {
-        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __func__);
         return VOS_STATUS_E_FAULT;
    }
 
@@ -685,7 +685,7 @@ err_req:
 err_tfm:
     //return ret;
     if (ret != 0) {
-        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __FUNCTION__);
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __func__);
         return VOS_STATUS_E_FAULT;
       }
 

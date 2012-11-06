@@ -39,7 +39,7 @@ wpt_status wpalPostCtrlMsg(void *pPalContext, wpt_msg *pMsg)
    if (NULL == pMsg)
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "%s: NULL message pointer", __FUNCTION__);
+                 "%s: NULL message pointer", __func__);
       WPAL_ASSERT(0);
       return status;
    }
@@ -55,7 +55,7 @@ wpt_status wpalPostCtrlMsg(void *pPalContext, wpt_msg *pMsg)
    else
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d\n",
-                  __FUNCTION__, pMsg->type);
+                  __func__, pMsg->type);
    }
 
    return status;
@@ -77,7 +77,7 @@ wpt_status wpalPostTxMsg(void *pPalContext, wpt_msg *pMsg)
    if (NULL == pMsg)
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "%s: NULL message pointer", __FUNCTION__);
+                 "%s: NULL message pointer", __func__);
       WPAL_ASSERT(0);
       return status;
    }
@@ -93,7 +93,7 @@ wpt_status wpalPostTxMsg(void *pPalContext, wpt_msg *pMsg)
    else
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d\n",
-                  __FUNCTION__, pMsg->type);
+                  __func__, pMsg->type);
    }
 
    return status;
@@ -114,7 +114,7 @@ wpt_status wpalPostRxMsg(void *pPalContext, wpt_msg *pMsg)
    if (NULL == pMsg)
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "%s: NULL message pointer", __FUNCTION__);
+                 "%s: NULL message pointer", __func__);
       WPAL_ASSERT(0);
       return status;
    }
@@ -130,7 +130,7 @@ wpt_status wpalPostRxMsg(void *pPalContext, wpt_msg *pMsg)
    else
    {
       WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, "%s fail to post msg %d\n",
-                  __FUNCTION__, pMsg->type);
+                  __func__, pMsg->type);
    }
 
    return status;
