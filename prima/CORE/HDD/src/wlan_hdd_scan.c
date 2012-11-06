@@ -374,7 +374,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
       {
           int i;
 
-          numBasicRates = pDot11SuppRates->num_rates;;
+          numBasicRates = pDot11SuppRates->num_rates;
           for (i=0; i<pDot11SuppRates->num_rates; i++)
           {
               if (0 != (pDot11SuppRates->rates[i] & 0x7F))
