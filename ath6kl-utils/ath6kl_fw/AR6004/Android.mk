@@ -28,6 +28,7 @@ $(call add-ar6004-prebuilt-file,hw1.3/fw.ram.bin_usb,$(ar6004_hw13_dst_dir),fw.r
 $(call add-ar6004-prebuilt-file,hw1.3/bdata.bin_usb,$(ar6004_hw13_dst_dir),bdata.bin_usb,ar6004_usb_bdata_13)
 $(call add-ar6004-prebuilt-file,hw1.3/fw.ram.bin_sdio,$(ar6004_hw13_dst_dir),fw.ram.bin_sdio,ar6004_sdio_fw_13)
 $(call add-ar6004-prebuilt-file,hw1.3/bdata.bin_sdio,$(ar6004_hw13_dst_dir),bdata.bin_sdio,ar6004_sdio_bdata_13)
+$(call add-ar6004-prebuilt-file,hw1.3/fw_ext.ram.bin,$(ar6004_hw13_dst_dir),fw_ext.ram.bin,ar6004_usb_fw_ext_13)
 ar6004_hw13_dst_dir :=
 
 $(shell mkdir -p $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw1.3; \
