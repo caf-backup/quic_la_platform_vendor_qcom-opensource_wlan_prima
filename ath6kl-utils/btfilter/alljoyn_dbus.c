@@ -1515,7 +1515,87 @@ static int LookUpChannel(int FreqMhz)
 	}
 	return (i < MAX_WLAN_CHANNELS) ? g_ChannelTable[i].ChannelNumber : 0;
 }
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+static A_STATUS IssueAFHChannelClassification(ABF_BT_INFO *pAbfBtInfo,
+					ABF_WLAN_INFO *pAbfWlanInfo)
+{
+	A_UCHAR     evtBuffer[HCI_MAX_EVENT_SIZE];
+	A_STATUS    status;
+	A_UCHAR     *eventPtr;
+	int         eventLen;
+	A_UCHAR     pChannelMap[AFH_CHANNEL_MAP_BYTES];
+	ABF_WLAN_CONN_IF *conn = NULL;
+	int channel, mapByte;
 
+	/*init pChannelMap with all channels*/
+	A_MEMCPY(pChannelMap, g_ChannelMapTable[0].Map, AFH_CHANNEL_MAP_BYTES);
+
+	conn = pAbfWlanInfo->connIf;
+	while (conn) {
+		A_INFO("WLAN Operating Channel: %d \n", conn->channel);
+		if (conn->channel >= 2412) {
+			/* convert Mhz into a channel number */
+			channel = LookUpChannel(conn->channel);
+		} else {
+			return A_ERROR;
+		}
+
+		/*Eliminate the channels*/
+		for (mapByte = 0; mapByte < AFH_CHANNEL_MAP_BYTES; mapByte++)
+			pChannelMap[mapByte] &=
+				g_ChannelMapTable[channel].Map[mapByte];
+
+		conn = conn->next;
+	}
+	A_DUMP_BUFFER(pChannelMap, AFH_CHANNEL_MAP_BYTES,
+		"AFH Channel Classification Map");
+
+	do {
+
+		status = IssueHCICommand(pAbfBtInfo,
+				cmd_opcode_pack(3,0x3F),
+				pChannelMap,
+				AFH_CHANNEL_MAP_BYTES,
+				AFH_COMMAND_COMPLETE_TIMEOUT_MS,
+				evtBuffer,
+				sizeof(evtBuffer),
+				&eventPtr,
+				&eventLen);
+
+
+		if (A_FAILED(status)) {
+			break;
+		}
+
+		status = A_ERROR;
+
+		if (eventPtr == NULL) {
+			A_ERR("[%s] Failed to capture AFH command complete event \n", __FUNCTION__);
+			break;
+		}
+
+		if (eventLen < (int)sizeof(evt_cmd_complete) + 1) {
+			A_ERR("[%s] not enough bytes in AFH command complete event %d \n", __FUNCTION__, eventLen);
+			break;
+		}
+
+		/* check status parameter that follows the command complete event body */
+		if (eventPtr[sizeof(evt_cmd_complete)] != 0) {
+			A_ERR("[%s] AFH command complete event indicated failure : %d \n", __FUNCTION__,
+					eventPtr[sizeof(evt_cmd_complete)]);
+			break;
+		}
+
+		A_INFO(" AFH Command successfully issued \n");
+		//A_DUMP_BUFFER(pChannelMap, AFH_CHANNEL_MAP_BYTES, "AFH Channel Classification Map");
+
+		status = A_OK;
+
+	} while (FALSE);
+
+	return status;
+}
+#else
 static A_STATUS IssueAFHChannelClassification(ABF_BT_INFO *pAbfBtInfo, int CurrentWLANChannel)
 {
 	A_UCHAR     evtBuffer[HCI_MAX_EVENT_SIZE];
@@ -1583,7 +1663,24 @@ static A_STATUS IssueAFHChannelClassification(ABF_BT_INFO *pAbfBtInfo, int Curre
 
 	return status;
 }
+#endif
 
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+void IndicateCurrentWLANOperatingChannel(ATHBT_FILTER_INFO *pFilterInfo)
+{
+        ABF_BT_INFO *pAbfBtInfo = (ABF_BT_INFO *)pFilterInfo->pBtInfo;
+	ABF_WLAN_INFO *pAbfWlanInfo = (ABF_WLAN_INFO *)pFilterInfo->pWlanInfo;
+
+        if (NULL == pAbfBtInfo) {
+                return;
+        }
+
+        if (pFilterInfo->Flags & ABF_ENABLE_AFH_CHANNEL_CLASSIFICATION) {
+               IssueAFHChannelClassification(pAbfBtInfo, pAbfWlanInfo);
+        }
+}
+
+#else
 void IndicateCurrentWLANOperatingChannel(ATHBT_FILTER_INFO *pFilterInfo, int CurrentWLANChannel)
 {
 	ABF_BT_INFO *pAbfBtInfo = (ABF_BT_INFO *)pFilterInfo->pBtInfo;
@@ -1601,7 +1698,7 @@ void IndicateCurrentWLANOperatingChannel(ATHBT_FILTER_INFO *pFilterInfo, int Cur
 		Abf_IssueAFHViaHciLib(pAbfBtInfo, CurrentWLANChannel);
 	}
 }
-
+#endif
 static void *HCIFilterThread(void *arg)
 {
 	ABF_BT_INFO            *pAbfBtInfo = (ABF_BT_INFO *)arg;

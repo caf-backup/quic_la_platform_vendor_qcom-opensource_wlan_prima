@@ -27,6 +27,12 @@ static A_STATUS AcquireWlanAdapter(ABF_WLAN_INFO *pAbfWlanInfo);
 static void ReleaseWlanAdapter(ABF_WLAN_INFO *pAbfWlanInfo);
 static void *WlanEventThread(void *arg);
 
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+static A_UINT32 abfAddConnection(A_UINT32 ifIndex, A_UINT16 channel, ABF_WLAN_INFO *pAbfWlanInfo);
+static A_UINT32 abfDelConnection(A_UINT32 ifIndex, ABF_WLAN_INFO *pAbfWlanInfo);
+static ABF_WLAN_CONN_IF *abfSearchConnection(A_UINT32 ifIndex, ABF_WLAN_INFO *pAbfWlanInfo);
+#endif
+
 /* APIs exported to other modules */
 A_STATUS
 Abf_WlanStackNotificationInit(ATH_BT_FILTER_INSTANCE *pInstance, A_UINT32 flags)
@@ -502,7 +508,11 @@ Abf_WlanGetCurrentWlanOperatingFreq( ATHBT_FILTER_INFO * pInfo)
     /*Freq is in Hz, converted into to MhZ */
     pAbfWlanInfo->Channel = (wrq.u.freq.m/100000);
 
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+    IndicateCurrentWLANOperatingChannel(pInfo);
+#else
     IndicateCurrentWLANOperatingChannel(pInfo, pAbfWlanInfo->Channel);
+#endif
     return status;
 }
 
@@ -722,9 +732,20 @@ WirelessCustomEvent(ATH_BT_FILTER_INSTANCE *pInstance, char *buf, int len)
     ABF_WLAN_INFO *pAbfWlanInfo = pInfo->pWlanInfo;
 
     do {
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+        A_UINT8 ifIndex;
+        eventid = *((A_UINT16 *)buf);
+        ifIndex = *((A_UINT8 *)buf + 2);
+        ptr = buf + 3; //Skip the event id and intf index
+        length = len - 3;
+
+        A_DEBUG("%s ifIndex=%d, eventid=%x\n", __FUNCTION__, ifIndex, eventid);
+#else
         eventid = *((A_UINT16 *)buf);
         ptr = buf + 2; //Skip the event id
         length = len - 2;
+#endif
+
         switch (eventid) {
         case (WMI_READY_EVENTID):
             if (length < (int)sizeof(WMI_READY_EVENT)) {
@@ -778,11 +799,24 @@ WirelessCustomEvent(ATH_BT_FILTER_INSTANCE *pInstance, char *buf, int len)
             ev2 = (WMI_CONNECT_EVENT *)ptr;
             pAbfWlanInfo->Channel = ev2->u.infra_ibss_bss.channel;
             A_DEBUG("WMI CONNECT: Channel: %d\n", ev2->u.infra_ibss_bss.channel);
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+            if (abfAddConnection(ifIndex, ev2->u.infra_ibss_bss.channel,
+                                 pAbfWlanInfo) == A_OK)
+		IndicateCurrentWLANOperatingChannel(pInfo);
+
+#else
             IndicateCurrentWLANOperatingChannel(pInfo, pAbfWlanInfo->Channel);
+#endif
+
             break;
         case (WMI_DISCONNECT_EVENTID):
             A_DEBUG("WMI DISCONNECT: %d\n", len);
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+            if (abfDelConnection(ifIndex, pAbfWlanInfo) == A_OK)
+		IndicateCurrentWLANOperatingChannel(pInfo);
+#else
             IndicateCurrentWLANOperatingChannel(pInfo, 0);
+#endif
             break;
         case (WMI_ERROR_REPORT_EVENTID):
             A_DEBUG("WMI ERROR REPORT: %d\n", len);
@@ -913,3 +947,95 @@ void Abf_WlanCheckSettings(A_CHAR *wifname)
 
     A_DEBUG("%s : wlan: %s\n", __FUNCTION__, wifname);
 }
+
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+static ABF_WLAN_CONN_IF *
+abfSearchConnection(A_UINT32 ifIndex, ABF_WLAN_INFO *pAbfWlanInfo)
+{
+	ABF_WLAN_CONN_IF *conn = NULL;
+
+	conn = pAbfWlanInfo->connIf;
+	while (conn) {
+		if(conn->ifIndex == ifIndex)
+			break;  /*found*/
+		conn = conn->next;
+	}
+
+	return conn;
+}
+
+static A_UINT32
+abfAddConnection(A_UINT32 ifIndex, A_UINT16 channel, ABF_WLAN_INFO *pAbfWlanInfo)
+{
+	ABF_WLAN_CONN_IF *conn = NULL;
+	A_STATUS ret = A_OK;
+
+	if (!pAbfWlanInfo) {
+		ret = A_EINVAL;
+		goto exit;
+	}
+
+	if (abfSearchConnection(ifIndex, pAbfWlanInfo)) {
+		ret = A_EEXIST;
+		goto exit;
+	}
+
+	conn = (ABF_WLAN_CONN_IF *)A_MALLOC(sizeof(ABF_WLAN_CONN_IF));
+	if (!conn) {
+		ret = A_NO_MEMORY;
+		goto exit;
+	}
+
+	conn->ifIndex = ifIndex;
+	conn->channel = channel;
+	conn->next = NULL;
+	if (!pAbfWlanInfo->connIf) { /*the first connected interface*/
+		pAbfWlanInfo->connIf = conn;
+	}else {
+		conn->next = pAbfWlanInfo->connIf;
+		pAbfWlanInfo->connIf = conn;
+	}
+exit:
+	A_DEBUG("%s : ifId:%d channel:%d status=%d\n",
+		__FUNCTION__, ifIndex, channel, ret);
+	return ret;
+}
+
+static A_UINT32
+abfDelConnection(A_UINT32 ifIndex, ABF_WLAN_INFO *pAbfWlanInfo)
+{
+	ABF_WLAN_CONN_IF *prev = NULL;
+	ABF_WLAN_CONN_IF *cur = NULL;
+	A_STATUS ret = A_OK;
+
+	if (!pAbfWlanInfo) {
+		ret = A_EINVAL;
+		goto exit;
+	}
+
+	cur = pAbfWlanInfo->connIf;
+	while (cur) {
+		if (cur->ifIndex == ifIndex) {
+			break;
+		}
+		prev = cur;
+		cur = cur->next;
+	}
+
+	if (!cur) { /*interface not found*/
+		ret = A_EINVAL;
+		goto exit;
+	}
+
+	if (cur == pAbfWlanInfo->connIf) { /*delete the first interface*/
+		pAbfWlanInfo->connIf = pAbfWlanInfo->connIf->next;
+	} else {
+		prev->next = cur->next;
+	}
+
+	A_FREE(cur);
+exit:
+	A_DEBUG("%s : ifId:%d status=%d\n", __FUNCTION__, ifIndex, ret);
+	return ret;
+}
+#endif
