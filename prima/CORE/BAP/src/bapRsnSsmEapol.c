@@ -47,7 +47,7 @@
 
 #define EAPOL_BODY_LEN_SIZE 2
 
-#define ANI_SSM_LEGACY_RC4_KEY_SIGN_OFFSET EAPOL_BODY_POS + 28
+#define ANI_SSM_LEGACY_RC4_KEY_SIGN_OFFSET (EAPOL_BODY_POS + 28)
 
 /**
  * Bitmasks for the RSN Key Information field
@@ -66,7 +66,7 @@
 #define ANI_SSM_RSN_KEY_DESC_VERS_OFFSET  0
 #define ANI_SSM_RSN_KEY_INDEX_OFFSET      4
 
-#define ANI_SSM_RSN_KEY_MIC_OFFSET EAPOL_BODY_POS + 77
+#define ANI_SSM_RSN_KEY_MIC_OFFSET (EAPOL_BODY_POS + 77)
 
 /**
  * Other hard coded values for convenience:
