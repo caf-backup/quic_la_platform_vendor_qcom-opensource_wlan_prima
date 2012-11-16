@@ -194,7 +194,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             limPrintMacAddr(pMac, pHdr->sa, LOGE);
 
             limSendDeauthMgmtFrame( pMac, eSIR_MAC_MIC_FAILURE_REASON,
-                                    pHdr->sa, psessionEntry );
+                                    pHdr->sa, psessionEntry, FALSE );
             return;
         }
 #endif
@@ -579,7 +579,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     {
                         PELOGE(limLog(pMac, LOGE, FL("lim Delete Station Context (staId: %d, assocId: %d) \n"),pStaDs->staIndex, assocId);)
                         limSendDeauthMgmtFrame(pMac,
-                               eSIR_MAC_UNSPEC_FAILURE_REASON, (tANI_U8 *) pAuthNode->peerMacAddr,psessionEntry);
+                               eSIR_MAC_UNSPEC_FAILURE_REASON, (tANI_U8 *) pAuthNode->peerMacAddr, psessionEntry, FALSE);
                         limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
                         return;
                     }
