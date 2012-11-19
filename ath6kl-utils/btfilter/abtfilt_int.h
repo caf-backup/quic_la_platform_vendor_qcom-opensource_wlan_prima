@@ -202,6 +202,13 @@ void HandleAdapterEvent(ATHBT_FILTER_INFO *pInfo, ATH_ADAPTER_EVENT Event);
 #define WLAN_GET_HOME_CHANNEL(pInfo) \
     (pInfo)->pAbfWlanInfo->Channel
 
+typedef struct _ABF_WLAN_CONN_IF {
+    struct _ABF_WLAN_CONN_IF *next;
+    A_CHAR ifName[IFNAMSIZ];
+    A_UINT32 ifIndex;
+    A_UINT16 channel;
+} ABF_WLAN_CONN_IF;
+
 typedef struct _ABF_WLAN_INFO {
     ATHBT_FILTER_INFO              *pInfo;
     A_INT32                         Handle;
@@ -215,6 +222,7 @@ typedef struct _ABF_WLAN_INFO {
     A_COND_OBJECT                   hWaitEvent;
     A_MUTEX_OBJECT                  hWaitEventLock;
     A_UINT16                        Channel;
+    ABF_WLAN_CONN_IF               *connIf;
 } ABF_WLAN_INFO;
 
 /* Function Prototypes */
@@ -256,8 +264,11 @@ A_STATUS  Abf_IssueAFHViaHciLib (struct _ABF_BT_INFO  * pAbfBtInfo, int CurrentW
 #endif
 
 /* WLAN channel number can be expressed as either 1-14 or expressed in Mhz (i.e. 2412) */
+#ifdef MULTI_WLAN_CHAN_SUPPORT
+void IndicateCurrentWLANOperatingChannel(ATHBT_FILTER_INFO *pFilterInfo);
+#else
 void IndicateCurrentWLANOperatingChannel(ATHBT_FILTER_INFO *pFilterInfo, int CurrentWLANChannel);
-
+#endif
 /*-----------------------------------------------------------------------*/
 
 A_STATUS Abf_WlanGetSleepState(ATHBT_FILTER_INFO * pInfo);
