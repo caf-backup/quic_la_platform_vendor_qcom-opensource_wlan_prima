@@ -148,6 +148,7 @@ int FindIELocation( tpAniSirGlobal pMac,
                            tANI_U8 EID)
 {
     int idx, ieLen, bytesLeft;
+    int ret_val = -1;
 
     // Here's what's going on: 'rsnIe' looks like this:
 
@@ -184,14 +185,14 @@ int FindIELocation( tpAniSirGlobal pMac,
              bytesLeft <= (tANI_U16)( ieLen ) )
         {
             dot11fLog( pMac, LOG3, FL("No IE (%d) in FindIELocation.\n"), EID );
-            return (-1);
+            return ret_val;
         }
         bytesLeft -= ieLen;
         ieLen = pRsnIe->rsnIEdata[ idx + 1 ] + 2;
         idx += ieLen;
     }
 
-    return (-1);
+    return ret_val;
 }
 
 
