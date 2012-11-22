@@ -2629,7 +2629,7 @@ end:
 
 
 static void
-limProcessMlmDisassocReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_U32 *pMsgBuf)
+limProcessMlmDisassocReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_U32 *pMsgBuf)
 {
     tANI_U16                 aid;
     tSirMacAddr              currentBssId;
@@ -2863,23 +2863,12 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    if( (psessionEntry->limSystemRole == eLIM_STA_ROLE) &&
-        isLimSessionOffChannel(pMac, pMlmDisassocReq->sessionId) )
-    {
-      //suspend link
-      limSuspendLink(pMac, eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN, 
-          limProcessMlmDisassocReqPostSuspend, (tANI_U32*)pMsgBuf );
-    }
-    else
-    {
-      //No need to suspend link.
-      limProcessMlmDisassocReqPostSuspend( pMac, eHAL_STATUS_SUCCESS,
-          (tANI_U32*) pMsgBuf );
-    }
+    limProcessMlmDisassocReqNtf( pMac, eHAL_STATUS_SUCCESS, (tANI_U32*) pMsgBuf );
+
 } /*** limProcessMlmDisassocReq() ***/
 
 static void
-limProcessMlmDeauthReqPostSuspend(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_U32 *pMsgBuf)
+limProcessMlmDeauthReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_U32 *pMsgBuf)
 {
     tANI_U16                aid;
     tSirMacAddr             currentBssId;
@@ -3148,19 +3137,8 @@ limProcessMlmDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    if( (psessionEntry->limSystemRole == eLIM_STA_ROLE) &&
-        isLimSessionOffChannel(pMac, pMlmDeauthReq->sessionId) )
-    {
-      //suspend link
-      limSuspendLink(pMac, eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN, 
-          limProcessMlmDeauthReqPostSuspend, (tANI_U32*)pMsgBuf );
-    }
-    else
-    {
-      //No need to suspend link.
-      limProcessMlmDeauthReqPostSuspend( pMac, eHAL_STATUS_SUCCESS,
-          (tANI_U32*) pMsgBuf );
-    }
+    limProcessMlmDeauthReqNtf( pMac, eHAL_STATUS_SUCCESS, (tANI_U32*) pMsgBuf );
+
 } /*** limProcessMlmDeauthReq() ***/
 
 
