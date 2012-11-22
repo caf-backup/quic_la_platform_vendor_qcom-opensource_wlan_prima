@@ -2610,7 +2610,7 @@ limTeardownInfraBss(tpAniSirGlobal pMac,tpPESession psessionEntry)
          */
         limSendDisassocMgmtFrame(pMac,
                                  eSIR_MAC_DISASSOC_LEAVING_BSS_REASON,
-                                 bcAddr,psessionEntry);
+                                 bcAddr,psessionEntry, FALSE);
 } /*** end limTeardownInfraBss() ***/
 
 
