@@ -67,6 +67,9 @@ static const hdd_tmLevelAction_t thermalMigrationAction[WLAN_HDD_TM_LEVEL_MAX] =
    /* TM Level 4, MAX TM level, enter IMPS */
    {0, 1, 1000, 500, 10}
 };
+#ifdef HAVE_WCNSS_SUSPEND_RESUME_NOTIFY
+static bool suspend_notify_sent;
+#endif
 
 
 /*----------------------------------------------------------------------------
@@ -283,6 +286,13 @@ int hddDevSuspendHdlr(struct device *dev)
       return ret;
    }
 
+#ifdef HAVE_WCNSS_SUSPEND_RESUME_NOTIFY
+   if(hdd_is_suspend_notify_allowed(pHddCtx))
+   {
+      wcnss_suspend_notify();
+      suspend_notify_sent = true;
+   }
+#endif
    return 0;
 }
 
@@ -313,6 +323,13 @@ int hddDevResumeHdlr(struct device *dev)
 
    /* Resume the wlan driver */
    wlan_resume(pHddCtx);
+#ifdef HAVE_WCNSS_SUSPEND_RESUME_NOTIFY
+   if(suspend_notify_sent == true)
+   {
+      wcnss_resume_notify();
+      suspend_notify_sent = false;
+   }
+#endif
 
    return 0;
 }

@@ -387,6 +387,8 @@ void wpalWlanReload(void)
 ---------------------------------------------------------------------------*/
 void wpalWcnssResetIntr(void)
 {
+#ifdef HAVE_WCNSS_RESET_INTR
    wcnss_reset_intr();
+#endif
    return;
 }
