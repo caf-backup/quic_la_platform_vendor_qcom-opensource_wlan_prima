@@ -2342,7 +2342,7 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
         }
 
         if (((pBssConfig->uCfgDot11Mode == eCSR_CFG_DOT11_MODE_11N)  || 
-			(pBssConfig->uCfgDot11Mode == eCSR_CFG_DOT11_MODE_11AC)) &&
+                         (pBssConfig->uCfgDot11Mode == eCSR_CFG_DOT11_MODE_11AC)) &&
                          ((pBssConfig->qosType != eCSR_MEDIUM_ACCESS_WMM_eDCF_DSCP) ||
                           (pBssConfig->qosType != eCSR_MEDIUM_ACCESS_11e_HCF) ||
                           (pBssConfig->qosType != eCSR_MEDIUM_ACCESS_11e_eDCF) ))
@@ -2352,7 +2352,6 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
             pBssConfig->qosType = eCSR_MEDIUM_ACCESS_WMM_eDCF_DSCP;
         }
 
-	   
         //auth type
         switch( pProfile->negotiatedAuthType ) 
         {
