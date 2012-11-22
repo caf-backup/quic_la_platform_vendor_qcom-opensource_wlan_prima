@@ -197,7 +197,7 @@ typedef struct tagCsrChannelInfo
 {
     tANI_U8 numOfChannels;
     tANI_U8 *ChannelList;   //it will be an array of channels
-}tCsrChannelInfo;
+}tCsrChannelInfo, *tpCsrChannelInfo;
 
 typedef struct tagCsrSSIDInfo
 {
