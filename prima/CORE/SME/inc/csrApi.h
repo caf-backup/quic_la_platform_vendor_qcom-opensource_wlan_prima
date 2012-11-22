@@ -1004,6 +1004,8 @@ typedef struct tagCsrConfigParam
     */
     tANI_BOOLEAN fFirstScanOnly2GChnl;
 
+    tANI_BOOLEAN fIgnore_chan165;
+
 }tCsrConfigParam;   
 
 //Tush
