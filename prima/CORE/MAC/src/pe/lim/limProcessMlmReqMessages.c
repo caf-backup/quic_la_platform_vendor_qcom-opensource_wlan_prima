@@ -2751,7 +2751,16 @@ limProcessMlmDisassocReqNtf(tpAniSirGlobal pMac, eHalStatus suspendStatus, tANI_
     }
     else
     {
-       sendDisassocFrame = 1;    
+       /* Disassoc frame is not sent OTA */
+       sendDisassocFrame = 1;
+       // Receive path cleanup with dummy packet
+       if(eSIR_SUCCESS != limCleanupRxPath(pMac, pStaDs,psessionEntry))
+       {
+           mlmDisassocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+           goto end;
+       }
+       // Free up buffer allocated for mlmDisassocReq
+       palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmDisassocReq);
     }
 
     return;
@@ -2825,7 +2834,7 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
     limProcessMlmDisassocReqNtf( pMac, eHAL_STATUS_SUCCESS, (tANI_U32*) pMsgBuf );
-
+    
 } /*** limProcessMlmDisassocReq() ***/
 
 static void
