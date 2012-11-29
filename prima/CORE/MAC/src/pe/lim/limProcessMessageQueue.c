@@ -1599,6 +1599,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
         case SIR_LIM_DEL_TS_IND:
           limProcessDelTsInd(pMac, limMsg);
+            break;
         case SIR_LIM_ADD_BA_IND:
             limProcessAddBaInd(pMac, limMsg);
             break;
