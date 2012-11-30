@@ -3022,7 +3022,7 @@ limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession ps
         }
     }
 
-    if(pAddBssParams != 0)
+    if(pAddBssParams == 0)
         goto end;
 
     if( eHAL_STATUS_SUCCESS == pAddBssParams->status )
