@@ -1094,7 +1094,10 @@ typedef enum
   WDI_STA_ENTRY_SELF,
   WDI_STA_ENTRY_PEER,
   WDI_STA_ENTRY_BSSID,
-  WDI_STA_ENTRY_BCAST
+  WDI_STA_ENTRY_BCAST,
+#ifdef FEATURE_WLAN_TDLS
+  WDI_STA_ENTRY_TDLS_PEER,
+#endif
 }WDI_STAEntryType;
 
 /*---------------------------------------------------------------------------
