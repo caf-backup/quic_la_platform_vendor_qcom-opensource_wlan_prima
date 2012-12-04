@@ -3867,7 +3867,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) )
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: Connection in progress: Scan request denied (EBUSY)", __func__);
+                "%s: %p(%d) Connection in progress: Scan request denied (EBUSY)", __func__, \
+                WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
         return -EBUSY;
     }
 
@@ -4354,18 +4355,16 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter), 
                             pAdapter->sessionId, pRoamProfile, &roamId);
 
+
         if( (eHAL_STATUS_SUCCESS != status) &&
             (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) )
 
         {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: sme_RoamConnect (session %d) failed with "
+                                      "status %d. -> NotConnected", __func__, pAdapter->sessionId, status);
+            /* change back to NotAssociated */
             hdd_connSetConnectionState(WLAN_HDD_GET_STATION_CTX_PTR(pAdapter),
-                                                 eConnectionState_Connecting);
-        }
-
-        if( status != eHAL_STATUS_SUCCESS )
-        {
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: sme_RoamConnect failed with "
-                                      "status %d", __func__, status);
+                                             eConnectionState_NotConnected);
         }
 
         pRoamProfile->ChannelInfo.ChannelList = NULL;
