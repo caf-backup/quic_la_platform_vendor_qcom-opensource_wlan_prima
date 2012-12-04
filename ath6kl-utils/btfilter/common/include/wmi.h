@@ -1941,6 +1941,53 @@ bits:    meaning:
 		BTCOEX_OPTMODE_A2DP_CONFIG a2dpOptConfig;
 	}POSTPACK WMI_SET_BTCOEX_A2DP_CONFIG_CMD;
 
+#ifdef HID_PROFILE_SUPPORT
+	/* --------------WMI_SET_BTCOEX_HID_CONFIG_CMDID -------------*/
+	/* Configure HID profile parameters. These parameters would
+	 * be used whenver firmware is indicated of HID profile on
+	 * bluetooth ( via WMI_SET_BTCOEX_BT_OPERATING_STATUS_CMDID).
+	 * Configuration of BTCOEX_HID_CONFIG data structure are common
+	 * configuration.
+	 */
+
+#define WMI_HID_CONFIG_FLAG_ALLOW_OPTIMIZATION    (1 << 0)
+#define WMI_HID_CONFIG_FLAG_IS_EDR_CAPABLE        (1 << 1)
+#define WMI_HID_CONFIG_FLAG_IS_BT_ROLE_MASTER     (1 << 2)
+#define WMI_HID_CONFIG_FLAG_IS_A2DP_HIGH_PRI      (1 << 3)
+
+
+	typedef PREPACK struct {
+		A_UINT32 hidFlags;	/* HID Option flags:
+					   bits:    meaning:
+					   0  Allow Close Range Optimization
+                                        */
+		A_UINT32 hiddevices;	/*current   device number of hid */
+		A_UINT32 maxStompSlot;	/* max stomped */
+		A_UINT32 aclPktCntLowerLimit;	/*acl dectet when hid on */
+		A_UINT32 dummy[2];	/**/
+	}POSTPACK BTCOEX_HID_CONFIG;
+
+	typedef PREPACK struct {
+		A_UINT32 hidWlanMaxDur;		/*not used */
+		A_UINT32 hidMinBurstCnt;	/* not used */
+		A_UINT32 hidDataRespTimeout;	/* not used */
+	}POSTPACK BTCOEX_PSPOLLMODE_HID_CONFIG;
+
+	typedef PREPACK struct {
+		A_UINT32 hidMinlowRateMbps;  /* not used  */
+		A_UINT32 hidLowRateCnt;    /* not used */
+		A_UINT32 hidHighPktRatio;   /*not used  */
+		A_UINT32 hidMaxAggrSize;    /* not used  */
+		A_UINT32 hidPktStompCnt;    /*not used */
+	}POSTPACK BTCOEX_OPTMODE_HID_CONFIG;
+
+	typedef PREPACK struct {
+		BTCOEX_HID_CONFIG hidConfig;
+		BTCOEX_PSPOLLMODE_HID_CONFIG hidpspollConfig;
+		BTCOEX_OPTMODE_HID_CONFIG hidOptConfig;
+	}POSTPACK WMI_SET_BTCOEX_HID_CONFIG_CMD;
+#endif
+
 	/*------------ WMI_SET_BTCOEX_ACLCOEX_CONFIG_CMDID---------------------*/
 	/* Configure non-A2dp ACL profile parameters.The starts of ACL profile can either be
 	 * indicated via WMI_SET_BTCOEX_BT_OPERATING_STATUS_CMDID orenabled via firmware detection

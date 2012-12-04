@@ -98,6 +98,9 @@ static void AudioSinkStreamStarted(void *arg, void * user_data);
 static void AudioSinkStreamStopped(void *arg, void * user_data);
 static void AudioSourceConnected(void *arg, void * user_data);
 static void AudioSourceDisconnected(void *arg, void * user_data);
+#ifdef HID_PROFILE_SUPPORT
+static void InputDevicePropertyChanged(void *arg, void * user_data);
+#endif
 static A_STATUS CheckAndAcquireDefaultAdapter(ABF_BT_INFO *pAbfBtInfo);
 static void ReleaseDefaultAdapter(ABF_BT_INFO *pAbfBtInfo);
 static void AcquireDefaultAudioDevice(ABF_BT_INFO *pAbfBtInfo);
@@ -163,6 +166,10 @@ static BT_NOTIFICATION_CONFIG_PARAMS g_NotificationConfig[BT_EVENTS_NUM_MAX] =
 	{"Playing", AUDIO_SINK_INTERFACE, AudioSinkStreamStarted},
 	/* AUDIO_SINK_STREAM_STOPPED */
 	{"Stopped", AUDIO_SINK_INTERFACE, AudioSinkStreamStopped},
+#ifdef HID_PROFILE_SUPPORT
+	/* INPUT_DEVICE_CONNECTED */
+	{"PropertyChanged", INPUT_DEVICE_INTERFACE, InputDevicePropertyChanged},
+#endif
 };
 
 #define ForgetRemoteAudioDevice(pA)     \
@@ -543,6 +550,24 @@ static void AudioSinkStreamStopped(void *arg, void * user_data)
 	AthBtIndicateState(pInstance, ATH_BT_A2DP, STATE_OFF);
 }
 
+#ifdef HID_PROFILE_SUPPORT
+static void InputDevicePropertyChanged(void *val, void * user_data)
+{
+	ABF_BT_INFO *pAbfBtInfo = (ABF_BT_INFO *)user_data;
+	ATHBT_FILTER_INFO *pInfo = (ATHBT_FILTER_INFO *)pAbfBtInfo->pInfo;
+	ATH_BT_FILTER_INSTANCE *pInstance = pInfo->pInstance;
+
+	if (*(A_BOOL*)val) {
+		A_DEBUG("HID Connected\n");
+		AthBtIndicateState(pInstance, ATH_BT_HID, STATE_ON);
+	}
+	else {
+		A_DEBUG("HID Disconnected\n");
+		AthBtIndicateState(pInstance, ATH_BT_HID, STATE_OFF);
+	}
+}
+#endif
+
 static A_STATUS AcquireBtAdapter(ABF_BT_INFO *pAbfBtInfo)
 {
 	A_STATUS        status = A_ERROR;
@@ -572,6 +597,9 @@ static A_STATUS AcquireBtAdapter(ABF_BT_INFO *pAbfBtInfo)
 		REGISTER_SIGNAL(REMOTE_DEVICE_DISCONNECTED);
 		REGISTER_SIGNAL(AUDIO_DEVICE_ADDED);
 		REGISTER_SIGNAL(AUDIO_DEVICE_REMOVED);
+#ifdef HID_PROFILE_SUPPORT
+		REGISTER_SIGNAL(INPUT_DEVICE_PROPERTY_CHANGED);
+#endif
 
 		pAbfBtInfo->AdapterCbRegistered = TRUE;
 
@@ -599,6 +627,9 @@ static void ReleaseBTAdapter(ABF_BT_INFO *pAbfBtInfo)
 		DEREGISTER_SIGNAL(REMOTE_DEVICE_DISCONNECTED);
 		DEREGISTER_SIGNAL(AUDIO_DEVICE_ADDED);
 		DEREGISTER_SIGNAL(AUDIO_DEVICE_REMOVED);
+#ifdef HID_PROFILE_SUPPORT
+		DEREGISTER_SIGNAL(INPUT_DEVICE_PROPERTY_CHANGED);
+#endif
 	}
 
 	ReleaseDefaultAudioDevice(pAbfBtInfo);
@@ -1832,3 +1863,12 @@ void HandleBTEvent(BT_STACK_EVENT btevent, void *btfilt_info)
 		(*g_NotificationConfig[btevent].signal_handler)(NULL, (ABF_BT_INFO *)btfilt_info);
 	}
 }
+
+#ifdef HID_PROFILE_SUPPORT
+void HandleBTEvent1(BT_STACK_EVENT btevent, void *btfilt_info, A_BOOL val)
+{
+	if (g_NotificationConfig[btevent].signal_handler) {
+		(*g_NotificationConfig[btevent].signal_handler)(&val, (ABF_BT_INFO *)btfilt_info);
+	}
+}
+#endif

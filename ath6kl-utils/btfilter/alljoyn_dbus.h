@@ -26,6 +26,7 @@
 #define AUDIO_HEADSET_INTERFACE           "org.bluez.Headset"
 #define AUDIO_GATEWAY_INTERFACE           "org.bluez.Gateway"
 #define AUDIO_DEVICE_INTERFACE            "org.bluez.Device"
+#define INPUT_DEVICE_INTERFACE            "org.bluez.Input"
 #else
 #define BLUEZ_PATH                        "/org/bluez"
 #define AUDIO_MANAGER_PATH                "/org/bluez/audio"
@@ -57,6 +58,9 @@ typedef enum {
     AUDIO_SINK_DISCONNECTED,
     AUDIO_SINK_STREAM_STARTED,
     AUDIO_SINK_STREAM_STOPPED,
+#ifdef HID_PROFILE_SUPPORT
+    INPUT_DEVICE_PROPERTY_CHANGED,
+#endif
     BT_EVENTS_NUM_MAX,
 } BT_STACK_EVENT;
 

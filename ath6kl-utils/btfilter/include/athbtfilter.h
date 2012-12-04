@@ -22,6 +22,9 @@ typedef enum _ATHBT_STATE_INDICATION {
 	ATH_BT_ACL         = 4,
 	ATH_BT_A2DP        = 5,
 	ATH_BT_ESCO        = 6,
+#ifdef HID_PROFILE_SUPPORT
+	ATH_BT_HID         = 7,
+#endif
 	/* new states go here.. */
 
 	ATH_BT_MAX_STATE_INDICATION
