@@ -59,6 +59,10 @@ HDD_OBJS += wlan_hdd_cfg80211.o \
             wlan_hdd_p2p.o
 endif
 
+ifeq ($(CONFIG_QCOM_TDLS),y)
+HDD_OBJS += wlan_hdd_tdls.o
+endif
+
 ############ BAP #####################
 BAP_INC := 	-I$(WLAN_DIR)/BAP/inc \
 		-I$(WLAN_DIR)/BAP/src
@@ -210,6 +214,10 @@ ifeq ($(CONFIG_QCOM_CCX),y)
 MAC_LIM_OBJS += $(MAC_SRC_DIR)/pe/lim/limProcessCcxFrame.o
 endif
 
+ifeq ($(CONFIG_QCOM_TDLS),y)
+MAC_LIM_OBJS += $(MAC_SRC_DIR)/pe/lim/limProcessTdls.o		 
+endif
+
 MAC_PMM_OBJS = $(MAC_SRC_DIR)/pe/pmm/pmmApi.o    \
             $(MAC_SRC_DIR)/pe/pmm/pmmDebug.o     \
             $(MAC_SRC_DIR)/pe/pmm/pmmAP.o
@@ -247,6 +255,10 @@ SME_CSR_OBJS := $(SME_SRC_DIR)/csr/csrLinkList.o \
 
 ifeq ($(CONFIG_QCOM_CCX),y)
 SME_CSR_OBJS += $(SME_SRC_DIR)/csr/csrCcx.o 
+endif
+
+ifeq ($(CONFIG_QCOM_TDLS),y)
+SME_CSR_OBJS += $(SME_SRC_DIR)/csr/csrTdlsProcess.o
 endif
 
 SME_PMC_OBJS := $(SME_SRC_DIR)/pmc/pmcApi.o \
@@ -466,6 +478,16 @@ endif
 
 ifeq ($(CONFIG_QCOM_LFR),y)
 CDEFINES += -DFEATURE_WLAN_LFR
+endif
+
+#normally, TDLS negative behavior is not needed
+ifeq ($(CONFIG_QCOM_TDLS),y)
+CDEFINES += -DFEATURE_WLAN_TDLS 
+#CDEFINES += -DFEATURE_WLAN_TDLS_NEGATIVE
+#Code under FEATURE_WLAN_TDLS_INTERNAL is ported from volans, This code
+#is not tested only verifed that it compiles. This is not required for
+#supplicant based implementation
+#CDEFINES += -DFEATURE_WLAN_TDLS_INTERNAL
 endif
 
 ifeq ($(CONFIG_QCOM_OKC),y)
