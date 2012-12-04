@@ -36,6 +36,9 @@ static const BT_CONTROL_ACTION_DESC_STATE g_ActionDefaults[ATH_BT_MAX_STATE_INDI
     /* ATH_BT_ACL     */      {{{ ACTION_TODO_TBD,      0, NULL }, { ACTION_TODO_TBD,      0, NULL }}},
     /* ATH_BT_A2DP    */      {{{ "-s 2 2",             0, NULL }, { "-pA2DP 30 3 20 0 0 60 50 20; -s 2 1", 0, NULL }}},
     /* ATH_BT_ESCO    */      {{{ "-s 4 2",             0, NULL }, { "-pSCO 1 20 2 0 2 6 3 0 0 60 50 5 ; -s 4 1",0, NULL }}},
+#ifdef HID_PROFILE_SUPPORT
+    /* ATH_BT_HID     */      {{{ "-s 5 2 0",             0, NULL }, { "-pHID 0 0 0 30 ; -s 5 1 0",0, NULL }}},
+#endif
 };
 
 
@@ -61,6 +64,9 @@ static const BT_CONTROL_ACTION_DESC_STATE g_ActionDefaultsMcKinley[ATH_BT_MAX_ST
     /* ATH_BT_ACL     */      {{{ ACTION_TODO_TBD,      0, NULL }, { ACTION_TODO_TBD,      0, NULL }}},
     /* ATH_BT_A2DP    */      {{{ "-s 2 2 0",             0, NULL }, { "-pA2DP 0 0 30 3 20 36 5 5 1 6; -s 2 1 0", 0, NULL }}},
     /* ATH_BT_ESCO     */     {{{ "-s 4 2 0",             0, NULL }, { "-pSCO 2 10 1 0 10 20 5 4 1 3 3 36 5 5 1 0 100 2; -s 4 1 0", 0, NULL }}},
+#ifdef HID_PROFILE_SUPPORT
+    /* ATH_BT_HID     */      {{{ "-s 5 2 0",             0, NULL }, { "-pHID 0 0 0 30 ; -s 5 1 0",0, NULL }}},
+#endif
 };
 
 
@@ -68,6 +74,9 @@ typedef enum _BT_COMMAND_TAG {
     BT_STATUS_TAG               = 0,
     BT_PARAM_SCO_TAG            = 1,
     BT_PARAM_A2DP_TAG,
+#ifdef HID_PROFILE_SUPPORT
+    BT_PARAM_HID_TAG,
+#endif
     /* add new tags here */
     BT_COMMAND_TAGS_MAX
 } BT_COMMAND_TAG;
@@ -77,6 +86,9 @@ static const A_CHAR *g_TagStrings[BT_COMMAND_TAGS_MAX] = {
     "-s",
     "-pSCO",
     "-pA2DP",
+#ifdef HID_PROFILE_SUPPORT
+    "-pHID",
+#endif
 };
 
 static int FindActionString(A_CHAR *pString, A_CHAR **ppStart)
@@ -399,6 +411,28 @@ static A_STATUS BuildActionFromString(BT_FILTER_CORE_INFO * pCore, A_CHAR *pActi
                 }
             break;
 
+#ifdef HID_PROFILE_SUPPORT
+        case BT_PARAM_HID_TAG:
+            {
+                WMI_SET_BTCOEX_HID_CONFIG_CMD *pHidConfigCmd =
+                        (WMI_SET_BTCOEX_HID_CONFIG_CMD *)pItem->ControlAction.Buffer;
+                BTCOEX_HID_CONFIG *pHidGenericConfig = &(pHidConfigCmd->hidConfig);
+                //BTCOEX_PSPOLLMODE_HID_CONFIG *pHidPspollConfig = &(pHidConfigCmd->hidpspollConfig);
+                //BTCOEX_OPTMODE_HID_CONFIG *pHidOptModeConfig = &(pHidConfigCmd->hidOptConfig);
+
+                pItem->ControlAction.Length = sizeof(WMI_SET_BTCOEX_HID_CONFIG_CMD);
+                pItem->ControlAction.Type = BT_CONTROL_ACTION_PARAMS;
+                if (argCount != 4) {
+                    status = A_EINVAL;
+                    break;
+                }
+                pHidGenericConfig->hidFlags             = (A_UINT32) args[0];
+                pHidGenericConfig->hiddevices           = (A_UINT32) args[1];
+                pHidGenericConfig->maxStompSlot         = (A_UINT32) args[2];
+                pHidGenericConfig->aclPktCntLowerLimit  = (A_UINT32) args[3];
+            }
+            break;
+#endif
         default:
             break;
 

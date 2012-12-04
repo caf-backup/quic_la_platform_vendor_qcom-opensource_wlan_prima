@@ -152,6 +152,11 @@ static int get_nl_cmd(int cmd)
 	case AR6000_XIOCTL_WMI_GET_BTCOEX_STATS:
 		nl_cmd = NL80211_WMI_GET_BT_STATS;
 		break;
+#ifdef HID_PROFILE_SUPPORT
+	case AR6000_XIOCTL_WMI_SET_BTCOEX_HID_CONFIG:
+		nl_cmd = NL80211_WMI_SET_BT_HID_CONFIG;
+		break;
+#endif
 	}
 	return nl_cmd;
 }

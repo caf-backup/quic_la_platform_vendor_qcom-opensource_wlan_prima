@@ -25,6 +25,9 @@ using namespace ajn;
 class BtConnObj;
 extern "C" {
 	void HandleBTEvent(BT_STACK_EVENT bt_event, void *btfilt_info);
+#ifdef HID_PROFILE_SUPPORT
+	void HandleBTEvent1(BT_STACK_EVENT btevent, void *btfilt_info, A_BOOL val);
+#endif
 	void BT_LOG(const char *format, ...);
 }
 
@@ -144,6 +147,24 @@ class BtConnObj:  public BusObject
 		BT_LOG("%s\n", __FUNCTION__);
 		HandleBTEvent(AUDIO_SINK_STREAM_STOPPED, mBtFiltInfo);
 	}
+
+#ifdef HID_PROFILE_SUPPORT
+	void InputDevicePropertyChanged(const InterfaceDescription::Member* member, const char* srcPath, Message& msg)
+	{
+		const char* property;
+		const MsgArg* value;
+
+		BT_LOG("%s\n", __FUNCTION__);
+
+		msg->GetArgs("sv", &property, &value);
+		if (strcmp(property, "Connected") == 0) {
+			bool connected;
+
+			value->Get("b", &connected);
+			HandleBTEvent1(INPUT_DEVICE_PROPERTY_CHANGED, mBtFiltInfo, connected);
+		}
+	}
+#endif
 
 	private:
 		const InterfaceDescription::Member* mBTEvents[BT_EVENTS_NUM_MAX];
@@ -406,6 +427,31 @@ BtConnObj::BtConnObj(BusAttachment& bus, const char* path, void *btfilt_info)
 		BT_LOG("%s:Failed to create interface %s\n", __func__, AUDIO_SINK_INTERFACE);
 	}
 
+#ifdef HID_PROFILE_SUPPORT
+	InterfaceDescription* InputDeviceIntf = NULL;
+	status = bus.CreateInterface(INPUT_DEVICE_INTERFACE, InputDeviceIntf);
+	if (status == ER_OK) {
+		InputDeviceIntf->AddSignal("PropertyChanged", "sv", NULL, 0);
+		InputDeviceIntf->Activate();
+
+		status = AddInterface(*InputDeviceIntf);
+		if (status == ER_OK) {
+			mBTEvents[INPUT_DEVICE_PROPERTY_CHANGED] = InputDeviceIntf->GetMember("PropertyChanged");
+			assert(mBTEvents[INPUT_DEVICE_PROPERTY_CHANGED]);
+		}
+
+		status =  bus.RegisterSignalHandler(this,
+				static_cast<MessageReceiver::SignalHandler>
+					(&BtConnObj::InputDevicePropertyChanged),
+				mBTEvents[INPUT_DEVICE_PROPERTY_CHANGED],
+				NULL);
+		if (status != ER_OK) {
+			BT_LOG("Failed to register signal handler %s:%d\n", __FUNCTION__, __LINE__);
+		}
+	} else {
+		BT_LOG("%s:Failed to create interface %s\n", __func__, INPUT_DEVICE_INTERFACE);
+	}
+#endif
 	mBtFiltInfo = btfilt_info;
 }
 extern "C" void alljoyn_register_signal(char *signal, char *interface)

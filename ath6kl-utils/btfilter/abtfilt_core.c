@@ -1486,6 +1486,12 @@ ExecuteBtAction(ATHBT_FILTER_INFO *pInfo, BT_ACTION_MSG *pBtActionMsg)
                 controlCode = AR6000_XIOCTL_WMI_SET_BTCOEX_A2DP_CONFIG;
                 size = sizeof(WMI_SET_BTCOEX_A2DP_CONFIG_CMD);
             }
+#ifdef HID_PROFILE_SUPPORT
+            if (pBtActionMsg->IndicationForControlAction == ATH_BT_HID) {
+                controlCode = AR6000_XIOCTL_WMI_SET_BTCOEX_HID_CONFIG;
+                size = sizeof(WMI_SET_BTCOEX_HID_CONFIG_CMD);
+            }
+#endif
         }
     }else {
         if (pBtActionMsg->ControlAction.Type == BT_CONTROL_ACTION_STATUS) {
