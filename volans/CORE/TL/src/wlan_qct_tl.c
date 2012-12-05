@@ -405,19 +405,22 @@ WLANTL_Open
   WLANTL_CbType*  pTLCb = NULL; 
   v_U8_t          ucIndex; 
   tHalHandle      smeContext;
-#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
-  VOS_STATUS      status = VOS_STATUS_SUCCESS;
-#endif
+  VOS_STATUS      status = VOS_STATUS_E_FAILURE;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
     Sanity check
     Extract TL control block
    ------------------------------------------------------------------------*/
-  vos_alloc_context( pvosGCtx, VOS_MODULE_ID_TL, 
+  status = vos_alloc_context( pvosGCtx, VOS_MODULE_ID_TL,
                     (void*)&pTLCb, sizeof(WLANTL_CbType));
+  if(VOS_STATUS_SUCCESS != status)
+  {
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL: vos_alloc_context failed to memory for TL Context %d", status ));
+      return VOS_STATUS_E_FAULT;
+  }
 
-  pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if (( NULL == pTLCb ) || ( NULL == pTLConfig ) )
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
@@ -432,9 +435,6 @@ WLANTL_Open
                       "%s: Invalid smeContext", __FUNCTION__));
     return VOS_STATUS_E_FAULT;
   }
-
-  /* Zero out the memory so we are OK, when CleanCB is called.*/
-  vos_mem_zero((v_VOID_t *)pTLCb, sizeof(WLANTL_CbType));
 
   /*------------------------------------------------------------------------
     Clean up TL control block, initialize all values
