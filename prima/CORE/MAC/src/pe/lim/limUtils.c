@@ -647,7 +647,6 @@ return "";
 
 char *limResultCodeStr(tSirResultCodes resultCode)
 {
-#ifdef FIXME_GEN6
     switch (resultCode)
     {
       case eSIR_SME_SUCCESS:
@@ -799,8 +798,6 @@ char *limResultCodeStr(tSirResultCodes resultCode)
         default:
             return "INVALID resultCode\n";
     }
-#endif
-return "";
 }
 
 void
@@ -7818,6 +7815,23 @@ void peGetResumeChannel(tpAniSirGlobal pMac, tANI_U8* resumeChannel, ePhyChanBon
     return;
 }
 
+tANI_BOOLEAN limIsNOAInsertReqd(tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid == TRUE)
+        {
+            if( (eLIM_AP_ROLE == pMac->lim.gpSession[i].limSystemRole ) 
+                    && ( VOS_P2P_GO_MODE == pMac->lim.gpSession[i].pePersona )
+                   )
+            {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
 
 #endif
 
