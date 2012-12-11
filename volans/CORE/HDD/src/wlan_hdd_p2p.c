@@ -450,6 +450,13 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d",
                             __func__,pAdapter->device_mode);
 
+    /* If the wait is coming as 0 with off channel set
+       then set the wait to 200 ms, since the
+       Channel-Offloading is based on driver.
+     */
+    if (offchan && !wait)
+        wait = ACTION_FRAME_DEFAULT_WAIT;
+
     //Call sme API to send out a action frame.
     // OR can we send it directly through data path??
     // After tx completion send tx status back.
@@ -555,6 +562,17 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             {
                 goto send_frame;
             }
+            goto err_rem_channel;
+        }
+
+        /* Wait for driver to be ready on the requested channel */
+        status = wait_for_completion_interruptible_timeout(
+                     &pAdapter->offchannel_tx_event,
+                     msecs_to_jiffies(WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
+        if(!status)
+        {
+            hddLog( LOGE, "Not able to complete remain on channel request"
+                          "within timeout period");
             goto err_rem_channel;
         }
     }

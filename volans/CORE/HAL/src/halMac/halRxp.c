@@ -3562,6 +3562,21 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
                HALLOGE( halLog( pMac, LOGE, FL("Invalid self sta idx")));
                halRxp_AddPreAssocAddr2Entry(pMac, bssid, selfStaIdx); //Fall through
 
+            /* If RXP Routing points to WQ14 at this stage means we were in
+               GO/SAP mode before, and we need to revert the RXP routing setting
+               back to the default for STA mode. So, we are checking if the
+               RXP routing is not WQ3, then set it to same.
+             */
+            halReadRegister(pMac,  QWLAN_RXP_CONFIG2_REG,  &value );
+            if ((value & QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_MASK) !=
+                 QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_DEFAULT)
+            {
+                value &= ~(QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_MASK);
+                value |= (QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OVERWRITE_ENABLE_MASK |
+                          QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_DEFAULT);
+                halWriteRegister(pMac,  QWLAN_RXP_CONFIG2_REG,  value );
+            }
+
         case  eRXP_BTAMP_POSTASSOC_MODE:
         case  eRXP_POST_ASSOC_MODE:
             if ((vos_get_concurrency_mode()& VOS_STA_SAP)==VOS_STA_SAP) 

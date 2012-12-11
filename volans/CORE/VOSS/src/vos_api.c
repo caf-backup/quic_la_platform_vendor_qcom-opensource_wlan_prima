@@ -1096,10 +1096,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
     return VOS_STATUS_E_NOMEM;
   }
 
-  if (moduleID==VOS_MODULE_ID_TL)
-  {
-     vos_mem_zero(*ppModuleContext, size);
-  }
+  vos_mem_zero(*ppModuleContext, size);
 
   *pGpModContext = *ppModuleContext;
 

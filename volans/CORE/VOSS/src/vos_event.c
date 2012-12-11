@@ -401,11 +401,13 @@ VOS_STATUS vos_wait_single_event ( vos_event_t* event, v_U32_t timeout)
    {
       long ret;
       ret =
-         wait_for_completion_interruptible_timeout(&event->complete,
+         wait_for_completion_timeout(&event->complete,
                                                    msecs_to_jiffies(timeout));
       if ( 0 >= ret )
       {
-         // 0 means timed out, negative means interrupted
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "wait_for_completion_timeout failed %ld %s", ret, __FUNCTION__);
+
          return VOS_STATUS_E_TIMEOUT;
       }
    }

@@ -4927,7 +4927,10 @@ eHalStatus csrScanAgeResults(tpAniSirGlobal pMac, tSmeGetScanChnRsp *pScanChnInf
                 {
                     csrScanAgeOutBss(pMac, pResult);
                 }
-                pResult->AgingCount--;
+                else
+                {
+                    pResult->AgingCount--;
+                }
             }
             pEntry = tmpEntry;
         }
