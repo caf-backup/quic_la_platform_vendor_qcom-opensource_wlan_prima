@@ -1288,7 +1288,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
                                        v_BOOL_t fWmmEnabled )
 {
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
-   WLAN_STADescType staDesc;   
+   WLAN_STADescType staDesc = {0};   
    hdd_context_t *pHddCtx = pAdapter->pHddCtx;
    hdd_adapter_t *pmonAdapter = NULL;
 
@@ -1395,6 +1395,8 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_adapter_t *pAdapter,
    staDesc.ucBcastSig  = bcastSig;
    staDesc.ucInitState = fAuthRequired ?
       WLANTL_STA_CONNECTED : WLANTL_STA_AUTHENTICATED;
+
+   staDesc.ucIsReplayCheckValid = VOS_FALSE;
 
    // Register the Station with TL...      
    vosStatus = WLANTL_RegisterSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, 
