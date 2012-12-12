@@ -379,7 +379,8 @@ typedef struct
   /*Negative crossing of Rssi Thresh3*/
    wpt_uint32             bRssiThres3NegCross : 1;
 
-   wpt_uint32             bReserved           : 26;
+   wpt_uint32             avgRssi             : 8;
+   wpt_uint32             bReserved           : 18;
 
 }WDI_LowRSSIThIndType;
 
