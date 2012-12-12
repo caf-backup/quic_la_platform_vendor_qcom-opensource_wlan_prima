@@ -1079,12 +1079,6 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
             return;
     }
 
-    if (limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, psessionEntry->bssId,
-                        psessionEntry->selfMacAddr, NULL, NULL) != eSIR_SUCCESS)
-    {
-            return;
-    }
-
     pMlmReassocReq->listenInterval = (tANI_U16) val;
 
     psessionEntry->pLimMlmReassocReq = pMlmReassocReq;
