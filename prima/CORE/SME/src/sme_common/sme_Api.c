@@ -6745,6 +6745,22 @@ void sme_featureCapsExchange( tHalHandle hHal)
     WDA_featureCapsExchange(vosContext);
 }
 
+/*---------------------------------------------------------------------------
+
+  \brief sme_disableFeatureCapablity() - SME interface to disable Active mode offload capablity
+  in Host.
+
+  \param  hHal - HAL handle for device
+
+  \return NONE
+
+---------------------------------------------------------------------------*/
+void sme_disableFeatureCapablity(tANI_U8 feature_index)
+{
+    WDA_disableCapablityFeature(feature_index);
+}
+
+
 
 /* ---------------------------------------------------------------------------
 
