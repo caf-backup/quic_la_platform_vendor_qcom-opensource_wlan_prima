@@ -1417,13 +1417,6 @@ typedef enum
 #define CFG_TDLS_SUPPORT_ENABLE_DEFAULT       ( 0 )
 #endif
 
-/* Enable/Disable LPWR Image(cMEM uBSP) Transition */
-#define CFG_ENABLE_LPWR_IMG_TRANSITION_NAME        "gEnableLpwrImgTransition"
-#define CFG_ENABLE_LPWR_IMG_TRANSITION_MIN         ( 0 )
-#define CFG_ENABLE_LPWR_IMG_TRANSITION_MAX         ( 1 )
-#define CFG_ENABLE_LPWR_IMG_TRANSITION_DEFAULT     ( 0 )
-
-
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE         "gEnableActiveModeOffload"
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE_MIN     ( 0 )
@@ -1745,7 +1738,6 @@ typedef struct
 #ifdef FEATURE_WLAN_TDLS       
    v_BOOL_t                    fEnableTDLSSupport;
 #endif
-   v_U32_t                     enableLpwrImgTransition;
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
    v_BOOL_t                    fEnableActiveModeOffload;
 #endif
