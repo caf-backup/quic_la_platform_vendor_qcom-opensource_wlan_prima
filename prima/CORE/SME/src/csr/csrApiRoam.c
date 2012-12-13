@@ -2492,7 +2492,7 @@ static eHalStatus csrRoamPrepareBssConfigFromProfile(tpAniSirGlobal pMac, tCsrRo
     }
     
     //auth type
-    switch( pProfile->AuthType.authType[0] ) //Take the prefered Auth type.
+    switch( pProfile->AuthType.authType[0] ) //Take the preferred Auth type.
     {
         default:
         case eCSR_AUTH_TYPE_WPA:
@@ -3501,7 +3501,7 @@ static void csrRoamAssignDefaultParam( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 {
     //Need to get all negotiated types in place first
     //auth type
-    switch( pCommand->u.roamCmd.roamProfile.AuthType.authType[0] ) //Take the prefered Auth type.
+    switch( pCommand->u.roamCmd.roamProfile.AuthType.authType[0] ) //Take the preferred Auth type.
     {
         default:
         case eCSR_AUTH_TYPE_WPA:
