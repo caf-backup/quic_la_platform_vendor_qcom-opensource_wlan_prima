@@ -224,7 +224,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
            if(!result)
            {
               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                         "%s: Timeout occured while waiting for abortscan" ,
+                         "%s: Timeout occurred while waiting for abortscan" ,
                           __func__);
            }
         }
