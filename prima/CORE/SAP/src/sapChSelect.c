@@ -420,7 +420,22 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
     tCsrScanResultInfo *pScanResult;
     tSapSpectChInfo *pSpectCh   = pSpectInfoParams->pSpectCh;
     v_U32_t operatingBand;
+    v_U16_t channelWidth;
+    v_U16_t secondaryChannelOffset;
+    v_U16_t centerFreq;
+    v_U16_t vhtSupport;
+    v_U32_t ieLen = 0;
+    tSirProbeRespBeacon *pBeaconStruct;
+    tpAniSirGlobal  pMac = (tpAniSirGlobal) halHandle;
 
+    if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
+                                                (void **)&pBeaconStruct, sizeof(tSirProbeRespBeacon)))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,"Unable to PAL allocate memory in sapComputeSpectWeight\n");
+        return;
+    }
+    
+    
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Computing spectral weight", __func__);
 
     /**
@@ -432,7 +447,35 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
 
     while (pScanResult) {
         pSpectCh = pSpectInfoParams->pSpectCh;
+        // Defining the default values, so that any value will hold the default values
+        channelWidth = eHT_CHANNEL_WIDTH_20MHZ;
+        secondaryChannelOffset = PHY_SINGLE_CHANNEL_CENTERED;
+        vhtSupport = 0;
+        centerFreq = 0;
         
+        if(pScanResult->BssDescriptor.ieFields != NULL) 
+        {
+            ieLen = (pScanResult->BssDescriptor.length + sizeof(tANI_U16) + sizeof(tANI_U32) - sizeof(tSirBssDescription));
+            palZeroMemory(pMac->hHdd, (tANI_U8 *) pBeaconStruct, sizeof(tSirProbeRespBeacon));
+            
+            if ((sirParseBeaconIE(pMac, pBeaconStruct,(tANI_U8 *)( pScanResult->BssDescriptor.ieFields), ieLen)) == eSIR_SUCCESS)
+            {
+                if(pBeaconStruct->HTCaps.present && pBeaconStruct->HTInfo.present)
+                {
+                    channelWidth = pBeaconStruct->HTCaps.supportedChannelWidthSet;
+                    secondaryChannelOffset = pBeaconStruct->HTInfo.secondaryChannelOffset;
+                    if(pBeaconStruct->VHTOperation.present)
+                    {
+                        vhtSupport = pBeaconStruct->VHTOperation.present;
+                        if(pBeaconStruct->VHTOperation.chanWidth > WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ)
+                        {
+                            channelWidth = eHT_CHANNEL_WIDTH_80MHZ;
+                            centerFreq = pBeaconStruct->VHTOperation.chanCenterFreqSeg1;
+                        }
+                    }
+                }
+            }
+        }
         // Processing for each tCsrScanResultInfo in the tCsrScanResult DLink list
         for (chn_num = 0; chn_num < pSpectInfoParams->numSpectChans; chn_num++) {
 
@@ -454,8 +497,9 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                 if(operatingBand) // Connsidering the Extension Channel only in a channels
                 {
                     /* Updating the received ChannelWidth */
-                    if (pSpectCh->channelWidth != pScanResult->BssDescriptor.channelWidth) 
-                        pSpectCh->channelWidth = pScanResult->BssDescriptor.channelWidth;
+                    if (pSpectCh->channelWidth != channelWidth) 
+                        pSpectCh->channelWidth = channelWidth;
+		    
                     /* If received ChannelWidth is other than HT20, we need to update the extension channel Params as well */
                     /* channelWidth == 0, HT20 */
                     /* channelWidth == 1, HT40 */
@@ -463,7 +507,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                     switch(pSpectCh->channelWidth)
                     {
                         case eHT_CHANNEL_WIDTH_40MHZ: //HT40
-                            switch( pScanResult->BssDescriptor.secondaryChannelOffset)
+                            switch( secondaryChannelOffset)
                             {
                                 tSapSpectChInfo *pExtSpectCh = NULL;
                                 case PHY_DOUBLE_CHANNEL_LOW_PRIMARY: // Above the Primary Channel
@@ -490,7 +534,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                             }
                         break;
                         case eHT_CHANNEL_WIDTH_80MHZ: // VHT80
-                            if((pScanResult->BssDescriptor.centerFreq - channel_id) == 6)
+                            if((centerFreq - channel_id) == 6)
                             {
                                 tSapSpectChInfo *pExtSpectCh = NULL;
                                 pExtSpectCh = (pSpectCh + 1);
@@ -518,7 +562,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                                         pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
                                 }  
                             }
-                            else if((pScanResult->BssDescriptor.centerFreq - channel_id) == 2)
+                            else if((centerFreq - channel_id) == 2)
                             {
                                 tSapSpectChInfo *pExtSpectCh = NULL;
                                 pExtSpectCh = (pSpectCh - 1 );
@@ -546,7 +590,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                                         pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
                                 }
                             }
-                            else if((pScanResult->BssDescriptor.centerFreq - channel_id) == -2)
+                            else if((centerFreq - channel_id) == -2)
                             {
                                 tSapSpectChInfo *pExtSpectCh = NULL;
                                 pExtSpectCh = (pSpectCh - 1 );
@@ -574,7 +618,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                                         pExtSpectCh->rssiAgr = SOFTAP_MIN_RSSI;
                                 }
                             }
-                            else if((pScanResult->BssDescriptor.centerFreq - channel_id) == -6)
+                            else if((centerFreq - channel_id) == -6)
                             {
                                 tSapSpectChInfo *pExtSpectCh = NULL;
                                 pExtSpectCh = (pSpectCh - 1 );
@@ -608,7 +652,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
 
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                    "In %s, bssdes.ch_self=%d, bssdes.ch_ID=%d, bssdes.rssi=%d, SpectCh.bssCount=%d, pScanResult=0x%x, ChannelWidth %d, secondaryChanOffset %d, center frequency %d \n",
-                  __func__, pScanResult->BssDescriptor.channelIdSelf, pScanResult->BssDescriptor.channelId, pScanResult->BssDescriptor.rssi, pSpectCh->bssCount, pScanResult,pSpectCh->channelWidth,pScanResult->BssDescriptor.secondaryChannelOffset,pScanResult->BssDescriptor.centerFreq);
+                  __func__, pScanResult->BssDescriptor.channelIdSelf, pScanResult->BssDescriptor.channelId, pScanResult->BssDescriptor.rssi, pSpectCh->bssCount, pScanResult,pSpectCh->channelWidth,secondaryChannelOffset,centerFreq);
                  pSpectCh++;
                  break;
            } else {
@@ -641,6 +685,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
         //------ Debug Info ------ 
         pSpectCh++;
     }
+    palFreeMemory(pMac->hHdd, pBeaconStruct);
 }
 
 /*==========================================================================
