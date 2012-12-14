@@ -1423,6 +1423,13 @@ typedef enum
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE_MAX     ( 1 )
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE_DEFAULT ( 0 )
 #endif
+/* Enable/Disable LPWR Image(cMEM uBSP) Transition */
+#define CFG_ENABLE_LPWR_IMG_TRANSITION_NAME        "gEnableLpwrImgTransition"
+#define CFG_ENABLE_LPWR_IMG_TRANSITION_MIN         ( 0 )
+#define CFG_ENABLE_LPWR_IMG_TRANSITION_MAX         ( 1 )
+#define CFG_ENABLE_LPWR_IMG_TRANSITION_DEFAULT     ( 0 )
+
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1741,6 +1748,7 @@ typedef struct
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
    v_BOOL_t                    fEnableActiveModeOffload;
 #endif
+   v_U32_t                     enableLpwrImgTransition;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
