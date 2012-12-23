@@ -153,7 +153,7 @@ wpt_status wpalTimerStop(wpt_timer * pTimer)
     \return
         VOS_TIMER_STATE
 ---------------------------------------------------------------------------*/
-VOS_TIMER_STATE wpalTimerGetCurStatus(wpt_timer * pTimer)
+WPAL_TIMER_STATE wpalTimerGetCurStatus(wpt_timer * pTimer)
 {
    /* Sanity Checks */
    if( pTimer == NULL )
@@ -163,7 +163,18 @@ VOS_TIMER_STATE wpalTimerGetCurStatus(wpt_timer * pTimer)
       return eWLAN_PAL_STATUS_E_INVAL;
    }
    return vos_timer_getCurrentState( &pTimer->timer.timerObj );
-}/*wpalTimerStop*/
+}/*wpalTimerGetCurStatus*/
+
+/*---------------------------------------------------------------------------
+    \brief wpalGetSystemTime - Get the system time in milliseconds
+
+    \return
+        current time in milliseconds
+---------------------------------------------------------------------------*/
+wpt_uint32 wpalGetSystemTime(void)
+{
+   return vos_timer_get_system_time();
+}/*wpalGetSystemTime*/
 
 /*---------------------------------------------------------------------------
     wpalSleep - sleep for a specified interval
