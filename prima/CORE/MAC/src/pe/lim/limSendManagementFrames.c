@@ -4193,7 +4193,12 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
             limLog( pMac, LOGE, FL("Failed to send De-Authentication "
                         "(%X)!\n"),
                     nSirStatus );
-            //Pkt will be freed up by the callback
+            //Pkt will be freed up by the callback limTxComplete
+
+            /*Call limProcessDeauthAckTimeout which will send
+            * DeauthCnf for this frame
+            */
+            limProcessDeauthAckTimeout(pMac);
             return;
         }
 
