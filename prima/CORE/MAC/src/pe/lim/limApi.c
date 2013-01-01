@@ -177,7 +177,7 @@ static void __limInitStatsVars(tpAniSirGlobal pMac)
     pMac->lim.gLimNumDeferredMsgs = 0;
 
     /// Variable to keep track of number of currently associated STAs
-    pMac->lim.gLimNumOfCurrentSTAs = 0;
+    //pMac->lim.gLimNumOfCurrentSTAs = 0;
     pMac->lim.gLimNumOfAniSTAs = 0;      // count of ANI peers
 
     /// This indicates number of RXed Beacons during HB period
@@ -345,10 +345,12 @@ static void __limInitVars(tpAniSirGlobal pMac)
 
 static void __limInitAssocVars(tpAniSirGlobal pMac)
 {
+#if 0
     palZeroMemory(pMac->hHdd, pMac->lim.gpLimAIDpool,
                   sizeof(*pMac->lim.gpLimAIDpool) * (WNI_CFG_ASSOC_STA_LIMIT_STAMAX+1));
     pMac->lim.freeAidHead = 0;
     pMac->lim.freeAidTail = 0;
+#endif
     pMac->lim.gLimAssocStaLimit = WNI_CFG_ASSOC_STA_LIMIT_STADEF;
 
     // Place holder for current authentication request
@@ -967,6 +969,7 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
         return eSIR_FAILURE;
     }
 
+#if 0
     if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
               (void **) &pMac->lim.gpLimAIDpool, 
               sizeof(*pMac->lim.gpLimAIDpool) * (WNI_CFG_ASSOC_STA_LIMIT_STAMAX+1)))
@@ -974,7 +977,7 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
         PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!\n"));)
         return eSIR_FAILURE;
     }
-
+#endif
     if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
         (void **) &pMac->lim.gpSession, sizeof(tPESession)* pMac->lim.maxBssId))
     {
@@ -1065,8 +1068,10 @@ tSirRetStatus peClose(tpAniSirGlobal pMac)
     }
     palFreeMemory(pMac->hHdd, pMac->lim.limTimers.gpLimCnfWaitTimer);
     pMac->lim.limTimers.gpLimCnfWaitTimer = NULL;
+#if 0
     palFreeMemory(pMac->hHdd, pMac->lim.gpLimAIDpool);
     pMac->lim.gpLimAIDpool = NULL;
+#endif
     
     palFreeMemory(pMac->hHdd, pMac->lim.gpSession);
     pMac->lim.gpSession = NULL;
