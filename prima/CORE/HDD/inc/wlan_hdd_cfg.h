@@ -1447,6 +1447,16 @@ typedef enum
 #define CFG_SCAN_AGING_PARAM_MAX           ( 200 )
 #define CFG_SCAN_AGING_PARAM_DEFAULT       ( 60 )
 
+/* Config Param to enable the txLdpc capability 
+ * 0 - disable 
+ * 1 - HT LDPC enable
+ * 2 - VHT LDPC enable
+ * 3 - HT & VHT LDPC enable */
+#define CFG_TX_LDPC_ENABLE_FEATURE         "gTxLdpcEnable"
+#define CFG_TX_LDPC_ENABLE_FEATURE_MIN     ( 0 )
+#define CFG_TX_LDPC_ENABLE_FEATURE_MAX     ( 3 )
+#define CFG_TX_LDPC_ENABLE_FEATURE_DEFAULT ( 0 )
+ 
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1771,6 +1781,7 @@ typedef struct
 #endif
    v_U32_t                     enableLpwrImgTransition;
    v_U8_t                      scanAgingTimeout;
+   v_BOOL_t                    enableTxLdpc;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

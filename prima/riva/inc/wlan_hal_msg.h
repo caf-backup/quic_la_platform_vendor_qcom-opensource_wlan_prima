@@ -1411,13 +1411,16 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8  p2pCapableSta;
 
     /*Reserved to align next field on a dword boundary*/
-    tANI_U8  reserved;
-        /*These rates are the intersection of peer and self capabilities.*/
+    tANI_U8 htLdpcEnabled:1;
+    tANI_U8 vhtLdpcEnabled:1;
+    tANI_U8 reserved:6;
+
+    /*These rates are the intersection of peer and self capabilities.*/
     tSirSupportedRates_V1 supportedRates;
 
     tANI_U8  vhtCapable;
     tANI_U8  vhtTxChannelWidthSet;
-
+    
 } tConfigStaParams_V1, *tpConfigStaParams_V1;
 
 typedef PACKED_PRE struct PACKED_POST

@@ -3755,6 +3755,8 @@ void WDA_UpdateSTAParams(tWDA_CbContext *pWDA,
    wdiStaParams->ucVhtCapableSta = wdaStaParams->vhtCapable;
    wdiStaParams->ucVhtTxChannelWidthSet = wdaStaParams->vhtTxChannelWidthSet;
 #endif
+   wdiStaParams->ucHtLdpcEnabled= wdaStaParams->htLdpcCapable;
+   wdiStaParams->ucVhtLdpcEnabled = wdaStaParams->vhtLdpcCapable;
    return ;
 }
 /*
