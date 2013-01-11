@@ -22965,10 +22965,8 @@ WDI_ProcessUpdateScanParamsReq
    WDI_UpdateScanParamsInfoType* pwdiUpdateScanParams  = NULL;
    WDI_UpdateScanParamsCb        wdiUpdateScanParamsCb = NULL;
    wpt_uint8*                    pSendBuffer           = NULL;
-   wpt_uint16                    usDataOffset          = 0;
    wpt_uint16                    usSendSize            = 0;
-   tUpdateScanParams             updateScanParams = {0};
-
+   WDI_Status                    wdiStatus;
 
    /*-------------------------------------------------------------------------
      Sanity check
@@ -22985,33 +22983,25 @@ WDI_ProcessUpdateScanParamsReq
 
    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
                "Begin WDI Update Scan Parameters");
-   /*-----------------------------------------------------------------------
-     Get message buffer
-   -----------------------------------------------------------------------*/
-   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_UPDATE_SCAN_PARAMS_REQ,
-                         sizeof(updateScanParams),
-                         &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(updateScanParams) )))
-   {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-                  "Unable to get send buffer in Update Scan Params req %x %x %x",
-                  pEventData, pwdiUpdateScanParams, wdiUpdateScanParamsCb);
-      WDI_ASSERT(0);
-      return WDI_STATUS_E_FAILURE;
-   }
 
    //
    // Fill updateScanParams from pwdiUpdateScanParams->wdiUpdateScanParamsInfo
    //
    if ( pWDICtx->wlanVersion.revision < 1 ) 
    {
-     WDI_PackUpdateScanParamsReq( pWDICtx, pwdiUpdateScanParams,
+     wdiStatus = WDI_PackUpdateScanParamsReq( pWDICtx, pwdiUpdateScanParams,
                                   &pSendBuffer, &usSendSize);
    }
    else
    {
-     WDI_PackUpdateScanParamsReqEx( pWDICtx, pwdiUpdateScanParams,
-                                    &pSendBuffer, &usSendSize);
+     wdiStatus = WDI_PackUpdateScanParamsReqEx( pWDICtx, pwdiUpdateScanParams,
+                                  &pSendBuffer, &usSendSize);
+   }
+   
+   if(WDI_STATUS_SUCCESS != wdiStatus)
+   {
+        //memory allocation failed
+        return WDI_STATUS_E_FAILURE;
    }
 
    /*-------------------------------------------------------------------------
