@@ -628,6 +628,8 @@ typedef struct sSirSmeStartBssReq
 #endif
     tVOS_CON_MODE           bssPersona;
 
+    tANI_U8                 txLdpcIniFeatureEnabled;
+
     tSirRSNie               rsnIE;             // RSN IE to be sent in
                                                // Beacon and Probe
                                                // Response frames
@@ -1225,7 +1227,8 @@ typedef struct sSirSmeJoinReq
 #ifdef FEATURE_WLAN_LFR
     tAniBool            isFastRoamIniFeatureEnabled;
 #endif
-    
+
+    tANI_U8             txLdpcIniFeatureEnabled;
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tAniBool            bpIndicator;
     tSirBpIndicatorType bpType;
