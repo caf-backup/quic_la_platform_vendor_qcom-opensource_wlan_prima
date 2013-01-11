@@ -6493,7 +6493,14 @@ WDI_ProcessStopReq
         return VOS_STATUS_E_FAILURE;
      }
      /* Stop Transport Driver, DXE */
-     WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_DOWN, WDI_SetPowerStateCb);
+     status = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_DOWN, WDI_SetPowerStateCb);
+     if( eWLAN_PAL_STATUS_SUCCESS != status ) 
+     {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Power Down state\n", status);
+        WDI_ASSERT(0);
+        return WDI_STATUS_E_FAILURE;
+     }
      /*
       * Wait for the event to be set once the ACK comes back from DXE
       */
@@ -6983,7 +6990,7 @@ WDI_ProcessFinishScanReq
   wpt_uint16                    usDataOffset         = 0;
   wpt_uint16                    usSendSize           = 0;
   wpt_uint8                     i                    = 0;
-
+  wpt_status                    wptStatus;
   tHalFinishScanReqMsg          halFinishScanReqMsg;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -7019,7 +7026,7 @@ WDI_ProcessFinishScanReq
                pWDICtx->bScanInProgress );
 
     wpalMutexRelease(&pWDICtx->wptMutex);
-    return WDI_STATUS_E_NOT_ALLOWED;
+    return WDI_STATUS_E_NOT_ALLOWED; 
   }
 
   /*-----------------------------------------------------------------------
@@ -7034,7 +7041,13 @@ WDI_ProcessFinishScanReq
   if ( pWDICtx->bInBmps )
   {
      // notify DTS that we are entering BMPS
-     WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_BMPS, NULL);
+     wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_BMPS, NULL);
+     if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
+     {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering BMPS\n", wptStatus);
+        WDI_ASSERT(0);
+     }
   }
 
   /*-----------------------------------------------------------------------
@@ -11739,7 +11752,13 @@ WDI_ProcessEnterImpsReq
    }
 
    // notify DTS that we are entering IMPS
-   WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_IMPS, WDI_SetPowerStateCb);
+   wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_IMPS, WDI_SetPowerStateCb);
+   if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering IMPS\n", wptStatus);
+        WDI_ASSERT(0);
+        return WDI_STATUS_E_FAILURE;
+    }
 
    /*
     * Wait for the event to be set once the ACK comes back from DXE
@@ -11888,7 +11907,14 @@ WDI_ProcessEnterBmpsReq
    }
 
    // notify DTS that we are entering BMPS
-   WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_BMPS, WDI_SetPowerStateCb);
+   wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_BMPS, WDI_SetPowerStateCb);
+   if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
+   {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that we are entering BMPS\n", wptStatus);
+        WDI_ASSERT(0);
+        return WDI_STATUS_E_FAILURE;
+    }
 
 /*
     * Wait for the event to be set once the ACK comes back from DXE
@@ -11901,7 +11927,7 @@ WDI_ProcessEnterBmpsReq
                 "WDI Init failed to wait on an event");
 
       WDI_ASSERT(0);
-      return VOS_STATUS_E_FAILURE;
+      return VOS_STATUS_E_FAILURE; 
    }
 
    pWDICtx->bInBmps = eWLAN_PAL_TRUE;
@@ -13901,6 +13927,7 @@ WDI_ProcessInitScanRsp
   WDI_Status            wdiStatus;
   WDI_InitScanRspCb     wdiInitScanRspCb;
   tHalInitScanRspMsg    halInitScanRspMsg;
+  wpt_status            wptStatus;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -13937,7 +13964,12 @@ WDI_ProcessInitScanRsp
   if ( pWDICtx->bInBmps )
   {
      // notify DTS that we are entering Full power
-     WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+     wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+     if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+        WDI_ASSERT(0);
+    }
   }
 
   /*Notify UMAC*/
@@ -16768,6 +16800,7 @@ WDI_ProcessEnterImpsRsp
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
   WDI_EnterImpsRspCb   wdiEnterImpsRspCb;
+  wpt_status wptStatus;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -16802,7 +16835,13 @@ WDI_ProcessEnterImpsRsp
                 halStatus);
      /* Call Back is not required as we are putting the DXE in FULL
       * and riva is already in full (IMPS RSP Failed)*/
-     WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+     wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+     
+     if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) {
+          WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+          WDI_ASSERT(0);
+     }
   }
   /*Notify UMAC*/
   wdiEnterImpsRspCb( wdiStatus, pWDICtx->pRspCBUserData);
@@ -16830,6 +16869,7 @@ WDI_ProcessExitImpsRsp
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
   WDI_ExitImpsRspCb    wdiExitImpsRspCb;
+  wpt_status           wptStatus;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -16853,8 +16893,13 @@ WDI_ProcessExitImpsRsp
   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus);
 
   // notify DTS that we are entering Full power
-  WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
-
+  wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+  if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+    WDI_ASSERT(0);
+  }
   /*Notify UMAC*/
   wdiExitImpsRspCb( wdiStatus, pWDICtx->pRspCBUserData);
 
@@ -16882,7 +16927,7 @@ WDI_ProcessEnterBmpsRsp
   tHalEnterBmpsRspParams halEnterBmpsRsp;
   WDI_EnterBmpsRspCb     wdiEnterBmpsRspCb;
   WDI_EnterBmpsRspParamsType wdiEnterBmpsRspparams;
-  
+  wpt_status             wptStatus;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -16931,7 +16976,13 @@ WDI_ProcessEnterBmpsRsp
                   halStatus); 
        /* Call Back is not required as we are putting the DXE in FULL
         * and riva is already in FULL (BMPS RSP Failed)*/
-       WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+       wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+       if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
+       {
+           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+           WDI_ASSERT(0);
+       }
        pWDICtx->bInBmps = eWLAN_PAL_FALSE;
    }
   
@@ -16961,7 +17012,8 @@ WDI_ProcessExitBmpsRsp
   eHalStatus           halStatus;
   WDI_ExitBmpsRspCb   wdiExitBmpsRspCb;
   tHalExitBmpsRspParams halExitBmpsRsp;
-  WDI_ExitBmpsRspParamsType wdiExitBmpsRspParams; 
+  WDI_ExitBmpsRspParamsType wdiExitBmpsRspParams;
+  wpt_status                wptStatus;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -16998,8 +17050,13 @@ WDI_ProcessExitBmpsRsp
   }
 
   // notify DTS that we are entering Full power
-  WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
-
+  wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+  if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+    WDI_ASSERT(0);
+  }
   pWDICtx->bInBmps = eWLAN_PAL_FALSE;
 
   /*Notify UMAC*/
