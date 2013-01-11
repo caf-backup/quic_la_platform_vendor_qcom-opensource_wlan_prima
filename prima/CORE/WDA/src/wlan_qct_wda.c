@@ -1388,7 +1388,6 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
       
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
-
    wdiStartParams->usConfigBufferLen = (tANI_U8 *)tlvStruct - tlvStructStart ;
 #ifdef WLAN_DEBUG
    {
@@ -10051,6 +10050,8 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
             wdiLowLevelInd->wdiIndicationData.wdiLowRSSIInfo.bRssiThres3NegCross;
          rssiNotification.bRssiThres3PosCross = 
             wdiLowLevelInd->wdiIndicationData.wdiLowRSSIInfo.bRssiThres3PosCross;
+         rssiNotification.avgRssi = (v_S7_t) 
+            ((-1)*wdiLowLevelInd->wdiIndicationData.wdiLowRSSIInfo.avgRssi);
          WLANTL_BMPSRSSIRegionChangedNotification(
             pWDA->pVosContext,
             &rssiNotification);
