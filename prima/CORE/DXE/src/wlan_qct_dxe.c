@@ -3953,7 +3953,7 @@ static void dxeTXISR
       Allocate, DXE local control block, DXE descriptor pool, DXE descriptor control block pool
 
   @  Parameters
-      pVoid      pAdaptor : Driver global control block pointer
+      pVoid      pAdapter : Driver global control block pointer
 
   @  Return
       pVoid DXE local module control block pointer
