@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1199,6 +1199,8 @@ WLANSAP_DeauthSta
     v_U8_t *pPeerStaMac
 )
 {
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+    VOS_STATUS vosStatus = VOS_STATUS_E_FAULT;
     ptSapContext  pSapCtx = VOS_GET_SAP_CB(pvosGCtx);
 
     /*------------------------------------------------------------------------
@@ -1209,13 +1211,17 @@ WLANSAP_DeauthSta
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                    "%s: Invalid SAP pointer from pvosGCtx", __func__);
-        return VOS_STATUS_E_FAULT;
+        return vosStatus;
     }
 
-    sme_RoamDeauthSta(VOS_GET_HAL_CB(pSapCtx->pvosGCtx), pSapCtx->sessionId,
+    halStatus = sme_RoamDeauthSta(VOS_GET_HAL_CB(pSapCtx->pvosGCtx), pSapCtx->sessionId,
                             pPeerStaMac);
 
-    return VOS_STATUS_SUCCESS;
+    if (halStatus == eHAL_STATUS_SUCCESS)
+    {
+        vosStatus = VOS_STATUS_SUCCESS;
+    }
+    return vosStatus;
 }
 /*==========================================================================
   FUNCTION    WLANSAP_SetChannelRange
