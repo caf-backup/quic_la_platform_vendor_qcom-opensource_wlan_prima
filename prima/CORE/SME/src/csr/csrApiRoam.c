@@ -2009,7 +2009,8 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
     else if (NewSubstate == eCSR_ROAM_SUBSTATE_DISASSOC_HANDOFF)
     {
         reasonCode = eSIR_MAC_DISASSOC_DUE_TO_FTHANDOFF_REASON;
-    } else 
+    } 
+    else 
     {
         reasonCode = eSIR_MAC_UNSPEC_FAILURE_REASON;
     }    
@@ -2019,7 +2020,8 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
     {
         tpCsrNeighborRoamControlInfo pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
         palCopyMemory(pMac->hHdd, &bssId, pNeighborRoamInfo->csrNeighborRoamProfile.BSSIDs.bssid, sizeof(tSirMacAddr));
-    } else 
+    } 
+    else 
 #endif
     if(pSession->pConnectBssDesc)
     {
@@ -2042,11 +2044,16 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
         //no need to tell QoS that we are disassociating, it will be taken care off in assoc req for HO
         if(eCSR_ROAM_SUBSTATE_DISASSOC_HANDOFF != NewSubstate)
         {
-            //Tush-QoS: notify QoS module that disassoc happening
+            //notify QoS module that disassoc happening
             sme_QosCsrEventInd(pMac, (v_U8_t)sessionId, SME_QOS_CSR_DISCONNECT_REQ, NULL);
         }
 #endif
-     }
+    }
+    else
+    {
+        smsLog(pMac, LOGW, FL("csrSendMBDisassocReqMsg failed with status %d"), status);
+    }
+
     return (status);
 }
 #ifdef WLAN_SOFTAP_FEATURE
@@ -2241,7 +2248,11 @@ eHalStatus csrRoamIssueDeauth( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoam
     csrRoamSubstateChange( pMac, NewSubstate, sessionId);
     
     status = csrSendMBDeauthReqMsg( pMac, sessionId, bssId, eSIR_MAC_DISASSOC_LEAVING_BSS_REASON );    
-    
+    if(!HAL_STATUS_SUCCESS(status))
+    {
+        smsLog(pMac, LOGW, FL("csrSendMBDeauthReqMsg failed with status %d"), status);
+    }
+
     return (status);
 }
 
@@ -3984,8 +3995,13 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                                      eCSR_ROAM_ASSOCIATION_START, eCSR_ROAM_RESULT_NONE );
    
                 smsLog(pMac, LOG1, FL("  calling csrRoamIssueReassociate\n"));
-                csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, pIes,
-                                         &pCommand->u.roamCmd.roamProfile );
+                status = csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, pIes,
+                                                  &pCommand->u.roamCmd.roamProfile );
+                if(!HAL_STATUS_SUCCESS(status))
+                {
+                    smsLog(pMac, LOGE, FL("csrRoamIssueReassociate failed with status %d"), status);
+                }
+
                 palFreeMemory(pMac->hHdd, pIes);
                 pIes = NULL;
             }
@@ -4020,14 +4036,12 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
        status = csrSendMBDeauthReqMsg( pMac, sessionId, pCommand->u.roamCmd.peerMac, 
                      pCommand->u.roamCmd.reason);
        break;
-#if 1
-       /*Varun*/
+
     case eCsrPerformPreauth:
         smsLog(pMac, LOGE, FL("Attempting FT PreAuth Req \n"));
         status = csrRoamIssueFTPreauthReq(pMac, sessionId, 
                 pCommand->u.roamCmd.pLastRoamBss);
-       break;
-#endif
+        break;
 
     default:
         csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINING, sessionId );
@@ -4048,6 +4062,10 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
  
         // Attempt to roam with the new scan results (if we need to..)
         status = csrRoam( pMac, pCommand );
+        if(!HAL_STATUS_SUCCESS(status))
+        {
+            smsLog(pMac, LOGW, FL("csrRoam() failed with status = 0x%08X\n"), status);
+        }
         break;
     }
     return (status);
@@ -4088,7 +4106,7 @@ void csrRoamComplete( tpAniSirGlobal pMac, eCsrRoamCompleteResult Result, void *
     tListElem *pEntry;
     tSmeCmd *pCommand;
     tANI_BOOLEAN fReleaseCommand = eANI_BOOLEAN_TRUE;
-    smsLog( pMac, LOG2, "roamQ: Roam Completion ...\n" );
+    smsLog( pMac, LOG2, "Roam Completion ...\n" );
     pEntry = csrLLPeekHead( &pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK );
     if ( pEntry )
     {
@@ -4109,13 +4127,13 @@ void csrRoamComplete( tpAniSirGlobal pMac, eCsrRoamCompleteResult Result, void *
                 else
                 {
                     smsLog( pMac, LOGE, " **********csrRoamComplete fail to release command reason %d\n",
-                        pCommand->u.roamCmd.roamReason );
+                           pCommand->u.roamCmd.roamReason );
                 }
             }
             else
             {
                 smsLog( pMac, LOGE, " **********csrRoamComplete fail to release command reason %d\n",
-                    pCommand->u.roamCmd.roamReason );
+                       pCommand->u.roamCmd.roamReason );
             }
         }
         else
@@ -5708,6 +5726,8 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     if( CSR_IS_WDS( pProfile ) && 
         !HAL_STATUS_SUCCESS( status = csrIsBTAMPAllowed( pMac, pProfile->operationChannel ) ) )
     {
+        smsLog(pMac, LOGE, FL("Request for BT AMP connection failed, channel requested is different than infra = %d\n"),
+               pProfile->operationChannel);
         return status;
     }
     csrRoamCancelRoaming(pMac, sessionId);
@@ -5735,7 +5755,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
 #endif
     if(CSR_INVALID_SCANRESULT_HANDLE != hBssListIn)
     {
-        smsLog(pMac, LOGW, FL("is called with BSSList\n"));
+        smsLog(pMac, LOG1, FL("is called with BSSList\n"));
         status = csrRoamConnectWithBSSList(pMac, sessionId, pProfile, hBssListIn, pRoamId);
         if(pRoamId)
         {
@@ -5789,12 +5809,17 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
 #endif
                     )
                     {
-                        //This can be start right away
+                        //This can be started right away
                         status = csrRoamIssueConnect(pMac, sessionId, pProfile, NULL, eCsrHddIssued, 
                                                     roamId, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
                         if(!HAL_STATUS_SUCCESS(status))
                         {
+                            smsLog(pMac, LOGE, FL("   CSR failed to issue start BSS command with status = 0x%08X\n"), status);
                             fCallCallback = eANI_BOOLEAN_TRUE;
+                        }
+                        else
+                        {
+                            smsLog(pMac, LOG1, FL("Connect request to proceed for AMP/SoftAP mode"));
                         }
                         break;
                     }
@@ -5806,6 +5831,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
                                                     roamId, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
                         if(!HAL_STATUS_SUCCESS(status))
                         {
+                            smsLog(pMac, LOGE, FL("   CSR failed to issue connect command with status = 0x%08X\n"), status);
                             csrScanResultPurge(pMac, hBSSList);
                             fCallCallback = eANI_BOOLEAN_TRUE;
                         }
@@ -5829,7 +5855,12 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
                             status = csrScanForSSID(pMac, sessionId, pProfile, roamId);
                             if(!HAL_STATUS_SUCCESS(status))
                             {
+                                smsLog(pMac, LOGE, FL("   CSR failed to issue SSID scan command with status = 0x%08X\n"), status);
                                 fCallCallback = eANI_BOOLEAN_TRUE;
+                            }
+                            else
+                            {
+                                smsLog(pMac, LOG1, FL("SSID scan requested for Infra connect req"));
                             }
                         }
                     }
@@ -6108,6 +6139,10 @@ eHalStatus csrRoamProcessDisassocDeauth( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             //Set the state to disconnect here 
             pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
         }
+    }
+    else
+    {
+        smsLog(pMac, LOGW, FL(" failed with status %d"), status);
     }
     return (status);
 }
@@ -9800,7 +9835,10 @@ eHalStatus csrRoamIssueStopBss( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoa
 
     // attempt to stop the Bss (reason code is ignored...)
     status = csrSendMBStopBssReqMsg( pMac, sessionId );
-    
+    if(!HAL_STATUS_SUCCESS(status))
+    {
+        smsLog(pMac, LOGW, FL("csrSendMBStopBssReqMsg failed with status %d"), status);
+    }
     return (status);
 }
 

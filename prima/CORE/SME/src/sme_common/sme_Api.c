@@ -1990,12 +1990,15 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
             {
                 {
 #ifdef FEATURE_WLAN_LFR
-                    if(csrIsScanAllowed(pMac)) {
+                    if(csrIsScanAllowed(pMac)) 
+                    {
 #endif
-                            status = csrScanRequest( hHal, sessionId, pscanReq,
-                                                     pScanRequestID, callback, pContext );
+                        status = csrScanRequest( hHal, sessionId, pscanReq,
+                                                 pScanRequestID, callback, pContext );
 #ifdef FEATURE_WLAN_LFR
-                    } else {
+                    } 
+                    else 
+                    {
                         smsLog(pMac, LOGE, FL("Scan denied in state %d (sub-state %d)"),
                                 pMac->roam.neighborRoamInfo.neighborRoamState,
                                 pMac->roam.curSubState[sessionId]);
@@ -2007,7 +2010,15 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
                   
                 sme_ReleaseGlobalLock( &pMac->sme );
             } //sme_AcquireGlobalLock success
+            else
+            {
+                smsLog(pMac, LOGE, FL("sme_AcquireGlobalLock failed"));
+            }
         } //if(pMac->scan.fScanEnable)
+        else
+        {
+            smsLog(pMac, LOGE, FL("fScanEnable FALSE"));
+        }
     } while( 0 );
 
     return (status);
@@ -2289,9 +2300,14 @@ eHalStatus sme_RoamConnect(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *
         }
         else
         {
+            smsLog(pMac, LOGE, FL("invalid sessionID %d"), sessionId);
             status = eHAL_STATUS_INVALID_PARAMETER;
         }
         sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    else
+    {
+        smsLog(pMac, LOGE, FL("sme_AcquireGlobalLock failed"));
     }
 
     return (status);
