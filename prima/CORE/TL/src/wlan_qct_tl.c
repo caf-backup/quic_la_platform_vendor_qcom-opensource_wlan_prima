@@ -2077,15 +2077,9 @@ WLANTL_TxBAPFrm
   if (( 0 == pMetaInfo->ucDisableFrmXtl ) &&
       ( 0 != pTLCb->atlSTAClients[ucStaId].wSTADesc.ucSwFrameTXXlation ))
   {
-#ifdef FEATURE_WLAN_TDLS
     vosStatus =  WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
                                                     pTLCb, &ucStaId,
                                                     pMetaInfo->ucUP, &ucWDSEnabled, &extraHeadSpace);
-#else
-    vosStatus = WLANTL_Translate8023To80211Header(vosDataBuff, &vosStatus,
-                                                  pTLCb, ucStaId,
-                                                  pMetaInfo->ucUP, &ucWDSEnabled, &extraHeadSpace);
-#endif
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
@@ -5970,15 +5964,9 @@ WLANTL_STATxConn
       ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameTXXlation) )
 #endif //#ifdef FEATURE_WLAN_WAPI
   {
-#ifdef FEATURE_WLAN_TDLS
     vosStatus =  WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
                                                     pTLCb, &ucSTAId,
                                                     tlMetaInfo.ucUP, &ucWDSEnabled, &extraHeadSpace);
-#else
-    vosStatus =  WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
-                                                    pTLCb, ucSTAId,
-                                                    tlMetaInfo.ucUP, &ucWDSEnabled, &extraHeadSpace);
-#endif
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
@@ -6362,15 +6350,9 @@ WLANTL_STATxAuth
        gUcIsWai = tlMetaInfo.ucIsWai,
 #endif
 
-#ifdef FEATURE_WLAN_TDLS
        vosStatus =  WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
                                                     pTLCb, &ucSTAId,
                                                     tlMetaInfo.ucUP, &ucWDSEnabled, &extraHeadSpace);
-#else
-       vosStatus = WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
-                                                   pTLCb, ucSTAId,
-                                                   tlMetaInfo.ucUP, &ucWDSEnabled, &extraHeadSpace);
-#endif
        if ( VOS_STATUS_SUCCESS != vosStatus )
        {
           TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
@@ -8084,7 +8066,9 @@ WLANTL_GetTxResourcesCB
 
    IN
     pTLCb:            TL control block
-    ucStaId:          station ID
+   IN/OUT 
+    ucStaId:          station ID. Incase of TDLS, this returns actual TDLS
+                      station ID used
 
    IN/OUT
     vosDataBuff:      vos data buffer, will contain the new header on output
@@ -8102,7 +8086,6 @@ WLANTL_GetTxResourcesCB
   SIDE EFFECTS
 
 ============================================================================*/
-#ifdef FEATURE_WLAN_TDLS
 VOS_STATUS
 WLANTL_Translate8023To80211Header
 (
@@ -8114,19 +8097,6 @@ WLANTL_Translate8023To80211Header
   v_U8_t          *ucWDSEnabled,
   v_U8_t          *extraHeadSpace
 )
-#else
-VOS_STATUS
-WLANTL_Translate8023To80211Header
-(
-  vos_pkt_t*      vosDataBuff,
-  VOS_STATUS*     pvosStatus,
-  WLANTL_CbType*  pTLCb,
-  v_U8_t          ucStaId,
-  v_U8_t          ucUP,
-  v_U8_t          *ucWDSEnabled,
-  v_U8_t          *extraHeadSpace
-)
-#endif
 {
   WLANTL_8023HeaderType  w8023Header;
   WLANTL_80211HeaderType *pw80211Header; // Allocate an aligned BD and then fill it. 
@@ -8137,9 +8107,7 @@ WLANTL_Translate8023To80211Header
 #ifdef WLAN_SOFTAP_FEATURE
   v_U8_t                 ucQoSOffset = WLAN80211_MANDATORY_HEADER_SIZE;
 #endif
-#ifdef FEATURE_WLAN_TDLS
   v_U8_t                 ucStaId;
-#endif
 
   *ucWDSEnabled = 0; // default WDS off.
   vosStatus = vos_pkt_pop_head( vosDataBuff, &w8023Header,
@@ -8152,7 +8120,6 @@ WLANTL_Translate8023To80211Header
      return vosStatus;
   }
 
-#ifdef FEATURE_WLAN_TDLS
   if( NULL == pucStaId )
   {
      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
@@ -8160,6 +8127,8 @@ WLANTL_Translate8023To80211Header
      return VOS_STATUS_E_INVAL;
   }
   ucStaId = *pucStaId;
+
+#ifdef FEATURE_WLAN_TDLS
 
   if( WLAN_STA_INFRA == pTLCb->atlSTAClients[ucStaId].wSTADesc.wSTAType )
   {
