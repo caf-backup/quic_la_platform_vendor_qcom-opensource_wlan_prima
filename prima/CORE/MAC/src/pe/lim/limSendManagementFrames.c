@@ -2572,10 +2572,10 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 
 #ifdef WLAN_FEATURE_P2P
-	if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)
-	{
-		txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
-	}
+    if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)
+    {
+        txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
+    }
 #endif
 
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (sizeof(tSirMacMgmtHdr) + nPayload),
@@ -3354,10 +3354,10 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     }
 
 #ifdef WLAN_FEATURE_P2P
-	if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)
-	{
-		txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
-	}
+    if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)	
+    {
+        txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
+    }
 #endif
 
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (sizeof(tSirMacMgmtHdr) + nPayload),
@@ -3665,10 +3665,10 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     }
 
 #ifdef WLAN_FEATURE_P2P
-	if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)
-	{
-		txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
-	}
+    if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)
+    {
+        txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
+    }
 #endif
 
     /// Queue Authentication frame in high priority WQ
@@ -3990,11 +3990,11 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     }
 
 #ifdef WLAN_FEATURE_P2P
-	if((psessionEntry->pePersona == VOS_P2P_CLIENT_MODE) ||
-	   (psessionEntry->pePersona == VOS_P2P_GO_MODE))
-	{
-		txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
-	}
+    if((psessionEntry->pePersona == VOS_P2P_CLIENT_MODE) ||
+       (psessionEntry->pePersona == VOS_P2P_GO_MODE))
+    {
+        txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
+    }
 #endif
 
     if (waitForAck)
@@ -4165,11 +4165,11 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
     }
 
 #ifdef WLAN_FEATURE_P2P
-	if((psessionEntry->pePersona == VOS_P2P_CLIENT_MODE) ||
-	   (psessionEntry->pePersona == VOS_P2P_GO_MODE))
-	{
-		txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
-	}
+    if((psessionEntry->pePersona == VOS_P2P_CLIENT_MODE) ||
+       (psessionEntry->pePersona == VOS_P2P_GO_MODE))
+    {
+        txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
+    }
 #endif
 
     if (waitForAck)
