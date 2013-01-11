@@ -747,6 +747,7 @@ eHalStatus limTdlsPrepareSetupReqFrame(tpAniSirGlobal pMac,
                                                  tpPESession psessionEntry);
 #endif
 #ifdef FEATURE_WLAN_TDLS
+void limInitTdlsData(tpAniSirGlobal, tpPESession);
 tSirRetStatus limProcessSmeTdlsMgmtSendReq(tpAniSirGlobal pMac, 
                                                            tANI_U32 *pMsgBuf);
 tSirRetStatus limProcessSmeTdlsAddStaReq(tpAniSirGlobal pMac, 
@@ -1095,7 +1096,6 @@ tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf);
 #endif
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
 void limProcessTdlsFrame(tpAniSirGlobal, tANI_U32 *);
-void limInitTdlsData(tpAniSirGlobal, tpPESession);
 void limProcessTdlsPublicActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, 
                                                                tpPESession) ;
 #ifdef FEATURE_WLAN_TDLS_NEGATIVE

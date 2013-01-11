@@ -208,13 +208,13 @@ ibss_sta_caps_update(
     tLimIbssPeerNode *pPeerNode,
     tpPESession       psessionEntry)
 {
-    tANI_U16      aid;
+    tANI_U16      peerIdx;
     tpDphHashNode pStaDs;
 
     pPeerNode->beaconHBCount++; //Update beacon count.
 
     // if the peer node exists, update its qos capabilities
-    if ((pStaDs = dphLookupHashEntry(pMac, pPeerNode->peerMacAddr, &aid, &psessionEntry->dph.dphHashTable)) == NULL)
+    if ((pStaDs = dphLookupHashEntry(pMac, pPeerNode->peerMacAddr, &peerIdx, &psessionEntry->dph.dphHashTable)) == NULL)
         return;
 
 
@@ -414,12 +414,12 @@ ibss_dph_entry_add(
     tpDphHashNode   *ppSta,
     tpPESession     psessionEntry)
 {
-    tANI_U16      aid;
+    tANI_U16      peerIdx;
     tpDphHashNode pStaDs;
 
     *ppSta = NULL;
 
-    pStaDs = dphLookupHashEntry(pMac, peerAddr, &aid, &psessionEntry->dph.dphHashTable);
+    pStaDs = dphLookupHashEntry(pMac, peerAddr, &peerIdx, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {
         /* Trying to add context for already existing STA in IBSS */
@@ -433,20 +433,20 @@ ibss_dph_entry_add(
      * AID and then add an entry to hash table maintained
      * by DPH module.
      */
-    aid = limAssignAID(pMac);
+    peerIdx = limAssignPeerIdx(pMac, psessionEntry);
 
-    pStaDs = dphGetHashEntry(pMac, aid, &psessionEntry->dph.dphHashTable);
+    pStaDs = dphGetHashEntry(pMac, peerIdx, &psessionEntry->dph.dphHashTable);
     if (pStaDs)
     {
         (void) limDelSta(pMac, pStaDs, false /*asynchronous*/,psessionEntry);
-        limDeleteDphHashEntry(pMac, pStaDs->staAddr, aid,psessionEntry);
+        limDeleteDphHashEntry(pMac, pStaDs->staAddr, peerIdx,psessionEntry);
     }
 
-    pStaDs = dphAddHashEntry(pMac, peerAddr, aid, &psessionEntry->dph.dphHashTable);
+    pStaDs = dphAddHashEntry(pMac, peerAddr, peerIdx, &psessionEntry->dph.dphHashTable);
     if (pStaDs == NULL)
     {
         // Could not add hash table entry
-        PELOGE(limLog(pMac, LOGE, FL("could not add hash entry at DPH for aid=%d MACaddr:\n"), aid);)
+        PELOGE(limLog(pMac, LOGE, FL("could not add hash entry at DPH for peerIdx/aid=%d MACaddr:\n"), peerIdx);)
         limPrintMacAddr(pMac, peerAddr, LOGE);
         return eSIR_FAILURE;
     }
@@ -705,7 +705,7 @@ void limIbssDeleteAllPeers( tpAniSirGlobal pMac ,tpPESession psessionEntry)
 {
     tLimIbssPeerNode    *pCurrNode, *pTempNode;
     tpDphHashNode pStaDs;
-    tANI_U16 aid;
+    tANI_U16 peerIdx;
 
     pCurrNode = pTempNode = pMac->lim.gLimIbssPeerList;
 
@@ -721,14 +721,14 @@ void limIbssDeleteAllPeers( tpAniSirGlobal pMac ,tpPESession psessionEntry)
               * Since it is called to remove all peers, just delete from dph,
               * no need to do any beacon related params i.e., dont call limDeleteDphHashEntry
               */
-        pStaDs = dphLookupHashEntry(pMac, pCurrNode->peerMacAddr, &aid, &psessionEntry->dph.dphHashTable);
+        pStaDs = dphLookupHashEntry(pMac, pCurrNode->peerMacAddr, &peerIdx, &psessionEntry->dph.dphHashTable);
         if( pStaDs )
         {
 
             ibss_status_chg_notify( pMac, pCurrNode->peerMacAddr, pStaDs->staIndex, 
                                     pStaDs->ucUcastSig, pStaDs->ucBcastSig,
                                     eWNI_SME_IBSS_PEER_DEPARTED_IND, psessionEntry->smeSessionId );
-            dphDeleteHashEntry(pMac, pStaDs->staAddr, aid, &psessionEntry->dph.dphHashTable);
+            dphDeleteHashEntry(pMac, pStaDs->staAddr, peerIdx, &psessionEntry->dph.dphHashTable);
         }
 
         pTempNode = pCurrNode->next;
@@ -1109,7 +1109,7 @@ limIbssAddStaRsp(
     void *msg,tpPESession psessionEntry)
 {
     tpDphHashNode   pStaDs;
-    tANI_U16        aid;
+    tANI_U16        peerIdx;
     tpAddStaParams  pAddStaParams = (tpAddStaParams) msg;
 
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
@@ -1119,7 +1119,7 @@ limIbssAddStaRsp(
         return eSIR_FAILURE;
     }
 
-    pStaDs = dphLookupHashEntry(pMac, pAddStaParams->staMac, &aid, &psessionEntry->dph.dphHashTable);
+    pStaDs = dphLookupHashEntry(pMac, pAddStaParams->staMac, &peerIdx, &psessionEntry->dph.dphHashTable);
     if (pStaDs == NULL)
     {
         PELOGE(limLog(pMac, LOGE, FL("IBSS: ADD_STA_RSP for unknown MAC addr "));)
@@ -1346,7 +1346,7 @@ limIbssCoalesce(
     tANI_U16            fTsfLater,
     tpPESession         psessionEntry)
 {
-    tANI_U16            aid;
+    tANI_U16            peerIdx;
     tSirMacAddr         currentBssId;
     tLimIbssPeerNode    *pPeerNode;
     tpDphHashNode       pStaDs;
@@ -1414,7 +1414,7 @@ limIbssCoalesce(
         }
         ibss_peer_add(pMac, pPeerNode);
 
-        pStaDs = dphLookupHashEntry(pMac, pPeerNode->peerMacAddr, &aid, &psessionEntry->dph.dphHashTable);
+        pStaDs = dphLookupHashEntry(pMac, pPeerNode->peerMacAddr, &peerIdx, &psessionEntry->dph.dphHashTable);
         if (pStaDs != NULL)
         {
             /// DPH node already exists for the peer
@@ -1431,7 +1431,7 @@ limIbssCoalesce(
         }
 
         // Decide protection mode
-        pStaDs = dphLookupHashEntry(pMac, pPeerNode->peerMacAddr, &aid, &psessionEntry->dph.dphHashTable);
+        pStaDs = dphLookupHashEntry(pMac, pPeerNode->peerMacAddr, &peerIdx, &psessionEntry->dph.dphHashTable);
         if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
             limIbssDecideProtection(pMac, pStaDs, &beaconParams, psessionEntry);
 
@@ -1471,7 +1471,7 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
     tLimIbssPeerNode *pTempNode, *pPrevNode;
     tLimIbssPeerNode *pTempNextNode = NULL;
-    tANI_U16      aid;
+    tANI_U16      peerIdx;
     tpDphHashNode pStaDs;
     tANI_U32 threshold;
     tANI_U16 staIndex;
@@ -1515,7 +1515,7 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
             if(pTempNode->heartbeatFailure >= threshold )
             {
                 //Remove this entry from the list.
-                pStaDs = dphLookupHashEntry(pMac, pTempNode->peerMacAddr, &aid, &psessionEntry->dph.dphHashTable);
+                pStaDs = dphLookupHashEntry(pMac, pTempNode->peerMacAddr, &peerIdx, &psessionEntry->dph.dphHashTable);
                 if (pStaDs)
                 {
                     staIndex = pStaDs->staIndex;
@@ -1523,7 +1523,7 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
                     ucBcastSig = pStaDs->ucBcastSig;
 
                     (void) limDelSta(pMac, pStaDs, false /*asynchronous*/,psessionEntry);
-                    limDeleteDphHashEntry(pMac, pStaDs->staAddr, aid,psessionEntry);
+                    limDeleteDphHashEntry(pMac, pStaDs->staAddr, peerIdx,psessionEntry);
 
                     //Send indication.
                     ibss_status_chg_notify( pMac, pTempNode->peerMacAddr, staIndex, 
