@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -504,6 +504,8 @@ typedef struct {
    /** Track QoS status of station */
    v_BOOL_t isQosEnabled;
 
+   /** The station entry for which Deauth is in progress  */
+   v_BOOL_t isDeauthInProgress;
 } hdd_station_info_t;
 
 struct hdd_ap_ctx_s
