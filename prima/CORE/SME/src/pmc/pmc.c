@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -2520,6 +2520,12 @@ tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac )
           pMac->pmc.wowlModeRequired )))
     {
         smsLog(pMac, LOG1, FL("BMPS is not enabled or not required"));
+        return eANI_BOOLEAN_FALSE;
+    }
+
+    if(pMac->pmc.isHostPsEn && pMac->pmc.remainInPowerActiveTillDHCP)
+    {
+        smsLog(pMac, LOG1, FL("Host controlled ps enabled and host wants active mode, so dont allow BMPS"));
         return eANI_BOOLEAN_FALSE;
     }
 

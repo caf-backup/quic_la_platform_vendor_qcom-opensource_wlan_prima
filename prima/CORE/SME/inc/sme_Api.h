@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -859,6 +859,17 @@ extern eHalStatus sme_EnablePowerSave (
 extern eHalStatus sme_DisablePowerSave (
    tHalHandle hHal,
    tPmcPowerSavingMode psMode);
+
+ /* ---------------------------------------------------------------------------
+   \fn sme_SetHostPowerSave
+    \brief   The BMPS logic is controlled by the User level Apps
+    \param  hHal - The handle returned by macOpen.
+    \param  psMode - The power saving mode to enable.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+extern eHalStatus sme_SetHostPowerSave (
+   tHalHandle hHal,
+   v_BOOL_t psMode);
 
 /* ---------------------------------------------------------------------------
     \fn sme_StartAutoBmpsTimer

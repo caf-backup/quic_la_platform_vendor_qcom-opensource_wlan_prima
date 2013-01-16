@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1804,11 +1804,19 @@ REG_VARIABLE( CFG_TX_LDPC_ENABLE_FEATURE, WLAN_PARAM_Integer,
               CFG_TX_LDPC_ENABLE_FEATURE_MAX ),
 
 REG_VARIABLE( CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_NAME, WLAN_PARAM_Integer,
-             hdd_config_t, enableMCCAdaptiveScheduler, 
-             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-             CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_DEFAULT, 
-             CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_MIN, 
-             CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_MAX ),             
+             hdd_config_t, enableMCCAdaptiveScheduler,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_DEFAULT,
+             CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_MIN,
+             CFG_ENABLE_MCC_ADATIVE_SCHEDULER_ENABLED_MAX ),
+
+REG_VARIABLE( CFG_ANDRIOD_POWER_SAVE_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, isAndroidPsEn,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_ANDRIOD_POWER_SAVE_DEFAULT,
+              CFG_ANDRIOD_POWER_SAVE_MIN,
+              CFG_ANDRIOD_POWER_SAVE_MAX),
+
 };
 
 /*
@@ -2658,6 +2666,10 @@ static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *
    {
       sme_DisablePowerSave (pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
    }
+
+  /*If isAndroidPsEn is 1 then Host driver and above layers control the PS mechanism
+    If Value set to 0 Driver/Core Stack internally control the Power saving mechanism */
+   sme_SetHostPowerSave (pHddCtx->hHal, pConfig->isAndroidPsEn);
 
    if (pConfig->fIsBmpsEnabled)
    {
