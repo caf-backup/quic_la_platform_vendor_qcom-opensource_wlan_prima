@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -584,6 +584,7 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN fScanTwice;
 #ifdef WLAN_FEATURE_11AC
     tANI_U32  nVhtChannelWidth;
+    tANI_U8   txBFEnable;
 #endif
     tANI_U8   txLdpcEnable;
 

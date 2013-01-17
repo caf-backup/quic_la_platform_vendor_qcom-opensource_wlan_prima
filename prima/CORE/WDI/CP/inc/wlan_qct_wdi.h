@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1311,6 +1311,7 @@ typedef struct
 #ifdef WLAN_FEATURE_11AC
   wpt_uint8                 ucVhtCapableSta;
   wpt_uint8                 ucVhtTxChannelWidthSet;
+  wpt_uint8                 ucVhtTxBFEnabled;
 #endif
 
   wpt_uint8                 ucHtLdpcEnabled;
