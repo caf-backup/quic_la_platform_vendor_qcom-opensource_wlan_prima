@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -10612,7 +10612,7 @@ void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA)
       trafficStatsIndParams.pTrafficStats = pWdiTrafficStats;
       trafficStatsIndParams.length = length;
       trafficStatsIndParams.duration =
-         pWDA->wdaTimers.trafficStatsTimer.rescheduleTimeInMsecs;
+         pWDA->wdaTimers.trafficStatsTimer.initScheduleTimeInMsecs;
       trafficStatsIndParams.wdiReqStatusCB = WDA_WdiIndicationCallback;
       trafficStatsIndParams.pUserData = pWDA;
 

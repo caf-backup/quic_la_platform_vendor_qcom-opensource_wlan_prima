@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -177,6 +177,9 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
     WDI_DS_MemPoolFree(pMemPool, pvBDHeader, physBDHeader);
     return WDI_STATUS_E_FAILURE;
   }
+
+  pTxMetadata->staIdx = staId;
+
   // Send packet to transport layer.
   if(eWLAN_PAL_STATUS_SUCCESS !=WDTS_TxPacket(pContext, pFrame)){
     WDI_DS_MemPoolFree(pMemPool, pvBDHeader, physBDHeader);
@@ -458,7 +461,7 @@ WDI_Status WDI_DS_ClearStaIdxPerBssIdx(void *pContext, wpt_uint8 bssIdx, wpt_uin
   return WDI_STATUS_E_FAILURE;
 }
 
-/* Tx/Rx stats function
+/* @brief: WDI_DS_GetTrafficStats
  * This function should be invoked to fetch the current stats
   * Parameters:
  *  pStats:Pointer to the collected stats
@@ -470,7 +473,7 @@ void WDI_DS_GetTrafficStats(WDI_TrafficStatsType** pStats, wpt_uint32 *len)
    return WDTS_GetTrafficStats(pStats, len);
 }
 
-/* WDI_DS_DeactivateTrafficStats
+/* @brief: WDI_DS_DeactivateTrafficStats
  * This function should be invoked to deactivate traffic stats collection
   * Parameters: None
  *  Return Status: None
@@ -480,7 +483,7 @@ void WDI_DS_DeactivateTrafficStats(void)
    return WDTS_DeactivateTrafficStats();
 }
 
-/* WDI_DS_ActivateTrafficStats
+/* @brief: WDI_DS_ActivateTrafficStats
  * This function should be invoked to activate traffic stats collection
   * Parameters: None
  *  Return Status: None
@@ -490,7 +493,7 @@ void WDI_DS_ActivateTrafficStats(void)
    return WDTS_ActivateTrafficStats();
 }
 
-/* WDI_DS_ClearTrafficStats
+/* @brief: WDI_DS_ClearTrafficStats
  * This function should be invoked to clear all past stats
   * Parameters: None
  *  Return Status: None
