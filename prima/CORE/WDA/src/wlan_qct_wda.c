@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -4691,7 +4691,6 @@ WDA_processSetLinkStateStatus WDA_IsHandleSetLinkStateReq(
          }
          //populate linkState info in WDACbCtxt
          pWDA->linkState = linkStateParams->state;
-         status = WDA_IGNORE_SET_LINK_STATE;
          break;
       default:
          if(pWDA->wdaState != WDA_READY_STATE)
