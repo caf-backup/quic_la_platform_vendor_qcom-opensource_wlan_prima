@@ -37,6 +37,17 @@ $(shell mkdir -p $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw1.3; \
         ln -sf /system/etc/firmware/ath6k/AR6004/hw1.3/bdata.bin_usb \
                $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw1.3/bdata.bin)
 
+# HW2.0.4/3.0 firmware
+ar6004_hw30_dst_dir := $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw3.0
+$(call add-ar6004-prebuilt-file,hw3.0/fw.ram.bin,$(ar6004_hw30_dst_dir),fw.ram.bin,ar6004_fw_30)
+$(call add-ar6004-prebuilt-file,hw3.0/bdata.bin_usb,$(ar6004_hw30_dst_dir),bdata.bin_usb,ar6004_usb_bdata_30)
+$(call add-ar6004-prebuilt-file,hw3.0/bdata.bin_sdio,$(ar6004_hw30_dst_dir),bdata.bin_sdio,ar6004_sdio_bdata_30)
+ar6004_hw30_dst_dir :=
+
+$(shell mkdir -p $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw3.0; \
+        ln -sf /system/etc/firmware/ath6k/AR6004/hw3.0/bdata.bin_usb \
+               $(TARGET_OUT)/etc/firmware/ath6k/AR6004/hw3.0/bdata.bin)
+
 ifeq ($(BOARD_FORCE_ATH_WLAN_AR6004), true)
 include $(CLEAR_VARS)
 LOCAL_MODULE       := ar6004_wlan.conf
