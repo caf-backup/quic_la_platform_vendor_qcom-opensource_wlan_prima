@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  * */
@@ -705,7 +705,8 @@ typedef struct
   WLANTL_ConfigInfoType     tlConfigInfo;
 
   /* list of the active stations */
-  WLANTL_STAClientType      *atlSTAClients; /*Allocate memory [WLAN_MAX_STA_COUNT] of station */
+  WLANTL_STAClientType*      atlSTAClients[WLAN_MAX_STA_COUNT];
+
 
   /* information on the management frame client */
   WLANTL_MgmtFrmClientType  tlMgmtFrmClient;
