@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  * */
@@ -988,9 +988,14 @@ tANI_U32 csrGetCurrentAPRssi(tpAniSirGlobal pMac, tScanResultHandle *pScanResult
 {
         tCsrScanResultInfo *pScanResult;
         tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
-        tANI_U32 CurrAPRssi = -125; /* We are setting this as default value to make sure we return this value,
-                                       when we do not see this AP in the scan result for some reason.However,it is 
-                                       less likely that we are associated to an AP and do not see it in the scan list*/
+#ifdef FEATURE_WLAN_LFR
+        tANI_U32 CurrAPRssi = pNeighborRoamInfo->lookupDOWNRssi;
+#else
+        /* We are setting this as default value to make sure we return this value,
+        when we do not see this AP in the scan result for some reason.However,it is
+        less likely that we are associated to an AP and do not see it in the scan list */
+        tANI_U32 CurrAPRssi = -125;
+#endif
 
         while (NULL != (pScanResult = csrScanResultGetNext(pMac, *pScanResultList)))
         {
