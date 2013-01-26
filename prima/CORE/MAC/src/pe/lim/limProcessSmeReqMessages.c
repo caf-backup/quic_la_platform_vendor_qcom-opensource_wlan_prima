@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1850,7 +1850,7 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tANI_U16                caps;
     tANI_U32                val;
-    tpSirSmeReassocReq pReassocReq = NULL;
+    tpSirSmeJoinReq    pReassocReq = NULL;
     tLimMlmReassocReq  *pMlmReassocReq;
     tSirResultCodes    retCode = eSIR_SME_SUCCESS;
     tpPESession        psessionEntry = NULL;
