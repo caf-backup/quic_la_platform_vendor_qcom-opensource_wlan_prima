@@ -1392,6 +1392,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->fFirstScanOnly2GChnl = pMac->scan.fFirstScanOnly2GChnl;
         pParam->fEnableMCCMode = pMac->roam.configParam.fenableMCCMode;
         pParam->fAllowMCCGODiffBI = pMac->roam.configParam.fAllowMCCGODiffBI;
+        pParam->scanCfgAgingTime = pMac->scan.scanResultCfgAgingTime;
 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
         palCopyMemory( pMac->hHdd, &pParam->neighborRoamConfig, &pMac->roam.configParam.neighborRoamConfig, sizeof(tCsrNeighborRoamConfigParams) );
