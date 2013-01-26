@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*==========================================================================
  *
  *  @file:     aniCompiler.h
@@ -121,6 +127,8 @@
 #define PACKED                                  __packed
 #define PACKED_POST
 #define ALIGN(__value)                          __align(__value)
+#define PREPACK                                 __packed
+#define POSTPACK
 #else
 #define __ani_attr_packed
 #define __ani_attr_pre_packed                   __packed

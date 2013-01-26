@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /**
  *
  *  @file:         wlan_qct_dev_defs.h
@@ -327,5 +333,17 @@ typedef enum
 /* --------------------------------------------------------------------- */
 #define HWBD_TYPE_GENERIC                  0   /* generic BD format */
 #define HWBD_TYPE_FRAG                     1   /* fragmentation BD format*/
+
+/*---------------------------------------------------------------------- */
+/* HW Tx power                                                           */
+/*---------------------------------------------------------------------- */
+#ifdef WLAN_HAL_PRIMA
+   #define WLAN_SOC_PRIMA_MAX_TX_POWER 22
+   #define WLAN_SOC_PRIMA_MIN_TX_POWER 6
+#else
+   /* add more platforms here */
+   #define WLAN_SOC_PRIMA_MAX_TX_POWER 22
+   #define WLAN_SOC_PRIMA_MIN_TX_POWER 6
+#endif //#ifdef WCN_PRIMA
 
 #endif /* __WLAN_QCT_DEV_DEFS_H */
