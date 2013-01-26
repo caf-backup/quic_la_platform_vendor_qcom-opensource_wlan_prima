@@ -1,8 +1,9 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
+
 
 /**========================================================================
 
@@ -1826,7 +1827,19 @@ eHalStatus hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
 {
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     eHalStatus status = eHAL_STATUS_FAILURE ;
- 
+
+#ifdef WLAN_FEATURE_TDLS_DEBUG
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+    ("hdd_tdlsStatusUpdate: %s staIdx %d %02x:%02x:%02x:%02x:%02x:%02x \n"), roamResult == eCSR_ROAM_RESULT_ADD_TDLS_PEER ? "ADD_TDLS_PEER" :
+    roamResult == eCSR_ROAM_RESULT_DELETE_TDLS_PEER ? "DEL_TDLS_PEER": "UNKNOWN",
+        pRoamInfo->staId,
+        pRoamInfo->peerMac[0],
+        pRoamInfo->peerMac[1],
+        pRoamInfo->peerMac[2],
+        pRoamInfo->peerMac[3],
+        pRoamInfo->peerMac[4],
+        pRoamInfo->peerMac[5]) ;
+#endif
     switch( roamResult )
     {
         case eCSR_ROAM_RESULT_ADD_TDLS_PEER:
