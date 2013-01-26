@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1284,6 +1284,16 @@ typedef enum
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_MAX        ( 1 )
 #define CFG_SAP_AUTO_CHANNEL_SELECTION_DEFAULT    ( 0 )
 
+/*BMPS Logic
+ * Notes:
+ * 1 - Then Host driver and above layers control the PS mechanism
+ * 0 - Diver/Core Stack internally control the Power saving mechanism
+ */
+#define CFG_ANDRIOD_POWER_SAVE_NAME      "isAndroidPsEn"
+#define CFG_ANDRIOD_POWER_SAVE_MIN       ( 0 )
+#define CFG_ANDRIOD_POWER_SAVE_MAX       ( 1 )
+#define CFG_ANDRIOD_POWER_SAVE_DEFAULT   ( 0 )
+
 
 /*
  * Enable Dynamic DTIM
@@ -1798,6 +1808,7 @@ typedef struct
    v_U8_t                      scanAgingTimeout;
    v_BOOL_t                    enableTxLdpc;
    v_U8_t                      enableMCCAdaptiveScheduler;
+   v_BOOL_t                    isAndroidPsEn;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
