@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( __LEGACYPALTYPES_H__ )
 #define __LEGACYPALTYPES_H__
 
@@ -14,7 +20,7 @@
  *
  *=========================================================================*/
 
-#include "wlan_defs.h"
+#include "qwlanfw_defs.h"
 
 /* Common type definitions */
 typedef uint8     tANI_U8;
