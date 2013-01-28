@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1049,12 +1049,14 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
     if(teleBcnEn)
     {
        if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_MAX_LI, &val) != eSIR_SUCCESS)
+       {
           /**
             * Could not get ListenInterval value
             * from CFG. Log error.
           */
           limLog(pMac, LOGE, FL("could not retrieve ListenInterval\n"));
           return;
+       }
     }
     else
     {
