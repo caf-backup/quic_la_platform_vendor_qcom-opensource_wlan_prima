@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  *
@@ -131,6 +131,8 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
 #ifdef WLAN_FEATURE_11AC
         VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO_MED,
             "***beacon.VHTCaps.present*****=%d\n",pBeaconStruct->VHTCaps.present);
+        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO_MED,
+           "***beacon.SU Beamformer Capable*****=%d\n",pBeaconStruct->VHTCaps.suBeamFormerCap);
 
         if ( pBeaconStruct->VHTCaps.present && pBeaconStruct->VHTOperation.present)
         {

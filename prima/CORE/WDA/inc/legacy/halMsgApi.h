@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  * */
@@ -290,6 +290,7 @@ typedef struct
 #ifdef WLAN_FEATURE_11AC
     tANI_U8    vhtCapable;
     tANI_U8    vhtTxChannelWidthSet;
+    tANI_U8    vhtTxBFCapable;
 #endif
 
     tANI_U8    htLdpcCapable;

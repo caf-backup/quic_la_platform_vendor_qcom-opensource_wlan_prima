@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 
  * All Rights Reserved. 
 
@@ -590,6 +590,7 @@ typedef struct sDphHashNode
 
 #ifdef WLAN_FEATURE_11AC
     tANI_U8  vhtSupportedChannelWidthSet;
+    tANI_U8  vhtBeamFormerCapable;
 #endif
 
     tANI_U8 htLdpcCapable;
