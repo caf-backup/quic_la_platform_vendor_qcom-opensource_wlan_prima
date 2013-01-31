@@ -7,7 +7,7 @@
     Exports and types for the neighbor roaming algorithm which is sepcifically 
     designed for Android.
   
-   Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+   Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
    All Rights Reserved. 
    Qualcomm Atheros Confidential and Proprietary.  
   
@@ -185,7 +185,7 @@ tANI_BOOLEAN csrNeighborRoamIs11rAssoc(tpAniSirGlobal pMac);
 VOS_STATUS csrNeighborRoamCreateChanListFromNeighborReport(tpAniSirGlobal pMac);
 void csrNeighborRoamTranistionPreauthDoneToDisconnected(tpAniSirGlobal pMac);
 tANI_BOOLEAN csrNeighborRoamStatePreauthDone(tpAniSirGlobal pMac);
-
+tANI_BOOLEAN csrNeighborRoamScanRspPending(tHalHandle hHal);
 
 
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
