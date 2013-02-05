@@ -2490,7 +2490,7 @@ eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId,
       if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
       {
          status = csrRoamIssueDisassociateStaCmd( pMac, sessionId, pPeerMacAddr, 
-                                                  eSIR_MAC_UNSPEC_FAILURE_REASON);
+                                                  eSIR_MAC_DEAUTH_LEAVING_BSS_REASON);
       }
       else
       {
@@ -2528,7 +2528,7 @@ eHalStatus sme_RoamDeauthSta(tHalHandle hHal, tANI_U8 sessionId,
       if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
       {
          status = csrRoamIssueDeauthStaCmd( pMac, sessionId, pPeerMacAddr, 
-                     eSIR_MAC_UNSPEC_FAILURE_REASON);
+                     eSIR_MAC_DEAUTH_LEAVING_BSS_REASON);
       }
       else
       {
