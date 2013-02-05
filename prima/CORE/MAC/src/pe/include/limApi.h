@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  *
@@ -156,6 +156,11 @@ extern void limProcessWdsInfo(tpAniSirGlobal, tSirPropIEStruct);
 extern void limInitWdsInfoParams(tpAniSirGlobal);
 /// Function that triggers STA context deletion
 extern void limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession psessionEntry);
+
+#ifdef FEATURE_WLAN_TDLS
+// Function that sends TDLS Del Sta indication to SME
+extern void limSendSmeTDLSDelStaInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession psessionEntry, tANI_U16 reasonCode);
+#endif
 
 /// Function that checks for change in AP's capabilties on STA
 extern void limDetectChangeInApCapabilities(tpAniSirGlobal,
