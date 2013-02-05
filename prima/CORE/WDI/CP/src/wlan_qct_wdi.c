@@ -18298,8 +18298,11 @@ WDI_ProcessLowRSSIInd
   wdiInd.wdiIndicationData.wdiLowRSSIInfo.avgRssi =
      halRSSINotificationIndMsg.rssiNotificationParams.avgRssi;
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC of indication*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessLowRSSIInd*/
@@ -18350,8 +18353,11 @@ WDI_ProcessMissedBeaconInd
   /*Fill in the indication parameters*/
   wdiInd.wdiIndicationType = WDI_MISSED_BEACON_IND;
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessMissedBeaconInd*/
@@ -18404,8 +18410,11 @@ WDI_ProcessUnkAddrFrameInd
   /* ! TO DO - fill in from HAL struct:
     wdiInd.wdiIndicationData.wdiUnkAddr2FrmInfo*/
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessUnkAddrFrameInd*/
@@ -18471,8 +18480,12 @@ WDI_ProcessMicFailureInd
                  pHalMicFailureInd->info.TSC,WDI_CIPHER_SEQ_CTR_SIZE);
   wpalMemoryCopy(wdiInd.wdiIndicationData.wdiMICFailureInfo.macRxAddr,
                  pHalMicFailureInd->info.rxMacAddr, WDI_MAC_ADDR_LEN);
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessMicFailureInd*/
@@ -18528,8 +18541,11 @@ WDI_ProcessFatalErrorInd
   wdiInd.wdiIndicationType             = WDI_FATAL_ERROR_IND;
   wdiInd.wdiIndicationData.usErrorCode = WDI_ERR_DEV_INTERNAL_FAILURE;
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessFatalErrorInd*/
@@ -18592,8 +18608,11 @@ WDI_ProcessDelSTAInd
   wdiInd.wdiIndicationData.wdiDeleteSTAIndType.wptReasonCode =
     halDelSTACtx.reasonCode;
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessDelSTAInd*/
@@ -18657,8 +18676,11 @@ WDI_ProcessCoexInd
               wdiInd.wdiIndicationData.wdiCoexInfo.coexIndData[2],
               wdiInd.wdiIndicationData.wdiCoexInfo.coexIndData[3] );
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessCoexInd*/
@@ -18709,8 +18731,11 @@ WDI_ProcessTxCompleteInd
   wdiInd.wdiIndicationData.tx_complete_status
                                = halTxComplIndMsg.txComplParams.status;
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessTxCompleteInd*/
@@ -18844,8 +18869,11 @@ WDI_ProcessP2pNoaAttrInd
   wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa2StartTime
                           = halNoaAttrIndMsg.noaAttrIndParams.uNoa2StartTime;
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessNoaAttrInd*/
@@ -18878,8 +18906,11 @@ WDI_ProcessTxPerHitInd
   /*Fill in the indication parameters*/
   wdiInd.wdiIndicationType = WDI_TX_PER_HIT_IND;
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessTxPerHitInd*/
@@ -23264,8 +23295,11 @@ WDI_ProcessPrefNetworkFoundInd
               wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.ssId.sSSID,
               wdiInd.wdiIndicationData.wdiPrefNetworkFoundInd.rssi );
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  }
 
   return WDI_STATUS_SUCCESS;
 }
@@ -25143,8 +25177,12 @@ WDI_ProcessWakeReasonInd
                   &(pWakeReasonParams->aDataStart[0]), 
                   pWakeReasonParams->ulStoredDataLen);
 
-  /*Notify UMAC*/
-  pWDICtx->wdiLowLevelIndCB( pWdiInd, pWDICtx->pIndUserData );
+
+  if ( pWDICtx->wdiLowLevelIndCB )
+  {
+    /*Notify UMAC*/
+    pWDICtx->wdiLowLevelIndCB( pWdiInd, pWDICtx->pIndUserData );
+  }
   
   //Free memory allocated for WDI_WakeReasonIndType structure
   wpalMemoryFree(pWdiInd);
