@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  * */
@@ -472,6 +472,13 @@ typedef struct
 #ifdef WLAN_SOFTAP_FEATURE
 typedef tSap_SoftapStats WLANTL_TRANSFER_STA_TYPE;
 #else
+
+#ifdef WLANTL_DEBUG
+#define MAX_RATE_INDEX      136
+#define MAX_NUM_RSSI        100
+#define MAX_RSSI_INTERVAL     5
+#endif
+
 typedef struct
 {
    v_U32_t txUCFcnt;
@@ -489,6 +496,10 @@ typedef struct
    v_U32_t rxBcnt;
    v_U32_t rxBcntCRCok;
    v_U32_t rxRate;
+#ifdef WLANTL_DEBUG
+   v_U32_t pktCounterRateIdx[MAX_RATE_INDEX];
+   v_U32_t pktCounterRssi[MAX_NUM_RSSI];
+#endif
 }WLANTL_TRANSFER_STA_TYPE;
 #endif
 
