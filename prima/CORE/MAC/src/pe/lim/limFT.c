@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -566,7 +566,6 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
 {
     tpPESession      pftSessionEntry;
     tANI_U8          currentBssUapsd;
-    tANI_U8          sessionId;
     tPowerdBm        localPowerConstraint;
     tPowerdBm        regMax;
     tSchBeaconStruct *pBeaconStruct;
@@ -579,20 +578,12 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
     }
 
 
-    if((pftSessionEntry = peCreateSession(pMac, pbssDescription->bssId,
-        &sessionId, pMac->lim.maxStation)) == NULL)
-    {
-        limLog(pMac, LOGE, FL("Session Can not be created for pre-auth 11R AP\n"));
-        palFreeMemory(pMac->hHdd, pBeaconStruct);
-        return NULL;
-    }
-        
+       
+    /* Retrieve the session that has already been created and update the entry */
+    pftSessionEntry = pMac->ft.ftPEContext.pftSessionEntry;
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
     limPrintMacAddr(pMac, pbssDescription->bssId, LOGE);
 #endif
-
-    /* Store PE session Id in session Table */
-    pftSessionEntry->peSessionId = sessionId;
 
     pftSessionEntry->dot11mode = psessionEntry->dot11mode;
     pftSessionEntry->htCapability = psessionEntry->htCapability;
@@ -693,11 +684,6 @@ tpPESession limFillFTSession(tpAniSirGlobal pMac,
     pftSessionEntry->limSmeState = eLIM_SME_WT_REASSOC_STATE;
 
     pftSessionEntry->encryptType = psessionEntry->encryptType;
-
-#if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
-    PELOGE(limLog(pMac,LOGE,"%s:created session (%p) with id = %d\n", 
-       __func__, pftSessionEntry, pftSessionEntry->peSessionId);)
-#endif
 
     palFreeMemory(pMac->hHdd, pBeaconStruct);
     return pftSessionEntry;
@@ -948,6 +934,10 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, eHalStatus status,
     tpPESession psessionEntry)
 {
 
+    tpPESession      pftSessionEntry;
+    tANI_U8 sessionId;
+    tpSirBssDescription  pbssDescription;
+
     // Save the status of pre-auth
     pMac->ft.ftPEContext.ftPreAuthStatus = status; 
 
@@ -959,6 +949,44 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, eHalStatus status,
         vos_mem_copy(pMac->ft.ftPEContext.saved_auth_rsp,
             auth_rsp, auth_rsp_length); 
         pMac->ft.ftPEContext.saved_auth_rsp_length = auth_rsp_length;
+    }
+
+    /* Create FT session for the re-association at this point */
+    if (pMac->ft.ftPEContext.ftPreAuthStatus == eSIR_SUCCESS)
+    {
+        pbssDescription = pMac->ft.ftPEContext.pFTPreAuthReq->pbssDescription;
+        if((pftSessionEntry = peCreateSession(pMac, pbssDescription->bssId,
+                                              &sessionId, pMac->lim.maxStation)) == NULL)
+        {
+            limLog(pMac, LOGE, FL("Session Can not be created for pre-auth 11R AP\n"));
+            return;
+        }
+        pftSessionEntry->peSessionId = sessionId;
+        sirCopyMacAddr(pftSessionEntry->selfMacAddr, psessionEntry->selfMacAddr);
+        sirCopyMacAddr(pftSessionEntry->limReAssocbssId, pbssDescription->bssId);
+        pftSessionEntry->bssType = psessionEntry->bssType;
+
+        if (pftSessionEntry->bssType == eSIR_INFRASTRUCTURE_MODE)
+        {
+            pftSessionEntry->limSystemRole = eLIM_STA_ROLE;
+        }
+        else if(pftSessionEntry->bssType == eSIR_BTAMP_AP_MODE)
+        {
+            pftSessionEntry->limSystemRole = eLIM_BT_AMP_STA_ROLE;
+        }
+        else
+        {
+            limLog(pMac, LOGE, FL("Invalid bss type\n"));
+        }
+        pftSessionEntry->limPrevSmeState = pftSessionEntry->limSmeState;
+        pftSessionEntry->limSmeState = eLIM_SME_WT_REASSOC_STATE;
+        pMac->ft.ftPEContext.pftSessionEntry = pftSessionEntry;
+        PELOGE(limLog(pMac,LOGE,"%s:created session (%p) with id = %d\n",
+                      __func__, pftSessionEntry, pftSessionEntry->peSessionId);)
+
+        /* Update the ReAssoc BSSID of the current session */
+        sirCopyMacAddr(psessionEntry->limReAssocbssId, pbssDescription->bssId);
+        limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOGE);
     }
 
     if (psessionEntry->currentOperChannel != 
