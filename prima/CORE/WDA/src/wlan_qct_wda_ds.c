@@ -1308,6 +1308,7 @@ WDA_DS_TxFrames
   v_U32_t     uMgmtAvailRes;
   v_U32_t     uDataAvailRes;
   WLANTL_TxCompCBType  pfnTxComp = NULL;
+  v_U32_t     uTxFailCount = 0;
 
   wdaContext = (tWDA_CbContext *)vos_get_context(VOS_MODULE_ID_WDA, pvosGCtx);
   if ( NULL == wdaContext )
@@ -1363,8 +1364,9 @@ WDA_DS_TxFrames
                                  0 /* more */ );
     if ( WDI_STATUS_SUCCESS != wdiStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
                    "WDA : Pushing a packet to WDI failed.");
+      uTxFailCount++;
       VOS_ASSERT( wdiStatus != WDI_STATUS_E_NOT_ALLOWED );
       //We need to free the packet here
       vos_pkt_get_user_data_ptr(pTxPacket, VOS_PKT_USER_DATA_ID_TL, (void **)&pfnTxComp);
@@ -1375,6 +1377,13 @@ WDA_DS_TxFrames
     }
 
   };
+
+  if ( uTxFailCount )
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WDA : Tx fail count for mgmt pkts: %d.", uTxFailCount);
+    uTxFailCount = 0;
+  }
 
   /*Data tx*/
   uDataAvailRes = WDI_GetAvailableResCount(wdaContext->pWdiContext, 
@@ -1418,8 +1427,9 @@ WDA_DS_TxFrames
                                  0 /* more */ );
     if ( WDI_STATUS_SUCCESS != wdiStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
                    "WDA : Pushing a packet to WDI failed.");
+      uTxFailCount++;
       VOS_ASSERT( wdiStatus != WDI_STATUS_E_NOT_ALLOWED );
       //We need to free the packet here
       vos_pkt_get_user_data_ptr(pTxPacket, VOS_PKT_USER_DATA_ID_TL, (void **)&pfnTxComp);
@@ -1430,6 +1440,13 @@ WDA_DS_TxFrames
     }
 
   };
+
+  if ( uTxFailCount )
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WDA : Tx fail count for data pkts: %d.", uTxFailCount);
+  }
+
 
   WDI_DS_TxComplete(wdaContext->pWdiContext, ucTxResReq);
 
