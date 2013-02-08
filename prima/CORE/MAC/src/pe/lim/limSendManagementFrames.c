@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -6039,6 +6039,8 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
             frm->MeasurementReport[i].present = 1;
             break;
          default:
+            frm->MeasurementReport[i].incapable = pRRMReport[i].incapable;
+            frm->MeasurementReport[i].refused = pRRMReport[i].refused;
             frm->MeasurementReport[i].present = 1;
             break;
       }
