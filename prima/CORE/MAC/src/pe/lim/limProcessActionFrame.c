@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -162,6 +162,7 @@ tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEnt
      
     /* Deactivate and change reconfigure the timeout value */
     //limDeactivateAndChangeTimer(pMac, eLIM_CHANNEL_SWITCH_TIMER);
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, psessionEntry->peSessionId, eLIM_CHANNEL_SWITCH_TIMER));
     if (tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer) != eSIR_SUCCESS)
     {
         limLog(pMac, LOGP, FL("tx_timer_deactivate failed!\n"));
