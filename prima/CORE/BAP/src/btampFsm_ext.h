@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
- * Qualcomm Confidential and Proprietary 
+ * Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
+ * Qualcomm Technologies Confidential and Proprietary 
  */
 
 /* This file is generated from btampFsm.cdd - do not edit manually*/

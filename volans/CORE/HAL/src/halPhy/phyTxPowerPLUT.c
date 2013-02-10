@@ -1,8 +1,8 @@
 /**
  *
-   Qualcomm Inc. proprietary.
+   Qualcomm Technologies, Inc. proprietary.
    All Rights Reserved, Copyright 2010
-   This program is the confidential and proprietary product of Qualcomm Inc.
+   This program is the confidential and proprietary product of Qualcomm Technologies, Inc.
    Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
 

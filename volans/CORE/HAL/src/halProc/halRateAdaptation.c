@@ -10,9 +10,9 @@
  *
  *  @brief:       This file contains the core rate adpatation algorithm implementation.
  *
- *  @author:    Qualcomm Inc
+ *  @author:    Qualcomm Technologies, Inc.
  *
- *  Copyright (C) 2008, Qualcomm, Inc. All rights reserved.
+ *  Copyright (C) 2008, Qualcomm Technologies, Inc. All rights reserved.
  *
  *  Change History:
  * ---------------------------------------

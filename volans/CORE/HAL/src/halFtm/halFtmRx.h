@@ -6,7 +6,7 @@
  *
  *  @author:       Viral Modi
  *
- *  Copyright (C) 2002 - 2010, Qualcomm, Inc. All rights reserved.
+ *  Copyright (C) 2002 - 2010, Qualcomm Technologies, Inc. All rights reserved.
  *
  */
 

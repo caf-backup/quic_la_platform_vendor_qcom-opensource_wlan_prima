@@ -3,9 +3,9 @@
   
    Macros and Function prototypes FT and 802.11R purposes 
 
-   Copyright 2010 (c) Qualcomm, Incorporated.  All Rights Reserved.
+   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
    
-   Qualcomm Confidential and Proprietary.
+   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

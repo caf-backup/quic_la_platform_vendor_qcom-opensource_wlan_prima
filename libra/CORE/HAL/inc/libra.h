@@ -4,7 +4,7 @@
  * 		adu.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		adu.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -815,7 +815,7 @@
  * 		agc.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		agc.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -2884,7 +2884,7 @@
  * 		atb.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		atb.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -3714,7 +3714,7 @@
  * 		bmu.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		bmu.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -5721,7 +5721,7 @@
  * 		btcf.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		btcf.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -5828,7 +5828,7 @@
  * 		cahb.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		cahb.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -5957,7 +5957,7 @@
  * 		cal.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		cal.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -6231,7 +6231,7 @@
  * 		che.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		che.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -6258,7 +6258,7 @@
  * 		dahb.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		dahb.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -6432,7 +6432,7 @@
  * 		dpu.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		dpu.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -7220,7 +7220,7 @@
  * 		dxe_0.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		dxe_0.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -8649,7 +8649,7 @@
  * 		errgen.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		errgen.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -8772,7 +8772,7 @@
  * 		fft.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		fft.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -8823,7 +8823,7 @@
  * 		fphy.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		fphy.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -9490,7 +9490,7 @@
  * 		mcpu_ctrl.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		mcpu_ctrl.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -11460,7 +11460,7 @@
  * 		mcu.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		mcu.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -15241,7 +15241,7 @@
  * 		mif.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		mif.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -15350,7 +15350,7 @@
  * 		mpi.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		mpi.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -15545,7 +15545,7 @@
  * 		mtu.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		mtu.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -16804,7 +16804,7 @@
  * 		nvi.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		nvi.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -17271,7 +17271,7 @@
  * 		phydbg.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		phydbg.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -17754,7 +17754,7 @@
  * 		phyint.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		phyint.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -18029,7 +18029,7 @@
  * 		pmi.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		pmi.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -18160,7 +18160,7 @@
  * 		pmu.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		pmu.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -20031,7 +20031,7 @@
  * 		ractl.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		ractl.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -20916,7 +20916,7 @@
  * 		rbapb.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		rbapb.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -21201,7 +21201,7 @@
  * 		rfapb.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		rfapb.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -26688,7 +26688,7 @@
  * 		rfif.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		rfif.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -26863,7 +26863,7 @@
  * 		rpe.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		rpe.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -27295,7 +27295,7 @@
  * 		rxaclkctrl.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		rxaclkctrl.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -27466,7 +27466,7 @@
  * 		rxclkctrl.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		rxclkctrl.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -27619,7 +27619,7 @@
  * 		rxp.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		rxp.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -29266,7 +29266,7 @@
  * 		scu.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		scu.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -29600,7 +29600,7 @@
  * 		scu_qfuse.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		scu_qfuse.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -29699,7 +29699,7 @@
  * 		scu_uart.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		scu_uart.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -29982,7 +29982,7 @@
  * 		sif_bar4.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		sif_bar4.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -30437,7 +30437,7 @@
  * 		sif.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		sif.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -31268,7 +31268,7 @@
  * 		spim.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		spim.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -31367,7 +31367,7 @@
  * 		tactl.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		tactl.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -31650,7 +31650,7 @@
  * 		taqam.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		taqam.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -31752,7 +31752,7 @@
  * 		tbapb.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		tbapb.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -31847,7 +31847,7 @@
  * 		tdc.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		tdc.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -32002,7 +32002,7 @@
  * 		tpc.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		tpc.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -32200,7 +32200,7 @@
  * 		tpe.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		tpe.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -32903,7 +32903,7 @@
  * 		txclkctrl.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		txclkctrl.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -32998,7 +32998,7 @@
  * 		txctl.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		txctl.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -33527,7 +33527,7 @@
  * 		txfir.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		txfir.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */
@@ -34238,7 +34238,7 @@
  * 		txp.reg file. If changes are made in this file, they 
  * 		they will be written over when reg2h.pl script is executed on
  * 		txp.reg file.
- * Copyright (c) 2007 by Qualcomm, Inc. San Diego, CA, USA
+ * Copyright (c) 2007 by Qualcomm Technologies, Inc. San Diego, CA, USA
  * 
  * -------------------------------------------------------------------------
  */

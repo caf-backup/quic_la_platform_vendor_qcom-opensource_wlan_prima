@@ -12,7 +12,7 @@
  *             All status codes have been consolidated into one enum
  *
  *  @author:   Kumar Anand
- *             Copyright (C) 2010, Qualcomm, Inc.
+ *             Copyright (C) 2010, Qualcomm Technologies, Inc.
  *             All rights reserved.
  *
  *=========================================================================*/

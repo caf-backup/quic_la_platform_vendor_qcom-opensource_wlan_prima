@@ -11,7 +11,7 @@
  *       Compiler:  gcc
  * 
  *         Author:  Dinesh Upadhyay
- *        Company:  Qualcomm, Inc.
+ *        Company:  Qualcomm Technologies, Inc.
  * 
  * =====================================================================================
  */

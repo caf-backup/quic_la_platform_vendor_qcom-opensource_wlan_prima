@@ -13,7 +13,7 @@
   
     Implementation for the OEM DATA REQ/RSP interfaces.
   
-    Copyright (C) 2010 Qualcomm Incorporated.
+    Copyright (C) 2010 Qualcomm Technologies, Inc.
   
  
    ========================================================================== */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2009 QUALCOMM Incorporated. All rights reserved. Proprietary and Confidential.
+ * Copyright (C) 2007-2009 Qualcomm Technologies, Inc. All rights reserved. Proprietary and Confidential.
  */
 
 /*
@@ -283,7 +283,7 @@ PrintHdr(FILE *pInF)
     now = time(NULL);
 
     fprintf(pInF, "/*\n");
-    fprintf(pInF, " * Copyright (C) 2007-2009 QUALCOMM Incorporated. All rights reserved. Proprietary and Confidential.\n");
+    fprintf(pInF, " * Copyright (C) 2007-2009 Qualcomm Technologies, Inc. All rights reserved. Proprietary and Confidential.\n");
     fprintf(pInF, " */\n\n");
     fprintf(pInF, "/*\n");
     fprintf(pInF, " * DO NOT EDIT - This file is generated automaticlly\n");

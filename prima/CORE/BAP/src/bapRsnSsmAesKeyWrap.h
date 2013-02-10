@@ -1,5 +1,5 @@
 /*
- * Qualcomm Inc, proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc., proprietary. All rights reserved.
  * Ref File: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/ssm/include/aniSsmAesKeyWrap.h $
  *
  * Contains SSM-private declarations related to the AES key WRAP

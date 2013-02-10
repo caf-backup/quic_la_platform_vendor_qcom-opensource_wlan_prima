@@ -6,7 +6,7 @@
  *
  *  @author:        Susan Tsao
  *
- *  Copyright (C) 2002 - 2007, Qualcomm, Inc. All rights reserved.
+ *  Copyright (C) 2002 - 2007, Qualcomm Technologies, Inc. All rights reserved.
  *
  *  Change History:
  * ---------------------------------------

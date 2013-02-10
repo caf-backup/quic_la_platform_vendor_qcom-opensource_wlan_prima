@@ -12,7 +12,7 @@
   
     Implementation for the simple roaming algorithm for 802.11r Fast transitions and Legacy roaming for Android platform.
   
-    Copyright (C) 2010 Qualcomm, Incorporated
+    Copyright (C) 2010 Qualcomm Technologies, Inc.
   
  
    ========================================================================== */

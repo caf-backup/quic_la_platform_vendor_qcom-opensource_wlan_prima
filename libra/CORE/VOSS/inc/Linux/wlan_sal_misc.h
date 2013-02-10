@@ -8,8 +8,8 @@
   @brief WLAN SDIO ABSTRACTION LAYER MISC MACROs and DEFINES file 
                
    This file contains the external API exposed by the wlan SDIO abstraction layer module.
-   Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
-   Qualcomm Confidential and Proprietary
+   Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
+   Qualcomm Technologies Confidential and Proprietary
 ========================================================================*/
 
 /*===========================================================================

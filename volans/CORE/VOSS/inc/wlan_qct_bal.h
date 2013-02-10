@@ -9,9 +9,9 @@
                
    This file contains the external API exposed by the wlan bus abstraction layer module.
   
-   Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
+   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
    
-   Qualcomm Confidential and Proprietary.
+   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

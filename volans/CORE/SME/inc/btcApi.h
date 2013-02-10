@@ -4,8 +4,8 @@
 *
 * Description: BTC Events Layer API definitions.
 *
-* Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-* Qualcomm Confidential and Proprietary.
+* Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
+* Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
 

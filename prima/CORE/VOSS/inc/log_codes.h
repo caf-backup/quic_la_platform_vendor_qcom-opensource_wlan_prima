@@ -8,7 +8,7 @@
 General Description
   This file contains log code definitions and is shared with the tools.
 
-Copyright (c) 1991-2010 by QUALCOMM, Inc.  All Rights Reserved.
+Copyright (c) 1991-2010 by Qualcomm Technologies, Inc.  All Rights Reserved.
 ===========================================================================*/
 
 /* DO NOT MODIFY THIS FILE WITHOUT PRIOR APPROVAL

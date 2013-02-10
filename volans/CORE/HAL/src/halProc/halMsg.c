@@ -5,7 +5,7 @@
 */
 
 /*
- * Qualcomm Inc Inc proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc. Inc proprietary. All rights reserved.
  * halMsg.c:  Provides STA entry specific API to PEs
  * Author:    Arul Vasantharaj
  * Date:      05/14/2008

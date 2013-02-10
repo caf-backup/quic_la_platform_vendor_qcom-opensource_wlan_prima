@@ -14,9 +14,9 @@
   @brief 
                
    This file contains the external API exposed by the wlan data transfer abstraction layer module.
-   Copyright (c) 2011 QUALCOMM Incorporated.
+   Copyright (c) 2011 Qualcomm Technologies, Inc.
    All Rights Reserved.
-   Qualcomm Confidential and Proprietary
+   Qualcomm Technologies Confidential and Proprietary
 ========================================================================*/
 
 /*===========================================================================

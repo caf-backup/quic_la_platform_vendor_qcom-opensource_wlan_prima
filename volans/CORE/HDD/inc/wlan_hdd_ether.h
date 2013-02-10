@@ -5,9 +5,9 @@
 
   This module describes Ethernet packet formats for processing by HDD.
 
-               Copyright (c) 2009 QUALCOMM Incorporated.
+               Copyright (c) 2009 Qualcomm Technologies, Inc.
                All Rights Reserved.
-               Qualcomm Confidential and Proprietary
+               Qualcomm Technologies Confidential and Proprietary
 ============================================================================*/
 /* $Header$ */
 

@@ -1,5 +1,5 @@
 /*
- * Qualcomm Inc proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc. proprietary. All rights reserved.
  * This file contains Routines related with RF Kill feature.
  *
  * Author:      Dinesh Upadhyay 

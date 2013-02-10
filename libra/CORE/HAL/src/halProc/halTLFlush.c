@@ -3,7 +3,7 @@
  *  @brief:     Provides function to provide flush operation for 
  *  Transport Layer.
  *
- *  Copyright (C) 2008, Qualcomm, Inc. All rights reserved.
+ *  Copyright (C) 2008, Qualcomm Technologies, Inc. All rights reserved.
  *
  *  Change History:
  * ---------------------------------------

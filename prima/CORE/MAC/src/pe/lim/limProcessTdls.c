@@ -15,7 +15,7 @@
 
   Copyright (c) 2010 Qualcomm Technologies, Inc. 
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

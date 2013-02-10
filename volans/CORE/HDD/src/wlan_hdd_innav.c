@@ -13,7 +13,7 @@
   
     $Id: wlan_hdd_innav.c,v 1.34 2010/04/15 01:49:23 -- VINAY
   
-    Copyright (C) Qualcomm Inc.
+    Copyright (C) Qualcomm Technologies, Inc.
     
 ================================================================================*/
 

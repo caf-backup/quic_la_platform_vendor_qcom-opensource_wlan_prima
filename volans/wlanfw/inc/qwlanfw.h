@@ -16,9 +16,9 @@ DESCRIPTION:
   ** May include HW related definitions.
   This file should be used for Host side development.
 
-                Copyright (c) 2008 QUALCOMM Incorporated.
+                Copyright (c) 2008 Qualcomm Technologies, Inc.
                 All Right Reserved.
-                Qualcomm Confidential and Proprietary
+                Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

@@ -4,9 +4,9 @@
 *
 * Description: Routines that make up the Power Management Control (PMC) API.
 *
-* Copyright 2008 (c) Qualcomm, Incorporated.  
+* Copyright 2008 (c) Qualcomm Technologies, Inc.  
 * All Rights Reserved.
-* Qualcomm Confidential and Proprietary.
+* Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
 

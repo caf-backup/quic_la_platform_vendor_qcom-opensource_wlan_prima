@@ -12,7 +12,7 @@
  *
  *  @author:       Vinay Sridhara
  *
- *  Copyright (C) 2010, Qualcomm, Inc. All rights reserved.
+ *  Copyright (C) 2010, Qualcomm Technologies, Inc. All rights reserved.
  *
  *  Change History:
  * ---------------------------------------

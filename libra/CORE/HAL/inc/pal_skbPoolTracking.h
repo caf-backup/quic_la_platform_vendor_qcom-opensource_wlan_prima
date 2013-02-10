@@ -7,7 +7,7 @@
   
     Definition of the Linux SKB Allocation Tracking Module
   
-    Copyright (C) 2007 QUALCOMM, Incorporated
+    Copyright (C) 2007 Qualcomm Technologies, Inc.
   
  
     ======================================================================== */

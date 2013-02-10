@@ -8,7 +8,7 @@
   
     Exports and types for the Common InNav Measurement Module interfaces.
   
-    Copyright (C) 2010 Qualcomm Inc.
+    Copyright (C) 2010 Qualcomm Technologies, Inc.
   
  
    ========================================================================== */

@@ -10,8 +10,8 @@
 *
 * Description: Packet Filter Definitions.
 *
-* Copyright (c) 2011 QUALCOMM Incorporated. All Rights Reserved.
-* QUALCOMM Proprietary and Confidential.
+* Copyright (c) 2011 Qualcomm Technologies, Inc. All Rights Reserved.
+* Qualcomm Technologies Proprietary and Confidential.
 *
 ******************************************************************************/
 

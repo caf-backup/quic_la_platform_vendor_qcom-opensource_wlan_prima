@@ -15,9 +15,9 @@ DESCRIPTION:
    updated specific memory location with proper information. This file defines
    the where and what information can be found in the memory.
 
-                Copyright (c) 2008 QUALCOMM Incorporated.
+                Copyright (c) 2008 Qualcomm Technologies, Inc.
                 All Right Reserved.
-                Qualcomm Confidential and Proprietary
+                Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

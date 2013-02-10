@@ -5,7 +5,7 @@
 */
 
 /*
- * Qualcomm Inc proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc. proprietary. All rights reserved.
  * halBmu.c:  Provides all the MAC APIs to the BMU Hardware Block.
  * Author:    Susan Tsao
  * Date:      02/06/2006

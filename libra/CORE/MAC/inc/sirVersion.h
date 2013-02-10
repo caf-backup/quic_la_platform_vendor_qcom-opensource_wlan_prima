@@ -4,7 +4,7 @@
 //
 //  Description:  Driver version information
 //
-//  Copyright 2008,  QUALCOMM, Inc.  All rights reserved.
+//  Copyright 2008,  Qualcomm Technologies, Inc.  All rights reserved.
 //
 //  Change History:
 //  06/24/2008 - STSAO  - Dervied from hddVersion.h

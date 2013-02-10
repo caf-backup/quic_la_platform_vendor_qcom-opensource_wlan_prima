@@ -6,7 +6,7 @@
  *
  *  @author:    Lawrie Kurian
  *
- *  Copyright (C) 2008, Qualcomm, Inc. All rights reserved.
+ *  Copyright (C) 2008, Qualcomm Technologies, Inc. All rights reserved.
  *
  *  Change History:
  * ---------------------------------------

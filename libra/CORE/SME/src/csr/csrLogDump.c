@@ -1,7 +1,7 @@
 /*============================================================================
-Copyright (c) 2007 QUALCOMM Incorporated.
+Copyright (c) 2007 Qualcomm Technologies, Inc.
 All Rights Reserved.
-Qualcomm Confidential and Proprietary
+Qualcomm Technologies Confidential and Proprietary
 
 csrLogDump.c
 

@@ -13,9 +13,9 @@
   DEPENDENCIES:
   Are listed for each API below.
 
-  Copyright (c) 2010-2011 QUALCOMM Incorporated.
+  Copyright (c) 2010-2011 Qualcomm Technologies, Inc.
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 /*===========================================================================
                       EDIT HISTORY FOR FILE

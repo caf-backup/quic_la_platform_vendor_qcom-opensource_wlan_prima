@@ -16,21 +16,21 @@
 
 /*===========================================================================
 
-  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved
+  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved
 
-  Qualcomm Proprietary
+  Qualcomm Technologies Proprietary
 
   Export of this technology or software is regulated by the U.S. Government.
   Diversion contrary to U.S. law prohibited.
 
   All ideas, data and information contained in or disclosed by
   this document are confidential and proprietary information of
-  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  Qualcomm Technologies, Inc. and all rights therein are expressly reserved.
   By accepting this material the recipient agrees that this material
   and the information contained therein are held in confidence and in
   trust and will not be used, copied, reproduced in whole or in part,
   nor its contents revealed in any manner to others without the express
-  written permission of QUALCOMM Incorporated.
+  written permission of Qualcomm Technologies, Inc.
 
 ===========================================================================*/
 

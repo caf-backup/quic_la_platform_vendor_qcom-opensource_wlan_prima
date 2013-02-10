@@ -3,9 +3,9 @@
  * Description: This file contains the routines to backup the a list of
  *              registers before going to any of the power save modes.
  *
- * Copyright (c) 2008 QUALCOMM Incorporated.
+ * Copyright (c) 2008 Qualcomm Technologies, Inc.
  * All Rights Reserved.
- * Qualcomm Confidential and Proprietary
+ * Qualcomm Technologies Confidential and Proprietary
  *
  *
  * History:

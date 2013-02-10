@@ -15,9 +15,9 @@ DESCRIPTION:
    among Qualcomm WLAN architectures. Definition file for each architecture
    defines architecture specific part. 
 
-                Copyright (c) 2008 QUALCOMM Incorporated.
+                Copyright (c) 2008 Qualcomm Technologies, Inc.
                 All Right Reserved.
-                Qualcomm Confidential and Proprietary
+                Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

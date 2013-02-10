@@ -1,5 +1,5 @@
 /*
- * Qualcomm, Inc proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc. proprietary. All rights reserved.
  *
  * Date            Modified by    Modification Information
  * --------------------------------------------------------------------

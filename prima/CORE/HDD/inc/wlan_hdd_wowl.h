@@ -69,9 +69,9 @@
   the device in BMPS mode (if not already in BMPS). If attempt to BMPS fails, 
   request for WoWL will be rejected.
 
-  Copyright (c) 2009 QUALCOMM Incorporated.
+  Copyright (c) 2009 Qualcomm Technologies, Inc.
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 
 ============================================================================*/
 /* $Header$ */

@@ -9,9 +9,9 @@
                
    Definitions for platform dependent(LA). 
   
-   Copyright 2010 (c) Qualcomm, Incorporated.  All Rights Reserved.
+   Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
    
-   Qualcomm Confidential and Proprietary.
+   Qualcomm Technologies Confidential and Proprietary.
   
   ========================================================================*/
 

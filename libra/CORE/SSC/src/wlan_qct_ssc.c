@@ -32,9 +32,9 @@
 
 
   
-  Copyright (c) 2008 QUALCOMM Incorporated.
+  Copyright (c) 2008 Qualcomm Technologies, Inc.
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*=========================================================================== 

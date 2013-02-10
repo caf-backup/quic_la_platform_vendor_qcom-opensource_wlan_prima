@@ -11,9 +11,9 @@
 \file         wlan_hdd_p2p.h
 
 \brief       Linux HDD P2P include file
-               Copyright 2008 (c) Qualcomm, Incorporated.
+               Copyright 2008 (c) Qualcomm Technologies, Inc.
                All Rights Reserved.
-               Qualcomm Confidential and Proprietary.
+               Qualcomm Technologies Confidential and Proprietary.
 
 ==========================================================================*/
 #ifdef CONFIG_CFG80211

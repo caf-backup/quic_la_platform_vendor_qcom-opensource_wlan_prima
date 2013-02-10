@@ -12,9 +12,9 @@
   Are listed for each API below. 
 
   
-  Copyright (c) 2010 QUALCOMM Incorporated.
+  Copyright (c) 2010 Qualcomm Technologies, Inc.
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

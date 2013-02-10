@@ -8,7 +8,7 @@
 
     $Id$
 
-    Copyright (C) 2010 Qualcomm Incorporated
+    Copyright (C) 2010 Qualcomm Technologies, Inc.
 
     Created by Viral Modi   07/06/2010  This file incorporates new functions related to new FTM requirement
                                         development. The new requirement is to have FCS count for unicast frames received in FTM mode

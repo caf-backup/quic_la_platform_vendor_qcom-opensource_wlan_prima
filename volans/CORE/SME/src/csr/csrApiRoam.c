@@ -12,7 +12,7 @@
   
     Implementation for the Common Roaming interfaces.
   
-    Copyright (C) 2008 Qualcomm, Incorporated
+    Copyright (C) 2008 Qualcomm Technologies, Inc.
   
  
    ========================================================================== */

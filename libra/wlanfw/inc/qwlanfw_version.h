@@ -10,9 +10,9 @@ BRIEF DESCRIPTION:
    Build number automaticly updated by build scripts.
 
 
-                Copyright (c) 2008-2010 QUALCOMM Incorporated.
+                Copyright (c) 2008-2010 Qualcomm Technologies, Inc.
                 All Right Reserved.
-                Qualcomm Confidential and Proprietary
+                Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 #define WLANFW_VERSION_MAJOR            3

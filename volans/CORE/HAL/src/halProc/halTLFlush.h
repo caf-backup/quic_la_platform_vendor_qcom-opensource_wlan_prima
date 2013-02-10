@@ -1,7 +1,7 @@
 #ifndef HAL_TL_FLUSH_H__
 #define HAL_TL_FLUSH_H__
 /*
- * Qualcomm Inc proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc. proprietary. All rights reserved.
  *
  * This file contains Routines related hal TL Flush operation
  *

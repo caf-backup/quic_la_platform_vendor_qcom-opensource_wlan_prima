@@ -22,8 +22,8 @@ DESCRIPTION
   was to keep the UMAC identical across Prima and Volans. This layer provides the glue 
   between SME, PE , TL and HAL.
   
-  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 

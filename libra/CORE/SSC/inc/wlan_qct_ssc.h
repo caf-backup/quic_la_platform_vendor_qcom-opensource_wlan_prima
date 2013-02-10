@@ -18,9 +18,9 @@
   Please see SSC HLD and LLD documents in order to understand the callflows
   and behavior expected of SSC clients.
   
-  Copyright (c) 2008 QUALCOMM Incorporated.
+  Copyright (c) 2008 Qualcomm Technologies, Inc.
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*=========================================================================== 

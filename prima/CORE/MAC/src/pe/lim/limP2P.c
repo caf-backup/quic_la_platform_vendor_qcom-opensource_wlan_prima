@@ -12,9 +12,9 @@
   This software unit holds the implementation of the WLAN Protocol Engine for
   P2P.
 
-  Copyright (c) 2011 QUALCOMM Incorporated.
+  Copyright (c) 2011 Qualcomm Technologies, Inc.
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

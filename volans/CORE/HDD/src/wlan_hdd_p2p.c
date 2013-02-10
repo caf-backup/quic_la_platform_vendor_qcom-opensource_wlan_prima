@@ -11,9 +11,9 @@
 
   \brief WLAN Host Device Driver implementation for P2P commands interface
 
-  Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
+  Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
 
-  Qualcomm Confidential and Proprietary.
+  Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 #ifdef CONFIG_CFG80211

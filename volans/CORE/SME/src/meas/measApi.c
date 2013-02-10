@@ -13,7 +13,7 @@
   
     Implementation for the InNav Measurement interfaces.
   
-    Copyright (C) 2010 Qualcomm Incorporated.
+    Copyright (C) 2010 Qualcomm Technologies, Inc.
   
  
    ========================================================================== */

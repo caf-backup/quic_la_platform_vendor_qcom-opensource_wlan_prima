@@ -8,7 +8,7 @@
 
     $Id$
 
-    Copyright (C) 2008 Qualcomm, Incorporated
+    Copyright (C) 2008 Qualcomm Technologies, Inc.
 
 
    ========================================================================== */

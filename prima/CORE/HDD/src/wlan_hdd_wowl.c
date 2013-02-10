@@ -1,9 +1,9 @@
 /*============================================================================
  * @file wlan_hdd_wowl.c
  *
- * Copyright (c) 2009 QUALCOMM Incorporated.
+ * Copyright (c) 2009 Qualcomm Technologies, Inc.
  * All Rights Reserved.
- * Qualcomm Confidential and Proprietary
+ * Qualcomm Technologies Confidential and Proprietary
  *
  * ==========================================================================*/
 

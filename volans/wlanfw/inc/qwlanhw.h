@@ -13,9 +13,9 @@ DESCRIPTION:
    Qualcomm has several generations of WLAN chipsets. This file includes
    right header file for current architecture.
 
-                Copyright (c) 2008 QUALCOMM Incorporated.
+                Copyright (c) 2008 Qualcomm Technologies, Inc.
                 All Right Reserved.
-                Qualcomm Confidential and Proprietary
+                Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================

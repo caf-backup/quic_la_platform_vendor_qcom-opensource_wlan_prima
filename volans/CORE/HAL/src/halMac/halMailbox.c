@@ -15,9 +15,9 @@
      4. Mailbox0 message posting (halMbox_SendMsg)
 
 
-                  Copyright (c) 2008 QUALCOMM Incorporated.
+                  Copyright (c) 2008 Qualcomm Technologies, Inc.
                   All Right Reserved.
-                  Qualcomm Confidential and Proprietary
+                  Qualcomm Technologies Confidential and Proprietary
   ===========================================================================*/
 
 #include "palTypes.h"

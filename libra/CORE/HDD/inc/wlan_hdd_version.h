@@ -6,7 +6,7 @@
 //
 //  Author:       Larry Cawley
 // 
-//  Copyright 2007, QUALCOMM, Inc.  All rights reserved.
+//  Copyright 2007, Qualcomm Technologies, Inc.  All rights reserved.
 //
 //===================================================================
 #if !defined( __hddVersion_h__ )

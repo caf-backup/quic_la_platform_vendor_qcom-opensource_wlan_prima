@@ -12,8 +12,8 @@
 
    @brief
     This file contains the external API exposed by WLAN PAL Device specific functionalities
-    Copyright (c) 2011 Qualcomm Incorporated. All Rights Reserved
-    Qualcomm Confidential and Properietary
+    Copyright (c) 2011 Qualcomm Technologies, Inc. All Rights Reserved
+    Qualcomm Technologies Confidential and Properietary
 
  * ==================================================================================================================*/
 

@@ -7,7 +7,7 @@
 
     \author Kiran V
 
-    Copyright (C) 2007 QUALCOMM, Incorporated
+    Copyright (C) 2007 Qualcomm Technologies, Inc.
 
    ========================================================================= */
 

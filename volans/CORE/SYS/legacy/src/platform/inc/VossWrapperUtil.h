@@ -7,9 +7,9 @@
   @brief Wrapper module to allow the use of VOSS utilities without
   changes to the legacy code.
   
-  Copyright (c) 2008 QUALCOMM Incorporated.
+  Copyright (c) 2008 Qualcomm Technologies, Inc.
   All Rights Reserved.
-  Qualcomm Confidential and Proprietary
+  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 /*=========================================================================== 

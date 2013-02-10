@@ -6,7 +6,7 @@
  *
  *  @author:       Sanoop Kottontavida
  *
- *  Copyright (C) 2002 - 2008, Qualcomm, Inc. All rights reserved.
+ *  Copyright (C) 2002 - 2008, Qualcomm Technologies, Inc. All rights reserved.
  *
  *  Change History:
  * ---------------------------------------

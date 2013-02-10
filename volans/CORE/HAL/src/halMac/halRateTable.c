@@ -1,5 +1,5 @@
 /*
- * Qualcomm Inc proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc. proprietary. All rights reserved.
  * halRateTables.c:  Contains All rete information and access functions.
  * Author:    Arul Vasantharaj
  * Date:      05/14/2008

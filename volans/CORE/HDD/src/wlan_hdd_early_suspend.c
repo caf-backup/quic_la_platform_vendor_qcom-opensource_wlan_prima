@@ -10,9 +10,9 @@
 *     \brief      power management functions
 *
 *     Description
-*                 Copyright 2009 (c) Qualcomm, Incorporated.
+*                 Copyright 2009 (c) Qualcomm Technologies, Inc.
 *                 All Rights Reserved.
-*                 Qualcomm Confidential and Proprietary.
+*                 Qualcomm Technologies Confidential and Proprietary.
 *
 ==============================================================================**/
 /* $HEADER$ */

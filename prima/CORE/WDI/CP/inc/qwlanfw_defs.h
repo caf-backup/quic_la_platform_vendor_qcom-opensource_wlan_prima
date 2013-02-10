@@ -6,7 +6,7 @@
  *
  *  @author:   Gagan Jain
  *
- *             Copyright (C) 2010, Qualcomm, Inc. 
+ *             Copyright (C) 2010, Qualcomm Technologies, Inc. 
  *             All rights reserved.
  *
  *=========================================================================*/

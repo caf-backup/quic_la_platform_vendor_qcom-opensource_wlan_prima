@@ -3,9 +3,9 @@
  * Description: This file contains all the interface functions to
  *              interact with the BTC module in firmware
  *
- * Copyright (c) 2008 QUALCOMM Incorporated.
+ * Copyright (c) 2008 Qualcomm Technologies, Inc.
  * All Rights Reserved.
- * Qualcomm Confidential and Proprietary
+ * Qualcomm Technologies Confidential and Proprietary
  *
  *
  * History:

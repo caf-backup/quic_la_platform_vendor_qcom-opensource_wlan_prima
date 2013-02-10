@@ -1,5 +1,5 @@
 /*
- * Qualcomm, Inc proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc. proprietary. All rights reserved.
  *
  * Author:      Dinesh Upadhyay
  * Date:        8/3/07

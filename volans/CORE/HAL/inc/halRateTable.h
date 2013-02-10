@@ -1,5 +1,5 @@
 /*
- * Qualcomm Inc proprietary. All rights reserved.
+ * Qualcomm Technologies, Inc. proprietary. All rights reserved.
  * halRateTable.h:  Provides APIs for rate table setup and access
  * Author:    Arul Vasantharaj
  * Date:      05/14/2008
@@ -587,7 +587,7 @@
 #define HALRATE_IS_HT20_SGI(halRate)  (gHalRateInfo[(halRate)].rateProperty & (RA_HT_20_SIMO_SGI))
 
 
-/* Qualcomm proprietary */
+/* Qualcomm Technologies proprietary */
 #define WLAN_DUR_TITAN_ESCORT               /* (TODO) Duration of escort packet */
 #define WLAN_DUR_TITAN20_STF            8
 #define WLAN_DUR_TITAN20_LTF            8

@@ -2,9 +2,9 @@
  * File:        halFw.h
  * Description: This file contains the FW file to be used int the host software
  *
- * Copyright (c) 2008 QUALCOMM Incorporated.
+ * Copyright (c) 2008 Qualcomm Technologies, Inc.
  * All Rights Reserved.
- * Qualcomm Confidential and Proprietary
+ * Qualcomm Technologies Confidential and Proprietary
  *
  *
  * History:
