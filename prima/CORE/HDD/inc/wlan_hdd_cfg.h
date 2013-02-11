@@ -1562,6 +1562,7 @@ typedef enum
 #define CFG_VHT_SU_BEAMFORMEE_CAP_FEATURE_DEFAULT ( WNI_CFG_VHT_SU_BEAMFORMEE_CAP_STADEF )
 #endif
 
+
 /*
  * SAP ALLOW All Channels
  */
@@ -1571,6 +1572,12 @@ typedef enum
 #define CFG_SAP_ALLOW_ALL_CHANNEL_PARAM_DEFAULT       ( 0 )
 
 
+#ifdef WLAN_FEATURE_11AC
+#define CFG_DISABLE_LDPC_WITH_TXBF_AP             "gDisableLDPCWithTxbfAP"
+#define CFG_DISABLE_LDPC_WITH_TXBF_AP_MIN         ( 0 )
+#define CFG_DISABLE_LDPC_WITH_TXBF_AP_MAX         ( 1 )
+#define CFG_DISABLE_LDPC_WITH_TXBF_AP_DEFAULT     ( 1 )
+#endif
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1920,6 +1927,7 @@ typedef struct
    v_U32_t                     enableLpwrImgTransition;
    v_U8_t                      scanAgingTimeout;
    v_BOOL_t                    enableTxLdpc;
+   v_U8_t                      disableLDPCWithTxbfAP;
    v_U8_t                      enableMCCAdaptiveScheduler;
    v_BOOL_t                    isAndroidPsEn;
    v_BOOL_t                    sapAllowAllChannel;
