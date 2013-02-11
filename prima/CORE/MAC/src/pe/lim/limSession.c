@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  * */
@@ -154,6 +154,10 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             pMac->lim.gpSession[i].htSupportedChannelWidthSet = 0;
             pMac->lim.gpSession[i].htRecommendedTxWidthSet = 0;
             pMac->lim.gpSession[i].htSecondaryChannelOffset = 0;
+#ifdef FEATURE_WLAN_TDLS
+            palZeroMemory(pMac->hHdd, pMac->lim.gpSession[i].peerAIDBitmap,
+                  sizeof(pMac->lim.gpSession[i].peerAIDBitmap));
+#endif
             return(&pMac->lim.gpSession[i]);
         }
     }
