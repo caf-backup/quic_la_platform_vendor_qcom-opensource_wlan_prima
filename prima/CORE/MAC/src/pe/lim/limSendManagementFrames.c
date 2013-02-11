@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -2650,8 +2650,8 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     }
     nAddIELen = psessionEntry->pLimReAssocReq->addIEAssoc.length; 
     pAddIE = psessionEntry->pLimReAssocReq->addIEAssoc.addIEdata;
-    limLog( pMac, LOGE, FL("limSendReassocReqWithFTIEsMgmtFrame received in " 
-                           "state (%d).\n"), psessionEntry->limMlmState);
+    limLog( pMac, LOG1, FL("limSendReassocReqWithFTIEsMgmtFrame received in "
+                           "state (%d)."), psessionEntry->limMlmState);
 
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
@@ -2861,7 +2861,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     nBytes = nPayload + sizeof( tSirMacMgmtHdr ) + nAddIELen;
 
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
-    limLog( pMac, LOGE, FL("FT IE Reassoc Req (%d).\n"), 
+    limLog( pMac, LOG1, FL("FT IE Reassoc Req (%d)."),
             pMac->ft.ftSmeContext.reassoc_ft_ies_length);
 #endif
 
@@ -2888,7 +2888,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     palZeroMemory( pMac->hHdd, pFrame, nBytes + ft_ies_length);
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
-    limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOGE);
+    limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOG1);
 #endif
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
