@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -321,7 +321,8 @@ enum eWniMsgTypes
     eWNI_SME_TDLS_ADD_STA_REQ,    
     eWNI_SME_TDLS_ADD_STA_RSP,    
     eWNI_SME_TDLS_DEL_STA_REQ,    
-    eWNI_SME_TDLS_DEL_STA_RSP,    
+    eWNI_SME_TDLS_DEL_STA_RSP,
+    eWNI_SME_TDLS_DEL_STA_IND,
 #endif
     //NOTE: If you are planning to add more mesages, please make sure that 
     //SIR_LIM_ITC_MSG_TYPES_BEGIN is moved appropriately. It is set as
