@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved. 
 * Qualcomm Atheros Confidential and Proprietary. 
 */
@@ -3008,7 +3008,7 @@ void limProcessQuietTimeout(tpAniSirGlobal pMac)
           limLog( pMac, LOGE,
             FL("Unable to change gLimQuietBssTimer! Will still attempt to activate anyway...\n"));
       }
-      MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_QUIET_BSS_TIMER));
+      MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, pMac->lim.limTimers.gLimQuietTimer.sessionId, eLIM_QUIET_BSS_TIMER));
 #ifdef GEN6_TODO
         /* revisit this piece of code to assign the appropriate sessionId below
          * priority - HIGH
@@ -7014,7 +7014,7 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac, tpPESession psessionE
 
         if (val > 0 && TX_TIMER_VALID(pMac->lim.limTimers.gLimBackgroundScanTimer))
         {
-            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_BACKGROUND_SCAN_TIMER));
+            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_BACKGROUND_SCAN_TIMER));
             if(tx_timer_activate(&pMac->lim.limTimers.gLimBackgroundScanTimer) != TX_SUCCESS)
             {
                 limLog(pMac, LOGP, FL("Could not restart background scan timer, doing LOGP"));
@@ -7027,7 +7027,7 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac, tpPESession psessionE
     /* Enable heartbeat timer */
     if (TX_TIMER_VALID(pMac->lim.limTimers.gLimHeartBeatTimer))
     {
-        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_HEART_BEAT_TIMER));
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_HEART_BEAT_TIMER));
         if(limActivateHearBeatTimer(pMac) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Could not restart heartbeat timer, doing LOGP"));

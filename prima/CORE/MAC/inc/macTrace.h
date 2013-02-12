@@ -1,10 +1,14 @@
 /**=========================================================================
 
-  \file  macTrace.h
+* Copyright (c) 2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
 
-  \brief definition for trace related APIs
+*  \file  macTrace.h
 
-  \author Sunit Bhatia
+*  \brief definition for trace related APIs
+
+   \author Sunit Bhatia   
 
    Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
 
@@ -31,7 +35,7 @@
 
 typedef struct  sTraceRecord
 {
-    tANI_U16 time;
+    tANI_U32 time;
     tANI_U8 module;
     tANI_U8 code;
     tANI_U8 session;
@@ -40,10 +44,9 @@ typedef struct  sTraceRecord
 
 
 
-#define MAX_TRACE_RECORDS 500
+#define MAX_TRACE_RECORDS 2000
 #define INVALID_TRACE_ADDR 0xffffffff
-#define DEFAULT_TRACE_DUMP_COUNT 200
-
+#define DEFAULT_TRACE_DUMP_COUNT 0
 
 
 typedef void (*tpTraceCb)(tpAniSirGlobal, tpTraceRecord, tANI_U16);
@@ -75,9 +78,11 @@ void macTraceCfg(tpAniSirGlobal pMac, tANI_U32 enable, tANI_U32 dumpWhenFull, tA
 void macTraceRegister( tpAniSirGlobal pMac, VOS_MODULE_ID moduleId,    tpTraceCb traceCb);
 tANI_U8* macTraceGetCfgMsgString( tANI_U16 cfgMsg );
 tANI_U8* macTraceGetLimMsgString( tANI_U16 limMsg );
-tANI_U8* macTraceGetHalMsgString( tANI_U16 halMsg );
+tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg );
 tANI_U8* macTraceGetSmeMsgString( tANI_U16 smeMsg );
 tANI_U8* macTraceGetModuleString( tANI_U8 moduleId);
+eHalStatus pe_AcquireGlobalLock( tAniSirLim *psPe);
+eHalStatus pe_ReleaseGlobalLock( tAniSirLim *psPe);
 
 
 
