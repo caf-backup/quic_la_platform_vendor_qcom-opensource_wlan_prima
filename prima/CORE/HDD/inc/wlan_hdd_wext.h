@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -300,10 +300,8 @@ extern int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter,
                                       union iwreq_data *wrqu);
 extern int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter,
                                       union iwreq_data *wrqu);
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-extern int hdd_wlan_get_version(hdd_adapter_t *pAdapter,
-                                union iwreq_data *wrqu, char *extra);
-#endif
+extern void hdd_wlan_get_version(hdd_adapter_t *pAdapter,
+                                 union iwreq_data *wrqu, char *extra);
 
 extern int iw_get_scan(struct net_device *dev, 
                        struct iw_request_info *info,
