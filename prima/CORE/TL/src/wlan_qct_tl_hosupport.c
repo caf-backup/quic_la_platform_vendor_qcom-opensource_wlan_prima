@@ -189,7 +189,14 @@ void WLANTLPrintPktsRcvdPerRateIdx(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t fl
         return;
     }
 
-    if(tlCtxt->atlSTAClients[staId].ucExists == 0)
+    if(NULL == tlCtxt->atlSTAClients[staId])
+    {
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Client Memory was not allocated on %s", __func__));
+        return;
+    }
+
+    if(0 == tlCtxt->atlSTAClients[staId]->ucExists )
     {
         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLAN TL: %d STA ID does not exist", staId));
         return;
@@ -201,7 +208,7 @@ void WLANTLPrintPktsRcvdPerRateIdx(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t fl
                          "flushed rateIdx counters"));
 
         for(ii = 0; ii < MAX_RATE_INDEX; ii++)
-            tlCtxt->atlSTAClients[staId].trafficStatistics.pktCounterRateIdx[ii] = 0;
+            tlCtxt->atlSTAClients[staId]->trafficStatistics.pktCounterRateIdx[ii] = 0;
 
         return;
     }
@@ -214,7 +221,7 @@ void WLANTLPrintPktsRcvdPerRateIdx(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t fl
          * " rateIndex = pktCount "*/
         TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                          "%d = %ld", ii+1,
-                         tlCtxt->atlSTAClients[staId].trafficStatistics.pktCounterRateIdx[ii]));
+                         tlCtxt->atlSTAClients[staId]->trafficStatistics.pktCounterRateIdx[ii]));
     }
 
     return;
@@ -232,7 +239,14 @@ void WLANTLPrintPktsRcvdPerRssi(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t flush
         return;
     }
 
-    if(tlCtxt->atlSTAClients[staId].ucExists == 0)
+    if(NULL == tlCtxt->atlSTAClients[staId])
+    {
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Client Memory was not allocated on %s", __func__));
+        return;
+    }
+
+    if(0 == tlCtxt->atlSTAClients[staId]->ucExists)
     {
         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLAN TL: %d STA ID does not exist", staId));
         return;
@@ -244,7 +258,7 @@ void WLANTLPrintPktsRcvdPerRssi(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t flush
                          "flushed rssi counters"));
 
         for(ii = 0; ii < MAX_NUM_RSSI; ii++)
-            tlCtxt->atlSTAClients[staId].trafficStatistics.pktCounterRssi[ii] = 0;
+            tlCtxt->atlSTAClients[staId]->trafficStatistics.pktCounterRssi[ii] = 0;
 
         return;
     }
@@ -256,7 +270,7 @@ void WLANTLPrintPktsRcvdPerRssi(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t flush
         count = 0;
 
         for(jj = ii; jj < (ii + MAX_RSSI_INTERVAL); jj++)
-            count += tlCtxt->atlSTAClients[staId].trafficStatistics.pktCounterRssi[jj];
+            count += tlCtxt->atlSTAClients[staId]->trafficStatistics.pktCounterRssi[jj];
 
         /* prints are in the below format
          * " fromRSSI - toRSSI = pktCount " */
@@ -264,7 +278,6 @@ void WLANTLPrintPktsRcvdPerRssi(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t flush
                          " %d - %d = %ld",
                          ii, ii+(MAX_RSSI_INTERVAL - 1), count));
     }
-
     return;
 }
 #endif
@@ -492,19 +505,27 @@ VOS_STATUS WLANTL_StatHandleRXFrame
       return VOS_STATUS_E_INVAL;
    }
 
+   if ( NULL == tlCtxt->atlSTAClients[STAid] )
+   {
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+           "WLAN TL:Client Memory was not allocated on %s", __func__));
+       return VOS_STATUS_E_FAILURE;
+   }
+
+
    if(NULL == dataBuffer)
    {
       TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Management Frame, not need to handle with Stat"));
       return status;
    }
 
-   if(0 == tlCtxt->atlSTAClients[STAid].ucExists)
+   if(0 == tlCtxt->atlSTAClients[STAid]->ucExists)
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLAN TL: %d STA ID is not exist", STAid));
       return VOS_STATUS_E_INVAL;
    }
 
-   statistics = &tlCtxt->atlSTAClients[STAid].trafficStatistics;
+   statistics = &tlCtxt->atlSTAClients[STAid]->trafficStatistics;
    vos_pkt_get_packet_length(dataBuffer, &packetSize);
 
    if(isBroadcast)
@@ -563,14 +584,13 @@ VOS_STATUS WLANTL_StatHandleRXFrame
 
 #ifdef WLANTL_DEBUG
    if( (statistics->rxRate - 1) < MAX_RATE_INDEX)
-     tlCtxt->atlSTAClients[STAid].trafficStatistics.pktCounterRateIdx[statistics->rxRate - 1]++;
+     tlCtxt->atlSTAClients[STAid]->trafficStatistics.pktCounterRateIdx[statistics->rxRate - 1]++;
 
    /* Check if the +ve value of RSSI is within the valid range.
     * And increment pkt counter based on RSSI */
    if( (v_U16_t)((WDA_GET_RX_RSSI_DB(pBDHeader)) * (-1)) < MAX_NUM_RSSI)
-     tlCtxt->atlSTAClients[STAid].trafficStatistics.pktCounterRssi[(v_U16_t)((WDA_GET_RX_RSSI_DB(pBDHeader)) * (-1))]++;
+     tlCtxt->atlSTAClients[STAid]->trafficStatistics.pktCounterRssi[(v_U16_t)((WDA_GET_RX_RSSI_DB(pBDHeader)) * (-1))]++;
 #endif
-
    TLLOG1(VOS_TRACE (VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_MED,
                   "****Received rate Index = %ld type=%d subtype=%d****\n",
                   statistics->rxRate,WDA_GET_RX_TYPE(pBDHeader),WDA_GET_RX_SUBTYPE(pBDHeader)));
@@ -617,14 +637,21 @@ VOS_STATUS WLANTL_StatHandleTXFrame
       return VOS_STATUS_E_INVAL;
    }
 
-   if(0 == tlCtxt->atlSTAClients[STAid].ucExists)
+   if ( NULL == tlCtxt->atlSTAClients[STAid] )
+   {
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+           "WLAN TL:Client Memory was not allocated on %s", __func__));
+       return VOS_STATUS_E_FAILURE;
+   }
+
+   if(0 == tlCtxt->atlSTAClients[STAid]->ucExists)
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLAN TL: %d STA ID is not exist", STAid));
       return VOS_STATUS_E_INVAL;
    }
 
    /* TODO : BC/MC/UC have to be determined by MAC address */
-   statistics = &tlCtxt->atlSTAClients[STAid].trafficStatistics;
+   statistics = &tlCtxt->atlSTAClients[STAid]->trafficStatistics;
    vos_pkt_get_packet_length(dataBuffer, &packetSize);
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    if(txMetaInfo->ucBcast)
@@ -802,6 +829,13 @@ VOS_STATUS WLANTL_HSGetRSSI
       return VOS_STATUS_E_INVAL;
    }
 
+   if ( NULL == tlCtxt->atlSTAClients[STAid] )
+   {
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+           "WLAN TL:Client Memory was not allocated on %s", __func__));
+       return VOS_STATUS_E_FAILURE;
+   }
+
    /* 
       Compute RSSI only for the last MPDU of an AMPDU.
       Only last MPDU carries the Phy Stats Values 
@@ -847,7 +881,7 @@ VOS_STATUS WLANTL_HSGetRSSI
 #endif
 
 
-   tlCtxt->atlSTAClients[STAid].rssiAvg = *currentAvgRSSI;
+   tlCtxt->atlSTAClients[STAid]->rssiAvg = *currentAvgRSSI;
 
    TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Current new RSSI is %d, averaged RSSI is %d", currentRSSI, *currentAvgRSSI));
    return status;
