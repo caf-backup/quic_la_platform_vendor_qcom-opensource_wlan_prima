@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -4585,7 +4585,7 @@ eHalStatus sme_QosProcessHandoffAssocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId
 #ifdef WLAN_FEATURE_VOWIFI_11R
             if(pSession->ftHandoffInProgress)
             {
-               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                          "%s: %d: SME_QOS_CSR_HANDOFF_ASSOC_REQ received in "
                          "SME_QOS_HANDOFF state with FT in progress"
                          , __func__, __LINE__); 
