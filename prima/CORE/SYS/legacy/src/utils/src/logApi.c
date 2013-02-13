@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -7,13 +7,13 @@
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * logApi.cc - Handles log messages for all the modules.
- * Author:        Kevin Nguyen    
+ * Author:        Kevin Nguyen
  * Date:          02/27/02
  * History:-
  * 02/11/02       Created.
  * 03/12/02       Rearrange logDebug parameter list and add more params.
  * --------------------------------------------------------------------
- * 
+ *
  */
 #define WNI_PRINT_DEBUG
 
@@ -88,11 +88,7 @@ logInit(tpAniSirGlobal pMac)
 #ifdef SIR_DEBUG
         pMac->utils.gLogEvtLevel[i] = pMac->utils.gLogDbgLevel[i] = LOG1;
 #else
-#ifdef LX5280
-        pMac->utils.gLogEvtLevel[i] = pMac->utils.gLogDbgLevel[i] = LOGE;
-#else
         pMac->utils.gLogEvtLevel[i] = pMac->utils.gLogDbgLevel[i] = LOGW;
-#endif
 #endif
     }
     return eSIR_SUCCESS;

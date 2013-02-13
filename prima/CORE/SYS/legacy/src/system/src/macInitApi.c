@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * macInitApi.c - This file has all the mac level init functions
@@ -291,26 +291,6 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     /** Store the Driver type in pMac Global.*/
     //pMac->gDriverType = pMacOpenParms->driverType;
 
-#ifndef GEN6_ONWARDS
-#ifdef RTL8652
-    {
-        //Leverage 8651c's on-chip data scratchpad memory to lock all HAL DxE data there
-        extern void * rtlglue_alloc_data_scratchpad_memory(unsigned int size, char *);
-        pMac->hal.pHalDxe = (tpAniHalDxe) rtlglue_alloc_data_scratchpad_memory(sizeof(tAniHalDxe),  "halDxe");
-    }
-    if(pMac->hal.pHalDxe){
-        ;
-    }else
-#endif
-    /* Allocate HalDxe */
-    if (palAllocateMemory(hHdd, ((void **)&pMac->hal.pHalDxe), sizeof(tAniHalDxe)) != eHAL_STATUS_SUCCESS){
-        palFreeMemory(hHdd, pMac);
-        return eSIR_FAILURE;
-    }
-    /* Initialize the HalDxe structure */
-    palZeroMemory(hHdd, pMac->hal.pHalDxe, sizeof(tAniHalDxe));
-#endif //GEN6_ONWARDS
-
     /*
      * Set various global fields of pMac here
      * (Could be platform dependant as some variables in pMac are platform
@@ -368,18 +348,6 @@ tSirRetStatus macClose(tHalHandle hHal)
 {
 
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-
-#ifndef GEN6_ONWARDS
-    if(pMac->hal.pHalDxe){
-#ifdef RTL8652
-        extern void * rtlglue_is_data_scratchpad_memory(void *);
-        if(rtlglue_is_data_scratchpad_memory(pMac->hal.pHalDxe))
-            ;
-        else
-#endif
-            palFreeMemory(pMac, pMac->hal.pHalDxe);
-    }
-#endif //GEN6_ONWARDS
 
     peClose(pMac);
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC

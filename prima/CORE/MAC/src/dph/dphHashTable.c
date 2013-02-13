@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file dphHashTable.cc implements the member functions of
@@ -260,10 +260,6 @@ tpDphHashNode dphInitStaState(tpAniSirGlobal pMac, tSirMacAddr staAddr,
 
     pStaDs->added = 1;
     pStaDs->encPolicy = HAL_ENC_POLICY_NULL;
-
-#if defined( PLM_WDS)&&defined(LX5280)
-    pStaDs->wdsIndex=pStaDs->wdsPeerBeaconSeen=0;
-#endif
 
 #ifdef WMM_APSD
     pStaDs->stopQueue = 0;
