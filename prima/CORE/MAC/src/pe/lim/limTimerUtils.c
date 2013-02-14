@@ -1,7 +1,7 @@
 /*
 * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved. 
-* Qualcomm Atheros Confidential and Proprietary. 
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
 */
 
 /*
@@ -88,11 +88,6 @@ limCreateTimers(tpAniSirGlobal pMac)
         limLog(pMac, LOGP, FL("could not create MIN channel timer\n"));
         return TX_TIMER_ERROR;
     }
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-    tx_timer_set_expiry_list(
-             &pMac->lim.limTimers.gLimMinChannelTimer, LIM_TIMER_EXPIRY_LIST);
-#endif
-
     PELOG2(limLog(pMac, LOG2, FL("Created MinChannelTimer\n"));)
 
     /* Periodic probe request timer value is half of the Min channel
@@ -142,12 +137,6 @@ limCreateTimers(tpAniSirGlobal pMac)
 
         goto err_timer;
     }
-
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-    tx_timer_set_expiry_list(
-             &pMac->lim.limTimers.gLimMaxChannelTimer, LIM_TIMER_EXPIRY_LIST);
-#endif
-
     PELOG2(limLog(pMac, LOG2, FL("Created MaxChannelTimer\n"));)
 
     if (pMac->lim.gLimSystemRole != eLIM_AP_ROLE)
@@ -239,10 +228,6 @@ limCreateTimers(tpAniSirGlobal pMac)
             limLog(pMac, LOGP, FL("could not create Periodic Join Probe Request timer\n"));
             goto err_timer;
         }
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-        tx_timer_set_expiry_list(&pMac->lim.limTimers.gLimJoinFailureTimer,
-                                 LIM_TIMER_EXPIRY_LIST);
-#endif
 
         if (wlan_cfgGetInt(pMac, WNI_CFG_ASSOCIATION_FAILURE_TIMEOUT,
                       &cfgValue) != eSIR_SUCCESS)
@@ -343,10 +328,7 @@ limCreateTimers(tpAniSirGlobal pMac)
 
             goto err_timer;
         }
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-        tx_timer_set_expiry_list(&pMac->lim.limTimers.gLimAuthFailureTimer,
-                                 LIM_TIMER_EXPIRY_LIST);
-#endif
+
         if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL,
                       &cfgValue) != eSIR_SUCCESS)
         {
@@ -402,11 +384,6 @@ limCreateTimers(tpAniSirGlobal pMac)
                    FL("unable to create ProbeAfterHBTimer\n"));
             goto err_timer;
         }
-
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-        tx_timer_set_expiry_list(&pMac->lim.limTimers.gLimProbeAfterHBTimer,
-                                 LIM_TIMER_EXPIRY_LIST);
-#endif
 
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
         if (wlan_cfgGetInt(pMac, WNI_CFG_BACKGROUND_SCAN_PERIOD,
@@ -504,11 +481,6 @@ limCreateTimers(tpAniSirGlobal pMac)
                FL("create Disassociate throttle timer failed\n"));
         goto err_timer;
     }
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-    tx_timer_set_expiry_list(
-             &pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer,
-             LIM_TIMER_EXPIRY_LIST);
-#endif
     PELOG1(limLog(pMac, LOG1,
            FL("Created Disassociate throttle timer \n"));)
 

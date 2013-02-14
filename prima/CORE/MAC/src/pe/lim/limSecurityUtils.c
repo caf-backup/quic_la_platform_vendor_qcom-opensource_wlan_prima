@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limUtils.cc contains the utility functions
  * LIM uses.
@@ -207,11 +211,6 @@ limInitPreAuthList(tpAniSirGlobal pMac)
 
             return;
         }
-
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-        tx_timer_set_expiry_list(&pMac->lim.limTimers.gLimPreAuthClnupTimer,
-                                 LIM_TIMER_EXPIRY_LIST);
-#endif
         PELOG1(limLog(pMac, LOG1,
                FL("Created pre-auth cleanup timer\n"));)
 

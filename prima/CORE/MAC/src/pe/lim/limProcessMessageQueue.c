@@ -1,7 +1,7 @@
 /*
 * Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
-* All Rights Reserved. 
-* Qualcomm Atheros Confidential and Proprietary. 
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
 */
 
 /*
@@ -228,17 +228,6 @@ limProcessMessageQueue(tpAniSirGlobal pMac)
     {
         return;
     }
-
-#if defined(ANI_OS_TYPE_RTAI_LINUX)
-    ULONG param;
-    while(get_timer_event(LIM_TIMER_EXPIRY_LIST,&param))
-    {
-        limMsg.type = (tANI_U16) param;
-        limMsg.bodyval = 0;
-        limMsg.bodyptr = NULL;
-        limMessageProcessor(pMac, &limMsg);
-    }
-#endif
 
     if (tx_queue_receive( &pMac->sys.gSirLimMsgQ, (void *) &limMsg, TX_WAIT_FOREVER)
             == TX_SUCCESS)
