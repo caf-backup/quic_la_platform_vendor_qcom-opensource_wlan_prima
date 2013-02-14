@@ -6039,6 +6039,8 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
             frm->MeasurementReport[i].present = 1;
             break;
          default:
+            frm->MeasurementReport[i].incapable = pRRMReport[i].incapable;
+            frm->MeasurementReport[i].refused = pRRMReport[i].refused;
             frm->MeasurementReport[i].present = 1;
             break;
       }
