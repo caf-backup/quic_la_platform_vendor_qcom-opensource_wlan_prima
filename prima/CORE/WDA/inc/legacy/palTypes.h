@@ -2,7 +2,7 @@
  * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
- * */
+ */
 #if !defined( PALTYPES_H__ )
 #define PALTYPES_H__
 
@@ -61,35 +61,23 @@
 //
 #if defined(ANI_BUS_TYPE_PCI)
 
-#if defined( ANI_BUS_TYPE_PCIe ) || defined( ANI_BUS_TYPE_USB ) || defined(ANI_BUS_TYPE_SDIO) || defined( ANI_BUS_TYPE_PLATFORM )
+#if defined( ANI_BUS_TYPE_PCIe ) || defined( ANI_BUS_TYPE_PLATFORM )
 #error "more than one ANI_BUS_TYPE_xxx is defined for this build"
 #endif //
 
 #elif defined( ANI_BUS_TYPE_PCIe )
 
-#if defined( ANI_BUS_TYPE_PCI ) || defined( ANI_BUS_TYPE_USB ) || defined(ANI_BUS_TYPE_SDIO) || defined( ANI_BUS_TYPE_PLATFORM )
-#error "more than one ANI_BUS_TYPE_xxx is defined for this build"
-#endif
-
-#elif defined( ANI_BUS_TYPE_USB )
-
-#if defined( ANI_BUS_TYPE_PCIe ) || defined( ANI_BUS_TYPE_PCI ) || defined(ANI_BUS_TYPE_SDIO) || defined( ANI_BUS_TYPE_PLATFORM )
-#error "more than one ANI_BUS_TYPE_xxx is defined for this build"
-#endif
-
-#elif defined( ANI_BUS_TYPE_SDIO )
-
-#if defined( ANI_BUS_TYPE_PCIe ) || defined( ANI_BUS_TYPE_USB ) || defined(ANI_BUS_TYPE_PCI) || defined( ANI_BUS_TYPE_PLATFORM )
+#if defined( ANI_BUS_TYPE_PCI ) || defined( ANI_BUS_TYPE_PLATFORM )
 #error "more than one ANI_BUS_TYPE_xxx is defined for this build"
 #endif
 
 #elif defined( ANI_BUS_TYPE_PLATFORM )
 
-#if defined( ANI_BUS_TYPE_PCIe ) || defined( ANI_BUS_TYPE_USB ) || defined(ANI_BUS_TYPE_PCI) || defined( ANI_BUS_TYPE_SDIO )
+#if defined( ANI_BUS_TYPE_PCIe ) || defined(ANI_BUS_TYPE_PCI)
 #error "more than one ANI_BUS_TYPE_xxx is defined for this build"
 #endif
 
-#elif !( defined( ANI_BUS_TYPE_PCIe ) || defined( ANI_BUS_TYPE_USB ) || defined(ANI_BUS_TYPE_PCI) || defined(ANI_BUS_TYPE_SDIO) || defined( ANI_BUS_TYPE_PLATFORM ) )
+#elif !( defined( ANI_BUS_TYPE_PCIe ) || defined(ANI_BUS_TYPE_PCI) || defined( ANI_BUS_TYPE_PLATFORM ) )
 
 #error "NONE of the ANI_BUS_TYPE_xxx are defined for this build"
 
