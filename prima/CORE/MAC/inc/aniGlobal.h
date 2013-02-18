@@ -45,7 +45,6 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 #include "halGlobal.h"
 #include "halDataStruct.h"
-#include "phyGlobal.h"
 #include "pttModule.h"
 #endif
 
@@ -1034,15 +1033,10 @@ typedef struct sAniSirGlobal
     tSirMbMsg*   pResetMsg;
     tAniSirCfg   cfg;
     tAniSirLim   lim;
-    //tAniSirDph   dph;
     tAniSirPmm   pmm;
     tAniSirSch   sch;
     tAniSirSys   sys;
     tAniSirUtils utils;
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-    tAniSirHal   hal;
-    tAniSirPhy   hphy;
-#endif 
 
 #ifndef WLAN_FTM_STUB 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
