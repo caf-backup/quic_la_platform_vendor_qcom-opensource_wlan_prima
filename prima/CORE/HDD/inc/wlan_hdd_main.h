@@ -39,6 +39,9 @@
 #ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
 #endif
+#ifdef FEATURE_WLAN_TDLS
+#include "wlan_hdd_tdls.h"
+#endif
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
@@ -915,6 +918,10 @@ struct hdd_context_s
    v_BOOL_t is_dynamic_channel_range_set;
 
    struct wake_lock sap_wake_lock;
+
+#ifdef FEATURE_WLAN_TDLS
+    eTDLSSupportMode tdls_mode;
+#endif
 };
 
 
