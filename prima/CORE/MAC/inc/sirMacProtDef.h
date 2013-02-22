@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved. 
 * Qualcomm Atheros Confidential and Proprietary. 
 */
@@ -1262,12 +1262,7 @@ typedef __ani_attr_pre_packed struct sSirMacTspecIE
     tANI_U16            surplusBw;
     tANI_U16            mediumTime;
 }
-#ifndef LX5280
-__ani_attr_packed
-#else
-__ani_attr_aligned_4  __ani_attr_packed
-#endif
-tSirMacTspecIE;
+__ani_attr_packed tSirMacTspecIE;
 
 // max size of the classifier params in the tclas IE
 #define SIR_MAC_CLSPARAM_LEN 253
