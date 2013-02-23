@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 #if !defined( WLAN_QCT_SYS_H__ )
 #define WLAN_QCT_SYS_H__
 
@@ -313,7 +319,6 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t* pMsg );
   --------------------------------------------------------------------------*/
 VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 /*----------------------------------------------------------------------------
 
   \brief sysTxProcessMsg() - process SYS messages on the Rx thread
@@ -345,7 +350,6 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
 
   --------------------------------------------------------------------------*/
 VOS_STATUS sysRxProcessMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
-#endif
 
 /*----------------------------------------------------------------------------
 

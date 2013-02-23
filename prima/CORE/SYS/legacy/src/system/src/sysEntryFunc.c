@@ -1,7 +1,7 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
 */
 
 /*
@@ -31,9 +31,6 @@
 #include "sysDef.h"
 #include "sysEntryFunc.h"
 #include "sysStartup.h"
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halMacSecurityApi.h"
-#endif
 #include "limTrace.h"
 #include "wlan_qct_wda.h"
 
@@ -84,45 +81,11 @@ sysInitGlobals(tpAniSirGlobal pMac)
     pMac->sys.fTestRadar                = false;
     pMac->sys.radarDetected             = false;
     pMac->sys.gSysdropLimPkts           = false;
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-    if(eHAL_STATUS_SUCCESS != halGlobalInit(pMac))
-        return eSIR_FAILURE;
-#endif
     schInitGlobals(pMac);
 
     return eSIR_SUCCESS;
 }
 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-
-
-// ---------------------------------------------------------------------------
-/**
- * sysIsLearnScanModeFrame
- *
- * FUNCTION:
- * Determine whether the received frame was received in learn/scan mode
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- *
- * NOTE:
- *
- * @param pFrame
- * @return true if frame was received in learn/scan mode
- *         false otherwise
- */
-
-static inline tANI_U8
-sysIsLearnScanModeFrame(tpHalBufDesc pBd)
-{
-    if( SIR_MAC_BD_TO_SCAN_LEARN(pBd) )
-         return 1;
-    else
-        return 0;
-}
-#endif
 // ---------------------------------------------------------------------------
 /**
  * sysBbtProcessMessageCore
@@ -191,15 +154,15 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
         */
        v_U16_t ethType = 0 ;
        v_U8_t *mpduHdr =  NULL ;
-       v_U8_t *ethTypeOffset = NULL ; 
-       
+       v_U8_t *ethTypeOffset = NULL ;
+
        /*
         * Peek into payload and extract ethtype.
         * In TDLS we can recieve TDLS frames with MAC HEADER (802.11) and also
         * without MAC Header (Particularly TDLS action frames on direct link.
         */
        mpduHdr = (v_U8_t *)WDA_GET_RX_MAC_HEADER(pBd) ;
-       
+
 #define SIR_MAC_ETH_HDR_LEN                       (14)
        if(0 != WDA_GET_RX_FT_DONE(pBd))
        {
@@ -207,15 +170,15 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
        }
        else
        {
-           ethTypeOffset = mpduHdr + WDA_GET_RX_MPDU_HEADER_LEN(pBd) 
-                                                     + RFC1042_HDR_LENGTH ; 
+           ethTypeOffset = mpduHdr + WDA_GET_RX_MPDU_HEADER_LEN(pBd)
+                                                     + RFC1042_HDR_LENGTH ;
        }
-       
+
        ethType = GET_BE16(ethTypeOffset) ;
        if(ETH_TYPE_89_0d == ethType)
        {
-       
-           VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, 
+
+           VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                                                    ("TDLS Data Frame \n")) ;
            /* Post the message to PE Queue */
            PELOGE(sysLog(pMac, LOGE, FL("posting to TDLS frame to lim\n"));)
@@ -227,11 +190,11 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                                                         ret %d\n"), ret);)
                goto fail;
            }
-           else 
+           else
                return eSIR_SUCCESS;
        }
        /* fall through if ethType != TDLS, which is error case */
-#endif            
+#endif
 #ifdef FEATURE_WLAN_CCX
         PELOGW(sysLog(pMac, LOGW, FL("IAPP Frame...\n")););
         //Post the message to PE Queue

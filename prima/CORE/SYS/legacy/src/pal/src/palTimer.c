@@ -1,28 +1,27 @@
-/** 
-  
+/**
+
     \file palTimer.c
-  
+
     \brief Implemenation of the Platform Abstracion Layer timer functions
-  
-    $Id$ 
-  
-  
-    Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
-    All Rights Reserved. 
-    Qualcomm Atheros Confidential and Proprietary. 
+
+    $Id$
+
+
+    Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+    All Rights Reserved.
+    Qualcomm Atheros Confidential and Proprietary.
 
     Copyright (C) 2006 Airgo Networks, Incorporated
-  
-    This file contains function implementations for the Platform Abstration Layer.    
-  
+
+    This file contains function implementations for the Platform
+    Abstration Layer.
+
  */
 
 #include <halTypes.h>
 #include <palTimer.h>
 #include <vos_timer.h>
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include <vos_memory.h>
-#endif
 
 typedef struct sPalTimer
 {   

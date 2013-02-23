@@ -9,9 +9,9 @@
     $Id$
 
 
-    Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
-    All Rights Reserved. 
-    Qualcomm Atheros Confidential and Proprietary. 
+    Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+    All Rights Reserved.
+    Qualcomm Atheros Confidential and Proprietary.
 
     Copyright (C) 2006 Airgo Networks, Incorporated
 
@@ -124,7 +124,7 @@ typedef struct
     tANI_U32 chPriority;        // Channel Priority 7(Highest) - 0(Lowest)
     tANI_BOOLEAN bCfged;        //whether the pipe has been configured
     tANI_U32 indexEP;     //This is for USB only, it is the index of TX/RX endpoint, TX_DATA_PIPE_OUT...
-    tANI_U32 bmuThreshold; //BMU threshold 
+    tANI_U32 bmuThreshold; //BMU threshold
     // For PAL's internal use
     void *pReserved1;
     void *pReserved2;
@@ -147,10 +147,5 @@ eHalStatus palPipeCfg(tHddHandle, ePipes pipe, sPipeCfg *pPipeCfg);
 eHalStatus palWriteFrame(tHddHandle, ePipes pipe, sTxFrameTransfer *frame);
 eHalStatus palFreeRxFrame(tHddHandle, sRxFrameTransfer *frame);
 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halInterrupts.h"
-eHalStatus palTxPipeIsr(tHalHandle hHal, eHalIntSources intSource);
-eHalStatus palRxPipeIsr(tHalHandle hHal, eHalIntSources intSource);
-#endif
 
 #endif
