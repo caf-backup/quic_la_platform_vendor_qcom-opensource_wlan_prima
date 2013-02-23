@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -31,7 +31,6 @@
 #define SIR_MAX_NUM_STA_IN_IBSS 16
 #define SIR_MAX_NUM_STA_IN_BSS  256
 
-#if defined( FEATURE_WLAN_INTEGRATED_SOC )
 typedef enum
 {
     PHY_SINGLE_CHANNEL_CENTERED     = 0,        // 20MHz IF bandwidth centered on IF carrier
@@ -48,7 +47,6 @@ typedef enum
 #endif
     PHY_CHANNEL_BONDING_STATE_MAX   = 11
 }ePhyChanBondState;
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 #define SIR_MIN(a,b)   (((a) < (b)) ? (a) : (b))
 #define SIR_MAX(a,b)   (((a) > (b)) ? (a) : (b))
@@ -478,10 +476,8 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_SET_LINK_STATE_RSP             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 165)
 
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #define SIR_HAL_WLAN_SUSPEND_IND               (SIR_HAL_ITC_MSG_TYPES_BEGIN + 166)
 #define SIR_HAL_WLAN_RESUME_REQ                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 167)
-#endif
 
 /// PE <-> HAL Keep Alive message
 #define SIR_HAL_SET_KEEP_ALIVE             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 168)

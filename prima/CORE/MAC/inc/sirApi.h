@@ -1150,7 +1150,6 @@ typedef enum eSirBpIndicatorType
 
 #endif
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 /// Definition for Join/Reassoc info - Reshmi: need to check if this is a def which moved from elsehwere.
 typedef struct sJoinReassocInfo
 {
@@ -1159,7 +1158,6 @@ typedef struct sJoinReassocInfo
     tSirMacPowerCapInfo powerCap;
     tSirSupChnl         supportedChannels;
 } tJoinReassocInfo, *tpJoinReassocInfo;
-#endif
 
 /// Definition for join request
 /// ---> MAC
@@ -3787,7 +3785,6 @@ typedef struct sSirNoAParam
 }tSirNoAParam, *tpSirNoAParam;
 #endif
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 typedef struct sSirWlanSuspendParam
 {
     tANI_U8 configuredMcstBcstFilterSetting;
@@ -3803,7 +3800,6 @@ typedef struct sSirWlanSetRxpFilters
     tANI_U8 configuredMcstBcstFilterSetting;
     tANI_U8 setMcstBcstFilter;
 }tSirWlanSetRxpFilters,*tpSirWlanSetRxpFilters;
-#endif
 
 
 #ifdef FEATURE_WLAN_SCAN_PNO

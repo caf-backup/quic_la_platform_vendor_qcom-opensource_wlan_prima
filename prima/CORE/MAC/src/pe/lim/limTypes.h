@@ -24,12 +24,7 @@
 #include "sirMacProtDef.h"
 #include "utilsApi.h"
 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halCommonApi.h"
-#endif 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include "wlan_qct_wdi_ds.h"
-#endif
 
 #include "limApi.h"
 #include "limDebug.h"

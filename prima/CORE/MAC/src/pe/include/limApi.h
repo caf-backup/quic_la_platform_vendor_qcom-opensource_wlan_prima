@@ -28,9 +28,7 @@
 #include "utilsApi.h"
 #include "limGlobal.h"
 #include "halMsgApi.h"
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include "wlan_qct_wdi_ds.h"
-#endif
 #include "wlan_qct_wda.h"
 #define LIM_POL_SYS_SCAN_MODE      0
 #define LIM_POL_SYS_LEARN_MODE     1
@@ -88,9 +86,7 @@ extern void limPostTdDummyPktCallbak(void* pMacGlobals, unsigned int* pBd);
 extern tSirRetStatus limInitialize(tpAniSirGlobal);
 tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam);
 tSirRetStatus peClose(tpAniSirGlobal pMac);
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 tSirRetStatus limStart(tpAniSirGlobal pMac);
-#endif
 /**
  * Function to Initialize radar interrupts.
  */
