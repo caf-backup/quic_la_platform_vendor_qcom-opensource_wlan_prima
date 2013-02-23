@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -16,13 +16,8 @@
     Copyright (C) 2006 Airgo Networks, Incorporated
    ========================================================================== */
 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halInternal.h" //Check if the below include of aniGobal.h is sufficient for Volans too.
-#endif
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include "aniGlobal.h"
-#endif
 
 #include "palApi.h"
 #include "csrSupport.h"
