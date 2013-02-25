@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -73,6 +73,7 @@ VOS_STATUS btcOpen (tHalHandle hHal)
    pMac->btc.btcReady = VOS_FALSE;
    pMac->btc.btcEventState = 0;
    pMac->btc.btcHBActive = VOS_TRUE;
+   pMac->btc.btcScanCompromise = VOS_FALSE;
 
    vosStatus = vos_timer_init( &pMac->btc.restoreHBTimer,
                       VOS_TIMER_TYPE_SW,
@@ -1876,7 +1877,18 @@ eHalStatus btcHandleCoexInd(tHalHandle hHal, void* pMsg)
            pMac->btc.btcHBActive = VOS_TRUE;
         }
      }
-
+     else if (pSmeCoexInd->coexIndType == SIR_COEX_IND_TYPE_SCAN_COMPROMISED)
+     {
+         pMac->btc.btcScanCompromise = VOS_TRUE;
+         smsLog(pMac, LOGW, "Coex indication in %s(), type - SIR_COEX_IND_TYPE_SCAN_COMPROMISED ",
+             __func__);
+     }
+     else if (pSmeCoexInd->coexIndType == SIR_COEX_IND_TYPE_SCAN_NOT_COMPROMISED)
+     {
+         pMac->btc.btcScanCompromise = VOS_FALSE;
+         smsLog(pMac, LOGW, "Coex indication in %s(), type - SIR_COEX_IND_TYPE_SCAN_NOT_COMPROMISED ",
+             __func__);
+     }
      // unknown indication type
      else
      {
