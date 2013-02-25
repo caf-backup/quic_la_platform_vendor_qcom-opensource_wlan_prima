@@ -1,7 +1,7 @@
 # Android makefile for the WLAN WCNSS/Pronto Module
 
 LOCAL_PATH := $(call my-dir)
-WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
+WLAN_BLD_DIR := vendor/qcom/proprietary/wlan-noship
 ifeq ($(call is-android-codename,JELLY_BEAN),true)
        DLKM_DIR := $(TOP)/device/qcom/common/dlkm
 else
@@ -13,7 +13,7 @@ endif
 # This is set once per LOCAL_PATH, not per (kernel) module
 KBUILD_OPTIONS := WLAN_PRONTO=../$(WLAN_BLD_DIR)/pronto
 KBUILD_OPTIONS += PRIMA_SRC_DIR=../$(WLAN_BLD_DIR)/prima
-KBUILD_OPTIONS += WCNSS_DIR=../vendor/qcom/proprietary/wlan/wcnss
+KBUILD_OPTIONS += WCNSS_DIR=../vendor/qcom/proprietary/wlan-noship/wcnss
 KBUILD_OPTIONS += MODNAME=wlan
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 
