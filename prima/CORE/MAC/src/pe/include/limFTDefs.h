@@ -3,10 +3,13 @@
   
    Macros and Function prototypes FT and 802.11R purposes 
 
+   Copyright (c) 2013 Qualcomm Atheros, Inc.
+   All Rights Reserved.
+   Qualcomm Atheros Confidential and Proprietary.
+
    Copyright 2010 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
    Qualcomm Technologies Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 #ifndef __LIMFTDEFS_H__
@@ -48,15 +51,15 @@ typedef struct sSirFTPreAuthReq
   ------------------------------------------------------------------------*/
 typedef struct sSirFTPreAuthRsp
 {
-   tANI_U16    messageType;      // eWNI_SME_FT_PRE_AUTH_RSP
-   tANI_U16    length;
-   tANI_U8     smeSessionId;
-   tSirMacAddr preAuthbssId;     // BSSID to preauth to
-   tANI_U8     status;
-   tANI_U16    ft_ies_length;
-   tANI_U8     ft_ies[MAX_FTIE_SIZE];
-   tANI_U16    ric_ies_length;
-   tANI_U8     ric_ies[MAX_FTIE_SIZE];
+   tANI_U16         messageType;      // eWNI_SME_FT_PRE_AUTH_RSP
+   tANI_U16         length;
+   tANI_U8          smeSessionId;
+   tSirMacAddr      preAuthbssId;     // BSSID to preauth to
+   tSirRetStatus    status;
+   tANI_U16         ft_ies_length;
+   tANI_U8          ft_ies[MAX_FTIE_SIZE];
+   tANI_U16         ric_ies_length;
+   tANI_U8          ric_ies[MAX_FTIE_SIZE];
 } tSirFTPreAuthRsp, *tpSirFTPreAuthRsp;
 
 /*-------------------------------------------------------------------------- 
@@ -76,7 +79,7 @@ typedef struct sFTPEContext
 {
     tpSirFTPreAuthReq pFTPreAuthReq;                      // Saved FT Pre Auth Req
     void              *psavedsessionEntry;                
-    tANI_U8           ftPreAuthStatus;
+    tSirRetStatus     ftPreAuthStatus;
     tANI_U16          saved_auth_rsp_length;
     tANI_U8           saved_auth_rsp[MAX_FTIE_SIZE];
 
