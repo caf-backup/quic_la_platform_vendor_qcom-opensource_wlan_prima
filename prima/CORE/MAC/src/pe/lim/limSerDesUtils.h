@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSerDesUtils.h contains the utility definitions
@@ -78,6 +78,7 @@ static inline void limCopyU16(tANI_U8 *ptr, tANI_U16 u16Val)
 #elif ((defined(ANI_OS_TYPE_OSX) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_WINDOWS) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_AMSS) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
+       (defined(ANI_OS_TYPE_QNX) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_ANDROID) && defined(ANI_LITTLE_BYTE_ENDIAN)))
     *ptr++ = (tANI_U8) (u16Val & 0xff);
     *ptr   = (tANI_U8) ((u16Val >> 8) & 0xff);
@@ -94,6 +95,7 @@ static inline tANI_U16 limGetU16(tANI_U8 *ptr)
 #elif ((defined(ANI_OS_TYPE_OSX) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_WINDOWS) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_AMSS) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
+       (defined(ANI_OS_TYPE_QNX) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_ANDROID) && defined(ANI_LITTLE_BYTE_ENDIAN)))
     return (((tANI_U16) (*(ptr+1) << 8)) |
             ((tANI_U16) (*ptr)));
@@ -112,6 +114,7 @@ static inline void limCopyU32(tANI_U8 *ptr, tANI_U32 u32Val)
 #elif ((defined(ANI_OS_TYPE_OSX) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_WINDOWS) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_AMSS) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
+       (defined(ANI_OS_TYPE_QNX) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_ANDROID) && defined(ANI_LITTLE_BYTE_ENDIAN)))
     *ptr++ = (tANI_U8) (u32Val & 0xff);
     *ptr++ = (tANI_U8) ((u32Val >> 8) & 0xff);
@@ -132,6 +135,7 @@ static inline tANI_U32 limGetU32(tANI_U8 *ptr)
 #elif ((defined(ANI_OS_TYPE_OSX) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_WINDOWS) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_AMSS) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
+       (defined(ANI_OS_TYPE_QNX) && defined(ANI_LITTLE_BYTE_ENDIAN)) || \
        (defined(ANI_OS_TYPE_ANDROID) && defined(ANI_LITTLE_BYTE_ENDIAN)))
     return ((*(ptr+3) << 24) |
             (*(ptr+2) << 16) |

@@ -1,18 +1,22 @@
 #if !defined( __VOS_TYPES_H )
 #define __VOS_TYPES_H
+/*
+* Copyright (c) 2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 
 /**=========================================================================
-  
   \file  vos_Types.h
-  
+
   \brief virtual Operating System Servies (vOS)
-               
-   Basic type definitions 
-  
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
-   Qualcomm Technologies Confidential and Proprietary.
-  
+
+   Basic type definitions
+
+   Copyright 2008 (c) Qualcomm, Incorporated.
+   All Rights Reserved.
+   Qualcomm Confidential and Proprietary.
   ========================================================================*/
 
 /* $Header$ */
@@ -72,10 +76,11 @@
 
 #endif
 
-/*-------------------------------------------------------------------------- 
+
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
-   
+
 /// Module IDs.  These are generic IDs that identify the various modules
 /// in the software system.
 typedef enum
