@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -508,6 +508,12 @@ WDI_FillTxBd
         {
             pBd->bdRate = (ucUnicastDst)? WDI_TXBD_BDRATE_DEFAULT : WDI_BDRATE_BCDATA_FRAME;
         }
+#ifdef FEATURE_WLAN_TDLS
+        if ( ucTxFlag & WDI_USE_BD_RATE2_FOR_MANAGEMENT_FRAME)
+        {
+           pBd->bdRate = WDI_BDRATE_CTRL_FRAME;
+        }
+#endif
         pBd->rmf    = WDI_RMF_DISABLED;     
 
         /* sanity: Might already be set by caller, but enforce it here again */
