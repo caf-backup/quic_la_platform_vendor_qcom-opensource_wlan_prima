@@ -1199,7 +1199,7 @@ typedef enum
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
 #define CFG_REPORT_MAX_LINK_SPEED_MIN              ( eHDD_LINK_SPEED_REPORT_ACTUAL )
 #define CFG_REPORT_MAX_LINK_SPEED_MAX              ( eHDD_LINK_SPEED_REPORT_MAX_SCALED )
-#define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( eHDD_LINK_SPEED_REPORT_ACTUAL )
+#define CFG_REPORT_MAX_LINK_SPEED_DEFAULT          ( eHDD_LINK_SPEED_REPORT_MAX_SCALED )
 
 /*
  * RSSI Thresholds
@@ -1365,7 +1365,7 @@ typedef enum
 #define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_NAME       "gSkipDfsChannelInP2pSearch"
 #define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_MIN        ( 0 )
 #define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_MAX        ( 1 )
-#define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_DEFAULT    ( 0 )
+#define CFG_ENABLE_SKIP_DFS_IN_P2P_SEARCH_DEFAULT    ( 1 )
 
 /*
  * Ignore Dynamic Dtim in case of P2P
@@ -1446,7 +1446,7 @@ typedef enum
 #define CFG_NUM_BUFF_ADVERT_NAME              "gNumBuffAdvert"
 #define CFG_NUM_BUFF_ADVERT_MIN               ( 0 )
 #define CFG_NUM_BUFF_ADVERT_MAX               ( 128 )
-#define CFG_NUM_BUFF_ADVERT_DEFAULT           ( 40 )
+#define CFG_NUM_BUFF_ADVERT_DEFAULT           ( 64 )
 
 /*
  * Allow MCC to modify config
@@ -1518,7 +1518,7 @@ typedef enum
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE         "gEnableActiveModeOffload"
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE_MIN     ( 0 )
 #define CFG_ACTIVEMODE_OFFLOAD_ENABLE_MAX     ( 1 )
-#define CFG_ACTIVEMODE_OFFLOAD_ENABLE_DEFAULT ( 0 )
+#define CFG_ACTIVEMODE_OFFLOAD_ENABLE_DEFAULT ( 1 )
 #endif
 /* Enable/Disable LPWR Image(cMEM uBSP) Transition */
 #define CFG_ENABLE_LPWR_IMG_TRANSITION_NAME        "gEnableLpwrImgTransition"
