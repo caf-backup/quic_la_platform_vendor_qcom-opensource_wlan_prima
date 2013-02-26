@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -619,8 +619,7 @@ VOS_STATUS
 WDA_DS_FinishULA
 (
  void (*callbackRoutine) (void *callbackContext),
- void  *callbackContext,
- v_U8_t staId
+ void  *callbackContext
 )
 {
   vos_msg_t                    sMessage;
@@ -632,7 +631,6 @@ WDA_DS_FinishULA
 
   vos_mem_zero( &sMessage, sizeof(vos_msg_t) );
 
-  sMessage.reserved = staId;
   sMessage.bodyval  = (v_U32_t)callbackContext;
   sMessage.bodyptr  = callbackRoutine;
   sMessage.type     = WDA_DS_FINISH_ULA;

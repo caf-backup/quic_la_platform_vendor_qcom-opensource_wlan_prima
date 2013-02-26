@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1516,8 +1516,7 @@ VOS_STATUS
 WDA_DS_FinishULA
 (
  void (*callbackRoutine) (void *callbackContext),
- void  *callbackContext,
- v_U8_t staId
+ void  *callbackContext
 );
 
 /*==========================================================================
