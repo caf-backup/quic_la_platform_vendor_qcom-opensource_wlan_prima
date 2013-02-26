@@ -1503,15 +1503,30 @@ typedef enum
 #define CFG_TDLS_MAX_DISCOVERY_ATTEMPT_MAX          ( 100 )
 #define CFG_TDLS_MAX_DISCOVERY_ATTEMPT_DEFAULT      ( 5 )
 
-#define CFG_TDLS_RX_IDLE_TIMEOUT                    "gTDLSRxIdleTimeout"
-#define CFG_TDLS_RX_IDLE_TIMEOUT_MIN                ( 0 )
-#define CFG_TDLS_RX_IDLE_TIMEOUT_MAX                ( 40000 )
-#define CFG_TDLS_RX_IDLE_TIMEOUT_DEFAULT            ( 5000 )
+#define CFG_TDLS_IDLE_TIMEOUT                       "gTDLSIdleTimeout"
+#define CFG_TDLS_IDLE_TIMEOUT_MIN                   ( 0 )
+#define CFG_TDLS_IDLE_TIMEOUT_MAX                   ( 40000 )
+#define CFG_TDLS_IDLE_TIMEOUT_DEFAULT               ( 5000 )
+
+#define CFG_TDLS_IDLE_PACKET_THRESHOLD              "gTDLSIdlePacketThreshold"
+#define CFG_TDLS_IDLE_PACKET_THRESHOLD_MIN          ( 0 )
+#define CFG_TDLS_IDLE_PACKET_THRESHOLD_MAX          ( 40000 )
+#define CFG_TDLS_IDLE_PACKET_THRESHOLD_DEFAULT      ( 5 )
 
 #define CFG_TDLS_RSSI_HYSTERESIS                    "gTDLSRssiHysteresis"
 #define CFG_TDLS_RSSI_HYSTERESIS_MIN                ( 0 )
 #define CFG_TDLS_RSSI_HYSTERESIS_MAX                ( 100 )
 #define CFG_TDLS_RSSI_HYSTERESIS_DEFAULT            ( 100 )
+
+#define CFG_TDLS_RSSI_TRIGGER_THRESHOLD             "gTDLSRSSITriggerThreshold"
+#define CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MIN         ( -120 )
+#define CFG_TDLS_RSSI_TRIGGER_THRESHOLD_MAX         ( 100 )
+#define CFG_TDLS_RSSI_TRIGGER_THRESHOLD_DEFAULT     ( 0 )
+
+#define CFG_TDLS_RSSI_TEARDOWN_THRESHOLD            "gTDLSRSSITeardownThreshold"
+#define CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MIN        ( -120 )
+#define CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_MAX        ( 0 )
+#define CFG_TDLS_RSSI_TEARDOWN_THRESHOLD_DEFAULT    ( -75 )
 #endif
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
@@ -1922,8 +1937,11 @@ typedef struct
    v_U32_t                     fTDLSTxPacketThreshold;
    v_U32_t                     fTDLSDiscoveryPeriod;
    v_U32_t                     fTDLSMaxDiscoveryAttempt;
-   v_U32_t                     fTDLSRxIdleTimeout;
-   v_U32_t                     fTDLSRssiHysteresis;
+   v_U32_t                     fTDLSIdleTimeout;
+   v_U32_t                     fTDLSIdlePacketThreshold;
+   v_U32_t                     fTDLSRSSIHysteresis;
+   v_S31_t                     fTDLSRSSITriggerThreshold;
+   v_S31_t                     fTDLSRSSITeardownThreshold;
 #endif
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
    v_BOOL_t                    fEnableVSTASupport;
