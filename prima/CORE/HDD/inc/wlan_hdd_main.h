@@ -35,7 +35,9 @@
 #include <wlan_hdd_wmm.h>
 #include <wlan_hdd_cfg.h>
 #include <linux/spinlock.h>
+#ifdef WLAN_OPEN_SOURCE
 #include <linux/wakelock.h>
+#endif
 #ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
 #endif
@@ -896,8 +898,10 @@ struct hdd_context_s
    t_multicast_add_list mc_addr_list;
 #endif
 
+#ifdef WLAN_OPEN_SOURCE
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
    struct wake_lock rx_wake_lock;
+#endif
 #endif
 
    /* 
@@ -917,7 +921,9 @@ struct hdd_context_s
         is invoked*/
    v_BOOL_t is_dynamic_channel_range_set;
 
+#ifdef WLAN_OPEN_SOURCE
    struct wake_lock sap_wake_lock;
+#endif
 
 #ifdef FEATURE_WLAN_TDLS
     eTDLSSupportMode tdls_mode;
