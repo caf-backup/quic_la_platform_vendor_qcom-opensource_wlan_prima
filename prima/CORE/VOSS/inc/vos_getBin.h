@@ -1,21 +1,27 @@
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 #if !defined( __VOS_GETBIN_H )
 #define __VOS_GETBIN_H
 
 /**=========================================================================
-  
+
   \file  vos_getBin.h
-  
+
   \brief virtual Operating System Services (vOSS) binary APIs
-               
+
    Binary retrieval definitions and APIs.  
-   
+
    These APIs allow components to retrieve binary contents (firmware, 
    configuration data, etc.) from a storage medium on the platform.
-  
+
    Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
+
    Qualcomm Technologies Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -107,12 +113,10 @@ typedef enum
 VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId, 
                                 v_VOID_t *pBuffer, v_SIZE_t *pBufferSize );
 
-#ifdef WLAN_SOFTAP_FEATURE
 /**----------------------------------------------------------------------------
    \brief vos_get_conparam()- function to read the insmod parameters
 -----------------------------------------------------------------------------*/
 tVOS_CON_MODE vos_get_conparam( void );
-#endif
 tVOS_CONCURRENCY_MODE vos_get_concurrency_mode( void );
 v_BOOL_t vos_concurrent_sessions_running(void);
 
