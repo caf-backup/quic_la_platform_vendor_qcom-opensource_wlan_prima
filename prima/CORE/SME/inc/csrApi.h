@@ -128,9 +128,7 @@ typedef tANI_U8 tCsrBssid[WNI_CFG_BSSID_LEN];
 typedef enum
 {
     eCSR_BSS_TYPE_INFRASTRUCTURE,
-#ifdef WLAN_SOFTAP_FEATURE
     eCSR_BSS_TYPE_INFRA_AP,       // SoftAP AP
-#endif
     eCSR_BSS_TYPE_IBSS,           // an IBSS network we will NOT start
     eCSR_BSS_TYPE_START_IBSS,     // an IBSS network we will start if no partners detected.
     eCSR_BSS_TYPE_WDS_AP,         // BT-AMP AP
@@ -395,11 +393,9 @@ typedef enum
     eCSR_ROAM_IBSS_LEAVE, //IBSS indications.
     //BSS in WDS mode status indication
     eCSR_ROAM_WDS_IND,
-#ifdef WLAN_SOFTAP_FEATURE
     //BSS in SoftAP mode status indication
     eCSR_ROAM_INFRA_IND,
     eCSR_ROAM_WPS_PBC_PROBE_REQ_IND,
-#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
     eCSR_ROAM_FT_RESPONSE,
 #endif
@@ -483,7 +479,6 @@ typedef enum
     eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED,
     // WDS disassociated
     eCSR_ROAM_RESULT_WDS_DISASSOCIATED,
-#ifdef WLAN_SOFTAP_FEATURE
     // INFRA started successfully
     eCSR_ROAM_RESULT_INFRA_STARTED,
     // INFRA start failed
@@ -497,7 +492,6 @@ typedef enum
     // INFRA disassociated
     eCSR_ROAM_RESULT_INFRA_DISASSOCIATED,
     eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND,
-#endif
 #ifdef WLAN_FEATURE_P2P
     eCSR_ROAM_RESULT_SEND_ACTION_FAIL,
 #endif
@@ -558,12 +552,10 @@ typedef enum
     eCSR_ASSOC_STATE_TYPE_WDS_DISCONNECTED,
     // Participating in a WDS network and connected peer to peer
     eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED,
-#ifdef WLAN_SOFTAP_FEATURE
     // Participating in a Infra network in AP not yet in connected state
     eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED,
     // Participating in a Infra network and connected to a peer
     eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED,
-#endif
 
 }eCsrConnectState;
 
@@ -820,7 +812,6 @@ typedef struct tagCsrRoamProfile
     tANI_U32 nWSCReqIELength;   //The byte count in the pWSCReqIE
     tANI_U8 *pWSCReqIE;   //If not null, it has the IE byte stream for WSC
 
-#ifdef WLAN_SOFTAP_FEATURE
     tANI_U8 ieee80211d;
     tANI_U8 privacy;
     tANI_BOOLEAN fwdWPSPBCProbeReq;
@@ -831,7 +822,6 @@ typedef struct tagCsrRoamProfile
     tANI_BOOLEAN obssProtEnabled;
     tANI_U16 cfg_protection;
     tANI_U8 wps_state;
-#endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tCsrMobilityDomainInfo MDID;
@@ -1094,15 +1084,11 @@ typedef struct tagCsrRoamInfo
     {
         tSirMicFailureInfo *pMICFailureInfo;
         tCsrRoamConnectedProfile *pConnectedProfile;
-#ifdef WLAN_SOFTAP_FEATURE
         tSirWPSPBCProbeReq *pWPSPBCProbeReq;
-#endif
     } u;
 
-#ifdef WLAN_SOFTAP_FEATURE
     tANI_BOOLEAN wmmEnabledSta;   //set to true if WMM enabled STA
     tANI_U32 dtimPeriod;
-#endif
 
 #ifdef FEATURE_WLAN_CCX
     tANI_BOOLEAN isCCXAssoc;
@@ -1137,7 +1123,6 @@ typedef struct tagCsrFreqScanInfo
 }tCsrFreqScanInfo;
 
 
-#ifdef WLAN_SOFTAP_FEATURE
 typedef struct sSirSmeAssocIndToUpperLayerCnf
 {
     tANI_U16             messageType; // eWNI_SME_ASSOC_CNF
@@ -1154,7 +1139,6 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tSirAddie            addIE;           // Additional IE received from peer, which can be WSC and/or P2P IE
     tANI_U8              reassocReq;      //set to true if reassoc
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;
-#endif
 
 typedef struct tagCsrSummaryStatsInfo
 {
@@ -1361,14 +1345,10 @@ typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);
 #define CSR_IS_WDS_AP( pProfile )  ( eCSR_BSS_TYPE_WDS_AP == (pProfile)->BSSType )
 #define CSR_IS_WDS_STA( pProfile ) ( eCSR_BSS_TYPE_WDS_STA == (pProfile)->BSSType )
 #define CSR_IS_WDS( pProfile )  ( CSR_IS_WDS_AP( pProfile ) || CSR_IS_WDS_STA( pProfile ) )
-#ifdef WLAN_SOFTAP_FEATURE
 #define CSR_IS_INFRA_AP( pProfile )  ( eCSR_BSS_TYPE_INFRA_AP == (pProfile)->BSSType )
-#endif
 
 //pProfile - pointer to tCsrRoamConnectedProfile
-#ifdef WLAN_SOFTAP_FEATURE
 #define CSR_IS_CONN_INFRA_AP( pProfile )  ( eCSR_BSS_TYPE_INFRA_AP == (pProfile)->BSSType )
-#endif
 #define CSR_IS_CONN_WDS_AP( pProfile )  ( eCSR_BSS_TYPE_WDS_AP == (pProfile)->BSSType )
 #define CSR_IS_CONN_WDS_STA( pProfile ) ( eCSR_BSS_TYPE_WDS_STA == (pProfile)->BSSType )
 #define CSR_IS_CONN_WDS( pProfile )  ( CSR_IS_WDS_AP( pProfile ) || CSR_IS_WDS_STA( pProfile ) )
@@ -1379,7 +1359,6 @@ typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);
 
 
 
-#ifdef WLAN_SOFTAP_FEATURE
 /* ---------------------------------------------------------------------------
     \fn csrSetChannels
     \brief HDD calls this function to change some global settings.
@@ -1391,7 +1370,6 @@ typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);
 eHalStatus csrSetChannels(tHalHandle hHal,  tCsrConfigParam *pParam  );
 
 eHalStatus csrSetRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode);
-#endif
 
 
 //enum to string conversion for debug output

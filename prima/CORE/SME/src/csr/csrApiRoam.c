@@ -213,11 +213,7 @@ eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask, tANI_U
     pStaEntry is no longer invalid upon the return of this function.
 */
 static void csrRoamRemoveStatListEntry(tpAniSirGlobal pMac, tListElem *pEntry);
-#ifdef WLAN_SOFTAP_FEATURE
 static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, tCsrRoamProfile *pProfile,tANI_U8 operationChn, eCsrBand *pBand );
-#else
-static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, eCsrPhyMode phyModeIn, tANI_U8 operationChn, eCsrBand *pBand );
-#endif
 static eHalStatus csrRoamGetQosInfoFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBssDesc);
 tCsrStatsClientReqInfo * csrRoamInsertEntryIntoList( tpAniSirGlobal pMac,
                                                      tDblLinkList *pStaList,
@@ -325,7 +321,6 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
     return (status);
 }
 
-#ifdef WLAN_SOFTAP_FEATURE
 eHalStatus csrSetRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -402,7 +397,6 @@ eHalStatus csrSetChannels(tHalHandle hHal,  tCsrConfigParam *pParam  )
     
     return status;
 }
-#endif
 eHalStatus csrClose(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -1425,13 +1419,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
             pMac->roam.configParam.impsSleepTime = 0;
         }
         pMac->roam.configParam.eBand = pParam->eBand;
-#ifdef WLAN_SOFTAP_FEATURE
         pMac->roam.configParam.uCfgDot11Mode = csrGetCfgDot11ModeFromCsrPhyMode(NULL, pMac->roam.configParam.phyMode, 
                                                     pMac->roam.configParam.ProprietaryRatesEnabled);
-#else
-        pMac->roam.configParam.uCfgDot11Mode = csrGetCfgDot11ModeFromCsrPhyMode(pMac->roam.configParam.phyMode, 
-                                                    pMac->roam.configParam.ProprietaryRatesEnabled);
-#endif
         //if HDD passed down non zero values for age params, then only update,
         //otherwise keep using the defaults
         if (pParam->nScanResultAgeCount)
@@ -1832,7 +1821,6 @@ void csrPruneChannelListForMode( tpAniSirGlobal pMac, tCsrChannel *pChannelList 
         }
     }
 }
-#ifdef WLAN_SOFTAP_FEATURE
 #define INFRA_AP_DEFAULT_CHANNEL 6
 eHalStatus csrIsValidChannel(tpAniSirGlobal pMac, tANI_U8 chnNum)
 {
@@ -1847,7 +1835,6 @@ eHalStatus csrIsValidChannel(tpAniSirGlobal pMac, tANI_U8 chnNum)
     }
     return status;
 }
-#endif
 eHalStatus csrInitGetChannels(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -2288,7 +2275,6 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
 
     return (status);
 }
-#ifdef WLAN_SOFTAP_FEATURE
 
 /* ---------------------------------------------------------------------------
     \fn csrRoamIssueDisassociateStaCmd
@@ -2457,7 +2443,6 @@ csrRoamGetWpsSessionOverlap( tpAniSirGlobal pMac, tANI_U32 sessionId,
             
     return (status);
 }
-#endif
 eHalStatus csrRoamIssueDeauth( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoamSubState NewSubstate )
 {   
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -2711,24 +2696,17 @@ static eHalStatus csrRoamPrepareBssConfigFromProfile(tpAniSirGlobal pMac, tCsrRo
     {
        operationChannel = pProfile->ChannelInfo.ChannelList[0];
     }
-#ifdef WLAN_SOFTAP_FEATURE
     pBssConfig->uCfgDot11Mode = csrRoamGetPhyModeBandForBss(pMac, pProfile, operationChannel, 
                                         &pBssConfig->eBand);
-#else
-    pBssConfig->uCfgDot11Mode = csrRoamGetPhyModeBandForBss(pMac, (eCsrPhyMode)pProfile->phyMode, operationChannel, 
-                                        &pBssConfig->eBand);
-#endif
     //QOS
     //Is this correct to always set to this //***
     if ( pBssConfig->BssCap.ess == 1 ) 
     {
-#ifdef WLAN_SOFTAP_FEATURE
         /*For Softap case enable WMM*/
         if(CSR_IS_INFRA_AP(pProfile) && (eCsrRoamWmmNoQos != pMac->roam.configParam.WMMSupportMode )){
              qAPisEnabled = TRUE;
         }
         else
-#endif
         if (csrRoamGetQosInfoFromBss(pMac, pBssDesc) == eHAL_STATUS_SUCCESS) {
              qAPisEnabled = TRUE;
         } else {
@@ -3277,11 +3255,7 @@ static void csrSetCfgRateSetFromProfile( tpAniSirGlobal pMac,
     {
        operationChannel = pProfile->ChannelInfo.ChannelList[0];
     }
-#ifdef WLAN_SOFTAP_FEATURE
     cfgDot11Mode = csrRoamGetPhyModeBandForBss( pMac, pProfile, operationChannel, &eBand );
-#else
-    cfgDot11Mode = csrRoamGetPhyModeBandForBss( pMac, (eCsrPhyMode)pProfile->phyMode, operationChannel, &eBand );
-#endif
     // For 11a networks, the 11a rates go into the Operational Rate set.  For 11b and 11g 
     // networks, the 11b rates appear in the Operational Rate set.  In either case,
     // we can blindly put the rates we support into our Operational Rate set 
@@ -3478,12 +3452,10 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     csrSetCfgPrivacy(pMac, pProfile, (tANI_BOOLEAN)pBssConfig->BssCap.privacy );
     //short slot time
     ccmCfgSetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED, pBssConfig->uShortSlotTime, NULL, eANI_BOOLEAN_FALSE);
-#ifdef WLAN_SOFTAP_FEATURE
     //11d
     ccmCfgSetInt(pMac, WNI_CFG_11D_ENABLED,
                         ((pBssConfig->f11hSupport) ? pBssConfig->f11hSupport : pProfile->ieee80211d),
                         NULL, eANI_BOOLEAN_FALSE);
-#endif
     /*//11h
     ccmCfgSetInt(pMac, WNI_CFG_11H_ENABLED, pMac->roam.configParam.Is11hSupportEnabled, NULL, eANI_BOOLEAN_FALSE);
     */
@@ -3572,9 +3544,7 @@ eHalStatus csrRoamStopNetwork( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
             pSession->bssParams.cbMode= pBssConfig->cbMode;
             //For IBSS, we need to prepare some more information
             if( csrIsBssTypeIBSS(pProfile->BSSType) || CSR_IS_WDS( pProfile )
-#ifdef WLAN_SOFTAP_FEATURE
               || CSR_IS_INFRA_AP(pProfile)
-#endif
             )
             {
                 csrRoamPrepareBssParams(pMac, sessionId, pProfile, pBssDesc, pBssConfig, pIes);
@@ -3615,9 +3585,7 @@ eHalStatus csrRoamStopNetwork( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
                     // Neiher in IBSS nor in Infra.  We can go ahead and set the CFG for tne new network...
                     // Nothing to stop.
                     if ( pBssDesc || CSR_IS_WDS_AP( pProfile )
-#ifdef WLAN_SOFTAP_FEATURE
                      || CSR_IS_INFRA_AP(pProfile)
-#endif
                     ) 
                     {      
                         // Set parameters for this Bss.    
@@ -3982,9 +3950,7 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                 break;
             }
             else if ( (CSR_IS_WDS_AP(pProfile))
-#ifdef WLAN_SOFTAP_FEATURE
              || (CSR_IS_INFRA_AP(pProfile))
-#endif
             )
             {
                 // Attempt to start this WDS...
@@ -4090,7 +4056,6 @@ static eHalStatus csrRoam( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                     fComplete = eANI_BOOLEAN_TRUE;
                 }
             }
-#ifdef WLAN_SOFTAP_FEATURE
             else if (csrIsConnStateConnectedInfraAp(pMac, sessionId))
             {
                 status = csrRoamIssueStopBss( pMac, sessionId, eCSR_ROAM_SUBSTATE_STOP_BSS_REQ );
@@ -4101,7 +4066,6 @@ static eHalStatus csrRoam( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                     fComplete = eANI_BOOLEAN_TRUE;
                 }
             }
-#endif
             else
             {        
                 fComplete = eANI_BOOLEAN_TRUE;
@@ -4725,9 +4689,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
     eCsrRoamResult roamResult;
     eHalStatus status;
     tANI_U32 key_timeout_interval = 0;
-#ifdef WLAN_SOFTAP_FEATURE
     tSirSmeStartBssRsp  *pSmeStartBssRsp = NULL;
-#endif
 
     if(!pSession)
     {
@@ -5033,20 +4995,16 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             // the Bss Description that we start beaconing for the newly started Ibss.
             smsLog(pMac, LOG2, FL("receives start BSS ok indication\n"));
             status = eHAL_STATUS_FAILURE;
-#ifdef WLAN_SOFTAP_FEATURE
             pSmeStartBssRsp = (tSirSmeStartBssRsp *)Context;
-#endif             
             palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
             if( CSR_IS_IBSS( pProfile ) )
             {
                 pSession->connectState = eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED;
             }
-#ifdef WLAN_SOFTAP_FEATURE
             else if (CSR_IS_INFRA_AP(pProfile))
             {
                 pSession->connectState = eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED;
             }
-#endif
             else
             {
                 pSession->connectState = eCSR_ASSOC_STATE_TYPE_WDS_DISCONNECTED;
@@ -5054,11 +5012,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             if( !CSR_IS_WDS_STA( pProfile ) )
             {
                 csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINED, sessionId );
-#ifdef WLAN_SOFTAP_FEATURE
                 pSirBssDesc = &pSmeStartBssRsp->bssDescription;
-#else
-                pSirBssDesc = (tSirBssDescription *)Context;
-#endif
                 if( !HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs( pMac, pSirBssDesc, &pIes )) )
                 {
                     smsLog(pMac, LOG2, FL("cannot parse IBSS IEs\n"));
@@ -5068,9 +5022,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                             eCSR_ROAM_IBSS_IND, eCSR_ROAM_RESULT_IBSS_START_FAILED );
                     break;
                 }
-#ifdef WLAN_SOFTAP_FEATURE
                 if (!CSR_IS_INFRA_AP(pProfile))
-#endif
                 {
                     pScanResult = csrScanAppendBssDescription( pMac, pSirBssDesc, pIes );
                 }
@@ -5117,13 +5069,8 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
                 //Only set context for non-WDS_STA. We don't even need it for WDS_AP. But since the encryption
                 //is WPA2-PSK so it won't matter.
-#ifdef WLAN_SOFTAP_FEATURE
                 if( CSR_IS_ENC_TYPE_STATIC( pProfile->negotiatedUCEncryptionType ) && !CSR_IS_INFRA_AP( pSession->pCurRoamProfile ))
                 {
-#else 
-                if( CSR_IS_ENC_TYPE_STATIC( pProfile->negotiatedUCEncryptionType ))
-                {
-#endif
                     // Issue the set Context request to LIM to establish the Broadcast STA context for the Ibss.
                     csrRoamIssueSetContextReq( pMac, sessionId, 
                                         pProfile->negotiatedMCEncryptionType, 
@@ -5164,13 +5111,11 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     roamStatus = eCSR_ROAM_WDS_IND;
                     roamResult = eCSR_ROAM_RESULT_WDS_STARTED;
                 }
-#ifdef WLAN_SOFTAP_FEATURE
                 if( CSR_IS_INFRA_AP( pProfile ) )
                 {
                     roamStatus = eCSR_ROAM_INFRA_IND;
                     roamResult = eCSR_ROAM_RESULT_INFRA_STARTED;
                 }
-#endif  
                  
                 //Only tell upper layer is we start the BSS because Vista doesn't like multiple connection
                 //indications. If we don't start the BSS ourself, handler of eSIR_SME_JOINED_NEW_BSS will 
@@ -5183,9 +5128,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     //We start the IBSS (didn't find any matched IBSS out there)
                     roamInfo.pBssDesc = pSirBssDesc;
                 }
-#ifdef WLAN_SOFTAP_FEATURE
                 roamInfo.staId = (tANI_U8)pSmeStartBssRsp->staId;
-#endif
                  //Remove this code once SLM_Sessionization is supported 
                  //BMPS_WORKAROUND_NOT_NEEDED
                 if(!IS_FEATURE_SUPPORTED_BY_FW(SLM_SESSIONIZATION) &&
@@ -5237,13 +5180,11 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 roamStatus = eCSR_ROAM_WDS_IND;
                 roamResult = eCSR_ROAM_RESULT_WDS_STARTED;
             }
-#ifdef WLAN_SOFTAP_FEATURE
             if( CSR_IS_INFRA_AP( pProfile ) )
             {
                 roamStatus = eCSR_ROAM_INFRA_IND;
                 roamResult = eCSR_ROAM_RESULT_INFRA_START_FAILED;
             }
-#endif
             if(Context)
             {
                 pSirBssDesc = (tSirBssDescription *)Context;
@@ -5456,7 +5397,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 #endif
                     csrScanStartIdleScan(pMac);
                     break;
-#ifdef WLAN_SOFTAP_FEATURE
                 case eCsrStopBss:
                     csrRoamCallCallback(pMac, sessionId, NULL, 
                                         pCommand->u.roamCmd.roamId, 
@@ -5485,7 +5425,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                        }
                    }
                    break;
-#endif
                 case eCsrLostLink1:
                     // if lost link roam1 failed, then issue lost link Scan2 ...
                     csrScanRequestLostLink2(pMac, sessionId);
@@ -5634,7 +5573,6 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         pDstProfile->bWPSAssociation = pSrcProfile->bWPSAssociation;
         pDstProfile->uapsd_mask = pSrcProfile->uapsd_mask;
         pDstProfile->beaconInterval = pSrcProfile->beaconInterval;
-#ifdef WLAN_SOFTAP_FEATURE
         pDstProfile->privacy           = pSrcProfile->privacy;
         pDstProfile->fwdWPSPBCProbeReq = pSrcProfile->fwdWPSPBCProbeReq;
         pDstProfile->csr80211AuthType  = pSrcProfile->csr80211AuthType;
@@ -5646,7 +5584,6 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
         pDstProfile->cfg_protection    = pSrcProfile->cfg_protection;
         pDstProfile->wps_state         = pSrcProfile->wps_state;
         pDstProfile->ieee80211d        = pSrcProfile->ieee80211d;
-#endif
         palCopyMemory(pMac->hHdd, &pDstProfile->Keys, &pSrcProfile->Keys, sizeof(pDstProfile->Keys));
 #ifdef WLAN_FEATURE_VOWIFI_11R
         if (pSrcProfile->MDID.mdiePresent)
@@ -5983,12 +5920,10 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     csrScanCancelIdleScan(pMac);
     //Only abort the scan if it is not used for other roam/connect purpose
     csrScanAbortMacScan(pMac);
-#ifdef WLAN_SOFTAP_FEATURE
     if (!vos_concurrent_sessions_running() && (VOS_STA_SAP_MODE == pProfile->csrPersona))//In case of AP mode we do not want idle mode scan
     {
         csrScanDisable(pMac);
     }
-#endif
     csrRoamRemoveDuplicateCommand(pMac, sessionId, NULL, eCsrHddIssued);
     //Check whether ssid changes
     if(csrIsConnStateConnected(pMac, sessionId))
@@ -6052,9 +5987,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
                 do
                 {
                     if( (pProfile && CSR_IS_WDS_AP( pProfile ) )
-#ifdef WLAN_SOFTAP_FEATURE
                      || (pProfile && CSR_IS_INFRA_AP ( pProfile ))
-#endif
                     )
                     {
                         //This can be started right away
@@ -6795,14 +6728,11 @@ void csrRoamReissueRoamCommand(tpAniSirGlobal pMac)
                 roamInfo.pBssDesc = pCommand->u.roamCmd.pLastRoamBss;
                 roamInfo.statusCode = pSession->joinFailStatusCode.statusCode;
                 roamInfo.reasonCode = pSession->joinFailStatusCode.reasonCode;
-#ifdef WLAN_SOFTAP_FEATURE              
                 if (CSR_IS_WDS(&pSession->connectedProfile)){
-#endif
                 pSession->connectState = eCSR_ASSOC_STATE_TYPE_WDS_DISCONNECTED;
                 csrRoamCallCallback(pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId, 
                                         eCSR_ROAM_WDS_IND, 
                                         eCSR_ROAM_RESULT_WDS_DISASSOCIATED);
-#ifdef  WLAN_SOFTAP_FEATURE
                                 }else if (CSR_IS_INFRA_AP(&pSession->connectedProfile)){
                                         pSession->connectState = eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED;
                                         csrRoamCallCallback(pMac, sessionId, &roamInfo, pCommand->u.roamCmd.roamId,
@@ -6810,7 +6740,6 @@ void csrRoamReissueRoamCommand(tpAniSirGlobal pMac)
                                                                                 eCSR_ROAM_RESULT_INFRA_DISASSOCIATED);
                                 }  
  
-#endif                  
 
                 if( !HAL_STATUS_SUCCESS( csrRoamIssueStopBss( pMac, sessionId, eCSR_ROAM_SUBSTATE_STOP_BSS_REQ ) ) )
                 {
@@ -7025,9 +6954,7 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
             }
             if ( csrIsBssTypeIBSS( pCommand->u.roamCmd.roamProfile.BSSType ) ||
                  CSR_IS_WDS( &pCommand->u.roamCmd.roamProfile ) 
-#ifdef WLAN_SOFTAP_FEATURE
                   || CSR_IS_INFRA_AP(&pCommand->u.roamCmd.roamProfile) 
-#endif
             )
             {
                 if(!HAL_STATUS_SUCCESS(csrRoamIssueStartBss( pMac, sessionId,
@@ -7555,11 +7482,7 @@ static void csrRoamRoamingStateStartBssRspProcessor( tpAniSirGlobal pMac, tSirSm
         //Let csrRoamComplete decide what to do
         result = eCsrStartBssFailure;
     }
-#ifdef WLAN_SOFTAP_FEATURE
     csrRoamComplete( pMac, result, pSmeStartBssRsp);
-#else
-    csrRoamComplete( pMac, result, &pSmeStartBssRsp->bssDescription );
-#endif
 }
 
 /*
@@ -7691,7 +7614,6 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
           smsLog( pMac, LOG2, FL("Stats rsp from PE\n"));
           csrRoamStatsRspProcessor( pMac, pSirMsg );
           break;
-#ifdef WLAN_SOFTAP_FEATURE
         case eWNI_SME_UPPER_LAYER_ASSOC_CNF:
         {
             tCsrRoamSession  *pSession;
@@ -7738,7 +7660,6 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 
         }
         break;
-#endif
        default:
           csrRoamCheckForLinkStatusChange( pMac, pSirMsg );
           break;
@@ -8410,9 +8331,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
     tCsrRoamSession *pSession = NULL;
     tpSirSmeSwitchChannelInd pSwitchChnInd;
     tSmeMaxAssocInd *pSmeMaxAssocInd;
-#ifdef WLAN_SOFTAP_FEATURE
     tSmeCmd pCommand;
-#endif
 #if defined ANI_PRODUCT_TYPE_AP
     pSirMsg->messageType = pal_be16_to_cpu(pSirMsg->messageType);
     pSirMsg->length = pal_be16_to_cpu(pSirMsg->length);
@@ -8460,12 +8379,9 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 pRoamInfo->paddIE =  pAssocInd->addIE.addIEdata;
                     palCopyMemory(pMac->hHdd, pRoamInfo->peerMac, pAssocInd->peerMacAddr, sizeof(tSirMacAddr));
                     palCopyMemory(pMac->hHdd, &pRoamInfo->bssid, pAssocInd->bssId, sizeof(tCsrBssid));
-#ifdef WLAN_SOFTAP_FEATURE
                     pRoamInfo->wmmEnabledSta = pAssocInd->wmmEnabledSta;
                     if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile))
-#endif 
                         status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_WDS_IND, eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);//Sta
-#ifdef WLAN_SOFTAP_FEATURE
                     if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile))
                     {
                         if( CSR_IS_ENC_TYPE_STATIC( pSession->pCurRoamProfile->negotiatedUCEncryptionType ))
@@ -8484,7 +8400,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         if (!HAL_STATUS_SUCCESS(status))
                             pRoamInfo->statusCode = eSIR_SME_ASSOC_REFUSED;// Refused due to Mac filtering 
                     }
-#endif 
                     /* Send Association completion message to PE */
                     status = csrSendAssocCnfMsg( pMac, pAssocInd, status );//Sta
                     
@@ -8494,14 +8409,12 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 {
                     status = csrSendAssocIndToUpperLayerCnfMsg(pMac, pAssocInd, status, sessionId);
                 }
-#ifdef WLAN_SOFTAP_FEATURE
                 else if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile) && (pRoamInfo->statusCode != eSIR_SME_ASSOC_REFUSED))
                 {
                     pRoamInfo->fReassocReq = pAssocInd->reassocReq;
                     //status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF);
                     status = csrSendAssocIndToUpperLayerCnfMsg(pMac, pAssocInd, status, sessionId);
                 }
-#endif
                 }
             }
             break;
@@ -8553,7 +8466,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 #endif
                 csrRoamLinkDown(pMac, sessionId);
                 csrRoamIssueWmStatusChange( pMac, sessionId, eCsrDisassociated, pSirMsg );
-#ifdef WLAN_SOFTAP_FEATURE
                 if(CSR_IS_INFRA_AP(&pSession->connectedProfile))
                 {
 
@@ -8579,7 +8491,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     vos_mem_copy(pCommand.u.roamCmd.peerMac, pDisassocInd->peerMacAddr, sizeof(tSirMacAddr));
                     csrRoamRemoveDuplicateCommand(pMac, sessionId, &pCommand, eCsrForcedDeauthSta);
                 }
-#endif                
             }
             break;
         case eWNI_SME_DEAUTH_IND:
@@ -8627,7 +8538,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 #endif
                 csrRoamLinkDown(pMac, sessionId);
                 csrRoamIssueWmStatusChange( pMac, sessionId, eCsrDeauthenticated, pSirMsg );
-#ifdef WLAN_SOFTAP_FEATURE
                 if(CSR_IS_INFRA_AP(&pSession->connectedProfile))
                 {
 
@@ -8643,7 +8553,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 
                     status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_DEAUTH_IND);
                 }
-#endif                
             }
             break;
         
@@ -8671,7 +8580,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 
         case eWNI_SME_DEAUTH_RSP:
             smsLog( pMac, LOGW, FL("eWNI_SME_DEAUTH_RSP from SME\n"));
-#ifdef WLAN_SOFTAP_FEATURE
             {
                 tSirSmeDeauthRsp* pDeauthRsp = (tSirSmeDeauthRsp *)pSirMsg;
                 sessionId = pDeauthRsp->sessionId;
@@ -8694,13 +8602,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     }
                 }
             }
-#endif
             break;
             
         case eWNI_SME_DISASSOC_RSP:
             /* session id is invalid here so cant use it to access the array curSubstate as index */
             smsLog( pMac, LOGW, FL("eWNI_SME_DISASSOC_RSP from SME \n"));
-#ifdef WLAN_SOFTAP_FEATURE
             {
                 tSirSmeDisassocRsp *pDisassocRsp = (tSirSmeDisassocRsp *)pSirMsg;
                 sessionId = pDisassocRsp->sessionId;
@@ -8723,7 +8629,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     }
                 }
             }
-#endif
             break;
         case eWNI_SME_MIC_FAILURE_IND:
             {
@@ -8769,7 +8674,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 }
             }
             break;
-#ifdef WLAN_SOFTAP_FEATURE
         case eWNI_SME_WPS_PBC_PROBE_REQ_IND:
             {
                 tpSirSmeProbeReqInd pProbeReqInd = (tpSirSmeProbeReqInd)pSirMsg;
@@ -8786,7 +8690,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 }
             }
             break;        
-#endif
             
         case eWNI_SME_WM_STATUS_CHANGE_NTF:
             pStatusChangeMsg = (tSirSmeWmStatusChangeNtf *)pSirMsg;
@@ -9681,9 +9584,7 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
     }
     
     // call profile lost link routine here
-#ifdef WLAN_SOFTAP_FEATURE
     if(!CSR_IS_INFRA_AP(&pSession->connectedProfile))
-#endif
     {
         csrRoamCallCallback(pMac, sessionId, NULL, 0, eCSR_ROAM_LOSTLINK_DETECTED, result);
     }
@@ -9912,35 +9813,19 @@ void csrRoamProcessWmStatusChangeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand
 //This function returns band and mode information.
 //The only tricky part is that if phyMode is set to 11abg, this function may return eCSR_CFG_DOT11_MODE_11B
 //instead of eCSR_CFG_DOT11_MODE_11G if everything is set to auto-pick.
-#ifdef WLAN_SOFTAP_FEATURE
 static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, 
                                                      tANI_U8 operationChn, eCsrBand *pBand )
-#else
-static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, eCsrPhyMode phyModeIn, 
-                                                     tANI_U8 operationChn, eCsrBand *pBand )
-#endif
 {
-#ifdef WLAN_SOFTAP_FEATURE
     eCsrPhyMode phyModeIn = (eCsrPhyMode)pProfile->phyMode;
     eCsrCfgDot11Mode cfgDot11Mode = csrGetCfgDot11ModeFromCsrPhyMode(pProfile, phyModeIn, 
                                             pMac->roam.configParam.ProprietaryRatesEnabled);
-#else
-    eCsrCfgDot11Mode cfgDot11Mode = csrGetCfgDot11ModeFromCsrPhyMode(phyModeIn, 
-                                            pMac->roam.configParam.ProprietaryRatesEnabled);
-#endif
     eCsrBand eBand;
     
     //If the global setting for dot11Mode is set to auto/abg, we overwrite the setting in the profile.
-#ifdef WLAN_SOFTAP_FEATURE
     if( ((!CSR_IS_INFRA_AP(pProfile )&& !CSR_IS_WDS(pProfile )) && 
          ((eCSR_CFG_DOT11_MODE_AUTO == pMac->roam.configParam.uCfgDot11Mode) ||
          (eCSR_CFG_DOT11_MODE_ABG == pMac->roam.configParam.uCfgDot11Mode))) ||
         (eCSR_CFG_DOT11_MODE_AUTO == cfgDot11Mode) || (eCSR_CFG_DOT11_MODE_ABG == cfgDot11Mode) )
-#else
-    if( (eCSR_CFG_DOT11_MODE_AUTO == pMac->roam.configParam.uCfgDot11Mode) ||
-        (eCSR_CFG_DOT11_MODE_ABG == pMac->roam.configParam.uCfgDot11Mode) ||
-        (eCSR_CFG_DOT11_MODE_AUTO == cfgDot11Mode) || (eCSR_CFG_DOT11_MODE_ABG == cfgDot11Mode) )
-#endif
     {
         switch( pMac->roam.configParam.uCfgDot11Mode )
         {
@@ -10474,11 +10359,7 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
        operationChannel = pProfile->ChannelInfo.ChannelList[0];
     }
     
-#ifdef WLAN_SOFTAP_FEATURE
     cfgDot11Mode = csrRoamGetPhyModeBandForBss( pMac, pProfile, operationChannel, &eBand );
-#else
-    cfgDot11Mode = csrRoamGetPhyModeBandForBss( pMac, (eCsrPhyMode)pProfile->phyMode, operationChannel, &eBand );
-#endif
     
 #ifdef WLAN_FEATURE_P2P
     if( ( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
@@ -10783,7 +10664,6 @@ eHalStatus csrRoamIssueStartBss( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRo
     pParam->nRSNIELength = (tANI_U16)pProfile->nRSNReqIELength;
     pParam->pRSNIE = pProfile->pRSNReqIE;
 
-#ifdef WLAN_SOFTAP_FEATURE
     pParam->privacy           = pProfile->privacy;
     pParam->fwdWPSPBCProbeReq = pProfile->fwdWPSPBCProbeReq;   
     pParam->authType          = pProfile->csr80211AuthType;
@@ -10802,15 +10682,9 @@ eHalStatus csrRoamIssueStartBss( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRo
     pParam->obssProtEnabled = pProfile->obssProtEnabled;
     pParam->ht_protection   = pProfile->cfg_protection;
     pParam->wps_state       = pProfile->wps_state;
-#endif
-    
-#ifdef WLAN_SOFTAP_FEATURE
+
     pParam->uCfgDot11Mode = csrRoamGetPhyModeBandForBss(pMac, pProfile, pParam->operationChn /* pProfile->operationChannel*/, 
                                         &eBand);
-#else
-    pParam->uCfgDot11Mode = csrRoamGetPhyModeBandForBss(pMac, (eCsrPhyMode)pProfile->phyMode, pProfile->operationChannel, 
-                                        &eBand);
-#endif
     pParam->bssPersona = pProfile->csrPersona;
     // When starting an IBSS, start on the channel from the Profile.
     status = csrSendMBStartBssReqMsg( pMac, sessionId, pProfile->BSSType, pParam, pBssDesc );
@@ -12104,11 +11978,9 @@ eHalStatus csrSendMBDisassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
     tSirSmeDisassocReq *pMsg;
     tANI_U8 *pBuf;
     tANI_U16 wTmp;
-#ifdef WLAN_SOFTAP_FEATURE
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     if (!CSR_IS_SESSION_VALID( pMac, sessionId ))
         return eHAL_STATUS_FAILURE;
-#endif
     do {
         status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof( tSirSmeDisassocReq ));
         if ( !HAL_STATUS_SUCCESS(status) ) break;
@@ -12123,7 +11995,6 @@ eHalStatus csrSendMBDisassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
         *( pBuf + 1 ) = 0;
         pBuf += sizeof(tANI_U16);
      
-#ifdef WLAN_SOFTAP_FEATURE        
         if ( (pSession->pCurRoamProfile != NULL ) && 
              ( reasonCode == eSIR_MAC_UNSPEC_FAILURE_REASON ) && 
              ((CSR_IS_INFRA_AP(pSession->pCurRoamProfile)) || (CSR_IS_WDS_AP(pSession->pCurRoamProfile))))
@@ -12137,15 +12008,12 @@ eHalStatus csrSendMBDisassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
         }
         else
         {
-#endif
             // Set the peer MAC address before sending the message to LIM
             status = palCopyMemory( pMac->hHdd, (tSirMacAddr *)pBuf, bssId, sizeof( tSirMacAddr ) );
             pBuf = pBuf + sizeof ( tSirMacAddr );
             status = palCopyMemory( pMac->hHdd, (tSirMacAddr *)pBuf, bssId, sizeof( pMsg->bssId ) );
             pBuf = pBuf + sizeof ( tSirMacAddr );
-#ifdef WLAN_SOFTAP_FEATURE
         }
-#endif
         if(!HAL_STATUS_SUCCESS(status))
         {
             palFreeMemory(pMac->hHdd, pMsg);
@@ -12175,7 +12043,6 @@ eHalStatus csrSendMBDisassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
     } while( 0 );
     return( status );
 }
-#ifdef WLAN_SOFTAP_FEATURE
 eHalStatus csrSendMBTkipCounterMeasuresReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_BOOLEAN bEnable, tSirMacAddr bssId )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -12329,7 +12196,6 @@ csrSendChngMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U32 sessionId)
      return status;
 }
 
-#endif
 eHalStatus csrSendMBDeauthReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirMacAddr bssId, tANI_U16 reasonCode )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -12354,9 +12220,7 @@ eHalStatus csrSendMBDeauthReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirM
         *(pBuf + 1 ) = 0;
         pBuf += sizeof(tANI_U16);
         if ((pSession->pCurRoamProfile != NULL)  && (
-#ifdef WLAN_SOFTAP_FEATURE
              (CSR_IS_INFRA_AP(pSession->pCurRoamProfile)) || 
-#endif
              (CSR_IS_WDS_AP(pSession->pCurRoamProfile)))){ 
             // Set the BSSID before sending the message to LIM
             status = palCopyMemory( pMac->hHdd, (tSirMacAddr *)pBuf, pSession->selfMacAddr, sizeof( pMsg->peerMacAddr ) );
@@ -12494,7 +12358,6 @@ eHalStatus csrSendAssocCnfMsg( tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd, 
     } while( 0 );
     return( status );
 }
-#ifdef WLAN_SOFTAP_FEATURE
 eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac, 
                                                 tpSirSmeAssocInd pAssocInd, 
                                                 eHalStatus Halstatus, 
@@ -12559,7 +12422,6 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
     } while( 0 );
     return( status );
 }
-#endif
 
 eHalStatus csrSendMBSetContextReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId ,
             tSirMacAddr peerMacAddr, tANI_U8 numKeys, tAniEdType edType, 
@@ -12668,9 +12530,7 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
     tANI_U32 dwTmp;
     tSirNwType nwType;
     ePhyChanBondState cbMode;
-#ifdef WLAN_SOFTAP_FEATURE
     tANI_U32 authType;
-#endif
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
     if(!pSession)
@@ -12707,12 +12567,10 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         {
             wTmp = pal_cpu_to_be16( pBssDesc->beaconInterval );
         }
-#ifdef WLAN_SOFTAP_FEATURE
         else if(pParam->beaconInterval)
         {
             wTmp = pal_cpu_to_be16( pParam->beaconInterval );
         }
-#endif
         else
         {
             wTmp = pal_cpu_to_be16( WNI_CFG_BEACON_INTERVAL_STADEF );
@@ -12764,7 +12622,6 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *)&cbMode, sizeof(ePhyChanBondState) );
         pBuf += sizeof(ePhyChanBondState);
 
-#ifdef WLAN_SOFTAP_FEATURE
         // Set privacy
         *pBuf = pParam->privacy;
         pBuf++;
@@ -12799,7 +12656,6 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         // Set wps_state
         *pBuf = pParam->wps_state;
         pBuf++;
-#endif
         //Persona
         *pBuf = (tANI_U8)pParam->bssPersona;
         pBuf++;
@@ -14996,7 +14852,6 @@ eHalStatus csrQueueSmeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOL
     }
     return ( status );
 }
-#ifdef WLAN_SOFTAP_FEATURE
 eHalStatus csrRoamUpdateAPWPSIE( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirAPWPSIEs* pAPWPSIES )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -15074,7 +14929,6 @@ eHalStatus csrRoamUpdateWPARSNIEs( tpAniSirGlobal pMac, tANI_U32 sessionId, tSir
     } while( 0 );
     return ( status );
 }
-#endif //#ifdef WLAN_SOFTAP_FEATURE
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 //eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tCsrBssid preAuthBssid, tANI_U8 channelId)
