@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1117,18 +1117,7 @@ regStaWithTl
     // translation for WinMob 6.1
     //*** Not to enabled UMA.
     /* Enable UMA for TX translation only when there is no concurrent session active */
-#if defined (FEATURE_WLAN_INTEGRATED_SOC)
     staDesc.ucSwFrameTXXlation = 1;
-#else
-    if (vos_concurrent_sessions_running())
-    {
-       staDesc.ucSwFrameTXXlation = 1;
-    }
-    else
-    {
-       staDesc.ucSwFrameTXXlation = 0;
-    }
-#endif
     staDesc.ucSwFrameRXXlation = 1; 
     staDesc.ucAddRmvLLC = 0;
 
