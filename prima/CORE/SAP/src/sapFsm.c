@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1040,9 +1040,7 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     //country code
     if (pconfig_params->countryCode[0])
         vos_mem_copy(profile->countryCode, pconfig_params->countryCode, WNI_CFG_COUNTRY_CODE_LEN);
-#ifdef WLAN_SOFTAP_FEATURE
     profile->ieee80211d = pconfig_params->ieee80211d;
-#endif
     //wps config info
     profile->wps_state = pconfig_params->wps_state;
 
