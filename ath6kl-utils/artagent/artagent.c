@@ -35,17 +35,8 @@ int cmdId,cmdLen;
 
 void callback_rx(void *buf, int len)
 {
-    int length, version;
-
-     /* skip cmd id, act */
-    buf += 2 * sizeof(unsigned int);
-    unsigned char *reply = (unsigned char*)buf;
-    length = *(unsigned short *)&(reply[0]);
-    version = (unsigned char)(reply[2]);
-
-    readLength = *(unsigned int *)&(reply[4]);
-    //printf("Version %d rx length %d read Length %d\n",version,length,readLength);
-    memcpy((void*)line, (void*)&(reply[8]),readLength);
+    readLength = len;
+    memcpy(line, buf, len);
 }
 
 static int initInterface(char *ifname)
@@ -219,7 +210,8 @@ int main (int argc, char **argv)
     bool firstpacket = true;
 
     struct sigaction sa;
-
+    int cmdIndx, statusIndx;
+    int continuous = 0;
     printf("setup signal\n");
     memset(&sa, 0, sizeof(struct sigaction));
 
@@ -232,7 +224,6 @@ int main (int argc, char **argv)
     sigaction(SIGHUP, &sa, NULL);
     sigaction(SIGABRT, &sa, NULL);
 
-    cid = sid = aid = -1;
     printf("setup ifname\n");
     memset(ar6kifname, '\0', sizeof(ar6kifname));
 
@@ -255,6 +246,9 @@ int main (int argc, char **argv)
     if (argc > 3) {
         port = atoi(argv[3]);
     }
+    if (argc > 4) {
+        continuous = atoi(argv[4]);
+    }
 
     if (port == 0)
 	port = ART_PORT;
@@ -274,7 +268,12 @@ int main (int argc, char **argv)
         cleanup(0);
         return -1;
     }
-
+    do{
+    cid = sid = aid = -1;
+    if (continuous) {
+        system("rmmod ath6kl_sdio");
+        system("insmod /lib/modules/3.2.0-rc2-wl-ar6/kernel/net/wireless/ath6kl_sdio.ko testmode=2");
+    }
     printf("open sock\n");
     sid = sock_init(port);
     if (sid < 0) {
@@ -309,7 +308,11 @@ int main (int argc, char **argv)
         if ((recvbytes = sock_recv(cid, line, LINE_ARRAY_SIZE)) < 0) {
             printf("Cannot recv packet size %d\n", recvbytes);
             cleanup(0);
-            return -1;
+            if (continuous) {
+                break;
+            }else{
+                return -1;
+            }
         }
 
         bytesRcvd = recvbytes;
@@ -323,6 +326,16 @@ int main (int argc, char **argv)
 
             printf("->FW len %d Command %d recvbytes %d\n",cmdLen,cmdId,recvbytes);
             firstpacket = false;
+        }
+
+        if (cmdId == DISCONNECT_PIPE_CMD_ID)
+        {
+            cleanup(0);
+            if (!continuous) {
+                system("rmmod wlan.ko");
+                system("rmmod cfg80211.ko");
+                exit(1);
+            }
         }
 
         if (!reducedARTPacket) {
@@ -353,17 +366,19 @@ int main (int argc, char **argv)
         }
 
         //line and readLength is populated in the callback
-        if ((REG_WRITE_CMD_ID != line[0]) && (MEM_WRITE_CMD_ID != line[0]) &&
-            (M_PCI_WRITE_CMD_ID != line[0]) && (M_PLL_PROGRAM_CMD_ID != line[0]) &&
-            (M_CREATE_DESC_CMD_ID != line[0])) {
-            printf("<- N/ART len %d Command %d status %d\n", readLength,(int)line[0],(int)line[4]);
+	cmdIndx = sizeof(TC_CMDS_HDR) + 4;
+        statusIndx = cmdIndx + 4;
+/*        if ((REG_WRITE_CMD_ID != line[cmdIndx]) && (MEM_WRITE_CMD_ID != line[cmdIndx]) &&
+            (M_PCI_WRITE_CMD_ID != line[cmdIndx]) && (M_PLL_PROGRAM_CMD_ID != line[cmdIndx]) &&
+            (M_CREATE_DESC_CMD_ID != line[cmdIndx])) { */
+            printf("<- N/ART len %d Command %d status %d\n", readLength,(int)line[cmdIndx],(int)line[statusIndx]);
             sock_send(cid, line, readLength);
-        } else {
-            printf("<- N/ART ACK Command %d\n", (int)line[0]);
-            sock_send(cid, &(line[0]), 1);
-        }
+/*        } else {
+            printf("<- N/ART ACK Command %d\n", (int)line[cmdIndx]);
+            sock_send(cid, line, statusIndx);
+        }*/
     }
-
+}while(continuous);
 
 main_exit:
     printf("Normal exit\n");
