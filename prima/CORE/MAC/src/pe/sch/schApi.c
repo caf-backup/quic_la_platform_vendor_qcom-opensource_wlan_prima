@@ -34,9 +34,7 @@
 
 #include "schSysParams.h"
 #include "limTrace.h"
-#ifdef WLAN_SOFTAP_FEATURE
 #include "limTypes.h"
-#endif
 
 #include "wlan_qct_wda.h"
 
@@ -287,14 +285,12 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
   // limGetBssid( pMac, beaconParams->bssId);
   palCopyMemory(pMac, beaconParams->bssId, psessionEntry->bssId, sizeof(psessionEntry->bssId));
 
-#ifdef WLAN_SOFTAP_FEATURE
   beaconParams->timIeOffset = pMac->sch.schObject.gSchBeaconOffsetBegin;
 #ifdef WLAN_FEATURE_P2P
   beaconParams->p2pIeOffset = pMac->sch.schObject.p2pIeOffset;
 #endif
 #ifdef WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
   schLog(pMac, LOGE,FL("TimIeOffset:[%d]\n"),beaconParams->TimIeOffset );
-#endif
 #endif
 
   beaconParams->beacon = beaconPayload;
@@ -330,7 +326,6 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
     schLog( pMac, LOG2,
         FL("Successfully posted WDA_SEND_BEACON_REQ to HAL\n"));
 
-#ifdef WLAN_SOFTAP_FEATURE
     if( (psessionEntry->limSystemRole == eLIM_AP_ROLE ) 
         && (psessionEntry->proxyProbeRspEn)
         && (pMac->sch.schObject.fBeaconChanged))
@@ -342,13 +337,11 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
             schLog(pMac, LOGE, FL("FAILED to send probe response template with retCode %d\n"), retCode);
         }
     }
-#endif
   }
 
   return retCode;
 }
 
-#ifdef WLAN_SOFTAP_FEATURE
 tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEntry
                                     ,tANI_U32* IeBitmap)
 {
@@ -496,5 +489,4 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
 
     return retCode;
 }
-#endif
 

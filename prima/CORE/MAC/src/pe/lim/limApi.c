@@ -999,7 +999,6 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
     }
     */
 
-#ifdef WLAN_SOFTAP_FEATURE
     if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
               (void **) &pMac->pmm.gPmmTim.pTim, sizeof(tANI_U8)*pMac->lim.maxStation))
     {
@@ -1007,7 +1006,6 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
         return eSIR_FAILURE;
     }
     palZeroMemory(pMac->hHdd, pMac->pmm.gPmmTim.pTim, sizeof(tANI_U8)*pMac->lim.maxStation);
-#endif
 
 #ifdef ANI_PRODUCT_TYPE_AP
 
@@ -1078,10 +1076,8 @@ tSirRetStatus peClose(tpAniSirGlobal pMac)
     palFreeMemory(pMac->hHdd, pMac->dph.dphHashTable.pDphNodeArray);
     pMac->dph.dphHashTable.pDphNodeArray = NULL;
     */
-#ifdef WLAN_SOFTAP_FEATURE
     palFreeMemory(pMac->hHdd, pMac->pmm.gPmmTim.pTim);
     pMac->pmm.gPmmTim.pTim = NULL;
-#endif
 #ifdef ANI_PRODUCT_TYPE_AP
     palFreeMemory(pMac->hHdd, pMac->pmm.gPmmTim.pStaInfo);
     pMac->pmm.gPmmTim.pStaInfo = NULL;

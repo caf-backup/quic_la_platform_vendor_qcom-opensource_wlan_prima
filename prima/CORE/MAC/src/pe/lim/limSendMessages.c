@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * limSendMessages.c: Provides functions to send messages or Indications to HAL.
@@ -166,9 +166,7 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
                     FL("Posting  WDA_UPDATE_BEACON_IND to WDA failed, reason=%X\n"),
                     retCode );
     }
-#ifdef WLAN_SOFTAP_FEATURE
     limSendBeaconInd(pMac, psessionEntry);
-#endif
     return retCode;
 }
 

@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * Author:      Sandesh Goel
@@ -108,13 +108,11 @@ void schSetBeaconInterval(tpAniSirGlobal pMac,tpPESession psessionEntry);
 
 tSirRetStatus schSendBeaconReq( tpAniSirGlobal, tANI_U8 *, tANI_U16, tpPESession psessionEntry );
 
-#ifdef WLAN_SOFTAP_FEATURE
 void limUpdateProbeRspTemplateIeBitmapBeacon1(tpAniSirGlobal,tDot11fBeacon1*,tANI_U32*,tDot11fProbeResponse*);
 void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal,tDot11fBeacon2*,tANI_U32*,tDot11fProbeResponse*);
 void SetProbeRspIeBitmap(tANI_U32*,tANI_U32);
 tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal,tpPESession,
                                     tANI_U32*);
-#endif
 
 
 #endif

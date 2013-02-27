@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file contains the source code for CFG API functions.
@@ -891,23 +891,19 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntr
     }
 #endif
 
-#ifdef WLAN_SOFTAP_FEATURE
     if(systemRole == eLIM_AP_ROLE)
     {
         val = sessionEntry->privacy;
     }
     else
     {
-#endif
-    // PRIVACY bit
-    if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED, &val) != eSIR_SUCCESS)
-    {
-        cfgLog(pMac, LOGP, FL("cfg get WNI_CFG_PRIVACY_ENABLED failed\n"));
-        return eSIR_FAILURE;
+        // PRIVACY bit
+        if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED, &val) != eSIR_SUCCESS)
+        {
+            cfgLog(pMac, LOGP, FL("cfg get WNI_CFG_PRIVACY_ENABLED failed\n"));
+            return eSIR_FAILURE;
+        }
     }
-#ifdef WLAN_SOFTAP_FEATURE
-    }
-#endif
     if (val)
         pCapInfo->privacy = 1;
 

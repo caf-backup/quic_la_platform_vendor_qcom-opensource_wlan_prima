@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSmeReqUtils.cc contains the utility functions
@@ -12,7 +12,7 @@
  * Date           Modified by    Modification Information
  * --------------------------------------------------------------------
  * 05/26/10       js             WPA handling in (Re)Assoc frames
- * 
+ *
  */
 
 #include "wniApi.h"
@@ -212,7 +212,6 @@ limIsAddieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirAddie pAddie)
     return true;
 } /*** end limIsAddieValidInSmeReqMessage() ***/
 
-#ifdef WLAN_SOFTAP_FEATURE
 /**
  * limSetRSNieWPAiefromSmeStartBSSReqMessage()
  *
@@ -358,7 +357,6 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
 
     return true;
 } /*** end limSetRSNieWPAiefromSmeStartBSSReqMessage() ***/
-#endif
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
 /**
@@ -552,11 +550,9 @@ limIsSmeStartBssReqValid(tpAniSirGlobal pMac,
         case eSIR_BTAMP_AP_MODE:
             break;
 
-#ifdef WLAN_SOFTAP_FEATURE
         /* Added for SoftAP support */
         case eSIR_INFRA_AP_MODE:
             break;
-#endif
         
         default:
             /**

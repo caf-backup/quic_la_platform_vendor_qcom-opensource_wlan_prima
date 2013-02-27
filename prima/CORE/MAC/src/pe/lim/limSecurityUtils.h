@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSecurityUtils.h contains the utility definitions
@@ -21,11 +21,7 @@
                                 SIR_MAC_WEP_ICV_LENGTH)
 struct tLimPreAuthNode;
 
-#ifdef WLAN_SOFTAP_FEATURE
 tANI_U8        limIsAuthAlgoSupported(tpAniSirGlobal, tAniAuthType, tpPESession);
-#else
-tANI_U8        limIsAuthAlgoSupported(tpAniSirGlobal, tAniAuthType);
-#endif
 
 // MAC based authentication related functions
 void               limInitPreAuthList(tpAniSirGlobal);

@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  * This file limAssocUtils.h contains the utility definitions
  * LIM uses while processing Re/Association messages.
  * Author:        Chandra Modumudi
@@ -10,7 +10,7 @@
  * Date           Modified by    Modification Information
  * --------------------------------------------------------------------
  * 05/26/10       js             WPA handling in (Re)Assoc frames
- * 
+ *
  */
 #ifndef __LIM_ASSOC_UTILS_H
 #define __LIM_ASSOC_UTILS_H
@@ -27,10 +27,8 @@ tANI_U8         limCompareCapabilities(tpAniSirGlobal,
                                        tSirAssocReq *,
                                        tSirMacCapabilityInfo *,tpPESession);
 tANI_U8         limCheckRxBasicRates(tpAniSirGlobal, tSirMacRateSet,tpPESession);
-#ifdef WLAN_SOFTAP_FEATURE
 tANI_U8         limCheckRxRSNIeMatch(tpAniSirGlobal, tDot11fIERSN, tpPESession, tANI_U8);
 tANI_U8         limCheckRxWPAIeMatch(tpAniSirGlobal, tDot11fIEWPA, tpPESession, tANI_U8);
-#endif
 tANI_U8         limCheckMCSSet(tpAniSirGlobal pMac, tANI_U8* supportedMCSSet);
 void            limPostDummyToTmRing(tpAniSirGlobal, tpDphHashNode);
 void            limPostPacketToTdRing(tpAniSirGlobal,
@@ -81,7 +79,7 @@ tSirRetStatus   limAddSta(tpAniSirGlobal, tpDphHashNode,tpPESession);
 tSirRetStatus   limDelBss(tpAniSirGlobal, tpDphHashNode, tANI_U16, tpPESession);
 tSirRetStatus   limDelSta(tpAniSirGlobal, tpDphHashNode, tANI_BOOLEAN, tpPESession);
 #ifdef WLAN_FEATURE_VOWIFI_11R
-tSirRetStatus   limAddFTStaSelf(tpAniSirGlobal pMac, tANI_U16 assocId, 
+tSirRetStatus   limAddFTStaSelf(tpAniSirGlobal pMac, tANI_U16 assocId,
                     tpPESession psessionEntry);
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 tSirRetStatus   limAddStaSelf(tpAniSirGlobal, tANI_U16, tANI_U8, tpPESession);

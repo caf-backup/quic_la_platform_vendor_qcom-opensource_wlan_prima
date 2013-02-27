@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -1218,15 +1218,12 @@ void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void *msg, tpPESession
     limSendSmeWmStatusChangeNtf(pMac, eSIR_SME_JOINED_NEW_BSS,
                                 (tANI_U32 *) &newBssInfo,
                                 infoLen,pSessionEntry->smeSessionId);
-#ifdef WLAN_SOFTAP_FEATURE
     {
         //Configure beacon and send beacons to HAL
         limSendBeaconInd(pMac, pSessionEntry);
     }
-#endif
-    
 
-    end:
+ end:
     ibss_coalesce_free(pMac);
 }
 

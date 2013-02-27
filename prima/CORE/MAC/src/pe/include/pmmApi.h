@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * Author:      Sandesh Goel
@@ -39,11 +39,7 @@ extern void pmmProcessPSPoll(tpAniSirGlobal, tANI_U8 *);
 extern void pmmUpdatePSPollState(tpAniSirGlobal);
 extern void pmmProcessRxActivity(tpAniSirGlobal, tANI_U16, tANI_U8);
 
-#ifdef WLAN_SOFTAP_FEATURE
 extern void pmmGenerateTIM(tpAniSirGlobal, tANI_U8 **, tANI_U16 *, tANI_U8);
-#else
-extern void pmmGenerateTIM(tpAniSirGlobal, tANI_U8 **, tANI_U16 *);
-#endif
 
 
 void pmmUpdateTIM(tpAniSirGlobal pMac, tpBeaconGenParams pBeaconGenParams);
