@@ -4118,7 +4118,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
             memset(&pAdapter->hdd_stats, 0, sizeof(pAdapter->hdd_stats));
             break;
         }
-#ifdef WLAN_SOFTAP_FEATURE
         case WE_INIT_AP:
         {
           pr_info("Init AP trigger\n");
@@ -4156,7 +4155,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
 
            break;
         }
-#endif
 #ifdef WLAN_BTAMP_FEATURE
         case WE_ENABLE_AMP:
         {
