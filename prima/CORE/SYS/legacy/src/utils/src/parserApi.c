@@ -547,31 +547,19 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     tANI_U8                          nCfgValue8;
     tSirRetStatus                    nSirStatus;
     tSirMacHTParametersInfo         *pHTParametersInfo;
-#ifdef WLAN_SOFTAP_FEATURE // this is added for fixing CRs on MDM9K platform - 257951, 259577
     union {
         tANI_U16                        nCfgValue16;
         tSirMacHTCapabilityInfo         htCapInfo;
         tSirMacExtendedHTCapabilityInfo extHtCapInfo;
     } uHTCapabilityInfo;
-#else
-    tANI_U16                         nCfgValue16;
-    tSirMacHTCapabilityInfo         *pHTCapabilityInfo;
-    tSirMacExtendedHTCapabilityInfo *pExtendedHTCapabilityInfo;
-#endif
 
     tSirMacTxBFCapabilityInfo       *pTxBFCapabilityInfo;
     tSirMacASCapabilityInfo         *pASCapabilityInfo;
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_CAP_INFO, nCfgValue );
 
-#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
-#else
-    nCfgValue16 = ( tANI_U16 ) nCfgValue;
-    pHTCapabilityInfo = ( tSirMacHTCapabilityInfo* ) &nCfgValue16;
-#endif
 
-#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     pDot11f->advCodingCap             = uHTCapabilityInfo.htCapInfo.advCodingCap;
     pDot11f->mimoPowerSave            = uHTCapabilityInfo.htCapInfo.mimoPowerSave;
     pDot11f->greenField               = uHTCapabilityInfo.htCapInfo.greenField;
@@ -585,21 +573,6 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     pDot11f->psmp                     = uHTCapabilityInfo.htCapInfo.psmp;
     pDot11f->stbcControlFrame         = uHTCapabilityInfo.htCapInfo.stbcControlFrame;
     pDot11f->lsigTXOPProtection       = uHTCapabilityInfo.htCapInfo.lsigTXOPProtection;
-#else
-    pDot11f->advCodingCap             = pHTCapabilityInfo->advCodingCap;
-    pDot11f->mimoPowerSave            = pHTCapabilityInfo->mimoPowerSave;
-    pDot11f->greenField               = pHTCapabilityInfo->greenField;
-    pDot11f->shortGI20MHz             = pHTCapabilityInfo->shortGI20MHz;
-    pDot11f->shortGI40MHz             = pHTCapabilityInfo->shortGI40MHz;
-    pDot11f->txSTBC                   = pHTCapabilityInfo->txSTBC;
-    pDot11f->rxSTBC                   = pHTCapabilityInfo->rxSTBC;
-    pDot11f->delayedBA                = pHTCapabilityInfo->delayedBA;
-    pDot11f->maximalAMSDUsize         = pHTCapabilityInfo->maximalAMSDUsize;
-    pDot11f->dsssCckMode40MHz         = pHTCapabilityInfo->dsssCckMode40MHz;
-    pDot11f->psmp                     = pHTCapabilityInfo->psmp;
-    pDot11f->stbcControlFrame         = pHTCapabilityInfo->stbcControlFrame;
-    pDot11f->lsigTXOPProtection       = pHTCapabilityInfo->lsigTXOPProtection;
-#endif
 
     // All sessionized entries will need the check below
     if (psessionEntry == NULL) // Only in case of NO session
@@ -642,20 +615,12 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_EXT_HT_CAP_INFO, nCfgValue );
 
-#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
 
     pDot11f->pco            = uHTCapabilityInfo.extHtCapInfo.pco;
     pDot11f->transitionTime = uHTCapabilityInfo.extHtCapInfo.transitionTime;
     pDot11f->mcsFeedback    = uHTCapabilityInfo.extHtCapInfo.mcsFeedback;
 
-#else
-    nCfgValue16 = ( tANI_U16 ) nCfgValue ;
-    pExtendedHTCapabilityInfo = ( tSirMacExtendedHTCapabilityInfo* ) &nCfgValue16;
-    pDot11f->pco            = pExtendedHTCapabilityInfo->pco;
-    pDot11f->transitionTime = pExtendedHTCapabilityInfo->transitionTime;
-    pDot11f->mcsFeedback    = pExtendedHTCapabilityInfo->mcsFeedback;
-#endif
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_TX_BF_CAP, nCfgValue );
 
@@ -974,16 +939,10 @@ PopulateDot11fOperatingMode(tpAniSirGlobal      pMac,
 }
 
 #endif
-#ifdef WLAN_SOFTAP_FEATURE
 tSirRetStatus
 PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
                      tDot11fIEHTInfo *pDot11f,
                      tpPESession      psessionEntry )
-#else
-tSirRetStatus
-PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
-                     tDot11fIEHTInfo *pDot11f)
-#endif
 {
     tANI_U32             nCfgValue, nCfgLen;
     tANI_U8              htInfoField1;
@@ -991,7 +950,6 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     tSirRetStatus        nSirStatus;
     tSirMacHTInfoField1 *pHTInfoField1;
     tSirMacHTInfoField2 *pHTInfoField2;
-#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     union {
         tANI_U16         nCfgValue16;
         tSirMacHTInfoField3 infoField3;
@@ -1000,14 +958,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
         tANI_U16         nCfgValue16;
         tSirMacHTInfoField2 infoField2;
     }uHTInfoField2={0};
-#else
-    tANI_U16            htInfoField3;
-    tSirMacHTInfoField3 *pHTInfoField3;
-#endif
 
-#ifndef WLAN_SOFTAP_FEATURE
-    tpPESession         psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
-#endif
 
     #if 0
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_CURRENT_CHANNEL, nCfgValue );
@@ -1041,7 +992,6 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
         pHTInfoField1->recommendedTxWidthSet      = psessionEntry->htRecommendedTxWidthSet;
     }
 
-#ifdef WLAN_SOFTAP_FEATURE
     if((psessionEntry) && (psessionEntry->limSystemRole == eLIM_AP_ROLE)){
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD2, nCfgValue );
 
@@ -1054,7 +1004,6 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     uHTInfoField2.infoField2.reserved = 0;
 
    }else{
-#endif
         CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD2, nCfgValue );
 
         htInfoField2 = ( tANI_U16 ) nCfgValue;
@@ -1065,14 +1014,11 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
         pHTInfoField2->obssNonHTStaPresent = pMac->lim.gHTObssMode;   /*added for Obss  */
 
         pHTInfoField2->reserved = 0;
-#ifdef WLAN_SOFTAP_FEATURE
     }
-#endif
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD3, nCfgValue );
 
 
-#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     uHTInfoField.nCfgValue16 = nCfgValue & 0xFFFF;
 
 
@@ -1084,18 +1030,6 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     uHTInfoField.infoField3.pcoPhase                      = pMac->lim.gHTPCOPhase;
     uHTInfoField.infoField3.reserved                      = 0;
 
-#else
-    htInfoField3 = (tANI_U16) nCfgValue;
-
-    pHTInfoField3 = ( tSirMacHTInfoField3* ) &htInfoField3;
-    pHTInfoField3->basicSTBCMCS                  = pMac->lim.gHTSTBCBasicMCS;
-    pHTInfoField3->dualCTSProtection             = pMac->lim.gHTDualCTSProtection;
-    pHTInfoField3->secondaryBeacon               = pMac->lim.gHTSecondaryBeacon;
-    pHTInfoField3->lsigTXOPProtectionFullSupport = psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport;
-    pHTInfoField3->pcoActive                     = pMac->lim.gHTPCOActive;
-    pHTInfoField3->pcoPhase                      = pMac->lim.gHTPCOPhase;
-    pHTInfoField3->reserved                      = 0;
-#endif
 
     pDot11f->secondaryChannelOffset        = pHTInfoField1->secondaryChannelOffset;
     pDot11f->recommendedTxWidthSet         = pHTInfoField1->recommendedTxWidthSet;
@@ -1103,20 +1037,12 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     pDot11f->controlledAccessOnly          = pHTInfoField1->controlledAccessOnly;
     pDot11f->serviceIntervalGranularity    = pHTInfoField1->serviceIntervalGranularity;
 
-#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     pDot11f->opMode                        = uHTInfoField2.infoField2.opMode;
     pDot11f->nonGFDevicesPresent           = uHTInfoField2.infoField2.nonGFDevicesPresent;
     pDot11f->obssNonHTStaPresent           = uHTInfoField2.infoField2.obssNonHTStaPresent;
     pDot11f->reserved                      = uHTInfoField2.infoField2.reserved;
 
-#else
-    pDot11f->opMode                        = pHTInfoField2->opMode;
-    pDot11f->nonGFDevicesPresent           = pHTInfoField2->nonGFDevicesPresent;
-    pDot11f->obssNonHTStaPresent           = pHTInfoField2->obssNonHTStaPresent;
-    pDot11f->reserved                      = pHTInfoField2->reserved;
-#endif
 
-#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     pDot11f->basicSTBCMCS                  = uHTInfoField.infoField3.basicSTBCMCS;
     pDot11f->dualCTSProtection             = uHTInfoField.infoField3.dualCTSProtection;
     pDot11f->secondaryBeacon               = uHTInfoField.infoField3.secondaryBeacon;
@@ -1124,15 +1050,6 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     pDot11f->pcoActive                     = uHTInfoField.infoField3.pcoActive;
     pDot11f->pcoPhase                      = uHTInfoField.infoField3.pcoPhase;
     pDot11f->reserved2                     = uHTInfoField.infoField3.reserved;
-#else
-    pDot11f->basicSTBCMCS                  = pHTInfoField3->basicSTBCMCS;
-    pDot11f->dualCTSProtection             = pHTInfoField3->dualCTSProtection;
-    pDot11f->secondaryBeacon               = pHTInfoField3->secondaryBeacon;
-    pDot11f->lsigTXOPProtectionFullSupport = pHTInfoField3->lsigTXOPProtectionFullSupport;
-    pDot11f->pcoActive                     = pHTInfoField3->pcoActive;
-    pDot11f->pcoPhase                      = pHTInfoField3->pcoPhase;
-    pDot11f->reserved2                     = pHTInfoField3->reserved;
-#endif
     CFG_GET_STR( nSirStatus, pMac, WNI_CFG_BASIC_MCS_SET,
                  pDot11f->basicMCSSet, nCfgLen,
                  SIZE_OF_BASIC_MCS_SET );
@@ -1633,12 +1550,10 @@ void PopulateDot11fWMMInfoAp(tpAniSirGlobal pMac, tDot11fIEWMMInfoAp *pInfo,
     else
     {
         pInfo->param_set_count = ( 0xf & psessionEntry->gLimEdcaParamSetCount );
-#ifdef WLAN_SOFTAP_FEATURE
         if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
             pInfo->uapsd = ( 0x1 & psessionEntry->apUapsdEnable );
         }
         else
-#endif
             pInfo->uapsd = ( 0x1 & pMac->lim.gUapsdEnable );
     }
     pInfo->present = 1;
@@ -1661,23 +1576,16 @@ void PopulateDot11fWMMInfoStation(tpAniSirGlobal pMac, tDot11fIEWMMInfoStation *
     pInfo->present = 1;
 }
 
-#ifdef WLAN_SOFTAP_FEATURE
 void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
                              tDot11fIEWMMParams *pParams,
                              tpPESession        psessionEntry)
-#else
-void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
-                             tDot11fIEWMMParams *pParams)
-#endif
 {
     pParams->version = SIR_MAC_OUI_VERSION_1;
 
-#ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
        pParams->qosInfo =
            (psessionEntry->apUapsdEnable << 7) | ((tANI_U8)(0x0f & psessionEntry->gLimEdcaParamSetCount));
     else 
-#endif
        pParams->qosInfo =
            (pMac->lim.gUapsdEnable << 7) | ((tANI_U8)(0x0f & psessionEntry->gLimEdcaParamSetCount));
 
@@ -1696,11 +1604,9 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
     pParams->acbk_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[1].cw.max );
     pParams->acbk_txoplimit = psessionEntry->gLimEdcaParamsBC[1].txoplimit;
 
-#ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
         pParams->acvi_aifsn     = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].aci.aifsn );
     else
-#endif 
         pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[2].aci.aifsn) );
 
 
@@ -1711,11 +1617,9 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
     pParams->acvi_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].cw.max );
     pParams->acvi_txoplimit = psessionEntry->gLimEdcaParamsBC[2].txoplimit;
 
-#ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
         pParams->acvo_aifsn     = ( 0xf & psessionEntry->gLimEdcaParamsBC[3].aci.aifsn );
     else
-#endif
         pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[3].aci.aifsn) );
 
     pParams->acvo_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[3].aci.acm );
@@ -2299,9 +2203,7 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
     if ( ar->WMMInfoStation.present )
     {
         pAssocReq->wmeInfoPresent = 1;
-#ifdef WLAN_SOFTAP_FEATURE
         palCopyMemory( pMac, &pAssocReq->WMMInfoStation, &ar->WMMInfoStation, sizeof( tDot11fIEWMMInfoStation ) );
-#endif
 
     }
 
@@ -2628,9 +2530,7 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
     if ( ar.WMMInfoStation.present )
     {
         pAssocReq->wmeInfoPresent = 1;
-#ifdef WLAN_SOFTAP_FEATURE
         palCopyMemory( pMac, &pAssocReq->WMMInfoStation, &ar.WMMInfoStation, sizeof( tDot11fIEWMMInfoStation ) );
-#endif
 
     }
 
@@ -4217,7 +4117,6 @@ tSirRetStatus DePopulateDot11fWscRegistrarInfo(tpAniSirGlobal pMac,
 
     return eSIR_SUCCESS;
 }
-#ifdef WLAN_SOFTAP_FEATURE
 tSirRetStatus PopulateDot11fProbeResWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscProbeRes *pDot11f, tpPESession psessionEntry)
 {
  
@@ -4481,7 +4380,6 @@ tSirRetStatus PopulateDot11fBeaconWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscBeacon
        
     return eSIR_SUCCESS;
 }
-#endif
 tSirRetStatus PopulateDot11fWscInProbeRes(tpAniSirGlobal pMac,
                                           tDot11fIEWscProbeRes *pDot11f)
 {
