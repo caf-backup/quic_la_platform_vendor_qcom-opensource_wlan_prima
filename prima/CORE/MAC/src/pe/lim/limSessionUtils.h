@@ -2,6 +2,11 @@
 #if!defined( __LIM_SESSION_UTILS_H )
 #define __LIM_SESSION_UTILS_H
 
+/*
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
 
 /**=========================================================================
   
@@ -197,5 +202,21 @@ limIsInMCC (tpAniSirGlobal pMac);
   --------------------------------------------------------------------------*/
 tANI_U8
 peGetCurrentSTAsCount(tpAniSirGlobal pMac);
+
+#ifdef FEATURE_WLAN_LFR
+/*--------------------------------------------------------------------------
+  \brief limIsFastRoamEnabled() - To check Fast roaming is enabled or not
+
+  \param pMac                   - pointer to global adapter context
+  \param sessionId              - session id
+  \return                       - TRUE or FALSE
+
+  \sa
+  --------------------------------------------------------------------------*/
+tANI_U8
+limIsFastRoamEnabled(tpAniSirGlobal pMac, tANI_U8 sessionId);
+#endif
+
+
 #endif //#if !defined( __LIM_SESSION_UTILS_H )
 
