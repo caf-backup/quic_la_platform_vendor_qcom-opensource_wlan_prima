@@ -20,7 +20,7 @@
 
 #include "palTypes.h"
 #include "sirTypes.h"
-#include "wniCfgAp.h"
+#include "wniCfgSta.h"
 #include "aniCompiler.h"
 
 

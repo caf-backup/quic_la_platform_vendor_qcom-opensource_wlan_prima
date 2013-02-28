@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessAuthFrame.cc contains the code
@@ -16,11 +16,7 @@
  */
 
 #include "wniApi.h"
-#if (WNI_POLARIS_FW_PRODUCT == AP)
-#include "wniCfgAp.h"
-#else
 #include "wniCfgSta.h"
-#endif
 #include "aniGlobal.h"
 #include "cfgApi.h"
 
@@ -645,10 +641,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 limLog(pMac, LOGP,
                        FL("could not retrieve MaxNumPreAuth\n"));
             }
-#ifdef ANI_AP_SDK_OPT
-            if(maxNumPreAuth > SIR_SDK_OPT_MAX_NUM_PRE_AUTH)
-                maxNumPreAuth = SIR_SDK_OPT_MAX_NUM_PRE_AUTH;
-#endif // ANI_AP_SDK_OPT
             if (pMac->lim.gLimNumPreAuthContexts == maxNumPreAuth)
             {
                 /**
