@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -78,12 +78,7 @@ when           who        what, where, why
 // How do I get SAP context from voss context? 
 #define VOS_GET_SAP_CB(ctx) vos_get_context( VOS_MODULE_ID_SAP, ctx) 
 
-#if defined(FEATURE_WLAN_NON_INTEGRATED_SOC)
-// How do I get halHandle from voss context? 
-#define VOS_GET_HAL_CB(ctx) vos_get_context( VOS_MODULE_ID_HAL, ctx) 
-#else
 #define VOS_GET_HAL_CB(ctx) vos_get_context( VOS_MODULE_ID_PE, ctx) 
-#endif
 //MAC Address length
 #define ANI_EAPOL_KEY_RSN_NONCE_SIZE      32
 
