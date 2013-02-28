@@ -124,6 +124,6 @@ void limWPSOverlapTimerHandler(void *pMacGlobal, tANI_U32 param);
 #endif
 #endif
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
-void limMissedBeaconInActiveMode(void *pMacGlobal);
+void limMissedBeaconInActiveMode(void *pMacGlobal, tpPESession psessionEntry);
 #endif
 #endif /* __LIM_TIMER_UTILS_H */

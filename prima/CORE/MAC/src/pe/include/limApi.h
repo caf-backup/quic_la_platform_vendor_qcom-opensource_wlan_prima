@@ -195,7 +195,7 @@ tSirRetStatus limProcessCcaMonitorModeChangeNotification(tpAniSirGlobal pMac, tA
 #endif /* WNI_POLARIS_FW_PRODUCT == AP */
 void limHandleLowRssiInd(tpAniSirGlobal pMac);
 void limHandleBmpsStatusInd(tpAniSirGlobal pMac);
-void limHandleMissedBeaconInd(tpAniSirGlobal pMac);
+void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U32 subType);
 void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 /* ----------------------------------------------------------------------- */

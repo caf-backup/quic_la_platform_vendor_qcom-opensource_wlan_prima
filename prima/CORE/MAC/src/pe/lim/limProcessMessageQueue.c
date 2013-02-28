@@ -1623,7 +1623,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 
         case WDA_MISSED_BEACON_IND:
-            limHandleMissedBeaconInd(pMac);
+            limHandleMissedBeaconInd(pMac, limMsg);
+            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
             break;
         case WDA_MIC_FAILURE_IND:
            limMicFailureInd(pMac, limMsg);
@@ -1818,10 +1820,17 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             }
             else
             {
-                 limHandleHeartBeatTimeout(pMac);
+                 if (NULL == limMsg->bodyptr)
+                 {
+                     limHandleHeartBeatTimeout(pMac);
+                 }
+                 else
+                 {
+                     limHandleHeartBeatTimeoutForSession(pMac, (tpPESession)limMsg->bodyptr);
+                 }
             }            
             break;
-           
+
         case SIR_LIM_PROBE_HB_FAILURE_TIMEOUT:
             limHandleHeartBeatFailureTimeout(pMac);            
             break;

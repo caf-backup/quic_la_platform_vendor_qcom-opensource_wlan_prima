@@ -2060,6 +2060,12 @@ typedef struct sSirSmeMicFailureInd
     tSirMicFailureInfo     info;
 } tSirSmeMicFailureInd, *tpSirSmeMicFailureInd;
 
+typedef struct sSirSmeMissedBeaconInd
+{
+    tANI_U16                    messageType; // eWNI_SME_MISSED_BEACON_IND
+    tANI_U16                    length;
+    tANI_U8                     bssIdx;
+} tSirSmeMissedBeaconInd, *tpSirSmeMissedBeaconInd;
 
 /// Definition for Set Context request
 /// ---> MAC
