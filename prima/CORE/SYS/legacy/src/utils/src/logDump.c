@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 /*============================================================================
 Copyright (c) 2007 Qualcomm Technologies, Inc.
 All Rights Reserved.
@@ -34,10 +39,6 @@ logDump.c
 #define MAX_LOGDUMP_SIZE    ((4*1024) - MAX_OVERFLOW_MSG)
 #endif
 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halDebug.h"
-#include "halInterrupts.h"
-#endif
 #if defined (ANI_OS_TYPE_LINUX)
 
 #include <sysDebug.h>
@@ -53,9 +54,6 @@ logDump.c
 #endif
 
 #include "pmmApi.h"
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halInternal.h"
-#endif
 #include "csrApi.h"
 
 #elif defined(ANI_OS_TYPE_OSX)
@@ -90,9 +88,6 @@ logDump.c
 #include <utilsApi.h>
 
 #include <limApi.h>
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include <halCommonApi.h>
-#endif
 #include <cfgApi.h>
 #include <utilsGlobal.h>
 #include <dphGlobal.h>
@@ -102,19 +97,8 @@ logDump.c
 
 #include "pmmApi.h"
 #include "limSerDesUtils.h"
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halLogDump.h"
-//#include "testHalMsgApi.h"
-#include "halMailbox.h"
-#include "halRxp.h"
-#include "halMTU.h"
-#include "halPhyApi.h"
-#endif
 #include "limAssocUtils.h"
 #include "limSendMessages.h"
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halUtils.h"
-#endif
 #include "limSecurityUtils.h"
 //#include "halRadar.h"
 #include "logDump.h"
