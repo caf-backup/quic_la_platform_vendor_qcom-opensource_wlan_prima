@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessBeaconFrame.cc contains the code
@@ -23,9 +23,6 @@
 #include "cfgApi.h"
 #include "schApi.h"
 #include "wniCfgAp.h"
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halCommonApi.h"
-#endif
 #include "utilsApi.h"
 #include "limTypes.h"
 #include "limUtils.h"

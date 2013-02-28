@@ -227,7 +227,6 @@ typedef struct sDphQueueAttr
 } tDphQueueAttr, *tpDphQueueAttr;
 
 
-#if defined( FEATURE_WLAN_INTEGRATED_SOC )
 
 typedef struct sCfgTrafficClass {
 
@@ -290,7 +289,6 @@ typedef struct sCfgTrafficClass {
 
 } tCfgTrafficClass;
 
-#endif /* EATURE_WLAN_INTEGRATED_SOC */
 
 
 /// STA state node

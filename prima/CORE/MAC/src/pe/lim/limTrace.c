@@ -19,9 +19,7 @@
   Include Files
   ------------------------------------------------------------------------*/
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include "aniGlobal.h" //for tpAniSirGlobal
-#endif
 
 #include "limTrace.h"
 #include "limTimerUtils.h"

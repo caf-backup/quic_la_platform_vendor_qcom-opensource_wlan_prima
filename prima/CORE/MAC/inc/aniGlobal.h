@@ -42,15 +42,8 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "utilsGlobal.h"
 #include "sirApi.h"
 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halGlobal.h"
-#include "halDataStruct.h"
-#include "pttModule.h"
-#endif
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include "wlan_qct_hal.h"
-#endif 
 
 #ifdef ANI_PRODUCT_TYPE_CLIENT
 #include "pmc.h"
@@ -94,11 +87,9 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 // New HAL API interface defs.
 #include "logDump.h"
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 //Check if this definition can actually move here from halInternal.h even for Volans. In that case
 //this featurization can be removed.
 #define PMAC_STRUCT( _hHal )  (  (tpAniSirGlobal)_hHal )
-#endif
 
 #define ANI_DRIVER_TYPE(pMac)     (((tpAniSirGlobal)(pMac))->gDriverType)
 // -------------------------------------------------------------------
@@ -962,7 +953,6 @@ typedef struct sFTContext
 } tftContext, *tpFTContext;
 #endif
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 //Check if this definition can actually move here even for Volans. In that case
 //this featurization can be removed.
 /** ------------------------------------------------------------------------- * 
@@ -1012,7 +1002,6 @@ typedef struct sHalMacStartParameters
     tDriverType  driverType;
 
 } tHalMacStartParameters;
-#endif 
 
 // -------------------------------------------------------------------
 /// MAC Sirius parameter structure
@@ -1042,9 +1031,6 @@ typedef struct sAniSirGlobal
     tAniSirUtils utils;
 
 #ifndef WLAN_FTM_STUB 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-    tPttModuleVariables ptt;
-#endif
 #endif
 
     tAniSirTxWrapper txWrapper;

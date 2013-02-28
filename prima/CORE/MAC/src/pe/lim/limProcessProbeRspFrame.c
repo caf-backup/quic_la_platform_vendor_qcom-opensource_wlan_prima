@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessProbeRspFrame.cc contains the code
@@ -21,9 +21,6 @@
 #include "wniCfgSta.h"
 #endif
 #include "aniGlobal.h"
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halCommonApi.h"
-#endif
 #include "schApi.h"
 #include "utilsApi.h"
 #include "limApi.h"
