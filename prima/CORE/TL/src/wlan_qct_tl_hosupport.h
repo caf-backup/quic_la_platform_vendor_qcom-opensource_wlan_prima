@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -279,10 +279,8 @@ VOS_STATUS WLANTL_StatHandleTXFrame
    v_PVOID_t        pAdapter,
    v_U8_t           STAid,
    vos_pkt_t       *dataBuffer,
-   v_PVOID_t        pBDHeader
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-  ,WLANTL_MetaInfoType *txMetaInfo
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+   v_PVOID_t        pBDHeader,
+   WLANTL_MetaInfoType *txMetaInfo
 );
 
 #endif //FEATURE_WLAN_GEN6_ROAMING
