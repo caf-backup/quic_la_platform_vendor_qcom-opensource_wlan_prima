@@ -23165,8 +23165,6 @@ WDI_PackUpdateScanParamsReqEx
    tUpdateScanParamsEx           updateScanParams = {0};
 
 
-   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-               "Begin WDI Update Scan Parameters New Style Params");
    /*-----------------------------------------------------------------------
      Get message buffer
    -----------------------------------------------------------------------*/
@@ -23212,9 +23210,6 @@ WDI_PackUpdateScanParamsReqEx
 
    pWDICtx->wdiReqStatusCB     = pwdiUpdateScanParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiUpdateScanParams->pUserData;
-
-   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-               "End Update Scan Parameters New Style");
 
    /*Set the output values*/
    *ppSendBuffer = pSendBuffer;
