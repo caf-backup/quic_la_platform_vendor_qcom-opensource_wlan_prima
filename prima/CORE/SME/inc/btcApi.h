@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /******************************************************************************
 *
 * Name:  btcApi.h
@@ -327,6 +333,7 @@ typedef struct sSmeBtcInfo
    v_BOOL_t      fA2DPTrafStop;/*flag to check A2DP_STOP event has come before MODE_CHANGED*/
    v_U16_t       btcScoHandles[BT_MAX_SCO_SUPPORT];  /* Handles for SCO, if any*/
    v_BOOL_t      fA2DPUp;        /*remember whether A2DP is in session*/
+   v_BOOL_t      btcScanCompromise;
 } tSmeBtcInfo, *tpSmeBtcInfo;
 
 
