@@ -40,7 +40,7 @@
   All values are in the range 0..255 (ie they are 8-bit values)
  ---------------------------------------------------------------------------*/
 #define WLAN_HAL_VER_MAJOR 1
-#define WLAN_HAL_VER_MINOR 3
+#define WLAN_HAL_VER_MINOR 4
 #define WLAN_HAL_VER_VERSION 1
 #define WLAN_HAL_VER_REVISION 2
 
@@ -343,19 +343,12 @@ typedef enum
    WLAN_HAL_GET_ROAM_RSSI_REQ               = 185,
    WLAN_HAL_GET_ROAM_RSSI_RSP               = 186,
 
-   WLAN_HAL_SCAN_TX_BD_COMPLETE_IND         = 187,
-   WLAN_HAL_CXM2SLM_OPERATING_MODE          = 188,
-   WLAN_HAL_P2P_MSG                         = 189,
-   WLAN_HAL_PS_TX_BPS_MSG                   = 190,
-   WLAN_HAL_PS_MODE_TO_MSG                  = 191,
-   WLAN_HAL_P2P_INDICATE_NOA_ATTR_TO_HOST   = 192,
-   WLAN_HAL_P2P_INDICATE_NOA_START_TO_HOST  = 193,
-   WLAN_HAL_DEL_STA_IND                     = 194,
-   /* DEL BD IND from RPE interrupt */
-   WLAN_HAL_DEL_BA_IND                      = 195,
-   WLAN_HAL_SCAN_INTERNAL_EVENTID           = 196,
-   WLAN_HAL_CLASS_B_STATS_IND               = 197,
-   WLAN_HAL_MSG_MAX = WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE
+   WLAN_HAL_CLASS_B_STATS_IND               = 187,
+   WLAN_HAL_DEL_BA_IND                      = 188,
+   WLAN_HAL_DHCP_START_IND                  = 189,
+   WLAN_HAL_DHCP_STOP_IND                   = 190,
+
+  WLAN_HAL_MSG_MAX = WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
 /* Enumeration for Version */
@@ -363,7 +356,8 @@ typedef enum
 {
    WLAN_HAL_MSG_VERSION0 = 0,
    WLAN_HAL_MSG_VERSION1 = 1,
-   WLAN_HAL_MSG_VERSION_MAX_FIELD = 0x7FFF /*define as 2 bytes data*/
+   WLAN_HAL_MSG_WCNSS_CTRL_VERSION = 0x7FFF, /*define as 2 bytes data*/
+   WLAN_HAL_MSG_VERSION_MAX_FIELD  = WLAN_HAL_MSG_WCNSS_CTRL_VERSION
 }tHalHostMsgVersion;
 
 /* Enumeration for Boolean - False/True, On/Off */
@@ -1432,12 +1426,12 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8 vhtTxBFEnabled:1;
     tANI_U8 reserved:5;
 
-    /*These rates are the intersection of peer and self capabilities.*/
+        /*These rates are the intersection of peer and self capabilities.*/
     tSirSupportedRates_V1 supportedRates;
 
     tANI_U8  vhtCapable;
     tANI_U8  vhtTxChannelWidthSet;
-    
+
 } tConfigStaParams_V1, *tpConfigStaParams_V1;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -2096,6 +2090,13 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tSetBssKeyParams setBssKeyParams;
 } tSetBssKeyReqMsg, *tpSetBssKeyReqMsg;
+
+/* tagged version of set bss key */
+typedef PACKED_PRE struct PACKED_POST
+{
+   tSetBssKeyReqMsg  Msg;
+   uint32            Tag;
+} tSetBssKeyReqMsgTagged;
 
 /*---------------------------------------------------------------------------
   WLAN_HAL_SET_BSSKEY_RSP
@@ -3089,45 +3090,6 @@ typedef PACKED_PRE struct PACKED_POST
    tSetKeyDoneParams setKeyDoneParams;
 }  tSetKeyDoneMsg, *tpSetKeyDoneMsg;
 
-typedef PACKED_PRE struct PACKED_POST
-{
-  uint8 selfStaIdx;
-  uint8 peerStaIdx;
-  boolean frameSentForStart;
-  boolean frameSuccessfullySent;
-
-} tScanTxBdCompParams, *tpScanTxBdCompParams;
-
-
-typedef PACKED_PRE struct PACKED_POST
-{
-   tHalMsgHeader header;
-   tScanTxBdCompParams scanTxBdCompleteIndParams;
-} tScanTxBdCompleteInd, *tpScanTxBdCompleteInd;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-   tHalMsgHeader header;
-   tANI_U32      mode;
-   tANI_U32      parameter;
-} tCoexOpModeType, *tpCoexOpModeType;
-
-
-typedef PACKED_PRE struct PACKED_POST
-{
-   tHalMsgHeader header;
-   tANI_U32 bssIdx:8;
-   tANI_U32 timerType:3;
-   tANI_U32 reserved:21;
-} tPwrSaveModeTOReqType, *tpPwrSaveModeTOReqType;
-
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tHalMsgHeader header;
-} tTxBpsReqType, *tpTxBpsReqType;
-
-
 /*---------------------------------------------------------------------------
  * WLAN_HAL_DOWNLOAD_NV_REQ
  *--------------------------------------------------------------------------*/
@@ -3677,6 +3639,20 @@ typedef PACKED_PRE struct PACKED_POST
 }  tHalExitBmpsReqMsg, *tpHalExitBmpsReqMsg;
 
 /*---------------------------------------------------------------------------
+ * WLAN_HAL_MISSED_BEACON_IND
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8     bssIdx;
+} tHalMissedBeaconIndParams, *tpHalMissedBeaconIndParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalMissedBeaconIndParams missedBeaconIndParams;
+}  tHalMissedBeaconIndMsg, *tpHalMissedBeaconIndMsg;
+
+/*---------------------------------------------------------------------------
  * WLAN_HAL_ADD_BCN_FILTER_REQ
  *--------------------------------------------------------------------------*/
 /* Beacon Filtering data structures */
@@ -3753,6 +3729,7 @@ typedef PACKED_PRE struct PACKED_POST _tHalNSOffloadParams
    tANI_U8 targetIPv6Addr2Valid : 1;
    tANI_U8 reserved1 : 5;
    tANI_U8 reserved2;   //make it DWORD aligned
+   tANI_U32 slotIndex; // slot index for this offload
    tANI_U8 bssIdx;
 } tHalNSOffloadParams;
 
@@ -3823,7 +3800,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
    tHalMsgHeader header;
    tHalRSSIThresholds rssiThreshParams;
-}  tHalRSSIThresholdsReqMsg, *tpHalRSSIThresholdReqMsg;
+}  tHalRSSIThresholdReqMsg, *tpHalRSSIThresholdReqMsg;
 
 /*---------------------------------------------------------------------------
  * WLAN_HAL_ENTER_UAPSD_REQ
@@ -5584,10 +5561,11 @@ typedef PACKED_PRE struct PACKED_POST{
 
 }  tWlanFeatCapsMsg, *tpWlanFeatCapsMsg;
 
-
 #define IS_MCC_SUPPORTED_BY_HOST (!!(halMsg_GetHostWlanFeatCaps(MCC)))
 #define IS_SLM_SESSIONIZATION_SUPPORTED_BY_HOST (!!(halMsg_GetHostWlanFeatCaps(SLM_SESSIONIZATION)))
 #define IS_FEATURE_SUPPORTED_BY_HOST(featEnumValue) (!!halMsg_GetHostWlanFeatCaps(featEnumValue))
+#define IS_WLANACTIVE_OFFLOAD_SUPPORTED_BY_HOST (!!(halMsg_GetHostWlanFeatCaps(WLANACTIVE_OFFLOAD)))
+
 tANI_U8 halMsg_GetHostWlanFeatCaps(tANI_U8 feat_enum_value);
 
 #define setFeatCaps(a,b)   {  tANI_U32 arr_index, bit_index; \
@@ -5695,6 +5673,8 @@ typedef PACKED_PRE struct PACKED_POST
 
 #define WLAN_HAL_GTK_OFFLOAD_FLAGS_DISABLE (1 << 0)
 
+#define GTK_SET_BSS_KEY_TAG  0x1234AA55
+
 typedef PACKED_PRE struct PACKED_POST
 {
   tANI_U32     ulFlags;             /* optional flags */
@@ -5760,6 +5740,22 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalGtkOffloadGetInfoRspParams gtkOffloadGetInfoRspParams;
 }  tHalGtkOffloadGetInfoRspMsg, *tpHalGtkOffloadGetInfoRspMsg;
+
+/*---------------------------------------------------------------------------
+* WLAN_HAL_DHCP_IND
+*--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   /*Indicates the device mode which indicates about the DHCP activity */
+    tANI_U8 device_mode;
+    tSirMacAddr macAddr;
+} tDHCPInfo, *tpDHCPInfo;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader  header;
+   tANI_U32       status;  /* success or failure */
+} tDHCPIndStatus, *tpDHCPIndstatus;
 
 /*
    Thermal Mitigation mode of operation.
