@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sysDef.h contains the common definitions used to bring up
@@ -21,13 +21,8 @@
 
 /// System timer tick duration in nanoseconds
 #if defined ANI_OS_TYPE_LINUX
-#ifdef ANI_AP_SDK
-#define SYS_TICK_DUR_NS     10000000    // 10ms
-#define SYS_TICK_TO_MICRO_SECOND   10000
-#else
 #define SYS_TICK_DUR_NS     1000000    // 1ms
 #define SYS_TICK_TO_MICRO_SECOND   1000
-#endif
 #elif defined ANI_OS_TYPE_OSX
 #define SYS_TICK_DUR_NS     10000000    // 10ms
 #define SYS_TICK_TO_MICRO_SECOND   10000
@@ -43,7 +38,7 @@
 #define SYS_TICK_DUR_MS     (SYS_TICK_DUR_NS/1000000)
 
 /// Clocks in a milisecond
-#define SYS_CLOCKS_PER_MS   120000 // 120 MHz 
+#define SYS_CLOCKS_PER_MS   120000 // 120 MHz
 
 // In Milliseconds
 #define SYS_ADD_BA_RSP_DUR   1000
