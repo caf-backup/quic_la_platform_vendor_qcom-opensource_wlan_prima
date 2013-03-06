@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -8441,7 +8441,6 @@ WDI_ProcessSetStaKeyReq
 
   halSetStaKeyReqMsg.setStaKeyParams.singleTidRc = pwdiSetSTAKeyParams->wdiKeyInfo.ucSingleTidRc;
 
-#ifdef WLAN_SOFTAP_FEATURE
   for(keyIndex = 0; keyIndex < pwdiSetSTAKeyParams->wdiKeyInfo.ucNumKeys ;
                                                                  keyIndex++)
   {
@@ -8462,24 +8461,6 @@ WDI_ProcessSetStaKeyReq
                          pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[keyIndex].key,
                         WDI_MAX_KEY_LENGTH);
    }
-#else
-  halSetStaKeyReqMsg.setStaKeyParams.key.keyId =
-                      pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].keyId;
-  halSetStaKeyReqMsg.setStaKeyParams.key.unicast =
-                     pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].unicast;
-  halSetStaKeyReqMsg.setStaKeyParams.key.keyDirection =
-                pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].keyDirection;
-  wpalMemoryCopy(halSetStaKeyReqMsg.setStaKeyParams.key.keyRsc,
-                     pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].keyRsc,
-                     WDI_MAX_KEY_RSC_LEN);
-  halSetStaKeyReqMsg.setStaKeyParams.key.paeRole =
-                     pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].paeRole;
-  halSetStaKeyReqMsg.setStaKeyParams.key.keyLength =
-                   pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].keyLength;
-  wpalMemoryCopy(halSetStaKeyReqMsg.setStaKeyParams.key.key,
-                         pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].key,
-                        WDI_MAX_KEY_LENGTH);
-#endif
 
   wpalMemoryCopy( pSendBuffer+usDataOffset,
                     &halSetStaKeyReqMsg.setStaKeyParams,
@@ -8756,7 +8737,6 @@ WDI_ProcessSetStaBcastKeyReq
 
   halSetStaKeyReqMsg.setStaKeyParams.singleTidRc = pwdiSetSTAKeyParams->wdiKeyInfo.ucSingleTidRc;
 
-#ifdef WLAN_SOFTAP_FEATURE
   for(keyIndex = 0; keyIndex < pwdiSetSTAKeyParams->wdiKeyInfo.ucNumKeys ;
                                                                  keyIndex++)
   {
@@ -8777,24 +8757,6 @@ WDI_ProcessSetStaBcastKeyReq
                          pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[keyIndex].key,
                         WDI_MAX_KEY_LENGTH);
    }
-#else
-  halSetStaKeyReqMsg.setStaKeyParams.key.keyId =
-                      pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].keyId;
-  halSetStaKeyReqMsg.setStaKeyParams.key.unicast =
-                     pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].unicast;
-  halSetStaKeyReqMsg.setStaKeyParams.key.keyDirection =
-                pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].keyDirection;
-  wpalMemoryCopy(halSetStaKeyReqMsg.setStaKeyParams.key.keyRsc,
-                     pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].keyRsc,
-                     WDI_MAX_KEY_RSC_LEN);
-  halSetStaKeyReqMsg.setStaKeyParams.key.paeRole =
-                     pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].paeRole;
-  halSetStaKeyReqMsg.setStaKeyParams.key.keyLength =
-                   pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].keyLength;
-  wpalMemoryCopy(halSetStaKeyReqMsg.setStaKeyParams.key.key,
-                         pwdiSetSTAKeyParams->wdiKeyInfo.wdiKey[0].key,
-                        WDI_MAX_KEY_LENGTH);
-#endif
 
   wpalMemoryCopy( pSendBuffer+usDataOffset,
                     &halSetStaKeyReqMsg.setStaKeyParams,
@@ -11433,10 +11395,8 @@ WDI_ProcessSendBeaconParamsReq
   wpalMemoryCopy(halSendBeaconReq.sendBeaconParam.beacon,
                   pwdiSendBeaconParams->wdiSendBeaconParamsInfo.beacon,
                   pwdiSendBeaconParams->wdiSendBeaconParamsInfo.beaconLength);
-#ifdef WLAN_SOFTAP_FEATURE
   halSendBeaconReq.sendBeaconParam.timIeOffset =
                   pwdiSendBeaconParams->wdiSendBeaconParamsInfo.timIeOffset;
-#endif
 #ifdef WLAN_FEATURE_P2P
   halSendBeaconReq.sendBeaconParam.p2pIeOffset =
                   pwdiSendBeaconParams->wdiSendBeaconParamsInfo.usP2PIeOffset;
@@ -22143,7 +22103,6 @@ WDI_CopyWDIConfigBSSToHALConfigBSS
 
      phalConfigBSS->extSetStaKeyParam.singleTidRc = pwdiConfigBSS->wdiExtSetKeyParam.ucSingleTidRc;
 
-#ifdef WLAN_SOFTAP_FEATURE
      for(keyIndex = 0; keyIndex < pwdiConfigBSS->wdiExtSetKeyParam.ucNumKeys ;
           keyIndex++)
      {
@@ -22164,24 +22123,6 @@ WDI_CopyWDIConfigBSSToHALConfigBSS
                        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[keyIndex].key,
                        WDI_MAX_KEY_LENGTH);
      }
-#else
-     phalConfigBSS->extSetStaKeyParam.key.keyId =
-        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].keyId;
-     phalConfigBSS->extSetStaKeyParam.key.unicast =
-        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].unicast;
-     phalConfigBSS->extSetStaKeyParam.key.keyDirection =
-        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].keyDirection;
-     wpalMemoryCopy(phalConfigBSS->extSetStaKeyParam.key.keyRsc,
-                    pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].keyRsc,
-                    WDI_MAX_KEY_RSC_LEN);
-     phalConfigBSS->extSetStaKeyParam.key.paeRole =
-        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].paeRole;
-     phalConfigBSS->extSetStaKeyParam.key.keyLength =
-        pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].keyLength;
-     wpalMemoryCopy(phalConfigBSS->extSetStaKeyParam.key.key,
-                    pwdiConfigBSS->wdiExtSetKeyParam.wdiKey[0].key,
-                    WDI_MAX_KEY_LENGTH);
-#endif
   }
   else/* phalConfigBSS->extSetStaKeyParamValid is not set */
   {
