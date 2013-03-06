@@ -52,10 +52,8 @@
 #include "limUtils.h"
 #include "btcApi.h"
 #include "vos_sched.h"
-#ifdef ANI_MANF_DIAG
 #include "pttMsgApi.h"
 #include "wlan_qct_sys.h"
-#endif /* ANI_MANF_DIAG */
 /* Used MACRO's */
 /* Get WDA context from vOSS module */
 #define VOS_GET_WDA_CTXT(a)            vos_get_context(VOS_MODULE_ID_WDA, a)
@@ -8511,7 +8509,6 @@ VOS_STATUS WDA_ProcessBtAmpEventReq(tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 
-#ifdef ANI_MANF_DIAG
 /*
  * FUNCTION: WDA_FTMCommandReqCallback
  * Handle FTM CMD response came from HAL
@@ -8530,10 +8527,8 @@ void WDA_FTMCommandReqCallback(void *ftmCmdRspData,
    /* Release Current FTM Command Request */
    vos_mem_free(pWDA->wdaFTMCmdReq);
    pWDA->wdaFTMCmdReq = NULL;
-#ifndef WLAN_FTM_STUB
    /* Post FTM Responce to HDD FTM */
    wlan_sys_ftm(ftmCmdRspData);
-#endif /* WLAN_FTM_STUB */
    return;
 }
 /*
@@ -8560,7 +8555,6 @@ VOS_STATUS WDA_ProcessFTMCommand(tWDA_CbContext *pWDA,
    status = WDI_FTMCommandReq(ftmCMDReq, WDA_FTMCommandReqCallback, pWDA);
    return status;
 }
-#endif /* ANI_MANF_DIAG */
 #ifdef FEATURE_OEM_DATA_SUPPORT
 /*
  * FUNCTION: WDA_StartOemDataReqCallback
@@ -9849,13 +9843,11 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          break;
       }
 #endif /* WLAN_FEATURE_VOWIFI_11R */
-#ifdef ANI_MANF_DIAG
       case WDA_FTM_CMD_REQ:
       {
          WDA_ProcessFTMCommand(pWDA, (tPttMsgbuffer *)pMsg->bodyptr) ;
          break ;
       }
-#endif /* ANI_MANF_DIAG */
 #ifdef FEATURE_OEM_DATA_SUPPORT
       case WDA_START_OEM_DATA_REQ:
       {
