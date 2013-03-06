@@ -3885,7 +3885,6 @@ typedef struct
 
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
-#ifdef ANI_MANF_DIAG
 /*---------------------------------------------------------------------------
   WDI_FTMCommandReqType
 ---------------------------------------------------------------------------*/
@@ -3896,7 +3895,6 @@ typedef struct
    /* Actual FTM Command body */
    void        *FTMCommandBody;
 }WDI_FTMCommandReqType;
-#endif /* ANI_MANF_DIAG */
 
 /*---------------------------------------------------------------------------
   WDI_WlanSuspendInfoType
@@ -6012,7 +6010,6 @@ typedef void  (*WDI_AggrAddTsRspCb)(WDI_Status   wdiStatus,
                                     void*        pUserData);
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
-#ifdef ANI_MANF_DIAG
 /*---------------------------------------------------------------------------
    WDI_FTMCommandRspCb
  
@@ -6032,7 +6029,6 @@ typedef void  (*WDI_AggrAddTsRspCb)(WDI_Status   wdiStatus,
 ---------------------------------------------------------------------------*/
 typedef void (*WDI_FTMCommandRspCb)(void *ftmCMDRspdata,
                                     void *pUserData);
-#endif /* ANI_MANF_DIAG */
 
 /*---------------------------------------------------------------------------
    WDI_AddSTASelfParamsRspCb 
@@ -8528,7 +8524,6 @@ WDI_Status WDI_StubRunTest
    wpt_uint8   ucTestNo
 );
 
-#ifdef ANI_MANF_DIAG
 /**
  @brief WDI_FTMCommandReq -  
         Route FTMRequest Command to HAL
@@ -8545,7 +8540,6 @@ WDI_Status WDI_FTMCommandReq
   WDI_FTMCommandRspCb    ftmCommandRspCb,
   void                  *pUserData
 );
-#endif /* ANI_MANF_DIAG */
 
 /**
  @brief WDI_HostResumeReq will be called 
