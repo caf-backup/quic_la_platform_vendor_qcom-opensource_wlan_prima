@@ -834,10 +834,8 @@ struct hdd_context_s
    /** completion variable for standby callback */
    struct completion standby_comp_var;
    
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    /* Completion  variable to indicate Rx Thread Suspended */
    struct completion rx_sus_event_var;
-#endif // FEATURE_WLAN_INTEGRATED_SOC
 
    /* Completion  variable to indicate Tx Thread Suspended */
    struct completion tx_sus_event_var;
@@ -854,9 +852,7 @@ struct hdd_context_s
 
    v_BOOL_t isMcThreadSuspended;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    v_BOOL_t isRxThreadSuspended;
-#endif
 
    volatile v_BOOL_t isLogpInProgress;
 
