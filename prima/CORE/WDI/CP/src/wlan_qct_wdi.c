@@ -213,11 +213,7 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
   WDI_ProcessSetStaBcastKeyReq,        /* WDI_SET_STA_BCAST_KEY_REQ  */
   WDI_ProcessRemoveStaBcastKeyReq,     /* WDI_RMV_STA_BCAST_KEY_REQ  */
   WDI_ProcessSetMaxTxPowerReq,         /*WDI_SET_MAX_TX_POWER_REQ*/
-#ifdef WLAN_FEATURE_P2P
   WDI_ProcessP2PGONOAReq,              /* WDI_P2P_GO_NOTICE_OF_ABSENCE_REQ */
-#else
-  NULL,
-#endif
   /* PowerSave APIs */
   WDI_ProcessEnterImpsReq,         /* WDI_ENTER_IMPS_REQ  */
   WDI_ProcessExitImpsReq,          /* WDI_EXIT_IMPS_REQ  */
@@ -416,11 +412,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #endif /*FEATURE_OEM_DATA_SUPPORT*/
   WDI_ProcessHostResumeRsp,        /*WDI_HOST_RESUME_RESP*/
 
-#ifdef WLAN_FEATURE_P2P
   WDI_ProcessP2PGONOARsp,           /*WDI_P2P_GO_NOTICE_OF_ABSENCE_RESP */
-#else
-  NULL,
-#endif
 
   WDI_ProcessFTMCommandRsp,         /* WDI_FTM_CMD_RESP */
 
@@ -494,11 +486,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 
   WDI_ProcessTxCompleteInd,         /* WDI_HAL_TX_COMPLETE_IND  */
 
-#ifdef WLAN_FEATURE_P2P
   WDI_ProcessP2pNoaAttrInd,         /*WDI_HOST_NOA_ATTR_IND*/
-#else
-  NULL,
-#endif
 
 #ifdef FEATURE_WLAN_SCAN_PNO
   WDI_ProcessPrefNetworkFoundInd,   /* WDI_HAL_PREF_NETWORK_FOUND_IND */
@@ -514,11 +502,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 
   WDI_ProcessTxPerHitInd,               /* WDI_HAL_TX_PER_HIT_IND  */
 
-#ifdef WLAN_FEATURE_P2P
   WDI_ProcessP2pNoaStartInd,             /* WDI_NOA_START_IND */
-#else
-  NULL,
-#endif
 };
 
 
@@ -5036,7 +5020,6 @@ WDI_NvDownloadReq
 
 }/*WDI_NVDownloadReq*/
 
-#ifdef WLAN_FEATURE_P2P
 /**
  @brief WDI_SetP2PGONOAReq will be called when the
         upper MAC wants to send Notice of Absence
@@ -5095,7 +5078,6 @@ WDI_SetP2PGONOAReq
   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
 
 }/*WDI_SetP2PGONOAReq*/
-#endif
 
 /**
  @brief WDI_AddSTASelfReq will be called when the
@@ -6737,10 +6719,8 @@ WDI_ProcessInitScanReq
     WDI_CopyWDIMgmFrameHdrToHALMgmFrameHdr( &halInitScanConReqMsg.initScanParams.macMgmtHdr,
         &pwdiInitScanParams->wdiReqInfo.wdiMACMgmtHdr);
 
-#ifdef WLAN_FEATURE_P2P
     halInitScanConReqMsg.initScanParams.useNoA = pwdiInitScanParams->wdiReqInfo.bUseNOA;
     halInitScanConReqMsg.initScanParams.scanDuration = pwdiInitScanParams->wdiReqInfo.scanDuration;
-#endif
 
     halInitScanConReqMsg.initScanParams.scanEntry.activeBSScnt =
       pwdiInitScanParams->wdiReqInfo.wdiScanEntry.activeBSScnt;
@@ -11385,10 +11365,8 @@ WDI_ProcessSendBeaconParamsReq
                   pwdiSendBeaconParams->wdiSendBeaconParamsInfo.beaconLength);
   halSendBeaconReq.sendBeaconParam.timIeOffset =
                   pwdiSendBeaconParams->wdiSendBeaconParamsInfo.timIeOffset;
-#ifdef WLAN_FEATURE_P2P
   halSendBeaconReq.sendBeaconParam.p2pIeOffset =
                   pwdiSendBeaconParams->wdiSendBeaconParamsInfo.usP2PIeOffset;
-#endif
 
   wpalMemoryCopy( pSendBuffer+usDataOffset,
                   &halSendBeaconReq.sendBeaconParam,
@@ -11630,7 +11608,6 @@ if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_SET_MAX_TX_POWER_
 
 }
 
-#ifdef WLAN_FEATURE_P2P
 
 /**
  @brief Process P2P Notice Of Absence Request function (called when Main FSM
@@ -11719,7 +11696,6 @@ WDI_ProcessP2PGONOAReq
                        WDI_P2P_GO_NOTICE_OF_ABSENCE_RESP);
 }/*WDI_ProcessP2PGONOAReq*/
 
-#endif
 
 
 /**
@@ -16858,7 +16834,6 @@ WDI_ProcessSetMaxTxPowerRsp
   return WDI_STATUS_SUCCESS;
 }
 
-#ifdef WLAN_FEATURE_P2P
 /**
  @brief Process P2P Group Owner Notice Of Absense Rsp function (called
         when a response is being received over the bus from HAL)
@@ -16909,7 +16884,6 @@ WDI_ProcessP2PGONOARsp
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessP2PGONOARsp*/
-#endif
 /**
  @brief Process Enter IMPS Rsp function (called when a response
         is being received over the bus from HAL)
@@ -18744,7 +18718,6 @@ WDI_ProcessTxCompleteInd
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessTxCompleteInd*/
 
-#ifdef WLAN_FEATURE_P2P
 /**
 *@brief Process Noa Start Indication function (called when
         an indication of this kind is being received over the
@@ -18881,7 +18854,6 @@ WDI_ProcessP2pNoaAttrInd
 
   return WDI_STATUS_SUCCESS;
 }/*WDI_ProcessNoaAttrInd*/
-#endif
 
 /**
  @brief Process Tx PER Hit Indication function (called when
@@ -21058,10 +21030,8 @@ WDI_2_HAL_REQ_TYPE
     return WLAN_HAL_UPDATE_PROBE_RSP_TEMPLATE_REQ;
    case WDI_SET_MAX_TX_POWER_REQ:
     return WLAN_HAL_SET_MAX_TX_POWER_REQ;
-#ifdef WLAN_FEATURE_P2P
   case WDI_P2P_GO_NOTICE_OF_ABSENCE_REQ:
     return WLAN_HAL_SET_P2P_GONOA_REQ;
-#endif
   case WDI_ENTER_IMPS_REQ:
     return WLAN_HAL_ENTER_IMPS_REQ;
   case WDI_EXIT_IMPS_REQ:
@@ -21270,20 +21240,16 @@ HAL_2_WDI_RSP_TYPE
     return WDI_HAL_COEX_IND;
   case WLAN_HAL_OTA_TX_COMPL_IND:
     return WDI_HAL_TX_COMPLETE_IND;
-#ifdef WLAN_FEATURE_P2P
   case WLAN_HAL_P2P_NOA_ATTR_IND:
     return WDI_HAL_P2P_NOA_ATTR_IND;
   case WLAN_HAL_P2P_NOA_START_IND:
     return WDI_HAL_P2P_NOA_START_IND;
-#endif
   case WLAN_HAL_TX_PER_HIT_IND:
     return WDI_HAL_TX_PER_HIT_IND;
   case WLAN_HAL_SET_MAX_TX_POWER_RSP:
     return WDI_SET_MAX_TX_POWER_RESP;
-#ifdef WLAN_FEATURE_P2P
   case WLAN_HAL_SET_P2P_GONOA_RSP:
     return WDI_P2P_GO_NOTICE_OF_ABSENCE_RESP;
-#endif
   case WLAN_HAL_ENTER_IMPS_RSP:
     return WDI_ENTER_IMPS_RESP;
   case WLAN_HAL_EXIT_IMPS_RSP:
@@ -21768,10 +21734,8 @@ WDI_2_HAL_LINK_STATE
   case WDI_LINK_FINISH_CAL_STATE:
     return eSIR_LINK_FINISH_CAL_STATE;
 
-#ifdef WLAN_FEATURE_P2P
   case WDI_LINK_LISTEN_STATE:
     return eSIR_LINK_LISTEN_STATE;
-#endif
 
   default:
     return eSIR_LINK_MAX;
@@ -21868,9 +21832,7 @@ WDI_CopyWDIStaCtxToHALStaCtx
   }
 #endif
 
-#ifdef WLAN_FEATURE_P2P
   phalConfigSta->p2pCapableSta = pwdiConfigSta->ucP2pCapableSta ;
-#endif
 
 #ifdef WLAN_FEATURE_11AC
   if(phalConfigSta_V1 != NULL)
