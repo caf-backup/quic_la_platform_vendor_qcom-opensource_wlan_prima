@@ -28,14 +28,12 @@
 #include "vos_api.h"
 #include "wlan_hdd_misc.h"
 #include "vos_sched.h"
-#ifdef CONFIG_CFG80211
 #include "wlan_hdd_main.h"
 #include <net/cfg80211.h>
 static char crda_alpha2[2] = {0, 0}; /* country code from initial crda req */
 static char run_time_alpha2[2] = {0, 0}; /* country code from none-default country req */
 static v_BOOL_t crda_regulatory_entry_valid = VOS_FALSE;
 static v_BOOL_t crda_regulatory_run_time_entry_valid = VOS_FALSE;
-#endif
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -760,7 +758,6 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
             ("Reg domain table is empty\r\n") );
       return VOS_STATUS_E_EMPTY;
    }
-#ifdef CONFIG_CFG80211
    /* If CRDA regulatory settings is valid, i.e. crda is enabled
       and reg_notifier is called back.
       Intercept here and redirect to the Reg domain table's CRDA
@@ -812,7 +809,6 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
            return VOS_STATUS_E_EXISTS;
        }
    }
-#endif
 
    // iterate the country info table until end of table or the country code
    // is found
@@ -1774,7 +1770,6 @@ eNVChannelEnabledType vos_nv_getChannelEnabledState
 /******************************************************************
  Add CRDA regulatory support
 *******************************************************************/
-#ifdef CONFIG_CFG80211
 
 static int bw20_ch_index_to_bw40_ch_index(int k)
 {
@@ -2261,4 +2256,3 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
     }
 return 0;
 }
-#endif
