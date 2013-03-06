@@ -36,7 +36,6 @@
 ===========================================================================*/
 
 
-#ifdef WLAN_FEATURE_P2P
 #include "limUtils.h"
 #include "limSessionUtils.h"
 #include "wlan_qct_wda.h"
@@ -1065,5 +1064,4 @@ tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     return eSIR_SUCCESS;
 } /*** end __limProcessSmeGoNegReq() ***/
 
-#endif
 
