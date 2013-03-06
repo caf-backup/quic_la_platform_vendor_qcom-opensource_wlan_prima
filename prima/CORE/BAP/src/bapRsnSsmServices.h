@@ -1,4 +1,10 @@
 /*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
+/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * $File: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/include/aniSsmServices.h $
  *
@@ -42,18 +48,6 @@
  * octets, including the two bytes for type and len.
  */
 #define ANI_RSN_IE_MAX_LEN 257
-
-#ifndef ANI_AP_SDK
-#define ANI_AAG_CONF_FILE_NAME     ANI_STATIC_CONFIG_DIR"/ssm/1x.conf"
-#define ANI_AAG_AA_CFG_FILE_ORIG  ANI_STATIC_CONFIG_DIR"/ssm/1x.conf.orig"
-#else
-#define ANI_AAG_CONF_FILE_NAME      "/var/1x.conf"
-#define ANI_AAG_AA_CFG_FILE_ORIG    "/var/1x.conf.orig"
-#define ANI_WSM_DEFAULTS_FILE_NAME  "/var/wsmDefaults"
-#define ANI_WSM_DEFAULTS_FILE_ORIG  "/var/wsmDefaults.orig"
-#endif // !ANI_AP_SDK
-
-#define ANI_AAG_CONF_MAX_LINE 120
 
 /*
  * PMKSA ID data type
