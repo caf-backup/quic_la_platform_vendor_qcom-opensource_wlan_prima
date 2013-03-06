@@ -1,21 +1,21 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
 
 /**=========================================================================
-  
+
   \file  vos_timer.c
-  
+
   \brief virtual Operating System Servies (vOS)
-               
+
    Definitions for vOSS Timer services
-  
+
    Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
-   
+
    Qualcomm Technologies Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -180,7 +180,6 @@ static void vos_linux_timer_callback ( v_U32_t data )
       if(vos_tx_mq_serialize( VOS_MQ_ID_SYS, &msg ) == VOS_STATUS_SUCCESS)
          return;
    }
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    else if ( vos_sched_is_rx_thread( threadId ) )
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, 
@@ -194,7 +193,6 @@ static void vos_linux_timer_callback ( v_U32_t data )
       if(vos_rx_mq_serialize( VOS_MQ_ID_SYS, &msg ) == VOS_STATUS_SUCCESS)
          return;
    }
-#endif
    else 
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
