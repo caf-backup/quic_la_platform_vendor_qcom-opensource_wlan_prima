@@ -34,10 +34,8 @@
 #include "limTrace.h"
 #include "wlan_qct_wda.h"
 
-#ifndef WLAN_FTM_STUB
 tSirRetStatus
 postPTTMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
-#endif
 
 #ifdef VOSS_ENABLED
 #include "vos_types.h"
@@ -307,9 +305,7 @@ void sysBbtProcessMessage( tHalHandle hHal, void *pBD )
 #endif // #if defined( ANI_OS_TYPE_WINDOWS )
 
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
-#ifndef WLAN_FTM_STUB
 #include "pttModuleApi.h"
-#endif // eDRIVER_TYPE_MFG
 
 // ---------------------------------------------------------------------
 /**
@@ -410,7 +406,6 @@ sysMmhEntry(tANI_U32 dummy)
 
                 break;
 
-#ifndef WLAN_FTM_STUB
             case PTT_MSG_TYPES_BEGIN_30: /*PTT_MSG_TYPES_BEGIN:*/
             case PTT_MSG_TYPES_BEGIN_31:
             case PTT_MSG_TYPES_BEGIN_32:
@@ -423,7 +418,6 @@ sysMmhEntry(tANI_U32 dummy)
                            "sysMmhEntry: RD msg: postPTTMsgApi!\n");
                 }
                 break;
-#endif
 
             default:
                 sysLog(pMac, LOGW, "sysMmhEntry Unknown destination \n");
@@ -619,7 +613,6 @@ sysHalEntry(tANI_U32 dummy)
     } // while(1)
 } // sysHalEntry
 
-#ifndef WLAN_FTM_STUB
 #include "pttModuleApi.h"
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
@@ -722,7 +715,6 @@ postPTTMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 } // postPTTMsgApi()
 
 
-#endif // eDRIVER_TYPE_MFG
 
 #endif // #if defined ANI_OS_TYPE_LINUX || defined ANI_OS_TYPE_OSX
 
