@@ -3,20 +3,20 @@
 
 
 /**=========================================================================
-  
+
   \file  limSession.h
-  
+
   \brief prototype for lim Session related APIs
 
   \author Sunit Bhatia
-  
+
    Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
    All Rights Reserved.
    Qualcomm Atheros Confidential and Proprietary.
 
    Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
    Qualcomm Technologies Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 
@@ -29,9 +29,7 @@
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
-#ifdef WLAN_SOFTAP_FEATURE
 #define NUM_WEP_KEYS 4
-#endif
 
 /*-------------------------------------------------------------------------- 
   Type declarations
@@ -167,7 +165,6 @@ typedef struct sPESession           // Added to Support BT-AMP
 #endif
     tANI_U32                encryptType;
 
-#ifdef WLAN_SOFTAP_FEATURE
     tANI_BOOLEAN            bTkipCntrMeasActive;    // Used to keep record of TKIP counter measures start/stop
 
     tANI_U8                 gLimProtectionControl;  //used for 11n protection
@@ -230,7 +227,6 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8                 ssidHidden;
     tANI_BOOLEAN            fwdWPSPBCProbeReq;
     tANI_U8                 wps_state;
-#endif
 
     tANI_U8            limQosEnabled:1; //11E
     tANI_U8            limWmeEnabled:1; //WME

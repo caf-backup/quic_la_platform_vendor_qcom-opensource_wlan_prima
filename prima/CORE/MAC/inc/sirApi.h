@@ -514,9 +514,7 @@ typedef struct sSirLoad
 typedef enum eSirBssType
 {
     eSIR_INFRASTRUCTURE_MODE,
-#ifdef WLAN_SOFTAP_FEATURE
     eSIR_INFRA_AP_MODE,                    //Added for softAP support
-#endif
     eSIR_IBSS_MODE,
     eSIR_BTAMP_STA_MODE,                     //Added for BT-AMP support
     eSIR_BTAMP_AP_MODE,                     //Added for BT-AMP support
@@ -614,7 +612,6 @@ typedef struct sSirSmeStartBssReq
     tSirWdsInfo             wdsInfo;
 #endif
     
-#ifdef WLAN_SOFTAP_FEATURE
     tANI_U8                 privacy;
     tANI_U8                 apUapsdEnable;
     tANI_U8                 ssidHidden;
@@ -625,7 +622,6 @@ typedef struct sSirSmeStartBssReq
     tAniAuthType            authType;
     tANI_U32                dtimPeriod;
     tANI_U8                 wps_state;
-#endif
     tVOS_CON_MODE           bssPersona;
 
     tANI_U8                 txLdpcIniFeatureEnabled;
@@ -1349,7 +1345,6 @@ typedef struct sSirSmeAssocInd
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
-#ifdef WLAN_SOFTAP_FEATURE
     tAniBool             wmmEnabledSta; /* if present - STA is WMM enabled */
     tAniBool             reassocReq;
     // Required for indicating the frames to upper layer
@@ -1357,7 +1352,6 @@ typedef struct sSirSmeAssocInd
     tANI_U8*             beaconPtr;
     tANI_U32             assocReqLength;
     tANI_U8*             assocReqPtr;
-#endif
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 
@@ -1408,14 +1402,12 @@ typedef struct sSirSmeReassocInd
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
-#ifdef WLAN_SOFTAP_FEATURE
     // Required for indicating the frames to upper layer
     // TODO: use the appropriate names to distinguish between the other similar names used above for station mode of operation
     tANI_U32             beaconLength;
     tANI_U8*             beaconPtr;
     tANI_U32             assocReqLength;
     tANI_U8*             assocReqPtr;
-#endif
 } tSirSmeReassocInd, *tpSirSmeReassocInd;
 
 /// Definition for Reassociation confirm
@@ -1544,9 +1536,7 @@ typedef struct sSirSmeWmStatusChangeNtf
 
 /// Definition for Disassociation request
 typedef
-#ifdef WLAN_SOFTAP_FEATURE
 __ani_attr_pre_packed
-#endif
 struct sSirSmeDisassocReq
 {
     tANI_U16            messageType; // eWNI_SME_DISASSOC_REQ
@@ -1565,13 +1555,10 @@ struct sSirSmeDisassocReq
 #endif
 #endif
 }
-#ifdef WLAN_SOFTAP_FEATURE
 __ani_attr_packed
-#endif
 tSirSmeDisassocReq, *tpSirSmeDisassocReq;
 
 /// Definition for Tkip countermeasures request
-#ifdef WLAN_SOFTAP_FEATURE
 typedef __ani_attr_pre_packed struct sSirSmeTkipCntrMeasReq
 {
     tANI_U16            messageType;    // eWNI_SME_DISASSOC_REQ
@@ -1581,7 +1568,6 @@ typedef __ani_attr_pre_packed struct sSirSmeTkipCntrMeasReq
     tSirMacAddr         bssId;          // Peer BSSID
     tANI_BOOLEAN        bEnable;        // Start/stop countermeasures
 } __ani_attr_packed tSirSmeTkipCntrMeasReq, *tpSirSmeTkipCntrMeasReq;
-#endif
 
 typedef struct sAni64BitCounters
 {
@@ -1809,13 +1795,9 @@ typedef struct sSirSmeDisassocRsp
     tANI_U16           aid;
 #endif
     tAniStaStatStruct  perStaStats; // STA stats
-#ifdef WLAN_SOFTAP_FEATURE
     tANI_U16           staId;
-#endif     
 }
-#ifdef WLAN_SOFTAP_FEATURE
 __ani_attr_packed
-#endif
  tSirSmeDisassocRsp, *tpSirSmeDisassocRsp;
 
 /// Definition for Disassociation indication from peer
@@ -1832,9 +1814,7 @@ typedef struct sSirSmeDisassocInd
     tANI_U16            aid;
 #endif
     tAniStaStatStruct  perStaStats; // STA stats
-#ifdef WLAN_SOFTAP_FEATURE
     tANI_U16            staId;
-#endif
     tANI_U32            reasonCode;
 } tSirSmeDisassocInd, *tpSirSmeDisassocInd;
 
@@ -1895,9 +1875,7 @@ typedef struct sSirSmeDeauthInd
     tANI_U16            aid;
 #endif
 
-#ifdef WLAN_SOFTAP_FEATURE
     tANI_U16            staId;
-#endif
     tANI_U32            reasonCode;
 } tSirSmeDeauthInd, *tpSirSmeDeauthInd;
 
@@ -3103,7 +3081,6 @@ typedef struct sLimScanChnInfo
     tLimScanChn scanChn[SIR_MAX_SUPPORTED_CHANNEL_LIST];
 }tLimScanChnInfo;
 
-#ifdef WLAN_SOFTAP_FEATURE
 typedef struct sSirSmeGetAssocSTAsReq
 {
     tANI_U16    messageType;    // eWNI_SME_GET_ASSOC_STAS_REQ
@@ -3114,7 +3091,6 @@ typedef struct sSirSmeGetAssocSTAsReq
     void        *pSapEventCallback;
     void        *pAssocStasArray;// Pointer to allocated memory passed in WLANSAP_GetAssocStations API
 } tSirSmeGetAssocSTAsReq, *tpSirSmeGetAssocSTAsReq;
-#endif
 
 typedef struct sSmeMaxAssocInd
 {
@@ -3482,7 +3458,6 @@ typedef struct sSirHalWowlExitParams
     tANI_U8  bssIdx;
 } tSirHalWowlExitParams, *tpSirHalWowlExitParams;
 
-#ifdef WLAN_SOFTAP_FEATURE
 
 #define SIR_MAX_NAME_SIZE 64
 #define SIR_MAX_TEXT_SIZE 32
@@ -3649,7 +3624,6 @@ typedef struct sSirUpdateAPWPARSNIEsReq
     tSirRSNie      APWPARSNIEs;
 } tSirUpdateAPWPARSNIEsReq, *tpSirUpdateAPWPARSNIEsReq;
 
-#endif
 
 // SME -> HAL - This is the host offload request. 
 #define SIR_IPV4_ARP_REPLY_OFFLOAD                  0

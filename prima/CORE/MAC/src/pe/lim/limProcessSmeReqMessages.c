@@ -40,9 +40,7 @@
 #include "limApi.h"
 #include "wmmApsd.h"
 
-#ifdef WLAN_SOFTAP_FEATURE
 #include "sapApi.h"
-#endif
 
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
@@ -649,7 +647,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         switch(pSmeStartBssReq->bssType)
         {
-#ifdef WLAN_SOFTAP_FEATURE
             case eSIR_INFRA_AP_MODE:
                  psessionEntry->limSystemRole = eLIM_AP_ROLE;
                  psessionEntry->privacy = pSmeStartBssReq->privacy;
@@ -681,7 +678,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->wps_state = pSmeStartBssReq->wps_state;
                  psessionEntry->shortSlotTimeSupported = limGetShortSlotFromPhyMode(pMac, psessionEntry, psessionEntry->gLimPhyMode);
                  break;
-#endif
             case eSIR_IBSS_MODE:
                  psessionEntry->limSystemRole = eLIM_STA_IN_IBSS_ROLE;
                  break;
@@ -706,9 +702,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         // BT-AMP: Allocate memory for the array of parsed (Re)Assoc request structure
         if ( (pSmeStartBssReq->bssType == eSIR_BTAMP_AP_MODE)
-#ifdef WLAN_SOFTAP_FEATURE
         || (pSmeStartBssReq->bssType == eSIR_INFRA_AP_MODE)
-#endif
         )
         {
             if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&psessionEntry->parsedAssocReq,
@@ -820,15 +814,12 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->htCapability = IS_DOT11_MODE_HT(pSmeStartBssReq->dot11mode);
 
-#ifdef WLAN_SOFTAP_FEATURE
             /* keep the RSN/WPA IE information in PE Session Entry
              * later will be using this to check when received (Re)Assoc req
              * */
         limSetRSNieWPAiefromSmeStartBSSReqMessage(pMac,&pSmeStartBssReq->rsnIE,psessionEntry);
 
-#endif
 
-#ifdef WLAN_SOFTAP_FEATURE
         //Taken care for only softAP case rest need to be done
         if (psessionEntry->limSystemRole == eLIM_AP_ROLE){
             psessionEntry->gLimProtectionControl =  pSmeStartBssReq->protEnabled;
@@ -840,7 +831,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                           sizeof( tCfgProtection ));
             psessionEntry->pAPWPSPBCSession = NULL; // Initialize WPS PBC session link list
         }
-#endif
 
         // Prepare and Issue LIM_MLM_START_REQ to MLM
         if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmStartReq, sizeof(tLimMlmStartReq)))
@@ -856,10 +846,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmStartReq->ssId,
                           (tANI_U8 *) &pSmeStartBssReq->ssId,
                           pSmeStartBssReq->ssId.length + 1);
-#ifdef WLAN_SOFTAP_FEATURE
         pMlmStartReq->ssidHidden = pSmeStartBssReq->ssidHidden;
         pMlmStartReq->obssProtEnabled = pSmeStartBssReq->obssProtEnabled;
-#endif
 
 
         pMlmStartReq->bssType = psessionEntry->bssType;
@@ -868,9 +856,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMlmStartReq->sessionId = psessionEntry->peSessionId;
 
         if( (pMlmStartReq->bssType == eSIR_BTAMP_STA_MODE) || (pMlmStartReq->bssType == eSIR_BTAMP_AP_MODE )
-#ifdef WLAN_SOFTAP_FEATURE
             || (pMlmStartReq->bssType == eSIR_INFRA_AP_MODE)
-#endif
         )
         {
             //len = sizeof(tSirMacAddr);
@@ -920,13 +906,11 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMlmStartReq->cbMode = pSmeStartBssReq->cbMode;        
         pMlmStartReq->beaconPeriod = psessionEntry->beaconParams.beaconInterval;
 
-#ifdef WLAN_SOFTAP_FEATURE
         if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
             pMlmStartReq->dtimPeriod = psessionEntry->dtimPeriod;
             pMlmStartReq->wps_state = psessionEntry->wps_state;
 
         }else
-#endif        
         {
             if (wlan_cfgGetInt(pMac, WNI_CFG_DTIM_PERIOD, &val) != eSIR_SUCCESS)
                 limLog(pMac, LOGP, FL("could not retrieve DTIM Period\n"));
@@ -2470,11 +2454,7 @@ __limProcessSmeDisassocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         case eLIM_AP_ROLE:
             // Fall through
-#ifdef WLAN_SOFTAP_FEATURE
             break;
-#else
-            return;
-#endif
 
         case eLIM_STA_IN_IBSS_ROLE:
         default: // eLIM_UNKNOWN_ROLE
@@ -2488,9 +2468,7 @@ __limProcessSmeDisassocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     if ( (psessionEntry->limSmeState == eLIM_SME_WT_DISASSOC_STATE) || 
          (psessionEntry->limSmeState == eLIM_SME_WT_DEAUTH_STATE)
-#ifdef WLAN_SOFTAP_FEATURE
           || (psessionEntry->limSystemRole == eLIM_AP_ROLE )   
-#endif
      )
     {       
         pStaDs = dphLookupHashEntry(pMac, smeDisassocCnf.peerMacAddr, &aid, &psessionEntry->dph.dphHashTable);
@@ -2828,7 +2806,6 @@ __limProcessSmeSetContextReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
            FL("received SETCONTEXT_REQ message sessionId=%d\n"), pMlmSetKeysReq->sessionId););
 #endif
 
-#ifdef WLAN_SOFTAP_FEATURE
         if(((pSetContextReq->keyMaterial.edType == eSIR_ED_WEP40) || (pSetContextReq->keyMaterial.edType == eSIR_ED_WEP104))
         && (psessionEntry->limSystemRole == eLIM_AP_ROLE))
         {
@@ -2848,7 +2825,6 @@ __limProcessSmeSetContextReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 }
             }
         }
-#endif
 
         limPostMlmMessage(pMac, LIM_MLM_SETKEYS_REQ, (tANI_U32 *) pMlmSetKeysReq);
     }
@@ -3067,7 +3043,6 @@ void limProcessSmeGetScanChannelInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 }
 
 
-#ifdef WLAN_SOFTAP_FEATURE
 void limProcessSmeGetAssocSTAsInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tSirSmeGetAssocSTAsReq  getAssocSTAsReq;
@@ -3250,7 +3225,6 @@ limGetWPSPBCSessionsEnd:
     pSapEventCallback(&sapEvent, GetWPSPBCSessionsReq.pUsrContext);
 }
 
-#endif
 
 
 /**
@@ -3285,7 +3259,6 @@ __limCounterMeasures(tpAniSirGlobal pMac, tpPESession psessionEntry)
 };
 
 
-#ifdef WLAN_SOFTAP_FEATURE
 void
 limProcessTkipCounterMeasures(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
@@ -3313,7 +3286,6 @@ limProcessTkipCounterMeasures(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     psessionEntry->bTkipCntrMeasActive = tkipCntrMeasReq.bEnable;
 }
-#endif
 
 
 static void
@@ -3370,12 +3342,10 @@ __limHandleSmeStopBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-#ifdef WLAN_SOFTAP_FEATURE
     if (psessionEntry->limSystemRole == eLIM_AP_ROLE )
     {
         limWPSPBCClose(pMac, psessionEntry);
     }
-#endif
     PELOGW(limLog(pMac, LOGW, FL("RECEIVED STOP_BSS_REQ with reason code=%d\n"), stopBssReq.reasonCode);)
 
     prevState = psessionEntry->limSmeState;
@@ -3630,11 +3600,7 @@ __limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsg
           ((pStaDs->mlmStaContext.subType == LIM_ASSOC) &&
            (msgType != eWNI_SME_ASSOC_CNF)) ||
           ((pStaDs->mlmStaContext.subType == LIM_REASSOC) &&
-#ifdef WLAN_SOFTAP_FEATURE
            (msgType != eWNI_SME_ASSOC_CNF))))) // since softap is passing this as ASSOC_CNF and subtype differs
-#else
-           (msgType != eWNI_SME_REASSOC_CNF)))))
-#endif
     {
         limLog(pMac, LOG1,
            FL("Received invalid message %X due to peerMacAddr mismatched or not in eLIM_MLM_WT_ASSOC_CNF_STATE state, for aid %d, peer "),
@@ -4350,7 +4316,6 @@ __limProcessSmeGetStatisticsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 }
 
 
-#ifdef WLAN_SOFTAP_FEATURE
 static void
 __limProcessSmeUpdateAPWPSIEs(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
@@ -4531,7 +4496,6 @@ __limProcessSmeChangeBI(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     return;
 } /*** end __limProcessSmeChangeBI(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf) ***/
 
-#endif
 
 
 /** -------------------------------------------------------------
@@ -5480,7 +5444,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         case eWNI_SME_GET_SCANNED_CHANNEL_REQ:
             limProcessSmeGetScanChannelInfo(pMac, pMsgBuf);
             break;
-#ifdef WLAN_SOFTAP_FEATURE
         case eWNI_SME_GET_ASSOC_STAS_REQ:
             limProcessSmeGetAssocSTAsInfo(pMac, pMsgBuf);
             break;
@@ -5506,7 +5469,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
              //Update the beaconInterval
              __limProcessSmeChangeBI(pMac, pMsgBuf );
              break;
-#endif            
             
 #if defined WLAN_FEATURE_VOWIFI 
         case eWNI_SME_NEIGHBOR_REPORT_REQ_IND:

@@ -1036,7 +1036,6 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
 
-#ifdef WLAN_SOFTAP_FEATURE
         tx_timer_deactivate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         tx_timer_deactivate(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
@@ -1052,7 +1051,6 @@ limCleanupMlm(tpAniSirGlobal pMac)
                 pMac->lim.limTimers.gLimWPSOverlapTimerObj.isTimerCreated = eANI_BOOLEAN_FALSE;
             }
         }
-#endif
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         // Deactivate and delete FT Preauth response timer
@@ -1592,7 +1590,6 @@ char *limFrameStr(tANI_U32 type, tANI_U32 subType)
 return "";
 }
 
-#ifdef WLAN_SOFTAP_FEATURE
 void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
 {
     int i;
@@ -1685,7 +1682,6 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
         limLog(pMac, LOGE, FL("tx_timer_activate failed\n"));
     }
 }
-#endif
 
 /**
  * limIsNullSsid()
@@ -1775,7 +1771,6 @@ limIsNullSsid( tSirMacSSid *pSsid )
 
 
 
-#ifdef WLAN_SOFTAP_FEATURE
 
 /** -------------------------------------------------------------
 \fn limUpdateProtStaParams
@@ -1977,7 +1972,6 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
 
     return;
 }
-#endif
 
 
 /** -------------------------------------------------------------
@@ -2036,7 +2030,6 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
                 for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
                 {
-#ifdef WLAN_SOFTAP_FEATURE                                
                 if ((psessionEntry->limSystemRole == eLIM_AP_ROLE )  &&
                      psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
                     {
@@ -2045,7 +2038,6 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                                     peerMacAddr, sizeof(tSirMacAddr)))
                             return;
                 }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-#endif
                 {
                     if (pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
                      {
@@ -2060,12 +2052,10 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
             for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
             {
-#ifdef WLAN_SOFTAP_FEATURE                                
                 if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE )  &&
                       !psessionEntry->gLimNoShortParams.staNoShortCache[i].active)
                      break;
                 else        
-#endif        
                 {
                     if (!pMac->lim.gLimNoShortParams.staNoShortCache[i].active)
                     break;
@@ -2074,7 +2064,6 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
             if (i >= LIM_PROT_STA_CACHE_SIZE)
             {
-#ifdef WLAN_SOFTAP_FEATURE
                 if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
                     limLog(pMac, LOGE, FL("No space in Short cache (#active %d, #sta %d) for sta "),
                             i, psessionEntry->gLimNoShortParams.numNonShortPreambleSta);
@@ -2082,7 +2071,6 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                     return;
                 }
                 else
-#endif
                 {
                     limLog(pMac, LOGE, FL("No space in Short cache (#active %d, #sta %d) for sta "),
                             i, pMac->lim.gLimNoShortParams.numNonShortPreambleSta);
@@ -2093,14 +2081,12 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             }
 
 
-#ifdef WLAN_SOFTAP_FEATURE
             if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
                 palCopyMemory( pMac->hHdd, psessionEntry->gLimNoShortParams.staNoShortCache[i].addr,
                         peerMacAddr,  sizeof(tSirMacAddr));
                 psessionEntry->gLimNoShortParams.staNoShortCache[i].active = true;
                 psessionEntry->gLimNoShortParams.numNonShortPreambleSta++;
             }else
-#endif
             {
                 palCopyMemory( pMac->hHdd, pMac->lim.gLimNoShortParams.staNoShortCache[i].addr,
                                peerMacAddr,  sizeof(tSirMacAddr));
@@ -2112,14 +2098,8 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             // enable long preamble
             PELOG1(limLog(pMac, LOG1, FL("Disabling short preamble\n"));)
 
-#ifdef WLAN_SOFTAP_FEATURE
             if (limEnableShortPreamble(pMac, false, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
                 PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
-#else
-            if (limEnableShortPreamble(pMac, false, pBeaconParams) != eSIR_SUCCESS)
-                PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
-
-#endif
         }
     }
 }
@@ -2162,7 +2142,6 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             limPrintMacAddr(pMac, peerMacAddr, LOG1);)
             for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
             {
-#ifdef WLAN_SOFTAP_FEATURE
                 if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
                      psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                 {
@@ -2172,7 +2151,6 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                         return;
                 }
                 else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-#endif
                 {
                     if (pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                     {
@@ -2186,12 +2164,10 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
             for (i=0; i<LIM_PROT_STA_CACHE_SIZE; i++)
             {
-#ifdef WLAN_SOFTAP_FEATURE
                 if ((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
                      !psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                     break;
                  else
-#endif
                  {
                      if (!pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].active)
                           break;
@@ -2200,14 +2176,12 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 
             if (i >= LIM_PROT_STA_CACHE_SIZE)
             {
-#ifdef WLAN_SOFTAP_FEATURE
                 if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
                     limLog(pMac, LOGE, FL("No space in ShortSlot cache (#active %d, #sta %d) for sta "),
                             i, psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta);
                     limPrintMacAddr(pMac, peerMacAddr, LOGE);
                     return;
                 }else
-#endif
                 {
                     limLog(pMac, LOGE, FL("No space in ShortSlot cache (#active %d, #sta %d) for sta "),
                            i, pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta);
@@ -2217,14 +2191,12 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             }
 
 
-#ifdef WLAN_SOFTAP_FEATURE
             if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
                 palCopyMemory( pMac->hHdd, psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
                                peerMacAddr, sizeof(tSirMacAddr));
                 psessionEntry->gLimNoShortSlotParams.staNoShortSlotCache[i].active = true;
                 psessionEntry->gLimNoShortSlotParams.numNonShortSlotSta++;
             }else
-#endif
             {
                 palCopyMemory( pMac->hHdd, pMac->lim.gLimNoShortSlotParams.staNoShortSlotCache[i].addr,
                           peerMacAddr, sizeof(tSirMacAddr));
@@ -2233,7 +2205,6 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             }
             wlan_cfgGetInt(pMac, WNI_CFG_11G_SHORT_SLOT_TIME_ENABLED, &val);
 
-#ifdef WLAN_SOFTAP_FEATURE
             /* Here we check if we are AP role and short slot enabled (both admin and oper modes) but we have atleast one STA connected with
              * only long slot enabled, we need to change our beacon/pb rsp to broadcast short slot disabled
              */
@@ -2247,7 +2218,6 @@ limUpdateShortSlotTime(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
                 psessionEntry->shortSlotTimeSupported = false;
             }
             else if ( psessionEntry->limSystemRole != eLIM_AP_ROLE)
-#endif            
             {
                 if (val && pMac->lim.gLimNoShortSlotParams.numNonShortSlotSta && psessionEntry->shortSlotTimeSupported)
                 {
@@ -3184,7 +3154,6 @@ void limProcessQuietBssTimeout( tpAniSirGlobal pMac )
     }
   }
 }
-#ifdef WLAN_SOFTAP_FEATURE
 /**
  * limProcessWPSOverlapTimeout
  *
@@ -3224,7 +3193,6 @@ void limProcessWPSOverlapTimeout(tpAniSirGlobal pMac)
     
     limWPSPBCTimeout(pMac, psessionEntry);
 }
-#endif
 #endif
 
 /**----------------------------------------------
@@ -3707,13 +3675,8 @@ tAniBool limTriggerBackgroundScanDuringQuietBss( tpAniSirGlobal pMac )
  *            tANI_U8 variable
  */
 
-#ifdef WLAN_SOFTAP_FEATURE 
 tANI_U8 limGetHTCapability( tpAniSirGlobal pMac,
         tANI_U32 htCap, tpPESession psessionEntry)
-#else
-tANI_U8 limGetHTCapability( tpAniSirGlobal pMac,
-        tANI_U32 htCap )
-#endif
 {
 tANI_U8 retVal = 0;
 tANI_U8 *ptr;
@@ -3882,11 +3845,9 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
       break;
 
     case eHT_OP_MODE:
-#ifdef WLAN_SOFTAP_FEATURE
       if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
           retVal = psessionEntry->htOperMode;
       else
-#endif
           retVal = pMac->lim.gHTOperMode;
       break;
 
@@ -4125,7 +4086,6 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     else
     {
         //normal protection config check
-#ifdef WLAN_SOFTAP_FEATURE
         if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
                 !psessionEntry->cfgProtection.fromllb)
         {
@@ -4133,7 +4093,6 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             PELOG1(limLog(pMac, LOG1, FL("protection from 11b is disabled\n"));)
             return eSIR_SUCCESS;
         }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-#endif
         {   
             if(!pMac->lim.cfgProtection.fromllb)
             {
@@ -4148,7 +4107,6 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     {
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
-#ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
         {
             if(overlap)
@@ -4186,10 +4144,6 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&
                 (true == psessionEntry->htCapability))
-#else
-            if(((eLIM_AP_ROLE == psessionEntry->limSystemRole)|| (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)) &&
-                    (true == psessionEntry->htCapability))
-#endif
             {
                 if(overlap)
                 {
@@ -4231,7 +4185,6 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         //for AP role.
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
-#ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
         {
             if(overlap)
@@ -4308,9 +4261,6 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 pBeaconParams->paramChangeBitmap |= PARAM_llBCOEXIST_CHANGED;
             }
         }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-#else
-            if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)))
-#endif
             {
                 if(overlap)
                 {
@@ -4409,16 +4359,12 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
     //overlapping protection configuration check.
     if(overlap)
     {
-#ifdef WLAN_SOFTAP_FEATURE
         if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) && (!psessionEntry->cfgProtection.overlapFromllg))
         {
             // protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("overlap protection from 11g is disabled\n")););
             return eSIR_SUCCESS;
         }else if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) && (!pMac->lim.cfgProtection.overlapFromllg))
-#else
-        if(((psessionEntry->limSystemRole == eLIM_AP_ROLE ) ||(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)) && (!pMac->lim.cfgProtection.overlapFromllg))
-#endif
         {
             // protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("overlap protection from 11g is disabled\n")););
@@ -4428,14 +4374,12 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
     else
     {
         //normal protection config check
-#ifdef WLAN_SOFTAP_FEATURE
        if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) && 
            !psessionEntry->cfgProtection.fromllg){
             // protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("protection from 11g is disabled\n"));)
             return eSIR_SUCCESS;
          }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-#endif
        {
           if(!pMac->lim.cfgProtection.fromllg)
            {
@@ -4450,7 +4394,6 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
 
-#ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
         {
             if(overlap)
@@ -4480,9 +4423,6 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                 }
             }
         }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-#else
-        if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
-#endif
         {
             if(overlap)
             {
@@ -4517,7 +4457,6 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->llgCoexist = psessionEntry->beaconParams.llgCoexist = true;
             pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
         }
-#ifdef WLAN_SOFTAP_FEATURE
         else if (true == psessionEntry->gLimOverlap11gParams.protectionEnabled)
         {
             // As operating mode changed after G station assoc some way to update beacon
@@ -4525,7 +4464,6 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             //pMac->sch.schObject.fBeaconChanged = 1;
             pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
         }
-#endif
     }
     else if (true == psessionEntry->beaconParams.llgCoexist)
     {
@@ -4533,7 +4471,6 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
 
-#ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
         {
             if(overlap)
@@ -4607,9 +4544,6 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                 pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
             }
         }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-#else
-        if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
-#endif
         {
             if(overlap)
             {
@@ -4722,14 +4656,12 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     else 
     {
         //normal protection config check
-#ifdef WLAN_SOFTAP_FEATURE
         if((psessionEntry->limSystemRole == eLIM_AP_ROLE) && !psessionEntry->cfgProtection.obss) 
         { //ToDo Update this field
             // protection disabled.
             PELOG1(limLog(pMac, LOG1, FL("protection from Obss is disabled\n"));)
             return eSIR_SUCCESS;
         }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-#endif
         {
             if(!pMac->lim.cfgProtection.obss) 
             { //ToDo Update this field
@@ -4741,7 +4673,6 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     }
 
 
-#ifdef WLAN_SOFTAP_FEATURE
     if (eLIM_AP_ROLE == psessionEntry->limSystemRole){
         if ((enable) && (false == psessionEntry->beaconParams.gHTObssMode) )
         {
@@ -4763,7 +4694,6 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
              psessionEntry->gLimOverlap11gParams.protectionEnabled = false;
          }
     } else
-#endif
     {
         if ((enable) && (false == psessionEntry->beaconParams.gHTObssMode) )
         {
@@ -4813,7 +4743,6 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
         else
         {
             //normal protection config check
-#ifdef WLAN_SOFTAP_FEATURE
             if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
                 !psessionEntry->cfgProtection.ht20)
             {
@@ -4821,7 +4750,6 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
                 PELOG3(limLog(pMac, LOG3, FL("protection from HT20 is disabled\n"));)
                 return eSIR_SUCCESS;
             }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-#endif
             {
                 if(!pMac->lim.cfgProtection.ht20)
                 {
@@ -4837,7 +4765,6 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
 
-#ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole){
             if(overlap)
             {
@@ -4862,9 +4789,6 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
                 }
             }
         }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-#else
-        if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
-#endif
         {
             if(overlap)
             {
@@ -4901,7 +4825,6 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
         //for AP role.
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
-#ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole){
             if(overlap)
             {
@@ -4950,9 +4873,6 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->ht20MhzCoexist = psessionEntry->beaconParams.ht20Coexist = false;
             pBeaconParams->paramChangeBitmap |= PARAM_HT20MHZCOEXIST_CHANGED;
         }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
-#else
-        if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
-#endif
         {
             if(overlap)
             {
@@ -5040,7 +4960,6 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         }
         else
         {
-#ifdef WLAN_SOFTAP_FEATURE
             //normal protection config check
             if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
                 !psessionEntry->cfgProtection.nonGf)
@@ -5049,7 +4968,6 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 PELOG3(limLog(pMac, LOG3, FL("protection from NonGf is disabled\n"));)
                 return eSIR_SUCCESS;
             }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-#endif
             {
                 //normal protection config check
                 if(!pMac->lim.cfgProtection.nonGf)
@@ -5060,7 +4978,6 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                  }
             }
         }
-#ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
         {
@@ -5075,7 +4992,6 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
         }
     }else
-#endif
     {
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
         {
@@ -5123,7 +5039,6 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         }
         else
         {
-#ifdef WLAN_SOFTAP_FEATURE
             //normal protection config check
             if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
                !psessionEntry->cfgProtection.lsigTxop)
@@ -5132,7 +5047,6 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 PELOG3(limLog(pMac, LOG3, FL(" protection from LsigTxop not supported is disabled\n"));)
                 return eSIR_SUCCESS;
             }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-#endif
             {
                 //normal protection config check
                 if(!pMac->lim.cfgProtection.lsigTxop)
@@ -5145,7 +5059,6 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         }
 
 
-#ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
         {
@@ -5160,7 +5073,6 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED;
         }
     }else
-#endif
     {
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
         {
@@ -5209,7 +5121,6 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         }
         else
         {
-#ifdef WLAN_SOFTAP_FEATURE
              //normal protection config check
             if((psessionEntry->limSystemRole == eLIM_AP_ROLE) &&
                !psessionEntry->cfgProtection.rifs)
@@ -5218,7 +5129,6 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled\n"));)
                 return eSIR_SUCCESS;
             }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE )
-#endif
             {
                //normal protection config check
                if(!pMac->lim.cfgProtection.rifs)
@@ -5230,7 +5140,6 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-#ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
         // Disabling the RIFS Protection means Enable the RIFS mode of operation in the BSS
         if ((!enable) && (false == psessionEntry->beaconParams.fRIFSMode))
@@ -5247,7 +5156,6 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_RIFS_MODE_CHANGED;
         }
     }else
-#endif
     {
         // Disabling the RIFS Protection means Enable the RIFS mode of operation in the BSS
         if ((!enable) && (false == psessionEntry->beaconParams.fRIFSMode))
@@ -5427,11 +5335,7 @@ void limUpdateStaRunTimeHTSwitchChnlParams( tpAniSirGlobal   pMac,
 #endif
     
    //If self capability is set to '20Mhz only', then do not change the CB mode.
-#ifdef WLAN_SOFTAP_FEATURE
    if( !limGetHTCapability( pMac, eHT_SUPPORTED_CHANNEL_WIDTH_SET, psessionEntry ))
-#else
-   if( !limGetHTCapability( pMac, eHT_SUPPORTED_CHANNEL_WIDTH_SET ))
-#endif
         return;
 
 #if !defined WLAN_FEATURE_VOWIFI  

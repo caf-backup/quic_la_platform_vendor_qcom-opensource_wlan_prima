@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file aniSystemDefs.h contains definitions used by
@@ -100,9 +100,7 @@ typedef enum eAniKeyDirection
     eSIR_TX_ONLY,
     eSIR_RX_ONLY,
     eSIR_TX_RX,
-#ifdef WLAN_SOFTAP_FEATURE
     eSIR_TX_DEFAULT,
-#endif
     eSIR_DONOT_USE_KEY_DIRECTION = SIR_MAX_ENUM_SIZE
 } tAniKeyDirection;
 
@@ -143,12 +141,12 @@ typedef struct sSirAddie
 
 #ifdef FEATURE_WLAN_CCX
 
-// The CCKM IE needs to be in the 
-// Join and Reassoc Req. 
+// The CCKM IE needs to be in the
+// Join and Reassoc Req.
 typedef struct sSirCCKMie
 {
     tANI_U16       length;
-    tANI_U8        cckmIEdata[SIR_MAC_MAX_IE_LENGTH+2];  
+    tANI_U8        cckmIEdata[SIR_MAC_MAX_IE_LENGTH+2];
 } tSirCCKMie, *tpSirCCKMie;
 
 #endif

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -163,9 +163,7 @@ typedef struct sSirAssocReq
     tSirMacPowerCapabilityIE  powerCapability;
     tSirMacSupportedChannelIE supportedChannels;
     tDot11fIEHTCaps   HTCaps;
-#ifdef WLAN_SOFTAP_FEATURE
     tDot11fIEWMMInfoStation   WMMInfoStation;
-#endif
     /// This is set if the frame is a reassoc request:
     tANI_U8                   reassocRequest;
     tANI_U8                   ssidPresent;
@@ -183,12 +181,10 @@ typedef struct sSirAssocReq
 
     tANI_U8                   powerCapabilityPresent;
     tANI_U8                   supportedChannelsPresent;
-#ifdef WLAN_SOFTAP_FEATURE
     // keeing copy of assoction request received, this is 
     // required for indicating the frame to upper layers
     tANI_U32                  assocReqFrameLength;
     tANI_U8*                  assocReqFrame;
-#endif
 #ifdef WLAN_FEATURE_11AC
     tDot11fIEVHTCaps          VHTCaps;
     tDot11fIEOperatingMode    operMode;
@@ -460,15 +456,9 @@ PopulateDot11fEDCAParamSet(tpAniSirGlobal         pMac,
                            tDot11fIEEDCAParamSet *pDot11f,
                            tpPESession psessionEntry);
 
-#ifdef WLAN_SOFTAP_FEATURE
 tSirRetStatus
 PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
                       tDot11fIEERPInfo *pDot11f, tpPESession psessionEntry);
-#else
-tSirRetStatus
-PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
-                      tDot11fIEERPInfo *pDot11f);
-#endif
 
 tSirRetStatus
 PopulateDot11fExtSuppRates(tpAniSirGlobal      pMac,
@@ -513,16 +503,10 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
                            tpPESession      psessionEntry,
                            tDot11fIEHTCaps *pDot11f);
 
-#ifdef WLAN_SOFTAP_FEATURE
 tSirRetStatus
 PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
                      tDot11fIEHTInfo *pDot11f,
                      tpPESession      psessionEntry);
-#else
-tSirRetStatus
-PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
-                     tDot11fIEHTInfo *pDot11f);
-#endif
 
 void PopulateDot11fIBSSParams(tpAniSirGlobal  pMac,
        tDot11fIEIBSSParams *pDot11f, tpPESession psessionEntry);
@@ -703,14 +687,9 @@ void PopulateDot11fWMMInfoAp(tpAniSirGlobal      pMac,
 void PopulateDot11fWMMInfoStation(tpAniSirGlobal           pMac,
                                   tDot11fIEWMMInfoStation *pInfo);
 
-#ifdef WLAN_SOFTAP_FEATURE
 void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
                              tDot11fIEWMMParams *pParams,
                              tpPESession        psessionEntry);
-#else
-void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
-                             tDot11fIEWMMParams *pParams);
-#endif
 
 /**
  * \brief Populate a tDot11fIEWMMSchedule
@@ -803,11 +782,9 @@ tSirRetStatus PopulateDot11fWscRegistrarInfo(tpAniSirGlobal pMac,
 tSirRetStatus DePopulateDot11fWscRegistrarInfo(tpAniSirGlobal pMac,
                                                tDot11fIEWscBeacon *pDot11f);
 
-#ifdef WLAN_SOFTAP_FEATURE
 tSirRetStatus PopulateDot11fProbeResWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscProbeRes *pDot11f, tpPESession psessionEntry);
 tSirRetStatus PopulateDot11fAssocResWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscAssocRes *pDot11f, tpPESession psessionEntry);
 tSirRetStatus PopulateDot11fBeaconWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscBeacon *pDot11f, tpPESession psessionEntry);
-#endif
 
 tSirRetStatus PopulateDot11fWscInProbeRes(tpAniSirGlobal pMac,
                                           tDot11fIEWscProbeRes *pDot11f);

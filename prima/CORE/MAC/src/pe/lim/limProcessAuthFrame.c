@@ -136,10 +136,8 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     tANI_U8                 *pChallenge;
     tANI_U32                key_length=8;
     tANI_U8                 challengeTextArray[SIR_MAC_AUTH_CHALLENGE_LENGTH];
-#ifdef WLAN_SOFTAP_FEATURE
     tpDphHashNode           pStaDs = NULL;
     tANI_U16                assocId = 0;
-#endif
     /* Added For BT -AMP support */
     // Get pointer to Authentication frame header and body
  
@@ -195,7 +193,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
          * WEP bit is set in FC of MAC header.
          */
 
-#ifdef WLAN_SOFTAP_FEATURE
         // If TKIP counter measures enabled issue Deauth frame to station
         if ((psessionEntry->bTkipCntrMeasActive) && (psessionEntry->limSystemRole == eLIM_AP_ROLE))
         {
@@ -207,7 +204,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                     pHdr->sa, psessionEntry, FALSE );
             return;
         }
-#endif
 
         // Extract key ID from IV (most 2 bits of 4th byte of IV)
 
@@ -249,13 +245,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
             return;
         }
-#ifdef WLAN_SOFTAP_FEATURE
         if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
         {
             val = psessionEntry->privacy; 
         } 
         else 
-#endif
         // Accept Authentication frame only if Privacy is implemented
         if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED,
                       &val) != eSIR_SUCCESS)
@@ -417,7 +411,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                 val = SIR_MAC_KEY_LENGTH;
 
-#ifdef WLAN_SOFTAP_FEATURE  
                 if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
                 {   
                     tpSirKeys pKey;
@@ -426,7 +419,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     val = pKey->keyLength;
                 }                   
                 else                              
-#endif                                    
                 if (wlan_cfgGetStr(pMac, (tANI_U16) (WNI_CFG_WEP_DEFAULT_KEY_1 + keyId),
                               defaultKey, &val) != eSIR_SUCCESS)
                 {
@@ -601,7 +593,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                     PELOGE(limLog(pMac, LOGE, FL("STA is initiating brand-new Authentication ...\n"));)
                     limDeletePreAuthNode(pMac,
                                          pHdr->sa);
-#ifdef WLAN_SOFTAP_FEATURE                    
                     /**
                      *  SAP Mode:Disassociate the station and 
                      *  delete its entry if we have its entry 
@@ -632,7 +623,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                         limTriggerSTAdeletion(pMac, pStaDs, psessionEntry);
                         return;
                     }
-#endif
                 }
                 else
                 {
@@ -680,18 +670,10 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 return;
             }
             /// No Pre-auth context exists for the STA.
-#ifdef WLAN_SOFTAP_FEATURE
             if (limIsAuthAlgoSupported(
                                       pMac,
                                       (tAniAuthType)
                                       pRxAuthFrameBody->authAlgoNumber, psessionEntry))
-#else
-            if (limIsAuthAlgoSupported(
-                                      pMac,
-                                      (tAniAuthType)
-                                      pRxAuthFrameBody->authAlgoNumber))
-
-#endif
             {
                 switch (pRxAuthFrameBody->authAlgoNumber)
                 {
@@ -757,13 +739,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                     case eSIR_SHARED_KEY:
                         PELOGW(limLog(pMac, LOGW, FL("=======> eSIR_SHARED_KEY  ...\n"));)
-#ifdef WLAN_SOFTAP_FEATURE
                         if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
                         {
                             val = psessionEntry->privacy;
                         }
                         else   
-#endif
                         if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED,
                                       &val) != eSIR_SUCCESS)
                         {
@@ -1079,13 +1059,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                 {
                     // Shared key authentication
 
-#ifdef WLAN_SOFTAP_FEATURE
                     if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
                     {
                         val = psessionEntry->privacy;
                     }
                     else   
-#endif
                     if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED,
                                   &val) != eSIR_SUCCESS)
                     {
@@ -1218,7 +1196,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                             val = SIR_MAC_KEY_LENGTH;
 
-#ifdef WLAN_SOFTAP_FEATURE  
                             if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
                             {
                                 tpSirKeys pKey;
@@ -1226,7 +1203,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                 palCopyMemory( pMac->hHdd, defaultKey, pKey->key, pKey->keyLength);
                             }
                             else
-#endif
                             if (wlan_cfgGetStr(pMac, (tANI_U16) (WNI_CFG_WEP_DEFAULT_KEY_1 + keyId),
                                           defaultKey,
                                           &val)

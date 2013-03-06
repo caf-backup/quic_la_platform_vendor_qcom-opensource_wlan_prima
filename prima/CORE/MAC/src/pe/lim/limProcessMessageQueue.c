@@ -885,9 +885,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                 case SIR_MAC_MGMT_ASSOC_REQ:
                     // Make sure the role supports Association
                     if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)
-#ifdef WLAN_SOFTAP_FEATURE
                     || (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-#endif
                     )
                         limProcessAssocReqFrame(pMac, pRxPacketInfo, LIM_ASSOC, psessionEntry);
 
@@ -906,9 +904,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                 case SIR_MAC_MGMT_REASSOC_REQ:
                     // Make sure the role supports Reassociation
                     if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)
-#ifdef WLAN_SOFTAP_FEATURE
                       || (psessionEntry->limSystemRole == eLIM_AP_ROLE)
-#endif                   
                     ){
                         limProcessAssocReqFrame(pMac, pRxPacketInfo, LIM_REASSOC, psessionEntry);
                     }
@@ -1436,7 +1432,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_SET_TX_POWER_REQ:
         case eWNI_SME_GET_TX_POWER_REQ:
         case eWNI_SME_GET_NOISE_REQ:
-#ifdef WLAN_SOFTAP_FEATURE        
         case eWNI_SME_GET_ASSOC_STAS_REQ:
         case eWNI_SME_TKIP_CNTR_MEAS_REQ:
         case eWNI_SME_UPDATE_APWPSIE_REQ:
@@ -1444,7 +1439,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_GET_WPSPBC_SESSION_REQ:
         case eWNI_SME_SET_APWPARSNIEs_REQ:
         case eWNI_SME_CHNG_MCC_BEACON_INTERVAL:
-#endif
 #if defined WLAN_FEATURE_VOWIFI
         case eWNI_SME_NEIGHBOR_REPORT_REQ_IND:
         case eWNI_SME_BEACON_REPORT_RESP_XMIT_IND:
@@ -1740,9 +1734,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                         pmmUpdateTIM(pMac, (tpBeaconGenParams)limMsg->bodyptr);
 #endif
 
-#ifdef WLAN_SOFTAP_FEATURE
                 if( pMac->lim.gLimSystemRole != eLIM_AP_ROLE )
-#endif                  
                     schProcessPreBeaconInd(pMac, limMsg);    
 
                 }
@@ -1914,7 +1906,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limProcessQuietBssTimeout(pMac);
             break;
 
-#ifdef WLAN_SOFTAP_FEATURE
         case SIR_LIM_UPDATE_OLBC_CACHEL_TIMEOUT:
             limHandleUpdateOlbcCache(pMac);
             break;
@@ -1924,7 +1915,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 #endif
 
-#endif
 
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
         /*
