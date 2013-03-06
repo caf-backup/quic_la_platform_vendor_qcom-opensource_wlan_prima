@@ -1,19 +1,25 @@
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 #if !defined( __WLAN_HDD_DP_UTILS_H )
 #define __WLAN_HDD_DP_UTILS_H
 
 /**=============================================================================
   wlan_hdd_dp_utils.h
-  
+
   \brief      Utility functions for data path module
-  
+
   Description...
                Copyright 2008 (c) Qualcomm Technologies, Inc.
                All Rights Reserved.
                Qualcomm Technologies Confidential and Proprietary.
-  
+
   ==============================================================================**/
 /* $HEADER$ */
-  
+
 /**-----------------------------------------------------------------------------
   Include files
   ----------------------------------------------------------------------------*/
@@ -24,14 +30,12 @@
 #include <vos_status.h>
 #include <linux/spinlock.h>
 #include <vos_trace.h>
-#ifdef WLAN_SOFTAP_FEATURE
 #include <vos_list.h>
-#endif
 
 /**-----------------------------------------------------------------------------
   Preprocessor definitions and constants
  ----------------------------------------------------------------------------*/
-  
+
 /**-----------------------------------------------------------------------------
   Type declarations
  ----------------------------------------------------------------------------*/

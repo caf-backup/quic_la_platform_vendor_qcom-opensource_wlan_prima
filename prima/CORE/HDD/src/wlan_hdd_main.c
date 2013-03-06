@@ -76,13 +76,11 @@
 #ifdef ANI_MANF_DIAG
 int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #endif
-#ifdef WLAN_SOFTAP_FEATURE
 #include "sapApi.h"
 #include <linux/semaphore.h>
 #include <mach/subsystem_restart.h>
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
-#endif
 #include "cfgApi.h"
 #include "wlan_hdd_dev_pwr.h"
 #ifdef WLAN_BTAMP_FEATURE
@@ -1920,7 +1918,6 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 
       case WLAN_HDD_SOFTAP:
       case WLAN_HDD_P2P_GO:
-#ifdef WLAN_SOFTAP_FEATURE
       {
 #ifdef CONFIG_CFG80211
          hdd_cleanup_actionframe(pHddCtx, pAdapter);
@@ -1950,7 +1947,6 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
             hdd_cleanup_actionframe(pHddCtx, pAdapterforTx);
          }
 #endif
-#endif //WLAN_SOFTAP_FEATURE
          break;
       }
 
@@ -3264,9 +3260,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       }
 
 #ifdef CONFIG_CFG80211
-#ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE != hdd_get_conparam())
-#endif
    {
 #ifdef ANI_MANF_DIAG
       if (VOS_FTM_MODE != hdd_get_conparam())
@@ -3297,7 +3291,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    //netif_tx_disable(pWlanDev);
    //netif_carrier_off(pWlanDev);
 
-#ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
    {
       pAdapter = hdd_get_adapter(pHddCtx,
@@ -3305,7 +3298,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    }
    else
    {
-#endif
 #ifdef ANI_MANF_DIAG
       if (VOS_FTM_MODE != hdd_get_conparam())
 #endif /* ANI_MANF_DIAG */
@@ -3313,9 +3305,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
          pAdapter = hdd_get_adapter(pHddCtx,
                                     WLAN_HDD_INFRA_STATION);
       }
-#ifdef WLAN_SOFTAP_FEATURE
    }
-#endif
    /* DeRegister with platform driver as client for Suspend/Resume */
    vosStatus = hddDeregisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -3915,12 +3905,10 @@ int hdd_wlan_startup(struct device *dev )
                         pHddCtx->cfg_ini->vosTraceEnableSYS);
    hdd_vos_trace_enable(VOS_MODULE_ID_VOSS,
                         pHddCtx->cfg_ini->vosTraceEnableVOSS);
-#ifdef WLAN_SOFTAP_FEATURE
    hdd_vos_trace_enable(VOS_MODULE_ID_SAP,
                         pHddCtx->cfg_ini->vosTraceEnableSAP);
    hdd_vos_trace_enable(VOS_MODULE_ID_HDD_SOFTAP,
                         pHddCtx->cfg_ini->vosTraceEnableHDDSAP);
-#endif
 
    // Update WDI trace levels based upon the cfg.ini
    hdd_wdi_trace_enable(eWLAN_MODULE_DAL,
@@ -4118,7 +4106,6 @@ int hdd_wlan_startup(struct device *dev )
       goto err_vosstop;
    }
 
-#ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
    {
      pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_SOFTAP, "softap.%d", 
@@ -4126,7 +4113,6 @@ int hdd_wlan_startup(struct device *dev )
    }
    else
    {
-#endif
      pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
          wlan_hdd_get_intf_addr(pHddCtx), FALSE );
      if (pAdapter != NULL)
@@ -4171,9 +4157,7 @@ int hdd_wlan_startup(struct device *dev )
          }
 #endif
      }
-#ifdef WLAN_SOFTAP_FEATURE
    }
-#endif
 
    if( pAdapter == NULL )
    {
@@ -4278,9 +4262,7 @@ int hdd_wlan_startup(struct device *dev )
 
    hdd_register_mcast_bcast_filter(pHddCtx);
 #ifdef CONFIG_CFG80211
-#ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE != hdd_get_conparam())
-#endif
    {
       /* Action frame registered in one adapter which will
        * applicable to all interfaces 
@@ -4860,10 +4842,8 @@ v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
     VOS_STATUS status;
     tVOS_CONCURRENCY_MODE concurrent_state = 0;
 
-#ifdef WLAN_SOFTAP_FEATURE
     if (VOS_STA_SAP_MODE == hdd_get_conparam())
         return TRUE;
-#endif
 
     concurrent_state = hdd_get_concurrency_mode();
 
