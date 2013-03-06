@@ -69,9 +69,7 @@
   ===========================================================================*/
 extern int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
 
-#ifdef CONFIG_CFG80211   
 extern int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev);
-#endif
 /**============================================================================
   @brief hdd_tx_timeout() - Function called by OS if there is any
   timeout during transmission. Since HDD simply enqueues packet
@@ -201,7 +199,6 @@ extern VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
   ===========================================================================*/
 extern v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket );
 
-#ifdef CONFIG_CFG80211
 /**============================================================================
   @brief hdd_mon_tx_mgmt_pkt() - Transmit MGMT packet received on monitor 
                                  interface.
@@ -216,6 +213,5 @@ void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter);
   @param work: [in] workqueue structure.
   ===========================================================================*/
 void hdd_mon_tx_work_queue(struct work_struct *work);
-#endif
 
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

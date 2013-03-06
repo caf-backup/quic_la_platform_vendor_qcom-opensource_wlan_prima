@@ -1,5 +1,11 @@
+/*
+* Copyright (c) 2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( HDD_CONNECTION_H__ ) 
-#define HDD_CONNECTION_H__ 
+#define HDD_CONNECTION_H__
 #include <wlan_hdd_mib.h>
 #define HDD_MAX_NUM_IBSS_STA ( 9 )
 #ifdef FEATURE_WLAN_TDLS
@@ -76,9 +82,7 @@ typedef struct hdd_adapter_s hdd_adapter_t;
 typedef struct hdd_context_s hdd_context_t;
 typedef struct hdd_station_ctx hdd_station_ctx_t;
 typedef struct hdd_ap_ctx_s  hdd_ap_ctx_t;
-#ifdef CONFIG_CFG80211   
 typedef struct hdd_mon_ctx_s  hdd_mon_ctx_t;
-#endif
 
 
 extern v_BOOL_t hdd_connIsConnected( hdd_station_ctx_t *pHddStaCtx );
