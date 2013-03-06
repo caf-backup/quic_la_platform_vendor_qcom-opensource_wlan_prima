@@ -2028,13 +2028,11 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
         palCopyMemory(pMac->hHdd, &pProbeResp->QBSSLoad, &pr->QBSSLoad, sizeof(tDot11fIEQBSSLoad));
     }
 #endif
-#ifdef WLAN_FEATURE_P2P
     if (pr->P2PProbeRes.present)
     {
        palCopyMemory( pMac, &pProbeResp->P2PProbeRes, &pr->P2PProbeRes,
                                                 sizeof(tDot11fIEP2PProbeRes) );
     }
-#endif
 #ifdef WLAN_FEATURE_11AC
     if ( pr->VHTCaps.present )
     {
@@ -2166,13 +2164,11 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
     }
     
 
-#ifdef WLAN_FEATURE_P2P
     if(ar->P2PIEOpaque.present)
     {
         pAssocReq->addIEPresent = 1;
         ConvertP2POpaque( pMac, &pAssocReq->addIE, &ar->P2PIEOpaque);
     }
-#endif
 #ifdef WLAN_FEATURE_WFD
     if(ar->WFDIEOpaque.present)
     {
@@ -2558,13 +2554,11 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
         ConvertWscOpaque(pMac, &pAssocReq->addIE, &ar.WscIEOpaque);
     }
     
-#ifdef WLAN_FEATURE_P2P
     if(ar.P2PIEOpaque.present)
     {
         pAssocReq->addIEPresent = 1;
         ConvertP2POpaque( pMac, &pAssocReq->addIE, &ar.P2PIEOpaque);
     }
-#endif
 
 #ifdef WLAN_FEATURE_WFD
     if(ar.WFDIEOpaque.present)
@@ -4508,7 +4502,6 @@ tSirRetStatus PopulateDot11fAssocResWscIE(tpAniSirGlobal pMac,
     return eSIR_SUCCESS;
 }
 
-#ifdef WLAN_FEATURE_P2P
 tSirRetStatus PopulateDot11AssocResP2PIE(tpAniSirGlobal pMac, 
                                        tDot11fIEP2PAssocRes *pDot11f, 
                                        tpSirAssocReq pRcvdAssocReq)
@@ -4525,7 +4518,6 @@ tSirRetStatus PopulateDot11AssocResP2PIE(tpAniSirGlobal pMac,
     }
     return eSIR_SUCCESS;
 }
-#endif
 
 #if defined WLAN_FEATURE_VOWIFI
 
