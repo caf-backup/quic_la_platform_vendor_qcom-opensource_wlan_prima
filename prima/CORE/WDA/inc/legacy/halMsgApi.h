@@ -9,10 +9,6 @@
 #include "halTypes.h"
 #include "sirApi.h"
 #include "sirParams.h"
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-#include "halPhy.h"
-#include "halPhyApi.h"
-#endif
 
 #define HAL_NUM_BSSID 2
 /* operMode in ADD BSS message */
@@ -693,7 +689,6 @@ typedef struct {
 
 } tFinishScanParams, * tpFinishScanParams;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #ifdef FEATURE_OEM_DATA_SUPPORT 
 
 #ifndef OEM_DATA_REQ_SIZE
@@ -714,7 +709,6 @@ typedef struct
 {
     tANI_U8             oemDataRsp[OEM_DATA_RSP_SIZE];
 } tStartOemDataRsp, *tpStartOemDataRsp;
-#endif
 #endif
 
 typedef struct sBeaconGenStaInfo {
@@ -1331,7 +1325,6 @@ typedef struct sP2pPsParams
 }tP2pPsParams, *tpP2pPsParams;
 #endif
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 static inline void halGetTxTSFtimer(tpAniSirGlobal pMac, 
                                                 tSirMacTimeStamp *pTime)
 {
@@ -1374,6 +1367,5 @@ typedef __ani_attr_pre_packed struct sRemBeaconFilterMsg
     tANI_U8  ucRemIeId[1];
 }  __ani_attr_packed tRemBeaconFilterMsg, *tpRemBeaconFilterMsg;
 
-#endif
 #endif /* _HALMSGAPI_H_ */
 
