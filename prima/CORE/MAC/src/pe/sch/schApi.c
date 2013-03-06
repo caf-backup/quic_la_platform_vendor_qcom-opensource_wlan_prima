@@ -17,7 +17,7 @@
 #include "palTypes.h"
 #include "sirWrapper.h"
 #include "aniGlobal.h"
-#include "wniCfgAp.h"
+#include "wniCfgSta.h"
 
 #include "sirMacProtDef.h"
 #include "sirMacPropExts.h"
