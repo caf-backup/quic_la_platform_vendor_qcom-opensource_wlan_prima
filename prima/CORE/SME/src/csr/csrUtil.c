@@ -1972,9 +1972,7 @@ eCsrMediaAccessType csrGetQoSFromBssDesc( tHalHandle hHal, tSirBssDescription *p
 {
     eCsrMediaAccessType qosType = eCSR_MEDIUM_ACCESS_DCF;
 
-#if defined(VOSS_ENABLED)
     VOS_ASSERT( pIes != NULL );
-#endif
 
     do
    {
