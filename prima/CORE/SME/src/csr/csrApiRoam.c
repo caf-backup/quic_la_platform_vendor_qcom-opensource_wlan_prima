@@ -6536,8 +6536,7 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
               || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_WPA) 
               || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_WPA_PSK) 
               || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN) 
-              || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK)))) 
-        && (!(csrIsProfile11r( pProfile ))) 
+              || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK))))
         && (pMac->roam.configParam.isCcxIniFeatureEnabled))
     {
         pConnectProfile->isCCXAssoc = 1;
@@ -11785,7 +11784,11 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         pBuf += sizeof(tANI_U32);
 #ifdef WLAN_FEATURE_VOWIFI_11R
         pProfile->MDID.mdiePresent = pBssDescription->mdiePresent;
-        if (csrIsProfile11r( pProfile ) )
+        if (csrIsProfile11r( pProfile )
+#ifdef FEATURE_WLAN_CCX
+           && !((pIes->CCXVersion.present) && (pMac->roam.configParam.isCcxIniFeatureEnabled))
+#endif
+        )
         {
             // is11Rconnection;
             dwTmp = pal_cpu_to_be32(TRUE);
@@ -11814,7 +11817,6 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
                        || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_WPA_PSK)
                        || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN)
                        || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK))))
-                 && (!(csrIsProfile11r( pProfile )))
                  && (pMac->roam.configParam.isCcxIniFeatureEnabled))
         {
             // isCCXconnection;
@@ -11848,7 +11850,6 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
                   || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_WPA_PSK)
                   || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN)
                   || (pProfile->negotiatedAuthType == eCSR_AUTH_TYPE_RSN_PSK))))
-            && (!(csrIsProfile11r( pProfile )))
             && (pMac->roam.configParam.isCcxIniFeatureEnabled))
         {
            tCCXTspecInfo ccxTspec;
