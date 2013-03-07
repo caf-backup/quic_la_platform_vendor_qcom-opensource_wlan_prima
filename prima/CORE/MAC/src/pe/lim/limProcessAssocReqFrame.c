@@ -1185,7 +1185,7 @@ if (limPopulateMatchingRateSet(pMac,
         pStaDs->mlmStaContext.updateContext = 0;
 
         // BTAMP: Add STA context at HW - issue WDA_ADD_STA_REQ to HAL
-        if (limAddSta(pMac, pStaDs,psessionEntry) != eSIR_SUCCESS)
+        if (limAddSta(pMac, pStaDs, false, psessionEntry) != eSIR_SUCCESS)
         {
             limLog(pMac, LOGE, FL("could not Add STA with assocId=%d\n"), pStaDs->assocId);
             limRejectAssociation( pMac, pStaDs->staAddr, pStaDs->mlmStaContext.subType,
@@ -1223,7 +1223,7 @@ if (limPopulateMatchingRateSet(pMac,
         {
             /* mlmState is changed in limAddSta context */
             /* use the same AID, already allocated */
-            if (limAddSta(pMac, pStaDs,psessionEntry) != eSIR_SUCCESS)
+            if (limAddSta(pMac, pStaDs, false, psessionEntry) != eSIR_SUCCESS)
             {
                     limLog( pMac, LOGE, FL( "AP do not support UPASD REASSOC Failed\n" ));
                     limRejectAssociation( pMac, pStaDs->staAddr, pStaDs->mlmStaContext.subType, true, pStaDs->mlmStaContext.authType,
