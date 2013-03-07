@@ -1,7 +1,7 @@
 # Android makefile for the WLAN Libra Module
 
 LOCAL_PATH := $(call my-dir)
-WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
+WLAN_BLD_DIR := vendor/qcom/proprietary/wlan-noship
 DLKM_DIR     := build/dlkm
 
 include $(CLEAR_VARS)

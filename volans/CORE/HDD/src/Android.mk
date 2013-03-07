@@ -1,7 +1,7 @@
 # Android makefile for the WLAN WCN1314 Module
 
 LOCAL_PATH := $(call my-dir)
-WLAN_BLD_DIR  := vendor/qcom/proprietary/wlan
+WLAN_BLD_DIR  := vendor/qcom/proprietary/wlan-noship
 ifeq ($(call is-android-codename,JELLY_BEAN),true)
       DLKM_DIR := $(TOP)/device/qcom/common/dlkm
 else
