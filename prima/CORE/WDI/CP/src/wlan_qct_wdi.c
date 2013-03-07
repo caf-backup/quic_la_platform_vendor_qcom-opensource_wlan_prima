@@ -18333,6 +18333,7 @@ WDI_ProcessMissedBeaconInd
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
   WDI_LowLevelIndType  wdiInd;
+  tpHalMissedBeaconIndParams halMissedBeaconIndParams;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -18346,7 +18347,7 @@ WDI_ProcessMissedBeaconInd
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE;
   }
-
+  halMissedBeaconIndParams = (tpHalMissedBeaconIndParams)pEventData->pEventData;
   /*-------------------------------------------------------------------------
     Extract indication and send it to UMAC
   -------------------------------------------------------------------------*/
@@ -18356,7 +18357,8 @@ WDI_ProcessMissedBeaconInd
 
   /*Fill in the indication parameters*/
   wdiInd.wdiIndicationType = WDI_MISSED_BEACON_IND;
-
+  wdiInd.wdiIndicationData.wdiMissedBeaconInd.bssIdx =
+                                       halMissedBeaconIndParams->bssIdx;
   if ( pWDICtx->wdiLowLevelIndCB )
   {
     /*Notify UMAC*/
