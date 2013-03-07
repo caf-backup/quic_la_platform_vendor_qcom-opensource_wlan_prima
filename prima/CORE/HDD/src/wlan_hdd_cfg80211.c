@@ -150,14 +150,12 @@ static struct ieee80211_channel hdd_channels_2_4_GHZ[] =
     HDD2GHZCHAN(2484, 14, 0) ,
 };
 
-#ifdef WLAN_FEATURE_P2P
 static struct ieee80211_channel hdd_social_channels_2_4_GHZ[] =
 {
     HDD2GHZCHAN(2412, 1, 0) ,
     HDD2GHZCHAN(2437, 6, 0) ,
     HDD2GHZCHAN(2462, 11, 0) ,
 };
-#endif
 
 static struct ieee80211_channel hdd_channels_5_GHZ[] =
 {
@@ -241,7 +239,6 @@ static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ =
     .ht_cap.mcs.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
 };
 
-#ifdef WLAN_FEATURE_P2P
 static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
 {
     .channels = hdd_social_channels_2_4_GHZ,
@@ -260,7 +257,6 @@ static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ =
     .ht_cap.mcs.rx_highest = cpu_to_le16( 72 ),
     .ht_cap.mcs.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
 };
-#endif
 
 static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
 {
@@ -302,7 +298,6 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
             BIT(SIR_MAC_MGMT_DEAUTH) |
             BIT(SIR_MAC_MGMT_ACTION),
     },
-#ifdef WLAN_FEATURE_P2P    
     [NL80211_IFTYPE_P2P_CLIENT] = {
         .tx = 0xffff,
         .rx = BIT(SIR_MAC_MGMT_ACTION) |
@@ -319,11 +314,9 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
             BIT(SIR_MAC_MGMT_DEAUTH) |
             BIT(SIR_MAC_MGMT_ACTION),
     },
-#endif
 };
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-#ifdef WLAN_FEATURE_P2P
 static const struct ieee80211_iface_limit
 wlan_hdd_iface_limit[] = {
     {
@@ -378,7 +371,6 @@ wlan_hdd_iface_combination = {
         .n_limits = ARRAY_SIZE(wlan_hdd_iface_limit),
         .beacon_int_infra_match = false,
 };
-#endif
 #endif
 
 static struct cfg80211_ops wlan_hdd_cfg80211_ops;
@@ -479,11 +471,7 @@ int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand)
             wiphy->bands[IEEE80211_BAND_5GHZ] = NULL;
             break;
         case eCSR_BAND_5G:
-#ifdef WLAN_FEATURE_P2P
             wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_p2p_2_4_GHZ;
-#else
-            wiphy->bands[IEEE80211_BAND_2GHZ] = NULL;
-#endif
             wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
             break;
         case eCSR_BAND_ALL:
@@ -541,14 +529,11 @@ int wlan_hdd_cfg80211_register(struct device *dev,
     /* Supports STATION & AD-HOC modes right now */
     wiphy->interface_modes =   BIT(NL80211_IFTYPE_STATION) 
                              | BIT(NL80211_IFTYPE_ADHOC)
-#ifdef WLAN_FEATURE_P2P
                              | BIT(NL80211_IFTYPE_P2P_CLIENT)
                              | BIT(NL80211_IFTYPE_P2P_GO)
-#endif
                              | BIT(NL80211_IFTYPE_AP);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-#ifdef WLAN_FEATURE_P2P
     if( pCfg->enableMCC )
     {
         /* Currently, supports up to two channels */
@@ -560,7 +545,6 @@ int wlan_hdd_cfg80211_register(struct device *dev,
     }
     wiphy->iface_combinations = &wlan_hdd_iface_combination;
     wiphy->n_iface_combinations = 1;
-#endif
 #endif
 
     /* Before registering we need to update the ht capabilitied based
@@ -589,9 +573,7 @@ int wlan_hdd_cfg80211_register(struct device *dev,
             wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2_4_GHZ;
             break;
         case eCSR_BAND_5G:
-#ifdef WLAN_FEATURE_P2P
             wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_p2p_2_4_GHZ;
-#endif
             wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
             break;
         case eCSR_BAND_ALL:
@@ -607,9 +589,7 @@ int wlan_hdd_cfg80211_register(struct device *dev,
     wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
-#ifdef WLAN_FEATURE_P2P
     wiphy->max_remain_on_channel_duration = 1000;
-#endif
 #endif
 
     /* Register our wiphy dev with cfg80211 */
@@ -650,7 +630,6 @@ int wlan_hdd_get_crda_regd_entry(struct wiphy *wiphy, hdd_config_t *pCfg)
 */
 void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter)
 {
-#ifdef WLAN_FEATURE_P2P
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     /* Register for all P2P action, public action etc frames */
     v_U16_t type = (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_ACTION << 4);
@@ -685,12 +664,10 @@ void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter)
     sme_RegisterMgmtFrame(hHal, pAdapter->sessionId, type,
                          (v_U8_t*)P2P_ACTION_FRAME,
                                   P2P_ACTION_FRAME_SIZE );
-#endif /* WLAN_FEATURE_P2P */
 }
 
 void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
 {
-#ifdef WLAN_FEATURE_P2P
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     /* Register for all P2P action, public action etc frames */
     v_U16_t type = (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_ACTION << 4);
@@ -726,7 +703,6 @@ void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter)
     sme_DeregisterMgmtFrame(hHal, pAdapter->sessionId, type,
                          (v_U8_t*)P2P_ACTION_FRAME,
                                   P2P_ACTION_FRAME_SIZE );
-#endif /* WLAN_FEATURE_P2P */
 }
 
 #ifdef FEATURE_WLAN_WAPI
@@ -1053,7 +1029,6 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
     }
 #endif
 
-#ifdef WLAN_FEATURE_P2P
     pIe = wlan_hdd_get_p2p_ie_ptr(pBeacon->tail,pBeacon->tail_len);
 
     if(pIe)
@@ -1072,7 +1047,6 @@ static int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter,
         }
         total_ielen += ielen;
     }
-#endif
 
     if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal,
        WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, genie, total_ielen, NULL,
@@ -1379,11 +1353,8 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
 
     num_ch = WNI_CFG_VALID_CHANNEL_LIST_LEN;
 
-    if ((WLAN_HDD_SOFTAP != pAdapter->device_mode)
-#ifdef WLAN_FEATURE_P2P
-     && (WLAN_HDD_P2P_GO != pAdapter->device_mode)
-#endif
-      )
+    if ((WLAN_HDD_SOFTAP != pAdapter->device_mode) &&
+       (WLAN_HDD_P2P_GO != pAdapter->device_mode))
     {
         if(VOS_STATUS_SUCCESS != wlan_hdd_validate_operation_channel(pAdapter,channel))
         {
@@ -1396,9 +1367,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
                           __func__, channel,pAdapter->device_mode);
     }
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
-#ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
-#endif
       )
     {
         hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
@@ -1419,9 +1388,7 @@ static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device
             &pHddStaCtx->conn_info.operationChannel;
     }
     else if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-#ifdef WLAN_FEATURE_P2P
         ||   (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
             )
     {
         (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig.channel = channel;
@@ -1967,9 +1934,7 @@ static int wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
     }
 
     if ( (pAdapter->device_mode == WLAN_HDD_SOFTAP) 
-#ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
        )
     {
         beacon_data_t *old,*new;
@@ -2017,9 +1982,7 @@ static int wlan_hdd_cfg80211_set_beacon(struct wiphy *wiphy,
     }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) 
-#ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
        ) 
     {
         beacon_data_t *old,*new;
@@ -2128,9 +2091,7 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-#ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
        )
     {
         beacon_data_t *old;
@@ -2264,9 +2225,7 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
            __func__, pAdapter->device_mode);
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-#ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
        )
     {
         beacon_data_t  *old, *new;
@@ -2315,9 +2274,7 @@ static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
     }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) 
-#ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
        ) 
     {
         beacon_data_t *old,*new;
@@ -2359,9 +2316,7 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
                                __func__,pAdapter->device_mode);
 
     if((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-#ifdef WLAN_FEATURE_P2P
      ||  (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
       ) 
     {
         /* ap_isolate == -1 means that in change bss, upper layer doesn't
@@ -2432,10 +2387,8 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
 
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
-#ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
       || (pAdapter->device_mode == WLAN_HDD_P2P_DEVICE)
-#endif
       )
     {
         hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
@@ -2445,9 +2398,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
         switch (type)
         {
             case NL80211_IFTYPE_STATION:
-#ifdef WLAN_FEATURE_P2P
             case NL80211_IFTYPE_P2P_CLIENT:
-#endif
                 hddLog(VOS_TRACE_LEVEL_INFO,
                    "%s: setting interface Type to INFRASTRUCTURE", __func__);
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
@@ -2460,7 +2411,6 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 pRoamProfile->phyMode = 
                 hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
                 wdev->iftype = type;
-#ifdef WLAN_FEATURE_P2P
                 //Check for sub-string p2p to confirm its a p2p interface
                 if (NULL != strstr(ndev->name,"p2p"))
                 {     
@@ -2472,7 +2422,6 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                     pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
                                 WLAN_HDD_INFRA_STATION: WLAN_HDD_P2P_CLIENT;
                 }
-#endif
                 break;
             case NL80211_IFTYPE_ADHOC:
                 hddLog(VOS_TRACE_LEVEL_INFO,
@@ -2484,9 +2433,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 break;
 
             case NL80211_IFTYPE_AP:
-#ifdef WLAN_FEATURE_P2P
             case NL80211_IFTYPE_P2P_GO:
-#endif
             {
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
                       "%s: setting interface Type to %s", __func__,
@@ -2521,12 +2468,8 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 hdd_stop_adapter( pHddCtx, pAdapter );
                 hdd_deinit_adapter( pHddCtx, pAdapter );
                 memset(&pAdapter->sessionCtx, 0, sizeof(pAdapter->sessionCtx));
-#ifdef WLAN_FEATURE_P2P
                 pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ?
                                    WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
-#else
-                pAdapter->device_mode = WLAN_HDD_SOFTAP;
-#endif
 
                 //Disable BMPS and IMPS if enabled
                 //before starting Go
@@ -2595,22 +2538,17 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
         }
     }
     else if ( (pAdapter->device_mode == WLAN_HDD_SOFTAP)
-#ifdef WLAN_FEATURE_P2P
            || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
             )
     {
        switch(type)
        {
            case NL80211_IFTYPE_STATION:
-#ifdef WLAN_FEATURE_P2P
            case NL80211_IFTYPE_P2P_CLIENT:
-#endif
            case NL80211_IFTYPE_ADHOC:
                 hdd_stop_adapter( pHddCtx, pAdapter );
                 hdd_deinit_adapter( pHddCtx, pAdapter );
                 wdev->iftype = type;
-#ifdef WLAN_FEATURE_P2P
                 //Check for sub-string p2p to confirm its a p2p interface
                 if (NULL != strstr(ndev->name,"p2p"))
                 {
@@ -2622,7 +2560,6 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                     pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
                                   WLAN_HDD_INFRA_STATION: WLAN_HDD_P2P_CLIENT;
                 }
-#endif
                 hdd_set_conparam(0);
                 pHddCtx->change_iface = type;
                 memset(&pAdapter->sessionCtx, 0, sizeof(pAdapter->sessionCtx));
@@ -2636,14 +2573,10 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 hdd_enable_bmps_imps(pHddCtx);
                 goto done;
             case NL80211_IFTYPE_AP:
-#ifdef WLAN_FEATURE_P2P
             case NL80211_IFTYPE_P2P_GO:
-#endif
                 wdev->iftype = type;
-#ifdef WLAN_FEATURE_P2P
                 pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ?
                                         WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
-#endif
                goto done;
            default:
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported interface Type",
@@ -2723,9 +2656,7 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
     vos_mem_copy(STAMacAddress.bytes, mac, sizeof(v_MACADDR_t));
 
     if ( ( pAdapter->device_mode == WLAN_HDD_SOFTAP )
-#ifdef WLAN_FEATURE_P2P
       || ( pAdapter->device_mode == WLAN_HDD_P2P_GO )
-#endif
        )
     {
         if(params->sta_flags_set & BIT(NL80211_STA_FLAG_AUTHORIZED)) 
@@ -2902,9 +2833,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
 
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-#ifdef WLAN_FEATURE_P2P
             || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
        )
     {
 
@@ -2963,9 +2892,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
         }
     }
     else if ( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION) 
-#ifdef WLAN_FEATURE_P2P
             || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
-#endif
             )
     {
         hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
@@ -3304,9 +3231,7 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
     setKey.encType = eCSR_ENCRYPT_TYPE_NONE;
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP)
-#ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
-#endif
        ) 
     { 
        
@@ -3325,9 +3250,7 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
         }
     }
     else if ( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
-#ifdef WLAN_FEATURE_P2P
            || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT) 
-#endif
             )
     {
         hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
@@ -3401,9 +3324,7 @@ static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
     }
     
     if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
-#ifdef WLAN_FEATURE_P2P
      || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
-#endif
        ) 
     {
         if ( (key_index != pWextState->roamProfile.Keys.defaultIndex) && 
@@ -4082,9 +4003,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     v_U32_t scanId = 0;
     int status = 0;
     hdd_scaninfo_t *pScanInfo = &pHddCtx->scan_info;
-#ifdef WLAN_FEATURE_P2P
     v_U8_t* pP2pIe = NULL;
-#endif
 
     ENTER();
 
@@ -4306,7 +4225,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
             scanRequest.uIEFieldLen = pScanInfo->scanAddIE.length;
             scanRequest.pIEField = pScanInfo->scanAddIE.addIEdata;
 
-#ifdef WLAN_FEATURE_P2P
             pP2pIe = wlan_hdd_get_p2p_ie_ptr((v_U8_t*)request->ie,
                                                        request->ie_len);
             if (pP2pIe != NULL)
@@ -4361,7 +4279,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
 
                 }
             }
-#endif
         }
     }
 
@@ -4882,7 +4799,6 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     pWextState->roamProfile.pWPAReqIE = pWextState->WPARSNIE;
                     pWextState->roamProfile.nWPAReqIELength = eLen + 2;//ie_len;
                 }
-#ifdef WLAN_FEATURE_P2P
                 else if ( (0 == memcmp(&genie[0], P2P_OUI_TYPE, 
                                                          P2P_OUI_TYPE_SIZE)) 
                         /*Consider P2P IE, only for P2P Client */
@@ -4906,7 +4822,6 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     pWextState->roamProfile.pAddIEAssoc = pWextState->assocAddIE.addIEdata;
                     pWextState->roamProfile.nAddIEAssocLength = pWextState->assocAddIE.length;
                 }
-#endif
 #ifdef WLAN_FEATURE_WFD
                 else if ( (0 == memcmp(&genie[0], WFD_OUI_TYPE, 
                                                          WFD_OUI_TYPE_SIZE)) 
@@ -6246,9 +6161,7 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
     }
 
     if ( (WLAN_HDD_SOFTAP == pAdapter->device_mode)
-#ifdef WLAN_FEATURE_P2P
        || (WLAN_HDD_P2P_GO == pAdapter->device_mode)
-#endif
        )
     {
         if( NULL == mac )
@@ -6907,7 +6820,6 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .set_wiphy_params = wlan_hdd_cfg80211_set_wiphy_params,
     .set_tx_power = wlan_hdd_cfg80211_set_txpower,
     .get_tx_power = wlan_hdd_cfg80211_get_txpower,
-#ifdef WLAN_FEATURE_P2P
     .remain_on_channel = wlan_hdd_cfg80211_remain_on_channel,
     .cancel_remain_on_channel =  wlan_hdd_cfg80211_cancel_remain_on_channel,
     .mgmt_tx =  wlan_hdd_action,
@@ -6915,7 +6827,6 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .mgmt_tx_cancel_wait = wlan_hdd_cfg80211_mgmt_tx_cancel_wait,
      .set_default_mgmt_key = wlan_hdd_set_default_mgmt_key,
      .set_txq_params = wlan_hdd_set_txq_params,
-#endif
 #endif
      .get_station = wlan_hdd_cfg80211_get_station,
      .set_power_mgmt = wlan_hdd_cfg80211_set_power_mgmt,

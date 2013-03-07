@@ -615,7 +615,6 @@ struct hdd_adapter_s
    struct wireless_dev wdev ;
    struct cfg80211_scan_request *request ; 
 
-#ifdef WLAN_FEATURE_P2P
    /** ops checks if Opportunistic Power Save is Enable or Not
     * ctw stores ctWindow value once we receive Opps command from 
     * wpa_supplicant then using ctWindow value we need to Enable 
@@ -623,7 +622,6 @@ struct hdd_adapter_s
     */
     tANI_U8  ops;
     tANI_U32 ctw;
-#endif
 
    /** Current MAC Address for the adapter  */       
    v_MACADDR_t macAddressCurrent;    
@@ -866,10 +864,8 @@ struct hdd_context_s
    /* Can we allow AMP connection right now*/
    v_BOOL_t isAmpAllowed;
    
-#ifdef WLAN_FEATURE_P2P
    /** P2P Device MAC Address for the adapter  */
    v_MACADDR_t p2pDeviceAddress;
-#endif
 
    /* Thermal mitigation information */
    hdd_thermal_mitigation_info_t tmInfo;

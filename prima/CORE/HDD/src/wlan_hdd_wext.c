@@ -49,9 +49,7 @@
 #include <wlan_hdd_cfg.h>
 #include <wlan_hdd_wmm.h>
 #include "utilsApi.h"
-#ifdef WLAN_FEATURE_P2P
 #include "wlan_hdd_p2p.h"
-#endif
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
 #endif
@@ -190,9 +188,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WLAN_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV + 7)
 #define WE_LOG_DUMP_CMD      1
 
-#ifdef WLAN_FEATURE_P2P
 #define WE_P2P_NOA_CMD       2
-#endif
 //IOCTL to configure MCC params
 #define WE_MCC_CONFIG_CREDENTIAL 3
 #define WE_MCC_CONFIG_PARAMS  4
@@ -3700,14 +3696,10 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
           }
           break;
 #endif
-#ifdef WLAN_FEATURE_P2P
        case WE_SET_AP_WPS_IE:
           hddLog( LOGE, "Received WE_SET_AP_WPS_IE" );
-#ifdef WLAN_FEATURE_P2P
           sme_updateP2pIe( WLAN_HDD_GET_HAL_CTX(pAdapter), wrqu->data.pointer, wrqu->data.length );
-#endif // WLAN_FEATURE_P2P
           break;
-#endif
        case WE_SET_CONFIG:
           vstatus = hdd_execute_config_command(pHddCtx, wrqu->data.pointer);
           if (VOS_STATUS_SUCCESS != vstatus)
@@ -4276,7 +4268,6 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
             }
             break;
 
-#ifdef WLAN_FEATURE_P2P
         case WE_P2P_NOA_CMD:
             {
                 p2p_app_setP2pPs_t p2pNoA;
@@ -4298,7 +4289,6 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
 
             }
             break;
-#endif
 
         case WE_MCC_CONFIG_CREDENTIAL :
             {
