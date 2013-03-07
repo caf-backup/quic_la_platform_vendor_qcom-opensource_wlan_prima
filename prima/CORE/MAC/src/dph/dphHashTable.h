@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file dphHashTable.h contains the definition of the scheduler class.
@@ -22,23 +22,12 @@
 static inline tANI_U8
 dphCompareMacAddr(tANI_U8 addr1[], tANI_U8 addr2[])
 {
-#if ((defined(ANI_PPC)) && defined(ANI_OS_TYPE_RTAI_LINUX))
-    /*
-     * Optimized comparison to take advantage of unaligned memory accesses
-     * supported by the CPU.
-    * This needs to be reviewed if the CPU changes.
-     */
-
-    return (((*((tANI_U32 *) addr1) - *((tANI_U32 *) addr2)) |
-         (*((tANI_U16 *) &(addr1[4])) - *((tANI_U16 *) &(addr2[4])))) == 0);
-#else
     return((addr1[0] == addr2[0]) &&
        (addr1[1] == addr2[1]) &&
        (addr1[2] == addr2[2]) &&
        (addr1[3] == addr2[3]) &&
        (addr1[4] == addr2[4]) &&
        (addr1[5] == addr2[5]));
-#endif
 }
 
 /// Hash table class
