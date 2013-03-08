@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -351,7 +351,6 @@ WLANSAP_RoamCallback
                        __func__, "eCSR_ROAM_WPS_PBC_PROBE_REQ_IND", roamStatus);
             break;        
 
-#ifdef WLAN_FEATURE_P2P
         case eCSR_ROAM_INDICATE_MGMT_FRAME:
             sapSignalHDDevent(sapContext, pCsrRoamInfo, 
                               eSAP_INDICATE_MGMT_FRAME, 
@@ -381,7 +380,6 @@ WLANSAP_RoamCallback
                             eSAP_MAC_TRIG_STOP_BSS_EVENT, 
                             (v_PVOID_t) eSAP_STATUS_SUCCESS );
         break;
-#endif
 
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamStatus not handled roamStatus = %s (%d)\n",
