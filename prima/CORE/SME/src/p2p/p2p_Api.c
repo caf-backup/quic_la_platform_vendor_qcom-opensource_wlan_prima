@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -10,7 +10,6 @@
  * Qualcomm Technologies Confidential and Proprietary 
  */
 
-#if defined WLAN_FEATURE_P2P
 
 #include "sme_Api.h"
 #include "smsDebug.h"
@@ -2237,4 +2236,3 @@ eHalStatus p2pProcessNoAReq(tpAniSirGlobal pMac, tSmeCmd *pNoACmd)
 
 
 
-#endif //WLAN_FEATURE_P2P

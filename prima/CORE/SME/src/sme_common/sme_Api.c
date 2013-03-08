@@ -61,14 +61,12 @@ extern eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdTyp
                             tANI_U32 size, tSmeCmd **ppCmd );
 extern void pmcReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 extern void qosReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
-#if defined WLAN_FEATURE_P2P
 extern eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemainonChn);
 extern eHalStatus sme_remainOnChnRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg);
 extern eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm);
 extern eHalStatus sme_remainOnChnReady( tHalHandle hHal, tANI_U8* pMsg);
 extern eHalStatus sme_sendActionCnf( tHalHandle hHal, tANI_U8* pMsg);
 extern eHalStatus p2pProcessNoAReq(tpAniSirGlobal pMac, tSmeCmd *pNoACmd);
-#endif
 
 static eHalStatus initSmeCmdList(tpAniSirGlobal pMac);
 static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStopping );
@@ -402,11 +400,9 @@ static eSmeCommandType smeIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pComm
                                        eSmeCommandOemDataReq == pCommand->command);
         if(fFullPowerNeeded) break;
 #endif
-#ifdef WLAN_FEATURE_P2P
         fFullPowerNeeded = (pmcState == IMPS && 
                             eSmeCommandRemainOnChannel == pCommand->command);
         if(fFullPowerNeeded) break;
-#endif
     } while(0);
 
     if( fFullPowerNeeded )
@@ -454,7 +450,6 @@ static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEA
     {
         switch( pCommand->command )
         {
-#ifdef WLAN_FEATURE_P2P
             case eSmeCommandRemainOnChannel:
                 if (NULL != pCommand->u.remainChlCmd.callback)
                 {
@@ -469,7 +464,6 @@ static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEA
                 }
                 smeReleaseCommand( pMac, pCommand );
                 break;
-#endif
             default:
                 smeReleaseCommand( pMac, pCommand );
                 break;
@@ -637,7 +631,6 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                             oemData_ProcessOemDataReqCommand(pMac, pCommand);
                             break;
 #endif
-#if defined WLAN_FEATURE_P2P
                         case eSmeCommandRemainOnChannel:
                             csrLLUnlock(&pMac->sme.smeCmdActiveList);
                             p2pProcessRemainOnChannelCmd(pMac, pCommand);
@@ -645,7 +638,6 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                         case eSmeCommandNoAUpdate:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
                             p2pProcessNoAReq(pMac,pCommand);
-#endif
                         case eSmeCommandEnterImps:
                         case eSmeCommandExitImps:
                         case eSmeCommandEnterBmps:
@@ -948,9 +940,7 @@ eHalStatus sme_Open(tHalHandle hHal)
 #if defined WLAN_FEATURE_VOWIFI_11R
       sme_FTOpen(pMac);
 #endif
-#if defined WLAN_FEATURE_P2P
       sme_p2pOpen(pMac);
-#endif
 
    }while (0);
 
@@ -1514,7 +1504,6 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    smsLog( pMac, LOGE, "Empty rsp message for meas (eWNI_SME_DEL_STA_SELF_RSP), nothing to process\n");
                 }
                 break;
-#ifdef WLAN_FEATURE_P2P
           case eWNI_SME_REMAIN_ON_CHN_RSP:
                 if(pMsg->bodyptr)
                 {
@@ -1559,7 +1548,6 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                     smsLog( pMac, LOGE, "Empty rsp message for meas (eWNI_SME_ACTION_FRAME_SEND_CNF), nothing to process\n");
                 }
                 break;
-#endif
           case eWNI_SME_COEX_IND:
                 if(pMsg->bodyptr)
                 {
@@ -1896,9 +1884,7 @@ eHalStatus sme_Close(tHalHandle hHal)
 #if defined WLAN_FEATURE_VOWIFI_11R
    sme_FTClose(hHal);
 #endif
-#if defined WLAN_FEATURE_P2P
    sme_p2pClose(hHal);
-#endif
 
    freeSmeCmdList(pMac);
 
@@ -5323,7 +5309,6 @@ eHalStatus sme_GetOperationChannel(tHalHandle hHal, tANI_U32 *pChannel, tANI_U8 
     return eHAL_STATUS_FAILURE;
 }// sme_GetOperationChannel ends here
 
-#ifdef WLAN_FEATURE_P2P
 /* ---------------------------------------------------------------------------
 
     \fn sme_RegisterMgtFrame
@@ -5606,7 +5591,6 @@ eHalStatus sme_p2pSetPs(tHalHandle hHal, tP2pPsConfig * data)
   return(status);
 }
 
-#endif
 
 /* ---------------------------------------------------------------------------
 

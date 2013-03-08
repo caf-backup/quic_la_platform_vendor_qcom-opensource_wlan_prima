@@ -73,7 +73,6 @@ typedef struct sGenericQosCmd
     v_U8_t tspec_mask;
 } tGenericQosCmd;
 
-#ifdef WLAN_FEATURE_P2P
 typedef struct sRemainChlCmd
 {
     tANI_U8 chn;
@@ -87,7 +86,6 @@ typedef struct sNoACmd
 {
     tP2pPsConfig NoA;
 } tNoACmd;
-#endif
 #ifdef FEATURE_WLAN_TDLS
 typedef struct TdlsSendMgmtInfo
 {
@@ -165,10 +163,8 @@ typedef struct tagSmeCmd
 #ifdef FEATURE_OEM_DATA_SUPPORT
         tOemDataCmd oemDataCmd;
 #endif
-#ifdef WLAN_FEATURE_P2P
         tRemainChlCmd remainChlCmd;
         tNoACmd NoACmd;
-#endif
         tAddStaForSessionCmd addStaSessionCmd;
         tDelStaForSessionCmd delStaSessionCmd;
 #ifdef FEATURE_WLAN_TDLS
