@@ -37,16 +37,12 @@
 #include "wlan_nlink_common.h"
 #include "wlan_btc_svc.h"
 #include "wlan_hdd_power.h"
-#ifdef CONFIG_CFG80211
 #include <linux/ieee80211.h>
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
 #include "wlan_hdd_cfg80211.h"
 #include "csrInsideApi.h"
-#endif
-#if defined CONFIG_CFG80211
 #include "wlan_hdd_p2p.h"
-#endif
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
 #endif
@@ -350,7 +346,7 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
     tANI_U32 ric_ies_length = 0;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
-#if defined(CONFIG_CFG80211) && defined (KERNEL_SUPPORT_11R_CFG80211)
+#if defined(KERNEL_SUPPORT_11R_CFG80211)
     struct cfg80211_ft_event_params ftEvent;
     v_U8_t ftIe[DOT11F_IE_FTINFO_MAX_LEN];
     v_U8_t ricIe[DOT11F_IE_RICDESCRIPTOR_MAX_LEN];
@@ -361,7 +357,7 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
     tANI_U16 str_len;
 #endif
 
-#if defined(CONFIG_CFG80211) && defined (KERNEL_SUPPORT_11R_CFG80211)
+#if defined(KERNEL_SUPPORT_11R_CFG80211)
     vos_mem_zero(ftIe, DOT11F_IE_FTINFO_MAX_LEN);
     vos_mem_zero(ricIe, DOT11F_IE_RICDESCRIPTOR_MAX_LEN);
 
@@ -722,7 +718,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
 
     // indicate 'disconnect' status to wpa_supplicant...
     hdd_SendAssociationEvent(dev,pRoamInfo);
-#ifdef CONFIG_CFG80211
     /* indicate disconnected event to nl80211 */
     if(roamStatus != eCSR_ROAM_IBSS_LEAVE)
     {
@@ -804,7 +799,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
             }
         }
     }
-#endif
     
 
     //We should clear all sta register with TL, for now, only one.
@@ -1052,10 +1046,8 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     VOS_STATUS vosStatus;
-#ifdef CONFIG_CFG80211
     v_U8_t reqRsnIe[DOT11F_IE_RSN_MAX_LEN];
     tANI_U32 reqRsnLength = DOT11F_IE_RSN_MAX_LEN;
-#endif
 #if  defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR) || defined (WLAN_FEATURE_VOWIFI_11R)
     int ft_carrier_on = FALSE;
 #endif
@@ -1132,7 +1124,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         //If authentication is required (WPA/WPA2/DWEP), change TL to CONNECTED instead of AUTHENTICATED
         if( !pRoamInfo->fReassocReq )
         {
-#ifdef CONFIG_CFG80211
             struct cfg80211_bss *bss;
 #ifdef WLAN_FEATURE_VOWIFI_11R
             u8 *pFTAssocRsp = NULL;
@@ -1254,7 +1245,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                     cfg80211_put_bss(bss);
                 }
             }
-#endif
             // Register the Station with TL after associated...
             vosStatus = hdd_roamRegisterSTA( pAdapter,
                     pRoamInfo,
@@ -1365,7 +1355,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
            }
         }
 
-#ifdef CONFIG_CFG80211
         /* inform association failure event to nl80211 */
         if(eCSR_ROAM_RESULT_ASSOC_FAIL_CON_CHANNEL == roamResult)
         {
@@ -1381,7 +1370,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 WLAN_STATUS_UNSPECIFIED_FAILURE, 
                 GFP_KERNEL);
         }
-#endif 
 
         /*Clear the roam profile*/
         hdd_clearRoamProfileIe( pAdapter );
@@ -1541,12 +1529,10 @@ static eHalStatus roamIbssConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo 
 
    // Send the bssid address to the wext.
    hdd_SendAssociationEvent(pAdapter->dev, pRoamInfo);
-#ifdef CONFIG_CFG80211
    /* add bss_id to cfg80211 data base */
    wlan_hdd_cfg80211_update_bss_db(pAdapter, pRoamInfo);
    /* send ibss join indication to nl80211 */
    cfg80211_ibss_joined(pAdapter->dev, &pRoamInfo->bssid[0], GFP_KERNEL);
-#endif
 
    return( eHAL_STATUS_SUCCESS );
 }
@@ -1638,7 +1624,6 @@ static eHalStatus hdd_RoamMicErrorIndicationHandler( hdd_adapter_t *pAdapter, tC
       memset(&wreq, 0, sizeof(wreq));
       wreq.data.length = sizeof(msg);
       wireless_send_event(pAdapter->dev, IWEVMICHAELMICFAILURE, &wreq, (char *)&msg);
-#ifdef CONFIG_CFG80211
       /* inform mic failure to nl80211 */
       cfg80211_michael_mic_failure(pAdapter->dev, 
               pRoamInfo->u.pMICFailureInfo->taMacAddr,
@@ -1648,7 +1633,6 @@ static eHalStatus hdd_RoamMicErrorIndicationHandler( hdd_adapter_t *pAdapter, tC
               pRoamInfo->u.pMICFailureInfo->keyId, 
               pRoamInfo->u.pMICFailureInfo->TSC, 
               GFP_KERNEL);
-#endif
       
    }
    
@@ -2757,7 +2741,6 @@ int iw_set_essid(struct net_device *dev,
         return -EINVAL;
     }
     /** wpa_supplicant 0.8.x, wext driver uses */
-#ifdef CONFIG_CFG80211
     /** when cfg80211 defined, wpa_supplicant wext driver uses 
       zero-length, null-string ssid for force disconnection. 
       after disconnection (if previously connected) and cleaning ssid, 
@@ -2765,7 +2748,6 @@ int iw_set_essid(struct net_device *dev,
     if ( 0 == wrqu->essid.length ) {
         return 0;
     }
-#endif
 
     status = hdd_wmm_get_uapsd_mask(pAdapter,
                                     &pWextState->roamProfile.uapsd_mask);
