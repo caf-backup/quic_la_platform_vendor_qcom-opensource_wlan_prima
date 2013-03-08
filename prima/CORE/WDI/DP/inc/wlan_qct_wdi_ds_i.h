@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -84,7 +84,7 @@ WPT_STATIC WPT_INLINE void DTI_TRACE ( DTI_TRACE_LEVEL level, ...) { };
    but need to get from correct common def
    This should be identified ASAP */
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
-#define WDI_DS_MAX_STA_ID 38
+#define WDI_DS_MAX_STA_ID 41
 #else
 #define WDI_DS_MAX_STA_ID 16
 #endif
