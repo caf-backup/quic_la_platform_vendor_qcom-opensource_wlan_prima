@@ -3708,6 +3708,7 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamSetKey *pS
       if(!pSession)
       {
          smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+         sme_ReleaseGlobalLock( &pMac->sme );
          return eHAL_STATUS_FAILURE;
       }
 
@@ -4125,6 +4126,7 @@ eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
       if ( !HAL_STATUS_SUCCESS(status) ) 
       {
          smsLog(pMac, LOGE, " csrChangeCountryCode: failed to allocate mem for req \n");
+         sme_ReleaseGlobalLock( &pMac->sme );
          return status;
       }
 
@@ -4883,7 +4885,10 @@ eHalStatus sme_OemDataReq(tHalHandle hHal,
                *pOemDataReqID = lOemDataReqId;
             }
             else
-               return eHAL_STATUS_FAILURE;
+            {
+                sme_ReleaseGlobalLock( &pMac->sme );
+                return eHAL_STATUS_FAILURE;
+            }
 
             status = oemData_OemDataReq(hHal, sessionId, pOemDataReqConfig, pOemDataReqID, callback, pContext);
 
@@ -5350,6 +5355,7 @@ eHalStatus sme_RegisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
         if(!pSession)
         {
             smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+            sme_ReleaseGlobalLock( &pMac->sme );
             return eHAL_STATUS_FAILURE;
         }
         
@@ -5407,6 +5413,7 @@ eHalStatus sme_DeregisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
         if(!pSession)
         {
             smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+            sme_ReleaseGlobalLock( &pMac->sme );
             return eHAL_STATUS_FAILURE;
         }
         
@@ -6564,6 +6571,7 @@ eHalStatus sme_HideSSID(tHalHandle hHal, v_U8_t sessionId, v_U8_t ssidHidden)
         if(!pSession)
         {
             smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+            sme_ReleaseGlobalLock( &pMac->sme );
             return eHAL_STATUS_FAILURE;
         }
         
@@ -6612,6 +6620,7 @@ eHalStatus sme_SetTmLevel(tHalHandle hHal, v_U16_t newTMLevel, v_U16_t tmMode)
         {
            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                      "%s: Not able to allocate memory for sme_SetTmLevel", __func__);
+           sme_ReleaseGlobalLock( &pMac->sme );
            return eHAL_STATUS_FAILURE;
         }
 
