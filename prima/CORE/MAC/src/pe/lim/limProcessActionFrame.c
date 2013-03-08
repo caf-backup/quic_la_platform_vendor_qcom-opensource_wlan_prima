@@ -1958,7 +1958,6 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
         }
         break;
 #endif
-#if defined WLAN_FEATURE_P2P
     case SIR_MAC_ACTION_PUBLIC_USAGE:
         switch(pActionHdr->actionID) {
         case SIR_MAC_ACTION_VENDOR_SPECIFIC:
@@ -2016,7 +2015,6 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
             break;
         }
         break;
-#endif
 
 #ifdef WLAN_FEATURE_11W
     case SIR_MAC_ACTION_SA_QUERY:
@@ -2048,7 +2046,6 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
     }
 }
 
-#if defined WLAN_FEATURE_P2P
 /**
  * limProcessActionFrameNoSession
  *
@@ -2117,4 +2114,3 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
 
    }
 }
-#endif

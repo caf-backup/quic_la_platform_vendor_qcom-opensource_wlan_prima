@@ -403,7 +403,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
         if (pMac->lim.gLimProbeRespDisableFlag)
             break;
 
-#ifdef WLAN_FEATURE_P2P
         // Don't send probe response if P2P go is scanning till scan come to idle state. 
         if((psessionEntry->pePersona == VOS_P2P_GO_MODE) && ((pMac->lim.gpLimRemainOnChanReq )
                                   || (pMac->lim.gLimHalScanState != eLIM_HAL_IDLE_SCAN_STATE)))
@@ -412,7 +411,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
               FL("While GO is scanning, don't send probe response on diff channel\n"));
            break;
         }
-#endif
 
        pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
 
@@ -440,7 +438,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
             }
             else
             {
-#ifdef WLAN_FEATURE_P2P
                 if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
                 {
                     tANI_U8 i = 0, rate_11b = 0, other_rates = 0;
@@ -479,7 +476,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                         return;
                     }
                 }
-#endif
                 if ((psessionEntry->limSystemRole == eLIM_AP_ROLE))
                 {
                   
@@ -561,7 +557,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                                              probeReq.p2pIePresent);
                     break;
                 }
-#ifdef WLAN_FEATURE_P2P
                 else if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
                 {
                     tANI_U8   direct_ssid[7] = "DIRECT-";
@@ -575,7 +570,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                         break;
                     }
                 }
-#endif
                 else
                 {
                    PELOG3(limLog(pMac, LOG3,
@@ -640,7 +634,6 @@ multipleSSIDcheck:
  * @return None
  */
 
-#if defined WLAN_FEATURE_P2P
 static void
 limIndicateProbeReqToHDD(tpAniSirGlobal pMac, tANI_U8 *pBd,
                          tpPESession psessionEntry)
@@ -662,7 +655,6 @@ limIndicateProbeReqToHDD(tpAniSirGlobal pMac, tANI_U8 *pBd,
     limSendP2PProbeResponse(pMac, pBd, psessionEntry);
 #endif
 } /*** end limIndicateProbeReqToHDD() ***/
-#endif
 
 /**
  * limProcessProbeReqFrame_multiple_BSS
@@ -691,7 +683,6 @@ limProcessProbeReqFrame_multiple_BSS(tpAniSirGlobal pMac, tANI_U8 *pBd,  tpPESes
 
     if (psessionEntry != NULL)
     {
-#ifdef WLAN_FEATURE_P2P
         if ((eLIM_AP_ROLE == psessionEntry->limSystemRole)
 #ifdef WLAN_FEATURE_P2P_INTERNAL
          || (psessionEntry->limSystemRole == eLIM_P2P_DEVICE_ROLE)
@@ -700,7 +691,6 @@ limProcessProbeReqFrame_multiple_BSS(tpAniSirGlobal pMac, tANI_U8 *pBd,  tpPESes
         {
             limIndicateProbeReqToHDD(pMac, pBd, psessionEntry);
         }
-#endif
         limProcessProbeReqFrame(pMac,pBd,psessionEntry);
         return;
     }
@@ -710,7 +700,6 @@ limProcessProbeReqFrame_multiple_BSS(tpAniSirGlobal pMac, tANI_U8 *pBd,  tpPESes
         psessionEntry = peFindSessionBySessionId(pMac,i);
         if ( (psessionEntry != NULL) )
         {
-#ifdef WLAN_FEATURE_P2P
             if ((eLIM_AP_ROLE == psessionEntry->limSystemRole)
 #ifdef WLAN_FEATURE_P2P_INTERNAL
              || (psessionEntry->limSystemRole == eLIM_P2P_DEVICE_ROLE)
@@ -719,7 +708,6 @@ limProcessProbeReqFrame_multiple_BSS(tpAniSirGlobal pMac, tANI_U8 *pBd,  tpPESes
             {
                 limIndicateProbeReqToHDD(pMac, pBd, psessionEntry);
             }
-#endif
             if ( (eLIM_AP_ROLE == psessionEntry->limSystemRole) ||
                 (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole) ||
                 (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) ||
