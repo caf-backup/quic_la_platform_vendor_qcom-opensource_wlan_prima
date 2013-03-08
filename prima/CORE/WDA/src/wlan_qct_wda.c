@@ -2118,13 +2118,8 @@ VOS_STATUS  WDA_ProcessInitScanReq(tWDA_CbContext *pWDA,
    wdiInitScanParam->wdiReqInfo.bNotifyBSS = initScanParams->notifyBss ;
    wdiInitScanParam->wdiReqInfo.ucFrameType = initScanParams->frameType ;
    wdiInitScanParam->wdiReqInfo.ucFrameLength = initScanParams->frameLength ;
-#ifdef WLAN_FEATURE_P2P
    wdiInitScanParam->wdiReqInfo.bUseNOA = initScanParams->useNoA;
    wdiInitScanParam->wdiReqInfo.scanDuration = initScanParams->scanDuration;
-#else
-   wdiInitScanParam->wdiReqInfo.bUseNOA = 0;
-   wdiInitScanParam->wdiReqInfo.scanDuration = 0;
-#endif
    wdiInitScanParam->wdiReqInfo.wdiScanEntry.activeBSScnt = 
                                      initScanParams->scanEntry.activeBSScnt ;
    for (i=0; i < initScanParams->scanEntry.activeBSScnt; i++)
@@ -3763,9 +3758,7 @@ void WDA_UpdateSTAParams(tWDA_CbContext *pWDA,
    wdiStaParams->us32MaxAmpduDuratio = wdaStaParams->us32MaxAmpduDuration;
    wdiStaParams->ucDsssCckMode40Mhz = wdaStaParams->fDsssCckMode40Mhz;
    wdiStaParams->ucEncryptType = wdaStaParams->encryptType;
-#ifdef WLAN_FEATURE_P2P
    wdiStaParams->ucP2pCapableSta = wdaStaParams->p2pCapableSta;
-#endif
 #ifdef WLAN_FEATURE_11AC
    wdiStaParams->ucVhtCapableSta = wdaStaParams->vhtCapable;
    wdiStaParams->ucVhtTxChannelWidthSet = wdaStaParams->vhtTxChannelWidthSet;
@@ -5781,10 +5774,8 @@ VOS_STATUS WDA_ProcessSendBeacon(tWDA_CbContext *pWDA,
                               pSendbeaconParams->beaconLength;
    wdiSendBeaconReqParam.wdiSendBeaconParamsInfo.timIeOffset = 
                               pSendbeaconParams->timIeOffset;
-#ifdef WLAN_FEATURE_P2P
    wdiSendBeaconReqParam.wdiSendBeaconParamsInfo.usP2PIeOffset = 
                               pSendbeaconParams->p2pIeOffset;
-#endif
    /* Copy the beacon template to local buffer */
    vos_mem_copy(wdiSendBeaconReqParam.wdiSendBeaconParamsInfo.beacon, 
                  pSendbeaconParams->beacon, pSendbeaconParams->beaconLength);
@@ -5963,7 +5954,6 @@ void WDA_SetMaxTxPowerCallBack(WDI_SetMaxTxPowerRspMsg * pwdiSetMaxTxPowerRsp,
    
 }
 #endif
-#ifdef WLAN_FEATURE_P2P
 /*
  * FUNCTION: WDA_SetP2PGONOAReqParamsCallback
  *  Free the memory. No need to send any response to PE in this case
@@ -6065,7 +6055,6 @@ VOS_STATUS WDA_ProcessSetP2PGONOAReq(tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status);
 
 }
-#endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /*
  * FUNCTION: WDA_AggrAddTSReqCallback
@@ -9830,14 +9819,12 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          break;
       }
 #endif
-#ifdef WLAN_FEATURE_P2P
       case WDA_SET_P2P_GO_NOA_REQ:
       {
          WDA_ProcessSetP2PGONOAReq(pWDA,
                                     (tP2pPsParams *)pMsg->bodyptr);
          break;
       }
-#endif
       /* timer related messages */
       case WDA_TIMER_BA_ACTIVITY_REQ:
       {
@@ -10228,7 +10215,6 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          }
          break;
       }
-#ifdef WLAN_FEATURE_P2P
       case WDI_P2P_NOA_START_IND :
       {
           tSirP2PNoaStart   *pP2pNoaStart = 
@@ -10290,7 +10276,6 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
                                        (void *)pP2pNoaAttr , 0) ;
          break;
       }
-#endif
 #ifdef FEATURE_WLAN_SCAN_PNO
       case WDI_PREF_NETWORK_FOUND_IND:
       {
