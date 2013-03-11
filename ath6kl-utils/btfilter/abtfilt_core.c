@@ -1607,7 +1607,12 @@ GetActionStringOverrides(ATHBT_FILTER_INFO *pInfo)
     A_CHAR *ptr, *indication, *modify, *action;
     A_CHAR *string = (A_CHAR *)A_MALLOC(MAX_VAL_DATA_LENGTH);
 
-    if (!(gConfigFile)) return;
+    if (!(gConfigFile))
+    {
+        if(string != NULL)
+            A_FREE(string);
+        return;
+    }
 
     fgets(string, MAX_VAL_DATA_LENGTH, gConfigFile);
     while (!(feof(gConfigFile))) {
