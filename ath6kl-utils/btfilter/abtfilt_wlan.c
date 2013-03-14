@@ -196,17 +196,30 @@ A_STATUS
 Abf_WlanDispatchIO(ATHBT_FILTER_INFO *pInfo, unsigned long int req,
                    void *data, int size)
 {
+    int i;
+    ABF_WLAN_INFO *pAbfWlanInfo = pInfo->pWlanInfo;
+#ifdef SEND_WMI_BY_IOCTL
+    int ret;
+    struct btcoex_ioctl ioctl_cmd;
     struct ifreq ifr;
     char ifname[IFNAMSIZ], *ethIf;
-	int i;
-    ABF_WLAN_INFO *pAbfWlanInfo = pInfo->pWlanInfo;
     ATH_BT_FILTER_INSTANCE *pInstance = pInfo->pInstance;
+#endif
 
     if (!pAbfWlanInfo->Handle) {
         /* No adapter to issue ioctl on */
         return A_DEVICE_NOT_FOUND;
     }
 
+#if 1
+    A_INFO("WMI Cmd: %d Len: %d\n", ((int*)data)[0], size);
+    for (i = 0; i < size; i++) {
+		printf("%x ", ((unsigned char *)data)[i]);
+	}
+	printf("\n");
+#endif
+
+#ifdef SEND_WMI_BY_IOCTL
     /* Get the adpater name from command line if specified */
     if (pInstance->pWlanAdapterName != NULL) {
         ethIf = pInstance->pWlanAdapterName;
@@ -215,26 +228,34 @@ Abf_WlanDispatchIO(ATHBT_FILTER_INFO *pInfo, unsigned long int req,
             ethIf = pAbfWlanInfo->IfName;
         }
     }
+
     /* Frame and issue the requested ioctl to the WLAN adapter */
     A_MEMZERO(ifname, IFNAMSIZ);
     strcpy(ifname, ethIf);
     strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-    ifr.ifr_data = (void *)data;
+    ioctl_cmd.cmd_len = size;
+    *(int *)data = get_nl_cmd(*(int *)data);
+    ioctl_cmd.cmd = (void *)data;
 
-#if 1
-    A_INFO("WMI Cmd: %d Len: %d\n", ((int*)data)[0], size);
-	for (i = 0; i < size; i++) {
-		printf("%x ", ((unsigned char *)data)[i]);
-	}
-	printf("\n");
-#endif
+    ifr.ifr_data = (void *)&ioctl_cmd;
 
-    if (send_btcoex_wmi_cmd(pInfo, data, size) < 0) {
-        A_ERR("[%s] send WMI command (cmd:0x%X, size:%d) call failed!\n",
-			__FUNCTION__, ((int*)data)[0], size);
+    ret = ioctl(pAbfWlanInfo->Handle, ATH6KL_IOCTL_STANDARD03, &ifr);
+    if (ret < 0) {
+        A_ERR(
+        "[%s] [%s] IOCTL (req:0x%X, data: 0x%X size:%d) failed!: %d\n",
+        __FUNCTION__, ifr.ifr_name, req, (A_UINT32)ifr.ifr_data, size, ret
+        );
         return A_ERROR;
     }
     return A_OK;
+#else
+    if (send_btcoex_wmi_cmd(pInfo, data, size) < 0) {
+        A_ERR("[%s] send WMI command (cmd:0x%X, size:%d) call failed!\n",
+            __FUNCTION__, ((int*)data)[0], size);
+        return A_ERROR;
+    }
+    return A_OK;
+#endif
 }
 
 /* Internal functions */

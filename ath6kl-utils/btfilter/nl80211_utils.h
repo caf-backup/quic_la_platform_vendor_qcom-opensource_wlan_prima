@@ -54,4 +54,9 @@ enum nl80211_btcoex_cmds {
 	NL80211_WMI_BT_MAX,
 };
 
+struct btcoex_ioctl{
+	char		*cmd;
+	unsigned int	cmd_len;
+};
+
 #endif /* __NL80211_UTILS_H */
