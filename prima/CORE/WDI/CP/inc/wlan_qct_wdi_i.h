@@ -407,6 +407,9 @@ typedef enum
   /*WLAN DAL Get Roam Rssi Request*/
   WDI_GET_ROAM_RSSI_REQ                         = 81,
 
+  /*WLAN DAL Set Tx Power Request*/
+  WDI_SET_TX_POWER_REQ                          = 82,
+
   WDI_MAX_REQ,
 
   /*Send a suspend Indication down to HAL*/
@@ -667,6 +670,8 @@ typedef enum
 
   /* WLAN DAL Get Roam Rssi Response*/
   WDI_GET_ROAM_RSSI_RESP                        = 80,
+
+  WDI_SET_TX_POWER_RESP                         = 81,
 
   /*-------------------------------------------------------------------------
     Indications
@@ -2141,6 +2146,22 @@ WDI_Status WDI_ProcessSetMaxTxPowerReq
 );
 
 /**
+ @brief Process Set Tx Power Request function (called when Main
+        FSM allows it)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status WDI_ProcessSetTxPowerReq
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
  @brief Process P2P Notice Of Absence Request function (called when Main FSM
         allows it)
  
@@ -3303,6 +3324,23 @@ WDI_ProcessUpdateProbeRspTemplateRsp
 WDI_Status
 WDI_ProcessSetMaxTxPowerRsp
 ( 
+  WDI_ControlBlockType*          pWDICtx,
+  WDI_EventInfoType*             pEventData
+);
+
+  /**
+ @brief Process Set Tx Power Rsp function (called when a response
+        is being received over the bus from HAL)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetTxPowerRsp
+(
   WDI_ControlBlockType*          pWDICtx,
   WDI_EventInfoType*             pEventData
 );
