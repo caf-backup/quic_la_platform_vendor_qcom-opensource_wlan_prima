@@ -56,6 +56,7 @@ typedef enum eTDLSCapType{
 typedef enum eTDLSLinkStatus {
     eTDLS_LINK_IDLE = 0,
     eTDLS_LINK_DISCOVERING,
+    eTDLS_LINK_DISCOVERED,
     eTDLS_LINK_CONNECTING,
     eTDLS_LINK_CONNECTED,
 } tTDLSLinkStatus;
