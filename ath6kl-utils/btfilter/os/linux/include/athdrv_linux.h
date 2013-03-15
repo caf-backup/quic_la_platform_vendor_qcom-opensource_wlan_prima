@@ -22,6 +22,7 @@ extern "C" {
 	 */
 
 	/* Linux standard Wireless Extensions, private ioctl interfaces */
+#define ATH6KL_IOCTL_STANDARD03              (SIOCDEVPRIVATE+3)
 #define IEEE80211_IOCTL_SETPARAM             (SIOCIWFIRSTPRIV+0)
 #define IEEE80211_IOCTL_SETKEY               (SIOCIWFIRSTPRIV+1)
 #define IEEE80211_IOCTL_DELKEY               (SIOCIWFIRSTPRIV+2)
