@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirCommon.h contains the common definitions used by all
@@ -19,11 +19,7 @@
 
 #include "sirApi.h"
 #include "sirParams.h"
-#include "sirWrapper.h"
-
-#ifndef NULL
-#define NULL TX_NULL
-#endif
+#include "VossWrapper.h"
 
 /* ********************************************* *
  *                                               *
