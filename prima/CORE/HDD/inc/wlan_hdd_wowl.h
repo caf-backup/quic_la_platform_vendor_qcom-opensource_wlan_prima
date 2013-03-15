@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #ifndef _WLAN_HDD_WOWL_H
 #define _WLAN_HDD_WOWL_H
 
@@ -138,5 +144,12 @@ v_BOOL_t hdd_exit_wowl (hdd_adapter_t*pAdapter);
                     : TRUE otherwise
   ===========================================================================*/
 v_BOOL_t hdd_init_wowl (hdd_adapter_t* pAdapter);
+
+/**============================================================================
+  @brief hdd_parse_hex() - function returns integer equivalent of hexa decimal
+
+  @return           : integer equivalent of hexa decimal
+  ===========================================================================*/
+int hdd_parse_hex(unsigned char c);
 
 #endif /* #ifndef _WLAN_HDD_WOWL_H */
