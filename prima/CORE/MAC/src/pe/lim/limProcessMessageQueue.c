@@ -52,11 +52,9 @@
 #include "wmmApsd.h"
 #endif
 
-#ifdef VOSS_ENABLED
 #include "vos_types.h"
 #include "vos_packet.h"
 #include "vos_memory.h"
-#endif
 
 /* In P2P GO case, we want to call scan on NOA start indication from limProcessMessages */
 extern void __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf);
@@ -1184,7 +1182,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             pMac->lim.numBbt++;
 #endif
 
-#ifdef VOSS_ENABLED
             {
                 v_U16_t     pktLen = 0;
                 vos_pkt_t  *pVosPkt;
@@ -1254,9 +1251,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                     vos_pkt_return_packet(pVosPkt);
                 }
             }
-#else
-            limHandle80211Frames(pMac, limMsg);
-#endif
             break;
 
         case eWNI_SME_SCAN_REQ:
