@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -18,17 +18,14 @@
   * Fri Feb 27 17:29:19 2009 from the following file(s):
   *
   * btampHCI.frms
-  * 
+  *
   * PLEASE DON'T EDIT THIS FILE BY HAND!
   *
   *
   */
 
-#ifndef ANI_OS_TYPE_OSX
 #include <memory.h> /* For memcpy */
-//#include <stdio.h>  /* For _vsnprintf */
 #include <stddef.h> /* For offsetof */
-#endif
 
 #define _vsnprintf vsnprintf
 

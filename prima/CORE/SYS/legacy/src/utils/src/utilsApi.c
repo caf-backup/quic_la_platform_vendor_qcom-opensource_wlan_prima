@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 //==================================================================
 //
 //  File:         utilsApi.cc
@@ -16,40 +22,9 @@
 
 #include "utilsApi.h"
 
-#if defined (ANI_OS_TYPE_WINDOWS)
-
-/**---------------------------------------------------------------------
- * sirBusyWaitIntern() 
- *
- * FUNCTION:
- * This function is called to put processor in a busy loop for
- * a given amount of duration
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- * None.
- *
- * NOTE:
- * 1. Argument to this function should be in nano second units
- * 2. OS specific calls used if available. Otherwise this need
- *    to be enhanced.
- *
- * @param  duration    Duration to be busy slept
- * @return None
- */
-
-void
-sirBusyWaitIntern(void *pMacGlobal, tANI_U32 duration)
-{
-        NdisStallExecution((duration+999)/1000); // This routine takes the duration in uSecs.
-} // sirBusyWaitIntern()
-
-#endif // (ANI_OS_TYPE_WINDOWS)
 
 
 
-#if !defined ANI_OS_TYPE_OSX
 
 // -------------------------------------------------------------------
 /**
@@ -102,10 +77,3 @@ sirDumpBuf(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 level, tANI_U8 *buf, tAN
     }
 
 }/*** end sirDumpBuf() ***/
-#else
-void
-sirDumpBuf(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 level, tANI_U8 *buf, tANI_U32 size)
-{
-    (void)pMac; (void)modId; (void)level; (void)buf; (void)size;
-}
-#endif
