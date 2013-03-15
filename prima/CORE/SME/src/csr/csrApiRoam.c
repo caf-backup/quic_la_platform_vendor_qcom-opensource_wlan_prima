@@ -4237,6 +4237,7 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 if(!HAL_STATUS_SUCCESS(status))
                 {
                     smsLog(pMac, LOGE, FL("csrRoamIssueReassociate failed with status %d"), status);
+                    csrReleaseCommandRoam( pMac, pCommand );
                 }
 
                 palFreeMemory(pMac->hHdd, pIes);
@@ -7406,6 +7407,7 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
         
             /* Notify sub-modules like QoS etc. that handoff happening */
             sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_HANDOFF_ASSOC_REQ, NULL);
+            csrReleaseProfile(pMac, pCurRoamProfile);
             palFreeMemory(pMac->hHdd, pCurRoamProfile);
             csrFreeScanFilter(pMac, pScanFilter);
             palFreeMemory( pMac->hHdd, pScanFilter );
