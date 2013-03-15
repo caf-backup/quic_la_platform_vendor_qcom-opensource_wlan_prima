@@ -11492,10 +11492,10 @@ VOS_STATUS WDA_Process8023MulticastListReq (tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 /*
- * FUNCTION: WDA_ReceiveFilterSetFilterReqCallback
+ * FUNCTION: WDA_ReceiveFilterSetFilterRespCallback
  * 
  */ 
-void WDA_ReceiveFilterSetFilterReqCallback( 
+void WDA_ReceiveFilterSetFilterRespCallback(
                         WDI_SetRcvPktFilterRspParamsType *pwdiSetRcvPktFilterRspInfo, 
                         void * pUserData)
 {
@@ -11516,9 +11516,41 @@ void WDA_ReceiveFilterSetFilterReqCallback(
    vos_mem_free(pWdaParams) ;
    //print a msg, nothing else to do
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "WDA_ReceiveFilterSetFilterReqCallback invoked " );
+              "WDA_ReceiveFilterSetFilterRespCallback invoked " );
    return ;
 }
+
+/*
+ * FUNCTION: WDA_ReqCallback
+ *
+ */
+void WDA_ReqCallback(WDI_Status   wdiStatus,
+                     void*        pUserData)
+{
+   tWDA_ReqParams        *pWdaParams = (tWDA_ReqParams *)pUserData;
+
+   VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+             "<------ %s, wdiStatus: %d",
+              __func__, wdiStatus);
+
+   if (NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "%s: Invalid pWdaParams pointer", __func__);
+      VOS_ASSERT(0);
+      return;
+   }
+
+   if (IS_WDI_STATUS_FAILURE(wdiStatus))
+   {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+         vos_mem_free(pWdaParams->wdaMsgParam);
+         vos_mem_free(pWdaParams);
+   }
+
+   return;
+}
+
 /*
  * FUNCTION: WDA_ProcessReceiveFilterSetFilterReq
  * Request to WDI to set Receive Filters
@@ -11613,14 +11645,15 @@ VOS_STATUS WDA_ProcessReceiveFilterSetFilterReq (tWDA_CbContext *pWDA,
                  pwdiSetRcvPktFilterReqParamsType->
                          wdiPktFilterCfg.paramsData[i].dataMask[5]);
    }
-   pwdiSetRcvPktFilterReqParamsType->wdiReqStatusCB = NULL;
+   pwdiSetRcvPktFilterReqParamsType->wdiReqStatusCB = WDA_ReqCallback;
+   pwdiSetRcvPktFilterReqParamsType->pUserData = pWdaParams;
    /* Store Params pass it to WDI */
    pWdaParams->wdaWdiApiMsgParam = (void *)pwdiSetRcvPktFilterReqParamsType;
    pWdaParams->pWdaContext = pWDA;
    /* Store param pointer as passed in by caller */
    pWdaParams->wdaMsgParam = pRcvPktFilterCfg;
    status = WDI_ReceiveFilterSetFilterReq(pwdiSetRcvPktFilterReqParamsType,
-           (WDI_ReceiveFilterSetFilterCb)WDA_ReceiveFilterSetFilterReqCallback,
+           (WDI_ReceiveFilterSetFilterCb)WDA_ReceiveFilterSetFilterRespCallback,
            pWdaParams);
    if(IS_WDI_STATUS_FAILURE(status))
    {
@@ -11755,10 +11788,10 @@ VOS_STATUS WDA_ProcessPacketFilterMatchCountReq (tWDA_CbContext *pWDA, tpSirRcvF
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 /*
- * FUNCTION: WDA_ReceiveFilterSetFilterReqCallback
+ * FUNCTION: WDA_ReceiveFilterClearFilterRespCallback
  * 
  */ 
-void WDA_ReceiveFilterClearFilterReqCallback(   
+void WDA_ReceiveFilterClearFilterRespCallback(
                         WDI_RcvFltPktClearRspParamsType *pwdiRcvFltPktClearRspParamsType, 
                         void * pUserData)
 {
@@ -11779,7 +11812,7 @@ void WDA_ReceiveFilterClearFilterReqCallback(
    vos_mem_free(pWdaParams) ;
    //print a msg, nothing else to do
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "WDA_ReceiveFilterClearFilterReqCallback invoked " );
+              "WDA_ReceiveFilterClearFilterRespCallback invoked " );
    return ;
 }
 /*
@@ -11818,14 +11851,15 @@ VOS_STATUS WDA_ProcessReceiveFilterClearFilterReq (tWDA_CbContext *pWDA,
    vos_mem_copy(pwdiRcvFltPktClearReqParamsType->filterClearParam.bssId,
                          pRcvFltPktClearParam->bssId, sizeof(wpt_macAddr));
 
-   pwdiRcvFltPktClearReqParamsType->wdiReqStatusCB = NULL;
+   pwdiRcvFltPktClearReqParamsType->wdiReqStatusCB = WDA_ReqCallback;
+   pwdiRcvFltPktClearReqParamsType->pUserData = pWdaParams;
    /* Store Params pass it to WDI */
    pWdaParams->wdaWdiApiMsgParam = (void *)pwdiRcvFltPktClearReqParamsType;
    pWdaParams->pWdaContext = pWDA;
    /* Store param pointer as passed in by caller */
    pWdaParams->wdaMsgParam = pRcvFltPktClearParam;
    status = WDI_ReceiveFilterClearFilterReq(pwdiRcvFltPktClearReqParamsType,
-       (WDI_ReceiveFilterClearFilterCb)WDA_ReceiveFilterClearFilterReqCallback,
+       (WDI_ReceiveFilterClearFilterCb)WDA_ReceiveFilterClearFilterRespCallback,
        pWdaParams);
    if(IS_WDI_STATUS_FAILURE(status))
    {
