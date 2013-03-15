@@ -1732,6 +1732,7 @@ tANI_U8 WDA_getFwWlanFeatCaps(tANI_U8 featEnumValue);
     Or if host driver detects any abnormal stcuk may display
 
   PARAMETERS
+    pMac : upper MAC context pointer
     displaySnapshot : Display DXE snapshot option
     enableStallDetect : Enable stall detect feature
                         This feature will take effect to data performance
@@ -1743,8 +1744,9 @@ tANI_U8 WDA_getFwWlanFeatCaps(tANI_U8 featEnumValue);
 ===========================================================================*/
 void WDA_TransportChannelDebug
 (
-   v_BOOL_t   displaySnapshot,
-   v_BOOL_t   toggleStallDetect
+  tpAniSirGlobal pMac,
+  v_BOOL_t       displaySnapshot,
+  v_BOOL_t       toggleStallDetect
 );
 
 /*==========================================================================
