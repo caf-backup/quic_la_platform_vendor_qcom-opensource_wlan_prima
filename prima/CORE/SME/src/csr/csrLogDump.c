@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 /*============================================================================
 Copyright (c) 2007 Qualcomm Technologies, Inc.
 All Rights Reserved.
@@ -37,7 +43,7 @@ static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1,
     tSmeBtEvent btEvent;
     if( arg1 < BT_EVENT_TYPE_MAX )
     {
-        smsLog(pMac, LOGE, FL(" signal BT event (%d) handle (%d) 3rd param(%d)\n"), arg1, arg2, arg3);
+        smsLog(pMac, LOGE, FL(" signal BT event (%d) handle (%d) 3rd param(%d)"), arg1, arg2, arg3);
         vos_mem_zero(&btEvent, sizeof(tSmeBtEvent));
         btEvent.btEventType = arg1;
         switch( arg1 )
@@ -71,7 +77,7 @@ static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1,
     }
     else
     {
-        smsLog(pMac, LOGE, FL(" invalid event (%d)\n"), arg1);
+        smsLog(pMac, LOGE, FL(" invalid event (%d)"), arg1);
     }
     return p;
 }
@@ -91,7 +97,7 @@ static char* dump_csrApConcScanParams( tpAniSirGlobal pMac, tANI_U32 arg1,
         pMac->roam.configParam.nActiveMaxChnTimeConc = arg3;
     }
 
-    smsLog(pMac, LOGE, FL(" Working %d %d %d\n"), (int) pMac->roam.configParam.nRestTimeConc,
+    smsLog(pMac, LOGE, FL(" Working %d %d %d"), (int) pMac->roam.configParam.nRestTimeConc,
         (int)pMac->roam.configParam.nActiveMinChnTimeConc, (int) pMac->roam.configParam.nActiveMaxChnTimeConc);
     return p;
 }
