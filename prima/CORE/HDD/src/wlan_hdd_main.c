@@ -3213,6 +3213,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       }
    }
 
+   wiphy_unregister(wiphy);
+
    if (VOS_FTM_MODE == hdd_get_conparam())
    {
       wlan_hdd_ftm_close(pHddCtx);
@@ -3409,8 +3411,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    }
 
 free_hdd_ctx:
-   wiphy_unregister(wiphy) ;
-   wiphy_free(wiphy) ;
+   wiphy_free(wiphy);
    if (hdd_is_ssr_required())
    {
        /* WDI timeout had happened during unload, so SSR is needed here */
