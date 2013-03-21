@@ -779,6 +779,13 @@ int aniAsfIpcConnect(tAniIpc *ipc, char *host, int prog, int vers)
 	int herrno;
 	char *tmphost = host;
 	
+	if (!host)
+	{
+		 aniAsfLogMsg(ANI_GETHOSTBYNAME_ERR,
+				hstrerror(herrno), ipc, ipc->sd);
+		return(-1);
+	}
+
 #define HOST_FILE_BUG 1
 #ifdef HOST_FILE_BUG
 	// There seems to be bug where the /etc/hosts

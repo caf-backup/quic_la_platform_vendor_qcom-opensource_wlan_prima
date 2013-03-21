@@ -5545,8 +5545,8 @@ typedef enum {
     BCN_FILTER         = 19,
     RTT                = 20,
     RATECTRL           = 21,
-    WOW                = 22,
-    MAX_FEATURE_SUPPORTED = 128,
+    WOW                = 22
+    //MAX_FEATURE_SUPPORTED = 128
 } placeHolderInCapBitmap;
 
 typedef PACKED_PRE struct PACKED_POST{

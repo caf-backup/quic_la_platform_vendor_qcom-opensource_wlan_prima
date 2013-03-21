@@ -239,6 +239,20 @@ void pttSocketAppProcClientMsg(void *arg)
 
     data = buf + sizeof(int);
 
+    if (msgLen  >(RTT_MAX_MSG_SIZE - sizeof(int)))
+    {
+        /*
+        * Corrupted or malformed message, log it and drop the
+        * message.
+        */
+        aniAsfLogMsg(LOG_INFO, ANI_WHERE, "pttSocketApp: bad message from client, len[%x]", msgLen);
+        // flush the socket
+        while((aniAsfIpcRecv(nIpc, buf, RTT_MAX_MSG_SIZE)) == RTT_MAX_MSG_SIZE);
+        free(buf);
+        return ;
+    }
+
+
     if ((lenRcvd = (aniAsfIpcRecv(nIpc, data, msgLen))) <= 0)
     {
         aniAsfLogMsg(ANI_IPCRECV_ERR);
@@ -785,6 +799,11 @@ int pttSocketAppInit(int radio, tAniRttCtxt *pserver)
         * Get the sockaddr_nl structure from ASF for this tAniIpc
         */
         pserver->snl = aniAsfIpcGetSnl(pserver->ipcnl);
+        if (!pserver->snl)
+        {
+            ret = ANI_E_FAILED;
+            break;
+        }
         pserver->nl.nlmsg_pid = pserver->snl->nl_pid;
         pserver->nl.nlmsg_flags = NLM_F_REQUEST;
 
