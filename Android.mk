@@ -34,7 +34,7 @@ ifeq ($(call is-board-platform,msm8960),true)
         endif
 endif
 
-#Build/Package Pronto Module only in case of 8974 target variants
+#Build/Package Pronto Module in case of 8974 target variants
 ifeq ($(call is-board-platform,msm8974),true)
         include $(WLAN_BLD_DIR)/pronto/Android.mk
         include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
@@ -45,6 +45,12 @@ ifeq ($(call is-board-platform,msm8974),true)
         endif
 endif
 
+#Build/Package Pronto Module in case of 8226 target variants
+ifeq ($(call is-board-platform,msm8226),true)
+        include $(WLAN_BLD_DIR)/pronto/Android.mk
+        include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
+        include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
+endif
 
 #Build/Package Volans Module only in case of 7627a target
 ifeq ($(call is-board-platform,msm7627a),true)
