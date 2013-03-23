@@ -2450,9 +2450,11 @@ typedef struct sSirAggrQosRsp
 
 typedef struct sSirSetTxPowerReq
 {
-    tANI_U16    messageType;
-    tANI_U16    length;
-    tANI_U32    txPower;
+    tANI_U16       messageType;
+    tANI_U16       length;
+    tSirMacAddr    bssId;
+    tANI_U8        mwPower;
+    tANI_U8        bssIdx;
 } tSirSetTxPowerReq, *tpSirSetTxPowerReq;
 
 typedef struct sSirSetTxPowerRsp
