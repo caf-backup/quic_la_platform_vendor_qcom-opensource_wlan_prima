@@ -860,6 +860,7 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     tANI_U8 reAssocRetryAttempt;
 #endif
     tLimDisassocDeauthCnfReq limDisassocDeauthCnfReq;
+    tANI_U8 deferredMsgCnt;
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration
