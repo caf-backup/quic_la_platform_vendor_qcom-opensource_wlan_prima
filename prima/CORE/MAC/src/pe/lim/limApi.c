@@ -76,7 +76,8 @@ static void __limInitScanVars(tpAniSirGlobal pMac)
 
     pMac->lim.gLimCurrentScanChannelId = 0;
     pMac->lim.gpLimMlmScanReq = NULL;
-    pMac->lim.gpLimSmeScanReq = NULL;
+    pMac->lim.gDeferMsgTypeForNOA = 0;
+    pMac->lim.gpDefdSmeMsgForNOA = NULL;
     pMac->lim.gLimMlmScanResultLength = 0;
     pMac->lim.gLimSmeScanResultLength = 0;
 
@@ -846,10 +847,10 @@ limCleanup(tpAniSirGlobal pMac)
         pMac->lim.gpLimMlmRemoveKeyReq = NULL;
     }
 
-    if (pMac->lim.gpLimSmeScanReq != NULL)
+    if (pMac->lim.gpDefdSmeMsgForNOA != NULL)
     {
-        palFreeMemory(pMac->hHdd, pMac->lim.gpLimSmeScanReq);
-        pMac->lim.gpLimSmeScanReq = NULL;
+        palFreeMemory(pMac->hHdd, pMac->lim.gpDefdSmeMsgForNOA);
+        pMac->lim.gpDefdSmeMsgForNOA = NULL;
     }
 
     if (pMac->lim.gpLimMlmScanReq != NULL)
