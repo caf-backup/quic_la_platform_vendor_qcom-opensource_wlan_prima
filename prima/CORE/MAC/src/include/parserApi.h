@@ -253,7 +253,7 @@ void dot11fLog(tpAniSirGlobal pMac, int nSev, const char *lpszFormat, ...);
         if ( eSIR_SUCCESS != (nStatus) )                             \
         {                                                            \
             dot11fLog( (pMac), LOGP, FL("Failed to retrieve "        \
-                                        #nItem " from CFG (%d).\n"), \
+                                        #nItem " from CFG (%d)."), \
                        (nStatus) );                                  \
             return nStatus;                                          \
         }                                                            \
@@ -264,7 +264,7 @@ void dot11fLog(tpAniSirGlobal pMac, int nSev, const char *lpszFormat, ...);
         if ( eSIR_SUCCESS != (nStatus) )                             \
         {                                                            \
             dot11fLog( (pMac), LOGP, FL("Failed to retrieve "        \
-                                        #nItem " from CFG (%d).\n"), \
+                                        #nItem " from CFG (%d)."), \
                        (nStatus) );                                  \
             return;                                                  \
         }                                                            \
@@ -276,7 +276,7 @@ void dot11fLog(tpAniSirGlobal pMac, int nSev, const char *lpszFormat, ...);
         if ( eSIR_SUCCESS != (nStatus) )                                \
         {                                                               \
             dot11fLog( (pMac), LOGP, FL("Failed to retrieve "           \
-                                        #nItem " from CFG (%d).\n"),    \
+                                        #nItem " from CFG (%d)."),    \
                        (nStatus) );                                     \
             return nStatus;                                             \
         }                                                               \
@@ -289,7 +289,7 @@ void dot11fLog(tpAniSirGlobal pMac, int nSev, const char *lpszFormat, ...);
         if ( eSIR_SUCCESS != (nStatus) )                                \
         {                                                               \
             dot11fLog( (pMac), LOGP, FL("Failed to retrieve "           \
-                                        #nItem " from CFG (%d).\n"),    \
+                                        #nItem " from CFG (%d)."),    \
                        (nStatus) );                                     \
             return;                                                     \
         }                                                               \
