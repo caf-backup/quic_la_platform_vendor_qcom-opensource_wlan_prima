@@ -332,12 +332,13 @@ int aniAsfEventProcess(tAniEventQ *teventq)
 	tAniEvent *events, *tevent;
 
 start:
-	eventq->entry++;
 
 	// If eventq is NULL return
 	if (eventq == NULL) {
 		return -1;
 	}
+
+	eventq->entry++;
 
 	// Lock the critical section
 	if ((errno = pthread_mutex_lock(&eventq->mutex)) > 0) {
