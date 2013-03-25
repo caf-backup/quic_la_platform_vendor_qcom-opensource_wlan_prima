@@ -7665,7 +7665,7 @@ WDI_ProcessConfigBSSReq
   {
     if ( uMsgSize <= sizeof(tConfigBssParams) )
     {
-       wpalMemoryCopy( pSendBuffer+usDataOffset,
+      wpalMemoryCopy( pSendBuffer+usDataOffset,
                       &halConfigBssReqMsg.uBssParams.configBssParams,
                       uMsgSize);
     }
@@ -16945,7 +16945,7 @@ WDI_ProcessTriggerBARsp
   WDI_TriggerBARspCandidateType* wdiTriggerBARspCandidate;
   wpt_uint16                     index;
   wpt_uint16                     TidIndex;
-
+  WDI_Status                     halTriggerBARspStatus;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -16967,23 +16967,25 @@ WDI_ProcessTriggerBARsp
   -------------------------------------------------------------------------*/
   halTriggerBARsp = (tTriggerBARspParams *)pEventData->pEventData;
 
-  wdiTriggerBARsp = wpalMemoryAllocate(sizeof(WDI_TriggerBARspParamsType) +
+  halTriggerBARspStatus = WDI_HAL_2_WDI_STATUS(halTriggerBARsp->status);
+
+  if ( WDI_STATUS_SUCCESS == halTriggerBARspStatus)
+  {
+    wdiTriggerBARsp = wpalMemoryAllocate(sizeof(WDI_TriggerBARspParamsType) +
                       halTriggerBARsp->baCandidateCnt *
                       sizeof(WDI_TriggerBARspCandidateType));
-  if(NULL == wdiTriggerBARsp)
-  {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-                "Failed to allocate memory in Trigger BA Response %x %x %x ",
-                 pWDICtx, pEventData, pEventData->pEventData);
-    wpalMemoryFree(halTriggerBARsp);
-    WDI_ASSERT(0);
-    return WDI_STATUS_E_FAILURE;
-  }
 
-  wdiTriggerBARsp->wdiStatus = WDI_HAL_2_WDI_STATUS(halTriggerBARsp->status);
+    if(NULL == wdiTriggerBARsp)
+    {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Failed to allocate memory in Trigger BA Response %x %x %x ",
+                   pWDICtx, pEventData, pEventData->pEventData);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE;
+    }
 
-  if ( WDI_STATUS_SUCCESS == wdiTriggerBARsp->wdiStatus)
-  {
+    wdiTriggerBARsp->wdiStatus = halTriggerBARspStatus;
+
     wdiTriggerBARsp->usBaCandidateCnt = halTriggerBARsp->baCandidateCnt;
     wpalMemoryCopy(wdiTriggerBARsp->macBSSID,
                                  halTriggerBARsp->bssId , WDI_MAC_ADDR_LEN);
@@ -17005,6 +17007,22 @@ WDI_ProcessTriggerBARsp
       wdiTriggerBARspCandidate++;
       halBaCandidate++;
     }
+  }
+  else
+  {
+    wdiTriggerBARsp = wpalMemoryAllocate(sizeof(WDI_TriggerBARspParamsType));
+
+    if(NULL == wdiTriggerBARsp)
+    {
+       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "Failed to allocate memory in Trigger BA Response %x %x %x ",
+                   pWDICtx, pEventData, pEventData->pEventData);
+       WDI_ASSERT(0);
+       return WDI_STATUS_E_FAILURE;
+    }
+
+    wdiTriggerBARsp->wdiStatus = halTriggerBARspStatus;
+
   }
 
   /*Notify UMAC*/
