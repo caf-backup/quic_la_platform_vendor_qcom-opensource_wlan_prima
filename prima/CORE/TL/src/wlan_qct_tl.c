@@ -1302,6 +1302,19 @@ WLANTL_RegisterSTAClient
      data to calculate RSSI. So to avoid reporting zero, we are initializing
      RSSI with RSSI saved in BssDescription during scanning. */
   pClientSTA->rssiAvg = rssi;
+#ifdef FEATURE_WLAN_TDLS
+  if(WLAN_STA_TDLS == pClientSTA->wSTADesc.wSTAType)
+  {
+    /* If client is TDLS, use TDLS specific alpha */
+    pClientSTA->rssiAlpha = WLANTL_HO_TDLS_ALPHA;
+  }
+  else
+  {
+    pClientSTA->rssiAlpha = WLANTL_HO_DEFAULT_ALPHA;
+  }
+#else
+    pClientSTA->rssiAlpha = WLANTL_HO_DEFAULT_ALPHA;
+#endif /* FEATURE_WLAN_TDLS */
 
   /*Tx not suspended and station fully registered*/
   vos_atomic_set_U8(
@@ -7707,6 +7720,7 @@ if(0 == ucUnicastBroadcastType
     else
     {
       wRxMetaInfo.ucUP = ucTid;
+      wRxMetaInfo.rssiAvg = pClientSTA->rssiAvg;
       pClientSTA->pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
                                             &wRxMetaInfo );
     }
