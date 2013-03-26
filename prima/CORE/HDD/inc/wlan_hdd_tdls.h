@@ -27,6 +27,8 @@ Qualcomm Atheros Confidential and Proprietary.
 
 #define TDLS_RSSI_TRIGGER_HYSTERESIS 50
 
+#define TDLS_DISCOVERY_TIMEOUT       1000
+
 typedef struct
 {
     tANI_U32    tdls;
@@ -85,8 +87,10 @@ typedef struct {
     hdd_adapter_t   *pAdapter;
     vos_timer_t     peerDiscoverTimer;
     vos_timer_t     peerUpdateTimer;
+    vos_timer_t     peerDiscoveryTimeoutTimer;
     tdls_config_params_t threshold_config;
     tANI_S32        discovery_peer_cnt;
+    tANI_U32        discovery_sent_cnt;
     tANI_S8         ap_rssi;
 } tdlsCtx_t;
 
@@ -171,5 +175,7 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter);
 u8 wlan_hdd_tdls_is_progress(hdd_adapter_t *pAdapter, u8* mac, u8 skip_self);
 
 void wlan_hdd_tdls_set_mode(hdd_context_t *pHddCtx, eTDLSSupportMode tdls_mode);
+
+void wlan_hdd_tdls_pre_setup(tdlsCtx_t *pHddTdlsCtx, hddTdlsPeer_t *curr_peer);
 
 #endif // __HDD_TDSL_H
