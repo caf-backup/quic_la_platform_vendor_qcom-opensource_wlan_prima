@@ -2676,6 +2676,20 @@ tANI_U32 dot11fUnpackIeWMMTSPEC(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iele
 #define SigIeWMMTSPEC ( 0x002b )
 
 
+tANI_U32 dot11fUnpackIeAID(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEAID *pDst)
+{
+    tANI_U32 status = DOT11F_PARSE_SUCCESS;
+    (void) pBuf; (void)ielen; /* Shutup the compiler */
+    if (pDst->present) status = DOT11F_DUPLICATE_IE;
+    pDst->present = 1;
+    framesntohs(pCtx, &pDst->assocId, pBuf, 0);
+    (void)pCtx;
+    return status;
+} /* End dot11fUnpackIeAID. */
+
+#define SigIeAID ( 0x002c )
+
+
     static const tFFDefn FFS_Airgo[ ] = {
         { NULL, 0, 0, 0,},
     };
@@ -2718,7 +2732,7 @@ tANI_U32 dot11fUnpackIeAirgo(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, 
     return status;
 } /* End dot11fUnpackIeAirgo. */
 
-#define SigIeAirgo ( 0x002c )
+#define SigIeAirgo ( 0x002d )
 
 
 tANI_U32 dot11fUnpackIeCCXCckmOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIECCXCckmOpaque *pDst)
@@ -2738,7 +2752,7 @@ tANI_U32 dot11fUnpackIeCCXCckmOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     return status;
 } /* End dot11fUnpackIeCCXCckmOpaque. */
 
-#define SigIeCCXCckmOpaque ( 0x002d )
+#define SigIeCCXCckmOpaque ( 0x002e )
 
 
 tANI_U32 dot11fUnpackIeCCXRadMgmtCap(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIECCXRadMgmtCap *pDst)
@@ -2758,7 +2772,7 @@ tANI_U32 dot11fUnpackIeCCXRadMgmtCap(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     return status;
 } /* End dot11fUnpackIeCCXRadMgmtCap. */
 
-#define SigIeCCXRadMgmtCap ( 0x002e )
+#define SigIeCCXRadMgmtCap ( 0x002f )
 
 
 tANI_U32 dot11fUnpackIeCCXTrafStrmMet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIECCXTrafStrmMet *pDst)
@@ -2778,7 +2792,7 @@ tANI_U32 dot11fUnpackIeCCXTrafStrmMet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U
     return status;
 } /* End dot11fUnpackIeCCXTrafStrmMet. */
 
-#define SigIeCCXTrafStrmMet ( 0x002f )
+#define SigIeCCXTrafStrmMet ( 0x0030 )
 
 
 tANI_U32 dot11fUnpackIeCCXTrafStrmRateSet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIECCXTrafStrmRateSet *pDst)
@@ -2801,7 +2815,7 @@ tANI_U32 dot11fUnpackIeCCXTrafStrmRateSet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tA
     return status;
 } /* End dot11fUnpackIeCCXTrafStrmRateSet. */
 
-#define SigIeCCXTrafStrmRateSet ( 0x0030 )
+#define SigIeCCXTrafStrmRateSet ( 0x0031 )
 
 
 tANI_U32 dot11fUnpackIeCCXTxmitPower(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIECCXTxmitPower *pDst)
@@ -2818,7 +2832,7 @@ tANI_U32 dot11fUnpackIeCCXTxmitPower(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     return status;
 } /* End dot11fUnpackIeCCXTxmitPower. */
 
-#define SigIeCCXTxmitPower ( 0x0031 )
+#define SigIeCCXTxmitPower ( 0x0032 )
 
 
 tANI_U32 dot11fUnpackIeCCXVersion(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIECCXVersion *pDst)
@@ -2832,7 +2846,7 @@ tANI_U32 dot11fUnpackIeCCXVersion(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ie
     return status;
 } /* End dot11fUnpackIeCCXVersion. */
 
-#define SigIeCCXVersion ( 0x0032 )
+#define SigIeCCXVersion ( 0x0033 )
 
 
 tANI_U32 dot11fUnpackIeCFParams(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIECFParams *pDst)
@@ -2855,7 +2869,7 @@ tANI_U32 dot11fUnpackIeCFParams(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iele
     return status;
 } /* End dot11fUnpackIeCFParams. */
 
-#define SigIeCFParams ( 0x0033 )
+#define SigIeCFParams ( 0x0034 )
 
 
 tANI_U32 dot11fUnpackIeChallengeText(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEChallengeText *pDst)
@@ -2875,7 +2889,7 @@ tANI_U32 dot11fUnpackIeChallengeText(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     return status;
 } /* End dot11fUnpackIeChallengeText. */
 
-#define SigIeChallengeText ( 0x0034 )
+#define SigIeChallengeText ( 0x0035 )
 
 
 tANI_U32 dot11fUnpackIeChanSwitchAnn(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEChanSwitchAnn *pDst)
@@ -2895,7 +2909,7 @@ tANI_U32 dot11fUnpackIeChanSwitchAnn(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     return status;
 } /* End dot11fUnpackIeChanSwitchAnn. */
 
-#define SigIeChanSwitchAnn ( 0x0035 )
+#define SigIeChanSwitchAnn ( 0x0036 )
 
 
 tANI_U32 dot11fUnpackIeCountry(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIECountry *pDst)
@@ -2926,10 +2940,10 @@ tANI_U32 dot11fUnpackIeCountry(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen
     return status;
 } /* End dot11fUnpackIeCountry. */
 
-#define SigIeCountry ( 0x0036 )
+#define SigIeCountry ( 0x0037 )
 
 
-#define SigIeDSParams ( 0x0037 )
+#define SigIeDSParams ( 0x0038 )
 
 
 tANI_U32 dot11fUnpackIeEDCAParamSet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEEDCAParamSet *pDst)
@@ -3014,7 +3028,7 @@ tANI_U32 dot11fUnpackIeEDCAParamSet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 
     return status;
 } /* End dot11fUnpackIeEDCAParamSet. */
 
-#define SigIeEDCAParamSet ( 0x0038 )
+#define SigIeEDCAParamSet ( 0x0039 )
 
 
 tANI_U32 dot11fUnpackIeERPInfo(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEERPInfo *pDst)
@@ -3033,7 +3047,7 @@ tANI_U32 dot11fUnpackIeERPInfo(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen
     return status;
 } /* End dot11fUnpackIeERPInfo. */
 
-#define SigIeERPInfo ( 0x0039 )
+#define SigIeERPInfo ( 0x003a )
 
 
 tANI_U32 dot11fUnpackIeExtCap(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEExtCap *pDst)
@@ -3107,10 +3121,10 @@ tANI_U32 dot11fUnpackIeExtCap(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen,
     return status;
 } /* End dot11fUnpackIeExtCap. */
 
-#define SigIeExtCap ( 0x003a )
+#define SigIeExtCap ( 0x003b )
 
 
-#define SigIeExtChanSwitchAnn ( 0x003b )
+#define SigIeExtChanSwitchAnn ( 0x003c )
 
 
 tANI_U32 dot11fUnpackIeExtSuppRates(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEExtSuppRates *pDst)
@@ -3138,7 +3152,7 @@ tANI_U32 dot11fUnpackIeExtSuppRates(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 
     return status;
 } /* End dot11fUnpackIeExtSuppRates. */
 
-#define SigIeExtSuppRates ( 0x003c )
+#define SigIeExtSuppRates ( 0x003d )
 
 
 tANI_U32 dot11fUnpackIeFHParamSet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEFHParamSet *pDst)
@@ -3161,7 +3175,7 @@ tANI_U32 dot11fUnpackIeFHParamSet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ie
     return status;
 } /* End dot11fUnpackIeFHParamSet. */
 
-#define SigIeFHParamSet ( 0x003d )
+#define SigIeFHParamSet ( 0x003e )
 
 
 tANI_U32 dot11fUnpackIeFHParams(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEFHParams *pDst)
@@ -3178,7 +3192,7 @@ tANI_U32 dot11fUnpackIeFHParams(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iele
     return status;
 } /* End dot11fUnpackIeFHParams. */
 
-#define SigIeFHParams ( 0x003e )
+#define SigIeFHParams ( 0x003f )
 
 
 tANI_U32 dot11fUnpackIeFHPattTable(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEFHPattTable *pDst)
@@ -3210,7 +3224,7 @@ tANI_U32 dot11fUnpackIeFHPattTable(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeFHPattTable. */
 
-#define SigIeFHPattTable ( 0x003f )
+#define SigIeFHPattTable ( 0x0040 )
 
 
     static const tFFDefn FFS_FTInfo[ ] = {
@@ -3256,7 +3270,7 @@ tANI_U32 dot11fUnpackIeFTInfo(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen,
     return status;
 } /* End dot11fUnpackIeFTInfo. */
 
-#define SigIeFTInfo ( 0x0040 )
+#define SigIeFTInfo ( 0x0041 )
 
 
 tANI_U32 dot11fUnpackIeFTTimeoutInterval(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEFTTimeoutInterval *pDst)
@@ -3273,7 +3287,7 @@ tANI_U32 dot11fUnpackIeFTTimeoutInterval(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tAN
     return status;
 } /* End dot11fUnpackIeFTTimeoutInterval. */
 
-#define SigIeFTTimeoutInterval ( 0x0041 )
+#define SigIeFTTimeoutInterval ( 0x0042 )
 
 
 tANI_U32 dot11fUnpackIeHTCaps(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEHTCaps *pDst)
@@ -3362,7 +3376,7 @@ tANI_U32 dot11fUnpackIeHTCaps(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen,
     return status;
 } /* End dot11fUnpackIeHTCaps. */
 
-#define SigIeHTCaps ( 0x0042 )
+#define SigIeHTCaps ( 0x0043 )
 
 
 tANI_U32 dot11fUnpackIeHTInfo(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEHTInfo *pDst)
@@ -3417,7 +3431,7 @@ tANI_U32 dot11fUnpackIeHTInfo(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen,
     return status;
 } /* End dot11fUnpackIeHTInfo. */
 
-#define SigIeHTInfo ( 0x0043 )
+#define SigIeHTInfo ( 0x0044 )
 
 
 tANI_U32 dot11fUnpackIeIBSSParams(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEIBSSParams *pDst)
@@ -3431,7 +3445,7 @@ tANI_U32 dot11fUnpackIeIBSSParams(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ie
     return status;
 } /* End dot11fUnpackIeIBSSParams. */
 
-#define SigIeIBSSParams ( 0x0044 )
+#define SigIeIBSSParams ( 0x0045 )
 
 
 tANI_U32 dot11fUnpackIeLinkIdentifier(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIELinkIdentifier *pDst)
@@ -3451,7 +3465,7 @@ tANI_U32 dot11fUnpackIeLinkIdentifier(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U
     return status;
 } /* End dot11fUnpackIeLinkIdentifier. */
 
-#define SigIeLinkIdentifier ( 0x0045 )
+#define SigIeLinkIdentifier ( 0x0046 )
 
 
 static const tFFDefn FFS_reportBeacon[ ] = {
@@ -3609,7 +3623,7 @@ tANI_U32 dot11fUnpackIeMeasurementReport(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tAN
     return status;
 } /* End dot11fUnpackIeMeasurementReport. */
 
-#define SigIeMeasurementReport ( 0x0046 )
+#define SigIeMeasurementReport ( 0x0047 )
 
 
 static const tFFDefn FFS_measurement_requestBeacon[ ] = {
@@ -3714,7 +3728,7 @@ tANI_U32 dot11fUnpackIeMeasurementRequest(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tA
     return status;
 } /* End dot11fUnpackIeMeasurementRequest. */
 
-#define SigIeMeasurementRequest ( 0x0047 )
+#define SigIeMeasurementRequest ( 0x0048 )
 
 
 tANI_U32 dot11fUnpackIeMobilityDomain(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEMobilityDomain *pDst)
@@ -3735,7 +3749,7 @@ tANI_U32 dot11fUnpackIeMobilityDomain(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U
     return status;
 } /* End dot11fUnpackIeMobilityDomain. */
 
-#define SigIeMobilityDomain ( 0x0048 )
+#define SigIeMobilityDomain ( 0x0049 )
 
 
     static const tFFDefn FFS_NeighborReport[ ] = {
@@ -3802,7 +3816,7 @@ tANI_U32 dot11fUnpackIeNeighborReport(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U
     return status;
 } /* End dot11fUnpackIeNeighborReport. */
 
-#define SigIeNeighborReport ( 0x0049 )
+#define SigIeNeighborReport ( 0x004a )
 
 
 tANI_U32 dot11fUnpackIeOperatingMode(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEOperatingMode *pDst)
@@ -3821,7 +3835,7 @@ tANI_U32 dot11fUnpackIeOperatingMode(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     return status;
 } /* End dot11fUnpackIeOperatingMode. */
 
-#define SigIeOperatingMode ( 0x004a )
+#define SigIeOperatingMode ( 0x004b )
 
 
     static const tTLVDefn TLVS_P2PAssocReq[ ] = {
@@ -3840,7 +3854,7 @@ tANI_U32 dot11fUnpackIeP2PAssocReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PAssocReq. */
 
-#define SigIeP2PAssocReq ( 0x004b )
+#define SigIeP2PAssocReq ( 0x004c )
 
 
     static const tTLVDefn TLVS_P2PAssocRes[ ] = {
@@ -3858,7 +3872,7 @@ tANI_U32 dot11fUnpackIeP2PAssocRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PAssocRes. */
 
-#define SigIeP2PAssocRes ( 0x004c )
+#define SigIeP2PAssocRes ( 0x004d )
 
 
     static const tTLVDefn TLVS_P2PBeacon[ ] = {
@@ -3877,7 +3891,7 @@ tANI_U32 dot11fUnpackIeP2PBeacon(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeP2PBeacon. */
 
-#define SigIeP2PBeacon ( 0x004d )
+#define SigIeP2PBeacon ( 0x004e )
 
 
     static const tTLVDefn TLVS_P2PBeaconProbeRes[ ] = {
@@ -3899,7 +3913,7 @@ tANI_U32 dot11fUnpackIeP2PBeaconProbeRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tAN
     return status;
 } /* End dot11fUnpackIeP2PBeaconProbeRes. */
 
-#define SigIeP2PBeaconProbeRes ( 0x004e )
+#define SigIeP2PBeaconProbeRes ( 0x004f )
 
 
     static const tTLVDefn TLVS_P2PDeAuth[ ] = {
@@ -3916,7 +3930,7 @@ tANI_U32 dot11fUnpackIeP2PDeAuth(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeP2PDeAuth. */
 
-#define SigIeP2PDeAuth ( 0x004f )
+#define SigIeP2PDeAuth ( 0x0050 )
 
 
     static const tTLVDefn TLVS_P2PDeviceDiscoverabilityReq[ ] = {
@@ -3934,7 +3948,7 @@ tANI_U32 dot11fUnpackIeP2PDeviceDiscoverabilityReq(tpAniSirGlobal pCtx, tANI_U8 
     return status;
 } /* End dot11fUnpackIeP2PDeviceDiscoverabilityReq. */
 
-#define SigIeP2PDeviceDiscoverabilityReq ( 0x0050 )
+#define SigIeP2PDeviceDiscoverabilityReq ( 0x0051 )
 
 
     static const tTLVDefn TLVS_P2PDeviceDiscoverabilityRes[ ] = {
@@ -3951,7 +3965,7 @@ tANI_U32 dot11fUnpackIeP2PDeviceDiscoverabilityRes(tpAniSirGlobal pCtx, tANI_U8 
     return status;
 } /* End dot11fUnpackIeP2PDeviceDiscoverabilityRes. */
 
-#define SigIeP2PDeviceDiscoverabilityRes ( 0x0051 )
+#define SigIeP2PDeviceDiscoverabilityRes ( 0x0052 )
 
 
     static const tTLVDefn TLVS_P2PDisAssoc[ ] = {
@@ -3968,7 +3982,7 @@ tANI_U32 dot11fUnpackIeP2PDisAssoc(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PDisAssoc. */
 
-#define SigIeP2PDisAssoc ( 0x0052 )
+#define SigIeP2PDisAssoc ( 0x0053 )
 
 
     static const tTLVDefn TLVS_P2PGONegCnf[ ] = {
@@ -3989,7 +4003,7 @@ tANI_U32 dot11fUnpackIeP2PGONegCnf(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PGONegCnf. */
 
-#define SigIeP2PGONegCnf ( 0x0053 )
+#define SigIeP2PGONegCnf ( 0x0054 )
 
 
     static const tTLVDefn TLVS_P2PGONegReq[ ] = {
@@ -4014,7 +4028,7 @@ tANI_U32 dot11fUnpackIeP2PGONegReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PGONegReq. */
 
-#define SigIeP2PGONegReq ( 0x0054 )
+#define SigIeP2PGONegReq ( 0x0055 )
 
 
     static const tTLVDefn TLVS_P2PGONegRes[ ] = {
@@ -4039,7 +4053,7 @@ tANI_U32 dot11fUnpackIeP2PGONegRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PGONegRes. */
 
-#define SigIeP2PGONegRes ( 0x0055 )
+#define SigIeP2PGONegRes ( 0x0056 )
 
 
     static const tTLVDefn TLVS_P2PGONegWPS[ ] = {
@@ -4057,7 +4071,7 @@ tANI_U32 dot11fUnpackIeP2PGONegWPS(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PGONegWPS. */
 
-#define SigIeP2PGONegWPS ( 0x0056 )
+#define SigIeP2PGONegWPS ( 0x0057 )
 
 
 tANI_U32 dot11fUnpackIeP2PIEOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEP2PIEOpaque *pDst)
@@ -4077,7 +4091,7 @@ tANI_U32 dot11fUnpackIeP2PIEOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PIEOpaque. */
 
-#define SigIeP2PIEOpaque ( 0x0057 )
+#define SigIeP2PIEOpaque ( 0x0058 )
 
 
     static const tTLVDefn TLVS_P2PInvitationReq[ ] = {
@@ -4100,7 +4114,7 @@ tANI_U32 dot11fUnpackIeP2PInvitationReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI
     return status;
 } /* End dot11fUnpackIeP2PInvitationReq. */
 
-#define SigIeP2PInvitationReq ( 0x0058 )
+#define SigIeP2PInvitationReq ( 0x0059 )
 
 
     static const tTLVDefn TLVS_P2PInvitationRes[ ] = {
@@ -4121,7 +4135,7 @@ tANI_U32 dot11fUnpackIeP2PInvitationRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI
     return status;
 } /* End dot11fUnpackIeP2PInvitationRes. */
 
-#define SigIeP2PInvitationRes ( 0x0059 )
+#define SigIeP2PInvitationRes ( 0x005a )
 
 
     static const tTLVDefn TLVS_P2PNoticeOfAbsence[ ] = {
@@ -4138,7 +4152,7 @@ tANI_U32 dot11fUnpackIeP2PNoticeOfAbsence(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tA
     return status;
 } /* End dot11fUnpackIeP2PNoticeOfAbsence. */
 
-#define SigIeP2PNoticeOfAbsence ( 0x005a )
+#define SigIeP2PNoticeOfAbsence ( 0x005b )
 
 
     static const tTLVDefn TLVS_P2PPresenceResponse[ ] = {
@@ -4156,7 +4170,7 @@ tANI_U32 dot11fUnpackIeP2PPresenceResponse(tpAniSirGlobal pCtx, tANI_U8 *pBuf, t
     return status;
 } /* End dot11fUnpackIeP2PPresenceResponse. */
 
-#define SigIeP2PPresenceResponse ( 0x005b )
+#define SigIeP2PPresenceResponse ( 0x005c )
 
 
     static const tTLVDefn TLVS_P2PProbeReq[ ] = {
@@ -4177,7 +4191,7 @@ tANI_U32 dot11fUnpackIeP2PProbeReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PProbeReq. */
 
-#define SigIeP2PProbeReq ( 0x005c )
+#define SigIeP2PProbeReq ( 0x005d )
 
 
     static const tTLVDefn TLVS_P2PProbeRes[ ] = {
@@ -4198,7 +4212,7 @@ tANI_U32 dot11fUnpackIeP2PProbeRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeP2PProbeRes. */
 
-#define SigIeP2PProbeRes ( 0x005d )
+#define SigIeP2PProbeRes ( 0x005e )
 
 
     static const tTLVDefn TLVS_P2PProvisionDiscoveryReq[ ] = {
@@ -4217,7 +4231,7 @@ tANI_U32 dot11fUnpackIeP2PProvisionDiscoveryReq(tpAniSirGlobal pCtx, tANI_U8 *pB
     return status;
 } /* End dot11fUnpackIeP2PProvisionDiscoveryReq. */
 
-#define SigIeP2PProvisionDiscoveryReq ( 0x005e )
+#define SigIeP2PProvisionDiscoveryReq ( 0x005f )
 
 
     static const tTLVDefn TLVS_P2PWSCProvisionDiscoveryRes[ ] = {
@@ -4234,7 +4248,7 @@ tANI_U32 dot11fUnpackIeP2PWSCProvisionDiscoveryRes(tpAniSirGlobal pCtx, tANI_U8 
     return status;
 } /* End dot11fUnpackIeP2PWSCProvisionDiscoveryRes. */
 
-#define SigIeP2PWSCProvisionDiscoveryRes ( 0x005f )
+#define SigIeP2PWSCProvisionDiscoveryRes ( 0x0060 )
 
 
 tANI_U32 dot11fUnpackIePTIControl(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEPTIControl *pDst)
@@ -4251,7 +4265,7 @@ tANI_U32 dot11fUnpackIePTIControl(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ie
     return status;
 } /* End dot11fUnpackIePTIControl. */
 
-#define SigIePTIControl ( 0x0060 )
+#define SigIePTIControl ( 0x0061 )
 
 
 tANI_U32 dot11fUnpackIePUBufferStatus(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEPUBufferStatus *pDst)
@@ -4271,7 +4285,7 @@ tANI_U32 dot11fUnpackIePUBufferStatus(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U
     return status;
 } /* End dot11fUnpackIePUBufferStatus. */
 
-#define SigIePUBufferStatus ( 0x0061 )
+#define SigIePUBufferStatus ( 0x0062 )
 
 
 tANI_U32 dot11fUnpackIePowerCaps(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEPowerCaps *pDst)
@@ -4288,7 +4302,7 @@ tANI_U32 dot11fUnpackIePowerCaps(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIePowerCaps. */
 
-#define SigIePowerCaps ( 0x0062 )
+#define SigIePowerCaps ( 0x0063 )
 
 
 tANI_U32 dot11fUnpackIePowerConstraints(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEPowerConstraints *pDst)
@@ -4302,7 +4316,7 @@ tANI_U32 dot11fUnpackIePowerConstraints(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI
     return status;
 } /* End dot11fUnpackIePowerConstraints. */
 
-#define SigIePowerConstraints ( 0x0063 )
+#define SigIePowerConstraints ( 0x0064 )
 
 
 tANI_U32 dot11fUnpackIeQBSSLoad(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEQBSSLoad *pDst)
@@ -4322,7 +4336,7 @@ tANI_U32 dot11fUnpackIeQBSSLoad(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iele
     return status;
 } /* End dot11fUnpackIeQBSSLoad. */
 
-#define SigIeQBSSLoad ( 0x0064 )
+#define SigIeQBSSLoad ( 0x0065 )
 
 
 tANI_U32 dot11fUnpackIeQOSCapsAp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEQOSCapsAp *pDst)
@@ -4342,7 +4356,7 @@ tANI_U32 dot11fUnpackIeQOSCapsAp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeQOSCapsAp. */
 
-#define SigIeQOSCapsAp ( 0x0065 )
+#define SigIeQOSCapsAp ( 0x0066 )
 
 
 tANI_U32 dot11fUnpackIeQOSCapsStation(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEQOSCapsStation *pDst)
@@ -4364,7 +4378,7 @@ tANI_U32 dot11fUnpackIeQOSCapsStation(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U
     return status;
 } /* End dot11fUnpackIeQOSCapsStation. */
 
-#define SigIeQOSCapsStation ( 0x0066 )
+#define SigIeQOSCapsStation ( 0x0067 )
 
 
 tANI_U32 dot11fUnpackIeQuiet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEQuiet *pDst)
@@ -4387,7 +4401,7 @@ tANI_U32 dot11fUnpackIeQuiet(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, 
     return status;
 } /* End dot11fUnpackIeQuiet. */
 
-#define SigIeQuiet ( 0x0067 )
+#define SigIeQuiet ( 0x0068 )
 
 
 tANI_U32 dot11fUnpackIeRCPIIE(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIERCPIIE *pDst)
@@ -4401,7 +4415,7 @@ tANI_U32 dot11fUnpackIeRCPIIE(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen,
     return status;
 } /* End dot11fUnpackIeRCPIIE. */
 
-#define SigIeRCPIIE ( 0x0068 )
+#define SigIeRCPIIE ( 0x0069 )
 
 
     static const tFFDefn FFS_RICDataDesc[ ] = {
@@ -4441,7 +4455,7 @@ tANI_U32 dot11fUnpackIeRICDataDesc(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeRICDataDesc. */
 
-#define SigIeRICDataDesc ( 0x0069 )
+#define SigIeRICDataDesc ( 0x006a )
 
 
 tANI_U32 dot11fUnpackIeRSN(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIERSN *pDst)
@@ -4534,7 +4548,7 @@ tANI_U32 dot11fUnpackIeRSN(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tD
     return status;
 } /* End dot11fUnpackIeRSN. */
 
-#define SigIeRSN ( 0x006a )
+#define SigIeRSN ( 0x006b )
 
 
 tANI_U32 dot11fUnpackIeRSNIIE(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIERSNIIE *pDst)
@@ -4548,7 +4562,7 @@ tANI_U32 dot11fUnpackIeRSNIIE(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen,
     return status;
 } /* End dot11fUnpackIeRSNIIE. */
 
-#define SigIeRSNIIE ( 0x006b )
+#define SigIeRSNIIE ( 0x006c )
 
 
 tANI_U32 dot11fUnpackIeRSNOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIERSNOpaque *pDst)
@@ -4568,7 +4582,7 @@ tANI_U32 dot11fUnpackIeRSNOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeRSNOpaque. */
 
-#define SigIeRSNOpaque ( 0x006c )
+#define SigIeRSNOpaque ( 0x006d )
 
 
 tANI_U32 dot11fUnpackIeSuppChannels(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIESuppChannels *pDst)
@@ -4588,7 +4602,7 @@ tANI_U32 dot11fUnpackIeSuppChannels(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 
     return status;
 } /* End dot11fUnpackIeSuppChannels. */
 
-#define SigIeSuppChannels ( 0x006d )
+#define SigIeSuppChannels ( 0x006e )
 
 
 tANI_U32 dot11fUnpackIeSuppRates(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIESuppRates *pDst)
@@ -4616,7 +4630,7 @@ tANI_U32 dot11fUnpackIeSuppRates(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeSuppRates. */
 
-#define SigIeSuppRates ( 0x006e )
+#define SigIeSuppRates ( 0x006f )
 
 
 tANI_U32 dot11fUnpackIeTIM(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIETIM *pDst)
@@ -4645,7 +4659,7 @@ tANI_U32 dot11fUnpackIeTIM(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tD
     return status;
 } /* End dot11fUnpackIeTIM. */
 
-#define SigIeTIM ( 0x006f )
+#define SigIeTIM ( 0x0070 )
 
 
 tANI_U32 dot11fUnpackIeTPCReport(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIETPCReport *pDst)
@@ -4662,7 +4676,7 @@ tANI_U32 dot11fUnpackIeTPCReport(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeTPCReport. */
 
-#define SigIeTPCReport ( 0x0070 )
+#define SigIeTPCReport ( 0x0071 )
 
 
 tANI_U32 dot11fUnpackIeTPCRequest(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIETPCRequest *pDst)
@@ -4675,7 +4689,7 @@ tANI_U32 dot11fUnpackIeTPCRequest(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ie
     return status;
 } /* End dot11fUnpackIeTPCRequest. */
 
-#define SigIeTPCRequest ( 0x0071 )
+#define SigIeTPCRequest ( 0x0072 )
 
 
 tANI_U32 dot11fUnpackIeVHTCaps(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEVHTCaps *pDst)
@@ -4728,7 +4742,7 @@ tANI_U32 dot11fUnpackIeVHTCaps(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen
     return status;
 } /* End dot11fUnpackIeVHTCaps. */
 
-#define SigIeVHTCaps ( 0x0072 )
+#define SigIeVHTCaps ( 0x0073 )
 
 
 tANI_U32 dot11fUnpackIeVHTExtBssLoad(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEVHTExtBssLoad *pDst)
@@ -4754,7 +4768,7 @@ tANI_U32 dot11fUnpackIeVHTExtBssLoad(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     return status;
 } /* End dot11fUnpackIeVHTExtBssLoad. */
 
-#define SigIeVHTExtBssLoad ( 0x0073 )
+#define SigIeVHTExtBssLoad ( 0x0074 )
 
 
 tANI_U32 dot11fUnpackIeVHTOperation(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEVHTOperation *pDst)
@@ -4777,7 +4791,7 @@ tANI_U32 dot11fUnpackIeVHTOperation(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 
     return status;
 } /* End dot11fUnpackIeVHTOperation. */
 
-#define SigIeVHTOperation ( 0x0074 )
+#define SigIeVHTOperation ( 0x0075 )
 
 
 tANI_U32 dot11fUnpackIeWAPI(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWAPI *pDst)
@@ -4846,7 +4860,7 @@ tANI_U32 dot11fUnpackIeWAPI(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, t
     return status;
 } /* End dot11fUnpackIeWAPI. */
 
-#define SigIeWAPI ( 0x0075 )
+#define SigIeWAPI ( 0x0076 )
 
 
 tANI_U32 dot11fUnpackIeWAPIOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWAPIOpaque *pDst)
@@ -4866,7 +4880,7 @@ tANI_U32 dot11fUnpackIeWAPIOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ie
     return status;
 } /* End dot11fUnpackIeWAPIOpaque. */
 
-#define SigIeWAPIOpaque ( 0x0076 )
+#define SigIeWAPIOpaque ( 0x0077 )
 
 
 tANI_U32 dot11fUnpackIeWFATPC(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWFATPC *pDst)
@@ -4883,7 +4897,7 @@ tANI_U32 dot11fUnpackIeWFATPC(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen,
     return status;
 } /* End dot11fUnpackIeWFATPC. */
 
-#define SigIeWFATPC ( 0x0077 )
+#define SigIeWFATPC ( 0x0078 )
 
 
 tANI_U32 dot11fUnpackIeWFDIEOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWFDIEOpaque *pDst)
@@ -4903,7 +4917,7 @@ tANI_U32 dot11fUnpackIeWFDIEOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeWFDIEOpaque. */
 
-#define SigIeWFDIEOpaque ( 0x0078 )
+#define SigIeWFDIEOpaque ( 0x0079 )
 
 
 tANI_U32 dot11fUnpackIeWMMCaps(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWMMCaps *pDst)
@@ -4931,7 +4945,7 @@ tANI_U32 dot11fUnpackIeWMMCaps(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen
     return status;
 } /* End dot11fUnpackIeWMMCaps. */
 
-#define SigIeWMMCaps ( 0x0079 )
+#define SigIeWMMCaps ( 0x007a )
 
 
 tANI_U32 dot11fUnpackIeWMMInfoAp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWMMInfoAp *pDst)
@@ -4952,7 +4966,7 @@ tANI_U32 dot11fUnpackIeWMMInfoAp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeWMMInfoAp. */
 
-#define SigIeWMMInfoAp ( 0x007a )
+#define SigIeWMMInfoAp ( 0x007b )
 
 
 tANI_U32 dot11fUnpackIeWMMInfoStation(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWMMInfoStation *pDst)
@@ -4977,7 +4991,7 @@ tANI_U32 dot11fUnpackIeWMMInfoStation(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U
     return status;
 } /* End dot11fUnpackIeWMMInfoStation. */
 
-#define SigIeWMMInfoStation ( 0x007b )
+#define SigIeWMMInfoStation ( 0x007c )
 
 
 tANI_U32 dot11fUnpackIeWMMParams(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWMMParams *pDst)
@@ -5070,7 +5084,7 @@ tANI_U32 dot11fUnpackIeWMMParams(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeWMMParams. */
 
-#define SigIeWMMParams ( 0x007c )
+#define SigIeWMMParams ( 0x007d )
 
 
 tANI_U32 dot11fUnpackIeWPA(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWPA *pDst)
@@ -5152,7 +5166,7 @@ tANI_U32 dot11fUnpackIeWPA(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tD
     return status;
 } /* End dot11fUnpackIeWPA. */
 
-#define SigIeWPA ( 0x007d )
+#define SigIeWPA ( 0x007e )
 
 
 tANI_U32 dot11fUnpackIeWPAOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWPAOpaque *pDst)
@@ -5172,7 +5186,7 @@ tANI_U32 dot11fUnpackIeWPAOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeWPAOpaque. */
 
-#define SigIeWPAOpaque ( 0x007e )
+#define SigIeWPAOpaque ( 0x007f )
 
 
     static const tTLVDefn TLVS_WSC[ ] = {
@@ -5210,7 +5224,7 @@ tANI_U32 dot11fUnpackIeWSC(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tD
     return status;
 } /* End dot11fUnpackIeWSC. */
 
-#define SigIeWSC ( 0x007f )
+#define SigIeWSC ( 0x0080 )
 
 
 tANI_U32 dot11fUnpackIeWiderBWChanSwitchAnn(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWiderBWChanSwitchAnn *pDst)
@@ -5230,7 +5244,7 @@ tANI_U32 dot11fUnpackIeWiderBWChanSwitchAnn(tpAniSirGlobal pCtx, tANI_U8 *pBuf, 
     return status;
 } /* End dot11fUnpackIeWiderBWChanSwitchAnn. */
 
-#define SigIeWiderBWChanSwitchAnn ( 0x0080 )
+#define SigIeWiderBWChanSwitchAnn ( 0x0081 )
 
 
     static const tTLVDefn TLVS_WscAssocReq[ ] = {
@@ -5249,7 +5263,7 @@ tANI_U32 dot11fUnpackIeWscAssocReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeWscAssocReq. */
 
-#define SigIeWscAssocReq ( 0x0081 )
+#define SigIeWscAssocReq ( 0x0082 )
 
 
     static const tTLVDefn TLVS_WscAssocRes[ ] = {
@@ -5268,7 +5282,7 @@ tANI_U32 dot11fUnpackIeWscAssocRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeWscAssocRes. */
 
-#define SigIeWscAssocRes ( 0x0082 )
+#define SigIeWscAssocRes ( 0x0083 )
 
 
     static const tTLVDefn TLVS_WscBeacon[ ] = {
@@ -5293,7 +5307,7 @@ tANI_U32 dot11fUnpackIeWscBeacon(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 iel
     return status;
 } /* End dot11fUnpackIeWscBeacon. */
 
-#define SigIeWscBeacon ( 0x0083 )
+#define SigIeWscBeacon ( 0x0084 )
 
 
     static const tTLVDefn TLVS_WscBeaconProbeRes[ ] = {
@@ -5326,7 +5340,7 @@ tANI_U32 dot11fUnpackIeWscBeaconProbeRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tAN
     return status;
 } /* End dot11fUnpackIeWscBeaconProbeRes. */
 
-#define SigIeWscBeaconProbeRes ( 0x0084 )
+#define SigIeWscBeaconProbeRes ( 0x0085 )
 
 
 tANI_U32 dot11fUnpackIeWscIEOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 ielen, tDot11fIEWscIEOpaque *pDst)
@@ -5346,7 +5360,7 @@ tANI_U32 dot11fUnpackIeWscIEOpaque(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeWscIEOpaque. */
 
-#define SigIeWscIEOpaque ( 0x0085 )
+#define SigIeWscIEOpaque ( 0x0086 )
 
 
     static const tTLVDefn TLVS_WscProbeReq[ ] = {
@@ -5377,7 +5391,7 @@ tANI_U32 dot11fUnpackIeWscProbeReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeWscProbeReq. */
 
-#define SigIeWscProbeReq ( 0x0086 )
+#define SigIeWscProbeReq ( 0x0087 )
 
 
     static const tTLVDefn TLVS_WscProbeRes[ ] = {
@@ -5410,7 +5424,7 @@ tANI_U32 dot11fUnpackIeWscProbeRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8 i
     return status;
 } /* End dot11fUnpackIeWscProbeRes. */
 
-#define SigIeWscProbeRes ( 0x0087 )
+#define SigIeWscProbeRes ( 0x0088 )
 
 
     static const tTLVDefn TLVS_WscReassocRes[ ] = {
@@ -5429,7 +5443,7 @@ tANI_U32 dot11fUnpackIeWscReassocRes(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U8
     return status;
 } /* End dot11fUnpackIeWscReassocRes. */
 
-#define SigIeWscReassocRes ( 0x0088 )
+#define SigIeWscReassocRes ( 0x0089 )
 
 
     static const tFFDefn FFS_AddBAReq[] = {
@@ -17781,6 +17795,7 @@ tANI_U32 dot11fUnpackTDLSDisReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 nBu
         {offsetof(tDot11fTDLSDisRsp, RICData), offsetof(tDot11fIERICData, present), 0, "RICData" , 0, 6, 6, SigIeRICData, {0, 0, 0, 0, 0}, 0, DOT11F_EID_RICDATA, 0, },
         {offsetof(tDot11fTDLSDisRsp, HTCaps), offsetof(tDot11fIEHTCaps, present), 0, "HTCaps" , 0, 28, 60, SigIeHTCaps, {0, 0, 0, 0, 0}, 0, DOT11F_EID_HTCAPS, 0, },
         {offsetof(tDot11fTDLSDisRsp, LinkIdentifier), offsetof(tDot11fIELinkIdentifier, present), 0, "LinkIdentifier" , 0, 20, 20, SigIeLinkIdentifier, {0, 0, 0, 0, 0}, 0, DOT11F_EID_LINKIDENTIFIER, 1, },
+        {offsetof(tDot11fTDLSDisRsp, VHTCaps), offsetof(tDot11fIEVHTCaps, present), 0, "VHTCaps" , 0, 14, 14, SigIeVHTCaps, {0, 0, 0, 0, 0}, 0, DOT11F_EID_VHTCAPS, 0, },
     {0, 0, 0, NULL, 0, 0, 0, 0, {0, 0, 0, 0, 0}, 0, 0xff, 0, },    };
 
 tANI_U32 dot11fUnpackTDLSDisRsp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 nBuf, tDot11fTDLSDisRsp *pFrm)
@@ -18060,6 +18075,40 @@ tANI_U32 dot11fUnpackTDLSDisRsp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 nBu
             FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), ( tANI_U8* )&pFrm->LinkIdentifier.InitStaAddr, 6);
             FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), ( tANI_U8* )&pFrm->LinkIdentifier.RespStaAddr, 6);
         }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("VHTCaps:\n"));
+        if (!pFrm->VHTCaps.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("maxMPDULen (2): %d\n"), pFrm->VHTCaps.maxMPDULen);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("supportedChannelWidthSet (2): %d\n"), pFrm->VHTCaps.supportedChannelWidthSet);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("ldpcCodingCap (1): %d\n"), pFrm->VHTCaps.ldpcCodingCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("shortGI80MHz (1): %d\n"), pFrm->VHTCaps.shortGI80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("shortGI160and80plus80MHz (1): %d\n"), pFrm->VHTCaps.shortGI160and80plus80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("txSTBC (1): %d\n"), pFrm->VHTCaps.txSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("rxSTBC (3): %d\n"), pFrm->VHTCaps.rxSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("suBeamFormerCap (1): %d\n"), pFrm->VHTCaps.suBeamFormerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("suBeamformeeCap (1): %d\n"), pFrm->VHTCaps.suBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("csnofBeamformerAntSup (3): %d\n"), pFrm->VHTCaps.csnofBeamformerAntSup);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("numSoundingDim (3): %d\n"), pFrm->VHTCaps.numSoundingDim);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("muBeamformerCap (1): %d\n"), pFrm->VHTCaps.muBeamformerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("muBeamformeeCap (1): %d\n"), pFrm->VHTCaps.muBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("vhtTXOPPS (1): %d\n"), pFrm->VHTCaps.vhtTXOPPS);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("htcVHTCap (1): %d\n"), pFrm->VHTCaps.htcVHTCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("maxAMPDULenExp (3): %d\n"), pFrm->VHTCaps.maxAMPDULenExp);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("vhtLinkAdaptCap (2): %d\n"), pFrm->VHTCaps.vhtLinkAdaptCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("rxAntPattern (1): %d\n"), pFrm->VHTCaps.rxAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("txAntPattern (1): %d\n"), pFrm->VHTCaps.txAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("reserved1 (2): %d\n"), pFrm->VHTCaps.reserved1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), ( tANI_U8* )&pFrm->VHTCaps.rxMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("rxHighSupDataRate (13): %d\n"), pFrm->VHTCaps.rxHighSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("reserved2 (3): %d\n"), pFrm->VHTCaps.reserved2);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), ( tANI_U8* )&pFrm->VHTCaps.txMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("txSupDataRate (13): %d\n"), pFrm->VHTCaps.txSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("reserved3 (3): %d\n"), pFrm->VHTCaps.reserved3);
+        }
     }
 #   endif // DOT11F_DUMP_FRAMES
     return status;
@@ -18201,6 +18250,7 @@ tANI_U32 dot11fUnpackTDLSPeerTrafficRsp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI
         {offsetof(tDot11fTDLSSetupCnf, HTInfo), offsetof(tDot11fIEHTInfo, present), 0, "HTInfo" , 0, 24, 56, SigIeHTInfo, {0, 0, 0, 0, 0}, 0, DOT11F_EID_HTINFO, 0, },
         {offsetof(tDot11fTDLSSetupCnf, LinkIdentifier), offsetof(tDot11fIELinkIdentifier, present), 0, "LinkIdentifier" , 0, 20, 20, SigIeLinkIdentifier, {0, 0, 0, 0, 0}, 0, DOT11F_EID_LINKIDENTIFIER, 0, },
         {offsetof(tDot11fTDLSSetupCnf, WMMInfoStation), offsetof(tDot11fIEWMMInfoStation, present), 0, "WMMInfoStation" , 0, 9, 9, SigIeWMMInfoStation, {0, 80, 242, 2, 0}, 5, DOT11F_EID_WMMINFOSTATION, 0, },
+        {offsetof(tDot11fTDLSSetupCnf, VHTOperation), offsetof(tDot11fIEVHTOperation, present), 0, "VHTOperation" , 0, 7, 7, SigIeVHTOperation, {0, 0, 0, 0, 0}, 0, DOT11F_EID_VHTOPERATION, 0, },
     {0, 0, 0, NULL, 0, 0, 0, 0, {0, 0, 0, 0, 0}, 0, 0xff, 0, },    };
 
 tANI_U32 dot11fUnpackTDLSSetupCnf(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 nBuf, tDot11fTDLSSetupCnf *pFrm)
@@ -18391,6 +18441,18 @@ tANI_U32 dot11fUnpackTDLSSetupCnf(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 n
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("max_sp_length (2): %d\n"), pFrm->WMMInfoStation.max_sp_length);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("reserved2 (1): %d\n"), pFrm->WMMInfoStation.reserved2);
         }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("VHTOperation:\n"));
+        if (!pFrm->VHTOperation.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), ( tANI_U8* )&pFrm->VHTOperation.chanWidth, 1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), ( tANI_U8* )&pFrm->VHTOperation.chanCenterFreqSeg1, 1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), ( tANI_U8* )&pFrm->VHTOperation.chanCenterFreqSeg2, 1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), ( tANI_U8* )&pFrm->VHTOperation.basicMCSSet, 2);
+        }
     }
 #   endif // DOT11F_DUMP_FRAMES
     return status;
@@ -18419,6 +18481,8 @@ tANI_U32 dot11fUnpackTDLSSetupCnf(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 n
         {offsetof(tDot11fTDLSSetupReq, HTCaps), offsetof(tDot11fIEHTCaps, present), 0, "HTCaps" , 0, 28, 60, SigIeHTCaps, {0, 0, 0, 0, 0}, 0, DOT11F_EID_HTCAPS, 0, },
         {offsetof(tDot11fTDLSSetupReq, LinkIdentifier), offsetof(tDot11fIELinkIdentifier, present), 0, "LinkIdentifier" , 0, 20, 20, SigIeLinkIdentifier, {0, 0, 0, 0, 0}, 0, DOT11F_EID_LINKIDENTIFIER, 1, },
         {offsetof(tDot11fTDLSSetupReq, WMMInfoStation), offsetof(tDot11fIEWMMInfoStation, present), 0, "WMMInfoStation" , 0, 9, 9, SigIeWMMInfoStation, {0, 80, 242, 2, 0}, 5, DOT11F_EID_WMMINFOSTATION, 0, },
+        {offsetof(tDot11fTDLSSetupReq, AID), offsetof(tDot11fIEAID, present), 0, "AID" , 0, 4, 4, SigIeAID, {0, 0, 0, 0, 0}, 0, DOT11F_EID_AID, 0, },
+        {offsetof(tDot11fTDLSSetupReq, VHTCaps), offsetof(tDot11fIEVHTCaps, present), 0, "VHTCaps" , 0, 14, 14, SigIeVHTCaps, {0, 0, 0, 0, 0}, 0, DOT11F_EID_VHTCAPS, 0, },
     {0, 0, 0, NULL, 0, 0, 0, 0, {0, 0, 0, 0, 0}, 0, 0xff, 0, },    };
 
 tANI_U32 dot11fUnpackTDLSSetupReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 nBuf, tDot11fTDLSSetupReq *pFrm)
@@ -18740,6 +18804,49 @@ tANI_U32 dot11fUnpackTDLSSetupReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 n
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("max_sp_length (2): %d\n"), pFrm->WMMInfoStation.max_sp_length);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved2 (1): %d\n"), pFrm->WMMInfoStation.reserved2);
         }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("AID:\n"));
+        if (!pFrm->AID.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), ( tANI_U8* )&pFrm->AID.assocId, 2);
+        }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("VHTCaps:\n"));
+        if (!pFrm->VHTCaps.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("maxMPDULen (2): %d\n"), pFrm->VHTCaps.maxMPDULen);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("supportedChannelWidthSet (2): %d\n"), pFrm->VHTCaps.supportedChannelWidthSet);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("ldpcCodingCap (1): %d\n"), pFrm->VHTCaps.ldpcCodingCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("shortGI80MHz (1): %d\n"), pFrm->VHTCaps.shortGI80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("shortGI160and80plus80MHz (1): %d\n"), pFrm->VHTCaps.shortGI160and80plus80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("txSTBC (1): %d\n"), pFrm->VHTCaps.txSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("rxSTBC (3): %d\n"), pFrm->VHTCaps.rxSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("suBeamFormerCap (1): %d\n"), pFrm->VHTCaps.suBeamFormerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("suBeamformeeCap (1): %d\n"), pFrm->VHTCaps.suBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("csnofBeamformerAntSup (3): %d\n"), pFrm->VHTCaps.csnofBeamformerAntSup);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("numSoundingDim (3): %d\n"), pFrm->VHTCaps.numSoundingDim);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("muBeamformerCap (1): %d\n"), pFrm->VHTCaps.muBeamformerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("muBeamformeeCap (1): %d\n"), pFrm->VHTCaps.muBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("vhtTXOPPS (1): %d\n"), pFrm->VHTCaps.vhtTXOPPS);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("htcVHTCap (1): %d\n"), pFrm->VHTCaps.htcVHTCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("maxAMPDULenExp (3): %d\n"), pFrm->VHTCaps.maxAMPDULenExp);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("vhtLinkAdaptCap (2): %d\n"), pFrm->VHTCaps.vhtLinkAdaptCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("rxAntPattern (1): %d\n"), pFrm->VHTCaps.rxAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("txAntPattern (1): %d\n"), pFrm->VHTCaps.txAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved1 (2): %d\n"), pFrm->VHTCaps.reserved1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), ( tANI_U8* )&pFrm->VHTCaps.rxMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("rxHighSupDataRate (13): %d\n"), pFrm->VHTCaps.rxHighSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved2 (3): %d\n"), pFrm->VHTCaps.reserved2);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), ( tANI_U8* )&pFrm->VHTCaps.txMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("txSupDataRate (13): %d\n"), pFrm->VHTCaps.txSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved3 (3): %d\n"), pFrm->VHTCaps.reserved3);
+        }
     }
 #   endif // DOT11F_DUMP_FRAMES
     return status;
@@ -18769,6 +18876,8 @@ tANI_U32 dot11fUnpackTDLSSetupReq(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 n
         {offsetof(tDot11fTDLSSetupRsp, HTCaps), offsetof(tDot11fIEHTCaps, present), 0, "HTCaps" , 0, 28, 60, SigIeHTCaps, {0, 0, 0, 0, 0}, 0, DOT11F_EID_HTCAPS, 0, },
         {offsetof(tDot11fTDLSSetupRsp, LinkIdentifier), offsetof(tDot11fIELinkIdentifier, present), 0, "LinkIdentifier" , 0, 20, 20, SigIeLinkIdentifier, {0, 0, 0, 0, 0}, 0, DOT11F_EID_LINKIDENTIFIER, 0, },
         {offsetof(tDot11fTDLSSetupRsp, WMMInfoStation), offsetof(tDot11fIEWMMInfoStation, present), 0, "WMMInfoStation" , 0, 9, 9, SigIeWMMInfoStation, {0, 80, 242, 2, 0}, 5, DOT11F_EID_WMMINFOSTATION, 0, },
+        {offsetof(tDot11fTDLSSetupRsp, AID), offsetof(tDot11fIEAID, present), 0, "AID" , 0, 4, 4, SigIeAID, {0, 0, 0, 0, 0}, 0, DOT11F_EID_AID, 0, },
+        {offsetof(tDot11fTDLSSetupRsp, VHTCaps), offsetof(tDot11fIEVHTCaps, present), 0, "VHTCaps" , 0, 14, 14, SigIeVHTCaps, {0, 0, 0, 0, 0}, 0, DOT11F_EID_VHTCAPS, 0, },
     {0, 0, 0, NULL, 0, 0, 0, 0, {0, 0, 0, 0, 0}, 0, 0xff, 0, },    };
 
 tANI_U32 dot11fUnpackTDLSSetupRsp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 nBuf, tDot11fTDLSSetupRsp *pFrm)
@@ -19091,6 +19200,49 @@ tANI_U32 dot11fUnpackTDLSSetupRsp(tpAniSirGlobal pCtx, tANI_U8 *pBuf, tANI_U32 n
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved1 (1): %d\n"), pFrm->WMMInfoStation.reserved1);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("max_sp_length (2): %d\n"), pFrm->WMMInfoStation.max_sp_length);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved2 (1): %d\n"), pFrm->WMMInfoStation.reserved2);
+        }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("AID:\n"));
+        if (!pFrm->AID.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), ( tANI_U8* )&pFrm->AID.assocId, 2);
+        }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("VHTCaps:\n"));
+        if (!pFrm->VHTCaps.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("maxMPDULen (2): %d\n"), pFrm->VHTCaps.maxMPDULen);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("supportedChannelWidthSet (2): %d\n"), pFrm->VHTCaps.supportedChannelWidthSet);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("ldpcCodingCap (1): %d\n"), pFrm->VHTCaps.ldpcCodingCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("shortGI80MHz (1): %d\n"), pFrm->VHTCaps.shortGI80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("shortGI160and80plus80MHz (1): %d\n"), pFrm->VHTCaps.shortGI160and80plus80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("txSTBC (1): %d\n"), pFrm->VHTCaps.txSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("rxSTBC (3): %d\n"), pFrm->VHTCaps.rxSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("suBeamFormerCap (1): %d\n"), pFrm->VHTCaps.suBeamFormerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("suBeamformeeCap (1): %d\n"), pFrm->VHTCaps.suBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("csnofBeamformerAntSup (3): %d\n"), pFrm->VHTCaps.csnofBeamformerAntSup);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("numSoundingDim (3): %d\n"), pFrm->VHTCaps.numSoundingDim);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("muBeamformerCap (1): %d\n"), pFrm->VHTCaps.muBeamformerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("muBeamformeeCap (1): %d\n"), pFrm->VHTCaps.muBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("vhtTXOPPS (1): %d\n"), pFrm->VHTCaps.vhtTXOPPS);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("htcVHTCap (1): %d\n"), pFrm->VHTCaps.htcVHTCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("maxAMPDULenExp (3): %d\n"), pFrm->VHTCaps.maxAMPDULenExp);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("vhtLinkAdaptCap (2): %d\n"), pFrm->VHTCaps.vhtLinkAdaptCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("rxAntPattern (1): %d\n"), pFrm->VHTCaps.rxAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("txAntPattern (1): %d\n"), pFrm->VHTCaps.txAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved1 (2): %d\n"), pFrm->VHTCaps.reserved1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), ( tANI_U8* )&pFrm->VHTCaps.rxMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("rxHighSupDataRate (13): %d\n"), pFrm->VHTCaps.rxHighSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved2 (3): %d\n"), pFrm->VHTCaps.reserved2);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), ( tANI_U8* )&pFrm->VHTCaps.txMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("txSupDataRate (13): %d\n"), pFrm->VHTCaps.txSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved3 (3): %d\n"), pFrm->VHTCaps.reserved3);
         }
     }
 #   endif // DOT11F_DUMP_FRAMES
@@ -19903,6 +20055,9 @@ static tANI_U32 UnpackCore(tpAniSirGlobal pCtx,
                             break;
                 case SigIeWMMTSPEC:
                         status |= dot11fUnpackIeWMMTSPEC(pCtx, pBufRemaining, len, ( tDot11fIEWMMTSPEC* )(pFrm + pIe->offset + sizeof(tDot11fIEWMMTSPEC)*countOffset) );
+                            break;
+                case SigIeAID:
+                        status |= dot11fUnpackIeAID(pCtx, pBufRemaining, len, ( tDot11fIEAID* )(pFrm + pIe->offset + sizeof(tDot11fIEAID)*countOffset) );
                             break;
                 case SigIeAirgo:
                         status |= dot11fUnpackIeAirgo(pCtx, pBufRemaining, len, ( tDot11fIEAirgo* )(pFrm + pIe->offset + sizeof(tDot11fIEAirgo)*countOffset) );
@@ -21998,6 +22153,11 @@ static tANI_U32 GetPackedSizeCore(tpAniSirGlobal pCtx,
                             offset = sizeof(tDot11fIEWMMTSPEC);
                             byteCount = 56;
                             pIePresent = ( (tDot11fIEWMMTSPEC* )(pFrm + pIe->offset + offset * i  ))->present;
+                            break;
+                case SigIeAID:
+                            offset = sizeof(tDot11fIEAID);
+                            byteCount = 2;
+                            pIePresent = ( (tDot11fIEAID* )(pFrm + pIe->offset + offset * i  ))->present;
                             break;
                 case SigIeAirgo:
                             offset = sizeof(tDot11fIEAirgo);
@@ -26299,6 +26459,36 @@ tANI_U32 dot11fPackIeWMMTSPEC(tpAniSirGlobal pCtx,
     }
     return DOT11F_PARSE_SUCCESS;
 } /* End dot11fPackIeWMMTSPEC. */
+
+tANI_U32 dot11fPackIeAID(tpAniSirGlobal pCtx,
+                         tDot11fIEAID *pSrc,
+                         tANI_U8 *pBuf,
+                         tANI_U32 nBuf,
+                         tANI_U32 *pnConsumed)
+{
+    tANI_U8* pIeLen = 0;
+    tANI_U32 nConsumedOnEntry = *pnConsumed;
+    tANI_U32 nNeeded = 0U;
+    nNeeded  += 2;
+    while ( pSrc->present )
+    {
+        if ( nNeeded > nBuf ) return DOT11F_BUFFER_OVERFLOW;
+        *pBuf = 197;
+        ++pBuf; ++(*pnConsumed);
+        pIeLen = pBuf;
+        ++pBuf; ++(*pnConsumed);
+        frameshtons(pCtx, pBuf, pSrc->assocId, 0);
+        *pnConsumed += 2;
+        // fieldsEndFlag = 1
+        break;
+    }
+    (void)pCtx;
+    if (pIeLen)
+    {
+        *pIeLen = *pnConsumed - nConsumedOnEntry - 2;
+    }
+    return DOT11F_PARSE_SUCCESS;
+} /* End dot11fPackIeAID. */
 
 tANI_U32 dot11fPackIeAirgo(tpAniSirGlobal pCtx,
                            tDot11fIEAirgo *pSrc,
@@ -42475,6 +42665,40 @@ tANI_U32 dot11fPackTDLSDisRsp(tpAniSirGlobal pCtx, tDot11fTDLSDisRsp *pFrm, tANI
             FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), ( tANI_U8* )&pFrm->LinkIdentifier.InitStaAddr, 6);
             FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), ( tANI_U8* )&pFrm->LinkIdentifier.RespStaAddr, 6);
         }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("VHTCaps:\n"));
+        if (!pFrm->VHTCaps.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("maxMPDULen (2): %d\n"), pFrm->VHTCaps.maxMPDULen);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("supportedChannelWidthSet (2): %d\n"), pFrm->VHTCaps.supportedChannelWidthSet);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("ldpcCodingCap (1): %d\n"), pFrm->VHTCaps.ldpcCodingCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("shortGI80MHz (1): %d\n"), pFrm->VHTCaps.shortGI80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("shortGI160and80plus80MHz (1): %d\n"), pFrm->VHTCaps.shortGI160and80plus80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("txSTBC (1): %d\n"), pFrm->VHTCaps.txSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("rxSTBC (3): %d\n"), pFrm->VHTCaps.rxSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("suBeamFormerCap (1): %d\n"), pFrm->VHTCaps.suBeamFormerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("suBeamformeeCap (1): %d\n"), pFrm->VHTCaps.suBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("csnofBeamformerAntSup (3): %d\n"), pFrm->VHTCaps.csnofBeamformerAntSup);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("numSoundingDim (3): %d\n"), pFrm->VHTCaps.numSoundingDim);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("muBeamformerCap (1): %d\n"), pFrm->VHTCaps.muBeamformerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("muBeamformeeCap (1): %d\n"), pFrm->VHTCaps.muBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("vhtTXOPPS (1): %d\n"), pFrm->VHTCaps.vhtTXOPPS);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("htcVHTCap (1): %d\n"), pFrm->VHTCaps.htcVHTCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("maxAMPDULenExp (3): %d\n"), pFrm->VHTCaps.maxAMPDULenExp);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("vhtLinkAdaptCap (2): %d\n"), pFrm->VHTCaps.vhtLinkAdaptCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("rxAntPattern (1): %d\n"), pFrm->VHTCaps.rxAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("txAntPattern (1): %d\n"), pFrm->VHTCaps.txAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("reserved1 (2): %d\n"), pFrm->VHTCaps.reserved1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), ( tANI_U8* )&pFrm->VHTCaps.rxMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("rxHighSupDataRate (13): %d\n"), pFrm->VHTCaps.rxHighSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("reserved2 (3): %d\n"), pFrm->VHTCaps.reserved2);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), ( tANI_U8* )&pFrm->VHTCaps.txMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("txSupDataRate (13): %d\n"), pFrm->VHTCaps.txSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("reserved3 (3): %d\n"), pFrm->VHTCaps.reserved3);
+        }
         FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), FRFL("to:\n"));
         FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSDISRSP), pBuf, nBuf);
     }
@@ -42766,6 +42990,18 @@ tANI_U32 dot11fPackTDLSSetupCnf(tpAniSirGlobal pCtx, tDot11fTDLSSetupCnf *pFrm, 
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("reserved1 (1): %d\n"), pFrm->WMMInfoStation.reserved1);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("max_sp_length (2): %d\n"), pFrm->WMMInfoStation.max_sp_length);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("reserved2 (1): %d\n"), pFrm->WMMInfoStation.reserved2);
+        }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("VHTOperation:\n"));
+        if (!pFrm->VHTOperation.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), ( tANI_U8* )&pFrm->VHTOperation.chanWidth, 1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), ( tANI_U8* )&pFrm->VHTOperation.chanCenterFreqSeg1, 1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), ( tANI_U8* )&pFrm->VHTOperation.chanCenterFreqSeg2, 1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), ( tANI_U8* )&pFrm->VHTOperation.basicMCSSet, 2);
         }
         FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), FRFL("to:\n"));
         FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPCNF), pBuf, nBuf);
@@ -43092,6 +43328,49 @@ tANI_U32 dot11fPackTDLSSetupReq(tpAniSirGlobal pCtx, tDot11fTDLSSetupReq *pFrm, 
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved1 (1): %d\n"), pFrm->WMMInfoStation.reserved1);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("max_sp_length (2): %d\n"), pFrm->WMMInfoStation.max_sp_length);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved2 (1): %d\n"), pFrm->WMMInfoStation.reserved2);
+        }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("AID:\n"));
+        if (!pFrm->AID.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), ( tANI_U8* )&pFrm->AID.assocId, 2);
+        }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("VHTCaps:\n"));
+        if (!pFrm->VHTCaps.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("maxMPDULen (2): %d\n"), pFrm->VHTCaps.maxMPDULen);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("supportedChannelWidthSet (2): %d\n"), pFrm->VHTCaps.supportedChannelWidthSet);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("ldpcCodingCap (1): %d\n"), pFrm->VHTCaps.ldpcCodingCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("shortGI80MHz (1): %d\n"), pFrm->VHTCaps.shortGI80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("shortGI160and80plus80MHz (1): %d\n"), pFrm->VHTCaps.shortGI160and80plus80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("txSTBC (1): %d\n"), pFrm->VHTCaps.txSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("rxSTBC (3): %d\n"), pFrm->VHTCaps.rxSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("suBeamFormerCap (1): %d\n"), pFrm->VHTCaps.suBeamFormerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("suBeamformeeCap (1): %d\n"), pFrm->VHTCaps.suBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("csnofBeamformerAntSup (3): %d\n"), pFrm->VHTCaps.csnofBeamformerAntSup);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("numSoundingDim (3): %d\n"), pFrm->VHTCaps.numSoundingDim);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("muBeamformerCap (1): %d\n"), pFrm->VHTCaps.muBeamformerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("muBeamformeeCap (1): %d\n"), pFrm->VHTCaps.muBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("vhtTXOPPS (1): %d\n"), pFrm->VHTCaps.vhtTXOPPS);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("htcVHTCap (1): %d\n"), pFrm->VHTCaps.htcVHTCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("maxAMPDULenExp (3): %d\n"), pFrm->VHTCaps.maxAMPDULenExp);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("vhtLinkAdaptCap (2): %d\n"), pFrm->VHTCaps.vhtLinkAdaptCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("rxAntPattern (1): %d\n"), pFrm->VHTCaps.rxAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("txAntPattern (1): %d\n"), pFrm->VHTCaps.txAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved1 (2): %d\n"), pFrm->VHTCaps.reserved1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), ( tANI_U8* )&pFrm->VHTCaps.rxMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("rxHighSupDataRate (13): %d\n"), pFrm->VHTCaps.rxHighSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved2 (3): %d\n"), pFrm->VHTCaps.reserved2);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), ( tANI_U8* )&pFrm->VHTCaps.txMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("txSupDataRate (13): %d\n"), pFrm->VHTCaps.txSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("reserved3 (3): %d\n"), pFrm->VHTCaps.reserved3);
         }
         FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), FRFL("to:\n"));
         FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPREQ), pBuf, nBuf);
@@ -43420,6 +43699,49 @@ tANI_U32 dot11fPackTDLSSetupRsp(tpAniSirGlobal pCtx, tDot11fTDLSSetupRsp *pFrm, 
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved1 (1): %d\n"), pFrm->WMMInfoStation.reserved1);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("max_sp_length (2): %d\n"), pFrm->WMMInfoStation.max_sp_length);
             FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved2 (1): %d\n"), pFrm->WMMInfoStation.reserved2);
+        }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("AID:\n"));
+        if (!pFrm->AID.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), ( tANI_U8* )&pFrm->AID.assocId, 2);
+        }
+        FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("VHTCaps:\n"));
+        if (!pFrm->VHTCaps.present)
+        {
+            FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("Not present.\n"));
+        }
+        else
+        {
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("maxMPDULen (2): %d\n"), pFrm->VHTCaps.maxMPDULen);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("supportedChannelWidthSet (2): %d\n"), pFrm->VHTCaps.supportedChannelWidthSet);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("ldpcCodingCap (1): %d\n"), pFrm->VHTCaps.ldpcCodingCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("shortGI80MHz (1): %d\n"), pFrm->VHTCaps.shortGI80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("shortGI160and80plus80MHz (1): %d\n"), pFrm->VHTCaps.shortGI160and80plus80MHz);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("txSTBC (1): %d\n"), pFrm->VHTCaps.txSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("rxSTBC (3): %d\n"), pFrm->VHTCaps.rxSTBC);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("suBeamFormerCap (1): %d\n"), pFrm->VHTCaps.suBeamFormerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("suBeamformeeCap (1): %d\n"), pFrm->VHTCaps.suBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("csnofBeamformerAntSup (3): %d\n"), pFrm->VHTCaps.csnofBeamformerAntSup);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("numSoundingDim (3): %d\n"), pFrm->VHTCaps.numSoundingDim);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("muBeamformerCap (1): %d\n"), pFrm->VHTCaps.muBeamformerCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("muBeamformeeCap (1): %d\n"), pFrm->VHTCaps.muBeamformeeCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("vhtTXOPPS (1): %d\n"), pFrm->VHTCaps.vhtTXOPPS);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("htcVHTCap (1): %d\n"), pFrm->VHTCaps.htcVHTCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("maxAMPDULenExp (3): %d\n"), pFrm->VHTCaps.maxAMPDULenExp);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("vhtLinkAdaptCap (2): %d\n"), pFrm->VHTCaps.vhtLinkAdaptCap);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("rxAntPattern (1): %d\n"), pFrm->VHTCaps.rxAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("txAntPattern (1): %d\n"), pFrm->VHTCaps.txAntPattern);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved1 (2): %d\n"), pFrm->VHTCaps.reserved1);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), ( tANI_U8* )&pFrm->VHTCaps.rxMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("rxHighSupDataRate (13): %d\n"), pFrm->VHTCaps.rxHighSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved2 (3): %d\n"), pFrm->VHTCaps.reserved2);
+            FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), ( tANI_U8* )&pFrm->VHTCaps.txMCSMap, 2);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("txSupDataRate (13): %d\n"), pFrm->VHTCaps.txSupDataRate);
+            FRAMES_LOG1(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("reserved3 (3): %d\n"), pFrm->VHTCaps.reserved3);
         }
         FRAMES_LOG0(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), FRFL("to:\n"));
         FRAMES_DUMP(pCtx, FRAMES_SEV_FOR_FRAME(pCtx, DOT11F_TDLSSETUPRSP), pBuf, nBuf);
@@ -44092,6 +44414,9 @@ static tANI_U32 PackCore(tpAniSirGlobal pCtx,
                         break;
                     case SigIeWMMTSPEC:
                         status |= dot11fPackIeWMMTSPEC(pCtx, ( tDot11fIEWMMTSPEC* )(pSrc + pIe->offset + sizeof(tDot11fIEWMMTSPEC) * i ),  pBufRemaining, nBufRemaining, &len);
+                        break;
+                    case SigIeAID:
+                        status |= dot11fPackIeAID(pCtx, ( tDot11fIEAID* )(pSrc + pIe->offset + sizeof(tDot11fIEAID) * i ),  pBufRemaining, nBufRemaining, &len);
                         break;
                     case SigIeAirgo:
                         status |= dot11fPackIeAirgo(pCtx, ( tDot11fIEAirgo* )(pSrc + pIe->offset + sizeof(tDot11fIEAirgo) * i ),  pBufRemaining, nBufRemaining, &len);
