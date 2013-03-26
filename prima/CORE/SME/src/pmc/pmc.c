@@ -1011,6 +1011,14 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
         return;
     }
 
+#ifdef FEATURE_WLAN_TDLS
+    if (pMac->isTdlsPowerSaveProhibited)
+    {
+       smsLog(pMac, LOGE, FL("TDLS peer(s) connected/discovery sent. Dont enter BMPS"));
+       return;
+    }
+#endif
+
     if (pmcPowerSaveCheck(hHal))
     {
         smsLog(pMac, LOGW, FL("BMPS entry criteria satisfied. Requesting BMPS state"));
