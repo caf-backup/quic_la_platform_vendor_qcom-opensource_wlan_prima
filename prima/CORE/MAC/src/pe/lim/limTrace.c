@@ -28,6 +28,7 @@
 #ifdef LIM_TRACE_RECORD
 tANI_U32 gMgmtFrameStats[14];
 
+#define LIM_TRACE_MAX_SUBTYPES 14
 
 
 static tANI_U8* __limTraceGetTimerString( tANI_U16 timerId )
@@ -105,7 +106,7 @@ void limTraceInit(tpAniSirGlobal pMac)
 void limTraceDump(tpAniSirGlobal pMac, tpTraceRecord pRecord, tANI_U16 recIndex)
 {
 
-    static char *frameSubtypeStr[14] =
+    static char *frameSubtypeStr[LIM_TRACE_MAX_SUBTYPES] =
     {
         "Association request",
         "Association response",
@@ -123,6 +124,7 @@ void limTraceDump(tpAniSirGlobal pMac, tpTraceRecord pRecord, tANI_U16 recIndex)
         "Action"
     };
 
+
     switch (pRecord->code) {
         case TRACE_CODE_MLM_STATE:
             limLog(pMac, LOGE, "%04d    %012u  S%d    %-14s  %-30s(0x%x) \n", recIndex, pRecord->time, pRecord->session,
@@ -138,10 +140,17 @@ void limTraceDump(tpAniSirGlobal pMac, tpTraceRecord pRecord, tANI_U16 recIndex)
             break;
 
         case TRACE_CODE_RX_MGMT:
-            limLog(pMac, LOGE, "%04d    %012u  S%d    %-14s  %-30s(%d)    SN: %d \n", recIndex, pRecord->time, pRecord->session,
+            if (LIM_TRACE_MAX_SUBTYPES <= LIM_TRACE_GET_SUBTYPE(pRecord->data))
+            {
+                limLog(pMac, LOGE, "Wrong Subtype - %d", LIM_TRACE_GET_SUBTYPE(pRecord->data));
+            }
+            else
+            {
+                limLog(pMac, LOGE, "%04d    %012u  S%d    %-14s  %-30s(%d)    SN: %d \n", recIndex, pRecord->time, pRecord->session,
                                             "RX Mgmt:", frameSubtypeStr[LIM_TRACE_GET_SUBTYPE(pRecord->data)],
                                             LIM_TRACE_GET_SUBTYPE(pRecord->data),
                                             LIM_TRACE_GET_SSN(pRecord->data) );
+            }
             break;
         case TRACE_CODE_RX_MGMT_DROP:
             limLog(pMac, LOGE, "%04d    %012u  S%d    %-14s  %-30s(%d)  \n", recIndex, pRecord->time, pRecord->session,
