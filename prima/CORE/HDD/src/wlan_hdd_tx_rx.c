@@ -1027,6 +1027,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    }
 
 #ifdef FEATURE_WLAN_TDLS
+    if (eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode)
     {
         hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
         u8 mac[6];
@@ -1039,8 +1040,8 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
         } else if (memcmp(pHddStaCtx->conn_info.bssId,
                             mac, 6) != 0) {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                      "extract mac:%x %x %x %x %x %x",
-                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
+                      "extract mac: " MAC_ADDRESS_STR,
+                      MAC_ADDR_ARRAY(mac) );
 
             wlan_hdd_tdls_increment_pkt_count(pAdapter, mac, 1);
         } else {
@@ -1346,6 +1347,8 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       }
 
 #ifdef FEATURE_WLAN_TDLS
+    if ((eTDLS_SUPPORT_ENABLED == pHddCtx->tdls_mode) &&
+         0 != pHddCtx->connected_peer_count)
     {
         hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
         u8 mac[6];
