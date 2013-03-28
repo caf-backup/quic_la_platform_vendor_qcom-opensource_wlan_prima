@@ -1,4 +1,10 @@
 /*
+* Copyright (c) 2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
+/*
  * Copyright (C) 2007-2009 Qualcomm Technologies, Inc. All rights reserved. Proprietary and Confidential.
  */
 
@@ -432,8 +438,8 @@ tAniIpc *aniAsfIpcOpenWithLocalAddr(int af, int type, int port, char *localAddr)
 	if (getsockname(ipc->sd,
 			(struct sockaddr *)&ipc->local,
 			&len) < 0) {
-		aniAsfIpcClose(ipc);
 		aniAsfLogMsg(ANI_GETSOCKNAME_ERR, ipc, ipc->sd);
+		aniAsfIpcClose(ipc);
 		return(NULL);
 	}
 
