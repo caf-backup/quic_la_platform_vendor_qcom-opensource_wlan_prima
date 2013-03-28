@@ -1,4 +1,10 @@
 /*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ * */
+
+/*
  * Copyright (C) 2007-2009 Qualcomm Technologies, Inc. All rights reserved. Proprietary and Confidential.
  */
 
@@ -154,6 +160,7 @@ aniAsfHashTableInit(tAniHashTable **tableP,
                      ANI_LOG_FUNC, 
                      "Could not allocate memory for hashtable buckets!");
         assert(0 && "Failed to allocate hashtable buckets!");
+        free(hashtable);
         return ANI_E_MALLOC_FAILED;
     }
 

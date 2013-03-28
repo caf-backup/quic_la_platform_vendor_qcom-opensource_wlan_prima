@@ -782,7 +782,7 @@ int aniAsfIpcConnect(tAniIpc *ipc, char *host, int prog, int vers)
 	char buf[1024];
 	int buflen = 1024;
 	struct hostent *result;
-	int herrno;
+	int herrno = 0;
 	char *tmphost = host;
 	
 	if (!host)
@@ -1334,8 +1334,13 @@ int aniAsfIpcProcess(void)
 		// lock the critical section
 		if ((errno = pthread_mutex_lock(&scbmutex)) > 0) {
 			aniAsfLogMsg(ANI_MUTEX_ERR);
+			aniFree(ascb);
 			return(errno);
 		}
+
+		// initialize ascb
+		for (i = 0; i < rv; i++)
+			ascb[i] = NULL;
 
 		i = 0;
 
@@ -1353,6 +1358,7 @@ int aniAsfIpcProcess(void)
 		// unlock the critical section
 		if ((errno = pthread_mutex_unlock(&scbmutex)) > 0) {
 			aniAsfLogMsg(ANI_MUTEX_ERR);
+			aniFree(ascb);
 			return(errno);
 		}
 

@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  * */
+
 /*============================================================================
   FILE:         vos_utils.c
 
@@ -368,7 +369,7 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
     struct crypto_ahash *tfm;
     struct scatterlist sg;
     struct ahash_request *req;
-    struct hmac_md5_result tresult;
+    struct hmac_md5_result tresult = {.err = 0};
     void *hash_buff = NULL;
 
     unsigned char hash_result[64];

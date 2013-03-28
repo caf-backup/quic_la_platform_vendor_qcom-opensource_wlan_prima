@@ -1,4 +1,10 @@
 /*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ * */
+
+/*
  * Copyright (C) 2007-2009 Qualcomm Technologies, Inc. All rights reserved. Proprietary and Confidential.
  */
 
@@ -399,10 +405,6 @@ aniAsfPacketCanAppendBuffer(tAniPacket *destPacket,
   if (destPacket == NULL)
     return ANI_E_FAILED;
 
-  assert(len >= 0);
-  if (len < 0)
-    return ANI_E_FAILED;
-
   if (len <= TAIL_SPACE(destPacket))
       return ANI_OK;
   else
@@ -435,10 +437,6 @@ aniAsfPacketCanPrependBuffer(tAniPacket *destPacket,
 {
   assert(destPacket != NULL);
   if (destPacket == NULL)
-      return ANI_E_FAILED;
-
-  assert(len >= 0);
-  if (len < 0)
       return ANI_E_FAILED;
 
   if (len <= HEAD_SPACE(destPacket))
