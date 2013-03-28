@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -310,6 +310,10 @@ when        who    what, where, why
 #define WDI_RX_BD_GET_PMICMD_20TO23(_pvBDHeader)        (((WDI_RxBdType*)_pvBDHeader)->pmiCmd4to23[4])
 
 #define WDI_RX_BD_GET_PMICMD_24TO25(_pvBDHeader)        (((WDI_RxBdType*)_pvBDHeader)->pmiCmd24to25)
+
+#ifdef WLAN_FEATURE_11W
+#define WDI_RX_BD_GET_RMF( _pvBDHeader )         (((WDI_RxBdType*)_pvBDHeader)->rmf)
+#endif
 
 #define WDI_RX_BD_ASF_SET               1 /*The value of the field when set and pkt is AMSDU*/
 
