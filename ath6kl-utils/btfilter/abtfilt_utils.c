@@ -37,6 +37,7 @@ A_TASK_CREATE(A_TASK_HANDLE *handle, void *(*func)(void *), void *arg)
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     ret = pthread_create(handle, &attr, func, arg);
     if (ret) {
+        pthread_attr_destroy(&attr);
         A_ERR("%s Failed: %d\n", __FUNCTION__, ret);
         return A_ERROR;
     }

@@ -197,6 +197,10 @@ A_STATUS Abf_BtStackNotificationInit(ATH_BT_FILTER_INSTANCE *pInstance,
 	}
 
 	pAbfBtInfo = (ABF_BT_INFO *)A_MALLOC(sizeof(ABF_BT_INFO));
+	if (!pAbfBtInfo) {
+		A_ERR (" Fail to allocate memory!");
+		return A_NO_MEMORY;
+	}
 	A_MEMZERO(pAbfBtInfo,sizeof(ABF_BT_INFO));
 
 	pInfo->Flags = Flags;
@@ -230,17 +234,17 @@ A_STATUS Abf_BtStackNotificationInit(ATH_BT_FILTER_INSTANCE *pInstance,
 	A_INFO("After init %s:%d\n", __FUNCTION__, __LINE__);
 
 	/* check for default adapter at startup */
-	CheckAndAcquireDefaultAdapter(pAbfBtInfo);
-	REGISTER_SIGNAL(BT_ADAPTER_ADDED);
-	REGISTER_SIGNAL(BT_ADAPTER_REMOVED);
-	status = A_OK;
-	A_INFO("Init complete:%s:%d\n", __FUNCTION__, __LINE__);
-
-
+	status = CheckAndAcquireDefaultAdapter(pAbfBtInfo);
 	if (A_FAILED(status)) {
 		Abf_BtStackNotificationDeInit(pInstance);
+		A_INFO("Fail to acquire default adapter\n");
+	} else {
+		REGISTER_SIGNAL(BT_ADAPTER_ADDED);
+		REGISTER_SIGNAL(BT_ADAPTER_REMOVED);
+		status = A_OK;
+		A_INFO("Init complete:%s:%d\n", __FUNCTION__, __LINE__);
+		A_INFO("BT Stack Notification init complete\n");
 	}
-	A_INFO("BT Stack Notification init complete\n");
 
 	return status;
 }
@@ -912,7 +916,7 @@ static A_STATUS CheckRemoteDeviceEDRCapable(ABF_BT_INFO *pAbfBtInfo, A_BOOL *pED
 				&eventPtr,
 				&eventLen);
 
-		if (A_FAILED(status)) {
+		if (A_FAILED(status) || !eventPtr) {
 			A_ERR("[%s] Failed to get remote features \n", __FUNCTION__);
 			break;
 		}
@@ -959,7 +963,7 @@ static A_STATUS GetRemoteDeviceLMPVersion(ABF_BT_INFO *pAbfBtInfo)
 				&eventPtr,
 				&eventLen);
 
-		if (A_FAILED(status)) {
+		if (A_FAILED(status) || !eventPtr) {
 			A_ERR("[%s] Failed to get remote Version \n", __FUNCTION__);
 			break;
 		}
@@ -1057,6 +1061,10 @@ static A_STATUS WaitForHCIEvent(int         Socket,
 	A_UCHAR *eventPtr;
 	A_STATUS status = A_OK;
 
+	if (!pBuffer) {
+		A_ERR("[%s] invalid input parameter\n", __FUNCTION__);
+		return A_ERROR;
+	}
 	*ppEventPtr = NULL;
 	A_MEMZERO(&pfd,sizeof(pfd));
 	pfd.fd = Socket;
