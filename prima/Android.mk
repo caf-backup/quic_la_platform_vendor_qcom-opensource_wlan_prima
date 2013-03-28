@@ -28,7 +28,7 @@ else
 endif
 
 ifeq ($(WLAN_PROPRIETARY),1)
-    WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
+    WLAN_BLD_DIR := vendor/qcom/proprietary/wlan-noship
 else
     WLAN_BLD_DIR := vendor/qcom/opensource/wlan
 endif
