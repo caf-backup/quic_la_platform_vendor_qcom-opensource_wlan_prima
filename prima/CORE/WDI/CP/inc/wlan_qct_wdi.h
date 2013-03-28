@@ -1228,6 +1228,9 @@ typedef struct
   /*Used for configuration of different HW modules.*/
   WDI_STAEntryType          wdiSTAType;
 
+  /*STA Index */
+  wpt_uint8                 staIdx;
+
   /*Short Preamble Supported.*/
   wpt_uint8                 ucShortPreambleSupported;
 
