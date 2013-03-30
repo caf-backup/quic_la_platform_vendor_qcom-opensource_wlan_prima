@@ -756,7 +756,7 @@ static VOS_STATUS btcDeferAclCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
 {
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     tpSmeBtAclEventHist pAclEventHist;
-    tSmeBtAclConnectionParam *pAclEvent;
+    tSmeBtAclConnectionParam *pAclEvent = NULL;
     do
     {
         //Find a match
@@ -914,7 +914,7 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
 {
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     tpSmeBtSyncEventHist pSyncEventHist;
-    tSmeBtSyncConnectionParam *pSyncEvent;
+    tSmeBtSyncConnectionParam *pSyncEvent = NULL;
     do
     {
         //Find a match
