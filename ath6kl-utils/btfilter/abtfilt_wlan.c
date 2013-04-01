@@ -47,6 +47,10 @@ Abf_WlanStackNotificationInit(ATH_BT_FILTER_INSTANCE *pInstance, A_UINT32 flags)
     }
 
     pAbfWlanInfo = (ABF_WLAN_INFO *)A_MALLOC(sizeof(ABF_WLAN_INFO));
+    if (!pAbfWlanInfo) {
+        A_ERR("[%s] Failed to allocate memory\n", __FUNCTION__);
+        return A_NO_MEMORY;
+    }
     A_MEMZERO(pAbfWlanInfo,sizeof(ABF_WLAN_INFO));
 
     A_MUTEX_INIT(&pAbfWlanInfo->hWaitEventLock);
@@ -295,7 +299,7 @@ WlanEventThread(void *arg)
 
         Abf_WlanCheckSettings(pInstance->pWlanAdapterName);
 
-	if (!pInstance->pWlanAdapterName) {
+        if(pInstance->pWlanAdapterName[0] == '\0') {
 		Abf_WlanCheckSettings(pAbfWlanInfo->IfName);
 		if (pAbfWlanInfo->IfName[0])
 			pAbfWlanInfo->IfIndex = if_nametoindex(
@@ -474,6 +478,7 @@ Abf_WlanIssueBtOnOff(ATHBT_FILTER_INFO * pInfo, A_BOOL bOn)
 
     A_INFO(bOn ? "BT ON" : "BT OFF");
     buf_debug_cmd[0] = AR6000_XIOCTL_WMI_SET_BTCOEX_DEBUG;
+    A_MEMZERO(&btcoexDebugCmd, sizeof(WMI_SET_BTCOEX_DEBUG_CMD));
     btcoexDebugCmd.btcoexDbgParam5 = bOn ? 0xFEFE: 0xEFEF;
     A_MEMCPY(&buf_debug_cmd[1], (void *)&btcoexDebugCmd,
 	     sizeof(WMI_SET_BTCOEX_DEBUG_CMD));

@@ -93,6 +93,10 @@ main(int argc, char *argv[])
         case 'f':
             if (optarg) {
                 config_file = strdup(optarg);
+                if (config_file == NULL) {
+                    A_ERR("[%s] failed to allocate memory\n", __FUNCTION__);
+                    exit(1);
+                }
             }
             break;
         case 'c':
@@ -121,6 +125,10 @@ main(int argc, char *argv[])
             A_DEBUG("Front End Antenna Configuration is single antenna \n");
             break;
         case 'w':
+            if (!optarg) {
+                A_ERR("[%s] failed to get wlan interface\n", __FUNCTION__);
+                exit(1);
+            }
             memset(wifname, '\0', IFNAMSIZ);
             strcpy(wifname, optarg);
             g_AthBtFilterInstance.pWlanAdapterName = (A_CHAR *)&wifname;

@@ -258,6 +258,7 @@ out_free_msg:
 	nlmsg_free(msg);
 	return devidx;
 nla_put_failure:
+	nl_cb_put(cb);
 	fprintf(stderr, "building message failed\n");
 	return -1;
 }

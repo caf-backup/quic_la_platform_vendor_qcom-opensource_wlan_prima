@@ -55,7 +55,7 @@ static void ProcessActionOverride(ATHBT_FILTER_INFO *pInfo,
                                   A_CHAR            *pIndicationStr,
                                   A_CHAR            *pModifyAction,
                                   A_CHAR            *pAction);
-static void GetActionStringOverrides(ATHBT_FILTER_INFO *pInfo);
+static A_STATUS GetActionStringOverrides(ATHBT_FILTER_INFO *pInfo);
 
 /* APIs exported to other modules */
 void
@@ -141,7 +141,11 @@ AthBtFilter_Attach(ATH_BT_FILTER_INSTANCE *pInstance, A_UINT32 flags)
             break;
         }
 
-        GetActionStringOverrides(pInfo);
+        status = GetActionStringOverrides(pInfo);
+        if (A_FAILED(status)) {
+            A_ERR("[%s] Failed to process string overrided (status:%d)\n",
+                  __FUNCTION__, status);
+        }
 
         status = FCore_RefreshActionList(&pInfo->FilterCore);
         if (A_FAILED(status)) {
@@ -1406,7 +1410,12 @@ HandleAdapterEvent(ATHBT_FILTER_INFO *pInfo, ATH_ADAPTER_EVENT Event)
                 pCoreInfo->FilterState.btFilterFlags &= ~(ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY);
                 pCoreInfo->FilterState.btFilterFlags |= (btfiltFlags & (ABF_WIFI_CHIP_IS_VENUS | ABF_WIFI_CHIP_IS_MCKINLEY));
                 FCore_ResetActionDescriptors(pCoreInfo);
-                GetActionStringOverrides(pInfo);
+                status = GetActionStringOverrides(pInfo);
+                if (A_FAILED(status)) {
+                    A_ERR("[%s] Failed to process string overrided (status:%d)\n",
+                        __FUNCTION__, status);
+                }
+
                 status = FCore_RefreshActionList(pCoreInfo);
                 if (A_FAILED(status)) {
                     A_ERR("[%s] Failed refresh action list (status:%d)\n",
@@ -1461,8 +1470,8 @@ HandleAdapterEvent(ATHBT_FILTER_INFO *pInfo, ATH_ADAPTER_EVENT Event)
 static void
 ExecuteBtAction(ATHBT_FILTER_INFO *pInfo, BT_ACTION_MSG *pBtActionMsg)
 {
-    A_UINT32 size;
-    A_UINT32 controlCode;
+    A_UINT32 size = 0;
+    A_UINT32 controlCode = 0;
     A_STATUS status;
 
 	A_INFO("BT Action\n");
@@ -1502,6 +1511,10 @@ ExecuteBtAction(ATHBT_FILTER_INFO *pInfo, BT_ACTION_MSG *pBtActionMsg)
             controlCode = AR6000_XIOCTL_WMI_SET_BT_PARAMS;
         }
         size  = sizeof(WMI_SET_BT_PARAMS_CMD);
+    }
+    if (controlCode == 0) {
+       A_ERR("Bad control actiond\n");
+       return;
     }
     if ((A_UINT32)pBtActionMsg->ControlAction.Length > size) {
        A_ERR("Bad control action length : %d \n", pBtActionMsg->ControlAction.Length);
@@ -1601,17 +1614,19 @@ ProcessActionOverride(ATHBT_FILTER_INFO *pInfo,
                                     modifyAction);
 }
 
-static void
+static A_STATUS
 GetActionStringOverrides(ATHBT_FILTER_INFO *pInfo)
 {
     A_CHAR *ptr, *indication, *modify, *action;
     A_CHAR *string = (A_CHAR *)A_MALLOC(MAX_VAL_DATA_LENGTH);
 
-    if (!(gConfigFile))
-    {
-        if(string != NULL)
-            A_FREE(string);
-        return;
+    if (string == NULL) {
+        return A_NO_MEMORY;
+    }
+
+    if (!(gConfigFile)) {
+        A_FREE(string);
+        return A_ERROR;
     }
 
     fgets(string, MAX_VAL_DATA_LENGTH, gConfigFile);
@@ -1620,10 +1635,15 @@ GetActionStringOverrides(ATHBT_FILTER_INFO *pInfo)
         indication = strsep(&string, ":");
         modify = strsep(&string, ":");
         action = string;
+        if (!indication || !modify || !action) {
+            A_FREE(ptr);
+            return A_ERROR;
+        }
         ProcessActionOverride(pInfo, indication, modify, action);
         string = ptr;
         fgets(string, MAX_VAL_DATA_LENGTH, gConfigFile);
     }
 
     A_FREE(string);
+    return A_OK;
 }
