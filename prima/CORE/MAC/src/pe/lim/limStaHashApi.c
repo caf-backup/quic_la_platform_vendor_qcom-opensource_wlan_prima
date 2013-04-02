@@ -44,7 +44,7 @@ tSirRetStatus limGetStaHashBssidx(tpAniSirGlobal pMac, tANI_U16 assocId, tANI_U8
 
     if (pSta == NULL)
     {
-        PELOGE(limLog(pMac, LOGE, FL("invalid STA %d\n"),  assocId);)
+        PELOGE(limLog(pMac, LOGE, FL("invalid STA %d"),  assocId);)
         return eSIR_LIM_INVALID_STA;
     }
 
