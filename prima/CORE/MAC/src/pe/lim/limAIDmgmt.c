@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved. 
  * Qualcomm Atheros Confidential and Proprietary. 
  *
@@ -121,7 +121,7 @@ limAssignPeerIdx(tpAniSirGlobal pMac, tpPESession pSessionEntry)
         if (pSessionEntry->freePeerIdxHead==0)
             pSessionEntry->freePeerIdxTail=0;
         pSessionEntry->gLimNumOfCurrentSTAs++;
-        //PELOG2(limLog(pMac, LOG2,FL("Assign aid %d, numSta %d, head %d tail %d \n"),aid,pSessionEntry->gLimNumOfCurrentSTAs,pSessionEntry->freeAidHead,pSessionEntry->freeAidTail);)
+        //PELOG2(limLog(pMac, LOG2,FL("Assign aid %d, numSta %d, head %d tail %d "),aid,pSessionEntry->gLimNumOfCurrentSTAs,pSessionEntry->freeAidHead,pSessionEntry->freeAidTail);)
         return peerId;
     }
 
@@ -166,6 +166,6 @@ limReleasePeerIdx(tpAniSirGlobal pMac, tANI_U16 peerIdx, tpPESession pSessionEnt
         pSessionEntry->freePeerIdxTail=pSessionEntry->freePeerIdxHead=(tANI_U8)peerIdx;
     }
     pSessionEntry->gpLimPeerIdxpool[(tANI_U8)peerIdx]=0;
-    //PELOG2(limLog(pMac, LOG2,FL("Release aid %d, numSta %d, head %d tail %d \n"),aid,pMac->lim.gLimNumOfCurrentSTAs,pMac->lim.freeAidHead,pMac->lim.freeAidTail);)
+    //PELOG2(limLog(pMac, LOG2,FL("Release aid %d, numSta %d, head %d tail %d "),aid,pMac->lim.gLimNumOfCurrentSTAs,pMac->lim.freeAidHead,pMac->lim.freeAidTail);)
 
 }
