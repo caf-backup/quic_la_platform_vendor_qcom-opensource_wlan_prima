@@ -45,8 +45,8 @@ ifeq ($(call is-board-platform,msm8974),true)
         endif
 endif
 
-#Build/Package Pronto Module in case of 8226 target variants
-ifeq ($(call is-board-platform,msm8226),true)
+#Build/Package Pronto Module in case of 8226, 8610 target variants
+ifeq ($(call is-board-platform-in-list,msm8226 msm8610),true)
         include $(WLAN_BLD_DIR)/pronto/Android.mk
         include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
         include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
