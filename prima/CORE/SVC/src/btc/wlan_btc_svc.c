@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ *
+ */
 /******************************************************************************
  * wlan_btc_svc.c
  *
@@ -166,6 +172,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
       default:
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
             "BTC: Attempt to send unknown nlink message %d\n", type);
+         kfree_skb(skb);
          return;
    }
    if(dest_pid == 0)
