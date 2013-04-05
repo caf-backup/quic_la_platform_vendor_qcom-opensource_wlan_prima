@@ -19745,7 +19745,7 @@ WDI_ProcessHALDumpCmdRsp
 
       wpalMemoryCopy( wdiHALDumpCmdRsp.pBuffer,
                   &halDumpCmdRspParams.rspBuffer, 
-                  sizeof(wdiHALDumpCmdRsp.usBufferLen));
+                  halDumpCmdRspParams.rspLength);
   }
 
   /*Notify UMAC*/
