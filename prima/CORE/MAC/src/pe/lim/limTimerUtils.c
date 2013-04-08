@@ -1334,6 +1334,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                        FL("unable to deactivate Heartbeat timer\n"));
             }
+            limLog(pMac, LOGW, FL("Deactivated heartbeat link monitoring"));
 
             if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL,
                           &val) != eSIR_SUCCESS)
@@ -1362,7 +1363,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                        FL("unable to change HeartBeat timer\n"));
             }
-
+            limLog(pMac, LOGW, FL("HeartBeat timer value is changed = %lu"), val);
             break;
 
         case eLIM_PROBE_AFTER_HB_TIMER:
@@ -1374,6 +1375,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                    FL("unable to deactivate probeAfterHBTimer\n"));
             }
+            limLog(pMac, LOGE, FL("Deactivated probe after hb timer"));
 
             if (wlan_cfgGetInt(pMac, WNI_CFG_PROBE_AFTER_HB_FAIL_TIMEOUT,
                           &val) != eSIR_SUCCESS)
@@ -1397,6 +1399,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                        FL("unable to change ProbeAfterHBTimer\n"));
             }
+            limLog(pMac, LOGW, FL("Probe after HB timer value is changed = %lu"), val);
 
             break;
 
@@ -1779,7 +1782,10 @@ limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
     if(IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE)
+    {
+       limLog(pMac, LOGW, FL("Active offload feature is enabled, FW takes care of HB monitoring"));
        return;
+    }
 #endif
 
     limHeartBeatDeactivateAndChangeTimer(pMac, psessionEntry);
@@ -1791,6 +1797,7 @@ limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
         {
             limLog(pMac, LOGP,FL("could not activate Heartbeat timer\n"));
         }
+        limLog(pMac, LOGW, FL("Reactivated heartbeat link monitoring"));
         limResetHBPktCount(psessionEntry);
     }
 
