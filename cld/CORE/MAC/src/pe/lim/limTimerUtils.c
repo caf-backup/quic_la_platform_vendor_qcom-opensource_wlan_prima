@@ -1098,7 +1098,10 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                        FL("unable to deactivate Heartbeat timer"));
             }
-            limLog(pMac, LOGW, FL("Deactivated heartbeat link monitoring"));
+            else
+            {
+                limLog(pMac, LOGW, FL("Deactivated heartbeat link monitoring"));
+            }
 
             if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL,
                           &val) != eSIR_SUCCESS)
@@ -1127,7 +1130,10 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                        FL("unable to change HeartBeat timer"));
             }
-            limLog(pMac, LOGW, FL("HeartBeat timer value is changed = %lu"), val);
+            else
+            {
+                limLog(pMac, LOGW, FL("HeartBeat timer value is changed = %lu"), val);
+            }
             break;
 
         case eLIM_PROBE_AFTER_HB_TIMER:
@@ -1139,7 +1145,10 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                    FL("unable to deactivate probeAfterHBTimer"));
             }
-            limLog(pMac, LOGE, FL("Deactivated probe after hb timer"));
+            else
+            {
+                limLog(pMac, LOGE, FL("Deactivated probe after hb timer"));
+            }
 
             if (wlan_cfgGetInt(pMac, WNI_CFG_PROBE_AFTER_HB_FAIL_TIMEOUT,
                           &val) != eSIR_SUCCESS)
@@ -1163,7 +1172,10 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                        FL("unable to change ProbeAfterHBTimer"));
             }
-            limLog(pMac, LOGW, FL("Probe after HB timer value is changed = %lu"), val);
+            else
+            {
+                limLog(pMac, LOGW, FL("Probe after HB timer value is changed = %lu"), val);
+            }
 
             break;
 
