@@ -1,30 +1,27 @@
-/** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
+/** ------------------------------------------------------------------------- *
+    ------------------------------------------------------------------------- *
 
-  
+
     \file palApi.h
-  
+
     \brief Exports and types for the Platform Abstraction Layer interfaces.
-  
-    $Id$ 
-  
-    Copyright (c) 2011-2012 Qualcomm Atheros, Inc. 
-    All Rights Reserved. 
-    Qualcomm Atheros Confidential and Proprietary. 
+
+    $Id$
+
+    Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+    All Rights Reserved.
+    Qualcomm Atheros Confidential and Proprietary.
 
     Copyright (C) 2006 Airgo Networks, Incorporated
     This file contains all the interfaces for thge Platform Abstration Layer
-    functions.  It is intended to be included in all modules that are using 
+    functions.  It is intended to be included in all modules that are using
     the PAL interfaces.
-  
+
    ========================================================================== */
 #ifndef PALAPI_H__
 #define PALAPI_H__
 
 #include "halTypes.h"
-#include "palPipes.h"
-//#include "palErrIsr.h"
-//#include "halFrameInfo.h"
 
 /**
     \mainpage Platform Abstraction Layer (PAL)
