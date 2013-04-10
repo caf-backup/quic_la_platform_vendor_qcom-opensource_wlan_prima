@@ -216,6 +216,34 @@ htt_rx_desc(adf_nbuf_t msdu)
      ((char *)(_tx_desc_vaddr) -                       \
       (char *)((_pdev)->tx_descs.pool_vaddr)))
 
+#if ATH_11AC_TXCOMPACT
+
+#define HTT_TX_NBUF_QUEUE_MUTEX_INIT(_pdev)             \
+        adf_os_spinlock_init(&_pdev->txnbufq_mutex)
+
+#define HTT_TX_NBUF_QUEUE_MUTEX_DESTROY(_pdev)         \
+        HTT_TX_MUTEX_DESTROY(&_pdev->txnbufq_mutex)
+
+#define HTT_TX_NBUF_QUEUE_REMOVE(_pdev, _msdu)          \
+        HTT_TX_MUTEX_ACQUIRE(&_pdev->txnbufq_mutex);    \
+        _msdu =  adf_nbuf_queue_remove(&_pdev->txnbufq);\
+        HTT_TX_MUTEX_RELEASE(&_pdev->txnbufq_mutex)
+
+#define HTT_TX_NBUF_QUEUE_ADD(_pdev, _msdu)          \
+        HTT_TX_MUTEX_ACQUIRE(&_pdev->txnbufq_mutex);    \
+        adf_nbuf_queue_add(&_pdev->txnbufq, _msdu);\
+        HTT_TX_MUTEX_RELEASE(&_pdev->txnbufq_mutex)
+
+#else
+
+#define HTT_TX_NBUF_QUEUE_MUTEX_INIT(_pdev)
+#define HTT_TX_NBUF_QUEUE_REMOVE(_pdev, _msdu)
+#define HTT_TX_NBUF_QUEUE_ADD(_pdev, _msdu)
+#define HTT_TX_NBUF_QUEUE_MUTEX_DESTROY(_pdev)
+
+#endif
+
+
 int
 htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems);
 
