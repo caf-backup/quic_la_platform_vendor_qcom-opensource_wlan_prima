@@ -431,6 +431,9 @@ again:
     target_register_tbl_attach(sc, target_type);
     {
         A_UINT32 fw_indicator;
+#if BAR0_READY_CHECKING
+        int wait_limit = 200;
+#endif
 
         /*
          * Verify that the Target was started cleanly.
@@ -447,6 +450,21 @@ again:
         while (!hif_pci_targ_is_awake(sc, mem)) {
 		 ;
         }
+
+#if BAR0_READY_CHECKING
+        /* Synchronization point: wait the BAR0 is configured */
+        while (wait_limit-- &&
+            !(A_PCI_READ32(mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_RDY_STATUS_ADDRESS) \
+             & PCIE_SOC_RDY_STATUS_BAR_MASK)) {
+            A_MDELAY(10);
+        }
+        if (wait_limit < 0) {
+            /* AR6320v1 doesn't support checking of BAR0 configuration,
+               takes one sec to wait BAR0 ready */
+            printk(KERN_INFO "AR6320v1 waits two sec for BAR0 ready.\n");
+        }
+#endif
+
         fw_indicator = A_PCI_READ32(mem + FW_INDICATOR_ADDRESS);
         A_PCI_WRITE32(mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
 
@@ -641,6 +659,39 @@ hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl)
 	    }
 
     }
+#if CONFIG_PCIE_64BIT_MSI
+    {
+        struct ol_ath_softc_net80211 *scn = sc->scn;
+        u_int8_t MSI_flag;
+        u_int32_t MSI_addr_hi, reg;
+
+#define OL_ATH_PCI_MSI_POS        0x50
+#define MSI_MAGIC_RDY_MASK  0x00000001
+#define MSI_MAGIC_EN_MASK   0x80000000
+
+        pci_read_config_byte(sc->pdev, OL_ATH_PCI_MSI_POS + PCI_MSI_FLAGS, &MSI_flag);
+        if ((MSI_flag & PCI_MSI_FLAGS_64BIT) && (MSI_flag & PCI_MSI_FLAGS_ENABLE)) {
+            pci_read_config_dword(sc->pdev, OL_ATH_PCI_MSI_POS + PCI_MSI_ADDRESS_HI, &MSI_addr_hi);
+            A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
+            while (!ath_pci_targ_is_awake(sc->mem)) {
+                ;
+            }
+            if (MSI_addr_hi) {
+                scn->MSI_magic = OS_MALLOC_CONSISTENT(scn->sc_osdev, 4, &scn->MSI_magic_dma, \
+                                 OS_GET_DMA_MEM_CONTEXT(scn, MSI_dmacontext), 0);
+                A_PCI_WRITE32(sc->mem + SOC_PCIE_BASE_ADDRESS + MSI_MAGIC_ADR_ADDRESS,
+                              scn->MSI_magic_dma);
+                reg = A_PCI_READ32(sc->mem + SOC_PCIE_BASE_ADDRESS + MSI_MAGIC_ADDRESS);
+                A_PCI_WRITE32(sc->mem + SOC_PCIE_BASE_ADDRESS + MSI_MAGIC_ADDRESS, reg | MSI_MAGIC_RDY_MASK);
+            } else {
+                reg = A_PCI_READ32(sc->mem + SOC_PCIE_BASE_ADDRESS + MSI_MAGIC_ADDRESS);
+                A_PCI_WRITE32(sc->mem + SOC_PCIE_BASE_ADDRESS + MSI_MAGIC_ADDRESS, reg & ~MSI_MAGIC_EN_MASK);
+            }
+            A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
+        }
+    }
+#endif
+
 
     if(num_msi_desired == 0) {
         printk("\n Using PCI Legacy Interrupt\n");
@@ -734,7 +785,12 @@ hif_pci_remove(struct pci_dev *pdev)
     mem = (void __iomem *)sc->mem;
 
     hif_nointrs(sc);
-
+#if CONFIG_PCIE_64BIT_MSI
+    OS_FREE_CONSISTENT(scn->sc_osdev, 4, scn->MSI_magic, scn->MSI_magic_dma,
+                       OS_GET_DMA_MEM_CONTEXT(scn, MSI_dmacontext));
+    scn->MSI_magic = NULL;
+    scn->MSI_magic_dma = 0;
+#endif
     /* Cancel the pending tasklet */
     tasklet_kill(&sc->intr_tq);
 

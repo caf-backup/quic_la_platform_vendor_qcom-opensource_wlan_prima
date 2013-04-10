@@ -127,6 +127,10 @@ struct ol_softc {
     u_int32_t       last_rxlen; /* length of last response */
     OS_DMA_MEM_CONTEXT(bmirsp_dmacontext)
 
+    void            *MSI_magic;
+    dma_addr_t      MSI_magic_dma;
+    OS_DMA_MEM_CONTEXT(MSI_dmacontext)
+
     /* Handles for Lower Layers : filled in at init time */
     hif_handle_t            hif_hdl;
     struct hif_pci_softc    *hif_sc;
