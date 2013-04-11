@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 Qualcomm Atheros, Inc.
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
 */
@@ -10,15 +10,6 @@
 
 #include <sirParams.h>  // needed for tSirMbMsg
 #include "wlan_qct_wda.h"
-
-
-// its not worth the time trying to get all the includes in place to get to
-// halMmhForwardMBmsg.  if I inlude halMnt.h, I get all kids of compile errros
-// for things missing from palPipes.h (asicDxe.h is looking for these).  palPipes
-// is used only in Gen4 DVT code so why we would have it or need it is puzzling.
-//#include <halMnt.h>
-
-
 
 #ifdef MEMORY_DEBUG
 eHalStatus palAllocateMemory_debug( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes, char* fileName, tANI_U32 lineNum )
