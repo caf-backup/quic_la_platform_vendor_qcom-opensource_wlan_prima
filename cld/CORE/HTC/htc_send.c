@@ -874,27 +874,18 @@ A_STATUS HTCSendPktsMultiple(HTC_HANDLE HTCHandle, HTC_PACKET_QUEUE *pPktQueue)
         AR_DEBUG_ASSERT(netbuf);
 
         adf_nbuf_push_head(netbuf, sizeof(HTC_FRAME_HDR));
-
-        /* Non credit enabled endpoints are used for data path using
-         * HTCSendData - This path assumes prconstructed and pre-mapped HTC headers
-         * As these paths can mix on SMP systems they need to follow same model.
-         * Credit enabled endpoints do not mix and also have more requirements that
-         * need last minute HTC header setup
-         */
-        if (!IS_TX_CREDIT_FLOW_ENABLED(pEndpoint)) {
-            /* setup HTC frame header */
-            pHtcHdr = (HTC_FRAME_HDR *) adf_nbuf_get_frag_vaddr(netbuf, 0);
-            AR_DEBUG_ASSERT(pHtcHdr);
-
-            HTC_WRITE32(pHtcHdr, SM(pPacket->ActualLength, HTC_FRAME_HDR_PAYLOADLEN) |
-                    SM(pPacket->Endpoint, HTC_FRAME_HDR_ENDPOINTID));
+        /* setup HTC frame header */
+        pHtcHdr = (HTC_FRAME_HDR *) adf_nbuf_get_frag_vaddr(netbuf, 0);
+        AR_DEBUG_ASSERT(pHtcHdr);
+        HTC_WRITE32(pHtcHdr, SM(pPacket->ActualLength, HTC_FRAME_HDR_PAYLOADLEN) |
+                SM(pPacket->Endpoint, HTC_FRAME_HDR_ENDPOINTID));
 
             LOCK_HTC_TX(target);
 
             pPacket->PktInfo.AsTx.SeqNo = pEndpoint->SeqNo;
             pEndpoint->SeqNo++;
 
-            HTC_WRITE32(((A_UINT32 *)pHtcHdr) + 1, 
+            HTC_WRITE32(((A_UINT32 *)pHtcHdr) + 1,
                     SM(pPacket->PktInfo.AsTx.SeqNo, HTC_FRAME_HDR_CONTROLBYTES1));
 
             UNLOCK_HTC_TX(target);
@@ -908,8 +899,7 @@ A_STATUS HTCSendPktsMultiple(HTC_HANDLE HTCHandle, HTC_PACKET_QUEUE *pPktQueue)
                     GET_HTC_PACKET_NET_BUF_CONTEXT(pPacket),
                     ADF_OS_DMA_TO_DEVICE);
 
-        }
-        pPacket->PktInfo.AsTx.Flags |= HTC_TX_PACKET_FLAG_FIXUP_NETBUF;
+	pPacket->PktInfo.AsTx.Flags |= HTC_TX_PACKET_FLAG_FIXUP_NETBUF;
     } HTC_PACKET_QUEUE_ITERATE_END;
 
 #ifdef USB_HIF_SINGLE_PIPE_DATA_SCHED
