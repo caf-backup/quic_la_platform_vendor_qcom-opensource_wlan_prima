@@ -3,15 +3,21 @@ include $(CLEAR_VARS)
 
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := alljoyn_dbus.c \
-		abtfilt_core.c \
+LOCAL_SRC_FILES := abtfilt_core.c \
 		abtfilt_main.c \
 		abtfilt_utils.c \
 		abtfilt_wlan.c \
 		btfilter_action.c \
 		nl80211_utils.c \
-		alljoyn_intf.cpp \
 		btfilter_core.c
+
+ifeq ($(BOARD_HAVE_BLUETOOTH_BLUEZ),true)
+LOCAL_SRC_FILES += alljoyn_dbus.c \
+		   alljoyn_intf.cpp
+else
+#LOCAL_SRC_FILES += abtfilt_bluedroid.c
+LOCAL_SRC_FILES += alljoyn_dbus.c
+endif
 
 ifeq ($(BT_ALT_STACK),true)
 LOCAL_SRC_FILES += abtfilt_bluez_hciutils.c
@@ -22,7 +28,6 @@ endif
 LOCAL_SHARED_LIBRARIES := \
 		libcutils \
 		libnl_2 \
-		liballjoyn \
 		libdl
 
 LOCAL_CFLAGS += -Wno-psabi -Wno-write-strings -DANDROID_NDK
@@ -39,15 +44,20 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/common/include \
 	$(LOCAL_PATH)/os/linux/include
 
+ifeq ($(BOARD_HAVE_BLUETOOTH_BLUEZ),true)
 ALLJOYN_DIST := external/alljoyn/alljoyn_core
 LOCAL_C_INCLUDES += $(ALLJOYN_DIST)/inc
 LOCAL_C_INCLUDES += $(ALLJOYN_DIST)/autogen
 LOCAL_C_INCLUDES += external/alljoyn/common/inc
-LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
-LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 
 LOCAL_C_INCLUDES += system/bluetooth/bluez-clean-headers/bluetooth
 LOCAL_CFLAGS+=-DBLUEZ4_3
+LOCAL_SHARED_LIBRARIES += liballjoyn
+endif
+
+LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
+LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+
 LOCAL_C_INCLUDES += external/libnl-headers
 
 LOCAL_CFLAGS+= -DABF_DEBUG
@@ -61,6 +71,10 @@ ifeq ($(BOARD_HAS_ATH_WLAN_AR6004), true)
 LOCAL_CFLAGS+= -DSEND_WMI_BY_IOCTL
 LOCAL_CFLAGS+= -DMULTI_WLAN_CHAN_SUPPORT
 LOCAL_CFLAGS+= -DHID_PROFILE_SUPPORT
+endif
+
+ifeq ($(BOARD_HAVE_BLUETOOTH_BLUEZ), false)
+LOCAL_CFLAGS+= -DBLUETOOTH_BLUEDROID
 endif
 
 include $(BUILD_EXECUTABLE)
