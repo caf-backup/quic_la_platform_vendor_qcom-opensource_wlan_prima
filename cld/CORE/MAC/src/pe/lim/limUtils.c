@@ -7245,10 +7245,11 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    tpPESession             psessionEntry;
    
    pAddStaSelfParams = (tpAddStaSelfParams)limMsgQ->bodyptr;    
-
-   if((psessionEntry = peFindSessionByBssid(pMac, pAddStaSelfParams->selfMacAddr, &sessionId)) == NULL)
-   {
-      limLog(pMac, LOGP, FL("PE session not opened \n"));
+	psessionEntry = pe_find_session_by_selfmacaddr(pMac,
+						pAddStaSelfParams->selfMacAddr,
+						&sessionId);
+	if (psessionEntry == NULL) {
+		limLog(pMac, LOGP, FL("PE session not opened\n"));
       palFreeMemory( pMac->hHdd, (tANI_U8 *)pAddStaSelfParams);
       return;
    }
