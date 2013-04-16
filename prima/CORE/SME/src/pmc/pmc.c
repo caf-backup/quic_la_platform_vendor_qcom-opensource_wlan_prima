@@ -1101,6 +1101,7 @@ void pmcDoBmpsCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
    smsLog(pMac, LOG2, "PMC: entering pmcDoBmpsCallbacks");
 
    /* Call the routines in the request BMPS callback routine list. */
+   csrLLLock(&pMac->pmc.requestBmpsList);
    pEntry = csrLLRemoveHead(&pMac->pmc.requestBmpsList, FALSE);
    while (pEntry != NULL)
    {
@@ -1111,6 +1112,7 @@ void pmcDoBmpsCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
       palFreeMemory(pMac->hHdd, pRequestBmpsEntry);
       pEntry = csrLLRemoveHead(&pMac->pmc.requestBmpsList, FALSE);
    }
+   csrLLUnlock(&pMac->pmc.requestBmpsList);
 }
 
 
@@ -1139,7 +1141,7 @@ void pmcDoStartUapsdCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
    tpStartUapsdEntry pStartUapsdEntry;
 
    smsLog(pMac, LOG2, "PMC: entering pmcDoStartUapsdCallbacks");
-
+   csrLLLock(&pMac->pmc.requestStartUapsdList);
    /* Call the routines in the request start UAPSD callback routine list. */
    pEntry = csrLLRemoveHead(&pMac->pmc.requestStartUapsdList, FALSE);
    while (pEntry != NULL)
@@ -1150,6 +1152,7 @@ void pmcDoStartUapsdCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
       palFreeMemory(pMac->hHdd, pStartUapsdEntry);
       pEntry = csrLLRemoveHead(&pMac->pmc.requestStartUapsdList, FALSE);
    }
+   csrLLUnlock(&pMac->pmc.requestStartUapsdList);
 }
 
 /******************************************************************************
