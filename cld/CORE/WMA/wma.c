@@ -282,6 +282,12 @@ VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle,
 		WMA_LOGP("cfg_nv_tx_complete initialization failed");
 		goto err_event_init;
 	}
+
+	vos_status = vos_event_init(&(wma_handle->cfg_nv_rx_complete));
+	if (VOS_STATUS_SUCCESS != vos_status) {
+		WMA_LOGP("cfg_nv_tx_complete initialization failed");
+		return VOS_STATUS_E_FAILURE;
+	}
 #endif
         vos_status = vos_event_init(&wma_handle->wma_ready_event);
 	if (vos_status != VOS_STATUS_SUCCESS) {

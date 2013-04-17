@@ -170,6 +170,7 @@ typedef struct {
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 	vos_event_t cfg_nv_tx_complete;
+	vos_event_t cfg_nv_rx_complete;
 #endif
 	vos_event_t wma_ready_event;
 	t_cfg_nv_param cfg_nv;
@@ -221,7 +222,7 @@ typedef enum {
 
 	FW_CFG_DOWNLOAD_REQ = QWLAN_ISOC_START_CMDID,
 	FW_NV_DOWNLOAD_REQ,
-
+	FW_WLAN_HAL_STOP_REQ,
 	/* Add additional commands here */
 
 	QWLAN_ISOC_MAX_CMDID = QWLAN_ISOC_END_CMDID - 1
@@ -559,6 +560,17 @@ typedef PACKED_PRE struct PACKED_POST
    tANI_U32         msgLen;
 } tHalMsgHeader, *tpHalMsgHeader;
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
+/*Version string max length (including NUL) */
+#define WLAN_HAL_VERSION_LENGTH  64
+/* Definition for HAL API Version.*/
+typedef PACKED_PRE struct PACKED_POST
+{
+	u_int8_t                  revision;
+	u_int8_t                  version;
+	u_int8_t                  minor;
+	u_int8_t                  major;
+} tWcnssWlanVersion, *tpWcnssWlanVersion;
+
 /*---------------------------------------------------------------------------
  * WLAN_HAL_DOWNLOAD_NV_REQ
  *--------------------------------------------------------------------------*/
@@ -593,6 +605,91 @@ typedef PACKED_PRE struct PACKED_POST
     tHalMsgHeader header;
     tHalNvImgDownloadReqParams nvImageReqParams;
 } tHalNvImgDownloadReqMsg, *tpHalNvImgDownloadReqMsg;
+
+/*---------------------------------------------------------------------------
+  WLAN_HAL_STOP_REQ
+---------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+	/*The reason for which the device is being stopped*/
+	tHalStopType   reason;
+} tHalMacStopReqParams, *tpHalMacStopReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+	tHalMsgHeader header;
+	tHalMacStopReqParams stopReqParams;
+} tHalMacStopReqMsg, *tpHalMacStopReqMsg;
+
+/*---------------------------------------------------------------------------
+  WLAN_HAL_STOP_RSP
+---------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+	/*success or failure */
+	u_int32_t   status;
+
+} tHalMacStopRspParams, *tpHalMacStopRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+	tHalMsgHeader header;
+	tHalMacStopRspParams stopRspParams;
+}  tHalMacStopRspMsg, *tpHalMacStopRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_START_RSP
+ *----------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST sHalMacStartRspParameters
+{
+	/*success or failure */
+	u_int16_t  status;
+
+	/*Max number of STA supported by the device*/
+	u_int8_t     ucMaxStations;
+
+	/*Max number of BSS supported by the device*/
+	u_int8_t     ucMaxBssids;
+
+	/*API Version */
+	tWcnssWlanVersion wcnssWlanVersion;
+
+	/*CRM build information */
+	u_int8_t
+		wcnssCrmVersionString[WLAN_HAL_VERSION_LENGTH];
+
+	/*hardware/chipset/misc version information
+	 * */
+	u_int8_t
+		wcnssWlanVersionString[WLAN_HAL_VERSION_LENGTH];
+
+} tHalMacStartRspParams, *tpHalMacStartRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+	tHalMsgHeader header;
+	tHalMacStartRspParams startRspParams;
+}  tHalMacStartRspMsg, *tpHalMacStartRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_DOWNLOAD_NV_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+	/* Success or Failure. HAL would generate a WLAN_HAL_DOWNLOAD_NV_RSP
+	 * after each fragment */
+	u_int32_t   status;
+} tHalNvImgDownloadRspParams, *tpHalNvImgDownloadRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+	tHalMsgHeader header;
+	tHalNvImgDownloadRspParams nvImageRspParams;
+}  tHalNvImgDownloadRspMsg, *tpHalNvImgDownloadRspMsg;
+
 #endif
 
 /*---------------------------------------------------------------------------
@@ -642,6 +739,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 		t_wma_start_req *wdi_start_params );
 
 VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle);
+VOS_STATUS wma_hal_stop_isoc(tp_wma_handle wma_handle);
 #endif
 
 /**
