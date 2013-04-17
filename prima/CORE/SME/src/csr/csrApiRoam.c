@@ -1638,7 +1638,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->enableTxBF = pMac->roam.configParam.txBFEnable;
         pParam->txBFCsnValue = pMac->roam.configParam.txBFCsnValue;
 #endif
-
+        pParam->enableTxLdpc = pMac->roam.configParam.txLdpcEnable;
         csrSetChannels(pMac, pParam);
 
         status = eHAL_STATUS_SUCCESS;
