@@ -61,11 +61,14 @@ typedef struct {
 #define OCF_READ_REMOTE_FEATURES	0x001B
 #define OCF_READ_REMOTE_VERSION		0x001D
 
+/* Link Policy */
+#define OGF_LINK_POLICY         0x02
+#define OCF_ROLE_DISCOVERY              0x0009
+
 /* Informational Parameters */
 #define OGF_INFO_PARAM		0x04
 
 #define OCF_READ_BD_ADDR		0x0009
-#define OCF_ROLE_DISCOVERY		0x0009
 
 /* ---- HCI Events ---- */
 #define EVT_INQUIRY_COMPLETE		0x01
@@ -151,6 +154,7 @@ enum BTCEvent {
 /* abtfilter related data structure */
 #define STRING_SIZE_MAX		128
 #define BD_ADDR_SIZE		6
+#define MAX_SOCKET_RETRY_CNT	10
 
 void Abf_BToff();
 typedef void (* BT_EVENT_HANDLER)(void *,void *);
