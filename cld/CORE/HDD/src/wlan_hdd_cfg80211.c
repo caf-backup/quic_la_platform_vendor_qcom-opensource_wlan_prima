@@ -2428,6 +2428,40 @@ static int wlan_hdd_cfg80211_change_bss (struct wiphy *wiphy,
     return 0;
 }
 
+static int wlan_hdd_change_iface_to_sta_mode(struct net_device *ndev,
+				enum nl80211_iftype type)
+{
+	hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(ndev);
+	hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+	struct wireless_dev *wdev;
+	VOS_STATUS status;
+
+	ENTER();
+
+	wdev = ndev->ieee80211_ptr;
+	hdd_stop_adapter(pHddCtx, pAdapter);
+	hdd_deinit_adapter(pHddCtx, pAdapter);
+	wdev->iftype = type;
+	/*Check for sub-string p2p to confirm its a p2p interface*/
+	if (NULL != strnstr(ndev->name, "p2p", 3)) {
+		pAdapter->device_mode =
+			(type == NL80211_IFTYPE_STATION) ?
+			WLAN_HDD_P2P_DEVICE : WLAN_HDD_P2P_CLIENT;
+	} else {
+		pAdapter->device_mode =
+				(type == NL80211_IFTYPE_STATION) ?
+			WLAN_HDD_INFRA_STATION : WLAN_HDD_P2P_CLIENT;
+	}
+
+	hdd_set_conparam(0);
+	pHddCtx->change_iface = type;
+	memset(&pAdapter->sessionCtx, 0, sizeof(pAdapter->sessionCtx));
+	hdd_set_station_ops(pAdapter->dev);
+	status = hdd_init_station_mode(pAdapter);
+	EXIT();
+	return status;
+}
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_change_iface
  * This function is used to set the interface type (INFRASTRUCTURE/ADHOC)
@@ -2496,30 +2530,11 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
         {
             case NL80211_IFTYPE_STATION:
             case NL80211_IFTYPE_P2P_CLIENT:
-                hddLog(VOS_TRACE_LEVEL_INFO,
-                   "%s: setting interface Type to INFRASTRUCTURE", __func__);
-                pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
-#ifdef WLAN_FEATURE_11AC
-                if(pConfig->dot11Mode == eHDD_DOT11_MODE_AUTO)
-                {
-                    pConfig->dot11Mode = eHDD_DOT11_MODE_11ac;
-                }
-#endif
-                pRoamProfile->phyMode = 
-                hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
-                wdev->iftype = type;
-                //Check for sub-string p2p to confirm its a p2p interface
-                if (NULL != strstr(ndev->name,"p2p"))
-                {     
-                    pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
-                                WLAN_HDD_P2P_DEVICE : WLAN_HDD_P2P_CLIENT;
-                }
-                else
-                {
-                    pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
-                                WLAN_HDD_INFRA_STATION: WLAN_HDD_P2P_CLIENT;
-                }
-                break;
+		status = wlan_hdd_change_iface_to_sta_mode(ndev, type);
+		if (status != VOS_STATUS_SUCCESS)
+			return status;
+
+		goto done;
             case NL80211_IFTYPE_ADHOC:
                 hddLog(VOS_TRACE_LEVEL_INFO,
                   "%s: setting interface Type to ADHOC", __func__);
@@ -2643,27 +2658,9 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
            case NL80211_IFTYPE_STATION:
            case NL80211_IFTYPE_P2P_CLIENT:
            case NL80211_IFTYPE_ADHOC:
-                hdd_stop_adapter( pHddCtx, pAdapter );
-                hdd_deinit_adapter( pHddCtx, pAdapter );
-                wdev->iftype = type;
-                //Check for sub-string p2p to confirm its a p2p interface
-                if (NULL != strstr(ndev->name,"p2p"))
-                {
-                    pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
-                                  WLAN_HDD_P2P_DEVICE : WLAN_HDD_P2P_CLIENT;
-                }
-                else
-                {
-                    pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
-                                  WLAN_HDD_INFRA_STATION: WLAN_HDD_P2P_CLIENT;
-                }
-                hdd_set_conparam(0);
-                pHddCtx->change_iface = type;
-                memset(&pAdapter->sessionCtx, 0, sizeof(pAdapter->sessionCtx));
-                hdd_set_station_ops( pAdapter->dev );
-                status = hdd_init_station_mode( pAdapter );
-                if( VOS_STATUS_SUCCESS != status )
-                    return -EOPNOTSUPP;
+		status = wlan_hdd_change_iface_to_sta_mode(ndev, type);
+		if (status != VOS_STATUS_SUCCESS)
+			return status;
                 /* In case of JB, for P2P-GO, only change interface will be called,
                  * This is the right place to enable back bmps_imps()
                  */
@@ -2671,6 +2668,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 goto done;
             case NL80211_IFTYPE_AP:
             case NL80211_IFTYPE_P2P_GO:
+		/*TODO:Need to handle the below scenario*/
                 wdev->iftype = type;
                 pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ?
                                         WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
