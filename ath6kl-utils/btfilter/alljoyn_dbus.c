@@ -28,6 +28,10 @@
 #define MAKE_BTSTATE_MASK(state) (1 << (state))
 #define HCI_RESET_CMD 0x0c03
 
+/* This is the global flag used to sync between hci filter
+ * thread and the stack event thread (who could issue HCI
+ * command) */
+int disallow_hcithread_read = 0;
 static inline void bdaddr_to_str(const bdaddr_t *src, char *dst)
 {
 	snprintf(dst, 17, "%X:%X:%X:%X:%X:%X", src->b[5],
@@ -263,11 +267,6 @@ static void BtAdapterAdded(void *string, void * user_data)
 {
 	A_INFO("%s:%d\n", __FUNCTION__, __LINE__);
 
-	/* sympton: the BTCService could possibly start
-	 * later than abtfilt. Add sleep here to delay
-	 * socket connections to ensure BTCService is up.
-	 */
-	sleep(5);
 	CheckAndAcquireDefaultAdapter((ABF_BT_INFO *)user_data);
 }
 
@@ -652,7 +651,7 @@ static A_STATUS GetConnectedDeviceRole(ABF_BT_INFO   *pAbfBtInfo,
 
         /* issue HCI_Role_Discovery command to get the current role */
         status = IssueHCICommand(pAbfBtInfo,
-                cmd_opcode_pack(OGF_INFO_PARAM, OCF_ROLE_DISCOVERY),
+                cmd_opcode_pack(OGF_LINK_POLICY, OCF_ROLE_DISCOVERY),
                 (A_UCHAR *)&conn_handle,
                 2,
                 2000,
@@ -666,6 +665,7 @@ static A_STATUS GetConnectedDeviceRole(ABF_BT_INFO   *pAbfBtInfo,
                 return status;
         }
 
+	A_DUMP_BUFFER(eventPtr, eventLen, "Role Discovery");
         /* get current role */
         if (eventBuffer[6] == 0) { /* ROLE_DISCOVERY was a success */
                 if (eventBuffer[9] == 0) {
@@ -1110,7 +1110,7 @@ static A_STATUS SetupHciEventFilter(ABF_BT_INFO *pAbfBtInfo)
 {
 	struct sockaddr_un addr;
 	socklen_t len;
-
+	A_UINT8 retry_cnt = 0;
 	A_STATUS status = A_ERROR;
 
 	A_INFO("[%s] start\n", __FUNCTION__);
@@ -1128,12 +1128,21 @@ static A_STATUS SetupHciEventFilter(ABF_BT_INFO *pAbfBtInfo)
 			break;
 		}
 
-		if (connect(pAbfBtInfo->HCIEventListenerSocket, (struct sockaddr *) &addr, len) < 0) {
+		/* sympton: the BTCService could possibly start
+		 * later than abtfilt. Add sleep here to delay
+		 * socket connections to ensure BTCService is up.
+		 */
+		while (connect(pAbfBtInfo->HCIEventListenerSocket, (struct sockaddr *) &addr, len) < 0 &&
+			retry_cnt < MAX_SOCKET_RETRY_CNT) {
+			retry_cnt++;
+			A_INFO("%s: connect() retry %d times\n", __func__, retry_cnt);
+			usleep(100000);
+		}
+		if (retry_cnt == MAX_SOCKET_RETRY_CNT) {
 			A_ERR("%s: connect() failed: %s (%d)\n",
 				__func__, strerror(errno), errno);
 			break;
 		}
-
 		/* spawn a thread that will capture HCI events from the adapter */
 		status = A_TASK_CREATE(&pAbfBtInfo->hBtHCIFilterThread, HCIFilterThread, pAbfBtInfo);
 		if (A_FAILED(status)) {
@@ -1177,6 +1186,8 @@ static A_STATUS IssueHCICommand(ABF_BT_INFO *pAbfBtInfo,
 	socklen_t len;
 #endif
 
+	disallow_hcithread_read = 1;
+
 	do {
 #if 0 /* use HCIEventListenerSocket temporarily */
 		memset(&addr, 0, sizeof(struct sockaddr_un));
@@ -1184,7 +1195,7 @@ static A_STATUS IssueHCICommand(ABF_BT_INFO *pAbfBtInfo,
 		strlcpy(&addr.sun_path[1], HCI_SOCKET_NAME, sizeof(addr.sun_path) - 1);
 		len = offsetof(struct sockaddr_un, sun_path) + 1 + strlen(&addr.sun_path[1]);
 #endif
-		sk = socket(PF_LOCAL, SOCK_STREAM, 0);
+		sk = pAbfBtInfo->HCIEventListenerSocket;
 		if (sk < 0) {
 			A_ERR("Failed to get BTCServer socket: %s\n", __FUNCTION__);
 			break;
@@ -1268,6 +1279,8 @@ static A_STATUS IssueHCICommand(ABF_BT_INFO *pAbfBtInfo,
 		status = A_OK;
 
 	} while (FALSE);
+
+	disallow_hcithread_read = 0;
 
 #if 0 /* use HCIEventListenerSocket temporarily */
 	if (sk >= 0) {
@@ -1538,6 +1551,8 @@ static void *HCIFilterThread(void *arg)
 	A_UINT8                 *pBuffer;
 	int                     eventLen;
 	struct sigaction        actions;
+	struct pollfd pfd;
+	int poll_result;
 
 	A_INFO("[%s] starting up \n", __FUNCTION__);
 
@@ -1558,6 +1573,30 @@ static void *HCIFilterThread(void *arg)
 		if (pAbfBtInfo->HCIFilterThreadShutdown) {
 			break;
 		}
+
+		A_MEMZERO(&pfd,sizeof(pfd));
+		pfd.fd = pAbfBtInfo->HCIEventListenerSocket;
+		pfd.events = POLLIN;
+
+		poll_result = poll(&pfd, 1, 2000);
+		if (poll_result < 0) {
+			A_INFO("%s: poll failed: %s\n", __func__, strerror(errno));
+			break;
+		}
+		if (poll_result == 0) {
+			//A_INFO("%s: poll timeout\n", __func__);
+			continue;
+		}
+		if (!(pfd.revents & POLLIN)) {
+			A_INFO("%s: POLLIN check failed\n", __func__);
+			continue;
+		}
+
+		if (disallow_hcithread_read) {
+			A_INFO("%s: disallow hci thread to read, continue\n", __func__);
+			continue;
+		}
+
 		/* get the packet */
 		eventLen = read(pAbfBtInfo->HCIEventListenerSocket, pBuffer, sizeof(buffer));
 
@@ -1794,6 +1833,7 @@ A_STATUS start_monitor_stack_events(void *user_data)
 	struct sockaddr_un addr;
 	socklen_t len;
 	A_STATUS status;
+	A_UINT8 retry_cnt = 0;
 
 	A_INFO("[%s] enter\n", __func__);
 
@@ -1809,8 +1849,13 @@ A_STATUS start_monitor_stack_events(void *user_data)
 		return A_ERROR;
 	}
 
-
-	if (connect(pAbfBtInfo->StackEventSocket, (struct sockaddr *) &addr, len) < 0) {
+	while (connect(pAbfBtInfo->StackEventSocket, (struct sockaddr *) &addr, len) < 0 &&
+		retry_cnt < MAX_SOCKET_RETRY_CNT) {
+		retry_cnt++;
+		A_INFO("%s: connect() retry %d times\n", __func__, retry_cnt);
+		usleep(100000);
+	}
+	if (retry_cnt == MAX_SOCKET_RETRY_CNT) {
 		A_ERR("%s: connect() failed: %s (%d)\n",
 			__func__, strerror(errno), errno);
 		close(pAbfBtInfo->StackEventSocket);
