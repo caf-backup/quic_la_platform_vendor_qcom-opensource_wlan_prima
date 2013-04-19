@@ -800,6 +800,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                         status = csrScanCopyRequest(pMac, &p11dScanCmd->u.scanCmd.u.scanRequest, &scanReq);
                         //Free the channel list
                         palFreeMemory( pMac->hHdd, pChnInfo->ChannelList );
+                        pChnInfo->ChannelList = NULL;
 
                         if (HAL_STATUS_SUCCESS(status))
                         {
@@ -3924,6 +3925,7 @@ tANI_BOOLEAN csrHandleScan11dSuccess(tpAniSirGlobal pMac, tSmeCmd *pCommand)
             if(pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList)
             {
                 palFreeMemory(pMac->hHdd, pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList); 
+                pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = NULL;
             }
             if(HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList, cChannels)))
             {
@@ -5234,6 +5236,7 @@ eHalStatus csrProcessScanCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 {
                     //pChannel points to the channellist from the command, free it.
                     vos_mem_free(pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList);
+                    pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = NULL;
                 }
                 pCommand->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = j;
                 pCommand->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = newChannelInfo.ChannelList;
