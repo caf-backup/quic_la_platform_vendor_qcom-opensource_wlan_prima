@@ -46,7 +46,7 @@ endif
 ###########################################################
 
 # This is set once per LOCAL_PATH, not per (kernel) module
-KBUILD_OPTIONS := WLAN_ROOT=../$(WLAN_BLD_DIR)/cld-dev
+KBUILD_OPTIONS := WLAN_ROOT=../$(WLAN_BLD_DIR)/cld
 # We are actually building wlan.ko here, as per the
 # requirement we are specifying <chipset>_wlan.ko as LOCAL_MODULE.
 # This means we need to rename the module to <chipset>_wlan.ko
