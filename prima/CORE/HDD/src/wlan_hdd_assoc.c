@@ -861,6 +861,10 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
+   if ( NULL == pBssDesc)
+   {
+       return VOS_STATUS_E_FAILURE;
+   }
    // Get the Station ID from the one saved during the assocation.
    staDesc.ucSTAId = staId;
 
@@ -981,7 +985,8 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
    // not require upper layer authentication) we can put TL directly into 'authenticated'
    // state.
 
-   VOS_ASSERT( fConnected );
+   if (staDesc.wSTAType != WLAN_STA_IBSS)
+      VOS_ASSERT( fConnected );
 
    if ( !pRoamInfo->fAuthRequired )
    {
@@ -1455,13 +1460,21 @@ static eHalStatus roamRoamIbssIndicationHandler( hdd_adapter_t *pAdapter, tCsrRo
       case eCSR_ROAM_RESULT_IBSS_STARTED:
       case eCSR_ROAM_RESULT_IBSS_JOIN_SUCCESS:
       {
+         hdd_context_t *pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
+         v_MACADDR_t broadcastMacAddr = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
          // we should have a pRoamInfo on this callback...
          VOS_ASSERT( pRoamInfo );
 
          // When IBSS Started comes from CSR, we need to move connection state to
          // IBSS Disconnected (meaning no peers are in the IBSS).
          hdd_connSetConnectionState( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), eConnectionState_IbssDisconnected );
+         pHddCtx->sta_to_adapter[IBSS_BROADCAST_STAID] = pAdapter;
+         hdd_roamRegisterSTA (pAdapter, pRoamInfo,
+                      IBSS_BROADCAST_STAID,
+                      &broadcastMacAddr, pRoamInfo->pBssDesc);
 
+         netif_carrier_on(pAdapter->dev);
+         netif_tx_start_all_queues(pAdapter->dev);
          break;
       }
 
@@ -1706,11 +1719,13 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
    {
       case eCSR_ROAM_RESULT_IBSS_NEW_PEER:
       {
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+         hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
                     "IBSS New Peer indication from SME "
-                    "with peerMac %2x-%2x-%2x-%2x-%2x-%2x  and  stationID= %d",
-                    pRoamInfo->peerMac[0], pRoamInfo->peerMac[1], pRoamInfo->peerMac[2],
-                    pRoamInfo->peerMac[3], pRoamInfo->peerMac[4], pRoamInfo->peerMac[5],
+                    "with peerMac " MAC_ADDRESS_STR " BSSID: " MAC_ADDRESS_STR " and stationID= %d",
+                    MAC_ADDR_ARRAY(pRoamInfo->peerMac),
+                    MAC_ADDR_ARRAY(pHddStaCtx->conn_info.bssId),
                     pRoamInfo->staId );
 
          if ( !roamSaveIbssStation( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pRoamInfo->staId, (v_MACADDR_t *)pRoamInfo->peerMac ) )
@@ -1721,6 +1736,10 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
          }
 
          pHddCtx->sta_to_adapter[pRoamInfo->staId] = pAdapter;
+
+         pHddCtx->sta_to_adapter[IBSS_BROADCAST_STAID] = pAdapter;
+         WLANTL_UpdateSTABssIdforIBSS(pHddCtx->pvosContext,
+                      IBSS_BROADCAST_STAID,pHddStaCtx->conn_info.bssId);
 
          // Register the Station with TL for the new peer.
          vosStatus = hdd_roamRegisterSTA( pAdapter,
@@ -1749,12 +1768,20 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
       }
       case eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED:
       {
+         hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-         if ( !roamRemoveIbssStation( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pRoamInfo->staId ) )
+         if ( !roamRemoveIbssStation( pHddStaCtx, pRoamInfo->staId ) )
          {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                     "IBSS peer departed by cannot find peer in our registration table with TL" );
          }
+
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                    "IBSS Peer Departed from SME "
+                    "with peerMac " MAC_ADDRESS_STR " BSSID: " MAC_ADDRESS_STR " and stationID= %d",
+                    MAC_ADDR_ARRAY(pRoamInfo->peerMac),
+                    MAC_ADDR_ARRAY(pHddStaCtx->conn_info.bssId),
+                    pRoamInfo->staId );
 
          hdd_roamDeregisterSTA( pAdapter, pRoamInfo->staId );
 
@@ -1764,6 +1791,8 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
       }
       case eCSR_ROAM_RESULT_IBSS_INACTIVE:
       {
+          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                    "Received eCSR_ROAM_RESULT_IBSS_INACTIVE from SME");
          // Stop only when we are inactive
          netif_tx_disable(pAdapter->dev);
          netif_carrier_off(pAdapter->dev);
