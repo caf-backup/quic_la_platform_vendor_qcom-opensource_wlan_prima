@@ -23,9 +23,9 @@
   \file     packet.h
   \brief   
 
-  Copyright 2013 (c) Qualcomm, Incorporated.  All Rights Reserved.
+  Copyright 2013 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
 
-  Qualcomm Confidential and Proprietary.
+  Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 /**=========================================================================
