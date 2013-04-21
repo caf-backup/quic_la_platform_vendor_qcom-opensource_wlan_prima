@@ -1651,6 +1651,10 @@ typedef enum
 #define CFG_DISABLE_LDPC_WITH_TXBF_AP_MAX         ( 1 )
 #define CFG_DISABLE_LDPC_WITH_TXBF_AP_DEFAULT     ( 0 )
 #endif
+
+#define CFG_LIST_OF_NON_DFS_COUNTRY_CODE                    "gListOfNonDfsCountryCode"
+#define CFG_LIST_OF_NON_DFS_COUNTRY_CODE_DEFAULT            "JO,MA"
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2011,6 +2015,7 @@ typedef struct
    v_U8_t                      retryLimitZero;
    v_U8_t                      retryLimitOne;
    v_U8_t                      retryLimitTwo;
+   char                        listOfNonDfsCountryCode[128];
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
