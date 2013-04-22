@@ -2826,16 +2826,21 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     tpSirMacMgmtHdr pHdr;
     tANI_U8         mappedRXCh;
 
-#ifndef WMA_LAYER
-    pPayload = WDA_GET_RX_MPDU_DATA( pFrame );
-    nPayload = WDA_GET_RX_PAYLOAD_LEN( pFrame );
-    pHdr     = WDA_GET_RX_MAC_HEADER( pFrame );
-    mappedRXCh = WDA_GET_RX_CH( pFrame );
+#ifdef REMOVE_TL
+	tp_rxpacket pRxPacket = (tp_rxpacket) pFrame;
+#endif
+
+#ifndef REMOVE_TL
+	pPayload = WDA_GET_RX_MPDU_DATA(pFrame);
+	nPayload = WDA_GET_RX_PAYLOAD_LEN(pFrame);
+	pHdr     = WDA_GET_RX_MAC_HEADER(pFrame);
+	mappedRXCh = WDA_GET_RX_CH(pFrame);
 #else
-    pPayload = WMA_GET_RX_MPDU_DATA( pFrame );
-    nPayload = WMA_GET_RX_PAYLOAD_LEN( pFrame );
-    pHdr     = WMA_GET_RX_MAC_HEADER( pFrame );
-    mappedRXCh = WMA_GET_RX_CH( pFrame );
+	pPayload = pRxPacket->rxpktmeta.mpdu_data_ptr;
+	nPayload = pRxPacket->rxpktmeta.mpdu_data_len;
+	pHdr     = (tpSirMacMgmtHdr)
+			(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
+	mappedRXCh = pRxPacket->rxpktmeta.channel;
 #endif
     
     // Zero-init our [out] parameter,
@@ -3009,7 +3014,11 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     }
     else
     {
-        pBeaconStruct->channelNumber = limUnmapChannel(mappedRXCh);
+#ifndef REMOVE_TL
+	pBeaconStruct->channelNumber = limUnmapChannel(mappedRXCh);
+#else
+	pBeaconStruct->channelNumber = mappedRXCh;
+#endif
     }
 
     if ( pBeacon->RSN.present )

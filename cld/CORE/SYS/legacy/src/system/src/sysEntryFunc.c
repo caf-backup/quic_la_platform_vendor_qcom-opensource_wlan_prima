@@ -102,28 +102,38 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     tSirRetStatus ret;
     void*         pBd = NULL;
     tMgmtFrmDropReason dropReason;
-    vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
-    VOS_STATUS  vosStatus =
-#ifndef WMA_LAYER
-              WDA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
+#ifndef REMOVE_TL
+	vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
+	VOS_STATUS  vosStatus;
 #else
-              WMA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
+	tp_rxpacket pRxPacket = (tp_rxpacket)(pMsg->bodyptr);
 #endif
-    pMac->sys.gSysBbtReceived++;
 
-    if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-    {
-        goto fail;
-    }
+#ifndef REMOVE_TL
+	vosStatus = WDA_DS_PeekRxPacketInfo(pVosPkt,
+			(v_PVOID_t *)&pBd, VOS_FALSE);
 
+	if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+		goto fail;
+#else
+	pBd = pRxPacket;
+#endif
+
+#ifndef REMOVE_TL
     PELOG3(sysLog(pMac, LOG3, FL("Rx Mgmt Frame Subtype: %d\n"), subType);
-#ifndef WMA_LAYER
     sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3, (tANI_U8 *)WDA_GET_RX_MAC_HEADER(pBd), WDA_GET_RX_MPDU_LEN(pBd));
     sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3, WDA_GET_RX_MPDU_DATA(pBd), WDA_GET_RX_PAYLOAD_LEN(pBd));)
 #else
-    sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3, (tANI_U8 *)WMA_GET_RX_MAC_HEADER(pBd), WMA_GET_RX_MPDU_LEN(pBd));
-    sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3, WMA_GET_RX_MPDU_DATA(pBd), WMA_GET_RX_PAYLOAD_LEN(pBd));)
+	PELOG3(sysLog(pMac, LOG3, FL("Rx Mgmt Frame Subtype: %d\n"), subType);
+	sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3,
+		(tANI_U8 *)(pRxPacket->rxpktmeta.mpdu_hdr_ptr),
+		(pRxPacket->rxpktmeta.mpdu_len));
+	sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3,
+		(pRxPacket->rxpktmeta.mpdu_data_ptr),
+		(pRxPacket->rxpktmeta.mpdu_data_len));)
 #endif
+
+	pMac->sys.gSysBbtReceived++;
 
     pMac->sys.gSysFrameCount[type][subType]++;
 
@@ -133,7 +143,9 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
             if( (dropReason = limIsPktCandidateForDrop(pMac, pBd, subType)) != eMGMT_DROP_NO_DROP)
             {
                 PELOG1(sysLog(pMac, LOG1, FL("Mgmt Frame %d being dropped, reason: %d\n"), subType, dropReason);)
+#ifndef REMOVE_TL
                 MTRACE(macTrace(pMac,   TRACE_CODE_RX_MGMT_DROP, NO_SESSION, dropReason);)
+#endif
                 goto fail;
             }
             //Post the message to PE Queue
