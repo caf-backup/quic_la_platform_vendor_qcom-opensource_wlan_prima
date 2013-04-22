@@ -429,6 +429,25 @@ tpPESession peFindSessionByPeerSta(tpAniSirGlobal pMac, tANI_U8*  sa, tANI_U8* s
  tpPESession peFindSessionByStaId(tpAniSirGlobal pMac,  tANI_U8  staid,    tANI_U8* sessionId);
  
 
+/*--------------------------------------------------------------------------
+ *\brief pe_find_session_by_selfmacaddr() - looks up the PE session given
+ *						staid.
+ *
+ *This function returns the session context and the session ID if the session
+ *corresponding to the given StaId is found in the PE session table.
+ *
+ *\param pmac                  - pointer to global adapter context
+ *\param mac                   - mac address of the session
+ *\param sessionId             - session ID is returned here, if session
+ *					is found.
+ *
+ *\return tpPESession          - pointer to the session context or NULL
+ *					if session is not found.
+ *
+ *-------------------------------------------------------------------------*/
+tpPESession pe_find_session_by_selfmacaddr(tpAniSirGlobal pmac,
+					tANI_U8 *selfmacaddr,
+					tANI_U8 *sessionid);
 
 
 
