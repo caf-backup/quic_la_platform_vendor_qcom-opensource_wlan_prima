@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011 - 2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -515,14 +515,13 @@ ol_rx_offload_deliver_ind_handler(
     adf_nbuf_t head_buf, tail_buf, buf;
     struct ol_txrx_peer_t *peer;
     struct ol_txrx_vdev_t *vdev = NULL;
-    u_int8_t *data, fw_desc;
+    u_int8_t fw_desc;
     htt_pdev_handle htt_pdev = pdev->htt_pdev;
 
     while (msdu_cnt) {
         htt_rx_offload_msdu_pop(
             htt_pdev, msg, &vdev_id, &peer_id,
             &tid, &fw_desc, &head_buf, &tail_buf);
-        data = (A_UINT8 *)adf_nbuf_data(head_buf);
 
         peer = ol_txrx_peer_find_by_id(pdev, peer_id);
         if (peer) {

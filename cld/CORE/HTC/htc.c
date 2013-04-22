@@ -6,6 +6,13 @@
 //==============================================================================
 // Author(s): ="Atheros"
 //==============================================================================
+
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 #include "ol_if_athvar.h"
 #include "htc_internal.h"
 #include <adf_nbuf.h>     /* adf_nbuf_t */
@@ -281,7 +288,10 @@ A_STATUS HTCSetupTargetBufferAssignments(HTC_TARGET *target)
 #if defined(HIF_USB)
     target->avail_tx_credits = target->TotalTransmitCredits - 1 ;
 #endif
+#if !(defined(HIF_PCI) || defined(HIF_SIM) || defined(CONFIG_HL_SUPPORT) || (defined(HIF_USB) && !defined(EPPING_TEST)))
     status = A_NO_RESOURCE;
+#endif
+
 #if defined(HIF_PCI) || defined(HIF_SIM) || (defined(CONFIG_HL_SUPPORT) && !defined(AR6004_HW))/* TODO: maybe change to HIF_SDIO later */
                                                                            /* TODO: maybe check ROME service for USB service */
     /*
