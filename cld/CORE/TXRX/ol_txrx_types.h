@@ -396,7 +396,8 @@ struct ol_txrx_pdev_t {
 	/* tx management delivery notification callback functions */
 	struct {
 		struct {
-			ol_txrx_mgmt_tx_cb cb;
+			ol_txrx_mgmt_tx_cb download_cb;
+			ol_txrx_mgmt_tx_cb ota_ack_cb;
 			void *ctxt;
 		} callbacks[OL_TXRX_MGMT_NUM_TYPES];
 	} tx_mgmt;

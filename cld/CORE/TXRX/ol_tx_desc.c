@@ -186,7 +186,7 @@ void ol_tx_desc_frame_free_nonstd(
     int had_error)
 {
     int mgmt_type;
-    ol_txrx_mgmt_tx_cb cb;
+    ol_txrx_mgmt_tx_cb ota_ack_cb;
 	
     adf_os_atomic_init(&tx_desc->ref_cnt); /* clear the ref cnt */
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
@@ -215,11 +215,11 @@ void ol_tx_desc_frame_free_nonstd(
          *  we already checked the value when the mgmt frame was provided to the txrx layer.
          *  no need to check it a 2nd time.
          */
-        cb = pdev->tx_mgmt.callbacks[mgmt_type].cb;
-        if (cb) {
+        ota_ack_cb = pdev->tx_mgmt.callbacks[mgmt_type].ota_ack_cb;
+        if (ota_ack_cb) {
             void *ctxt;
             ctxt = pdev->tx_mgmt.callbacks[mgmt_type].ctxt;
-            cb(ctxt, tx_desc->netbuf, had_error);
+            ota_ack_cb(ctxt, tx_desc->netbuf, had_error);
         }
         /* free the netbuf */
         adf_nbuf_free(tx_desc->netbuf);
