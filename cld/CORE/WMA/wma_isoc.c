@@ -1142,7 +1142,7 @@ VOS_STATUS wma_nv_download_start(HTC_HANDLE handle)
 
 			SET_HTC_PACKET_NET_BUF_CONTEXT(&htc_packet, msg);
 
-			vos_event_reset(&wma_handle->cfg_nv_tx_complete);
+			vos_event_reset(&wma_handle->cfg_nv_rx_complete);
 
 			status = HTCSendPkt(wma_handle->htc_handle, &htc_packet);
 			if (status != A_OK)
@@ -1152,8 +1152,9 @@ VOS_STATUS wma_nv_download_start(HTC_HANDLE handle)
 			}
 
 			// waiting for next send
-			vos_status = vos_wait_single_event( &(wma_handle->cfg_nv_tx_complete),
-					WMA_CFG_NV_DNLD_TIMEOUT );
+			vos_status =
+			vos_wait_single_event(&(wma_handle->cfg_nv_rx_complete),
+					WMA_CFG_NV_DNLD_TIMEOUT);
 			if (VOS_STATUS_SUCCESS != vos_status) {
 				WMA_LOGP("failed to download the cfg");
 				goto end;
@@ -1228,15 +1229,16 @@ VOS_STATUS wma_nv_download_start(HTC_HANDLE handle)
 
 			SET_HTC_PACKET_NET_BUF_CONTEXT(&htc_packet, msg);
 
-		vos_event_reset(&wma_handle->cfg_nv_tx_complete);
+		vos_event_reset(&wma_handle->cfg_nv_rx_complete);
 		status = HTCSendPkt(wma_handle->htc_handle, &htc_packet);
 		if (status != A_OK) {
 			WMA_LOGP("failed to download the nv\n");
 		}
 
 		/* to guarantee htc_packet is available in TX complete */
-		vos_status = vos_wait_single_event( &(wma_handle->cfg_nv_tx_complete),
-				WMA_CFG_NV_DNLD_TIMEOUT );
+		vos_status =
+			vos_wait_single_event(&(wma_handle->cfg_nv_rx_complete),
+					WMA_CFG_NV_DNLD_TIMEOUT);
 		if (VOS_STATUS_SUCCESS != vos_status) {
 			WMA_LOGP("failed to download the cfg");
 			goto end;
@@ -1377,7 +1379,7 @@ VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context, tp_wma_handle wma_handle
 
 	// wait for cfg sending complete
 	vos_status = vos_wait_single_event( &(wma_handle->cfg_nv_tx_complete),
-			WMA_CFG_NV_DNLD_TIMEOUT );
+					WMA_CFG_NV_DNLD_TIMEOUT);
 
 end:
 	if(wma_start_param.pConfigBuffer != NULL) {
@@ -1401,7 +1403,7 @@ v_VOID_t wma_cfg_nv_download_complete(WMA_HANDLE handle, HTC_PACKET *htc_pkt)
 	adf_nbuf_t msg = (adf_nbuf_t)GET_HTC_PACKET_NET_BUF_CONTEXT(htc_pkt);
 	tp_wma_handle wma_handle = (tp_wma_handle)(htc_pkt->pPktContext);
 
-	WMA_LOGA("#### cfg_nv tx complete! ####");
+	WMA_LOGA("#### cfg_nv tx complete! ####\n");
 
 	VOS_ASSERT(msg);
 	adf_nbuf_free(msg);
@@ -1415,6 +1417,63 @@ v_VOID_t wma_cfg_nv_download_complete(WMA_HANDLE handle, HTC_PACKET *htc_pkt)
 	return;
 }
 
+void wma_cfg_nv_rx(WMA_HANDLE handle, HTC_PACKET *htc_pkt)
+{
+	adf_nbuf_t rx_buf = (adf_nbuf_t)htc_pkt->pPktContext;
+	void *msg = (void *)adf_nbuf_data(rx_buf);
+	tHalMsgHeader *pMsgHeader = (tHalMsgHeader *)msg;
+	tp_wma_handle wma_handle = (tp_wma_handle)(handle);
+	tHalMacStopRspMsg *pHalStopRsp = NULL;
+	tHalMacStartRspMsg *pHalStartRsp = NULL;
+	tHalNvImgDownloadRspMsg *pHalNvDnldRsp = NULL;
+
+	bool bReleaselock = true;
+
+	if (!msg || pMsgHeader->msgLen == 0) {
+		WMA_LOGE(" Receive NULL msg!\n");
+		return;
+	}
+
+	/* handle each RSP ID*/
+	switch (pMsgHeader->msgType) {
+	case WLAN_HAL_START_RSP:
+		/* save FW version here*/
+		pHalStartRsp = (tHalMacStartRspMsg *)msg;
+		WMA_LOGA("Received HalStart RSP!\n"
+			"status = %d\n"
+			"wcnssCrmVersionString=%s\n"
+			"wcnssWlanVersionString=%s\n",
+			pHalStartRsp->startRspParams.status,
+			pHalStartRsp->startRspParams.wcnssCrmVersionString,
+			pHalStartRsp->startRspParams.wcnssWlanVersionString);
+		break;
+	case WLAN_HAL_STOP_RSP:
+		pHalStopRsp = (tHalMacStopRspMsg *)msg;
+		WMA_LOGA("Received HalStop RSP with status = %u\n",
+				pHalStopRsp->stopRspParams.status);
+		break;
+	case WLAN_HAL_DOWNLOAD_NV_RSP:
+		pHalNvDnldRsp = (tHalNvImgDownloadRspMsg *)msg;
+		WMA_LOGA("Received NV download RSP with status = %u\n",
+				pHalNvDnldRsp->nvImageRspParams.status);
+		break;
+	default:
+		WMA_LOGA("Received Unknown HAL response = %d\n",
+				pMsgHeader->msgType);
+		bReleaselock = false;
+		break;
+	}
+
+	/* free rx buffer*/
+	if (rx_buf)
+		adf_nbuf_free(rx_buf);
+
+	VOS_ASSERT(wma_handle);
+	if ((bReleaselock != false) &&
+		(vos_event_set(&wma_handle->cfg_nv_rx_complete)
+					!= VOS_STATUS_SUCCESS))
+		WMA_LOGE("Failed to set the event");
+}
 /* function   : wma_htc_cfg_nv_connect_service    
  * Descriptin :  
  * Args       :        
@@ -1436,7 +1495,7 @@ VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle)
 	/* these fields are the same for all service endpoints */
 	connect_req.EpCallbacks.pContext = wma_handle;
 	connect_req.EpCallbacks.EpTxCompleteMultiple = NULL; 
-	connect_req.EpCallbacks.EpRecv = NULL; 
+	connect_req.EpCallbacks.EpRecv = wma_cfg_nv_rx;
 	connect_req.EpCallbacks.EpRecvRefill = NULL; 
 	connect_req.EpCallbacks.EpSendFull = NULL; 
 	connect_req.EpCallbacks.EpTxComplete = wma_cfg_nv_download_complete;
@@ -1463,6 +1522,89 @@ VOS_STATUS wma_htc_cfg_nv_connect_service(tp_wma_handle wma_handle)
 	}
 end:
 	WMA_LOGD("Exit");	
+	return vos_status;
+}
+
+VOS_STATUS wma_hal_stop_isoc(tp_wma_handle wma_handle)
+{
+	A_STATUS      status = A_ERROR;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tHalMacStopReqMsg      halStopReq;
+	v_U8_t     *pSendBuffer = NULL;
+	v_U16_t    usDataOffset       = 0;
+	v_U16_t    usSendSize         = 0;
+	v_U16_t    usLen              = 0;
+	adf_nbuf_t  msg = NULL;
+	v_U32_t   *msg_word = NULL;
+	HTC_PACKET  HtcPkt;
+
+	/*Get message buffer*/
+	usLen = sizeof(halStopReq.stopReqParams);
+	if ((VOS_STATUS_SUCCESS !=
+			wma_cfg_nv_get_hal_message_buffer(wma_handle,
+						FW_WLAN_HAL_STOP_REQ,
+						usLen,
+						&pSendBuffer,
+						&usDataOffset,
+						&usSendSize)) ||
+			(usSendSize < (usDataOffset + usLen))) {
+		vos_status = VOS_STATUS_E_FAILURE;
+		VOS_ASSERT(0);
+		goto end;
+	}
+
+	/* Fill in the message*/
+	halStopReq.stopReqParams.reason = HAL_STOP_TYPE_RF_KILL;
+	vos_mem_copy(pSendBuffer+usDataOffset,
+			&halStopReq.stopReqParams,
+			sizeof(halStopReq.stopReqParams));
+
+	/* Fill HTC packet*/
+	msg = adf_nbuf_alloc(
+			wma_handle->adf_dev,
+			usSendSize,
+			/* reserve room for HTC header */
+			HTC_HEADER_LEN + HTC_HDR_ALIGNMENT_PADDING, 4, FALSE);
+	if (!msg) {
+		vos_status = VOS_STATUS_E_NOMEM;
+		goto end;
+	}
+	/* set the length of the message */
+	adf_nbuf_put_tail(msg, usSendSize);
+	/* fill in the message contents */
+	msg_word = (v_U32_t *) adf_nbuf_data(msg);
+	adf_os_mem_copy(msg_word, pSendBuffer, usSendSize);
+
+	SET_HTC_PACKET_INFO_TX(
+			&HtcPkt,
+			wma_handle,
+			adf_nbuf_data(msg),
+			adf_nbuf_len(msg),
+			wma_handle->cfg_nv.endpoint_id,
+			0);
+
+	SET_HTC_PACKET_NET_BUF_CONTEXT(&HtcPkt, msg);
+	status = HTCSendPkt(wma_handle->htc_handle, &HtcPkt);
+	if (status != A_OK) {
+		WMA_LOGE("download hal_stop failed!\n");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+
+	vos_event_reset(&wma_handle->cfg_nv_rx_complete);
+	/* wait for cfg response*/
+	WMA_LOGA("check HAL_STOP response start...\n");
+	vos_status = vos_wait_single_event(&(wma_handle->cfg_nv_rx_complete),
+					WMA_CFG_NV_DNLD_TIMEOUT);
+	if (VOS_STATUS_SUCCESS != vos_status)
+		WMA_LOGP("failed to stop hal\n");
+
+end:
+	if (pSendBuffer) {
+		vos_mem_free(pSendBuffer);
+		pSendBuffer = NULL;
+	}
+
 	return vos_status;
 }
 

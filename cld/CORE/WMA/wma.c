@@ -761,6 +761,9 @@ VOS_STATUS wma_stop(WMA_HANDLE handle)
 		goto end;
 	}
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+	wma_hal_stop_isoc(handle);
+#endif
 end:
 	WMA_LOGD("Exit");
 	return vos_status;
