@@ -60,6 +60,7 @@
 #endif
 #include "packet.h"
 #include "vos_sched.h"
+#include "wlan_hdd_tgt_cfg.h"
 
 /* Platform specific configuration for max. no. of fragments */
 #define QCA_OL_11AC_TX_MAX_FRAGS            2
@@ -208,6 +209,8 @@ typedef struct {
 	struct wma_mem_chunk mem_chunks[MAX_MEM_CHUNKS];
 #endif
 	u_int32_t vdev_bit_map;
+	hdd_tgt_cfg_cb tgt_cfg_update_cb;
+	HAL_REG_CAPABILITIES reg_cap;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -754,4 +757,7 @@ VOS_STATUS wma_mgmt_attach(void *pmacCtx, void *pvosGCtx,
 VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id, 
 		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac, 
 		u_int32_t vdev_type, bool add_del);
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
+#endif
 #endif
