@@ -1197,6 +1197,13 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf );
   -------------------------------------------------------------------------------*/
 eHalStatus csrOpen(tpAniSirGlobal pMac);
 /* ---------------------------------------------------------------------------
+    \fn csr_init_chan_list
+    \brief This function needs to called to initialize channel information,
+     which, for discrete, will come from targer fw.
+    \return eHalStatus
+  -------------------------------------------------------------------------------*/
+eHalStatus csr_init_chan_list(tpAniSirGlobal mac);
+/* ---------------------------------------------------------------------------
     \fn csrClose
     \brief To close down CSR module. There should not be any API call into CSR after calling this function.
     \return eHalStatus

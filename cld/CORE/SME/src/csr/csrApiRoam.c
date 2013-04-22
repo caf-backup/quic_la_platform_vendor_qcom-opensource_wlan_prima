@@ -275,11 +275,8 @@ static void csrRoamDeInitGlobals(tpAniSirGlobal pMac)
 eHalStatus csrOpen(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    static uNvTables nvTables;
-    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-    v_REGDOMAIN_t regId;
     tANI_U32 i;
-    
+
     do
     {
         /* Initialize CSR Roam Globals */
@@ -299,35 +296,50 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
            break;
         if(!HAL_STATUS_SUCCESS(csrLLOpen(pMac->hHdd, &pMac->roam.roamCmdPendingList)))
            break;
-        vosStatus = vos_nv_readDefaultCountryTable( &nvTables );
-        if ( VOS_IS_STATUS_SUCCESS(vosStatus) )
-        {
-            palCopyMemory( pMac->hHdd, pMac->scan.countryCodeDefault, 
-                    nvTables.defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
-            status = eHAL_STATUS_SUCCESS;
-        }
-        else
-        {
-            smsLog( pMac, LOGE, FL("  fail to get NV_FIELD_IMAGE") );
-            //hardcoded for now
-            pMac->scan.countryCodeDefault[0] = 'U';
-            pMac->scan.countryCodeDefault[1] = 'S';
-            pMac->scan.countryCodeDefault[2] = 'I';
-            //status = eHAL_STATUS_SUCCESS;
-        }
-        smsLog( pMac, LOG1, FL(" country Code from nvRam %.2s"), pMac->scan.countryCodeDefault );
-        csrGetRegulatoryDomainForCountry(pMac, pMac->scan.countryCodeDefault, &regId);
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-	vos_nv_setRegDomain(pMac, regId);
-#endif	
-        pMac->scan.domainIdDefault = regId;
-        pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
-        status = palCopyMemory(pMac->hHdd, pMac->scan.countryCodeCurrent, 
-                         pMac->scan.countryCodeDefault, WNI_CFG_COUNTRY_CODE_LEN);
-        status = csrInitGetChannels( pMac );
     }while(0);
     
     return (status);
+}
+
+eHalStatus csr_init_chan_list(tpAniSirGlobal mac)
+{
+	eHalStatus status;
+	static uNvTables nv_tbl;
+	v_REGDOMAIN_t reg_id;
+
+	if (vos_nv_readDefaultCountryTable(&nv_tbl) == VOS_STATUS_SUCCESS) {
+		status = palCopyMemory(mac->hHdd, mac->scan.countryCodeDefault,
+				       nv_tbl.defaultCountryTable.countryCode,
+				       WNI_CFG_COUNTRY_CODE_LEN);
+		if (status != eHAL_STATUS_SUCCESS)
+			return status;
+	} else {
+		smsLog(mac, LOGE, FL("fail to get NV_FIELD_IMAGE"));
+		/* hardcoded for now */
+		mac->scan.countryCodeDefault[0] = 'U';
+		mac->scan.countryCodeDefault[1] = 'S';
+		mac->scan.countryCodeDefault[2] = 'I';
+	}
+	smsLog(mac, LOG1, FL("country Code from nvRam %.2s"),
+	       mac->scan.countryCodeDefault);
+	status = csrGetRegulatoryDomainForCountry(mac,
+						  mac->scan.countryCodeDefault,
+						  &reg_id);
+	if (status != eHAL_STATUS_SUCCESS)
+		return status;
+
+	if (vos_nv_setRegDomain(mac, reg_id) != VOS_STATUS_SUCCESS)
+		return eHAL_STATUS_FAILURE;
+	mac->scan.domainIdDefault = reg_id;
+	mac->scan.domainIdCurrent = mac->scan.domainIdDefault;
+	status = palCopyMemory(mac->hHdd, mac->scan.countryCodeCurrent,
+			       mac->scan.countryCodeDefault,
+			       WNI_CFG_COUNTRY_CODE_LEN);
+	if (status != eHAL_STATUS_SUCCESS)
+		return status;
+
+	status = csrInitGetChannels(mac);
+	return status;
 }
 
 eHalStatus csrSetRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
