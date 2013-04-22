@@ -1776,7 +1776,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
             pConfig->mcRSNEncryptType = mcRSNEncryptType;
             (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->ucEncryptType
                                                               = RSNEncryptType;
-            hddLog( LOG1, FL("%s: CSR AuthType = %d, "
+            hddLog( LOG1, FL("CSR AuthType = %d, "
                         "EncryptionType = %d mcEncryptionType = %d\n"),
                         RSNAuthType, RSNEncryptType, mcRSNEncryptType);
         }
@@ -1815,7 +1815,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                 pConfig->mcRSNEncryptType = mcRSNEncryptType;
                 (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->ucEncryptType
                                                               = RSNEncryptType;
-                hddLog( LOG1, FL("%s: CSR AuthType = %d, "
+                hddLog( LOG1, FL("CSR AuthType = %d, "
                                 "EncryptionType = %d mcEncryptionType = %d\n"),
                                 RSNAuthType, RSNEncryptType, mcRSNEncryptType);
             }
