@@ -141,17 +141,20 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
                "%s: called with arg > 1024K; passed in %d !!!", __func__,size); 
        return NULL;
    }
-   if (in_interrupt())
-   {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-               "%s is being called in interrupt context, using GPF_ATOMIC.", __func__);
-       return kmalloc(size, GFP_ATOMIC);
-      
-   }
 
    new_size = size + sizeof(struct s_vos_mem_struct) + 8; 
 
-   memStruct = (struct s_vos_mem_struct*)kmalloc(new_size,GFP_KERNEL);
+	/*
+	 * Use GFP_ATOMIC incase if it is called
+	 * from interrupt context/irq disabled
+	 * case similar to adf implementation
+	 */
+	if (in_interrupt() || irqs_disabled())
+		memStruct = (struct s_vos_mem_struct *)
+				kmalloc(new_size, GFP_ATOMIC);
+	else
+		memStruct = (struct s_vos_mem_struct *)
+				kmalloc(new_size, GFP_KERNEL);
 
    if(memStruct != NULL)
    {
@@ -224,11 +227,7 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: called with arg > 1024K; passed in %d !!!", __func__,size); 
        return NULL;
    }
-   if (in_interrupt())
-   {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __func__);
-      return NULL;
-   }
+
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
    if(size > WCNSS_PRE_ALLOC_GET_THRESHOLD)
    {
@@ -237,7 +236,16 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
            return pmem;
    }
 #endif
-   return kmalloc(size, GFP_KERNEL);
+
+	/*
+	 * Use GFP_ATOMIC incase if it is called
+	 * from interrupt context/irq disabled
+	 * case similar to adf implementation
+	 */
+	if (in_interrupt() || irqs_disabled())
+		return kmalloc(size, GFP_ATOMIC);
+	else
+		return kmalloc(size, GFP_KERNEL);
 }   
 
 v_VOID_t vos_mem_free( v_VOID_t *ptr )
@@ -245,11 +253,6 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
     if (ptr == NULL)
       return;
 
-    if (in_interrupt())
-    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __func__);
-      return;
-    }
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
     if(wcnss_prealloc_put(ptr))
         return;
