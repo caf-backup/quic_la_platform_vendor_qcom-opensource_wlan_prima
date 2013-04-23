@@ -73,6 +73,7 @@
 #include "hif_dxe_hw_pvt.h" 
 #include "hif_dxe_pvt.h"
 #include <mach/msm_smsm.h>
+#include "vos_threads.h"
 
 #define ATH_MODULE_NAME hif_dxe_linuxos
 
@@ -773,11 +774,12 @@ void hif_dxe_os_writereg(hif_dxe_oshandle hif_dxe_osdev,
  */
 void hif_dxe_os_mem_barrier(void)
 {
-	//KeMemoryBarrier();
-
-	/* To Do */
+	/* Memory Barrier */
+	mb();
 }
 
+#define DXE_STOP_WAIT_CNT 10
+#define DXE_STOP_WAIT_SLEEP_UNIT_MS 100
 /**
  * @brief Notify HIF DXE OS Layer Of Stop
  * 
@@ -785,25 +787,17 @@ void hif_dxe_os_mem_barrier(void)
  *  
  * @return void
  */
-
 void hif_dxe_os_stop(hif_dxe_oshandle hif_dxe_osdev)
 {
-
-//ToDo
-#if 0
 	S_HIF_DXE_OSCONTEXT * hif_dxeos_ctx = hif_dxe_osdev;
-	a_uint8_t max_wait_cnt = 10;
+	u_int8_t max_wait_cnt = DXE_STOP_WAIT_CNT;
 
-	/* To Do */
-
-	InterlockedExchange(&hif_dxeos_ctx->dxe_unloaded,1);
-	//Wait For DXE Reference to End
-	while((hif_dxeos_ctx->ref_count) && (max_wait_cnt))
-	{
-		NdisMSleep(100);
+	/* Wait For DXE Reference to complete (1 sec max)*/
+	while (adf_os_atomic_read(&(hif_dxeos_ctx->ref_count))
+		&& (max_wait_cnt)) {
+		vos_sleep(DXE_STOP_WAIT_SLEEP_UNIT_MS);
 		max_wait_cnt--;
 	}
-#endif	
 }
 
 /**
