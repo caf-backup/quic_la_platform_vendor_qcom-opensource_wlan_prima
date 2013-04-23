@@ -4510,16 +4510,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
-   /*
-    * cfg80211: Initialization and registration ...
-    */
-   if (0 < wlan_hdd_cfg80211_register(dev, wiphy, pHddCtx->cfg_ini))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, 
-              "%s: wlan_hdd_cfg80211_register return failure", __func__);
-      goto err_wiphy_reg;
-   }
-
    // Update VOS trace levels based upon the cfg.ini
    hdd_vos_trace_enable(VOS_MODULE_ID_BAP,
                         pHddCtx->cfg_ini->vosTraceEnableBAP);
@@ -4544,16 +4534,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hdd_vos_trace_enable(VOS_MODULE_ID_HDD_SOFTAP,
                         pHddCtx->cfg_ini->vosTraceEnableHDDSAP);
 
-   if (VOS_FTM_MODE == hdd_get_conparam())
-   {
-      if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
-      {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
-          goto err_free_hdd_context;
-      }
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
-      return VOS_STATUS_SUCCESS;
-   }
+   /* For ftm mode go directly to wiphy register */
+   if (hdd_get_conparam() == VOS_FTM_MODE)
+	   goto register_wiphy;
 
    //Open watchdog module
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
@@ -4564,7 +4547,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       if(!VOS_IS_STATUS_SUCCESS( status ))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_watchdog_open failed",__func__);
-         goto err_wiphy_reg;
+	 goto err_config;
       }
    }
 
@@ -4600,11 +4583,35 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_vosclose;
    }
 
+register_wiphy:
+   /*
+    * cfg80211: Initialization and registration ...
+    */
+   if (wlan_hdd_cfg80211_register(dev, wiphy, pHddCtx->cfg_ini) < 0) {
+	   hddLog(VOS_TRACE_LEVEL_FATAL,
+		  "%s: wlan_hdd_cfg80211_register return failure", __func__);
+	   if (hdd_get_conparam() == VOS_FTM_MODE)
+		   goto err_config;
+	   else
+		   goto err_vosclose;
+   }
+
+   if (hdd_get_conparam() == VOS_FTM_MODE) {
+	if (wlan_hdd_ftm_open(pHddCtx) != VOS_STATUS_SUCCESS) {
+		hddLog(VOS_TRACE_LEVEL_FATAL,
+		       "%s: wlan_hdd_ftm_open Failed", __func__);
+		goto err_config;
+	}
+	hddLog(VOS_TRACE_LEVEL_FATAL,
+	       "%s: FTM driver loaded success fully", __func__);
+	return VOS_STATUS_SUCCESS;
+   }
+
    status = hdd_set_sme_chan_list(pHddCtx);
    if (status != VOS_STATUS_SUCCESS) {
 	   hddLog(VOS_TRACE_LEVEL_FATAL,
 		  "%s: Failed to init channel list", __func__);
-	   goto err_vosclose;
+	   goto err_wiphy_reg;
    }
 
    /* Note that the vos_preStart() sequence triggers the cfg download.
@@ -4615,7 +4622,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if ( VOS_STATUS_SUCCESS != status )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed hdd_set_sme_config", __func__);
-      goto err_vosclose;
+      goto err_wiphy_reg;
    }
 
    //Initialize the WMM module
@@ -4623,7 +4630,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __func__);
-      goto err_vosclose;
+      goto err_wiphy_reg;
    }
 
    /* In the integrated architecture we update the configuration from
@@ -4634,7 +4641,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (FALSE == hdd_update_config_dat(pHddCtx))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: config update failed",__func__ );
-      goto err_vosclose;
+      goto err_wiphy_reg;
    }
 
    // Apply the NV to cfg.dat
@@ -4709,7 +4716,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed to set MAC Address. "
                 "HALStatus is %08d [x%08x]",__func__, halStatus, halStatus );
-         goto err_vosclose;
+	 goto err_wiphy_reg;
       }
    }
 
@@ -4719,7 +4726,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
-      goto err_vosclose;
+      goto err_wiphy_reg;
    }
 
    /* Exchange capability info between Host and FW and also get versioning info from FW */
@@ -4955,6 +4962,9 @@ err_close_adapter:
 err_vosstop:
    vos_stop(pVosContext);
 
+err_wiphy_reg:
+   wiphy_unregister(wiphy);
+
 err_vosclose:    
    status = vos_sched_close( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(status))    {
@@ -4970,9 +4980,6 @@ err_clkvote:
 err_wdclose:
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
-
-err_wiphy_reg:
-   wiphy_unregister(wiphy) ; 
 
 err_config:
    kfree(pHddCtx->cfg_ini);
