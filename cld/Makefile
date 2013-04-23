@@ -518,7 +518,8 @@ WMA_INC := 	-I$(WLAN_ROOT)/$(WMA_INC_DIR) \
 
 WMA_OBJS :=	$(WMA_DIR)/wlan_qct_wma_legacy.o \
 		$(WMA_DIR)/wma.o \
-		$(WMA_DIR)/wlan_nv.o
+		$(WMA_DIR)/wlan_nv.o \
+		$(WMA_DIR)/regdomain.o
 
 ############ WDA ############
 WDA_DIR :=	CORE/WDA

@@ -519,6 +519,8 @@ WMA_OBJS :=	$(WMA_SRC_DIR)/wlan_nv.o \
 
 ifeq ($(CONFIG_FEATURE_WLAN_INTEGRATED_SOC), y)
 WMA_OBJS +=	$(WMA_SRC_DIR)/wma_isoc.o
+else
+WMA_OBJS +=	$(WMA_SRC_DIR)/regdomain.o
 endif
 
 ########### BMI ###########
