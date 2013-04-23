@@ -433,7 +433,8 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
 			   "%s: Failed to Create HTC", __func__);
 	   goto err_sched_close;
    }
-   vStatus = wma_open(adf_ctx, gpVosContext->htc_ctx, gpVosContext, &macOpenParms);
+   vStatus = wma_open(adf_ctx, gpVosContext->htc_ctx, gpVosContext,
+		      &macOpenParms, NULL);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */

@@ -28,6 +28,7 @@
 #include <wlan_hdd_wmm.h>
 #include <vos_types.h>
 #include <csrApi.h>
+#include <wlan_hdd_tgt_cfg.h>
 
 //Number of items that can be configured
 #define MAX_CFG_INI_ITEMS   320
@@ -2105,5 +2106,12 @@ static __inline unsigned long utilMin( unsigned long a, unsigned long b )
 {
   return( ( a < b ) ? a : b );
 }
-
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+void hdd_update_tgt_cfg(hdd_context_t *hdd_ctx, struct hdd_tgt_cfg *cfg);
+#else
+static inline void hdd_update_tgt_cfg(hdd_context_t *hdd_ctx,
+				      struct hdd_tgt_cfg *cfg)
+{
+}
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 #endif

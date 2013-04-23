@@ -120,6 +120,10 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #define MEMORY_DEBUG_STR ""
 #endif
 
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#include "wlan_hdd_tgt_cfg.h"
+#endif
+
 /* the Android framework expects this param even though we don't use it */
 #define BUF_LEN 20
 static char fwpath[BUF_LEN];
@@ -1353,6 +1357,15 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
             break;
     }
 }
+
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+void hdd_update_tgt_cfg(hdd_context_t *hdd_ctx, struct hdd_tgt_cfg *cfg)
+{
+	hdd_ctx->cfg_ini->nBandCapability = cfg->band_cap;
+	memcpy(hdd_ctx->cfg_ini->crdaDefaultCountryCode, cfg->alpha2, 2);
+	/* This can be extended to other configurations like ht, vht cap... */
+}
+#endif
 
 /**---------------------------------------------------------------------------
 

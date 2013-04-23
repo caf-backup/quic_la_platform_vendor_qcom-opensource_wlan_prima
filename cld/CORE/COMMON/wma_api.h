@@ -51,11 +51,13 @@
 #include "htc_api.h"
 #include "aniGlobal.h"
 #include "wmi_unified.h"
+#include "wlan_hdd_tgt_cfg.h"
 
 typedef v_VOID_t* WMA_HANDLE;
 
 VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle, 
-		v_VOID_t *vos_context, tMacOpenParameters *mac_params);
+		v_VOID_t *vos_context, tMacOpenParameters *mac_params,
+		hdd_tgt_cfg_cb tgt_cfg_cb);
 
 VOS_STATUS wma_nv_download_start(WMA_HANDLE wma_handle);
 

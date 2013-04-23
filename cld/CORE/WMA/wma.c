@@ -218,7 +218,8 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
  * Allocate and init wmi adaptation layer.
  */
 VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle,
-		    v_VOID_t *vos_context, tMacOpenParameters *mac_params)
+		    v_VOID_t *vos_context, tMacOpenParameters *mac_params,
+		    hdd_tgt_cfg_cb tgt_cfg_cb)
 {
 	tp_wma_handle wma_handle;
 	v_VOID_t *wmi_handle;
@@ -276,6 +277,9 @@ VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_DEBUG_PRINT_EVENTID,
 					   wma_unified_debug_print_event_handler);
+
+	wma_handle->tgt_cfg_update_cb = tgt_cfg_cb;
+
 #ifdef FEATURE_WLAN_INTEGRATED_SOC	
 	vos_status = vos_event_init(&wma_handle->cfg_nv_tx_complete);
 	if (vos_status != VOS_STATUS_SUCCESS) {
@@ -908,6 +912,42 @@ static void wma_alloc_host_mem(tp_wma_handle wma_handle, u_int32_t req_id,
 }
 #endif
 
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+static void wma_update_hdd_cfg(tp_wma_handle wma_handle,
+			       struct wma_target_cap *tgt_cfg)
+{
+	struct hdd_tgt_cfg hdd_tgt_cfg;
+	int err;
+	void *hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD,
+					wma_handle->vos_context);
+
+	err = regdmn_get_country_alpha2(wma_handle->reg_cap.eeprom_rd,
+					hdd_tgt_cfg.alpha2);
+	if (err) {
+		WMA_LOGE("Invalid regulatory settings");
+		return;
+	}
+
+	switch (wma_handle->phy_capability) {
+	case WMI_11G_CAPABILITY:
+	case WMI_11NG_CAPABILITY:
+		hdd_tgt_cfg.band_cap = eCSR_BAND_24;
+		break;
+	case WMI_11A_CAPABILITY:
+	case WMI_11NA_CAPABILITY:
+	case WMI_11AC_CAPABILITY:
+		hdd_tgt_cfg.band_cap = eCSR_BAND_5G;
+		break;
+	case WMI_11AG_CAPABILITY:
+	case WMI_11NAG_CAPABILITY:
+	default:
+		hdd_tgt_cfg.band_cap = eCSR_BAND_ALL;
+	}
+
+	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
+}
+#endif
+
 /* function   : wma_rx_service_ready_event
  * Descriptin :  
  * Args       :        
@@ -923,6 +963,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, wmi_service_ready_event *
 #if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int32_t idx;
 #endif
+
 	WMA_LOGD("Enter");
 
 	/* validate the handle and ev pointers */
@@ -935,6 +976,8 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, wmi_service_ready_event *
 
 	wma_handle->phy_capability = ev->phy_capability;
 	wma_handle->max_frag_entry = ev->max_frag_entry;
+	vos_mem_copy(&wma_handle->reg_cap, &ev->hal_reg_capabilities,
+		     sizeof(HAL_REG_CAPABILITIES));
 
 	/* Dump service ready event for debugging */
 	/* TODO: Recheck below line */
@@ -1004,6 +1047,10 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, wmi_service_ready_event *
 #endif
 	WMA_LOGA("WMA --> WMI_INIT_CMDID");
 	wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len, WMI_INIT_CMDID);
+
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+	wma_update_hdd_cfg(wma_handle, &target_cap);
+#endif
 }
 
 /* function   : wma_rx_ready_event

@@ -69,6 +69,7 @@
 #include "bap_hdd_main.h"
 #endif //WLAN_BTAMP_FEATURE
 #include "wdi_in.h"
+#include "wlan_hdd_tgt_cfg.h"
 
 
 /*---------------------------------------------------------------------------
@@ -346,7 +347,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    macOpenParms.frameTransRequired = 1;
    macOpenParms.driverType         = eDRIVER_TYPE_PRODUCTION;
    vStatus = wma_open(adf_ctx, gpVosContext->htc_ctx, gpVosContext,
-   		&macOpenParms);
+		      &macOpenParms, (hdd_tgt_cfg_cb) hdd_update_tgt_cfg);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */
