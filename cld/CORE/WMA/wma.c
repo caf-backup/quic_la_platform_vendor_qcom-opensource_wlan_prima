@@ -1235,6 +1235,10 @@ wma_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
 		rx_packet->rxpktmeta.mpdu_data_len = 
 			           rx_bd->mpdu_length - rx_bd->mpdu_header_length;
 
+		/* set the length of the packet buffer */
+		adf_nbuf_put_tail(cur,
+			mpdu_header_offset + rx_bd->mpdu_length);
+
 		/*
         	 * Rx Bd is removed from adf_nbuf
         	 * adf_nbuf is having only Rx Mgmt packet
