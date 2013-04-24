@@ -163,6 +163,10 @@ typedef struct s_vdev_tbl {
 	bool used;
 }t_vdev_tbl;
 
+/* Tx Frame Complete Callback Registered by umac */
+typedef void (*wma_tx_frm_comp_cb)(void *mac_ctxt, adf_nbuf_t netbuf,
+					int32_t status);
+
 typedef struct {
 	void *wmi_handle;
 	void *htc_handle;
@@ -202,6 +206,12 @@ typedef struct {
 #endif
 	/* Rx Mgmt Callback registred by umac */
 	wma_mgmt_rx_cb mgmt_frm_rxcb;
+
+	/* Tx Frame Compl Cb registered by umac */
+	wma_tx_frm_comp_cb tx_frm_download_comp_cb;
+
+	/* Event to wait for tx download completion */
+	vos_event_t tx_frm_download_comp_event;
 
 	v_BOOL_t needShutdown;
 #if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
@@ -746,13 +756,34 @@ VOS_STATUS wma_hal_stop_isoc(tp_wma_handle wma_handle);
 #endif
 
 /**
+  * Frame type Mgmt or Data
+  */
+enum frame_type {
+	MGMT_FRAME_80211,
+	DATA_FRAME_80211,
+	FRAME_80211_MAX
+};
+
+/**
+  * Frame index
+  */
+enum frame_index {
+	GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+	GENERIC_DOWNLD_COMP_ACK_COMP_INDEX,
+	DISASSOC_DOWNLD_COMP_ACK_COMP_INDEX,
+	DEAUTH_DOWNLD_COMP_ACK_COMP_INDEX,
+	P2P_DOWNLD_COMP_ACK_COMP_INDEX,
+	FRAME_INDEX_MAX
+};
+
+/**
   * wma_mgmt_attach - attches mgmt fn with underlying layer
   * DXE in case of Integrated, WMI incase of Discrete
   * @pvosGCtx: vos context
   * @mgmt_frm_rxcb: Rx mgmt Callback
   */
-VOS_STATUS wma_mgmt_attach(void *pmacCtx, void *pvosGCtx, 
-                                 wma_mgmt_rx_cb  mgmt_frm_rxcb);
+VOS_STATUS wma_mgmt_attach(void *mac_context, void *vos_context,
+				wma_mgmt_rx_cb  mgmt_frm_rxcb);
 
 VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id, 
 		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac, 
@@ -760,4 +791,40 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
 int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
 #endif
+/**
+  * wma_register_mgmt_ack_cb  - register ack cb for tx mgmt frame
+  * @tp_wma_handle: wma_handle
+  * @ol_txrx_mgmt_tx_cb: ack_cb
+  * @frame_index: mgmt frame index
+  * @mac_context
+  */
+VOS_STATUS wma_register_mgmt_ack_cb(void *wma_context,
+					ol_txrx_mgmt_tx_cb ack_cb,
+					enum frame_index tx_frm_index,
+					void *mac_context);
+/**
+  * wma_send_tx_frame - Sends Tx Frame to TxRx
+  * @wma_context: wma context
+  * @vdev_handle: vdev for which frame has to be send
+  * @tx_frm: Tx frame
+  * @use_6mbps: whether to send the frame in 6 mbps rate or not
+  * @tx_frm_type: data or management
+  * @tx_frm_index: index at frame has to be send to TxRx
+  * @mgmt_tx_frm_download_comp_cb: cb registered by umac to
+  * be called upon download completion
+  * This function is a blocking call
+  * till it gets download complete indication from TxRx Module
+  */
+VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
+				adf_nbuf_t tx_frm, u_int8_t use_6mbps,
+				enum frame_type tx_frm_type,
+				enum frame_index tx_frm_index,
+				wma_tx_frm_comp_cb tx_frm_download_comp_cb);
+
+/*
+ * Setting the Tx Comp Timeout to 1 secs.
+ * TODO: Need to Revist the Timing
+ */
+#define WMA_TX_FRAME_COMPLETE_TIMEOUT  1000
+
 #endif
