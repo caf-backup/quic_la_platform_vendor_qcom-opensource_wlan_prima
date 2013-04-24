@@ -1370,10 +1370,17 @@ VOS_STATUS peHandleMgmtFrame(v_PVOID_t mac_ctx, tp_rxpacket rx_pkt)
 			      sizeof(tSirMacFrameCtl),
 			      sizeof(tSirMacMgmtHdr) );)
 
+#ifndef REMOVE_TL
 		MTRACE(macTrace(mac, TRACE_CODE_RX_MGMT, NO_SESSION,
 		       LIM_TRACE_MAKE_RXMGMT(frm_hdr->fc.subType,
                        (tANI_U16) (((tANI_U16) (frm_hdr->seqControl.seqNumHi << 4)) |
 		       frm_hdr->seqControl.seqNumLo)));)
+#else
+		PELOG1(limLog(pMac, LOG1,
+		FL("Seq No: %d\n"),
+		(tANI_U16) (((tANI_U16) (frm_hdr->seqControl.seqNumHi << 4)) |
+		frm_hdr->seqControl.seqNumLo));)
+#endif
 	}
 
 	msg.type = SIR_BB_XPORT_MGMT_MSG;
