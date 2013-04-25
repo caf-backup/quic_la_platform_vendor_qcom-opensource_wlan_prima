@@ -218,8 +218,14 @@ tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 v_VOID_t peFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 /************************************************************/
 
-
 VOS_STATUS lim_get_scan_entry(tpAniSirGlobal mac, int *scan_entry);
 void lim_add_scan_entry(tpAniSirGlobal mac, int scan_entry, int scan_id);
 void lim_del_scan_entry(tpAniSirGlobal mac, int scan_id);
+
+#ifdef REMOVE_TL
+void lim_disassoc_tx_ack_comp_cb(void *mac_ctxt, adf_nbuf_t netbuf,
+					int32_t status);
+void lim_deauth_tx_ack_comp_cb(void *mac_ctxt, adf_nbuf_t netbuf,
+					int32_t status);
+#endif
 #endif /* __LIM_API_H */
