@@ -81,6 +81,9 @@
 #include "wlan_qct_wma.h"
 #include "limApi.h"
 
+#include "wdi_out.h"
+#include "wdi_in.h"
+
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 
 #define NUM_5G_CHAN   24
@@ -296,6 +299,13 @@ VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle,
         vos_status = vos_event_init(&wma_handle->wma_ready_event);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("wma_ready_event initialization failed");
+		goto err_event_init;
+	}
+
+	/* Init Tx Frame Complete event */
+	 vos_status = vos_event_init(&wma_handle->tx_frm_download_comp_event);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGP("failed to init tx_frm_download_comp_event");
 		goto err_event_init;
 	}
 
@@ -773,6 +783,60 @@ end:
 	return vos_status;
 }
 
+/**
+ * wma_mgmt_detach - detaches mgmt fn with underlying layer
+ * DXE in case of Integrated, WMI incase of Discrete
+ * @tp_wma_handle: wma context
+ */
+static VOS_STATUS wma_mgmt_detach(tp_wma_handle wma_handle)
+{
+	u_int32_t frame_index = 0;
+
+	/* Get the Vos Context */
+	pVosContextType vos_handle =
+		(pVosContextType)(wma_handle->vos_context);
+
+	/* Get the txRx Pdev handle */
+	ol_txrx_pdev_handle txrx_pdev =
+		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+	struct htt_dxe_pdev_t *htt_dxe_pdev =
+		(struct htt_dxe_pdev_t *)(txrx_pdev->htt_pdev);
+
+	/* Integrated: DeRegister Dmux Dxe for Rx Management Frames */
+	if (0 != dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
+							NULL, wma_handle)) {
+		WMA_LOGP("Failed to deregister for Rx Mgmt with Dxe");
+		return VOS_STATUS_E_FAILURE;
+	}
+#else
+	/* DeRegister WMI event handlers */
+	if (0 != wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
+						WMI_MGMT_RX_EVENTID)) {
+		WMA_LOGP("Failed to deregister for WMI_MGMT_RX_EVENTID");
+		return VOS_STATUS_E_FAILURE;
+	}
+#endif
+
+	/* Reset Rx Frm Callbacks */
+	wma_handle->mgmt_frm_rxcb = NULL;
+
+	/* Deregister with TxRx for Tx Mgmt completion call back */
+	for (frame_index = 0; frame_index < FRAME_INDEX_MAX; frame_index++) {
+		wdi_in_mgmt_tx_cb_set(txrx_pdev, frame_index, NULL, NULL,
+					txrx_pdev);
+	}
+
+	/* Destroy Tx Frame Complete event */
+	vos_event_destroy(&wma_handle->tx_frm_download_comp_event);
+
+	/* Reset Tx Frm Callbacks */
+	wma_handle->tx_frm_download_comp_cb = NULL;
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /* function   : wma_close
  * Descriptin :  
  * Args       :        
@@ -816,6 +880,12 @@ VOS_STATUS wma_close(WMA_HANDLE handle)
 					memctx));
 	}
 #endif
+
+	/* detach the tx/rx frame services */
+	if (wma_mgmt_detach(wma_handle) != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("wma_close Fail to detach tx/rx frm services");
+		return VOS_STATUS_E_FAILURE;
+	}
 
 	/* free the wma_handle */
 	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WMA, wma_handle);
@@ -1270,56 +1340,247 @@ next_nbuf:
 #endif
 
 /**
+  * wma_mgmt_tx_dload_comp_hldr - handles tx mgmt completion
+  * @context: context with which the handler is registered
+  * @netbuf: tx mgmt nbuf
+  * @err: status of tx completion
+  */
+static void
+wma_mgmt_tx_dload_comp_hldr(void *mac_context, adf_nbuf_t netbuf,
+					int32_t status)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+							mac_context);
+	tp_wma_handle wma_handle = (tp_wma_handle)vos_get_context(
+						VOS_MODULE_ID_WMA, vos_context);
+
+	WMA_LOGD("Tx Complete Status %d", status);
+
+	if (!wma_handle->tx_frm_download_comp_cb) {
+		WMA_LOGE("Tx Complete Cb not registered by umac");
+		return;
+	}
+
+	/* Call Tx Mgmt Complete Callback registered by umac */
+	wma_handle->tx_frm_download_comp_cb(mac_context,
+					netbuf, status);
+
+	/* Reset Callback */
+	wma_handle->tx_frm_download_comp_cb = NULL;
+
+	/* Set the Tx Mgmt Complete Event */
+	vos_status  = vos_event_set(
+			&wma_handle->tx_frm_download_comp_event);
+	if (!VOS_IS_STATUS_SUCCESS(wma_handle))
+		WMA_LOGP("Event Set failed - tx_frm_comp_event");
+}
+
+/**
+  * wma_send_tx_frame - Sends Tx Frame to TxRx
+  * @wma_context: wma context
+  * @vdev_handle: vdev for which frame has to be send
+  * @tx_frm: Tx frame
+  * @use_6mbps: whether to send the frame in 6 mbps rate or not
+  * @tx_frm_type: data or management
+  * @tx_frm_index: index at frame has to be send to TxRx
+  * @mgmt_tx_frm_download_comp_cb: cb registered by umac to
+  * be called upon download completion
+  * This function is a blocking call
+  * till it gets download complete indication from TxRx Module
+  */
+VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
+				adf_nbuf_t tx_frm, u_int8_t use_6mbps,
+				enum frame_type tx_frm_type,
+				enum frame_index tx_frm_index,
+				wma_tx_frm_comp_cb tx_frm_download_comp_cb)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)(wma_context);
+	int32_t status;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	int32_t is_high_latency;
+
+	ol_txrx_vdev_handle txrx_vdev =
+			(ol_txrx_vdev_handle)(vdev_handle);
+
+	if (tx_frm_type >= FRAME_80211_MAX) {
+		WMA_LOGE("Invalid Frame Type Fail to send Frame");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/*
+	 * TODO: Support to send TDLS Frames
+	 * TxRx doesn't support Tx Comp/Ack for
+	 * Data Frames.
+	 * Need to see How to send TDLS Frames ?
+	 * Either through Data/Mgmt Path since Ack
+	 * Complete Required for TDLS Frames
+	 */
+	if (tx_frm_type == DATA_FRAME_80211) {
+		WMA_LOGE("No Support to send Data Frames (TDLS)");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	is_high_latency = wdi_out_cfg_is_high_latency(
+				txrx_vdev->pdev->ctrl_pdev);
+
+	/* Send the Tx Mgmt Frame */
+	if (tx_frm_download_comp_cb && is_high_latency) {
+
+		/* Store Tx Comp Cb */
+		wma_handle->tx_frm_download_comp_cb = tx_frm_download_comp_cb;
+
+		/* Reset the Tx Frame Complete Event */
+		vos_status  = vos_event_reset(
+				&wma_handle->tx_frm_download_comp_event);
+
+		if (!VOS_IS_STATUS_SUCCESS(wma_handle)) {
+			WMA_LOGP("Event Reset failed tx comp event");
+			goto error;
+		}
+	}
+
+	/* Hand over the Tx Mgmt frame to TxRx */
+	status = wdi_in_mgmt_send(txrx_vdev, tx_frm, tx_frm_index, use_6mbps);
+
+	/*
+	 * Failed to send Tx Mgmt Frame
+	 * Return Failure so that umac can freeup the buf
+	 */
+	if (status) {
+		WMA_LOGP("Failed to send Mgmt Frame");
+		goto error;
+	}
+
+	if (!tx_frm_download_comp_cb)
+		return VOS_STATUS_SUCCESS;
+
+	/*
+	 * Wait for Download Complete only for
+	 * High latency devices
+	 */
+	if (is_high_latency) {
+		/*
+		 * Wait for Download Complete
+		 * @ Integrated : Dxe Complete
+		 * @ Discrete : Target Download Complete
+		 */
+		vos_status = vos_wait_single_event(
+				&wma_handle->tx_frm_download_comp_event,
+				WMA_TX_FRAME_COMPLETE_TIMEOUT);
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			WMA_LOGP("Wait Event failed txfrm_comp_event");
+			/*
+			 * @Integrated: Something Wrong with Dxe
+			 *   TODO: Some Debug Code
+			 * Here We need to trigger SSR since
+			 * since system went into a bad state where
+			 * we didn't get Download Complete for almost
+			 * WMA_TX_FRAME_COMPLETE_TIMEOUT (1 sec)
+			 */
+		}
+	} else {
+		/*
+		 * For Low Latency Devices
+		 * Call the download complete
+		 * callback once the frame is successfully
+		 * given to txrx module
+		 */
+		tx_frm_download_comp_cb(wma_handle->mac_context, tx_frm, A_OK);
+	}
+
+	return VOS_STATUS_SUCCESS;
+
+error:
+	wma_handle->tx_frm_download_comp_cb = NULL;
+	return VOS_STATUS_E_FAILURE;
+}
+
+/**
   * wma_mgmt_attach - attches mgmt fn with underlying layer
   * DXE in case of Integrated, WMI incase of Discrete
   * @pwmaCtx: wma context
   * @pmacCtx: mac Context
   * @mgmt_frm_rxcb: Rx mgmt Callback
   */
-VOS_STATUS wma_mgmt_attach(void *pwmaCtx, void *pmacCtx, 
+VOS_STATUS wma_mgmt_attach(void *wma_context, void *mac_context,
                            wma_mgmt_rx_cb  mgmt_frm_rxcb)
 {
-	tp_wma_handle wma_handle = (tp_wma_handle)(pwmaCtx);
-	
+	tp_wma_handle wma_handle = (tp_wma_handle)(wma_context);
+
 	/* Get the Vos Context */
-	pVosContextType vos_handle = 
+	pVosContextType vos_handle =
 		(pVosContextType)(wma_handle->vos_context);
 	
 	/* Get the txRx Pdev handle */
-	ol_txrx_pdev_handle txrx_pdev = 
+	ol_txrx_pdev_handle txrx_pdev =
 		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 	struct htt_dxe_pdev_t *htt_dxe_pdev = 
 		(struct htt_dxe_pdev_t *)(txrx_pdev->htt_pdev);
-#endif
 
-	/* Discrete: Register with WMI for Rx Mgmt Frames */
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-	
-	/* Register WMI event handlers */
-	if (0 != wmi_unified_register_event_handler(wma_handle->wmi_handle,
-						   WMI_MGMT_RX_EVENTID,
-						   wma_mgmt_rx_event_handler))
-	{
-		printk("%s: Failed to register for WMI_MGMT_RX_EVENTIDn",__func__);
+	if (0 != dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
+				wma_mgmt_rx_dxe_handler, wma_handle)) {
+		WMA_LOGE("Failed to register for Rx Mgmt with Dxe");
 		return VOS_STATUS_E_FAILURE;
 	}
 #else
-	/* Integrated: Register Dmux Dxe for Rx Managment Frames */
-	if(0 != dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev, 
-                                           wma_mgmt_rx_dxe_handler, wma_handle))
-	{
-		printk("%s: Failed to register for Rx Mgmt with Dxe",__func__);
+	if (0 != wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					WMI_MGMT_RX_EVENTID,
+					wma_mgmt_rx_event_handler)) {
+		WMA_LOGE("Failed to register for WMI_MGMT_RX_EVENTID");
 		return VOS_STATUS_E_FAILURE;
 	}
 #endif
 
+	/* Register for Tx Management Frames */
+	wdi_in_mgmt_tx_cb_set(txrx_pdev, GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				wma_mgmt_tx_dload_comp_hldr, NULL,
+				mac_context);
+
 	/* Store the Mac Context */
-	wma_handle->mac_context = pmacCtx;
+	wma_handle->mac_context = mac_context;
 
 	/* Register the Rx Mgmt Cb with WMA */
 	wma_handle->mgmt_frm_rxcb = mgmt_frm_rxcb;
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+  * wma_register_mgmt_ack_cb  - register ack cb for tx mgmt frame
+  * @tp_wma_handle: wma_handle
+  * @ol_txrx_mgmt_tx_cb: ack_cb
+  * @frame_index: mgmt frame index
+  * @mac_context
+  */
+VOS_STATUS wma_register_mgmt_ack_cb(void *wma_context,
+					ol_txrx_mgmt_tx_cb ack_cb,
+					enum frame_index tx_frm_index,
+					void *mac_context)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)(wma_context);
+
+	/* Get the Vos Context */
+	pVosContextType vos_handle =
+		(pVosContextType)(wma_handle->vos_context);
+
+	/* Get the txRx Pdev handle */
+	ol_txrx_pdev_handle txrx_pdev =
+		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
+
+	if (tx_frm_index >= FRAME_INDEX_MAX) {
+		WMA_LOGE("Fail to register ack cb Invalid Frame Index");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* Register for Tx Management Frames */
+	wdi_in_mgmt_tx_cb_set(txrx_pdev, tx_frm_index,
+				wma_mgmt_tx_dload_comp_hldr, ack_cb,
+				mac_context);
 
 	return VOS_STATUS_SUCCESS;
 }
