@@ -570,8 +570,9 @@ htt_dxe_tx_bd_fill(
     }
 
     shadow_tx_bd.dpu_no_encrypt = ! msdu_info->action.do_encrypt;
-/* FOR NOW - until UMAC is setting callback as expected */
-adf_os_assert(msdu_info->action.do_tx_complete == 0);
+    if(msdu_info->action.do_tx_complete) {
+        adf_os_print("*** WARNING: Pronto SW for OTA tx ack is incomplete!\n");
+    }
     shadow_tx_bd.tx_complete_intr = msdu_info->action.do_tx_complete;
     shadow_tx_bd.not_unicast = ! msdu_info->info.is_unicast;
     shadow_tx_bd.sta_index = peer_id;

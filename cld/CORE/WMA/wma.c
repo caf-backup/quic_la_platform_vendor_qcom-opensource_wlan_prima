@@ -1270,18 +1270,6 @@ next_nbuf:
 #endif
 
 /**
-  * wma_mgmt_tx_complete_handler - handles tx mgmt completion
-  * @context: context with which the handler is registered 
-  * @netbuf: tx mgmt nbuf 
-  * @err: status of tx completion
-  */
-static void
-wma_mgmt_tx_complete_handler(void *ctxt, adf_nbuf_t netbuf, int32_t err)
-{
-	/* TODO */
-}
-
-/**
   * wma_mgmt_attach - attches mgmt fn with underlying layer
   * DXE in case of Integrated, WMI incase of Discrete
   * @pwmaCtx: wma context
@@ -1332,16 +1320,6 @@ VOS_STATUS wma_mgmt_attach(void *pwmaCtx, void *pmacCtx,
 
 	/* Register the Rx Mgmt Cb with WMA */
 	wma_handle->mgmt_frm_rxcb = mgmt_frm_rxcb;
-
-
-	/* 
-         * Integrated and Discrete:
-	 * Register with TxRx for Tx Mgmt completion call back 
-	 */
-	ol_txrx_mgmt_tx_cb_set(txrx_pdev,
-				(OL_TXRX_MGMT_NUM_TYPES-1),
-				wma_mgmt_tx_complete_handler,
-				txrx_pdev);
 
 	return VOS_STATUS_SUCCESS;
 }

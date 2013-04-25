@@ -137,6 +137,23 @@ ol_tx_download_done_base(
 
     tx_desc = ol_tx_desc_find(pdev, msdu_id);
     adf_os_assert(tx_desc);
+
+    /*
+     * If the download is done for
+     * the Management frame then
+     * call the download callback if registered
+     */
+    if (tx_desc->pkt_type >= OL_TXRX_MGMT_TYPE_BASE) {
+        int tx_mgmt_index = tx_desc->pkt_type - OL_TXRX_MGMT_TYPE_BASE;
+        ol_txrx_mgmt_tx_cb download_cb =
+             pdev->tx_mgmt.callbacks[tx_mgmt_index].download_cb;
+
+        if (download_cb) {
+            download_cb(pdev->tx_mgmt.callbacks[tx_mgmt_index].ctxt,
+                tx_desc->netbuf, status != A_OK);
+        }
+    }
+
     if (status != A_OK) {
         OL_TX_TARGET_CREDIT_INCR(pdev, msdu);
         ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* download err */);

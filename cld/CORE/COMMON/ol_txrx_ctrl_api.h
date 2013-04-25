@@ -429,14 +429,16 @@ typedef void
  *
  * @param pdev - the data physical device object
  * @param type - the type of mgmt frame the callback is used for
- * @param cb - the callback for delivery notification 
+ * @param download_cb - the callback for notification of delivery to target
+ * @param ota_ack_cb - the callback for notification of delivery to peer
  * @param ctxt - context to use with the callback
  */
 void
 ol_txrx_mgmt_tx_cb_set(
     ol_txrx_pdev_handle pdev,
     u_int8_t type,
-    ol_txrx_mgmt_tx_cb cb,
+    ol_txrx_mgmt_tx_cb download_cb,
+    ol_txrx_mgmt_tx_cb ota_ack_cb,
     void *ctxt);
 
 /**

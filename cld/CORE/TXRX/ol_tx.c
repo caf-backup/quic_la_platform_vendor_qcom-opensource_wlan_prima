@@ -377,11 +377,13 @@ void
 ol_txrx_mgmt_tx_cb_set(
     ol_txrx_pdev_handle pdev,
     u_int8_t type,
-    ol_txrx_mgmt_tx_cb cb,
+    ol_txrx_mgmt_tx_cb download_cb,
+    ol_txrx_mgmt_tx_cb ota_ack_cb,
     void *ctxt)
 {
     TXRX_ASSERT1(type < OL_TXRX_MGMT_NUM_TYPES);
-    pdev->tx_mgmt.callbacks[type].cb = cb;
+    pdev->tx_mgmt.callbacks[type].download_cb = download_cb;
+    pdev->tx_mgmt.callbacks[type].ota_ack_cb = ota_ack_cb;
     pdev->tx_mgmt.callbacks[type].ctxt = ctxt;
 }
 
@@ -421,11 +423,11 @@ ol_txrx_mgmt_send(
          * 1.  Look up the peer and queue the frame in the peer's mgmt queue.
          * 2.  Invoke the download scheduler.
          */
-		tx_msdu_info.htt.info.vdev_id = vdev->vdev_id;
-		tx_msdu_info.htt.info.frame_type = htt_frm_type_mgmt;
-		tx_msdu_info.htt.info.l2_hdr_type = htt_pkt_type_native_wifi;
-		tx_msdu_info.htt.action.do_tx_complete =
-            pdev->tx_mgmt.callbacks[type].cb ? 1 : 0;
+        tx_msdu_info.htt.info.vdev_id = vdev->vdev_id;
+        tx_msdu_info.htt.info.frame_type = htt_frm_type_mgmt;
+        tx_msdu_info.htt.info.l2_hdr_type = htt_pkt_type_native_wifi;
+        tx_msdu_info.htt.action.do_tx_complete =
+            pdev->tx_mgmt.callbacks[type].ota_ack_cb ? 1 : 0;
 
         txq = ol_tx_classify_mgmt(vdev, tx_desc, tx_mgmt_frm, &tx_msdu_info);
         if (!txq) {

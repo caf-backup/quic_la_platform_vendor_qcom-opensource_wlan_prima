@@ -147,7 +147,7 @@ htt_tx_mgmt_desc_alloc(
     ol_txrx_mgmt_tx_cb  cb = NULL;
     A_UINT16 mgmt_type = (OL_TXRX_MGMT_NUM_TYPES-1);
     void *ctxt = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].ctxt;
-    cb = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].cb;
+    cb = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].ota_ack_cb;
 
     /* acquire the lock */
     adf_os_spin_lock_bh(&pdev->htt_tx_mutex);
@@ -182,7 +182,7 @@ htt_tx_mgmt_desc_free(struct htt_pdev_t *pdev, A_UINT8 desc_id, A_UINT32 status)
     A_UINT16 mgmt_type = (OL_TXRX_MGMT_NUM_TYPES-1);
     void *ctxt = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].ctxt;
     
-    cb = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].cb;
+    cb = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].ota_ack_cb;
 
     adf_os_assert(desc_id < HTT_MAX_NUM_MGMT_DESCS);
 
