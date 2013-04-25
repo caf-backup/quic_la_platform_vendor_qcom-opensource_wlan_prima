@@ -1298,8 +1298,7 @@ HIFStart(HIF_DEVICE *hif_device)
     /* Post buffers once to start things off. */
     (void)hif_post_recv_buffers(hif_device);
 
-    hif_state->started=1;
-    hif_state->shut_down = 0;
+    hif_state->started = TRUE;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
 }
@@ -1430,13 +1429,9 @@ HIFStop(HIF_DEVICE *hif_device)
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n",__FUNCTION__));
 
-    if (hif_state->shut_down) {
+    if (!hif_state->started) {
         return; /* already stopped or stopping */
     }
-
-    /* Cleanly shutdown driver's threads */
-    hif_state->shut_down = 1;
-
     /* sync shutdown */
     hif_completion_thread_shutdown(hif_state);
     hif_completion_thread(hif_state);
@@ -1461,6 +1456,7 @@ HIFStop(HIF_DEVICE *hif_device)
         }
     }
 
+    hif_state->started = FALSE;
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-%s\n",__FUNCTION__));
 }
 
@@ -1646,10 +1642,7 @@ HIFExchangeBMIMsg(HIF_DEVICE *hif_device,
     /* Wait for BMI request/response transaction to complete */
     /* Always just wait for BMI request here if BMI_RSP_POLLING is defined */
     while (adf_os_mutex_acquire(scn->adf_dev, &transaction->bmi_transaction_sem)) {
-        if (hif_state->shut_down) {
-            status = A_ERROR;
-            break;
-        }
+        /*need some break out condition(time out?)*/
     }
 
     if (bmi_response) {
@@ -1666,11 +1659,6 @@ HIFExchangeBMIMsg(HIF_DEVICE *hif_device,
                 break;
             }
             OS_DELAY(1000);
-        }
-
-        if (hif_state->shut_down) {
-            printk("%s:warning, hif shutdown\n", __func__);
-            status = A_ERROR;
         }
 
         if ((status == EOK) && bmi_response_lengthp) {
