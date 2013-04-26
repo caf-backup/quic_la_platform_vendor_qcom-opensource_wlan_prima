@@ -730,18 +730,23 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
 
 		pScanRequest->maxChnTimeBtc = pMac->roam.configParam.nActiveMaxChnTimeBtc;
 		pScanRequest->minChnTimeBtc = pMac->roam.configParam.nActiveMinChnTimeBtc;
-                //Need to make the following atomic
-                pScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
+		if (pMac->scan.nextScanID == 0)
+			pMac->scan.nextScanID++;
+		/* let it wrap around */
+		pScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++;
                 
                 if(pScanRequestID)
                 {
                     *pScanRequestID = pScanCmd->u.scanCmd.scanID; 
                 }
 
+		pScanRequest->scan_id =
+			pScanCmd->u.scanCmd.scanID;
+
                 // If it is the first scan request from HDD, CSR checks if it is for 11d. 
                 // If it is not, CSR will save the scan request in the pending cmd queue 
                 // & issue an 11d scan request to PE.
-                if (((0 == pScanCmd->u.scanCmd.scanID)
+		if (((1 == pScanCmd->u.scanCmd.scanID)
                    && (eCSR_SCAN_REQUEST_11D_SCAN != pScanRequest->requestType))
 #ifdef SOFTAP_CHANNEL_RANGE
                    && (eCSR_SCAN_SOFTAP_CHANNEL_RANGE != pScanRequest->requestType)
@@ -5020,6 +5025,11 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
             {
                 pMsg->backgroundScanMode = eSIR_ROAMING_SCAN;
             } 
+
+		pMsg->scan_id = pScanReq->scan_id;
+		/* Update the requestor_id with requestType */
+		pMsg->scan_requestor_id = pScanReq->requestType;
+		pMsg->scan_prio = pScanReq->scan_prio;
 
         }while(0);
         smsLog(pMac, LOG1, FL("domainIdCurrent %d scanType %d bssType %d requestType %d numChannels %d  "),
