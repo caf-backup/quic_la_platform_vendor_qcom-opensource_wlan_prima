@@ -161,6 +161,8 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *mac_addr,
             palZeroMemory(pMac->hHdd, pMac->lim.gpSession[i].peerAIDBitmap,
                   sizeof(pMac->lim.gpSession[i].peerAIDBitmap));
 #endif
+            pMac->lim.gpSession[i].fWaitForProbeRsp = 0;
+            pMac->lim.gpSession[i].fIgnoreCapsChange = 0;
             return(&pMac->lim.gpSession[i]);
         }
     }
