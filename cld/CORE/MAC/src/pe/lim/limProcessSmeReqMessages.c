@@ -547,6 +547,15 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             goto free;
         }
      
+        psessionEntry->p_iface_session = pe_find_iface_session(pMac,
+                                                 pSmeStartBssReq->selfMacAddr);
+        if(NULL == psessionEntry->p_iface_session)
+        {
+           limLog(pMac, LOGW, FL("iface Session not found\n"));
+           retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+           goto free;
+        }
+
         /* Store the session related parameters in newly created session */
         psessionEntry->pLimStartBssReq = pSmeStartBssReq;
 
@@ -564,8 +573,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         palCopyMemory( pMac->hHdd, (tANI_U8 *)&psessionEntry->ssId,
                      (tANI_U8 *)&pSmeStartBssReq->ssId,
                       (pSmeStartBssReq->ssId.length + 1));
-        
-       
         
         psessionEntry->bssType = pSmeStartBssReq->bssType;
         
@@ -1447,6 +1454,15 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         }
 
         handleHTCapabilityandHTInfo(pMac, psessionEntry);
+
+        psessionEntry->p_iface_session = pe_find_iface_session(pMac,
+                                                     pSmeJoinReq->selfMacAddr);
+        if(NULL == psessionEntry->p_iface_session)
+        {
+           limLog(pMac, LOGW, FL("iface Session not found\n"));
+           retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+           goto end;
+        }
 
         /* Store Session related parameters */
         /* Store PE session Id in session Table */
@@ -4366,6 +4382,15 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
    tSirMsgQ msg;
    tpDelStaSelfParams pDelStaSelfParams;
+   tpSirSmeDelStaSelfReq pSmeReq = (tpSirSmeDelStaSelfReq) pMsgBuf;
+   tp_iface_session p_iface_session;
+
+   p_iface_session = pe_find_iface_session(pMac, pSmeReq->selfMacAddr);
+   if(NULL == p_iface_session)
+   {
+       limLog(pMac, LOGP, FL("interface session not found\n"));
+       return;
+   }
 
    if ( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void**) &pDelStaSelfParams,
             sizeof( tDelStaSelfParams) ) )
@@ -4373,6 +4398,10 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
       limLog( pMac, LOGP, FL("Unable to allocate memory for tDelStaSelfParams") );
       return;
    }
+
+   pDelStaSelfParams->txrx_vdev_handle = GET_VDEV_HDL(p_iface_session);
+   pDelStaSelfParams->vdev_id = GET_VDEV_ID(p_iface_session);
+   pe_delete_iface_session(p_iface_session);
 
    msg.type = SIR_HAL_DEL_STA_SELF_REQ;
    msg.reserved = 0;

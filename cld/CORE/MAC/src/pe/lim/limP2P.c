@@ -195,11 +195,20 @@ tSirRetStatus limCreateSessionForRemainOnChn(tpAniSirGlobal pMac, tPESession **p
 {
     tSirRetStatus nSirStatus = eSIR_FAILURE;
     tpPESession psessionEntry;
+    tp_iface_session p_iface_session;
     tANI_U8 sessionId;
     tANI_U32 val;
 
     if(pMac->lim.gpLimRemainOnChanReq && ppP2pSession)
     {
+        p_iface_session = pe_find_iface_session(pMac,
+                                  pMac->lim.gpLimRemainOnChanReq->selfMacAddr);
+        if(NULL == p_iface_session)
+        {
+           limLog(pMac, LOGE, FL("Iface Session not found"));
+           return nSirStatus;
+        }
+
         if((psessionEntry = peCreateSession(pMac,
            pMac->lim.gpLimRemainOnChanReq->selfMacAddr, &sessionId, 1)) == NULL)
         {
@@ -209,7 +218,7 @@ tSirRetStatus limCreateSessionForRemainOnChn(tpAniSirGlobal pMac, tPESession **p
         }
         /* Store PE sessionId in session Table  */
         psessionEntry->peSessionId = sessionId;
-
+        psessionEntry->p_iface_session = p_iface_session;
         psessionEntry->limSystemRole = eLIM_P2P_DEVICE_ROLE;
         CFG_GET_STR( nSirStatus, pMac,  WNI_CFG_SUPPORTED_RATES_11A,
                psessionEntry->rateSet.rate, val , SIR_MAC_MAX_NUMBER_OF_RATES );
