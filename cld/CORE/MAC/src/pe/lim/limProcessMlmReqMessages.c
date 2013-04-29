@@ -37,7 +37,7 @@
 #include <limFT.h>
 #endif
 
-
+#include "wma_api.h"
 
 // MLM REQ processing function templates
 static void limProcessMlmStartReq(tpAniSirGlobal, tANI_U32 *);
@@ -926,6 +926,9 @@ static tANI_U8 __limMlmScanAllowed(tpAniSirGlobal pMac)
 {
     int i;
 
+	return TRUE;
+	/*TODO: Clean up this function */
+
     if(pMac->lim.gLimMlmState != eLIM_MLM_IDLE_STATE)
     {
         return FALSE;
@@ -983,6 +986,10 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tLimMlmScanCnf       mlmScanCnf;
     tANI_U8 i = 0;
     tANI_U32 val = 0;
+
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_PE, pMac);
+	void *wma_handle = vos_get_context(VOS_MODULE_ID_WMA, vos_context);
 
     if (pMac->lim.gLimSystemInScanLearnMode)
     {
@@ -1050,7 +1057,26 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         /* Adding an overhead of 5ms to account for the scan messaging delays */
         pMac->lim.gTotalScanDuration += 5;
-        limSetScanMode(pMac);
+	limSetScanMode(pMac);
+	vos_status = wma_start_scan(wma_handle,
+			pMac->lim.gpLimMlmScanReq);
+	if (VOS_STATUS_SUCCESS == vos_status) {
+		return;
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_PE,
+				VOS_TRACE_LEVEL_ERROR,
+				"Failed to start scan");
+		pMac->lim.gLimSystemInScanLearnMode = 0;
+		pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
+		palFreeMemory(pMac->hHdd, (tANI_U8 *) pMsgBuf);
+
+		mlmScanCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
+		mlmScanCnf.scanResultLength = 0;
+		limPostSmeMessage(pMac,
+				LIM_MLM_SCAN_CNF,
+				(tANI_U32 *) &mlmScanCnf);
+	}
+
     }
     else
     {

@@ -124,6 +124,8 @@ __limFreshScanReqd(tpAniSirGlobal pMac, tANI_U8 returnFreshResults)
 
     tANI_U8 validState = TRUE;
     int i;
+	return TRUE;
+	/* TODO: Clean up this function */
 
     if(pMac->lim.gLimSmeState != eLIM_SME_IDLE_STATE)
     {
@@ -1261,6 +1263,10 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMlmScanReq->maxChannelTimeBtc = pScanReq->maxChannelTimeBtc;
         pMlmScanReq->dot11mode = pScanReq->dot11mode;
         pMlmScanReq->p2pSearch = pScanReq->p2pSearch;
+
+	pMlmScanReq->scan_id = pScanReq->scan_id;
+	pMlmScanReq->scan_requestor_id = pScanReq->scan_requestor_id;
+	pMlmScanReq->scan_prio = pScanReq->scan_prio;
 
         //Store the smeSessionID and transaction ID for later use.
         pMac->lim.gSmeSessionId = pScanReq->sessionId;

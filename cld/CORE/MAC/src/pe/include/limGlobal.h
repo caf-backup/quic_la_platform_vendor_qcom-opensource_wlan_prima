@@ -270,6 +270,11 @@ typedef struct sLimMlmScanReq
     tANI_U16           uIEFieldLen;
     tANI_U16           uIEFieldOffset;
 
+	tANI_U32           scan_id;
+	tANI_U32           scan_requestor_id;
+	tANI_U32           scan_prio;
+	tANI_U8            vdev_id;
+
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
     /*-----------------------------

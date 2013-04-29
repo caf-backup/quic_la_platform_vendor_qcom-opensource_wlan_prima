@@ -52,6 +52,7 @@
 #include "aniGlobal.h"
 #include "wmi_unified.h"
 #include "wlan_hdd_tgt_cfg.h"
+#include "limGlobal.h"
 
 typedef v_VOID_t* WMA_HANDLE;
 
@@ -85,4 +86,5 @@ VOS_STATUS wma_wait_for_ready_event(WMA_HANDLE handle);
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);
 int wma_resume_target(WMA_HANDLE handle);
 #endif
+VOS_STATUS wma_start_scan(WMA_HANDLE handle, tLimMlmScanReq *scan_req);
 #endif
