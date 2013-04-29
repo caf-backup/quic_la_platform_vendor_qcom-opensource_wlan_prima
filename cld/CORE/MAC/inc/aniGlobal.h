@@ -115,6 +115,9 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif //WLAN_FEATURE_CONCURRENT_P2P
 
 #define SPACE_ASCII_VALUE  32
+// No of Interface sessions to be supported.the value is in sync
+// with max sme sessions
+#define IFACE_SESSION_MAX 5
 
 // -------------------------------------------------------------------
 // Change channel generic scheme
@@ -832,7 +835,8 @@ typedef struct sAniSirLim
 
     // wsc info required to form the wsc IE
     tLimWscIeInfo wscIeInfo;
-    tpPESession gpSession ;   //Pointer to  session table   
+    tpPESession gpSession ;   //Pointer to  session table
+    t_iface_session iface_session[IFACE_SESSION_MAX];   //pointer to interface session table
     /*
     * sessionID and transactionID from SME is stored here for those messages, for which
     * there is no session context in PE, e.g. Scan related messages.
