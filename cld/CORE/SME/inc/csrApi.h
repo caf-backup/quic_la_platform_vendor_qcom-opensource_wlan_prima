@@ -254,6 +254,9 @@ typedef struct tagCsrScanRequest
     eCsrRequestType requestType;    //11d scan or full scan
     tANI_BOOLEAN p2pSearch;
     tANI_BOOLEAN skipDfsChnlInP2pSearch;
+	tANI_U32 scan_id;
+	tANI_U32 scan_requestor_id;
+	tANI_U32 scan_prio;
 }tCsrScanRequest;
 
 typedef struct tagCsrBGScanRequest

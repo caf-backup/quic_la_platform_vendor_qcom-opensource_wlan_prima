@@ -814,6 +814,10 @@ typedef struct sSirSmeScanReq
     tANI_U16             uIEFieldLen;
     tANI_U16             uIEFieldOffset;
 
+	tANI_U32 scan_id;
+	tANI_U32 scan_requestor_id;
+	tANI_U32 scan_prio;
+
     //channelList MUST be the last field of this structure
     tSirChannelList channelList;
     /*-----------------------------
