@@ -217,4 +217,9 @@ tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 -----------------------------------------------------------------*/
 v_VOID_t peFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 /************************************************************/
+
+
+VOS_STATUS lim_get_scan_entry(tpAniSirGlobal mac, int *scan_entry);
+void lim_add_scan_entry(tpAniSirGlobal mac, int scan_entry, int scan_id);
+void lim_del_scan_entry(tpAniSirGlobal mac, int scan_id);
 #endif /* __LIM_API_H */

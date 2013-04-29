@@ -2288,3 +2288,35 @@ eHalStatus pe_ReleaseGlobalLock( tAniSirLim *psPe)
     }
     return (status);
 }
+
+
+VOS_STATUS lim_get_scan_entry(tpAniSirGlobal mac, int *scan_entry)
+{
+	int i;
+	for (i = 0; i < LIM_MAX_SCAN_REQ_ALLOWED; i++) {
+		if (mac->lim.scan_info[i].valid == false) {
+			*scan_entry = i;
+			return VOS_STATUS_SUCCESS;
+		}
+	}
+	return VOS_STATUS_E_RESOURCES;
+}
+
+void lim_add_scan_entry(tpAniSirGlobal mac,
+			int scan_entry,
+			int scan_id)
+{
+	mac->lim.scan_info[scan_entry].valid = true;
+	mac->lim.scan_info[scan_entry].scan_id = scan_id;
+}
+
+void lim_del_scan_entry(tpAniSirGlobal mac, int scan_id)
+{
+	int i;
+	for (i = 0; i < LIM_MAX_SCAN_REQ_ALLOWED; i++) {
+		if (mac->lim.scan_info[i].scan_id == scan_id) {
+			mac->lim.scan_info[i].valid = false;
+			return;
+		}
+	}
+}

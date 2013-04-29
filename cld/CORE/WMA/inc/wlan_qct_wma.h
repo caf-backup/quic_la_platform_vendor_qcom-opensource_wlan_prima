@@ -536,6 +536,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 #define WMA_MSG_TYPES_BEGIN		SIR_HAL_MSG_TYPES_BEGIN
 #define WMA_MAX_TXPOWER_INVALID		HAL_MAX_TXPOWER_INVALID
+#define WMA_RX_SCAN_EVENT               SIR_HAL_RX_SCAN_EVENT
 
 tSirRetStatus wmaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

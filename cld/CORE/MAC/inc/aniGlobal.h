@@ -223,7 +223,23 @@ typedef struct sLimTimers
 typedef struct {
     void *pMlmDisassocReq;
     void *pMlmDeauthReq;
-}tLimDisassocDeauthCnfReq;
+} tLimDisassocDeauthCnfReq;
+
+typedef enum lim_scan_state {
+	LIM_STATE_SCAN_STARTED,
+	LIM_STATE_SCAN_COMPLETED,
+	LIM_STATE_SCAN_HOME_CHANNEL,
+	LIM_STATE_SCAN_FORIEGN_CHANNEL,
+} t_lim_scan_state;
+
+typedef struct lim_scan_info {
+	bool valid;
+	tANI_U32 scan_id;
+	t_lim_scan_state scan_state;
+} t_lim_scan_info;
+
+/* For now allow only one scan request */
+#define LIM_MAX_SCAN_REQ_ALLOWED       1
 
 typedef struct sAniSirLim
 {
@@ -856,6 +872,7 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
 #endif
     tLimDisassocDeauthCnfReq limDisassocDeauthCnfReq;
     tANI_U8 deferredMsgCnt;
+	t_lim_scan_info scan_info[LIM_MAX_SCAN_REQ_ALLOWED];
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration

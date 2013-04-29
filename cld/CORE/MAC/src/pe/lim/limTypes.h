@@ -184,6 +184,7 @@ typedef struct sLimMlmScanCnf
     tANI_U16                scanResultLength;
     tSirBssDescription      bssDescription[1];
     tANI_U8                 sessionId;
+	u_int32_t scan_id;
 } tLimMlmScanCnf, *tpLimMlmScanCnf;
 
 typedef struct sLimScanResult
@@ -1045,5 +1046,6 @@ typedef struct sSetLinkCbackParams
     void * cbackDataPtr;
 } tSetLinkCbackParams;
 #endif
+void lim_process_rx_scan_event(tpAniSirGlobal mac, void *buf);
 #endif /* __LIM_TYPES_H */
 
