@@ -983,8 +983,7 @@ static void wma_alloc_host_mem(tp_wma_handle wma_handle, u_int32_t req_id,
 #endif
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
-static void wma_update_hdd_cfg(tp_wma_handle wma_handle,
-			       struct wma_target_cap *tgt_cfg)
+static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 {
 	struct hdd_tgt_cfg hdd_tgt_cfg;
 	int err;
@@ -1014,6 +1013,8 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle,
 		hdd_tgt_cfg.band_cap = eCSR_BAND_ALL;
 	}
 
+	adf_os_mem_copy(hdd_tgt_cfg.hw_macaddr.bytes, wma_handle->hwaddr,
+			ATH_MAC_LEN);
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 }
 #endif
@@ -1118,9 +1119,6 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, wmi_service_ready_event *
 	WMA_LOGA("WMA --> WMI_INIT_CMDID");
 	wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len, WMI_INIT_CMDID);
 
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-	wma_update_hdd_cfg(wma_handle, &target_cap);
-#endif
 }
 
 /* function   : wma_rx_ready_event
@@ -1156,6 +1154,9 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev)
 
 	vos_event_set(&wma_handle->wma_ready_event);
 
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+	wma_update_hdd_cfg(wma_handle);
+#endif
 	WMA_LOGD("Exit");
 }
 

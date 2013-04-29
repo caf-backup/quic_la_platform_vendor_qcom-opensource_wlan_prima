@@ -1557,11 +1557,49 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
 }
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
+/*
+ * Mac address for multiple virtual interface is found as following
+ * i) The mac address of the first interface is just the actual hw mac address.
+ * ii) MSM 3 ot 4 bits of byte0 of the actual mac address are used to
+ *     define the mac address for the remaining interfaces and locally
+ *     admistered bit is set. INTF_MACADDR_MASK is based on the number of
+ *     supported virtual interfaces, right now this is 0x07 (meaning 8 interface).
+ *     Byte[0] of second interface will be hw_macaddr[0](bit5..7) + 1,
+ *     for third interface it will be hw_macaddr[0](bit5..7) + 2, etc.
+ */
+
+static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
+{
+	int8_t i;
+	u_int8_t macaddr_b0, tmp_br0;
+
+	vos_mem_copy(cfg_ini->intfMacAddr[0].bytes, hw_macaddr.bytes,
+		     VOS_MAC_ADDR_SIZE);
+	for (i = 1; i < VOS_MAX_CONCURRENCY_PERSONA; i++) {
+		vos_mem_copy(cfg_ini->intfMacAddr[i].bytes, hw_macaddr.bytes,
+			     VOS_MAC_ADDR_SIZE);
+		macaddr_b0 = cfg_ini->intfMacAddr[i].bytes[0];
+		tmp_br0 = ((macaddr_b0 >> 4 & INTF_MACADDR_MASK) + i) &
+			  INTF_MACADDR_MASK;
+		macaddr_b0 = (macaddr_b0 | (tmp_br0 << 4)) | 0x02;
+		cfg_ini->intfMacAddr[i].bytes[0] = macaddr_b0;
+	}
+}
+
 void hdd_update_tgt_cfg(hdd_context_t *hdd_ctx, struct hdd_tgt_cfg *cfg)
 {
 	hdd_ctx->cfg_ini->nBandCapability = cfg->band_cap;
 	memcpy(hdd_ctx->cfg_ini->crdaDefaultCountryCode, cfg->alpha2, 2);
 	/* This can be extended to other configurations like ht, vht cap... */
+
+	if (!vos_is_macaddr_zero(&cfg->hw_macaddr))
+		hdd_update_macaddr(hdd_ctx->cfg_ini, cfg->hw_macaddr);
+	else {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Invalid MAC passed from target, using MAC from ini file"
+		       MAC_ADDRESS_STR, __func__,
+		       MAC_ADDR_ARRAY(hdd_ctx->cfg_ini->intfMacAddr[0].bytes));
+	}
 }
 #endif
 
@@ -4474,6 +4512,7 @@ void __hdd_wlan_exit(void)
 }
 #endif
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
 /**---------------------------------------------------------------------------
 
   \brief hdd_update_config_from_nv() - Function to update the contents of
@@ -4547,7 +4586,7 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
 
    return VOS_STATUS_SUCCESS;
 }
-
+#endif
 /**---------------------------------------------------------------------------
 
   \brief hdd_post_voss_start_config() - HDD post voss start config helper
@@ -4999,6 +5038,11 @@ register_wiphy:
       goto err_wiphy_reg;
    }
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   /*
+    * Only MAC address is read from NV. MAC address is passed from target for
+    * discrete, so make it specific to ISOC.
+    */
    // Apply the NV to cfg.dat
    /* Prima Update MAC address only at here */
    if (VOS_STATUS_SUCCESS != hdd_update_config_from_nv(pHddCtx))
@@ -5059,6 +5103,7 @@ register_wiphy:
                 MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[0].bytes));
       }
    }
+#endif
    {
       eHalStatus halStatus;
       // Set the MAC Address
