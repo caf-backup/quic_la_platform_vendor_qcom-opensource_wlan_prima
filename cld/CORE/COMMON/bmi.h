@@ -1,8 +1,10 @@
-//------------------------------------------------------------------------------
-// <copyright file="bmi.h" company="Atheros">
-//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
+
 //==============================================================================
 // BMI declarations and prototypes
 //

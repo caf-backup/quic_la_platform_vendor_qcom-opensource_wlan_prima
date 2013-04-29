@@ -1,11 +1,9 @@
-//------------------------------------------------------------------------------
-// <copyright file="htc_packet.h" company="Atheros">
-//    Copyright (c) 2007-2010 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
-//==============================================================================
-// Author(s): ="Atheros"
-//==============================================================================
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 #ifndef HTC_PACKET_H_
 #define HTC_PACKET_H_
 

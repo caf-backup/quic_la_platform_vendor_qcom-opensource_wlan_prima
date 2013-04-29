@@ -1,13 +1,9 @@
-//------------------------------------------------------------------------------
-// <copyright file="athendpack.h" company="Atheros">
-//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
-//==============================================================================
-// end compiler-specific structure packing
-//
-// Author(s): ="Atheros"
-//==============================================================================
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 #ifdef VXWORKS
 #endif /* VXWORKS */
 

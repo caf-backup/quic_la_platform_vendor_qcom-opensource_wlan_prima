@@ -1,9 +1,9 @@
-//------------------------------------------------------------------------------
-// Copyright (c) 2011 Atheros Communications Inc.
-// All rights reserved.
-//
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 
 /*
  * Implementation of the Host-side Host InterFace (HIF) API
