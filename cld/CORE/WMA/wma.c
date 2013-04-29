@@ -1863,3 +1863,78 @@ error:
 error1:
 	return vos_status;
 }
+
+/* function   : wma_update_channel_list
+ * Descriptin :
+ * Args       :
+ * Retruns    :
+ */
+VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
+					void *scan_info)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_buf_t buf;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_scan_chan_list_cmd *cmd;
+	tCsrScanStruct *scan = (tCsrScanStruct *) scan_info;
+	u_int32_t no_of_channels = scan->base20MHzChannels.numChannels;
+	tChannelListWithPower *power_tbl = &scan->defaultPowerTable[0];
+	int status, len, i;
+
+	WMA_LOGD("Enter");
+
+	len = sizeof(wmi_scan_chan_list_cmd)+
+		(sizeof(wmi_channel) * no_of_channels);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate memory");
+		vos_status = VOS_STATUS_E_NOMEM;
+		goto end;
+	}
+
+	cmd = (wmi_scan_chan_list_cmd *) wmi_buf_data(buf);
+
+	WMA_LOGD("no_of_channels = %d, len = %d", no_of_channels, len);
+
+	cmd->num_scan_chans = no_of_channels;
+	vos_mem_zero(cmd->chan_info,
+			sizeof(wmi_channel) * cmd->num_scan_chans);
+
+	for (i = 0; i < no_of_channels; ++i) {
+		cmd->chan_info[i].mhz =
+			vos_chan_to_freq(power_tbl[i].chanId);
+		cmd->chan_info[i].band_center_freq1 = cmd->chan_info[i].mhz;
+		cmd->chan_info[i].band_center_freq2 = 0;
+
+		WMA_LOGD("chan[%d] = %u", i, cmd->chan_info[i].mhz);
+
+		if (cmd->chan_info[i].mhz < 3000) {
+			WMI_SET_CHANNEL_MODE(&cmd->chan_info[i],
+						MODE_11G);
+		} else {
+			WMI_SET_CHANNEL_MODE(&cmd->chan_info[i],
+						MODE_11A);
+		}
+
+		WMI_SET_CHANNEL_MAX_POWER(&cmd->chan_info[i],
+					power_tbl[i].pwr);
+
+		WMI_SET_CHANNEL_REG_POWER(&cmd->chan_info[i],
+					power_tbl[i].pwr);
+		/*TODO: Set WMI_SET_CHANNEL_MIN_POWER */
+		/*TODO: Set WMI_SET_CHANNEL_ANTENNA_MAX */
+		/*TODO: WMI_SET_CHANNEL_REG_CLASSID*/
+	}
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					WMI_SCAN_CHAN_LIST_CMDID);
+
+	if (status != 0) {
+		vos_status = VOS_STATUS_E_FAILURE;
+		WMA_LOGE("Failed to send the WMI_SCAN_CHAN_LIST_CMDID");
+	}
+end:
+	WMA_LOGD("Exit");
+	return vos_status;
+}

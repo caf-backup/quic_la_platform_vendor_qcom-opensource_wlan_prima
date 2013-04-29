@@ -52,6 +52,8 @@
 #ifdef FEATURE_WLAN_CCX
 #include "csrCcx.h"
 #endif /* FEATURE_WLAN_CCX */
+#include "wma_api.h"
+
 #define CSR_NUM_IBSS_START_CHANNELS_50      4
 #define CSR_NUM_IBSS_START_CHANNELS_24      3
 #define CSR_DEF_IBSS_START_CHANNEL_50       36
@@ -440,7 +442,11 @@ eHalStatus csrStart(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U32 i;
- 
+
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_SME, pMac);
+	void *wma_handle = vos_get_context(VOS_MODULE_ID_WMA, vos_context);
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
     do
     {
        //save the global vos context
@@ -468,6 +474,14 @@ eHalStatus csrStart(tpAniSirGlobal pMac)
            smsLog(pMac, LOGW, " csrStart: Couldn't Init HO control blk ");
            break;
         }
+
+	vos_status = wma_update_channel_list(wma_handle,
+			&pMac->scan);
+	if (VOS_STATUS_SUCCESS != vos_status) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"failed to update the channel list");
+		       status = eHAL_STATUS_FAILURE;
+	}
     }while(0);
 #if defined(ANI_LOGDUMP)
     csrDumpInit(pMac);

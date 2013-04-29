@@ -87,4 +87,5 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);
 int wma_resume_target(WMA_HANDLE handle);
 #endif
 VOS_STATUS wma_start_scan(WMA_HANDLE handle, tLimMlmScanReq *scan_req);
+VOS_STATUS wma_update_channel_list(WMA_HANDLE handle, void *scan_chan_info);
 #endif
