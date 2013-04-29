@@ -430,29 +430,27 @@ __adf_nbuf_is_cloned(struct sk_buff *skb)
         return skb_cloned(skb);
 }
 
-/* TODO: Fix this */
 static inline uint8_t *
-__adf_nbuf_init(struct sk_buff *skb, size_t reserve, size_t align, size_t tail_size)
+__adf_nbuf_init(struct sk_buff *skb, size_t reserve,
+		size_t align, size_t tail_size)
 {
-#if 0
-    unsigned long offset;
-     /**
-     * Align & make sure that the tail & data are adjusted properly
-     */
-    if(align){
-        offset = ((unsigned long) skb->data) % align;
-        if(offset)
-            skb_reserve(skb, align - offset);
-    }
+	unsigned long offset;
 
-    /**
-     * NOTE:alloc doesn't take responsibility if reserve unaligns the data
-     * pointer
-     */
-    skb_reserve(skb, reserve);
-    return skb;
-#endif
-    return NULL;
+	/*
+	 * Align & make sure that the tail & data are adjusted properly
+	 */
+	if (align) {
+		offset = ((unsigned long) skb->data) % align;
+		if(offset)
+			skb_reserve(skb, align - offset);
+	}
+
+	/*
+	 * NOTE:alloc doesn't take responsibility if reserve unaligns the data
+	 * pointer
+	 */
+	skb_reserve(skb, reserve);
+	return skb->data;
 }
 
 static inline void
