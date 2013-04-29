@@ -1019,26 +1019,88 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 }
 #endif
 
-/* function   : wma_rx_service_ready_event
- * Descriptin :  
- * Args       :        
- * Retruns    :     
- */
-v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, wmi_service_ready_event *ev)
+static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
+					wmi_service_ready_event *ev,
+					v_SIZE_t *len)
 {
-	wmi_init_cmd *cmd;
 	wmi_buf_t buf;
-	v_SIZE_t len = sizeof(wmi_init_cmd);
+	wmi_init_cmd *cmd;
+#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+	u_int16_t idx;
+	u_int32_t num_units;
+#endif
+
+	*len = sizeof(wmi_init_cmd);
+#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+	*len += (sizeof(wlan_host_memory_chunk) * MAX_MEM_CHUNKS);
+#endif
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, *len);
+	if (!buf) {
+		WMA_LOGP("wmi_buf_alloc failed");
+		return NULL;
+	}
+
+	cmd = (wmi_init_cmd *) wmi_buf_data(buf);
+	cmd->resource_config = wma_handle->wlan_resource_config;
+
+	/* allocate memory requested by FW */
+	if (ev->num_mem_reqs > WMI_MAX_MEM_REQS) {
+		VOS_ASSERT(0);
+		adf_nbuf_free(buf);
+		return NULL;
+	}
+
+	cmd->num_host_mem_chunks = 0;
+#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+	for(idx = 0; idx < ev->num_mem_reqs; ++idx) {
+		num_units = ev->mem_reqs[idx].num_units;
+		if  (ev->mem_reqs[idx].num_unit_info & NUM_UNITS_IS_NUM_PEERS) {
+			/*
+			 * number of units to allocate is number
+			 * of peers, 1 extra for self peer on
+			 * target. this needs to be fied, host
+			 * and target can get out of sync
+			 */
+			num_units = cmd->resource_config.num_peers + 1;
+		}
+		WMA_LOGD("idx %d req %d  num_units %d num_unit_info %d unit size %d actual units %d \n",
+			 idx, ev->mem_reqs[idx].req_id,
+			 ev->mem_reqs[idx].num_units,
+			 ev->mem_reqs[idx].num_unit_info,
+			 ev->mem_reqs[idx].unit_size,
+			 num_units);
+		wma_alloc_host_mem(wma_handle, ev->mem_reqs[idx].req_id,
+				   num_units, ev->mem_reqs[idx].unit_size);
+	}
+	for(idx = 0; idx < wma_handle->num_mem_chunks; ++idx) {
+		cmd->host_mem_chunks[idx].ptr = wma_handle->mem_chunks[idx].paddr;
+		cmd->host_mem_chunks[idx].size = wma_handle->mem_chunks[idx].len;
+		cmd->host_mem_chunks[idx].req_id = wma_handle->mem_chunks[idx].req_id;
+		WMA_LOGD("chunk %d len %d requested ,ptr  0x%x \n",
+			 idx, cmd->host_mem_chunks[idx].size,
+			 cmd->host_mem_chunks[idx].ptr) ;
+	}
+	cmd->num_host_mem_chunks = wma_handle->num_mem_chunks;
+	if (wma_handle->num_mem_chunks > 1) {
+		*len += ((wma_handle->num_mem_chunks - 1) *
+		        sizeof(wlan_host_memory_chunk));
+	}
+#endif
+	return buf;
+}
+
+/* Process service ready event and send wmi_init command */
+v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle,
+				    wmi_service_ready_event *ev)
+{
+	wmi_buf_t buf;
+	v_SIZE_t len;
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	struct wma_target_cap target_cap;
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
-	u_int32_t idx;
-#endif
 
 	WMA_LOGD("Enter");
 
-	/* validate the handle and ev pointers */
-	if ((NULL == handle) || (NULL == ev)) {
+	if (!handle || !ev) {
 		WMA_LOGP("Invalid arguments");
 		return;
 	}
@@ -1050,21 +1112,12 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, wmi_service_ready_event *
 	vos_mem_copy(&wma_handle->reg_cap, &ev->hal_reg_capabilities,
 		     sizeof(HAL_REG_CAPABILITIES));
 
-	/* Dump service ready event for debugging */
-	/* TODO: Recheck below line */
-	/*dbg_print_wmi_service_11ac(ev);*/
+	 /* TODO: Recheck below line to dump service ready event */
+	 /* dbg_print_wmi_service_11ac(ev); */
 
 	/* wmi service is ready */
-	vos_mem_copy(wma_handle->wmi_service_bitmap,ev->wmi_service_bitmap,sizeof(wma_handle->wmi_service_bitmap));
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
-	len += (sizeof(wlan_host_memory_chunk) * MAX_MEM_CHUNKS);
-#endif
-	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
-	if (!buf) {
-		WMA_LOGP("wmi_buf_alloc failed\n");
-		return ;
-	}
-
+	vos_mem_copy(wma_handle->wmi_service_bitmap, ev->wmi_service_bitmap,
+		     sizeof(wma_handle->wmi_service_bitmap));
 	vos_mem_copy(target_cap.wmi_service_bitmap, ev->wmi_service_bitmap,
 		     sizeof(wma_handle->wmi_service_bitmap));
 	target_cap.wlan_resource_config = wma_handle->wlan_resource_config;
@@ -1073,52 +1126,14 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, wmi_service_ready_event *
 		     sizeof(wma_handle->wmi_service_bitmap));
 	wma_handle->wlan_resource_config = target_cap.wlan_resource_config;
 
-	cmd = (wmi_init_cmd *)wmi_buf_data(buf);
-	cmd->resource_config = wma_handle->wlan_resource_config;
-	/* allocate memory requested by FW */
-	VOS_ASSERT (ev->num_mem_reqs <= WMI_MAX_MEM_REQS);
-	cmd->num_host_mem_chunks = 0;
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
-	if (ev->num_mem_reqs) {
-		u_int32_t num_units;
-		for(idx= 0; idx < ev->num_mem_reqs; ++idx) {
-			num_units = ev->mem_reqs[idx].num_units;
-			if (ev->mem_reqs[idx].num_unit_info) {
-				if  (ev->mem_reqs[idx].num_unit_info &
-					NUM_UNITS_IS_NUM_PEERS) {
-					/*
-					 * number of units to allocate is number
-					 * of peers, 1 extra for self peer on
-					 * target. this needs to be fied, host
-					 * and target can get out of sync
-					 */
-					num_units = cmd->resource_config.num_peers + 1;
-				}
-			}
-			printk("idx %d req %d  num_units %d num_unit_info %d unit size %d actual units %d \n",idx,
-				ev->mem_reqs[idx].req_id, ev->mem_reqs[idx].num_units,
-				ev->mem_reqs[idx].num_unit_info, ev->mem_reqs[idx].unit_size,
-				num_units);
-			wma_alloc_host_mem(wma_handle, ev->mem_reqs[idx].req_id,
-					   num_units, ev->mem_reqs[idx].unit_size);
-		}
-		for(idx = 0; idx < wma_handle->num_mem_chunks; ++idx) {
-			cmd->host_mem_chunks[idx].ptr = wma_handle->mem_chunks[idx].paddr;
-			cmd->host_mem_chunks[idx].size = wma_handle->mem_chunks[idx].len;
-			cmd->host_mem_chunks[idx].req_id = wma_handle->mem_chunks[idx].req_id;
-			printk("chunk %d len %d requested ,ptr  0x%x \n",idx,
-				cmd->host_mem_chunks[idx].size ,
-				cmd->host_mem_chunks[idx].ptr ) ;
-		}
-		cmd->num_host_mem_chunks = wma_handle->num_mem_chunks;
-		if (wma_handle->num_mem_chunks > 1) {
-			len += ((wma_handle->num_mem_chunks-1) * sizeof(wlan_host_memory_chunk)) ;
-		}
+	buf = wma_setup_wmi_init_msg(wma_handle, ev, &len);
+	if (!buf) {
+		WMA_LOGE("Failed to setup buffer for wma init command");
+		return;
 	}
-#endif
+
 	WMA_LOGA("WMA --> WMI_INIT_CMDID");
 	wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len, WMI_INIT_CMDID);
-
 }
 
 /* function   : wma_rx_ready_event
