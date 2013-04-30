@@ -566,11 +566,7 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
  * For maximum performance and no power management, set this to 1.
  * For power management at the cost of performance, set this to 0.
  */
-#if defined(_MAVERICK_STA_)
-#define CONFIG_ATH_PCIE_MAX_PERF 0
-#else
 #define CONFIG_ATH_PCIE_MAX_PERF 1
-#endif
 
 /*
  * When CONFIG_ATH_PCIE_MAX_PERF is 0:
@@ -588,27 +584,14 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
  * For max-performace set this to 0
  * To allow SoC to enter sleep set this to 1
  */
-
-#if defined(_MAVERICK_STA_)
-#if _MAVERICK_STA_PERF_
 #define CONFIG_DISABLE_CDC_MAX_PERF_WAR 0
-#else 
-#define CONFIG_DISABLE_CDC_MAX_PERF_WAR 1
-#endif  // _MAVERICK_STA_PERF_
-#else
-#define CONFIG_DISABLE_CDC_MAX_PERF_WAR 0
-#endif  // _MAVERICK_STA_
 
 /*
  * PCI-E L1 ASPPM sub-states
  * To enable clock gating in L1 state, set this to 1. (less power, slightly more wakeup latency)
  * To disable clock gating in L1 state, set this to 0. (slighly more power)
  */
-#if defined(_MAVERICK_STA_)
-#define CONFIG_PCIE_ENABLE_L1_CLOCK_GATE 1
-#else
 #define CONFIG_PCIE_ENABLE_L1_CLOCK_GATE 0
-#endif
 
 /*
  * When CONFIG_ATH_PCIE_MAX_PERF is 0:

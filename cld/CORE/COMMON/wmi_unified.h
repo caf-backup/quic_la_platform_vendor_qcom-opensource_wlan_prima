@@ -322,7 +322,6 @@ typedef enum {
     WMI_P2P_GO_SET_PROBE_RESP_IE,
     /** set the vendor specific p2p ie data. FW will use this to parse the P2P NoA
      *  attribute in the beacons/probe responses received.
-     *  Note: This command is currently used only for Maverick P2P implementation.
      */
     WMI_P2P_SET_VENDOR_IE_DATA_CMDID,
 
@@ -3438,18 +3437,6 @@ typedef struct {
     A_UINT32 ie_buf_len;
     /*followed by  byte stream of ie data of length ie_buf_len */ 
 }  wmi_p2p_go_set_probe_resp_ie;
-
-/** WMI_P2P_SET_VENDOR_IE_DATA_CMDID: Vendor specific P2P IE data, which will
- *  be used by the FW to parse the P2P NoA attribute in beacons, probe resposes
- *  and action frames received by the P2P Client.
- *  Note: This command is currently used only for Maverick P2P implementation.
- */
-typedef struct {
-    /** OS specific P2P IE OUI (3 bytes) + OUI type (1 byte)  */
-    A_UINT32 p2p_ie_oui_type;
-    /** OS specific NoA Attribute ID */
-    A_UINT32 p2p_noa_attribute;
-}  wmi_p2p_set_vendor_ie_data_cmd;
 
 /*----RTT Report event definition  ----*/
 typedef struct {
