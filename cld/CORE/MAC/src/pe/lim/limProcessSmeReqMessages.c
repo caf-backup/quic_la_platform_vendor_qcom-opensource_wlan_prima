@@ -542,15 +542,12 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         /* This is the place where PE is going to create a session.
          * If session is not existed , then create a new session */
-	psessionEntry = pe_find_session_by_selfmacaddr(pMac,
-						pSmeStartBssReq->selfMacAddr,
-						&sessionId);
-	if (psessionEntry == NULL) {
-		limLog(pMac, LOGW,
-			FL("Session doesnt exists for given BSSID\n"));
-		retCode = eSIR_LOGP_EXCEPTION;
-		goto free;
-	}
+        if((psessionEntry = peFindSessionByBssid(pMac,
+		pSmeStartBssReq->bssId,&sessionId)) == NULL) {
+            limLog(pMac, LOGW, FL("Session doesnt exists for given BSSID\n"));
+            retCode = eSIR_LOGP_EXCEPTION;
+            goto free;
+        }
      
         /* Store the session related parameters in newly created session */
         psessionEntry->pLimStartBssReq = pSmeStartBssReq;
@@ -563,7 +560,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->transactionId = pSmeStartBssReq->transactionId;
                      
-	sirCopyMacAddr(psessionEntry->bssId, pSmeStartBssReq->bssId);
+        sirCopyMacAddr(psessionEntry->selfMacAddr,pSmeStartBssReq->selfMacAddr);
+
         /* Copy SSID to session table */
         palCopyMemory( pMac->hHdd, (tANI_U8 *)&psessionEntry->ssId,
                      (tANI_U8 *)&pSmeStartBssReq->ssId,
@@ -954,8 +952,10 @@ end:
     limGetSessionInfo(pMac,(tANI_U8*)pMsgBuf,&smesessionId,&smetransactionId); 
 
     if(NULL != psessionEntry)
-	memset(psessionEntry->bssId, 0, SIR_MAC_ADDR_LENGTH);
-
+    {
+        peDeleteSession(pMac,psessionEntry);
+        psessionEntry = NULL;
+    }
     limSendSmeStartBssRsp(pMac, eWNI_SME_START_BSS_RSP, retCode,psessionEntry,smesessionId,smetransactionId);
 } /*** end __limHandleSmeStartBssRequest() ***/
 
@@ -1443,15 +1443,14 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         
 #endif
 
-	psessionEntry = pe_find_session_by_selfmacaddr(pMac,
-						pSmeJoinReq->selfMacAddr,
-						&sessionId);
-	if (psessionEntry == NULL) {
-		limLog(pMac, LOGE,
-			FL("Session doesn't exists for given BSSID\n"));
+
+        if((psessionEntry = peFindSessionByBssid(pMac,
+		pSmeJoinReq->bssDescription.bssId,&sessionId)) == NULL) {
+            limLog(pMac, LOGE, FL("Session doesn't exists for given BSSID\n"));
+
                 retCode = eSIR_SME_REFUSED;
                 goto end;
-        }    
+        }
 
         handleHTCapabilityandHTInfo(pMac, psessionEntry);
 
@@ -1471,8 +1470,9 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /* Store beaconInterval */
         psessionEntry->beaconParams.beaconInterval = pSmeJoinReq->bssDescription.beaconInterval;
 
-	sirCopyMacAddr(psessionEntry->bssId, pSmeJoinReq->bssDescription.bssId);
-
+        /* Copying of bssId is already done, while creating session */
+        //sirCopyMacAddr(psessionEntry->bssId,pSmeJoinReq->bssId);
+        sirCopyMacAddr(psessionEntry->selfMacAddr,pSmeJoinReq->selfMacAddr);
         psessionEntry->bssType = pSmeJoinReq->bsstype;
 
         psessionEntry->statypeForBss = STA_ENTRY_PEER;
@@ -1731,8 +1731,14 @@ end:
         }
     }
 
-	if (retCode != eSIR_SME_SUCCESS && psessionEntry)
-		memset(psessionEntry->bssId, 0, SIR_MAC_ADDR_LENGTH);
+    if(retCode != eSIR_SME_SUCCESS)
+    {
+        if(NULL != psessionEntry)
+        {
+            peDeleteSession(pMac,psessionEntry);
+            psessionEntry = NULL;
+        }
+    }
 
     limSendSmeJoinReassocRsp(pMac, eWNI_SME_JOIN_RSP, retCode, eSIR_MAC_UNSPEC_FAILURE_STATUS,psessionEntry,smesessionId,smetransactionId);
 } /*** end __limProcessSmeJoinReq() ***/
@@ -4370,25 +4376,22 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    tpPESession psessionentry = NULL;
    tANI_U8 sessionid;
 
-	psessionentry = pe_find_session_by_selfmacaddr(pMac,
-						pSmeReq->selfMacAddr,
-						&sessionid);
-	if (psessionentry == NULL) {
-		limLog(pMac, LOGP, FL("Unable to find PE session entry"));
-		return;
-	}
+   if ( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void**) &pDelStaSelfParams,
+            sizeof( tDelStaSelfParams) ) )
+   {
+      limLog( pMac, LOGP, FL("Unable to allocate memory for tDelStaSelfParams") );
+      return;
+   }
 
-	if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
-					(void **) &pDelStaSelfParams,
-					sizeof(tDelStaSelfParams))) {
-		limLog(pMac, LOGP,
-			FL("Unable to allocate memory for tDelStaSelfParams"));
-		return;
-	}
-
-	pDelStaSelfParams->txrx_vdev_handle = psessionentry->txrx_vdev_hdl;
-	pDelStaSelfParams->vdev_id = psessionentry->vdev_id;
-	peDeleteSession(pMac, psessionentry);
+   if ( (psessionentry = peFindSessionByBssid(pMac, pSmeReq->selfMacAddr,
+            &sessionid)) == NULL ) {
+      limLog( pMac, LOGP, FL("Unable to find PE session entry") );
+      return;
+   } else {
+      pDelStaSelfParams->txrx_vdev_handle = psessionentry->txrx_vdev_hdl;
+      pDelStaSelfParams->vdev_id = psessionentry->vdev_id;
+      peDeleteSession(pMac,psessionentry);
+   }
 
    msg.type = SIR_HAL_DEL_STA_SELF_REQ;
    msg.reserved = 0;
