@@ -84,6 +84,8 @@
 #include "wdi_out.h"
 #include "wdi_in.h"
 
+#include "vos_utils.h"
+
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 
 #define NUM_5G_CHAN   24
@@ -1691,3 +1693,173 @@ int wma_resume_target(WMA_HANDLE handle)
 			WMI_PDEV_RESUME_CMDID);
 }
 #endif
+
+/* function   : wma_get_buf_start_scan_cmd
+ * Descriptin :
+ * Args       :
+ * Retruns    :
+ */
+VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
+					tLimMlmScanReq *scan_req,
+					wmi_buf_t *buf,
+					int *buf_len)
+{
+	wmi_start_scan_cmd *cmd;
+	wmi_chan_list *chan_list = NULL;
+	wmi_bssid_list *bssid_list = NULL;
+	wmi_ssid_list *ssid_list = NULL;
+	wmi_ie_data *ie_data;
+	u_int32_t *tmp_ptr;
+	VOS_STATUS vos_status;
+	int align, i;
+	int len = sizeof(wmi_start_scan_cmd);
+
+	/* calculate the length of buffer required */
+	if (scan_req->channelList.numChannels) {
+		len += sizeof(wmi_chan_list) +
+			(scan_req->channelList.numChannels - 1) *
+			(sizeof(u_int32_t));
+	}
+
+	if (scan_req->numSsid) {
+		len += sizeof(wmi_ssid_list) +
+			(scan_req->numSsid - 1) * sizeof(wmi_ssid);
+	}
+
+	len += sizeof(wmi_bssid_list);
+
+	if (scan_req->uIEFieldLen) {
+		align = scan_req->uIEFieldLen % sizeof(u_int32_t);
+		len += sizeof(u_int32_t) - align;
+		len += 2 * sizeof(u_int32_t) + scan_req->uIEFieldLen;
+	}
+
+	/* Allocate the memory */
+	*buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!*buf) {
+		WMA_LOGP("failed to allocate memory for start scan cmd");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto error;
+	}
+
+	cmd = (wmi_start_scan_cmd *) wmi_buf_data(*buf);
+
+	cmd->vdev_id = scan_req->vdev_id;
+	cmd->scan_priority = scan_req->scan_prio;
+	cmd->scan_id = scan_req->scan_id;
+	cmd->scan_req_id = scan_req->scan_requestor_id;
+
+	/* Set the scan events which the driver is intereseted to receive */
+	/* TODO: handle all the other flags also */
+	cmd->notify_scan_events = WMI_SCAN_EVENT_STARTED |
+		WMI_SCAN_EVENT_START_FAILED |
+		WMI_SCAN_EVENT_COMPLETED |
+		WMI_SCAN_EVENT_BSS_CHANNEL |
+		WMI_SCAN_EVENT_FOREIGN_CHANNEL;
+
+	cmd->dwell_time_active = scan_req->maxChannelTime;
+	cmd->dwell_time_passive = scan_req->maxChannelTime;
+
+	if (scan_req->scanType == eSIR_PASSIVE_SCAN)
+		cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
+
+	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
+
+	/* if p2pSearch then disable the 11b rates */
+	if (!scan_req->p2pSearch) {
+		cmd->scan_ctrl_flags |= WMI_SCAN_ADD_CCK_RATES;
+		cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+	}
+
+	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_BCAST_PROBE_REQ;
+
+	tmp_ptr = (u_int32_t *) (cmd + 1);
+
+	if (scan_req->channelList.numChannels) {
+		chan_list  = (wmi_chan_list *) tmp_ptr;
+		chan_list->tag = WMI_CHAN_LIST_TAG;
+		chan_list->num_chan = scan_req->channelList.numChannels;
+		for (i = 0; i < scan_req->channelList.numChannels; ++i) {
+			chan_list->channel_list[i] =
+				vos_chan_to_freq(
+					scan_req->channelList.channelNumber[i]);
+		}
+	}
+	tmp_ptr += (2 + scan_req->channelList.numChannels);
+
+	if (scan_req->numSsid) {
+		ssid_list = (wmi_ssid_list *) tmp_ptr;
+		ssid_list->tag = WMI_SSID_LIST_TAG;
+		ssid_list->num_ssids = scan_req->numSsid;
+		for (i = 0; i < scan_req->numSsid; ++i) {
+			ssid_list->ssids[i].ssid_len = scan_req->ssId[i].length;
+			vos_mem_copy(ssid_list->ssids[i].ssid,
+					scan_req->ssId[i].ssId,
+					scan_req->ssId[i].length);
+		}
+		tmp_ptr += (2 + (sizeof(wmi_ssid) *
+					scan_req->numSsid) / sizeof(u_int32_t));
+	}
+
+	bssid_list  = (wmi_bssid_list *) tmp_ptr;
+	bssid_list->tag = WMI_BSSID_LIST_TAG;
+	bssid_list->num_bssid = 1;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(scan_req->bssId, &bssid_list->bssid_list[0]);
+
+	tmp_ptr += (2 + (sizeof(wmi_mac_addr) *
+				bssid_list->num_bssid) / sizeof(u_int32_t));
+
+	if (scan_req->uIEFieldLen) {
+		ie_data  = (wmi_ie_data *) tmp_ptr;
+		ie_data->tag = WMI_IE_TAG;
+		ie_data->ie_len = scan_req->uIEFieldLen;
+		vos_mem_copy(ie_data->ie_data,
+				(u_int8_t *)scan_req +
+				(scan_req->uIEFieldOffset),
+				scan_req->uIEFieldLen);
+	}
+
+	*buf_len = len;
+	vos_status = VOS_STATUS_SUCCESS;
+error:
+	return vos_status;
+}
+
+/* function   : wma_start_scan
+ * Descriptin :
+ * Args       :
+ * Retruns    :
+ */
+VOS_STATUS wma_start_scan(WMA_HANDLE handle, tLimMlmScanReq *scan_req)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	VOS_STATUS vos_status;
+	wmi_buf_t buf;
+	int status = 0;
+	int len;
+
+	/* Fill individual elements of wmi_start_scan_req and
+	 * TLV for channel list, bssid, ssid etc ... */
+	vos_status = wma_get_buf_start_scan_cmd(wma_handle, scan_req,
+			&buf, &len);
+
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to get buffer for start scan cmd");
+		goto error1;
+	}
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			len, WMI_START_SCAN_CMDID);
+	/* Call the wmi api to request the scan */
+	if (0 != status) {
+		WMA_LOGE("wmi_unified_cmd_send returned Error %d",
+			status);
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto error;
+	}
+	return VOS_STATUS_SUCCESS;
+error:
+	if (buf)
+		adf_nbuf_free(buf);
+error1:
+	return vos_status;
+}
