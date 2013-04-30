@@ -41,9 +41,9 @@
 		2. Read/Write DXE registers in Windows Platform Specific Manner
 		3. Allocate/Free DMA Memory for DXE Descriptors
 
-  Copyright 2013 (c) Qualcomm, Incorporated.  All Rights Reserved.
+  Copyright 2013 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
 
-  Qualcomm Confidential and Proprietary.
+  Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 /**=========================================================================

@@ -23,9 +23,9 @@
   \file     htc_smd.h
   \brief    htc smd module implmentation
 
-  Copyright 2013 (c) Qualcomm, Incorporated.  All Rights Reserved.
+  Copyright 2013 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
 
-  Qualcomm Confidential and Proprietary.
+  Qualcomm Technologies Confidential and Proprietary.
 
   ========================================================================*/
 /**=========================================================================
