@@ -65,6 +65,86 @@ void peInitBeaconParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
 /*--------------------------------------------------------------------------
   
+  \brief pe_create_iface_session() - creates a new PE inface session given
+                                     the interface mac address
+
+  \param pMac                   - pointer to global adapter context
+  \param iface_addr             - mac address of the interface PE session
+  \param vdev_id                - vdev-id for the interface
+  \param txrx_vdev_hdl          - txrx handle for the interface
+
+  \return tSirRetStatus         - returns eSIR_SUCCESS or eSIR_FAILURE
+                                  if session can not be created.
+
+  \sa
+  --------------------------------------------------------------------------*/
+tSirRetStatus pe_create_iface_session(tpAniSirGlobal pMac, tANI_U8 *iface_addr,
+                                      tANI_U8 vdev_id, void *txrx_hdl)
+{
+    tANI_U8 i;
+
+    for(i = 0; i < IFACE_SESSION_MAX; i++)
+    {
+        /* Find first free room in iface session table */
+        if(pMac->lim.iface_session[i].valid == FALSE)
+        {
+            sirCopyMacAddr(pMac->lim.iface_session[i].iface_addr, iface_addr);
+            pMac->lim.iface_session[i].txrx_vdev_hdl = txrx_hdl;
+            pMac->lim.iface_session[i].vdev_id = vdev_id;
+            pMac->lim.iface_session[i].valid = VOS_TRUE;
+            return eSIR_SUCCESS;
+        }
+    }
+
+    limLog(pMac, LOGE,
+           FL("Session can not be created.. Reached Max permitted sessions\n"));
+    return eSIR_FAILURE;
+}
+
+/*--------------------------------------------------------------------------
+  \brief pe_find_iface_session() - find the PE iface session given the
+                                     iface_addr.
+
+  \param pMac                   - pointer to global adapter context
+  \param iface_addr             - mac address of the PE iface session.
+
+  \return tp_iface_session      - returns iface session handle or NULL if
+                                  not found
+  \sa
+  --------------------------------------------------------------------------*/
+tp_iface_session pe_find_iface_session(tpAniSirGlobal pMac, tANI_U8 *iface_addr)
+{
+    tANI_U8 i;
+
+    for(i = 0; i < IFACE_SESSION_MAX; i++)
+    {
+        if(pMac->lim.iface_session[i].valid &&
+           (sirCompareMacAddr(pMac->lim.iface_session[i].iface_addr,
+                              iface_addr)))
+        {
+            return(&pMac->lim.iface_session[i]);
+        }
+    }
+
+    limLog(pMac, LOGE, FL("Session lookup fails for iface_addr:\n"));
+    limPrintMacAddr(pMac, iface_addr, LOG4);
+    return(NULL);
+}
+
+/*--------------------------------------------------------------------------
+  \brief pe_delete_iface_Session() - deletes the PE iface session.
+
+  \param p_iface_session           - pointer to interface session.
+
+  \sa
+  --------------------------------------------------------------------------*/
+void pe_delete_iface_session(tp_iface_session p_iface_session)
+{
+    p_iface_session->valid = VOS_FALSE;
+}
+
+/*--------------------------------------------------------------------------
+
   \brief peCreateSession() - creates a new PE session given the BSSID
 
   This function returns the session context and the session ID if the session 
