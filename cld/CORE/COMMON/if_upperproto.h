@@ -46,7 +46,7 @@ struct vlan_hdr {
 #define ETHERTYPE_IP     0x0800    /* IP protocol */
 #endif
 #ifndef ETHERTYPE_AARP
-#define	ETHERTYPE_AARP	0x80f3		/* Mavericktalk AARP protocol */
+#define	ETHERTYPE_AARP	0x80f3		/* Appletalk AARP protocol */
 #endif
 #ifndef ETHERTYPE_IPX
 #define ETHERTYPE_IPX    0x8137    /* IPX over DIX protocol */

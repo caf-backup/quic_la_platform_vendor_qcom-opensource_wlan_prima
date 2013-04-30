@@ -36,7 +36,7 @@
  * $FreeBSD: src/sys/sys/queue.h,v 1.58 2004/04/07 04:19:49 imp Exp $
  */
 
-#if !defined(__NetBSD__) && !defined(_MAVERICK_STA_)
+#if !defined(__NetBSD__)
 #ifndef _SYS_QUEUE_H_
 #define    _SYS_QUEUE_H_
 
@@ -577,6 +577,6 @@ void    remque(void *a);
 #endif /* _KERNEL */
 
 #endif /* !_SYS_QUEUE_H_ */
-#else /* !__NetBSD__  && !_MAVERICK_STA_ */
+#else /* !__NetBSD__ */
 #include_next <sys/queue.h>
 #endif /* __NetBSD__ */

@@ -56,7 +56,7 @@ struct ethernet_vlan_hdr_t {
 #endif
 
 #ifndef ETHERTYPE_AARP
-#define	ETHERTYPE_AARP	0x80f3		/* Mavericktalk AARP protocol */
+#define	ETHERTYPE_AARP	0x80f3		/* Appletalk AARP protocol */
 #endif
 
 #ifndef ETHERTYPE_IPX
