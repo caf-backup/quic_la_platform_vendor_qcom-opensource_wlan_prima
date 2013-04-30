@@ -890,12 +890,6 @@ VOS_STATUS wma_close(WMA_HANDLE handle)
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 	vos_event_destroy(&wma_handle->cfg_nv_tx_complete);
 #endif
-	/* dettach the wmi serice */
-	if (wma_handle->wmi_handle) {
-		WMA_LOGD("calling wmi_unified_detach");
-		wmi_unified_detach(wma_handle->wmi_handle);
-		wma_handle->wmi_handle = NULL;
-	}
 #if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
 	for(idx = 0; idx < wma_handle->num_mem_chunks; ++idx) {
 		adf_os_mem_free_consistent(
@@ -915,6 +909,12 @@ VOS_STATUS wma_close(WMA_HANDLE handle)
 		return VOS_STATUS_E_FAILURE;
 	}
 
+	/* dettach the wmi serice */
+	if (wma_handle->wmi_handle) {
+		WMA_LOGD("calling wmi_unified_detach");
+		wmi_unified_detach(wma_handle->wmi_handle);
+		wma_handle->wmi_handle = NULL;
+	}
 	/* free the wma_handle */
 	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WMA, wma_handle);
 
