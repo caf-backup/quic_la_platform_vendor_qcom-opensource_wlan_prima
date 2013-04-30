@@ -1804,6 +1804,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	if (scan_req->scanType == eSIR_PASSIVE_SCAN)
 		cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
 
+	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
 
 	/* if p2pSearch then disable the 11b rates */
