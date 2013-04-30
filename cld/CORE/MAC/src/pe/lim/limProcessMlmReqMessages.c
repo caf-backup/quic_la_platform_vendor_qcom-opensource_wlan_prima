@@ -990,6 +990,7 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_PE, pMac);
 	void *wma_handle = vos_get_context(VOS_MODULE_ID_WMA, vos_context);
+	int scan_entry;
 
     if (pMac->lim.gLimSystemInScanLearnMode)
     {
@@ -1058,28 +1059,21 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /* Adding an overhead of 5ms to account for the scan messaging delays */
         pMac->lim.gTotalScanDuration += 5;
 	limSetScanMode(pMac);
-	vos_status = wma_start_scan(wma_handle,
-			pMac->lim.gpLimMlmScanReq);
-	if (VOS_STATUS_SUCCESS == vos_status) {
-		return;
+	vos_status = lim_get_scan_entry(pMac, &scan_entry);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+				"no free scan entry");
+
 	} else {
-		VOS_TRACE(VOS_MODULE_ID_PE,
-				VOS_TRACE_LEVEL_ERROR,
-				"Failed to start scan");
-		pMac->lim.gLimSystemInScanLearnMode = 0;
-		pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
-		palFreeMemory(pMac->hHdd, (tANI_U8 *) pMsgBuf);
-
-		mlmScanCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
-		mlmScanCnf.scanResultLength = 0;
-		limPostSmeMessage(pMac,
-				LIM_MLM_SCAN_CNF,
-				(tANI_U32 *) &mlmScanCnf);
+		vos_status = wma_start_scan(wma_handle,
+						pMac->lim.gpLimMlmScanReq);
+		if (vos_status == VOS_STATUS_SUCCESS) {
+			lim_add_scan_entry(pMac, scan_entry,
+					pMac->lim.gpLimMlmScanReq->scan_id);
+			return;
+		}
 	}
-
     }
-    else
-    {
         /**
          * Should not have received SCAN req in other states
          * OR should not have received LIM_MLM_SCAN_REQ with
@@ -1102,7 +1096,6 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limPostSmeMessage(pMac,
                          LIM_MLM_SCAN_CNF,
                          (tANI_U32 *) &mlmScanCnf);
-    }
 } /*** limProcessMlmScanReq() ***/
 
 #ifdef FEATURE_OEM_DATA_SUPPORT

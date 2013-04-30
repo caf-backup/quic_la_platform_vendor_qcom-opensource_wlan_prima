@@ -527,7 +527,7 @@ typedef struct sSirMbMsgP2p
 #ifdef WLAN_FEATURE_11W
 #define SIR_HAL_EXCLUDE_UNENCRYPTED_IND    (SIR_HAL_ITC_MSG_TYPES_BEGIN + 196)
 #endif
-
+#define SIR_HAL_RX_SCAN_EVENT              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 197)
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF)
 // CFG message types
 #define SIR_CFG_MSG_TYPES_BEGIN        (SIR_CFG_MODULE_ID << 8)

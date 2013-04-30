@@ -2096,6 +2096,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         }
         break;
 #endif
+	case WMA_RX_SCAN_EVENT:
+	{
+		lim_process_rx_scan_event(pMac, limMsg->bodyptr);
+		break;
+	}
+
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
         limMsg->bodyptr = NULL;

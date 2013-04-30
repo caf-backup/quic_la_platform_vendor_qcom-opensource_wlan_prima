@@ -718,6 +718,22 @@ end:
 	return vos_status ;
 }
 
+static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
+				u_int16_t len)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_scan_event *scan_event;
+	scan_event = (wmi_scan_event *) vos_mem_malloc(sizeof(wmi_scan_event));
+	if (!scan_event) {
+		WMA_LOGE("Memory allocation failed for wmi_scan_event");
+		return -ENOMEM;
+	}
+	vos_mem_copy(scan_event, event_buf, sizeof(wmi_scan_event));
+	WMA_LOGD("Received SCAN Event, Posting msg WMA_RX_SCAN_EVENT");
+	wma_send_msg(wma_handle, WMA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
+	return 0;
+}
+
 /* function   : wma_start    
  * Descriptin :  
  * Args       :        
@@ -727,7 +743,7 @@ VOS_STATUS wma_start(WMA_HANDLE handle)
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	tp_wma_handle wma_handle  = (tp_wma_handle) handle;
-
+	int status;
 	WMA_LOGD("Enter");
 
 	/* validate the wma_handle */
@@ -753,6 +769,16 @@ VOS_STATUS wma_start(WMA_HANDLE handle)
 	if (vos_status == VOS_STATUS_E_FAILURE)
 		goto end;
 #endif
+
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						WMI_SCAN_EVENTID,
+						wma_scan_event_callback);
+	if (0 != status) {
+		WMA_LOGP("Failed to register scan callback");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+	vos_status = VOS_STATUS_SUCCESS;
 end:
 	WMA_LOGD("Exit");
 	return vos_status;
