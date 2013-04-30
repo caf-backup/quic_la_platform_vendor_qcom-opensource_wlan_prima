@@ -981,7 +981,7 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
         sirCopyMacAddr(pftSessionEntry->selfMacAddr, psessionEntry->selfMacAddr);
         sirCopyMacAddr(pftSessionEntry->limReAssocbssId, pbssDescription->bssId);
         pftSessionEntry->bssType = psessionEntry->bssType;
-
+        pftSessionEntry->p_iface_session = psessionEntry->p_iface_session;
         if (pftSessionEntry->bssType == eSIR_INFRASTRUCTURE_MODE)
         {
             pftSessionEntry->limSystemRole = eLIM_STA_ROLE;

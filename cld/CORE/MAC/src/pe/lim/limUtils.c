@@ -7234,17 +7234,9 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    tpAddStaSelfParams      pAddStaSelfParams;
    tSirMsgQ                mmhMsg;
    tpSirSmeAddStaSelfRsp   pRsp;
-   tANI_U8                 sessionId;
-   tpPESession             psessionEntry;
-   
-   pAddStaSelfParams = (tpAddStaSelfParams)limMsgQ->bodyptr;    
+   tSirRetStatus ret;
 
-   if((psessionEntry = peFindSessionByBssid(pMac, pAddStaSelfParams->selfMacAddr, &sessionId)) == NULL)
-   {
-      limLog(pMac, LOGP, FL("PE session not opened \n"));
-      palFreeMemory( pMac->hHdd, (tANI_U8 *)pAddStaSelfParams);
-      return;
-   }
+   pAddStaSelfParams = (tpAddStaSelfParams)limMsgQ->bodyptr;
 
    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pRsp, sizeof(tSirSmeAddStaSelfRsp)))
    {
@@ -7259,8 +7251,21 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    pRsp->mesgType = eWNI_SME_ADD_STA_SELF_RSP;
    pRsp->mesgLen = (tANI_U16) sizeof(tSirSmeAddStaSelfRsp);
    pRsp->status = pAddStaSelfParams->status;
-   pRsp->txrx_vdev_hdl = pAddStaSelfParams->txrx_vdev_hdl;
-   pRsp->vdev_id = pAddStaSelfParams->vdev_id;
+
+   if(VOS_STATUS_SUCCESS == pRsp->status)
+   {
+      pRsp->txrx_vdev_hdl = pAddStaSelfParams->txrx_vdev_hdl;
+      pRsp->vdev_id = pAddStaSelfParams->vdev_id;
+      ret = pe_create_iface_session(pMac, pAddStaSelfParams->selfMacAddr,
+                              pRsp->vdev_id, pRsp->txrx_vdev_hdl);
+      if(eSIR_FAILURE == ret)
+      {
+         limLog(pMac, LOGP, FL("Failed to create inface session"));
+         palFreeMemory( pMac->hHdd, (tANI_U8 *)pAddStaSelfParams);
+         palFreeMemory( pMac->hHdd, (tANI_U8 *)pRsp);
+         return;
+      }
+   }
 
    palCopyMemory( pMac->hHdd, pRsp->selfMacAddr, pAddStaSelfParams->selfMacAddr, sizeof(tSirMacAddr) );
 
