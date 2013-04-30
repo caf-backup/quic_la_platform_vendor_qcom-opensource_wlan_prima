@@ -159,9 +159,7 @@ void pe_delete_iface_session(tp_iface_session p_iface_session)
   \sa
   
   --------------------------------------------------------------------------*/
-tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *mac_addr,
-			tANI_U8 *sessionId,
-			tANI_U16 numSta)
+tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessionId, tANI_U16 numSta)
 {
     tANI_U8 i;
     for(i =0; i < pMac->lim.maxBssId; i++)
@@ -207,8 +205,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *mac_addr,
             pMac->lim.gpSession[i].gLimNumOfCurrentSTAs = 0;
 
             /* Copy the BSSID to the session table */
-			sirCopyMacAddr(pMac->lim.gpSession[i].selfMacAddr,
-				mac_addr);
+            sirCopyMacAddr(pMac->lim.gpSession[i].bssId, bssid);
             pMac->lim.gpSession[i].valid = TRUE;
             
             /* Intialize the SME and MLM states to IDLE */
@@ -285,41 +282,6 @@ tpPESession peFindSessionByBssid(tpAniSirGlobal pMac,  tANI_U8*  bssid,    tANI_
 
 }
 
-/*--------------------------------------------------------------------------
- * \brief pe_find_session_by_selfmacaddr() - looks up the PE session given the
- *	MAC Address.
- *
- * This function returns the session context and the session ID if the session
- * corresponding to the given selfmacaddr is found in the PE session table.
- *
- * \param pmac                   - pointer to global adapter context
- * \param mac_addr               - mac address of the session
- * \param sessionId              - session ID is returned here, if session
- *					is found.
- *
- * \return tpPESession          - pointer to the session context or NULL if
- *					session is not found.
- *--------------------------------------------------------------------------*/
-tpPESession pe_find_session_by_selfmacaddr(tpAniSirGlobal pmac,
-					tANI_U8 *selfmacaddr,
-					tANI_U8 *sessionid)
-{
-	tANI_U8 i;
-
-	for (i = 0; i < pmac->lim.maxBssId; i++) {
-		/* If selfmacaddr matches return corresponding tables address*/
-		if ((pmac->lim.gpSession[i].valid) &&
-			(sirCompareMacAddr(pmac->lim.gpSession[i].selfMacAddr,
-			selfmacaddr))) {
-			*sessionid = i;
-			return &pmac->lim.gpSession[i];
-		}
-	}
-
-	limLog(pmac, LOG4, FL("Session lookup fails for self_mac_adrr:\n"));
-	limPrintMacAddr(pmac, selfmacaddr, LOG4);
-	return NULL;
-}
 
 /*--------------------------------------------------------------------------
   \brief peFindSessionByBssIdx() - looks up the PE session given the bssIdx.
