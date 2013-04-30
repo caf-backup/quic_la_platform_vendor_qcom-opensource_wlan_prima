@@ -4372,25 +4372,12 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
    tSirMsgQ msg;
    tpDelStaSelfParams pDelStaSelfParams;
-   tpSirSmeDelStaSelfReq pSmeReq = (tpSirSmeDelStaSelfReq) pMsgBuf;
-   tpPESession psessionentry = NULL;
-   tANI_U8 sessionid;
 
    if ( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void**) &pDelStaSelfParams,
             sizeof( tDelStaSelfParams) ) )
    {
       limLog( pMac, LOGP, FL("Unable to allocate memory for tDelStaSelfParams") );
       return;
-   }
-
-   if ( (psessionentry = peFindSessionByBssid(pMac, pSmeReq->selfMacAddr,
-            &sessionid)) == NULL ) {
-      limLog( pMac, LOGP, FL("Unable to find PE session entry") );
-      return;
-   } else {
-      pDelStaSelfParams->txrx_vdev_handle = psessionentry->txrx_vdev_hdl;
-      pDelStaSelfParams->vdev_id = psessionentry->vdev_id;
-      peDeleteSession(pMac,psessionentry);
    }
 
    msg.type = SIR_HAL_DEL_STA_SELF_REQ;

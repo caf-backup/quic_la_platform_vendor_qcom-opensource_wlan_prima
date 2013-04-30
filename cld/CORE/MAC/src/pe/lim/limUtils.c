@@ -7256,12 +7256,10 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 
    palZeroMemory(pMac, (tANI_U8*)pRsp, sizeof(tSirSmeAddStaSelfRsp));
 
-   psessionEntry->txrx_vdev_hdl = pAddStaSelfParams->txrx_vdev_hdl;
-   psessionEntry->vdev_id = pAddStaSelfParams->vdev_id;
    pRsp->mesgType = eWNI_SME_ADD_STA_SELF_RSP;
    pRsp->mesgLen = (tANI_U16) sizeof(tSirSmeAddStaSelfRsp);
    pRsp->status = pAddStaSelfParams->status;
-   pRsp->txrx_vdev_hdl = psessionEntry->txrx_vdev_hdl;
+   pRsp->txrx_vdev_hdl = pAddStaSelfParams->txrx_vdev_hdl;
    pRsp->vdev_id = pAddStaSelfParams->vdev_id;
 
    palCopyMemory( pMac->hHdd, pRsp->selfMacAddr, pAddStaSelfParams->selfMacAddr, sizeof(tSirMacAddr) );
