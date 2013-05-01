@@ -28,10 +28,6 @@ ifeq ($(call is-board-platform,msm8960),true)
         include $(WLAN_BLD_DIR)/prima/Android.mk
         include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
         include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
-        ifeq ($(BOARD_HAS_ATH_WLAN_AR6004), true)
-                include $(WLAN_BLD_DIR)/ath6kl-utils/ath6kl_fw/AR6004/Android.mk
-                include $(WLAN_BLD_DIR)/ath6kl-utils/btfilter/Android.mk
-        endif
 endif
 
 #Build/Package Pronto Module in case of 8974 target variants
@@ -39,10 +35,6 @@ ifeq ($(call is-board-platform,msm8974),true)
         include $(WLAN_BLD_DIR)/pronto/Android.mk
         include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
         include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
-        ifeq ($(BOARD_HAS_ATH_WLAN_AR6004), true)
-                include $(WLAN_BLD_DIR)/ath6kl-utils/ath6kl_fw/AR6004/Android.mk
-                include $(WLAN_BLD_DIR)/ath6kl-utils/btfilter/Android.mk
-        endif
 endif
 
 #Build/Package Pronto Module in case of 8226, 8610 target variants
@@ -61,6 +53,3 @@ endif
 
 endif
 
-ifeq ($(BOARD_HAS_ATH_WLAN), true)
-       include $(WLAN_BLD_DIR)/ath6kl-utils/Android.mk
-endif
