@@ -45,6 +45,10 @@
 #include "dot11fdefs.h"
 #endif
 
+#ifdef REMOVE_TL
+#include "wma.h"
+#include "adf_nbuf.h"
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -152,12 +156,18 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     tANI_U32            nStatus, nBytes, nPayload;
     tSirRetStatus       nSirStatus;
     tANI_U8            *pFrame;
-    void               *pPacket;
-    eHalStatus          halstatus;
     tpPESession         psessionEntry;
     tANI_U8             sessionId;
     tANI_U8             *p2pIe = NULL;
-    tANI_U8             txFlag = 0;
+#ifndef REMOVE_TL
+	void               *pPacket;
+	eHalStatus          halstatus;
+	tANI_U8             txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
 #ifndef GEN4_SCAN
     return eSIR_FAILURE;
@@ -179,6 +189,15 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     * e.g. Supported and Extended rate set IEs
     */
     psessionEntry = peFindSessionByBssid(pMac,bssid,&sessionId);
+
+#ifdef REMOVE_TL
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Probe Request frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
 
     // The scheme here is to fill out a 'tDot11fProbeRequest' structure
     // and then hand it off to 'dot11fPackProbeRequest' (for
@@ -287,7 +306,8 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     }
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr ) + nAdditionalIELen;
-  
+
+#ifndef REMOVE_TL
     // Ok-- try to allocate some memory:
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
@@ -301,6 +321,17 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a Pro"
+			"be Request."), nBytes);
+		return eSIR_MEM_ALLOC_FAILED;
+	}
+
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -310,8 +341,12 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for a Probe Request (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return nSirStatus;      // allocated!
     }
 
@@ -323,7 +358,11 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGE, FL("Failed to pack a Probe Request (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return eSIR_FAILURE;    // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -353,10 +392,15 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
            ( VOS_P2P_CLIENT_MODE == psessionEntry->pePersona ) )
       ) 
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME; 
+#else
+	use_6mbps = 1;
+#endif
     }
 
 
+#ifndef REMOVE_TL
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) sizeof(tSirMacMgmtHdr) + nPayload,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
@@ -368,6 +412,28 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
         //Pkt will be freed up by the callback
         return eSIR_FAILURE;
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS != wma_send_tx_frame(
+		((pVosContextType)vos_context)->pWMAContext,
+		psessionEntry->p_iface_session->txrx_vdev_hdl,
+		tx_packet, use_6mbps,
+		MGMT_FRAME_80211,
+		GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+		lim_mgmt_tx_complete_cb)) {
+
+		limLog(pMac, LOGE, FL("could not send Probe Request"
+					" frame!"));
+
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+#endif
 
     return eSIR_SUCCESS;
 } // End limSendProbeReqMgmtFrame.
@@ -443,16 +509,12 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     tSirRetStatus        nSirStatus;
     tANI_U32             cfg, nPayload, nBytes, nStatus;
     tpSirMacMgmtHdr      pMacHdr;
-    tANI_U8             *pFrame;
-    void                *pPacket;
-    eHalStatus           halstatus;
     tANI_U32             addnIEPresent;
     tANI_U32             addnIE1Len=0;
     tANI_U32             addnIE2Len=0;
     tANI_U32             addnIE3Len=0;
     tANI_U16             totalAddnIeLen = 0;
     tANI_U32             wpsApEnable=0, tmp;
-    tANI_U8              txFlag = 0;
     tANI_U8              *addIE = NULL;
     tANI_U8             *pP2pIe = NULL;
     tANI_U8              noaLen = 0;
@@ -460,16 +522,35 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8              noaStream[SIR_MAX_NOA_ATTR_LEN 
                                            + SIR_P2P_IE_HEADER_LEN];
     tANI_U8              noaIe[SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN];
-  
+	tANI_U8             *pFrame;
+#ifndef REMOVE_TL
+	void                *pPacket;
+	eHalStatus           halstatus;
+	tANI_U8              txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
+
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)         // We don't answer requests
     {
         return;                     // in this case.
     }
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
         return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Probe Resp frame No valid session!"));
+		return;
+	}
+#endif
     
     if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
                                                 (void **)&pFrm, sizeof(tDot11fProbeResponse)))
@@ -744,6 +825,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         }
     }
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -761,6 +843,16 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a Pro"
+			"be Response."), nBytes);
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -770,8 +862,12 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for a Probe Response (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         if ( addIE != NULL )
         {
             palFreeMemory(pMac->hHdd, addIE);
@@ -791,7 +887,11 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGE, FL("Failed to pack a Probe Response (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         if ( addIE != NULL )
         {
             palFreeMemory(pMac->hHdd, addIE);
@@ -821,9 +921,15 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         if (palCopyMemory ( pMac->hHdd, pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
              &addIE[0], totalAddnIeLen) != eHAL_STATUS_SUCCESS)
         {
+#ifndef REMOVE_TL
             limLog(pMac, LOGP, FL("Additional Probe Rp IE request failed while Appending: %x"),halstatus);
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                             ( void* ) pFrame, ( void* ) pPacket );
+#else
+		limLog(pMac, LOGP, FL("Additional Probe Rp IE request"
+			"failed while Appending"));
+		lim_tx_packet_free(tx_packet);
+#endif
             if ( addIE != NULL )
             {
                 palFreeMemory(pMac->hHdd, addIE);
@@ -847,9 +953,14 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     // Queue Probe Response frame in high priority WQ
     halstatus = halTxFrame( ( tHalHandle ) pMac, pPacket,
                             ( tANI_U16 ) nBytes,
@@ -862,6 +973,24 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Could not send Probe Response.") );
         //Pkt will be freed up by the callback
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+
+		limLog(pMac, LOGE, FL("Could not send Probe Response."));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+	}
+#endif
 
     if ( addIE != NULL )
     {
@@ -887,17 +1016,32 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
     tDot11fWMMAddTSRequest WMMAddTSReq;
     tANI_U32               nPayload, nBytes, nStatus;
     tpSirMacMgmtHdr        pMacHdr;
-    void                  *pPacket;
 #ifdef FEATURE_WLAN_CCX
     tANI_U32               phyMode;
 #endif
-    eHalStatus             halstatus;
-    tANI_U8                txFlag = 0;
+#ifndef REMOVE_TL
+	void                  *pPacket;
+	eHalStatus             halstatus;
+	tANI_U8                txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
            return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Add Ts frame No valid session!"));
+		return;
+	}
+#endif
 
     if ( ! pAddTS->wmeTspecPresent )
     {
@@ -1013,6 +1157,7 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -1025,6 +1170,16 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a Ad"
+			"d TS Request."), nBytes);
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -1034,8 +1189,12 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for an Add TS Request (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;
     }
 
@@ -1074,7 +1233,11 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
             limLog( pMac, LOGE, FL("Failed to pack an Add TS Request "
                                    "(0x%08x)."),
                     nStatus );
+#ifndef REMOVE_TL
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
             return;             // allocated!
         }
         else if ( DOT11F_WARNED( nStatus ) )
@@ -1093,7 +1256,11 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
             limLog( pMac, LOGE, FL("Failed to pack a WMM Add TS Reque"
                                    "st (0x%08x)."),
                     nStatus );
+#ifndef REMOVE_TL
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
             return;            // allocated!
         }
         else if ( DOT11F_WARNED( nStatus ) )
@@ -1111,9 +1278,14 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     // Queue Addts Response frame in high priority WQ
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
@@ -1126,6 +1298,24 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
                                 " (%X) ***" ), halstatus );
         //Pkt will be freed up by the callback
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("*** Could not send an "
+					"Add TS Request"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+	}
+#endif
 
 } // End limSendAddtsReqActionFrame.
 
@@ -1146,19 +1336,34 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8              lleMode = 0, fAddTS, edcaInclude = 0;
     tHalBitVal           qosMode, wmeMode;
     tANI_U32             nPayload, nBytes, nStatus;
-    void                *pPacket;
-    eHalStatus           halstatus;
     tUpdateBeaconParams beaconParams;
-    tANI_U8              txFlag = 0;
     tANI_U32             addnIEPresent = false;
     tANI_U32             addnIELen=0;
     tANI_U8              addIE[WNI_CFG_ASSOC_RSP_ADDNIE_DATA_LEN];
     tpSirAssocReq        pAssocReq = NULL; 
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus  halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
         return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Assoc Resp frame No valid session!"));
+		return;
+	}
+#endif
 
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
@@ -1336,6 +1541,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         }
     }
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -1347,6 +1553,16 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a RE/"
+			"ASSOC RESPONSE."), nBytes);
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac,
@@ -1361,8 +1577,12 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for an Association Response (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;
     }
 
@@ -1377,8 +1597,12 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGE, FL("Failed to pack an Association Response (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;                 // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -1407,9 +1631,15 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         if (palCopyMemory ( pMac->hHdd, pFrame+sizeof(tSirMacMgmtHdr)+nPayload,
                            &addIE[0], addnIELen ) != eHAL_STATUS_SUCCESS)
         {
+#ifndef REMOVE_TL
             limLog(pMac, LOGP, FL("Additional Assoc IEs request failed while Appending: %x"),halstatus);
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                        ( void* ) pFrame, ( void* ) pPacket );
+#else
+		limLog(pMac, LOGP, FL("Additional Assoc IEs request "
+			"failed while Appending"));
+		lim_tx_packet_free(tx_packet);
+#endif
             return;
         }
     }
@@ -1419,9 +1649,14 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     /// Queue Association Response frame in high priority WQ
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
@@ -1436,6 +1671,25 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
         //Pkt will be freed up by the callback
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE,
+			FL("*** Could not Send Re/AssocRsp, retCode=%X ***"),
+			nSirStatus);
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+	}
+#endif
 
     // update the ANI peer station count
     //FIXME_PROTECTION : take care of different type of station
@@ -1460,14 +1714,29 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
     tDot11fWMMAddTSResponse WMMAddTSRsp;
     tSirRetStatus           nSirStatus;
     tANI_U32                i, nBytes, nPayload, nStatus;
-    void                   *pPacket;
-    eHalStatus              halstatus;
-    tANI_U8                 txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
               return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Add Ts Resp frame No valid session!"));
+		return;
+	}
+#endif
 
     if ( ! pAddTS->wmeTspecPresent )
     {
@@ -1606,6 +1875,7 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -1616,6 +1886,16 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for an Ad"
+			"d TS Response."), nBytes);
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -1625,7 +1905,11 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for an Add TS Response (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;                 // allocated!
     }
 
@@ -1662,7 +1946,11 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
             limLog( pMac, LOGE, FL("Failed to pack an Add TS Response "
                                    "(0x%08x)."),
                     nStatus );
+#ifndef REMOVE_TL
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
             return;
         }
         else if ( DOT11F_WARNED( nStatus ) )
@@ -1681,7 +1969,11 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
             limLog( pMac, LOGE, FL("Failed to pack a WMM Add TS Response "
                                    "(0x%08x)."),
                     nStatus );
+#ifndef REMOVE_TL
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
             return;
         }
         else if ( DOT11F_WARNED( nStatus ) )
@@ -1700,9 +1992,14 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     // Queue the frame in high priority WQ:
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
@@ -1715,7 +2012,24 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
                 nSirStatus );
         //Pkt will be freed up by the callback
     }
-
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send AddTS Response (%X)!"),
+			nSirStatus);
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+	}
+#endif
 } // End limSendAddtsRspActionFrame.
 
 void
@@ -1732,14 +2046,29 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
     tDot11fWMMDelTS  WMMDelTS;
     tSirRetStatus    nSirStatus;
     tANI_U32         nBytes, nPayload, nStatus;
-    void            *pPacket;
-    eHalStatus       halstatus;
-    tANI_U8          txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
               return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Del Ts Req frame No valid session!"));
+		return;
+	}
+#endif
 
     if ( ! wmmTspecPresent )
     {
@@ -1793,6 +2122,7 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -1803,6 +2133,16 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for an De"
+			"l TS Request."), nBytes);
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -1813,7 +2153,11 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for an Add TS Response (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;                 // allocated!
     }
 
@@ -1850,7 +2194,11 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
         {
             limLog( pMac, LOGE, FL("Failed to pack a Del TS frame (0x%08x)."),
                     nStatus );
+#ifndef REMOVE_TL
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
             return;             // allocated!
         }
         else if ( DOT11F_WARNED( nStatus ) )
@@ -1868,7 +2216,11 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
         {
             limLog( pMac, LOGE, FL("Failed to pack a WMM Del TS frame (0x%08x)."),
                     nStatus );
+#ifndef REMOVE_TL
             palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
             return;             // allocated!
         }
         else if ( DOT11F_WARNED( nStatus ) )
@@ -1886,9 +2238,14 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
@@ -1900,7 +2257,24 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
                 nSirStatus );
         //Pkt will be freed up by the callback
     }
-
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send Del TS Req (%X)!"),
+			nSirStatus);
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+	}
+#endif
 } // End limSendDeltsReqActionFrame.
 
 void
@@ -1915,20 +2289,35 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     tLimMlmAssocCnf     mlmAssocCnf;
     tANI_U32            nBytes, nPayload, nStatus;
     tANI_U8             fQosEnabled, fWmeEnabled, fWsmEnabled;
-    void               *pPacket;
-    eHalStatus          halstatus;
     tANI_U16            nAddIELen; 
     tANI_U8             *pAddIE;
     tANI_U8             *wpsIe = NULL;
 #if defined WLAN_FEATURE_VOWIFI
     tANI_U8             PowerCapsPopulated = FALSE;
 #endif
-    tANI_U8             txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
         return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Assoc Req frame No valid session!"));
+		return;
+	}
+#endif
 
     if(NULL == psessionEntry->pLimJoinReq)
     {
@@ -2155,6 +2544,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr ) + nAddIELen;
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
             ( tANI_U16 )nBytes, ( void** ) &pFrame,
             ( void** ) &pPacket );
@@ -2184,7 +2574,29 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for an As"
+			"sociation Request."), nBytes);
 
+		psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
+		MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE,
+				psessionEntry->peSessionId,
+				psessionEntry->limMlmState));
+		/* Update PE session id*/
+		mlmAssocCnf.sessionId = psessionEntry->peSessionId;
+		mlmAssocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+		limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF,
+					(tANI_U32 *) &mlmAssocCnf);
+
+		palFreeMemory(pMac->hHdd, pFrm);
+
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
             SIR_MAC_MGMT_ASSOC_REQ, psessionEntry->bssId,psessionEntry->selfMacAddr);
@@ -2193,7 +2605,11 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                     "tor for an Association Request (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         palFreeMemory(pMac->hHdd, pFrm);
         return;
     }
@@ -2208,8 +2624,12 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         limLog( pMac, LOGE, FL("Failed to pack a Probe Response (0x%0"
                     "8x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                 ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         palFreeMemory(pMac->hHdd, pFrm);
         return;
     }
@@ -2255,14 +2675,28 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)
     {
         txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
     }
+#else
+	/*
+	 * TODO TxRx is sending the Mgmt frames in Self Sta
+	 * except if for a particular vdev if rbm is set by Fw.
+	 * Need to revisit and see to set rbm only for p2p mode
+	 * so that we can send Mgmt frames through peer sta.
+	 */
+#endif
 
+#ifndef REMOVE_TL
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (sizeof(tSirMacMgmtHdr) + nPayload),
             HAL_TXRX_FRM_802_11_MGMT,
             ANI_TXDIR_TODS,
@@ -2276,6 +2710,28 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         palFreeMemory(pMac->hHdd, pFrm);
         return;
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+
+		limLog(pMac, LOGE, FL("Failed to send Assoc Req"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		palFreeMemory(pMac->hHdd, pFrm);
+
+		return;
+	}
+#endif
 
     // Free up buffer allocated for mlmAssocReq
     palFreeMemory( pMac->hHdd, ( tANI_U8* ) pMlmAssocReq );
@@ -2301,8 +2757,6 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     tSirRetStatus         nSirStatus;
     tANI_U32              nBytes, nPayload, nStatus;
     tANI_U8               fQosEnabled, fWmeEnabled, fWsmEnabled;
-    void                 *pPacket;
-    eHalStatus            halstatus;
 #if defined WLAN_FEATURE_VOWIFI
     tANI_U8               PowerCapsPopulated = FALSE;
 #endif
@@ -2313,12 +2767,29 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 #if defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
     tANI_U8               *wpsIe = NULL;
 #endif
-    tANI_U8               txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
     if (NULL == psessionEntry)
     {
         return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"ReAssoc Req frame No valid session!"));
+		return;
+	}
+#endif
 
     /* check this early to avoid unncessary operation */
     if(NULL == psessionEntry->pLimReAssocReq)
@@ -2555,6 +3026,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     }
 #endif
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
             ( tANI_U16 )nBytes+ft_ies_length, ( void** ) &pFrame,
             ( void** ) &pPacket );
@@ -2569,6 +3041,22 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes + ft_ies_length);
+#else
+	nBytes += ft_ies_length;
+
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
+		MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE,
+		psessionEntry->peSessionId, psessionEntry->limMlmState));
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a Re-As"
+					"sociation Request."), nBytes);
+		goto end;
+	}
+
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
     limPrintMacAddr(pMac, psessionEntry->limReAssocbssId, LOG1);
@@ -2582,7 +3070,11 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                     "tor for an Association Request (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         goto end;
     }
 
@@ -2596,7 +3088,11 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
         limLog( pMac, LOGE, FL("Failed to pack a Re-Association Reque"
                     "st (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         goto end;
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -2661,7 +3157,11 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
  
     if( NULL != psessionEntry->assocReq )
@@ -2684,7 +3184,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
        psessionEntry->assocReqLen = (ft_ies_length);
     }
 
-
+#ifndef REMOVE_TL
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (nBytes + ft_ies_length),
             HAL_TXRX_FRM_802_11_MGMT,
             ANI_TXDIR_TODS,
@@ -2698,6 +3198,25 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
         //Pkt will be freed up by the callback
         goto end;
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send Re Assoc Req"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		goto end;
+	}
+#endif
 
 end:
     // Free up buffer allocated for mlmAssocReq
@@ -2774,20 +3293,35 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     tSirRetStatus         nSirStatus;
     tANI_U32              nBytes, nPayload, nStatus;
     tANI_U8               fQosEnabled, fWmeEnabled, fWsmEnabled;
-    void                 *pPacket;
-    eHalStatus            halstatus;
     tANI_U16              nAddIELen; 
     tANI_U8               *pAddIE;
     tANI_U8               *wpsIe = NULL;
-    tANI_U8               txFlag = 0;
 #if defined WLAN_FEATURE_VOWIFI
     tANI_U8               PowerCapsPopulated = FALSE;
 #endif
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
         return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"ReAssoc Req frame No valid session!"));
+		return;
+	}
+#endif
 
     /* check this early to avoid unncessary operation */
     if(NULL == psessionEntry->pLimReAssocReq)
@@ -2955,6 +3489,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr ) + nAddIELen;
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -2969,6 +3504,20 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
+		MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE,
+				psessionEntry->peSessionId,
+				psessionEntry->limMlmState));
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a Re-As"
+			"sociation Request."), nBytes);
+		goto end;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -2979,7 +3528,11 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for an Association Request (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         goto end;
     }
 
@@ -2993,7 +3546,11 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
         limLog( pMac, LOGE, FL("Failed to pack a Re-Association Reque"
                                "st (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
         goto end;
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -3037,14 +3594,28 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)
     {
         txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
     }
+#else
+	/*
+	 * TODO htt dxe is sending the Mgmt frames in Self Sta
+	 * except if for a particular vdev if rbm is set by Fw.
+	 * Need to revisit and see to set rbm only for p2p mode
+	 * so that we can send Mgmt frames through peer sta.
+	 */
+#endif
 
+#ifndef REMOVE_TL
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) (sizeof(tSirMacMgmtHdr) + nPayload),
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
@@ -3058,6 +3629,25 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
         //Pkt will be freed up by the callback
         goto end;
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send Re Assoc Req"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		goto end;
+	}
+#endif
 
 end:
     // Free up buffer allocated for mlmAssocReq
@@ -3100,14 +3690,29 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     tANI_U32            frameLen = 0, bodyLen = 0;
     tpSirMacMgmtHdr     pMacHdr;
     tANI_U16            i;
-    void               *pPacket;
-    eHalStatus          halstatus;
-    tANI_U8             txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
         return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Auth frame No valid session!"));
+		return;
+	}
+#endif
       
     if (wepBit == LIM_WEP_IN_FC)
     {
@@ -3225,6 +3830,7 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     } // end if (wepBit == LIM_WEP_IN_FC)
 
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )frameLen, ( void** ) &pFrame, ( void** ) &pPacket );
 
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
@@ -3234,6 +3840,17 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
 
         return;
     }
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(frameLen);
+	if (!tx_packet) {
+		/* Log error */
+		limLog(pMac, LOGP, FL("call bufAlloc failed for AUTH frame"));
+
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     for (i = 0; i < frameLen; i++)
         pFrame[i] = 0;
@@ -3242,7 +3859,11 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
     if (limPopulateMacHeader(pMac, pFrame, SIR_MAC_MGMT_FRAME,
                       SIR_MAC_MGMT_AUTH, peerMacAddr,psessionEntry->selfMacAddr) != eSIR_SUCCESS)
     {
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;
     }
 
@@ -3344,14 +3965,28 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
 #endif
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     if(psessionEntry->pePersona == VOS_P2P_CLIENT_MODE)
     {
         txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
     }
+#else
+	/*
+	 * TODO: TxRx is sending the Mgmt frames in Self Sta
+	 * except if for a particular vdev if rbm is set by Fw.
+	 * Need to revisit and see to set rbm only for p2p mode
+	 * so that we can send Mgmt frames through peer sta.
+	 */
+#endif
 
+#ifndef REMOVE_TL
     /// Queue Authentication frame in high priority WQ
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) frameLen,
                             HAL_TXRX_FRM_802_11_MGMT,
@@ -3366,6 +4001,23 @@ limSendAuthMgmtFrame(tpAniSirGlobal pMac,
 
         //Pkt will be freed up by the callback
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send Auth Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+	}
+#endif
 
     return;
 } /*** end limSendAuthMgmtFrame() ***/
@@ -3540,6 +4192,7 @@ end:
     return eHAL_STATUS_SUCCESS;
 }
 
+#ifndef REMOVE_TL
 eHalStatus limDisassocTxCompleteCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
 {
     return limSendDisassocCnf(pMac);
@@ -3549,7 +4202,36 @@ eHalStatus limDeauthTxCompleteCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSucces
 {
     return limSendDeauthCnf(pMac);
 }
+#else
+/**
+ * lim_disassoc_tx_ack_comp_cb
+ * @ Disassoc Tx Ack Complete Routine.
+ */
+void lim_disassoc_tx_ack_comp_cb(void *mac_ctxt, adf_nbuf_t netbuf,
+					int32_t status)
+{
+	tpAniSirGlobal pMac = (tpAniSirGlobal)mac_ctxt;
 
+	limLog((tpAniSirGlobal)mac_ctxt, LOGW, FL("Disassoc Ack"
+		"Rcvd Status = %d \n"), status);
+
+	limSendDisassocCnf(pMac);
+}
+
+/**
+ * lim_deauth_tx_ack_comp_cb
+ * @ Deauth Tx Ack Complete Routine.
+ */
+void lim_deauth_tx_ack_comp_cb(void *mac_ctxt, adf_nbuf_t netbuf,
+				int32_t status)
+{
+	tpAniSirGlobal pMac = (tpAniSirGlobal)mac_ctxt;
+
+	limLog((tpAniSirGlobal)mac_ctxt, LOGW, FL("Deauth Ack Rcvd"
+		"Status = %d \n"), status);
+	limSendDeauthCnf(pMac);
+}
+#endif
 /**
  * \brief This function is called to send Disassociate frame.
  *
@@ -3577,14 +4259,30 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     tSirRetStatus         nSirStatus;
     tpSirMacMgmtHdr       pMacHdr;
     tANI_U32              nBytes, nPayload, nStatus;
-    void                 *pPacket;
-    eHalStatus            halstatus;
-    tANI_U8               txFlag = 0;
     tANI_U32              val = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus  halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
+
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
         return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Disassoc frame No valid session!"));
+		return;
+	}
+#endif
     
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
@@ -3608,6 +4306,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -3620,6 +4319,16 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a Dis"
+			"association."), nBytes);
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -3629,8 +4338,12 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for a Disassociation (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;                 // just allocated...
     }
 
@@ -3653,8 +4366,12 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGE, FL("Failed to pack a Disassociation (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;                 // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -3672,17 +4389,31 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     if((psessionEntry->pePersona == VOS_P2P_CLIENT_MODE) ||
        (psessionEntry->pePersona == VOS_P2P_GO_MODE))
     {
         txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
     }
+#else
+	/*
+	 * TODO: TxRx is sending the Mgmt frames in Self Sta
+	 * except if for a particular vdev if rbm is set by Fw.
+	 * Need to revisit and see to set rbm only for p2p mode
+	 * so that we can send Mgmt frames through peer sta.
+	 */
+#endif
 
     if (waitForAck)
     {
+#ifndef REMOVE_TL
         // Queue Disassociation frame in high priority WQ
         /* get the duration from the request */
         halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
@@ -3691,6 +4422,32 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
                 7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
                 limTxComplete, pFrame, limDisassocTxCompleteCnf,
                 txFlag );
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				DISASSOC_DOWNLD_COMP_ACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+
+		limLog(pMac, LOGE, FL("Failed to send Disassoc Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		/*
+		 * Call limProcessDisassocAckTimeout which will send
+		 * DisassocCnf for this frame
+		*/
+		limProcessDisassocAckTimeout(pMac);
+
+		return;
+	}
+#endif
         val = SYS_MS_TO_TICKS(LIM_DISASSOC_DEAUTH_ACK_TIMEOUT);
 
         if (tx_timer_change(
@@ -3712,6 +4469,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     }
     else 
     {
+#ifndef REMOVE_TL
         // Queue Disassociation frame in high priority WQ
         halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                 HAL_TXRX_FRM_802_11_MGMT,
@@ -3726,6 +4484,26 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
             //Pkt will be freed up by the callback
             return;
         }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+			psessionEntry->p_iface_session->txrx_vdev_hdl,
+			tx_packet, use_6mbps,
+			MGMT_FRAME_80211,
+			GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+			lim_mgmt_tx_complete_cb)) {
+
+		limLog(pMac, LOGE, FL("Failed to send Disassoc Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return;
+	}
+#endif
     }
 } // End limSendDisassocMgmtFrame.
 
@@ -3755,19 +4533,34 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
     tSirRetStatus    nSirStatus;
     tpSirMacMgmtHdr  pMacHdr;
     tANI_U32         nBytes, nPayload, nStatus;
-    void            *pPacket;
-    eHalStatus       halstatus;
-    tANI_U8          txFlag = 0;
     tANI_U32         val = 0;
+#ifndef REMOVE_TL
 #ifdef FEATURE_WLAN_TDLS
-    tANI_U16          aid;
-    tpDphHashNode     pStaDs;
+	tANI_U16          aid;
+	tpDphHashNode     pStaDs;
+#endif
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
 #endif
 
+#ifndef REMOVE_TL
     if(NULL == psessionEntry)
     {
         return;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Deauth frame No valid session!"));
+		return;
+	}
+#endif
     
     palZeroMemory( pMac->hHdd, ( tANI_U8* ) &frm, sizeof( frm ) );
 
@@ -3791,6 +4584,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -3803,6 +4597,16 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a De"
+			"auth."), nBytes);
+		return;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -3812,8 +4616,12 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for a De-Authentication (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;                 // just allocated...
     }
 
@@ -3836,8 +4644,12 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGE, FL("Failed to pack a DeAuthentication (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                     ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
         return;
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -3855,15 +4667,29 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     if((psessionEntry->pePersona == VOS_P2P_CLIENT_MODE) ||
        (psessionEntry->pePersona == VOS_P2P_GO_MODE))
     {
         txFlag |= HAL_USE_PEER_STA_REQUESTED_MASK;
     }
+#else
+	/*
+	 * TODO: TxRx is sending the Mgmt frames in Self Sta
+	 * except if for a particular vdev if rbm is set by Fw.
+	 * Need to revisit and see to set rbm only for p2p mode
+	 * so that we can send Mgmt frames through peer sta.
+	 */
+#endif
 
+#ifndef REMOVE_TL
 #ifdef FEATURE_WLAN_TDLS
     pStaDs = dphLookupHashEntry(pMac, peer, &aid, &psessionEntry->dph.dphHashTable);
 #endif
@@ -3942,7 +4768,70 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
             return;
         }
     }
+#else
+	if (waitForAck)	{
+		/* Get the wma context */
+		vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+							(v_VOID_t *) pMac);
+		/* Send the Tx Mgmt Frame */
+		if (VOS_STATUS_SUCCESS != wma_send_tx_frame(
+				((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				DEAUTH_DOWNLD_COMP_ACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
 
+			limLog(pMac, LOGE, FL("Failed to send Deauth Frame"));
+			/* Free the packet */
+			lim_tx_packet_free(tx_packet);
+
+			/*
+			 * Call limProcessDeauthAckTimeout which will send
+			 * DisassocCnf for this frame
+			 */
+			limProcessDeauthAckTimeout(pMac);
+
+			return;
+		}
+
+		val = SYS_MS_TO_TICKS(LIM_DISASSOC_DEAUTH_ACK_TIMEOUT);
+
+		if (tx_timer_change(
+			&pMac->lim.limTimers.gLimDeauthAckTimer, val, 0)
+			!= TX_SUCCESS){
+			limLog(pMac, LOGP,
+				FL("Unable to change Deauth ack Timer val"));
+			return;
+		} else if (TX_SUCCESS != tx_timer_activate(
+			&pMac->lim.limTimers.gLimDeauthAckTimer)) {
+			limLog(pMac, LOGP,
+				FL("Unable to activate Deauth ack Timer"));
+			limDeactivateAndChangeTimer(pMac,
+					eLIM_DEAUTH_ACK_TIMER);
+			return;
+		}
+	} else {
+		/* Get the wma context */
+		vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+							(v_VOID_t *) pMac);
+		/* Send the Tx Mgmt Frame */
+		if (VOS_STATUS_SUCCESS != wma_send_tx_frame(
+				((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+
+			limLog(pMac, LOGE, FL("Failed to send Deauth Frame"));
+			/* Free the packet */
+			lim_tx_packet_free(tx_packet);
+
+			return;
+		}
+	}
+#endif
 } // End limSendDeauthMgmtFrame.
 
 
@@ -4395,10 +5284,25 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     tSirRetStatus        nSirStatus;
     tpSirMacMgmtHdr      pMacHdr;
     tANI_U32                  nBytes, nPayload, nStatus;//, nCfg;
-    void               *pPacket;
-    eHalStatus          halstatus;
-    tANI_U8 txFlag = 0;
-    
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
+
+#ifdef REMOVE_TL
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Channel Switch Mgmt frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
+
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
     frm.Category.category     = SIR_MAC_ACTION_SPECTRUM_MGMT;
@@ -4426,6 +5330,7 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -4436,6 +5341,16 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for"
+			" Ch Switch Mgmt Frame."), nBytes);
+		return eSIR_FAILURE;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -4450,7 +5365,11 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for a Channel Switch (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
         return eSIR_FAILURE;    // just allocated...
     }
 
@@ -4483,7 +5402,11 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGE, FL("Failed to pack a Channel Switch (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
         return eSIR_FAILURE;    // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -4497,8 +5420,14 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
+
+#ifndef REMOVE_TL
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
@@ -4512,6 +5441,26 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
         //Pkt will be freed up by the callback
         return eSIR_FAILURE;
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send a Channel Switch "
+			"(%X)!"), nSirStatus);
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+#endif
 
     return eSIR_SUCCESS;
 
@@ -4531,10 +5480,25 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     tSirRetStatus        nSirStatus;
     tpSirMacMgmtHdr      pMacHdr;
     tANI_U32                  nBytes, nPayload = 0, nStatus;//, nCfg;
-    void               *pPacket;
-    eHalStatus          halstatus;
-    tANI_U8 txFlag = 0;
-    
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
+
+#ifdef REMOVE_TL
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"VHT OpMode Notification frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
+
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
     frm.Category.category     = SIR_MAC_ACTION_VHT;
@@ -4561,6 +5525,7 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -4571,7 +5536,16 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
 
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
-
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a"
+			" Operating Mode Report."), nBytes);
+		return eSIR_FAILURE;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     if(psessionEntry->pePersona == VOS_STA_SAP_MODE) {
@@ -4590,7 +5564,11 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for a Operating Mode (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
         return eSIR_FAILURE;    // just allocated...
     }
     nStatus = dot11fPackOperatingMode( pMac, &frm, pFrame +
@@ -4600,7 +5578,11 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGE, FL("Failed to pack a Operating Mode (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
         return eSIR_FAILURE;    // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -4613,8 +5595,14 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
+
+#ifndef REMOVE_TL
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
@@ -4628,6 +5616,28 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
         //Pkt will be freed up by the callback
         return eSIR_FAILURE;
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS != wma_send_tx_frame(
+				((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+
+		limLog(pMac, LOGE, FL("Failed to send VHT OpMode "
+			" Notification (%X)!"), nSirStatus);
+
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+#endif
 
     return eSIR_SUCCESS;
 }
@@ -4663,10 +5673,24 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     tSirRetStatus        nSirStatus;
     tpSirMacMgmtHdr      pMacHdr;
     tANI_U32                  nBytes, nPayload, nStatus;//, nCfg;
-    void               *pPacket;
-    eHalStatus          halstatus;
-    tANI_U8 txFlag = 0;
-    
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
+
+#ifdef REMOVE_TL
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"VHT Channel Switch Mgmt frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
                 
 
@@ -4701,6 +5725,7 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -4710,6 +5735,16 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     }
    // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a"
+			" VHT Channel Switch.\n"), nBytes);
+		return eSIR_FAILURE;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Next, we fill out the buffer descriptor:
     nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
@@ -4724,7 +5759,11 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
         limLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for a Channel Switch (%d)."),
                 nSirStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
         return eSIR_FAILURE;    // just allocated...
     }
     nStatus = dot11fPackChannelSwitch( pMac, &frm, pFrame +
@@ -4734,7 +5773,11 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     {
         limLog( pMac, LOGE, FL("Failed to pack a Channel Switch (0x%08x)."),
                 nStatus );
+#ifndef REMOVE_TL
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+		lim_tx_packet_free(tx_packet);
+#endif
         return eSIR_FAILURE;    // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -4748,8 +5791,14 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
+
+#ifndef REMOVE_TL
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
@@ -4763,6 +5812,27 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
         //Pkt will be freed up by the callback
         return eSIR_FAILURE;
     }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS != wma_send_tx_frame(
+				((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+
+		limLog(pMac, LOGE, FL("Failed to send a Channel Switch "
+			"(%X)!"), nSirStatus);
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+#endif
 
     return eSIR_SUCCESS;
 
@@ -4794,14 +5864,29 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     tpSirMacMgmtHdr pMacHdr;
     tANI_U32 frameLen = 0, nStatus, nPayload;
     tSirRetStatus statusCode;
-    eHalStatus halStatus;
-    void *pPacket;
-    tANI_U8 txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
      if(NULL == psessionEntry)
     {
         return eSIR_FAILURE;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Add Ba Req No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
 
     palZeroMemory( pMac->hHdd, (void *) &frmAddBAReq, sizeof( frmAddBAReq ));
 
@@ -4855,6 +5940,7 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     // Add the MGMT header to frame length
     frameLen = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
     // Need to allocate a buffer for ADDBA AF
     if( eHAL_STATUS_SUCCESS !=
       (halStatus = palPktAlloc( pMac->hHdd,
@@ -4874,6 +5960,18 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     }
 
     palZeroMemory( pMac->hHdd, (void *) pAddBAReqBuffer, frameLen );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(frameLen);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes"
+			" for Add BA Req."), frameLen);
+
+		statusCode = eSIR_MEM_ALLOC_FAILED;
+		goto returnAfterError;
+	}
+	pAddBAReqBuffer = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
     // Copy necessary info to BD
     if( eSIR_SUCCESS !=
@@ -4944,9 +6042,14 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
     if( eHAL_STATUS_SUCCESS !=
       (halStatus = halTxFrame( pMac,
                                pPacket,
@@ -4968,15 +6071,42 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
   }
   else
     return eSIR_SUCCESS;
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send AddBAReq Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+
+	return eSIR_SUCCESS;
+#endif
 
 returnAfterError:
 
+#ifndef REMOVE_TL
   // Release buffer, if allocated
   if( NULL != pAddBAReqBuffer )
     palPktFree( pMac->hHdd,
         HAL_TXRX_FRM_802_11_MGMT,
         (void *) pAddBAReqBuffer,
         (void *) pPacket );
+#else
+	/* Release buffer, if allocated */
+	if (pAddBAReqBuffer != NULL)
+		lim_tx_packet_free(tx_packet);
+#endif
 
   return statusCode;
 }
@@ -5004,15 +6134,30 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
     tpSirMacMgmtHdr pMacHdr;
     tANI_U32 frameLen = 0, nStatus, nPayload;
     tSirRetStatus statusCode;
-    eHalStatus halStatus;
-    void *pPacket;
-    tANI_U8 txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
      if(NULL == psessionEntry)
     {
         PELOGE(limLog(pMac, LOGE, FL("Session entry is NULL!!!"));)
         return eSIR_FAILURE;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Add BA Resp frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
 
       palZeroMemory( pMac->hHdd, (void *) &frmAddBARsp, sizeof( frmAddBARsp ));
 
@@ -5059,6 +6204,7 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
       // Need to allocate a buffer for ADDBA AF
       frameLen = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
       // Allocate shared memory
       if( eHAL_STATUS_SUCCESS !=
           (halStatus = palPktAlloc( pMac->hHdd,
@@ -5078,6 +6224,18 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
       }
 
       palZeroMemory( pMac->hHdd, (void *) pAddBARspBuffer, frameLen );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(frameLen);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes"
+			" for Add BA Rsp."), frameLen);
+
+		statusCode = eSIR_MEM_ALLOC_FAILED;
+		goto returnAfterError;
+	}
+	pAddBARspBuffer = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
       // Copy necessary info to BD
       if( eSIR_SUCCESS !=
@@ -5149,9 +6307,14 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
   if( eHAL_STATUS_SUCCESS !=
       (halStatus = halTxFrame( pMac,
                                pPacket,
@@ -5174,16 +6337,41 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
   }
   else
     return eSIR_SUCCESS;
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send AddBARsp Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+
+	return eSIR_SUCCESS;
+#endif
 
     returnAfterError:
-
+#ifndef REMOVE_TL
       // Release buffer, if allocated
       if( NULL != pAddBARspBuffer )
         palPktFree( pMac->hHdd,
             HAL_TXRX_FRM_802_11_MGMT,
             (void *) pAddBARspBuffer,
             (void *) pPacket );
-
+#else
+	/* Release buffer, if allocated */
+	if (pAddBARspBuffer != NULL)
+		lim_tx_packet_free(tx_packet);
+#endif
       return statusCode;
 }
 
@@ -5214,14 +6402,29 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
     tpSirMacMgmtHdr pMacHdr;
     tANI_U32 frameLen = 0, nStatus, nPayload;
     tSirRetStatus statusCode;
-    eHalStatus halStatus;
-    void *pPacket;
-    tANI_U8 txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
      if(NULL == psessionEntry)
     {
         return eSIR_FAILURE;
     }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Del BA Ind frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
 
     palZeroMemory( pMac->hHdd, (void *) &frmDelBAInd, sizeof( frmDelBAInd ));
 
@@ -5261,6 +6464,7 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
       // Add the MGMT header to frame length
       frameLen = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
       // Allocate shared memory
       if( eHAL_STATUS_SUCCESS !=
           (halStatus = palPktAlloc( pMac->hHdd,
@@ -5280,6 +6484,18 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
       }
 
       palZeroMemory( pMac->hHdd, (void *) pDelBAIndBuffer, frameLen );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(frameLen);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes"
+			" for Del BA Ind."), frameLen);
+
+		statusCode = eSIR_MEM_ALLOC_FAILED;
+		goto returnAfterError;
+	}
+	pDelBAIndBuffer = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
       // Copy necessary info to BD
       if( eSIR_SUCCESS !=
@@ -5350,9 +6566,14 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
   if( eHAL_STATUS_SUCCESS !=
       (halStatus = halTxFrame( pMac,
                                pPacket,
@@ -5370,15 +6591,41 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
   }
   else
     return eSIR_SUCCESS;
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send Del BA Ind Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+
+	return eSIR_SUCCESS;
+#endif
 
     returnAfterError:
-
+#ifndef REMOVE_TL
       // Release buffer, if allocated
       if( NULL != pDelBAIndBuffer )
         palPktFree( pMac->hHdd,
             HAL_TXRX_FRM_802_11_MGMT,
             (void *) pDelBAIndBuffer,
             (void *) pPacket );
+#else
+	/* Release buffer, if allocated */
+	if (pDelBAIndBuffer != NULL)
+		lim_tx_packet_free(tx_packet);
+#endif
 
       return statusCode;
 }
@@ -5414,15 +6661,30 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
    tANI_U8                      *pFrame;
    tpSirMacMgmtHdr          pMacHdr;
    tANI_U32                      nBytes, nPayload, nStatus;
-   void               *pPacket;
-   eHalStatus          halstatus;
-   tANI_U8             txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8	txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
+#ifndef REMOVE_TL
    if ( psessionEntry == NULL )
    {
       limLog( pMac, LOGE, FL("(psession == NULL) in Request to send Neighbor Report request action frame") );
       return eSIR_FAILURE;
    }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Neighbour Report Req frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
    frm.Category.category = SIR_MAC_ACTION_RRM;
@@ -5453,6 +6715,7 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
 
    nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
    halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
    {
@@ -5463,6 +6726,17 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
 
    // Paranoia:
    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for "
+			"a Neighbor Report Request."), nBytes);
+
+		return eSIR_FAILURE;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
    // Copy necessary info to BD
    if( eSIR_SUCCESS !=
@@ -5517,9 +6791,14 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
    if( eHAL_STATUS_SUCCESS !=
          (halstatus = halTxFrame( pMac,
                                   pPacket,
@@ -5537,9 +6816,34 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
    }
    else
       return eSIR_SUCCESS;
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send Neibour Report Req Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+
+	return eSIR_SUCCESS;
+#endif
 
 returnAfterError:
+#ifndef REMOVE_TL
    palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
 
    return statusCode;
 } // End limSendNeighborReportRequestFrame.
@@ -5573,16 +6877,30 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
    tANI_U8                      *pFrame;
    tpSirMacMgmtHdr          pMacHdr;
    tANI_U32                      nBytes, nPayload, nStatus;
-   void               *pPacket;
-   eHalStatus          halstatus;
-   tANI_U8             txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
-
+#ifndef REMOVE_TL
    if ( psessionEntry == NULL )
    {
       limLog( pMac, LOGE, FL("(psession == NULL) in Request to send Link Report action frame") );
       return eSIR_FAILURE;
    }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Link Report action frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
 
    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
@@ -5624,6 +6942,7 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
 
    nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
    halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
    {
@@ -5634,6 +6953,17 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
 
    // Paranoia:
    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a Link"
+			" Report Action."), nBytes);
+
+		return eSIR_FAILURE;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
    // Copy necessary info to BD
    if( eSIR_SUCCESS !=
@@ -5688,9 +7018,14 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
    if( eHAL_STATUS_SUCCESS !=
          (halstatus = halTxFrame( pMac,
                                   pPacket,
@@ -5708,9 +7043,34 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
    }
    else
       return eSIR_SUCCESS;
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+							(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send Link Report Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+
+	return eSIR_SUCCESS;
+#endif
 
 returnAfterError:
+#ifndef REMOVE_TL
    palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
 
    return statusCode;
 } // End limSendLinkReportActionFrame.
@@ -5749,10 +7109,16 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
    tANI_U8                      *pFrame;
    tpSirMacMgmtHdr          pMacHdr;
    tANI_U32                      nBytes, nPayload, nStatus;
-   void               *pPacket;
-   eHalStatus          halstatus;
    tANI_U8             i;
-   tANI_U8             txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
 
    tDot11fRadioMeasurementReport *frm =
          vos_mem_malloc(sizeof(tDot11fRadioMeasurementReport));
@@ -5761,12 +7127,22 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
       return eSIR_FAILURE;
    }
 
+#ifndef REMOVE_TL
    if ( psessionEntry == NULL )
    {
       limLog( pMac, LOGE, FL("(psession == NULL) in Request to send Beacon Report action frame") );
       vos_mem_free(frm);
       return eSIR_FAILURE;
    }
+#else
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Radio Measurement Report frame No valid session!"));
+		vos_mem_free(frm);
+		return eSIR_FAILURE;
+	}
+#endif
    palZeroMemory( pMac->hHdd, ( tANI_U8* )frm, sizeof( *frm ) );
 
    frm->Category.category = SIR_MAC_ACTION_RRM;
@@ -5816,6 +7192,7 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
 
    nBytes = nPayload + sizeof( tSirMacMgmtHdr );
 
+#ifndef REMOVE_TL
    halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( tANI_U16 )nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
    {
@@ -5827,6 +7204,17 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
 
    // Paranoia:
    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for Radio"
+			" Measure Report Action."), nBytes);
+		vos_mem_free(frm);
+		return eSIR_FAILURE;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
    // Copy necessary info to BD
    if( eSIR_SUCCESS !=
@@ -5881,9 +7269,14 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
          ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
          )
     {
+#ifndef REMOVE_TL
         txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+		use_6mbps = 1;
+#endif
     }
 
+#ifndef REMOVE_TL
    if( eHAL_STATUS_SUCCESS !=
          (halstatus = halTxFrame( pMac,
                                   pPacket,
@@ -5904,10 +7297,37 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
       vos_mem_free(frm);
       return eSIR_SUCCESS;
    }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send Radio"
+					"Measurement Report Frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+		vos_mem_free(frm);
+		return eSIR_FAILURE;
+	} else {
+		vos_mem_free(frm);
+		return eSIR_SUCCESS;
+	}
+#endif
 
 returnAfterError:
    vos_mem_free(frm);
+#ifndef REMOVE_TL
    palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
    return statusCode;
 } // End limSendBeaconReportActionFrame.
 
@@ -5941,10 +7361,25 @@ tSirMacAddr peer,tpPESession psessionEntry)
    tSirRetStatus      nSirStatus;
    tpSirMacMgmtHdr    pMacHdr;
    tANI_U32           nBytes, nPayload, nStatus;
-   void               *pPacket;
-   eHalStatus         halstatus;
-   tANI_U8            txFlag = 0;
+#ifndef REMOVE_TL
+	void *pPacket;
+	eHalStatus halstatus;
+	tANI_U8 txFlag = 0;
+#else
+	adf_nbuf_t tx_packet;
+	u_int8_t use_6mbps = 0;
+	void *vos_context;
+#endif
+
    
+#ifdef REMOVE_TL
+	if (!psessionEntry || !(psessionEntry->p_iface_session)
+		|| !(psessionEntry->p_iface_session->txrx_vdev_hdl)) {
+		limLog(pMac, LOGE, FL("could not send"
+			"Sa Query Resp frame No valid session!"));
+		return eSIR_FAILURE;
+	}
+#endif
    palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
    frm.Category.category  = SIR_MAC_ACTION_SA_QUERY;
    /*11w action  field is :
@@ -5972,6 +7407,7 @@ tSirMacAddr peer,tpPESession psessionEntry)
    }
 
    nBytes = nPayload + sizeof( tSirMacMgmtHdr );
+#ifndef REMOVE_TL
    halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,  nBytes, ( void** ) &pFrame, ( void** ) &pPacket );
    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
    {
@@ -5982,6 +7418,17 @@ tSirMacAddr peer,tpPESession psessionEntry)
 
    // Paranoia:
    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+#else
+	/* Allocate tx_packet */
+	tx_packet = lim_tx_packet_alloc(nBytes);
+	if (!tx_packet) {
+		limLog(pMac, LOGP, FL("Failed to allocate %d bytes for a SA"
+			" Query Resp."), nBytes);
+
+		return eSIR_FAILURE;
+	}
+	pFrame = (u_int8_t *)adf_nbuf_data(tx_packet);
+#endif
 
    // Copy necessary info to BD
    nSirStatus = limPopulateMacHeader( pMac,
@@ -6038,9 +7485,14 @@ tSirMacAddr peer,tpPESession psessionEntry)
 #endif
       )
    {
+#ifndef REMOVE_TL
       txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+#else
+	use_6mbps = 1;
+#endif
    }
 
+#ifndef REMOVE_TL
    halstatus = halTxFrame( pMac,
                            pPacket,
                            (tANI_U16) nBytes,
@@ -6059,9 +7511,32 @@ tSirMacAddr peer,tpPESession psessionEntry)
    else {
       return eSIR_SUCCESS;
    }
+#else
+	/* Get the wma context */
+	vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
+						(v_VOID_t *) pMac);
+	/* Send the Tx Mgmt Frame */
+	if (VOS_STATUS_SUCCESS !=
+		wma_send_tx_frame(((pVosContextType)vos_context)->pWMAContext,
+				psessionEntry->p_iface_session->txrx_vdev_hdl,
+				tx_packet, use_6mbps,
+				MGMT_FRAME_80211,
+				GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				lim_mgmt_tx_complete_cb)) {
+		limLog(pMac, LOGE, FL("Failed to send SA Query resp frame"));
+		/* Free the packet */
+		lim_tx_packet_free(tx_packet);
+
+		return eSIR_FAILURE;
+	}
+#endif
 
 returnAfterError:
+#ifndef REMOVE_TL
    palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame, ( void* ) pPacket );
+#else
+	lim_tx_packet_free(tx_packet);
+#endif
    return nSirStatus;
 } // End limSendSaQueryResponseFrame
 #endif

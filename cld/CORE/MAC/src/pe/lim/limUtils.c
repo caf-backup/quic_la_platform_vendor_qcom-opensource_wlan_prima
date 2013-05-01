@@ -4982,6 +4982,7 @@ limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams
     return eSIR_SUCCESS;
         }
 
+#ifndef REMOVE_TL
 /**
  * limTxComplete
  *
@@ -5065,7 +5066,50 @@ void limTxComplete( tHalHandle hHal, void *pData )
               (void *) NULL,           // this is ignored and will likely be removed from this API
               (void *) pData );        // lim passed in pPacket in the pData pointer that is given in this completion routine
 }
+#else
+/*
+ * lim_mgmt_tx_complete_cb
+ * @ TX MGMT frame complete" completion routine.
+ * @ mac_ctxt
+ * @ nbuf -Tx Mgmt Fram
+ * @ status
+ *    0 -  ok - successfully downloaded to target
+ *    Any other value fail - to downloaded to target
+ */
+void lim_mgmt_tx_complete_cb(void *mac_ctxt, adf_nbuf_t nbuf, int32_t status)
+{
+	limLog((tpAniSirGlobal)mac_ctxt, LOGW,
+		FL("Tx Comp Status = %d \n"), status);
 
+	/*
+	 * No Need to free up Tx Mgmt
+	 * as TxRx will take care of freeing
+	 *
+	 */
+}
+
+#define TX_PKT_MIN_HEADROOM 64
+/*
+ * lim_tx_packet_alloc
+ * This function allocated adf nbu for the Tx frames
+ * to be transmitted by lim of the given length
+ */
+adf_nbuf_t lim_tx_packet_alloc(u_int32_t len)
+{
+	adf_nbuf_t nbuf;
+
+	nbuf = adf_nbuf_alloc(NULL, roundup(len+TX_PKT_MIN_HEADROOM, 4), 0,
+				sizeof(u_int32_t), FALSE);
+
+	if (nbuf != NULL) {
+		adf_nbuf_reserve(nbuf, TX_PKT_MIN_HEADROOM);
+		adf_nbuf_put_tail(nbuf, len);
+		adf_nbuf_set_protocol(nbuf, ETH_P_CONTROL);
+	}
+
+	return nbuf;
+}
+#endif
 /**
  * \brief This function updates lim global structure, if CB parameters in the BSS
  *  have changed, and sends an indication to HAL also with the
