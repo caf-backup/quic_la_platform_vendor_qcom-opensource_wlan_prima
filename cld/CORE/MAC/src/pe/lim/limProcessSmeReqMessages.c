@@ -543,12 +543,21 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /* This is the place where PE is going to create a session.
          * If session is not existed , then create a new session */
         if((psessionEntry = peFindSessionByBssid(pMac,
-		pSmeStartBssReq->bssId,&sessionId)) == NULL) {
-            limLog(pMac, LOGW, FL("Session doesnt exists for given BSSID\n"));
-            retCode = eSIR_LOGP_EXCEPTION;
+		pSmeStartBssReq->bssId,&sessionId)) != NULL) {
+            limLog(pMac, LOGW, FL("Session Already exists for given BSSID\n"));
+            retCode = eSIR_SME_BSS_ALREADY_STARTED_OR_JOINED;
+	    psessionEntry = NULL;
             goto free;
         }
-     
+
+	psessionEntry = peCreateSession(pMac, pSmeStartBssReq->bssId,
+					&sessionId, pMac->lim.maxStation);
+	if (!psessionEntry)
+	{
+	   limLog(pMac, LOGW, FL("Session Can not be created "));
+	   retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+	   goto free;
+	}
         psessionEntry->p_iface_session = pe_find_iface_session(pMac,
                                                  pSmeStartBssReq->selfMacAddr);
         if(NULL == psessionEntry->p_iface_session)
@@ -1452,14 +1461,45 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif
 
 
-        if((psessionEntry = peFindSessionByBssid(pMac,
-		pSmeJoinReq->bssDescription.bssId,&sessionId)) == NULL) {
-            limLog(pMac, LOGE, FL("Session doesn't exists for given BSSID\n"));
+	psessionEntry = peFindSessionByBssid(pMac,
+					pSmeJoinReq->bssDescription.bssId,
+					&sessionId);
+	if (psessionEntry)
+	{
+	    limLog(pMac, LOGE, FL("Session Already exists for given BSSID"));
 
-                retCode = eSIR_SME_REFUSED;
-                goto end;
-        }
-
+	    if(psessionEntry->limSmeState == eLIM_SME_LINK_EST_STATE)
+	    {
+		// Received eWNI_SME_JOIN_REQ for same
+		// BSS as currently associated.
+		// Log the event and send success
+		PELOGW(limLog(pMac, LOGW,
+			      FL("Received SME_JOIN_REQ for currently joined BSS"));)
+		/// Send Join success response to host
+		retCode = eSIR_SME_SUCCESS;
+		goto end;
+	    }
+	    else
+	    {
+		retCode = eSIR_SME_REFUSED;
+		psessionEntry = NULL;
+		goto end;
+	    }
+	}
+	else
+	{
+	    /* Try to Create a new session */
+	    psessionEntry = peCreateSession(pMac,
+					    pSmeJoinReq->bssDescription.bssId,
+					    &sessionId,
+					    pMac->lim.maxStation);
+	    if (!psessionEntry)
+	    {
+		limLog(pMac, LOGE, FL("Session Can not be created "));
+		retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+		goto end;
+	    }
+	}
         handleHTCapabilityandHTInfo(pMac, psessionEntry);
 
         psessionEntry->p_iface_session = pe_find_iface_session(pMac,
@@ -4331,13 +4371,6 @@ __limProcessSmeAddStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    tSirMsgQ msg;
    tpAddStaSelfParams pAddStaSelfParams;
    tpSirSmeAddStaSelfReq pSmeReq = (tpSirSmeAddStaSelfReq) pMsgBuf;
-   tANI_U8 sessionId;
-
-   if((peCreateSession(pMac, pSmeReq->selfMacAddr, &sessionId, pMac->lim.maxStation)) == NULL)
-   {
-       limLog(pMac, LOGW, FL("PE Session Can not be created \n"));
-       return;
-   }
 
    if ( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void**) &pAddStaSelfParams,
             sizeof( tAddStaSelfParams) ) )
