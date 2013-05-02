@@ -1271,8 +1271,9 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMlmScanReq->dot11mode = pScanReq->dot11mode;
         pMlmScanReq->p2pSearch = pScanReq->p2pSearch;
 
-	pMlmScanReq->scan_id = pScanReq->scan_id;
-	pMlmScanReq->scan_requestor_id = pScanReq->scan_requestor_id;
+	pMlmScanReq->scan_id = WMA_HOST_SCAN_REQID_PREFIX | pScanReq->scan_id;
+	pMlmScanReq->scan_requestor_id = WMA_HOST_SCAN_REQUESTOR_ID_PREFIX |
+					 pScanReq->scan_requestor_id;
 	pMlmScanReq->scan_prio = pScanReq->scan_prio;
 
         //Store the smeSessionID and transaction ID for later use.

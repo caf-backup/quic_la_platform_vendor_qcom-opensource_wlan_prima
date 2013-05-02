@@ -114,6 +114,12 @@
 #define     ALIGNED_WORD_SIZE       4
 #define WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE    0x7FFF
 
+/* Prefix used by scan req ids generated on the host */
+#define WMA_HOST_SCAN_REQID_PREFIX	 0xA000
+/* Prefix used by scan requestor id on host */
+#define WMA_HOST_SCAN_REQUESTOR_ID_PREFIX 0xA000
+#define WMA_HW_DEF_SCAN_MAX_DURATION	  5000 /* 5 secs */
+
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
 }t_cfg_nv_param;
