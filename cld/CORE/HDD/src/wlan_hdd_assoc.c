@@ -873,14 +873,31 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
 			   (u_int8_t *) pPeerMacAddress->bytes, &param,
 			   ol_txrx_peer_update_qos_capable);
 
-	VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-		  "ULA auth StaId= %d.  Changing TXRX state to CONNECTED at Join time",
-		  pHddStaCtx->conn_info.staId[ 0 ] );
+	if (!pRoamInfo->fAuthRequired )
+	{
+		VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+			  "open/shared auth StaId= %d.  Changing TL state to AUTHENTICATED at Join time",
+			  pHddStaCtx->conn_info.staId[ 0 ] );
 
-	wdi_in_peer_state_update(txrx_pdev_ctx,
-				 (u_int8_t *) pPeerMacAddress->bytes,
-				 ol_txrx_peer_state_conn);
-	pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
+		// Connections that do not need Upper layer auth, transition TL directly
+		// to 'Authenticated' state.
+		wdi_in_peer_state_update(txrx_pdev_ctx,
+					 (u_int8_t *) pPeerMacAddress->bytes,
+					 ol_txrx_peer_state_open);
+
+		pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+	}
+	else
+	{
+		VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+			  "ULA auth StaId= %d.  Changing TL state to CONNECTED at Join time",
+			  pHddStaCtx->conn_info.staId[ 0 ] );
+
+		wdi_in_peer_state_update(txrx_pdev_ctx,
+					 (u_int8_t *) pPeerMacAddress->bytes,
+					 ol_txrx_peer_state_conn);
+		pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
+	}
 #if 0
    eCsrEncryptionType connectedCipherAlgo;
    v_BOOL_t  fConnected;
@@ -1324,14 +1341,33 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             hdd_SendReAssocEvent(dev, pAdapter, pRoamInfo, reqRsnIe, reqRsnLength);
 	    /* TODO */
             //Reassoc successfully
-	    wdi_in_peer_state_update(txrx_pdev_ctx,
-				     (u_int8_t *) pRoamInfo->peerMac,
-				     ol_txrx_peer_state_conn);
-	    pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
-
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-		      "%s: staId: %d Changing TXRX state to CONNECTED",
-                      __func__, pHddStaCtx->conn_info.staId[0]);
+            if( pRoamInfo->fAuthRequired ) {
+		    wdi_in_peer_state_update(txrx_pdev_ctx,
+				    (u_int8_t *) pRoamInfo->peerMac,
+				    ol_txrx_peer_state_conn);
+		    pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
+	    } else {
+		    wdi_in_peer_state_update(txrx_pdev_ctx,
+				    (u_int8_t *) pRoamInfo->peerMac,
+				    ol_txrx_peer_state_auth);
+		    pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+	    }
+	    #if 0
+            {
+                vosStatus = wlan_change_sta_state( pHddCtx->pvosContext, pHddStaCtx->conn_info.staId[ 0 ],
+                        WLAN_STA_CONNECTED );
+                pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
+            }
+            else
+            {
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "%s: staId: %d Changing TL state to AUTHENTICATED",
+                          __func__, pHddStaCtx->conn_info.staId[ 0 ] );
+                vosStatus = wlan_change_sta_state( pHddCtx->pvosContext, pHddStaCtx->conn_info.staId[ 0 ],
+                        WLAN_STA_AUTHENTICATED );
+                pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+            }
+	  #endif
         }
 
         if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -1610,7 +1646,11 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
    eCsrEncryptionType connectedCipherAlgo;
    v_BOOL_t fConnected   = FALSE;
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+   VOS_STATUS vosStatus;
 
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   v_VOID_t *txrx_pdev_ctx = vos_get_context(VOS_MODULE_ID_TXRX,
+					     pHddCtx->pvosContext);
    ENTER();
    // if ( WPA ), tell TL to go to 'authenticated' after the keys are set.
    // then go to 'authenticated'.  For all other authentication types (those that do 
@@ -1621,14 +1661,52 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
    if( fConnected )
    {
       // TODO: Considering getting a state machine in HDD later.
+      // This routuine is invoked twice. 1)set PTK 2)set GTK. The folloing if statement will be
+      // TRUE when setting GTK. At this time we don't handle the state in detail.
+      // Related CR: 174048 - TL not in authenticated state
+
+      /* FIXME */
+      if(( eCSR_ROAM_RESULT_AUTHENTICATED == roamResult ) && (pRoamInfo != NULL) && !pRoamInfo->fAuthRequired)
+      {
+	      hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                    "Key set for StaId= %d.  Changing TL state to AUTHENTICATED", pHddStaCtx->conn_info.staId[ 0 ] );
+
+         // Connections that do not need Upper layer authentication, transition TL
+         // to 'Authenticated' state after the keys are set.
+         vosStatus = wlan_change_sta_state( pHddCtx->pvosContext, pHddStaCtx->conn_info.staId[ 0 ],
+                                            WLAN_STA_AUTHENTICATED );
+
+         pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+      }
       /* TODO */
 #if 0 
-      // This routuine is invoked twice. 1)set PTK 2)set GTK.
-      vosStatus = WLANTL_STAPtkInstalled( pHddCtx->pvosContext,
-                                          pHddStaCtx->conn_info.staId[ 0 ]);
+      else
+      {
+         vosStatus = WLANTL_STAPtkInstalled( pHddCtx->pvosContext,
+                                             pHddStaCtx->conn_info.staId[ 0 ]);
+      }
 #endif
       
-      pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+      if(( eCSR_ROAM_RESULT_AUTHENTICATED == roamResult ) && (pRoamInfo != NULL) && !pRoamInfo->fAuthRequired)
+      {
+	      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+			      "Key set for StaId= %d.  Changing TL state to AUTHENTICATED", pHddStaCtx->conn_info.staId[ 0 ] );
+
+	      // Connections that do not need Upper layer authentication, transition TL
+	      // to 'Authenticated' state after the keys are set.
+	      wdi_in_peer_state_update(txrx_pdev_ctx,
+			      (u_int8_t *) pRoamInfo->peerMac,
+			      ol_txrx_peer_state_auth);
+
+	      pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+	      pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+      }
+   }
+   else
+   {
+	   // possible disassoc after issuing set key and waiting set key complete
+	   pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
    }
 
    EXIT();
@@ -2248,10 +2326,8 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "****eCSR_ROAM_ASSOCIATION_COMPLETION****");
             if (  (roamResult != eCSR_ROAM_RESULT_ASSOCIATED)
-               && (   (pWextState->roamProfile.EncryptionType.encryptionType[0] ==
-                       eCSR_ENCRYPT_TYPE_WEP40)
-                   || (pWextState->roamProfile.EncryptionType.encryptionType[0] ==
-                       eCSR_ENCRYPT_TYPE_WEP104)
+               && (   (pWextState->roamProfile.EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_WEP40_STATICKEY)
+                   || (pWextState->roamProfile.EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_WEP104_STATICKEY)
                   )
                && (eCSR_AUTH_TYPE_SHARED_KEY != pWextState->roamProfile.AuthType.authType[0])
                )
