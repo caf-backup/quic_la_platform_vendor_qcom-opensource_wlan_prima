@@ -747,12 +747,6 @@ A_STATUS HTCSendPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
 		/*Something wrong*/
 		HTC_LOGD("Failed to send message over the bus");
 		WARN_ON(1);
-		if ((NULL != endpoint) && (NULL != endpoint->EpCallBacks.EpTxComplete)) {
-			HTC_LOGD("calling EpTxComplete");
-			pPacket->Status = A_ERROR; //ERROR
-			endpoint->EpCallBacks.EpTxComplete(endpoint->EpCallBacks.pContext,
-					pPacket);
-		}
 		return A_ERROR;
 	} else if (written == len) {
 		HTC_LOGD("Message sent");
