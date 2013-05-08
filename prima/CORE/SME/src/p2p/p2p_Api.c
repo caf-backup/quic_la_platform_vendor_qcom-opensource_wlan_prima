@@ -94,6 +94,7 @@ eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemaino
         pMsg->phyMode = p2pRemainonChn->u.remainChlCmd.phyMode;
         pMsg->duration = p2pRemainonChn->u.remainChlCmd.duration;
         pMsg->sessionId = p2pRemainonChn->sessionId;
+        pMsg->isProbeRequestAllowed = p2pRemainonChn->u.remainChlCmd.isP2PProbeReqAllowed;
 #ifdef WLAN_FEATURE_P2P_INTERNAL
         pMsg->sessionId = pSession->sessionId;
         if( p2pContext->probeRspIeLength )
@@ -710,7 +711,7 @@ tSirRFBand GetRFBand(tANI_U8 channel)
 eHalStatus p2pRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId,
          tANI_U8 channel, tANI_U32 duration,
         remainOnChanCallback callback, 
-        void *pContext
+        void *pContext, tANI_U8 isP2PProbeReqAllowed
 #ifdef WLAN_FEATURE_P2P_INTERNAL
         , eP2PRemainOnChnReason reason
 #endif
@@ -743,6 +744,7 @@ eHalStatus p2pRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId,
         pRemainChlCmd->sessionId = sessionId;
         pRemainChlCmd->u.remainChlCmd.chn = channel;
         pRemainChlCmd->u.remainChlCmd.duration = duration;
+        pRemainChlCmd->u.remainChlCmd.isP2PProbeReqAllowed = isP2PProbeReqAllowed;
         pRemainChlCmd->u.remainChlCmd.callback = callback;
         pRemainChlCmd->u.remainChlCmd.callbackCtx = pContext;
     
@@ -1041,7 +1043,7 @@ void p2pRetryActionFrameTimerHandler(void *pContext)
    p2pContext->PeerFound = TRUE;
    smsLog( pMac, LOGE, "%s Calling remain on channel ", __func__);
    status = p2pRemainOnChannel( pMac, p2pContext->SMEsessionId, p2pContext->P2PListenChannel/*pScanResult->BssDescriptor.channelId*/, P2P_REMAIN_ON_CHAN_TIMEOUT_LOW,
-                                    NULL, NULL, eP2PRemainOnChnReasonSendFrame);
+                                    NULL, NULL, TRUE, eP2PRemainOnChnReasonSendFrame);
    if(status != eHAL_STATUS_SUCCESS)
    {
       smsLog( pMac, LOGE, "%s remain on channel failed", __func__);
@@ -1336,7 +1338,7 @@ static eHalStatus p2pSendActionFrame(tpAniSirGlobal pMac, tANI_U8 HDDSessionID, 
 
          if(p2pRemainOnChannel( pMac, pP2pContext->SMEsessionId, 
                                       pP2pContext->P2PListenChannel, P2P_REMAIN_ON_CHAN_TIMEOUT_LOW,
-                                      NULL, NULL, eP2PRemainOnChnReasonSendFrame))
+                                      NULL, NULL, TRUE, eP2PRemainOnChnReasonSendFrame))
          {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,  "%s remain on channel failed", __func__);
          }
@@ -1442,7 +1444,7 @@ void p2pListenDiscoverTimerHandler(void *pContext)
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "%s Calling RemainOnChannel with duration %d on channel %d",
              __func__, p2pContext->listenDuration, p2pContext->P2PListenChannel);
       status = p2pRemainOnChannel( p2pContext->hHal, p2pContext->SMEsessionId, p2pContext->P2PListenChannel, p2pContext->listenDuration, 
-                                    p2pListenStateDiscoverableCallback, p2pContext, eP2PRemainOnChnReasonListen);
+                                    p2pListenStateDiscoverableCallback, p2pContext, TRUE, eP2PRemainOnChnReasonListen);
    }
    else
    {
@@ -1524,7 +1526,7 @@ eHalStatus P2P_ListenStateDiscoverable(tHalHandle hHal, tANI_U8 sessionId,
                      __func__, pMac->p2pContext[sessionId].listenDuration, pMac->p2pContext[sessionId].P2PListenChannel);
          p2pRemainOnChannel( pMac, pMac->p2pContext[sessionId].SMEsessionId, pMac->p2pContext[sessionId].P2PListenChannel, 
                               pMac->p2pContext[sessionId].listenDuration, p2pListenStateDiscoverableCallback, 
-                              &pMac->p2pContext[sessionId], eP2PRemainOnChnReasonListen);
+                              &pMac->p2pContext[sessionId], TRUE, eP2PRemainOnChnReasonListen);
       }
       else
       {
@@ -1545,7 +1547,7 @@ eHalStatus P2P_ListenStateDiscoverable(tHalHandle hHal, tANI_U8 sessionId,
                      __func__, pMac->p2pContext[sessionId].listenDuration, pMac->p2pContext[sessionId].P2PListenChannel);
          p2pRemainOnChannel( pMac, pMac->p2pContext[sessionId].SMEsessionId, pMac->p2pContext[sessionId].P2PListenChannel, 
                               pMac->p2pContext[sessionId].listenDuration, p2pListenStateDiscoverableCallback, 
-                              &pMac->p2pContext[sessionId], eP2PRemainOnChnReasonListen);
+                              &pMac->p2pContext[sessionId], TRUE, eP2PRemainOnChnReasonListen);
       }
       else
       {
@@ -1577,7 +1579,7 @@ eHalStatus P2P_ListenStateDiscoverable(tHalHandle hHal, tANI_U8 sessionId,
                      __func__, pMac->p2pContext[sessionId].listenDuration, pMac->p2pContext[sessionId].P2PListenChannel);
          p2pRemainOnChannel( pMac, pMac->p2pContext[sessionId].SMEsessionId, pMac->p2pContext[sessionId].P2PListenChannel, 
                               pMac->p2pContext[sessionId].listenDuration, p2pListenStateDiscoverableCallback, 
-                              &pMac->p2pContext[sessionId], eP2PRemainOnChnReasonListen);
+                              &pMac->p2pContext[sessionId], TRUE, eP2PRemainOnChnReasonListen);
       }
       
       break;
