@@ -7215,15 +7215,18 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
                     {
                         if (pTdlsPeer->is_responder == 0)
                         {
+#ifndef REMOVE_TL
                             v_U8_t staId = (v_U8_t)pTdlsPeer->staId;
-
+#endif
                             wlan_hdd_tdls_timer_restart(pAdapter,
                                                         &pTdlsPeer->initiatorWaitTimeoutTimer,
                                                        WAIT_TIME_TDLS_INITIATOR);
                             /* suspend initiator TX until it receives direct packet from the
                             reponder or WAIT_TIME_TDLS_INITIATOR timer expires */
+#ifndef REMOVE_TL
                             WLANTL_SuspendDataTx( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                                                    &staId, NULL);
+#endif
                         }
                         wlan_hdd_tdls_increment_peer_count(pAdapter);
                     }
