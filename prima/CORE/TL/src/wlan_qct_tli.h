@@ -75,7 +75,6 @@ when        who    what, where, why
 
 
 #define STATIC  static
-
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -241,6 +240,9 @@ typedef enum
 
   /* Serialzie Finish UL Authentication request */
   WLANTL_FINISH_ULA   = 5,
+
+  /* Serialized Snapshot request indication */
+  WLANTL_TX_SNAPSHOT = 6,
 
   WLANTL_TX_MAX
 }WLANTL_TxSignalsType;
