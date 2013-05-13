@@ -383,18 +383,6 @@ end:
 	return vos_status;
 }
 
-static u_int8_t wma_get_free_vdev_id(tp_wma_handle wma_handle)
-{
-	u_int8_t vdev_id = 0;
-
-	for (vdev_id = 0; vdev_id < WMA_MAX_VDEV_SIZE; vdev_id++) {
-		if (!(wma_handle->vdev_bit_map & (1 << vdev_id)))
-			return vdev_id;
-	}
-
-	return WMA_MAX_VDEV_SIZE;
-}
-
 /* function   : wma_send_msg
  * Descriptin :
  * Args       :
@@ -505,6 +493,9 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 				tpDelStaSelfParams pdel_sta_self_req_param)
 {
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+						wma_handle->vos_context);
+	void *txrx_hdl;
 
 	/* remove the interface from ath_dev */
 	if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, 
@@ -513,8 +504,16 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		status = VOS_STATUS_E_FAILURE;
 	}
 
-	wma_handle->vdev_bit_map &= ~(1 << pdel_sta_self_req_param->vdev_id);
-	pdel_sta_self_req_param->status = status;
+	txrx_hdl = wdi_in_get_vdev(txrx_pdev,
+					pdel_sta_self_req_param->vdev_id);
+	if(!txrx_hdl)
+		status = VOS_STATUS_E_FAILURE;
+	else
+		ol_txrx_vdev_detach(txrx_hdl, NULL, NULL);
+
+	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", pdel_sta_self_req_param->vdev_id,
+			txrx_hdl);
+
 	wma_send_msg(wma_handle, WMA_DEL_STA_SELF_RSP, (void *)pdel_sta_self_req_param, 0);
 	return status;
 }
@@ -529,20 +528,15 @@ static VOS_STATUS wma_vdev_attach(tp_wma_handle wma_handle, tpAddStaSelfParams s
 	ol_txrx_vdev_handle txrx_vdev_handle = NULL;
 	ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 			wma_handle->vos_context);
-	u_int8_t vdev_id = wma_get_free_vdev_id(wma_handle);
 	enum wlan_op_mode txrx_vdev_type;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 
-	if (vdev_id == WMA_INVALID_VDEV_ID) {
-		WMA_LOGP("No free vdev_id");
-		status = VOS_STATUS_E_RESOURCES;
-		goto end;
-	}
-
 	/* Create a vdev in target */
-	if (wma_unified_vdev_create_send(wma_handle->wmi_handle, vdev_id,
-			self_sta_req->vdevType, self_sta_req->vdevSubType,
-			self_sta_req->selfMacAddr))
+	if (wma_unified_vdev_create_send(wma_handle->wmi_handle,
+						self_sta_req->vdev_id,
+						self_sta_req->vdevType,
+						self_sta_req->vdevSubType,
+						self_sta_req->selfMacAddr))
 	{
 		WMA_LOGP("Unable to add an interface for ath_dev.\n");
 		status = VOS_STATUS_E_RESOURCES;
@@ -553,25 +547,27 @@ static VOS_STATUS wma_vdev_attach(tp_wma_handle wma_handle, tpAddStaSelfParams s
 
 	if (wlan_op_mode_unknown == txrx_vdev_type) {
 		WMA_LOGE("Failed to get txrx vdev type");
-		wma_unified_vdev_delete_send(wma_handle->wmi_handle, vdev_id);
+		wma_unified_vdev_delete_send(wma_handle->wmi_handle,
+						self_sta_req->vdev_id);
 		goto end;
 	}
 
 	txrx_vdev_handle = ol_txrx_vdev_attach(txrx_pdev,
-			self_sta_req->selfMacAddr, vdev_id,
-			txrx_vdev_type);
+						self_sta_req->selfMacAddr,
+						self_sta_req->vdev_id,
+						txrx_vdev_type);
 
-	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", vdev_id,
+	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->vdev_id,
 			txrx_vdev_handle);
 
 	if (NULL == txrx_vdev_handle) {
 		WMA_LOGP("ol_txrx_vdev_attach failed");
 		status = VOS_STATUS_E_FAILURE;
-		wma_unified_vdev_delete_send(wma_handle->wmi_handle, vdev_id);
+		wma_unified_vdev_delete_send(wma_handle->wmi_handle,
+						self_sta_req->vdev_id);
 		goto end;
 	}
 
-	wma_handle->vdev_bit_map |= (1 << vdev_id);
 end:
 	self_sta_req->status = status;
 	wma_send_msg(wma_handle, WMA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
@@ -873,7 +869,6 @@ VOS_STATUS wma_close(WMA_HANDLE handle)
 #if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int32_t idx;
 #endif
-	
 	WMA_LOGD("Enter");
 
 	/* validate the wma_handle */

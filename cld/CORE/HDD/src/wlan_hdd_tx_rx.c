@@ -33,7 +33,7 @@
 #include <net/cfg80211.h>
 #include <net/ieee80211_radiotap.h>
 #include "sapApi.h"
-
+#include "wdi_in.h"
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
 #endif
@@ -749,7 +749,9 @@ struct net_device_stats* hdd_stats(struct net_device *dev)
   ===========================================================================*/
 VOS_STATUS hdd_init_tx_rx( hdd_adapter_t *pAdapter )
 {
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+   ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+                                                   pVosContext);
    v_SINT_t i = -1;
 
    pAdapter->isVosOutOfResource = VOS_FALSE;
@@ -758,12 +760,16 @@ VOS_STATUS hdd_init_tx_rx( hdd_adapter_t *pAdapter )
    //Will be zeroed out during alloc
 
    while (++i != NUM_TX_QUEUES)
-   { 
-      pAdapter->isTxSuspended[i] = VOS_FALSE; 
+   {
+      pAdapter->isTxSuspended[i] = VOS_FALSE;
       hdd_list_init( &pAdapter->wmm_tx_queue[i], HDD_TX_QUEUE_MAX_LEN);
    }
 
-   return status;
+   pAdapter->txrx_vdev_ctx = wdi_in_get_vdev(txrx_pdev, pAdapter->sessionId);
+   if(!pAdapter->txrx_vdev_ctx)
+      return VOS_STATUS_E_FAILURE;
+
+   return VOS_STATUS_SUCCESS;
 }
 
 

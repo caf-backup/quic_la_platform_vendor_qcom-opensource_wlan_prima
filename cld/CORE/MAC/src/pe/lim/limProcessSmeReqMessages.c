@@ -1252,6 +1252,7 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                       pScanReq->bssId,
                       sizeof(tSirMacAddr));
         pMlmScanReq->numSsid = pScanReq->numSsid;
+        pMlmScanReq->vdev_id = pScanReq->sessionId;
 
         i = 0;
         while (i < pMlmScanReq->numSsid)
@@ -4368,7 +4369,9 @@ __limProcessSmeAddStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    }
 
    palCopyMemory( pMac->hHdd, pAddStaSelfParams->selfMacAddr, pSmeReq->selfMacAddr, sizeof(tSirMacAddr) ); 
-
+   pAddStaSelfParams->vdev_id = pSmeReq->sessionId;
+   pAddStaSelfParams->vdevType = pSmeReq->vdevType;
+   pAddStaSelfParams->vdevSubType = pSmeReq->vdevSubType;
    msg.type = SIR_HAL_ADD_STA_SELF_REQ;
    msg.reserved = 0;
    msg.bodyptr =  pAddStaSelfParams;
@@ -4419,6 +4422,7 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
    palCopyMemory( pMac->hHdd, pDelStaSelfParams->selfMacAddr, pSmeReq->selfMacAddr, sizeof(tSirMacAddr) );
 
+   pDelStaSelfParams->vdev_id = pSmeReq->sessionId;
    msg.type = SIR_HAL_DEL_STA_SELF_REQ;
    msg.reserved = 0;
    msg.bodyptr =  pDelStaSelfParams;
