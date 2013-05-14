@@ -25617,6 +25617,9 @@ WDI_ProcessSetPowerParamsReq
   powerParams.uBETInterval =
     pwdiPowerParamsReqParams->wdiSetPowerParamsInfo.uBETInterval;
 
+  /* MAX LI for modulated DTIM */
+  powerParams.uMaxLIModulatedDTIM =
+  pwdiPowerParamsReqParams->wdiSetPowerParamsInfo.uMaxLIModulatedDTIM;
 
    wpalMemoryCopy( pSendBuffer+usDataOffset,
                    &powerParams,
