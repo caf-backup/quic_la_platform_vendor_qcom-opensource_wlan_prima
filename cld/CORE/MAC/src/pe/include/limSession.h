@@ -331,7 +331,6 @@ typedef struct sPESession           // Added to Support BT-AMP
 #endif
     tANI_BOOLEAN fWaitForProbeRsp;
     tANI_BOOLEAN fIgnoreCapsChange;
-    tp_iface_session p_iface_session;
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4
