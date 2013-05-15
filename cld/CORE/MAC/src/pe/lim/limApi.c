@@ -930,9 +930,6 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
          return eSIR_FAILURE;
     }
 
-    palZeroMemory(pMac->hHdd, &pMac->lim.iface_session,
-                  sizeof(t_iface_session)*IFACE_SESSION_MAX);
-
     if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
               (void **) &pMac->lim.limTimers.gpLimCnfWaitTimer, sizeof(TX_TIMER)*pMac->lim.maxStation))
     {

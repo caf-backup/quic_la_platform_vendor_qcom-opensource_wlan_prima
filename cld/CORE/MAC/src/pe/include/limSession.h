@@ -48,17 +48,6 @@ typedef struct
     tANI_U8                 gHTObssMode; 
 }tBeaconParams, *tpBeaconParams;
 
-typedef struct
-{
-    tSirMacAddr             iface_addr;
-    void                    *txrx_vdev_hdl;
-    tANI_U8                 vdev_id;
-    tANI_U8                 valid;
-}t_iface_session, *tp_iface_session;
-
-#define GET_VDEV_ID(iface_session) iface_session->vdev_id
-#define GET_VDEV_HDL(iface_session) iface_session->txrx_vdev_hdl
-
 typedef struct sPESession           // Added to Support BT-AMP
 {
     /* To check session table is in use or free*/
@@ -343,46 +332,6 @@ typedef struct sPESession           // Added to Support BT-AMP
 
 /*--------------------------------------------------------------------------
   
-  \brief pe_create_iface_session() - creates a new PE inface session given
-                                     the interface mac address
-
-  \param pMac                   - pointer to global adapter context
-  \param iface_addr             - address of the new session
-  \param vdev_id                - vdev-id for the interface
-  \param txrx_vdev_hdl          - txrx handle for the interface
-
-  \return tSirRetStatus         - returns eSIR_SUCCESS or eSIR_FAILURE
-                                  if session can not be created.
-
-  \sa
-  --------------------------------------------------------------------------*/
-tSirRetStatus pe_create_iface_session(tpAniSirGlobal pMac, tANI_U8 *iface_addr,
-                                      tANI_U8 vdev_id, void *txrx_hdl);
-
-/*--------------------------------------------------------------------------
-  \brief pe_find_iface_session() - find the PE iface session given the
-                                     iface_addr.
-
-  \param pMac                   - pointer to global adapter context
-  \param iface_addr             - mac address of the iface to be searched for.
-
-  \return tp_iface_session      - returns iface session handle or NULL if
-                                  not found
-  --------------------------------------------------------------------------*/
-tp_iface_session pe_find_iface_session(tpAniSirGlobal pMac, tANI_U8
-                                       *iface_addr);
-
-/*--------------------------------------------------------------------------
-  \brief pe_delete_iface_session() - deletes the PE iface session.
-
-  \param p_iface_session           - pointer to interface session
-
-  \sa
-  --------------------------------------------------------------------------*/
-void pe_delete_iface_session(tp_iface_session p_iface_session);
-
-/*--------------------------------------------------------------------------
-
   \brief peCreateSession() - creates a new PE session given the BSSID
 
   This function returns the session context and the session ID if the session 
