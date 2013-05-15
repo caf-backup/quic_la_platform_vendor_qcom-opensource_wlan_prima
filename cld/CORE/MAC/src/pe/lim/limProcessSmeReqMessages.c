@@ -4368,8 +4368,6 @@ __limProcessSmeAddStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    }
 
    palCopyMemory( pMac->hHdd, pAddStaSelfParams->selfMacAddr, pSmeReq->selfMacAddr, sizeof(tSirMacAddr) ); 
-   pAddStaSelfParams->vdevType  = pSmeReq->vdevType;
-   pAddStaSelfParams->vdevSubType  = pSmeReq->vdevSubType;
 
    msg.type = SIR_HAL_ADD_STA_SELF_REQ;
    msg.reserved = 0;
@@ -4410,6 +4408,7 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
    tSirMsgQ msg;
    tpDelStaSelfParams pDelStaSelfParams;
+   tpSirSmeDelStaSelfReq pSmeReq = (tpSirSmeDelStaSelfReq) pMsgBuf;
 
    if ( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void**) &pDelStaSelfParams,
             sizeof( tDelStaSelfParams) ) )
@@ -4417,6 +4416,8 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
       limLog( pMac, LOGP, FL("Unable to allocate memory for tDelStaSelfParams") );
       return;
    }
+
+   palCopyMemory( pMac->hHdd, pDelStaSelfParams->selfMacAddr, pSmeReq->selfMacAddr, sizeof(tSirMacAddr) );
 
    msg.type = SIR_HAL_DEL_STA_SELF_REQ;
    msg.reserved = 0;

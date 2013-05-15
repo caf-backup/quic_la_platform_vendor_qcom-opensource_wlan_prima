@@ -2297,7 +2297,6 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
         if( pRoamInfo )
         {
             pRoamInfo->sessionId = (tANI_U8)sessionId;
-            pRoamInfo->txrx_vdev_hdl = pSession->txrx_vdev_hdl;
         }
 
         /* avoid holding the global lock when making the roaming callback , original change came 
@@ -13122,8 +13121,6 @@ eHalStatus csrProcessAddStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
    tListElem                          *pEntry = NULL;
    tSmeCmd                            *pCommand = NULL;
    tSirSmeAddStaSelfRsp               *pRsp;
-   tCsrRoamSession                    *pSession;
-
    do
    {
       if(pMsg == NULL)
@@ -13139,17 +13136,9 @@ eHalStatus csrProcessAddStaSessionRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
          if(eSmeCommandAddStaSession == pCommand->command)
          {
             pRsp = (tSirSmeAddStaSelfRsp*)pMsg;
-            //FIXME:need to handle failure cases.
             smsLog( pMac, LOG1, "Add Sta rsp status = %d", pRsp->status );
-            if( CSR_IS_SESSION_VALID( pMac, pCommand->sessionId) )
-            {
-                pSession = CSR_GET_SESSION( pMac, pCommand->sessionId );
-                pSession->txrx_vdev_hdl = pRsp->txrx_vdev_hdl;
-                pSession->vdev_id = pRsp->vdev_id;
-                //Nothing to be done. May be indicate the self sta addition success by calling session callback (TODO).
-                csrRoamSessionOpened(pMac, pCommand->sessionId);
-            }
-
+            //Nothing to be done. May be indicate the self sta addition success by calling session callback (TODO).
+            csrRoamSessionOpened(pMac, pCommand->sessionId);
             //Remove this command out of the active list
             if(csrLLRemoveEntry(&pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK))
             {

@@ -7234,17 +7234,8 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    tpAddStaSelfParams      pAddStaSelfParams;
    tSirMsgQ                mmhMsg;
    tpSirSmeAddStaSelfRsp   pRsp;
-   tANI_U8                 sessionId;
-   tpPESession             psessionEntry;
 
    pAddStaSelfParams = (tpAddStaSelfParams)limMsgQ->bodyptr;
-
-   if((psessionEntry = peFindSessionByBssid(pMac, pAddStaSelfParams->selfMacAddr, &sessionId)) == NULL)
-   {
-      limLog(pMac, LOGP, FL("PE session not opened \n"));
-      palFreeMemory( pMac->hHdd, (tANI_U8 *)pAddStaSelfParams);
-      return;
-   }
 
    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pRsp, sizeof(tSirSmeAddStaSelfRsp)))
    {
@@ -7259,8 +7250,6 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    pRsp->mesgType = eWNI_SME_ADD_STA_SELF_RSP;
    pRsp->mesgLen = (tANI_U16) sizeof(tSirSmeAddStaSelfRsp);
    pRsp->status = pAddStaSelfParams->status;
-   pRsp->txrx_vdev_hdl = pAddStaSelfParams->txrx_vdev_hdl;
-   pRsp->vdev_id = pAddStaSelfParams->vdev_id;
 
    palCopyMemory( pMac->hHdd, pRsp->selfMacAddr, pAddStaSelfParams->selfMacAddr, sizeof(tSirMacAddr) );
 

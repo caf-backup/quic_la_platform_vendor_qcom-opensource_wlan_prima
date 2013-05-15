@@ -513,7 +513,6 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		status = VOS_STATUS_E_FAILURE;
 	}
 
-	ol_txrx_vdev_detach(pdel_sta_self_req_param->txrx_vdev_handle, NULL, NULL);
 	wma_handle->vdev_bit_map &= ~(1 << pdel_sta_self_req_param->vdev_id);
 	pdel_sta_self_req_param->status = status;
 	wma_send_msg(wma_handle, WMA_DEL_STA_SELF_RSP, (void *)pdel_sta_self_req_param, 0);
@@ -575,8 +574,6 @@ static VOS_STATUS wma_vdev_attach(tp_wma_handle wma_handle, tpAddStaSelfParams s
 	wma_handle->vdev_bit_map |= (1 << vdev_id);
 end:
 	self_sta_req->status = status;
-	self_sta_req->txrx_vdev_hdl = (void*)txrx_vdev_handle;
-	self_sta_req->vdev_id = vdev_id;
 	wma_send_msg(wma_handle, WMA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
 	return status;
 }
