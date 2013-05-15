@@ -365,6 +365,9 @@ __adf_nbuf_tailroom(struct sk_buff *skb)
 static inline uint8_t *
 __adf_nbuf_push_head(struct sk_buff *skb, size_t size)
 {
+    if(NBUF_MAPPED_PADDR_LO(skb)) {
+       NBUF_MAPPED_PADDR_LO(skb) -= size;
+    }
     return skb_push(skb, size);
 }
 /**
@@ -400,6 +403,9 @@ __adf_nbuf_put_tail(struct sk_buff *skb, size_t size)
 static inline uint8_t *
 __adf_nbuf_pull_head(struct sk_buff *skb, size_t size)
 {
+    if(NBUF_MAPPED_PADDR_LO(skb)) {
+       NBUF_MAPPED_PADDR_LO(skb) += size;
+    }
     return skb_pull(skb, size);
 }
 /**
