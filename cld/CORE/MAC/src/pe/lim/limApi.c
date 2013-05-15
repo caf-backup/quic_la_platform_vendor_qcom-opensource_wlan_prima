@@ -1418,59 +1418,22 @@ VOS_STATUS peHandleMgmtFrame(v_PVOID_t mac_ctx, tp_rxpacket rx_pkt)
  */
 void peRegisterTLHandle(tpAniSirGlobal pMac)
 {
-	void *vos_context;
-	VOS_STATUS retStatus;
-#ifdef REMOVE_TL
-	void *wma_context;
-#endif
+    v_PVOID_t pvosGCTx;
+    VOS_STATUS retStatus;
 
-	vos_context =
-		vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
+    pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
 
 #ifndef REMOVE_TL
-	retStatus =
-		WLANTL_RegisterMgmtFrmClient(vos_context, peHandleMgmtFrame);
-
-	if (retStatus != VOS_STATUS_SUCCESS)
-		limLog(pMac, LOGP, FL("Registering the PE Handle with TL"
-			" has failed bailing out..."));
+    retStatus = WLANTL_RegisterMgmtFrmClient(pvosGCTx, peHandleMgmtFrame);
 #else
-	wma_context = ((pVosContextType)vos_context)->pWMAContext;
-
-	if(!wma_context) {
-		limLog(pMac, LOGP, FL("wma ctx NULL Pe registr failed"));
-		return;
-	}
-
-	retStatus = wma_mgmt_attach(wma_context, pMac, peHandleMgmtFrame);
-
-	if (retStatus != VOS_STATUS_SUCCESS) {
-		limLog(pMac, LOGP, FL("Pe registr with wma for mgmt failed"));
-		return;
-	}
-
-	/* Register Disassoc Ack cb with wma */
-	retStatus = wma_register_mgmt_ack_cb(wma_context,
-					lim_disassoc_tx_ack_comp_cb,
-					DISASSOC_DOWNLD_COMP_ACK_COMP_INDEX,
-					pMac);
-
-	if (retStatus != VOS_STATUS_SUCCESS) {
-		limLog(pMac, LOGP, FL("Fail to register Disassoc Ack Cb"));
-		return;
-	}
-
-	/* Register Deauth Ack cb with wma */
-	retStatus = wma_register_mgmt_ack_cb(wma_context,
-					lim_deauth_tx_ack_comp_cb,
-					DEAUTH_DOWNLD_COMP_ACK_COMP_INDEX,
-					pMac);
-
-	if (retStatus != VOS_STATUS_SUCCESS) {
-		limLog(pMac, LOGP, FL("Fail to register Deauth Ack Cb"));
-		return;
-	}
+    retStatus = wma_mgmt_attach(((pVosContextType)pvosGCTx)->pWMAContext,
+                                ((pVosContextType)pvosGCTx)->pMACContext,
+                                 peHandleMgmtFrame);
 #endif
+
+    if (retStatus != VOS_STATUS_SUCCESS)
+        limLog( pMac, LOGP, FL("Registering the PE Handle with TL has failed bailing out..."));
+
 }
 
 

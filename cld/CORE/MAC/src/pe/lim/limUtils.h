@@ -225,20 +225,7 @@ void limUtilCountStaAdd(tpAniSirGlobal pMac, tpDphHashNode pSta, tpPESession pse
 void limUtilCountStaDel(tpAniSirGlobal pMac, tpDphHashNode pSta, tpPESession psessionEntry);
 
 tANI_U8 limGetHTCapability( tpAniSirGlobal, tANI_U32, tpPESession);
-#ifndef REMOVE_TL
 void limTxComplete( tHalHandle hHal, void *pData );
-#else
-void lim_mgmt_tx_complete_cb(void *mac_ctxt, adf_nbuf_t nbuf, int32_t status);
-adf_nbuf_t lim_tx_packet_alloc(u_int32_t len);
-
-/*
- * To Free up the tx packet
- */
-static inline void lim_tx_packet_free(adf_nbuf_t nbuf)
-{
-	adf_nbuf_free(nbuf);
-}
-#endif
 
 /**********Admit Control***************************************/
 
