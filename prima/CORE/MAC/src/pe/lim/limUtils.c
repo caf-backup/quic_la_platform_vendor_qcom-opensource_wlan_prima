@@ -1060,6 +1060,9 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimP2pSingleShotNoaInsertTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimP2pSingleShotNoaInsertTimer);
 
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimActiveToPassiveChannelTimer);
+
         pMac->lim.gLimTimersCreated = 0;
     }
 
