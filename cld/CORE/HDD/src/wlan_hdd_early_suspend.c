@@ -25,8 +25,9 @@
 #include <linux/wait.h>
 #include <wlan_hdd_includes.h>
 #include <wlan_qct_driver.h>
+#ifdef WLAN_OPEN_SOURCE
 #include <linux/wakelock.h>
-
+#endif
 #include "halTypes.h"
 #include "sme_Api.h"
 #include <vos_api.h>
@@ -52,7 +53,7 @@
 #include "bap_hdd_misc.h"
 #endif
 
-#include <linux/wcnss_wlan.h>
+#include <wcnss_api.h>
 #include <linux/inetdevice.h>
 #include <wlan_hdd_cfg.h>
 #include <wlan_hdd_cfg80211.h>
@@ -1247,6 +1248,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
       return VOS_STATUS_E_FAILURE;
    }
    hdd_reset_all_adapters(pHddCtx);
+#ifdef QCA_WIFI_ISOC
    /* DeRegister with platform driver as client for Suspend/Resume */
    vosStatus = hddDeregisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -1259,6 +1261,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
    }
+#endif
 
    /* Disable IMPS/BMPS as we do not want the device to enter any power
     * save mode on its own during reset sequence
@@ -1524,6 +1527,7 @@ VOS_STATUS hdd_wlan_re_init(void)
    pHddCtx->hdd_mcastbcast_filter_set = FALSE;
    hdd_register_mcast_bcast_filter(pHddCtx);
 
+#ifdef QCA_WIFI_ISOC
    /* Register with platform driver as client for Suspend/Resume */
    vosStatus = hddRegisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -1531,6 +1535,8 @@ VOS_STATUS hdd_wlan_re_init(void)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
       goto err_bap_stop;
    }
+#endif
+
    /* Allow the phone to go to sleep */
    hdd_allow_suspend();
    /* register for riva power on lock */
@@ -1543,9 +1549,11 @@ VOS_STATUS hdd_wlan_re_init(void)
    goto success;
 
 err_unregister_pmops:
+#ifdef QCA_WIFI_ISOC
    hddDeregisterPmOps(pHddCtx);
 
 err_bap_stop:
+#endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 #endif

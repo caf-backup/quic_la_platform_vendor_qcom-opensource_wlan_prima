@@ -26,11 +26,7 @@
  * Include Files
  * -------------------------------------------------------------------------*/
 #include <wlan_hdd_dev_pwr.h>
-#ifdef ANI_BUS_TYPE_PLATFORM
-#include <linux/wcnss_wlan.h>
-#else
-#include <wcnss_wlan.h>
-#endif // ANI_BUS_TYP_PLATFORM
+#include <wcnss_api.h>
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -71,7 +67,7 @@ static const hdd_tmLevelAction_t thermalMigrationAction[WLAN_HDD_TM_LEVEL_MAX] =
 static bool suspend_notify_sent;
 #endif
 
-
+#ifdef QCA_WIFI_ISOC
 /*----------------------------------------------------------------------------
 
    @brief Function to suspend the wlan driver.
@@ -584,4 +580,4 @@ VOS_STATUS hddDevTmUnregisterNotifyCallback(hdd_context_t *pHddCtx)
 
    return VOS_STATUS_SUCCESS;
 }
-
+#endif	/* #ifdef QCA_WIFI_ISOC */

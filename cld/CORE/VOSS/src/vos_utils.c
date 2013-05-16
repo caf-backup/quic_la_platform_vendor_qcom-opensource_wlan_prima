@@ -47,6 +47,7 @@
 #include <linux/scatterlist.h>
 #include <linux/completion.h>
 #include <crypto/hash.h>
+#include <wcnss_api.h>
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -58,19 +59,6 @@
 /*----------------------------------------------------------------------------
  * Global Data Definitions
  * -------------------------------------------------------------------------*/
-extern struct crypto_ahash *wcnss_wlan_crypto_alloc_ahash(const char *alg_name,
-                                                          unsigned int type,
-                                                          unsigned int mask);
-
-extern int wcnss_wlan_crypto_ahash_digest(struct ahash_request *req);
-extern void wcnss_wlan_crypto_free_ahash(struct crypto_ahash *tfm);
-extern int wcnss_wlan_crypto_ahash_setkey(struct crypto_ahash *tfm, const u8 *key,
-                                          unsigned int keylen);
-extern struct crypto_ablkcipher *wcnss_wlan_crypto_alloc_ablkcipher(const char *alg_name,
-                                                                    u32 type, u32 mask);
-extern void wcnss_wlan_ablkcipher_request_free(struct ablkcipher_request *req);
-extern void wcnss_wlan_crypto_free_ablkcipher(struct crypto_ablkcipher *tfm);
-
 /*----------------------------------------------------------------------------
  * Static Variable Definitions
  * -------------------------------------------------------------------------*/
