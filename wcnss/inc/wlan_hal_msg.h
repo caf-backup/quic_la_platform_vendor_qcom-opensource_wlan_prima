@@ -5149,6 +5149,7 @@ typedef PACKED_PRE struct PACKED_POST {
   /*Indicates the RSSI */
   tANI_U8     rssi;
 
+  tANI_U16    frameLength;
 } tPrefNetwFoundParams, * tpPrefNetwFoundParams;
 
 /*
