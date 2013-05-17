@@ -109,6 +109,7 @@
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
 #define MAX_GENIE_LEN 255
+#define WAIT_TIME_TDLS_INITIATOR 300
 
 #define WLAN_CHIP_VERSION   "WCNSS"
 
