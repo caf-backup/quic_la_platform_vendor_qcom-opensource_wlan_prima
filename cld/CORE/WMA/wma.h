@@ -224,7 +224,6 @@ typedef struct {
 	u_int32_t num_mem_chunks;
 	struct wma_mem_chunk mem_chunks[MAX_MEM_CHUNKS];
 #endif
-	u_int32_t vdev_bit_map;
 	hdd_tgt_cfg_cb tgt_cfg_update_cb;
 	HAL_REG_CAPABILITIES reg_cap;
 }t_wma_handle, *tp_wma_handle;

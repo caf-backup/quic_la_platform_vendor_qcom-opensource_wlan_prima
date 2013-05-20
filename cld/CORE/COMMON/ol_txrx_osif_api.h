@@ -197,4 +197,6 @@ adf_nbuf_t ol_txrx_osif_tso_segment(
     adf_nbuf_t jumbo_tcp_frame);
 
 
+struct ol_txrx_vdev_t *
+ol_txrx_get_vdev(ol_txrx_pdev_handle pdev, u_int8_t vdev_id);
 #endif /* _OL_TXRX_OSIF_API__H_ */
