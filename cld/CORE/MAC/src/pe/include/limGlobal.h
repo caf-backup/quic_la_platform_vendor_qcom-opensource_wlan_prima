@@ -273,7 +273,6 @@ typedef struct sLimMlmScanReq
 	tANI_U32           scan_id;
 	tANI_U32           scan_requestor_id;
 	tANI_U32           scan_prio;
-	tANI_U8            vdev_id;
 
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
@@ -294,6 +293,7 @@ typedef struct sLimMlmScanReq
       ... variable size uIEFiled 
       up to uIEFieldLen (can be 0)
       -----------------------------*/
+     tANI_U8 vdev_id;
 } tLimMlmScanReq, *tpLimMlmScanReq;
 
 typedef struct tLimScanResultNode tLimScanResultNode;

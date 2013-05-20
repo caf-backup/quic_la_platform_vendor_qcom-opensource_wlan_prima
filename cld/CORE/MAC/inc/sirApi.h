@@ -3264,8 +3264,8 @@ typedef struct sSirSmeAddStaSelfReq
     tANI_U16        mesgType;
     tANI_U16        mesgLen;
     tSirMacAddr     selfMacAddr;
-    tANI_U32        vdevType;
-    tANI_U32        vdevSubType;
+    tANI_U32 vdevType;
+    tANI_U32 vdevSubType;
 }tSirSmeAddStaSelfReq, *tpSirSmeAddStaSelfReq;
 
 typedef struct sSirSmeDelStaSelfReq
@@ -3281,8 +3281,6 @@ typedef struct sSirSmeAddStaSelfRsp
     tANI_U16        mesgLen;
     tANI_U16        status;
     tSirMacAddr     selfMacAddr;
-    void            *txrx_vdev_hdl;
-    tANI_U8         vdev_id;
 }tSirSmeAddStaSelfRsp, *tpSirSmeAddStaSelfRsp;
 
 typedef struct sSirSmeDelStaSelfRsp

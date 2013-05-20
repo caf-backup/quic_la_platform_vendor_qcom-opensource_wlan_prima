@@ -1260,16 +1260,15 @@ typedef struct sAddStaSelfParams
    tSirMacAddr selfMacAddr;
    tANI_U32 vdevType;
    tANI_U32 vdevSubType;
-   void *txrx_vdev_hdl;
    tANI_U8 vdev_id;
    tANI_U32 status;
 }tAddStaSelfParams, *tpAddStaSelfParams;
 
 typedef struct sDelStaSelfParams
 {
-   void *txrx_vdev_handle;
-   tANI_U32 status;
+   tSirMacAddr selfMacAddr;
    tANI_U8 vdev_id;
+   tANI_U32 status;
 }tDelStaSelfParams, *tpDelStaSelfParams;
 
 typedef struct sP2pPsParams

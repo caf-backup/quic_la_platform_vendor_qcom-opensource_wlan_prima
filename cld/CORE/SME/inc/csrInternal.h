@@ -418,9 +418,8 @@ typedef struct tagAddStaForSessionCmd
 {
    //Session self mac addr
    tSirMacAddr selfMacAddr;
-   tANI_U32    vdevType;
-   tANI_U32    vdevSubType;
-   void        *vdevHandle;
+   tANI_U32 vdevType;
+   tANI_U32 vdevSubType;
 }tAddStaForSessionCmd;
 
 typedef struct tagDelStaForSessionCmd
@@ -878,8 +877,6 @@ typedef struct tagCsrRoamSession
     * the PMKID cache. To clear the cache in this particular case this is added
     * it is needed by the HS 2.0 passpoint certification 5.2.a and b testcases */
     tANI_BOOLEAN fIgnorePMKIDCache;
-    void  *txrx_vdev_hdl;
-    tANI_U8 vdev_id;
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
