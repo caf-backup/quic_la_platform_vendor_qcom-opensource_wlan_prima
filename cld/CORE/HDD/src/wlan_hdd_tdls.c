@@ -1385,6 +1385,13 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter)
         return;
     }
 
+    if(!pHddTdlsCtx)
+    {
+       VOS_TRACE(VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                 "%s: pHddTdlsCtx is NULL", __func__);
+       return;
+    }
+
     if ((TDLS_CTX_MAGIC != pHddCtx->tdls_scan_ctxt.magic) &&
         (0 == pHddCtx->connected_peer_count) &&
         (0 == pHddTdlsCtx->discovery_sent_cnt))
