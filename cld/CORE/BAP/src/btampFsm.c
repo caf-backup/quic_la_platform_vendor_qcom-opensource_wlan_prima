@@ -738,7 +738,7 @@ gotoStarting
 {
     VOS_STATUS  vosStatus = VOS_STATUS_SUCCESS;
     eHalStatus  halStatus;
-    v_U32_t     parseStatus;
+    v_U32_t     parseStatus, type, subType;
     /* tHalHandle */    
     tHalHandle hHal;
     tBtampTLVHCI_Write_Remote_AMP_ASSOC_Cmd *pBapHCIWriteRemoteAMPAssoc 
@@ -914,13 +914,21 @@ gotoStarting
     if (btampContext->isBapSessionOpen == FALSE)
     {
 
+        vosStatus = vos_get_vdev_types(VOS_STA_SAP_MODE, &type, &subType);
+        if (VOS_STATUS_SUCCESS != vosStatus)
+        {
+            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                         "failed to get vdev type");
+            return VOS_STATUS_E_FAILURE;
+        }
         halStatus = sme_OpenSession(hHal, 
                                     WLANBAP_RoamCallback, 
                                     btampContext,
                                     // <=== JEZ081210: FIXME
                                     //(tANI_U8 *) btampContext->self_mac_addr,  
                                     btampContext->self_mac_addr,  
-                                    &btampContext->sessionId);
+                                    &btampContext->sessionId,
+                                    type,subType);
         if(eHAL_STATUS_SUCCESS == halStatus)
         {
             btampContext->isBapSessionOpen = TRUE;

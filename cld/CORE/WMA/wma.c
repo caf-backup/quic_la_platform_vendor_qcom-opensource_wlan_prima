@@ -512,19 +512,19 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 
 	/* remove the interface from ath_dev */
 	if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, 
-			pdel_sta_self_req_param->vdev_id)) {
+			pdel_sta_self_req_param->sessionId)) {
 		WMA_LOGP("Unable to remove an interface for ath_dev.\n");
 		status = VOS_STATUS_E_FAILURE;
 	}
 
 	txrx_hdl = wdi_in_get_vdev(txrx_pdev,
-					pdel_sta_self_req_param->vdev_id);
+					pdel_sta_self_req_param->sessionId);
 	if(!txrx_hdl)
 		status = VOS_STATUS_E_FAILURE;
 	else
 		ol_txrx_vdev_detach(txrx_hdl, NULL, NULL);
 
-	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", pdel_sta_self_req_param->vdev_id,
+	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", pdel_sta_self_req_param->sessionId,
 			txrx_hdl);
 
 	wma_send_msg(wma_handle, WMA_DEL_STA_SELF_RSP, (void *)pdel_sta_self_req_param, 0);
@@ -546,9 +546,9 @@ static VOS_STATUS wma_vdev_attach(tp_wma_handle wma_handle, tpAddStaSelfParams s
 
 	/* Create a vdev in target */
 	if (wma_unified_vdev_create_send(wma_handle->wmi_handle,
-						self_sta_req->vdev_id,
-						self_sta_req->vdevType,
-						self_sta_req->vdevSubType,
+						self_sta_req->sessionId,
+						self_sta_req->type,
+						self_sta_req->subType,
 						self_sta_req->selfMacAddr))
 	{
 		WMA_LOGP("Unable to add an interface for ath_dev.\n");
@@ -556,28 +556,28 @@ static VOS_STATUS wma_vdev_attach(tp_wma_handle wma_handle, tpAddStaSelfParams s
 		goto end;
 	}
 
-	txrx_vdev_type = wma_get_txrx_vdev_type(self_sta_req->vdevType);
+	txrx_vdev_type = wma_get_txrx_vdev_type(self_sta_req->type);
 
 	if (wlan_op_mode_unknown == txrx_vdev_type) {
 		WMA_LOGE("Failed to get txrx vdev type");
 		wma_unified_vdev_delete_send(wma_handle->wmi_handle,
-						self_sta_req->vdev_id);
+						self_sta_req->sessionId);
 		goto end;
 	}
 
 	txrx_vdev_handle = ol_txrx_vdev_attach(txrx_pdev,
 						self_sta_req->selfMacAddr,
-						self_sta_req->vdev_id,
+						self_sta_req->sessionId,
 						txrx_vdev_type);
 
-	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->vdev_id,
+	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
 			txrx_vdev_handle);
 
 	if (NULL == txrx_vdev_handle) {
 		WMA_LOGP("ol_txrx_vdev_attach failed");
 		status = VOS_STATUS_E_FAILURE;
 		wma_unified_vdev_delete_send(wma_handle->wmi_handle,
-						self_sta_req->vdev_id);
+						self_sta_req->sessionId);
 		goto end;
 	}
 
@@ -1829,7 +1829,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 
 	cmd = (wmi_start_scan_cmd *) wmi_buf_data(*buf);
 
-	cmd->vdev_id = scan_req->vdev_id;
+	cmd->vdev_id = scan_req->sessionId;
 	cmd->scan_priority = scan_req->scan_prio;
 	cmd->scan_id = scan_req->scan_id;
 	cmd->scan_req_id = scan_req->scan_requestor_id;

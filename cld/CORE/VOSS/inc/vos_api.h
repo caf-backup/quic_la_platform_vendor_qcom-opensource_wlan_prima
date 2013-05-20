@@ -284,5 +284,6 @@ VOS_STATUS vos_wlanReInit(void);
 
 */
 VOS_STATUS vos_wlanRestart(void);
-
+VOS_STATUS vos_get_vdev_types(tVOS_CON_MODE mode, tANI_U32 *type,
+                                  tANI_U32 *subType);
 #endif // if !defined __VOS_NVITEM_H
