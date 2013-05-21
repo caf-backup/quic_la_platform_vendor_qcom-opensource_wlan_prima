@@ -35,6 +35,7 @@
 #include "ol_txrx_htt_api.h"
 #include "ol_htt_tx_api.h"
 #include "ol_htt_rx_api.h"
+#include "wlan_qct_tl.h"
 #include <ol_ctrl_txrx_api.h>
 #include <ol_txrx_ctrl_api.h>
 /*

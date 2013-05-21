@@ -451,30 +451,34 @@ WMI_INC := -I$(WLAN_ROOT)/$(WMI_DIR)
 
 WMI_OBJS := $(WMI_DIR)/wmi_unified.o
 
+############ TLSHIM ############
+TLSHIM_DIR := CORE/TLSHIM
+TLSHIM_INC := -I$(WLAN_ROOT)/$(TLSHIM_DIR)
+
+TLSHIM_OBJS := $(TLSHIM_DIR)/tl_shim.o
+
 ############ TXRX ############
 TXRX_DIR :=	CORE/TXRX
 TXRX_INC := 	-I$(WLAN_ROOT)/$(TXRX_DIR)
 
-TXRX_OBJS := $(TXRX_DIR)/txrx_api.o \
-	     $(TXRX_DIR)/ol_txrx.o \
-	     $(TXRX_DIR)/ol_cfg.o \
-	     $(TXRX_DIR)/ol_rx.o \
-	     $(TXRX_DIR)/ol_rx_fwd.o \
-	     $(TXRX_DIR)/ol_txrx.o \
-	     $(TXRX_DIR)/ol_rx_defrag.o \
-	     $(TXRX_DIR)/ol_tx_desc.o \
-	     $(TXRX_DIR)/ol_tx_classify.o \
-	     $(TXRX_DIR)/ol_tx.o \
-	     $(TXRX_DIR)/ol_rx_reorder_timeout.o \
-	     $(TXRX_DIR)/ol_rx_reorder.o \
-	     $(TXRX_DIR)/ol_rx_pn.o \
-	     $(TXRX_DIR)/ol_tx_queue.o \
-	     $(TXRX_DIR)/ol_txrx_peer_find.o \
-	     $(TXRX_DIR)/ol_txrx_event.o \
-	     $(TXRX_DIR)/ol_txrx_encap.o \
-	     $(TXRX_DIR)/ol_tx_send.o \
-	     $(TXRX_DIR)/ol_tx_sched.o
-
+TXRX_OBJS :=	$(TXRX_DIR)/ol_txrx.o \
+                $(TXRX_DIR)/ol_cfg.o \
+                $(TXRX_DIR)/ol_rx.o \
+                $(TXRX_DIR)/ol_rx_fwd.o \
+                $(TXRX_DIR)/ol_txrx.o \
+                $(TXRX_DIR)/ol_rx_defrag.o \
+                $(TXRX_DIR)/ol_tx_desc.o \
+                $(TXRX_DIR)/ol_tx_classify.o \
+                $(TXRX_DIR)/ol_tx.o \
+                $(TXRX_DIR)/ol_rx_reorder_timeout.o \
+                $(TXRX_DIR)/ol_rx_reorder.o \
+                $(TXRX_DIR)/ol_rx_pn.o \
+                $(TXRX_DIR)/ol_tx_queue.o \
+                $(TXRX_DIR)/ol_txrx_peer_find.o \
+                $(TXRX_DIR)/ol_txrx_event.o \
+                $(TXRX_DIR)/ol_txrx_encap.o \
+                $(TXRX_DIR)/ol_tx_send.o \
+                $(TXRX_DIR)/ol_tx_sched.o
 
 ############ HTT ############
 HTT_DIR :=	CORE/HTT
@@ -549,6 +553,8 @@ INCS :=		$(VOSS_INC) \
 		$(COMMON_INC) \
 		$(BMI_INC) \
 		$(WMI_INC) \
+		$(ADF_INC) \
+		$(TLSHIM_INC) \
 		$(TXRX_INC) \
 		$(HTT_INC) \
 		$(HTC_INC) \
@@ -563,12 +569,22 @@ OBJS :=		$(HDD_OBJS) \
 		$(VOSS_OBJS) \
 		$(ADF_OBJS) \
 		$(BMI_OBJS) \
+		$(WDA_OBJS) \
+		$(WDI_OBJS)
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+OBJS +=		$(DXE_OBJS) \
+		$(TL_OBJS)
+else
+OBJS +=		$(WMA_OBJS) \
+		$(TLSHIM_OBJS) \
+		$(TXRX_OBJS) \
 		$(WMI_OBJS) \
 		$(TXRX_OBJS) \
 		$(HTT_OBJS) \
 		$(HTC_OBJS) \
-		$(WMA_OBJS) \
 		$(HIF_OBJS)
+endif
 
 EXTRA_CFLAGS += $(INCS)
 

@@ -492,12 +492,17 @@ WMI_INC := -I$(WLAN_ROOT)/$(WMI_DIR)
 
 WMI_OBJS := $(WMI_DIR)/wmi_unified.o
 
+############ TLSHIM ############
+TLSHIM_DIR := CORE/TLSHIM
+TLSHIM_INC := -I$(WLAN_ROOT)/$(TLSHIM_DIR)
+
+TLSHIM_OBJS := $(TLSHIM_DIR)/tl_shim.o
+
 ############ TXRX ############
 TXRX_DIR :=     CORE/TXRX
 TXRX_INC :=     -I$(WLAN_ROOT)/$(TXRX_DIR)
 
-TXRX_OBJS := $(TXRX_DIR)/txrx_api.o \
-                $(TXRX_DIR)/ol_txrx.o \
+TXRX_OBJS := $(TXRX_DIR)/ol_txrx.o \
                 $(TXRX_DIR)/ol_cfg.o \
                 $(TXRX_DIR)/ol_rx.o \
                 $(TXRX_DIR)/ol_rx_fwd.o \
@@ -514,8 +519,7 @@ TXRX_OBJS := $(TXRX_DIR)/txrx_api.o \
                 $(TXRX_DIR)/ol_txrx_event.o \
                 $(TXRX_DIR)/ol_txrx_encap.o \
                 $(TXRX_DIR)/ol_tx_send.o \
-                $(TXRX_DIR)/ol_tx_sched.o \
-                $(TXRX_DIR)/txrx.o
+                $(TXRX_DIR)/ol_tx_sched.o
 
 ############ HTT ############
 HTT_DIR :=      CORE/HTT
@@ -665,6 +669,7 @@ INCS +=		$(WMA_INC) \
 		$(COMMON_INC) \
 		$(WMI_INC) \
 		$(ADF_INC) \
+		$(TLSHIM_INC) \
 		$(TXRX_INC) \
 		$(HTT_INC) \
 		$(HTC_INC)
@@ -694,6 +699,7 @@ OBJS +=		$(DXE_OBJS) \
 		$(TL_OBJS)
 else
 OBJS +=		$(WMA_OBJS) \
+		$(TLSHIM_OBJS) \
 		$(TXRX_OBJS) \
 		$(WMI_OBJS) \
 		$(HTC_OBJS) \
