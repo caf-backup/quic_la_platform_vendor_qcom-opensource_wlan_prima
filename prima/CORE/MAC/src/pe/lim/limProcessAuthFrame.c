@@ -164,9 +164,8 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     }
 
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-              FL("Auth Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
-              pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
-              pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
+              FL("Auth Frame Received: BSSID " MAC_ADDRESS_STR " (RSSI %d)"),
+              MAC_ADDR_ARRAY(pHdr->bssId),
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo)));
 
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
@@ -1647,9 +1646,8 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
 
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-              FL("Auth Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
-              pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
-              pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
+              FL("Auth Frame Received: BSSID " MAC_ADDRESS_STR " (RSSI %d)"),
+              MAC_ADDR_ARRAY(pHdr->bssId),
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pBd)));
 
     // Check for the operating channel and see what needs to be done next.
