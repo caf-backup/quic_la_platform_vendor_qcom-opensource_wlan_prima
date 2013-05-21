@@ -16,12 +16,8 @@
 #include "palTypes.h"
 #include "cfgPriv.h"
 #include "cfgDebug.h"
-
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
+
 //---------------------------------------------------------------------
 // Static Variables
 //----------------------------------------------------------------------
@@ -709,11 +705,7 @@ cfgGetDot11dTransmitPower(tpAniSirGlobal pMac, tANI_U16   cfgId,
 {
     tANI_U8    *pCountryInfo = NULL;
     tANI_U8    count = 0;
-#ifndef WMA_LAYER
     tPowerdBm  maxTxPwr = WDA_MAX_TXPOWER_INVALID;
-#else
-    tPowerdBm  maxTxPwr = WMA_MAX_TXPOWER_INVALID;
-#endif
     eHalStatus    status;
     
     /* At least one element is present */
@@ -805,11 +797,7 @@ tPowerdBm cfgGetRegulatoryMaxTransmitPower(tpAniSirGlobal pMac, tANI_U8 channel)
         case eRF_BAND_UNKNOWN:
         default:
             PELOG2(cfgLog(pMac, LOG2, FL("HAL: Invalid current working band for the device"));)
-#ifndef WMA_LAYER
             return WDA_MAX_TXPOWER_INVALID; //Its return, not break.
-#else
-            return WMA_MAX_TXPOWER_INVALID; //Its return, not break.
-#endif
     }
 
     maxTxPwr = cfgGetDot11dTransmitPower(pMac, cfgId, cfgLength, channel);
@@ -1074,11 +1062,7 @@ Notify(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 ntfMask)
         limPostMsgApi(pMac, &mmhMsg);
 
     if ((ntfMask & CFG_CTL_NTF_HAL) != 0)
-#ifndef WMA_LAYER
         wdaPostCtrlMsg(pMac, &mmhMsg);
-#else
-        wmaPostCtrlMsg(pMac, &mmhMsg);
-#endif
 
     // Notify ARQ
 

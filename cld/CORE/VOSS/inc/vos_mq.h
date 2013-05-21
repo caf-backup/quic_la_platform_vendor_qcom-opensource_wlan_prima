@@ -81,21 +81,16 @@ typedef enum
   VOS_MQ_ID_PE = VOS_MODULE_ID_PE,
 
   /// Message Queue ID for messages bound for WDA
-#ifndef WMA_LAYER
   VOS_MQ_ID_WDA = VOS_MODULE_ID_WDA,
-#else
-  VOS_MQ_ID_WMA = VOS_MODULE_ID_WMA,
-#endif
-#ifndef REMOVE_TL
+
   /// Message Queue ID for messages bound for TL
   VOS_MQ_ID_TL = VOS_MODULE_ID_TL,
-#endif
 
   /// Message Queue ID for messages bound for the SYS module
   VOS_MQ_ID_SYS = VOS_MODULE_ID_SYS,
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-  VOS_MQ_ID_HTC = VOS_MODULE_ID_HTC,
-#endif
+
+  /// Message Queue ID for messages bound for WDI
+  VOS_MQ_ID_WDI = VOS_MODULE_ID_WDI,
 
 } VOS_MQ_ID;
 
@@ -140,7 +135,6 @@ typedef enum
 VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *message );
 
 
-#ifndef REMOVE_TL
 /**---------------------------------------------------------------------------
   
   \brief vos_tx_mq_serialize() - serialize a message to the Tx execution flow
@@ -215,7 +209,6 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *message );
 
   --------------------------------------------------------------------------*/
 VOS_STATUS vos_rx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *message );
-#endif
 
 
 #endif // if !defined __VOS_MQ_H

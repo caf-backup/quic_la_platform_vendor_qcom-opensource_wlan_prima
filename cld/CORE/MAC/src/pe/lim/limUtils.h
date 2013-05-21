@@ -318,6 +318,8 @@ void limDelAllBASessions(tpAniSirGlobal pMac);
 void limDeleteDialogueTokenList(tpAniSirGlobal pMac);
 tSirRetStatus limSearchAndDeleteDialogueToken(tpAniSirGlobal pMac, tANI_U8 token, tANI_U16 assocId, tANI_U16 tid);
 void limRessetScanChannelInfo(tpAniSirGlobal pMac);
+void limAddScanChannelInfo(tpAniSirGlobal pMac, tANI_U8 channelId);
+
 tANI_U8 limGetChannelFromBeacon(tpAniSirGlobal pMac, tpSchBeaconStruct pBeacon);
 tSirNwType limGetNwType(tpAniSirGlobal pMac, tANI_U8 channelNum, tANI_U32 type, tpSchBeaconStruct pBeacon);
 void limSetTspecUapsdMask(tpAniSirGlobal pMac, tSirMacTSInfo *pTsInfo, tANI_U32 action);

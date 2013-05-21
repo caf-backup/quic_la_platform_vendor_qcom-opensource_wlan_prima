@@ -40,13 +40,7 @@
 #if defined FEATURE_WLAN_CCX
 #include "ccxApi.h"
 #endif
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#include "packet.h"
-#include "wma.h"
-#endif
 
 
 #define BA_DEFAULT_TX_BUFFER_SIZE 64
@@ -239,19 +233,9 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
     tANI_U32                nStatus;
     eHalStatus              status;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
     PELOG3(limLog(pMac, LOG3, FL("Received Channel switch action frame"));)
     if (!psessionEntry->lim11hEnable)
@@ -383,19 +367,10 @@ __limProcessOperatingModeActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
     tpDphHashNode           pSta;
     tANI_U16                aid;
     tANI_U8  operMode;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
     PELOG3(limLog(pMac, LOG3, FL("Received Operating Mode action frame"));)
     status = palAllocateMemory( pMac->hHdd, (void **)&pOperatingModeframe, sizeof(*pOperatingModeframe));
@@ -489,19 +464,12 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     tANI_U8          rspReqd = 1;
     tANI_U32   cfgLen;
     tSirMacAddr  peerMacAddr;
-#ifdef REMOVE_TL
-		tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
-#ifndef REMOVE_TL
-		pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-		pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-		frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-		pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-		pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-		frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
+
+    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
 
     PELOGW(limLog(pMac, LOGW, "Recv AddTs Response");)
     if ((psessionEntry->limSystemRole == eLIM_AP_ROLE)||(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE))
@@ -709,19 +677,10 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     tANI_U8  ac;
     tpDphHashNode  pStaDs = NULL;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
     pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
     if (pSta == NULL)
@@ -993,19 +952,9 @@ __limProcessMeasurementRequestFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
     tpSirMacMeasReqActionFrame            pMeasReqFrame;
     tANI_U32                                   frameLen;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
     if ( eHAL_STATUS_SUCCESS !=
         palAllocateMemory( pMac->hHdd, (void **)&pMeasReqFrame, sizeof( tSirMacMeasReqActionFrame ) ) )
@@ -1067,19 +1016,9 @@ __limProcessTpcRequestFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
     tpSirMacTpcReqActionFrame             pTpcReqFrame;
     tANI_U32                                   frameLen;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
     PELOG1(limLog(pMac, LOG1, FL("****LIM: Processing TPC Request from peer ****"));)
 
@@ -1147,7 +1086,7 @@ __limValidateAddBAParameterSet( tpAniSirGlobal pMac,
         (LIM_ADDBA_REQ == reqType))
   {
       //There is already BA session setup for STA/TID.
-      limLog( pMac, LOGW,
+      limLog( pMac, LOGE,
           FL( "AddBAReq rcvd when there is already a session for this StaId = %d, tid = %d\n " ),
           pSta->staIndex, baParameterSet.tid);
       limPrintMacAddr( pMac, pSta->staAddr, LOGW );
@@ -1222,19 +1161,9 @@ __limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
     tANI_U8 *pBody;
     tANI_U8 delBAFlag =0;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
+    pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
+    pBody = WDA_GET_RX_MPDU_DATA( pRxPacketInfo );
+    frameLen = WDA_GET_RX_PAYLOAD_LEN( pRxPacketInfo );
 
     // Unpack the received frame
     nStatus = dot11fUnpackAddBAReq( pMac, pBody, frameLen, &frmAddBAReq );
@@ -1403,19 +1332,9 @@ tANI_U16 aid;
 tANI_U32 frameLen, nStatus;
 tANI_U8 *pBody;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
+  pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
+  pBody = WDA_GET_RX_MPDU_DATA( pRxPacketInfo );
+  frameLen = WDA_GET_RX_PAYLOAD_LEN( pRxPacketInfo );
 
   pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable );
   if( pSta == NULL )
@@ -1457,7 +1376,7 @@ tANI_U8 *pBody;
     PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
   }
 
-  limLog( pMac, LOGW,
+  limLog( pMac, LOGE,
       FL( "ADDBA Rsp from STA with AID %d, tid = %d, status = %d" ),
       aid, frmAddBARsp.AddBAParameterSet.tid, frmAddBARsp.Status.status);
 
@@ -1466,7 +1385,7 @@ tANI_U8 *pBody;
   if(eSIR_SUCCESS != limSearchAndDeleteDialogueToken(pMac, frmAddBARsp.DialogToken.token,
         pSta->assocId, frmAddBARsp.AddBAParameterSet.tid))
   {
-      PELOGW(limLog(pMac, LOGW, FL("dialogueToken in received addBARsp did not match with outstanding requests"));)
+      PELOGW(limLog(pMac, LOGE, FL("dialogueToken in received addBARsp did not match with outstanding requests"));)
       return;
   }
 
@@ -1563,19 +1482,9 @@ tANI_U16 aid;
 tANI_U32 frameLen, nStatus;
 tANI_U8 *pBody;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
+  pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
+  pBody = WDA_GET_RX_MPDU_DATA( pRxPacketInfo );
+  frameLen = WDA_GET_RX_PAYLOAD_LEN( pRxPacketInfo );
 
   pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable );
   if( pSta == NULL )
@@ -1715,20 +1624,10 @@ __limProcessRadioMeasureRequest( tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo ,tp
      tANI_U32                       frameLen, nStatus;
      tANI_U8                        *pBody;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
+     pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
+     pBody = WDA_GET_RX_MPDU_DATA( pRxPacketInfo );
+     frameLen = WDA_GET_RX_PAYLOAD_LEN( pRxPacketInfo );
 
-#ifndef REMOVE_TL
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
-     
      if( psessionEntry == NULL )
      {
           return;
@@ -1761,20 +1660,9 @@ __limProcessLinkMeasurementReq( tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo ,tpP
      tANI_U32                      frameLen, nStatus;
      tANI_U8                       *pBody;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
-
+     pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
+     pBody = WDA_GET_RX_MPDU_DATA( pRxPacketInfo );
+     frameLen = WDA_GET_RX_PAYLOAD_LEN( pRxPacketInfo );
 
      if( psessionEntry == NULL )
      {
@@ -1809,19 +1697,9 @@ __limProcessNeighborReport( tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo ,tpPESes
      tANI_U32                      frameLen, nStatus;
      tANI_U8                       *pBody;
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-    frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
+     pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
+     pBody = WDA_GET_RX_MPDU_DATA( pRxPacketInfo );
+     frameLen = WDA_GET_RX_PAYLOAD_LEN( pRxPacketInfo );
 
      if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
                                                  (void **)&pFrm, sizeof(tDot11fNeighborReportResponse)))
@@ -1885,21 +1763,12 @@ static void __limProcessSAQueryRequestActionFrame(tpAniSirGlobal pMac, tANI_U8 *
     tANI_U8             *pBody;
     tANI_U8             transId[2];
 
-#ifdef REMOVE_TL
-		tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-	
-#ifndef REMOVE_TL
-		pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-		pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-		pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-		pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
-
     /* Prima  --- Below Macro not available in prima 
        pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
        pBody = SIR_MAC_BD_TO_MPDUDATA(pBd); */
+
+    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
     /* If this is an unprotected SA Query Request, then ignore it. */
     if (pHdr->fc.wep == 0)
@@ -1946,7 +1815,6 @@ static void __limProcessSAQueryResponseActionFrame(tpAniSirGlobal pMac, tANI_U8 
     tpSirMacMgmtHdr     pHdr;
     tANI_U32            frameLen;
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
@@ -1956,17 +1824,6 @@ static void __limProcessSAQueryResponseActionFrame(tpAniSirGlobal pMac, tANI_U8 
     limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
        (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
        WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, 0);
-#else
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-
-    /* Forward to the SME to HDD to wpa_supplicant */
-    // type is ACTION
-    limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
-       (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
-       pRxPacket->rxpktmeta.channel, psessionEntry, 0);
-#endif
 }
 
 #endif
@@ -1992,23 +1849,10 @@ static void __limProcessSAQueryResponseActionFrame(tpAniSirGlobal pMac, tANI_U8 
 void
 limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession psessionEntry)
 {
-#ifdef REMOVE_TL
-		tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
     tANI_U8 *pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-    tANI_U8 *pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
-
     tpSirMacActionFrameHdr pActionHdr = (tpSirMacActionFrameHdr) pBody;
 #ifdef WLAN_FEATURE_11W
-#ifndef REMOVE_TL
     tpSirMacMgmtHdr pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-    tpSirMacMgmtHdr pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
 #endif
 
     switch (pActionHdr->category)
@@ -2201,13 +2045,8 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               tANI_U32            frameLen;
               tANI_U8 Oui[] = { 0x00, 0x00, 0xf0 };
 
-#ifdef REMOVE_TL
-              pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-	      frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#else
-              pHdr = WDA_GET_RX_MAC_HEADER(pRxPacket);
-              frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacket);
-#endif
+              pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+              frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
 
               //Check if it is a vendor specific action frame.
               if ((eLIM_STA_ROLE == psessionEntry->limSystemRole) &&
@@ -2221,12 +2060,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                  // type is ACTION
                  limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
                     (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
-#ifdef REMOVE_TL
-		    pRxPacket->rxpktmeta.channel,
-#else
-                    WDA_GET_RX_CH( pRxPacket ),
-#endif
-		    psessionEntry, 0);
+                    WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, 0);
               }
               else
               {
@@ -2250,19 +2084,9 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               tANI_U32            frameLen;
               tANI_U8 P2POui[] = { 0x50, 0x6F, 0x9A, 0x09 };
 
-#ifdef REMOVE_TL
-              tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
               pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
               frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-              pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-              frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
-#ifndef REMOVE_TL
               //Check if it is a P2P public action frame.
               if( palEqualMemory( pMac->hHdd, pPubAction->Oui, P2POui, 4 ) )
               {
@@ -2272,17 +2096,6 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                     (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0, 
                     WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, 0);
               }
-#else
-              //Check if it is a P2P public action frame.
-              if( palEqualMemory( pMac->hHdd, pPubAction->Oui, P2POui, 4 ) )
-              {
-                 /* Forward to the SME to HDD to wpa_supplicant */
-                 // type is ACTION
-                 limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
-	                (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0, 
-	                pRxPacket->rxpktmeta.channel, psessionEntry, 0);
-}
-#endif
               else
               {
                  limLog( pMac, LOGE, FL("Unhandled public action frame (Vendor specific). OUI %x %x %x %x"),
@@ -2301,35 +2114,19 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                tANI_U32            frameLen;
                tANI_S8             rssi;
 
-#ifdef REMOVE_TL
-               tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
                pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
                frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-			   rssi = WDA_GET_RX_RSSI_DB(pRxPacketInfo);
-#else
-               pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-               frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-			   rssi = pRxPacket->rxpktmeta.rssi;
-#endif
-
+               rssi = WDA_GET_RX_RSSI_DB(pRxPacketInfo);
                VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO, 
-                                    ("Public Action TDLS Discovery RSP ..\n")) ;
-#ifndef REMOVE_TL
+                                    ("Public Action TDLS Discovery RSP ..")) ;
                limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
                   (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0, 
                   WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, rssi);
-#else
-               limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
-                  (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0, 
-                  pRxPacket->rxpktmeta.channel, psessionEntry, rssi);
 #endif
            }
                break;
 #endif
-#endif
+
         default:
             PELOGE(limLog(pMac, LOGE, FL("Unhandled public action frame -- %x "), pActionHdr->actionID);)
             break;
@@ -2404,12 +2201,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
 void
 limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
 {
-#ifndef REMOVE_TL
    tANI_U8 *pBody = WDA_GET_RX_MPDU_DATA(pBd);
-#else
-   tp_rxpacket pRxPacket = (tp_rxpacket)(pBd);
-   tANI_U8 *pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
    tpSirMacVendorSpecificPublicActionFrameHdr pActionHdr = (tpSirMacVendorSpecificPublicActionFrameHdr) pBody;
 
    limLog( pMac, LOG1, "Received a Action frame -- no session");
@@ -2424,28 +2216,17 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
                 tANI_U32            frameLen;
                 tANI_U8 P2POui[] = { 0x50, 0x6F, 0x9A, 0x09 };
 
-#ifndef REMOVE_TL
                 pHdr = WDA_GET_RX_MAC_HEADER(pBd);
                 frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
-#else
-                pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-                frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
                 //Check if it is a P2P public action frame.
                 if( palEqualMemory( pMac->hHdd, pActionHdr->Oui, P2POui, 4 ) )
                 {
                   /* Forward to the SME to HDD to wpa_supplicant */
                   // type is ACTION
-#ifndef REMOVE_TL                  
                   limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
                       (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
                       WDA_GET_RX_CH( pBd ), NULL, 0);
-#else
-                  limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, 
-	                  (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0,
-	                  pRxPacket->rxpktmeta.channel, NULL, 0);
-#endif
                 }
                 else
                 {

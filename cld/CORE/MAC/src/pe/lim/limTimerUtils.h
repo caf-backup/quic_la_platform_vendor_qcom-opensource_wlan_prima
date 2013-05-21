@@ -21,6 +21,8 @@
 // Timer related functions
 enum
 {
+    eLIM_MIN_CHANNEL_TIMER,
+    eLIM_MAX_CHANNEL_TIMER,
     eLIM_JOIN_FAIL_TIMER,
     eLIM_AUTH_FAIL_TIMER,
     eLIM_AUTH_RESP_TIMER,
@@ -44,6 +46,7 @@ enum
     eLIM_FT_PREAUTH_RSP_TIMER,
 #endif
     eLIM_REMAIN_CHN_TIMER,
+    eLIM_PERIODIC_PROBE_REQ_TIMER,
 #ifdef FEATURE_WLAN_CCX
     eLIM_TSM_TIMER,
 #endif

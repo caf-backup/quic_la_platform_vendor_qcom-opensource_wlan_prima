@@ -92,20 +92,11 @@ typedef enum
    VOS_MODULE_ID_HDD        = 5,
    VOS_MODULE_ID_SME        = 6,
    VOS_MODULE_ID_PE         = 7,
-#ifndef WMA_LAYER
    VOS_MODULE_ID_WDA        = 8,
-#else
-   VOS_MODULE_ID_WMA        = 8,
-#endif
    VOS_MODULE_ID_SYS        = 9,
    VOS_MODULE_ID_VOSS       = 10,
    VOS_MODULE_ID_SAP        = 11,
    VOS_MODULE_ID_HDD_SOFTAP = 12,
-   VOS_MODULE_ID_TXRX	    = 13,
-   VOS_MODULE_ID_HTC	    = 14,
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-   VOS_MODULE_ID_HIF	    = 15,
-#endif
 
    // not a real module ID.  This is used to identify the maxiumum
    // number of VOS_MODULE_IDs and should always be at the END of
@@ -126,6 +117,7 @@ typedef enum
     VOS_P2P_GO_MODE,
     VOS_MONITOR_MODE,
     VOS_FTM_MODE = 5,
+    VOS_IBSS_MODE,
     VOS_MAX_NO_OF_MODE
 
 } tVOS_CON_MODE;

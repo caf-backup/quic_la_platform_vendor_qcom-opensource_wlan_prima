@@ -63,15 +63,11 @@
 #include "wlan_qct_os_list.h"
 #include "wlan_qct_wdi.h"
 #include "wlan_qct_wdi_i.h"
-#if 0
 #ifdef CONFIG_ANDROID
 #include <mach/msm_smd.h>
 #include <linux/delay.h>
 #else
-#ifdef MSM_PLATFORM
 #include "msm_smd.h"
-#endif	/* #ifdef MSM_PLATFORM */
-#endif
 #endif
 
 /* Global context for CTS handle, it is required to keep this 
@@ -116,9 +112,7 @@ typedef struct
    WCTS_RxMsgCBType       wctsRxMsgCB;
    void*                  wctsRxMsgCBData;
    WCTS_StateType         wctsState;
-#ifdef MSM_PLATFORM
    smd_channel_t*         wctsChannel;
-#endif	/* #ifdef MSM_PLATFORM */
    wpt_list               wctsPendingQueue;
    wpt_uint32             wctsMagic;
    wpt_msg                wctsOpenMsg;
@@ -248,7 +242,6 @@ WCTS_PALReadCallback
 
    /* iterate until no more packets are available */
    while (1) {
-#ifdef MSM_PLATFORM
       /* check the length of the next packet */
       packet_size = smd_cur_packet_size(pWCTSCb->wctsChannel);
       if (0 == packet_size) {
@@ -263,7 +256,6 @@ WCTS_PALReadCallback
             There will be another notification when it is ready */
          return;
       }
-#endif	/* #ifdef MSM_PLATFORM */
 
       buffer = wpalMemoryAllocate(packet_size);
       if (NULL ==  buffer) {
@@ -273,7 +265,6 @@ WCTS_PALReadCallback
          return;
       }
 
-#ifdef MSM_PLATFORM
       bytes_read = smd_read(pWCTSCb->wctsChannel,
                             buffer,
                             packet_size);
@@ -286,7 +277,6 @@ WCTS_PALReadCallback
          WPAL_ASSERT(0);
          return;
       }
-#endif	/* #ifdef MSM_PLATFORM */
 
       /* forward the message to the registered handler */
       pWCTSCb->wctsRxMsgCB((WCTS_HandleType)pWCTSCb,
@@ -351,13 +341,11 @@ WCTS_PALWriteCallback
       pBuffer = pBufferQueue->pBuffer;
       len = pBufferQueue->bufferSize;
 
-#ifdef MSM_PLATFORM
       available = smd_write_avail(pWCTSCb->wctsChannel);
       if (available < len) {
          /* channel has no room for the next packet so we are done */
          return;
       }
-#endif	/* #ifdef MSM_PLATFORM */
 
       /* there is room for the next message, so we can now remove
          it from the deferred message queue and send it */
@@ -366,7 +354,6 @@ WCTS_PALWriteCallback
       /* note that pNode will be the same as when we peeked, so
          there is no need to update pBuffer or len */
 
-#ifdef MSM_PLATFORM
       written = smd_write(pWCTSCb->wctsChannel, pBuffer, len);
       if (written != len) {
          /* Something went wrong */
@@ -380,7 +367,6 @@ WCTS_PALWriteCallback
             hopefully the client can recover from this since there is
             nothing else we can do here */
       }
-#endif	/* #ifdef MSM_PLATFORM */
 
       /* whether we had success or failure, reclaim all memory */
       wpalMemoryFree(pBuffer);
@@ -394,9 +380,7 @@ WCTS_PALWriteCallback
       set the state to indicate we are no longer deferred, and turn off
       the remote read interrupt */
    pWCTSCb->wctsState = WCTS_STATE_OPEN;
-#ifdef MSM_PLATFORM
    smd_disable_read_intr(pWCTSCb->wctsChannel);
-#endif	/* #ifdef MSM_PLATFORM */
 
 } /*WCTS_PALWriteCallback*/
 
@@ -510,7 +494,6 @@ WCTS_NotifyCallback
       return;
    }
 
-#ifdef MSM_PLATFORM
    /* Serialize processing in the control thread */
    switch (event) {
    case SMD_EVENT_OPEN:
@@ -581,7 +564,6 @@ WCTS_NotifyCallback
 
       return;
    }
-#endif	/* #ifdef MSM_PLATFORM */
 
    /* serialize this event */
    wpalPostCtrlMsg(WDI_GET_PAL_CTX(), palMsg);
@@ -658,9 +640,7 @@ WCTS_OpenTransport
 
        /* we initially don't want read interrupts
          (we only want them if we get into deferred write mode) */
-#ifdef MSM_PLATFORM
        smd_disable_read_intr(pWCTSCb->wctsChannel);
-#endif	/* #ifdef MSM_PLATFORM */
 
        return (WCTS_HandleType)pWCTSCb;
    }
@@ -711,9 +691,7 @@ WCTS_OpenTransport
    wpal_list_init(&pWCTSCb->wctsPendingQueue);
    pWCTSCb->wctsMagic   = WCTS_CB_MAGIC;
    pWCTSCb->wctsState   = WCTS_STATE_OPEN_PENDING;
-#ifdef MSM_PLATFORM
    pWCTSCb->wctsChannel = NULL;
-#endif	/* #ifdef MSM_PLATFORM */
 
    /* since SMD will callback in interrupt context, we will used
     * canned messages to serialize the SMD events into a thread
@@ -730,7 +708,6 @@ WCTS_OpenTransport
      ---------------------------------------------------------------------*/
 
    wpalEventReset(&pWCTSCb->wctsEvent);
-#ifdef MSM_PLATFORM
    smdstatus = smd_named_open_on_edge(szName,
                                       SMD_APPS_WCNSS,
                                       &pWCTSCb->wctsChannel,
@@ -742,7 +719,6 @@ WCTS_OpenTransport
                  __func__, smdstatus);
       goto fail;
    }
-#endif	/* #ifdef MSM_PLATFORM */
 
    /* wait for the channel to be fully opened before we proceed */
    status = wpalEventWait(&pWCTSCb->wctsEvent, WCTS_SMD_OPEN_TIMEOUT);
@@ -750,7 +726,6 @@ WCTS_OpenTransport
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: failed to receive SMD_EVENT_OPEN",
                  __func__);
-#ifdef MSM_PLATFORM
       /* since we opened one end of the channel, close it */
       smdstatus = smd_close(pWCTSCb->wctsChannel);
       if (0 != smdstatus) {
@@ -758,15 +733,12 @@ WCTS_OpenTransport
                     "%s: smd_close failed with status %d",
                     __func__, smdstatus);
       }
-#endif	/* #ifdef MSM_PLATFORM */
       goto fail;
    }
 
    /* we initially don't want read interrupts
       (we only want them if we get into deferred write mode) */
-#ifdef MSM_PLATFORM
    smd_disable_read_intr(pWCTSCb->wctsChannel);
-#endif	/* #ifdef MSM_PLATFORM */
 
    /* we have successfully opened the SMD channel */
    gwctsHandle = pWCTSCb;
@@ -841,7 +813,6 @@ WCTS_CloseTransport
    pWCTSCb->wctsState = WCTS_STATE_CLOSED;
 
    wpalEventReset(&pWCTSCb->wctsEvent);
-#ifdef MSM_PLATFORM
    smdstatus = smd_close(pWCTSCb->wctsChannel);
    if (0 != smdstatus) {
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
@@ -869,7 +840,6 @@ WCTS_CloseTransport
          that code will crash when the memory is unmapped  */
       msleep(50);
    }
-#endif	/* #ifdef MSM_PLATFORM */
 
    /* channel has (hopefully) been closed */
    pWCTSCb->wctsNotifyCB((WCTS_HandleType)pWCTSCb,
@@ -941,12 +911,10 @@ WCTS_SendMessage
    len = (int)uLen;
 
    if (WCTS_STATE_OPEN == pWCTSCb->wctsState) {
-#ifdef MSM_PLATFORM
       available = smd_write_avail(pWCTSCb->wctsChannel);
       if (available >= len) {
          written = smd_write(pWCTSCb->wctsChannel, pMsg, len);
       }
-#endif	/* #ifdef MSM_PLATFORM */
    } else if (WCTS_STATE_DEFERRED == pWCTSCb->wctsState) {
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
                  "WCTS_SendMessage: FIFO space not available, the packets will be queued");
@@ -994,9 +962,7 @@ WCTS_SendMessage
             Later: We may need to protect wctsState by locks*/
          pWCTSCb->wctsState = WCTS_STATE_DEFERRED;
 
-#ifdef MSM_PLATFORM
          smd_enable_read_intr(pWCTSCb->wctsChannel);
-#endif	/* #ifdef MSM_PLATFORM */
       }
 
       /*indicate to client that message was placed in deferred queue*/

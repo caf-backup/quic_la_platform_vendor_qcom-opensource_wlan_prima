@@ -68,11 +68,10 @@
 
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
+#include "wlan_qct_pal_trace.h"
 
 #include "wlan_hdd_misc.h"
-#ifdef WLAN_BTAMP_FEATURE
 #include "bap_hdd_misc.h"
-#endif
 
 #include "wlan_hdd_dev_pwr.h"
 #include "qc_sap_ioctl.h"
@@ -939,8 +938,6 @@ void wlan_hdd_ula_done_cb(v_VOID_t *callbackContext)
 
 VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter)
 {
-/* TODO: Should we notify txrx of ULA done status */
-#if 0
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     VOS_STATUS vos_status;
     unsigned long rc;
@@ -974,7 +971,6 @@ VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter)
              * too long for us to wait */
         }
     }
-#endif
     return VOS_STATUS_SUCCESS;
 }
 
@@ -1079,6 +1075,7 @@ static int iw_set_mode(struct net_device *dev,
         // Set the phymode correctly for IBSS.
         pConfig  = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
         pWextState->roamProfile.phyMode = hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
+        pAdapter->device_mode = WLAN_HDD_IBSS;
         wdev->iftype = NL80211_IFTYPE_ADHOC;
         break;
     case IW_MODE_INFRA:
@@ -3285,12 +3282,21 @@ static int iw_set_encodeext(struct net_device *dev,
           ("%s:cipher_alg:%d key_len[%d] *pEncryptionType :%d \n"),__func__,(int)ext->alg,(int)ext->key_len,setKey.encType);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-/* The supplicant may attempt to set the PTK once pre-authentication is done.
-   Save the key in the UMAC and include it in the ADD BSS request */
+    /* The supplicant may attempt to set the PTK once pre-authentication
+       is done. Save the key in the UMAC and include it in the ADD
+       BSS request */
     halStatus = sme_FTUpdateKey( WLAN_HDD_GET_HAL_CTX(pAdapter), &setKey);
-    if( halStatus == eHAL_STATUS_FT_PREAUTH_KEY_WAIT )
+    if ( halStatus == eHAL_STATUS_FT_PREAUTH_KEY_SUCCESS )
     {
-       return -EINVAL;
+        hddLog(VOS_TRACE_LEVEL_INFO_MED,
+               "%s: Update PreAuth Key success", __func__);
+        return 0;
+    }
+    else if ( halStatus == eHAL_STATUS_FT_PREAUTH_KEY_FAILED )
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Update PreAuth Key failed", __func__);
+        return -EINVAL;
     }
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
@@ -3953,6 +3959,13 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
             break;
         }
 
+        case WE_GET_WDI_DBG:
+        {
+           wpalTraceDisplay();
+           *value = 0;
+           break;
+        }
+
         case WE_GET_SAP_AUTO_CHANNEL_SELECTION:
         {
             *value = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apAutoChannelSelection;
@@ -3997,6 +4010,11 @@ int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *in
         case WE_SET_WLAN_DBG:
         {
             vos_trace_setValue( value[1], value[2], value[3]);
+            break;
+        }
+        case WE_SET_WDI_DBG:
+        {
+            wpalTraceSetLevel( value[1], value[2], value[3]);
             break;
         }
         case WE_SET_SAP_CHANNELS:
@@ -4067,25 +4085,25 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                      pStats->txXmitBackPressured,
                      pStats->txXmitQueued,
 
-                     pStats->txXmitDroppedAC[TXRX_WMM_AC_BK],
-                     pStats->txXmitDroppedAC[TXRX_WMM_AC_BE],
-                     pStats->txXmitDroppedAC[TXRX_WMM_AC_VI],
-                     pStats->txXmitDroppedAC[TXRX_WMM_AC_VO],
+                     pStats->txXmitDroppedAC[WLANTL_AC_BK],
+                     pStats->txXmitDroppedAC[WLANTL_AC_BE],
+                     pStats->txXmitDroppedAC[WLANTL_AC_VI],
+                     pStats->txXmitDroppedAC[WLANTL_AC_VO],
 
-                     pStats->txXmitClassifiedAC[TXRX_WMM_AC_BK],
-                     pStats->txXmitClassifiedAC[TXRX_WMM_AC_BE],
-                     pStats->txXmitClassifiedAC[TXRX_WMM_AC_VI],
-                     pStats->txXmitClassifiedAC[TXRX_WMM_AC_VO],
+                     pStats->txXmitClassifiedAC[WLANTL_AC_BK],
+                     pStats->txXmitClassifiedAC[WLANTL_AC_BE],
+                     pStats->txXmitClassifiedAC[WLANTL_AC_VI],
+                     pStats->txXmitClassifiedAC[WLANTL_AC_VO],
 
-                     pStats->txXmitBackPressuredAC[TXRX_WMM_AC_BK],
-                     pStats->txXmitBackPressuredAC[TXRX_WMM_AC_BE],
-                     pStats->txXmitBackPressuredAC[TXRX_WMM_AC_VI],
-                     pStats->txXmitBackPressuredAC[TXRX_WMM_AC_VO],
+                     pStats->txXmitBackPressuredAC[WLANTL_AC_BK],
+                     pStats->txXmitBackPressuredAC[WLANTL_AC_BE],
+                     pStats->txXmitBackPressuredAC[WLANTL_AC_VI],
+                     pStats->txXmitBackPressuredAC[WLANTL_AC_VO],
 
-                     pStats->txXmitQueuedAC[TXRX_WMM_AC_BK],
-                     pStats->txXmitQueuedAC[TXRX_WMM_AC_BE],
-                     pStats->txXmitQueuedAC[TXRX_WMM_AC_VI],
-                     pStats->txXmitQueuedAC[TXRX_WMM_AC_VO],
+                     pStats->txXmitQueuedAC[WLANTL_AC_BK],
+                     pStats->txXmitQueuedAC[WLANTL_AC_BE],
+                     pStats->txXmitQueuedAC[WLANTL_AC_VI],
+                     pStats->txXmitQueuedAC[WLANTL_AC_VO],
 
                      pStats->txFetched,
                      pStats->txFetchEmpty,
@@ -4097,25 +4115,25 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                      pStats->txCompleted,
                      pStats->txFlushed,
 
-                     pStats->txFetchedAC[TXRX_WMM_AC_BK],
-                     pStats->txFetchedAC[TXRX_WMM_AC_BE],
-                     pStats->txFetchedAC[TXRX_WMM_AC_VI],
-                     pStats->txFetchedAC[TXRX_WMM_AC_VO],
+                     pStats->txFetchedAC[WLANTL_AC_BK],
+                     pStats->txFetchedAC[WLANTL_AC_BE],
+                     pStats->txFetchedAC[WLANTL_AC_VI],
+                     pStats->txFetchedAC[WLANTL_AC_VO],
 
-                     pStats->txFetchDequeuedAC[TXRX_WMM_AC_BK],
-                     pStats->txFetchDequeuedAC[TXRX_WMM_AC_BE],
-                     pStats->txFetchDequeuedAC[TXRX_WMM_AC_VI],
-                     pStats->txFetchDequeuedAC[TXRX_WMM_AC_VO],
+                     pStats->txFetchDequeuedAC[WLANTL_AC_BK],
+                     pStats->txFetchDequeuedAC[WLANTL_AC_BE],
+                     pStats->txFetchDequeuedAC[WLANTL_AC_VI],
+                     pStats->txFetchDequeuedAC[WLANTL_AC_VO],
 
-                     pStats->txFetchDePressuredAC[TXRX_WMM_AC_BK],
-                     pStats->txFetchDePressuredAC[TXRX_WMM_AC_BE],
-                     pStats->txFetchDePressuredAC[TXRX_WMM_AC_VI],
-                     pStats->txFetchDePressuredAC[TXRX_WMM_AC_VO],
+                     pStats->txFetchDePressuredAC[WLANTL_AC_BK],
+                     pStats->txFetchDePressuredAC[WLANTL_AC_BE],
+                     pStats->txFetchDePressuredAC[WLANTL_AC_VI],
+                     pStats->txFetchDePressuredAC[WLANTL_AC_VO],
 
-                     pStats->txFlushedAC[TXRX_WMM_AC_BK],
-                     pStats->txFlushedAC[TXRX_WMM_AC_BE],
-                     pStats->txFlushedAC[TXRX_WMM_AC_VI],
-                     pStats->txFlushedAC[TXRX_WMM_AC_VO],
+                     pStats->txFlushedAC[WLANTL_AC_BK],
+                     pStats->txFlushedAC[WLANTL_AC_BE],
+                     pStats->txFlushedAC[WLANTL_AC_VI],
+                     pStats->txFlushedAC[WLANTL_AC_VO],
 
                      pStats->rxChains,
                      pStats->rxPackets,
@@ -4173,18 +4191,18 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                     "|BE |  %d  |  %3s   |  %d  |\n"
                     "|BK |  %d  |  %3s   |  %d  |\n"
                     "|------------------------|\n",
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_VO].wmmAcAccessRequired,
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_VO].wmmAcAccessAllowed?"YES":"NO",
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_VO].wmmAcTspecInfo.ts_info.direction,
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_VI].wmmAcAccessRequired,
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_VI].wmmAcAccessAllowed?"YES":"NO",
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_VI].wmmAcTspecInfo.ts_info.direction,
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_BE].wmmAcAccessRequired,
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_BE].wmmAcAccessAllowed?"YES":"NO",
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_BE].wmmAcTspecInfo.ts_info.direction,
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_BK].wmmAcAccessRequired,
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_BK].wmmAcAccessAllowed?"YES":"NO",
-                    pAdapter->hddWmmStatus.wmmAcStatus[TXRX_WMM_AC_BK].wmmAcTspecInfo.ts_info.direction);
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_VO].wmmAcAccessRequired,
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_VO].wmmAcAccessAllowed?"YES":"NO",
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_VO].wmmAcTspecInfo.ts_info.direction,
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_VI].wmmAcAccessRequired,
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_VI].wmmAcAccessAllowed?"YES":"NO",
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_VI].wmmAcTspecInfo.ts_info.direction,
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BE].wmmAcAccessRequired,
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BE].wmmAcAccessAllowed?"YES":"NO",
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BE].wmmAcTspecInfo.ts_info.direction,
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BK].wmmAcAccessRequired,
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BK].wmmAcAccessAllowed?"YES":"NO",
+                    pAdapter->hddWmmStatus.wmmAcStatus[WLANTL_AC_BK].wmmAcTspecInfo.ts_info.direction);
 
 
             wrqu->data.length = strlen(extra)+1;
@@ -6507,6 +6525,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getMaxAssoc" },
 
+    {   WE_GET_WDI_DBG,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "getwdidbg" },
+
     {   WE_GET_SAP_AUTO_CHANNEL_SELECTION,
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
@@ -6562,6 +6585,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
         0,
         "setwlandbg" },
+
+    {   WE_SET_WDI_DBG,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0,
+        "setwdidbg" },
 
     {   WE_SET_SAP_CHANNELS,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,

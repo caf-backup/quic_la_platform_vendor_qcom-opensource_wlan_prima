@@ -32,19 +32,13 @@
 #include "sysEntryFunc.h"
 #include "sysStartup.h"
 #include "limTrace.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 
 tSirRetStatus
 postPTTMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #include "vos_types.h"
-#ifndef REMOVE_TL
 #include "vos_packet.h"
-#endif	/* #ifndef REMOVE_TL */
 
 // ---------------------------------------------------------------------------
 /**
@@ -100,40 +94,21 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                          tANI_U32 subType)
 {
     tSirRetStatus ret;
-    void*         pBd = NULL;
+    void*         pBd;
     tMgmtFrmDropReason dropReason;
-#ifndef REMOVE_TL
-	vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
-	VOS_STATUS  vosStatus;
-#else
-	tp_rxpacket pRxPacket = (tp_rxpacket)(pMsg->bodyptr);
-#endif
+    vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
+    VOS_STATUS  vosStatus =
+              WDA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
+    pMac->sys.gSysBbtReceived++;
 
-#ifndef REMOVE_TL
-	vosStatus = WDA_DS_PeekRxPacketInfo(pVosPkt,
-			(v_PVOID_t *)&pBd, VOS_FALSE);
+    if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
+    {
+        goto fail;
+    }
 
-	if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-		goto fail;
-#else
-	pBd = pRxPacket;
-#endif
-
-#ifndef REMOVE_TL
     PELOG3(sysLog(pMac, LOG3, FL("Rx Mgmt Frame Subtype: %d\n"), subType);
     sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3, (tANI_U8 *)WDA_GET_RX_MAC_HEADER(pBd), WDA_GET_RX_MPDU_LEN(pBd));
     sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3, WDA_GET_RX_MPDU_DATA(pBd), WDA_GET_RX_PAYLOAD_LEN(pBd));)
-#else
-	PELOG3(sysLog(pMac, LOG3, FL("Rx Mgmt Frame Subtype: %d\n"), subType);
-	sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3,
-		(tANI_U8 *)(pRxPacket->rxpktmeta.mpdu_hdr_ptr),
-		(pRxPacket->rxpktmeta.mpdu_len));
-	sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOG3,
-		(pRxPacket->rxpktmeta.mpdu_data_ptr),
-		(pRxPacket->rxpktmeta.mpdu_data_len));)
-#endif
-
-	pMac->sys.gSysBbtReceived++;
 
     pMac->sys.gSysFrameCount[type][subType]++;
 
@@ -143,9 +118,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
             if( (dropReason = limIsPktCandidateForDrop(pMac, pBd, subType)) != eMGMT_DROP_NO_DROP)
             {
                 PELOG1(sysLog(pMac, LOG1, FL("Mgmt Frame %d being dropped, reason: %d\n"), subType, dropReason);)
-#ifndef REMOVE_TL
                 MTRACE(macTrace(pMac,   TRACE_CODE_RX_MGMT_DROP, NO_SESSION, dropReason);)
-#endif
                 goto fail;
             }
             //Post the message to PE Queue
@@ -172,30 +145,17 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
         * In TDLS we can recieve TDLS frames with MAC HEADER (802.11) and also
         * without MAC Header (Particularly TDLS action frames on direct link.
         */
-#ifndef WMA_LAYER
        mpduHdr = (v_U8_t *)WDA_GET_RX_MAC_HEADER(pBd) ;
-#else
-       mpduHdr = (v_U8_t *)WMA_GET_RX_MAC_HEADER(pBd) ;
-#endif
 
 #define SIR_MAC_ETH_HDR_LEN                       (14)
-#ifndef WMA_LAYER
        if(0 != WDA_GET_RX_FT_DONE(pBd))
-#else
-       if(0 != WMA_GET_RX_FT_DONE(pBd))
-#endif
        {
            ethTypeOffset = mpduHdr + SIR_MAC_ETH_HDR_LEN - sizeof(ethType) ;
        }
        else
        {
-#ifndef WMA_LAYER
            ethTypeOffset = mpduHdr + WDA_GET_RX_MPDU_HEADER_LEN(pBd)
                                                      + RFC1042_HDR_LENGTH ;
-#else
-           ethTypeOffset = mpduHdr + WMA_GET_RX_MPDU_HEADER_LEN(pBd)
-                                                     + RFC1042_HDR_LENGTH ;
-#endif
        }
 
        ethType = GET_BE16(ethTypeOffset) ;

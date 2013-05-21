@@ -166,7 +166,6 @@ static void vos_linux_timer_callback ( v_U32_t data )
 
    VOS_ASSERT( callback ); 
 
-#ifndef REMOVE_TL
    // If timer has expired then call vos_client specific callback 
    if ( vos_sched_is_tx_thread( threadId ) )
    {
@@ -195,7 +194,6 @@ static void vos_linux_timer_callback ( v_U32_t data )
          return;
    }
    else 
-#endif
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
           "TIMER callback: running on MC thread");

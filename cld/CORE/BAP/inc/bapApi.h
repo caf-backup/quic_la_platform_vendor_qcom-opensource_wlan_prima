@@ -9,14 +9,15 @@
 
 /*===========================================================================
 
-               W L A N   B T - A M P  P A L   L A Y E R
+               W L A N   B T - A M P  P A L   L A Y E R 
                        E X T E R N A L  A P I
-
+                
+                   
 DESCRIPTION
-  This file contains the external API exposed by the wlan BT-AMP PAL layer
+  This file contains the external API exposed by the wlan BT-AMP PAL layer 
   module.
-
- 
+  
+      
   Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
   Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
@@ -51,24 +52,25 @@ when        who    what, where, why
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-#include "vos_api.h"
-#include "vos_packet.h"
+#include "vos_api.h" 
+#include "vos_packet.h" 
+//I need the TL types and API
+#include "wlan_qct_tl.h"
 
-/* BT-AMP PAL API structure types  - FramesC generated */
-#include "btampHCI.h"
-#include "txrx.h"
+/* BT-AMP PAL API structure types  - FramesC generated */ 
+#include "btampHCI.h" 
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
  #ifdef __cplusplus
  extern "C" {
- #endif
-
+ #endif 
+ 
 
 /*----------------------------------------------------------------------------
  *  HCI Interface supported
- *
+ * 
  *   Here we list the HCI Commands and Events which our 802.11 BT-AMP PAL
  *   supports.
  * 
@@ -677,6 +679,53 @@ WLANBAP_ReleaseHndl
     HDD Data callbacks 
  ---------------------------------------------------------------------------*/
 
+/*----------------------------------------------------------------------------
+
+  FUNCTION    (*WLANBAP_STAFetchPktCBType)() 
+
+  DESCRIPTION   
+    Type of the fetch packet callback registered with BAP by HDD. 
+    
+    It is called by the BAP immediately upon the underlying 
+    WLANTL_STAFetchPktCBType routine being called.  Which is called by
+    TL when the scheduling algorithms allows for transmission of another 
+    packet to the module. 
+    
+    This function is here to "wrap" or abstract WLANTL_STAFetchPktCBType.
+    Because the BAP-specific HDD "shim" layer (BSL) doesn't know anything 
+    about STAIds, or other parameters required by TL.  
+
+
+  PARAMETERS 
+
+    IN
+    pHddHdl:        The HDD(BSL) specific context for this association.
+                    Use the STAId passed to me by TL in WLANTL_STAFetchCBType
+                    to retreive this value.
+
+    IN/OUT
+    pucAC:          access category requested by TL, if HDD does not have 
+                    packets on this AC it can choose to service another AC 
+                    queue in the order of priority
+
+    OUT
+    vosDataBuff:   pointer to the VOSS data buffer that was transmitted 
+    tlMetaInfo:    meta info related to the data frame
+
+
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+
+----------------------------------------------------------------------------*/
+
+typedef VOS_STATUS (*WLANBAP_STAFetchPktCBType)( 
+                                            v_PVOID_t             pHddHdl,
+                                            WLANTL_ACEnumType     ucAC,
+                                            vos_pkt_t**           vosDataBuff,
+                                            WLANTL_MetaInfoType*  tlMetaInfo);
+
+ 
 
 /*----------------------------------------------------------------------------
 
@@ -686,14 +735,14 @@ WLANBAP_ReleaseHndl
     Type of the receive callback registered with BAP by HDD. 
     
     It is called by the BAP immediately upon the underlying 
-    WLAN_STARxCBType routine being called.  Which is called by
+    WLANTL_STARxCBType routine being called.  Which is called by
     TL to notify when a packet was received for a registered STA.
 
   PARAMETERS 
 
     IN
     pHddHdl:        The HDD(BSL) specific context for this association.
-                    Use the STAId passed to me by TL in WLAN_STARxCBType
+                    Use the STAId passed to me by TL in WLANTL_STARxCBType
                     to retrieve this value.
 
     vosDataBuff:    pointer to the VOSS data buffer that was received
@@ -706,7 +755,7 @@ WLANBAP_ReleaseHndl
 ----------------------------------------------------------------------------*/
 typedef VOS_STATUS (*WLANBAP_STARxCBType)( v_PVOID_t      pHddHdl,
                                           vos_pkt_t*         vosDataBuff,
-                                          struct txrx_rx_metainfo* pRxMetaInfo);
+                                          WLANTL_RxMetaInfoType* pRxMetaInfo);
 
 
 
@@ -779,6 +828,7 @@ VOS_STATUS
 WLANBAP_RegisterDataPlane
 ( 
   ptBtampHandle btampHandle,  /* BTAMP context */ 
+  WLANBAP_STAFetchPktCBType pfnBtampFetchPktCB, 
   WLANBAP_STARxCBType pfnBtamp_STARxCB,
   WLANBAP_TxCompCBType pfnBtampTxCompCB,
   // phy_link_handle, of course, doesn't come until much later.  At Physical Link create.
@@ -823,7 +873,8 @@ WLANBAP_XlateTxDataPkt
   ptBtampHandle     btampHandle,  /* Used by BAP to identify the actual session
                                     and therefore addresses */ 
   v_U8_t            phy_link_handle,  /* Used by BAP to indentify the WLAN assoc. (StaId) */
-  enum txrx_wmm_ac           *pucAC,        /* Return the AC here */
+  WLANTL_ACEnumType           *pucAC,        /* Return the AC here */
+  WLANTL_MetaInfoType  *tlMetaInfo, /* Return the MetaInfo here. An assist to WLANBAP_STAFetchPktCBType */
   vos_pkt_t        *vosDataBuff
 );
 
@@ -861,7 +912,7 @@ WLANBAP_XlateRxDataPkt
 ( 
   ptBtampHandle     btampHandle, 
   v_U8_t            phy_link_handle,  /* Used by BAP to indentify the WLAN assoc. (StaId) */
-  enum txrx_wmm_ac           *pucAC,        /* Return the AC here. I don't think this is needed */
+  WLANTL_ACEnumType           *pucAC,        /* Return the AC here. I don't think this is needed */
   vos_pkt_t        *vosDataBuff
 );
 
@@ -872,7 +923,7 @@ WLANBAP_XlateRxDataPkt
   DESCRIPTION 
 
     HDD will call this API when a packet is pending transmission in its 
-    queues. HDD uses this instead of WLAN_STAPktPending because he is
+    queues. HDD uses this instead of WLANTL_STAPktPending because he is
     not aware of the mapping from session to STA ID.
 
   DEPENDENCIES 
@@ -906,7 +957,7 @@ WLANBAP_STAPktPending
 ( 
   ptBtampHandle  btampHandle,  /* Used by BAP to identify the app context and VOSS ctx (!?) */ 
   v_U8_t         phy_link_handle,  /* Used by BAP to indentify the WLAN assoc. (StaId) */
-  enum txrx_wmm_ac ucAc   /* This is the first instance of a TL type in bapApi.h */
+  WLANTL_ACEnumType ucAc   /* This is the first instance of a TL type in bapApi.h */
 );
 
 /*----------------------------------------------------------------------------
@@ -2769,7 +2820,7 @@ WLANBAP_GetAcFromTxDataPkt
   ptBtampHandle     btampHandle,  /* Used by BAP to identify the actual session
                                     and therefore addresses */
   void              *pHciData,     /* Pointer to the HCI data frame */
-  enum txrx_wmm_ac *pucAC        /* Return the AC here */
+  WLANTL_ACEnumType *pucAC        /* Return the AC here */
 );
 
 /*----------------------------------------------------------------------------

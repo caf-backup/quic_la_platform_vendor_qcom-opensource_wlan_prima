@@ -37,12 +37,6 @@
 
 
 #include "vos_types.h"
-
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
-
 /**
  * limConvertSupportedChannels
  *
@@ -175,43 +169,26 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     tANI_U8    *wpsIe = NULL;
     tSirMacRateSet  basicRates;
     tANI_U8 i = 0, j = 0;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxpacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
     limGetPhyMode(pMac, &phyMode, psessionEntry);
 
     limGetQosMode(psessionEntry, &qosMode);
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     framelen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxpacket->rxpktmeta.mpdu_hdr_ptr);
-    framelen = pRxpacket->rxpktmeta.mpdu_data_len;
-#endif
 
    if (psessionEntry->limSystemRole == eLIM_STA_ROLE || psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE )
    {
         limLog(pMac, LOGE, FL("received unexpected ASSOC REQ subType=%d for role=%d"),
                subType, psessionEntry->limSystemRole);
         limPrintMacAddr(pMac, pHdr->sa, LOGE);
-#ifndef REMOVE_TL		
         sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG3,
-                   WDA_GET_RX_MPDU_DATA(pRxPacketInfo), framelen);
-#else
-        sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG3,
-		           pRxpacket->rxpktmeta.mpdu_data_ptr, framelen);
-#endif
+        WDA_GET_RX_MPDU_DATA(pRxPacketInfo), framelen);
         return;
     }
 
     // Get pointer to Re/Association Request frame body
-#ifndef REMOVE_TL
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-    pBody = pRxpacket->rxpktmeta.mpdu_data_ptr;
-#endif
 
     if (limIsGroupAddr(pHdr->sa))
     {

@@ -42,15 +42,11 @@
 #include <linux/irqreturn.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
-#ifdef MSM_PLATFORM
 #include <mach/msm_smsm.h>
-#endif	/* #ifdef MSM_PLATFORM */
 #include "wlan_qct_pal_api.h"
 #include "wlan_qct_pal_device.h"
 #include "wlan_hdd_main.h"
-#ifdef MSM_PLATFORM
 #include "linux/wcnss_wlan.h"
-#endif	/* #ifdef MSM_PLATFORM */
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -455,9 +451,7 @@ wpt_status wpalWriteRegister
    }
 
    wmb();
-#ifdef MSM_PLATFORM
    writel_relaxed(data, gpEnv->mmio + (address - WCNSS_BASE_ADDRESS));
-#endif	/* #ifdef MSM_PLATFORM */
 
    return eWLAN_PAL_STATUS_SUCCESS;
 }
@@ -621,7 +615,6 @@ wpt_status wpalDeviceInit
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    wcnss_memory = wcnss_wlan_get_memory_map(wcnss_device);
    if (NULL == wcnss_memory) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
@@ -645,7 +638,6 @@ wpt_status wpalDeviceInit
                  __func__);
       return eWLAN_PAL_STATUS_E_FAILURE;
    }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
    gpEnv = &gEnv;
    if (NULL == gpEnv) {
@@ -741,7 +733,6 @@ wpt_status wpalNotifySmsm
 )
 {
    int rc;
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    rc = smsm_change_state(SMSM_APPS_STATE, clrSt, setSt);
    if(0 != rc) 
    {
@@ -750,7 +741,6 @@ wpt_status wpalNotifySmsm
                  __func__);
       return eWLAN_PAL_STATUS_E_FAILURE;
    }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
    return eWLAN_PAL_STATUS_SUCCESS;
 }
 

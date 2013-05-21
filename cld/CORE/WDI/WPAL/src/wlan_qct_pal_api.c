@@ -29,10 +29,8 @@
 #include "vos_api.h"
 
 #include "dma-mapping.h"
-#ifdef MSM_PLATFORM
 #include <mach/subsystem_restart.h>
 #include <linux/wcnss_wlan.h>
-#endif	/* #ifdef MSM_PLATFORM */
 
 typedef struct sPalStruct
 {
@@ -358,13 +356,10 @@ wpt_status wpalRivaSubystemRestart(void)
                  " SSR will be done at the end of unload", __func__);
          return eWLAN_PAL_STATUS_E_FAILURE;
     }
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     if (0 == subsystem_restart("wcnss")) 
     {
         return eWLAN_PAL_STATUS_SUCCESS;
     }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
-
     return eWLAN_PAL_STATUS_E_FAILURE;
 }
 

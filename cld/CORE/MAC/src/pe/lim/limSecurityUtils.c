@@ -906,11 +906,7 @@ tANI_U32 val = 0;
   }
 
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-#ifndef WMA_LAYER
   msgQ.type = WDA_SET_BSSKEY_REQ;
-#else
-  msgQ.type = WMA_SET_BSSKEY_REQ;
-#endif
   //
   // FIXME_GEN4
   // A global counter (dialog token) is required to keep track of
@@ -921,16 +917,12 @@ tANI_U32 val = 0;
   msgQ.bodyval = 0;
 
   limLog( pMac, LOGW,
-      FL( "Sending WDA_SET_BSSKEY_REQ...\n" ));
+      FL( "Sending WDA_SET_BSSKEY_REQ..." ));
   MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
   if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-  if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
   {
     limLog( pMac, LOGE,
-        FL("Posting SET_BSSKEY to HAL failed, reason=%X\n"),
+        FL("Posting SET_BSSKEY to HAL failed, reason=%X"),
         retCode );
 
     // Respond to SME with LIM_MLM_SETKEYS_CNF
@@ -1018,18 +1010,10 @@ tANI_U32 val = 0;
     
   if(sessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE && !pMlmSetKeysReq->key[0].unicast) {
       sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_BCASTKEY_STATE;
-#ifndef WMA_LAYER
       msgQ.type = WDA_SET_STA_BCASTKEY_REQ;
-#else
-      msgQ.type = WMA_SET_STA_BCASTKEY_REQ;
-#endif
   }else {
       sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
-#ifndef WMA_LAYER
       msgQ.type = WDA_SET_STAKEY_REQ;
-#else
-      msgQ.type = WMA_SET_STAKEY_REQ;
-#endif
   }
   MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, sessionEntry->peSessionId, sessionEntry->limMlmState));
 
@@ -1087,15 +1071,10 @@ tANI_U32 val = 0;
   msgQ.bodyptr = pSetStaKeyParams;
   msgQ.bodyval = 0;
 
-  limLog( pMac, LOG1, FL( "Sending WDA_SET_STAKEY_REQ...\n" ));
+  limLog( pMac, LOG1, FL( "Sending WDA_SET_STAKEY_REQ..." ));
   MTRACE(macTraceMsgTx(pMac, sessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
-  if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-  if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
-  {
-      limLog( pMac, LOGE, FL("Posting SET_STAKEY to HAL failed, reason=%X\n"), retCode );
+  if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ ))) {
+      limLog( pMac, LOGE, FL("Posting SET_STAKEY to HAL failed, reason=%X"), retCode );
       // Respond to SME with LIM_MLM_SETKEYS_CNF
       mlmSetKeysCnf.resultCode = eSIR_SME_HAL_SEND_MESSAGE_FAIL;
   }else
@@ -1161,11 +1140,7 @@ tSirRetStatus      retCode;
 
   pRemoveBssKeyParams->sessionId = psessionEntry->peSessionId;
 
-#ifndef WMA_LAYER
   msgQ.type = WDA_REMOVE_BSSKEY_REQ;
-#else
-  msgQ.type = WMA_REMOVE_BSSKEY_REQ;
-#endif
   //
   // FIXME_GEN4
   // A global counter (dialog token) is required to keep track of
@@ -1176,17 +1151,13 @@ tSirRetStatus      retCode;
   msgQ.bodyval = 0;
 
   limLog( pMac, LOGW,
-      FL( "Sending WDA_REMOVE_BSSKEY_REQ...\n" ));
+      FL( "Sending WDA_REMOVE_BSSKEY_REQ..." ));
   MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 
-#ifndef WMA_LAYER
   if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-  if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
   {
     limLog( pMac, LOGE,
-        FL("Posting REMOVE_BSSKEY to HAL failed, reason=%X\n"),
+        FL("Posting REMOVE_BSSKEY to HAL failed, reason=%X"),
         retCode );
 
     // Respond to SME with LIM_MLM_REMOVEKEYS_CNF
@@ -1270,12 +1241,8 @@ tSirRetStatus      retCode;
   pRemoveStaKeyParams->sessionId = psessionEntry->peSessionId;
 
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-  
-#ifndef WMA_LAYER
+
   msgQ.type = WDA_REMOVE_STAKEY_REQ;
-#else
-  msgQ.type = WMA_REMOVE_STAKEY_REQ;
-#endif
   //
   // FIXME_GEN4
   // A global counter (dialog token) is required to keep track of
@@ -1288,16 +1255,11 @@ tSirRetStatus      retCode;
   limLog( pMac, LOGW,
       FL( "Sending WDA_REMOVE_STAKEY_REQ..." ));
   MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
   retCode = wdaPostCtrlMsg( pMac, &msgQ );
-  if( eSIR_SUCCESS != retCode )
-#else
-  retCode = wmaPostCtrlMsg( pMac, &msgQ );
-  if( eSIR_SUCCESS != retCode )
-#endif
+  if (eSIR_SUCCESS != retCode)
   {
     limLog( pMac, LOGE,
-        FL("Posting REMOVE_STAKEY to HAL failed, reason=%X\n"),
+        FL("Posting REMOVE_STAKEY to HAL failed, reason=%X"),
         retCode );
     palFreeMemory(pMac->hHdd, pRemoveStaKeyParams);
 
@@ -1305,7 +1267,7 @@ tSirRetStatus      retCode;
     mlmRemoveKeyCnf.resultCode = eSIR_SME_HAL_SEND_MESSAGE_FAIL;
   }
   else
-    return; 
+    return;
 
 end:
   limPostSmeRemoveKeyCnf( pMac,

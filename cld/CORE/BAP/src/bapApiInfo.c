@@ -47,7 +47,7 @@
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-//#include "txrx.h"
+//#include "wlan_qct_tl.h"
 #include "vos_trace.h"
 #include "sme_Api.h"
 /* BT-AMP PAL API header file */ 

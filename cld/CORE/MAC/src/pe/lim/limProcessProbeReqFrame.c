@@ -28,11 +28,6 @@
 #include "parserApi.h"
 #include "limSession.h"
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
-
 #ifdef WLAN_FEATURE_P2P_INTERNAL
 void limSendP2PProbeResponse(tpAniSirGlobal pMac, tANI_U8 *pBd, 
                       tpPESession psessionEntry);
@@ -402,9 +397,6 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
     tSirMsgQ            msgQ;
     tSirSmeProbeReq     *pSirSmeProbeReq;
     tANI_U32            wpsApEnable=0, tmp;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
     do{
         // Don't send probe responses if disabled
@@ -419,36 +411,22 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
               FL("While GO is scanning, don't send probe response on diff channel"));
            break;
         }
-#ifndef REMOVE_TL
+
        pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-       pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
+
         if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
              (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)||
              (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)|| 
-#ifndef REMOVE_TL             
-             ((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) 
-               && (WDA_GET_RX_BEACON_SENT(pRxPacketInfo)))
-#else
-             (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
-#endif
-           )
+             ( (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) &&
+             (WDA_GET_RX_BEACON_SENT(pRxPacketInfo)) ) )
         {
-#ifndef REMOVE_TL          
            frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-           frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
+
             PELOG3(limLog(pMac, LOG3, FL("Received Probe Request %d bytes from "), frameLen);
             limPrintMacAddr(pMac, pHdr->sa, LOG3);)
 
             // Get pointer to Probe Request frame body
-#ifndef REMOVE_TL
            pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-           pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
 
             // Parse Probe Request frame
             if (sirConvertProbeReqFrame2Struct(pMac, pBody, frameLen, &probeReq)==eSIR_FAILURE)
@@ -662,34 +640,17 @@ limIndicateProbeReqToHDD(tpAniSirGlobal pMac, tANI_U8 *pBd,
 {
     tpSirMacMgmtHdr     pHdr;
     tANI_U32            frameLen;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pBd);
-#endif
 
     limLog( pMac, LOG1, "Received a probe request frame");
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pBd);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
-#ifndef REMOVE_TL
     //send the probe req to SME.
     limSendSmeMgmtFrameInd( pMac, pHdr->fc.subType,
                (tANI_U8*)pHdr, (frameLen + sizeof(tSirMacMgmtHdr)), 
                psessionEntry->smeSessionId, WDA_GET_RX_CH(pBd),
                psessionEntry, 0);
-#else
-    //send the probe req to SME.
-    limSendSmeMgmtFrameInd( pMac, pHdr->fc.subType,
-		       (tANI_U8*)pHdr, pRxPacket->rxpktmeta.mpdu_len, 
-		       psessionEntry->smeSessionId, pRxPacket->rxpktmeta.channel,
-		       psessionEntry, 0);
-#endif
-
 #ifdef WLAN_FEATURE_P2P_INTERNAL
     limSendP2PProbeResponse(pMac, pBd, psessionEntry);
 #endif
@@ -833,30 +794,17 @@ void limSendP2PProbeResponse(tpAniSirGlobal pMac, tANI_U8 *pBd,
     tpSirMacMgmtHdr     pHdr;
     tANI_U32            frameLen;
     tSirProbeReq        probeReq;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)pBd;
-#endif
 
-#ifndef REMOVE_TL
     pHdr =  WDA_GET_RX_MAC_HEADER(pBd);
     // Get pointer to Probe Request frame body
     pBody =  WDA_GET_RX_MPDU_DATA(pBd);   
-#else
-    pHdr =  (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    // Get pointer to Probe Request frame body
-    pBody =  pRxPacket->rxpktmeta.mpdu_data_ptr;   
-#endif
 
     if( (pBody[0] == 0) && (pBody[1] == ssId.length) &&
       (palEqualMemory( pMac->hHdd, ssId.ssId, pBody + 2, 
                        ssId.length)))
     {
         // Parse Probe Request frame
-#ifndef REMOVE_TL
         frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
-#else
-        frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
         if (eSIR_FAILURE == sirConvertProbeReqFrame2Struct(pMac, pBody, frameLen, &probeReq))
         {
             PELOGW(limLog(pMac, LOGW, FL("Parse error ProbeRequest, length=%d, SA is:"), frameLen);)

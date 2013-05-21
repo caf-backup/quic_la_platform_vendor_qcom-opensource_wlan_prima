@@ -35,18 +35,9 @@ Qualcomm Technologies Confidential and Proprietary
 #include <limFT.h>
 #endif
 #include "smeInside.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 
-#ifndef WMA_LAYER
 void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA);
-#else
-#define tWMA_Context void
-void WMA_TimerTrafficStatsInd(tWMA_Context *pWMA);
-#endif
 #ifdef WLANTL_DEBUG
 extern void WLANTLPrintPktsRcvdPerRssi(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t flush);
 extern void WLANTLPrintPktsRcvdPerRateIdx(v_PVOID_t pAdapter, v_U8_t staId, v_BOOL_t flush);
@@ -1678,12 +1669,34 @@ dump_lim_disable_enable_scan( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2,
     return p;
 }
 
+static char *finishScan(tpAniSirGlobal pMac, char *p)
+{
+    tSirMsgQ         msg;
+
+    p += log_sprintf( pMac,p, "logDump finishScan \n");
+
+    msg.type = SIR_LIM_MIN_CHANNEL_TIMEOUT;
+    msg.bodyval = 0;
+    msg.bodyptr = NULL;
+    
+    limPostMsgApi(pMac, &msg);
+    return p;
+}
+
 
 static char *
 dump_lim_info( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg2; (void) arg3; (void) arg4;
     p = dumpLim( pMac, p, arg1);
+    return p;
+}
+
+static char *
+dump_lim_finishscan_send( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    (void) arg1; (void) arg2; (void) arg3; (void) arg4;
+    p = finishScan(pMac, p);
     return p;
 }
 
@@ -2257,11 +2270,7 @@ dump_lim_mcc_policy_maker(tpAniSirGlobal pMac, tANI_U32 arg1,tANI_U32 arg2,tANI_
     
    if(arg1 == 0) //Disable feature completely
    {  
-#ifndef WMA_LAYER
       WDA_TrafficStatsTimerActivate(FALSE);
-#else
-      WMA_TrafficStatsTimerActivate(FALSE);
-#endif
       if (ccmCfgSetInt(pMac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, FALSE,
           NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
@@ -2283,55 +2292,33 @@ dump_lim_mcc_policy_maker(tpAniSirGlobal pMac, tANI_U32 arg1,tANI_U32 arg2,tANI_
       {
          limLog( pMac, LOGE, FL("Could not set WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED"));
       }
-#ifndef WMA_LAYER
       WDA_TrafficStatsTimerActivate(TRUE);
-#else
-      WMA_TrafficStatsTimerActivate(TRUE);
-#endif
+   }
+   else if(arg1 == 3) //Enable only stats collection - Used for unit testing
+   {
+      VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_FATAL, "Enabling Traffic Stats in DTS");
+      WDI_DS_ActivateTrafficStats();
    }
    else if(arg1 == 4) //Send current stats snapshot to Riva -- Used for unit testing
    {
-#ifndef WMA_LAYER
       v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
       tWDA_CbContext *pWDA =  vos_get_context(VOS_MODULE_ID_WDA, pVosContext);
-#else
-#define WMA_Context void
-      v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WMA, NULL);
-      WMA_Context *pWMA =  vos_get_context(VOS_MODULE_ID_WMA, pVosContext);
-#endif
       ccmCfgSetInt(pMac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, TRUE, NULL, eANI_BOOLEAN_FALSE);
-#ifndef WMA_LAYER
       if(pWDA != NULL)
       {
           WDA_TimerTrafficStatsInd(pWDA);
       }
-#else
-      WMA_TimerTrafficStatsInd(pWMA);
-#endif
+      WDA_TrafficStatsTimerActivate(FALSE);
       ccmCfgSetInt(pMac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, FALSE,NULL, eANI_BOOLEAN_FALSE);
    }
    else if (arg1 == 5) //Change the periodicity of TX stats timer
    {
-#ifndef WMA_LAYER
       v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
       tWDA_CbContext *pWDA =  vos_get_context(VOS_MODULE_ID_WDA, pVosContext);
-#else
-#define WMA_Context void
-//      v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WMA, NULL);
-//      WMA_Context *pWMA =  vos_get_context(VOS_MODULE_ID_WMA, pVosContext);
-#endif
-#ifndef WMA_LAYER
       if (pWDA != NULL && tx_timer_change(&pWDA->wdaTimers.trafficStatsTimer, arg2/10, arg2/10) != TX_SUCCESS)
       {
           limLog(pMac, LOGP, FL("Disable timer before changing timeout value"));
       }
-#else
-//      if (tx_timer_change(&pWMA->wmaTimers.trafficStatsTimer, arg2/10, arg2/10) != TX_SUCCESS)
-      {
-          limLog(pMac, LOGP, FL("Disable timer before changing timeout value"));
-      }
-
-#endif
    }
    return p;
 }
@@ -2390,6 +2377,7 @@ static tDumpFuncEntry limMenuDumpTable[] = {
     {321,   "PE:LIM: Set Log Level <VOS Module> <VOS Log Level>",    dump_lim_update_log_level},
     {322,   "PE.LIM: Enable/Disable PE Tracing",                     dump_lim_trace_cfg},
     {323,   "PE.LIM: Trace Dump if enabled",                           dump_lim_trace_dump},
+    {331,   "PE.LIM: Send finish scan to LIM",                       dump_lim_finishscan_send},
     {332,   "PE.LIM: force probe rsp send from LIM",                 dump_lim_prb_rsp_send},
     {333,   "PE.SCH: Trigger to generate a beacon",                  dump_sch_beacon_trigger},
     {335,   "PE.LIM: set ACM flag (0..3)",                           dump_lim_acm_set},

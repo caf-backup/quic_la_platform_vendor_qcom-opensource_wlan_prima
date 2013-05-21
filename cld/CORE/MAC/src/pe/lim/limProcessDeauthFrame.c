@@ -25,10 +25,6 @@
 #include "schApi.h"
 #include "limSendMessages.h"
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
 
 
 /**
@@ -61,22 +57,13 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     tpPESession       pRoamSessionEntry=NULL;
     tANI_U8           roamSessionId;
 #ifdef WLAN_FEATURE_11W
-#ifndef REMOVE_TL
     tANI_U32          frameLen;
 #endif
-#endif
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
 
 
     if ((eLIM_STA_ROLE == psessionEntry->limSystemRole) && (eLIM_SME_WT_DEAUTH_STATE == psessionEntry->limSmeState))
@@ -106,7 +93,6 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     }
 
 #ifdef WLAN_FEATURE_11W
-#ifndef REMOVE_TL
     /* PMF: If this session is a PMF session, then ensure that this frame was protected */
     if(psessionEntry->limRmfEnabled  && (WDA_GET_RX_DPU_FEEDBACK(pRxPacketInfo) & DPU_FEEDBACK_UNPROTECTED_ERROR))
     {
@@ -121,9 +107,6 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
                                            psessionEntry->smeSessionId, psessionEntry);
         return;
     }
-#else
-    /* TODO: Handle when TL is not used */
-#endif
 #endif
 
     // Get reasonCode from Deauthentication frame body
@@ -355,7 +338,15 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
                         }
                         else
                         {
-                           limDeleteTDLSPeers(pMac, psessionEntry);
+#ifdef FEATURE_WLAN_TDLS_OXYGEN_DISAPPEAR_AP
+                            if ((TRUE == pMac->lim.gLimTDLSOxygenSupport) &&
+                                (limGetTDLSPeerCount(pMac, psessionEntry) != 0)) {
+                                    limTDLSDisappearAPTrickInd(pMac, pStaDs, psessionEntry);
+                                    return;
+                            }
+#endif
+
+                            limDeleteTDLSPeers(pMac, psessionEntry);
 #endif
                            /**
                             * This could be Deauthentication frame from

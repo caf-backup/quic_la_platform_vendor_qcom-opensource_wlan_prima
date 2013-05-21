@@ -1073,11 +1073,7 @@ limSendHalMsgAddTs(
     palCopyMemory(pMac->hHdd, &pAddTsParam->tspec, &tspecIE, sizeof(tSirMacTspecIE));
     pAddTsParam->sessionId = sessionId;
  
-#ifndef WMA_LAYER
     msg.type = WDA_ADD_TS_REQ;
-#else
-    msg.type = WMA_ADD_TS_REQ;
-#endif
     msg.bodyptr = pAddTsParam;
     msg.bodyval = 0;
 
@@ -1087,11 +1083,7 @@ limSendHalMsgAddTs(
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
     MTRACE(macTraceMsgTx(pMac, sessionId, msg.type));
 
-#ifndef WMA_LAYER
     if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
-#else
-    if(eSIR_SUCCESS != wmaPostCtrlMsg(pMac, &msg))
-#endif
     {
        PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg() failed"));)
        SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
@@ -1128,11 +1120,7 @@ limSendHalMsgDelTs(
      return eSIR_MEM_ALLOC_FAILED;
   }
 
-#ifndef WMA_LAYER
   msg.type = WDA_DEL_TS_REQ;
-#else
-  msg.type = WMA_DEL_TS_REQ;
-#endif
   msg.bodyptr = pDelTsParam;
   msg.bodyval = 0;
   palZeroMemory( pMac->hHdd, (tANI_U8 *)pDelTsParam, sizeof(tDelTsParams));
@@ -1141,16 +1129,12 @@ limSendHalMsgDelTs(
   pDelTsParam->staIdx = staIdx;
   pDelTsParam->tspecIdx = tspecIdx;
 
-  PELOGW(limLog(pMac, LOGW, FL("calling wdaPostCtrlMsg()\n"));)
+  PELOGW(limLog(pMac, LOGW, FL("calling wdaPostCtrlMsg()"));)
   MTRACE(macTraceMsgTx(pMac, sessionId, msg.type));
 
-#ifndef WMA_LAYER
-    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
-#else
-    if(eSIR_SUCCESS != wmaPostCtrlMsg(pMac, &msg))
-#endif
+  if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
   {
-     PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg() failed\n"));)
+     PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg() failed"));)
      palFreeMemory(pMac->hHdd, (tANI_U8*)pDelTsParam);
      return eSIR_FAILURE;
   }

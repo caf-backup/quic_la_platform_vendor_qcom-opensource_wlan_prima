@@ -124,8 +124,6 @@ __limFreshScanReqd(tpAniSirGlobal pMac, tANI_U8 returnFreshResults)
 
     tANI_U8 validState = TRUE;
     int i;
-	return TRUE;
-	/* TODO: Clean up this function */
 
     if(pMac->lim.gLimSmeState != eLIM_SME_IDLE_STATE)
     {
@@ -265,6 +263,7 @@ __limIsDeferedMsgForLearn(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             //Set the resume channel to Any valid channel (invalid). 
             //This will instruct HAL to set it to any previous valid channel.
             peSetResumeChannel(pMac, 0, 0);
+            limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_LEARN_WAIT_STATE);
         }
 
         return eANI_BOOLEAN_TRUE;
@@ -350,6 +349,9 @@ __limProcessSmeStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         /// By default return unique scan results
         pMac->lim.gLimReturnUniqueResults = true;
         pMac->lim.gLimSmeScanResultLength = 0;
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+        pMac->lim.gLimSmeLfrScanResultLength = 0;
+#endif
 
         if (((tSirSmeStartReq *) pMsgBuf)->sendNewBssInd)
         {
@@ -393,7 +395,7 @@ __limProcessSmeSysReadyInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tSirMsgQ msg;
     
-    msg.type = WMA_SYS_READY_IND;
+    msg.type = WDA_SYS_READY_IND;
     msg.reserved = 0;
     msg.bodyptr =  pMsgBuf;
     msg.bodyval = 0;
@@ -402,12 +404,12 @@ __limProcessSmeSysReadyInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     {
         peRegisterTLHandle(pMac);
     }
-    PELOGW(limLog(pMac, LOGW, FL("sending WDA_SYS_READY_IND msg to HAL\n"));)
+    PELOGW(limLog(pMac, LOGW, FL("sending WDA_SYS_READY_IND msg to HAL"));)
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
 
-    if (eSIR_SUCCESS != wmaPostCtrlMsg(pMac, &msg))
+    if (eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
     {
-        limLog(pMac, LOGP, FL("wdaPostCtrlMsg failed\n"));
+        limLog(pMac, LOGP, FL("wdaPostCtrlMsg failed"));
         return eANI_BOOLEAN_TRUE;
     }
     return eANI_BOOLEAN_FALSE;
@@ -542,22 +544,24 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         /* This is the place where PE is going to create a session.
          * If session is not existed , then create a new session */
-        if((psessionEntry = peFindSessionByBssid(pMac,
-		pSmeStartBssReq->bssId,&sessionId)) != NULL) {
-            limLog(pMac, LOGW, FL("Session Already exists for given BSSID\n"));
+        if((psessionEntry = peFindSessionByBssid(pMac,pSmeStartBssReq->bssId,&sessionId)) != NULL)
+        {
+            limLog(pMac, LOGW, FL("Session Already exists for given BSSID"));
             retCode = eSIR_SME_BSS_ALREADY_STARTED_OR_JOINED;
-	    psessionEntry = NULL;
+            psessionEntry = NULL;
             goto free;
         }
+        else
+        {
+            if((psessionEntry = peCreateSession(pMac,pSmeStartBssReq->bssId,&sessionId, pMac->lim.maxStation)) == NULL)
+            {
+                limLog(pMac, LOGW, FL("Session Can not be created "));
+                retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+                goto free;
+            }
 
-	psessionEntry = peCreateSession(pMac, pSmeStartBssReq->bssId,
-					&sessionId, pMac->lim.maxStation);
-	if (!psessionEntry)
-	{
-	   limLog(pMac, LOGW, FL("Session Can not be created "));
-	   retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
-	   goto free;
-	}
+        }
+     
         /* Store the session related parameters in newly created session */
         psessionEntry->pLimStartBssReq = pSmeStartBssReq;
 
@@ -570,14 +574,14 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->transactionId = pSmeStartBssReq->transactionId;
                      
         sirCopyMacAddr(psessionEntry->selfMacAddr,pSmeStartBssReq->selfMacAddr);
-
+        
         /* Copy SSID to session table */
         palCopyMemory( pMac->hHdd, (tANI_U8 *)&psessionEntry->ssId,
                      (tANI_U8 *)&pSmeStartBssReq->ssId,
                       (pSmeStartBssReq->ssId.length + 1));
         
-
-
+       
+        
         psessionEntry->bssType = pSmeStartBssReq->bssType;
         
         psessionEntry->nwType = pSmeStartBssReq->nwType;
@@ -959,12 +963,12 @@ end:
 
     /* This routine should return the sme sessionId and SME transaction Id */
     limGetSessionInfo(pMac,(tANI_U8*)pMsgBuf,&smesessionId,&smetransactionId); 
-
+    
     if(NULL != psessionEntry)
     {
         peDeleteSession(pMac,psessionEntry);
         psessionEntry = NULL;
-    }
+    }     
     limSendSmeStartBssRsp(pMac, eWNI_SME_START_BSS_RSP, retCode,psessionEntry,smesessionId,smetransactionId);
 } /*** end __limHandleSmeStartBssRequest() ***/
 
@@ -1252,7 +1256,6 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                       pScanReq->bssId,
                       sizeof(tSirMacAddr));
         pMlmScanReq->numSsid = pScanReq->numSsid;
-        pMlmScanReq->vdev_id = pScanReq->sessionId;
 
         i = 0;
         while (i < pMlmScanReq->numSsid)
@@ -1274,11 +1277,6 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMlmScanReq->dot11mode = pScanReq->dot11mode;
         pMlmScanReq->p2pSearch = pScanReq->p2pSearch;
 
-	pMlmScanReq->scan_id = WMA_HOST_SCAN_REQID_PREFIX | pScanReq->scan_id;
-	pMlmScanReq->scan_requestor_id = WMA_HOST_SCAN_REQUESTOR_ID_PREFIX |
-					 pScanReq->scan_requestor_id;
-	pMlmScanReq->scan_prio = pScanReq->scan_prio;
-
         //Store the smeSessionID and transaction ID for later use.
         pMac->lim.gSmeSessionId = pScanReq->sessionId;
         pMac->lim.gTransactionId = pScanReq->transactionId;
@@ -1296,24 +1294,58 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             tANI_U16    scanRspLen = sizeof(tSirSmeScanRsp);
 
             pMac->lim.gLimRspReqd = false;
-
-            if (pMac->lim.gLimSmeScanResultLength == 0)
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+            if (pScanReq->returnFreshResults & SIR_BG_SCAN_RETURN_LFR_CACHED_RESULTS)
             {
-                limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS, pScanReq->sessionId, pScanReq->transactionId);
+                pMac->lim.gLimSmeLfrScanResultLength = pMac->lim.gLimMlmLfrScanResultLength;
+                if (pMac->lim.gLimSmeLfrScanResultLength == 0)
+                {
+                    limSendSmeLfrScanRsp(pMac, scanRspLen,
+                                         eSIR_SME_SUCCESS,
+                                         pScanReq->sessionId,
+                                         pScanReq->transactionId);
+                }
+                else
+                {
+                    scanRspLen = sizeof(tSirSmeScanRsp) +
+                                 pMac->lim.gLimSmeLfrScanResultLength -
+                                 sizeof(tSirBssDescription);
+                    limSendSmeLfrScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS,
+                               pScanReq->sessionId, pScanReq->transactionId);
+                }
             }
             else
             {
-                scanRspLen = sizeof(tSirSmeScanRsp) +
-                             pMac->lim.gLimSmeScanResultLength -
-                             sizeof(tSirBssDescription);
-                limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS, pScanReq->sessionId, pScanReq->transactionId);
+#endif
+               if (pMac->lim.gLimSmeScanResultLength == 0)
+               {
+                  limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS,
+                          pScanReq->sessionId, pScanReq->transactionId);
+               }
+               else
+               {
+                  scanRspLen = sizeof(tSirSmeScanRsp) +
+                               pMac->lim.gLimSmeScanResultLength -
+                               sizeof(tSirBssDescription);
+                  limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS,
+                                  pScanReq->sessionId, pScanReq->transactionId);
+               }
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
             }
+#endif
 
             if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_RESUTLS)
             {
                 // Discard previously cached scan results
                 limReInitScanResults(pMac);
             }
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+            if (pScanReq->returnFreshResults & SIR_BG_SCAN_PURGE_LFR_RESULTS)
+            {
+                // Discard previously cached scan results
+                limReInitLfrScanResults(pMac);
+            }
+#endif
 
         } // if (pMac->lim.gLimRspReqd)
     } // else ((pMac->lim.gLimSmeState == eLIM_SME_IDLE_STATE) || ...
@@ -1455,45 +1487,37 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif
 
 
-	psessionEntry = peFindSessionByBssid(pMac,
-					pSmeJoinReq->bssDescription.bssId,
-					&sessionId);
-	if (psessionEntry)
-	{
-	    limLog(pMac, LOGE, FL("Session Already exists for given BSSID"));
-
-	    if(psessionEntry->limSmeState == eLIM_SME_LINK_EST_STATE)
-	    {
-		// Received eWNI_SME_JOIN_REQ for same
-		// BSS as currently associated.
-		// Log the event and send success
-		PELOGW(limLog(pMac, LOGW,
-			      FL("Received SME_JOIN_REQ for currently joined BSS"));)
-		/// Send Join success response to host
-		retCode = eSIR_SME_SUCCESS;
-		goto end;
-	    }
-	    else
-	    {
-		retCode = eSIR_SME_REFUSED;
-		psessionEntry = NULL;
-		goto end;
-	    }
-	}
-	else
-	{
-	    /* Try to Create a new session */
-	    psessionEntry = peCreateSession(pMac,
-					    pSmeJoinReq->bssDescription.bssId,
-					    &sessionId,
-					    pMac->lim.maxStation);
-	    if (!psessionEntry)
-	    {
-		limLog(pMac, LOGE, FL("Session Can not be created "));
-		retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
-		goto end;
-	    }
-	}
+        if((psessionEntry = peFindSessionByBssid(pMac,pSmeJoinReq->bssDescription.bssId,&sessionId)) != NULL)
+        {
+            limLog(pMac, LOGE, FL("Session Already exists for given BSSID"));
+            
+            if(psessionEntry->limSmeState == eLIM_SME_LINK_EST_STATE)
+            {
+                // Received eWNI_SME_JOIN_REQ for same
+                // BSS as currently associated.
+                // Log the event and send success
+                PELOGW(limLog(pMac, LOGW, FL("Received SME_JOIN_REQ for currently joined BSS"));)
+                /// Send Join success response to host
+                retCode = eSIR_SME_SUCCESS;
+                goto end;
+            }
+            else
+            {
+                retCode = eSIR_SME_REFUSED;
+                psessionEntry = NULL;
+                goto end;
+            }    
+        }    
+        else       /* Session Entry does not exist for given BSSId */
+        {       
+            /* Try to Create a new session */
+            if((psessionEntry = peCreateSession(pMac,pSmeJoinReq->bssDescription.bssId,&sessionId, pMac->lim.maxStation)) == NULL)
+            {
+                limLog(pMac, LOGE, FL("Session Can not be created "));
+                retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+                goto end;
+            }
+        }   
         handleHTCapabilityandHTInfo(pMac, psessionEntry);
 
         /* Store Session related parameters */
@@ -1772,7 +1796,7 @@ end:
             psessionEntry->pLimJoinReq = NULL;
         }
     }
-
+    
     if(retCode != eSIR_SME_SUCCESS)
     {
         if(NULL != psessionEntry)
@@ -1780,7 +1804,7 @@ end:
             peDeleteSession(pMac,psessionEntry);
             psessionEntry = NULL;
         }
-    }
+    } 
 
     limSendSmeJoinReassocRsp(pMac, eWNI_SME_JOIN_RSP, retCode, eSIR_MAC_UNSPEC_FAILURE_STATUS,psessionEntry,smesessionId,smetransactionId);
 } /*** end __limProcessSmeJoinReq() ***/
@@ -3850,16 +3874,16 @@ __limProcessSmeStatsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         //HAL maintained Stats.
         case eWNI_SME_STA_STAT_REQ:
-            msgQ.type = WMA_STA_STAT_REQ;
+            msgQ.type = WDA_STA_STAT_REQ;
             break;
         case eWNI_SME_AGGR_STAT_REQ:
-            msgQ.type = WMA_AGGR_STAT_REQ;
+            msgQ.type = WDA_AGGR_STAT_REQ;
             break;
         case eWNI_SME_GLOBAL_STAT_REQ:
-            msgQ.type = WMA_GLOBAL_STAT_REQ;
+            msgQ.type = WDA_GLOBAL_STAT_REQ;
             break;
         case eWNI_SME_STAT_SUMM_REQ:
-            msgQ.type = WMA_STAT_SUMM_REQ;
+            msgQ.type = WDA_STAT_SUMM_REQ;
             break;   
         default: //Unknown request.
             PELOGE(limLog(pMac, LOGE, "Unknown Statistics request");)
@@ -3888,8 +3912,8 @@ __limProcessSmeStatsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     {
         MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
     }
-    if( eSIR_SUCCESS != (wmaPostCtrlMsg( pMac, &msgQ ))){
-        limLog(pMac, LOGP, "Unable to forward request\n");
+    if( eSIR_SUCCESS != (wdaPostCtrlMsg( pMac, &msgQ ))){
+        limLog(pMac, LOGP, "Unable to forward request");
         palFreeMemory( pMac, pMsgBuf );
         return;
     }
@@ -3920,7 +3944,7 @@ __limProcessSmeGetStatisticsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     
     //pPEStatsReq->msgType should be eWNI_SME_GET_STATISTICS_REQ
 
-    msgQ.type = WMA_GET_STATISTICS_REQ;    
+    msgQ.type = WDA_GET_STATISTICS_REQ;    
 
     if ( !pMac->lim.gLimRspReqd ) 
     {
@@ -3937,7 +3961,7 @@ __limProcessSmeGetStatisticsRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     msgQ.bodyval = 0;
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
 
-    if( eSIR_SUCCESS != (wmaPostCtrlMsg( pMac, &msgQ ))){
+    if( eSIR_SUCCESS != (wdaPostCtrlMsg( pMac, &msgQ ))){
         palFreeMemory( pMac, pMsgBuf );
         limLog(pMac, LOGP, "Unable to forward request");
         return;
@@ -3967,7 +3991,7 @@ __limProcessSmeGetRoamRssiRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tSirMsgQ msgQ;
 
     pPEGetRoamRssiReq = (tpAniGetRssiReq) pMsgBuf;
-    msgQ.type = WMA_GET_ROAM_RSSI_REQ;
+    msgQ.type = WDA_GET_ROAM_RSSI_REQ;
 
     if ( !pMac->lim.gLimRspReqd )
     {
@@ -3984,7 +4008,7 @@ __limProcessSmeGetRoamRssiRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     msgQ.bodyval = 0;
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
 
-    if( eSIR_SUCCESS != (wmaPostCtrlMsg( pMac, &msgQ ))){
+    if( eSIR_SUCCESS != (wdaPostCtrlMsg( pMac, &msgQ ))){
         palFreeMemory( pMac, pMsgBuf );
         limLog(pMac, LOGP, "Unable to forward request");
         return;
@@ -4321,12 +4345,12 @@ limSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, tPowerdBm txPower, tpPESession pS
    palCopyMemory( pMac->hHdd, pMaxTxParams->bssId, pSessionEntry->bssId, sizeof(tSirMacAddr) );
    palCopyMemory( pMac->hHdd, pMaxTxParams->selfStaMacAddr, pSessionEntry->selfMacAddr, sizeof(tSirMacAddr) );
 
-   msgQ.type = WMA_SET_MAX_TX_POWER_REQ;
+   msgQ.type = WDA_SET_MAX_TX_POWER_REQ;
    msgQ.bodyptr = pMaxTxParams;
    msgQ.bodyval = 0;
-   PELOG1(limLog(pMac, LOG1, FL("Posting WMA_SET_MAX_TX_POWER_REQ to WDA"));)
+   PELOG1(limLog(pMac, LOG1, FL("Posting WDA_SET_MAX_TX_POWER_REQ to WDA"));)
    MTRACE(macTraceMsgTx(pMac, pSessionEntry->peSessionId, msgQ.type));
-   retCode = wmaPostCtrlMsg(pMac, &msgQ);
+   retCode = wdaPostCtrlMsg(pMac, &msgQ);
    if (eSIR_SUCCESS != retCode)
    {
       PELOGE(limLog(pMac, LOGE, FL("wdaPostCtrlMsg() failed"));)
@@ -4369,20 +4393,18 @@ __limProcessSmeAddStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    }
 
    palCopyMemory( pMac->hHdd, pAddStaSelfParams->selfMacAddr, pSmeReq->selfMacAddr, sizeof(tSirMacAddr) ); 
-   pAddStaSelfParams->vdev_id = pSmeReq->sessionId;
-   pAddStaSelfParams->vdevType = pSmeReq->vdevType;
-   pAddStaSelfParams->vdevSubType = pSmeReq->vdevSubType;
+
    msg.type = SIR_HAL_ADD_STA_SELF_REQ;
    msg.reserved = 0;
    msg.bodyptr =  pAddStaSelfParams;
    msg.bodyval = 0;
 
-   PELOGW(limLog(pMac, LOG1, FL("sending SIR_HAL_ADD_STA_SELF_REQ msg to HAL\n"));)
+   PELOGW(limLog(pMac, LOG1, FL("sending SIR_HAL_ADD_STA_SELF_REQ msg to HAL"));)
       MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
 
-   if(eSIR_SUCCESS != wmaPostCtrlMsg(pMac, &msg))
+   if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
    {
-      limLog(pMac, LOGP, FL("wdaPostCtrlMsg failed\n"));
+      limLog(pMac, LOGP, FL("wdaPostCtrlMsg failed"));
    }
    return;
 } /*** end __limProcessAddStaSelfReq() ***/
@@ -4420,20 +4442,19 @@ __limProcessSmeDelStaSelfReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
       return;
    }
 
-   palCopyMemory( pMac->hHdd, pDelStaSelfParams->selfMacAddr, pSmeReq->selfMacAddr, sizeof(tSirMacAddr) );
+   palCopyMemory( pMac->hHdd, pDelStaSelfParams->selfMacAddr, pSmeReq->selfMacAddr, sizeof(tSirMacAddr) ); 
 
-   pDelStaSelfParams->vdev_id = pSmeReq->sessionId;
    msg.type = SIR_HAL_DEL_STA_SELF_REQ;
    msg.reserved = 0;
    msg.bodyptr =  pDelStaSelfParams;
    msg.bodyval = 0;
 
-   PELOGW(limLog(pMac, LOG1, FL("sending SIR_HAL_ADD_STA_SELF_REQ msg to HAL\n"));)
+   PELOGW(limLog(pMac, LOG1, FL("sending SIR_HAL_ADD_STA_SELF_REQ msg to HAL"));)
       MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
 
-   if(eSIR_SUCCESS != wmaPostCtrlMsg(pMac, &msg))
+   if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
    {
-      limLog(pMac, LOGP, FL("wdaPostCtrlMsg failed\n"));
+      limLog(pMac, LOGP, FL("wdaPostCtrlMsg failed"));
    }
    return;
 } /*** end __limProcessSmeDelStaSelfReq() ***/
@@ -4581,12 +4602,14 @@ __limInsertSingleShotNOAForScan(tpAniSirGlobal pMac, tANI_U32 noaDuration)
         goto error;
     }
 
-    msg.type = WMA_SET_P2P_GO_NOA_REQ;
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_INSERT_SINGLESHOT_NOA_TIMER));
+
+    msg.type = WDA_SET_P2P_GO_NOA_REQ;
     msg.reserved = 0;
     msg.bodyptr = pMsgNoA;
     msg.bodyval = 0;
 
-   if(eSIR_SUCCESS != wmaPostCtrlMsg(pMac, &msg))
+    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
     {
         /* In this failure case, timer is already started, so its expiration will take care of sending scan response */
         limLog(pMac, LOGP, FL("wdaPost Msg failed"));
@@ -4657,6 +4680,7 @@ tANI_U32 limCalculateNOADuration(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32
                     noaDuration += pScanReq->minChannelTime + pScanReq->maxChannelTime;
                 } else {
                     /* using the value from WNI_CFG_PASSIVE_MINIMUM_CHANNEL_TIME as is done in
+                     * void limContinuePostChannelScan(tpAniSirGlobal pMac)
                      */
                     noaDuration += val;
                 }
@@ -4777,7 +4801,7 @@ static tSirRetStatus limProcessSmeDisStartReq(tpAniSirGlobal pMac,
      {
      
          limLog(pMac, LOGE, "dis req received in invalid LIMsme \
-                               state (%d)\n", psessionentry->limSmeState);
+                               state (%d)", psessionEntry->limSmeState);
          goto lim_tdls_dis_start_error;
      }
     

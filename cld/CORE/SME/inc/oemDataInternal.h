@@ -19,7 +19,7 @@
 #include "palTimer.h"
 #include "csrSupport.h"
 #include "vos_nvitem.h"
-#include "txrx.h"
+#include "wlan_qct_tl.h"
 
 #include "oemDataApi.h"
 

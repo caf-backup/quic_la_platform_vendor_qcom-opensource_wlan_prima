@@ -149,11 +149,7 @@ rrmSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, tPowerdBm txPower, tpPESession pS
    palCopyMemory( pMac->hHdd, pMaxTxParams->selfStaMacAddr, pSessionEntry->selfMacAddr, sizeof(tSirMacAddr) );
 
 
-#ifndef WMA_LAYER
    msgQ.type = WDA_SET_MAX_TX_POWER_REQ;
-#else
-   msgQ.type = WMA_SET_MAX_TX_POWER_REQ;
-#endif
    msgQ.reserved = 0;
    msgQ.bodyptr = pMaxTxParams;
    msgQ.bodyval = 0;
@@ -161,11 +157,7 @@ rrmSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, tPowerdBm txPower, tpPESession pS
    PELOGW(limLog(pMac, LOGW, FL( "Sending WDA_SET_MAX_TX_POWER_REQ to HAL"));)
 
       MTRACE(macTraceMsgTx(pMac, pSessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
    if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-   if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
    {
       limLog( pMac, LOGP, FL("Posting WDA_SET_MAX_TX_POWER_REQ to HAL failed, reason=%X"), retCode );
       palFreeMemory( pMac->hHdd, (tANI_U8 *) pMaxTxParams );
@@ -248,11 +240,7 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
       PELOGE(limLog( pMac, LOGE, "%s:%d: Invalid parameters - Ignoring the request");)
       return eSIR_FAILURE;
    }
-#ifndef WMA_LAYER
    pHdr = WDA_GET_RX_MAC_HEADER( pRxPacketInfo );
-#else
-   pHdr = WMA_GET_RX_MAC_HEADER( pRxPacketInfo );
-#endif
 #if defined WLAN_VOWIFI_DEBUG
    if( pSessionEntry->maxTxPower != (tPowerdBm) pLinkReq->MaxTxPower.maxTxPower )
    {
@@ -265,11 +253,7 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
    LinkReport.txPower = pSessionEntry->txMgmtPower;
    LinkReport.rxAntenna = 0;
    LinkReport.txAntenna = 0;
-#ifndef WMA_LAYER
    currentRSSI = WDA_GET_RX_RSSI_DB(pRxPacketInfo);
-#else
-   currentRSSI = WMA_GET_RX_RSSI_DB(pRxPacketInfo);
-#endif
 
 #if defined WLAN_VOWIFI_DEBUG
    PELOGE(limLog( pMac, LOGE, "Received Link report frame with %d", currentRSSI);)
@@ -283,11 +267,7 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
    else 
        LinkReport.rcpi = RCPI_MAX_VALUE; 
 
-#ifndef WMA_LAYER
    LinkReport.rsni = WDA_GET_RX_SNR(pRxPacketInfo); 
-#else
-   LinkReport.rsni = WMA_GET_RX_SNR(pRxPacketInfo); 
-#endif
    
 #if defined WLAN_VOWIFI_DEBUG
    PELOGE(limLog( pMac, LOGE, "Sending Link report frame");)

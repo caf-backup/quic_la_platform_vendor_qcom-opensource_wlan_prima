@@ -64,11 +64,7 @@ logDump.c
 //#include "halRadar.h"
 #include "logDump.h"
 #include "sysDebug.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 
 #define HAL_LOG_DUMP_CMD_START 0
 #define HAL_LOG_DUMP_CMD_END 299
@@ -396,11 +392,7 @@ int logRtaiDump( tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2
     }
     if(cmd <= HAL_LOG_DUMP_CMD_END)
     {
-#ifndef WMA_LAYER
        WDA_HALDumpCmdReq(pMac, cmd, arg1, arg2, arg3, arg4, p);
-#else
-       WMA_HALDumpCmdReq(pMac, cmd, arg1, arg2, arg3, arg4, p);
-#endif
     }
     else
     {

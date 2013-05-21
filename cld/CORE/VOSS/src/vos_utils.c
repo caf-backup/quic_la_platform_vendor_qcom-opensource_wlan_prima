@@ -211,22 +211,19 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
               v_U8_t *output, v_U8_t outlen)
 {
     int ret = 0;
-    struct crypto_ahash *tfm = NULL;
+    struct crypto_ahash *tfm;
     struct scatterlist sg;
     struct ahash_request *req;
     struct hmac_sha1_result tresult;
     void *hash_buff = NULL;
 
     unsigned char hash_result[64];
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     int i;
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
     memset(output, 0, outlen);
 
     init_completion(&tresult.completion);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     tfm = wcnss_wlan_crypto_alloc_ahash("hmac(sha1)", CRYPTO_ALG_TYPE_AHASH,
                                         CRYPTO_ALG_TYPE_AHASH_MASK);
     if (IS_ERR(tfm)) {
@@ -234,7 +231,6 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
         ret = PTR_ERR(tfm);
         goto err_tfm;
     }
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
     req = ahash_request_alloc(tfm, GFP_KERNEL);
     if (!req) {
@@ -259,18 +255,15 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
 
     if (ksize) {
         crypto_ahash_clear_flags(tfm, ~0);
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
         ret = wcnss_wlan_crypto_ahash_setkey(tfm, key, ksize);
 
         if (ret) {
             VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_ahash_setkey failed");
             goto err_setkey;
         }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
     }
 
     ahash_request_set_crypt(req, &sg, hash_result, psize);
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     ret = wcnss_wlan_crypto_ahash_digest(req);
 
     VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "ret 0x%x", ret);
@@ -295,20 +288,15 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
     default:
         goto out;
     }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 out:
 err_setkey:
     kfree(hash_buff);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 err_hash_buf:
     ahash_request_free(req);
 err_req:
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     wcnss_wlan_crypto_free_ahash(tfm);
 err_tfm:
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
     return ret;
 }
 
@@ -378,22 +366,19 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
                 v_U8_t *output, v_U8_t outlen)
 {
     int ret = 0;
-    struct crypto_ahash *tfm = NULL;
+    struct crypto_ahash *tfm;
     struct scatterlist sg;
     struct ahash_request *req;
     struct hmac_md5_result tresult = {.err = 0};
     void *hash_buff = NULL;
 
     unsigned char hash_result[64];
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     int i;
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
     memset(output, 0, outlen);
 
     init_completion(&tresult.completion);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     tfm = wcnss_wlan_crypto_alloc_ahash("hmac(md5)", CRYPTO_ALG_TYPE_AHASH,
                                         CRYPTO_ALG_TYPE_AHASH_MASK);
     if (IS_ERR(tfm)) {
@@ -401,7 +386,6 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
                 ret = PTR_ERR(tfm);
                 goto err_tfm;
     }
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
     req = ahash_request_alloc(tfm, GFP_KERNEL);
     if (!req) {
@@ -426,18 +410,15 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
 
     if (ksize) {
         crypto_ahash_clear_flags(tfm, ~0);
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
         ret = wcnss_wlan_crypto_ahash_setkey(tfm, key, ksize);
 
         if (ret) {
             VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_ahash_setkey failed");
             goto err_setkey;
         }
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
     }
 
     ahash_request_set_crypt(req, &sg, hash_result, psize);
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     ret = wcnss_wlan_crypto_ahash_digest(req);
 
     VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "ret 0x%x", ret);
@@ -462,20 +443,15 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
         default:
               goto out;
         }
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 out:
 err_setkey:
         kfree(hash_buff);
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 err_hash_buf:
         ahash_request_free(req);
 err_req:
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
         wcnss_wlan_crypto_free_ahash(tfm);
 err_tfm:
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
         return ret;
 }
 
@@ -560,7 +536,7 @@ VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
 //    VOS_STATUS uResult = VOS_STATUS_E_FAILURE;
     struct ecb_aes_result result;
     struct ablkcipher_request *req;
-    struct crypto_ablkcipher *tfm = NULL;
+    struct crypto_ablkcipher *tfm;
     int ret = 0;
     char iv[IV_SIZE_AES_128];
     struct scatterlist sg_in;
@@ -568,14 +544,12 @@ VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
 
     init_completion(&result.completion);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     tfm =  wcnss_wlan_crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
     if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ablkcipher failed");
         ret = PTR_ERR(tfm);
         goto err_tfm;
     }
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
     req = ablkcipher_request_alloc(tfm, GFP_KERNEL);
     if (!req) {
@@ -610,11 +584,8 @@ VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
 
 // -------------------------------------
 err_setkey:
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     wcnss_wlan_ablkcipher_request_free(req);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 err_req:
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     wcnss_wlan_crypto_free_ablkcipher(tfm);
 err_tfm:
     //return ret;
@@ -622,7 +593,6 @@ err_tfm:
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __func__);
         return VOS_STATUS_E_FAULT;
    }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
     return VOS_STATUS_SUCCESS;
 }
@@ -662,7 +632,7 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
 //    VOS_STATUS uResult = VOS_STATUS_E_FAILURE;
     struct ecb_aes_result result;
     struct ablkcipher_request *req;
-    struct crypto_ablkcipher *tfm = NULL;
+    struct crypto_ablkcipher *tfm;
     int ret = 0;
     char iv[IV_SIZE_AES_128];
     struct scatterlist sg_in;
@@ -670,14 +640,12 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
 
     init_completion(&result.completion);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     tfm =  wcnss_wlan_crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
     if (IS_ERR(tfm)) {
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_ablkcipher failed");
         ret = PTR_ERR(tfm);
         goto err_tfm;
     }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
     req = ablkcipher_request_alloc(tfm, GFP_KERNEL);
     if (!req) {
@@ -712,11 +680,8 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
 
 // -------------------------------------
 err_setkey:
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     wcnss_wlan_ablkcipher_request_free(req);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 err_req:
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     wcnss_wlan_crypto_free_ablkcipher(tfm);
 err_tfm:
     //return ret;
@@ -724,18 +689,6 @@ err_tfm:
         VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __func__);
         return VOS_STATUS_E_FAULT;
       }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
     return VOS_STATUS_SUCCESS;
 }
-
-u_int32_t vos_chan_to_freq(u_int8_t chan)
-{
-	if (chan < VOS_MAX_24_GHZ_CHANNEL)
-		return VOS_24_GHZ_BASE_FREQ + chan * VOS_CHAN_SPACING;
-	else if (chan == VOS_MAX_24_GHZ_CHANNEL)
-		return VOS_CHAN_14_FREQ;
-	else
-		return VOS_5_GHZ_BASE_FREQ + chan * VOS_CHAN_SPACING;
-}
-

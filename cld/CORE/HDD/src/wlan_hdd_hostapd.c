@@ -47,7 +47,7 @@
 #include <wlan_hdd_hostapd.h>
 #include <sapApi.h>
 #include <sapInternal.h>
-#include <txrx.h>
+#include <wlan_qct_tl.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #include <wlan_hdd_main.h>
 #include <linux/netdevice.h>
@@ -594,8 +594,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                                        0,
                                        (v_MACADDR_t *)wrqu.addr.sa_data,
                                        pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled);
-            } 
-            
+            }
+
             // Stop AP inactivity timer
             if (pHddApCtx->hdd_ap_inactivity_timer.state == VOS_TIMER_STATE_RUNNING)
             {
@@ -608,7 +608,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             {
                wake_unlock(&pHddCtx->sap_wake_lock);
             }
-            wake_lock_timeout(&pHddCtx->sap_wake_lock, HDD_SAP_WAKE_LOCK_DURATION);
+            wake_lock_timeout(&pHddCtx->sap_wake_lock, msecs_to_jiffies(HDD_SAP_WAKE_LOCK_DURATION));
 #endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
@@ -1291,7 +1291,26 @@ static iw_softap_ap_stats(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-	/* FIXME: Remove this completely if wext does not need to be supported */
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    WLANTL_TRANSFER_STA_TYPE  statBuffer;
+    char *pstatbuf;
+    int len = wrqu->data.length;
+    pstatbuf = wrqu->data.pointer;
+
+    WLANSAP_GetStatistics((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext, &statBuffer, (v_BOOL_t)wrqu->data.flags);
+
+    len = snprintf(pstatbuf, len,
+            "RUF=%d RMF=%d RBF=%d "
+            "RUB=%d RMB=%d RBB=%d "
+            "TUF=%d TMF=%d TBF=%d "
+            "TUB=%d TMB=%d TBB=%d",
+            (int)statBuffer.rxUCFcnt, (int)statBuffer.rxMCFcnt, (int)statBuffer.rxBCFcnt,
+            (int)statBuffer.rxUCBcnt, (int)statBuffer.rxMCBcnt, (int)statBuffer.rxBCBcnt,
+            (int)statBuffer.txUCFcnt, (int)statBuffer.txMCFcnt, (int)statBuffer.txBCFcnt,
+            (int)statBuffer.txUCBcnt, (int)statBuffer.txMCBcnt, (int)statBuffer.txBCBcnt
+            );
+
+    wrqu->data.length -= len;
     return 0;
 }
 
@@ -1498,14 +1517,14 @@ int iw_softap_setmlme(struct net_device *dev,
     switch(pmlme->im_op)
     {
         case QCSAP_MLME_AUTHORIZE:
-                    hdd_softap_change_STA_state( pHostapdAdapter, &destAddress, WLAN_STA_AUTHENTICATED);
+                    hdd_softap_change_STA_state( pHostapdAdapter, &destAddress, WLANTL_STA_AUTHENTICATED);
         break;
         case QCSAP_MLME_ASSOC:
         //TODO:inform to TL after associating (not needed  as we do in sapCallback)
         break;
         case QCSAP_MLME_UNAUTHORIZE:
         //TODO: send the disassoc to station
-        //hdd_softap_change_STA_state( pHostapdAdapter, pmlme->im_macaddr, WLAN_STA_AUTHENTICATED);
+        //hdd_softap_change_STA_state( pHostapdAdapter, pmlme->im_macaddr, WLANTL_STA_AUTHENTICATED);
         break;
         case QCSAP_MLME_DISASSOC:
             hdd_softap_sta_disassoc(pHostapdAdapter,pmlme->im_macaddr);

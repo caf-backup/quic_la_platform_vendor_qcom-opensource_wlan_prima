@@ -49,11 +49,7 @@ when        who         what, where, why
 #include <sirApi.h>     // needed for SIR_... message types
 #include <wniApi.h>     // needed for WNI_... message types
 #include "aniGlobal.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 #include "sme_Api.h"
 #include "macInitApi.h"
 
@@ -599,7 +595,6 @@ SysProcessMmhMsg
     */
     case WNI_CFG_DNLD_REQ:
     case WNI_CFG_DNLD_CNF:
-#ifndef WMA_LAYER
     case WDA_APP_SETUP_NTF:
     case WDA_NIC_OPER_NTF:
     case WDA_RESET_REQ:
@@ -625,33 +620,6 @@ SysProcessMmhMsg
     {
       /* Forward this message to the HAL module */
       targetMQ = VOS_MQ_ID_WDA;
-#else
-    case WMA_APP_SETUP_NTF:
-    case WMA_NIC_OPER_NTF:
-    case WMA_RESET_REQ:
-    case eWNI_SME_START_RSP:
-    {
-      /* Forward this message to the SYS module */
-      targetMQ = VOS_MQ_ID_SYS;
-
-      VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
-                 "Handling for the Message ID %d is removed in SYS\r\n",
-                 pMsg->type);
-
-      VOS_ASSERT(0);
-      break;
-    }
-
-
-    /*
-    ** Following messages are routed to HAL
-    */
-    case WNI_CFG_DNLD_RSP:
-    case WMA_INIT_START_REQ:
-    {
-      /* Forward this message to the HAL module */
-      targetMQ = VOS_MQ_ID_WMA;
-#endif
 
       VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
                  "Handling for the Message ID %d is removed as there is no HAL \r\n",

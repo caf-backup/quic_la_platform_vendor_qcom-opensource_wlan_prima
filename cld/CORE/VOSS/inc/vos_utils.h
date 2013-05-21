@@ -35,12 +35,6 @@
 #define VOS_DIGEST_SHA1_SIZE    20
 #define VOS_DIGEST_MD5_SIZE     16
 
-#define VOS_24_GHZ_BASE_FREQ	2407
-#define VOS_5_GHZ_BASE_FREQ	5000
-#define VOS_MAX_24_GHZ_CHANNEL	14
-#define VOS_CHAN_SPACING	5
-#define VOS_CHAN_14_FREQ	2484
-
 /*-------------------------------------------------------------------------- 
   Type declarations
   ------------------------------------------------------------------------*/
@@ -143,5 +137,4 @@ VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
                            v_U8_t *pDecrypted,
                            v_U8_t *pKey); /* pointer to authentication key */
 
-u_int32_t vos_chan_to_freq(u_int8_t chan);
 #endif // #if !defined __VOSS_UTILS_H

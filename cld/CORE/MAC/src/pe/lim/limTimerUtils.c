@@ -65,6 +65,80 @@ limCreateTimers(tpAniSirGlobal pMac)
 
     PELOG1(limLog(pMac, LOG1, FL("Creating Timers used by LIM module in Role %d"), pMac->lim.gLimSystemRole);)
 
+    if (wlan_cfgGetInt(pMac, WNI_CFG_ACTIVE_MINIMUM_CHANNEL_TIME,
+                  &cfgValue) != eSIR_SUCCESS)
+    {
+        /**
+         * Could not get MinChannelTimeout value
+         * from CFG. Log error.
+         */
+        limLog(pMac, LOGP, FL("could not retrieve MinChannelTimeout value"));
+    }
+    cfgValue = SYS_MS_TO_TICKS(cfgValue);
+
+    // Create MIN/MAX channel timers and activate them later
+    if (tx_timer_create(&pMac->lim.limTimers.gLimMinChannelTimer,
+                        "MIN CHANNEL TIMEOUT",
+                        limTimerHandler, SIR_LIM_MIN_CHANNEL_TIMEOUT,
+                        cfgValue, 0,
+                        TX_NO_ACTIVATE) != TX_SUCCESS)
+    {
+        /// Could not start min channel timer.
+        // Log error
+        limLog(pMac, LOGP, FL("could not create MIN channel timer"));
+        return TX_TIMER_ERROR;
+    }
+    PELOG2(limLog(pMac, LOG2, FL("Created MinChannelTimer"));)
+
+    /* Periodic probe request timer value is half of the Min channel
+     * timer. Probe request sends periodically till min/max channel
+     * timer expires
+     */
+
+    cfgValue = cfgValue/2 ;
+    if( cfgValue >= 1)
+    {
+        // Create periodic probe request timer and activate them later
+        if (tx_timer_create(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer,
+                           "Periodic Probe Request Timer",
+                           limTimerHandler, SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT,
+                           cfgValue, 0,
+                           TX_NO_ACTIVATE) != TX_SUCCESS)
+        {
+           /// Could not start Periodic Probe Req timer.
+           // Log error
+           limLog(pMac, LOGP, FL("could not create periodic probe timer"));
+           goto err_timer;
+        }
+     }
+
+
+    if (wlan_cfgGetInt(pMac, WNI_CFG_ACTIVE_MAXIMUM_CHANNEL_TIME,
+                  &cfgValue) != eSIR_SUCCESS)
+    {
+        /**
+         * Could not get MAXChannelTimeout value
+         * from CFG. Log error.
+         */
+        limLog(pMac, LOGP,
+               FL("could not retrieve MAXChannelTimeout value"));
+    }
+    cfgValue = SYS_MS_TO_TICKS(cfgValue);
+
+    if (tx_timer_create(&pMac->lim.limTimers.gLimMaxChannelTimer,
+                        "MAX CHANNEL TIMEOUT",
+                        limTimerHandler, SIR_LIM_MAX_CHANNEL_TIMEOUT,
+                        cfgValue, 0,
+                        TX_NO_ACTIVATE) != TX_SUCCESS)
+    {
+        /// Could not start max channel timer.
+        // Log error
+        limLog(pMac, LOGP, FL("could not create MAX channel timer"));
+
+        goto err_timer;
+    }
+    PELOG2(limLog(pMac, LOG2, FL("Created MaxChannelTimer"));)
+
     if (pMac->lim.gLimSystemRole != eLIM_AP_ROLE)
     {
         // Create Channel Switch Timer
@@ -659,6 +733,9 @@ limCreateTimers(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimQuietBssTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimQuietTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimChannelSwitchTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimMaxChannelTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimMinChannelTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimP2pSingleShotNoaInsertTimer);
 
         if(NULL != pMac->lim.gLimPreAuthTimerTable.pTable)
@@ -928,6 +1005,165 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 limLog(pMac, LOGP,
                        FL("Unable to deactivate AddtsRsp timer"));
             }
+            break;
+
+        case eLIM_MIN_CHANNEL_TIMER:
+            if (tx_timer_deactivate(&pMac->lim.limTimers.gLimMinChannelTimer)
+                                         != TX_SUCCESS)
+            {
+                // Could not deactivate min channel timer.
+                // Log error
+                limLog(pMac, LOGP,
+                       FL("Unable to deactivate min channel timer"));
+            }
+
+#if 0
+            // If a background was triggered via Quiet BSS,
+            // then we need to adjust the MIN and MAX channel
+            // timer's accordingly to the Quiet duration that
+            // was specified
+            if( eLIM_QUIET_RUNNING == pMac->lim.gLimSpecMgmt.quietState &&
+                pMac->lim.gLimTriggerBackgroundScanDuringQuietBss )
+            {
+                // gLimQuietDuration is already cached in units of
+                // system ticks. No conversion is reqd...
+                val = pMac->lim.gLimSpecMgmt.quietDuration;
+            }
+            else
+            {
+#endif
+                if(pMac->lim.gpLimMlmScanReq)
+                {
+                    val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime);
+                    if (pMac->btc.btcScanCompromise)
+                    {
+                        if (pMac->lim.gpLimMlmScanReq->minChannelTimeBtc)
+                        {
+                            val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTimeBtc);
+                            limLog(pMac, LOG1, FL("Using BTC Min Active Scan time"));
+                        }
+                        else
+                        {
+                            limLog(pMac, LOGE, FL("BTC Active Scan Min Time is Not Set"));
+                        }
+                    }
+                }
+                else
+                {
+                    limLog(pMac, LOGE, FL(" gpLimMlmScanReq is NULL "));
+                    //No need to change min timer. This is not a scan
+                    break;
+                }
+#if 0
+            }
+#endif
+
+            if (tx_timer_change(&pMac->lim.limTimers.gLimMinChannelTimer,
+                                val, 0) != TX_SUCCESS)
+            {
+                // Could not change min channel timer.
+                // Log error
+                limLog(pMac, LOGP, FL("Unable to change min channel timer"));
+            }
+
+            break;
+
+        case eLIM_PERIODIC_PROBE_REQ_TIMER:
+            if (tx_timer_deactivate(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer)
+                                         != TX_SUCCESS)
+            {
+                // Could not deactivate min channel timer.
+                // Log error
+                limLog(pMac, LOGP,
+                       FL("Unable to deactivate periodic timer"));
+            }
+
+            val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime)/2;
+            if (pMac->btc.btcScanCompromise)
+            {
+               if (pMac->lim.gpLimMlmScanReq->minChannelTimeBtc)
+               {
+                   val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTimeBtc)/2;
+               }
+               else
+               {
+                   limLog(pMac, LOGE, FL("BTC Active Scan Min Time is Not Set"));
+               }
+            }
+            if (tx_timer_change(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer,
+                                val, 0) != TX_SUCCESS)
+            {
+                // Could not change min channel timer.
+                // Log error
+                limLog(pMac, LOGP, FL("Unable to change periodic timer"));
+            }
+
+            break;
+
+        case eLIM_MAX_CHANNEL_TIMER:
+            if (tx_timer_deactivate(&pMac->lim.limTimers.gLimMaxChannelTimer)
+                                      != TX_SUCCESS)
+            {
+                // Could not deactivate max channel timer.
+                // Log error
+                limLog(pMac, LOGP,
+                       FL("Unable to deactivate max channel timer"));
+            }
+
+            // If a background was triggered via Quiet BSS,
+            // then we need to adjust the MIN and MAX channel
+            // timer's accordingly to the Quiet duration that
+            // was specified
+            if (pMac->lim.gLimSystemRole != eLIM_AP_ROLE)
+            {
+#if 0
+
+                if( eLIM_QUIET_RUNNING == pMac->lim.gLimSpecMgmt.quietState &&
+                    pMac->lim.gLimTriggerBackgroundScanDuringQuietBss )
+                {
+                    // gLimQuietDuration is already cached in units of
+                    // system ticks. No conversion is reqd...
+                    val = pMac->lim.gLimSpecMgmt.quietDuration;
+                }
+                else
+                {
+#endif
+                    if(pMac->lim.gpLimMlmScanReq)
+                    {
+                        val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->maxChannelTime);
+                        if (pMac->btc.btcScanCompromise)
+                        {
+                            if (pMac->lim.gpLimMlmScanReq->maxChannelTimeBtc)
+                            {
+                                val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->maxChannelTimeBtc);
+                                limLog(pMac, LOG1, FL("Using BTC Max Active Scan time"));
+                            }
+                            else
+                            {
+                                limLog(pMac, LOGE, FL("BTC Active Scan Max Time is Not Set"));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        limLog(pMac, LOGE, FL(" gpLimMlmScanReq is NULL "));
+                        //No need to change max timer. This is not a scan
+                        break;
+                    }
+#if 0
+                }
+#endif
+            }
+
+            if (tx_timer_change(&pMac->lim.limTimers.gLimMaxChannelTimer,
+                                val, 0) != TX_SUCCESS)
+            {
+                // Could not change max channel timer.
+                // Log error
+                limLog(pMac, LOGP,
+                       FL("Unable to change max channel timer"));
+            }
+
             break;
 
         case eLIM_JOIN_FAIL_TIMER:

@@ -28,7 +28,6 @@
 #include <wlan_hdd_wmm.h>
 #include <vos_types.h>
 #include <csrApi.h>
-#include <wlan_hdd_tgt_cfg.h>
 
 //Number of items that can be configured
 #define MAX_CFG_INI_ITEMS   320
@@ -621,6 +620,11 @@ typedef enum
 #define CFG_IGNORE_DTIM_MAX                    WNI_CFG_IGNORE_DTIM_STAMAX
 #define CFG_IGNORE_DTIM_DEFAULT                WNI_CFG_IGNORE_DTIM_STADEF
 
+#define CFG_MAX_LI_MODULATED_DTIM_NAME         "gMaxLIModulatedDTIM"
+#define CFG_MAX_LI_MODULATED_DTIM_MIN          ( 1 )
+#define CFG_MAX_LI_MODULATED_DTIM_MAX          ( 10 )
+#define CFG_MAX_LI_MODULATED_DTIM_DEFAULT      ( 10 )
+
 #define CFG_RX_ANT_CONFIGURATION_NAME          "gNumRxAnt"
 #define CFG_RX_ANT_CONFIGURATION_NAME_MIN      ( 1 )
 #define CFG_RX_ANT_CONFIGURATION_NAME_MAX      ( 2 )
@@ -789,6 +793,13 @@ typedef enum
 #define CFG_OKC_FEATURE_ENABLED_MIN                        (0)
 #define CFG_OKC_FEATURE_ENABLED_MAX                        (1)
 #define CFG_OKC_FEATURE_ENABLED_DEFAULT                    (1)
+#endif
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+#define CFG_ROAM_SCAN_OFFLOAD_ENABLED                       "gRoamScanOffloadEnabled"
+#define CFG_ROAM_SCAN_OFFLOAD_ENABLED_MIN                   (0)
+#define CFG_ROAM_SCAN_OFFLOAD_ENABLED_MAX                   (1)
+#define CFG_ROAM_SCAN_OFFLOAD_ENABLED_DEFAULT               (1)
 #endif
 
 #define CFG_QOS_WMM_PKT_CLASSIFY_BASIS_NAME                "PktClassificationBasis" // DSCP or 802.1Q
@@ -1218,11 +1229,6 @@ typedef enum
 #define CFG_ENABLE_DFS_CHNL_SCAN_MAX               ( 1 )
 #define CFG_ENABLE_DFS_CHNL_SCAN_DEFAULT           ( 1 )
 
-#define CFG_ENABLE_IGNORE_CHAN165                   "gIgnore_Chan165"
-#define CFG_ENABLE_IGNORE_CHAN165_MIN               ( 0 )
-#define CFG_ENABLE_IGNORE_CHAN165_MAX               ( 1 )
-#define CFG_ENABLE_IGNORE_CHAN165_DEFAULT           ( 0 )
-
 typedef enum
 {
     eHDD_LINK_SPEED_REPORT_ACTUAL = 0,
@@ -1283,6 +1289,11 @@ typedef enum
 #define CFG_MC_ADDR_LIST_FILTER_DEFAULT            ( 0 )
 #endif
 
+#define CFG_ENABLE_SSR                      "gEnableSSR"
+#define CFG_ENABLE_SSR_MIN                  ( 0 )
+#define CFG_ENABLE_SSR_MAX                  ( 1 )
+#define CFG_ENABLE_SSR_DEFAULT              ( 1 )
+
 /*
  * VOS Trace Enable Control
  * Notes:
@@ -1310,11 +1321,7 @@ typedef enum
 #define CFG_VOS_TRACE_ENABLE_HDD_NAME     "vosTraceEnableHDD"
 #define CFG_VOS_TRACE_ENABLE_SME_NAME     "vosTraceEnableSME"
 #define CFG_VOS_TRACE_ENABLE_PE_NAME      "vosTraceEnablePE"
-#ifndef WMA_LAYER
 #define CFG_VOS_TRACE_ENABLE_WDA_NAME     "vosTraceEnableWDA"
-#else
-#define CFG_VOS_TRACE_ENABLE_WMA_NAME     "vosTraceEnableWMA"
-#endif
 #define CFG_VOS_TRACE_ENABLE_SYS_NAME     "vosTraceEnableSYS"
 #define CFG_VOS_TRACE_ENABLE_VOSS_NAME    "vosTraceEnableVOSS"
 #define CFG_VOS_TRACE_ENABLE_SAP_NAME     "vosTraceEnableSAP"
@@ -1470,7 +1477,7 @@ typedef enum
 #define CFG_ALLOW_MCC_GO_DIFF_BI_NAME           "gAllowMCCGODiffBI"
 #define CFG_ALLOW_MCC_GO_DIFF_BI_MIN            ( 0 )
 #define CFG_ALLOW_MCC_GO_DIFF_BI_MAX            ( 4 )
-#define CFG_ALLOW_MCC_GO_DIFF_BI_DEFAULT        ( 2 ) 
+#define CFG_ALLOW_MCC_GO_DIFF_BI_DEFAULT        ( 4 )
 
 /*
  * Enable/Disable Thermal Mitigation feature
@@ -1656,6 +1663,26 @@ typedef enum
 #define CFG_DISABLE_LDPC_WITH_TXBF_AP_MAX         ( 1 )
 #define CFG_DISABLE_LDPC_WITH_TXBF_AP_DEFAULT     ( 0 )
 #endif
+
+#define CFG_LIST_OF_NON_DFS_COUNTRY_CODE                    "gListOfNonDfsCountryCode"
+#define CFG_LIST_OF_NON_DFS_COUNTRY_CODE_DEFAULT            "JO,MA"
+
+/*
+ * IBSS Operating Channels for 2.4G and 5GHz channels
+ */
+#define CFG_IBSS_ADHOC_CHANNEL_5GHZ_NAME          "gAdHocChannel5G"
+#define CFG_IBSS_ADHOC_CHANNEL_5GHZ_MIN           ( 36 )
+#define CFG_IBSS_ADHOC_CHANNEL_5GHZ_MAX           ( 165 )
+#define CFG_IBSS_ADHOC_CHANNEL_5GHZ_DEFAULT       ( 44 )
+
+#define CFG_IBSS_ADHOC_CHANNEL_24GHZ_NAME         "gAdHocChannel24G"
+#define CFG_IBSS_ADHOC_CHANNEL_24GHZ_MIN          ( 1 )
+#define CFG_IBSS_ADHOC_CHANNEL_24GHZ_MAX          ( 14 )
+#define CFG_IBSS_ADHOC_CHANNEL_24GHZ_DEFAULT      ( 6 )
+
+#define CFG_LIST_OF_NON_11AC_COUNTRY_CODE                    "gListOfNon11acCountryCode"
+#define CFG_LIST_OF_NON_11AC_COUNTRY_CODE_DEFAULT            "RU,UA,ZA"
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1739,6 +1766,8 @@ typedef struct
    v_BOOL_t      fIsShortPreamble;
    v_BOOL_t      fIsAutoIbssBssid;
    v_MACADDR_t   IbssBssid;
+   v_U32_t       AdHocChannel5G;
+   v_U32_t       AdHocChannel24G;
    
    v_U8_t        intfAddrMask;
    v_MACADDR_t   intfMacAddr[VOS_MAX_CONCURRENCY_PERSONA];
@@ -1821,6 +1850,7 @@ typedef struct
 
    v_U8_t         nRssiFilterPeriod;
    v_BOOL_t       fIgnoreDtim;
+   v_U8_t         fMaxLIModulatedDTIM;
 
    v_U8_t         nRxAnt;
    v_U8_t         fEnableFwHeartBeatMonitoring;
@@ -1857,6 +1887,9 @@ typedef struct
 #endif
 #ifdef FEATURE_WLAN_OKC
    v_BOOL_t                     isOkcIniFeatureEnabled;
+#endif
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+   v_BOOL_t                     isRoamOffloadScanEnabled;
 #endif
    hdd_wmm_classification_t     PktClassificationBasis; // DSCP or 802.1Q
    v_BOOL_t                     bImplicitQosEnabled;
@@ -1934,11 +1967,7 @@ typedef struct
    v_U16_t                     vosTraceEnableHDD;
    v_U16_t                     vosTraceEnableSME;
    v_U16_t                     vosTraceEnablePE;
-#ifndef WMA_LAYER
    v_U16_t                     vosTraceEnableWDA;
-#else
-   v_U16_t                     vosTraceEnableWMA;
-#endif
    v_U16_t                     vosTraceEnableSYS;
    v_U16_t                     vosTraceEnableVOSS;
    v_U16_t                     vosTraceEnableSAP;
@@ -1989,7 +2018,6 @@ typedef struct
    v_BOOL_t                    ignoreDynamicDtimInP2pMode;
    v_U16_t                     configMccParam;
    v_U32_t                     numBuffAdvert;
-   v_U8_t                      ignore_chan165;
    v_BOOL_t                    enableRxSTBC;
 #ifdef FEATURE_WLAN_TDLS       
    v_BOOL_t                    fEnableTDLSSupport;
@@ -2020,13 +2048,15 @@ typedef struct
    v_U8_t                      retryLimitZero;
    v_U8_t                      retryLimitOne;
    v_U8_t                      retryLimitTwo;
+   char                        listOfNonDfsCountryCode[128];
+   v_BOOL_t                    enableSSR;
+   char                        listOfNon11acCountryCode[128];
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
   -------------------------------------------------------------------------*/ 
 VOS_STATUS hdd_parse_config_ini(hdd_context_t *pHddCtx);
 VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx );
-VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx);
 v_BOOL_t hdd_update_config_dat ( hdd_context_t *pHddCtx );
 VOS_STATUS hdd_cfg_get_config(hdd_context_t *pHddCtx, char *pBuf, int buflen);
 eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
@@ -2130,12 +2160,5 @@ static __inline unsigned long utilMin( unsigned long a, unsigned long b )
 {
   return( ( a < b ) ? a : b );
 }
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-void hdd_update_tgt_cfg(hdd_context_t *hdd_ctx, struct hdd_tgt_cfg *cfg);
-#else
-static inline void hdd_update_tgt_cfg(hdd_context_t *hdd_ctx,
-				      struct hdd_tgt_cfg *cfg)
-{
-}
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+
 #endif

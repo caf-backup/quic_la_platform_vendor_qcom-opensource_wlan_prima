@@ -53,7 +53,7 @@
 #include "sirParams.h"
 //#include "halFwApi.h"
  
-#include "txrx.h"
+#include "wlan_qct_tl.h"
 #include "vos_trace.h"
 // Pick up the sme callback registration API
 #include "sme_Api.h"
@@ -708,6 +708,7 @@ WLANBAP_CleanCB
 
 
   // Include the HDD BAP Shim Layer callbacks for Fetch, TxComp, and RxPkt
+  pBtampCtx->pfnBtampFetchPktCB = NULL;   
   pBtampCtx->pfnBtamp_STARxCB = NULL;   
   pBtampCtx->pfnBtampTxCompCB = NULL;   
   /* Implements the callback for ALL asynchronous events. */ 
@@ -1336,7 +1337,7 @@ VOS_STATUS WLANBAP_RxCallback
 (
     v_PVOID_t               pvosGCtx, 
     vos_pkt_t              *pPacket,
-    enum bt_frame_type frameType
+    WLANTL_BAPFrameEnumType frameType
 )
 {
     ptBtampContext  pBtampCtx = NULL; 
@@ -1351,8 +1352,8 @@ VOS_STATUS WLANBAP_RxCallback
 
     switch (frameType)
     {
-      case TXRX_BT_AMP_TYPE_LS_REQ:  /* Fall through */
-      case TXRX_BT_AMP_TYPE_LS_REP:
+      case WLANTL_BT_AMP_TYPE_LS_REQ:  /* Fall through */
+      case WLANTL_BT_AMP_TYPE_LS_REP:
       {
           /* Link supervision frame, process this frame */
           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -1365,8 +1366,8 @@ VOS_STATUS WLANBAP_RxCallback
           break;
       }
 
-      case TXRX_BT_AMP_TYPE_AR: /* Fall through */
-      case TXRX_BT_AMP_TYPE_SEC:
+      case WLANTL_BT_AMP_TYPE_AR: /* Fall through */
+      case WLANTL_BT_AMP_TYPE_SEC:
       {
           /* Call the RSN callback handler */
           bapRsnRxCallback (pvosGCtx, pPacket);

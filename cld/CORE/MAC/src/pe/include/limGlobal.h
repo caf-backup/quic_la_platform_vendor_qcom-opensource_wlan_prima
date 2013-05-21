@@ -25,9 +25,7 @@
 #include "wniCfgSta.h"
 #include "csrApi.h"
 #include "sapApi.h"
-#ifdef FEATURE_WLAN_TDLS
 #include "dot11f.h"
-#endif
 
 /// Maximum number of scan hash table entries
 #define LIM_MAX_NUM_OF_SCAN_RESULTS 256
@@ -208,6 +206,10 @@ typedef void (*SUSPEND_RESUME_LINK_CALLBACK)(tpAniSirGlobal pMac, eHalStatus sta
 typedef enum eLimHalScanState
 {
   eLIM_HAL_IDLE_SCAN_STATE,
+  eLIM_HAL_INIT_SCAN_WAIT_STATE,
+  eLIM_HAL_START_SCAN_WAIT_STATE,
+  eLIM_HAL_END_SCAN_WAIT_STATE,
+  eLIM_HAL_FINISH_SCAN_WAIT_STATE,
   eLIM_HAL_INIT_LEARN_WAIT_STATE,
   eLIM_HAL_START_LEARN_WAIT_STATE,
   eLIM_HAL_END_LEARN_WAIT_STATE,
@@ -270,10 +272,6 @@ typedef struct sLimMlmScanReq
     tANI_U16           uIEFieldLen;
     tANI_U16           uIEFieldOffset;
 
-	tANI_U32           scan_id;
-	tANI_U32           scan_requestor_id;
-	tANI_U32           scan_prio;
-
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
     /*-----------------------------
@@ -293,7 +291,6 @@ typedef struct sLimMlmScanReq
       ... variable size uIEFiled 
       up to uIEFieldLen (can be 0)
       -----------------------------*/
-     tANI_U8 vdev_id;
 } tLimMlmScanReq, *tpLimMlmScanReq;
 
 typedef struct tLimScanResultNode tLimScanResultNode;
@@ -467,7 +464,9 @@ struct tLimIbssPeerNode
     tANI_U8                       wmeEdcaPresent:1;
     tANI_U8                       wmeInfoPresent:1;
     tANI_U8                       htCapable:1;
-    tANI_U8                       rsvd:2;
+    tANI_U8                       vhtCapable:1;
+    tANI_U8                       rsvd:1;
+    tANI_U8                       htSecondaryChannelOffset;
     tSirMacCapabilityInfo    capabilityInfo;
     tSirMacRateSet           supportedRates;
     tSirMacRateSet           extendedRates;
@@ -519,7 +518,12 @@ struct tLimIbssPeerNode
 
     tANI_U8 *beacon; //Hold beacon to be sent to HDD/CSR
     tANI_U16 beaconLen;
-    
+
+#ifdef WLAN_FEATURE_11AC
+    tDot11fIEVHTCaps VHTCaps;
+    tANI_U8 vhtSupportedChannelWidthSet;
+    tANI_U8 vhtBeamFormerCapable;
+#endif
 };
 
 // Enums used for channel switching.

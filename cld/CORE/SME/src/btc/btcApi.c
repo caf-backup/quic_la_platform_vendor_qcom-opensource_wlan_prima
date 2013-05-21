@@ -14,11 +14,7 @@
 * Qualcomm Technologies Confidential and Proprietary.
 *
 ******************************************************************************/
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
 #include "aniGlobal.h"
 #include "smsDebug.h"
@@ -215,18 +211,10 @@ static VOS_STATUS btcSendBTEvent(tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent)
    btcDiagEventLog(pMac, pBtEvent);
 #endif
    vos_mem_copy(ptrSmeBtEvent, pBtEvent, sizeof(tSmeBtEvent));
-#ifndef WMA_LAYER
    msg.type = WDA_SIGNAL_BT_EVENT;
-#else
-   msg.type = WMA_SIGNAL_BT_EVENT;
-#endif
    msg.reserved = 0;
    msg.bodyptr = ptrSmeBtEvent;
-#ifndef WMA_LAYER
    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-   if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
          "Not able to post WDA_SIGNAL_BT_EVENT message to WDA", __func__);
@@ -477,18 +465,10 @@ VOS_STATUS btcSendCfgMsg(tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
       return VOS_STATUS_E_FAILURE;
    }
    vos_mem_copy(ptrSmeBtcConfig, pSmeBtcConfig, sizeof(tSmeBtcConfig));
-#ifndef WMA_LAYER
    msg.type = WDA_BTC_SET_CFG;
-#else
-   msg.type = WMA_BTC_SET_CFG;
-#endif
    msg.reserved = 0;
    msg.bodyptr = ptrSmeBtcConfig;
-#ifndef WMA_LAYER
    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-   if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcSendCfgMsg: "
          "Not able to post WDA_BTC_SET_CFG message to WDA");
@@ -805,14 +785,23 @@ static VOS_STATUS btcDeferAclCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
         else
         {
             //There is history on this BD address
-            VOS_ASSERT(pAclEventHist->bNextEventIdx > 0);
+            if ((pAclEventHist->bNextEventIdx <= 0) ||
+                (pAclEventHist->bNextEventIdx > BT_MAX_NUM_EVENT_ACL_DEFERRED))
+            {
+                VOS_ASSERT(0);
+                status = VOS_STATUS_E_FAILURE;
+                break;
+            }
             pAclEvent = &pAclEventHist->btAclConnection[pAclEventHist->bNextEventIdx - 1];
             if(BT_EVENT_CREATE_ACL_CONNECTION == pAclEventHist->btEventType[pAclEventHist->bNextEventIdx - 1])
             {
                 //The last cached event is creation, replace it with the new one
-                vos_mem_copy(pAclEvent, 
-                                &pEvent->uEventParam.btAclConnection, 
-                                sizeof(tSmeBtAclConnectionParam));
+                if (pAclEvent)
+                {
+                    vos_mem_copy(pAclEvent,
+                                 &pEvent->uEventParam.btAclConnection,
+                                 sizeof(tSmeBtAclConnectionParam));
+                }
                 //done
                 break;
             }
@@ -963,15 +952,24 @@ static VOS_STATUS btcDeferSyncCreate( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
         else
         {
             //There is history on this BD address
-            VOS_ASSERT(pSyncEventHist->bNextEventIdx > 0);
+            if ((pSyncEventHist->bNextEventIdx <= 0) ||
+                (pSyncEventHist->bNextEventIdx > BT_MAX_NUM_EVENT_SCO_DEFERRED))
+            {
+                VOS_ASSERT(0);
+                status = VOS_STATUS_E_FAILURE;
+                return status;
+            }
             pSyncEvent = &pSyncEventHist->btSyncConnection[pSyncEventHist->bNextEventIdx - 1];
             if(BT_EVENT_CREATE_SYNC_CONNECTION == 
                 pSyncEventHist->btEventType[pSyncEventHist->bNextEventIdx - 1])
             {
                 //The last cached event is creation, replace it with the new one
-                vos_mem_copy(pSyncEvent, 
-                                &pEvent->uEventParam.btSyncConnection, 
-                                sizeof(tSmeBtSyncConnectionParam));
+                if(pSyncEvent)
+                {
+                    vos_mem_copy(pSyncEvent,
+                                 &pEvent->uEventParam.btSyncConnection,
+                                 sizeof(tSmeBtSyncConnectionParam));
+                }
                 //done
                 break;
             }

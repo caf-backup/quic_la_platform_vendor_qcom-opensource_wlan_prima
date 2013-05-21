@@ -34,14 +34,6 @@
 #include "limSessionUtils.h"
 #include "limSession.h"
 #include "vos_nvitem.h"
-#ifdef REMOVE_TL
-#include "adf_nbuf.h"
-#endif	/* #ifdef REMOVE_TL */
-
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
 
 /* Static global used to mark situations where pMac->lim.gLimTriggerBackgroundScanDuringQuietBss is SET
  * and limTriggerBackgroundScanDuringQuietBss() returned failure.  In this case, we will stop data
@@ -52,6 +44,11 @@ static tAniBool glimTriggerBackgroundScanDuringQuietBss_Status = eSIR_TRUE;
 /* 11A Channel list to decode RX BD channel information */
 static const tANI_U8 abChannel[]= {36,40,44,48,52,56,60,64,100,104,108,112,116,
             120,124,128,132,136,140,149,153,157,161,165};
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+static const tANI_U8 aUnsortedChannelList[]= {52,56,60,64,100,104,108,112,116,
+            120,124,128,132,136,140,36,40,44,48,149,153,157,161,165};
+#endif
 
 //#define LIM_MAX_ACTIVE_SESSIONS 3  //defined temporarily for BT-AMP SUPPORT 
 #define SUCCESS 1                   //defined temporarily for BT-AMP
@@ -181,16 +178,7 @@ limDeleteDialogueTokenList(tpAniSirGlobal pMac)
 void
 limGetBssidFromBD(tpAniSirGlobal pMac, tANI_U8 * pRxPacketInfo, tANI_U8 *bssId, tANI_U32 *pIgnore)
 {
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
     tpSirMacDataHdr3a pMh = WDA_GET_RX_MPDUHEADER3A(pRxPacketInfo);
-#else
-    tpSirMacDataHdr3a pMh = 
-           (tpSirMacDataHdr3a)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
     *pIgnore = 0;
 
     if (pMh->fc.toDS == 1 && pMh->fc.fromDS == 0)
@@ -433,236 +421,236 @@ char *limMsgStr(tANI_U32 msgType)
     switch (msgType)
     {
         case eWNI_SME_START_REQ:
-            return "eWNI_SME_START_REQ\n";
+            return "eWNI_SME_START_REQ";
         case eWNI_SME_START_RSP:
-            return "eWNI_SME_START_RSP\n";
+            return "eWNI_SME_START_RSP";
         case eWNI_SME_SYS_READY_IND:
-            return "eWNI_SME_SYS_READY_IND\n";
+            return "eWNI_SME_SYS_READY_IND";
         case eWNI_SME_SCAN_REQ:
-            return "eWNI_SME_SCAN_REQ\n";
+            return "eWNI_SME_SCAN_REQ";
 #ifdef FEATURE_OEM_DATA_SUPPORT
         case eWNI_SME_OEM_DATA_REQ:
-            return "eWNI_SME_OEM_DATA_REQ\n";
+            return "eWNI_SME_OEM_DATA_REQ";
         case eWNI_SME_OEM_DATA_RSP:
-            return "eWNI_SME_OEM_DATA_RSP\n";
+            return "eWNI_SME_OEM_DATA_RSP";
 #endif
         case eWNI_SME_SCAN_RSP:
-            return "eWNI_SME_SCAN_RSP\n";
+            return "eWNI_SME_SCAN_RSP";
         case eWNI_SME_JOIN_REQ:
-            return "eWNI_SME_JOIN_REQ\n";
+            return "eWNI_SME_JOIN_REQ";
         case eWNI_SME_JOIN_RSP:
-            return "eWNI_SME_JOIN_RSP\n";
+            return "eWNI_SME_JOIN_RSP";
         case eWNI_SME_SETCONTEXT_REQ:
-            return "eWNI_SME_SETCONTEXT_REQ\n";
+            return "eWNI_SME_SETCONTEXT_REQ";
         case eWNI_SME_SETCONTEXT_RSP:
-            return "eWNI_SME_SETCONTEXT_RSP\n";
+            return "eWNI_SME_SETCONTEXT_RSP";
         case eWNI_SME_REASSOC_REQ:
-            return "eWNI_SME_REASSOC_REQ\n";
+            return "eWNI_SME_REASSOC_REQ";
         case eWNI_SME_REASSOC_RSP:
-            return "eWNI_SME_REASSOC_RSP\n";
+            return "eWNI_SME_REASSOC_RSP";
         case eWNI_SME_AUTH_REQ:
-            return "eWNI_SME_AUTH_REQ\n";
+            return "eWNI_SME_AUTH_REQ";
         case eWNI_SME_AUTH_RSP:
-            return "eWNI_SME_AUTH_RSP\n";
+            return "eWNI_SME_AUTH_RSP";
         case eWNI_SME_DISASSOC_REQ:
-            return "eWNI_SME_DISASSOC_REQ\n";
+            return "eWNI_SME_DISASSOC_REQ";
         case eWNI_SME_DISASSOC_RSP:
-            return "eWNI_SME_DISASSOC_RSP\n";
+            return "eWNI_SME_DISASSOC_RSP";
         case eWNI_SME_DISASSOC_IND:
-            return "eWNI_SME_DISASSOC_IND\n";
+            return "eWNI_SME_DISASSOC_IND";
         case eWNI_SME_DISASSOC_CNF:
-            return "eWNI_SME_DISASSOC_CNF\n";
+            return "eWNI_SME_DISASSOC_CNF";
         case eWNI_SME_DEAUTH_REQ:
-            return "eWNI_SME_DEAUTH_REQ\n";
+            return "eWNI_SME_DEAUTH_REQ";
         case eWNI_SME_DEAUTH_RSP:
-            return "eWNI_SME_DEAUTH_RSP\n";
+            return "eWNI_SME_DEAUTH_RSP";
         case eWNI_SME_DEAUTH_IND:
-            return "eWNI_SME_DEAUTH_IND\n";
+            return "eWNI_SME_DEAUTH_IND";
         case eWNI_SME_WM_STATUS_CHANGE_NTF:
-            return "eWNI_SME_WM_STATUS_CHANGE_NTF\n";
+            return "eWNI_SME_WM_STATUS_CHANGE_NTF";
         case eWNI_SME_START_BSS_REQ:
-            return "eWNI_SME_START_BSS_REQ\n";
+            return "eWNI_SME_START_BSS_REQ";
         case eWNI_SME_START_BSS_RSP:
-            return "eWNI_SME_START_BSS_RSP\n";
+            return "eWNI_SME_START_BSS_RSP";
         case eWNI_SME_AUTH_IND:
-            return "eWNI_SME_AUTH_IND\n";
+            return "eWNI_SME_AUTH_IND";
         case eWNI_SME_ASSOC_IND:
-            return "eWNI_SME_ASSOC_IND\n";
+            return "eWNI_SME_ASSOC_IND";
         case eWNI_SME_ASSOC_CNF:
-            return "eWNI_SME_ASSOC_CNF\n";
+            return "eWNI_SME_ASSOC_CNF";
         case eWNI_SME_REASSOC_IND:
-            return "eWNI_SME_REASSOC_IND\n";
+            return "eWNI_SME_REASSOC_IND";
         case eWNI_SME_REASSOC_CNF:
-            return "eWNI_SME_REASSOC_CNF\n";
+            return "eWNI_SME_REASSOC_CNF";
         case eWNI_SME_SWITCH_CHL_REQ:
-            return "eWNI_SME_SWITCH_CHL_REQ\n";
+            return "eWNI_SME_SWITCH_CHL_REQ";
         case eWNI_SME_SWITCH_CHL_RSP:
-            return "eWNI_SME_SWITCH_CHL_RSP\n";
+            return "eWNI_SME_SWITCH_CHL_RSP";
         case eWNI_SME_SWITCH_CHL_CB_PRIMARY_REQ:
-            return "eWNI_SME_SWITCH_CHL_CB_PRIMARY_REQ\n";
+            return "eWNI_SME_SWITCH_CHL_CB_PRIMARY_REQ";
         case eWNI_SME_SWITCH_CHL_CB_SECONDARY_REQ:
-            return "eWNI_SME_SWITCH_CHL_CB_SECONDARY_REQ\n";
+            return "eWNI_SME_SWITCH_CHL_CB_SECONDARY_REQ";
         case eWNI_SME_STOP_BSS_REQ:
-            return "eWNI_SME_STOP_BSS_REQ\n";
+            return "eWNI_SME_STOP_BSS_REQ";
         case eWNI_SME_STOP_BSS_RSP:
-            return "eWNI_SME_STOP_BSS_RSP\n";
+            return "eWNI_SME_STOP_BSS_RSP";
         case eWNI_SME_PROMISCUOUS_MODE_REQ:
-            return "eWNI_SME_PROMISCUOUS_MODE_REQ\n";
+            return "eWNI_SME_PROMISCUOUS_MODE_REQ";
         case eWNI_SME_PROMISCUOUS_MODE_RSP:
-            return "eWNI_SME_PROMISCUOUS_MODE_RSP\n";
+            return "eWNI_SME_PROMISCUOUS_MODE_RSP";
         case eWNI_SME_NEIGHBOR_BSS_IND:
-            return "eWNI_SME_NEIGHBOR_BSS_IND\n";
+            return "eWNI_SME_NEIGHBOR_BSS_IND";
         case eWNI_SME_MEASUREMENT_REQ:
-            return "eWNI_SME_MEASUREMENT_REQ\n";
+            return "eWNI_SME_MEASUREMENT_REQ";
         case eWNI_SME_MEASUREMENT_RSP:
-            return "eWNI_SME_MEASUREMENT_RSP\n";
+            return "eWNI_SME_MEASUREMENT_RSP";
         case eWNI_SME_MEASUREMENT_IND:
-            return "eWNI_SME_MEASUREMENT_IND\n";
+            return "eWNI_SME_MEASUREMENT_IND";
         case eWNI_SME_SET_WDS_INFO_REQ:
-            return "eWNI_SME_SET_WDS_INFO_REQ\n";
+            return "eWNI_SME_SET_WDS_INFO_REQ";
         case eWNI_SME_SET_WDS_INFO_RSP:
-            return "eWNI_SME_SET_WDS_INFO_RSP\n";
+            return "eWNI_SME_SET_WDS_INFO_RSP";
         case eWNI_SME_WDS_INFO_IND:
-            return "eWNI_SME_WDS_INFO_IND\n";
+            return "eWNI_SME_WDS_INFO_IND";
         case eWNI_SME_DEAUTH_CNF:
-            return "eWNI_SME_DEAUTH_CNF\n";
+            return "eWNI_SME_DEAUTH_CNF";
         case eWNI_SME_MIC_FAILURE_IND:
-            return "eWNI_SME_MIC_FAILURE_IND\n";
+            return "eWNI_SME_MIC_FAILURE_IND";
         case eWNI_SME_ADDTS_REQ:
-            return "eWNI_SME_ADDTS_REQ\n";
+            return "eWNI_SME_ADDTS_REQ";
         case eWNI_SME_ADDTS_RSP:
-            return "eWNI_SME_ADDTS_RSP\n";
+            return "eWNI_SME_ADDTS_RSP";
         case eWNI_SME_ADDTS_CNF:
-            return "eWNI_SME_ADDTS_CNF\n";
+            return "eWNI_SME_ADDTS_CNF";
         case eWNI_SME_ADDTS_IND:
-            return "eWNI_SME_ADDTS_IND\n";
+            return "eWNI_SME_ADDTS_IND";
         case eWNI_SME_DELTS_REQ:
-            return "eWNI_SME_DELTS_REQ\n";
+            return "eWNI_SME_DELTS_REQ";
         case eWNI_SME_DELTS_RSP:
-            return "eWNI_SME_DELTS_RSP\n";
+            return "eWNI_SME_DELTS_RSP";
         case eWNI_SME_DELTS_IND:
-            return "eWNI_SME_DELTS_IND\n";
+            return "eWNI_SME_DELTS_IND";
 #if defined WLAN_FEATURE_VOWIFI_11R || defined FEATURE_WLAN_CCX || defined(FEATURE_WLAN_LFR)
         case eWNI_SME_GET_ROAM_RSSI_REQ:
-            return "eWNI_SME_GET_ROAM_RSSI_REQ\n";
+            return "eWNI_SME_GET_ROAM_RSSI_REQ";
         case eWNI_SME_GET_ROAM_RSSI_RSP:
-            return "eWNI_SME_GET_ROAM_RSSI_RSP\n";
+            return "eWNI_SME_GET_ROAM_RSSI_RSP";
 #endif
 
-#ifndef WMA_LAYER
         case WDA_SUSPEND_ACTIVITY_RSP:
-#else
-        case WMA_SUSPEND_ACTIVITY_RSP:
-#endif
-            return "WDA_SUSPEND_ACTIVITY_RSP\n";
+            return "WDA_SUSPEND_ACTIVITY_RSP";
         case SIR_LIM_RETRY_INTERRUPT_MSG:
-            return "SIR_LIM_RETRY_INTERRUPT_MSG\n";
+            return "SIR_LIM_RETRY_INTERRUPT_MSG";
         case SIR_BB_XPORT_MGMT_MSG:
-            return "SIR_BB_XPORT_MGMT_MSG\n";
+            return "SIR_BB_XPORT_MGMT_MSG";
         case SIR_LIM_INV_KEY_INTERRUPT_MSG:
-            return "SIR_LIM_INV_KEY_INTERRUPT_MSG\n";
+            return "SIR_LIM_INV_KEY_INTERRUPT_MSG";
         case SIR_LIM_KEY_ID_INTERRUPT_MSG:
-            return "SIR_LIM_KEY_ID_INTERRUPT_MSG\n";
+            return "SIR_LIM_KEY_ID_INTERRUPT_MSG";
         case SIR_LIM_REPLAY_THRES_INTERRUPT_MSG:
-            return "SIR_LIM_REPLAY_THRES_INTERRUPT_MSG\n";
+            return "SIR_LIM_REPLAY_THRES_INTERRUPT_MSG";
+        case SIR_LIM_MIN_CHANNEL_TIMEOUT:
+            return "SIR_LIM_MIN_CHANNEL_TIMEOUT";
+        case SIR_LIM_MAX_CHANNEL_TIMEOUT:
+            return "SIR_LIM_MAX_CHANNEL_TIMEOUT";
         case SIR_LIM_JOIN_FAIL_TIMEOUT:
-            return "SIR_LIM_JOIN_FAIL_TIMEOUT\n";
+            return "SIR_LIM_JOIN_FAIL_TIMEOUT";
         case SIR_LIM_AUTH_FAIL_TIMEOUT:
-            return "SIR_LIM_AUTH_FAIL_TIMEOUT\n";
+            return "SIR_LIM_AUTH_FAIL_TIMEOUT";
         case SIR_LIM_AUTH_RSP_TIMEOUT:
-            return "SIR_LIM_AUTH_RSP_TIMEOUT\n";
+            return "SIR_LIM_AUTH_RSP_TIMEOUT";
         case SIR_LIM_ASSOC_FAIL_TIMEOUT:
-            return "SIR_LIM_ASSOC_FAIL_TIMEOUT\n";
+            return "SIR_LIM_ASSOC_FAIL_TIMEOUT";
         case SIR_LIM_REASSOC_FAIL_TIMEOUT:
-            return "SIR_LIM_REASSOC_FAIL_TIMEOUT\n";
+            return "SIR_LIM_REASSOC_FAIL_TIMEOUT";
         case SIR_LIM_HEART_BEAT_TIMEOUT:
-            return "SIR_LIM_HEART_BEAT_TIMEOUT\n";
+            return "SIR_LIM_HEART_BEAT_TIMEOUT";
         case SIR_LIM_ADDTS_RSP_TIMEOUT:
-            return "SIR_LIM_ADDTS_RSP_TIMEOUT\n";
+            return "SIR_LIM_ADDTS_RSP_TIMEOUT";
         case SIR_LIM_CHANNEL_SCAN_TIMEOUT:
-            return "SIR_LIM_CHANNEL_SCAN_TIMEOUT\n";
+            return "SIR_LIM_CHANNEL_SCAN_TIMEOUT";
         case SIR_LIM_LINK_TEST_DURATION_TIMEOUT:
-            return "SIR_LIM_LINK_TEST_DURATION_TIMEOUT\n";
+            return "SIR_LIM_LINK_TEST_DURATION_TIMEOUT";
         case SIR_LIM_HASH_MISS_THRES_TIMEOUT:
-            return "SIR_LIM_HASH_MISS_THRES_TIMEOUT\n";
+            return "SIR_LIM_HASH_MISS_THRES_TIMEOUT";
         case SIR_LIM_KEEPALIVE_TIMEOUT:
-            return "SIR_LIM_KEEPALIVE_TIMEOUT\n";
+            return "SIR_LIM_KEEPALIVE_TIMEOUT";
         case SIR_LIM_UPDATE_OLBC_CACHEL_TIMEOUT:
-            return "SIR_LIM_UPDATE_OLBC_CACHEL_TIMEOUT\n";
+            return "SIR_LIM_UPDATE_OLBC_CACHEL_TIMEOUT";
         case SIR_LIM_CNF_WAIT_TIMEOUT:
-            return "SIR_LIM_CNF_WAIT_TIMEOUT\n";
+            return "SIR_LIM_CNF_WAIT_TIMEOUT";
         case SIR_LIM_RADAR_DETECT_IND:
-            return "SIR_LIM_RADAR_DETECT_IND\n";
+            return "SIR_LIM_RADAR_DETECT_IND";
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case SIR_LIM_FT_PREAUTH_RSP_TIMEOUT:
-            return "SIR_LIM_FT_PREAUTH_RSP_TIMEOUT\n";
+            return "SIR_LIM_FT_PREAUTH_RSP_TIMEOUT";
 #endif
 
         case SIR_HAL_APP_SETUP_NTF:
-            return "SIR_HAL_APP_SETUP_NTF\n";
+            return "SIR_HAL_APP_SETUP_NTF";
         case SIR_HAL_INITIAL_CAL_FAILED_NTF:
-            return "SIR_HAL_INITIAL_CAL_FAILED_NTF\n";
+            return "SIR_HAL_INITIAL_CAL_FAILED_NTF";
         case SIR_HAL_NIC_OPER_NTF:
-            return "SIR_HAL_NIC_OPER_NTF\n";
+            return "SIR_HAL_NIC_OPER_NTF";
         case SIR_HAL_INIT_START_REQ:
-            return "SIR_HAL_INIT_START_REQ\n";
+            return "SIR_HAL_INIT_START_REQ";
         case SIR_HAL_SHUTDOWN_REQ:
-            return "SIR_HAL_SHUTDOWN_REQ\n";
+            return "SIR_HAL_SHUTDOWN_REQ";
         case SIR_HAL_SHUTDOWN_CNF:
-            return "SIR_HAL_SHUTDOWN_CNF\n";
+            return "SIR_HAL_SHUTDOWN_CNF";
         case SIR_HAL_RESET_REQ:
-            return "SIR_HAL_RESET_REQ\n";
+            return "SIR_HAL_RESET_REQ";
         case SIR_HAL_RESET_CNF:
-            return "SIR_HAL_RESET_CNF\n";
+            return "SIR_HAL_RESET_CNF";
         case SIR_WRITE_TO_TD:
-            return "SIR_WRITE_TO_TD\n";
+            return "SIR_WRITE_TO_TD";
 
         case WNI_CFG_PARAM_UPDATE_IND:
-            return "WNI_CFG_PARAM_UPDATE_IND\n";
+            return "WNI_CFG_PARAM_UPDATE_IND";
         case WNI_CFG_DNLD_REQ:
-            return "WNI_CFG_DNLD_REQ\n";
+            return "WNI_CFG_DNLD_REQ";
         case WNI_CFG_DNLD_CNF:
-            return "WNI_CFG_DNLD_CNF\n";
+            return "WNI_CFG_DNLD_CNF";
         case WNI_CFG_GET_RSP:
-            return "WNI_CFG_GET_RSP\n";
+            return "WNI_CFG_GET_RSP";
         case WNI_CFG_SET_CNF:
-            return "WNI_CFG_SET_CNF\n";
+            return "WNI_CFG_SET_CNF";
         case WNI_CFG_GET_ATTRIB_RSP:
-            return "WNI_CFG_GET_ATTRIB_RSP\n";
+            return "WNI_CFG_GET_ATTRIB_RSP";
         case WNI_CFG_ADD_GRP_ADDR_CNF:
-            return "WNI_CFG_ADD_GRP_ADDR_CNF\n";
+            return "WNI_CFG_ADD_GRP_ADDR_CNF";
         case WNI_CFG_DEL_GRP_ADDR_CNF:
-            return "WNI_CFG_DEL_GRP_ADDR_CNF\n";
+            return "WNI_CFG_DEL_GRP_ADDR_CNF";
         case ANI_CFG_GET_RADIO_STAT_RSP:
-            return "ANI_CFG_GET_RADIO_STAT_RSP\n";
+            return "ANI_CFG_GET_RADIO_STAT_RSP";
         case ANI_CFG_GET_PER_STA_STAT_RSP:
-            return "ANI_CFG_GET_PER_STA_STAT_RSP\n";
+            return "ANI_CFG_GET_PER_STA_STAT_RSP";
         case ANI_CFG_GET_AGG_STA_STAT_RSP:
-            return "ANI_CFG_GET_AGG_STA_STAT_RSP\n";
+            return "ANI_CFG_GET_AGG_STA_STAT_RSP";
         case ANI_CFG_CLEAR_STAT_RSP:
-            return "ANI_CFG_CLEAR_STAT_RSP\n";
+            return "ANI_CFG_CLEAR_STAT_RSP";
         case WNI_CFG_DNLD_RSP:
-            return "WNI_CFG_DNLD_RSP\n";
+            return "WNI_CFG_DNLD_RSP";
         case WNI_CFG_GET_REQ:
-            return "WNI_CFG_GET_REQ\n";
+            return "WNI_CFG_GET_REQ";
         case WNI_CFG_SET_REQ:
-            return "WNI_CFG_SET_REQ\n";
+            return "WNI_CFG_SET_REQ";
         case WNI_CFG_SET_REQ_NO_RSP:
-            return "WNI_CFG_SET_REQ_NO_RSP\n";
+            return "WNI_CFG_SET_REQ_NO_RSP";
         case eWNI_PMC_ENTER_IMPS_RSP:
-            return "eWNI_PMC_ENTER_IMPS_RSP\n";
+            return "eWNI_PMC_ENTER_IMPS_RSP";
         case eWNI_PMC_EXIT_IMPS_RSP:
-            return "eWNI_PMC_EXIT_IMPS_RSP\n";
+            return "eWNI_PMC_EXIT_IMPS_RSP";
         case eWNI_PMC_ENTER_BMPS_RSP:
-            return "eWNI_PMC_ENTER_BMPS_RSP\n";
+            return "eWNI_PMC_ENTER_BMPS_RSP";
         case eWNI_PMC_EXIT_BMPS_RSP:
-            return "eWNI_PMC_EXIT_BMPS_RSP\n";
+            return "eWNI_PMC_EXIT_BMPS_RSP";
         case eWNI_PMC_EXIT_BMPS_IND:
-            return "eWNI_PMC_EXIT_BMPS_IND\n";
+            return "eWNI_PMC_EXIT_BMPS_IND";
         case eWNI_SME_SET_BCN_FILTER_REQ:
-            return "eWNI_SME_SET_BCN_FILTER_REQ\n";
+            return "eWNI_SME_SET_BCN_FILTER_REQ";
         default:
-            return "INVALID SME message\n";
+            return "INVALID SME message";
     }
 #endif
 return "";
@@ -880,6 +868,13 @@ limInitMlm(tpAniSirGlobal pMac)
     /// Initialize scan result hash table
     limReInitScanResults(pMac); //sep26th review
 
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    /// Initialize lfr scan result hash table
+    // Could there be a problem in multisession with SAP/P2P GO, when in the
+    // middle of FW bg scan, SAP started; Again that could be a problem even on
+    // infra + SAP/P2P GO too - TBD
+    limReInitLfrScanResults(pMac);
+#endif
   
     /// Initialize number of pre-auth contexts
     pMac->lim.gLimNumPreAuthContexts = 0;
@@ -936,6 +931,15 @@ limCleanupMlm(tpAniSirGlobal pMac)
 
     if (pMac->lim.gLimTimersCreated == 1)
     {
+        // Deactivate and delete MIN/MAX channel timers.
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimMinChannelTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimMinChannelTimer);
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimMaxChannelTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimMaxChannelTimer);
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer);
+
+
         // Deactivate and delete channel switch timer.
         tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimChannelSwitchTimer);
@@ -1061,6 +1065,10 @@ limCleanupMlm(tpAniSirGlobal pMac)
 
     /// Cleanup cached scan list
     limReInitScanResults(pMac);
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    /// Cleanup cached scan list
+    limReInitLfrScanResults(pMac);
+#endif
 
 } /*** end limCleanupMlm() ***/
 
@@ -5025,37 +5033,20 @@ void limTxComplete( tHalHandle hHal, void *pData )
     {
         tpSirMacMgmtHdr mHdr;
         v_U8_t         *pRxBd;
-#ifndef REMOVE_TL
         vos_pkt_t      *pVosPkt;
         VOS_STATUS      vosStatus;
+
+
 
         pVosPkt = (vos_pkt_t *)pData;
         vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pRxBd, WLANHAL_RX_BD_HEADER_SIZE);
 
         if(VOS_IS_STATUS_SUCCESS(vosStatus))
         {
-#ifndef WMA_LAYER
             mHdr = WDA_GET_RX_MAC_HEADER(pRxBd);
-#else
-            mHdr = WMA_GET_RX_MAC_HEADER(pRxBd);
-#endif
             MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, NO_SESSION, mHdr->fc.subType);)
 
         }   
-#else
-	adf_nbuf_t	pkt;
-	a_status_t	status;
-
-
-	pkt = (adf_nbuf_t)pData;
-	status = adf_nbuf_peek_data(pkt, 0, (v_PVOID_t *)&pRxBd, WLANHAL_RX_BD_HEADER_SIZE);
-
-        if(status == A_STATUS_OK)
-        {
-            mHdr = WDA_GET_RX_MAC_HEADER(pRxBd);
-            MTRACE(macTrace(pMac, TRACE_CODE_TX_COMPLETE, NO_SESSION, mHdr->fc.subType);)
-        }   
-#endif	/* #ifndef REMOVE_TL */
     }
 #endif
 #endif
@@ -5461,20 +5452,12 @@ limRegisterHalIndCallBack(tpAniSirGlobal pMac)
 
     pHalCB->pHalIndCB = limProcessHalIndMessages;
 
-#ifndef WMA_LAYER
     msg.type = WDA_REGISTER_PE_CALLBACK;
-#else
-    msg.type = WMA_REGISTER_PE_CALLBACK;
-#endif
     msg.bodyptr = pHalCB;
     msg.bodyval = 0;
     
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msg.type));
-#ifndef WMA_LAYER
     if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
-#else
-    if(eSIR_SUCCESS != wmaPostCtrlMsg(pMac, &msg))
-#endif
     {
         palFreeMemory(pMac->hHdd, pHalCB);
         limLog(pMac, LOGP, FL("wdaPostCtrlMsg() failed"));
@@ -5575,8 +5558,8 @@ limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
             if((eBA_DISABLE == pSta->tcCfg[tid].fUseBATx) &&
                  (pBaCandidate->baInfo[tid].fBaEnable))
             {
-               PELOG2(limLog(pMac, LOG2, FL("BA setup for staId = %d, TID: %d, SSN: %d"),
-                        pSta->staIndex, tid, pBaCandidate->baInfo[tid].startingSeqNum);)
+                limLog(pMac, LOGE, FL("BA setup for staId = %d, TID: %d, SSN: %d"),
+                        pSta->staIndex, tid, pBaCandidate->baInfo[tid].startingSeqNum);
                 limPostMlmAddBAReq(pMac, pSta, tid, pBaCandidate->baInfo[tid].startingSeqNum,psessionEntry);  
             }
         }
@@ -6124,11 +6107,7 @@ tSirMsgQ msgQ;
   pAddBAParams->sessionId = psessionEntry->peSessionId;
 
   // Post WDA_ADDBA_REQ to HAL.
-#ifndef WMA_LAYER
   msgQ.type = WDA_ADDBA_REQ;
-#else
-  msgQ.type = WMA_ADDBA_REQ;
-#endif
   //
   // FIXME_AMPDU
   // A global counter (dialog token) is required to keep track of
@@ -6149,11 +6128,7 @@ tSirMsgQ msgQ;
     limDiagEventReport(pMac, WLAN_PE_DIAG_HAL_ADDBA_REQ_EVENT, psessionEntry, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
   
-#ifndef WMA_LAYER
   if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-  if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     limLog( pMac, LOGE,
         FL("Posting WDA_ADDBA_REQ to HAL failed! Reason = %d"),
         retCode );
@@ -6228,11 +6203,7 @@ tSirMsgQ msgQ;
   //pDelBAParams->sessionId = psessionEntry->peSessionId;
 
   // Post WDA_DELBA_IND to HAL.
-#ifndef WMA_LAYER
   msgQ.type = WDA_DELBA_IND;
-#else
-  msgQ.type = WMA_DELBA_IND;
-#endif
   //
   // FIXME:
   // A global counter (dialog token) is required to keep track of
@@ -6250,11 +6221,7 @@ tSirMsgQ msgQ;
     limDiagEventReport(pMac, WLAN_PE_DIAG_HAL_DELBA_IND_EVENT, psessionEntry, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
-#ifndef WMA_LAYER
   if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-  if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     limLog( pMac, LOGE,
         FL("Posting WDA_DELBA_IND to HAL failed! Reason = %d"),
         retCode );
@@ -6312,11 +6279,7 @@ limPostSMStateUpdate(tpAniSirGlobal pMac,
     tpSetMIMOPS            pMIMO_PSParams;
 
     msgQ.reserved = 0;
-#ifndef WMA_LAYER
     msgQ.type = WDA_SET_MIMOPS_REQ;
-#else
-    msgQ.type = WMA_SET_MIMOPS_REQ;
-#endif
 
     // Allocate for WDA_SET_MIMOPS_REQ
     status = palAllocateMemory( pMac->hHdd, (void **) &pMIMO_PSParams, sizeof( tSetMIMOPS));
@@ -6334,11 +6297,7 @@ limPostSMStateUpdate(tpAniSirGlobal pMac,
     limLog( pMac, LOG2, FL( "Sending WDA_SET_MIMOPS_REQ..." ));
 
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
     if (eSIR_SUCCESS != retCode)
     {
         limLog( pMac, LOGP, FL("Posting WDA_SET_MIMOPS_REQ to HAL failed! Reason = %d"), retCode );
@@ -6387,9 +6346,41 @@ limGetBDfromRxPacket(tpAniSirGlobal pMac, void *body, tANI_U32 **pRxPacketInfo)
 } /*** end limGetBDfromRxPacket() ***/
 
 
+
+
+
 void limRessetScanChannelInfo(tpAniSirGlobal pMac)
 {
     palZeroMemory(pMac->hHdd, &pMac->lim.scanChnInfo, sizeof(tLimScanChnInfo));
+}
+
+
+void limAddScanChannelInfo(tpAniSirGlobal pMac, tANI_U8 channelId)
+{
+    tANI_U8 i;
+    tANI_BOOLEAN fFound = eANI_BOOLEAN_FALSE;
+
+    for(i = 0; i < pMac->lim.scanChnInfo.numChnInfo; i++)
+    {
+        if(pMac->lim.scanChnInfo.scanChn[i].channelId == channelId)
+        {
+            pMac->lim.scanChnInfo.scanChn[i].numTimeScan++;
+            fFound = eANI_BOOLEAN_TRUE;
+            break;
+        }
+    }
+    if(eANI_BOOLEAN_FALSE == fFound)
+    {
+        if(pMac->lim.scanChnInfo.numChnInfo < SIR_MAX_SUPPORTED_CHANNEL_LIST)
+        {
+            pMac->lim.scanChnInfo.scanChn[pMac->lim.scanChnInfo.numChnInfo].channelId = channelId;
+            pMac->lim.scanChnInfo.scanChn[pMac->lim.scanChnInfo.numChnInfo++].numTimeScan = 1;
+        }
+        else
+        {
+            PELOGW(limLog(pMac, LOGW, FL(" -- number of channels exceed mac"));)
+        }
+    }
 }
 
 
@@ -6545,18 +6536,10 @@ void limFrameTransmissionControl(tpAniSirGlobal pMac, tLimQuietTxMode type, tLim
     msgQ.bodyptr = (void *) pTxCtrlMsg;
     msgQ.bodyval = 0;
     msgQ.reserved = 0;
-#ifndef WMA_LAYER
     msgQ.type = WDA_TRANSMISSION_CONTROL_IND;
-#else
-    msgQ.type = WMA_TRANSMISSION_CONTROL_IND;
-#endif
 
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     if(wdaPostCtrlMsg( pMac, &msgQ) != eSIR_SUCCESS)
-#else
-    if(wmaPostCtrlMsg( pMac, &msgQ) != eSIR_SUCCESS)
-#endif
     {
         palFreeMemory(pMac->hHdd, (void *) pTxCtrlMsg);
         limLog( pMac, LOGP, FL("Posting Message to HAL failed"));
@@ -6756,6 +6739,7 @@ limPrepareFor11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
             //Set the resume channel to Any valid channel (invalid). 
             //This will instruct HAL to set it to any previous valid channel.
             peSetResumeChannel(pMac, 0, 0);
+            limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
         }
         else
         {
@@ -7174,16 +7158,13 @@ tpPESession limIsApSessionActive(tpAniSirGlobal pMac)
 
 void limHandleDeferMsgError(tpAniSirGlobal pMac, tpSirMsgQ pLimMsg)
 {
-	if(SIR_BB_XPORT_MGMT_MSG == pLimMsg->type) 
-	{
-#ifndef REMOVE_TL
-        vos_pkt_return_packet((vos_pkt_t *)pLimMsg->bodyptr);
-#else
-        voss_rx_packet_free(pLimMsg->bodyptr);
-#endif
-	}
-	else if(pLimMsg->bodyptr != NULL)
-		palFreeMemory( pMac->hHdd, (tANI_U8 *) pLimMsg->bodyptr);
+      if(SIR_BB_XPORT_MGMT_MSG == pLimMsg->type) 
+        {
+            vos_pkt_return_packet((vos_pkt_t*)pLimMsg->bodyptr);
+        }
+      else if(pLimMsg->bodyptr != NULL)
+            palFreeMemory( pMac->hHdd, (tANI_U8 *) pLimMsg->bodyptr);
+
 }
 
 
@@ -7235,7 +7216,8 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    tSirMsgQ                mmhMsg;
    tpSirSmeAddStaSelfRsp   pRsp;
 
-   pAddStaSelfParams = (tpAddStaSelfParams)limMsgQ->bodyptr;
+   
+   pAddStaSelfParams = (tpAddStaSelfParams)limMsgQ->bodyptr;    
 
    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pRsp, sizeof(tSirSmeAddStaSelfRsp)))
    {
@@ -7287,6 +7269,8 @@ void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
    pRsp->mesgLen = (tANI_U16) sizeof(tSirSmeDelStaSelfRsp);
    pRsp->status = pDelStaSelfParams->status;
 
+   palCopyMemory( pMac->hHdd, pRsp->selfMacAddr, pDelStaSelfParams->selfMacAddr, sizeof(tSirMacAddr) );
+
    palFreeMemory( pMac->hHdd, (tANI_U8 *)pDelStaSelfParams);
 
    mmhMsg.type = eWNI_SME_DEL_STA_SELF_RSP;
@@ -7306,6 +7290,11 @@ void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 tANI_U8 limUnmapChannel(tANI_U8 mapChannel)
 {
    if( mapChannel > 0 && mapChannel < 25 )
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+       if (IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE)
+           return aUnsortedChannelList[mapChannel -1];
+       else
+#endif
      return abChannel[mapChannel -1];
    else
      return 0;

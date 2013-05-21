@@ -47,9 +47,8 @@
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-//#include "txrx.h"
+//#include "wlan_qct_tl.h"
 #include "vos_trace.h"
-#include "txrx.h"
 
 /* BT-AMP PAL API header file */ 
 #include "bapApi.h" 
@@ -356,7 +355,7 @@ WLAN_BAPReadRSSI
     else
     {
         /* Get the RSSI value for this station (physical link) */
-        vosStatus = wlan_txrx_get_rssi(btampContext->pvosGCtx, btampContext->ucSTAId,
+        vosStatus = WLANTL_GetRssi(btampContext->pvosGCtx, btampContext->ucSTAId,
                         &pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_RSSI.rssi);
 
         if (VOS_STATUS_SUCCESS == vosStatus)

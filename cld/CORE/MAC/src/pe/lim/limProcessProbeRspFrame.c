@@ -29,31 +29,15 @@
 
 #include "parserApi.h"
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
-
 tSirRetStatus
 limValidateIEInformationInProbeRspFrame (tANI_U8 *pRxPacketInfo)
 {
    tSirRetStatus       status = eSIR_SUCCESS;
-#ifdef REMOVE_TL
-   tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
-#ifndef REMOVE_TL
    if (WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) < (SIR_MAC_B_PR_SSID_OFFSET + SIR_MAC_MIN_IE_LEN))
    {
       status = eSIR_FAILURE;
    }
-#else
-   if (pRxPacket->rxpktmeta.mpdu_data_len < 
-   	   (SIR_MAC_B_PR_SSID_OFFSET + SIR_MAC_MIN_IE_LEN))
-   {
-      status = eSIR_FAILURE;
-   }
-#endif
 
    return status;
 }
@@ -92,9 +76,6 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
     tSirProbeRespBeacon    *pProbeRsp;
     tANI_U8 qosEnabled =    false;
     tANI_U8 wmeEnabled =    false;
-#ifdef REMOVE_TL
-	tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
     if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
                                                 (void **)&pProbeRsp, sizeof(tSirProbeRespBeacon)))
@@ -108,25 +89,19 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
     pProbeRsp->propIEinfo.apName.length = 0;
 
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
 
 
-#ifndef REMOVE_TL
    PELOG2(limLog(pMac, LOG2,
              FL("Received Probe Response frame with length=%d from "),
              WDA_GET_RX_MPDU_LEN(pRxPacketInfo));
-#else
-   PELOG2(limLog(pMac, LOG2,
-		  FL("Received Probe Response frame with length=%d from "),
-		  pRxPacket->rxpktmeta.mpdu_len);
-#endif
-
     limPrintMacAddr(pMac, pHdr->sa, LOG2);)
 
+   if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+   {
+       palFreeMemory(pMac->hHdd, pProbeRsp);    
+       return;
+   }
    // Validate IE information before processing Probe Response Frame
    if (limValidateIEInformationInProbeRspFrame(pRxPacketInfo) != eSIR_SUCCESS)
    {
@@ -162,13 +137,10 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
         ((GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE) &&
          (psessionEntry->limMlmState == eLIM_MLM_BSS_STARTED_STATE)))
     {
-#ifndef REMOVE_TL
         frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
+        // Get pointer to Probe Response frame body
         pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-        frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-        pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
 
         if (sirConvertProbeFrame2Struct(pMac, pBody, frameLen, pProbeRsp) == eSIR_FAILURE ||
             !pProbeRsp->ssidPresent) // Enforce Mandatory IEs
@@ -195,11 +167,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
                 palFreeMemory(pMac->hHdd, psessionEntry->beacon);
                 psessionEntry->beacon = NULL;
             }
-#ifndef REMOVE_TL
             psessionEntry->bcnLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-            psessionEntry->bcnLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
             if ((palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->beacon,
                                    psessionEntry->bcnLen))
                 != eHAL_STATUS_SUCCESS)
@@ -209,17 +177,10 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
             }
             else
             {
-#ifndef REMOVE_TL      
                 //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response. 
                 palCopyMemory(pMac->hHdd, psessionEntry->beacon,
                               WDA_GET_RX_MPDU_DATA(pRxPacketInfo),
                               psessionEntry->bcnLen);
-#else
-                //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response. 
-                palCopyMemory(pMac->hHdd, psessionEntry->beacon,
-			                  pRxPacket->rxpktmeta.mpdu_data_ptr,
-			                  psessionEntry->bcnLen);
-#endif
             }
 
             // STA in WT_JOIN_BEACON_STATE
@@ -338,9 +299,6 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
     tANI_U32                frameLen = 0;
     tpSirMacMgmtHdr         pHdr;
     tSirProbeRespBeacon    *pProbeRsp;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
     if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, 
                                                 (void **)&pProbeRsp, sizeof(tSirProbeRespBeacon)))
@@ -354,19 +312,27 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
     pProbeRsp->propIEinfo.apName.length = 0;
 
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+
+
     limLog(pMac, LOG2,
              FL("Received Probe Response frame with length=%d from "),
              WDA_GET_RX_MPDU_LEN(pRxPacketInfo));
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    limLog(pMac, LOG2,
-             FL("Received Probe Response frame with length=%d from "),
-             pRxPacket->rxpktmeta.mpdu_len);
-#endif
     limPrintMacAddr(pMac, pHdr->sa, LOG2);
 
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    if (!(WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo) ||
+          WDA_GET_ROAMCANDIDATEIND(pRxPacketInfo)))
+    {
+#endif
+       if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+       {
+          palFreeMemory(pMac->hHdd, pProbeRsp);
+          return;
+       }
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    }
+#endif
      // Validate IE information before processing Probe Response Frame
     if (limValidateIEInformationInProbeRspFrame(pRxPacketInfo) != eSIR_SUCCESS)
     {
@@ -381,21 +347,39 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
      *   - eLIM_MLM_BSS_STARTED_STATE
      *  Hence, expect Probe Response only when
      *   1. STA is in scan mode waiting for Beacon/Probe response 
+     *   2. LFR logic in FW sends up candidate frames
      *  
      *  Ignore Probe Response frame in all other states
      */
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    if (WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo))
+    {
+        frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
+        // Get pointer to Probe Response frame body
+        pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+
+        if (sirConvertProbeFrame2Struct(pMac, pBody, frameLen, pProbeRsp) == eSIR_FAILURE)
+        {
+            limLog(pMac, LOG1, FL("Parse error ProbeResponse, length=%d\n"), frameLen);
+            palFreeMemory(pMac->hHdd, pProbeRsp);
+            return;
+        }
+        limLog( pMac, LOG2, FL("Save this probe rsp in LFR cache"));
+        limCheckAndAddBssDescription(pMac, pProbeRsp, pRxPacketInfo,
+                                     eANI_BOOLEAN_FALSE, eANI_BOOLEAN_TRUE);
+    }
+    else
+#endif
     if( (pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
         (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE)  ||     //mlm state check should be global - 18th oct
         (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) )
     {
-
-#ifndef REMOVE_TL
         frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
+        // Get pointer to Probe Response frame body
         pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-        frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-        pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
+
         if (sirConvertProbeFrame2Struct(pMac, pBody, frameLen, pProbeRsp) == eSIR_FAILURE)
         {
             limLog(pMac, LOG1, FL("Parse error ProbeResponse, length=%d"), frameLen);

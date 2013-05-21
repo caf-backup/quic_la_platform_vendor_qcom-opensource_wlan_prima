@@ -242,7 +242,7 @@ typedef struct
 typedef struct
 {
     BOOL              used;                // is this a valid context?
-    hdd_list_t        ACLTxQueue[TXRX_NUM_WMM_AC];  // the TX ACL queues
+    hdd_list_t        ACLTxQueue[WLANTL_MAX_AC];  // the TX ACL queues
     BslClientCtxType* pClientCtx;          // ptr to application context that spawned
     // this association
     v_U8_t            PhyLinkHdl;          // BAP handle for this association
@@ -351,14 +351,159 @@ static v_BOOL_t WLANBAP_AmpConnectionAllowed(void)
 }
 
 /**
+  @brief WLANBAP_STAFetchPktCB() - The fetch packet callback registered
+  with BAP by HDD.
+
+  It is called by the BAP immediately upon the underlying
+  WLANTL_STAFetchPktCBType routine being called.  Which is called by
+  TL when the scheduling algorithms allows for transmission of another
+  packet to the module.
+
+  This function is here to "wrap" or abstract WLANTL_STAFetchPktCBType.
+  Because the BAP-specific HDD "shim" layer (BSL) doesn't know anything
+  about STAIds, or other parameters required by TL.
+
+  @param pHddHdl: [in] The HDD(BSL) specific context for this association.
+  Use the STAId passed to me by TL in WLANTL_STAFetchCBType to retreive
+  this value.
+  @param  pucAC: [inout] access category requested by TL, if HDD does not
+  have packets on this AC it can choose to service another AC queue in
+  the order of priority
+  @param  vosDataBuff: [out] pointer to the VOSS data buffer that was
+  transmitted
+  @param tlMetaInfo: [out] meta info related to the data frame
+
+  @return
+  The result code associated with performing the operation
+*/
+static VOS_STATUS WLANBAP_STAFetchPktCB
+(
+    v_PVOID_t             pHddHdl,
+    WLANTL_ACEnumType     ucAC,
+    vos_pkt_t**           vosDataBuff,
+    WLANTL_MetaInfoType*  tlMetaInfo
+)
+{
+    BslPhyLinkCtxType* pPhyCtx;
+    VOS_STATUS VosStatus;
+    v_U8_t AcIdxStart;
+    v_U8_t AcIdx;
+    hdd_list_node_t *pLink;
+    BslTxListNodeType *pNode;
+    struct sk_buff *    skb;
+    BslClientCtxType* pctx;
+    WLANTL_ACEnumType Ac;
+    vos_pkt_t* pVosPkt;
+    WLANTL_MetaInfoType TlMetaInfo;
+    pctx = &BslClientCtx[0];
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "WLANBAP_STAFetchPktCB\n" );
+
+    // sanity checking
+    if( pHddHdl == NULL || vosDataBuff == NULL ||
+            tlMetaInfo == NULL || ucAC >= WLANTL_MAX_AC || ucAC < 0 )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB bad input\n" );
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    // Initialize the VOSS packet returned to NULL - in case of error
+    *vosDataBuff = NULL;
+
+    pPhyCtx = (BslPhyLinkCtxType *)pHddHdl;
+    AcIdx = AcIdxStart = ucAC;
+
+    spin_lock_bh(&pPhyCtx->ACLTxQueue[AcIdx].lock);
+    VosStatus = hdd_list_remove_front( &pPhyCtx->ACLTxQueue[AcIdx], &pLink );
+    spin_unlock_bh(&pPhyCtx->ACLTxQueue[AcIdx].lock);
+
+    if ( VOS_STATUS_E_EMPTY == VosStatus )
+    {
+        do
+        {
+            AcIdx = (AcIdx + 1) % WLANTL_MAX_AC;
+
+            spin_lock_bh(&pPhyCtx->ACLTxQueue[AcIdx].lock);
+            VosStatus = hdd_list_remove_front( &pPhyCtx->ACLTxQueue[AcIdx], &pLink );
+            spin_unlock_bh(&pPhyCtx->ACLTxQueue[AcIdx].lock);
+
+        }
+        while ( VosStatus == VOS_STATUS_E_EMPTY && AcIdx != AcIdxStart );
+
+        if ( VosStatus == VOS_STATUS_E_EMPTY )
+        {
+            // Queue is empty.  This can happen.  Just return NULL back to TL...
+            return(VOS_STATUS_E_EMPTY);
+        }
+        else if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+        {
+            VOS_ASSERT( 0 );
+        }
+    }
+
+    if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+    {
+        VOS_ASSERT( 0 );
+    }
+
+    pNode = (BslTxListNodeType *)pLink;
+    skb   = pNode->skb;
+
+   // I will access the skb in a VOSS packet
+   // Wrap the OS provided skb in a VOSS packet
+    // Attach skb to VOS packet.
+    VosStatus = vos_pkt_wrap_data_packet( &pVosPkt,
+                                          VOS_PKT_TYPE_TX_802_3_DATA,
+                                          skb,
+                                          NULL,
+                                          NULL);
+
+    if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB vos_pkt_wrap_data_packet "
+             "failed status =%d\n", VosStatus );
+        kfree_skb(skb);  
+        return VosStatus;
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO, "%s: pVosPkt(vos_pkt_t *)=%p\n", __func__,
+               pVosPkt );
+
+    VosStatus = WLANBAP_XlateTxDataPkt( pctx->bapHdl, pPhyCtx->PhyLinkHdl,
+                                        &Ac, &TlMetaInfo, pVosPkt);
+
+    if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB WLANBAP_XlateTxDataPkt "
+             "failed status =%d\n", VosStatus );
+
+        // return the packet
+        VosStatus = vos_pkt_return_packet( pVosPkt );
+        kfree_skb(skb);  
+        VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ));
+
+        return VosStatus;
+    }
+    // give TL the VoS pkt
+    *vosDataBuff = pVosPkt;
+
+    // provide the meta-info BAP provided previously
+    *tlMetaInfo = TlMetaInfo;
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: *vosDataBuff(vos_pkt_t *)=%p\n", __func__, *vosDataBuff );
+
+    return(VOS_STATUS_SUCCESS);
+} // WLANBAP_STAFetchPktCB()
+
+/**
   @brief WLANBAP_STARxCB() - The receive callback registered with BAP by HDD.
 
   It is called by the BAP immediately upon the underlying
-  WLAN_STARxCBType routine being called.  Which is called by
+  WLANTL_STARxCBType routine being called.  Which is called by
   TL to notify when a packet was received for a registered STA.
 
   @param  pHddHdl: [in] The HDD(BSL) specific context for this association.
-  Use the STAId passed to me by TL in WLAN_STARxCBType to retrieve this value.
+  Use the STAId passed to me by TL in WLANTL_STARxCBType to retrieve this value.
   @param  vosDataBuff: [in] pointer to the VOSS data buffer that was received
   (it may be a linked list)
   @param  pRxMetaInfo: [in] Rx meta info related to the data frame
@@ -370,13 +515,13 @@ static VOS_STATUS WLANBAP_STARxCB
 (
     v_PVOID_t              pHddHdl,
     vos_pkt_t*             vosDataBuff,
-    struct txrx_rx_metainfo* pRxMetaInfo
+    WLANTL_RxMetaInfoType* pRxMetaInfo
 )
 {
     BslPhyLinkCtxType* pctx;
     BslClientCtxType* ppctx;
     VOS_STATUS VosStatus = VOS_STATUS_SUCCESS;
-    enum txrx_wmm_ac Ac; // this is not needed really
+    WLANTL_ACEnumType Ac; // this is not needed really
     struct sk_buff *skb = NULL;
     vos_pkt_t* pVosPacket;
     vos_pkt_t* pNextVosPacket;
@@ -471,11 +616,6 @@ static VOS_STATUS WLANBAP_STARxCB
 
     return(VOS_STATUS_SUCCESS);
 } // WLANBAP_STARxCB()
-
-/*
- * TODO: Convert the bt pkt to 802.3 before sending it to txrx module.
- * This was taken care by WLANBAP_STAFetchPktCB()
- */
 
 /**
   @brief WLANBAP_TxCompCB() - The Tx complete callback registered with BAP by HDD.
@@ -576,7 +716,7 @@ static VOS_STATUS BslFlushTxQueues
 
     if(TRUE == pPhyCtx->used)
     {
-        while (++i != TXRX_NUM_WMM_AC)
+        while (++i != WLANTL_MAX_AC)
         {
             //Free up any packets in the Tx queue
             spin_lock_bh(&pPhyCtx->ACLTxQueue[i].lock);
@@ -1035,6 +1175,7 @@ static VOS_STATUS WLANBAP_EventCB
         {
             // register the data plane now
             VosStatus = WLANBAP_RegisterDataPlane( pctx->bapHdl,
+                                                   WLANBAP_STAFetchPktCB,
                                                    WLANBAP_STARxCB,
                                                    WLANBAP_TxCompCB,
                                                    (BslPhyLinkCtxType *)pHddHdl );
@@ -1584,7 +1725,7 @@ static BOOL BslFindAndInitPhyCtx
         BslPhyLinkCtx[i].PhyLinkHdl = PhyLinkHdl;
 
         // init the TX queues
-        for ( j=0; j<TXRX_NUM_WMM_AC; j++ )
+        for ( j=0; j<WLANTL_MAX_AC; j++ )
         {
             hdd_list_init( &BslPhyLinkCtx[i].ACLTxQueue[j], HDD_TX_QUEUE_MAX_LEN );
             //VosStatus = vos_list_init( &BslPhyLinkCtx[i].ACLTxQueue[j] );
@@ -2172,7 +2313,7 @@ static BOOL BslProcessHCICommand
         /* Flush the TX queue */
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s:HCI Flush command  - will flush Tx Queue for pkt type %d", __func__, FlushCmd.packet_type);
         // We support BE traffic only
-        if(TXRX_WMM_AC_BE == FlushCmd.packet_type)
+        if(WLANTL_AC_BE == FlushCmd.packet_type)
         {
             pPhyCtx = &BslPhyLinkCtx[0];
             VosStatus = BslFlushTxQueues ( pPhyCtx);
@@ -3358,7 +3499,7 @@ static BOOL BslProcessACLDataTx
     BOOL findPhyStatus;
     BslPhyLinkCtxType* pPhyCtx;
     VOS_STATUS VosStatus = VOS_STATUS_SUCCESS;
-    enum txrx_wmm_ac Ac;
+    WLANTL_ACEnumType Ac;
     hdd_list_node_t* pLink;
     BslTxListNodeType *pNode;
     v_SIZE_t ListSize;
@@ -3396,7 +3537,7 @@ static BOOL BslProcessACLDataTx
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "BslProcessACLDataTx WLANBAP_GetAcFromTxDataPkt "
                  "failed status =%d\n", VosStatus );
 
-            Ac = TXRX_WMM_AC_BE;
+            Ac = WLANTL_AC_BE;
         }
 
         // now queue the pkt into the correct queue

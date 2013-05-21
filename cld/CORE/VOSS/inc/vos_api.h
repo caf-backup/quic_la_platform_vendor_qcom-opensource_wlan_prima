@@ -105,7 +105,8 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext );
 VOS_STATUS vos_shutdown( v_CONTEXT_t vosContext );
 
 /* the wda interface to shutdown */
-VOS_STATUS vos_wma_shutdown( v_CONTEXT_t vosContext );
+VOS_STATUS vos_wda_shutdown( v_CONTEXT_t vosContext );
+
 /**---------------------------------------------------------------------------
   
   \brief vos_get_context() - get context data area

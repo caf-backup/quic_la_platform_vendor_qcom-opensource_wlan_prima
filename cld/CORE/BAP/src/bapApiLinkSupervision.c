@@ -39,8 +39,10 @@
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
+//#include "wlan_qct_tl.h"
 #include "vos_trace.h"
-#include "txrx.h"
+//I need the TL types and API
+#include "wlan_qct_tl.h"
 
 /* BT-AMP PAL API header file */ 
 #include "bapApi.h" 
@@ -92,11 +94,11 @@ WLANBAP_AcquireLSPacket( ptBtampContext pBtampCtx, vos_pkt_t **ppPacket, v_U16_t
 
     if(isLsReq)
     {
-        protoType = TXRX_BT_AMP_TYPE_LS_REQ;
+        protoType = WLANTL_BT_AMP_TYPE_LS_REQ;
     }
     else
     {
-        protoType = TXRX_BT_AMP_TYPE_LS_REP;
+        protoType = WLANTL_BT_AMP_TYPE_LS_REP;
     }    
 
     //If success, vosTxLsPacket is the packet and pData points to the head.
@@ -399,7 +401,7 @@ WLANBAP_RxProcLsPkt
 
    
     /* Reset Link Supervision timer */
-    if (RxProtoType ==  TXRX_BT_AMP_TYPE_LS_REP)
+    if (RxProtoType ==  WLANTL_BT_AMP_TYPE_LS_REP)
     { 
         pBtampCtx->lsReqPktPending = FALSE;
         pBtampCtx->retries = 0;
@@ -411,7 +413,7 @@ WLANBAP_RxProcLsPkt
                    pBtampCtx->bapLinkSupervisionTimerInterval * WLANBAP_BREDR_BASEBAND_SLOT_TIME);
         }
     }
-    else if(RxProtoType == TXRX_BT_AMP_TYPE_LS_REQ)
+    else if(RxProtoType == WLANTL_BT_AMP_TYPE_LS_REQ)
     {
         if (pBtampCtx->bapLinkSupervisionTimerInterval)
         {
@@ -422,16 +424,14 @@ WLANBAP_RxProcLsPkt
         }
         pBtampCtx->pPacket = pBtampCtx->lsRepPacket;
         // Handle LS rep frame
-        vosStatus = WLANBAP_TxLinkSupervision( btampHandle, phy_link_handle, pBtampCtx->pPacket, TXRX_BT_AMP_TYPE_LS_REP);
+        vosStatus = WLANBAP_TxLinkSupervision( btampHandle, phy_link_handle, pBtampCtx->pPacket, WLANTL_BT_AMP_TYPE_LS_REP);
     }
    
     return vosStatus; 
 
 }
 
-/* FIXME */
 /* Tx callback function for LS packet */
-#if 0
 static VOS_STATUS WLANBAP_TxLinkSupervisionCB
 (
     v_PVOID_t   pvosGCtx,
@@ -502,7 +502,7 @@ static VOS_STATUS WLANBAP_TxLinkSupervisionCB
 
     return (VOS_STATUS_SUCCESS );
 }
-#endif
+
 /*===========================================================================
 
   FUNCTION    WLANBAP_TxLinkSupervision
@@ -543,6 +543,7 @@ WLANBAP_TxLinkSupervision
     v_PVOID_t                  pvosGCtx;
     v_U8_t                     ucSTAId;  /* The StaId (used by TL, PE, and HAL) */
     v_PVOID_t                  pHddHdl; /* Handle to return BSL context in */
+    WLANTL_MetaInfoType        metaInfo;
 
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -566,17 +567,16 @@ WLANBAP_TxLinkSupervision
       return VOS_STATUS_E_FAULT;
     }
 
+    vos_mem_zero( &metaInfo, sizeof( WLANTL_MetaInfoType ) );
     
-    /* TODO: Send the frame to txrx without meta data */
-    #if 0
     metaInfo.ucTID = 0x00 ;
     metaInfo.ucUP = 0x00;
     metaInfo.ucIsEapol =  VOS_FALSE;//Notify TL that this is NOT an EAPOL frame
     metaInfo.ucDisableFrmXtl = VOS_FALSE;
     metaInfo.ucType = 0x00;
+    pBtampCtx->metaInfo = metaInfo;
     
     vosStatus = WLANTL_TxBAPFrm( pvosGCtx, pPacket, &metaInfo, WLANBAP_TxLinkSupervisionCB );
-    #endif
     if( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
@@ -584,7 +584,7 @@ WLANBAP_TxLinkSupervision
         return vosStatus;
     }
     
-    if(protoType ==  TXRX_BT_AMP_TYPE_LS_REQ)
+    if(protoType ==  WLANTL_BT_AMP_TYPE_LS_REQ)
     {
         pBtampCtx->lsReqPktPending = TRUE;
         pBtampCtx->retries++;

@@ -125,7 +125,6 @@ extern VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t 
   ===========================================================================*/
 extern VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_adapter_t *pAdapter );
 
-#ifndef REMOVE_TL
 /**============================================================================
   @brief hdd_tx_complete_cbk() - Callback function invoked by TL
   to indicate that a packet has been transmitted across the SDIO bus
@@ -141,23 +140,26 @@ extern VOS_STATUS hdd_softap_disconnect_tx_rx( hdd_adapter_t *pAdapter );
 extern VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext, 
                                        vos_pkt_t *pVosPacket, 
                                        VOS_STATUS vosStatusIn );
-#else
+
 /**============================================================================
-  @brief hdd_tx_complete_cbk() - Callback function invoked by TL
-  to indicate that a packet has been transmitted across the SDIO bus
-  succesfully. OS packet resources can be released after this cbk.
+  @brief hdd_softap_tx_fetch_packet_cbk() - Callback function invoked by TL to 
+  fetch a packet for transmission.
 
-  @param vosContext   : [in] pointer to VOS context   
-  @param packet	      : [in] pointer to adf_nbuf packet
-  @param vosStatusIn  : [in] status of the transmission 
-
-  @return             : VOS_STATUS_E_FAILURE if any errors encountered 
+  @param vosContext   : [in] pointer to VOS context  
+  @param staId        : [in] Station for which TL is requesting a pkt
+  @param ucAC         : [in] pointer to access category requested by TL
+  @param pVosPacket   : [out] pointer to VOS packet packet pointer
+  @param pPktMetaInfo : [out] pointer to meta info for the pkt 
+  
+  @return             : VOS_STATUS_E_EMPTY if no packets to transmit
+                      : VOS_STATUS_E_FAILURE if any errors encountered 
                       : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
-extern VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext, 
-                                       adf_nbuf_t packet, 
-                                       VOS_STATUS vosStatusIn );
-#endif	/* #ifndef REMOVE_TL */
+extern VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
+                                           v_U8_t *pStaId,
+                                           WLANTL_ACEnumType    ucAC,
+                                           vos_pkt_t **ppVosPacket,
+                                           WLANTL_MetaInfoType *pPktMetaInfo );
 
 /**============================================================================
   @brief hdd_softap_tx_low_resource_cbk() - Callback function invoked in the 
@@ -174,7 +176,6 @@ extern VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext,
 extern VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket, 
                                            v_VOID_t *userData );
 
-#ifndef REMOVE_TL
 /**============================================================================
   @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when a packet was received 
@@ -191,27 +192,7 @@ extern VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
 extern VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext, 
                                      vos_pkt_t *pVosPacket, 
                                      v_U8_t staId,
-                                     struct txrx_rx_metainfo* pRxMetaInfo );
-#else
-
-/**============================================================================
-  @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
-  TL will call this to notify the HDD when a packet was received 
-  for a registered STA.
-
-  @param vosContext   : [in] pointer to VOS context  
-  @param packet	      : [in] pointer to adf_nbuf packet (typedef to sk_buff*) 
-  @param staId        : [in] Station Id
-  @param pRxMetaInfo  : [in] pointer to meta info for the received pkt(s) 
-
-  @return             : VOS_STATUS_E_FAILURE if any errors encountered, 
-                      : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-extern VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
-					adf_nbuf_t packet, 
-					v_U8_t staId,
-					struct txrx_rx_metainfo* pRxMetaInfo);
-#endif	/* #ifndef REMOVE_TL */
+                                     WLANTL_RxMetaInfoType* pRxMetaInfo );
 
 /**============================================================================
   @brief hdd_softap_DeregisterSTA - Deregister a station from TL block
@@ -284,7 +265,7 @@ extern VOS_STATUS hdd_softap_stop_bss( hdd_adapter_t *pHostapdAdapter);
   @return         : VOS_STATUS_E_FAILURE if any errors encountered 
                   : VOS_STATUS_SUCCESS otherwise
   =========================================================================== */
-extern VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pDestMacAddress, enum wlan_sta_state state);
+extern VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pDestMacAddress, WLANTL_STAStateType state);
 
 /**============================================================================
   @brief hdd_softap_GetStaId - Helper function to get station Id from MAC address

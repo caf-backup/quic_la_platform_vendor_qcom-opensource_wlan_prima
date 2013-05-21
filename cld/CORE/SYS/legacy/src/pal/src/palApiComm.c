@@ -9,11 +9,7 @@
 #include <vos_api.h>
 
 #include <sirParams.h>  // needed for tSirMbMsg
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 
 #ifdef MEMORY_DEBUG
 eHalStatus palAllocateMemory_debug( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes, char* fileName, tANI_U32 lineNum )
@@ -79,13 +75,9 @@ tANI_BOOLEAN palEqualMemory( tHddHandle hHdd, void *pMemory1, void *pMemory2, tA
 eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size, void **data, void **ppPacket)
 {
    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+   VOS_STATUS vosStatus;
    
-#ifndef REMOVE_TL
-   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
    vos_pkt_t *pVosPacket;
-#else
-   adf_nbuf_t pVosPacket;
-#endif
    
    do 
    {
@@ -95,7 +87,6 @@ eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size, void 
     
       if ( HAL_TXRX_FRM_802_11_MGMT != frmType ) break;
    
-#ifndef REMOVE_TL
       // allocate one 802_11_MGMT VOS packet, zero the packet and fail the call if nothing is available.
       // if we cannot get this vos packet, fail.
       vosStatus = vos_pkt_get_packet( &pVosPacket, VOS_PKT_TYPE_TX_802_11_MGMT, size, 1, VOS_TRUE, NULL, NULL );
@@ -109,18 +100,6 @@ eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size, void 
          vos_pkt_return_packet( pVosPacket );
          break;
       }
-#else
-      pVosPacket = adf_nbuf_alloc(NULL, size, 0, 0, 0);
-
-      if (pVosPacket == NULL)
-      {
-	break;
-      }
-      else
-      {
-	adf_nbuf_reserve(pVosPacket, size);
-      }
-#endif	/* #ifndef REMOVE_TL */
       
       // Everything went well if we get here.  Return the packet pointer to the caller and indicate
       // success to the caller.
@@ -137,12 +116,8 @@ eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size, void 
 
 void palPktFree( tHddHandle hHdd, eFrameType frmType, void* buf, void *pPacket)
 {
-#ifndef REMOVE_TL
    vos_pkt_t *pVosPacket = (vos_pkt_t *)pPacket;
-#else
-   adf_nbuf_t pVosPacket = (adf_nbuf_t)pPacket;
-#endif
-   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+   VOS_STATUS vosStatus;
       
    do 
    {
@@ -155,13 +130,9 @@ void palPktFree( tHddHandle hHdd, eFrameType frmType, void* buf, void *pPacket)
       VOS_ASSERT( HAL_TXRX_FRM_802_11_MGMT == frmType );
       if ( HAL_TXRX_FRM_802_11_MGMT != frmType ) break;
       
-#ifndef REMOVE_TL
       // return the vos packet to Voss.  Nothing to do if this fails since the palPktFree does not 
       // have a return code.
       vosStatus = vos_pkt_return_packet( pVosPacket );
-#else
-      adf_nbuf_free(pVosPacket);
-#endif	/* #ifndef REMOVE_TL */
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
       
    } while( 0 );

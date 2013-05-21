@@ -336,15 +336,15 @@ typedef struct sPESession           // Added to Support BT-AMP
 
   This function returns the session context and the session ID if the session 
   corresponding to the passed BSSID is found in the PE session table.
-
+    
   \param pMac                   - pointer to global adapter context
   \param bssid                   - BSSID of the new session
   \param sessionId             -session ID is returned here, if session is created.
-
+  
   \return tpPESession          - pointer to the session context or NULL if session can not be created.
-
+  
   \sa
-
+  
   --------------------------------------------------------------------------*/
 tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessionId, tANI_U16 numSta);
 

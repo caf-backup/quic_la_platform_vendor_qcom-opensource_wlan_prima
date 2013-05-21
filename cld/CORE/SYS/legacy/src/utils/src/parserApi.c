@@ -2826,22 +2826,10 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     tpSirMacMgmtHdr pHdr;
     tANI_U8         mappedRXCh;
 
-#ifdef REMOVE_TL
-	tp_rxpacket pRxPacket = (tp_rxpacket) pFrame;
-#endif
-
-#ifndef REMOVE_TL
-	pPayload = WDA_GET_RX_MPDU_DATA(pFrame);
-	nPayload = WDA_GET_RX_PAYLOAD_LEN(pFrame);
-	pHdr     = WDA_GET_RX_MAC_HEADER(pFrame);
-	mappedRXCh = WDA_GET_RX_CH(pFrame);
-#else
-	pPayload = pRxPacket->rxpktmeta.mpdu_data_ptr;
-	nPayload = pRxPacket->rxpktmeta.mpdu_data_len;
-	pHdr     = (tpSirMacMgmtHdr)
-			(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-	mappedRXCh = pRxPacket->rxpktmeta.channel;
-#endif
+    pPayload = WDA_GET_RX_MPDU_DATA( pFrame );
+    nPayload = WDA_GET_RX_PAYLOAD_LEN( pFrame );
+    pHdr     = WDA_GET_RX_MAC_HEADER( pFrame );
+    mappedRXCh = WDA_GET_RX_CH( pFrame );
     
     // Zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pBeaconStruct, sizeof(tSirProbeRespBeacon) );
@@ -3014,11 +3002,7 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     }
     else
     {
-#ifndef REMOVE_TL
-	pBeaconStruct->channelNumber = limUnmapChannel(mappedRXCh);
-#else
-	pBeaconStruct->channelNumber = mappedRXCh;
-#endif
+        pBeaconStruct->channelNumber = limUnmapChannel(mappedRXCh);
     }
 
     if ( pBeacon->RSN.present )

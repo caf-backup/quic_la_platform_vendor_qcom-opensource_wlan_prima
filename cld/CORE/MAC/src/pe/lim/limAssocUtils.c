@@ -39,12 +39,7 @@
 #include "limSession.h"
 
 #include "vos_types.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#include "wma.h"
-#endif
 
 /*
  * fill up the rate info properly based on what is actually supported by the peer
@@ -277,7 +272,7 @@ limCheckRxBasicRates(tpAniSirGlobal pMac, tSirMacRateSet rxRateSet,tpPESession p
     pRateSet->numRates = psessionEntry->rateSet.numRates;
 
     // Extract BSS basic rateset from operational rateset
-    for (i = 0, j = 0; i < pRateSet->numRates; i++)
+    for (i = 0, j = 0; ((i < pRateSet->numRates) && (i < SIR_MAC_RATESET_EID_MAX)) ; i++)
     {
         if ((pRateSet->rate[i] & 0x80) == 0x80)
         {
@@ -293,7 +288,7 @@ limCheckRxBasicRates(tpAniSirGlobal pMac, tSirMacRateSet rxRateSet,tpPESession p
     for (k = 0; k < j; k++)
     {
         match = 0;
-        for (i = 0; i < rxRateSet.numRates; i++)
+        for (i = 0; ((i < rxRateSet.numRates) && (i < SIR_MAC_RATESET_EID_MAX)); i++)
         {
             if ((rxRateSet.rate[i] | 0x80) ==    basicRate.rate[k])
                 match = 1;
@@ -1982,10 +1977,14 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
                     if (sirIsArate(tempRateSet2.rate[i] & 0x7f))
                     {
                         isArate=1;
-                        rates->llaRates[aRateIndex++] = tempRateSet2.rate[i];
+                        if (aRateIndex < SIR_NUM_11A_RATES)
+                            rates->llaRates[aRateIndex++] = tempRateSet2.rate[i];
                     }
                     else
-                        rates->llbRates[bRateIndex++] = tempRateSet2.rate[i];
+                    {
+                        if (bRateIndex < SIR_NUM_11B_RATES)
+                            rates->llbRates[bRateIndex++] = tempRateSet2.rate[i];
+                    }
                     break;
                 }
             }
@@ -2295,11 +2294,7 @@ limAddSta(
     if (pAddStaParams->respReqd)
         SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_ADD_STA_REQ;
-#else
-    msgQ.type = WMA_ADD_STA_REQ;
-#endif
 
     msgQ.reserved = 0;
     msgQ.bodyptr = pAddStaParams;
@@ -2309,11 +2304,7 @@ limAddSta(
             pStaDs->assocId);
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 
-#ifndef WMA_LAYER
     retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
     if( eSIR_SUCCESS != retCode)
     {
        if (pAddStaParams->respReqd)
@@ -2428,11 +2419,7 @@ limDelSta(
     pDelStaParams->sessionId = psessionEntry->peSessionId;
     
     pDelStaParams->status  = eHAL_STATUS_SUCCESS;
-#ifndef WMA_LAYER
     msgQ.type = WDA_DELETE_STA_REQ;
-#else
-    msgQ.type = WMA_DELETE_STA_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pDelStaParams;
     msgQ.bodyval = 0;
@@ -2440,11 +2427,7 @@ limDelSta(
     limLog( pMac, LOG1, FL( "Sending SIR_HAL_DELETE_STA_REQ for STAID: %X and AssocID: %d" ),
                     pDelStaParams->staIdx, pDelStaParams->assocId);
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
     retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
     if( eSIR_SUCCESS != retCode)
     {
         if(fRespReqd)
@@ -2494,12 +2477,7 @@ tSirRetStatus limAddFTStaSelf(tpAniSirGlobal pMac, tANI_U16 assocId, tpPESession
     psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, eLIM_MLM_WT_ADD_STA_RSP_STATE));
     psessionEntry->limMlmState = eLIM_MLM_WT_ADD_STA_RSP_STATE;
-#ifndef WMA_LAYER
-    retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
-    if( eSIR_SUCCESS != retCode)
+    if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
     {
         limLog( pMac, LOGE, FL("Posting ADD_STA_REQ to HAL failed, reason=%X"), retCode );
         palFreeMemory(pMac->hHdd, (void*)pAddStaParams);
@@ -2642,8 +2620,7 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
 #ifdef WLAN_FEATURE_11AC
     pAddStaParams->vhtCapable = IS_DOT11_MODE_VHT(selfStaDot11Mode);
     if (pAddStaParams->vhtCapable){
-        pAddStaParams->vhtTxChannelWidthSet =
-            pMac->roam.configParam.nVhtChannelWidth;
+        pAddStaParams->vhtTxChannelWidthSet = psessionEntry->vhtTxChannelWidthSet;
         limLog( pMac, LOG1, FL("VHT WIDTH SET %d"),pAddStaParams->vhtTxChannelWidthSet);
     }
     pAddStaParams->vhtTxBFCapable = psessionEntry->txBFIniFeatureEnabled;
@@ -2667,11 +2644,7 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
     //limFillSupportedRatesInfo(pMac, NULL, &pAddStaParams->supportedRates,psessionEntry);
      pAddStaParams->supportedRates.opRateMode = limGetStaRateMode((tANI_U8)selfStaDot11Mode);
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_ADD_STA_REQ;
-#else
-    msgQ.type = WMA_ADD_STA_REQ;
-#endif
   //
   // FIXME_GEN4
   // A global counter (dialog token) is required to keep track of
@@ -2685,12 +2658,7 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
           pAddStaParams->assocId);
   MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 
-#ifndef WMA_LAYER
-    retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
-  if( eSIR_SUCCESS != retCode)
+  if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
     {
         limLog( pMac, LOGE, FL("Posting ADD_STA_REQ to HAL failed, reason=%X"), retCode );
         palFreeMemory(pMac->hHdd, (void*)pAddStaParams);
@@ -3106,23 +3074,14 @@ limDelBss(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tANI_U16 bssIdx,tpPESession
     //we need to defer the message until we get the response back from HAL.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_DELETE_BSS_REQ;
-#else
-    msgQ.type = WMA_DELETE_BSS_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pDelBssParams;
     msgQ.bodyval = 0;
 
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 
-#ifndef WMA_LAYER
-    retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
-    if( eSIR_SUCCESS != retCode)
+    if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
     {
         SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
         limLog( pMac, LOGE, FL("Posting DELETE_BSS_REQ to HAL failed, reason=%X"), retCode );
@@ -3434,11 +3393,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     //we need to defer the message until we get the response back from HAL.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_ADD_BSS_REQ;
-#else
-    msgQ.type = WMA_ADD_BSS_REQ;
-#endif
     /** @ToDo : Update the Global counter to keeptrack of the PE <--> HAL messages*/
     msgQ.reserved = 0;
     msgQ.bodyptr = pAddBssParams;
@@ -3446,11 +3401,8 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
 
     limLog( pMac, LOG1, FL( "Sending SIR_HAL_ADD_BSS_REQ..." ));
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
+
     retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
     if( eSIR_SUCCESS != retCode) 
     {
         SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
@@ -3733,11 +3685,7 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     //we need to defer the message until we get the response back from HAL.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
  
-#ifndef WMA_LAYER
     msgQ.type = WDA_ADD_BSS_REQ;
-#else
-    msgQ.type = WMA_ADD_BSS_REQ;
-#endif
     /** @ToDo : Update the Global counter to keeptrack of the PE <--> HAL messages*/
     msgQ.reserved = 0;
     msgQ.bodyptr = pAddBssParams;
@@ -3746,11 +3694,7 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     limLog( pMac, LOG1, FL( "Sending SIR_HAL_ADD_BSS_REQ..." ));
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 
-#ifndef WMA_LAYER
     retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
     if( eSIR_SUCCESS != retCode) 
     {
         SET_LIM_PROCESS_DEFD_MESGS(pMac, true);

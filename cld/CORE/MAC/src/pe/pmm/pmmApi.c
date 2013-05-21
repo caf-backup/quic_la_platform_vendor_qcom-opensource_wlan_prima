@@ -46,11 +46,7 @@
 #include "vos_mq.h"     //vos_mq_post_message()
 #endif
 
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 
 // --------------------------------------------------------------------
 /**
@@ -538,11 +534,7 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
     }
 
     palZeroMemory( pMac->hHdd, (tANI_U8 *)pExitBmpsParams, sizeof(*pExitBmpsParams));
-#ifndef WMA_LAYER
     msgQ.type = WDA_EXIT_BMPS_REQ;
-#else
-    msgQ.type = WMA_EXIT_BMPS_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pExitBmpsParams;
     msgQ.bodyval = 0;
@@ -565,11 +557,7 @@ tSirRetStatus pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac)
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     retStatus = wdaPostCtrlMsg( pMac, &msgQ);
-#else
-    retStatus = wmaPostCtrlMsg( pMac, &msgQ);
-#endif
     if( eSIR_SUCCESS != retStatus )
     {
         PELOGE(pmmLog( pMac, LOGE, FL("Sending WDA_EXIT_BMPS_REQ failed, reason=%X "), retStatus );)
@@ -690,11 +678,7 @@ tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac,tpPESession psessionE
         "%s: [INFOLOG]RssiFilterInfo..%d %x %x", __func__, (int)pBmpsParams->bRssiFilterEnable,
         (unsigned int)pBmpsParams->rssiFilterPeriod, (unsigned int)pBmpsParams->numBeaconPerRssiAverage);
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_ENTER_BMPS_REQ;
-#else
-    msgQ.type = WMA_ENTER_BMPS_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pBmpsParams;
     msgQ.bodyval = 0;
@@ -708,11 +692,7 @@ tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac,tpPESession psessionE
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         palFreeMemory(pMac->hHdd, pBmpsParams);
         PELOGE(pmmLog( pMac, LOGE,
@@ -801,32 +781,18 @@ tSirRetStatus pmmSendPowerSaveCfg(tpAniSirGlobal pMac, tpSirPowerSaveCfg pUpdate
         pmmLog(pMac, LOGP, FL("pmmCfg: cfgGet failed for ignoreDtim"));
     pUpdatedPwrSaveCfg->ignoreDtim = (tANI_U8) ignoreDtim;
 
-    /* The numBeaconPerRssiAverage should be <= rssiFilter Period,
-     * and less than the max allowed (default set to 20 in CFG)
-     */
-    if (numBeaconPerRssiAverage > rssiFilterPeriod)
-        pUpdatedPwrSaveCfg->numBeaconPerRssiAverage = (tANI_U8)GET_MIN_VALUE(rssiFilterPeriod, WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX);
-
     //Save a copy of the CFG in global pmm context.
     palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMac->pmm.gPmmCfg,  pUpdatedPwrSaveCfg, sizeof(tSirPowerSaveCfg));
 
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_PWR_SAVE_CFG;
-#else
-    msgQ.type = WMA_PWR_SAVE_CFG;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pUpdatedPwrSaveCfg;
     msgQ.bodyval = 0;
 
     PELOG1(pmmLog( pMac, LOG1, FL( "pmmBmps: Sending WDA_PWR_SAVE_CFG to HAL"));)
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         pmmLog( pMac, LOGP,
             FL("Posting WDA_PWR_SAVE_CFG to HAL failed, reason=%X"),
@@ -1221,11 +1187,7 @@ void pmmProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             pmmInitBmpsPwrSave(pMac);
             break;
 
-#ifndef WMA_LAYER
         case WDA_ENTER_BMPS_RSP:
-#else
-        case WMA_ENTER_BMPS_RSP:
-#endif
             pmmInitBmpsResponseHandler(pMac, pMsg);
             break;
 
@@ -1243,7 +1205,6 @@ void pmmProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         }
             break;
 
-#ifndef WMA_LAYER
         case WDA_EXIT_BMPS_RSP:
             pmmExitBmpsResponseHandler(pMac, pMsg);
             break;
@@ -1319,83 +1280,6 @@ void pmmProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             pmmGTKOffloadGetInfoResponseHandler(pMac, pMsg);
             break;
 #endif // WLAN_FEATURE_GTK_OFFLOAD
-#else
-        case WMA_EXIT_BMPS_RSP:
-            pmmExitBmpsResponseHandler(pMac, pMsg);
-            break;
-
-        case WMA_EXIT_BMPS_IND:
-            pmmExitBmpsIndicationHandler(pMac, SIR_PM_ACTIVE_MODE, (eHalStatus)pMsg->bodyval);
-            break;
-
-        case eWNI_PMC_ENTER_IMPS_REQ:
-            pmmEnterImpsRequestHandler(pMac);
-            break;
-
-        case WMA_ENTER_IMPS_RSP:
-            pmmEnterImpsResponseHandler(pMac, (eHalStatus)pMsg->bodyval);
-            break;
-
-        case eWNI_PMC_EXIT_IMPS_REQ:
-            pmmExitImpsRequestHandler(pMac);
-            break;
-
-        case WMA_EXIT_IMPS_RSP:
-            pmmExitImpsResponseHandler(pMac, (eHalStatus)pMsg->bodyval);
-            break;
-
-        case eWNI_PMC_ENTER_UAPSD_REQ:
-            pmmEnterUapsdRequestHandler(pMac);
-            break;
-
-        case WMA_ENTER_UAPSD_RSP:
-            pmmEnterUapsdResponseHandler(pMac, pMsg);
-            break;
-
-        case eWNI_PMC_EXIT_UAPSD_REQ:
-            pmmExitUapsdRequestHandler(pMac);
-            break;
-
-        case WMA_EXIT_UAPSD_RSP:
-            pmmExitUapsdResponseHandler(pMac, pMsg);
-            break;
-
-        case eWNI_PMC_WOWL_ADD_BCAST_PTRN:
-            pmmSendWowlAddBcastPtrn(pMac, pMsg);
-            break;
-
-        case eWNI_PMC_WOWL_DEL_BCAST_PTRN:
-            pmmSendWowlDelBcastPtrn(pMac, pMsg);
-            break;
-
-        case eWNI_PMC_ENTER_WOWL_REQ:
-            pmmEnterWowlRequestHandler(pMac, pMsg);
-            break;
-
-        case WMA_WOWL_ENTER_RSP:
-            pmmEnterWowlanResponseHandler(pMac, pMsg);
-            break;
-
-        case eWNI_PMC_EXIT_WOWL_REQ:
-            pmmExitWowlanRequestHandler(pMac);
-            break;
-
-        case WMA_WOWL_EXIT_RSP:
-            pmmExitWowlanResponseHandler(pMac, pMsg);
-            break;
-#ifdef WLAN_FEATURE_PACKET_FILTERING
-        case WMA_PACKET_COALESCING_FILTER_MATCH_COUNT_RSP:
-            pmmFilterMatchCountResponseHandler(pMac, pMsg);
-            break;
-#endif // WLAN_FEATURE_PACKET_FILTERING
-
-
-#ifdef WLAN_FEATURE_GTK_OFFLOAD
-        case WMA_GTK_OFFLOAD_GETINFO_RSP:
-            pmmGTKOffloadGetInfoResponseHandler(pMac, pMsg);
-            break;
-#endif // WLAN_FEATURE_GTK_OFFLOAD
-#endif
 
         default:
             PELOGW(pmmLog(pMac, LOGW, 
@@ -2143,11 +2027,7 @@ void pmmSendWowlAddBcastPtrn(tpAniSirGlobal pMac,  tpSirMsgQ pMsg)
         return;
     }
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_WOWL_ADD_BCAST_PTRN;
-#else
-    msgQ.type = WMA_WOWL_ADD_BCAST_PTRN;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pBcastPtrn;
     msgQ.bodyval = 0;
@@ -2157,11 +2037,7 @@ void pmmSendWowlAddBcastPtrn(tpAniSirGlobal pMac,  tpSirMsgQ pMsg)
     limDiagEventReport(pMac, WLAN_PE_DIAG_WOWL_ADD_BCAST_PTRN_EVENT, NULL, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         if (pBcastPtrn != NULL)
             palFreeMemory( pMac->hHdd, (tANI_U8 *) pBcastPtrn);
@@ -2198,11 +2074,7 @@ void pmmSendWowlDelBcastPtrn(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         return;
     }
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_WOWL_DEL_BCAST_PTRN;
-#else
-    msgQ.type = WMA_WOWL_DEL_BCAST_PTRN;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pDeletePtrn;
     msgQ.bodyval = 0;
@@ -2212,11 +2084,7 @@ void pmmSendWowlDelBcastPtrn(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     limDiagEventReport(pMac, WLAN_PE_DIAG_WOWL_DEL_BCAST_PTRN_EVENT, NULL, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         if (NULL != pDeletePtrn)
             palFreeMemory( pMac->hHdd, (tANI_U8 *) pDeletePtrn);
@@ -2382,11 +2250,7 @@ tSirRetStatus pmmSendWowlEnterRequest(tpAniSirGlobal pMac, tpSirHalWowlEnterPara
     if (NULL == pHalWowlParams)
         return eSIR_FAILURE;
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_WOWL_ENTER_REQ;
-#else
-    msgQ.type = WMA_WOWL_ENTER_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pHalWowlParams;
     msgQ.bodyval = 0;
@@ -2396,11 +2260,7 @@ tSirRetStatus pmmSendWowlEnterRequest(tpAniSirGlobal pMac, tpSirHalWowlEnterPara
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-#ifndef WMA_LAYER
-    if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
+    retCode = wdaPostCtrlMsg(pMac, &msgQ);
     if( eSIR_SUCCESS != retCode )
     {
         pmmLog( pMac, LOGE, FL("Posting WDA_WOWL_ENTER_REQ failed, reason=%X"), retCode );
@@ -2533,11 +2393,7 @@ tSirRetStatus  pmmSendExitWowlReq(tpAniSirGlobal pMac, tpSirHalWowlExitParams pH
     if (NULL == pHalWowlParams)
         return eSIR_FAILURE;
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_WOWL_EXIT_REQ;
-#else
-    msgQ.type = WMA_WOWL_EXIT_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pHalWowlParams;
     msgQ.bodyval = 0;
@@ -2549,11 +2405,7 @@ tSirRetStatus  pmmSendExitWowlReq(tpAniSirGlobal pMac, tpSirHalWowlExitParams pH
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
         pmmLog( pMac, LOGE,
             FL("Posting WDA_WOWL_EXIT_REQ failed, reason=%X"),
             retCode );
@@ -2631,20 +2483,12 @@ tSirRetStatus pmmImpsSendChangePwrSaveMsg(tpAniSirGlobal pMac, tANI_U8 mode)
 
     if (SIR_PM_SLEEP_MODE == mode)
     {
-#ifndef WMA_LAYER
         msgQ.type = WDA_ENTER_IMPS_REQ;
-#else
-        msgQ.type = WMA_ENTER_IMPS_REQ;
-#endif
         PELOG2(pmmLog (pMac, LOG2, FL("Sending WDA_ENTER_IMPS_REQ to HAL"));)
     }
     else
     {
-#ifndef WMA_LAYER
         msgQ.type = WDA_EXIT_IMPS_REQ;
-#else
-        msgQ.type = WMA_EXIT_IMPS_REQ;
-#endif
         PELOG2(pmmLog (pMac, LOG2, FL("Sending WDA_EXIT_IMPS_REQ to HAL"));)
     }
 
@@ -2657,11 +2501,7 @@ tSirRetStatus pmmImpsSendChangePwrSaveMsg(tpAniSirGlobal pMac, tANI_U8 mode)
      */
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     retStatus = wdaPostCtrlMsg(pMac, &msgQ);
-#else
-    retStatus = wmaPostCtrlMsg(pMac, &msgQ);
-#endif
     if ( eSIR_SUCCESS != retStatus )
     {
         PELOGE(pmmLog(pMac, LOGE, 
@@ -2712,11 +2552,7 @@ tSirRetStatus pmmUapsdSendChangePwrSaveMsg (tpAniSirGlobal pMac, tANI_U8 mode)
         }
 
         palZeroMemory( pMac->hHdd, (tANI_U8 *)pUapsdParams, sizeof(tUapsdParams));
-#ifndef WMA_LAYER
         msgQ.type = WDA_ENTER_UAPSD_REQ;
-#else
-        msgQ.type = WMA_ENTER_UAPSD_REQ;
-#endif
         msgQ.bodyptr = pUapsdParams;
 
         uapsdDeliveryMask = (pMac->lim.gUapsdPerAcBitmask | pMac->lim.gUapsdPerAcDeliveryEnableMask);
@@ -2762,11 +2598,7 @@ tSirRetStatus pmmUapsdSendChangePwrSaveMsg (tpAniSirGlobal pMac, tANI_U8 mode)
         }
 
         palZeroMemory( pMac->hHdd, (tANI_U8 *)pExitUapsdParams, sizeof(tExitUapsdParams));
-#ifndef WMA_LAYER
         msgQ.type = WDA_EXIT_UAPSD_REQ;
-#else
-        msgQ.type = WMA_EXIT_UAPSD_REQ;
-#endif
         msgQ.bodyptr = pExitUapsdParams;
         pExitUapsdParams->bssIdx = pSessionEntry->bssIdx;
         PELOGW(pmmLog (pMac, LOGW, FL("pmmUapsd: Sending WDA_EXIT_UAPSD_REQ to HAL"));)
@@ -2780,11 +2612,7 @@ tSirRetStatus pmmUapsdSendChangePwrSaveMsg (tpAniSirGlobal pMac, tANI_U8 mode)
     msgQ.reserved = 0;
     msgQ.bodyval = 0;
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     retStatus = wdaPostCtrlMsg(pMac, &msgQ);
-#else
-    retStatus = wmaPostCtrlMsg(pMac, &msgQ);
-#endif
     if ( eSIR_SUCCESS != retStatus )
     {
         PELOGE(pmmLog(pMac, LOGE, 

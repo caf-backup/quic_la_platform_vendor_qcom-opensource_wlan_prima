@@ -53,9 +53,7 @@ when           who        what, where, why
  * Include Files
  * -------------------------------------------------------------------------*/
 #include "vos_api.h" 
-#ifndef REMOVE_TL
 #include "vos_packet.h" 
-#endif	/* #ifndef REMOVE_TL */
 
 // Pick up the CSR API definitions
 #include "csrApi.h"
@@ -716,8 +714,20 @@ sap_AcquireGlobalLock( ptSapContext  pSapCtx );
 VOS_STATUS
 sap_ReleaseGlobalLock( ptSapContext  pSapCtx );
 
-VOS_STATUS
-wlan_sap_select_cbmode(void *pAdapter,eSapPhyMode SapHw_mode, v_U8_t channel);
+/*==========================================================================
+FUNCTION  sapConvertSapPhyModeToCsrPhyMode
+
+DESCRIPTION Function to implement selection of CSR PhyMode using SAP PhyMode
+
+DEPENDENCIES PARAMETERS
+
+IN sapPhyMode : SAP Phy Module
+
+RETURN VALUE If SUCCESS or FAILURE
+
+SIDE EFFECTS
+============================================================================*/
+eCsrPhyMode sapConvertSapPhyModeToCsrPhyMode( eSapPhyMode sapPhyMode );
 
 #ifdef __cplusplus
 }

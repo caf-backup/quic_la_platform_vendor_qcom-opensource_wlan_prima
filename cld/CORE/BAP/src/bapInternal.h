@@ -54,7 +54,6 @@ when        who    what, where, why
  * -------------------------------------------------------------------------*/
 #include "vos_api.h" 
 #include "vos_packet.h" 
-#include "txrx.h"
 
 // Pick up the CSR API definitions
 #include "csrApi.h"
@@ -233,7 +232,7 @@ typedef struct sBtampLogLinkCtx {
     tBtampTLVFlow_Spec btampFlowSpec;   
 
     /* The Access category  */
-    enum txrx_wmm_ac btampAC;   
+    WLANTL_ACEnumType btampAC;   
 
     /* The TID  */
     v_U8_t    ucTID;
@@ -415,6 +414,7 @@ typedef struct sBtampContext {
     tBtampLogLinkCtx          btampLogLinkCtx[WLANBAP_MAX_LOG_LINKS];  
     
     // Include the HDD BAP Shim Layer callbacks for Fetch, TxComp, and RxPkt
+    WLANBAP_STAFetchPktCBType pfnBtampFetchPktCB;
     WLANBAP_STARxCBType       pfnBtamp_STARxCB;
     WLANBAP_TxCompCBType      pfnBtampTxCompCB;
 
@@ -449,6 +449,7 @@ typedef struct sBtampContext {
     vos_pkt_t *lsRepPacket;
     v_U16_t    lsPktln;
     v_U16_t    lsPending;
+    WLANTL_MetaInfoType  metaInfo;   
     tANI_BOOLEAN isBapSessionOpen;
 
     tWLAN_BAPLogLinkState  btamp_logical_link_state;
@@ -582,6 +583,59 @@ extern tBtampHCI_Supported_Cmds  btampHCI_Supported_Cmds;
  *  Function prototypes 
  * -------------------------------------------------------------------------*/
 
+/* I don't think any of this is needed */
+
+/* TL data path callbacks passed into WLANTL_RegisterSTAClient */
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLANBAP_STAFetchPktCB 
+
+  DESCRIPTION   
+    The fetch packet callback registered with TL. 
+    
+    It is called by the TL when the scheduling algorithms allows for 
+    transmission of another packet to the module. 
+    It will be called in the context of the BAL fetch transmit packet 
+    function, initiated by the bus lower layer. 
+
+
+  PARAMETERS 
+
+    IN
+    pvosGCtx:       pointer to the global vos context; a handle 
+                    to TL's or HDD's control block can be extracted 
+                    from its context 
+
+    IN/OUT
+    pucSTAId:       the Id of the station for which TL is requesting a 
+                    packet, in case HDD does not maintain per station 
+                    queues it can give the next packet in its queue 
+                    and put in the right value for the 
+    pucAC:          access category requested by TL, if HDD does not have 
+                    packets on this AC it can choose to service another AC 
+                    queue in the order of priority
+
+    OUT
+    vosDataBuff:   pointer to the VOSS data buffer that was transmitted 
+    tlMetaInfo:    meta info related to the data frame
+
+
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+
+----------------------------------------------------------------------------*/
+VOS_STATUS 
+WLANBAP_STAFetchPktCB 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t*               pucSTAId,
+  v_U8_t                ucAC,
+  vos_pkt_t**           vosDataBuff,
+  WLANTL_MetaInfoType*  tlMetaInfo
+);
+
 /*----------------------------------------------------------------------------
 
   FUNCTION    WLANBAP_STARxCB
@@ -612,7 +666,7 @@ WLANBAP_STARxCB
   v_PVOID_t              pvosGCtx, 
   vos_pkt_t*             vosDataBuff,
   v_U8_t                 ucSTAId, 
-  struct txrx_rx_metainfo* pRxMetaInfo
+  WLANTL_RxMetaInfoType* pRxMetaInfo
 );
 
 /*----------------------------------------------------------------------------
@@ -671,7 +725,7 @@ WLANBAP_TxCompCB
     The result code associated with performing the operation
 
 ----------------------------------------------------------------------------*/
-wlan_txrx_cb_type WLANBAP_TLRsnRxCallback
+WLANTL_BAPRxCBType WLANBAP_TLRsnRxCallback
 (
  v_PVOID_t         pvosGCtx,
  vos_pkt_t*        vosDataBuff
@@ -1163,7 +1217,7 @@ VOS_STATUS WLANBAP_RxCallback
 (
     v_PVOID_t               pvosGCtx, 
     vos_pkt_t              *pPacket,
-    enum bt_frame_type frameType
+    WLANTL_BAPFrameEnumType frameType
 );
 
 

@@ -110,23 +110,15 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                    "%s: We need to receive yet an ack from one of tx packet",
                    __func__);
         }
-
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,7,0))
-         cfg80211_remain_on_channel_expired( pRemainChanCtx->dev,
-                               pRemainChanCtx->cookie,
-                               &pRemainChanCtx->chan,
-			       GFP_KERNEL );
-#else
         cfg80211_remain_on_channel_expired(
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
                               pRemainChanCtx->dev->ieee80211_ptr,
-#else	/* LINUX_VERSION_CODE > KERNEL_VERSION(3,7,0) */
+#else
                               pRemainChanCtx->dev,
 #endif
                               pRemainChanCtx->cookie,
                               &pRemainChanCtx->chan,
                               pRemainChanCtx->chan_type, GFP_KERNEL );
-#endif	/* LINUX_VERSION_CODE > KERNEL_VERSION(3,7,0) */
     }
 
 
@@ -395,10 +387,7 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
                                pAdapter->dev,
 #endif
                                (tANI_U32)pRemainChanCtx,
-                               &pRemainChanCtx->chan, 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0))
-			       pRemainChanCtx->chan_type,
-#endif
+                               &pRemainChanCtx->chan, pRemainChanCtx->chan_type,
                                pRemainChanCtx->duration, GFP_KERNEL );
         }
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
@@ -1309,7 +1298,7 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
      skb->ip_summed = CHECKSUM_NONE;
 #ifdef WLAN_OPEN_SOURCE
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-     wake_lock_timeout(&pHddCtx->rx_wake_lock, HDD_WAKE_LOCK_DURATION);
+     wake_lock_timeout(&pHddCtx->rx_wake_lock, msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
 #endif
 #endif
      rxstat = netif_rx_ni(skb);
@@ -1640,7 +1629,7 @@ static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
     memset( skb->cb, 0, sizeof( skb->cb ) );
 #ifdef WLAN_OPEN_SOURCE
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-    wake_lock_timeout(&pHddCtx->rx_wake_lock, HDD_WAKE_LOCK_DURATION);
+    wake_lock_timeout(&pHddCtx->rx_wake_lock, msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
 #endif
 #endif
     if (in_interrupt())

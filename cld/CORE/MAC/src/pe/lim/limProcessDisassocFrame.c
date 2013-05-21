@@ -28,10 +28,6 @@
 #include "limSendMessages.h"
 #include "schApi.h"
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
 
 /**
  * limProcessDisassocFrame
@@ -60,22 +56,12 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
     tpDphHashNode      pStaDs;
     tLimMlmDisassocInd mlmDisassocInd;
 #ifdef WLAN_FEATURE_11W
-#ifndef REMOVE_TL
     tANI_U32            frameLen;
 #endif
-#endif
 
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
-
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
+
 
     if (limIsGroupAddr(pHdr->sa))
     {
@@ -98,7 +84,6 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
     }
 
 #ifdef WLAN_FEATURE_11W
-#ifndef REMOVE_TL
     /* PMF: If this session is a PMF session, then ensure that this frame was protected */
     if(psessionEntry->limRmfEnabled  && (WDA_GET_RX_DPU_FEEDBACK(pRxPacketInfo) & DPU_FEEDBACK_UNPROTECTED_ERROR))
     {
@@ -112,9 +97,6 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
                                            psessionEntry->smeSessionId, psessionEntry);
         return;
     }
-#else
-    /* TODO: Handle it when converged data path is used */
-#endif
 #endif
 
     // Get reasonCode from Disassociation frame body
@@ -222,6 +204,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
                 // Valid reasonCode in received Disassociation frame
                 break;
 
+            case eSIR_MAC_DEAUTH_LEAVING_BSS_REASON:
             case eSIR_MAC_DISASSOC_LEAVING_BSS_REASON:
                 // Valid reasonCode in received Disassociation frame
                 // as long as we're not about to channel switch
@@ -322,6 +305,13 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         limRestorePreReassocState(pMac,eSIR_SME_REASSOC_REFUSED, reasonCode,psessionEntry);
         return;
     }
+#if defined(FEATURE_WLAN_TDLS) && defined(FEATURE_WLAN_TDLS_OXYGEN_DISAPPEAR_AP)
+    if ((TRUE == pMac->lim.gLimTDLSOxygenSupport) &&
+        (limGetTDLSPeerCount(pMac, psessionEntry) != 0)) {
+            limTDLSDisappearAPTrickInd(pMac, pStaDs, psessionEntry);
+            return;
+    }
+#endif
 
     limPostSmeMessage(pMac, LIM_MLM_DISASSOC_IND,
                       (tANI_U32 *) &mlmDisassocInd);

@@ -32,7 +32,7 @@
 #include <vos_api.h>
 
 #include <sme_Api.h>
-#include <txrx.h>
+#include <wlan_qct_tl.h>
 
 #include "wlan_hdd_assoc.h"
 #include "wlan_hdd_dp_utils.h"

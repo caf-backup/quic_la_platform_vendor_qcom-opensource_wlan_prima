@@ -36,7 +36,6 @@ static tBeaconFilterIe beaconFilterTable[] = {
    {SIR_MAC_EDCA_PARAM_SET_EID,  0, {0, 0, EDCA_FILTER_MASK,      0}},
    {SIR_MAC_QOS_CAPABILITY_EID,  0, {0, 0, QOS_FILTER_MASK,       0}},
    {SIR_MAC_CHNL_SWITCH_ANN_EID, 1, {0, 0, 0,                     0}},
-   {SIR_MAC_QUIET_EID,           1, {0, 0, 0,                     0}},
    {SIR_MAC_HT_INFO_EID,         0, {0, 0, HT_BYTE0_FILTER_MASK,  0}},  
    {SIR_MAC_HT_INFO_EID,         0, {2, 0, HT_BYTE2_FILTER_MASK,  0}}, 
    {SIR_MAC_HT_INFO_EID,         0, {5, 0, HT_BYTE5_FILTER_MASK,  0}}
@@ -89,22 +88,14 @@ tSirRetStatus limSendCFParams(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 cfpCo
     pCFParams->cfpPeriod = cfpPeriod;
     pCFParams->bssIdx     = bssIdx;
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_UPDATE_CF_IND;
-#else
-    msgQ.type = WMA_UPDATE_CF_IND;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pCFParams;
     msgQ.bodyval = 0;
     limLog( pMac, LOG3,
                 FL( "Sending WDA_UPDATE_CF_IND..." ));
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         palFreeMemory(pMac->hHdd, pCFParams);
         limLog( pMac, LOGP,
@@ -152,11 +143,7 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
         return eSIR_MEM_ALLOC_FAILED;
     }
     palCopyMemory( pMac->hHdd, (tANI_U8 *) pBcnParams,  pUpdatedBcnParams, sizeof(*pBcnParams));
-#ifndef WMA_LAYER
     msgQ.type = WDA_UPDATE_BEACON_IND;
-#else
-    msgQ.type = WMA_UPDATE_BEACON_IND;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pBcnParams;
     msgQ.bodyval = 0;
@@ -171,11 +158,7 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
     {
         MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
     }
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         palFreeMemory(pMac->hHdd, pBcnParams);
         limLog( pMac, LOGP,
@@ -252,11 +235,7 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
     
     //we need to defer the message until we get the response back from WDA.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
-#ifndef WMA_LAYER
     msgQ.type = WDA_CHNL_SWITCH_REQ;
-#else
-    msgQ.type = WMA_CHNL_SWITCH_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pChnlParams;
     msgQ.bodyval = 0;
@@ -270,11 +249,7 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
         pChnlParams->secondaryChannelOffset, pChnlParams->channelNumber, pChnlParams->localPowerConstraint);)
 #endif
     MTRACE(macTraceMsgTx(pMac, peSessionId, msgQ.type));
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         palFreeMemory(pMac->hHdd, pChnlParams);
         limLog( pMac, LOGP,
@@ -326,11 +301,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
     pEdcaParams->acvi = pUpdatedEdcaParams[EDCA_AC_VI];
     pEdcaParams->acvo = pUpdatedEdcaParams[EDCA_AC_VO];
     pEdcaParams->highPerformance = highPerformance;
-#ifndef WMA_LAYER
     msgQ.type = WDA_UPDATE_EDCA_PROFILE_IND;
-#else
-    msgQ.type = WMA_UPDATE_EDCA_PROFILE_IND;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pEdcaParams;
     msgQ.bodyval = 0;
@@ -345,11 +316,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
         }
     }
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         palFreeMemory(pMac->hHdd, pEdcaParams);
         limLog( pMac, LOGP,
@@ -500,22 +467,14 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAd
     sirCopyMacAddr(pLinkStateParams->bssid,bssId);
     sirCopyMacAddr(pLinkStateParams->selfMacAddr, selfMacAddr);
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_SET_LINK_STATE;
-#else
-    msgQ.type = WMA_SET_LINK_STATE;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pLinkStateParams;
     msgQ.bodyval = 0;
     
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
 
-#ifndef WMA_LAYER
     retCode = (tANI_U32)wdaPostCtrlMsg(pMac, &msgQ);
-#else
-    retCode = (tANI_U32)wmaPostCtrlMsg(pMac, &msgQ);
-#endif
     if (retCode != eSIR_SUCCESS)
     {
         palFreeMemory(pMac, (void*)pLinkStateParams);
@@ -548,11 +507,7 @@ state,tSirMacAddr bssId, tSirMacAddr selfMacAddr, int ft, tpPESession psessionEn
     pLinkStateParams->ft = 1;
     pLinkStateParams->session = psessionEntry;
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_SET_LINK_STATE;
-#else
-    msgQ.type = WMA_SET_LINK_STATE;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pLinkStateParams;
     msgQ.bodyval = 0;
@@ -565,11 +520,7 @@ state,tSirMacAddr bssId, tSirMacAddr selfMacAddr, int ft, tpPESession psessionEn
         MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
     }
 
-#ifndef WMA_LAYER
     retCode = (tANI_U32)wdaPostCtrlMsg(pMac, &msgQ);
-#else
-    retCode = (tANI_U32)wmaPostCtrlMsg(pMac, &msgQ);
-#endif
     if (retCode != eSIR_SUCCESS)
     {
         palFreeMemory(pMac, (void*)pLinkStateParams);
@@ -616,21 +567,13 @@ tSirRetStatus limSendSetTxPowerReq(tpAniSirGlobal pMac,  tANI_U32 *pMsgBuf)
     /* FW API requests BSS IDX */
     txPowerReq->bssIdx = psessionEntry->bssIdx;
 
-#ifndef WMA_LAYER
     msgQ.type = WDA_SET_TX_POWER_REQ;
-#else
-    msgQ.type = WMA_SET_TX_POWER_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = txPowerReq;
     msgQ.bodyval = 0;
     PELOGW(limLog(pMac, LOGW, FL("Sending WDA_SET_TX_POWER_REQ to WDA"));)
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
-    retCode = wdaPostCtrlMsg( pMac, &msgQ );
-#else
-    retCode = wmaPostCtrlMsg( pMac, &msgQ );
-#endif
+    retCode = wdaPostCtrlMsg(pMac, &msgQ);
     if (eSIR_SUCCESS != retCode)
     {
         limLog(pMac, LOGP, FL("Posting WDA_SET_TX_POWER_REQ to WDA failed, reason=%X"), retCode);
@@ -653,21 +596,13 @@ tSirRetStatus limSendGetTxPowerReq(tpAniSirGlobal pMac,  tpSirGetTxPowerReq pTxP
     tSirMsgQ       msgQ;
     if (NULL == pTxPowerReq)
         return retCode;
-#ifndef WMA_LAYER
     msgQ.type = WDA_GET_TX_POWER_REQ;
-#else
-    msgQ.type = WMA_GET_TX_POWER_REQ;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pTxPowerReq;
     msgQ.bodyval = 0;
     PELOGW(limLog(pMac, LOGW, FL( "Sending WDA_GET_TX_POWER_REQ to WDA"));)
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         limLog( pMac, LOGP, FL("Posting WDA_GET_TX_POWER_REQ to WDA failed, reason=%X"), retCode );
         if (NULL != pTxPowerReq)
@@ -733,21 +668,13 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac,tpPESession psessionEn
         pIe->byte.ref =  beaconFilterTable[i].byte.ref; 
         ptr += sizeof(tBeaconFilterIe);
     }
-#ifndef WMA_LAYER
     msgQ.type = WDA_BEACON_FILTER_IND;
-#else
-    msgQ.type = WMA_BEACON_FILTER_IND;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pBeaconFilterMsg;
     msgQ.bodyval = 0;
     limLog( pMac, LOG3, FL( "Sending WDA_BEACON_FILTER_IND..." ));
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         palFreeMemory(pMac->hHdd, pBeaconFilterMsg);
         limLog( pMac, LOGP,
@@ -775,11 +702,7 @@ tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac,
         return eSIR_MEM_ALLOC_FAILED;
     }
     palCopyMemory( pMac->hHdd, (tANI_U8 *)pVhtOpMode, pTempParam, sizeof(tUpdateVHTOpMode));
-#ifndef WMA_LAYER
     msgQ.type =  WDA_UPDATE_OP_MODE;
-#else
-    msgQ.type =  WMA_UPDATE_OP_MODE;
-#endif
     msgQ.reserved = 0;
     msgQ.bodyptr = pVhtOpMode;
     msgQ.bodyval = 0;
@@ -793,11 +716,7 @@ tSirRetStatus limSendModeUpdate(tpAniSirGlobal pMac,
     {
         MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
     }
-#ifndef WMA_LAYER
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-    if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
     {
         palFreeMemory(pMac->hHdd, pVhtOpMode);
         limLog( pMac, LOGP,
@@ -854,11 +773,7 @@ tSirRetStatus limSendTdlsLinkEstablish(tpAniSirGlobal pMac, tANI_U8 bIsPeerRespo
     
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
 
-#ifndef WMA_LAYER
     retCode = (tANI_U32)wdaPostCtrlMsg(pMac, &msgQ);
-#else
-    retCode = (tANI_U32)wmaPostCtrlMsg(pMac, &msgQ);
-#endif
     if (retCode != eSIR_SUCCESS)
     {
         palFreeMemory(pMac, (void*)pTdlsLinkEstablish);
@@ -904,11 +819,7 @@ tSirRetStatus limSendTdlsLinkTeardown(tpAniSirGlobal pMac, tANI_U16 staId)
     
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
 
-#ifndef WMA_LAYER
     retCode = (tANI_U32)wdaPostCtrlMsg(pMac, &msgQ);
-#else
-    retCode = (tANI_U32)wmaPostCtrlMsg(pMac, &msgQ);
-#endif
     if (retCode != eSIR_SUCCESS)
     {
         palFreeMemory(pMac, (void*)pTdlsLinkTeardown);
@@ -921,7 +832,6 @@ tSirRetStatus limSendTdlsLinkTeardown(tpAniSirGlobal pMac, tANI_U16 staId)
 #endif
 
 #ifdef WLAN_FEATURE_11W
-#ifndef REMOVE_TL
 /** ---------------------------------------------------------
 \fn      limSendExcludeUnencryptInd
 \brief   LIM sends a message to HAL to indicate whether to
@@ -970,14 +880,5 @@ tSirRetStatus limSendExcludeUnencryptInd(tpAniSirGlobal pMac,
 
     return retCode;
 }
-#else
-/* TODO: Implement when txrx is used */
-tSirRetStatus limSendExcludeUnencryptInd(tpAniSirGlobal mac,
-					 tANI_BOOLEAN exclude_un_enc,
-					 tpPESession session)
-{
-	return eSIR_SUCCESS;
-}
-#endif /* REMOVE_TL */
 #endif
 

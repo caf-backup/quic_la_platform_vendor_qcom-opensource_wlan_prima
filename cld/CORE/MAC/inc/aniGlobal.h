@@ -174,6 +174,11 @@ typedef struct sLimTimers
     // Keepalive timer
     TX_TIMER    gLimKeepaliveTimer;
 
+    // Scan related timers
+    TX_TIMER    gLimMinChannelTimer;
+    TX_TIMER    gLimMaxChannelTimer;
+    TX_TIMER    gLimPeriodicProbeReqTimer;
+
     // CNF_WAIT timer
     TX_TIMER            *gpLimCnfWaitTimer;
 
@@ -223,23 +228,7 @@ typedef struct sLimTimers
 typedef struct {
     void *pMlmDisassocReq;
     void *pMlmDeauthReq;
-} tLimDisassocDeauthCnfReq;
-
-typedef enum lim_scan_state {
-	LIM_STATE_SCAN_STARTED,
-	LIM_STATE_SCAN_COMPLETED,
-	LIM_STATE_SCAN_HOME_CHANNEL,
-	LIM_STATE_SCAN_FORIEGN_CHANNEL,
-} t_lim_scan_state;
-
-typedef struct lim_scan_info {
-	bool valid;
-	tANI_U32 scan_id;
-	t_lim_scan_state scan_state;
-} t_lim_scan_info;
-
-/* For now allow only one scan request */
-#define LIM_MAX_SCAN_REQ_ALLOWED       1
+}tLimDisassocDeauthCnfReq;
 
 typedef struct sAniSirLim
 {
@@ -307,6 +296,20 @@ typedef struct sAniSirLim
      */
     tLimScanResultNode
            *gLimCachedScanHashTable[LIM_MAX_NUM_OF_SCAN_RESULTS];
+
+    /// This indicates total length of 'matched' scan results
+    tANI_U16   gLimMlmLfrScanResultLength;
+
+    /// This indicates total length of 'cached' scan results
+    tANI_U16   gLimSmeLfrScanResultLength;
+
+    /**
+     * Hash table definition for storing LFR SCAN results
+     * This is the placed holder for roaming candidates as forwarded
+     * by FW
+     */
+    tLimScanResultNode
+        *gLimCachedLfrScanHashTable[LIM_MAX_NUM_OF_SCAN_RESULTS];
 
     /// Place holder for current channel ID
     /// being scanned during background scanning
@@ -848,7 +851,7 @@ typedef struct sAniSirLim
 
     // wsc info required to form the wsc IE
     tLimWscIeInfo wscIeInfo;
-    tpPESession gpSession ;   //Pointer to  session table
+    tpPESession gpSession ;   //Pointer to  session table   
     /*
     * sessionID and transactionID from SME is stored here for those messages, for which
     * there is no session context in PE, e.g. Scan related messages.
@@ -872,7 +875,6 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
 #endif
     tLimDisassocDeauthCnfReq limDisassocDeauthCnfReq;
     tANI_U8 deferredMsgCnt;
-	t_lim_scan_info scan_info[LIM_MAX_SCAN_REQ_ALLOWED];
 } tAniSirLim, *tpAniSirLim;
 
 typedef struct sLimMgmtFrameRegistration
