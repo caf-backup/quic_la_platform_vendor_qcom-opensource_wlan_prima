@@ -58,6 +58,7 @@
 #include "wniCfgAp.h"
 #include "wlan_hal_cfg.h"
 #include "cfgApi.h"
+#include "ol_txrx_ctrl_api.h"
 #if defined(CONFIG_HL_SUPPORT)
 #include "wlan_tgt_def_config_hl.h"
 #else
@@ -268,6 +269,14 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	/* initialize default target config */
 	wma_set_default_tgt_config(wma_handle);
 
+	/* Allocate cfg handle */
+	((pVosContextType) vos_context)->cfg_ctx =
+		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx);
+	if (!(((pVosContextType) vos_context)->cfg_ctx)) {
+		WMA_LOGP("failed to init cfg handle");
+		goto err_wmi_attach;
+	}
+
 	/* Save the WMI & HTC handle */
 	wma_handle->wmi_handle = wmi_handle;
 	wma_handle->htc_handle = htc_handle;
@@ -334,7 +343,6 @@ err_wmi_attach:
 
 	return vos_status;
 }
-
 
 /* function   : wma_pre_start    
  * Descriptin :  
@@ -942,6 +950,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 	}
 	/* free the wma_handle */
 	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA, wma_handle);
+
+	adf_os_mem_free(((pVosContextType) vos_ctx)->cfg_ctx);
 
 	WMA_LOGD("Exit");
 	return VOS_STATUS_SUCCESS;
