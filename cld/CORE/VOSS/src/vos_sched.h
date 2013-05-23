@@ -58,6 +58,9 @@
 #include <linux/wakelock.h>
 #endif
 #include <vos_power.h>
+#ifdef QCA_WIFI_2_0
+#include <adf_os_types.h>
+#endif
 
 #define TX_POST_EVENT_MASK               0x001
 #define TX_SUSPEND_EVENT_MASK            0x002
@@ -306,6 +309,23 @@ typedef struct _VosContextType
 
    /* WDA Context */
    v_VOID_t            *pWDAContext;
+
+#ifdef QCA_WIFI_2_0
+#ifndef QCA_WIFI_ISOC
+   v_VOID_t		*pHIFContext;
+#endif
+
+   v_VOID_t		*htc_ctx;
+
+   /*
+    * adf_ctx will be used by adf
+    * while allocating dma memory
+    * to access dev information.
+    */
+   adf_os_device_t adf_ctx;
+
+   v_VOID_t		*pdev_txrx_ctx;
+#endif
 
    volatile v_U8_t    isLoadUnloadInProgress;
 

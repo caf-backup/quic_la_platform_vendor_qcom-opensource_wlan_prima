@@ -102,6 +102,7 @@ typedef enum
    VOS_MODULE_ID_HIF       = 13,
    VOS_MODULE_ID_HTC       = 14,
    VOS_MODULE_ID_TXRX	   = 15,
+   VOS_MODULE_ID_ADF	   = 16,
 #endif
 
    // not a real module ID.  This is used to identify the maxiumum

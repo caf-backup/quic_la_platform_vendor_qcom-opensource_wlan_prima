@@ -154,6 +154,14 @@ static VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTa
                               tANI_U8 *pChannel, tANI_U8 *pDwellTime,
                               tANI_U8 **pBuf, tANI_U8 *pBufLen);
 #endif
+
+#if defined (QCA_WIFI_2_0) && \
+    !defined (QCA_WIFI_ISOC)
+extern void hif_init_adf_ctx(adf_os_device_t adf_ctx, v_VOID_t *hif_sc);
+extern int hif_register_driver(void);
+extern void hif_unregister_driver(void);
+#endif
+
 static int hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
                                          void *ndev)
@@ -4303,6 +4311,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_adapter_t* pAdapter;
    struct fullPowerContext powerContext;
    long lrc;
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+   adf_os_device_t adf_ctx;
+#endif
 
    ENTER();
 
@@ -4516,6 +4528,16 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
 
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+   /*
+    * Free ADF context here only for ISOC case. For discrete
+    * it should be freed after PCI remove
+    */
+   adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
+   kfree(adf_ctx);
+#endif
+
    /* free the power on lock from platform driver */
    if (free_riva_power_on_lock("wlan"))
    {
@@ -4537,6 +4559,41 @@ free_hdd_ctx:
    hdd_set_ssr_required (VOS_FALSE);
 }
 
+#if defined (QCA_WIFI_2_0) && \
+   !defined (QCA_WIFI_ISOC)
+void __hdd_wlan_exit(void)
+{
+	hdd_context_t *pHddCtx = NULL;
+	v_CONTEXT_t pVosContext = NULL;
+
+	//Get the global vos context
+	pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+	if(!pVosContext)
+		return;
+
+	//Get the HDD context.
+	pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
+						   pVosContext);
+
+	if(!pHddCtx)
+		return;
+
+	/* module exit should never proceed if SSR is not completed */
+	while(isWDresetInProgress()){
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+			  "%s:SSR in Progress; block rmmod for 1 second!!!",
+			  __func__);
+		msleep(1000);
+	}
+
+	pHddCtx->isLoadUnloadInProgress = TRUE;
+	vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+
+	//Do all the cleanup before deregistering the driver
+	hdd_wlan_exit(pHddCtx);
+}
+#endif  /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
 /**---------------------------------------------------------------------------
 
@@ -4817,7 +4874,7 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
 
   --------------------------------------------------------------------------*/
 
-int hdd_wlan_startup(struct device *dev )
+int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 {
    VOS_STATUS status;
    hdd_adapter_t *pAdapter = NULL;
@@ -4831,6 +4888,9 @@ int hdd_wlan_startup(struct device *dev )
 #endif
    int ret;
    struct wiphy *wiphy;
+#ifdef QCA_WIFI_2_0
+   adf_os_device_t adf_ctx;
+#endif
 
    ENTER();
    /*
@@ -4879,6 +4939,24 @@ int hdd_wlan_startup(struct device *dev )
    init_completion(&pHddCtx->scan_info.abortscan_event_var);
 
    hdd_list_init( &pHddCtx->hddAdapters, MAX_NUMBER_OF_ADAPTERS );
+
+#ifdef QCA_WIFI_2_0
+   /* Initialize the adf_ctx handle */
+   adf_ctx = vos_mem_malloc(sizeof(*adf_ctx));
+
+   if (!adf_ctx) {
+           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to allocate adf_ctx");
+           goto err_free_hdd_context;
+   }
+   vos_mem_zero(adf_ctx, sizeof(*adf_ctx));
+#ifdef QCA_WIFI_ISOC
+   adf_ctx->dev = dev;
+#else
+   hif_init_adf_ctx(adf_ctx, hif_sc);
+   ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
+#endif
+   ((VosContextType*)(pVosContext))->adf_ctx = adf_ctx;
+#endif /* QCA_WIFI_2_0 */
 
    // Load all config first as TL config is needed during vos_open
    pHddCtx->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
@@ -5416,7 +5494,10 @@ static int hdd_driver_init( void)
 {
    VOS_STATUS status;
    v_CONTEXT_t pVosContext = NULL;
+#if defined (QCA_WIFI_ISOC) || \
+    defined (ANI_BUS_TYPE_PCI)
    struct device *dev = NULL;
+#endif
    int ret_status = 0;
 #ifdef HAVE_WCNSS_CAL_DOWNLOAD
    int max_retries = 0;
@@ -5464,11 +5545,13 @@ static int hdd_driver_init( void)
 
 
    do {
+#ifdef QCA_WIFI_ISOC
       if (NULL == dev) {
          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN device not found!!",__func__);
          ret_status = -1;
          break;
-   }
+      }
+#endif
 
 #ifdef MEMORY_DEBUG
       vos_mem_init();
@@ -5494,8 +5577,26 @@ static int hdd_driver_init( void)
       hdd_set_conparam((v_UINT_t)con_mode);
 #endif
 
+#if defined(QCA_WIFI_2_0) && \
+    !defined(QCA_WIFI_ISOC)
+   if(hif_register_driver())
+   {
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
+               __func__);
+       vos_preClose( &pVosContext );
+       ret_status = -1;
+       break;
+   }
+   else
+   {
+       pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
+       return 0;
+   }
+#endif
+
+#ifdef QCA_WIFI_ISOC
       // Call our main init function
-      if (hdd_wlan_startup(dev))
+      if (hdd_wlan_startup(dev, NULL))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
                 __func__);
@@ -5503,6 +5604,7 @@ static int hdd_driver_init( void)
          ret_status = -1;
          break;
       }
+#endif
 
       /* Cancel the vote for XO Core ON
        * This is done here for safety purposes in case we re-initialize without turning
@@ -5591,7 +5693,11 @@ static int __init hdd_module_init ( void)
   --------------------------------------------------------------------------*/
 static void hdd_driver_exit(void)
 {
+#ifdef QCA_WIFI_ISOC
    hdd_context_t *pHddCtx = NULL;
+#else
+   adf_os_device_t adf_ctx;
+#endif
    v_CONTEXT_t pVosContext = NULL;
 
    pr_info("%s: unloading driver v%s\n", WLAN_MODULE_NAME, QWLAN_VERSIONSTR);
@@ -5605,6 +5711,7 @@ static void hdd_driver_exit(void)
       goto done;
    }
 
+#ifdef QCA_WIFI_ISOC
    //Get the HDD context.
    pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
 
@@ -5626,6 +5733,16 @@ static void hdd_driver_exit(void)
       //Do all the cleanup before deregistering the driver
       hdd_wlan_exit(pHddCtx);
    }
+#else
+   hif_unregister_driver();
+
+   /*
+    * ADF context cannot be freed in hdd_wlan_exit for discrete
+    * as it is needed in PCI remove. So free it here.
+    */
+   adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, pVosContext);
+   kfree(adf_ctx);
+#endif
 
    vos_preClose( &pVosContext );
 
