@@ -1574,6 +1574,15 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
        break;
     }
 
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+    /// Message Queue ID for messages bound for the HTC module
+    case VOS_MQ_ID_HTC:
+    {
+       pTargetMq = &(gpVosContext->vosSched.htcMcMq);
+       break;
+    }
+#endif
     default:
 
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
