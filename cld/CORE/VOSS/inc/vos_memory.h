@@ -277,4 +277,10 @@ v_VOID_t vos_mem_dma_free( v_VOID_t *ptr );
   --------------------------------------------------------------------------*/
 v_VOID_t vos_mem_set_dma_ptr(unsigned char *dmaBuffer);
 #endif /* DMA_DIRECT_ACCESS */
+
+/*
+ * Function to check whether the current context is in
+ * irq context
+ */
+v_BOOL_t vos_is_in_irq_context(void);
 #endif // __VOSS_LOCK_H

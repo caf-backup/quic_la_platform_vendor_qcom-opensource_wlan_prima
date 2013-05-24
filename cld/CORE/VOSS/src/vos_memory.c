@@ -141,10 +141,9 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
    }
    if (in_interrupt())
    {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                "%s is being called in interrupt context, using GPF_ATOMIC.", __func__);
        return kmalloc(size, GFP_ATOMIC);
-      
    }
 
    new_size = size + sizeof(struct s_vos_mem_struct) + 8; 
@@ -256,6 +255,14 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
     kfree(ptr);
 }
 #endif
+
+v_BOOL_t vos_is_in_irq_context(void)
+{
+    if(in_interrupt())
+        return VOS_TRUE;
+    else
+        return VOS_FALSE;
+}
 
 v_VOID_t vos_mem_set( v_VOID_t *ptr, v_SIZE_t numBytes, v_BYTE_t value )
 {
