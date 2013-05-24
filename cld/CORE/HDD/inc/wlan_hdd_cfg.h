@@ -1691,6 +1691,11 @@ typedef enum
 #define CFG_SCAN_OFFLOAD_ENABLE                   ( 1 )
 #define CFG_SCAN_OFFLOAD_DEFAULT                  ( CFG_SCAN_OFFLOAD_DISABLE )
 
+#define CFG_ENABLE_TCP_CHKSUM_OFFLOAD                           "gEnableTCPChkSumOffld"
+#define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_MAX                       ( 1 )
+#define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_MIN                       ( 0 )
+#define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_DEFAULT                   ( 0 )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2060,6 +2065,7 @@ typedef struct
    v_BOOL_t                    enableSSR;
    char                        listOfNon11acCountryCode[128];
    v_U8_t                      fScanOffload;
+   v_BOOL_t                    enableTCPChkSumOffld;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
