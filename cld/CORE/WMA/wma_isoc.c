@@ -1051,11 +1051,13 @@ handle_failure:
  * Args:        
  * Retruns:     
  */
-VOS_STATUS wma_nv_download_start(HTC_HANDLE handle)
+VOS_STATUS wma_nv_download_start(void *vos_context)
 {
 	A_STATUS status = A_OK;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	pVosContextType pVosContext = (pVosContextType)vos_context;
+	tp_wma_handle wma_handle =
+		(tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	tHalNvImgDownloadReqMsg halNvImgDownloadParam;
 	v_U8_t *send_buf = NULL;
 	v_U8_t *src_buf = NULL;
@@ -1242,6 +1244,11 @@ VOS_STATUS wma_nv_download_start(HTC_HANDLE handle)
 		if (VOS_STATUS_SUCCESS != vos_status) {
 			WMA_LOGP("failed to download the cfg");
 			goto end;
+		}
+
+		vos_status = vos_event_set(&pVosContext->wdaCompleteEvent);
+		if (vos_status)	{
+			WMA_LOGE("Failed to set the event");
 		}
 
 		if (send_buf) {
