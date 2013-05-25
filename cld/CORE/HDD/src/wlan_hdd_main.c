@@ -2609,7 +2609,6 @@ void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr)
 void hdd_set_station_ops( struct net_device *pWlanDev )
 {
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
-      pWlanDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN,
       pWlanDev->netdev_ops = &wlan_drv_ops;
 #else
       pWlanDev->open = hdd_open;
@@ -2619,8 +2618,13 @@ void hdd_set_station_ops( struct net_device *pWlanDev )
       pWlanDev->tx_timeout = hdd_tx_timeout;
       pWlanDev->get_stats = hdd_stats;
       pWlanDev->do_ioctl = hdd_ioctl;
-      pWlanDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN;
       pWlanDev->set_mac_address = hdd_set_mac_address;
+#endif
+
+#ifdef QCA_WIFI_2_0
+      pWlanDev->tx_queue_len = 0;
+#else
+      pWlanDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN;
 #endif
 }
 
@@ -2673,6 +2677,9 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       vos_mem_copy( pAdapter->macAddressCurrent.bytes, macAddr, sizeof(tSirMacAddr));
       pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
       pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
+
+      if (pHddCtx->cfg_ini->enableTCPChkSumOffld)
+          pWlanDev->features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
 
       hdd_set_station_ops( pAdapter->dev );
 
