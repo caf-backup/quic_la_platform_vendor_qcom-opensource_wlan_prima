@@ -109,12 +109,6 @@ unsigned char hif_dxe_os_enable_tx_intr(void* pctx)
 	u_int32_t val;
 	int ret;
 
-	/* Enable Tx Channel Interrupt */
-	val = TX_INT_SELECT(CH_TX_LOW_PRI) | TX_INT_SELECT(CH_TX_HIGH_PRI) | 
-		DXE_READ_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT);
-
-	DXE_WRITE_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT,val);
-
 	/* Enable Tx IRQ at OS level */
 	if(!hif_dxeos_ctx->bTxRegistered)
 	{
@@ -132,15 +126,21 @@ unsigned char hif_dxe_os_enable_tx_intr(void* pctx)
 		}
 
 		hif_dxeos_ctx->bTxRegistered = TRUE;
+		hif_dxeos_ctx->bTxIntEnabled = TRUE;
 
 		enable_irq_wake(hif_dxeos_ctx->tx_irq);
 	}
-	else
+	else if(!hif_dxeos_ctx->bTxIntEnabled)
 	{
+		hif_dxeos_ctx->bTxIntEnabled = TRUE;
 		enable_irq(hif_dxeos_ctx->tx_irq);
 	}
 
-	hif_dxeos_ctx->bTxIntEnabled = TRUE;
+        /* Enable Tx Channel Interrupt */
+        val = TX_INT_SELECT(CH_TX_LOW_PRI) | TX_INT_SELECT(CH_TX_HIGH_PRI) |
+                DXE_READ_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT);
+
+        DXE_WRITE_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT,val);
 
 	return TRUE;
 }
@@ -184,12 +184,6 @@ unsigned char hif_dxe_os_enable_rx_intr(void* pctx)
 	u_int32_t val = 0;
 	int ret = 0;
 
-	/* Enable Rx Channel Interrupt */
-	val = RX_INT_SELECT(CH_RX_LOW_PRI) | RX_INT_SELECT(CH_RX_HIGH_PRI) | 
-		DXE_READ_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT);
-
-	DXE_WRITE_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT,val);
-
 	/* Enable Rx IRQ at OS level */
 	if(!hif_dxeos_ctx->bRxRegistered)
 	{
@@ -207,15 +201,21 @@ unsigned char hif_dxe_os_enable_rx_intr(void* pctx)
 		}
 
 		hif_dxeos_ctx->bRxRegistered = TRUE;
+		hif_dxeos_ctx->bRxIntEnabled = TRUE;
 
 		enable_irq_wake(hif_dxeos_ctx->rx_irq);
 	}
-	else
+	else if(!hif_dxeos_ctx->bRxIntEnabled)
 	{
+		hif_dxeos_ctx->bRxIntEnabled = TRUE;
 		enable_irq(hif_dxeos_ctx->rx_irq);
 	}
 
-	hif_dxeos_ctx->bRxIntEnabled = TRUE;
+        /* Enable Rx Channel Interrupt */
+        val = RX_INT_SELECT(CH_RX_LOW_PRI) | RX_INT_SELECT(CH_RX_HIGH_PRI) |
+                DXE_READ_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT);
+
+        DXE_WRITE_REG(hif_dxeos_ctx,WLANDXE_CCU_DXE_INT_SELECT,val);
 
 	return TRUE;
 }
