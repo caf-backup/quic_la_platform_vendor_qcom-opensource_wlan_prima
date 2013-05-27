@@ -230,6 +230,53 @@ static void tlshim_data_rx_handler(void *context, adf_nbuf_t rx_buf_list)
 /*	TL APIs		 */
 /*************************/
 
+/*
+ * TL API to transmit a frame given by HDD. Returns NULL
+ * in case of success, skb pointer in case of failure.
+ */
+adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
+				    adf_nbuf_t skb)
+{
+	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+							   vos_ctx);
+	void *adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, vos_ctx);
+	adf_nbuf_t ret;
+	struct ol_txrx_peer_t *peer;
+
+	ENTER();
+
+	/*
+	 * TODO: How sta_id is created and used for IBSS mode?.
+	 */
+	if (sta_id >= WLAN_MAX_STA_COUNT) {
+		TLSHIM_LOGE("Invalid sta id for data tx");
+		return skb;
+	}
+
+	if (!tl_shim->sta_info[sta_id].registered) {
+		TLSHIM_LOGE("Staion is not yet registered for data service");
+		return skb;
+	}
+
+	peer = ol_txrx_peer_find_by_id(
+			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
+			sta_id);
+	if (!peer) {
+		TLSHIM_LOGE("Invalid peer");
+		return skb;
+	}
+
+	adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
+	ret = tl_shim->tx(peer->vdev, skb);
+	if (ret) {
+		TLSHIM_LOGE("Failed to tx");
+		adf_nbuf_unmap_single(adf_ctx, ret, ADF_OS_DMA_TO_DEVICE);
+		return ret;
+	}
+
+	return NULL;
+}
+
 VOS_STATUS WLANTL_ResumeDataTx(void *vos_ctx, u_int8_t *sta_id)
 {
 	return VOS_STATUS_SUCCESS;
