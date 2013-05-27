@@ -1,12 +1,9 @@
 /*
- * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
  * Copyright (C) 2007-2009 Qualcomm Technologies, Inc. All rights reserved. Proprietary and Confidential.
  */
 
 /*
- * DO NOT EDIT - This file is generated automatically
+ * DO NOT EDIT - This file is generated automaticlly
  */
 
 /*
@@ -316,6 +313,10 @@
 #define WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED    295
 #define WNI_CFG_DISABLE_LDPC_WITH_TXBF_AP    296
 #define WNI_CFG_AP_LINK_MONITOR_TIMEOUT    297
+#define WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK    298
+#define WNI_CFG_TDLS_BUF_STA_ENABLED    299
+#define WNI_CFG_TDLS_PUAPSD_INACT_TIME    300
+#define WNI_CFG_TDLS_RX_FRAME_THRESHOLD    301
 
 /*
  * String parameter lengths 
@@ -1577,8 +1578,24 @@
 #define WNI_CFG_AP_LINK_MONITOR_TIMEOUT_STAMAX    255
 #define WNI_CFG_AP_LINK_MONITOR_TIMEOUT_STADEF    3
 
-#define CFG_PARAM_MAX_NUM        298
-#define CFG_STA_IBUF_MAX_SIZE    232
+#define WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK_STAMIN    0
+#define WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK_STAMAX    15
+#define WNI_CFG_TDLS_QOS_WMM_UAPSD_MASK_STADEF    0
+
+#define WNI_CFG_TDLS_BUF_STA_ENABLED_STAMIN    0
+#define WNI_CFG_TDLS_BUF_STA_ENABLED_STAMAX    1
+#define WNI_CFG_TDLS_BUF_STA_ENABLED_STADEF    0
+
+#define WNI_CFG_TDLS_PUAPSD_INACT_TIME_STAMIN    0
+#define WNI_CFG_TDLS_PUAPSD_INACT_TIME_STAMAX    10
+#define WNI_CFG_TDLS_PUAPSD_INACT_TIME_STADEF    0
+
+#define WNI_CFG_TDLS_RX_FRAME_THRESHOLD_STAMIN    10
+#define WNI_CFG_TDLS_RX_FRAME_THRESHOLD_STAMAX    20
+#define WNI_CFG_TDLS_RX_FRAME_THRESHOLD_STADEF    10
+
+#define CFG_PARAM_MAX_NUM        302
+#define CFG_STA_IBUF_MAX_SIZE    236
 #define CFG_STA_SBUF_MAX_SIZE    3388
 #define CFG_SEM_MAX_NUM          19
 

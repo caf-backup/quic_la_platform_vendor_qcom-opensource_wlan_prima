@@ -89,6 +89,9 @@ void limSendSmeMaxAssocExceededNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
 void limSendSmeTdlsDisRsp(tpAniSirGlobal pMac, tSirResultCodes statusCode, tANI_U16 msgType);
 void limSendSmeTdlsLinkStartRsp(tpAniSirGlobal pMac, tSirResultCodes statusCode, tSirMacAddr peerMac, tANI_U16 msgType);
 void limSendSmeTdlsTeardownRsp(tpAniSirGlobal pMac, tSirResultCodes statusCode, tSirMacAddr peerMac, tANI_U16 msgType);
+void limSendSmeTdlsLinkEstablishReqRsp(tpAniSirGlobal pMac,
+                                       tANI_U8 sessionId, tSirMacAddr peerMac, tDphHashNode   *pStaDs,
+                                       tANI_U8 status);
 #endif
 
 #endif /* __LIM_SEND_SME_RSP_H */

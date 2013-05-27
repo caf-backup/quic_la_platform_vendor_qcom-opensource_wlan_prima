@@ -630,6 +630,8 @@ typedef struct sAniSirLim
     tLimAdmitPolicyInfo admitPolicyInfo;
     vos_lock_t lkPeGlobalLock;
     tANI_U8 disableLDPCWithTxbfAP;
+    tANI_U8 gLimTDLSBufStaEnabled;
+    tANI_U8 gLimTDLSUapsdMask;
 
 
 
