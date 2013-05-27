@@ -21,6 +21,7 @@
 #include "isoc_hw_desc.h"
 #endif
 #include "adf_nbuf.h"
+#include "wma_api.h"
 
 #define ENTER() VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Enter:%s", __func__)
 
@@ -393,6 +394,7 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 {
 	struct ol_txrx_peer_t *peer;
 	enum ol_txrx_peer_state txrx_state = ol_txrx_peer_state_open;
+	int err;
 
 	ENTER();
 	peer = ol_txrx_peer_find_by_id(
@@ -411,10 +413,14 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 				  txrx_state);
 
 	if (txrx_state == ol_txrx_peer_state_auth) {
-		/*
-		 * TODO:Send WMI_PEER_SET_PARAM_CMDID to set
-		 * the peer sate to authorized.
-		 */
+		err = wma_set_peer_param(
+				((pVosContextType) vos_ctx)->pWDAContext,
+				peer->mac_addr.raw, WMI_PEER_AUTHORIZE,
+				1, peer->vdev->vdev_id);
+		if (err) {
+			TLSHIM_LOGE("Failed to set the peer state to authorized");
+			return VOS_STATUS_E_FAULT;
+		}
 	}
 	return VOS_STATUS_SUCCESS;
 }
