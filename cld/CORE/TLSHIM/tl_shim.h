@@ -9,6 +9,7 @@
 
 struct tlshim_sta_info {
 	bool registered;
+	WLANTL_STARxCBType data_rx;
 };
 
 struct txrx_tl_shim_ctx {

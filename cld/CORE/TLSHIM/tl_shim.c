@@ -217,13 +217,30 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 /*
  * Rx callback from txrx module for data reception.
  */
-static void tlshim_data_rx_handler(void *context, adf_nbuf_t rx_buf_list)
+static void tlshim_data_rx_handler(void *context, u_int16_t staid,
+				   adf_nbuf_t rx_buf_list)
 {
-	/*
-	 * TODO: txrx to be changed to pass peer id in this callback.
-	 * staion id specific callback to be called to send the packet
-	 * to HDD.
-	 */
+	struct txrx_tl_shim_ctx *tl_shim;
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, context);
+
+	tl_shim = (struct txrx_tl_shim_ctx *) context;
+	if (!tl_shim->sta_info[staid].registered ||
+	    !tl_shim->sta_info[staid].data_rx) {
+		/*
+		 * TODO: Enqueue rx packets received before the
+		 * station is registered.
+		 */
+		adf_nbuf_t buf, next_buf;
+		buf = rx_buf_list;
+
+		do {
+			next_buf = adf_nbuf_queue_next(buf);
+			adf_nbuf_free(buf);
+			buf = next_buf;
+		} while (buf);
+	}
+
+	tl_shim->sta_info[staid].data_rx(vos_ctx, rx_buf_list, staid);
 }
 
 /*************************/
@@ -597,7 +614,7 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
 	txrx_ops.rx.std = tlshim_data_rx_handler;
 	wdi_in_osif_vdev_register(peer->vdev, tl_shim, &txrx_ops);
-	/* TODO: Keep the rx callback in sta_info */
+	tl_shim->sta_info[sta_desc->ucSTAId].data_rx = rxcb;
 	tl_shim->tx = txrx_ops.tx.std;
 	tl_shim->sta_info[sta_desc->ucSTAId].registered = true;
 	param.qos_capable =  sta_desc->ucQosEnabled;
