@@ -93,7 +93,6 @@ int wma_resume_target(WMA_HANDLE handle);
 #endif
 
 #ifdef NOT_YET
-VOS_STATUS wma_start_scan(WMA_HANDLE handle, tLimMlmScanReq *scan_req);
 VOS_STATUS wma_update_channel_list(WMA_HANDLE handle, void *scan_chan_info);
 #endif
 #endif
