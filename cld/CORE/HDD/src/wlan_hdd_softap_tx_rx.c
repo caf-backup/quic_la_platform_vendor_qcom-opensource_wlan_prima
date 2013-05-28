@@ -1066,6 +1066,7 @@ VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
 }
 
 
+#ifndef QCA_WIFI_2_0
 /**============================================================================
   @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when one or more packets were
@@ -1231,6 +1232,105 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
 
    return status;   
 }
+#else
+
+/**============================================================================
+  @brief hdd_softap_rx_packet_cbk() - Receive callback registered with TL.
+  TL will call this to notify the HDD when one or more packets were
+  received for a registered STA.
+
+  @param vosContext      : [in] pointer to VOS context
+  @param rxBufChain   : [in] pointer to adf_nbuf rx chain
+  @param staId           : [in] Station Id (Adress 1 Index)
+
+  @return                : VOS_STATUS_E_FAILURE if any errors encountered,
+                         : VOS_STATUS_SUCCESS otherwise
+  ===========================================================================*/
+VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
+                                    adf_nbuf_t rxBufChain,
+                                    v_U8_t staId)
+{
+   hdd_adapter_t *pAdapter = NULL;
+   VOS_STATUS status = VOS_STATUS_E_FAILURE;
+   int rxstat;
+   struct sk_buff *skb = NULL;
+   struct sk_buff *next_pkt;
+   hdd_context_t *pHddCtx = NULL;
+
+   //Sanity check on inputs
+   if ((NULL == vosContext) || (NULL == rxBufChain))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Null params being passed", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   pHddCtx = (hdd_context_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
+   if ( NULL == pHddCtx )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   pAdapter = pHddCtx->sta_to_adapter[staId];
+   if( NULL == pAdapter )
+   {
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   ++pAdapter->hdd_stats.hddTxRxStats.rxChains;
+
+   // walk the chain until all are processed
+   skb = (struct sk_buff *) rxBufChain;
+   do
+   {
+      // get the pointer to the next packet in the chain
+      next_pkt = skb->next;
+
+      //hdd_softap_dump_sk_buff(skb);
+
+      skb->dev = pAdapter->dev;
+
+      if(skb->dev == NULL) {
+
+          hddLog(VOS_TRACE_LEVEL_FATAL, "ERROR!!Invalid netdevice\n");
+          return VOS_STATUS_E_FAILURE;
+      }
+      ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
+      ++pAdapter->stats.rx_packets;
+      pAdapter->stats.rx_bytes += skb->len;
+
+
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                          "%s: send one packet to kernel \n", __func__);
+
+      skb->protocol = eth_type_trans(skb, skb->dev);
+      skb->ip_summed = CHECKSUM_NONE;
+#ifdef WLAN_OPEN_SOURCE
+#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
+      wake_lock_timeout(&pHddCtx->rx_wake_lock, msecs_to_jiffies(HDD_WAKE_LOCK_DURATION));
+#endif
+#endif
+      rxstat = netif_rx_ni(skb);
+      if (NET_RX_SUCCESS == rxstat)
+      {
+          ++pAdapter->hdd_stats.hddTxRxStats.rxDelivered;
+      }
+      else
+      {
+          ++pAdapter->hdd_stats.hddTxRxStats.rxRefused;
+      }
+
+      // now process the next packet in the chain
+      skb = next_pkt;
+   } while (skb);
+
+
+   pAdapter->dev->last_rx = jiffies;
+
+   return status;
+}
+#endif
 
 VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
 {

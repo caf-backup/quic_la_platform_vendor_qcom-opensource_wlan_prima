@@ -636,6 +636,7 @@ WLANBAP_STAFetchPktCB
   WLANTL_MetaInfoType*  tlMetaInfo
 );
 
+#ifndef QCA_WIFI_2_0
 /*----------------------------------------------------------------------------
 
   FUNCTION    WLANBAP_STARxCB
@@ -668,6 +669,33 @@ WLANBAP_STARxCB
   v_U8_t                 ucSTAId, 
   WLANTL_RxMetaInfoType* pRxMetaInfo
 );
+#else
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLANBAP_STARxCB
+
+  DESCRIPTION
+    The receive callback registered with TL.
+
+    TL will call this to notify the client when a packet was received
+    for a registered STA.
+
+  PARAMETERS
+
+    pvosGCtx:       pointer to the global vos context; a handle to
+                    TL's or HDD's control block can be extracted from
+                    its context
+    rxBufChain   :  pointer to adf_nbuf rx chain
+    ucSTAId:        station id
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+----------------------------------------------------------------------------*/
+VOS_STATUS
+WLANBAP_STARxCB(v_PVOID_t pvosGCtx, adf_nbuf_t rxBufChain, v_U8_t ucSTAId);
+#endif
 
 /*----------------------------------------------------------------------------
 
