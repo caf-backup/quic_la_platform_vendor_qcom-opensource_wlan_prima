@@ -98,6 +98,12 @@ typedef enum
    VOS_MODULE_ID_SAP        = 11,
    VOS_MODULE_ID_HDD_SOFTAP = 12,
 
+#ifdef QCA_WIFI_2_0
+   VOS_MODULE_ID_HIF       = 13,
+   VOS_MODULE_ID_HTC       = 14,
+   VOS_MODULE_ID_TXRX	   = 15,
+#endif
+
    // not a real module ID.  This is used to identify the maxiumum
    // number of VOS_MODULE_IDs and should always be at the END of
    // this enum.  If IDs are added, they need to go in front of this

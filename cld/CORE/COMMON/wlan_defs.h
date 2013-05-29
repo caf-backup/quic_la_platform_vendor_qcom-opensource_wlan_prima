@@ -11,8 +11,8 @@
 //==============================================================================
 // Author(s): ="Atheros"
 //==============================================================================
-#ifndef __WLAN_DEFS_H__
-#define __WLAN_DEFS_H__
+#ifndef __WLANDEFS_H__
+#define __WLANDEFS_H__
 
 /*
  * This file contains WLAN definitions that may be used across both

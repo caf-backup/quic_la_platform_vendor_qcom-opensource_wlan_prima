@@ -97,7 +97,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 {
 	/* get mac to acess CFG data base */
 	struct sAniSirGlobal *mac = (struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE, vos_context);
-	tp_wma_handle  wma_handle = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WMA, vos_context);
+	tp_wma_handle  wma_handle = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 	tHalCfg        *tlv_struct = NULL ;
 	v_U8_t        *tlv_struct_start = NULL ;
 	//tANI_U32       str_len = WNI_CFG_STA_ID_LEN;
@@ -110,7 +110,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	WDI_WlanVersionType wcnssCompiledApiVersion;
 #endif
 	if ((NULL == mac)||(NULL == wma_handle)) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"%s: Invoked with invalid wma_handle or mac", __func__ );
 		VOS_ASSERT(0);
 		return VOS_STATUS_E_FAILURE;
@@ -126,7 +126,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_param = vos_mem_malloc(cfg_param_sz);
 
 	if(NULL == cfg_param ) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"%s:cfg_param is NULL", __func__);
 		VOS_ASSERT(0) ;
 		return VOS_STATUS_E_NOMEM;
@@ -141,7 +141,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32*)((v_U8_t *) tlv_struct + sizeof(tHalCfg));
 	if(wlan_cfgGetStr(mac, WNI_CFG_STA_ID, (v_U8_t*)cfg_data_val, &str_len) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_STA_ID");
 		goto handle_failure;
 	}
@@ -157,7 +157,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_CURRENT_TX_ANTENNA, cfg_data_val ) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CURRENT_TX_ANTENNA");
 		goto handle_failure;
 	}
@@ -169,7 +169,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_CURRENT_RX_ANTENNA, cfg_data_val) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CURRENT_RX_ANTENNA");
 		goto handle_failure;
 	}
@@ -181,7 +181,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_LOW_GAIN_OVERRIDE, cfg_data_val ) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_LOW_GAIN_OVERRIDE");
 		goto handle_failure;
 	}
@@ -194,7 +194,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_POWER_STATE_PER_CHAIN, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_POWER_STATE_PER_CHAIN");
 		goto handle_failure;
 	}
@@ -206,7 +206,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_CAL_PERIOD, cfg_data_val ) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CAL_PERIOD");
 		goto handle_failure;
 	}
@@ -218,7 +218,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_CAL_CONTROL, cfg_data_val ) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CAL_CONTROL");
 		goto handle_failure;
 	}
@@ -230,7 +230,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_PROXIMITY, cfg_data_val ) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_PROXIMITY");
 		goto handle_failure;
 	}
@@ -242,7 +242,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_NETWORK_DENSITY, cfg_data_val ) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_NETWORK_DENSITY");
 		goto handle_failure;
 	}
@@ -254,7 +254,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_MEDIUM_TIME, cfg_data_val ) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_MAX_MEDIUM_TIME");
 		goto handle_failure;
 	}
@@ -266,7 +266,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_MPDUS_IN_AMPDU,
 				cfg_data_val ) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_MAX_MPDUS_IN_AMPDU");
 		goto handle_failure;
 	}
@@ -278,7 +278,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_RTS_THRESHOLD, cfg_data_val ) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_RTS_THRESHOLD");
 		goto handle_failure;
 	}
@@ -290,7 +290,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_SHORT_RETRY_LIMIT, cfg_data_val ) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_SHORT_RETRY_LIMIT");
 		goto handle_failure;
 	}
@@ -302,7 +302,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_LONG_RETRY_LIMIT, cfg_data_val ) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_LONG_RETRY_LIMIT");
 		goto handle_failure;
 	}
@@ -314,7 +314,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_FRAGMENTATION_THRESHOLD, 
 				cfg_data_val ) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FRAGMENTATION_THRESHOLD");
 		goto handle_failure;
 	}
@@ -326,7 +326,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_THRESHOLD_ZERO,
 				cfg_data_val ) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DYNAMIC_THRESHOLD_ZERO");
 		goto handle_failure;
 	}
@@ -339,7 +339,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_THRESHOLD_ONE, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DYNAMIC_THRESHOLD_ONE");
 		goto handle_failure;
 	}
@@ -351,7 +351,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_THRESHOLD_TWO, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DYNAMIC_THRESHOLD_TWO");
 		goto handle_failure;
 	}
@@ -364,7 +364,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FIXED_RATE");
 		goto handle_failure;
 	}
@@ -377,7 +377,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_POLICY, cfg_data_val ) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_RETRYRATE_POLICY");
 		goto handle_failure;
 	}
@@ -390,7 +390,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_SECONDARY, 
 				cfg_data_val ) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_RETRYRATE_SECONDARY");
 		goto handle_failure;
 	}
@@ -402,7 +402,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_RETRYRATE_TERTIARY, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_RETRYRATE_TERTIARY");
 		goto handle_failure;
 	}
@@ -414,7 +414,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_FORCE_POLICY_PROTECTION, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FORCE_POLICY_PROTECTION");
 		goto handle_failure;
 	}
@@ -426,7 +426,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE_MULTICAST_24GHZ, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FIXED_RATE_MULTICAST_24GHZ");
 		goto handle_failure;
 	}
@@ -438,7 +438,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_FIXED_RATE_MULTICAST_5GHZ, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_FIXED_RATE_MULTICAST_5GHZ");
 		goto handle_failure;
 	}
@@ -453,7 +453,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	if(wlan_cfgGetInt(mac, WNI_CFG_DEFAULT_RATE_INDEX_24GHZ, 
 				cfg_data_val ) != eSIR_SUCCESS)
 	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DEFAULT_RATE_INDEX_24GHZ");
 		goto handle_failure;
 	}
@@ -466,7 +466,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_DEFAULT_RATE_INDEX_5GHZ, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DEFAULT_RATE_INDEX_5GHZ");
 		goto handle_failure;
 	}
@@ -478,7 +478,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_BA_SESSIONS, cfg_data_val ) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_MAX_BA_SESSIONS");
 		goto handle_failure;
 	}
@@ -491,7 +491,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT");
 		goto handle_failure;
 	}
@@ -503,7 +503,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_PS_ENABLE_BCN_FILTER, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_PS_ENABLE_BCN_FILTER");
 		goto handle_failure;
 	}
@@ -515,7 +515,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_PS_ENABLE_RSSI_MONITOR, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_PS_ENABLE_RSSI_MONITOR");
 		goto handle_failure;
 	}
@@ -527,7 +527,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE");
 		goto handle_failure;
 	}
@@ -540,7 +540,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_STATS_PERIOD, cfg_data_val ) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_STATS_PERIOD");
 		goto handle_failure;
 	}
@@ -552,7 +552,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_CFP_MAX_DURATION, cfg_data_val ) != 
 			eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_CFP_MAX_DURATION");
 		goto handle_failure;
 	}
@@ -572,7 +572,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_DTIM_PERIOD, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DTIM_PERIOD");
 		goto handle_failure;
 	}
@@ -584,7 +584,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetStr(mac, WNI_CFG_EDCA_WME_ACBK, (v_U8_t *)cfg_data_val,
 				&str_len) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_EDCA_WME_ACBK");
 		goto handle_failure;
 	}
@@ -600,7 +600,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetStr(mac, WNI_CFG_EDCA_WME_ACBE, (v_U8_t *)cfg_data_val,
 				&str_len) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_EDCA_WME_ACBE");
 		goto handle_failure;
 	}
@@ -616,7 +616,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetStr(mac, WNI_CFG_EDCA_WME_ACVO, (v_U8_t *)cfg_data_val,
 				&str_len) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_EDCA_WME_ACVI");
 		goto handle_failure;
 	}
@@ -632,7 +632,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetStr(mac, WNI_CFG_EDCA_WME_ACVI, (v_U8_t *)cfg_data_val,
 				&str_len) != eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_EDCA_WME_ACVO");
 		goto handle_failure;
 	}
@@ -648,7 +648,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_BA_THRESHOLD_HIGH, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_BA_THRESHOLD_HIGH");
 		goto handle_failure;
 	}
@@ -660,7 +660,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_MAX_BA_BUFFERS, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_MAX_BA_BUFFERS");
 		goto handle_failure;
 	}
@@ -672,7 +672,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_DYNAMIC_PS_POLL_VALUE, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_DYNAMIC_PS_POLL_VALUE");
 		goto handle_failure;
 	}
@@ -684,7 +684,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_TRANS_LI, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_TRANS_LI");
 		goto handle_failure;
 	}
@@ -696,7 +696,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS");
 		goto handle_failure;
 	}
@@ -708,7 +708,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_MAX_LI, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_MAX_LI");
 		goto handle_failure;
 	}
@@ -720,7 +720,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS");
 		goto handle_failure;
 	}
@@ -732,7 +732,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_TELE_BCN_WAKEUP_EN, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TELE_BCN_WAKEUP_EN");
 		goto handle_failure;
 	}
@@ -744,7 +744,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD");
 		goto handle_failure;
 	}
@@ -756,7 +756,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_TX_PWR_CTRL_ENABLE, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_TX_PWR_CTRL_ENABLE");
 		goto handle_failure;
 	}
@@ -768,7 +768,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_CLOSE_LOOP, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_CLOSE_LOOP");
 		goto handle_failure;
 	}
@@ -922,7 +922,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_AP_KEEP_ALIVE_TIMEOUT, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_AP_KEEP_ALIVE_TIMEOUT");
 		goto handle_failure;
 	}
@@ -935,7 +935,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_GO_KEEP_ALIVE_TIMEOUT, 
 				cfg_data_val ) != eSIR_SUCCESS)	{
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_GO_KEEP_ALIVE_TIMEOUT");
 		goto handle_failure;
 	}
@@ -949,7 +949,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MC_ADDR_LIST, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_MC_ADDR_LIST");
 		goto handle_failure;
 	}
@@ -963,7 +963,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_UC_FILTER, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_UC_FILTER");
 		goto handle_failure;
 	}
@@ -976,7 +976,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_ASSOC_STA_LIMIT, cfg_data_val)
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ASSOC_STA_LIMIT");
 		goto handle_failure;
 	}
@@ -990,7 +990,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 	cfg_data_val = (tANI_U32 *)(tlv_struct + 1);
 	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_LPWR_IMG_TRANSITION, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_LPWR_IMG_TRANSITION");
 		goto handle_failure;
 	}
@@ -1005,7 +1005,7 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 
 	if(wlan_cfgGetInt(mac, WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED, cfg_data_val) 
 			!= eSIR_SUCCESS) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"Failed to get value for WNI_CFG_ENABLE_MCC_ADAPTIVE_SCHED");
 		goto handle_failure;
 	}
@@ -1017,10 +1017,10 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 #ifdef WLAN_DEBUG
 	{
 		int i;
-		VOS_TRACE(VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_INFO,
+		VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
 				"****** Dumping CFG TLV ***** ");
 		for (i=0; (i+7) < wma_start_params->usConfigBufferLen; i+=8) {
-			VOS_TRACE(VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_INFO,
+			VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
 					"%02x %02x %02x %02x %02x %02x %02x %02x", 
 					tlv_struct_start[i],
 					tlv_struct_start[i+1],
@@ -1033,10 +1033,10 @@ VOS_STATUS wma_prepare_config_tlv(v_VOID_t *vos_context,
 		}
 		/* Dump the bytes in the last line*/
 		for (; i < wma_start_params->usConfigBufferLen; i++) {
-			VOS_TRACE(VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_INFO,
+			VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
 					"%02x ",tlv_struct_start[i]);
 		}
-		VOS_TRACE(VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_INFO,
+		VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
 				"**************************** ");
 	}
 #endif
@@ -1301,7 +1301,7 @@ VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context, tp_wma_handle wma_handle
 	/* prepare the config TLV for the WDI */
 	vos_status = wma_prepare_config_tlv(vos_context, &wma_start_param);
 	if ( !VOS_IS_STATUS_SUCCESS(vos_status) ) {
-		VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
 				"%s: Unable to prepare Config TLV", __func__ );
 		return VOS_STATUS_E_FAILURE;
 	}

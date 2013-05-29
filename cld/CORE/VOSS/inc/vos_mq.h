@@ -92,6 +92,11 @@ typedef enum
   /// Message Queue ID for messages bound for WDI
   VOS_MQ_ID_WDI = VOS_MODULE_ID_WDI,
 
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+  /// Message Queue ID for messages bound for HTC
+  VOS_MQ_ID_HTC = VOS_MODULE_ID_HTC,
+#endif
 } VOS_MQ_ID;
 
 

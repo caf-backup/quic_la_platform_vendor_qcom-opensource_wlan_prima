@@ -37,7 +37,7 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev)
 	 */
 	cfg_ctx->tx_download_size = 16;
 #endif
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#ifndef QCA_WIFI_ISOC
 	/* temporarily diabled PN check for Riva/Pronto */
 	cfg_ctx->rx_pn_check = 1;
 #endif

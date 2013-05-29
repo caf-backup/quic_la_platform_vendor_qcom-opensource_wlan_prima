@@ -9441,7 +9441,14 @@ wpt_uint8 WDI_getHostWlanFeatCaps(wpt_uint8 feat_enum_value);
         0 - if the feature is NOT supported in FW
         any non-zero value - if the feature is SUPPORTED in FW.
 */
+#ifdef QCA_WIFI_2_0
+static inline wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value)
+{
+	return 0;
+}
+#else
 wpt_uint8 WDI_getFwWlanFeatCaps(wpt_uint8 feat_enum_value);
+#endif
 
 /**
  @brief WDI_GetWcnssCompiledApiVersion - Function to get wcnss compiled  

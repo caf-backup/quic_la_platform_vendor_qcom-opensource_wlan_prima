@@ -56,7 +56,7 @@ ol_tx_queue_log_free(
 
 
 /*--- function prototypes for optional host ADDBA negotiation ---------------*/
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 
 void
 ol_tx_queue_addba_check(
@@ -385,7 +385,7 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
 
 /*--- ADDBA triggering functions --------------------------------------------*/
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 
 void
 ol_tx_queue_addba_check(

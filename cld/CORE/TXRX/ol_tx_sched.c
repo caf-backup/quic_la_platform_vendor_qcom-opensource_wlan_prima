@@ -431,7 +431,7 @@ struct ol_tx_sched_wrr_adv_category_info_t {
         enum { OL_TX_SCHED_WRR_ADV_ ## cat ## _DISCARD_WEIGHT = \
             (discard_weights) }
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 /* Riva, Pronto, Northstar:
  * For high-volume traffic flows (VI, BE, BK), use a credit threshold
  * roughly equal to a large A-MPDU (5 fragments * 64 frames) to download
@@ -472,7 +472,7 @@ OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(UCAST_MGMT,   1,      1,     4,     0,  1);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_DATA,   2,     16,     4,     1,  4);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
 
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
 #define OL_TX_SCHED_WRR_ADV_CAT_CFG_STORE(category, scheduler) \
     do { \

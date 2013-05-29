@@ -50,9 +50,12 @@ when        who          what, where, why
 
 #include "aniGlobal.h"
 
-
-#  include "wlan_qct_wdi_ds.h"
-
+#ifdef QCA_WIFI_2_0
+#include "wma_api.h"
+#include "wma_stub.h"
+#else
+#include "wlan_qct_wdi_ds.h"
+#endif
 
 /* Add Include */
 
@@ -116,6 +119,25 @@ typedef enum
 
 #define WDA_TLI_CEIL( _a, _b)  (( 0 != (_a)%(_b))? (_a)/(_b) + 1: (_a)/(_b))
 
+#ifdef QCA_WIFI_2_0
+
+#define IS_MCC_SUPPORTED 0
+#define IS_FEATURE_SUPPORTED_BY_FW(feat_enum_value) 0
+
+#ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
+#define IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE 1
+#else
+#define IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE 0
+#endif
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+#define IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE 1
+#else
+#define IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE 0
+#endif
+
+#else	/* #ifdef QCA_WIFI_2_0 */
+
 /*
  * Check the version number and find if MCC feature is supported or not
  */
@@ -133,6 +155,8 @@ typedef enum
 #else
 #define IS_ROAM_SCAN_OFFLOAD_FEATURE_ENABLE 0
 #endif
+
+#endif	/* #ifdef QCA_WIFI_2_0 */
 
 /*--------------------------------------------------------------------------
   Definitions for Data path APIs
@@ -380,6 +404,25 @@ typedef struct
    v_PVOID_t            wdaWdiApiMsgParam;      /* WDI API paramter tracking */
 } tWDA_ReqParams; 
 
+#ifdef QCA_WIFI_2_0
+#define WDA_open wma_open
+#define WDA_start wma_start
+
+#ifdef QCA_WIFI_ISOC
+#define WDA_NVDownload_Start wma_nv_download_start
+#else
+#define WDA_NVDownload_Start(x)	({ VOS_STATUS_SUCCESS; })
+#endif
+
+#define WDA_preStart wma_pre_start
+#define WDA_stop wma_stop
+#define WDA_close wma_close
+#define WDA_shutdown wma_shutdown
+#define WDA_setNeedShutdown wma_setneedshutdown
+#define WDA_needShutdown wma_needshutdown
+#define WDA_McProcessMsg wma_mc_process_msg
+#else	/* #ifdef QCA_WIFI_2_0 */
+
 /*
  * FUNCTION: WDA_open
  * open WDA context
@@ -495,8 +538,44 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 // FIXME Temporary value for R33D integaration
 //#define WDA_TL_TX_FRAME_TIMEOUT  20000 /* in msec a very high upper limit */
 
+#endif	/* #ifdef QCA_WIFI_2_0 */
+
 #define DPU_FEEDBACK_UNPROTECTED_ERROR 0x0F
 
+#ifdef QCA_WIFI_2_0
+
+#define WDA_GET_RX_MAC_HEADER(pRxMeta) NULL
+#define WDA_GET_RX_MPDUHEADER3A(pRxMeta) NULL
+#define WDA_GET_RX_MPDU_HEADER_LEN(pRxMeta) 0
+#define WDA_GET_RX_MPDU_LEN(pRxMeta) 0
+#define WDA_GET_RX_PAYLOAD_LEN(pRxMeta) 0
+#define WDA_GET_RX_MAC_RATE_IDX(pRxMeta) 0
+#define WDA_GET_RX_MPDU_DATA(pRxMeta) NULL
+#define WDA_GET_RX_MPDU_HEADER_OFFSET(pRxMeta) 0
+#define WDA_GET_RX_UNKNOWN_UCAST(pRxMeta) 0
+#define WDA_GET_RX_CH(pRxMeta) *((v_U32_t*)NULL)
+#define WDA_IS_RX_BCAST(pRxMeta) 0
+#define WDA_GET_RX_FT_DONE(pRxMeta) 0
+#define WDA_GET_RX_DPU_FEEDBACK(pRxMeta) 0
+#define WDA_GET_RX_BEACON_SENT(pRxMeta) 0
+#define WDA_GET_RX_TSF_LATER(pRxMeta) 0
+#define WDA_GET_RX_TIMESTAMP(pRxMeta) 0
+#define WDA_IS_RX_IN_SCAN(pRxMeta) 0
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+#define WDA_GET_OFFLOADSCANLEARN(pRxMeta) 0
+
+#define WDA_GET_ROAMCANDIDATEIND(pRxMeta) 0
+#endif
+
+#define WDA_GET_RX_SNR(pRxMeta) 0
+
+#define WDA_GetWcnssWlanCompiledVersion	WMA_GetWcnssWlanCompiledVersion
+#define WDA_GetWcnssWlanReportedVersion WMA_GetWcnssWlanReportedVersion
+#define WDA_GetWcnssSoftwareVersion WMA_GetWcnssSoftwareVersion
+#define WDA_GetWcnssHardwareVersion WMA_GetWcnssHardwareVersion
+
+#else	/* #ifdef QCA_WIFI_2_0 */
 
 /* ---------------------------------------------------------------------------
  
@@ -724,10 +803,22 @@ VOS_STATUS WDA_ClearUapsdAcParamsReq(v_PVOID_t , v_U8_t , wpt_uint8 );
 VOS_STATUS WDA_SetRSSIThresholdsReq(tpAniSirGlobal , tSirRSSIThresholds *);
 // Just declare the function extern here and save some time.
 extern tSirRetStatus halMmhForwardMBmsg(void*, tSirMbMsg*);
+#endif	/* #ifdef QCA_WIFI_2_0 */
+
 tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 
 #define WDA_MAX_TXPOWER_INVALID HAL_MAX_TXPOWER_INVALID
+
+// Volans RF
+#  define WDA_RSSI_OFFSET             100
+#  define WDA_GET_RSSI0_DB(rssi0)     (rssi0 - WDA_RSSI_OFFSET)
+#  define WDA_GET_RSSI1_DB(rssi0)     (0 - WDA_RSSI_OFFSET)
+#  define WDA_MAX_OF_TWO(val1, val2)  ( ((val1) > (val2)) ? (val1) : (val2))
+#  define WDA_GET_RSSI_DB(rssi0)  \
+                WDA_MAX_OF_TWO(WDA_GET_RSSI0_DB(rssi0), WDA_GET_RSSI1_DB(rssi0))
+#  define WDA_GET_RX_RSSI_DB(pRxMeta) \
+                       WDA_GET_RSSI_DB((((WDI_DS_RxMetaInfoType*)(pRxMeta))->rssi0))
 
 //WDA Messages to HAL messages Mapping
 #if 0
@@ -1037,9 +1128,32 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
+#define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
+
+#ifdef QCA_WIFI_2_0
+
+#define WDA_SetRegDomain WMA_SetRegDomain
+
+#define wma_hal_tx_frame(hHal, pFrmBuf, frmLen, \
+			 frmType, txDir, tid, \
+			 pCompFunc, pData, txFlag) \
+	({ eHAL_STATUS_SUCCESS; })
+
+#define	wma_hal_tx_frame_with_tx_comp(hHal, pFrmBuf, frmLen, \
+				      frmType, txDir, tid, \
+				      pCompFunc, pData, \
+				      pCBackFnTxComp, txFlag) \
+	({ eHAL_STATUS_SUCCESS; })
+
+#define halTxFrame wma_hal_tx_frame
+#define halTxFrameWithTxComplete wma_hal_tx_frame_with_tx_comp
+
+#define WDA_UpdateRssiBmps WMA_UpdateRssiBmps
+
+#else
+
 eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
 
-#define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
 
 #define halTxFrame(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc, pData, txFlag) \
    (eHalStatus)( WDA_TxPacket(\
@@ -1085,6 +1199,31 @@ v_BOOL_t WDA_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx,
 
 #define WDA_UpdateRssiBmps(pvosGCtx,  staId, rssi) \
         WLANTL_UpdateRssiBmps(pvosGCtx, staId, rssi)
+
+#endif	/* #ifdef QCA_WIFI_2_0 */
+
+#ifdef QCA_WIFI_2_0
+
+#define WDA_DS_PeekRxPacketInfo WMA_DS_PeekRxPacketInfo
+
+#define WDA_HALDumpCmdReq WMA_HALDumpCmdReq
+
+#define WDA_featureCapsExchange WMA_featureCapsExchange
+#define WDA_disableCapablityFeature WMA_disableCapablityFeature
+#define WDA_getFwWlanFeatCaps WMA_getFwWlanFeatCaps
+
+#define WDA_TransportChannelDebug(mac, disp_snapshot, \
+				  toggle_stall_detect) ({ \
+			(void)mac;			  \
+			(void)disp_snapshot;		  \
+			(void)toggle_stall_detect;	  \
+})
+
+#define WDA_TrafficStatsTimerActivate WMA_TrafficStatsTimerActivate
+#define WDA_SetEnableSSR(enable_ssr) (void)enable_ssr
+#define WDI_DS_ActivateTrafficStats()
+
+#else	/* #ifdef QCA_WIFI_2_0 */
 
 #ifdef WLAN_PERF 
 /*==========================================================================
@@ -1820,5 +1959,6 @@ void WDA_TrafficStatsTimerActivate(wpt_boolean activate);
 
 ===========================================================================*/
 void WDA_SetEnableSSR(v_BOOL_t enableSSR);
+#endif	/* #ifdef QCA_WIFI_2_0 */
 
 #endif

@@ -456,7 +456,7 @@ int hifWaitForPendingRecv(HIF_DEVICE *device);
 #define DIAG_TRANSFER_LIMIT 2048U /* maximum number of bytes that can be
                                     handled atomically by DiagRead/DiagWrite */
 
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC)
+#if !defined(QCA_WIFI_ISOC)
     /* API to handle HIF-specific BMI message exchanges, this API is synchronous
      * and only allowed to be called from a context that can block (sleep) */
 int HIFExchangeBMIMsg(HIF_DEVICE *device,

@@ -48,44 +48,52 @@
 
 #include "osdep.h"
 #include "vos_mq.h"
-#include "htc_api.h"
 #include "aniGlobal.h"
+#include "a_types.h"
 #include "wmi_unified.h"
+#ifdef NOT_YET
 #include "wlan_hdd_tgt_cfg.h"
+#include "htc_api.h"
+#endif
 #include "limGlobal.h"
 
 typedef v_VOID_t* WMA_HANDLE;
 
-VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle, 
-		v_VOID_t *vos_context, tMacOpenParameters *mac_params,
-		hdd_tgt_cfg_cb tgt_cfg_cb);
+VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_context,
+		    tMacOpenParameters *mac_params);
 
-VOS_STATUS wma_nv_download_start(WMA_HANDLE wma_handle);
+#ifdef QCA_WIFI_ISOC
+VOS_STATUS wma_nv_download_start(v_VOID_t *vos_context);
+#endif
 
-VOS_STATUS wma_pre_start(WMA_HANDLE wma_handle);
+VOS_STATUS wma_pre_start(v_VOID_t *vos_context);
 
 VOS_STATUS wma_mc_process_msg( v_VOID_t *vos_context, vos_msg_t *msg );
 
-VOS_STATUS wma_start(WMA_HANDLE wma_handle);
+VOS_STATUS wma_start(v_VOID_t *vos_context);
 
-VOS_STATUS wma_stop(WMA_HANDLE wma_handle);
+VOS_STATUS wma_stop(v_VOID_t *vos_context, tANI_U8 reason);
 
-VOS_STATUS wma_close(WMA_HANDLE wma_handle);
+VOS_STATUS wma_close(v_VOID_t *vos_context);
 
 v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev);
 
 v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, 
         wmi_service_ready_event *ev);
 
-v_VOID_t wma_setneedshutdown(WMA_HANDLE handle);
+v_VOID_t wma_setneedshutdown(v_VOID_t *vos_context);
 
-v_BOOL_t wma_needshutdown(WMA_HANDLE handle);
+v_BOOL_t wma_needshutdown(v_VOID_t *vos_context);
 
 VOS_STATUS wma_wait_for_ready_event(WMA_HANDLE handle);
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
+
+#ifndef QCA_WIFI_ISOC
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);
 int wma_resume_target(WMA_HANDLE handle);
 #endif
+
+#ifdef NOT_YET
 VOS_STATUS wma_start_scan(WMA_HANDLE handle, tLimMlmScanReq *scan_req);
 VOS_STATUS wma_update_channel_list(WMA_HANDLE handle, void *scan_chan_info);
+#endif
 #endif

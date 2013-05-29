@@ -68,7 +68,7 @@ ol_rx_reorder_seq_num_check(
     unsigned tid,
     unsigned seq_num);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 
 /*
  * Riva, Pronto, Northstar: do sequence number checking in the host
@@ -94,7 +94,7 @@ ol_rx_reorder_seq_num_check(
           htt_rx_mpdu_desc_seq_num(pdev->htt_pdev, rx_mpdu_desc)) : \
       htt_rx_status_ok
 
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
 
 #endif /* _OL_RX_REORDER__H_ */

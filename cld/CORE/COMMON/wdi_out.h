@@ -293,7 +293,7 @@ wdi_out_cfg_sw_encap_hdr_max_size(ol_pdev_handle pdev)
 static inline int
 wdi_out_cfg_tx_encap(ol_pdev_handle pdev)
 {
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
     /*
      * Tx encap done in SW for Riva.
      * TBD: do tx encap in HW for Pronto and Northstar?
@@ -308,7 +308,7 @@ wdi_out_cfg_tx_encap(ol_pdev_handle pdev)
 static inline int
 wdi_out_cfg_host_addba(ol_pdev_handle pdev)
 {
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
     /*
      * ADDBA negotiation is handled by the host SW for the Riva family.
      */
@@ -491,7 +491,7 @@ enum ol_addba_req_status {
     ol_addba_req_busy,   /* ADDBA-req couldn't be sent now - try again later */
 };
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 
 /**
  * @brief Request the control SW to begin an ADDBA negotiation

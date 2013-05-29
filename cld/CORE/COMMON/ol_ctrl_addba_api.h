@@ -6,7 +6,7 @@
 
 #ifndef _OL_CTRL_ADDBA_API_H_
 #define _OL_CTRL_ADDBA_API_H_
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 #include "adf_os_types.h"
 #include "adf_os_mem.h"
 #include "ol_if_athvar.h"
@@ -150,7 +150,7 @@ void  ol_ctrl_addba_set_response(ol_ctrl_addba_handle ol_addba_handle,u_int8_t t
 
 void  ol_ctrl_addba_clear_response(ol_ctrl_addba_handle ol_addba_handle);
 
-#else //FEATURE_WLAN_INTEGRATED_SOC
+#else //QCA_WIFI_ISOC
 #define ol_ctrl_addba_attach(a,b,c,d,e)             0
 #define ol_ctrl_addba_detach(a)                     0
 #define ol_ctrl_addba_init(a,b,c,d,e)               0
@@ -164,5 +164,5 @@ void  ol_ctrl_addba_clear_response(ol_ctrl_addba_handle ol_addba_handle);
 #define ol_ctrl_addba_get_status(a,b)               0
 #define ol_ctrl_addba_set_response(a,b,c);          0
 #define ol_ctrl_addba_clear_response(a);            0
-#endif //FEATURE_WLAN_INTEGRATED_SOC
+#endif //QCA_WIFI_ISOC
 #endif

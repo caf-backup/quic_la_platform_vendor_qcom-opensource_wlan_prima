@@ -23,8 +23,8 @@
 #include "sapApi.h"
 #include "adf_nbuf.h"
 #include "ol_txrx_osif_api.h"
+#include "wlan_qct_tl.h"
 
-#define WLAN_MAX_STA_COUNT	32	/* FIXME: Fo Rome this is notified by fw in wmi_ready_service message */
 #define WLAN_RX_BCMC_STA_ID	(WLAN_MAX_STA_COUNT + 1)
 #define WLAN_RX_SAP_SELF_STA_ID (WLAN_MAX_STA_COUNT + 2)
 #define WLAN_RX_WDS_STAID 	WLAN_MAX_STA_COUNT

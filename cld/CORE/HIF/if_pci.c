@@ -727,8 +727,10 @@ hif_pci_remove(struct pci_dev *pdev)
     /* Cancel the pending tasklet */
     tasklet_kill(&sc->intr_tq);
 
+#ifdef NOT_YET
     if (ret != -EINVAL)
 	    __hdd_wlan_exit();
+#endif
 
 #if defined(CPU_WARM_RESET_WAR)
     /* Currently CPU warm reset sequence is tested only for AR9888_REV2
@@ -827,7 +829,7 @@ hif_pci_resume(struct pci_dev *pdev)
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
     if ((val == PM_EVENT_HIBERNATE) ||
         (val == PM_EVENT_SUSPEND)) {
-	    return wma_resume_target(vos_get_context(VOS_MODULE_ID_WMA, vos_context));
+	    return wma_resume_target(vos_get_context(VOS_MODULE_ID_WDA, vos_context));
     }
 
     return 0;

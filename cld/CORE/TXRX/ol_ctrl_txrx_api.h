@@ -187,7 +187,7 @@ enum ol_addba_req_status {
     ol_addba_req_busy,   /* ADDBA-req couldn't be sent now - try again later */
 };
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 
 /**
  * @brief Request the control SW to begin an ADDBA negotiation

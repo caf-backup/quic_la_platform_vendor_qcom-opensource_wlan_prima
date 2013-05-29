@@ -1,18 +1,8 @@
 #ifndef WMA_STUB
 #define WMA_STUB
-#include "ol_txrx_htt_api.h"
-#include "ol_txrx_ctrl_api.h"
-#include "ol_txrx_osif_api.h"
 
-#include "adf_nbuf.h"
 #include "vos_api.h"
 #include "vos_packet.h"
-#include "vos_types.h"
-#include "vos_api.h"
-#include "vos_packet.h"
-#include "vos_types.h"
-#include "adf_nbuf.h"
-#include "vos_api.h"
 #include "vos_types.h"
 
 static inline VOS_STATUS wma_shutdown(v_PVOID_t pVosContext, v_BOOL_t closeTransport)
@@ -53,6 +43,7 @@ WMA_DS_PeekRxPacketInfo
  v_PVOID_t *ppRxHeader,
  v_BOOL_t  bSwap
  ){
+	*ppRxHeader = NULL;
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -82,5 +73,15 @@ static inline VOS_STATUS WMA_GetWcnssWlanReportedVersion(v_PVOID_t pvosGCtx,
 static inline void WMA_featureCapsExchange(v_PVOID_t pVosContext) {
 	return;
 }
+
+static inline void WMA_UpdateRssiBmps(v_PVOID_t pvosGCtx,
+			  v_U8_t staId, v_S7_t rssi)
+{
+}
+static inline eHalStatus WMA_SetRegDomain(v_VOID_t *client_ctx, v_REGDOMAIN_t regId)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
 #endif
 

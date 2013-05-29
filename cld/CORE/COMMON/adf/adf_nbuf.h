@@ -118,7 +118,7 @@ adf_nbuf_map(adf_os_device_t        osdev,
              adf_nbuf_t             buf, 
              adf_os_dma_dir_t       dir)
 {
-#if defined(HIF_PCI) || defined(FEATURE_WLAN_INTEGRATED_SOC)
+#if defined(HIF_PCI) || defined(QCA_WIFI_ISOC)
     return __adf_nbuf_map(osdev, buf, dir);
 #else
     return 0;
@@ -139,7 +139,7 @@ adf_nbuf_unmap(adf_os_device_t      osdev,
                adf_nbuf_t           buf, 
                adf_os_dma_dir_t     dir)
 {
-#if defined(HIF_PCI) || defined(FEATURE_WLAN_INTEGRATED_SOC)
+#if defined(HIF_PCI) || defined(QCA_WIFI_ISOC)
     __adf_nbuf_unmap(osdev, buf, dir);
 #endif
 }
@@ -148,7 +148,7 @@ static inline a_status_t
 adf_nbuf_map_single(
     adf_os_device_t osdev, adf_nbuf_t buf, adf_os_dma_dir_t dir)
 {
-#if defined(HIF_PCI) || defined(FEATURE_WLAN_INTEGRATED_SOC)
+#if defined(HIF_PCI) || defined(QCA_WIFI_ISOC)
     return __adf_nbuf_map_single(osdev, buf, dir);
 #else
     return 0;
@@ -159,7 +159,7 @@ static inline void
 adf_nbuf_unmap_single(
     adf_os_device_t osdev, adf_nbuf_t buf, adf_os_dma_dir_t dir)
 {
-#if defined(HIF_PCI) || defined(FEATURE_WLAN_INTEGRATED_SOC)
+#if defined(HIF_PCI) || defined(QCA_WIFI_ISOC)
     __adf_nbuf_unmap_single(osdev, buf, dir);
 #endif
 }

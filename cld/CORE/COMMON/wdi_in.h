@@ -606,7 +606,7 @@ wdi_in_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 			 ol_txrx_peer_handle data_peer,
 			 enum ol_txrx_peer_state state);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 /**
  * @brief Confirm that a requested tx ADDBA negotiation has completed
  * @details

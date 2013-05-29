@@ -59,11 +59,60 @@ PANIC_ON_BUG := 0
 RE_ENABLE_WIFI_ON_WDI_TIMEOUT := 0
 
 #Enable to compile converged driver (CLD)
-CONFIG_QCA_WIFI_2_0 := 0
+#Disable to compile cld (default)
+CONFIG_QCA_WIFI_2_0 := 1
 
-#Enable to compile for integrated SOC for both prima and CLD
+#Enable to compile for integrated SOC (common for prima and CLD)
+#Disable to compile for discrete
 CONFIG_QCA_WIFI_ISOC := 1
 
+#Enable OS specific ADF abstraction
+CONFIG_ADF_SUPPORT := 1
+
+#Enable OL debug and wmi unified functions
+CONFIG_ATH_PERF_PWR_OFFLOAD := 1
+
+#Disable packet log
+CONFIG_REMOVE_PKT_LOG := 1
+
+#Enable 11AC TX
+CONFIG_ATH_11AC_TXCOMPACT := 1
+
+#Enable OS specific IRQ abstraction
+CONFIG_ATH_SUPPORT_SHARED_IRQ := 1
+
+#Enable message based HIF instead of RAW access in BMI
+CONFIG_HIF_MESSAGE_BASED := 1
+
+#Enable PCI specific APIS (dma, etc)
+CONFIG_HIF_PCI := 1
+
+#Enable pci read/write config functions
+CONFIG_ATH_PCI := 1
+
+#Enable power management suspend/resume functionality to PCI
+CONFIG_ATH_BUS_PM := 1
+
+#Enable dword alignment for IP header
+CONFIG_IP_HDR_ALIGNMENT := 0
+
+#Enable FLOWMAC module support
+CONFIG_ATH_SUPPORT_FLOWMAC_MODULE := 0
+
+#Enable spectral support
+CONFIG_ATH_SUPPORT_SPECTRAL := 0
+
+#Enable HOST statistics support
+CONFIG_SUPPORT_HOST_STATISTICS := 0
+
+#Enable WDI Event support
+CONFIG_WDI_EVENT_ENABLE := 0
+
+#Endianess selection
+CONFIG_LITTLE_ENDIAN := 1
+
+#Enable TX reclaim support
+CONFIG_TX_CREDIT_RECLAIM_SUPPORT := 0
 
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
@@ -74,6 +123,21 @@ else
 HAVE_CFG80211 := 0
 endif
 endif
+
+############ COMMON ############
+COMMON_DIR :=	CORE/COMMON
+COMMON_INC :=	-I$(WLAN_ROOT)/$(COMMON_DIR)
+
+############ ADF ##############
+ADF_DIR	:=	$(COMMON_DIR)/adf
+ADF_INC :=	-I$(WLAN_ROOT)/$(ADF_DIR) \
+		-I$(WLAN_ROOT)/$(ADF_DIR)/linux \
+		-I$(WLAN_ROOT)/$(COMMON_DIR)/asf
+
+ADF_OBJS :=     $(ADF_DIR)/adf_nbuf.o \
+                $(ADF_DIR)/adf_os_lock.o \
+                $(ADF_DIR)/adf_os_mem.o \
+                $(ADF_DIR)/linux/adf_os_lock_pvt.o
 
 ############ BAP ############
 BAP_DIR :=	CORE/BAP
@@ -105,15 +169,33 @@ BAP_OBJS := 	$(BAP_SRC_DIR)/bapApiData.o \
 		$(BAP_SRC_DIR)/btampHCI.o
 
 ############ DXE ############
-DXE_DIR :=	CORE/DXE
-DXE_INC_DIR :=	$(DXE_DIR)/inc
-DXE_SRC_DIR :=	$(DXE_DIR)/src
+DXE_DIR :=      CORE/DXE
+DXE_INC_DIR :=  $(DXE_DIR)/inc
+DXE_SRC_DIR :=  $(DXE_DIR)/src
 
-DXE_INC := 	-I$(WLAN_ROOT)/$(DXE_INC_DIR) \
-		-I$(WLAN_ROOT)/$(DXE_SRC_DIR)
+DXE_INC :=      -I$(WLAN_ROOT)/$(DXE_INC_DIR) \
+                -I$(WLAN_ROOT)/$(DXE_SRC_DIR)
 
-DXE_OBJS = 	$(DXE_SRC_DIR)/wlan_qct_dxe.o \
-		$(DXE_SRC_DIR)/wlan_qct_dxe_cfg_i.o
+ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+DXE_OBJS =      $(DXE_SRC_DIR)/wlan_qct_dxe.o \
+                $(DXE_SRC_DIR)/wlan_qct_dxe_cfg_i.o
+else
+ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
+DXE_INC +=      -I$(WLAN_ROOT)/$(DXE_DIR) \
+		-I$(WLAN_ROOT)/$(DXE_DIR)/linux
+
+DXE_OBJS :=     $(DXE_DIR)/hif_dxe.o \
+                $(DXE_DIR)/hif_dxe_config.o \
+                $(DXE_DIR)/linux/hif_dxe_os.o \
+                $(DXE_DIR)/dmux_dxe.o \
+                $(DXE_DIR)/htt_dxe_tx.o \
+                $(DXE_DIR)/htt_dxe_fw_stats.o \
+                $(DXE_DIR)/htt_dxe_h2t.o \
+                $(DXE_DIR)/htt_dxe_t2h.o \
+                $(DXE_DIR)/htt_dxe.o \
+                $(DXE_DIR)/htt_dxe_rx.o
+endif
+endif
 
 ############ HDD ############
 HDD_DIR :=	CORE/HDD
@@ -395,6 +477,95 @@ ifeq ($(BUILD_DIAG_VERSION),1)
 VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
 endif
 
+########### BMI ###########
+BMI_DIR := CORE/BMI
+
+BMI_INC := -I$(WLAN_ROOT)/$(BMI_DIR)
+
+BMI_OBJS := $(BMI_DIR)/bmi.o \
+            $(BMI_DIR)/ol_fw.o
+
+########### WMI ###########
+WMI_DIR := CORE/WMI
+
+WMI_INC := -I$(WLAN_ROOT)/$(WMI_DIR)
+
+WMI_OBJS := $(WMI_DIR)/wmi_unified.o
+
+############ TXRX ############
+TXRX_DIR :=     CORE/TXRX
+TXRX_INC :=     -I$(WLAN_ROOT)/$(TXRX_DIR)
+
+TXRX_OBJS := $(TXRX_DIR)/txrx_api.o \
+                $(TXRX_DIR)/ol_txrx.o \
+                $(TXRX_DIR)/ol_cfg.o \
+                $(TXRX_DIR)/ol_rx.o \
+                $(TXRX_DIR)/ol_rx_fwd.o \
+                $(TXRX_DIR)/ol_txrx.o \
+                $(TXRX_DIR)/ol_rx_defrag.o \
+                $(TXRX_DIR)/ol_tx_desc.o \
+                $(TXRX_DIR)/ol_tx_classify.o \
+                $(TXRX_DIR)/ol_tx.o \
+                $(TXRX_DIR)/ol_rx_reorder_timeout.o \
+                $(TXRX_DIR)/ol_rx_reorder.o \
+                $(TXRX_DIR)/ol_rx_pn.o \
+                $(TXRX_DIR)/ol_tx_queue.o \
+                $(TXRX_DIR)/ol_txrx_peer_find.o \
+                $(TXRX_DIR)/ol_txrx_event.o \
+                $(TXRX_DIR)/ol_txrx_encap.o \
+                $(TXRX_DIR)/ol_tx_send.o \
+                $(TXRX_DIR)/ol_tx_sched.o \
+                $(TXRX_DIR)/txrx.o
+
+############ HTT ############
+HTT_DIR :=      CORE/HTT
+HTT_INC :=      -I$(WLAN_ROOT)/$(HTT_DIR)
+
+ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
+HTT_OBJS := $(HTT_DIR)/htt_tx.o \
+            $(HTT_DIR)/htt.o \
+            $(HTT_DIR)/htt_t2h.o \
+            $(HTT_DIR)/htt_h2t.o \
+            $(HTT_DIR)/htt_fw_stats.o \
+            $(HTT_DIR)/htt_rx.o
+endif
+
+############## HTC ##########
+HTC_DIR := CORE/HTC
+
+HTC_INC := -I$(WLAN_ROOT)/$(HTC_DIR)
+
+ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
+HTC_INC += -I$(WLAN_ROOT)/$(HTC_DIR)/linux/
+HTC_OBJS := $(HTC_DIR)/linux/htc_smd.o
+else
+HTC_OBJS := $(HTC_DIR)/htc.o \
+            $(HTC_DIR)/htc_send.o \
+            $(HTC_DIR)/htc_recv.o \
+            $(HTC_DIR)/htc_services.o
+endif
+
+########### HIF ###########
+HIF_DIR := CORE/HIF
+
+HIF_INC := -I$(WLAN_ROOT)/$(HIF_DIR)
+
+HIF_OBJS := $(HIF_DIR)/copy_engine.o \
+            $(HIF_DIR)/hif_pci.o \
+            $(HIF_DIR)/if_pci.o \
+            $(HIF_DIR)/regtable.o
+
+############ WMA ############
+WMA_DIR :=      CORE/WMA
+
+WMA_INC :=      -I$(WLAN_ROOT)/$(WMA_DIR)
+
+WMA_OBJS :=     $(WMA_DIR)/wma.o
+
+ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
+WMA_OBJS +=     $(WMA_DIR)/wma_isoc.o
+endif
+
 ############ WDA ############
 WDA_DIR :=	CORE/WDA
 WDA_INC_DIR :=	$(WDA_DIR)/inc
@@ -404,11 +575,14 @@ WDA_INC := 	-I$(WLAN_ROOT)/$(WDA_INC_DIR) \
 		-I$(WLAN_ROOT)/$(WDA_INC_DIR)/legacy \
 		-I$(WLAN_ROOT)/$(WDA_SRC_DIR)
 
-WDA_OBJS :=	$(WDA_SRC_DIR)/wlan_qct_wda.o \
-		$(WDA_SRC_DIR)/wlan_qct_wda_debug.o \
-		$(WDA_SRC_DIR)/wlan_qct_wda_ds.o \
+WDA_OBJS :=	$(WDA_SRC_DIR)/wlan_qct_wda_debug.o \
 		$(WDA_SRC_DIR)/wlan_qct_wda_legacy.o \
 		$(WDA_SRC_DIR)/wlan_nv.o
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+WDA_OBJS +=	$(WDA_SRC_DIR)/wlan_qct_wda.o \
+		$(WDA_SRC_DIR)/wlan_qct_wda_ds.o
+endif
 
 ############ WDI ############
 WDI_DIR :=	CORE/WDI
@@ -441,23 +615,29 @@ WDI_TRP_OBJS :=	$(WDI_TRP_CTS_OBJS) \
 WDI_WPAL_INC := -I$(WLAN_ROOT)/$(WDI_DIR)/WPAL/inc
 
 WDI_WPAL_SRC_DIR := $(WDI_DIR)/WPAL/src
-WDI_WPAL_OBJS := $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_api.o \
-		$(WDI_WPAL_SRC_DIR)/wlan_qct_pal_device.o \
-		$(WDI_WPAL_SRC_DIR)/wlan_qct_pal_msg.o \
-		$(WDI_WPAL_SRC_DIR)/wlan_qct_pal_packet.o \
-		$(WDI_WPAL_SRC_DIR)/wlan_qct_pal_sync.o \
-		$(WDI_WPAL_SRC_DIR)/wlan_qct_pal_timer.o \
-		$(WDI_WPAL_SRC_DIR)/wlan_qct_pal_trace.o
+WDI_WPAL_OBJS := $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_trace.o
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+WDI_WPAL_OBJS += $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_api.o \
+		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_device.o \
+		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_msg.o \
+		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_packet.o \
+		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_sync.o \
+		 $(WDI_WPAL_SRC_DIR)/wlan_qct_pal_timer.o
+endif
 
 WDI_INC :=	$(WDI_CP_INC) \
 		$(WDI_DP_INC) \
 		$(WDI_TRP_INC) \
 		$(WDI_WPAL_INC)
 
-WDI_OBJS :=	$(WDI_CP_OBJS) \
+WDI_OBJS :=	$(WDI_WPAL_OBJS)
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+WDI_OBJS +=	$(WDI_CP_OBJS) \
 		$(WDI_DP_OBJS) \
-		$(WDI_TRP_OBJS) \
-		$(WDI_WPAL_OBJS)
+		$(WDI_TRP_OBJS)
+endif
 
 
 RIVA_INC :=	-I$(WLAN_ROOT)/riva/inc
@@ -465,7 +645,6 @@ RIVA_INC :=	-I$(WLAN_ROOT)/riva/inc
 LINUX_INC :=	-Iinclude/linux
 
 INCS :=		$(BAP_INC) \
-		$(DXE_INC) \
 		$(HDD_INC) \
 		$(LINUX_INC) \
 		$(MAC_INC) \
@@ -479,18 +658,56 @@ INCS :=		$(BAP_INC) \
 		$(WDA_INC) \
 		$(WDI_INC)
 
+ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+INCS +=		$(DXE_INC)
+else
+INCS +=		$(WMA_INC) \
+		$(COMMON_INC) \
+		$(WMI_INC) \
+		$(ADF_INC) \
+		$(TXRX_INC) \
+		$(HTT_INC) \
+		$(HTC_INC)
+
+ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
+INCS +=		$(HIF_INC) \
+		$(BMI_INC)
+else
+INCS +=		$(DXE_INC)
+endif
+
+endif
+
 OBJS :=		$(BAP_OBJS) \
-		$(DXE_OBJS) \
 		$(HDD_OBJS) \
 		$(MAC_OBJS) \
 		$(SAP_OBJS) \
 		$(SME_OBJS) \
 		$(SVC_OBJS) \
 		$(SYS_OBJS) \
-		$(TL_OBJS) \
 		$(VOSS_OBJS) \
 		$(WDA_OBJS) \
 		$(WDI_OBJS)
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+OBJS +=		$(DXE_OBJS) \
+		$(TL_OBJS)
+else
+OBJS +=		$(WMA_OBJS) \
+		$(TXRX_OBJS) \
+		$(WMI_OBJS) \
+		$(HTC_OBJS) \
+		$(ADF_OBJS)
+
+ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
+OBJS +=		$(HIF_OBJS) \
+		$(BMI_OBJS) \
+		$(HTT_OBJS)
+else
+OBJS +=		$(DXE_OBJS)
+endif
+
+endif
 
 EXTRA_CFLAGS += $(INCS)
 
@@ -528,6 +745,11 @@ CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
         	-DWLAN_FEATURE_HOLD_RX_WAKELOCK \
 		-DWLAN_SOFTAP_VSTA_FEATURE \
                 -DWLAN_FEATURE_ROAM_SCAN_OFFLOAD
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
+CDEFINES +=	-DWLANTL_DEBUG
+else
+endif
 
 ifneq ($(CONFIG_PRONTO_WLAN),)
 CDEFINES += -DWCN_PRONTO
@@ -645,6 +867,86 @@ endif
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
 CDEFINES += -DQCA_WIFI_ISOC
 CDEFINES += -DANI_BUS_TYPE_PLATFORM=1
+endif
+
+#Enable the OS specific ADF abstraction
+ifeq ($(CONFIG_ADF_SUPPORT), 1)
+CDEFINES += -DADF_SUPPORT
+endif
+
+#Enable OL debug and wmi unified functions
+ifeq ($(CONFIG_ATH_PERF_PWR_OFFLOAD), 1)
+CDEFINES += -DATH_PERF_PWR_OFFLOAD
+endif
+
+#Disable packet log
+ifeq ($(CONFIG_REMOVE_PKT_LOG), 1)
+CDEFINES += -DREMOVE_PKT_LOG
+endif
+
+#Enable 11AC TX
+ifeq ($(CONFIG_ATH_11AC_TXCOMPACT), 1)
+CDEFINES += -DATH_11AC_TXCOMPACT
+endif
+
+#Enable OS specific IRQ abstraction
+ifeq ($(CONFIG_ATH_SUPPORT_SHARED_IRQ), 1)
+CDEFINES += -DATH_SUPPORT_SHARED_IRQ
+endif
+
+#Enable message based HIF instead of RAW access in BMI
+ifeq ($(CONFIG_HIF_MESSAGE_BASED), 1)
+CDEFINES += -DHIF_MESSAGE_BASED
+endif
+
+#Enable PCI specific APIS (dma, etc)
+ifeq ($(CONFIG_HIF_PCI), 1)
+CDEFINES += -DHIF_PCI
+endif
+
+#Enable pci read/write config functions
+ifeq ($(CONFIG_ATH_PCI), 1)
+CDEFINES += -DATH_PCI
+endif
+
+#Enable power management suspend/resume functionality to PCI
+ifeq ($(CONFIG_ATH_BUS_PM), 1)
+CDEFINES += -DATH_BUS_PM
+endif
+
+#Enable dword alignment for IP header
+ifeq ($(CONFIG_IP_HDR_ALIGNMENT), 1)
+CDEFINES += -DPERE_IP_HDR_ALIGNMENT_WAR
+endif
+
+#Enable FLOWMAC module support
+ifeq ($(CONFIG_ATH_SUPPORT_FLOWMAC_MODULE), 1)
+CDEFINES += -DATH_SUPPORT_FLOWMAC_MODULE
+endif
+
+#Enable spectral support
+ifeq ($(CONFIG_ATH_SUPPORT_SPECTRAL), 1)
+CDEFINES += -DATH_SUPPORT_SPECTRAL
+endif
+
+#Enable WDI Event support
+ifeq ($(CONFIG_WDI_EVENT_ENABLE), 1)
+CDEFINES += -DWDI_EVENT_ENABLE
+endif
+
+#Endianess selection
+ifeq ($(CONFIG_LITTLE_ENDIAN), 1)
+AH_LITTLE_ENDIAN=1234
+CDEFINES += -DAH_BYTE_ORDER=$(AH_LITTLE_ENDIAN)
+else
+AH_BIG_ENDIAN=4321
+CDEFINES += -DAH_BYTE_ORDER=$(AH_BIG_ENDIAN)
+CDEFINES += -DBIG_ENDIAN_HOST
+endif
+
+#Enable TX reclaim support
+ifeq ($(CONFIG_TX_CREDIT_RECLAIM_SUPPORT), 1)
+CDEFINES += -DTX_CREDIT_RECLAIM_SUPPORT
 endif
 
 # Fix build for GCC 4.7
