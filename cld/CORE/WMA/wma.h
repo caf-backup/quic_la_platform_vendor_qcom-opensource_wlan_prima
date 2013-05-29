@@ -58,10 +58,6 @@
 #include "halTypes.h"
 #include "cfgApi.h"
 #include "vos_status.h"
-#ifdef QCA_WIFI_ISOC
-#include "dmux_dxe_api.h"
-#endif
-#include "packet.h"
 #include "vos_sched.h"
 #include "wlan_hdd_tgt_cfg.h"
 #include "ol_txrx_api.h"
@@ -147,9 +143,6 @@ typedef enum {
 	WMA_STATE_CLOSE
 }t_wma_state;
 
-/* Rx Mgmt Callback registred by umac */
-typedef VOS_STATUS (*wma_mgmt_rx_cb)( void *mac_ctx, tp_rxpacket rx_pkt);
-
 /*
  * memory chunck allocated by Host to be managed by FW
  * used only for low latency interfaces like pcie
@@ -206,13 +199,6 @@ typedef struct {
 	wmi_resource_config   wlan_resource_config;
 	u_int32_t frameTransRequired;
 	tBssSystemRole       wmaGlobalSystemRole;
-
-#ifdef QCA_WIFI_ISOC
-	/* DXE mgmt handle */
-	void* mgmt_dxe_handle;
-#endif
-	/* Rx Mgmt Callback registred by umac */
-	wma_mgmt_rx_cb mgmt_frm_rxcb;
 
 	/* Tx Frame Compl Cb registered by umac */
 	wma_tx_frm_comp_cb tx_frm_download_comp_cb;
@@ -770,15 +756,6 @@ enum frame_index {
 	FRAME_INDEX_MAX
 };
 
-/**
-  * wma_mgmt_attach - attches mgmt fn with underlying layer
-  * DXE in case of Integrated, WMI incase of Discrete
-  * @pvosGCtx: vos context
-  * @mgmt_frm_rxcb: Rx mgmt Callback
-  */
-VOS_STATUS wma_mgmt_attach(void *mac_context, void *vos_context,
-				wma_mgmt_rx_cb  mgmt_frm_rxcb);
-
 VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id, 
 		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac, 
 		u_int32_t vdev_type, bool add_del);
@@ -786,18 +763,6 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
 #endif
 
-#ifdef NOT_YET
-/**
-  * wma_register_mgmt_ack_cb  - register ack cb for tx mgmt frame
-  * @tp_wma_handle: wma_handle
-  * @ol_txrx_mgmt_tx_cb: ack_cb
-  * @frame_index: mgmt frame index
-  * @mac_context
-  */
-VOS_STATUS wma_register_mgmt_ack_cb(void *wma_context,
-					ol_txrx_mgmt_tx_cb ack_cb,
-					enum frame_index tx_frm_index,
-					void *mac_context);
 /**
   * wma_send_tx_frame - Sends Tx Frame to TxRx
   * @wma_context: wma context
@@ -822,6 +787,5 @@ VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
  * TODO: Need to Revist the Timing
  */
 #define WMA_TX_FRAME_COMPLETE_TIMEOUT  1000
-#endif	/* #ifdef NOT_YET */
 
 #endif
