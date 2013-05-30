@@ -11,8 +11,14 @@
 #include "tl_shim.h"
 #include "wma.h"
 #include "wmi_unified_api.h"
+#include "vos_packet.h"
+#include "vos_memory.h"
+#include "adf_os_types.h"
+#include "adf_nbuf.h"
+#include "adf_os_mem.h"
 #ifdef QCA_WIFI_ISOC
 #include "htt_dxe_types.h"
+#include "isoc_hw_desc.h"
 #endif
 
 #define ENTER() VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Enter:%s", __func__)
@@ -33,7 +39,83 @@
 #ifdef QCA_WIFI_ISOC
 static void tlshim_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
 {
-	/* TODO: Fill in meta info and send the frame to PE */
+	adf_nbuf_t tmp_next, cur = buflist;
+	isoc_rx_bd_t *rx_bd;
+	vos_pkt_t *rx_packet;
+	u_int8_t mpdu_header_offset = 0;
+	struct txrx_tl_shim_ctx *tl_shim = (struct txrx_tl_shim_ctx *)context;
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, context);
+
+	while(cur) {
+		/* Store the next buf in the list */
+		tmp_next = adf_nbuf_next(cur);
+
+		/* Move to next nBuf in list */
+		adf_nbuf_set_next(cur, NULL);
+
+		/* Get the Rx Bd */
+		rx_bd = (isoc_rx_bd_t *)adf_nbuf_data(cur);
+
+		/* Get MPDU Offset in RxBd */
+		mpdu_header_offset = rx_bd->mpdu_header_offset;
+
+		/*
+		 * Allocate memory for the Rx Packet
+		 * that has to be delivered to UMAC
+		 */
+		rx_packet =
+			(vos_pkt_t *)adf_os_mem_alloc(NULL, sizeof(vos_pkt_t));
+
+		if(rx_packet == NULL) {
+			TLSHIM_LOGE("Rx Packet Mem Alloc Failed");
+			adf_nbuf_free(cur);
+			goto next_nbuf;
+		}
+
+		/* Fill packet related Meta Info */
+		rx_packet->pkt_meta.channel = rx_bd->rx_channel;
+		rx_packet->pkt_meta.rssi = rx_bd->rssi0;
+		rx_packet->pkt_meta.snr = (((rx_bd->phy_stats1) >> 24) & 0xff);
+		rx_packet->pkt_meta.timestamp = rx_bd->rx_timestamp;
+
+		rx_packet->pkt_meta.mpdu_hdr_len = rx_bd->mpdu_header_length;
+		rx_packet->pkt_meta.mpdu_len = rx_bd->mpdu_length;
+		rx_packet->pkt_meta.mpdu_data_len =
+			rx_bd->mpdu_length - rx_bd->mpdu_header_length;
+
+		/* set the length of the packet buffer */
+		adf_nbuf_put_tail(cur,
+			mpdu_header_offset + rx_bd->mpdu_length);
+
+		/*
+		 * Rx Bd is removed from adf_nbuf
+		 * adf_nbuf is having only Rx Mgmt packet
+		 */
+		rx_packet->pkt_meta.mpdu_hdr_ptr =
+				adf_nbuf_pull_head(cur,mpdu_header_offset);
+
+		/* Store the MPDU Data Pointer in Rx Packet */
+		rx_packet->pkt_meta.mpdu_data_ptr =
+		rx_packet->pkt_meta.mpdu_hdr_ptr + rx_bd->mpdu_header_length;
+
+		/*
+		 * Rx Bd is removed from adf_nbuf data
+		 * adf_nbuf data is having only Rx Mgmt packet
+		 */
+		rx_packet->pkt_buf = cur;
+
+		/*
+                 * Call the Callback registered by umac with wma
+		 * for Rx Management Frames
+		 */
+		if(tl_shim->mgmt_rx)
+			tl_shim->mgmt_rx(vos_ctx, rx_packet);
+		else
+			vos_pkt_return_packet(rx_packet);
+next_nbuf:
+		/* Move to next nBuf in the list */
+		cur = tmp_next;
+    }
 }
 #else
 
