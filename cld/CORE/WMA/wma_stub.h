@@ -36,17 +36,6 @@ static inline void WMA_disableCapablityFeature(tANI_U8 feature_index) {
 	return;
 }
 
-static inline VOS_STATUS
-WMA_DS_PeekRxPacketInfo
-(
- vos_pkt_t *vosDataBuff,
- v_PVOID_t *ppRxHeader,
- v_BOOL_t  bSwap
- ){
-	*ppRxHeader = NULL;
-	return VOS_STATUS_SUCCESS;
-}
-
 static inline VOS_STATUS WMA_GetWcnssSoftwareVersion(v_PVOID_t pvosGCtx,
 		tANI_U8 *pVersion,
 		tANI_U32 versionBufferSize){
