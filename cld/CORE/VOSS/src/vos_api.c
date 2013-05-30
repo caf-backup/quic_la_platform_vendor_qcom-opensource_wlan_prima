@@ -368,6 +368,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    }
 #endif
 
+#ifndef QCA_WIFI_2_0
    /* Initialize here the VOS Packet sub module */
    vStatus = vos_packet_open( gpVosContext, &gpVosContext->vosPacket,
                               sizeof( vos_pkt_context_t ) );
@@ -380,6 +381,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       VOS_ASSERT(0);
       goto err_wda_close;
    }
+#endif
 
    /* Open the SYS module */
    vStatus = sysOpen(gpVosContext);
@@ -473,9 +475,14 @@ err_sys_close:
    sysClose(gpVosContext);
 
 err_packet_close:
+#ifndef QCA_WIFI_2_0
    vos_packet_close( gpVosContext );
-
+#endif
+#if ((defined (QCA_WIFI_2_0) && \
+   !defined (QCA_WIFI_ISOC)) || \
+   !defined (QCA_WIFI_2_0))
 err_wda_close:
+#endif
    WDA_close(gpVosContext);
 
 #ifdef QCA_WIFI_2_0
@@ -982,6 +989,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   }
 #endif
 
+#ifndef QCA_WIFI_2_0
   /* Let DXE return packets in WDA_close and then free them here */
   vosStatus = vos_packet_close( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -990,7 +998,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
          "%s: Failed to close VOSS Packet", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-
+#endif
 
   vos_mq_deinit(&((pVosContextType)vosContext)->freeVosMq);
 
@@ -2078,6 +2086,7 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
+#ifndef QCA_WIFI_2_0
  /* Let DXE return packets in WDA_close and then free them here */
   vosStatus = vos_packet_close( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -2086,6 +2095,7 @@ VOS_STATUS vos_shutdown(v_CONTEXT_t vosContext)
          "%s: Failed to close VOSS Packet", __func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
+#endif
 
   vos_mq_deinit(&((pVosContextType)vosContext)->freeVosMq);
 

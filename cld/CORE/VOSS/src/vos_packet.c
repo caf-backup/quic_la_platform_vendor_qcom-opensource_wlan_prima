@@ -27,8 +27,172 @@
 #include <i_vos_packet.h>
 #include <vos_timer.h>
 #include <vos_trace.h>
-#include <wlan_hdd_main.h>   
+#include <wlan_hdd_main.h>
+#ifdef QCA_WIFI_2_0
+#include "adf_nbuf.h"
+#include "vos_memory.h"
+#include "adf_os_mem.h"
 
+/**
+ * vos_pkt_return_packet  Free the voss Packet
+ * @ vos Packet
+ */
+VOS_STATUS vos_pkt_return_packet(vos_pkt_t *packet)
+{
+   // Validate the input parameter pointer
+   if (unlikely(packet == NULL)) {
+      return VOS_STATUS_E_INVAL;
+   }
+
+   /* Free up the Adf nbuf */
+   adf_nbuf_free(packet->pkt_buf);
+
+   /* Free up the Rx packet */
+   adf_os_mem_free(packet);
+
+   return VOS_STATUS_SUCCESS;
+}
+
+/**--------------------------------------------------------------------------
+
+  \brief vos_pkt_get_packet_length() - Get packet length for a voss Packet
+
+  This API returns the total length of the data in a voss Packet.
+
+  \param pPacket - the voss Packet to get the packet length from.
+
+  \param pPacketSize - location to return the total size of the data contained
+                       in the voss Packet.
+  \return
+
+  \sa
+
+  ---------------------------------------------------------------------------*/
+VOS_STATUS vos_pkt_get_packet_length( vos_pkt_t *pPacket,
+                                      v_U16_t *pPacketSize )
+{
+   // Validate the parameter pointers
+   if (unlikely((pPacket == NULL) || (pPacketSize == NULL)))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "VPKT [%d]: NULL pointer", __LINE__);
+      return VOS_STATUS_E_INVAL;
+   }
+
+   // return the requested information
+   *pPacketSize = adf_nbuf_len(pPacket->pkt_buf);
+   return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * TODO: Remove below later since all the below
+ * definitions are not required for Host
+ * driver 2.0 (still references from HDD and
+ * other layers are yet to be removed)
+ */
+VOS_STATUS vos_pkt_get_available_buffer_pool (VOS_PKT_TYPE  pktType,
+                                              v_SIZE_t     *vosFreeBuffer)
+{
+    return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_get_os_packet( vos_pkt_t *pPacket,
+                                  v_VOID_t **ppOSPacket,
+                                  v_BOOL_t clearOSPacket )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_wrap_data_packet( vos_pkt_t **ppPacket,
+                                     VOS_PKT_TYPE pktType,
+                                     v_VOID_t *pOSPacket,
+                                     vos_pkt_get_packet_callback callback,
+                                     v_VOID_t *userData )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_set_os_packet( vos_pkt_t *pPacket,
+                                  v_VOID_t *pOSPacket )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_get_timestamp( vos_pkt_t *pPacket,
+                                  v_TIME_t* pTstamp )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_walk_packet_chain( vos_pkt_t *pPacket,
+                                      vos_pkt_t **ppChainedPacket,
+                                      v_BOOL_t unchainPacket )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_peek_data( vos_pkt_t *pPacket,
+                              v_SIZE_t pktOffset,
+                              v_VOID_t **ppPacketData,
+                              v_SIZE_t numBytes )
+{
+   return VOS_STATUS_SUCCESS;
+}
+VOS_STATUS vos_pkt_get_packet( vos_pkt_t **ppPacket,
+                               VOS_PKT_TYPE pktType,
+                               v_SIZE_t dataSize,
+                               v_SIZE_t numPackets,
+                               v_BOOL_t zeroBuffer,
+                               vos_pkt_get_packet_callback callback,
+                               v_VOID_t *userData )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_reserve_head( vos_pkt_t *pPacket,
+                                 v_VOID_t **ppData,
+                                 v_SIZE_t dataSize )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_pop_head( vos_pkt_t *pPacket,
+                             v_VOID_t *pData,
+                             v_SIZE_t dataSize )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS vos_pkt_push_head( vos_pkt_t *pPacket,
+                              v_VOID_t *pData,
+                              v_SIZE_t dataSize )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+v_VOID_t vos_pkt_set_user_data_ptr( vos_pkt_t *pPacket,
+                                    VOS_PKT_USER_DATA_ID userID,
+                                    v_VOID_t *pUserData )
+{
+   return;
+}
+
+v_VOID_t vos_pkt_get_user_data_ptr( vos_pkt_t *pPacket,
+                                    VOS_PKT_USER_DATA_ID userID,
+                                    v_VOID_t **ppUserData )
+{
+   return;
+}
+
+VOS_STATUS vos_pkt_extract_data( vos_pkt_t *pPacket,
+                                 v_SIZE_t pktOffset,
+                                 v_VOID_t *pOutputBuffer,
+                                 v_SIZE_t *pOutputBufferSize )
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+#else
 /*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
@@ -2918,4 +3082,5 @@ VOS_STATUS vos_pkt_get_available_buffer_pool (VOS_PKT_TYPE  pktType,
 
 #ifdef VOS_PACKET_UNIT_TEST
 #include "vos_packet_test.c"
+#endif
 #endif

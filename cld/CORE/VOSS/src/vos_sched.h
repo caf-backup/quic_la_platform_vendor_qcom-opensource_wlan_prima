@@ -301,9 +301,6 @@ typedef struct _VosContextType
 
    /* SAP Context */
    v_VOID_t           *pSAPContext;
-   
-   /* VOS Packet Context */
-   vos_pkt_context_t   vosPacket; 
 
    vos_event_t         ProbeEvent;
 
@@ -332,6 +329,9 @@ typedef struct _VosContextType
 
    /* Configuration handle used to get system configuration */
    v_VOID_t	*cfg_ctx;
+#else
+   /* VOS Packet Context */
+   vos_pkt_context_t	vosPacket;
 #endif	/* QCA_WIFI_2_0 */
 
    volatile v_U8_t    isLoadUnloadInProgress;
