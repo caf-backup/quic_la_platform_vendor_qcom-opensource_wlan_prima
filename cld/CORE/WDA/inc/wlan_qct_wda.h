@@ -1223,7 +1223,6 @@ v_BOOL_t WDA_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx,
 
 #define WDA_TrafficStatsTimerActivate WMA_TrafficStatsTimerActivate
 #define WDA_SetEnableSSR(enable_ssr) (void)enable_ssr
-#define WDI_DS_ActivateTrafficStats()
 
 #else	/* #ifdef QCA_WIFI_2_0 */
 

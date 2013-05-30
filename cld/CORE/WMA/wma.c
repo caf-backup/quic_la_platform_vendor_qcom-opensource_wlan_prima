@@ -1642,3 +1642,8 @@ end:
 void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA)
 {
 }
+/* TODO: Below is stub should be removed later */
+void WDI_DS_ActivateTrafficStats(void)
+{
+}
+
