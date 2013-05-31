@@ -297,7 +297,8 @@ typedef VOS_STATUS (*WDA_DS_TxCompleteCb)( v_PVOID_t     pContext, wpt_packet *p
 typedef VOS_STATUS (*WDA_DS_RxCompleteCb)( v_PVOID_t pContext, wpt_packet *pFrame );
 typedef VOS_STATUS (*WDA_DS_TxFlowControlCb)( v_PVOID_t pContext, v_U8_t acMask );
 #endif
-typedef void (*pWDATxRxCompFunc)( v_PVOID_t pContext, void *pData );
+typedef void (*pWDATxRxCompFunc)( v_PVOID_t pContext, void *pData,
+                                  v_BOOL_t bFreeData );
 
 //callback function for TX complete
 //parameter 1 - global pMac pointer
@@ -509,7 +510,8 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
                                     pWDATxRxCompFunc pCompFunc,
                                     void *pData,
                                     pWDAAckFnTxComp pAckTxComp, 
-                                    tANI_U8 txFlag);
+                                    tANI_U8 txFlag
+                                    tANI_U8 sessionId );
 
 /*
  * FUNCTION: WDA_PostMsgApi
@@ -1196,9 +1198,11 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
 
 
-#define halTxFrame(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc, pData, txFlag) \
+#define halTxFrame(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc,\
+                   pData, txFlag, sessionid) \
    (eHalStatus)( WDA_TxPacket(\
-         vos_get_context(VOS_MODULE_ID_WDA, vos_get_global_context(VOS_MODULE_ID_WDA, (hHal))),\
+         vos_get_context(VOS_MODULE_ID_WDA,\
+                         vos_get_global_context(VOS_MODULE_ID_WDA, (hHal))),\
          (pFrmBuf),\
          (frmLen),\
          (frmType),\
@@ -1207,11 +1211,14 @@ eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
          (pCompFunc),\
          (pData),\
          (NULL), \
-         (txFlag)) )
+         (txFlag),\
+         (sessionid)) )
 
-#define halTxFrameWithTxComplete(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc, pData, pCBackFnTxComp, txFlag) \
+#define halTxFrameWithTxComplete(hHal, pFrmBuf, frmLen, frmType, txDir, tid,\
+                         pCompFunc, pData, pCBackFnTxComp, txFlag, sessionid) \
    (eHalStatus)( WDA_TxPacket(\
-         vos_get_context(VOS_MODULE_ID_WDA, vos_get_global_context(VOS_MODULE_ID_WDA, (hHal))),\
+         vos_get_context(VOS_MODULE_ID_WDA,\
+                         vos_get_global_context(VOS_MODULE_ID_WDA, (hHal))),\
          (pFrmBuf),\
          (frmLen),\
          (frmType),\
@@ -1220,7 +1227,8 @@ eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
          (pCompFunc),\
          (pData),\
          (pCBackFnTxComp), \
-         (txFlag)) )
+         (txFlag),\
+         (sessionid)) )
 
 /* -----------------------------------------------------------------
   WDA data path API's for TL

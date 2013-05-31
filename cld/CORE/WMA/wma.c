@@ -274,6 +274,13 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		goto err_event_init;
 	}
 
+	/* Init Tx Frame Complete event */
+	vos_status = vos_event_init(&wma_handle->tx_frm_download_comp_event);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGP("failed to init tx_frm_download_comp_event");
+		goto err_event_init;
+	}
+
 	WMA_LOGD("Exit");
 
 	return VOS_STATUS_SUCCESS;
@@ -948,6 +955,161 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	return 0;
 }
 
+static void wma_mgmt_tx_ack_work_handler(struct work_struct *ack_work)
+{
+	struct wma_tx_ack_work_ctx *work = container_of(ack_work,
+		struct wma_tx_ack_work_ctx, ack_cmp_work);
+	pWDAAckFnTxComp ack_cb =
+		work->wma_handle->umac_ota_ack_cb[work->sub_type];
+
+	WMA_LOGD("Tx Ack Cb SubType %d Status %d",
+			work->sub_type, work->status);
+
+	/* Call the Ack Cb registered by UMAC */
+	ack_cb((tpAniSirGlobal)(work->wma_handle->mac_context),
+                                work->status ? 0 : 1);
+
+	adf_os_mem_free(work);
+}
+
+/**
+  * wma_mgmt_tx_ack_comp_hdlr - handles tx ack mgmt completion
+  * @context: context with which the handler is registered
+  * @netbuf: tx mgmt nbuf
+  * @err: status of tx completion
+  *
+  * This is the cb registered with TxRx for
+  * Ack Complete
+  */
+static void
+wma_mgmt_tx_ack_comp_hdlr(void *wma_context,
+		adf_nbuf_t netbuf, int32_t status)
+{
+	tpSirMacFrameCtl pFc =
+		(tpSirMacFrameCtl)(adf_nbuf_data(netbuf));
+	tp_wma_handle wma_handle = (tp_wma_handle)wma_context;
+
+	if(wma_handle && wma_handle->umac_ota_ack_cb[pFc->subType]) {
+		struct wma_tx_ack_work_ctx *ack_work;
+
+		ack_work =
+		adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
+
+		if(ack_work) {
+			INIT_WORK(&ack_work->ack_cmp_work,
+					wma_mgmt_tx_ack_work_handler);
+			ack_work->wma_handle = wma_handle;
+			ack_work->sub_type = pFc->subType;
+			ack_work->status = status;
+
+			/* Schedue the Work */
+			schedule_work(&ack_work->ack_cmp_work);
+		}
+	}
+}
+
+/**
+  * wma_mgmt_tx_dload_comp_hldr - handles tx mgmt completion
+  * @context: context with which the handler is registered
+  * @netbuf: tx mgmt nbuf
+  * @err: status of tx completion
+  */
+static void
+wma_mgmt_tx_dload_comp_hldr(void *wma_context, adf_nbuf_t netbuf,
+					int32_t status)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
+	tp_wma_handle wma_handle = (tp_wma_handle)wma_context;
+	void *mac_context = wma_handle->mac_context;
+
+	WMA_LOGD("Tx Complete Status %d", status);
+
+	if (!wma_handle->tx_frm_download_comp_cb) {
+		WMA_LOGE("Tx Complete Cb not registered by umac");
+		return;
+	}
+
+	/* Call Tx Mgmt Complete Callback registered by umac */
+	wma_handle->tx_frm_download_comp_cb(mac_context,
+					netbuf, 0);
+
+	/* Reset Callback */
+	wma_handle->tx_frm_download_comp_cb = NULL;
+
+	/* Set the Tx Mgmt Complete Event */
+	vos_status  = vos_event_set(
+			&wma_handle->tx_frm_download_comp_event);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status))
+		WMA_LOGP("Event Set failed - tx_frm_comp_event");
+}
+
+/**
+  * wma_mgmt_attach - attches mgmt fn with underlying layer
+  * DXE in case of Integrated, WMI incase of Discrete
+  * @pwmaCtx: wma context
+  * @pmacCtx: mac Context
+  * @mgmt_frm_rxcb: Rx mgmt Callback
+  */
+VOS_STATUS wma_tx_mgmt_attach(tp_wma_handle wma_handle)
+{
+	/* Get the Vos Context */
+	pVosContextType vos_handle =
+		(pVosContextType)(wma_handle->vos_context);
+
+	/* Get the txRx Pdev handle */
+	ol_txrx_pdev_handle txrx_pdev =
+		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
+
+	/* Register for Tx Management Frames */
+	wdi_in_mgmt_tx_cb_set(txrx_pdev, GENERIC_NODOWLOAD_ACK_COMP_INDEX,
+				NULL, wma_mgmt_tx_ack_comp_hdlr,wma_handle);
+
+	wdi_in_mgmt_tx_cb_set(txrx_pdev, GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
+				wma_mgmt_tx_dload_comp_hldr, NULL, wma_handle);
+
+	wdi_in_mgmt_tx_cb_set(txrx_pdev, GENERIC_DOWNLD_COMP_ACK_COMP_INDEX,
+				wma_mgmt_tx_dload_comp_hldr,
+				wma_mgmt_tx_ack_comp_hdlr,wma_handle);
+
+	/* Store the Mac Context */
+	wma_handle->mac_context = vos_handle->pMACContext;
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_tx_mgmt_detach - detaches mgmt fn with underlying layer
+ * Deregister with TxRx for Tx Mgmt Download and Ack completion.
+ * @tp_wma_handle: wma context
+ */
+static VOS_STATUS wma_tx_mgmt_detach(tp_wma_handle wma_handle)
+{
+	u_int32_t frame_index = 0;
+
+	/* Get the Vos Context */
+	pVosContextType vos_handle =
+		(pVosContextType)(wma_handle->vos_context);
+
+	/* Get the txRx Pdev handle */
+	ol_txrx_pdev_handle txrx_pdev =
+		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
+
+	/* Deregister with TxRx for Tx Mgmt completion call back */
+	for (frame_index = 0; frame_index < FRAME_INDEX_MAX; frame_index++) {
+		wdi_in_mgmt_tx_cb_set(txrx_pdev, frame_index, NULL, NULL,
+					txrx_pdev);
+	}
+
+	/* Destroy Tx Frame Complete event */
+	vos_event_destroy(&wma_handle->tx_frm_download_comp_event);
+
+	/* Reset Tx Frm Callbacks */
+	wma_handle->tx_frm_download_comp_cb = NULL;
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /* function   : wma_start    
  * Descriptin :  
  * Args       :        
@@ -996,6 +1158,12 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	}
 	vos_status = VOS_STATUS_SUCCESS;
 
+	vos_status = wma_tx_mgmt_attach(wma_handle);
+	if(vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("Failed to register tx management");
+		goto end;
+	}
+
 end:
 	WMA_LOGD("Exit");
 	return vos_status;
@@ -1025,6 +1193,12 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 #ifdef QCA_WIFI_ISOC
 	wma_hal_stop_isoc(wma_handle);
 #endif
+
+	vos_status = wma_tx_mgmt_detach(wma_handle);
+	if(vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("Failed to deregister tx management");
+		goto end;
+	}
 end:
 	WMA_LOGD("Exit");
 	return vos_status;
@@ -1371,94 +1545,94 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev)
 }
 
 /**
-  * wma_mgmt_tx_dload_comp_hldr - handles tx mgmt completion
-  * @context: context with which the handler is registered
-  * @netbuf: tx mgmt nbuf
-  * @err: status of tx completion
+  * WDA_TxPacket - Sends Tx Frame to TxRx
+  * This function sends the frame corresponding to the
+  * given vdev id.
+  * This is blocking call till the downloading of frame is complete.
   */
-static void
-wma_mgmt_tx_dload_comp_hldr(void *mac_context, adf_nbuf_t netbuf,
-					int32_t status)
-{
-	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-
-	void *vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
-							mac_context);
-	tp_wma_handle wma_handle = (tp_wma_handle)vos_get_context(
-						VOS_MODULE_ID_WDA, vos_context);
-
-	WMA_LOGD("Tx Complete Status %d", status);
-
-	if (!wma_handle->tx_frm_download_comp_cb) {
-		WMA_LOGE("Tx Complete Cb not registered by umac");
-		return;
-	}
-
-	/* Call Tx Mgmt Complete Callback registered by umac */
-	wma_handle->tx_frm_download_comp_cb(mac_context,
-					netbuf, status);
-
-	/* Reset Callback */
-	wma_handle->tx_frm_download_comp_cb = NULL;
-
-	/* Set the Tx Mgmt Complete Event */
-	vos_status  = vos_event_set(
-			&wma_handle->tx_frm_download_comp_event);
-	if (!VOS_IS_STATUS_SUCCESS(wma_handle))
-		WMA_LOGP("Event Set failed - tx_frm_comp_event");
-}
-
-/**
-  * wma_send_tx_frame - Sends Tx Frame to TxRx
-  * @wma_context: wma context
-  * @vdev_handle: vdev for which frame has to be send
-  * @tx_frm: Tx frame
-  * @use_6mbps: whether to send the frame in 6 mbps rate or not
-  * @tx_frm_type: data or management
-  * @tx_frm_index: index at frame has to be send to TxRx
-  * @mgmt_tx_frm_download_comp_cb: cb registered by umac to
-  * be called upon download completion
-  * This function is a blocking call
-  * till it gets download complete indication from TxRx Module
-  */
-VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
-				adf_nbuf_t tx_frm, u_int8_t use_6mbps,
-				enum frame_type tx_frm_type,
-				enum frame_index tx_frm_index,
-				wma_tx_frm_comp_cb tx_frm_download_comp_cb)
+VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
+			eFrameType frmType, eFrameTxDir txDir, u_int8_t tid,
+			pWDATxRxCompFunc tx_frm_download_comp_cb, void *pData,
+			pWDAAckFnTxComp tx_frm_ota_comp_cb, u_int8_t tx_flag,
+			u_int8_t vdev_id)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle)(wma_context);
 	int32_t status;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	int32_t is_high_latency;
+	ol_txrx_vdev_handle txrx_vdev;
+	enum frame_index tx_frm_index =
+		GENERIC_NODOWNLD_NOACK_COMP_INDEX;
+	tpSirMacFrameCtl pFc = (tpSirMacFrameCtl)(adf_nbuf_data(tx_frame));
+	u_int8_t use_6mbps = 0;
+	u_int8_t downld_comp_required = 0;
+	/* Get the Vos Context */
+	pVosContextType vos_handle =
+		(pVosContextType)(wma_handle->vos_context);
 
-	ol_txrx_vdev_handle txrx_vdev =
-			(ol_txrx_vdev_handle)(vdev_handle);
+	/* Get the txRx Pdev handle */
+	ol_txrx_pdev_handle txrx_pdev =
+		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
 
-	if (tx_frm_type >= FRAME_80211_MAX) {
+	/* Get the vdev handle from vdev id */
+	txrx_vdev = ol_txrx_get_vdev(txrx_pdev, vdev_id);
+
+	if(!txrx_vdev) {
+		WMA_LOGE("TxRx Vdev Handle is NULL");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (frmType >= HAL_TXRX_FRM_MAX) {
 		WMA_LOGE("Invalid Frame Type Fail to send Frame");
 		return VOS_STATUS_E_FAILURE;
 	}
 
 	/*
-	 * TODO: Support to send TDLS Frames
-	 * TxRx doesn't support Tx Comp/Ack for
-	 * Data Frames.
-	 * Need to see How to send TDLS Frames ?
-	 * Either through Data/Mgmt Path since Ack
-	 * Complete Required for TDLS Frames
+	 * Currently only support to
+	 * send Mgmt is added.
+	 * TODO: Cntrl and Data frames through
+	 * this path
 	 */
-	if (tx_frm_type == DATA_FRAME_80211) {
-		WMA_LOGE("No Support to send Data Frames (TDLS)");
+	if (frmType != HAL_TXRX_FRM_802_11_MGMT) {
+		WMA_LOGE("No Support to send other frames except Mgmt");
 		return VOS_STATUS_E_FAILURE;
 	}
 
 	is_high_latency = wdi_out_cfg_is_high_latency(
 				txrx_vdev->pdev->ctrl_pdev);
 
-	/* Send the Tx Mgmt Frame */
-	if (tx_frm_download_comp_cb && is_high_latency) {
+	downld_comp_required = tx_frm_download_comp_cb && is_high_latency;
 
+	/* Fill the frame index to send */
+	if(pFc->type == SIR_MAC_MGMT_FRAME) {
+		if(tx_frm_ota_comp_cb) {
+			if(downld_comp_required)
+				tx_frm_index =
+					GENERIC_DOWNLD_COMP_ACK_COMP_INDEX;
+			else
+				tx_frm_index =
+					GENERIC_NODOWLOAD_ACK_COMP_INDEX;
+
+			/* Store the Ack Cb sent by UMAC */
+			if(pFc->subType < SIR_MAC_MGMT_RESERVED15) {
+				wma_handle->umac_ota_ack_cb[pFc->subType] =
+							tx_frm_ota_comp_cb;
+			}
+		} else {
+			if(downld_comp_required)
+				tx_frm_index =
+					GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX;
+			else
+				tx_frm_index =
+					GENERIC_NODOWNLD_NOACK_COMP_INDEX;
+		}
+	}
+
+	/*
+	 * If Dowload Complete is required
+	 * Wait for download complete
+	 */
+	if(downld_comp_required) {
 		/* Store Tx Comp Cb */
 		wma_handle->tx_frm_download_comp_cb = tx_frm_download_comp_cb;
 
@@ -1466,14 +1640,18 @@ VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
 		vos_status  = vos_event_reset(
 				&wma_handle->tx_frm_download_comp_event);
 
-		if (!VOS_IS_STATUS_SUCCESS(wma_handle)) {
-			WMA_LOGP("Event Reset failed tx comp event");
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			WMA_LOGP("Event Reset failed tx comp event %x",vos_status);
 			goto error;
 		}
 	}
 
+	/* If the frame has to be sent at BD Rate2 inform TxRx */
+	if(tx_flag & HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME)
+		use_6mbps = 1;
+
 	/* Hand over the Tx Mgmt frame to TxRx */
-	status = wdi_in_mgmt_send(txrx_vdev, tx_frm, tx_frm_index, use_6mbps);
+	status = wdi_in_mgmt_send(txrx_vdev, tx_frame, tx_frm_index, use_6mbps);
 
 	/*
 	 * Failed to send Tx Mgmt Frame
@@ -1488,10 +1666,10 @@ VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
 		return VOS_STATUS_SUCCESS;
 
 	/*
-	 * Wait for Download Complete only for
-	 * High latency devices
+	 * Wait for Download Complete
+	 * if required
 	 */
-	if (is_high_latency) {
+	if (downld_comp_required) {
 		/*
 		 * Wait for Download Complete
 		 * @ Integrated : Dxe Complete
@@ -1519,7 +1697,7 @@ VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
 		 * callback once the frame is successfully
 		 * given to txrx module
 		 */
-		tx_frm_download_comp_cb(wma_handle->mac_context, tx_frm, A_OK);
+		tx_frm_download_comp_cb(wma_handle->mac_context, tx_frame, 0);
 	}
 
 	return VOS_STATUS_SUCCESS;

@@ -61,6 +61,10 @@
 #include "vos_sched.h"
 #include "wlan_hdd_tgt_cfg.h"
 #include "ol_txrx_api.h"
+#include "sirMacProtDef.h"
+#include "wlan_qct_wda.h"
+#include "ol_txrx_types.h"
+#include <linux/workqueue.h>
 
 /* Platform specific configuration for max. no. of fragments */
 #define QCA_OL_11AC_TX_MAX_FRAGS            2
@@ -163,10 +167,6 @@ typedef struct s_vdev_tbl {
 	bool used;
 }t_vdev_tbl;
 
-/* Tx Frame Complete Callback Registered by umac */
-typedef void (*wma_tx_frm_comp_cb)(void *mac_ctxt, adf_nbuf_t netbuf,
-					int32_t status);
-
 typedef struct {
 	void *wmi_handle;
 	void *htc_handle;
@@ -201,10 +201,13 @@ typedef struct {
 	tBssSystemRole       wmaGlobalSystemRole;
 
 	/* Tx Frame Compl Cb registered by umac */
-	wma_tx_frm_comp_cb tx_frm_download_comp_cb;
+	pWDATxRxCompFunc tx_frm_download_comp_cb;
 
 	/* Event to wait for tx download completion */
 	vos_event_t tx_frm_download_comp_event;
+
+	/* Ack Complete Callback registered by umac */
+	pWDAAckFnTxComp umac_ota_ack_cb[SIR_MAC_MGMT_RESERVED15];
 
 	v_BOOL_t needShutdown;
 #if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
@@ -737,23 +740,13 @@ VOS_STATUS wma_hal_stop_isoc(tp_wma_handle wma_handle);
 #endif
 
 /**
-  * Frame type Mgmt or Data
-  */
-enum frame_type {
-	MGMT_FRAME_80211,
-	DATA_FRAME_80211,
-	FRAME_80211_MAX
-};
-
-/**
   * Frame index
   */
 enum frame_index {
+	GENERIC_NODOWNLD_NOACK_COMP_INDEX,
 	GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
 	GENERIC_DOWNLD_COMP_ACK_COMP_INDEX,
-	DISASSOC_DOWNLD_COMP_ACK_COMP_INDEX,
-	DEAUTH_DOWNLD_COMP_ACK_COMP_INDEX,
-	P2P_DOWNLD_COMP_ACK_COMP_INDEX,
+	GENERIC_NODOWLOAD_ACK_COMP_INDEX = (OL_TXRX_MGMT_NUM_TYPES - 1) ,
 	FRAME_INDEX_MAX
 };
 
@@ -764,29 +757,16 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
 #endif
 
-/**
-  * wma_send_tx_frame - Sends Tx Frame to TxRx
-  * @wma_context: wma context
-  * @vdev_handle: vdev for which frame has to be send
-  * @tx_frm: Tx frame
-  * @use_6mbps: whether to send the frame in 6 mbps rate or not
-  * @tx_frm_type: data or management
-  * @tx_frm_index: index at frame has to be send to TxRx
-  * @mgmt_tx_frm_download_comp_cb: cb registered by umac to
-  * be called upon download completion
-  * This function is a blocking call
-  * till it gets download complete indication from TxRx Module
-  */
-VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
-				adf_nbuf_t tx_frm, u_int8_t use_6mbps,
-				enum frame_type tx_frm_type,
-				enum frame_index tx_frm_index,
-				wma_tx_frm_comp_cb tx_frm_download_comp_cb);
-
 /*
  * Setting the Tx Comp Timeout to 1 secs.
  * TODO: Need to Revist the Timing
  */
 #define WMA_TX_FRAME_COMPLETE_TIMEOUT  1000
 
+struct wma_tx_ack_work_ctx {
+	tp_wma_handle wma_handle;
+	u_int16_t sub_type;
+	int32_t status;
+	struct work_struct ack_cmp_work;
+};
 #endif
