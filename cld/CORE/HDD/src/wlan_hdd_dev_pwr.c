@@ -378,6 +378,7 @@ VOS_STATUS hddDeregisterPmOps(hdd_context_t *pHddCtx)
 #endif /* FEATURE_R33D */
     return VOS_STATUS_SUCCESS;
 }
+#endif/*QCA_WIFI_ISOC*/
 
 /*----------------------------------------------------------------------------
 
@@ -540,6 +541,7 @@ VOS_STATUS hddDevTmRegisterNotifyCallback(hdd_context_t *pHddCtx)
    return VOS_STATUS_SUCCESS;
 }
 
+#ifdef QCA_WIFI_ISOC
 /*----------------------------------------------------------------------------
 
    @brief Un-Register function

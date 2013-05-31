@@ -45,6 +45,7 @@ extern void wcnss_wlan_crypto_free_ablkcipher(struct crypto_ablkcipher *tfm);
 /*
  * Do nothing for non ISOC
  */
+#define wcnss_wlan_get_drvdata(dev) NULL
 
 static inline void wcnss_wlan_register_pm_ops(void *dev, void *pm_ops)
 {
