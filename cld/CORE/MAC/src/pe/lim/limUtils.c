@@ -5022,7 +5022,7 @@ limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams
  *
  * @return none
  */
-void limTxComplete( tHalHandle hHal, void *pData )
+void limTxComplete( tHalHandle hHal, void *pData, v_BOOL_t free)
 {
   tpAniSirGlobal pMac;
   pMac = (tpAniSirGlobal)hHal;
@@ -5051,10 +5051,11 @@ void limTxComplete( tHalHandle hHal, void *pData )
 #endif
 #endif
 
-  palPktFree( pMac->hHdd,
-              HAL_TXRX_FRM_802_11_MGMT,
-              (void *) NULL,           // this is ignored and will likely be removed from this API
-              (void *) pData );        // lim passed in pPacket in the pData pointer that is given in this completion routine
+  if(free)
+     palPktFree( pMac->hHdd,
+                 HAL_TXRX_FRM_802_11_MGMT,
+                 (void *) NULL, /* this is ignored and will likely be removed */
+                 (void *) pData );  /* lim passed in pPacket in pData pointer */
 }
 
 /**

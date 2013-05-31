@@ -408,6 +408,22 @@ typedef struct
    v_PVOID_t            wdaWdiApiMsgParam;      /* WDI API paramter tracking */
 } tWDA_ReqParams; 
 
+/*
+ * FUNCTION: WDA_MgmtDSTxPacket
+ * Forward TX management frame to WDI
+ */
+
+VOS_STATUS WDA_TxPacket(void *pWDA,
+                        void *pFrmBuf,
+                        tANI_U16 frmLen,
+                        eFrameType frmType,
+                        eFrameTxDir txDir,
+                        tANI_U8 tid,
+                        pWDATxRxCompFunc pCompFunc,
+                        void *pData,
+                        pWDAAckFnTxComp pAckTxComp,
+                        tANI_U8 txFlag,
+                        tANI_U8 sessionId);
 #ifdef QCA_WIFI_2_0
 #define WDA_open wma_open
 #define WDA_start wma_start
@@ -496,22 +512,6 @@ VOS_STATUS WDA_MgmtDSRegister(tWDA_CbContext *pWDA,
                               WDA_DS_RxCompleteCb WDA_RxCompleteCallback,  
                               WDA_DS_TxFlowControlCb WDA_TxFlowCtrlCallback 
                              ) ;
-/*
- * FUNCTION: WDA_MgmtDSTxPacket
- * Forward TX management frame to WDI
- */ 
-
-VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA, 
-                                    void *pFrmBuf,
-                                    tANI_U16 frmLen,
-                                    eFrameType frmType,
-                                    eFrameTxDir txDir,
-                                    tANI_U8 tid,
-                                    pWDATxRxCompFunc pCompFunc,
-                                    void *pData,
-                                    pWDAAckFnTxComp pAckTxComp, 
-                                    tANI_U8 txFlag
-                                    tANI_U8 sessionId );
 
 /*
  * FUNCTION: WDA_PostMsgApi
@@ -1173,31 +1173,6 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
 
-#ifdef QCA_WIFI_2_0
-
-#define WDA_SetRegDomain WMA_SetRegDomain
-
-#define wma_hal_tx_frame(hHal, pFrmBuf, frmLen, \
-			 frmType, txDir, tid, \
-			 pCompFunc, pData, txFlag) \
-	({ eHAL_STATUS_SUCCESS; })
-
-#define	wma_hal_tx_frame_with_tx_comp(hHal, pFrmBuf, frmLen, \
-				      frmType, txDir, tid, \
-				      pCompFunc, pData, \
-				      pCBackFnTxComp, txFlag) \
-	({ eHAL_STATUS_SUCCESS; })
-
-#define halTxFrame wma_hal_tx_frame
-#define halTxFrameWithTxComplete wma_hal_tx_frame_with_tx_comp
-
-#define WDA_UpdateRssiBmps WMA_UpdateRssiBmps
-
-#else
-
-eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
-
-
 #define halTxFrame(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc,\
                    pData, txFlag, sessionid) \
    (eHalStatus)( WDA_TxPacket(\
@@ -1229,6 +1204,17 @@ eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
          (pCBackFnTxComp), \
          (txFlag),\
          (sessionid)) )
+
+#ifdef QCA_WIFI_2_0
+
+#define WDA_SetRegDomain WMA_SetRegDomain
+
+#define WDA_UpdateRssiBmps WMA_UpdateRssiBmps
+
+#else
+
+eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
+
 
 /* -----------------------------------------------------------------
   WDA data path API's for TL
