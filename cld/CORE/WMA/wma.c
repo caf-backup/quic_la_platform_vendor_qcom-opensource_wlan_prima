@@ -674,9 +674,10 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 
 	cmd->vdev_id = scan_req->sessionId;
 	/*TODO: Populate actual values */
-	cmd->scan_id = ++wma_handle->scan_id;
+	cmd->scan_id = WMA_HOST_SCAN_REQID_PREFIX | ++wma_handle->scan_id;
 	cmd->scan_priority = WMA_DEFAULT_SCAN_PRIORITY;
-	cmd->scan_req_id = WMA_DEFAULT_SCAN_REQUESTER_ID;
+	cmd->scan_req_id = WMA_HOST_SCAN_REQUESTOR_ID_PREFIX |
+			   WMA_DEFAULT_SCAN_REQUESTER_ID;
 
 	/* Set the scan events which the driver is intereseted to receive */
 	/* TODO: handle all the other flags also */
