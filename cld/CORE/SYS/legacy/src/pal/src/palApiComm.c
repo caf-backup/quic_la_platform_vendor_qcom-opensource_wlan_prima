@@ -10,6 +10,9 @@
 
 #include <sirParams.h>  // needed for tSirMbMsg
 #include "wlan_qct_wda.h"
+#ifdef QCA_WIFI_2_0
+#include "adf_nbuf.h"
+#endif
 
 #ifdef MEMORY_DEBUG
 eHalStatus palAllocateMemory_debug( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes, char* fileName, tANI_U32 lineNum )
@@ -71,7 +74,7 @@ tANI_BOOLEAN palEqualMemory( tHddHandle hHdd, void *pMemory1, void *pMemory2, tA
    return( vos_mem_compare( pMemory1, pMemory2, numBytes ) );
 }   
 
-
+#ifndef QCA_WIFI_2_0
 eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size, void **data, void **ppPacket)
 {
    eHalStatus halStatus = eHAL_STATUS_FAILURE;
@@ -111,9 +114,31 @@ eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size, void 
    
    return( halStatus );
 }
+#else
+#define TX_PKT_MIN_HEADROOM 64
+eHalStatus palPktAlloc(tHddHandle hHdd, eFrameType frmType, tANI_U16 size,
+                        void **data, void **ppPacket)
+{
+   eHalStatus halStatus = eHAL_STATUS_FAILURE;
+   adf_nbuf_t nbuf;
 
+   nbuf = adf_nbuf_alloc(NULL, roundup(size+TX_PKT_MIN_HEADROOM, 4),
+                         TX_PKT_MIN_HEADROOM,
+                         sizeof(tANI_U32), FALSE);
 
+   if (nbuf != NULL) {
+      adf_nbuf_put_tail(nbuf, size);
+      adf_nbuf_set_protocol(nbuf, ETH_P_CONTROL);
+      *ppPacket = nbuf;
+      *data = adf_nbuf_data(nbuf);
+      halStatus = eHAL_STATUS_SUCCESS;
+   }
 
+   return halStatus;
+}
+#endif
+
+#ifndef QCA_WIFI_2_0
 void palPktFree( tHddHandle hHdd, eFrameType frmType, void* buf, void *pPacket)
 {
    vos_pkt_t *pVosPacket = (vos_pkt_t *)pPacket;
@@ -139,8 +164,12 @@ void palPktFree( tHddHandle hHdd, eFrameType frmType, void* buf, void *pPacket)
    
    return;
 }
-   
-
+#else
+void palPktFree( tHddHandle hHdd, eFrameType frmType, void* buf, void *pPacket)
+{
+   adf_nbuf_free((adf_nbuf_t)pPacket);
+}
+#endif
 
 tANI_U32 palGetTickCount(tHddHandle hHdd)
 {
