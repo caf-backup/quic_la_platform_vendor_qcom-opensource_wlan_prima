@@ -4992,16 +4992,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
-   /*
-    * cfg80211: Initialization and registration ...
-    */
-   if (0 < wlan_hdd_cfg80211_register(dev, wiphy, pHddCtx->cfg_ini))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, 
-              "%s: wlan_hdd_cfg80211_register return failure", __func__);
-      goto err_wiphy_reg;
-   }
-
    // Update VOS trace levels based upon the cfg.ini
    hdd_vos_trace_enable(VOS_MODULE_ID_BAP,
                         pHddCtx->cfg_ini->vosTraceEnableBAP);
@@ -5037,15 +5027,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                         pHddCtx->cfg_ini->wdiTraceEnablePAL);
 
    if (VOS_FTM_MODE == hdd_get_conparam())
-   {
-      if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
-      {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
-          goto err_free_hdd_context;
-      }
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
-      return VOS_STATUS_SUCCESS;
-   }
+      goto register_wiphy;
 
    //Open watchdog module
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
@@ -5090,6 +5072,31 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_preStart failed", __func__);
       goto err_vosclose;
+   }
+
+register_wiphy:
+   /*
+    * cfg80211: Initialization and registration ...
+    */
+   if (0 < wlan_hdd_cfg80211_register(dev, wiphy, pHddCtx->cfg_ini))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: wlan_hdd_cfg80211_register return failure", __func__);
+      if (hdd_get_conparam() == VOS_FTM_MODE)
+         goto err_config;
+      else
+         goto err_vosclose;
+   }
+
+   if (VOS_FTM_MODE == hdd_get_conparam())
+   {
+      if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
+      {
+          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
+          goto err_free_hdd_context;
+      }
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
+      return VOS_STATUS_SUCCESS;
    }
 
    /* Note that the vos_preStart() sequence triggers the cfg download.
