@@ -1460,6 +1460,13 @@ VOS_STATUS hdd_wlan_re_init(void)
       goto err_vosclose;
    }
 
+   vosStatus = hdd_set_sme_chan_list(pHddCtx);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: Failed to init channel list", __func__);
+      goto err_vosclose;
+   }
+
    /* In the integrated architecture we update the configuration from
       the INI file and from NV before vOSS has been started so that
       the final contents are available to send down to the cCPU   */
