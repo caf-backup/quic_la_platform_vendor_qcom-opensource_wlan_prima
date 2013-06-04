@@ -2766,12 +2766,20 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX( pAdapter );
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
+   tANI_U32 type, subType;
    int rc = 0;
 
    INIT_COMPLETION(pAdapter->session_open_comp_var);
+   status = vos_get_vdev_types(pAdapter->device_mode, &type, &subType);
+   if (VOS_STATUS_SUCCESS != status)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "failed to get vdev type");
+      goto error_sme_open;
+   }
    //Open a SME session for future operation
    halStatus = sme_OpenSession( pHddCtx->hHal, hdd_smeRoamCallback, pAdapter,
-         (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
+         (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId,
+         type, subType);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -6280,7 +6288,6 @@ VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx)
  
    return status;
 }
-
 
 //Register the module init/exit functions
 module_init(hdd_module_init);

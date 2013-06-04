@@ -343,6 +343,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
 {
    VOS_STATUS vosStatus;
    eHalStatus halStatus;
+   tANI_U32 type, subType;
 
    //Power Up Libra WLAN card first if not already powered up
    vosStatus = vos_chipPowerUp(NULL,NULL,NULL);
@@ -387,9 +388,16 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
    }
 
 
+   vosStatus = vos_get_vdev_types(pAdapter->device_mode, &type, &subType);
+   if (VOS_STATUS_SUCCESS != vosStatus)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "failed to get vdev type");
+      goto err_voss_stop;
+   }
    //Open a SME session for future operation
-   halStatus = sme_OpenSession( pHddCtx->hHal, hdd_smeRoamCallback, pHddCtx,
-                                (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
+   halStatus = sme_OpenSession( pHddCtx->hHal, hdd_smeRoamCallback, pAdapter,
+         (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId,
+         type, subType);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"sme_OpenSession() failed with status code %08d [x%08lx]",

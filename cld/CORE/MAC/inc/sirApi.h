@@ -3262,6 +3262,9 @@ typedef struct sSirSmeAddStaSelfReq
     tANI_U16        mesgType;
     tANI_U16        mesgLen;
     tSirMacAddr     selfMacAddr;
+    tANI_U32        type;
+    tANI_U32        subType;
+    tANI_U8         sessionId;
 }tSirSmeAddStaSelfReq, *tpSirSmeAddStaSelfReq;
 
 typedef struct sSirSmeDelStaSelfReq
@@ -3269,6 +3272,7 @@ typedef struct sSirSmeDelStaSelfReq
     tANI_U16        mesgType;
     tANI_U16        mesgLen;
     tSirMacAddr     selfMacAddr;
+    tANI_U8         sessionId;
 }tSirSmeDelStaSelfReq, *tpSirSmeDelStaSelfReq;
 
 typedef struct sSirSmeAddStaSelfRsp

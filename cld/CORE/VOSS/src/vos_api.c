@@ -56,7 +56,6 @@
 #include "sapApi.h"
 
 
-
 #ifdef WLAN_BTAMP_FEATURE
 #include "bapApi.h"
 #include "bapInternal.h"
@@ -2207,4 +2206,40 @@ VOS_STATUS vos_wlanRestart(void)
    /* Reload the driver */
    vstatus = wlan_hdd_restart_driver(pHddCtx);
    return vstatus;
+}
+
+VOS_STATUS vos_get_vdev_types(tVOS_CON_MODE mode, tANI_U32 *type,
+        tANI_U32 *sub_type)
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    *type = 0;
+    *sub_type = 0;
+#ifdef QCA_WIFI_2_0
+    switch (mode)
+    {
+        case VOS_STA_MODE:
+            *type = WMI_VDEV_TYPE_STA;
+            break;
+        case VOS_STA_SAP_MODE:
+            *type = WMI_VDEV_TYPE_AP;
+            break;
+        case VOS_P2P_DEVICE_MODE:
+            *type = WMI_VDEV_TYPE_STA;
+            *sub_type = WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE;
+            break;
+        case VOS_P2P_CLIENT_MODE:
+            *type = WMI_VDEV_TYPE_STA;
+            *sub_type = WMI_UNIFIED_VDEV_SUBTYPE_P2P_CLIENT;
+            break;
+        case VOS_P2P_GO_MODE:
+            *type = WMI_VDEV_TYPE_AP;
+            *sub_type = WMI_UNIFIED_VDEV_SUBTYPE_P2P_GO;
+            break;
+        default:
+            hddLog(VOS_TRACE_LEVEL_ERROR, "Invalid device mode %d", mode);
+            status = VOS_STATUS_E_INVAL;
+            break;
+    }
+#endif
+    return status;
 }

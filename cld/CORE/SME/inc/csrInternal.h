@@ -426,6 +426,9 @@ typedef struct tagAddStaForSessionCmd
 {
    //Session self mac addr
    tSirMacAddr selfMacAddr;
+   tANI_U32        type;
+   tANI_U32        subType;
+   tANI_U8         sessionId;
 }tAddStaForSessionCmd;
 
 typedef struct tagDelStaForSessionCmd

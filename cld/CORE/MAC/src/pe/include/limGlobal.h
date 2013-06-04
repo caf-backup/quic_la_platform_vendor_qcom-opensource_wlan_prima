@@ -274,6 +274,7 @@ typedef struct sLimMlmScanReq
 
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
+    tANI_U8        sessionId;
     /*-----------------------------
       tLimMlmScanReq....
       -----------------------------

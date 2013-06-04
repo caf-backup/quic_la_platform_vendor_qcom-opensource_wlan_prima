@@ -187,8 +187,9 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag);
   \sa
   
   --------------------------------------------------------------------------*/
-eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, void *pContext, 
-                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId);
+eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, void *pContext,
+                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId,
+                           tANI_U32 type, tANI_U32 subType);
 
 
 /*--------------------------------------------------------------------------

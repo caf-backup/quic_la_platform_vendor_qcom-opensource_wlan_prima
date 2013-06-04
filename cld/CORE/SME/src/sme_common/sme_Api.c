@@ -5033,7 +5033,8 @@ eHalStatus sme_OemDataReq(tHalHandle hHal,
 
   --------------------------------------------------------------------------*/
 eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, void *pContext,
-                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId)
+                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId,
+                           tANI_U32 type, tANI_U32 subType)
 {
    eHalStatus status;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -5047,7 +5048,8 @@ eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, vo
       status = sme_AcquireGlobalLock( &pMac->sme );
       if ( HAL_STATUS_SUCCESS( status ) )
       {
-         status = csrRoamOpenSession( pMac, callback, pContext, pSelfMacAddr, pbSessionId );
+         status = csrRoamOpenSession( pMac, callback, pContext, pSelfMacAddr,
+                         pbSessionId, type, subType );
 
          sme_ReleaseGlobalLock( &pMac->sme );
       }

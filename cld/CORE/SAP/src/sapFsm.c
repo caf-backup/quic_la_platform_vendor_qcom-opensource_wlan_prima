@@ -301,6 +301,8 @@ sapGotoStarting
     /* tHalHandle */
     tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
     eHalStatus halStatus;
+    tANI_U32 type, subType;
+    VOS_STATUS status = VOS_STATUS_E_FAILURE;
 
     /*- - - - - - - - TODO:once configs from hdd available - - - - - - - - -*/
     char key_material[32]={ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1,};
@@ -323,12 +325,19 @@ sapGotoStarting
                             sapContext,
                             eSME_REASON_OTHER);
 
+    status = vos_get_vdev_types(VOS_STA_SAP_MODE, &type, &subType);
+    if (VOS_STATUS_SUCCESS != status)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL, "failed to get vdev type");
+        return VOS_STATUS_E_FAILURE;
+    }
     /* Open SME Session for Softap */
     halStatus = sme_OpenSession(hHal,
                         &WLANSAP_RoamCallback,
                         sapContext,
                         sapContext->self_mac_addr,
-                        &sapContext->sessionId);
+                        &sapContext->sessionId,
+                        type, subType);
 
     if(eHAL_STATUS_SUCCESS != halStatus )
     {

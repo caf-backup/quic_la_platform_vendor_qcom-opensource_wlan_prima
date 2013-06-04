@@ -1258,14 +1258,16 @@ typedef struct sMaxTxPowerParams
 typedef struct sAddStaSelfParams
 {
    tSirMacAddr selfMacAddr;
-
+   tANI_U32        type;
+   tANI_U32        subType;
+   tANI_U8         sessionId;
    tANI_U32 status;
 }tAddStaSelfParams, *tpAddStaSelfParams;
 
 typedef struct sDelStaSelfParams
 {
    tSirMacAddr selfMacAddr;
-
+   tANI_U8     sessionId;
    tANI_U32 status;
 }tDelStaSelfParams, *tpDelStaSelfParams;
 
