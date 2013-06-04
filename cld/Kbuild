@@ -58,6 +58,12 @@ PANIC_ON_BUG := 0
 #Re-enable wifi on WDI timeout
 RE_ENABLE_WIFI_ON_WDI_TIMEOUT := 0
 
+#Enable to compile converged driver (CLD)
+CONFIG_QCA_WIFI_2_0 := 0
+
+#Enable to compile for integrated SOC for both prima and CLD
+CONFIG_QCA_WIFI_ISOC := 1
+
 
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
@@ -488,8 +494,7 @@ OBJS :=		$(BAP_OBJS) \
 
 EXTRA_CFLAGS += $(INCS)
 
-CDEFINES :=	-DANI_BUS_TYPE_PLATFORM=1 \
-		-DANI_LITTLE_BYTE_ENDIAN \
+CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \
 		-DQC_WLAN_CHIPSET_PRIMA \
 		-DINTEGRATION_READY \
@@ -631,6 +636,15 @@ endif
 
 ifeq ($(findstring opensource, $(WLAN_ROOT)), opensource)
 CDEFINES += -DWLAN_OPEN_SOURCE
+endif
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
+CDEFINES += -DQCA_WIFI_2_0
+endif
+
+ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
+CDEFINES += -DQCA_WIFI_ISOC
+CDEFINES += -DANI_BUS_TYPE_PLATFORM=1
 endif
 
 # Fix build for GCC 4.7

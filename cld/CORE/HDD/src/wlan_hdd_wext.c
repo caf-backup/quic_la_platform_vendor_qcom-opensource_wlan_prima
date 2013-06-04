@@ -3789,10 +3789,14 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_TM_LEVEL:
         {
+#ifdef QCA_WIFI_ISOC
            hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
            hddLog(VOS_TRACE_LEVEL_INFO, "Set Thermal Mitigation Level %d", (int)set_value); 
            hddDevTmLevelChangedHandler(hddCtxt->parent_dev, set_value);
-
+#else
+           hddLog(VOS_TRACE_LEVEL_INFO, "Thermal Mitigation Level %d not set for discrete",
+		  (int)set_value);
+#endif
            break;
         }
 

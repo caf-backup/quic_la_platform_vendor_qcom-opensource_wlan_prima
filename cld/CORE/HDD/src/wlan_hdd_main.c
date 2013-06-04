@@ -45,12 +45,7 @@
 #include <vos_power.h>
 #include <linux/etherdevice.h>
 #include <linux/firmware.h>
-#ifdef ANI_BUS_TYPE_PLATFORM
-#include <linux/wcnss_wlan.h>
-#endif //ANI_BUS_TYPE_PLATFORM
-#ifdef ANI_BUS_TYPE_PCI
-#include "wcnss_wlan.h"
-#endif /* ANI_BUS_TYPE_PCI */
+#include <wcnss_api.h>
 #include <wlan_hdd_tx_rx.h>
 #include <palTimer.h>
 #include <wniApi.h>
@@ -74,7 +69,9 @@
 int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include "sapApi.h"
 #include <linux/semaphore.h>
+#ifdef MSM_PLATFORM
 #include <mach/subsystem_restart.h>
+#endif
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #include "cfgApi.h"
@@ -4354,6 +4351,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
                                     WLAN_HDD_INFRA_STATION);
       }
    }
+
+#ifdef QCA_WIFI_ISOC
    /* DeRegister with platform driver as client for Suspend/Resume */
    vosStatus = hddDeregisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -4367,6 +4366,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
    }
+#endif
 
    // Cancel any outstanding scan requests.  We are about to close all
    // of our adapters, but an adapter structure is what SME passes back
@@ -4528,8 +4528,10 @@ free_hdd_ctx:
    wiphy_free(wiphy) ;
    if (hdd_is_ssr_required())
    {
+#ifdef MSM_PLATFORM
        /* WDI timeout had happened during unload, so SSR is needed here */
        subsystem_restart("wcnss");
+#endif
        msleep(5000);
    }
    hdd_set_ssr_required (VOS_FALSE);
@@ -5222,6 +5224,7 @@ int hdd_wlan_startup(struct device *dev )
    sme_UpdateChannelConfig(pHddCtx->hHal); 
 #endif
 
+#ifdef QCA_WIFI_ISOC
    /* Register with platform driver as client for Suspend/Resume */
    status = hddRegisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -5241,6 +5244,7 @@ int hdd_wlan_startup(struct device *dev )
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmRegisterNotifyCallback failed",__func__);
       goto err_unregister_pmops;
    }
+#endif	/* QCA_WIFI_ISOC */
 
    /* register for riva power on lock to platform driver */
    if (req_riva_power_on_lock("wlan"))
@@ -5329,8 +5333,10 @@ err_free_power_on_lock:
    free_riva_power_on_lock("wlan");
 
 err_unregister_pmops:
+#ifdef QCA_WIFI_ISOC
    hddDevTmUnregisterNotifyCallback(pHddCtx);
    hddDeregisterPmOps(pHddCtx);
+#endif
 
 #ifdef WLAN_BTAMP_FEATURE
 err_bap_stop:
@@ -5379,8 +5385,10 @@ err_free_hdd_context:
 
    if (hdd_is_ssr_required())
    {
+#ifdef MSM_PLATFORM
        /* WDI timeout had happened during load, so SSR is needed here */
        subsystem_restart("wcnss");
+#endif
        msleep(5000);
    }
    hdd_set_ssr_required (VOS_FALSE);

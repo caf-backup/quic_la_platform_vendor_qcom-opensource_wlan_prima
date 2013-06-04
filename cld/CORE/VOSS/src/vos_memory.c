@@ -40,7 +40,7 @@
 #include "vos_trace.h"
 
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
-#include <linux/wcnss_wlan.h>
+#include <wcnss_api.h>
 #define WCNSS_PRE_ALLOC_GET_THRESHOLD (4*1024)
 #endif
 
