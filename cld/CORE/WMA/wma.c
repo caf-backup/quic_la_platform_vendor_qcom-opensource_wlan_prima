@@ -403,7 +403,6 @@ end:
 	return vos_status;
 }
 
-#ifdef NOT_YET
 /* function   : wma_send_msg
  * Descriptin :
  * Args       :
@@ -535,7 +534,7 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", pdel_sta_self_req_param->sessionId,
 			txrx_hdl);
 
-	wma_send_msg(wma_handle, WMA_DEL_STA_SELF_RSP, (void *)pdel_sta_self_req_param, 0);
+	wma_send_msg(wma_handle, WDA_DEL_STA_SELF_RSP, (void *)pdel_sta_self_req_param, 0);
 	return status;
 }
 
@@ -591,10 +590,9 @@ static VOS_STATUS wma_vdev_attach(tp_wma_handle wma_handle, tpAddStaSelfParams s
 
 end:
 	self_sta_req->status = status;
-	wma_send_msg(wma_handle, WMA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
+	wma_send_msg(wma_handle, WDA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
 	return status;
 }
-#endif
 
 static VOS_STATUS wma_wni_cfg_dnld(tp_wma_handle wma_handle)
 {
@@ -715,14 +713,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				WMA_LOGD("config download failure");
 			}
 			break ;
-#ifdef NOT_YET
-		case WMA_ADD_STA_SELF_REQ:
+		case WDA_ADD_STA_SELF_REQ:
 			wma_vdev_attach(wma_handle, (tAddStaSelfParams *)msg->bodyptr);
 			break;
-		case WMA_DEL_STA_SELF_REQ:
+		case WDA_DEL_STA_SELF_REQ:
 			wma_vdev_detach(wma_handle, (tDelStaSelfParams *)msg->bodyptr);
 			break;
-#endif
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
