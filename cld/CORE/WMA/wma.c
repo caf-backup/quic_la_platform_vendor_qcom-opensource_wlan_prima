@@ -72,13 +72,13 @@
 #include "vos_memory.h"
 #include "ol_txrx_types.h"
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 #include "isoc_hw_desc.h"
 #include "htt_dxe_types.h"
 #endif
 
 
-#include "wlan_qct_wma.h"
+#include "wlan_qct_wda.h"
 #include "limApi.h"
 
 #include "wdi_out.h"
@@ -86,7 +86,8 @@
 
 #include "vos_utils.h"
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef NOT_YET
+#ifdef QCA_WIFI_ISOC
 
 #define NUM_5G_CHAN   24
 
@@ -127,6 +128,7 @@ wma_rxbd_to_chnid(isoc_rx_bd_t *prxbd)
         }
         return chnid;
 }
+#endif
 #endif
 
 /* ################### defines ################### */
@@ -222,23 +224,26 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 /*
  * Allocate and init wmi adaptation layer.
  */
-VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle,
-		    v_VOID_t *vos_context, tMacOpenParameters *mac_params,
-		    hdd_tgt_cfg_cb tgt_cfg_cb)
+VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
+		    tMacOpenParameters *mac_params)
 {
 	tp_wma_handle wma_handle;
+	HTC_HANDLE htc_handle;
+	adf_os_device_t adf_dev;
 	v_VOID_t *wmi_handle;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
 	WMA_LOGD("Enter");
 
-	if (!htc_handle || !vos_context) {
-		WMA_LOGP("\n Invalid arguments");
+	htc_handle = NULL;
+
+	if (!htc_handle) {
+		WMA_LOGP("\n Invalid HTC handle");
 		return VOS_STATUS_E_INVAL;
 	}
 
 	/* Alloc memory for WMA Context */
-	vos_status = vos_alloc_context(vos_context, VOS_MODULE_ID_WMA,
+	vos_status = vos_alloc_context(vos_context, VOS_MODULE_ID_WDA,
 				       (v_VOID_t **) &wma_handle,
 				       sizeof (t_wma_handle));
 
@@ -283,9 +288,11 @@ VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle,
 					   WMI_DEBUG_PRINT_EVENTID,
 					   wma_unified_debug_print_event_handler);
 
+#ifdef NOT_YET
 	wma_handle->tgt_cfg_update_cb = tgt_cfg_cb;
+#endif
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC	
+#ifdef QCA_WIFI_ISOC
 	vos_status = vos_event_init(&wma_handle->cfg_nv_tx_complete);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("cfg_nv_tx_complete initialization failed");
@@ -304,12 +311,14 @@ VOS_STATUS wma_open(adf_os_device_t adf_dev, HTC_HANDLE htc_handle,
 		goto err_event_init;
 	}
 
+#ifdef NOT_YET
 	/* Init Tx Frame Complete event */
 	 vos_status = vos_event_init(&wma_handle->tx_frm_download_comp_event);
 	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
 		WMA_LOGP("failed to init tx_frm_download_comp_event");
 		goto err_event_init;
 	}
+#endif
 
 	WMA_LOGD("Exit");
 
@@ -319,7 +328,7 @@ err_event_init:
 	wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 					     WMI_DEBUG_PRINT_EVENTID);
 err_wmi_attach:
-	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WMA,
+	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA,
 			 wma_handle);
 
 	return vos_status;
@@ -331,15 +340,17 @@ err_wmi_attach:
  * Args       :        
  * Retruns    :     
  */
-VOS_STATUS wma_pre_start(WMA_HANDLE handle)
+VOS_STATUS wma_pre_start(v_VOID_t *vos_ctx)
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	A_STATUS status = A_OK;
-	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	tp_wma_handle wma_handle;
 	vos_msg_t wma_msg = {0} ;
 
 	WMA_LOGD("Enter");
-	
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+
 	/* Validate the wma_handle */
 	if (NULL == wma_handle) {
 		WMA_LOGP("invalid argument");
@@ -358,7 +369,7 @@ VOS_STATUS wma_pre_start(WMA_HANDLE handle)
 
 	WMA_LOGA("WMA --> wmi_unified_connect_htc_service - success");
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 	/* Open endpoint for cfg and nv download path - WMA <--> HTC */
 	status = wma_htc_cfg_nv_connect_service(wma_handle);
 	if (A_OK != status) {
@@ -372,7 +383,7 @@ VOS_STATUS wma_pre_start(WMA_HANDLE handle)
 	wma_msg.bodyptr = NULL;
 	wma_msg.bodyval = 0;
 	
-	vos_status = vos_mq_post_message( VOS_MQ_ID_WMA, &wma_msg );
+	vos_status = vos_mq_post_message( VOS_MQ_ID_WDA, &wma_msg );
 	if (VOS_STATUS_SUCCESS !=vos_status) {
 		WMA_LOGP("Failed to post WNI_CFG_DNLD_REQ msg");
 		VOS_ASSERT(0);
@@ -383,6 +394,7 @@ end:
 	return vos_status;
 }
 
+#ifdef NOT_YET
 /* function   : wma_send_msg
  * Descriptin :
  * Args       :
@@ -573,6 +585,7 @@ end:
 	wma_send_msg(wma_handle, WMA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
 	return status;
 }
+#endif
 
 static VOS_STATUS wma_wni_cfg_dnld(tp_wma_handle wma_handle)
 {
@@ -671,7 +684,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 
 	WMA_LOGD("msg->type = %x", msg->type);
 
-	wma_handle = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WMA, 
+	wma_handle = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA,
 			vos_context);
 	
 	if (NULL == wma_handle) {
@@ -687,18 +700,20 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			WMA_LOGA("McThread: WNI_CFG_DNLD_REQ");
 			vos_status = wma_wni_cfg_dnld(wma_handle);
 			if (VOS_IS_STATUS_SUCCESS(vos_status)) {
-				vos_wma_complete_cback(vos_context);
+				vos_WDAComplete_cback(vos_context);
 			}
 			else {
 				WMA_LOGD("config download failure");
 			}
 			break ;
+#ifdef NOT_YET
 		case WMA_ADD_STA_SELF_REQ:
 			wma_vdev_attach(wma_handle, (tAddStaSelfParams *)msg->bodyptr);
 			break;
 		case WMA_DEL_STA_SELF_REQ:
 			wma_vdev_detach(wma_handle, (tDelStaSelfParams *)msg->bodyptr);
 			break;
+#endif
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -711,6 +726,7 @@ end:
 	return vos_status ;
 }
 
+#ifdef NOT_YET
 static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 				u_int16_t len)
 {
@@ -726,18 +742,23 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	wma_send_msg(wma_handle, WMA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
 	return 0;
 }
+#endif
 
 /* function   : wma_start    
  * Descriptin :  
  * Args       :        
  * Retruns    :     
  */
-VOS_STATUS wma_start(WMA_HANDLE handle)
+VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-	tp_wma_handle wma_handle  = (tp_wma_handle) handle;
+	tp_wma_handle wma_handle;
+#ifdef NOT_YET
 	int status;
+#endif
 	WMA_LOGD("Enter");
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
 	/* validate the wma_handle */
 	if (NULL == wma_handle) {
@@ -746,7 +767,7 @@ VOS_STATUS wma_start(WMA_HANDLE handle)
 		goto end;
 	}
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 	vos_event_reset(&wma_handle->wma_ready_event);
 
 	/* start cfg download to soc */
@@ -758,11 +779,12 @@ VOS_STATUS wma_start(WMA_HANDLE handle)
 	}
 
 	/* wait until WMI_READY_EVENTID received from FW */
-	vos_status = wma_wait_for_ready_event(handle);
+	vos_status = wma_wait_for_ready_event(wma_handle);
 	if (vos_status == VOS_STATUS_E_FAILURE)
 		goto end;
 #endif
 
+#ifdef NOT_YET
 	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
 						WMI_SCAN_EVENTID,
 						wma_scan_event_callback);
@@ -772,6 +794,8 @@ VOS_STATUS wma_start(WMA_HANDLE handle)
 		goto end;
 	}
 	vos_status = VOS_STATUS_SUCCESS;
+#endif
+
 end:
 	WMA_LOGD("Exit");
 	return vos_status;
@@ -782,10 +806,12 @@ end:
  * Args       :        
  * Retruns    :     
  */
-VOS_STATUS wma_stop(WMA_HANDLE handle)
+VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 {
-	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+	tp_wma_handle wma_handle;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
 	WMA_LOGD("Enter");
 
@@ -796,14 +822,15 @@ VOS_STATUS wma_stop(WMA_HANDLE handle)
 		goto end;
 	}
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-	wma_hal_stop_isoc(handle);
+#ifdef QCA_WIFI_ISOC
+	wma_hal_stop_isoc(wma_handle);
 #endif
 end:
 	WMA_LOGD("Exit");
 	return vos_status;
 }
 
+#ifdef NOT_YET
 /**
  * wma_mgmt_detach - detaches mgmt fn with underlying layer
  * DXE in case of Integrated, WMI incase of Discrete
@@ -821,7 +848,7 @@ static VOS_STATUS wma_mgmt_detach(tp_wma_handle wma_handle)
 	ol_txrx_pdev_handle txrx_pdev =
 		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 	struct htt_dxe_pdev_t *htt_dxe_pdev =
 		(struct htt_dxe_pdev_t *)(txrx_pdev->htt_pdev);
 
@@ -857,19 +884,22 @@ static VOS_STATUS wma_mgmt_detach(tp_wma_handle wma_handle)
 
 	return VOS_STATUS_SUCCESS;
 }
+#endif
 
 /* function   : wma_close
  * Descriptin :  
  * Args       :        
  * Retruns    :     
  */
-VOS_STATUS wma_close(WMA_HANDLE handle)
+VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 {
-	tp_wma_handle wma_handle = (tp_wma_handle)handle;
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+	tp_wma_handle wma_handle;
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int32_t idx;
 #endif
 	WMA_LOGD("Enter");
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
 	/* validate the wma_handle */
 	if (NULL == wma_handle) {
@@ -879,10 +909,10 @@ VOS_STATUS wma_close(WMA_HANDLE handle)
 
 	/* close the vos events */
 	vos_event_destroy(&wma_handle->wma_ready_event);
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 	vos_event_destroy(&wma_handle->cfg_nv_tx_complete);
 #endif
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	for(idx = 0; idx < wma_handle->num_mem_chunks; ++idx) {
 		adf_os_mem_free_consistent(
 				wma_handle->adf_dev,
@@ -895,11 +925,13 @@ VOS_STATUS wma_close(WMA_HANDLE handle)
 	}
 #endif
 
+#ifdef NOT_YET
 	/* detach the tx/rx frame services */
 	if (wma_mgmt_detach(wma_handle) != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("wma_close Fail to detach tx/rx frm services");
 		return VOS_STATUS_E_FAILURE;
 	}
+#endif
 
 	/* dettach the wmi serice */
 	if (wma_handle->wmi_handle) {
@@ -908,7 +940,7 @@ VOS_STATUS wma_close(WMA_HANDLE handle)
 		wma_handle->wmi_handle = NULL;
 	}
 	/* free the wma_handle */
-	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WMA, wma_handle);
+	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA, wma_handle);
 
 	WMA_LOGD("Exit");
 	return VOS_STATUS_SUCCESS;
@@ -927,7 +959,7 @@ static v_VOID_t wma_update_fw_config(tp_wma_handle wma_handle,
 	wma_handle->max_frag_entry = tgt_cap->wlan_resource_config.max_frag_entries;
 }
 
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 /**
  * allocate a chunk of memory at the index indicated and 
  * if allocation fail allocate smallest size possiblr and
@@ -1002,7 +1034,8 @@ static void wma_alloc_host_mem(tp_wma_handle wma_handle, u_int32_t req_id,
 }
 #endif
 
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef NOT_YET
+#ifndef QCA_WIFI_ISOC
 static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 {
 	struct hdd_tgt_cfg hdd_tgt_cfg;
@@ -1038,6 +1071,7 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 }
 #endif
+#endif
 
 static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 					wmi_service_ready_event *ev,
@@ -1045,13 +1079,13 @@ static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 {
 	wmi_buf_t buf;
 	wmi_init_cmd *cmd;
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int16_t idx;
 	u_int32_t num_units;
 #endif
 
 	*len = sizeof(wmi_init_cmd);
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	*len += (sizeof(wlan_host_memory_chunk) * MAX_MEM_CHUNKS);
 #endif
 	buf = wmi_buf_alloc(wma_handle->wmi_handle, *len);
@@ -1071,7 +1105,7 @@ static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 	}
 
 	cmd->num_host_mem_chunks = 0;
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	for(idx = 0; idx < ev->num_mem_reqs; ++idx) {
 		num_units = ev->mem_reqs[idx].num_units;
 		if  (ev->mem_reqs[idx].num_unit_info & NUM_UNITS_IS_NUM_PEERS) {
@@ -1189,13 +1223,17 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev)
 
 	vos_event_set(&wma_handle->wma_ready_event);
 
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef NOT_YET
+#ifndef QCA_WIFI_ISOC
 	wma_update_hdd_cfg(wma_handle);
 #endif
+#endif
+
 	WMA_LOGD("Exit");
 }
 
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef NOT_YET
+#ifndef QCA_WIFI_ISOC
 /*
  * WMA handler for wmi management rx. Received frame
  * is copied onto wbuf and sent to umac along with
@@ -1281,9 +1319,9 @@ static int wma_mgmt_rx_event_handler(void *wma_context, u_int8_t *data,
 
 	return wma_handle->mgmt_frm_rxcb(wma_handle->mac_context, rx_pkt);
 }
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 /**
   * wma_mgmt_rx_dxe_handler - handles rx mgmt packet
   * @context: context with which the handler is registered 
@@ -1390,7 +1428,7 @@ wma_mgmt_tx_dload_comp_hldr(void *mac_context, adf_nbuf_t netbuf,
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_PE,
 							mac_context);
 	tp_wma_handle wma_handle = (tp_wma_handle)vos_get_context(
-						VOS_MODULE_ID_WMA, vos_context);
+						VOS_MODULE_ID_WDA, vos_context);
 
 	WMA_LOGD("Tx Complete Status %d", status);
 
@@ -1554,7 +1592,7 @@ VOS_STATUS wma_mgmt_attach(void *wma_context, void *mac_context,
 	ol_txrx_pdev_handle txrx_pdev =
 		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 	struct htt_dxe_pdev_t *htt_dxe_pdev = 
 		(struct htt_dxe_pdev_t *)(txrx_pdev->htt_pdev);
 
@@ -1620,17 +1658,20 @@ VOS_STATUS wma_register_mgmt_ack_cb(void *wma_context,
 
 	return VOS_STATUS_SUCCESS;
 }
+#endif
 
 /* function   :wma_setneedshutdown 
  * Descriptin :
  * Args       :
  * Retruns    :
  */
-v_VOID_t wma_setneedshutdown(WMA_HANDLE handle) 
+v_VOID_t wma_setneedshutdown(v_VOID_t *vos_ctx)
 {
-	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	tp_wma_handle wma_handle;
 
 	WMA_LOGD("Enter");
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
 	if (NULL == wma_handle) {
 		WMA_LOGP("Invalid arguments");
@@ -1647,11 +1688,13 @@ v_VOID_t wma_setneedshutdown(WMA_HANDLE handle)
  * Args       :
  * Retruns    :
  */
- v_BOOL_t wma_needshutdown(WMA_HANDLE handle)
+ v_BOOL_t wma_needshutdown(v_VOID_t *vos_ctx)
  {
-	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	tp_wma_handle wma_handle;
 
 	WMA_LOGD("Enter");
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
 	if (NULL == wma_handle) {
 		WMA_LOGP("Invalid arguments");
@@ -1679,7 +1722,7 @@ VOS_STATUS wma_wait_for_ready_event(WMA_HANDLE handle)
 	return vos_status;
 }
 
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#ifndef QCA_WIFI_ISOC
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
@@ -1727,6 +1770,7 @@ int wma_resume_target(WMA_HANDLE handle)
 }
 #endif
 
+#ifdef NOT_YET
 /* function   : wma_get_buf_start_scan_cmd
  * Descriptin :
  * Args       :
@@ -1971,4 +2015,9 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 end:
 	WMA_LOGD("Exit");
 	return vos_status;
+}
+#endif
+
+void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA)
+{
 }

@@ -293,7 +293,7 @@ htt_tx_send_nonstd(
  * @param msdu - the MSDU that is being prepared for transmission
  * @param msdu_info - tx MSDU meta-data
  */
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 void
 htt_tx_desc_init(
     htt_pdev_handle pdev,
@@ -336,7 +336,7 @@ htt_tx_desc_init(
     /* Initialize peer_id to INVALID_PEER bcoz this is NOT Reinjection path*/
     *word3 = HTT_INVALID_PEER;
 }
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
 /**
  * @brief Set a flag to indicate that the MSDU in question was postponed.
@@ -534,12 +534,12 @@ htt_tx_mgmt_desc_pool_free(struct htt_pdev_t *pdev);
  * @param htt_tx_desc - which frame the 802.11 header is being added to
  * @param new_l2_hdr_size - how large the buffer needs to be
  */
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 volatile char *
 htt_tx_desc_mpdu_header(void *htt_tx_desc, int new_l2_hdr_size);
 #else
 #define htt_tx_desc_mpdu_header(htt_tx_desc, new_l2_hdr_size) /*NULL*/
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
 /**
  * @brief How many tx credits would be consumed by the specified tx frame.
@@ -547,11 +547,11 @@ htt_tx_desc_mpdu_header(void *htt_tx_desc, int new_l2_hdr_size);
  * @param msdu - the tx frame in question
  * @return number of credits used for this tx frame
  */
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 int htt_tx_msdu_credit(adf_nbuf_t msdu);
 #else
 #define htt_tx_msdu_credit(msdu) 1 /* 1 credit per buffer */
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
 
 

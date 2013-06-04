@@ -220,7 +220,7 @@ extern int
  * @param mpdu_desc - the abstract descriptor for the MPDU in question
  * @return the rx reorder array index the MPDU goes into
  */
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 int
 htt_rx_mpdu_desc_reorder_idx(htt_pdev_handle pdev, void *mpdu_desc);
 #else

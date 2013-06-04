@@ -34,7 +34,7 @@
 #include "ol_params.h"
 #include <wdi_event_api.h>
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 #include "dmux_dxe_api.h"
 #endif
 
@@ -220,9 +220,9 @@ struct ol_ath_vap_net80211 {
 
 struct ol_ath_node_net80211 {
     ol_txrx_peer_handle         an_txrx_handle;    /* ol data path handle */
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
     ol_ctrl_addba_handle        an_ctrl_addba_handle;
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 };
 
 #define OL_ATH_NODE_NET80211(_ni)      ((struct ol_ath_node_net80211 *)(_ni))

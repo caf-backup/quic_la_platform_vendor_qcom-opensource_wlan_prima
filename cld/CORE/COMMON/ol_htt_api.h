@@ -85,7 +85,7 @@ enum htt_op_mode {
    htt_op_mode_monitor,
 };
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 /**
  * @brief Notify HTT of a new virtual device, and specify the operating mode
  * @param htt_pdev - handle to the HTT pdev the vdev belongs to
@@ -119,7 +119,7 @@ htt_peer_qos_update(htt_pdev_handle htt_pdev, int peer_id, int qos_capable);
 #define htt_vdev_attach(htt_pdev, vdev_id, op_mode)
 #define htt_vdev_detach(htt_pdev, vdev_id)
 #define htt_peer_qos_update(htt_pdev, peer_id, qos_capable)
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
 /**
  * @brief Deallocate a HTT instance.
@@ -221,7 +221,7 @@ void htt_display(htt_pdev_handle pdev, int indent);
 #define htt_display(pdev, indent)
 #endif
 
-#if defined(FEATURE_WLAN_INTEGRATED_SOC) && HTT_DEBUG_LEVEL > 1
+#if defined(QCA_WIFI_ISOC) && HTT_DEBUG_LEVEL > 1
 #define HTT_DXE_RX_LOG 1
 void
 htt_rx_reorder_log_print(struct htt_pdev_t *pdev);

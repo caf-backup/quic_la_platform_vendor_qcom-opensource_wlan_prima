@@ -194,7 +194,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
 
 } // uMacPostCtrlMsg()
 
-
+#ifndef QCA_WIFI_2_0
 /* ---------------------------------------------------------
  * FUNCTION:  wdaGetGlobalSystemRole()
  *
@@ -217,4 +217,4 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
              wdaContext->wdaGlobalSystemRole));
    return  wdaContext->wdaGlobalSystemRole;
 }
-
+#endif

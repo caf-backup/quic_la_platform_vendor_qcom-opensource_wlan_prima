@@ -387,7 +387,7 @@ ol_txrx_mgmt_tx_cb_set(
     pdev->tx_mgmt.callbacks[type].ctxt = ctxt;
 }
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 int
 ol_txrx_mgmt_send(
     ol_txrx_vdev_handle vdev,

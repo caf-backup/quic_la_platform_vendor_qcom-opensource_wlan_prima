@@ -70,7 +70,7 @@ typedef enum htt_isoc_t2h_msg_type {
     (*((A_UINT8 *) msg_addr))
 
 #ifndef INLINE
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 /* host SW */
 #define INLINE inline
 #else

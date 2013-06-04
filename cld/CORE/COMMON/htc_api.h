@@ -623,7 +623,7 @@ struct ol_ath_htc_stats *ieee80211_ioctl_get_htc_stats(HTC_HANDLE HTCHandle);
 }
 #endif
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 typedef struct s_htc_msg t_htc_msg;
 
 typedef void (*htc_msg_callback)(t_htc_msg *pMsg);

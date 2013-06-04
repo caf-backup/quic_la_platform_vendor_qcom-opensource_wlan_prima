@@ -432,7 +432,7 @@ int ol_suspend(struct ol_softc *sc, int disable_target_intr)
 
 	vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 
-	ret = wma_suspend_target(vos_get_context(VOS_MODULE_ID_WMA, vos_context), 1);
+	ret = wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos_context), 1);
 	if (!ret) {
 		u_int32_t  timeleft;
 		printk("waiting for target paused event from target\n");

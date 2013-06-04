@@ -50,7 +50,7 @@ static char g_log2ceil[] = {
 /*=== function definitions ===*/
 
 /*---*/
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 
 #define QCA_SUPPORT_RX_REORDER_RELEASE_CHECK 1
 
@@ -91,10 +91,10 @@ OL_RX_REORDER_IDX_START_SELF_SELECT(
 #define OL_RX_REORDER_NO_HOLES(rx_reorder) 0
 #define OL_RX_REORDER_MPDU_CNT_INCR(rx_reorder, incr) /* n/a */
 
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
 /*---*/
-#if defined (FEATURE_WLAN_INTEGRATED_SOC) && defined (QCA_SUPPORT_RX_REORDER_RELEASE_CHECK)
+#if defined (QCA_WIFI_ISOC) && defined (QCA_SUPPORT_RX_REORDER_RELEASE_CHECK)
 
 /* reorder array elements could be NULL */
 #define OL_RX_REORDER_PTR_CHECK(ptr) if (ptr)
@@ -411,7 +411,7 @@ ol_rx_reorder_peer_cleanup(
     OL_RX_REORDER_TIMEOUT_PEER_CLEANUP(peer);
 }
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 /*
  * (Responder Role) TXRX Data Path will invoke this API after
  * Aggregation has been enabled for this peer-tid combination

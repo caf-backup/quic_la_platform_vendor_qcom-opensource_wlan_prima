@@ -48,6 +48,9 @@
 #ifndef WMA_H
 #define WMA_H
 
+#include "a_types.h"
+#include "vos_types.h"
+#include "osapi_linux.h"
 #include "htc_packet.h"
 #include "i_vos_event.h"
 #include "wmi_services.h"
@@ -55,12 +58,13 @@
 #include "halTypes.h"
 #include "cfgApi.h"
 #include "vos_status.h"
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 #include "dmux_dxe_api.h"
 #endif
 #include "packet.h"
 #include "vos_sched.h"
 #include "wlan_hdd_tgt_cfg.h"
+#include "ol_txrx_api.h"
 
 /* Platform specific configuration for max. no. of fragments */
 #define QCA_OL_11AC_TX_MAX_FRAGS            2
@@ -83,9 +87,6 @@
 
 #define FRAGMENT_SIZE 3072
 
-/* Macro to find the total number fragments of the NV Image*/
-#define TOTALFRAGMENTS(x) ((x%FRAGMENT_SIZE)== 0) ? (x/FRAGMENT_SIZE):((x/FRAGMENT_SIZE)+1)
-
 #define WMA_INVALID_VDEV_ID				0xFF
 #define MAX_MEM_CHUNKS					32
 #define WMA_MAX_VDEV_SIZE				20
@@ -94,13 +95,13 @@
 
 
 #define WMA_LOGD(args...) \
-	VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_INFO, ## args)
+	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, ## args)
 #define WMA_LOGW(args...) \
-	VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_WARNING, ## args)
+	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_WARNING, ## args)
 #define WMA_LOGE(args...) \
-	VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_ERROR, ## args)
+	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, ## args)
 #define WMA_LOGP(args...) \
-	VOS_TRACE( VOS_MODULE_ID_WMA, VOS_TRACE_LEVEL_FATAL, ## args)
+	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL, ## args)
 
 #define WMA_DEBUG_ALWAYS
 
@@ -179,7 +180,7 @@ typedef struct {
 	void *vos_context;
 	void *mac_context;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 	vos_event_t cfg_nv_tx_complete;
 	vos_event_t cfg_nv_rx_complete;
 #endif
@@ -206,7 +207,7 @@ typedef struct {
 	u_int32_t frameTransRequired;
 	tBssSystemRole       wmaGlobalSystemRole;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 	/* DXE mgmt handle */
 	void* mgmt_dxe_handle;
 #endif
@@ -220,7 +221,7 @@ typedef struct {
 	vos_event_t tx_frm_download_comp_event;
 
 	v_BOOL_t needShutdown;
-#if !defined(FEATURE_WLAN_INTEGRATED_SOC) && !defined(CONFIG_HL_SUPPORT)
+#if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int32_t num_mem_chunks;
 	struct wma_mem_chunk mem_chunks[MAX_MEM_CHUNKS];
 #endif
@@ -248,18 +249,6 @@ typedef enum {
 /* The shared memory between WDI and HAL is 4K so maximum data can be transferred
 from WDI to HAL is 4K.This 4K should also include the Message header so sending 4K
 of NV fragment is nt possbile.The next multiple of 1Kb is 3K */
-
-
-/*---------------------------------------------------------------------------
-  WDI_DriverType
----------------------------------------------------------------------------*/
-typedef enum
-{
-    WDI_DRIVER_TYPE_PRODUCTION  = 0,
-    WDI_DRIVER_TYPE_MFG         = 1,
-    WDI_DRIVER_TYPE_DVT         = 2
-} WDI_DriverType;
-
 
 typedef struct
 {
@@ -577,7 +566,7 @@ typedef PACKED_PRE struct PACKED_POST
    tHalHostMsgVersion msgVersion:16;
    tANI_U32         msgLen;
 } tHalMsgHeader, *tpHalMsgHeader;
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 /*Version string max length (including NUL) */
 #define WLAN_HAL_VERSION_LENGTH  64
 /* Definition for HAL API Version.*/
@@ -740,9 +729,9 @@ typedef PACKED_PRE struct PACKED_POST
 
 extern v_BOOL_t sys_validateStaConfig(void *pImage, unsigned long cbFile,
                                void **ppStaConfig, v_SIZE_t *pcbStaConfig);
+extern void vos_WDAComplete_cback(v_PVOID_t pVosContext);
 
-extern void vos_wma_complete_cback(v_PVOID_t pVosContext);
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 VOS_STATUS wma_cfg_download_isoc(v_VOID_t *vos_context, 
 		tp_wma_handle wma_handle);
 
@@ -793,9 +782,11 @@ VOS_STATUS wma_mgmt_attach(void *mac_context, void *vos_context,
 VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id, 
 		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac, 
 		u_int32_t vdev_type, bool add_del);
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#ifndef QCA_WIFI_ISOC
 int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
 #endif
+
+#ifdef NOT_YET
 /**
   * wma_register_mgmt_ack_cb  - register ack cb for tx mgmt frame
   * @tp_wma_handle: wma_handle
@@ -831,5 +822,6 @@ VOS_STATUS wma_send_tx_frame(void *wma_context, void *vdev_handle,
  * TODO: Need to Revist the Timing
  */
 #define WMA_TX_FRAME_COMPLETE_TIMEOUT  1000
+#endif	/* #ifdef NOT_YET */
 
 #endif

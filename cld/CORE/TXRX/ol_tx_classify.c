@@ -34,7 +34,7 @@
 
 #if defined(CONFIG_HL_SUPPORT)
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef QCA_WIFI_ISOC
 
 A_STATUS
 ol_tx_classify_extension(
@@ -73,7 +73,7 @@ ol_tx_classify_mgmt_extension(
 #else
 #define OL_TX_CLASSIFY_EXTENSION /* no-op */
 #define OL_TX_CLASSIFY_MGMT_EXTENSION /* no-op */
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+#endif /* QCA_WIFI_ISOC */
 
 /* EAPOL go with voice priority: WMM_AC_TO_TID1(WMM_AC_VO);*/
 #define TX_EAPOL_TID  6
