@@ -25,16 +25,6 @@
 #include "ol_txrx_osif_api.h"
 #include "wlan_qct_tl.h"
 
-#define WLAN_RX_BCMC_STA_ID	(WLAN_MAX_STA_COUNT + 1)
-#define WLAN_RX_SAP_SELF_STA_ID (WLAN_MAX_STA_COUNT + 2)
-#define WLAN_RX_WDS_STAID 	WLAN_MAX_STA_COUNT
-
-/* Threshold crossed event type definitions */
-#define WLAN_HO_THRESHOLD_NA    0x00
-#define WLAN_HO_THRESHOLD_DOWN  0x01
-#define WLAN_HO_THRESHOLD_UP    0x02
-#define WLAN_HO_THRESHOLD_CROSS 0x04
-
 enum txrx_wmm_ac {  
 	TXRX_WMM_AC_VO,
 	TXRX_WMM_AC_VI,
