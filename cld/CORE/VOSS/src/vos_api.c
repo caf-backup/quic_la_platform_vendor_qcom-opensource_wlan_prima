@@ -1127,6 +1127,12 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
 	pModContext = gpVosContext->pdev_txrx_ctx;
 	break;
     }
+
+    case VOS_MODULE_ID_CFG:
+    {
+	pModContext = gpVosContext->cfg_ctx;
+        break;
+    }
 #endif	/* #ifdef QCA_WIFI_2_0 */
 
     default:

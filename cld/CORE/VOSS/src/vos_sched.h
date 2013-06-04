@@ -325,7 +325,10 @@ typedef struct _VosContextType
    adf_os_device_t adf_ctx;
 
    v_VOID_t		*pdev_txrx_ctx;
-#endif
+
+   /* Configuration handle used to get system configuration */
+   v_VOID_t	*cfg_ctx;
+#endif	/* QCA_WIFI_2_0 */
 
    volatile v_U8_t    isLoadUnloadInProgress;
 
