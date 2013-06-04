@@ -19,6 +19,11 @@
 #include "vos_api.h"
 #include "wma_api.h"
 
+#ifdef WLAN_BTAMP_FEATURE
+#include "wlan_btc_svc.h"
+#include "wlan_nlink_common.h"
+#endif
+
 #define AR9888_DEVICE_ID (0x003c)
 #define AR6320_DEVICE_ID (0x003e)
 
@@ -468,7 +473,16 @@ again:
     ol_sc->enableuartprint = 0;
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 
-    hdd_wlan_startup(&pdev->dev, ol_sc);
+    ret = hdd_wlan_startup(&pdev->dev, ol_sc);
+
+    if (ret)
+	goto err_config;
+
+#ifdef WLAN_BTAMP_FEATURE
+    /* Send WLAN UP indication to Nlink Service */
+    send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
+#endif
+
     return 0;
 
 err_config:
@@ -707,7 +721,6 @@ hif_pci_remove(struct pci_dev *pdev)
     struct hif_pci_softc *sc = pci_get_drvdata(pdev);
     struct ol_softc *scn;
     void __iomem *mem;
-    int ret;
 
     /* Attach did not succeed, all resources have been
      * freed in error handler
@@ -715,22 +728,15 @@ hif_pci_remove(struct pci_dev *pdev)
     if (!sc)
         return;
 
+    __hdd_wlan_exit();
+
     scn = sc->ol_sc;
     mem = (void __iomem *)sc->mem;
-
-    /* Suspend Target */
-    printk("Suspending Target - with disable_intr set \n");
-    ret = ol_suspend(scn, 1);
 
     hif_nointrs(sc);
 
     /* Cancel the pending tasklet */
     tasklet_kill(&sc->intr_tq);
-
-#ifdef NOT_YET
-    if (ret != -EINVAL)
-	    __hdd_wlan_exit();
-#endif
 
 #if defined(CPU_WARM_RESET_WAR)
     /* Currently CPU warm reset sequence is tested only for AR9888_REV2

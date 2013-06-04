@@ -235,7 +235,8 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	WMA_LOGD("Enter");
 
-	htc_handle = NULL;
+	adf_dev = vos_get_context(VOS_MODULE_ID_ADF, vos_context);
+	htc_handle = vos_get_context(VOS_MODULE_ID_HTC, vos_context);
 
 	if (!htc_handle) {
 		WMA_LOGP("\n Invalid HTC handle");
@@ -1701,6 +1702,13 @@ v_VOID_t wma_setneedshutdown(v_VOID_t *vos_ctx)
 		VOS_ASSERT(0);
 		return 0;
         }
+
+#ifndef QCA_WIFI_ISOC
+       /* Suspend the target and disable interrupt */
+       if (wma_suspend_target(wma_handle, 1)) {
+               WMA_LOGE("Failed to suspend target\n");
+       }
+#endif
 
 	WMA_LOGD("Exit");
 	return wma_handle->needShutdown;

@@ -63,6 +63,15 @@
 #include "bap_hdd_main.h"
 #endif //WLAN_BTAMP_FEATURE
 
+#ifdef QCA_WIFI_2_0
+#ifndef QCA_WIFI_ISOC
+#include "bmi.h"
+#include "ol_fw.h"
+#else
+#include "htc_api.h"
+#endif /* #ifndef QCA_WIFI_ISOC */
+#endif /* #ifdef QCA_WIFI_2_0 */
+
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -221,6 +230,10 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    tSirRetStatus sirStatus = eSIR_SUCCESS;
    tMacOpenParameters macOpenParms;
    WLANTL_ConfigInfoType TLConfig;
+#ifdef QCA_WIFI_2_0
+   adf_os_device_t adf_ctx;
+   HTC_INIT_INFO  htcInfo;
+#endif
 
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: Opening VOSS", __func__);
@@ -286,6 +299,40 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       goto err_msg_queue;
    }
 
+#ifdef QCA_WIFI_2_0
+#ifndef QCA_WIFI_ISOC
+   /* Initialize BMI and Download firmware */
+   if (bmi_download_firmware(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+		  "%s: BMI failed to download target", __func__);
+	goto err_bmi_close;
+   }
+   htcInfo.pContext = gpVosContext->pHIFContext;
+   htcInfo.TargetFailure = ol_target_failure;
+   htcInfo.TargetSendSuspendComplete = ol_target_send_suspend_complete;
+#endif
+   adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, gpVosContext);
+
+   /* Create HTC */
+   gpVosContext->htc_ctx = HTCCreate(htcInfo.pContext, &htcInfo, adf_ctx);
+   if (!gpVosContext->htc_ctx) {
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+		  "%s: Failed to Create HTC", __func__);
+#ifndef QCA_WIFI_ISOC
+           goto err_bmi_close;
+#endif
+           goto err_sched_close;
+   }
+
+#ifndef QCA_WIFI_ISOC
+   if (bmi_done(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+		  "%s: Failed to complete BMI phase", __func__);
+	goto err_htc_close;
+   }
+#endif
+#endif /* #ifdef QCA_WIFI_2_0 */
+
    /*
    ** Need to open WDA first because it calls WDI_Init, which calls wpalOpen
    ** The reason that is needed becasue vos_packet_open need to use PAL APIs
@@ -306,8 +353,21 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Failed to open WDA module", __func__);
       VOS_ASSERT(0);
+#ifdef QCA_WIFI_2_0
+      goto err_htc_close;
+#else
       goto err_sched_close;
+#endif
    }
+
+#if defined (QCA_WIFI_2_0) && \
+   !defined (QCA_WIFI_ISOC)
+   if (HTCWaitTarget(vos_get_context(VOS_MODULE_ID_HTC, gpVosContext))) {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to complete BMI phase", __func__);
+           goto err_wda_close;
+   }
+#endif
 
    /* Initialize here the VOS Packet sub module */
    vStatus = vos_packet_open( gpVosContext, &gpVosContext->vosPacket,
@@ -419,6 +479,19 @@ err_packet_close:
 err_wda_close:
    WDA_close(gpVosContext);
 
+#ifdef QCA_WIFI_2_0
+err_htc_close:
+   if (gpVosContext->htc_ctx) {
+      HTCDestroy(gpVosContext->htc_ctx);
+      gpVosContext->htc_ctx = NULL;
+   }
+
+#ifndef QCA_WIFI_ISOC
+err_bmi_close:
+      BMICleanup(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
+#endif /* #ifndef QCA_WIFI_ISOC */
+#endif /* #ifdef QCA_WIFI_2_0 */
+
 err_sched_close:   
    vos_sched_close(gpVosContext);
 
@@ -525,6 +598,22 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
       return VOS_STATUS_E_FAILURE;
    }
 
+#ifdef QCA_WIFI_2_0
+   vStatus = HTCStart(gpVosContext->htc_ctx);
+   if (!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
+               "Failed to Start HTC");
+      macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
+      ccmStop(gpVosContext->pMACContext);
+      VOS_ASSERT( 0 );
+      return VOS_STATUS_E_FAILURE;
+   }
+#ifndef QCA_WIFI_ISOC
+   wma_wait_for_ready_event(gpVosContext->pWDAContext);
+#endif
+#endif /* QCA_WIFI_2_0 */
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -595,6 +684,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      return VOS_STATUS_E_FAILURE;
   }
 
+#ifdef QCA_WIFI_ISOC
   /* WDA_Start will be called after NV image download because the 
     NV image data has to be updated at HAL before HAL_Start gets executed*/
 
@@ -634,6 +724,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
             "%s: WDA_NVDownload_start correctly started", __func__);
+#endif	/* #ifdef QCA_WIFI_ISOC */
 
   /* Start the WDA */
   vStatus = WDA_start(pVosContext);
@@ -753,6 +844,7 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
      WDA_setNeedShutdown(vosContext);
   }
+#ifndef QCA_WIFI_2_0
   else
   {
     vosStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent),
@@ -773,6 +865,7 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
        WDA_setNeedShutdown(vosContext);
     }
   }
+#endif
 
   /* SYS STOP will stop SME and MAC */
   vosStatus = sysStop( vosContext);
@@ -1007,6 +1100,35 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
       pModContext = gpVosContext;
       break;
     }
+
+#ifdef QCA_WIFI_2_0
+
+#ifndef QCA_WIFI_ISOC
+    case VOS_MODULE_ID_HIF:
+    {
+	pModContext = gpVosContext->pHIFContext;
+	break;
+    }
+#endif
+
+    case VOS_MODULE_ID_HTC:
+    {
+	pModContext = gpVosContext->htc_ctx;
+	break;
+    }
+
+    case VOS_MODULE_ID_ADF:
+    {
+        pModContext = gpVosContext->adf_ctx;
+        break;
+    }
+
+    case VOS_MODULE_ID_TXRX:
+    {
+	pModContext = gpVosContext->pdev_txrx_ctx;
+	break;
+    }
+#endif
 
     default:
     {
