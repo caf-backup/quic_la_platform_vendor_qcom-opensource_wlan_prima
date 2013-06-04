@@ -35,11 +35,7 @@
 #include "limTrace.h"
 #include "limTypes.h"
 
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 
 //--------------------------------------------------------------------
 //
@@ -271,11 +267,7 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
           sizeof( tSendbeaconParams )))
     return eSIR_FAILURE;
 
-#ifndef WMA_LAYER
   msgQ.type = WDA_SEND_BEACON_REQ;
-#else
-  msgQ.type = WMA_SEND_BEACON_REQ;
-#endif
 
   // No Dialog Token reqd, as a response is not solicited
   msgQ.reserved = 0;
@@ -324,11 +316,7 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
   }
 
   MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
-#ifndef WMA_LAYER
   if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-  if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
   {
     schLog( pMac, LOGE,
         FL("Posting SEND_BEACON_REQ to HAL failed, reason=%X"),
@@ -512,20 +500,12 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
         pprobeRespParams->probeRespTemplateLen = nBytes;
         palCopyMemory(pMac,pprobeRespParams->ucProxyProbeReqValidIEBmap,IeBitmap,
                             (sizeof(tANI_U32) * 8));
-#ifndef WMA_LAYER
         msgQ.type     = WDA_UPDATE_PROBE_RSP_TEMPLATE_IND;
-#else
-        msgQ.type     = WMA_UPDATE_PROBE_RSP_TEMPLATE_IND;
-#endif
         msgQ.reserved = 0;
         msgQ.bodyptr  = pprobeRespParams;
         msgQ.bodyval  = 0;
 
-#ifndef WMA_LAYER
         if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
-#else
-        if( eSIR_SUCCESS != (retCode = wmaPostCtrlMsg( pMac, &msgQ )))
-#endif
         {
             /* free the allocated Memory */
             schLog( pMac,LOGE, FL("limSendProbeRspTemplateToHal: FAIL bytes %d retcode[%X]"), nBytes , retCode );

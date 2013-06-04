@@ -24,10 +24,7 @@
 #include <wlan_hdd_includes.h>
 #include <vos_api.h>
 #include <linux/skbuff.h>
-#include <txrx.h>
-#ifdef REMOVE_TL
-#include <adf_nbuf.h>
-#endif	/* #ifdef REMOVE_TL */
+#include <wlan_qct_tl.h>
 
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -139,6 +136,25 @@ extern VOS_STATUS hdd_tx_complete_cbk( v_VOID_t *vosContext,
                                        vos_pkt_t *pVosPacket, 
                                        VOS_STATUS vosStatusIn );
 
+/**============================================================================
+  @brief hdd_tx_fetch_packet_cbk() - Callback function invoked by TL to 
+  fetch a packet for transmission.
+
+  @param vosContext   : [in] pointer to VOS context  
+  @param staId        : [in] Station for which TL is requesting a pkt
+  @param ucAC         : [in] pointer to access category requested by TL
+  @param pVosPacket   : [out] pointer to VOS packet packet pointer
+  @param pPktMetaInfo : [out] pointer to meta info for the pkt 
+  
+  @return             : VOS_STATUS_E_EMPTY if no packets to transmit
+                      : VOS_STATUS_E_FAILURE if any errors encountered 
+                      : VOS_STATUS_SUCCESS otherwise
+  ===========================================================================*/
+extern VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
+                                           v_U8_t *pStaId,
+                                           WLANTL_ACEnumType    ucAC,
+                                           vos_pkt_t **ppVosPacket,
+                                           WLANTL_MetaInfoType *pPktMetaInfo );
 
 /**============================================================================
   @brief hdd_tx_low_resource_cbk() - Callback function invoked in the 
@@ -155,7 +171,6 @@ extern VOS_STATUS hdd_tx_complete_cbk( v_VOID_t *vosContext,
 extern VOS_STATUS hdd_tx_low_resource_cbk( vos_pkt_t *pVosPacket, 
                                            v_VOID_t *userData );
 
-#ifndef REMOVE_TL
 /**============================================================================
   @brief hdd_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when a packet was received 
@@ -172,42 +187,7 @@ extern VOS_STATUS hdd_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
 extern VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext, 
                                      vos_pkt_t *pVosPacket, 
                                      v_U8_t staId,
-                                     struct txrx_rx_metainfo* pRxMetaInfo );
-#endif
-#ifndef REMOVE_TL
-/**============================================================================
-  @brief hdd_rx_packet_cbk() - Receive callback registered with TL.
-  TL will call this to notify the HDD when one or more packets were
-  received for a registered STA.
-
-  @param vosContext      : [in] pointer to VOS context  
-  @param pVosPacketChain : [in] pointer to VOS packet chain
-  @param staId           : [in] Station Id
-  @param pRxMetaInfo     : [in] pointer to meta info for the received pkt(s) 
-
-  @return                : VOS_STATUS_E_FAILURE if any errors encountered, 
-                         : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext, 
-                              vos_pkt_t *pVosPacketChain,
-                              v_U8_t staId,
-                              WLANTL_RxMetaInfoType* pRxMetaInfo );
-#else
-/**============================================================================
-  @brief hdd_rx_packet_cbk() - Receive callback registered with TXRX.
-  TL will call this to notify the HDD when a packet was received 
-  for a registered STA.
-
-  @param pAdapter     : [in] pAdapter reference
-  @param pkt	      : [in] pointer to adf_nbuf_t packet (of type sk_buff pointer)
-
-  @return             : VOS_STATUS_E_FAILURE if any errors encountered,
-                      : VOS_STATUS_SUCCESS otherwise
-  ===========================================================================*/
-extern VOS_STATUS hdd_rx_packet_cbk(hdd_adapter_t* pAdapter,
-				    adf_nbuf_t pkt);
-
-#endif /* REMOVE_TL */
+                                     WLANTL_RxMetaInfoType* pRxMetaInfo );
 
 
 /**============================================================================
@@ -217,11 +197,7 @@ extern VOS_STATUS hdd_rx_packet_cbk(hdd_adapter_t* pAdapter,
   @return         : VOS_TRUE if the packet is EAPOL 
                   : VOS_FALSE otherwise
   ===========================================================================*/
-#ifndef REMOVE_TL
 extern v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket );
-#else
-extern v_BOOL_t hdd_IsEAPOLPacket( adf_nbuf_t nbuf);
-#endif
 
 /**============================================================================
   @brief hdd_mon_tx_mgmt_pkt() - Transmit MGMT packet received on monitor 
@@ -237,5 +213,15 @@ void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter);
   @param work: [in] workqueue structure.
   ===========================================================================*/
 void hdd_mon_tx_work_queue(struct work_struct *work);
+
+/**============================================================================
+  @brief hdd_Ibss_GetStaId() - Get the StationID using the Peer Mac address
+  @param pHddStaCtx : [in] pointer to HDD Station Context
+  pMacAddress [in]  pointer to Peer Mac address
+  staID [out]  pointer to Station Index
+  @return    : VOS_STATUS_SUCCESS/VOS_STATUS_E_FAILURE
+  ===========================================================================*/
+VOS_STATUS hdd_Ibss_GetStaId(hdd_station_ctx_t *pHddStaCtx,
+                                  v_MACADDR_t *pMacAddress, v_U8_t *staId);
 
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

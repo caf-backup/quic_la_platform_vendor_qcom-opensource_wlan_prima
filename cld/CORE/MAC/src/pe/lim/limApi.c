@@ -40,13 +40,7 @@
 #include "wmmApsd.h"
 #include "limTrace.h"
 #include "limSession.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#include "packet.h"
-#include "wma.h"
-#endif
 
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
@@ -54,12 +48,8 @@
 
 #include <limFT.h>
 #include "vos_types.h"
-#ifndef REMOVE_TL
 #include "vos_packet.h"
-#include "txrx.h"
-#else
-#include "adf_nbuf.h"
-#endif	/* #ifndef REMOVE_TL */
+#include "wlan_qct_tl.h"
 #include "sysStartup.h"
 
 
@@ -94,6 +84,14 @@ static void __limInitScanVars(tpAniSirGlobal pMac)
     palZeroMemory(pMac->hHdd, pMac->lim.gLimCachedScanHashTable,
                     sizeof(pMac->lim.gLimCachedScanHashTable));
 
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+
+    pMac->lim.gLimMlmLfrScanResultLength = 0;
+    pMac->lim.gLimSmeLfrScanResultLength = 0;
+
+    palZeroMemory(pMac->hHdd, pMac->lim.gLimCachedLfrScanHashTable,
+                    sizeof(pMac->lim.gLimCachedLfrScanHashTable));
+#endif
     pMac->lim.gLimBackgroundScanChannelId = 0;
     pMac->lim.gLimBackgroundScanStarted = 0;
     pMac->lim.gLimRestoreCBNumScanInterval = LIM_RESTORE_CB_NUM_SCAN_INTERVAL_DEFAULT;
@@ -617,6 +615,9 @@ tSirRetStatus limStart(tpAniSirGlobal pMac)
       // By default return unique scan results
       pMac->lim.gLimReturnUniqueResults = true;
       pMac->lim.gLimSmeScanResultLength = 0;
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+      pMac->lim.gLimSmeLfrScanResultLength = 0;
+#endif
    }
    else
    {
@@ -896,7 +897,7 @@ limCleanup(tpAniSirGlobal pMac)
 
 
     pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
-    retStatus = wlan_deregister_mgmt_client(pvosGCTx);
+    retStatus = WLANTL_DeRegisterMgmtFrmClient(pvosGCTx);
 
     if ( retStatus != VOS_STATUS_SUCCESS )
         PELOGE(limLog(pMac, LOGE, FL("DeRegistering the PE Handle with TL has failed bailing out..."));)
@@ -1087,11 +1088,7 @@ v_VOID_t peFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg)
         {
             if (SIR_BB_XPORT_MGMT_MSG == pMsg->type)
             {
-#ifndef REMOVE_TL
-		        vos_pkt_return_packet((vos_pkt_t *)pMsg->bodyptr);
-#else
-                voss_rx_packet_free(pMsg->bodyptr);
-#endif
+                vos_pkt_return_packet((vos_pkt_t *)pMsg->bodyptr);
             }
             else
             {
@@ -1118,6 +1115,12 @@ tANI_U8 limIsTimerAllowedInPowerSaveState(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
     {
         switch(pMsg->type)
         {
+            /* Don't allow following timer messages if in sleep */
+            case SIR_LIM_MIN_CHANNEL_TIMEOUT:
+            case SIR_LIM_MAX_CHANNEL_TIMEOUT:
+            case SIR_LIM_PERIODIC_PROBE_REQ_TIMEOUT:
+                retStatus = FALSE;
+                break;
             /* May allow following timer messages in sleep mode */
             case SIR_LIM_HASH_MISS_THRES_TIMEOUT:
 
@@ -1275,15 +1278,14 @@ tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg)
  * @return None
  */
 
-#ifndef REMOVE_TL
 VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
 {
     tpAniSirGlobal  pMac;
     tpSirMacMgmtHdr mHdr;
     tSirMsgQ        msg;
     vos_pkt_t      *pVosPkt;
-    v_U8_t         *pRxPacketInfo;
     VOS_STATUS      vosStatus;
+    v_U8_t         *pRxPacketInfo;
 
     pVosPkt = (vos_pkt_t *)vosBuff;
     if (NULL == pVosPkt)
@@ -1293,10 +1295,10 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
 
     pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE, pvosGCtx);
     if (NULL == pMac)
-    {    
+    {
         // cannot log a failure without a valid pMac
         vos_pkt_return_packet(pVosPkt);
-		return VOS_STATUS_E_FAILURE;
+        return VOS_STATUS_E_FAILURE;
     }
 
     vosStatus = WDA_DS_PeekRxPacketInfo( pVosPkt, (void *)&pRxPacketInfo, VOS_FALSE );
@@ -1307,17 +1309,17 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
         return VOS_STATUS_E_FAILURE;
     }
 
+
     //
     //  The MPDU header is now present at a certain "offset" in
     // the BD and is specified in the BD itself
     //
     mHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-
     if(mHdr->fc.type == SIR_MAC_MGMT_FRAME) 
     {
     PELOG1(limLog( pMac, LOG1,
-       FL ( "mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d\n"),
-       mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
+       FL ( "RxBd=%p mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d"),
+       pRxPacketInfo, mHdr, mHdr->fc.type, mHdr->fc.subType, sizeof(tSirMacFrameCtl), sizeof(tSirMacMgmtHdr) );)
 
     MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT, NO_SESSION, 
                         LIM_TRACE_MAKE_RXMGMT(mHdr->fc.subType,  
@@ -1344,60 +1346,6 @@ VOS_STATUS peHandleMgmtFrame( v_PVOID_t pvosGCtx, v_PVOID_t vosBuff)
     return  VOS_STATUS_SUCCESS;
 }
 
-#else
-
-VOS_STATUS peHandleMgmtFrame(v_PVOID_t mac_ctx, tp_rxpacket rx_pkt)
-{
-	tpAniSirGlobal  mac = (tpAniSirGlobal) mac_ctx;
-	tpSirMacMgmtHdr frm_hdr;
-	tSirMsgQ        msg;
-
-	if (!rx_pkt)
-		return VOS_STATUS_E_FAILURE;
-
-	if (!mac) {
-		voss_rx_packet_free(rx_pkt);
-		return VOS_STATUS_E_FAILURE;
-	}
-
-	/* MPDU header is part of rx_pkt */
-	frm_hdr = (tpSirMacMgmtHdr)(rx_pkt->rxpktmeta.mpdu_hdr_ptr);
-
-	if (frm_hdr->fc.type == SIR_MAC_MGMT_FRAME) {
-		PELOG1(limLog(pMac, LOG1,
-			      FL( "mHdr=%p Type: %d Subtype: %d  Sizes:FC%d Mgmt%d\n"),
-			      frm_hdr, frm_hdr->fc.type, frm_hdr->fc.subType,
-			      sizeof(tSirMacFrameCtl),
-			      sizeof(tSirMacMgmtHdr) );)
-
-#ifndef REMOVE_TL
-		MTRACE(macTrace(mac, TRACE_CODE_RX_MGMT, NO_SESSION,
-		       LIM_TRACE_MAKE_RXMGMT(frm_hdr->fc.subType,
-                       (tANI_U16) (((tANI_U16) (frm_hdr->seqControl.seqNumHi << 4)) |
-		       frm_hdr->seqControl.seqNumLo)));)
-#else
-		PELOG1(limLog(pMac, LOG1,
-		FL("Seq No: %d\n"),
-		(tANI_U16) (((tANI_U16) (frm_hdr->seqControl.seqNumHi << 4)) |
-		frm_hdr->seqControl.seqNumLo));)
-#endif
-	}
-
-	msg.type = SIR_BB_XPORT_MGMT_MSG;
-	msg.bodyptr = (v_PVOID_t) rx_pkt;
-	msg.bodyval = 0;
-
-	if (sysBbtProcessMessageCore(mac, &msg, frm_hdr->fc.type,
-				     frm_hdr->fc.subType) != eSIR_SUCCESS) {
-		voss_rx_packet_free(rx_pkt);
-		limLog(mac, LOGW,
-		       FL("sysBbtProcessMessageCore failed to process SIR_BB_XPORT_MGMT_MSG\n"));
-		return VOS_STATUS_E_FAILURE;
-	}
-
-	return  VOS_STATUS_SUCCESS;
-}
-#endif /* REMOVE_TL */
 // ---------------------------------------------------------------------------
 /**
  * peRegisterTLHandle
@@ -1413,6 +1361,7 @@ VOS_STATUS peHandleMgmtFrame(v_PVOID_t mac_ctx, tp_rxpacket rx_pkt)
  *
  * @return None
  */
+
 void peRegisterTLHandle(tpAniSirGlobal pMac)
 {
     v_PVOID_t pvosGCTx;
@@ -1420,13 +1369,7 @@ void peRegisterTLHandle(tpAniSirGlobal pMac)
 
     pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
 
-#ifndef REMOVE_TL
     retStatus = WLANTL_RegisterMgmtFrmClient(pvosGCTx, peHandleMgmtFrame);
-#else
-    retStatus = wma_mgmt_attach(((pVosContextType)pvosGCTx)->pWMAContext,
-                                ((pVosContextType)pvosGCTx)->pMACContext,
-                                 peHandleMgmtFrame);
-#endif
 
     if (retStatus != VOS_STATUS_SUCCESS)
         limLog( pMac, LOGP, FL("Registering the PE Handle with TL has failed bailing out..."));
@@ -1683,15 +1626,8 @@ limHandleIBSScoalescing(
 {
     tpSirMacMgmtHdr pHdr;
     tSirRetStatus   retCode;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
     if ( (!pBeacon->capabilityInfo.ibss) || (limCmpSSid(pMac, &pBeacon->ssId,psessionEntry) != true) )
         /* Received SSID does not match => Ignore received Beacon frame. */
         retCode =  eSIR_LIM_IGNORE_BEACON;
@@ -1700,16 +1636,9 @@ limHandleIBSScoalescing(
         tANI_U32 ieLen;
         tANI_U16 tsfLater;
         tANI_U8 *pIEs;
-#ifndef REMOVE_TL
         ieLen    = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
         tsfLater = WDA_GET_RX_TSF_LATER(pRxPacketInfo);
         pIEs = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-        ieLen    = pRxPacket->rxpktmeta.mpdu_data_len;
-//TODO How to get this for CLD ?
-        tsfLater = 0;
-        pIEs = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
         PELOG3(limLog(pMac, LOG3, FL("BEFORE Coalescing tsfLater val :%d"), tsfLater);)
         retCode  = limIbssCoalesce(pMac, pHdr, pBeacon, pIEs, ieLen, tsfLater,psessionEntry);
     }
@@ -2181,9 +2110,7 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     tANI_U32                     framelen;
     tANI_U8                      *pBody;
     tSirMacCapabilityInfo     capabilityInfo;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
+
     /*
     * 
     * In scan mode, drop only Beacon/Probe Response which are NOT marked as scan-frames.
@@ -2203,24 +2130,20 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
         {
             return eMGMT_DROP_NO_DROP;
         }
-#ifndef REMOVE_TL
-        else if (WDA_IS_RX_IN_SCAN(pRxPacketInfo))
-#else
-//TODO How to do for CLD ?
-        else if (0)
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+        else if (WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo) || WDA_GET_ROAMCANDIDATEIND(pRxPacketInfo))
+        {
+            return eMGMT_DROP_NO_DROP;
+        }
 #endif
+        else if (WDA_IS_RX_IN_SCAN(pRxPacketInfo))
         {
             return eMGMT_DROP_SCAN_MODE_FRAME;
         }
     }
 
-#ifndef REMOVE_TL
     framelen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
     pBody    = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-    framelen = pRxPacket->rxpktmeta.mpdu_data_len;
-    pBody    = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
 
    /* Note sure if this is sufficient, basically this condition allows all probe responses and 
     *   beacons from an infrastructure network 
@@ -2248,7 +2171,6 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
         if(capabilityInfo.ess)
             return eMGMT_DROP_INFRA_BCN_IN_IBSS;
     }
-#ifndef REMOVE_TL
     else if( (subType == SIR_MAC_MGMT_PROBE_REQ) &&
                 (!WDA_GET_RX_BEACON_SENT(pRxPacketInfo)))
     {
@@ -2256,9 +2178,6 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
         //In IBSS, the node which sends out the beacon, is supposed to respond to ProbeReq
         return eMGMT_DROP_NOT_LAST_IBSS_BCN;
     }
-#else
-    //TODO How to do this for CLD ?
-#endif
 
     return eMGMT_DROP_NO_DROP;
 }
@@ -2287,36 +2206,4 @@ eHalStatus pe_ReleaseGlobalLock( tAniSirLim *psPe)
         }
     }
     return (status);
-}
-
-
-VOS_STATUS lim_get_scan_entry(tpAniSirGlobal mac, int *scan_entry)
-{
-	int i;
-	for (i = 0; i < LIM_MAX_SCAN_REQ_ALLOWED; i++) {
-		if (mac->lim.scan_info[i].valid == false) {
-			*scan_entry = i;
-			return VOS_STATUS_SUCCESS;
-		}
-	}
-	return VOS_STATUS_E_RESOURCES;
-}
-
-void lim_add_scan_entry(tpAniSirGlobal mac,
-			int scan_entry,
-			int scan_id)
-{
-	mac->lim.scan_info[scan_entry].valid = true;
-	mac->lim.scan_info[scan_entry].scan_id = scan_id;
-}
-
-void lim_del_scan_entry(tpAniSirGlobal mac, int scan_id)
-{
-	int i;
-	for (i = 0; i < LIM_MAX_SCAN_REQ_ALLOWED; i++) {
-		if (mac->lim.scan_info[i].scan_id == scan_id) {
-			mac->lim.scan_info[i].valid = false;
-			return;
-		}
-	}
 }

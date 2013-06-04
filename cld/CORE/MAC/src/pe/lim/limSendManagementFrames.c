@@ -36,11 +36,7 @@
 #ifdef FEATURE_WLAN_CCX
 #include <limCcxparserApi.h>
 #endif
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 #ifdef WLAN_FEATURE_11W
 #include "dot11fdefs.h"
 #endif
@@ -287,7 +283,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     }
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr ) + nAdditionalIELen;
-
+  
     // Ok-- try to allocate some memory:
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
@@ -460,7 +456,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8              noaStream[SIR_MAX_NOA_ATTR_LEN 
                                            + SIR_P2P_IE_HEADER_LEN];
     tANI_U8              noaIe[SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN];
-
+  
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)         // We don't answer requests
     {
         return;                     // in this case.
@@ -4398,7 +4394,7 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     void               *pPacket;
     eHalStatus          halstatus;
     tANI_U8 txFlag = 0;
-
+    
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
     frm.Category.category     = SIR_MAC_ACTION_SPECTRUM_MGMT;
@@ -4534,7 +4530,7 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     void               *pPacket;
     eHalStatus          halstatus;
     tANI_U8 txFlag = 0;
-
+    
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
 
     frm.Category.category     = SIR_MAC_ACTION_VHT;
@@ -4666,7 +4662,7 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     void               *pPacket;
     eHalStatus          halstatus;
     tANI_U8 txFlag = 0;
-
+    
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&frm, sizeof( frm ) );
                 
 

@@ -95,6 +95,8 @@
 /** Maximum time(ms) to wait for tdls mgmt to complete **/
 #define WAIT_TIME_TDLS_MGMT         11000
 
+/** Maximum time(ms) to wait for tdls initiator to start direct communication **/
+#define WAIT_TIME_TDLS_INITIATOR    300
 /* Maximum time to get crda entry settings */
 #define CRDA_WAIT_TIME 300
 
@@ -109,7 +111,6 @@
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
 #define MAX_GENIE_LEN 255
-#define WAIT_TIME_TDLS_INITIATOR 300
 
 #define WLAN_CHIP_VERSION   "WCNSS"
 
@@ -136,10 +137,10 @@
 #define WLAN_HDD_PUBLIC_ACTION_TDLS_DISC_RESP 14
 #define WLAN_HDD_TDLS_ACTION_FRAME 12
 #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
-#define HDD_WAKE_LOCK_DURATION 50
+#define HDD_WAKE_LOCK_DURATION 500 //in msecs
 #endif
 
-#define HDD_SAP_WAKE_LOCK_DURATION 10000 //10 sec
+#define HDD_SAP_WAKE_LOCK_DURATION 10000 //in msecs
 
 /* Maximum number of interfaces allowed(STA, P2P Device, P2P Interface) */
 #define WLAN_MAX_INTERFACES 3
@@ -148,6 +149,9 @@
 #define GTK_OFFLOAD_ENABLE  0
 #define GTK_OFFLOAD_DISABLE 1
 #endif
+
+#define HDD_MAC_ADDR_LEN    6
+typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -240,6 +244,12 @@ typedef struct roaming_info_s
 {
    HDD_ROAM_STATE roamingState;
    vos_event_t roamingEvent;
+
+   tWlanHddMacAddr bssid;
+   tWlanHddMacAddr peerMac;
+   tANI_U32 roamId;
+   eRoamCmdStatus roamStatus;
+   v_BOOL_t deferKeyComplete;
    
 } roaming_info_t;
 
@@ -375,6 +385,7 @@ typedef enum device_mode
    WLAN_HDD_P2P_GO,
    WLAN_HDD_MONITOR,
    WLAN_HDD_FTM,
+   WLAN_HDD_IBSS,
    WLAN_HDD_P2P_DEVICE
 }device_mode_t;
 
@@ -417,6 +428,7 @@ typedef struct
    v_TIME_t             lastblockTs;
    v_TIME_t             lastOpenTs;
    struct netdev_queue *blockedQueue;
+   v_BOOL_t             qBlocked;
 } hdd_thermal_mitigation_info_t;
 
 typedef struct hdd_remain_on_chan_ctx
@@ -526,6 +538,16 @@ typedef struct {
     /** MAC address of the station */
     v_MACADDR_t macAddrSTA;
 
+    /** Current Station state so HDD knows how to deal with packet
+     *  queue. Most recent states used to change TL STA state. */
+    WLANTL_STAStateType tlSTAState;
+
+   /** Transmit queues for each AC (VO,VI,BE etc). */
+   hdd_list_t wmm_tx_queue[NUM_TX_QUEUES];
+
+   /** Might need to differentiate queue depth in contention case */
+   v_U16_t aTxQueueDepth[NUM_TX_QUEUES];
+   
    /**Track whether OS TX queue has been disabled.*/
    v_BOOL_t txSuspended[NUM_TX_QUEUES];
 
@@ -534,8 +556,6 @@ typedef struct {
 
    /** The station entry for which Deauth is in progress  */
    v_BOOL_t isDeauthInProgress;
-
-   enum wlan_sta_state sta_state;
 } hdd_station_info_t;
 
 struct hdd_ap_ctx_s
@@ -756,12 +776,6 @@ struct hdd_adapter_s
    //Magic cookie for adapter sanity verification
    v_U32_t magic;
    v_BOOL_t higherDtimTransition;
-
-   /* Tx function that will be called for this interface during data tx */
-   ol_txrx_tx_fp data_tx;
-
-   /* vdev txrx handle used in txrx module */
-   void *txrx_vdev_ctx;
 };
 
 typedef struct hdd_dynamic_mcbcfilter_s
@@ -780,7 +794,10 @@ typedef struct hdd_dynamic_mcbcfilter_s
 #define WLAN_HDD_GET_HOSTAP_STATE_PTR(pAdapter) (&(pAdapter)->sessionCtx.ap.HostapdState)
 #define WLAN_HDD_GET_CFG_STATE_PTR(pAdapter)  (&(pAdapter)->cfg80211State)
 #ifdef FEATURE_WLAN_TDLS
-#define WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter) ((tdlsCtx_t*)(pAdapter)->sessionCtx.station.pHddTdlsCtx)
+#define WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter) \
+        (((WLAN_HDD_INFRA_STATION != pAdapter->device_mode) && \
+        (WLAN_HDD_P2P_CLIENT != pAdapter->device_mode)) ? NULL : \
+        (tdlsCtx_t*)(pAdapter)->sessionCtx.station.pHddTdlsCtx)
 #endif
 
 typedef struct hdd_adapter_list_node
@@ -839,13 +856,11 @@ struct hdd_context_s
    /** completion variable for standby callback */
    struct completion standby_comp_var;
    
-#ifndef REMOVE_TL
    /* Completion  variable to indicate Rx Thread Suspended */
    struct completion rx_sus_event_var;
 
    /* Completion  variable to indicate Tx Thread Suspended */
    struct completion tx_sus_event_var;
-#endif
 
    /* Completion  variable to indicate Mc Thread Suspended */
    struct completion mc_sus_event_var;
@@ -855,15 +870,11 @@ struct hdd_context_s
 
    v_BOOL_t isWlanSuspended;
 
-#ifndef REMOVE_TL
    v_BOOL_t isTxThreadSuspended;
-#endif
 
    v_BOOL_t isMcThreadSuspended;
 
-#ifndef REMOVE_TL
    v_BOOL_t isRxThreadSuspended;
-#endif
 
    volatile v_BOOL_t isLogpInProgress;
 
@@ -948,13 +959,6 @@ struct hdd_context_s
     tANI_U16 connected_peer_count;
     tdls_scan_context_t tdls_scan_ctxt;
 #endif
-   //struct wake_lock sap_wake_lock;
-
-   /*
-    * adf_ctx will be used by adf while allocating dma memory
-    * to access dev information.
-    */
-   adf_os_device_t adf_ctx;
 };
 
 
@@ -1030,5 +1034,4 @@ VOS_STATUS wlan_hdd_restart_driver(hdd_context_t *pHddCtx);
 void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx);
 void hdd_set_pwrparams(hdd_context_t *pHddCtx);
 void hdd_reset_pwrparams(hdd_context_t *pHddCtx);
-VOS_STATUS wlan_hdd_get_vdev_type(enum device_mode mode, tANI_U32 *type, tANI_U32 *subType);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

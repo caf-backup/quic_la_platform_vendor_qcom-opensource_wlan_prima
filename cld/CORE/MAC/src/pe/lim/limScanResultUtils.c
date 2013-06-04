@@ -24,10 +24,57 @@
 #include "rrmApi.h"
 #endif
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
+
+
+/**
+ * limDeactiveMinChannelTimerDuringScan()
+ *
+ *FUNCTION:
+ * This function is called during scan upon receiving
+ * Beacon/Probe Response frame to deactivate MIN channel
+ * timer if running.
+ *
+ * This function should be called only when pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac - Pointer to Global MAC structure
+ *
+ * @return eSIR_SUCCESS in case of success
+ */
+
+tANI_U32
+limDeactivateMinChannelTimerDuringScan(tpAniSirGlobal pMac)
+{
+    if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) && (pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE))
+    {
+        /**
+            * Beacon/Probe Response is received during active scanning.
+            * Deactivate MIN channel timer if running.
+            */
+        
+        limDeactivateAndChangeTimer(pMac,eLIM_MIN_CHANNEL_TIMER);
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, NO_SESSION, eLIM_MAX_CHANNEL_TIMER));
+        if (tx_timer_activate(&pMac->lim.limTimers.gLimMaxChannelTimer)
+                                          == TX_TIMER_ERROR)
+        {
+            /// Could not activate max channel timer.
+            // Log error
+            limLog(pMac,LOGP, FL("could not activate max channel timer"));
+
+            limCompleteMlmScan(pMac, eSIR_SME_RESOURCES_UNAVAILABLE);
+            return TX_TIMER_ERROR;
+        }
+    }
+    return eSIR_SUCCESS;
+} /*** end limDeactivateMinChannelTimerDuringScan() ***/
+
 
 
 /**
@@ -76,23 +123,13 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     tpSirMacMgmtHdr     pHdr;
     tANI_U8             channelNum;
     tANI_U8             rxChannel;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     VOS_ASSERT(WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) >= SIR_MAC_B_PR_SSID_OFFSET);
     ieLen    = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo) - SIR_MAC_B_PR_SSID_OFFSET;
     rxChannel = WDA_GET_RX_CH(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    VOS_ASSERT(pRxPacket->rxpktmeta.mpdu_data_len >= SIR_MAC_B_PR_SSID_OFFSET);
-    ieLen    = pRxPacket->rxpktmeta.mpdu_data_len - SIR_MAC_B_PR_SSID_OFFSET;
-    rxChannel = pRxPacket->rxpktmeta.channel;
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
+
 
     /**
      * Length of BSS desription is without length of
@@ -134,7 +171,6 @@ limCollectBssDescription(tpAniSirGlobal pMac,
 
     if (pBssDescr->channelId == 0)
    {
-#ifndef REMOVE_TL   
       /* If the channel Id is not retrieved from Beacon, extract the channel from BD */
       /* Unmapped the channel.This We have to do since we have done mapping in the hal to
          overcome  the limitation of RXBD of not able to accomodate the bigger channel number.*/
@@ -142,7 +178,6 @@ limCollectBssDescription(tpAniSirGlobal pMac,
       {
          rxChannel = pMac->lim.gLimCurrentScanChannelId;
       }
-#endif
       pBssDescr->channelId = rxChannel;
    }
 
@@ -159,11 +194,8 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG4, pBssDescr->bssId, 6 );
     sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG4, (tANI_U8*)pRxPacketInfo, 36 );)
 
-#ifndef REMOVE_TL
     pBssDescr->rssi = (tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo);
-#else
-    pBssDescr->rssi = (tANI_S8)(pRxPacket->rxpktmeta.rssi);
-#endif    
+    
     //SINR no longer reported by HW
     pBssDescr->sinr = 0;
 
@@ -173,11 +205,7 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     if( fScanning )
     {
        rrmGetStartTSF( pMac, pBssDescr->startTSF );
-#ifndef REMOVE_TL
        pBssDescr->parentTSF = WDA_GET_RX_TIMESTAMP(pRxPacketInfo); 
-#else
-       pBssDescr->parentTSF = pRxPacket->rxpktmeta.timestamp; 
-#endif    
     }
 #endif
 
@@ -304,15 +332,8 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     tSirMacAddr bssid = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     tANI_BOOLEAN fFound = FALSE;
     tpSirMacDataHdr3a pHdr;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MPDUHEADER3A((tANI_U8 *)pRxPacketInfo);
-#else
-    pHdr = (tpSirMacDataHdr3a)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif    
 
     //Checking if scanning for a particular BSSID
     if ((fScanning) && (pMac->lim.gpLimMlmScanReq)) 
@@ -340,12 +361,19 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
      * a SSID (if it is also set). Ignore the other BSS in that case.
      */
 
-    if ((pMac->lim.gpLimMlmScanReq) && (((fScanning) && ( pMac->lim.gLimReturnAfterFirstMatch & 0x01 ) 
-        && (pMac->lim.gpLimMlmScanReq->numSsid) &&
-                   !limIsScanRequestedSSID(pMac, &pBPR->ssId))
-                   ||  (!fFound && (pMac->lim.gpLimMlmScanReq && pMac->lim.gpLimMlmScanReq->bssId) &&
-                   !palEqualMemory(pMac->hHdd, bssid, &pMac->lim.gpLimMlmScanReq->bssId, 6)))
-                   )
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    if (!(WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo)))
+    {
+#endif
+      if ((pMac->lim.gpLimMlmScanReq) &&
+         (((fScanning) &&
+           ( pMac->lim.gLimReturnAfterFirstMatch & 0x01 ) &&
+           (pMac->lim.gpLimMlmScanReq->numSsid) &&
+           !limIsScanRequestedSSID(pMac, &pBPR->ssId)) ||
+          (!fFound && (pMac->lim.gpLimMlmScanReq &&
+                       pMac->lim.gpLimMlmScanReq->bssId) &&
+           !palEqualMemory(pMac->hHdd, bssid,
+                           &pMac->lim.gpLimMlmScanReq->bssId, 6))))
     {
         /**
          * Received SSID does not match with
@@ -355,6 +383,9 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
 
         return;
     }
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    }
+#endif
 
     /* There is no point in caching & reporting the scan results for APs
      * which are in the process of switching the channel. So, we are not
@@ -377,7 +408,6 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
        rxChannelInBeacon = limGetChannelFromBeacon(pMac, pBPR);
        if (rxChannelInBeacon < 15)
        {
-#ifndef REMOVE_TL
           /* This means that we are in 2.4GHz mode */
           if(WDA_GET_RX_CH(pRxPacketInfo) != rxChannelInBeacon)
           {
@@ -396,36 +426,10 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
                 limLog(pMac, LOG3, FL("SSID %s, CH in ProbeRsp %d, CH in BD %d, miss-match, Do Not Drop"),
                                        pBPR->ssId.ssId,
                                        rxChannelInBeacon,
-                                       WDA_GET_RX_CH(pRxPacketInfo));    
-
+                                       WDA_GET_RX_CH(pRxPacketInfo));
                 WDA_GET_RX_CH(pRxPacketInfo) = rxChannelInBeacon;
              }
           }
-#else
-          /* This means that we are in 2.4GHz mode */
-          if(pRxPacket->rxpktmeta.channel != rxChannelInBeacon)
-          {
-             /* BCAST Frame, if CH do not match, Drop */
-             if(limIsAddrBC(pHdr->addr1))
-             {
-	            limLog(pMac, LOG3, FL("Beacon/Probe Rsp dropped. Channel in BD %d. "
-							          "Channel in beacon" " %d\n"),
-			                          pRxPacket->rxpktmeta.channel,limGetChannelFromBeacon(pMac, pBPR));
-	            return;
-              }
-              /* Unit cast frame, Probe RSP, do not drop */
-              else
-              {
-	             dontUpdateAll = 1;
-	             limLog(pMac, LOG3, FL("SSID %s, CH in ProbeRsp %d, CH in BD %d, miss-match, Do Not Drop"),
-							            pBPR->ssId.ssId,
-							            rxChannelInBeacon,
-							            pRxPacket->rxpktmeta.channel);    
-
-	             pRxPacket->rxpktmeta.channel = rxChannelInBeacon;
-              }
-          }
-#endif
        }
     }
 
@@ -434,11 +438,8 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
      * received Beacon frame.
      * Include size of fixed fields and IEs length
      */
-#ifndef REMOVE_TL
+
     ieLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    ieLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
     if (ieLen <= SIR_MAC_B_PR_SSID_OFFSET)
     {
         limLog(pMac, LOGP,
@@ -475,8 +476,38 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     /**
      * Depending on whether to store unique or all
      * scan results, pass hash update/add parameter
+     * For LFR candidates just add them on it's own cache
      */
 
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    if (WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo))
+    {
+       limLog(pMac, LOG2, FL(" pHdr->addr1:%02x:%02x:%02x:%02x:%02x:%02x\n"),
+              pHdr->addr1[0],
+              pHdr->addr1[1],
+              pHdr->addr1[2],
+              pHdr->addr1[3],
+              pHdr->addr1[4],
+              pHdr->addr1[5]);
+       limLog(pMac, LOG2, FL(" pHdr->addr2:%02x:%02x:%02x:%02x:%02x:%02x\n"),
+              pHdr->addr2[0],
+              pHdr->addr2[1],
+              pHdr->addr2[2],
+              pHdr->addr2[3],
+              pHdr->addr2[4],
+              pHdr->addr2[5]);
+       limLog(pMac, LOG2, FL(" pHdr->addr3:%02x:%02x:%02x:%02x:%02x:%02x\n"),
+              pHdr->addr3[0],
+              pHdr->addr3[1],
+              pHdr->addr3[2],
+              pHdr->addr3[3],
+              pHdr->addr3[4],
+              pHdr->addr3[5]);
+       limLog( pMac, LOG2, FL("Save this entry in LFR cache"));
+       status = limLookupNaddLfrHashEntry(pMac, pBssDescr, LIM_HASH_ADD, dontUpdateAll);
+    }
+    else
+#endif
     //If it is not scanning, only save unique results
     if (pMac->lim.gLimReturnUniqueResults || (!fScanning))
     {
@@ -514,9 +545,15 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
                    pMac->lim.gLim24Band11dScanDone,
                    pMac->lim.gLim50Band11dScanDone);
 
+            //Need to disable the timers. If they fire, they will send END_SCAN
+            //while we already send FINISH_SCAN here. This may mess up the gLimHalScanState
+            limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+            limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
             //Set the resume channel to Any valid channel (invalid). 
             //This will instruct HAL to set it to any previous valid channel.
             peSetResumeChannel(pMac, 0, 0);
+            limSendHalFinishScanReq( pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE );
+            //limSendHalFinishScanReq( pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE );
         }
     }//(eANI_BOOLEAN_TRUE == fScanning)
 
@@ -782,6 +819,225 @@ void    limDeleteHashEntry(tLimScanResultNode *pBssDescr)
 } /****** end limDeleteHashEntry() ******/
 
 
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+/**
+ * limInitLfrHashTable()
+ *
+ *FUNCTION:
+ * This function is called upon receiving SME_START_REQ
+ * to initialize global cached Lfr scan hash table
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac - Pointer to Global MAC structure
+ * @return None
+ */
+
+void
+limInitLfrHashTable(tpAniSirGlobal pMac)
+{
+    tANI_U16 i;
+    for (i = 0; i < LIM_MAX_NUM_OF_SCAN_RESULTS; i++)
+        pMac->lim.gLimCachedLfrScanHashTable[i] = NULL;
+} /****** end limInitLfrHashTable() ******/
+
+
+
+/**
+ * limLookupNaddLfrHashEntry()
+ *
+ *FUNCTION:
+ * This function is called upon receiving a Beacon or
+ * Probe Response frame during Lfr scan phase from FW to store
+ * received BSS description into Lfr scan result hash table.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac - Pointer to Global MAC structure
+ * @param  pBssDescr - Pointer to BSS description to be
+ *         added to the Lfr scan result hash table.
+ * @param  action - Indicates action to be performed
+ *         when same BSS description is found. This is
+ *         dependent on whether unique scan result to
+ *         be stored or not.
+ *
+ * @return None
+ */
+
+eHalStatus
+limLookupNaddLfrHashEntry(tpAniSirGlobal pMac,
+                          tLimScanResultNode *pBssDescr, tANI_U8 action,
+                          tANI_U8 dontUpdateAll)
+{
+    tANI_U8                  index, ssidLen = 0;
+    tLimScanResultNode *ptemp, *pprev;
+    tSirMacCapabilityInfo *pSirCap, *pSirCapTemp;
+    int idx, len;
+    tANI_U8 *pbIe;
+    tANI_S8  rssi = 0;
+
+    index = limScanHashFunction(pBssDescr->bssDescription.bssId);
+    ptemp = pMac->lim.gLimCachedLfrScanHashTable[index];
+
+    //ieFields start with TLV of SSID IE
+    ssidLen = * ((tANI_U8 *) &pBssDescr->bssDescription.ieFields + 1);
+    pSirCap = (tSirMacCapabilityInfo *)&pBssDescr->bssDescription.capabilityInfo;
+
+    for (pprev = ptemp; ptemp; pprev = ptemp, ptemp = ptemp->next)
+    {
+        //For infrastructure, check BSSID and SSID. For IBSS, check more
+        pSirCapTemp = (tSirMacCapabilityInfo *)&ptemp->bssDescription.capabilityInfo;
+        if((pSirCapTemp->ess == pSirCap->ess) && //matching ESS type first
+            (palEqualMemory( pMac->hHdd,(tANI_U8 *) pBssDescr->bssDescription.bssId,
+                      (tANI_U8 *) ptemp->bssDescription.bssId,
+                      sizeof(tSirMacAddr))) &&   //matching BSSID
+            (pBssDescr->bssDescription.channelId ==
+                                      ptemp->bssDescription.channelId) &&
+            palEqualMemory( pMac->hHdd,((tANI_U8 *) &pBssDescr->bssDescription.ieFields + 1),
+                           ((tANI_U8 *) &ptemp->bssDescription.ieFields + 1),
+                           (tANI_U8) (ssidLen + 1)) &&
+            ((pSirCapTemp->ess) || //we are done for infrastructure
+            //For IBSS, nwType and channelId
+            (((pBssDescr->bssDescription.nwType ==
+                                         ptemp->bssDescription.nwType) &&
+            (pBssDescr->bssDescription.channelId ==
+                                      ptemp->bssDescription.channelId))))
+        )
+        {
+            // Found the same BSS description
+            if (action == LIM_HASH_UPDATE)
+            {
+                if(dontUpdateAll)
+                {
+                   rssi = ptemp->bssDescription.rssi;
+                }
+
+                if(pBssDescr->bssDescription.fProbeRsp != ptemp->bssDescription.fProbeRsp)
+                {
+                    //We get a different, save the old frame WSC IE if it is there
+                    idx = 0;
+                    len = ptemp->bssDescription.length - sizeof(tSirBssDescription) +
+                       sizeof(tANI_U16) + sizeof(tANI_U32) - DOT11F_IE_WSCPROBERES_MIN_LEN - 2;
+                    pbIe = (tANI_U8 *)ptemp->bssDescription.ieFields;
+                    //Save WPS IE if it exists
+                    pBssDescr->bssDescription.WscIeLen = 0;
+                    while(idx < len)
+                    {
+                        if((DOT11F_EID_WSCPROBERES == pbIe[0]) &&
+                           (0x00 == pbIe[2]) && (0x50 == pbIe[3]) &&
+                           (0xf2 == pbIe[4]) && (0x04 == pbIe[5]))
+                        {
+                            //Found it
+                            if((DOT11F_IE_WSCPROBERES_MAX_LEN - 2) >= pbIe[1])
+                            {
+                                palCopyMemory(pMac->hHdd, pBssDescr->bssDescription.WscIeProbeRsp,
+                                   pbIe, pbIe[1] + 2);
+                                pBssDescr->bssDescription.WscIeLen = pbIe[1] + 2;
+                            }
+                            break;
+                        }
+                        idx += pbIe[1] + 2;
+                        pbIe += pbIe[1] + 2;
+                    }
+                }
+
+
+                if(NULL != pMac->lim.gpLimMlmScanReq)
+                {
+                   if((pMac->lim.gpLimMlmScanReq->numSsid)&&
+                      ( limIsNullSsid((tSirMacSSid *)((tANI_U8 *)
+                      &pBssDescr->bssDescription.ieFields + 1))))
+                      return eHAL_STATUS_FAILURE;
+                }
+
+                // Delete this entry
+                if (ptemp == pMac->lim.gLimCachedLfrScanHashTable[index])
+                    pprev = pMac->lim.gLimCachedLfrScanHashTable[index] = ptemp->next;
+                else
+                    pprev->next = ptemp->next;
+
+                pMac->lim.gLimMlmLfrScanResultLength -=
+                    ptemp->bssDescription.length + sizeof(tANI_U16);
+
+                palFreeMemory( pMac->hHdd, (tANI_U8 *) ptemp);
+            }
+            break;
+        }
+    }
+
+    //for now, only rssi, we can add more if needed
+    if ((action == LIM_HASH_UPDATE) && dontUpdateAll && rssi)
+    {
+        pBssDescr->bssDescription.rssi = rssi;
+    }
+
+    // Add this BSS description at same index
+    if (pprev == pMac->lim.gLimCachedLfrScanHashTable[index])
+    {
+        pBssDescr->next = pMac->lim.gLimCachedLfrScanHashTable[index];
+        pMac->lim.gLimCachedLfrScanHashTable[index] = pBssDescr;
+    }
+    else
+    {
+        pBssDescr->next = pprev->next;
+        pprev->next = pBssDescr;
+    }
+    pMac->lim.gLimMlmLfrScanResultLength +=
+        pBssDescr->bssDescription.length + sizeof(tANI_U16);
+
+    PELOG2(limLog(pMac, LOG2, FL("Added new BSS description size %d TOT %d BSS id\n"),
+           pBssDescr->bssDescription.length,
+           pMac->lim.gLimMlmLfrScanResultLength);
+    limPrintMacAddr(pMac, pBssDescr->bssDescription.bssId, LOG2);)
+
+    //
+    // TODO: IF applicable, do we need to send:
+    // Mesg - eWNI_SME_WM_STATUS_CHANGE_NTF
+    // Status change code - eSIR_SME_CB_LEGACY_BSS_FOUND_BY_AP
+    //
+    return eHAL_STATUS_SUCCESS;
+}
+
+
+
+/**
+ * limDeleteLfrHashEntry()
+ *
+ *FUNCTION:
+ * This function is called upon to delete
+ * a BSS description from LFR scan result hash table.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * Yet to find the utility of the function
+ *
+ * @param  pBssDescr - Pointer to BSS description to be
+ *         deleted from the LFR scan result hash table.
+ *
+ * @return None
+ */
+
+void    limDeleteLfrHashEntry(tLimScanResultNode *pBssDescr)
+{
+} /****** end limDeleteLfrHashEntry() ******/
+
+#endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
 /**
  * limCopyScanResult()
@@ -906,3 +1162,82 @@ limReInitScanResults(tpAniSirGlobal pMac)
     pMac->lim.gLimMlmScanResultLength = 0;
 
 } /****** end limReInitScanResults() ******/
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+/**
+ * limDeleteCachedLfrScanResults()
+ *
+ *FUNCTION:
+ * This function is called by limProcessSmeMessages() upon receiving
+ * SME_SCAN_REQ with flush scan result flag set for LFR.
+ *
+ *LOGIC:
+ * This function traverses the scan list stored in lfr scan hash
+ * table and deletes the entries if any
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac - Pointer to Global MAC structure
+ * @return None
+ */
+
+void
+limDeleteCachedLfrScanResults(tpAniSirGlobal pMac)
+{
+    tLimScanResultNode    *pNode, *pNextNode;
+    tANI_U16 i;
+    for (i = 0; i < LIM_MAX_NUM_OF_SCAN_RESULTS; i++)
+    {
+        if ((pNode = pMac->lim.gLimCachedLfrScanHashTable[i]) != NULL)
+        {
+            while (pNode)
+            {
+                pNextNode = pNode->next;
+
+                // Delete the current node
+                palFreeMemory( pMac->hHdd, (tANI_U8 *) pNode);
+
+                pNode = pNextNode;
+            }
+        }
+    }
+
+    pMac->lim.gLimSmeLfrScanResultLength = 0;
+} /****** end limDeleteCachedLfrScanResults() ******/
+
+
+
+/**
+ * limReInitLfrScanResults()
+ *
+ *FUNCTION:
+ * This function is called delete exisiting scan results
+ * and initialize the lfr scan hash table
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac - Pointer to Global MAC structure
+ * @return None
+ */
+
+void
+limReInitLfrScanResults(tpAniSirGlobal pMac)
+{
+    limDeleteCachedLfrScanResults(pMac);
+    limInitLfrHashTable(pMac);
+
+    // !!LAC - need to clear out the global scan result length
+    // since the list was just purged from the hash table.
+    pMac->lim.gLimMlmLfrScanResultLength = 0;
+
+} /****** end limReInitLfrScanResults() ******/
+#endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD

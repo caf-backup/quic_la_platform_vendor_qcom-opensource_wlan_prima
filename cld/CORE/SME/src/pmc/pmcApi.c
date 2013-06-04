@@ -27,11 +27,7 @@
 #include "smeInside.h"
 #include "csrInsideApi.h"
 #include "wlan_ps_wow_diag.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 #include "limSessionUtils.h"
 #include "csrInsideApi.h"
 
@@ -1754,6 +1750,24 @@ eHalStatus pmcRequestBmps (
          status = eHAL_STATUS_FAILURE;
       }
    }
+   /* Retry to enter the BMPS if the
+      status = eHAL_STATUS_PMC_NOT_NOW */
+   else if (status == eHAL_STATUS_PMC_NOT_NOW)
+   {
+      pmcStopTrafficTimer(hHal);
+      smsLog(pMac, LOG1, FL("Can't enter BMPS+++"));
+      if (pmcShouldBmpsTimerRun(pMac))
+      {
+         if (pmcStartTrafficTimer(pMac,
+                                  pMac->pmc.bmpsConfig.trafficMeasurePeriod)
+                                  != eHAL_STATUS_SUCCESS)
+         {
+            smsLog(pMac, LOG1, FL("Cannot start BMPS Retry timer"));
+         }
+         smsLog(pMac, LOG1,
+                FL("BMPS Retry Timer already running or started"));
+      }
+   }
 
    return status;
 }
@@ -2496,18 +2510,10 @@ eHalStatus pmcSetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest,
 
     vos_mem_copy(pRequestBuf, pRequest, sizeof(tSirHostOffloadReq));
 
-#ifndef WMA_LAYER
     msg.type = WDA_SET_HOST_OFFLOAD;
-#else
-    msg.type = WMA_SET_HOST_OFFLOAD;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
-#ifndef WMA_LAYER
     if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_HOST_OFFLOAD message to WDA", __func__);
         vos_mem_free(pRequestBuf);
@@ -2557,18 +2563,10 @@ eHalStatus pmcSetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest, tANI_U8
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_LOW, "buff TP %d "
               "input TP %d ", pRequestBuf->timePeriod, pRequest->timePeriod);
 
-#ifndef WMA_LAYER
     msg.type = WDA_SET_KEEP_ALIVE;
-#else
-    msg.type = WMA_SET_KEEP_ALIVE;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
-#ifndef WMA_LAYER
     if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
                   "Not able to post WDA_SET_KEEP_ALIVE message to WDA",
@@ -2618,18 +2616,10 @@ eHalStatus pmcSetNSOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest,
     }
     vos_mem_copy(pRequestBuf, pRequest, sizeof(tSirHostOffloadReq));
 
-#ifndef WMA_LAYER
     msg.type = WDA_SET_NS_OFFLOAD;
-#else
-    msg.type = WMA_SET_NS_OFFLOAD;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
-#ifndef WMA_LAYER
     if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post SIR_HAL_SET_HOST_OFFLOAD message to HAL", __func__);
         vos_mem_free(pRequestBuf);
@@ -2954,18 +2944,10 @@ eHalStatus pmcSetPreferredNetworkList
                                pRequestBuf->p5GProbeTemplate, &pRequestBuf->us5GProbeTemplateLen); 
 
 
-#ifndef WMA_LAYER
     msg.type     = WDA_SET_PNO_REQ;
-#else
-    msg.type     = WMA_SET_PNO_REQ;
-#endif
     msg.reserved = 0;
     msg.bodyptr  = pRequestBuf;
-#ifndef WMA_LAYER
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_PNO_REQ message to WDA", __func__);
         vos_mem_free(pRequestBuf);
@@ -2997,18 +2979,10 @@ eHalStatus pmcSetRssiFilter(tHalHandle hHal,   v_U8_t        rssiThreshold)
 
     pRequestBuf->rssiThreshold = rssiThreshold; 
 
-#ifndef WMA_LAYER
     msg.type = WDA_SET_RSSI_FILTER_REQ;
-#else
-    msg.type = WMA_SET_RSSI_FILTER_REQ;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
-#ifndef WMA_LAYER
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_PNO_REQ message to WDA", __func__);
         vos_mem_free(pRequestBuf);
@@ -3056,18 +3030,10 @@ eHalStatus pmcUpdateScanParams(tHalHandle hHal, tCsrConfig *pRequest, tCsrChanne
     pRequestBuf->usActiveMaxChTime  = pRequest->nActiveMaxChnTime; 
     pRequestBuf->ucCBState          = PHY_SINGLE_CHANNEL_CENTERED;
 
-#ifndef WMA_LAYER
     msg.type = WDA_UPDATE_SCAN_PARAMS_REQ;
-#else
-    msg.type = WMA_UPDATE_SCAN_PARAMS_REQ;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
-#ifndef WMA_LAYER
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_UPDATE_SCAN_PARAMS message to WDA", __func__);
         vos_mem_free(pRequestBuf);
@@ -3102,19 +3068,11 @@ eHalStatus pmcSetPowerParams(tHalHandle hHal,   tSirSetPowerParamsReq*  pwParams
     vos_mem_copy(pRequestBuf, pwParams, sizeof(*pRequestBuf)); 
 
 
-#ifndef WMA_LAYER
     msg.type = WDA_SET_POWER_PARAMS_REQ;
-#else
-    msg.type = WMA_SET_POWER_PARAMS_REQ;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
 
-#ifndef WMA_LAYER
     if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_POWER_PARAMS_REQ message to WDA", __func__);
         vos_mem_free(pRequestBuf);
@@ -3159,11 +3117,7 @@ eHalStatus pmcGetFilterMatchCount
 
     vos_mem_copy(pRequestBuf->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr)); 
 
-#ifndef WMA_LAYER
     msg.type = WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ;
-#else
-    msg.type = WMA_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
 
@@ -3180,11 +3134,7 @@ eHalStatus pmcGetFilterMatchCount
     pMac->pmc.FilterMatchCountCB = callbackRoutine;
     pMac->pmc.FilterMatchCountCBContext = callbackContext;
 
-#ifndef WMA_LAYER
     if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
             "%s: Not able to post WDA_PACKET_COALESCING_FILTER_MATCH_COUNT_REQ "
@@ -3237,18 +3187,10 @@ eHalStatus pmcSetGTKOffload (tHalHandle hHal, tpSirGtkOffloadParams pGtkOffload,
 
     vos_mem_copy(pRequestBuf, pGtkOffload, sizeof(tSirGtkOffloadParams));
 
-#ifndef WMA_LAYER
     msg.type = WDA_GTK_OFFLOAD_REQ;
-#else
-    msg.type = WMA_GTK_OFFLOAD_REQ;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
-#ifndef WMA_LAYER
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post "
                   "SIR_HAL_SET_GTK_OFFLOAD message to HAL", __func__);
@@ -3297,11 +3239,7 @@ eHalStatus pmcGetGTKOffload(tHalHandle hHal, GTKOffloadGetInfoCallback callbackR
 
     vos_mem_copy(pRequestBuf->bssId, pSession->connectedProfile.bssid, sizeof(tSirMacAddr)); 
 
-#ifndef WMA_LAYER
     msg.type = WDA_GTK_OFFLOAD_GETINFO_REQ;
-#else
-    msg.type = WMA_GTK_OFFLOAD_GETINFO_REQ;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pRequestBuf;
 
@@ -3317,11 +3255,7 @@ eHalStatus pmcGetGTKOffload(tHalHandle hHal, GTKOffloadGetInfoCallback callbackR
     pMac->pmc.GtkOffloadGetInfoCB = callbackRoutine;
     pMac->pmc.GtkOffloadGetInfoCBContext = callbackContext;
 
-#ifndef WMA_LAYER
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
-#else
-    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WMA, &msg))
-#endif
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
     {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_GTK_OFFLOAD_GETINFO_REQ message to WDA", 
                     __func__);

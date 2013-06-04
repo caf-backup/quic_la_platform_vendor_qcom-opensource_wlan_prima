@@ -40,7 +40,7 @@
 #include <linux/list.h>
 #include <wlan_hdd_main.h>
 #include <wlan_hdd_wext.h>
-#include <txrx.h>
+#include <wlan_qct_tl.h>
 #include <sme_QosApi.h>
 
 /*----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ typedef struct
    v_U32_t                      handle;
    v_U32_t                      qosFlowId;
    hdd_adapter_t*               pAdapter;
-   enum txrx_wmm_ac            acType;
+   WLANTL_ACEnumType            acType;
    hdd_wlan_wmm_status_e        lastStatus;
    struct work_struct           wmmAcSetupImplicitQos;
    v_U32_t                      magic;
@@ -170,7 +170,7 @@ typedef struct
 {
    struct list_head             wmmContextList;
    struct mutex                 wmmLock;
-   hdd_wmm_ac_status_t          wmmAcStatus[TXRX_NUM_WMM_AC];
+   hdd_wmm_ac_status_t          wmmAcStatus[WLANTL_MAX_AC];
    v_BOOL_t                     wmmQap;
    v_BOOL_t                     wmmQosConnection;
 } hdd_wmm_status_t;
@@ -255,7 +255,7 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb);
   ===========================================================================*/
 v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
                                 struct sk_buff *skb,
-                                enum txrx_wmm_ac* pAcType,
+                                WLANTL_ACEnumType* pAcType,
                                 sme_QosWmmUpType* pUserPri);
 
 
@@ -272,7 +272,7 @@ v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
                   : other values if failure
   ===========================================================================*/
 VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
-                                   enum txrx_wmm_ac acType,
+                                   WLANTL_ACEnumType acType,
                                    v_BOOL_t * pGranted );
 
 /**============================================================================

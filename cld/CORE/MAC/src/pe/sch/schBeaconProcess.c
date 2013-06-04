@@ -40,11 +40,6 @@
 #include "vos_diag_core_log.h"
 #endif //FEATURE_WLAN_DIAG_SUPPORT 
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
-
 /**
  * Number of bytes of variation in beacon length from the last beacon
  * to trigger reprogramming of rx delay register
@@ -62,12 +57,7 @@ ap_beacon_process(
     tpUpdateBeaconParams pBeaconParams,
     tpPESession         psessionEntry)
 {
-#ifndef REMOVE_TL
     tpSirMacMgmtHdr    pMh = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-    tpSirMacMgmtHdr    pMh = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
     tANI_U32           phyMode;
     tSirRFBand          rfBand = SIR_BAND_UNKNOWN;
     //Get RF band from psessionEntry
@@ -325,12 +315,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     tANI_U8 sendProbeReq = FALSE;
     tpDphHashNode pStaDs = NULL;
 #ifdef WLAN_FEATURE_11AC
-#ifndef REMOVE_TL
     tpSirMacMgmtHdr    pMh = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-    tpSirMacMgmtHdr    pMh = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
     tANI_U16  aid;
     tANI_U8  operMode;
 #endif
@@ -637,7 +622,11 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
     * 
     */
     
-    if((pAPSession = limIsApSessionActive(pMac)) != NULL)
+    if (((pAPSession = limIsApSessionActive(pMac)) != NULL)
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+          && (!(WDA_GET_OFFLOADSCANLEARN(pRxPacketInfo)))
+#endif
+    )
     {
         beaconParams.bssIdx = pAPSession->bssIdx;
         if (pAPSession->gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)

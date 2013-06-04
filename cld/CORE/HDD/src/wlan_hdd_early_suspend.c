@@ -25,9 +25,7 @@
 #include <linux/wait.h>
 #include <wlan_hdd_includes.h>
 #include <wlan_qct_driver.h>
-#ifdef MSM_PLATFORM
 #include <linux/wakelock.h>
-#endif	/* #ifdef MSM_PLATFORM */
 
 #include "halTypes.h"
 #include "sme_Api.h"
@@ -54,9 +52,7 @@
 #include "bap_hdd_misc.h"
 #endif
 
-#ifdef MSM_PLATFORM
 #include <linux/wcnss_wlan.h>
-#endif	/* #ifdef MSM_PLATFORM */
 #include <linux/inetdevice.h>
 #include <wlan_hdd_cfg.h>
 #include <wlan_hdd_cfg80211.h>
@@ -346,8 +342,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
 {
    VOS_STATUS vosStatus;
    eHalStatus halStatus;
-   tANI_U32 type;
-   tANI_U32 subType;
+
    //Power Up Libra WLAN card first if not already powered up
    vosStatus = vos_chipPowerUp(NULL,NULL,NULL);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -390,16 +385,10 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
       goto err_voss_stop;
    }
 
-   vosStatus = wlan_hdd_get_vdev_type(pAdapter->device_mode, &type, &subType);
-   if (VOS_STATUS_SUCCESS != vosStatus)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"failed to get vdev type");
-      goto err_voss_stop;
-   }
+
    //Open a SME session for future operation
    halStatus = sme_OpenSession( pHddCtx->hHal, hdd_smeRoamCallback, pHddCtx,
-                                (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId,
-				type, subType);
+                                (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"sme_OpenSession() failed with status code %08d [x%08lx]",
@@ -837,7 +826,8 @@ void hdd_suspend_wlan(void)
       tSirSetPowerParamsReq powerRequest = { 0 };
 
       powerRequest.uIgnoreDTIM = 1;
-  
+      powerRequest.uMaxLIModulatedDTIM = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
+
       /*Back up the actual values from CFG */
       wlan_cfgGetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, 
                               &pHddCtx->hdd_actual_ignore_DTIM_value);
@@ -1119,6 +1109,7 @@ void hdd_resume_wlan(void)
 
          powerRequest.uIgnoreDTIM = pHddCtx->hdd_actual_ignore_DTIM_value;
          powerRequest.uListenInterval = pHddCtx->hdd_actual_LI_value;
+         powerRequest.uMaxLIModulatedDTIM = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
 
          /*Disabled ModulatedDTIM if enabled on suspend*/
          if(pHddCtx->cfg_ini->enableModulatedDTIM)
@@ -1283,7 +1274,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
       complete(&vosSchedContext->ResumeMcEvent);
       pHddCtx->isMcThreadSuspended= FALSE;
    }
-#ifndef REMOVE_TL
    if(TRUE == pHddCtx->isTxThreadSuspended){
       complete(&vosSchedContext->ResumeTxEvent);
       pHddCtx->isTxThreadSuspended= FALSE;
@@ -1292,7 +1282,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
       complete(&vosSchedContext->ResumeRxEvent);
       pHddCtx->isRxThreadSuspended= FALSE;
    }
-#endif
    /* Reset the Suspend Variable */
    pHddCtx->isWlanSuspended = FALSE;
 
@@ -1307,7 +1296,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
    wait_for_completion_interruptible(&vosSchedContext->McShutdown);
 
-#ifndef REMOVE_TL
    /* Wait for TX to exit */
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TX thread",__func__);
    set_bit(TX_SHUTDOWN_EVENT_MASK, &vosSchedContext->txEventFlag);
@@ -1321,7 +1309,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
    set_bit(RX_POST_EVENT_MASK, &vosSchedContext->rxEventFlag);
    wake_up_interruptible(&vosSchedContext->rxWaitQueue);
    wait_for_completion_interruptible(&vosSchedContext->RxShutdown);
-#endif
 
 #ifdef WLAN_BTAMP_FEATURE
    vosStatus = WLANBAP_Stop(pVosContext);
@@ -1331,7 +1318,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
                "%s: Failed to stop BAP",__func__);
    }
 #endif //WLAN_BTAMP_FEATURE
-   vosStatus = vos_wma_shutdown(pVosContext);
+   vosStatus = vos_wda_shutdown(pVosContext);
    VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing SME STOP",__func__);
@@ -1346,21 +1333,17 @@ VOS_STATUS hdd_wlan_shutdown(void)
    vosStatus = macStop(pHddCtx->hHal, HAL_STOP_TYPE_SYS_RESET);
    VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
 
-#ifndef REMOVE_TL
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing TL STOP",__func__);
    /* Stop TL */
    vosStatus = WLANTL_Stop(pVosContext);
    VOS_ASSERT(VOS_IS_STATUS_SUCCESS(vosStatus));
-#endif
 
    hdd_unregister_mcast_bcast_filter(pHddCtx);
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: Flush Queues",__func__);
    /* Clean up message queues of TX and MC thread */
    vos_sched_flush_mc_mqs(vosSchedContext);
-#ifndef REMOVE_TL
    vos_sched_flush_tx_mqs(vosSchedContext);
    vos_sched_flush_rx_mqs(vosSchedContext);
-#endif
 
    /* Deinit all the TX and MC queues */
    vos_sched_deinit_mqs(vosSchedContext);
@@ -1373,14 +1356,11 @@ VOS_STATUS hdd_wlan_shutdown(void)
      so setting it to NULL in hdd context*/
    pHddCtx->hHal = (tHalHandle)NULL;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    if (free_riva_power_on_lock("wlan"))
    {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: failed to free power on lock",
                                            __func__);
    }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
-
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN driver shutdown complete"
                                    ,__func__);
    return VOS_STATUS_SUCCESS;
@@ -1397,6 +1377,9 @@ VOS_STATUS hdd_wlan_re_init(void)
    v_CONTEXT_t      pVosContext = NULL;
    hdd_context_t    *pHddCtx = NULL;
    eHalStatus       halStatus;
+#ifdef HAVE_WCNSS_CAL_DOWNLOAD
+   int              max_retries = 0;
+#endif
 #ifdef WLAN_BTAMP_FEATURE
    hdd_config_t     *pConfig = NULL;
    WLANBAP_ConfigType btAmpConfig;
@@ -1404,6 +1387,17 @@ VOS_STATUS hdd_wlan_re_init(void)
 
    hdd_ssr_timer_del();
    hdd_prevent_suspend();
+
+#ifdef HAVE_WCNSS_CAL_DOWNLOAD
+   /* wait until WCNSS driver downloads NV */
+   while (!wcnss_device_ready() && 5 >= ++max_retries) {
+       msleep(1000);
+   }
+   if (max_retries >= 5) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WCNSS driver not ready", __func__);
+      goto err_re_init;
+   }
+#endif
 
    /* The driver should always be initialized in STA mode after SSR */
    hdd_set_conparam(0);
@@ -1453,13 +1447,6 @@ VOS_STATUS hdd_wlan_re_init(void)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_preStart failed",__func__);
       goto err_vosclose;
-   }
-
-   vosStatus = hdd_set_sme_chan_list(pHddCtx);
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-	   hddLog(VOS_TRACE_LEVEL_FATAL,
-		  "%s: Failed to init channel list", __func__);
-	   goto err_vosclose;
    }
 
    /* In the integrated architecture we update the configuration from
@@ -1546,8 +1533,6 @@ VOS_STATUS hdd_wlan_re_init(void)
    }
    /* Allow the phone to go to sleep */
    hdd_allow_suspend();
-
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    /* register for riva power on lock */
    if (req_riva_power_on_lock("wlan"))
    {
@@ -1555,14 +1540,10 @@ VOS_STATUS hdd_wlan_re_init(void)
                                         __func__);
       goto err_unregister_pmops;
    }
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
-
    goto success;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 err_unregister_pmops:
    hddDeregisterPmOps(pHddCtx);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
 err_bap_stop:
 #ifdef CONFIG_HAS_EARLYSUSPEND

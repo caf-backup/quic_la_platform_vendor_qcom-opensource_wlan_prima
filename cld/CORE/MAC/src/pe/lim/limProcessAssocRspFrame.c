@@ -33,11 +33,6 @@
 #include "ccxApi.h"
 #endif
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
-
 extern tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca, tpPESession psessionEntry);
 
 
@@ -292,16 +287,10 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     tLimMlmAssocCnf       mlmAssocCnf;
     
     tSchBeaconStruct *pBeaconStruct;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
+
     //Initialize status code to success.
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
 
     mlmAssocCnf.resultCode = eSIR_SME_SUCCESS;
     /* Update PE session Id*/
@@ -328,11 +317,8 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     }
 
 
-#ifndef REMOVE_TL
+    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
     if (((subType == LIM_ASSOC) &&
          (psessionEntry->limMlmState != eLIM_MLM_WT_ASSOC_RSP_STATE)) ||
@@ -415,26 +401,15 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
 
         return;
     }
-
-#ifndef REMOVE_TL   
+   
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
              FL("Assoc Resp Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
              pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
              pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
              (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo)));
-   
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-		      FL("Assoc Resp Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
-		      pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
-		      pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
-		      (uint)abs((tANI_S8)(pRxPacket->rxpktmeta.rssi)));
-
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
 
     // Get pointer to Re/Association Response frame body
+    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
     // parse Re/Association Response frame.
     if (sirConvertAssocRespFrame2Struct(
@@ -854,15 +829,9 @@ assocReject:
                   eSIR_SME_REASSOC_REFUSED, mlmAssocCnf.protStatusCode,psessionEntry); 
     }
 
-#ifndef REMOVE_TL
     /* CR: vos packet memory is leaked when assoc rsp timeouted/failed. */
     /* notify TL that association is failed so that TL can flush the cached frame  */
     WLANTL_AssocFailed (psessionEntry->staId);
-#else
-    /* CR: vos packet memory is leaked when assoc rsp timeouted/failed. */
-    /* notify TL that association is failed so that TL can flush the cached frame  */
-    wlan_assoc_failed (psessionEntry->staId);
-#endif
 
     palFreeMemory(pMac->hHdd, pBeaconStruct);
     palFreeMemory(pMac->hHdd, pAssocRsp);      

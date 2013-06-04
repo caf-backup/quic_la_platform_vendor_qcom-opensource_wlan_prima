@@ -673,7 +673,7 @@ WLANBAP_LinkSupervisionTimerHandler
         vosStatus = WLANBAP_TxLinkSupervision( btampHandle, 
                                                phy_link_handle, 
                                                pBtampCtx->pPacket ,
-                                               TXRX_BT_AMP_TYPE_LS_REQ);
+                                               WLANTL_BT_AMP_TYPE_LS_REQ);
     }
     
 }/*WLANBAP_LinkSupervisionTimerHandler*/

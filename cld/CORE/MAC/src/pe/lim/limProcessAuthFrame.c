@@ -30,10 +30,6 @@
 #endif
 #include "vos_utils.h"
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
 
 /**
  * isAuthValid
@@ -138,20 +134,12 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     tANI_U8                 challengeTextArray[SIR_MAC_AUTH_CHALLENGE_LENGTH];
     tpDphHashNode           pStaDs = NULL;
     tANI_U16                assocId = 0;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
     /* Added For BT -AMP support */
     // Get pointer to Authentication frame header and body
  
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
     
 
     if (!frameLen)
@@ -175,22 +163,13 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
         return;
     }
 
-#ifndef REMOVE_TL
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
               FL("Auth Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
               pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
               pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pRxPacketInfo)));
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-#else
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-		      FL("Auth Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
-		      pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
-		      pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
-		      (uint)abs((tANI_S8)(pRxPacket->rxpktmeta.rssi)));
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-#endif
 
+    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
     //PELOG3(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG3, (tANI_U8*)pBd, ((tpHalBufDesc) pBd)->mpduDataOffset + frameLen);)
 
@@ -1662,33 +1641,16 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
     tSirMacAuthFrameBody rxAuthFrame;
     tSirMacAuthFrameBody *pRxAuthFrameBody = NULL;
     tSirRetStatus ret_status = eSIR_FAILURE;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pBd);
-#endif
 
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pBd);
     pBody = WDA_GET_RX_MPDU_DATA(pBd);
     frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
-#else
-    pHdr = (tpSirMacMgmtHdr)pRxPacket->rxpktmeta.mpdu_hdr_ptr;
-    pBody = pRxPacket->rxpktmeta.mpdu_data_ptr;
-    frameLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
 
-#ifndef REMOVE_TL
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
               FL("Auth Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
               pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
               pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_DB(pBd)));
-#else
-VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-		  FL("Auth Frame Received: BSSID %02x:%02x:%02x:%02x:%02x:%02x (Rssi %d)"),
-		  pHdr->bssId[0], pHdr->bssId[1], pHdr->bssId[2],
-		  pHdr->bssId[3], pHdr->bssId[4], pHdr->bssId[5],
-		  (uint)abs(pRxPacket->rxpktmeta.rssi - 96)); //96/100 -> RSSI Offset
-#endif
 
     // Check for the operating channel and see what needs to be done next.
     psessionEntry = pMac->ft.ftPEContext.psavedsessionEntry;

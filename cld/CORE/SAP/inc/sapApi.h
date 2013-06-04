@@ -53,9 +53,7 @@ when           who                what, where, why
  * Include Files
  * -------------------------------------------------------------------------*/
 #include "vos_api.h" 
-#ifndef REMOVE_TL
 #include "vos_packet.h" 
-#endif	/* #ifndef REMOVE_TL */
 #include "vos_types.h"
 
 #include "p2p_Api.h"
@@ -1319,7 +1317,7 @@ WLANSAP_ModifyACL
 VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t WPARSNIEsLen);
 
 /*==========================================================================
-  FUNCTION    wlan_get_ap_stats
+  FUNCTION    WLANSAP_GetStatistics
 
   DESCRIPTION 
     This api function provides for Ap App/HDD to get TL statistics for all stations of Soft AP.

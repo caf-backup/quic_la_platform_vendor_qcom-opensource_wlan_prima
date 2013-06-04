@@ -46,7 +46,6 @@ static vos_pkt_context_t *gpVosPacketContext;
   Function declarations and documentation
   ------------------------------------------------------------------------*/
 
-#ifndef REMOVE_TL
 static VOS_STATUS vos_pkti_packet_init( struct vos_pkt_t *pPkt,
                                  VOS_PKT_TYPE pktType )
 {
@@ -74,13 +73,12 @@ static VOS_STATUS vos_pkti_packet_init( struct vos_pkt_t *pPkt,
          vosStatus = VOS_STATUS_E_NOMEM;
       }
 
-#ifdef WDI_REMOVED
       /* Init PAL Packet */
       WPAL_PACKET_SET_BD_POINTER(&(pPkt->palPacket), NULL);
       WPAL_PACKET_SET_BD_PHYS(&(pPkt->palPacket), NULL);
       WPAL_PACKET_SET_BD_LENGTH(&(pPkt->palPacket), 0);
       WPAL_PACKET_SET_OS_STRUCT_POINTER(&(pPkt->palPacket), NULL);
-#endif
+
       break;
    default:
       // no attached skb needed
@@ -89,6 +87,8 @@ static VOS_STATUS vos_pkti_packet_init( struct vos_pkt_t *pPkt,
 
    return vosStatus;
 }
+
+
 
 static VOS_STATUS vos_pkti_list_destroy( struct list_head *pList )
 {
@@ -139,7 +139,7 @@ static VOS_STATUS vos_pkti_list_destroy( struct list_head *pList )
 
    return VOS_STATUS_SUCCESS;
 }
-#endif
+
 
 static void vos_pkti_replenish_raw_pool(void)
 {
@@ -268,7 +268,6 @@ static char *vos_pkti_packet_type_str(VOS_PKT_TYPE pktType)
 }
 #endif // defined( WLAN_DEBUG )
 
-#ifndef REMOVE_TL
 /*---------------------------------------------------------------------------
 
   \brief vos_packet_open() - initialize the vOSS Packet module
@@ -514,7 +513,6 @@ VOS_STATUS vos_packet_close( v_PVOID_t pVosContext )
 
    return VOS_STATUS_SUCCESS;
 }
-#endif	/* #ifndef REMOVE_TL */
 
 
 /**--------------------------------------------------------------------------

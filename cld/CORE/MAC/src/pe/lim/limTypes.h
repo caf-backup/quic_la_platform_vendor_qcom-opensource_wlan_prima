@@ -24,6 +24,8 @@
 #include "sirMacProtDef.h"
 #include "utilsApi.h"
 
+#include "wlan_qct_wdi_ds.h"
+
 #include "limApi.h"
 #include "limDebug.h"
 #include "limSendSmeRspMessages.h"
@@ -184,7 +186,6 @@ typedef struct sLimMlmScanCnf
     tANI_U16                scanResultLength;
     tSirBssDescription      bssDescription[1];
     tANI_U8                 sessionId;
-	u_int32_t scan_id;
 } tLimMlmScanCnf, *tpLimMlmScanCnf;
 
 typedef struct sLimScanResult
@@ -666,6 +667,7 @@ void limSendNullDataFrame(tpAniSirGlobal, tpDphHashNode);
 void limSendDisassocMgmtFrame(tpAniSirGlobal, tANI_U16, tSirMacAddr, tpPESession, tANI_BOOLEAN waitForAck);
 void limSendDeauthMgmtFrame(tpAniSirGlobal, tANI_U16, tSirMacAddr, tpPESession, tANI_BOOLEAN waitForAck);
 
+void limContinueChannelScan(tpAniSirGlobal);
 tSirResultCodes limMlmAddBss(tpAniSirGlobal, tLimMlmStartReq *,tpPESession psessionEntry);
 
 tSirRetStatus limSendChannelSwitchMgmtFrame(tpAniSirGlobal, tSirMacAddr, tANI_U8, tANI_U8, tANI_U8, tpPESession);
@@ -710,6 +712,10 @@ void limSendSmeMgmtTXCompletion(tpAniSirGlobal pMac,
                                 tpPESession psessionEntry,
                                 tANI_U32 txCompleteStatus);
 tSirRetStatus limDeleteTDLSPeers(tpAniSirGlobal pMac, tpPESession psessionEntry);
+#ifdef FEATURE_WLAN_TDLS_OXYGEN_DISAPPEAR_AP
+void limTDLSDisappearAPTrickInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession psessionEntry);
+int limGetTDLSPeerCount(tpAniSirGlobal pMac, tpPESession psessionEntry);
+#endif
 eHalStatus limProcessTdlsAddStaRsp(tpAniSirGlobal pMac, void *msg, tpPESession);
 tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
            tSirMacAddr peerMac, tANI_U16 reason, tANI_U8 responder, tpPESession psessionEntry,
@@ -779,9 +785,27 @@ void limProcessMlmSetBssKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
 
 
 #ifdef GEN4_SCAN
+// Function to process WDA_INIT_SCAN_RSP message
+void limProcessInitScanRsp(tpAniSirGlobal,  void * );
+
+// Function to process WDA_START_SCAN_RSP message
+void limProcessStartScanRsp(tpAniSirGlobal,  void * );
+
+// Function to process WDA_END_SCAN_RSP message
+void limProcessEndScanRsp(tpAniSirGlobal, void * );
+
+// Function to process WDA_FINISH_SCAN_RSP message
+void limProcessFinishScanRsp(tpAniSirGlobal,  void * );
+
 // Function to process WDA_SWITCH_CHANNEL_RSP message
 void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void * );
   
+void limSendHalInitScanReq( tpAniSirGlobal, tLimLimHalScanState, tSirLinkTrafficCheck);
+void limSendHalStartScanReq( tpAniSirGlobal, tANI_U8, tLimLimHalScanState);
+void limSendHalEndScanReq( tpAniSirGlobal, tANI_U8, tLimLimHalScanState);
+void limSendHalFinishScanReq( tpAniSirGlobal, tLimLimHalScanState);
+
+void limContinuePostChannelScan(tpAniSirGlobal pMac);
 void limContinueChannelLearn( tpAniSirGlobal );
 //WLAN_SUSPEND_LINK Related
 tANI_U8 limIsLinkSuspended(tpAniSirGlobal pMac);
@@ -1046,6 +1070,5 @@ typedef struct sSetLinkCbackParams
     void * cbackDataPtr;
 } tSetLinkCbackParams;
 #endif
-void lim_process_rx_scan_event(tpAniSirGlobal mac, void *buf);
 #endif /* __LIM_TYPES_H */
 

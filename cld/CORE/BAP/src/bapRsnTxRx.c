@@ -17,7 +17,7 @@
 #include "bapRsn8021xFsm.h"
 #include "bapInternal.h"
 #include "vos_trace.h"
-#include "txrx.h"
+#include "wlan_qct_tl.h"
 #include "vos_memory.h"
 
 
@@ -79,8 +79,7 @@ static VOS_STATUS bapRsnAcquirePacket( vos_pkt_t **ppPacket, v_U8_t **ppData, v_
     return ( status );
 }
 
-/* TODO: Should we worry about tx completion in bt 3.0 */
-#if 0
+
 static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS_STATUS retStatus )
 {
     int retVal;
@@ -154,14 +153,11 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
 
     return (VOS_STATUS_SUCCESS );
 }
-#endif
+
 
 static VOS_STATUS bapRsnTxFrame( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket )
 {
-    VOS_STATUS status = VOS_STATUS_SUCCESS;
-
-    /* TODO: Clenup metainfo and send the frame to txrx */
-    #if 0
+    VOS_STATUS status;
     WLANTL_MetaInfoType metaInfo;
 
     vos_mem_zero( &metaInfo, sizeof( WLANTL_MetaInfoType ) );
@@ -172,7 +168,7 @@ static VOS_STATUS bapRsnTxFrame( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket )
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "bapRsnTxFrame failed to send vos_pkt status = %d\n", status );
     }
-#endif
+
     return ( status );
 }
 
@@ -232,13 +228,8 @@ VOS_STATUS bapRsnRxCallback( v_PVOID_t pv, vos_pkt_t *pPacket )
 
 VOS_STATUS bapRsnRegisterRxCallback( v_PVOID_t pvosGCtx )
 {
-    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    VOS_STATUS status;
 
-	/*
-	 * TODO: Register the rx callbac with txrx, this call back can reside
-	 * in vdev_txrx_handle.
-	 */
-#if 0
     status = WLANTL_RegisterBAPClient( pvosGCtx, WLANBAP_RxCallback, WLANBAP_TLFlushCompCallback );
     if( !VOS_IS_STATUS_SUCCESS( status ) )
     {
@@ -253,7 +244,6 @@ VOS_STATUS bapRsnRegisterRxCallback( v_PVOID_t pvosGCtx )
             status = VOS_STATUS_SUCCESS;
         }
     }
-#endif
 
     return ( status );
 }

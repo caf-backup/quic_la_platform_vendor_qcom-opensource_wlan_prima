@@ -19,11 +19,7 @@
 #include <sirCommon.h>
 #include <sirDebug.h>
 #include <utilsApi.h>
-#ifndef WMA_LAYER
-#include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
+#include <wlan_qct_wda.h>
 
 #include <stdarg.h>
 #include "utilsGlobal.h"
@@ -149,11 +145,7 @@ static inline VOS_MODULE_ID getVosModuleId(tANI_U8 modId)
     {
         case SIR_HAL_MODULE_ID:
         case SIR_PHY_MODULE_ID:
-#ifndef WMA_LAYER
             return VOS_MODULE_ID_WDA;
-#else
-            return VOS_MODULE_ID_WMA;
-#endif
 
         case SIR_LIM_MODULE_ID:
         case SIR_SCH_MODULE_ID:

@@ -256,9 +256,6 @@ typedef struct tagCsrScanRequest
     eCsrRequestType requestType;    //11d scan or full scan
     tANI_BOOLEAN p2pSearch;
     tANI_BOOLEAN skipDfsChnlInP2pSearch;
-	tANI_U32 scan_id;
-	tANI_U32 scan_requestor_id;
-	tANI_U32 scan_prio;
 }tCsrScanRequest;
 
 typedef struct tagCsrBGScanRequest
@@ -524,6 +521,9 @@ typedef enum
     eCSR_ROAM_RESULT_DELETE_TDLS_PEER,
     eCSR_ROAM_RESULT_TEARDOWN_TDLS_PEER_IND,
     eCSR_ROAM_RESULT_DELETE_ALL_TDLS_PEER_IND,
+#ifdef FEATURE_WLAN_TDLS_OXYGEN_DISAPPEAR_AP
+    eCSR_ROAM_RESULT_TDLS_DISAPPEAR_AP_IND,
+#endif
 #endif
 
 }eCsrRoamResult;
@@ -896,6 +896,7 @@ typedef struct tagCsrRoamConnectedProfile
     tCsrCcxCckmInfo ccxCckmInfo;
     tANI_BOOLEAN    isCCXAssoc;
 #endif
+    tANI_U32 dot11Mode;
 }tCsrRoamConnectedProfile;
 
 
@@ -1056,10 +1057,13 @@ typedef struct tagCsrConfigParam
     */
     tANI_BOOLEAN fFirstScanOnly2GChnl;
 
-    tANI_BOOLEAN fIgnore_chan165;
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR)
     tANI_BOOLEAN nRoamPrefer5GHz;
     tANI_BOOLEAN nRoamIntraBand;
+#endif
+
+#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
+    tANI_BOOLEAN isRoamOffloadScanEnabled;
 #endif
 
     tANI_U8 scanCfgAgingTime;
@@ -1137,7 +1141,6 @@ typedef struct tagCsrRoamInfo
     tANI_U8* assocReqPtr;
 
     tANI_S8 rxRssi;
-    void *txrx_vdev_hdl;
 }tCsrRoamInfo;
 
 

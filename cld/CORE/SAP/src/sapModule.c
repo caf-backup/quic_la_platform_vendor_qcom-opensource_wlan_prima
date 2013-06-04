@@ -46,7 +46,7 @@
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-#include "txrx.h"
+#include "wlan_qct_tl.h"
 #include "vos_trace.h"
 
 // Pick up the sme callback registration API
@@ -1944,7 +1944,7 @@ VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf, 
         return VOS_STATUS_E_FAULT;
     }
 
-    return (wlan_get_ap_stats(pvosGCtx, statBuf, bReset));
+    return (WLANTL_GetSoftAPStatistics(pvosGCtx, statBuf, bReset));
 }
 
 /*==========================================================================

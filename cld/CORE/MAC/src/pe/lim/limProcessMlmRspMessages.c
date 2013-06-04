@@ -38,12 +38,7 @@
 #if defined WLAN_FEATURE_VOWIFI_11R
 #include <limFT.h>
 #endif
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
-#include "wmi_unified.h"
 
 static void limHandleSmeJoinResult(tpAniSirGlobal, tSirResultCodes, tANI_U16,tpPESession);
 static void limHandleSmeReaasocResult(tpAniSirGlobal, tSirResultCodes, tANI_U16, tpPESession);
@@ -192,6 +187,27 @@ limProcessMlmRspMessages(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBu
 void
 limProcessMlmScanCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
+    switch(pMac->lim.gLimSmeState)
+    {
+        case eLIM_SME_WT_SCAN_STATE:
+        //case eLIM_SME_LINK_EST_WT_SCAN_STATE:  //TO SUPPORT BT-AMP
+        //case eLIM_SME_NORMAL_CHANNEL_SCAN_STATE:   //TO SUPPORT BT-AMP
+            pMac->lim.gLimSmeState = pMac->lim.gLimPrevSmeState;
+            MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
+            pMac->lim.gLimSystemInScanLearnMode = 0;
+            break;
+        default:
+            /**
+             * Should not have received scan confirm
+             * from MLM in other states.
+             * Log error
+             */
+            PELOGE(limLog(pMac, LOGE,
+               FL("received unexpected MLM_SCAN_CNF in state %X"),
+               pMac->lim.gLimSmeState);)
+            return;
+    }
+
     /// Process received scan confirm
     /// Increment length of cached scan results
     pMac->lim.gLimSmeScanResultLength +=
@@ -213,8 +229,37 @@ limProcessMlmScanCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         {
             scanRspLen = sizeof(tSirSmeScanRsp);
         }
+       if(pMac->lim.gLimReportBackgroundScanResults)
+        {
+            pMac->lim.gLimBackgroundScanTerminate = TRUE;
+        }
+        if (pMac->lim.gLimSmeScanResultLength == 0)
+        {
             limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS, pMac->lim.gSmeSessionId, pMac->lim.gTransactionId);
+        }
+        else
+        {
+            limSendSmeScanRsp(pMac, scanRspLen,
+                              eSIR_SME_SUCCESS,pMac->lim.gSmeSessionId, pMac->lim.gTransactionId);
+        }
     } // if (pMac->lim.gLimRspReqd)
+    //check to see whether we need to run bgScan timer
+    if(pMac->lim.gLimBackgroundScanTerminate == FALSE)
+    {
+        if (tx_timer_activate(
+            &pMac->lim.limTimers.gLimBackgroundScanTimer) != TX_SUCCESS)
+        {
+            /// Could not activate background scan timer.
+            // Log error
+            limLog(pMac, LOGP,
+            FL("could not activate background scan timer"));
+            pMac->lim.gLimBackgroundScanStarted = FALSE;
+        }
+        else
+        {
+            pMac->lim.gLimBackgroundScanStarted = TRUE;
+        }
+    }
 } /*** end limProcessMlmScanCnf() ***/
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
@@ -1879,11 +1924,7 @@ void limProcessMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession 
 
    if(!limIsInMCC(pMac))
    {
-#ifndef WMA_LAYER
-//      WDA_TrafficStatsTimerActivate(FALSE);
-#else
-      WMA_TrafficStatsTimerActivate(FALSE);
-#endif
+      WDA_TrafficStatsTimerActivate(FALSE);
    }
 
 #ifdef WLAN_FEATURE_11W
@@ -2193,7 +2234,7 @@ void limProcessStaMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESessi
     }
     else
     {
-        limLog( pMac, LOGE, FL( "DEL_STA failed for sta Id %d" ), pStaDs->staIndex);
+        limLog( pMac, LOGE, FL( "DEL_STA failed for sta Id %d" ), pDelStaParams->staIdx);
         statusCode = eSIR_SME_REFUSED;
     }
 end:
@@ -2464,7 +2505,8 @@ limProcessIbssMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession 
         schEdcaProfileUpdate(pMac, psessionEntry);
         //TBD-RAJESH limInitPreauthList should re removed for IBSS also ?????
        //limInitPreAuthList(pMac);
-        limInitPeerIdxpool(pMac,psessionEntry);
+        if (0 == psessionEntry->freePeerIdxHead)
+            limInitPeerIdxpool(pMac,psessionEntry);
         // Create timers used by LIM
 #ifdef FIXME_GEN6  //following code may not be required, as limCreateTimers is now invoked from limInitialize (peStart)
         if (!pMac->lim.gLimTimersCreated)
@@ -2635,13 +2677,13 @@ void limSetLinkStateForPostAssocCallback(tpAniSirGlobal pMac, void *msgParam )
 
     if (pAddBssParams == NULL)
     {
-        PELOGE(limLog(pMac, LOGE, FL("Invalid parameters\n"));)
+        PELOGE(limLog(pMac, LOGE, FL("Invalid parameters"));)
         goto end;
     }
 
     if((psessionEntry = peFindSessionBySessionId(pMac,pAddBssParams->sessionId))== NULL)
     {
-        limLog( pMac, LOGE, FL( "Session Does not exist for given sessionId\n" ));
+        limLog( pMac, LOGE, FL( "Session Does not exist for given sessionId" ));
         goto end;
     }
 
@@ -3116,11 +3158,7 @@ void limProcessMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 
     if(limIsInMCC(pMac))
     {
-#ifndef WMA_LAYER
-//       WDA_TrafficStatsTimerActivate(TRUE);
-#else
-       WMA_TrafficStatsTimerActivate(TRUE);
-#endif
+       WDA_TrafficStatsTimerActivate(TRUE);
     }
 
 #ifdef WLAN_FEATURE_11W
@@ -3319,17 +3357,10 @@ void limProcessMlmRemoveKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
         return;
     }
 
-#ifndef WMA_LAYER
     if (limMsgQ->type == WDA_REMOVE_STAKEY_RSP)
         sessionId = ((tpRemoveStaKeyParams) limMsgQ->bodyptr)->sessionId;
     else if (limMsgQ->type == WDA_REMOVE_BSSKEY_RSP)
         sessionId = ((tpRemoveBssKeyParams) limMsgQ->bodyptr)->sessionId;
-#else
-    if (limMsgQ->type == WMA_REMOVE_STAKEY_RSP)
-        sessionId = ((tpRemoveStaKeyParams) limMsgQ->bodyptr)->sessionId;
-    else if (limMsgQ->type == WMA_REMOVE_BSSKEY_RSP)
-        sessionId = ((tpRemoveBssKeyParams) limMsgQ->bodyptr)->sessionId;
-#endif
 
     if((psessionEntry = peFindSessionBySessionId(pMac, sessionId))== NULL)
     {
@@ -3385,6 +3416,93 @@ void limProcessMlmRemoveKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
     }
 }
 
+
+/** ---------------------------------------------------------------------
+\fn      limProcessInitScanRsp
+\brief   This function is called when LIM receives WDA_INIT_SCAN_RSP
+\        message from HAL.  If status code is failure, then
+\        update the gLimNumOfConsecutiveBkgndScanFailure count.
+\param   tpAniSirGlobal  pMac
+\param   tANI_U32        body
+\return  none
+\ ----------------------------------------------------------------------- */
+void limProcessInitScanRsp(tpAniSirGlobal pMac,  void *body)
+{
+    tpInitScanParams    pInitScanParam;
+    eHalStatus          status;
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+    pInitScanParam = (tpInitScanParams) body;
+    status = pInitScanParam->status;
+    palFreeMemory( pMac->hHdd, (char *)body);
+
+    //Only abort scan if the we are scanning.
+    if( pMac->lim.abortScan && 
+       (eLIM_HAL_INIT_SCAN_WAIT_STATE == pMac->lim.gLimHalScanState) )
+    {
+        limLog( pMac, LOGW, FL(" finish scan") );
+        pMac->lim.abortScan = 0;
+        limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+        limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
+        //Set the resume channel to Any valid channel (invalid). 
+        //This will instruct HAL to set it to any previous valid channel.
+        peSetResumeChannel(pMac, 0, 0);
+        limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
+    }
+    switch(pMac->lim.gLimHalScanState)
+    {
+        case eLIM_HAL_INIT_SCAN_WAIT_STATE:
+            if (status != (tANI_U32) eHAL_STATUS_SUCCESS)
+            {
+               PELOGW(limLog(pMac, LOGW, FL("InitScanRsp with failed status= %d"), status);)
+               pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+               pMac->lim.gLimNumOfConsecutiveBkgndScanFailure += 1;
+               /*
+                * On Windows eSIR_SME_HAL_SCAN_INIT_FAILED message to CSR may trigger
+                * another Scan request in the same context (happens when 11d is enabled
+                * and first scan request with 11d channels fails for whatever reason, then CSR issues next init
+                * scan in the same context but with bigger channel list), so the state needs to be
+                * changed before this response message is sent.
+                */
+               limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_INIT_FAILED);
+                return;
+            }
+            else if (status == eHAL_STATUS_SUCCESS)
+            {
+                /* since we have successfully triggered a background scan,
+                 * reset the "consecutive bkgnd scan failure" count to 0
+                 */
+                pMac->lim.gLimNumOfConsecutiveBkgndScanFailure = 0;
+                pMac->lim.gLimNumOfBackgroundScanSuccess += 1;
+            }
+            limContinueChannelScan(pMac);
+            break;
+//WLAN_SUSPEND_LINK Related
+        case eLIM_HAL_SUSPEND_LINK_WAIT_STATE:
+            if( pMac->lim.gpLimSuspendCallback )
+            {
+               if( status == eHAL_STATUS_SUCCESS )
+                  pMac->lim.gLimHalScanState = eLIM_HAL_SUSPEND_LINK_STATE;
+               else
+                  pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+
+               pMac->lim.gpLimSuspendCallback( pMac, status, pMac->lim.gpLimSuspendData );
+               pMac->lim.gpLimSuspendCallback = NULL;
+               pMac->lim.gpLimSuspendData = NULL;
+            }
+            else
+            {
+               limLog( pMac, LOGP, "No suspend link callback set but station is in suspend state");
+               return;
+            }
+            break;
+//end WLAN_SUSPEND_LINK Related
+        default:
+            limLog(pMac, LOGW, FL("limProcessInitScanRsp: Rcvd InitScanRsp not in WAIT State, state %d"),
+                   pMac->lim.gLimHalScanState);
+            break;
+    }
+    return;
+}
 /**
  * limProcessSwitchChannelReAssocReq()
  *
@@ -3642,7 +3760,232 @@ void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void *body)
             break;
     }
 }
+/**
+ * limProcessStartScanRsp()
+ *
+ *FUNCTION:
+ * This function is called to process startScanRsp message from HAL. If scan/learn was successful
+ *      then it will start scan/learn on the next channel.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac    - Pointer to Global MAC structure
+ * @param  body - message body.
+ *
+ * @return None
+ */
 
+void limProcessStartScanRsp(tpAniSirGlobal pMac,  void *body)
+{
+    tpStartScanParams       pStartScanParam;
+    eHalStatus              status;
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+    pStartScanParam = (tpStartScanParams) body;
+    status = pStartScanParam->status;
+#if defined WLAN_FEATURE_VOWIFI
+    //HAL fills in the tx power used for mgmt frames in this field.
+    //Store this value to use in TPC report IE.
+    rrmCacheMgmtTxPower( pMac, pStartScanParam->txMgmtPower, NULL );
+    //Store start TSF of scan start. This will be stored in BSS params.
+    rrmUpdateStartTSF( pMac, pStartScanParam->startTSF );
+#endif
+    palFreeMemory( pMac->hHdd, (tANI_U8 *)body);
+    if( pMac->lim.abortScan )
+    {
+        limLog( pMac, LOGW, FL(" finish scan") );
+        pMac->lim.abortScan = 0;
+        limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+        limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
+        //Set the resume channel to Any valid channel (invalid). 
+        //This will instruct HAL to set it to any previous valid channel.
+        peSetResumeChannel(pMac, 0, 0);
+        limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
+    }
+    switch(pMac->lim.gLimHalScanState)
+    {
+        case eLIM_HAL_START_SCAN_WAIT_STATE:
+            if (status != (tANI_U32) eHAL_STATUS_SUCCESS)
+            {
+               PELOGW(limLog(pMac, LOGW, FL("StartScanRsp with failed status= %d"), status);)
+               //
+               // FIXME - With this, LIM will try and recover state, but
+               // eWNI_SME_SCAN_CNF maybe reporting an incorrect
+               // status back to the SME
+               //
+               //Set the resume channel to Any valid channel (invalid). 
+               //This will instruct HAL to set it to any previous valid channel.
+               peSetResumeChannel(pMac, 0, 0);
+               limSendHalFinishScanReq( pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE );
+               //limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_INIT_FAILED);
+            }
+            else
+            {
+               pMac->lim.gLimHalScanState = eLIM_HAL_SCANNING_STATE;
+               limContinuePostChannelScan(pMac);
+            }
+            break;
+        default:
+            limLog(pMac, LOGW, FL("Rcvd StartScanRsp not in WAIT State, state %d"),
+                     pMac->lim.gLimHalScanState);
+            break;
+    }
+    return;
+}
+void limProcessEndScanRsp(tpAniSirGlobal pMac,  void *body)
+{
+    tpEndScanParams     pEndScanParam;
+    eHalStatus          status;
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+    pEndScanParam = (tpEndScanParams) body;
+    status = pEndScanParam->status;
+    palFreeMemory( pMac->hHdd, (char *)body);
+    switch(pMac->lim.gLimHalScanState)
+    {
+        case eLIM_HAL_END_SCAN_WAIT_STATE:
+            if (status != (tANI_U32) eHAL_STATUS_SUCCESS)
+            {
+               PELOGW(limLog(pMac, LOGW, FL("EndScanRsp with failed status= %d"), status);)
+               pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+               limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_INIT_FAILED);
+            }
+            else
+            {
+               pMac->lim.gLimCurrentScanChannelId++;
+               limContinueChannelScan(pMac);
+            }
+            break;
+        default:
+            limLog(pMac, LOGW, FL("Rcvd endScanRsp not in WAIT State, state %d"),
+                        pMac->lim.gLimHalScanState);
+            break;
+    }
+    return;
+}
+/**
+ *  limStopTxAndSwitch()
+ *
+ *FUNCTION:
+ * Start channel switch on all sessions that is in channel switch state.
+ *
+ * @param pMac                   - pointer to global adapter context
+ *
+ * @return None
+ *
+ */
+static void
+limStopTxAndSwitch (tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid && 
+            pMac->lim.gpSession[i].gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
+        {
+            limStopTxAndSwitchChannel(pMac, i);
+        }
+    }
+    return; 
+}
+/**
+ * limStartQuietOnSession()
+ *
+ *FUNCTION:
+ * This function is called to start quiet timer after finish scan if there is  
+ *      qeuieting on any session.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac    - Pointer to Global MAC structure
+ *
+ * @return None
+ */
+static void
+limStartQuietOnSession (tpAniSirGlobal pMac)
+{
+    tANI_U8 i;
+
+    for(i =0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid && 
+            pMac->lim.gpSession[i].gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN)
+        {
+            limStartQuietTimer(pMac, i);
+        }
+    }
+    return;
+}
+void limProcessFinishScanRsp(tpAniSirGlobal pMac,  void *body)
+{
+    tpFinishScanParams      pFinishScanParam;
+    eHalStatus              status;
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+    pFinishScanParam = (tpFinishScanParams) body;
+    status = pFinishScanParam->status;
+    palFreeMemory( pMac->hHdd, (char *)body);
+    switch(pMac->lim.gLimHalScanState)
+    {
+        case eLIM_HAL_FINISH_SCAN_WAIT_STATE:
+            pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+            limCompleteMlmScan(pMac, eSIR_SME_SUCCESS);
+            if (limIsChanSwitchRunning(pMac))
+            {
+                /** Right time to stop tx and start the timer for channel switch */
+                /* Sending Session ID 0, may not be correct, since SCAN is global there should not
+                 * be any associated session id
+                */
+                limStopTxAndSwitch(pMac);
+            }
+            else if (limIsQuietBegin(pMac))
+            {
+                /** Start the quieting */
+                /* Sending Session ID 0, may not be correct, since SCAN is global there should not
+                 * be any associated session id
+                */
+                limStartQuietOnSession(pMac);
+            }
+            if (status != (tANI_U32) eHAL_STATUS_SUCCESS)
+            {
+               PELOGW(limLog(pMac, LOGW, FL("EndScanRsp with failed status= %d"), status);)
+            }
+            break;
+//WLAN_SUSPEND_LINK Related
+        case eLIM_HAL_RESUME_LINK_WAIT_STATE:
+            if( pMac->lim.gpLimResumeCallback )
+            {
+               pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
+               pMac->lim.gpLimResumeCallback( pMac, status, pMac->lim.gpLimResumeData );
+               pMac->lim.gpLimResumeCallback = NULL;
+               pMac->lim.gpLimResumeData = NULL;
+               pMac->lim.gLimSystemInScanLearnMode = 0;
+            }
+            else
+            {
+               limLog( pMac, LOGP, "No Resume link callback set but station is in suspend state");
+               return;
+            }
+            break;
+//end WLAN_SUSPEND_LINK Related
+
+        default:
+            limLog(pMac, LOGW, FL("Rcvd FinishScanRsp not in WAIT State, state %d"),
+                        pMac->lim.gLimHalScanState);
+            break;
+    }
+    return;
+}
 /**
  * @function : limProcessMlmHalAddBARsp
  *
@@ -4442,168 +4785,3 @@ limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry){
     schProcessPreBeaconInd(pMac, &limMsg);
     return;
 }
-
-
-void lim_send_scan_complete(tpAniSirGlobal mac, u_int32_t scan_id,
-				tSirResultCodes reason_code)
-{
-	tLimMlmScanCnf    mlm_scan_cnf;
-
-	if (mac->lim.gpLimMlmScanReq != NULL) {
-		palFreeMemory(mac->hHdd, mac->lim.gpLimMlmScanReq);
-		mac->lim.gpLimMlmScanReq = NULL;
-	}
-
-	mlm_scan_cnf.scan_id = scan_id;
-	mlm_scan_cnf.resultCode = reason_code;
-	mlm_scan_cnf.scanResultLength = mac->lim.gLimMlmScanResultLength;
-	lim_del_scan_entry(mac, scan_id);
-	limPostSmeMessage(mac, LIM_MLM_SCAN_CNF, (tANI_U32 *) &mlm_scan_cnf);
-}
-
-void lim_process_rx_scan_event(tpAniSirGlobal mac, void *buf)
-{
-	wmi_scan_event *event = (wmi_scan_event *) buf;
-	int scan_entry;
-	int i;
-	bool scanning  = FALSE;
-	u_int32_t reason;
-
-	for (i = 0; i < LIM_MAX_SCAN_REQ_ALLOWED; i++) {
-		if ((mac->lim.scan_info[i].valid) &&
-			(mac->lim.scan_info[i].scan_id == event->scan_id))
-			break;
-	}
-
-	if (i != LIM_MAX_SCAN_REQ_ALLOWED)
-		scan_entry = i;
-	else {
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
-				"Scan request not pending !");
-		return;
-	}
-
-	VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-			"scan_id = %lu", event->scan_id);
-
-	switch (event->event) {
-	case WMI_SCAN_EVENT_STARTED:
-
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-				"Received WMI_SCAN_EVENT_STARTED");
-
-		mac->lim.scan_info[scan_entry].scan_state =
-			LIM_STATE_SCAN_STARTED;
-		if (eLIM_SME_WT_SCAN_STATE != mac->lim.gLimSmeState) {
-			mac->lim.gLimPrevSmeState =
-				mac->lim.gLimSmeState;
-			mac->lim.gLimSmeState = eLIM_SME_WT_SCAN_STATE;
-			mac->lim.gLimSystemInScanLearnMode = 1;
-		}
-		break;
-
-	case WMI_SCAN_EVENT_COMPLETED:
-
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-				"Received WMI_SCAN_EVENT_COMPLETED reason = %d",
-				event->reason);
-
-		if (event->reason == WMI_SCAN_REASON_COMPLETED) {
-			VOS_TRACE(VOS_MODULE_ID_PE,
-					VOS_TRACE_LEVEL_INFO,
-					"Received WMI_SCAN_EVENT_COMPLETED");
-
-			mac->lim.scan_info[scan_entry].scan_state =
-				LIM_STATE_SCAN_COMPLETED;
-
-			for (i = 0; i < LIM_MAX_SCAN_REQ_ALLOWED; i++) {
-				if ((mac->lim.scan_info[i].valid) &&
-					(mac->lim.scan_info[i].scan_state !=
-						 LIM_STATE_SCAN_COMPLETED)) {
-					scanning = TRUE;
-					break;
-				}
-			}
-			if (!scanning) {
-				mac->lim.gLimSmeState =
-					mac->lim.gLimPrevSmeState;
-				mac->lim.gLimSystemInScanLearnMode = 0;
-			}
-			reason = eSIR_SME_SUCCESS;
-		} else {
-			VOS_TRACE(VOS_MODULE_ID_PE,
-					VOS_TRACE_LEVEL_DEBUG,
-					"Received WMI_SCAN_EVENT_COMPLETED"
-					" with failure reason");
-			reason = eSIR_SME_SCAN_FAILED;
-		}
-
-		lim_send_scan_complete(mac, event->scan_id, reason);
-		break;
-
-	case WMI_SCAN_EVENT_BSS_CHANNEL:
-
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-				"Received WMI_SCAN_EVENT_BSS_CHANNEL");
-
-		mac->lim.scan_info[scan_entry].scan_state =
-			LIM_STATE_SCAN_HOME_CHANNEL;
-
-		for (i = 0; i < LIM_MAX_SCAN_REQ_ALLOWED; i++) {
-			if ((mac->lim.scan_info[i].valid) &&
-					(mac->lim.scan_info[i].scan_state
-					 != LIM_STATE_SCAN_COMPLETED)) {
-				scanning = TRUE;
-				break;
-			}
-		}
-
-		if (!scanning) {
-			mac->lim.gLimSmeState =
-				mac->lim.gLimPrevSmeState;
-			mac->lim.gLimSystemInScanLearnMode = 0;
-		}
-		break;
-
-	case WMI_SCAN_EVENT_FOREIGN_CHANNEL:
-
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-				"Received WMI_SCAN_EVENT_FOREIGN_CHANNEL");
-
-		if (mac->lim.gLimSmeState != eLIM_SME_WT_SCAN_STATE) {
-			mac->lim.gLimPrevSmeState =
-				mac->lim.gLimSmeState;
-			mac->lim.gLimSmeState = eLIM_SME_WT_SCAN_STATE;
-		}
-		mac->lim.scan_info[scan_entry].scan_state =
-			LIM_STATE_SCAN_FORIEGN_CHANNEL;
-		break;
-
-	case WMI_SCAN_EVENT_DEQUEUED:
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-				"Received WMI_SCAN_EVENT_DEQUEUED");
-		/* TODO: TBD */
-		break;
-
-	case WMI_SCAN_EVENT_PREEMPTED:
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-				"Received WMI_SCAN_EVENT_PREEMPTED");
-		/* TODO: TBD */
-		break;
-
-	case WMI_SCAN_EVENT_START_FAILED:
-
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
-				"Received WMI_SCAN_EVENT_START_FAILED");
-
-		lim_send_scan_complete(mac, event->scan_id,
-				eSIR_SME_SCAN_FAILED);
-		break;
-
-	default:
-		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
-				"Received Invalid scan event");
-		/* TODO: TBD */
-	}
-}
-

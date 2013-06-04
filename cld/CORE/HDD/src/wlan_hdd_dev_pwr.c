@@ -26,13 +26,11 @@
  * Include Files
  * -------------------------------------------------------------------------*/
 #include <wlan_hdd_dev_pwr.h>
-#ifdef MSM_PLATFORM
 #ifdef ANI_BUS_TYPE_PLATFORM
 #include <linux/wcnss_wlan.h>
 #else
 #include <wcnss_wlan.h>
 #endif // ANI_BUS_TYP_PLATFORM
-#endif	/* #ifdef MSM_PLATFORM */
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -105,7 +103,6 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
        return -EPERM;
    }
 
-#ifndef REMOVE_TL
    /*
      Suspending MC Thread, Rx Thread and Tx Thread as the platform driver is going to Suspend.     
    */
@@ -158,7 +155,6 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
 
    /* Set the Rx Thread as Suspended */
    pHddCtx->isRxThreadSuspended = TRUE;
-#endif
 
    init_completion(&pHddCtx->mc_sus_event_var);
 
@@ -176,7 +172,6 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
 
        clear_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
 
-#ifndef REMOVE_TL
        /* Indicate Rx Thread to Resume */
        complete(&vosSchedContext->ResumeRxEvent);
 
@@ -188,7 +183,6 @@ static int wlan_suspend(hdd_context_t* pHddCtx)
 
        /* Set the Tx Thread as Resumed */
        pHddCtx->isTxThreadSuspended = FALSE;
-#endif
 
        return -ETIME;
    }
@@ -236,7 +230,6 @@ static void wlan_resume(hdd_context_t* pHddCtx)
    /* Set the Mc Thread as Resumed */
    pHddCtx->isMcThreadSuspended = FALSE;
 
-#ifndef REMOVE_TL
    /* Indicate Rx Thread to Resume */
    complete(&vosSchedContext->ResumeRxEvent);
 
@@ -248,7 +241,6 @@ static void wlan_resume(hdd_context_t* pHddCtx)
 
    /* Set the Tx Thread as Resumed */
    pHddCtx->isTxThreadSuspended = FALSE;
-#endif
 
    /* Set the Station state as Suspended */
    pHddCtx->isWlanSuspended = FALSE;
@@ -270,9 +262,7 @@ int hddDevSuspendHdlr(struct device *dev)
    int ret = 0;
    hdd_context_t* pHddCtx = NULL;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    pHddCtx =  (hdd_context_t*)wcnss_wlan_get_drvdata(dev);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: WLAN suspended by platform driver",__func__);
 
@@ -321,9 +311,7 @@ int hddDevResumeHdlr(struct device *dev)
 {
    hdd_context_t* pHddCtx = NULL;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    pHddCtx =  (hdd_context_t*)wcnss_wlan_get_drvdata(dev);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
    VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed by Android OS",__func__);
 
@@ -367,12 +355,10 @@ static const struct dev_pm_ops pm_ops = {
 ----------------------------------------------------------------------------*/
 VOS_STATUS hddRegisterPmOps(hdd_context_t *pHddCtx)
 {
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
     wcnss_wlan_set_drvdata(pHddCtx->parent_dev, pHddCtx);
 #ifndef FEATURE_R33D
     wcnss_wlan_register_pm_ops(pHddCtx->parent_dev, &pm_ops);
 #endif /* FEATURE_R33D */
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
     return VOS_STATUS_SUCCESS;
 }
 
@@ -391,11 +377,9 @@ VOS_STATUS hddRegisterPmOps(hdd_context_t *pHddCtx)
 ----------------------------------------------------------------------------*/
 VOS_STATUS hddDeregisterPmOps(hdd_context_t *pHddCtx)
 {
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
 #ifndef FEATURE_R33D
     wcnss_wlan_unregister_pm_ops(pHddCtx->parent_dev, &pm_ops);
 #endif /* FEATURE_R33D */
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
     return VOS_STATUS_SUCCESS;
 }
 
@@ -443,8 +427,8 @@ void hddDevTmTxBlockTimeoutHandler(void *usrData)
 
    /* Resume TX flow */
     
-   netif_tx_start_all_queues(staAdapater->dev);
-
+   netif_tx_wake_all_queues(staAdapater->dev);
+   pHddCtx->tmInfo.qBlocked = VOS_FALSE;
    mutex_unlock(&pHddCtx->tmInfo.tmOperationLock);
 
    return;
@@ -467,9 +451,7 @@ void hddDevTmLevelChangedHandler(struct device *dev, int changedTmLevel)
    WLAN_TmLevelEnumType  newTmLevel = changedTmLevel;
    hdd_adapter_t        *staAdapater;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    pHddCtx =  (hdd_context_t*)wcnss_wlan_get_drvdata(dev);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
    if ((pHddCtx->tmInfo.currentTmLevel == newTmLevel) ||
        (!pHddCtx->cfg_ini->thermalMitigationEnable))
@@ -546,9 +528,7 @@ VOS_STATUS hddDevTmRegisterNotifyCallback(hdd_context_t *pHddCtx)
    VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_INFO,
              "%s: Register TM Handler", __func__);
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    wcnss_register_thermal_mitigation(pHddCtx->parent_dev ,hddDevTmLevelChangedHandler);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
    /* Set Default TM Level as Lowest, do nothing */
    pHddCtx->tmInfo.currentTmLevel = WLAN_HDD_TM_LEVEL_0;
@@ -560,7 +540,7 @@ VOS_STATUS hddDevTmRegisterNotifyCallback(hdd_context_t *pHddCtx)
    mutex_init(&pHddCtx->tmInfo.tmOperationLock);
    pHddCtx->tmInfo.txFrameCount = 0;
    pHddCtx->tmInfo.blockedQueue = NULL;
-
+   pHddCtx->tmInfo.qBlocked     = VOS_FALSE;
    return VOS_STATUS_SUCCESS;
 }
 
@@ -581,9 +561,7 @@ VOS_STATUS hddDevTmUnregisterNotifyCallback(hdd_context_t *pHddCtx)
 {
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    wcnss_unregister_thermal_mitigation(hddDevTmLevelChangedHandler);
-#endif	/* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
    if(VOS_TIMER_STATE_RUNNING ==
            vos_timer_getCurrentState(&pHddCtx->tmInfo.txSleepTimer))

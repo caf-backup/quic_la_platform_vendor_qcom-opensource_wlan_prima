@@ -134,10 +134,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
    tSirMbMsg* pMbLocal;
    msg.type = pMb->type;
    msg.bodyval = 0;
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+
    WDALOG3(wdaLog(pMac, LOG3, FL("msgType %d, msgLen %d\n" ),
         pMb->type, pMb->msgLen));
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
    // copy the message from host buffer to firmware buffer
    // this will make sure that firmware allocates, uses and frees
@@ -147,9 +146,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
    // second parameter, 'wait option', to palAllocateMemory is ignored on Windows
    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMbLocal, pMb->msgLen))
    {
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
       WDALOGE( wdaLog(pMac, LOGE, FL("Buffer Allocation failed!\n")));
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
       return eSIR_FAILURE;
    }
 
@@ -179,19 +176,15 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
 
 
    default:
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
       WDALOGW( wdaLog(pMac, LOGW, FL("Unknown message type = "
              "0x%X\n"),
              msg.type));
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
 
       // Release the memory.
       if (palFreeMemory( pMac->hHdd, (void*)(msg.bodyptr))
             != eHAL_STATUS_SUCCESS)
       {
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
          WDALOGE( wdaLog(pMac, LOGE, FL("Buffer Allocation failed!\n")));
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
          return eSIR_FAILURE;
       }
       break;
@@ -220,10 +213,8 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
       VOS_ASSERT(0);
       return eSYSTEM_UNKNOWN_ROLE;
    }
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
    WDALOG1( wdaLog(pMac, LOG1, FL(" returning  %d role\n"),
              wdaContext->wdaGlobalSystemRole));
-#endif /* #ifdef FEATURE_WLAN_INTEGRATED_SOC */
    return  wdaContext->wdaGlobalSystemRole;
 }
 

@@ -45,28 +45,19 @@
 #include "sme_Api.h"
 #include "macInitApi.h"
 #include "wlan_qct_sys.h"
-#include "txrx.h"
+#include "wlan_qct_tl.h"
 #include "wlan_hdd_misc.h"
-#ifndef REMOVE_TL
 #include "i_vos_packet.h"
-#endif	/* #ifndef REMOVE_TL */
 #include "vos_nvitem.h"
 #include "wlan_hdd_main.h"
 #include "vos_power.h"
 #include "qwlan_version.h"
 
 #include "wlan_nv.h"
-#ifndef REMOVE_TL
 #include "wlan_qct_wda.h"
-#endif
-#include "wlan_qct_wma.h"
-#include "wma_api.h"
 #include "cfgApi.h"
 #include "pttMsgApi.h"
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-#include "bmi.h"
-#include "ol_fw.h"
-#endif
+#include "wlan_qct_pal_device.h"
 
 #define RXMODE_DISABLE_ALL 0
 #define RXMODE_ENABLE_ALL  1
@@ -281,9 +272,29 @@ static void _ftm_status_init(void)
 
   --------------------------------------------------------------------------*/
 
-/* TODO */
 static v_U32_t wlan_ftm_postmsg(v_U8_t *cmd_ptr, v_U16_t cmd_len)
 {
+    vos_msg_t   *ftmReqMsg;
+    vos_msg_t    ftmMsg;
+    ENTER();
+
+    ftmReqMsg = (vos_msg_t *) cmd_ptr;
+
+    ftmMsg.type = WDA_FTM_CMD_REQ;
+    ftmMsg.reserved = 0;
+    ftmMsg.bodyptr = (v_U8_t*)cmd_ptr;
+    ftmMsg.bodyval = 0;
+
+    /* Use Vos messaging mechanism to send the command to halPhy */
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(
+        VOS_MODULE_ID_WDA,
+                                    (vos_msg_t *)&ftmMsg)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: : Failed to post Msg to HAL\n",__func__);
+
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    EXIT();
     return VOS_STATUS_SUCCESS;
 }
 
@@ -324,8 +335,6 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    tSirRetStatus sirStatus = eSIR_SUCCESS;
    tMacOpenParameters macOpenParms;
    pVosContextType gpVosContext = (pVosContextType)pVosContext;
-   adf_os_device_t adf_ctx;
-   HTC_INIT_INFO  htcInfo;
 
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: Opening VOSS", __func__);
@@ -338,7 +347,6 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       return VOS_STATUS_E_FAILURE;
    }
 
-   vos_mem_zero(&htcInfo, sizeof(HTC_INIT_INFO));
    /* Initialize the probe event */
    if (vos_event_init(&gpVosContext->ProbeEvent) != VOS_STATUS_SUCCESS)
    {
@@ -348,11 +356,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       return VOS_STATUS_E_FAILURE;
    }
 
-#ifndef WMA_LAYER
    if(vos_event_init(&(gpVosContext->wdaCompleteEvent)) != VOS_STATUS_SUCCESS )
-#else
-   if(vos_event_init(&(gpVosContext->wmaCompleteEvent)) != VOS_STATUS_SUCCESS )
-#endif
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Unable to init wdaCompleteEvent",__func__);
@@ -370,11 +374,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to initialize VOS free message queue",__func__);
       VOS_ASSERT(0);
-#ifndef WMA_LAYER
       goto err_wda_complete_event;
-#else
-      goto err_wma_complete_event;
-#endif
    }
 
    for (iter = 0; iter < VOS_CORE_MAX_MESSAGES; iter++)
@@ -413,28 +413,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    /*Open the WDA module */
    vos_mem_set(&macOpenParms, sizeof(macOpenParms), 0);
    macOpenParms.driverType = eDRIVER_TYPE_MFG;
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-   /* Initialize BMI and Download firmware */
-   if (bmi_download_firmware(vos_get_context(VOS_MODULE_ID_HIF, pVosContext))) {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-	        "%s: BMI failed to download target", __func__);
-	   goto err_sched_close;
-   }
-   htcInfo.pContext = gpVosContext->pHIFContext;
-   htcInfo.TargetFailure = ol_target_failure;
-   htcInfo.TargetSendSuspendComplete = ol_target_send_suspend_complete;
-#endif
-   adf_ctx = ((hdd_context_t*) (gpVosContext->pHDDContext))->adf_ctx;
-
-   /* Create HTC */
-   gpVosContext->htc_ctx = HTCCreate(htcInfo.pContext, &htcInfo, adf_ctx);
-   if (!gpVosContext->htc_ctx) {
-	   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-			   "%s: Failed to Create HTC", __func__);
-	   goto err_sched_close;
-   }
-   vStatus = wma_open(adf_ctx, gpVosContext->htc_ctx, gpVosContext,
-		      &macOpenParms, NULL);
+   vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext, &macOpenParms);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */
@@ -444,7 +423,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       goto err_sys_close;
    }
 
-/* initialize the NV module */
+   /* initialize the NV module */
    vStatus = vos_nv_open();
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
@@ -452,7 +431,7 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
      // to proceed
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to initialize the NV module", __func__);
-     goto err_wma_close;
+     goto err_wda_close;
    }
 
    /* If we arrive here, both threads dispacthing messages correctly */
@@ -483,26 +462,21 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
                 "%s: Failed to open SME",__func__);
       goto err_mac_close;
    }
+   return VOS_STATUS_SUCCESS;
 
-   vStatus = sme_init_chan_list(gpVosContext->pMACContext);
-   if (!VOS_IS_STATUS_SUCCESS(vStatus)) {
-	   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-		     "%s: Failed to init sme channel list", __func__);
-   } else {
 
-	   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-		     "%s: VOSS successfully Opened", __func__);
-	   return VOS_STATUS_SUCCESS;
-   }
+   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: VOSS successfully Opened",__func__);
 
+   return VOS_STATUS_SUCCESS;
 err_mac_close:
    macClose(gpVosContext->pMACContext);
 
 err_nv_close:
    vos_nv_close();
 
-err_wma_close:
-   wma_close(gpVosContext->pWMAContext);
+err_wda_close:
+   WDA_close(gpVosContext);
 
 err_sys_close:
    sysClose(gpVosContext);
@@ -511,13 +485,9 @@ err_sched_close:
    vos_sched_close(gpVosContext);
 err_msg_queue:
    vos_mq_deinit(&gpVosContext->freeVosMq);
-#ifndef WMA_LAYER
+
 err_wda_complete_event:
    vos_event_destroy(&gpVosContext->wdaCompleteEvent);
-#else
-err_wma_complete_event:
-   vos_event_destroy(&gpVosContext->wmaCompleteEvent);
-#endif
 
 err_probe_event:
    vos_event_destroy(&gpVosContext->ProbeEvent);
@@ -579,11 +549,8 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
          "%s: Failed to close SYS",__func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-#ifndef WMA_LAYER
+
   vosStatus = WDA_close( vosContext );
-#else
-  vosStatus = wma_close( gpVosContext->pWMAContext );
-#endif
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -600,11 +567,8 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
          "%s: Failed to destroy ProbeEvent",__func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-#ifndef WMA_LAYER
+
   vosStatus = vos_event_destroy(&gpVosContext->wdaCompleteEvent);
-#else
-  vosStatus = vos_event_destroy(&gpVosContext->wmaCompleteEvent);
-#endif
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -932,11 +896,8 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
    VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "vos prestart");
 
-#ifndef WMA_LAYER
+
    VOS_ASSERT( NULL != pVosContext->pWDAContext);
-#else
-   VOS_ASSERT( NULL != pVosContext->pWMAContext);
-#endif
 
    /* call macPreStart */
    vStatus = macPreStart(pVosContext->pMACContext);
@@ -951,18 +912,11 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
    ccmStart(pVosContext->pMACContext);
 
    /* Reset wda wait event */
-#ifndef WMA_LAYER
    vos_event_reset(&pVosContext->wdaCompleteEvent);   
-#else
-   vos_event_reset(&pVosContext->wmaCompleteEvent);   
-#endif    
+    
 
    /*call WDA pre start*/
-#ifndef WMA_LAYER
-//   vStatus = WDA_preStart(pVosContext);
-#else
-   vStatus = wma_pre_start(pVosContext->pWMAContext);
-#endif
+   vStatus = WDA_preStart(pVosContext);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
@@ -974,11 +928,7 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
    }
 
    /* Need to update time out of complete */
-#ifndef WMA_LAYER
    vStatus = vos_wait_single_event( &pVosContext->wdaCompleteEvent, 1000);
-#else
-   vStatus = vos_wait_single_event( &pVosContext->wmaCompleteEvent, 1000);
-#endif
    if ( vStatus != VOS_STATUS_SUCCESS )
    {
       if ( vStatus == VOS_STATUS_E_TIMEOUT )
@@ -1287,8 +1237,8 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
        goto err_status_failure;
     }
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-    vStatus = wma_nv_download_start(pVosContext->pWMAContext);
+
+    vStatus = WDA_NVDownload_Start(pVosContext);
 
     if ( vStatus != VOS_STATUS_SUCCESS )
     {
@@ -1296,13 +1246,8 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
                    "%s: Failed to start NV Download",__func__);
        return VOS_STATUS_E_FAILURE;
     }
-#endif
 
-#ifndef WMA_LAYER
     vStatus = vos_wait_single_event(&(pVosContext->wdaCompleteEvent), 1000);
-#else
-    vStatus = vos_wait_single_event(&(pVosContext->wmaCompleteEvent), 1000);
-#endif
 
     if ( vStatus != VOS_STATUS_SUCCESS )
     {
@@ -1317,18 +1262,10 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
                     "%s: WDA_NVDownload_Start reporting  other error \n",__func__);
        }
        VOS_ASSERT(0);
-#ifndef WMA_LAYER
        goto err_wda_stop;   
-#else
-       goto err_wma_stop;   
-#endif
     }
-#ifndef WMA_LAYER
-//    vStatus = WDA_start(pVosContext);
-#else
-    vStatus = wma_start(pVosContext->pWMAContext);
-#endif
 
+    vStatus = WDA_start(pVosContext);
     if (vStatus != VOS_STATUS_SUCCESS)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -1351,11 +1288,8 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
               "%s: Failed to start MAC", __func__);
-#ifndef WMA_LAYER
+
         goto err_wda_stop;
-#else
-        goto err_wma_stop;
-#endif
     }
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -1365,24 +1299,11 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     pHddCtx->ftm.ftm_state = WLAN_FTM_STARTED;
 
     return VOS_STATUS_SUCCESS;
-#ifndef WMA_LAYER
-err_wda_stop:
-#else
-err_wma_stop:
-#endif
 
-#ifndef WMA_LAYER
+err_wda_stop:   
    vos_event_reset(&(pVosContext->wdaCompleteEvent));
-#else
-   vos_event_reset(&(pVosContext->wmaCompleteEvent));
-#endif
-#ifndef WMA_LAYER
-//   WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);
+   WDA_stop(pVosContext, HAL_STOP_TYPE_RF_KILL);
    vStatus = vos_wait_single_event(&(pVosContext->wdaCompleteEvent), 1000);
-#else
-   wma_stop(pVosContext->pWMAContext);
-   vStatus = vos_wait_single_event(&(pVosContext->wmaCompleteEvent), 1000);
-#endif
    if(vStatus != VOS_STATUS_SUCCESS)
    {
       if(vStatus == VOS_STATUS_E_TIMEOUT)
@@ -1409,7 +1330,7 @@ err_status_failure:
 static int wlan_ftm_stop(hdd_context_t *pHddCtx)
 {
    VOS_STATUS vosStatus;
-   WMA_HANDLE wma_handle;
+
    if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
    {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Ftm has not started. Please start the ftm. ",__func__);
@@ -1437,12 +1358,8 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
            }
        }
 
-#ifndef WMA_LAYER
+
        WDA_stop(pHddCtx->pvosContext, HAL_STOP_TYPE_RF_KILL);
-#else
-       wma_handle = vos_get_context(VOS_MODULE_ID_WMA, pHddCtx->pvosContext);
-       wma_stop(wma_handle);
-#endif
 
     }
    return WLAN_FTM_SUCCESS;
@@ -2400,33 +2317,29 @@ int wlan_hdd_process_ftm_host_cmd
          break;
 
       case PTT_MSG_DBG_READ_REGISTER:
-//TODO: WPAL NEED to CHECK
-//         wpalReadRegister(pFTMCmd->msgBody.DbgReadRegister.regAddr,
-//                          &pFTMCmd->msgBody.DbgReadRegister.regValue);
-//         needToRouteHal = 0;
+         wpalReadRegister(pFTMCmd->msgBody.DbgReadRegister.regAddr,
+                          &pFTMCmd->msgBody.DbgReadRegister.regValue);
+         needToRouteHal = 0;
          break;
 
       case PTT_MSG_DBG_WRITE_REGISTER:
-//TODO: WPAL NEED to CHECK
-//         wpalWriteRegister(pFTMCmd->msgBody.DbgWriteRegister.regAddr,
-//                           pFTMCmd->msgBody.DbgWriteRegister.regValue);
-//         needToRouteHal = 0;
+         wpalWriteRegister(pFTMCmd->msgBody.DbgWriteRegister.regAddr,
+                           pFTMCmd->msgBody.DbgWriteRegister.regValue);
+         needToRouteHal = 0;
          break;
 
       case PTT_MSG_DBG_READ_MEMORY:
-//TODO: WPAL NEED to CHECK
-//         wpalReadDeviceMemory(pFTMCmd->msgBody.DbgReadMemory.memAddr,
-//                             (unsigned char *)pFTMCmd->msgBody.DbgReadMemory.pMemBuf,
-//                              pFTMCmd->msgBody.DbgReadMemory.nBytes);
-//         needToRouteHal = 0;
+         wpalReadDeviceMemory(pFTMCmd->msgBody.DbgReadMemory.memAddr,
+                              (unsigned char *)pFTMCmd->msgBody.DbgReadMemory.pMemBuf,
+                              pFTMCmd->msgBody.DbgReadMemory.nBytes);
+         needToRouteHal = 0;
          break;
 
       case PTT_MSG_DBG_WRITE_MEMORY:
-//TODO: WPAL NEED to CHECK
-//         wpalWriteDeviceMemory(pFTMCmd->msgBody.DbgWriteMemory.memAddr,
-//                               (unsigned char *)pFTMCmd->msgBody.DbgWriteMemory.pMemBuf,
-//                               pFTMCmd->msgBody.DbgWriteMemory.nBytes);
-//         needToRouteHal = 0;
+         wpalWriteDeviceMemory(pFTMCmd->msgBody.DbgWriteMemory.memAddr,
+                               (unsigned char *)pFTMCmd->msgBody.DbgWriteMemory.pMemBuf,
+                               pFTMCmd->msgBody.DbgWriteMemory.nBytes);
+         needToRouteHal = 0;
          break;
 
       case PTT_MSG_GET_BUILD_RELEASE_NUMBER:

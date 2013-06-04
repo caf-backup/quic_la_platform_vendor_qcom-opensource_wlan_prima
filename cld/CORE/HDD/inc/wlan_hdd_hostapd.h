@@ -27,7 +27,7 @@
 #include <vos_list.h>
 #include <vos_types.h>
 
-#include <txrx.h>
+#include <wlan_qct_tl.h>
 #include <wlan_hdd_main.h>
 
 /*---------------------------------------------------------------------------

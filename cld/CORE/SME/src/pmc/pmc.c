@@ -25,11 +25,7 @@
 #include "sme_Api.h"
 #include "smsDebug.h"
 #include "pmc.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 #include "wlan_ps_wow_diag.h"
 #include <vos_power.h>
 #include "csrInsideApi.h"
@@ -2096,7 +2092,7 @@ eHalStatus pmcIssueCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void *
     {
         smePushCommand( pMac, pCommand, fPutToListHead );
     }
-    else
+    else if( pCommand )
     {
         pmcReleaseCommand( pMac, pCommand );
     }

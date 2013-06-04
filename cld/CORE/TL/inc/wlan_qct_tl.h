@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
  * */
 
 #ifndef WLAN_QCT_WLANTL_H
@@ -9,15 +9,15 @@
 
 /*===========================================================================
 
-               W L A N   T R A N S P O R T   L A Y E R 
+               W L A N   T R A N S P O R T   L A Y E R
                        E X T E R N A L  A P I
-                
-                   
+
+
 DESCRIPTION
-  This file contains the external API exposed by the wlan transport layer 
+  This file contains the external API exposed by the wlan transport layer
   module.
-  
-      
+
+
   Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
   Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
@@ -110,12 +110,11 @@ when        who    what, where, why
 //#define WLANTL_BC_STA_ID  0x00
 
 
-#ifdef ANI_CHIPSET_VOLANS
 #define WLANTL_MAX_TID                        15
-#endif
 /* Default RSSI average Alpha */
 #define WLANTL_HO_DEFAULT_ALPHA               5
 #define WLANTL_HO_TDLS_ALPHA                  7
+
 /*--------------------------------------------------------------------------
   Access category enum used by TL
   - order must be kept as these values are used to setup the AC mask
@@ -260,11 +259,9 @@ typedef struct
 
   /*Initial state at which the STA should be brought up to*/
   WLANTL_STAStateType ucInitState;
-#ifdef ANI_CHIPSET_VOLANS
  /* 1 means replay check is needed for the station,
     0 means replay check is not needed for the station*/ 
   v_BOOL_t      ucIsReplayCheckValid; 
-#endif
 }WLAN_STADescType;
 
 /*---------------------------------------------------------------------------
@@ -1867,7 +1864,7 @@ WLANTL_McProcessMsg
 );
 
 /*==========================================================================
-  FUNCTION    wlan_txrx_mc_free_msg
+  FUNCTION    WLANTL_McFreeMsg
 
   DESCRIPTION 
     Called by VOSS to free a given TL message on the Main thread when there 
@@ -1895,14 +1892,14 @@ WLANTL_McProcessMsg
   
 ============================================================================*/
 VOS_STATUS
-wlan_txrx_mc_free_msg
+WLANTL_McFreeMsg
 (
   v_PVOID_t        pvosGCtx,
   vos_msg_t*       message
 );
 
 /*==========================================================================
-  FUNCTION    wlan_txrx_tx_process_msg
+  FUNCTION    WLANTL_TxProcessMsg
 
   DESCRIPTION 
     Called by VOSS when a message was serialized for TL through the
@@ -1933,14 +1930,14 @@ wlan_txrx_mc_free_msg
   
 ============================================================================*/
 VOS_STATUS
-wlan_txrx_tx_process_msg
+WLANTL_TxProcessMsg
 (
   v_PVOID_t        pvosGCtx,
   vos_msg_t*       message
 );
 
 /*==========================================================================
-  FUNCTION    wlan_txrx_mc_free_msg
+  FUNCTION    WLANTL_McFreeMsg
 
   DESCRIPTION 
     Called by VOSS to free a given TL message on the Main thread when there 
@@ -1968,7 +1965,7 @@ wlan_txrx_tx_process_msg
   
 ============================================================================*/
 VOS_STATUS
-wlan_txrx_tx_free_msg
+WLANTL_TxFreeMsg
 (
   v_PVOID_t        pvosGCtx,
   vos_msg_t*       message
@@ -2285,7 +2282,6 @@ VOS_STATUS WLANTL_ResetSpecStatistic
    WLANTL_TRANSFER_STATIC_TYPE  statType,
    v_U8_t                       STAid
 );
-#ifdef ANI_CHIPSET_VOLANS
 /*===============================================================================
   FUNCTION      WLANTL_IsReplayPacket
    
@@ -2327,7 +2323,6 @@ WLANTL_GetReplayCounterFromRxBD
 (
    v_U8_t *pucRxBDHeader
 );
-#endif /*End of #ifdef ANI_CHIPSET_VOLANS*/
 
 
 
@@ -2583,5 +2578,46 @@ WLANTL_ClearTxXmitPending
 (
   v_PVOID_t       pvosGCtx
 );
+
+/*==========================================================================
+  FUNCTION   WLANTL_UpdateSTABssIdforIBSS
+
+  DESCRIPTION
+    HDD will call this API to update the BSSID for this Station.
+
+  DEPENDENCIES
+    The HDD Should registered the staID with TL before calling this function.
+
+  PARAMETERS
+
+    IN
+    pvosGCtx:    Pointer to the global vos context; a handle to TL's
+                    or WDA's control block can be extracted from its context
+    IN
+    ucSTAId       The Station ID for Bssid to be updated
+    IN
+    pBssid          BSSID to be updated
+
+  RETURN VALUE
+      The result code associated with performing the operation
+
+      VOS_STATUS_E_INVAL:  Input parameters are invalid
+      VOS_STATUS_E_FAULT:  Station ID is outside array boundaries or pointer to
+                           TL cb is NULL ; access would cause a page fault
+      VOS_STATUS_E_EXISTS: Station was not registered
+      VOS_STATUS_SUCCESS:  Everything is good :)
+
+    SIDE EFFECTS
+============================================================================*/
+
+VOS_STATUS
+WLANTL_UpdateSTABssIdforIBSS
+(
+  v_PVOID_t             pvosGCtx,
+  v_U8_t                ucSTAId,
+  v_U8_t               *pBssid
+);
+
+
 
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

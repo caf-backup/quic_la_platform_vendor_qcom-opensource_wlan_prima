@@ -31,6 +31,9 @@
 #include <linux/skbuff.h>
 #include <linux/list.h>
 
+#include <wlan_qct_pal_packet.h>
+#include <wlan_qct_wdi_ds.h>
+
 /*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
@@ -46,7 +49,6 @@
 // allocations of type VOS_PKT_TYPE_RX_RAW
 #define VPKT_NUM_RX_RAW_PACKETS (1024)
 
-#define VPKT_SIZE_BUFFER ((30 * 128) + 32)
 // the number of Transmit Management vos packets, used exclusively for
 // vos packet allocations of type VOS_PKT_TYPE_TX_802_11_MGMT
 #define VPKT_NUM_TX_MGMT_PACKETS (  6 )
@@ -84,9 +86,8 @@ struct vos_pkt_t
 {
 
    //palPacket MUST be the first member of vos_pkt_t
-#ifdef WDI_REMOVED
    wpt_packet palPacket;
-#endif
+
    // Node for linking vos packets into a free list
    struct list_head node;
 
@@ -170,17 +171,15 @@ typedef struct vos_pkt_context_s
    vos_pkt_low_resource_info txMgmtLowResourceInfo;
 
    struct mutex mlock;
-#ifdef WDI_REMOVED
    /*Meta Information to be transported with the packet*/
    WDI_DS_TxMetaInfoType txMgmtMetaInfo[VPKT_NUM_TX_MGMT_PACKETS];
    WDI_DS_TxMetaInfoType txDataMetaInfo[VPKT_NUM_TX_DATA_PACKETS];
    WDI_DS_RxMetaInfoType rxMetaInfo[VPKT_NUM_RX_RAW_PACKETS];
-#endif
 
 } vos_pkt_context_t;
 
 
-#ifndef REMOVE_TL
+
 /*---------------------------------------------------------------------------
 
   \brief vos_packet_open() - initialize the vOSS Packet module
@@ -240,6 +239,5 @@ VOS_STATUS vos_packet_open( v_VOID_t *pVosContext,
 
 ---------------------------------------------------------------------------*/
 VOS_STATUS vos_packet_close( v_PVOID_t pVosContext );
-#endif /* #ifndef REMOVE_TL */
 
 #endif  // !defined( __I_VOS_PACKET_H )

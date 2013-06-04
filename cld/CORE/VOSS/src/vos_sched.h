@@ -52,13 +52,9 @@
   ------------------------------------------------------------------------*/
 #include <vos_event.h>
 #include "i_vos_types.h"
-#ifndef REMOVE_TL
 #include "i_vos_packet.h"
-#endif	/* #ifndef REMOVE_TL */
 #include <linux/wait.h>
-#ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK
 #include <linux/wakelock.h>
-#endif	/* #ifdef WLAN_FEATURE_HOLD_RX_WAKELOCK */
 #include <vos_power.h>
 
 #define TX_POST_EVENT_MASK               0x001
@@ -116,11 +112,9 @@ typedef struct _VosSchedContext
   /* Place holder to the VOSS Context */ 
    v_PVOID_t           pVContext; 
   /* WDA Message queue on the Main thread*/
-#ifndef WMA_LAYER
    VosMqType           wdaMcMq;
-#else
-   VosMqType           wmaMcMq;
-#endif
+
+
 
    /* PE Message queue on the Main thread*/
    VosMqType           peMcMq;
@@ -128,15 +122,21 @@ typedef struct _VosSchedContext
    /* SME Message queue on the Main thread*/
    VosMqType           smeMcMq;
 
-#ifndef REMOVE_TL
    /* TL Message queue on the Main thread */
    VosMqType           tlMcMq;
-#endif
 
    /* SYS Message queue on the Main thread */
    VosMqType           sysMcMq;
 
-#ifndef REMOVE_TL
+  /* WDI Message queue on the Main thread*/
+   VosMqType           wdiMcMq;
+
+   /* WDI Message queue on the Tx Thread*/
+   VosMqType           wdiTxMq;
+
+   /* WDI Message queue on the Rx Thread*/
+   VosMqType           wdiRxMq;
+
    /* TL Message queue on the Tx thread */
    VosMqType           tlTxMq;
 
@@ -144,48 +144,40 @@ typedef struct _VosSchedContext
    VosMqType           sysTxMq;
 
    VosMqType           sysRxMq;
-#endif
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-   VosMqType           htcMcMq;
-#endif
+
    /* Handle of Event for MC thread to signal startup */
    struct completion   McStartEvent;
-#ifndef REMOVE_TL
+
    /* Handle of Event for Tx thread to signal startup */
    struct completion   TxStartEvent;
 
    /* Handle of Event for Rx thread to signal startup */
    struct completion   RxStartEvent;
-#endif
+
    struct task_struct* McThread;
 
-#ifndef REMOVE_TL
    /* TX Thread handle */
    
    struct task_struct*   TxThread;
 
    /* RX Thread handle */
    struct task_struct*   RxThread;
-#endif
 
 
    /* completion object for MC thread shutdown */
    struct completion   McShutdown; 
 
-#ifndef REMOVE_TL
    /* completion object for Tx thread shutdown */
    struct completion   TxShutdown; 
 
    /* completion object for Rx thread shutdown */
    struct completion   RxShutdown;
-#endif
 
    /* Wait queue for MC thread */
    wait_queue_head_t mcWaitQueue;
 
    unsigned long     mcEventFlag;
 
-#ifndef REMOVE_TL
    /* Wait queue for Tx thread */
    wait_queue_head_t txWaitQueue;
 
@@ -195,25 +187,20 @@ typedef struct _VosSchedContext
    wait_queue_head_t rxWaitQueue;
 
    unsigned long     rxEventFlag;
-#endif
    
    /* Completion object to resume Mc thread */
    struct completion ResumeMcEvent;
 
-#ifndef REMOVE_TL
    /* Completion object to resume Tx thread */
    struct completion ResumeTxEvent;
 
    /* Completion object to resume Rx thread */
    struct completion ResumeRxEvent;
-#endif
 
    /* lock to make sure that McThread and TxThread Suspend/resume mechanism is in sync*/
    spinlock_t McThreadLock;
-#ifndef REMOVE_TL
    spinlock_t TxThreadLock;
    spinlock_t RxThreadLock;
-#endif
 
 } VosSchedContext, *pVosSchedContext;
 
@@ -306,39 +293,17 @@ typedef struct _VosContextType
    /* SAP Context */
    v_VOID_t           *pSAPContext;
    
-#ifndef REMOVE_TL
    /* VOS Packet Context */
    vos_pkt_context_t   vosPacket; 
-#endif	/* #ifndef REMOVE_TL */
+
    vos_event_t         ProbeEvent;
 
    volatile v_U8_t     isLogpInProgress;
 
-#ifndef WMA_LAYER
    vos_event_t         wdaCompleteEvent;
-#else
-   vos_event_t         wmaCompleteEvent;
-#endif
 
    /* WDA Context */
-#ifndef WMA_LAYER
    v_VOID_t            *pWDAContext;
-#else
-   v_VOID_t            *pWMAContext;
-#endif
-
-   /* TxRx pdev handle returned in wdi_in_pdev_attach */
-   void *pdev_txrx_ctx;
-   /* HTC handled returned in HTCCreate() */
-   void *htc_ctx;
-
-   /* Configuration handle for txrx */
-   void *cfg_ctx;
-
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-   /* Offload Context */
-   v_VOID_t           *pHIFContext;
-#endif
 
    volatile v_U8_t    isLoadUnloadInProgress;
 

@@ -38,12 +38,7 @@
 
 #include "limUtils.h"
 #include "limSessionUtils.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#include "wma.h"
-#endif
 
 #define   PROBE_RSP_IE_OFFSET    36
 #define   BSSID_OFFSET           16
@@ -1045,20 +1040,12 @@ tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pMsgNoA->single_noa_duration = pNoA->single_noa_duration;
     pMsgNoA->psSelection = pNoA->psSelection;
 
-#ifndef WMA_LAYER
     msg.type = WDA_SET_P2P_GO_NOA_REQ;
-#else
-    msg.type = WMA_SET_P2P_GO_NOA_REQ;
-#endif
     msg.reserved = 0;
     msg.bodyptr = pMsgNoA;
     msg.bodyval = 0;
 
-#ifndef WMA_LAYER
     if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
-#else
-    if(eSIR_SUCCESS != wmaPostCtrlMsg(pMac, &msg))
-#endif
     {
         limLog(pMac, LOGE, FL("halPostMsgApi failed"));
         return eSIR_FAILURE;

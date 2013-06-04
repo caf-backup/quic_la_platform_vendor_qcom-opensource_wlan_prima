@@ -25,11 +25,6 @@
 #include "limPropExtsUtils.h"
 #include "limSerDesUtils.h"
 
-#ifdef REMOVE_TL
-#include "packet.h"
-#include "wma.h"
-#endif
-
 /**
  * limProcessBeaconFrame
  *
@@ -55,9 +50,6 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
 {
     tpSirMacMgmtHdr      pHdr;
     tSchBeaconStruct    *pBeacon;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket) pRxPacketInfo;
-#endif
 
     pMac->lim.gLimNumBeaconsRcvd++;
 
@@ -65,21 +57,15 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
 
 
     
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr) (pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
 
-#ifndef REMOVE_TL
+
     PELOG2(limLog(pMac, LOG2, FL("Received Beacon frame with length=%d from "),
            WDA_GET_RX_MPDU_LEN(pRxPacketInfo));
-#else
-    PELOG2(limLog(pMac, LOG2, FL("Received Beacon frame with length=%d from "),
-	       pRxPacket->rxpktmeta.mpdu_len);
-#endif
-
     limPrintMacAddr(pMac, pHdr->sa, LOG2);)
+
+    if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+        return;
 
 
     /**
@@ -152,11 +138,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                 palFreeMemory(pMac->hHdd, psessionEntry->beacon);
                 psessionEntry->beacon = NULL;
              }
-#ifndef REMOVE_TL
              psessionEntry->bcnLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-#else
-             psessionEntry->bcnLen = pRxPacket->rxpktmeta.mpdu_data_len;
-#endif
              if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->beacon, psessionEntry->bcnLen)) != eHAL_STATUS_SUCCESS)
              {
                 PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store beacon"));)
@@ -164,11 +146,8 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               else
               {
                 //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response. 
-#ifndef REMOVE_TL
                 palCopyMemory(pMac->hHdd, psessionEntry->beacon, WDA_GET_RX_MPDU_DATA(pRxPacketInfo), psessionEntry->bcnLen);
-#else
-                palCopyMemory(pMac->hHdd, psessionEntry->beacon, pRxPacket->rxpktmeta.mpdu_data_ptr, psessionEntry->bcnLen);
-#endif
+
                }
              
              // STA in WT_JOIN_BEACON_STATE (IBSS)
@@ -224,26 +203,17 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
 {
     tpSirMacMgmtHdr      pHdr;
     tSchBeaconStruct    *pBeacon;
-#ifdef REMOVE_TL
-    tp_rxpacket pRxPacket = (tp_rxpacket)(pRxPacketInfo);
-#endif
 
     pMac->lim.gLimNumBeaconsRcvd++;
-#ifndef REMOVE_TL
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-#else
-    pHdr = (tpSirMacMgmtHdr)(pRxPacket->rxpktmeta.mpdu_hdr_ptr);
-#endif
 
-#ifndef REMOVE_TL
     limLog(pMac, LOG2, FL("Received Beacon frame with length=%d from "),
            WDA_GET_RX_MPDU_LEN(pRxPacketInfo));
-#else
-    limLog(pMac, LOG2, FL("Received Beacon frame with length=%d from "),
-	       pRxPacket->rxpktmeta.mpdu_len);
-#endif
-
     limPrintMacAddr(pMac, pHdr->sa, LOG2);
+
+    if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+        return;
+
 
     /**
      * No session has been established. Expect Beacon only when

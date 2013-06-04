@@ -644,7 +644,7 @@ WDI_FillTxBd
                 WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR, "WDI_STATableFindStaidByAddr failed");
                 WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR, "STA ID = %d " MAC_ADDRESS_STR,
                                         ucStaId, MAC_ADDR_ARRAY(*(wpt_macAddr*)pAddr2));
-                return WDI_STATUS_E_FAILURE;
+                return WDI_STATUS_E_NOT_ALLOWED;
            }
 #else
             ucStaId = pWDICtx->ucSelfStaId;
@@ -758,7 +758,7 @@ WDI_FillTxBd
                                               *(wpt_macAddr*)pAddr2, &ucStaId ); 
               if (WDI_STATUS_SUCCESS != wdiStatus)
               {
-                return WDI_STATUS_E_FAILURE;
+                return WDI_STATUS_E_NOT_ALLOWED;
               }
 
               // Get the Bss Index related to the staId

@@ -1063,15 +1063,10 @@ regStaWithTl
     tCsrRoamInfo *pCsrRoamInfo
 )
 {
-//    WLAN_STADescType staDesc;
-
-	/*
-	 * TODO: Register the rx callback to  txrx,
-	 * fill up btampctx.
-	 */
-	 #if 0
     VOS_STATUS vosStatus;
+    WLAN_STADescType staDesc;
     tANI_S8          rssi = 0;
+
     vos_mem_zero(&staDesc, sizeof(WLAN_STADescType));
     /* Fill in everything I know about the STA */
     btampContext->ucSTAId = staDesc.ucSTAId = pCsrRoamInfo->staId;
@@ -1138,7 +1133,7 @@ regStaWithTl
     staDesc.ucUcastSig = pCsrRoamInfo->ucastSig; 
     staDesc.ucBcastSig = pCsrRoamInfo->bcastSig;
     staDesc.ucInitState = ( btampContext->ucSecEnabled)?
-        WLAN_STA_CONNECTED:WLANTL_STA_AUTHENTICATED;
+        WLANTL_STA_CONNECTED:WLANTL_STA_AUTHENTICATED;
     staDesc.ucIsReplayCheckValid = VOS_FALSE;
     if(NULL != pCsrRoamInfo->pBssDesc)
     {
@@ -1150,7 +1145,7 @@ regStaWithTl
          btampContext->pvosGCtx,
          WLANBAP_STARxCB,  
          WLANBAP_TxCompCB,  
-         (WLAN_STAFetchPktCBType)WLANBAP_STAFetchPktCB,
+         (WLANTL_STAFetchPktCBType)WLANBAP_STAFetchPktCB,
          &staDesc ,
          rssi);   
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -1167,8 +1162,8 @@ regStaWithTl
     
        // Connections that do not need Upper layer auth, transition TL directly
        // to 'Authenticated' state.      
-       vosStatus = wlan_change_sta_state( btampContext->pvosGCtx, staDesc.ucSTAId, 
-                                            WLAN_STA_AUTHENTICATED );
+       vosStatus = WLANTL_ChangeSTAState( btampContext->pvosGCtx, staDesc.ucSTAId, 
+                                            WLANTL_STA_AUTHENTICATED );
     }                                            
     else
     {
@@ -1176,11 +1171,10 @@ regStaWithTl
        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_MED,
                   "ULA auth StaId= %d.  Changing TL state to CONNECTED at Join time", btampContext->ucSTAId );
       
-       vosStatus = wlan_change_sta_state( btampContext->pvosGCtx, staDesc.ucSTAId, 
-                                          WLAN_STA_CONNECTED );
+       vosStatus = WLANTL_ChangeSTAState( btampContext->pvosGCtx, staDesc.ucSTAId, 
+                                          WLANTL_STA_CONNECTED );
     }                                            
 
-#endif
     return VOS_STATUS_SUCCESS;
 } /* regStaWithTl */
 
@@ -1308,11 +1302,11 @@ gotoConnected
     { 
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_MED, 
                 "open/shared auth StaId= %d.  Changing TL state to AUTHENTICATED at Join time", btampContext->ucSTAId);
-   /* TODO: See what should be done for txrx */
-        vosStatus = wlan_change_sta_state(
+    
+        vosStatus = WLANTL_ChangeSTAState( 
                 btampContext->pvosGCtx, 
                 btampContext->ucSTAId, 
-                WLAN_STA_AUTHENTICATED );
+                WLANTL_STA_AUTHENTICATED );
     }
 
     btampContext->dataPktPending = VOS_FALSE;
@@ -2353,7 +2347,7 @@ btampFsm
                           "Unable to retrieve STA Id from BAP context and phy_link_handle in %s", __func__);
               return VOS_STATUS_E_FAULT;
           }
-  /*        WLANTL_ClearSTAClient(btampContext->pvosGCtx, ucSTAId); */
+          WLANTL_ClearSTAClient(btampContext->pvosGCtx, ucSTAId);
 
     //      gotoDisconnected(btampContext);
 
@@ -2408,8 +2402,7 @@ btampFsm
                           "Unable to retrieve STA Id from BAP context and phy_link_handle in %s", __func__);
               return VOS_STATUS_E_FAULT;
           }
-	  /*FIXME: What should be done with txrx */
-/*          WLANTL_ClearSTAClient(btampContext->pvosGCtx, ucSTAId); */
+          WLANTL_ClearSTAClient(btampContext->pvosGCtx, ucSTAId);
 
 
           /*Action code for transition */

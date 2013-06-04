@@ -25,12 +25,8 @@
 #include "utilsApi.h"
 #include "limGlobal.h"
 #include "halMsgApi.h"
-#ifndef WMA_LAYER
+#include "wlan_qct_wdi_ds.h"
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#include "wma.h"
-#endif
 #define LIM_POL_SYS_SCAN_MODE      0
 #define LIM_POL_SYS_LEARN_MODE     1
 
@@ -217,9 +213,4 @@ tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 -----------------------------------------------------------------*/
 v_VOID_t peFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 /************************************************************/
-
-
-VOS_STATUS lim_get_scan_entry(tpAniSirGlobal mac, int *scan_entry);
-void lim_add_scan_entry(tpAniSirGlobal mac, int scan_entry, int scan_id);
-void lim_del_scan_entry(tpAniSirGlobal mac, int scan_id);
 #endif /* __LIM_API_H */

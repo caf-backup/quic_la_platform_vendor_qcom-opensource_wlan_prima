@@ -16,11 +16,7 @@
 #include "aniGlobal.h"
 #include "cfgPriv.h"
 #include "cfgDebug.h"
-#ifndef WMA_LAYER
 #include "wlan_qct_wda.h"
-#else
-#include "wlan_qct_wma.h"
-#endif
 
 
 /*--------------------------------------------------------------------*/
@@ -310,11 +306,7 @@ ProcDnldRsp(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam)
     mmhMsg.bodyval = 0;
 
     MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
-#ifndef WMA_LAYER
     if (wdaPostCtrlMsg(pMac, &mmhMsg) != eSIR_SUCCESS)
-#else
-    if (wmaPostCtrlMsg(pMac, &mmhMsg) != eSIR_SUCCESS)
-#endif
     {
         PELOGE(cfgLog(pMac, LOGE, FL("WDAPostMsgApi failed!"));)
     }
