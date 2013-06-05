@@ -494,7 +494,8 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
  * Args       :
  * Retruns    :
  */
-static VOS_STATUS wma_vdev_attach(tp_wma_handle wma_handle, tpAddStaSelfParams self_sta_req)
+static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
+					   tpAddStaSelfParams self_sta_req)
 {
 	ol_txrx_vdev_handle txrx_vdev_handle = NULL;
 	ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
@@ -542,7 +543,7 @@ static VOS_STATUS wma_vdev_attach(tp_wma_handle wma_handle, tpAddStaSelfParams s
 end:
 	self_sta_req->status = status;
 	wma_send_msg(wma_handle, WDA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
-	return status;
+	return txrx_vdev_handle;
 }
 
 static VOS_STATUS wma_wni_cfg_dnld(tp_wma_handle wma_handle)
@@ -871,6 +872,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	tp_wma_handle wma_handle;
+	ol_txrx_vdev_handle txrx_vdev_handle = NULL;
 
 	WMA_LOGD("Enter");
 	if(NULL == msg)	{
@@ -905,7 +907,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			}
 			break ;
 		case WDA_ADD_STA_SELF_REQ:
-			wma_vdev_attach(wma_handle, (tAddStaSelfParams *)msg->bodyptr);
+			txrx_vdev_handle = wma_vdev_attach(wma_handle,
+					(tAddStaSelfParams *)msg->bodyptr);
+			if (!txrx_vdev_handle)
+				WMA_LOGE("Failed to attach vdev");
 			break;
 		case WDA_DEL_STA_SELF_REQ:
 			wma_vdev_detach(wma_handle, (tDelStaSelfParams *)msg->bodyptr);
