@@ -19,4 +19,9 @@ struct txrx_tl_shim_ctx {
 	struct tlshim_sta_info sta_info[WLAN_MAX_STA_COUNT];
 };
 
+/*
+ * APIs used by CLD specific components, as of now these are used only
+ * in WMA.
+ */
+void WLANTL_RegisterVdev(void *vos_ctx, void *vdev);
 #endif

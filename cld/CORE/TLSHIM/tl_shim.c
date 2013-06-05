@@ -248,6 +248,23 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 /*************************/
 
 /*
+ * TL API called from WMA to register a vdev for data service with
+ * txrx. This API is called once vdev create succeeds.
+ */
+void WLANTL_RegisterVdev(void *vos_ctx, void *vdev)
+{
+	struct txrx_tl_shim_ctx *tl_shim;
+	struct ol_txrx_osif_ops txrx_ops;
+	struct ol_txrx_vdev_t *vdev_handle = (struct ol_txrx_vdev_t  *) vdev;
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	txrx_ops.rx.std = tlshim_data_rx_handler;
+	wdi_in_osif_vdev_register(vdev_handle, tl_shim, &txrx_ops);
+	/* TODO: Keep vdev specific tx callback, if needed */
+	tl_shim->tx = txrx_ops.tx.std;
+}
+
+/*
  * TL API to transmit a frame given by HDD. Returns NULL
  * in case of success, skb pointer in case of failure.
  */
@@ -601,7 +618,6 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 	struct ol_txrx_peer_t *peer;
-	struct ol_txrx_osif_ops txrx_ops;
 	ol_txrx_peer_update_param_t param;
 
 	ENTER();
@@ -612,10 +628,7 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 		return VOS_STATUS_E_FAULT;
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	txrx_ops.rx.std = tlshim_data_rx_handler;
-	wdi_in_osif_vdev_register(peer->vdev, tl_shim, &txrx_ops);
 	tl_shim->sta_info[sta_desc->ucSTAId].data_rx = rxcb;
-	tl_shim->tx = txrx_ops.tx.std;
 	tl_shim->sta_info[sta_desc->ucSTAId].registered = true;
 	param.qos_capable =  sta_desc->ucQosEnabled;
 	wdi_in_peer_update(peer->vdev, peer->mac_addr.raw, &param,
