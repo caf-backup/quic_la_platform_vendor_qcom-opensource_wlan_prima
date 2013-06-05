@@ -82,11 +82,23 @@ typedef adf_nbuf_t (*ol_txrx_tx_non_std_fp)(
 
 struct txrx_rx_metainfo;
 
+#ifdef OSIF_NEED_RX_PEER_ID
+/**
+ * @typedef ol_txrx_rx_fp
+ * @brief receive function to hand batches of data frames from txrx to OS shim
+ * @details this version of rx callback is for the OS shim, for example CLD, which
+ * depends on peer id information in data rx.
+ */
+typedef void (*ol_txrx_rx_fp)(void *osif_dev, u_int16_t peer_id,
+			      adf_nbuf_t msdus);
+#else
+
 /**
  * @typedef ol_txrx_rx_fp
  * @brief receive function to hand batches of data frames from txrx to OS shim
  */
 typedef void (*ol_txrx_rx_fp)(void *osif_dev, adf_nbuf_t msdus);
+#endif /* OSIF_NEED_RX_PEER_ID */
 
 /**
  * @typedef ol_txrx_rx_fp
