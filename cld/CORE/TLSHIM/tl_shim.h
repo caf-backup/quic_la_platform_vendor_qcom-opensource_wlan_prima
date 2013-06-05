@@ -7,9 +7,16 @@
 #ifndef TXRX_TL_SHIM_H
 #define TXRX_TL_SHIM_H
 
+struct tlshim_buf {
+	struct list_head list;
+	adf_nbuf_t buf;
+};
+
 struct tlshim_sta_info {
 	bool registered;
+	bool suspend_flush;
 	WLANTL_STARxCBType data_rx;
+	struct list_head cached_bufq;
 };
 
 struct txrx_tl_shim_ctx {
@@ -17,6 +24,8 @@ struct txrx_tl_shim_ctx {
 	ol_txrx_tx_fp tx;
 	WLANTL_MgmtFrmRxCBType mgmt_rx;
 	struct tlshim_sta_info sta_info[WLAN_MAX_STA_COUNT];
+	adf_os_spinlock_t bufq_lock;
+	struct work_struct cache_flush_work;
 };
 
 /*
