@@ -53,6 +53,7 @@ when        who          what, where, why
 #ifdef QCA_WIFI_2_0
 #include "wma_api.h"
 #include "wma_stub.h"
+#include "i_vos_packet.h"
 #else
 #include "wlan_qct_wdi_ds.h"
 #endif
@@ -546,22 +547,46 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 
 #ifdef QCA_WIFI_2_0
 
-#define WDA_GET_RX_MAC_HEADER(pRxMeta) NULL
-#define WDA_GET_RX_MPDUHEADER3A(pRxMeta) NULL
-#define WDA_GET_RX_MPDU_HEADER_LEN(pRxMeta) 0
-#define WDA_GET_RX_MPDU_LEN(pRxMeta) 0
-#define WDA_GET_RX_PAYLOAD_LEN(pRxMeta) 0
+#define WDA_GET_RX_MAC_HEADER(pRxMeta) \
+     (tpSirMacMgmtHdr)(((t_packetmeta *)pRxMeta)->mpdu_hdr_ptr)
+
+#define WDA_GET_RX_MPDUHEADER3A(pRxMeta) \
+     (tpSirMacDataHdr3a)(((t_packetmeta *)pRxMeta)->mpdu_hdr_ptr)
+
+#define WDA_GET_RX_MPDU_HEADER_LEN(pRxMeta) \
+     (((t_packetmeta *)pRxMeta)->mpdu_hdr_len)
+
+#define WDA_GET_RX_MPDU_LEN(pRxMeta) \
+     (((t_packetmeta *)pRxMeta)->mpdu_len)
+
+#define WDA_GET_RX_PAYLOAD_LEN(pRxMeta) \
+     (((t_packetmeta *)pRxMeta)->mpdu_data_len)
+
 #define WDA_GET_RX_MAC_RATE_IDX(pRxMeta) 0
-#define WDA_GET_RX_MPDU_DATA(pRxMeta) NULL
+
+#define WDA_GET_RX_MPDU_DATA(pRxMeta) \
+     (((t_packetmeta *)pRxMeta)->mpdu_data_ptr)
+
 #define WDA_GET_RX_MPDU_HEADER_OFFSET(pRxMeta) 0
+
 #define WDA_GET_RX_UNKNOWN_UCAST(pRxMeta) 0
-#define WDA_GET_RX_CH(pRxMeta) *((v_U32_t*)NULL)
+
+#define WDA_GET_RX_CH(pRxMeta) \
+     (((t_packetmeta *)pRxMeta)->channel)
+
 #define WDA_IS_RX_BCAST(pRxMeta) 0
+
 #define WDA_GET_RX_FT_DONE(pRxMeta) 0
+
 #define WDA_GET_RX_DPU_FEEDBACK(pRxMeta) 0
+
 #define WDA_GET_RX_BEACON_SENT(pRxMeta) 0
+
 #define WDA_GET_RX_TSF_LATER(pRxMeta) 0
-#define WDA_GET_RX_TIMESTAMP(pRxMeta) 0
+
+#define WDA_GET_RX_TIMESTAMP(pRxMeta) \
+     (((t_packetmeta *)pRxMeta)->timestamp)
+
 #define WDA_IS_RX_IN_SCAN(pRxMeta) 0
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
@@ -570,7 +595,8 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 #define WDA_GET_ROAMCANDIDATEIND(pRxMeta) 0
 #endif
 
-#define WDA_GET_RX_SNR(pRxMeta) 0
+#define WDA_GET_RX_SNR(pRxMeta) \
+     (((t_packetmeta *)pRxMeta)->snr)
 
 #define WDA_GetWcnssWlanCompiledVersion	WMA_GetWcnssWlanCompiledVersion
 #define WDA_GetWcnssWlanReportedVersion WMA_GetWcnssWlanReportedVersion
@@ -819,8 +845,13 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #  define WDA_MAX_OF_TWO(val1, val2)  ( ((val1) > (val2)) ? (val1) : (val2))
 #  define WDA_GET_RSSI_DB(rssi0)  \
                 WDA_MAX_OF_TWO(WDA_GET_RSSI0_DB(rssi0), WDA_GET_RSSI1_DB(rssi0))
+#ifdef QCA_WIFI_2_0
+#define WDA_GET_RX_RSSI_DB(pRxMeta) \
+                       (((t_packetmeta *)pRxMeta)->rssi)
+#else
 #  define WDA_GET_RX_RSSI_DB(pRxMeta) \
                        WDA_GET_RSSI_DB((((WDI_DS_RxMetaInfoType*)(pRxMeta))->rssi0))
+#endif
 
 //WDA Messages to HAL messages Mapping
 #if 0
@@ -1204,9 +1235,43 @@ v_BOOL_t WDA_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx,
 
 #endif	/* #ifdef QCA_WIFI_2_0 */
 
-#ifdef QCA_WIFI_2_0
+/*==========================================================================
+   FUNCTION    WDA_DS_PeekRxPacketInfo
 
-#define WDA_DS_PeekRxPacketInfo WMA_DS_PeekRxPacketInfo
+  DESCRIPTION
+    Return RX metainfo pointer for for integrated SOC.
+
+    Same function will return BD header pointer.
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+    vosDataBuff      vos data buffer
+
+    pvDestMacAddr    destination MAC address ponter
+    bSwap            Want to swap BD header? For backward compatability
+                     It does nothing for integrated SOC
+   OUT
+    *ppRxHeader      RX metainfo pointer
+
+  RETURN VALUE
+    VOS_STATUS_E_FAULT:  pointer is NULL and other errors
+    VOS_STATUS_SUCCESS:  Everything is good :)
+
+  SIDE EFFECTS
+
+============================================================================*/
+VOS_STATUS
+WDA_DS_PeekRxPacketInfo
+(
+  vos_pkt_t *vosDataBuff,
+  v_PVOID_t *ppRxHeader,
+  v_BOOL_t  bSwap
+);
+
+#ifdef QCA_WIFI_2_0
 
 #define WDA_HALDumpCmdReq WMA_HALDumpCmdReq
 
@@ -1442,42 +1507,6 @@ WDA_DS_BuildTxPacketInfo
   v_U32_t         timeStamp,
   v_U8_t          ucIsEapol,
   v_U8_t          ucUP
-);
-
-/*==========================================================================
-   FUNCTION    WDA_DS_PeekRxPacketInfo
-
-  DESCRIPTION
-    Return RX metainfo pointer for for integrated SOC.
-    
-    Same function will return BD header pointer.
-    
-  DEPENDENCIES
-
-  PARAMETERS
-
-   IN
-    vosDataBuff      vos data buffer
-
-    pvDestMacAddr    destination MAC address ponter
-    bSwap            Want to swap BD header? For backward compatability
-                     It does nothing for integrated SOC
-   OUT
-    *ppRxHeader      RX metainfo pointer
-
-  RETURN VALUE
-    VOS_STATUS_E_FAULT:  pointer is NULL and other errors 
-    VOS_STATUS_SUCCESS:  Everything is good :)
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WDA_DS_PeekRxPacketInfo
-(
-  vos_pkt_t *vosDataBuff,
-  v_PVOID_t *ppRxHeader,
-  v_BOOL_t  bSwap
 );
 
 /*==========================================================================

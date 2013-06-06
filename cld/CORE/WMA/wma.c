@@ -1646,4 +1646,19 @@ void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA)
 void WDI_DS_ActivateTrafficStats(void)
 {
 }
+/*
+ * Function fills the rx packet meta info from the the vos packet
+ */
+VOS_STATUS WDA_DS_PeekRxPacketInfo(vos_pkt_t *pkt, v_PVOID_t *pkt_meta,
+					v_BOOL_t  bSwap)
+{
+	/* Sanity Check */
+	if(pkt == NULL) {
+		WMA_LOGE("wma:Invalid parameter sent on wma_peek_rx_pkt_info");
+		return VOS_STATUS_E_FAULT;
+	}
 
+	*pkt_meta = &(pkt->pkt_meta);
+
+	return VOS_STATUS_SUCCESS;
+}
