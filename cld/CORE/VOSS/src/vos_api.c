@@ -972,7 +972,16 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
      }
   }
-  
+
+#ifdef QCA_WIFI_2_0
+  if (gpVosContext->htc_ctx)
+  {
+      HTCStop(gpVosContext->htc_ctx);
+      HTCDestroy(gpVosContext->htc_ctx);
+      gpVosContext->htc_ctx = NULL;
+  }
+#endif
+
   /* Let DXE return packets in WDA_close and then free them here */
   vosStatus = vos_packet_close( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
