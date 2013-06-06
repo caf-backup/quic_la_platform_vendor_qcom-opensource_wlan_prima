@@ -380,7 +380,13 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 		return skb;
 	}
 
+	/* Zero out skb's context buffer for the driver to use */
+	adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+
 	adf_nbuf_map_single(adf_ctx, skb, ADF_OS_DMA_TO_DEVICE);
+
+	/* Terminate the (single-element) list of tx frames */
+	skb->next = NULL;
 	ret = tl_shim->tx(peer->vdev, skb);
 	if (ret) {
 		TLSHIM_LOGE("Failed to tx");
