@@ -41,6 +41,11 @@
 #include "wlan_qct_pal_msg.h"
 #include <linux/spinlock.h>
 #include <linux/kthread.h>
+#ifdef QCA_WIFI_2_0
+#ifdef QCA_WIFI_ISOC
+#include  "htc_api.h"
+#endif
+#endif
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
@@ -423,6 +428,39 @@ VosMCThread
 
         continue;
       }
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+      // Check the HTC queue first
+      if (!vos_is_mq_empty(&pSchedContext->htcMcMq))
+      {
+        // Service the HTC message queue
+        t_htc_msg *pHtcMsg;
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                  "%s: Servicing the VOS HTC MC Message queue",__func__);
+        pMsgWrapper = vos_mq_get(&pSchedContext->htcMcMq);
+        if (pMsgWrapper == NULL)
+        {
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Servicing the VOS SYS MC Message queue",__func__);
+           VOS_ASSERT(0);
+           break;
+        }
+        pHtcMsg = (t_htc_msg *)pMsgWrapper->pVosMsg->bodyptr;
+        if (pHtcMsg == NULL || pHtcMsg->callback == NULL)
+        {
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                     "%s: HTC Msg or Callback is NULL", __func__);
+           VOS_ASSERT(0);
+           break;
+        }
+        VOS_TRACE(VOS_MODULE_ID_HTC, VOS_TRACE_LEVEL_INFO,
+                  ("calling pHtcMsg->callback"));
+        pHtcMsg->callback(pHtcMsg);
+        //return message to the Core
+        vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+        continue;
+      }
+#endif
 
       // Check the SYS queue first
       if (!vos_is_mq_empty(&pSchedContext->sysMcMq))
@@ -1317,6 +1355,19 @@ VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
     VOS_ASSERT(0);
     return vStatus;
   }
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+            "%s: Initializing the HTC MC Message queue",__func__);
+  vStatus = vos_mq_init(&pSchedContext->htcMcMq);
+  if (! VOS_IS_STATUS_SUCCESS(vStatus))
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to init HTC MC Message queue",__func__);
+    VOS_ASSERT(0);
+    return vStatus;
+  }
+#endif
   return VOS_STATUS_SUCCESS;
 } /* vos_sched_init_mqs() */
 
@@ -1380,7 +1431,13 @@ void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: DeInitializing the SYS Rx Message queue",__func__);
   vos_mq_deinit(&pSchedContext->sysRxMq);
-
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+  //Rx HTC
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+            "%s: DeInitializing the HTC Tx Message queue",__func__);
+  vos_mq_deinit(&pSchedContext->htcMcMq);
+#endif
 } /* vos_sched_deinit_mqs() */
 
 /*-------------------------------------------------------------------------
@@ -1493,6 +1550,28 @@ void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
     WLANTL_McFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
     vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
   }
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+  while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->htcMcMq) ))
+  {
+    if(pMsgWrapper->pVosMsg != NULL)
+    {
+
+      VOS_TRACE( VOS_MODULE_ID_VOSS,
+                 VOS_TRACE_LEVEL_INFO,
+                 "%s: Freeing MC HTC MSG message type %d",__func__,
+                 pMsgWrapper->pVosMsg->type );
+      if (pMsgWrapper->pVosMsg->bodyptr) {
+        vos_mem_free((v_VOID_t*)pMsgWrapper->pVosMsg->bodyptr);
+      }
+
+      pMsgWrapper->pVosMsg->bodyptr = NULL;
+      pMsgWrapper->pVosMsg->bodyval = 0;
+      pMsgWrapper->pVosMsg->type = 0;
+    }
+    vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+  }
+#endif
 } /* vos_sched_flush_mc_mqs() */
 
 /*-------------------------------------------------------------------------

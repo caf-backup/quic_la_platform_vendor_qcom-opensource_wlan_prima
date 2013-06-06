@@ -149,6 +149,10 @@ typedef struct _VosSchedContext
    VosMqType           sysTxMq;
 
    VosMqType           sysRxMq;
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+   VosMqType           htcMcMq;
+#endif
 
    /* Handle of Event for MC thread to signal startup */
    struct completion   McStartEvent;

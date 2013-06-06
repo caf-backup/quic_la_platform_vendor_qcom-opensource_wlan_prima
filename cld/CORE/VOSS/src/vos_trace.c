@@ -87,6 +87,11 @@ moduleTraceInfo gVosTraceInfo[ VOS_MODULE_ID_MAX ] =
    [VOS_MODULE_ID_VOSS]       = { VOS_DEFAULT_TRACE_LEVEL, "VOS" },
    [VOS_MODULE_ID_SAP]        = { VOS_DEFAULT_TRACE_LEVEL, "SAP" },
    [VOS_MODULE_ID_HDD_SOFTAP] = { VOS_DEFAULT_TRACE_LEVEL, "HSP" },
+#if defined (QCA_WIFI_2_0) && \
+    defined (QCA_WIFI_ISOC)
+  /// Message Queue ID for messages bound for HTC
+   [VOS_MODULE_ID_HTC]        = { VOS_DEFAULT_TRACE_LEVEL, "HTC" },
+#endif
 };
 
 
