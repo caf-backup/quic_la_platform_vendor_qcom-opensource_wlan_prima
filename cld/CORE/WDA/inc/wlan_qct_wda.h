@@ -280,7 +280,7 @@ typedef enum
 /*--------------------------------------------------------------------------
   Functions
  --------------------------------------------------------------------------*/
-
+#ifndef QCA_WIFI_2_0
 /* For data client */
 typedef VOS_STATUS (*WDA_DS_TxCompleteCallback) ( v_PVOID_t pContext, vos_pkt_t *pFrameDataBuff, VOS_STATUS txStatus );
 typedef VOS_STATUS (*WDA_DS_RxPacketCallback)   ( v_PVOID_t pContext, vos_pkt_t *pFrameDataBuff );
@@ -291,11 +291,11 @@ typedef v_U32_t   (*WDA_DS_TxPacketCallback)   ( v_PVOID_t pContext,
                                                   v_BOOL_t *pbUrgent );
 typedef VOS_STATUS (*WDA_DS_ResourceCB)      ( v_PVOID_t pContext, v_U32_t uCount );
 
-
 /* For management client */
 typedef VOS_STATUS (*WDA_DS_TxCompleteCb)( v_PVOID_t     pContext, wpt_packet *pFrame );
 typedef VOS_STATUS (*WDA_DS_RxCompleteCb)( v_PVOID_t pContext, wpt_packet *pFrame );
 typedef VOS_STATUS (*WDA_DS_TxFlowControlCb)( v_PVOID_t pContext, v_U8_t acMask );
+#endif
 typedef void (*pWDATxRxCompFunc)( v_PVOID_t pContext, void *pData );
 
 //callback function for TX complete
@@ -351,12 +351,14 @@ typedef struct
    tSirMacAddr          macBSSID;             /*BSSID of the network */
    tSirMacAddr          macSTASelf;     /*Self STA MAC*/
 
+#ifndef QCA_WIFI_2_0
    /* TX channel mask for flow control */
    v_U8_t               uTxFlowMask;
    /* TL's TX resource callback        */
    WDA_DS_ResourceCB    pfnTxResourceCB;
    /* TL's TX complete callback     */
    WDA_DS_TxCompleteCallback pfnTxCompleteCallback; 
+#endif
    
    tWdaStaInfo          wdaStaInfo[WDA_MAX_STA];
 

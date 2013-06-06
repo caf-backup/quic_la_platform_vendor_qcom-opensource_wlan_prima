@@ -56,7 +56,7 @@
 #include "wniCfgAp.h"
 #include "wlan_hal_cfg.h"
 #include "cfgApi.h"
-
+#include "wlan_qct_wdi.h"
 /* ############# function definitions ############ */
 
 /* function   : wma_cfg_nv_get_hal_message_buffer
