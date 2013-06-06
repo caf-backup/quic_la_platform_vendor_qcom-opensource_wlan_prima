@@ -73,12 +73,6 @@
 #include "vos_memory.h"
 #include "ol_txrx_types.h"
 
-#ifdef QCA_WIFI_ISOC
-#include "isoc_hw_desc.h"
-#include "htt_dxe_types.h"
-#endif
-
-
 #include "wlan_qct_wda.h"
 #include "limApi.h"
 
@@ -86,51 +80,6 @@
 #include "wdi_in.h"
 
 #include "vos_utils.h"
-
-#ifdef NOT_YET
-#ifdef QCA_WIFI_ISOC
-
-#define NUM_5G_CHAN   24
-
-/* 11A Channel list to decode RX BD channel information
- * Since there is only 5 bits in RXBD for all the channels,
- * the channel number for 2.4 is retrieved from the rame itself.
- * For 5Ghz channel, it is an index to RxBDChannelMap5G
- * ToDO: Shared the channel list with FW.
- * This list needs to be revisit as it doesn't have all
- * channels, such as 144.
- */
-static const u_int8_t RxBDChannelMap5G[NUM_5G_CHAN]=
-            {36,40,44,48,52,56,60,64,100,104,108,112,116,
-            120,124,128,132,136,140,149,153,157,161,165};
-
-#define RX_BD_CHAN_TO_CHANID(chn_num)\
-    ((chn_num) && (chn_num) < (NUM_5G_CHAN + 1)) ?\
-    RxBDChannelMap5G[(chn_num) - 1] : 0
-
-#define RX_BD_TO_CHAN_IDX(bd) ((((isoc_rx_bd_t *)(bd))->reserved0 << 4)\
-    | ((isoc_rx_bd_t *)(bd))->rx_channel)
-
-/**
-  * wma_rxbd_to_chnid
-  * @ prxbd Rx Buffer Descriptor
-  * Calculates proper channel based on band information
-  */
-static inline u_int8_t
-wma_rxbd_to_chnid(isoc_rx_bd_t *prxbd)
-{
-        u_int8_t chnid = 0;
-
-        chnid = RX_BD_TO_CHAN_IDX(prxbd);
-
-        if(prxbd->band_5ghz) {
-                /* This is on a 5Ghz band*/
-                chnid = RX_BD_CHAN_TO_CHANID(chnid);
-        }
-        return chnid;
-}
-#endif
-#endif
 
 /* ################### defines ################### */
 
@@ -320,15 +269,6 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		WMA_LOGP("wma_ready_event initialization failed");
 		goto err_event_init;
 	}
-
-#ifdef NOT_YET
-	/* Init Tx Frame Complete event */
-	 vos_status = vos_event_init(&wma_handle->tx_frm_download_comp_event);
-	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
-		WMA_LOGP("failed to init tx_frm_download_comp_event");
-		goto err_event_init;
-	}
-#endif
 
 	WMA_LOGD("Exit");
 
@@ -835,62 +775,6 @@ end:
 	return vos_status;
 }
 
-#ifdef NOT_YET
-/**
- * wma_mgmt_detach - detaches mgmt fn with underlying layer
- * DXE in case of Integrated, WMI incase of Discrete
- * @tp_wma_handle: wma context
- */
-static VOS_STATUS wma_mgmt_detach(tp_wma_handle wma_handle)
-{
-	u_int32_t frame_index = 0;
-
-	/* Get the Vos Context */
-	pVosContextType vos_handle =
-		(pVosContextType)(wma_handle->vos_context);
-
-	/* Get the txRx Pdev handle */
-	ol_txrx_pdev_handle txrx_pdev =
-		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
-
-#ifdef QCA_WIFI_ISOC
-	struct htt_dxe_pdev_t *htt_dxe_pdev =
-		(struct htt_dxe_pdev_t *)(txrx_pdev->htt_pdev);
-
-	/* Integrated: DeRegister Dmux Dxe for Rx Management Frames */
-	if (0 != dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
-							NULL, wma_handle)) {
-		WMA_LOGP("Failed to deregister for Rx Mgmt with Dxe");
-		return VOS_STATUS_E_FAILURE;
-	}
-#else
-	/* DeRegister WMI event handlers */
-	if (0 != wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
-						WMI_MGMT_RX_EVENTID)) {
-		WMA_LOGP("Failed to deregister for WMI_MGMT_RX_EVENTID");
-		return VOS_STATUS_E_FAILURE;
-	}
-#endif
-
-	/* Reset Rx Frm Callbacks */
-	wma_handle->mgmt_frm_rxcb = NULL;
-
-	/* Deregister with TxRx for Tx Mgmt completion call back */
-	for (frame_index = 0; frame_index < FRAME_INDEX_MAX; frame_index++) {
-		wdi_in_mgmt_tx_cb_set(txrx_pdev, frame_index, NULL, NULL,
-					txrx_pdev);
-	}
-
-	/* Destroy Tx Frame Complete event */
-	vos_event_destroy(&wma_handle->tx_frm_download_comp_event);
-
-	/* Reset Tx Frm Callbacks */
-	wma_handle->tx_frm_download_comp_cb = NULL;
-
-	return VOS_STATUS_SUCCESS;
-}
-#endif
-
 /* function   : wma_close
  * Descriptin :  
  * Args       :        
@@ -927,14 +811,6 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 				adf_os_get_dma_mem_context(
 					(&(wma_handle->mem_chunks[idx])),
 					memctx));
-	}
-#endif
-
-#ifdef NOT_YET
-	/* detach the tx/rx frame services */
-	if (wma_mgmt_detach(wma_handle) != VOS_STATUS_SUCCESS) {
-		WMA_LOGP("wma_close Fail to detach tx/rx frm services");
-		return VOS_STATUS_E_FAILURE;
 	}
 #endif
 
@@ -1239,187 +1115,6 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev)
 	WMA_LOGD("Exit");
 }
 
-#ifdef NOT_YET
-#ifndef QCA_WIFI_ISOC
-/*
- * WMA handler for wmi management rx. Received frame
- * is copied onto wbuf and sent to umac along with
- * rx meta information.
- */
-static int wma_mgmt_rx_event_handler(void *wma_context, u_int8_t *data,
-				     u_int16_t data_len)
-{
-	tp_wma_handle wma_handle = (tp_wma_handle) wma_context;
-	wmi_mgmt_rx_event *rx_event = (wmi_mgmt_rx_event *) data;
-	tp_rxpacket rx_pkt;
-	adf_nbuf_t wbuf;
-	struct ieee80211_frame *wh;
-
-	if (!rx_event) {
-		printk("RX event is NULL\n");
-		return 0;
-	}
-
-	rx_pkt = vos_mem_malloc(sizeof(*rx_pkt));
-	if (!rx_pkt) {
-		printk("Failed to allocate rx packet\n");
-		return 0;
-	}
-
-	/*
-	 * Fill in meta information needed by pe/lim
-	 * TODO: Try to maintain rx metainfo as part of skb->data.
-	 */
-	rx_pkt->rxpktmeta.channel = rx_event->hdr.channel;
-	rx_pkt->rxpktmeta.snr = rx_pkt->rxpktmeta.rssi = rx_event->hdr.snr;
-	/*
-	 * FIXME: Assigning the local timestamp as hw timestamp is not
-	 * available. Need to see if pe/lim really uses this data.
-	 */
-	rx_pkt->rxpktmeta.timestamp = (u_int32_t) jiffies;
-	rx_pkt->rxpktmeta.mpdu_hdr_len = sizeof(struct ieee80211_frame);
-	rx_pkt->rxpktmeta.mpdu_len = rx_event->hdr.buf_len;
-	rx_pkt->rxpktmeta.mpdu_data_len = rx_event->hdr.buf_len -
-					  rx_pkt->rxpktmeta.mpdu_hdr_len;
-
-	/* Why not just use rx_event->hdr.buf_len? */
-	wbuf = adf_nbuf_alloc(NULL, roundup(data_len -
-					    sizeof(wmi_mgmt_rx_hdr), 4),
-			      0, 4, FALSE);
-	if (!wbuf) {
-		printk("Failed to allocate wbuf for mgmt rx\n");
-		return 0;
-	}
-
-	adf_nbuf_put_tail(wbuf, rx_event->hdr.buf_len);
-	adf_nbuf_set_protocol(wbuf, ETH_P_CONTROL);
-	wh = (struct ieee80211_frame *) adf_nbuf_data(wbuf);
-
-	rx_pkt->rxpktmeta.mpdu_hdr_ptr = adf_nbuf_data(wbuf);
-	rx_pkt->rxpktmeta.mpdu_data_ptr = rx_pkt->rxpktmeta.mpdu_hdr_ptr +
-					  rx_pkt->rxpktmeta.mpdu_hdr_len;
-	rx_pkt->rx_nbuf = wbuf;
-
-#ifdef BIG_ENDIAN_HOST
-	{
-		/*
-		 * for big endian host, copy engine byte_swap is enabled
-		 * But the rx mgmt frame buffer content is in network byte order
-		 * Need to byte swap the mgmt frame buffer content - so when
-		 * copy engine does byte_swap - host gets buffer content in the
-		 * correct byte order.
-		 */
-		int i;
-		u_int32_t *destp, *srcp;
-		destp = (u_int32_t *) wh;
-		srcp =  (u_int32_t *) rx_event->bufp;
-		for (i = 0;
-		     i < (roundup(rx_event->hdr.buf_len, sizeof(u_int32_t)) / 4);
-		     i++) {
-			*destp = cpu_to_le32(*srcp);
-			destp++; srcp++;
-		}
-	}
-#else
-	adf_os_mem_copy(wh, rx_event->bufp, rx_event->hdr.buf_len);
-#endif
-
-	return wma_handle->mgmt_frm_rxcb(wma_handle->mac_context, rx_pkt);
-}
-#endif /* QCA_WIFI_ISOC */
-
-#ifdef QCA_WIFI_ISOC
-/**
-  * wma_mgmt_rx_dxe_handler - handles rx mgmt packet
-  * @context: context with which the handler is registered 
-  * @buflist: rx mgmt nbuf list recieved
-  *
-  * This function will go through the nbuf list of rx management pkts
-  * and retrieves the necesary Rx Meta information anf fill the Rx pcaket
-  * with those data. If the upper layer is registered for the rx mgmt packet
-  * then packet will be delivered by calling the call backs.
-  */
-static void
-wma_mgmt_rx_dxe_handler(void *context, adf_nbuf_t buflist)
-{
-	adf_nbuf_t tmp_next, cur = buflist;
-	isoc_rx_bd_t *rx_bd;
-	tp_rxpacket rx_packet;
-	u_int8_t mpdu_header_offset = 0;
-
-	tp_wma_handle wma_handle = (tp_wma_handle)context;
-
-	while (cur) {
-		/* Store the next buf in the list */
-		tmp_next = adf_nbuf_next(cur);
-		 
-		/* Move to next nBuf in list */
-		adf_nbuf_set_next(cur, NULL);
-
-		/* Get the Rx Bd */		
-		rx_bd = (isoc_rx_bd_t *)adf_nbuf_data(cur);
-
-		/* Get MPDU Offset in RxBd */
-		mpdu_header_offset = rx_bd->mpdu_header_offset;
-
-		/*
-		 * Allocate memory for the Rx Packet 
-		 * that has to be delivered to UMAC
-		 */
-		rx_packet = (tp_rxpacket) vos_mem_malloc(sizeof(t_rxpacket));
-		
-		if(NULL == rx_packet)
-		{
-			printk("%s Rx Packet Mem Alloc Failed\n",__func__);
-			adf_nbuf_free(cur);
-			goto next_nbuf;
-		}
-
-		/* Fill packet related Meta Info */
-		rx_packet->rxpktmeta.channel = wma_rxbd_to_chnid(rx_bd);
-		rx_packet->rxpktmeta.rssi = rx_bd->rssi0;
-		rx_packet->rxpktmeta.snr = (((rx_bd->phy_stats1) >> 24) & 0xff);
-		rx_packet->rxpktmeta.timestamp = rx_bd->rx_timestamp;
-		
-		rx_packet->rxpktmeta.mpdu_hdr_len = rx_bd->mpdu_header_length;		
-		rx_packet->rxpktmeta.mpdu_len = rx_bd->mpdu_length;
-		rx_packet->rxpktmeta.mpdu_data_len = 
-			           rx_bd->mpdu_length - rx_bd->mpdu_header_length;
-
-		/* set the length of the packet buffer */
-		adf_nbuf_put_tail(cur,
-			mpdu_header_offset + rx_bd->mpdu_length);
-
-		/*
-        	 * Rx Bd is removed from adf_nbuf
-        	 * adf_nbuf is having only Rx Mgmt packet
-        	 */
-		rx_packet->rxpktmeta.mpdu_hdr_ptr = 
-		                    adf_nbuf_pull_head(cur,mpdu_header_offset);
-
-		/* Store the MPDU Data Pointer in Rx Packet */
-		rx_packet->rxpktmeta.mpdu_data_ptr = 
-		        rx_packet->rxpktmeta.mpdu_hdr_ptr + rx_bd->mpdu_header_length;
-
-		/*
-        	 * Rx Bd is removed from adf_nbuf data
-        	 * adf_nbuf data is having only Rx Mgmt packet
-        	 */
-		rx_packet->rx_nbuf = cur;
-
-		/*
-                 * Call the Callback registered by umac with wma
-		 * for Rx Management Frames
-		 */		
-		wma_handle->mgmt_frm_rxcb(wma_handle->mac_context, rx_packet);
-
-next_nbuf:
-		/* Move to next nBuf in the list */
-		cur = tmp_next;
-    }	
-}
-#endif
-
 /**
   * wma_mgmt_tx_dload_comp_hldr - handles tx mgmt completion
   * @context: context with which the handler is registered
@@ -1578,94 +1273,6 @@ error:
 	wma_handle->tx_frm_download_comp_cb = NULL;
 	return VOS_STATUS_E_FAILURE;
 }
-
-/**
-  * wma_mgmt_attach - attches mgmt fn with underlying layer
-  * DXE in case of Integrated, WMI incase of Discrete
-  * @pwmaCtx: wma context
-  * @pmacCtx: mac Context
-  * @mgmt_frm_rxcb: Rx mgmt Callback
-  */
-VOS_STATUS wma_mgmt_attach(void *wma_context, void *mac_context,
-                           wma_mgmt_rx_cb  mgmt_frm_rxcb)
-{
-	tp_wma_handle wma_handle = (tp_wma_handle)(wma_context);
-
-	/* Get the Vos Context */
-	pVosContextType vos_handle =
-		(pVosContextType)(wma_handle->vos_context);
-	
-	/* Get the txRx Pdev handle */
-	ol_txrx_pdev_handle txrx_pdev =
-		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
-
-#ifdef QCA_WIFI_ISOC
-	struct htt_dxe_pdev_t *htt_dxe_pdev = 
-		(struct htt_dxe_pdev_t *)(txrx_pdev->htt_pdev);
-
-	if (0 != dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
-				wma_mgmt_rx_dxe_handler, wma_handle)) {
-		WMA_LOGE("Failed to register for Rx Mgmt with Dxe");
-		return VOS_STATUS_E_FAILURE;
-	}
-#else
-	if (0 != wmi_unified_register_event_handler(wma_handle->wmi_handle,
-					WMI_MGMT_RX_EVENTID,
-					wma_mgmt_rx_event_handler)) {
-		WMA_LOGE("Failed to register for WMI_MGMT_RX_EVENTID");
-		return VOS_STATUS_E_FAILURE;
-	}
-#endif
-
-	/* Register for Tx Management Frames */
-	wdi_in_mgmt_tx_cb_set(txrx_pdev, GENERIC_DOWNLD_COMP_NOACK_COMP_INDEX,
-				wma_mgmt_tx_dload_comp_hldr, NULL,
-				mac_context);
-
-	/* Store the Mac Context */
-	wma_handle->mac_context = mac_context;
-
-	/* Register the Rx Mgmt Cb with WMA */
-	wma_handle->mgmt_frm_rxcb = mgmt_frm_rxcb;
-
-	return VOS_STATUS_SUCCESS;
-}
-
-/**
-  * wma_register_mgmt_ack_cb  - register ack cb for tx mgmt frame
-  * @tp_wma_handle: wma_handle
-  * @ol_txrx_mgmt_tx_cb: ack_cb
-  * @frame_index: mgmt frame index
-  * @mac_context
-  */
-VOS_STATUS wma_register_mgmt_ack_cb(void *wma_context,
-					ol_txrx_mgmt_tx_cb ack_cb,
-					enum frame_index tx_frm_index,
-					void *mac_context)
-{
-	tp_wma_handle wma_handle = (tp_wma_handle)(wma_context);
-
-	/* Get the Vos Context */
-	pVosContextType vos_handle =
-		(pVosContextType)(wma_handle->vos_context);
-
-	/* Get the txRx Pdev handle */
-	ol_txrx_pdev_handle txrx_pdev =
-		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
-
-	if (tx_frm_index >= FRAME_INDEX_MAX) {
-		WMA_LOGE("Fail to register ack cb Invalid Frame Index");
-		return VOS_STATUS_E_FAILURE;
-	}
-
-	/* Register for Tx Management Frames */
-	wdi_in_mgmt_tx_cb_set(txrx_pdev, tx_frm_index,
-				wma_mgmt_tx_dload_comp_hldr, ack_cb,
-				mac_context);
-
-	return VOS_STATUS_SUCCESS;
-}
-#endif
 
 /* function   :wma_setneedshutdown 
  * Descriptin :
