@@ -26,6 +26,40 @@
 /*--------------------------------------------------------------------------
   Include Files
   ------------------------------------------------------------------------*/
+#ifdef QCA_WIFI_2_0
+#include <wlan_qct_wdi_ds.h>
+#include "adf_os_types.h"
+/*
+ * Rx Packet Struct
+ */
+typedef struct
+{
+   u_int8_t channel;
+   u_int8_t snr;
+   u_int32_t rssi;
+   u_int32_t timestamp;
+   u_int8_t *mpdu_hdr_ptr;
+   u_int8_t *mpdu_data_ptr;
+   u_int32_t mpdu_len;
+   u_int32_t mpdu_hdr_len;
+   u_int32_t mpdu_data_len;
+}t_packetmeta, *tp_packetmeta;
+
+/* implementation specific vos packet type */
+struct vos_pkt_t
+{
+   /* Packet Meta Information */
+   t_packetmeta pkt_meta;
+
+   /* Pointer to Packet */
+   void *pkt_buf;
+};
+
+// the number of Receive vos packets used exclusively for vos packet
+// allocations of type VOS_PKT_TYPE_RX_RAW
+#define VPKT_NUM_RX_RAW_PACKETS (1024)
+
+#else
 #include <vos_types.h>
 #include <vos_list.h>
 #include <linux/skbuff.h>
@@ -239,5 +273,5 @@ VOS_STATUS vos_packet_open( v_VOID_t *pVosContext,
 
 ---------------------------------------------------------------------------*/
 VOS_STATUS vos_packet_close( v_PVOID_t pVosContext );
-
+#endif
 #endif  // !defined( __I_VOS_PACKET_H )
