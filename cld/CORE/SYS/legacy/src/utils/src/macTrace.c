@@ -21,7 +21,7 @@
 
 #include "macTrace.h"
 #include "wlan_qct_wda.h"
-
+#include "vos_memory.h"
 
 #ifdef TRACE_RECORD
 static tTraceRecord gTraceTbl[MAX_TRACE_RECORDS];
@@ -694,6 +694,10 @@ void macTraceNew(tpAniSirGlobal pMac, tANI_U8 module, tANI_U8 code, tANI_U8 sess
 
     if(!gTraceData.enable)
         return;
+
+    if(vos_is_in_irq_context())
+        return;
+
     //If module is not registered, don't record for that module.
     if(traceCBTable[module] == NULL)
         return;
