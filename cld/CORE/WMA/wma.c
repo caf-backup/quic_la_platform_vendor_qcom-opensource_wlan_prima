@@ -82,6 +82,7 @@
 #include "vos_utils.h"
 
 /* ################### defines ################### */
+#define WMA_2_4_GHZ_MAX_FREQ  3000
 
 #define WMA_DEFAULT_SCAN_PRIORITY            1
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
@@ -784,6 +785,75 @@ error1:
 	return vos_status;
 }
 
+/* function   : wma_update_channel_list
+ * Descriptin : Function is used to update the support channel list
+ * Args       : wma_handle, list of supported channels and power
+ * Retruns    : SUCCESS or FAILURE
+ */
+VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
+				tSirUpdateChanList *chan_list)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_buf_t buf;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	wmi_scan_chan_list_cmd *cmd;
+	int status, len, i;
+
+	len = sizeof(wmi_scan_chan_list_cmd)+
+		(sizeof(wmi_channel) * (chan_list->numChan - 1));
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate memory");
+		vos_status = VOS_STATUS_E_NOMEM;
+		goto end;
+	}
+
+	cmd = (wmi_scan_chan_list_cmd *) wmi_buf_data(buf);
+
+	WMA_LOGD("no of channels = %d, len = %d", chan_list->numChan, len);
+
+	cmd->num_scan_chans = chan_list->numChan;
+	vos_mem_zero(cmd->chan_info,
+			sizeof(wmi_channel) * cmd->num_scan_chans);
+
+	for (i = 0; i < chan_list->numChan; ++i) {
+		cmd->chan_info[i].mhz =
+			vos_chan_to_freq(chan_list->chanParam[i].chanId);
+		cmd->chan_info[i].band_center_freq1 = cmd->chan_info[i].mhz;
+		cmd->chan_info[i].band_center_freq2 = 0;
+
+		WMA_LOGD("chan[%d] = %u", i, cmd->chan_info[i].mhz);
+
+		if (cmd->chan_info[i].mhz < WMA_2_4_GHZ_MAX_FREQ) {
+			WMI_SET_CHANNEL_MODE(&cmd->chan_info[i],
+					MODE_11G);
+		} else {
+			WMI_SET_CHANNEL_MODE(&cmd->chan_info[i],
+					MODE_11A);
+		}
+
+		WMI_SET_CHANNEL_MAX_POWER(&cmd->chan_info[i],
+				chan_list->chanParam[i].pwr);
+
+		WMI_SET_CHANNEL_REG_POWER(&cmd->chan_info[i],
+				chan_list->chanParam[i].pwr);
+		/*TODO: Set WMI_SET_CHANNEL_MIN_POWER */
+		/*TODO: Set WMI_SET_CHANNEL_ANTENNA_MAX */
+		/*TODO: WMI_SET_CHANNEL_REG_CLASSID*/
+	}
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+			WMI_SCAN_CHAN_LIST_CMDID);
+
+	if (status != 0) {
+		vos_status = VOS_STATUS_E_FAILURE;
+		WMA_LOGE("Failed to send the WMI_SCAN_CHAN_LIST_CMDID");
+	}
+end:
+	return vos_status;
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -834,6 +904,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_START_SCAN_OFFLOAD_REQ:
 			wma_start_scan(wma_handle, msg->bodyptr);
+			break;
+		case WDA_UPDATE_CHAN_LIST_REQ:
+			wma_update_channel_list(wma_handle,
+					(tSirUpdateChanList *)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
@@ -1569,83 +1643,6 @@ int wma_resume_target(WMA_HANDLE handle)
 	}
 	return wmi_unified_cmd_send(wma_handle->wmi_handle, wmibuf, 0,
 			WMI_PDEV_RESUME_CMDID);
-}
-#endif
-
-#ifdef NOT_YET
-/* function   : wma_update_channel_list
- * Descriptin :
- * Args       :
- * Retruns    :
- */
-VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
-					void *scan_info)
-{
-	tp_wma_handle wma_handle = (tp_wma_handle) handle;
-	wmi_buf_t buf;
-	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-	wmi_scan_chan_list_cmd *cmd;
-	tCsrScanStruct *scan = (tCsrScanStruct *) scan_info;
-	u_int32_t no_of_channels = scan->base20MHzChannels.numChannels;
-	tChannelListWithPower *power_tbl = &scan->defaultPowerTable[0];
-	int status, len, i;
-
-	WMA_LOGD("Enter");
-
-	len = sizeof(wmi_scan_chan_list_cmd)+
-		(sizeof(wmi_channel) * no_of_channels);
-
-	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
-	if (!buf) {
-		WMA_LOGE("Failed to allocate memory");
-		vos_status = VOS_STATUS_E_NOMEM;
-		goto end;
-	}
-
-	cmd = (wmi_scan_chan_list_cmd *) wmi_buf_data(buf);
-
-	WMA_LOGD("no_of_channels = %d, len = %d", no_of_channels, len);
-
-	cmd->num_scan_chans = no_of_channels;
-	vos_mem_zero(cmd->chan_info,
-			sizeof(wmi_channel) * cmd->num_scan_chans);
-
-	for (i = 0; i < no_of_channels; ++i) {
-		cmd->chan_info[i].mhz =
-			vos_chan_to_freq(power_tbl[i].chanId);
-		cmd->chan_info[i].band_center_freq1 = cmd->chan_info[i].mhz;
-		cmd->chan_info[i].band_center_freq2 = 0;
-
-		WMA_LOGD("chan[%d] = %u", i, cmd->chan_info[i].mhz);
-
-		if (cmd->chan_info[i].mhz < 3000) {
-			WMI_SET_CHANNEL_MODE(&cmd->chan_info[i],
-						MODE_11G);
-		} else {
-			WMI_SET_CHANNEL_MODE(&cmd->chan_info[i],
-						MODE_11A);
-		}
-
-		WMI_SET_CHANNEL_MAX_POWER(&cmd->chan_info[i],
-					power_tbl[i].pwr);
-
-		WMI_SET_CHANNEL_REG_POWER(&cmd->chan_info[i],
-					power_tbl[i].pwr);
-		/*TODO: Set WMI_SET_CHANNEL_MIN_POWER */
-		/*TODO: Set WMI_SET_CHANNEL_ANTENNA_MAX */
-		/*TODO: WMI_SET_CHANNEL_REG_CLASSID*/
-	}
-
-	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
-					WMI_SCAN_CHAN_LIST_CMDID);
-
-	if (status != 0) {
-		vos_status = VOS_STATUS_E_FAILURE;
-		WMA_LOGE("Failed to send the WMI_SCAN_CHAN_LIST_CMDID");
-	}
-end:
-	WMA_LOGD("Exit");
-	return vos_status;
 }
 #endif
 
