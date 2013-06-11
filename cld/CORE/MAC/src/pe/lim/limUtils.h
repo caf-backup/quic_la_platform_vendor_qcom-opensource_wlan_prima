@@ -225,7 +225,7 @@ void limUtilCountStaAdd(tpAniSirGlobal pMac, tpDphHashNode pSta, tpPESession pse
 void limUtilCountStaDel(tpAniSirGlobal pMac, tpDphHashNode pSta, tpPESession psessionEntry);
 
 tANI_U8 limGetHTCapability( tpAniSirGlobal, tANI_U32, tpPESession);
-void limTxComplete( tHalHandle hHal, void *pData );
+void limTxComplete( tHalHandle hHal, void *pData, v_BOOL_t free );
 
 /**********Admit Control***************************************/
 

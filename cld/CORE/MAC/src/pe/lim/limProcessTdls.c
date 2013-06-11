@@ -470,7 +470,10 @@ tSirRetStatus limSendTdlsDisReqFrame(tpAniSirGlobal pMac, tSirMacAddr peer_mac,
 #ifndef NO_PAD_TDLS_MIN_8023_SIZE
     tANI_U32            padLen = 0;
 #endif
+    tANI_U8             smeSessionId = 0;
 
+    if(psessionEntry)
+       smeSessionId = psessionEntry->smeSessionId;
     /* 
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
      * and then hand it off to 'dot11fPackProbeRequest' (for
@@ -626,7 +629,8 @@ tSirRetStatus limSendTdlsDisReqFrame(tpAniSirGlobal pMac, tSirMacAddr peer_mac,
                             TID_AC_VI,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME);
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId);
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
@@ -923,6 +927,10 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
 //  To support this feature, we need to introduce WNI_CFG_TDLS_CHANNEL_BONDING_MODE
 //  As of now, we hardcoded to max channel bonding of dot11Mode (i.e HT80 for 11ac/HT40 for 11n)
 //  uint32 tdlsChannelBondingMode;
+    tANI_U8             smeSessionId = 0;
+
+    if(psessionEntry)
+       smeSessionId = psessionEntry->smeSessionId;
 
     /* 
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
@@ -1143,7 +1151,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
                             0,
                             limTxComplete, pFrame, 
                             limMgmtTXComplete,
-                            HAL_USE_SELF_STA_REQUESTED_MASK );
+                            HAL_USE_SELF_STA_REQUESTED_MASK, smeSessionId );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
@@ -1179,6 +1187,10 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
 //  To support this feature, we need to introduce WNI_CFG_TDLS_CHANNEL_BONDING_MODE
 //  As of now, we hardcoded to max channel bonding of dot11Mode (i.e HT80 for 11ac/HT40 for 11n)
 //  uint32 tdlsChannelBondingMode;
+    tANI_U8             smeSessionId = 0;
+
+    if(psessionEntry)
+       smeSessionId = psessionEntry->smeSessionId;
 
     /* 
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
@@ -1415,7 +1427,8 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
                             TID_AC_BK,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME );
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId );
 
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
@@ -1447,6 +1460,10 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
 #ifndef NO_PAD_TDLS_MIN_8023_SIZE
     tANI_U32            padLen = 0;
 #endif
+    tANI_U8             smeSessionId = 0;
+
+    if(psessionEntry)
+       smeSessionId = psessionEntry->smeSessionId;
     /* 
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
      * and then hand it off to 'dot11fPackProbeRequest' (for
@@ -1611,7 +1628,8 @@ tSirRetStatus limSendTdlsTeardownFrame(tpAniSirGlobal pMac,
                             TID_AC_VI,
                             limTxComplete, pFrame, 
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME );
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
@@ -1646,7 +1664,10 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
 //  To support this feature, we need to introduce WNI_CFG_TDLS_CHANNEL_BONDING_MODE
 //  As of now, we hardcoded to max channel bonding of dot11Mode (i.e HT80 for 11ac/HT40 for 11n)
 //  uint32 tdlsChannelBondingMode;
+    tANI_U8             smeSessionId = 0;
 
+    if(psessionEntry)
+        smeSessionId = psessionEntry->smeSessionId;
     /* 
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
      * and then hand it off to 'dot11fPackProbeRequest' (for
@@ -1880,7 +1901,8 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
                             TID_AC_BK,
                             limTxComplete, pFrame,
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME );
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId );
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         pMac->lim.mgmtFrameSessionId = 0xff;
@@ -1911,7 +1933,10 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac, tSirMacAddr peer
 #ifndef NO_PAD_TDLS_MIN_8023_SIZE
     tANI_U32            padLen = 0;
 #endif
+    tANI_U8             smeSessionId = 0;
 
+    if(psessionEntry)
+       smeSessionId = psessionEntry->smeSessionId;
     /* 
      * The scheme here is to fill out a 'tDot11fProbeRequest' structure
      * and then hand it off to 'dot11fPackProbeRequest' (for
@@ -2109,7 +2134,8 @@ tSirRetStatus limSendTdlsLinkSetupCnfFrame(tpAniSirGlobal pMac, tSirMacAddr peer
                             TID_AC_VI,
                             limTxComplete, pFrame, 
                             limMgmtTXComplete,
-                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME );
+                            HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME,
+                            smeSessionId );
 
 
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )

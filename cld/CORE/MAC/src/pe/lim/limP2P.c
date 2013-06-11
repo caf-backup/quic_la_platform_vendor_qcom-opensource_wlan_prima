@@ -728,6 +728,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     v_U8_t              *pPresenceRspNoaAttr = NULL;
     v_U8_t              *pNewP2PIe = NULL;
     v_U16_t             remainLen = 0;
+    tANI_U8             smeSessionId = 0;
 
     nBytes = pMbMsg->msgLen - sizeof(tSirMbMsg);
 
@@ -769,6 +770,8 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             return;
         }
     }
+
+    smeSessionId = psessionEntry->smeSessionId;
 
     if ((SIR_MAC_MGMT_FRAME == pFc->type)&&
         ((SIR_MAC_MGMT_PROBE_RSP == pFc->subType)||
@@ -965,7 +968,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         halstatus = halTxFrame( pMac, pPacket, (tANI_U16)nBytes,
                         HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
                         7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame,
-                        txFlag );
+                        txFlag, smeSessionId );
 
         if (!pMbMsg->noack)
         {
@@ -980,7 +983,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         halstatus = halTxFrameWithTxComplete( pMac, pPacket, (tANI_U16)nBytes,
                         HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
                         7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame,
-                        limP2PActionCnf, txFlag );
+                        limP2PActionCnf, txFlag, smeSessionId );
 
         if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
         {
