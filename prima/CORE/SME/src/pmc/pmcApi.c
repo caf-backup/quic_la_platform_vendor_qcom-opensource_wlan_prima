@@ -2596,7 +2596,6 @@ eHalStatus pmcSetNSOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest,
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tpSirHostOffloadReq pRequestBuf;
     vos_msg_t msg;
-    int i;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
     if( NULL == pSession )
