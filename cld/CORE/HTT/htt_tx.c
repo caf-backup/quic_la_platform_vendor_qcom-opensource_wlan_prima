@@ -211,6 +211,15 @@ htt_tx_mgmt_desc_free(struct htt_pdev_t *pdev, A_UINT8 desc_id, A_UINT32 status)
            mgmt_frm,
            status);
     }
+
+    /*
+     * Freeup the Tx Management Buffer
+     * since umac doesn't take care of freeing
+     * the buffer. This is temporary workaround
+     * till Tx Mgmt Clean up changes are in
+     */
+     adf_nbuf_unmap(pdev->osdev, mgmt_frm, ADF_OS_DMA_TO_DEVICE);
+     adf_nbuf_free(mgmt_frm);
 }
 
 void
