@@ -158,6 +158,9 @@ htt_tx_mgmt_desc_alloc(
             pdev->tx_mgmt_desc_ctxt.pool[index].mgmt_frm = mgmt_frm;
             *desc_id = index;
             pdev->tx_mgmt_desc_ctxt.pending_cnt++;
+	    adf_nbuf_init(pdev->tx_mgmt_desc_ctxt.pool[index].msg_buf,
+			  HTC_HEADER_LEN + HTC_HDR_ALIGNMENT_PADDING,
+			  4, sizeof(struct htt_mgmt_tx_desc_t));
             adf_os_spin_unlock_bh(&pdev->htt_tx_mutex);
             return pdev->tx_mgmt_desc_ctxt.pool[index].msg_buf;
         }
@@ -197,13 +200,6 @@ htt_tx_mgmt_desc_free(struct htt_pdev_t *pdev, A_UINT8 desc_id, A_UINT32 status)
 #endif
     adf_nbuf_pull_head(pdev->tx_mgmt_desc_ctxt.pool[desc_id].msg_buf,
                        (HTC_HDR_ALIGNMENT_PADDING));
-    /*
-     * Init nbuf before making it available so that appropritate
-     * header room is available for further use.
-     */
-    adf_nbuf_init(pdev->tx_mgmt_desc_ctxt.pool[desc_id].msg_buf,
-		  HTC_HEADER_LEN + HTC_HDR_ALIGNMENT_PADDING,
-		  4, 0);
     adf_os_spin_unlock_bh(&pdev->htt_tx_mutex);
      /* call back function to freeup management frame */
     if (cb) {
