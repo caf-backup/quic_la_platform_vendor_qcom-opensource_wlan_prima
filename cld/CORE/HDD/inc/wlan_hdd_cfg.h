@@ -1683,6 +1683,14 @@ typedef enum
 #define CFG_LIST_OF_NON_11AC_COUNTRY_CODE                    "gListOfNon11acCountryCode"
 #define CFG_LIST_OF_NON_11AC_COUNTRY_CODE_DEFAULT            "RU,UA,ZA"
 
+/*
+ * SCAN Offload
+ */
+#define CFG_SCAN_OFFLOAD_NAME                     "gEnableDirectedScanOffload"
+#define CFG_SCAN_OFFLOAD_DISABLE                  ( 0 )
+#define CFG_SCAN_OFFLOAD_ENABLE                   ( 1 )
+#define CFG_SCAN_OFFLOAD_DEFAULT                  ( CFG_SCAN_OFFLOAD_DISABLE )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2051,6 +2059,7 @@ typedef struct
    char                        listOfNonDfsCountryCode[128];
    v_BOOL_t                    enableSSR;
    char                        listOfNon11acCountryCode[128];
+   v_U8_t                      fScanOffload;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
