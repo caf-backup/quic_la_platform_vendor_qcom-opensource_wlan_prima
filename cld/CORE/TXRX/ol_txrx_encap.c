@@ -301,20 +301,20 @@ ol_rx_decap_to_native_wifi(
     if (ethr_hdr != NULL) {
         switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) {
         case IEEE80211_FC1_DIR_NODS:
-            adf_os_mem_copy(wh->i_addr1, ethr_hdr->dest_addr, ETHERNET_HDR_LEN);
-            adf_os_mem_copy(wh->i_addr2, ethr_hdr->src_addr, ETHERNET_HDR_LEN);
+            adf_os_mem_copy(wh->i_addr1, ethr_hdr->dest_addr, ETHERNET_ADDR_LEN);
+            adf_os_mem_copy(wh->i_addr2, ethr_hdr->src_addr, ETHERNET_ADDR_LEN);
             break;
         case IEEE80211_FC1_DIR_TODS:
-            adf_os_mem_copy(wh->i_addr2, ethr_hdr->src_addr, ETHERNET_HDR_LEN);
-            adf_os_mem_copy(wh->i_addr3, ethr_hdr->dest_addr, ETHERNET_HDR_LEN);
+            adf_os_mem_copy(wh->i_addr2, ethr_hdr->src_addr, ETHERNET_ADDR_LEN);
+            adf_os_mem_copy(wh->i_addr3, ethr_hdr->dest_addr, ETHERNET_ADDR_LEN);
             break;
         case IEEE80211_FC1_DIR_FROMDS:
-            adf_os_mem_copy(wh->i_addr1, ethr_hdr->dest_addr, ETHERNET_HDR_LEN);
-            adf_os_mem_copy(wh->i_addr3, ethr_hdr->src_addr, ETHERNET_HDR_LEN);
+            adf_os_mem_copy(wh->i_addr1, ethr_hdr->dest_addr, ETHERNET_ADDR_LEN);
+            adf_os_mem_copy(wh->i_addr3, ethr_hdr->src_addr, ETHERNET_ADDR_LEN);
             break;
         case IEEE80211_FC1_DIR_DSTODS:
-            adf_os_mem_copy(wh->i_addr3, ethr_hdr->dest_addr, ETHERNET_HDR_LEN);
-            adf_os_mem_copy(wh->i_addr4, ethr_hdr->src_addr, ETHERNET_HDR_LEN);
+            adf_os_mem_copy(wh->i_addr3, ethr_hdr->dest_addr, ETHERNET_ADDR_LEN);
+            adf_os_mem_copy(wh->i_addr4, ethr_hdr->src_addr, ETHERNET_ADDR_LEN);
             break;
         }
     }
@@ -380,20 +380,20 @@ ol_rx_decap_to_8023 (
         ethr_hdr = (struct ethernet_hdr_t *)local_buf;
         switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) {
         case IEEE80211_FC1_DIR_NODS:
-            adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr1, ETHERNET_HDR_LEN);
-            adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr2, ETHERNET_HDR_LEN);
+            adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr1, ETHERNET_ADDR_LEN);
+            adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr2, ETHERNET_ADDR_LEN);
             break;
         case IEEE80211_FC1_DIR_TODS:
-            adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr3, ETHERNET_HDR_LEN);
-            adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr2, ETHERNET_HDR_LEN);
+            adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr3, ETHERNET_ADDR_LEN);
+            adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr2, ETHERNET_ADDR_LEN);
             break;
         case IEEE80211_FC1_DIR_FROMDS:
-            adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr1, ETHERNET_HDR_LEN);
-            adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr3, ETHERNET_HDR_LEN);
+            adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr1, ETHERNET_ADDR_LEN);
+            adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr3, ETHERNET_ADDR_LEN);
             break;
         case IEEE80211_FC1_DIR_DSTODS:
-            adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr3, ETHERNET_HDR_LEN);
-            adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr4, ETHERNET_HDR_LEN);
+            adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr3, ETHERNET_ADDR_LEN);
+            adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr4, ETHERNET_ADDR_LEN);
             break;
         }
     }
