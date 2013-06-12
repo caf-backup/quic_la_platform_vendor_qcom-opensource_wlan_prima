@@ -2443,6 +2443,13 @@ eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac )
         return eHAL_STATUS_PMC_ALREADY_IN_IMPS;
     }
 
+    /* Check whether driver load unload is in progress */
+    if(vos_is_load_unload_in_progress( VOS_MODULE_ID_VOSS, NULL))
+    {
+       smsLog(pMac, LOGW, FL("Driver load/unload is in progress"));
+       return eHAL_STATUS_PMC_NOT_NOW;
+    }
+
     return ( eHAL_STATUS_SUCCESS );
 }
 
