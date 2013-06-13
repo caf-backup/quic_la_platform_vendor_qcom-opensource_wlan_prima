@@ -599,6 +599,12 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
  */
 #define CONFIG_ATH_PCIE_ACCESS_DEBUG 0
 
+/* 64-bit MSI support */
+#define CONFIG_PCIE_64BIT_MSI 0
+
+/* BAR0 ready checking for AR6320v2 */
+#define BAR0_READY_CHECKING 0
+
 extern A_target_id_t HIFGetTargetId(HIF_DEVICE *hifDevice);
 extern void HIFTargetSleepStateAdjust(A_target_id_t targid, A_BOOL sleep_ok, A_BOOL wait_for_it);
 extern A_BOOL HIFTargetForcedAwake(A_target_id_t targid);
