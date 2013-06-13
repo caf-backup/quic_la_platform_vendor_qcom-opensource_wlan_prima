@@ -13,10 +13,12 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-//------------------------------------------------------------------------------
-// <copyright file="bmi_internal.h" company="Atheros">
-//    Copyright (c) 2004-2008 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 //------------------------------------------------------------------------------
 //==============================================================================
 //

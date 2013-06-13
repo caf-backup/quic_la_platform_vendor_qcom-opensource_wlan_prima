@@ -1,13 +1,15 @@
-//------------------------------------------------------------------------------
-// <copyright file="dl_list.h" company="Atheros">
-//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 //==============================================================================
 // Double-link list definitions (adapted from Atheros SDIO stack)
 //
 // Author(s): ="Atheros"
 //==============================================================================
+
 #ifndef __DL_LIST_H___
 #define __DL_LIST_H___
 

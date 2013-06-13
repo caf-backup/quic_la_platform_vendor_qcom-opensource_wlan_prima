@@ -1,11 +1,9 @@
-//------------------------------------------------------------------------------
-// <copyright file="htc_debug.h" company="Atheros">
-//    Copyright (c) 2007-2008 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
-//==============================================================================
-// Author(s): ="Atheros"
-//==============================================================================
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 #ifndef HTC_DEBUG_H_
 #define HTC_DEBUG_H_
 

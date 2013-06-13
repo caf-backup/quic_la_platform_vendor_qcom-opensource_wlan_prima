@@ -1,6 +1,8 @@
-// Copyright (c) 2011 Atheros Communications, Inc.
-// All rights reserved.
-// $ATH_LICENSE_TARGET_C$
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 
 #ifndef __COPY_ENGINE_API_H__
 #define __COPY_ENGINE_API_H__
