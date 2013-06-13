@@ -713,6 +713,20 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    //Get TL AC corresponding to Qdisc queue index/AC.
    ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
 
+   /* Check if the buffer has enough header room */
+   skb = skb_unshare(skb, GFP_ATOMIC);
+   if (!skb)
+       goto drop_pkt;
+
+   if (skb_headroom(skb) < dev->hard_header_len) {
+       struct sk_buff *tmp;
+       tmp = skb;
+       skb = skb_realloc_headroom(tmp, dev->hard_header_len);
+       dev_kfree_skb(tmp);
+       if (!skb)
+           goto drop_pkt;
+   }
+
    //user priority from IP header, which is already extracted and set from
    //select_queue call back function
    up = skb->priority;
