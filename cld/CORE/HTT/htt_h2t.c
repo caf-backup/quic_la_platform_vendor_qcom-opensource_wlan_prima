@@ -669,7 +669,7 @@ htt_h2t_mgmt_tx(struct htt_pdev_t   *pdev,
         u_int32_t *destp, *srcp;
         destp = (u_int32_t *)tx_mgmt_desc->hdr;
         srcp =  (u_int32_t *)hdr;
-        for(i=0; i < HTT_MGMT_FRM_HDR_DOWNLOAD_LEN; i++) {
+        for(i=0; i < HTT_MGMT_FRM_HDR_DOWNLOAD_LEN/4; i++) {
             *destp = le32_to_cpu(*srcp);
             destp++; srcp++;
         }
