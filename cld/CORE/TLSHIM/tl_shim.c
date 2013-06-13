@@ -16,6 +16,7 @@
 #include "adf_os_types.h"
 #include "adf_nbuf.h"
 #include "adf_os_mem.h"
+#include "adf_os_lock.h"
 #ifdef QCA_WIFI_ISOC
 #include "htt_dxe_types.h"
 #include "isoc_hw_desc.h"
@@ -214,6 +215,30 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 }
 #endif
 
+static void tl_shim_flush_rx_frames(void *vos_ctx,
+				    struct txrx_tl_shim_ctx *tl_shim,
+				    u_int8_t sta_id, bool drop)
+{
+	struct tlshim_sta_info *sta_info = &tl_shim->sta_info[sta_id];
+	struct tlshim_buf *cache_buf, *tmp;
+
+	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
+	list_for_each_entry_safe(cache_buf, tmp,
+				 &sta_info->cached_bufq, list) {
+		list_del(&cache_buf->list);
+		adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+		if (drop)
+			adf_nbuf_free(cache_buf->buf);
+		else {
+			/* Flush the cached frames to HDD */
+			sta_info->data_rx(vos_ctx, cache_buf->buf, sta_id);
+		}
+		adf_os_mem_free(cache_buf);
+		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
+	}
+	adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+}
+
 /*
  * Rx callback from txrx module for data reception.
  */
@@ -222,25 +247,80 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, context);
+	struct tlshim_sta_info *sta_info;
+	adf_nbuf_t buf, next_buf;
 
 	tl_shim = (struct txrx_tl_shim_ctx *) context;
-	if (!tl_shim->sta_info[staid].registered ||
-	    !tl_shim->sta_info[staid].data_rx) {
-		/*
-		 * TODO: Enqueue rx packets received before the
-		 * station is registered.
-		 */
-		adf_nbuf_t buf, next_buf;
+	sta_info = &tl_shim->sta_info[staid];
+
+	/*
+	 * If there is a data frame from peer before the peer is
+	 * registered for data service, enqueue them on to pending queue
+	 * which will be flushed to HDD once that station is registered.
+	 */
+	if (!sta_info->registered) {
+		struct tlshim_buf *cache_buf;
 		buf = rx_buf_list;
-
-		do {
+		while (buf) {
 			next_buf = adf_nbuf_queue_next(buf);
-			adf_nbuf_free(buf);
+			cache_buf = adf_os_mem_alloc(NULL, sizeof(*cache_buf));
+			if (!cache_buf) {
+				TLSHIM_LOGE("Failed to allocate buf to cache the rx frames");
+				adf_nbuf_free(buf);
+			} else {
+				cache_buf->buf = buf;
+				adf_os_spin_lock_bh(&tl_shim->bufq_lock);
+				list_add_tail(&cache_buf->list,
+					      &sta_info->cached_bufq);
+				adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+			}
 			buf = next_buf;
-		} while (buf);
-	}
+		}
+	} else { /* Send rx packet to HDD if there is no frame pending in cached_bufq */
+		/* Suspend frames flush from timer */
+		/*
+		 * TODO: Need to see if acquiring/releasing lock even when
+		 * there is no cached frames have any significant impact on
+		 * performance.
+		 */
+		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
+		sta_info->suspend_flush = 1;
+		adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
 
-	tl_shim->sta_info[staid].data_rx(vos_ctx, rx_buf_list, staid);
+		/* Flush the cached frames to HDD before passing new rx frame */
+		tl_shim_flush_rx_frames(vos_ctx, tl_shim, staid, 0);
+
+		buf = rx_buf_list;
+		while (buf) {
+			next_buf = adf_nbuf_queue_next(buf);
+			sta_info->data_rx(vos_ctx, buf, staid);
+			buf = next_buf;
+		}
+	}
+}
+
+static void tl_shim_cache_flush_work(struct work_struct *work)
+{
+	struct txrx_tl_shim_ctx *tl_shim = container_of(work,
+			struct txrx_tl_shim_ctx, cache_flush_work);
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
+	struct tlshim_sta_info *sta_info;
+	u_int8_t i;
+
+	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+		sta_info = &tl_shim->sta_info[i];
+		if (!sta_info->registered)
+			continue;
+
+		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
+		if (sta_info->suspend_flush) {
+			adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+			continue;
+		}
+		adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+
+		tl_shim_flush_rx_frames(vos_ctx, tl_shim, i, 0);
+	}
 }
 
 /*************************/
@@ -599,8 +679,16 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 	struct txrx_tl_shim_ctx *tl_shim;
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	vos_mem_zero(&tl_shim->sta_info[sta_id],
-		     sizeof(struct tlshim_sta_info));
+	tl_shim->sta_info[sta_id].registered = 0;
+
+	/* Purge the cached rx frame queue */
+	tl_shim_flush_rx_frames(vos_ctx, tl_shim, sta_id, 1);
+	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
+	tl_shim->sta_info[sta_id].suspend_flush = 0;
+	adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+
+	tl_shim->sta_info[sta_id].data_rx = NULL;
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -643,6 +731,10 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 				   ol_txrx_peer_update_peer_security);
 		 */
 	}
+
+	/* Schedule a worker to flush cached rx frames */
+	schedule_work(&tl_shim->cache_flush_work);
+
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -685,6 +777,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 	VOS_STATUS status;
+	u_int8_t i;
 
 	ENTER();
 	status = vos_alloc_context(vos_ctx, VOS_MODULE_ID_TL,
@@ -699,13 +792,23 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 					((pVosContextType) vos_ctx)->adf_ctx);
 	if (!((pVosContextType) vos_ctx)->pdev_txrx_ctx) {
 		TLSHIM_LOGE("Failed to allocate memory for pdev txrx handle");
+		vos_free_context(vos_ctx, VOS_MODULE_ID_TL, tl_shim);
 		return VOS_STATUS_E_NOMEM;
 	}
+
+	adf_os_spinlock_init(&tl_shim->bufq_lock);
+
+	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+		tl_shim->sta_info[i].suspend_flush = 0;
+		INIT_LIST_HEAD(&tl_shim->sta_info[i].cached_bufq);
+	}
+
+	INIT_WORK(&tl_shim->cache_flush_work, tl_shim_cache_flush_work);
 
 	/*
 	 * TODO: Allocate memory for tx callback for maximum supported
 	 * vdevs to maintain tx callbacks per vdev.
 	 */
 
-	return VOS_STATUS_SUCCESS;
+	return status;
 }
