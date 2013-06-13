@@ -29,7 +29,7 @@
 #define TLSHIM_LOGD(args...) \
 	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, ## args)
 #define TLSHIM_LOGW(args...) \
-	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARNING, ## args)
+	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN, ## args)
 #define TLSHIM_LOGE(args...) \
 	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, ## args)
 #define TLSHIM_LOGP(args...) \
@@ -250,6 +250,11 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 	struct tlshim_sta_info *sta_info;
 	adf_nbuf_t buf, next_buf;
 
+	if (staid >= WLAN_MAX_STA_COUNT) {
+		TLSHIM_LOGE("Invalid sta id :%d", staid);
+		goto drop_rx_buf;
+	}
+
 	tl_shim = (struct txrx_tl_shim_ctx *) context;
 	sta_info = &tl_shim->sta_info[staid];
 
@@ -276,7 +281,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 			}
 			buf = next_buf;
 		}
-	} else { /* Send rx packet to HDD if there is no frame pending in cached_bufq */
+	} else if (sta_info->data_rx) { /* Send rx packet to HDD if there is no frame pending in cached_bufq */
 		/* Suspend frames flush from timer */
 		/*
 		 * TODO: Need to see if acquiring/releasing lock even when
@@ -296,6 +301,18 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 			sta_info->data_rx(vos_ctx, buf, staid);
 			buf = next_buf;
 		}
+	} else /* This should not happen if sta_info->registered is true */
+		goto drop_rx_buf;
+
+	return;
+
+drop_rx_buf:
+	TLSHIM_LOGW("Dropping rx packets");
+	buf = rx_buf_list;
+	while (buf) {
+		next_buf = adf_nbuf_queue_next(buf);
+		adf_nbuf_free(buf);
+		buf = next_buf;
 	}
 }
 
@@ -649,6 +666,10 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 	int err;
 
 	ENTER();
+	if (sta_id >= WLAN_MAX_STA_COUNT) {
+		TLSHIM_LOGE("Invalid sta id :%d", sta_id);
+		return VOS_STATUS_E_INVAL;
+	}
 	peer = ol_txrx_peer_find_by_id(
 			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
 			sta_id);
@@ -684,6 +705,11 @@ VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 {
 	struct txrx_tl_shim_ctx *tl_shim;
 
+	if (sta_id >= WLAN_MAX_STA_COUNT) {
+		TLSHIM_LOGE("Invalid sta id :%d", sta_id);
+		return VOS_STATUS_E_INVAL;
+	}
+
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
 	tl_shim->sta_info[sta_id].registered = 0;
 
@@ -715,6 +741,10 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 	ol_txrx_peer_update_param_t param;
 
 	ENTER();
+	if (sta_desc->ucSTAId >= WLAN_MAX_STA_COUNT) {
+		TLSHIM_LOGE("Invalid sta id :%d", sta_desc->ucSTAId);
+		return VOS_STATUS_E_INVAL;
+	}
 	peer = ol_txrx_peer_find_by_id(
 			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
 			sta_desc->ucSTAId);
