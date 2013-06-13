@@ -5329,7 +5329,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_close_adapter; 
 #endif //WLAN_BTAMP_FEATURE
    }
-
+#endif
    /* Register TM level change handler function to the platform */
    status = hddDevTmRegisterNotifyCallback(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -5337,7 +5337,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmRegisterNotifyCallback failed",__func__);
       goto err_unregister_pmops;
    }
-#endif	/* QCA_WIFI_ISOC */
 
    /* register for riva power on lock to platform driver */
    if (req_riva_power_on_lock("wlan"))
