@@ -319,7 +319,8 @@ htt_tx_sched(htt_pdev_handle pdev)
     int download_len = pdev->download_len;
     int packet_len;
 
-     while((msdu =adf_nbuf_queue_first(&pdev->txnbufq))!=NULL){   
+        HTT_TX_NBUF_QUEUE_REMOVE(pdev, msdu);
+        while (msdu != NULL){
         /* packet length includes HTT tx desc frag added above */
         packet_len = adf_nbuf_len(msdu);
         if (packet_len < download_len) {
@@ -336,9 +337,11 @@ htt_tx_sched(htt_pdev_handle pdev)
 
 
         if(HTCSendDataPkt(pdev->htc_pdev, msdu, pdev->htc_endpoint, download_len)){
+            HTT_TX_NBUF_QUEUE_ADD(pdev, msdu);
             return;
         }
         adf_nbuf_queue_remove(&pdev->txnbufq);
+        HTT_TX_NBUF_QUEUE_REMOVE(pdev, msdu);
     }
 }
 
@@ -402,15 +405,15 @@ htt_tx_send_std(
          */
         download_len = packet_len;
     }
-    if(adf_nbuf_queue_len(&pdev->txnbufq) > 0){
-        adf_nbuf_queue_add(&pdev->txnbufq,msdu);
+
+    if (adf_nbuf_queue_len(&pdev->txnbufq) > 0){
+        HTT_TX_NBUF_QUEUE_ADD(pdev, msdu);
         htt_tx_sched(pdev);
         return 0;
     }
-    if(HTCSendDataPkt(pdev->htc_pdev, msdu, pdev->htc_endpoint, download_len)){
-        adf_nbuf_queue_add(&pdev->txnbufq,msdu); 
+    if (HTCSendDataPkt(pdev->htc_pdev, msdu, pdev->htc_endpoint, download_len)){
+        HTT_TX_NBUF_QUEUE_ADD(pdev, msdu);
     }
-
 
     return 0; /* success */
 

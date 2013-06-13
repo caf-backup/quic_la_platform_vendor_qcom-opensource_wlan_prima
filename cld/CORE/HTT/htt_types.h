@@ -71,7 +71,8 @@ struct htt_pdev_t {
 
     HTC_ENDPOINT_ID htc_endpoint;
 #ifdef ATH_11AC_TXCOMPACT
-    adf_nbuf_queue_t        txnbufq;
+    HTT_TX_MUTEX_TYPE		txnbufq_mutex;
+    adf_nbuf_queue_t		txnbufq;
 #endif
 
     struct htt_htc_pkt_union *htt_htc_pkt_freelist;    

@@ -126,7 +126,8 @@ htt_attach(
         goto fail3;
     }
 
-    HTT_TX_MUTEX_INIT(&pdev->htt_tx_mutex); 
+    HTT_TX_MUTEX_INIT(&pdev->htt_tx_mutex);
+    HTT_TX_NBUF_QUEUE_MUTEX_INIT(pdev);
 
     /* pre-allocate some HTC_PACKET objects */
     for (i = 0; i < HTT_HTC_PKT_POOL_INIT_SIZE; i++) {
@@ -260,7 +261,8 @@ htt_detach(htt_pdev_handle pdev)
     htt_rx_detach(pdev);
     htt_tx_detach(pdev);
     htt_htc_pkt_pool_free(pdev);
-    HTT_TX_MUTEX_DESTROY(&pdev->htt_tx_mutex); 
+    HTT_TX_MUTEX_DESTROY(&pdev->htt_tx_mutex);
+    HTT_TX_NBUF_QUEUE_MUTEX_DESTROY(pdev);
     adf_os_mem_free(pdev);
 }
 
