@@ -124,8 +124,93 @@ next_nbuf:
 static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 				       u_int16_t data_len)
 {
-	/* TODO: Fill in meta info and send the frame to PE */
-	return 0;
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
+	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+							   vos_ctx);
+	wmi_mgmt_rx_event *rx_event = (wmi_mgmt_rx_event *) data;
+	vos_pkt_t *rx_pkt;
+	adf_nbuf_t wbuf;
+	struct ieee80211_frame *wh;
+
+	if (!rx_event) {
+		TLSHIM_LOGE("RX event is NULL");
+		return 0;
+	}
+
+	rx_pkt = vos_mem_malloc(sizeof(*rx_pkt));
+	if (!rx_pkt) {
+		TLSHIM_LOGE("Failed to allocate rx packet");
+		return 0;
+	}
+
+	vos_mem_zero(rx_pkt, sizeof(*rx_pkt));
+
+	/*
+	 * Fill in meta information needed by pe/lim
+	 * TODO: Try to maintain rx metainfo as part of skb->data.
+	 */
+	rx_pkt->pkt_meta.channel = rx_event->hdr.channel;
+	rx_pkt->pkt_meta.snr = rx_pkt->pkt_meta.rssi = rx_event->hdr.snr;
+	/*
+	 * FIXME: Assigning the local timestamp as hw timestamp is not
+	 * available. Need to see if pe/lim really uses this data.
+	 */
+	rx_pkt->pkt_meta.timestamp = (u_int32_t) jiffies;
+	rx_pkt->pkt_meta.mpdu_hdr_len = sizeof(struct ieee80211_frame);
+	rx_pkt->pkt_meta.mpdu_len = rx_event->hdr.buf_len;
+	rx_pkt->pkt_meta.mpdu_data_len = rx_event->hdr.buf_len -
+					 rx_pkt->pkt_meta.mpdu_hdr_len;
+
+	/* Why not just use rx_event->hdr.buf_len? */
+	wbuf = adf_nbuf_alloc(NULL,
+			      roundup(data_len - sizeof(wmi_mgmt_rx_hdr), 4),
+			      0, 4, FALSE);
+	if (!wbuf) {
+		TLSHIM_LOGE("Failed to allocate wbuf for mgmt rx");
+		vos_mem_free(rx_pkt);
+		return 0;
+	}
+
+	adf_nbuf_put_tail(wbuf, rx_event->hdr.buf_len);
+	adf_nbuf_set_protocol(wbuf, ETH_P_CONTROL);
+	wh = (struct ieee80211_frame *) adf_nbuf_data(wbuf);
+
+	rx_pkt->pkt_meta.mpdu_hdr_ptr = adf_nbuf_data(wbuf);
+	rx_pkt->pkt_meta.mpdu_data_ptr = rx_pkt->pkt_meta.mpdu_hdr_ptr +
+					  rx_pkt->pkt_meta.mpdu_hdr_len;
+	rx_pkt->pkt_buf = wbuf;
+
+#ifdef BIG_ENDIAN_HOST
+	{
+		/*
+		 * for big endian host, copy engine byte_swap is enabled
+		 * But the rx mgmt frame buffer content is in network byte order
+		 * Need to byte swap the mgmt frame buffer content - so when
+		 * copy engine does byte_swap - host gets buffer content in the
+		 * correct byte order.
+		 */
+		int i;
+		u_int32_t *destp, *srcp;
+		destp = (u_int32_t *) wh;
+		srcp =  (u_int32_t *) rx_event->bufp;
+		for (i = 0;
+		     i < (roundup(rx_event->hdr.buf_len, sizeof(u_int32_t)) / 4);
+		     i++) {
+			*destp = cpu_to_le32(*srcp);
+			destp++; srcp++;
+		}
+	}
+#else
+	adf_os_mem_copy(wh, rx_event->bufp, rx_event->hdr.buf_len);
+#endif
+
+	if (!tl_shim->mgmt_rx) {
+		TLSHIM_LOGE("Not registered for Mgmt rx, dropping the frame");
+		vos_pkt_return_packet(rx_pkt);
+		return 0;
+	}
+
+	return tl_shim->mgmt_rx(vos_ctx, rx_pkt);
 }
 #endif
 
