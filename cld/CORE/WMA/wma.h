@@ -169,6 +169,12 @@ typedef struct s_vdev_tbl {
 	bool used;
 }t_vdev_tbl;
 
+struct scan_param{
+	u_int32_t scan_id;
+	u_int32_t scan_requestor_id;
+	u_int32_t vdev_id;
+};
+
 typedef struct {
 	void *wmi_handle;
 	void *htc_handle;
@@ -219,6 +225,7 @@ typedef struct {
 	hdd_tgt_cfg_cb tgt_cfg_update_cb;
 	HAL_REG_CAPABILITIES reg_cap;
 	u_int32_t scan_id;
+	struct scan_param cur_scan_info;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
