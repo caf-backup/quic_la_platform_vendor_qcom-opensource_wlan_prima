@@ -1191,6 +1191,38 @@ WLANTL_STAPktPending
   WLANTL_ACEnumType    ucAc
 );
 
+#ifdef QCA_WIFI_2_0
+/*===========================================================================
+
+  FUNCTION   WLANTL_SendSTA_DataFrame
+
+  DESCRIPTION
+
+    HDD will call this API when there is a packet to be transmitted
+
+  DEPENDENCIES
+
+    A station must have been registered before sending packet to txrx layer
+
+
+  PARAMETERS
+
+    pvosGCtx:    pointer to the global vos context; a handle to TL's
+                 control block can be extracted from its context
+    ucSTAId:     identifier for the STA that is pending transmission
+    buf:         packet given by uppler layer for tx
+
+  RETURN VALUE
+
+    On success it will return NULL. On failure it will be the
+    passed buf pointer so that the caller will be able to free
+    up the buffer.
+
+============================================================================*/
+adf_nbuf_t WLANTL_SendSTA_DataFrame(v_PVOID_t pvosGCtx, v_U8_t ucSTAId,
+                                    adf_nbuf_t buf);
+#endif
+
 /*==========================================================================
 
   FUNCTION    WLANTL_SetSTAPriority
