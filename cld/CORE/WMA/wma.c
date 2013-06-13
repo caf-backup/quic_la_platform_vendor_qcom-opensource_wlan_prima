@@ -80,6 +80,7 @@
 #include "wdi_in.h"
 
 #include "vos_utils.h"
+#include "tl_shim.h"
 
 /* ################### defines ################### */
 #define WMA_2_4_GHZ_MAX_FREQ  3000
@@ -911,6 +912,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(tAddStaSelfParams *)msg->bodyptr);
 			if (!txrx_vdev_handle)
 				WMA_LOGE("Failed to attach vdev");
+			else
+				WLANTL_RegisterVdev(vos_context,
+						    txrx_vdev_handle);
 			break;
 		case WDA_DEL_STA_SELF_REQ:
 			wma_vdev_detach(wma_handle, (tDelStaSelfParams *)msg->bodyptr);
