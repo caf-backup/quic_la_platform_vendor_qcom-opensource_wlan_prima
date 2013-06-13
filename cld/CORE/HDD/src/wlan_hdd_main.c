@@ -4877,6 +4877,18 @@ void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
 
 }
 
+/* Initialize channel list in sme based on the country code */
+VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx)
+{
+  /*
+   * call crda before sme_init_chan_list which will read NV and store
+   * the default country code.
+   */
+   wlan_hdd_get_crda_regd_entry(hdd_ctx->wiphy, hdd_ctx->cfg_ini);
+
+   return sme_init_chan_list(hdd_ctx->hHal);
+}
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_startup() - HDD init function
@@ -5097,6 +5109,13 @@ register_wiphy:
       }
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
       return VOS_STATUS_SUCCESS;
+   }
+
+   status = hdd_set_sme_chan_list(pHddCtx);
+   if (status != VOS_STATUS_SUCCESS) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: Failed to init channel list", __func__);
+      goto err_wiphy_reg;
    }
 
    /* Note that the vos_preStart() sequence triggers the cfg download.

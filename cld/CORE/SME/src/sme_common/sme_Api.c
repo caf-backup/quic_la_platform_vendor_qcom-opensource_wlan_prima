@@ -956,6 +956,15 @@ eHalStatus sme_Open(tHalHandle hHal)
    return status;
 }
 
+/*
+ * sme_init_chan_list, triggers channel setup based on country code.
+ */
+eHalStatus sme_init_chan_list(tHalHandle hal)
+{
+    tpAniSirGlobal mac = PMAC_STRUCT(hal);
+    return csr_init_chan_list(mac);
+}
+
 /*--------------------------------------------------------------------------
 
   \brief sme_set11dinfo() - Set the 11d information about valid channels

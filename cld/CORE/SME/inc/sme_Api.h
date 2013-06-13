@@ -109,6 +109,25 @@ typedef struct _smeConfigParams
 eHalStatus sme_Open(tHalHandle hHal);
 
 /*--------------------------------------------------------------------------
+
+  \breif sme_init_chan_list() - Initialize sme channel info
+
+  This function initializes sme channel information which can
+  be known only after getting the regulatory information which, for discrete,
+  will come from target after the fw got downloaded. For ISOC, this information
+  will be available in nv.
+
+  \param hal - The handle returned by macOpen.
+
+  \return eHAL_STATUS_SUCCESS - SME is successfully initialized.
+
+        Other status means SME is failed to be initialized
+  \sa
+
+---------------------------------------------------------------------------*/
+eHalStatus sme_init_chan_list(tHalHandle hal);
+
+/*--------------------------------------------------------------------------
   
   \brief sme_Close() - Release all SME modules and their resources.
   

@@ -568,6 +568,8 @@ WMA_OBJS :=     $(WMA_DIR)/wma.o
 
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
 WMA_OBJS +=     $(WMA_DIR)/wma_isoc.o
+else
+WMA_OBJS +=     $(WMA_DIR)/regdomain.o
 endif
 
 ############ WDA ############
