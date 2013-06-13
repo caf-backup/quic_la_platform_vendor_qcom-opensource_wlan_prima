@@ -65,6 +65,9 @@ when        who    what, where, why
 #include "sirApi.h"
 #include "csrApi.h"
 #include "sapApi.h"
+#ifdef QCA_WIFI_2_0
+#include "adf_nbuf.h"
+#endif
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -537,6 +540,7 @@ typedef VOS_STATUS (*WLANTL_STAFetchPktCBType)(
                                             vos_pkt_t**           vosDataBuff,
                                             WLANTL_MetaInfoType*  tlMetaInfo);
 
+#ifndef QCA_WIFI_2_0
 /*----------------------------------------------------------------------------
 
   DESCRIPTION   
@@ -565,6 +569,35 @@ typedef VOS_STATUS (*WLANTL_STARxCBType)( v_PVOID_t              pvosGCtx,
                                           v_U8_t                 ucSTAId,
                                           WLANTL_RxMetaInfoType* pRxMetaInfo);
 
+#else
+
+/*----------------------------------------------------------------------------
+
+  DESCRIPTION
+    Type of the receive callback registered with TL.
+
+    TL will call this to notify the client when a packet was received
+    for a registered STA. This version of rx callback will have HDD
+    adapter pointer and received data buffer in adf_nbuf format.
+
+  PARAMETERS
+
+    IN
+    pvosGCtx:       pointer to the global vos context; a handle to
+                    TL's or HDD's control block can be extracted from
+                    its context
+    pDataBuff:      pointer to the adf_nbuf data buffer that was received
+                    (it may be a linked list)
+    ucSTAId:        station id
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+----------------------------------------------------------------------------*/
+typedef VOS_STATUS (*WLANTL_STARxCBType)(v_PVOID_t              pvosGCtx,
+                                         adf_nbuf_t             pDataBuff,
+                                         v_U8_t                 ucSTAId);
+#endif /* QCA_WIFI_2_0 */
 
 /*----------------------------------------------------------------------------
     INTERACTION WITH BAP
