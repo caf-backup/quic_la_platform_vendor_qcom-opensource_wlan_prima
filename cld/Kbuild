@@ -75,9 +75,6 @@ CONFIG_ATH_PERF_PWR_OFFLOAD := 1
 #Disable packet log
 CONFIG_REMOVE_PKT_LOG := 1
 
-#Enable 11AC TX
-CONFIG_ATH_11AC_TXCOMPACT := 1
-
 #Enable OS specific IRQ abstraction
 CONFIG_ATH_SUPPORT_SHARED_IRQ := 1
 
@@ -113,6 +110,25 @@ CONFIG_LITTLE_ENDIAN := 1
 
 #Enable TX reclaim support
 CONFIG_TX_CREDIT_RECLAIM_SUPPORT := 0
+
+ifeq ($(CONFIG_QCA_WIFI_2_0), 1)
+ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
+# Disable 11AC TX
+CONFIG_ATH_11AC_TXCOMPACT := 0
+# Enable encap/decap on host
+CONFIG_SUPPORT_SW_TXRX_ENCAP := 1
+# Enable high latency support
+CONFIG_SUPPORT_HIGH_LATENCY := 1
+else
+# DISCRETE
+# Enable 11AC TX
+CONFIG_ATH_11AC_TXCOMPACT := 1
+# Disable encap/decap on host
+CONFIG_SUPPORT_SW_TXRX_ENCAP := 0
+# Disable high latency support
+CONFIG_SUPPORT_HIGH_LATENCY := 0
+endif
+endif
 
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
@@ -774,6 +790,10 @@ CDEFINES +=	-DWLAN_DEBUG \
 		-DDEBUG
 endif
 
+ifeq ($(CONFIG_SUPPORT_HIGH_LATENCY),1)
+CDEFINES += -DCONFIG_HL_SUPPORT
+endif
+
 ifeq ($(CONFIG_SLUB_DEBUG_ON),y)
 CDEFINES += -DTIMER_MANAGER
 CDEFINES += -DMEMORY_DEBUG
@@ -876,6 +896,11 @@ endif
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
 CDEFINES += -DQCA_WIFI_ISOC
 CDEFINES += -DANI_BUS_TYPE_PLATFORM=1
+endif
+
+#Enable Encap/Decap on host
+ifeq ($(CONFIG_SUPPORT_SW_TXRX_ENCAP), 1)
+CDEFINES += -DQCA_SUPPORT_SW_TXRX_ENCAP
 endif
 
 #Enable the OS specific ADF abstraction
