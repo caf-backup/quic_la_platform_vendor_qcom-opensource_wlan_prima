@@ -20,6 +20,7 @@
 #include "htt_dxe_types.h"
 #include "isoc_hw_desc.h"
 #endif
+#include "adf_nbuf.h"
 
 #define ENTER() VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Enter:%s", __func__)
 
@@ -126,6 +127,18 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 	return 0;
 }
 #endif
+
+/*
+ * Rx callback from txrx module for data reception.
+ */
+static void tlshim_data_rx_handler(void *context, adf_nbuf_t rx_buf_list)
+{
+	/*
+	 * TODO: txrx to be changed to pass peer id in this callback.
+	 * staion id specific callback to be called to send the packet
+	 * to HDD.
+	 */
+}
 
 /*************************/
 /*	TL APIs		 */
@@ -407,11 +420,15 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 }
 
 /*
- * Nothing to be done for CLD. For CLD, detaching the peer should take
- * care of deregistering the client from data service.
+ * Clear the station information.
  */
 VOS_STATUS WLANTL_ClearSTAClient(void *vos_ctx, u_int8_t sta_id)
 {
+	struct txrx_tl_shim_ctx *tl_shim;
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	vos_mem_zero(&tl_shim->sta_info[sta_id],
+		     sizeof(struct tlshim_sta_info));
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -440,15 +457,11 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 		return VOS_STATUS_E_FAULT;
 
 	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
-	/* TODO: Change HDD rx callback proto type */
-	/*	txrx_ops.rx.std = rxcb; */
-	/*
-	 * TODO: Change HDD to pass adapter so that we can
-	 * pass adapter instead of tl_shim as context to txrx
-	 * for rx callback.
-	 */
+	txrx_ops.rx.std = tlshim_data_rx_handler;
 	wdi_in_osif_vdev_register(peer->vdev, tl_shim, &txrx_ops);
+	/* TODO: Keep the rx callback in sta_info */
 	tl_shim->tx = txrx_ops.tx.std;
+	tl_shim->sta_info[sta_desc->ucSTAId].registered = true;
 	param.qos_capable =  sta_desc->ucQosEnabled;
 	wdi_in_peer_update(peer->vdev, peer->mac_addr.raw, &param,
 			   ol_txrx_peer_update_qos_capable);
