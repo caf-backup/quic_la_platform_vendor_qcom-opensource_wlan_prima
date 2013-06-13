@@ -36,6 +36,14 @@
 #include <ipv6.h>    /* IPv6 header defs */
 #include <ol_vowext_dbg_defs.h>
 
+#ifdef OSIF_NEED_RX_PEER_ID
+#define OL_RX_OSIF_DELIVER(vdev, peer, msdus) \
+       vdev->osif_rx(vdev->osif_dev, peer->peer_ids[0], msdus)
+#else
+#define OL_RX_OSIF_DELIVER(vdev, peer, msdus) \
+       vdev->osif_rx(vdev->osif_dev, msdus)
+#endif /* OSIF_NEED_RX_PEER_ID */
+
 static void ol_rx_process_inv_peer(
     ol_txrx_pdev_handle pdev,
     void *rx_mpdu_desc,
@@ -528,7 +536,7 @@ ol_rx_offload_deliver_ind_handler(
             vdev = peer->vdev;
         }
         if (vdev) {
-            vdev->osif_rx(vdev->osif_dev, head_buf);
+	    OL_RX_OSIF_DELIVER(vdev, peer, head_buf);
         } else {
             buf = head_buf;
             while (1) {
@@ -784,7 +792,7 @@ DONE:
         }
     }
 #endif
-    vdev->osif_rx(vdev->osif_dev, deliver_list_head);
+    OL_RX_OSIF_DELIVER(vdev, peer, deliver_list_head);
 }
 
 void
