@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011 - 2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -640,7 +640,7 @@ ol_rx_defrag_mic(
     u_int16_t data_len,
     u_int8_t mic[])
 {
-    u_int8_t hdr[16];
+    u_int8_t hdr[16] = {0,};
     u_int32_t l, r;
     const u_int8_t *data;
     u_int32_t space;
