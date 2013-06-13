@@ -482,6 +482,8 @@ fail:
    kfree_skb(skb);
    return NETDEV_TX_OK;
 }
+
+#ifndef QCA_WIFI_2_0
 /**============================================================================
   @brief hdd_hard_start_xmit() - Function registered with the Linux OS for 
   transmitting packets. There are 2 versions of this function. One that uses
@@ -656,6 +658,114 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    return NETDEV_TX_OK;
 }
+#else
+/**============================================================================
+  @brief hdd_hard_start_xmit() - Function registered with the Linux OS for
+  transmitting packets. This version of the function directly passes the packet
+  to Transport Layer.
+
+  @param skb      : [in]  pointer to OS packet (sk_buff)
+  @param dev      : [in] pointer to network device
+
+  @return         : NET_XMIT_DROP if packets are dropped
+                  : NET_XMIT_SUCCESS if packet is enqueued succesfully
+  ===========================================================================*/
+int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+{
+   VOS_STATUS status;
+   WLANTL_ACEnumType ac;
+   sme_QosWmmUpType up;
+   hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+   v_BOOL_t granted;
+   v_U8_t STAId = WLAN_MAX_STA_COUNT;
+   hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
+
+   if (WLAN_HDD_IBSS == pAdapter->device_mode)
+   {
+      v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
+
+      STAId = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
+
+      if ((STAId == HDD_WLAN_INVALID_STA_ID) &&
+          (vos_is_macaddr_broadcast( pDestMacAddress ) ||
+           vos_is_macaddr_group(pDestMacAddress)))
+      {
+         STAId = IBSS_BROADCAST_STAID;
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
+                 "%s: BC/MC packet", __func__);
+      }
+      else if (STAId == HDD_WLAN_INVALID_STA_ID)
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+                   "%s: Received Unicast frame with invalid staID", __func__);
+         ++pAdapter->stats.tx_dropped;
+         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+         kfree_skb(skb);
+         return NETDEV_TX_OK;
+      }
+   }
+   else
+   {
+      STAId = pHddStaCtx->conn_info.staId[0];
+   }
+   //Get TL AC corresponding to Qdisc queue index/AC.
+   ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
+
+   //user priority from IP header, which is already extracted and set from
+   //select_queue call back function
+   up = skb->priority;
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
+
+#ifdef HDD_WMM_DEBUG
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+              "%s: Classified as ac %d up %d", __func__, ac, up);
+#endif // HDD_WMM_DEBUG
+
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
+
+   //Make sure we have access to this access category
+   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed) ||
+           ( pHddStaCtx->conn_info.uIsAuthenticated == VOS_FALSE))
+   {
+      granted = VOS_TRUE;
+   }
+   else
+   {
+      status = hdd_wmm_acquire_access( pAdapter, ac, &granted );
+   }
+
+   /* FIXME: Is it fine to drop if wmm stream is not established ? */
+   if (!granted)
+	   goto drop_pkt;
+
+   /*
+    * TODO: Should we stop net queues when txrx returns non-NULL?.
+    */
+   if (WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+				STAId, (adf_nbuf_t) skb) != NULL) {
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+		  "%s: Failed to send packet to txrx for staid:%d",
+		  __func__, STAId);
+	goto drop_pkt;
+   }
+
+   dev->trans_start = jiffies;
+
+   return NETDEV_TX_OK;
+
+drop_pkt:
+   ++pAdapter->stats.tx_dropped;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
+   kfree_skb(skb);
+   return NETDEV_TX_OK;
+}
+#endif /* QCA_WIFI_2_0 */
 
 /**============================================================================
   @brief hdd_Ibss_GetStaId() - Get the StationID using the Peer Mac address
