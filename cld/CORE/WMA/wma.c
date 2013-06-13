@@ -1544,6 +1544,37 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev)
 	WMA_LOGD("Exit");
 }
 
+int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
+		       u_int32_t param_value, u_int32_t vdev_id)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) wma_ctx;
+	wmi_peer_set_param_cmd *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle,
+			    sizeof(wmi_peer_set_param_cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set_param cmd");
+		return -ENOMEM;
+	}
+	cmd = (wmi_peer_set_param_cmd *) wmi_buf_data(buf);
+	cmd->vdev_id = vdev_id;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	cmd->param_id = param_id;
+	cmd->param_value = param_value;
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+				   sizeof(wmi_peer_set_param_cmd),
+				   WMI_PEER_SET_PARAM_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_param cmd");
+		adf_os_mem_free(buf);
+		return -EIO;
+	}
+
+	return 0;
+}
+
 /**
   * WDA_TxPacket - Sends Tx Frame to TxRx
   * This function sends the frame corresponding to the
