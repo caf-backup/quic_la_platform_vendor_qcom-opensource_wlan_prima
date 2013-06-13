@@ -119,7 +119,7 @@ static VOS_STATUS hdd_softap_flush_tx_queues( hdd_adapter_t *pAdapter )
 
    return status;
 }
-
+#ifndef QCA_WIFI_2_0
 /**============================================================================
   @brief hdd_softap_hard_start_xmit() - Function registered with the Linux OS for 
   transmitting packets. There are 2 versions of this function. One that uses
@@ -306,6 +306,118 @@ xmit_done:
    return os_status;
 }
 
+#else
+
+/**============================================================================
+  @brief hdd_softap_hard_start_xmit() - Function registered with the Linux OS
+                                        for transmitting packets.
+
+  @param skb      : [in]  pointer to OS packet (sk_buff)
+  @param dev      : [in] pointer to Libra network device
+
+  @return         : NETDEV_TX_OK
+  ===========================================================================*/
+int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+{
+   WLANTL_ACEnumType ac  = WLANTL_AC_BE;
+   hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
+   hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+   v_MACADDR_t *pDestMacAddress;
+   v_U8_t STAId;
+
+   pDestMacAddress = (v_MACADDR_t*)skb->data;
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
+
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
+              "%s: enter", __func__);
+
+   if (vos_is_macaddr_broadcast( pDestMacAddress ) ||
+       vos_is_macaddr_group(pDestMacAddress))
+   {
+      // The BC/MC station ID is assigned during BSS starting phase.
+      // SAP will return the station ID used for BC/MC traffic.
+      STAId = pHddApCtx->uBCStaId;
+   }
+   else
+   {
+      STAId = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
+      if (STAId == HDD_WLAN_INVALID_STA_ID)
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
+                    "%s: Failed to find right station", __func__);
+         goto drop_pkt;
+      }
+      else if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
+                    "%s: STA %d is unregistered", __func__, STAId);
+         goto drop_pkt;
+      }
+
+      if ( (WLANTL_STA_CONNECTED != pAdapter->aStaInfo[STAId].tlSTAState) &&
+           (WLANTL_STA_AUTHENTICATED != pAdapter->aStaInfo[STAId].tlSTAState) )
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
+                    "%s: Station not connected yet", __func__);
+         goto drop_pkt;
+      }
+      else if(WLANTL_STA_CONNECTED == pAdapter->aStaInfo[STAId].tlSTAState)
+      {
+        if(ntohs(skb->protocol) != HDD_ETHERTYPE_802_1_X)
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_WARN,
+                       "%s: NON-EAPOL packet in non-Authenticated state", __func__);
+            goto drop_pkt;
+        }
+      }
+   }
+
+   //Get TL AC corresponding to Qdisc queue index/AC.
+   ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
+
+   // Check if the buffer has enough header room
+   skb = skb_unshare(skb, GFP_ATOMIC);
+   if (!skb)
+       goto drop_pkt;
+
+   if (skb_headroom(skb) < dev->hard_header_len) {
+       struct sk_buff *tmp;
+       tmp = skb;
+       skb = skb_realloc_headroom(tmp, dev->hard_header_len);
+       dev_kfree_skb(tmp);
+       if (!skb)
+           goto drop_pkt;
+   }
+
+   if (WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+                                 STAId, skb) != NULL) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+                  "%s: Failed to send packet to txrx for staid:%d",
+                  __func__, STAId);
+        goto drop_pkt;
+   }
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
+
+   dev->trans_start = jiffies;
+
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __func__);
+
+   return NETDEV_TX_OK;
+
+drop_pkt:
+
+   ++pAdapter->stats.tx_dropped;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
+   kfree_skb(skb);
+
+   return NETDEV_TX_OK;
+}
+#endif
 /**============================================================================
   @brief hdd_softap_sta_2_sta_xmit This function for Transmitting the frames when the traffic is between two stations.
 
