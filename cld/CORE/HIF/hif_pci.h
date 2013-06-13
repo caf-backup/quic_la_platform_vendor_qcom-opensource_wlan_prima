@@ -61,8 +61,7 @@ struct HIF_CE_pipe_info {
 
 struct HIF_CE_state {
     struct hif_pci_softc *sc;
-    int shut_down; /* Set to non-zero during driver shut down */
-    int started;
+    A_BOOL started;
 
     adf_os_spinlock_t keep_awake_lock;
     unsigned int keep_awake_count;
