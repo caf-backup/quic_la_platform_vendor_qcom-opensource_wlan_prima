@@ -188,7 +188,7 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	v_VOID_t *wmi_handle;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	adf_dev = vos_get_context(VOS_MODULE_ID_ADF, vos_context);
 	htc_handle = vos_get_context(VOS_MODULE_ID_HTC, vos_context);
@@ -282,7 +282,7 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		goto err_event_init;
 	}
 
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 
 	return VOS_STATUS_SUCCESS;
 
@@ -292,6 +292,8 @@ err_event_init:
 err_wmi_attach:
 	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA,
 			 wma_handle);
+
+	WMA_LOGD("%s: Exit", __func__);
 
 	return vos_status;
 }
@@ -308,7 +310,7 @@ VOS_STATUS wma_pre_start(v_VOID_t *vos_ctx)
 	tp_wma_handle wma_handle;
 	vos_msg_t wma_msg = {0} ;
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
@@ -351,7 +353,7 @@ VOS_STATUS wma_pre_start(v_VOID_t *vos_ctx)
 		vos_status = VOS_STATUS_E_FAILURE;
 	}
 end:
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
 }
 
@@ -558,7 +560,7 @@ static VOS_STATUS wma_wni_cfg_dnld(tp_wma_handle wma_handle)
 	v_VOID_t *mac = vos_get_context(VOS_MODULE_ID_PE,
 			wma_handle->vos_context);
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	if (NULL == mac) {
 		WMA_LOGP("Invalid context");
@@ -613,14 +615,14 @@ static VOS_STATUS wma_wni_cfg_dnld(tp_wma_handle wma_handle)
 		vos_mem_free(file_img);
 	}
 
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
 
 fail:
 	if(cfg_bin != NULL)
 		vos_mem_free( file_img );
 
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
 }
 
@@ -875,7 +877,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 	tp_wma_handle wma_handle;
 	ol_txrx_vdev_handle txrx_vdev_handle = NULL;
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 	if(NULL == msg)	{
 		WMA_LOGE("msg is NULL");
 		VOS_ASSERT(0);
@@ -934,7 +936,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			}
 	}
 end:
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 	return vos_status ;
 }
 
@@ -1130,7 +1132,7 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	tp_wma_handle wma_handle;
 	int status;
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
@@ -1175,7 +1177,7 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	}
 
 end:
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
 }
 
@@ -1191,7 +1193,7 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	/* validate the wma_handle */
 	if (NULL == wma_handle) {
@@ -1210,7 +1212,7 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 		goto end;
 	}
 end:
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
 }
 
@@ -1225,7 +1227,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 #if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int32_t idx;
 #endif
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
@@ -1264,7 +1266,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 
 	adf_os_mem_free(((pVosContextType) vos_ctx)->cfg_ctx);
 
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -1474,7 +1476,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle,
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	struct wma_target_cap target_cap;
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	if (!handle || !ev) {
 		WMA_LOGP("Invalid arguments");
@@ -1521,7 +1523,7 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	if ((NULL == wma_handle) || (NULL == ev)) {
 		WMA_LOGP("Invalid arguments");
@@ -1757,7 +1759,7 @@ v_VOID_t wma_setneedshutdown(v_VOID_t *vos_ctx)
 {
 	tp_wma_handle wma_handle;
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
@@ -1768,7 +1770,7 @@ v_VOID_t wma_setneedshutdown(v_VOID_t *vos_ctx)
         }
 
 	wma_handle->needShutdown  = TRUE;
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 }
 
 /* function   : wma_rx_ready_event
@@ -1780,7 +1782,7 @@ v_VOID_t wma_setneedshutdown(v_VOID_t *vos_ctx)
  {
 	tp_wma_handle wma_handle;
 
-	WMA_LOGD("Enter");
+	WMA_LOGD("%s: Enter", __func__);
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
@@ -1797,7 +1799,7 @@ v_VOID_t wma_setneedshutdown(v_VOID_t *vos_ctx)
        }
 #endif
 
-	WMA_LOGD("Exit");
+	WMA_LOGD("%s: Exit", __func__);
 	return wma_handle->needShutdown;
 }
 
