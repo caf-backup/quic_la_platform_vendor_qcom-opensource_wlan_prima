@@ -1552,6 +1552,60 @@ send_bss_resp:
 	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
 }
 
+static int wmi_unified_vdev_up_send(wmi_unified_t wmi,
+				    u_int8_t vdev_id, u_int16_t aid,
+				    u_int8_t bssid[IEEE80211_ADDR_LEN])
+{
+	wmi_vdev_up_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_vdev_up_cmd);
+
+	WMA_LOGD("%s: vdev_id %d aid %d bssid %pM\n", __func__,
+		 vdev_id, aid, bssid);
+	buf = wmi_buf_alloc(wmi, len);
+	if (!buf) {
+		WMA_LOGP("%s:wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_vdev_up_cmd *)wmi_buf_data(buf);
+	cmd->vdev_id = vdev_id;
+	cmd->vdev_assoc_id = aid;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(bssid, &cmd->vdev_bssid);
+	if (wmi_unified_cmd_send(wmi, buf, len, WMI_VDEV_UP_CMDID)) {
+		WMA_LOGP("Failed to send vdev up command\n");
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	return 0;
+}
+
+static void wma_add_sta(tp_wma_handle wma, tpAddStaParams params)
+{
+	ol_txrx_pdev_handle pdev;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if (params->staType != STA_ENTRY_SELF) {
+		WMA_LOGP("%s: unsupported station type %d\n", params->staType);
+		goto out;
+	}
+
+	if (wmi_unified_vdev_up_send(wma->wmi_handle, params->smesessionId,
+				     params->assocId, params->bssId) < 0) {
+		WMA_LOGP("Failed to send vdev up cmd: vdev %d bssid %pM\n",
+			 params->smesessionId, params->bssId);
+		status = VOS_STATUS_E_FAILURE;
+	}
+
+out:
+	ol_txrx_find_peer_by_addr(pdev, params->bssId, &params->staIdx);
+	params->status = status;
+	WMA_LOGD("%s: statype %d vdev_id %d aid %d bssid %pM staIdx %d status %d\n",
+		 __func__, params->staType, params->smesessionId, params->assocId,
+		 params->bssId, params->staIdx, status);
+	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)params, 0);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -1627,6 +1681,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_ADD_BSS_REQ:
 			wma_add_bss(wma_handle, (tpAddBssParams)msg->bodyptr);
+			break;
+		case WDA_ADD_STA_REQ:
+			wma_add_sta(wma_handle, (tpAddStaParams)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
