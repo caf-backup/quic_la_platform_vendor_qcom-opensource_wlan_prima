@@ -88,6 +88,21 @@
 #define WMA_DEFAULT_SCAN_PRIORITY            1
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
 
+static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
+				   u_int8_t *vdev_id)
+{
+	u_int8_t i;
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		if (vos_mem_compare(wma->interfaces[i].addr, addr,
+				sizeof(wma->interfaces[i].addr) == VOS_TRUE)) {
+			*vdev_id = i;
+			return wma->interfaces[i].handle;
+		}
+	}
+	return NULL;
+}
+
 #ifdef BIG_ENDIAN_HOST
 
 /* ############# function definitions ############ */
@@ -986,6 +1001,92 @@ end:
 	return vos_status;
 }
 
+static int wmi_unified_peer_create_send(wmi_unified_t wmi,
+					const u_int8_t *peer_addr,
+					u_int32_t vdev_id)
+{
+	wmi_peer_create_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_peer_create_cmd);
+
+	buf = wmi_buf_alloc(wmi, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_peer_create_cmd *)wmi_buf_data(buf);
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	cmd->vdev_id = vdev_id;
+
+	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_CREATE_CMDID)) {
+		WMA_LOGP("failed to send peer create command\n");
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	return 0;
+}
+
+static VOS_STATUS wma_create_peer(tp_wma_handle wma, u8 *peer_addr,
+				  u_int8_t vdev_id, ol_txrx_vdev_handle vdev)
+{
+	ol_txrx_pdev_handle pdev;
+	ol_txrx_peer_handle peer;
+	u_int8_t peer_id;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+
+	if (ol_txrx_find_peer_by_addr(pdev, peer_addr, &peer_id)) {
+		WMA_LOGP("%s, Already peer %pM exists\n", __func__, peer_addr);
+		return VOS_STATUS_SUCCESS;
+	}
+	if (++wma->peer_count > wma->wlan_resource_config.num_peers) {
+		WMA_LOGP("%s, the peer count exceeds the limit %d\n",
+			 __func__, wma->peer_count - 1);
+		goto err;
+	}
+	peer = ol_txrx_peer_attach(pdev, vdev, peer_addr);
+	if (!peer)
+		goto err;
+
+	if (wmi_unified_peer_create_send(wma->wmi_handle, peer_addr,
+					 vdev_id) < 0) {
+		WMA_LOGP("%s : Unable to create peer in Target\n", __func__);
+		ol_txrx_peer_detach(peer);
+		goto err;
+	}
+	return VOS_STATUS_SUCCESS;
+err:
+	wma->peer_count--;
+	return VOS_STATUS_E_FAILURE;
+}
+
+static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
+{
+	ol_txrx_vdev_handle vdev;
+	u_int8_t vdev_id;
+
+	WMA_LOGD("%s: state %d selfmac %pM\n",
+		 __func__, params->state, params->selfMacAddr);
+	if (params->state != eSIR_LINK_PREASSOC_STATE) {
+		WMA_LOGP("%s: unsupported link state %d\n",
+			 __func__, params->state);
+		goto out;
+	}
+
+	vdev = wma_find_vdev_by_addr(wma, params->selfMacAddr, &vdev_id);
+	if (!vdev) {
+		WMA_LOGP("%s: vdev not found for %pM\n",
+			 __func__, params->selfMacAddr);
+		goto out;
+	}
+
+	wma_create_peer(wma, params->bssid, vdev_id, vdev);
+out:
+	wma_send_msg(wma, WDA_SET_LINK_STATE_RSP, (void *)params, 0);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -1050,6 +1151,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_UPDATE_CHAN_LIST_REQ:
 			wma_update_channel_list(wma_handle,
 					(tSirUpdateChanList *)msg->bodyptr);
+			break;
+		case WDA_SET_LINK_STATE:
+			wma_set_linkstate(wma_handle,
+					  (tpLinkStateParams)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);

@@ -624,8 +624,11 @@ ol_pdev_handle ol_pdev_cfg_attach(adf_os_device_t osdev);
 #define OL_TXRX_INVALID_LOCAL_PEER_ID 0xffff
 #ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
 u_int16_t ol_txrx_local_peer_id(ol_txrx_peer_handle peer);
+ol_txrx_peer_handle ol_txrx_find_peer_by_addr(ol_txrx_pdev_handle pdev,
+                                              u_int8_t *peer_addr,
+                                              u_int8_t *peer_id);
 #else
 #define ol_txrx_local_peer_id(peer) OL_TXRX_INVALID_LOCAL_PEER_ID
+#define ol_txrx_find_peer_by_addr(pdev, peer_addr, peer_id) NULL
 #endif
-
 #endif /* _OL_TXRX_CTRL_API__H_ */
