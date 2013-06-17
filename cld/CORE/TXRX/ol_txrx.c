@@ -107,6 +107,81 @@ ol_tx_desc_pool_size(ol_pdev_handle ctrl_pdev)
     }
     return desc_pool_size;
 }
+#ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
+u_int16_t
+ol_txrx_local_peer_id(ol_txrx_peer_handle peer)
+{
+    return peer->local_id;
+}
+
+static void
+OL_TXRX_LOCAL_PEER_ID_POOL_INIT(struct ol_txrx_pdev_t *pdev)
+{
+    int i;
+
+    /* point the freelist to the first ID */
+    pdev->local_peer_ids.freelist = 0;
+
+    /* link each ID to the next one */
+    for (i = 0; i < OL_TXRX_NUM_LOCAL_PEER_IDS; i++) {
+        pdev->local_peer_ids.pool[i] = i + 1;
+    }
+
+    /* link the last ID to itself, to mark the end of the list */
+    i = OL_TXRX_NUM_LOCAL_PEER_IDS;
+    pdev->local_peer_ids.pool[i] = i;
+
+    adf_os_spinlock_init(&pdev->local_peer_ids.lock);
+}
+
+static void
+OL_TXRX_LOCAL_PEER_ID_ALLOC(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_txrx_peer_t *peer)
+{
+    int i;
+
+    adf_os_spin_lock_bh(&pdev->local_peer_ids.lock);
+    i = pdev->local_peer_ids.freelist;
+    if (pdev->local_peer_ids.pool[i] == i) {
+        /* the list is empty, except for the list-end marker */
+        peer->local_id = OL_TXRX_INVALID_LOCAL_PEER_ID;
+    } else {
+        /* take the head ID and advance the freelist */
+        peer->local_id = i;
+        pdev->local_peer_ids.freelist = pdev->local_peer_ids.pool[i];
+    }
+    adf_os_spin_unlock_bh(&pdev->local_peer_ids.lock);
+}
+
+static void
+OL_TXRX_LOCAL_PEER_ID_FREE(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_txrx_peer_t *peer)
+{
+    int i = peer->local_id;
+    if (i == OL_TXRX_INVALID_LOCAL_PEER_ID) {
+        return;
+    }
+    /* put this ID on the head of the freelist */
+    adf_os_spin_lock_bh(&pdev->local_peer_ids.lock);
+    pdev->local_peer_ids.pool[i] = pdev->local_peer_ids.freelist;
+    pdev->local_peer_ids.freelist = i;
+    adf_os_spin_unlock_bh(&pdev->local_peer_ids.lock);
+}
+
+static void
+OL_TXRX_LOCAL_PEER_ID_CLEANUP(struct ol_txrx_pdev_t *pdev)
+{
+    adf_os_spinlock_destroy(&pdev->local_peer_ids.lock);
+}
+
+#else
+#define OL_TXRX_LOCAL_PEER_ID_POOL_INIT(pdev)   /* no-op */
+#define OL_TXRX_LOCAL_PEER_ID_ALLOC(pdev, peer) /* no-op */
+#define OL_TXRX_LOCAL_PEER_ID_FREE(pdev, peer)  /* no-op */
+#define OL_TXRX_LOCAL_PEER_ID_CLEANUP(pdev)     /* no-op */
+#endif
 
 ol_txrx_pdev_handle
 ol_txrx_pdev_attach(
@@ -397,6 +472,8 @@ ol_txrx_pdev_attach(
 
     pdev->cfg.host_addba = ol_cfg_host_addba(ctrl_pdev);
 
+    OL_TXRX_LOCAL_PEER_ID_POOL_INIT(pdev);
+
     return pdev; /* success */
 
 fail7:
@@ -518,6 +595,8 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
         adf_os_print("WDI detach unsuccessful\n");
     }
 #endif
+    OL_TXRX_LOCAL_PEER_ID_CLEANUP(pdev);
+
     adf_os_mem_free(pdev);
 }
 
@@ -800,6 +879,8 @@ ol_txrx_peer_attach(
      */
     ol_txrx_peer_state_update(pdev, peer->mac_addr.raw, ol_txrx_peer_state_open);
 
+    OL_TXRX_LOCAL_PEER_ID_ALLOC(pdev, peer);
+
     return peer;
 }
 
@@ -975,6 +1056,8 @@ ol_txrx_peer_detach(ol_txrx_peer_handle peer)
 
     /* redirect the peer's rx delivery function to point to a discard func */
     peer->rx_opt_proc = ol_rx_discard;
+
+    OL_TXRX_LOCAL_PEER_ID_FREE(peer->vdev->pdev, peer);
 
      //Add Debug Print to dump Rx Reorder State
     htt_rx_reorder_log_print(vdev->pdev->htt_pdev);
