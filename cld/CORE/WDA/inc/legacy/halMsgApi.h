@@ -485,6 +485,7 @@ typedef struct
     tANI_U8     sessionId; // PE session id for PE<->HAL interface 
                            // HAL sends it back unmodified.
     tSirMacAddr bssid; // Will be removed for PE-HAL integration
+    tANI_U8 smesessionId;
 } tDeleteBssParams, * tpDeleteBssParams;
 
 //

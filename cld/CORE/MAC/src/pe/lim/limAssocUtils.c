@@ -3068,6 +3068,8 @@ limDelBss(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tANI_U16 bssIdx,tpPESession
 
     pDelBssParams->status= eHAL_STATUS_SUCCESS;
     pDelBssParams->respReqd = 1;
+    vos_mem_copy(pDelBssParams->bssid, psessionEntry->bssId, sizeof(tSirMacAddr));
+    pDelBssParams->smesessionId = psessionEntry->smeSessionId;
    PELOGW(limLog( pMac, LOGW, FL("Sending HAL_DELETE_BSS_REQ for BSSID: %X"),
           pDelBssParams->bssIdx);)
 
