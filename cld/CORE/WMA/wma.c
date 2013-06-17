@@ -1535,8 +1535,28 @@ static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
 		if (!params->updateBss)
 			goto send_bss_resp;
 
+		/* Update peer state */
+		if (params->staContext.encryptType == eSIR_ED_NONE) {
+			WMA_LOGD("%s: Update peer(%pM) state into auth\n",
+				 __func__, params->bssId);
+			ol_txrx_peer_state_update(pdev, params->bssId,
+						  ol_txrx_peer_state_auth);
+		} else {
+			WMA_LOGD("%s: Update peer(%pM) state into conn\n",
+				 __func__, params->bssId);
+			ol_txrx_peer_state_update(pdev, params->bssId,
+						  ol_txrx_peer_state_conn);
+		}
+
 		wmi_unified_send_peer_assoc(wma, params->nwType,
 					    &params->staContext);
+		if (params->staContext.encryptType == eSIR_ED_NONE) {
+			WMA_LOGD("%s: send peer authorize wmi cmd for %pM\n",
+				 __func__, params->bssId);
+			wma_set_peer_param(wma, params->bssId,
+					   WMI_PEER_AUTHORIZE, 1,
+					   params->staContext.bssIdx);
+		}
 	}
 send_bss_resp:
 	ol_txrx_find_peer_by_addr(pdev, params->bssId,
