@@ -1365,19 +1365,6 @@ ol_txrx_peer_display(ol_txrx_peer_handle peer, int indent)
 
 #endif /* TXRX_DEBUG_LEVEL */
 
-struct ol_txrx_vdev_t *
-ol_txrx_get_vdev(ol_txrx_pdev_handle pdev, u_int8_t vdev_id)
-{
-    struct ol_txrx_vdev_t *vdev;
-
-    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
-        if(vdev->vdev_id == vdev_id)
-           return vdev;
-    }
-
-    return NULL;
-}
-
 #if TXRX_STATS_LEVEL != TXRX_STATS_LEVEL_OFF
 void
 ol_txrx_stats_display(ol_txrx_pdev_handle pdev)

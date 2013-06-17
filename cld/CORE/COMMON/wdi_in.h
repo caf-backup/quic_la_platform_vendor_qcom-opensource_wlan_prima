@@ -1130,7 +1130,6 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 #define wdi_in_set_privacy_filters ol_txrx_set_privacy_filters
 #define wdi_in_set_drop_unenc ol_txrx_set_drop_unenc
 #define wdi_in_peer_state_update ol_txrx_peer_state_update
-#define wdi_in_get_vdev ol_txrx_get_vdev
 
 #include <ol_txrx_dbg.h>
 

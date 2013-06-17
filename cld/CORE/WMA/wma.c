@@ -473,8 +473,6 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 				tpDelStaSelfParams pdel_sta_self_req_param)
 {
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
-	ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
-						wma_handle->vos_context);
 	void *txrx_hdl;
 
 	/* remove the interface from ath_dev */
@@ -484,8 +482,7 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		status = VOS_STATUS_E_FAILURE;
 	}
 
-	txrx_hdl = wdi_in_get_vdev(txrx_pdev,
-					pdel_sta_self_req_param->sessionId);
+	txrx_hdl = wma_handle->interfaces[pdel_sta_self_req_param->sessionId].handle;
 	if(!txrx_hdl)
 		status = VOS_STATUS_E_FAILURE;
 	else
@@ -1745,16 +1742,9 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 	tpSirMacFrameCtl pFc = (tpSirMacFrameCtl)(adf_nbuf_data(tx_frame));
 	u_int8_t use_6mbps = 0;
 	u_int8_t downld_comp_required = 0;
-	/* Get the Vos Context */
-	pVosContextType vos_handle =
-		(pVosContextType)(wma_handle->vos_context);
-
-	/* Get the txRx Pdev handle */
-	ol_txrx_pdev_handle txrx_pdev =
-		(ol_txrx_pdev_handle)(vos_handle->pdev_txrx_ctx);
 
 	/* Get the vdev handle from vdev id */
-	txrx_vdev = ol_txrx_get_vdev(txrx_pdev, vdev_id);
+	txrx_vdev = wma_handle->interfaces[vdev_id].handle;
 
 	if(!txrx_vdev) {
 		WMA_LOGE("TxRx Vdev Handle is NULL");
