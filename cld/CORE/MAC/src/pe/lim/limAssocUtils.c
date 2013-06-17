@@ -3230,6 +3230,9 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                                                                   pAddBssParams->currentExtChannel,
                                                                   psessionEntry->apCenterChan,
                                                                   psessionEntry);
+        vos_mem_copy(&pAddBssParams->staContext.vht_caps,
+                     (tANI_U8 *)&pAssocRsp->VHTCaps + sizeof(tANI_U8),
+                     sizeof(pAddBssParams->staContext.vht_caps));
     }
     else 
     {
@@ -3320,6 +3323,15 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             if( pBeaconStruct->HTInfo.present )
                 pAddBssParams->staContext.rifsMode = pAssocRsp->HTInfo.rifsMode;
         }
+        pAddBssParams->staContext.smesessionId = psessionEntry->smeSessionId;
+        pAddBssParams->staContext.wpa_rsn = pBeaconStruct->rsnPresent;
+        pAddBssParams->staContext.wpa_rsn |= (pBeaconStruct->wpaPresent << 1);
+        vos_mem_copy(&pAddBssParams->staContext.capab_info,
+                     &pAssocRsp->capabilityInfo,
+                     sizeof(pAddBssParams->staContext.capab_info));
+        vos_mem_copy(&pAddBssParams->staContext.ht_caps,
+                     (tANI_U8 *)&pAssocRsp->HTCaps + sizeof(tANI_U8),
+                     sizeof(pAddBssParams->staContext.ht_caps));
 
         //If WMM IE or 802.11E IE is not present and AP is HT AP then enable WMM
         if ((psessionEntry->limWmeEnabled && (pAssocRsp->wmeEdcaPresent || pAddBssParams->htCapable)) ||
@@ -3655,6 +3667,7 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     pAddBssParams->status = eHAL_STATUS_SUCCESS;
     pAddBssParams->respReqd = true;
 
+    pAddBssParams->staContext.smesessionId = psessionEntry->smeSessionId;
     pAddBssParams->staContext.sessionId = psessionEntry->peSessionId;
     pAddBssParams->sessionId = psessionEntry->peSessionId;
     

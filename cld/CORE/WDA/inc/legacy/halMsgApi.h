@@ -264,6 +264,11 @@ typedef struct
 
     tANI_U8    htLdpcCapable;
     tANI_U8    vhtLdpcCapable;
+    tANI_U8    smesessionId;
+    tANI_U8    wpa_rsn;
+    tANI_U16   capab_info;
+    tANI_U16   ht_caps;
+    tANI_U32   vht_caps;
 } tAddStaParams, *tpAddStaParams;
 
 
