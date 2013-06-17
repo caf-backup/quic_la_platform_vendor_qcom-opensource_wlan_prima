@@ -4754,7 +4754,8 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
                         //Check Auth list. It should contain AuthOpen.
                         for( idx = 0 ; idx < authType->numEntries ; idx++ )
                         {
-                            if( eCSR_AUTH_TYPE_OPEN_SYSTEM == authType->authType[idx] )
+                            if(( eCSR_AUTH_TYPE_OPEN_SYSTEM == authType->authType[idx] ) ||
+                               ( eCSR_AUTH_TYPE_AUTOSWITCH == authType->authType[idx] ))
                             {
                                fMatch = TRUE;
                                negAuthType = eCSR_AUTH_TYPE_OPEN_SYSTEM;
