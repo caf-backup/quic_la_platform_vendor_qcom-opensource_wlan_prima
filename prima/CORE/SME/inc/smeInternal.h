@@ -56,6 +56,7 @@ typedef enum eSmeCommandType
     eSmeCommandTdlsSendMgmt, 
     eSmeCommandTdlsAddPeer, 
     eSmeCommandTdlsDelPeer, 
+    eSmeCommandTdlsLinkEstablish,
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
     eSmeCommandTdlsDiscovery,
     eSmeCommandTdlsLinkSetup,
