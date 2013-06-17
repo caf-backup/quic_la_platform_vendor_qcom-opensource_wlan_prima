@@ -246,7 +246,12 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->max_bssid = mac_params->maxBssId;
 	wma_handle->frame_xln_reqd = mac_params->frameTransRequired;
 	wma_handle->driver_type = mac_params->driverType;
-
+	wma_handle->interfaces = vos_mem_malloc(sizeof(struct wma_txrx_node) *
+						wma_handle->max_bssid);
+	if (!wma_handle->interfaces) {
+		WMA_LOGP("failed to allocate interface table");
+		goto err_wmi_attach;
+	}
 	/* Register the debug print event handler */
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_DEBUG_PRINT_EVENTID,
@@ -290,6 +295,7 @@ err_event_init:
 	wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 					     WMI_DEBUG_PRINT_EVENTID);
 err_wmi_attach:
+	vos_mem_free(wma_handle->interfaces);
 	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA,
 			 wma_handle);
 
@@ -1384,6 +1390,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		wmi_unified_detach(wma_handle->wmi_handle);
 		wma_handle->wmi_handle = NULL;
 	}
+	vos_mem_free(wma_handle->interfaces);
 	/* free the wma_handle */
 	vos_free_context(wma_handle->vos_context, VOS_MODULE_ID_WDA, wma_handle);
 

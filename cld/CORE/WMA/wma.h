@@ -175,6 +175,11 @@ struct scan_param{
 	u_int32_t vdev_id;
 };
 
+struct wma_txrx_node {
+	u_int8_t addr[ETH_ALEN];
+	void *handle;
+};
+
 typedef struct {
 	void *wmi_handle;
 	void *htc_handle;
@@ -226,6 +231,7 @@ typedef struct {
 	HAL_REG_CAPABILITIES reg_cap;
 	u_int32_t scan_id;
 	struct scan_param cur_scan_info;
+	struct wma_txrx_node *interfaces;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
