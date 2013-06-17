@@ -827,6 +827,7 @@ static int
 hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 {
     struct hif_pci_softc *sc = pci_get_drvdata(pdev);
+    void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 
     u32 val;
 
@@ -840,7 +841,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 
     if ((state.event == PM_EVENT_FREEZE) ||
         (state.event == PM_EVENT_SUSPEND)) {
-        if (ol_suspend(sc->ol_sc, 1))
+        if (wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos), 1))
             return (-1);
     }
 

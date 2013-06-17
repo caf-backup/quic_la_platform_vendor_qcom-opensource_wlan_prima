@@ -159,7 +159,6 @@ struct ol_softc {
     bool                    host_80211_enable; /* Enables native-wifi mode on host */
 #endif
     bool                    enableuartprint;    /* enable uart/serial prints from target */
-    u_int8_t                is_target_paused;
     HAL_REG_CAPABILITIES hal_reg_capabilities;    
     struct ol_regdmn *ol_regdmn_handle;
     u_int8_t                bcn_mode;

@@ -89,6 +89,7 @@ VOS_STATUS wma_wait_for_ready_event(WMA_HANDLE handle);
 
 #ifndef QCA_WIFI_ISOC
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);
+void wma_target_suspend_complete(void *context);
 int wma_resume_target(WMA_HANDLE handle);
 #endif
 int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,

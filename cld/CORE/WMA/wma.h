@@ -197,6 +197,7 @@ typedef struct {
 	vos_event_t cfg_nv_rx_complete;
 #endif
 	vos_event_t wma_ready_event;
+	vos_event_t target_suspend;
 	t_cfg_nv_param cfg_nv;
 
 	v_U16_t max_station;

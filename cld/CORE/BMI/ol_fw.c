@@ -170,14 +170,6 @@ u_int32_t host_interest_item_address(u_int32_t target_type, u_int32_t item_offse
 #define REGISTER_DUMP_LEN_MAX   60
 #define REG_DUMP_COUNT		60
 
-void ol_target_send_suspend_complete(void *ctx)
-{
-    struct ol_softc *scn = (struct ol_softc *)ctx;
-
-    scn->is_target_paused = TRUE;
-    wake_up(&scn->sc_osdev->event_queue);
-}
-
 void ol_target_failure(void *instance, A_STATUS status)
 {
 	struct ol_softc *scn = (struct ol_softc *)instance;
@@ -423,32 +415,4 @@ int ol_download_firmware(struct ol_softc *scn)
 	}
 
 	return EOK;
-}
-
-int ol_suspend(struct ol_softc *sc, int disable_target_intr)
-{
-	int ret;
-	void *vos_context;
-
-	vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
-
-	ret = wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos_context), 1);
-	if (!ret) {
-		u_int32_t  timeleft;
-		printk("waiting for target paused event from target\n");
-		/* wait for the event from Target*/
-		timeleft = wait_event_interruptible_timeout(sc->sc_osdev->event_queue,
-				(sc->is_target_paused == TRUE),
-				200);
-		if(!timeleft || signal_pending(current)) {
-			printk("ERROR: Failed to receive target paused event \n");
-		}
-		/*
-		 * reset is_target_paused and host can check that in next time,
-		 * or it will always be TRUE and host just skip the waiting
-		 * condition, it causes target assert due to host already suspend
-		 */
-		sc->is_target_paused = FALSE;
-	}
-	return ret;
 }

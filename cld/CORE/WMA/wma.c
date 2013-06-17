@@ -390,6 +390,11 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		WMA_LOGP("wma_ready_event initialization failed");
 		goto err_event_init;
 	}
+        vos_status = vos_event_init(&wma_handle->target_suspend);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("target suspend event initialization failed");
+		goto err_event_init;
+	}
 
 	/* Init Tx Frame Complete event */
 	vos_status = vos_event_init(&wma_handle->tx_frm_download_comp_event);
@@ -2325,6 +2330,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 
 	/* close the vos events */
 	vos_event_destroy(&wma_handle->wma_ready_event);
+	vos_event_destroy(&wma_handle->target_suspend);
 	wma_cleanup_vdev_resp(wma_handle);
 #ifdef QCA_WIFI_ISOC
 	vos_event_destroy(&wma_handle->cfg_nv_tx_complete);
@@ -2930,8 +2936,21 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 		cmd->suspend_opt = WMI_PDEV_SUSPEND;
 	}
 
-	return wmi_unified_cmd_send(wma_handle->wmi_handle, wmibuf, len,
-				    WMI_PDEV_SUSPEND_CMDID);
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmibuf, len,
+				    WMI_PDEV_SUSPEND_CMDID)) {
+		adf_nbuf_free(wmibuf);
+		return -1;
+	}
+	vos_event_reset(&wma_handle->target_suspend);
+	return vos_wait_single_event(&wma_handle->target_suspend, 200);
+}
+
+void wma_target_suspend_complete(void *context)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+
+	vos_event_set(&wma->target_suspend);
 }
 
 int wma_resume_target(WMA_HANDLE handle)

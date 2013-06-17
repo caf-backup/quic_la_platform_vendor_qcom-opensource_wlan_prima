@@ -29,9 +29,7 @@
 #define VDEV_DEFAULT_STATS_UPDATE_PERIOD    500
 #define PEER_DEFAULT_STATS_UPDATE_PERIOD    500
 
-int ol_suspend(struct ol_softc *sc, int disable_target_intr);
 int ol_download_firmware(struct ol_softc *scn);
 int ol_configure_target(struct ol_softc *scn);
-void ol_target_send_suspend_complete(void *ctx);
 void ol_target_failure(void *instance, A_STATUS status);
 #endif /* _OL_FW_H_ */

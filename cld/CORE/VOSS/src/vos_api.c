@@ -308,7 +308,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    }
    htcInfo.pContext = gpVosContext->pHIFContext;
    htcInfo.TargetFailure = ol_target_failure;
-   htcInfo.TargetSendSuspendComplete = ol_target_send_suspend_complete;
+   htcInfo.TargetSendSuspendComplete = wma_target_suspend_complete;
 #endif
    adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, gpVosContext);
 
