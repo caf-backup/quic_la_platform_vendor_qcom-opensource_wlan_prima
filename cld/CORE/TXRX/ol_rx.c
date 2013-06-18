@@ -38,7 +38,7 @@
 
 #ifdef OSIF_NEED_RX_PEER_ID
 #define OL_RX_OSIF_DELIVER(vdev, peer, msdus) \
-       vdev->osif_rx(vdev->osif_dev, peer->peer_ids[0], msdus)
+       vdev->osif_rx(vdev->osif_dev, peer->local_id, msdus)
 #else
 #define OL_RX_OSIF_DELIVER(vdev, peer, msdus) \
        vdev->osif_rx(vdev->osif_dev, msdus)

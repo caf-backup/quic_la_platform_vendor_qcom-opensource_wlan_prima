@@ -84,5 +84,7 @@ void ol_txrx_peer_find_display(ol_txrx_pdev_handle pdev, int indent);
 #else
 #define ol_txrx_peer_find_display(pdev, indent)
 #endif /* TXRX_DEBUG_LEVEL */    
+struct ol_txrx_peer_t *
+ol_txrx_peer_find_by_local_id(ol_txrx_pdev_handle pdev, u_int8_t local_id);
 
 #endif /* _OL_TXRX_PEER_FIND__H_ */
