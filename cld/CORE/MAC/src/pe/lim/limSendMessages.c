@@ -224,9 +224,9 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
     palZeroMemory( pMac->hHdd, (tANI_U8 *) pChnlParams, sizeof(tSwitchChannelParams));
     pChnlParams->secondaryChannelOffset = secondaryChnlOffset;
     pChnlParams->channelNumber= chnlNumber;
+    palCopyMemory( pMac->hHdd, pChnlParams->selfStaMacAddr, pSessionEntry->selfMacAddr, sizeof(tSirMacAddr) );
 #if defined WLAN_FEATURE_VOWIFI  
     pChnlParams->maxTxPower = maxTxPower;
-    palCopyMemory( pMac->hHdd, pChnlParams->selfStaMacAddr, pSessionEntry->selfMacAddr, sizeof(tSirMacAddr) );
 #else
     pChnlParams->localPowerConstraint = localPwrConstraint;
 #endif

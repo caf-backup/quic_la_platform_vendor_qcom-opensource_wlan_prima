@@ -905,9 +905,9 @@ typedef struct
 #if defined WLAN_FEATURE_VOWIFI
     tPowerdBm txMgmtPower; //HAL fills in the tx power used for mgmt frames in this field.
     tPowerdBm maxTxPower;
+#endif
     tSirMacAddr selfStaMacAddr;
                         //the request has power constraints, this should be applied only to that session
-#endif
     /* VO Wifi comment: BSSID is needed to identify which session issued this request. As the 
        request has power constraints, this should be applied only to that session */
     /* V IMP: Keep bssId field at the end of this msg. It is used to mantain backward compatbility
