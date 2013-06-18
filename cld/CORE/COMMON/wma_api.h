@@ -51,16 +51,15 @@
 #include "aniGlobal.h"
 #include "a_types.h"
 #include "wmi_unified.h"
-#ifdef NOT_YET
+#ifndef QCA_WIFI_ISOC
 #include "wlan_hdd_tgt_cfg.h"
+#endif
+#ifdef NOT_YET
 #include "htc_api.h"
 #endif
 #include "limGlobal.h"
 
 typedef v_VOID_t* WMA_HANDLE;
-
-VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_context,
-		    tMacOpenParameters *mac_params);
 
 #ifdef QCA_WIFI_ISOC
 VOS_STATUS wma_nv_download_start(v_VOID_t *vos_context);

@@ -344,7 +344,13 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    */
    macOpenParms.frameTransRequired = 1;
    macOpenParms.driverType         = eDRIVER_TYPE_PRODUCTION;
-   vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext, &macOpenParms );
+   vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
+#ifndef QCA_WIFI_ISOC
+                       hdd_update_tgt_cfg,
+#else
+                       NULL,
+#endif
+                       &macOpenParms );
 
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {

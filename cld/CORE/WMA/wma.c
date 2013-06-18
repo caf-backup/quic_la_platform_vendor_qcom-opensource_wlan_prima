@@ -64,8 +64,6 @@
 #else
 #include "wlan_tgt_def_config.h"
 #endif
-#include "wma_api.h"
-
 
 #include "adf_nbuf.h"
 #include "adf_os_types.h"
@@ -290,7 +288,8 @@ static int wma_vdev_stop_resp_handler(void *handle, u8 *event, u16 len)
 /*
  * Allocate and init wmi adaptation layer.
  */
-VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
+VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
+		    wda_tgt_cfg_cb tgt_cfg_cb,
 		    tMacOpenParameters *mac_params)
 {
 	tp_wma_handle wma_handle;
@@ -368,9 +367,7 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 					   WMI_DEBUG_PRINT_EVENTID,
 					   wma_unified_debug_print_event_handler);
 
-#ifdef NOT_YET
 	wma_handle->tgt_cfg_update_cb = tgt_cfg_cb;
-#endif
 
 #ifdef QCA_WIFI_ISOC
 	vos_status = vos_event_init(&wma_handle->cfg_nv_tx_complete);
@@ -2452,8 +2449,104 @@ static void wma_alloc_host_mem(tp_wma_handle wma_handle, u_int32_t req_id,
 }
 #endif
 
-#ifdef NOT_YET
 #ifndef QCA_WIFI_ISOC
+static inline void wma_update_target_services(tp_wma_handle wh,
+					      struct hdd_tgt_services *cfg)
+{
+	/* STA power save */
+	cfg->sta_power_save = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+						     WMI_SERVICE_STA_PWRSAVE);
+
+	/* Enable UAPSD */
+	cfg->uapsd = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+					    WMI_SERVICE_AP_UAPSD);
+
+	/* Enable DFS channel scan */
+	cfg->dfs_chan_scan = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+						    WMI_SERVICE_AP_DFS);
+
+	/* Enable 11AC */
+	cfg->en_11ac = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+					      WMI_SERVICE_11AC);
+
+	/* ARP offload */
+	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+						  WMI_SERVICE_ARPNS_OFFLOAD);
+}
+
+static inline void wma_update_target_ht_cap(tp_wma_handle wh,
+					    struct hdd_tgt_ht_cap *cfg)
+{
+	/* RX STBC */
+	cfg->ht_rx_stbc = wh->ht_cap_info & WMI_HT_CAP_RX_STBC;
+
+	/* MPDU density */
+	cfg->mpdu_density = wh->ht_cap_info & WMI_HT_CAP_MPDU_DENSITY;
+}
+
+#ifdef WLAN_FEATURE_11AC
+static inline void wma_update_target_vht_cap(tp_wma_handle wh,
+					     struct hdd_tgt_vht_cap *cfg)
+{
+	/* Max MPDU length */
+	if (wh->vht_cap_info & IEEE80211_VHTCAP_MAX_MPDU_LEN_3839)
+		cfg->vht_max_mpdu = 3839;
+	else if (wh->vht_cap_info & IEEE80211_VHTCAP_MAX_MPDU_LEN_7935)
+		cfg->vht_max_mpdu = 7935;
+	else if (wh->vht_cap_info & IEEE80211_VHTCAP_MAX_MPDU_LEN_11454)
+		cfg->vht_max_mpdu = 11454;
+	else
+		cfg->vht_max_mpdu = 0;
+
+	/* supported channel width */
+	if (wh->vht_cap_info & IEEE80211_VHTCAP_SUP_CHAN_WIDTH_80)
+		cfg->supp_chan_width = 1 << eHT_CHANNEL_WIDTH_80MHZ;
+
+	else if (wh->vht_cap_info & IEEE80211_VHTCAP_SUP_CHAN_WIDTH_160)
+		cfg->supp_chan_width = 1 << eHT_CHANNEL_WIDTH_160MHZ;
+
+	else if (wh->vht_cap_info & IEEE80211_VHTCAP_SUP_CHAN_WIDTH_80_160) {
+		cfg->supp_chan_width = 1 << eHT_CHANNEL_WIDTH_80MHZ;
+		cfg->supp_chan_width |= 1 << eHT_CHANNEL_WIDTH_160MHZ;
+	}
+
+	else
+		cfg->supp_chan_width = 0;
+
+	/* LDPC capability */
+	cfg->vht_rx_ldpc = wh->vht_cap_info & IEEE80211_VHTCAP_RX_LDPC;
+
+	/* Guard interval */
+	cfg->vht_short_gi_80 = wh->vht_cap_info & IEEE80211_VHTCAP_SHORTGI_80;
+	cfg->vht_short_gi_160 = wh->vht_cap_info & IEEE80211_VHTCAP_SHORTGI_160;
+
+	/* TX STBC capability */
+	cfg->vht_tx_stbc = wh->vht_cap_info & IEEE80211_VHTCAP_TX_STBC;
+
+	/* RX STBC capability */
+	cfg->vht_rx_stbc = wh->vht_cap_info & IEEE80211_VHTCAP_RX_STBC;
+
+	/* SU beamformer cap */
+	cfg->vht_su_bformer = wh->vht_cap_info & IEEE80211_VHTCAP_SU_BFORMER;
+
+	/* SU beamformee cap */
+	cfg->vht_su_bformee = wh->vht_cap_info & IEEE80211_VHTCAP_SU_BFORMEE;
+
+	/* MU beamformer cap */
+	cfg->vht_mu_bformer = wh->vht_cap_info & IEEE80211_VHTCAP_MU_BFORMER;
+
+	/* MU beamformee cap */
+	cfg->vht_mu_bformee = wh->vht_cap_info & IEEE80211_VHTCAP_MU_BFORMEE;
+
+	/* VHT Max AMPDU Len exp */
+	cfg->vht_max_ampdu_len_exp = wh->vht_cap_info &
+					IEEE80211_VHTCAP_MAX_AMPDU_LEN_EXP;
+
+	/* VHT TXOP PS cap */
+	cfg->vht_txop_ps = wh->vht_cap_info & IEEE80211_VHTCAP_TXOP_PS;
+}
+#endif	/* #ifdef WLAN_FEATURE_11AC */
+
 static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 {
 	struct hdd_tgt_cfg hdd_tgt_cfg;
@@ -2486,9 +2579,17 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
 
 	adf_os_mem_copy(hdd_tgt_cfg.hw_macaddr.bytes, wma_handle->hwaddr,
 			ATH_MAC_LEN);
+
+	wma_update_target_services(wma_handle, &hdd_tgt_cfg.services);
+	wma_update_target_ht_cap(wma_handle, &hdd_tgt_cfg.ht_cap);
+#ifdef WLAN_FEATURE_11AC
+	wma_update_target_vht_cap(wma_handle, &hdd_tgt_cfg.vht_cap);
+#endif	/* #ifdef WLAN_FEATURE_11AC */
+
+#ifndef QCA_WIFI_ISOC
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
-}
 #endif
+}
 #endif
 
 static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
@@ -2583,6 +2684,10 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle,
 	wma_handle->max_frag_entry = ev->max_frag_entry;
 	vos_mem_copy(&wma_handle->reg_cap, &ev->hal_reg_capabilities,
 		     sizeof(HAL_REG_CAPABILITIES));
+	wma_handle->ht_cap_info = ev->ht_cap_info;
+#ifdef WLAN_FEATURE_11AC
+	wma_handle->vht_cap_info = ev->vht_cap_info;
+#endif
 
 	 /* TODO: Recheck below line to dump service ready event */
 	 /* dbg_print_wmi_service_11ac(ev); */
@@ -2641,10 +2746,8 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev)
 
 	vos_event_set(&wma_handle->wma_ready_event);
 
-#ifdef NOT_YET
 #ifndef QCA_WIFI_ISOC
 	wma_update_hdd_cfg(wma_handle);
-#endif
 #endif
 
 	WMA_LOGD("Exit");

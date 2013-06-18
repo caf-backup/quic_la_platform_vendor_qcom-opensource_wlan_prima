@@ -28,6 +28,10 @@
 #include <wlan_hdd_wmm.h>
 #include <vos_types.h>
 #include <csrApi.h>
+#if defined (QCA_WIFI_2_0) && \
+   !defined (QCA_WIFI_ISOC)
+#include <wlan_hdd_tgt_cfg.h>
+#endif
 
 //Number of items that can be configured
 #define MAX_CFG_INI_ITEMS   320
@@ -2176,5 +2180,10 @@ static __inline unsigned long utilMin( unsigned long a, unsigned long b )
 {
   return( ( a < b ) ? a : b );
 }
+
+#if defined (QCA_WIFI_2_0) && \
+   !defined (QCA_WIFI_ISOC)
+void hdd_update_tgt_cfg(void *context, void *param);
+#endif /* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
 
 #endif

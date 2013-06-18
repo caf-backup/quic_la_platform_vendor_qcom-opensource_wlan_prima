@@ -413,7 +413,8 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    /*Open the WDA module */
    vos_mem_set(&macOpenParms, sizeof(macOpenParms), 0);
    macOpenParms.driverType = eDRIVER_TYPE_MFG;
-   vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext, &macOpenParms);
+   vStatus = WDA_open(gpVosContext, gpVosContext->pHDDContext,
+                      NULL, &macOpenParms);
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
       /* Critical Error ...  Cannot proceed further */

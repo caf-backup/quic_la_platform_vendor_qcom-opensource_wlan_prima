@@ -234,13 +234,17 @@ typedef struct {
 	u_int32_t num_mem_chunks;
 	struct wma_mem_chunk mem_chunks[MAX_MEM_CHUNKS];
 #endif
-	hdd_tgt_cfg_cb tgt_cfg_update_cb;
+	wda_tgt_cfg_cb tgt_cfg_update_cb;
 	HAL_REG_CAPABILITIES reg_cap;
 	u_int32_t scan_id;
 	struct scan_param cur_scan_info;
 	struct wma_txrx_node *interfaces;
 	u_int32_t peer_count;
 	struct list_head vdev_resp_queue;
+	u_int32_t ht_cap_info;
+#ifdef WLAN_FEATURE_11AC
+	u_int32_t vht_cap_info;
+#endif
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
