@@ -883,6 +883,8 @@ tANI_U32 val = 0;
   /* Update PE session Id*/
   pSetBssKeyParams->sessionId = psessionEntry ->peSessionId;
 
+  pSetBssKeyParams->smesessionId = pMlmSetKeysReq->smesessionId;
+
   if(pMlmSetKeysReq->key[0].keyId && 
      ((pMlmSetKeysReq->edType == eSIR_ED_WEP40) || 
       (pMlmSetKeysReq->edType == eSIR_ED_WEP104))
@@ -1004,6 +1006,10 @@ tANI_U32 val = 0;
 
   pSetStaKeyParams->defWEPIdx = defWEPIdx;
     
+  pSetStaKeyParams->smesessionId = pMlmSetKeysReq->smesessionId;
+  palCopyMemory(pMac->hHdd, pSetStaKeyParams->peerMacAddr,
+                pMlmSetKeysReq->peerMacAddr, sizeof(tSirMacAddr));
+
   /** Store the Previous MlmState*/
   sessionEntry->limPrevMlmState = sessionEntry->limMlmState;
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);

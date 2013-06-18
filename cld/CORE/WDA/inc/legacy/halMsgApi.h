@@ -324,6 +324,8 @@ typedef struct
     tANI_U8         defWEPIdx;      // Default WEP key, valid only for static WEP, must between 0 and 3
     tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];            // valid only for non-static WEP encyrptions
     tANI_U8         singleTidRc;    // 1=Single TID based Replay Count, 0=Per TID based RC
+    tANI_U8         smesessionId;
+    tSirMacAddr     peerMacAddr;
     /*
      * Following parameter is for returning status
      * via response message. HAL does not read them.
@@ -732,6 +734,7 @@ typedef struct
     tANI_U8         numKeys;
     tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];
     tANI_U8         singleTidRc;    // 1=Single TID based Replay Count, 0=Per TID based RC
+    tANI_U8         smesessionId;
     /*
      * Following parameter is for returning status
      * via response message. HAL does not read them.
