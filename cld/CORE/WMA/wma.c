@@ -2076,6 +2076,13 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams params)
 					   params->staContext.smesessionId);
 			wma_vdev_set_bss_params(wma, params->staContext.smesessionId, params);
 		}
+		/*
+		 * Store the bssid in interface table, bssid will
+		 * be used during group key setting sta mode.
+		 */
+		vos_mem_copy(wma->interfaces[params->staContext.bssIdx].bssid,
+			     params->bssId, ETH_ALEN);
+
 	}
 send_bss_resp:
 	ol_txrx_find_peer_by_addr(pdev, params->bssId,
@@ -2396,6 +2403,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 		goto out;
 	}
 
+	vos_mem_zero(wma->interfaces[params->bssIdx].bssid, ETH_ALEN);
 	if (!wma_is_vdev_in_ap_mode(wma, params->smesessionId))
 		wma_remove_peer(wma, params->bssid, params->smesessionId);
 
