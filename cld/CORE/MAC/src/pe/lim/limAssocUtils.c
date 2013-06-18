@@ -2294,6 +2294,8 @@ limAddSta(
     if (pAddStaParams->respReqd)
         SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
+    pAddStaParams->nwType = psessionEntry->nwType;
+
     msgQ.type = WDA_ADD_STA_REQ;
 
     msgQ.reserved = 0;
