@@ -104,6 +104,38 @@ static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 	return NULL;
 }
 
+/* Function   : wma_find_vdev_by_id
+ * Descriptin : Returns vdev handle for given vdev id.
+ * Args       : @wma - wma handle, @vdev_id - vdev ID
+ * Retruns    : Returns vdev handle if given vdev id is valid.
+ *              Otherwise returns NULL.
+ */
+static inline void *wma_find_vdev_by_id(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	if (vdev_id > wma->max_bssid)
+		return NULL;
+
+	return wma->interfaces[vdev_id].handle;
+}
+
+/* Function   : wma_is_vdev_in_ap_mode
+ * Descriptin : Helper function to know whether given vdev id
+ *              is in AP mode or not.
+ * Args       : @wma - wma handle, @ vdev_id - vdev ID.
+ * Retruns    : True -  if given vdev id is in AP mode.
+ *              False - if given vdev id is not in AP mode.
+ */
+static bool wma_is_vdev_in_ap_mode(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	ol_txrx_vdev_handle vdev;
+
+	vdev = wma_find_vdev_by_id(wma, vdev_id);
+	if (vdev && vdev->opmode == wlan_op_mode_ap)
+		return true;
+
+	return false;
+}
+
 #ifdef BIG_ENDIAN_HOST
 
 /* ############# function definitions ############ */
