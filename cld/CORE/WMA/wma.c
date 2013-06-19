@@ -1119,6 +1119,61 @@ err:
 	return VOS_STATUS_E_FAILURE;
 }
 
+static int32_t wmi_unified_peer_delete_send(wmi_unified_t wmi,
+					u_int8_t peer_addr[IEEE80211_ADDR_LEN],
+					u_int8_t vdev_id)
+{
+	wmi_peer_delete_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_peer_delete_cmd);
+
+	buf = wmi_buf_alloc(wmi, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_peer_delete_cmd *)wmi_buf_data(buf);
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	cmd->vdev_id = vdev_id;
+
+	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_DELETE_CMDID)) {
+		WMA_LOGP("Failed to send peer delete command\n");
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	return 0;
+}
+
+static int32_t wmi_unified_peer_flush_tids_send(wmi_unified_t wmi,
+					    u_int8_t peer_addr
+							[IEEE80211_ADDR_LEN],
+					    u_int32_t peer_tid_bitmap,
+					    u_int8_t vdev_id)
+{
+	wmi_peer_flush_tids_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_peer_flush_tids_cmd);
+
+	buf = wmi_buf_alloc(wmi, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_peer_flush_tids_cmd *)wmi_buf_data(buf);
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	cmd->peer_tid_bitmap = peer_tid_bitmap;
+	cmd->vdev_id = vdev_id;
+
+	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_FLUSH_TIDS_CMDID)) {
+		WMA_LOGP("Failed to send flush tid command\n");
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	return 0;
+}
+
 static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 {
 	ol_txrx_vdev_handle vdev;
@@ -1674,6 +1729,33 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams params)
 	wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)params, 0);
 }
 
+static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
+{
+#define PEER_ALL_TID_BITMASK 0xffffffff
+	ol_txrx_pdev_handle pdev;
+	ol_txrx_peer_handle peer;
+	u_int32_t peer_tid_bitmap = PEER_ALL_TID_BITMASK;
+	u_int8_t peer_id;
+
+	pdev= vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	/* Flush all TIDs except MGMT TID for this peer in Target */
+	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);
+	wmi_unified_peer_flush_tids_send(wma->wmi_handle, params->bssid,
+					 peer_tid_bitmap, params->smesessionId);
+
+	wmi_unified_peer_delete_send(wma->wmi_handle, params->bssid,
+				     params->smesessionId);
+	peer = ol_txrx_find_peer_by_addr(pdev, params->bssid,
+					 &peer_id);
+	ol_txrx_peer_detach(peer);
+	WMA_LOGD("%s: bssid %pM vdev_id %d\n",
+		__func__, params->bssid, params->smesessionId);
+	params->status = VOS_STATUS_SUCCESS;
+	wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
+#undef PEER_ALL_TID_BITMASK
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -1764,6 +1846,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_DELETE_STA_REQ:
 			wma_delete_sta(wma_handle,
 					(tpDeleteStaParams)msg->bodyptr);
+			break;
+		case WDA_DELETE_BSS_REQ:
+			wma_delete_bss(wma_handle,
+					(tpDeleteBssParams)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
