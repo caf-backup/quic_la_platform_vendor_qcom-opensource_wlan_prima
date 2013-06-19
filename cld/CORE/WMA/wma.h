@@ -232,6 +232,7 @@ typedef struct {
 	u_int32_t scan_id;
 	struct scan_param cur_scan_info;
 	struct wma_txrx_node *interfaces;
+	u_int32_t peer_count;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

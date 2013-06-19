@@ -177,7 +177,6 @@ struct ol_softc {
     u_int32_t               txpower_scale;
     u_int32_t               chan_tx_pwr;
     u_int32_t               vdev_count;
-    u_int32_t               peer_count;
     u_int32_t               max_bcn_ie_size;
     adf_os_spinlock_t       scn_lock;
 
