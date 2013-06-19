@@ -250,6 +250,14 @@ struct ol_mac_addr {
 struct ol_tx_sched_t;
 typedef struct ol_tx_sched_t *ol_tx_sched_handle;
 
+#ifndef OL_TXRX_NUM_LOCAL_PEER_IDS
+#define OL_TXRX_NUM_LOCAL_PEER_IDS 41 /* default */
+#endif
+
+#ifndef ol_txrx_local_peer_id_t
+#define ol_txrx_local_peer_id_t u_int8_t /* default */
+#endif
+
 /*
  * As depicted in the diagram below, the pdev contains an array of
  * NUM_EXT_TID ol_tx_active_queues_in_tid_t elements.
@@ -543,6 +551,13 @@ struct ol_txrx_pdev_t {
 		u_int8_t data[OL_TXQ_LOG_SIZE]; /* aligned to u_int32_t boundary */
 	} txq_log;
 #endif
+#ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
+	struct {
+		ol_txrx_local_peer_id_t pool[OL_TXRX_NUM_LOCAL_PEER_IDS+1];
+		ol_txrx_local_peer_id_t freelist;
+		adf_os_spinlock_t lock;
+	} local_peer_ids;
+#endif
 };
 
 struct ol_txrx_vdev_t {
@@ -638,6 +653,9 @@ struct ol_txrx_peer_t {
 
 	/* peer ID(s) for this peer */
 	u_int16_t peer_ids[MAX_NUM_PEER_ID_PER_PEER];
+#ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
+	u_int16_t local_id;
+#endif
 
 	union ol_txrx_align_mac_addr_t mac_addr;
 
