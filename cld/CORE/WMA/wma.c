@@ -1353,6 +1353,205 @@ send_resp:
 	wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 }
 
+static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
+				      u_int8_t is_cw40)
+{
+	WLAN_PHY_MODE phymode = MODE_UNKNOWN;
+
+	switch (nw_type) {
+		case eSIR_11B_NW_TYPE:
+		case eSIR_11G_NW_TYPE:
+			if (is_ht)
+				phymode = (is_cw40) ?
+					MODE_11NG_HT40 : MODE_11NG_HT20;
+			else
+				phymode = MODE_11G;
+			break;
+		case eSIR_11A_NW_TYPE:
+			if (is_ht)
+				phymode = (is_cw40) ?
+					MODE_11NA_HT40 : MODE_11NA_HT20;
+			else
+				phymode = MODE_11A;
+			break;
+		default:
+			WMA_LOGP("Invalid nw type %d\n", nw_type);
+			break;
+	}
+	WMA_LOGD("%s: nw_type %d is_ht %d is_cw40 %d phymode %d\n", __func__,
+		 nw_type, is_ht, is_cw40, phymode);
+	return phymode;
+}
+
+static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
+					   tSirNwType nw_type,
+					   tpAddStaParams params)
+{
+	wmi_peer_assoc_complete_cmd *cmd;
+	int32_t len = sizeof(wmi_peer_assoc_complete_cmd);
+	wmi_buf_t buf;
+	int32_t ret, max_rates, i;
+	u_int8_t rx_stbc;
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_peer_assoc_complete_cmd *)wmi_buf_data(buf);
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(params->bssId, &cmd->peer_macaddr);
+	cmd->vdev_id = params->smesessionId;
+	cmd->peer_new_assoc = 1;
+	cmd->peer_associd = params->assocId;
+
+	/*
+	 * The target only needs a subset of the flags maintained in the host.
+	 * Just populate those flags and send it down
+	 */
+	cmd->peer_flags = 0;
+
+	if (params->wmmEnabled)
+		cmd->peer_flags |= WMI_PEER_QOS;
+
+	if (params->htCapable) {
+		cmd->peer_flags |= WMI_PEER_HT;
+		cmd->peer_rate_caps |= WMI_RC_HT_FLAG;
+	}
+
+	/* TODO: Need to handle uAPSD */
+	if (params->txChannelWidthSet) {
+		cmd->peer_flags |= WMI_PEER_40MHZ;
+		cmd->peer_rate_caps |= WMI_RC_CW40_FLAG;
+		if (params->fShortGI40Mhz)
+			cmd->peer_rate_caps |= WMI_RC_SGI_FLAG;
+	} else if (params->fShortGI20Mhz)
+		cmd->peer_rate_caps |= WMI_RC_SGI_FLAG;
+
+#ifdef WLAN_FEATURE_11AC
+	if (params->vhtCapable) {
+		cmd->peer_flags |= (WMI_PEER_HT | WMI_PEER_VHT);
+		cmd->peer_rate_caps |= WMI_RC_HT_FLAG;
+	}
+
+	if (params->vhtTxChannelWidthSet)
+		cmd->peer_flags |= WMI_PEER_80MHZ;
+
+	cmd->peer_vht_caps = params->vht_caps;
+#endif
+	rx_stbc = (params->ht_caps & IEEE80211_HTCAP_C_RXSTBC) >>
+			IEEE80211_HTCAP_C_RXSTBC_S;
+	if (rx_stbc) {
+		cmd->peer_flags |= WMI_PEER_STBC;
+		cmd->peer_rate_caps |= (rx_stbc << WMI_RC_RX_STBC_FLAG_S);
+	}
+
+	if (params->htLdpcCapable || params->vhtLdpcCapable)
+		cmd->peer_flags |= WMI_PEER_LDPC;
+
+	switch (params->mimoPS) {
+		case eSIR_HT_MIMO_PS_STATIC:
+			cmd->peer_flags |= WMI_PEER_STATIC_MIMOPS;
+			break;
+		case eSIR_HT_MIMO_PS_DYNAMIC:
+			cmd->peer_flags |= WMI_PEER_DYN_MIMOPS;
+			break;
+		case eSIR_HT_MIMO_PS_NO_LIMIT:
+			cmd->peer_flags |= WMI_PEER_SPATIAL_MUX;
+			break;
+		default:
+			break;
+	}
+	cmd->peer_flags |= WMI_PEER_AUTH;
+	if (params->wpa_rsn)
+		cmd->peer_flags |= WMI_PEER_NEED_PTK_4_WAY;
+	if (params->wpa_rsn >> 1)
+		cmd->peer_flags |= WMI_PEER_NEED_GTK_2_WAY;
+
+	cmd->peer_caps = params->capab_info;
+	cmd->peer_listen_intval = params->listenInterval;
+	cmd->peer_ht_caps = params->ht_caps;
+	cmd->peer_max_mpdu = params->maxAmpduSize;
+
+	if (params->supportedRates.supportedMCSSet[1] &&
+	    params->supportedRates.supportedMCSSet[2])
+		cmd->peer_rate_caps |= WMI_RC_TS_FLAG;
+	else if (params->supportedRates.supportedMCSSet[1])
+		cmd->peer_rate_caps |= WMI_RC_DS_FLAG;
+
+	/* Legacy Rateset */
+	for (i = 0; i < SIR_NUM_11B_RATES; i++) {
+		if (!params->supportedRates.llbRates[i])
+			continue;
+		cmd->peer_legacy_rates.rates
+			[cmd->peer_legacy_rates.num_rates++] =
+			params->supportedRates.llbRates[i];
+	}
+	for (i = 0; i < SIR_NUM_11A_RATES; i++) {
+		if (!params->supportedRates.llaRates[i])
+			continue;
+		cmd->peer_legacy_rates.rates
+			[cmd->peer_legacy_rates.num_rates++] =
+			params->supportedRates.llaRates[i];
+	}
+
+	/* HT Rateset */
+	max_rates = sizeof(cmd->peer_ht_rates.rates) /
+		    sizeof(cmd->peer_ht_rates.rates[0]);
+	for (i = 0; i < MAX_SUPPORTED_RATES; i++) {
+		if (params->supportedRates.supportedMCSSet[i / 8] &
+					(1 << (i % 8))) {
+			cmd->peer_ht_rates.rates
+				[cmd->peer_ht_rates.num_rates++] = i;
+		}
+		if (cmd->peer_ht_rates.num_rates == max_rates)
+		       break;
+	}
+	/* TODO: VHT Rates */
+	cmd->peer_nss = MAX((cmd->peer_ht_rates.num_rates + 7) / 8, 1);
+	cmd->peer_phymode = wma_peer_phymode(nw_type, params->htCapable,
+					     params->txChannelWidthSet);
+
+	WMA_LOGD("%s: vdev_id %d associd %d peer_flags %x rate_caps %x\
+		 peer_caps %x listen_intval %d ht_caps %x max_mpdu %d\
+		 nss %d phymode %d\n", __func__, cmd->vdev_id, cmd->peer_associd,
+		 cmd->peer_flags, cmd->peer_rate_caps, cmd->peer_caps,
+		 cmd->peer_listen_intval, cmd->peer_ht_caps, cmd->peer_max_mpdu,
+		 cmd->peer_nss, cmd->peer_phymode);
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_PEER_ASSOC_CMDID);
+	if (ret < 0) {
+		WMA_LOGP("Failed to send peer assoc command ret = %d\n", ret);
+		adf_nbuf_free(buf);
+	}
+	return ret;
+}
+
+static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
+{
+	ol_txrx_pdev_handle pdev;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if (params->operMode) {
+		if (!params->updateBss)
+			goto send_bss_resp;
+
+		wmi_unified_send_peer_assoc(wma, params->nwType,
+					    &params->staContext);
+	}
+send_bss_resp:
+	ol_txrx_find_peer_by_addr(pdev, params->bssId,
+				  &params->staContext.staIdx);
+	params->status = (params->staContext.staIdx < 0) ?
+				VOS_STATUS_E_FAILURE : VOS_STATUS_SUCCESS;
+	vos_mem_copy(params->staContext.staMac, params->bssId,
+		     sizeof(params->staContext.staMac));
+	WMA_LOGD("%s: opermode %d update_bss %d nw_type %d bssid %pM\
+		 staIdx %d status %d\n", __func__, params->operMode,
+		 params->updateBss, params->nwType, params->bssId,
+		 params->staContext.staIdx, params->status);
+	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -1425,6 +1624,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_CHNL_SWITCH_REQ:
 			wma_set_channel(wma_handle,
 					(tpSwitchChannelParams)msg->bodyptr);
+			break;
+		case WDA_ADD_BSS_REQ:
+			wma_add_bss(wma_handle, (tpAddBssParams)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
