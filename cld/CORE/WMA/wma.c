@@ -490,6 +490,8 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 		status = VOS_STATUS_E_FAILURE;
 	else
 		ol_txrx_vdev_detach(txrx_hdl, NULL, NULL);
+	vos_mem_zero(&wma_handle->interfaces[pdel_sta_self_req_param->sessionId],
+		     sizeof(wma_handle->interfaces[pdel_sta_self_req_param->sessionId]));
 
 	WMA_LOGA("vdev_id:%hu vdev_hdl:%p\n", pdel_sta_self_req_param->sessionId,
 			txrx_hdl);
@@ -548,6 +550,10 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						self_sta_req->sessionId);
 		goto end;
 	}
+	wma_handle->interfaces[self_sta_req->sessionId].handle = txrx_vdev_handle;
+	vos_mem_copy(wma_handle->interfaces[self_sta_req->sessionId].addr,
+		     self_sta_req->selfMacAddr,
+		     sizeof(wma_handle->interfaces[self_sta_req->sessionId].addr));
 
 end:
 	self_sta_req->status = status;
