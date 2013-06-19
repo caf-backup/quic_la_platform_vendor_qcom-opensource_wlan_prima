@@ -306,6 +306,7 @@ typedef struct
     tANI_U8     sessionId; // PE session id for PE<->HAL interface 
     // PE session id now added to all HAL<->PE transacations
     // HAL sends it back unmodified.
+    tANI_U8 smesessionId;
 } tDeleteStaParams, * tpDeleteStaParams;
 
 /*

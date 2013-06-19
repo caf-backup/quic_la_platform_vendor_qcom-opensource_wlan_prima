@@ -2417,7 +2417,7 @@ limDelSta(
 
     /* Update PE session ID*/
     pDelStaParams->sessionId = psessionEntry->peSessionId;
-    
+    pDelStaParams->smesessionId = psessionEntry->smeSessionId;
     pDelStaParams->status  = eHAL_STATUS_SUCCESS;
     msgQ.type = WDA_DELETE_STA_REQ;
     msgQ.reserved = 0;
