@@ -1606,6 +1606,18 @@ out:
 	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)params, 0);
 }
 
+static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
+{
+	key_info->status = VOS_STATUS_SUCCESS;
+	wma_send_msg(wma_handle, WDA_SET_BSSKEY_RSP, (void *)key_info, 0);
+}
+
+static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
+{
+	key_info->status = VOS_STATUS_SUCCESS;
+	wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *)key_info, 0);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -1684,6 +1696,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_ADD_STA_REQ:
 			wma_add_sta(wma_handle, (tpAddStaParams)msg->bodyptr);
+			break;
+		case WDA_SET_BSSKEY_REQ:
+			wma_set_bsskey(wma_handle,
+					(tpSetBssKeyParams)msg->bodyptr);
+			break;
+		case WDA_SET_STAKEY_REQ:
+			wma_set_stakey(wma_handle,
+					(tpSetStaKeyParams)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
