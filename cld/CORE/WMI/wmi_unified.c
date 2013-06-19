@@ -31,6 +31,7 @@
 
 #define WMI_MIN_HEAD_ROOM 64
 
+static void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf);
 /* WMI buffer APIs */
 
 wmi_buf_t wmi_buf_alloc(wmi_unified_t wmi_handle, int len)
@@ -227,12 +228,26 @@ static int wmi_ready_event_rx(struct wmi_unified *wmi_handle,
 void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 {
 	struct wmi_unified *wmi_handle = (struct wmi_unified *)ctx;
-	u_int16_t id;
-	u_int8_t *data;
-	u_int32_t len;
 	wmi_buf_t evt_buf;
 
 	evt_buf = (wmi_buf_t) htc_packet->pPktContext;
+
+#ifdef QCA_WIFI_ISOC
+	__wmi_control_rx(wmi_handle, evt_buf);
+#else
+	adf_os_spin_lock_bh(&wmi_handle->eventq_lock);
+	adf_nbuf_queue_add(&wmi_handle->event_queue, evt_buf);
+	adf_os_spin_unlock_bh(&wmi_handle->eventq_lock);
+
+	schedule_work(&wmi_handle->rx_event_work);
+#endif
+}
+
+void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
+{
+	u_int16_t id;
+	u_int8_t *data;
+	u_int32_t len;
 
 	id = WMI_GET_FIELD(adf_nbuf_data(evt_buf), WMI_CMD_HDR, COMMANDID);
 
@@ -262,6 +277,25 @@ end:
 	adf_nbuf_free(evt_buf);
 }
 
+#ifndef QCA_WIFI_ISOC
+void wmi_rx_event_work(struct work_struct *work)
+{
+	struct wmi_unified *wmi = container_of(work, struct wmi_unified,
+					       rx_event_work);
+	wmi_buf_t buf;
+
+	adf_os_spin_lock_bh(&wmi->eventq_lock);
+	buf = adf_nbuf_queue_remove(&wmi->event_queue);
+	adf_os_spin_unlock_bh(&wmi->eventq_lock);
+	while (buf) {
+		__wmi_control_rx(wmi, buf);
+		adf_os_spin_lock_bh(&wmi->eventq_lock);
+		buf = adf_nbuf_queue_remove(&wmi->event_queue);
+		adf_os_spin_unlock_bh(&wmi->eventq_lock);
+	}
+}
+#endif
+
 /* WMI Initialization functions */
 
 void *
@@ -276,12 +310,28 @@ wmi_unified_attach(ol_scn_t scn_handle)
     OS_MEMZERO(wmi_handle, sizeof(struct wmi_unified));
     wmi_handle->scn_handle = scn_handle;
     adf_os_atomic_init(&wmi_handle->pending_cmds);
+#ifndef QCA_WIFI_ISOC
+    adf_os_spinlock_init(&wmi_handle->eventq_lock);
+    adf_nbuf_queue_init(&wmi_handle->event_queue);
+    INIT_WORK(&wmi_handle->rx_event_work, wmi_rx_event_work);
+#endif
     return wmi_handle;
 }
 
 void
 wmi_unified_detach(struct wmi_unified* wmi_handle)
 {
+#ifndef QCA_WIFI_ISOC
+    wmi_buf_t buf;
+
+    adf_os_spin_lock_bh(&wmi_handle->eventq_lock);
+    buf = adf_nbuf_queue_remove(&wmi_handle->event_queue);
+    while (buf) {
+	adf_nbuf_free(buf);
+	buf = adf_nbuf_queue_remove(&wmi_handle->event_queue);
+    }
+    adf_os_spin_unlock_bh(&wmi_handle->eventq_lock);
+#endif
     if (wmi_handle != NULL) {
         OS_FREE(wmi_handle);
         wmi_handle = NULL;
