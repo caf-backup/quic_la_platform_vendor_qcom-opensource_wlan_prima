@@ -1612,7 +1612,6 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 {
    hdd_adapter_t *pAdapter = NULL;
    hdd_context_t *pHddCtx = NULL;
-   VOS_STATUS status = VOS_STATUS_E_FAILURE;
    int rxstat;
    struct sk_buff *skb = NULL;
 
@@ -1702,6 +1701,6 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 
    pAdapter->dev->last_rx = jiffies;
 
-   return status;
+   return VOS_STATUS_SUCCESS;
 }
 #endif /* QCA_WIFI_2_0 */
