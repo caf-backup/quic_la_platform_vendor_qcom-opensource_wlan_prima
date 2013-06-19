@@ -221,6 +221,7 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 {
 	struct tlshim_sta_info *sta_info = &tl_shim->sta_info[sta_id];
 	struct tlshim_buf *cache_buf, *tmp;
+	VOS_STATUS ret;
 
 	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 	list_for_each_entry_safe(cache_buf, tmp,
@@ -231,7 +232,10 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 			adf_nbuf_free(cache_buf->buf);
 		else {
 			/* Flush the cached frames to HDD */
-			sta_info->data_rx(vos_ctx, cache_buf->buf, sta_id);
+			ret = sta_info->data_rx(vos_ctx, cache_buf->buf,
+						sta_id);
+			if (ret != VOS_STATUS_SUCCESS)
+				adf_nbuf_free(cache_buf->buf);
 		}
 		adf_os_mem_free(cache_buf);
 		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
@@ -288,6 +292,7 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 		 * there is no cached frames have any significant impact on
 		 * performance.
 		 */
+		VOS_STATUS ret;
 		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 		sta_info->suspend_flush = 1;
 		adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
@@ -298,7 +303,9 @@ static void tlshim_data_rx_handler(void *context, u_int16_t staid,
 		buf = rx_buf_list;
 		while (buf) {
 			next_buf = adf_nbuf_queue_next(buf);
-			sta_info->data_rx(vos_ctx, buf, staid);
+			ret = sta_info->data_rx(vos_ctx, buf, staid);
+			if (ret != VOS_STATUS_SUCCESS)
+				adf_nbuf_free(buf);
 			buf = next_buf;
 		}
 	} else /* This should not happen if sta_info->registered is true */
