@@ -94,6 +94,12 @@
 #define WMA_VDEV_TBL_ENTRY_DEL				0
 
 
+/* 11A/G channel boundary */
+#define WMA_11A_CHANNEL_BEGIN           34
+#define WMA_11A_CHANNEL_END             165
+#define WMA_11G_CHANNEL_BEGIN           1
+#define WMA_11G_CHANNEL_END             14
+
 #define WMA_LOGD(args...) \
 	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG, ## args)
 #define WMA_LOGI(args...) \
@@ -233,6 +239,7 @@ typedef struct {
 	struct scan_param cur_scan_info;
 	struct wma_txrx_node *interfaces;
 	u_int32_t peer_count;
+	struct list_head vdev_resp_queue;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -784,5 +791,27 @@ struct wma_tx_ack_work_ctx {
 	u_int16_t sub_type;
 	int32_t status;
 	struct work_struct ack_cmp_work;
+};
+
+struct wma_target_req {
+	vos_timer_t event_timeout;
+	struct list_head node;
+	void *user_data;
+	u_int32_t msg_type;
+	u_int8_t vdev_id;
+};
+
+struct wma_vdev_start_req {
+	u_int32_t beacon_intval;
+	u_int32_t dtim_period;
+	int32_t max_txpow;
+	ePhyChanBondState chan_offset;
+	bool is_dfs;
+	u_int8_t vdev_id;
+	u_int8_t chan;
+	u_int8_t oper_mode;
+	tSirMacSSid ssid;
+	u_int8_t hidden_ssid;
+	u_int8_t pmf_enabled;
 };
 #endif

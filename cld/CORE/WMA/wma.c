@@ -88,6 +88,9 @@
 #define WMA_DEFAULT_SCAN_PRIORITY            1
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
 
+static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
+			 void *body_ptr, u_int32_t body_val);
+
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -126,6 +129,54 @@ v_VOID_t wma_swap_bytes(v_VOID_t *pv, v_SIZE_t n)
 }
 #define SWAPME(x, len) wma_swap_bytes(&x, len);
 #endif
+
+static struct wma_target_req *wma_find_vdev_req(tp_wma_handle wma,
+						u_int8_t vdev_id)
+{
+	struct wma_target_req *req_msg, *tmp;
+
+	list_for_each_entry_safe(req_msg, tmp,
+				 &wma->vdev_resp_queue, node) {
+		if (req_msg->vdev_id != vdev_id)
+			continue;
+
+		list_del(&req_msg->node);
+		break;
+	}
+	WMA_LOGD("%s: target request found for vdev id: %d msg_type %d\n",
+		 __func__, vdev_id, req_msg->msg_type);
+	return req_msg;
+}
+
+static int wma_vdev_start_resp_handler(void *handle, u_int8_t *event,
+				       u_int16_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	struct wma_target_req *req_msg;
+
+	wmi_vdev_start_response_event *resp_event =
+		(wmi_vdev_start_response_event *)event;
+
+	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id);
+	if (!req_msg) {
+		WMA_LOGP("%s: Failed to lookup request message for vdev %d\n",
+			 __func__, resp_event->vdev_id);
+		return -EINVAL;
+	}
+	vos_timer_stop(&req_msg->event_timeout);
+	if (req_msg->msg_type == WDA_CHNL_SWITCH_REQ) {
+		tpSwitchChannelParams params =
+			(tpSwitchChannelParams) req_msg->user_data;
+		WMA_LOGD("%s: Send channel switch resp vdev %d status %d\n",
+			 resp_event->vdev_id, resp_event->status);
+		params->status = resp_event->status;
+		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+	}
+	vos_timer_destroy(&req_msg->event_timeout);
+	vos_mem_free(req_msg);
+
+	return 0;
+}
 
 /* function   : wma_unified_debug_print_event_handler
  * Descriptin :  
@@ -301,6 +352,12 @@ VOS_STATUS wma_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		WMA_LOGP("failed to init tx_frm_download_comp_event");
 		goto err_event_init;
 	}
+	INIT_LIST_HEAD(&wma_handle->vdev_resp_queue);
+
+	/* Register vdev start response event handler */
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					   WMI_VDEV_START_RESP_EVENTID,
+					   wma_vdev_start_resp_handler);
 
 	WMA_LOGD("%s: Exit", __func__);
 
@@ -1087,6 +1144,215 @@ out:
 	wma_send_msg(wma, WDA_SET_LINK_STATE_RSP, (void *)params, 0);
 }
 
+static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset)
+{
+	WLAN_PHY_MODE phymode = MODE_UNKNOWN;
+
+	/* 2.4 GHz band */
+	if ((chan >= WMA_11G_CHANNEL_BEGIN) && (chan <= WMA_11G_CHANNEL_END)) {
+		switch (chan_offset) {
+		case PHY_SINGLE_CHANNEL_CENTERED:
+			phymode = MODE_11NG_HT20;
+			break;
+		case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+		case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+			phymode = MODE_11NG_HT40;
+			break;
+			/* TODO: Handle VHT mode */
+		default:
+			break;
+		}
+	}
+
+	/* 5 GHz band */
+	if ((chan >= WMA_11A_CHANNEL_BEGIN) && (chan <= WMA_11A_CHANNEL_END)) {
+		switch (chan_offset) {
+		case PHY_SINGLE_CHANNEL_CENTERED:
+			phymode = MODE_11NA_HT20;
+			break;
+		case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
+		case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
+			phymode = MODE_11NA_HT40;
+			break;
+			/* TODO: Handle VHT mode */
+		default:
+			break;
+		}
+	}
+	WMA_LOGD("%s: phymode %d channel %d offset %d\n", __func__,
+		 phymode, chan, chan_offset);
+
+	return phymode;
+}
+
+static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
+				 struct wma_vdev_start_req *req)
+{
+	wmi_vdev_start_request_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_vdev_start_request_cmd);
+	WLAN_PHY_MODE chanmode;
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGD("%s : wmi_buf_alloc failed\n", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	cmd = (wmi_vdev_start_request_cmd *)wmi_buf_data(buf);
+	cmd->vdev_id = req->vdev_id;
+
+	/* Fill channel info */
+	cmd->chan.mhz = vos_chan_to_freq(req->chan);
+	chanmode = wma_chan_to_mode(req->chan, req->chan_offset);
+	WMI_SET_CHANNEL_MODE(&cmd->chan, chanmode);
+	cmd->chan.band_center_freq1 = cmd->chan.mhz;
+	if ((chanmode == MODE_11NA_HT40) || (chanmode == MODE_11NG_HT40)) {
+		if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
+			cmd->chan.band_center_freq1 -= 10;
+		else
+			cmd->chan.band_center_freq1 += 10;
+	}
+	cmd->chan.band_center_freq2 = 0;
+	/*
+	 * If the channel has DFS set, flip on radar reporting.
+	 *
+	 * It may be that this should only be done for IBSS/hostap operation
+	 * as this flag may be interpreted (at some point in the future)
+	 * by the firmware as "oh, and please do radar DETECTION."
+	 *
+	 * If that is ever the case we would insert the decision whether to
+	 * enable the firmware flag here.
+	 */
+	if (req->is_dfs) {
+		WMI_SET_CHANNEL_FLAG(&cmd->chan, WMI_CHAN_FLAG_DFS);
+		cmd->disable_hw_ack = (req->oper_mode) ? 0 : 1;
+	}
+
+	cmd->beacon_interval = req->beacon_intval;
+	cmd->dtim_period = req->dtim_period;
+	/* FIXME: Find out min, max and regulatory power levels */
+	WMI_SET_CHANNEL_MIN_POWER(&cmd->chan, req->max_txpow);
+
+	/* TODO: Handle regulatory class, max antenna */
+
+	/* Copy the SSID */
+	if (req->ssid.length) {
+		if (req->ssid.length < sizeof(cmd->ssid.ssid))
+			cmd->ssid.ssid_len = req->ssid.length;
+		else
+			cmd->ssid.ssid_len = sizeof(cmd->ssid.ssid);
+		vos_mem_copy(cmd->ssid.ssid, req->ssid.ssId,
+			     cmd->ssid.ssid_len);
+	}
+
+	if (req->hidden_ssid)
+		cmd->flags |= WMI_UNIFIED_VDEV_START_HIDDEN_SSID;
+
+	if (req->pmf_enabled)
+		cmd->flags |= WMI_UNIFIED_VDEV_START_PMF_ENABLED;
+
+	WMA_LOGD("%s: vdev_id %d freq %d channel %d chanmode %d is_dfs %d\
+		 beacon interval %d dtim %d\n", __func__, req->vdev_id,
+		 cmd->chan.mhz, req->chan, chanmode, req->is_dfs,
+		 req->beacon_intval, cmd->dtim_period);
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				 WMI_VDEV_START_REQUEST_CMDID) < 0) {
+		WMA_LOGP("Failed to send vdev start command\n");
+		adf_nbuf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+void wma_vdev_resp_timer(void *data)
+{
+	tp_wma_handle wma;
+	struct wma_target_req *tgt_req = (struct wma_target_req *)data;
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+
+	wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+
+	if (tgt_req->msg_type == WDA_CHNL_SWITCH_REQ) {
+		tpSwitchChannelParams params =
+			(tpSwitchChannelParams)tgt_req->user_data;
+		params->status = VOS_STATUS_E_TIMEOUT;
+		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+	}
+	list_del(&tgt_req->node);
+	vos_timer_destroy(&tgt_req->event_timeout);
+	vos_mem_free(tgt_req);
+}
+
+static VOS_STATUS wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
+				    u_int32_t msg_type, void *params)
+{
+	struct wma_target_req *req;
+
+	req = vos_mem_malloc(sizeof(*req));
+	if (!req) {
+		WMA_LOGP("Failed to allocate memory for msg %d vdev %d\n",
+			 msg_type, vdev_id);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	req->vdev_id = vdev_id;
+	req->msg_type = msg_type;
+	req->user_data = params;
+	list_add_tail(&req->node, &wma->vdev_resp_queue);
+	vos_timer_init(&req->event_timeout, VOS_TIMER_TYPE_SW,
+		       wma_vdev_resp_timer, req);
+	vos_timer_start(&req->event_timeout, 1000);
+	return VOS_STATUS_SUCCESS;
+}
+
+static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
+{
+	struct wma_vdev_start_req req;
+	VOS_STATUS status;
+
+	vos_mem_zero(&req, sizeof(req));
+	if (!wma_find_vdev_by_addr(wma, params->selfStaMacAddr, &req.vdev_id)) {
+		WMA_LOGP("%s: Failed to find vdev id for %pM\n",
+			 __func__, params->selfStaMacAddr);
+		status = VOS_STATUS_E_FAILURE;
+		goto send_resp;
+	}
+	req.chan = params->channelNumber;
+	req.chan_offset = params->secondaryChannelOffset;
+#ifdef WLAN_FEATURE_VOWIFI
+	req.max_txpow = params->maxTxPower;
+#else
+	req.max_txpow = params->localPowerConstraint;
+#endif
+	req.beacon_intval = 100;
+	req.dtim_period = 1;
+	status = wma_vdev_start(wma, &req);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("vdev start failed status = %d\n", status);
+		goto send_resp;
+	}
+
+	status = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
+				   params);
+	if (status == VOS_STATUS_SUCCESS)
+		return;
+	WMA_LOGP("Failed to fill channel switch request for vdev %d status %d\n",
+		 req.vdev_id, status);
+send_resp:
+	WMA_LOGD("%s: channel %d offset %d txpower %d status %d\n", __func__,
+		 params->channelNumber, params->secondaryChannelOffset,
+#ifdef WLAN_FEATURE_VOWIFI
+		 params->maxTxPower,
+#else
+		 params->localPowerConstraint,
+#endif
+		 status);
+	params->status = status;
+	wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -1155,6 +1421,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_LINK_STATE:
 			wma_set_linkstate(wma_handle,
 					  (tpLinkStateParams)msg->bodyptr);
+			break;
+		case WDA_CHNL_SWITCH_REQ:
+			wma_set_channel(wma_handle,
+					(tpSwitchChannelParams)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
@@ -1453,6 +1723,18 @@ end:
 	return vos_status;
 }
 
+static void wma_cleanup_vdev_resp(tp_wma_handle wma)
+{
+	struct wma_target_req *msg, *tmp;
+
+	list_for_each_entry_safe(msg, tmp,
+				 &wma->vdev_resp_queue, node) {
+		list_del(&msg->node);
+		vos_timer_destroy(&msg->event_timeout);
+		vos_mem_free(msg);
+	}
+}
+
 /* function   : wma_close
  * Descriptin :  
  * Args       :        
@@ -1476,6 +1758,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 
 	/* close the vos events */
 	vos_event_destroy(&wma_handle->wma_ready_event);
+	wma_cleanup_vdev_resp(wma_handle);
 #ifdef QCA_WIFI_ISOC
 	vos_event_destroy(&wma_handle->cfg_nv_tx_complete);
 #endif
