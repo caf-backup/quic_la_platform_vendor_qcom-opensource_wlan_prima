@@ -1966,6 +1966,14 @@ static wpt_status dxeRXFrameRefillRing
 
    while(channelEntry->numFreeDesc > 0)
    {
+      /* If RX thread drain small size of frame from HW too fast
+       * Sometimes HW cannot handle interrupt fast enough
+       * And system crash might happen
+       * To avoid system crash, input 1usec delay each frame draining
+       * within host side, This is SW work around, to fix HW problem
+       * Throughput and SnS test done successfully */
+      wpalUsecSleep(1);
+
       /* Current Control block is free
        * and associated frame buffer is not linked with control block anymore
        * allocate new frame buffer for current control block */
