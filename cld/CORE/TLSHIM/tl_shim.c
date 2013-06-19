@@ -389,7 +389,7 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 		return skb;
 	}
 
-	peer = ol_txrx_peer_find_by_id(
+	peer = ol_txrx_peer_find_by_local_id(
 			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
 			sta_id);
 	if (!peer) {
@@ -670,7 +670,7 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 		TLSHIM_LOGE("Invalid sta id :%d", sta_id);
 		return VOS_STATUS_E_INVAL;
 	}
-	peer = ol_txrx_peer_find_by_id(
+	peer = ol_txrx_peer_find_by_local_id(
 			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
 			sta_id);
 	if (!peer)
@@ -745,7 +745,7 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 		TLSHIM_LOGE("Invalid sta id :%d", sta_desc->ucSTAId);
 		return VOS_STATUS_E_INVAL;
 	}
-	peer = ol_txrx_peer_find_by_id(
+	peer = ol_txrx_peer_find_by_local_id(
 			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
 			sta_desc->ucSTAId);
 	if (!peer)

@@ -415,6 +415,20 @@ ol_txrx_assoc_peer_find(struct ol_txrx_vdev_t *vdev)
 	return peer;
 }
 
+struct ol_txrx_peer_t *
+ol_txrx_peer_find_by_local_id(ol_txrx_pdev_handle pdev, u_int8_t local_id)
+{
+    int32_t i, max_peers;
+
+    max_peers = ol_cfg_max_peer_id(pdev->ctrl_pdev) + 1;
+    for (i = 0; i < max_peers; i++) {
+        if (pdev->peer_id_to_obj_map[i] &&
+           (pdev->peer_id_to_obj_map[i]->local_id == local_id))
+               return pdev->peer_id_to_obj_map[i];
+    }
+    return NULL;
+}
+
 /*=== function definitions for debug ========================================*/
 
 #if defined (TXRX_DEBUG_LEVEL) && TXRX_DEBUG_LEVEL > 5
