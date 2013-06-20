@@ -166,7 +166,7 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *event,
 		tpSwitchChannelParams params =
 			(tpSwitchChannelParams) req_msg->user_data;
 		WMA_LOGD("%s: Send channel switch resp vdev %d status %d\n",
-			 resp_event->vdev_id, resp_event->status);
+			 __func__, resp_event->vdev_id, resp_event->status);
 		params->status = resp_event->status;
 		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
 	}
@@ -1230,7 +1230,9 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 #define PEER_ALL_TID_BITMASK 0xffffffff
 	u_int32_t peer_tid_bitmap = PEER_ALL_TID_BITMASK;
 
-	WMA_LOGD("%s: bssid %pM vdevid %d\n", __func__, bssid, vdev_id);
+	wma->peer_count--;
+	WMA_LOGD("%s: bssid %pM vdevid %d peer_count %d\n", __func__,
+		 bssid, vdev_id, wma->peer_count);
 	/* Flush all TIDs except MGMT TID for this peer in Target */
 	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);
 	wmi_unified_peer_flush_tids_send(wma->wmi_handle, bssid,
@@ -1729,7 +1731,8 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams params)
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	if (params->staType != STA_ENTRY_SELF) {
-		WMA_LOGP("%s: unsupported station type %d\n", params->staType);
+		WMA_LOGP("%s: unsupported station type %d\n",
+			 __func__, params->staType);
 		goto out;
 	}
 
@@ -1872,7 +1875,8 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	vdev = wma_find_vdev_by_addr(wma, params->selfMacAddr, &vdev_id);
 	if (!vdev) {
-		WMA_LOGP("%s: vdev not found for addr: %pM\n", params->selfMacAddr);
+		WMA_LOGP("%s: vdev not found for addr: %pM\n",
+			 __func__, params->selfMacAddr);
 		goto out;
 	}
 
