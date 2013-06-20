@@ -105,7 +105,7 @@
 #define WMA_LOGI(args...) \
 	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, ## args)
 #define WMA_LOGW(args...) \
-	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_WARNING, ## args)
+	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_WARN, ## args)
 #define WMA_LOGE(args...) \
 	VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, ## args)
 #define WMA_LOGP(args...) \
