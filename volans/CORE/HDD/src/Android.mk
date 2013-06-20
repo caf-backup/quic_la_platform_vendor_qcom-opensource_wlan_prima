@@ -73,7 +73,7 @@ KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 include $(CLEAR_VARS)
 LOCAL_MODULE             := WCN1314_rf.ko
 LOCAL_MODULE_KBUILD_NAME := wlan.ko
-LOCAL_MODULE_TAGS        := debug
+LOCAL_MODULE_TAGS        := optional
 LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/volans
 include $(DLKM_DIR)/AndroidKernelModule.mk
 
