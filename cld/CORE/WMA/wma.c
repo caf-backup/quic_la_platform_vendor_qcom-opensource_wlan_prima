@@ -1962,6 +1962,92 @@ out:
 	wma_send_msg(wma, WDA_SET_LINK_STATE_RSP, (void *)params, 0);
 }
 
+/*
+ * Function to update per ac EDCA parameters
+ */
+static void wma_update_edca_params_for_ac(tSirMacEdcaParamRecord *edca_param,
+					  wmi_wmm_params *wmm_param,
+					  int ac)
+{
+	wmm_param->cwmin = edca_param->cw.min;
+	wmm_param->cwmax = edca_param->cw.max;
+	wmm_param->aifs = edca_param->aci.aifsn;
+	wmm_param->txoplimit = edca_param->txoplimit;
+	wmm_param->acm = edca_param->aci.acm;
+
+	/* TODO: No ack is not present in EdcaParamRecord */
+	wmm_param->no_ack = 0;
+
+	WMA_LOGD("WMM PARAMS AC[%d]: AIFS %d Min %d Max %d TXOP %d ACM %d NOACK %d\n",
+		 ac,
+		 wmm_param->aifs,
+		 wmm_param->cwmin,
+		 wmm_param->cwmax,
+		 wmm_param->txoplimit,
+		 wmm_param->acm,
+		 wmm_param->no_ack);
+}
+
+/*
+ * Function to update the EDCA parameters to the target
+ */
+static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
+						    tEdcaParams *edca_params)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_buf_t buf;
+	wmi_pdev_set_wmm_params_cmd *cmd;
+	wmi_wmm_params *wmm_param;
+	tSirMacEdcaParamRecord *edca_record;
+	int ac;
+	int len = sizeof(wmi_pdev_set_wmm_params_cmd);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+
+	if (!buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed\n", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_pdev_set_wmm_params_cmd*)wmi_buf_data(buf);
+
+	for (ac = 0; ac < WME_NUM_AC; ac++) {
+		switch (ac) {
+		case WME_AC_BE:
+			wmm_param = &cmd->wmm_params_ac_be;
+			edca_record = &edca_params->acbe;
+			break;
+		case WME_AC_BK:
+			wmm_param = &cmd->wmm_params_ac_bk;
+			edca_record = &edca_params->acbk;
+			break;
+		case WME_AC_VI:
+			wmm_param = &cmd->wmm_params_ac_vi;
+			edca_record = &edca_params->acvi;
+			break;
+		case WME_AC_VO:
+			wmm_param = &cmd->wmm_params_ac_vo;
+			edca_record = &edca_params->acvo;
+			break;
+		default:
+			goto fail;
+		}
+
+		wma_update_edca_params_for_ac(edca_record, wmm_param, ac);
+	}
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				  WMI_PDEV_SET_WMM_PARAMS_CMDID))
+		goto fail;
+
+	return VOS_STATUS_SUCCESS;
+
+fail:
+	wmi_buf_free(buf);
+	WMA_LOGE("%s: Failed to set WMM Paremeters\n", __func__);
+	return VOS_STATUS_E_FAILURE;
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -2057,6 +2143,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_delete_bss(wma_handle,
 					(tpDeleteBssParams)msg->bodyptr);
 			break;
+		case WDA_UPDATE_EDCA_PROFILE_IND:
+			wma_process_update_edca_param_req(
+						wma_handle,
+						(tEdcaParams *)msg->bodyptr);
+			break;
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
