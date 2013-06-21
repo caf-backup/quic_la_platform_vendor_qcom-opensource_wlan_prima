@@ -305,6 +305,9 @@ typedef void (*pWDATxRxCompFunc)( v_PVOID_t pContext, void *pData,
 //parameter 2 - txComplete status : 1- success, 0 - failure.
 typedef eHalStatus (*pWDAAckFnTxComp)(tpAniSirGlobal, tANI_U32);
 
+/* generic callback for updating parameters from target to UMAC */
+typedef void (*wda_tgt_cfg_cb) (void *context, void *param);
+
 typedef struct
 {
    tANI_U16 ucValidStaIndex ;
@@ -424,8 +427,16 @@ VOS_STATUS WDA_TxPacket(void *pWDA,
                         pWDAAckFnTxComp pAckTxComp,
                         tANI_U8 txFlag,
                         tANI_U8 sessionId);
+
+/*
+ * FUNCTION: WDA_open
+ * open WDA context
+ */
+
+VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
+                    wda_tgt_cfg_cb pTgtUpdCB, tMacOpenParameters *pMacParams ) ;
+
 #ifdef QCA_WIFI_2_0
-#define WDA_open wma_open
 #define WDA_start wma_start
 
 #ifdef QCA_WIFI_ISOC
@@ -442,14 +453,6 @@ VOS_STATUS WDA_TxPacket(void *pWDA,
 #define WDA_needShutdown wma_needshutdown
 #define WDA_McProcessMsg wma_mc_process_msg
 #else	/* #ifdef QCA_WIFI_2_0 */
-
-/*
- * FUNCTION: WDA_open
- * open WDA context
- */ 
-
-VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext, 
-                                              tMacOpenParameters *pMacParams ) ;
 
 /*
  * FUNCTION: WDA_preStart

@@ -1712,6 +1712,7 @@ typedef enum eSirMacHTChannelWidth
     eHT_CHANNEL_WIDTH_40MHZ = 1,
 #ifdef WLAN_FEATURE_11AC
     eHT_CHANNEL_WIDTH_80MHZ = 2,
+    eHT_CHANNEL_WIDTH_160MHZ = 3,
 #endif
     eHT_MAX_CHANNEL_WIDTH
 } tSirMacHTChannelWidth;

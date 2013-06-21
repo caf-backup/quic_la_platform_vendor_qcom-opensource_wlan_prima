@@ -1683,6 +1683,484 @@ void hdd_getBand_helper(hdd_context_t *pHddCtx, int *pBand)
     }
 }
 
+#if defined (QCA_WIFI_2_0) && !defined (QCA_WIFI_ISOC)
+/*
+ * Mac address for multiple virtual interface is found as following
+ * i) The mac address of the first interface is just the actual hw mac address.
+ * ii) MSM 3 ot 4 bits of byte0 of the actual mac address are used to
+ *     define the mac address for the remaining interfaces and locally
+ *     admistered bit is set. INTF_MACADDR_MASK is based on the number of
+ *     supported virtual interfaces, right now this is 0x07 (meaning 8 interface).
+ *     Byte[0] of second interface will be hw_macaddr[0](bit5..7) + 1,
+ *     for third interface it will be hw_macaddr[0](bit5..7) + 2, etc.
+ */
+
+static void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
+{
+    int8_t i;
+    u_int8_t macaddr_b0, tmp_br0;
+
+    vos_mem_copy(cfg_ini->intfMacAddr[0].bytes, hw_macaddr.bytes,
+                 VOS_MAC_ADDR_SIZE);
+    for (i = 1; i < VOS_MAX_CONCURRENCY_PERSONA; i++) {
+        vos_mem_copy(cfg_ini->intfMacAddr[i].bytes, hw_macaddr.bytes,
+                     VOS_MAC_ADDR_SIZE);
+        macaddr_b0 = cfg_ini->intfMacAddr[i].bytes[0];
+        tmp_br0 = ((macaddr_b0 >> 4 & INTF_MACADDR_MASK) + i) &
+                  INTF_MACADDR_MASK;
+        macaddr_b0 = (macaddr_b0 | (tmp_br0 << 4)) | 0x02;
+        cfg_ini->intfMacAddr[i].bytes[0] = macaddr_b0;
+    }
+}
+
+static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
+                                    struct hdd_tgt_services *cfg)
+{
+    hdd_config_t *cfg_ini = hdd_ctx->cfg_ini;
+
+    /* Set up UAPSD */
+    cfg_ini->apUapsdEnabled &= cfg->uapsd;
+
+    /* DFS Channel Scan */
+    cfg_ini->enableDFSChnlScan &= cfg->dfs_chan_scan;
+
+#ifdef WLAN_FEATURE_11AC
+    /* 11AC mode support */
+    if ((cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac ||
+        cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac_ONLY) &&
+                                               !cfg->en_11ac)
+        cfg_ini->dot11Mode = eHDD_DOT11_MODE_AUTO;
+#endif /* #ifdef WLAN_FEATURE_11AC */
+
+    /* ARP offload: override user setting if invalid  */
+    cfg_ini->fhostArpOffload &= cfg->arp_offload;
+}
+
+static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
+                                  struct hdd_tgt_ht_cap *cfg)
+{
+    eHalStatus status;
+    tANI_U32 value;
+
+    /* Get the HT RX STBC capability */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_HT_RX_STBC, &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get HT_RX_STBC",
+                  __func__);
+        value = 0;
+    }
+
+    /* set HT capability RX STBC */
+    if (value && !cfg->ht_rx_stbc) {
+        status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_RX_STBC,
+                              cfg->ht_rx_stbc, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE)
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set the HT_RX_STBC to CCM",
+                      __func__);
+    }
+
+    /* get the MPDU density */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_MPDU_DENSITY, &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get MPDU DENSITY",
+                  __func__);
+        value = 0;
+    }
+
+    /*
+     * MPDU density:
+     * override user's setting if value is larger
+     * than the one supported by target
+     */
+    if (value > cfg->mpdu_density) {
+        status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_MPDU_DENSITY,
+                              cfg->mpdu_density,
+                              NULL, eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE)
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set MPDU DENSITY to CCM",
+                      __func__);
+    }
+}
+
+#ifdef WLAN_FEATURE_11AC
+static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
+                                   struct hdd_tgt_vht_cap *cfg)
+{
+    eHalStatus status;
+    tANI_U32 value = 0;
+
+    /* Get the current MPDU length */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_MAX_MPDU_LENGTH, &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get MPDU LENGTH",
+                  __func__);
+        value = 0;
+    }
+
+    /*
+     * VHT max MPDU length:
+     * override if user configured value is too high
+     * that the target cannot support
+     */
+    if (value > cfg->vht_max_mpdu) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_MAX_MPDU_LENGTH,
+                              cfg->vht_max_mpdu, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set VHT MAX MPDU LENGTH",
+                      __func__);
+        }
+    }
+
+    /* Get the current supported chan width */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_SUPPORTED_CHAN_WIDTH_SET,
+                          &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get MPDU LENGTH",
+                  __func__);
+        value = 0;
+    }
+
+    /*
+     * Update VHT supported chan width:
+     * if user setting is invalid, override it with
+     * target capability
+     */
+    if ((value == eHT_CHANNEL_WIDTH_80MHZ &&
+        !(cfg->supp_chan_width & eHT_CHANNEL_WIDTH_80MHZ)) ||
+        (value == eHT_CHANNEL_WIDTH_160MHZ &&
+        !(cfg->supp_chan_width & eHT_CHANNEL_WIDTH_160MHZ))) {
+        u_int32_t width = eHT_CHANNEL_WIDTH_20MHZ;
+
+        if (cfg->supp_chan_width & eHT_CHANNEL_WIDTH_160MHZ)
+            width = eHT_CHANNEL_WIDTH_160MHZ;
+        else if (cfg->supp_chan_width & eHT_CHANNEL_WIDTH_80MHZ)
+            width = eHT_CHANNEL_WIDTH_80MHZ;
+
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_SUPPORTED_CHAN_WIDTH_SET,
+                              width, NULL, eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set VHT SUPPORTED CHAN WIDTH",
+                      __func__);
+        }
+    }
+
+    /* Get the current RX LDPC setting */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_LDPC_CODING_CAP, &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT LDPC CODING CAP",
+                  __func__);
+        value = 0;
+    }
+
+    /* Set the LDPC capability */
+    if (value && !cfg->vht_rx_ldpc) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_LDPC_CODING_CAP,
+                              cfg->vht_rx_ldpc, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set VHT LDPC CODING CAP to CCM",
+                      __func__);
+        }
+    }
+
+    /* Get current GI 80 value */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_SHORT_GI_80MHZ, &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get SHORT GI 80MHZ",
+                  __func__);
+        value = 0;
+    }
+
+    /* set the Guard interval 80MHz */
+    if (value && !cfg->vht_short_gi_80) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_SHORT_GI_80MHZ,
+                              cfg->vht_short_gi_80, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set SHORT GI 80MHZ to CCM",
+                      __func__);
+        }
+    }
+
+    /* Get current GI 160 value */
+    status = ccmCfgGetInt(hdd_ctx->hHal,
+                          WNI_CFG_VHT_SHORT_GI_160_AND_80_PLUS_80MHZ,
+                          &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get SHORT GI 80 & 160",
+                  __func__);
+        value = 0;
+    }
+
+    /* set the Guard interval 160MHz */
+    if (value && !cfg->vht_short_gi_160) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_SHORT_GI_160_AND_80_PLUS_80MHZ,
+                              cfg->vht_short_gi_160, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set SHORT GI 80 & 160 to CCM",
+                      __func__);
+        }
+    }
+
+    /* Get VHT TX STBC cap */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_TXSTBC, &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT TX STBC",
+                  __func__);
+        value = 0;
+    }
+
+    /* VHT TX STBC cap */
+    if (value && !cfg->vht_tx_stbc) {
+        status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_TXSTBC,
+                              cfg->vht_tx_stbc, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set the VHT TX STBC to CCM",
+                      __func__);
+        }
+    }
+
+    /* Get VHT RX STBC cap */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_RXSTBC, &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT RX STBC",
+                  __func__);
+        value = 0;
+    }
+
+    /* VHT RX STBC cap */
+    if (value && !cfg->vht_rx_stbc) {
+        status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_RXSTBC,
+                              cfg->vht_rx_stbc, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set the VHT RX STBC to CCM",
+                      __func__);
+        }
+    }
+
+    /* Get VHT SU Beamformer cap */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_SU_BEAMFORMER_CAP,
+                          &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT SU BEAMFORMER CAP",
+                  __func__);
+        value = 0;
+    }
+
+    /* set VHT SU Beamformer cap */
+    if (value && !cfg->vht_su_bformer) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_SU_BEAMFORMER_CAP,
+                              cfg->vht_su_bformer, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set VHT SU BEAMFORMER CAP",
+                      __func__);
+        }
+    }
+
+    /* Get VHT SU Beamformee cap */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_SU_BEAMFORMEE_CAP,
+                          &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT SU BEAMFORMEE CAP",
+                  __func__);
+        value = 0;
+    }
+
+    /* set VHT SU Beamformee cap */
+    if (value && !cfg->vht_su_bformee) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_SU_BEAMFORMEE_CAP,
+                              cfg->vht_su_bformee, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set VHT SU BEAMFORMEE CAP",
+                      __func__);
+        }
+    }
+
+    /* Get VHT MU Beamformer cap */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_MU_BEAMFORMER_CAP,
+                          &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT MU BEAMFORMER CAP",
+                  __func__);
+        value = 0;
+    }
+
+    /* set VHT MU Beamformer cap */
+    if (value && !cfg->vht_mu_bformer) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_MU_BEAMFORMER_CAP,
+                              cfg->vht_mu_bformer, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set the VHT MU BEAMFORMER CAP to CCM",
+                      __func__);
+        }
+    }
+
+    /* Get VHT MU Beamformee cap */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_MU_BEAMFORMEE_CAP,
+                          &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT MU BEAMFORMEE CAP",
+                  __func__);
+        value = 0;
+    }
+
+    /* set VHT MU Beamformee cap */
+    if (value && !cfg->vht_mu_bformee) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_MU_BEAMFORMEE_CAP,
+                              cfg->vht_mu_bformee, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set VHT MU BEAMFORMER CAP",
+                      __func__);
+        }
+    }
+
+    /* Get VHT MAX AMPDU Len exp */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_AMPDU_LEN_EXPONENT,
+                          &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT AMPDU LEN",
+                  __func__);
+        value = 0;
+    }
+
+    /* set VHT MAX AMPDU Len exp */
+    if (value && !cfg->vht_max_ampdu_len_exp) {
+        status = ccmCfgSetInt(hdd_ctx->hHal,
+                              WNI_CFG_VHT_AMPDU_LEN_EXPONENT,
+                              cfg->vht_max_ampdu_len_exp, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set the VHT AMPDU LEN EXP",
+                      __func__);
+        }
+    }
+
+    /* Get VHT TXOP PS CAP */
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_TXOP_PS, &value);
+
+    if (status != eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get VHT TXOP PS",
+                  __func__);
+        value = 0;
+    }
+
+    /* set VHT TXOP PS cap */
+    if (value && !cfg->vht_txop_ps) {
+        status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_VHT_TXOP_PS,
+                              cfg->vht_txop_ps, NULL,
+                              eANI_BOOLEAN_FALSE);
+
+        if (status == eHAL_STATUS_FAILURE) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set the VHT TXOP PS",
+                      __func__);
+        }
+    }
+}
+#endif	/* #ifdef WLAN_FEATURE_11AC */
+
+void hdd_update_tgt_cfg(void *context, void *param)
+{
+    hdd_context_t *hdd_ctx = (hdd_context_t *)context;
+    struct hdd_tgt_cfg *cfg = (struct hdd_tgt_cfg *)param;
+    hdd_ctx->cfg_ini->nBandCapability = cfg->band_cap;
+    memcpy(hdd_ctx->cfg_ini->crdaDefaultCountryCode, cfg->alpha2, 2);
+    /* This can be extended to other configurations like ht, vht cap... */
+
+    if (!vos_is_macaddr_zero(&cfg->hw_macaddr))
+        hdd_update_macaddr(hdd_ctx->cfg_ini, cfg->hw_macaddr);
+    else {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Invalid MAC passed from target, using MAC from ini file"
+               MAC_ADDRESS_STR, __func__,
+               MAC_ADDR_ARRAY(hdd_ctx->cfg_ini->intfMacAddr[0].bytes));
+    }
+
+    hdd_update_tgt_services(hdd_ctx, &cfg->services);
+
+    hdd_update_tgt_ht_cap(hdd_ctx, &cfg->ht_cap);
+
+#ifdef WLAN_FEATURE_11AC
+    hdd_update_tgt_vht_cap(hdd_ctx, &cfg->vht_cap);
+#endif	/* #ifdef WLAN_FEATURE_11AC */
+}
+#endif	/* QCA_WIFI_2_0 && !QCA_WIFI_ISOC */
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_parse_send_action_frame_data() - HDD Parse send action frame data

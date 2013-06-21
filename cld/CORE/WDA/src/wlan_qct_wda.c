@@ -196,7 +196,7 @@ VOS_STATUS WDA_ProcessUpdateOpMode(tWDA_CbContext *pWDA,
  * Allocate the WDA context 
  */ 
 VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
-                                                tMacOpenParameters *pMacParams )
+                    wda_tgt_cfg_cb pTgtUpdateCB, tMacOpenParameters *pMacParams)
 {
    tWDA_CbContext *wdaContext;
    VOS_STATUS status;
