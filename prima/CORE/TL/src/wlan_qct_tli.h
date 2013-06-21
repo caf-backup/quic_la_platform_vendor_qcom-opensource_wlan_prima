@@ -600,6 +600,8 @@ typedef struct
     1 then we have to encrypt the data irrespective of TL
     state (CONNECTED/AUTHENTICATED) */
   v_U8_t ptkInstalled;
+
+  v_U32_t       linkCapacity;
 }WLANTL_STAClientType;
 
 /*---------------------------------------------------------------------------
