@@ -988,17 +988,31 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       return vosStatus;
    }
 
-   // if ( WPA ), tell TL to go to 'connected' and after keys come to the driver,
-
+   // if (WPA), tell TL to go to 'connected' and after keys come to the driver,
+   // then go to 'authenticated'.  For all other authentication types
+   // (those that donot require upper layer authentication) we can put
+   // TL directly into 'authenticated' state.
    if (staDesc.wSTAType != WLAN_STA_IBSS)
       VOS_ASSERT( fConnected );
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-              "ULA auth StaId= %d.  Changing TL state to CONNECTED at Join time",
-              pHddStaCtx->conn_info.staId[0] );
-   vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext, staDesc.ucSTAId,
+   if ( !pRoamInfo->fAuthRequired )
+   {
+      // Connections that do not need Upper layer auth, transition TL directly
+      // to 'Authenticated' state.
+      vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext, staDesc.ucSTAId,
+                                         WLANTL_STA_AUTHENTICATED );
+
+      pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+   }
+   else
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
+                 "ULA auth StaId= %d. Changing TL state to CONNECTED"
+                 "at Join time", pHddStaCtx->conn_info.staId[0] );
+      vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext, staDesc.ucSTAId,
                                       WLANTL_STA_CONNECTED );
    pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
+   }
 
    return( vosStatus );
 }
@@ -1321,12 +1335,23 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
             hdd_SendReAssocEvent(dev, pAdapter, pRoamInfo, reqRsnIe, reqRsnLength);
             //Reassoc successfully
-            vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext, pHddStaCtx->conn_info.staId[ 0 ],
-                     WLANTL_STA_CONNECTED );
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                     "%s: staId: %d Changing TL state to CONNECTED",
-                     __func__, pHddStaCtx->conn_info.staId[0]);
-            pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
+            if( pRoamInfo->fAuthRequired )
+            {
+                vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext,
+                                                   pHddStaCtx->conn_info.staId[ 0 ],
+                                                   WLANTL_STA_CONNECTED );
+                pHddStaCtx->conn_info.uIsAuthenticated = VOS_FALSE;
+            }
+            else
+            {
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                          "%s: staId: %d Changing TL state to AUTHENTICATED",
+                          __func__, pHddStaCtx->conn_info.staId[ 0 ] );
+                vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext,
+                                                   pHddStaCtx->conn_info.staId[ 0 ],
+                                                   WLANTL_STA_AUTHENTICATED );
+                pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+            }
         }
 
         if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -1680,10 +1705,68 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
    fConnected = hdd_connGetConnectedCipherAlgo( pHddStaCtx, &connectedCipherAlgo );
    if( fConnected )
    {
-      // TODO: Considering getting a state machine in HDD later.
-      // This routuine is invoked twice. 1)set PTK 2)set GTK.
-      vosStatus = WLANTL_STAPtkInstalled( pHddCtx->pvosContext,
-                                            pHddStaCtx->conn_info.staId[ 0 ]);
+      if ( WLAN_HDD_IBSS == pAdapter->device_mode )
+      {
+         v_U8_t staId;
+
+         v_MACADDR_t broadcastMacAddr = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
+
+         if ( 0 == memcmp( pRoamInfo->peerMac,
+                      &broadcastMacAddr, VOS_MAC_ADDR_SIZE ) )
+         {
+            vosStatus = WLANTL_STAPtkInstalled( pHddCtx->pvosContext,
+                                                IBSS_BROADCAST_STAID);
+            pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+         }
+         else
+         {
+            vosStatus = hdd_Ibss_GetStaId(pHddStaCtx,
+                              (v_MACADDR_t*)pRoamInfo->peerMac,
+                              &staId);
+            if ( VOS_STATUS_SUCCESS == vosStatus )
+            {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                "WLAN TL STA Ptk Installed for STAID=%d", staId);
+               vosStatus = WLANTL_STAPtkInstalled( pHddCtx->pvosContext,
+                                                  staId);
+               pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+            }
+         }
+      }
+      else
+      {
+         // TODO: Considering getting a state machine in HDD later.
+         // This routine is invoked twice. 1)set PTK 2)set GTK.
+         // The folloing if statement will be TRUE when setting GTK.
+         // At this time we don't handle the state in detail.
+         // Related CR: 174048 - TL not in authenticated state
+         if ( ( eCSR_ROAM_RESULT_AUTHENTICATED == roamResult ) &&
+             (pRoamInfo != NULL) && !pRoamInfo->fAuthRequired )
+         {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED, "Key set "
+                       "for StaId= %d.  Changing TL state to AUTHENTICATED",
+                       pHddStaCtx->conn_info.staId[ 0 ] );
+
+            // Connections that do not need Upper layer authentication,
+            // transition TL to 'Authenticated' state after the keys are set.
+            vosStatus = WLANTL_ChangeSTAState( pHddCtx->pvosContext,
+                                               pHddStaCtx->conn_info.staId[ 0 ],
+                                               WLANTL_STA_AUTHENTICATED );
+
+            pHddStaCtx->conn_info.uIsAuthenticated = VOS_TRUE;
+         }
+         else
+         {
+            vosStatus = WLANTL_STAPtkInstalled( pHddCtx->pvosContext,
+                                                pHddStaCtx->conn_info.staId[ 0 ]);
+         }
+
+         pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+      }
+   }
+   else
+   {
+      // possible disassoc after issuing set key and waiting set key complete
       pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
    }
 
