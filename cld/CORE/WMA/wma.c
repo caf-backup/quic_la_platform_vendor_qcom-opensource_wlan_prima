@@ -129,20 +129,29 @@ v_VOID_t wma_swap_bytes(v_VOID_t *pv, v_SIZE_t n)
 #endif
 
 static struct wma_target_req *wma_find_vdev_req(tp_wma_handle wma,
-						u_int8_t vdev_id)
+						u_int8_t vdev_id,
+						u_int8_t type)
 {
-	struct wma_target_req *req_msg, *tmp;
+	struct wma_target_req *req_msg = NULL, *tmp;
 
+	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
 	list_for_each_entry_safe(req_msg, tmp,
 				 &wma->vdev_resp_queue, node) {
 		if (req_msg->vdev_id != vdev_id)
+			continue;
+		if (req_msg->type != type)
 			continue;
 
 		list_del(&req_msg->node);
 		break;
 	}
-	WMA_LOGD("%s: target request found for vdev id: %d msg_type %d\n",
-		 __func__, vdev_id, req_msg->msg_type);
+	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
+	if (!req_msg)
+		WMA_LOGD("%s: target request not found for vdev_id %d type %d\n",
+			 __func__, vdev_id, type);
+	else
+		WMA_LOGD("%s: target request found for vdev id: %d type %d msg %d\n",
+			__func__, vdev_id, type, req_msg->msg_type);
 	return req_msg;
 }
 
@@ -155,7 +164,8 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *event,
 	wmi_vdev_start_response_event *resp_event =
 		(wmi_vdev_start_response_event *)event;
 
-	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id);
+	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
+				    WMA_TARGET_REQ_TYPE_VDEV_START);
 	if (!req_msg) {
 		WMA_LOGP("%s: Failed to lookup request message for vdev %d\n",
 			 __func__, resp_event->vdev_id);
@@ -249,7 +259,8 @@ static int wma_vdev_stop_resp_handler(void *handle, u8 *event, u16 len)
 	ol_txrx_pdev_handle pdev;
 	u_int8_t peer_id;
 
-	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id);
+	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
+				    WMA_TARGET_REQ_TYPE_VDEV_STOP);
 	if (!req_msg) {
 		WMA_LOGP("%s: Failed to lookup vdev request for vdev id %d\n",
 			 __func__, resp_event->vdev_id);
@@ -400,6 +411,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		goto err_event_init;
 	}
 	INIT_LIST_HEAD(&wma_handle->vdev_resp_queue);
+	adf_os_spinlock_init(&wma_handle->vdev_respq_lock);
 
 	/* Register vdev start response event handler */
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
@@ -1404,13 +1416,15 @@ void wma_vdev_resp_timer(void *data)
 			ol_txrx_peer_detach(peer);
 		wma_send_msg(wma, WDA_SET_LINK_STATE_RSP, (void *)params, 0);
 	}
+	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
 	list_del(&tgt_req->node);
+	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
 	vos_timer_destroy(&tgt_req->event_timeout);
 	vos_mem_free(tgt_req);
 }
 
 static VOS_STATUS wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
-				    u_int32_t msg_type, void *params)
+				    u_int32_t msg_type, u_int8_t type, void *params)
 {
 	struct wma_target_req *req;
 
@@ -1424,11 +1438,14 @@ static VOS_STATUS wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 	WMA_LOGD("%s: vdev_id %d msg %d\n", __func__, vdev_id, msg_type);
 	req->vdev_id = vdev_id;
 	req->msg_type = msg_type;
+	req->type = type;
 	req->user_data = params;
-	list_add_tail(&req->node, &wma->vdev_resp_queue);
 	vos_timer_init(&req->event_timeout, VOS_TIMER_TYPE_SW,
 		       wma_vdev_resp_timer, req);
 	vos_timer_start(&req->event_timeout, 1000);
+	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
+	list_add_tail(&req->node, &wma->vdev_resp_queue);
+	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -1460,7 +1477,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	}
 
 	status = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
-				   params);
+				   WMA_TARGET_REQ_TYPE_VDEV_START, params);
 	if (status == VOS_STATUS_SUCCESS)
 		return;
 	WMA_LOGP("Failed to fill channel switch request for vdev %d status %d\n",
@@ -1841,6 +1858,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	wma_remove_peer(wma, params->bssid, params->smesessionId);
 	if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->smesessionId) ||
 	    (wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
+			       WMA_TARGET_REQ_TYPE_VDEV_STOP,
 			       params) != VOS_STATUS_SUCCESS)) {
 		WMA_LOGP("%s: %d Failed to send vdev stop\n",
 			 __func__, __LINE__);
@@ -1892,6 +1910,7 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 		wma_remove_peer(wma, params->bssid, vdev_id);
 		if (wmi_unified_vdev_stop_send(wma->wmi_handle, vdev_id) ||
 		    (wma_fill_vdev_req(wma, vdev_id, WDA_SET_LINK_STATE,
+				       WMA_TARGET_REQ_TYPE_VDEV_STOP,
 				       params) != VOS_STATUS_SUCCESS)) {
 			WMA_LOGP("%s: %d Failed to send vdev stop\n",
 				 __func__, __LINE__);
@@ -2300,12 +2319,14 @@ static void wma_cleanup_vdev_resp(tp_wma_handle wma)
 {
 	struct wma_target_req *msg, *tmp;
 
+	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
 	list_for_each_entry_safe(msg, tmp,
 				 &wma->vdev_resp_queue, node) {
 		list_del(&msg->node);
 		vos_timer_destroy(&msg->event_timeout);
 		vos_mem_free(msg);
 	}
+	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
 }
 
 /* function   : wma_close

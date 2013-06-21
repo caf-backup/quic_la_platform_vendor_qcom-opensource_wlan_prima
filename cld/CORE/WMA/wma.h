@@ -241,6 +241,7 @@ typedef struct {
 	struct wma_txrx_node *interfaces;
 	u_int32_t peer_count;
 	struct list_head vdev_resp_queue;
+	adf_os_spinlock_t vdev_respq_lock;
 	u_int32_t ht_cap_info;
 #ifdef WLAN_FEATURE_11AC
 	u_int32_t vht_cap_info;
@@ -798,12 +799,16 @@ struct wma_tx_ack_work_ctx {
 	struct work_struct ack_cmp_work;
 };
 
+#define WMA_TARGET_REQ_TYPE_VDEV_START 0x1
+#define WMA_TARGET_REQ_TYPE_VDEV_STOP  0x2
+
 struct wma_target_req {
 	vos_timer_t event_timeout;
 	struct list_head node;
 	void *user_data;
 	u_int32_t msg_type;
 	u_int8_t vdev_id;
+	u_int8_t type;
 };
 
 struct wma_vdev_start_req {
