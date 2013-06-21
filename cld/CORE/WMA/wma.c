@@ -1668,6 +1668,54 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	return ret;
 }
 
+static int
+wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
+                           u_int32_t param_id, u_int32_t param_value)
+{
+	int ret;
+	wmi_vdev_set_param_cmd *cmd;
+	wmi_buf_t buf;
+	u_int16_t len = sizeof(wmi_vdev_set_param_cmd);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed\n", __FUNCTION__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_vdev_set_param_cmd *)wmi_buf_data(buf);
+	cmd->vdev_id = if_id;
+	cmd->param_id = param_id;
+	cmd->param_value = param_value;
+	WMA_LOGD("Setting vdev %d param = %x, value = %u\n", if_id, param_id, param_value);
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_PARAM_CMDID);
+	if (ret < 0) {
+		WMA_LOGP("Failed to send set param command ret = %d\n", ret);
+		wmi_buf_free(buf);
+	}
+	return ret;
+}
+
+/* BSS set params functions */
+static void
+wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
+{
+	int ret;
+
+	/* Beacon Interval setting */
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					      WMI_VDEV_PARAM_BEACON_INTERVAL,
+					      params->beaconInterval);
+
+	if (!ret)
+		WMA_LOGE("failed to set WMI_VDEV_PARAM_BEACON_INTERVAL\n");
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					      WMI_VDEV_PARAM_DTIM_PERIOD,
+					      params->dtimPeriod);
+	if (!ret)
+		WMA_LOGE("failed to set WMI_VDEV_PARAM_DTIM_PERIOD\n");
+}
+
 static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
 {
 	ol_txrx_pdev_handle pdev;
@@ -1697,7 +1745,8 @@ static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
 				 __func__, params->bssId);
 			wma_set_peer_param(wma, params->bssId,
 					   WMI_PEER_AUTHORIZE, 1,
-					   params->staContext.bssIdx);
+					   params->staContext.smesessionId);
+			wma_vdev_set_bss_params(wma, params->staContext.smesessionId, params);
 		}
 	}
 send_bss_resp:
