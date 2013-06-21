@@ -2141,7 +2141,7 @@ VOS_STATUS WLANSAP_RemainOnChannel( v_PVOID_t pvosGCtx,
         }
 
         halStatus = sme_RemainOnChannel( hHal, pSapCtx->sessionId,
-                          channel, duration, callback, pContext );
+                          channel, duration, callback, pContext, TRUE );
 
         if( eHAL_STATUS_SUCCESS == halStatus )
         {

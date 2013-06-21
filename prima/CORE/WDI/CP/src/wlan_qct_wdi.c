@@ -22718,6 +22718,9 @@ WDI_2_HAL_LINK_STATE
   case WDI_LINK_LISTEN_STATE:
     return eSIR_LINK_LISTEN_STATE;
 
+  case WDI_LINK_SEND_ACTION_STATE:
+    return eSIR_LINK_SEND_ACTION_STATE;
+
   default:
     return eSIR_LINK_MAX;
   }
