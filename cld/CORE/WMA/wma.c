@@ -1700,6 +1700,7 @@ static void
 wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
 {
 	int ret;
+	uint32_t slot_time;
 
 	/* Beacon Interval setting */
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
@@ -1714,6 +1715,18 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
 					      params->dtimPeriod);
 	if (!ret)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_DTIM_PERIOD\n");
+
+	/* Slot time */
+	if (params->shortSlotTimeSupported)
+		slot_time = WMI_VDEV_SLOT_TIME_SHORT;
+	else
+		slot_time = WMI_VDEV_SLOT_TIME_LONG;
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					      WMI_VDEV_PARAM_SLOT_TIME,
+					      slot_time);
+	if (!ret)
+		WMA_LOGE("failed to set WMI_VDEV_PARAM_SLOT_TIME\n");
 }
 
 static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
