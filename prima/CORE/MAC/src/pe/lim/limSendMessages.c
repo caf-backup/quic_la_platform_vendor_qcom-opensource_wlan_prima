@@ -44,6 +44,7 @@ static tBeaconFilterIe beaconFilterTable[] = {
 #endif
 #ifdef WLAN_FEATURE_11AC
    ,{SIR_MAC_VHT_OPMODE_EID,     0,  {0, 0, 0, 0}}
+   ,{SIR_MAC_VHT_OPERATION_EID,  0,  {0, 0, VHTOP_CHWIDTH_MASK, 0}}
 #endif
 };
 
