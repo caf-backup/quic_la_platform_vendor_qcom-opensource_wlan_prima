@@ -1250,7 +1250,6 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
                                     adf_nbuf_t rxBuf, v_U8_t staId)
 {
    hdd_adapter_t *pAdapter = NULL;
-   VOS_STATUS status = VOS_STATUS_E_FAILURE;
    int rxstat;
    struct sk_buff *skb = NULL;
    hdd_context_t *pHddCtx = NULL;
@@ -1317,7 +1316,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
 
    pAdapter->dev->last_rx = jiffies;
 
-   return status;
+   return VOS_STATUS_SUCCESS;
 }
 #endif
 
