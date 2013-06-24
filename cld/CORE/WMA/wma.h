@@ -181,9 +181,26 @@ struct scan_param{
 	u_int32_t vdev_id;
 };
 
+#ifndef QCA_WIFI_ISOC
+
+#define WMA_BCN_BUF_MAX_SIZE 2500
+struct beacon_info {
+	adf_nbuf_t buf;
+	u_int32_t len;
+	u_int8_t dma_mapped;
+	u_int32_t tim_ie_offset;
+	u_int16_t seq_no;
+	adf_os_spinlock_t lock;
+};
+
+#endif
+
 struct wma_txrx_node {
 	u_int8_t addr[ETH_ALEN];
 	void *handle;
+#ifndef QCA_WIFI_ISOC
+	struct beacon_info *beacon;
+#endif
 };
 
 typedef struct {
