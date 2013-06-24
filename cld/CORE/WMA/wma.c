@@ -250,6 +250,79 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 	wma_handle->wlan_resource_config = tgt_cfg;
 }
 
+static int32_t wmi_unified_peer_delete_send(wmi_unified_t wmi,
+					u_int8_t peer_addr[IEEE80211_ADDR_LEN],
+					u_int8_t vdev_id)
+{
+	wmi_peer_delete_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_peer_delete_cmd);
+
+	buf = wmi_buf_alloc(wmi, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_peer_delete_cmd *)wmi_buf_data(buf);
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	cmd->vdev_id = vdev_id;
+
+	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_DELETE_CMDID)) {
+		WMA_LOGP("Failed to send peer delete command\n");
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	return 0;
+}
+
+static int32_t wmi_unified_peer_flush_tids_send(wmi_unified_t wmi,
+					    u_int8_t peer_addr
+							[IEEE80211_ADDR_LEN],
+					    u_int32_t peer_tid_bitmap,
+					    u_int8_t vdev_id)
+{
+	wmi_peer_flush_tids_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_peer_flush_tids_cmd);
+
+	buf = wmi_buf_alloc(wmi, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_peer_flush_tids_cmd *)wmi_buf_data(buf);
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	cmd->peer_tid_bitmap = peer_tid_bitmap;
+	cmd->vdev_id = vdev_id;
+
+	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_FLUSH_TIDS_CMDID)) {
+		WMA_LOGP("Failed to send flush tid command\n");
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	return 0;
+}
+
+static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
+			    u_int8_t vdev_id)
+{
+#define PEER_ALL_TID_BITMASK 0xffffffff
+	u_int32_t peer_tid_bitmap = PEER_ALL_TID_BITMASK;
+
+	wma->peer_count--;
+	WMA_LOGD("%s: bssid %pM vdevid %d peer_count %d\n", __func__,
+		 bssid, vdev_id, wma->peer_count);
+	/* Flush all TIDs except MGMT TID for this peer in Target */
+	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);
+	wmi_unified_peer_flush_tids_send(wma->wmi_handle, bssid,
+					 peer_tid_bitmap, vdev_id);
+
+	wmi_unified_peer_delete_send(wma->wmi_handle, bssid, vdev_id);
+#undef PEER_ALL_TID_BITMASK
+}
+
 static int wma_vdev_stop_resp_handler(void *handle, u8 *event, u16 len)
 {
 	tp_wma_handle wma = (tp_wma_handle)handle;
@@ -1179,79 +1252,6 @@ static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 err:
 	wma->peer_count--;
 	return VOS_STATUS_E_FAILURE;
-}
-
-static int32_t wmi_unified_peer_delete_send(wmi_unified_t wmi,
-					u_int8_t peer_addr[IEEE80211_ADDR_LEN],
-					u_int8_t vdev_id)
-{
-	wmi_peer_delete_cmd *cmd;
-	wmi_buf_t buf;
-	int32_t len = sizeof(wmi_peer_delete_cmd);
-
-	buf = wmi_buf_alloc(wmi, len);
-	if (!buf) {
-		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
-		return -ENOMEM;
-	}
-	cmd = (wmi_peer_delete_cmd *)wmi_buf_data(buf);
-	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
-	cmd->vdev_id = vdev_id;
-
-	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_DELETE_CMDID)) {
-		WMA_LOGP("Failed to send peer delete command\n");
-		adf_nbuf_free(buf);
-		return -EIO;
-	}
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
-	return 0;
-}
-
-static int32_t wmi_unified_peer_flush_tids_send(wmi_unified_t wmi,
-					    u_int8_t peer_addr
-							[IEEE80211_ADDR_LEN],
-					    u_int32_t peer_tid_bitmap,
-					    u_int8_t vdev_id)
-{
-	wmi_peer_flush_tids_cmd *cmd;
-	wmi_buf_t buf;
-	int32_t len = sizeof(wmi_peer_flush_tids_cmd);
-
-	buf = wmi_buf_alloc(wmi, len);
-	if (!buf) {
-		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
-		return -ENOMEM;
-	}
-	cmd = (wmi_peer_flush_tids_cmd *)wmi_buf_data(buf);
-	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
-	cmd->peer_tid_bitmap = peer_tid_bitmap;
-	cmd->vdev_id = vdev_id;
-
-	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_FLUSH_TIDS_CMDID)) {
-		WMA_LOGP("Failed to send flush tid command\n");
-		adf_nbuf_free(buf);
-		return -EIO;
-	}
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
-	return 0;
-}
-
-static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
-			    u_int8_t vdev_id)
-{
-#define PEER_ALL_TID_BITMASK 0xffffffff
-	u_int32_t peer_tid_bitmap = PEER_ALL_TID_BITMASK;
-
-	wma->peer_count--;
-	WMA_LOGD("%s: bssid %pM vdevid %d peer_count %d\n", __func__,
-		 bssid, vdev_id, wma->peer_count);
-	/* Flush all TIDs except MGMT TID for this peer in Target */
-	peer_tid_bitmap &= ~(0x1 << WMI_MGMT_TID);
-	wmi_unified_peer_flush_tids_send(wma->wmi_handle, bssid,
-					 peer_tid_bitmap, vdev_id);
-
-	wmi_unified_peer_delete_send(wma->wmi_handle, bssid, vdev_id);
-#undef PEER_ALL_TID_BITMASK
 }
 
 static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset)
