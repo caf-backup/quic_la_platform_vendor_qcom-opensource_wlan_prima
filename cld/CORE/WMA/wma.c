@@ -1784,7 +1784,10 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		return -ENOMEM;
 	}
 	cmd = (wmi_peer_assoc_complete_cmd *)wmi_buf_data(buf);
-	WMI_CHAR_ARRAY_TO_MAC_ADDR(params->bssId, &cmd->peer_macaddr);
+	if (wma_is_vdev_in_ap_mode(wma, params->bssIdx))
+		WMI_CHAR_ARRAY_TO_MAC_ADDR(params->staMac, &cmd->peer_macaddr);
+	else
+		WMI_CHAR_ARRAY_TO_MAC_ADDR(params->bssId, &cmd->peer_macaddr);
 	cmd->vdev_id = params->smesessionId;
 	cmd->peer_new_assoc = 1;
 	cmd->peer_associd = params->assocId;
@@ -2132,7 +2135,90 @@ static int wmi_unified_vdev_up_send(wmi_unified_t wmi,
 	return 0;
 }
 
-static void wma_add_sta(tp_wma_handle wma, tpAddStaParams params)
+static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
+{
+	enum ol_txrx_peer_state state = ol_txrx_peer_state_conn;
+	ol_txrx_pdev_handle pdev;
+	ol_txrx_vdev_handle vdev;
+	ol_txrx_peer_handle peer;
+	u_int8_t peer_id;
+	VOS_STATUS status;
+	int32_t ret;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	/* UMAC sends WDA_ADD_STA_REQ msg twice to WMA when the station
+	 * associates. First WDA_ADD_STA_REQ will have staType as
+	 * STA_ENTRY_PEER and second posting will have STA_ENTRY_SELF.
+	 * Peer creation is done in first WDA_ADD_STA_REQ and second
+	 * WDA_ADD_STA_REQ which has STA_ENTRY_SELF is ignored and
+	 * send fake response with success to UMAC. Otherwise UMAC
+	 * will get blocked.
+	 */
+	if (add_sta->staType != STA_ENTRY_PEER) {
+		add_sta->status = VOS_STATUS_SUCCESS;
+		goto send_rsp;
+	}
+
+	vdev = wma_find_vdev_by_id(wma, add_sta->sessionId);
+	if (!vdev) {
+		WMA_LOGE("%s: Failed to find vdev\n", __func__);
+		add_sta->status = VOS_STATUS_E_FAILURE;
+		goto send_rsp;
+	}
+
+	status = wma_create_peer(wma, pdev, vdev, add_sta->staMac,
+				 add_sta->sessionId);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to create peer for %pM\n",
+			 __func__, add_sta->staMac);
+		add_sta->status = status;
+		goto send_rsp;
+	}
+
+	peer = ol_txrx_find_peer_by_addr(pdev, add_sta->staMac,
+					 &peer_id);
+	if (!peer) {
+		WMA_LOGE("%s: Failed to find peer handle using peer mac %pM\n",
+			 __func__, add_sta->staMac);
+		add_sta->status = VOS_STATUS_E_FAILURE;
+		wma_remove_peer(wma, add_sta->staMac, add_sta->sessionId);
+		goto send_rsp;
+	}
+	ret = wmi_unified_send_peer_assoc(wma, add_sta->nwType, add_sta);
+	if (ret) {
+		add_sta->status = VOS_STATUS_E_FAILURE;
+		wma_remove_peer(wma, add_sta->staMac, add_sta->sessionId);
+		ol_txrx_peer_detach(peer);
+		goto send_rsp;
+	}
+	if (add_sta->encryptType == eSIR_ED_NONE) {
+		ret = wma_set_peer_param(wma, add_sta->staMac,
+					 WMI_PEER_AUTHORIZE, 1,
+					 add_sta->sessionId);
+		if (ret) {
+			add_sta->status = VOS_STATUS_E_FAILURE;
+			wma_remove_peer(wma, add_sta->staMac,
+					add_sta->sessionId);
+			ol_txrx_peer_detach(peer);
+			goto send_rsp;
+		}
+		state = ol_txrx_peer_state_auth;
+	}
+
+	WMA_LOGD("%s: Moving peer %pM to state %d\n",
+		 __func__, add_sta->staMac, state);
+	ol_txrx_peer_state_update(pdev, add_sta->staMac, state);
+
+	add_sta->staIdx = ol_txrx_local_peer_id(peer);
+	add_sta->status = VOS_STATUS_SUCCESS;
+send_rsp:
+	WMA_LOGD("%s: Sending add sta rsp to umac (mac:%pM, status:%d)\n",
+		__func__, add_sta->staMac, add_sta->status);
+	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)add_sta, 0);
+}
+
+static void wma_add_sta_req_sta_mode(tp_wma_handle wma, tpAddStaParams params)
 {
 	ol_txrx_pdev_handle pdev;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
@@ -2158,6 +2244,24 @@ out:
 		 __func__, params->staType, params->smesessionId, params->assocId,
 		 params->bssId, params->staIdx, status);
 	wma_send_msg(wma, WDA_ADD_STA_RSP, (void *)params, 0);
+}
+
+static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
+{
+	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
+
+	if (wma_is_vdev_in_ap_mode(wma, add_sta->sessionId))
+		oper_mode = BSS_OPERATIONAL_MODE_AP;
+
+	switch (oper_mode) {
+	case BSS_OPERATIONAL_MODE_STA:
+		wma_add_sta_req_sta_mode(wma, add_sta);
+		break;
+
+	case BSS_OPERATIONAL_MODE_AP:
+		wma_add_sta_req_ap_mode(wma, add_sta);
+		break;
+	}
 }
 
 static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
@@ -2194,7 +2298,34 @@ static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
 	return 0;
 }
 
-static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams params)
+static void wma_delete_sta_req_ap_mode(tp_wma_handle wma,
+					tpDeleteStaParams del_sta)
+{
+	ol_txrx_pdev_handle pdev;
+	struct ol_txrx_peer_t *peer;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	peer = ol_txrx_peer_find_by_local_id(pdev, del_sta->staIdx);
+	if (!peer) {
+		WMA_LOGE("%s: Failed to get peer handle using peer id %d\n",
+			 __func__, del_sta->staIdx);
+		del_sta->status = VOS_STATUS_E_FAILURE;
+		goto send_del_rsp;
+	}
+
+	wma_remove_peer(wma, peer->mac_addr.raw, del_sta->sessionId);
+	ol_txrx_peer_detach(peer);
+	del_sta->status = VOS_STATUS_SUCCESS;
+
+send_del_rsp:
+	WMA_LOGD("%s: Sending del rsp to umac (status: %d)\n",
+		 __func__, del_sta->status);
+	wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)del_sta, 0);
+}
+
+static void wma_delete_sta_req_sta_mode(tp_wma_handle wma,
+					tpDeleteStaParams params)
 {
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 
@@ -2206,6 +2337,24 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams params)
 	params->status = status;
 	WMA_LOGD("%s: vdev_id %d status %d\n", __func__, params->smesessionId, status);
 	wma_send_msg(wma, WDA_DELETE_STA_RSP, (void *)params, 0);
+}
+
+static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
+{
+	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
+
+	if (wma_is_vdev_in_ap_mode(wma, del_sta->sessionId))
+		oper_mode = BSS_OPERATIONAL_MODE_AP;
+
+	switch (oper_mode) {
+	case BSS_OPERATIONAL_MODE_STA:
+		wma_delete_sta_req_sta_mode(wma, del_sta);
+		break;
+
+	case BSS_OPERATIONAL_MODE_AP:
+		wma_delete_sta_req_ap_mode(wma, del_sta);
+		break;
+	}
 }
 
 static int32_t wmi_unified_vdev_stop_send(wmi_unified_t wmi, u_int8_t vdev_id)
