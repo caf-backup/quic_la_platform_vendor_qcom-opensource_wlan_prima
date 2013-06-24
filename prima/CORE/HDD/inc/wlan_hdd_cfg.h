@@ -329,6 +329,10 @@ typedef enum
 #define CFG_ROAM_PREFER_5GHZ_MAX              ( 1 )  
 #define CFG_ROAM_PREFER_5GHZ_DEFAULT          ( 1 )
 
+/*
+    To enable, set gRoamIntraBand=1 (Roaming within band)
+    To disable, set gRoamIntraBand=0 (Roaming across band)
+*/
 #define CFG_ROAM_INTRA_BAND                   "gRoamIntraBand"
 #define CFG_ROAM_INTRA_BAND_MIN               ( 0 )
 #define CFG_ROAM_INTRA_BAND_MAX               ( 1 )
@@ -482,13 +486,6 @@ typedef enum
 #define CFG_BEACON_INTERVAL_MIN                WNI_CFG_BEACON_INTERVAL_STAMIN
 #define CFG_BEACON_INTERVAL_MAX                WNI_CFG_BEACON_INTERVAL_STAMAX
 #define CFG_BEACON_INTERVAL_DEFAULT            WNI_CFG_BEACON_INTERVAL_STADEF
-
-//Handoff Configuration Parameters
-#define CFG_ENABLE_HANDOFF_NAME                "gEnableHandoff"
-#define CFG_ENABLE_HANDOFF_MIN                 ( 0 )
-#define CFG_ENABLE_HANDOFF_MAX                 ( 1 )
-#define CFG_ENABLE_HANDOFF_DEFAULT             ( 1 )
-
 
 //Additional Handoff related Parameters  
 #define CFG_ENABLE_IDLE_SCAN_NAME             "gEnableIdleScan"      
@@ -776,7 +773,7 @@ typedef enum
 #define CFG_ROAM_RSSI_DIFF_NAME                             "RoamRssiDiff"
 #define CFG_ROAM_RSSI_DIFF_MIN                              (0)
 #define CFG_ROAM_RSSI_DIFF_MAX                              (30)
-#define CFG_ROAM_RSSI_DIFF_DEFAULT                          (0)
+#define CFG_ROAM_RSSI_DIFF_DEFAULT                          (5)
 
 /*
  * Following a scan and if potential roam candidate(s) are found,
@@ -785,11 +782,12 @@ typedef enum
  * of any available candidate is better than the currently associated 
  * AP by at least gImmediateRoamRssiDiff, then being to roam 
  * immediately. 
+ * NOTE: Value of 0 means that immediate roaming is enabled by default
  */
 #define CFG_IMMEDIATE_ROAM_RSSI_DIFF_NAME                   "gImmediateRoamRssiDiff"
 #define CFG_IMMEDIATE_ROAM_RSSI_DIFF_MIN                    (0)
 #define CFG_IMMEDIATE_ROAM_RSSI_DIFF_MAX                    (125)
-#define CFG_IMMEDIATE_ROAM_RSSI_DIFF_DEFAULT                (3)
+#define CFG_IMMEDIATE_ROAM_RSSI_DIFF_DEFAULT                (0)
 
 /*This parameter is used to set Wireless Extended Security Mode.*/
 #define CFG_ENABLE_WES_MODE_NAME                            "gWESModeEnabled"
@@ -1120,12 +1118,12 @@ typedef enum
 #define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_NAME              "gNeighborReassocThreshold"
 #define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_MIN               (10)
 #define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_MAX               (125)
-#define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_DEFAULT           (125)
+#define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_DEFAULT           (83)
 
 #define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_NAME      "gNeighborLookupThreshold"
 #define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_MIN       (10)
 #define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_MAX       (120)
-#define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_DEFAULT   (120)
+#define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_DEFAULT   (78)
 
 #define CFG_NEIGHBOR_SCAN_CHAN_LIST_NAME                      "gNeighborScanChannelList"
 #define CFG_NEIGHBOR_SCAN_CHAN_LIST_DEFAULT                   ""
@@ -1143,7 +1141,7 @@ typedef enum
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_NAME           "gMaxNeighborReqTries"
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_MIN            (1)
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_MAX            (4)
-#define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_DEFAULT        (1)
+#define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_DEFAULT        (3)
 
 
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_NAME         "gNeighborScanRefreshPeriod"
@@ -1884,9 +1882,6 @@ typedef struct
    v_U16_t       nNeighborResultsRefreshPeriod;
    v_U16_t       nEmptyScanRefreshPeriod;
 #endif
-
-   //Handoff Parameters
-   v_BOOL_t      fIsHandoffEnabled;
 
    //Additional Handoff params
    v_BOOL_t       nEnableIdleScan;
