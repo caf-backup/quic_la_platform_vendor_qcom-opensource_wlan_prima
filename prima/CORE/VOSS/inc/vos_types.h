@@ -118,8 +118,8 @@ typedef enum
     VOS_MONITOR_MODE,
     VOS_FTM_MODE = 5,
     VOS_IBSS_MODE,
+    VOS_P2P_DEVICE,
     VOS_MAX_NO_OF_MODE
-
 } tVOS_CON_MODE;
 
 //This is a bit pattern to be set for each mode
