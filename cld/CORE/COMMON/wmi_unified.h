@@ -2258,6 +2258,10 @@ typedef enum {
     WMI_VDEV_PARAM_ATIM_WINDOW,
     /** BMISS max */
     WMI_VDEV_PARAM_BMISS_COUNT_MAX,
+    /** BMISS first time */
+    WMI_VDEV_PARAM_BMISS_FIRST_BCNT,
+    /** BMISS final time */
+    WMI_VDEV_PARAM_BMISS_FINAL_BCNT,
     /** WMM enables/disabled */
     WMI_VDEV_PARAM_FEATURE_WMM,
     /** Channel width */
