@@ -167,7 +167,7 @@ struct ol_softc {
      * Includes host side stack level stats +
      * radio level athstats
      */
-    struct wal_dbg_stats	            ath_stats;
+    struct wlan_dbg_stats                  ath_stats;
     int16_t               chan_nf;            /* noise_floor */
     u_int32_t               min_tx_power;
     u_int32_t               max_tx_power;
@@ -286,7 +286,7 @@ int wmi_unified_set_sta_ps_param(struct ol_ath_vap_net80211 *avn,
 int wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int8_t if_id,
                            u_int32_t param_id, u_int32_t param_value);
 int wmi_unified_pdev_get_tpc_config(wmi_unified_t wmi_handle, u_int32_t param);
-void ol_get_wal_dbg_stats(struct ol_softc *scn, struct wal_dbg_stats *dbg_stats);
+void ol_get_wlan_dbg_stats(struct ol_softc *scn, struct wlan_dbg_stats *dbg_stats);
 
 int
 wmi_send_node_rate_sched(struct ol_softc *scn,

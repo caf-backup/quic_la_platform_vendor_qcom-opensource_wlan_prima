@@ -20,13 +20,10 @@
 
 #include <htt_internal.h>
 
-/* WAL status exported */
-#include <wal_dbg_stats.h>
-
 #define ROUND_UP_TO_4(val) (((val) + 3) & ~0x3)
 
 static void htt_t2h_stats_tx_rate_stats_print(
-    wal_dbg_tx_rate_info_t *tx_rate_info, int concise)
+    wlan_dbg_tx_rate_info_t *tx_rate_info, int concise)
 {
     adf_os_print("TX Rate Info:\n");
 
@@ -110,7 +107,7 @@ static void htt_t2h_stats_tx_rate_stats_print(
 }
 
 static void htt_t2h_stats_rx_rate_stats_print(
-    wal_dbg_rx_rate_info_t *rx_phy_info, int concise)
+    wlan_dbg_rx_rate_info_t *rx_phy_info, int concise)
 {
     adf_os_print("RX Rate Info:\n");
 
@@ -226,10 +223,10 @@ static void htt_t2h_stats_rx_rate_stats_print(
 
 static void
 htt_t2h_stats_pdev_stats_print(
-    struct wal_dbg_stats *wal_pdev_stats, int concise)
+    struct wlan_dbg_stats *wlan_pdev_stats, int concise)
 {
-    struct wal_dbg_tx_stats *tx = &wal_pdev_stats->tx;
-    struct wal_dbg_rx_stats *rx = &wal_pdev_stats->rx;
+    struct wlan_dbg_tx_stats *tx = &wlan_pdev_stats->tx;
+    struct wlan_dbg_rx_stats *rx = &wlan_pdev_stats->rx;
 
     adf_os_print("WAL Pdev stats:\n");
     adf_os_print("\n### Tx ###\n");
@@ -654,10 +651,10 @@ htt_t2h_stats_print(u_int8_t *stats_data, int concise)
     switch (type) {
     case HTT_DBG_STATS_WAL_PDEV_TXRX:
         {
-            struct wal_dbg_stats *wal_dbg_stats_ptr;
+            struct wlan_dbg_stats *wlan_dbg_stats_ptr;
 
-            wal_dbg_stats_ptr = (struct wal_dbg_stats *)(msg_word + 1);
-            htt_t2h_stats_pdev_stats_print(wal_dbg_stats_ptr, concise);
+            wlan_dbg_stats_ptr = (struct wlan_dbg_stats *)(msg_word + 1);
+            htt_t2h_stats_pdev_stats_print(wlan_dbg_stats_ptr, concise);
             break;
         }
     case HTT_DBG_STATS_RX_REORDER:
@@ -671,8 +668,8 @@ htt_t2h_stats_print(u_int8_t *stats_data, int concise)
 
     case HTT_DBG_STATS_RX_RATE_INFO:
         {
-            wal_dbg_rx_rate_info_t *rx_phy_info;
-            rx_phy_info = (wal_dbg_rx_rate_info_t *)(msg_word + 1);
+            wlan_dbg_rx_rate_info_t *rx_phy_info;
+            rx_phy_info = (wlan_dbg_rx_rate_info_t *)(msg_word + 1);
             htt_t2h_stats_rx_rate_stats_print(rx_phy_info, concise);
             break;
         }
@@ -688,8 +685,8 @@ htt_t2h_stats_print(u_int8_t *stats_data, int concise)
         break;
     case HTT_DBG_STATS_TX_RATE_INFO:
         {
-            wal_dbg_tx_rate_info_t *tx_rate_info;
-            tx_rate_info = (wal_dbg_tx_rate_info_t *)(msg_word + 1);
+            wlan_dbg_tx_rate_info_t *tx_rate_info;
+            tx_rate_info = (wlan_dbg_tx_rate_info_t *)(msg_word + 1);
             htt_t2h_stats_tx_rate_stats_print(tx_rate_info, concise);
             break;
         }
