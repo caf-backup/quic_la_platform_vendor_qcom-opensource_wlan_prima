@@ -290,7 +290,7 @@ wdi_out_cfg_sw_encap_hdr_max_size(ol_pdev_handle pdev)
     return sizeof(struct ieee80211_qosframe_htc_addr4) + LLC_SNAP_HDR_LEN;
 }
 
-static inline int
+static inline u_int8_t
 wdi_out_cfg_tx_encap(ol_pdev_handle pdev)
 {
 #ifdef QCA_WIFI_ISOC
@@ -321,6 +321,17 @@ wdi_out_cfg_host_addba(ol_pdev_handle pdev)
 #endif
 }
 
+/**
+ * @brief If the host SW's ADDBA negotiation fails, should it be retried?
+ *
+ * @param pdev - handle to the physical device
+ */
+static inline int
+wdi_out_cfg_addba_retry(ol_pdev_handle pdev)
+{
+    return 0; /* disabled for now */
+}
+
 //#include <osapi_linux.h>      /* u_int8_t */
 #include <osdep.h>        /* u_int8_t */
 #include <adf_nbuf.h>     /* adf_nbuf_t */
@@ -340,20 +351,6 @@ enum ol_rx_err_type {
 	OL_RX_ERR_PRIVACY,
 	OL_RX_ERR_NONE_FRAG,
 	OL_RX_ERR_NONE = 0xFF
-};
-
-enum ol_sec_type {
-    ol_sec_type_none,
-    ol_sec_type_wep128,
-    ol_sec_type_wep104,
-    ol_sec_type_wep40,
-    ol_sec_type_tkip,
-    ol_sec_type_tkip_nomic,
-    ol_sec_type_aes_ccmp,
-    ol_sec_type_wapi,
-
-    /* keep this last! */
-    ol_sec_type_types
 };
 
 #ifdef SUPPORT_HOST_STATISTICS
@@ -485,12 +482,6 @@ wdi_out_rx_notify(
 void
 wdi_out_tx_paused_peer_data(ol_peer_handle peer, int has_tx_data);
 
-enum ol_addba_req_status {
-    ol_addba_req_success,/* negotiation started successfully */
-    ol_addba_req_reject, /* aggregation is not applicable - don't try again */
-    ol_addba_req_busy,   /* ADDBA-req couldn't be sent now - try again later */
-};
-
 #ifdef QCA_WIFI_ISOC
 
 /**
@@ -509,9 +500,9 @@ enum ol_addba_req_status {
  * @param pdev - handle to the ctrl SW's physical device object
  * @param peer_mac_addr - which peer the ADDBA negotiation is with
  * @param tid - which traffic type the ADDBA negotiation is for
- * @return ol_addba_req_status enum
+ * @return ol_addba_status enum
  */
-enum ol_addba_req_status
+enum ol_addba_status
 wdi_out_ctrl_addba_req(ol_pdev_handle pdev, u_int8_t *peer_mac_addr, int tid);
 
 /**
@@ -565,6 +556,7 @@ wdi_out_ctrl_rx_addba_complete(
 #define wdi_out_cfg_sw_encap_hdr_max_size ol_cfg_sw_encap_hdr_max_size
 #define wdi_out_cfg_tx_encap ol_cfg_tx_encap
 #define wdi_out_cfg_host_addba ol_cfg_host_addba
+#define wdi_out_cfg_addba_retry ol_cfg_addba_retry
 
 #include <ol_ctrl_txrx_api.h>
 
