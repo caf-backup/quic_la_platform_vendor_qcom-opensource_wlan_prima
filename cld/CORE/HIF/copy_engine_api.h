@@ -189,7 +189,8 @@ int CE_recv_buf_enqueue(struct CE_handle *copyeng,
  */
 void CE_recv_cb_register(struct CE_handle *copyeng,
                          CE_recv_cb fn_ptr,
-                         void *per_CE_recv_context);
+                         void *per_CE_recv_context,
+                         int disable_interrupts);
 
 /*==================CE Watermark==============================================*/
 
