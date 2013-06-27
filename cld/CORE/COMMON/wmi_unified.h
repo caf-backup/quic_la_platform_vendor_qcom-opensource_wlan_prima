@@ -417,6 +417,9 @@ typedef enum {
     /* Factory Testing Mode request command
      * used for integrated chipsets */
     WMI_PDEV_FTM_INTG_CMDID,
+    /* set and get keepalive parameters command */
+    WMI_VDEV_SET_KEEPALIVE_CMDID,
+    WMI_VDEV_GET_KEEPALIVE_CMDID,
     /** UTF specific WMI commands 
      * set fixed value for UTF WMI command so 
      * further addition of other WMI commands
@@ -536,6 +539,8 @@ typedef enum {
     /* avoid list of frequencies .
      */
     WMI_WLAN_FREQ_AVOID_EVENTID,
+    /* Indicate the keepalive parameters */
+    WMI_VDEV_GET_KEEPALIVE_EVENTID,
     /** UTF specific WMI event 
      * set fixed value for UTF WMI EVT ID so 
      * further addition of other WMI EVT IDs
@@ -3813,6 +3818,20 @@ typedef struct {
     A_UINT8     KCK[GTK_OFFLOAD_KCK_BYTES];     /* key confirmation key */
     A_UINT8     replay_counter[GTK_REPLAY_COUNTER_BYTES];  /* replay counter for re-key */
 }WMI_GTK_OFFLOAD_CMD;
+
+typedef PREPACK struct {
+    A_UINT32    vdev_id;
+    A_UINT8 keepaliveInterval;   /* seconds */
+} POSTPACK wmi_vdev_set_keepalive_cmd;
+
+typedef PREPACK struct {
+    A_UINT32    vdev_id;
+} POSTPACK wmi_vdev_get_keepalive_cmd;
+
+typedef PREPACK struct {
+    A_UINT32    vdev_id;
+    A_UINT8 keepaliveInterval;   /* seconds */
+} POSTPACK wmi_vdev_get_keepalive_event;
 
 #ifdef __cplusplus
 }
