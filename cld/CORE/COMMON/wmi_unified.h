@@ -533,6 +533,9 @@ typedef enum {
     /* Factory Testing Mode request event
      * used for integrated chipsets */
     WMI_PDEV_FTM_INTG_EVENTID,
+    /* avoid list of frequencies .
+     */
+    WMI_WLAN_FREQ_AVOID_EVENTID,
     /** UTF specific WMI event 
      * set fixed value for UTF WMI EVT ID so 
      * further addition of other WMI EVT IDs
