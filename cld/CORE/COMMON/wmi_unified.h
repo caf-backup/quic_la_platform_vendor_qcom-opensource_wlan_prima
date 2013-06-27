@@ -3787,6 +3787,12 @@ typedef struct {
 #define WMI_NLO_CONFIG_RESET     (0x1 << 2)
 #define WMI_NLO_CONFIG_SLOW_SCAN (0x1 << 4)
 
+typedef struct nlo_configured_parameters {
+    wmi_ssid ssid;
+    A_UINT32 enc_type;
+    A_UINT32 auth_type;
+    A_UINT32 channel_hint;
+} nlo_configured_parameters;
 
 typedef struct wmi_nlo_config {
     A_UINT32    flags;
@@ -3801,7 +3807,7 @@ typedef struct wmi_nlo_config {
     A_UINT32    fast_scan_period; /* SCBM */
     A_UINT32    slow_scan_period; /* specific to windows */
     A_UINT32    no_of_ssids;
-    wmi_ssid    ssid_list[WMI_NLO_MAX_SSIDS];
+    nlo_configured_parameters    nlo_list[WMI_NLO_MAX_SSIDS];
     A_UINT32    num_of_channels;
     A_UINT32    channel_list[WMI_NLO_MAX_CHAN];
 } wmi_nlo_config_cmd;
