@@ -34,7 +34,8 @@
 static void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf);
 /* WMI buffer APIs */
 
-wmi_buf_t wmi_buf_alloc(wmi_unified_t wmi_handle, int len)
+wmi_buf_t
+wmi_buf_alloc(wmi_unified_t wmi_handle, u_int16_t len)
 {
 	wmi_buf_t wmi_buf;
 

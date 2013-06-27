@@ -123,7 +123,7 @@ next_nbuf:
 #else
 
 static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
-				       u_int16_t data_len)
+				       u_int32_t data_len)
 {
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,

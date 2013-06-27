@@ -84,11 +84,12 @@ ol_tx_queue_discard(struct ol_txrx_pdev_t *pdev)
 {
     ol_tx_desc_list tx_descs;
     int num;
+    u_int16_t discarded = 0;
 
     TAILQ_INIT(&tx_descs);
     num = pdev->tx_queue.rsrc_threshold_hi - pdev->tx_queue.rsrc_threshold_lo;
     while (num > 0) {
-        int discarded = ol_tx_sched_discard_select(pdev, num, &tx_descs);
+        discarded = ol_tx_sched_discard_select(pdev, num, &tx_descs);
         if (discarded == 0) {
             break; /* couldn't find any to discard - give up */
         }

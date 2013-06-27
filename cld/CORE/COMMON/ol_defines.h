@@ -32,6 +32,6 @@ typedef void* ol_scn_t;
  */
 typedef int (*wmi_unified_event_handler) (ol_scn_t scn_handle,
 					  u_int8_t *event_buf,
-					  u_int16_t len);
+					  u_int32_t len);
 
 #endif /* _DEV_OL_DEFINES_H */

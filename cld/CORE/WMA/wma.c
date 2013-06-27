@@ -234,7 +234,7 @@ send_fail_resp:
 }
 
 static int wma_vdev_start_resp_handler(void *handle, u_int8_t *event,
-				       u_int16_t len)
+				       u_int32_t len)
 {
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	struct wma_target_req *req_msg;
@@ -275,7 +275,7 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *event,
  */
 static v_SINT_t wma_unified_debug_print_event_handler(v_VOID_t *handle,
 						      v_U8_t *data,
-						      v_U16_t datalen)
+						      u_int32_t datalen)
 {
 #ifdef BIG_ENDIAN_HOST
 	v_U8_t dbgbuf[500] = {0};
@@ -406,7 +406,7 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 #undef PEER_ALL_TID_BITMASK
 }
 
-static int wma_vdev_stop_resp_handler(void *handle, u8 *event, u16 len)
+static int wma_vdev_stop_resp_handler(void *handle, u8 *event, u32 len)
 {
 	tp_wma_handle wma = (tp_wma_handle)handle;
 	struct wma_target_req *req_msg;
@@ -566,7 +566,7 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 	adf_os_spin_unlock_bh(&bcn->lock);
 }
 
-static int wma_beacon_swba_handler(void *handle, u_int8_t *event, u_int16_t len)
+static int wma_beacon_swba_handler(void *handle, u_int8_t *event, u_int32_t len)
 {
 	tp_wma_handle wma = (tp_wma_handle) handle;
 	wmi_host_swba_event *swba_event = (wmi_host_swba_event *)event;
@@ -3210,7 +3210,7 @@ end:
 }
 
 static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
-                                    u_int16_t len)
+                                    u_int32_t len)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	wmi_scan_event *wmi_event = (wmi_scan_event *) event_buf;
