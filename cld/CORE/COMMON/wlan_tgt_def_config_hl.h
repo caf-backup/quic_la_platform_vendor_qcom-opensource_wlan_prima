@@ -57,6 +57,10 @@
  */
 #define CFG_TGT_NUM_OFFLOAD_PEERS       0
 /*
+ * Number of reorder buffers used in offload mode
+ */
+#define CFG_TGT_NUM_OFFLOAD_REORDER_BUFFS   0
+/*
  * keys per peer node
  */
 #define CFG_TGT_NUM_PEER_KEYS           2

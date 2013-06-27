@@ -295,6 +295,7 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 		CFG_TGT_NUM_VDEV,
 		CFG_TGT_NUM_PEERS + CFG_TGT_NUM_VDEV, /* reserve an additional peer for each VDEV */
 		CFG_TGT_NUM_OFFLOAD_PEERS,
+		CFG_TGT_NUM_OFFLOAD_REORDER_BUFFS,
 		CFG_TGT_NUM_PEER_KEYS,
 		CFG_TGT_NUM_TIDS,
 		CFG_TGT_AST_SKID_LIMIT,
