@@ -41,6 +41,7 @@ typedef  enum  {
     WMI_SERVICE_COEX_FREQAVOID,       /* FW report freq range to avoid */
     WMI_SERVICE_PACKET_POWER_SAVE,    /* packet power save service */
     WMI_SERVICE_FORCE_FW_HANG,        /* Service to test the firmware recovery mechanism */
+    WMI_SERVICE_GPIO,                 /* GPIO service */
     WMI_MAX_SERVICE=64                /* max service */
 } WMI_SERVICE;
 

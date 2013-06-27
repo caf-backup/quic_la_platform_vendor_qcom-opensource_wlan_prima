@@ -142,6 +142,7 @@ typedef enum {
     WMI_GRP_CHATTER,
     WMI_GRP_TID_ADDBA,
     WMI_GRP_MISC,
+    WMI_GRP_GPIO,
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -432,7 +433,11 @@ typedef enum {
      * does not affect the communication between
      * ART2 and UTF
      */
-    WMI_PDEV_UTF_CMDID
+    WMI_PDEV_UTF_CMDID,
+
+    /* GPIO Configuration */
+    WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
+    WMI_GPIO_OUTPUT_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -554,6 +559,9 @@ typedef enum {
      * ART2 and UTF
      */
     WMI_PDEV_UTF_EVENTID,
+
+    /* GPIO Event */
+    WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
 } WMI_EVT_ID;
 
 
@@ -3939,6 +3947,42 @@ typedef struct {
     A_UINT32 type;     /*0:unused 1: ASSERT, 2: not respond detect command,3:  simulate ep-full(),4:...*/
     A_UINT32 delay_time_ms;   /*0xffffffff means the simulate will delay for random time (0 ~0xffffffff ms)*/
 }WMI_FORCE_FW_HANG_CMD;
+
+/* GPIO Command and Event data structures */
+
+/* WMI_GPIO_CONFIG_CMDID */
+enum {
+    WMI_GPIO_PULL_NONE,
+    WMI_GPIO_PULL_UP,
+    WMI_GPIO_PULL_DOWN,
+};
+
+enum {
+    WMI_GPIO_INTTYPE_DISABLE,
+    WMI_GPIO_INTTYPE_RISING_EDGE,
+    WMI_GPIO_INTTYPE_FALLING_EDGE,
+    WMI_GPIO_INTTYPE_BOTH_EDGE,
+    WMI_GPIO_INTTYPE_LEVEL_LOW,
+    WMI_GPIO_INTTYPE_LEVEL_HIGH
+};
+
+typedef struct {
+    A_UINT32 gpio_num;             /* GPIO number to be setup */
+    A_UINT32 input;                /* 0 - Output/ 1 - Input */
+    A_UINT32 pull_type;            /* Pull type defined above */
+    A_UINT32 intr_mode;            /* Interrupt mode defined above (Input) */
+} wmi_gpio_config_cmd;
+
+/* WMI_GPIO_OUTPUT_CMDID */
+typedef struct {
+    A_UINT32 gpio_num;    /* GPIO number to be setup */
+    A_UINT32 set;         /* Set the GPIO pin*/
+} wmi_gpio_output_cmd;
+
+/* WMI_GPIO_INPUT_EVENTID */
+typedef struct {
+    A_UINT32 gpio_num;    /* GPIO number which changed state */
+} wmi_gpio_input_event;
 
 #ifdef __cplusplus
 }
