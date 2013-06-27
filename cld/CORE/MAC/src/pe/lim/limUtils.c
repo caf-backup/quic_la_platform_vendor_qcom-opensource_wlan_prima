@@ -3574,19 +3574,21 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
       break;
 
     case eHT_RX_STBC:
-      retVal = (tANI_U8) macHTCapabilityInfo.rxSTBC;
+      retVal = (tANI_U8) psessionEntry->htConfig.ht_rx_stbc;
       break;
 
     case eHT_TX_STBC:
-      retVal = (tANI_U8) macHTCapabilityInfo.txSTBC;
+      retVal = (tANI_U8) psessionEntry->htConfig.ht_tx_stbc;
       break;
 
     case eHT_SHORT_GI_40MHZ:
-      retVal = (tANI_U8) macHTCapabilityInfo.shortGI40MHz;
+      retVal =(tANI_U8)
+      (psessionEntry->htConfig.ht_sgi)? macHTCapabilityInfo.shortGI40MHz : 0;
       break;
 
     case eHT_SHORT_GI_20MHZ:
-      retVal = (tANI_U8) macHTCapabilityInfo.shortGI20MHz;
+      retVal = (tANI_U8)
+      (psessionEntry->htConfig.ht_sgi)? macHTCapabilityInfo.shortGI20MHz : 0;
       break;
 
     case eHT_GREENFIELD:
@@ -3602,7 +3604,7 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
       break;
 
     case eHT_ADVANCED_CODING:
-      retVal = (tANI_U8) macHTCapabilityInfo.advCodingCap;
+      retVal = (tANI_U8) psessionEntry->htConfig.ht_rx_ldpc;
       break;
 
     case eHT_MAX_RX_AMPDU_FACTOR:

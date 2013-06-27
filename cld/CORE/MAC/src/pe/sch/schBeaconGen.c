@@ -315,7 +315,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     if(psessionEntry->vhtCapability)
     {        
         limLog( pMac, LOGW, FL("Populate VHT IEs in Beacon"));
-        PopulateDot11fVHTCaps( pMac, &pBcn2->VHTCaps );
+        PopulateDot11fVHTCaps( pMac, psessionEntry, &pBcn2->VHTCaps );
         PopulateDot11fVHTOperation( pMac, &pBcn2->VHTOperation);
         // we do not support multi users yet
         //PopulateDot11fVHTExtBssLoad( pMac, &bcn2.VHTExtBssLoad);

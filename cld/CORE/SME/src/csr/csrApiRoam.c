@@ -12207,6 +12207,10 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             csrApplyPower2Current(pMac);
         }
 
+        //HT Config
+        palCopyMemory(pMac->hHdd, pBuf, &pSession->htConfig,
+                      sizeof(tSirHTConfig));
+        pBuf += sizeof(tSirHTConfig);
 #ifdef WLAN_FEATURE_11AC
         // txBFIniFeatureEnabled
         *pBuf = (tANI_U8)pMac->roam.configParam.txBFEnable;
@@ -12967,6 +12971,11 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
             palCopyMemory( pMac->hHdd, pBuf, pParam->extendedRateSet.rate, pParam->extendedRateSet.numRates );
             pBuf += pParam->extendedRateSet.numRates;
         }
+
+        //HT Config
+        palCopyMemory(pMac->hHdd, pBuf, &pSession->htConfig,
+                      sizeof(tSirHTConfig));
+        pBuf += sizeof(tSirHTConfig);
         msgLen = (tANI_U16)(sizeof(tANI_U32 ) + (pBuf - wTmpBuf)); //msg_header + msg
         pMsg->length = pal_cpu_to_be16(msgLen);
         
@@ -13195,9 +13204,14 @@ eHalStatus csrRoamOpenSession( tpAniSirGlobal pMac, csrRoamCompleteCallback call
                           tANI_U32 type, tANI_U32 subType )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tANI_U32 i;
+    tANI_U32 i, value = 0;
+    union {
+       tANI_U16                        nCfgValue16;
+       tSirMacHTCapabilityInfo         htCapInfo;
+    }uHTCapabilityInfo;
     tCsrRoamSession *pSession;
     *pbSessionId = CSR_SESSION_ID_INVALID;
+
     for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
     {
         if( !CSR_IS_SESSION_VALID( pMac, i ) )
@@ -13210,6 +13224,15 @@ eHalStatus csrRoamOpenSession( tpAniSirGlobal pMac, csrRoamCompleteCallback call
             pSession->pContext = pContext;
             palCopyMemory( pMac->hHdd, &pSession->selfMacAddr, pSelfMacAddr, sizeof(tCsrBssid) );
             *pbSessionId = (tANI_U8)i;
+            /* get the HT capability info*/
+            status = ccmCfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &value);
+            if (!HAL_STATUS_SUCCESS(status)) {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                          "%s: could not get HT capability info",
+                          __func__);
+                break;
+            }
+
             status = palTimerAlloc(pMac->hHdd, &pSession->hTimerRoaming, csrRoamRoamingTimerHandler, 
                                     &pSession->roamingTimerInfo);
             if(!HAL_STATUS_SUCCESS(status))
@@ -13235,6 +13258,13 @@ eHalStatus csrRoamOpenSession( tpAniSirGlobal pMac, csrRoamCompleteCallback call
                 smsLog(pMac, LOGE, FL("cannot allocate memory for IbssJoining timer"));
                 break;
             }
+
+            uHTCapabilityInfo.nCfgValue16 = 0xFFFF & value;
+            pSession->htConfig.ht_rx_ldpc =
+                                       uHTCapabilityInfo.htCapInfo.advCodingCap;
+            pSession->htConfig.ht_tx_stbc = uHTCapabilityInfo.htCapInfo.txSTBC;
+            pSession->htConfig.ht_rx_stbc = uHTCapabilityInfo.htCapInfo.rxSTBC;
+            pSession->htConfig.ht_sgi = VOS_TRUE;
             status = csrIssueAddStaForSessionReq ( pMac, i, pSelfMacAddr, type, subType );
             break;
         }
@@ -14558,7 +14588,8 @@ csrRoamScanOffloadPrepareProbeReqTemplate(tpAniSirGlobal pMac,
                                           tANI_U32 dot11mode,
                                           tSirMacAddr selfMacAddr,
                                           tANI_U8 *pFrame,
-                                          tANI_U16 *pusLen)
+                                          tANI_U16 *pusLen,
+                                          tCsrRoamSession *psession)
 {
         tDot11fProbeRequest pr;
         tANI_U32            nStatus, nBytes, nPayload;
@@ -14581,6 +14612,12 @@ csrRoamScanOffloadPrepareProbeReqTemplate(tpAniSirGlobal pMac,
         if (IS_DOT11_MODE_HT(dot11mode))
         {
                 PopulateDot11fHTCaps( pMac, NULL, &pr.HTCaps );
+                pr.HTCaps.advCodingCap = psession->htConfig.ht_rx_ldpc;
+                pr.HTCaps.txSTBC = psession->htConfig.ht_tx_stbc;
+                pr.HTCaps.rxSTBC = psession->htConfig.ht_rx_stbc;
+                if (!psession->htConfig.ht_sgi) {
+                    pr.HTCaps.shortGI20MHz = pr.HTCaps.shortGI40MHz = 0;
+                }
         }
 
 
@@ -14831,10 +14868,14 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 command, tANI_U8 reas
     ucDot11Mode = (tANI_U8) csrTranslateToWNICfgDot11Mode(pMac,
                                                            csrFindBestPhyMode( pMac, pMac->roam.configParam.phyMode ));
    csrRoamScanOffloadPrepareProbeReqTemplate(pMac,SIR_ROAM_SCAN_24G_DEFAULT_CH, ucDot11Mode, pSession->selfMacAddr,
-                                             pRequestBuf->p24GProbeTemplate, &pRequestBuf->us24GProbeTemplateLen);
+                                             pRequestBuf->p24GProbeTemplate,
+                                             &pRequestBuf->us24GProbeTemplateLen,
+                                             pSession);
 
    csrRoamScanOffloadPrepareProbeReqTemplate(pMac,SIR_ROAM_SCAN_5G_DEFAULT_CH, ucDot11Mode, pSession->selfMacAddr,
-                                             pRequestBuf->p5GProbeTemplate, &pRequestBuf->us5GProbeTemplateLen);
+                                             pRequestBuf->p5GProbeTemplate,
+                                             &pRequestBuf->us5GProbeTemplateLen,
+                                             pSession);
    msg.type     = WDA_START_ROAM_CANDIDATE_LOOKUP_REQ;
    msg.reserved = 0;
    msg.bodyptr  = pRequestBuf;
