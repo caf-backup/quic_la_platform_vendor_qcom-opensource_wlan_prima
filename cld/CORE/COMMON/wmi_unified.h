@@ -192,6 +192,11 @@ typedef enum {
     /** get TPC config for the current operating channel */
     WMI_PDEV_GET_TPC_CONFIG_CMDID,
 
+    /** set the base MAC address for the physical device before a VDEV is created.
+     *  For firmware that doesn’t support this feature and this command, the pdev
+     *  MAC address will not be changed. */
+    WMI_PDEV_SET_BASE_MACADDR_CMDID,
+
     /* VDEV(virtual device) specific commands */
     /** vdev create */
     WMI_VDEV_CREATE_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_VDEV),
@@ -1602,6 +1607,10 @@ typedef struct {
     A_UINT32 ie_len; 		 /*length of the vht ie */
     A_UINT32 ie_data[1]; 	 /*length of the vht ie data */
 } wmi_pdev_set_vht_ie_cmd;
+
+typedef struct {
+    wmi_mac_addr base_macaddr;
+} wmi_pdev_set_base_macaddr_cmd;
 
 /*
  * For now, the spectral configuration is global rather than
