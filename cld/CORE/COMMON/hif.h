@@ -603,7 +603,10 @@ inline int HIFDiagWriteMem(HIF_DEVICE *hif_device, A_UINT32 address, A_UINT8 *da
 #define CONFIG_PCIE_64BIT_MSI 0
 
 /* BAR0 ready checking for AR6320v2 */
-#define BAR0_READY_CHECKING 0
+#define PCIE_BAR0_READY_CHECKING 0
+
+/* AXI gating when L1, L2 to reduce power consumption */
+#define CONFIG_PCIE_ENABLE_AXI_CLK_GATE 0
 
 extern A_target_id_t HIFGetTargetId(HIF_DEVICE *hifDevice);
 extern void HIFTargetSleepStateAdjust(A_target_id_t targid, A_BOOL sleep_ok, A_BOOL wait_for_it);

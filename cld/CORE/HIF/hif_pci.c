@@ -2036,7 +2036,10 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 #else
         pcie_config_flags &= ~PCIE_CONFIG_FLAG_ENABLE_L1;
 #endif /* CONFIG_PCIE_ENABLE_L1_CLOCK_GATE */
-	pcie_config_flags |= PCIE_CONFIG_FLAG_CLK_SWITCH_WAIT;
+        pcie_config_flags |= PCIE_CONFIG_FLAG_CLK_SWITCH_WAIT;
+#if (CONFIG_PCIE_ENABLE_AXI_CLK_GATE)
+        pcie_config_flags |= PCIE_CONFIG_FLAG_AXI_CLK_GATE;
+#endif
         rv = HIFDiagWriteMem(sc->hif_device,
                              pcie_state_targ_addr+offsetof(struct pcie_state_s, config_flags),
                              (A_UINT8 *)&pcie_config_flags,
