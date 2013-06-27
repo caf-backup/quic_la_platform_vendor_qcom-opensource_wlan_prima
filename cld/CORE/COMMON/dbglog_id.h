@@ -146,7 +146,11 @@ extern "C" {
 #define RESMGR_OCS_CH_SWITCH_REQ                    29
 #define RESMGR_OCS_CHANNEL_SWITCHED                 30
 #define RESMGR_OCS_CLEANUP_STALE_REQS               31
-#define RESMGR_OCS_DEFINITION_END                   32
+#define RESMGR_OCS_CHREQ_UPDATE                     32
+#define RESMGR_OCS_REG_NOA_NOTIF                    33
+#define RESMGR_OCS_DEREG_NOA_NOTIF                  34
+#define RESMGR_OCS_GEN_PERIODIC_NOA                 35
+#define RESMGR_OCS_DEFINITION_END                   36
 
 /* RESMGR CHNMGR debug ids */
 #define RESMGR_CHMGR_DEFINITION_START               0
@@ -165,6 +169,8 @@ extern "C" {
 #define VDEV_MGR_AP_KEEPALIVE_IDLE                  4
 #define VDEV_MGR_AP_KEEPALIVE_INACTIVE              5
 #define VDEV_MGR_AP_KEEPALIVE_UNRESPONSIVE          6
+#define VDEV_MGR_MANAGE_AP_STA_DRIFT                7
+#define VDEV_MGR_DEFINITION_END                     8
 
 /* WHAL debug identifier definitions */
 #define WHAL_DBGID_DEFINITION_START                 0
@@ -397,6 +403,11 @@ extern "C" {
 #define AP_PS_DBGID_SEND_COMPLETE                   15
 #define AP_PS_DBGID_SEND_N_COMPLETE                 16
 
+/* WLAN_MODULE_MGMT_TXRX Debugids*/
+#define MGMT_TXRX_DBGID_DEFINITION_START            0
+#define MGMT_TXRX_FORWARD_TO_HOST                   1
+#define MGMT_TXRX_DBGID_DEFINITION_END              2
+
 #define WAL_DBGID_DEFINITION_START                  0
 #define WAL_DBGID_FAST_WAKE_REQUEST                 1
 #define WAL_DBGID_FAST_WAKE_RELEASE                 2
@@ -440,7 +451,8 @@ extern "C" {
 #define WAL_DBGID_DEV_RX_TIMEOUT                    39 
 #define WAL_DBGID_STA_VDEV_XRETRY                   40  
 #define WAL_DBGID_DCS                               41
-#define WAL_DBGID_DEFINITION_END                    42 
+#define WAL_DBGID_MGMT_TX_FAIL                      42
+#define WAL_DBGID_DEFINITION_END                    43
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
@@ -482,40 +494,43 @@ extern "C" {
 #define WLAN_DCS_DBGID_DINIT                        5
 
 /*P2P Module ids*/
-#define P2P_DBGID_DEFINITION_START							0
-#define P2P_DEV_REGISTER									1
-#define P2P_HANDLE_NOA										2
-#define P2P_UPDATE_SCHEDULE_OPPS							3
-#define P2P_UPDATE_SCHEDULE									4
-#define P2P_UPDATE_START_TIME								5
-#define P2P_UPDATE_START_TIME_DIFF_TSF32					6
-#define P2P_UPDATE_START_TIME_FINAL							7
-#define P2P_SETUP_SCHEDULE_TIMER							8
-#define P2P_PROCESS_SCHEDULE_AFTER_CALC						9
-#define P2P_PROCESS_SCHEDULE_STARTED_TIMER					10
-#define P2P_CALC_SCHEDULES_FIRST_CALL_ALL_NEXT_EVENT 		11
-#define P2P_CALC_SCHEDULES_FIRST_VALUE						12
-#define P2P_CALC_SCHEDULES_EARLIEST_NEXT_EVENT				13
-#define P2P_CALC_SCHEDULES_SANITY_COUNT						14
+#define P2P_DBGID_DEFINITION_START                          0
+#define P2P_DEV_REGISTER                                    1
+#define P2P_HANDLE_NOA                                      2
+#define P2P_UPDATE_SCHEDULE_OPPS                            3
+#define P2P_UPDATE_SCHEDULE                                 4
+#define P2P_UPDATE_START_TIME                               5
+#define P2P_UPDATE_START_TIME_DIFF_TSF32                    6
+#define P2P_UPDATE_START_TIME_FINAL                         7
+#define P2P_SETUP_SCHEDULE_TIMER                            8
+#define P2P_PROCESS_SCHEDULE_AFTER_CALC                     9
+#define P2P_PROCESS_SCHEDULE_STARTED_TIMER                  10
+#define P2P_CALC_SCHEDULES_FIRST_CALL_ALL_NEXT_EVENT        11
+#define P2P_CALC_SCHEDULES_FIRST_VALUE                      12
+#define P2P_CALC_SCHEDULES_EARLIEST_NEXT_EVENT              13
+#define P2P_CALC_SCHEDULES_SANITY_COUNT                     14
 #define P2P_CALC_SCHEDULES_CALL_ALL_NEXT_EVENT_FROM_WHILE_LOOP 15
-#define P2P_CALC_SCHEDULES_TIMEOUT_1						16
-#define P2P_CALC_SCHEDULES_TIMEOUT_2						17
-#define P2P_FIND_ALL_NEXT_EVENTS_REQ_EXPIRED				18
-#define P2P_FIND_ALL_NEXT_EVENTS_REQ_ACTIVE					19
-#define P2P_FIND_NEXT_EVENT_REQ_NOT_STARTED					20
-#define P2P_FIND_NEXT_EVENT_REQ_COMPLETE_NON_PERIODIC 		21
-#define P2P_FIND_NEXT_EVENT_IN_MID_OF_NOA					22
-#define P2P_FIND_NEXT_EVENT_REQ_COMPLETE					23
-#define P2P_SCHEDULE_TIMEOUT								24
-#define P2P_CALC_SCHEDULES_ENTER							25
-#define P2P_PROCESS_SCHEDULE_ENTER							26
-#define P2P_FIND_ALL_NEXT_EVENTS_INDIVIDUAL_REQ_AFTER_CHANGE				27
-#define P2P_FIND_ALL_NEXT_EVENTS_INDIVIDUAL_REQ_BEFORE_CHANGE				28
-#define P2P_FIND_ALL_NEXT_EVENTS_ENTER						29
-#define P2P_FIND_NEXT_EVENT_ENTER							30
-#define P2P_NOA_GO_PRESENT									31
-#define P2P_NOA_GO_ABSENT									32
-#define P2P_DBGID_DEFINITION_END							33
+#define P2P_CALC_SCHEDULES_TIMEOUT_1                        16
+#define P2P_CALC_SCHEDULES_TIMEOUT_2                        17
+#define P2P_FIND_ALL_NEXT_EVENTS_REQ_EXPIRED                18
+#define P2P_FIND_ALL_NEXT_EVENTS_REQ_ACTIVE                 19
+#define P2P_FIND_NEXT_EVENT_REQ_NOT_STARTED                 20
+#define P2P_FIND_NEXT_EVENT_REQ_COMPLETE_NON_PERIODIC       21
+#define P2P_FIND_NEXT_EVENT_IN_MID_OF_NOA                   22
+#define P2P_FIND_NEXT_EVENT_REQ_COMPLETE                    23
+#define P2P_SCHEDULE_TIMEOUT                                24
+#define P2P_CALC_SCHEDULES_ENTER                            25
+#define P2P_PROCESS_SCHEDULE_ENTER                          26
+#define P2P_FIND_ALL_NEXT_EVENTS_INDIVIDUAL_REQ_AFTER_CHANGE    27
+#define P2P_FIND_ALL_NEXT_EVENTS_INDIVIDUAL_REQ_BEFORE_CHANGE   28
+#define P2P_FIND_ALL_NEXT_EVENTS_ENTER                      29
+#define P2P_FIND_NEXT_EVENT_ENTER                           30
+#define P2P_NOA_GO_PRESENT                                  31
+#define P2P_NOA_GO_ABSENT                                   32
+#define	P2P_GO_NOA_NOTIF                                    33
+#define	P2P_GO_TBTT_OFFSET                                  34
+#define	P2P_GO_GET_NOA_INFO                                 35
+#define P2P_DBGID_DEFINITION_END                            36
 
 
 //CSA modules DBGIDs
