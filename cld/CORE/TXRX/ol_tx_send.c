@@ -46,12 +46,15 @@
 
 #endif /* TX_CREDIT_RECLAIM_SUPPORT */
 
-#if defined(CONFIG_HL_SUPPORT)
+#if defined(CONFIG_HL_SUPPORT) || defined(TX_CREDIT_RECLAIM_SUPPORT)
 /*
  * HL needs to keep track of the amount of credit available to download
  * tx frames to the target - the download scheduler decides when to
  * download frames, and which frames to download, based on the credit
  * availability.
+ * LL systems that use TX_CREDIT_RECLAIM_SUPPORT also need to keep track
+ * of the target_tx_credit, to determine when to poll for tx completion
+ * messages.
  */
 #define OL_TX_TARGET_CREDIT_ADJUST(factor, pdev, msdu) \
     adf_os_atomic_add( \
