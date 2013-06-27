@@ -72,6 +72,7 @@
  */
 #define OL_TX_TARGET_CREDIT_DECR(pdev, msdu)  /* no-op */
 #define OL_TX_TARGET_CREDIT_INCR(pdev, msdu)  /* no-op */
+#define OL_TX_TARGET_CREDIT_ADJUST(factor, pdev, msdu)  /* no-op */
 #endif
 
 void
@@ -378,6 +379,8 @@ ol_tx_completion_handler(
          */
         adf_os_atomic_add(num_msdus, &pdev->tx_queue.rsrc_cnt);
     	ol_tx_sched(pdev);
+    } else {
+        OL_TX_TARGET_CREDIT_ADJUST(num_msdus, pdev, NULL) ;
     }
     /* Do one shot statistics */
     TXRX_STATS_UPDATE_TX_STATS(pdev, status, num_msdus, byte_cnt);
@@ -449,6 +452,8 @@ ol_tx_inspect_handler(
     if (pdev->cfg.is_high_latency) {
         /* credit was already explicitly updated by HTT */
     	ol_tx_sched(pdev);
+    } else {
+        OL_TX_TARGET_CREDIT_ADJUST(num_msdus, pdev, NULL) ;
     }
 }
 
