@@ -3825,19 +3825,19 @@ typedef struct {
     A_UINT8     replay_counter[GTK_REPLAY_COUNTER_BYTES];  /* replay counter for re-key */
 }WMI_GTK_OFFLOAD_CMD;
 
-typedef PREPACK struct {
+typedef struct {
     A_UINT32    vdev_id;
-    A_UINT8 keepaliveInterval;   /* seconds */
-} POSTPACK wmi_vdev_set_keepalive_cmd;
+    A_UINT32 keepaliveInterval;   /* seconds */
+} wmi_vdev_set_keepalive_cmd;
 
-typedef PREPACK struct {
+typedef struct {
     A_UINT32    vdev_id;
-} POSTPACK wmi_vdev_get_keepalive_cmd;
+} wmi_vdev_get_keepalive_cmd;
 
-typedef PREPACK struct {
+typedef struct {
     A_UINT32    vdev_id;
-    A_UINT8 keepaliveInterval;   /* seconds */
-} POSTPACK wmi_vdev_get_keepalive_event;
+    A_UINT32 keepaliveInterval;   /* seconds */
+} wmi_vdev_get_keepalive_event;
 
 #ifdef __cplusplus
 }
