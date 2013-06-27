@@ -402,6 +402,7 @@ v_VOID_t sysTxFreeMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
   --------------------------------------------------------------------------*/
 
 void wlan_sys_ftm(void *pMsgPtr);
+void wlan_sys_probe(void);
 
 
 #endif  // WLAN_QCT_SYS_H__
