@@ -81,6 +81,10 @@
 #include "vos_utils.h"
 #include "tl_shim.h"
 
+#if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
+#include "pktlog_ac.h"
+#endif
+
 /* ################### defines ################### */
 #define WMA_2_4_GHZ_MAX_FREQ  3000
 
@@ -3064,6 +3068,62 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 #endif
 }
 
+#if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
+static VOS_STATUS wma_pktlog_wmi_send_cmd(WMA_HANDLE handle,
+					  struct ath_pktlog_wmi_params *params)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	WMI_PKTLOG_EVENT PKTLOG_EVENT;
+	WMI_CMD_ID CMD_ID;
+	wmi_pdev_pktlog_enable_cmd *cmd;
+	int len = 0;
+	wmi_buf_t buf;
+
+	PKTLOG_EVENT = params->pktlog_event;
+	CMD_ID = params->cmd_id;
+
+	switch (CMD_ID) {
+	case WMI_PDEV_PKTLOG_ENABLE_CMDID:
+		len = sizeof(wmi_pdev_pktlog_enable_cmd);
+		buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+		if (!buf) {
+			WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+			return VOS_STATUS_E_NOMEM;
+		}
+		cmd = (wmi_pdev_pktlog_enable_cmd *)wmi_buf_data(buf);
+		cmd->evlist = PKTLOG_EVENT;
+		if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					 WMI_PDEV_PKTLOG_ENABLE_CMDID)) {
+			goto wmi_send_failed;
+		}
+		break;
+	case WMI_PDEV_PKTLOG_DISABLE_CMDID:
+		/*
+		 * No command data for _pktlog_disable
+		 * len = 0
+		 */
+		buf = wmi_buf_alloc(wma_handle->wmi_handle, 0);
+		if (!buf) {
+			WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+			return VOS_STATUS_E_NOMEM;
+		}
+		if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					 WMI_PDEV_PKTLOG_DISABLE_CMDID)) {
+			goto wmi_send_failed;
+		}
+		break;
+	default:
+		WMA_LOGD("%s: invalid PKTLOG command", __func__);
+		break;
+	}
+
+	return VOS_STATUS_SUCCESS;
+
+wmi_send_failed:
+	wmi_buf_free(buf);
+	return VOS_STATUS_E_FAILURE;
+}
+#endif
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -3172,6 +3232,13 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_cli_set_cmd(wma_handle,
 					(wda_cli_set_cmd_t *)msg->bodyptr);
 			break;
+#if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
+		case WDA_PKTLOG_ENABLE_REQ:
+			wma_pktlog_wmi_send_cmd(wma_handle,
+						(struct ath_pktlog_wmi_params *)
+						msg->bodyptr);
+			break;
+#endif
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -4273,3 +4340,85 @@ VOS_STATUS WDA_DS_PeekRxPacketInfo(vos_pkt_t *pkt, v_PVOID_t *pkt_meta,
 
 	return VOS_STATUS_SUCCESS;
 }
+
+/*
+ * Function to lookup MAC address from vdev ID
+ */
+u_int8_t *wma_get_vdev_address_by_vdev_id(u_int8_t vdev_id)
+{
+	tp_wma_handle wma;
+
+	wma = vos_get_context(VOS_MODULE_ID_WDA,
+			      vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+	if (!wma) {
+		WMA_LOGE("%s: Invalid WMA handle", __func__);
+		return NULL;
+	}
+
+	if (vdev_id >= wma->max_bssid) {
+		WMA_LOGE("%s: Invalid vdev_id %u", __func__, vdev_id);
+		return NULL;
+	}
+
+	return wma->interfaces[vdev_id].addr;
+}
+
+#ifndef QCA_WIFI_ISOC
+/*
+ * Function to get the beacon buffer from vdev ID
+ * Note: The buffer returned must be freed explicitly by caller
+ */
+void *wma_get_beacon_buffer_by_vdev_id(u_int8_t vdev_id, u_int32_t *buffer_size)
+{
+	tp_wma_handle wma;
+	struct beacon_info *beacon;
+	u_int8_t *buf;
+	u_int32_t buf_size;
+
+	wma = vos_get_context(VOS_MODULE_ID_WDA,
+			      vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+
+	if (!wma) {
+		WMA_LOGE("%s: Invalid WMA handle", __func__);
+		return NULL;
+	}
+
+	if (vdev_id >= wma->max_bssid) {
+		WMA_LOGE("%s: Invalid vdev_id %u", __func__, vdev_id);
+		return NULL;
+	}
+
+	if (!wma_is_vdev_in_ap_mode(wma, vdev_id)) {
+		WMA_LOGE("%s: vdevid %d is not in AP mode",
+			 __func__, vdev_id);
+		return NULL;
+	}
+
+	beacon = wma->interfaces[vdev_id].beacon;
+
+	if (!beacon) {
+		WMA_LOGE("%s: beacon invalid", __func__);
+		return NULL;
+	}
+
+	adf_os_spin_lock_bh(&beacon->lock);
+
+	buf_size = adf_nbuf_len(beacon->buf);
+	buf = adf_os_mem_alloc(NULL, buf_size);
+
+	if (!buf) {
+		adf_os_spin_unlock_bh(&beacon->lock);
+		WMA_LOGE("%s: alloc failed for beacon buf", __func__);
+		return NULL;
+	}
+
+	adf_os_mem_copy(buf, adf_nbuf_data(beacon->buf), buf_size);
+
+	adf_os_spin_unlock_bh(&beacon->lock);
+
+	if (buffer_size)
+		*buffer_size = buf_size;
+
+	return buf;
+}
+#endif	/* QCA_WIFI_ISOC */

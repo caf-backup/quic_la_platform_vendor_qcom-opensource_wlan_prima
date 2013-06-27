@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -18,7 +18,7 @@
 #ifdef __linux__
 #define PKTLOG_PROC_DIR "ath_pktlog"
 #define PKTLOG_PROC_SYSTEM "system"
-#define WLANDEV_BASENAME "wifi"
+#define WLANDEV_BASENAME "cld"
 #endif
 
 #ifdef WIN32

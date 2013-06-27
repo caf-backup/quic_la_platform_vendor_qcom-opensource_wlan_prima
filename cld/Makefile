@@ -521,6 +521,14 @@ TXRX_OBJS := $(TXRX_DIR)/ol_txrx.o \
                 $(TXRX_DIR)/ol_tx_send.o \
                 $(TXRX_DIR)/ol_tx_sched.o
 
+############ PKTLOG ############
+PKTLOG_DIR :=      CORE/PKTLOG
+PKTLOG_INC :=      -I$(WLAN_ROOT)/$(PKTLOG_DIR)/include
+
+PKTLOG_OBJS :=	$(PKTLOG_DIR)/pktlog_ac.o \
+		$(PKTLOG_DIR)/pktlog_internal.o \
+		$(PKTLOG_DIR)/linux_ac.o
+
 ############ HTT ############
 HTT_DIR :=      CORE/HTT
 HTT_INC :=      -I$(WLAN_ROOT)/$(HTT_DIR)
@@ -673,12 +681,18 @@ INCS +=		$(WMA_INC) \
 		$(ADF_INC) \
 		$(TLSHIM_INC) \
 		$(TXRX_INC) \
+		$(PKTLOG_INC) \
 		$(HTT_INC) \
 		$(HTC_INC)
 
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
 INCS +=		$(HIF_INC) \
 		$(BMI_INC)
+
+ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
+INCS +=		$(PKTLOG_INC)
+endif
+
 else
 INCS +=		$(DXE_INC)
 endif
@@ -711,6 +725,11 @@ ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
 OBJS +=		$(HIF_OBJS) \
 		$(BMI_OBJS) \
 		$(HTT_OBJS)
+
+ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
+OBJS +=		$(PKTLOG_OBJS)
+endif
+
 else
 OBJS +=		$(DXE_OBJS)
 endif

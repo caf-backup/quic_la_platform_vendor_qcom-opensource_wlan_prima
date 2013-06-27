@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2005 Atheros Communications Inc.  All rights reserved.
+ *  Copyright (c) 2013 Qualcomm Atheros, Inc.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -51,9 +52,6 @@
 #include "if_upperproto.h"
 #include "ah_osdep.h"
 
-#ifndef REMOVE_PKT_LOG
-#include "ah_pktlog.h"
-#endif
 #ifdef AR9100
 #include <ar9100.h>
 #endif /* AR9100 */

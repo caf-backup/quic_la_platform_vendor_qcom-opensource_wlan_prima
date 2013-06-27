@@ -14,8 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef _WDI_EVENT_API_H_
-#define _WDI_EVENT_API_H_
+#ifndef _WDI_EVENT_H_
+#define _WDI_EVENT_H_
 
 #include "athdefs.h"
 #include "adf_nbuf.h"
@@ -39,8 +39,22 @@ struct wdi_event_rx_peer_invalid_msg {
 	u_int8_t vdev_id;
 };
 
+#define WDI_NUM_EVENTS	(WDI_EVENT_LAST - WDI_EVENT_BASE)
+
+#define WDI_EVENT_NOTIFY_BASE	0x200
+enum WDI_EVENT_NOTIFY {
+	WDI_EVENT_SUB_DEALLOCATE = WDI_EVENT_NOTIFY_BASE,
+	/* End of new notification types */
+
+	WDI_EVENT_NOTIFY_LAST
+};
+
 /* Opaque event callback */
 typedef void (*wdi_event_cb)(void *pdev, enum WDI_EVENT event, void *data);
+
+/* Opaque event notify */
+typedef void (*wdi_event_notify)(enum WDI_EVENT_NOTIFY notify,
+	      enum WDI_EVENT event);
 
 /**
  * @typedef wdi_event_subscribe
@@ -63,13 +77,5 @@ typedef struct wdi_event_subscribe_t {
 		struct wdi_event_subscribe_t *prev;
 	} priv;
 } wdi_event_subscribe;
-
-#ifdef WDI_EVENT_ENABLE
-
-void wdi_event_handler(enum WDI_EVENT event, struct ol_txrx_pdev_t *txrx_pdev, void *data);
-A_STATUS wdi_event_attach(struct ol_txrx_pdev_t *txrx_pdev);
-A_STATUS wdi_event_detach(struct ol_txrx_pdev_t *txrx_pdev);
-
-#endif /* WDI_EVENT_ENABLE */
 
 #endif

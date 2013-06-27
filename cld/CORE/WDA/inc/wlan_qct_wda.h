@@ -1185,6 +1185,10 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_CLI_GET_CMD             SIR_HAL_CLI_GET_CMD
 #endif
 
+#ifndef REMOVE_PKT_LOG
+#define WDA_PKTLOG_ENABLE_REQ       SIR_HAL_PKTLOG_ENABLE_REQ
+#endif
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
