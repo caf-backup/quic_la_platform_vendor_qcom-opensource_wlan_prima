@@ -1742,6 +1742,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     eHalStatus status;
     tANI_U32 value;
     hdd_config_t *pconfig = hdd_ctx->cfg_ini;
+    tSirMacHTCapabilityInfo htCapInfo;
 
     /* check and update RX STBC */
     if (pconfig->enableRxSTBC && !cfg->ht_rx_stbc)
@@ -1772,6 +1773,35 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
                       "%s: could not set MPDU DENSITY to CCM",
                       __func__);
     }
+
+    /* get the HT capability info*/
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
+                          (tANI_U32 *)&htCapInfo);
+    if (eHAL_STATUS_SUCCESS != status) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: could not get HT capability info",
+                  __func__);
+        return;
+    }
+
+    /* Set the LDPC capability */
+    htCapInfo.advCodingCap = cfg->ht_rx_ldpc;
+
+    if (htCapInfo.txSTBC && !cfg->ht_tx_stbc)
+        htCapInfo.txSTBC = cfg->ht_tx_stbc;
+
+    if (pconfig->ShortGI20MhzEnable && !cfg->ht_sgi_20)
+        pconfig->ShortGI20MhzEnable = cfg->ht_sgi_20;
+
+    if (pconfig->ShortGI40MhzEnable && !cfg->ht_sgi_40)
+        pconfig->ShortGI40MhzEnable = cfg->ht_sgi_40;
+
+    status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
+                          *(tANI_U32 *)&htCapInfo, NULL, eANI_BOOLEAN_FALSE);
+    if (status != eHAL_STATUS_SUCCESS)
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: could not set HT capabilty to CCM",
+                  __func__);
 }
 
 #ifdef WLAN_FEATURE_11AC

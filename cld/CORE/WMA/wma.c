@@ -3684,8 +3684,19 @@ static inline void wma_update_target_ht_cap(tp_wma_handle wh,
 	/* RX STBC */
 	cfg->ht_rx_stbc = !!(wh->ht_cap_info & WMI_HT_CAP_RX_STBC);
 
+	/* TX STBC */
+	cfg->ht_tx_stbc = !!(wh->ht_cap_info & WMI_HT_CAP_TX_STBC);
+
 	/* MPDU density */
 	cfg->mpdu_density = wh->ht_cap_info & WMI_HT_CAP_MPDU_DENSITY;
+
+	/* HT RX LDPC */
+	cfg->ht_rx_ldpc = !!(wh->ht_cap_info & WMI_HT_CAP_LDPC);
+
+	/* HT SGI */
+	cfg->ht_sgi_20 = !!(wh->ht_cap_info & WMI_HT_CAP_HT20_SGI);
+
+	cfg->ht_sgi_40 = !!(wh->ht_cap_info & WMI_HT_CAP_HT40_SGI);
 }
 
 #ifdef WLAN_FEATURE_11AC

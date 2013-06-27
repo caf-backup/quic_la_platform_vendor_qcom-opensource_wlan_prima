@@ -19,8 +19,12 @@ struct hdd_tgt_services {
 };
 
 struct hdd_tgt_ht_cap {
-	bool ht_rx_stbc;
 	u_int32_t mpdu_density;
+	bool ht_rx_stbc;
+	bool ht_tx_stbc;
+	bool ht_rx_ldpc;
+	bool ht_sgi_20;
+	bool ht_sgi_40;
 };
 
 #ifdef WLAN_FEATURE_11AC
