@@ -19,7 +19,7 @@ struct hdd_tgt_services {
 };
 
 struct hdd_tgt_ht_cap {
-	u_int32_t ht_rx_stbc;
+	bool ht_rx_stbc;
 	u_int32_t mpdu_density;
 };
 

@@ -3682,7 +3682,7 @@ static inline void wma_update_target_ht_cap(tp_wma_handle wh,
 					    struct hdd_tgt_ht_cap *cfg)
 {
 	/* RX STBC */
-	cfg->ht_rx_stbc = wh->ht_cap_info & WMI_HT_CAP_RX_STBC;
+	cfg->ht_rx_stbc = !!(wh->ht_cap_info & WMI_HT_CAP_RX_STBC);
 
 	/* MPDU density */
 	cfg->mpdu_density = wh->ht_cap_info & WMI_HT_CAP_MPDU_DENSITY;
