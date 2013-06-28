@@ -258,6 +258,7 @@ ol_txrx_pdev_attach(
 
     /* initialize the counter of the target's tx buffer availability */
     adf_os_atomic_init(&pdev->target_tx_credit);
+    adf_os_atomic_init(&pdev->orig_target_tx_credit);
     /*
      * LL - initialize the target credit outselves.
      * HL - wait for a HTT target credit initialization during htt_attach.
@@ -753,13 +754,13 @@ ol_txrx_vdev_detach(
     	
 #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
-		struct ol_tx_frms_queue_t *txq;
-		int i;
+        struct ol_tx_frms_queue_t *txq;
+        int i;
 
-		for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
-			txq = &vdev->txqs[i];
-			ol_tx_queue_free(pdev, txq, (i + OL_TX_NUM_TIDS));
-		}
+        for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
+            txq = &vdev->txqs[i];
+            ol_tx_queue_free(pdev, txq, (i + OL_TX_NUM_TIDS));
+        }
     }
 #endif /* defined(CONFIG_HL_SUPPORT) */
     /* remove the vdev from its parent pdev's list */
@@ -837,20 +838,21 @@ ol_txrx_peer_attach(
 
 #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
-		for (i = 0; i < OL_TX_NUM_TIDS; i++) {
-			TAILQ_INIT(&peer->txqs[i].head);
-			peer->txqs[i].paused_count.total = 0;
-			peer->txqs[i].frms = 0;
-			peer->txqs[i].bytes = 0;
-			peer->txqs[i].ext_tid = i;
-			peer->txqs[i].flag = ol_tx_queue_empty;
+        for (i = 0; i < OL_TX_NUM_TIDS; i++) {
+            TAILQ_INIT(&peer->txqs[i].head);
+            peer->txqs[i].paused_count.total = 0;
+            peer->txqs[i].frms = 0;
+            peer->txqs[i].bytes = 0;
+            peer->txqs[i].ext_tid = i;
+            peer->txqs[i].flag = ol_tx_queue_empty;
             peer->txqs[i].aggr_state = ol_tx_aggr_untried;
-		}
+        }
         /* aggregation is not applicable for mgmt and non-QoS tx queues */
-		for (i = OL_TX_NUM_QOS_TIDS; i < OL_TX_NUM_TIDS; i++) {
+        for (i = OL_TX_NUM_QOS_TIDS; i < OL_TX_NUM_TIDS; i++) {
             peer->txqs[i].aggr_state = ol_tx_aggr_disabled;
         }
     }
+    ol_txrx_peer_pause(peer);
 #endif /* defined(CONFIG_HL_SUPPORT) */
     /* add this peer into the vdev's list */
     TAILQ_INSERT_TAIL(&vdev->peer_list, peer, peer_list_elem);
@@ -890,10 +892,13 @@ ol_txrx_peer_attach(
     }
 
     /*
-     * The default peer state is "open".
-     * This may later get overwritten by a SEC_IND message from the target.
+     * The peer starts in the "disc" state while association is in progress.
+     * Once association completes, the peer will get updated to "auth" state
+     * by a call to ol_txrx_peer_state_update if the peer is in open mode, or
+     * else to the "conn" state. For non-open mode, the peer will progress to
+     * "auth" state once the authentication completes.
      */
-    ol_txrx_peer_state_update(pdev, peer->mac_addr.raw, ol_txrx_peer_state_open);
+    ol_txrx_peer_state_update(pdev, peer->mac_addr.raw, ol_txrx_peer_state_disc);
 
     OL_TXRX_LOCAL_PEER_ID_ALLOC(pdev, peer);
 
@@ -909,7 +914,7 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 	peer =  ol_txrx_peer_find_hash_find(pdev, peer_mac, 0);
 	/* TODO: Should we send WMI command of the connection state? */
 #ifdef NOT_YET
-    if (ol_cfg_tx_filter(pdev->ctrl_pdev) {
+    if (ol_cfg_tx_filter(pdev->ctrl_pdev)) {
         if (state == ol_txrx_peer_state_conn)
         {
             peer->tx_filter = ol_tx_filter_connected;
@@ -918,15 +923,27 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
         }
     }
 #endif
+     /* avoid multiple auth state change. */
+    if (peer->state == state) {
+#ifdef TXRX_PRINT_VERBOSE_ENABLE
+        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO3, "%s: no state change, returns directly\n", __FUNCTION__);
+#endif
+	adf_os_atomic_dec(&peer->ref_cnt);
+        return;
+    }
+
+    TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: change from %d to %d\n", __FUNCTION__, peer->state, state);
+
+    peer->state = state;
+
     if (peer->vdev->pdev->cfg.host_addba) {
-        if (state == ol_txrx_peer_state_open ||
-            state == ol_txrx_peer_state_auth)
-        {
+        if (state == ol_txrx_peer_state_auth) {
             int tid;
             /*
-             * Pause all regular (non-exteded) TID tx queues until data
-             * arrives and ADDBA negotiation has completed.
-             */
+              * Pause all regular (non-exteded) TID tx queues until data
+              * arrives and ADDBA negotiation has completed.
+              */
+            TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: pause peer and unpause mgmt, non-qos\n", __FUNCTION__);
             ol_txrx_peer_pause(peer); /* pause all tx queues */
             /* unpause mgmt and non-QoS tx queues */
             for (tid = OL_TX_NUM_QOS_TIDS; tid < OL_TX_NUM_TIDS; tid++) {
@@ -965,6 +982,49 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 					    peer->qos_capable);
 			break;
 		}
+	case ol_txrx_peer_update_uapsdMask:
+		{
+			peer->uapsd_mask = param->uapsd_mask;
+			break;
+		}
+	case ol_txrx_peer_update_peer_security:
+		{
+			enum ol_sec_type              sec_type = param->sec_type;
+			enum htt_sec_type             peer_sec_type = htt_sec_type_none;
+
+			switch(sec_type) {
+			case ol_sec_type_none:
+			    peer_sec_type = htt_sec_type_none;
+			    break;
+			case ol_sec_type_wep128:
+			    peer_sec_type = htt_sec_type_wep128;
+			    break;
+			case ol_sec_type_wep104:
+			    peer_sec_type = htt_sec_type_wep104;
+			    break;
+			case ol_sec_type_wep40:
+			    peer_sec_type = htt_sec_type_wep40;
+			    break;
+			case ol_sec_type_tkip:
+			    peer_sec_type = htt_sec_type_tkip;
+			    break;
+			case ol_sec_type_tkip_nomic:
+			    peer_sec_type = htt_sec_type_tkip_nomic;
+			    break;
+			case ol_sec_type_aes_ccmp:
+			    peer_sec_type = htt_sec_type_aes_ccmp;
+			    break;
+			case ol_sec_type_wapi:
+			    peer_sec_type = htt_sec_type_wapi;
+			    break;
+			default:
+			    break;
+			}
+
+			peer->security[txrx_sec_ucast].sec_type = peer->security[txrx_sec_mcast].sec_type = peer_sec_type;
+
+			break;
+		}
 	default:
 		{
 			adf_os_print("ERROR,unrecognized parameter selection %x\n", select);
@@ -972,6 +1032,19 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 		}
 	}
 	adf_os_atomic_dec(&peer->ref_cnt);
+}
+
+u_int8_t
+ol_txrx_peer_uapsdmask_get (struct ol_txrx_pdev_t * txrx_pdev, u_int16_t peer_id)
+{
+
+    struct ol_txrx_peer_t *peer  = ol_txrx_peer_find_by_id(txrx_pdev, peer_id);
+    if (peer != NULL)
+    {
+        return peer->uapsd_mask;
+    }
+
+    return 0;
 }
 
 void
@@ -985,6 +1058,17 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
 
     vdev = peer->vdev;
     pdev = vdev->pdev;
+
+    /* Check for the reference count before deleting the peer
+     * as we noticed that sometimes we are re-entering this
+     * fucntion again which is leading to dead-lock
+     */
+
+    if ( 0 == adf_os_atomic_read(&(peer->ref_cnt)) ) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "The Peer is not present anymore\n");
+        adf_os_assert(0);
+        return;
+    }
 
     /*
      * Hold the lock all the way from checking if the peer ref count
@@ -1113,7 +1197,14 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
     int total;
     int unused = 0;
 
-    total = ol_cfg_target_tx_credit(pdev->ctrl_pdev);
+    if (ol_cfg_is_high_latency(pdev->ctrl_pdev))
+    {
+        total = adf_os_atomic_read(&pdev->orig_target_tx_credit);
+    }
+    else
+    {
+        total = ol_cfg_target_tx_credit(pdev->ctrl_pdev);
+    }
 
     /*
      * Iterate over the tx descriptor freelist to see how many are available,
@@ -1138,6 +1229,12 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
     adf_os_spin_unlock_bh(&pdev->tx_mutex);
 
     return (total - unused);
+}
+
+void
+ol_txrx_discard_tx_pending(ol_txrx_pdev_handle pdev_handle)
+{
+    ol_tx_queue_discard(pdev_handle, A_TRUE, A_FALSE);
 }
 
 /*--- debug features --------------------------------------------------------*/

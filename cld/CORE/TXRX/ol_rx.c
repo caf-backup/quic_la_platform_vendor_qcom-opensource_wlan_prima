@@ -295,7 +295,7 @@ ol_rx_indication_handler(
                     htt_rx_mpdu_desc_list_next(htt_pdev, rx_ind_msg);
                 OL_RX_ERR_STATISTICS_2(pdev, vdev, peer, rx_mpdu_desc, msdu, status);
 
-		        if (status == htt_rx_status_tkip_mic_err && vdev != NULL &&  peer != NULL) {
+                if (status == htt_rx_status_tkip_mic_err && vdev != NULL &&  peer != NULL) {
                     ol_rx_err(pdev->ctrl_pdev, vdev->vdev_id, peer->mac_addr.raw,
                         tid, 0, OL_RX_ERR_TKIP_MIC, msdu);
                 }
@@ -600,6 +600,14 @@ ol_rx_filter(
     }
     /* get encrypt info */
     is_encrypted = htt_rx_mpdu_is_encrypted(htt_pdev, rx_desc);
+#ifdef ATH_SUPPORT_WAPI
+    if (is_encrypted && ( ETHERTYPE_WAI == ether_type ))
+    {
+        /* We expect the WAI frames to be always unencrypted when the UMAC
+         * gets it.*/
+        return FILTER_STATUS_REJECT;
+    }
+#endif //ATH_SUPPORT_WAPI
 
     for (i=0; i < vdev->filters_num; i++) {
         /* skip if the ether type does not match */
@@ -628,7 +636,9 @@ ol_rx_filter(
              * In this case, we reject the frame if it was originally NOT encrypted but 
              * we have the key mapping key for this frame.
              */
-            if (!is_encrypted && !is_mcast && (peer->security[txrx_sec_ucast].sec_type != htt_sec_type_none)) {                
+            if (!is_encrypted && !is_mcast
+                && (peer->security[txrx_sec_ucast].sec_type != htt_sec_type_none
+                && !ETHERTYPE_IS_EAPOL_WAPI(ether_type))) {
                  return FILTER_STATUS_REJECT;
             } else {
                 return FILTER_STATUS_ACCEPT;
@@ -657,9 +667,9 @@ ol_rx_filter(
     if(peer->security[is_mcast ? txrx_sec_mcast : txrx_sec_ucast].sec_type == htt_sec_type_none) {
         return FILTER_STATUS_ACCEPT;
     }
-	if (!is_encrypted && vdev->drop_unenc) {
-		OL_RX_ERR_STATISTICS(pdev, vdev, OL_RX_ERR_PRIVACY, pdev->sec_types[htt_sec_type_none], is_mcast);
-	}
+    if (!is_encrypted && vdev->drop_unenc) {
+        OL_RX_ERR_STATISTICS(pdev, vdev, OL_RX_ERR_PRIVACY, pdev->sec_types[htt_sec_type_none], is_mcast);
+    }
     return FILTER_STATUS_REJECT;
 }
 
@@ -703,7 +713,8 @@ ol_rx_deliver(
         }
 
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
-        info.is_msdu_cmpl_mpdu =  htt_rx_msdu_desc_completes_mpdu(htt_pdev, rx_desc);
+        info.is_msdu_cmpl_mpdu = htt_rx_msdu_desc_completes_mpdu(htt_pdev, rx_desc);
+        info.is_first_subfrm = htt_rx_msdu_first_msdu_flag(htt_pdev, rx_desc);
         if (OL_RX_DECAP(vdev, peer, msdu, &info) != A_OK) {
             discard = 1;
             TXRX_PRINT(TXRX_PRINT_LEVEL_WARN,

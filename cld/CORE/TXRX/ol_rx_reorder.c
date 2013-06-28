@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -180,6 +180,14 @@ ol_rx_reorder_store(
     idx &= peer->tids_rx_reorder[tid].win_sz_mask;
     rx_reorder_array_elem = &peer->tids_rx_reorder[tid].array[idx];
     if (rx_reorder_array_elem->head) {
+#ifdef QCA_WIFI_ISOC
+        /* This should not happen in Riva/Pronto case. Because
+         * A-MSDU within a MPDU is indicated together. Defragmentation
+         * is handled by RPE. So add an Assert here to catch potential
+         * rx reorder issues.
+         */
+        TXRX_ASSERT2(0);
+#endif
         adf_nbuf_set_next(rx_reorder_array_elem->tail, head_msdu);
     } else {
         rx_reorder_array_elem->head = head_msdu;
@@ -254,10 +262,6 @@ ol_rx_reorder_release(
         /* rx_opt_proc takes a NULL-terminated list of msdu netbufs */
         adf_nbuf_set_next(tail_msdu, NULL);
         peer->rx_opt_proc(vdev, peer, tid, head_msdu);
-    }
-    if (OL_RX_REORDER_NO_HOLES(&peer->tids_rx_reorder[tid])) {
-        peer->tids_next_rel_idx[tid] = OL_RX_REORDER_IDX_INIT(
-            0/*n/a*/, win_sz, win_sz_mask);
     }
     /*
      * If the rx reorder timeout is handled by host SW rather than the
@@ -491,7 +495,15 @@ ol_rx_delba_handler(
     peer->tids_next_rel_idx[tid] = 0xffff; /* invalid value */
     rx_reorder = &peer->tids_rx_reorder[tid];
 
-    /* deallocate the old rx reorder array */
+    /* check that there really was a block ack agreement */
+    TXRX_ASSERT1(rx_reorder->win_sz_mask != 0);
+    /*
+     * Deallocate the old rx reorder array.
+     * The call to ol_rx_reorder_init below
+     * will reset rx_reorder->array to point to
+     * the single-element statically-allocated reorder array
+     * used for non block-ack cases.
+     */
     adf_os_mem_free(rx_reorder->array);
 
     /* set up the TID with default parameters (ARQ window size = 1) */

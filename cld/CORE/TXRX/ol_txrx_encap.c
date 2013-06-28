@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -529,12 +529,11 @@ ol_rx_decap(
     u_int8_t *mpdu_hdr;
 
     if (!info->is_subfrm) {
-        if (info->is_msdu_cmpl_mpdu) {
+        if (info->is_msdu_cmpl_mpdu && !info->is_first_subfrm) {
             /* It's normal MSDU. */
         } else {
-            /* It's a first subfrm of A-MSDU */
+            /* It's a first subfrm of A-MSDU and may also be the last subfrm of A-MSDU */
             info->is_subfrm = 1;
-            info->is_first_subfrm = 1;
             info->hdr_len = 0;
             if (vdev->pdev->sw_subfrm_hdr_recovery_enable) {
                 /* we save the first subfrm mpdu hdr for subsequent 
@@ -547,9 +546,6 @@ ol_rx_decap(
                 adf_nbuf_pull_head(msdu, info->hdr_len);
             }
         }
-    } else {
-        /* It's a non-first subfrm of A-MSDU */
-        info->is_first_subfrm = 0;
     }
 
     if (info->is_subfrm && vdev->pdev->sw_subfrm_hdr_recovery_enable) {

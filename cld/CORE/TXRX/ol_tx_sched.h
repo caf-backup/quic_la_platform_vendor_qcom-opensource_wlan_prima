@@ -10,6 +10,8 @@
 #ifndef _OL_TX_SCHED__H_
 #define _OL_TX_SCHED__H_
 
+#include <adf_os_types.h>   /* a_bool_t */
+
 enum ol_tx_queue_action {
     OL_TX_ENQUEUE_FRAME,
     OL_TX_DELETE_QUEUE,
@@ -40,7 +42,10 @@ ol_tx_sched(struct ol_txrx_pdev_t *pdev);
 
 int
 ol_tx_sched_discard_select(
-    struct ol_txrx_pdev_t *pdev, int frms, ol_tx_desc_list *tx_descs);
+    struct ol_txrx_pdev_t *pdev,
+    int frms,
+    ol_tx_desc_list *tx_descs,
+    a_bool_t force);
 
 void *
 ol_tx_sched_attach(struct ol_txrx_pdev_t *pdev);
@@ -52,7 +57,7 @@ ol_tx_sched_detach(struct ol_txrx_pdev_t *pdev);
 
 #define ol_tx_notify_sched(pdev, ctx) /* no-op */
 #define ol_tx_sched(pdev) /* no-op */
-#define ol_tx_sched_discard_select(pdev) 0
+#define ol_tx_sched_discard_select(pdev, frms, tx_descs, force) 0
 #define ol_tx_sched_attach(pdev) NULL
 #define ol_tx_sched_detach(pdev) /* no-op */
 

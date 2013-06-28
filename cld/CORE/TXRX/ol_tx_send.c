@@ -223,6 +223,12 @@ adf_os_assert(0);
 }
 
 void
+ol_tx_target_credit_init(struct ol_txrx_pdev_t *pdev, int credit_delta)
+{
+    adf_os_atomic_add(credit_delta, &pdev->orig_target_tx_credit);
+}
+
+void
 ol_tx_target_credit_update(struct ol_txrx_pdev_t *pdev, int credit_delta)
 {
     adf_os_atomic_add(credit_delta, &pdev->target_tx_credit);
@@ -347,9 +353,9 @@ ol_tx_completion_handler(
         if (adf_os_atomic_dec_and_test(&tx_desc->ref_cnt)) 
 #endif        
         {
-			ol_tx_statistics(pdev->ctrl_pdev, 
-				HTT_TX_DESC_VDEV_ID_GET(*((u_int32_t *)(tx_desc->htt_tx_desc))),
-				status != htt_tx_status_ok);
+            ol_tx_statistics(pdev->ctrl_pdev,
+                HTT_TX_DESC_VDEV_ID_GET(*((u_int32_t *)(tx_desc->htt_tx_desc))),
+                status != htt_tx_status_ok);
             ol_tx_msdu_complete(pdev, tx_desc, tx_descs, netbuf, lcl_freelist,
                                     tx_desc_last, status);
         }
@@ -378,9 +384,9 @@ ol_tx_completion_handler(
          * available now.
          */
         adf_os_atomic_add(num_msdus, &pdev->tx_queue.rsrc_cnt);
-    	ol_tx_sched(pdev);
+        ol_tx_sched(pdev);
     } else {
-        OL_TX_TARGET_CREDIT_ADJUST(num_msdus, pdev, NULL) ;
+        OL_TX_TARGET_CREDIT_ADJUST(num_msdus, pdev, NULL);
     }
     /* Do one shot statistics */
     TXRX_STATS_UPDATE_TX_STATS(pdev, status, num_msdus, byte_cnt);

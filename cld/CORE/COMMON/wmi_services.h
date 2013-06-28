@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 
 /**
  * This file defines WMI services bitmap and the set of WMI services . 

@@ -682,7 +682,7 @@ VOS_STATUS WLANTL_ChangeSTAState(void *vos_ctx, u_int8_t sta_id,
 				 WLANTL_STAStateType sta_state)
 {
 	struct ol_txrx_peer_t *peer;
-	enum ol_txrx_peer_state txrx_state = ol_txrx_peer_state_open;
+	enum ol_txrx_peer_state txrx_state = ol_txrx_peer_state_disc;
 	int err;
 
 	ENTER();

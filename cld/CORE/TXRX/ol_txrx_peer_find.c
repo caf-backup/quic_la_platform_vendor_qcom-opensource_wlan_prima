@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -21,6 +21,7 @@
 #include <ol_txrx_internal.h>  /* ol_txrx_pdev_t, etc. */
 #include <ol_txrx.h>           /* ol_txrx_peer_unref_delete */
 #include <ol_txrx_peer_find.h> /* ol_txrx_peer_find_attach, etc. */
+#include <ol_tx_queue.h>
 
 /*=== misc. / utility function definitions ==================================*/
 
@@ -344,12 +345,27 @@ ol_rx_peer_map_handler(
     if (pdev->cfg.is_high_latency && !tx_ready) {
         struct ol_txrx_peer_t *peer;
         peer = ol_txrx_peer_find_by_id(pdev, peer_id);
-        if (peer) {
-            /* pause non-mgmt tx queues until assoc is finished */
-            /* pause all tx queues */
-            ol_txrx_peer_pause(peer);
-            /* unpause tx mgmt queue */
-            ol_txrx_peer_tid_unpause(peer, HTT_TX_EXT_TID_MGMT);
+        if (!peer) {
+            /* ol_txrx_peer_detach called before peer map arrived */
+            return;
+        }else {
+            if (tx_ready) {
+#if defined(CONFIG_HL_SUPPORT)
+                int i;
+                /* unpause all tx queues now, since the target is ready */
+                for (i = 0; i < ARRAY_LEN(peer->txqs); i++) {
+                    ol_txrx_peer_tid_unpause(peer, i);
+                }
+#endif
+            } else {
+                /* walk through paused mgmt queue, update tx descriptors */
+                ol_tx_queue_decs_reinit(peer, peer_id);
+
+                /* keep non-mgmt tx queues paused until assoc is finished */
+                /* tx queues were paused in ol_txrx_peer_attach*/
+                /* unpause tx mgmt queue */
+                ol_txrx_peer_tid_unpause(peer, HTT_TX_EXT_TID_MGMT);
+            }
         }
     }
 }
@@ -405,7 +421,12 @@ ol_txrx_assoc_peer_find(struct ol_txrx_vdev_t *vdev)
 	struct ol_txrx_peer_t *peer;
 
 	adf_os_spin_lock_bh(&vdev->pdev->last_real_peer_mutex);
-	if (vdev->last_real_peer) {
+	/*
+	 * Check the TXRX Peer is itself valid And also
+	 * if HTT Peer ID has been setup for this peer
+	 */
+	if (vdev->last_real_peer && vdev->last_real_peer->peer_ids[0] != HTT_INVALID_PEER_ID)
+	{
 		adf_os_atomic_inc(&vdev->last_real_peer->ref_cnt);
 		peer = vdev->last_real_peer;
 	} else {

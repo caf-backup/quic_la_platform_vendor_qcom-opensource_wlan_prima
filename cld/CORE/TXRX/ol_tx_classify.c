@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -241,8 +241,6 @@ ol_tx_tid(
          * However, we expect that for all cases that use native WiFi,
          * the TID will be directly specified out of band.
          */
-         //FIXME_RT Hardcode TID info for now until correct method of extracting TID from OS Shim is checked in.
-        tx_msdu_info->htt.info.ext_tid = 0;
         tid = tx_msdu_info->htt.info.ext_tid;
     } else {
         adf_os_print("Invalid standard frame type: %d\n", pdev->frame_format);
@@ -330,9 +328,25 @@ ol_tx_classify(
             tx_msdu_info->htt.info.peer_id = peer->peer_ids[0];
         } else {
             tx_msdu_info->htt.info.peer_id = HTT_INVALID_PEER_ID;
+            /*
+            * Look up the vdev's BSS peer, so that the classify_extension function can check
+            * whether to encrypt multicast / broadcast frames.
+            */
+            peer = ol_txrx_peer_find_hash_find(pdev, vdev->mac_addr.raw, 0);
+            if (!peer) {
+                adf_os_print(
+                    "Error: vdev %p (%02x:%02x:%02x:%02x:%02x:%02x) "
+                    "trying to send broad/multi cast tx data frame to an unknown peer\n",
+                    vdev,
+                    vdev->mac_addr.raw[0], vdev->mac_addr.raw[1],
+                    vdev->mac_addr.raw[2], vdev->mac_addr.raw[3],
+                    vdev->mac_addr.raw[4], vdev->mac_addr.raw[5]);
+                return NULL; /* error */
+            }
         }
         tx_msdu_info->htt.info.is_unicast = FALSE;
     } else {
+        /* tid would be overwritten for non QoS case*/
         tid = ol_tx_tid(pdev, tx_nbuf, tx_msdu_info);
         if (HTT_TX_EXT_TID_INVALID == tid) {
              adf_os_print(
@@ -340,6 +354,16 @@ ol_tx_classify(
                  __func__);
              return NULL;
         }
+#ifdef ATH_SUPPORT_WAPI
+        // Check to see if a frame is a WAI frame
+        if (tx_msdu_info->htt.info.ethertype == ETHERTYPE_WAI)
+        {
+            /* WAI frames should not be encrypted */
+            tx_msdu_info->htt.action.do_encrypt = 0;
+            adf_os_print("Tx Frame is a WAI frame\n");
+        }
+#endif //ATH_SUPPORT_WAPI
+
         /*
          * Find the peer and increment its reference count.
          * If this vdev is an AP, use the dest addr (DA) to determine
@@ -369,6 +393,15 @@ ol_tx_classify(
                 vdev->mac_addr.raw[4], vdev->mac_addr.raw[5]);
             return NULL; /* error */
         }
+        if (!peer->qos_capable)
+        {
+            tid = OL_TX_NON_QOS_TID;
+        }
+        /* Only allow encryption when in authenticated state */
+        if (ol_txrx_peer_state_auth != peer->state) {
+            tx_msdu_info->htt.action.do_encrypt = 0;
+        }
+
         TX_SCHED_DEBUG_PRINT("Peer exist\n");
         txq = &peer->txqs[tid];
         tx_msdu_info->htt.info.ext_tid = tid;
@@ -388,6 +421,11 @@ ol_tx_classify(
          * unpause the txq.
          */
         if (tx_msdu_info->htt.info.peer_id == HTT_INVALID_PEER_ID) {
+            if (peer) {
+                /* remove the peer reference added above */
+                ol_txrx_peer_unref_delete(peer);
+                tx_msdu_info->peer = NULL;
+            }
             return NULL;
         }
     }
@@ -399,6 +437,13 @@ ol_tx_classify(
      * indicate an error.
      */
     OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, tx_nbuf, tx_msdu_info, txq);
+    if (IEEE80211_IS_MULTICAST(dest_addr) &&
+        vdev->opmode != wlan_op_mode_sta) {
+        /* remove the peer reference added above */
+        ol_txrx_peer_unref_delete(tx_msdu_info->peer);
+        /* Making peer NULL in case if multicast non STA mode */
+        tx_msdu_info->peer = NULL;
+    }
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
     return txq;
 }
