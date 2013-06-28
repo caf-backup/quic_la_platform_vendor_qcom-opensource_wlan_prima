@@ -70,6 +70,7 @@
 #include "ol_txrx_api.h"
 #include "vos_memory.h"
 #include "ol_txrx_types.h"
+#include "ol_txrx_peer_find.h"
 
 #include "wlan_qct_wda.h"
 #include "limApi.h"
@@ -211,6 +212,17 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *event,
 			 __func__, resp_event->vdev_id, resp_event->status);
 		params->status = resp_event->status;
 		wma_send_msg(wma, WDA_SWITCH_CHANNEL_RSP, (void *)params, 0);
+	} else if (req_msg->msg_type == WDA_ADD_BSS_REQ) {
+		tpAddBssParams params = (tpAddBssParams) req_msg->user_data;
+
+		if (!resp_event->status)
+			params->status = VOS_STATUS_SUCCESS;
+		else
+			params->status = VOS_STATUS_E_FAILURE;
+
+		WMA_LOGD("%s: Sending add bss rsp to umac(vdev %d status %d)\n",
+			 __func__, resp_event->vdev_id, params->status);
+		wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
 	}
 	vos_timer_destroy(&req_msg->event_timeout);
 	vos_mem_free(req_msg);
@@ -377,6 +389,9 @@ static int wma_vdev_stop_resp_handler(void *handle, u8 *event, u16 len)
 	if (req_msg->msg_type == WDA_DELETE_BSS_REQ) {
 		tpDeleteBssParams params =
 			(tpDeleteBssParams)req_msg->user_data;
+		if (wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id))
+			wma_remove_peer(wma, params->bssid,
+					resp_event->vdev_id);
 		peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
 		if (!peer)
 			WMA_LOGD("%s Failed to find peer %pM\n",
@@ -1481,6 +1496,20 @@ static VOS_STATUS wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 	return VOS_STATUS_SUCCESS;
 }
 
+static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
+				u_int8_t type)
+{
+	struct wma_target_req *req_msg;
+
+	req_msg = wma_find_vdev_req(wma, vdev_id, type);
+	if (!req_msg)
+		return;
+
+	vos_timer_stop(&req_msg->event_timeout);
+	vos_timer_destroy(&req_msg->event_timeout);
+	vos_mem_free(req_msg);
+}
+
 static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 {
 	struct wma_vdev_start_req req;
@@ -1761,7 +1790,76 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_SLOT_TIME\n");
 }
 
-static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
+static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
+{
+	ol_txrx_pdev_handle pdev;
+	ol_txrx_vdev_handle vdev;
+	struct wma_vdev_start_req req;
+	ol_txrx_peer_handle peer;
+	u_int8_t vdev_id, peer_id;
+	VOS_STATUS status;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	vdev = wma_find_vdev_by_addr(wma, add_bss->bssId, &vdev_id);
+	if (!vdev) {
+		WMA_LOGE("%s: Failed to get vdev handle\n", __func__);
+		goto send_fail_resp;
+	}
+
+	status = wma_create_peer(wma, pdev, vdev, add_bss->bssId, vdev_id);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to create peer\n", __func__);
+		goto send_fail_resp;
+	}
+
+	peer = ol_txrx_find_peer_by_addr(pdev, add_bss->bssId, &peer_id);
+	if (!peer) {
+		WMA_LOGE("%s Failed to find peer %pM\n", __func__,
+			 add_bss->bssId);
+		goto send_fail_resp;
+	}
+	status = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
+				   WMA_TARGET_REQ_TYPE_VDEV_START, add_bss);
+	if (status != VOS_STATUS_SUCCESS)
+		goto peer_cleanup;
+
+	add_bss->staContext.staIdx = ol_txrx_local_peer_id(peer);
+
+	vos_mem_zero(&req, sizeof(req));
+	req.vdev_id = vdev_id;
+	req.chan = add_bss->currentOperChannel;
+	req.chan_offset = add_bss->currentExtChannel;
+#if defined WLAN_FEATURE_VOWIF
+	req.max_txpow = add_bss->maxTxPower;
+#else
+	req.max_txpow = 0;
+#endif
+	req.beacon_intval = add_bss->beaconInterval;
+	req.dtim_period = add_bss->dtimPeriod;
+	req.hidden_ssid = add_bss->bHiddenSSIDEn;
+	req.is_dfs = add_bss->bSpectrumMgtEnabled;
+	req.ssid.length = add_bss->ssId.length;
+	if (req.ssid.length > 0)
+		vos_mem_copy(req.ssid.ssId, add_bss->ssId.ssId,
+			     add_bss->ssId.length);
+
+	status = wma_vdev_start(wma, &req);
+	if (status != VOS_STATUS_SUCCESS) {
+		wma_remove_vdev_req(wma, vdev_id,
+				    WMA_TARGET_REQ_TYPE_VDEV_START);
+		goto peer_cleanup;
+	}
+	return;
+
+peer_cleanup:
+	wma_remove_peer(wma, add_bss->bssId, vdev_id);
+	ol_txrx_peer_detach(peer);
+send_fail_resp:
+	add_bss->status = VOS_STATUS_E_FAILURE;
+	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)add_bss, 0);
+}
+
+static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams params)
 {
 	ol_txrx_pdev_handle pdev;
 
@@ -1806,6 +1904,23 @@ send_bss_resp:
 		 params->updateBss, params->nwType, params->bssId,
 		 params->staContext.staIdx, params->status);
 	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
+}
+
+static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
+{
+	switch (params->operMode) {
+	case BSS_OPERATIONAL_MODE_STA:
+		wma_add_bss_sta_mode(wma, params);
+		break;
+
+	case BSS_OPERATIONAL_MODE_AP:
+		wma_add_bss_ap_mode(wma, params);
+		break;
+
+	default:
+		WMA_LOGE("%s: Invalid oper mode %d\n", __func__,
+			 params->operMode);
+	}
 }
 
 static int wmi_unified_vdev_up_send(wmi_unified_t wmi,
@@ -1949,7 +2064,10 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 		status = VOS_STATUS_E_FAILURE;
 		goto out;
 	}
-	wma_remove_peer(wma, params->bssid, params->smesessionId);
+
+	if (!wma_is_vdev_in_ap_mode(wma, params->smesessionId))
+		wma_remove_peer(wma, params->bssid, params->smesessionId);
+
 	if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->smesessionId) ||
 	    (wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
 			       WMA_TARGET_REQ_TYPE_VDEV_STOP,
@@ -1989,6 +2107,11 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 	if (!vdev) {
 		WMA_LOGP("%s: vdev not found for addr: %pM\n",
 			 __func__, params->selfMacAddr);
+		goto out;
+	}
+
+	if (vdev->opmode == wlan_op_mode_ap) {
+		WMA_LOGD("%s: Ignoring set link req in ap mode\n", __func__);
 		goto out;
 	}
 
@@ -2203,7 +2326,6 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 						wma_handle,
 						(tEdcaParams *)msg->bodyptr);
 			break;
-
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
