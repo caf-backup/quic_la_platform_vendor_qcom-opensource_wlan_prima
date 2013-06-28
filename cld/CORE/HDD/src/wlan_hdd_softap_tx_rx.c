@@ -1448,6 +1448,13 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
                     staId, vosStatus, vosStatus );
     }
 
+#ifdef QCA_WIFI_2_0
+    if (pAdapter->aStaInfo[staId].isUsed) {
+        spin_lock_bh( &pAdapter->staInfo_lock );
+        vos_mem_zero(&pAdapter->aStaInfo[staId], sizeof(hdd_station_info_t));
+        spin_unlock_bh( &pAdapter->staInfo_lock );
+   }
+#else
     vosStatus = hdd_softap_deinit_tx_rx_sta ( pAdapter, staId );
     if( VOS_STATUS_E_FAILURE == vosStatus )
     {
@@ -1457,7 +1464,7 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
                     staId, vosStatus, vosStatus );
         return( vosStatus );
     }
-    
+#endif
     pHddCtx->sta_to_adapter[staId] = NULL;
 
     return( vosStatus );
