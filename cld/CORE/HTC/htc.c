@@ -598,6 +598,10 @@ void HTCStop(HTC_HANDLE HTCHandle)
         pEndpoint = &target->EndPoint[i];
         HTCFlushRxHoldQueue(target,pEndpoint);
         HTCFlushEndpointTX(target,pEndpoint,HTC_TX_PACKET_TAG_ALL);
+        if(pEndpoint->ul_is_polled){
+            adf_os_timer_cancel(&pEndpoint->ul_poll_timer);
+            adf_os_timer_free(&pEndpoint->ul_poll_timer);
+        }
     }
 
     /* Note: HTCFlushEndpointTX for all endpoints should be called before
