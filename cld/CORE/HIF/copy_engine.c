@@ -852,6 +852,7 @@ CE_per_engine_service(struct hif_pci_softc *sc, unsigned int CE_id)
 more_completions:
     /*
      * Clear the copy-complete interrupts that will be handled here.
+     * NOTE: This clear operation must not be removed!! otherwise there will be interrupt lost.
      */
     CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, HOST_IS_COPY_COMPLETE_MASK);
     if (CE_state->recv_cb) {
@@ -917,8 +918,8 @@ more_completions:
 #endif /*ATH_11AC_TXCOMPACT*/
     }
 
-    if (CE_state->misc_cbs) {
 more_watermarks:
+    if (CE_state->misc_cbs) {
         CE_int_status = CE_ENGINE_INT_STATUS_GET(targid, ctrl_addr);
         if (CE_int_status & CE_WATERMARK_MASK) {
             if (CE_state->watermark_cb) {
@@ -931,40 +932,40 @@ more_watermarks:
                 adf_os_spin_lock(&sc->target_lock);
             }
         }
+    }
 
-        /*
-         * Clear the misc interrupts (watermark) that were handled above,
-         * and that will be checked again below.
-         * Clear and check for copy-complete interrupts again, just in case
-         * more copy completions happened while the misc interrupts were being
-         * handled.
-         */
-        CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, CE_WATERMARK_MASK | HOST_IS_COPY_COMPLETE_MASK);
+    /*
+     * Clear the misc interrupts (watermark) that were handled above,
+     * and that will be checked again below.
+     * Clear and check for copy-complete interrupts again, just in case
+     * more copy completions happened while the misc interrupts were being
+     * handled.
+     */
+    CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, CE_WATERMARK_MASK);
 
-        /*
-         * Now that per-engine interrupts are cleared, verify that
-         * we didn't miss anything.  If we did, go back and handle it.
-         * If there's nothing to do and interrupts are cleared, we're done.
-         */
-        if (CE_state->recv_cb && CE_recv_entries_done_nolock(sc, CE_state)) {
-            goto more_completions;
-        }
+    /*
+     * Now that per-engine interrupts are cleared, verify that
+     * no recv interrupts arrive while processing send interrupts,
+     * and no recv or send interrupts happened while processing
+     * misc interrupts.Go back and check again.Keep checking until
+     * we find no more events to process.
+     */
+    if (CE_state->recv_cb && CE_recv_entries_done_nolock(sc, CE_state)) {
+        goto more_completions;
+    }
 
-        if (CE_state->send_cb && CE_send_entries_done_nolock(sc, CE_state)) {
-            goto more_completions;
-        }
+    if (CE_state->send_cb && CE_send_entries_done_nolock(sc, CE_state)) {
+        goto more_completions;
+    }
 
+
+    if (CE_state->misc_cbs) {
+        CE_int_status = CE_ENGINE_INT_STATUS_GET(targid, ctrl_addr);
         if (CE_int_status & CE_WATERMARK_MASK) {
             if (CE_state->watermark_cb) {
                 goto more_watermarks;
             }
         }
-    } else {
-        /*
-         * Misc CE interrupts are not being handled, but still need
-         * to be cleared.
-         */
-        CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, CE_WATERMARK_MASK);
     }
 
     adf_os_spin_unlock(&sc->target_lock);
