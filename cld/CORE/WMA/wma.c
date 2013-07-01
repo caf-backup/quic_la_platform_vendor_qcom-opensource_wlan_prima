@@ -1916,7 +1916,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 
 static int
 wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
-                           u_int32_t param_id, u_int32_t param_value)
+				u_int32_t param_id, u_int32_t param_value)
 {
 	int ret;
 	wmi_vdev_set_param_cmd *cmd;
@@ -1925,18 +1925,164 @@ wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
 
 	buf = wmi_buf_alloc(wmi_handle, len);
 	if (!buf) {
-		WMA_LOGE("%s:wmi_buf_alloc failed\n", __FUNCTION__);
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
 		return -ENOMEM;
 	}
 	cmd = (wmi_vdev_set_param_cmd *)wmi_buf_data(buf);
 	cmd->vdev_id = if_id;
 	cmd->param_id = param_id;
 	cmd->param_value = param_value;
-	WMA_LOGD("Setting vdev %d param = %x, value = %u\n", if_id, param_id, param_value);
-	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_VDEV_SET_PARAM_CMDID);
+	WMA_LOGD("Setting vdev %d param = %x, value = %u",
+				if_id, param_id, param_value);
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
+					WMI_VDEV_SET_PARAM_CMDID);
 	if (ret < 0) {
-		WMA_LOGP("Failed to send set param command ret = %d\n", ret);
+		WMA_LOGE("Failed to send set param command ret = %d", ret);
 		wmi_buf_free(buf);
+	}
+	return ret;
+}
+
+static int
+wmi_unified_pdev_set_param(wmi_unified_t wmi_handle, WMI_PDEV_PARAM param_id,
+				u_int32_t param_value)
+{
+	int ret;
+	wmi_pdev_set_param_cmd *cmd;
+	wmi_buf_t buf;
+	u_int16_t len = sizeof(wmi_pdev_set_param_cmd);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_pdev_set_param_cmd *)wmi_buf_data(buf);
+	cmd->param_id = param_id;
+	cmd->param_value = param_value;
+	WMA_LOGD("Setting pdev param = %x, value = %u",
+			param_id, param_value);
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
+					WMI_PDEV_SET_PARAM_CMDID);
+	if (ret < 0) {
+		WMA_LOGE("Failed to send set param command ret = %d", ret);
+		wmi_buf_free(buf);
+	}
+	return ret;
+}
+
+static void wma_process_cli_set_cmd(tp_wma_handle wma_handle,
+					wda_cli_set_cmd_t *privcmd)
+{
+	int ret = 0, vid = privcmd->param_vdev_id;
+	struct wma_txrx_node *intr = wma_handle->interfaces;
+
+	WMA_LOGD("wmihandle %p", wma_handle->wmi_handle);
+	/*
+	 * param_vp_dev is to differentiate whether the cli_get is
+	 * VDEV or PDEV specific
+	 * param_vp_dev = 1 for VDEV
+	 * param_vp_dev = 2 for PDEV
+	 */
+	if (1 == privcmd->param_vp_dev) {
+		WMA_LOGD("vdev id %d pid %d pval %d", privcmd->param_vdev_id,
+				privcmd->param_id, privcmd->param_value);
+		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+						privcmd->param_vdev_id,
+						privcmd->param_id,
+						privcmd->param_value);
+		if (ret) {
+			WMA_LOGE("wmi_unified_vdev_set_param_send"
+					" failed ret %d", ret);
+			return;
+		}
+	} else if (2 == privcmd->param_vp_dev) {
+		WMA_LOGD("pdev pid %d pval %d", privcmd->param_id,
+				privcmd->param_value);
+		ret = wmi_unified_pdev_set_param(wma_handle->wmi_handle,
+							privcmd->param_id,
+							privcmd->param_value);
+		if (ret) {
+			WMA_LOGE("wmi_unified_vdev_set_param_send"
+					" failed ret %d", ret);
+			return;
+		}
+	}
+	switch (privcmd->param_id) {
+	case WMI_VDEV_PARAM_NSS:
+		intr[vid].config.nss = privcmd->param_value;
+		break;
+	case WMI_VDEV_PARAM_LDPC:
+		intr[vid].config.ldpc = privcmd->param_value;
+		break;
+	case WMI_VDEV_PARAM_TX_STBC:
+		intr[vid].config.tx_stbc = privcmd->param_value;
+		break;
+	case WMI_VDEV_PARAM_RX_STBC:
+		intr[vid].config.rx_stbc = privcmd->param_value;
+		break;
+	case WMI_VDEV_PARAM_SGI:
+		intr[vid].config.shortgi = privcmd->param_value;
+		break;
+	case WMI_VDEV_PARAM_ENABLE_RTSCTS:
+		intr[vid].config.rtscts_en = privcmd->param_value;
+		break;
+	case WMI_VDEV_PARAM_CHWIDTH:
+		intr[vid].config.chwidth = privcmd->param_value;
+		break;
+	default:
+		WMA_LOGD("Invalid wda_cli_set command/Not"
+				" yet implemented 0x%x", vid);
+	     break;
+	}
+}
+int wma_cli_get_command(void *wmapvosContext, int vdev_id,
+			int param_id, int vpdev)
+{
+	int ret = 0;
+	tp_wma_handle wma;
+	struct wma_txrx_node *intr = NULL;
+
+	wma = (tp_wma_handle) vos_get_context(VOS_MODULE_ID_WDA,
+						wmapvosContext);
+	intr = wma->interfaces;
+
+	/*
+	 * vpdev is to differentiate whether the cli_get is
+	 * VDEV or PDEV specific
+	 * vpdev = 1 for VDEV
+	 * vpdev = 2 for PDEV
+	 */
+	if (1 == vpdev) {
+		switch (param_id) {
+		case WMI_VDEV_PARAM_NSS:
+			ret = intr[vdev_id].config.nss;
+			break;
+		case WMI_VDEV_PARAM_LDPC:
+			ret = intr[vdev_id].config.ldpc;
+			break;
+		case WMI_VDEV_PARAM_TX_STBC:
+			ret = intr[vdev_id].config.tx_stbc;
+			break;
+		case WMI_VDEV_PARAM_RX_STBC:
+			ret = intr[vdev_id].config.rx_stbc;
+			break;
+		case WMI_VDEV_PARAM_SGI:
+			ret = intr[vdev_id].config.shortgi;
+			break;
+		case WMI_VDEV_PARAM_ENABLE_RTSCTS:
+			ret = intr[vdev_id].config.rtscts_en;
+			break;
+		case WMI_VDEV_PARAM_CHWIDTH:
+			ret = intr[vdev_id].config.chwidth;
+			break;
+		default:
+			WMA_LOGD("Invalid cli_get command/Not"
+					" yet implemented 0x%x", param_id);
+			break;
+		}
+	} else if (2 == vpdev) {
+		WMA_LOGD("Not yet implemented");
 	}
 	return ret;
 }
@@ -2084,8 +2230,8 @@ send_bss_resp:
 				VOS_STATUS_E_FAILURE : VOS_STATUS_SUCCESS;
 	vos_mem_copy(params->staContext.staMac, params->bssId,
 		     sizeof(params->staContext.staMac));
-	WMA_LOGD("%s: opermode %d update_bss %d nw_type %d bssid %pM\
-		 staIdx %d status %d\n", __func__, params->operMode,
+	WMA_LOGD("%s: opermode %d update_bss %d nw_type %d bssid %pM"
+		 " staIdx %d status %d\n", __func__, params->operMode,
 		 params->updateBss, params->nwType, params->bssId,
 		 params->staContext.staIdx, params->status);
 	wma_send_msg(wma, WDA_ADD_BSS_RSP, (void *)params, 0);
@@ -2716,7 +2862,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_send_beacon(wma_handle,
 					(tpSendbeaconParams)msg->bodyptr);
 			break;
-
+		case WDA_CLI_SET_CMD:
+			wma_process_cli_set_cmd(wma_handle,
+					(wda_cli_set_cmd_t *)msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -3151,8 +3300,8 @@ static void wma_alloc_host_mem(tp_wma_handle wma_handle, u_int32_t req_id,
 							   idx, remaining_units,
 							   unit_len);
 		if (allocated_units == 0) {
-			printk("FAILED TO ALLOCATED memory unit len %d\
-				units requested %d units allocated %d \n",
+			WMA_LOGE("FAILED TO ALLOCATED memory unit len %d"
+				" units requested %d units allocated %d \n",
 				unit_len, num_units,
 				(num_units - remaining_units));
 			wma_handle->num_mem_chunks = idx;
@@ -3161,8 +3310,9 @@ static void wma_alloc_host_mem(tp_wma_handle wma_handle, u_int32_t req_id,
 		remaining_units -= allocated_units;
 		++idx;
 		if (idx == MAX_MEM_CHUNKS ) {
-			printk("RWACHED MAX CHUNK LIMIT for memory units %d\
-				unit len %d requested by FW, only allocated %d \n",
+			WMA_LOGE("RWACHED MAX CHUNK LIMIT for memory units %d"
+				" unit len %d requested by FW,"
+				" only allocated %d \n",
 				num_units,unit_len,
 				(num_units - remaining_units));
 			wma_handle->num_mem_chunks = idx;
@@ -3742,7 +3892,7 @@ int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr)
 	u_int32_t len = sizeof(wmi_pdev_suspend_cmd);
 
 	if (!wma_handle || !wma_handle->wmi_handle) {
-		printk("WMA is closed. can not issue suspend cmd\n");
+		WMA_LOGE("WMA is closed. can not issue suspend cmd\n");
 		return -EINVAL;
 	}
 	/*

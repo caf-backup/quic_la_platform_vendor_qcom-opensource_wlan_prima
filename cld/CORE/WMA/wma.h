@@ -195,12 +195,23 @@ struct beacon_info {
 
 #endif
 
+typedef struct {
+	u_int32_t nss;
+	u_int32_t ldpc;
+	u_int32_t tx_stbc;
+	u_int32_t rx_stbc;
+	u_int32_t shortgi;
+	u_int32_t rtscts_en;
+	u_int32_t chwidth;
+} vdev_cli_config_t;
+
 struct wma_txrx_node {
 	u_int8_t addr[ETH_ALEN];
 	void *handle;
 #ifndef QCA_WIFI_ISOC
 	struct beacon_info *beacon;
 #endif
+	vdev_cli_config_t config;
 };
 
 typedef struct {

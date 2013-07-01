@@ -78,7 +78,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_context);
 v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev);
 
 v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, 
-        wmi_service_ready_event *ev);
+				wmi_service_ready_event *ev);
 
 v_VOID_t wma_setneedshutdown(v_VOID_t *vos_context);
 
@@ -86,13 +86,16 @@ v_BOOL_t wma_needshutdown(v_VOID_t *vos_context);
 
 VOS_STATUS wma_wait_for_ready_event(WMA_HANDLE handle);
 
+int wma_cli_get_command(void *wmapvosContext, int vdev_id,
+			int param_id, int vpdev);
+
 #ifndef QCA_WIFI_ISOC
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);
 void wma_target_suspend_complete(void *context);
 int wma_resume_target(WMA_HANDLE handle);
 #endif
 int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
-		       u_int32_t param_value, u_int32_t vdev_id);
+			u_int32_t param_value, u_int32_t vdev_id);
 #ifdef NOT_YET
 VOS_STATUS wma_update_channel_list(WMA_HANDLE handle, void *scan_chan_info);
 #endif
