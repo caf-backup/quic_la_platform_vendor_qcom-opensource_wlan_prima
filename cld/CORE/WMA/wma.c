@@ -1618,6 +1618,7 @@ void wma_vdev_resp_timer(void *data)
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
 	WMA_LOGD("%s: request %d is timed out\n", __func__, tgt_req->msg_type);
+	wma_find_vdev_req(wma, tgt_req->vdev_id, tgt_req->type);
 	if (tgt_req->msg_type == WDA_CHNL_SWITCH_REQ) {
 		tpSwitchChannelParams params =
 			(tpSwitchChannelParams)tgt_req->user_data;
@@ -1645,15 +1646,13 @@ void wma_vdev_resp_timer(void *data)
 			ol_txrx_peer_detach(peer);
 		wma_send_msg(wma, WDA_SET_LINK_STATE_RSP, (void *)params, 0);
 	}
-	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
-	list_del(&tgt_req->node);
-	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
 	vos_timer_destroy(&tgt_req->event_timeout);
 	vos_mem_free(tgt_req);
 }
 
-static VOS_STATUS wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
-				    u_int32_t msg_type, u_int8_t type, void *params)
+static struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
+						u_int32_t msg_type, u_int8_t type,
+						void *params)
 {
 	struct wma_target_req *req;
 
@@ -1661,7 +1660,7 @@ static VOS_STATUS wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 	if (!req) {
 		WMA_LOGP("Failed to allocate memory for msg %d vdev %d\n",
 			 msg_type, vdev_id);
-		return VOS_STATUS_E_NOMEM;
+		return NULL;
 	}
 
 	WMA_LOGD("%s: vdev_id %d msg %d\n", __func__, vdev_id, msg_type);
@@ -1675,7 +1674,7 @@ static VOS_STATUS wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
 	list_add_tail(&req->node, &wma->vdev_resp_queue);
 	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
-	return VOS_STATUS_SUCCESS;
+	return req;
 }
 
 static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
@@ -1695,6 +1694,7 @@ static void wma_remove_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 {
 	struct wma_vdev_start_req req;
+	struct wma_target_req *msg;
 	VOS_STATUS status;
 
 	vos_mem_zero(&req, sizeof(req));
@@ -1702,6 +1702,14 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 		WMA_LOGP("%s: Failed to find vdev id for %pM\n",
 			 __func__, params->selfStaMacAddr);
 		status = VOS_STATUS_E_FAILURE;
+		goto send_resp;
+	}
+	msg = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
+				WMA_TARGET_REQ_TYPE_VDEV_START, params);
+	if (!msg) {
+		WMA_LOGP("Failed to fill channel switch request for vdev %d\n",
+			 req.vdev_id);
+		status = VOS_STATUS_E_NOMEM;
 		goto send_resp;
 	}
 	req.chan = params->channelNumber;
@@ -1715,16 +1723,12 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	req.dtim_period = 1;
 	status = wma_vdev_start(wma, &req);
 	if (status != VOS_STATUS_SUCCESS) {
+		wma_remove_vdev_req(wma, req.vdev_id, WMA_TARGET_REQ_TYPE_VDEV_START);
 		WMA_LOGP("vdev start failed status = %d\n", status);
 		goto send_resp;
 	}
 
-	status = wma_fill_vdev_req(wma, req.vdev_id, WDA_CHNL_SWITCH_REQ,
-				   WMA_TARGET_REQ_TYPE_VDEV_START, params);
-	if (status == VOS_STATUS_SUCCESS)
-		return;
-	WMA_LOGP("Failed to fill channel switch request for vdev %d status %d\n",
-		 req.vdev_id, status);
+	return;
 send_resp:
 	WMA_LOGD("%s: channel %d offset %d txpower %d status %d\n", __func__,
 		 params->channelNumber, params->secondaryChannelOffset,
@@ -1981,6 +1985,7 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	ol_txrx_vdev_handle vdev;
 	struct wma_vdev_start_req req;
 	ol_txrx_peer_handle peer;
+	struct wma_target_req *msg;
 	u_int8_t vdev_id, peer_id;
 	VOS_STATUS status;
 
@@ -2003,10 +2008,13 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 			 add_bss->bssId);
 		goto send_fail_resp;
 	}
-	status = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
-				   WMA_TARGET_REQ_TYPE_VDEV_START, add_bss);
-	if (status != VOS_STATUS_SUCCESS)
+	msg = wma_fill_vdev_req(wma, vdev_id, WDA_ADD_BSS_REQ,
+				WMA_TARGET_REQ_TYPE_VDEV_START, add_bss);
+	if (!msg) {
+		WMA_LOGP("%s Failed to allocate vdev request vdev_id %d\n",
+			 __func__, vdev_id);
 		goto peer_cleanup;
+	}
 
 	add_bss->staContext.staIdx = ol_txrx_local_peer_id(peer);
 
@@ -2382,6 +2390,7 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 {
 	ol_txrx_pdev_handle pdev;
 	ol_txrx_peer_handle peer;
+	struct wma_target_req *msg;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 	u_int8_t peer_id;
 
@@ -2399,19 +2408,27 @@ static void wma_delete_bss(tp_wma_handle wma, tpDeleteBssParams params)
 	if (!wma_is_vdev_in_ap_mode(wma, params->smesessionId))
 		wma_remove_peer(wma, params->bssid, params->smesessionId);
 
-	if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->smesessionId) ||
-	    (wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
-			       WMA_TARGET_REQ_TYPE_VDEV_STOP,
-			       params) != VOS_STATUS_SUCCESS)) {
+	msg = wma_fill_vdev_req(wma, params->smesessionId, WDA_DELETE_BSS_REQ,
+				WMA_TARGET_REQ_TYPE_VDEV_STOP, params);
+	if (!msg) {
+		WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d\n",
+			 __func__, params->smesessionId);
+		status = VOS_STATUS_E_NOMEM;
+		goto detach_peer;
+	}
+	if (wmi_unified_vdev_stop_send(wma->wmi_handle, params->smesessionId)) {
 		WMA_LOGP("%s: %d Failed to send vdev stop\n",
 			 __func__, __LINE__);
-		ol_txrx_peer_detach(peer);
+		wma_remove_vdev_req(wma, params->smesessionId,
+				    WMA_TARGET_REQ_TYPE_VDEV_STOP);
 		status = VOS_STATUS_E_FAILURE;
-		goto out;
+		goto detach_peer;
 	}
 	WMA_LOGD("%s: bssid %pM vdev_id %d\n",
 		__func__, params->bssid, params->smesessionId);
 	return;
+detach_peer:
+	ol_txrx_peer_detach(peer);
 out:
 	params->status = status;
 	wma_send_msg(wma, WDA_DELETE_BSS_RSP, (void *)params, 0);
@@ -2422,6 +2439,7 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 	ol_txrx_pdev_handle pdev;
 	ol_txrx_vdev_handle vdev;
 	ol_txrx_peer_handle peer;
+	struct wma_target_req *msg;
 	u_int8_t vdev_id, peer_id;
 
 	WMA_LOGD("%s: state %d selfmac %pM\n", __func__,
@@ -2456,16 +2474,22 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 			goto out;
 		}
 		wma_remove_peer(wma, params->bssid, vdev_id);
-		if (wmi_unified_vdev_stop_send(wma->wmi_handle, vdev_id) ||
-		    (wma_fill_vdev_req(wma, vdev_id, WDA_SET_LINK_STATE,
-				       WMA_TARGET_REQ_TYPE_VDEV_STOP,
-				       params) != VOS_STATUS_SUCCESS)) {
+		msg = wma_fill_vdev_req(wma, vdev_id, WDA_SET_LINK_STATE,
+					WMA_TARGET_REQ_TYPE_VDEV_STOP, params);
+		if (!msg) {
+			WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d\n",
+				 __func__, vdev_id);
+			goto peer_detach;
+		}
+		if (wmi_unified_vdev_stop_send(wma->wmi_handle, vdev_id)) {
 			WMA_LOGP("%s: %d Failed to send vdev stop\n",
 				 __func__, __LINE__);
-			ol_txrx_peer_detach(peer);
-			goto out;
+			wma_remove_vdev_req(wma, vdev_id, WMA_TARGET_REQ_TYPE_VDEV_STOP);
+			goto peer_detach;
 		}
 		return;
+peer_detach:
+		ol_txrx_peer_detach(peer);
 	}
 out:
 	wma_send_msg(wma, WDA_SET_LINK_STATE_RSP, (void *)params, 0);
