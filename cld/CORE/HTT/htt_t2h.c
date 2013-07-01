@@ -539,8 +539,8 @@ void
 htt_rx_ind_flush_seq_num_range(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_ind_msg,
-    int *seq_num_start,
-    int *seq_num_end)
+    unsigned *seq_num_start,
+    unsigned *seq_num_end)
 {
     u_int32_t *msg_word;
 
@@ -563,8 +563,8 @@ void
 htt_rx_ind_release_seq_num_range(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_ind_msg,
-    int *seq_num_start,
-    int *seq_num_end)
+    unsigned *seq_num_start,
+    unsigned *seq_num_end)
 {
     u_int32_t *msg_word;
 

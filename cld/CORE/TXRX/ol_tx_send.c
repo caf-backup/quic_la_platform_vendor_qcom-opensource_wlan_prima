@@ -46,34 +46,6 @@
 
 #endif /* TX_CREDIT_RECLAIM_SUPPORT */
 
-#if defined(CONFIG_HL_SUPPORT) || defined(TX_CREDIT_RECLAIM_SUPPORT)
-/*
- * HL needs to keep track of the amount of credit available to download
- * tx frames to the target - the download scheduler decides when to
- * download frames, and which frames to download, based on the credit
- * availability.
- * LL systems that use TX_CREDIT_RECLAIM_SUPPORT also need to keep track
- * of the target_tx_credit, to determine when to poll for tx completion
- * messages.
- */
-#define OL_TX_TARGET_CREDIT_ADJUST(factor, pdev, msdu) \
-    adf_os_atomic_add( \
-        factor * htt_tx_msdu_credit(msdu), &pdev->target_tx_credit)
-#define OL_TX_TARGET_CREDIT_DECR(pdev, msdu) \
-    OL_TX_TARGET_CREDIT_ADJUST(-1, pdev, msdu)
-#define OL_TX_TARGET_CREDIT_INCR(pdev, msdu) \
-    OL_TX_TARGET_CREDIT_ADJUST(1, pdev, msdu)
-#else
-/*
- * LL does not need to keep track of target credit.
- * Since the host tx descriptor pool size matches the target's,
- * we know the target has space for the new tx frame if the host's
- * tx descriptor allocation succeeded.
- */
-#define OL_TX_TARGET_CREDIT_DECR(pdev, msdu)  /* no-op */
-#define OL_TX_TARGET_CREDIT_INCR(pdev, msdu)  /* no-op */
-#define OL_TX_TARGET_CREDIT_ADJUST(factor, pdev, msdu)  /* no-op */
-#endif
 
 void
 ol_tx_send(
@@ -129,6 +101,17 @@ ol_tx_send(
         ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* had error */);
     }
 }
+
+int
+ol_tx_send_batch(
+    struct ol_txrx_pdev_t *pdev,
+    adf_nbuf_t head_msdu, int num_msdus)
+{
+    OL_TX_CREDIT_RECLAIM(pdev);
+
+    return htt_tx_send_batch(pdev->htt_pdev, head_msdu,num_msdus);
+}
+
 
 static inline void
 ol_tx_download_done_base(

@@ -23,9 +23,7 @@
 #include <htt.h>            /* htt_tx_msdu_desc_t */
 #include <htc.h>            /* HTC_HDR_LENGTH */
 #include <ol_cfg.h>         /* ol_cfg_netbuf_frags_max, etc. */
-#include <ol_txrx_ctrl_api.h> /* ol_tx_mgmt_cb */
 #include <ol_txrx_types.h>    /* OL_TXRX_MGMT_NUM_TYPES */
-#include <ol_htt_tx_api.h>
 
 #include <htt_internal.h>
 
@@ -320,7 +318,6 @@ htt_tx_desc_flag_batch_more(htt_pdev_handle pdev, void *desc)
 
 #if ATH_11AC_TXCOMPACT
 
-
 /* Scheduling the Queued packets in HTT which could not be sent out because of No CE desc*/
 void 
 htt_tx_sched(htt_pdev_handle pdev)
@@ -395,6 +392,18 @@ htt_tx_send_std(
     return 0; /* success */
 
 }
+
+int
+htt_tx_send_batch(
+    htt_pdev_handle pdev,
+    adf_nbuf_t head_msdu,int num_msdus)
+{
+    adf_os_print("*** %s curently only applies for HL systems\n", __func__);
+    adf_os_assert(0);
+    return 1;
+
+}
+
 #else  /*ATH_11AC_TXCOMPACT*/
 
 static inline int
@@ -451,6 +460,28 @@ htt_tx_send_base(
     HTCSendDataPkt(pdev->htc_pdev, &pkt->htc_pkt);
 
     return 0; /* success */
+}
+
+int
+htt_tx_send_batch(
+    htt_pdev_handle pdev,
+    adf_nbuf_t head_msdu, int num_msdus)
+{
+    int ret = 0;
+    u_int16_t *msdu_id_storage;
+    u_int16_t msdu_id;
+
+    adf_nbuf_t msdu = head_msdu, next_msdu;
+    while (num_msdus--)
+    {
+         msdu_id_storage = ol_tx_msdu_id_storage(msdu);
+         msdu_id = *msdu_id_storage;
+         next_msdu = adf_nbuf_next(msdu);
+         /* htt_tx_send_base returns 0 as success and 1 as failure */
+         ret += htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len);
+         next_msdu = msdu;
+    }
+    return ret;
 }
 
 int

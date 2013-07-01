@@ -152,7 +152,7 @@ struct ol_softc {
     struct {
         u_int8_t            *data;
         u_int32_t           length;
-        u_int16_t           offset;
+        adf_os_size_t       offset;
         u_int8_t            currentSeq;
         u_int8_t            expectedSeq; 
     } utf_event_info;
@@ -208,7 +208,7 @@ struct bcn_buf_entry {
 struct ol_ath_vap_net80211 {
 	struct ol_softc    *av_sc;     /* back pointer to softc */
 	ol_txrx_vdev_handle av_txrx_handle;    /* ol data path handle */
-	int                 av_if_id;   /* interface id */
+	u_int32_t           av_if_id;   /* interface id */
 	u_int64_t           av_tsfadjust;       /* Adjusted TSF, host endian */
 	bool                av_beacon_offload;  /* Handle beacons in FW */
 	adf_nbuf_t          av_wbuf;            /* Beacon buffer */
@@ -336,4 +336,16 @@ wmi_unified_node_set_param(wmi_unified_t wmi_handle, u_int8_t *peer_addr,u_int32
    } while(0) 
 
 #endif
+
+/* Keep Alive KeepAliveParam. */
+typedef struct
+{
+    u_int8_t             keepAliveEnable;//Enable or Disable
+    u_int32_t            keepAliveMethod;// Type of frame which need to send for keep alive purpose
+    u_int32_t            keepAliveInterval;//Interval in Seconds
+    u_int8_t             hostIpv4Addr[4]; //Used only when method type is Arp
+    u_int8_t             destIpv4Addr[4];//Used only when method type is Arp
+    u_int8_t             destMacAddr[6];//Used only when method type is Arp
+} KeepAliveParam, *pKeepAliveParam;
+
 #endif /* _DEV_OL_ATH_ATHVAR_H  */

@@ -28,6 +28,9 @@
 static int
 ol_txrx_log2_ceil(unsigned value)
 {
+    /* need to switch to unsigned math so that negative values
+     * will right-shift towards 0 instead of -1
+     */
     unsigned tmp = value;
     unsigned log2 = 0;
     
@@ -213,7 +216,7 @@ ol_txrx_peer_find_hash_remove(
 void
 ol_txrx_peer_find_hash_erase(struct ol_txrx_pdev_t *pdev)
 {
-    int i;
+    unsigned i;
     /*
      * Not really necessary to take peer_ref_mutex lock - by this point,
      * it's known that the pdev is no longer in use.

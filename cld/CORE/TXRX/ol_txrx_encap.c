@@ -402,6 +402,9 @@ ol_rx_decap_to_8023 (
         ethr_hdr->ethertype[1] = (ether_type) & 0xff;
     }
     else {
+        u_int32_t pktlen = adf_nbuf_len(msdu) - sizeof(ethr_hdr->ethertype);
+        TXRX_ASSERT2(pktlen <= ETHERNET_MTU);
+        ether_type = (u_int16_t)pktlen;
         ether_type = adf_nbuf_len(msdu) - sizeof(struct ethernet_hdr_t);
         ethr_hdr->ethertype[0] = (ether_type >> 8) & 0xff;
         ethr_hdr->ethertype[1] = (ether_type) & 0xff;

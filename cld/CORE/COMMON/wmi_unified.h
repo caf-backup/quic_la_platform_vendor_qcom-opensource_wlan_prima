@@ -197,7 +197,7 @@ typedef enum {
     WMI_PDEV_GET_TPC_CONFIG_CMDID,
 
     /** set the base MAC address for the physical device before a VDEV is created.
-     *  For firmware that doesn’t support this feature and this command, the pdev
+     *  For firmware that doesn't support this feature and this command, the pdev
      *  MAC address will not be changed. */
     WMI_PDEV_SET_BASE_MACADDR_CMDID,
 
@@ -416,7 +416,8 @@ typedef enum {
     WMI_STA_DTIM_PS_METHOD_CMDID,
     /** Configure the Station UAPSD AC Auto Trigger Parameters */
     WMI_STA_UAPSD_AUTO_TRIG_CMDID,
-
+    /** Configure the Keep Alive Parameters */
+    WMI_STA_KEEPALIVE_CMDID,
 
     /* misc command group */
     /** echo command mainly used for testing */
@@ -1140,6 +1141,11 @@ typedef struct {
 #define WMI_SCAN_CHAN_STAT_EVENT 0x10
 /** Filter Probe request frames  */
 #define WMI_SCAN_FILTER_PROBE_REQ 0x20
+/**When set, not to scan DFS channels*/
+#define WMI_SCAN_BYPASS_DFS_CHN 0x40
+/**When set, certain errors are ignored and scan continues.
+* Different FW scan engine may use its own logic to decide what errors to ignore*/
+#define WMI_SCAN_CONTINUE_ON_ERROR 0x80
 
 /** WMI_SCAN_CLASS_MASK must be the same value as IEEE80211_SCAN_CLASS_MASK */
 #define WMI_SCAN_CLASS_MASK 0xFF000000
@@ -3905,7 +3911,7 @@ typedef struct {
     A_UINT32           flags;                   /* flags */
     A_UINT8           target_ipaddr[4];        /* IPV4 addresses of the local node*/
     A_UINT8           remote_ipaddr[4];        /* source address of the remote node requesting the ARP (qualifier) */
-    wmi_mac_addr      target_mac; /* mac address for this tuple, if not valid, the local MAC is used */
+    wmi_mac_addr      target_mac;              /* mac address for this tuple, if not valid, the local MAC is used */
 } WMI_ARP_OFFLOAD_TUPLE;
 
 #define WMI_NSOFF_FLAGS_VALID           (1 << 0)    /* the tuple entry is valid */
@@ -3919,7 +3925,7 @@ typedef struct {
     WMI_IPV6_ADDR     target_ipaddr[WMI_NSOFF_MAX_TARGET_IPS]; /* IPV6 target addresses of the local node  */
     WMI_IPV6_ADDR     solicitation_ipaddr;       /* multi-cast source IP addresses for receiving solicitations */
     WMI_IPV6_ADDR     remote_ipaddr;             /* address of remote node requesting the solicitation (qualifier) */
-    wmi_mac_addr      target_mac;   /* mac address for this tuple, if not valid, the local MAC is used */
+    wmi_mac_addr      target_mac;                /* mac address for this tuple, if not valid, the local MAC is used */
 } WMI_NS_OFFLOAD_TUPLE;
 
 typedef struct {
@@ -4076,8 +4082,32 @@ typedef struct {
     A_UINT8     replay_counter[GTK_REPLAY_COUNTER_BYTES];  /* replay counter for re-key */
 }WMI_GTK_OFFLOAD_CMD;
 
+typedef struct  {
+    A_UINT8    address[4];    /* IPV4 address in Network Byte Order */
+} WMI_IPV4_ADDR;
+
+typedef enum {
+    WMI_STA_KEEPALIVE_METHOD_NULL_FRAME = 1,                   /* 802.11 NULL frame */
+    WMI_STA_KEEPALIVE_METHOD_UNSOLICITED_ARP_RESPONSE = 2,     /* ARP response */
+} WMI_STA_KEEPALIVE_METHOD;
+
 typedef struct {
-    A_UINT32    vdev_id;
+    WMI_IPV4_ADDR            sender_prot_addr;         /* Sender protocol address */
+    WMI_IPV4_ADDR            target_prot_addr;         /* Target protocol address */
+    wmi_mac_addr             dest_mac_addr;            /* destination MAC address */
+} WMI_STA_KEEPALVE_ARP_RESPONSE;
+
+
+typedef struct  {
+    A_UINT32 vdev_id;
+    A_UINT32 enable;                        /* 1 - Enable, 0 - disable */
+    A_UINT32 method;                        /* keep alive method */
+    A_UINT32 interval;                      /* time interval in seconds  */
+    WMI_STA_KEEPALVE_ARP_RESPONSE arp_resp; /* ARP response */
+} WMI_STA_KEEPALIVE_CMD;
+
+typedef struct {
+    A_UINT32 vdev_id;
     A_UINT32 keepaliveInterval;   /* seconds */
 } wmi_vdev_set_keepalive_cmd;
 

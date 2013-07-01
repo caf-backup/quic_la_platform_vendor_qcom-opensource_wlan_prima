@@ -25,7 +25,7 @@
 #if defined(CONFIG_HL_SUPPORT)
 
 #ifndef offsetof
-#define offsetof(type, field)   ((size_t)(&((type *)0)->field))
+#define offsetof(type, field)   ((adf_os_size_t)(&((type *)0)->field))
 #endif
 
 /*--- function prototypes for optional queue log feature --------------------*/
@@ -107,7 +107,7 @@ ol_tx_queue_discard(
     }
     TX_SCHED_DEBUG_PRINT("+%s : %d\n,",__FUNCTION__,pdev->tx_queue.rsrc_cnt);
     while (num > 0) {
-        discarded = ol_tx_sched_discard_select(pdev, num,
+        discarded = ol_tx_sched_discard_select(pdev, (u_int16_t)num,
             &tx_descs, flush_all);
         if ( discarded == 0)
         {
@@ -172,16 +172,16 @@ ol_tx_enqueue(
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 
-int
+u_int16_t
 ol_tx_dequeue(
     struct ol_txrx_pdev_t *pdev, 
     struct ol_tx_frms_queue_t *txq, 
     ol_tx_desc_list *head,
-    int max_frames,
-    int *credit,
+    u_int16_t max_frames,
+    u_int32_t *credit,
     int *bytes)
 {
-    int num_frames;
+    u_int16_t num_frames;
     int bytes_sum;
     unsigned credit_sum;
 
@@ -230,7 +230,9 @@ ol_tx_queue_free(
     int frms = 0, bytes = 0;
     struct ol_tx_desc_t *tx_desc;
     struct ol_tx_sched_notify_ctx_t notify_ctx;
+    ol_tx_desc_list tx_tmp_list;
 
+    TAILQ_INIT(&tx_tmp_list);
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
     adf_os_spin_lock(&pdev->tx_queue_spinlock);
 
@@ -240,17 +242,27 @@ ol_tx_queue_free(
     ol_tx_sched_notify(pdev, &notify_ctx);
 
     frms = txq->frms;
+    tx_desc = TAILQ_FIRST(&txq->head);
     while (txq->frms) {
-        tx_desc = TAILQ_FIRST(&txq->head);
-        TAILQ_REMOVE(&txq->head, tx_desc, tx_desc_list_elem);
         bytes += adf_nbuf_len(tx_desc->netbuf);
-        ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 0);
         txq->frms--;
+        tx_desc = TAILQ_NEXT(tx_desc, tx_desc_list_elem);
     }
     OL_TX_QUEUE_LOG_FREE(pdev, txq, tid, frms, bytes);
+    txq->bytes -= bytes;
+    OL_TX_QUEUE_LOG_FREE(pdev, txq, tid, frms, bytes);
     txq->flag = ol_tx_queue_empty;
+    /* txq->head gets reset during the TAILQ_CONCAT call */
+    TAILQ_CONCAT(&tx_tmp_list, &txq->head, tx_desc_list_elem);
 
-    adf_os_spin_unlock(&pdev->tx_queue_spinlock);    
+    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    /* free tx frames without holding tx_queue_spinlock */
+    while (frms) {
+        tx_desc = TAILQ_FIRST(&tx_tmp_list);
+        TAILQ_REMOVE(&tx_tmp_list, tx_desc, tx_desc_list_elem);
+        ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 0);
+        frms--;
+    }
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
 

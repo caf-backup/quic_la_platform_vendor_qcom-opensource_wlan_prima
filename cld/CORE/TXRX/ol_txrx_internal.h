@@ -74,6 +74,9 @@ extern unsigned g_txrx_print_level;
 #include <stdarg.h>       /* va_list */
 #include <adf_os_types.h> /* adf_os_vprint */
 
+/* Supress 4296 - expression is always true
+ * It will fire if level is TXRX_PRINT_LEVEL_FATAL_ERR (0)
+ * because g_txrx_print_level is unsigned */
 #define ol_txrx_print(level, fmt, ...) \
     if (level <= g_txrx_print_level) adf_os_print(fmt, ## __VA_ARGS__)
 #define TXRX_PRINT(level, fmt, ...) \
@@ -337,7 +340,7 @@ static inline void
 txrx_frm_dump(adf_nbuf_t frm, int max_len)
 {
     #define TXRX_FRM_DUMP_MAX_LEN 128
-    u_int8_t local_buf[TXRX_FRM_DUMP_MAX_LEN];
+    u_int8_t local_buf[TXRX_FRM_DUMP_MAX_LEN] = {0};
     u_int8_t *p = adf_nbuf_data(frm);
     int i = 0, frag_num;
 

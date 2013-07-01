@@ -28,4 +28,20 @@ ol_tx_send(
     struct ol_tx_desc_t *tx_desc,
     adf_nbuf_t msdu);
 
+/**
+ * @brief Send a tx batch download to the target. This function is different from above in that
+       It accepts a list of msdu's to be downloaded as a batch
+ * @details
+ *
+ * @param pdev -  the phy dev
+ * @param msdu_list - the Head pointer to the Tx Batch
+ * @param num_msdus - Total msdus chained in msdu_list
+ */
+
+int
+ol_tx_send_batch(
+    struct ol_txrx_pdev_t *pdev,
+    adf_nbuf_t msdu_list, int num_msdus);
+
+
 #endif /* _OL_TX_SEND__H_ */

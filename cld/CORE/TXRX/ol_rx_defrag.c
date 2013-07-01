@@ -88,7 +88,8 @@ ol_rx_frag_indication_handler(
     u_int16_t peer_id,
     u_int8_t tid)
 {
-    int seq_num, seq_num_start, seq_num_end;
+    u_int16_t seq_num;
+    int seq_num_start, seq_num_end;
     struct ol_txrx_peer_t *peer;
     htt_pdev_handle htt_pdev;
     adf_nbuf_t head_msdu, tail_msdu;
@@ -111,7 +112,7 @@ ol_rx_frag_indication_handler(
         adf_os_assert(head_msdu == tail_msdu);
         rx_mpdu_desc = htt_rx_mpdu_desc_list_next(htt_pdev, rx_frag_ind_msg);
         seq_num = htt_rx_mpdu_desc_seq_num(htt_pdev, rx_mpdu_desc);
-	OL_RX_ERR_STATISTICS_1(pdev, peer->vdev, peer, rx_mpdu_desc, OL_RX_ERR_NONE_FRAG);
+        OL_RX_ERR_STATISTICS_1(pdev, peer->vdev, peer, rx_mpdu_desc, OL_RX_ERR_NONE_FRAG);
         ol_rx_reorder_store_frag(pdev, peer, tid, seq_num, head_msdu);                                  
     } else {
         /* invalid frame - discard it */
@@ -153,7 +154,7 @@ ol_rx_reorder_store_frag(
     ol_txrx_pdev_handle pdev,
     struct ol_txrx_peer_t *peer,
     unsigned tid,
-    unsigned seq_num,
+    u_int16_t seq_num,
     adf_nbuf_t frag)
 {
     struct ieee80211_frame *fmac_hdr, *mac_hdr;
@@ -524,7 +525,7 @@ int
 ol_rx_frag_tkip_demic(const u_int8_t *key, adf_nbuf_t msdu, u_int16_t hdrlen)
 {
     int status;
-    u_int16_t pktlen;
+    u_int32_t pktlen;
     u_int8_t mic[IEEE80211_WEP_MICLEN];
     u_int8_t mic0[IEEE80211_WEP_MICLEN];
 
@@ -636,7 +637,7 @@ int
 ol_rx_defrag_mic(
     const u_int8_t *key,
     adf_nbuf_t wbuf, 
-    u_int8_t off, 
+    u_int16_t off,
     u_int16_t data_len,
     u_int8_t mic[])
 {
@@ -746,11 +747,11 @@ ol_rx_defrag_mic(
 /*
  * Calculate headersize
  */
-int
+u_int16_t
 ol_rx_frag_hdrsize(const void *data)
 {
     const struct ieee80211_frame *wh = (const struct ieee80211_frame *) data;
-    int size = sizeof(struct ieee80211_frame);
+    u_int16_t size = sizeof(struct ieee80211_frame);
 
     if ((wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) == IEEE80211_FC1_DIR_DSTODS) {
         size += IEEE80211_ADDR_LEN;

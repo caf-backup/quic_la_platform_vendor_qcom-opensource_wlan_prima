@@ -17,7 +17,7 @@ ol_rx_reorder_timeout_cleanup(struct ol_txrx_pdev_t *pdev);
 void
 ol_rx_reorder_timeout_remove(struct ol_txrx_peer_t *peer, unsigned tid);
 void
-ol_rx_reorder_timeout_update(struct ol_txrx_peer_t *peer, unsigned tid);
+ol_rx_reorder_timeout_update(struct ol_txrx_peer_t *peer, u_int8_t tid);
 void
 ol_rx_reorder_timeout_peer_cleanup(struct ol_txrx_peer_t *peer);
 

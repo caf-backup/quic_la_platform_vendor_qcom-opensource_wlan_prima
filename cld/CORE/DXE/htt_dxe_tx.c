@@ -280,7 +280,7 @@ htt_dxe_tx_desc_free(struct htt_dxe_pdev_t *pdev, void *abstract_desc)
 
 #define htt_dxe_tx_desc_mpdu_header htt_tx_desc_mpdu_header
 volatile char *
-htt_dxe_tx_desc_mpdu_header(void *abstract_desc, int new_l2_hdr_size)
+htt_dxe_tx_desc_mpdu_header(void *abstract_desc, u_int8_t new_l2_hdr_size)
 {
     struct htt_dxe_tx_desc_t *sw_desc;
 
@@ -705,8 +705,19 @@ htt_dxe_tx_send_nonstd(
     return 1;
 }
 
+#define htt_dxe_tx_send_batch htt_tx_send_batch
+int
+htt_dxe_tx_send_batch(
+    struct htt_dxe_pdev_t *pdev,
+    adf_nbuf_t head_msdu,int num_msdus)
+{
+    /* FILL IN HERE */
+    adf_os_assert(0);
+    return 1;
+}
+
 #define htt_dxe_tx_msdu_credit htt_tx_msdu_credit
-int htt_dxe_tx_msdu_credit(adf_nbuf_t msdu)
+u_int32_t htt_dxe_tx_msdu_credit(adf_nbuf_t msdu)
 {
     /*
      * Credits represent the number of spaces available in the DXE ring.

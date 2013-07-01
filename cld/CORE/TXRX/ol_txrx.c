@@ -655,7 +655,7 @@ ol_txrx_vdev_attach(
 	
 #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
-		int i;
+		u_int8_t i;
 
 		for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
 			TAILQ_INIT(&vdev->txqs[i].head);
@@ -816,7 +816,7 @@ ol_txrx_peer_attach(
     u_int8_t *peer_mac_addr)
 {
     struct ol_txrx_peer_t *peer;
-    int i;
+    u_int8_t i;
 
     /* preconditions */
     TXRX_ASSERT2(pdev);
@@ -1089,18 +1089,6 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
             peer->mac_addr.raw[2], peer->mac_addr.raw[3],
             peer->mac_addr.raw[4], peer->mac_addr.raw[5]);
 		
-#if defined(CONFIG_HL_SUPPORT)
-        if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
-			struct ol_tx_frms_queue_t *txq;
-			int i;
-			
-			for (i = 0; i < OL_TX_NUM_TIDS; i++) {
-				txq = &peer->txqs[i];
-				ol_tx_queue_free(pdev, txq, i);
-			}
-        }
-#endif /* defined(CONFIG_HL_SUPPORT) */
-
         /* remove the reference to the peer from the hash table */
         ol_txrx_peer_find_hash_remove(pdev, peer);
 
@@ -1142,6 +1130,18 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
         } else {
             adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
         }
+
+#if defined(CONFIG_HL_SUPPORT)
+        if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
+			struct ol_tx_frms_queue_t *txq;
+			int i;
+
+			for (i = 0; i < OL_TX_NUM_TIDS; i++) {
+				txq = &peer->txqs[i];
+				ol_tx_queue_free(pdev, txq, i);
+			}
+        }
+#endif /* defined(CONFIG_HL_SUPPORT) */
 
         adf_os_mem_free(peer);
     } else {

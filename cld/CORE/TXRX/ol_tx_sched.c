@@ -15,6 +15,7 @@
 #include <ol_tx_send.h>       /* ol_tx_send */
 #include <ol_tx_sched.h>      /* OL_TX_SCHED, etc. */
 #include <ol_tx_queue.h>      
+#include <ol_txrx.h>
 #include <adf_os_types.h>     /* a_bool_t */
 
 
@@ -27,6 +28,17 @@ ol_tx_sched_log(struct ol_txrx_pdev_t *pdev);
 #else
 #define OL_TX_SCHED_LOG(pdev) /* no-op */
 #endif /* defined(ENABLE_TX_QUEUE_LOG) */
+
+#ifdef DEBUG_CREDIT
+#define OL_TX_DISPATCH_LOG_CREDIT() \
+        adf_os_print("                                 TX %d bytes\n", adf_nbuf_len(msdu)); \
+        adf_os_print(" <HTT> Decrease credit %d - 1 = %d, len:%d.\n", \
+            adf_os_atomic_read(&pdev->target_tx_credit), \
+            adf_os_atomic_read(&pdev->target_tx_credit) -1, \
+            adf_nbuf_len(msdu));
+#else
+#define OL_TX_DISPATCH_LOG_CREDIT()
+#endif
 
 /*--- generic definitions used by the scheduler framework for all algs ---*/
 
@@ -156,12 +168,13 @@ static int
 ol_tx_sched_select_batch_rr(
     struct ol_txrx_pdev_t *pdev,
     struct ol_tx_sched_ctx *sctx,
-    int credit)
+    u_int32_t credit)
 {
     struct ol_tx_sched_rr_t *scheduler = pdev->tx_sched.scheduler;
     struct ol_tx_active_queues_in_tid_t *txq_queue;
     struct ol_tx_frms_queue_t *next_tq;
-    int frames, bytes;
+    u_int16_t frames;
+    int bytes;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
 
@@ -178,7 +191,7 @@ ol_tx_sched_select_batch_rr(
     credit = OL_A_MIN(credit, TX_SCH_MAX_CREDIT_FOR_THIS_TID(next_tq));
     frames = next_tq->frms; /* download as many frames as credit allows */
     frames = ol_tx_dequeue(
-        pdev, next_tq, &sctx->head, frames, &credit, &bytes);
+            pdev, txq, &sctx->head, category->specs.send_limit, &credit, &bytes);
 
     txq_queue->frms -= frames;
     txq_queue->bytes -= bytes;
@@ -402,8 +415,8 @@ enum {
 struct ol_tx_sched_wrr_adv_category_info_t {
     struct {
         int wrr_skip_weight;
-        int credit_threshold;
-        int send_limit;
+        u_int32_t credit_threshold;
+        u_int16_t send_limit;
         int credit_reserve;
         int discard_weight;
     } specs;
@@ -563,7 +576,7 @@ ol_tx_sched_wrr_adv_rotate_order_list_tail(
 }
 
 static void
-ol_tx_sched_wrr_adv_credit_sanity_check(struct ol_txrx_pdev_t *pdev, int credit)
+ol_tx_sched_wrr_adv_credit_sanity_check(struct ol_txrx_pdev_t *pdev, u_int32_t credit)
 {
     struct ol_tx_sched_wrr_adv_t *scheduler = pdev->tx_sched.scheduler;
     int i;
@@ -589,7 +602,7 @@ static int
 ol_tx_sched_select_batch_wrr_adv(
     struct ol_txrx_pdev_t *pdev,
     struct ol_tx_sched_ctx *sctx,
-    int credit)
+    u_int32_t credit)
 {
     static int first = 1;
     struct ol_tx_sched_wrr_adv_t *scheduler = pdev->tx_sched.scheduler;
@@ -879,16 +892,17 @@ ol_tx_sched_discard_select_txq(
     return selected_txq;
 }
 
-int
+u_int16_t
 ol_tx_sched_discard_select(
     struct ol_txrx_pdev_t *pdev,
-    int frms,
+    u_int16_t frms,
     ol_tx_desc_list *tx_descs,
     a_bool_t force)
 {
     int cat;
     struct ol_tx_frms_queue_t *txq;
-    int bytes, credit;
+    int bytes;
+    u_int32_t credit;
     struct ol_tx_sched_notify_ctx_t notify_ctx;
 
     /* first decide what category of traffic (e.g. TID or AC) to discard next */
@@ -915,6 +929,7 @@ ol_tx_sched_discard_select(
         if (OL_TX_DISCARD_QUANTUM < frms) {
             frms = OL_TX_DISCARD_QUANTUM;
         }
+
         if (txq->frms > 1 && frms >= (txq->frms >> 1)) {
             frms = txq->frms >> 1;
         }
@@ -993,21 +1008,103 @@ ol_tx_sched_notify(
     }
 }
 
+#ifdef QCA_WIFI_ISOC
+#define OL_TX_MSDU_ID_STORAGE_ERR(ptr) 0 /* always have headroom in ISOC */
+#else
+#define OL_TX_MSDU_ID_STORAGE_ERR(ptr) (NULL == ptr)
+#endif
+
 void
 ol_tx_sched_dispatch(
   struct ol_txrx_pdev_t *pdev,
   struct ol_tx_sched_ctx *sctx)
 {
-    adf_nbuf_t msdu;
+    adf_nbuf_t msdu, prev = NULL, head_msdu = NULL;
     struct ol_tx_desc_t *tx_desc;
     
+    u_int16_t *msdu_id_storage;
+    u_int16_t msdu_id;
+    int msdu_credit_consumed;
+    int num_msdus = 0;
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-    while (sctx->frms) {
+    while (sctx->frms)
+    {
         tx_desc = TAILQ_FIRST(&sctx->head);
-        TAILQ_REMOVE(&sctx->head, tx_desc, tx_desc_list_elem);
         msdu = tx_desc->netbuf;
-        ol_tx_send(pdev, tx_desc, msdu);
+        TAILQ_REMOVE(&sctx->head, tx_desc, tx_desc_list_elem);
+        if (NULL == head_msdu)
+        {
+            head_msdu = msdu;
+        }
+        if (prev)
+        {
+             adf_nbuf_set_next(prev, msdu);
+        }
+        prev = msdu;
+
+#ifndef ATH_11AC_TXCOMPACT
+        /*
+         * When the tx frame is downloaded to the target, there are two
+         * outstanding references:
+         * 1.  The host download SW (HTT, HTC, HIF)
+         *     This reference is cleared by the ol_tx_send_done callback
+         *     functions.
+         * 2.  The target FW
+         *     This reference is cleared by the ol_tx_completion_handler
+         *     function.
+         * It is extremely probable that the download completion is processed
+         * before the tx completion message.  However, under exceptional
+         * conditions the tx completion may be processed first.  Thus, rather
+         * that assuming that reference (1) is done before reference (2),
+         * explicit reference tracking is needed.
+         * Double-increment the ref count to account for both references
+         * described above.
+         */
+        adf_os_atomic_init(&tx_desc->ref_cnt);
+        adf_os_atomic_inc(&tx_desc->ref_cnt);
+        adf_os_atomic_inc(&tx_desc->ref_cnt);
+#endif
+
+#ifdef DEBUG_CREDIT
+        adf_os_print("                                 TX %d bytes\n", adf_nbuf_len(msdu));
+        adf_os_print(" <HTT> Decrease credit %d - 1 = %d, len:%d.\n",
+            adf_os_atomic_read(&pdev->target_tx_credit),
+            adf_os_atomic_read(&pdev->target_tx_credit) -1,
+            adf_nbuf_len(msdu));
+#endif
+        msdu_credit_consumed = htt_tx_msdu_credit(msdu);
+        adf_os_atomic_add(-1 * msdu_credit_consumed, &pdev->target_tx_credit);
+
+        //Store the MSDU Id for each MSDU
+        /* store MSDU ID */
+        msdu_id = ol_tx_desc_id(pdev, tx_desc);
+        msdu_id_storage = ol_tx_msdu_id_storage(msdu);
+        if (OL_TX_MSDU_ID_STORAGE_ERR(msdu_id_storage)) {
+            /*
+             * Send the prior frames as a batch, then send this as a single,
+             * then resume handling the remaining frames.
+             */
+            if (head_msdu){
+                ol_tx_send_batch(pdev, head_msdu, num_msdus);
+            }
+            head_msdu = prev = NULL;
+            num_msdus = 0;
+
+            if (htt_tx_send_std(pdev->htt_pdev, msdu, msdu_id)) {
+                OL_TX_TARGET_CREDIT_INCR(pdev, msdu);
+                ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* error */);
+            }
+        } else {
+            *msdu_id_storage = msdu_id;
+            num_msdus++;
+        }
         sctx->frms--;
+    }
+
+    //Send Batch Of Frames
+    if (head_msdu)
+    {
+        ol_tx_send_batch(pdev,head_msdu,num_msdus);
     }
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
@@ -1016,7 +1113,7 @@ void
 ol_tx_sched(struct ol_txrx_pdev_t *pdev)
 {
     struct ol_tx_sched_ctx sctx;
-    int credit;
+    u_int32_t credit;
     
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
     adf_os_spin_lock(&pdev->tx_queue_spinlock);

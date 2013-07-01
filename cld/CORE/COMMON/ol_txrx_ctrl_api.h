@@ -142,7 +142,7 @@ struct peer_ratectrl_params_t {
     u_int32_t ni_flags;
     u_int32_t ni_chwidth;
     u_int16_t ni_htcap;
-    u_int16_t ni_vhtcap;
+    u_int32_t ni_vhtcap;
     u_int16_t ni_phymode;
     u_int16_t ni_rx_vhtrates;
     u_int8_t ht_rates[MAX_SPATIAL_STREAM * 8];

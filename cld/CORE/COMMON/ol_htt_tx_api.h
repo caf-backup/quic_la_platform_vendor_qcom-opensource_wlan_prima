@@ -154,8 +154,8 @@ htt_msdu_info_dump(struct htt_msdu_info_t *msdu_info)
     adf_os_print("  l2_hdr_type: %d\n", msdu_info->info.l2_hdr_type);
     adf_os_print("  frame_type: %d\n", msdu_info->info.frame_type);
     adf_os_print("  frame_subtype: %d\n", msdu_info->info.frame_subtype);
-    adf_os_print("  is_unicast: %d\n", msdu_info->info.is_unicast);
-    adf_os_print("  l3_hdr_offset: %d\n", msdu_info->info.l3_hdr_offset);
+    adf_os_print("  is_unicast: %u\n", msdu_info->info.is_unicast);
+    adf_os_print("  l3_hdr_offset: %u\n", msdu_info->info.l3_hdr_offset);
     adf_os_print("  use 6 Mbps: %d\n", msdu_info->action.use_6mbps);
     adf_os_print("  do_encrypt: %d\n",  msdu_info->action.do_encrypt);
     adf_os_print("  do_tx_complete: %d\n", msdu_info->action.do_tx_complete);
@@ -245,6 +245,25 @@ htt_tx_send_std(
     htt_pdev_handle htt_pdev,
     adf_nbuf_t msdu,
     u_int16_t msdu_id);
+
+/**
+ * @brief Download a Batch Of Tx MSDUs. Each MSDU already has the MSDU ID stored
+ *     which can be used to retrieve the associated Tx Descriptor for each MSDU.
+ * @details
+ *  This function Downloads a batch of Tx MSDUs
+ *
+ * @param htt_pdev - the handle of the physical device sending the tx data
+ * @param head_msdu - the MSDU Head for Tx batch being transmitted
+ * @param num_msdus - The total Number of MSDU's provided for batch tx
+ * @return 0 -> success, -OR- 1 -> failure
+ */
+int
+htt_tx_send_batch(
+    htt_pdev_handle htt_pdev,
+    adf_nbuf_t head_msdu,
+    int num_msdus);
+
+
 
 /* The htt scheduler for queued packets in htt
  * htt when unable to send to HTC because of lack of resource 
@@ -437,7 +456,7 @@ htt_tx_desc_flag_batch_more(htt_pdev_handle pdev, void *desc);
  */
 static inline
 void
-htt_tx_desc_num_frags(htt_pdev_handle pdev, void *desc, int num_frags)
+htt_tx_desc_num_frags(htt_pdev_handle pdev, void *desc, u_int32_t num_frags)
 {
     /*
      * Set the element after the valid frag elems to 0x0,
@@ -584,7 +603,7 @@ htt_tx_mgmt_desc_pool_free(struct htt_pdev_t *pdev);
  */
 #ifdef QCA_WIFI_ISOC
 volatile char *
-htt_tx_desc_mpdu_header(void *htt_tx_desc, int new_l2_hdr_size);
+htt_tx_desc_mpdu_header(void *htt_tx_desc, u_int8_t new_l2_hdr_size);
 #else
 #define htt_tx_desc_mpdu_header(htt_tx_desc, new_l2_hdr_size) /*NULL*/
 #endif /* QCA_WIFI_ISOC */
@@ -596,7 +615,7 @@ htt_tx_desc_mpdu_header(void *htt_tx_desc, int new_l2_hdr_size);
  * @return number of credits used for this tx frame
  */
 #ifdef QCA_WIFI_ISOC
-int htt_tx_msdu_credit(adf_nbuf_t msdu);
+u_int32_t htt_tx_msdu_credit(adf_nbuf_t msdu);
 #else
 #define htt_tx_msdu_credit(msdu) 1 /* 1 credit per buffer */
 #endif /* QCA_WIFI_ISOC */

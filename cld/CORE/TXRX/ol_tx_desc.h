@@ -122,10 +122,10 @@ void ol_tx_desc_frame_free_nonstd(
  * @param tx_desc - the descriptor whose ID is being determined
  * @return numeric ID that uniquely identifies the tx descriptor
  */
-static inline int
+static inline u_int16_t
 ol_tx_desc_id(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
 {
-    return ((union ol_tx_desc_list_elem_t *) tx_desc) - pdev->tx_desc.array;
+    return (u_int16_t)((union ol_tx_desc_list_elem_t *)tx_desc - pdev->tx_desc.array);
 }
 /*
  * @brief Retrieves the beacon headr for the vdev
