@@ -4141,10 +4141,45 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_CHWIDTH:
         {
+           tSmeConfigParams smeconfig;
+           bool chwidth;
+           hdd_context_t *phddctx = WLAN_HDD_GET_CTX(pAdapter);
+           /*updating channel bonding only on 5Ghz*/
            hddLog(LOG1, "WMI_VDEV_PARAM_CHWIDTH val %d", set_value);
+           if (set_value > eHT_CHANNEL_WIDTH_40MHZ) {
+                hddLog(LOGE, "Invalid channel width 0->20 1->40");
+                return -EINVAL;
+           }
+
+           if ((WNI_CFG_CHANNEL_BONDING_MODE_DISABLE !=
+               csrConvertCBIniValueToPhyCBState(
+                       phddctx->cfg_ini->nChannelBondingMode5GHz)))
+               chwidth = true;
+
+           sme_GetConfigParam(hHal, &smeconfig);
+           switch (set_value) {
+           case eHT_CHANNEL_WIDTH_20MHZ:
+                smeconfig.csrConfig.channelBondingMode5GHz =
+                                          WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+                break;
+           case eHT_CHANNEL_WIDTH_40MHZ:
+                if (chwidth)
+                    smeconfig.csrConfig.channelBondingMode5GHz =
+                                     phddctx->cfg_ini->nChannelBondingMode5GHz;
+                else
+                    return -EINVAL;
+
+                break;
+           default:
+                return -EINVAL;
+           }
+
            ret = process_wma_set_command((int)pAdapter->sessionId,
                                          (int)WMI_VDEV_PARAM_CHWIDTH,
                                          set_value, VDEV_CMD);
+           if (!ret)
+               sme_UpdateConfig(hHal, &smeconfig);
+
            break;
         }
 
