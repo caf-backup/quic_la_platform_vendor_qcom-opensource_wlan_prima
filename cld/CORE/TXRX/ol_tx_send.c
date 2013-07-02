@@ -102,16 +102,30 @@ ol_tx_send(
     }
 }
 
-int
+void
 ol_tx_send_batch(
     struct ol_txrx_pdev_t *pdev,
     adf_nbuf_t head_msdu, int num_msdus)
 {
+    adf_nbuf_t rejected;
     OL_TX_CREDIT_RECLAIM(pdev);
 
-    return htt_tx_send_batch(pdev->htt_pdev, head_msdu,num_msdus);
-}
+    rejected = htt_tx_send_batch(pdev->htt_pdev, head_msdu, num_msdus);
+    while (adf_os_unlikely(rejected)) {
+        struct ol_tx_desc_t *tx_desc;
+        u_int16_t *msdu_id_storage;
+        adf_nbuf_t next;
 
+        next = adf_nbuf_next(rejected);
+        msdu_id_storage = ol_tx_msdu_id_storage(rejected);
+        tx_desc = ol_tx_desc_find(pdev, *msdu_id_storage);
+
+        OL_TX_TARGET_CREDIT_INCR(pdev, rejected);
+        ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* had error */);
+
+        rejected = next;
+    }
+}
 
 static inline void
 ol_tx_download_done_base(

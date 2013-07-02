@@ -247,17 +247,18 @@ htt_tx_send_std(
     u_int16_t msdu_id);
 
 /**
- * @brief Download a Batch Of Tx MSDUs. Each MSDU already has the MSDU ID stored
- *     which can be used to retrieve the associated Tx Descriptor for each MSDU.
+ * @brief Download a Batch Of Tx MSDUs
  * @details
- *  This function Downloads a batch of Tx MSDUs
+ *     Each MSDU already has the MSDU ID stored in the headroom of the
+ *     netbuf data buffer, and has the HTT tx descriptor already attached
+ *     as a prefix fragment to the netbuf.
  *
  * @param htt_pdev - the handle of the physical device sending the tx data
  * @param head_msdu - the MSDU Head for Tx batch being transmitted
  * @param num_msdus - The total Number of MSDU's provided for batch tx
- * @return 0 -> success, -OR- 1 -> failure
+ * @return null-terminated linked-list of unaccepted frames
  */
-int
+adf_nbuf_t
 htt_tx_send_batch(
     htt_pdev_handle htt_pdev,
     adf_nbuf_t head_msdu,

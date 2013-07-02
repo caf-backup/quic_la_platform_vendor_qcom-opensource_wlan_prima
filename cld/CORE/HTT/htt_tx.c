@@ -393,14 +393,12 @@ htt_tx_send_std(
 
 }
 
-int
-htt_tx_send_batch(
-    htt_pdev_handle pdev,
-    adf_nbuf_t head_msdu,int num_msdus)
+adf_nbuf_t
+htt_tx_send_batch(htt_pdev_handle pdev, adf_nbuf_t head_msdu, int num_msdus)
 {
     adf_os_print("*** %s curently only applies for HL systems\n", __func__);
     adf_os_assert(0);
-    return 1;
+    return head_msdu;
 
 }
 
@@ -462,26 +460,35 @@ htt_tx_send_base(
     return 0; /* success */
 }
 
-int
+adf_nbuf_t
 htt_tx_send_batch(
     htt_pdev_handle pdev,
     adf_nbuf_t head_msdu, int num_msdus)
 {
-    int ret = 0;
+    adf_nbuf_t rejected = NULL;
     u_int16_t *msdu_id_storage;
     u_int16_t msdu_id;
+    adf_nbuf_t msdu;
 
-    adf_nbuf_t msdu = head_msdu, next_msdu;
+    /*
+     * FOR NOW, iterate through the batch, sending the frames singly.
+     * Eventually HTC and HIF should be able to accept a batch of
+     * data frames rather than singles.
+     */
+    msdu = head_msdu;
     while (num_msdus--)
     {
+         adf_nbuf_t next_msdu = adf_nbuf_next(msdu);
          msdu_id_storage = ol_tx_msdu_id_storage(msdu);
          msdu_id = *msdu_id_storage;
-         next_msdu = adf_nbuf_next(msdu);
          /* htt_tx_send_base returns 0 as success and 1 as failure */
-         ret += htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len);
-         next_msdu = msdu;
+         if (htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len)) {
+             adf_nbuf_set_next(msdu, rejected);
+             rejected = msdu;
+         }
+         msdu = next_msdu;
     }
-    return ret;
+    return rejected;
 }
 
 int
