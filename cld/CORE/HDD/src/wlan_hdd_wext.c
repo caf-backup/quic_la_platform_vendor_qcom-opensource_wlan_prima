@@ -4132,10 +4132,28 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_RTSCTS:
         {
+           u_int32_t value;
+
            hddLog(LOG1, "WMI_VDEV_PARAM_ENABLE_RTSCTS val %d", set_value);
+           if (set_value == 1)
+               value = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->RTSThreshold;
+           else if (set_value == 0)
+               value = WNI_CFG_RTS_THRESHOLD_STAMAX;
+           else
+               return -EIO;
+
            ret = process_wma_set_command((int)pAdapter->sessionId,
                                          (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
                                          set_value, VDEV_CMD);
+           if (!ret) {
+               if (ccmCfgSetInt(hHal, WNI_CFG_RTS_THRESHOLD, value,
+                   ccmCfgSetCallback, eANI_BOOLEAN_TRUE) !=
+                                                         eHAL_STATUS_SUCCESS) {
+                   hddLog(LOGE, "FAILED TO SET RTSCTS");
+                   return -EIO;
+               }
+           }
+
            break;
         }
 
