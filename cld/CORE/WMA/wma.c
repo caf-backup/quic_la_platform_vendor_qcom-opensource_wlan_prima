@@ -663,6 +663,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 		WMA_LOGP("failed to allocate interface table");
 		goto err_wmi_attach;
 	}
+	vos_mem_zero(wma_handle->interfaces, sizeof(struct wma_txrx_node) *
+					wma_handle->max_bssid);
 	/* Register the debug print event handler */
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_DEBUG_PRINT_EVENTID,
