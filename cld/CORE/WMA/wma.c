@@ -2273,16 +2273,312 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 	}
 }
 
+/*
+ * This function reads WEP keys from cfg and fills
+ * up key_info.
+ */
+static void wma_read_cfg_wepkey(tp_wma_handle wma_handle,
+				tSirKeys *key_info, v_U32_t *def_key_idx,
+				u_int8_t *num_keys)
+{
+	tSirRetStatus status;
+	v_U32_t val = SIR_MAC_KEY_LENGTH;
+	u_int8_t i, j;
+
+	WMA_LOGD("Reading WEP keys from cfg");
+	/* NOTE:def_key_idx is initialized to 0 by the caller */
+	status = wlan_cfgGetInt(wma_handle->mac_context,
+				WNI_CFG_WEP_DEFAULT_KEYID, def_key_idx);
+	if (status != eSIR_SUCCESS)
+		WMA_LOGE("Unable to read default id, defaulting to 0");
+
+	for (i = 0, j = 0; i < SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS; i++) {
+		status = wlan_cfgGetStr(wma_handle->mac_context,
+				(u_int16_t) WNI_CFG_WEP_DEFAULT_KEY_1 + i,
+				key_info[j].key, &val);
+		if (status != eSIR_SUCCESS) {
+			WMA_LOGE("WEP key is not configured at :%d", i);
+		} else {
+			key_info[j].keyId = i;
+			key_info[j].keyLength = (u_int16_t) val;
+			j++;
+		}
+	}
+	*num_keys = j;
+}
+
+/*
+ * This function setsup wmi buffer from information
+ * passed in key_params.
+ */
+static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
+				struct wma_set_key_params *key_params,
+				u_int32_t *len)
+{
+	wmi_vdev_install_key_cmd *cmd;
+	wmi_buf_t buf;
+
+	if ((key_params->key_type == eSIR_ED_NONE &&
+	    key_params->key_len) || (key_params->key_type != eSIR_ED_NONE &&
+	    !key_params->key_len)) {
+		WMA_LOGE("%s:Invalid set key request", __func__);
+		return NULL;
+	}
+
+	*len = sizeof(*cmd) + key_params->key_len;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, *len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set key cmd");
+		return NULL;
+	}
+
+	cmd = (wmi_vdev_install_key_cmd *) wmi_buf_data(buf);
+	cmd->vdev_id = key_params->vdev_id;
+	cmd->key_ix = key_params->key_idx;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(key_params->peer_mac,
+				   &cmd->peer_macaddr);
+	if (key_params->unicast)
+		cmd->key_flags |= PAIRWISE_USAGE;
+	else
+		cmd->key_flags |= GROUP_USAGE;
+
+	switch (key_params->key_type) {
+	case eSIR_ED_NONE:
+		cmd->key_cipher = WMI_CIPHER_NONE;
+		break;
+	case eSIR_ED_WEP40:
+	case eSIR_ED_WEP104:
+		cmd->key_cipher = WMI_CIPHER_WEP;
+		if (key_params->unicast &&
+		    cmd->key_ix == key_params->def_key_idx)
+			cmd->key_flags |= TX_USAGE;
+		break;
+	case eSIR_ED_TKIP:
+		cmd->key_txmic_len = WMI_TXMIC_LEN;
+		cmd->key_rxmic_len = WMI_RXMIC_LEN;
+		cmd->key_cipher = WMI_CIPHER_TKIP;
+		break;
+#ifdef FEATURE_WLAN_WAPI
+	case eSIR_ED_WPI:
+		cmd->key_txmic_len = WMI_TXMIC_LEN;
+		cmd->key_rxmic_len = WMI_RXMIC_LEN;
+		cmd->key_cipher = WMI_CIPHER_WAPI;
+		break;
+#endif
+	case eSIR_ED_CCMP:
+		cmd->key_cipher = WMI_CIPHER_AES_CCM;
+		break;
+	default:
+		/* TODO: MFP ? */
+		WMA_LOGE("%s:Invalid encryption type:%d", __func__, key_params->key_type);
+		adf_nbuf_free(buf);
+		return NULL;
+	}
+
+#ifdef BIG_ENDIAN_HOST
+	{
+		/* for big endian host, copy engine byte_swap is enabled
+		 * But the key data content is in network byte order
+		 * Need to byte swap the key data content - so when copy engine
+		 * does byte_swap - target gets key_data content in the correct
+		 * order.
+		 */
+		int8_t i;
+		u_int32_t *destp, *srcp;
+
+		destp = (u_int32_t *) cmd->key_data;
+		srcp =  (u_int32_t *) key_params->key_data;
+		for(i = 0; i < roundup(cmd->key_len, sizeof(u_int32_t)) / 4;
+		    i++) {
+			*destp = le32_to_cpu(*srcp);
+			destp++;
+			srcp++;
+		}
+	}
+#else
+	vos_mem_copy((void *) cmd->key_data,
+		     (const void *) key_params->key_data,
+		     key_params->key_len);
+#endif
+	cmd->key_len = key_params->key_len;
+
+	WMA_LOGD("Key setup : vdev_id %d key_idx %d key_type %d key_len %d"
+		 " unicast %d peer_mac %pM def_key_idx %d", key_params->vdev_id,
+		 key_params->key_idx, key_params->key_type, key_params->key_len,
+		 key_params->unicast, key_params->peer_mac,
+		 key_params->def_key_idx);
+
+	return buf;
+}
+
 static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 {
-	key_info->status = VOS_STATUS_SUCCESS;
+	struct wma_set_key_params key_params;
+	wmi_buf_t buf;
+	int32_t status;
+	u_int32_t len = 0, i;
+	v_U32_t def_key_idx = 0;
+	ol_txrx_vdev_handle txrx_vdev;
+
+	WMA_LOGD("BSS key setup");
+	txrx_vdev = wma_find_vdev_by_id(wma_handle, key_info->smesessionId);
+	if (!txrx_vdev) {
+		WMA_LOGE("%s:Invalid vdev handle", __func__);
+		key_info->status = eHAL_STATUS_FAILURE;
+		goto out;
+	}
+
+	adf_os_mem_set(&key_params, 0, sizeof(key_params));
+	key_params.vdev_id = key_info->smesessionId;
+	key_params.key_type = key_info->encType;
+	key_params.singl_tid_rc = key_info->singleTidRc;
+	key_params.unicast = FALSE;
+	if (txrx_vdev->opmode == wlan_op_mode_sta) {
+		vos_mem_copy(key_params.peer_mac,
+			wma_handle->interfaces[key_info->smesessionId].bssid,
+			ETH_ALEN);
+	} else {
+		/* vdev mac address will be passed for AP/IBSS mode */
+		vos_mem_copy(key_params.peer_mac, txrx_vdev->mac_addr.raw,
+			     ETH_ALEN);
+	}
+
+	if (key_info->numKeys == 0 &&
+	    (key_info->encType == eSIR_ED_WEP40 ||
+	     key_info->encType == eSIR_ED_WEP104)) {
+		wma_read_cfg_wepkey(wma_handle, key_info->key,
+				    &def_key_idx, &key_info->numKeys);
+	}
+
+	for (i = 0; i < key_info->numKeys; i++) {
+		if (key_params.key_type != eSIR_ED_NONE &&
+		    !key_info->key[i].keyLength)
+			continue;
+		key_params.key_idx = key_info->key[i].keyId;
+		key_params.key_len = key_info->key[i].keyLength;
+		vos_mem_copy((v_VOID_t *) key_params.key_data,
+			     (const v_VOID_t *) key_info->key[i].key,
+			     key_info->key[i].keyLength);
+
+		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
+		if (!buf) {
+			WMA_LOGE("%s:Failed to setup install key buf", __func__);
+			key_info->status = eHAL_STATUS_FAILED_ALLOC;
+			goto out;
+		}
+
+		status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					      WMI_VDEV_INSTALL_KEY_CMDID);
+		if (status) {
+			adf_nbuf_free(buf);
+			WMA_LOGE("%s:Failed to send install key command", __func__);
+			key_info->status = eHAL_STATUS_FAILURE;
+			goto out;
+		}
+	}
+
+	/* TODO: Should we wait till we get HTT_T2H_MSG_TYPE_SEC_IND? */
+	key_info->status = eHAL_STATUS_SUCCESS;
+
+out:
 	wma_send_msg(wma_handle, WDA_SET_BSSKEY_RSP, (void *)key_info, 0);
 }
 
 static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 {
-	key_info->status = VOS_STATUS_SUCCESS;
-	wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *)key_info, 0);
+	wmi_buf_t buf;
+	int32_t status, i;
+	u_int32_t len = 0;
+	ol_txrx_pdev_handle txrx_pdev;
+	ol_txrx_vdev_handle txrx_vdev;
+	u_int8_t peer_mac[ETH_ALEN];
+	struct ol_txrx_peer_t *peer;
+	u_int8_t num_keys = 0, peer_id;
+	struct wma_set_key_params key_params;
+	v_U32_t def_key_idx = 0;
+
+	WMA_LOGD("STA key setup");
+
+	/* Get the txRx Pdev handle */
+	txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+				    wma_handle->vos_context);
+	if (!txrx_pdev) {
+		WMA_LOGE("%s:Invalid txrx pdev handle", __func__);
+		key_info->status = eHAL_STATUS_FAILURE;
+		goto out;
+	}
+
+	peer = ol_txrx_find_peer_by_addr(txrx_pdev, key_info->peerMacAddr,
+					 &peer_id);
+	if (!peer) {
+		WMA_LOGE("%s:Invalid peer for key setting", __func__);
+		key_info->status = eHAL_STATUS_FAILURE;
+		goto out;
+	}
+
+	txrx_vdev = wma_find_vdev_by_id(wma_handle, key_info->smesessionId);
+	if(!txrx_vdev) {
+		WMA_LOGE("%s:TxRx Vdev Handle is NULL", __func__);
+		key_info->status = eHAL_STATUS_FAILURE;
+		goto out;
+	}
+
+	if (txrx_vdev->opmode == wlan_op_mode_ap &&
+	    (key_info->encType == eSIR_ED_WEP40 ||
+	     key_info->encType == eSIR_ED_WEP104))
+		vos_mem_copy(peer_mac, txrx_vdev->mac_addr.raw, ETH_ALEN);
+	else
+		vos_mem_copy(peer_mac, key_info->peerMacAddr, ETH_ALEN);
+
+	if (key_info->defWEPIdx == WMA_INVALID_KEY_IDX &&
+	    (key_info->encType == eSIR_ED_WEP40 ||
+	     key_info->encType == eSIR_ED_WEP104) &&
+	     txrx_vdev->opmode != wlan_op_mode_ap) {
+		wma_read_cfg_wepkey(wma_handle, key_info->key,
+				    &def_key_idx, &num_keys);
+		key_info->defWEPIdx = def_key_idx;
+	} else
+		num_keys = SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS;
+
+	adf_os_mem_set(&key_params, 0, sizeof(key_params));
+	key_params.vdev_id = key_info->smesessionId;
+	key_params.key_type = key_info->encType;
+	key_params.singl_tid_rc = key_info->singleTidRc;
+	key_params.unicast = TRUE;
+	key_params.def_key_idx = key_info->defWEPIdx;
+	vos_mem_copy((v_VOID_t *) key_params.peer_mac,
+		     (const v_VOID_t *) peer_mac, ETH_ALEN);
+	for (i = 0; i < num_keys; i++) {
+		if (key_params.key_type != eSIR_ED_NONE &&
+		    !key_info->key[i].keyLength)
+			continue;
+		vos_mem_copy(key_params.key_data, key_info->key[i].key,
+			     key_info->key[i].keyLength);
+		key_params.key_idx = i;
+		key_params.key_len = key_info->key[i].keyLength;
+		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
+		if (!buf) {
+			WMA_LOGE("%s:Failed to setup install key buf", __func__);
+			key_info->status = eHAL_STATUS_FAILED_ALLOC;
+			goto out;
+		}
+
+		status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					      WMI_VDEV_INSTALL_KEY_CMDID);
+		if (status) {
+			adf_nbuf_free(buf);
+			WMA_LOGE("%s:Failed to send install key command", __func__);
+			key_info->status = eHAL_STATUS_FAILURE;
+			goto out;
+		}
+	}
+
+	/* TODO: Should we wait till we get HTT_T2H_MSG_TYPE_SEC_IND? */
+	key_info->status = eHAL_STATUS_SUCCESS;
+
+out:
+	wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *) key_info, 0);
 }
 
 static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)

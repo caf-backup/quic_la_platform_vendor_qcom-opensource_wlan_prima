@@ -129,6 +129,8 @@
 #define WMA_HOST_SCAN_REQUESTOR_ID_PREFIX 0xA000
 #define WMA_HW_DEF_SCAN_MAX_DURATION	  5000 /* 5 secs */
 
+#define WMA_INVALID_KEY_IDX	0xff
+
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
 }t_cfg_nv_param;
@@ -841,5 +843,18 @@ struct wma_vdev_start_req {
 	tSirMacSSid ssid;
 	u_int8_t hidden_ssid;
 	u_int8_t pmf_enabled;
+};
+
+struct wma_set_key_params {
+	u_int8_t vdev_id;
+	/* def_key_idx can be used to see if we have to read the key from cfg */
+	u_int32_t def_key_idx;
+	u_int16_t key_len;
+	u_int8_t peer_mac[ETH_ALEN];
+	u_int8_t singl_tid_rc;
+	enum eAniEdType key_type;
+	u_int32_t key_idx;
+	bool unicast;
+	u_int8_t key_data[SIR_MAC_MAX_KEY_LENGTH];
 };
 #endif
