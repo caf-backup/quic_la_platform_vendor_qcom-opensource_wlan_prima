@@ -2844,6 +2844,7 @@ __limProcessSmeSetContextReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                       sizeof(tSirKeys) * (pMlmSetKeysReq->numKeys ? pMlmSetKeysReq->numKeys : 1));
 
         pMlmSetKeysReq->sessionId = sessionId;
+        pMlmSetKeysReq->smesessionId = smesessionId;
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
         PELOG1(limLog(pMac, LOG1,
            FL("received SETCONTEXT_REQ message sessionId=%d"), pMlmSetKeysReq->sessionId););
