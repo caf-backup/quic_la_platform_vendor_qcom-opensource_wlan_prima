@@ -67,18 +67,10 @@ enum ol_txrx_osif_tx_spec {
  * @param tx_spec - what non-standard operations to apply to the tx frame
  * @param msdu_list - tx frame(s), in a null-terminated list
  */
-#ifdef QCA_HOST_SIDE_TX_TID_CLASSIFICATION
-typedef adf_nbuf_t (*ol_txrx_tx_non_std_fp)(
-    ol_txrx_vdev_handle data_vdev,
-    u_int8_t ext_tid,
-    enum ol_txrx_osif_tx_spec tx_spec,
-    adf_nbuf_t msdu_list);
-#else
 typedef adf_nbuf_t (*ol_txrx_tx_non_std_fp)(
     ol_txrx_vdev_handle data_vdev,
     enum ol_txrx_osif_tx_spec tx_spec,
     adf_nbuf_t msdu_list);
-#endif /* QCA_HOST_SIDE_TX_TID_CLASSIFICATION */
 
 struct txrx_rx_metainfo;
 

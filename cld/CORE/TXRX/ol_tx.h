@@ -19,14 +19,6 @@
 adf_nbuf_t
 ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
 
-#ifdef QCA_HOST_SIDE_TX_TID_CLASSIFICATION
-adf_nbuf_t
-ol_tx_single_non_std_ll(
-    ol_txrx_vdev_handle vdev,
-    u_int8_t ext_tid,
-    enum ol_txrx_osif_tx_spec tx_spec,
-    adf_nbuf_t msdu);
-#endif /* QCA_HOST_SIDE_TX_TID_CLASSIFICATION */
 adf_nbuf_t
 ol_tx_non_std_ll(
     ol_txrx_vdev_handle data_vdev,

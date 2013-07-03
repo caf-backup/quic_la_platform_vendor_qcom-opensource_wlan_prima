@@ -699,11 +699,7 @@ void ol_txrx_osif_vdev_register(ol_txrx_vdev_handle vdev,
 		txrx_ops->tx.non_std = ol_tx_non_std_hl;
 	} else {
 		txrx_ops->tx.std = vdev->tx = ol_tx_ll;
-#ifdef QCA_HOST_SIDE_TX_TID_CLASSIFICATION
-		txrx_ops->tx.non_std = ol_tx_single_non_std_ll;
-#else
 		txrx_ops->tx.non_std = ol_tx_non_std_ll;
-#endif /* QCA_HOST_SIDE_TX_TID_CLASSIFICATION */
 	}
 }
 
