@@ -1977,13 +1977,13 @@ wmi_unified_pdev_set_param(wmi_unified_t wmi_handle, WMI_PDEV_PARAM param_id,
 	return ret;
 }
 
-static void wma_process_cli_set_cmd(tp_wma_handle wma_handle,
+static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
 	int ret = 0, vid = privcmd->param_vdev_id;
-	struct wma_txrx_node *intr = wma_handle->interfaces;
+	struct wma_txrx_node *intr = wma->interfaces;
 
-	WMA_LOGD("wmihandle %p", wma_handle->wmi_handle);
+	WMA_LOGD("wmihandle %p", wma->wmi_handle);
 	/*
 	 * param_vp_dev is to differentiate whether the cli_get is
 	 * VDEV or PDEV specific
@@ -1993,7 +1993,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma_handle,
 	if (1 == privcmd->param_vp_dev) {
 		WMA_LOGD("vdev id %d pid %d pval %d", privcmd->param_vdev_id,
 				privcmd->param_id, privcmd->param_value);
-		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
 						privcmd->param_vdev_id,
 						privcmd->param_id,
 						privcmd->param_value);
@@ -2005,43 +2005,71 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma_handle,
 	} else if (2 == privcmd->param_vp_dev) {
 		WMA_LOGD("pdev pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
-		ret = wmi_unified_pdev_set_param(wma_handle->wmi_handle,
-							privcmd->param_id,
-							privcmd->param_value);
+		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+						privcmd->param_id,
+						privcmd->param_value);
 		if (ret) {
 			WMA_LOGE("wmi_unified_vdev_set_param_send"
 					" failed ret %d", ret);
 			return;
 		}
 	}
-	switch (privcmd->param_id) {
-	case WMI_VDEV_PARAM_NSS:
-		intr[vid].config.nss = privcmd->param_value;
-		break;
-	case WMI_VDEV_PARAM_LDPC:
-		intr[vid].config.ldpc = privcmd->param_value;
-		break;
-	case WMI_VDEV_PARAM_TX_STBC:
-		intr[vid].config.tx_stbc = privcmd->param_value;
-		break;
-	case WMI_VDEV_PARAM_RX_STBC:
-		intr[vid].config.rx_stbc = privcmd->param_value;
-		break;
-	case WMI_VDEV_PARAM_SGI:
-		intr[vid].config.shortgi = privcmd->param_value;
-		break;
-	case WMI_VDEV_PARAM_ENABLE_RTSCTS:
-		intr[vid].config.rtscts_en = privcmd->param_value;
-		break;
-	case WMI_VDEV_PARAM_CHWIDTH:
-		intr[vid].config.chwidth = privcmd->param_value;
-		break;
-	default:
-		WMA_LOGD("Invalid wda_cli_set command/Not"
-				" yet implemented 0x%x", vid);
-	     break;
+	if (1 == privcmd->param_vp_dev) {
+		switch (privcmd->param_id) {
+		case WMI_VDEV_PARAM_NSS:
+			intr[vid].config.nss = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_LDPC:
+			intr[vid].config.ldpc = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_TX_STBC:
+			intr[vid].config.tx_stbc = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_RX_STBC:
+			intr[vid].config.rx_stbc = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_SGI:
+			intr[vid].config.shortgi = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_ENABLE_RTSCTS:
+			intr[vid].config.rtscts_en = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_CHWIDTH:
+			intr[vid].config.chwidth = privcmd->param_value;
+			break;
+		default:
+			WMA_LOGE("Invalid wda_cli_set vdev command/Not"
+				" yet implemented 0x%x", privcmd->param_id);
+		     break;
+		}
+	} else if (2 == privcmd->param_vp_dev) {
+		switch (privcmd->param_id) {
+		case WMI_PDEV_PARAM_ANI_ENABLE:
+			wma->pdevconfig.ani_enable = privcmd->param_value;
+			break;
+		case WMI_PDEV_PARAM_ANI_POLL_PERIOD:
+			wma->pdevconfig.ani_poll_len = privcmd->param_value;
+			break;
+		case WMI_PDEV_PARAM_ANI_LISTEN_PERIOD:
+			wma->pdevconfig.ani_listen_len = privcmd->param_value;
+			break;
+		case WMI_PDEV_PARAM_ANI_OFDM_LEVEL:
+			wma->pdevconfig.ani_ofdm_level = privcmd->param_value;
+			break;
+		case WMI_PDEV_PARAM_ANI_CCK_LEVEL:
+			wma->pdevconfig.ani_cck_level = privcmd->param_value;
+			break;
+		case WMI_PDEV_PARAM_DYNAMIC_BW:
+			wma->pdevconfig.cwmenable = privcmd->param_value;
+			break;
+		default:
+			WMA_LOGE("Invalid wda_cli_set pdev command/Not"
+				" yet implemented 0x%x", privcmd->param_id);
+		     break;
+		}
 	}
 }
+
 int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			int param_id, int vpdev)
 {
@@ -2083,12 +2111,35 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			ret = intr[vdev_id].config.chwidth;
 			break;
 		default:
-			WMA_LOGD("Invalid cli_get command/Not"
+			WMA_LOGE("Invalid cli_get vdev command/Not"
 					" yet implemented 0x%x", param_id);
-			break;
+			return -EINVAL;
 		}
 	} else if (2 == vpdev) {
-		WMA_LOGD("Not yet implemented");
+		switch (param_id) {
+		case WMI_PDEV_PARAM_ANI_ENABLE:
+			ret = wma->pdevconfig.ani_enable;
+			break;
+		case WMI_PDEV_PARAM_ANI_POLL_PERIOD:
+			ret = wma->pdevconfig.ani_poll_len;
+			break;
+		case WMI_PDEV_PARAM_ANI_LISTEN_PERIOD:
+			ret = wma->pdevconfig.ani_listen_len;
+			break;
+		case WMI_PDEV_PARAM_ANI_OFDM_LEVEL:
+			ret = wma->pdevconfig.ani_ofdm_level;
+			break;
+		case WMI_PDEV_PARAM_ANI_CCK_LEVEL:
+			ret = wma->pdevconfig.ani_cck_level;
+			break;
+		case WMI_PDEV_PARAM_DYNAMIC_BW:
+			ret = wma->pdevconfig.cwmenable;
+			break;
+		default:
+			WMA_LOGE("Invalid cli_get pdev command/Not"
+					" yet implemented 0x%x", param_id);
+			return -EINVAL;
+		}
 	}
 	return ret;
 }

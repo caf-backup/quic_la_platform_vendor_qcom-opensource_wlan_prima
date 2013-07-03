@@ -144,6 +144,11 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_RTSCTS        16
 #define WE_SET_CHWIDTH       17
 #define WE_SET_ANI_EN_DIS    18
+#define WE_SET_ANI_POLL_PERIOD    19
+#define WE_SET_ANI_LISTEN_PERIOD  20
+#define WE_SET_ANI_OFDM_LEVEL     21
+#define WE_SET_ANI_CCK_LEVEL      22
+#define WE_SET_DYNAMIC_BW         23
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -166,6 +171,12 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_SHORT_GI      15
 #define WE_GET_RTSCTS        16
 #define WE_GET_CHWIDTH       17
+#define WE_GET_ANI_EN_DIS    18
+#define WE_GET_ANI_POLL_PERIOD    19
+#define WE_GET_ANI_LISTEN_PERIOD  20
+#define WE_GET_ANI_OFDM_LEVEL     21
+#define WE_GET_ANI_CCK_LEVEL      22
+#define WE_GET_DYNAMIC_BW         23
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -3938,6 +3949,51 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                                          set_value, PDEV_CMD);
            break;
         }
+
+        case WE_SET_ANI_POLL_PERIOD:
+        {
+           hddLog(LOG1, "WMI_PDEV_PARAM_ANI_POLL_PERIOD val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_ANI_POLL_PERIOD,
+                                         set_value, PDEV_CMD);
+           break;
+        }
+
+        case WE_SET_ANI_LISTEN_PERIOD:
+        {
+           hddLog(LOG1, "WMI_PDEV_PARAM_ANI_LISTEN_PERIOD val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_ANI_LISTEN_PERIOD,
+                                         set_value, PDEV_CMD);
+           break;
+        }
+
+        case WE_SET_ANI_OFDM_LEVEL:
+        {
+           hddLog(LOG1, "WMI_PDEV_PARAM_ANI_OFDM_LEVEL val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_ANI_OFDM_LEVEL,
+                                         set_value, PDEV_CMD);
+           break;
+        }
+
+        case WE_SET_ANI_CCK_LEVEL:
+        {
+           hddLog(LOG1, "WMI_PDEV_PARAM_ANI_CCK_LEVEL val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_ANI_CCK_LEVEL,
+                                         set_value, PDEV_CMD);
+           break;
+        }
+
+        case WE_SET_DYNAMIC_BW:
+        {
+           hddLog(LOG1, "WMI_PDEV_PARAM_DYNAMIC_BW val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_DYNAMIC_BW,
+                                         set_value, PDEV_CMD);
+           break;
+        }
 #endif
 
         default:
@@ -4199,6 +4255,66 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
                                         (int)pAdapter->sessionId,
                                         (int)WMI_VDEV_PARAM_CHWIDTH,
                                         VDEV_CMD);
+           break;
+        }
+
+        case WE_GET_ANI_EN_DIS:
+        {
+           hddLog(LOG1, "GET WMI_PDEV_PARAM_ANI_ENABLE");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_PDEV_PARAM_ANI_ENABLE,
+                                        PDEV_CMD);
+           break;
+        }
+
+        case WE_GET_ANI_POLL_PERIOD:
+        {
+           hddLog(LOG1, "GET WMI_PDEV_PARAM_ANI_POLL_PERIOD");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_PDEV_PARAM_ANI_POLL_PERIOD,
+                                        PDEV_CMD);
+           break;
+        }
+
+        case WE_GET_ANI_LISTEN_PERIOD:
+        {
+           hddLog(LOG1, "GET WMI_PDEV_PARAM_ANI_LISTEN_PERIOD");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_PDEV_PARAM_ANI_LISTEN_PERIOD,
+                                        PDEV_CMD);
+           break;
+        }
+
+        case WE_GET_ANI_OFDM_LEVEL:
+        {
+           hddLog(LOG1, "GET WMI_PDEV_PARAM_ANI_OFDM_LEVEL");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_PDEV_PARAM_ANI_OFDM_LEVEL,
+                                        PDEV_CMD);
+           break;
+        }
+
+        case WE_GET_ANI_CCK_LEVEL:
+        {
+           hddLog(LOG1, "GET WMI_PDEV_PARAM_ANI_CCK_LEVEL");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_PDEV_PARAM_ANI_CCK_LEVEL,
+                                        PDEV_CMD);
+           break;
+        }
+
+        case WE_GET_DYNAMIC_BW:
+        {
+           hddLog(LOG1, "GET WMI_PDEV_PARAM_ANI_CCK_LEVEL");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_PDEV_PARAM_DYNAMIC_BW,
+                                        PDEV_CMD);
            break;
         }
 #endif
@@ -6756,7 +6872,32 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_ANI_EN_DIS,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
-        "ani_enable" },
+        "anienable" },
+
+    {   WE_SET_ANI_POLL_PERIOD,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "aniplen" },
+
+    {   WE_SET_ANI_LISTEN_PERIOD,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "anilislen" },
+
+    {   WE_SET_ANI_OFDM_LEVEL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "aniofdmlvl" },
+
+    {   WE_SET_ANI_CCK_LEVEL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "aniccklvl" },
+
+    {   WE_SET_DYNAMIC_BW,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "cwmenable" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -6850,6 +6991,36 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_chwidth" },
+
+    {   WE_GET_ANI_EN_DIS,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_anienable" },
+
+    {   WE_GET_ANI_POLL_PERIOD,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_aniplen" },
+
+    {   WE_GET_ANI_LISTEN_PERIOD,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_anilislen" },
+
+    {   WE_GET_ANI_OFDM_LEVEL,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_aniofdmlvl" },
+
+    {   WE_GET_ANI_CCK_LEVEL,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_aniccklvl" },
+
+    {   WE_GET_DYNAMIC_BW,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_cwmenable" },
 #endif
 
     /* handlers for main ioctl */

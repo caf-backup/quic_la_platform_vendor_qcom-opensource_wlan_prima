@@ -198,6 +198,15 @@ struct beacon_info {
 #endif
 
 typedef struct {
+	u_int32_t ani_enable;
+	u_int32_t ani_poll_len;
+	u_int32_t ani_listen_len;
+	u_int32_t ani_ofdm_level;
+	u_int32_t ani_cck_level;
+	u_int32_t cwmenable;
+} pdev_cli_config_t;
+
+typedef struct {
 	u_int32_t nss;
 	u_int32_t ldpc;
 	u_int32_t tx_stbc;
@@ -270,6 +279,7 @@ typedef struct {
 	u_int32_t scan_id;
 	struct scan_param cur_scan_info;
 	struct wma_txrx_node *interfaces;
+	pdev_cli_config_t pdevconfig;
 	u_int32_t peer_count;
 	struct list_head vdev_resp_queue;
 	adf_os_spinlock_t vdev_respq_lock;
