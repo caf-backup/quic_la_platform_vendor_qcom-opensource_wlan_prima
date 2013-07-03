@@ -197,6 +197,7 @@ struct beacon_info {
 
 struct wma_txrx_node {
 	u_int8_t addr[ETH_ALEN];
+	u_int8_t bssid[ETH_ALEN];
 	void *handle;
 #ifndef QCA_WIFI_ISOC
 	struct beacon_info *beacon;
