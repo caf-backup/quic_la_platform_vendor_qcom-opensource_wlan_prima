@@ -1346,7 +1346,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                        FL("received TDLS Indication from the Firmware with Reason Code %d "),
                        pTdlsInd->reasonCode);
                 limSendSmeTDLSDelStaInd(pMac, pStaDs, psessionEntry,
-                                        /*pTdlsInd->reasonCode*/eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE);
+                                        pTdlsInd->reasonCode);
             }
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
@@ -1894,8 +1894,15 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #ifdef FEATURE_WLAN_TDLS
         case WDA_SET_TDLS_LINK_ESTABLISH_REQ_RSP:
         {
-            /*TODO Sunil , See how do you enhance this , Reason Code ???*/
-            limSendSmeTdlsLinkEstablishReqRsp(pMac, 0 , NULL, NULL, eSIR_SUCCESS ) ;
+            tTdlsLinkEstablishParams *pTdlsLinkEstablishParams;
+            pTdlsLinkEstablishParams = (tTdlsLinkEstablishParams*) limMsg->bodyptr;
+            limSendSmeTdlsLinkEstablishReqRsp(pMac,
+                                              0,
+                                              NULL,
+                                              NULL,
+                                              pTdlsLinkEstablishParams->status) ;
+            vos_mem_free((v_VOID_t *)(limMsg->bodyptr));
+            limMsg->bodyptr = NULL;
             break;
         }
 #endif

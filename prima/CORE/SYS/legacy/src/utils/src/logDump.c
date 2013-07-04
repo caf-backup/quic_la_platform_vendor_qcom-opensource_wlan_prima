@@ -67,7 +67,7 @@ logDump.c
 #include "wlan_qct_wda.h"
 
 #define HAL_LOG_DUMP_CMD_START 0
-#define HAL_LOG_DUMP_CMD_END 299
+#define HAL_LOG_DUMP_CMD_END 350
 
 static int debug;
 
