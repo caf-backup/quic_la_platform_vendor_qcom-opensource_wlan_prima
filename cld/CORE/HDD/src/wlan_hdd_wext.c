@@ -75,6 +75,7 @@
 
 #include "wlan_hdd_dev_pwr.h"
 #include "qc_sap_ioctl.h"
+#include "wlan_qct_wda.h"
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
@@ -86,6 +87,11 @@ extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 #endif
 
 #define HDD_FINISH_ULA_TIME_OUT    800
+
+#ifdef QCA_WIFI_2_0
+#define VDEV_CMD 1
+#define PDEV_CMD 2
+#endif
 
 extern int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand);
 int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr);
@@ -128,6 +134,17 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_MAX_TX_POWER  7
 #define WE_SET_HIGHER_DTIM_TRANSITION   8
 #define WE_SET_TM_LEVEL      9
+#ifdef QCA_WIFI_2_0
+#define WE_SET_PHYMODE       10
+#define WE_SET_NSS           11
+#define WE_SET_LDPC          12
+#define WE_SET_TX_STBC       13
+#define WE_SET_RX_STBC       14
+#define WE_SET_SHORT_GI      15
+#define WE_SET_RTSCTS        16
+#define WE_SET_CHWIDTH       17
+#define WE_SET_ANI_EN_DIS    18
+#endif
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -140,6 +157,17 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_WDI_DBG       7
 #define WE_GET_SAP_AUTO_CHANNEL_SELECTION 8
 #define WE_GET_CONCURRENCY_MODE 9
+#ifdef QCA_WIFI_2_0
+#define WE_GET_PHYMODE       10
+#define WE_GET_NSS           11
+#define WE_GET_LDPC          12
+#define WE_GET_TX_STBC       13
+#define WE_GET_RX_STBC       14
+#define WE_GET_SHORT_GI      15
+#define WE_GET_RTSCTS        16
+#define WE_GET_CHWIDTH       17
+#endif
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
 
@@ -3492,6 +3520,39 @@ static int iw_set_mlme(struct net_device *dev,
 
 }
 
+#ifdef QCA_WIFI_2_0
+static int process_wma_set_command(int sessid, int paramid,
+                                   int sval, int vpdev)
+{
+    int ret = 0;
+    vos_msg_t msg = {0};
+
+    wda_cli_set_cmd_t *iwcmd = (wda_cli_set_cmd_t *)vos_mem_malloc(
+                                sizeof(wda_cli_set_cmd_t));
+    if (NULL == iwcmd) {
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_mem_alloc failed", __func__);
+       return -EINVAL;
+    }
+    vos_mem_zero((void *)iwcmd, sizeof(wda_cli_set_cmd_t));
+    iwcmd->param_value = sval;
+    iwcmd->param_vdev_id = sessid;
+    iwcmd->param_id = paramid;
+    iwcmd->param_vp_dev = vpdev;
+    msg.type = WDA_CLI_SET_CMD;
+    msg.reserved = 0;
+    msg.bodyptr = (void *)iwcmd;
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA,
+                                                  &msg)) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: "
+                 "Not able to post wda_cli_set_cmd message to WDA",
+                 __func__);
+       vos_mem_free(iwcmd);
+       ret = -EIO;
+    }
+    return ret;
+}
+#endif
+
 /* set param sub-ioctls */
 static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
@@ -3795,19 +3856,97 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hddDevTmLevelChangedHandler(hddCtxt->parent_dev, set_value);
 #else
            hddLog(VOS_TRACE_LEVEL_INFO, "Thermal Mitigation Level %d not set for discrete",
-		  (int)set_value);
+                    (int)set_value);
 #endif
            break;
         }
 
+#ifdef QCA_WIFI_2_0
+        case WE_SET_PHYMODE:
+        {
+           break;
+        }
+
+        case WE_SET_NSS:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_NSS val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_NSS,
+                                         set_value, VDEV_CMD);
+           break;
+        }
+
+        case WE_SET_LDPC:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_LDPC val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_LDPC,
+                                         set_value, VDEV_CMD);
+           break;
+        }
+
+        case WE_SET_TX_STBC:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_TX_STBC val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_TX_STBC,
+                                         set_value, VDEV_CMD);
+           break;
+        }
+
+        case WE_SET_RX_STBC:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_RX_STBC val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_RX_STBC,
+                                         set_value, VDEV_CMD);
+           break;
+        }
+
+        case WE_SET_SHORT_GI:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_SGI val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_SGI,
+                                         set_value, VDEV_CMD);
+           break;
+        }
+
+        case WE_SET_RTSCTS:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_ENABLE_RTSCTS val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
+                                         set_value, VDEV_CMD);
+           break;
+        }
+
+        case WE_SET_CHWIDTH:
+        {
+           hddLog(LOG1, "WMI_VDEV_PARAM_CHWIDTH val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_CHWIDTH,
+                                         set_value, VDEV_CMD);
+           break;
+        }
+
+        case WE_SET_ANI_EN_DIS:
+        {
+           hddLog(LOG1, "WMI_PDEV_PARAM_ANI_ENABLE val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_ANI_ENABLE,
+                                         set_value, PDEV_CMD);
+           break;
+        }
+#endif
+
         default:
         {
-            hddLog(LOGE, "Invalid IOCTL setvalue command %d value %d \n",
-                sub_cmd, set_value);
-            break;
+           hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
+           ret = -EINVAL;
+           break;
         }
     }
-
     return ret;
 }
 
@@ -3886,7 +4025,7 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
           break;
        default:
        {
-           hddLog(LOGE, "%s: Invalid sub command %d\n",__func__, sub_cmd);
+           hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
            ret = -EINVAL;
            break;
        }
@@ -3902,6 +4041,10 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     int *value = (int *)extra;
     int ret = 0; /* success */
+#ifdef QCA_WIFI_2_0
+    hdd_context_t *wmahddCtxt = WLAN_HDD_GET_CTX(pAdapter);
+    void *wmapvosContext = wmahddCtxt->pvosContext;
+#endif
 
     if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
     {
@@ -3983,10 +4126,87 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
            break;
         }
 
+#ifdef QCA_WIFI_2_0
+        case WE_GET_PHYMODE:
+        {
+           break;
+        }
+
+        case WE_GET_NSS:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_NSS");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_NSS,
+                                        VDEV_CMD);
+           break;
+        }
+
+        case WE_GET_LDPC:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_LDPC");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_LDPC,
+                                        VDEV_CMD);
+           break;
+        }
+
+        case WE_GET_TX_STBC:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_TX_STBC");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_TX_STBC,
+                                        VDEV_CMD);
+           break;
+        }
+
+        case WE_GET_RX_STBC:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_RX_STBC");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_RX_STBC,
+                                        VDEV_CMD);
+           break;
+        }
+
+        case WE_GET_SHORT_GI:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_SGI");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_SGI,
+                                        VDEV_CMD);
+           break;
+        }
+
+        case WE_GET_RTSCTS:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_ENABLE_RTSCTS");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
+                                        VDEV_CMD);
+           break;
+        }
+
+        case WE_GET_CHWIDTH:
+        {
+           hddLog(LOG1, "GET WMI_VDEV_PARAM_CHWIDTH");
+           *value = wma_cli_get_command(wmapvosContext,
+                                        (int)pAdapter->sessionId,
+                                        (int)WMI_VDEV_PARAM_CHWIDTH,
+                                        VDEV_CMD);
+           break;
+        }
+#endif
+
         default:
         {
-            hddLog(LOGE, "Invalid IOCTL get_value command %d ",value[0]);
-            break;
+           hddLog(LOGE, "Invalid IOCTL get_value command %d", value[0]);
+           break;
         }
     }
 
@@ -4029,7 +4249,7 @@ int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *in
 
         default:
         {
-            hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
+            hddLog(LOGE, "Invalid IOCTL command %d",  sub_cmd);
             break;
         }
     }
@@ -4277,7 +4497,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 #endif
         default:  
         {
-            hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
+            hddLog(LOGE, "Invalid IOCTL command %d",  sub_cmd);
             break;
         }
     }
@@ -6492,7 +6712,53 @@ static const struct iw_priv_args we_private_args[] = {
         0, 
         "setTmLevel" },
 
-    /* handlers for main ioctl */
+#ifdef QCA_WIFI_2_0
+    {   WE_SET_PHYMODE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "setphymode" },
+
+    {   WE_SET_NSS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "nss" },
+
+    {   WE_SET_LDPC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "ldpc" },
+
+    {   WE_SET_TX_STBC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "tx_stbc" },
+
+    {   WE_SET_RX_STBC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "rx_stbc" },
+
+    {   WE_SET_SHORT_GI,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "shortgi" },
+
+    {   WE_SET_RTSCTS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "enablertscts" },
+
+    {   WE_SET_CHWIDTH,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "chwidth" },
+
+    {   WE_SET_ANI_EN_DIS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "ani_enable" },
+#endif
+
     {   WLAN_PRIV_SET_NONE_GET_INT,
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
@@ -6543,6 +6809,48 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getconcurrency" },
+
+#ifdef QCA_WIFI_2_0
+    {   WE_GET_PHYMODE,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "getphymode" },
+
+    {   WE_GET_NSS,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_nss" },
+
+    {   WE_GET_LDPC,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_ldpc" },
+
+    {   WE_GET_TX_STBC,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_tx_stbc" },
+
+    {   WE_GET_RX_STBC,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_rx_stbc" },
+
+    {   WE_GET_SHORT_GI,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_shortgi" },
+
+    {   WE_GET_RTSCTS,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_rtscts" },
+
+    {   WE_GET_CHWIDTH,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_chwidth" },
+#endif
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,

@@ -411,6 +411,15 @@ typedef struct
    v_PVOID_t            wdaWdiApiMsgParam;      /* WDI API paramter tracking */
 } tWDA_ReqParams; 
 
+#ifdef QCA_WIFI_2_0
+typedef struct {
+   v_UINT_t param_id;
+   v_UINT_t param_value;
+   v_UINT_t param_vdev_id;
+   v_UINT_t param_vp_dev;
+} wda_cli_set_cmd_t;
+#endif
+
 /*
  * FUNCTION: WDA_MgmtDSTxPacket
  * Forward TX management frame to WDI
@@ -1171,6 +1180,10 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_UPDATE_CHAN_LIST_REQ    SIR_HAL_UPDATE_CHAN_LIST_REQ
 #define WDA_UPDATE_CHAN_LIST_RSP    SIR_HAL_UPDATE_CHAN_LIST_RSP
 #define WDA_RX_SCAN_EVENT           SIR_HAL_RX_SCAN_EVENT
+#ifdef QCA_WIFI_2_0
+#define WDA_CLI_SET_CMD             SIR_HAL_CLI_SET_CMD
+#define WDA_CLI_GET_CMD             SIR_HAL_CLI_GET_CMD
+#endif
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

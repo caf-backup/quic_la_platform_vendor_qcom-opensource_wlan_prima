@@ -283,8 +283,6 @@ int wmi_unified_set_ap_ps_param(struct ol_ath_vap_net80211 *avn,
         struct ol_ath_node_net80211 *anode, A_UINT32 param, A_UINT32 value);
 int wmi_unified_set_sta_ps_param(struct ol_ath_vap_net80211 *avn, 
         A_UINT32 param, A_UINT32 value);
-int wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int8_t if_id,
-                           u_int32_t param_id, u_int32_t param_value);
 int wmi_unified_pdev_get_tpc_config(wmi_unified_t wmi_handle, u_int32_t param);
 void ol_get_wal_dbg_stats(struct ol_softc *scn, struct wal_dbg_stats *dbg_stats);
 
