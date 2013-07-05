@@ -1443,6 +1443,10 @@ HIFStop(HIF_DEVICE *hif_device)
      * up Host-side state.
      */
 
+#if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
+    athdiag_procfs_remove();
+#endif
+
     hif_buffer_cleanup(hif_state);
 
     for (pipe_num=0; pipe_num < sc->ce_count; pipe_num++) {
@@ -1940,6 +1944,13 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
             atomic_set(&pipe_info->recv_bufs_needed, 0);
         }
     }
+
+#if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
+    if (athdiag_procfs_init(sc) != 0) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("athdiag_procfs_init failed\n"));
+        return A_ERROR;
+    }
+#endif
 
     /*
      * Initially, establish CE completion handlers for use with BMI.
