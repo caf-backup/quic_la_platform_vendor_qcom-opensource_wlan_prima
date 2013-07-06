@@ -186,6 +186,13 @@ typedef struct targetdef_s {
     u_int32_t d_CPU_INTR_ADDRESS;
     u_int32_t d_SOC_LF_TIMER_CONTROL0_ADDRESS;
     u_int32_t d_SOC_LF_TIMER_CONTROL0_ENABLE_MASK;
+    /* chip id start */
+    u_int32_t d_SOC_CHIP_ID_ADDRESS;
+    u_int32_t d_SOC_CHIP_ID_VERSION_MASK;
+    u_int32_t d_SOC_CHIP_ID_VERSION_LSB;
+    u_int32_t d_SOC_CHIP_ID_REVISION_MASK;
+    u_int32_t d_SOC_CHIP_ID_REVISION_LSB;
+    /* chip id end */
 } TARGET_REGISTER_TABLE;
 
 #define RTC_SOC_BASE_ADDRESS                     (sc->targetdef->d_RTC_SOC_BASE_ADDRESS)
@@ -278,6 +285,15 @@ typedef struct targetdef_s {
 #define SOC_RESET_CONTROL_PCIE_RST_SHORT_OVRD_GET(x) (((x) & SOC_RESET_CONTROL_PCIE_RST_SHORT_OVRD_MASK) >> SOC_RESET_CONTROL_PCIE_RST_SHORT_OVRD_LSB)
 #define SOC_RESET_CONTROL_PCIE_RST_SHORT_OVRD_SET(x) (((x) << SOC_RESET_CONTROL_PCIE_RST_SHORT_OVRD_LSB) & SOC_RESET_CONTROL_PCIE_RST_SHORT_OVRD_MASK)
 
+/* hif_pci.c */
+#define CHIP_ID_ADDRESS                          (sc->targetdef->d_SOC_CHIP_ID_ADDRESS)
+#define SOC_CHIP_ID_REVISION_MASK                (sc->targetdef->d_SOC_CHIP_ID_REVISION_MASK)
+#define SOC_CHIP_ID_REVISION_LSB                 (sc->targetdef->d_SOC_CHIP_ID_REVISION_LSB)
+#define SOC_CHIP_ID_VERSION_MASK                 (sc->targetdef->d_SOC_CHIP_ID_VERSION_MASK)
+#define SOC_CHIP_ID_VERSION_LSB                  (sc->targetdef->d_SOC_CHIP_ID_VERSION_LSB)
+#define CHIP_ID_REVISION_GET(x) (((x) & SOC_CHIP_ID_REVISION_MASK) >> SOC_CHIP_ID_REVISION_LSB)
+#define CHIP_ID_VERSION_GET(x) (((x) & SOC_CHIP_ID_VERSION_MASK) >> SOC_CHIP_ID_VERSION_LSB)
+/* hif_pci.c end */
 
 /* misc */
 #define SR_WR_INDEX_ADDRESS                      (sc->targetdef->d_SR_WR_INDEX_ADDRESS)

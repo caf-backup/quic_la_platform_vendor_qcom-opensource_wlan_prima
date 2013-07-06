@@ -199,6 +199,11 @@
 #define AR6320_CLOCK_GPIO_OFFSET                        0xffffffff
 #define AR6320_CLOCK_GPIO_BT_CLK_OUT_EN_LSB             0
 #define AR6320_CLOCK_GPIO_BT_CLK_OUT_EN_MASK            0
+#define AR6320_SOC_CHIP_ID_ADDRESS                      0x000000f0
+#define AR6320_SOC_CHIP_ID_VERSION_MASK                 0xfffc0000
+#define AR6320_SOC_CHIP_ID_VERSION_LSB                  18
+#define AR6320_SOC_CHIP_ID_REVISION_MASK                0x00000f00
+#define AR6320_SOC_CHIP_ID_REVISION_LSB                 8
 
 #define AR6320_PCIE_INTR_CE_MASK(n)                    (AR6320_PCIE_INTR_CE0_MASK << (n))
 #define AR6320_DRAM_BASE_ADDRESS                       AR6320_TARG_DRAM_START
@@ -430,6 +435,13 @@ struct targetdef_s ar6320_targetdef = {
     .d_CPU_INTR_ADDRESS =                      AR6320_CPU_INTR_ADDRESS,
     .d_SOC_LF_TIMER_CONTROL0_ADDRESS =         AR6320_SOC_LF_TIMER_CONTROL0_ADDRESS,
     .d_SOC_LF_TIMER_CONTROL0_ENABLE_MASK =     AR6320_SOC_LF_TIMER_CONTROL0_ENABLE_MASK,
+    /* chip id start */
+    .d_SOC_CHIP_ID_ADDRESS =                   AR6320_SOC_CHIP_ID_ADDRESS,
+    .d_SOC_CHIP_ID_VERSION_MASK =              AR6320_SOC_CHIP_ID_VERSION_MASK,
+    .d_SOC_CHIP_ID_VERSION_LSB =               AR6320_SOC_CHIP_ID_VERSION_LSB,
+    .d_SOC_CHIP_ID_REVISION_MASK =             AR6320_SOC_CHIP_ID_REVISION_MASK,
+    .d_SOC_CHIP_ID_REVISION_LSB =              AR6320_SOC_CHIP_ID_REVISION_LSB,
+    /* chip id end */
 };
 
 struct hostdef_s ar6320_hostdef = {
