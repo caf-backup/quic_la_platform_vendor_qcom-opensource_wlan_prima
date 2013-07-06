@@ -19,6 +19,7 @@
 #define AR9888_REV1_VERSION          0x4000002c
 #define AR9888_REV2_VERSION          0x4100016c
 #define QCA_VERSION                  0x4100270f
+#define AR6320_REV1_VERSION	     0x5000000
 #define QCA_FIRMWARE_FILE            "athwlan.bin"
 #define QCA_UTF_FIRMWARE_FILE        "utf.bin"
 #define QCA_BOARD_DATA_FILE      "fakeBoardData_AR6004.bin"
