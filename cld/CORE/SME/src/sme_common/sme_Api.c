@@ -802,8 +802,15 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
         {
             //No command waiting
             csrLLUnlock( &pMac->sme.smeCmdActiveList );
-            //This is only used to restart an idle mode scan, it means at least one other idle scan has finished.
-            if(pMac->scan.fRestartIdleScan && eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)
+            /*
+             * This is only used to restart an idle mode scan,
+             * it means at least one other idle scan has finished.
+             * Moreover Idle Scan is not supported with power
+             * save offload supported
+             */
+            if(!pMac->psOffloadEnabled &&
+               pMac->scan.fRestartIdleScan &&
+               eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)
             {
                 tANI_U32 nTime = 0;
 
