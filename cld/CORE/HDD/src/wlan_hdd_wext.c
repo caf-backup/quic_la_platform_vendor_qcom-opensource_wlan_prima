@@ -88,11 +88,6 @@ extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 
 #define HDD_FINISH_ULA_TIME_OUT    800
 
-#ifdef QCA_WIFI_2_0
-#define VDEV_CMD 1
-#define PDEV_CMD 2
-#endif
-
 extern int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand);
 int hdd_setBand_helper(struct net_device *dev, tANI_U8* ptr);
 
@@ -123,6 +118,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 #define FREQ_CHAN_MAP_TABLE_SIZE (sizeof(freq_chan_map)/sizeof(freq_chan_map[0]))
 
+#define RC_2_RATE_IDX(_rc)        ((_rc) & 0x7)
+#define HT_RC_2_STREAMS(_rc)    ((((_rc) & 0x78) >> 3) + 1)
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_NONE    (SIOCIWFIRSTPRIV + 0)
 #define WE_SET_11D_STATE     1
@@ -149,6 +147,11 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_ANI_OFDM_LEVEL     21
 #define WE_SET_ANI_CCK_LEVEL      22
 #define WE_SET_DYNAMIC_BW         23
+#define WE_SET_TX_CHAINMASK  24
+#define WE_SET_RX_CHAINMASK  25
+#define WE_SET_11N_RATE      26
+#define WE_SET_AMPDU         27
+#define WE_SET_AMSDU         28
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -177,6 +180,11 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_ANI_OFDM_LEVEL     21
 #define WE_GET_ANI_CCK_LEVEL      22
 #define WE_GET_DYNAMIC_BW         23
+#define WE_GET_TX_CHAINMASK  24
+#define WE_GET_RX_CHAINMASK  25
+#define WE_GET_11N_RATE      26
+#define WE_GET_AMPDU         27
+#define WE_GET_AMSDU         28
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -3994,8 +4002,70 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                                          set_value, PDEV_CMD);
            break;
         }
-#endif
 
+        case WE_SET_11N_RATE:
+        {
+           u_int8_t preamble, nss, rix;
+           hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d", set_value);
+
+           rix = RC_2_RATE_IDX(set_value);
+           if (set_value & 0x80) {
+               preamble = WMI_RATE_PREAMBLE_HT;
+               nss = HT_RC_2_STREAMS(set_value) -1;
+           } else {
+               nss = 0;
+               rix = RC_2_RATE_IDX(set_value);
+               if (set_value & 0x10) {
+                   preamble = WMI_RATE_PREAMBLE_CCK;
+                   rix |= 0x4; /* Enable Short preamble always for CCK */
+               } else
+                   preamble = WMI_RATE_PREAMBLE_OFDM;
+           }
+
+           set_value = (preamble << 6) | (nss << 4) | rix;
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_FIXED_RATE,
+                                         set_value, VDEV_CMD);
+           break;
+         }
+
+         case WE_SET_AMPDU:
+         {
+            hddLog(LOG1, "SET AMPDU val %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)GEN_VDEV_PARAM_AMPDU,
+                                          set_value, GEN_CMD);
+            break;
+         }
+
+         case WE_SET_AMSDU:
+         {
+            hddLog(LOG1, "SET AMSDU val %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)GEN_VDEV_PARAM_AMSDU,
+                                          set_value, GEN_CMD);
+            break;
+         }
+
+         case WE_SET_TX_CHAINMASK:
+         {
+            hddLog(LOG1, "WMI_PDEV_PARAM_TX_CHAIN_MASK val %d", set_value);
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)WMI_PDEV_PARAM_TX_CHAIN_MASK,
+                                          set_value, PDEV_CMD);
+            break;
+         }
+
+         case WE_SET_RX_CHAINMASK:
+         {
+             hddLog(LOG1, "WMI_PDEV_PARAM_RX_CHAIN_MASK val %d", set_value);
+             ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_PDEV_PARAM_RX_CHAIN_MASK,
+                                           set_value, PDEV_CMD);
+             break;
+         }
+
+#endif
         default:
         {
            hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
@@ -4317,6 +4387,57 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
                                         PDEV_CMD);
            break;
         }
+
+        case WE_GET_11N_RATE:
+        {
+            hddLog(LOG1, "GET WMI_VDEV_PARAM_FIXED_RATE");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_FIXED_RATE,
+                                         VDEV_CMD);
+            break;
+        }
+
+        case WE_GET_AMPDU:
+        {
+            hddLog(LOG1, "GET AMPDU");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)GEN_VDEV_PARAM_AMPDU,
+                                         GEN_CMD);
+            break;
+        }
+
+        case WE_GET_AMSDU:
+        {
+            hddLog(LOG1, "GET AMSDU");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)GEN_VDEV_PARAM_AMSDU,
+                                         GEN_CMD);
+            break;
+        }
+
+        case WE_GET_TX_CHAINMASK:
+        {
+            hddLog(LOG1, "GET WMI_PDEV_PARAM_TX_CHAIN_MASK");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_TX_CHAIN_MASK,
+                                         PDEV_CMD);
+            break;
+        }
+
+        case WE_GET_RX_CHAINMASK:
+        {
+            hddLog(LOG1, "GET WMI_PDEV_PARAM_RX_CHAIN_MASK");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_RX_CHAIN_MASK,
+                                         PDEV_CMD);
+            break;
+        }
+
 #endif
 
         default:
@@ -6898,6 +7019,32 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "cwmenable" },
+
+    {  WE_SET_TX_CHAINMASK,
+       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "txchainmask" },
+
+    {  WE_SET_RX_CHAINMASK,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "rxchainmask" },
+
+    {   WE_SET_11N_RATE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "set11NRates" },
+
+    {   WE_SET_AMPDU,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "ampdu" },
+
+    {   WE_SET_AMSDU,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "amsdu" },
+
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -7021,6 +7168,32 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_cwmenable" },
+
+    {   WE_GET_TX_CHAINMASK,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_txchainmask" },
+
+    {   WE_GET_RX_CHAINMASK,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_rxchainmask" },
+
+    {   WE_GET_11N_RATE,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_11nrate" },
+
+    {   WE_GET_AMPDU,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_ampdu" },
+
+    {   WE_GET_AMSDU,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_amsdu" },
+
 #endif
 
     /* handlers for main ioctl */

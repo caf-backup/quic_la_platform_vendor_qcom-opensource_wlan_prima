@@ -61,6 +61,17 @@
 
 typedef v_VOID_t* WMA_HANDLE;
 
+typedef enum {
+    /* Set ampdu size */
+    GEN_VDEV_PARAM_AMPDU = 0x1,
+    /* Set amsdu size */
+    GEN_VDEV_PARAM_AMSDU,
+} GEN_VDEV_PARAM;
+
+#define VDEV_CMD 1
+#define PDEV_CMD 2
+#define GEN_CMD  3
+
 #ifdef QCA_WIFI_ISOC
 VOS_STATUS wma_nv_download_start(v_VOID_t *vos_context);
 #endif

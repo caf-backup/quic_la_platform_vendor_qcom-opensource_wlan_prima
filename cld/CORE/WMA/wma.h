@@ -204,6 +204,9 @@ typedef struct {
 	u_int32_t ani_ofdm_level;
 	u_int32_t ani_cck_level;
 	u_int32_t cwmenable;
+	u_int32_t txchainmask;
+	u_int32_t rxchainmask;
+
 } pdev_cli_config_t;
 
 typedef struct {
@@ -214,6 +217,9 @@ typedef struct {
 	u_int32_t shortgi;
 	u_int32_t rtscts_en;
 	u_int32_t chwidth;
+	u_int32_t tx_rate;
+	u_int32_t ampdu;
+	u_int32_t amsdu;
 } vdev_cli_config_t;
 
 struct wma_txrx_node {
