@@ -2773,4 +2773,11 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
 /*SME API to convert convert the ini value to the ENUM used in csr and MAC*/
 ePhyChanBondState sme_GetCBPhyStateFromCBIniValue(tANI_U32 cb_ini_value);
 
+/*
+ * SME API to enable/disable idle mode powersave
+ * This should be called only if powersave offload
+ * is enabled
+ */
+VOS_STATUS sme_SetIdlePowersaveConfig(v_PVOID_t vosContext, tANI_U32 value);
+
 #endif //#if !defined( __SME_API_H )

@@ -3090,6 +3090,28 @@ static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *
 
 }
 
+VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val)
+{
+   hdd_config_t *pConfig = pHddCtx->cfg_ini;
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+   hddLog(LOG1, "hdd_set_idle_ps_config: Enter Val %d", val);
+
+   if(pConfig->fIsImpsEnabled)
+   {
+      status = sme_SetIdlePowersaveConfig(pHddCtx->pvosContext, val);
+      if(VOS_STATUS_SUCCESS != status)
+      {
+         hddLog(LOGE, "Fail to Set Idle PS Config val %d", val);
+      }
+   }
+   else
+   {
+      hddLog(LOG1, "hdd_set_idle_ps_config: IMPS not enabled in ini");
+   }
+   return status;
+}
+
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
 static VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 *len, tANI_U8 intArrayMaxLen )
 {
