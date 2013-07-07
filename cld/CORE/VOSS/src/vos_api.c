@@ -233,6 +233,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    adf_os_device_t adf_ctx;
    HTC_INIT_INFO  htcInfo;
 #endif
+   hdd_context_t *pHddCtx;
 
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: Opening VOSS", __func__);
@@ -419,6 +420,34 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    /* UMA is supported in hardware for performing the
       frame translation 802.11 <-> 802.3 */
    macOpenParms.frameTransRequired = 1;
+   /*
+    * Set Whether Power save Offload enabled or not
+    * This info needs to updated to MAC
+    * before opening sme module
+    * Based on this capability SME decides
+    * whether to open pmc or pmc offload
+    * module.
+    */
+   pHddCtx = (hdd_context_t*)(gpVosContext->pHDDContext);
+   if((NULL == pHddCtx) ||
+      (NULL == pHddCtx->cfg_ini))
+   {
+     /* Critical Error ...  Cannot proceed further */
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Hdd Context is Null", __func__);
+     VOS_ASSERT(0);
+     goto err_nv_close;
+   }
+
+   if(pHddCtx->cfg_ini->enablePowersaveOffload)
+   {
+      macOpenParms.powersaveOffloadEnabled = TRUE;
+   }
+   else
+   {
+      macOpenParms.powersaveOffloadEnabled = FALSE;
+   }
+
    sirStatus = macOpen(&(gpVosContext->pMACContext), gpVosContext->pHDDContext,
                          &macOpenParms);
    
