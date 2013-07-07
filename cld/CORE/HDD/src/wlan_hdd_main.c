@@ -3687,14 +3687,21 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
 
-   //Disable BMPS incase of Concurrency
-   exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, session_type);
-
-   if(VOS_STATUS_E_FAILURE == exitbmpsStatus)
+   /*
+    * If Powersave Offload is enabled
+    * Fw will take care incase of concurrency
+    */
+   if(!pHddCtx->cfg_ini->enablePowersaveOffload)
    {
-      //Fail to Exit BMPS
-      VOS_ASSERT(0);
-      return NULL;
+      //Disable BMPS incase of Concurrency
+      exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, session_type);
+
+      if(VOS_STATUS_E_FAILURE == exitbmpsStatus)
+      {
+         //Fail to Exit BMPS
+         VOS_ASSERT(0);
+         return NULL;
+      }
    }
 
    switch(session_type)
@@ -3868,10 +3875,17 @@ err_free_netdev:
                                pAdapter->macAddressCurrent.bytes );
 
 resume_bmps:
-   //If bmps disabled enable it
-   if(VOS_STATUS_SUCCESS == exitbmpsStatus)
+   /*
+    * If Powersave Offload is enabled
+    * Fw will take care incase of concurrency
+    */
+   if(!pHddCtx->cfg_ini->enablePowersaveOffload)
    {
-      hdd_enable_bmps_imps(pHddCtx);
+       //If bmps disabled enable it
+       if(VOS_STATUS_SUCCESS == exitbmpsStatus)
+       {
+          hdd_enable_bmps_imps(pHddCtx);
+       }
    }
    return NULL;
 }
@@ -3901,14 +3915,19 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
       hdd_cleanup_adapter( pHddCtx, pAdapterNode->pAdapter, rtnl_held );
       hdd_remove_adapter( pHddCtx, pAdapterNode );
       vos_mem_free( pAdapterNode );
-
-
-      /* If there is a single session of STA/P2P client, re-enable BMPS */
-      if ((!vos_concurrent_sessions_running()) && 
-           ((pHddCtx->no_of_sessions[VOS_STA_MODE] >= 1) || 
-           (pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE] >= 1)))
+      /*
+       * If Powersave Offload is enabled
+       * Fw will take care incase of concurrency
+       */
+      if(!pHddCtx->cfg_ini->enablePowersaveOffload)
       {
-         hdd_enable_bmps_imps(pHddCtx);
+          /* If there is a single session of STA/P2P client, re-enable BMPS */
+          if ((!vos_concurrent_sessions_running()) &&
+               ((pHddCtx->no_of_sessions[VOS_STA_MODE] >= 1) ||
+               (pHddCtx->no_of_sessions[VOS_P2P_CLIENT_MODE] >= 1)))
+          {
+             hdd_enable_bmps_imps(pHddCtx);
+          }
       }
 
       return VOS_STATUS_SUCCESS;
