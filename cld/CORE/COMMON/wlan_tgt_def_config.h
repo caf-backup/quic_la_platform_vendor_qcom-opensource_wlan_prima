@@ -14,7 +14,7 @@
  * default limit of 8 VAPs per device.
  */
 /* Rome PRD support 5 vdevs */
-#define CFG_TGT_NUM_VDEV                5
+#define CFG_TGT_NUM_VDEV                4
 
 /*
  * We would need 1 AST entry per peer. Scale it by a factor of 2 to minimize hash collisions.
@@ -44,7 +44,7 @@
 /*
  * total number of peers per device.
  */
-#define CFG_TGT_NUM_PEERS               16
+#define CFG_TGT_NUM_PEERS               8
 
 /*
  * In offload mode target supports features like WOW, chatter and other
@@ -66,7 +66,7 @@
 /*
  * total number of data TX and RX TIDs 
  */
-#define CFG_TGT_NUM_TIDS                (2 * (CFG_TGT_NUM_PEERS + CFG_TGT_NUM_VDEV))
+#define CFG_TGT_NUM_TIDS                (2 * CFG_TGT_NUM_PEERS)
 /*
  * set this to 0x7 (Peregrine = 3 chains).
  * need to be set dynamically based on the HW capability.
@@ -136,6 +136,6 @@
 /*
  * total number of descriptors to use in the target
  */
-#define CFG_TGT_NUM_MSDU_DESC    (1024 + 400)
+#define CFG_TGT_NUM_MSDU_DESC    (1024 + 32)
 
 #endif  /*__WLAN_TGT_DEF_CONFIG_H__ */
