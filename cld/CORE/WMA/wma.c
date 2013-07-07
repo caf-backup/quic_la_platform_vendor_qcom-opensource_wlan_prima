@@ -3883,6 +3883,12 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle,
 	}
 
 	WMA_LOGA("WMA <-- WMI_SERVICE_READY_EVENTID");
+	WMA_LOGA("FW_VERSION %d.%d.%d.%d",
+				ev->sw_version >> 24,
+				ev->sw_version & 0xffffff,
+				(ev->sw_version_1 & 0xff0000) >> 16,
+				ev->sw_version_1 & 0xffff);
+	WMA_LOGA("ABI_VERSION %d", ev->abi_version);
 
 	wma_handle->phy_capability = ev->phy_capability;
 	wma_handle->max_frag_entry = ev->max_frag_entry;
