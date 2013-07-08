@@ -8584,3 +8584,56 @@ eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
    }
    return (status);
 }
+
+tANI_S16 sme_GetHTConfig(tHalHandle hHal, tANI_U8 session_id, tANI_U16 ht_capab)
+{
+   tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
+   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, session_id);
+
+   switch (ht_capab) {
+   case WNI_CFG_HT_CAP_INFO_ADVANCE_CODING:
+        return pSession->htConfig.ht_rx_ldpc;
+   case WNI_CFG_HT_CAP_INFO_TX_STBC:
+        return pSession->htConfig.ht_tx_stbc;
+   case WNI_CFG_HT_CAP_INFO_RX_STBC:
+        return pSession->htConfig.ht_rx_stbc;
+   case WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ:
+   case WNI_CFG_HT_CAP_INFO_SHORT_GI_40MHZ:
+        return pSession->htConfig.ht_sgi;
+   default:
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "invalid ht capability");
+        return -EIO;
+   }
+}
+
+int sme_UpdateHTConfig(tHalHandle hHal, tANI_U8 sessionId, tANI_U16 htCapab,
+                         int value)
+{
+   tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
+   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
+
+   if (eHAL_STATUS_SUCCESS != WDA_SetHTConfig(sessionId, htCapab, value)) {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 "Failed to set ht capability in target");
+       return -EIO;
+   }
+
+   switch (htCapab) {
+   case WNI_CFG_HT_CAP_INFO_ADVANCE_CODING:
+        pSession->htConfig.ht_rx_ldpc = value;
+        break;
+   case WNI_CFG_HT_CAP_INFO_TX_STBC:
+        pSession->htConfig.ht_tx_stbc = value;
+        break;
+   case WNI_CFG_HT_CAP_INFO_RX_STBC:
+        pSession->htConfig.ht_rx_stbc = value;
+        break;
+   case WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ:
+   case WNI_CFG_HT_CAP_INFO_SHORT_GI_40MHZ:
+        pSession->htConfig.ht_sgi = value;
+        break;
+   }
+
+   return 0;
+}

@@ -1228,13 +1228,16 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 #ifdef QCA_WIFI_2_0
 
 #define WDA_SetRegDomain WMA_SetRegDomain
-
+#define WDA_SetHTConfig wma_set_htconfig
 #define WDA_UpdateRssiBmps WMA_UpdateRssiBmps
 
 #else
 
 eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
-
+static int WDA_SetHTConfig(tANI_U8 sessionId, tANI_U16 htCapab, int value)
+{
+	return 0;
+}
 
 /* -----------------------------------------------------------------
   WDA data path API's for TL
