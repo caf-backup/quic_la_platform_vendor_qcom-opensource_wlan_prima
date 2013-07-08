@@ -3352,6 +3352,113 @@ wmi_send_failed:
 	return VOS_STATUS_E_FAILURE;
 }
 #endif
+
+static int32_t wmi_unified_set_sta_ps(wmi_unified_t wmi_handle,
+                               u_int32_t vdev_id, u_int8_t val)
+{
+        wmi_sta_powersave_mode_cmd *cmd;
+        wmi_buf_t buf;
+        int32_t len = sizeof(wmi_sta_powersave_mode_cmd);
+
+        WMA_LOGD("Set Sta Mode Ps vdevId %d val %d", vdev_id, val);
+
+        buf = wmi_buf_alloc(wmi_handle, len);
+        if (!buf) {
+                WMA_LOGP("Set Sta Mode Ps Mem Alloc Failed");
+                return -ENOMEM;
+        }
+        cmd = (wmi_sta_powersave_mode_cmd *)wmi_buf_data(buf);
+        cmd->vdev_id = vdev_id;
+        if(val)
+                cmd->sta_ps_mode = WMI_STA_PS_MODE_ENABLED;
+        else
+                cmd->sta_ps_mode = WMI_STA_PS_MODE_DISABLED;
+
+        if(wmi_unified_cmd_send(wmi_handle, buf, len,
+                       WMI_STA_POWERSAVE_MODE_CMDID))
+        {
+                WMA_LOGE("Set Sta Mode Ps Failed vdevId %d val %d",
+                         vdev_id, val);
+                adf_nbuf_free(buf);
+                return -EIO;
+        }
+        return 0;
+}
+
+static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
+{
+        int32_t ret;
+        tANI_U32 cfg_data_val;
+        uint32_t vdev_id = ps_req->sessionid;
+        /* get mac to access CFG data base */
+        struct sAniSirGlobal *mac =
+                (struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+                                                        wma->vos_context);
+
+        WMA_LOGE("Enable Sta Mode Ps vdevId %d", vdev_id);
+
+        /* Set Tx/Rx Data InActivity Timeout   */
+        if(wlan_cfgGetInt(mac, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT,
+                        &cfg_data_val ) != eSIR_SUCCESS) {
+		WMA_LOGE("Failed to get WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT");
+                /* Set it to default one */
+                cfg_data_val = POWERSAVE_DEFAULT_INACTIVITY_TIME;
+        }
+        ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+                        WMI_STA_PS_PARAM_INACTIVITY_TIME, cfg_data_val);
+        if(ret)
+                WMA_LOGE("Enable Sta Ps Tx/Rx Inactivity Failed vdevId %d",
+                        vdev_id);
+
+        /* Enable Sta Mode Power save */
+        ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, true);
+
+        if(ret) {
+                WMA_LOGE("Enable Sta Mode Ps Failed vdevId %d", vdev_id);
+                ps_req->status = VOS_STATUS_E_FAILURE;
+                goto resp;
+        }
+
+        /* Set Listen Interval */
+        if(wlan_cfgGetInt(mac, WNI_CFG_LISTEN_INTERVAL,
+                        &cfg_data_val ) != eSIR_SUCCESS) {
+                VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                "Failed to get value for WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT");
+                /* Set it to Default one */
+                cfg_data_val = POWERSAVE_DEFAULT_LISTEN_INTERVAL;
+        }
+
+        ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+                        WMI_VDEV_PARAM_LISTEN_INTERVAL, cfg_data_val);
+        if(ret)
+                WMA_LOGE("Failed to Set Listen Interval vdevId %d",
+                        vdev_id);
+
+        ps_req->status = VOS_STATUS_SUCCESS;
+resp:
+        wma_send_msg(wma, WDA_ENTER_BMPS_RSP, ps_req, 0);
+}
+
+static void wma_disable_sta_ps_mode(tp_wma_handle wma, tpDisablePsParams ps_req)
+{
+        int32_t ret;
+        uint32_t vdev_id = ps_req->sessionid;
+
+        WMA_LOGE("Disable Sta Mode Ps vdevId %d", vdev_id);
+
+        /* Disable Sta Mode Power save */
+        ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, false);
+        if(ret) {
+                WMA_LOGE("Disable Sta Mode Ps Failed vdevId %d", vdev_id);
+                ps_req->status = VOS_STATUS_E_FAILURE;
+                goto resp;
+        }
+
+        ps_req->status = VOS_STATUS_SUCCESS;
+resp:
+        wma_send_msg(wma, WDA_EXIT_BMPS_RSP, ps_req, 0);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -3473,6 +3580,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 				(struct ar6k_testmode_cmd_data *)msg->bodyptr);
 			break;
 #endif
+		case WDA_ENTER_BMPS_REQ:
+			wma_enable_sta_ps_mode(wma_handle,
+                                        (tpEnablePsParams)msg->bodyptr);
+			break;
+		case WDA_EXIT_BMPS_REQ:
+			wma_disable_sta_ps_mode(wma_handle,
+                                        (tpDisablePsParams)msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
