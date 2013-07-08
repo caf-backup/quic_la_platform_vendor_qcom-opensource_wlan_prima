@@ -2283,12 +2283,49 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 	return ret;
 }
 
+static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
+		u_int32_t vdev_id, u_int32_t param, u_int32_t value)
+{
+	wmi_sta_powersave_param_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_sta_powersave_param_cmd);
+
+	WMA_LOGD("Set Sta Ps param vdevId %d Param %d val %d",
+		      vdev_id, param, value);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("Set Sta Ps param Mem Alloc Failed");
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_sta_powersave_param_cmd *)wmi_buf_data(buf);
+	cmd->vdev_id = vdev_id;
+	cmd->param = param;
+	cmd->value = value;
+
+	if (wmi_unified_cmd_send(wmi_handle, buf, len,
+			WMI_STA_POWERSAVE_PARAM_CMDID)) {
+		WMA_LOGE("Set Sta Ps param Failed vdevId %d Param %d val %d",
+			vdev_id, param, value);
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	return 0;
+}
+
 /* BSS set params functions */
 static void
 wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
 {
 	int ret;
 	uint32_t slot_time;
+	tANI_U32 cfg_data_val = 0;
+
+	/* get mac to acess CFG data base */
+	struct sAniSirGlobal *mac =
+		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+							wma->vos_context);
 
 	/* Beacon Interval setting */
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
@@ -2315,6 +2352,33 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
 					      slot_time);
 	if (ret)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_SLOT_TIME\n");
+
+	/* Ps Poll Wake Policy */
+	if (wlan_cfgGetInt(mac, WNI_CFG_MAX_PS_POLL,
+			&cfg_data_val ) != eSIR_SUCCESS) {
+		WMA_LOGE("Failed to get WNI_CFG_MAX_PS_POLL");
+	}
+
+	if (cfg_data_val) {
+		/* Set the Wake Policy to WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD*/
+		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_RX_WAKE_POLICY,
+					WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD);
+
+		if(ret) {
+			WMA_LOGE("Set ps poll wake policy failed vdevId %d",
+				vdev_id);
+		}
+
+		/* Set the Ps Poll Count */
+		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+						WMI_STA_PS_PARAM_PSPOLL_COUNT,
+						cfg_data_val);
+		if(ret) {
+			WMA_LOGE("Setting Ps Poll Count Failed vdevId %d ps poll cnt %d",
+				vdev_id, cfg_data_val);
+		}
+	}
 }
 
 static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
