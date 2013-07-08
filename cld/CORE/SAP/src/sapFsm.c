@@ -303,6 +303,8 @@ sapGotoStarting
     eHalStatus halStatus;
     tANI_U32 type, subType;
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
 
     /*- - - - - - - - TODO:once configs from hdd available - - - - - - - - -*/
     char key_material[32]={ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1,};
@@ -319,11 +321,15 @@ sapGotoStarting
         return VOS_STATUS_E_FAULT;
     }
 
-    //TODO: What shall we do if failure????
-    halStatus = pmcRequestFullPower( hHal,
+    /* No Need to Req for Power with power offload enabled */
+    if(!pMac->psOffloadEnabled)
+    {
+       //TODO: What shall we do if failure????
+       halStatus = pmcRequestFullPower( hHal,
                             WLANSAP_pmcFullPwrReqCB,
                             sapContext,
                             eSME_REASON_OTHER);
+    }
 
     status = vos_get_vdev_types(VOS_STA_SAP_MODE, &type, &subType);
     if (VOS_STATUS_SUCCESS != status)

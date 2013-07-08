@@ -30,6 +30,11 @@
 //cleanup the usage.
 #define PMC_ABORT  
 
+#define PMC_SESSION_MAX 5
+
+/* Auto Ps Entry Timer Default value - 1000 ms */
+#define AUTO_PS_ENTRY_TIMER_DEFAULT_VALUE 1000
+
 /* Host power sources. */
 typedef enum ePowerSource
 {
@@ -236,9 +241,179 @@ extern void pmcDoEnterWowlCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
 //The function will request for full power as well in addition to defer the message
 extern eHalStatus pmcDeferMsg( tpAniSirGlobal pMac, tANI_U16 messageType, 
                                                void *pData, tANI_U32 size);
-extern eHalStatus pmcIssueCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void *pvParam, 
-                                   tANI_U32 size, tANI_BOOLEAN fPutToListHead );
+extern eHalStatus pmcIssueCommand(tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                 eSmeCommandType cmdType, void *pvParam,
+                                 tANI_U32 size, tANI_BOOLEAN fPutToListHead);
 extern eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac );
 extern eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac );
 extern tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac );
+
+/* Power Save Offload Changes */
+/* Per SME Session PMC Offload Structure */
+typedef struct sPsOffloadPerSessionInfo
+{
+    tpAniSirGlobal pMac;
+
+    tANI_U32 sessionId;
+
+    /* TRUE if Sta Mode Ps is Enabled */
+    tANI_BOOLEAN configStaPsEnabled;
+
+    /*
+     * Indicates current uapsd status
+     * Enabled/Disabled/Required
+     */
+    tUapsdStatus uapsdStatus;
+
+    tANI_BOOLEAN uapsdSessionRequired;
+
+    /* Current Power Save State */
+    tPmcState pmcState;
+
+    /*
+     * Auto Sta Ps Enable Timer
+     * Upon expiration of this timer
+     * Power Save Offload module will
+     * try to enable sta mode ps
+     */
+     vos_timer_t autoPsEnableTimer;
+
+    /*  Auto Sta Ps Entry Timer Period */
+    tANI_U32 autoPsEntryTimerPeriod;
+
+    /* Full Power Request Pending */
+    tANI_BOOLEAN fullPowerReqPend;
+
+    /*
+     * List contains functions registered by different modules
+     * PsOffload Module will call this to check whether
+     * the particular module is ok to enable station mode power save
+     */
+    tDblLinkList pwrsaveCheckList;
+
+    /*
+     * List contains cbs passed by different modules
+     * to indicate power state change
+     */
+    tDblLinkList deviceStateUpdateIndList;
+
+    /*
+     * List contains cbs passed by different modules
+     * upon requesting full power
+     */
+    tDblLinkList fullPowerCbList;
+
+    /*
+     * List contains cbs passed by different modules
+     * upon requesting uapsd
+     */
+    tDblLinkList uapsdCbList;
+}tPsOffloadPerSessionInfo,*tpPsOffloadPerSessionInfo;
+
+typedef struct sPmcOffloadInfo
+{
+    /* Based on Whether BMPS is enabled or not in ini */
+    tANI_BOOLEAN staPsEnabled;
+
+    tPsOffloadPerSessionInfo pmc[PMC_SESSION_MAX];
+
+}tPmcOffloadInfo,*tpPmcOffloadInfo;
+
+/* Power save check routine list entry. */
+typedef struct sPmcOffloadPsCheckEntry
+{
+    /* list links */
+    tListElem link;
+
+    /* power save check routine */
+    PwrSaveCheckRoutine pwrsaveCheckCb;
+
+    /* value to be passed as parameter to routine specified above */
+    void *checkContext;
+
+    /* Session Id */
+    tANI_U32 sessionId;
+} tPmcOffloadPsCheckEntry,*tpPmcOffloadPsCheckEntry;
+
+
+/* Device Power State update indication list entry. */
+typedef struct sPmcOffloadDevStateUpdIndEntry
+{
+    /* list links */
+    tListElem link;
+
+    /* Callback routine to be invoked when pmc changes device state */
+    PwrSaveStateChangeIndCb stateChangeCb;
+
+    /* value to be passed as parameter to routine specified above */
+    void *callbackContext;
+
+    /* Session Id */
+    tANI_U32 sessionId;
+} tPmcOffloadDevStateUpdIndEntry,*tpPmcOffloadDevStateUpdIndEntry;
+
+/* Request full power callback routine list entry. */
+typedef struct sPmcOffloadReqFullPowerEntry
+{
+    /* list links */
+    tListElem link;
+
+    /* routine to call when full power is restored */
+    FullPowerReqCb fullPwrCb;
+
+    /* value to be passed as parameter to routine specified above */
+    void *callbackContext;
+
+    /* SessionId */
+    tANI_U32 sessionId;
+}tPmcOffloadReqFullPowerEntry,*tpPmcOffloadReqFullPowerEntry;
+
+/* Start U-APSD callback routine list entry. */
+typedef struct sPmcOffloadStartUapsdEntry
+{
+   tListElem link;  /* list links */
+
+   /* routine to call when Uapsd Start succeeded/failed*/
+   UapsdStartIndCb uapsdStartInd;
+
+   /* value to be passed as parameter to routine specified above */
+   void *callbackContext;
+
+   /* SessionId */
+   tANI_U32 sessionId;
+} tPmcOffloadStartUapsdEntry,*tpPmcOffloadStartUapsdEntry;
+
+eHalStatus pmcOffloadOpenPerSession(tHalHandle hHal, tANI_U32 sessionId);
+eHalStatus pmcOffloadClosePerSession(tHalHandle hHal, tANI_U32 sessionId);
+eHalStatus pmcOffloadStartPerSession(tHalHandle hHal, tANI_U32 sessionId);
+eHalStatus pmcOffloadStopPerSession(tHalHandle hHal, tANI_U32 sessionId);
+
+
+eHalStatus pmcOffloadStartAutoStaPsTimer (tpAniSirGlobal pMac,
+                                          tANI_U32 sessionId);
+
+void pmcOffloadStopAutoStaPsTimer(tpAniSirGlobal pMac, tANI_U32 sessionId);
+
+eHalStatus pmcOffloadQueueRequestFullPower (tpAniSirGlobal pMac,
+             tANI_U32 sessionId, tRequestFullPowerReason fullPowerReason);
+
+eHalStatus pmcOffloadEnableStaPsHandler(tpAniSirGlobal pMac,
+                                        tANI_U32 sessionId);
+
+void pmcOffloadProcessResponse(tpAniSirGlobal pMac, tSirSmeRsp *pMsg);
+void pmcOffloadAutoPsEntryTimerExpired(void *pmcInfo);
+void pmcOffloadDoFullPowerCallbacks (tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                     eHalStatus status);
+void pmcOffloadDoDeviceStateUpdateCallbacks (tpAniSirGlobal pMac,
+                            tANI_U32 sessionId, tPmcState state);
+void pmcOffloadDoStartUapsdCallbacks (tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                      eHalStatus status);
+eHalStatus pmcOffloadDisableStaPsHandler(tpAniSirGlobal pMac,
+                                         tANI_U8 sessionId);
+eHalStatus pmcOffloadEnableStaPsCheck(tpAniSirGlobal pMac,
+                                      tANI_U32 sessionId);
+eHalStatus pmcOffloadExitPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId);
+
+eHalStatus pmcOffloadEnterPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId);
+void pmcOffloadExitBmpsIndHandler(tpAniSirGlobal pMac, tSirSmeRsp *pMsg);
 #endif

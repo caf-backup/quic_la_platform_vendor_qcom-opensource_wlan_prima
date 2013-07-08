@@ -31,6 +31,8 @@ static void btcRestoreHeartBeatMonitoringHandle(void* hHal);
 static void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent );
 VOS_STATUS btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent);
 static void btcPowerStateCB( v_PVOID_t pContext, tPmcState pmcState );
+static void btcPowerOffloadStateCB(v_PVOID_t pContext, tANI_U32 sessionId,
+                                   tPmcState pmcState );
 static VOS_STATUS btcDeferEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent );
 static VOS_STATUS btcDeferDisconnEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent );
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
@@ -83,10 +85,30 @@ VOS_STATUS btcOpen (tHalHandle hHal)
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcOpen: Fail to init timer");
        return VOS_STATUS_E_FAILURE;
    }
-   if( !HAL_STATUS_SUCCESS(pmcRegisterDeviceStateUpdateInd( pMac, btcPowerStateCB, pMac )) )
+
+   if(!pMac->psOffloadEnabled)
    {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcOpen: Fail to register PMC callback");
-       return VOS_STATUS_E_FAILURE;
+       if(!HAL_STATUS_SUCCESS(pmcRegisterDeviceStateUpdateInd(pMac,
+                              btcPowerStateCB, pMac)))
+       {
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                    "btcOpen: Fail to register PMC callback");
+          return VOS_STATUS_E_FAILURE;
+       }
+   }
+   else
+   {
+       tANI_U32 i;
+       for(i = 0; i < CSR_ROAM_SESSION_MAX; i++)
+       {
+           if(!HAL_STATUS_SUCCESS(pmcOffloadRegisterDeviceStateUpdateInd(pMac,
+                                            i, btcPowerOffloadStateCB, pMac)))
+           {
+              VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                        "btcOpen: Fail to register PMC callback");
+              return VOS_STATUS_E_FAILURE;
+          }
+       }
    }
    return VOS_STATUS_SUCCESS;
 }
@@ -110,14 +132,31 @@ VOS_STATUS btcClose (tHalHandle hHal)
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcClose: Fail to destroy timer");
        return VOS_STATUS_E_FAILURE;
    }
-   if(!HAL_STATUS_SUCCESS(
-      pmcDeregisterDeviceStateUpdateInd(pMac, btcPowerStateCB)))
-   {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-         "%s: %d: cannot deregister with pmcDeregisterDeviceStateUpdateInd()",
-                __func__, __LINE__);
-   }
 
+   if(!pMac->psOffloadEnabled)
+   {
+       if(!HAL_STATUS_SUCCESS(
+          pmcDeregisterDeviceStateUpdateInd(pMac, btcPowerStateCB)))
+       {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+           "%s: %d: cannot deregister pmcDeregisterDeviceStateUpdateInd()",
+           __func__, __LINE__);
+       }
+   }
+   else
+   {
+       tANI_U32 i;
+       for(i = 0; i < CSR_ROAM_SESSION_MAX; i++)
+       {
+           if(!HAL_STATUS_SUCCESS(pmcOffloadDeregisterDeviceStateUpdateInd(pMac,
+              i, btcPowerOffloadStateCB)))
+           {
+              VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                        "btcOpen: Fail to deregister PMC callback");
+              return VOS_STATUS_E_FAILURE;
+           }
+       }
+   }
    return VOS_STATUS_SUCCESS;
 }
 
@@ -1613,6 +1652,17 @@ static void btcPowerStateCB( v_PVOID_t pContext, tPmcState pmcState )
         btcReplayEvents( pMac );
     }
 }
+
+static void btcPowerOffloadStateCB(v_PVOID_t pContext, tANI_U32 sessionId,
+                                   tPmcState pmcState )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(pContext);
+    if(FULL_POWER == pmcState)
+    {
+        btcReplayEvents(pMac);
+    }
+}
+
 
 /* ---------------------------------------------------------------------------
     \fn btcLogEvent

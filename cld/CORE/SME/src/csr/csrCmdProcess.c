@@ -108,6 +108,13 @@ tANI_BOOLEAN csrCheckPSReady(void *pv)
     return (pMac->roam.sPendingCommands == 0);
 }
 
+tANI_BOOLEAN csrCheckPSOffloadReady(void *pv, tANI_U32 sessionId)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(pv);
+
+    VOS_ASSERT(pMac->roam.sPendingCommands >= 0);
+    return (pMac->roam.sPendingCommands == 0);
+}
 
 void csrFullPowerCallback(void *pv, eHalStatus status)
 {
@@ -121,6 +128,23 @@ void csrFullPowerCallback(void *pv, eHalStatus status)
     {
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         smePushCommand( pMac, pCommand, eANI_BOOLEAN_FALSE );
+    }
+
+}
+
+void csrFullPowerOffloadCallback(void *pv, tANI_U32 sessionId, eHalStatus status)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( pv );
+    tListElem *pEntry;
+    tSmeCmd *pCommand;
+
+    (void)status;
+
+    while(NULL != (pEntry = csrLLRemoveHead(&pMac->roam.roamCmdPendingList,
+                                            eANI_BOOLEAN_TRUE)))
+    {
+        pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
+        smePushCommand(pMac, pCommand, eANI_BOOLEAN_FALSE);
     }
 
 }

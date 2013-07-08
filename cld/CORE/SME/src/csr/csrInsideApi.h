@@ -337,7 +337,11 @@ void csrFreeRoamProfile(tpAniSirGlobal pMac, tANI_U32 sessionId);
 void csrFreeConnectBssDesc(tpAniSirGlobal pMac, tANI_U32 sessionId);
 eHalStatus csrMoveBssToHeadFromBSSID(tpAniSirGlobal pMac, tCsrBssid *bssid, tScanResultHandle hScanResult);
 tANI_BOOLEAN csrCheckPSReady(void *pv);
+tANI_BOOLEAN csrCheckPSOffloadReady(void *pv, tANI_U32 sessionId);
 void csrFullPowerCallback(void *pv, eHalStatus status);
+void csrFullPowerOffloadCallback(void *pv, tANI_U32 sessionId,
+                                 eHalStatus status);
+
 //to free memory allocated inside the profile structure
 void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile);
 //To free memory allocated inside scanFilter

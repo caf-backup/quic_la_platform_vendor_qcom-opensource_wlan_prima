@@ -57,8 +57,9 @@ extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define READ_MEMORY_DUMP_CMD     9
 
 // TxMB Functions
-extern eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void *pvParam,
-                            tANI_U32 size, tSmeCmd **ppCmd );
+extern eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                     eSmeCommandType cmdType, void *pvParam,
+                                     tANI_U32 size, tSmeCmd **ppCmd);
 extern void pmcReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 extern void qosReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 extern eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemainonChn);
@@ -439,13 +440,68 @@ static eSmeCommandType smeIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pComm
     return ( pmcCommand );
 }
 
+static eSmeCommandType smePsOffloadIsFullPowerNeeded(tpAniSirGlobal pMac,
+                                                     tSmeCmd *pCommand)
+{
+    eSmeCommandType pmcCommand = eSmeNoCommand;
+    tANI_BOOLEAN fFullPowerNeeded = eANI_BOOLEAN_FALSE;
+    eHalStatus status;
+    tPmcState pmcState;
+
+    do
+    {
+        /* Check for CSR Commands which require full power */
+        status = csrPsOffloadIsFullPowerNeeded(pMac, pCommand, NULL,
+                                               &fFullPowerNeeded);
+        if(!HAL_STATUS_SUCCESS(status))
+        {
+            /* PMC state is not right for the command, drop it */
+            return eSmeDropCommand;
+        }
+        if(fFullPowerNeeded) break;
+
+        /* Check for SME Commands which require Full Power */
+        if((eSmeCommandAddTs == pCommand->command) ||
+           ((eSmeCommandDelTs ==  pCommand->command)))
+        {
+           /* Get the PMC State */
+           pmcState = pmcOffloadGetPmcState(pMac, pCommand->sessionId);
+           switch(pmcState)
+           {
+               case REQUEST_BMPS:
+               case BMPS:
+               case REQUEST_START_UAPSD:
+               case REQUEST_STOP_UAPSD:
+               case UAPSD:
+                   fFullPowerNeeded = eANI_BOOLEAN_TRUE;
+                 break;
+               case STOPPED:
+                 break;
+               default:
+                 break;
+           }
+           break;
+        }
+    } while(0);
+
+    if(fFullPowerNeeded)
+    {
+        pmcCommand = eSmeCommandExitBmps;
+    }
+
+    return pmcCommand;
+}
+
 
 //For commands that need to do extra cleanup.
 static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStopping )
 {
     if( eSmePmcCommandMask & pCommand->command )
     {
-        pmcAbortCommand( pMac, pCommand, fStopping );
+        if(!pMac->psOffloadEnabled)
+            pmcAbortCommand( pMac, pCommand, fStopping );
+        else
+            pmcOffloadAbortCommand(pMac, pCommand, fStopping);
     }
     else if ( eSmeCsrCommandMask & pCommand->command )
     {
@@ -509,7 +565,10 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                         return ( eANI_BOOLEAN_FALSE );
                     }
                 }
-                pmcCommand = smeIsFullPowerNeeded( pMac, pCommand );
+                if(pMac->psOffloadEnabled)
+                    pmcCommand = smePsOffloadIsFullPowerNeeded(pMac, pCommand);
+                else
+                   pmcCommand = smeIsFullPowerNeeded( pMac, pCommand );
                 if( eSmeDropCommand == pmcCommand )
                 {
                     //This command is not ok for current PMC state
@@ -535,13 +594,23 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                         size = sizeof(tExitBmpsInfo);
                     }
                     //pmcCommand has to be one of the exit power save command
-                    status = pmcPrepareCommand( pMac, pmcCommand, pv, size, &pPmcCmd );
+                    status = pmcPrepareCommand(pMac, pCommand->sessionId,
+                                               pmcCommand, pv, size,
+                                               &pPmcCmd);
                     if( HAL_STATUS_SUCCESS( status ) && pPmcCmd )
                     {
                         //Force this command to wake up the chip
                         csrLLInsertHead( &pMac->sme.smeCmdActiveList, &pPmcCmd->Link, LL_ACCESS_NOLOCK );
                         csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                        fContinue = pmcProcessCommand( pMac, pPmcCmd );
+                        /* Handle PS Offload Case Separately */
+                        if(pMac->psOffloadEnabled)
+                        {
+                           fContinue = pmcOffloadProcessCommand(pMac, pPmcCmd);
+                        }
+                        else
+                        {
+                            fContinue = pmcProcessCommand( pMac, pPmcCmd );
+                        }
                         if( fContinue )
                         {
                             //The command failed, remove it
@@ -652,7 +721,15 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                         case eSmeCommandEnterWowl:
                         case eSmeCommandExitWowl:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                            fContinue = pmcProcessCommand( pMac, pCommand );
+                            if(pMac->psOffloadEnabled)
+                            {
+                                fContinue =
+                                  pmcOffloadProcessCommand(pMac, pCommand);
+                            }
+                            else
+                            {
+                                fContinue = pmcProcessCommand(pMac, pCommand);
+                            }
                             if( fContinue )
                             {
                                 //The command failed, remove it
@@ -671,7 +748,16 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                             {
                                 //It can continue
                                 csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                                fContinue = pmcProcessCommand( pMac, pCommand );
+                                if(pMac->psOffloadEnabled)
+                                {
+                                    fContinue =
+                                        pmcOffloadProcessCommand(pMac, pCommand);
+                                }
+                                else
+                                {
+                                    fContinue =
+                                        pmcProcessCommand(pMac, pCommand);
+                                }
                                 if( fContinue )
                                 {
                                     //The command failed, remove it
@@ -711,7 +797,17 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                                     else
                                     {
                                         //Continue the command here
-                                        fContinue = pmcProcessCommand( pMac, pCommand );
+                                        if(pMac->psOffloadEnabled)
+                                        {
+                                            fContinue =
+                                                 pmcOffloadProcessCommand(pMac,
+                                                                     pCommand);
+                                        }
+                                        else
+                                        {
+                                            fContinue = pmcProcessCommand(pMac,
+                                                                     pCommand);
+                                        }
                                         if( fContinue )
                                         {
                                             //The command failed, remove it
@@ -891,11 +987,25 @@ eHalStatus sme_Open(tHalHandle hHal)
          break;
       }
 
-      status = pmcOpen(hHal);
-      if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE,
-                 "pmcOpen failed during initialization with status=%d", status );
-         break;
+      if(!pMac->psOffloadEnabled)
+      {
+          status = pmcOpen(hHal);
+          if ( ! HAL_STATUS_SUCCESS( status ) ) {
+             smsLog( pMac, LOGE,
+                 "pmcOpen failed during initialization with status=%d",
+                 status );
+             break;
+          }
+      }
+      else
+      {
+          status = pmcOffloadOpen(hHal);
+          if (! HAL_STATUS_SUCCESS(status)) {
+             smsLog( pMac, LOGE,
+                 "pmcOffloadOpen failed during initialization with status=%d",
+                 status );
+             break;
+          }
       }
 
 #ifdef FEATURE_WLAN_TDLS
@@ -1244,46 +1354,75 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
          break;
       }
 
-      status = pmcQueryPowerState( hHal, &powerState,
-                                &hwWlanSwitchState, &swWlanSwitchState );
-      if ( ! HAL_STATUS_SUCCESS( status ) )
+      if(!pMac->psOffloadEnabled)
       {
-         smsLog( pMac, LOGE, "pmcQueryPowerState failed with status=%d",
-                 status );
-         break;
-      }
+         status = pmcQueryPowerState( hHal, &powerState,
+                                     &hwWlanSwitchState, &swWlanSwitchState );
+         if ( ! HAL_STATUS_SUCCESS( status ) )
+         {
+              smsLog( pMac, LOGE, "pmcQueryPowerState failed with status=%d",
+                      status );
+              break;
+         }
 
-      if ( (ePMC_SWITCH_OFF != hwWlanSwitchState) &&
-           (ePMC_SWITCH_OFF != swWlanSwitchState) )
-      {
-         status = csrReady(pMac);
-         if ( ! HAL_STATUS_SUCCESS( status ) )
+         if ( (ePMC_SWITCH_OFF != hwWlanSwitchState) &&
+              (ePMC_SWITCH_OFF != swWlanSwitchState) )
          {
-            smsLog( pMac, LOGE, "csrReady failed with status=%d", status );
-            break;
-         }
-         status = pmcReady(hHal);
-         if ( ! HAL_STATUS_SUCCESS( status ) )
-         {
-             smsLog( pMac, LOGE, "pmcReady failed with status=%d", status );
-             break;
-         }
+             status = csrReady(pMac);
+             if ( ! HAL_STATUS_SUCCESS( status ) )
+             {
+                 smsLog( pMac, LOGE, "csrReady failed with status=%d", status );
+                 break;
+             }
+             status = pmcReady(hHal);
+             if ( ! HAL_STATUS_SUCCESS( status ) )
+             {
+                 smsLog( pMac, LOGE, "pmcReady failed with status=%d", status );
+                 break;
+             }
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
-         if(VOS_STATUS_SUCCESS != btcReady(hHal))
-         {
-             status = eHAL_STATUS_FAILURE;
-             smsLog( pMac, LOGE, "btcReady failed");
-             break;
-         }
+             if(VOS_STATUS_SUCCESS != btcReady(hHal))
+             {
+                 status = eHAL_STATUS_FAILURE;
+                 smsLog( pMac, LOGE, "btcReady failed");
+                 break;
+             }
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI
-         if(VOS_STATUS_SUCCESS != rrmReady(hHal))
-         {
-             status = eHAL_STATUS_FAILURE;
-             smsLog( pMac, LOGE, "rrmReady failed");
-             break;
+             if(VOS_STATUS_SUCCESS != rrmReady(hHal))
+             {
+                 status = eHAL_STATUS_FAILURE;
+                 smsLog( pMac, LOGE, "rrmReady failed");
+                 break;
+             }
+#endif
          }
+      }
+      else
+      {
+          status = csrReady(pMac);
+          if (!HAL_STATUS_SUCCESS(status))
+          {
+              smsLog( pMac, LOGE, "csrReady failed with status=%d", status );
+              break;
+          }
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
+          if(VOS_STATUS_SUCCESS != btcReady(hHal))
+          {
+              status = eHAL_STATUS_FAILURE;
+              smsLog( pMac, LOGE, "btcReady failed");
+              break;
+          }
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI
+          if(VOS_STATUS_SUCCESS != rrmReady(hHal))
+          {
+              status = eHAL_STATUS_FAILURE;
+              smsLog( pMac, LOGE, "rrmReady failed");
+              break;
+          }
 #endif
       }
       pMac->sme.state = SME_STATE_READY;
@@ -1321,11 +1460,25 @@ eHalStatus sme_Start(tHalHandle hHal)
          break;
       }
 
-      status = pmcStart(hHal);
-      if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "pmcStart failed during smeStart with status=%d",
-                 status );
-         break;
+      if(!pMac->psOffloadEnabled)
+      {
+          status = pmcStart(hHal);
+          if ( ! HAL_STATUS_SUCCESS( status ) ) {
+             smsLog( pMac, LOGE,
+                     "pmcStart failed during smeStart with status=%d",
+                     status );
+             break;
+          }
+      }
+      else
+      {
+          status = pmcOffloadStart(hHal);
+          if ( ! HAL_STATUS_SUCCESS( status ) ) {
+             smsLog( pMac, LOGE,
+                     "pmcOffloadStart failed during smeStart with status=%d",
+                     status );
+             break;
+          }
       }
 
       status = WLANSAP_Start(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
@@ -1463,7 +1616,14 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
              //PMC
              if (pMsg->bodyptr)
              {
-                pmcMessageProcessor(hHal, pMsg->bodyptr);
+                if(!pMac->psOffloadEnabled)
+                {
+                    pmcMessageProcessor(hHal, pMsg->bodyptr);
+                }
+                else
+                {
+                    pmcOffloadMessageProcessor(hHal, pMsg->bodyptr);
+                }
                 status = eHAL_STATUS_SUCCESS;
                 vos_mem_free( pMsg->bodyptr );
              } else {
@@ -1841,12 +2001,26 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
 
    if(pmcFlag)
    {
-      status = pmcStop(hHal);
-      if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "pmcStop failed during smeStop with status=%d",
-                 status );
-         fail_status = status;
-      }
+        if(!pMac->psOffloadEnabled)
+        {
+            status = pmcStop(hHal);
+            if ( ! HAL_STATUS_SUCCESS( status ) ) {
+                smsLog( pMac, LOGE,
+                        "pmcStop failed during smeStop with status=%d",
+                        status );
+                fail_status = status;
+            }
+        }
+        else
+        {
+            status = pmcOffloadStop(hHal);
+            if ( ! HAL_STATUS_SUCCESS( status ) ) {
+                smsLog( pMac, LOGE,
+                       "pmcOffloadStop failed during smeStop with status=%d",
+                       status );
+                fail_status = status;
+            }
+        }
    }
 
    status = csrStop(pMac);
@@ -1939,11 +2113,23 @@ eHalStatus sme_Close(tHalHandle hHal)
              fail_status = status;
          }
 
-   status = pmcClose(hHal);
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "pmcClose failed during sme close with status=%d",
-              status );
-      fail_status = status;
+   if(!pMac->psOffloadEnabled)
+   {
+       status = pmcClose(hHal);
+       if ( ! HAL_STATUS_SUCCESS( status ) ) {
+          smsLog(pMac, LOGE, "pmcClose failed during sme close with status=%d",
+              status);
+          fail_status = status;
+       }
+   }
+   else
+   {
+       status = pmcOffloadClose(hHal);
+       if(!HAL_STATUS_SUCCESS(status)) {
+          smsLog(pMac, LOGE, "pmcOffloadClose failed during smeClose status=%d",
+              status);
+          fail_status = status;
+       }
    }
 #if defined WLAN_FEATURE_VOWIFI
    status = rrmClose(hHal);
@@ -8343,3 +8529,58 @@ VOS_STATUS sme_SetIdlePowersaveConfig(v_PVOID_t vosContext, tANI_U32 value)
     return VOS_STATUS_SUCCESS;
 }
 
+eHalStatus sme_ConfigEnablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+       status =  pmcOffloadConfigEnablePowerSave(hHal, psMode);
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return (status);
+}
+
+eHalStatus sme_ConfigDisablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+       status =  pmcOffloadConfigDisablePowerSave(hHal, psMode);
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return (status);
+}
+
+eHalStatus sme_PsOffloadEnablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+   status = sme_AcquireGlobalLock(&pMac->sme);
+   if(HAL_STATUS_SUCCESS( status ))
+   {
+       status =  PmcOffloadEnableStaModePowerSave(hHal, sessionId);
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return (status);
+}
+
+eHalStatus sme_PsOffloadDisablePowerSave (tHalHandle hHal, tANI_U32 sessionId)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+   status = sme_AcquireGlobalLock(&pMac->sme);
+   if(HAL_STATUS_SUCCESS( status ))
+   {
+       status =  PmcOffloadDisableStaModePowerSave(hHal, sessionId);
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return (status);
+}
