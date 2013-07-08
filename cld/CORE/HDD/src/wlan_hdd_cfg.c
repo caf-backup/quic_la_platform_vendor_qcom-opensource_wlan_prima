@@ -3090,6 +3090,20 @@ static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *
 
 }
 
+static void hdd_set_power_save_offload_config(hdd_context_t *pHddCtx)
+{
+   hdd_config_t *pConfig = pHddCtx->cfg_ini;
+
+   if(pConfig->fIsBmpsEnabled)
+   {
+      sme_ConfigEnablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+   }
+   else
+   {
+      sme_ConfigDisablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+   }
+}
+
 VOS_STATUS hdd_set_idle_ps_config(hdd_context_t *pHddCtx, v_U32_t val)
 {
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
@@ -3844,7 +3858,16 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
          sme_setRegInfo(pHddCtx->hHal, pConfig->apCntryCode);
       sme_set11dinfo(pHddCtx->hHal, &smeConfig);
    }
-   hdd_set_power_save_config(pHddCtx, &smeConfig);
+
+   if(!pConfig->enablePowersaveOffload)
+   {
+       hdd_set_power_save_config(pHddCtx, &smeConfig);
+   }
+   else
+   {
+       hdd_set_power_save_offload_config(pHddCtx);
+   }
+
    hdd_set_btc_config(pHddCtx);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R

@@ -6611,6 +6611,8 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
      **/
     if(!pHddCtx->cfg_ini->enablePowersaveOffload)
         vos_status =  wlan_hdd_enter_bmps(pAdapter, !mode);
+    else
+        vos_status =  wlan_hdd_set_powersave(pAdapter, !mode);
 
     EXIT();
     if (VOS_STATUS_E_FAILURE == vos_status)

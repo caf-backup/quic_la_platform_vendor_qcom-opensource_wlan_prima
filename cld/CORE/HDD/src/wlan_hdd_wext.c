@@ -2572,6 +2572,55 @@ VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
    return VOS_STATUS_SUCCESS;
 }
 
+VOS_STATUS  wlan_hdd_set_powersave(hdd_adapter_t *pAdapter, int mode)
+{
+   hdd_context_t *pHddCtx;
+
+   if (NULL == pAdapter)
+   {
+       hddLog(VOS_TRACE_LEVEL_FATAL, "Adapter NULL");
+       return VOS_STATUS_E_FAULT;
+   }
+
+   hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "power mode=%d", mode);
+
+   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+   if (DRIVER_POWER_MODE_ACTIVE == mode)
+   {
+       hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s:Wlan driver Entering "
+               "Full Power", __func__);
+
+       /*
+        * Enter Full power command received from GUI
+        * this means we are disconnected
+        */
+       sme_PsOffloadDisablePowerSave(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                     pAdapter->sessionId);
+   }
+   else if (DRIVER_POWER_MODE_AUTO == mode)
+   {
+       if (pHddCtx->cfg_ini->fIsBmpsEnabled)
+       {
+           hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s:Wlan driver Entering Bmps ",
+                  __func__);
+
+           /*
+            * Enter BMPS command received from GUI
+            * this means DHCP is completed
+            */
+           sme_PsOffloadEnablePowerSave(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                        pAdapter->sessionId);
+       }
+       else
+       {
+           hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "BMPS is not "
+                   "enabled in the cfg");
+       }
+   }
+   return VOS_STATUS_SUCCESS;
+}
+
 VOS_STATUS wlan_hdd_exit_lowpower(hdd_context_t *pHddCtx,
                                        hdd_adapter_t *pAdapter)
 {
@@ -2790,8 +2839,10 @@ static int iw_set_priv(struct net_device *dev,
         char *ptr = (char*)(cmd + 9);
 
         sscanf(ptr,"%d",&mode);
-        wlan_hdd_enter_bmps(pAdapter, mode);
-        /*TODO:Set the power mode*/
+        if(!pHddCtx->cfg_ini->enablePowersaveOffload)
+            wlan_hdd_enter_bmps(pAdapter, mode);
+        else
+            wlan_hdd_set_powersave(pAdapter, mode);
     }
     else if (strncasecmp(cmd, "getpower", 8) == 0 ) {
         v_U32_t pmc_state;
