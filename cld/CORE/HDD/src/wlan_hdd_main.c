@@ -1741,28 +1741,11 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
 {
     eHalStatus status;
     tANI_U32 value;
+    hdd_config_t *pconfig = hdd_ctx->cfg_ini;
 
-    /* Get the HT RX STBC capability */
-    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_HT_RX_STBC, &value);
-
-    if (status != eHAL_STATUS_SUCCESS) {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                  "%s: could not get HT_RX_STBC",
-                  __func__);
-        value = 0;
-    }
-
-    /* set HT capability RX STBC */
-    if (value && !cfg->ht_rx_stbc) {
-        status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_RX_STBC,
-                              cfg->ht_rx_stbc, NULL,
-                              eANI_BOOLEAN_FALSE);
-
-        if (status == eHAL_STATUS_FAILURE)
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                      "%s: could not set the HT_RX_STBC to CCM",
-                      __func__);
-    }
+    /* check and update RX STBC */
+    if (pconfig->enableRxSTBC && !cfg->ht_rx_stbc)
+        pconfig->enableRxSTBC = cfg->ht_rx_stbc;
 
     /* get the MPDU density */
     status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_MPDU_DENSITY, &value);
@@ -1797,6 +1780,7 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
 {
     eHalStatus status;
     tANI_U32 value = 0;
+    hdd_config_t *pconfig = hdd_ctx->cfg_ini;
 
     /* Get the current MPDU length */
     status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_MAX_MPDU_LENGTH, &value);
@@ -2009,30 +1993,9 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
         }
     }
 
-    /* Get VHT SU Beamformee cap */
-    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_SU_BEAMFORMEE_CAP,
-                          &value);
-
-    if (status != eHAL_STATUS_SUCCESS) {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                  "%s: could not get VHT SU BEAMFORMEE CAP",
-                  __func__);
-        value = 0;
-    }
-
-    /* set VHT SU Beamformee cap */
-    if (value && !cfg->vht_su_bformee) {
-        status = ccmCfgSetInt(hdd_ctx->hHal,
-                              WNI_CFG_VHT_SU_BEAMFORMEE_CAP,
-                              cfg->vht_su_bformee, NULL,
-                              eANI_BOOLEAN_FALSE);
-
-        if (status == eHAL_STATUS_FAILURE) {
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                      "%s: could not set VHT SU BEAMFORMEE CAP",
-                      __func__);
-        }
-    }
+    /* check and update SU BEAMFORMEE capabality*/
+    if (pconfig->enableTxBF && !cfg->vht_su_bformee)
+        pconfig->enableTxBF = cfg->vht_su_bformee;
 
     /* Get VHT MU Beamformer cap */
     status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_VHT_MU_BEAMFORMER_CAP,
