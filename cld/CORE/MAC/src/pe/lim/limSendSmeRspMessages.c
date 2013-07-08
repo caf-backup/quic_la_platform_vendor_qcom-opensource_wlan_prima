@@ -35,6 +35,7 @@
 #include "limIbssPeerMgmt.h"
 #include "limSessionUtils.h"
 
+#include "sirApi.h"
 
 /**
  * limSendSmeRsp()
@@ -2480,7 +2481,8 @@ limSendSmeIBSSPeerInd(
   \return none 
   \sa
   ----------------------------------------------------------------- */
-void limSendExitBmpsInd(tpAniSirGlobal pMac, tExitBmpsReason reasonCode)
+void limSendExitBmpsInd(tpAniSirGlobal pMac, tExitBmpsReason reasonCode,
+                        tpPESession psessionEntry)
 {
     tSirMsgQ  mmhMsg;
     tANI_U16  msgLen = 0;
@@ -2498,6 +2500,7 @@ void limSendExitBmpsInd(tpAniSirGlobal pMac, tExitBmpsReason reasonCode)
     pExitBmpsInd->mesgLen = msgLen;
     pExitBmpsInd->exitBmpsReason = reasonCode;
     pExitBmpsInd->statusCode = eSIR_SME_SUCCESS;
+    pExitBmpsInd->smeSessionId = psessionEntry->smeSessionId;
 
     mmhMsg.type = eWNI_PMC_EXIT_BMPS_IND;
     mmhMsg.bodyptr = pExitBmpsInd;
@@ -2588,14 +2591,30 @@ limSendSmeAggrQosRsp(tpAniSirGlobal pMac, tpSirAggrQosRsp aggrQosRsp,
   \sa
   ----------------------------------------------------------------- */
 void
-limSendSmePreChannelSwitchInd(tpAniSirGlobal pMac)
+limSendSmePreChannelSwitchInd(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
     tSirMsgQ         mmhMsg;
+    tANI_U16  msgLen = 0;
+    tpSirSmePreSwitchChannelInd  pPreSwitchChInd;
+
+    msgLen = sizeof(tSirSmePreSwitchChannelInd);
+    if(eHAL_STATUS_SUCCESS !=
+       palAllocateMemory(pMac->hHdd, (void **)&pPreSwitchChInd, msgLen))
+    {
+        limLog(pMac, LOGP,
+            FL("palAllocateMemory failed for eWNI_SME_PRE_SWITCH_CHL_IND "));
+        return;
+    }
+    palZeroMemory(pMac->hHdd, pPreSwitchChInd, msgLen);
+
+    pPreSwitchChInd->mesgType = eWNI_SME_PRE_SWITCH_CHL_IND;
+    pPreSwitchChInd->mesgLen = msgLen;
+    pPreSwitchChInd->sessionId = psessionEntry->smeSessionId;
 
     mmhMsg.type = eWNI_SME_PRE_SWITCH_CHL_IND;
-    mmhMsg.bodyptr = NULL;
+    mmhMsg.bodyptr = pPreSwitchChInd;
     mmhMsg.bodyval = 0;
-    MTRACE(macTraceMsgTx(pMac, NO_SESSION, mmhMsg.type));
+    MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, mmhMsg.type));
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
 
     return;

@@ -123,4 +123,11 @@ void pmmFilterMatchCountResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
 void pmmGTKOffloadGetInfoResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
+eHalStatus pmmPsOffloadOpen(tpAniSirGlobal pMac,tpPESession psessionEntry);
+eHalStatus pmmPsOffloadClose(tpAniSirGlobal pMac,
+                             tpPESession psessionEntry);
+tANI_U8 pmmPsOffloadIsActive(tpAniSirGlobal pMac,
+                             tpPESession psessionEntry);
+void pmmOffloadProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
+
 #endif

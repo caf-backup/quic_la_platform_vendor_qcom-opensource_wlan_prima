@@ -76,13 +76,15 @@ void limSendSmeGetTxPowerRsp(tpAniSirGlobal pMac, tANI_U32 power, tANI_U32 statu
 void limSendSmeGetNoiseRsp(tpAniSirGlobal pMac, tSirMacNoise noise);
 void limSendSmeIBSSPeerInd(tpAniSirGlobal pMac,tSirMacAddr peerMacAddr,tANI_U16 staIndex,tANI_U8 ucastIdx,tANI_U8 bcastIdx,
                tANI_U8 *beacon,tANI_U16 beaconLen, tANI_U16 msgType, tANI_U8 sessionId);
-void limSendExitBmpsInd(tpAniSirGlobal pMac, tExitBmpsReason reasonCode);
+void limSendExitBmpsInd(tpAniSirGlobal pMac, tExitBmpsReason reasonCode,
+                        tpPESession psessionEntry);
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 void limSendSmeOemDataRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCodes resultCode);
 #endif
+void limSendSmePreChannelSwitchInd(tpAniSirGlobal pMac,
+                            tpPESession psessionEntry);
 
-void limSendSmePreChannelSwitchInd(tpAniSirGlobal pMac);
 void limSendSmePostChannelSwitchInd(tpAniSirGlobal pMac);
 void limSendSmeMaxAssocExceededNtf(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tANI_U8 smesessionId);
 #ifdef FEATURE_WLAN_TDLS

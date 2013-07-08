@@ -474,6 +474,10 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         break;
   
     case WNI_CFG_HEART_BEAT_THRESHOLD:
+        if(pMac->psOffloadEnabled)
+        {
+            break;
+        }
         if (wlan_cfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &val1) != eSIR_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve WNI_CFG_HEART_BEAT_THRESHOLD CFG"));)
@@ -511,12 +515,13 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
                            pMac->pmm.gPmmState);)
                 }
             }
-        }        
+        }
     case WNI_CFG_MAX_PS_POLL:
     case WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE:
     case WNI_CFG_MIN_RSSI_THRESHOLD:
     case WNI_CFG_NTH_BEACON_FILTER:
     case WNI_CFG_BROADCAST_FRAME_FILTER_ENABLE:
+        if(!pMac->psOffloadEnabled)
         {
             tpSirPowerSaveCfg pPowerSaveConfig;
 

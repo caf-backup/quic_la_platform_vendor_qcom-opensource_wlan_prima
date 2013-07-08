@@ -554,19 +554,27 @@ static tSirRetStatus __limInitConfig( tpAniSirGlobal pMac )
                                   "configuration"));)
       return eSIR_FAILURE;
    }
-       
-   /* This context should be valid if power-save configuration message has been
-    * already dispatched during initialization process. Re-using the present
-    * configuration mask
-    */
-   palCopyMemory(pMac->hHdd, pPowerSaveConfig, (tANI_U8 *)&pMac->pmm.gPmmCfg, 
-                 sizeof(tSirPowerSaveCfg));
 
-   /* Note: it is okay to do this since DAL/HAL is alrady started */
-   if ( (pmmSendPowerSaveCfg(pMac, pPowerSaveConfig)) != eSIR_SUCCESS)
+   if(!pMac->psOffloadEnabled)
    {
-      PELOGE(limLog(pMac, LOGE, FL("LIM: pmmSendPowerSaveCfg() failed "));)
-      return eSIR_FAILURE;
+       /*
+        * This context should be valid if power-save configuration
+        * message has been
+        * already dispatched during initialization process.
+        * Re-using the present
+        * configuration mask
+        */
+       palCopyMemory(pMac->hHdd, pPowerSaveConfig,
+                     (tANI_U8 *)&pMac->pmm.gPmmCfg,
+                     sizeof(tSirPowerSaveCfg));
+
+       /* Note: it is okay to do this since DAL/HAL is alrady started */
+       if ( (pmmSendPowerSaveCfg(pMac, pPowerSaveConfig)) != eSIR_SUCCESS)
+       {
+           PELOGE(limLog(pMac, LOGE,
+                  FL("LIM: pmmSendPowerSaveCfg() failed "));)
+           return eSIR_FAILURE;
+       }
    }
 
    /* WNI_CFG_BG_SCAN_CHANNEL_LIST_CHANNEL_LIST */
@@ -683,7 +691,8 @@ limInitialize(tpAniSirGlobal pMac)
     // Initializations for maintaining peers in IBSS
     limIbssInit(pMac);
 
-    pmmInitialize(pMac);
+    if(!pMac->psOffloadEnabled)
+       pmmInitialize(pMac);
 
     
 #if defined WLAN_FEATURE_VOWIFI
@@ -1476,7 +1485,10 @@ limReceivedHBHandler(tpAniSirGlobal pMac, tANI_U8 channelId, tpPESession psessio
     if((channelId == 0 ) || (channelId == psessionEntry->currentOperChannel) )
     psessionEntry->LimRxedBeaconCntDuringHB++;
 
-    pMac->pmm.inMissedBeaconScenario = FALSE;
+    if(pMac->psOffloadEnabled)
+        psessionEntry->pmmOffloadInfo.bcnmiss = FALSE;
+    else
+        pMac->pmm.inMissedBeaconScenario = FALSE;
 } /*** end limReceivedHBHandler() ***/
 
 
@@ -1914,47 +1926,6 @@ void limHandleLowRssiInd(tpAniSirGlobal pMac)
 #endif
 }
 
-
-/** -----------------------------------------------------------------
-  \brief limHandleBmpsStatusInd() - handles BMPS status indication
- 
-  This function process the SIR_HAL_BMPS_STATUS_IND message from HAL, 
-  and invokes limSendExitBmpsInd( ) to send an eWNI_PMC_EXIT_BMPS_IND 
-  to SME with reason code 'eSME_EXIT_BMPS_IND_RCVD'. 
-  
-  HAL sends this message when Firmware fails to enter BMPS mode 'AFTER'
-  HAL had already send PE a SIR_HAL_ENTER_BMPS_RSP with status 
-  code "success".  Hence, HAL needs to notify PE to get out of BMPS mode. 
-  This message can also come from FW anytime after we have entered BMPS. 
-  This means we should handle it in WoWL and UAPSD states as well
-   
-  \param pMac - global mac structure
-  \return - none
-  \sa
-  ----------------------------------------------------------------- */
-void limHandleBmpsStatusInd(tpAniSirGlobal pMac)
-{
-    switch(pMac->pmm.gPmmState)
-    {
-        case ePMM_STATE_BMPS_SLEEP:
-        case ePMM_STATE_UAPSD_WT_SLEEP_RSP:
-        case ePMM_STATE_UAPSD_SLEEP:
-        case ePMM_STATE_UAPSD_WT_WAKEUP_RSP:
-        case ePMM_STATE_WOWLAN:
-            PELOG1(limLog(pMac, LOG1, FL("Sending EXIT_BMPS_IND to SME "));)
-            limSendExitBmpsInd(pMac, eSME_BMPS_STATUS_IND_RCVD);
-            break;
-
-        default:
-            limLog(pMac, LOGE,
-                FL("Received SIR_HAL_BMPS_STATUS_IND while in incorrect state: %d"),
-                pMac->pmm.gPmmState);
-            break;
-    }
-    return;
-}
-
-
 /** -----------------------------------------------------------------
   \brief limHandleMissedBeaconInd() - handles missed beacon indication
  
@@ -1986,7 +1957,8 @@ void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     {
         pMac->pmm.inMissedBeaconScenario = TRUE;
         PELOG1(limLog(pMac, LOG1, FL("Sending EXIT_BMPS_IND to SME "));)
-        limSendExitBmpsInd(pMac, eSME_MISSED_BEACON_IND_RCVD);
+
+        limSendExitBmpsInd(pMac, eSME_MISSED_BEACON_IND_RCVD, psessionEntry);
     }
 /* ACTIVE_MODE_HB_OFFLOAD */
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
@@ -2004,6 +1976,80 @@ void limHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         limLog(pMac, LOGE,
             FL("Received SIR_HAL_MISSED_BEACON_IND while in incorrect state: %d"),
             pMac->pmm.gPmmState);
+    }
+    return;
+}
+
+void
+limSendHeartBeatTimeoutInd(tpAniSirGlobal pMac, tpPESession psessionEntry)
+{
+    tANI_U32 statusCode;
+    tSirMsgQ msg;
+
+    /* Prepare and post message to LIM Message Queue */
+    msg.type = (tANI_U16) SIR_LIM_HEART_BEAT_TIMEOUT;
+    msg.bodyptr = psessionEntry;
+    msg.bodyval = 0;
+    limLog(pMac, LOGE,
+                 FL("Heartbeat failure from Fw"));
+
+    statusCode = limPostMsgApi(pMac, &msg);
+
+    if(statusCode != eSIR_SUCCESS)
+    {
+       limLog(pMac, LOGE,
+              FL("posting message %X to LIM failed, reason=%d"),
+              msg.type, statusCode);
+    }
+}
+
+/** -----------------------------------------------------------------
+  \brief limPsOffloadHandleMissedBeaconInd() - handles missed beacon indication
+
+  This function process the SIR_HAL_MISSED_BEACON_IND message from HAL,
+  and invokes limSendExitBmpsInd( ) to send an eWNI_PMC_EXIT_BMPS_IND
+  to SME with reason code 'eSME_MISSED_BEACON_IND_RCVD'.
+
+  \param pMac - global mac structure
+  \return - none
+  \sa
+  ----------------------------------------------------------------- */
+void limPsOffloadHandleMissedBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
+{
+    tpSirSmeMissedBeaconInd  pSirMissedBeaconInd =
+                           (tpSirSmeMissedBeaconInd)pMsg->bodyptr;
+    tpPESession psessionEntry =
+        peFindSessionByBssIdx(pMac,pSirMissedBeaconInd->bssIdx);
+
+    if(!psessionEntry)
+    {
+         limLog(pMac, LOGE,
+               FL("session does not exist for given BSSId"));
+         return;
+    }
+
+    /* Set Beacon Miss in Powersave Offload */
+    psessionEntry->pmmOffloadInfo.bcnmiss = TRUE;
+
+    /*
+     * If the session is in power save state then
+     * first need to come out of power save before
+     * triggering ap probing
+     */
+    if(psessionEntry->pmmOffloadInfo.psstate == PMM_POWER_SAVE)
+    {
+        PELOGE(limLog(pMac, LOGE,
+            FL("Received Heart Beat Failure in Power Save State"));)
+
+        /* Send Request for Full Power to SME */
+        limSendExitBmpsInd(pMac, eSME_MISSED_BEACON_IND_RCVD, psessionEntry);
+    }
+    else
+    {
+        PELOGE(limLog(pMac, LOGE,
+            FL("Received Heart Beat Failure in active state"));)
+        /*  Incase  of Active state do AP probing immediately */
+        limSendHeartBeatTimeoutInd(pMac, psessionEntry);
     }
     return;
 }
@@ -2087,6 +2133,24 @@ void limMicFailureInd(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     return;
 }
 
+tANI_U8 limIsBeaconMissScenario(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
+{
+    if(pMac->psOffloadEnabled)
+    {
+        tpSirMacMgmtHdr pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+        tANI_U8 sessionId;
+        tpPESession psessionEntry =
+                    peFindSessionByBssid(pMac,pHdr->bssId,&sessionId);
+
+        if(psessionEntry && psessionEntry->pmmOffloadInfo.bcnmiss)
+           return true;
+    }
+    else if(pMac->pmm.inMissedBeaconScenario)
+    {
+        return true;
+    }
+    return false;
+}
 
 /** -----------------------------------------------------------------
   \brief limIsPktCandidateForDrop() - decides whether to drop the frame or not
@@ -2121,7 +2185,7 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tANI_U8 *pRxPac
     if( (subType == SIR_MAC_MGMT_BEACON) ||
         (subType == SIR_MAC_MGMT_PROBE_RSP))
     {
-        if(pMac->pmm.inMissedBeaconScenario)
+        if(limIsBeaconMissScenario(pMac, pRxPacketInfo))
         {
             MTRACE(macTrace(pMac, TRACE_CODE_INFO_LOG, 0, eLOG_NODROP_MISSED_BEACON_SCENARIO));
             return eMGMT_DROP_NO_DROP;
