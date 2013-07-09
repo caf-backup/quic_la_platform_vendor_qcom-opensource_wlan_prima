@@ -52,11 +52,6 @@ typedef PREPACK struct {
 typedef enum {
     WMIX_DSETOPEN_REPLY_CMDID           = 0x2001,
     WMIX_DSETDATA_REPLY_CMDID,
-    WMIX_GPIO_OUTPUT_SET_CMDID,
-    WMIX_GPIO_INPUT_GET_CMDID,
-    WMIX_GPIO_REGISTER_SET_CMDID,
-    WMIX_GPIO_REGISTER_GET_CMDID,
-    WMIX_GPIO_INTR_ACK_CMDID,
     WMIX_HB_CHALLENGE_RESP_CMDID,
     WMIX_DBGLOG_CFG_MODULE_CMDID,
     WMIX_PROF_CFG_CMDID,                 /* 0x200a */
@@ -70,9 +65,6 @@ typedef enum {
     WMIX_DSETOPENREQ_EVENTID            = 0x3001,
     WMIX_DSETCLOSE_EVENTID,
     WMIX_DSETDATAREQ_EVENTID,
-    WMIX_GPIO_INTR_EVENTID,
-    WMIX_GPIO_DATA_EVENTID,
-    WMIX_GPIO_ACK_EVENTID,
     WMIX_HB_CHALLENGE_RESP_EVENTID,
     WMIX_DBGLOG_EVENTID,
     WMIX_PROF_COUNT_EVENTID,
@@ -133,86 +125,6 @@ typedef PREPACK struct {
     A_UINT32              length;
     A_UINT8               buf[1];
 } POSTPACK WMIX_DSETDATA_REPLY_CMD;
-
-
-/* 
- * =============GPIO support=================
- * NB: Some of the WMIX APIs use a 32-bit mask.  On Targets that support
- * more than 32 GPIO pins, those APIs only support the first 32 GPIO pins.
- */
-
-#include "gpio.h"
-
-/*
- * Set GPIO pin output state.
- * In order for output to be driven, a pin must be enabled for output.
- * This can be done during initialization through the GPIO Configuration
- * DataSet, or during operation with the enable_mask.
- *
- * If a request is made to simultaneously set/clear or set/disable or
- * clear/disable or disable/enable, results are undefined.
- */
-typedef PREPACK struct {
-    A_UINT32              set_mask;             /* pins to set */
-    A_UINT32              clear_mask;           /* pins to clear */
-    A_UINT32              enable_mask;          /* pins to enable for output */
-    A_UINT32              disable_mask;         /* pins to disable/tristate */
-} POSTPACK WMIX_GPIO_OUTPUT_SET_CMD;
-
-/* 
- * Set a GPIO register.  For debug/exceptional cases.
- * Values for gpioreg_id are GPIO_ID_*, defined in a
- * platform-dependent header, gpio.h.
- */
-typedef PREPACK struct {
-    A_UINT32              gpioreg_id;           /* GPIO register ID */
-    A_UINT32              value;                /* value to write */
-} POSTPACK WMIX_GPIO_REGISTER_SET_CMD;
-
-/* Get a GPIO register.  For debug/exceptional cases. */
-typedef PREPACK struct {
-    A_UINT32              gpioreg_id;           /* GPIO register to read */
-} POSTPACK WMIX_GPIO_REGISTER_GET_CMD;
-
-/*
- * Host acknowledges and re-arms GPIO interrupts.  A single
- * message should be used to acknowledge all interrupts that
- * were delivered in an earlier WMIX_GPIO_INTR_EVENT message.
- */
-typedef PREPACK struct {
-    A_UINT32              ack_mask;             /* interrupts to acknowledge */
-} POSTPACK WMIX_GPIO_INTR_ACK_CMD;
-
-/*
- * Target informs Host of GPIO interrupts that have ocurred since the
- * last WMIX_GIPO_INTR_ACK_CMD was received.  Additional information --
- * the current GPIO input values is provided -- in order to support
- * use of a GPIO interrupt as a Data Valid signal for other GPIO pins.
- */
-typedef PREPACK struct {
-    A_UINT32              intr_mask;            /* pending GPIO interrupts */
-    A_UINT32              input_values;         /* recent GPIO input values */
-} POSTPACK WMIX_GPIO_INTR_EVENT;
-
-/*
- * Target responds to Host's earlier WMIX_GPIO_INPUT_GET_CMDID request
- * using a GPIO_DATA_EVENT with
- *   value set to the mask of GPIO pin inputs and
- *   reg_id set to GPIO_ID_NONE
- * 
- *
- * Target responds to Hosts's earlier WMIX_GPIO_REGISTER_GET_CMDID request
- * using a GPIO_DATA_EVENT with
- *   value set to the value of the requested register and
- *   reg_id identifying the register (reflects the original request)
- * NB: reg_id supports the future possibility of unsolicited
- * WMIX_GPIO_DATA_EVENTs (for polling GPIO input), and it may
- * simplify Host GPIO support.
- */
-typedef PREPACK struct {
-    A_UINT32              value;
-    A_UINT32              reg_id;
-} POSTPACK WMIX_GPIO_DATA_EVENT;
 
 /*
  * =============Error Detection support=================
