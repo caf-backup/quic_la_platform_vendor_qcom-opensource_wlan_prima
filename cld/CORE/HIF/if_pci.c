@@ -319,6 +319,7 @@ hif_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
     struct hif_pci_softc *sc;
     struct ol_softc *ol_sc;
     int probe_again = 0;
+    u_int16_t device_id;
 
     u_int32_t lcr_val;
 
@@ -335,6 +336,14 @@ again:
      * address space that was assigned earlier
      * by the PCI infrastructure.  Refresh it now.
      */
+     /*WAR for EV#117307, if PCI link is down, return from probe() */
+     pci_read_config_word(pdev,PCI_DEVICE_ID,&device_id);
+     printk("PCI device id is %04x :%04x\n",device_id,id->device);
+     if(device_id != id->device)  {
+	printk(KERN_ERR "ath: PCI link is down.\n");
+	/* pci link is down, so returing with error code */
+	return -EIO;
+     }
 
     /* FIXME: temp. commenting out assign_resource 
      * call for dev_attach to work on 2.6.38 kernel
