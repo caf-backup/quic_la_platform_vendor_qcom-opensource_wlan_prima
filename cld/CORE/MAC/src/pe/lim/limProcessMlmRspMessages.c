@@ -1982,8 +1982,7 @@ void limProcessStaMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESessi
     else
     {
         limLog( pMac, LOGE, FL( "DEL BSS failed!" ) );
-        palFreeMemory( pMac->hHdd, (void *) pDelBssParams );
-        return;
+        statusCode = eSIR_SME_STOP_BSS_FAILURE;
     }
    end:
      if( 0 != limMsgQ->bodyptr )
