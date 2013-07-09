@@ -1095,6 +1095,8 @@ typedef struct {
     A_UINT32  probe_delay;   
     /** Scan control flags */
     A_UINT32 scan_ctrl_flags;
+    /** Burst duration time in msec*/
+    A_UINT32 burst_duration;
     /**
      * TLV (tag length value )  paramerters follow the scan_cmd structure.
      * TLV can contain channel list, bssid list, ssid list and 
