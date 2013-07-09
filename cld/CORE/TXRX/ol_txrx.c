@@ -1277,11 +1277,11 @@ ol_txrx_fw_stats_handler(
 
             switch (type) {
             case HTT_DBG_STATS_WAL_PDEV_TXRX:
-                bytes = sizeof(struct wal_dbg_stats);
+                bytes = sizeof(struct wlan_dbg_stats);
                 if (req->base.copy.buf) {
                     int limit;
 
-                    limit = sizeof(struct wal_dbg_stats);
+                    limit = sizeof(struct wlan_dbg_stats);
                     if (req->base.copy.byte_limit < limit) {
                         limit = req->base.copy.byte_limit;
                     }
@@ -1303,11 +1303,11 @@ ol_txrx_fw_stats_handler(
                 }
                 break;
             case HTT_DBG_STATS_RX_RATE_INFO:
-                bytes = sizeof(wal_dbg_rx_rate_info_t);
+                bytes = sizeof(wlan_dbg_rx_rate_info_t);
                 if (req->base.copy.buf) {
                     int limit;
 
-                    limit = sizeof(wal_dbg_rx_rate_info_t);
+                    limit = sizeof(wlan_dbg_rx_rate_info_t);
                     if (req->base.copy.byte_limit < limit) {
                         limit = req->base.copy.byte_limit;
                     }
@@ -1317,11 +1317,11 @@ ol_txrx_fw_stats_handler(
                 break;
  
             case HTT_DBG_STATS_TX_RATE_INFO:
-                bytes = sizeof(wal_dbg_tx_rate_info_t);
+                bytes = sizeof(wlan_dbg_tx_rate_info_t);
                 if (req->base.copy.buf) {
                     int limit;
 
-                    limit = sizeof(wal_dbg_tx_rate_info_t);
+                    limit = sizeof(wlan_dbg_tx_rate_info_t);
                     if (req->base.copy.byte_limit < limit) {
                         limit = req->base.copy.byte_limit;
                     }

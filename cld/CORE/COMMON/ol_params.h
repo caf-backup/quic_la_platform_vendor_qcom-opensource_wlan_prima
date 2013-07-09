@@ -19,8 +19,8 @@
  */
 #ifndef _DEV_OL_PARAMS_H
 #define _DEV_OL_PARAMS_H
-#include "wal_dbg_stats.h"
 #include "ol_txrx_stats.h"
+#include "wlan_defs.h" /* for wlan statst definitions */
 /*
 ** Enumeration of PDEV Configuration parameter 
 */
@@ -88,6 +88,6 @@ typedef enum _ol_hal_param_t {
 struct ol_stats {
     int txrx_stats_level;
     struct ol_txrx_stats txrx_stats;
-    struct wal_dbg_stats stats;
+    struct wlan_dbg_stats stats;
 };
 #endif /* _DEV_OL_PARAMS_H  */

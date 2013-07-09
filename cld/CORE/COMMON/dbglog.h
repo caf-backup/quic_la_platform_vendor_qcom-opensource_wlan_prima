@@ -15,11 +15,11 @@
 #ifndef _DBGLOG_H_
 #define _DBGLOG_H_
 
-
-#include "wlan_module_ids.h"
 #ifndef ATH_TARGET
 #include "athstartpack.h"
 #endif
+
+#include "wlan_module_ids.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -155,8 +155,5 @@ PREPACK struct dbglog_config_msg_s {
 }
 #endif
 
-#ifndef ATH_TARGET
-#include "athendpack.h"
-#endif
 
 #endif /* _DBGLOG_H_ */
