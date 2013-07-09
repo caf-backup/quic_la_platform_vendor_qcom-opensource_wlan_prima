@@ -3855,6 +3855,43 @@ static VOS_STATUS wma_tx_mgmt_detach(tp_wma_handle wma_handle)
 	return VOS_STATUS_SUCCESS;
 }
 
+static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id)
+{
+	tSirSmeMissedBeaconInd *beacon_miss_ind;
+
+	beacon_miss_ind = (tSirSmeMissedBeaconInd *) vos_mem_malloc
+		                             (sizeof(tSirSmeMissedBeaconInd));
+	beacon_miss_ind->messageType = WDA_MISSED_BEACON_IND;
+	beacon_miss_ind->length = sizeof(tSirSmeMissedBeaconInd);
+	beacon_miss_ind->bssIdx = vdev_id;
+
+	wma_send_msg(wma, WDA_MISSED_BEACON_IND,
+		         (void *)beacon_miss_ind, 0);
+}
+
+static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
+				u_int32_t len)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_roam_event *wmi_event = (wmi_roam_event *) event_buf;
+
+	WMA_LOGD("%s: Reason %x for vdevid %x",
+		__func__, wmi_event->reason, wmi_event->vdev_id);
+
+	switch(wmi_event->reason) {
+	case WMI_ROAM_REASON_BMISS:
+		WMA_LOGD("%s:Beacon Miss for vdevid %x",wmi_event->reason,
+			wmi_event->vdev_id);
+		wma_beacon_miss_handler(wma_handle, wmi_event->vdev_id);
+		break;
+	default:
+		WMA_LOGD("Unhandled Roam Event %x for vdevid %x",
+		wmi_event->reason, wmi_event->vdev_id);
+		break;
+	}
+	return 0;
+}
+
 /* function   : wma_start    
  * Descriptin :  
  * Args       :        
@@ -3898,6 +3935,15 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 						wma_scan_event_callback);
 	if (0 != status) {
 		WMA_LOGP("Failed to register scan callback");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						WMI_ROAM_EVENTID,
+						wma_roam_event_callback);
+	if (0 != status) {
+		WMA_LOGP("Failed to register Roam callback");
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}
