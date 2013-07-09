@@ -963,7 +963,6 @@ struct hdd_context_s
     tANI_U16 connected_peer_count;
     tdls_scan_context_t tdls_scan_ctxt;
 #endif
-
     hdd_traffic_monitor_t traffic_monitor;
 
     /* MC/BC Filter state variable
@@ -971,6 +970,9 @@ struct hdd_context_s
      * configured
      * */
     v_U8_t configuredMcastBcastFilter;
+
+    vos_timer_t hdd_p2p_go_conn_is_in_progress;
+
 };
 
 
