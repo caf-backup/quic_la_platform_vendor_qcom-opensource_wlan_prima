@@ -154,7 +154,7 @@ struct peer_ratectrl_params_t {
     u_int32_t ni_flags;
     u_int32_t ni_chwidth;
     u_int16_t ni_htcap;
-    u_int16_t ni_vhtcap;
+    u_int32_t ni_vhtcap;
     u_int16_t ni_phymode;
     u_int16_t ni_rx_vhtrates;
     u_int8_t ht_rates[MAX_SPATIAL_STREAM * 8];
@@ -169,6 +169,8 @@ struct peer_ratectrl_params_t {
 typedef union  {
     struct peer_ratectrl_params_t * ratectrl;
     u_int8_t  qos_capable;
+    u_int8_t  uapsd_mask;
+    enum ol_sec_type   sec_type;
 }ol_txrx_peer_update_param_t;
 
 /**
@@ -180,6 +182,8 @@ typedef union  {
 typedef enum {
     ol_txrx_peer_update_rate_ctrl = 0x1,
     ol_txrx_peer_update_qos_capable,
+    ol_txrx_peer_update_uapsdMask,
+    ol_txrx_peer_update_peer_security,
 } ol_txrx_peer_update_select_t;
 
 /**
@@ -214,7 +218,7 @@ wdi_in_peer_update(ol_txrx_vdev_handle data_vdev, u_int8_t *peer_mac,
  *
  * @param data_peer - which peer is being paused
  */
-#if defined(CONFIG_HL_SUPPORT)
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_SUPPORT_INTEGRATED_SOC)
 void
 wdi_in_peer_pause(ol_txrx_peer_handle data_peer);
 #else
@@ -533,6 +537,19 @@ wdi_in_get_tx_pending(
     ol_txrx_pdev_handle pdev);
 
 /**
+ * @brief Discard all tx frames that are pending in txrx.
+ * @details
+ *  Mainly used in clean up path to make sure all pending tx packets
+ *  held by txrx are returned back to OS shim immediately.
+ *
+ * @param pdev - the data physical device object
+ * @return - void
+ */
+void
+wdi_in_discard_tx_pending(
+    ol_txrx_pdev_handle pdev);
+
+/**
  * @brief set the safemode of the device
  * @details
  *  This flag is used to bypass the encrypt and decrypt processes when send and 
@@ -582,7 +599,7 @@ wdi_in_set_drop_unenc(
     u_int32_t val);
 
 enum ol_txrx_peer_state {
-    ol_txrx_peer_state_open, /* no authentication required */
+    ol_txrx_peer_state_disc, /* initial state */
     ol_txrx_peer_state_conn, /* authentication in progress */
     ol_txrx_peer_state_auth, /* authentication completed successfully */
 };
@@ -606,6 +623,11 @@ wdi_in_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 			 ol_txrx_peer_handle data_peer,
 			 enum ol_txrx_peer_state state);
 
+void
+wdi_in_peer_keyinstalled_state_update(
+    ol_txrx_peer_handle data_peer,
+    u_int8_t val);
+
 #ifdef QCA_WIFI_ISOC
 /**
  * @brief Confirm that a requested tx ADDBA negotiation has completed
@@ -619,11 +641,16 @@ wdi_in_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
  *
  * @param peer - which peer the ADDBA-negotiation was with
  * @param tid - which traffic type the ADDBA-negotiation was for
+ * @param status - whether the negotiation completed or was aborted:
+ *            success: the negotiation completed
+ *            reject:  the negotiation completed but was rejected
+ *            busy:    the negotiation was aborted - try again later
  */
 void
-ol_tx_addba_conf(ol_txrx_peer_handle data_peer, int tid);
+ol_tx_addba_conf(
+    ol_txrx_peer_handle data_peer, int tid, enum ol_addba_status status);
 #else
-#define ol_tx_addba_conf(data_peer, tid) /* no-op */
+#define ol_tx_addba_conf(data_peer, tid, status) /* no-op */
 #endif
 
 /**
@@ -1126,10 +1153,12 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 #define wdi_in_set_monitor_mode_vap ol_txrx_set_monitor_mode_vap
 #define wdi_in_set_curchan ol_txrx_set_curchan
 #define wdi_in_get_tx_pending ol_txrx_get_tx_pending
+#define wdi_in_discard_tx_pending ol_txrx_discard_tx_pending
 #define wdi_in_set_safemode ol_txrx_set_safemode
 #define wdi_in_set_privacy_filters ol_txrx_set_privacy_filters
 #define wdi_in_set_drop_unenc ol_txrx_set_drop_unenc
 #define wdi_in_peer_state_update ol_txrx_peer_state_update
+#define wdi_in_peer_keyinstalled_state_update ol_txrx_peer_keyinstalled_state_update
 
 #include <ol_txrx_dbg.h>
 
