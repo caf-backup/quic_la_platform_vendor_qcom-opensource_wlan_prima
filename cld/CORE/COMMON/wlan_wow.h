@@ -11,9 +11,12 @@
 #define _WLAN_WOW_H
 
 
-#define WOW_DEFAULT_BITMAP_PATTERN_SIZE      64
-#define WOW_DEFAULT_BITMASK_SIZE             64
-#define WOW_MAX_BITMAP_FILTERS               16
+/*Wifi header is upto 26, LLC is 8, with 14 byte duplicate in 802.3 header, that's 26+8-14=20.
+146-128=18. So this means it is converted to non-QoS header. Riva FW take care of the QOS/non-QOS
+when comparing wifi header.*/
+#define WOW_DEFAULT_BITMAP_PATTERN_SIZE      146
+#define WOW_DEFAULT_BITMASK_SIZE             146
+#define WOW_MAX_BITMAP_FILTERS               22
 #define WOW_DEFAULT_MAGIG_PATTERN_MATCH_CNT  16
 #define WOW_DEFAULT_EVT_BUF_SIZE             128  /* Maximum 128 bytes of the data is copied starting from header
                                                    * incase if the match is found */
