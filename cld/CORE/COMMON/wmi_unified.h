@@ -1759,8 +1759,16 @@ typedef enum {
     WMI_PDEV_PARAM_ARP_AC_OVERRIDE,
     /** DCS configuration */
     WMI_PDEV_PARAM_DCS,
-	/** Enable/Disable ANI on target */ 
+    /** Enable/Disable ANI on target */
     WMI_PDEV_PARAM_ANI_ENABLE,
+    /** configure the ANI polling period */
+    WMI_PDEV_PARAM_ANI_POLL_PERIOD,
+    /** configure the ANI listening period */
+    WMI_PDEV_PARAM_ANI_LISTEN_PERIOD,
+    /** configure OFDM immunity level */
+    WMI_PDEV_PARAM_ANI_OFDM_LEVEL,
+    /** configure CCK immunity level */
+    WMI_PDEV_PARAM_ANI_CCK_LEVEL,
     /** Enable/Disable CDD for 1x1 STAs in rate control module */
     WMI_PDEV_PARAM_DYNTXCHAIN,
     /** Enable/Disable proxy STA */

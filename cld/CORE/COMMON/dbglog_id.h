@@ -468,7 +468,10 @@ extern "C" {
 #define ANI_DBGID_SELF_CORR_LOW                     11
 #define ANI_DBGID_ENABLE                            12
 
-
+#define ANI_DBGID_POLL_PERIOD                       14
+#define ANI_DBGID_LISTEN_PERIOD                     15
+#define ANI_DBGID_OFDM_LEVEL_CFG                    16
+#define ANI_DBGID_CCK_LEVEL_CFG                     17
 
 /* OFFLOAD Manager Debugids*/
 #define OFFLOAD_MGR_DBGID_DEFINITION_START             0
