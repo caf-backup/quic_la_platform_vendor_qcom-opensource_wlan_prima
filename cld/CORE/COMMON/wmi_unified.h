@@ -424,6 +424,8 @@ typedef enum {
     /* set and get keepalive parameters command */
     WMI_VDEV_SET_KEEPALIVE_CMDID,
     WMI_VDEV_GET_KEEPALIVE_CMDID,
+    /* For fw recovery test command */
+    WMI_FORCE_FW_HANG_CMDID,
     /** UTF specific WMI commands 
      * set fixed value for UTF WMI command so 
      * further addition of other WMI commands
@@ -3921,6 +3923,20 @@ typedef struct {
     A_UINT32    vdev_id;
     A_UINT32 keepaliveInterval;   /* seconds */
 } wmi_vdev_get_keepalive_event;
+
+typedef enum {
+    RECOVERY_SIM_ASSERT          = 0x01,
+    RECOVERY_SIM_NO_DETECT       = 0x02,
+    RECOVERY_SIM_CTR_EP_FULL     = 0x03,
+    RECOVERY_SIM_EMPTY_POINT     = 0x04,
+    RECOVERY_SIM_STACK_OV        = 0x05,
+    RECOVERY_SIM_INFINITE_LOOP   = 0x06,
+} RECOVERY_SIM_TYPE;
+
+typedef struct {
+    A_UINT32 type;     /*0:unused 1: ASSERT, 2: not respond detect command,3:  simulate ep-full(),4:...*/
+    A_UINT32 delay_time_ms;   /*0xffffffff means the simulate will delay for random time (0 ~0xffffffff ms)*/
+}WMI_FORCE_FW_HANG_CMD;
 
 #ifdef __cplusplus
 }
