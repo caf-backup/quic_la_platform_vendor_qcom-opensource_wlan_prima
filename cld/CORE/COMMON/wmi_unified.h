@@ -415,6 +415,16 @@ typedef enum {
     /* misc command group */
     /** echo command mainly used for testing */
     WMI_ECHO_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_MISC),
+
+	/* !!IMPORTANT!!
+	  * If you need to add a new WMI command to the WMI_GRP_MISC sub-group,
+	  * please make sure you add it BEHIND WMI_PDEV_UTF_CMDID,
+	  * as we MUST have a fixed value here to maintain compatibility between
+	  * UTF and the ART2 driver
+	*/
+	/** UTF WMI commands */
+	WMI_PDEV_UTF_CMDID,
+
     /** set debug log config */
     WMI_DBGLOG_CFG_CMDID,
     /* QVIT specific command id */
@@ -427,13 +437,6 @@ typedef enum {
     WMI_VDEV_GET_KEEPALIVE_CMDID,
     /* For fw recovery test command */
     WMI_FORCE_FW_HANG_CMDID,
-    /** UTF specific WMI commands 
-     * set fixed value for UTF WMI command so 
-     * further addition of other WMI commands
-     * does not affect the communication between
-     * ART2 and UTF
-     */
-    WMI_PDEV_UTF_CMDID,
 
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
@@ -531,6 +534,16 @@ typedef enum {
 
     /** echo event in response to echo command */
     WMI_ECHO_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MISC),
+
+	/* !!IMPORTANT!!
+	  * If you need to add a new WMI event ID to the WMI_GRP_MISC sub-group,
+	  * please make sure you add it BEHIND WMI_PDEV_UTF_EVENTID,
+	  * as we MUST have a fixed value here to maintain compatibility between
+	  * UTF and the ART2 driver
+	*/
+	/** UTF specific WMI event */
+	WMI_PDEV_UTF_EVENTID,
+
     /** event carries buffered debug messages  */
     WMI_DEBUG_MESG_EVENTID, 
     /** FW stats(periodic or on shot)  */
@@ -552,13 +565,6 @@ typedef enum {
     WMI_WLAN_FREQ_AVOID_EVENTID,
     /* Indicate the keepalive parameters */
     WMI_VDEV_GET_KEEPALIVE_EVENTID,
-    /** UTF specific WMI event 
-     * set fixed value for UTF WMI EVT ID so 
-     * further addition of other WMI EVT IDs
-     * does not affect the communication between
-     * ART2 and UTF
-     */
-    WMI_PDEV_UTF_EVENTID,
 
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
