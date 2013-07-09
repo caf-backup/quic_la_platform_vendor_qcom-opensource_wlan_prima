@@ -281,4 +281,11 @@ typedef struct {
 } wlan_host_mem_req;
 
 
+typedef enum {
+    IGNORE_DTIM = 0x01,
+    NORMAL_DTIM = 0x02,
+    STICK_DTIM  = 0x03,
+    AUTO_DTIM   = 0x04,
+} BEACON_DTIM_POLICY;
+
 #endif /* __WLANDEFS_H__ */
