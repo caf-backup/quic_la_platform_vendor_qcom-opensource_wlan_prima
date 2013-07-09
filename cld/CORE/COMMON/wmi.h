@@ -26,11 +26,6 @@
 #ifndef _WMI_H_
 #define _WMI_H_
 
-#ifndef ATH_TARGET
-#include "athstartpack.h"
-#endif
-#include "targcfg.h"
-
 #include "wlan_defs.h"
 #include "wmix.h"
 #include "wmi_unified.h"

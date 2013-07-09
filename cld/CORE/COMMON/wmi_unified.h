@@ -57,7 +57,6 @@ extern "C" {
 
 #include <wlan_defs.h>
 #include <wmi_services.h>
-#include <wlan_wow.h>
 #include <wal_dbg_stats.h>
 #include <dbglog.h>
 
@@ -3592,6 +3591,73 @@ typedef struct {
     A_UINT32 enable;
 } wmi_wlan_profile_enable_profile_id_cmd;
 
+/*Wifi header is upto 26, LLC is 8, with 14 byte duplicate in 802.3 header, that's 26+8-14=20.
+146-128=18. So this means it is converted to non-QoS header. Riva FW take care of the QOS/non-QOS
+when comparing wifi header.*/
+#define WOW_DEFAULT_BITMAP_PATTERN_SIZE      146
+#define WOW_DEFAULT_BITMASK_SIZE             146
+#define WOW_MAX_BITMAP_FILTERS               22
+#define WOW_DEFAULT_MAGIG_PATTERN_MATCH_CNT  16
+#define WOW_DEFAULT_EVT_BUF_SIZE             128  /* Maximum 128 bytes of the data is copied starting from header
+                                                   * incase if the match is found */
+
+typedef enum pattern_type_e {
+    WOW_PATTERN_MIN = 0,
+    WOW_BITMAP_PATTERN = WOW_PATTERN_MIN,
+    WOW_IPV4_SYNC_PATTERN,
+    WOW_IPV6_SYNC_PATTERN,
+    WOW_WILD_CARD_PATTERN,
+    WOW_TIMER_PATTERN,
+    WOW_PATTERN_MAX
+}WOW_PATTERN_TYPE;
+
+typedef enum event_type_e {
+    WOW_BMISS_EVENT = 0,
+    WOW_DEAUTH_RECVD_EVENT,
+    WOW_MAGIC_PKT_RECVD_EVENT,
+    WOW_GTK_ERR_EVENT,
+    WOW_GTK_UPDATE_EVENT,
+    WOW_FOURWAY_HSHAKE_EVENT,
+    WOW_EAPOL_RECVD_EVENT
+}WOW_WAKE_EVENT_TYPE;
+
+typedef enum wake_reason_e {
+    WOW_REASON_NLOD = 0,
+    WOW_REASON_AP_ASSOC_LOST,
+    WOW_REASON_DEAUTH_RECVD,
+    WOW_REASON_DISASSOC_RECVD,
+    WOW_REASON_GTK_HS_ERR,
+    WOW_REASON_FOURWAY_HS_RECV,
+    WOW_REASON_TIMER_INTR_RECV,
+    WOW_REASON_PATTERN_MATCH_FOUND,
+    WOW_REASON_RECV_MAGIC_PATTERN,
+}WOW_WAKE_REASON_TYPE;
+
+typedef struct bitmap_pattern_s {
+    A_UINT8      patternbuf[WOW_DEFAULT_BITMAP_PATTERN_SIZE];
+    A_UINT8      bitmaskbuf[WOW_DEFAULT_BITMASK_SIZE];
+    A_UINT8      pattern_offset;
+    A_UINT32     pattern_len;
+    A_UINT32     bitmask_len;
+    A_UINT32     pattern_id;  /* must be less than max_bitmap_filters */
+}WOW_BITMAP_PATTERN_T;
+
+typedef struct ipv4_sync_s {
+    A_UINT8      ipv4_src_addr[4];
+    A_UINT8      ipv4_dst_addr[4];
+    A_UINT32     tcp_src_prt;
+    A_UINT32     tcp_dst_prt;
+}WOW_IPV4_SYNC_PATTERN_T;
+
+typedef struct ipv6_sync_s {
+    A_UINT8      ipv6_src_addr[16];
+    A_UINT8      ipv6_dst_addr[16];
+    A_UINT32     tcp_src_prt;
+    A_UINT32     tcp_dst_prt;
+}WOW_IPV6_SYNC_PATTERN_T;
+
+
+
 typedef struct {
     A_UINT32        pattern_id;
     A_UINT32        pattern_type;
@@ -3612,6 +3678,11 @@ typedef struct {
     A_UINT32    is_add;
     A_UINT32    event_bitmap;
 }WMI_WOW_ADD_DEL_EVT_CMD;
+
+typedef struct  event_info_s {
+    A_UINT32    wake_reason;
+    A_UINT32    data_len;
+}EVENT_INFO;
 
 #define WMI_RXERR_CRC               0x01    /* CRC error on frame */
 #define WMI_RXERR_DECRYPT           0x08    /* non-Michael decrypt error */
