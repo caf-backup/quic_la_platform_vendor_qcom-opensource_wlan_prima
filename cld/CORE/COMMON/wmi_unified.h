@@ -798,6 +798,10 @@ typedef struct {
  * maximum number of peers suported by target in offload mode
  */
     A_UINT32 num_offload_peers;
+/* @brief Number of reorder buffers available for doing target based reorder
+ * Rx reorder buffering
+ */
+    A_UINT32 num_offload_reorder_buffs;
 /**
  * @brief num_peer_keys - number of keys per peer
  */
