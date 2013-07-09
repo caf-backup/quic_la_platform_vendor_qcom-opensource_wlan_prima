@@ -2613,9 +2613,17 @@ static void wma_set_bsskey(tp_wma_handle wma_handle, tpSetBssKeyParams key_info)
 			continue;
 		key_params.key_idx = key_info->key[i].keyId;
 		key_params.key_len = key_info->key[i].keyLength;
-		vos_mem_copy((v_VOID_t *) key_params.key_data,
-			     (const v_VOID_t *) key_info->key[i].key,
-			     key_info->key[i].keyLength);
+		if (key_info->encType == eSIR_ED_TKIP) {
+			vos_mem_copy(key_params.key_data,
+				     key_info->key[i].key, 16);
+			vos_mem_copy(&key_params.key_data[16],
+				     &key_info->key[i].key[24], 8);
+			vos_mem_copy(&key_params.key_data[24],
+				     &key_info->key[i].key[16], 8);
+		} else
+			vos_mem_copy((v_VOID_t *) key_params.key_data,
+				     (const v_VOID_t *) key_info->key[i].key,
+				     key_info->key[i].keyLength);
 
 		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
 		if (!buf) {
@@ -2709,8 +2717,16 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 		if (key_params.key_type != eSIR_ED_NONE &&
 		    !key_info->key[i].keyLength)
 			continue;
-		vos_mem_copy(key_params.key_data, key_info->key[i].key,
-			     key_info->key[i].keyLength);
+		if (key_info->encType == eSIR_ED_TKIP) {
+			vos_mem_copy(key_params.key_data,
+				     key_info->key[i].key, 16);
+			vos_mem_copy(&key_params.key_data[16],
+				     &key_info->key[i].key[24], 8);
+			vos_mem_copy(&key_params.key_data[24],
+				     &key_info->key[i].key[16], 8);
+		} else
+			vos_mem_copy(key_params.key_data, key_info->key[i].key,
+				     key_info->key[i].keyLength);
 		key_params.key_idx = i;
 		key_params.key_len = key_info->key[i].keyLength;
 		buf = wma_setup_install_key_cmd(wma_handle, &key_params, &len);
