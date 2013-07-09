@@ -1982,6 +1982,8 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 {
 	int ret = 0, vid = privcmd->param_vdev_id;
 	struct wma_txrx_node *intr = wma->interfaces;
+	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(VOS_MODULE_ID_PE,
+				wma->vos_context);
 
 	WMA_LOGD("wmihandle %p", wma->wmi_handle);
 
@@ -2098,6 +2100,38 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_RX_CHAIN_MASK:
 			wma->pdevconfig.rxchainmask = privcmd->param_value;
 			break;
+		case WMI_PDEV_PARAM_TXPOWER_LIMIT2G:
+			wma->pdevconfig.txpow2g = privcmd->param_value;
+			if ((pMac->roam.configParam.bandCapability ==
+				eCSR_BAND_ALL) ||
+				(pMac->roam.configParam.bandCapability ==
+				eCSR_BAND_24)) {
+				if (cfgSetInt(pMac,
+					WNI_CFG_CURRENT_TX_POWER_LEVEL,
+					privcmd->param_value) != eSIR_SUCCESS) {
+					WMA_LOGE("could not set"
+					" WNI_CFG_CURRENT_TX_POWER_LEVEL");
+				}
+			}
+			else
+				WMA_LOGE("Current band is not 2G");
+			break;
+		case WMI_PDEV_PARAM_TXPOWER_LIMIT5G:
+			wma->pdevconfig.txpow5g = privcmd->param_value;
+			if ((pMac->roam.configParam.bandCapability ==
+				eCSR_BAND_ALL) ||
+				(pMac->roam.configParam.bandCapability ==
+				eCSR_BAND_5G)) {
+				if (cfgSetInt(pMac,
+					WNI_CFG_CURRENT_TX_POWER_LEVEL,
+					privcmd->param_value) != eSIR_SUCCESS) {
+					WMA_LOGE("could not set"
+					" WNI_CFG_CURRENT_TX_POWER_LEVEL");
+				}
+			}
+			else
+				WMA_LOGE("Current band is not 5G");
+			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set pdev command/Not"
 				" yet implemented 0x%x", privcmd->param_id);
@@ -2173,6 +2207,12 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 			break;
 		case WMI_PDEV_PARAM_RX_CHAIN_MASK:
 			ret = wma->pdevconfig.rxchainmask;
+			break;
+		case WMI_PDEV_PARAM_TXPOWER_LIMIT2G:
+			ret = wma->pdevconfig.txpow2g;
+			break;
+		case WMI_PDEV_PARAM_TXPOWER_LIMIT5G:
+			ret = wma->pdevconfig.txpow5g;
 			break;
 		default:
 			WMA_LOGE("Invalid cli_get pdev command/Not"

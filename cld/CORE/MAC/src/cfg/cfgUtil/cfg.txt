@@ -1271,10 +1271,10 @@ HAL
 *
 
 WNI_CFG_CURRENT_TX_POWER_LEVEL    I    4    9
-V    RO    NP
+V    RW    NP
 NONE
 0    128    27
-V    RO    NP
+V    RW    NP
 NONE
 0    128    27
 
