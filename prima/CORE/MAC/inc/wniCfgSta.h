@@ -1,9 +1,13 @@
 /*
- * Copyright (C) 2007-2009 Qualcomm Technologies, Inc. All rights reserved. Proprietary and Confidential.
+ * Copyright (C) 2011-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ * Copyright (C) 2007-2009 Qualcomm Technologies, Inc.
+ * All rights reserved. Proprietary and Confidential.
  */
 
 /*
- * DO NOT EDIT - This file is generated automaticlly
+ * DO NOT EDIT - This file is generated automatically
  */
 
 /*
@@ -1159,13 +1163,13 @@
 #define WNI_CFG_VHT_TX_MCS_MAP_STAMAX    65535
 #define WNI_CFG_VHT_TX_MCS_MAP_STADEF    65534
 
-#define WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_STAMIN    1
-#define WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_STAMAX    434
-#define WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_STADEF    434
+#define WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_STAMIN    0
+#define WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_STAMAX    390
+#define WNI_CFG_VHT_RX_HIGHEST_SUPPORTED_DATA_RATE_STADEF    0
 
-#define WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_STAMIN    1
-#define WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_STAMAX    434
-#define WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_STADEF    434
+#define WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_STAMIN    0
+#define WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_STAMAX    390
+#define WNI_CFG_VHT_TX_HIGHEST_SUPPORTED_DATA_RATE_STADEF    0
 
 #define WNI_CFG_VHT_CHANNEL_WIDTH_STAMIN    0
 #define WNI_CFG_VHT_CHANNEL_WIDTH_STAMAX    3
