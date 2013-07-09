@@ -170,7 +170,14 @@ extern "C" {
 #define VDEV_MGR_AP_KEEPALIVE_INACTIVE              5
 #define VDEV_MGR_AP_KEEPALIVE_UNRESPONSIVE          6
 #define VDEV_MGR_MANAGE_AP_STA_DRIFT                7
-#define VDEV_MGR_DEFINITION_END                     8
+#define VDEV_MGR_FIRST_BCN_RECEIVED                 8
+#define VDEV_MGR_VDEV_START                         9
+#define VDEV_MGR_VDEV_UP                            10
+#define VDEV_MGR_PEER_AUTHORIZED                    11
+#define VDEV_MGR_OCS_HP_LP_REQ_POSTED               12
+#define VDEV_MGR_VDEV_START_OCS_HP_REQ_COMPLETE     13
+#define VDEV_MGR_VDEV_START_OCS_HP_REQ_STOP         14
+#define VDEV_MGR_DEFINITION_END                     15
 
 /* WHAL debug identifier definitions */
 #define WHAL_DBGID_DEFINITION_START                 0
