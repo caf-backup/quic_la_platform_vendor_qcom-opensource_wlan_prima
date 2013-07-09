@@ -2787,8 +2787,6 @@ typedef enum {
         typedef struct {
             /** TIM info */
             wmi_tim_info tim_info;
-            /** Quiet info */
-            wmi_quiet_info quiet_info;
             /* TBD: More info elements to be added later */
         } wmi_bcn_info;
 
