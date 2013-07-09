@@ -2362,6 +2362,11 @@ typedef enum {
 
     /**Set packet power save */
     WMI_VDEV_PARAM_PACKET_POWERSAVE,
+
+    /**Drops un-encrypted packets if any received in an encryted connection
+     * otherwise forwards to host
+     */
+    WMI_VDEV_PARAM_DROP_UNENCRY,
 } WMI_VDEV_PARAM;
 
         /** slot time long */
