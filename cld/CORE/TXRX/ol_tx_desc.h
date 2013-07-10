@@ -13,6 +13,7 @@
 #include <queue.h>         /* TAILQ_HEAD */
 #include <adf_nbuf.h>      /* adf_nbuf_t */
 #include <ol_txrx_types.h> /* ol_tx_desc_t */
+#include <ol_txrx_internal.h> /*TXRX_ASSERT2 */
 
 /**
  * @brief Allocate and initialize a tx descriptor for a LL system.
@@ -118,13 +119,14 @@ void ol_tx_desc_frame_free_nonstd(
 /*
  * @brief Determine the ID of a tx descriptor.
  *
- * @param pdev - the data physical device that is sending the data
+ * @param pdev - the physical device that is sending the data
  * @param tx_desc - the descriptor whose ID is being determined
  * @return numeric ID that uniquely identifies the tx descriptor
  */
 static inline u_int16_t
 ol_tx_desc_id(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
 {
+    TXRX_ASSERT2( ((union ol_tx_desc_list_elem_t *) tx_desc - pdev->tx_desc.array) < UINT16_MAX );
     return (u_int16_t)((union ol_tx_desc_list_elem_t *)tx_desc - pdev->tx_desc.array);
 }
 /*
