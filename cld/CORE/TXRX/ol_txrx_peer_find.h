@@ -40,7 +40,7 @@ ol_txrx_peer_find_mac_addr_cmp(
 
 static inline
 struct ol_txrx_peer_t *
-ol_txrx_peer_find_by_id(
+ol_txrx_peer_find_by_id_private(
     struct ol_txrx_pdev_t *pdev,
     u_int16_t peer_id)
 {

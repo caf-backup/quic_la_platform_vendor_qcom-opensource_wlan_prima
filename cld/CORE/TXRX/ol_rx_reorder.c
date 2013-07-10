@@ -19,7 +19,7 @@
 #include <ol_ctrl_txrx_api.h> /* ol_rx_err */
 
 /* datapath internal interfaces */
-#include <ol_txrx_peer_find.h>     /* ol_txrx_peer_find_by_id */
+#include <ol_txrx_peer_find.h>     /* ol_txrx_peer_find_by_id_private */
 #include <ol_txrx_internal.h>      /* TXRX_ASSERT */
 #include <ol_rx_reorder_timeout.h> /* OL_RX_REORDER_TIMEOUT_REMOVE, etc. */
 #include <ol_rx_reorder.h>
@@ -453,7 +453,7 @@ ol_rx_addba_handler(
     struct ol_txrx_peer_t *peer;
     struct ol_rx_reorder_t *rx_reorder;
 
-    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
     if (peer == NULL) {
         return;
     }
@@ -493,7 +493,7 @@ ol_rx_delba_handler(
     struct ol_txrx_peer_t *peer;
     struct ol_rx_reorder_t *rx_reorder;
 
-    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
     if (peer == NULL) {
         return;
     }
@@ -531,7 +531,7 @@ ol_rx_flush_handler(
     struct ol_rx_reorder_array_elem_t *rx_reorder_array_elem;
     htt_pdev_handle htt_pdev = pdev->htt_pdev;
 
-    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
     if (peer) {
         vdev = peer->vdev;
     } else {
@@ -586,7 +586,7 @@ ol_rx_pn_ind_handler(
     htt_pdev_handle htt_pdev = pdev->htt_pdev;
     int seq_num, i=0;
 
-    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
     if (peer) {
         vdev = peer->vdev;
     } else {

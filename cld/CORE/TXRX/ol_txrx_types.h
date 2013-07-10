@@ -557,6 +557,10 @@ struct ol_txrx_pdev_t {
 		u_int8_t data[OL_TXQ_LOG_SIZE]; /* aligned to u_int32_t boundary */
 	} txq_log;
 #endif
+
+#ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
+	adf_os_spinlock_t peer_stat_mutex;
+#endif
 #ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
 	struct {
 		ol_txrx_local_peer_id_t pool[OL_TXRX_NUM_LOCAL_PEER_IDS+1];
@@ -711,6 +715,10 @@ struct ol_txrx_peer_t {
 
 #if defined(CONFIG_HL_SUPPORT)
 	struct ol_tx_frms_queue_t txqs[OL_TX_NUM_TIDS];
+#endif
+
+#ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
+	ol_txrx_peer_stats_t stats;
 #endif
 
 	/* NAWDS Flag and Bss Peer bit */

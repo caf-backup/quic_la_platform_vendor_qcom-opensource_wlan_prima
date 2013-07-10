@@ -312,6 +312,14 @@ ol_txrx_peer_find_add_id(
     //TXRX_ASSERT2(0);
 }
 
+struct ol_txrx_peer_t *
+ol_txrx_peer_find_by_id(
+    struct ol_txrx_pdev_t *pdev,
+    u_int16_t peer_id)
+{
+    return ol_txrx_peer_find_by_id_private(pdev, peer_id);
+}
+
 /*=== allocation / deallocation function definitions ========================*/
 
 int
@@ -347,7 +355,7 @@ ol_rx_peer_map_handler(
     ol_txrx_peer_find_add_id(pdev, peer_mac_addr, peer_id);
     if (pdev->cfg.is_high_latency && !tx_ready) {
         struct ol_txrx_peer_t *peer;
-        peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+        peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
         if (!peer) {
             /* ol_txrx_peer_detach called before peer map arrived */
             return;
@@ -378,7 +386,7 @@ ol_txrx_peer_tx_ready_handler(ol_txrx_pdev_handle pdev, u_int16_t peer_id)
 {
 #if defined(CONFIG_HL_SUPPORT)
     struct ol_txrx_peer_t *peer;
-    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
     if (peer) {
         int i;
         /*
@@ -401,7 +409,7 @@ ol_rx_peer_unmap_handler(
     u_int16_t peer_id)
 {
     struct ol_txrx_peer_t *peer;
-    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
         "%s: peer %p with ID %d to be unmapped.\n", __func__, peer, peer_id);
     pdev->peer_id_to_obj_map[peer_id] = NULL;
