@@ -58,7 +58,8 @@ ol_tx_desc_ll(
     struct ol_txrx_msdu_info_t *msdu_info)
 {
     struct ol_tx_desc_t *tx_desc;
-    u_int32_t i, num_frags;
+    unsigned int i;
+    u_int32_t num_frags;
 
     msdu_info->htt.info.vdev_id = vdev->vdev_id;
     msdu_info->htt.info.frame_type = pdev->htt_pkt_type;
