@@ -2646,7 +2646,6 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 	u_int32_t len = 0;
 	ol_txrx_pdev_handle txrx_pdev;
 	ol_txrx_vdev_handle txrx_vdev;
-	u_int8_t peer_mac[ETH_ALEN];
 	struct ol_txrx_peer_t *peer;
 	u_int8_t num_keys = 0, peer_id;
 	struct wma_set_key_params key_params;
@@ -2678,13 +2677,6 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 		goto out;
 	}
 
-	if (txrx_vdev->opmode == wlan_op_mode_ap &&
-	    (key_info->encType == eSIR_ED_WEP40 ||
-	     key_info->encType == eSIR_ED_WEP104))
-		vos_mem_copy(peer_mac, txrx_vdev->mac_addr.raw, ETH_ALEN);
-	else
-		vos_mem_copy(peer_mac, key_info->peerMacAddr, ETH_ALEN);
-
 	if (key_info->defWEPIdx == WMA_INVALID_KEY_IDX &&
 	    (key_info->encType == eSIR_ED_WEP40 ||
 	     key_info->encType == eSIR_ED_WEP104) &&
@@ -2692,9 +2684,18 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 		wma_read_cfg_wepkey(wma_handle, key_info->key,
 				    &def_key_idx, &num_keys);
 		key_info->defWEPIdx = def_key_idx;
-	} else
+	} else {
 		num_keys = SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS;
-
+		if (key_params.key_type != eSIR_ED_NONE) {
+			for (i = 0; i < num_keys; i++) {
+				if (key_info->key[i].keyDirection ==
+							eSIR_TX_DEFAULT) {
+					key_info->defWEPIdx = i;
+					break;
+				}
+			}
+		}
+	}
 	adf_os_mem_set(&key_params, 0, sizeof(key_params));
 	key_params.vdev_id = key_info->smesessionId;
 	key_params.key_type = key_info->encType;
@@ -2702,7 +2703,7 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 	key_params.unicast = TRUE;
 	key_params.def_key_idx = key_info->defWEPIdx;
 	vos_mem_copy((v_VOID_t *) key_params.peer_mac,
-		     (const v_VOID_t *) peer_mac, ETH_ALEN);
+		     (const v_VOID_t *) key_info->peerMacAddr, ETH_ALEN);
 	for (i = 0; i < num_keys; i++) {
 		if (key_params.key_type != eSIR_ED_NONE &&
 		    !key_info->key[i].keyLength)
