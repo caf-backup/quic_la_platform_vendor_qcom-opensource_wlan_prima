@@ -214,7 +214,7 @@ ol_rx_reorder_release(
     adf_nbuf_t tail_msdu;
 
     OL_RX_REORDER_IDX_START_SELF_SELECT(peer, tid, &idx_start);
-    peer->tids_next_rel_idx[tid] = idx_end; /* may get reset below */
+    peer->tids_next_rel_idx[tid] = (u_int16_t)idx_end; /* may get reset below */
 
     win_sz = peer->tids_rx_reorder[tid].win_sz;
     win_sz_mask = peer->tids_rx_reorder[tid].win_sz_mask;
@@ -309,7 +309,7 @@ ol_rx_reorder_flush(
         peer->tids_next_rel_idx[tid] = OL_RX_REORDER_IDX_INIT(
             0/*n/a*/, win_sz, win_sz_mask);
     } else {
-        peer->tids_next_rel_idx[tid] = idx_end;
+        peer->tids_next_rel_idx[tid] = (u_int16_t)idx_end;
     }
 
     idx_start &= win_sz_mask;
