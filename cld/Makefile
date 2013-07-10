@@ -114,6 +114,9 @@ CONFIG_LITTLE_ENDIAN := 1
 #Enable TX reclaim support
 CONFIG_TX_CREDIT_RECLAIM_SUPPORT := 0
 
+#Enable FTM support
+CONFIG_QCA_WIFI_FTM := 0
+
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
 else
@@ -978,6 +981,11 @@ endif
 #Enable TX reclaim support
 ifeq ($(CONFIG_TX_CREDIT_RECLAIM_SUPPORT), 1)
 CDEFINES += -DTX_CREDIT_RECLAIM_SUPPORT
+endif
+
+#Enable FTM support
+ifeq ($(CONFIG_QCA_WIFI_FTM), 1)
+CDEFINES += -DQCA_WIFI_FTM
 endif
 
 # Fix build for GCC 4.7

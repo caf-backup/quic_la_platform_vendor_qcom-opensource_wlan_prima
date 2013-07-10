@@ -680,6 +680,13 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
    hdd_station_ctx_t *pHddStaCtx = &pAdapter->sessionCtx.station;
 
+#ifdef QCA_WIFI_FTM
+   if (hdd_get_conparam() == VOS_FTM_MODE) {
+       kfree_skb(skb);
+       return NETDEV_TX_OK;
+   }
+#endif
+
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
 
    if (WLAN_HDD_IBSS == pAdapter->device_mode)

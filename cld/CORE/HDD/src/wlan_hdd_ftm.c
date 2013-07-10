@@ -59,6 +59,13 @@
 #include "pttMsgApi.h"
 #include "wlan_qct_pal_device.h"
 
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#include "bmi.h"
+#include "ol_fw.h"
+#include "testmode.h"
+#include "wlan_hdd_cfg80211.h"
+#endif
+
 #define RXMODE_DISABLE_ALL 0
 #define RXMODE_ENABLE_ALL  1
 #define RXMODE_ENABLE_11GN 2
@@ -335,6 +342,10 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
    tSirRetStatus sirStatus = eSIR_SUCCESS;
    tMacOpenParameters macOpenParms;
    pVosContextType gpVosContext = (pVosContextType)pVosContext;
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+   adf_os_device_t adf_ctx;
+   HTC_INIT_INFO  htcInfo;
+#endif
 
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: Opening VOSS", __func__);
@@ -398,6 +409,40 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       goto err_msg_queue;
    }
 
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+#ifndef QCA_WIFI_ISOC
+   /* Initialize BMI and Download firmware */
+   if (bmi_download_firmware(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                 "%s: BMI failed to download target", __func__);
+       goto err_bmi_close;
+   }
+   htcInfo.pContext = gpVosContext->pHIFContext;
+   htcInfo.TargetFailure = ol_target_failure;
+   htcInfo.TargetSendSuspendComplete = wma_target_suspend_complete;
+#endif
+   adf_ctx = vos_get_context(VOS_MODULE_ID_ADF, gpVosContext);
+
+   /* Create HTC */
+   gpVosContext->htc_ctx = HTCCreate(htcInfo.pContext, &htcInfo, adf_ctx);
+   if (!gpVosContext->htc_ctx) {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                 "%s: Failed to Create HTC", __func__);
+#ifndef QCA_WIFI_ISOC
+           goto err_bmi_close;
+#endif
+           goto err_sched_close;
+   }
+
+#ifndef QCA_WIFI_ISOC
+   if (bmi_done(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                 "%s: Failed to complete BMI phase", __func__);
+       goto err_htc_close;
+   }
+#endif
+#endif /* QCA_WIFI_2_0 && QCA_WIFI_FTM */
+
    /* Open the SYS module */
    vStatus = sysOpen(gpVosContext);
 
@@ -423,6 +468,15 @@ static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContex
       VOS_ASSERT(0);
       goto err_sys_close;
    }
+
+#if defined (QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) \
+   && !defined (QCA_WIFI_ISOC)
+   if (HTCWaitTarget(vos_get_context(VOS_MODULE_ID_HTC, gpVosContext))) {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Failed to complete BMI phase", __func__);
+           goto err_wda_close;
+   }
+#endif
 
    /* initialize the NV module */
    vStatus = vos_nv_open();
@@ -485,6 +539,19 @@ err_wda_close:
 
 err_sys_close:
    sysClose(gpVosContext);
+
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+err_htc_close:
+   if (gpVosContext->htc_ctx) {
+      HTCDestroy(gpVosContext->htc_ctx);
+      gpVosContext->htc_ctx = NULL;
+   }
+
+#ifndef QCA_WIFI_ISOC
+err_bmi_close:
+   BMICleanup(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext));
+#endif /* #ifndef QCA_WIFI_ISOC */
+#endif /* #QCA_WIFI_2_0 && QCA_WIFI_FTM */
 
 err_sched_close:
    vos_sched_close(gpVosContext);
@@ -562,6 +629,15 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
          "%s: Failed to close WDA",__func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
+
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+  if (gpVosContext->htc_ctx)
+  {
+      HTCStop(gpVosContext->htc_ctx);
+      HTCDestroy(gpVosContext->htc_ctx);
+      gpVosContext->htc_ctx = NULL;
+  }
+#endif
 
   vos_mq_deinit(&((pVosContextType)vosContext)->freeVosMq);
 
@@ -897,6 +973,10 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
 {
    VOS_STATUS vStatus          = VOS_STATUS_SUCCESS;
    pVosContextType pVosContext = (pVosContextType)vosContext;
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+   pVosContextType gpVosContext = vos_get_global_context(VOS_MODULE_ID_VOSS,
+                                                         NULL);
+#endif
    
    VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
              "vos prestart");
@@ -949,6 +1029,22 @@ VOS_STATUS vos_ftm_preStart( v_CONTEXT_t vosContext )
       VOS_ASSERT( 0 );
       return VOS_STATUS_E_FAILURE;
    }
+
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM)
+   vStatus = HTCStart(gpVosContext->htc_ctx);
+   if (!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_FATAL,
+               "Failed to Start HTC");
+      macStop(gpVosContext->pMACContext, HAL_STOP_TYPE_SYS_DEEP_SLEEP);
+      ccmStop(gpVosContext->pMACContext);
+      VOS_ASSERT( 0 );
+      return VOS_STATUS_E_FAILURE;
+   }
+#ifndef QCA_WIFI_ISOC
+   wma_wait_for_ready_event(gpVosContext->pWDAContext);
+#endif
+#endif /* QCA_WIFI_2_0 && QCA_WIFI_FTM */
 
    return VOS_STATUS_SUCCESS;
 }
@@ -1019,6 +1115,7 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
        goto err_sal_close;
     }
 
+#ifndef QCA_WIFI_FTM
        //Initialize the nlink service
     if(nl_srv_init() != 0)
     {
@@ -1039,6 +1136,8 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to configure 19.2 MHz Clock", __func__);
         goto err_nl_srv_init;
     }
+#endif
+
 #ifdef HDD_SESSIONIZE
     //Turn off carrier state
     netif_carrier_off(pAdapter->dev);
@@ -1077,9 +1176,13 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
     return VOS_STATUS_SUCCESS;
 
 err_nl_srv_init:
+#ifndef QCA_WIFI_FTM
 nl_srv_exit();
+#endif
 
+#ifndef QCA_WIFI_FTM
 err_ftm_register_wext_close:
+#endif
 hdd_UnregisterWext(pAdapter->dev);
 
 err_adapter_open_failure:
@@ -1243,6 +1346,7 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     }
 
 
+#ifdef QCA_WIFI_ISOC
     vStatus = WDA_NVDownload_Start(pVosContext);
 
     if ( vStatus != VOS_STATUS_SUCCESS )
@@ -1269,6 +1373,7 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
        VOS_ASSERT(0);
        goto err_wda_stop;   
     }
+#endif	/* #ifdef QCA_WIFI_ISOC */
 
     vStatus = WDA_start(pVosContext);
     if (vStatus != VOS_STATUS_SUCCESS)
@@ -4325,7 +4430,60 @@ static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
     return 0;
 }
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
+VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
+{
+    struct ar6k_testmode_cmd_data *cmd_data;
 
+    if (!message)
+        return VOS_STATUS_E_INVAL;
+
+    cmd_data = (struct ar6k_testmode_cmd_data *)message;
+
+#ifdef CONFIG_NL80211_TESTMODE
+    wlan_hdd_testmode_rx_event(cmd_data->data,
+                               (size_t)cmd_data->len);
+#endif
+
+    vos_mem_free(cmd_data->data);
+
+    return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS wlan_hdd_ftm_testmode_cmd(void *data, int len)
+{
+    struct ar6k_testmode_cmd_data *cmd_data;
+
+    cmd_data = (struct ar6k_testmode_cmd_data *)
+               vos_mem_malloc(sizeof(*cmd_data));
+
+    if (!cmd_data) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  ("Failed to allocate FTM command data\n"));
+        return VOS_STATUS_E_NOMEM;
+    }
+
+    cmd_data->data = vos_mem_malloc(len);
+
+    if (!cmd_data->data) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  ("Failed to allocate FTM command data buffer\n"));
+        vos_mem_free(cmd_data);
+        return VOS_STATUS_E_NOMEM;
+    }
+
+    cmd_data->len = len;
+    vos_mem_copy(cmd_data->data, data, len);
+
+    if (!wlan_ftm_postmsg((v_U8_t *)cmd_data, sizeof(*cmd_data))) {
+        vos_mem_free(cmd_data->data);
+        vos_mem_free(cmd_data);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+#else
 VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
 {
     ftm_rsp_msg_t   *pFtmMsgRsp;
@@ -4383,3 +4541,4 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
     return VOS_STATUS_SUCCESS;
 
 }
+#endif

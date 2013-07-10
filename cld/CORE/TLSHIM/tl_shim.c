@@ -565,13 +565,26 @@ VOS_STATUS WLANTL_DisableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 
 VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 {
-	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
-							   vos_ctx);
+	struct txrx_tl_shim_ctx *tl_shim;
+#ifdef QCA_WIFI_ISOC
+	ol_txrx_pdev_handle txrx_pdev;
+	struct htt_dxe_pdev_t *htt_dxe_pdev;
+#else
+	tp_wma_handle wma_handle;
+#endif
+
+#ifdef QCA_WIFI_FTM
+	if (hdd_get_conparam() == VOS_FTM_MODE)
+		return VOS_STATUS_SUCCESS;
+#endif
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL,
+				  vos_ctx);
 
 #ifdef QCA_WIFI_ISOC
-	 ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
-							 vos_ctx);
-	 struct htt_dxe_pdev_t *htt_dxe_pdev = txrx_pdev->htt_pdev;
+	txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+				    vos_ctx);
+	htt_dxe_pdev = txrx_pdev->htt_pdev;
 
 	if (dmux_dxe_register_callback_rx_mgmt(htt_dxe_pdev->dmux_dxe_pdev,
 					       NULL, NULL) != 0) {
@@ -579,7 +592,7 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 		return VOS_STATUS_E_FAILURE;
 	}
 #else
-	tp_wma_handle wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
 
 	if (wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
 						 WMI_MGMT_RX_EVENTID) != 0) {
