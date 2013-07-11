@@ -722,8 +722,9 @@ struct ol_txrx_peer_t {
 #endif
 
 	/* NAWDS Flag and Bss Peer bit */
-	u_int8_t nawds_enabled:1,
-		 bss_peer:1;
+	u_int16_t nawds_enabled:1,
+	bss_peer:1,
+	valid:1;
 
 	/* QoS info*/
 	u_int8_t qos_capable;

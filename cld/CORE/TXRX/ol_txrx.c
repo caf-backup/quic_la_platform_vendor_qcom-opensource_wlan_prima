@@ -114,7 +114,7 @@ ol_txrx_peer_handle ol_txrx_find_peer_by_addr(ol_txrx_pdev_handle pdev,
 {
 	struct ol_txrx_peer_t *peer;
 
-	peer = ol_txrx_peer_find_hash_find(pdev, peer_addr, 0);
+	peer = ol_txrx_peer_find_hash_find(pdev, peer_addr, 0, 1);
 	if (!peer)
 		return NULL;
 	*peer_id = peer->local_id;
@@ -881,6 +881,11 @@ ol_txrx_peer_attach(
     /* keep one reference for attach */
     adf_os_atomic_inc(&peer->ref_cnt);
 
+    /* keep one reference for ol_rx_peer_map_handler */
+    adf_os_atomic_inc(&peer->ref_cnt);
+
+    peer->valid = 1;
+
     ol_txrx_peer_find_hash_add(pdev, peer);
 
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2,
@@ -947,7 +952,7 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 {
 	struct ol_txrx_peer_t *peer;
 
-	peer =  ol_txrx_peer_find_hash_find(pdev, peer_mac, 0);
+	peer =  ol_txrx_peer_find_hash_find(pdev, peer_mac, 0, 1);
 	/* TODO: Should we send WMI command of the connection state? */
     /* avoid multiple auth state change. */
     if (peer->state == state) {
@@ -962,7 +967,6 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: change from %d to %d\n",
         __FUNCTION__, peer->state, state);
 
-    peer->state = state;
     peer->tx_filter = (state == ol_txrx_peer_state_auth) ?
         ol_tx_filter_pass_thru : (state == ol_txrx_peer_state_conn) ?
             ol_tx_filter_non_auth : ol_tx_filter_discard;
@@ -984,6 +988,9 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
         }
     }
     adf_os_atomic_dec(&peer->ref_cnt);
+
+    /* Set the state after the Pause to avoid the race condiction with ADDBA check in tx path */
+    peer->state = state;
 }
 
 void
@@ -1002,7 +1009,7 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 {
 	struct ol_txrx_peer_t *peer;
 
-	peer =  ol_txrx_peer_find_hash_find(vdev->pdev, peer_mac, 0);
+	peer =  ol_txrx_peer_find_hash_find(vdev->pdev, peer_mac, 0, 1);
 	switch (select) {
 	case ol_txrx_peer_update_rate_ctrl:
 		{
@@ -1202,6 +1209,8 @@ ol_txrx_peer_detach(ol_txrx_peer_handle peer)
     peer->rx_opt_proc = ol_rx_discard;
 
     OL_TXRX_LOCAL_PEER_ID_FREE(peer->vdev->pdev, peer);
+
+    peer->valid = 0;
 
     /* debug print to dump rx reorder state */
     //htt_rx_reorder_log_print(vdev->pdev->htt_pdev);

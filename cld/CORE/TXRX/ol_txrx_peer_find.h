@@ -53,7 +53,17 @@ ol_txrx_peer_find_by_id_private(
      * will hold NULL rather than a valid peer pointer.
      */
     //TXRX_ASSERT2(peer != NULL);
-    return peer;
+    /*
+     * Only return the peer object if it is valid,
+     * i.e. it has not already been detached.
+     * If it has already been detached, then returning the
+     * peer object could result in unpausing the peer's tx queues
+     * in HL systems, which is an invalid operation following peer_detach.
+     */
+    if (peer && peer->valid) {
+        return peer;
+    }
+    return NULL;
 }
 
 void
@@ -65,7 +75,8 @@ struct ol_txrx_peer_t *
 ol_txrx_peer_find_hash_find(
     struct ol_txrx_pdev_t *pdev,
     u_int8_t *peer_mac_addr,
-    int mac_addr_is_aligned);
+    int mac_addr_is_aligned,
+    u_int8_t check_valid);
 
 void
 ol_txrx_peer_find_hash_remove(

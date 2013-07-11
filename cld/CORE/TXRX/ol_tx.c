@@ -173,6 +173,7 @@ ol_tx_non_std_ll(
 #define OL_TX_ENCAP_WRAPPER(pdev, vdev, tx_desc, msdu, tx_msdu_info) \
     do { \
         if (OL_TX_ENCAP(vdev, tx_desc, msdu, &tx_msdu_info) != A_OK) { \
+            adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt); \
             ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1); \
             if (tx_msdu_info.peer) { \
                 /* remove the peer reference added above */ \
