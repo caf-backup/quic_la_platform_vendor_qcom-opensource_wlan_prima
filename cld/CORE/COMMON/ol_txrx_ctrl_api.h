@@ -611,6 +611,11 @@ void
 ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_addr,
 			  enum ol_txrx_peer_state state);
 
+void
+ol_txrx_peer_keyinstalled_state_update(
+    ol_txrx_peer_handle data_peer,
+    u_int8_t val);
+
 #ifdef QCA_WIFI_ISOC
 /**
  * @brief Confirm that a requested tx ADDBA negotiation has completed

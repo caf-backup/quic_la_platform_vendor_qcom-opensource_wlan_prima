@@ -976,6 +976,14 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 }
 
 void
+ol_txrx_peer_keyinstalled_state_update(
+    struct ol_txrx_peer_t *peer,
+    u_int8_t val)
+{
+    peer->keyinstalled = val;
+}
+
+void
 ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 		    u_int8_t *peer_mac,
 		    ol_txrx_peer_update_param_t *param,
