@@ -423,7 +423,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
             {   
                 if (pLimMgmtRegistration->matchLen <= framelen)
                 {
-                    if (palEqualMemory(pMac, pLimMgmtRegistration->matchData,
+                    if (vos_mem_compare(pLimMgmtRegistration->matchData,
                                        pBody, pLimMgmtRegistration->matchLen))
                     {
                          /* found match! */
@@ -955,7 +955,7 @@ void limOemDataRspHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tA
 
     if(NULL != pMac->lim.gpLimMlmOemDataReq)
     {
-        palFreeMemory(pMac->hHdd, pMac->lim.gpLimMlmOemDataReq);
+        vos_mem_free(pMac->lim.gpLimMlmOemDataReq);
         pMac->lim.gpLimMlmOemDataReq = NULL;
     }
 
@@ -970,7 +970,6 @@ void limOemDataRspHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tA
 
 void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 {
-    eHalStatus status = eHAL_STATUS_SUCCESS;
     tpLimMlmOemDataRsp mlmOemDataRsp = NULL;
     tpStartOemDataRsp oemDataRsp = NULL;
 
@@ -979,8 +978,8 @@ void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 
     oemDataRsp = (tpStartOemDataRsp)(body);
 
-    status = palAllocateMemory(pMac->hHdd, (void**)(&mlmOemDataRsp), sizeof(tLimMlmOemDataRsp));
-    if(status != eHAL_STATUS_SUCCESS)
+    mlmOemDataRsp = vos_mem_malloc(sizeof(tLimMlmOemDataRsp));
+    if ( NULL == mlmOemDataRsp )
     {
         limLog(pMac, LOGP, FL("could not allocate memory for mlmOemDataRsp"));
         return;
@@ -988,10 +987,11 @@ void limProcessOemDataRsp(tpAniSirGlobal pMac, tANI_U32* body)
 
     //copy the memory into tLimMlmOemDataRsp and free the tStartOemDataRsp
     //the structures tStartOemDataRsp and tLimMlmOemDataRsp have the same structure
-    palCopyMemory(pMac->hHdd, (void*)(mlmOemDataRsp), (void*)(oemDataRsp), sizeof(tLimMlmOemDataRsp));
+    vos_mem_copy((void*)(mlmOemDataRsp), (void*)(oemDataRsp),
+                  sizeof(tLimMlmOemDataRsp));
 
     //Now free the incoming memory
-    palFreeMemory(pMac->hHdd, (void*)(oemDataRsp));
+    vos_mem_free(oemDataRsp);
 
     limResumeLink(pMac, limOemDataRspHandleResumeLinkRsp, (tANI_U32*)mlmOemDataRsp);
 
@@ -1037,7 +1037,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #endif
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
-        palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+        vos_mem_free(limMsg->bodyptr);
         limMsg->bodyptr = NULL;
         return;
     }
@@ -1135,7 +1135,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                  * and next time when we try to process the msg, we will try to use 'BD' as 
                  * 'Vos Pkt' which will cause a crash
                  */
-                palCopyMemory(pMac, (tANI_U8*)&limMsgNew, (tANI_U8*)limMsg, sizeof(tSirMsgQ));
+                vos_mem_copy((tANI_U8*)&limMsgNew, (tANI_U8*)limMsg,
+                             sizeof(tSirMsgQ));
                 pVosPkt = (vos_pkt_t *)limMsgNew.bodyptr;
                 vos_pkt_get_packet_length(pVosPkt, &pktLen);
 
@@ -1302,19 +1303,19 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_PMC_SMPS_STATE_IND :
         {
             if(limMsg->bodyptr){
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             }
         }
             break;
         case eWNI_SME_SEND_ACTION_FRAME_IND:
             limSendP2PActionFrame(pMac, limMsg);
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             break;
         case eWNI_SME_ABORT_REMAIN_ON_CHAN_IND:
             limAbortRemainOnChan(pMac);
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             break;
 
@@ -1336,7 +1337,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                     (psessionEntry->pePersona == VOS_P2P_GO_MODE))
                 { //Save P2P NOA start attributes for P2P Go persona
                     p2pGOExists = 1;
-                    palCopyMemory(pMac->hHdd, &psessionEntry->p2pGoPsNoaStartInd, limMsg->bodyptr, sizeof(tSirP2PNoaStart));
+                    vos_mem_copy(&psessionEntry->p2pGoPsNoaStartInd, limMsg->bodyptr,
+                                 sizeof(tSirP2PNoaStart));
                     if (psessionEntry->p2pGoPsNoaStartInd.status != eHAL_STATUS_SUCCESS)
                     {
                         limLog(pMac, LOGW, FL("GO NOA start failure status %d reported by FW."
@@ -1355,7 +1357,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
             /* We received the NOA start indication. Now we can send down the SME request which requires off-channel operation */
             limProcessRegdDefdSmeReqAfterNOAStart(pMac);
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
             limMsg->bodyptr = NULL;
          }
             break;
@@ -1369,14 +1371,14 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             if((psessionEntry = peFindSessionByStaId(pMac,pTdlsInd->staIdx,&sessionId))== NULL)
             {
                limLog(pMac, LOG1, FL("session does not exist for given bssId\n"));
-               palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+               vos_mem_free(limMsg->bodyptr);
                limMsg->bodyptr = NULL;
                return;
             }
             if ((pStaDs = dphGetHashEntry(pMac, pTdlsInd->assocId, &psessionEntry->dph.dphHashTable)) == NULL)
             {
                limLog(pMac, LOG1, FL("pStaDs Does not exist for given staId\n"));
-               palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+               vos_mem_free(limMsg->bodyptr);
                limMsg->bodyptr = NULL;
                return;
             }
@@ -1389,7 +1391,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 limSendSmeTDLSDelStaInd(pMac, pStaDs, psessionEntry,
                                         pTdlsInd->reasonCode);
             }
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
             limMsg->bodyptr = NULL;
          }
          break;
@@ -1407,9 +1409,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                         (psessionEntry->pePersona == VOS_P2P_GO_MODE))
                     { //Save P2P attributes for P2P Go persona
                     
-                        palCopyMemory(pMac->hHdd,&psessionEntry->p2pGoPsUpdate, limMsg->bodyptr,sizeof(tSirP2PNoaAttr));
-                        
-                        
+                        vos_mem_copy(&psessionEntry->p2pGoPsUpdate, limMsg->bodyptr,
+                                     sizeof(tSirP2PNoaAttr));
+
                         limLog(pMac, LOG2, FL(" &psessionEntry->bssId%02x:%02x:%02x:%02x:%02x:%02x ctWin=%d oppPsFlag=%d"),
                                      psessionEntry->bssId[0],
                                      psessionEntry->bssId[1],
@@ -1432,7 +1434,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 }
                 
             }
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             
             break;
@@ -1448,7 +1450,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             {  
                 limProcessChannelSwitchTimeout(pMac);
             }
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             break;
 
@@ -1475,12 +1477,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
         case WDA_MISSED_BEACON_IND:
             limHandleMissedBeaconInd(pMac, limMsg);
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            vos_mem_free(limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             break;
         case WDA_MIC_FAILURE_IND:
            limMicFailureInd(pMac, limMsg);
-           palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+           vos_mem_free(limMsg->bodyptr);
            limMsg->bodyptr = NULL;
            break;
     
@@ -1598,7 +1600,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                          if ((TRUE == pMac->lim.gLimTDLSOxygenSupport) &&
                              (limGetTDLSPeerCount(pMac, psessionEntry) != 0)) {
                              if (limMsg->bodyptr) {
-                                 palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+                                 vos_mem_free(limMsg->bodyptr);
                                  limMsg->bodyptr = NULL;
                              }
                              return;
@@ -2029,7 +2031,7 @@ limProcessDeferredMessageQueue(tpAniSirGlobal pMac)
     {
         while ((readMsg = limReadDeferredMsgQ(pMac)) != NULL)
         {
-            palCopyMemory( pMac->hHdd, (tANI_U8*) &limMsg,
+            vos_mem_copy((tANI_U8*) &limMsg,
                     (tANI_U8*) readMsg, sizeof(tSirMsgQ));
             size--; 
             limProcessMessages(pMac, &limMsg);
@@ -2098,7 +2100,7 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
             limLogSessionStates(pMac);
             limPrintMsgName(pMac, LOGE, pLimMsg->type);
             // Release body
-            palFreeMemory( pMac->hHdd, (tANI_U8 *) pLimMsg->bodyptr);
+            vos_mem_free(pLimMsg->bodyptr);
         }
     }
     else
@@ -2118,7 +2120,7 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
         {
             // Release body
             // limProcessSmeReqMessage consumed the buffer. We can free it.
-            palFreeMemory( pMac->hHdd, (tANI_U8 *) pLimMsg->bodyptr);
+            vos_mem_free(pLimMsg->bodyptr);
         }
     }
 }
