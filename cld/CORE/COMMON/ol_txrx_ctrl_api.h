@@ -587,6 +587,7 @@ ol_txrx_set_drop_unenc(
     u_int32_t val);
 
 enum ol_txrx_peer_state {
+    ol_txrx_peer_state_invalid,
     ol_txrx_peer_state_disc, /* initial state */
     ol_txrx_peer_state_conn, /* authentication in progress */
     ol_txrx_peer_state_auth, /* authentication completed successfully */

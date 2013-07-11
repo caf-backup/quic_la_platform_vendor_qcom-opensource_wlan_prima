@@ -68,12 +68,12 @@
 
 /*=== function definitions ===*/
 
-int
+u_int16_t
 ol_tx_desc_pool_size_hl(ol_pdev_handle ctrl_pdev)
 {
-    int desc_pool_size;
-    int steady_state_tx_lifetime_ms;
-    int safety_factor;
+    u_int16_t desc_pool_size;
+    u_int16_t steady_state_tx_lifetime_ms;
+    u_int16_t safety_factor;
 
     /*
      * Steady-state tx latency:
@@ -203,11 +203,12 @@ ol_txrx_pdev_attach(
     HTC_HANDLE htc_pdev,
     adf_os_device_t osdev)
 {
-    int i, desc_pool_size;
+    int i;
     struct ol_txrx_pdev_t *pdev;
 #ifdef WDI_EVENT_ENABLE
     A_STATUS ret;
 #endif
+    u_int16_t desc_pool_size;
 
     pdev = adf_os_mem_alloc(osdev, sizeof(*pdev));
     if (!pdev) {
@@ -909,6 +910,7 @@ ol_txrx_peer_attach(
      * else to the "conn" state. For non-open mode, the peer will progress to
      * "auth" state once the authentication completes.
      */
+    peer->state = ol_txrx_peer_state_invalid;
     ol_txrx_peer_state_update(pdev, peer->mac_addr.raw, ol_txrx_peer_state_disc);
 
     OL_TXRX_LOCAL_PEER_ID_ALLOC(pdev, peer);

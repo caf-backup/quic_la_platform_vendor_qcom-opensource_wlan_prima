@@ -231,7 +231,7 @@ int ol_cfg_tx_free_at_download(ol_pdev_handle pdev);
  * @param pdev - handle to the physical device
  * @return the number of tx buffers available in a HL target
  */
-int ol_cfg_target_tx_credit(ol_pdev_handle pdev);
+u_int16_t ol_cfg_target_tx_credit(ol_pdev_handle pdev);
 
 
 /**
