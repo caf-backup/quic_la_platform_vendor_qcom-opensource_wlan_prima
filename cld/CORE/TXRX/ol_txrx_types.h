@@ -96,9 +96,11 @@ typedef enum _privacy_filter_packet_type {
 } privacy_filter_packet_type ;
 
 typedef struct _privacy_excemption_filter {
-	/* type of ethernet to apply this filter, in host byte order*/
-	u_int16_t ether_type;
-	privacy_filter filter_type;
+	/* ethertype -
+	 * type of ethernet frames this filter applies to, in host byte order
+	 */
+	u_int16_t                     ether_type;
+	privacy_filter                filter_type;
 	privacy_filter_packet_type packet_type;
 } privacy_exemption;
 
@@ -203,9 +205,11 @@ enum {
 };
 
 struct ol_tx_frms_queue_t {
-	/* Which is used to queue up into scheduler queues*/
+	/* list_elem -
+	 * Allow individual tx frame queues to be linked together into
+	 * scheduler queues of tx frame queues
+	 */
 	TAILQ_ENTRY(ol_tx_frms_queue_t) list_elem;
-
 	u_int8_t aggr_state;
 	struct {
 		u_int8_t total;
@@ -611,7 +615,7 @@ struct ol_txrx_vdev_t {
 	/* rx filter related */
 	u_int32_t drop_unenc;
 	privacy_exemption privacy_filters[MAX_PRIVACY_FILTERS];
-	u_int32_t filters_num;
+	u_int32_t num_filters;
 
 	enum wlan_op_mode opmode;
 
@@ -655,13 +659,14 @@ struct ol_txrx_peer_t {
 
 	adf_os_atomic_t ref_cnt;
 
-	/*The peer state tracking is used for HL systems
+       /* The peer state tracking is used for HL systems
 	* that don't support tx and rx filtering within the target.
 	* In such systems, the peer's state determines what kind of
 	* tx and rx filtering, if any, is done.
 	* This variable doesn't apply to LL systems, or to HL systems for
 	* which the target handles tx and rx filtering. However, it is
-	* simplest to declare and update this variable unconditionally, for all systems.
+	* simplest to declare and update this variable unconditionally,
+	* for all systems.
 	*/
 	enum ol_txrx_peer_state state;
 	ol_tx_filter_func tx_filter;
@@ -712,9 +717,9 @@ struct ol_txrx_peer_t {
 	u_int8_t nawds_enabled:1,
 		 bss_peer:1;
 
-	/*qos info*/
+	/* QoS info*/
 	u_int8_t qos_capable;
-	/*uapsd  tid mask */
+	/* U-APSD tid mask */
 	u_int8_t  uapsd_mask;
 	/*flag indicating key installed*/
 	u_int8_t keyinstalled;

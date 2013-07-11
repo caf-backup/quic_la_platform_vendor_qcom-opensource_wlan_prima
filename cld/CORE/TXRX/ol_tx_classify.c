@@ -38,16 +38,16 @@
 
 A_STATUS
 ol_tx_classify_extension(
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
-    adf_nbuf_t tx_nbuf, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
+    adf_nbuf_t tx_nbuf,
     struct ol_txrx_msdu_info_t *tx_msdu_info);
 
 A_STATUS
 ol_tx_classify_mgmt_extension(
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
-    adf_nbuf_t tx_nbuf, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
+    adf_nbuf_t tx_nbuf,
     struct ol_txrx_msdu_info_t *tx_msdu_info);
 
 #define OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq) \
@@ -71,8 +71,8 @@ ol_tx_classify_mgmt_extension(
     } while (0)
 
 #else
-#define OL_TX_CLASSIFY_EXTENSION /* no-op */
-#define OL_TX_CLASSIFY_MGMT_EXTENSION /* no-op */
+#define OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq)
+#define OL_TX_CLASSIFY_MGMT_EXTENSION(vdev, tx_desc, netbuf, msdu_info, txq)
 #endif /* QCA_WIFI_ISOC */
 
 /* EAPOL go with voice priority: WMM_AC_TO_TID1(WMM_AC_VO);*/
@@ -84,7 +84,8 @@ ol_tx_classify_mgmt_extension(
 /* For non-IP case, use default TID */
 #define TX_DEFAULT_TID  0
 
-/* Determine IPTOS priority 
+/*
+ * Determine IP TOS priority
  * IP Tos format :
  *        (Refer Pg 57 WMM-test-plan-v1.2)
  * IP-TOS - 8bits
@@ -92,7 +93,7 @@ ol_tx_classify_mgmt_extension(
  *            : DSCP - P2 P1 P0 X X X
  *                where (P2 P1 P0) form 802.1D
  */
-static inline A_UINT8 
+static inline A_UINT8
 ol_tx_tid_by_ipv4(
     A_UINT8 *pkt)
 {
@@ -105,14 +106,14 @@ ol_tx_tid_by_ipv4(
     return tid;
 }
 
-static inline A_UINT8 
+static inline A_UINT8
 ol_tx_tid_by_ipv6(
     A_UINT8 *pkt)
 {
     return (IPV6_TRAFFIC_CLASS((struct ipv6_hdr_t *) pkt) >> 5) & 0x7;
 }
 
-static inline A_UINT8 
+static inline A_UINT8
 ol_tx_tid_by_ether_type(
     A_UINT8 *datap,
     struct ol_txrx_msdu_info_t *tx_msdu_info)
@@ -121,7 +122,7 @@ ol_tx_tid_by_ether_type(
     A_UINT8 *l3_data_ptr;
     A_UINT16 typeorlength;
     A_UINT8 * ptr;
-    
+
     ptr = (datap + ETHERNET_ADDR_LEN * 2);
     typeorlength = (ptr[0] << 8) | ptr[1];
     l3_data_ptr = datap + sizeof(struct ethernet_hdr_t);//ETHERNET_HDR_LEN;
@@ -137,7 +138,7 @@ ol_tx_tid_by_ether_type(
         typeorlength = (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
         l3_data_ptr += sizeof(struct llc_snap_hdr_t);
     }
-    tx_msdu_info->htt.info.l3_hdr_offset = (u_int8_t)(l3_data_ptr - datap);
+    tx_msdu_info->htt.info.l3_hdr_offset = (A_UINT8)(l3_data_ptr - datap);
     tx_msdu_info->htt.info.ethertype = typeorlength;
     
     /* IP packet, do packet inspection for TID */
@@ -152,23 +153,23 @@ ol_tx_tid_by_ether_type(
         tid = TX_ARP_TID;
     } else {
         /* For non-IP case, use default TID */
-        tid = TX_DEFAULT_TID; 
+        tid = TX_DEFAULT_TID;
     }
     return tid;
 }
 
-static inline A_UINT8 
+static inline A_UINT8
 ol_tx_tid_by_raw_type(
     A_UINT8 *datap,
     struct ol_txrx_msdu_info_t *tx_msdu_info)
 {
     A_UINT8 tid = HTT_TX_EXT_TID_NON_QOS_MCAST_BCAST;
-    
+
     /* adjust hdr_ptr to RA */
     struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
-    
+
     /* FIXME: This code does not handle 4 address formats. The QOS field
-     * is not at usual location. 
+     * is not at usual location.
      */
     if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_DATA) {
         struct llc_snap_hdr_t *llc;
@@ -187,18 +188,23 @@ ol_tx_tid_by_raw_type(
             (datap + tx_msdu_info->htt.info.l3_hdr_offset);
         tx_msdu_info->htt.info.ethertype =
             (llc->ethertype[0] << 8) | llc->ethertype[1];
-//TBD: l3_hdr_offset += sizeof(*llc)?
+        /*
+         * l3_hdr_offset refers to the end of the 802.3 or 802.11 header,
+         * which may be a LLC/SNAP header rather than the IP header.
+         * Thus, don't increment l3_hdr_offset += sizeof(*llc); rather,
+         * leave it as is.
+         */
     } else {
         /*
          * This function should only be applied to data frames.
          * For management frames, we already know to use HTT_TX_EXT_TID_MGMT.
          */
-        adf_os_assert(FALSE);
+        adf_os_assert(0);
     }
     return tid;
 }
 
-int
+static A_UINT8
 ol_tx_tid(
     struct ol_txrx_pdev_t *pdev, 
     adf_nbuf_t tx_nbuf, 
@@ -230,15 +236,15 @@ ol_tx_tid(
         tid = tx_msdu_info->htt.info.ext_tid;
     } else {
         adf_os_print("Invalid standard frame type: %d\n", pdev->frame_format);
-        adf_os_assert(FALSE);
+        adf_os_assert(0);
         tid = HTT_TX_EXT_TID_INVALID;
     }
     return tid;
 }
 
-void *
+static A_UINT8 *
 ol_tx_dest_addr_find(
-    struct ol_txrx_pdev_t *pdev, 
+    struct ol_txrx_pdev_t *pdev,
     adf_nbuf_t tx_nbuf)
 {
     A_UINT8 *hdr_ptr;
@@ -249,16 +255,14 @@ ol_tx_dest_addr_find(
         struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
         hdr_ptr = wh->i_addr1;
     } else if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
-        //pdev->htt_pkt_type == htt_pkt_type_native_wifi;
         /* adjust hdr_ptr to RA */
         struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
-        hdr_ptr = wh->i_addr1; 
+        hdr_ptr = wh->i_addr1;
     } else if (pdev->frame_format == wlan_frm_fmt_802_3) {
-        //pdev->htt_pkt_type == htt_pkt_type_ethernet;
         hdr_ptr = datap;
     } else {
         adf_os_print("Invalid standard frame type: %d\n", pdev->frame_format);
-        adf_os_assert(FALSE);
+        adf_os_assert(0);
         hdr_ptr = NULL;
     }
     return hdr_ptr;
@@ -266,22 +270,18 @@ ol_tx_dest_addr_find(
 
 struct ol_tx_frms_queue_t *
 ol_tx_classify(
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
-    adf_nbuf_t tx_nbuf, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
+    adf_nbuf_t tx_nbuf,
     struct ol_txrx_msdu_info_t *tx_msdu_info)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     struct ol_txrx_peer_t *peer = NULL;
     struct ol_tx_frms_queue_t *txq = NULL;
-    u_int8_t *dest_addr;
-    u_int8_t tid;
+    A_UINT8 *dest_addr;
+    A_UINT8 tid;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
-
-    /* temporary debug info - remove this after initial testing */
-    //adf_os_print("vdev %p opmode %d\n", vdev, vdev->opmode);
-    //txrx_frm_dump(tx_nbuf, 64 /* enough to show L2 and L3 headers */);
 
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
     if (IEEE80211_IS_MULTICAST(dest_addr)) {
@@ -315,14 +315,15 @@ ol_tx_classify(
         } else {
             tx_msdu_info->htt.info.peer_id = HTT_INVALID_PEER_ID;
             /*
-            * Look up the vdev's BSS peer, so that the classify_extension function can check
-            * whether to encrypt multicast / broadcast frames.
-            */
+             * Look up the vdev's BSS peer, so that the classify_extension
+             * function can check whether to encrypt multicast / broadcast
+             * frames.
+             */
             peer = ol_txrx_peer_find_hash_find(pdev, vdev->mac_addr.raw, 0);
             if (!peer) {
                 adf_os_print(
                     "Error: vdev %p (%02x:%02x:%02x:%02x:%02x:%02x) "
-                    "trying to send broad/multi cast tx data frame to an unknown peer\n",
+                    "trying to send bcast/mcast, but no self-peer found\n",
                     vdev,
                     vdev->mac_addr.raw[0], vdev->mac_addr.raw[1],
                     vdev->mac_addr.raw[2], vdev->mac_addr.raw[3],
@@ -340,15 +341,14 @@ ol_tx_classify(
                  __func__);
              return NULL;
         }
-#ifdef ATH_SUPPORT_WAPI
-        // Check to see if a frame is a WAI frame
-        if (tx_msdu_info->htt.info.ethertype == ETHERTYPE_WAI)
-        {
+        #ifdef ATH_SUPPORT_WAPI
+        /* Check to see if a frame is a WAI frame */
+        if (tx_msdu_info->htt.info.ethertype == ETHERTYPE_WAI) {
             /* WAI frames should not be encrypted */
             tx_msdu_info->htt.action.do_encrypt = 0;
             adf_os_print("Tx Frame is a WAI frame\n");
         }
-#endif //ATH_SUPPORT_WAPI
+        #endif /* ATH_SUPPORT_WAPI */
 
         /*
          * Find the peer and increment its reference count.
@@ -358,7 +358,32 @@ ol_tx_classify(
          * AP the STA is associated with.
          */
         if (vdev->opmode == wlan_op_mode_sta) {
-//CHECK THIS - this probably needs to be changed to support TDLS
+            /*
+             * TO DO:
+             * To support TDLS, first check if there is a TDLS peer STA,
+             * and if so, check if the DA matches the TDLS peer STA's
+             * MAC address.
+             * If there is no peer TDLS STA, or if the DA is not the
+             * TDLS STA's address, then the frame is either for the AP
+             * itself, or is supposed to be sent to the AP for forwarding.
+             */
+            #if 0
+            if (vdev->num_tdls_peers > 0) {
+                peer = NULL;
+                for (i = 0; i < vdev->num_tdls_peers); i++) {
+                    int differs = adf_os_mem_cmp(
+                        vdev->tdls_peers[i]->mac_addr.raw,
+                        dest_addr, OL_TXRX_MAC_ADDR_LEN);
+                    if (!differs) {
+                        peer = vdev->tdls_peers[i];
+                        break;
+                    }
+                }
+            } else {
+                /* send to AP */
+                peer = ol_txrx_assoc_peer_find(vdev);
+            }
+            #endif
             peer = ol_txrx_assoc_peer_find(vdev);
         } else {
             peer = ol_txrx_peer_find_hash_find(pdev, dest_addr, 0);
@@ -379,16 +404,14 @@ ol_tx_classify(
                 vdev->mac_addr.raw[4], vdev->mac_addr.raw[5]);
             return NULL; /* error */
         }
-        if (!peer->qos_capable)
-        {
+        TX_SCHED_DEBUG_PRINT("Peer found\n");
+        if (!peer->qos_capable) {
             tid = OL_TX_NON_QOS_TID;
         }
         /* Only allow encryption when in authenticated state */
         if (ol_txrx_peer_state_auth != peer->state) {
             tx_msdu_info->htt.action.do_encrypt = 0;
         }
-
-        TX_SCHED_DEBUG_PRINT("Peer exist\n");
         txq = &peer->txqs[tid];
         tx_msdu_info->htt.info.ext_tid = tid;
         /*
@@ -423,8 +446,7 @@ ol_tx_classify(
      * indicate an error.
      */
     OL_TX_CLASSIFY_EXTENSION(vdev, tx_desc, tx_nbuf, tx_msdu_info, txq);
-    if (IEEE80211_IS_MULTICAST(dest_addr) &&
-        vdev->opmode != wlan_op_mode_sta) {
+    if (IEEE80211_IS_MULTICAST(dest_addr) && vdev->opmode != wlan_op_mode_sta) {
         /* remove the peer reference added above */
         ol_txrx_peer_unref_delete(tx_msdu_info->peer);
         /* Making peer NULL in case if multicast non STA mode */
@@ -436,15 +458,15 @@ ol_tx_classify(
 
 struct ol_tx_frms_queue_t *
 ol_tx_classify_mgmt(
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
     adf_nbuf_t tx_nbuf,
     struct ol_txrx_msdu_info_t *tx_msdu_info)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     struct ol_txrx_peer_t *peer = NULL;
     struct ol_tx_frms_queue_t *txq = NULL;
-    u_int8_t *dest_addr;
+    A_UINT8 *dest_addr;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
@@ -473,6 +495,12 @@ ol_tx_classify_mgmt(
          * vdev's default tx queue.
          */
         if (vdev->opmode == wlan_op_mode_sta) {
+            /*
+             * TO DO:
+             * To support TDLS, first check if there is a TDLS peer STA,
+             * and if so, check if the DA matches the TDLS peer STA's
+             * MAC address.
+             */
             peer = ol_txrx_assoc_peer_find(vdev);
         } else {
             /* find the peer and increment its reference count */
@@ -508,12 +536,12 @@ ol_tx_classify_mgmt(
 
 A_STATUS
 ol_tx_classify_extension(
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
-    adf_nbuf_t tx_msdu, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
+    adf_nbuf_t tx_msdu,
     struct ol_txrx_msdu_info_t *msdu_info)
 {
-    u_int8_t *datap = adf_nbuf_data(tx_msdu);
+    A_UINT8 *datap = adf_nbuf_data(tx_msdu);
     struct ol_txrx_peer_t *peer;
     int which_key;
 
@@ -546,7 +574,7 @@ ol_tx_classify_extension(
 
     if (!msdu_info->htt.info.is_unicast) {
         int l2_hdr_size;
-        u_int16_t ethertype;
+        A_UINT16 ethertype;
 
         if (msdu_info->htt.info.l2_hdr_type == htt_pkt_type_ethernet) {
             struct ethernet_hdr_t *eh;
@@ -557,7 +585,7 @@ ol_tx_classify_extension(
 
             if (ethertype == ETHERTYPE_VLAN) {
                 struct ethernet_vlan_hdr_t *evh;
- 
+
                 evh = (struct ethernet_vlan_hdr_t *) datap;
                 l2_hdr_size = sizeof(*evh);
                 ethertype = (evh->ethertype[0] << 8) | evh->ethertype[1];
@@ -576,7 +604,12 @@ ol_tx_classify_extension(
             l2_hdr_size = ol_txrx_ieee80211_hdrsize(datap);
             llc = (struct llc_snap_hdr_t *) (datap + l2_hdr_size);
             ethertype = (llc->ethertype[0] << 8) | llc->ethertype[1];
-//TBD: l2_hdr_size += sizeof(*llc)?
+            /*
+             * Don't include the LLC/SNAP header in l2_hdr_size, because
+             * l3_hdr_offset is actually supposed to refer to the header
+             * after the 802.3 or 802.11 header, which could be a LLC/SNAP
+             * header rather than the L3 header.
+             */
         }
         msdu_info->htt.info.l3_hdr_offset = l2_hdr_size;
         msdu_info->htt.info.ethertype = ethertype;
@@ -585,12 +618,13 @@ ol_tx_classify_extension(
         which_key = txrx_sec_ucast;
     }
     peer = msdu_info->peer;
-    /* msdu_info->htt.action.do_encrypt is partially set in ol_tx_desc_hl.
+    /*
+     * msdu_info->htt.action.do_encrypt is initially set in ol_tx_desc_hl.
      * Add more check here.
      */
     msdu_info->htt.action.do_encrypt = (!peer) ? 0 :
-        (peer->security[which_key].sec_type == htt_sec_type_none) ? 0 : 
-        msdu_info->htt.action.do_encrypt;
+        (peer->security[which_key].sec_type == htt_sec_type_none) ? 0 :
+            msdu_info->htt.action.do_encrypt;
     /*
      * For systems that have a frame by frame spec for whether to receive
      * a tx completion notification, use the tx completion notification only
@@ -606,9 +640,9 @@ ol_tx_classify_extension(
 
 A_STATUS
 ol_tx_classify_mgmt_extension(
-    struct ol_txrx_vdev_t *vdev, 
-    struct ol_tx_desc_t *tx_desc, 
-    adf_nbuf_t tx_msdu, 
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_tx_desc_t *tx_desc,
+    adf_nbuf_t tx_msdu,
     struct ol_txrx_msdu_info_t *msdu_info)
 {
     struct ieee80211_frame *wh;

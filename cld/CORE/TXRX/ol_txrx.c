@@ -51,25 +51,25 @@
 #define OL_TX_AVG_FRM_BYTES 1000
 #endif
 
-#ifndef OL_TX_DESC_POOL_SIZE_MIN
-#define OL_TX_DESC_POOL_SIZE_MIN 500
+#ifndef OL_TX_DESC_POOL_SIZE_MIN_HL
+#define OL_TX_DESC_POOL_SIZE_MIN_HL 500
 #endif
 
-#ifndef OL_TX_DESC_POOL_SIZE_MAX
-#define OL_TX_DESC_POOL_SIZE_MAX 5000
+#ifndef OL_TX_DESC_POOL_SIZE_MAX_HL
+#define OL_TX_DESC_POOL_SIZE_MAX_HL 5000
 #endif
 
 /* Here it's a temporal solution, to avoid FW overflow. */
-#undef OL_TX_DESC_POOL_SIZE_MIN
-#define OL_TX_DESC_POOL_SIZE_MIN 640
-#undef OL_TX_DESC_POOL_SIZE_MAX
-#define OL_TX_DESC_POOL_SIZE_MAX 640
+#undef OL_TX_DESC_POOL_SIZE_MIN_HL
+#define OL_TX_DESC_POOL_SIZE_MIN_HL 640
+#undef OL_TX_DESC_POOL_SIZE_MAX_HL
+#define OL_TX_DESC_POOL_SIZE_MAX_HL 640
 
 
 /*=== function definitions ===*/
 
-int 
-ol_tx_desc_pool_size(ol_pdev_handle ctrl_pdev)
+int
+ol_tx_desc_pool_size_hl(ol_pdev_handle ctrl_pdev)
 {
     int desc_pool_size;
     int steady_state_tx_lifetime_ms;
@@ -98,12 +98,12 @@ ol_tx_desc_pool_size(ol_pdev_handle ctrl_pdev)
         safety_factor;
 
     /* minimum */
-    if (desc_pool_size < OL_TX_DESC_POOL_SIZE_MIN) {
-        desc_pool_size = OL_TX_DESC_POOL_SIZE_MIN;
+    if (desc_pool_size < OL_TX_DESC_POOL_SIZE_MIN_HL) {
+        desc_pool_size = OL_TX_DESC_POOL_SIZE_MIN_HL;
     }
     /* maximum */
-    if (desc_pool_size > OL_TX_DESC_POOL_SIZE_MAX) {
-        desc_pool_size = OL_TX_DESC_POOL_SIZE_MAX;
+    if (desc_pool_size > OL_TX_DESC_POOL_SIZE_MAX_HL) {
+        desc_pool_size = OL_TX_DESC_POOL_SIZE_MAX_HL;
     }
     return desc_pool_size;
 }
@@ -213,7 +213,7 @@ ol_txrx_pdev_attach(
     if (!pdev) {
         goto fail0;
     }
-    adf_os_mem_zero(pdev, sizeof(*pdev)); 
+    adf_os_mem_zero(pdev, sizeof(*pdev));
 
     /* init LL/HL cfg here */
     pdev->cfg.is_high_latency = ol_cfg_is_high_latency(ctrl_pdev);
@@ -222,9 +222,9 @@ ol_txrx_pdev_attach(
     pdev->ctrl_pdev = ctrl_pdev;
     pdev->osdev = osdev;
 
-	for (i = 0; i < htt_num_sec_types; i++) {
-		pdev->sec_types[i] = (enum ol_sec_type)i;
-	}
+    for (i = 0; i < htt_num_sec_types; i++) {
+        pdev->sec_types[i] = (enum ol_sec_type)i;
+    }
 
     TXRX_STATS_INIT(pdev);
 
@@ -236,7 +236,7 @@ ol_txrx_pdev_attach(
     }
 
     if (ol_cfg_is_high_latency(ctrl_pdev)) {
-        desc_pool_size = ol_tx_desc_pool_size(ctrl_pdev);
+        desc_pool_size = ol_tx_desc_pool_size_hl(ctrl_pdev);
         adf_os_atomic_init(&pdev->tx_queue.rsrc_cnt);
         adf_os_atomic_add(desc_pool_size, &pdev->tx_queue.rsrc_cnt);
         /* always maintain a 5% margin of unallocated descriptors */
@@ -330,54 +330,62 @@ ol_txrx_pdev_attach(
     TAILQ_INIT(&pdev->rx.defrag.waitlist);
 
     /* configure where defrag timeout and duplicate detection is handled */
-    pdev->rx.flags.defrag_timeout_check = ol_cfg_rx_host_defrag_timeout_duplicate_check(ctrl_pdev);
-    pdev->rx.flags.dup_check = ol_cfg_rx_host_defrag_timeout_duplicate_check(ctrl_pdev);
+    pdev->rx.flags.defrag_timeout_check =
+        pdev->rx.flags.dup_check =
+            ol_cfg_rx_host_defrag_timeout_duplicate_check(ctrl_pdev);
 
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
-    /* Need to revisit this part.Currently,hardcode to riva's caps*/
+    /* Need to revisit this part. Currently,hardcode to riva's caps */
     pdev->target_tx_tran_caps = wlan_frm_tran_cap_raw;
     pdev->target_rx_tran_caps = wlan_frm_tran_cap_raw;
-    /* The Riva HW de-aggregate doesn't have capability to generate 802.11
+    /*
+     * The Riva HW de-aggregate doesn't have capability to generate 802.11
      * header for non-first subframe of A-MSDU.
      */
     pdev->sw_subfrm_hdr_recovery_enable = 1;
-    /* The Riva HW doesn't have the capability to set Protected Frame bit
+    /*
+     * The Riva HW doesn't have the capability to set Protected Frame bit
      * in the MAC header for encrypted data frame.
      */
     pdev->sw_pf_proc_enable = 1;
 
     if (pdev->frame_format == wlan_frm_fmt_802_3) {
-        /* sw llc process is only needed in 802.3 to 802.11 transform case*/
+        /* sw llc process is only needed in 802.3 to 802.11 transform case */
         pdev->sw_tx_llc_proc_enable = 1;
         pdev->sw_rx_llc_proc_enable = 1;
-    }
-    else {
+    } else {
         pdev->sw_tx_llc_proc_enable = 0;
         pdev->sw_rx_llc_proc_enable = 0;
     }
 
     switch(pdev->frame_format) {
     case wlan_frm_fmt_raw:
-        pdev->sw_tx_encap = pdev->target_tx_tran_caps & wlan_frm_tran_cap_raw ? 0 : 1;
-        pdev->sw_rx_decap = pdev->target_rx_tran_caps & wlan_frm_tran_cap_raw ? 0 : 1;
+        pdev->sw_tx_encap =
+            pdev->target_tx_tran_caps & wlan_frm_tran_cap_raw ? 0 : 1;
+        pdev->sw_rx_decap =
+            pdev->target_rx_tran_caps & wlan_frm_tran_cap_raw ? 0 : 1;
         break;
     case wlan_frm_fmt_native_wifi:
-        pdev->sw_tx_encap = pdev->target_tx_tran_caps & wlan_frm_tran_cap_native_wifi ? 0: 1;
-        pdev->sw_rx_decap = pdev->target_rx_tran_caps & wlan_frm_tran_cap_native_wifi ? 0: 1;
+        pdev->sw_tx_encap =
+            pdev->target_tx_tran_caps & wlan_frm_tran_cap_native_wifi ? 0: 1;
+        pdev->sw_rx_decap =
+            pdev->target_rx_tran_caps & wlan_frm_tran_cap_native_wifi ? 0: 1;
         break;
     case wlan_frm_fmt_802_3:
-        pdev->sw_tx_encap = pdev->target_tx_tran_caps & wlan_frm_tran_cap_8023 ? 0: 1;
-        pdev->sw_rx_decap = pdev->target_rx_tran_caps & wlan_frm_tran_cap_8023 ? 0: 1;
+        pdev->sw_tx_encap =
+            pdev->target_tx_tran_caps & wlan_frm_tran_cap_8023 ? 0: 1;
+        pdev->sw_rx_decap =
+            pdev->target_rx_tran_caps & wlan_frm_tran_cap_8023 ? 0: 1;
         break;
     default:
-        adf_os_print("Invalid standard frame type for encap/decap: fmt %x tx %x rx %x\n",\
-                            pdev->frame_format,
-                            pdev->target_tx_tran_caps,
-                            pdev->target_rx_tran_caps
-                            );
+        adf_os_print(
+            "Invalid standard frame type for encap/decap: fmt %x tx %x rx %x\n",
+            pdev->frame_format,
+            pdev->target_tx_tran_caps,
+            pdev->target_rx_tran_caps);
         goto fail5;
     }
-#endif 
+#endif
 
     /*
      * Determine what rx processing steps are done within the host.
@@ -399,7 +407,7 @@ ol_txrx_pdev_attach(
      */
     if (ol_cfg_rx_pn_check(pdev->ctrl_pdev)) {
         if (ol_cfg_rx_fwd_check(pdev->ctrl_pdev)) {
-            /* 
+            /*
              * Both PN check and rx->tx forwarding done on host.
              */
             pdev->rx_opt_proc = ol_rx_pn_check;
@@ -431,18 +439,18 @@ ol_txrx_pdev_attach(
 
     if (ol_cfg_is_high_latency(ctrl_pdev)) {
         adf_os_spinlock_init(&pdev->tx_queue_spinlock);
-		pdev->tx_sched.scheduler = ol_tx_sched_attach(pdev);
-	    if (pdev->tx_sched.scheduler == NULL) {
-	        goto fail5_1;
-	    }
+        pdev->tx_sched.scheduler = ol_tx_sched_attach(pdev);
+        if (pdev->tx_sched.scheduler == NULL) {
+            goto fail6;
+        }
     }
 
     if (OL_RX_REORDER_TRACE_ATTACH(pdev) != A_OK) {
-        goto fail6;
+        goto fail7;
     }
 
     if (OL_RX_PN_TRACE_ATTACH(pdev) != A_OK) {
-        goto fail7;
+        goto fail8;
     }
 
 #ifdef PERE_IP_HDR_ALIGNMENT_WAR 
@@ -493,21 +501,21 @@ ol_txrx_pdev_attach(
 
     return pdev; /* success */
 
-fail7:
+fail8:
     OL_RX_REORDER_TRACE_DETACH(pdev);
 
-fail6:
+fail7:
     adf_os_spinlock_destroy(&pdev->tx_mutex);
     adf_os_spinlock_destroy(&pdev->peer_ref_mutex);
     adf_os_spinlock_destroy(&pdev->rx.mutex);
     adf_os_spinlock_destroy(&pdev->last_real_peer_mutex);
 
-	ol_tx_sched_detach(pdev);
-	
-fail5_1:
-	if (ol_cfg_is_high_latency(ctrl_pdev)) {
-		adf_os_spinlock_destroy(&pdev->tx_queue_spinlock);
-	}
+    ol_tx_sched_detach(pdev);
+
+fail6:
+    if (ol_cfg_is_high_latency(ctrl_pdev)) {
+        adf_os_spinlock_destroy(&pdev->tx_queue_spinlock);
+    }
 
 fail5:
     for (i = 0; i < desc_pool_size; i++) {
@@ -540,9 +548,6 @@ void
 ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 {
     int i;
-#ifdef WDI_EVENT_ENABLE
-    A_STATUS ret;
-#endif
     /* preconditions */
     TXRX_ASSERT2(pdev);
 
@@ -552,7 +557,7 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     OL_RX_REORDER_TIMEOUT_CLEANUP(pdev);
 
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
-	    ol_tx_sched_detach(pdev);
+        ol_tx_sched_detach(pdev);
     }
     if (force) {
         /*
@@ -608,7 +613,7 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
      * WDI event detach
      */
 #ifdef WDI_EVENT_ENABLE
-    if ((ret = wdi_event_detach(pdev)) == A_ERROR) {
+    if (wdi_event_detach(pdev) == A_ERROR) {
         adf_os_print("WDI detach unsuccessful\n");
     }
 #endif
@@ -645,30 +650,30 @@ ol_txrx_vdev_attach(
     vdev->delete.pending = 0;
     vdev->safemode = 0;
     vdev->drop_unenc = 1;
-    vdev->filters_num = 0;
+    vdev->num_filters = 0;
 
     adf_os_mem_copy(
         &vdev->mac_addr.raw[0], vdev_mac_addr, sizeof(vdev->mac_addr));
 
     TAILQ_INIT(&vdev->peer_list);
     vdev->last_real_peer = NULL;
-	
-#if defined(CONFIG_HL_SUPPORT)
-    if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
-		u_int8_t i;
 
-		for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
-			TAILQ_INIT(&vdev->txqs[i].head);
-			vdev->txqs[i].paused_count.total = 0;
-			vdev->txqs[i].frms = 0;
-			vdev->txqs[i].bytes = 0;
+    #if defined(CONFIG_HL_SUPPORT)
+    if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
+        u_int8_t i;
+        for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
+            TAILQ_INIT(&vdev->txqs[i].head);
+            vdev->txqs[i].paused_count.total = 0;
+            vdev->txqs[i].frms = 0;
+            vdev->txqs[i].bytes = 0;
             vdev->txqs[i].ext_tid = OL_TX_NUM_TIDS + i;
-			vdev->txqs[i].flag = ol_tx_queue_empty;
+            vdev->txqs[i].flag = ol_tx_queue_empty;
             /* aggregation is not applicable for vdev tx queues */
             vdev->txqs[i].aggr_state = ol_tx_aggr_disabled;
-		}
+        }
     }
-#endif /* defined(CONFIG_HL_SUPPORT) */
+    #endif /* defined(CONFIG_HL_SUPPORT) */
+
     /* add this vdev into the pdev's list */
     TAILQ_INSERT_TAIL(&pdev->vdev_list, vdev, vdev_list_elem);
 
@@ -711,7 +716,7 @@ ol_txrx_set_curchan(
     return;
 }
 
-void 
+void
 ol_txrx_set_safemode(
     ol_txrx_vdev_handle vdev,
     u_int32_t val)
@@ -725,11 +730,12 @@ ol_txrx_set_privacy_filters(
     void *filters,
     u_int32_t num)
 {
-     adf_os_mem_copy(vdev->privacy_filters, filters, num*sizeof(privacy_exemption));
-     vdev->filters_num = num;
+     adf_os_mem_copy(
+         vdev->privacy_filters, filters, num*sizeof(privacy_exemption));
+     vdev->num_filters = num;
 }
 
-void 
+void
 ol_txrx_set_drop_unenc(
     ol_txrx_vdev_handle vdev,
     u_int32_t val)
@@ -758,7 +764,8 @@ ol_txrx_vdev_detach(
             ol_tx_queue_free(pdev, txq, (i + OL_TX_NUM_TIDS));
         }
     }
-#endif /* defined(CONFIG_HL_SUPPORT) */
+    #endif /* defined(CONFIG_HL_SUPPORT) */
+
     /* remove the vdev from its parent pdev's list */
     TAILQ_REMOVE(&pdev->vdev_list, vdev, vdev_list_elem);
 
@@ -813,14 +820,13 @@ ol_txrx_peer_attach(
 {
     struct ol_txrx_peer_t *peer;
     u_int8_t i;
+    int differs;
 
     /* preconditions */
     TXRX_ASSERT2(pdev);
     TXRX_ASSERT2(vdev);
     TXRX_ASSERT2(peer_mac_addr);
 
-/* CHECK CFG TO DETERMINE WHETHER TO ALLOCATE BASE OR EXTENDED PEER STRUCT */
-/* USE vdev->pdev->osdev, AND REMOVE PDEV FUNCTION ARG? */
     peer = adf_os_mem_alloc(pdev->osdev, sizeof(*peer));
     if (!peer) {
         return NULL; /* failure */
@@ -832,7 +838,7 @@ ol_txrx_peer_attach(
     adf_os_mem_copy(
         &peer->mac_addr.raw[0], peer_mac_addr, sizeof(peer->mac_addr));
 
-#if defined(CONFIG_HL_SUPPORT)
+    #if defined(CONFIG_HL_SUPPORT)
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         for (i = 0; i < OL_TX_NUM_TIDS; i++) {
             TAILQ_INIT(&peer->txqs[i].head);
@@ -849,7 +855,8 @@ ol_txrx_peer_attach(
         }
     }
     ol_txrx_peer_pause(peer);
-#endif /* defined(CONFIG_HL_SUPPORT) */
+    #endif /* defined(CONFIG_HL_SUPPORT) */
+
     /* add this peer into the vdev's list */
     TAILQ_INSERT_TAIL(&vdev->peer_list, peer, peer_list_elem);
     /* check whether this is a real peer (peer mac addr != vdev mac addr) */
@@ -860,8 +867,6 @@ ol_txrx_peer_attach(
     peer->rx_opt_proc = pdev->rx_opt_proc;
 
     ol_rx_peer_init(pdev, peer);
-
-    //ol_tx_peer_init(pdev, peer);
 
     /* initialize the peer_id */
     for (i = 0; i < MAX_NUM_PEER_ID_PER_PEER; i++) {
@@ -883,7 +888,9 @@ ol_txrx_peer_attach(
     /*
      * For every peer MAp message search and set if bss_peer
      */
-    if (memcmp(peer->mac_addr.raw, vdev->mac_addr.raw, 6) == 0){
+    differs = adf_os_mem_cmp(
+        peer->mac_addr.raw, vdev->mac_addr.raw, OL_TXRX_MAC_ADDR_LEN);
+    if (!differs) {
         peer->bss_peer = 1;
     }
 
@@ -961,10 +968,11 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
         if (state == ol_txrx_peer_state_auth) {
             int tid;
             /*
-              * Pause all regular (non-exteded) TID tx queues until data
-              * arrives and ADDBA negotiation has completed.
-              */
-            TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: pause peer and unpause mgmt, non-qos\n", __FUNCTION__);
+             * Pause all regular (non-extended) TID tx queues until data
+             * arrives and ADDBA negotiation has completed.
+             */
+            TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2,
+                "%s: pause peer and unpause mgmt, non-qos\n", __func__);
             ol_txrx_peer_pause(peer); /* pause all tx queues */
             /* unpause mgmt and non-QoS tx queues */
             for (tid = OL_TX_NUM_QOS_TIDS; tid < OL_TX_NUM_TIDS; tid++) {
@@ -1047,16 +1055,18 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 			    peer_sec_type = htt_sec_type_wapi;
 			    break;
 			default:
+			    peer_sec_type = htt_sec_type_none;
 			    break;
 			}
 
-			peer->security[txrx_sec_ucast].sec_type = peer->security[txrx_sec_mcast].sec_type = peer_sec_type;
+			peer->security[txrx_sec_ucast].sec_type =
+			peer->security[txrx_sec_mcast].sec_type = peer_sec_type;
 
 			break;
 		}
 	default:
 		{
-			adf_os_print("ERROR,unrecognized parameter selection %x\n", select);
+			adf_os_print("ERROR: unknown param %d in %s\n", select, __func__);
 			break;
 		}
 	}
@@ -1064,12 +1074,11 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 }
 
 u_int8_t
-ol_txrx_peer_uapsdmask_get (struct ol_txrx_pdev_t * txrx_pdev, u_int16_t peer_id)
+ol_txrx_peer_uapsdmask_get(struct ol_txrx_pdev_t *txrx_pdev, u_int16_t peer_id)
 {
 
     struct ol_txrx_peer_t *peer  = ol_txrx_peer_find_by_id(txrx_pdev, peer_id);
-    if (peer != NULL)
-    {
+    if (peer != NULL) {
         return peer->uapsd_mask;
     }
 
@@ -1088,12 +1097,14 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
     vdev = peer->vdev;
     pdev = vdev->pdev;
 
-    /* Check for the reference count before deleting the peer
+    /*
+     * Check for the reference count before deleting the peer
      * as we noticed that sometimes we are re-entering this
-     * fucntion again which is leading to dead-lock
+     * function again which is leading to dead-lock.
+     * (A double-free should never happen, so throw an assertion if it does.)
      */
 
-    if ( 0 == adf_os_atomic_read(&(peer->ref_cnt)) ) {
+    if (0 == adf_os_atomic_read(&(peer->ref_cnt)) ) {
         TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "The Peer is not present anymore\n");
         adf_os_assert(0);
         return;
@@ -1135,7 +1146,7 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
              */
             adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
             /*
-             * Check if the parent vdev was waiting for its peers to be 
+             * Check if the parent vdev was waiting for its peers to be
              * deleted, in order for it to be deleted too.
              */
             if (vdev->delete.pending) {
@@ -1160,17 +1171,17 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
             adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
         }
 
-#if defined(CONFIG_HL_SUPPORT)
+        #if defined(CONFIG_HL_SUPPORT)
         if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
-			struct ol_tx_frms_queue_t *txq;
-			int i;
+            struct ol_tx_frms_queue_t *txq;
+            int i;
 
-			for (i = 0; i < OL_TX_NUM_TIDS; i++) {
-				txq = &peer->txqs[i];
-				ol_tx_queue_free(pdev, txq, i);
-			}
+            for (i = 0; i < OL_TX_NUM_TIDS; i++) {
+                txq = &peer->txqs[i];
+                ol_tx_queue_free(pdev, txq, i);
+            }
         }
-#endif /* defined(CONFIG_HL_SUPPORT) */
+        #endif /* defined(CONFIG_HL_SUPPORT) */
 
         adf_os_mem_free(peer);
     } else {
@@ -1188,8 +1199,8 @@ ol_txrx_peer_detach(ol_txrx_peer_handle peer)
 
     OL_TXRX_LOCAL_PEER_ID_FREE(peer->vdev->pdev, peer);
 
-     //Add Debug Print to dump Rx Reorder State
-    htt_rx_reorder_log_print(vdev->pdev->htt_pdev);
+    /* debug print to dump rx reorder state */
+    //htt_rx_reorder_log_print(vdev->pdev->htt_pdev);
 
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2,
         "%s:peer %p (%02x:%02x:%02x:%02x:%02x:%02x)\n",
@@ -1226,12 +1237,9 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
     int total;
     int unused = 0;
 
-    if (ol_cfg_is_high_latency(pdev->ctrl_pdev))
-    {
+    if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         total = adf_os_atomic_read(&pdev->orig_target_tx_credit);
-    }
-    else
-    {
+    } else {
         total = ol_cfg_target_tx_credit(pdev->ctrl_pdev);
     }
 
@@ -1443,7 +1451,7 @@ ol_txrx_fw_stats_handler(
                     adf_os_mem_copy(buf, stats_data, limit);
                 }
                 break;
- 
+
             case HTT_DBG_STATS_TX_RATE_INFO:
                 bytes = sizeof(wlan_dbg_tx_rate_info_t);
                 if (req->base.copy.buf) {
@@ -1509,7 +1517,7 @@ int ol_txrx_debug(ol_txrx_vdev_handle vdev, int debug_specs)
         #else
             adf_os_print(
                 "txrx protocol analysis is disabled.\n"
-                "To enable it, recompile with " 
+                "To enable it, recompile with "
                 "ENABLE_TXRX_PROT_ANALYZE defined.\n");
         #endif
     }
@@ -1519,7 +1527,7 @@ int ol_txrx_debug(ol_txrx_vdev_handle vdev, int debug_specs)
         #else
             adf_os_print(
                 "rx reorder seq num trace is disabled.\n"
-                "To enable it, recompile with " 
+                "To enable it, recompile with "
                 "ENABLE_RX_REORDER_TRACE defined.\n");
         #endif
 
@@ -1529,12 +1537,12 @@ int ol_txrx_debug(ol_txrx_vdev_handle vdev, int debug_specs)
 #endif
 
 #if defined(TEMP_AGGR_CFG)
-int ol_txrx_aggr_cfg(ol_txrx_vdev_handle vdev, 
-                     int max_subfrms_ampdu, 
+int ol_txrx_aggr_cfg(ol_txrx_vdev_handle vdev,
+                     int max_subfrms_ampdu,
                      int max_subfrms_amsdu)
 {
-    return htt_h2t_aggr_cfg_msg(vdev->pdev->htt_pdev, 
-                                max_subfrms_ampdu, 
+    return htt_h2t_aggr_cfg_msg(vdev->pdev->htt_pdev,
+                                max_subfrms_ampdu,
                                 max_subfrms_amsdu);
 }
 #endif
@@ -1550,7 +1558,7 @@ ol_txrx_pdev_display(ol_txrx_pdev_handle pdev, int indent)
     adf_os_print("%*svdev list:\n", indent+4, " ");
     TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
         ol_txrx_vdev_display(vdev, indent+8);
-    }    
+    }
     ol_txrx_peer_find_display(pdev, indent+4);
     adf_os_print("%*stx desc pool: %d elems @ %p\n", indent+4, " ",
         pdev->tx_desc.pool_size, pdev->tx_desc.array);
@@ -1572,7 +1580,7 @@ ol_txrx_vdev_display(ol_txrx_vdev_handle vdev, int indent)
     adf_os_print("%*speer list:\n", indent+4, " ");
     TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
         ol_txrx_peer_display(peer, indent+8);
-    }    
+    }
 }
 
 void
@@ -1587,7 +1595,6 @@ ol_txrx_peer_display(ol_txrx_peer_handle peer, int indent)
         }
     }
 }
-
 #endif /* TXRX_DEBUG_LEVEL */
 
 #if TXRX_STATS_LEVEL != TXRX_STATS_LEVEL_OFF
@@ -1647,7 +1654,6 @@ ol_txrx_stats_publish(ol_txrx_pdev_handle pdev, struct ol_txrx_stats *buf)
     adf_os_mem_copy(buf, &pdev->stats.pub, sizeof(pdev->stats.pub));
     return TXRX_STATS_LEVEL;
 }
-
 #endif /* TXRX_STATS_LEVEL */
 
 #if defined(ENABLE_TXRX_PROT_ANALYZE)

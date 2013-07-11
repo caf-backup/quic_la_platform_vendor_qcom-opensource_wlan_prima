@@ -18,7 +18,7 @@
 #include <ol_tx_sched.h>      /* ol_tx_sched_notify, etc. */
 #include <ol_tx_queue.h>
 #include <ol_txrx_dbg.h>      /* ENABLE_TX_QUEUE_LOG */
-#include <ol_txrx.h>          /* ol_tx_desc_pool_size */
+#include <ol_txrx.h>          /* ol_tx_desc_pool_size_hl */
 #include <adf_os_types.h>     /* a_bool_t */
 
 
@@ -99,19 +99,21 @@ ol_tx_queue_discard(
     }
     if (flush_all == A_TRUE) {
         /* flush all the pending tx queues in the scheduler */
-        num = ol_tx_desc_pool_size(pdev->ctrl_pdev) -
+        num = ol_tx_desc_pool_size_hl(pdev->ctrl_pdev) -
             adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt);
     } else {
         num = pdev->tx_queue.rsrc_threshold_hi -
             pdev->tx_queue.rsrc_threshold_lo;
     }
-    TX_SCHED_DEBUG_PRINT("+%s : %d\n,",__FUNCTION__,pdev->tx_queue.rsrc_cnt);
+    TX_SCHED_DEBUG_PRINT("+%s : %d\n,", __FUNCTION__, pdev->tx_queue.rsrc_cnt);
     while (num > 0) {
-        discarded = ol_tx_sched_discard_select(pdev, (u_int16_t)num,
-            &tx_descs, flush_all);
-        if ( discarded == 0)
-        {
-             /* No More Packets could be discarded . Probably Tx Queues are Empty */
+        discarded = ol_tx_sched_discard_select(
+            pdev, (u_int16_t)num, &tx_descs, flush_all);
+        if (discarded == 0) {
+             /*
+              * No more packets could be discarded.
+              * Probably tx queues are empty.
+              */
              break;
         }
         num -= discarded;
@@ -127,14 +129,14 @@ ol_tx_queue_discard(
 
 void
 ol_tx_enqueue(
-    struct ol_txrx_pdev_t *pdev, 
-    struct ol_tx_frms_queue_t *txq, 
-    struct ol_tx_desc_t *tx_desc, 
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_frms_queue_t *txq,
+    struct ol_tx_desc_t *tx_desc,
     struct ol_txrx_msdu_info_t *tx_msdu_info)
 {
     int bytes;
     struct ol_tx_sched_notify_ctx_t notify_ctx;
-    
+
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
     adf_os_spin_lock(&pdev->tx_queue_spinlock);
 
@@ -150,7 +152,7 @@ ol_tx_enqueue(
     }
     TAILQ_INSERT_TAIL(&txq->head, tx_desc, tx_desc_list_elem);
 
-    bytes = adf_nbuf_len(tx_desc->netbuf); 
+    bytes = adf_nbuf_len(tx_desc->netbuf);
     txq->frms++;
     txq->bytes += bytes;
     OL_TX_QUEUE_LOG_ENQUEUE(pdev, tx_msdu_info, 1, bytes);
@@ -174,8 +176,8 @@ ol_tx_enqueue(
 
 u_int16_t
 ol_tx_dequeue(
-    struct ol_txrx_pdev_t *pdev, 
-    struct ol_tx_frms_queue_t *txq, 
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_frms_queue_t *txq,
     ol_tx_desc_list *head,
     u_int16_t max_frames,
     u_int32_t *credit,
@@ -223,7 +225,7 @@ ol_tx_dequeue(
 
 void
 ol_tx_queue_free(
-    struct ol_txrx_pdev_t *pdev, 
+    struct ol_txrx_pdev_t *pdev,
     struct ol_tx_frms_queue_t *txq,
     int tid)
 {
@@ -418,7 +420,7 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
         for (i = 0; i < ARRAY_LEN(peer->txqs); i++) {
             ol_txrx_peer_tid_unpause_base(pdev, peer, i);
         }
-    }    
+    }
 
     adf_os_spin_unlock(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
@@ -560,7 +562,7 @@ ol_tx_addba_conf(ol_txrx_peer_handle peer, int tid, enum ol_addba_status status)
     }
     /* unpause the tx queue */
     ol_txrx_peer_tid_unpause(peer, tid);
-} 
+}
 
 #endif /* QCA_SUPPORT_HOST_ADDBA */
 
