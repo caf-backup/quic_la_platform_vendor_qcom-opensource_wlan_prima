@@ -293,6 +293,7 @@ typedef struct {
 #ifdef WLAN_FEATURE_11AC
 	u_int32_t vht_cap_info;
 #endif
+	u_int32_t num_rf_chains;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
