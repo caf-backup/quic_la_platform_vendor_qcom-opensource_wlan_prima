@@ -336,7 +336,6 @@ htt_tx_sched(htt_pdev_handle pdev)
             HTT_TX_NBUF_QUEUE_ADD(pdev, msdu);
             return;
         }
-        adf_nbuf_queue_remove(&pdev->txnbufq);
         HTT_TX_NBUF_QUEUE_REMOVE(pdev, msdu);
     }
 }
