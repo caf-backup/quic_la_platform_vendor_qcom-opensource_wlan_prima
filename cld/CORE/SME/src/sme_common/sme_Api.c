@@ -3004,6 +3004,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
          return status;
       }
 #endif
+      pParam->fScanOffload = pMac->fScanOffload;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
