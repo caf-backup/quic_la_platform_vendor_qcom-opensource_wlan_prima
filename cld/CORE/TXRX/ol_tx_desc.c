@@ -98,7 +98,7 @@ ol_tx_desc_ll(
     num_frags = adf_nbuf_get_num_frags(netbuf);
     htt_tx_desc_num_frags(pdev->htt_pdev, tx_desc->htt_tx_desc, num_frags);
     for (i = 0; i < num_frags; i++) {
-        int frag_len;
+        u_int32_t frag_len;
         u_int32_t frag_paddr;
 
         frag_len = adf_nbuf_get_frag_len(netbuf, i);

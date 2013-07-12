@@ -56,7 +56,7 @@ wmi_unified_detach(struct wmi_unified* wmi_handle);
  *  @return wmi_buf_t.
  */
 wmi_buf_t
-wmi_buf_alloc(wmi_unified_t wmi_handle, int len);
+wmi_buf_alloc(wmi_unified_t wmi_handle, u_int16_t len);
 
 
 /**
