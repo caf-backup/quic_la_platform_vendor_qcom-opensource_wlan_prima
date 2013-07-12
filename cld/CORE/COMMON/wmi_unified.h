@@ -164,6 +164,10 @@ typedef enum {
     WMI_SCAN_CHAN_LIST_CMDID,
     /** overwrite default priority table in scan scheduler   */
     WMI_SCAN_SCH_PRIO_TBL_CMDID,
+    /** This command to adjust the priority and min.max_rest_time
+     * of an on ongoing scan request.
+     */
+    WMI_SCAN_UPDATE_REQUEST_CMDID,
 
     /* PDEV(physical device) specific commands */
     /** set regulatorty ctl id used by FW to determine the exact ctl power limits */
@@ -395,6 +399,12 @@ typedef enum {
     /* Chatter commands*/
     /* Change chatter mode of operation */
     WMI_CHATTER_SET_MODE_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_CHATTER),
+    /** chatter add coalescing filter command */
+    WMI_CHATTER_ADD_COALESCING_FILTER_CMDID,
+    /** chatter delete coalescing filter command */
+    WMI_CHATTER_DELETE_COALESCING_FILTER_CMDID,
+    /** chatter coalecing query command */
+    WMI_CHATTER_COALESCING_QUERY_CMDID,
 
     /**addba specific commands */
     /** start the aggregation on this TID */
@@ -432,6 +442,9 @@ typedef enum {
     /* GPIO Configuration */
     WMI_GPIO_CONFIG_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_GPIO),
     WMI_GPIO_OUTPUT_CMDID,
+
+    /* Txbf configuration command */
+    WMI_TXBF_CMDID,
 } WMI_CMD_ID;
 
 typedef enum {
@@ -503,6 +516,12 @@ typedef enum {
     /** RTT error report */ 
     WMI_RTT_ERROR_REPORT_EVENTID,      
 
+    /*NLO specific events*/
+    /** NLO match event after the first match */
+    WMI_NLO_MATCH_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_NLO_OFL),
+
+    /** NLO scan complete event */
+    WMI_NLO_SCAN_COMPLETE_EVENTID,
 
 
     
@@ -514,6 +533,8 @@ typedef enum {
     /* CSA IE received event */
     WMI_CSA_HANDLING_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_CSA_OFL),
 
+    /*chatter query reply event*/
+    WMI_CHATTER_PC_QUERY_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_CHATTER),
 
     /** echo event in response to echo command */
     WMI_ECHO_EVENTID = WMI_EVT_GRP_START_ID(WMI_GRP_MISC),
@@ -551,6 +572,16 @@ typedef enum {
 
     /* GPIO Event */
     WMI_GPIO_INPUT_EVENTID=WMI_EVT_GRP_START_ID(WMI_GRP_GPIO),
+
+    /** upload H_CV info WMI event
+     * to indicate uploaded H_CV info to host
+     */
+    WMI_UPLOADH_EVENTID,
+
+    /** capture H info WMI event
+     * to indicate captured H info to host
+     */
+    WMI_CAPTUREH_EVENTID,
 } WMI_EVT_ID;
 
 
@@ -1182,10 +1213,12 @@ enum wmi_scan_event_type {
 
 enum wmi_scan_completion_reason {
     /** scan related events */
-    WMI_SCAN_REASON_COMPLETED,
-    WMI_SCAN_REASON_CANCELLED,
-    WMI_SCAN_REASON_PREEMPTED,
-    WMI_SCAN_REASON_TIMEDOUT,
+    WMI_SCAN_REASON_NONE                = 0xFF,
+    WMI_SCAN_REASON_COMPLETED           = 0,
+    WMI_SCAN_REASON_CANCELLED           = 1,
+    WMI_SCAN_REASON_PREEMPTED           = 2,
+    WMI_SCAN_REASON_TIMEDOUT            = 3,
+    WMI_SCAN_REASON_INTERNAL_FAILURE    = 4, /* This reason indication failures when performaing scan */
     WMI_SCAN_REASON_MAX,
 };
 
@@ -1220,11 +1253,14 @@ typedef struct {
  * good idea to pass all the fields in the RX status
  * descriptor up to the host.
  */
+#define ATH_MAX_ANTENNA 4 /* To 4 chains */
 typedef struct {
     /** channel on which this frame is received. */
     A_UINT32     channel;
     /** snr information used to cal rssi */
     A_UINT32     snr;
+    /** RSSI of PRI 20MHz for each chain. */
+    A_UINT8 rssi_ctl[ATH_MAX_ANTENNA];
     /** Rate kbps */
     A_UINT32     rate;
     /** rx phy mode WLAN_PHY_MODE */
@@ -1737,6 +1773,8 @@ typedef enum {
     WMI_PDEV_PARAM_IDLE_PS_CONFIG,
     /** Enable/Disable power gating sleep */
     WMI_PDEV_PARAM_POWER_GATING_SLEEP,
+    /** Enable/Disable Rfkill */
+    WMI_PDEV_PARAM_RFKILL_ENABLE,
 } WMI_PDEV_PARAM;
 
 typedef struct {
@@ -2336,6 +2374,58 @@ typedef enum {
      * otherwise forwards to host
      */
     WMI_VDEV_PARAM_DROP_UNENCRY,
+
+    /*
+     * Set TX encap type.
+     *
+     * enum wmi_pkt_type is to be used as the parameter
+     * specifying the encap type.
+     */
+    WMI_VDEV_PARAM_TX_ENCAP_TYPE,
+
+    /*
+     * Try to detect stations that woke-up and exited power save but did not
+     * successfully transmit data-null with PM=0 to AP. When this happens,
+     * STA and AP power save state are out-of-sync. Use buffered but
+     * undelivered MSDU to the STA as a hint that the STA is really awake
+     * and expecting normal ASAP delivery, rather than retrieving BU with
+     * PS-Poll, U-APSD trigger, etc.
+     *
+     * 0 disables out-of-sync detection. Maximum time is 255 seconds.
+     */
+     WMI_VDEV_PARAM_AP_DETECT_OUT_OF_SYNC_SLEEPING_STA_TIME_SECS,
+
+
+    /* Enable/Disable early rx dynamic adjust feature.
+      * Early-rx dynamic adjust is a advance power save feature.
+      * Early-rx is a wakeup duration before exact TBTT,which is deemed
+      * necessary to provide a cushion for various timing discrepancies in
+      * the system. In current code branch, the duration is set to a very
+      * conservative fix value to make sure the drift impact is minimum.
+      * The fix early-tx will result in the unnessary power consume, so a
+      * dynamic early-rx adjust algorithm can be designed properly to minimum
+      * the power consume.*/
+    WMI_VDEV_PARAM_EARLY_RX_ADJUST_ENABLE,
+
+    /* set target bmiss number per sample cycle if bmiss adjust was chosen.
+     * In this adjust policy,early-rx is adjusted by comparing the current
+     * bmiss rate to target bmiss rate which can be set by user through WMI
+     * command.
+     */
+    WMI_VDEV_PARAM_EARLY_RX_TGT_BMISS_NUM,
+
+    /* set sample cycle(in the unit of beacon interval) if bmiss adjust was chosen */
+    WMI_VDEV_PARAM_EARLY_RX_BMISS_SAMPLE_CYCLE,
+
+    /* set slop_step */
+    WMI_VDEV_PARAM_EARLY_RX_SLOP_STEP,
+
+    /* set init slop */
+    WMI_VDEV_PARAM_EARLY_RX_INIT_SLOP,
+
+    /* pause adjust enable/disable */
+    WMI_VDEV_PARAM_EARLY_RX_ADJUST_PAUSE,
+
 } WMI_VDEV_PARAM;
 
         /** slot time long */
@@ -3345,12 +3435,17 @@ typedef struct {
     A_UINT32 vdev_id;
 	/** reason for roam event */ 
 	A_UINT32 reason;
+	/** associated AP's rssi calculated by FW when reason code is
+	 * WMI_ROAM_REASON_LOW_RSSI */
+	A_UINT32 rssi;
 
 } wmi_roam_event;
 
 #define WMI_ROAM_REASON_BETTER_AP 0x1 /** found a better AP */
 #define WMI_ROAM_REASON_BMISS     0x2 /** beacon miss detected */
-#define WMI_ROAM_REASON_DEAUTH    0x2 /** deauth/disassoc received */  
+#define WMI_ROAM_REASON_DEAUTH    0x2 /** deauth/disassoc received */
+#define WMI_ROAM_REASON_LOW_RSSI  0x3 /** connected AP's low rssi condition
+				       * detected */
 
 /** WMI_PROFILE_MATCH_EVENT: offload scan 
  * generated when ever atleast one of the matching profiles is found 
@@ -3435,7 +3530,10 @@ typedef enum {
     RTT_TM_TIMER_EXPIRE,               //wait for first TM timer expire   -- terminate current STA measurement
     RTT_FRAME_TYPE_NOSUPPORT,          //we do not support RTT measurement with this type of frame
     RTT_TIMER_EXPIRE,                  //whole RTT measurement timer expire  -- terminate current STA measurement
-    RTT_CHAN_SWITCH_ERROR,            //channel swicth failed
+    RTT_CHAN_SWITCH_ERROR,             //channel swicth failed
+    RTT_TMR_TRANS_ERROR,               //TMR trans error, this dest peer will be skipped
+    RTT_NO_REPORT_BAD_CFR_TOKEN,       //V3 only. If both CFR and Token mismatch, do not report
+    RTT_NO_REPORT_FIRST_TM_BAD_CFR,    //For First TM, if CFR is bad, then do not report
     WMI_RTT_REJECT_MAX,	      
 } WMI_RTT_ERROR_INDICATOR;
 
@@ -3566,11 +3664,13 @@ typedef enum pattern_type_e {
     WOW_IPV6_SYNC_PATTERN,
     WOW_WILD_CARD_PATTERN,
     WOW_TIMER_PATTERN,
+    WOW_MAGIC_PATTERN,
     WOW_PATTERN_MAX
 }WOW_PATTERN_TYPE;
 
 typedef enum event_type_e {
     WOW_BMISS_EVENT = 0,
+    WOW_BETTER_AP_EVENT,
     WOW_DEAUTH_RECVD_EVENT,
     WOW_MAGIC_PKT_RECVD_EVENT,
     WOW_GTK_ERR_EVENT,
