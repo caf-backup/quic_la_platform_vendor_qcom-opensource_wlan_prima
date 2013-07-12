@@ -86,6 +86,10 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include "wlan_hdd_tdls.h"
 #endif
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+#include "if_pci.h"
+#endif
+
 #ifdef MODULE
 #define WLAN_MODULE_NAME  module_name(THIS_MODULE)
 #else
@@ -5541,6 +5545,12 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: vos_open failed", __func__);
       goto err_clkvote;
    }
+
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && \
+    !defined(REMOVE_PKT_LOG)
+   hif_init_pdev_txrx_handle(hif_sc,
+                             vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
+#endif
 
    pHddCtx->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pVosContext );
 

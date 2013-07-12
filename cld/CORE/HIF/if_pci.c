@@ -24,6 +24,12 @@
 #include "wlan_nlink_common.h"
 #endif
 
+#ifndef REMOVE_PKT_LOG
+#include "ol_txrx_types.h"
+#include "pktlog_ac_api.h"
+#include "pktlog_ac.h"
+#endif
+
 #define AR9888_DEVICE_ID (0x003c)
 #define AR6320_DEVICE_ID (0x003e)
 
@@ -37,6 +43,10 @@ static struct pci_device_id hif_pci_id_table[] = {
 	{ 0x168c, 0x003e, PCI_ANY_ID, PCI_ANY_ID },
 	{ 0 }
 };
+
+#ifndef REMOVE_PKT_LOG
+struct ol_pl_os_dep_funcs *g_ol_pl_os_dep_funcs = NULL;
+#endif
 
 /* Setting SOC_GLOBAL_RESET during driver unload causes intermittent PCIe data bus error
  * As workaround for this issue - changing the reset sequence to use TargetCPU warm reset 
@@ -505,6 +515,16 @@ again:
     if (ret)
 	goto err_config;
 
+#ifndef REMOVE_PKT_LOG
+    /*
+     * pktlog initialization
+     */
+    ol_pl_sethandle(&ol_sc->pdev_txrx_handle->pl_dev, ol_sc);
+
+    if (pktlogmod_init(ol_sc))
+        printk(KERN_ERR "%s: pktlogmod_init failed\n", __func__);
+#endif
+
 #ifdef WLAN_BTAMP_FEATURE
     /* Send WLAN UP indication to Nlink Service */
     send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
@@ -788,9 +808,14 @@ hif_pci_remove(struct pci_dev *pdev)
     if (!sc)
         return;
 
+    scn = sc->ol_sc;
+
+#ifndef REMOVE_PKT_LOG
+    pktlogmod_exit(scn);
+#endif
+
     __hdd_wlan_exit();
 
-    scn = sc->ol_sc;
     mem = (void __iomem *)sc->mem;
 
     hif_nointrs(sc);
@@ -935,4 +960,10 @@ int hif_register_driver(void)
 void hif_unregister_driver(void)
 {
 	pci_unregister_driver(&hif_pci_drv_id);
+}
+
+void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle)
+{
+	struct ol_softc *sc = (struct ol_softc *)ol_sc;
+	sc->pdev_txrx_handle = txrx_handle;
 }

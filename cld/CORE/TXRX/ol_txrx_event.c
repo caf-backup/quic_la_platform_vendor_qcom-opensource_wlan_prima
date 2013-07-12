@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
 
-#include "wdi_event.h"
+#include "ol_txrx_types.h"
 
 #ifdef WDI_EVENT_ENABLE
 

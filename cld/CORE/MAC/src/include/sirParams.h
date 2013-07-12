@@ -543,6 +543,9 @@ typedef struct sSirMbMsgP2p
 #ifdef QCA_WIFI_2_0
 #define SIR_HAL_CLI_SET_CMD                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 204)
 #define SIR_HAL_CLI_GET_CMD                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 205)
+#ifndef REMOVE_PKT_LOG
+#define SIR_HAL_PKTLOG_ENABLE_REQ          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 206)
+#endif
 #endif
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF)

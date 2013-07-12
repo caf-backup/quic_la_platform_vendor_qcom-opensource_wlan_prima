@@ -99,4 +99,11 @@ int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 #ifdef NOT_YET
 VOS_STATUS wma_update_channel_list(WMA_HANDLE handle, void *scan_chan_info);
 #endif
+
+u_int8_t *wma_get_vdev_address_by_vdev_id(u_int8_t vdev_id);
+
+#ifndef QCA_WIFI_ISOC
+void *wma_get_beacon_buffer_by_vdev_id(u_int8_t vdev_id,
+				       u_int32_t *buffer_size);
+#endif	/* QCA_WIFI_ISOC */
 #endif

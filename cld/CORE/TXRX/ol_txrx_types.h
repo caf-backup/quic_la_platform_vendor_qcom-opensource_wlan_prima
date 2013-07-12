@@ -26,7 +26,7 @@
 #include <a_types.h>	      /* A_UINT8 */
 #include <htt.h>	      /* htt_sec_type, htt_pkt_type, etc. */
 #include <adf_os_atomic.h>    /* adf_os_atomic_t */
-#include <wdi_event.h>	      /* wdi_event_subscribe */
+#include <wdi_event_api.h>    /* wdi_event_subscribe */
 #include <adf_os_timer.h>     /* adf_os_timer_t */
 #include <adf_os_lock.h>      /* adf_os_spinlock */
 #include <pktlog.h>	      /* ol_pktlog_dev_handle */
