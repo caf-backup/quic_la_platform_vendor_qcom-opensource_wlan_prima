@@ -488,7 +488,7 @@ hif_completion_thread_startup(struct HIF_CE_state *hif_state)
             pipe_info->num_sends_allowed = attr.src_nentries-1;
         }
         if (attr.dest_nentries) { /* pipe used to receive from target */
-            CE_recv_cb_register(pipe_info->ce_hdl, HIF_PCI_CE_recv_data, pipe_info);
+            CE_recv_cb_register(pipe_info->ce_hdl, HIF_PCI_CE_recv_data, pipe_info, attr.flags & CE_ATTR_DISABLE_INTR);
             completions_needed += attr.dest_nentries;
         }
 
@@ -1949,7 +1949,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
     CE_send_cb_register(pipe_info->ce_hdl, HIF_BMI_send_done, pipe_info, 0);
 #ifndef BMI_RSP_POLLING
     pipe_info = &hif_state->pipe_info[BMI_CE_NUM_TO_HOST];
-    CE_recv_cb_register(pipe_info->ce_hdl, HIF_BMI_recv_data, pipe_info);
+    CE_recv_cb_register(pipe_info->ce_hdl, HIF_BMI_recv_data, pipe_info, 0);
 #endif
 
     { /* Download to Target the CE Configuration and the service-to-CE map */

@@ -107,8 +107,12 @@ bool hif_pci_targ_is_present(A_target_id_t targetid, void *__iomem *mem)
 
 bool hif_max_num_receives_reached(unsigned int count)
 {
+#ifdef EPPING_TEST
+    return (count > 120);
+#else
     /* Not implemented yet */
     return 0;
+#endif
 }
 
 void hif_init_adf_ctx(adf_os_device_t adf_dev, void *ol_sc)

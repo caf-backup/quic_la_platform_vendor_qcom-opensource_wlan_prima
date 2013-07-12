@@ -1120,7 +1120,8 @@ CE_send_cb_register(struct CE_handle *copyeng,
 void
 CE_recv_cb_register(struct CE_handle *copyeng,
                     CE_recv_cb fn_ptr,
-                    void *CE_recv_context)
+                    void *CE_recv_context,
+                    int disable_interrupts)
 {
     struct CE_state *CE_state = (struct CE_state *)copyeng;
     struct hif_pci_softc *sc = CE_state->sc;
@@ -1128,7 +1129,7 @@ CE_recv_cb_register(struct CE_handle *copyeng,
     adf_os_spin_lock(&sc->target_lock);
     CE_state->recv_cb = fn_ptr;
     CE_state->recv_context = CE_recv_context;
-    CE_per_engine_handler_adjust(CE_state, 0);
+    CE_per_engine_handler_adjust(CE_state, disable_interrupts);
     adf_os_spin_unlock(&sc->target_lock);
 }
 
