@@ -111,6 +111,7 @@ enum ol_tx_frm_type {
 struct ol_tx_desc_t {
 	adf_nbuf_t netbuf;
 	void *htt_tx_desc;
+	u_int32_t htt_tx_desc_paddr;
 	adf_os_atomic_t ref_cnt;
 	enum htt_tx_status status;
 

@@ -247,9 +247,10 @@ htt_dxe_tx_detach(struct htt_dxe_pdev_t *pdev)
 /*--- descriptor allocation functions ---------------------------------------*/
 
 void *
-htt_dxe_tx_desc_alloc(struct htt_dxe_pdev_t *pdev)
+htt_dxe_tx_desc_alloc(struct htt_dxe_pdev_t *pdev, u_int32_t *paddr_lo)
 {
     struct htt_dxe_tx_desc_t *sw_desc;
+    u_int32_t offset;
 
     sw_desc = pdev->tx_descs.freelist;
     if (! sw_desc) {
@@ -259,6 +260,10 @@ htt_dxe_tx_desc_alloc(struct htt_dxe_pdev_t *pdev)
     pdev->tx_descs.freelist = sw_desc->u.next;
     pdev->tx_descs.alloc_cnt++;
 
+    offset = (u_int32_t)
+        (((char *) sw_desc->tx_bd_buf) -
+         ((char *) pdev->tx_descs.tx_bds.pool_vaddr));
+    *paddr_lo = ((u_int32_t) pdev->tx_descs.tx_bds.pool_paddr) + offset;
     return (void *) sw_desc;
 }
 
@@ -610,13 +615,12 @@ void
 htt_tx_desc_init(
     htt_pdev_handle pdev,
     void *desc,
+    u_int32_t htt_tx_desc_paddr_lo,
     u_int16_t msdu_id,
     adf_nbuf_t msdu,
     struct htt_msdu_info_t *msdu_info)
 {
     struct htt_dxe_tx_desc_t *sw_tx_desc = (struct htt_dxe_tx_desc_t *) desc;
-    u_int32_t offset;
-    u_int32_t hw_tx_desc_paddr;
     int frag_size;
 
 #if defined(HTT_DBG) || HTT_DXE_TX_DEBUG_LEVEL > 1
@@ -628,10 +632,6 @@ htt_tx_desc_init(
     sw_tx_desc->u.info.ext_tid = msdu_info->info.ext_tid;
 
     /* add Tx BD as initial fragment to the netbuf */
-    offset = (u_int32_t)
-        (((char *) sw_tx_desc->tx_bd_buf) -
-         ((char *) pdev->tx_descs.tx_bds.pool_vaddr));
-    hw_tx_desc_paddr = ((u_int32_t) pdev->tx_descs.tx_bds.pool_paddr) + offset;
     frag_size = sizeof(isoc_tx_bd_t);
     /* account for the L2 encapsulation header, if any */
     frag_size += sw_tx_desc->u.info.l2_hdr_size;
@@ -639,8 +639,7 @@ htt_tx_desc_init(
         msdu,
         frag_size,
         (char *) sw_tx_desc->tx_bd_buf, /* virtual addr */
-        hw_tx_desc_paddr,/*phy addr LSBs*/
-        0 /* phys addr MSBs - n/a */);
+        htt_tx_desc_paddr_lo/*phy addr LSBs*/, 0 /* phys addr MSBs - n/a */);
 }
 
 /*--- tx send function ------------------------------------------------------*/
@@ -649,14 +648,20 @@ htt_tx_desc_init(
 int
 htt_dxe_tx_send_std(
     struct htt_dxe_pdev_t *pdev,
-    void *desc,
     adf_nbuf_t msdu,
     u_int16_t msdu_id)
 {
-    struct htt_dxe_tx_desc_t *sw_tx_desc = (struct htt_dxe_tx_desc_t *) desc;
+    struct htt_dxe_tx_desc_t *sw_tx_desc;
     u_int16_t *msdu_id_storage;
     int is_mgmt;
     E_HIFDXE_CHANNELTYPE dxe_chan;
+
+    /*
+     * The HTT tx descriptor was attached as the prefix fragment to the
+     * msdu netbuf during the call to htt_tx_desc_init.
+     * Retrieve it so we can check whether the frame is data or mgmt.
+     */
+    sw_tx_desc = (struct htt_dxe_tx_desc_t *) adf_nbuf_get_frag_vaddr(msdu, 0);
 
     is_mgmt = sw_tx_desc->u.info.is_mgmt;
 
@@ -681,7 +686,7 @@ htt_dxe_tx_send_std(
 int
 htt_dxe_tx_send_nonstd(
     struct htt_dxe_pdev_t *pdev,
-    void *desc, adf_nbuf_t msdu,
+    adf_nbuf_t msdu,
     u_int16_t msdu_id,
     enum htt_pkt_type pkt_type)
 {

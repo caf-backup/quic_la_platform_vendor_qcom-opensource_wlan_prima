@@ -119,7 +119,7 @@ ol_tx_send(
 #endif
 
     id = ol_tx_desc_id(pdev, tx_desc);
-    failed = htt_tx_send_std(pdev->htt_pdev, tx_desc->htt_tx_desc, msdu, id);
+    failed = htt_tx_send_std(pdev->htt_pdev, msdu, id);
     if (adf_os_unlikely(failed)) {
         /*
          * It's inefficient to call htt_tx_msdu_credit a 2nd time here,
