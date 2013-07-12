@@ -1989,13 +1989,9 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 	struct wma_txrx_node *intr = wma->interfaces;
 
 	WMA_LOGD("wmihandle %p", wma->wmi_handle);
-	/*
-	 * param_vp_dev is to differentiate whether the cli_get is
-	 * VDEV or PDEV specific
-	 * param_vp_dev = 1 for VDEV
-	 * param_vp_dev = 2 for PDEV
-	 */
-	if (1 == privcmd->param_vp_dev) {
+
+	switch (privcmd->param_vp_dev) {
+	case VDEV_CMD:
 		WMA_LOGD("vdev id %d pid %d pval %d", privcmd->param_vdev_id,
 				privcmd->param_id, privcmd->param_value);
 		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
@@ -2007,7 +2003,8 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					" failed ret %d", ret);
 			return;
 		}
-	} else if (2 == privcmd->param_vp_dev) {
+		break;
+	case PDEV_CMD:
 		WMA_LOGD("pdev pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
 		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
@@ -2018,6 +2015,36 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					" failed ret %d", ret);
 			return;
 		}
+		break;
+	case GEN_CMD:
+		WMA_LOGD("gen pid %d pval %d", privcmd->param_id,
+				privcmd->param_value);
+		switch (privcmd->param_id) {
+		case GEN_VDEV_PARAM_AMPDU:
+			ret = ol_txrx_aggr_cfg(
+					wma_handle->interfaces[privcmd->param_vdev_id].handle,
+					privcmd->param_value, 0);
+			if (ret)
+				WMA_LOGE("ol_txrx_aggr_cfg set ampdu"
+						" failed ret %d", ret);
+			intr[vid].config.ampdu = privcmd->param_value;
+			break;
+		case GEN_VDEV_PARAM_AMSDU:
+			ret = ol_txrx_aggr_cfg(
+					wma_handle->interfaces[privcmd->param_vdev_id].handle,
+					0, privcmd->param_value);
+			if (ret)
+				WMA_LOGE("ol_txrx_aggr_cfg set amsdu"
+						" failed ret %d", ret);
+			intr[vid].config.amsdu = privcmd->param_value;
+			break;
+		default:
+			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
+			break;
+		}
+		break;
+	default:
+		WMA_LOGE("Invalid vpdev command id");
 	}
 	if (1 == privcmd->param_vp_dev) {
 		switch (privcmd->param_id) {
@@ -2041,6 +2068,9 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		case WMI_VDEV_PARAM_CHWIDTH:
 			intr[vid].config.chwidth = privcmd->param_value;
+			break;
+		case WMI_VDEV_PARAM_FIXED_RATE:
+			intr[vid].config.tx_rate = privcmd->param_value;
 			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set vdev command/Not"
@@ -2067,10 +2097,16 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_DYNAMIC_BW:
 			wma->pdevconfig.cwmenable = privcmd->param_value;
 			break;
+		case WMI_PDEV_PARAM_TX_CHAIN_MASK:
+			wma->pdevconfig.txchainmask = privcmd->param_value;
+			break;
+		case WMI_PDEV_PARAM_RX_CHAIN_MASK:
+			wma->pdevconfig.rxchainmask = privcmd->param_value;
+			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set pdev command/Not"
 				" yet implemented 0x%x", privcmd->param_id);
-		     break;
+			break;
 		}
 	}
 }
@@ -2086,13 +2122,7 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 						wmapvosContext);
 	intr = wma->interfaces;
 
-	/*
-	 * vpdev is to differentiate whether the cli_get is
-	 * VDEV or PDEV specific
-	 * vpdev = 1 for VDEV
-	 * vpdev = 2 for PDEV
-	 */
-	if (1 == vpdev) {
+	if (VDEV_CMD == vpdev) {
 		switch (param_id) {
 		case WMI_VDEV_PARAM_NSS:
 			ret = intr[vdev_id].config.nss;
@@ -2115,12 +2145,15 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 		case WMI_VDEV_PARAM_CHWIDTH:
 			ret = intr[vdev_id].config.chwidth;
 			break;
+		case WMI_VDEV_PARAM_FIXED_RATE:
+			ret = intr[vdev_id].config.tx_rate;
+			break;
 		default:
 			WMA_LOGE("Invalid cli_get vdev command/Not"
 					" yet implemented 0x%x", param_id);
 			return -EINVAL;
 		}
-	} else if (2 == vpdev) {
+	} else if (PDEV_CMD == vpdev) {
 		switch (param_id) {
 		case WMI_PDEV_PARAM_ANI_ENABLE:
 			ret = wma->pdevconfig.ani_enable;
@@ -2140,8 +2173,27 @@ int wma_cli_get_command(void *wmapvosContext, int vdev_id,
 		case WMI_PDEV_PARAM_DYNAMIC_BW:
 			ret = wma->pdevconfig.cwmenable;
 			break;
+		case WMI_PDEV_PARAM_TX_CHAIN_MASK:
+			ret = wma->pdevconfig.txchainmask;
+			break;
+		case WMI_PDEV_PARAM_RX_CHAIN_MASK:
+			ret = wma->pdevconfig.rxchainmask;
+			break;
 		default:
 			WMA_LOGE("Invalid cli_get pdev command/Not"
+					" yet implemented 0x%x", param_id);
+			return -EINVAL;
+		}
+	} else if (GEN_CMD == vpdev) {
+		switch (param_id) {
+		case GEN_VDEV_PARAM_AMPDU:
+			ret = intr[vdev_id].config.ampdu;
+			break;
+		case GEN_VDEV_PARAM_AMSDU:
+			ret = intr[vdev_id].config.amsdu;
+			break;
+		default:
+			WMA_LOGE("Invalid generic vdev command/Not"
 					" yet implemented 0x%x", param_id);
 			return -EINVAL;
 		}
