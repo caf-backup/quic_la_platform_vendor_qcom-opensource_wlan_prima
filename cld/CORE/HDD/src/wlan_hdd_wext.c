@@ -152,6 +152,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_11N_RATE      26
 #define WE_SET_AMPDU         27
 #define WE_SET_AMSDU         28
+#define WE_SET_TXPOW_2G      29
+#define WE_SET_TXPOW_5G      30
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -185,6 +187,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_11N_RATE      26
 #define WE_GET_AMPDU         27
 #define WE_GET_AMSDU         28
+#define WE_GET_TXPOW_2G      29
+#define WE_GET_TXPOW_5G      30
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -4065,6 +4069,23 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
              break;
          }
 
+         case WE_SET_TXPOW_2G:
+         {
+             hddLog(LOG1, "WMI_PDEV_PARAM_TXPOWER_LIMIT2G val %d", set_value);
+             ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_PDEV_PARAM_TXPOWER_LIMIT2G,
+                                           set_value, PDEV_CMD);
+             break;
+         }
+
+         case WE_SET_TXPOW_5G:
+         {
+             hddLog(LOG1, "WMI_PDEV_PARAM_TXPOWER_LIMIT5G val %d", set_value);
+             ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_PDEV_PARAM_TXPOWER_LIMIT5G,
+                                           set_value, PDEV_CMD);
+             break;
+         }
 #endif
         default:
         {
@@ -4438,6 +4459,41 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
             break;
         }
 
+        case WE_GET_TXPOW_2G:
+        {
+            tANI_U32 txpow2g = 0;
+            tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+            hddLog(LOG1, "GET WMI_PDEV_PARAM_TXPOWER_LIMIT2G");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_TXPOWER_LIMIT2G,
+                                         PDEV_CMD);
+            if ( eHAL_STATUS_SUCCESS != ccmCfgGetInt(hHal,
+                      WNI_CFG_CURRENT_TX_POWER_LEVEL, &txpow2g) )
+            {
+                 return -EIO;
+            }
+            hddLog(LOG1, "2G tx_power %d", txpow2g);
+            break;
+        }
+
+        case WE_GET_TXPOW_5G:
+        {
+            tANI_U32 txpow5g = 0;
+            tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+            hddLog(LOG1, "GET WMI_PDEV_PARAM_TXPOWER_LIMIT5G");
+            *value = wma_cli_get_command(wmapvosContext,
+                                         (int)pAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_TXPOWER_LIMIT5G,
+                                         PDEV_CMD);
+            if ( eHAL_STATUS_SUCCESS != ccmCfgGetInt(hHal,
+                      WNI_CFG_CURRENT_TX_POWER_LEVEL, &txpow5g) )
+            {
+                 return -EIO;
+            }
+            hddLog(LOG1, "5G tx_power %d", txpow5g);
+            break;
+        }
 #endif
 
         default:
@@ -7045,6 +7101,16 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "amsdu" },
 
+    {   WE_SET_TXPOW_2G,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "txpow2g" },
+
+    {   WE_SET_TXPOW_5G,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "txpow5g" },
+
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
@@ -7193,6 +7259,16 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "get_amsdu" },
+
+    {   WE_GET_TXPOW_2G,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_txpow2g" },
+
+    {   WE_GET_TXPOW_5G,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "get_txpow5g" },
 
 #endif
 

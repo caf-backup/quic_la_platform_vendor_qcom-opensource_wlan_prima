@@ -206,7 +206,8 @@ typedef struct {
 	u_int32_t cwmenable;
 	u_int32_t txchainmask;
 	u_int32_t rxchainmask;
-
+	u_int32_t txpow2g;
+	u_int32_t txpow5g;
 } pdev_cli_config_t;
 
 typedef struct {
