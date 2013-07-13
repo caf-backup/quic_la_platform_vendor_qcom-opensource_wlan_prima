@@ -25,6 +25,7 @@ struct hdd_tgt_ht_cap {
 	bool ht_rx_ldpc;
 	bool ht_sgi_20;
 	bool ht_sgi_40;
+	u_int32_t num_rf_chains;
 };
 
 #ifdef WLAN_FEATURE_11AC

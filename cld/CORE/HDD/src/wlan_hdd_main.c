@@ -1747,6 +1747,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     tANI_U32 value;
     hdd_config_t *pconfig = hdd_ctx->cfg_ini;
     tSirMacHTCapabilityInfo htCapInfo;
+    tANI_U8 mcs_set[SIZE_OF_SUPPORTED_MCS_SET];
 
     /* check and update RX STBC */
     if (pconfig->enableRxSTBC && !cfg->ht_rx_stbc)
@@ -1806,6 +1807,24 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                   "%s: could not set HT capabilty to CCM",
                   __func__);
+#define WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES 0xff
+    value = SIZE_OF_SUPPORTED_MCS_SET;
+    if (ccmCfgGetStr(hdd_ctx->hHal, WNI_CFG_SUPPORTED_MCS_SET, mcs_set,
+                     &value) == eHAL_STATUS_SUCCESS) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                  "%s: Read MCS rate set", __func__);
+
+        for (value = 0; value < cfg->num_rf_chains; value++)
+            mcs_set[value] = WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES;
+
+        status = ccmCfgSetStr(hdd_ctx->hHal, WNI_CFG_SUPPORTED_MCS_SET,
+                              mcs_set, SIZE_OF_SUPPORTED_MCS_SET, NULL,
+                              eANI_BOOLEAN_FALSE);
+        if (status == eHAL_STATUS_FAILURE)
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "%s: could not set MCS SET to CCM", __func__);
+    }
+#undef WLAN_HDD_RX_MCS_ALL_NSTREAM_RATES
 }
 
 #ifdef WLAN_FEATURE_11AC

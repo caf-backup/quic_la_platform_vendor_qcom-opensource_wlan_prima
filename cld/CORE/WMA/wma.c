@@ -1870,6 +1870,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	cmd->peer_listen_intval = params->listenInterval;
 	cmd->peer_ht_caps = params->ht_caps;
 	cmd->peer_max_mpdu = params->maxAmpduSize;
+	cmd->peer_mpdu_density = params->maxAmpduDensity;
 
 	if (params->supportedRates.supportedMCSSet[1] &&
 	    params->supportedRates.supportedMCSSet[2])
@@ -3909,6 +3910,9 @@ static inline void wma_update_target_ht_cap(tp_wma_handle wh,
 	cfg->ht_sgi_20 = !!(wh->ht_cap_info & WMI_HT_CAP_HT20_SGI);
 
 	cfg->ht_sgi_40 = !!(wh->ht_cap_info & WMI_HT_CAP_HT40_SGI);
+
+	/* RF chains */
+	cfg->num_rf_chains = wh->num_rf_chains;
 }
 
 #ifdef WLAN_FEATURE_11AC
@@ -4121,6 +4125,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle,
 #ifdef WLAN_FEATURE_11AC
 	wma_handle->vht_cap_info = ev->vht_cap_info;
 #endif
+	wma_handle->num_rf_chains = ev->num_rf_chains;
 
 	 /* TODO: Recheck below line to dump service ready event */
 	 /* dbg_print_wmi_service_11ac(ev); */
