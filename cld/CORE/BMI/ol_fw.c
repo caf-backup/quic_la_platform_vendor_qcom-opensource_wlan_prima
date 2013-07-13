@@ -366,13 +366,16 @@ int ol_download_firmware(struct ol_softc *scn)
 		address = BMI_SEGMENTED_WRITE_ADDR;
 		printk("%s: Using 0x%x for the remainder of init\n", __func__, address);
 
-		status = ol_transfer_bin_file(scn, ATH_OTP_FILE, address, TRUE);
-		if (status == EOK) {
-			/* Execute the OTP code only if entry found and downloaded */
-			param = 0;
-			BMIExecute(scn->hif_hdl, address, &param, scn);
-		} else if (status == -1) {
-			return status;
+		if (scn->target_version != AR6320_REV1_VERSION) {
+			status = ol_transfer_bin_file(scn, ATH_OTP_FILE,
+						      address, TRUE);
+			if (status == EOK) {
+				/* Execute the OTP code only if entry found and downloaded */
+				param = 0;
+				BMIExecute(scn->hif_hdl, address, &param, scn);
+			} else if (status < 0) {
+				return status;
+			}
 		}
 	}
 
@@ -394,8 +397,11 @@ int ol_download_firmware(struct ol_softc *scn)
 	}
 
 	if (scn->enableuartprint) {
-		/* Configure GPIO AR9888 UART */
-		param = 7;
+		if (scn->target_version == AR6320_REV1_VERSION)
+			param = 6;
+		else
+			/* Configure GPIO AR9888 UART */
+			param = 7;
 		BMIWriteMemory(scn->hif_hdl,
 				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_dbg_uart_txpin)),
 				(u_int8_t *)&param, 4, scn);
