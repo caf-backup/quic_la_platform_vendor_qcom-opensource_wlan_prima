@@ -581,6 +581,7 @@ HIF_INC := -I$(WLAN_ROOT)/$(HIF_DIR)
 HIF_OBJS := $(HIF_DIR)/copy_engine.o \
             $(HIF_DIR)/hif_pci.o \
             $(HIF_DIR)/if_pci.o \
+            $(HIF_DIR)/ath_procfs.o \
             $(HIF_DIR)/regtable.o
 
 ############ WMA ############
@@ -961,6 +962,7 @@ endif
 #Enable PCI specific APIS (dma, etc)
 ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DHIF_PCI
+CDEFINES += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
 endif
 
 #Enable pci read/write config functions
