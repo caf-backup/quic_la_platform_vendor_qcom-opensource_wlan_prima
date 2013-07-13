@@ -109,6 +109,27 @@ static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 	return NULL;
 }
 
+/*
+ * 802.11n D2.0 defined values for "Minimum MPDU Start Spacing":
+ *   0 for no restriction
+ *   1 for 1/4 us - Our lower layer calculations limit our precision to 1 msec
+ *   2 for 1/2 us - Our lower layer calculations limit our precision to 1 msec
+ *   3 for 1 us
+ *   4 for 2 us
+ *   5 for 4 us
+ *   6 for 8 us
+ *   7 for 16 us
+ */
+static const u_int8_t wma_mpdu_spacing[] = {0, 1, 1, 1, 2, 4, 8, 16};
+
+static inline uint8_t wma_parse_mpdudensity(u_int8_t mpdudensity)
+{
+	if (mpdudensity < sizeof(wma_mpdu_spacing))
+		return wma_mpdu_spacing[mpdudensity];
+	else
+		return 0;
+}
+
 /* Function   : wma_find_vdev_by_id
  * Descriptin : Returns vdev handle for given vdev id.
  * Args       : @wma - wma handle, @vdev_id - vdev ID
@@ -1869,8 +1890,9 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	cmd->peer_caps = params->capab_info;
 	cmd->peer_listen_intval = params->listenInterval;
 	cmd->peer_ht_caps = params->ht_caps;
-	cmd->peer_max_mpdu = params->maxAmpduSize;
-	cmd->peer_mpdu_density = params->maxAmpduDensity;
+	cmd->peer_max_mpdu = (1 << (IEEE80211_HTCAP_MAXRXAMPDU_FACTOR +
+				    params->maxAmpduSize)) - 1;
+	cmd->peer_mpdu_density = wma_parse_mpdudensity(params->maxAmpduDensity);
 
 	if (params->supportedRates.supportedMCSSet[1] &&
 	    params->supportedRates.supportedMCSSet[2])
