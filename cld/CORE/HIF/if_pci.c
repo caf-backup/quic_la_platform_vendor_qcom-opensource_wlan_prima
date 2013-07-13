@@ -507,7 +507,7 @@ again:
     ol_sc->sc_osdev = &sc->aps_osdev;
     ol_sc->hif_sc = (void *)sc;
     sc->ol_sc = ol_sc;
-    ol_sc->target_type = TARGET_TYPE_AR9888;
+    ol_sc->target_type = target_type;
     if (hif_pci_configure(sc, &ol_sc->hif_hdl))
 	    goto err_config;
 
