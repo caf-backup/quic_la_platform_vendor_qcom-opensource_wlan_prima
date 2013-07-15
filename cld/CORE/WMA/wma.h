@@ -919,4 +919,21 @@ struct wma_set_key_params {
 /* Default Listen Interval */
 #define POWERSAVE_DEFAULT_LISTEN_INTERVAL 1
 
+/*
+ * TODO: Add WMI_CMD_ID_MAX as part of WMI_CMD_ID
+ * instead of assigning it to the last valid wmi
+ * cmd+1 to avoid updating this when a command is
+ * added/deleted.
+ */
+#define WMI_CMDID_MAX (WMI_TXBF_CMDID + 1)
+
+/*
+ * wma cmd ids for configuration request which
+ * does not involve sending a wmi command.
+ */
+enum wma_cfg_cmd_id {
+       WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID = WMI_CMDID_MAX,
+       /* Add any new command before this */
+       WMA_CMD_ID_MAX
+};
 #endif
