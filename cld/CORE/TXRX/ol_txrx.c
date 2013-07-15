@@ -1288,9 +1288,13 @@ int
 ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
 {
     struct ol_txrx_pdev_t *pdev = (ol_txrx_pdev_handle)pdev_handle;
-    union ol_tx_desc_list_elem_t *p_tx_desc;
     int total;
+#ifdef QCA_WIFI_ISOC
+    int credit;
+#else
+    union ol_tx_desc_list_elem_t *p_tx_desc;
     int unused = 0;
+#endif
 
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         total = adf_os_atomic_read(&pdev->orig_target_tx_credit);
@@ -1298,6 +1302,7 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
         total = ol_cfg_target_tx_credit(pdev->ctrl_pdev);
     }
 
+#ifndef QCA_WIFI_ISOC
     /*
      * Iterate over the tx descriptor freelist to see how many are available,
      * and thus by inference, how many are in use.
@@ -1319,8 +1324,11 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
         unused++;
     }
     adf_os_spin_unlock_bh(&pdev->tx_mutex);
-
     return (total - unused);
+#else
+    credit = adf_os_atomic_read(&pdev->target_tx_credit);
+    return (total - credit);
+#endif
 }
 
 void
