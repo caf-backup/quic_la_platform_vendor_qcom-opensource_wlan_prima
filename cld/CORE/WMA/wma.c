@@ -191,6 +191,7 @@ static struct wma_target_req *wma_find_vdev_req(tp_wma_handle wma,
 						u_int8_t type)
 {
 	struct wma_target_req *req_msg = NULL, *tmp;
+	bool found = false;
 
 	adf_os_spin_lock_bh(&wma->vdev_respq_lock);
 	list_for_each_entry_safe(req_msg, tmp,
@@ -200,16 +201,18 @@ static struct wma_target_req *wma_find_vdev_req(tp_wma_handle wma,
 		if (req_msg->type != type)
 			continue;
 
+		found = true;
 		list_del(&req_msg->node);
 		break;
 	}
 	adf_os_spin_unlock_bh(&wma->vdev_respq_lock);
-	if (!req_msg)
+	if (!found) {
 		WMA_LOGD("%s: target request not found for vdev_id %d type %d\n",
 			 __func__, vdev_id, type);
-	else
-		WMA_LOGD("%s: target request found for vdev id: %d type %d msg %d\n",
-			__func__, vdev_id, type, req_msg->msg_type);
+		return NULL;
+	}
+	WMA_LOGD("%s: target request found for vdev id: %d type %d msg %d\n",
+		 __func__, vdev_id, type, req_msg->msg_type);
 	return req_msg;
 }
 
