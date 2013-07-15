@@ -89,6 +89,8 @@
 #include "pktlog_ac.h"
 #endif
 
+#include "dbglog_host.h"
+
 /* ################### defines ################### */
 #define WMA_2_4_GHZ_MAX_FREQ  3000
 
@@ -772,6 +774,12 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 						   wma_beacon_swba_handler);
 	}
 #endif
+	/* Firmware debug log */
+	vos_status = dbglog_init(wma_handle->wmi_handle);
+	if (vos_status != VOS_STATUS_SUCCESS) {
+		WMA_LOGP("Firmware Dbglog initialization failed");
+		goto err_event_init;
+	}
 	WMA_LOGD("%s: Exit", __func__);
 
 	return VOS_STATUS_SUCCESS;
@@ -2081,6 +2089,69 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 				WMA_LOGE("ol_txrx_aggr_cfg set amsdu"
 						" failed ret %d", ret);
 			intr[vid].config.amsdu = privcmd->param_value;
+			break;
+		default:
+			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
+			break;
+		}
+		break;
+	case DBG_CMD:
+		WMA_LOGD("dbg pid %d pval %d", privcmd->param_id,
+				privcmd->param_value);
+		switch (privcmd->param_id) {
+		case WMI_DBGLOG_REPORT_SIZE:
+                        ret = dbglog_set_report_size(wma->wmi_handle, privcmd->param_value);
+			if (ret)
+				WMA_LOGE("dbglog_set_report_size"
+						" failed ret %d", ret);
+			break;
+		case WMI_DBGLOG_TSTAMP_RESOLUTION:
+                        ret = dbglog_set_timestamp_resolution(wma->wmi_handle, privcmd->param_value);
+			if (ret)
+				WMA_LOGE("dbglog_set_timestamp_resolution"
+						" failed ret %d", ret);
+			break;
+		case WMI_DBGLOG_REPORTING_ENABLED:
+                        ret = dbglog_reporting_enable(wma->wmi_handle, privcmd->param_value);
+			if (ret)
+				WMA_LOGE("dbglog_reporting_enable"
+						" failed ret %d", ret);
+			break;
+		case WMI_DBGLOG_LOG_LEVEL:
+                        ret = dbglog_set_log_lvl(wma->wmi_handle, privcmd->param_value);
+			if (ret)
+				WMA_LOGE("dbglog_set_log_lvl"
+						" failed ret %d", ret);
+			break;
+		case WMI_DBGLOG_VAP_ENABLE:
+                        ret = dbglog_vap_log_enable(wma->wmi_handle, privcmd->param_value, TRUE);
+			if (ret)
+				WMA_LOGE("dbglog_vap_log_enable"
+						" failed ret %d", ret);
+			break;
+		case WMI_DBGLOG_VAP_DISABLE:
+                        ret = dbglog_vap_log_enable(wma->wmi_handle, privcmd->param_value, FALSE);
+			if (ret)
+				WMA_LOGE("dbglog_vap_log_enable"
+						" failed ret %d", ret);
+			break;
+		case WMI_DBGLOG_MODULE_ENABLE:
+                        ret = dbglog_module_log_enable(wma->wmi_handle, privcmd->param_value, TRUE);
+			if (ret)
+				WMA_LOGE("dbglog_module_log_enable"
+						" failed ret %d", ret);
+			break;
+		case WMI_DBGLOG_MODULE_DISABLE:
+                        ret = dbglog_module_log_enable(wma->wmi_handle, privcmd->param_value, FALSE);
+			if (ret)
+				WMA_LOGE("dbglog_module_log_enable"
+						" failed ret %d", ret);
+			break;
+		case WMI_DBGLOG_TYPE:
+                        ret = dbglog_parser_type_init(wma->wmi_handle, privcmd->param_value);
+			if (ret)
+				WMA_LOGE("dbglog_parser_type_init"
+						" failed ret %d", ret);
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
@@ -3800,6 +3871,8 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 #if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int32_t idx;
 #endif
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
 	WMA_LOGD("%s: Enter", __func__);
 
 	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
@@ -3809,6 +3882,11 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		WMA_LOGP("Invalid handle");
 		return VOS_STATUS_E_INVAL;
 	}
+
+	/* unregister Firmware debug log */
+	vos_status = dbglog_deinit(wma_handle->wmi_handle);
+	if(vos_status != VOS_STATUS_SUCCESS)
+		WMA_LOGP("dbglog_deinit failed");
 
 	/* close the vos events */
 	vos_event_destroy(&wma_handle->wma_ready_event);

@@ -495,6 +495,13 @@ WMI_INC := -I$(WLAN_ROOT)/$(WMI_DIR)
 
 WMI_OBJS := $(WMI_DIR)/wmi_unified.o
 
+########### FWLOG ###########
+FWLOG_DIR := CORE/FWLOG
+
+FWLOG_INC := -I$(WLAN_ROOT)/$(FWLOG_DIR)
+
+FWLOG_OBJS := $(FWLOG_DIR)/dbglog_host.o
+
 ############ TLSHIM ############
 TLSHIM_DIR := CORE/TLSHIM
 TLSHIM_INC := -I$(WLAN_ROOT)/$(TLSHIM_DIR)
@@ -682,6 +689,7 @@ else
 INCS +=		$(WMA_INC) \
 		$(COMMON_INC) \
 		$(WMI_INC) \
+		$(FWLOG_INC) \
 		$(ADF_INC) \
 		$(TLSHIM_INC) \
 		$(TXRX_INC) \
@@ -722,6 +730,7 @@ OBJS +=		$(WMA_OBJS) \
 		$(TLSHIM_OBJS) \
 		$(TXRX_OBJS) \
 		$(WMI_OBJS) \
+		$(FWLOG_OBJS) \
 		$(HTC_OBJS) \
 		$(ADF_OBJS)
 
