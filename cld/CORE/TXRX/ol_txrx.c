@@ -501,6 +501,21 @@ ol_txrx_pdev_attach(
 
     OL_TXRX_LOCAL_PEER_ID_POOL_INIT(pdev);
 
+    #ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
+    #define OL_TXRX_RSSI_UPDATE_SHIFT_DEFAULT 3
+    #if 1
+    #define OL_TXRX_RSSI_NEW_WEIGHT_DEFAULT \
+        /* avg = 100% * new + 0% * old */ \
+        (1 << OL_TXRX_RSSI_UPDATE_SHIFT_DEFAULT)
+    #else
+    #define OL_TXRX_RSSI_NEW_WEIGHT_DEFAULT \
+        /* avg = 25% * new + 25% * old */ \
+        (1 << (OL_TXRX_RSSI_UPDATE_SHIFT_DEFAULT-2))
+    #endif
+    pdev->rssi_update_shift = OL_TXRX_RSSI_UPDATE_SHIFT_DEFAULT;
+    pdev->rssi_new_weight =  OL_TXRX_RSSI_NEW_WEIGHT_DEFAULT;
+    #endif
+
     return pdev; /* success */
 
 fail8:
@@ -914,6 +929,10 @@ ol_txrx_peer_attach(
     ol_txrx_peer_state_update(pdev, peer->mac_addr.raw, ol_txrx_peer_state_disc);
 
     OL_TXRX_LOCAL_PEER_ID_ALLOC(pdev, peer);
+
+    #ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
+    peer->rssi_dbm = HTT_RSSI_INVALID;
+    #endif
 
     return peer;
 }
@@ -1681,6 +1700,15 @@ ol_txrx_prot_ans_display(ol_txrx_pdev_handle pdev)
 }
 
 #endif /* ENABLE_TXRX_PROT_ANALYZE */
+
+#ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
+int16_t
+ol_txrx_peer_rssi(ol_txrx_peer_handle peer)
+{
+    return (peer->rssi_dbm == HTT_RSSI_INVALID) ?
+        OL_TXRX_RSSI_INVALID : peer->rssi_dbm;
+}
+#endif /* #ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI */
 
 #ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
 A_STATUS

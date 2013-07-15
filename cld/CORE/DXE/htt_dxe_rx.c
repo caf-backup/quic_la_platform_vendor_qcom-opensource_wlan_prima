@@ -550,6 +550,17 @@ htt_rx_ind_mpdu_range_info(
     *status = htt_rx_status_ok; /* error frames are filtered out by HW */
 }
 
+int16_t
+htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
+{
+    /*
+     * The RSSIs only come from the rx descriptors (Rx BDs).
+     * Return an invalid value to show that there is no separate
+     * RSSI provided as a field in the HTT T2H RX_IND message.
+     */
+    return HTT_RSSI_INVALID;
+}
+
 /*--- rx descriptor field access functions ----------------------------------*/
 /*
  * These functions need to use bit masks and shifts to extract fields
@@ -682,6 +693,38 @@ _htt_rx_msdu_first_msdu_flag(htt_pdev_handle pdev, void *msdu_desc)
     return (a_bool_t)(rx_bd->amsdu_first);     // This casts is safe only because
                                                // amsdu_first is one bit wide
                                                // and a_bool_t is only 0 or 1
+}
+
+#define HTT_DXE_RSSI_TO_DBM(rssi) rssi /* FIX THIS */
+int16_t
+htt_rx_mpdu_desc_rssi_dbm(htt_pdev_handle pdev, void *mpdu_desc)
+{
+    isoc_rx_bd_t *rx_bd = mpdu_desc;
+    u_int8_t rssi;
+
+    /*
+     * * Return the RSSI only for the first MPDU within an A-MPDU, and the
+     * * first MSDU within an A-MSDU.
+     * */
+    if ((rx_bd->rxp_flags_ampdu_flag && ! rx_bd->rxp_flags_first_mpdu) ||
+            (rx_bd->amsdu && ! rx_bd->amsdu_first))
+    {
+        /* not the initial subframe */
+        return HTT_RSSI_INVALID;
+    }
+    /* CHECK THIS - choose whether to use rssi0, rssi1, rssi2, or rssi3 */
+    rssi = rx_bd->rssi0;
+    if (rssi < rx_bd->rssi1) {
+        rssi = rx_bd->rssi1;
+    }
+    if (rssi < rx_bd->rssi2) {
+        rssi = rx_bd->rssi2;
+    }
+    if (rssi < rx_bd->rssi3) {
+        rssi = rx_bd->rssi3;
+    }
+
+    return HTT_DXE_RSSI_TO_DBM(rssi);
 }
 
 int

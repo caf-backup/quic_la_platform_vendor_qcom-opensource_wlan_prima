@@ -730,4 +730,33 @@ ol_txrx_peer_handle ol_txrx_find_peer_by_addr(ol_txrx_pdev_handle pdev,
 #define ol_txrx_local_peer_id(peer) OL_TXRX_INVALID_LOCAL_PEER_ID
 #define ol_txrx_find_peer_by_addr(pdev, peer_addr, peer_id) NULL
 #endif
+
+#define OL_TXRX_RSSI_INVALID 0xffff
+/**
+ * @brief Provide the current RSSI average from data frames sent by a peer.
+ * @details
+ *  If a peer has sent data frames, the data SW will optionally keep
+ *  a running average of the RSSI observed for those data frames.
+ *  This function returns that time-average RSSI if is it available,
+ *  or OL_TXRX_RSSI_INVALID if either RSSI tracking is disabled or if
+ *  no data frame indications with valid RSSI meta-data have been received.
+ *  The RSSI is in approximate dBm units, and is normalized with respect
+ *  to a 20 MHz channel.  For example, if a data frame is received on a
+ *  40 MHz channel, wherein both the primary 20 MHz channel and the
+ *  secondary 20 MHz channel have an RSSI of -77 dBm, the reported RSSI
+ *  will be -77 dBm, rather than the actual -74 dBm RSSI from the
+ *  combination of the primary + extension 20 MHz channels.
+ *  Alternatively, the RSSI may be evaluated only on the primary 20 MHz
+ *  channel.
+ *
+ * @param peer - which peer's RSSI is desired
+ * @return RSSI evaluted from frames sent by the specified peer
+ */
+#ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
+int16_t
+ol_txrx_peer_rssi(ol_txrx_peer_handle peer);
+#else
+#define ol_txrx_peer_rssi(peer) OL_TXRX_RSSI_INVALID
+#endif /* QCA_SUPPORT_PEER_DATA_RX_RSSI */
+
 #endif /* _OL_TXRX_CTRL_API__H_ */
