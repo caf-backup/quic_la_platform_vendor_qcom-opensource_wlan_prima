@@ -387,7 +387,7 @@ ol_txrx_mgmt_send(
         txq = ol_tx_classify_mgmt(vdev, tx_desc, tx_mgmt_frm, &tx_msdu_info);
         if (!txq) {
             //TXRX_STATS_MSDU_LIST_INCR(vdev->pdev, tx.dropped.no_txq, msdu);
-            ol_tx_desc_free(vdev->pdev, tx_desc);
+            ol_tx_desc_frame_free_nonstd(vdev->pdev, tx_desc, 1 /* error */);
             if (tx_msdu_info.peer) {
                 /* remove the peer reference added above */
                 ol_txrx_peer_unref_delete(tx_msdu_info.peer);
