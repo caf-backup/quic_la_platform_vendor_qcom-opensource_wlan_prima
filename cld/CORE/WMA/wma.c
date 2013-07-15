@@ -1812,6 +1812,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	wmi_buf_t buf;
 	int32_t ret, max_rates, i;
 	u_int8_t rx_stbc;
+	u_int8_t *rate_pos;
 
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!buf) {
@@ -1904,29 +1905,28 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		cmd->peer_rate_caps |= WMI_RC_DS_FLAG;
 
 	/* Legacy Rateset */
+	rate_pos = (u_int8_t *)cmd->peer_legacy_rates.rates;
 	for (i = 0; i < SIR_NUM_11B_RATES; i++) {
 		if (!params->supportedRates.llbRates[i])
 			continue;
-		cmd->peer_legacy_rates.rates
-			[cmd->peer_legacy_rates.num_rates++] =
+		rate_pos[cmd->peer_legacy_rates.num_rates++] =
 			params->supportedRates.llbRates[i];
 	}
 	for (i = 0; i < SIR_NUM_11A_RATES; i++) {
 		if (!params->supportedRates.llaRates[i])
 			continue;
-		cmd->peer_legacy_rates.rates
-			[cmd->peer_legacy_rates.num_rates++] =
+		rate_pos[cmd->peer_legacy_rates.num_rates++] =
 			params->supportedRates.llaRates[i];
 	}
 
 	/* HT Rateset */
 	max_rates = sizeof(cmd->peer_ht_rates.rates) /
 		    sizeof(cmd->peer_ht_rates.rates[0]);
+	rate_pos = (u_int8_t *)cmd->peer_ht_rates.rates;
 	for (i = 0; i < MAX_SUPPORTED_RATES; i++) {
 		if (params->supportedRates.supportedMCSSet[i / 8] &
 					(1 << (i % 8))) {
-			cmd->peer_ht_rates.rates
-				[cmd->peer_ht_rates.num_rates++] = i;
+			rate_pos[cmd->peer_ht_rates.num_rates++] = i;
 		}
 		if (cmd->peer_ht_rates.num_rates == max_rates)
 		       break;
