@@ -35,7 +35,7 @@ ol_tx_non_std_hl(
     adf_nbuf_t msdu_list);
 
 adf_nbuf_t 
-ol_tx_reinject(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu, uint32_t peer_id);
+ol_tx_reinject(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu, uint16_t peer_id);
 
 void
 ol_txrx_mgmt_tx_complete(void *ctxt, adf_nbuf_t netbuf, int err);

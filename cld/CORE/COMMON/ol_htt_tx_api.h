@@ -599,13 +599,13 @@ htt_tx_desc_display(void *tx_desc);
 #endif
 
 static inline
-void htt_tx_desc_set_peer_id(uint32_t *htt_tx_desc, uint32_t peer_id)
+void htt_tx_desc_set_peer_id(uint32_t *htt_tx_desc, uint16_t peer_id)
 {
     uint32_t *peer_id_field_ptr;
 
     peer_id_field_ptr  = (uint32_t *)(htt_tx_desc + HTT_TX_DESC_PEERID_DESC_PADDR_OFFSET_DWORD);
 
-    *peer_id_field_ptr = (uint32_t)peer_id;
+    *peer_id_field_ptr = peer_id;
 }
 
 
