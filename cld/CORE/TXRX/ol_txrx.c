@@ -1040,19 +1040,27 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 		}
 	case ol_txrx_peer_update_qos_capable:
 		{
+			struct ol_txrx_pdev_t *pdev;
+			pdev = peer->vdev->pdev;
+			/* save qos_capable here txrx peer,
+			 * when HTT_ISOC_T2H_MSG_TYPE_PEER_INFO comes then save.
+			 */
 			peer->qos_capable = param->qos_capable;
 			/*
 			 * The following function call assumes that the peer has a single
 			 * ID.  This is currently true, and is expected to remain true.
 			 */
-			htt_peer_qos_update(peer->vdev->pdev->htt_pdev,
-					    peer->peer_ids[0],
-					    peer->qos_capable);
+			htt_peer_qos_update(
+				pdev->htt_pdev, peer->peer_ids[0], peer->qos_capable);
 			break;
 		}
 	case ol_txrx_peer_update_uapsdMask:
 		{
+			struct ol_txrx_pdev_t *pdev;
+			pdev = peer->vdev->pdev;
 			peer->uapsd_mask = param->uapsd_mask;
+			htt_peer_uapsdmask_update(
+				pdev->htt_pdev, peer->peer_ids[0], peer->uapsd_mask);
 			break;
 		}
 	case ol_txrx_peer_update_peer_security:
@@ -1112,6 +1120,19 @@ ol_txrx_peer_uapsdmask_get(struct ol_txrx_pdev_t *txrx_pdev, u_int16_t peer_id)
     peer = ol_txrx_peer_find_by_id_private(txrx_pdev, peer_id);
     if (peer != NULL) {
         return peer->uapsd_mask;
+    }
+
+    return 0;
+}
+
+u_int8_t
+ol_txrx_peer_qoscapable_get (struct ol_txrx_pdev_t * txrx_pdev, u_int16_t peer_id)
+{
+
+    struct ol_txrx_peer_t *peer_t  = ol_txrx_peer_find_by_id(txrx_pdev, peer_id);
+    if (peer_t != NULL)
+    {
+        return peer_t->qos_capable;
     }
 
     return 0;

@@ -114,11 +114,22 @@ htt_vdev_detach(htt_pdev_handle htt_pdev, u_int8_t vdev_id);
  */
 void
 htt_peer_qos_update(htt_pdev_handle htt_pdev, int peer_id, u_int8_t qos_capable);
+
+/**
+ * @brief Notify HTT uapsd mask
+ * @param htt_pdev - handle to the HTT pdev the vdev belongs to
+ * @param peer_id - the ID of the new peer
+ * @param uapsd_mask - uapsd mask
+ */
+void
+htt_peer_uapsdmask_update(htt_pdev_handle htt_pdev, int peer_id, u_int8_t uapsd_mask);
+
 #else
 /* no-ops */
 #define htt_vdev_attach(htt_pdev, vdev_id, op_mode)
 #define htt_vdev_detach(htt_pdev, vdev_id)
 #define htt_peer_qos_update(htt_pdev, peer_id, qos_capable)
+#define htt_peer_uapsdmask_update(htt_pdev, peer_id, uapsd_mask)
 #endif /* QCA_WIFI_ISOC */
 
 /**
