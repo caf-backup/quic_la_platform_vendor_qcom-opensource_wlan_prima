@@ -759,4 +759,11 @@ ol_txrx_peer_rssi(ol_txrx_peer_handle peer);
 #define ol_txrx_peer_rssi(peer) OL_TXRX_RSSI_INVALID
 #endif /* QCA_SUPPORT_PEER_DATA_RX_RSSI */
 
+#define OL_TXRX_INVALID_LOCAL_PEER_ID 0xffff
+#if QCA_SUPPORT_TXRX_LOCAL_PEER_ID
+u_int16_t ol_txrx_local_peer_id(ol_txrx_peer_handle peer);
+#else
+#define ol_txrx_local_peer_id(peer) OL_TXRX_INVALID_LOCAL_PEER_ID
+#endif
+
 #endif /* _OL_TXRX_CTRL_API__H_ */

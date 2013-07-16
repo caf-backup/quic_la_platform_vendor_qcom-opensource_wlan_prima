@@ -499,8 +499,6 @@ ol_txrx_pdev_attach(
 
     pdev->cfg.host_addba = ol_cfg_host_addba(ctrl_pdev);
 
-    OL_TXRX_LOCAL_PEER_ID_POOL_INIT(pdev);
-
     #ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
     #define OL_TXRX_RSSI_UPDATE_SHIFT_DEFAULT 3
     #if 1
@@ -515,6 +513,8 @@ ol_txrx_pdev_attach(
     pdev->rssi_update_shift = OL_TXRX_RSSI_UPDATE_SHIFT_DEFAULT;
     pdev->rssi_new_weight =  OL_TXRX_RSSI_NEW_WEIGHT_DEFAULT;
     #endif
+
+    OL_TXRX_LOCAL_PEER_ID_POOL_INIT(pdev);
 
     return pdev; /* success */
 
@@ -928,11 +928,11 @@ ol_txrx_peer_attach(
     peer->state = ol_txrx_peer_state_invalid;
     ol_txrx_peer_state_update(pdev, peer->mac_addr.raw, ol_txrx_peer_state_disc);
 
-    OL_TXRX_LOCAL_PEER_ID_ALLOC(pdev, peer);
-
     #ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
     peer->rssi_dbm = HTT_RSSI_INVALID;
     #endif
+
+    OL_TXRX_LOCAL_PEER_ID_ALLOC(pdev, peer);
 
     return peer;
 }
@@ -1250,9 +1250,9 @@ ol_txrx_peer_detach(ol_txrx_peer_handle peer)
     /* redirect the peer's rx delivery function to point to a discard func */
     peer->rx_opt_proc = ol_rx_discard;
 
-    OL_TXRX_LOCAL_PEER_ID_FREE(peer->vdev->pdev, peer);
-
     peer->valid = 0;
+
+    OL_TXRX_LOCAL_PEER_ID_FREE(peer->vdev->pdev, peer);
 
     /* debug print to dump rx reorder state */
     //htt_rx_reorder_log_print(vdev->pdev->htt_pdev);

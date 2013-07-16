@@ -564,8 +564,6 @@ do {                                                                            
 #endif /* SUPPORT_HOST_STATISTICS */
 
 #ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
-#define CONCAT_BASE(a, b) a ## b
-#define CONCAT(a, b) CONCAT_BASE(a, b)
 #define OL_TXRX_PEER_STATS_UPDATE_BASE(peer, tx_or_rx, type, msdu) \
     do { \
         adf_os_spin_lock_bh(&peer->vdev->pdev->peer_stat_mutex); \
