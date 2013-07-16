@@ -674,20 +674,26 @@ ol_tx_sched_select_batch_wrr_adv(
      * Take the tx queue from the head of the category list.
      */
     txq = TAILQ_FIRST(&category->state.head);
-    TAILQ_REMOVE(&category->state.head, txq, list_elem);
-
-    credit -= category->specs.credit_reserve;
-    frames = ol_tx_dequeue(
-        pdev, txq, &sctx->head, category->specs.send_limit, &credit, &bytes);
-    category->state.frms -= frames;
-    category->state.bytes -= bytes;
-
-    if (txq->frms > 0) {
-        TAILQ_INSERT_TAIL(&category->state.head, txq, list_elem);
-    } else {
-        if (category->state.frms == 0) {
-            category->state.active = 0;
+    if (txq){
+        TAILQ_REMOVE(&category->state.head, txq, list_elem);
+        credit -= category->specs.credit_reserve;
+        frames = ol_tx_dequeue(
+                pdev, txq, &sctx->head, category->specs.send_limit, &credit, &bytes);
+        category->state.frms -= frames;
+        category->state.bytes -= bytes;
+        if (txq->frms > 0) {
+            TAILQ_INSERT_TAIL(&category->state.head, txq, list_elem);
+        } else {
+            if (category->state.frms == 0) {
+                category->state.active = 0;
+            }
         }
+        sctx->frms += frames;
+        TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
+    } else {
+        frames = 0;
+		/* TODO: find its reason */
+		adf_os_print("ol_tx_sched_select_batch_wrr_adv: error, no TXQ can be popped.");
     }
     sctx->frms += frames;
 
@@ -1030,6 +1036,11 @@ ol_tx_sched_dispatch(
     while (sctx->frms)
     {
         tx_desc = TAILQ_FIRST(&sctx->head);
+        if (tx_desc == NULL){
+			/* TODO: find its reason */
+            adf_os_print("ol_tx_sched_dispatch: err, no enough tx_desc from stx->head.\n");
+            break;
+        }
         msdu = tx_desc->netbuf;
         TAILQ_REMOVE(&sctx->head, tx_desc, tx_desc_list_elem);
         if (NULL == head_msdu)
