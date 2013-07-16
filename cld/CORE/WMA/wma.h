@@ -860,6 +860,13 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 int regdmn_get_country_alpha2(u_int16_t rd, u_int8_t *alpha2);
 #endif
 
+#define WMA_FW_PHY_STATS	0x1
+#define WMA_FW_RX_REORDER_STATS 0x2
+#define WMA_FW_RX_RC_STATS	0x3
+#define WMA_FW_TX_PPDU_STATS	0x4
+#define WMA_FW_TX_CONCISE_STATS 0x5
+#define WMA_FW_TX_RC_STATS	0x6
+
 /*
  * Setting the Tx Comp Timeout to 1 secs.
  * TODO: Need to Revist the Timing

@@ -58,7 +58,7 @@ struct ol_txrx_stats_req {
 #define TXRX_DEBUG_LEVEL 0 /* no debug info */
 #endif
 
-#ifdef ATH_PERF_PWR_OFFLOAD /*---------------------------------------------*/
+#ifndef ATH_PERF_PWR_OFFLOAD /*---------------------------------------------*/
 
 #define ol_txrx_debug(vdev, debug_specs) 0
 #define ol_txrx_fw_stats_cfg(vdev, type, val) 0

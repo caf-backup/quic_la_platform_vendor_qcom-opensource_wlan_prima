@@ -1412,7 +1412,7 @@ struct ol_txrx_stats_req_internal * OL_TXRX_U64_TO_STATS_PTR(u_int64_t cookie)
     return (struct ol_txrx_stats_req_internal *) ((size_t) cookie);
 }
 
-#ifndef ATH_PERF_PWR_OFFLOAD
+#ifdef ATH_PERF_PWR_OFFLOAD
 void
 ol_txrx_fw_stats_cfg(
     ol_txrx_vdev_handle vdev,
