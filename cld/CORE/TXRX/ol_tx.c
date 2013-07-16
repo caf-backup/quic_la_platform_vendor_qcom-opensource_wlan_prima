@@ -67,6 +67,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
         msdu_info.peer = NULL;
 
         msdu_info.htt.info.ext_tid = adf_nbuf_get_tid(msdu);
+        msdu_info.htt.info.l2_hdr_type = vdev->pdev->htt_pkt_type;
         ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
 
         /*
