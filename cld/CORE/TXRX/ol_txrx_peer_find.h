@@ -45,7 +45,7 @@ ol_txrx_peer_find_by_id_private(
     u_int16_t peer_id)
 {
     struct ol_txrx_peer_t *peer;
-    peer = (peer_id == HTT_INVALID_PEER) ? NULL : 
+    peer = (peer_id > ol_cfg_max_peer_id(pdev->ctrl_pdev)) ? NULL :
         pdev->peer_id_to_obj_map[peer_id];
     /*
      * Currently, peer IDs are assigned to vdevs as well as peers.
