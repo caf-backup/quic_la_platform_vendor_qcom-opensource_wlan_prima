@@ -8309,3 +8309,8 @@ VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 ch
    return VOS_STATUS_SUCCESS;
 }
 
+/*convert the ini value to the ENUM used in csr and MAC for CB state*/
+ePhyChanBondState sme_GetCBPhyStateFromCBIniValue(tANI_U32 cb_ini_value)
+{
+   return(csrConvertCBIniValueToPhyCBState(cb_ini_value));
+}

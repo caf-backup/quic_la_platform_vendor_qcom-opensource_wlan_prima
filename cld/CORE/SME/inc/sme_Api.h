@@ -2770,4 +2770,7 @@ eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
  */
 VOS_STATUS sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode, tANI_U8 channel);
 
+/*SME API to convert convert the ini value to the ENUM used in csr and MAC*/
+ePhyChanBondState sme_GetCBPhyStateFromCBIniValue(tANI_U32 cb_ini_value);
+
 #endif //#if !defined( __SME_API_H )

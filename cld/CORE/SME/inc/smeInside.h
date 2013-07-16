@@ -284,6 +284,6 @@ eHalStatus csrUpdateBgScanConfigIniChannelList(tpAniSirGlobal pMac, eCsrBand eBa
 eHalStatus csrInitCountryValidChannelList(tpAniSirGlobal pMac, tANI_U8 revision);
 void csr_SetRevision(tpAniSirGlobal pMac, tANI_U8 revision);
 #endif
-
+ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue);
 
 #endif //#if !defined( __SMEINSIDE_H )
