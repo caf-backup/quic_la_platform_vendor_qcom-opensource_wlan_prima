@@ -13,6 +13,18 @@
 #include <adf_nbuf.h>      /* adf_nbuf_t */
 #include <ol_txrx_types.h> /* ol_tx_send_t */
 
+#if defined(CONFIG_HL_SUPPORT)
+#define ol_tx_discard_target_frms(pdev) /* no-op */
+#else
+
+/**
+ * @flush the ol tx when surprise remove.
+ *
+ */
+void
+ol_tx_discard_target_frms(ol_txrx_pdev_handle pdev);
+#endif
+
 /**
  * @brief Send a tx frame to the target.
  * @details

@@ -1421,6 +1421,13 @@ hif_buffer_cleanup(struct HIF_CE_state *hif_state)
 }
 
 void
+HIFFlushSurpriseRemove(HIF_DEVICE *hif_device)
+{
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
+    hif_buffer_cleanup(hif_state);
+}
+
+void
 HIFStop(HIF_DEVICE *hif_device)
 {
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;

@@ -401,6 +401,18 @@ A_STATUS     HTCSendDataPkt(HTC_HANDLE HTCHandle, adf_nbuf_t       netbuf,
 A_STATUS    HTCSendDataPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket);
 #endif /*ATH_11AC_TXCOMPACT*/
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  @desc: Flush HTC when target is removed surprisely service communications
+  @function name: HTCFlushSurpriseRemove
+  @input:  HTCHandle - HTC handle
+  @output:
+  @return:
+  @notes: All receive and pending TX packets will
+          be flushed.
+  @example:
+  @see also:
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+void        HTCFlushSurpriseRemove(HTC_HANDLE HTCHandle);
+/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   @desc: Stop HTC service communications
   @function name: HTCStop
   @input:  HTCHandle - HTC handle

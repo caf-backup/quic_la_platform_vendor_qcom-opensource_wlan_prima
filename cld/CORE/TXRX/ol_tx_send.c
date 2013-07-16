@@ -314,6 +314,29 @@ ol_tx_target_credit_update(struct ol_txrx_pdev_t *pdev, int credit_delta)
     #endif  /* !QCA_TX_STD_PATH_ONLY */
 #endif /* QCA_TX_SINGLE_COMPLETIONS */
 
+void
+ol_tx_discard_target_frms(ol_txrx_pdev_handle pdev)
+{
+    int i = 0;
+    for (i = 0; i < pdev->tx_desc.pool_size; i++) {
+
+        /*
+         * Confirm that each tx descriptor is "empty", i.e. it has
+         * no tx frame attached.
+         * In particular, check that there are no frames that have
+         * been given to the target to transmit, for which the
+         * target has never provided a response.
+         */
+        if (adf_os_atomic_read(&pdev->tx_desc.array[i].tx_desc.ref_cnt)) {
+            TXRX_PRINT(TXRX_PRINT_LEVEL_WARN,
+                "Warning: freeing tx frame "
+                "(no tx completion from the target)\n");
+            ol_tx_desc_frame_free_nonstd(
+                pdev, &pdev->tx_desc.array[i].tx_desc, 1);
+        }
+    }
+}
+
 /* WARNING: ol_tx_inspect_handler()'s bahavior is similar to that of ol_tx_completion_handler().
  * any change in ol_tx_completion_handler() must be mirrored in ol_tx_inspect_handler().
  */

@@ -51,6 +51,7 @@ void HIFPostInit(HIF_DEVICE *hifDevice, void *hHTC, MSG_BASED_HIF_CALLBACKS *cal
 void HIFStart(HIF_DEVICE *hifDevice);
 
 void HIFStop(HIF_DEVICE *hifDevice);
+void HIFFlushSurpriseRemove(HIF_DEVICE *hifDevice);
 
 void HIFGrowBuffers(void* hif_hdl);
 

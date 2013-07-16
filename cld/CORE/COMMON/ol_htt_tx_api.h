@@ -217,6 +217,22 @@ void
 htt_tx_desc_free(htt_pdev_handle htt_pdev, void *htt_tx_desc);
 
 /**
+* @brief Discard all tx frames in the process of being downloaded.
+* @details
+* This function dicards any tx frames queued in HTT or the layers
+* under HTT.
+* The download completion callback is invoked on these frames.
+*
+* @param htt_pdev - handle to the HTT instance
+*/
+#if defined(CONFIG_HL_SUPPORT)
+#define htt_tx_pending_discard(pdev) /* no-op */
+#else
+void
+htt_tx_pending_discard(htt_pdev_handle pdev);
+#endif
+
+/**
  * @brief Download a MSDU descriptor and (a portion of) the MSDU payload.
  * @details
  *  This function is used within LL systems to download a tx descriptor and
