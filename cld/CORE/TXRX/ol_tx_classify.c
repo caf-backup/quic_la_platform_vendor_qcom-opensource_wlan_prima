@@ -335,10 +335,10 @@ ol_tx_classify(
     } else {
         /* tid would be overwritten for non QoS case*/
         tid = ol_tx_tid(pdev, tx_nbuf, tx_msdu_info);
-        if (HTT_TX_EXT_TID_INVALID == tid) {
+        if ((HTT_TX_EXT_TID_INVALID == tid) || (tid >= OL_TX_NUM_TIDS)) {
              adf_os_print(
-                 "%s Error: could not classify packet into valid TID.\n",
-                 __func__);
+                 "%s Error: could not classify packet into valid TID(%d).\n",
+                 __func__, tid);
              return NULL;
         }
         #ifdef ATH_SUPPORT_WAPI
