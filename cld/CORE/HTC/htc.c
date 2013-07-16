@@ -9,6 +9,7 @@
 #include "htc_internal.h"
 #include <adf_nbuf.h>     /* adf_nbuf_t */
 #include <adf_os_types.h> /* adf_os_print */
+#include <hif_msg_based.h> /* HIFFlushSurpriseRemove */
 
 #ifdef DEBUG
 static ATH_DEBUG_MASK_DESCRIPTION g_HTCDebugDescription[] = {
