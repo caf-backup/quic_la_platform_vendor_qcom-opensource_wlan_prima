@@ -285,39 +285,6 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             break;
         }
 #endif
-    case HTT_T2H_MSG_TYPE_RC_UPDATE_IND:
-        {
-            u_int8_t num_elems;
-            u_int8_t vdev_id;
-            u_int16_t peer_id;
-            u_int8_t mac_addr[HTT_MAC_ADDR_LEN];
-            u_int8_t *peer_mac_addr;
-
-#ifdef DEBUG_HOST_RC
-            printk("Enter: %s for rc update \n", __func__);
-#endif
-
-            vdev_id = HTT_RC_UPDATE_VDEVID_GET(*msg_word);
-
-            peer_id = HTT_RC_UPDATE_PEERID_GET(*msg_word);
-
-            peer_mac_addr = htt_t2h_mac_addr_deswizzle(
-                (u_int8_t *) (msg_word+1), &mac_addr[0]);
-
-            num_elems = HTT_RC_UPDATE_NUM_ELEMS_GET(*(msg_word+2));
-
-#if 0
-            ol_rc_update_handler(pdev->txrx_pdev, peer_id, vdev_id,
-                    peer_mac_addr, num_elems, msg_word + 3);
-#endif
-
-#ifdef DEBUG_HOST_RC
-            printk("Exit:  %s for rc update \n", __func__);
-#endif
-
-            break;
-        }
-
     case HTT_T2H_MSG_TYPE_TX_CREDIT_UPDATE_IND:
     {
         A_INT16  htt_credit_delta_abs = HTT_TX_CREDIT_DELTA_ABS_GET(*msg_word);

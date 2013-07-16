@@ -306,10 +306,6 @@ int wmi_unified_pdev_get_tpc_config(wmi_unified_t wmi_handle, u_int32_t param);
 void ol_get_wlan_dbg_stats(struct ol_softc *scn, struct wlan_dbg_stats *dbg_stats);
 
 int
-wmi_send_node_rate_sched(struct ol_softc *scn,
-        wmi_peer_rate_retry_sched_cmd *cmd_buf);
-
-int
 wmi_unified_node_set_param(wmi_unified_t wmi_handle, u_int8_t *peer_addr,u_int32_t param_id,
         u_int32_t param_val,u_int32_t vdev_id);
 
