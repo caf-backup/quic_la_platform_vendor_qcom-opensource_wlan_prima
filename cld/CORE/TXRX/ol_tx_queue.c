@@ -83,20 +83,67 @@ ol_tx_queue_addba_check(
 
 /*--- function definitions --------------------------------------------------*/
 
+static inline void
+ol_tx_queue_flush(struct ol_txrx_pdev_t *pdev)
+{
+    /* try to flush pending frames in the tx queues
+     * no matter it's queued in the TX scheduler or not.
+     */
+#define PEER_ARRAY_COUNT        10
+    struct ol_tx_frms_queue_t *txq;
+    struct ol_txrx_vdev_t *vdev;
+    struct ol_txrx_peer_t *peer, *peers[PEER_ARRAY_COUNT];
+    int i, j, peer_count;
+    TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
+        /* flush VDEV TX queues */
+        for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
+            txq = &vdev->txqs[i];
+            ol_tx_queue_free(pdev, txq, (i + OL_TX_NUM_TIDS));
+        }
+        /* flush PEER TX queues */
+        do {
+            peer_count = 0;
+            /* select candidate peers */
+            adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
+            TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
+                for (i = 0; i < OL_TX_NUM_TIDS; i++) {
+                    txq = &peer->txqs[i];
+                    if (txq->frms) {
+                        adf_os_atomic_inc(&peer->ref_cnt);
+                        peers[peer_count++] = peer;
+                        break;
+                    }
+                }
+                if (peer_count >= PEER_ARRAY_COUNT) {
+                    break;
+                }
+            }
+            adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
+            /* flush TX queues of candidate peers */
+            for (i = 0; i < peer_count; i++) {
+                for (j = 0; j < OL_TX_NUM_TIDS; j++) {
+                    txq = &peers[i]->txqs[j];
+                    if (txq->frms) {
+                        ol_tx_queue_free(pdev, txq, j);
+                    }
+                }
+                ol_txrx_peer_unref_delete(peers[i]);
+            }
+        } while (peer_count >= PEER_ARRAY_COUNT);
+    }
+}
+
 void
 ol_tx_queue_discard(
     struct ol_txrx_pdev_t *pdev,
     a_bool_t flush_all,
-    a_bool_t locked)
+    ol_tx_desc_list *tx_descs)
 {
-    ol_tx_desc_list tx_descs;
     u_int16_t num;
     u_int16_t discarded, actual_discarded = 0;
 
-    TAILQ_INIT(&tx_descs);
-    if (locked == A_FALSE) {
-        adf_os_spin_lock(&pdev->tx_queue_spinlock);
-    }
+    adf_os_spin_lock(&pdev->tx_queue_spinlock);
+
     if (flush_all == A_TRUE) {
         /* flush all the pending tx queues in the scheduler */
         num = ol_tx_desc_pool_size_hl(pdev->ctrl_pdev) -
@@ -108,7 +155,7 @@ ol_tx_queue_discard(
     TX_SCHED_DEBUG_PRINT("+%s : %d\n,", __FUNCTION__, pdev->tx_queue.rsrc_cnt);
     while (num > 0) {
         discarded = ol_tx_sched_discard_select(
-            pdev, (u_int16_t)num, &tx_descs, flush_all);
+            pdev, (u_int16_t)num, tx_descs, flush_all);
         if (discarded == 0) {
              /*
               * No more packets could be discarded.
@@ -121,9 +168,15 @@ ol_tx_queue_discard(
     }
     adf_os_atomic_add(actual_discarded, &pdev->tx_queue.rsrc_cnt);
     TX_SCHED_DEBUG_PRINT("-%s \n",__FUNCTION__);
-    ol_tx_desc_frame_list_free(pdev, &tx_descs, 1 /* error */);
-    if (locked == A_FALSE) {
-        adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+
+    adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+
+    if (flush_all == A_TRUE && num > 0) {
+        /*
+         * try to flush pending frames in the tx queues
+         * which are not queued in the TX scheduler.
+         */
+        ol_tx_queue_flush(pdev);
     }
 }
 
@@ -148,8 +201,13 @@ ol_tx_enqueue(
     if (adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt) <=
         pdev->tx_queue.rsrc_threshold_lo)
     {
-        ol_tx_queue_discard(pdev, A_FALSE, A_TRUE);
+        ol_tx_desc_list tx_descs;
+        TAILQ_INIT(&tx_descs);
+        ol_tx_queue_discard(pdev, A_FALSE, &tx_descs);
+        //Discard Frames in Discard List
+        ol_tx_desc_frame_list_free(pdev, &tx_descs, 1 /* error */);
     }
+    adf_os_spin_lock(&pdev->tx_queue_spinlock);
     TAILQ_INSERT_TAIL(&txq->head, tx_desc, tx_desc_list_elem);
 
     bytes = adf_nbuf_len(tx_desc->netbuf);
@@ -259,6 +317,7 @@ ol_tx_queue_free(
 
     adf_os_spin_unlock(&pdev->tx_queue_spinlock);
     /* free tx frames without holding tx_queue_spinlock */
+    adf_os_atomic_add(frms, &pdev->tx_queue.rsrc_cnt);
     while (frms) {
         tx_desc = TAILQ_FIRST(&tx_tmp_list);
         TAILQ_REMOVE(&tx_tmp_list, tx_desc, tx_desc_list_elem);
