@@ -13,6 +13,7 @@
 #include <ol_txrx_types.h>    /* ol_txrx_vdev_t, etc. */
 #include <ol_rx_pn.h>  /* our own defs */
 #include <ol_rx_fwd.h> /* ol_rx_fwd_check */
+#include <ol_rx.h>            /* ol_rx_deliver */
 
 /* add the MSDUs from this MPDU to the list of good frames */
 #define ADD_MPDU_TO_LIST(head, tail, mpdu, mpdu_tail) do { 	\
@@ -209,6 +210,17 @@ ol_rx_pn_check(
 {
     msdu_list = ol_rx_pn_check_base(vdev, peer, tid, msdu_list);
     ol_rx_fwd_check(vdev, peer, tid, msdu_list);
+}
+
+void
+ol_rx_pn_check_only(
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_txrx_peer_t *peer,
+    unsigned tid,
+    adf_nbuf_t msdu_list)
+{
+    msdu_list = ol_rx_pn_check_base(vdev, peer, tid, msdu_list);
+    ol_rx_deliver(vdev, peer, tid, msdu_list);
 }
 
 #if defined(ENABLE_RX_PN_TRACE)
