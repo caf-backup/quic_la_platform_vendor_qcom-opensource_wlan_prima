@@ -27,9 +27,6 @@
 #include <ol_txrx_encap.h>  /* OL_TX_RESTORE_HDR, etc*/
 #endif 
 
-#ifndef DEBUG_CREDIT
-#define DEBUG_CREDIT 0
-#endif
 #ifdef TX_CREDIT_RECLAIM_SUPPORT
 
 #define OL_TX_CREDIT_RECLAIM(pdev)                                  \
@@ -55,7 +52,7 @@ ol_tx_send(
 {
     u_int16_t id;
     int failed;
-#if DEBUG_CREDIT
+#if DEBUG_HTT_CREDIT
     adf_os_print("TX %d bytes\n", adf_nbuf_len(msdu));
     adf_os_print(" <HTT> Decrease credit %d - 1 = %d, len:%d.\n",
             adf_os_atomic_read(&pdev->target_tx_credit),
@@ -228,6 +225,12 @@ ol_tx_target_credit_init(struct ol_txrx_pdev_t *pdev, int credit_delta)
 void
 ol_tx_target_credit_update(struct ol_txrx_pdev_t *pdev, int credit_delta)
 {
+#if DEBUG_HTT_CREDIT
+    adf_os_print(" <HTT> Increase credit %d + %d = %d\n",
+            adf_os_atomic_read(&pdev->target_tx_credit),
+            credit_delta,
+            adf_os_atomic_read(&pdev->target_tx_credit) + credit_delta);
+#endif
     adf_os_atomic_add(credit_delta, &pdev->target_tx_credit);
 }
 
@@ -390,12 +393,6 @@ ol_tx_completion_handler(
     } else {
         ol_tx_desc_frame_list_free(pdev, &tx_descs, status != htt_tx_status_ok);
     }
-#if DEBUG_CREDIT
-    adf_os_print(" <HTT> Increase credit %d + %d = %d\n",
-            adf_os_atomic_read(&pdev->target_tx_credit),
-            num_msdus,
-            adf_os_atomic_read(&pdev->target_tx_credit) + num_msdus);
-#endif
     if (pdev->cfg.is_high_latency) {
         /*
          * Credit was already explicitly updated by HTT,
@@ -468,7 +465,7 @@ ol_tx_inspect_handler(
     } else {
         ol_tx_desc_frame_list_free(pdev, &tx_descs, htt_tx_status_discard);
     }
-#if DEBUG_CREDIT
+#if DEBUG_HTT_CREDIT
     adf_os_print(" <HTT> Increase HTT credit %d + %d = %d..\n",
             adf_os_atomic_read(&pdev->target_tx_credit),
             num_msdus,
