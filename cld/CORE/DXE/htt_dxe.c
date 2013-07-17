@@ -25,6 +25,7 @@
 #define htt_dxe_attach          htt_attach
 #define htt_dxe_attach_target   htt_attach_target
 #define htt_dxe_detach          htt_detach
+#define htt_dxe_detach_target   htt_detach_target
 #define htt_dxe_vdev_attach     htt_vdev_attach
 #define htt_dxe_vdev_detach     htt_vdev_detach
 #define htt_dxe_peer_qos_update htt_peer_qos_update
@@ -226,6 +227,13 @@ htt_dxe_detach(htt_pdev_handle pdev)
      */
     adf_os_mem_zero(pdev, sizeof(*pdev));
     adf_os_mem_free(pdev);
+}
+
+void
+htt_dxe_detach_target(htt_pdev_handle pdev)
+{
+    /* FILL HERE */
+    return;
 }
 
 static void

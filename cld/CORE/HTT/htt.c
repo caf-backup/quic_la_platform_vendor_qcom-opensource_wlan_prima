@@ -266,6 +266,11 @@ htt_detach(htt_pdev_handle pdev)
     adf_os_mem_free(pdev);
 }
 
+void
+htt_detach_target(htt_pdev_handle pdev)
+{
+}
+
 int
 htt_htc_attach(struct htt_pdev_t *pdev)
 {
