@@ -327,14 +327,6 @@ ol_txrx_peer_find_add_id(
     //TXRX_ASSERT2(0);
 }
 
-struct ol_txrx_peer_t *
-ol_txrx_peer_find_by_id(
-    struct ol_txrx_pdev_t *pdev,
-    u_int16_t peer_id)
-{
-    return ol_txrx_peer_find_by_id_private(pdev, peer_id);
-}
-
 /*=== allocation / deallocation function definitions ========================*/
 
 int
@@ -370,7 +362,7 @@ ol_rx_peer_map_handler(
     ol_txrx_peer_find_add_id(pdev, peer_mac_addr, peer_id);
     if (pdev->cfg.is_high_latency && !tx_ready) {
         struct ol_txrx_peer_t *peer;
-        peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
+        peer = ol_txrx_peer_find_by_id(pdev, peer_id);
         if (!peer) {
             /* ol_txrx_peer_detach called before peer map arrived */
             return;
@@ -401,7 +393,7 @@ ol_txrx_peer_tx_ready_handler(ol_txrx_pdev_handle pdev, u_int16_t peer_id)
 {
 #if defined(CONFIG_HL_SUPPORT)
     struct ol_txrx_peer_t *peer;
-    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
     if (peer) {
         int i;
         /*
@@ -461,20 +453,6 @@ ol_txrx_assoc_peer_find(struct ol_txrx_vdev_t *vdev)
 	}
 	adf_os_spin_unlock_bh(&vdev->pdev->last_real_peer_mutex);
 	return peer;
-}
-
-struct ol_txrx_peer_t *
-ol_txrx_peer_find_by_local_id(ol_txrx_pdev_handle pdev, u_int8_t local_id)
-{
-    int32_t i, max_peers;
-
-    max_peers = ol_cfg_max_peer_id(pdev->ctrl_pdev) + 1;
-    for (i = 0; i < max_peers; i++) {
-        if (pdev->peer_id_to_obj_map[i] &&
-           (pdev->peer_id_to_obj_map[i]->local_id == local_id))
-               return pdev->peer_id_to_obj_map[i];
-    }
-    return NULL;
 }
 
 /*=== function definitions for debug ========================================*/

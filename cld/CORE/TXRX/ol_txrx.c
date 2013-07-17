@@ -129,6 +129,17 @@ ol_txrx_local_peer_id(ol_txrx_peer_handle peer)
     return peer->local_id;
 }
 
+ol_txrx_peer_handle
+ol_txrx_peer_find_by_local_id(
+    struct ol_txrx_pdev_t *pdev,
+    u_int8_t local_peer_id)
+{
+    if (local_peer_id == OL_TXRX_INVALID_LOCAL_PEER_ID) {
+        return NULL;
+    }
+    return pdev->local_peer_ids.map[local_peer_id];
+}
+
 static void
 OL_TXRX_LOCAL_PEER_ID_POOL_INIT(struct ol_txrx_pdev_t *pdev)
 {
@@ -140,6 +151,7 @@ OL_TXRX_LOCAL_PEER_ID_POOL_INIT(struct ol_txrx_pdev_t *pdev)
     /* link each ID to the next one */
     for (i = 0; i < OL_TXRX_NUM_LOCAL_PEER_IDS; i++) {
         pdev->local_peer_ids.pool[i] = i + 1;
+        pdev->local_peer_ids.map[i] = NULL;
     }
 
     /* link the last ID to itself, to mark the end of the list */
@@ -165,6 +177,7 @@ OL_TXRX_LOCAL_PEER_ID_ALLOC(
         /* take the head ID and advance the freelist */
         peer->local_id = i;
         pdev->local_peer_ids.freelist = pdev->local_peer_ids.pool[i];
+        pdev->local_peer_ids.map[i] = peer;
     }
     adf_os_spin_unlock_bh(&pdev->local_peer_ids.lock);
 }
@@ -182,6 +195,7 @@ OL_TXRX_LOCAL_PEER_ID_FREE(
     adf_os_spin_lock_bh(&pdev->local_peer_ids.lock);
     pdev->local_peer_ids.pool[i] = pdev->local_peer_ids.freelist;
     pdev->local_peer_ids.freelist = i;
+    pdev->local_peer_ids.map[i] = NULL;
     adf_os_spin_unlock_bh(&pdev->local_peer_ids.lock);
 }
 
@@ -1120,7 +1134,7 @@ ol_txrx_peer_uapsdmask_get(struct ol_txrx_pdev_t *txrx_pdev, u_int16_t peer_id)
 {
 
     struct ol_txrx_peer_t *peer;
-    peer = ol_txrx_peer_find_by_id_private(txrx_pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id(txrx_pdev, peer_id);
     if (peer != NULL) {
         return peer->uapsd_mask;
     }
@@ -1285,6 +1299,18 @@ ol_txrx_peer_detach(ol_txrx_peer_handle peer)
      * reference, added by the PEER_MAP message.
      */
     ol_txrx_peer_unref_delete(peer);
+}
+
+ol_txrx_peer_handle
+ol_txrx_peer_find_by_addr(struct ol_txrx_pdev_t *pdev, u_int8_t *peer_mac_addr)
+{
+    struct ol_txrx_peer_t *peer;
+    peer = ol_txrx_peer_find_hash_find(pdev, peer_mac_addr, 0, 0);
+    if (peer) {
+        /* release the extra reference */
+        ol_txrx_peer_unref_delete(peer);
+    }
+    return peer;
 }
 
 int

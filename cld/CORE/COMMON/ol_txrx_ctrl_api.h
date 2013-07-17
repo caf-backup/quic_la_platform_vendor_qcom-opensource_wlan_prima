@@ -613,24 +613,47 @@ ol_tx_addba_conf(
 #endif
 
 /**
- * @brief Find a txrx peer handle from a peer ID
+ * @brief Find a txrx peer handle from the peer's MAC address
  * @details
- *  The target assigns an ID to each peer, and the txrx layer maintains
- *  a mapping of peer IDs to peer objects.  If other modules also know
- *  the peer ID assigned by the target, and if they need to obtain a
- *  handle to the peer in question, to use in other calls to txrx peer
- *  API functions, they can use this function to look up the peer handle
- *  from the ID.  (This is not typically needed, since generally other
- *  modules that need to call the txrx module's peer API functions already
- *  have the peer handle returned by ol_txrx_peer_attach, but there are a
- *  few cases where the peer ID is known but the peer handle is not
- *  immediately available.)
+ *  The control SW typically uses the txrx peer handle to refer to the peer.
+ *  In unusual circumstances, if it is infeasible for the control SW maintain
+ *  the txrx peer handle but it can maintain the peer's MAC address,
+ *  this function allows the peer handled to be retrieved, based on the peer's
+ *  MAC address.
+ *  In cases where there are multiple peer objects with the same MAC address,
+ *  it is undefined which such object is returned.
+ *  This function does not increment the peer's reference count.  Thus, it is
+ *  only suitable for use as long as the control SW has assurance that it has
+ *  not deleted the peer object, by calling ol_txrx_peer_detach.
  *
  * @param pdev - the data physical device object
- * @param peer_id - the ID assigned by the target to the peer in question
+ * @param peer_mac_addr - MAC address of the peer in question
+ * @return handle to the txrx peer object
  */
 ol_txrx_peer_handle
-ol_txrx_peer_find_by_id(ol_txrx_pdev_handle pdev, u_int16_t peer_id);
+ol_txrx_peer_find_by_addr(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac_addr);
+
+/**
+ * @brief Find a txrx peer handle from a peer's local ID
+ * @details
+ *  The control SW typically uses the txrx peer handle to refer to the peer.
+ *  In unusual circumstances, if it is infeasible for the control SW maintain
+ *  the txrx peer handle but it can maintain a small integer local peer ID,
+ *  this function allows the peer handled to be retrieved, based on the local
+ *  peer ID.
+ *
+ * @param pdev - the data physical device object
+ * @param local_peer_id - the ID txrx assigned locally to the peer in question
+ * @return handle to the txrx peer object
+ */
+#if QCA_SUPPORT_TXRX_LOCAL_PEER_ID
+ol_txrx_peer_handle
+ol_txrx_peer_find_by_local_id(
+    ol_txrx_pdev_handle pdev,
+    u_int8_t local_peer_id);
+#else
+#define ol_txrx_peer_find_by_local_id(pdev, local_peer_id) NULL
+#endif
 
 typedef struct {
     struct {
