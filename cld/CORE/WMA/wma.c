@@ -1578,9 +1578,9 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	cmd->chan.band_center_freq1 = cmd->chan.mhz;
 	if ((chanmode == MODE_11NA_HT40) || (chanmode == MODE_11NG_HT40)) {
 		if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
-			cmd->chan.band_center_freq1 -= 10;
-		else
 			cmd->chan.band_center_freq1 += 10;
+		else
+			cmd->chan.band_center_freq1 -= 10;
 	}
 	cmd->chan.band_center_freq2 = 0;
 	/*
