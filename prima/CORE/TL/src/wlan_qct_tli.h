@@ -1249,7 +1249,7 @@ WLANTL_Translate8023To80211Header
   VOS_STATUS*     pvosStatus,
   WLANTL_CbType*  pTLCb,
   v_U8_t          *pucStaId,
-  v_U8_t          ucUP,
+  WLANTL_MetaInfoType* pTlMetaInfo,
   v_U8_t          *ucWDSEnabled,
   v_U8_t          *extraHeadSpace
 );
