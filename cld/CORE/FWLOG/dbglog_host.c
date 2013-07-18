@@ -25,6 +25,14 @@
 #include "wma.h"
 #include "ol_defines.h"
 
+#ifdef WLAN_OPEN_SOURCE
+#include <linux/debugfs.h>
+#endif /* WLAN_OPEN_SOURCE */
+#include "wmi_unified_priv.h"
+
+#define CLD_DEBUGFS_DIR          "cld"
+#define DEBUGFS_BLOCK_NAME       "dbglog_block"
+
 #define ATH_MODULE_NAME fwlog
 #include <a_debug.h>
 
@@ -907,8 +915,8 @@ wmi_config_debug_module_cmd(
     cmd = (WMI_DBGLOG_CFG_CMD *)(wmi_buf_data(buf));
 
     AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("wmi_dbg_cfg_send:"
-                 "mod[0] %08x dbgcfg %08x"
-                 "cfgvalid[0] %08x"
+                 "mod[0] %08x dbgcfg %08x "
+                 "cfgvalid[0] %08x "
                  "cfgvalid[1] %08x\n", configmsg->config.mod_id[0],
                  configmsg->config.dbg_config, configmsg->cfgvalid[0],
                  configmsg->cfgvalid[1]));
@@ -1067,9 +1075,57 @@ dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
 
 }
 
+#ifdef WLAN_OPEN_SOURCE
+static int
+dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 length)
+{
+    struct fwdebug *fwlog = (struct fwdebug *)&wmi_handle->dbglog;
+    struct dbglog_slot *slot;
+    struct sk_buff *skb;
+    size_t slot_len;
+
+    if (WARN_ON(length > ATH6KL_FWLOG_PAYLOAD_SIZE))
+        return -ENODEV;
+
+    slot_len = sizeof(*slot) + ATH6KL_FWLOG_PAYLOAD_SIZE;
+
+    skb = alloc_skb(slot_len, GFP_KERNEL);
+    if (!skb)
+        return -ENOMEM;
+
+    slot = (struct dbglog_slot *) skb_put(skb, slot_len);
+    slot->timestamp = cpu_to_le32(jiffies);
+    slot->length = cpu_to_le32(length);
+    memcpy(slot->payload, buf, length);
+
+    /* Need to pad each record to fixed length ATH6KL_FWLOG_PAYLOAD_SIZE */
+    memset(slot->payload + length, 0, ATH6KL_FWLOG_PAYLOAD_SIZE - length);
+
+    spin_lock(&fwlog->fwlog_queue.lock);
+
+    __skb_queue_tail(&fwlog->fwlog_queue, skb);
+
+    complete(&fwlog->fwlog_completion);
+
+    /* drop oldest entries */
+    while (skb_queue_len(&fwlog->fwlog_queue) >
+           ATH6KL_FWLOG_MAX_ENTRIES) {
+        skb = __skb_dequeue(&fwlog->fwlog_queue);
+        kfree_skb(skb);
+    }
+
+    spin_unlock(&fwlog->fwlog_queue.lock);
+
+    return TRUE;
+}
+#endif /* WLAN_OPEN_SOURCE */
+
 int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len)
 {
+#ifdef WLAN_OPEN_SOURCE
+    tp_wma_handle wma = (tp_wma_handle)scn;
+#endif /* WLAN_OPEN_SOURCE */
     A_UINT32 count;
     A_UINT32 *buffer;
     A_UINT32 timestamp;
@@ -1094,6 +1150,13 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len)
     if ( dbglog_process_type == DBGLOG_PROCESS_PRINT_RAW) {
         return dbglog_print_raw_data(buffer, length);
     }
+
+#ifdef WLAN_OPEN_SOURCE
+    if (dbglog_process_type == DBGLOG_PROCESS_POOL_RAW) {
+        return dbglog_debugfs_raw_data((wmi_unified_t)wma->wmi_handle,
+                                                     (A_UINT8 *)buffer, len);
+    }
+#endif /* WLAN_OPEN_SOURCE */
 
     while ((count + 2) < length) {
         timestamp = DBGLOG_GET_TIME_STAMP(buffer[count]);
@@ -2077,6 +2140,122 @@ dbglog_beacon_print_handler(
     return TRUE;
 }
 
+#ifdef WLAN_OPEN_SOURCE
+static int dbglog_block_open(struct inode *inode, struct file *file)
+{
+    struct fwdebug *fwlog = inode->i_private;
+
+    if (fwlog->fwlog_open)
+        return -EBUSY;
+
+    fwlog->fwlog_open = TRUE;
+
+    file->private_data = inode->i_private;
+    return 0;
+}
+
+static int dbglog_block_release(struct inode *inode, struct file *file)
+{
+    struct fwdebug *fwlog = inode->i_private;
+
+    fwlog->fwlog_open = FALSE;
+
+    return 0;
+}
+
+static ssize_t dbglog_block_read(struct file *file,
+                                       char __user *user_buf,
+                                       size_t count,
+                                       loff_t *ppos)
+{
+    struct fwdebug *fwlog = file->private_data;
+    struct sk_buff *skb;
+    ssize_t ret_cnt;
+    size_t len = 0, not_copied;
+    char *buf;
+    int ret;
+
+    buf = vmalloc(count);
+    if (!buf)
+       return -ENOMEM;
+
+    spin_lock_bh(&fwlog->fwlog_queue.lock);
+
+    if (skb_queue_len(&fwlog->fwlog_queue) == 0) {
+       /* we must init under queue lock */
+       init_completion(&fwlog->fwlog_completion);
+
+       spin_unlock_bh(&fwlog->fwlog_queue.lock);
+
+       ret = wait_for_completion_interruptible(
+                    &fwlog->fwlog_completion);
+       if (ret == -ERESTARTSYS) {
+               vfree(buf);
+               return ret;
+       }
+
+       spin_lock_bh(&fwlog->fwlog_queue.lock);
+    }
+
+    while ((skb = __skb_dequeue(&fwlog->fwlog_queue))) {
+       if (skb->len > count - len) {
+           /* not enough space, put skb back and leave */
+           __skb_queue_head(&fwlog->fwlog_queue, skb);
+           break;
+       }
+
+       memcpy(buf + len, skb->data, skb->len);
+       len += skb->len;
+
+       kfree_skb(skb);
+    }
+
+    spin_unlock_bh(&fwlog->fwlog_queue.lock);
+
+    /* FIXME: what to do if len == 0? */
+    not_copied = copy_to_user(user_buf, buf, len);
+    if (not_copied != 0) {
+        ret_cnt = -EFAULT;
+        goto out;
+    }
+
+    *ppos = *ppos + len;
+
+    ret_cnt = len;
+
+out:
+    vfree(buf);
+
+    return ret_cnt;
+}
+
+static const struct file_operations fops_dbglog_block = {
+    .open = dbglog_block_open,
+    .release = dbglog_block_release,
+    .read = dbglog_block_read,
+    .owner = THIS_MODULE,
+    .llseek = default_llseek,
+};
+
+int dbglog_debugfs_init(wmi_unified_t wmi_handle)
+{
+
+    wmi_handle->debugfs_phy = debugfs_create_dir(CLD_DEBUGFS_DIR, NULL);
+    if (!wmi_handle->debugfs_phy)
+        return -ENOMEM;
+
+    debugfs_create_file(DEBUGFS_BLOCK_NAME, S_IRUSR, wmi_handle->debugfs_phy, &wmi_handle->dbglog,
+                            &fops_dbglog_block);
+
+    return TRUE;
+}
+int dbglog_debugfs_remove(wmi_unified_t wmi_handle)
+{
+    debugfs_remove_recursive(wmi_handle->debugfs_phy);
+    return TRUE;
+}
+#endif /* WLAN_OPEN_SOURCE */
+
 int dbglog_parser_type_init(wmi_unified_t wmi_handle, int type)
 {
     if(type >= DBGLOG_PROCESS_MAX){
@@ -2108,6 +2287,15 @@ dbglog_init(wmi_unified_t wmi_handle)
     if(res != 0)
         return res;
 
+#ifdef WLAN_OPEN_SOURCE
+    /* Initialize the fw debug log queue */
+    skb_queue_head_init(&wmi_handle->dbglog.fwlog_queue);
+    init_completion(&wmi_handle->dbglog.fwlog_completion);
+
+    /* Initialize debugfs */
+    dbglog_debugfs_init(wmi_handle);
+#endif /* WLAN_OPEN_SOURCE */
+
     return res;
 }
 
@@ -2115,6 +2303,16 @@ int
 dbglog_deinit(wmi_unified_t wmi_handle)
 {
     int res = 0;
+
+#ifdef WLAN_OPEN_SOURCE
+    /* DeInitialize the fw debug log queue */
+    skb_queue_purge(&wmi_handle->dbglog.fwlog_queue);
+    complete(&wmi_handle->dbglog.fwlog_completion);
+
+    /* Deinitialize the debugfs */
+    dbglog_debugfs_remove(wmi_handle);
+#endif /* WLAN_OPEN_SOURCE */
+
     res = wmi_unified_unregister_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID);
     if(res != 0)
         return res;
