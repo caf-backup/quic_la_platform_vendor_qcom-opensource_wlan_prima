@@ -80,6 +80,10 @@
 
 #include "vos_utils.h"
 #include "tl_shim.h"
+#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+#include "testmode.h"
+#endif
+
 
 #if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
 #include "pktlog_ac.h"
@@ -94,6 +98,13 @@
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
+#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+void wma_utf_attach(tp_wma_handle wma_handle);
+void wma_utf_detach(tp_wma_handle wma_handle);
+static VOS_STATUS
+wma_process_ftm_command(tp_wma_handle wma_handle,
+			struct ar6k_testmode_cmd_data *msg_buffer);
+#endif
 static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 				   u_int8_t *vdev_id)
 {
@@ -676,6 +687,11 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wma_handle->htc_handle = htc_handle;
 	wma_handle->vos_context = vos_context;
         wma_handle->adf_dev = adf_dev;
+
+#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+	if (hdd_get_conparam() == VOS_FTM_MODE)
+		wma_utf_attach(wma_handle);
+#endif
 
         /*TODO: Recheck below parameters */
 	mac_params->maxStation = WMA_MAX_SUPPORTED_STAS;
@@ -3451,6 +3467,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 						msg->bodyptr);
 			break;
 #endif
+#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+		case WDA_FTM_CMD_REQ:
+			wma_process_ftm_command(wma_handle,
+				(struct ar6k_testmode_cmd_data *)msg->bodyptr);
+			break;
+#endif
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -3702,11 +3724,13 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 	}
 	vos_status = VOS_STATUS_SUCCESS;
 
+#ifndef QCA_WIFI_FTM
 	vos_status = wma_tx_mgmt_attach(wma_handle);
 	if(vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("Failed to register tx management");
 		goto end;
 	}
+#endif
 
 end:
 	WMA_LOGD("%s: Exit", __func__);
@@ -3738,11 +3762,14 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 	wma_hal_stop_isoc(wma_handle);
 #endif
 
+#ifndef QCA_WIFI_FTM
 	vos_status = wma_tx_mgmt_detach(wma_handle);
 	if(vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("Failed to deregister tx management");
 		goto end;
 	}
+#endif
+
 end:
 	WMA_LOGD("%s: Exit", __func__);
 	return vos_status;
@@ -3801,6 +3828,11 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 					(&(wma_handle->mem_chunks[idx])),
 					memctx));
 	}
+#endif
+
+#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+	/* Detach UTF and unregister the handler */
+	wma_utf_detach(wma_handle);
 #endif
 
 	/* dettach the wmi serice */
@@ -4226,7 +4258,7 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, wmi_ready_event *ev)
 
 	vos_event_set(&wma_handle->wma_ready_event);
 
-#ifndef QCA_WIFI_ISOC
+#if !defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 	wma_update_hdd_cfg(wma_handle);
 #endif
 
@@ -4655,3 +4687,235 @@ void *wma_get_beacon_buffer_by_vdev_id(u_int8_t vdev_id, u_int32_t *buffer_size)
 	return buf;
 }
 #endif	/* QCA_WIFI_ISOC */
+
+#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+int wma_utf_rsp(tp_wma_handle wma_handle, u_int8_t **payload, u_int32_t *len)
+{
+	int ret = -1;
+	u_int32_t payload_len;
+
+	payload_len = wma_handle->utf_event_info.length;
+	if (payload_len) {
+		ret = 0;
+
+		*payload = (u_int8_t *)vos_mem_malloc((v_SIZE_t)payload_len);
+		*(A_UINT32*)&(*payload[0]) = wma_handle->utf_event_info.length;
+		memcpy(*payload, wma_handle->utf_event_info.data, payload_len);
+		wma_handle->utf_event_info.length = 0;
+		*len = payload_len;
+	}
+
+	return ret;
+}
+
+static void wma_post_ftm_response(tp_wma_handle wma_handle)
+{
+	int ret;
+	u_int8_t *payload;
+	u_int32_t data_len;
+	vos_msg_t msg = {0};
+	VOS_STATUS status;
+
+	ret = wma_utf_rsp(wma_handle, &payload, &data_len);
+
+	if (!ret) {
+		WMA_LOGE("failed to get response buffer");
+		return;
+	}
+
+	msg.type = SYS_MSG_ID_FTM_RSP;
+	msg.bodyptr = payload;
+	msg.bodyval = 0;
+
+	status = vos_mq_post_message(VOS_MQ_ID_SYS, &msg);
+
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("failed to post ftm response to SYS");
+		vos_mem_free(payload);
+	}
+}
+
+static int
+wma_process_utf_event(WMA_HANDLE handle,
+		      u_int8_t *data,
+		      u_int16_t datalen)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+	SEG_HDR_INFO_STRUCT segHdrInfo;
+	u_int8_t totalNumOfSegments,currentSeq;
+
+	segHdrInfo = *(SEG_HDR_INFO_STRUCT *)&(data[0]);
+
+	wma_handle->utf_event_info.currentSeq = (segHdrInfo.segmentInfo & 0xF);
+
+	currentSeq = (segHdrInfo.segmentInfo & 0xF);
+	totalNumOfSegments = (segHdrInfo.segmentInfo >> 4) & 0xF;
+
+	datalen = datalen - sizeof(segHdrInfo);
+
+	if (currentSeq == 0) {
+		wma_handle->utf_event_info.expectedSeq = 0;
+		wma_handle->utf_event_info.offset = 0;
+	} else {
+		if (wma_handle->utf_event_info.expectedSeq != currentSeq)
+			WMA_LOGE("Mismatch in expecting seq expected"
+				 " Seq %d got seq %d",
+				 wma_handle->utf_event_info.expectedSeq,
+				 currentSeq);
+	}
+
+	memcpy(&wma_handle->utf_event_info.data[wma_handle->utf_event_info.offset],
+	       &data[sizeof(segHdrInfo)],
+               datalen);
+	wma_handle->utf_event_info.offset = wma_handle->utf_event_info.offset + datalen;
+	wma_handle->utf_event_info.expectedSeq++;
+
+	if (wma_handle->utf_event_info.expectedSeq == totalNumOfSegments) {
+		if (wma_handle->utf_event_info.offset != segHdrInfo.len)
+			WMA_LOGE("All segs received total len mismatch.."
+				 " len %d total len %d",
+				 wma_handle->utf_event_info.offset,
+				 segHdrInfo.len);
+
+		wma_handle->utf_event_info.length = wma_handle->utf_event_info.offset;
+	}
+
+	wma_post_ftm_response(wma_handle);
+
+	return 0;
+}
+
+void wma_utf_detach(tp_wma_handle wma_handle)
+{
+    if (wma_handle->utf_event_info.data) {
+        vos_mem_free(wma_handle->utf_event_info.data);
+        wma_handle->utf_event_info.data = NULL;
+        wma_handle->utf_event_info.length = 0;
+        wmi_unified_unregister_event_handler(wma_handle->wmi_handle,
+					     WMI_PDEV_UTF_EVENTID);
+    }
+}
+
+void wma_utf_attach(tp_wma_handle wma_handle)
+{
+	int ret;
+
+	wma_handle->utf_event_info.data = (unsigned char *)
+					  vos_mem_malloc(MAX_UTF_EVENT_LENGTH);
+	wma_handle->utf_event_info.length = 0;
+
+	ret = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						 WMI_PDEV_UTF_EVENTID,
+						 wma_process_utf_event);
+
+	if (ret)
+		WMA_LOGP("Failed to register UTF event callback");
+}
+
+static int
+wmi_unified_pdev_utf_cmd(wmi_unified_t wmi_handle, u_int8_t *utf_payload,
+                         u_int16_t len)
+{
+	wmi_buf_t buf;
+	u_int8_t *cmd;
+	int ret = 0;
+	static u_int8_t msgref = 1;
+	u_int8_t segNumber = 0, segInfo, numSegments;
+	u_int16_t chunk_len, total_bytes;
+	u_int8_t *bufpos;
+	SEG_HDR_INFO_STRUCT segHdrInfo;
+
+	bufpos = utf_payload;
+	total_bytes = len;
+	ASSERT(total_bytes / MAX_WMI_UTF_LEN ==
+	       (u_int8_t)(total_bytes / MAX_WMI_UTF_LEN));
+	numSegments = (u_int8_t)(total_bytes / MAX_WMI_UTF_LEN);
+
+	if (len - (numSegments * MAX_WMI_UTF_LEN))
+		numSegments++;
+
+	while (len) {
+		if (len > MAX_WMI_UTF_LEN)
+			chunk_len = MAX_WMI_UTF_LEN; /* MAX messsage */
+		else
+			chunk_len = len;
+
+		buf = wmi_buf_alloc(wmi_handle, (chunk_len + sizeof(segHdrInfo)));
+		if (!buf) {
+			printk("buf alloc failed\n");
+			WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+			return -1;
+		}
+
+		cmd = (u_int8_t *)wmi_buf_data(buf);
+
+		segHdrInfo.len = total_bytes;
+		segHdrInfo.msgref =  msgref;
+		segInfo = ((numSegments << 4 ) & 0xF0) | (segNumber & 0xF);
+		segHdrInfo.segmentInfo = segInfo;
+
+		WMA_LOGD("%s:segHdrInfo.len = %d, segHdrInfo.msgref = %d,"
+			 " segHdrInfo.segmentInfo = %d",
+			 __func__, segHdrInfo.len, segHdrInfo.msgref,
+			 segHdrInfo.segmentInfo);
+
+		WMA_LOGD("%s:total_bytes %d segNumber %d totalSegments %d"
+			 "chunk len %d", __func__, total_bytes, segNumber,
+			 numSegments, chunk_len);
+
+		segNumber++;
+
+		memcpy(cmd, &segHdrInfo, sizeof(segHdrInfo)); /* 4 bytes */
+		memcpy(&cmd[sizeof(segHdrInfo)], bufpos, chunk_len);
+
+		ret = wmi_unified_cmd_send(wmi_handle, buf,
+					   (chunk_len + sizeof(segHdrInfo)),
+					   WMI_PDEV_UTF_CMDID);
+
+		if (ret != 0) {
+			printk("wmi cmd send failed\n");
+			break;
+		}
+
+		len -= chunk_len;
+		bufpos += chunk_len;
+	}
+
+	msgref++;
+
+	return ret;
+}
+
+int wma_utf_cmd(tp_wma_handle wma_handle, u_int8_t *data, u_int16_t len)
+{
+	wma_handle->utf_event_info.length = 0;
+	return wmi_unified_pdev_utf_cmd(wma_handle->wmi_handle, data, len);
+}
+
+static VOS_STATUS
+wma_process_ftm_command(tp_wma_handle wma_handle,
+			struct ar6k_testmode_cmd_data *msg_buffer)
+{
+	u_int8_t *data = NULL;
+	u_int16_t len = 0;
+	int ret;
+
+	if (hdd_get_conparam() != VOS_FTM_MODE) {
+		WMA_LOGE("FTM command issued in non-FTM mode");
+		return VOS_STATUS_E_NOSUPPORT;
+	}
+
+	if (!msg_buffer)
+		return VOS_STATUS_E_INVAL;
+
+	data = msg_buffer->data;
+	len = msg_buffer->len;
+
+	ret = wma_utf_cmd(wma_handle, data, len);
+
+	if (ret)
+		return VOS_STATUS_E_FAILURE;
+
+	return VOS_STATUS_SUCCESS;
+}
+#endif

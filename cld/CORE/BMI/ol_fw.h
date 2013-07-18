@@ -16,6 +16,10 @@
 #ifndef _OL_FW_H_
 #define _OL_FW_H_
 
+#ifdef QCA_WIFI_FTM
+#include "vos_types.h"
+#endif
+
 #define AR9888_REV1_VERSION          0x4000002c
 #define AR9888_REV2_VERSION          0x4100016c
 #define QCA_VERSION                  0x4100270f
@@ -33,4 +37,7 @@
 int ol_download_firmware(struct ol_softc *scn);
 int ol_configure_target(struct ol_softc *scn);
 void ol_target_failure(void *instance, A_STATUS status);
+#ifdef QCA_WIFI_FTM
+extern tVOS_CON_MODE hdd_get_conparam(void);
+#endif
 #endif /* _OL_FW_H_ */

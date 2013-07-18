@@ -233,6 +233,26 @@ struct wma_txrx_node {
 	vdev_cli_config_t config;
 };
 
+#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+#define MAX_UTF_EVENT_LENGTH	2048
+#define MAX_WMI_UTF_LEN		252
+
+typedef struct {
+	A_UINT32 len;
+	A_UINT32 msgref;
+	A_UINT32 segmentInfo;
+	A_UINT32 pad;
+} SEG_HDR_INFO_STRUCT;
+
+struct utf_event_info {
+	u_int8_t *data;
+	u_int32_t length;
+	adf_os_size_t offset;
+	u_int8_t currentSeq;
+	u_int8_t expectedSeq;
+};
+#endif
+
 typedef struct {
 	void *wmi_handle;
 	void *htc_handle;
@@ -295,6 +315,11 @@ typedef struct {
 	u_int32_t vht_cap_info;
 #endif
 	u_int32_t num_rf_chains;
+
+#if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+	/* UTF event information */
+	struct utf_event_info utf_event_info;
+#endif
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

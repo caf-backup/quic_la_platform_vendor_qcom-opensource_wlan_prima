@@ -40,6 +40,14 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		filename = QCA_OTP_FILE;
 		break;
 	case ATH_FIRMWARE_FILE:
+#ifdef QCA_WIFI_FTM
+		if (hdd_get_conparam() == VOS_FTM_MODE) {
+			filename = QCA_UTF_FIRMWARE_FILE;
+			printk(KERN_INFO "%s: Loading firmware file %s\n",
+			       __func__, filename);
+			break;
+		}
+#endif
 		filename = QCA_FIRMWARE_FILE;
 		break;
 	case ATH_PATCH_FILE:

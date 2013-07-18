@@ -33,4 +33,8 @@ struct txrx_tl_shim_ctx {
  * in WMA.
  */
 void WLANTL_RegisterVdev(void *vos_ctx, void *vdev);
+
+#ifdef QCA_WIFI_FTM
+extern tVOS_CON_MODE hdd_get_conparam(void);
+#endif
 #endif

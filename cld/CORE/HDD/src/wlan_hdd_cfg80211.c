@@ -71,6 +71,10 @@
 #endif
 #include "wlan_nv.h"
 
+#if defined(QCA_WIFI_2_0) && defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
+#include "testmode.h"
+#endif
+
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
 #define FREQ_BASE_80211G          (2407)
@@ -7407,6 +7411,124 @@ int wlan_hdd_cfg80211_set_rekey_data(struct wiphy *wiphy, struct net_device *dev
 }
 #endif /*WLAN_FEATURE_GTK_OFFLOAD*/
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) \
+    && defined(QCA_WIFI_FTM) && defined(CONFIG_NL80211_TESTMODE)
+static const
+struct nla_policy wlan_hdd_tm_policy[AR6K_TM_ATTR_MAX + 1] = {
+    [AR6K_TM_ATTR_CMD]  = { .type = NLA_U32 },
+    [AR6K_TM_ATTR_DATA] = { .type = NLA_BINARY,
+                            .len = AR6K_TM_DATA_MAX_LEN },
+};
+
+static int wlan_hdd_cfg80211_testmode_cmd(struct wiphy *wiphy,
+                                          void *data,
+                                          int len)
+{
+    struct nlattr *tb[AR6K_TM_ATTR_MAX + 1];
+    int err, buf_len;
+    void *buf;
+    VOS_STATUS status;
+
+    err = nla_parse(tb, AR6K_TM_ATTR_MAX, data, len,
+                    wlan_hdd_tm_policy);
+    if (err) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: testmode command parse error",
+                __func__);
+        return err;
+    }
+
+    if (!tb[AR6K_TM_ATTR_CMD]) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: AR6K_TM_ATTR_CMD attribute is invalid",
+                __func__);
+        return -EINVAL;
+    }
+
+    switch (nla_get_u32(tb[AR6K_TM_ATTR_CMD])) {
+    case AR6K_TM_CMD_TCMD:
+        if (!tb[AR6K_TM_ATTR_DATA]) {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "%s: AR6K_TM_ATTR_DATA attribute is invalid",
+                      __func__);
+            return -EINVAL;
+        }
+
+        buf = nla_data(tb[AR6K_TM_ATTR_DATA]);
+        buf_len = nla_len(tb[AR6K_TM_ATTR_DATA]);
+
+        status = wlan_hdd_ftm_testmode_cmd(buf, buf_len);
+
+        if (status != VOS_STATUS_SUCCESS)
+            err = -EBUSY;
+        break;
+
+    case AR6K_TM_CMD_WMI_CMD:
+    default:
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: command %d not supported",
+                  __func__, nla_get_u32(tb[AR6K_TM_ATTR_CMD]));
+        err = -EOPNOTSUPP;
+    }
+
+    return err;
+}
+
+void wlan_hdd_testmode_rx_event(void *buf, size_t buf_len)
+{
+    struct sk_buff *skb;
+    hdd_context_t *hdd_ctx;
+    void *vos_global_ctx;
+
+    if (!buf || !buf_len) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: buf or buf_len invalid, buf = %p buf_len = %d",
+                  __func__, buf, buf_len);
+        return;
+    }
+
+    vos_global_ctx = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+
+    if (!vos_global_ctx) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: voss global context invalid",
+                  __func__);
+        return;
+    }
+
+    hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_global_ctx);
+
+    if (!hdd_ctx) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: hdd context invalid",
+                  __func__);
+        return;
+    }
+
+    skb = cfg80211_testmode_alloc_event_skb(hdd_ctx->wiphy,
+                                            buf_len, GFP_KERNEL);
+    if (!skb) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: failed to allocate testmode rx skb!",
+                  __func__);
+        return;
+    }
+
+    if (nla_put_u32(skb, AR6K_TM_ATTR_CMD, AR6K_TM_CMD_TCMD) ||
+        nla_put(skb, AR6K_TM_ATTR_DATA, buf_len, buf))
+        goto nla_put_failure;
+
+    cfg80211_testmode_event(skb, GFP_KERNEL);
+    return;
+
+nla_put_failure:
+    kfree_skb(skb);
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              "%s: nla_put failed on testmode rx skb!",
+              __func__);
+}
+#endif
+
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 {
@@ -7466,5 +7588,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
      .set_rekey_data = wlan_hdd_cfg80211_set_rekey_data,
 #endif /* WLAN_FEATURE_GTK_OFFLOAD */
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) \
+    && defined(QCA_WIFI_FTM) && defined(CONFIG_NL80211_TESTMODE)
+     .testmode_cmd = wlan_hdd_cfg80211_testmode_cmd,
+#endif
 };
 
