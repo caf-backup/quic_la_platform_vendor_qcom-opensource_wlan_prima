@@ -1117,29 +1117,30 @@ fail:
 	return vos_status;
 }
 
-/* function   : wma_set_cur_scan_info
+/* function   : wma_set_scan_info
  * Descriptin : function to save current ongoing scan info
  * Args       : wma handle, scan id, scan requestor id, vdev id
  * Retruns    : None
  */
-static inline void wma_set_cur_scan_info(tp_wma_handle wma_handle,
+static inline void wma_set_scan_info(tp_wma_handle wma_handle,
 					u_int32_t scan_id,
 					u_int32_t requestor,
 					u_int32_t vdev_id)
 {
-	wma_handle->cur_scan_info.scan_id = scan_id;
-	wma_handle->cur_scan_info.scan_requestor_id = requestor;
-	wma_handle->cur_scan_info.vdev_id = vdev_id;
+	wma_handle->interfaces[vdev_id].scan_info.scan_id = scan_id;
+	wma_handle->interfaces[vdev_id].scan_info.scan_requestor_id =
+								requestor;
 }
 
-/* function   : wma_reset_cur_scan_info
+/* function   : wma_reset_scan_info
  * Descriptin : function to reset the current ongoing scan info
- * Args       : wma handle
+ * Args       : wma handle, vdev_id
  * Retruns    : None
  */
-static inline void wma_reset_cur_scan_info(tp_wma_handle wma_handle)
+static inline void wma_reset_scan_info(tp_wma_handle wma_handle,
+				       u_int8_t vdev_id)
 {
-	vos_mem_zero((void *) &wma_handle->cur_scan_info,
+	vos_mem_zero((void *) &(wma_handle->interfaces[vdev_id].scan_info),
 			sizeof(struct scan_param));
 }
 
@@ -1278,12 +1279,13 @@ error:
 
 /* function   : wma_get_buf_stop_scan_cmd
  * Descriptin : function to fill the args for wmi_stop_scan_cmd
- * Args       : wma handle, wmi command buffer, buffer length
+ * Args       : wma handle, wmi command buffer, buffer length, vdev_id
  * Retruns    : failure or success
  */
 VOS_STATUS wma_get_buf_stop_scan_cmd(tp_wma_handle wma_handle,
 					wmi_buf_t *buf,
-					int *buf_len)
+					int *buf_len,
+					tAbortScanParams *abort_scan_req)
 {
 	wmi_stop_scan_cmd *cmd;
 	VOS_STATUS vos_status;
@@ -1298,16 +1300,17 @@ VOS_STATUS wma_get_buf_stop_scan_cmd(tp_wma_handle wma_handle,
 	}
 
 	cmd = (wmi_stop_scan_cmd *) wmi_buf_data(*buf);
-
-	cmd->requestor = wma_handle->cur_scan_info.scan_requestor_id;
-	cmd->scan_id = wma_handle->cur_scan_info.scan_id;
-	cmd->vdev_id = wma_handle->cur_scan_info.vdev_id;
+	cmd->vdev_id = abort_scan_req->SessionId;
+	cmd->requestor =
+	      wma_handle->interfaces[cmd->vdev_id].scan_info.scan_requestor_id;
+	cmd->scan_id = wma_handle->interfaces[cmd->vdev_id].scan_info.scan_id;
 	/* stop the scan with the corresponding scan_id */
 	cmd->req_type = WMI_SCAN_STOP_ONE;
 
 	*buf_len = len;
 	vos_status = VOS_STATUS_SUCCESS;
 error:
+	vos_mem_free(abort_scan_req);
 	return vos_status;
 
 }
@@ -1337,7 +1340,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 
 	/* Save current scan info */
 	cmd = (wmi_start_scan_cmd *) wmi_buf_data(buf);
-	wma_set_cur_scan_info(wma_handle, cmd->scan_id,
+	wma_set_scan_info(wma_handle, cmd->scan_id,
 			cmd->scan_req_id, cmd->vdev_id);
 
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
@@ -1353,7 +1356,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	WMA_LOGI("WMA --> WMI_START_SCAN_CMDID");
 	return VOS_STATUS_SUCCESS;
 error:
-	wma_reset_cur_scan_info(wma_handle);
+	wma_reset_scan_info(wma_handle, cmd->vdev_id);
 	if (buf)
 		adf_nbuf_free(buf);
 error1:
@@ -1365,15 +1368,16 @@ error1:
  * Args       : wma_handle
  * Retruns    : failure or success
  */
-VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle)
+VOS_STATUS wma_stop_scan(tp_wma_handle wma_handle,
+			 tAbortScanParams *abort_scan_req)
 {
 	VOS_STATUS vos_status;
 	wmi_buf_t buf;
 	int status = 0;
 	int len;
 
-	vos_status = wma_get_buf_stop_scan_cmd(wma_handle, &buf, &len);
-
+	vos_status = wma_get_buf_stop_scan_cmd(wma_handle, &buf, &len,
+					       abort_scan_req);
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get buffer for stop scan cmd");
 		goto error1;
@@ -3985,7 +3989,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_start_scan(wma_handle, msg->bodyptr);
 			break;
 		case WDA_STOP_SCAN_OFFLOAD_REQ:
-			wma_stop_scan(wma_handle);
+			wma_stop_scan(wma_handle, msg->bodyptr);
 			break;
 		case WDA_UPDATE_CHAN_LIST_REQ:
 			wma_update_channel_list(wma_handle,
@@ -4081,6 +4085,9 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	wmi_scan_event *wmi_event = (wmi_scan_event *) event_buf;
 	tSirScanOffloadEvent *scan_event;
+	v_U32_t scan_id =
+		wma_handle->interfaces[wmi_event->vdev_id].scan_info.scan_id;
+
 	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
                                 (sizeof(tSirScanOffloadEvent));
 	if (!scan_event) {
@@ -4102,8 +4109,8 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 		scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
 
 	if (wmi_event->event == WMI_SCAN_EVENT_COMPLETED) {
-		if (wmi_event->scan_id == wma_handle->cur_scan_info.scan_id)
-			wma_reset_cur_scan_info(wma_handle);
+		if (wmi_event->scan_id == scan_id)
+			wma_reset_scan_info(wma_handle, wmi_event->vdev_id);
 		else
 			WMA_LOGE("Scan id not matched for SCAN COMPLETE event");
 	}
