@@ -3306,6 +3306,7 @@ static VOS_STATUS wma_pktlog_wmi_send_cmd(WMA_HANDLE handle,
 		cmd->evlist = PKTLOG_EVENT;
 		if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 					 WMI_PDEV_PKTLOG_ENABLE_CMDID)) {
+			WMA_LOGE("failed to send pktlog enable cmdid");
 			goto wmi_send_failed;
 		}
 		break;
@@ -3321,6 +3322,7 @@ static VOS_STATUS wma_pktlog_wmi_send_cmd(WMA_HANDLE handle,
 		}
 		if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 					 WMI_PDEV_PKTLOG_DISABLE_CMDID)) {
+			WMA_LOGE("failed to send pktlog disable cmdid");
 			goto wmi_send_failed;
 		}
 		break;
