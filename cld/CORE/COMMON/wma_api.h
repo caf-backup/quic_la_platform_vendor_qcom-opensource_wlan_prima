@@ -71,6 +71,7 @@ typedef enum {
 #define VDEV_CMD 1
 #define PDEV_CMD 2
 #define GEN_CMD  3
+#define DBG_CMD  4
 
 #ifdef QCA_WIFI_ISOC
 VOS_STATUS wma_nv_download_start(v_VOID_t *vos_context);

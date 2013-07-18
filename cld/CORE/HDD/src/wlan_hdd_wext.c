@@ -54,6 +54,12 @@
 #include "wlan_hdd_tdls.h"
 #endif
 
+#ifdef QCA_WIFI_2_0
+#include "ol_if_athvar.h"
+
+#include "dbglog_host.h"
+#endif
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
@@ -156,6 +162,17 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_AMSDU         28
 #define WE_SET_TXPOW_2G      29
 #define WE_SET_TXPOW_5G      30
+
+/* Private ioctl for firmware debug log */
+#define WE_DBGLOG_REPORT_SIZE           31
+#define WE_DBGLOG_TSTAMP_RESOLUTION     32
+#define WE_DBGLOG_REPORTING_ENABLED     33
+#define WE_DBGLOG_LOG_LEVEL             34
+#define WE_DBGLOG_VAP_ENABLE            35
+#define WE_DBGLOG_VAP_DISABLE           36
+#define WE_DBGLOG_MODULE_ENABLE         37
+#define WE_DBGLOG_MODULE_DISABLE        38
+#define WE_DBGLOG_TYPE                  39
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -3780,6 +3797,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
     int set_value = value[1];
     int ret = 0; /* success */
     int enable_pbm, enable_mp;
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
     v_U8_t nEnableSuspendOld;
 #endif
@@ -4333,6 +4351,88 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                                            (int)WMI_PDEV_PARAM_TXPOWER_LIMIT5G,
                                            set_value, PDEV_CMD);
              break;
+         }
+
+         /* Firmware debug log */
+         case WE_DBGLOG_REPORT_SIZE:
+         {
+             hddLog(LOG1, "WE_DBGLOG_REPORT_SIZE val %d", set_value);
+             ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_REPORT_SIZE,
+                                           set_value, DBG_CMD);
+             break;
+         }
+
+         case WE_DBGLOG_TSTAMP_RESOLUTION:
+         {
+             hddLog(LOG1, "WE_DBGLOG_TSTAMP_RESOLUTION val %d", set_value);
+             ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_TSTAMP_RESOLUTION,
+                                           set_value, DBG_CMD);
+             break;
+         }
+
+         case WE_DBGLOG_REPORTING_ENABLED:
+         {
+              hddLog(LOG1, "WE_DBGLOG_REPORTING_ENABLED val %d", set_value);
+              ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_REPORTING_ENABLED,
+                                           set_value, DBG_CMD);
+              break;
+         }
+
+         case WE_DBGLOG_LOG_LEVEL:
+         {
+              hddLog(LOG1, "WE_DBGLOG_LOG_LEVEL val %d", set_value);
+              ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_LOG_LEVEL,
+                                           set_value, DBG_CMD);
+              break;
+         }
+
+         case WE_DBGLOG_VAP_ENABLE:
+         {
+              hddLog(LOG1, "WE_DBGLOG_VAP_ENABLE val %d", set_value);
+              ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_VAP_ENABLE,
+                                           set_value, DBG_CMD);
+              break;
+         }
+
+         case WE_DBGLOG_VAP_DISABLE:
+         {
+              hddLog(LOG1, "WE_DBGLOG_VAP_DISABLE val %d", set_value);
+              ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_VAP_DISABLE,
+                                           set_value, DBG_CMD);
+              break;
+         }
+
+         case WE_DBGLOG_MODULE_ENABLE:
+         {
+              hddLog(LOG1, "WE_DBGLOG_MODULE_ENABLE val %d", set_value);
+              ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_MODULE_ENABLE,
+                                           set_value, DBG_CMD);
+              break;
+         }
+
+         case WE_DBGLOG_MODULE_DISABLE:
+         {
+              hddLog(LOG1, "WE_DBGLOG_MODULE_DISABLE val %d", set_value);
+              ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_MODULE_DISABLE,
+                                           set_value, DBG_CMD);
+              break;
+         }
+
+         case WE_DBGLOG_TYPE:
+         {
+              hddLog(LOG1, "WE_DBGLOG_TYPE val %d", set_value);
+              ret = process_wma_set_command((int)pAdapter->sessionId,
+                                           (int)WMI_DBGLOG_TYPE,
+                                           set_value, DBG_CMD);
+              break;
          }
 #endif
         default:
@@ -7444,6 +7544,51 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "txpow5g" },
+
+    /* Sub-cmds DBGLOG specific commands */
+    {   WE_DBGLOG_REPORT_SIZE ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_reportsize" },
+
+    {   WE_DBGLOG_TSTAMP_RESOLUTION ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_tstamprez" },
+
+    {   WE_DBGLOG_REPORTING_ENABLED ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_reporten" },
+    {   WE_DBGLOG_LOG_LEVEL ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_loglevel" },
+
+    {   WE_DBGLOG_VAP_ENABLE ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_vapon" },
+
+    {   WE_DBGLOG_VAP_DISABLE ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_vapoff" },
+
+    {   WE_DBGLOG_MODULE_ENABLE ,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_modon" },
+
+    {   WE_DBGLOG_MODULE_DISABLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_modoff" },
+
+    {   WE_DBGLOG_TYPE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_type" },
 
 #endif
 
