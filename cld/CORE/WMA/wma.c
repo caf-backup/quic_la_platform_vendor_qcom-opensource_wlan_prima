@@ -1125,11 +1125,13 @@ fail:
 static inline void wma_set_scan_info(tp_wma_handle wma_handle,
 					u_int32_t scan_id,
 					u_int32_t requestor,
-					u_int32_t vdev_id)
+					u_int32_t vdev_id,
+					tSirP2pScanType p2p_scan_type)
 {
 	wma_handle->interfaces[vdev_id].scan_info.scan_id = scan_id;
 	wma_handle->interfaces[vdev_id].scan_info.scan_requestor_id =
 								requestor;
+	wma_handle->interfaces[vdev_id].scan_info.p2p_scan_type = p2p_scan_type;
 }
 
 /* function   : wma_reset_scan_info
@@ -1373,8 +1375,10 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 
 	/* Save current scan info */
 	cmd = (wmi_start_scan_cmd *) wmi_buf_data(buf);
+
 	wma_set_scan_info(wma_handle, cmd->scan_id,
-			cmd->scan_req_id, cmd->vdev_id);
+			cmd->scan_req_id, cmd->vdev_id,
+			scan_req->p2pScanType);
 
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
 			len, WMI_START_SCAN_CMDID);
@@ -4145,6 +4149,8 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	scan_event->event = wmi_event->event;
 	scan_event->scanId = wmi_event->scan_id;
 	scan_event->chanFreq = wmi_event->channel_freq;
+	scan_event->p2pScanType =
+        wma_handle->interfaces[wmi_event->vdev_id].scan_info.p2p_scan_type;
 
 	if (wmi_event->reason == WMI_SCAN_REASON_COMPLETED)
 		scan_event->reasonCode = eSIR_SME_SUCCESS;
