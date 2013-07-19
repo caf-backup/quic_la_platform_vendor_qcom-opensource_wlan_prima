@@ -52,7 +52,6 @@ void limRemainOnChnlSetLinkStat(tpAniSirGlobal pMac, eHalStatus status,
                                 tANI_U32 *data, tpPESession psessionEntry);
 void limExitRemainOnChannel(tpAniSirGlobal pMac, eHalStatus status,
                          tANI_U32 *data, tpPESession psessionEntry);
-void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
 extern tSirRetStatus limSetLinkState(
                          tpAniSirGlobal pMac, tSirLinkState state,
                          tSirMacAddr bssId, tSirMacAddr selfMacAddr, 
@@ -84,12 +83,72 @@ void limSetLinkStateP2PCallback(tpAniSirGlobal pMac, void *callbackArg)
 
 /*------------------------------------------------------------------
  *
+ * Below function is called if pMac->fP2pListenOffload enabled and hdd
+ * requests a remain on channel.
+ *
+ *------------------------------------------------------------------*/
+static eHalStatus limSendHalReqRemainOnChanOffload(tpAniSirGlobal pMac,
+                                      tSirRemainOnChnReq *pRemOnChnReq)
+{
+    tSirScanOffloadReq *pScanOffloadReq;
+    tSirMsgQ msg;
+    eHalStatus status;
+    tSirRetStatus rc = eSIR_SUCCESS;
+    tANI_U8 bssid[ETH_ALEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+    status = palAllocateMemory(pMac->hHdd, (void **) &pScanOffloadReq,
+            sizeof(tSirScanOffloadReq));
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        limLog(pMac, LOGE,
+                FL("palAllocateMemory failed for pScanOffloadReq"));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    palZeroMemory( pMac->hHdd, (tANI_U8 *) pScanOffloadReq,
+            sizeof(tSirScanOffloadReq));
+
+    msg.type = WDA_START_SCAN_OFFLOAD_REQ;
+    msg.bodyptr = pScanOffloadReq;
+    msg.bodyval = 0;
+
+    palCopyMemory(pMac->hHdd, (tANI_U8 *) pScanOffloadReq->selfMacAddr,
+            (tANI_U8 *) pRemOnChnReq->selfMacAddr,
+            sizeof(tSirMacAddr));
+
+    palCopyMemory(pMac->hHdd, (tANI_U8 *) pScanOffloadReq->bssId,
+            (tANI_U8 *) bssid,
+            sizeof(tSirMacAddr));
+    pScanOffloadReq->scanType = eSIR_PASSIVE_SCAN;
+    pScanOffloadReq->p2pScanType = P2P_SCAN_TYPE_LISTEN;
+    pScanOffloadReq->minChannelTime = pRemOnChnReq->duration;
+    pScanOffloadReq->maxChannelTime = pRemOnChnReq->duration;
+    pScanOffloadReq->sessionId = pRemOnChnReq->sessionId;
+    pScanOffloadReq->channelList.numChannels = 1;
+    pScanOffloadReq->channelList.channelNumber[0] = pRemOnChnReq->chnNum;
+
+    limLog(pMac, LOG1,
+            FL("Req-rem-on-channel: duration %lu, session %hu, chan %hu"),
+            pRemOnChnReq->duration, pRemOnChnReq->sessionId,
+            pRemOnChnReq->chnNum);
+
+    rc = wdaPostCtrlMsg(pMac, &msg);
+    if (rc != eSIR_SUCCESS)
+    {
+        limLog(pMac, LOGE, FL("wdaPostCtrlMsg() return failure"),
+                pMac);
+        palFreeMemory(pMac->hHdd, (void *)pScanOffloadReq);
+        return eHAL_STATUS_FAILURE;
+    }
+    return eHAL_STATUS_SUCCESS;
+}
+
+/*------------------------------------------------------------------
+ *
  * Remain on channel req handler. Initiate the INIT_SCAN, CHN_CHANGE
  * and SET_LINK Request from SME, chnNum and duration to remain on channel.
  *
  *------------------------------------------------------------------*/
-
-
 int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 {
 
@@ -109,6 +168,22 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 
     tSirRemainOnChnReq *MsgBuff = (tSirRemainOnChnReq *)pMsg;
     pMac->lim.gpLimRemainOnChanReq = MsgBuff;
+
+    if (pMac->fP2pListenOffload)
+    {
+        eHalStatus status;
+
+        status = limSendHalReqRemainOnChanOffload(pMac, MsgBuff);
+        if (status != eHAL_STATUS_SUCCESS)
+        {
+            /* Post the meessage to Sme */
+            limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP, status,
+                    MsgBuff->sessionId, 0);
+            palFreeMemory( pMac->hHdd, pMac->lim.gpLimRemainOnChanReq );
+            pMac->lim.gpLimRemainOnChanReq = NULL;
+        }
+        return FALSE;
+    }
 
 #ifdef CONC_OPER_AND_LISTEN_CHNL_SAME_OPTIMIZE
     for (i =0; i < pMac->lim.maxBssId;i++)
@@ -560,6 +635,9 @@ void limSendSmeMgmtFrameInd(
     pSirSmeMgmtFrame->frameType = frameType;
     pSirSmeMgmtFrame->rxRssi = rxRssi;
 
+    if (pMac->fP2pListenOffload)
+        goto send_frame;
+
     /*
      *  Work around to address LIM sending wrong channel to HDD for p2p action
      *  frames(In case of auto GO) recieved on 5GHz channel.
@@ -583,15 +661,6 @@ void limSendSmeMgmtFrameInd(
             rxChannel = pTempSessionEntry->currentOperChannel;
         }
     }
-
-    pSirSmeMgmtFrame->rxChan = rxChannel;
-
-    vos_mem_zero(pSirSmeMgmtFrame->frameBuf,frameLen);
-    vos_mem_copy(pSirSmeMgmtFrame->frameBuf,frame,frameLen);
-
-    mmhMsg.type = eWNI_SME_MGMT_FRM_IND;
-    mmhMsg.bodyptr = pSirSmeMgmtFrame;
-    mmhMsg.bodyval = 0;
 
     if(VOS_TRUE == tx_timer_running(&pMac->lim.limTimers.gLimRemainOnChannelTimer) && 
             ( (psessionEntry != NULL) && (psessionEntry->pePersona != VOS_P2P_GO_MODE)) &&
@@ -622,6 +691,16 @@ void limSendSmeMgmtFrameInd(
                 limLog( pMac, LOGE, FL("Unable to active the gLimRemainOnChannelTimer"));
             } 
     }
+
+send_frame:
+    pSirSmeMgmtFrame->rxChan = rxChannel;
+
+    vos_mem_zero(pSirSmeMgmtFrame->frameBuf,frameLen);
+    vos_mem_copy(pSirSmeMgmtFrame->frameBuf,frame,frameLen);
+
+    mmhMsg.type = eWNI_SME_MGMT_FRM_IND;
+    mmhMsg.bodyptr = pSirSmeMgmtFrame;
+    mmhMsg.bodyval = 0;
 
     limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
     return;
@@ -734,6 +813,19 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     limLog( pMac, LOG1, FL("sending pFc->type=%d pFc->subType=%d"),
                             pFc->type, pFc->subType);
+    if (pMac->fP2pListenOffload)
+    {
+        if ((!pMac->lim.gpLimRemainOnChanReq) && (0 != pMbMsg->wait))
+        {
+            limLog(pMac, LOGE,
+                    FL("Remain on channel is not running \n"));
+            limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF,
+                    eHAL_STATUS_FAILURE, pMbMsg->sessionId, 0);
+            return;
+        }
+        smeSessionId = pMbMsg->sessionId;
+        goto send_action_frame;
+    }
 
     psessionEntry = peFindSessionByBssid(pMac,
                    (tANI_U8*)pMbMsg->data + BSSID_OFFSET, &sessionId);
@@ -773,6 +865,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     smeSessionId = psessionEntry->smeSessionId;
 
+send_action_frame:
     if ((SIR_MAC_MGMT_FRAME == pFc->type)&&
         ((SIR_MAC_MGMT_PROBE_RSP == pFc->subType)||
         (SIR_MAC_MGMT_ACTION == pFc->subType)))
@@ -879,6 +972,9 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
                            nBytes - PROBE_RSP_IE_OFFSET);
         }
         
+        if (pMac->fP2pListenOffload)
+            goto send_frame1;
+
         /* The minimum wait for any action frame should be atleast 100 ms.
          * If supplicant sends action frame at the end of already running remain on channel time
          * Then there is a chance to miss the response of the frame. So increase the remain on channel
@@ -926,7 +1022,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         }
     }
 
-
+send_frame1:
     // Ok-- try to allocate some memory:
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                       (tANI_U16)nBytes, ( void** ) &pFrame, (void**) &pPacket);
@@ -1005,10 +1101,16 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 }
 
 
-void limAbortRemainOnChan(tpAniSirGlobal pMac)
+void limAbortRemainOnChan(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
+    if (pMac->fP2pListenOffload)
+    {
+        limProcessAbortScanInd(pMac, sessionId);
+        return;
+    }
+
     if(VOS_TRUE == tx_timer_running(
-                                &pMac->lim.limTimers.gLimRemainOnChannelTimer))
+                &pMac->lim.limTimers.gLimRemainOnChannelTimer))
     {
         //TODO check for state and take appropriate actions
         limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);

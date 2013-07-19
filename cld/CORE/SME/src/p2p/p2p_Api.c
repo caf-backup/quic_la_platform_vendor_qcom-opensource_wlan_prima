@@ -790,7 +790,7 @@ eHalStatus p2pCancelRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    tSirMbMsg *pMsg;
+    tSirMbMsgP2p *pMsg;
     tANI_U16 msgLen;
 
     //Need to check session ID to support concurrency
@@ -802,6 +802,7 @@ eHalStatus p2pCancelRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId)
         palZeroMemory(pMac->hHdd, (void *)pMsg, msgLen);
         pMsg->type = pal_cpu_to_be16((tANI_U16)eWNI_SME_ABORT_REMAIN_ON_CHAN_IND);
         pMsg->msgLen = pal_cpu_to_be16(msgLen);
+        pMsg->sessionId = sessionId;
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }                             
 
