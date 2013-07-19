@@ -64,7 +64,7 @@ CONFIG_QCA_WIFI_2_0 := 1
 
 #Enable to compile for integrated SOC (common for prima and CLD)
 #Disable to compile for discrete
-CONFIG_QCA_WIFI_ISOC := 1
+CONFIG_QCA_WIFI_ISOC := 0
 
 #Enable OS specific ADF abstraction
 CONFIG_ADF_SUPPORT := 1
