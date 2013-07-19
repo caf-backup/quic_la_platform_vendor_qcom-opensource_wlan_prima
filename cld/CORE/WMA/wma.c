@@ -1210,19 +1210,51 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	cmd->dwell_time_active = scan_req->maxChannelTime;
 	cmd->dwell_time_passive = scan_req->maxChannelTime;
 
-	if (scan_req->scanType == eSIR_PASSIVE_SCAN)
-		cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
-
 	cmd->max_scan_time = WMA_HW_DEF_SCAN_MAX_DURATION;
 	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_OFDM_RATES;
 
-	/* if p2pSearch then disable the 11b rates */
-	if (!scan_req->p2pSearch) {
+	if (!scan_req->p2pScanType) {
+		WMA_LOGD("Normal Scan request");
 		cmd->scan_ctrl_flags |= WMI_SCAN_ADD_CCK_RATES;
-		cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+		cmd->scan_ctrl_flags |= WMI_SCAN_ADD_BCAST_PROBE_REQ;
+		if (scan_req->scanType == eSIR_PASSIVE_SCAN)
+			cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
+		/* TODO: Add following line.
+		   WMI_SCAN_FILTER_PROBE_REQ should filter the probe
+		   request frames. But it is allowing the probe request
+		   frames only when this flag is set. Add this flag
+		   once the FW behavior for this flag is corrected. */
+		//cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
 	}
-
-	cmd->scan_ctrl_flags |= WMI_SCAN_ADD_BCAST_PROBE_REQ;
+	else {
+		WMA_LOGD("P2P Scan");
+		switch (scan_req->p2pScanType) {
+		case P2P_SCAN_TYPE_LISTEN:
+			WMA_LOGD("P2P_SCAN_TYPE_LISTEN");
+			cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
+			/* TODO: Remove this flag setting.
+			   WMI_SCAN_FILTER_PROBE_REQ should filter the probe
+			   request frames. But it is allowing the probe request
+			   frames only when this flag is set. remove this flag
+			   once the FW behavior for this flag is corrected. */
+			cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+			cmd->notify_scan_events |=
+				WMI_SCAN_EVENT_FOREIGN_CHANNEL;
+			break;
+		case P2P_SCAN_TYPE_SEARCH:
+			WMA_LOGD("P2P_SCAN_TYPE_SEARCH");
+			/* TODO: Add following line.
+			   WMI_SCAN_FILTER_PROBE_REQ should filter the probe
+			   request frames. But it is allowing the probe request
+			   frames only when this flag is set. Add this flag
+			   once the FW behavior for this flag is corrected. */
+			//cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+			break;
+		default:
+			WMA_LOGE("Invalid scan type");
+			goto error;
+		}
+	}
 
 	tmp_ptr = (u_int32_t *) (cmd + 1);
 
@@ -1328,6 +1360,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	wmi_start_scan_cmd *cmd;
 	int status = 0;
 	int len;
+	tSirScanOffloadEvent *scan_event;
 
 	/* Fill individual elements of wmi_start_scan_req and
 	 * TLV for channel list, bssid, ssid etc ... */
@@ -1360,6 +1393,16 @@ error:
 	if (buf)
 		adf_nbuf_free(buf);
 error1:
+	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
+		(sizeof(tSirScanOffloadEvent));
+	if (!scan_event) {
+		WMA_LOGP("Failed to allocate memory for scan rsp");
+		return VOS_STATUS_E_NOMEM;
+	}
+	scan_event->event = WMI_SCAN_EVENT_COMPLETED;
+	scan_event->reasonCode = eSIR_SME_SCAN_FAILED;
+	wma_send_msg(wma_handle, WDA_RX_SCAN_EVENT, (void *) scan_event, 0) ;
+
 	return vos_status;
 }
 
