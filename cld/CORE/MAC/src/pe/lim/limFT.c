@@ -1000,6 +1000,8 @@ void limHandleFTPreAuthRsp(tpAniSirGlobal pMac, tSirRetStatus status,
             limLog(pMac, LOGE, FL("Invalid bss type"));
         }
         pftSessionEntry->limPrevSmeState = pftSessionEntry->limSmeState;
+        vos_mem_copy(&(pftSessionEntry->htConfig), &(psessionEntry->htConfig),
+                     sizeof(psessionEntry->htConfig));
         pftSessionEntry->limSmeState = eLIM_SME_WT_REASSOC_STATE;
         pMac->ft.ftPEContext.pftSessionEntry = pftSessionEntry;
         PELOGE(limLog(pMac,LOGE,"%s:created session (%p) with id = %d",

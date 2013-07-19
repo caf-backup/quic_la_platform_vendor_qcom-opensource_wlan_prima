@@ -558,6 +558,20 @@ typedef struct sSirAlternateRadioList
     tSirAlternateRadioInfo   alternateRadio[1];
 } tSirAlternateRadioList, *tpSirAlternateRadioList;
 
+//HT configuration values
+typedef __ani_attr_pre_packed struct sSirHtConfig
+{
+   //Enable/Disable receiving LDPC coded packets
+   tANI_U32 ht_rx_ldpc:1;
+   //Enable/Disable TX STBC
+   tANI_U32 ht_tx_stbc:1;
+   //Enable/Disable RX STBC
+   tANI_U32 ht_rx_stbc:2;
+   //Enable/Disable SGI
+   tANI_U32 ht_sgi:1;
+   tANI_U32 unused:27;
+} __ani_attr_packed tSirHTConfig, *tpSirHTConfig;
+
 /// Definition for kick starting BSS
 /// ---> MAC
 /**
@@ -609,7 +623,7 @@ typedef struct sSirSmeStartBssReq
     tSirNwType              nwType;            // Indicates 11a/b/g
     tSirMacRateSet          operationalRateSet;// Has 11a or 11b rates
     tSirMacRateSet          extendedRateSet;    // Has 11g rates
-
+    tSirHTConfig            htConfig;
 } tSirSmeStartBssReq, *tpSirSmeStartBssReq;
 
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
@@ -996,6 +1010,7 @@ typedef struct sSirSmeJoinReq
 #endif
 
     tANI_U8             txLdpcIniFeatureEnabled;
+    tSirHTConfig        htConfig;
 #ifdef WLAN_FEATURE_11AC
     tANI_U8             txBFIniFeatureEnabled;
     tANI_U8             txBFCsnValue;
@@ -1006,7 +1021,6 @@ typedef struct sSirSmeJoinReq
     tSirMacPowerCapInfo powerCap;
     tSirSupChnl         supportedChannels;
     tSirBssDescription  bssDescription;
-
 } tSirSmeJoinReq, *tpSirSmeJoinReq;
 
 /// Definition for reponse message to previously issued join request

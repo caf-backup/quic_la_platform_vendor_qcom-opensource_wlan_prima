@@ -560,13 +560,8 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
 
     uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
 
-    pDot11f->advCodingCap             = uHTCapabilityInfo.htCapInfo.advCodingCap;
     pDot11f->mimoPowerSave            = uHTCapabilityInfo.htCapInfo.mimoPowerSave;
     pDot11f->greenField               = uHTCapabilityInfo.htCapInfo.greenField;
-    pDot11f->shortGI20MHz             = uHTCapabilityInfo.htCapInfo.shortGI20MHz;
-    pDot11f->shortGI40MHz             = uHTCapabilityInfo.htCapInfo.shortGI40MHz;
-    pDot11f->txSTBC                   = uHTCapabilityInfo.htCapInfo.txSTBC;
-    pDot11f->rxSTBC                   = uHTCapabilityInfo.htCapInfo.rxSTBC;
     pDot11f->delayedBA                = uHTCapabilityInfo.htCapInfo.delayedBA;
     pDot11f->maximalAMSDUsize         = uHTCapabilityInfo.htCapInfo.maximalAMSDUsize;
     pDot11f->dsssCckMode40MHz         = uHTCapabilityInfo.htCapInfo.dsssCckMode40MHz;
@@ -578,10 +573,24 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     if (psessionEntry == NULL) // Only in case of NO session
     {
         pDot11f->supportedChannelWidthSet = uHTCapabilityInfo.htCapInfo.supportedChannelWidthSet;
+        pDot11f->advCodingCap = uHTCapabilityInfo.htCapInfo.advCodingCap;
+        pDot11f->txSTBC = uHTCapabilityInfo.htCapInfo.txSTBC;
+        pDot11f->rxSTBC = uHTCapabilityInfo.htCapInfo.rxSTBC;
+        pDot11f->shortGI20MHz             = uHTCapabilityInfo.htCapInfo.shortGI20MHz;
+        pDot11f->shortGI40MHz             = uHTCapabilityInfo.htCapInfo.shortGI40MHz;
     }
     else
     {
+        pDot11f->advCodingCap             = psessionEntry->htConfig.ht_rx_ldpc;
         pDot11f->supportedChannelWidthSet = psessionEntry->htSupportedChannelWidthSet;
+        pDot11f->txSTBC                   = psessionEntry->htConfig.ht_tx_stbc;
+        pDot11f->rxSTBC                   = psessionEntry->htConfig.ht_rx_stbc;
+        if (psessionEntry->htConfig.ht_sgi) {
+            pDot11f->shortGI20MHz         =
+                                       uHTCapabilityInfo.htCapInfo.shortGI20MHz;
+            pDot11f->shortGI40MHz         =
+                                       uHTCapabilityInfo.htCapInfo.shortGI40MHz;
+        }
     }
 
     /* Ensure that shortGI40MHz is Disabled if supportedChannelWidthSet is
@@ -732,6 +741,7 @@ void limLogOperatingMode( tpAniSirGlobal pMac,
 
 tSirRetStatus
 PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
+                           tpPESession psessionEntry,
                            tDot11fIEVHTCaps *pDot11f)
 {
     tSirRetStatus        nStatus;
@@ -748,24 +758,35 @@ PopulateDot11fVHTCaps(tpAniSirGlobal           pMac,
     pDot11f->supportedChannelWidthSet = (nCfgValue & 0x0003);
 
     nCfgValue = 0;
-    CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_LDPC_CODING_CAP, nCfgValue );
+    //With VHT it suffices if we just examine HT
+    if (psessionEntry->htConfig.ht_rx_ldpc)
+        CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_LDPC_CODING_CAP, nCfgValue );
+
     pDot11f->ldpcCodingCap = (nCfgValue & 0x0001);
 
     nCfgValue = 0;
-    CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_SHORT_GI_80MHZ, nCfgValue );
+    if (psessionEntry->htConfig.ht_sgi)
+        CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_SHORT_GI_80MHZ, nCfgValue );
+
     pDot11f->shortGI80MHz= (nCfgValue & 0x0001);
 
     nCfgValue = 0;
-    CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_SHORT_GI_160_AND_80_PLUS_80MHZ,
+    if (psessionEntry->htConfig.ht_sgi)
+        CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_SHORT_GI_160_AND_80_PLUS_80MHZ,
                                                                 nCfgValue );
+
     pDot11f->shortGI160and80plus80MHz = (nCfgValue & 0x0001);
 
     nCfgValue = 0;
-    CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_TXSTBC, nCfgValue );
+    if (psessionEntry->htConfig.ht_rx_stbc)
+        CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_TXSTBC, nCfgValue );
+
     pDot11f->txSTBC = (nCfgValue & 0x0001);
 
     nCfgValue = 0;
-    CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_RXSTBC, nCfgValue );
+    if (psessionEntry->htConfig.ht_tx_stbc)
+        CFG_GET_INT( nStatus, pMac, WNI_CFG_VHT_RXSTBC, nCfgValue );
+
     pDot11f->rxSTBC = (nCfgValue & 0x0007);
 
     nCfgValue = 0;

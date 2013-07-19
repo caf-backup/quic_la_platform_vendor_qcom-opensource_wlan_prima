@@ -979,7 +979,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
         if (IS_DOT11_MODE_HT(selfDot11Mode))
         {
             /* Include HT Capability IE */
-            PopulateDot11fHTCaps( pMac, NULL, &tdlsDisRsp.HTCaps );
+            PopulateDot11fHTCaps( pMac, psessionEntry, &tdlsDisRsp.HTCaps );
             tdlsDisRsp.HTCaps.present = 1;
             /* hardcode NO channel bonding in 2.4Ghz */
             tdlsDisRsp.HTCaps.supportedChannelWidthSet = 0;
@@ -998,7 +998,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
         if (IS_DOT11_MODE_HT(selfDot11Mode))
         {
             /* Include HT Capability IE */
-            PopulateDot11fHTCaps( pMac, NULL, &tdlsDisRsp.HTCaps );
+            PopulateDot11fHTCaps( pMac, psessionEntry, &tdlsDisRsp.HTCaps );
 
             tdlsDisRsp.HTCaps.present = 1;
             //Placeholder to support different channel bonding mode of TDLS than AP.
@@ -1014,7 +1014,7 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
         if (IS_DOT11_MODE_VHT(selfDot11Mode))
         {
             /* Include VHT Capability IE */
-            PopulateDot11fVHTCaps( pMac, &tdlsDisRsp.VHTCaps );
+            PopulateDot11fVHTCaps( pMac, psessionEntry, &tdlsDisRsp.VHTCaps );
         }
         else
         {
@@ -1260,7 +1260,7 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
         if (IS_DOT11_MODE_HT(selfDot11Mode))
         {
             /* Include HT Capability IE */
-            PopulateDot11fHTCaps( pMac, NULL, &tdlsSetupReq.HTCaps );
+            PopulateDot11fHTCaps( pMac, psessionEntry, &tdlsSetupReq.HTCaps );
 
             tdlsSetupReq.HTCaps.present = 1;
             /* hardcode NO channel bonding in 2.4Ghz */
@@ -1280,7 +1280,7 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
         if (IS_DOT11_MODE_HT(selfDot11Mode))
         {
             /* Include HT Capability IE */
-            PopulateDot11fHTCaps( pMac, NULL, &tdlsSetupReq.HTCaps );
+            PopulateDot11fHTCaps( pMac, psessionEntry, &tdlsSetupReq.HTCaps );
 
             tdlsSetupReq.HTCaps.present = 1;
             //Placeholder to support different channel bonding mode of TDLS than AP.
@@ -1294,7 +1294,7 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
         }
 #ifdef WLAN_FEATURE_11AC
         /* Include VHT Capability IE */
-        PopulateDot11fVHTCaps( pMac, &tdlsSetupReq.VHTCaps );
+        PopulateDot11fVHTCaps( pMac, psessionEntry, &tdlsSetupReq.VHTCaps );
         if (IS_DOT11_MODE_VHT(selfDot11Mode))
         {
             tANI_U16 aid;
@@ -1732,7 +1732,7 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
         if (IS_DOT11_MODE_HT(selfDot11Mode))
         {
             /* Include HT Capability IE */
-            PopulateDot11fHTCaps( pMac, NULL, &tdlsSetupRsp.HTCaps );
+            PopulateDot11fHTCaps( pMac, psessionEntry, &tdlsSetupRsp.HTCaps );
 
             tdlsSetupRsp.HTCaps.present = 1;
             /* hardcode NO channel bonding in 2.4Ghz */
@@ -1752,7 +1752,7 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
         if (IS_DOT11_MODE_HT(selfDot11Mode))
         {
             /* Include HT Capability IE */
-            PopulateDot11fHTCaps( pMac, NULL, &tdlsSetupRsp.HTCaps );
+            PopulateDot11fHTCaps( pMac, psessionEntry, &tdlsSetupRsp.HTCaps );
 
             tdlsSetupRsp.HTCaps.present = 1;
             //Placeholder to support different channel bonding mode of TDLS than AP.
@@ -1766,7 +1766,7 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
         }
 #ifdef WLAN_FEATURE_11AC
         /* Include VHT Capability IE */
-        PopulateDot11fVHTCaps( pMac, &tdlsSetupRsp.VHTCaps );
+        PopulateDot11fVHTCaps( pMac, psessionEntry, &tdlsSetupRsp.VHTCaps );
         if (IS_DOT11_MODE_VHT(selfDot11Mode))
         {
             tANI_U16 aid;

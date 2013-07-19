@@ -796,7 +796,8 @@ int FindIELocation( tpAniSirGlobal pMac,
 
 #ifdef WLAN_FEATURE_11AC
 tSirRetStatus
-PopulateDot11fVHTCaps(tpAniSirGlobal  pMac, tDot11fIEVHTCaps *pDot11f);
+PopulateDot11fVHTCaps(tpAniSirGlobal  pMac, tpPESession psessionEntry,
+                      tDot11fIEVHTCaps *pDot11f);
 
 tSirRetStatus
 PopulateDot11fVHTOperation(tpAniSirGlobal  pMac, tDot11fIEVHTOperation  *pDot11f);

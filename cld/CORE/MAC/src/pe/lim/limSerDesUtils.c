@@ -703,7 +703,10 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
         len  -= pStartBssReq->extendedRateSet.numRates;
     }
 
-
+    palCopyMemory(pMac->hHdd, &(pStartBssReq->htConfig), pBuf,
+                  sizeof(tSirHTConfig));
+    len -= sizeof(tSirHTConfig);
+    pBuf += sizeof(tSirHTConfig);
     if (len)
     {
         limLog(pMac, LOGW, FL("Extra bytes left in SME_START_BSS_REQ, len=%d"), len);
@@ -1109,6 +1112,11 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     len--;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
+
+    //HT Config
+    palCopyMemory(pMac->hHdd, &(pJoinReq->htConfig), pBuf, sizeof(tSirHTConfig));
+    len -= sizeof(tSirHTConfig);
+    pBuf += sizeof(tSirHTConfig);
 
     //txBFIniFeatureEnabled
     pJoinReq->txBFIniFeatureEnabled= *pBuf++;

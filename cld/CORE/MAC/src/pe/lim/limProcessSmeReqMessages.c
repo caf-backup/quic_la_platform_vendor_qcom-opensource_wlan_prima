@@ -572,7 +572,10 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->smeSessionId = pSmeStartBssReq->sessionId;
 
         psessionEntry->transactionId = pSmeStartBssReq->transactionId;
-                     
+
+        vos_mem_copy(&(psessionEntry->htConfig), &(pSmeStartBssReq->htConfig),
+                     sizeof(psessionEntry->htConfig));
+
         sirCopyMacAddr(psessionEntry->selfMacAddr,pSmeStartBssReq->selfMacAddr);
         
         /* Copy SSID to session table */
@@ -1620,6 +1623,9 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         /* Store beaconInterval */
         psessionEntry->beaconParams.beaconInterval = pSmeJoinReq->bssDescription.beaconInterval;
+
+        vos_mem_copy(&(psessionEntry->htConfig), &(pSmeJoinReq->htConfig),
+                     sizeof(psessionEntry->htConfig));
 
         /* Copying of bssId is already done, while creating session */
         //sirCopyMacAddr(psessionEntry->bssId,pSmeJoinReq->bssId);

@@ -2802,7 +2802,8 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
                            tANI_U32       dot11mode,
                            tSirMacAddr    selfMacAddr,
                            tANI_U8        *pFrame,
-                           tANI_U16       *pusLen)
+                           tANI_U16       *pusLen,
+                           tCsrRoamSession *psession)
 {
     tDot11fProbeRequest pr;
     tANI_U32            nStatus, nBytes, nPayload;
@@ -2827,6 +2828,12 @@ pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
     if (IS_DOT11_MODE_HT(dot11mode))
     {
        PopulateDot11fHTCaps( pMac, NULL, &pr.HTCaps );
+       pr.HTCaps.advCodingCap = psession->htConfig.ht_rx_ldpc;
+       pr.HTCaps.txSTBC = psession->htConfig.ht_tx_stbc;
+       pr.HTCaps.rxSTBC = psession->htConfig.ht_rx_stbc;
+       if (!psession->htConfig.ht_sgi) {
+           pr.HTCaps.shortGI20MHz = pr.HTCaps.shortGI40MHz = 0;
+       }
     }
     
     // That's it-- now we pack it.  First, how much space are we going to
@@ -2937,11 +2944,15 @@ eHalStatus pmcSetPreferredNetworkList
                                        csrFindBestPhyMode( pMac, pMac->roam.configParam.phyMode ));
 
     /*Prepare a probe request for 2.4GHz band and one for 5GHz band*/
-    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_24G_DEFAULT_CH, ucDot11Mode, pSession->selfMacAddr, 
-                               pRequestBuf->p24GProbeTemplate, &pRequestBuf->us24GProbeTemplateLen); 
+    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_24G_DEFAULT_CH, ucDot11Mode, pSession->selfMacAddr,
+                               pRequestBuf->p24GProbeTemplate,
+                               &pRequestBuf->us24GProbeTemplateLen,
+                               pSession);
 
-    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_5G_DEFAULT_CH, ucDot11Mode, pSession->selfMacAddr, 
-                               pRequestBuf->p5GProbeTemplate, &pRequestBuf->us5GProbeTemplateLen); 
+    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_5G_DEFAULT_CH, ucDot11Mode, pSession->selfMacAddr,
+                               pRequestBuf->p5GProbeTemplate,
+                               &pRequestBuf->us5GProbeTemplateLen,
+                               pSession);
 
 
     msg.type     = WDA_SET_PNO_REQ;

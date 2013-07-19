@@ -888,6 +888,8 @@ typedef struct tagCsrRoamSession
     * the PMKID cache. To clear the cache in this particular case this is added
     * it is needed by the HS 2.0 passpoint certification 5.2.a and b testcases */
     tANI_BOOLEAN fIgnorePMKIDCache;
+    //ht config
+    tSirHTConfig        htConfig;
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
