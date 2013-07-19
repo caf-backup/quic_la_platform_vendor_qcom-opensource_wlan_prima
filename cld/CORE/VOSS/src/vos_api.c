@@ -2298,7 +2298,7 @@ VOS_STATUS vos_get_vdev_types(tVOS_CON_MODE mode, tANI_U32 *type,
             *type = WMI_VDEV_TYPE_AP;
             break;
         case VOS_P2P_DEVICE_MODE:
-            *type = WMI_VDEV_TYPE_STA;
+            *type = WMI_VDEV_TYPE_AP;
             *sub_type = WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE;
             break;
         case VOS_P2P_CLIENT_MODE:
