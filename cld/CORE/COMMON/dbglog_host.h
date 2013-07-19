@@ -23,34 +23,61 @@ extern "C" {
 
 #include "dbglog_id.h"
 #include "dbglog.h"
+#include "ol_defines.h"
 
 #define MAX_DBG_MSGS 256
+
+typedef enum {
+    DBGLOG_PROCESS_DEFAULT = 0,
+    DBGLOG_PROCESS_PRINT_RAW, /* print them in debug view */
+    DBGLOG_PROCESS_POOL_RAW, /* user buffer pool to save them */
+    DBGLOG_PROCESS_MAX,
+} dbglog_process_t;
+
+#define ATH6KL_FWLOG_PAYLOAD_SIZE              1500
+
+#define HDRLEN 8
+#define RECLEN (HDRLEN + ATH6KL_FWLOG_PAYLOAD_SIZE)
+
+#define DBGLOG_PRINT_PREFIX "FWLOG: "
+
+/*
+ * set the dbglog parser type
+ */
+int
+dbglog_parser_type_init(wmi_unified_t wmi_handle, int type);
 
 /** dbglog_int - Registers a WMI event handle for WMI_DBGMSG_EVENT
 * @brief wmi_handle - handle to wmi module 
 */
-void
+int
 dbglog_init(wmi_unified_t wmi_handle);
+
+/** dbglog_deinit - UnRegisters a WMI event handle for WMI_DBGMSG_EVENT
+* @brief wmi_handle - handle to wmi module
+*/
+int
+dbglog_deinit(wmi_unified_t wmi_handle);
 
 /** set the size of the report size 
 * @brief wmi_handle - handle to Wmi module
 * @brief size - Report size
 */ 
-void 
+int
 dbglog_set_report_size(wmi_unified_t  wmi_handle, A_UINT16 size);
 
 /** Set the resolution for time stamp 
 * @brief wmi_handle - handle to Wmi module
 * @ brief tsr - time stamp resolution
 */
-void 
+int
 dbglog_set_timestamp_resolution(wmi_unified_t  wmi_handle, A_UINT16 tsr);
 
 /** Enable reporting. If it is set to false then Traget wont deliver 
 * any debug information
 */
-void 
-dbglog_reporting_enable(wmi_unified_t  wmi_handle, bool isenable);
+int
+dbglog_reporting_enable(wmi_unified_t  wmi_handle, A_BOOL isenable);
 
 /** Set the log level 
 * @brief DBGLOG_INFO - Information lowest log level
@@ -58,21 +85,17 @@ dbglog_reporting_enable(wmi_unified_t  wmi_handle, bool isenable);
 * @brief DBGLOG_ERROR - default log level
 * @brief DBGLOG_FATAL 
 */
-void 
+int
 dbglog_set_log_lvl(wmi_unified_t  wmi_handle, DBGLOG_LOG_LVL log_lvl);
 
 /** Enable/Disable the logging for VAP */
-void 
+int
 dbglog_vap_log_enable(wmi_unified_t  wmi_handle, A_UINT16 vap_id,
-			   bool isenable);
+			   A_BOOL isenable);
 /** Enable/Disable logging for Module */
-void 
+int
 dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id, 
-			      bool isenable);
-#ifdef unittest_dbglogs
-void
-test_dbg_config(wmi_unified_t  wmi_handle);
-#endif
+			      A_BOOL isenable);
 
 /** Custome debug_print handlers */
 /* Args:
