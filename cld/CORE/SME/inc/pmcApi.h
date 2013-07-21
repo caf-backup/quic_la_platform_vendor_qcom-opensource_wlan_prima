@@ -466,5 +466,76 @@ extern eHalStatus pmcGetGTKOffload(tHalHandle hHal,
                                    void *callbackContext, tANI_U8 sessionId);
 #endif // WLAN_FEATURE_GTK_OFFLOAD
 
+/* Power Save Offload Changes */
+typedef enum eUapsdStatus
+{
+    PMC_UAPSD_DISABLED,
+    PMC_UAPSD_ENABLED,
+    PMC_UAPSD_DISABLE_PENDING,
+    PMC_UAPSD_ENABLE_PENDING
+}tUapsdStatus;
+
+/* Powersave Check Routine */
+typedef tANI_BOOLEAN (*PwrSaveCheckRoutine)(void *checkContext,
+                                            tANI_U32 sessionId);
+
+/* Power State Change Indication */
+typedef void (*PwrSaveStateChangeIndCb)(void *callbackContext,
+                                        tANI_U32 sessionId,
+                                        tPmcState pmcState);
+
+/* Full Power Req Callback */
+typedef void (*FullPowerReqCb)(void *callbackContext,
+                               tANI_U32 sessionId,
+                               eHalStatus status);
+
+/* Full Power Req Callback */
+typedef void (*UapsdStartIndCb)(void *callbackContext,
+                                tANI_U32 sessionId,
+                                eHalStatus status);
+
+eHalStatus pmcOffloadOpen(tHalHandle hHal);
+
+eHalStatus pmcOffloadStart(tHalHandle hHal);
+
+eHalStatus pmcOffloadStop(tHalHandle hHal);
+
+eHalStatus pmcOffloadClose(tHalHandle hHal);
+
+eHalStatus pmcOffloadCleanup(tHalHandle hHal, tANI_U32 sessionId);
+
+eHalStatus pmcOffloadConfigEnablePowerSave(tHalHandle hHal,
+                                        tPmcPowerSavingMode psMode);
+
+eHalStatus pmcOffloadConfigDisablePowerSave(tHalHandle hHal,
+                                         tPmcPowerSavingMode psMode);
+
+tPmcState pmcOffloadGetPmcState(tHalHandle hHal, tANI_U32 sessionId);
+
+void pmcOffloadMessageProcessor(tHalHandle hHal, tSirSmeRsp *pMsg);
+
+eHalStatus pmcOffloadRegisterPowerSaveCheck(tHalHandle hHal,
+                     tANI_U32 sessionId, PwrSaveCheckRoutine checkRoutine,
+                     void *checkContext);
+
+eHalStatus pmcOffloadDeregisterPowerSaveCheck(tHalHandle hHal,
+          tANI_U32 sessionId, PwrSaveCheckRoutine checkRoutine);
+
+eHalStatus pmcOffloadRegisterDeviceStateUpdateInd(tHalHandle hHal,
+                     tANI_U32 sessionId, PwrSaveStateChangeIndCb stateChangeCb,
+                     void *callbackContext);
+
+eHalStatus pmcOffloadDeregisterDeviceStateUpdateInd(tHalHandle hHal,
+                   tANI_U32 sessionId, PwrSaveStateChangeIndCb stateChangeCb);
+
+eHalStatus PmcOffloadEnableStaModePowerSave(tHalHandle hHal,
+                                            tANI_U32 sessionId);
+
+eHalStatus PmcOffloadDisableStaModePowerSave(tHalHandle hHal,
+                                             tANI_U32 sessionId);
+
+eHalStatus pmcOffloadRequestFullPower(tHalHandle hHal, tANI_U32 sessionId,
+                             FullPowerReqCb fullpwrReqCb,void *callbackContext,
+                             tRequestFullPowerReason fullPowerReason);
 #endif
 

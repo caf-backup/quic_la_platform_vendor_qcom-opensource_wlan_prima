@@ -443,11 +443,23 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry);
 static v_BOOL_t sme_QosIsRspPending(v_U8_t sessionId, sme_QosEdcaAcType ac);
 static v_BOOL_t sme_QosIsUapsdActive(void);
 void sme_QosPmcFullPowerCallback(void *callbackContext, eHalStatus status);
+void sme_QosPmcOffloadFullPowerCallback(void *callbackContext, tANI_U32 sessionId,
+                                         eHalStatus status);
+
 void sme_QosPmcStartUapsdCallback(void *callbackContext, eHalStatus status);
 v_BOOL_t sme_QosPmcCheckRoutine(void *callbackContext);
+v_BOOL_t sme_QosPmcOffloadCheckRoutine(void *callbackContext, tANI_U32 sessionId);
+
 void sme_QosPmcDeviceStateUpdateInd(void *callbackContext, tPmcState pmcState);
+void sme_OffloadQosPmcDeviceStateUpdateInd(void *callbackContext,
+                         tANI_U32 sessionId, tPmcState pmcState);
+
 eHalStatus sme_QosProcessOutOfUapsdMode(tpAniSirGlobal pMac);
+eHalStatus sme_OffloadQosProcessOutOfUapsdMode(tpAniSirGlobal pMac,
+                                               tANI_U32 sessionId);
 eHalStatus sme_QosProcessIntoUapsdMode(tpAniSirGlobal pMac);
+eHalStatus sme_OffloadQosProcessIntoUapsdMode(tpAniSirGlobal pMac,
+                                              tANI_U32 sessionId);
 static eHalStatus sme_QosBufferExistingFlows(tpAniSirGlobal pMac,
                                              v_U8_t sessionId);
 static eHalStatus sme_QosDeleteExistingFlows(tpAniSirGlobal pMac,
@@ -533,29 +545,61 @@ eHalStatus sme_QosOpen(tpAniSirGlobal pMac)
          return eHAL_STATUS_FAILURE;
       }
       pSession->readyForPowerSave = VOS_TRUE;
+
+      if(pMac->psOffloadEnabled)
+      {
+          if(eHAL_STATUS_SUCCESS != pmcOffloadRegisterPowerSaveCheck(pMac,
+             sessionId, sme_QosPmcOffloadCheckRoutine, pMac))
+          {
+              VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+              "%s: %d: cannot register with pmcOffloadRegisterPowerSaveCheck()",
+              __func__, __LINE__);
+              return eHAL_STATUS_FAILURE;
+          }
+
+          if(eHAL_STATUS_SUCCESS != pmcOffloadRegisterDeviceStateUpdateInd(pMac,
+          sessionId, sme_OffloadQosPmcDeviceStateUpdateInd, pMac))
+          {
+              VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+              "%s: %d: cannot register with pmcOffloadRegisterPowerSaveCheck()",
+              __func__, __LINE__);
+              return eHAL_STATUS_FAILURE;
+          }
+      }
    }
-   //the routine registered here gets called by PMC whenever the device is about 
-   //to enter one of the power save modes. PMC runs a poll with all the 
-   //registered modules if device can enter powersave mode or remain full power
-   if(!HAL_STATUS_SUCCESS(
-      pmcRegisterPowerSaveCheck(pMac, sme_QosPmcCheckRoutine, pMac)))
+
+   if(!pMac->psOffloadEnabled)
    {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-                "%s: %d: cannot register with pmcRegisterPowerSaveCheck()",
-                __func__, __LINE__);
-      return eHAL_STATUS_FAILURE;
-   }
-   //the routine registered here gets called by PMC whenever there is a device 
-   // state change. PMC might go to full power because of many reasons and this 
-   // is the way for PMC to inform all the other registered modules so that 
-   // everyone is in sync.
-   if(!HAL_STATUS_SUCCESS(
-      pmcRegisterDeviceStateUpdateInd(pMac, sme_QosPmcDeviceStateUpdateInd, pMac)))
-   {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-                "%s: %d: cannot register with pmcRegisterDeviceStateUpdateInd()",
-                __func__, __LINE__);
-      return eHAL_STATUS_FAILURE;
+      //the routine registered here gets called by PMC
+      //whenever the device is about
+      //to enter one of the power save modes.
+      //PMC runs a poll with all the
+      //registered modules if device can enter
+      //powersave mode or remain full power
+      if(!HAL_STATUS_SUCCESS(
+         pmcRegisterPowerSaveCheck(pMac, sme_QosPmcCheckRoutine, pMac)))
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+                  "%s: %d: cannot register with pmcRegisterPowerSaveCheck()",
+                  __func__, __LINE__);
+         return eHAL_STATUS_FAILURE;
+      }
+      //the routine registered here gets called by PMC
+      //whenever there is a device
+      // state change. PMC might go to full power
+      //because of many reasons and this
+      // is the way for PMC to inform all the other
+      //registered modules so that
+      // everyone is in sync.
+      if(!HAL_STATUS_SUCCESS(
+         pmcRegisterDeviceStateUpdateInd(pMac,
+            sme_QosPmcDeviceStateUpdateInd, pMac)))
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+              "%s: %d: cannot register with pmcRegisterDeviceStateUpdateInd()",
+               __func__, __LINE__);
+         return eHAL_STATUS_FAILURE;
+      }
    }
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "%s: %d: done initializing SME-QoS module",
@@ -578,21 +622,49 @@ eHalStatus sme_QosClose(tpAniSirGlobal pMac)
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "%s: %d: closing down SME-QoS",
              __func__, __LINE__);
-   // deregister with PMC
-   if(!HAL_STATUS_SUCCESS(
-      pmcDeregisterDeviceStateUpdateInd(pMac, sme_QosPmcDeviceStateUpdateInd)))
+   if(!pMac->psOffloadEnabled)
    {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-                "%s: %d: cannot deregister with pmcDeregisterDeviceStateUpdateInd()",
-                __func__, __LINE__);
+      // deregister with PMC
+      if(!HAL_STATUS_SUCCESS(
+         pmcDeregisterDeviceStateUpdateInd(pMac,
+               sme_QosPmcDeviceStateUpdateInd)))
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+               "%s: %d: cannot deregister pmcDeregisterDeviceStateUpdateInd()",
+               __func__, __LINE__);
+      }
+      if(!HAL_STATUS_SUCCESS(
+         pmcDeregisterPowerSaveCheck(pMac, sme_QosPmcCheckRoutine)))
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+             "%s: %d: cannot deregister with pmcDeregisterPowerSaveCheck()",
+             __func__, __LINE__);
+      }
    }
-   if(!HAL_STATUS_SUCCESS(
-      pmcDeregisterPowerSaveCheck(pMac, sme_QosPmcCheckRoutine)))
+   else
    {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-                "%s: %d: cannot deregister with pmcDeregisterPowerSaveCheck()",
-                __func__, __LINE__);
+      for(sessionId = 0; sessionId < CSR_ROAM_SESSION_MAX; ++sessionId)
+      {
+         /* deregister with PMC */
+         if(!HAL_STATUS_SUCCESS(
+            pmcOffloadDeregisterDeviceStateUpdateInd(pMac, sessionId,
+                             sme_OffloadQosPmcDeviceStateUpdateInd)))
+         {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+               "%s: %d: cannot deregister DeviceStateUpdateInd()",
+               __func__, __LINE__);
+         }
+         if(!HAL_STATUS_SUCCESS(
+            pmcOffloadDeregisterPowerSaveCheck(pMac, sessionId,
+                               sme_QosPmcOffloadCheckRoutine)))
+         {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+               "%s: %d: cannot deregister with PowerSaveCheck()",
+               __func__, __LINE__);
+         }
+      }
    }
+
    //cleanup control block
    //close the flow list
    csrLLClose(&sme_QosCb.flow_list);
@@ -1254,8 +1326,18 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
    {
       // make sure we are in full power so that we can issue
       // an AddTS or reassoc if necessary
-      hstatus = pmcRequestFullPower(pMac, sme_QosPmcFullPowerCallback,
+      if(!pMac->psOffloadEnabled)
+      {
+          hstatus = pmcRequestFullPower(pMac, sme_QosPmcFullPowerCallback,
                                     pSession, eSME_REASON_OTHER);
+      }
+      else
+      {
+          hstatus = pmcOffloadRequestFullPower(pMac, sessionId,
+                            sme_QosPmcOffloadFullPowerCallback,
+                            pSession, eSME_REASON_OTHER);
+      }
+
       if( eHAL_STATUS_PMC_PENDING == hstatus )
       {
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
@@ -1856,8 +1938,18 @@ sme_QosStatusType sme_QosInternalModifyReq(tpAniSirGlobal pMac,
    {
       // make sure we are in full power so that we can issue
       // an AddTS or reassoc if necessary
-      hstatus = pmcRequestFullPower(pMac, sme_QosPmcFullPowerCallback,
-                                    pSession, eSME_REASON_OTHER);
+      if(!pMac->psOffloadEnabled)
+      {
+          hstatus = pmcRequestFullPower(pMac, sme_QosPmcFullPowerCallback,
+                                        pSession, eSME_REASON_OTHER);
+      }
+      else
+      {
+          hstatus = pmcOffloadRequestFullPower(pMac, sessionId,
+                            sme_QosPmcOffloadFullPowerCallback,
+                            pSession, eSME_REASON_OTHER);
+      }
+
       if( eHAL_STATUS_PMC_PENDING == hstatus )
       {
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
@@ -2181,8 +2273,18 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
    {
       // make sure we are in full power so that we can issue
       // a DelTS or reassoc if necessary
-      hstatus = pmcRequestFullPower(pMac, sme_QosPmcFullPowerCallback,
-                                    pSession, eSME_REASON_OTHER);
+      if(!pMac->psOffloadEnabled)
+      {
+          hstatus = pmcRequestFullPower(pMac, sme_QosPmcFullPowerCallback,
+                                        pSession, eSME_REASON_OTHER);
+      }
+      else
+      {
+          hstatus = pmcOffloadRequestFullPower(pMac, sessionId,
+                             sme_QosPmcOffloadFullPowerCallback,
+                             pSession, eSME_REASON_OTHER);
+      }
+
       if( eHAL_STATUS_PMC_PENDING == hstatus )
       {
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
@@ -7076,6 +7178,24 @@ void sme_QosPmcFullPowerCallback(void *callbackContext, eHalStatus status)
    }
 }
 
+void sme_QosPmcOffloadFullPowerCallback(void *callbackContext, tANI_U32 sessionId,
+                                         eHalStatus status)
+{
+   sme_QosSessionInfo *pSession = callbackContext;
+   if(HAL_STATUS_SUCCESS(status))
+   {
+      (void)sme_QosProcessBufferedCmd(pSession->sessionId);
+   }
+   else
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: %d: PMC failed to put the chip in Full power",
+                __func__, __LINE__);
+      //ASSERT
+      VOS_ASSERT(0);
+   }
+}
+
 /*--------------------------------------------------------------------------
   \brief sme_QosPmcStartUAPSDCallback() - Callback function registered with PMC 
   to notify SME-QoS when it puts the chip into UAPSD mode
@@ -7149,6 +7269,20 @@ v_BOOL_t sme_QosPmcCheckRoutine(void *callbackContext)
    // all active sessions have voted for powersave
    return VOS_TRUE;
 }
+
+v_BOOL_t sme_QosPmcOffloadCheckRoutine(void *callbackContext, tANI_U32 sessionId)
+{
+   sme_QosSessionInfo *pSession = &sme_QosCb.sessionInfo[sessionId];
+
+   if ((pSession->sessionActive) &&
+       (!pSession->readyForPowerSave))
+   {
+      return VOS_FALSE;
+   }
+   return VOS_TRUE;
+
+}
+
 /*--------------------------------------------------------------------------
   \brief sme_QosPmcDeviceStateUpdateInd() - Callback function registered with 
   PMC to notify SME-QoS when it changes the power state
@@ -7193,6 +7327,42 @@ void sme_QosPmcDeviceStateUpdateInd(void *callbackContext, tPmcState pmcState)
    }
 
 }
+
+void sme_OffloadQosPmcDeviceStateUpdateInd(void *callbackContext,
+                          tANI_U32 sessionId, tPmcState pmcState)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( callbackContext );
+   /*
+    * check all the entries in Flow list for non-zero service interval,
+    * which will tell us if we need to notify HDD when
+    * PMC is out of UAPSD mode or going
+    * back to UAPSD mode
+    */
+   switch(pmcState)
+   {
+   case FULL_POWER:
+      status = sme_OffloadQosProcessOutOfUapsdMode(pMac, sessionId);
+      break;
+   case UAPSD:
+      status = sme_OffloadQosProcessIntoUapsdMode(pMac, sessionId);
+      break;
+   default:
+      status = eHAL_STATUS_SUCCESS;
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: %d: nothing to process in PMC state %d",
+                __func__, __LINE__,
+                pmcState);
+   }
+   if(!HAL_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
+                "%s: %d: ignoring Device(PMC) state change to %d",
+                __func__, __LINE__,
+                pmcState);
+   }
+}
+
 /*--------------------------------------------------------------------------
   \brief sme_QosProcessOutOfUapsdMode() - Function to notify HDD when PMC 
   notifies SME-QoS that it moved out of UAPSD mode to FULL power
@@ -7236,6 +7406,44 @@ eHalStatus sme_QosProcessOutOfUapsdMode(tpAniSirGlobal pMac)
    }
    return eHAL_STATUS_SUCCESS;
 }
+
+eHalStatus sme_OffloadQosProcessOutOfUapsdMode(tpAniSirGlobal pMac,
+                                                tANI_U32 sessionId)
+{
+   sme_QosSessionInfo *pSession;
+   tListElem *pEntry= NULL, *pNextEntry = NULL;
+   sme_QosFlowInfoEntry *flow_info = NULL;
+
+   pEntry = csrLLPeekHead( &sme_QosCb.flow_list, VOS_FALSE );
+   if(!pEntry)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
+                "%s: %d: Flow List empty, can't search",
+                __func__, __LINE__);
+      return eHAL_STATUS_FAILURE;
+   }
+   while(pEntry)
+   {
+      pNextEntry = csrLLNext( &sme_QosCb.flow_list, pEntry, VOS_FALSE );
+      flow_info = GET_BASE_ADDR( pEntry, sme_QosFlowInfoEntry, link );
+      pSession = &sme_QosCb.sessionInfo[flow_info->sessionId];
+      /* only notify the flows which already successfully setup UAPSD */
+      if((sessionId == flow_info->sessionId) &&
+          (flow_info->QoSInfo.max_service_interval ||
+          flow_info->QoSInfo.min_service_interval) &&
+         (SME_QOS_REASON_REQ_SUCCESS == flow_info->reason))
+      {
+         flow_info->QoSCallback(pMac, flow_info->HDDcontext,
+                                &pSession->ac_info[flow_info->ac_type].
+                                curr_QoSInfo[flow_info->tspec_mask - 1],
+                                SME_QOS_STATUS_OUT_OF_APSD_POWER_MODE_IND,
+                                flow_info->QosFlowID);
+      }
+      pEntry = pNextEntry;
+   }
+   return eHAL_STATUS_SUCCESS;
+}
+
 /*--------------------------------------------------------------------------
   \brief sme_QosProcessIntoUapsdMode() - Function to notify HDD when PMC 
   notifies SME-QoS that it is moving into UAPSD mode 
@@ -7272,6 +7480,42 @@ eHalStatus sme_QosProcessIntoUapsdMode(tpAniSirGlobal pMac)
       {
          flow_info->QoSCallback(pMac, flow_info->HDDcontext, 
                                 &pSession->ac_info[flow_info->ac_type].curr_QoSInfo[flow_info->tspec_mask - 1],
+                                SME_QOS_STATUS_INTO_APSD_POWER_MODE_IND,
+                                flow_info->QosFlowID);
+      }
+      pEntry = pNextEntry;
+   }
+   return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus sme_OffloadQosProcessIntoUapsdMode(tpAniSirGlobal pMac, tANI_U32 sessionId)
+{
+   sme_QosSessionInfo *pSession;
+   tListElem *pEntry= NULL, *pNextEntry = NULL;
+   sme_QosFlowInfoEntry *flow_info = NULL;
+
+   pEntry = csrLLPeekHead( &sme_QosCb.flow_list, VOS_FALSE );
+   if(!pEntry)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: %d: Flow List empty, can't search",
+                __func__, __LINE__);
+      return eHAL_STATUS_FAILURE;
+   }
+   while(pEntry)
+   {
+      pNextEntry = csrLLNext( &sme_QosCb.flow_list, pEntry, VOS_FALSE );
+      flow_info = GET_BASE_ADDR( pEntry, sme_QosFlowInfoEntry, link );
+      pSession = &sme_QosCb.sessionInfo[flow_info->sessionId];
+      /* only notify the flows which already successfully setup UAPSD */
+      if((sessionId == flow_info->sessionId) &&
+         (flow_info->QoSInfo.max_service_interval ||
+          flow_info->QoSInfo.min_service_interval) &&
+         (SME_QOS_REASON_REQ_SUCCESS == flow_info->reason))
+      {
+         flow_info->QoSCallback(pMac, flow_info->HDDcontext,
+                                &pSession->ac_info[flow_info->ac_type].
+                                curr_QoSInfo[flow_info->tspec_mask - 1],
                                 SME_QOS_STATUS_INTO_APSD_POWER_MODE_IND,
                                 flow_info->QosFlowID);
       }
@@ -7690,36 +7934,75 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
    //needs a reassoc. Will buffer a request if Addts is pending on any AC, 
    //which will safegaurd the above scenario, & also won't confuse PE with back 
    //to back Addts or Addts followed by Reassoc
-   if(sme_QosIsRspPending(sessionId, ac) || 
-      ( eHAL_STATUS_PMC_PENDING == pmcRequestFullPower(pMac, sme_QosPmcFullPowerCallback, pSession, eSME_REASON_OTHER)))
+   if(!pMac->psOffloadEnabled)
    {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+       if(sme_QosIsRspPending(sessionId, ac) ||
+          ( eHAL_STATUS_PMC_PENDING == pmcRequestFullPower(pMac,
+           sme_QosPmcFullPowerCallback, pSession, eSME_REASON_OTHER)))
+       {
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                 "%s: %d: On session %d buffering the AddTS request "
                    "for AC %d in state %d as Addts is pending "
                 "on other AC or waiting for full power",
                 __func__, __LINE__,
                 sessionId, ac, pACInfo->curr_state);
-      //buffer cmd
-      cmd.command = SME_QOS_RESEND_REQ;
-      cmd.pMac = pMac;
-      cmd.sessionId = sessionId;
-      cmd.u.resendCmdInfo.ac = ac;
-      cmd.u.resendCmdInfo.tspecMask = tspecMask;
-      cmd.u.resendCmdInfo.QoSInfo = *pQoSInfo;
-      if(!HAL_STATUS_SUCCESS(sme_QosBufferCmd(&cmd, VOS_FALSE)))
-      {
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+          //buffer cmd
+          cmd.command = SME_QOS_RESEND_REQ;
+          cmd.pMac = pMac;
+          cmd.sessionId = sessionId;
+          cmd.u.resendCmdInfo.ac = ac;
+          cmd.u.resendCmdInfo.tspecMask = tspecMask;
+          cmd.u.resendCmdInfo.QoSInfo = *pQoSInfo;
+          if(!HAL_STATUS_SUCCESS(sme_QosBufferCmd(&cmd, VOS_FALSE)))
+          {
+             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                    "%s: %d: On session %d unable to buffer the AddTS "
                    "request for AC %d TSPEC %d in state %d",
                    __func__, __LINE__,
                    sessionId, ac, tspecMask, pACInfo->curr_state);
-         // unable to buffer the request
-         // nothing is pending so vote powersave back on
-         pSession->readyForPowerSave = VOS_TRUE;
-         return SME_QOS_STATUS_MODIFY_SETUP_FAILURE_RSP;
-      }
-      return SME_QOS_STATUS_MODIFY_SETUP_PENDING_RSP;
+             // unable to buffer the request
+             // nothing is pending so vote powersave back on
+             pSession->readyForPowerSave = VOS_TRUE;
+             return SME_QOS_STATUS_MODIFY_SETUP_FAILURE_RSP;
+          }
+          return SME_QOS_STATUS_MODIFY_SETUP_PENDING_RSP;
+       }
    }
+   else
+   {
+       if(sme_QosIsRspPending(sessionId, ac) ||
+          (eHAL_STATUS_PMC_PENDING == pmcOffloadRequestFullPower(pMac, sessionId,
+           sme_QosPmcOffloadFullPowerCallback, pSession, eSME_REASON_OTHER)))
+       {
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: %d: On session %d buffering the AddTS request "
+                   "for AC %d in state %d as Addts is pending "
+                "on other AC or waiting for full power",
+                __func__, __LINE__,
+                sessionId, ac, pACInfo->curr_state);
+          //buffer cmd
+          cmd.command = SME_QOS_RESEND_REQ;
+          cmd.pMac = pMac;
+          cmd.sessionId = sessionId;
+          cmd.u.resendCmdInfo.ac = ac;
+          cmd.u.resendCmdInfo.tspecMask = tspecMask;
+          cmd.u.resendCmdInfo.QoSInfo = *pQoSInfo;
+          if(!HAL_STATUS_SUCCESS(sme_QosBufferCmd(&cmd, VOS_FALSE)))
+          {
+             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                   "%s: %d: On session %d unable to buffer the AddTS "
+                   "request for AC %d TSPEC %d in state %d",
+                   __func__, __LINE__,
+                   sessionId, ac, tspecMask, pACInfo->curr_state);
+             // unable to buffer the request
+             // nothing is pending so vote powersave back on
+             pSession->readyForPowerSave = VOS_TRUE;
+             return SME_QOS_STATUS_MODIFY_SETUP_FAILURE_RSP;
+          }
+          return SME_QOS_STATUS_MODIFY_SETUP_PENDING_RSP;
+       }
+   }
+
    //get into the stat m/c to see if the request can be granted
    switch(pACInfo->curr_state)
    {

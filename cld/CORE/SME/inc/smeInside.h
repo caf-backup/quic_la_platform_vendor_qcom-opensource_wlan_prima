@@ -56,6 +56,7 @@
 typedef struct sGenericPmcCmd
 {
     tANI_U32 size;  //sizeof the data in the union, if any
+    tANI_U32 sessionId;
     tRequestFullPowerReason fullPowerReason;
     tANI_BOOLEAN fReleaseWhenDone; //if TRUE, the command shall not put back to the queue, free te memory instead.
     union
@@ -199,10 +200,15 @@ void smeReleaseCommand(tpAniSirGlobal pMac, tSmeCmd *pCmd);
 void purgeSmeSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId);
 tANI_BOOLEAN smeCommandPending(tpAniSirGlobal pMac);
 tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
+tANI_BOOLEAN pmcOffloadProcessCommand(tpAniSirGlobal pMac,tSmeCmd *pCommand);
+
 //this function is used to abort a command where the normal processing of the command
 //is terminated without going through the normal path. it is here to take care of callbacks for
 //the command, if applicable.
 void pmcAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStopping );
+void pmcOffloadAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand,
+                             tANI_BOOLEAN fStopping );
+
 tANI_BOOLEAN qosProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 
 eHalStatus csrProcessScanCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
@@ -285,5 +291,10 @@ eHalStatus csrInitCountryValidChannelList(tpAniSirGlobal pMac, tANI_U8 revision)
 void csr_SetRevision(tpAniSirGlobal pMac, tANI_U8 revision);
 #endif
 ePhyChanBondState csrConvertCBIniValueToPhyCBState(v_U32_t cbIniValue);
+
+eHalStatus csrPsOffloadIsFullPowerNeeded(tpAniSirGlobal pMac,
+                                         tSmeCmd *pCommand,
+                                         tRequestFullPowerReason *pReason,
+                                         tANI_BOOLEAN *pfNeedPower);
 
 #endif //#if !defined( __SMEINSIDE_H )

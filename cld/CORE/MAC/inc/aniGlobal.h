@@ -1024,6 +1024,9 @@ typedef struct sAniSirGlobal
     tANI_U8 fScanOffload;
     /*  Based on ini variable or Fw Capability */
     tANI_U8 psOffloadEnabled;
+
+    /* Power Save offload Info */
+    tPmcOffloadInfo pmcOffloadInfo;
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS

@@ -2013,5 +2013,74 @@ void WDA_TrafficStatsTimerActivate(wpt_boolean activate);
 void WDA_SetEnableSSR(v_BOOL_t enableSSR);
 #endif	/* #ifdef QCA_WIFI_2_0 */
 
+/* Powersave Offload Changes */
+typedef struct sUapsd_Params
+{
+    tANI_U8 bkDeliveryEnabled:1;
+    tANI_U8 beDeliveryEnabled:1;
+    tANI_U8 viDeliveryEnabled:1;
+    tANI_U8 voDeliveryEnabled:1;
+    tANI_U8 bkTriggerEnabled:1;
+    tANI_U8 beTriggerEnabled:1;
+    tANI_U8 viTriggerEnabled:1;
+    tANI_U8 voTriggerEnabled:1;
+}tUapsd_Params, *tpUapsd_Params;
+
+/* Enable PowerSave Params */
+typedef struct sEnablePsParams
+{
+    tSirAddonPsReq psSetting;
+
+    tUapsd_Params uapsdParams;
+
+    tSirMacAddr bssid;
+
+    /* SmeSession Id or Vdev Id */
+    tANI_U32 sessionid;
+
+    /* success or failure */
+    tANI_U32   status;
+}tEnablePsParams, *tpEnablePsParams;
+
+/* Disable PowerSave Params */
+typedef struct sDisablePsParams
+{
+    tSirAddonPsReq psSetting;
+
+    tSirMacAddr bssid;
+
+    /* SmeSession Id or Vdev Id */
+    tANI_U32 sessionid;
+
+    /* success or failure */
+    tANI_U32   status;
+}tDisablePsParams, *tpDisablePsParams;
+
+/* Enable Uapsd Params */
+typedef struct sEnableUapsdParams
+{
+    tUapsd_Params uapsdParams;
+
+    tSirMacAddr bssid;
+
+    /* SmeSession Id or Vdev Id */
+    tANI_U32 sessionid;
+
+    /* success or failure */
+    tANI_U32   status;
+}tEnableUapsdParams, *tpEnableUapsdParams;
+
+/* Disable Uapsd Params */
+typedef struct sDisableUapsdParams
+{
+    tSirMacAddr bssid;
+
+    /* SmeSession Id or Vdev Id */
+    tANI_U32 sessionid;
+
+    /* success or failure */
+    tANI_U32   status;
+}tDisableUapsdParams, *tpDisableUapsdParams;
+
 VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps);
 #endif

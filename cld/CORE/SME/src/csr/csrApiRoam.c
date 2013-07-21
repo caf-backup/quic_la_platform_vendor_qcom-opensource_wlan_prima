@@ -511,8 +511,26 @@ eHalStatus csrStart(tpAniSirGlobal pMac)
         status = csrRoamStart(pMac);
         if(!HAL_STATUS_SUCCESS(status)) break;
         pMac->scan.f11dInfoApplied = eANI_BOOLEAN_FALSE;
-        status = pmcRegisterPowerSaveCheck(pMac, csrCheckPSReady, pMac);
-        if(!HAL_STATUS_SUCCESS(status)) break;
+
+        if(!pMac->psOffloadEnabled)
+        {
+            status = pmcRegisterPowerSaveCheck(pMac, csrCheckPSReady, pMac);
+            if(!HAL_STATUS_SUCCESS(status)) break;
+        }
+        else
+        {
+            for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+            {
+                status = pmcOffloadRegisterPowerSaveCheck(pMac, i,
+                                    csrCheckPSOffloadReady, pMac);
+                if(!HAL_STATUS_SUCCESS(status))
+                {
+                    smsLog(pMac, LOGE,
+                    "csrStart: Register Power Check Failed Session Id %x", i);
+                    return status;
+                }
+            }
+        }
         pMac->roam.sPendingCommands = 0;
         csrScanEnable(pMac);
 #if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
@@ -563,7 +581,19 @@ eHalStatus csrStop(tpAniSirGlobal pMac)
     csrScanFlushResult(pMac); //Do we want to do this?
     // deregister from PMC since we register during csrStart()
     // (ignore status since there is nothing we can do if it fails)
-    (void) pmcDeregisterPowerSaveCheck(pMac, csrCheckPSReady);
+    if(!pMac->psOffloadEnabled)
+    {
+        (void) pmcDeregisterPowerSaveCheck(pMac, csrCheckPSReady);
+    }
+    else
+    {
+        for(sessionId = 0; sessionId < CSR_ROAM_SESSION_MAX; sessionId++)
+        {
+            pmcOffloadDeregisterPowerSaveCheck(pMac, sessionId,
+                                               csrCheckPSOffloadReady);
+        }
+    }
+
     //Reset the domain back to the deault
     pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
     csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_FALSE );
@@ -13650,6 +13680,10 @@ static void csrRoamLinkDown(tpAniSirGlobal pMac, tANI_U32 sessionId)
    {
        pMac->roam.configParam.doBMPSWorkaround = 0;
    }
+
+   if(pMac->psOffloadEnabled)
+       pmcOffloadCleanup(pMac, sessionId);
+
 }
 
 void csrRoamTlStatsTimerHandler(void *pv)
@@ -15453,15 +15487,144 @@ eHalStatus csrIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     return ( status );
 }
 
+eHalStatus csrPsOffloadIsFullPowerNeeded(tpAniSirGlobal pMac,
+                                         tSmeCmd *pCommand,
+                                         tRequestFullPowerReason *pReason,
+                                         tANI_BOOLEAN *pfNeedPower)
+{
+    tANI_BOOLEAN fNeedFullPower = eANI_BOOLEAN_FALSE;
+    tRequestFullPowerReason reason = eSME_REASON_OTHER;
+    tPmcState pmcState;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if(pfNeedPower)
+    {
+        *pfNeedPower = eANI_BOOLEAN_FALSE;
+    }
+
+    /* We only handle CSR commands */
+    if(!(eSmeCsrCommandMask & pCommand->command))
+    {
+        return eHAL_STATUS_SUCCESS;
+    }
+
+    /*
+     * No need to request for full power for the following commands
+     * Scan Related Command
+     * IMPS is handled in Fw so no need
+     */
+    if(eSmeCommandScan == pCommand->command)
+    {
+        return eHAL_STATUS_SUCCESS;
+    }
+
+    /*
+     * Check PMC state first
+     * Commands which require Full Power
+     * 1) eSmeCommandRoam
+     *       -----eCsrForcedDisassoc
+     *       -----eCsrForcedDisassocMICFailure
+     *       -----eCsrSmeIssuedDisassocForHandoff
+     *       -----eCsrForcedDeauth
+     *       -----eCsrHddIssuedReassocToSameAP
+     *       -----eCsrSmeIssuedReassocToSameAP
+     *       -----eCsrCapsChange
+     *       -----AddTs
+     *       -----DelTs
+     *       ----- etc
+     * 2) eSmeCommandWmStatusChange
+     * 3) eSmeCommandTdlsAddPeer
+     */
+    pmcState = pmcOffloadGetPmcState(pMac, pCommand->sessionId);
+    switch(pmcState)
+    {
+        case REQUEST_BMPS:
+        case BMPS:
+        case REQUEST_START_UAPSD:
+        case REQUEST_STOP_UAPSD:
+        case UAPSD:
+            if(eSmeCommandRoam == pCommand->command)
+            {
+                switch (pCommand->u.roamCmd.roamReason)
+                {
+                    case eCsrForcedDisassoc:
+                    case eCsrForcedDisassocMICFailure:
+                        reason = eSME_LINK_DISCONNECTED_BY_HDD;
+                    case eCsrSmeIssuedDisassocForHandoff:
+                    case eCsrForcedDeauth:
+                    case eCsrHddIssuedReassocToSameAP:
+                    case eCsrSmeIssuedReassocToSameAP:
+                    case eCsrCapsChange:
+                    default:
+                        fNeedFullPower = eANI_BOOLEAN_TRUE;
+                        break;
+                }
+            }
+            else if(eSmeCommandWmStatusChange == pCommand->command)
+            {
+                /* need full power for all */
+                fNeedFullPower = eANI_BOOLEAN_TRUE;
+                reason = eSME_LINK_DISCONNECTED_BY_OTHER;
+            }
+#ifdef FEATURE_WLAN_TDLS
+            else if(eSmeCommandTdlsAddPeer == pCommand->command)
+            {
+                /* TDLS link is getting established. need full power  */
+                fNeedFullPower = eANI_BOOLEAN_TRUE;
+                reason = eSME_FULL_PWR_NEEDED_BY_TDLS_PEER_SETUP;
+            }
+#endif
+            break;
+       case STOPPED:
+            /* We are not supposed to do anything */
+            smsLog( pMac, LOGE,
+            FL("cannot process because PMC is in stopped/standby state %d"),
+                pmcState );
+            status = eHAL_STATUS_FAILURE;
+            break;
+        default:
+            /* No need to ask for full power. This has to be FULL_POWER state */
+            break;
+    }
+
+    if(pReason)
+    {
+        *pReason = reason;
+    }
+    if(pfNeedPower)
+    {
+        *pfNeedPower = fNeedFullPower;
+    }
+    return status;
+}
+
 static eHalStatus csrRequestFullPower( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_BOOLEAN fNeedFullPower = eANI_BOOLEAN_FALSE;
     tRequestFullPowerReason reason = eSME_REASON_OTHER;
-    status = csrIsFullPowerNeeded( pMac, pCommand, &reason, &fNeedFullPower );
+
+    if(pMac->psOffloadEnabled)
+        status = csrPsOffloadIsFullPowerNeeded(pMac, pCommand,
+                                     &reason, &fNeedFullPower);
+    else
+        status = csrIsFullPowerNeeded(pMac, pCommand, &reason,
+                                      &fNeedFullPower);
+
     if( fNeedFullPower && HAL_STATUS_SUCCESS( status ) )
     {
-        status = pmcRequestFullPower(pMac, csrFullPowerCallback, pMac, reason);
+        if(!pMac->psOffloadEnabled)
+        {
+            status = pmcRequestFullPower(pMac, csrFullPowerCallback,
+                                         pMac, reason);
+        }
+        else
+        {
+            status = pmcOffloadRequestFullPower(pMac, pCommand->sessionId,
+                                                csrFullPowerOffloadCallback,
+                                                pMac, reason);
+        }
+
     }
     return ( status );
 }

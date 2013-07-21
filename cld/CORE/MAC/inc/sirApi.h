@@ -2614,8 +2614,17 @@ typedef struct sSirSmeExitBmpsInd
     tANI_U16  mesgLen;
     tSirResultCodes  statusCode;
     tExitBmpsReason  exitBmpsReason;  /*Reason for exiting BMPS */
-
+    tANI_U32 smeSessionId;
 } tSirSmeExitBmpsInd, *tpSirSmeExitBmpsInd;
+
+// MAC SW --> SME
+// Message indicating to SME for channel switch
+typedef struct sSirSmePreSwitchChannelInd
+{
+    tANI_U16  mesgType;               /* eWNI_SME_PRE_SWITCH_CHL_IND */
+    tANI_U16  mesgLen;
+    tANI_U8   sessionId;
+} tSirSmePreSwitchChannelInd, *tpSirSmePreSwitchChannelInd;
 
 
 //
@@ -4149,5 +4158,22 @@ typedef struct sSirUpdateChan
     tANI_U8 numChan;
     tSirUpdateChanParam chanParam[1];
 } tSirUpdateChanList, *tpSirUpdateChanList;
+
+typedef enum eSirAddonPsReq
+{
+    eSIR_ADDON_NOTHING,
+    eSIR_ADDON_ENABLE_UAPSD,
+    eSIR_ADDON_DISABLE_UAPSD
+}tSirAddonPsReq;
+
+/* Powersave Offload data */
+typedef struct sSirPsReqData
+{
+    /* BSSID */
+    tSirMacAddr bssId;
+
+    /* Additional Info */
+    tSirAddonPsReq addOnReq;
+} tSirPsReqData,*tpSirPsReqData;
 
 #endif /* __SIR_API_H */
