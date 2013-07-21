@@ -638,7 +638,17 @@ htt_tx_desc_init(
     adf_nbuf_frag_push_head(
         msdu,
         frag_size,
-        (char *) sw_tx_desc->tx_bd_buf, /* virtual addr */
+        /*
+         * Pass in the address of the SW tx descriptor rather than the
+         * virtual address of the Tx BD itself.
+         * The underlying layers don't need to use the Tx BD virtual address;
+         * they only care about the physical address.
+         * If this layer needs need to find the Tx BD, it can use the
+         * sw_tx_desc->tx_bd_buf
+         * We retrieve this SW tx descriptor pointer later during the tx_send
+         * function, e.g. to check whether the frame is data or mgmt.
+         */
+        (char *) sw_tx_desc, //sw_tx_desc->tx_bd_buf, /* virtual addr */
         htt_tx_desc_paddr_lo/*phy addr LSBs*/, 0 /* phys addr MSBs - n/a */);
 }
 
