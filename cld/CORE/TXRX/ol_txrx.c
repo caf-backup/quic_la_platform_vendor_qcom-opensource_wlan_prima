@@ -291,7 +291,8 @@ ol_txrx_pdev_attach(
     pdev->tx_desc.pool_size = desc_pool_size;
     for (i = 0; i < desc_pool_size; i++) {
         void *htt_tx_desc;
-        htt_tx_desc = htt_tx_desc_alloc(pdev->htt_pdev);
+        u_int32_t paddr_lo;
+        htt_tx_desc = htt_tx_desc_alloc(pdev->htt_pdev, &paddr_lo);
         if (! htt_tx_desc) {
             adf_os_print("%s: failed to alloc HTT tx desc (%d of %d)\n",
                 __func__, i, desc_pool_size);
@@ -303,6 +304,7 @@ ol_txrx_pdev_attach(
             goto fail4;
         }
         pdev->tx_desc.array[i].tx_desc.htt_tx_desc = htt_tx_desc;
+	pdev->tx_desc.array[i].tx_desc.htt_tx_desc_paddr = paddr_lo;
     }
 
     /* link SW tx descs into a freelist */

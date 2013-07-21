@@ -201,10 +201,11 @@ htt_tx_compl_desc_id(void *iterator, int num);
  *  HTT tx descriptor will be maintained until the driver is unloaded.
  *
  * @param htt_pdev - handle to the HTT instance making the allocation
+ * @param[OUT] paddr_lo - physical address of the HTT descriptor
  * @return success -> descriptor handle, -OR- failure -> NULL
  */
 void *
-htt_tx_desc_alloc(htt_pdev_handle htt_pdev);
+htt_tx_desc_alloc(htt_pdev_handle htt_pdev, u_int32_t *paddr_lo);
 
 /**
  * @brief Free a HTT abstract tx descriptor.
@@ -231,10 +232,10 @@ htt_tx_desc_free(htt_pdev_handle htt_pdev, void *htt_tx_desc);
  *  function assumes the tx frame is the default frame type, as specified
  *  by ol_cfg_frame_type.  "Raw" frames need to be transmitted through the
  *  alternate htt_tx_send_nonstd function.
+ *  The tx descriptor has already been attached to the adf_nbuf object during
+ *  a preceding call to htt_tx_desc_init.
  *
  * @param htt_pdev - the handle of the physical device sending the tx data
- * @param desc - the virtual handle of the descriptor, indirectly including
- *      the MSDU it refers to
  * @param msdu - the frame being transmitted
  * @param msdu_id - unique ID for the frame being transmitted
  * @return 0 -> success, -OR- 1 -> failure
@@ -242,7 +243,6 @@ htt_tx_desc_free(htt_pdev_handle htt_pdev, void *htt_tx_desc);
 int
 htt_tx_send_std(
     htt_pdev_handle htt_pdev,
-    void *desc,
     adf_nbuf_t msdu,
     u_int16_t msdu_id);
 
@@ -262,7 +262,6 @@ htt_tx_sched(htt_pdev_handle pdev);
 int
 htt_tx_send_nonstd(
     htt_pdev_handle htt_pdev,
-    void *desc,
     adf_nbuf_t msdu,
     u_int16_t msdu_id,
     enum htt_pkt_type pkt_type);
@@ -279,7 +278,8 @@ htt_tx_send_nonstd(
  *  value (0x1f).
  *
  * @param pdev - the handle of the physical device sending the tx data
- * @param desc - abstract handle to the tx descriptor
+ * @param htt_tx_desc - abstract handle to the tx descriptor
+ * @param htt_tx_desc_paddr_lo - physical address of the HTT tx descriptor
  * @param desc_id - ID to tag the descriptor with.
  *      The target FW uses this ID to identify to the host which MSDUs
  *      the target is referring to in its tx completion / postpone / drop
@@ -298,20 +298,38 @@ void
 htt_tx_desc_init(
     htt_pdev_handle pdev,
     void *htt_tx_desc,
+    u_int32_t htt_tx_desc_paddr_lo,
     u_int16_t msdu_id,
     adf_nbuf_t msdu,
     struct htt_msdu_info_t *msdu_info);
 #else
+
+/*
+ * Provide a constant to specify the offset of the HTT portion of the
+ * HTT tx descriptor, to avoid having to export the descriptor defintion.
+ * The htt module checks internally that this exported offset is consistent
+ * with the private tx descriptor definition.
+ *
+ * Similarly, export a definition of the HTT tx descriptor size, and then
+ * check internally that this exported constant matches the private tx
+ * descriptor definition.
+ */
+#define HTT_TX_DESC_VADDR_OFFSET 8
+#define HTT_TX_DESC_SIZE 24
 static inline
 void
 htt_tx_desc_init(
     htt_pdev_handle pdev,
     void *htt_tx_desc,
+    u_int32_t htt_tx_desc_paddr_lo,
     u_int16_t msdu_id,
     adf_nbuf_t msdu,
     struct htt_msdu_info_t *msdu_info)
 {
     u_int32_t *word0, *word1, *word3;
+    struct htt_host_tx_desc_t *htt_host_tx_desc = (struct htt_host_tx_desc_t *)
+        (((char *) htt_tx_desc) - HTT_TX_DESC_VADDR_OFFSET);
+
 
     word0 = (u_int32_t *) htt_tx_desc;
     word1 = word0 + 1;
@@ -335,6 +353,36 @@ htt_tx_desc_init(
     HTT_TX_DESC_FRM_ID_SET(*word1, msdu_id);
     /* Initialize peer_id to INVALID_PEER bcoz this is NOT Reinjection path*/
     *word3 = HTT_INVALID_PEER;
+
+    /*
+     * Specify that the data provided by the OS is a bytestream,
+     * and thus should not be byte-swapped during the HIF download
+     * even if the host is big-endian.
+     * There could be extra fragments added before the OS's fragments,
+     * e.g. for TSO, so it's incorrect to clear the frag 0 wordstream flag.
+     * Instead, clear the wordstream flag for the final fragment, which
+     * is certain to be (one of the) fragment(s) provided by the OS.
+     * Setting the flag for this final fragment suffices for specifying
+     * all fragments provided by the OS rather than added by the driver.
+     */
+    adf_nbuf_set_frag_is_wordstream(msdu, adf_nbuf_get_num_frags(msdu) - 1, 0);
+
+    /* store a link to the HTT tx descriptor within the netbuf */
+    adf_nbuf_frag_push_head(
+        msdu,
+        HTT_TX_DESC_SIZE,
+        (char *) htt_host_tx_desc, /* virtual addr */
+        htt_tx_desc_paddr_lo, 0 /* phys addr MSBs - n/a */);
+
+    /*
+     * Indicate that the HTT header (and HTC header) is a meta-data
+     * "wordstream", i.e. series of u_int32_t, rather than a data
+     * bytestream.
+     * This allows the HIF download to byteswap the HTT + HTC headers if
+     * the host is big-endian, to convert to the target's little-endian
+     * format.
+     */
+    adf_nbuf_set_frag_is_wordstream(msdu, 0, 1);
 }
 #endif /* QCA_WIFI_ISOC */
 

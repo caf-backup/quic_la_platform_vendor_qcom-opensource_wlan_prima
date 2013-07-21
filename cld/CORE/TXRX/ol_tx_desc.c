@@ -90,21 +90,26 @@ ol_tx_desc_ll(
     /* initialize the HW tx descriptor */
     htt_tx_desc_init(
         pdev->htt_pdev, tx_desc->htt_tx_desc,
+	tx_desc->htt_tx_desc_paddr,
         ol_tx_desc_id(pdev, tx_desc),
         netbuf,
         &msdu_info->htt);
 
-    /* initialize the fragmentation descriptor */
+    /*
+     * Initialize the fragmentation descriptor.
+     * Skip the prefix fragment (HTT tx descriptor) that was added
+     * during the call to htt_tx_desc_init above.
+     */
     num_frags = adf_nbuf_get_num_frags(netbuf);
-    htt_tx_desc_num_frags(pdev->htt_pdev, tx_desc->htt_tx_desc, num_frags);
-    for (i = 0; i < num_frags; i++) {
+    htt_tx_desc_num_frags(pdev->htt_pdev, tx_desc->htt_tx_desc, num_frags-1);
+    for (i = 1; i < num_frags; i++) {
         u_int32_t frag_len;
         u_int32_t frag_paddr;
 
         frag_len = adf_nbuf_get_frag_len(netbuf, i);
         frag_paddr = adf_nbuf_get_frag_paddr_lo(netbuf, i);
         htt_tx_desc_frag(
-            pdev->htt_pdev, tx_desc->htt_tx_desc, i, frag_paddr, frag_len);
+            pdev->htt_pdev, tx_desc->htt_tx_desc, i-1, frag_paddr, frag_len);
     }
     return tx_desc;
 }

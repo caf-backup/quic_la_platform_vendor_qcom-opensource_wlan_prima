@@ -335,6 +335,7 @@ ol_tx_hl_base(
         /* initialize the HW tx descriptor */
         htt_tx_desc_init(
             pdev->htt_pdev, tx_desc->htt_tx_desc,
+	    tx_desc->htt_tx_desc_paddr,
             ol_tx_desc_id(pdev, tx_desc),
             msdu,
             &tx_msdu_info.htt);
@@ -450,6 +451,7 @@ ol_txrx_mgmt_send(
         htt_tx_desc_mpdu_header(tx_desc->htt_tx_desc, 0);
         htt_tx_desc_init(
             pdev->htt_pdev, tx_desc->htt_tx_desc,
+	    tx_desc->htt_tx_desc_paddr,
             ol_tx_desc_id(pdev, tx_desc),
             tx_mgmt_frm,
             &tx_msdu_info.htt);

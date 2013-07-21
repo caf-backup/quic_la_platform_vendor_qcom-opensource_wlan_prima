@@ -230,7 +230,7 @@ htt_tx_mgmt_desc_pool_free(struct htt_pdev_t *pdev)
 }
 
 void *
-htt_tx_desc_alloc(htt_pdev_handle pdev)
+htt_tx_desc_alloc(htt_pdev_handle pdev, u_int32_t *paddr_lo)
 {
     struct htt_host_tx_desc_t *htt_host_tx_desc; /* includes HTC hdr space */
     struct htt_tx_msdu_desc_t *htt_tx_desc;      /* doesn't include HTC hdr */
@@ -266,6 +266,11 @@ htt_tx_desc_alloc(htt_pdev_handle pdev)
         *fragmentation_descr_field_ptr =
             HTT_TX_DESC_PADDR(pdev, htt_tx_desc) + HTT_TX_DESC_LEN;
     }
+    /*
+     * Include the headroom for the HTC frame header when specifying the
+     * physical address for the HTT tx descriptor.
+     */
+    *paddr_lo = (u_int32_t) HTT_TX_DESC_PADDR(pdev, htt_host_tx_desc);
     /*
      * The allocated tx descriptor space includes headroom for a
      * HTC frame header.  Hide this headroom, so that we don't have
@@ -317,6 +322,7 @@ htt_tx_sched(htt_pdev_handle pdev)
 
         HTT_TX_NBUF_QUEUE_REMOVE(pdev, msdu);
         while (msdu != NULL){
+	int not_accepted;
         /* packet length includes HTT tx desc frag added above */
         packet_len = adf_nbuf_len(msdu);
         if (packet_len < download_len) {
@@ -332,7 +338,9 @@ htt_tx_sched(htt_pdev_handle pdev)
         }
 
 
-        if(HTCSendDataPkt(pdev->htc_pdev, msdu, pdev->htc_endpoint, download_len)){
+        not_accepted = HTCSendDataPkt(
+            pdev->htc_pdev, msdu, pdev->htc_endpoint, download_len);
+        if (not_accepted) {
             HTT_TX_NBUF_QUEUE_ADD(pdev, msdu);
             return;
         }
@@ -344,48 +352,13 @@ htt_tx_sched(htt_pdev_handle pdev)
 int
 htt_tx_send_std(
         htt_pdev_handle pdev,
-        void *desc,
         adf_nbuf_t msdu,
         u_int16_t msdu_id)
 {
 
     int download_len = pdev->download_len;
 
-    struct htt_host_tx_desc_t *htt_host_tx_desc;
     int packet_len;
-
-    htt_host_tx_desc = (struct htt_host_tx_desc_t *)
-        (((char *) desc) -
-         offsetof(struct htt_host_tx_desc_t, align32.tx_desc));
-
-    /*
-    * Specify that the data provided by the OS is a bytestream,
-    * and thus should not be byte-swapped during the HIF download
-    * even if the host is big-endian.
-    * There could be extra fragments added before the OS's fragments,
-    * e.g. for TSO, so it's incorrect to clear the frag 0 wordstream flag.
-    * Instead, clear the wordstream flag for the final fragment, which
-    * is certain to be (one of the) fragment(s) provided by the OS.
-    * Setting the flag for this final fragment suffices for specifying
-    * all fragments provided by the OS rather than added by the driver.
-     */
-    adf_nbuf_set_frag_is_wordstream(msdu, adf_nbuf_get_num_frags(msdu) - 1, 0);
-    adf_nbuf_frag_push_head(
-            msdu,
-            sizeof(struct htt_host_tx_desc_t),
-            (char *) htt_host_tx_desc, /* virtual addr */
-            (u_int32_t) HTT_TX_DESC_PADDR(pdev, htt_host_tx_desc),/*phy addr LSBs*/
-            0 /* phys addr MSBs - n/a */);
-
-    /*
-    * Indicate that the HTT header (and HTC header) is a meta-data
-    * "wordstream", i.e. series of u_int32_t, rather than a data
-    * bytestream.
-    * This allows the HIF download to byteswap the HTT + HTC headers if
-    * the host is big-endian, to convert to the target's little-endian
-    * format.
-     */
-    adf_nbuf_set_frag_is_wordstream(msdu, 0, 1);
 
     /* packet length includes HTT tx desc frag added above */
     packet_len = adf_nbuf_len(msdu);
@@ -401,7 +374,7 @@ htt_tx_send_std(
         download_len = packet_len;
     }
 
-    if (adf_nbuf_queue_len(&pdev->txnbufq) > 0){
+    if (adf_nbuf_queue_len(&pdev->txnbufq) > 0) {
         HTT_TX_NBUF_QUEUE_ADD(pdev, msdu);
         htt_tx_sched(pdev);
         return 0;
@@ -418,25 +391,22 @@ htt_tx_send_std(
 static inline int
 htt_tx_send_base(
     htt_pdev_handle pdev,
-    void *desc,
     adf_nbuf_t msdu,
     u_int16_t msdu_id,
     int download_len)
 {
     struct htt_host_tx_desc_t *htt_host_tx_desc;
-    //struct htt_tx_msdu_desc_t *htt_tx_desc = desc;
     struct htt_htc_pkt *pkt;
     int packet_len;
 
-     htt_host_tx_desc = (struct htt_host_tx_desc_t *)
-         (((char *) desc) -
-         offsetof(struct htt_host_tx_desc_t, align32.tx_desc));
-
     /*
-     * alternative -
-     * Have the caller (ol_tx) provide an empty HTC_PACKET struct
-     * (allocated as part of the ol_tx_desc).
+     * The HTT tx descriptor was attached as the prefix fragment to the
+     * msdu netbuf during the call to htt_tx_desc_init.
+     * Retrieve it so we can provide its HTC header space to HTC.
      */
+    htt_host_tx_desc = (struct htt_host_tx_desc_t *)
+        adf_nbuf_get_frag_vaddr(msdu, 0);
+
     pkt = htt_htc_pkt_alloc(pdev);
     if (!pkt) {
         return 1; /* failure */
@@ -444,34 +414,6 @@ htt_tx_send_base(
 
     pkt->msdu_id = msdu_id;
     pkt->pdev_ctxt = pdev->txrx_pdev;
-
-    /*
-     * Specify that the data provided by the OS is a bytestream,
-     * and thus should not be byte-swapped during the HIF download
-     * even if the host is big-endian.
-     * There could be extra fragments added before the OS's fragments,
-     * e.g. for TSO, so it's incorrect to clear the frag 0 wordstream flag.
-     * Instead, clear the wordstream flag for the final fragment, which
-     * is certain to be (one of the) fragment(s) provided by the OS.
-     * Setting the flag for this final fragment suffices for specifying
-     * all fragments provided by the OS rather than added by the driver.
-     */
-    adf_nbuf_set_frag_is_wordstream(msdu, adf_nbuf_get_num_frags(msdu) - 1, 0);
-    adf_nbuf_frag_push_head(
-        msdu,
-        sizeof(struct htt_host_tx_desc_t),
-        (char *) htt_host_tx_desc, /* virtual addr */
-        (u_int32_t) HTT_TX_DESC_PADDR(pdev, htt_host_tx_desc),/*phy addr LSBs*/
-        0 /* phys addr MSBs - n/a */);
-    /*
-     * Indicate that the HTT header (and HTC header) is a meta-data
-     * "wordstream", i.e. series of u_int32_t, rather than a data
-     * bytestream.
-     * This allows the HIF download to byteswap the HTT + HTC headers if
-     * the host is big-endian, to convert to the target's little-endian
-     * format.
-     */
-    adf_nbuf_set_frag_is_wordstream(msdu, 0, 1);
 
     /* packet length includes HTT tx desc frag added above */
     packet_len = adf_nbuf_len(msdu);
@@ -505,17 +447,16 @@ htt_tx_send_base(
 int
 htt_tx_send_std(
     htt_pdev_handle pdev,
-    void *desc,
     adf_nbuf_t msdu,
     u_int16_t msdu_id)
 {
-    return htt_tx_send_base(pdev, desc, msdu, msdu_id, pdev->download_len);
+    return htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len);
 }
 
 int
 htt_tx_send_nonstd(
     htt_pdev_handle pdev,
-    void *desc, adf_nbuf_t msdu,
+    adf_nbuf_t msdu,
     u_int16_t msdu_id,
     enum htt_pkt_type pkt_type)
 {
@@ -527,7 +468,7 @@ htt_tx_send_nonstd(
         HTT_TX_HDR_SIZE_802_1Q +
         HTT_TX_HDR_SIZE_LLC_SNAP +
         ol_cfg_tx_download_size(pdev->ctrl_pdev);
-    return htt_tx_send_base(pdev, desc, msdu, msdu_id, download_len);
+    return htt_tx_send_base(pdev, msdu, msdu_id, download_len);
 }
 
 #endif /*ATH_11AC_TXCOMPACT*/
