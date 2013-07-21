@@ -2543,15 +2543,23 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ?
                                    WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
 
-                //Disable BMPS and IMPS if enabled
-                //before starting Go
-                if(WLAN_HDD_P2P_GO == pAdapter->device_mode)
+                /*
+                 * If Powersave Offload is enabled
+                 * Fw will take care incase of concurrency
+                 */
+                if(!pHddCtx->cfg_ini->enablePowersaveOffload)
                 {
-                    if(VOS_STATUS_E_FAILURE ==
-                       hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_P2P_GO))
+
+                    //Disable BMPS and IMPS if enabled
+                    //before starting Go
+                    if(WLAN_HDD_P2P_GO == pAdapter->device_mode)
                     {
-                       //Fail to Exit BMPS
-                       VOS_ASSERT(0);
+                        if(VOS_STATUS_E_FAILURE ==
+                           hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_P2P_GO))
+                        {
+                           //Fail to Exit BMPS
+                           VOS_ASSERT(0);
+                        }
                     }
                 }
 
@@ -2621,10 +2629,20 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 status = wlan_hdd_change_iface_to_sta_mode(ndev, type);
                 if (status != VOS_STATUS_SUCCESS)
                         return status;
-                /* In case of JB, for P2P-GO, only change interface will be called,
-                 * This is the right place to enable back bmps_imps()
+                /*
+                 * If Powersave Offload is enabled
+                 * Fw will take care incase of concurrency
                  */
-                hdd_enable_bmps_imps(pHddCtx);
+                if(!pHddCtx->cfg_ini->enablePowersaveOffload)
+                {
+
+                    /*
+                     * In case of JB, for P2P-GO,
+                     * only change interface will be called,
+                     * This is the right place to enable back bmps_imps()
+                     */
+                    hdd_enable_bmps_imps(pHddCtx);
+                }
                 goto done;
             case NL80211_IFTYPE_AP:
             case NL80211_IFTYPE_P2P_GO:
@@ -5443,7 +5461,7 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
     int status = 0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev );
     VOS_STATUS exitbmpsStatus = VOS_STATUS_E_INVAL;
-    hdd_context_t *pHddCtx = NULL;
+    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     ENTER();
 
@@ -5476,19 +5494,28 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return status;
     }
 
-    //If Device Mode is Station Concurrent Sessions Exit BMps
-    //P2P Mode will be taken care in Open/close adapter
-    if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
-        (vos_concurrent_sessions_running()))
+    /*
+     * If Powersave Offload is enabled
+     * Fw will take care incase of concurrency
+     */
+    if(!pHddCtx->cfg_ini->enablePowersaveOffload)
     {
-        v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
-
-        if (NULL != pVosContext)
+        //If Device Mode is Station Concurrent Sessions Exit BMps
+        //P2P Mode will be taken care in Open/close adapter
+        if((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+            (vos_concurrent_sessions_running()))
         {
-            pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
-            if(NULL != pHddCtx)
+            v_CONTEXT_t pVosContext =
+                vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+
+            if (NULL != pVosContext)
             {
-               exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+                pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+                if(NULL != pHddCtx)
+                {
+                   exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx,
+                                          WLAN_HDD_INFRA_STATION);
+                }
             }
         }
     }
@@ -5508,14 +5535,20 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 
     if (0 > status)
     {
-        //ReEnable BMPS if disabled
-        if((VOS_STATUS_SUCCESS == exitbmpsStatus) &&
-            (NULL != pHddCtx))
+        /*
+         * If Powersave Offload is enabled
+         * Fw will take care incase of concurrency
+         */
+        if(!pHddCtx->cfg_ini->enablePowersaveOffload)
         {
-           //ReEnable Bmps and Imps back
-           hdd_enable_bmps_imps(pHddCtx);
+            //ReEnable BMPS if disabled
+            if((VOS_STATUS_SUCCESS == exitbmpsStatus) &&
+                (NULL != pHddCtx))
+            {
+               //ReEnable Bmps and Imps back
+               hdd_enable_bmps_imps(pHddCtx);
+            }
         }
-
         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: connect failed", __func__);
         return status;
     }
@@ -6533,7 +6566,7 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_context_t *pHddCtx;
-    VOS_STATUS vos_status;
+    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
     ENTER();
 
@@ -6576,7 +6609,8 @@ static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
      *on successful execution of the function call
      *we are oppositely mapped w.r.t mode in the driver
      **/
-    vos_status =  wlan_hdd_enter_bmps(pAdapter, !mode);
+    if(!pHddCtx->cfg_ini->enablePowersaveOffload)
+        vos_status =  wlan_hdd_enter_bmps(pAdapter, !mode);
 
     EXIT();
     if (VOS_STATUS_E_FAILURE == vos_status)
@@ -7033,11 +7067,19 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     if ((SIR_MAC_TDLS_SETUP_RSP == action_code) ||
         (SIR_MAC_TDLS_DIS_RSP == action_code))
     {
-        if (TRUE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
+        /*
+         * If Powersave Offload is enabled
+         * Fw will take care incase of concurrency
+         */
+        if(!pHddCtx->cfg_ini->enablePowersaveOffload)
         {
-            VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
-                       "%s: Sending Disc/Setup Rsp Frame.Disable BMPS", __func__);
-            hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+            if (TRUE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
+            {
+                VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                           "%s: Sending Disc/Setup Rsp Frame.Disable BMPS",
+                           __func__);
+                hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+            }
         }
         wlan_hdd_tdls_set_cap(pAdapter, peerMac, eTDLS_CAP_SUPPORTED);
     }

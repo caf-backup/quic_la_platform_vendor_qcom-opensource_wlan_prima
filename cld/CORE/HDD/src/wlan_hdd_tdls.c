@@ -1450,26 +1450,32 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter)
                 __func__, MAC_ADDR_ARRAY (curr_peer->peerMac));
         return;
     }
-
-    if ((TDLS_CTX_MAGIC != pHddCtx->tdls_scan_ctxt.magic) &&
-        (0 == pHddCtx->connected_peer_count) &&
-        (0 == pHddTdlsCtx->discovery_sent_cnt))
+    /*
+     * If Powersave Offload is enabled
+     * Fw will take care incase of concurrency
+     */
+    if(!pHddCtx->cfg_ini->enablePowersaveOffload)
     {
-        if (FALSE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
+        if ((TDLS_CTX_MAGIC != pHddCtx->tdls_scan_ctxt.magic) &&
+            (0 == pHddCtx->connected_peer_count) &&
+            (0 == pHddTdlsCtx->discovery_sent_cnt))
         {
-            VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
-                       "%s: No TDLS peer connected/discovery sent. Enable BMPS",
-                       __func__);
-            hdd_enable_bmps_imps(pHddCtx);
+            if (FALSE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
+            {
+                VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                     "%s: No TDLS peer connected/discovery sent. Enable BMPS",
+                      __func__);
+                hdd_enable_bmps_imps(pHddCtx);
+            }
         }
-    }
-    else
-    {
-        if (TRUE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
+        else
         {
-            VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
-                       "%s: TDLS peer connected. Disable BMPS", __func__);
-            hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+            if (TRUE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pAdapter)))
+            {
+                VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                           "%s: TDLS peer connected. Disable BMPS", __func__);
+                hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+            }
         }
     }
     return;
@@ -1677,11 +1683,18 @@ static void wlan_hdd_tdls_pre_setup(struct work_struct *work)
 
     if (NULL == curr_peer)
         return;
-
-    if (TRUE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pHddTdlsCtx->pAdapter)))
+    /*
+     * If Powersave Offload is enabled
+     * Fw will take care incase of concurrency
+     */
+    if(!pHddCtx->cfg_ini->enablePowersaveOffload)
     {
-        VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,"%s: Disable BMPS", __func__);
-        hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+        if (TRUE == sme_IsPmcBmps(WLAN_HDD_GET_HAL_CTX(pHddTdlsCtx->pAdapter)))
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                           "%s: Disable BMPS", __func__);
+            hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+        }
     }
 
     temp_peer = wlan_hdd_tdls_is_progress(pHddCtx, NULL, 0, FALSE);

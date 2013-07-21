@@ -778,45 +778,57 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
                 cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0, GFP_KERNEL);
             }
 
-            //If the Device Mode is Station
-            // and the P2P Client is Connected
-            //Enable BMPS
-
-            // In case of JB, as Change-Iface may or maynot be called for p2p0
-            // Enable BMPS/IMPS in case P2P_CLIENT disconnected
-            if(((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-                (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)) &&
-                (vos_concurrent_sessions_running()))
+            /*
+             * If Powersave Offload is enabled
+             * Fw will take care of powersave
+             * incase of concurrency
+             */
+            if(!pHddCtx->cfg_ini->enablePowersaveOffload)
             {
-               //Enable BMPS only of other Session is P2P Client
-               hdd_context_t *pHddCtx = NULL;
-               v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
-
-               if (NULL != pVosContext)
+               /*
+                * If the Device Mode is Station
+                * and the P2P Client is Connected
+                * Enable BMPS
+                * In case of JB, as Change-Iface may or maynot
+                * be called for p2p0
+                * Enable BMPS/IMPS in case P2P_CLIENT disconnected
+                */
+               if(((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                   (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)) &&
+                   (vos_concurrent_sessions_running()))
                {
-                   pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+                  //Enable BMPS only of other Session is P2P Client
+                  hdd_context_t *pHddCtx = NULL;
+                  v_CONTEXT_t pVosContext =
+                       vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
 
-                   if(NULL != pHddCtx)
-                   {
-                       //Only P2P Client is there Enable Bmps back
-                       if((0 == pHddCtx->no_of_sessions[VOS_STA_SAP_MODE]) &&
-                          (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]))
-                       {
-                          if (pHddCtx->hdd_wlan_suspended)
+                  if (NULL != pVosContext)
+                  {
+                      pHddCtx = vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+
+                      if(NULL != pHddCtx)
+                      {
+                          //Only P2P Client is there Enable Bmps back
+                          if((0 == pHddCtx->no_of_sessions[VOS_STA_SAP_MODE]) &&
+                             (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]))
                           {
-                             if(WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
+                             if (pHddCtx->hdd_wlan_suspended)
                              {
-                                hdd_reset_pwrparams(pHddCtx);
+                                if(WLAN_HDD_INFRA_STATION
+                                   == pAdapter->device_mode)
+                                {
+                                   hdd_reset_pwrparams(pHddCtx);
+                                }
+                                else
+                                {
+                                   hdd_set_pwrparams(pHddCtx);
+                                }
                              }
-                             else
-                             {
-                                hdd_set_pwrparams(pHddCtx);
-                             }
-                          }
 
-                           hdd_enable_bmps_imps(pHddCtx);
-                       }
-                   }
+                             hdd_enable_bmps_imps(pHddCtx);
+                          }
+                      }
+                  }
                }
             }
         }
@@ -1397,46 +1409,54 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             pHddCtx->isAmpAllowed = VOS_TRUE;
         }
 
-        //If the Device Mode is Station
-        // and the P2P Client is Connected
-        //Enable BMPS
-
-        // In case of JB, as Change-Iface may or maynot be called for p2p0
-        // Enable BMPS/IMPS in case P2P_CLIENT disconnected
-        if(((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
-            (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)) &&
-            (vos_concurrent_sessions_running()))
+        /*
+         * If Powersave Offload is enabled
+         * Fw will take care incase of concurrency
+         */
+        if(!pHddCtx->cfg_ini->enablePowersaveOffload)
         {
-           //Enable BMPS only of other Session is P2P Client
-           hdd_context_t *pHddCtx = NULL;
-           v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+            //If the Device Mode is Station
+            // and the P2P Client is Connected
+            //Enable BMPS
 
-           if (NULL != pVosContext)
-           {
-               pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+            // In case of JB, as Change-Iface may or maynot be called for p2p0
+            // Enable BMPS/IMPS in case P2P_CLIENT disconnected
+            if(((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)) &&
+                (vos_concurrent_sessions_running()))
+            {
+               //Enable BMPS only of other Session is P2P Client
+               hdd_context_t *pHddCtx = NULL;
+               v_CONTEXT_t pVosContext =
+                          vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
 
-               if(NULL != pHddCtx)
+               if (NULL != pVosContext)
                {
-                   //Only P2P Client is there Enable Bmps back
-                   if((0 == pHddCtx->no_of_sessions[VOS_STA_SAP_MODE]) &&
-                      (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]))
-                   {
-                      if (pHddCtx->hdd_wlan_suspended)
-                      {
-                         if(WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
-                         {
-                            hdd_reset_pwrparams(pHddCtx);
-                         }
-                         else
-                         {
-                            hdd_set_pwrparams(pHddCtx);
-                         }
-                      }
+                   pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
 
-                       hdd_enable_bmps_imps(pHddCtx);
+                   if(NULL != pHddCtx)
+                   {
+                       //Only P2P Client is there Enable Bmps back
+                       if((0 == pHddCtx->no_of_sessions[VOS_STA_SAP_MODE]) &&
+                          (0 == pHddCtx->no_of_sessions[VOS_P2P_GO_MODE]))
+                       {
+                          if (pHddCtx->hdd_wlan_suspended)
+                          {
+                             if(WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
+                             {
+                                hdd_reset_pwrparams(pHddCtx);
+                             }
+                             else
+                             {
+                                hdd_set_pwrparams(pHddCtx);
+                             }
+                          }
+
+                          hdd_enable_bmps_imps(pHddCtx);
+                       }
                    }
                }
-           }
+            }
         }
 
         /* CR465478: Only send up a connection failure result when CSR has
