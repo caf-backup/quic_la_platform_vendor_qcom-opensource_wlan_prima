@@ -19,6 +19,19 @@
 
   ========================================================================*/
 
+/* Powersave Offload Implementation */
+typedef enum ePowersaveState
+{
+    PMM_FULL_POWER,
+    PMM_POWER_SAVE
+}tPowersaveState;
+
+/* Master Structure: This will be part of PE Session Entry */
+typedef struct sPowersaveoffloadInfo
+{
+    tPowersaveState psstate;
+    tANI_U8 bcnmiss;
+}tPowersaveoffloadInfo, tpPowersaveoffloadInfo;
 
 /*--------------------------------------------------------------------------
   Include Files
@@ -321,6 +334,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_BOOLEAN fWaitForProbeRsp;
     tANI_BOOLEAN fIgnoreCapsChange;
     tSirHTConfig htConfig;
+    /* Power Save Off load Parameters */
+    tPowersaveoffloadInfo pmmOffloadInfo;
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

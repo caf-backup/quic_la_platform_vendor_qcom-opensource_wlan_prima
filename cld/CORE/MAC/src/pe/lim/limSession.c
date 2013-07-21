@@ -29,6 +29,8 @@
 #include "ccxApi.h"
 #endif
 
+#include "pmmApi.h"
+
 /*--------------------------------------------------------------------------
   
   \brief peInitBeaconParams() - Initialize the beaconParams structure
@@ -160,6 +162,17 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
 #endif
             pMac->lim.gpSession[i].fWaitForProbeRsp = 0;
             pMac->lim.gpSession[i].fIgnoreCapsChange = 0;
+
+            /* Initialize PMM Ps Offload Module */
+            if(pMac->psOffloadEnabled)
+            {
+                if(pmmPsOffloadOpen(pMac, &pMac->lim.gpSession[i])
+                   != eHAL_STATUS_SUCCESS)
+                {
+                    limLog(pMac, LOGE,
+                       FL("Failed to open ps offload for pe session %x\n"),i);
+                }
+            }
             return(&pMac->lim.gpSession[i]);
         }
     }
@@ -435,6 +448,18 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 #ifdef FEATURE_WLAN_CCX
     limCleanupCcxCtxt(pMac, psessionEntry); 
 #endif
+
+    /* Initialize PMM Ps Offload Module */
+    if(pMac->psOffloadEnabled)
+    {
+        if(pmmPsOffloadClose(pMac, psessionEntry)
+           != eHAL_STATUS_SUCCESS)
+        {
+            limLog(pMac, LOGE,
+                   FL("Failed to close ps offload for pe session %x\n"),
+                   psessionEntry->peSessionId);
+        }
+    }
 
     psessionEntry->valid = FALSE;
     return;

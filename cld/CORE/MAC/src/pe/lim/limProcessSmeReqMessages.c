@@ -1195,9 +1195,15 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    //if scan is disabled then return as invalid scan request.
-    //if scan in power save is disabled, and system is in power save mode, then ignore scan request.
-    if( (pMac->lim.fScanDisabled) || (!pMac->lim.gScanInPowersave && !limIsSystemInActiveState(pMac))  )
+    /*
+     * if scan is disabled then return as invalid scan request.
+     * if scan in power save is disabled, and system is in power save mode,
+     * then ignore scan request.
+     */
+    if((pMac->lim.fScanDisabled) ||
+       (!pMac->psOffloadEnabled &&
+       !pMac->lim.gScanInPowersave &&
+       !limIsSystemInActiveState(pMac)))
     {
         limSendSmeScanRsp(pMac, offsetof(tSirSmeScanRsp,bssDescription[0]), eSIR_SME_INVALID_PARAMETERS, pScanReq->sessionId, pScanReq->transactionId);
         return;
@@ -1236,21 +1242,41 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
       /* De-activate Heartbeat timers for connected sessions while
        * scan is in progress if the system is in Active mode *
        * AND it is not a ROAMING ("background") scan */
-      if(((ePMM_STATE_BMPS_WAKEUP == pMac->pmm.gPmmState) ||
+      if(pMac->psOffloadEnabled)
+      {
+         if((pMac->lim.gLimBackgroundScanMode != eSIR_ROAMING_SCAN) &&
+            (!IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE))
+         {
+            for(i=0;i<pMac->lim.maxBssId;i++)
+            {
+               tpPESession psessionEntry = peFindSessionBySessionId(pMac,i);
+               if(psessionEntry && psessionEntry->valid &&
+                  (eLIM_MLM_LINK_ESTABLISHED_STATE ==
+                          psessionEntry->limMlmState) &&
+                  (psessionEntry->pmmOffloadInfo.psstate == PMM_FULL_POWER))
+               {
+                  limHeartBeatDeactivateAndChangeTimer(pMac, psessionEntry);
+               }
+            }
+         }
+      }
+      else if(((ePMM_STATE_BMPS_WAKEUP == pMac->pmm.gPmmState) ||
                   (ePMM_STATE_READY == pMac->pmm.gPmmState)) &&
                   (pScanReq->backgroundScanMode != eSIR_ROAMING_SCAN ) &&
                   (!IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE))
-      {
 
-          for(i=0;i<pMac->lim.maxBssId;i++)
-          {
-              if((peFindSessionBySessionId(pMac,i) != NULL) &&
-                      (pMac->lim.gpSession[i].valid == TRUE) &&
-                      (eLIM_MLM_LINK_ESTABLISHED_STATE == pMac->lim.gpSession[i].limMlmState))
-              {
-                  limHeartBeatDeactivateAndChangeTimer(pMac, peFindSessionBySessionId(pMac,i));
-              }
-          }
+      {
+         for(i=0;i<pMac->lim.maxBssId;i++)
+         {
+             if((peFindSessionBySessionId(pMac,i) != NULL) &&
+                 (pMac->lim.gpSession[i].valid == TRUE) &&
+                 (eLIM_MLM_LINK_ESTABLISHED_STATE ==
+                           pMac->lim.gpSession[i].limMlmState))
+             {
+                  limHeartBeatDeactivateAndChangeTimer(pMac,
+                          peFindSessionBySessionId(pMac,i));
+             }
+         }
       }
       if (pMac->fScanOffload)
       {

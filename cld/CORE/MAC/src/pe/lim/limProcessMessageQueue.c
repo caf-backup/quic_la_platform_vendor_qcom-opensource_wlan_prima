@@ -1294,7 +1294,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_PMC_EXIT_WOWL_REQ:
         case eWNI_PMC_WOWL_ADD_BCAST_PTRN:
         case eWNI_PMC_WOWL_DEL_BCAST_PTRN:
-            pmmProcessMessage(pMac, limMsg);
+            if(!pMac->psOffloadEnabled)
+                pmmProcessMessage(pMac, limMsg);
+            else
+                pmmOffloadProcessMessage(pMac, limMsg);
             break;
 
         case eWNI_PMC_SMPS_STATE_IND :
@@ -1426,19 +1429,22 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case WDA_EXIT_UAPSD_RSP:
         case WDA_WOWL_ENTER_RSP:
         case WDA_WOWL_EXIT_RSP:
-            pmmProcessMessage(pMac, limMsg);
+            if(!pMac->psOffloadEnabled)
+                pmmProcessMessage(pMac, limMsg);
+            else
+                pmmOffloadProcessMessage(pMac, limMsg);
             break;
 
         case WDA_LOW_RSSI_IND:
             //limHandleLowRssiInd(pMac);
             break;
 
-        case WDA_BMPS_STATUS_IND:
-            limHandleBmpsStatusInd(pMac);
-            break;
-
         case WDA_MISSED_BEACON_IND:
-            limHandleMissedBeaconInd(pMac, limMsg);
+            if(pMac->psOffloadEnabled)
+                limPsOffloadHandleMissedBeaconInd(pMac, limMsg);
+            else
+                limHandleMissedBeaconInd(pMac, limMsg);
+
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             break;
@@ -1535,6 +1541,27 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
             break;
             #endif //TO SUPPORT BT-AMP
+            if(pMac->psOffloadEnabled)
+            {
+                /* Powersave Offload Case */
+                /* TODO: Handle in Scan Case */
+                /* TODO: handle in TDLS Case */
+                if(NULL == limMsg->bodyptr)
+                {
+                    limLog(pMac, LOGE,
+                    FL("Cannot Process HearBeat Timeout - bodyptr is Null"));
+                }
+                else
+                {
+                    tpPESession psessionEntry = (tpPESession)limMsg->bodyptr;
+                    limLog(pMac, LOGE,
+                    FL("Processing SIR_LIM_HEART_BEAT_TIMEOUT for Session %d"),
+                    ((tpPESession)limMsg->bodyptr)->peSessionId);
+                    limResetHBPktCount(psessionEntry);
+                    limHandleHeartBeatTimeoutForSession(pMac, psessionEntry);
+                }
+                break;
+            }
             if (limIsSystemInScanState(pMac))
             {
                 // System is in DFS (Learn) mode

@@ -42,6 +42,7 @@
 #endif
 #include "wlan_qct_wda.h"
 
+#include "pmmApi.h"
 
 #define BA_DEFAULT_TX_BUFFER_SIZE 64
 
@@ -68,6 +69,7 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
     tANI_U8 isFullPowerRequested = 0;
     tpPESession psessionEntry;
+    tANI_U8 isSessionPowerActive = false;
 
     psessionEntry = peFindSessionBySessionId( pMac , sessionId );
 
@@ -75,6 +77,20 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
     {
       limLog(pMac, LOGE, FL("Session %d  not active\n "), sessionId);
       return;
+    }
+
+    /*
+     * Sme Session is passed in limSendSmePreChannelSwitchInd
+     * so that it can be passed till sme to request full power for
+     * particular session
+     */
+    if(pMac->psOffloadEnabled)
+    {
+        isSessionPowerActive = pmmPsOffloadIsActive(pMac, psessionEntry);
+    }
+    else
+    {
+        isSessionPowerActive = limIsSystemInActiveState(pMac);
     }
 
     PELOG1(limLog(pMac, LOG1, FL("Channel switch Mode == %d"),
@@ -87,10 +103,10 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
         limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_STOP_TX);
 
         /*Request for Full power only if the device is in powersave*/
-        if(!limIsSystemInActiveState(pMac))
+        if(!isSessionPowerActive)
         {
             /* Request Full Power */
-            limSendSmePreChannelSwitchInd(pMac);
+            limSendSmePreChannelSwitchInd(pMac, psessionEntry);
             isFullPowerRequested = 1;
         }
     }
@@ -107,16 +123,18 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac, tANI_U8 sessionId)
      * device comes out of the powersave */
     if (psessionEntry->gLimChannelSwitch.switchCount == 0) 
     {
-        if(limIsSystemInActiveState(pMac))
+        if(isSessionPowerActive)
         {
             limProcessChannelSwitchTimeout(pMac);
         }
         else if(!isFullPowerRequested)
         {
-            /* If the Full power is already not requested 
+            /*
+             * If the Full power is already not requested
              * Request Full Power so the channel switch happens 
-             * after device comes to full power */
-            limSendSmePreChannelSwitchInd(pMac);
+             * after device comes to full power
+             */
+            limSendSmePreChannelSwitchInd(pMac, psessionEntry);
         }
         return;
     }

@@ -35,6 +35,8 @@
 #include "limSession.h"
 #include "vos_nvitem.h"
 
+#include "pmmApi.h"
+
 /* Static global used to mark situations where pMac->lim.gLimTriggerBackgroundScanDuringQuietBss is SET
  * and limTriggerBackgroundScanDuringQuietBss() returned failure.  In this case, we will stop data
  * traffic instead of going into scan.  The recover function limProcessQuietBssTimeout() needs to have
@@ -2501,7 +2503,8 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
 {
     tpPESession psessionEntry = NULL;
     tANI_U8    channel; // This is received and stored from channelSwitch Action frame
-   
+    tANI_U8 isSessionPowerActive = false;
+
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID"));
@@ -2513,13 +2516,23 @@ void limProcessChannelSwitchTimeout(tpAniSirGlobal pMac)
         PELOGW(limLog(pMac, LOGW, "Channel switch can be done only in STA role, Current Role = %d", psessionEntry->limSystemRole);)
         return;
     }
+
+    if(pMac->psOffloadEnabled)
+    {
+        isSessionPowerActive = pmmPsOffloadIsActive(pMac, psessionEntry);
+    }
+    else
+    {
+        isSessionPowerActive = limIsSystemInActiveState(pMac);
+    }
+
     channel = psessionEntry->gLimChannelSwitch.primaryChannel;
     /*
      *  This potentially can create issues if the function tries to set
      * channel while device is in power-save, hence putting an extra check
      * to verify if the device is in power-save or not
      */
-    if(!limIsSystemInActiveState(pMac))
+    if(!isSessionPowerActive)
     {
         PELOGW(limLog(pMac, LOGW, FL("Device is not in active state, cannot switch channel"));)
         return;

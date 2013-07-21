@@ -324,8 +324,11 @@ limTearDownLinkWithAp(tpAniSirGlobal pMac, tANI_U8 sessionId, tSirMacReasonCodes
      * and AP did not respond for Probe request.
      * Trigger link tear down.
      */
+    if(pMac->psOffloadEnabled)
+        psessionEntry->pmmOffloadInfo.bcnmiss = FALSE;
+    else
+        pMac->pmm.inMissedBeaconScenario = FALSE;
 
-    pMac->pmm.inMissedBeaconScenario = FALSE;
     limLog(pMac, LOGW,
        FL("No ProbeRsp from AP after HB failure. Tearing down link"));
 
@@ -403,8 +406,11 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
      * want to handle heartbeat timeout in the BMPS, because Firmware handles it in BMPS.
      * So just return from heartbeatfailure handler
      */
-    if(!IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE && (!limIsSystemInActiveState(pMac)))
-       return;
+    if(!pMac->psOffloadEnabled)
+    {
+        if(!IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE && (!limIsSystemInActiveState(pMac)))
+           return;
+    }
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
     WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_beacon_update_pkt_type, LOG_WLAN_BEACON_UPDATE_C);
