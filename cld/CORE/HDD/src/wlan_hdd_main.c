@@ -4824,6 +4824,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     defined (QCA_WIFI_ISOC)
    adf_os_device_t adf_ctx;
 #endif
+   hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
    ENTER();
 
@@ -4904,52 +4905,66 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    // all scans will be cancelled.
    hdd_abort_mac_scan( pHddCtx );
 
-   //Disable IMPS/BMPS as we do not want the device to enter any power
-   //save mode during shutdown
-   sme_DisablePowerSave(pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
-   sme_DisablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
-   sme_DisablePowerSave(pHddCtx->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
-
-   //Ensure that device is in full power as we will touch H/W during vos_Stop
-   init_completion(&powerContext.completion);
-   powerContext.magic = POWER_CONTEXT_MAGIC;
-
-   halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_full_power_callback,
-                                    &powerContext, eSME_FULL_PWR_NEEDED_BY_HDD);
-
-   if (eHAL_STATUS_SUCCESS != halStatus)
+   if(!pConfig->enablePowersaveOffload)
    {
-      if (eHAL_STATUS_PMC_PENDING == halStatus)
+      //Disable IMPS/BMPS as we do not want the device to enter any power
+      //save mode during shutdown
+      sme_DisablePowerSave(pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+      sme_DisablePowerSave(pHddCtx->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+      sme_DisablePowerSave(pHddCtx->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
+
+      //Ensure that device is in full power as we will touch H/W during vos_Stop
+      init_completion(&powerContext.completion);
+      powerContext.magic = POWER_CONTEXT_MAGIC;
+
+      halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_full_power_callback,
+                                   &powerContext, eSME_FULL_PWR_NEEDED_BY_HDD);
+
+      if (eHAL_STATUS_SUCCESS != halStatus)
       {
-         /* request was sent -- wait for the response */
-         lrc = wait_for_completion_interruptible_timeout(
-                                      &powerContext.completion,
-                                      msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
-         /* either we have a response or we timed out
-            either way, first invalidate our magic */
-         powerContext.magic = 0;
-         if (lrc <= 0)
+         if (eHAL_STATUS_PMC_PENDING == halStatus)
          {
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: %s while requesting full power",
-                   __func__, (0 == lrc) ? "timeout" : "interrupt");
-            /* there is a race condition such that the callback
-               function could be executing at the same time we are. of
-               primary concern is if the callback function had already
-               verified the "magic" but hasn't yet set the completion
-               variable.  Since the completion variable is on our
-               stack, we'll delay just a bit to make sure the data is
-               still valid if that is the case */
-            msleep(50);
+            /* request was sent -- wait for the response */
+            lrc = wait_for_completion_interruptible_timeout(
+                                        &powerContext.completion,
+                                        msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+            /* either we have a response or we timed out
+                         either way, first invalidate our magic */
+            powerContext.magic = 0;
+            if (lrc <= 0)
+            {
+               hddLog(VOS_TRACE_LEVEL_ERROR,
+                      "%s: %s while requesting full power",
+                      __func__, (0 == lrc) ? "timeout" : "interrupt");
+               /*
+                * there is a race condition such that the callback
+                * function could be executing at the same time we are. of
+                * primary concern is if the callback function had already
+                * verified the "magic" but hasn't yet set the completion
+                * variable.  Since the completion variable is on our
+                * stack, we'll delay just a bit to make sure the data is
+                * still valid if that is the case
+                */
+               msleep(50);
+            }
+         }
+         else
+         {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                   "%s: Request for Full Power failed, status %d",
+                   __func__, halStatus);
+            VOS_ASSERT(0);
+            /* continue -- need to clean up as much as possible */
          }
       }
-      else
-      {
-         hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: Request for Full Power failed, status %d",
-                __func__, halStatus);
-         VOS_ASSERT(0);
-         /* continue -- need to clean up as much as possible */
-      }
+   }
+   else
+   {
+      /*
+       * Powersave Offload Case
+       * Disable Idle Power Save Mode
+       */
+      hdd_set_idle_ps_config(pHddCtx, FALSE);
    }
 
    // Unregister the Net Device Notifier
@@ -5938,6 +5953,11 @@ register_wiphy:
    
    // Initialize the restart logic
    wlan_hdd_restart_init(pHddCtx);
+
+   if(pHddCtx->cfg_ini->enablePowersaveOffload)
+   {
+      hdd_set_idle_ps_config(pHddCtx, TRUE);
+   }
 
    goto success;
 

@@ -8321,3 +8321,25 @@ ePhyChanBondState sme_GetCBPhyStateFromCBIniValue(tANI_U32 cb_ini_value)
 {
    return(csrConvertCBIniValueToPhyCBState(cb_ini_value));
 }
+
+/*
+ * SME API to enable/disable idle mode powersave
+ * This should be called only if powersave offload
+ * is enabled
+ */
+VOS_STATUS sme_SetIdlePowersaveConfig(v_PVOID_t vosContext, tANI_U32 value)
+{
+    v_PVOID_t wdaContext = vos_get_context(VOS_MODULE_ID_WDA, vosContext);
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+              " Idle Ps Set Value %d", value);
+
+    if (VOS_STATUS_SUCCESS != WDA_SetIdlePsConfig(wdaContext, value))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  " Failed to Set Idle Ps Value %d", value);
+        return VOS_STATUS_E_FAILURE;
+    }
+    return VOS_STATUS_SUCCESS;
+}
+
