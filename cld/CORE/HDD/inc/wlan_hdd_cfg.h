@@ -1700,6 +1700,14 @@ typedef enum
 #define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_MIN                       ( 0 )
 #define CFG_ENABLE_TCP_CHKSUM_OFFLOAD_DEFAULT                   ( 0 )
 
+/*
+ * Power Save Offload
+ */
+#define CFG_POWERSAVE_OFFLOAD_NAME                "gEnablePowerSaveOffload"
+#define CFG_POWERSAVE_OFFLOAD_DISABLE             ( 0 )
+#define CFG_POWERSAVE_OFFLOAD_ENABLE              ( 1 )
+#define CFG_POWERSAVE_OFFLOAD_DEFAULT             ( CFG_POWERSAVE_OFFLOAD_DISABLE )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2070,6 +2078,7 @@ typedef struct
    char                        listOfNon11acCountryCode[128];
    v_U8_t                      fScanOffload;
    v_BOOL_t                    enableTCPChkSumOffld;
+   v_BOOL_t                    enablePowersaveOffload;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

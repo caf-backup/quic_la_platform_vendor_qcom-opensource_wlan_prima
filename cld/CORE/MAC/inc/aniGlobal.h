@@ -934,6 +934,7 @@ typedef struct sMacOpenParameters
     tANI_U16 maxStation;
     tANI_U16 maxBssId;
     tANI_U32 frameTransRequired;
+    tANI_U8 powersaveOffloadEnabled;
     tDriverType  driverType;
 } tMacOpenParameters;
 
@@ -1021,6 +1022,8 @@ typedef struct sAniSirGlobal
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
     tANI_U8 fScanOffload;
+    /*  Based on ini variable or Fw Capability */
+    tANI_U8 psOffloadEnabled;
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS

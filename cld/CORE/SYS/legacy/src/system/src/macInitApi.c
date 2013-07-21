@@ -209,6 +209,15 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
         sysInitGlobals(pMac);
     }
 
+    /* Set the Powersave Offload Capability */
+    if(pMacOpenParms->powersaveOffloadEnabled)
+    {
+        pMac->psOffloadEnabled = TRUE;
+    }
+    else
+    {
+        pMac->psOffloadEnabled = FALSE;
+    }
 
     return peOpen(pMac, pMacOpenParms);
 }
@@ -227,6 +236,7 @@ tSirRetStatus macClose(tHalHandle hHal)
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
 
     peClose(pMac);
+    pMac->psOffloadEnabled = FALSE;
 
     /* Call routine to free-up all CFG data structures */
     cfgDeInit(pMac);
