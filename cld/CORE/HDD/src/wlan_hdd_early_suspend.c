@@ -972,8 +972,12 @@ void hdd_register_mcast_bcast_filter(hdd_context_t *pHddCtx)
    if (WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER ==
                                             pHddCtx->cfg_ini->nEnableSuspend)
    {
-      pmcRegisterDeviceStateUpdateInd(smeContext,
-                                      hdd_PowerStateChangedCB, pHddCtx);
+      if(!pHddCtx->cfg_ini->enablePowersaveOffload)
+      {
+         pmcRegisterDeviceStateUpdateInd(smeContext,
+                   hdd_PowerStateChangedCB, pHddCtx);
+      }
+      /* TODO: For Power Save Offload case */
    }
 }
 
@@ -998,7 +1002,12 @@ void hdd_unregister_mcast_bcast_filter(hdd_context_t *pHddCtx)
    if (WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER == 
                                             pHddCtx->cfg_ini->nEnableSuspend)
    {
-      pmcDeregisterDeviceStateUpdateInd(smeContext, hdd_PowerStateChangedCB);
+      if(!pHddCtx->cfg_ini->enablePowersaveOffload)
+      {
+         pmcDeregisterDeviceStateUpdateInd(smeContext,
+                             hdd_PowerStateChangedCB);
+      }
+      /* TODO: For Power Save Offload case */
    }
 }
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
