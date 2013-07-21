@@ -111,6 +111,9 @@ extern "C" {
 #define PS_STA_DEFINITION_START                     0
 #define PS_STA_PM_ARB_REQUEST                       1
 #define PS_STA_DELIVER_EVENT                        2
+#define PS_STA_PSPOLL_SEQ_DONE                      3
+#define PS_STA_COEX_MODE                            4
+#define PS_STA_PSPOLL_ALLOW                         5
 
 
 /** RESMGR OCS dbg ids */
@@ -150,7 +153,12 @@ extern "C" {
 #define RESMGR_OCS_REG_NOA_NOTIF                    33
 #define RESMGR_OCS_DEREG_NOA_NOTIF                  34
 #define RESMGR_OCS_GEN_PERIODIC_NOA                 35
-#define RESMGR_OCS_DEFINITION_END                   36
+#define RESMGR_OCS_RECAL_QUOTAS                     36
+#define RESMGR_OCS_GRANTED_QUOTA_STATS              37
+#define RESMGR_OCS_ALLOCATED_QUOTA_STATS            38
+#define RESMGR_OCS_REQ_QUOTA_STATS                  39
+#define RESMGR_OCS_TRACKING_TIME_FIRED              40
+#define RESMGR_OCS_DEFINITION_END                   41
 
 /* RESMGR CHNMGR debug ids */
 #define RESMGR_CHMGR_DEFINITION_START               0
@@ -163,8 +171,8 @@ extern "C" {
 
 /* VDEV manager debug ids */
 #define VDEV_MGR_DEFINITION_START                   0
-#define VDEV_MGR_BMISS_TIMEOUT                      1
-#define VDEV_MGR_BMISS_DETECTED                     2
+#define VDEV_MGR_FIRST_BMISS_DETECTED               1
+#define VDEV_MGR_FINAL_BMISS_DETECTED               2
 #define VDEV_MGR_BCN_IN_SYNC                        3
 #define VDEV_MGR_AP_KEEPALIVE_IDLE                  4
 #define VDEV_MGR_AP_KEEPALIVE_INACTIVE              5
@@ -177,7 +185,8 @@ extern "C" {
 #define VDEV_MGR_OCS_HP_LP_REQ_POSTED               12
 #define VDEV_MGR_VDEV_START_OCS_HP_REQ_COMPLETE     13
 #define VDEV_MGR_VDEV_START_OCS_HP_REQ_STOP         14
-#define VDEV_MGR_DEFINITION_END                     15
+#define VDEV_MGR_HP_START_TIME                      15
+#define VDEV_MGR_DEFINITION_END                     16
 
 /* WHAL debug identifier definitions */
 #define WHAL_DBGID_DEFINITION_START                 0
@@ -217,7 +226,8 @@ extern "C" {
 #define WHAL_ERROR_XMIT_STOPDMA                    34
 #define WHAL_ERROR_INTERRUPT_BB_PANIC              35
 #define WHAL_ERROR_PAPRD_MAXGAIN_ABOVE_WINDOW      36
-#define WHAL_DBGID_DEFINITION_END                  37
+#define WHAL_ERROR_QCU_HW_PAUSE_MISMATCH           37
+#define WHAL_DBGID_DEFINITION_END                  38
 
 #define COEX_DEBUGID_START              0
 #define BTCOEX_DBG_MCI_1                            1
@@ -369,9 +379,59 @@ extern "C" {
 #define COEX_STATE_WLAN_VDEV_UNPAUSED               146
 #define COEX_SCAN_CALLBACK                          147
 #define COEX_RC_SET_CHAINMASK                       148
-#define COEX_BT_RXSS_THRES                          149
+#define COEX_TX_MCI_GPM_WLAN_SET_BT_RXSS_THRES      149
+#define COEX_TX_MCI_GPM_BT_RXSS_THRES_QUERY         150
+#define COEX_BT_RXSS_THRES                          151
+#define COEX_BT_PROFILE_ADD_RMV                     152
+#define COEX_BT_SCHED_INFO                          153
+#define COEX_TRF_MGMT                               154
+#define COEX_SCHED_START                            155
+#define COEX_SCHED_RESULT                           156
+#define COEX_SCHED_ERROR                            157
+#define COEX_SCHED_PRE_OP                           158
+#define COEX_SCHED_POST_OP                          159
+#define COEX_RX_RATE                                160
+#define COEX_ACK_PRIORITY                           161
+#define COEX_STATE_WLAN_VDEV_UP                     162
+#define COEX_STATE_WLAN_VDEV_PEER_UPDATE            163
+#define COEX_STATE_WLAN_VDEV_STOP                   164
+#define COEX_WLAN_PAUSE_PEER                        165
+#define COEX_WLAN_UNPAUSE_PEER                      166
+#define COEX_WLAN_PAUSE_INTERVAL_START              167
+#define COEX_WLAN_POSTPAUSE_INTERVAL_START          168
+#define COEX_TRF_FREERUN                            169
+#define COEX_TRF_SHAPE_PM                           170
+#define COEX_TRF_SHAPE_PSP                          171
+#define COEX_TRF_SHAPE_S_CTS                        172
+#define COEX_CHAIN_CONFIG                           173
+#define COEX_SYSTEM_MONITOR                         174
+#define COEX_SINGLECHAIN_INIT                       175
+#define COEX_MULTICHAIN_INIT                        176
+#define COEX_SINGLECHAIN_DBG_1                      177
+#define COEX_SINGLECHAIN_DBG_2                      178
+#define COEX_SINGLECHAIN_DBG_3                      179
+#define COEX_MULTICHAIN_DBG_1                       180
+#define COEX_MULTICHAIN_DBG_2                       181
+#define COEX_MULTICHAIN_DBG_3                       182
+#define COEX_PSP_TX_CB                              183
+#define COEX_PSP_RX_CB                              184
+#define COEX_PSP_STAT_1                             185
+#define COEX_PSP_SPEC_POLL                          186
+#define COEX_PSP_READY_STATE                        187
+#define COEX_PSP_TX_STATUS_STATE                    188
+#define COEX_PSP_RX_STATUS_STATE_1                  189
+#define COEX_PSP_NOT_READY_STATE                    190
+#define COEX_PSP_DISABLED_STATE                     191
+#define COEX_PSP_ENABLED_STATE                      192
+#define COEX_PSP_SEND_PSPOLL                        193
+#define COEX_PSP_MGR_ENTER                          194
+#define COEX_PSP_MGR_RESULT                         195
+#define COEX_PSP_NONWLAN_INTERVAL                   196
+#define COEX_PSP_STAT_2                             197
+#define COEX_PSP_RX_STATUS_STATE_2                  198
+#define COEX_PSP_ERROR                              199
 
-#define COEX_DEBUG_ID_END                           150
+#define COEX_DEBUG_ID_END                           200
 
 #define SCAN_START_COMMAND_FAILED                   0
 #define SCAN_STOP_COMMAND_FAILED                    1
@@ -380,8 +440,17 @@ extern "C" {
 #define SCAN_ENGINE_CANCEL_COMMAND                  4
 #define SCAN_ENGINE_STOP_DUE_TO_TIMEOUT             5
 #define SCAN_EVENT_SEND_TO_HOST                     6
+#define SCAN_FWLOG_EVENT_ADD                        7
+#define SCAN_FWLOG_EVENT_REM                        8
+#define SCAN_FWLOG_EVENT_PREEMPTED                  9
+#define SCAN_FWLOG_EVENT_RESTARTED                  10
+#define SCAN_FWLOG_EVENT_COMPLETED                  11
 
 #define BEACON_EVENT_SWBA_SEND_FAILED               0
+#define BEACON_EVENT_EARLY_RX_BMISS_STATUS          1
+#define BEACON_EVENT_EARLY_RX_SLEEP_SLOP            2
+#define BEACON_EVENT_EARLY_RX_CONT_BMISS_TIMEOUT    3
+#define BEACON_EVENT_EARLY_RX_PAUSE_SKIP_BCN_NUM    4
 
 #define RATECTRL_DBGID_DEFINITION_START             0
 #define RATECTRL_DBGID_ASSOC                        1
@@ -409,6 +478,12 @@ extern "C" {
 #define AP_PS_DBGID_UAPSD_RESPONSE                  14
 #define AP_PS_DBGID_SEND_COMPLETE                   15
 #define AP_PS_DBGID_SEND_N_COMPLETE                 16
+#define AP_PS_DBGID_DETECT_OUT_OF_SYNC_STA          17
+
+/* WLAN_MODULE_MGMT_TXRX Debugids*/
+#define MGMT_TXRX_DBGID_DEFINITION_START            0
+#define MGMT_TXRX_FORWARD_TO_HOST                   1
+#define MGMT_TXRX_DBGID_DEFINITION_END              2
 
 /* WLAN_MODULE_MGMT_TXRX Debugids*/
 #define MGMT_TXRX_DBGID_DEFINITION_START            0
@@ -459,7 +534,10 @@ extern "C" {
 #define WAL_DBGID_STA_VDEV_XRETRY                   40  
 #define WAL_DBGID_DCS                               41
 #define WAL_DBGID_MGMT_TX_FAIL                      42
-#define WAL_DBGID_DEFINITION_END                    43
+#define WAL_DBGID_SET_M4_SENT_MANUALLY              43
+#define WAL_DBGID_PROCESS_4_WAY_HANDSHAKE           44
+#define WAL_DBGID_DEFINITION_END                    45
+
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
@@ -475,6 +553,7 @@ extern "C" {
 #define ANI_DBGID_SELF_CORR_LOW                     11
 #define ANI_DBGID_ENABLE                            12
 
+#define ANI_DBGID_CURRENT_LEVEL                     13
 #define ANI_DBGID_POLL_PERIOD                       14
 #define ANI_DBGID_LISTEN_PERIOD                     15
 #define ANI_DBGID_OFDM_LEVEL_CFG                    16
@@ -562,7 +641,12 @@ extern "C" {
 #define WLAN_CHATTER_DBGID_DEFINITION_START 0
 #define WLAN_CHATTER_ENTER 1
 #define WLAN_CHATTER_EXIT 2
-#define WLAN_CHATTER_DBGID_DEFINITION_END 3
+#define WLAN_CHATTER_FILTER_HIT 3
+#define WLAN_CHATTER_FILTER_MISS 4
+#define WLAN_CHATTER_FILTER_FULL 5
+#define WLAN_CHATTER_FILTER_TM_ADJ  6
+#define WLAN_CHATTER_DBGID_DEFINITION_END 7
+
 
 #define WOW_DBGID_DEFINITION_START 0
 #define WOW_ENABLE_CMDID 1
