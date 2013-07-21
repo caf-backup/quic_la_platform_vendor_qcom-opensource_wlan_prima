@@ -911,4 +911,12 @@ struct wma_set_key_params {
 	bool unicast;
 	u_int8_t key_data[SIR_MAC_MAX_KEY_LENGTH];
 };
+
+/* Powersave Related */
+/* Default InActivity Time is 200 ms */
+#define POWERSAVE_DEFAULT_INACTIVITY_TIME 200
+
+/* Default Listen Interval */
+#define POWERSAVE_DEFAULT_LISTEN_INTERVAL 1
+
 #endif
