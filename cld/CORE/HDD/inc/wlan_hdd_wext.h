@@ -388,5 +388,7 @@ VOS_STATUS wlan_hdd_get_roam_rssi(hdd_adapter_t *pAdapter, v_S7_t *rssi_value);
 void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set);
 #endif
 
+VOS_STATUS  wlan_hdd_set_powersave(hdd_adapter_t *pAdapter, int mode);
+
 #endif // __WEXT_IW_H__
 
