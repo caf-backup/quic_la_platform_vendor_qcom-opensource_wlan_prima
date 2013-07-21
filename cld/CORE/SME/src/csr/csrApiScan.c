@@ -6268,6 +6268,15 @@ eHalStatus csrScanStartIdleScan(tpAniSirGlobal pMac)
     tANI_U32 nTime = 0;
 
     smsLog(pMac, LOGW, FL("called"));
+    /*
+     * Idle Scan not supported with Power Save Offload
+     * Enabled
+     */
+    if(pMac->psOffloadEnabled)
+    {
+        return eHAL_STATUS_SUCCESS;
+    }
+
     if(pMac->roam.configParam.IsIdleScanEnabled)
     {
         //stop bg scan first
@@ -6290,6 +6299,15 @@ eHalStatus csrScanStartIdleScan(tpAniSirGlobal pMac)
 
 void csrScanCancelIdleScan(tpAniSirGlobal pMac)
 {
+    /*
+     * Idle Scan not supported with Power Save Offload
+     * Enabled
+     */
+    if(pMac->psOffloadEnabled)
+    {
+        return;
+    }
+
     if(eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)
     {
         if (vos_concurrent_sessions_running()) {
