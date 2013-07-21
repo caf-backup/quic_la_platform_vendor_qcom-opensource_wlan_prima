@@ -4921,3 +4921,24 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 	return VOS_STATUS_SUCCESS;
 }
 #endif
+
+/* Function to enable/disble Low Power Support(Pdev Specific) */
+VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps)
+{
+	int32_t ret;
+	tp_wma_handle wma = (tp_wma_handle)wda_handle;
+
+	WMA_LOGD("WMA Set Idle Ps Config [1:set 0:clear] val %d", idle_ps);
+
+	/* Set Idle Mode Power Save Config */
+	ret = wmi_unified_pdev_set_param(wma->wmi_handle,
+			WMI_PDEV_PARAM_IDLE_PS_CONFIG, idle_ps);
+	if(ret) {
+		WMA_LOGE("Fail to Set Idle Ps Config %d", idle_ps);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("Successfully Set Idle Ps Config %d", idle_ps);
+	return VOS_STATUS_SUCCESS;
+}
+

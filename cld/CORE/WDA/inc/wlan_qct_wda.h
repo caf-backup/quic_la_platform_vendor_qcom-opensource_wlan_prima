@@ -2013,4 +2013,5 @@ void WDA_TrafficStatsTimerActivate(wpt_boolean activate);
 void WDA_SetEnableSSR(v_BOOL_t enableSSR);
 #endif	/* #ifdef QCA_WIFI_2_0 */
 
+VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps);
 #endif
