@@ -19,6 +19,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+#if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
 #include <linux/module.h>	/* Specifically, a module */
 #include <linux/kernel.h>	/* We're doing kernel work */
 #include <linux/version.h>	/* We're doing kernel work */
@@ -27,7 +28,6 @@
 #include "if_pci.h"
 #include "vos_api.h"
 
-#if defined(CONFIG_ATH_PROCFS_DIAG_SUPPORT)
 #define PROCFS_NAME		"athdiagpfs"
 #define PROCFS_DIR		"cld"
 

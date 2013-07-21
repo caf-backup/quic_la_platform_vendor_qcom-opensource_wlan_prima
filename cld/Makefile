@@ -848,6 +848,9 @@ ifeq ($(BUILD_DIAG_VERSION),1)
 CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT
 CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT_CSR
 CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT_LIM
+ifeq ($(CONFIG_HIF_PCI), 1)
+CDEFINES += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
+endif
 endif
 
 # enable the MAC Address auto-generation feature
@@ -935,7 +938,6 @@ endif
 #Enable PCI specific APIS (dma, etc)
 ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DHIF_PCI
-CDEFINES += -DCONFIG_ATH_PROCFS_DIAG_SUPPORT
 endif
 
 #Enable pci read/write config functions
