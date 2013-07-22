@@ -3093,6 +3093,36 @@ static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *
 static void hdd_set_power_save_offload_config(hdd_context_t *pHddCtx)
 {
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
+   tANI_U32 listenInterval = 0;
+
+   if (strcmp(pConfig->PowerUsageControl, "Min") == 0)
+   {
+      listenInterval = pConfig->nBmpsMinListenInterval;
+   }
+   else if (strcmp(pConfig->PowerUsageControl, "Max") == 0)
+   {
+      listenInterval = pConfig->nBmpsMaxListenInterval;
+   }
+   else if (strcmp(pConfig->PowerUsageControl, "Mod") == 0)
+   {
+      listenInterval = pConfig->nBmpsModListenInterval;
+   }
+
+   /*
+    * Based on Mode Set the LI
+    * Otherwise default LI value of 1 will
+    * be taken
+    */
+   if (listenInterval)
+   {
+      /*
+       * setcfg for listenInterval.
+       * Make sure CFG is updated because PE reads this
+       * from CFG at the time of assoc or reassoc
+       */
+      ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_LISTEN_INTERVAL, listenInterval,
+                   NULL, eANI_BOOLEAN_FALSE);
+   }
 
    if(pConfig->fIsBmpsEnabled)
    {
