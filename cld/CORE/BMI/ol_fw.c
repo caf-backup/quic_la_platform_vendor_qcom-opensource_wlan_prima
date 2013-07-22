@@ -22,6 +22,9 @@
 #include "vos_api.h"
 #include "wma_api.h"
 
+extern int
+dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len);
+
 static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
                     	 u_int32_t address, bool compressed)
 {
@@ -185,6 +188,10 @@ void ol_target_failure(void *instance, A_STATUS status)
 	A_UINT32 reg_dump_values[REGISTER_DUMP_LEN_MAX];
 	A_UINT32 reg_dump_cnt = 0;
 	A_UINT32 i;
+	A_UINT32 dbglog_hdr_address;
+	struct dbglog_hdr_s dbglog_hdr;
+	struct dbglog_buf_s dbglog_buf;
+	A_UINT8 *dbglog_data;
 
 	printk("XXX TARGET ASSERTED XXX\n");
 	scn->target_status = OL_TRGET_STATUS_RESET;
@@ -213,6 +220,53 @@ void ol_target_failure(void *instance, A_STATUS status)
 	printk("Target Register Dump\n");
 	for (i = 0; i < reg_dump_cnt; i++) {
 		printk("[%02d]   :  0x%08X\n", i, reg_dump_values[i]);
+	}
+
+	if (HIFDiagReadMem(scn->hif_hdl,
+	            host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_dbglog_hdr)),
+	            (A_UCHAR *)&dbglog_hdr_address,
+	            sizeof(dbglog_hdr))!= A_OK)
+	{
+	    printk("HifDiagReadiMem FW dbglog_hdr_address failed\n");
+	    return;
+	}
+
+	if (HIFDiagReadMem(scn->hif_hdl,
+	            dbglog_hdr_address,
+	            (A_UCHAR *)&dbglog_hdr,
+	            sizeof(dbglog_hdr))!= A_OK)
+	{
+	    printk("HifDiagReadiMem FW dbglog_hdr failed\n");
+	    return;
+	}
+
+	if (HIFDiagReadMem(scn->hif_hdl,
+	            (A_UINT32)dbglog_hdr.dbuf,
+	            (A_UCHAR *)&dbglog_buf,
+	            sizeof(dbglog_buf))!= A_OK)
+	{
+	    printk("HifDiagReadiMem FW dbglog_buf failed\n");
+	    return;
+	}
+
+	dbglog_data = adf_os_mem_alloc(scn->adf_dev,  dbglog_buf.length + 4);
+	if (dbglog_data) {
+	    if (HIFDiagReadMem(scn->hif_hdl,
+	                (A_UINT32)dbglog_buf.buffer,
+	                dbglog_data + 4,
+	                dbglog_buf.length)!= A_OK)
+	    {
+	        printk("HifDiagReadiMem FW dbglog_data failed\n");
+	    } else {
+	        printk("dbglog_hdr.dbuf=%p dbglog_data=%p dbglog_buf.buffer=%p dbglog_buf.length=%u\n",
+	                dbglog_hdr.dbuf, dbglog_data, dbglog_buf.buffer, dbglog_buf.length);
+
+
+	        OS_MEMCPY(dbglog_data, &dbglog_hdr.dropped, 4);
+	        (void)dbglog_parse_debug_logs(scn, dbglog_data, dbglog_buf.length + 4);
+	    }
+
+	    adf_os_mem_free(dbglog_data);
 	}
 
 	return;
