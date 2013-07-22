@@ -2462,7 +2462,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
         {
             case NL80211_IFTYPE_STATION:
             case NL80211_IFTYPE_P2P_CLIENT:
-#ifndef CONFIG_QCA_WIFI_2_0
+#ifndef QCA_WIFI_2_0
                 hddLog(VOS_TRACE_LEVEL_INFO,
                    "%s: setting interface Type to INFRASTRUCTURE", __func__);
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
