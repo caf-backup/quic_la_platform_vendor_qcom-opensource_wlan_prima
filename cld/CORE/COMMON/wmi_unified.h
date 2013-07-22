@@ -1777,6 +1777,27 @@ typedef enum {
     WMI_PDEV_PARAM_RFKILL_ENABLE,
 } WMI_PDEV_PARAM;
 
+typedef enum {
+    /** Enable/Disable report size */
+    WMI_DBGLOG_REPORT_SIZE = 0x1,
+    /** Time resolution */
+    WMI_DBGLOG_TSTAMP_RESOLUTION,
+    /** Enable/Disable reporting */
+    WMI_DBGLOG_REPORTING_ENABLED,
+    /** Set the loglevel */
+    WMI_DBGLOG_LOG_LEVEL,
+    /** Enable VAP level debug */
+    WMI_DBGLOG_VAP_ENABLE,
+    /** Disable VAP level debug */
+    WMI_DBGLOG_VAP_DISABLE,
+    /** Enable MODULE level debug */
+    WMI_DBGLOG_MODULE_ENABLE,
+    /** Disable MODULE level debug */
+    WMI_DBGLOG_MODULE_DISABLE,
+    /** set type of the debug output */
+    WMI_DBGLOG_TYPE,
+} WMI_DBG_PARAM;
+
 typedef struct {
     /** parameter id   */
     A_UINT32 param_id;
