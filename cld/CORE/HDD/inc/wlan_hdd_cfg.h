@@ -1708,6 +1708,14 @@ typedef enum
 #define CFG_POWERSAVE_OFFLOAD_ENABLE              ( 1 )
 #define CFG_POWERSAVE_OFFLOAD_DEFAULT             ( CFG_POWERSAVE_OFFLOAD_DISABLE )
 
+/*
+ * Firmware uart print
+ */
+#define CFG_ENABLE_FW_UART_PRINT_NAME             "gEnablefwprint"
+#define CFG_ENABLE_FW_UART_PRINT_DISABLE          ( 0 )
+#define CFG_ENABLE_FW_UART_PRINT_ENABLE           ( 1 )
+#define CFG_ENABLE_FW_UART_PRINT_DEFAULT          ( CFG_ENABLE_FW_UART_PRINT_DISABLE )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2079,6 +2087,7 @@ typedef struct
    v_U8_t                      fScanOffload;
    v_BOOL_t                    enableTCPChkSumOffld;
    v_BOOL_t                    enablePowersaveOffload;
+   v_BOOL_t                    enablefwprint;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
