@@ -1283,6 +1283,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 	*buf_len = len;
 	vos_status = VOS_STATUS_SUCCESS;
 error:
+	vos_mem_free(scan_req);
 	return vos_status;
 }
 
@@ -1340,7 +1341,6 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	 * TLV for channel list, bssid, ssid etc ... */
 	vos_status = wma_get_buf_start_scan_cmd(wma_handle, scan_req,
 			&buf, &len);
-
 	if (vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("Failed to get buffer for start scan cmd");
 		goto error1;
