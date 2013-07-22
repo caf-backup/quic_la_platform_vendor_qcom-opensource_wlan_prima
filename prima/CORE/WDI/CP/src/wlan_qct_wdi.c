@@ -13941,6 +13941,8 @@ WDI_ProcessWowlEnterReq
       return WDI_STATUS_E_FAILURE;
    }
 
+   wpalMemoryZero(&wowlEnterReq, sizeof(tHalWowlEnterParams));
+
    wowlEnterReq.ucMagicPktEnable =
       pwdiWowlEnterParams->wdiWowlEnterInfo.ucMagicPktEnable;
    wowlEnterReq.ucPatternFilteringEnable =
