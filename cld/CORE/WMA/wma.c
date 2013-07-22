@@ -5245,3 +5245,33 @@ VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps)
 	return VOS_STATUS_SUCCESS;
 }
 
+eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+	int ret = -EIO;
+
+	switch (ht_capab) {
+	case WNI_CFG_HT_CAP_INFO_ADVANCE_CODING:
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+						WMI_VDEV_PARAM_LDPC, value);
+	break;
+	case WNI_CFG_HT_CAP_INFO_TX_STBC:
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+						WMI_VDEV_PARAM_TX_STBC, value);
+	break;
+	case WNI_CFG_HT_CAP_INFO_RX_STBC:
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+						WMI_VDEV_PARAM_RX_STBC, value);
+	break;
+	case WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ:
+	case WNI_CFG_HT_CAP_INFO_SHORT_GI_40MHZ:
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+						WMI_VDEV_PARAM_SGI, value);
+	break;
+	default:
+	WMA_LOGE("%s:INVALID HT CONFIG", __func__);
+	}
+
+	return (ret)? eHAL_STATUS_FAILURE : eHAL_STATUS_SUCCESS;
+}

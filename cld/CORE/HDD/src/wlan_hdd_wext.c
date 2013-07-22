@@ -4165,37 +4165,112 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 
         case WE_SET_LDPC:
         {
-           hddLog(LOG1, "WMI_VDEV_PARAM_LDPC val %d", set_value);
-           ret = process_wma_set_command((int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PARAM_LDPC,
-                                         set_value, VDEV_CMD);
+           tANI_U32 value;
+           union {
+              tANI_U16                        nCfgValue16;
+              tSirMacHTCapabilityInfo         htCapInfo;
+           }uHTCapabilityInfo;
+
+           hddLog(LOG1, "LDPC val %d", set_value);
+           /* get the HT capability info*/
+           ret = ccmCfgGetInt(hHal, WNI_CFG_HT_CAP_INFO, &value);
+           if (eHAL_STATUS_SUCCESS != ret) {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s: could not get HT capability info",
+                         __func__);
+               return -EIO;
+           }
+
+           uHTCapabilityInfo.nCfgValue16 = 0xFFFF & value;
+           if ((set_value && (uHTCapabilityInfo.htCapInfo.advCodingCap)) ||
+                (!set_value)) {
+               ret = sme_UpdateHTConfig(hHal, pAdapter->sessionId,
+                                  WNI_CFG_HT_CAP_INFO_ADVANCE_CODING,
+                                  set_value);
+           }
+
+           if (ret)
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "Failed to set LDPC value");
+
            break;
         }
 
         case WE_SET_TX_STBC:
         {
-           hddLog(LOG1, "WMI_VDEV_PARAM_TX_STBC val %d", set_value);
-           ret = process_wma_set_command((int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PARAM_TX_STBC,
-                                         set_value, VDEV_CMD);
+           tANI_U32 value;
+           union {
+              tANI_U16                        nCfgValue16;
+              tSirMacHTCapabilityInfo         htCapInfo;
+           }uHTCapabilityInfo;
+
+           hddLog(LOG1, "TX_STBC val %d", set_value);
+           /* get the HT capability info*/
+           ret = ccmCfgGetInt(hHal, WNI_CFG_HT_CAP_INFO, &value);
+           if (eHAL_STATUS_SUCCESS != ret) {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s: could not get HT capability info",
+                         __func__);
+               return -EIO;
+           }
+
+           uHTCapabilityInfo.nCfgValue16 = 0xFFFF & value;
+           if ((set_value && (uHTCapabilityInfo.htCapInfo.txSTBC)) ||
+               (!set_value)) {
+               ret = sme_UpdateHTConfig(hHal, pAdapter->sessionId,
+                                  WNI_CFG_HT_CAP_INFO_TX_STBC,
+                                  set_value);
+           }
+
+           if (ret)
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "Failed to set TX STBC value");
+
            break;
         }
 
         case WE_SET_RX_STBC:
         {
+           tANI_U32 value;
+           union {
+              tANI_U16                        nCfgValue16;
+              tSirMacHTCapabilityInfo         htCapInfo;
+           }uHTCapabilityInfo;
+
            hddLog(LOG1, "WMI_VDEV_PARAM_RX_STBC val %d", set_value);
-           ret = process_wma_set_command((int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PARAM_RX_STBC,
-                                         set_value, VDEV_CMD);
+           /* get the HT capability info*/
+           ret = ccmCfgGetInt(hHal, WNI_CFG_HT_CAP_INFO, &value);
+           if (eHAL_STATUS_SUCCESS != ret) {
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                         "%s: could not get HT capability info",
+                         __func__);
+               return -EIO;
+           }
+
+           uHTCapabilityInfo.nCfgValue16 = 0xFFFF & value;
+           if ((set_value && (uHTCapabilityInfo.htCapInfo.rxSTBC)) ||
+               (!set_value)) {
+               ret = sme_UpdateHTConfig(hHal, pAdapter->sessionId,
+                                 WNI_CFG_HT_CAP_INFO_RX_STBC,
+                                 (!set_value)? set_value :
+                                           uHTCapabilityInfo.htCapInfo.rxSTBC);
+           }
+
+           if (ret)
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "Failed to set RX STBC value");
            break;
         }
 
         case WE_SET_SHORT_GI:
         {
            hddLog(LOG1, "WMI_VDEV_PARAM_SGI val %d", set_value);
-           ret = process_wma_set_command((int)pAdapter->sessionId,
-                                         (int)WMI_VDEV_PARAM_SGI,
-                                         set_value, VDEV_CMD);
+           ret = sme_UpdateHTConfig(hHal, pAdapter->sessionId,
+                                   WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ,
+                                   set_value);
+           if (ret)
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "Failed to set ShortGI value");
            break;
         }
 
@@ -4686,40 +4761,32 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
         case WE_GET_LDPC:
         {
            hddLog(LOG1, "GET WMI_VDEV_PARAM_LDPC");
-           *value = wma_cli_get_command(wmapvosContext,
-                                        (int)pAdapter->sessionId,
-                                        (int)WMI_VDEV_PARAM_LDPC,
-                                        VDEV_CMD);
+           *value = sme_GetHTConfig(hHal, pAdapter->sessionId,
+                                           WNI_CFG_HT_CAP_INFO_ADVANCE_CODING);
            break;
         }
 
         case WE_GET_TX_STBC:
         {
            hddLog(LOG1, "GET WMI_VDEV_PARAM_TX_STBC");
-           *value = wma_cli_get_command(wmapvosContext,
-                                        (int)pAdapter->sessionId,
-                                        (int)WMI_VDEV_PARAM_TX_STBC,
-                                        VDEV_CMD);
+           *value = sme_GetHTConfig(hHal, pAdapter->sessionId,
+                                           WNI_CFG_HT_CAP_INFO_TX_STBC);
            break;
         }
 
         case WE_GET_RX_STBC:
         {
            hddLog(LOG1, "GET WMI_VDEV_PARAM_RX_STBC");
-           *value = wma_cli_get_command(wmapvosContext,
-                                        (int)pAdapter->sessionId,
-                                        (int)WMI_VDEV_PARAM_RX_STBC,
-                                        VDEV_CMD);
+           *value = sme_GetHTConfig(hHal, pAdapter->sessionId,
+                                           WNI_CFG_HT_CAP_INFO_RX_STBC);
            break;
         }
 
         case WE_GET_SHORT_GI:
         {
            hddLog(LOG1, "GET WMI_VDEV_PARAM_SGI");
-           *value = wma_cli_get_command(wmapvosContext,
-                                        (int)pAdapter->sessionId,
-                                        (int)WMI_VDEV_PARAM_SGI,
-                                        VDEV_CMD);
+           *value = sme_GetHTConfig(hHal, pAdapter->sessionId,
+                                           WNI_CFG_HT_CAP_INFO_SHORT_GI_20MHZ);
            break;
         }
 
