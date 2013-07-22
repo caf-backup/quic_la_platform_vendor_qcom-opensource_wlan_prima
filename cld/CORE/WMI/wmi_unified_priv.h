@@ -30,6 +30,14 @@
 
 typedef adf_nbuf_t wmi_buf_t;
 
+#ifdef WLAN_OPEN_SOURCE
+struct fwdebug {
+       struct sk_buff_head fwlog_queue;
+       struct completion fwlog_completion;
+       A_BOOL fwlog_open;
+};
+#endif /* WLAN_OPEN_SOURCE */
+
 struct wmi_unified {
 	ol_scn_t scn_handle; /* handle to device */
 	adf_os_atomic_t pending_cmds;
@@ -43,5 +51,9 @@ struct wmi_unified {
 	adf_nbuf_queue_t event_queue;
 	struct work_struct rx_event_work;
 #endif
+#ifdef WLAN_OPEN_SOURCE
+       struct fwdebug dbglog;
+       struct dentry *debugfs_phy;
+#endif /* WLAN_OPEN_SOURCE */
 };
 #endif
