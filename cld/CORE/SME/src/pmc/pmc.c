@@ -3014,8 +3014,14 @@ eHalStatus pmcOffloadQueueStartUapsdRequest(tpAniSirGlobal pMac,
         case FULL_POWER:
         case REQUEST_BMPS:
             pmc->uapsdSessionRequired = TRUE;
-          break;
+            break;
         case BMPS:
+            if(pmc->uapsdSessionRequired)
+            {
+                smsLog(pMac, LOGE,
+                       FL("Uapsd is already pending"));
+                break;
+            }
             /* Request to Enable Sta Mode Power Save */
             if(pmcIssueCommand(pMac, sessionId, eSmeCommandEnterUapsd,
                                NULL, 0, FALSE) == eHAL_STATUS_SUCCESS)
@@ -3026,18 +3032,14 @@ eHalStatus pmcOffloadQueueStartUapsdRequest(tpAniSirGlobal pMac,
             }
             else
             {
-                /*
-                 * Fail to issue eSmeCommandEnterUapsd
-                 * just fall through to restart the timer
-                 */
+                /* Fail to issue eSmeCommandEnterUapsd */
                 smsLog(pMac, LOGE, FL("Fail to issue eSmeCommandEnterUapsd"));
                 return eHAL_STATUS_FAILURE;
             }
-          break;
         default:
-          break;
+            return eHAL_STATUS_SUCCESS;
     }
-    return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_PMC_PENDING;
 }
 
 eHalStatus pmcOffloadQueueStopUapsdRequest(tpAniSirGlobal pMac,

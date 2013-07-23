@@ -416,4 +416,8 @@ eHalStatus pmcOffloadExitPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId)
 
 eHalStatus pmcOffloadEnterPowersaveState(tpAniSirGlobal pMac, tANI_U32 sessionId);
 void pmcOffloadExitBmpsIndHandler(tpAniSirGlobal pMac, tSirSmeRsp *pMsg);
+
+eHalStatus pmcOffloadQueueStartUapsdRequest(tpAniSirGlobal pMac, tANI_U32 sessionId);
+eHalStatus pmcOffloadQueueStopUapsdRequest(tpAniSirGlobal pMac, tANI_U32 sessionId);
+
 #endif

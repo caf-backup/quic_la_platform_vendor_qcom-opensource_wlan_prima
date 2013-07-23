@@ -3706,6 +3706,95 @@ full_pwr_req_pending:
     return eHAL_STATUS_PMC_PENDING;
 }
 
+eHalStatus pmcOffloadStartUapsd(tHalHandle hHal,  tANI_U32 sessionId,
+                   UapsdStartIndCb uapsdStartIndCb, void *callbackContext)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    smsLog(pMac, LOG2, "PMC: Start UAPSD Req");
+
+    /* Check if Sta Ps is enabled. */
+    if(!pMac->pmcOffloadInfo.staPsEnabled)
+    {
+        smsLog(pMac, LOGE, "PMC: Cannot start uapsd. BMPS is disabled");
+        return eHAL_STATUS_PMC_DISABLED;
+    }
+
+    /* Check whether the give session is Infra and in Connected State */
+    if(!csrIsConnStateConnectedInfra(pMac, sessionId))
+    {
+        smsLog(pMac, LOGE, "PMC:Sta not infra/connected state %d", sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    status =  pmcOffloadQueueStartUapsdRequest(pMac, sessionId);
+
+    if(eHAL_STATUS_PMC_PENDING != status)
+    {
+        smsLog(pMac, LOG2, "PMC: Start UAPSD Req:Not Pending");
+        return status;
+    }
+
+    /*
+     * Store the cbs so that corresponding registered
+     * module will be notified upon starting of
+     * uapsd
+     */
+    if(uapsdStartIndCb)
+    {
+        tpPmcOffloadStartUapsdEntry pEntry;
+        tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
+        /* Allocate entry for Start Uapsd Cb list. */
+        if(palAllocateMemory(pMac->hHdd, (void **)&pEntry,
+           sizeof(tPmcOffloadStartUapsdEntry)) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE,
+                   FL("Cannot allocate memory for start uapsd list"));
+            return eHAL_STATUS_FAILURE;
+        }
+
+        /* Store routine and context in entry. */
+        pEntry->uapsdStartInd = uapsdStartIndCb;
+        pEntry->callbackContext = callbackContext;
+        pEntry->sessionId = sessionId;
+
+        /* Add entry to list. */
+        csrLLInsertTail(&pmc->uapsdCbList, &pEntry->link, FALSE);
+    }
+    return status;
+}
+
+eHalStatus pmcOffloadStopUapsd(tHalHandle hHal,  tANI_U32 sessionId)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    smsLog(pMac, LOG2, "PMC: Stop UAPSD Req");
+
+    /* Check if Sta Ps is enabled. */
+    if(!pMac->pmcOffloadInfo.staPsEnabled)
+    {
+        smsLog(pMac, LOGE, "PMC: Cannot stop uapsd. BMPS is disabled");
+        return eHAL_STATUS_PMC_DISABLED;
+    }
+
+    /* Check whether the give session is Infra and in Connected State */
+    if(!csrIsConnStateConnectedInfra(pMac, sessionId))
+    {
+        smsLog(pMac, LOGE, "PMC:Sta not infra/connected state %d", sessionId);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    status =  pmcOffloadQueueStopUapsdRequest(pMac, sessionId);
+    if(eHAL_STATUS_SUCCESS != status)
+    {
+        smsLog(pMac, LOGE, "PMC:Failed to queue Stop Uapsd Req SessionId %d",
+               sessionId);
+    }
+    return status;
+}
+
 tANI_BOOLEAN pmcOffloadProcessCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;

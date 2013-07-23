@@ -447,6 +447,8 @@ void sme_QosPmcOffloadFullPowerCallback(void *callbackContext, tANI_U32 sessionI
                                          eHalStatus status);
 
 void sme_QosPmcStartUapsdCallback(void *callbackContext, eHalStatus status);
+void sme_QosPmcOffloadStartUapsdCallback(void *callbackContext,
+                                         tANI_U32 sessionId, eHalStatus status);
 v_BOOL_t sme_QosPmcCheckRoutine(void *callbackContext);
 v_BOOL_t sme_QosPmcOffloadCheckRoutine(void *callbackContext, tANI_U32 sessionId);
 
@@ -2581,7 +2583,14 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
                   {
                      // No sessions require UAPSD so turn it off
                      // (really don't care when PMC stops it)
-                     (void)pmcStopUapsd(pMac);
+                     if(!pMac->psOffloadEnabled)
+                     {
+                        (void)pmcStopUapsd(pMac);
+                     }
+                     else
+                     {
+                        (void)pmcOffloadStopUapsd(pMac, sessionId);
+                     }
                   }
                }
             }
@@ -2621,7 +2630,14 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
                {
                   // No sessions require UAPSD so turn it off
                   // (really don't care when PMC stops it)
-                  (void)pmcStopUapsd(pMac);
+                  if(!pMac->psOffloadEnabled)
+                  {
+                      (void)pmcStopUapsd(pMac);
+                  }
+                  else
+                  {
+                      (void)pmcOffloadStopUapsd(pMac, sessionId);
+                  }
                }
             }
             hstatus = sme_QosRequestReassoc(pMac, sessionId,
@@ -4727,11 +4743,18 @@ eHalStatus sme_QosProcessHandoffAssocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId
    // this session no longer needs UAPSD
    pSession->apsdMask = 0;
    // do any sessions still require UAPSD?
-   if (!sme_QosIsUapsdActive())
+   if(!pMac->psOffloadEnabled)
    {
-      // No sessions require UAPSD so turn it off
-      // (really don't care when PMC stops it)
-      (void)pmcStopUapsd(pMac);
+       if (!sme_QosIsUapsdActive())
+       {
+          // No sessions require UAPSD so turn it off
+          // (really don't care when PMC stops it)
+          (void)pmcStopUapsd(pMac);
+       }
+   }
+   else
+   {
+       (void)pmcOffloadStopUapsd(pMac, sessionId);
    }
    pSession->uapsdAlreadyRequested = VOS_FALSE;
    return eHAL_STATUS_SUCCESS;
@@ -4905,13 +4928,22 @@ eHalStatus sme_QosProcessDisconnectEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
    sme_QosInitACs(pMac, sessionId);
    // this session doesn't require UAPSD
    pSession->apsdMask = 0;
-   // do any sessions still require UAPSD?
-   if (!sme_QosIsUapsdActive())
+
+   if(!pMac->psOffloadEnabled)
    {
-      // No sessions require UAPSD so turn it off
-      // (really don't care when PMC stops it)
-      (void)pmcStopUapsd(pMac);
+      // do any sessions still require UAPSD?
+      if (!sme_QosIsUapsdActive())
+      {
+         // No sessions require UAPSD so turn it off
+         // (really don't care when PMC stops it)
+         (void)pmcStopUapsd(pMac);
+      }
    }
+   else
+   {
+      (void)pmcOffloadStopUapsd(pMac, sessionId);
+   }
+
    pSession->uapsdAlreadyRequested = VOS_FALSE;
    pSession->handoffRequested = VOS_FALSE;
    pSession->readyForPowerSave = VOS_TRUE;
@@ -6711,10 +6743,20 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
          if(!pSession->uapsdAlreadyRequested)
          {
             // this is the first flow to detect we need PMC in UAPSD mode
-   
-            pmc_status = pmcStartUapsd(pMac,
+            if(!pMac->psOffloadEnabled)
+            {
+                pmc_status = pmcStartUapsd(pMac,
                                        sme_QosPmcStartUapsdCallback,
                                        pSession);
+            }
+            else
+            {
+                pmc_status = pmcOffloadStartUapsd(pMac,
+                                           flow_info->sessionId,
+                                           sme_QosPmcOffloadStartUapsdCallback,
+                                           pSession);
+            }
+
             // if PMC doesn't return success right away means it is yet to put
             // the module in BMPS state & later to UAPSD state
          
@@ -6748,11 +6790,22 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
    
          if(!pSession->uapsdAlreadyRequested)
          {
-            // this is the first flow to detect we need PMC in UAPSD mode
-            pmc_status = pmcStartUapsd(pMac,
+            if(!pMac->psOffloadEnabled)
+            {
+                // this is the first flow to detect we need PMC in UAPSD mode
+                pmc_status = pmcStartUapsd(pMac,
                                        sme_QosPmcStartUapsdCallback,
                                        pSession);
-         
+            }
+            else
+            {
+                // this is the first flow to detect we need PMC in UAPSD mode
+                pmc_status = pmcOffloadStartUapsd(pMac,
+                                       flow_info->sessionId,
+                                       sme_QosPmcOffloadStartUapsdCallback,
+                                       pSession);
+            }
+
             // if PMC doesn't return success right away means it is yet to put
             // the module in BMPS state & later to UAPSD state
             if(eHAL_STATUS_FAILURE == pmc_status)
@@ -6962,10 +7015,22 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
          // then we don't need to do anything
          if(!pSession->uapsdAlreadyRequested)
          {
-            // this is the first flow to detect we need PMC in UAPSD mode
-            pmc_status = pmcStartUapsd(pMac,
+            if(!pMac->psOffloadEnabled)
+            {
+                // this is the first flow to detect we need PMC in UAPSD mode
+                pmc_status = pmcStartUapsd(pMac,
                                        sme_QosPmcStartUapsdCallback,
                                        pSession);
+            }
+            else
+            {
+                // this is the first flow to detect we need PMC in UAPSD mode
+                pmc_status = pmcOffloadStartUapsd(pMac,
+                                           flow_info->sessionId,
+                                           sme_QosPmcOffloadStartUapsdCallback,
+                                           pSession);
+            }
+
             // if PMC doesn't return success right away means it is yet to put
             // the module in BMPS state & later to UAPSD state
             if(eHAL_STATUS_FAILURE == pmc_status)
@@ -7005,10 +7070,22 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
          // then we don't need to do anything.
          if(!pSession->uapsdAlreadyRequested)
          {
-            // this is the first flow to detect we need PMC in UAPSD mode
-            pmc_status = pmcStartUapsd(pMac,
+            if(!pMac->psOffloadEnabled)
+            {
+                // this is the first flow to detect we need PMC in UAPSD mode
+                pmc_status = pmcStartUapsd(pMac,
                                        sme_QosPmcStartUapsdCallback,
                                        pSession);
+            }
+            else
+            {
+                // this is the first flow to detect we need PMC in UAPSD mode
+                pmc_status = pmcOffloadStartUapsd(pMac,
+                                           flow_info->sessionId,
+                                           sme_QosPmcOffloadStartUapsdCallback,
+                                           pSession);
+            }
+
             // if PMC doesn't return success right away means it is yet to put
             // the module in BMPS state & later to UAPSD state
             if(eHAL_STATUS_FAILURE == pmc_status)
@@ -7039,13 +7116,20 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
           csrSetModifyProfileFields(pMac, flow_info->sessionId, &modifyProfileFields);
           if(!pSession->apsdMask)
           {
-             // this session no longer needs UAPSD
-             // do any sessions still require UAPSD?
-             if (!sme_QosIsUapsdActive())
+             if(!pMac->psOffloadEnabled)
              {
-                // No sessions require UAPSD so turn it off
-                // (really don't care when PMC stops it)
-                (void)pmcStopUapsd(pMac);
+                // this session no longer needs UAPSD
+                // do any sessions still require UAPSD?
+                if (!sme_QosIsUapsdActive())
+                {
+                   // No sessions require UAPSD so turn it off
+                   // (really don't care when PMC stops it)
+                   (void)pmcStopUapsd(pMac);
+                }
+             }
+             else
+             {
+                (void)pmcOffloadStopUapsd(pMac, flow_info->sessionId);
              }
           }
         }
@@ -7237,6 +7321,14 @@ void sme_QosPmcStartUapsdCallback(void *callbackContext, eHalStatus status)
    // just note that there is no longer an outstanding request
    pSession->uapsdAlreadyRequested = VOS_FALSE;
 }
+
+void sme_QosPmcOffloadStartUapsdCallback(void *callbackContext,
+                                         tANI_U32 sessionId, eHalStatus status)
+{
+   sme_QosSessionInfo *pSession = callbackContext;
+   pSession->uapsdAlreadyRequested = VOS_FALSE;
+}
+
 /*--------------------------------------------------------------------------
   \brief sme_QosPmcCheckRoutine() - Function registered with PMC to check with 
   SME-QoS whenever the device is about to enter one of the power 

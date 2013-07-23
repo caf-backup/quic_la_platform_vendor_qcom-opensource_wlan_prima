@@ -5242,7 +5242,14 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 {
                     smsLog(pMac, LOGE, " uapsd_mask (0x%X) set, request UAPSD now",
                         pSession->connectedProfile.modifyProfileFields.uapsd_mask);
-                    pmcStartUapsd( pMac, NULL, NULL );
+                    if(!pMac->psOffloadEnabled)
+                    {
+                        pmcStartUapsd( pMac, NULL, NULL );
+                    }
+                    else
+                    {
+                        pmcOffloadStartUapsd(pMac, sessionId, NULL, NULL);
+                    }
                 }
                 pSession->connectedProfile.dot11Mode = pSession->bssParams.uCfgDot11Mode;
                 roamInfo.u.pConnectedProfile = &pSession->connectedProfile;
