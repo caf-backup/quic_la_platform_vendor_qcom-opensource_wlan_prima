@@ -66,6 +66,7 @@
 #ifndef QCA_WIFI_ISOC
 #include "bmi.h"
 #include "ol_fw.h"
+#include "ol_if_athvar.h"
 #else
 #include "htc_api.h"
 #endif /* #ifndef QCA_WIFI_ISOC */
@@ -232,6 +233,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #ifdef QCA_WIFI_2_0
    adf_os_device_t adf_ctx;
    HTC_INIT_INFO  htcInfo;
+   struct ol_softc *scn;
 #endif
    hdd_context_t *pHddCtx;
 
@@ -299,10 +301,24 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       goto err_msg_queue;
    }
 
+   pHddCtx = (hdd_context_t*)(gpVosContext->pHDDContext);
+   if((NULL == pHddCtx) ||
+      (NULL == pHddCtx->cfg_ini))
+   {
+     /* Critical Error ...  Cannot proceed further */
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Hdd Context is Null", __func__);
+     VOS_ASSERT(0);
+     goto err_nv_close;
+   }
+
 #ifdef QCA_WIFI_2_0
 #ifndef QCA_WIFI_ISOC
+   scn = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);
+   scn->enableuartprint = pHddCtx->cfg_ini->enablefwprint;
+
    /* Initialize BMI and Download firmware */
-   if (bmi_download_firmware(vos_get_context(VOS_MODULE_ID_HIF, gpVosContext))) {
+   if (bmi_download_firmware(scn)) {
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
 		  "%s: BMI failed to download target", __func__);
 	goto err_bmi_close;
@@ -428,17 +444,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
     * whether to open pmc or pmc offload
     * module.
     */
-   pHddCtx = (hdd_context_t*)(gpVosContext->pHDDContext);
-   if((NULL == pHddCtx) ||
-      (NULL == pHddCtx->cfg_ini))
-   {
-     /* Critical Error ...  Cannot proceed further */
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-               "%s: Hdd Context is Null", __func__);
-     VOS_ASSERT(0);
-     goto err_nv_close;
-   }
-
    if(pHddCtx->cfg_ini->enablePowersaveOffload)
    {
       macOpenParms.powersaveOffloadEnabled = TRUE;
