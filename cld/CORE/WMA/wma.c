@@ -1833,12 +1833,16 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	if (params->wmmEnabled)
 		cmd->peer_flags |= WMI_PEER_QOS;
 
+	if (params->uAPSD) {
+		cmd->peer_flags |= WMI_PEER_APSD;
+		WMA_LOGD("Set WMI_PEER_APSD: uapsd Mask %d", params->uAPSD);
+	}
+
 	if (params->htCapable) {
 		cmd->peer_flags |= WMI_PEER_HT;
 		cmd->peer_rate_caps |= WMI_RC_HT_FLAG;
 	}
 
-	/* TODO: Need to handle uAPSD */
 	if (params->txChannelWidthSet) {
 		cmd->peer_flags |= WMI_PEER_40MHZ;
 		cmd->peer_rate_caps |= WMI_RC_CW40_FLAG;
@@ -3512,6 +3516,37 @@ static int32_t wmi_unified_set_sta_ps(wmi_unified_t wmi_handle,
         return 0;
 }
 
+static inline u_int32_t wma_get_uapsd_mask(tpUapsd_Params uapsd_params)
+{
+	u_int32_t uapsd_val = 0;
+
+	if(uapsd_params->beDeliveryEnabled)
+		uapsd_val |= WMI_STA_PS_UAPSD_AC0_DELIVERY_EN;
+
+	if(uapsd_params->beTriggerEnabled)
+		uapsd_val |= WMI_STA_PS_UAPSD_AC0_TRIGGER_EN;
+
+	if(uapsd_params->bkDeliveryEnabled)
+		uapsd_val |= WMI_STA_PS_UAPSD_AC1_DELIVERY_EN;
+
+	if(uapsd_params->bkTriggerEnabled)
+		uapsd_val |= WMI_STA_PS_UAPSD_AC1_TRIGGER_EN;
+
+	if(uapsd_params->viDeliveryEnabled)
+		uapsd_val |= WMI_STA_PS_UAPSD_AC2_DELIVERY_EN;
+
+	if(uapsd_params->viTriggerEnabled)
+		uapsd_val |= WMI_STA_PS_UAPSD_AC2_TRIGGER_EN;
+
+	if(uapsd_params->voDeliveryEnabled)
+		uapsd_val |= WMI_STA_PS_UAPSD_AC3_DELIVERY_EN;
+
+	if(uapsd_params->voTriggerEnabled)
+		uapsd_val |= WMI_STA_PS_UAPSD_AC3_TRIGGER_EN;
+
+	return uapsd_val;
+}
+
 static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_t enable)
 {
 	int32_t ret;
@@ -3656,8 +3691,28 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 			ps_req->status = VOS_STATUS_E_FAILURE;
 			goto resp;
 		}
-	}
+	} else if (eSIR_ADDON_ENABLE_UAPSD == ps_req->psSetting) {
+		u_int32_t uapsd_val = 0;
+		uapsd_val = wma_get_uapsd_mask(&ps_req->uapsdParams);
 
+		WMA_LOGD("Enable Uapsd vdevId %d Mask %d", vdev_id, uapsd_val);
+		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_UAPSD, uapsd_val);
+		if (ret) {
+			WMA_LOGE("Enable Uapsd Failed vdevId %d", vdev_id);
+			ps_req->status = VOS_STATUS_E_FAILURE;
+			goto resp;
+		}
+
+		WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
+		ret = wma_set_force_sleep(wma, vdev_id, true);
+		if (ret) {
+			WMA_LOGE("Enable Forced Sleep Failed vdevId %d",
+				vdev_id);
+			ps_req->status = VOS_STATUS_E_FAILURE;
+			goto resp;
+		}
+	}
 	ps_req->status = VOS_STATUS_SUCCESS;
 resp:
 	wma_send_msg(wma, WDA_ENTER_BMPS_RSP, ps_req, 0);
@@ -3678,9 +3733,197 @@ static void wma_disable_sta_ps_mode(tp_wma_handle wma, tpDisablePsParams ps_req)
                 goto resp;
         }
 
+	/* Disable UAPSD incase if additional Req came */
+	if (eSIR_ADDON_DISABLE_UAPSD == ps_req->psSetting) {
+		WMA_LOGD("Disable Uapsd vdevId %d", vdev_id);
+		ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+						WMI_STA_PS_PARAM_UAPSD, 0);
+		if (ret) {
+			WMA_LOGE("Disable Uapsd Failed vdevId %d", vdev_id);
+			/*
+			 * Even this fails we can proceed as success
+			 * since we disabled powersave
+			 */
+		}
+	}
+
         ps_req->status = VOS_STATUS_SUCCESS;
 resp:
         wma_send_msg(wma, WDA_EXIT_BMPS_RSP, ps_req, 0);
+}
+
+static void wma_enable_uapsd_mode(tp_wma_handle wma,
+				tpEnableUapsdParams ps_req)
+{
+	int32_t ret;
+	u_int32_t vdev_id = ps_req->sessionid;
+	u_int32_t uapsd_val = 0;
+
+	/* Disable Sta Mode Power save */
+	ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, false);
+	if (ret) {
+		WMA_LOGE("Disable Sta Mode Ps Failed vdevId %d", vdev_id);
+		ps_req->status = VOS_STATUS_E_FAILURE;
+		goto resp;
+	}
+
+	uapsd_val = wma_get_uapsd_mask(&ps_req->uapsdParams);
+
+	WMA_LOGD("Enable Uapsd vdevId %d Mask %d", vdev_id, uapsd_val);
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+				WMI_STA_PS_PARAM_UAPSD, uapsd_val);
+	if (ret) {
+		WMA_LOGE("Enable Uapsd Failed vdevId %d", vdev_id);
+		ps_req->status = VOS_STATUS_E_FAILURE;
+		goto resp;
+	}
+
+	WMA_LOGD("Enable Forced Sleep vdevId %d", vdev_id);
+	ret = wma_set_force_sleep(wma, vdev_id, true);
+	if (ret) {
+		WMA_LOGE("Enable Forced Sleep Failed vdevId %d", vdev_id);
+		ps_req->status = VOS_STATUS_E_FAILURE;
+		goto resp;
+	}
+
+	ps_req->status = VOS_STATUS_SUCCESS;
+resp:
+	wma_send_msg(wma, WDA_ENTER_UAPSD_RSP, ps_req, 0);
+}
+
+static void wma_disable_uapsd_mode(tp_wma_handle wma,
+			tpDisableUapsdParams ps_req)
+{
+	int32_t ret;
+	u_int32_t vdev_id = ps_req->sessionid;
+
+	WMA_LOGD("Disable Uapsd vdevId %d", vdev_id);
+
+	/* Disable Sta Mode Power save */
+	ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, false);
+	if (ret) {
+		WMA_LOGE("Disable Sta Mode Ps Failed vdevId %d", vdev_id);
+		ps_req->status = VOS_STATUS_E_FAILURE;
+		goto resp;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_UAPSD, 0);
+	if (ret) {
+		WMA_LOGE("Disable Uapsd Failed vdevId %d", vdev_id);
+		ps_req->status = VOS_STATUS_E_FAILURE;
+		goto resp;
+	}
+
+	/* Re enable Sta Mode Powersave with proper configuration */
+	ret = wma_set_force_sleep(wma, vdev_id, false);
+	if (ret) {
+		WMA_LOGE("Disable Forced Sleep Failed vdevId %d", vdev_id);
+		ps_req->status = VOS_STATUS_E_FAILURE;
+		goto resp;
+	}
+
+	ps_req->status = VOS_STATUS_SUCCESS;
+resp:
+	wma_send_msg(wma, WDA_EXIT_UAPSD_RSP, ps_req, 0);
+}
+
+/*
+ * This function sets the trigger uapsd
+ * params such as service interval, delay
+ * interval and suspend interval which
+ * will be used by the firmware to send
+ * trigger frames periodically when there
+ * is no traffic on the transmit side.
+ */
+int32_t
+wmi_unified_set_sta_uapsd_auto_trig_cmd(
+        wmi_unified_t wmi_handle,
+        u_int32_t vdevid,
+        u_int8_t peer_addr[IEEE80211_ADDR_LEN],
+        u_int8_t *autoTriggerparam,
+        u_int32_t num_ac)
+{
+	wmi_sta_uapsd_auto_trig_cmd *cmd;
+	int32_t ret;
+	u_int32_t param_len = (num_ac - 1) *
+				sizeof(wmi_sta_uapsd_auto_trig_param);
+	u_int32_t cmd_len = sizeof(*cmd) + param_len;
+	wmi_buf_t buf;
+
+	buf = wmi_buf_alloc(wmi_handle, cmd_len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_sta_uapsd_auto_trig_cmd*)wmi_buf_data(buf);
+	cmd->vdev_id = vdevid;
+	cmd->num_ac = num_ac;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	vos_mem_copy(&(cmd->ac_param[0]), autoTriggerparam, param_len);
+
+	ret = wmi_unified_cmd_send(wmi_handle, buf, cmd_len,
+				WMI_STA_UAPSD_AUTO_TRIG_CMDID);
+	if (ret < 0) {
+		WMA_LOGE("Failed to send set uapsd param ret = %d", ret);
+		wmi_buf_free(buf);
+	}
+	return ret;
+}
+
+/*
+ * This function sets the trigger uapsd
+ * params such as service interval, delay
+ * interval and suspend interval which
+ * will be used by the firmware to send
+ * trigger frames periodically when there
+ * is no traffic on the transmit side.
+ */
+VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
+			tp_wma_trigger_uapsd_params trigger_uapsd_params)
+{
+	int32_t ret;
+	wmi_sta_uapsd_auto_trig_param uapsd_trigger_param;
+
+	WMA_LOGD("Trigger uapsd params vdev id %d", vdev_id);
+
+	WMA_LOGD("WMM AC %d User Priority %d SvcIntv %d DelIntv %d SusIntv %d",
+		trigger_uapsd_params->wmm_ac,
+		trigger_uapsd_params->user_priority,
+		trigger_uapsd_params->service_interval,
+		trigger_uapsd_params->delay_interval,
+		trigger_uapsd_params->suspend_interval);
+
+	if (!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				 WMI_STA_UAPSD_BASIC_AUTO_TRIG) ||
+		!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				 WMI_STA_UAPSD_VAR_AUTO_TRIG)) {
+		WMA_LOGD("Trigger uapsd is not supported vdev id %d", vdev_id);
+		return VOS_STATUS_SUCCESS;
+	}
+
+	uapsd_trigger_param.wmm_ac =
+				trigger_uapsd_params->wmm_ac;
+	uapsd_trigger_param.user_priority =
+				trigger_uapsd_params->user_priority;
+	uapsd_trigger_param.service_interval =
+				trigger_uapsd_params->service_interval;
+	uapsd_trigger_param.suspend_interval =
+				trigger_uapsd_params->suspend_interval;
+	uapsd_trigger_param.delay_interval =
+				trigger_uapsd_params->delay_interval;
+
+	ret = wmi_unified_set_sta_uapsd_auto_trig_cmd(wma_handle->wmi_handle, vdev_id,
+					wma_handle->interfaces[vdev_id].bssid,
+					(u_int8_t*)(&uapsd_trigger_param),
+					1);
+	if (ret) {
+		WMA_LOGE("Fail to send uapsd param cmd for vdevid %d ret = %d",
+			ret, vdev_id);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
 }
 
 /* function   : wma_mc_process_msg
@@ -3811,6 +4054,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_EXIT_BMPS_REQ:
 			wma_disable_sta_ps_mode(wma_handle,
                                         (tpDisablePsParams)msg->bodyptr);
+			break;
+		case WDA_ENTER_UAPSD_REQ:
+			wma_enable_uapsd_mode(wma_handle,
+					(tpEnableUapsdParams)msg->bodyptr);
+			break;
+		case WDA_EXIT_UAPSD_REQ:
+			wma_disable_uapsd_mode(wma_handle,
+					(tpDisableUapsdParams)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);

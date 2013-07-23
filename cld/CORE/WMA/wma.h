@@ -943,4 +943,16 @@ enum wma_cfg_cmd_id {
        /* Add any new command before this */
        WMA_CMD_ID_MAX
 };
+
+typedef struct wma_trigger_uapsd_params
+{
+	u_int32_t wmm_ac;
+	u_int32_t user_priority;
+	u_int32_t service_interval;
+	u_int32_t suspend_interval;
+	u_int32_t delay_interval;
+}t_wma_trigger_uapsd_params, *tp_wma_trigger_uapsd_params;
+
+VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
+			tp_wma_trigger_uapsd_params trigger_uapsd_params);
 #endif
