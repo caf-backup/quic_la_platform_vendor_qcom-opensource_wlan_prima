@@ -254,33 +254,6 @@ WLANTL_TxFreeMsg
 	return VOS_STATUS_SUCCESS;
 }
 
-VOS_STATUS
-WLANTL_EnableUAPSDForAC
-(
-  v_PVOID_t          pvosGCtx,
-  v_U8_t             ucSTAId,
-  WLANTL_ACEnumType  ucACId,
-  v_U8_t             ucTid,
-  v_U8_t             ucUP,
-  v_U32_t            uServiceInt,
-  v_U32_t            uSuspendInt,
-  WLANTL_TSDirType   wTSDir
-)
-{
-	return VOS_STATUS_SUCCESS;
-}
-
-VOS_STATUS
-WLANTL_DisableUAPSDForAC
-(
-  v_PVOID_t          pvosGCtx,
-  v_U8_t             ucSTAId,
-  WLANTL_ACEnumType  ucACId
-)
-{
-	return VOS_STATUS_SUCCESS;
-}
-
 #if defined WLAN_FEATURE_NEIGHBOR_ROAMING
 VOS_STATUS WLANTL_RegRSSIIndicationCB
 (
