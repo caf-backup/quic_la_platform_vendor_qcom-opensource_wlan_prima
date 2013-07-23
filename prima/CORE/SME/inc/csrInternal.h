@@ -620,6 +620,10 @@ typedef struct tagCsrConfig
     tANI_U8   txLdpcEnable;
     tANI_BOOLEAN  enableOxygenNwk;
 
+    /*
+     * Enable/Disable heartbeat offload
+     */
+    tANI_BOOLEAN enableHeartBeatOffload;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
