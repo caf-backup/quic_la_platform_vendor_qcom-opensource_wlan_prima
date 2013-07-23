@@ -3065,6 +3065,45 @@ tSirRetStatus pmmOffloadEnterBmpsRespHandler(tpAniSirGlobal pMac,
     return eSIR_SUCCESS;
 }
 
+eHalStatus pmmOffloadFillUapsdParams(tpPESession psessionEntry,
+                                     tpUapsd_Params pUapsdParams)
+{
+    tANI_U8  uapsdDeliveryMask = 0;
+    tANI_U8  uapsdTriggerMask = 0;
+
+    uapsdDeliveryMask = (psessionEntry->gUapsdPerAcBitmask |
+                         psessionEntry->gUapsdPerAcDeliveryEnableMask);
+
+    uapsdTriggerMask = (psessionEntry->gUapsdPerAcBitmask |
+                        psessionEntry->gUapsdPerAcTriggerEnableMask);
+
+    pUapsdParams->bkDeliveryEnabled =
+                             LIM_UAPSD_GET(ACBK, uapsdDeliveryMask);
+
+    pUapsdParams->beDeliveryEnabled =
+                             LIM_UAPSD_GET(ACBE, uapsdDeliveryMask);
+
+    pUapsdParams->viDeliveryEnabled =
+                             LIM_UAPSD_GET(ACVI, uapsdDeliveryMask);
+
+    pUapsdParams->voDeliveryEnabled =
+                             LIM_UAPSD_GET(ACVO, uapsdDeliveryMask);
+
+    pUapsdParams->bkTriggerEnabled =
+                             LIM_UAPSD_GET(ACBK, uapsdTriggerMask);
+
+    pUapsdParams->beTriggerEnabled =
+                             LIM_UAPSD_GET(ACBE, uapsdTriggerMask);
+
+    pUapsdParams->viTriggerEnabled =
+                             LIM_UAPSD_GET(ACVI, uapsdTriggerMask);
+
+    pUapsdParams->voTriggerEnabled =
+                             LIM_UAPSD_GET(ACVO, uapsdTriggerMask);
+
+    return eHAL_STATUS_SUCCESS;
+}
+
 tSirRetStatus pmmOffloadEnterBmpsReqHandler(tpAniSirGlobal pMac,
                                             void *pReqData)
 {
@@ -3117,6 +3156,12 @@ tSirRetStatus pmmOffloadEnterBmpsReqHandler(tpAniSirGlobal pMac,
 
     /* Fill the additional power save setting */
     pEnablePsReqParams->psSetting = psReqData->addOnReq;
+
+    if(eSIR_ADDON_ENABLE_UAPSD == pEnablePsReqParams->psSetting)
+    {
+       pmmOffloadFillUapsdParams(psessionEntry,
+                                 &pEnablePsReqParams->uapsdParams);
+    }
 
     msgQ.type = WDA_ENTER_BMPS_REQ;
     msgQ.reserved = 0;
@@ -3267,6 +3312,271 @@ tSirRetStatus pmmOffloadExitBmpsReqHandler(tpAniSirGlobal pMac,
     return eSIR_SUCCESS;
 }
 
+tSirRetStatus pmmOffloadEnterUapsdRespHandler(tpAniSirGlobal pMac,
+                                              void *pRespData)
+{
+    tANI_U8 sessionId;
+    tpPESession psessionEntry;
+    tpEnableUapsdParams psRespData = (tpEnableUapsdParams)pRespData;
+
+    /*
+     * we need to process all the deferred messages enqueued since
+     * initiating SIR_HAL_ENTER_UAPSD_REQ.
+     */
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+
+    if(!pRespData)
+    {
+        pmmLog(pMac, LOGE, " No Ps Resp Data: Invalid Enter Uapsd Resp");
+        return eSIR_FAILURE;
+    }
+
+    pmmLog(pMac, LOG1,
+           "pmmOffloadEnterUapsdRespHandler Status %x", psRespData->status);
+
+    /* Get the PE Session Corresponding to BSSID */
+    psessionEntry = peFindSessionByBssid(pMac, psRespData->bssid, &sessionId);
+
+    if(!psessionEntry)
+    {
+        pmmLog(pMac, LOGE,
+               " No PE Session for given BSSID : Invalid Enter Uapsd Request");
+        return eSIR_FAILURE;
+    }
+
+    if(eHAL_STATUS_SUCCESS == psRespData->status)
+    {
+        pmmLog(pMac, LOG1,
+               "EnterUapsdResp Success PeSessionId %x SmeSessionId %x",
+               psessionEntry->peSessionId, psessionEntry->smeSessionId);
+
+        limSendSmeRsp(pMac, eWNI_PMC_ENTER_UAPSD_RSP, eSIR_SUCCESS,
+                      psessionEntry->smeSessionId,
+                      psessionEntry->transactionId);
+    }
+    else
+    {
+        pmmLog(pMac, LOGE,
+               "EnterUapsdResp Failed PeSessionId %x SmeSessionId %x",
+               psessionEntry->peSessionId, psessionEntry->smeSessionId);
+
+        limSendSmeRsp(pMac, eWNI_PMC_ENTER_UAPSD_RSP, eSIR_FAILURE,
+                      psessionEntry->smeSessionId,
+                      psessionEntry->transactionId);
+    }
+    return eSIR_SUCCESS;
+}
+
+
+tSirRetStatus pmmOffloadEnterUapsdReqHandler(tpAniSirGlobal pMac,
+                                             void *pReqData)
+{
+    tANI_U8 sessionId;
+    tpPESession psessionEntry;
+    tpEnableUapsdParams pEnableUapsdReqParams;
+    tSirMsgQ msgQ;
+    tpSirPsReqData psReqData = (tpSirPsReqData)pReqData;
+    tANI_U8  uapsdDeliveryMask = 0;
+    tANI_U8  uapsdTriggerMask = 0;
+
+    if(!psReqData)
+    {
+        pmmLog(pMac, LOGE, " No Ps Req Data: Invalid Enter Uapsd Request");
+        return eSIR_FAILURE;
+    }
+
+    /* Get the PE Session Corresponding to BSSID */
+    psessionEntry = peFindSessionByBssid(pMac, psReqData->bssId, &sessionId);
+
+    if(NULL == psessionEntry)
+    {
+        pmmLog(pMac, LOGE,
+               " No PE Session for given BSSID : Invalid Enter Uapsd Request");
+        return eSIR_FAILURE;
+    }
+
+    if(eHAL_STATUS_SUCCESS !=
+       palAllocateMemory(pMac->hHdd, (void **)&pEnableUapsdReqParams,
+                         sizeof(tEnableUapsdParams)))
+    {
+        pmmLog(pMac, LOGE, FL("palAllocateMemory() failed"));
+        return eSIR_MEM_ALLOC_FAILED;
+    }
+
+    uapsdDeliveryMask = (psessionEntry->gUapsdPerAcBitmask |
+                         psessionEntry->gUapsdPerAcDeliveryEnableMask);
+
+    uapsdTriggerMask = (psessionEntry->gUapsdPerAcBitmask |
+                        psessionEntry->gUapsdPerAcTriggerEnableMask);
+
+    pEnableUapsdReqParams->uapsdParams.bkDeliveryEnabled =
+                             LIM_UAPSD_GET(ACBK, uapsdDeliveryMask);
+
+    pEnableUapsdReqParams->uapsdParams.beDeliveryEnabled =
+                             LIM_UAPSD_GET(ACBE, uapsdDeliveryMask);
+
+    pEnableUapsdReqParams->uapsdParams.viDeliveryEnabled =
+                             LIM_UAPSD_GET(ACVI, uapsdDeliveryMask);
+
+    pEnableUapsdReqParams->uapsdParams.voDeliveryEnabled =
+                             LIM_UAPSD_GET(ACVO, uapsdDeliveryMask);
+
+    pEnableUapsdReqParams->uapsdParams.bkTriggerEnabled =
+                             LIM_UAPSD_GET(ACBK, uapsdTriggerMask);
+
+    pEnableUapsdReqParams->uapsdParams.beTriggerEnabled =
+                             LIM_UAPSD_GET(ACBE, uapsdTriggerMask);
+
+    pEnableUapsdReqParams->uapsdParams.viTriggerEnabled =
+                             LIM_UAPSD_GET(ACVI, uapsdTriggerMask);
+
+    pEnableUapsdReqParams->uapsdParams.voTriggerEnabled =
+                             LIM_UAPSD_GET(ACVO, uapsdTriggerMask);
+
+    /* Fill the BSSID  corresponding to PS Req */
+    palCopyMemory(pMac->hHdd, pEnableUapsdReqParams->bssid, psReqData->bssId,
+                 sizeof(tSirMacAddr));
+
+    /* Fill the Sme Session Id */
+    pEnableUapsdReqParams->sessionid = psessionEntry->smeSessionId;
+
+    msgQ.type = WDA_ENTER_UAPSD_REQ;
+    msgQ.reserved = 0;
+    msgQ.bodyptr = pEnableUapsdReqParams;
+    msgQ.bodyval = 0;
+
+    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msgQ))
+    {
+        pmmLog(pMac, LOGE, FL("Posting WDA_ENTER_UAPSD_REQ failed"));
+        palFreeMemory(pMac->hHdd, pEnableUapsdReqParams);
+        return eSIR_FAILURE;
+    }
+
+    /*
+     * we need to defer any incoming messages until we
+     * get a WDA_EXIT_UAPSD_RSP from HAL.
+     */
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+    pmmLog(pMac, LOG1, FL("WDA_ENTER_UAPSD_REQ Successfully sendt to WDA"));
+    return eSIR_SUCCESS;
+}
+
+tSirRetStatus pmmOffloadExitUapsdRespHandler(tpAniSirGlobal pMac,
+                                                     void *pRespData)
+{
+    tANI_U8 sessionId;
+    tpPESession psessionEntry;
+    tpDisableUapsdParams psRespData = (tpDisableUapsdParams)pRespData;
+
+    /*
+     * we need to process all the deferred messages enqueued since
+     * initiating SIR_HAL_EXIT_UAPSD_REQ.
+     */
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+
+    if(!pRespData)
+    {
+        pmmLog(pMac, LOGE, " No Ps Resp Data: Invalid Exit Uapsd Resp");
+        return eSIR_FAILURE;
+    }
+
+    pmmLog(pMac, LOG1,
+           "pmmOffloadExitUapsdRespHandler Status %x", psRespData->status);
+
+    /* Get the PE Session Corresponding to BSSID */
+    psessionEntry = peFindSessionByBssid(pMac, psRespData->bssid, &sessionId);
+
+    if(!psessionEntry)
+    {
+        pmmLog(pMac, LOGE,
+               " No PE Session for given BSSID : Invalid Exit Uapsd Request");
+        return eSIR_FAILURE;
+    }
+
+    if(eHAL_STATUS_SUCCESS == psRespData->status)
+    {
+        pmmLog(pMac, LOG1,
+               "ExitUapsdResp Success PeSessionId %x SmeSessionId %x",
+               psessionEntry->peSessionId, psessionEntry->smeSessionId);
+
+        limSendSmeRsp(pMac, eWNI_PMC_EXIT_UAPSD_RSP, eSIR_SUCCESS,
+                      psessionEntry->smeSessionId,
+                      psessionEntry->transactionId);
+    }
+    else
+    {
+        pmmLog(pMac, LOGE,
+               "ExitUapsdResp Failed PeSessionId %x SmeSessionId %x",
+               psessionEntry->peSessionId, psessionEntry->smeSessionId);
+
+        limSendSmeRsp(pMac, eWNI_PMC_EXIT_UAPSD_RSP, eSIR_FAILURE,
+                      psessionEntry->smeSessionId,
+                      psessionEntry->transactionId);
+    }
+    return eSIR_SUCCESS;
+}
+
+tSirRetStatus pmmOffloadExitUapsdReqHandler(tpAniSirGlobal pMac,
+                                            void *pReqData)
+{
+    tANI_U8 sessionId;
+    tpPESession psessionEntry;
+    tpDisableUapsdParams pDisableUapsdReqParams;
+    tSirMsgQ msgQ;
+    tpSirPsReqData psReqData = (tpSirPsReqData)pReqData;
+
+    if(!psReqData)
+    {
+        pmmLog(pMac, LOGE, " No Ps Req Data: Invalid Exit Uapsd Request");
+        return eSIR_FAILURE;
+    }
+
+    /* Get the PE Session Corresponding to BSSID */
+    psessionEntry = peFindSessionByBssid(pMac, psReqData->bssId, &sessionId);
+
+    if(NULL == psessionEntry)
+    {
+        pmmLog(pMac, LOGE,
+               " No PE Session for given BSSID : Invalid Enter Uapsd Request");
+        return eSIR_FAILURE;
+    }
+
+    if(eHAL_STATUS_SUCCESS !=
+       palAllocateMemory(pMac->hHdd, (void **)&pDisableUapsdReqParams,
+                         sizeof(tDisablePsParams)))
+    {
+        pmmLog(pMac, LOGE, FL("palAllocateMemory() failed"));
+        return eSIR_MEM_ALLOC_FAILED;
+    }
+
+    /* Fill the BSSID  corresponding to PS Req */
+    palCopyMemory(pMac->hHdd, pDisableUapsdReqParams->bssid, psReqData->bssId,
+                  sizeof(tSirMacAddr));
+
+    /* Fill the Sme Session Id */
+    pDisableUapsdReqParams->sessionid = psessionEntry->smeSessionId;
+
+    msgQ.type = WDA_EXIT_UAPSD_REQ;
+    msgQ.reserved = 0;
+    msgQ.bodyptr = pDisableUapsdReqParams;
+    msgQ.bodyval = 0;
+
+    if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msgQ))
+    {
+        pmmLog(pMac, LOGE, FL("Posting WDA_EXIT_UAPSD_REQ failed"));
+        palFreeMemory(pMac->hHdd, pDisableUapsdReqParams);
+        return eSIR_FAILURE;
+    }
+
+    /*
+     * we need to defer any incoming messages until we
+     * get a WDA_EXIT_UAPSD_RSP from HAL.
+     */
+    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+    pmmLog(pMac, LOG1, FL("WDA_EXIT_UAPSD_REQ Successfully sendt to WDA"));
+    return eSIR_SUCCESS;
+}
+
 void pmmOffloadProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 {
     switch (pMsg->type)
@@ -3316,23 +3626,45 @@ void pmmOffloadProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             break;
 
         case eWNI_PMC_ENTER_UAPSD_REQ:
-            pmmLog(pMac, LOGE,
-                   "PMM: eWNI_PMC_ENTER_UAPSD_REQ  not supported yet");
+            {
+                tSirMbMsg *pMbMsg = (tSirMbMsg *)pMsg->bodyptr;
+                if(eSIR_SUCCESS !=
+                   pmmOffloadEnterUapsdReqHandler(pMac, pMbMsg->data))
+                {
+                    pmmLog(pMac, LOGE,
+                           "PMM: Failed to Process eWNI_PMC_ENTER_UAPSD_REQ");
+                }
+            }
             break;
 
         case WDA_ENTER_UAPSD_RSP:
-            pmmLog(pMac, LOGE,
-                   "PMM: WDA_ENTER_UAPSD_RSP  not supported yet");
+            if(eSIR_SUCCESS !=
+               pmmOffloadEnterUapsdRespHandler(pMac, pMsg->bodyptr))
+            {
+                pmmLog(pMac, LOGE,
+                       "PMM: Failed to Process WDA_ENTER_UAPSD_RSP");
+            }
             break;
 
         case eWNI_PMC_EXIT_UAPSD_REQ:
-            pmmLog(pMac, LOGE,
-                   "PMM: eWNI_PMC_EXIT_UAPSD_REQ not supported yet");
+            {
+                tSirMbMsg *pMbMsg = (tSirMbMsg *)pMsg->bodyptr;
+                if(eSIR_SUCCESS !=
+                   pmmOffloadExitUapsdReqHandler(pMac, pMbMsg->data))
+                {
+                    pmmLog(pMac, LOGE,
+                           "PMM: Failed to Process eWNI_PMC_EXIT_UAPSD_REQ");
+                }
+            }
             break;
 
         case WDA_EXIT_UAPSD_RSP:
-            pmmLog(pMac, LOGE,
-                   "PMM: WDA_EXIT_UAPSD_RSP not supported yet");
+            if(eSIR_SUCCESS !=
+               pmmOffloadExitUapsdRespHandler(pMac, pMsg->bodyptr))
+            {
+                pmmLog(pMac, LOGE,
+                       "PMM: Failed to Process WDA_EXIT_UAPSD_RSP");
+            }
             break;
 
         case eWNI_PMC_WOWL_ADD_BCAST_PTRN:

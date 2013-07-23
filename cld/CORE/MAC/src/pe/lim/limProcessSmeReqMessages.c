@@ -1820,15 +1820,34 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         regMax = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel ); 
         localPowerConstraint = regMax;
-        limExtractApCapability( pMac,
-           (tANI_U8 *) psessionEntry->pLimJoinReq->bssDescription.ieFields,
-           limGetIElenFromBssDescription(&psessionEntry->pLimJoinReq->bssDescription),
-           &psessionEntry->limCurrentBssQosCaps,
-           &psessionEntry->limCurrentBssPropCap,
-           &pMac->lim.gLimCurrentBssUapsd //TBD-RAJESH  make gLimCurrentBssUapsd this session specific
-           , &localPowerConstraint,
-           psessionEntry
-           ); 
+
+        if(!pMac->psOffloadEnabled)
+        {
+           limExtractApCapability( pMac,
+              (tANI_U8 *) psessionEntry->pLimJoinReq->bssDescription.ieFields,
+              limGetIElenFromBssDescription(
+              &psessionEntry->pLimJoinReq->bssDescription),
+              &psessionEntry->limCurrentBssQosCaps,
+              &psessionEntry->limCurrentBssPropCap,
+              &pMac->lim.gLimCurrentBssUapsd
+              , &localPowerConstraint,
+              psessionEntry
+              );
+        }
+        else
+        {
+           limExtractApCapability( pMac,
+              (tANI_U8 *) psessionEntry->pLimJoinReq->bssDescription.ieFields,
+              limGetIElenFromBssDescription(
+              &psessionEntry->pLimJoinReq->bssDescription),
+              &psessionEntry->limCurrentBssQosCaps,
+              &psessionEntry->limCurrentBssPropCap,
+              &psessionEntry->gLimCurrentBssUapsd,
+              &localPowerConstraint,
+              psessionEntry
+              );
+        }
+
 #ifdef FEATURE_WLAN_CCX
             psessionEntry->maxTxPower = limGetMaxTxPower(regMax, localPowerConstraint, pMac->roam.configParam.nTxPowerCap);
 #else
@@ -1838,14 +1857,35 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limLog( pMac, LOGE, "Regulatory max = %d, local power constraint = %d, max tx = %d", regMax, localPowerConstraint, psessionEntry->maxTxPower );
 #endif
 
-        if (pMac->lim.gLimCurrentBssUapsd)
+        if(!pMac->psOffloadEnabled)
         {
-            pMac->lim.gUapsdPerAcBitmask = psessionEntry->pLimJoinReq->uapsdPerAcBitmask;
-            limLog( pMac, LOG1, FL("UAPSD flag for all AC - 0x%2x"), pMac->lim.gUapsdPerAcBitmask);
+            if (pMac->lim.gLimCurrentBssUapsd)
+            {
+                pMac->lim.gUapsdPerAcBitmask =
+                          psessionEntry->pLimJoinReq->uapsdPerAcBitmask;
+                limLog( pMac, LOG1,
+                        FL("UAPSD flag for all AC - 0x%2x"),
+                        pMac->lim.gUapsdPerAcBitmask);
 
-            // resetting the dynamic uapsd mask 
-            pMac->lim.gUapsdPerAcDeliveryEnableMask = 0;
-            pMac->lim.gUapsdPerAcTriggerEnableMask = 0;
+                // resetting the dynamic uapsd mask
+                pMac->lim.gUapsdPerAcDeliveryEnableMask = 0;
+                pMac->lim.gUapsdPerAcTriggerEnableMask = 0;
+            }
+        }
+        else
+        {
+            if (psessionEntry->gLimCurrentBssUapsd)
+            {
+                psessionEntry->gUapsdPerAcBitmask =
+                               psessionEntry->pLimJoinReq->uapsdPerAcBitmask;
+                limLog( pMac, LOG1,
+                        FL("UAPSD flag for all AC - 0x%2x"),
+                        psessionEntry->gUapsdPerAcBitmask);
+
+                /* resetting the dynamic uapsd mask  */
+                psessionEntry->gUapsdPerAcDeliveryEnableMask = 0;
+                psessionEntry->gUapsdPerAcTriggerEnableMask = 0;
+             }
         }
 
         psessionEntry->limRFBand = limGetRFBand(psessionEntry->currentOperChannel);
@@ -2083,16 +2123,32 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 psessionEntry->pLimReAssocReq->bssDescription.capabilityInfo;
     regMax = cfgGetRegulatoryMaxTransmitPower( pMac, psessionEntry->currentOperChannel ); 
     localPowerConstraint = regMax;
-    limExtractApCapability( pMac,
-              (tANI_U8 *) psessionEntry->pLimReAssocReq->bssDescription.ieFields,
-              limGetIElenFromBssDescription(
+
+    if(!pMac->psOffloadEnabled)
+    {
+        limExtractApCapability( pMac,
+            (tANI_U8 *) psessionEntry->pLimReAssocReq->bssDescription.ieFields,
+            limGetIElenFromBssDescription(
                      &psessionEntry->pLimReAssocReq->bssDescription),
-              &psessionEntry->limReassocBssQosCaps,
-              &psessionEntry->limReassocBssPropCap,
-              &pMac->lim.gLimCurrentBssUapsd //TBD-RAJESH make gLimReassocBssUapsd session specific
-              , &localPowerConstraint,
-              psessionEntry
-              );
+            &psessionEntry->limReassocBssQosCaps,
+            &psessionEntry->limReassocBssPropCap,
+            &pMac->lim.gLimCurrentBssUapsd
+            , &localPowerConstraint,
+            psessionEntry
+            );
+    }
+    else
+    {
+        limExtractApCapability(pMac,
+            (tANI_U8 *) psessionEntry->pLimReAssocReq->bssDescription.ieFields,
+            limGetIElenFromBssDescription(
+                     &psessionEntry->pLimReAssocReq->bssDescription),
+            &psessionEntry->limReassocBssQosCaps,
+            &psessionEntry->limReassocBssPropCap,
+            &psessionEntry->gLimCurrentBssUapsd,
+            &localPowerConstraint,
+            psessionEntry);
+    }
 
     psessionEntry->maxTxPower = VOS_MIN( regMax , (localPowerConstraint) );
 #if defined WLAN_VOWIFI_DEBUG
@@ -2120,10 +2176,27 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     }
 
-    if (pMac->lim.gLimCurrentBssUapsd)
+    if(!pMac->psOffloadEnabled)
     {
-        pMac->lim.gUapsdPerAcBitmask = psessionEntry->pLimReAssocReq->uapsdPerAcBitmask;
-        limLog( pMac, LOG1, FL("UAPSD flag for all AC - 0x%2x"), pMac->lim.gUapsdPerAcBitmask);
+        if (pMac->lim.gLimCurrentBssUapsd)
+        {
+            pMac->lim.gUapsdPerAcBitmask =
+                      psessionEntry->pLimReAssocReq->uapsdPerAcBitmask;
+            limLog( pMac, LOG1,
+                    FL("UAPSD flag for all AC - 0x%2x"),
+                    pMac->lim.gUapsdPerAcBitmask);
+        }
+    }
+    else
+    {
+        if(psessionEntry->gLimCurrentBssUapsd)
+        {
+            psessionEntry->gUapsdPerAcBitmask =
+                           psessionEntry->pLimReAssocReq->uapsdPerAcBitmask;
+            limLog( pMac, LOG1,
+                    FL("UAPSD flag for all AC - 0x%2x"),
+                    psessionEntry->gUapsdPerAcBitmask);
+        }
     }
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmReassocReq, sizeof(tLimMlmReassocReq)))
@@ -3869,28 +3942,58 @@ __limProcessSmeDeltsReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      * dynamic UAPSD mask. The AC for this TSPEC to be deleted
      * is no longer trigger enabled or delivery enabled
      */
-    limSetTspecUapsdMask(pMac, pTsinfo, CLEAR_UAPSD_MASK);
+    if(!pMac->psOffloadEnabled)
+    {
+        limSetTspecUapsdMask(pMac, pTsinfo, CLEAR_UAPSD_MASK);
 
-    /* We're deleting the TSPEC, so this particular AC is no longer
-     * admitted.  PE needs to downgrade the EDCA
-     * parameters(for the AC for which TS is being deleted) to the
-     * next best AC for which ACM is not enabled, and send the
-     * updated values to HAL. 
-     */ 
-    ac = upToAc(pTsinfo->traffic.userPrio);
+        /* We're deleting the TSPEC, so this particular AC is no longer
+         * admitted.  PE needs to downgrade the EDCA
+         * parameters(for the AC for which TS is being deleted) to the
+         * next best AC for which ACM is not enabled, and send the
+         * updated values to HAL.
+         */
+        ac = upToAc(pTsinfo->traffic.userPrio);
 
-    if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_UPLINK)
-    {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+        if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+        }
+        else if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        }
+        else if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        }
     }
-    else if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+    else
     {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
-    }
-    else if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_BIDIR)
-    {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        limSetTspecUapsdMaskPerSession(pMac, psessionEntry,
+                                       pTsinfo, CLEAR_UAPSD_MASK);
+
+        /* We're deleting the TSPEC, so this particular AC is no longer
+         * admitted.  PE needs to downgrade the EDCA
+         * parameters(for the AC for which TS is being deleted) to the
+         * next best AC for which ACM is not enabled, and send the
+         * updated values to HAL.
+         */
+        ac = upToAc(pTsinfo->traffic.userPrio);
+
+        if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+        }
+        else if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        }
+        else if(pTsinfo->traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        }
     }
 
     limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);

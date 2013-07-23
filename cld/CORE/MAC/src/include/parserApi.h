@@ -685,6 +685,10 @@ void PopulateDot11fWMMInfoAp(tpAniSirGlobal      pMac,
 void PopulateDot11fWMMInfoStation(tpAniSirGlobal           pMac,
                                   tDot11fIEWMMInfoStation *pInfo);
 
+void PopulateDot11fWMMInfoStationPerSession(tpAniSirGlobal pMac,
+                                            tpPESession psessionEntry,
+                                            tDot11fIEWMMInfoStation *pInfo);
+
 void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
                              tDot11fIEWMMParams *pParams,
                              tpPESession        psessionEntry);

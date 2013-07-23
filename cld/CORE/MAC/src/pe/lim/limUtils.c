@@ -6920,7 +6920,58 @@ void limSetTspecUapsdMask(tpAniSirGlobal pMac, tSirMacTSInfo *pTsInfo, tANI_U32 
     return;
 }
 
+void limSetTspecUapsdMaskPerSession(tpAniSirGlobal pMac,
+            tpPESession psessionEntry, tSirMacTSInfo *pTsInfo, tANI_U32 action)
+{
+    tANI_U8   userPrio = (tANI_U8)pTsInfo->traffic.userPrio;
+    tANI_U16  direction = pTsInfo->traffic.direction;
+    tANI_U8   ac = upToAc(userPrio);
 
+    PELOG1(limLog(pMac, LOG1, FL("Set UAPSD mask for AC %d, dir %d, action=%d")
+                                 ,ac, direction, action );)
+
+    /* Converting AC to appropriate Uapsd Bit Mask
+     * AC_BE(0) --> UAPSD_BITOFFSET_ACVO(3)
+     * AC_BK(1) --> UAPSD_BITOFFSET_ACVO(2)
+     * AC_VI(2) --> UAPSD_BITOFFSET_ACVO(1)
+     * AC_VO(3) --> UAPSD_BITOFFSET_ACVO(0)
+     */
+    ac = ((~ac) & 0x3);
+
+    if (action == CLEAR_UAPSD_MASK)
+    {
+        if (direction == SIR_MAC_DIRECTION_UPLINK)
+            psessionEntry->gUapsdPerAcTriggerEnableMask &= ~(1 << ac);
+        else if (direction == SIR_MAC_DIRECTION_DNLINK)
+            psessionEntry->gUapsdPerAcDeliveryEnableMask &= ~(1 << ac);
+        else if (direction == SIR_MAC_DIRECTION_BIDIR)
+        {
+            psessionEntry->gUapsdPerAcTriggerEnableMask &= ~(1 << ac);
+            psessionEntry->gUapsdPerAcDeliveryEnableMask &= ~(1 << ac);
+        }
+    }
+    else if (action == SET_UAPSD_MASK)
+    {
+        if (direction == SIR_MAC_DIRECTION_UPLINK)
+            psessionEntry->gUapsdPerAcTriggerEnableMask |= (1 << ac);
+        else if (direction == SIR_MAC_DIRECTION_DNLINK)
+            psessionEntry->gUapsdPerAcDeliveryEnableMask |= (1 << ac);
+        else if (direction == SIR_MAC_DIRECTION_BIDIR)
+        {
+            psessionEntry->gUapsdPerAcTriggerEnableMask |= (1 << ac);
+            psessionEntry->gUapsdPerAcDeliveryEnableMask |= (1 << ac);
+        }
+    }
+
+    limLog(pMac, LOGE,
+           FL("New psessionEntry->gUapsdPerAcTriggerEnableMask = 0x%x "),
+           psessionEntry->gUapsdPerAcTriggerEnableMask );
+    limLog(pMac, LOGE,
+           FL("New psessionEntry->gUapsdPerAcDeliveryEnableMask = 0x%x "),
+           psessionEntry->gUapsdPerAcDeliveryEnableMask );
+
+    return;
+}
 
 void limHandleHeartBeatTimeout(tpAniSirGlobal pMac )
 {
