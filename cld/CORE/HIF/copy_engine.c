@@ -850,11 +850,6 @@ CE_per_engine_service(struct hif_pci_softc *sc, unsigned int CE_id)
     adf_os_spin_lock(&sc->target_lock);
 
 more_completions:
-    /*
-     * Clear the copy-complete interrupts that will be handled here.
-     * NOTE: This clear operation must not be removed!! otherwise there will be interrupt lost.
-     */
-    CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, HOST_IS_COPY_COMPLETE_MASK);
     if (CE_state->recv_cb) {
         /* Clear force_break flag and re-initialize receive_count to 0 */
         sc->receive_count = 0;
@@ -877,6 +872,7 @@ more_completions:
                 /* Break the receive processes by force if force_break set up */
                 if (adf_os_unlikely(sc->force_break))
                 {
+                    CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, HOST_IS_COPY_COMPLETE_MASK);
                     A_TARGET_ACCESS_END(targid);
                     return;
                 }
@@ -941,7 +937,7 @@ more_watermarks:
      * more copy completions happened while the misc interrupts were being
      * handled.
      */
-    CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, CE_WATERMARK_MASK);
+    CE_ENGINE_INT_STATUS_CLEAR(targid, ctrl_addr, CE_WATERMARK_MASK | HOST_IS_COPY_COMPLETE_MASK);
 
     /*
      * Now that per-engine interrupts are cleared, verify that
