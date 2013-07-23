@@ -3240,7 +3240,7 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 	WMA_LOGD("%s: state %d selfmac %pM\n", __func__,
 		 params->state, params->selfMacAddr);
 	if ((params->state != eSIR_LINK_PREASSOC_STATE) &&
-	    (params->state != eSIR_LINK_IDLE_STATE)) {
+	    (params->state != eSIR_LINK_DOWN_STATE)) {
 		WMA_LOGD("%s: unsupported link state %d\n",
 			 __func__, params->state);
 		goto out;
