@@ -611,6 +611,27 @@ __adf_nbuf_queue_add(__adf_nbuf_queue_t *qhead,
 }
 
 /**
+ * @brief add an skb at  the head  of the queue. This is a
+ * lockless version, driver must acquire locks if it
+ * needs to synchronize
+ *
+ * @param qhead
+ * @param skb
+ */
+static inline void
+__adf_nbuf_queue_insert_head(__adf_nbuf_queue_t *qhead,
+                             __adf_nbuf_t skb)
+{
+    if(!qhead->head){
+        /*Empty queue Tail pointer Must be updated */
+        qhead->tail = skb;
+    }
+    skb->next = qhead->head;
+    qhead->head = skb;
+    qhead->qlen++;
+}
+
+/**
  * @brief remove a skb from the head of the queue, this is a
  *        lockless version. Driver should take care of the locks
  * 
@@ -621,15 +642,19 @@ __adf_nbuf_queue_add(__adf_nbuf_queue_t *qhead,
 static inline struct sk_buff *
 __adf_nbuf_queue_remove(__adf_nbuf_queue_t * qhead)
 {
-    struct sk_buff  *tmp;
+    __adf_nbuf_t  tmp = NULL;
 
-    if((tmp = qhead->head) == NULL)     
-        return NULL;/*Q was empty already*/
-    
-    qhead->head = tmp->next;/*XXX:tail still points to tmp*/
-    qhead->qlen--;
-    tmp->next   = NULL;/*remove any references to the Q for the tmp*/
-    
+    if (qhead->head) {
+        qhead->qlen--;
+        tmp = qhead->head;
+        if ( qhead->head == qhead->tail ) {
+            qhead->head = NULL;
+            qhead->tail = NULL;
+        } else {
+            qhead->head = tmp->next;
+        }
+        tmp->next = NULL;
+    }
     return tmp;
 }
 /**

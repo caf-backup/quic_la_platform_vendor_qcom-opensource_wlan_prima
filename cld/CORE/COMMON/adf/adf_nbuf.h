@@ -721,6 +721,17 @@ adf_nbuf_queue_add(adf_nbuf_queue_t *head, adf_nbuf_t buf)
     __adf_nbuf_queue_add(head, buf);
 }
 
+/**
+ * @brief   Insert nbuf at the head of queue
+ *
+ * @param[in] head  buf queue head
+ * @param[in] buf   buf
+ */
+static inline void
+adf_nbuf_queue_insert_head(adf_nbuf_queue_t *head, adf_nbuf_t buf)
+{
+    __adf_nbuf_queue_insert_head(head, buf);
+}
 
 /**
  * @brief Retrieve a buf from the head of the buf queue
