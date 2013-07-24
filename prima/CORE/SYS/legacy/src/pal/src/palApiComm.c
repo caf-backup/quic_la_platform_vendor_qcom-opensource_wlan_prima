@@ -289,7 +289,7 @@ eHalStatus palSendMBMessage(tHddHandle hHdd, void *pBuf)
       }
    }
 
-   palFreeMemory( hHdd, pBuf );
+   vos_mem_free( pBuf );
 
    return( halStatus );
 }
