@@ -5686,7 +5686,7 @@ register_wiphy:
    /* Prima Update MAC address only at here */
    if (VOS_STATUS_SUCCESS != hdd_update_config_from_nv(pHddCtx))
    {
-#ifdef WLAN_AUTOGEN_MACADDR_FEATURE
+#if defined(WLAN_AUTOGEN_MACADDR_FEATURE) && defined (QCA_WIFI_ISOC)
       /* There was not a valid set of MAC Addresses in NV.  See if the
          default addresses were modified by the cfg.ini settings.  If so,
          we'll use them, but if not, we'll autogenerate a set of MAC
@@ -5732,13 +5732,13 @@ register_wiphy:
                 MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[0].bytes));
       }
       else
-#endif //WLAN_AUTOGEN_MACADDR_FEATURE
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,
                 "%s: Invalid MAC address in NV, using MAC from ini file "
                 MAC_ADDRESS_STR, __func__,
                 MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[0].bytes));
       }
+#endif //WLAN_AUTOGEN_MACADDR_FEATURE && QCA_WIFI_ISOC
    }
    {
       eHalStatus halStatus;
