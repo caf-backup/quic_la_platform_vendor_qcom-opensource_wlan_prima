@@ -26,8 +26,9 @@
 #include <wdi_event.h>
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
 #include <ol_txrx_encap.h>         /* ol_rx_decap_info_t, etc*/
-#endif 
+#endif
 
+/* FIX THIS: txrx should not include private header files of other modules */
 #include <htt_types.h>
 #include <ol_if_athvar.h>
 #include <if_llc.h>
@@ -57,18 +58,21 @@ static void ol_rx_process_inv_peer(
     struct ieee80211_frame *wh;
     struct wdi_event_rx_peer_invalid_msg msg;
 
-    wh = (struct ieee80211_frame *)htt_rx_mpdu_wifi_hdr_retrieve(htt_pdev, rx_mpdu_desc);
+    wh = (struct ieee80211_frame *)
+        htt_rx_mpdu_wifi_hdr_retrieve(htt_pdev, rx_mpdu_desc);
     /*
      * Klocwork issue #6152
-     *  All targets that send a "INVALID_PEER" rx status provide a 802.11 header for each rx MPDU, so it is certain that htt_rx_mpdu_wifi_hdr_retrieve will succeed.
-     *  However, both for robustness, e.g. if this function is given a MSDU descriptor rather than a MPDU descriptor, and to make it clear to static analysis that 
-     *  this code is safe, add an explicit check that htt_rx_mpdu_wifi_hdr_retrieve provides a non-NULL value.
+     *  All targets that send a "INVALID_PEER" rx status provide a
+     *  802.11 header for each rx MPDU, so it is certain that
+     *  htt_rx_mpdu_wifi_hdr_retrieve will succeed.
+     *  However, both for robustness, e.g. if this function is given a
+     *  MSDU descriptor rather than a MPDU descriptor, and to make it
+     *  clear to static analysis that this code is safe, add an explicit
+     *  check that htt_rx_mpdu_wifi_hdr_retrieve provides a non-NULL value.
      */
-    if (wh == NULL) {
+    if (wh == NULL || !IEEE80211_IS_DATA(wh)) {
         return;
     }
-    if (!IEEE80211_IS_DATA(wh))
-        return;
 
     /* ignore frames for non-existent bssids */
     adf_os_mem_copy(a1, wh->i_addr1, IEEE80211_ADDR_LEN);
@@ -77,9 +81,9 @@ static void ol_rx_process_inv_peer(
             break;
         }
     }
-    if (!vdev) 
+    if (!vdev) {
         return;
-
+    }
     msg.wh = wh;
     msg.msdu = msdu;
     msg.vdev_id = vdev->vdev_id;
@@ -124,21 +128,19 @@ ol_rx_indication_handler(
     OL_RX_REORDER_TIMEOUT_MUTEX_LOCK(pdev);
 
     if (htt_rx_ind_flush(pdev->htt_pdev, rx_ind_msg) && peer) {
-
         htt_rx_ind_flush_seq_num_range(
             pdev->htt_pdev, rx_ind_msg, &seq_num_start, &seq_num_end);
-
         if (tid == HTT_INVALID_TID) {
-            /* 
+            /*
              * host/FW reorder state went out-of sync
              * for a while because FW ran out of Rx indication
              * buffer. We have to discard all the buffers in
              * reorder queue.
              */
-            ol_rx_reorder_peer_cleanup(vdev, peer); 
+            ol_rx_reorder_peer_cleanup(vdev, peer);
         } else {
             ol_rx_reorder_flush(
-                vdev, peer, tid, seq_num_start, 
+                vdev, peer, tid, seq_num_start,
                 seq_num_end, htt_rx_flush_release);
         }
     }
@@ -146,13 +148,13 @@ ol_rx_indication_handler(
     if (htt_rx_ind_release(pdev->htt_pdev, rx_ind_msg)) {
         /* the ind info of release is saved here and do release at the end.
          * This is for the reason of in HL case, the adf_nbuf_t for msg and
-         * payload are the same buf. And the buf will be changed during 
+         * payload are the same buf. And the buf will be changed during
          * processing */
         rx_ind_release = A_TRUE;
         htt_rx_ind_release_seq_num_range(
             pdev->htt_pdev, rx_ind_msg, &seq_num_start, &seq_num_end);
     }
- 
+
     for (mpdu_range = 0; mpdu_range < num_mpdu_ranges; mpdu_range++) {
         enum htt_rx_status status;
         int i, num_mpdus;
@@ -187,7 +189,7 @@ ol_rx_indication_handler(
                  */
                 msdu_chaining = htt_rx_amsdu_pop(
                     htt_pdev, rx_ind_msg, &head_msdu, &tail_msdu);
-                rx_mpdu_desc = 
+                rx_mpdu_desc =
                     htt_rx_mpdu_desc_list_next(htt_pdev, rx_ind_msg);
 
                 /* Pktlog */
@@ -218,9 +220,6 @@ ol_rx_indication_handler(
                     OL_RX_REORDER_TRACE_ADD(
                         pdev, tid, reorder_idx,
                         htt_rx_mpdu_desc_seq_num(htt_pdev, rx_mpdu_desc), 1);
-#ifdef HTT_DEBUG_DATA
-                    HTT_PRINT("t%ds%d ", tid, reorder_idx);
-#endif
                     /*
                      * In most cases, out-of-bounds and duplicate sequence
                      * number detection is performed by the target, but in
@@ -258,11 +257,11 @@ ol_rx_indication_handler(
                         }
 
                         /*
-                         * For Peregrine and Rome, 
+                         * For Peregrine and Rome,
                          * OL_RX_REORDER_SEQ_NUM_CHECK should only fail for
                          * the case of (duplicate) non-aggregates.
                          *
-                         * For Riva, Pronto, and Northstar, 
+                         * For Riva, Pronto, and Northstar,
                          * there should be only one MPDU delivered at a time.
                          * Thus, there are no further MPDUs that need to be
                          * processed here.
@@ -293,12 +292,16 @@ ol_rx_indication_handler(
                 /* pull the MPDU's MSDUs off the buffer queue */
                 htt_rx_amsdu_pop(htt_pdev, rx_ind_msg, &msdu, &tail_msdu);
                 /* pull the MPDU desc off the desc queue */
-                rx_mpdu_desc = 
+                rx_mpdu_desc =
                     htt_rx_mpdu_desc_list_next(htt_pdev, rx_ind_msg);
-                OL_RX_ERR_STATISTICS_2(pdev, vdev, peer, rx_mpdu_desc, msdu, status);
+                OL_RX_ERR_STATISTICS_2(
+                    pdev, vdev, peer, rx_mpdu_desc, msdu, status);
 
-                if (status == htt_rx_status_tkip_mic_err && vdev != NULL &&  peer != NULL) {
-                    ol_rx_err(pdev->ctrl_pdev, vdev->vdev_id, peer->mac_addr.raw,
+                if (status == htt_rx_status_tkip_mic_err &&
+                    vdev != NULL &&  peer != NULL)
+                {
+                    ol_rx_err(
+                        pdev->ctrl_pdev, vdev->vdev_id, peer->mac_addr.raw,
                         tid, 0, OL_RX_ERR_TKIP_MIC, msdu);
                 }
 
@@ -327,9 +330,6 @@ ol_rx_indication_handler(
     htt_rx_msdu_buff_replenish(htt_pdev);
 
     if ((A_TRUE == rx_ind_release) && peer) {
-#ifdef HTT_DEBUG_DATA
-        HTT_PRINT("t%dr[%d,%d)\n",tid, seq_num_start, seq_num_end);
-#endif
         ol_rx_reorder_release(vdev, peer, tid, seq_num_start, seq_num_end);
     }
     OL_RX_REORDER_TIMEOUT_UPDATE(peer, tid);
@@ -374,7 +374,7 @@ ol_rx_sec_ind_handler(
         &peer->security[sec_index].michael_key[0],
         michael_key,
         sizeof(peer->security[sec_index].michael_key));
- 
+
     if (sec_type != htt_sec_type_wapi) {
         adf_os_mem_set(peer->tids_last_pn_valid, 0x00, OL_TXRX_NUM_EXT_TIDS);
     } else {
@@ -407,7 +407,9 @@ transcap_nwifi_to_8023(adf_nbuf_t msdu)
     struct llc *llchdr;
     struct ether_header *eth_hdr;
     a_uint16_t ether_type = 0;
-    a_uint8_t a1[IEEE80211_ADDR_LEN], a2[IEEE80211_ADDR_LEN], a3[IEEE80211_ADDR_LEN];
+    a_uint8_t a1[IEEE80211_ADDR_LEN];
+    a_uint8_t a2[IEEE80211_ADDR_LEN];
+    a_uint8_t a3[IEEE80211_ADDR_LEN];
     a_uint8_t fc1;
 
     wh = (struct ieee80211_frame *)adf_nbuf_data(msdu);
@@ -421,9 +423,9 @@ transcap_nwifi_to_8023(adf_nbuf_t msdu)
     llchdr = (struct llc *)(((a_uint8_t *)adf_nbuf_data(msdu)) + hdrsize);
     ether_type = llchdr->llc_un.type_snap.ether_type;
 
-    /* 
-     * Now move the data pointer to the beginning of the mac header : 
-     * new-header = old-hdr + (wifhdrsize + llchdrsize - ethhdrsize) 
+    /*
+     * Now move the data pointer to the beginning of the mac header :
+     * new-header = old-hdr + (wifhdrsize + llchdrsize - ethhdrsize)
      */
     adf_nbuf_pull_head(
         msdu, (hdrsize + sizeof(struct llc) - sizeof(struct ether_header)));
@@ -505,11 +507,11 @@ ol_rx_inspect(
         if (l3_hdr[offset] == IP_PROTOCOL_IGMP) {
             ol_rx_notify(
                 pdev->ctrl_pdev,
-                vdev->vdev_id, 
-                peer->mac_addr.raw, 
+                vdev->vdev_id,
+                peer->mac_addr.raw,
                 tid,
                 htt_rx_mpdu_desc_tsf32(pdev->htt_pdev, rx_desc),
-                OL_RX_NOTIFY_IPV4_IGMP, 
+                OL_RX_NOTIFY_IPV4_IGMP,
                 msdu);
         }
     }
@@ -556,7 +558,7 @@ ol_rx_offload_deliver_ind_handler(
     htt_rx_msdu_buff_replenish(htt_pdev);
 }
 
-/** 
+/**
  * @brief Check the first msdu to decide whether the a-msdu should be accepted.
  */
 a_bool_t
@@ -576,14 +578,18 @@ ol_rx_filter(
     privacy_filter_packet_type packet_type = PRIVACY_FILTER_PACKET_UNICAST;
     ol_txrx_pdev_handle pdev = vdev->pdev;
     htt_pdev_handle htt_pdev = pdev->htt_pdev;
+    int sec_idx;
 
-    /* Safemode must avoid the PrivacyExemptionList and ExcludeUnencrypted checking */
-    if (vdev->safemode) {        
+    /*
+     * Safemode must avoid the PrivacyExemptionList and
+     * ExcludeUnencrypted checking
+     */
+    if (vdev->safemode) {
         return FILTER_STATUS_ACCEPT;
     }
 
     is_mcast = htt_rx_msdu_is_wlan_mcast(htt_pdev, rx_desc);
-    if (vdev->filters_num > 0) {
+    if (vdev->num_filters > 0) {
         if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
             offset = SIZEOF_80211_HDR + LLC_SNAP_HDR_OFFSET_ETHERTYPE;
         } else {
@@ -612,36 +618,44 @@ ol_rx_filter(
     }
 #endif //ATH_SUPPORT_WAPI
 
-    for (i=0; i < vdev->filters_num; i++) {
+    for (i = 0; i < vdev->num_filters; i++) {
+        privacy_filter filter_type;
+        privacy_filter_packet_type filter_packet_type;
+
         /* skip if the ether type does not match */
         if (vdev->privacy_filters[i].ether_type != ether_type) {
             continue;
         }
 
         /* skip if the packet type does not match */
-        if (vdev->privacy_filters[i].packet_type != packet_type &&
-            vdev->privacy_filters[i].packet_type != PRIVACY_FILTER_PACKET_BOTH) {
+        filter_packet_type = vdev->privacy_filters[i].packet_type;
+        if (filter_packet_type != packet_type &&
+            filter_packet_type != PRIVACY_FILTER_PACKET_BOTH)
+        {
             continue;
         }
         
-        if (vdev->privacy_filters[i].filter_type == PRIVACY_FILTER_ALWAYS) {
+
+        filter_type = vdev->privacy_filters[i].filter_type;
+        if (filter_type == PRIVACY_FILTER_ALWAYS) {
             /*
-             * In this case, we accept the frame if and only if it was originally
-             * NOT encrypted.
+             * In this case, we accept the frame if and only if it was
+             * originally NOT encrypted.
              */
             if (A_TRUE == is_encrypted) {
                 return FILTER_STATUS_REJECT;
             } else {
                 return FILTER_STATUS_ACCEPT;
             }
-        } else if (vdev->privacy_filters[i].filter_type  == PRIVACY_FILTER_KEY_UNAVAILABLE) {
+        } else if (filter_type == PRIVACY_FILTER_KEY_UNAVAILABLE) {
             /*
-             * In this case, we reject the frame if it was originally NOT encrypted but 
-             * we have the key mapping key for this frame.
+             * In this case, we reject the frame if it was originally NOT
+             * encrypted but we have the key mapping key for this frame.
              */
-            if (!is_encrypted && !is_mcast
-                && (peer->security[txrx_sec_ucast].sec_type != htt_sec_type_none)
-                && (peer->keyinstalled || !ETHERTYPE_IS_EAPOL_WAPI(ether_type))) {
+            if (!is_encrypted && !is_mcast &&
+                peer->security[txrx_sec_ucast].sec_type != htt_sec_type_none &&
+                (peer->keyinstalled || !ETHERTYPE_IS_EAPOL_WAPI(ether_type)))
+            {
                  return FILTER_STATUS_REJECT;
             } else {
                 return FILTER_STATUS_ACCEPT;
@@ -655,23 +669,26 @@ ol_rx_filter(
     }
 
     /*
-     * If the privacy exemption list does not apply to the frame, check ExcludeUnencrypted.
-     * if ExcludeUnencrypted is not set, or if this was oringially an encrypted frame,
-     * it will be accepted.
-     * 
+     * If the privacy exemption list does not apply to the frame,
+     * check ExcludeUnencrypted.
+     * If ExcludeUnencrypted is not set, or if this was oringially
+     * an encrypted frame, it will be accepted.
      */
     if (!vdev->drop_unenc || (A_TRUE == is_encrypted)) {
         return FILTER_STATUS_ACCEPT;
     }
 
-    /* 
-     *  If this is a open connection, it will be accepted. 
+    /*
+     *  If this is a open connection, it will be accepted.
      */
-    if(peer->security[(A_TRUE == is_mcast) ? txrx_sec_mcast : txrx_sec_ucast].sec_type == htt_sec_type_none) {
+    sec_idx = (A_TRUE == is_mcast) ? txrx_sec_mcast : txrx_sec_ucast;
+    if (peer->security[sec_idx].sec_type == htt_sec_type_none) {
         return FILTER_STATUS_ACCEPT;
     }
     if ((A_FALSE == is_encrypted) && vdev->drop_unenc) {
-        OL_RX_ERR_STATISTICS(pdev, vdev, OL_RX_ERR_PRIVACY, pdev->sec_types[htt_sec_type_none], is_mcast);
+        OL_RX_ERR_STATISTICS(
+            pdev, vdev, OL_RX_ERR_PRIVACY,
+            pdev->sec_types[htt_sec_type_none], is_mcast);
     }
     return FILTER_STATUS_REJECT;
 }
@@ -691,11 +708,8 @@ ol_rx_deliver(
     a_bool_t filter = A_FALSE;
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
     struct ol_rx_decap_info_t info;
-
-    info.hdr_len = 
-    info.is_subfrm = 
-    info.is_first_subfrm = 0;
-#endif 
+    adf_os_mem_set(&info, 0, sizeof(info));
+#endif
 
     msdu = msdu_list;
     /*
@@ -716,12 +730,13 @@ ol_rx_deliver(
         }
 
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
-        info.is_msdu_cmpl_mpdu = htt_rx_msdu_desc_completes_mpdu(htt_pdev, rx_desc);
+        info.is_msdu_cmpl_mpdu =
+            htt_rx_msdu_desc_completes_mpdu(htt_pdev, rx_desc);
         info.is_first_subfrm = htt_rx_msdu_first_msdu_flag(htt_pdev, rx_desc);
         if (OL_RX_DECAP(vdev, peer, msdu, &info) != A_OK) {
             discard = 1;
             TXRX_PRINT(TXRX_PRINT_LEVEL_WARN,
-                "decap error %p from peer %p " 
+                "decap error %p from peer %p "
                 "(%02x:%02x:%02x:%02x:%02x:%02x) len %d\n",
                  msdu, peer,
                  peer->mac_addr.raw[0], peer->mac_addr.raw[1],
@@ -730,14 +745,17 @@ ol_rx_deliver(
                  adf_nbuf_len(msdu));
             goto DONE;
         }
-#endif 
+#endif
         htt_rx_msdu_actions(
             pdev->htt_pdev, rx_desc, &discard, &dummy_fwd, &inspect);
         if (inspect) {
             ol_rx_inspect(vdev, peer, tid, msdu, rx_desc);
         }
 
-        /* Check the first msdu in mpdu, if it will be filter out, then discard all the mpdu */
+        /*
+         * Check the first msdu in the mpdu, if it will be filtered out,
+         * then discard the entire mpdu.
+         */
         if (htt_rx_msdu_first_msdu_flag(htt_pdev, rx_desc)) {
             filter = ol_rx_filter(vdev, peer, msdu, rx_desc);
         }
@@ -747,26 +765,14 @@ DONE:
 #endif
         htt_rx_msdu_desc_free(htt_pdev, msdu);
         if (discard || (A_TRUE == filter)) {
-#ifdef HTT_DEBUG_DATA
-            HTT_PRINT("-\n");
-            if (tid == 0) {
-                if (adf_nbuf_data(msdu)[0x17] == 0x6) {
-                    // TCP, dump seq
-                    HTT_PRINT("0x%02x 0x%02x 0x%02x 0x%02x\n",
-                            adf_nbuf_data(msdu)[0x26],
-                            adf_nbuf_data(msdu)[0x27],
-                            adf_nbuf_data(msdu)[0x28],
-                            adf_nbuf_data(msdu)[0x29]);
-                } else {
-                    HTT_PRINT_BUF(printk, adf_nbuf_data(msdu),
-                            0x41,__func__);
-                }
-            }
-
-#endif
+            OL_TXRX_FRMS_DUMP(
+                "rx discarding:",
+                pdev, deliver_list_head,
+                ol_txrx_frm_dump_tcp_seq | ol_txrx_frm_dump_contents,
+                0 /* don't print contents */);
             adf_nbuf_free(msdu);
         } else {
-			OL_RX_ERR_STATISTICS_1(pdev, vdev, peer, rx_desc, OL_RX_ERR_NONE);
+            OL_RX_ERR_STATISTICS_1(pdev, vdev, peer, rx_desc, OL_RX_ERR_NONE);
             TXRX_STATS_MSDU_INCR(vdev->pdev, rx.delivered, msdu);
             OL_TXRX_LIST_APPEND(deliver_list_head, deliver_list_tail, msdu);
         }
@@ -785,27 +791,12 @@ DONE:
     }
 #endif
 
-#ifdef HTT_DEBUG_DATA
-    /*
-     * we need a place to dump rx data buf
-     * to host stack, here's a good place
-     */
-    for (msdu = deliver_list_head; msdu; msdu = adf_nbuf_next(msdu)) {
-        if (tid == 0) {
-            if (adf_nbuf_data(msdu)[0x17] == 0x6) {
-                // TCP, dump seq
-                HTT_PRINT("0x%02x 0x%02x 0x%02x 0x%02x\n",
-                        adf_nbuf_data(msdu)[0x26],
-                        adf_nbuf_data(msdu)[0x27],
-                        adf_nbuf_data(msdu)[0x28],
-                        adf_nbuf_data(msdu)[0x29]);
-            } else {
-                HTT_PRINT_BUF(printk, adf_nbuf_data(msdu),
-                        0x41,__func__);
-            }
-        }
-    }
-#endif
+    OL_TXRX_FRMS_DUMP(
+        "rx delivering:",
+        pdev, deliver_list_head,
+        ol_txrx_frm_dump_tcp_seq | ol_txrx_frm_dump_contents,
+        0 /* don't print contents */);
+
     OL_RX_OSIF_DELIVER(vdev, peer, deliver_list_head);
 }
 
@@ -824,7 +815,7 @@ ol_rx_discard(
 
         msdu_list = adf_nbuf_next(msdu_list);
         TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
-            "discard rx %p from partly-deleted peer %p " 
+            "discard rx %p from partly-deleted peer %p "
             "(%02x:%02x:%02x:%02x:%02x:%02x)\n",
             msdu, peer,
             peer->mac_addr.raw[0], peer->mac_addr.raw[1],
@@ -863,9 +854,9 @@ ol_rx_peer_cleanup(struct ol_txrx_vdev_t *vdev, struct ol_txrx_peer_t *peer)
 /*
  * Free frames including both rx descriptors and buffers
  */
-void 
+void
 ol_rx_frames_free(
-    htt_pdev_handle htt_pdev, 
+    htt_pdev_handle htt_pdev,
     adf_nbuf_t frames)
 {
     adf_nbuf_t next, frag = frames;
@@ -880,12 +871,17 @@ ol_rx_frames_free(
 #if 0
 /**
  * @brief populates vow ext stats in given network buffer.
- * @param msdu - network buffer handle 
+ * @param msdu - network buffer handle
  * @param pdev - handle to htt dev.
  */
 void ol_ath_add_vow_extstats(htt_pdev_handle pdev, adf_nbuf_t msdu)
 {
-    struct ol_ath_softc_net80211 *scn = (struct ol_ath_softc_net80211 *)pdev->ctrl_pdev;
+    /* FIX THIS:
+     * txrx should not be directly using data types (scn)
+     * that are internal to other modules.
+     */
+    struct ol_ath_softc_net80211 *scn =
+        (struct ol_ath_softc_net80211 *)pdev->ctrl_pdev;
 
     if (scn->vow_extstats == 0) {
         return;
@@ -893,7 +889,7 @@ void ol_ath_add_vow_extstats(htt_pdev_handle pdev, adf_nbuf_t msdu)
         u_int8_t *data, *l3_hdr, *bp;
         u_int16_t ethertype;
         int offset;
-        struct vow_extstats vowstats; 
+        struct vow_extstats vowstats;
 
         data = adf_nbuf_data(msdu);
 
@@ -902,16 +898,21 @@ void ol_ath_add_vow_extstats(htt_pdev_handle pdev, adf_nbuf_t msdu)
         ethertype = (data[offset] << 8) | data[offset+1];
         if (ethertype == ETHERTYPE_IPV4) {
             offset = IPV4_HDR_OFFSET_PROTOCOL;
-            if ((l3_hdr[offset] == IP_PROTOCOL_UDP) && (l3_hdr[0] == IP_VER4_N_NO_EXTRA_HEADERS)) {
+            if ((l3_hdr[offset] == IP_PROTOCOL_UDP) &&
+                (l3_hdr[0] == IP_VER4_N_NO_EXTRA_HEADERS))
+            {
                 bp = data+EXT_HDR_OFFSET;
 
-                if ( (data[RTP_HDR_OFFSET] == UDP_PDU_RTP_EXT) && 
-                        (bp[0] == 0x12) && 
-                        (bp[1] == 0x34) && 
-                        (bp[2] == 0x00) && 
-                        (bp[3] == 0x08)) {
-                    /* clear udp checksum so we do not have to recalculate it after
-                     * filling in status fields */
+                if ( (data[RTP_HDR_OFFSET] == UDP_PDU_RTP_EXT) &&
+                        (bp[0] == 0x12) &&
+                        (bp[1] == 0x34) &&
+                        (bp[2] == 0x00) &&
+                        (bp[3] == 0x08))
+                {
+                    /*
+                     * Clear UDP checksum so we do not have to recalculate it
+                     * after filling in status fields.
+                     */
                     data[UDP_CKSUM_OFFSET] = 0;
                     data[(UDP_CKSUM_OFFSET+1)] = 0;
 
@@ -925,29 +926,40 @@ void ol_ath_add_vow_extstats(htt_pdev_handle pdev, adf_nbuf_t msdu)
                     *bp++ = vowstats.rx_rssi_ctl2;
 
                     /* rx rate info */
-                    *bp++ = vowstats.rx_bw; 
-                    *bp++ = vowstats.rx_sgi; 
+                    *bp++ = vowstats.rx_bw;
+                    *bp++ = vowstats.rx_sgi;
                     *bp++ = vowstats.rx_nss;
 
                     *bp++ = vowstats.rx_rssi_comb;
                     *bp++ = vowstats.rx_rs_flags; /* rsflags */
 
-                    /* Time stamp Lo*/   
-                    *bp++ = (u_int8_t)((vowstats.rx_macTs & 0x0000ff00) >> 8);                    
-                    *bp++ = (u_int8_t)(vowstats.rx_macTs & 0x000000ff);
+                    /* Time stamp Lo*/
+                    *bp++ = (u_int8_t)
+                        ((vowstats.rx_macTs & 0x0000ff00) >> 8);
+                    *bp++ = (u_int8_t)
+                        (vowstats.rx_macTs & 0x000000ff);
                     /* rx phy errors */
-                    *bp++ = (u_int8_t)((scn->chan_stats.phy_err_cnt >> 8) & 0xff);
+                    *bp++ = (u_int8_t)
+                        ((scn->chan_stats.phy_err_cnt >> 8) & 0xff);
                     *bp++ = (u_int8_t)(scn->chan_stats.phy_err_cnt & 0xff);
                     /* rx clear count */
-                    *bp++ = (u_int8_t)((scn->mib_cycle_cnts.rx_clear_count >> 24) & 0xff);
-                    *bp++ = (u_int8_t)((scn->mib_cycle_cnts.rx_clear_count >> 16) & 0xff);
-                    *bp++ = (u_int8_t)((scn->mib_cycle_cnts.rx_clear_count >>  8) & 0xff);
-                    *bp++ = (u_int8_t)(scn->mib_cycle_cnts.rx_clear_count & 0xff);
+                    *bp++ = (u_int8_t)
+                        ((scn->mib_cycle_cnts.rx_clear_count >> 24) & 0xff);
+                    *bp++ = (u_int8_t)
+                        ((scn->mib_cycle_cnts.rx_clear_count >> 16) & 0xff);
+                    *bp++ = (u_int8_t)
+                        ((scn->mib_cycle_cnts.rx_clear_count >>  8) & 0xff);
+                    *bp++ = (u_int8_t)
+                        (scn->mib_cycle_cnts.rx_clear_count & 0xff);
                     /* rx cycle count */
-                    *bp++ = (u_int8_t)((scn->mib_cycle_cnts.cycle_count >> 24) & 0xff);
-                    *bp++ = (u_int8_t)((scn->mib_cycle_cnts.cycle_count >> 16) & 0xff);
-                    *bp++ = (u_int8_t)((scn->mib_cycle_cnts.cycle_count >>  8) & 0xff);
-                    *bp++ = (u_int8_t)(scn->mib_cycle_cnts.cycle_count & 0xff);
+                    *bp++ = (u_int8_t)
+                        ((scn->mib_cycle_cnts.cycle_count >> 24) & 0xff);
+                    *bp++ = (u_int8_t)
+                        ((scn->mib_cycle_cnts.cycle_count >> 16) & 0xff);
+                    *bp++ = (u_int8_t)
+                        ((scn->mib_cycle_cnts.cycle_count >>  8) & 0xff);
+                    *bp++ = (u_int8_t)
+                        (scn->mib_cycle_cnts.cycle_count & 0xff);
 
                     *bp++ = vowstats.rx_ratecode;
                     *bp++ = vowstats.rx_moreaggr;

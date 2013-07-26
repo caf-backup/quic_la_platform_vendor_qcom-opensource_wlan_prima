@@ -16,6 +16,10 @@
 #include <ol_txrx_types.h>
 
 #include <ol_txrx_dbg.h>
+#include <enet.h>          /* ETHERNET_HDR_LEN, etc. */
+#include <ipv4.h>          /* IPV4_HDR_LEN, etc. */
+#include <ipv6.h>          /* IPV6_HDR_LEN, etc. */
+#include <ip_prot.h>       /* IP_PROTOCOL_TCP, etc. */
 
 
 #ifndef ARRAY_LEN
@@ -336,59 +340,159 @@ ol_txrx_ieee80211_hdrsize(const void *data)
 
 /*--- frame display utility ---*/
 
+enum ol_txrx_frm_dump_options {
+    ol_txrx_frm_dump_contents = 0x1,
+    ol_txrx_frm_dump_tcp_seq  = 0x2,
+};
+
+#ifdef TXRX_DEBUG_DATA
 static inline void
-txrx_frm_dump(adf_nbuf_t frm, int max_len)
+OL_TXRX_FRMS_DUMP(
+    const char *name,
+    struct ol_txrx_pdev_t *pdev,
+    adf_nbuf_t frm,
+    enum ol_txrx_frm_dump_options display_options,
+    int max_len)
 {
     #define TXRX_FRM_DUMP_MAX_LEN 128
     u_int8_t local_buf[TXRX_FRM_DUMP_MAX_LEN] = {0};
-    u_int8_t *p = adf_nbuf_data(frm);
-    int i = 0, frag_num;
+    u_int8_t *p;
 
-    if (max_len > adf_nbuf_len(frm)) {
-        max_len = adf_nbuf_len(frm);
+    if (name) {
+        adf_os_print("%s\n", name);
     }
-    if (max_len > TXRX_FRM_DUMP_MAX_LEN) {
-        max_len = TXRX_FRM_DUMP_MAX_LEN;
-    }
+    while (frm) {
+        p = adf_nbuf_data(frm);
+        if (display_options & ol_txrx_frm_dump_tcp_seq) {
+            int tcp_offset;
+            int l2_hdr_size;
+            u_int16_t ethertype;
+            u_int8_t ip_prot;
 
-    /* gather frame contents from netbuf fragments into a contiguous buffer */
-    frag_num = 0;
-    while (i < max_len) {
-        int frag_bytes;
-        frag_bytes = adf_nbuf_get_frag_len(frm, frag_num);
-        if (frag_bytes > max_len - i) {
-            frag_bytes = max_len - i;
+            if (pdev->frame_format == wlan_frm_fmt_802_3) {
+                struct ethernet_hdr_t *enet_hdr = (struct ethernet_hdr_t *) p;
+                l2_hdr_size = ETHERNET_HDR_LEN;
+
+                /*
+                 * LLC/SNAP present?
+                 */
+                ethertype =
+                    (enet_hdr->ethertype[0] << 8) | enet_hdr->ethertype[1];
+                if (!IS_ETHERTYPE(ethertype)) {
+                    /* 802.3 format */
+                    struct llc_snap_hdr_t *llc_hdr;
+
+                    llc_hdr = (struct llc_snap_hdr_t *) (p + l2_hdr_size);
+                    l2_hdr_size += LLC_SNAP_HDR_LEN;
+                    ethertype =
+                        (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
+                }
+            } else {
+                struct llc_snap_hdr_t *llc_hdr;
+                /* (generic?) 802.11 */
+                l2_hdr_size = sizeof(struct ieee80211_frame);
+                llc_hdr = (struct llc_snap_hdr_t *) (p + l2_hdr_size);
+                l2_hdr_size += LLC_SNAP_HDR_LEN;
+                ethertype =
+                    (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
+            }
+            if (ethertype == ETHERTYPE_IPV4) {
+                struct ipv4_hdr_t *ipv4_hdr;
+                ipv4_hdr = (struct ipv4_hdr_t *) (p + l2_hdr_size);
+                ip_prot = ipv4_hdr->protocol;
+                tcp_offset = l2_hdr_size + IPV4_HDR_LEN;
+            } else if (ethertype == ETHERTYPE_IPV6) {
+                struct ipv6_hdr_t *ipv6_hdr;
+                ipv6_hdr = (struct ipv6_hdr_t *) (p + l2_hdr_size);
+                ip_prot = ipv6_hdr->next_hdr;
+                tcp_offset = l2_hdr_size + IPV6_HDR_LEN;
+            } else {
+                adf_os_print(
+                    "frame %p non-IP ethertype (%x)\n", frm, ethertype);
+                goto NOT_IP_TCP;
+            }
+            if (ip_prot == IP_PROTOCOL_TCP) {
+#if 0
+                struct tcp_hdr_t *tcp_hdr;
+                u_int32_t tcp_seq_num;
+                tcp_hdr = (struct tcp_hdr_t *) (p + tcp_offset);
+                tcp_seq_num =
+                    (tcp_hdr->seq_num[0] << 24) |
+                    (tcp_hdr->seq_num[1] << 16) |
+                    (tcp_hdr->seq_num[1] <<  8) |
+                    (tcp_hdr->seq_num[1] <<  0);
+                adf_os_print("frame %p: TCP seq num = %d\n", frm, tcp_seq_num);
+#else
+                adf_os_print("frame %p: TCP seq num = %d\n", frm,
+                    ((*(p + tcp_offset + 4)) << 24) |
+                    ((*(p + tcp_offset + 5)) << 16) |
+                    ((*(p + tcp_offset + 6)) <<  8) |
+                     (*(p + tcp_offset + 7)));
+#endif
+            } else {
+                adf_os_print(
+                    "frame %p non-TCP IP protocol (%x)\n", frm, ip_prot);
+            }
         }
-        if (frag_bytes > 0) {
-            p = adf_nbuf_get_frag_vaddr(frm, frag_num);
-            adf_os_mem_copy(&local_buf[i], p, frag_bytes);
-        }
-        frag_num++;
-        i += frag_bytes;
-    }
+NOT_IP_TCP:
+        if (display_options & ol_txrx_frm_dump_contents) {
+            int i, frag_num, len_lim;
+            len_lim = max_len;
+            if (len_lim > adf_nbuf_len(frm)) {
+                len_lim = adf_nbuf_len(frm);
+            }
+            if (len_lim > TXRX_FRM_DUMP_MAX_LEN) {
+                len_lim = TXRX_FRM_DUMP_MAX_LEN;
+            }
 
-    adf_os_print("frame %p data (%p), hex dump of bytes 0-%d of %d:\n",
-        frm, p, max_len-1, (int) adf_nbuf_len(frm));
-    p = local_buf;
-    while (max_len > 16) {
-        adf_os_print("  " /* indent */
-            "%02x %02x %02x %02x %02x %02x %02x %02x "
-            "%02x %02x %02x %02x %02x %02x %02x %02x\n",
-            *(p +  0), *(p +  1), *(p +  2), *(p +  3),
-            *(p +  4), *(p +  5), *(p +  6), *(p +  7),
-            *(p +  8), *(p +  9), *(p + 10), *(p + 11),
-            *(p + 12), *(p + 13), *(p + 14), *(p + 15));
-        p += 16;
-        max_len -= 16;
+            /*
+             * Gather frame contents from netbuf fragments
+             * into a contiguous buffer.
+             */
+            frag_num = 0;
+            i = 0;
+            while (i < len_lim) {
+                int frag_bytes;
+                frag_bytes = adf_nbuf_get_frag_len(frm, frag_num);
+                if (frag_bytes > len_lim - i) {
+                    frag_bytes = len_lim - i;
+                }
+                if (frag_bytes > 0) {
+                    p = adf_nbuf_get_frag_vaddr(frm, frag_num);
+                    adf_os_mem_copy(&local_buf[i], p, frag_bytes);
+                }
+                frag_num++;
+                i += frag_bytes;
+            }
+
+            adf_os_print("frame %p data (%p), hex dump of bytes 0-%d of %d:\n",
+                frm, p, len_lim-1, (int) adf_nbuf_len(frm));
+            p = local_buf;
+            while (len_lim > 16) {
+                adf_os_print("  " /* indent */
+                    "%02x %02x %02x %02x %02x %02x %02x %02x "
+                    "%02x %02x %02x %02x %02x %02x %02x %02x\n",
+                    *(p +  0), *(p +  1), *(p +  2), *(p +  3),
+                    *(p +  4), *(p +  5), *(p +  6), *(p +  7),
+                    *(p +  8), *(p +  9), *(p + 10), *(p + 11),
+                    *(p + 12), *(p + 13), *(p + 14), *(p + 15));
+                p += 16;
+                len_lim -= 16;
+            }
+            adf_os_print("  " /* indent */);
+            while (len_lim > 0) {
+                adf_os_print("%02x ", *p);
+                p++;
+                len_lim--;
+            }
+            adf_os_print("\n");
+        }
+        frm = adf_nbuf_next(frm);
     }
-    adf_os_print("  " /* indent */);
-    while (max_len > 0) {
-        adf_os_print("%02x ", *p);
-        p++;
-        max_len--;
-    }
-    adf_os_print("\n");
 }
+#else
+#define OL_TXRX_FRMS_DUMP(name, pdev, frms, display_options, max_len)
+#endif /* TXRX_DEBUG_DATA */
 
 #ifdef SUPPORT_HOST_STATISTICS
 

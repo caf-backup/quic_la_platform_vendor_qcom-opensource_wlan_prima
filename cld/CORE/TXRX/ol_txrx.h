@@ -14,6 +14,6 @@ void
 ol_txrx_peer_unref_delete(struct ol_txrx_peer_t *peer);
 
 int
-ol_tx_desc_pool_size(ol_pdev_handle ctrl_pdev);
+ol_tx_desc_pool_size_hl(ol_pdev_handle ctrl_pdev);
 
 #endif /* _OL_TXRX__H_ */
