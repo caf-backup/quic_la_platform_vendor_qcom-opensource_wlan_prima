@@ -468,38 +468,6 @@ htt_tx_desc_num_frags(htt_pdev_handle pdev, void *desc, u_int32_t num_frags)
 }
 
 /**
- * @brief Record the TID from host-side tx classification.
- * @details
- *  In a HL system, the host examines tx frames to determine which peer they
- *  are addressed to, and what traffic class (TID) they are.
- *  In a LL system, the host does not determine the TID through packet
- *  inspection, but the TID may be provided as a out-of-band spec by the
- *  OS (e.g. from a VLAN tag within the network buffer structure).
- *  For the cases when the TID is known by the host, this function is used
- *  to specify it to the target.
- *
- * @param pdev - the handle of the physical device sending the tx data
- * @param desc - abstract handle to the tx descriptor
- * @param tid - traffic ID of the tx data.  This is an extended TID value.
- *      Values 0-15 are for regular QoS data TIDs, while a value of 16
- *      Indicates non-QoS data, multicast data, or broadcast data.
- */
-#ifdef QCA_HOST_SIDE_TX_TID_CLASSIFICATION
-static inline
-void
-htt_tx_desc_tid(
-    htt_pdev_handle pdev,
-    void *desc,
-    u_int8_t tid)
-{
-    /* clear old value */
-    *(u_int32_t *) desc &= ~HTT_TX_DESC_EXT_TID_M;
-    /* set new value */
-    HTT_TX_DESC_EXT_TID_SET(*(u_int32_t *) desc, tid);
-}
-#endif /* QCA_HOST_SIDE_TX_TID_CLASSIFICATION */
-
-/**
  * @brief Specify the location and size of a fragment of a tx MSDU.
  * @details
  *  In LL systems, the tx MAC DMA needs to know how the MSDU is constructed

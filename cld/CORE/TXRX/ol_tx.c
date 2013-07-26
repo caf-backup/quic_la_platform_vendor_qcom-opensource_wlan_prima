@@ -4,28 +4,31 @@
  * Qualcomm Atheros Confidential and Proprietary.
  */
 
+/* OS abstraction libraries */
 #include <adf_nbuf.h>         /* adf_nbuf_t, etc. */
 #include <adf_os_atomic.h>    /* adf_os_atomic_read, etc. */
 #include <adf_os_util.h>      /* adf_os_unlikely */
 
+/* APIs for other modules */
 #include <htt.h>              /* HTT_TX_EXT_TID_MGMT */
 #include <ol_htt_tx_api.h>    /* htt_tx_desc_tid */
 #include <ol_txrx_api.h>      /* ol_txrx_vdev_handle */
 #include <ol_txrx_ctrl_api.h> /* ol_txrx_sync */
 
+/* internal header files relevant for all systems */
 #include <ol_txrx_internal.h> /* TXRX_ASSERT1 */
 #include <ol_txrx_types.h>    /* pdev stats */
 #include <ol_tx_desc.h>       /* ol_tx_desc */
 #include <ol_tx_send.h>       /* ol_tx_send */
+#include <ol_txrx.h>
 
+/* internal header files relevant only for HL systems */
 #include <ol_tx_classify.h>   /* ol_tx_classify, ol_tx_classify_mgmt */
 #include <ol_tx_queue.h>      /* ol_tx_enqueue */
 #include <ol_tx_sched.h>      /* ol_tx_sched */
-#include <ol_txrx.h>
 
-#ifdef QCA_SUPPORT_SW_TXRX_ENCAP
-#include <ol_txrx_encap.h>    /* OL_TX_ENCAP, etc*/
-#endif 
+/* internal header files relevant only for specific systems (Pronto) */
+#include <ol_txrx_encap.h>    /* OL_TX_ENCAP, etc */
 
 #define ol_tx_prepare_ll(tx_desc, vdev, msdu, msdu_info) \
     do {                                                                      \
@@ -107,55 +110,6 @@ OL_TXRX_TX_RAW_SUBTYPE(enum ol_txrx_osif_tx_spec tx_spec)
     return sub_type;
 }
 
-#ifdef QCA_HOST_SIDE_TX_TID_CLASSIFICATION
-adf_nbuf_t
-ol_tx_single_non_std_ll(
-    ol_txrx_vdev_handle vdev,
-    u_int8_t ext_tid,
-    enum ol_txrx_osif_tx_spec tx_spec,
-    adf_nbuf_t msdu)
-{
-    htt_pdev_handle htt_pdev = vdev->pdev->htt_pdev;
-    struct ol_txrx_msdu_info_t msdu_info;
-    msdu_info.peer = NULL;
-    struct ol_tx_desc_t *tx_desc;
-    ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
-
-    if (tx_spec != ol_txrx_osif_tx_spec_std) {
-        if (tx_spec & ol_txrx_osif_tx_spec_tso) {
-            tx_desc->pkt_type = ol_tx_frm_tso;
-        } else if (tx_spec & ol_txrx_osif_tx_spect_nwifi_no_encrypt) {
-            u_int8_t sub_type = OL_TXRX_TX_RAW_SUBTYPE(tx_spec);
-            htt_tx_desc_type(
-                htt_pdev, tx_desc->htt_tx_desc,
-                htt_pkt_type_native_wifi, sub_type);
-        } else if (OL_TXRX_TX_IS_RAW(tx_spec)) {
-            /* different types of raw frames */
-            u_int8_t sub_type = OL_TXRX_TX_RAW_SUBTYPE(tx_spec);
-            htt_tx_desc_type(
-                htt_pdev, tx_desc->htt_tx_desc,
-                htt_pkt_type_raw, sub_type);
-        }
-    }
-    /* explicitly specify the TID and the limit 
-     * it to the 0-15 value of the QoS TID.
-     */
-
-    if (ext_tid >= HTT_TX_EXT_TID_NON_QOS_MCAST_BCAST) {
-        ext_tid = HTT_TX_EXT_TID_DEFAULT;           
-    }
-    htt_tx_desc_tid(htt_pdev, tx_desc->htt_tx_desc, ext_tid);
-
-    /*
-    * If debug display is enabled, show the meta-data being
-    * downloaded to the target via the HTT tx descriptor.
-    */
-    htt_tx_desc_display(tx_desc->htt_tx_desc);
-    ol_tx_send(vdev->pdev, tx_desc, msdu);
-    return NULL; /* all MSDUs were accepted */
-}
-#else /* QCA_HOST_SIDE_TX_TID_CLASSIFICATION */
-
 adf_nbuf_t
 ol_tx_non_std_ll(
     ol_txrx_vdev_handle vdev,
@@ -213,7 +167,6 @@ ol_tx_non_std_ll(
     }
     return NULL; /* all MSDUs were accepted */
 }
-#endif
 
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
 #define OL_TX_ENCAP_WRAPPER(pdev, vdev, tx_desc, msdu, tx_msdu_info) \
