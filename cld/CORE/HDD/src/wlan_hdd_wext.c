@@ -55,6 +55,7 @@
 #endif
 
 #ifdef QCA_WIFI_2_0
+#include "ieee80211_common.h"
 #include "ol_if_athvar.h"
 
 #include "dbglog_host.h"
@@ -82,9 +83,6 @@
 #include "wlan_hdd_dev_pwr.h"
 #include "qc_sap_ioctl.h"
 #include "wlan_qct_wda.h"
-#ifdef QCA_WIFI_2_0
-#include "ieee80211_common.h"
-#endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
 extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
 extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);

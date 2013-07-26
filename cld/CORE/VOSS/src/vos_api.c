@@ -233,7 +233,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #ifdef QCA_WIFI_2_0
    adf_os_device_t adf_ctx;
    HTC_INIT_INFO  htcInfo;
+#ifndef QCA_WIFI_ISOC
    struct ol_softc *scn;
+#endif
 #endif
    hdd_context_t *pHddCtx;
 
