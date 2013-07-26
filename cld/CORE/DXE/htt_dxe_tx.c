@@ -611,6 +611,12 @@ htt_dxe_tx_bd_fill(
         (char *) sw_tx_desc->tx_bd_buf, &shadow_tx_bd, sizeof(shadow_tx_bd));
 }
 
+void htt_tx_desc_set_peer_id(u_int32_t *htt_tx_desc, u_int16_t peer_id)
+{
+    /* FILL IN HERE */
+    return;
+}
+
 void
 htt_tx_desc_init(
     htt_pdev_handle pdev,

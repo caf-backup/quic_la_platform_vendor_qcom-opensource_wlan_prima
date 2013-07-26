@@ -1040,8 +1040,6 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 		}
 	case ol_txrx_peer_update_qos_capable:
 		{
-			struct ol_txrx_pdev_t *pdev;
-			pdev = peer->vdev->pdev;
 			/* save qos_capable here txrx peer,
 			 * when HTT_ISOC_T2H_MSG_TYPE_PEER_INFO comes then save.
 			 */
@@ -1051,16 +1049,18 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 			 * ID.  This is currently true, and is expected to remain true.
 			 */
 			htt_peer_qos_update(
-				pdev->htt_pdev, peer->peer_ids[0], peer->qos_capable);
+				peer->vdev->pdev->htt_pdev,
+				peer->peer_ids[0],
+				peer->qos_capable);
 			break;
 		}
 	case ol_txrx_peer_update_uapsdMask:
 		{
-			struct ol_txrx_pdev_t *pdev;
-			pdev = peer->vdev->pdev;
 			peer->uapsd_mask = param->uapsd_mask;
 			htt_peer_uapsdmask_update(
-				pdev->htt_pdev, peer->peer_ids[0], peer->uapsd_mask);
+				peer->vdev->pdev->htt_pdev,
+				peer->peer_ids[0],
+				peer->uapsd_mask);
 			break;
 		}
 	case ol_txrx_peer_update_peer_security:
@@ -1289,9 +1289,7 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
 {
     struct ol_txrx_pdev_t *pdev = (ol_txrx_pdev_handle)pdev_handle;
     int total;
-#ifdef QCA_WIFI_ISOC
-    int credit;
-#else
+#ifndef QCA_WIFI_ISOC
     union ol_tx_desc_list_elem_t *p_tx_desc;
     int unused = 0;
 #endif
@@ -1326,8 +1324,7 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
     adf_os_spin_unlock_bh(&pdev->tx_mutex);
     return (total - unused);
 #else
-    credit = adf_os_atomic_read(&pdev->target_tx_credit);
-    return (total - credit);
+    return total - adf_os_atomic_read(&pdev->target_tx_credit);
 #endif
 }
 

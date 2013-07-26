@@ -503,7 +503,7 @@ ol_txrx_sync(ol_txrx_pdev_handle pdev, u_int8_t sync_cnt)
 
 adf_nbuf_t ol_tx_reinject(
     struct ol_txrx_vdev_t *vdev,
-    adf_nbuf_t msdu, uint16_t peer_id)
+    adf_nbuf_t msdu, u_int16_t peer_id)
 {
     struct ol_tx_desc_t *tx_desc;
     struct ol_txrx_msdu_info_t msdu_info;

@@ -598,15 +598,22 @@ htt_tx_desc_display(void *tx_desc);
 #define htt_tx_desc_display(tx_desc)
 #endif
 
+#ifdef QCA_WIFI_ISOC
+void
+htt_tx_desc_set_peer_id(
+              u_int32_t *htt_tx_desc,
+              u_int16_t peer_id);
+#else
 static inline
-void htt_tx_desc_set_peer_id(uint32_t *htt_tx_desc, uint16_t peer_id)
+void htt_tx_desc_set_peer_id(u_int32_t *htt_tx_desc, u_int16_t peer_id)
 {
-    uint32_t *peer_id_field_ptr;
+    u_int32_t *peer_id_field_ptr;
 
-    peer_id_field_ptr  = (uint32_t *)(htt_tx_desc + HTT_TX_DESC_PEERID_DESC_PADDR_OFFSET_DWORD);
+    peer_id_field_ptr = (u_int32_t *)
+        (htt_tx_desc + HTT_TX_DESC_PEERID_DESC_PADDR_OFFSET_DWORD);
 
     *peer_id_field_ptr = peer_id;
 }
-
+#endif /* QCA_WIFI_ISOC */
 
 #endif /* _OL_HTT_TX_API__H_ */
