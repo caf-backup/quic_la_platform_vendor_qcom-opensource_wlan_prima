@@ -32,15 +32,19 @@ ol_txrx_log2_ceil(unsigned value)
      * will right-shift towards 0 instead of -1
      */
     unsigned tmp = value;
-    unsigned log2 = 0;
-    
-    /* calculate log base 2 of tmp */
-    while (tmp >>= 1) {
-        log2++;
+    int log2 = -1;
+
+    if (value == 0)
+    {
+        TXRX_ASSERT2(0);
+        return 0;
     }
-    
-    /* increment for the ceiling function */
-    if ((1 << log2) < (value)) {
+
+    while (tmp) {
+        log2++;
+        tmp >>= 1;
+    }
+    if (1U << log2 != value) {
         log2++;
     }
     
