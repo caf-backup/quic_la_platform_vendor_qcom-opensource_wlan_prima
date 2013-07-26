@@ -28,6 +28,7 @@
 #define htt_dxe_vdev_attach     htt_vdev_attach
 #define htt_dxe_vdev_detach     htt_vdev_detach
 #define htt_dxe_peer_qos_update htt_peer_qos_update
+#define htt_dxe_peer_uapsdmask_update htt_peer_uapsdmask_update
 #define htt_dxe_display         htt_display
 
 
@@ -189,6 +190,13 @@ void htt_dxe_peer_qos_update(
     peer = &pdev->peers[peer_id];
     HTT_DXE_ASSERT2(peer->valid);
     peer->qos_capable = qos_capable;
+}
+
+void htt_dxe_peer_uapsdmask_update(
+    struct htt_dxe_pdev_t *pdev, int peer_id, u_int8_t uapsd_mask)
+{
+    /* TO be implemented */
+    return;
 }
 
 void

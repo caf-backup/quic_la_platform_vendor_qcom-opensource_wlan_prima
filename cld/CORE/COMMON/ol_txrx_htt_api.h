@@ -542,4 +542,17 @@ u_int8_t
 ol_txrx_peer_uapsdmask_get(struct ol_txrx_pdev_t * txrx_pdev,
     u_int16_t peer_id);
 
+/**
+ * @brief Get the Qos Capable.
+ * @details
+ *  This function will return the txrx_peer qos_capable.
+ *
+ * @param txrx_pdev - pointer to the txrx pdev object
+ * @param peer_id - PeerID.
+ * @return qos_capable value
+ */
+u_int8_t
+ol_txrx_peer_qoscapable_get(struct ol_txrx_pdev_t * txrx_pdev,
+    u_int16_t peer_id);
+
 #endif /* _OL_TXRX_HTT_API__H_ */
