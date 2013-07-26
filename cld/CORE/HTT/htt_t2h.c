@@ -129,6 +129,9 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             unsigned num_msdu_bytes;
             u_int16_t peer_id;
             u_int8_t tid;
+            adf_nbuf_t msdu;
+            struct htt_host_rx_desc_base *rx_desc;
+            int start_idx;
 
             peer_id = HTT_RX_FRAG_IND_PEER_ID_GET(*msg_word);
             tid = HTT_RX_FRAG_IND_EXT_TID_GET(*msg_word);
@@ -142,6 +145,25 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
              */
             pdev->rx_mpdu_range_offset_words = 3 + ((num_msdu_bytes + 3) >> 2);
             pdev->rx_ind_msdu_byte_idx = 0;
+
+            /*
+             * Fix for EV126710, in which BSOD occurs due to last_msdu bit
+             * not set while the next pointer is deliberately set to NULL
+             * before calling ol_rx_pn_check_base()
+             *
+             * For fragment frames, the HW may not have set the last_msdu bit
+             * in the rx descriptor, but the SW expects this flag to be set,
+             * since each fragment is in a separate MPDU. Thus, set the flag here,
+             * just in case the HW didn't.
+             */
+            start_idx = pdev->rx_ring.sw_rd_idx.msdu_payld;
+            msdu = pdev->rx_ring.buf.netbufs_ring[start_idx];
+            adf_nbuf_set_pktlen(msdu, HTT_RX_BUF_SIZE);
+            adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
+            rx_desc = htt_rx_desc(msdu);
+            rx_desc->msdu_end.last_msdu = 1;
+            adf_nbuf_map(pdev->osdev, msdu, ADF_OS_DMA_FROM_DEVICE);
+
             ol_rx_frag_indication_handler(
                 pdev->txrx_pdev, 
                 htt_t2h_msg, 
