@@ -66,6 +66,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 
         msdu_info.htt.info.ext_tid = adf_nbuf_get_tid(msdu);
         ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
+
         /*
          * If debug display is enabled, show the meta-data being
          * downloaded to the target via the HTT tx descriptor.
@@ -299,6 +300,7 @@ ol_tx_hl_base(
 
         ol_tx_enqueue(pdev, txq, tx_desc, &tx_msdu_info);
         if (tx_msdu_info.peer) {
+            OL_TX_PEER_STATS_UPDATE(tx_msdu_info.peer, msdu);
             /* remove the peer reference added above */
             ol_txrx_peer_unref_delete(tx_msdu_info.peer);
         }

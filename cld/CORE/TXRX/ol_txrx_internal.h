@@ -563,4 +563,53 @@ do {                                                                            
 #define OL_RX_ERR_STATISTICS_2(pdev, vdev, peer, rx_desc, rx_msdu, rx_status) 
 #endif /* SUPPORT_HOST_STATISTICS */
 
+#ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
+#define CONCAT_BASE(a, b) a ## b
+#define CONCAT(a, b) CONCAT_BASE(a, b)
+#define OL_TXRX_PEER_STATS_UPDATE_BASE(peer, tx_or_rx, type, msdu) \
+    do { \
+        adf_os_spin_lock_bh(&peer->vdev->pdev->peer_stat_mutex); \
+        peer->stats. tx_or_rx .frms.  type += 1; \
+        peer->stats. tx_or_rx .bytes. type += adf_nbuf_len(msdu); \
+        adf_os_spin_unlock_bh(&peer->vdev->pdev->peer_stat_mutex); \
+    } while (0)
+#define OL_TXRX_PEER_STATS_UPDATE(peer, tx_or_rx, msdu) \
+    do { \
+        struct ol_txrx_vdev_t *vdev = peer->vdev; \
+        struct ol_txrx_pdev_t *pdev = vdev->pdev; \
+        u_int8_t *dest_addr; \
+        if (pdev->frame_format == wlan_frm_fmt_802_3) { \
+            dest_addr = adf_nbuf_data(msdu); \
+        } else { /* 802.11 format */ \
+            struct ieee80211_frame *frm; \
+            frm = (struct ieee80211_frame *) adf_nbuf_data(msdu); \
+            if (vdev->opmode == wlan_op_mode_ap) { \
+                dest_addr = (u_int8_t *) &(frm->i_addr1[0]); \
+            } else { \
+                dest_addr = (u_int8_t *) &(frm->i_addr3[0]); \
+            } \
+        } \
+        if (adf_os_unlikely(IEEE80211_IS_BROADCAST(dest_addr))) { \
+            OL_TXRX_PEER_STATS_UPDATE_BASE(peer, tx_or_rx, bcast, msdu); \
+        } else if (adf_os_unlikely(IEEE80211_IS_MULTICAST(dest_addr))) { \
+            OL_TXRX_PEER_STATS_UPDATE_BASE(peer, tx_or_rx, mcast, msdu); \
+        } else { \
+            OL_TXRX_PEER_STATS_UPDATE_BASE(peer, tx_or_rx, ucast, msdu); \
+        } \
+    } while (0)
+#define OL_TX_PEER_STATS_UPDATE(peer, msdu) \
+    OL_TXRX_PEER_STATS_UPDATE(peer, tx, msdu)
+#define OL_RX_PEER_STATS_UPDATE(peer, msdu) \
+    OL_TXRX_PEER_STATS_UPDATE(peer, rx, msdu)
+#define OL_TXRX_PEER_STATS_MUTEX_INIT(pdev) \
+    adf_os_spinlock_init(&pdev->peer_stat_mutex)
+#define OL_TXRX_PEER_STATS_MUTEX_DESTROY(pdev) \
+    adf_os_spinlock_destroy(&pdev->peer_stat_mutex)
+#else
+#define OL_TX_PEER_STATS_UPDATE(peer, msdu) /* no-op */
+#define OL_RX_PEER_STATS_UPDATE(peer, msdu) /* no-op */
+#define OL_TXRX_PEER_STATS_MUTEX_INIT(peer) /* no-op */
+#define OL_TXRX_PEER_STATS_MUTEX_DESTROY(peer) /* no-op */
+#endif
+
 #endif /* _OL_TXRX_INTERNAL__H_ */

@@ -185,7 +185,6 @@ typedef enum {
  * @param peer - pointer to the node's object
  * @param param - new param to be upated in peer object.
  * @param select - specify what's parameter needed to be update
- * @return none
  */
 void
 ol_txrx_peer_update(ol_txrx_vdev_handle data_vdev, u_int8_t *peer_mac,
@@ -640,6 +639,75 @@ ol_tx_addba_conf(
 #else
 #define ol_tx_addba_conf(data_peer, tid, status) /* no-op */
 #endif
+
+/**
+ * @brief Find a txrx peer handle from a peer ID
+ * @details
+ *  The target assigns an ID to each peer, and the txrx layer maintains
+ *  a mapping of peer IDs to peer objects.  If other modules also know
+ *  the peer ID assigned by the target, and if they need to obtain a
+ *  handle to the peer in question, to use in other calls to txrx peer
+ *  API functions, they can use this function to look up the peer handle
+ *  from the ID.  (This is not typically needed, since generally other
+ *  modules that need to call the txrx module's peer API functions already
+ *  have the peer handle returned by ol_txrx_peer_attach, but there are a
+ *  few cases where the peer ID is known but the peer handle is not
+ *  immediately available.)
+ *
+ * @param pdev - the data physical device object
+ * @param peer_id - the ID assigned by the target to the peer in question
+ */
+ol_txrx_peer_handle
+ol_txrx_peer_find_by_id(ol_txrx_pdev_handle pdev, u_int16_t peer_id);
+
+typedef struct {
+    struct {
+        struct {
+            u_int32_t ucast;
+            u_int32_t mcast;
+            u_int32_t bcast;
+        } frms;
+        struct {
+            u_int32_t ucast;
+            u_int32_t mcast;
+            u_int32_t bcast;
+        } bytes;
+    } tx;
+    struct {
+        struct {
+            u_int32_t ucast;
+            u_int32_t mcast;
+            u_int32_t bcast;
+        } frms;
+        struct {
+            u_int32_t ucast;
+            u_int32_t mcast;
+            u_int32_t bcast;
+        } bytes;
+    } rx;
+} ol_txrx_peer_stats_t;
+
+/**
+ * @brief Provide a snapshot of the txrx counters for the specified peer
+ * @details
+ *  The txrx layer optionally maintains per-peer stats counters.
+ *  This function provides the caller with a consistent snapshot of the
+ *  txrx stats counters for the specified peer.
+ *
+ * @param pdev - the data physical device object
+ * @param peer - which peer's stats counters are requested
+ * @param stats - buffer for holding the stats counters snapshot
+ * @return success / failure status
+ */
+#ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
+A_STATUS
+ol_txrx_peer_stats_copy(
+    ol_txrx_pdev_handle pdev,
+    ol_txrx_peer_handle peer,
+    ol_txrx_peer_stats_t *stats);
+#else
+#define ol_txrx_peer_stats_copy(pdev, peer, stats) A_ERROR /* failure */
+#endif /* QCA_ENABLE_OL_TXRX_PEER_STATS */
 
 /**
  * @brief Setup configuration parameters

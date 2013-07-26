@@ -96,7 +96,7 @@ ol_rx_frag_indication_handler(
     void *rx_mpdu_desc;
 
     htt_pdev = pdev->htt_pdev;
-    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
 
     if (htt_rx_ind_flush(pdev->htt_pdev, rx_frag_ind_msg) && peer) {
         htt_rx_frag_ind_flush_seq_num_range(

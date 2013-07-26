@@ -436,6 +436,7 @@ ol_txrx_pdev_attach(
     adf_os_spinlock_init(&pdev->peer_ref_mutex);
     adf_os_spinlock_init(&pdev->rx.mutex);
     adf_os_spinlock_init(&pdev->last_real_peer_mutex);
+    OL_TXRX_PEER_STATS_MUTEX_INIT(pdev);
 
     if (ol_cfg_is_high_latency(ctrl_pdev)) {
         adf_os_spinlock_init(&pdev->tx_queue_spinlock);
@@ -509,6 +510,7 @@ fail7:
     adf_os_spinlock_destroy(&pdev->peer_ref_mutex);
     adf_os_spinlock_destroy(&pdev->rx.mutex);
     adf_os_spinlock_destroy(&pdev->last_real_peer_mutex);
+    OL_TXRX_PEER_STATS_MUTEX_DESTROY(pdev);
 
     ol_tx_sched_detach(pdev);
 
@@ -606,6 +608,7 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
     adf_os_spinlock_destroy(&pdev->peer_ref_mutex);
     adf_os_spinlock_destroy(&pdev->last_real_peer_mutex);
     adf_os_spinlock_destroy(&pdev->rx.mutex);
+    OL_TXRX_PEER_STATS_MUTEX_DESTROY(pdev);
 
     OL_RX_REORDER_TRACE_DETACH(pdev);
     OL_RX_PN_TRACE_DETACH(pdev);
@@ -1077,7 +1080,8 @@ u_int8_t
 ol_txrx_peer_uapsdmask_get(struct ol_txrx_pdev_t *txrx_pdev, u_int16_t peer_id)
 {
 
-    struct ol_txrx_peer_t *peer  = ol_txrx_peer_find_by_id(txrx_pdev, peer_id);
+    struct ol_txrx_peer_t *peer;
+    peer = ol_txrx_peer_find_by_id_private(txrx_pdev, peer_id);
     if (peer != NULL) {
         return peer->uapsd_mask;
     }
@@ -1666,3 +1670,18 @@ ol_txrx_prot_ans_display(ol_txrx_pdev_handle pdev)
 }
 
 #endif /* ENABLE_TXRX_PROT_ANALYZE */
+
+#ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
+A_STATUS
+ol_txrx_peer_stats_copy(
+    ol_txrx_pdev_handle pdev,
+    ol_txrx_peer_handle peer,
+    ol_txrx_peer_stats_t *stats)
+{
+    adf_os_assert(pdev && peer && stats);
+    adf_os_spin_lock_bh(&pdev->peer_stat_mutex);
+    adf_os_mem_copy(stats, &peer->stats, sizeof(*stats));
+    adf_os_spin_unlock_bh(&pdev->peer_stat_mutex);
+    return A_OK;
+}
+#endif /* QCA_ENABLE_OL_TXRX_PEER_STATS */
