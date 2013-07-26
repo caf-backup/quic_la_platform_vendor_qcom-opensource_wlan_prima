@@ -496,7 +496,7 @@ OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VI,           1, (5*32),    24,     5,  4);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BK,           3, (5*64),    10,     5,  8);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BE,           2, (5*64),    16,     5,  8);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(NON_QOS_DATA, 3, (5*64),     4,     5,  8);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(UCAST_MGMT,   1,      1,     4,     0,  1);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(UCAST_MGMT,   1,      1,     4,     0,  0);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_DATA,   2, (5*64),     4,     5,  4);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
 
