@@ -378,7 +378,7 @@ htt_tx_desc_init(
     *word0 = 0;
                 
     HTT_H2T_MSG_TYPE_SET(*word0, HTT_H2T_MSG_TYPE_TX_FRM);    
-    HTT_TX_DESC_PKT_TYPE_SET(*word0, msdu_info->info.frame_type);
+    HTT_TX_DESC_PKT_TYPE_SET(*word0, msdu_info->info.l2_hdr_type);
     HTT_TX_DESC_VDEV_ID_SET(*word0, msdu_info->info.vdev_id);
     HTT_TX_DESC_EXT_TID_SET(*word0, msdu_info->info.ext_tid);
     HTT_TX_DESC_CKSUM_OFFLOAD_SET(*word0, msdu_info->action.cksum_offload);
