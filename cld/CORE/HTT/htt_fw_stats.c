@@ -678,6 +678,10 @@ htt_t2h_stats_print(u_int8_t *stats_data, int concise)
             struct ol_fw_tx_dbg_ppdu_msg_hdr *hdr;
             struct ol_fw_tx_dbg_ppdu_base *record;
 
+            if (status == HTT_DBG_STATS_STATUS_PARTIAL && length == 0) {
+               adf_os_print("HTT_DBG_STATS_TX_PPDU_LOG -- length = 0!\n");
+               break;
+            }
             hdr = (struct ol_fw_tx_dbg_ppdu_msg_hdr *)(msg_word + 1);
             record = (struct ol_fw_tx_dbg_ppdu_base *)(hdr + 1);
             htt_t2h_tx_ppdu_log_print(hdr, record, length, concise);
