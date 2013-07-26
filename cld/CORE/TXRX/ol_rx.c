@@ -18,7 +18,7 @@
 
 /* internal API header files */
 #include <ol_txrx_types.h>     /* ol_txrx_vdev_t, etc. */
-#include <ol_txrx_peer_find.h> /* ol_txrx_peer_find_by_id_private */
+#include <ol_txrx_peer_find.h> /* ol_txrx_peer_find_by_id */
 #include <ol_rx_reorder.h>     /* ol_rx_reorder_store, etc. */
 #include <ol_rx_reorder_timeout.h> /* OL_RX_REORDER_TIMEOUT_UPDATE */
 #include <ol_rx_defrag.h>      /* ol_rx_defrag_waitlist_flush */
@@ -165,7 +165,7 @@ ol_rx_indication_handler(
     htt_pdev_handle htt_pdev;
 
     htt_pdev = pdev->htt_pdev;
-    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
     if (peer) {
         vdev = peer->vdev;
         OL_RX_IND_RSSI_UPDATE(peer, rx_ind_msg);
@@ -401,7 +401,7 @@ ol_rx_sec_ind_handler(
     struct ol_txrx_peer_t *peer;
     int sec_index, i;
 
-    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
+    peer = ol_txrx_peer_find_by_id(pdev, peer_id);
     if (! peer) {
         TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
             "Couldn't find peer from ID %d - skipping security inits\n",
@@ -584,7 +584,7 @@ ol_rx_offload_deliver_ind_handler(
             htt_pdev, msg, &vdev_id, &peer_id,
             &tid, &fw_desc, &head_buf, &tail_buf);
 
-        peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
+        peer = ol_txrx_peer_find_by_id(pdev, peer_id);
         if (peer) {
             vdev = peer->vdev;
         }

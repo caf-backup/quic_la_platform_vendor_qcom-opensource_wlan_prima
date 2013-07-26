@@ -569,6 +569,7 @@ struct ol_txrx_pdev_t {
 		ol_txrx_local_peer_id_t pool[OL_TXRX_NUM_LOCAL_PEER_IDS+1];
 		ol_txrx_local_peer_id_t freelist;
 		adf_os_spinlock_t lock;
+		ol_txrx_peer_handle map[OL_TXRX_NUM_LOCAL_PEER_IDS];
 	} local_peer_ids;
 #endif
 };
