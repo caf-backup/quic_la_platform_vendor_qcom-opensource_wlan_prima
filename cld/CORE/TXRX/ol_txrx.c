@@ -616,6 +616,9 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
         ol_txrx_peer_find_hash_erase(pdev);
     }
 
+    /* Stop the communication between HTT and target at first */
+    htt_detach_target(pdev->htt_pdev);
+
     for (i = 0; i < pdev->tx_desc.pool_size; i++) {
         void *htt_tx_desc;
 

@@ -140,6 +140,20 @@ htt_peer_uapsdmask_update(htt_pdev_handle htt_pdev, int peer_id, u_int8_t uapsd_
 void
 htt_detach(htt_pdev_handle htt_pdev);
 
+/**
+ * @brief Stop the communication between HTT and target
+ * @details
+ *  For ISOC solution, this function stop the communication between HTT and target.
+ *  For Peregrine/Rome, it's already stopped by ol_ath_disconnect_htc
+ *  before ol_txrx_pdev_detach called in ol_ath_detach. So this function is a no-op.
+ *  Peregrine/Rome HTT layer is on top of HTC while ISOC solution HTT layer is
+ *  on top of DXE layer.
+ *
+ * @param htt_pdev - handle to the HTT instance being initialized
+ */
+void
+htt_detach_target(htt_pdev_handle htt_pdev);
+
 /*
  * @brief Tell the target side of HTT to suspend H2T processing until synced
  * @param htt_pdev - the host HTT object
