@@ -42,6 +42,7 @@
 #include <ol_rx_pn.h>              /* ol_rx_pn_check, etc. */
 #include <ol_rx_fwd.h>             /* ol_rx_fwd_check, etc. */
 #include <ol_rx_reorder_timeout.h> /* OL_RX_REORDER_TIMEOUT_INIT, etc. */
+#include <ol_tx_send.h>            /* ol_tx_discard_target_frms */
 #include <ol_tx_desc.h>            /* ol_tx_desc_frame_free */
 #include <ol_tx_queue.h>
 #include <ol_tx_sched.h>           /* ol_tx_sched_attach, etc. */
@@ -1332,10 +1333,17 @@ void
 ol_txrx_discard_tx_pending(ol_txrx_pdev_handle pdev_handle)
 {
     ol_tx_desc_list tx_descs;
+	/* First let hif do the adf_os_atomic_dec_and_test(&tx_desc->ref_cnt)
+      * then let htt do the adf_os_atomic_dec_and_test(&tx_desc->ref_cnt)
+      * which is tha same with normal data send complete path*/
+    htt_tx_pending_discard(pdev_handle->htt_pdev);
+
     TAILQ_INIT(&tx_descs);
     ol_tx_queue_discard(pdev_handle, A_TRUE, &tx_descs);
     //Discard Frames in Discard List
     ol_tx_desc_frame_list_free(pdev_handle, &tx_descs, 1 /* error */);
+
+    ol_tx_discard_target_frms(pdev_handle);
 }
 
 /*--- debug features --------------------------------------------------------*/

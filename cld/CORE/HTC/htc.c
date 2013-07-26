@@ -579,6 +579,41 @@ A_STATUS HTCStart(HTC_HANDLE HTCHandle)
     return status;
 }
 
+/*flush all queued buffers for surpriseremove case*/
+void HTCFlushSurpriseRemove(HTC_HANDLE HTCHandle)
+{
+    HTC_TARGET    *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
+    int           i;
+    HTC_ENDPOINT  *pEndpoint;
+#ifdef RX_SG_SUPPORT
+    adf_nbuf_t netbuf;
+    adf_nbuf_queue_t *rx_sg_queue = &target->RxSgQueue;
+#endif
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+HTCFlushSurpriseRemove \n"));
+
+        /* cleanup endpoints */
+    for (i = 0; i < ENDPOINT_MAX; i++) {
+        pEndpoint = &target->EndPoint[i];
+        HTCFlushRxHoldQueue(target,pEndpoint);
+        HTCFlushEndpointTX(target,pEndpoint,HTC_TX_PACKET_TAG_ALL);
+    }
+
+    HIFFlushSurpriseRemove(target->hif_dev);
+
+#ifdef RX_SG_SUPPORT
+    LOCK_HTC_RX(target);
+    while ((netbuf = adf_nbuf_queue_remove(rx_sg_queue)) != NULL) {
+        adf_nbuf_free(netbuf);
+    }
+    RESET_RX_SG_CONFIG(target);
+    UNLOCK_HTC_RX(target);
+#endif
+
+    ResetEndpointStates(target);
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-HTCFlushSurpriseRemove \n"));
+}
 
 /* stop HTC communications, i.e. stop interrupt reception, and flush all queued buffers */
 void HTCStop(HTC_HANDLE HTCHandle)

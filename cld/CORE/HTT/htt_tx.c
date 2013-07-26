@@ -21,6 +21,7 @@
 #include <adf_os_time.h>    /* adf_os_mdelay */
 
 #include <htt.h>            /* htt_tx_msdu_desc_t */
+#include <htc_api.h>        /* HTCFlushSurpriseRemove */
 #include <htc.h>            /* HTC_HDR_LENGTH */
 #include <ol_cfg.h>         /* ol_cfg_netbuf_frags_max, etc. */
 #include <ol_txrx_types.h>    /* OL_TXRX_MGMT_NUM_TYPES */
@@ -307,6 +308,12 @@ htt_tx_desc_free(htt_pdev_handle pdev, void *tx_desc)
 void
 htt_tx_desc_flag_postponed(htt_pdev_handle pdev, void *desc)
 {
+}
+
+void
+htt_tx_pending_discard(htt_pdev_handle pdev)
+{
+    HTCFlushSurpriseRemove(pdev->htc_pdev);
 }
 
 void
