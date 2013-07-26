@@ -237,7 +237,7 @@ ol_tx_hl_base(
             TXRX_STATS_MSDU_LIST_INCR(pdev, tx.dropped.host_reject, msdu);
             return msdu; /* the list of unaccepted MSDUs */
         }
-        adf_os_atomic_dec(&pdev->tx_queue.rsrc_cnt);
+
 //        OL_TXRX_PROT_AN_LOG(pdev->prot_an_tx_sent, msdu);
 
         if (tx_spec != ol_txrx_osif_tx_spec_std) {
@@ -273,6 +273,26 @@ ol_tx_hl_base(
             goto MSDU_LOOP_BOTTOM;
         }
 
+        if(tx_msdu_info.peer) {
+			/*If the state is not associated then drop all the data packets recieved for that peer*/
+		    if(tx_msdu_info.peer->state == ol_txrx_peer_state_disc) {
+                 adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
+                 ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1);
+                 ol_txrx_peer_unref_delete(tx_msdu_info.peer);
+                 msdu = next;
+                 continue;
+		    }
+            else if (tx_msdu_info.peer->state != ol_txrx_peer_state_auth) {
+
+                if (tx_msdu_info.htt.info.ethertype != ETHERTYPE_PAE && tx_msdu_info.htt.info.ethertype != ETHERTYPE_WAI) {
+                    adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
+                    ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1);
+                    ol_txrx_peer_unref_delete(tx_msdu_info.peer);
+                    msdu = next;
+                    continue;
+                 }
+            }
+        }
         /*
          * Initialize the HTT tx desc l2 header offset field.
          * htt_tx_desc_mpdu_header  needs to be called to make sure,
@@ -374,6 +394,30 @@ ol_tx_hl_base(
         tx_msdu_info.htt.info.vdev_id = vdev->vdev_id;
         tx_msdu_info.htt.info.frame_type = htt_frm_type_data;
         tx_msdu_info.htt.info.l2_hdr_type = pdev->htt_pkt_type;
+        txq = ol_tx_classify(vdev, tx_desc, msdu, &tx_msdu_info);
+        if (!txq) {
+            adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
+            //TXRX_STATS_MSDU_LIST_INCR(vdev->pdev, tx.dropped.no_txq, msdu);
+            ol_tx_desc_free(vdev->pdev, tx_desc);
+            if (tx_msdu_info.peer) {
+                /* remove the peer reference added above */
+                ol_txrx_peer_unref_delete(tx_msdu_info.peer);
+            }
+            return msdu; /* the list of unaccepted MSDUs */
+        }
+
+        /* Before authentication, we'll drop packets except eapol/wai frame only */
+        if (tx_msdu_info.peer && tx_msdu_info.peer->state != ol_txrx_peer_state_auth)
+        {
+            if (tx_msdu_info.htt.info.ethertype != ETHERTYPE_PAE && tx_msdu_info.htt.info.ethertype != ETHERTYPE_WAI)
+            {
+                adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
+                ol_tx_desc_free(vdev->pdev, tx_desc);
+                /* remove the peer reference added above */
+                ol_txrx_peer_unref_delete(tx_msdu_info.peer);
+                return msdu; /* the list of unaccepted MSDUs */
+            }
+        }
 
         /* initialize the HW tx descriptor */
         htt_tx_desc_init(
@@ -470,6 +514,7 @@ ol_txrx_mgmt_send(
         txq = ol_tx_classify_mgmt(vdev, tx_desc, tx_mgmt_frm, &tx_msdu_info);
         if (!txq) {
             //TXRX_STATS_MSDU_LIST_INCR(vdev->pdev, tx.dropped.no_txq, msdu);
+            adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
             ol_tx_desc_frame_free_nonstd(vdev->pdev, tx_desc, 1 /* error */);
             if (tx_msdu_info.peer) {
                 /* remove the peer reference added above */

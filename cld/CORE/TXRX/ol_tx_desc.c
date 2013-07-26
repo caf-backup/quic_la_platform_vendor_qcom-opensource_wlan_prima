@@ -34,6 +34,19 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev)
     return tx_desc;
 }
 
+static inline struct ol_tx_desc_t *
+ol_tx_desc_alloc_hl(struct ol_txrx_pdev_t *pdev)
+{
+    struct ol_tx_desc_t *tx_desc;
+
+    tx_desc = ol_tx_desc_alloc(pdev);
+    if (!tx_desc) return NULL;
+
+    adf_os_atomic_dec(&pdev->tx_queue.rsrc_cnt);
+
+    return tx_desc;
+}
+
 /* TBD: make this inline in the .h file? */
 struct ol_tx_desc_t *
 ol_tx_desc_find(struct ol_txrx_pdev_t *pdev, u_int16_t tx_desc_id)
@@ -144,7 +157,7 @@ ol_tx_desc_hl(
     }
 
     /* allocate the descriptor */
-    tx_desc = ol_tx_desc_alloc(pdev);
+    tx_desc = ol_tx_desc_alloc_hl(pdev);
     if (!tx_desc) return NULL;
 
     /* initialize the SW tx descriptor */
