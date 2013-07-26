@@ -162,7 +162,8 @@ struct ol_txrx_peer_t *
 ol_txrx_peer_find_hash_find(
     struct ol_txrx_pdev_t *pdev,
     u_int8_t *peer_mac_addr,
-    int mac_addr_is_aligned)
+    int mac_addr_is_aligned,
+    u_int8_t check_valid)
 {
     union ol_txrx_align_mac_addr_t local_mac_addr_aligned, *mac_addr;
     unsigned index;
@@ -179,7 +180,8 @@ ol_txrx_peer_find_hash_find(
     index = ol_txrx_peer_find_hash_index(pdev, mac_addr);
     adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
     TAILQ_FOREACH(peer, &pdev->peer_hash.bins[index], hash_list_elem) {
-        if (ol_txrx_peer_find_mac_addr_cmp(mac_addr, &peer->mac_addr) == 0) {
+        if (ol_txrx_peer_find_mac_addr_cmp(mac_addr, &peer->mac_addr) == 0
+            && (check_valid == 0 || peer->valid)) {
             /* found it - increment the ref count before releasing the lock */
             adf_os_atomic_inc(&peer->ref_cnt);
             adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
@@ -296,12 +298,21 @@ ol_txrx_peer_find_add_id(
     struct ol_txrx_peer_t *peer;
 
     /* check if there's already a peer object with this MAC address */
-    peer = ol_txrx_peer_find_hash_find(pdev, peer_mac_addr, 1 /* is aligned */);
+    peer = ol_txrx_peer_find_hash_find(pdev, peer_mac_addr, 1 /* is aligned */, 0);
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
         "%s: peer %p ID %d\n", __func__, peer, peer_id);
     if (peer) {
         /* peer's ref count was already incremented by peer_find_hash_find */
         pdev->peer_id_to_obj_map[peer_id] = peer;
+        /*
+         * remove the reference added in ol_txrx_peer_find_hash_find.
+         * the reference for the first peer id is already added in ol_txrx_peer_attach.
+         * Riva/Pronto has one peer id for each peer.
+         * Peregrine/Rome has two peer id for each peer.
+         */
+        if (peer->peer_ids[0] == HTT_INVALID_PEER) {
+            ol_txrx_peer_unref_delete(peer);
+        }
         if (ol_txrx_peer_find_add_id_to_obj(peer, peer_id)) {
             /* TBDXXX: assert for now */
             adf_os_assert(0);
@@ -413,7 +424,8 @@ ol_rx_peer_unmap_handler(
     u_int16_t peer_id)
 {
     struct ol_txrx_peer_t *peer;
-    peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
+    peer = (peer_id == HTT_INVALID_PEER) ? NULL :
+        pdev->peer_id_to_obj_map[peer_id];
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
         "%s: peer %p with ID %d to be unmapped.\n", __func__, peer, peer_id);
     pdev->peer_id_to_obj_map[peer_id] = NULL;

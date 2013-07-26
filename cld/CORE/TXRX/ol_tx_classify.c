@@ -319,7 +319,7 @@ ol_tx_classify(
              * function can check whether to encrypt multicast / broadcast
              * frames.
              */
-            peer = ol_txrx_peer_find_hash_find(pdev, vdev->mac_addr.raw, 0);
+            peer = ol_txrx_peer_find_hash_find(pdev, vdev->mac_addr.raw, 0, 1);
             if (!peer) {
                 adf_os_print(
                     "Error: vdev %p (%02x:%02x:%02x:%02x:%02x:%02x) "
@@ -386,7 +386,7 @@ ol_tx_classify(
             #endif
             peer = ol_txrx_assoc_peer_find(vdev);
         } else {
-            peer = ol_txrx_peer_find_hash_find(pdev, dest_addr, 0);
+            peer = ol_txrx_peer_find_hash_find(pdev, dest_addr, 0, 1);
         }
         tx_msdu_info->htt.info.is_unicast = TRUE;
         if (!peer) {
@@ -504,7 +504,7 @@ ol_tx_classify_mgmt(
             peer = ol_txrx_assoc_peer_find(vdev);
         } else {
             /* find the peer and increment its reference count */
-            peer = ol_txrx_peer_find_hash_find(pdev, dest_addr, 0);
+            peer = ol_txrx_peer_find_hash_find(pdev, dest_addr, 0, 1);
         }
         tx_msdu_info->peer = peer;
         if (!peer) {
