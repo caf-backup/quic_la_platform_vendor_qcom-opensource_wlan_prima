@@ -716,6 +716,8 @@ struct ol_txrx_peer_t {
 	u_int8_t qos_capable;
 	/*uapsd  tid mask */
 	u_int8_t  uapsd_mask;
+	/*flag indicating key installed*/
+	u_int8_t keyinstalled;
 };
 
 #endif /* _OL_TXRX_TYPES__H_ */
