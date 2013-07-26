@@ -310,11 +310,13 @@ htt_tx_desc_flag_postponed(htt_pdev_handle pdev, void *desc)
 {
 }
 
+#if !defined(CONFIG_HL_SUPPORT)
 void
 htt_tx_pending_discard(htt_pdev_handle pdev)
 {
     HTCFlushSurpriseRemove(pdev->htc_pdev);
 }
+#endif
 
 void
 htt_tx_desc_flag_batch_more(htt_pdev_handle pdev, void *desc)

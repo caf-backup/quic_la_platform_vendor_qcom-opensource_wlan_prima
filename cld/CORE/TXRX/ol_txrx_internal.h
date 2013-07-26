@@ -610,4 +610,8 @@ do {                                                                            
 #define OL_TXRX_PEER_STATS_MUTEX_DESTROY(peer) /* no-op */
 #endif
 
+#ifndef DEBUG_HTT_CREDIT
+#define DEBUG_HTT_CREDIT 0
+#endif
+
 #endif /* _OL_TXRX_INTERNAL__H_ */
