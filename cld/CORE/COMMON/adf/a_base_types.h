@@ -34,8 +34,8 @@ typedef __a_int32_t     a_int32_t;/**< 4 Bytes */
 typedef __a_int64_t     a_int64_t;/**< 4 Bytes */
 
 enum a_bool {
-    A_TRUE  = 0,
-    A_FALSE = 1
+    A_FALSE  = 0,
+    A_TRUE = 1
 };
 typedef a_uint8_t   a_bool_t;/**< 1 Byte */
 
