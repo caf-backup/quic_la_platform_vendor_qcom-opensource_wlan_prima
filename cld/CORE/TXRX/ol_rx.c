@@ -820,6 +820,10 @@ DONE:
                 ol_txrx_frm_dump_tcp_seq | ol_txrx_frm_dump_contents,
                 0 /* don't print contents */);
             adf_nbuf_free(msdu);
+            /* If discarding packet is last packet of the delivery list,NULL terminator should be added for delivery list. */
+            if (next == NULL && deliver_list_head){
+                adf_nbuf_set_next(deliver_list_tail, NULL); /* add NULL terminator */
+            }
         } else {
             OL_RX_PEER_STATS_UPDATE(peer, msdu);
             OL_RX_ERR_STATISTICS_1(pdev, vdev, peer, rx_desc, OL_RX_ERR_NONE);
