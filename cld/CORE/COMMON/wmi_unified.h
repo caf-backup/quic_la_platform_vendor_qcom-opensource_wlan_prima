@@ -3770,7 +3770,10 @@ typedef struct {
 146-128=18. So this means it is converted to non-QoS header. Riva FW take care of the QOS/non-QOS
 when comparing wifi header.*/
 #define WOW_DEFAULT_BITMAP_PATTERN_SIZE      146
+#define WOW_DEFAULT_BITMAP_PATTERN_SIZE_DWORD 37 //Convert WOW_DEFAULT_EVT_BUF_SIZE into Int32 size
 #define WOW_DEFAULT_BITMASK_SIZE             146
+#define WOW_DEFAULT_BITMASK_SIZE_DWORD        37
+
 #define WOW_MAX_BITMAP_FILTERS               22
 #define WOW_DEFAULT_MAGIG_PATTERN_MATCH_CNT  16
 #define WOW_DEFAULT_EVT_BUF_SIZE             128  /* Maximum 128 bytes of the data is copied starting from header
@@ -3810,53 +3813,66 @@ typedef enum wake_reason_e {
     WOW_REASON_RECV_MAGIC_PATTERN,
 }WOW_WAKE_REASON_TYPE;
 
+typedef struct wmi_wow_enable_command {
+	A_UINT32 enable;
+}wmi_wow_enable_command;
+
 typedef struct bitmap_pattern_s {
-    A_UINT8      patternbuf[WOW_DEFAULT_BITMAP_PATTERN_SIZE];
-    A_UINT8      bitmaskbuf[WOW_DEFAULT_BITMASK_SIZE];
-    A_UINT8      pattern_offset;
+    A_UINT32     patternbuf[WOW_DEFAULT_BITMAP_PATTERN_SIZE_DWORD];
+    A_UINT32     bitmaskbuf[WOW_DEFAULT_BITMASK_SIZE_DWORD];
+    A_UINT32     pattern_offset;
     A_UINT32     pattern_len;
     A_UINT32     bitmask_len;
     A_UINT32     pattern_id;  /* must be less than max_bitmap_filters */
 }WOW_BITMAP_PATTERN_T;
 
 typedef struct ipv4_sync_s {
-    A_UINT8      ipv4_src_addr[4];
-    A_UINT8      ipv4_dst_addr[4];
+    A_UINT32     ipv4_src_addr;
+    A_UINT32     ipv4_dst_addr;
     A_UINT32     tcp_src_prt;
     A_UINT32     tcp_dst_prt;
 }WOW_IPV4_SYNC_PATTERN_T;
 
 typedef struct ipv6_sync_s {
-    A_UINT8      ipv6_src_addr[16];
-    A_UINT8      ipv6_dst_addr[16];
+    A_UINT32     ipv6_src_addr[4];
+    A_UINT32     ipv6_dst_addr[4];
     A_UINT32     tcp_src_prt;
     A_UINT32     tcp_dst_prt;
 }WOW_IPV6_SYNC_PATTERN_T;
 
-
+typedef struct WOW_MAGIC_PATTERN_CMD
+{
+	wmi_mac_addr macaddr;
+}WOW_MAGIC_PATTERN_CMD;
 
 typedef struct {
+    A_UINT32        vdev_id;
     A_UINT32        pattern_id;
     A_UINT32        pattern_type;
     union {
         WOW_BITMAP_PATTERN_T       bitmap;
         WOW_IPV4_SYNC_PATTERN_T    ipv4;
         WOW_IPV6_SYNC_PATTERN_T    ipv6;
+	WOW_MAGIC_PATTERN_CMD      magic_pattern;
         A_UINT32                   timeout;
     }pattern_info;
 }WMI_WOW_ADD_PATTERN_CMD;
 
 typedef struct {
+    A_UINT32        vdev_id;
     A_UINT32        pattern_id;
     A_UINT32        pattern_type;
 }WMI_WOW_DEL_PATTERN_CMD;
 
 typedef struct {
+    A_UINT32    vdev_id;
     A_UINT32    is_add;
     A_UINT32    event_bitmap;
 }WMI_WOW_ADD_DEL_EVT_CMD;
 
 typedef struct  event_info_s {
+    A_UINT32    vdev_id;
+    A_UINT32    flag;                              /*This is current reserved.*/
     A_UINT32    wake_reason;
     A_UINT32    data_len;
 }EVENT_INFO;

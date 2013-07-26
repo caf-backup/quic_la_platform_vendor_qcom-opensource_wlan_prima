@@ -1161,7 +1161,7 @@ static inline void
     adf_os_print("  AMSDU error: %d\n", rx_bd->amsdu_error);
     adf_os_print("  RX timestamp: %d\n", rx_bd->rx_timestamp);
 
-    adf_os_print("raw view:\n  ");
+    adf_os_print("raw view start:\n  ");
     p = (char *) rx_bd;
     for (i = 0; i < sizeof(*rx_bd); i++, p++) {
         adf_os_print("%#02x ", *p);
@@ -1169,7 +1169,7 @@ static inline void
             adf_os_print("\n  ");
         }
     }
-    adf_os_print("\n");
+    adf_os_print("raw view end\n");
 }
 
 #endif /* _ISOC_HW_DESC__H_ */
