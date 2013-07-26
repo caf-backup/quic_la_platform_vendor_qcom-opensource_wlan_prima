@@ -20,6 +20,8 @@
 
 #include <htt_internal.h>
 
+#include <wlan_defs.h>
+
 #define ROUND_UP_TO_4(val) (((val) + 3) & ~0x3)
 
 static void htt_t2h_stats_tx_rate_stats_print(

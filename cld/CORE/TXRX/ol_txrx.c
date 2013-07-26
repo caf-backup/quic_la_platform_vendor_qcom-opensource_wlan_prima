@@ -1041,12 +1041,6 @@ ol_txrx_peer_update(ol_txrx_vdev_handle vdev,
 
 	peer =  ol_txrx_peer_find_hash_find(vdev->pdev, peer_mac, 0, 1);
 	switch (select) {
-	case ol_txrx_peer_update_rate_ctrl:
-		{
-			/* Update the peer-params in the context for rate-control. */
-			/* Note: Rate control runs on target */
-			break;
-		}
 	case ol_txrx_peer_update_qos_capable:
 		{
 			/* save qos_capable here txrx peer,

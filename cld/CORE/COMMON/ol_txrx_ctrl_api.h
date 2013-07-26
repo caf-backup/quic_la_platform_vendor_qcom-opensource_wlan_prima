@@ -125,37 +125,12 @@ ol_txrx_peer_attach(
     u_int8_t *peer_mac_addr);
 
 /**
- * @brief Template for passing ieee80211_node members to rate-control
- * @details
- *  This structure is used in order to maintain the isolation between umac and
- *  ol while initializing the peer-level rate-control context with peer-specific
- *  parameters.
- */
-struct peer_ratectrl_params_t {
-    u_int8_t ni_streams;
-    u_int8_t is_auth_wpa;
-    u_int8_t is_auth_wpa2;
-    u_int8_t is_auth_8021x;
-#ifdef ATH_SUPPORT_WAPI
-    u_int8_t is_auth_wai;
-#endif
-    u_int32_t ni_flags;
-    u_int32_t ni_chwidth;
-    u_int16_t ni_htcap;
-    u_int32_t ni_vhtcap;
-    u_int16_t ni_phymode;
-    u_int16_t ni_rx_vhtrates;
-    u_int8_t ht_rates[MAX_SPATIAL_STREAM * 8];
-};
-
-/**
 * @brief Parameter type to be input to ol_txrx_peer_update
 * @details
 *  This struct is union,to be used to specify various informations to update 
 *   txrx peer object.
 */
 typedef union  {
-    struct peer_ratectrl_params_t * ratectrl;
     u_int8_t  qos_capable;
     u_int8_t  uapsd_mask;
     enum ol_sec_type   sec_type;
@@ -168,8 +143,7 @@ typedef union  {
 *   is used to update the txrx peer object.
 */
 typedef enum {
-    ol_txrx_peer_update_rate_ctrl = 0x1,
-    ol_txrx_peer_update_qos_capable,
+    ol_txrx_peer_update_qos_capable = 1,
     ol_txrx_peer_update_uapsdMask,
     ol_txrx_peer_update_peer_security,
 } ol_txrx_peer_update_select_t;
@@ -178,9 +152,6 @@ typedef enum {
  * @brief Update the data peer object as some informaiton changed in node.
  * @details
  *  Only a single prarameter can be changed for each call to this func.
- *  For the host-based implementation of rate-control (select  == 
- *  ol_txrx_peer_update_rate_ctrl), it updates the peer/node-related parameters 
- *  within rate-control context of the peer at association.
  *
  * @param peer - pointer to the node's object
  * @param param - new param to be upated in peer object.

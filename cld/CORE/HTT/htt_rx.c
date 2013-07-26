@@ -1492,6 +1492,16 @@ htt_rx_msdu_buff_replenish(htt_pdev_handle pdev)
     adf_os_atomic_inc(&pdev->rx_ring.refill_ref_cnt);
 }
 
+#define AR600P_ASSEMBLE_HW_RATECODE(_rate, _nss, _pream)     \
+            (((_pream) << 6) | ((_nss) << 4) | (_rate))
+
+enum AR600P_HW_RATECODE_PREAM_TYPE {
+    AR600P_HW_RATECODE_PREAM_OFDM,
+    AR600P_HW_RATECODE_PREAM_CCK,
+    AR600P_HW_RATECODE_PREAM_HT,
+    AR600P_HW_RATECODE_PREAM_VHT,
+};
+
 #if 0
 void htt_rx_get_vowext_stats(adf_nbuf_t msdu, struct vow_extstats *vowstats)
 {
