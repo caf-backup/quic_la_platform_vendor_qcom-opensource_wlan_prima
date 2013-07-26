@@ -639,9 +639,8 @@ ol_rx_filter(
              * In this case, we reject the frame if it was originally NOT encrypted but 
              * we have the key mapping key for this frame.
              */
-            if ((A_FALSE == is_encrypted) && (A_FALSE == is_mcast)
-                && (peer->security[txrx_sec_ucast].sec_type != htt_sec_type_none
-                && !ETHERTYPE_IS_EAPOL_WAPI(ether_type))) {
+            if (!is_encrypted && !is_mcast
+                && (peer->security[txrx_sec_ucast].sec_type != htt_sec_type_none)) {
                  return FILTER_STATUS_REJECT;
             } else {
                 return FILTER_STATUS_ACCEPT;
