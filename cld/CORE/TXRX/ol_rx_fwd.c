@@ -94,47 +94,6 @@ ol_ap_fwd_check(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
 }
 
 static inline
-bool
-ol_is_forward_needed(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
-{
-	struct ol_txrx_pdev_t *pdev = vdev->pdev;
-    struct ieee80211_frame *ll_hdr;
-#if 0
-	struct ethernet_hdr_t *eth_hdr;
-#endif
-	bool forward_need = true;
-
-    if (pdev->frame_format == wlan_frm_fmt_native_wifi) {
-		ll_hdr = (struct ieee80211_frame *)(adf_nbuf_data(msdu));
-		TXRX_ASSERT1(ll_hdr);
-
-		if (IEEE80211_IS_BROADCAST((unsigned char *)(ll_hdr->i_addr3))) {
-		/* broadcast pkt need not forward. Windows would do this.
-		 * Otherwise we will forward two packet.
-		 */
-			forward_need = false;
-		}
-	} else if (pdev->frame_format == wlan_frm_fmt_802_3) {
-		/* TBD.
-		 * To disable broadcast forward by firmware. The change is for windows only.
-		 * Default forward is done By OS. Currently Operation for Linux is pending.
-		 */
-#if 0
-		eth_hdr = (struct ethernet_hdr_t *)(adf_nbuf_data(msdu));
-		TXRX_ASSERT1(eth_hdr);
-
-		if (IEEE80211_IS_BROADCAST((unsigned char *)(eth_hdr->dest_addr))) {
-			forward_need = false;
-		}
-#else
-		forward_need = true;
-#endif
-	}
-
-	return forward_need;
-}
-
-static inline
 void
 ol_rx_fwd_to_tx(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu)
 {
@@ -214,7 +173,7 @@ ol_rx_fwd_check(
                 htt_rx_msdu_desc_free(pdev->htt_pdev, msdu);
                 ol_rx_fwd_to_tx(tx_vdev, msdu);
                 msdu = NULL; /* already handled this MSDU */
-            } else if (ol_is_forward_needed(tx_vdev, msdu)) {
+            } else {
 				adf_nbuf_t copy;
 				copy = adf_nbuf_copy(msdu);
                 if (copy) {
