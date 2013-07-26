@@ -6,6 +6,7 @@
 
 #include <adf_nbuf.h>          /* adf_nbuf_t, etc. */
 #include <adf_os_io.h>         /* adf_os_cpu_to_le64 */
+#include <adf_os_types.h>      /* a_bool_t */
 #include <ieee80211_common.h>         /* ieee80211_frame */
 
 /* external API header files */
@@ -33,7 +34,7 @@
 #include <enet.h>    /* ethernet + SNAP/LLC header defs and ethertype values */
 #include <ip_prot.h> /* IP protocol values */
 #include <ipv4.h>    /* IPv4 header defs */
-#include <ipv6.h>    /* IPv6 header defs */
+#include <ipv6_defs.h>    /* IPv6 header defs */
 #include <ol_vowext_dbg_defs.h>
 
 #ifdef OSIF_NEED_RX_PEER_ID
@@ -106,7 +107,8 @@ ol_rx_indication_handler(
     int num_mpdu_ranges)
 {
     int mpdu_range;
-    int seq_num_start = 0, seq_num_end = 0, rx_ind_release = 0;
+    unsigned seq_num_start = 0, seq_num_end = 0;
+    a_bool_t rx_ind_release = A_FALSE;
     struct ol_txrx_vdev_t *vdev = NULL;
     struct ol_txrx_peer_t *peer;
     htt_pdev_handle htt_pdev;
@@ -146,7 +148,7 @@ ol_rx_indication_handler(
          * This is for the reason of in HL case, the adf_nbuf_t for msg and
          * payload are the same buf. And the buf will be changed during 
          * processing */
-        rx_ind_release = 1;
+        rx_ind_release = A_TRUE;
         htt_rx_ind_release_seq_num_range(
             pdev->htt_pdev, rx_ind_msg, &seq_num_start, &seq_num_end);
     }
@@ -274,7 +276,7 @@ ol_rx_indication_handler(
                          * The MPDU was not stored in the rx reorder array,
                          * so there's nothing to release.
                          */
-                        rx_ind_release = 0;
+                        rx_ind_release = A_FALSE;
                     } else {
                         ol_rx_reorder_store(
                             pdev, peer, tid, reorder_idx, head_msdu, tail_msdu);
@@ -324,7 +326,7 @@ ol_rx_indication_handler(
      */
     htt_rx_msdu_buff_replenish(htt_pdev);
 
-    if (rx_ind_release && peer) {
+    if ((A_TRUE == rx_ind_release) && peer) {
 #ifdef HTT_DEBUG_DATA
         HTT_PRINT("t%dr[%d,%d)\n",tid, seq_num_start, seq_num_end);
 #endif
@@ -557,7 +559,7 @@ ol_rx_offload_deliver_ind_handler(
 /** 
  * @brief Check the first msdu to decide whether the a-msdu should be accepted.
  */
-int
+a_bool_t
 ol_rx_filter(
     struct ol_txrx_vdev_t *vdev,
     struct ol_txrx_peer_t *peer,
@@ -569,7 +571,8 @@ ol_rx_filter(
     u_int8_t *wh;
     u_int32_t offset = 0;
     u_int16_t ether_type = 0;
-    u_int8_t is_encrypted = 0, is_mcast = 0, i;
+    a_bool_t is_encrypted = A_FALSE, is_mcast = A_FALSE;
+    u_int8_t i;
     privacy_filter_packet_type packet_type = PRIVACY_FILTER_PACKET_UNICAST;
     ol_txrx_pdev_handle pdev = vdev->pdev;
     htt_pdev_handle htt_pdev = pdev->htt_pdev;
@@ -592,7 +595,7 @@ ol_rx_filter(
         /* get ether type */
         ether_type = (wh[offset] << 8) | wh[offset+1];
         /* get packet type */
-        if (is_mcast) {
+        if (A_TRUE == is_mcast) {
             packet_type = PRIVACY_FILTER_PACKET_MULTICAST;
         } else {
             packet_type = PRIVACY_FILTER_PACKET_UNICAST;
@@ -601,7 +604,7 @@ ol_rx_filter(
     /* get encrypt info */
     is_encrypted = htt_rx_mpdu_is_encrypted(htt_pdev, rx_desc);
 #ifdef ATH_SUPPORT_WAPI
-    if (is_encrypted && ( ETHERTYPE_WAI == ether_type ))
+    if ((A_TRUE == is_encrypted) && ( ETHERTYPE_WAI == ether_type ))
     {
         /* We expect the WAI frames to be always unencrypted when the UMAC
          * gets it.*/
@@ -626,7 +629,7 @@ ol_rx_filter(
              * In this case, we accept the frame if and only if it was originally
              * NOT encrypted.
              */
-            if (is_encrypted) {
+            if (A_TRUE == is_encrypted) {
                 return FILTER_STATUS_REJECT;
             } else {
                 return FILTER_STATUS_ACCEPT;
@@ -636,7 +639,7 @@ ol_rx_filter(
              * In this case, we reject the frame if it was originally NOT encrypted but 
              * we have the key mapping key for this frame.
              */
-            if (!is_encrypted && !is_mcast
+            if ((A_FALSE == is_encrypted) && (A_FALSE == is_mcast)
                 && (peer->security[txrx_sec_ucast].sec_type != htt_sec_type_none
                 && !ETHERTYPE_IS_EAPOL_WAPI(ether_type))) {
                  return FILTER_STATUS_REJECT;
@@ -657,17 +660,17 @@ ol_rx_filter(
      * it will be accepted.
      * 
      */
-    if (!vdev->drop_unenc || is_encrypted) {
+    if (!vdev->drop_unenc || (A_TRUE == is_encrypted)) {
         return FILTER_STATUS_ACCEPT;
     }
 
     /* 
      *  If this is a open connection, it will be accepted. 
      */
-    if(peer->security[is_mcast ? txrx_sec_mcast : txrx_sec_ucast].sec_type == htt_sec_type_none) {
+    if(peer->security[(A_TRUE == is_mcast) ? txrx_sec_mcast : txrx_sec_ucast].sec_type == htt_sec_type_none) {
         return FILTER_STATUS_ACCEPT;
     }
-    if (!is_encrypted && vdev->drop_unenc) {
+    if ((A_FALSE == is_encrypted) && vdev->drop_unenc) {
         OL_RX_ERR_STATISTICS(pdev, vdev, OL_RX_ERR_PRIVACY, pdev->sec_types[htt_sec_type_none], is_mcast);
     }
     return FILTER_STATUS_REJECT;
@@ -685,7 +688,7 @@ ol_rx_deliver(
     adf_nbuf_t deliver_list_head = NULL;
     adf_nbuf_t deliver_list_tail = NULL;
     adf_nbuf_t msdu;
-    a_uint8_t filter = 0;
+    a_bool_t filter = A_FALSE;
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
     struct ol_rx_decap_info_t info;
 
@@ -743,7 +746,7 @@ ol_rx_deliver(
 DONE:
 #endif
         htt_rx_msdu_desc_free(htt_pdev, msdu);
-        if (discard || filter) {
+        if (discard || (A_TRUE == filter)) {
 #ifdef HTT_DEBUG_DATA
             HTT_PRINT("-\n");
             if (tid == 0) {
@@ -834,7 +837,7 @@ ol_rx_discard(
 void
 ol_rx_peer_init(struct ol_txrx_pdev_t *pdev, struct ol_txrx_peer_t *peer)
 {
-    int tid;
+    u_int8_t tid;
     for (tid = 0; tid < OL_TXRX_NUM_EXT_TIDS; tid++) {
         ol_rx_reorder_init(&peer->tids_rx_reorder[tid], tid);
 

@@ -17,8 +17,9 @@
 #define _OL_HTT_RX_API__H_
 
 //#include <osapi_linux.h>     /* u_int16_t, etc. */
-#include <osdep.h>       /* u_int16_t, etc. */
-#include <adf_nbuf.h>    /* adf_nbuf_t */
+#include <osdep.h>        /* u_int16_t, etc. */
+#include <adf_nbuf.h>     /* adf_nbuf_t */
+#include <adf_os_types.h> /* a_bool_t */
 
 #include <htt.h>         /* HTT_RX_IND_MPDU_STATUS */
 #include <ol_htt_api.h>  /* htt_pdev_handle */
@@ -79,8 +80,8 @@ void
 htt_rx_ind_flush_seq_num_range(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_ind_msg,
-    int *seq_num_start,
-    int *seq_num_end);
+    unsigned *seq_num_start,
+    unsigned *seq_num_end);
 
 /**
  * @brief Check if a rx indication message has a rx reorder release command.
@@ -133,8 +134,8 @@ void
 htt_rx_ind_release_seq_num_range(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_ind_msg,
-    int *seq_num_start,
-    int *seq_num_end);
+    unsigned *seq_num_start,
+    unsigned *seq_num_end);
 
 /*
  * For now, the host HTT -> host data rx status enum
@@ -200,7 +201,7 @@ htt_rx_ind_mpdu_range_info(
  * @param mpdu_desc - the abstract descriptor for the MPDU in question
  * @return the LSBs of the sequence number for the MPDU
  */
-extern int
+extern a_uint16_t
 (*htt_rx_mpdu_desc_seq_num)(htt_pdev_handle pdev, void *mpdu_desc);
 
 /**
@@ -311,7 +312,7 @@ htt_rx_mpdu_wifi_hdr_retrieve(
  *      -OR-
  *      1 - this is the last MSDU within its MPDU
  */
-extern int (*htt_rx_msdu_desc_completes_mpdu)(
+extern a_bool_t (*htt_rx_msdu_desc_completes_mpdu)(
         htt_pdev_handle pdev, void *msdu_desc);
 
 /**
@@ -328,7 +329,7 @@ extern int (*htt_rx_msdu_desc_completes_mpdu)(
  *      -OR-
  *      1 - this is the first MSDU within its MPDU
  */
-extern int (*htt_rx_msdu_first_msdu_flag)(
+extern a_bool_t (*htt_rx_msdu_first_msdu_flag)(
         htt_pdev_handle pdev, void *msdu_desc);
 
 /**
@@ -344,7 +345,7 @@ extern int (*htt_rx_msdu_first_msdu_flag)(
  * @return 0 - the frame was not encrypted
  *         1 - the frame was encrypted
  */
-extern int 
+extern a_bool_t
 (*htt_rx_mpdu_is_encrypted)(htt_pdev_handle pdev, void *mpdu_desc);
 
 /**
@@ -383,7 +384,7 @@ extern int (*htt_rx_msdu_has_wlan_mcast_flag)(
  *      -OR-
  *      1 - The MSDU was delivered over the WLAN as broadcast or multicast.
  */
-extern int (*htt_rx_msdu_is_wlan_mcast)(
+extern a_bool_t (*htt_rx_msdu_is_wlan_mcast)(
         htt_pdev_handle pdev, void *msdu_desc);
 
 /**
@@ -701,7 +702,7 @@ htt_rx_frag_ind_flush_seq_num_range(
  * @param msdu_desc - the hl rx desc pointer
  *
  */
-int
+u_int16_t
 htt_rx_msdu_rx_desc_size_hl(
         htt_pdev_handle pdev,
         void *msdu_desc);

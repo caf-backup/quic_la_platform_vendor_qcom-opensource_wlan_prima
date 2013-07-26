@@ -181,7 +181,7 @@ htt_vdev_detach(htt_pdev_handle pdev, u_int8_t vdev_id)
 }
 
 void htt_dxe_peer_qos_update(
-    struct htt_dxe_pdev_t *pdev, int peer_id, int qos_capable)
+    struct htt_dxe_pdev_t *pdev, int peer_id, u_int8_t qos_capable)
 {
     struct htt_dxe_peer_t *peer;
 

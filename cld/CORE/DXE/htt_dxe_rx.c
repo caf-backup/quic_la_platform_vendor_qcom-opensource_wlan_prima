@@ -484,8 +484,8 @@ void
 htt_rx_ind_flush_seq_num_range(
     struct htt_pdev_t *pdev,
     adf_nbuf_t rx_ind_msg,
-    int *seq_num_start,
-    int *seq_num_end)
+    unsigned *seq_num_start,
+    unsigned *seq_num_end)
 {
     isoc_rx_opcode reorder_opcode = pdev->rx.cur.rx_bd->reorder_opcode;
 
@@ -519,8 +519,8 @@ void
 htt_rx_ind_release_seq_num_range(
     struct htt_pdev_t *pdev,
     adf_nbuf_t rx_ind_msg,
-    int *seq_num_start,
-    int *seq_num_end)
+    unsigned *seq_num_start,
+    unsigned *seq_num_end)
 {
     if (!pdev->rx.cur.rx_aggr_enabled) {
         /*
@@ -563,13 +563,13 @@ htt_rx_ind_mpdu_range_info(
  * (endianness conversion provided automatically by the HW DMA's
  * byte-swizzling).
  */
-int
+u_int16_t
 (*htt_rx_mpdu_desc_seq_num)(htt_pdev_handle pdev, void *mpdu_desc);
-int
+u_int16_t
 _htt_rx_mpdu_desc_seq_num(htt_pdev_handle pdev, void *mpdu_desc)
 {
     isoc_rx_bd_t *rx_bd = mpdu_desc;
-    return rx_bd->current_pkt_seqno;
+    return (u_int16_t)rx_bd->current_pkt_seqno;
 }
 
 int
@@ -649,37 +649,39 @@ htt_rx_mpdu_desc_tsf32(
     return rx_bd->rx_timestamp;
 }
 
-int
+a_bool_t
 (*htt_rx_msdu_desc_completes_mpdu)(htt_pdev_handle pdev, void *msdu_desc);
-int
+a_bool_t
 _htt_rx_msdu_desc_completes_mpdu(htt_pdev_handle pdev, void *msdu_desc)
 {
     isoc_rx_bd_t *rx_bd = msdu_desc;
 
     if (!rx_bd->amsdu) {
-        return 1;
+        return A_TRUE;
     } else {
-        return rx_bd->amsdu_last;
+        return rx_bd->amsdu_last ? A_TRUE : A_FALSE;
     }
 }
 
-int 
+a_bool_t
 (*htt_rx_mpdu_is_encrypted)(htt_pdev_handle pdev, void *mpdu_desc);
-int
+a_bool_t
 _htt_rx_mpdu_is_encrypted(htt_pdev_handle pdev, void *msdu_desc)
 {
     isoc_rx_bd_t *rx_bd = msdu_desc;
     /* FIXME: Does this flag mean that this RX packet is a encrypted pakcet */
-    return !rx_bd->dpu_no_encrypt;
+    return rx_bd->dpu_no_encrypt ? A_FALSE : A_TRUE;
 }
 
-int
+a_bool_t
 (*htt_rx_msdu_first_msdu_flag)(htt_pdev_handle pdev, void *msdu_desc);
-int
+a_bool_t
 _htt_rx_msdu_first_msdu_flag(htt_pdev_handle pdev, void *msdu_desc)
 {
     isoc_rx_bd_t *rx_bd = msdu_desc;
-    return rx_bd->amsdu_first;
+    return (a_bool_t)(rx_bd->amsdu_first);     // This casts is safe only because
+                                               // amsdu_first is one bit wide
+                                               // and a_bool_t is only 0 or 1
 }
 
 int
@@ -697,13 +699,13 @@ _htt_rx_msdu_has_wlan_mcast_flag(htt_pdev_handle pdev, void *msdu_desc)
     return (!rx_bd->amsdu) || (rx_bd->amsdu_first);
 }
 
-int
+a_bool_t
 (*htt_rx_msdu_is_wlan_mcast)(htt_pdev_handle pdev, void *msdu_desc);
-int
+a_bool_t
 _htt_rx_msdu_is_wlan_mcast(htt_pdev_handle pdev, void *msdu_desc)
 {
     isoc_rx_bd_t *rx_bd = msdu_desc;
-    return rx_bd->not_unicast;
+    return rx_bd->not_unicast ? A_TRUE : A_FALSE;
 }
 
 int
@@ -871,7 +873,7 @@ htt_rx_get_vowext_stats(adf_nbuf_t msdu, struct vow_extstats *vowstats)
     /* FIXME: Need to set vowstats correctly */
 }
 
-int
+u_int16_t
 htt_rx_msdu_rx_desc_size_hl(
         htt_pdev_handle pdev,
         void *msdu_desc)

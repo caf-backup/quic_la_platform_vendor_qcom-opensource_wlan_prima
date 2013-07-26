@@ -58,7 +58,7 @@ ol_tx_desc_ll(
     struct ol_txrx_msdu_info_t *msdu_info)
 {
     struct ol_tx_desc_t *tx_desc;
-    int i, num_frags;
+    u_int32_t i, num_frags;
 
     msdu_info->htt.info.vdev_id = vdev->vdev_id;
     msdu_info->htt.info.frame_type = pdev->htt_pkt_type;
@@ -103,7 +103,7 @@ ol_tx_desc_ll(
     num_frags = adf_nbuf_get_num_frags(netbuf);
     htt_tx_desc_num_frags(pdev->htt_pdev, tx_desc->htt_tx_desc, num_frags-1);
     for (i = 1; i < num_frags; i++) {
-        u_int32_t frag_len;
+        adf_os_size_t frag_len;
         u_int32_t frag_paddr;
 
         frag_len = adf_nbuf_get_frag_len(netbuf, i);

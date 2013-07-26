@@ -59,7 +59,7 @@ ol_rx_reorder_peer_cleanup(
     struct ol_txrx_vdev_t *vdev, struct ol_txrx_peer_t *peer);
 
 void
-ol_rx_reorder_init(struct ol_rx_reorder_t *rx_reorder, int tid);
+ol_rx_reorder_init(struct ol_rx_reorder_t *rx_reorder, u_int8_t tid);
 
 enum htt_rx_status
 ol_rx_reorder_seq_num_check(

@@ -42,7 +42,7 @@ ol_tx_encap(
 
 struct ol_rx_decap_info_t {
     u_int8_t hdr[sizeof(struct ieee80211_qosframe_htc_addr4)];
-    u_int8_t hdr_len;
+    int hdr_len;
     u_int8_t is_subfrm : 1,
              is_first_subfrm :1,
              is_msdu_cmpl_mpdu : 1;

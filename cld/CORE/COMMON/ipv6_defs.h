@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012 - 2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -10,6 +10,7 @@
 #include <osapi.h>   /* A_UINT8 */
 #else
 #include <a_types.h> /* A_UINT8 */
+#include <a_osapi.h> /* A_COMPILE_TIME_ASSERT */
 #endif
 
 /* utilities for converting between network byte order and native endianness */
@@ -73,8 +74,8 @@ static inline A_UINT8 IPV6_VERSION(struct ipv6_hdr_t *ipv6_hdr)
 static inline A_UINT8 IPV6_TRAFFIC_CLASS(struct ipv6_hdr_t *ipv6_hdr)
 {
     return
-        (BE_TO_CPU32(ipv6_hdr->ver_tclass_flowlabel) &
-        IPV6_HDR_TRAFFIC_CLASS_M) >> IPV6_HDR_TRAFFIC_CLASS_S;
+        (A_UINT8)((BE_TO_CPU32(ipv6_hdr->ver_tclass_flowlabel) &
+        IPV6_HDR_TRAFFIC_CLASS_M) >> IPV6_HDR_TRAFFIC_CLASS_S);
 }
 
 static inline A_UINT32 IPV6_FLOW_LABEL(struct ipv6_hdr_t *ipv6_hdr)

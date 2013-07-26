@@ -113,7 +113,7 @@ htt_vdev_detach(htt_pdev_handle htt_pdev, u_int8_t vdev_id);
  * @param qos_capable - boolean spec of whether the peer is QoS capable
  */
 void
-htt_peer_qos_update(htt_pdev_handle htt_pdev, int peer_id, int qos_capable);
+htt_peer_qos_update(htt_pdev_handle htt_pdev, int peer_id, u_int8_t qos_capable);
 #else
 /* no-ops */
 #define htt_vdev_attach(htt_pdev, vdev_id, op_mode)
@@ -212,7 +212,11 @@ void
 htt_t2h_stats_print(u_int8_t *stats_data, int concise);
 
 #ifndef HTT_DEBUG_LEVEL
+#if defined(DEBUG)
 #define HTT_DEBUG_LEVEL 10
+#else
+#define HTT_DEBUG_LEVEL 0
+#endif
 #endif
 
 #if HTT_DEBUG_LEVEL > 5

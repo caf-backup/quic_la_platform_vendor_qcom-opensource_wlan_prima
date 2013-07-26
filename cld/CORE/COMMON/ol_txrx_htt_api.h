@@ -16,6 +16,15 @@
 
 #include <ol_txrx_api.h> /* ol_txrx_pdev_handle */
 
+
+static inline u_int16_t *
+ol_tx_msdu_id_storage(adf_nbuf_t msdu)
+{
+    adf_os_assert(adf_nbuf_headroom(msdu) >= (sizeof(u_int16_t) * 2 - 1));
+    return (u_int16_t *) (((adf_os_size_t) (adf_nbuf_head(msdu) + 1)) & ~0x1);
+}
+
+
 /**
  * @brief Tx MSDU download completion for a LL system
  * @details
@@ -429,8 +438,8 @@ ol_rx_flush_handler(
     ol_txrx_pdev_handle pdev,
     u_int16_t peer_id,
     u_int8_t tid,
-    unsigned seq_num_start,
-    unsigned seq_num_end,
+    u_int16_t seq_num_start,
+    u_int16_t seq_num_end,
     enum htt_rx_flush_action action);
 
 /**

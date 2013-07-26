@@ -302,7 +302,7 @@ ol_cfg_sw_encap_hdr_max_size(ol_pdev_handle pdev)
     return sizeof(struct ieee80211_qosframe_htc_addr4) + LLC_SNAP_HDR_LEN;
 }
 
-static inline int
+static inline u_int8_t
 ol_cfg_tx_encap(ol_pdev_handle pdev)
 {
 #ifdef QCA_WIFI_ISOC

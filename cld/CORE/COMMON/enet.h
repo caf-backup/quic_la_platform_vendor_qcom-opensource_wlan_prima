@@ -14,14 +14,21 @@
 
 
 #define ETHERNET_ADDR_LEN 6 /* bytes */
+#define ETHERNET_TYPE_LEN 2 /* bytes - length of the Ethernet type field */
 
 struct ethernet_hdr_t {
     A_UINT8 dest_addr[ETHERNET_ADDR_LEN];
     A_UINT8 src_addr[ETHERNET_ADDR_LEN];
-    A_UINT8 ethertype[2];
+    A_UINT8 ethertype[ETHERNET_TYPE_LEN];
 };
 
 #define ETHERNET_HDR_LEN (sizeof(struct ethernet_hdr_t))
+
+#define ETHERNET_CRC_LEN  4     /* bytes - length of the Ethernet CRC */
+#define ETHERNET_MAX_LEN  1518  /* bytes */
+
+#define ETHERNET_MTU          (ETHERNET_MAX_LEN - (ETHERNET_HDR_LEN + ETHER_CRC_LEN))
+
 
 struct llc_snap_hdr_t {
     A_UINT8 dsap;
@@ -56,7 +63,7 @@ struct ethernet_vlan_hdr_t {
 #endif
 
 #ifndef ETHERTYPE_AARP
-#define	ETHERTYPE_AARP	0x80f3		/* Appletalk AARP protocol */
+#define	ETHERTYPE_AARP	0x80f3		/* Internal QCA AARP protocol */
 #endif
 
 #ifndef ETHERTYPE_IPX

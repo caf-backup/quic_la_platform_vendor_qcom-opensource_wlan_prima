@@ -80,6 +80,8 @@ OL_RX_REORDER_IDX_START_SELF_SELECT(
 #define OL_RX_REORDER_NO_HOLES(rx_reorder) ((rx_reorder)->num_mpdus == 0)
 #define OL_RX_REORDER_MPDU_CNT_INCR(rx_reorder, incr) \
     ((rx_reorder)->num_mpdus += (incr))
+#define OL_RX_REORDER_MPDU_CNT_DECR(rx_reorder, decr) \
+    ((rx_reorder)->num_mpdus -= (decr))
 
 #else
 
@@ -90,6 +92,7 @@ OL_RX_REORDER_IDX_START_SELF_SELECT(
 #define OL_RX_REORDER_IDX_INIT(seq_num, win_sz, win_sz_mask) 0 /* n/a */
 #define OL_RX_REORDER_NO_HOLES(rx_reorder) 0
 #define OL_RX_REORDER_MPDU_CNT_INCR(rx_reorder, incr) /* n/a */
+#define OL_RX_REORDER_MPDU_CNT_DECR(rx_reorder, decr) /* n/a */
 
 #endif /* QCA_WIFI_ISOC */
 
@@ -119,7 +122,7 @@ OL_RX_REORDER_IDX_START_SELF_SELECT(
 
 /* functions called by txrx components */
 
-void ol_rx_reorder_init(struct ol_rx_reorder_t *rx_reorder, int tid)
+void ol_rx_reorder_init(struct ol_rx_reorder_t *rx_reorder, u_int8_t tid)
 {
     rx_reorder->win_sz = 1;
     rx_reorder->win_sz_mask = 0;
@@ -223,7 +226,7 @@ ol_rx_reorder_release(
     tail_msdu = rx_reorder_array_elem->tail;
     rx_reorder_array_elem->head = rx_reorder_array_elem->tail = NULL;
     OL_RX_REORDER_PTR_CHECK(head_msdu) {
-        OL_RX_REORDER_MPDU_CNT_INCR(&peer->tids_rx_reorder[tid], -1);
+        OL_RX_REORDER_MPDU_CNT_DECR(&peer->tids_rx_reorder[tid], 1);
     }
 
     idx = (idx_start + 1);
@@ -231,7 +234,7 @@ ol_rx_reorder_release(
     while (idx != idx_end) {
         rx_reorder_array_elem = &peer->tids_rx_reorder[tid].array[idx];
         OL_RX_REORDER_PTR_CHECK(rx_reorder_array_elem->head) {
-            OL_RX_REORDER_MPDU_CNT_INCR(&peer->tids_rx_reorder[tid], -1);
+            OL_RX_REORDER_MPDU_CNT_DECR(&peer->tids_rx_reorder[tid], 1);
             OL_RX_REORDER_LIST_APPEND(
                 head_msdu, tail_msdu, rx_reorder_array_elem);
             tail_msdu = rx_reorder_array_elem->tail;
@@ -241,7 +244,7 @@ ol_rx_reorder_release(
         OL_RX_REORDER_IDX_WRAP(idx, win_sz, win_sz_mask);
     }
     OL_RX_REORDER_PTR_CHECK(head_msdu) {
-        unsigned seq_num;
+        u_int16_t seq_num;
         htt_pdev_handle htt_pdev = vdev->pdev->htt_pdev;
 
         /*
@@ -281,7 +284,8 @@ ol_rx_reorder_flush(
     enum htt_rx_flush_action action)
 {
     struct ol_txrx_pdev_t *pdev;
-    unsigned win_sz, win_sz_mask;
+    unsigned win_sz;
+    u_int8_t win_sz_mask;
     struct ol_rx_reorder_array_elem_t *rx_reorder_array_elem;
     adf_nbuf_t head_msdu = NULL;
     adf_nbuf_t tail_msdu = NULL;
@@ -318,7 +322,7 @@ ol_rx_reorder_flush(
         OL_RX_REORDER_IDX_WRAP(idx_start, win_sz, win_sz_mask);
 
         if (rx_reorder_array_elem->head) {
-            OL_RX_REORDER_MPDU_CNT_INCR(&peer->tids_rx_reorder[tid], -1);
+            OL_RX_REORDER_MPDU_CNT_DECR(&peer->tids_rx_reorder[tid], 1);
             if (head_msdu == NULL) {
                 head_msdu = rx_reorder_array_elem->head;
                 tail_msdu = rx_reorder_array_elem->tail;
@@ -335,7 +339,7 @@ ol_rx_reorder_flush(
     ol_rx_defrag_waitlist_remove(peer, tid);
 
     if (head_msdu) {
-        unsigned seq_num;
+        u_int16_t seq_num;
         htt_pdev_handle htt_pdev = vdev->pdev->htt_pdev;
 
         seq_num = htt_rx_mpdu_desc_seq_num(
@@ -444,7 +448,8 @@ ol_rx_addba_handler(
     u_int16_t start_seq_num,
     u_int8_t failed)
 {
-    unsigned round_pwr2_win_sz, array_size;
+    u_int8_t round_pwr2_win_sz;
+    unsigned array_size;
     struct ol_txrx_peer_t *peer;
     struct ol_rx_reorder_t *rx_reorder;
 
@@ -515,8 +520,8 @@ ol_rx_flush_handler(
     ol_txrx_pdev_handle pdev,
     u_int16_t peer_id,
     u_int8_t tid,
-    unsigned idx_start,
-    unsigned idx_end,
+    u_int16_t idx_start,
+    u_int16_t idx_end,
     enum htt_rx_flush_action action)
 {
     struct ol_txrx_vdev_t *vdev = NULL;

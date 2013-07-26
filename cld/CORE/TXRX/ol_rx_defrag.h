@@ -97,7 +97,7 @@ ol_rx_frag_ccmp_demic(
     adf_nbuf_t wbuf, 
     u_int16_t hdrlen);
 
-int
+u_int16_t
 ol_rx_frag_hdrsize(const void *data);
 
 void
@@ -110,7 +110,7 @@ ol_rx_reorder_store_frag(
     ol_txrx_pdev_handle pdev,
     struct ol_txrx_peer_t *peer,
     unsigned tid,
-    unsigned seq_num,
+    u_int16_t seq_num,
     adf_nbuf_t frag);
 
 adf_nbuf_t 
@@ -123,7 +123,7 @@ int
 ol_rx_defrag_mic(
     const u_int8_t *key,
     adf_nbuf_t wbuf, 
-    u_int8_t off, 
+    u_int16_t off,
     u_int16_t data_len,
     u_int8_t mic[]);
 
@@ -138,9 +138,9 @@ static inline void
 xor_block(
     u_int8_t *b, 
     const u_int8_t *a, 
-    size_t len)
+    adf_os_size_t len)
 {
-    int i;
+    adf_os_size_t i;
 
     for (i = 0; i < len; i++) {
         b[i] ^= a[i];
@@ -190,10 +190,10 @@ put_le32(
     u_int8_t *p, 
     u_int32_t v)
 {
-    p[0] = v;
-    p[1] = v >> 8;
-    p[2] = v >> 16;
-    p[3] = v >> 24;
+    p[0] = (v) & 0xff;
+    p[1] = (v >> 8) & 0xff;
+    p[2] = (v >> 16) & 0xff;
+    p[3] = (v >> 24) & 0xff;
 }
 
 static inline u_int8_t

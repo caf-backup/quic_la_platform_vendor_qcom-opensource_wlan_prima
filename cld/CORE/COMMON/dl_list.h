@@ -47,6 +47,19 @@ typedef struct _DL_LIST {
 #define ITERATE_OVER_LIST(pStart, pTemp) \
     for((pTemp) =(pStart)->pNext; pTemp != (pStart); (pTemp) = (pTemp)->pNext)
 
+static __inline bool DL_ListIsEntryInList(const DL_LIST * pList, const DL_LIST * pEntry) {
+    const DL_LIST * pTmp;
+
+    if (pList == pEntry) return true;
+
+    ITERATE_OVER_LIST(pList, pTmp) {
+        if (pTmp == pEntry) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 /* safe iterate macro that allows the item to be removed from the list
  * the iteration continues to the next item in the list
@@ -58,6 +71,9 @@ typedef struct _DL_LIST {
     while (pTemp != (pStart)) {                         \
         (pItem) = A_CONTAINING_STRUCT(pTemp,st,offset);   \
          pTemp = pTemp->pNext;                          \
+
+#define ITERATE_IS_VALID(pStart)    DL_ListIsEntryInList(pStart, pTemp)
+#define ITERATE_RESET(pStart)       pTemp=(pStart)->pNext
 
 #define ITERATE_END }}
 

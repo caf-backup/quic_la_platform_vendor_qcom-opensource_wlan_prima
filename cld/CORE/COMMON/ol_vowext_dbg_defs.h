@@ -16,9 +16,6 @@
 #define HAL_RX_40  0x08 /* 40 Mhz */
 #define HAL_RX_GI  0x04    /* full gi */
 
-#define AR600P_ASSEMBLE_HW_RATECODE(_rate, _nss, _pream)     \
-    (((_pream) << 6) | ((_nss) << 4) | (_rate))
-
 struct vow_extstats {
     u_int8_t rx_rssi_ctl0; /* control channel chain0 rssi */
     u_int8_t rx_rssi_ctl1; /* control channel chain1 rssi */

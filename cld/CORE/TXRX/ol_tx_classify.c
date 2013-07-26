@@ -18,7 +18,7 @@
 #include <ol_tx_classify.h>
 #include <ol_tx_queue.h>
 #include <ipv4.h>
-#include <ipv6.h>
+#include <ipv6_defs.h>
 #include <ip_prot.h>
 #include <enet.h>             /* ETHERTYPE_VLAN, etc. */
 #include <ieee80211_common.h>        /* ieee80211_frame */
@@ -109,21 +109,7 @@ static inline A_UINT8
 ol_tx_tid_by_ipv6(
     A_UINT8 *pkt)
 {
-#if 1
-    A_UINT8 tid;
-    u_int32_t ver_pri_flowlabel;
-    u_int32_t pri;
-
-    ver_pri_flowlabel =
-        (pkt[0] << 24) | (pkt[1] << 16) | (pkt[2] << 8) | pkt[3];
-    pri = (ver_pri_flowlabel & 0x0FF00000) >> 20;
-    tid = (pri >> 5) & 0x7;
-
-    return tid;
-#else
-    /* use this once the CL with the IPV6_TRAFFIC_CLASS has been merged */
     return (IPV6_TRAFFIC_CLASS((struct ipv6_hdr_t *) pkt) >> 5) & 0x7;
-#endif
 }
 
 static inline A_UINT8 
@@ -131,7 +117,7 @@ ol_tx_tid_by_ether_type(
     A_UINT8 *datap,
     struct ol_txrx_msdu_info_t *tx_msdu_info)
 {
-    int tid;
+    A_UINT8 tid;
     A_UINT8 *l3_data_ptr;
     A_UINT16 typeorlength;
     A_UINT8 * ptr;
@@ -151,7 +137,7 @@ ol_tx_tid_by_ether_type(
         typeorlength = (llc_hdr->ethertype[0] << 8) | llc_hdr->ethertype[1];
         l3_data_ptr += sizeof(struct llc_snap_hdr_t);
     }
-    tx_msdu_info->htt.info.l3_hdr_offset = l3_data_ptr - datap;
+    tx_msdu_info->htt.info.l3_hdr_offset = (u_int8_t)(l3_data_ptr - datap);
     tx_msdu_info->htt.info.ethertype = typeorlength;
     
     /* IP packet, do packet inspection for TID */
@@ -176,7 +162,7 @@ ol_tx_tid_by_raw_type(
     A_UINT8 *datap,
     struct ol_txrx_msdu_info_t *tx_msdu_info)
 {
-    int tid = HTT_TX_EXT_TID_NON_QOS_MCAST_BCAST;
+    A_UINT8 tid = HTT_TX_EXT_TID_NON_QOS_MCAST_BCAST;
     
     /* adjust hdr_ptr to RA */
     struct ieee80211_frame *wh = (struct ieee80211_frame *)datap;
@@ -219,7 +205,7 @@ ol_tx_tid(
     struct ol_txrx_msdu_info_t *tx_msdu_info)
 {
     A_UINT8 *datap = adf_nbuf_data(tx_nbuf);
-    int tid;
+    A_UINT8 tid;
 
     if (pdev->frame_format == wlan_frm_fmt_raw) {
         tx_msdu_info->htt.info.l2_hdr_type = htt_pkt_type_raw;
@@ -289,7 +275,7 @@ ol_tx_classify(
     struct ol_txrx_peer_t *peer = NULL;
     struct ol_tx_frms_queue_t *txq = NULL;
     u_int8_t *dest_addr;
-    int tid;
+    u_int8_t tid;
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
 

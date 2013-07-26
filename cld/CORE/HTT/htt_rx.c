@@ -18,7 +18,7 @@
  */
 
 #include <adf_os_mem.h>   /* adf_os_mem_alloc,free, etc. */
-#include <adf_os_types.h> /* adf_os_print */
+#include <adf_os_types.h> /* adf_os_print, a_bool_t */
 #include <adf_nbuf.h>     /* adf_nbuf_t, etc. */
 #include <adf_os_timer.h> /* adf_os_timer_free */
 
@@ -76,27 +76,33 @@ CEIL_PWR2(int value)
     return (1 << log2);
 }
 
-static inline int
+/*
+ * This function is used both below within this file (which the compiler
+ * will hopefully inline), and out-line from other files via the
+ * htt_rx_msdu_first_msdu_flag function pointer.
+ */
+static inline a_bool_t
 htt_rx_msdu_first_msdu_flag_hl(htt_pdev_handle pdev, void *msdu_desc)
 {
     return ((u_int8_t*)msdu_desc - sizeof(struct hl_htt_rx_ind_base))
-        [HTT_ENDIAN_BYTE_IDX_SWAP(HTT_RX_IND_HL_FLAG_OFFSET)] & HTT_RX_IND_HL_FLAG_FIRST_MSDU ? 1:0;
+        [HTT_ENDIAN_BYTE_IDX_SWAP(HTT_RX_IND_HL_FLAG_OFFSET)] &
+        HTT_RX_IND_HL_FLAG_FIRST_MSDU ? A_TRUE : A_FALSE;
 }
 
-static inline int
+static a_bool_t
 htt_rx_msdu_first_msdu_flag_ll(htt_pdev_handle pdev, void *msdu_desc)
 {
     struct htt_host_rx_desc_base *rx_desc = 
         (struct htt_host_rx_desc_base *) msdu_desc;
-    return
-        ((*(((u_int32_t *) &rx_desc->msdu_end) + 4)) &
+    return (a_bool_t)
+        (((*(((u_int32_t *) &rx_desc->msdu_end) + 4)) &
         RX_MSDU_END_4_FIRST_MSDU_MASK) >>
-        RX_MSDU_END_4_FIRST_MSDU_LSB;    
+        RX_MSDU_END_4_FIRST_MSDU_LSB);
 }
 
-int 
+u_int16_t
 htt_rx_msdu_rx_desc_size_hl(
-	htt_pdev_handle pdev,
+    htt_pdev_handle pdev,
     void *msdu_desc
     )
 {
@@ -286,27 +292,27 @@ htt_rx_detach(struct htt_pdev_t *pdev)
  * byte-swizzling).
  */
 /* FIX THIS: APPLIES TO LL ONLY */
-int
+u_int16_t
 htt_rx_mpdu_desc_seq_num_ll(htt_pdev_handle pdev, void *mpdu_desc)
 {
     struct htt_host_rx_desc_base *rx_desc = 
         (struct htt_host_rx_desc_base *) mpdu_desc;
 
     return
-        ((*((u_int32_t *) &rx_desc->mpdu_start)) &
+        (u_int16_t)(((*((u_int32_t *) &rx_desc->mpdu_start)) &
         RX_MPDU_START_0_SEQ_NUM_MASK) >>
-        RX_MPDU_START_0_SEQ_NUM_LSB;
+        RX_MPDU_START_0_SEQ_NUM_LSB);
 }
 
-int
+u_int16_t
 htt_rx_mpdu_desc_seq_num_hl(htt_pdev_handle pdev, void *mpdu_desc)
 {
     if (pdev->rx_desc_size_hl) {
         return pdev->cur_seq_num_hl =
-            HTT_WORD_GET(*(A_UINT32*)mpdu_desc,
-                    HTT_HL_RX_DESC_MPDU_SEQ_NUM);
+            (u_int16_t)(HTT_WORD_GET(*(A_UINT32*)mpdu_desc,
+                    HTT_HL_RX_DESC_MPDU_SEQ_NUM));
     } else {
-        return pdev->cur_seq_num_hl;
+        return (u_int16_t)(pdev->cur_seq_num_hl);
     }
 }
 
@@ -369,7 +375,7 @@ htt_rx_mpdu_desc_pn_hl(
     union htt_rx_pn_t *pn,
     int pn_len_bits)
 {
-    if (htt_rx_msdu_first_msdu_flag_hl(pdev, mpdu_desc)) {
+    if (htt_rx_msdu_first_msdu_flag_hl(pdev, mpdu_desc) == A_TRUE) {
         /* Fix Me: only for little endian */
         struct hl_htt_rx_desc_base *rx_desc =
             (struct hl_htt_rx_desc_base *) mpdu_desc;
@@ -425,25 +431,25 @@ htt_rx_mpdu_wifi_hdr_retrieve(htt_pdev_handle pdev, void *mpdu_desc)
 }
 
 /* FIX THIS: APPLIES TO LL ONLY */
-int
+a_bool_t
 htt_rx_msdu_desc_completes_mpdu_ll(htt_pdev_handle pdev, void *msdu_desc)
 {
     struct htt_host_rx_desc_base *rx_desc = 
         (struct htt_host_rx_desc_base *) msdu_desc;
-    return
-        ((*(((u_int32_t *) &rx_desc->msdu_end) + 4)) &
+    return (a_bool_t)
+        (((*(((u_int32_t *) &rx_desc->msdu_end) + 4)) &
         RX_MSDU_END_4_LAST_MSDU_MASK) >>
-        RX_MSDU_END_4_LAST_MSDU_LSB;
+        RX_MSDU_END_4_LAST_MSDU_LSB);
 }
 
-int
+a_bool_t
 htt_rx_msdu_desc_completes_mpdu_hl(htt_pdev_handle pdev, void *msdu_desc)
 {
     return (
             ((u_int8_t*)(msdu_desc) - sizeof(struct hl_htt_rx_ind_base))
             [HTT_ENDIAN_BYTE_IDX_SWAP(HTT_RX_IND_HL_FLAG_OFFSET)]
             & HTT_RX_IND_HL_FLAG_LAST_MSDU)
-        ? 1:0;
+        ? A_TRUE : A_FALSE;
 }
 
 /* FIX THIS: APPLIES TO LL ONLY */
@@ -463,11 +469,11 @@ int
 htt_rx_msdu_has_wlan_mcast_flag_hl(htt_pdev_handle pdev, void *msdu_desc)
 {
     /* currently, only first msdu has hl rx_desc */
-    return htt_rx_msdu_first_msdu_flag_hl(pdev, msdu_desc);
+    return htt_rx_msdu_first_msdu_flag_hl(pdev, msdu_desc) == A_TRUE;
 }
 
 /* FIX THIS: APPLIES TO LL ONLY */
-int
+a_bool_t
 htt_rx_msdu_is_wlan_mcast_ll(htt_pdev_handle pdev, void *msdu_desc)
 {
     struct htt_host_rx_desc_base *rx_desc = 
@@ -478,7 +484,7 @@ htt_rx_msdu_is_wlan_mcast_ll(htt_pdev_handle pdev, void *msdu_desc)
         RX_ATTENTION_0_MCAST_BCAST_LSB;
 }
 
-int
+a_bool_t
 htt_rx_msdu_is_wlan_mcast_hl(htt_pdev_handle pdev, void *msdu_desc)
 {
     struct hl_htt_rx_desc_base *rx_desc = 
@@ -1343,7 +1349,7 @@ void *(*htt_rx_mpdu_desc_list_next)(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_ind_msg);
 
-int (*htt_rx_mpdu_desc_seq_num)(
+u_int16_t (*htt_rx_mpdu_desc_seq_num)(
     htt_pdev_handle pdev, void *mpdu_desc);
 
 void (*htt_rx_mpdu_desc_pn)(
@@ -1352,16 +1358,16 @@ void (*htt_rx_mpdu_desc_pn)(
     union htt_rx_pn_t *pn,
     int pn_len_bits);
 
-int (*htt_rx_msdu_desc_completes_mpdu)(
+a_bool_t (*htt_rx_msdu_desc_completes_mpdu)(
     htt_pdev_handle pdev, void *msdu_desc);
 
-int (*htt_rx_msdu_first_msdu_flag)(
+a_bool_t (*htt_rx_msdu_first_msdu_flag)(
     htt_pdev_handle pdev, void *msdu_desc);
 
 int (*htt_rx_msdu_has_wlan_mcast_flag)(
     htt_pdev_handle pdev, void *msdu_desc);
 
-int (*htt_rx_msdu_is_wlan_mcast)(
+a_bool_t (*htt_rx_msdu_is_wlan_mcast)(
     htt_pdev_handle pdev, void *msdu_desc);
 
 int (*htt_rx_msdu_is_frag)(
@@ -1370,7 +1376,7 @@ int (*htt_rx_msdu_is_frag)(
 void *(*htt_rx_msdu_desc_retrieve)(
     htt_pdev_handle pdev, adf_nbuf_t msdu);
 
-int (*htt_rx_mpdu_is_encrypted)(
+a_bool_t (*htt_rx_mpdu_is_encrypted)(
     htt_pdev_handle pdev,
     void *mpdu_desc);
 
@@ -1419,18 +1425,18 @@ htt_rx_msdu_desc_retrieve_hl(htt_pdev_handle pdev, adf_nbuf_t msdu)
     return adf_nbuf_data(msdu);
 }
 
-int htt_rx_mpdu_is_encrypted_ll(htt_pdev_handle pdev, void *mpdu_desc)
+a_bool_t htt_rx_mpdu_is_encrypted_ll(htt_pdev_handle pdev, void *mpdu_desc)
 {
-	struct htt_host_rx_desc_base *rx_desc = (struct htt_host_rx_desc_base *) mpdu_desc;
+    struct htt_host_rx_desc_base *rx_desc = (struct htt_host_rx_desc_base *) mpdu_desc;
 
-	return  ((*((u_int32_t *) &rx_desc->mpdu_start)) &
+    return  (((*((u_int32_t *) &rx_desc->mpdu_start)) &
         RX_MPDU_START_0_ENCRYPTED_MASK) >>
-        RX_MPDU_START_0_ENCRYPTED_LSB;
+        RX_MPDU_START_0_ENCRYPTED_LSB) ? A_TRUE : A_FALSE;
 }
 
-int htt_rx_mpdu_is_encrypted_hl(htt_pdev_handle pdev, void *mpdu_desc)
+a_bool_t htt_rx_mpdu_is_encrypted_hl(htt_pdev_handle pdev, void *mpdu_desc)
 {
-    if (htt_rx_msdu_first_msdu_flag_hl(pdev, mpdu_desc)) {
+    if (htt_rx_msdu_first_msdu_flag_hl(pdev, mpdu_desc) == A_TRUE) {
         /* Fix Me: only for little endian */
         struct hl_htt_rx_desc_base *rx_desc =
             (struct hl_htt_rx_desc_base *) mpdu_desc;

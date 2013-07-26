@@ -537,9 +537,9 @@ struct ol_txrx_pdev_t {
 	struct {
 		adf_os_atomic_t rsrc_cnt;
 		/* threshold_lo - when to start tx desc margin replenishment */
-		int rsrc_threshold_lo;
+	        u_int32_t rsrc_threshold_lo;
 		/* threshold_hi - where to stop during tx desc margin replenishment */
-		int rsrc_threshold_hi;
+	        u_int32_t rsrc_threshold_hi;
 	} tx_queue;
 
 #if defined(ENABLE_TX_QUEUE_LOG) && defined(CONFIG_HL_SUPPORT)
