@@ -6463,6 +6463,8 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
             {
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
             }
+            else
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
 #endif /* WLAN_FEATURE_11AC */
             if (rate_flags & (eHAL_TX_RATE_HT20 | eHAL_TX_RATE_HT40))
             {
@@ -6474,6 +6476,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
             }
             if (rate_flags & eHAL_TX_RATE_SGI)
             {
+                sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
             }
 
@@ -6534,6 +6537,9 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     }
     sinfo->filled |= STATION_INFO_TX_BITRATE;
 
+    sinfo->tx_bytes = pAdapter->stats.tx_bytes;
+    sinfo->filled |= STATION_INFO_TX_BYTES;
+
     sinfo->tx_packets =
        pAdapter->hdd_stats.summary_stat.tx_frm_cnt[0] +
        pAdapter->hdd_stats.summary_stat.tx_frm_cnt[1] +
@@ -6556,6 +6562,12 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
        STATION_INFO_TX_PACKETS |
        STATION_INFO_TX_RETRIES |
        STATION_INFO_TX_FAILED;
+
+    sinfo->rx_bytes = pAdapter->stats.rx_bytes;
+    sinfo->filled |= STATION_INFO_RX_BYTES;
+
+    sinfo->rx_packets = pAdapter->stats.rx_packets;
+    sinfo->filled |= STATION_INFO_RX_PACKETS;
 
        EXIT();
        return 0;
