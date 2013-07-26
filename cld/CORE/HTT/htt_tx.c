@@ -356,7 +356,7 @@ htt_tx_sched(htt_pdev_handle pdev)
         not_accepted = HTCSendDataPkt(
             pdev->htc_pdev, msdu, pdev->htc_endpoint, download_len);
         if (not_accepted) {
-            HTT_TX_NBUF_QUEUE_ADD(pdev, msdu);
+            HTT_TX_NBUF_QUEUE_INSERT_HEAD(pdev, msdu);
             return;
         }
         HTT_TX_NBUF_QUEUE_REMOVE(pdev, msdu);
