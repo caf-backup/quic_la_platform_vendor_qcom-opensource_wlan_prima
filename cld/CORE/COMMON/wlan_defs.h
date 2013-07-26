@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -94,8 +94,8 @@ enum {
     REGDMN_MODE_11B              = 0x00004,      /* 11b channels */
     REGDMN_MODE_PUREG            = 0x00008,      /* 11g channels (OFDM only) */
     REGDMN_MODE_11G              = 0x00008,      /* XXX historical */
-    REGDMN_MODE_108G             = 0x00020,      /* 11a+Turbo channels */
-    REGDMN_MODE_108A             = 0x00040,      /* 11g+Turbo channels */
+    REGDMN_MODE_108G             = 0x00020,      /* 11g+Turbo channels */
+    REGDMN_MODE_108A             = 0x00040,      /* 11a+Turbo channels */
     REGDMN_MODE_XR               = 0x00100,      /* XR channels */
     REGDMN_MODE_11A_HALF_RATE    = 0x00200,      /* 11A half rate channels */
     REGDMN_MODE_11A_QUARTER_RATE = 0x00400,      /* 11A quarter rate channels */

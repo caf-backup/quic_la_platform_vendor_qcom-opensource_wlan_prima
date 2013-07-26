@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -136,6 +136,9 @@ struct peer_ratectrl_params_t {
     u_int8_t is_auth_wpa;
     u_int8_t is_auth_wpa2;
     u_int8_t is_auth_8021x;
+#ifdef ATH_SUPPORT_WAPI
+    u_int8_t is_auth_wai;
+#endif
     u_int32_t ni_flags;
     u_int32_t ni_chwidth;
     u_int16_t ni_htcap;
@@ -154,6 +157,8 @@ struct peer_ratectrl_params_t {
 typedef union  {
     struct peer_ratectrl_params_t * ratectrl;
     u_int8_t  qos_capable;
+    u_int8_t  uapsd_mask;
+    enum ol_sec_type   sec_type;
 }ol_txrx_peer_update_param_t;
 
 /**
@@ -165,6 +170,8 @@ typedef union  {
 typedef enum {
     ol_txrx_peer_update_rate_ctrl = 0x1,
     ol_txrx_peer_update_qos_capable,
+    ol_txrx_peer_update_uapsdMask,
+    ol_txrx_peer_update_peer_security,
 } ol_txrx_peer_update_select_t;
 
 /**
@@ -199,7 +206,7 @@ ol_txrx_peer_update(ol_txrx_vdev_handle data_vdev, u_int8_t *peer_mac,
  *
  * @param data_peer - which peer is being paused
  */
-#if defined(CONFIG_HL_SUPPORT)
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_WIFI_ISOC)
 void
 ol_txrx_peer_pause(ol_txrx_peer_handle data_peer);
 #else
@@ -519,6 +526,19 @@ ol_txrx_get_tx_pending(
     ol_txrx_pdev_handle pdev);
 
 /**
+ * @brief Discard all tx frames that are pending in txrx.
+ * @details
+ *  Mainly used in clean up path to make sure all pending tx packets
+ *  held by txrx are returned back to OS shim immediately.
+ *
+ * @param pdev - the data physical device object
+ * @return - void
+ */
+void
+ol_txrx_discard_tx_pending(
+    ol_txrx_pdev_handle pdev);
+
+/**
  * @brief set the safemode of the device
  * @details
  *  This flag is used to bypass the encrypt and decrypt processes when send and 
@@ -568,7 +588,7 @@ ol_txrx_set_drop_unenc(
     u_int32_t val);
 
 enum ol_txrx_peer_state {
-    ol_txrx_peer_state_open, /* no authentication required */
+    ol_txrx_peer_state_disc, /* initial state */
     ol_txrx_peer_state_conn, /* authentication in progress */
     ol_txrx_peer_state_auth, /* authentication completed successfully */
 };
@@ -604,11 +624,16 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_addr,
  *
  * @param peer - which peer the ADDBA-negotiation was with
  * @param tid - which traffic type the ADDBA-negotiation was for
+ * @param status - whether the negotiation completed or was aborted:
+ *            success: the negotiation completed
+ *            reject:  the negotiation completed but was rejected
+ *            busy:    the negotiation was aborted - try again later
  */
 void
-ol_tx_addba_conf(ol_txrx_peer_handle data_peer, int tid);
+ol_tx_addba_conf(
+    ol_txrx_peer_handle data_peer, int tid, enum ol_addba_status status);
 #else
-#define ol_tx_addba_conf(data_peer, tid) /* no-op */
+#define ol_tx_addba_conf(data_peer, tid, status) /* no-op */
 #endif
 
 /**

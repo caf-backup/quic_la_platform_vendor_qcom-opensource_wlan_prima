@@ -107,6 +107,8 @@ struct ol_softc {
     
     u_int32_t target_type;  /* A_TARGET_TYPE_* */
     u_int32_t target_version;
+    u_int8_t  crm_version_string[64];  /* store pHalStartRsp->startRspParams.wcnssCrmVersionString */
+    u_int8_t  wlan_version_string[64]; /* store pHalStartRsp->startRspParams.wcnssWlanVersionString */
     ol_target_status  target_status; /* target status */ 
     bool             is_sim;   /* is this a simulator */
     u_int8_t *cal_in_flash; /* calibration data is stored in flash */             
@@ -140,6 +142,8 @@ struct ol_softc {
 
     bool                   IdlePowerSave;
     int                    ProtocolPowerSave;
+    A_BOOL                 fEnableBeaconEarlyTermination;
+    u_int8_t               bcnEarlyTermWakeInterval;
 
     /* ol data path handle */
     ol_txrx_pdev_handle     pdev_txrx_handle;
@@ -228,6 +232,23 @@ struct ol_ath_node_net80211 {
 };
 
 #define OL_ATH_NODE_NET80211(_ni)      ((struct ol_ath_node_net80211 *)(_ni))
+
+#define UAPSD_SRV_INTERVAL_DEFAULT_BK_BE_VI     300   /* Default U-APSD Service Interval in msec for BK, BE and VI */
+#define UAPSD_SRV_INTERVAL_DEFAULT_VO           20    /* Default U-APSD Service Interval in msec for VO */
+#define UAPSD_SUS_INTERVAL_DEFAULT              2000  /* Default U-APSD Suspend Interval in msec for BK, BE and VI */
+#define UAPSD_DELAY_INTERVAL_DEFAULT            3000  /* Default U-APSD Delay Interval in msec for BK, BE and VI */
+#define UAPSD_USER_PRIO_BE                      0
+#define UAPSD_USER_PRIO_BK                      2
+#define UAPSD_USER_PRIO_VI                      5
+#define UAPSD_USER_PRIO_VO                      7
+
+#define SIR_MAC_DS_PARAM_SET_EID                3
+#define SIR_MAC_EDCA_PARAM_SET_EID              12
+#define SIR_MAC_CHNL_SWITCH_ANN_EID             37
+#define SIR_MAC_QUIET_EID                       40
+#define SIR_MAC_ERP_INFO_EID                    42
+#define SIR_MAC_QOS_CAPABILITY_EID              46
+#define SIR_MAC_HT_INFO_EID                     61
 
  void ol_target_failure(void *instance, A_STATUS status);
 

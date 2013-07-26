@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -331,6 +331,17 @@ ol_cfg_host_addba(ol_pdev_handle pdev)
      */
     return 0;
 #endif
+}
+
+/**
+ * @brief If the host SW's ADDBA negotiation fails, should it be retried?
+ *
+ * @param pdev - handle to the physical device
+ */
+static inline int
+ol_cfg_addba_retry(ol_pdev_handle pdev)
+{
+    return 0; /* disabled for now */
 }
 
 

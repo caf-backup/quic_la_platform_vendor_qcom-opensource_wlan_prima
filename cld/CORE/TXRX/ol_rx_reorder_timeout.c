@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012 - 2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -111,10 +111,10 @@ ol_rx_reorder_timeout(void *arg)
 {
     struct ol_txrx_pdev_t *pdev;
     struct ol_tx_reorder_cat_timeout_t *rx_reorder_timeout_ac;
-    rx_reorder_timeout_ac = (struct ol_tx_reorder_cat_timeout_t *) arg;
     struct ol_rx_reorder_timeout_list_elem_t *list_elem, *tmp;
     u_int32_t time_now_ms;
 
+    rx_reorder_timeout_ac = (struct ol_tx_reorder_cat_timeout_t *) arg;
     time_now_ms = adf_os_ticks_to_msecs(adf_os_ticks());
 
     pdev = rx_reorder_timeout_ac->pdev;

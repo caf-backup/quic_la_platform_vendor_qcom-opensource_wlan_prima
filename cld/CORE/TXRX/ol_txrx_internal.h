@@ -100,6 +100,7 @@ extern unsigned g_txrx_print_level;
 #else
 #define TX_SCHED_DEBUG_PRINT(fmt, ...)
 #endif
+#define TX_SCHED_DEBUG_PRINT_ALWAYS(fmt, ...) adf_os_print(fmt, ## __VA_ARGS__)
 
 #define OL_TXRX_LIST_APPEND(head, tail, elem) \
 do {                                            \

@@ -12,6 +12,7 @@
 
 #include <adf_nbuf.h>      /* adf_nbuf_t */
 #include <ol_txrx_types.h> /* ol_txrx_vdev_t, etc. */
+#include <adf_os_types.h>  /* a_bool_t */
 
 #if defined(CONFIG_HL_SUPPORT)
 
@@ -79,11 +80,31 @@ ol_tx_queue_free(
     struct ol_tx_frms_queue_t *txq,
     int tid);
 
+/**
+ * @brief - discard pending tx frames from the tx queue
+ * @details
+ *  This function is called if there are too many queues in tx scheduler.
+ *  This function is called if we wants to flush all pending tx
+ *  queues in tx scheduler.
+ *
+ * @param pdev - the physical device object, which stores the txqs
+ * @param flush_all - flush all pending tx queues if set to true
+ * @param locked - tx_queue_spinlock held by caller if set to true
+ * @
+ */
+
+void
+ol_tx_queue_discard(
+    struct ol_txrx_pdev_t *pdev,
+    a_bool_t flush_all,
+    a_bool_t locked);
+
 #else
 
 #define ol_tx_enqueue(pdev, txq, tx_desc, tx_msdu_info) /* no-op */
 #define ol_tx_dequeue(pdev, ext_tid, txq, head, num_frames, credit, bytes) 0
 #define ol_tx_queue_free(pdev, txq, tid) /* no-op */
+#define ol_tx_queue_discard(pdev, flush, locked) /* no-op */
 
 #endif /* defined(CONFIG_HL_SUPPORT) */
 
@@ -116,6 +137,15 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev);
 #else
 #define ol_tx_queues_display(pdev) /* no-op */
 #endif
+
+#ifdef QCA_WIFI_ISOC
+void
+ol_tx_queue_decs_reinit(
+    ol_txrx_peer_handle peer,
+    u_int16_t peer_id);
+#else
+#define ol_tx_queue_decs_reinit(peer, peer_id) /* no-op */
+#endif /* CONFIG_HL_SUPPORT */
 
 #endif /* _OL_TX_QUEUE__H_ */
 

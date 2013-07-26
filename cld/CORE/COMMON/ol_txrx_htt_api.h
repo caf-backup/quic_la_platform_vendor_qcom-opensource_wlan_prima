@@ -134,6 +134,16 @@ ol_tx_completion_handler(
     void *tx_msdu_id_iterator);
 
 /**
+ * @brief Init the total amount of target credit.
+ * @details
+ *
+ * @param pdev - the data physical device that sent the tx frames
+ * @param credit_delta - how much to increment the target's tx credit by
+ */
+void
+ol_tx_target_credit_init(struct ol_txrx_pdev_t *pdev, int credit_delta);
+
+/**
  * @brief Update the amount of target credit.
  * @details
  *  When the target finishes with an old transmit frame, it can use the
@@ -509,5 +519,18 @@ ol_tx_inspect_handler(
     ol_txrx_pdev_handle pdev,
     int num_msdus,
     void *tx_desc_id_iterator);
+
+/**
+ * @brief Get the UAPSD mask.
+ * @details
+ *  This function will return the UAPSD TID mask.
+ *
+ * @param txrx_pdev - pointer to the txrx pdev object
+ * @param peer_id - PeerID.
+ * @return uapsd mask value
+ */
+u_int8_t
+ol_txrx_peer_uapsdmask_get(struct ol_txrx_pdev_t * txrx_pdev,
+    u_int16_t peer_id);
 
 #endif /* _OL_TXRX_HTT_API__H_ */

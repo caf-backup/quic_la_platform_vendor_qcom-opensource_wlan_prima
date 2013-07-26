@@ -15,6 +15,7 @@
 #include <ol_tx_send.h>       /* ol_tx_send */
 #include <ol_tx_sched.h>      /* OL_TX_SCHED, etc. */
 #include <ol_tx_queue.h>      
+#include <adf_os_types.h>     /* a_bool_t */
 
 
 #if defined(CONFIG_HL_SUPPORT)
@@ -214,7 +215,8 @@ ol_tx_sched_txq_enqueue_rr(
     struct ol_tx_active_queues_in_tid_t *txq_queue;
 
     txq_queue = &scheduler->tx_active_queues_in_tid_array[tid];
-    if (txq->flag != ol_tx_queue_active) {
+    if (txq->flag != ol_tx_queue_active)
+    {
         TAILQ_INSERT_TAIL(&txq_queue->head, txq, list_elem);
     }
     txq_queue->frms += frms;
@@ -439,13 +441,47 @@ struct ol_tx_sched_wrr_adv_category_info_t {
  * For high-priority, low-volume traffic flows (VO and mgmt), use no
  * credit threshold, to minimize download latency.
  */
+/*
+* VO:
+*   - high priority (no skip)
+*   - download a.s.a.p. (don't wait for enough credit to download a batch)
+*   - allow a large number of frames to be downloaded at once
+*     (In real systems this is unneeded - voice traffic is such
+*     low bandwidth that no more than 1 frame per user will be
+*     present at a time.  However, this setting allows for large
+*     volumes of fake voice traffic during testing.)
+*   - use all available credit
+*   - don't discard, if possible
+* VI:
+*   - high priority (no skip)
+*   - wait for enough credit to download a moderately large batch
+*   - allow a moderately large batch to be downloaded at once
+*   - don't use all credit - leave enough for a single frame
+*     (which can be used by voice)
+*   - try not to discard, but if necessary discard the VI frames
+*     before VO frames
+* BK:
+*   - low priority (skip twice between actual servicing)
+*   - wait for enough credit to download a small batch
+*   - allow a small batch to be downloaded at once
+*   - don't use all credit - leave enough for a single frame
+*     (which can be used by voice)
+*   - discard these frames before VI or VO
+* BE:
+*   - moderate priority (skip once between actual servicing)
+*   - wait for enough credit to download a moderate batch
+*   - allow a moderate batch to be downloaded at once
+*   - don't use all credit - leave enough for a single frame
+*     (which can be used by voice)
+*   - discard these frames before VI or VO
+*/
 //                                            WRR           send
 //                                           skip  credit  limit credit disc
 //                                            wts  thresh (frms) reserv  wts
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VO,           1,      1,     4,     0,  1);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VI,           1, (5*64),    64,     5,  4);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BK,           3, (5*64),    64,     5,  8);
-OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BE,           2, (5*64),    64,     5,  8);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VO,           1,      1,    32,     0,  1);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(VI,           1, (5*32),    24,     5,  4);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BK,           3, (5*64),    10,     5,  8);
+OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(BE,           2, (5*64),    16,     5,  8);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(NON_QOS_DATA, 3, (5*64),     4,     5,  8);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(UCAST_MGMT,   1,      1,     4,     0,  1);
 OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_DATA,   2, (5*64),     4,     5,  4);
@@ -591,7 +627,7 @@ ol_tx_sched_select_batch_wrr_adv(
         /* found the first active category whose WRR turn is present */
         break;
     }
-    if (index == OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES) {
+    if (index >= OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES) {
         /* no categories are active */
         return 0;
     }
@@ -602,7 +638,7 @@ ol_tx_sched_select_batch_wrr_adv(
          * In the meantime, restore the WRR counter (since we didn't
          * service this category after all).
          */
-        category->state.wrr_count = category->specs.wrr_skip_weight - 1;
+        category->state.wrr_count = category->state.wrr_count - 1;
         return 0;
     }
     /* enough credit is available - go ahead and send some frames */
@@ -660,7 +696,8 @@ ol_tx_sched_txq_enqueue_wrr_adv(
     category = &scheduler->categories[scheduler->tid_to_category[tid]];
     category->state.frms += frms;
     category->state.bytes += bytes;
-    if (txq->flag != ol_tx_queue_active) {
+    if (txq->flag != ol_tx_queue_active)
+    {
         TAILQ_INSERT_TAIL(&category->state.head, txq, list_elem);
         category->state.active = 1; /* may have already been active */
     }
@@ -844,7 +881,10 @@ ol_tx_sched_discard_select_txq(
 
 int
 ol_tx_sched_discard_select(
-    struct ol_txrx_pdev_t *pdev, int frms, ol_tx_desc_list *tx_descs)
+    struct ol_txrx_pdev_t *pdev,
+    int frms,
+    ol_tx_desc_list *tx_descs,
+    a_bool_t force)
 {
     int cat;
     struct ol_tx_frms_queue_t *txq;
@@ -857,23 +897,27 @@ ol_tx_sched_discard_select(
     /* then decide which peer within this category to discard from next */
     txq = ol_tx_sched_discard_select_txq(
         pdev, ol_tx_sched_category_tx_queues(pdev, cat));
-    if (NULL == txq) {
-        return 0; /* no packets available in tx queue */
+    if (NULL == txq)
+    {
+        /* No More pending Tx Packets in Tx Queue. Exit Discard loop */
+        return 0;
     }
 
-    /*
-     * Now decide how many frames to discard from this peer-TID.
-     * Don't discard more frames than the caller has specified.
-     * Don't discard more than a fixed quantum of frames at a time.
-     * Don't discard more than 50% of the queue's frames at a time,
-     * but if there's only 1 frame left, go ahead and discard it.
-     */
-    #define OL_TX_DISCARD_QUANTUM 10
-    if (OL_TX_DISCARD_QUANTUM < frms) {
-        frms = OL_TX_DISCARD_QUANTUM;
-    }
-    if (txq->frms > 1 && frms >= (txq->frms >> 1)) {
-        frms = txq->frms >> 1;
+    if (force == A_FALSE) {
+        /*
+         * Now decide how many frames to discard from this peer-TID.
+         * Don't discard more frames than the caller has specified.
+         * Don't discard more than a fixed quantum of frames at a time.
+         * Don't discard more than 50% of the queue's frames at a time,
+         * but if there's only 1 frame left, go ahead and discard it.
+         */
+        #define OL_TX_DISCARD_QUANTUM 10
+        if (OL_TX_DISCARD_QUANTUM < frms) {
+            frms = OL_TX_DISCARD_QUANTUM;
+        }
+        if (txq->frms > 1 && frms >= (txq->frms >> 1)) {
+            frms = txq->frms >> 1;
+        }
     }
 
     /*
@@ -893,6 +937,7 @@ ol_tx_sched_discard_select(
     notify_ctx.info.ext_tid = cat;
     ol_tx_sched_notify(pdev, &notify_ctx);
 
+    TX_SCHED_DEBUG_PRINT("%s Tx Drop : %d\n",__func__,frms);
     return frms;
 }
 

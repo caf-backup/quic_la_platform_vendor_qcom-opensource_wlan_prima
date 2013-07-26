@@ -360,6 +360,7 @@ struct ol_txrx_pdev_t {
 	 * tx frames
 	 */
 	adf_os_atomic_t target_tx_credit;
+	adf_os_atomic_t orig_target_tx_credit;
 
 	/* Peer mac address to staid mapping */
 	struct ol_mac_addr mac_to_staid[WLAN_MAX_STA_COUNT + 3];
@@ -652,6 +653,16 @@ struct ol_txrx_peer_t {
 
 	adf_os_atomic_t ref_cnt;
 
+	/*The peer state tracking is used for HL systems
+	* that don't support tx and rx filtering within the target.
+	* In such systems, the peer's state determines what kind of
+	* tx and rx filtering, if any, is done.
+	* This variable doesn't apply to LL systems, or to HL systems for
+	* which the target handles tx and rx filtering. However, it is
+	* simplest to declare and update this variable unconditionally, for all systems.
+	*/
+	enum ol_txrx_peer_state state;
+
 	/* peer ID(s) for this peer */
 	u_int16_t peer_ids[MAX_NUM_PEER_ID_PER_PEER];
 #ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
@@ -700,6 +711,8 @@ struct ol_txrx_peer_t {
 
 	/*qos info*/
 	u_int8_t qos_capable;
+	/*uapsd  tid mask */
+	u_int8_t  uapsd_mask;
 };
 
 #endif /* _OL_TXRX_TYPES__H_ */

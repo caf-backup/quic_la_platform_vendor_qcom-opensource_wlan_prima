@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -254,6 +254,7 @@ htt_rx_detach(struct htt_pdev_t *pdev)
         sw_rd_idx &= pdev->rx_ring.size_mask;
     }
 
+    adf_os_timer_cancel(&pdev->rx_ring.refill_retry_timer);
     adf_os_timer_free(&pdev->rx_ring.refill_retry_timer);
 
     adf_os_mem_free_consistent(

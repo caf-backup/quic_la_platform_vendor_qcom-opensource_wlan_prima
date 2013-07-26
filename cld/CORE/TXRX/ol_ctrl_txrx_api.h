@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Qualcomm Atheros, Inc.
+ * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -15,7 +15,7 @@
 #include <adf_nbuf.h>     /* adf_nbuf_t */
 
 #include <ol_ctrl_api.h>  /* ol_vdev_handle */
-#include <ol_txrx_api.h>  /* ol_txrx_peer_handle */
+#include <ol_txrx_api.h>  /* ol_txrx_peer_handle, etc. */
 #include <ieee80211_common.h>   /*ieee80211_frame */
 
 enum ol_rx_err_type {
@@ -33,20 +33,6 @@ enum ol_rx_err_type {
 	OL_RX_ERR_PRIVACY,
 	OL_RX_ERR_NONE_FRAG,
 	OL_RX_ERR_NONE = 0xFF
-};
-
-enum ol_sec_type {
-    ol_sec_type_none,
-    ol_sec_type_wep128,
-    ol_sec_type_wep104,
-    ol_sec_type_wep40,
-    ol_sec_type_tkip,
-    ol_sec_type_tkip_nomic,
-    ol_sec_type_aes_ccmp,
-    ol_sec_type_wapi,
-
-    /* keep this last! */
-    ol_sec_type_types
 };
 
 #ifdef SUPPORT_HOST_STATISTICS
@@ -181,12 +167,6 @@ void
 ol_tx_paused_peer_data(ol_peer_handle peer, int has_tx_data);
 
 
-enum ol_addba_req_status {
-    ol_addba_req_success,/* negotiation started successfully */
-    ol_addba_req_reject, /* aggregation is not applicable - don't try again */
-    ol_addba_req_busy,   /* ADDBA-req couldn't be sent now - try again later */
-};
-
 #ifdef QCA_WIFI_ISOC
 
 /**
@@ -205,9 +185,9 @@ enum ol_addba_req_status {
  * @param pdev - handle to the ctrl SW's physical device object
  * @param peer_mac_addr - which peer the ADDBA negotiation is with
  * @param tid - which traffic type the ADDBA negotiation is for
- * @return ol_addba_req_status enum
+ * @return ol_addba_status enum
  */
-enum ol_addba_req_status
+enum ol_addba_status
 ol_ctrl_addba_req(ol_pdev_handle pdev, u_int8_t *peer_mac_addr, int tid);
 
 /**

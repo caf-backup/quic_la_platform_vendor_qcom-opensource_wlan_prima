@@ -1831,6 +1831,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 					   tSirNwType nw_type,
 					   tpAddStaParams params)
 {
+	ol_txrx_pdev_handle pdev;
 	wmi_peer_assoc_complete_cmd *cmd;
 	int32_t len = sizeof(wmi_peer_assoc_complete_cmd);
 	wmi_buf_t buf;
@@ -1838,6 +1839,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	u_int8_t rx_stbc;
 	u_int8_t *rate_pos;
 
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!buf) {
 		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
@@ -1914,6 +1916,19 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		cmd->peer_flags |= WMI_PEER_NEED_PTK_4_WAY;
 	if (params->wpa_rsn >> 1)
 		cmd->peer_flags |= WMI_PEER_NEED_GTK_2_WAY;
+
+#ifdef QCA_WIFI_ISOC
+	/*
+	if (RSN_AUTH_IS_OPEN(&ni->ni_rsn)) {
+		ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_auth);
+	}
+	else {
+		ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_conn);
+	}
+	*/
+#else
+	ol_txrx_peer_state_update(pdev, params->bssId, ol_txrx_peer_state_auth);
+#endif
 
 	cmd->peer_caps = params->capab_info;
 	cmd->peer_listen_intval = params->listenInterval;

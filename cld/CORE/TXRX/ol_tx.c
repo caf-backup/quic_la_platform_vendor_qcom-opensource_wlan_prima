@@ -419,7 +419,7 @@ ol_txrx_mgmt_send(
     tx_desc->pkt_type = type + OL_TXRX_MGMT_TYPE_BASE;
     
     if (pdev->cfg.is_high_latency) {
-		struct ol_tx_frms_queue_t *txq;
+	struct ol_tx_frms_queue_t *txq;
         /*
          * 1.  Look up the peer and queue the frame in the peer's mgmt queue.
          * 2.  Invoke the download scheduler.
@@ -457,11 +457,11 @@ ol_txrx_mgmt_send(
             &tx_msdu_info.htt);
         htt_tx_desc_display(tx_desc->htt_tx_desc);
 
-	    ol_tx_enqueue(vdev->pdev, txq, tx_desc, &tx_msdu_info);
-	    if (tx_msdu_info.peer) {
-	        /* remove the peer reference added above */
-	        ol_txrx_peer_unref_delete(tx_msdu_info.peer);
-	    }
+	ol_tx_enqueue(vdev->pdev, txq, tx_desc, &tx_msdu_info);
+	if (tx_msdu_info.peer) {
+	     /* remove the peer reference added above */
+	     ol_txrx_peer_unref_delete(tx_msdu_info.peer);
+	}
         ol_tx_sched(vdev->pdev);
     } else {
         ol_tx_send(pdev, tx_desc, tx_mgmt_frm);

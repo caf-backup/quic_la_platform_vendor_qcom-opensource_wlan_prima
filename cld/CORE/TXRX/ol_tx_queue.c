@@ -6,6 +6,7 @@
 
 #include <adf_nbuf.h>         /* adf_nbuf_t, etc. */
 #include <adf_os_atomic.h>    /* adf_os_atomic_add, etc. */
+#include <ol_cfg.h>           /* ol_cfg_addba_retry */
 #include <htt.h>              /* HTT_TX_EXT_TID_MGMT */
 #include <ol_htt_tx_api.h>    /* htt_tx_desc_tid */
 #include <ol_txrx_api.h>      /* ol_txrx_vdev_handle */
@@ -17,6 +18,9 @@
 #include <ol_tx_sched.h>      /* ol_tx_sched_notify, etc. */
 #include <ol_tx_queue.h>
 #include <ol_txrx_dbg.h>      /* ENABLE_TX_QUEUE_LOG */
+#include <ol_txrx.h>          /* ol_tx_desc_pool_size */
+#include <adf_os_types.h>     /* a_bool_t */
+
 
 #if defined(CONFIG_HL_SUPPORT)
 
@@ -80,23 +84,45 @@ ol_tx_queue_addba_check(
 /*--- function definitions --------------------------------------------------*/
 
 void
-ol_tx_queue_discard(struct ol_txrx_pdev_t *pdev)
+ol_tx_queue_discard(
+    struct ol_txrx_pdev_t *pdev,
+    a_bool_t flush_all,
+    a_bool_t locked)
 {
     ol_tx_desc_list tx_descs;
     int num;
-    u_int16_t discarded = 0;
+    u_int16_t discarded, actual_discarded = 0;
 
     TAILQ_INIT(&tx_descs);
-    num = pdev->tx_queue.rsrc_threshold_hi - pdev->tx_queue.rsrc_threshold_lo;
+    if (locked == A_FALSE) {
+        adf_os_spin_lock(&pdev->tx_queue_spinlock);
+    }
+    if (flush_all == A_TRUE) {
+        /* flush all the pending tx queues in the scheduler */
+        num = ol_tx_desc_pool_size(pdev->ctrl_pdev) -
+            adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt);
+    } else {
+        num = pdev->tx_queue.rsrc_threshold_hi -
+            pdev->tx_queue.rsrc_threshold_lo;
+    }
+    TX_SCHED_DEBUG_PRINT("+%s : %d\n,",__FUNCTION__,pdev->tx_queue.rsrc_cnt);
     while (num > 0) {
-        discarded = ol_tx_sched_discard_select(pdev, num, &tx_descs);
-        if (discarded == 0) {
-            break; /* couldn't find any to discard - give up */
+        discarded = ol_tx_sched_discard_select(pdev, num,
+            &tx_descs, flush_all);
+        if ( discarded == 0)
+        {
+             /* No More Packets could be discarded . Probably Tx Queues are Empty */
+             break;
         }
         num -= discarded;
-        adf_os_atomic_add(discarded, &pdev->tx_queue.rsrc_cnt);
+        actual_discarded += discarded;
     }
+    adf_os_atomic_add(actual_discarded, &pdev->tx_queue.rsrc_cnt);
+    TX_SCHED_DEBUG_PRINT("-%s \n",__FUNCTION__);
     ol_tx_desc_frame_list_free(pdev, &tx_descs, 1 /* error */);
+    if (locked == A_FALSE) {
+        adf_os_spin_unlock(&pdev->tx_queue_spinlock);
+    }
 }
 
 void
@@ -120,7 +146,7 @@ ol_tx_enqueue(
     if (adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt) <=
         pdev->tx_queue.rsrc_threshold_lo)
     {
-        ol_tx_queue_discard(pdev);
+        ol_tx_queue_discard(pdev, A_FALSE, A_TRUE);
     }
     TAILQ_INSERT_TAIL(&txq->head, tx_desc, tx_desc_list_elem);
 
@@ -139,8 +165,9 @@ ol_tx_enqueue(
         txq->flag = ol_tx_queue_active;
     }
 
-    OL_TX_QUEUE_ADDBA_CHECK(pdev, txq, tx_msdu_info);
-
+    if (!ETHERTYPE_IS_EAPOL_WAPI(tx_msdu_info->htt.info.ethertype)) {
+        OL_TX_QUEUE_ADDBA_CHECK(pdev, txq, tx_msdu_info);
+    }
     adf_os_spin_unlock(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
@@ -207,6 +234,11 @@ ol_tx_queue_free(
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
     adf_os_spin_lock(&pdev->tx_queue_spinlock);
 
+    notify_ctx.event = OL_TX_DELETE_QUEUE;
+    notify_ctx.txq = txq;
+    notify_ctx.info.ext_tid = tid;
+    ol_tx_sched_notify(pdev, &notify_ctx);
+
     frms = txq->frms;
     while (txq->frms) {
         tx_desc = TAILQ_FIRST(&txq->head);
@@ -216,11 +248,6 @@ ol_tx_queue_free(
         txq->frms--;
     }
     OL_TX_QUEUE_LOG_FREE(pdev, txq, tid, frms, bytes);
-
-    notify_ctx.event = OL_TX_DELETE_QUEUE;
-    notify_ctx.txq = txq;
-    notify_ctx.info.ext_tid = tid;
-    ol_tx_sched_notify(pdev, &notify_ctx);
     txq->flag = ol_tx_queue_empty;
 
     adf_os_spin_unlock(&pdev->tx_queue_spinlock);    
@@ -299,6 +326,7 @@ ol_txrx_peer_tid_unpause_base(
     }
 }
 
+#if defined(CONFIG_HL_SUPPORT) && defined(QCA_WIFI_ISOC)
 void
 ol_txrx_peer_pause(ol_txrx_peer_handle peer)
 {
@@ -315,6 +343,7 @@ ol_txrx_peer_pause(ol_txrx_peer_handle peer)
     adf_os_spin_unlock(&pdev->tx_queue_spinlock);
     TX_SCHED_DEBUG_PRINT("Leave %s\n", __func__);
 }
+#endif
 
 void
 ol_txrx_peer_tid_unpause(ol_txrx_peer_handle peer, int tid)
@@ -388,6 +417,22 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev)
 
 #ifdef QCA_WIFI_ISOC
 
+/**
+* Request the control SW to begin an ADDBA negotiation
+*/
+enum ol_addba_status
+ol_ctrl_addba_req(
+    ol_pdev_handle pdev,
+    u_int8_t *peer_mac_addr,
+    int tidno)
+{
+        /*
+         * TODO: Process ADDBA request and send whether the requested
+        * ADDBA negotiation was started.
+         */
+    return ol_addba_success;
+}
+
 void
 ol_tx_queue_addba_check(
     struct ol_txrx_pdev_t *pdev,
@@ -396,7 +441,7 @@ ol_tx_queue_addba_check(
 {
     struct ol_txrx_peer_t *peer;
     int tid;
-    enum ol_addba_req_status status;
+    enum ol_addba_status status;
 
     if (!pdev->cfg.host_addba || /* host doesn't handle ADDBA negotiation */
         txq->aggr_state == ol_tx_aggr_enabled  ||  /* ADDBA already done */
@@ -411,24 +456,15 @@ ol_tx_queue_addba_check(
     peer = tx_msdu_info->peer;
     tid = tx_msdu_info->htt.info.ext_tid;
 
-    /**Temporary Hack to disable Tx AMPDU to work aroung a racing condition where
-    a data frame is sent before HW sends BAR after addBa exchange
-    if (ETHERTYPE_IS_EAPOL_WAPI(tx_msdu_info->htt.info.ethertype)) {*/
-    if (TRUE) {
-        if (txq->aggr_state == ol_tx_aggr_untried) {
-            /*
-             * The queue is currently paused -
-             * unpause it so the EAPOL can go through.
-             */
-            ol_txrx_peer_tid_unpause_base(pdev, peer, tid);
-        }
+    if (ETHERTYPE_IS_EAPOL_WAPI(tx_msdu_info->htt.info.ethertype)) {
         /*
          * Don't start aggregation based on EAPOL frame,
          * but do start for future real data frames.
          */
-        txq->aggr_state = ol_tx_aggr_disabled;//ol_tx_aggr_retry;
+        txq->aggr_state = ol_tx_aggr_retry;
         return;
     }
+
     if (txq->aggr_state == ol_tx_aggr_retry) {
         if (tx_msdu_info->peer) {
             /*
@@ -438,15 +474,20 @@ ol_tx_queue_addba_check(
             ol_txrx_peer_tid_pause_base(pdev, peer, tid);
         }
     }
+
     status = ol_ctrl_addba_req(
         pdev->ctrl_pdev, &peer->mac_addr.raw[0], tid);
-    if (status == ol_addba_req_reject) {
+    if (status == ol_addba_reject) {
         /* Aggregation is disabled for this peer-TID. Unpause the tx queue. */
         txq->aggr_state = ol_tx_aggr_disabled;
         ol_txrx_peer_tid_unpause_base(pdev, peer, tid);
-    } else if (status == ol_addba_req_busy) {
-        /* ADDBA negotiation can't be done now, but try again next time */
-        txq->aggr_state = ol_tx_aggr_retry;
+    } else if (status == ol_addba_busy) {
+        if (ol_cfg_addba_retry(pdev->ctrl_pdev)) {
+            /* ADDBA negotiation can't be done now, but try again next time */
+            txq->aggr_state = ol_tx_aggr_retry;
+        } else {
+            txq->aggr_state = ol_tx_aggr_disabled;
+        }
         /* unpause the tx queue, so the new frame can be sent */
         ol_txrx_peer_tid_unpause_base(pdev, peer, tid);
     } else {
@@ -456,7 +497,25 @@ ol_tx_queue_addba_check(
 }
 
 void
-ol_tx_addba_conf(ol_txrx_peer_handle peer, int tid)
+ol_tx_queue_decs_reinit(
+    ol_txrx_peer_handle peer,
+    u_int16_t peer_id)
+{
+    ol_tx_desc_list     *tx_descs;
+    struct ol_tx_desc_t *tx_desc, *tmp;
+
+    tx_descs = &peer->txqs[HTT_TX_EXT_TID_MGMT].head;
+
+    TAILQ_FOREACH_SAFE(tx_desc, tx_descs, tx_desc_list_elem, tmp) {
+         /* initialize the HW tx descriptor */
+        htt_tx_desc_set_peer_id((u_int32_t*)tx_desc->htt_tx_desc, peer_id);
+    }
+
+    adf_os_print("%s peer_id=%d\n", __func__, peer_id);
+}
+
+void
+ol_tx_addba_conf(ol_txrx_peer_handle peer, int tid, enum ol_addba_status status)
 {
     if (!peer->vdev->pdev->cfg.host_addba) {
         /*
@@ -473,12 +532,20 @@ ol_tx_addba_conf(ol_txrx_peer_handle peer, int tid)
     /* mark the aggregation as being complete */
     TXRX_ASSERT1(peer->txqs[tid].aggr_state == ol_tx_aggr_in_progress);
     /*
-     * It's possible that the ADDBA negotiation failed, but regardless of
-     * whether it succeeded or failed, mark the tx queue to show that
-     * ADDBA negotiation has already been done, and need not be attempted
-     * again.
+     * It's possible that the ADDBA request was rejected, but regardless of
+     * whether it was accepted, mark the tx queue to show that ADDBA
+     * negotiation has already been done, and need not be attempted again.
+     * However, if the negotiation failed to complete (i.e. was aborted),
+     * then mark tx queue to try again later, unless the status says to
+     * not try again.
      */
-    peer->txqs[tid].aggr_state = ol_tx_aggr_enabled;
+    if (status == ol_addba_success) {
+        peer->txqs[tid].aggr_state = ol_tx_aggr_enabled;
+    } else if (status == ol_addba_reject) {
+        peer->txqs[tid].aggr_state = ol_tx_aggr_disabled;
+    } else { /* busy */
+        peer->txqs[tid].aggr_state = ol_tx_aggr_retry;
+    }
     /* unpause the tx queue */
     ol_txrx_peer_tid_unpause(peer, tid);
 } 
@@ -751,8 +818,8 @@ void
 ol_tx_queue_log_display(struct ol_txrx_pdev_t *pdev)
 {
     int offset;
-    offset = pdev->txq_log.oldest_record_offset;
     int unwrap;
+    offset = pdev->txq_log.oldest_record_offset;
 
     /*
      * In theory, this should use mutex to guard against the offset
@@ -780,9 +847,9 @@ ol_tx_queue_log_enqueue(
     int frms, int bytes)
 {
     int tid;
-    tid = msdu_info->htt.info.ext_tid;
     u_int16_t peer_id = msdu_info->htt.info.peer_id;
     struct ol_tx_log_queue_add_t *log_elem;
+    tid = msdu_info->htt.info.ext_tid;
 
     log_elem = ol_tx_queue_log_alloc(pdev, ol_tx_log_entry_type_enqueue, 0);
     if (!log_elem) {
