@@ -1262,6 +1262,7 @@ tSirRetStatus      retCode;
         FL("Posting REMOVE_STAKEY to HAL failed, reason=%X"),
         retCode );
     palFreeMemory(pMac->hHdd, pRemoveStaKeyParams);
+    pRemoveStaKeyParams = NULL;
 
     // Respond to SME with LIM_MLM_REMOVEKEY_CNF
     mlmRemoveKeyCnf.resultCode = eSIR_SME_HAL_SEND_MESSAGE_FAIL;
@@ -1270,6 +1271,10 @@ tSirRetStatus      retCode;
     return;
 
 end:
+  if (pRemoveStaKeyParams)
+  {
+    palFreeMemory(pMac->hHdd, pRemoveStaKeyParams);
+  }
   limPostSmeRemoveKeyCnf( pMac,
       psessionEntry,
       pMlmRemoveKeyReq,

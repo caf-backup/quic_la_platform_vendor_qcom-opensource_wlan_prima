@@ -1067,6 +1067,7 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     {
         limLog(pMac, LOGE,
                 FL("Invalid value (%d) for numSsid"), SIR_SCAN_MAX_NUM_SSID);
+        palFreeMemory(pMac->hHdd, (void *)pScanOffloadReq);
         return eHAL_STATUS_FAILURE;
     }
 
