@@ -648,6 +648,8 @@ enum {
     txrx_sec_ucast
 };
 
+typedef A_STATUS (*ol_tx_filter_func)(struct ol_txrx_msdu_info_t *tx_msdu_info);
+
 struct ol_txrx_peer_t {
 	struct ol_txrx_vdev_t *vdev;
 
@@ -662,6 +664,7 @@ struct ol_txrx_peer_t {
 	* simplest to declare and update this variable unconditionally, for all systems.
 	*/
 	enum ol_txrx_peer_state state;
+	ol_tx_filter_func tx_filter;
 
 	/* peer ID(s) for this peer */
 	u_int16_t peer_ids[MAX_NUM_PEER_ID_PER_PEER];

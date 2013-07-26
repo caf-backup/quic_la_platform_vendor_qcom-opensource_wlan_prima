@@ -905,6 +905,36 @@ ol_txrx_peer_attach(
     return peer;
 }
 
+/*
+ * Discarding tx filter - removes all data frames (disconnected state)
+ */
+static A_STATUS
+ol_tx_filter_discard(struct ol_txrx_msdu_info_t *tx_msdu_info)
+{
+    return A_ERROR;
+}
+/*
+ * Non-autentication tx filter - filters out data frames that are not
+ * related to authentication, but allows EAPOL (PAE) or WAPI (WAI)
+ * data frames (connected state)
+ */
+static A_STATUS
+ol_tx_filter_non_auth(struct ol_txrx_msdu_info_t *tx_msdu_info)
+{
+    return
+        (tx_msdu_info->htt.info.ethertype == ETHERTYPE_PAE ||
+         tx_msdu_info->htt.info.ethertype == ETHERTYPE_WAI) ? A_OK : A_ERROR;
+}
+
+/*
+ * Pass-through tx filter - lets all data frames through (authenticated state)
+ */
+static A_STATUS
+ol_tx_filter_pass_thru(struct ol_txrx_msdu_info_t *tx_msdu_info)
+{
+    return A_OK;
+}
+
 void
 ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 			  enum ol_txrx_peer_state state)
@@ -913,28 +943,23 @@ ol_txrx_peer_state_update(ol_txrx_pdev_handle pdev, u_int8_t *peer_mac,
 
 	peer =  ol_txrx_peer_find_hash_find(pdev, peer_mac, 0);
 	/* TODO: Should we send WMI command of the connection state? */
-#ifdef NOT_YET
-    if (ol_cfg_tx_filter(pdev->ctrl_pdev)) {
-        if (state == ol_txrx_peer_state_conn)
-        {
-            peer->tx_filter = ol_tx_filter_connected;
-        } else {
-            peer->tx_filter = ol_tx_filter_no_op;
-        }
-    }
-#endif
-     /* avoid multiple auth state change. */
+    /* avoid multiple auth state change. */
     if (peer->state == state) {
 #ifdef TXRX_PRINT_VERBOSE_ENABLE
-        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO3, "%s: no state change, returns directly\n", __FUNCTION__);
+        TXRX_PRINT(TXRX_PRINT_LEVEL_INFO3,
+            "%s: no state change, returns directly\n", __FUNCTION__);
 #endif
 	adf_os_atomic_dec(&peer->ref_cnt);
         return;
     }
 
-    TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: change from %d to %d\n", __FUNCTION__, peer->state, state);
+    TXRX_PRINT(TXRX_PRINT_LEVEL_INFO2, "%s: change from %d to %d\n",
+        __FUNCTION__, peer->state, state);
 
     peer->state = state;
+    peer->tx_filter = (state == ol_txrx_peer_state_auth) ?
+        ol_tx_filter_pass_thru : (state == ol_txrx_peer_state_conn) ?
+            ol_tx_filter_non_auth : ol_tx_filter_discard;
 
     if (peer->vdev->pdev->cfg.host_addba) {
         if (state == ol_txrx_peer_state_auth) {

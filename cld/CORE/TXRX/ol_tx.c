@@ -231,6 +231,15 @@ ol_tx_non_std_ll(
 #define OL_TX_ENCAP_WRAPPER(pdev, vdev, tx_desc, msdu, tx_msdu_info) /* no-op */
 #endif
 
+#ifdef QCA_WIFI_ISOC
+#define TX_FILTER_CHECK(tx_msdu_info) \
+    ((tx_msdu_info)->peer && \
+     ((tx_msdu_info)->peer->tx_filter(tx_msdu_info) != A_OK))
+#else
+/* tx filtering is handled within the target FW */
+#define TX_FILTER_CHECK(tx_msdu_info) 0 /* don't filter */
+#endif
+
 static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
@@ -293,27 +302,17 @@ ol_tx_hl_base(
         tx_msdu_info.htt.info.l2_hdr_type = pdev->htt_pkt_type;
 
         txq = ol_tx_classify(vdev, tx_desc, msdu, &tx_msdu_info);
-        if (!txq) {
-            adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
+
+        if ((!txq) || TX_FILTER_CHECK(&tx_msdu_info)) {
+            /* drop this frame, but try sending subsequent frames */
             //TXRX_STATS_MSDU_LIST_INCR(pdev, tx.dropped.no_txq, msdu);
-            ol_tx_desc_free(pdev, tx_desc);
+            adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
+            ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1);
             if (tx_msdu_info.peer) {
                 /* remove the peer reference added above */
                 ol_txrx_peer_unref_delete(tx_msdu_info.peer);
             }
-            return msdu; /* the list of unaccepted MSDUs */
-        }
-
-        //INSERT TX FILTER HERE:
-        if (0 /*pdev->tx_filter*/) {
-            int keep = 1; //ol_tx_filter(tx_desc, netbuf, &txrx_msdu_info);
-            if (!keep) {
-                adf_nbuf_unmap(
-                    pdev->osdev, tx_desc->netbuf, ADF_OS_DMA_TO_DEVICE);
-                adf_nbuf_set_next(tx_desc->netbuf, NULL);
-                adf_nbuf_tx_free(tx_desc->netbuf, 1);
-                goto MSDU_LOOP_BOTTOM;
-            }
+            goto MSDU_LOOP_BOTTOM;
         }
 
         /*
@@ -350,7 +349,6 @@ ol_tx_hl_base(
             /* remove the peer reference added above */
             ol_txrx_peer_unref_delete(tx_msdu_info.peer);
         }
-
 MSDU_LOOP_BOTTOM:
         msdu = next;
     }
