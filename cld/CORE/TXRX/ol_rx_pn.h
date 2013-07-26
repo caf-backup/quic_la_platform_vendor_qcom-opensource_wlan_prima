@@ -56,6 +56,30 @@ ol_rx_pn_check(
 /**
  * @brief If applicable, check the Packet Number to detect replays.
  * @details
+ *  Determine whether a PN check is needed, and if so, what the PN size is.
+ *  (A PN size of 0 is used to indirectly bypass the PN check for security
+ *  methods that don't involve a PN check.)
+ *  This function produces event notifications for any PN failures, via the
+ *  ol_rx_err function.
+ *  After the PN check, deliver the valid rx frames to the OS shim.
+ *  (Don't perform a rx --> tx forwarding check.)
+ *
+ * @param vdev - which virtual device the frames were addressed to
+ * @param peer - which peer the rx frames belong to
+ * @param tid  - which TID within the peer the rx frames belong to
+ * @param msdu_list - NULL-terminated list of MSDUs to perform PN check on
+ *      (if PN check is applicable, i.e. PN length > 0)
+ */
+void
+ol_rx_pn_check_only(
+    struct ol_txrx_vdev_t *vdev,
+    struct ol_txrx_peer_t *peer,
+    unsigned tid,
+    adf_nbuf_t msdu_list);
+
+/**
+ * @brief If applicable, check the Packet Number to detect replays.
+ * @details
  *  Same as ol_rx_pn_check but return valid rx netbufs
  *  rather than invoking the rx --> tx forwarding check.
  *

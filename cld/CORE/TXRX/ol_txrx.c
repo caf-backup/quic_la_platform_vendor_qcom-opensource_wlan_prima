@@ -408,7 +408,12 @@ ol_txrx_pdev_attach(
      * the rx->tx forwarding.
      */
     if (ol_cfg_rx_pn_check(pdev->ctrl_pdev)) {
-        if (ol_cfg_rx_fwd_check(pdev->ctrl_pdev)) {
+        if (ol_cfg_rx_fwd_disabled(pdev->ctrl_pdev)) {
+            /*
+             * PN check done on host, rx->tx forwarding not done at all.
+             */
+            pdev->rx_opt_proc = ol_rx_pn_check_only;
+        } else if (ol_cfg_rx_fwd_check(pdev->ctrl_pdev)) {
             /*
              * Both PN check and rx->tx forwarding done on host.
              */
@@ -422,13 +427,16 @@ ol_txrx_pdev_attach(
         }
     } else {
         /* PN check done on target */
-        if (ol_cfg_rx_fwd_check(pdev->ctrl_pdev)) {
+        if ((!ol_cfg_rx_fwd_disabled(pdev->ctrl_pdev)) &&
+            ol_cfg_rx_fwd_check(pdev->ctrl_pdev))
+        {
             /*
              * rx->tx forwarding done on host (possibly as
              * back-up for target-side primary rx->tx forwarding)
              */
             pdev->rx_opt_proc = ol_rx_fwd_check;
         } else {
+            /* rx->tx forwarding either done in target, or not done at all */
             pdev->rx_opt_proc = ol_rx_deliver;
         }
     }
