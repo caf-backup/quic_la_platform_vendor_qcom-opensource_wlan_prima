@@ -4649,6 +4649,11 @@ WDA_processSetLinkStateStatus WDA_IsHandleSetLinkStateReq(
          //populate linkState info in WDACbCtxt
          pWDA->linkState = linkStateParams->state;
          break;
+      case eSIR_LINK_DOWN_STATE:
+         status = WDA_IGNORE_SET_LINK_STATE;
+         VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
+                   "Ignoring DOWN link state in WDA");
+         break;
       default:
          if(pWDA->wdaState != WDA_READY_STATE)
          {
