@@ -90,7 +90,7 @@ ol_tx_queue_discard(
     a_bool_t locked)
 {
     ol_tx_desc_list tx_descs;
-    int num;
+    u_int16_t num;
     u_int16_t discarded, actual_discarded = 0;
 
     TAILQ_INIT(&tx_descs);
