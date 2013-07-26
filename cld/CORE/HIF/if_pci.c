@@ -454,7 +454,7 @@ again:
     target_register_tbl_attach(sc, target_type);
     {
         A_UINT32 fw_indicator;
-#ifdef PCIE_BAR0_READY_CHECKING
+#if PCIE_BAR0_READY_CHECKING
         int wait_limit = 200;
 #endif
 
@@ -474,7 +474,7 @@ again:
 		 ;
         }
 
-#ifdef PCIE_BAR0_READY_CHECKING
+#if PCIE_BAR0_READY_CHECKING
         /* Synchronization point: wait the BAR0 is configured */
         while (wait_limit-- &&
             !(A_PCI_READ32(mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_RDY_STATUS_ADDRESS) \
