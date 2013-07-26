@@ -23,6 +23,7 @@
 #include <adf_os_mem.h>  /* adf_os_mem_copy */
 #include <adf_nbuf.h>    /* adf_nbuf_map_single */
 #include <htc_api.h>     /* HTC_PACKET */
+#include <htc.h>         /* HTC_HDR_ALIGNMENT_PADDING */
 #include <htt.h>         /* HTT host->target msg defs */
 #include <ol_txrx_htt_api.h> /* ol_tx_completion_handler, htt_tx_status */
 #include <ol_htt_tx_api.h>
