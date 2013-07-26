@@ -89,22 +89,21 @@ ol_tx_queue_free(
  *
  * @param pdev - the physical device object, which stores the txqs
  * @param flush_all - flush all pending tx queues if set to true
- * @param locked - tx_queue_spinlock held by caller if set to true
- * @
+ * @param tx_descs - List Of tx_descs to be discarded will be returned by this function
  */
 
 void
 ol_tx_queue_discard(
     struct ol_txrx_pdev_t *pdev,
     a_bool_t flush_all,
-    a_bool_t locked);
+    ol_tx_desc_list *tx_descs);
 
 #else
 
 #define ol_tx_enqueue(pdev, txq, tx_desc, tx_msdu_info) /* no-op */
 #define ol_tx_dequeue(pdev, ext_tid, txq, head, num_frames, credit, bytes) 0
 #define ol_tx_queue_free(pdev, txq, tid) /* no-op */
-#define ol_tx_queue_discard(pdev, flush, locked) /* no-op */
+#define ol_tx_queue_discard(pdev, flush, tx_descs) /* no-op */
 
 #endif /* defined(CONFIG_HL_SUPPORT) */
 

@@ -1331,7 +1331,11 @@ ol_txrx_get_tx_pending(ol_txrx_pdev_handle pdev_handle)
 void
 ol_txrx_discard_tx_pending(ol_txrx_pdev_handle pdev_handle)
 {
-    ol_tx_queue_discard(pdev_handle, A_TRUE, A_FALSE);
+    ol_tx_desc_list tx_descs;
+    TAILQ_INIT(&tx_descs);
+    ol_tx_queue_discard(pdev_handle, A_TRUE, &tx_descs);
+    //Discard Frames in Discard List
+    ol_tx_desc_frame_list_free(pdev_handle, &tx_descs, 1 /* error */);
 }
 
 /*--- debug features --------------------------------------------------------*/
