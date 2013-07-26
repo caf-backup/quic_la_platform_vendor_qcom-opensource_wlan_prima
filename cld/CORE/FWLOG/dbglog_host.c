@@ -57,8 +57,8 @@ module_dbg_print mod_print[WLAN_MODULE_ID_MAX];
 A_UINT32 dbglog_process_type = DBGLOG_PROCESS_DEFAULT;
 
 A_STATUS
-wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle,
-                            struct dbglog_config_msg_s *config);
+wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle, A_UINT32 param, A_UINT32 val,
+                            A_UINT32 *module_id_bitmap, A_UINT32 bitmap_len);
 
 const char *dbglog_get_module_str(A_UINT32 module_id)
 {
@@ -799,7 +799,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
 int dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
                   bool isenable)
 {
-    struct dbglog_config_msg_s configmsg;
+    A_UINT32 val = 0;
 
     if (mod_id > WLAN_MODULE_ID_MAX) {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dbglog_module_log_enable: Invalid module id %d\n",
@@ -807,13 +807,15 @@ int dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
         return -EINVAL;
     }
 
-    OS_MEMSET(&configmsg, 0, sizeof(struct dbglog_config_msg_s));
-
-    if (isenable)
-        DBGLOG_MODULE_ENABLE(configmsg.config.mod_id, mod_id);
-
-    configmsg.cfgvalid[mod_id/32] = (1 << (mod_id % 32));
-    wmi_config_debug_module_cmd(wmi_handle, &configmsg);
+    WMI_DBGLOG_SET_MODULE_ID(val,mod_id);
+    if (isenable) {
+        /* set it to global module level */
+        WMI_DBGLOG_SET_LOG_LEVEL(val,DBGLOG_INFO);
+    } else {
+        /* set it to ERROR level */
+        WMI_DBGLOG_SET_LOG_LEVEL(val,DBGLOG_ERR);
+    }
+    wmi_config_debug_module_cmd(wmi_handle, WMI_DEBUG_LOG_PARAM_LOG_LEVEL,  val, NULL,0);
 
     return 0;
 }
@@ -821,110 +823,75 @@ int dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
 int dbglog_vap_log_enable(wmi_unified_t  wmi_handle, A_UINT16 vap_id,
                bool isenable)
 {
-    struct dbglog_config_msg_s configmsg;
-
-    if (vap_id > DBGLOG_MAX_VAPID) {
+    if (vap_id > DBGLOG_MAX_VDEVID) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dbglog_vap_log_enable:Invalid vap_id %d\n",
         vap_id));
         return -EINVAL;
     }
 
-    OS_MEMSET(&configmsg, 0, sizeof(struct dbglog_config_msg_s));
-
-    if (isenable)
-        DBGLOG_VAP_ENABLE(configmsg.config.dbg_config, vap_id);
-
-    configmsg.cfgvalid[DBGLOG_MODULE_BITMAP_SIZE] = (1 << (vap_id +
-                             DBGLOG_VAP_LOG_ENABLE_OFFSET));
-    wmi_config_debug_module_cmd(wmi_handle, &configmsg);
+    wmi_config_debug_module_cmd(wmi_handle,
+             isenable ? WMI_DEBUG_LOG_PARAM_VDEV_ENABLE:WMI_DEBUG_LOG_PARAM_VDEV_DISABLE, vap_id, NULL,0 );
 
     return 0;
 }
 
 int dbglog_set_log_lvl(wmi_unified_t  wmi_handle, DBGLOG_LOG_LVL log_lvl)
 {
-    struct dbglog_config_msg_s configmsg;
+    A_UINT32 val = 0;
 
-    if (log_lvl > DBGLOG_MAX) {
+    if (log_lvl > DBGLOG_LVL_MAX) {
         AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dbglog_set_log_lvl:Invalid log level %d\n",
         log_lvl));
         return -EINVAL;
     }
 
-    OS_MEMSET(&configmsg, 0, sizeof(struct dbglog_config_msg_s));
-    DBGLOG_LOG_LVL_ENABLE(configmsg.config.dbg_config, log_lvl);
-    configmsg.cfgvalid[DBGLOG_MODULE_BITMAP_SIZE] = DBGLOG_LOG_LVL_ENABLE_MASK;
-    wmi_config_debug_module_cmd(wmi_handle, &configmsg);
+    WMI_DBGLOG_SET_MODULE_ID(val,WMI_DEBUG_LOG_MODULE_ALL);
+    WMI_DBGLOG_SET_LOG_LEVEL(val,log_lvl);
+    wmi_config_debug_module_cmd(wmi_handle, WMI_DEBUG_LOG_PARAM_LOG_LEVEL,  val, NULL,0);
 
     return 0;
 }
 
-int dbglog_reporting_enable(wmi_unified_t  wmi_handle, bool isenable)
+int dbglog_set_mod_log_lvl(wmi_unified_t  wmi_handle, A_UINT32 mod_log_lvl)
 {
-    struct dbglog_config_msg_s configmsg;
-
-    OS_MEMSET(&configmsg, 0, sizeof(struct dbglog_config_msg_s));
-
-     if (isenable)
-        DBGLOG_REPORTING_ENABLE(configmsg.config.dbg_config);
-
-    configmsg.cfgvalid[DBGLOG_MODULE_BITMAP_SIZE] = DBGLOG_REPORTING_ENABLE_MASK;
-    wmi_config_debug_module_cmd(wmi_handle, &configmsg);
-
-    return 0;
-}
-
-int dbglog_set_timestamp_resolution(wmi_unified_t  wmi_handle, A_UINT16 tsr)
-{
-    struct dbglog_config_msg_s configmsg;
-
-    OS_MEMSET(&configmsg, 0, sizeof(struct dbglog_config_msg_s));
-    DBGLOG_TIMESTAMP_RES_SET(configmsg.config.dbg_config, tsr);
-    configmsg.cfgvalid[DBGLOG_MODULE_BITMAP_SIZE] = DBGLOG_TIMESTAMP_RESOLUTION_MASK;
-    wmi_config_debug_module_cmd(wmi_handle, &configmsg);
-
-    return 0;
-}
-
-int dbglog_set_report_size(wmi_unified_t  wmi_handle, A_UINT16 size)
-{
-    struct dbglog_config_msg_s configmsg;
-
-    OS_MEMSET(&configmsg, 0, sizeof(struct dbglog_config_msg_s));
-    DBGLOG_REPORT_SIZE_SET(configmsg.config.dbg_config, size);
-    configmsg.cfgvalid[DBGLOG_MODULE_BITMAP_SIZE] = DBGLOG_REPORT_SIZE_MASK;
-    wmi_config_debug_module_cmd(wmi_handle, &configmsg);
+    A_UINT32 val = 0;
+    /* set the global module level to log_lvl */
+    WMI_DBGLOG_SET_MODULE_ID(val,(mod_log_lvl/10));
+    WMI_DBGLOG_SET_LOG_LEVEL(val,(mod_log_lvl%10));
+    wmi_config_debug_module_cmd(wmi_handle, WMI_DEBUG_LOG_PARAM_LOG_LEVEL,  val, NULL,0);
 
     return 0;
 }
 
 A_STATUS
-wmi_config_debug_module_cmd(
-    wmi_unified_t  wmi_handle,
-    struct dbglog_config_msg_s *configmsg)
+wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle, A_UINT32 param, A_UINT32 val,
+                            A_UINT32 *module_id_bitmap, A_UINT32 bitmap_len)
 {
     wmi_buf_t buf;
-    WMI_DBGLOG_CFG_CMD *cmd;
+    wmi_debug_log_config_cmd *configmsg;
     A_STATUS status = A_OK;
-    int len = sizeof(WMI_DBGLOG_CFG_CMD);
+    A_UINT32 i;
+    int len = sizeof(*configmsg);
+
+    ASSERT(bitmap_len < MAX_MODULE_ID_BITMAP_WORDS);
 
     buf = wmi_buf_alloc(wmi_handle, len);
     if (buf == NULL)
         return A_NO_MEMORY;
 
-    cmd = (WMI_DBGLOG_CFG_CMD *)(wmi_buf_data(buf));
+    configmsg = (wmi_debug_log_config_cmd *)(wmi_buf_data(buf));
+    configmsg->dbg_log_param = param;
+    configmsg->value = val;
+    if (module_id_bitmap) {
+        for(i=0;i<bitmap_len;++i) {
+            configmsg->module_id_bitmap[i] = module_id_bitmap[i];
+        }
+    }
 
-    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("wmi_dbg_cfg_send:"
-                 "mod[0] %08x dbgcfg %08x "
-                 "cfgvalid[0] %08x "
-                 "cfgvalid[1] %08x\n", configmsg->config.mod_id[0],
-                 configmsg->config.dbg_config, configmsg->cfgvalid[0],
-                 configmsg->cfgvalid[1]));
-
-    OS_MEMCPY(&cmd->config, configmsg, sizeof(struct dbglog_config_msg_s));
+    AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("wmi_dbg_cfg_send: param 0x%x val 0x%x \n ", param, val));
 
     status = wmi_unified_cmd_send(wmi_handle, buf,
-                sizeof(WMI_DBGLOG_CFG_CMD),
+                sizeof(*configmsg),
                 WMI_DBGLOG_CFG_CMDID);
 
     if (status != A_OK)
@@ -961,7 +928,7 @@ dbglog_printf(
     char buf[128];
     va_list ap;
 
-    if (vap_id < DBGLOG_VAPID_NUM_MAX) {
+    if (vap_id < DBGLOG_MAX_VDEVID) {
         printk(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
     } else {
         printk(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
@@ -983,7 +950,7 @@ dbglog_printf_no_line_break(
     char buf[128];
     va_list ap;
 
-    if (vap_id < DBGLOG_VAPID_NUM_MAX) {
+    if (vap_id < DBGLOG_MAX_VDEVID) {
         printk(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
     } else {
         printk(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
@@ -1004,7 +971,7 @@ dbglog_default_print_handler(A_UINT32 mod_id, A_UINT16 vap_id, A_UINT32 dbg_id,
 {
     int i;
 
-    if (vap_id < DBGLOG_VAPID_NUM_MAX) {
+    if (vap_id < DBGLOG_MAX_VDEVID) {
         printk(DBGLOG_PRINT_PREFIX "[%u] vap-%u %s ( ", timestamp, vap_id, dbglog_get_msg(mod_id, dbg_id));
     } else {
         printk(DBGLOG_PRINT_PREFIX "[%u] %s ( ", timestamp, dbglog_get_msg(mod_id, dbg_id));
@@ -1162,7 +1129,7 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len)
         timestamp = DBGLOG_GET_TIME_STAMP(buffer[count]);
         debugid = DBGLOG_GET_DBGID(buffer[count + 1]);
         moduleid = DBGLOG_GET_MODULEID(buffer[count + 1]);
-        vapid = DBGLOG_GET_VAPID(buffer[count + 1]);
+        vapid = DBGLOG_GET_VDEVID(buffer[count + 1]);
         numargs = DBGLOG_GET_NUMARGS(buffer[count + 1]);
 
         if ((count + 2 + numargs) > length)
