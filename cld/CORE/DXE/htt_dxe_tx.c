@@ -706,14 +706,14 @@ htt_dxe_tx_send_nonstd(
 }
 
 #define htt_dxe_tx_send_batch htt_tx_send_batch
-int
+adf_nbuf_t
 htt_dxe_tx_send_batch(
     struct htt_dxe_pdev_t *pdev,
     adf_nbuf_t head_msdu,int num_msdus)
 {
     /* FILL IN HERE */
     adf_os_assert(0);
-    return 1;
+    return NULL;
 }
 
 #define htt_dxe_tx_msdu_credit htt_tx_msdu_credit
