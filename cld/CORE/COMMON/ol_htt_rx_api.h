@@ -27,6 +27,12 @@
 #include <ieee80211_defines.h> /* ieee80211_rx_status */
 #include <ol_vowext_dbg_defs.h>
 
+
+/*================ constants and types used in the rx API ===================*/
+
+#define HTT_RSSI_INVALID 0x7fff
+
+
 /*================ rx indication message field access methods ===============*/
 
 /**
@@ -184,6 +190,19 @@ htt_rx_ind_mpdu_range_info(
     enum htt_rx_status *status,
     int *mpdu_count);
 
+/**
+ * @brief Return the RSSI provided in a rx indication message.
+ * @details
+ *  Return the RSSI from an rx indication message, converted to dBm units.
+ *
+ * @param pdev - the HTT instance the rx data was received on
+ * @param rx_ind_msg - the netbuf containing the rx indication message
+ * @return RSSI in dBm, or HTT_INVALID_RSSI
+ */
+int16_t
+htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg);
+
+
 /*==================== rx MPDU descriptor access methods ====================*/
 
 /**
@@ -295,6 +314,19 @@ char *
 htt_rx_mpdu_wifi_hdr_retrieve(
     htt_pdev_handle pdev, 
     void *mpdu_desc);
+
+/**
+ * @brief Return the RSSI provided in a rx descriptor.
+ * @details
+ *  Return the RSSI from a rx descriptor, converted to dBm units.
+ *
+ * @param pdev - the HTT instance the rx data was received on
+ * @param mpdu_desc - the abstract descriptor for the MPDU in question
+ * @return RSSI in dBm, or HTT_INVALID_RSSI
+ */
+int16_t
+htt_rx_mpdu_desc_rssi_dbm(htt_pdev_handle pdev, void *mpdu_desc);
+
 
 /*==================== rx MSDU descriptor access methods ====================*/
 

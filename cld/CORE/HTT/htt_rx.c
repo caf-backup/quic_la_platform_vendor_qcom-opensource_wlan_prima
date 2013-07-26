@@ -1323,6 +1323,17 @@ mpdu_stitch_fail:
     return NULL;
 }
 
+int16_t
+htt_rx_mpdu_desc_rssi_dbm(htt_pdev_handle pdev, void *mpdu_desc)
+{
+    /*
+     * Currently the RSSI is provided only as a field in the
+     * HTT_T2H_RX_IND message, rather than in each rx descriptor.
+     */
+    return HTT_RSSI_INVALID;
+}
+
+
 /*
  * htt_rx_amsdu_pop -
  * global function pointer that is programmed during attach to point

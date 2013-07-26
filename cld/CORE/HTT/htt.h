@@ -1287,6 +1287,8 @@ PREPACK struct htt_rx_ind_hdr_prefix_t
 #define HTT_RX_IND_HDR_PREFIX_BYTES (sizeof(struct htt_rx_ind_hdr_prefix_t))
 #define HTT_RX_IND_HDR_PREFIX_SIZE32 (HTT_RX_IND_HDR_PREFIX_BYTES >> 2)
 
+#define HTT_TGT_RSSI_INVALID 0x80
+
 PREPACK struct htt_rx_ppdu_desc_t
 {
     #define HTT_RX_IND_PPDU_OFFSET_WORD_RSSI_CMB              0

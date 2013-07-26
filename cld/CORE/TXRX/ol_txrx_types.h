@@ -561,6 +561,9 @@ struct ol_txrx_pdev_t {
 #ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
 	adf_os_spinlock_t peer_stat_mutex;
 #endif
+
+	int rssi_update_shift;
+	int rssi_new_weight;
 #ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
 	struct {
 		ol_txrx_local_peer_id_t pool[OL_TXRX_NUM_LOCAL_PEER_IDS+1];
@@ -720,6 +723,7 @@ struct ol_txrx_peer_t {
 #ifdef QCA_ENABLE_OL_TXRX_PEER_STATS
 	ol_txrx_peer_stats_t stats;
 #endif
+	int16_t rssi_dbm;
 
 	/* NAWDS Flag and Bss Peer bit */
 	u_int16_t nawds_enabled:1,

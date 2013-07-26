@@ -102,6 +102,53 @@ void ol_rx_err(ol_pdev_handle pdev,
 	 */
 }
 
+#ifdef QCA_SUPPORT_PEER_DATA_RX_RSSI
+static inline int16_t
+ol_rx_rssi_avg(struct ol_txrx_pdev_t *pdev, int16_t rssi_old, int16_t rssi_new)
+{
+    int rssi_old_weight;
+
+    if (rssi_new == HTT_RSSI_INVALID) {
+        return rssi_old;
+    }
+    if (rssi_old == HTT_RSSI_INVALID) {
+        return rssi_new;
+    }
+    rssi_old_weight = (1 << pdev->rssi_update_shift) - pdev->rssi_new_weight;
+    return (rssi_new * pdev->rssi_new_weight + rssi_old * rssi_old_weight) >>
+        pdev->rssi_update_shift;
+}
+
+static void
+OL_RX_IND_RSSI_UPDATE(
+    struct ol_txrx_peer_t *peer,
+    adf_nbuf_t rx_ind_msg)
+{
+    struct ol_txrx_pdev_t *pdev = peer->vdev->pdev;
+    peer->rssi_dbm = ol_rx_rssi_avg(
+        pdev, peer->rssi_dbm,
+        htt_rx_ind_rssi_dbm(pdev->htt_pdev, rx_ind_msg));
+}
+
+static void
+OL_RX_MPDU_RSSI_UPDATE(
+    struct ol_txrx_peer_t *peer,
+    void *rx_mpdu_desc)
+{
+    struct ol_txrx_pdev_t *pdev = peer->vdev->pdev;
+    if (! peer) {
+        return;
+    }
+    peer->rssi_dbm = ol_rx_rssi_avg(
+        pdev, peer->rssi_dbm,
+        htt_rx_mpdu_desc_rssi_dbm(pdev->htt_pdev, rx_mpdu_desc));
+}
+
+#else
+#define OL_RX_IND_RSSI_UPDATE(peer, rx_ind_msg) /* no-op */
+#define OL_RX_MPDU_RSSI_UPDATE(peer, rx_mpdu_desc) /* no-op */
+#endif /* QCA_SUPPORT_PEER_DATA_RX_RSSI */
+
 void
 ol_rx_indication_handler(
     ol_txrx_pdev_handle pdev,
@@ -121,6 +168,7 @@ ol_rx_indication_handler(
     peer = ol_txrx_peer_find_by_id_private(pdev, peer_id);
     if (peer) {
         vdev = peer->vdev;
+        OL_RX_IND_RSSI_UPDATE(peer, rx_ind_msg);
     }
 
     TXRX_STATS_INCR(pdev, priv.rx.normal.ppdus);
@@ -220,6 +268,7 @@ ol_rx_indication_handler(
                     OL_RX_REORDER_TRACE_ADD(
                         pdev, tid, reorder_idx,
                         htt_rx_mpdu_desc_seq_num(htt_pdev, rx_mpdu_desc), 1);
+                    OL_RX_MPDU_RSSI_UPDATE(peer, rx_mpdu_desc);
                     /*
                      * In most cases, out-of-bounds and duplicate sequence
                      * number detection is performed by the target, but in

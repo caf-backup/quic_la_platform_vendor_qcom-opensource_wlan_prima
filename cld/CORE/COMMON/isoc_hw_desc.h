@@ -296,11 +296,52 @@ typedef struct
     A_UINT32 rate_index:9;
 
     /** An overview of RXP status information related to receiving the frame.*/
-    A_UINT32 rxp_flags:23; 
+    A_UINT32 rxp_flags_has_fcs_en:1;
+    A_UINT32 rxp_flags_set_nav:1;
+    A_UINT32 rxp_flags_clear_nav:1;
+    A_UINT32 rxp_flags_rmf_keyid_vld:1;
+    A_UINT32 rxp_flags_addr3_index_invalid:1;
+    A_UINT32 rxp_flags_addr2_index_invalid:1;
+    A_UINT32 rxp_flags_addr1_index_invalid:1;
+    A_UINT32 rxp_flags_errored_rmf_frame:1;
+    A_UINT32 rxp_flags_ampdu_flag:1;
+    A_UINT32 rxp_flags_rmf_keyid:3;
+    A_UINT32 rxp_flags_last_mpdu:1;
+    A_UINT32 rxp_flags_first_mpdu:1;
+    A_UINT32 rxp_flags_has_phy_cmd:1;
+    A_UINT32 rxp_flags_has_phy_stats:1;
+    A_UINT32 rxp_flags_has_dlm:1;
+    A_UINT32 rxp_flags_byp_dlm_proc:1;
+    A_UINT32 rxp_flags_byp_mpdu_proc:1;
+    A_UINT32 rxp_flags_fail_filter:1;
+    A_UINT32 rxp_flags_fail_max_ptklen:1;
+    A_UINT32 rxp_flags_fcs_err:1;
+    A_UINT32 rxp_flags_err:1;
 
 #else
 
-    A_UINT32 rxp_flags:23;                     /* RxP flags*/
+    A_UINT32 rxp_flags_err:1;
+    A_UINT32 rxp_flags_fcs_err:1;
+    A_UINT32 rxp_flags_fail_max_ptklen:1;
+    A_UINT32 rxp_flags_fail_filter:1;
+    A_UINT32 rxp_flags_byp_mpdu_proc:1;
+    A_UINT32 rxp_flags_byp_dlm_proc:1;
+    A_UINT32 rxp_flags_has_dlm:1;
+    A_UINT32 rxp_flags_has_phy_stats:1;
+    A_UINT32 rxp_flags_has_phy_cmd:1;
+    A_UINT32 rxp_flags_first_mpdu:1;
+    A_UINT32 rxp_flags_last_mpdu:1;
+    A_UINT32 rxp_flags_rmf_keyid:3;
+    A_UINT32 rxp_flags_ampdu_flag:1;
+    A_UINT32 rxp_flags_errored_rmf_frame:1;
+    A_UINT32 rxp_flags_addr1_index_invalid:1;
+    A_UINT32 rxp_flags_addr2_index_invalid:1;
+    A_UINT32 rxp_flags_addr3_index_invalid:1;
+    A_UINT32 rxp_flags_rmf_keyid_vld:1;
+    A_UINT32 rxp_flags_clear_nav:1;
+    A_UINT32 rxp_flags_set_nav:1;
+    A_UINT32 rxp_flags_has_fcs_en:1;
+
     A_UINT32 rate_index:9;
 
 #endif

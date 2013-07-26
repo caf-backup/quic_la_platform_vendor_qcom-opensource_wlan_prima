@@ -612,6 +612,27 @@ htt_rx_ind_mpdu_range_info(
     *mpdu_count = HTT_RX_IND_MPDU_COUNT_GET(*msg_word);
 }
 
+#define HTT_TGT_NOISE_FLOOR_DBM (-95) /* approx */
+int16_t
+htt_rx_ind_rssi_dbm(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg)
+{
+    int16_t rssi;
+    u_int32_t *msg_word;
+
+    msg_word = (u_int32_t *)
+        (adf_nbuf_data(rx_ind_msg) + HTT_RX_IND_FW_RX_PPDU_DESC_BYTE_OFFSET);
+
+    /* check if the RX_IND message contains valid rx PPDU start info */
+    if (!HTT_RX_IND_START_VALID_GET(*msg_word)) {
+        return HTT_RSSI_INVALID;
+    }
+
+    rssi = HTT_RX_IND_RSSI_CMB_GET(*msg_word);
+    return (HTT_TGT_RSSI_INVALID == rssi) ?
+        HTT_RSSI_INVALID :
+        rssi + HTT_TGT_NOISE_FLOOR_DBM;
+}
+
 
 /*--- stats confirmation message ---*/
 
