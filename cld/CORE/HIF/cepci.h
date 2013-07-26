@@ -71,6 +71,7 @@ struct pcie_state_s {
  */
 #define PCIE_CONFIG_FLAG_ENABLE_L1          0x0000001
 #define PCIE_CONFIG_FLAG_CLK_SWITCH_WAIT    0x0000002
+#define PCIE_CONFIG_FLAG_AXI_CLK_GATE       0x0000004
 
 #define PIPE_TO_CE_MAP_CNT 32 /* simple implementation constant */
 
