@@ -364,6 +364,16 @@ ol_rx_indication_handler(
                     /* once per mpdu */
                     ol_rx_process_inv_peer(pdev, rx_mpdu_desc, msdu);
                 }
+		while (1) {
+			 /* Free the nbuf */
+			adf_nbuf_t next;
+			next = adf_nbuf_next(msdu);
+			htt_rx_desc_frame_free(htt_pdev, msdu);
+			if (msdu == tail_msdu) {
+				break;
+			}
+			msdu = next;
+		}
             }
         }
     }
