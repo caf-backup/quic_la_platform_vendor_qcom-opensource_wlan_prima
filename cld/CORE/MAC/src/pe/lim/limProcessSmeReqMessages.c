@@ -1103,9 +1103,10 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
 
     pScanOffloadReq->uIEFieldLen = pScanReq->uIEFieldLen;
     pScanOffloadReq->uIEFieldOffset = len - pScanOffloadReq->uIEFieldLen;
-    palCopyMemory(pMac->hHdd, (tANI_U8 *) p + i,
+    palCopyMemory(pMac->hHdd,
+            (tANI_U8 *) pScanOffloadReq + pScanOffloadReq->uIEFieldOffset,
             (tANI_U8 *) pScanReq + pScanReq->uIEFieldOffset,
-            pScanOffloadReq->uIEFieldLen);
+            pScanReq->uIEFieldLen);
 
     rc = wdaPostCtrlMsg(pMac, &msg);
     if (rc != eSIR_SUCCESS)
