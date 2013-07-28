@@ -83,6 +83,10 @@
 #include "wlan_hdd_dev_pwr.h"
 #include "qc_sap_ioctl.h"
 #include "wlan_qct_wda.h"
+#ifdef QCA_WIFI_2_0
+#include "ieee80211_common.h"
+#include "wma.h"
+#endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
 extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
 extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
@@ -160,7 +164,6 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_SET_AMSDU         28
 #define WE_SET_TXPOW_2G      29
 #define WE_SET_TXPOW_5G      30
-
 /* Private ioctl for firmware debug log */
 #define WE_DBGLOG_REPORT_SIZE           31
 #define WE_DBGLOG_TSTAMP_RESOLUTION     32
@@ -171,6 +174,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DBGLOG_MODULE_ENABLE         37
 #define WE_DBGLOG_MODULE_DISABLE        38
 #define WE_DBGLOG_TYPE                  39
+#define WE_SET_TXRX_FWSTATS  40
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -4558,6 +4562,15 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                                            set_value, DBG_CMD);
               break;
          }
+
+	case WE_SET_TXRX_FWSTATS:
+	{
+           hddLog(LOG1, "WE_SET_TXRX_FWSTATS val %d", set_value);
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+			   (int)WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID,
+			   set_value, VDEV_CMD);
+	   break;
+	}
 #endif
         default:
         {
@@ -7706,6 +7719,10 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         "dl_type" },
 
+    {   WE_SET_TXRX_FWSTATS,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "txrx_fw_stats" },
 #endif
 
     {   WLAN_PRIV_SET_NONE_GET_INT,
