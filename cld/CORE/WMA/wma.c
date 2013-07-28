@@ -2017,6 +2017,55 @@ wmi_unified_pdev_set_param(wmi_unified_t wmi_handle, WMI_PDEV_PARAM param_id,
 	return ret;
 }
 
+static int32_t wma_set_txrx_fw_stats_level(tp_wma_handle wma_handle,
+					   uint8_t vdev_id, u_int32_t value)
+{
+	struct ol_txrx_stats_req req;
+	ol_txrx_vdev_handle vdev;
+
+	vdev = wma_find_vdev_by_id(wma_handle, vdev_id);
+	if (!vdev) {
+		WMA_LOGE("%s:Invalid vdev handle", __func__);
+		return -EINVAL;
+	}
+	vos_mem_zero(&req, sizeof(req));
+	req.print.verbose = 1;
+	if (value <= WMA_FW_TX_PPDU_STATS)
+		req.stats_type_upload_mask = 1 << (value - 1);
+	else if (value == WMA_FW_TX_CONCISE_STATS) {
+		/*
+		 * Stats request 5 is the same as stats request 4,
+		 * but with only a concise printout.
+		 */
+		req.print.concise = 1;
+		req.stats_type_upload_mask = 1 << (WMA_FW_TX_PPDU_STATS - 1);
+	} else if (value == WMA_FW_TX_RC_STATS)
+		req.stats_type_upload_mask = 1 << (WMA_FW_TX_CONCISE_STATS - 1);
+
+	ol_txrx_fw_stats_get(vdev, &req);
+
+	return 0;
+}
+
+static int32_t wma_set_priv_cfg(tp_wma_handle wma_handle,
+				wda_cli_set_cmd_t *privcmd)
+{
+	int32_t ret = 0;
+
+	switch (privcmd->param_id) {
+	case WMA_VDEV_TXRX_FWSTATS_ENABLE_CMDID:
+		ret = wma_set_txrx_fw_stats_level(wma_handle,
+						  privcmd->param_vdev_id,
+						  privcmd->param_value);
+		break;
+	default:
+		WMA_LOGE("Invalid wma config command id:%d",
+			 privcmd->param_id);
+		ret = -EINVAL;
+	}
+	return ret;
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 					wda_cli_set_cmd_t *privcmd)
 {
@@ -2026,6 +2075,16 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 				wma->vos_context);
 
 	WMA_LOGD("wmihandle %p", wma->wmi_handle);
+
+	if (privcmd->param_id >= WMI_CMDID_MAX) {
+		/*
+		 * This configuration setting is not done using any wmi
+		 * command, call appropriate handler.
+		 */
+		if (wma_set_priv_cfg(wma, privcmd))
+			WMA_LOGE("Failed to set wma priv congiuration");
+		return;
+	}
 
 	switch (privcmd->param_vp_dev) {
 	case VDEV_CMD:
