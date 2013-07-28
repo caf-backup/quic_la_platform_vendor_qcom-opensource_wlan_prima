@@ -4977,7 +4977,16 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
             pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_SCAN_REQ);
             pMsg->length = pal_cpu_to_be16(msgLen);
             //ToDO: Fill in session info when we need to do scan base on session.
-            pMsg->sessionId = 0;
+            if ((pMac->fScanOffload) && (sessionId != CSR_SESSION_ID_INVALID))
+            {
+                pMsg->sessionId = sessionId;
+            }
+            else
+            {
+                /* if sessionId == CSR_SESSION_ID_INVALID, then send the scan
+                   request on first available session */
+                pMsg->sessionId = 0;
+            }
             pMsg->transactionId = 0;
             pMsg->dot11mode = (tANI_U8) csrTranslateToWNICfgDot11Mode(pMac, csrFindBestPhyMode( pMac, pMac->roam.configParam.phyMode ));
             pMsg->bssType = pal_cpu_to_be32(csrTranslateBsstypeToMacType(pScanReq->BSSType));
