@@ -331,7 +331,11 @@ sapGotoStarting
                             eSME_REASON_OTHER);
     }
 
-    status = vos_get_vdev_types(VOS_STA_SAP_MODE, &type, &subType);
+    if (sapContext->csrRoamProfile.csrPersona == VOS_P2P_GO_MODE)
+        status = vos_get_vdev_types(VOS_P2P_GO_MODE, &type, &subType);
+    else
+        status = vos_get_vdev_types(VOS_STA_SAP_MODE, &type, &subType);
+
     if (VOS_STATUS_SUCCESS != status)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_FATAL, "failed to get vdev type");
