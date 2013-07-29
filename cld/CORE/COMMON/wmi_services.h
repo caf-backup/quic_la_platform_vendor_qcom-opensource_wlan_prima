@@ -36,6 +36,8 @@ typedef  enum  {
     WMI_SERVICE_BCN_FILTER,           /* Beacon filter support */
     WMI_SERVICE_RTT,                  /* RTT (round trip time) support */
     WMI_SERVICE_WOW,                  /* WOW Support */
+    WMI_SERVICE_RATECTRL_CACHE,       /* Rate-control caching */
+    WMI_SERVICE_IRAM_TIDS,            /* TIDs in IRAM */
     WMI_SERVICE_ARPNS_OFFLOAD,        /* ARP NS Offload support */
     WMI_SERVICE_NLO,                  /* Network list offload service */
     WMI_SERVICE_GTK_OFFLOAD,          /* GTK offload */
