@@ -98,6 +98,22 @@
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
 /* default value */
 #define DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD  20
+#define DEFAULT_MAX_IDLETIME 20
+/*There is no standard way of caluclating minimum inactive
+ *timer and max unresposive timer from max inactive timer
+ *the below expression are taken from qca_main code
+ */
+
+/*REFEFERENCE_TIME refers to the time that we need to wait for ack
+ *after sending an keepalive frame.
+ */
+#define REFERENCE_TIME  5
+/*The minimum amount of time AP begins to consider STA inactive*/
+#define MIN_IDLE_INACTIVE_TIME_SECS(val)   ((val - REFERENCE_TIME)/2)
+/* Once a STA exceeds the maximum unresponsive time, the AP will send a
+ * WMI_STA_KICKOUT event to the host so the STA can be deleted.
+ */
+#define MAX_UNRESPONSIVE_TIME_SECS(val)   (val + REFERENCE_TIME)
 
 #define AGC_DUMP  1
 #define CHAN_DUMP 2
@@ -493,6 +509,51 @@ static void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 #undef PEER_ALL_TID_BITMASK
 }
 
+static int wma_peer_sta_kickout_event_handler(void *handle, u8 *event, u32 len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	wmi_peer_sta_kickout_event *kickout_event =
+					(wmi_peer_sta_kickout_event *)event;
+	u_int8_t vdev_id, peer_id, macaddr[IEEE80211_ADDR_LEN];
+	ol_txrx_peer_handle peer;
+	ol_txrx_pdev_handle pdev;
+	tpDeleteStaContext del_sta_ctx;
+
+	WMA_LOGD("%s: Enter", __func__);
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&kickout_event->peer_macaddr, macaddr);
+	peer = ol_txrx_find_peer_by_addr(pdev, macaddr, &peer_id);
+	if (!peer) {
+		WMA_LOGE("PEER [%pM] not found", macaddr);
+		return -EINVAL;
+	}
+
+	if (tl_shim_get_vdevid(peer, &vdev_id) != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Not able to find BSSID for peer [%pM]", macaddr);
+		return -EINVAL;
+	}
+
+	del_sta_ctx =
+		(tpDeleteStaContext)vos_mem_malloc(sizeof(tDeleteStaContext));
+	if (!del_sta_ctx) {
+		WMA_LOGE("VOS MEM Alloc Failed for tDeleteStaContext");
+		return -EINVAL;
+	}
+
+	WMA_LOGD("%s:\nPEER:[%pM]\n BSSID:[%pM]\nINTERFACE:%d\npeer_ID:%d\n",
+		 __func__, macaddr, wma->interfaces[vdev_id].addr, vdev_id,
+		 peer_id);
+	del_sta_ctx->staId = peer_id;
+	vos_mem_copy(del_sta_ctx->addr2, macaddr, IEEE80211_ADDR_LEN);
+	vos_mem_copy(del_sta_ctx->bssId, wma->interfaces[vdev_id].addr,
+		     IEEE80211_ADDR_LEN);
+	del_sta_ctx->reasonCode = HAL_DEL_STA_REASON_CODE_KEEP_ALIVE;
+	wma_send_msg(wma, SIR_LIM_DELETE_STA_CONTEXT_IND, (void *)del_sta_ctx,
+		     0);
+	WMA_LOGD("%s: Exit", __func__);
+	return 0;
+}
+
 static int wma_vdev_stop_resp_handler(void *handle, u8 *event, u32 len)
 {
 	tp_wma_handle wma = (tp_wma_handle)handle;
@@ -793,6 +854,11 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_VDEV_STOPPED_EVENTID,
 					   wma_vdev_stop_resp_handler);
+
+	/* register for STA kickout function */
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					   WMI_PEER_STA_KICKOUT_EVENTID,
+					   wma_peer_sta_kickout_event_handler);
 #ifndef QCA_WIFI_ISOC
 	 if (!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
 				     WMI_SERVICE_BEACON_OFFLOAD)) {
@@ -1130,6 +1196,33 @@ static void wma_set_sta_null_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
 	return;
 }
 
+static inline tANI_U32 wma_get_maxidle_time(struct sAniSirGlobal *mac,
+						tANI_U32 sub_type)
+{
+	tANI_U16 cfg_id;
+	tANI_U32 max_idletime;
+
+	switch (sub_type) {
+	case WMI_UNIFIED_VDEV_SUBTYPE_P2P_GO:
+		cfg_id = WNI_CFG_GO_KEEP_ALIVE_TIMEOUT;
+		break;
+	case WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE:
+		/*No need to set KEEPALIVE for P2P_DEVICE
+		 *subtype interface*/
+		return 0;
+	default:
+		/*For softAp the subtype value will be zero*/
+		cfg_id = WNI_CFG_AP_KEEP_ALIVE_TIMEOUT;
+	}
+
+	if(wlan_cfgGetInt(mac, cfg_id, &max_idletime) != eSIR_SUCCESS) {
+		WMA_LOGE("Failed to get value for cfg id:%d", cfg_id);
+		max_idletime = DEFAULT_MAX_IDLETIME;
+	}
+
+	return max_idletime;
+}
+
 /* function   : wma_vdev_attach
  * Descriptin :
  * Args       :
@@ -1143,7 +1236,7 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 			wma_handle->vos_context);
 	enum wlan_op_mode txrx_vdev_type;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
-	tANI_U32 cfg_data_val;
+	tANI_U32 cfg_data_val, min_inactive_time, max_unresponsive_time;
 	struct sAniSirGlobal *mac =
 		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 						      wma_handle->vos_context);
@@ -1200,6 +1293,34 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 		wma_set_sta_null_keep_alive(wma_handle,
 					    self_sta_req->sessionId,
 					    cfg_data_val);
+		break;
+	case WMI_VDEV_TYPE_AP:
+		cfg_data_val = wma_get_maxidle_time(mac, self_sta_req->subType);
+		if (!cfg_data_val) /*0 -> Disabled*/
+		    break;
+
+		min_inactive_time = MIN_IDLE_INACTIVE_TIME_SECS(cfg_data_val);
+		max_unresponsive_time =
+				     MAX_UNRESPONSIVE_TIME_SECS(cfg_data_val);
+
+		if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+						    self_sta_req->sessionId,
+		       WMI_VDEV_PARAM_AP_KEEPALIVE_MIN_IDLE_INACTIVE_TIME_SECS,
+			       (min_inactive_time < 0)? 0 : min_inactive_time))
+			WMA_LOGE("Failed to Set AP MIN IDLE INACTIVE TIME");
+
+		if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+						    self_sta_req->sessionId,
+		       WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_IDLE_INACTIVE_TIME_SECS,
+						    cfg_data_val))
+			WMA_LOGE("Failed to Set AP MAX IDLE INACTIVE TIME");
+
+		if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+						    self_sta_req->sessionId,
+			WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_UNRESPONSIVE_TIME_SECS,
+						    max_unresponsive_time))
+			WMA_LOGE("Failed to Set MAX UNRESPONSIVE TIME");
+
 		break;
 	}
 

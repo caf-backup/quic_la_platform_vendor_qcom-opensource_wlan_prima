@@ -895,3 +895,17 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 
 	return status;
 }
+
+/*
+ * Funtion to retrieve BSSID for peer sta.
+ */
+VOS_STATUS tl_shim_get_vdevid(struct ol_txrx_peer_t *peer, u_int8_t *vdev_id)
+{
+	if(!peer) {
+		TLSHIM_LOGE("peer argument is null!!");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	*vdev_id = peer->vdev->vdev_id;
+	return VOS_STATUS_SUCCESS;
+}
