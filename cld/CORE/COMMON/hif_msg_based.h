@@ -55,6 +55,7 @@ void HIFFlushSurpriseRemove(HIF_DEVICE *hifDevice);
 
 void HIFGrowBuffers(void* hif_hdl);
 
+void HIFDump(HIF_DEVICE *hifDevice, u_int8_t CmdId, bool start);
 /**
  * @brief: Send a buffer to HIF for transmission to the target.
  * @param[in]: hifDevice - HIF handle

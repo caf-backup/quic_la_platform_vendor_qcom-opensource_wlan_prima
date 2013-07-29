@@ -365,6 +365,21 @@ A_STATUS    HTCConnectService(HTC_HANDLE HTCHandle,
                               HTC_SERVICE_CONNECT_REQ  *pReq,
                               HTC_SERVICE_CONNECT_RESP *pResp);
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  @desc: HTC register log dump
+  @function name: HTCDump
+  @input:  HTCHandle - HTC handle
+           CmdId - Log command
+           start - start/print logs
+  @output:
+  @return:
+  @notes: Register logs will be started/printed.
+  be flushed.
+  @example:
+  @see also:
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+void HTCDump(HTC_HANDLE HTCHandle, u_int8_t CmdId, bool start);
+/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   @desc: Send an HTC packet
   @function name: HTCSendPkt
   @input:  HTCHandle - HTC handle

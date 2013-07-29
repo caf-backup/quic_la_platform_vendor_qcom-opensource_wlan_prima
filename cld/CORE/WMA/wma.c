@@ -97,6 +97,10 @@
 #define WMA_DEFAULT_SCAN_PRIORITY            1
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
 
+#define AGC_DUMP  1
+#define CHAN_DUMP 2
+#define WD_DUMP   3
+
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
@@ -2133,6 +2137,21 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 				WMA_LOGE("ol_txrx_aggr_cfg set amsdu"
 						" failed ret %d", ret);
 			intr[vid].config.amsdu = privcmd->param_value;
+			break;
+		case GEN_PARAM_DUMP_AGC_START:
+			HTCDump(wma->htc_handle, AGC_DUMP, true);
+			break;
+		case GEN_PARAM_DUMP_AGC:
+			HTCDump(wma->htc_handle, AGC_DUMP, false);
+			break;
+		case GEN_PARAM_DUMP_CHANINFO_START:
+			HTCDump(wma->htc_handle, CHAN_DUMP, true);
+			break;
+		case GEN_PARAM_DUMP_CHANINFO:
+			HTCDump(wma->htc_handle, CHAN_DUMP, false);
+			break;
+		case GEN_PARAM_DUMP_WATCHDOG:
+			HTCDump(wma->htc_handle, WD_DUMP, false);
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
