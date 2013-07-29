@@ -1932,14 +1932,8 @@ typedef enum {
 } WMI_PDEV_PARAM;
 
 typedef enum {
-    /** Enable/Disable report size */
-    WMI_DBGLOG_REPORT_SIZE = 0x1,
-    /** Time resolution */
-    WMI_DBGLOG_TSTAMP_RESOLUTION,
-    /** Enable/Disable reporting */
-    WMI_DBGLOG_REPORTING_ENABLED,
     /** Set the loglevel */
-    WMI_DBGLOG_LOG_LEVEL,
+    WMI_DBGLOG_LOG_LEVEL = 0x1,
     /** Enable VAP level debug */
     WMI_DBGLOG_VAP_ENABLE,
     /** Disable VAP level debug */
@@ -1948,6 +1942,8 @@ typedef enum {
     WMI_DBGLOG_MODULE_ENABLE,
     /** Disable MODULE level debug */
     WMI_DBGLOG_MODULE_DISABLE,
+    /** Enable MODULE level debug */
+    WMI_DBGLOG_MOD_LOG_LEVEL,
     /** set type of the debug output */
     WMI_DBGLOG_TYPE,
 } WMI_DBG_PARAM;
@@ -2025,9 +2021,6 @@ typedef struct {
 } wmi_set_channel_cmd;
 
 #define WMI_MAX_DEBUG_MESG (sizeof(A_UINT32) * 32) 
-typedef struct {
-    struct dbglog_config_msg_s config;
-}WMI_DBGLOG_CFG_CMD;
 
 typedef struct {
    /** message buffer, NULL terminated */
