@@ -167,10 +167,17 @@ static inline void *wma_find_vdev_by_id(tp_wma_handle wma, u_int8_t vdev_id)
  */
 static bool wma_is_vdev_in_ap_mode(tp_wma_handle wma, u_int8_t vdev_id)
 {
-	ol_txrx_vdev_handle vdev;
+	struct wma_txrx_node *intf = wma->interfaces;
 
-	vdev = wma_find_vdev_by_id(wma, vdev_id);
-	if (vdev && vdev->opmode == wlan_op_mode_ap)
+	if (vdev_id > wma->max_bssid) {
+		WMA_LOGP("%s: Invalid vdev_id %hu", __func__, vdev_id);
+		VOS_ASSERT(0);
+		return false;
+	}
+
+	if ((intf[vdev_id].type == WMI_VDEV_TYPE_AP) &&
+		((intf[vdev_id].sub_type == WMI_UNIFIED_VDEV_SUBTYPE_P2P_GO) ||
+		 (intf[vdev_id].sub_type == 0)))
 		return true;
 
 	return false;
@@ -2696,19 +2703,11 @@ send_bss_resp:
 
 static void wma_add_bss(tp_wma_handle wma, tpAddBssParams params)
 {
-	switch (params->operMode) {
-	case BSS_OPERATIONAL_MODE_STA:
-		wma_add_bss_sta_mode(wma, params);
-		break;
-
-	case BSS_OPERATIONAL_MODE_AP:
+	if ((params->halPersona == VOS_STA_SAP_MODE) ||
+			(params->halPersona == VOS_P2P_GO_MODE))
 		wma_add_bss_ap_mode(wma, params);
-		break;
-
-	default:
-		WMA_LOGE("%s: Invalid oper mode %d\n", __func__,
-			 params->operMode);
-	}
+	else
+		wma_add_bss_sta_mode(wma, params);
 }
 
 static int wmi_unified_vdev_up_send(wmi_unified_t wmi,
@@ -3361,7 +3360,7 @@ static void wma_set_linkstate(tp_wma_handle wma, tpLinkStateParams params)
 		goto out;
 	}
 
-	if (vdev->opmode == wlan_op_mode_ap) {
+	if (wma_is_vdev_in_ap_mode(wma, vdev_id)) {
 		WMA_LOGD("%s: Ignoring set link req in ap mode\n", __func__);
 		goto out;
 	}
