@@ -594,7 +594,8 @@ htt_rx_netbuf_pop(
 #ifdef CHECKSUM_OFFLOAD
 static inline 
 void
-htt_set_checksum_result_ll(adf_nbuf_t msdu, struct htt_host_rx_desc_base *rx_desc)
+htt_set_checksum_result_ll(htt_pdev_handle pdev, adf_nbuf_t msdu,
+                           struct htt_host_rx_desc_base *rx_desc)
 {
 #define MAX_IP_VER          2
 #define MAX_PROTO_VAL       4
@@ -633,7 +634,7 @@ htt_set_checksum_result_ll(adf_nbuf_t msdu, struct htt_host_rx_desc_base *rx_des
         0
     } ;
 
-    if (cksum.l4_type != ADF_NBUF_RX_CKSUM_NONE) {
+    if (cksum.l4_type != (adf_nbuf_l4_rx_cksum_type_t)ADF_NBUF_RX_CKSUM_NONE) {
         cksum.l4_result = ((*(u_int32_t *) &rx_desc->attention) & 
                 RX_ATTENTION_0_TCP_UDP_CHKSUM_FAIL_MASK) ? 
                     ADF_NBUF_RX_CKSUM_NONE :
@@ -646,7 +647,8 @@ htt_set_checksum_result_ll(adf_nbuf_t msdu, struct htt_host_rx_desc_base *rx_des
 
 static inline 
 void
-htt_set_checksum_result_hl( adf_nbuf_t msdu, struct htt_host_rx_desc_base *rx_desc)
+htt_set_checksum_result_hl(adf_nbuf_t msdu,
+                           struct htt_host_rx_desc_base *rx_desc)
 {
     u_int8_t flag = ((u_int8_t*)rx_desc - sizeof(struct hl_htt_rx_ind_base))[HTT_ENDIAN_BYTE_IDX_SWAP(HTT_RX_IND_HL_FLAG_OFFSET)];
     int is_ipv6 = flag & HTT_RX_IND_HL_FLAG_IPV6 ? 1:0;
@@ -676,7 +678,7 @@ htt_set_checksum_result_hl( adf_nbuf_t msdu, struct htt_host_rx_desc_base *rx_de
             cksum.l4_type = ADF_NBUF_RX_CKSUM_NONE;
             break;
     }
-    if (cksum.l4_type != ADF_NBUF_RX_CKSUM_NONE) {
+    if (cksum.l4_type != (adf_nbuf_l4_rx_cksum_type_t)ADF_NBUF_RX_CKSUM_NONE) {
         cksum.l4_result = flag & HTT_RX_IND_HL_FLAG_C4_FAILED ? 
                     ADF_NBUF_RX_CKSUM_NONE : ADF_NBUF_RX_CKSUM_TCP_UDP_UNNECESSARY;
     }
@@ -684,7 +686,7 @@ htt_set_checksum_result_hl( adf_nbuf_t msdu, struct htt_host_rx_desc_base *rx_de
 }
 
 #else
-#define htt_set_checksum_result_ll(msdu, rx_desc) /* no-op */
+#define htt_set_checksum_result_ll(pdev, msdu, rx_desc) /* no-op */
 #define htt_set_checksum_result_hl(msdu, rx_desc) /* no-op */
 #endif
 
@@ -795,7 +797,7 @@ htt_rx_amsdu_pop_ll(
         /*
          *  TCP/UDP checksum offload support
          */
-        htt_set_checksum_result_ll(msdu, rx_desc);
+        htt_set_checksum_result_ll(pdev, msdu, rx_desc);
 
         msdu_len_invalid = (*(u_int32_t *) &rx_desc->attention) & 
             RX_ATTENTION_0_MPDU_LENGTH_ERR_MASK;

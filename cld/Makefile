@@ -117,6 +117,9 @@ CONFIG_TX_CREDIT_RECLAIM_SUPPORT := 0
 #Enable FTM support
 CONFIG_QCA_WIFI_FTM := 0
 
+#Enable Checksum Offload
+CONFIG_CHECKSUM_OFFLOAD := 1
+
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
 else
@@ -997,6 +1000,11 @@ endif
 #Enable FTM support
 ifeq ($(CONFIG_QCA_WIFI_FTM), 1)
 CDEFINES += -DQCA_WIFI_FTM
+endif
+
+#Enable Checksum Offload support
+ifeq ($(CONFIG_CHECKSUM_OFFLOAD), 1)
+CDEFINES += -DCHECKSUM_OFFLOAD
 endif
 
 # Fix build for GCC 4.7
