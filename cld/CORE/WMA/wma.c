@@ -2762,7 +2762,7 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		goto send_rsp;
 	}
 
-	vdev = wma_find_vdev_by_id(wma, add_sta->sessionId);
+	vdev = wma_find_vdev_by_id(wma, add_sta->smesessionId);
 	if (!vdev) {
 		WMA_LOGE("%s: Failed to find vdev\n", __func__);
 		add_sta->status = VOS_STATUS_E_FAILURE;
@@ -2770,7 +2770,7 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	}
 
 	status = wma_create_peer(wma, pdev, vdev, add_sta->staMac,
-				 add_sta->sessionId);
+				 add_sta->smesessionId);
 	if (status != VOS_STATUS_SUCCESS) {
 		WMA_LOGE("%s: Failed to create peer for %pM\n",
 			 __func__, add_sta->staMac);
@@ -2784,23 +2784,23 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		WMA_LOGE("%s: Failed to find peer handle using peer mac %pM\n",
 			 __func__, add_sta->staMac);
 		add_sta->status = VOS_STATUS_E_FAILURE;
-		wma_remove_peer(wma, add_sta->staMac, add_sta->sessionId, peer);
+		wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
 		goto send_rsp;
 	}
 	ret = wmi_unified_send_peer_assoc(wma, add_sta->nwType, add_sta);
 	if (ret) {
 		add_sta->status = VOS_STATUS_E_FAILURE;
-		wma_remove_peer(wma, add_sta->staMac, add_sta->sessionId, peer);
+		wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
 		goto send_rsp;
 	}
 	if (add_sta->encryptType == eSIR_ED_NONE) {
 		ret = wma_set_peer_param(wma, add_sta->staMac,
 					 WMI_PEER_AUTHORIZE, 1,
-					 add_sta->sessionId);
+					 add_sta->smesessionId);
 		if (ret) {
 			add_sta->status = VOS_STATUS_E_FAILURE;
 			wma_remove_peer(wma, add_sta->staMac,
-					add_sta->sessionId, peer);
+					add_sta->smesessionId, peer);
 			goto send_rsp;
 		}
 		state = ol_txrx_peer_state_auth;
@@ -2850,7 +2850,7 @@ static void wma_add_sta(tp_wma_handle wma, tpAddStaParams add_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
 
-	if (wma_is_vdev_in_ap_mode(wma, add_sta->sessionId))
+	if (wma_is_vdev_in_ap_mode(wma, add_sta->smesessionId))
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
 
 	switch (oper_mode) {
@@ -3227,7 +3227,7 @@ static void wma_delete_sta_req_ap_mode(tp_wma_handle wma,
 		goto send_del_rsp;
 	}
 
-	wma_remove_peer(wma, peer->mac_addr.raw, del_sta->sessionId, peer);
+	wma_remove_peer(wma, peer->mac_addr.raw, del_sta->smesessionId, peer);
 	del_sta->status = VOS_STATUS_SUCCESS;
 
 send_del_rsp:
@@ -3255,7 +3255,7 @@ static void wma_delete_sta(tp_wma_handle wma, tpDeleteStaParams del_sta)
 {
 	tANI_U8 oper_mode = BSS_OPERATIONAL_MODE_STA;
 
-	if (wma_is_vdev_in_ap_mode(wma, del_sta->sessionId))
+	if (wma_is_vdev_in_ap_mode(wma, del_sta->smesessionId))
 		oper_mode = BSS_OPERATIONAL_MODE_AP;
 
 	switch (oper_mode) {
