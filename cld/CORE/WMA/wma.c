@@ -4614,8 +4614,8 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	cfg->uapsd = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					    WMI_SERVICE_AP_UAPSD);
 
-	/* Enable DFS channel scan */
-	cfg->dfs_chan_scan = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+	/* Update AP DFS service */
+	cfg->ap_dfs = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 						    WMI_SERVICE_AP_DFS);
 
 	/* Enable 11AC */

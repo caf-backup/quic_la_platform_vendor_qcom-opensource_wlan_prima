@@ -1725,9 +1725,6 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     /* Set up UAPSD */
     cfg_ini->apUapsdEnabled &= cfg->uapsd;
 
-    /* DFS Channel Scan */
-    cfg_ini->enableDFSChnlScan &= cfg->dfs_chan_scan;
-
 #ifdef WLAN_FEATURE_11AC
     /* 11AC mode support */
     if ((cfg_ini->dot11Mode == eHDD_DOT11_MODE_11ac ||
