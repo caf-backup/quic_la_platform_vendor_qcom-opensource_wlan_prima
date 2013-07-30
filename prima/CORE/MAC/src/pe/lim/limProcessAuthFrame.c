@@ -537,14 +537,16 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                          (tANI_U8 *) &pMlmDisassocReq->peerMacAddr,
                                          sizeof(tSirMacAddr))))
                 {
-                    PELOGE(limLog(pMac, LOGP, FL("\nTODO:Ack for disassoc frame is pending"
-                                    "Issue delsta for %02x:%02x:%02x:%02x:%02x:%02x"),
+                    PELOGE(limLog(pMac, LOGE, FL("\nTODO:Ack for disassoc "
+                                "frame is pending Issue delsta for"
+                                " %02x:%02x:%02x:%02x:%02x:%02x"),
                                 pMlmDisassocReq->peerMacAddr[0],
                                 pMlmDisassocReq->peerMacAddr[1],
                                 pMlmDisassocReq->peerMacAddr[2],
                                 pMlmDisassocReq->peerMacAddr[3],
                                 pMlmDisassocReq->peerMacAddr[4],
                                 pMlmDisassocReq->peerMacAddr[5]);)
+                    limProcessDisassocAckTimeout(pMac);
                 }
                 pMlmDeauthReq = pMac->lim.limDisassocDeauthCnfReq.pMlmDeauthReq;
                 if (pMlmDeauthReq &&
@@ -552,8 +554,9 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                          (tANI_U8 *) &pMlmDeauthReq->peerMacAddr,
                                          sizeof(tSirMacAddr))))
                 {
-                    PELOGE(limLog(pMac, LOGP, FL("\nTODO:Ack for disassoc frame is pending"
-                                    "Issue delsta for %02x:%02x:%02x:%02x:%02x:%02x"),
+                    PELOGE(limLog(pMac, LOGE, FL("\nTODO:Ack for deauth frame "
+                                "is pending Issue delsta for "
+                                "%02x:%02x:%02x:%02x:%02x:%02x"),
                                 pMlmDeauthReq->peerMacAddr[0],
                                 pMlmDeauthReq->peerMacAddr[1],
                                 pMlmDeauthReq->peerMacAddr[2],
@@ -561,6 +564,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                 pMlmDeauthReq->peerMacAddr[4],
                                 pMlmDeauthReq->peerMacAddr[5]
                                 );)
+                    limProcessDeauthAckTimeout(pMac);
                 }
             }
 
