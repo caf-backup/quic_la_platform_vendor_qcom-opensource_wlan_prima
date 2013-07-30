@@ -2435,12 +2435,6 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
 {
 	int ret;
 	uint32_t slot_time;
-	tANI_U32 cfg_data_val = 0;
-
-	/* get mac to acess CFG data base */
-	struct sAniSirGlobal *mac =
-		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
-							wma->vos_context);
 
 	/* Beacon Interval setting */
 	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
@@ -2467,33 +2461,6 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
 					      slot_time);
 	if (ret)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_SLOT_TIME\n");
-
-	/* Ps Poll Wake Policy */
-	if (wlan_cfgGetInt(mac, WNI_CFG_MAX_PS_POLL,
-			&cfg_data_val ) != eSIR_SUCCESS) {
-		WMA_LOGE("Failed to get WNI_CFG_MAX_PS_POLL");
-	}
-
-	if (cfg_data_val) {
-		/* Set the Wake Policy to WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD*/
-		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
-					WMI_STA_PS_PARAM_RX_WAKE_POLICY,
-					WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD);
-
-		if(ret) {
-			WMA_LOGE("Set ps poll wake policy failed vdevId %d",
-				vdev_id);
-		}
-
-		/* Set the Ps Poll Count */
-		ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
-						WMI_STA_PS_PARAM_PSPOLL_COUNT,
-						cfg_data_val);
-		if(ret) {
-			WMA_LOGE("Setting Ps Poll Count Failed vdevId %d ps poll cnt %d",
-				vdev_id, cfg_data_val);
-		}
-	}
 }
 
 static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
@@ -3545,58 +3512,155 @@ static int32_t wmi_unified_set_sta_ps(wmi_unified_t wmi_handle,
         return 0;
 }
 
+static int32_t wma_set_force_sleep(tp_wma_handle wma, u_int32_t vdev_id, u_int8_t enable)
+{
+	int32_t ret;
+	tANI_U32 cfg_data_val = 0;
+	/* get mac to acess CFG data base */
+	struct sAniSirGlobal *mac =
+		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+		wma->vos_context);
+	u_int32_t rx_wake_policy;
+	u_int32_t tx_wake_threshold;
+	u_int32_t pspoll_count;
+	u_int32_t inactivity_time;
+	u_int32_t psmode;
+
+	WMA_LOGE("Set Force Sleep vdevId %d val %d", vdev_id, enable);
+
+	if (enable) {
+		/* override normal configuration and force station asleep */
+		rx_wake_policy = WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD;
+		tx_wake_threshold = WMI_STA_PS_TX_WAKE_THRESHOLD_NEVER;
+		pspoll_count = WMI_STA_PS_PSPOLL_COUNT_NO_MAX;
+		inactivity_time = 0;
+		psmode = WMI_STA_PS_MODE_ENABLED;
+	} else {
+		/* Ps Poll Wake Policy */
+		if (wlan_cfgGetInt(mac, WNI_CFG_MAX_PS_POLL,
+				&cfg_data_val ) != eSIR_SUCCESS) {
+			VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+				"Failed to get value for WNI_CFG_MAX_PS_POLL");
+		}
+		if (cfg_data_val) {
+			/* Ps Poll is enabled */
+			rx_wake_policy = WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD;
+			pspoll_count = (u_int32_t)cfg_data_val;
+			tx_wake_threshold = WMI_STA_PS_TX_WAKE_THRESHOLD_NEVER;
+		} else {
+			rx_wake_policy = WMI_STA_PS_RX_WAKE_POLICY_WAKE;
+			pspoll_count = WMI_STA_PS_PSPOLL_COUNT_NO_MAX;
+			tx_wake_threshold = WMI_STA_PS_TX_WAKE_THRESHOLD_ALWAYS;
+		}
+		psmode = WMI_STA_PS_MODE_ENABLED;
+
+		/* Set Tx/Rx Data InActivity Timeout   */
+		if (wlan_cfgGetInt(mac, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT,
+				&cfg_data_val ) != eSIR_SUCCESS) {
+			VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+			"Failed to get WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT");
+			cfg_data_val = POWERSAVE_DEFAULT_INACTIVITY_TIME;
+		}
+		inactivity_time = (u_int32_t)cfg_data_val;
+	}
+
+	/* Set the Wake Policy to WMI_STA_PS_RX_WAKE_POLICY_POLL_UAPSD*/
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_RX_WAKE_POLICY,
+					rx_wake_policy);
+
+	if (ret) {
+		WMA_LOGE("Setting wake policy Failed vdevId %d", vdev_id);
+		return ret;
+	}
+	WMA_LOGD("Setting wake policy to %d vdevId %d",
+		rx_wake_policy, vdev_id);
+
+	/* Set the Tx Wake Threshold */
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_TX_WAKE_THRESHOLD,
+					tx_wake_threshold);
+
+	if (ret) {
+		WMA_LOGE("Setting TxWake Threshold vdevId %d", vdev_id);
+		return ret;
+	}
+	WMA_LOGD("Setting TxWake Threshold to %d vdevId %d",
+		tx_wake_threshold, vdev_id);
+
+	/* Set the Ps Poll Count */
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_PSPOLL_COUNT,
+					pspoll_count);
+
+	if (ret) {
+		WMA_LOGE("Set Ps Poll Count Failed vdevId %d ps poll cnt %d",
+			vdev_id, pspoll_count);
+		return ret;
+	}
+	WMA_LOGD("Set Ps Poll Count vdevId %d ps poll cnt %d",
+		vdev_id, pspoll_count);
+
+	/* Set the Tx/Rx InActivity */
+	ret = wmi_unified_set_sta_ps_param(wma->wmi_handle, vdev_id,
+					WMI_STA_PS_PARAM_INACTIVITY_TIME,
+					inactivity_time);
+
+	if (ret) {
+		WMA_LOGE("Setting Tx/Rx InActivity Failed vdevId %d InAct %d",
+			vdev_id, inactivity_time);
+		return ret;
+	}
+	WMA_LOGD("Set Tx/Rx InActivity vdevId %d InAct %d",
+		vdev_id, inactivity_time);
+
+	/* Enable Sta Mode Power save */
+	ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, true);
+
+	if (ret) {
+		WMA_LOGE("Enable Sta Mode Ps Failed vdevId %d", vdev_id);
+		return ret;
+	}
+
+	/* Set Listen Interval */
+	if (wlan_cfgGetInt(mac, WNI_CFG_LISTEN_INTERVAL,
+			&cfg_data_val ) != eSIR_SUCCESS)	{
+		VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+			"Failed to get value for WNI_CFG_LISTEN_INTERVAL");
+		cfg_data_val = POWERSAVE_DEFAULT_LISTEN_INTERVAL;
+	}
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					WMI_VDEV_PARAM_LISTEN_INTERVAL,
+					cfg_data_val);
+	if (ret) {
+		/* Even it fails continue Fw will take default LI */
+		WMA_LOGE("Failed to Set Listen Interval vdevId %d",
+			vdev_id);
+	}
+	WMA_LOGD("Set Listen Interval vdevId %d Listen Intv %d",
+		vdev_id, cfg_data_val);
+	return 0;
+}
+
 static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 {
-        int32_t ret;
-        tANI_U32 cfg_data_val;
-        uint32_t vdev_id = ps_req->sessionid;
-        /* get mac to access CFG data base */
-        struct sAniSirGlobal *mac =
-                (struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
-                                                        wma->vos_context);
+	uint32_t vdev_id = ps_req->sessionid;
+	int32_t ret;
 
-        WMA_LOGE("Enable Sta Mode Ps vdevId %d", vdev_id);
+	if (eSIR_ADDON_NOTHING == ps_req->psSetting) {
+		WMA_LOGD("Enable Sta Mode Ps vdevId %d", vdev_id);
+		ret = wma_set_force_sleep(wma, vdev_id, false);
+		if (ret) {
+			WMA_LOGE("Enable Sta Ps Failed vdevId %d", vdev_id);
+			ps_req->status = VOS_STATUS_E_FAILURE;
+			goto resp;
+		}
+	}
 
-        /* Set Tx/Rx Data InActivity Timeout   */
-        if(wlan_cfgGetInt(mac, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT,
-                        &cfg_data_val ) != eSIR_SUCCESS) {
-		WMA_LOGE("Failed to get WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT");
-                /* Set it to default one */
-                cfg_data_val = POWERSAVE_DEFAULT_INACTIVITY_TIME;
-        }
-        ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
-                        WMI_STA_PS_PARAM_INACTIVITY_TIME, cfg_data_val);
-        if(ret)
-                WMA_LOGE("Enable Sta Ps Tx/Rx Inactivity Failed vdevId %d",
-                        vdev_id);
-
-        /* Enable Sta Mode Power save */
-        ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, true);
-
-        if(ret) {
-                WMA_LOGE("Enable Sta Mode Ps Failed vdevId %d", vdev_id);
-                ps_req->status = VOS_STATUS_E_FAILURE;
-                goto resp;
-        }
-
-        /* Set Listen Interval */
-        if(wlan_cfgGetInt(mac, WNI_CFG_LISTEN_INTERVAL,
-                        &cfg_data_val ) != eSIR_SUCCESS) {
-                VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "Failed to get value for WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT");
-                /* Set it to Default one */
-                cfg_data_val = POWERSAVE_DEFAULT_LISTEN_INTERVAL;
-        }
-
-        ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
-                        WMI_VDEV_PARAM_LISTEN_INTERVAL, cfg_data_val);
-        if(ret)
-                WMA_LOGE("Failed to Set Listen Interval vdevId %d",
-                        vdev_id);
-
-        ps_req->status = VOS_STATUS_SUCCESS;
+	ps_req->status = VOS_STATUS_SUCCESS;
 resp:
-        wma_send_msg(wma, WDA_ENTER_BMPS_RSP, ps_req, 0);
+	wma_send_msg(wma, WDA_ENTER_BMPS_RSP, ps_req, 0);
 }
 
 static void wma_disable_sta_ps_mode(tp_wma_handle wma, tpDisablePsParams ps_req)
