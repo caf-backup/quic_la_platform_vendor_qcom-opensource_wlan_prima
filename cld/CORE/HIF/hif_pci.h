@@ -104,5 +104,11 @@ struct HIF_CE_state {
     A_target_id_t targid;
 };
 
+void priv_start_agc(struct hif_pci_softc *sc);
+void priv_dump_agc(struct hif_pci_softc *sc);
+void priv_start_cap_chaninfo(struct hif_pci_softc *sc);
+void priv_dump_chaninfo(struct hif_pci_softc *sc);
+void priv_dump_bbwatchdog(struct hif_pci_softc *sc);
+
 #define CE_HTT_T2H_MSG 1
 #define CE_HTT_H2T_MSG 4

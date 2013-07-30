@@ -261,7 +261,13 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_ENABLE_DXE_STALL_DETECT 6
 #define WE_DISPLAY_DXE_SNAP_SHOT   7
 #define WE_SET_REASSOC_TRIGGER     8
-
+#ifdef QCA_WIFI_2_0
+#define WE_DUMP_AGC_START          9
+#define WE_DUMP_AGC                10
+#define WE_DUMP_CHANINFO_START     11
+#define WE_DUMP_CHANINFO           12
+#define WE_DUMP_WATCHDOG           13
+#endif
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV + 7)
 #define WE_LOG_DUMP_CMD      1
@@ -5478,8 +5484,49 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
             sme_RoamReassoc(pMac, pAdapter->sessionId, NULL, modProfileFields, &roamId, 1);
             return 0;
         }
-        
+#ifdef QCA_WIFI_2_0
+        case WE_DUMP_AGC_START:
+        {
+            hddLog(LOG1, "WE_DUMP_AGC_START");
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)GEN_PARAM_DUMP_AGC_START,
+                                          0, GEN_CMD);
+            break;
+        }
+        case WE_DUMP_AGC:
+        {
+            hddLog(LOG1, "WE_DUMP_AGC");
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)GEN_PARAM_DUMP_AGC,
+                                          0, GEN_CMD);
+            break;
+        }
 
+        case WE_DUMP_CHANINFO_START:
+        {
+            hddLog(LOG1, "WE_DUMP_CHANINFO_START");
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)GEN_PARAM_DUMP_CHANINFO_START,
+                                          0, GEN_CMD);
+            break;
+        }
+        case WE_DUMP_CHANINFO:
+        {
+            hddLog(LOG1, "WE_DUMP_CHANINFO_START");
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)GEN_PARAM_DUMP_CHANINFO,
+                                          0, GEN_CMD);
+            break;
+        }
+        case WE_DUMP_WATCHDOG:
+        {
+            hddLog(LOG1, "WE_DUMP_WATCHDOG");
+            ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)GEN_PARAM_DUMP_WATCHDOG,
+                                          0, GEN_CMD);
+            break;
+        }
+#endif
         default:
         {
             hddLog(LOGE, "%s: unknown ioctl %d", __func__, sub_cmd);
@@ -8035,7 +8082,32 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         0,
         "reassoc" },
+#ifdef QCA_WIFI_2_0
+    {   WE_DUMP_AGC_START,
+        0,
+        0,
+        "dump_agc_start" },
 
+    {   WE_DUMP_AGC,
+        0,
+        0,
+        "dump_agc" },
+
+    {   WE_DUMP_CHANINFO_START,
+        0,
+        0,
+        "dump_chninfo_en" },
+
+    {   WE_DUMP_CHANINFO,
+        0,
+        0,
+        "dump_chninfo" },
+
+    {   WE_DUMP_WATCHDOG,
+        0,
+        0,
+        "dump_watchdog" },
+#endif
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_VAR_INT_GET_NONE,
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,

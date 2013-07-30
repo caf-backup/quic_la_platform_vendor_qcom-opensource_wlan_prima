@@ -73,6 +73,9 @@ static int hif_post_recv_buffers_for_pipe(struct HIF_CE_pipe_info *pipe_info);
 #define CE_ATTR_FLAGS 0
 #endif
 
+#define AGC_DUMP         1
+#define CHANINFO_DUMP    2
+#define BB_WATCHDOG_DUMP 3
 /*
  * Fix EV118783, poll to check whether a BMI response comes
  * other than waiting for the interruption which may be lost.
@@ -1282,6 +1285,36 @@ done:
     A_TARGET_ACCESS_UNLIKELY(targid);
 
     return rv;
+}
+
+void HIFDump(HIF_DEVICE *hif_device, u_int8_t cmd_id, bool start)
+{
+    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)hif_device;
+    struct hif_pci_softc *sc = hif_state->sc;
+
+    switch (cmd_id) {
+    case AGC_DUMP:
+        if (start)
+            priv_start_agc(sc);
+        else
+            priv_dump_agc(sc);
+        break;
+
+    case CHANINFO_DUMP:
+        if (start)
+            priv_start_cap_chaninfo(sc);
+        else
+            priv_dump_chaninfo(sc);
+        break;
+
+    case BB_WATCHDOG_DUMP:
+        priv_dump_bbwatchdog(sc);
+        break;
+
+    default:
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Invalid htc dump command\n"));
+        break;
+    }
 }
 
 void

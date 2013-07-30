@@ -108,6 +108,12 @@ void HTCSetTargetFailureCallback(HTC_HANDLE HTCHandle, HTC_TARGET_FAILURE Callba
 	target->HTCInitInfo.TargetFailure = Callback;
 }
 
+void HTCDump(HTC_HANDLE HTCHandle, u_int8_t CmdId, bool start)
+{
+    HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
+    HIFDump(target->hif_dev, CmdId, start);
+}
+
 /* cleanup the HTC instance */
 static void HTCCleanup(HTC_TARGET *target)
 {
