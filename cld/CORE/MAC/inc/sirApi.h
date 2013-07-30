@@ -4166,6 +4166,7 @@ typedef struct sSirScanOffloadEvent{
     tANI_U32 requestor;
     tANI_U32 scanId;
     tSirP2pScanType p2pScanType;
+    tANI_U8 sessionId;
 } tSirScanOffloadEvent, *tpSirScanOffloadEvent;
 
 typedef struct sSirUpdateChanParam
