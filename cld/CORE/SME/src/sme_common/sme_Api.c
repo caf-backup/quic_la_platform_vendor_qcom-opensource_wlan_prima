@@ -649,6 +649,12 @@ tANI_BOOLEAN smeProcessScanQueue(tpAniSirGlobal pMac)
                                     " Processing scan offload command ");
                             csrProcessScanCommand( pMac, pCommand );
                             break;
+                        case eSmeCommandRemainOnChannel:
+                            smsLog(pMac, LOG1,
+                                    "Processing req remain on channel offload"
+                                    " command");
+                            p2pProcessRemainOnChannelCmd(pMac, pCommand);
+                            break;
                         default:
                             smsLog(pMac, LOGE,
                                     " Something wrong, wrong command enqueued"
