@@ -188,7 +188,8 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
                                     pAc->wmmAcTspecInfo.ts_info.up,
                                     service_interval,
                                     suspension_interval,
-                                    direction);
+                                    direction,
+                                    pAdapter->sessionId);
 
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
@@ -237,7 +238,8 @@ static void hdd_wmm_disable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    {
       status = WLANTL_DisableUAPSDForAC((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
                                         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.staId[0],
-                                        acType);
+                                        acType,
+                                        pAdapter->sessionId);
 
       if ( !VOS_IS_STATUS_SUCCESS( status ) )
       {
@@ -1960,7 +1962,8 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         7,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdVoSrvIntv,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdVoSuspIntv,
-                                        WLANTL_BI_DIR );
+                                        WLANTL_BI_DIR,
+                                        pAdapter->sessionId);
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }
@@ -1974,7 +1977,8 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         5,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdViSrvIntv,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdViSuspIntv,
-                                        WLANTL_BI_DIR );
+                                        WLANTL_BI_DIR,
+                                        pAdapter->sessionId);
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }
@@ -1988,7 +1992,8 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         2,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBkSrvIntv,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBkSuspIntv,
-                                        WLANTL_BI_DIR );
+                                        WLANTL_BI_DIR,
+                                        pAdapter->sessionId);
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }
@@ -2002,7 +2007,8 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
                                         3,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBeSrvIntv,
                                         (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraUapsdBeSuspIntv,
-                                        WLANTL_BI_DIR );
+                                        WLANTL_BI_DIR,
+                                        pAdapter->sessionId);
 
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ));
    }

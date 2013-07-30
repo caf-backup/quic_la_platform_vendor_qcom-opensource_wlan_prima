@@ -2078,7 +2078,8 @@ WLANTL_EnableUAPSDForAC
   v_U8_t             ucUP,
   v_U32_t            uServiceInt,
   v_U32_t            uSuspendInt,
-  WLANTL_TSDirType   wTSDir
+  WLANTL_TSDirType   wTSDir,
+  v_U32_t            sessionId
 );
 
 
@@ -2114,7 +2115,8 @@ WLANTL_DisableUAPSDForAC
 (
   v_PVOID_t          pvosGCtx,
   v_U8_t             ucSTAId,
-  WLANTL_ACEnumType  ucACId
+  WLANTL_ACEnumType  ucACId,
+  v_U32_t            sessionId
 );
 
 #if defined WLAN_FEATURE_NEIGHBOR_ROAMING

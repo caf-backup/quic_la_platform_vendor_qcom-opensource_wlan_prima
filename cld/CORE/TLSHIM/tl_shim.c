@@ -550,14 +550,41 @@ VOS_STATUS WLANTL_RegRSSIIndicationCB(void *adapter, v_S7_t rssi,
 VOS_STATUS WLANTL_EnableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
 				   WLANTL_ACEnumType ac, u_int8_t tid,
 				   u_int8_t pri, v_U32_t srvc_int,
-				   v_U32_t sus_int, WLANTL_TSDirType dir)
+				   v_U32_t sus_int, WLANTL_TSDirType dir,
+				   v_U32_t sessionId)
 {
-	/* TBD */
+	tp_wma_handle wma_handle;
+	t_wma_trigger_uapsd_params uapsd_params;
+
+	ENTER();
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA, vos_ctx);
+
+	uapsd_params.wmm_ac = ac;
+	uapsd_params.user_priority = pri;
+	uapsd_params.service_interval = srvc_int;
+
+	/*
+	 * Since Delayed Interval is not available
+	 * use suspend interval for delayed interval
+	 * for now.
+	 * TODO: Need to pass Delayed Interval as well
+	 */
+	uapsd_params.delay_interval = sus_int;
+	uapsd_params.suspend_interval = sus_int;
+
+	if(VOS_STATUS_SUCCESS !=
+		wma_trigger_uapsd_params(wma_handle, sessionId, &uapsd_params))
+	{
+		TLSHIM_LOGE("Failed to Trigger Uapsd params for sessionId %d",
+					sessionId);
+		return VOS_STATUS_E_FAILURE;
+	}
 	return VOS_STATUS_SUCCESS;
 }
 
 VOS_STATUS WLANTL_DisableUAPSDForAC(void *vos_ctx, u_int8_t sta_id,
-				    WLANTL_ACEnumType ac)
+				    WLANTL_ACEnumType ac, v_U32_t sessionId)
 {
 	/* TBD */
 	return VOS_STATUS_SUCCESS;
