@@ -4789,14 +4789,14 @@ limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry){
 }
 
 void limSendScanOffloadComplete(tpAniSirGlobal pMac,
-                                tSirResultCodes reasonCode)
+                                tSirScanOffloadEvent *pScanEvent)
 {
     tANI_U16 scanRspLen = 0;
 
     pMac->lim.gLimSmeScanResultLength +=
         pMac->lim.gLimMlmScanResultLength;
     pMac->lim.gLimRspReqd = false;
-    if ((reasonCode == eSIR_SME_SUCCESS) ||
+    if ((pScanEvent->reasonCode == eSIR_SME_SUCCESS) ||
             pMac->lim.gLimSmeScanResultLength) {
         scanRspLen = sizeof(tSirSmeScanRsp) +
             pMac->lim.gLimSmeScanResultLength -
@@ -4805,9 +4805,9 @@ void limSendScanOffloadComplete(tpAniSirGlobal pMac,
     else
         scanRspLen = sizeof(tSirSmeScanRsp);
 
-    limSendSmeScanRsp(pMac, scanRspLen, reasonCode,
-            pMac->lim.gSmeSessionId,
-            pMac->lim.gTransactionId);
+    limSendSmeScanRsp(pMac, scanRspLen, pScanEvent->reasonCode,
+            pScanEvent->sessionId,
+            0);
 }
 
 
@@ -4828,13 +4828,13 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
             {
                 limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP,
                         eHAL_STATUS_SUCCESS,
-                        pMac->lim.gpLimRemainOnChanReq->sessionId, 0);
+                        pScanEvent->sessionId, 0);
                 palFreeMemory( pMac->hHdd, pMac->lim.gpLimRemainOnChanReq );
                 pMac->lim.gpLimRemainOnChanReq = NULL;
             }
             else
             {
-                limSendScanOffloadComplete(pMac, pScanEvent->reasonCode);
+                limSendScanOffloadComplete(pMac, pScanEvent);
             }
             break;
         case SCAN_EVENT_FOREIGN_CHANNEL:
@@ -4845,7 +4845,7 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
                 {
                     limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RDY_IND,
                             eHAL_STATUS_SUCCESS,
-                            pMac->lim.gpLimRemainOnChanReq->sessionId, 0);
+                            pScanEvent->sessionId, 0);
                 }
                 else
                 {
