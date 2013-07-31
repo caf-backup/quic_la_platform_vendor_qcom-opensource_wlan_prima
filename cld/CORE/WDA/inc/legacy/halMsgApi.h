@@ -1275,6 +1275,11 @@ typedef struct sAddStaSelfParams
    tANI_U32 status;
 }tAddStaSelfParams, *tpAddStaSelfParams;
 
+typedef struct sAbortScanParams
+{
+   tANI_U8 SessionId;
+}tAbortScanParams, *tpAbortScanParams;
+
 typedef struct sDelStaSelfParams
 {
    tSirMacAddr selfMacAddr;
