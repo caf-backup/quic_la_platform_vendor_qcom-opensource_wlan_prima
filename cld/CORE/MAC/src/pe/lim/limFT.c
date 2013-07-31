@@ -1333,31 +1333,73 @@ limProcessFTAggrQosReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf )
              * An AC is trigger and delivery enabled AC if the PSB subfield  
              * is set to 1 in the bi-direction field.
              */
-            if (pTspec->tsinfo.traffic.psb == 1)
+            if(!pMac->psOffloadEnabled)
             {
-                limSetTspecUapsdMask(pMac, &pTspec->tsinfo, SET_UAPSD_MASK);
+                if (pTspec->tsinfo.traffic.psb == 1)
+                {
+                    limSetTspecUapsdMask(pMac, &pTspec->tsinfo, SET_UAPSD_MASK);
+                }
+                else
+                {
+                    limSetTspecUapsdMask(pMac, &pTspec->tsinfo, CLEAR_UAPSD_MASK);
+                }
+                /*
+                 * ADDTS success, so AC is now admitted.
+                 * We shall now use the default
+                 * EDCA parameters as advertised by AP and
+                 * send the updated EDCA params
+                 * to HAL.
+                 */
+                ac = upToAc(pTspec->tsinfo.traffic.userPrio);
+                if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+                {
+                    pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+                }
+                else if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+                {
+                    pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+                }
+                else if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+                {
+                    pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+                    pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+                }
             }
             else
-            { 
-                limSetTspecUapsdMask(pMac, &pTspec->tsinfo, CLEAR_UAPSD_MASK);
-            }
-            /* ADDTS success, so AC is now admitted. We shall now use the default
-             * EDCA parameters as advertised by AP and send the updated EDCA params
-             * to HAL. 
-             */
-            ac = upToAc(pTspec->tsinfo.traffic.userPrio);
-            if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK)
             {
-                pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
-            }
-            else if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_DNLINK)
-            {
-                pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
-            }
-            else if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR)
-            {
-                pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
-                pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+                if (pTspec->tsinfo.traffic.psb == 1)
+                {
+                    limSetTspecUapsdMaskPerSession(pMac, psessionEntry,
+                                                   &pTspec->tsinfo,
+                                                   SET_UAPSD_MASK);
+                }
+                else
+                {
+                    limSetTspecUapsdMaskPerSession(pMac, psessionEntry,
+                                                   &pTspec->tsinfo,
+                                                   CLEAR_UAPSD_MASK);
+                }
+                /*
+                 * ADDTS success, so AC is now admitted.
+                 * We shall now use the default
+                 * EDCA parameters as advertised by AP and
+                 * send the updated EDCA params
+                 * to HAL.
+                 */
+                ac = upToAc(pTspec->tsinfo.traffic.userPrio);
+                if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+                {
+                    psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+                }
+                else if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+                {
+                    psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+                }
+                else if(pTspec->tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+                {
+                    psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+                    psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+                }
             }
 
             limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);

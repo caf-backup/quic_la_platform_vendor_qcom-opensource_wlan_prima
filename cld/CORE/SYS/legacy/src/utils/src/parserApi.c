@@ -1597,6 +1597,25 @@ void PopulateDot11fWMMInfoStation(tpAniSirGlobal pMac, tDot11fIEWMMInfoStation *
     pInfo->present = 1;
 }
 
+void PopulateDot11fWMMInfoStationPerSession(tpAniSirGlobal pMac,
+                                            tpPESession psessionEntry,
+                                            tDot11fIEWMMInfoStation *pInfo)
+{
+    tANI_U32  val = 0;
+
+    pInfo->version = SIR_MAC_OUI_VERSION_1;
+    pInfo->acvo_uapsd = LIM_UAPSD_GET(ACVO, psessionEntry->gUapsdPerAcBitmask);
+    pInfo->acvi_uapsd = LIM_UAPSD_GET(ACVI, psessionEntry->gUapsdPerAcBitmask);
+    pInfo->acbk_uapsd = LIM_UAPSD_GET(ACBK, psessionEntry->gUapsdPerAcBitmask);
+    pInfo->acbe_uapsd = LIM_UAPSD_GET(ACBE, psessionEntry->gUapsdPerAcBitmask);
+
+    if(wlan_cfgGetInt(pMac, WNI_CFG_MAX_SP_LENGTH, &val) != eSIR_SUCCESS)
+        PELOGE(limLog(pMac, LOGE, FL("could not retrieve Max SP Length \n"));)
+
+    pInfo->max_sp_length = (tANI_U8)val;
+    pInfo->present = 1;
+}
+
 void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
                              tDot11fIEWMMParams *pParams,
                              tpPESession        psessionEntry)

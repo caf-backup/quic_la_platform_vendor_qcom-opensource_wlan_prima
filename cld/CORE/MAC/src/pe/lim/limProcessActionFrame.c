@@ -590,29 +590,62 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
      * An AC is trigger and delivery enabled AC if the PSB subfield  
      * is set to 1 in the bi-direction field.
      */
-    if (addts.tspec.tsinfo.traffic.psb == 1)
-        limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, SET_UAPSD_MASK);
-    else 
-        limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, CLEAR_UAPSD_MASK);
+    if(!pMac->psOffloadEnabled)
+    {
+        if (addts.tspec.tsinfo.traffic.psb == 1)
+            limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, SET_UAPSD_MASK);
+        else
+            limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, CLEAR_UAPSD_MASK);
 
 
-    /* ADDTS success, so AC is now admitted. We shall now use the default
-     * EDCA parameters as advertised by AP and send the updated EDCA params
-     * to HAL. 
-     */
-    ac = upToAc(addts.tspec.tsinfo.traffic.userPrio);
-    if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK)
-    {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+        /*
+         * ADDTS success, so AC is now admitted. We shall now use the default
+         * EDCA parameters as advertised by AP and send the updated EDCA params
+         * to HAL.
+         */
+        ac = upToAc(addts.tspec.tsinfo.traffic.userPrio);
+        if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+        }
+        else if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+        }
+        else if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+        }
     }
-    else if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+    else
     {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
-    }
-    else if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR)
-    {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+        if (addts.tspec.tsinfo.traffic.psb == 1)
+            limSetTspecUapsdMaskPerSession(pMac, psessionEntry,
+                          &addts.tspec.tsinfo, SET_UAPSD_MASK);
+        else
+            limSetTspecUapsdMaskPerSession(pMac, psessionEntry,
+                        &addts.tspec.tsinfo, CLEAR_UAPSD_MASK);
+
+        /*
+         * ADDTS success, so AC is now admitted. We shall now use the default
+         * EDCA parameters as advertised by AP and send the updated EDCA params
+         * to HAL.
+         */
+        ac = upToAc(addts.tspec.tsinfo.traffic.userPrio);
+        if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+        }
+        else if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+        }
+        else if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+        }
     }
 
     limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
@@ -783,34 +816,70 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
      * The AC for this TSPEC is no longer triiger enabled and delivery 
      * enabled if this Tspec was a bidirectional TSPEC.
      */
-    limSetTspecUapsdMask(pMac, tsinfo, CLEAR_UAPSD_MASK);
-
-
-    /* We're deleting the TSPEC.
-     * The AC for this TSPEC is no longer admitted in uplink/downlink direction
-     * if this TSPEC was set-up in uplink/downlink direction only.
-     * The AC for this TSPEC is no longer admitted in both uplink and downlink
-     * directions if this TSPEC was a bi-directional TSPEC.
-     * If ACM is set for this AC and this AC is admitted only in downlink
-     * direction, PE needs to downgrade the EDCA parameter 
-     * (for the AC for which TS is being deleted) to the
-     * next best AC for which ACM is not enabled, and send the
-     * updated values to HAL. 
-     */ 
-    ac = upToAc(tsinfo->traffic.userPrio);
-
-    if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+    if(!pMac->psOffloadEnabled)
     {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+        limSetTspecUapsdMask(pMac, tsinfo, CLEAR_UAPSD_MASK);
+
+
+        /* We're deleting the TSPEC.
+         * The AC for this TSPEC is no longer admitted in uplink/downlink direction
+         * if this TSPEC was set-up in uplink/downlink direction only.
+         * The AC for this TSPEC is no longer admitted in both uplink and downlink
+         * directions if this TSPEC was a bi-directional TSPEC.
+         * If ACM is set for this AC and this AC is admitted only in downlink
+         * direction, PE needs to downgrade the EDCA parameter
+         * (for the AC for which TS is being deleted) to the
+         * next best AC for which ACM is not enabled, and send the
+         * updated values to HAL.
+         */
+        ac = upToAc(tsinfo->traffic.userPrio);
+
+        if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+        }
+        else if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        }
+        else if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+        {
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+            pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        }
     }
-    else if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+    else
     {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
-    }
-    else if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_BIDIR)
-    {
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
-      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        limSetTspecUapsdMaskPerSession(pMac, psessionEntry,
+                                       tsinfo, CLEAR_UAPSD_MASK);
+
+
+        /* We're deleting the TSPEC.
+         * The AC for this TSPEC is no longer admitted in uplink/downlink direction
+         * if this TSPEC was set-up in uplink/downlink direction only.
+         * The AC for this TSPEC is no longer admitted in both uplink and downlink
+         * directions if this TSPEC was a bi-directional TSPEC.
+         * If ACM is set for this AC and this AC is admitted only in downlink
+         * direction, PE needs to downgrade the EDCA parameter
+         * (for the AC for which TS is being deleted) to the
+         * next best AC for which ACM is not enabled, and send the
+         * updated values to HAL.
+         */
+        ac = upToAc(tsinfo->traffic.userPrio);
+
+        if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+        }
+        else if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        }
+        else if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+        {
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+            psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+        }
     }
 
     limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);

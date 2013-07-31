@@ -334,6 +334,41 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_BOOLEAN fWaitForProbeRsp;
     tANI_BOOLEAN fIgnoreCapsChange;
     tSirHTConfig htConfig;
+
+    /*
+     * Place holder for StartBssReq message
+     * received by SME state machine
+     */
+    tANI_U8 gLimCurrentBssUapsd;
+
+    /* Used on STA, this is a static UAPSD mask setting
+     * derived from SME_JOIN_REQ and SME_REASSOC_REQ. If a
+     * particular AC bit is set, it means the AC is both
+     * trigger enabled and delivery enabled.
+     */
+    tANI_U8  gUapsdPerAcBitmask;
+
+    /* Used on STA, this is a dynamic UPASD mask setting
+     * derived from AddTS Rsp and DelTS frame. If a
+     * particular AC bit is set, it means AC is trigger
+     * enabled.
+     */
+    tANI_U8  gUapsdPerAcTriggerEnableMask;
+
+    /* Used on STA, dynamic UPASD mask setting
+     * derived from AddTS Rsp and DelTs frame. If
+     * a particular AC bit is set, it means AC is
+     * delivery enabled.
+     */
+    tANI_U8  gUapsdPerAcDeliveryEnableMask;
+
+    /* Used on STA for AC downgrade. This is a dynamic mask
+     * setting which keep tracks of ACs being admitted.
+     * If bit is set to 0: That partiular AC is not admitted
+     * If bit is set to 1: That particular AC is admitted
+     */
+    tANI_U8  gAcAdmitMask[SIR_MAC_DIRECTION_DIRECT];
+
     /* Power Save Off load Parameters */
     tPowersaveoffloadInfo pmmOffloadInfo;
 }tPESession, *tpPESession;

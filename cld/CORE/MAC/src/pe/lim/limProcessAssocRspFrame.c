@@ -709,9 +709,24 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
             limHandleAddBssInReAssocContext(pMac, pStaDs, psessionEntry);
         else
         {
-            // reset the uapsd mask settings since we're re-associating to new AP
-            pMac->lim.gUapsdPerAcDeliveryEnableMask = 0;
-            pMac->lim.gUapsdPerAcTriggerEnableMask = 0;
+            if(!pMac->psOffloadEnabled)
+            {
+                /*
+                 * reset the uapsd mask settings
+                 *  since we're re-associating to new AP
+                 */
+                pMac->lim.gUapsdPerAcDeliveryEnableMask = 0;
+                pMac->lim.gUapsdPerAcTriggerEnableMask = 0;
+            }
+            else
+            {
+                /*
+                 * reset the uapsd mask settings since
+                 * we're re-associating to new AP
+                 */
+                psessionEntry->gUapsdPerAcDeliveryEnableMask = 0;
+                psessionEntry->gUapsdPerAcTriggerEnableMask = 0;
+            }
 
             if (limCleanupRxPath(pMac, pStaDs,psessionEntry) != eSIR_SUCCESS)
                 goto assocReject;

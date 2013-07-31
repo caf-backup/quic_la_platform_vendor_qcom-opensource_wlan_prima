@@ -3277,7 +3277,17 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                        pAddBssParams->staContext.staMac[5]
                        );)
         }
-        pAddBssParams->staContext.uAPSD = 0;
+
+        if(!pMac->psOffloadEnabled)
+        {
+            pAddBssParams->staContext.uAPSD = 0;
+        }
+        else
+        {
+            pAddBssParams->staContext.uAPSD =
+               psessionEntry->gUapsdPerAcBitmask;
+        }
+
         pAddBssParams->staContext.maxSPLen = 0;
         pAddBssParams->staContext.shortPreambleSupported = (tANI_U8)pAssocRsp->capabilityInfo.shortPreamble;
         pAddBssParams->staContext.updateSta = updateEntry;

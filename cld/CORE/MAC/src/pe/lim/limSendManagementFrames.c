@@ -2082,7 +2082,11 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     {
         if ( ! PROP_CAPABILITY_GET( WME, psessionEntry->limCurrentBssPropCap ) )
         {
-            PopulateDot11fWMMInfoStation( pMac, &pFrm->WMMInfoStation );
+            if(!pMac->psOffloadEnabled)
+                PopulateDot11fWMMInfoStation( pMac, &pFrm->WMMInfoStation );
+            else
+                PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
+                                                       &pFrm->WMMInfoStation);
         }
 
         if ( fWsmEnabled &&
@@ -2494,7 +2498,11 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     {
         if ( ! PROP_CAPABILITY_GET( WME, psessionEntry->limReassocBssPropCap ) )
         {
-            PopulateDot11fWMMInfoStation( pMac, &frm.WMMInfoStation );
+            if(!pMac->psOffloadEnabled)
+                PopulateDot11fWMMInfoStation( pMac, &frm.WMMInfoStation );
+            else
+                PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
+                                                       &frm.WMMInfoStation);
         }
 
         if ( fWsmEnabled &&
@@ -2936,7 +2944,11 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     {
         if ( ! PROP_CAPABILITY_GET( WME, psessionEntry->limReassocBssPropCap ) )
         {
-            PopulateDot11fWMMInfoStation( pMac, &frm.WMMInfoStation );
+            if(!pMac->psOffloadEnabled)
+                PopulateDot11fWMMInfoStation( pMac, &frm.WMMInfoStation );
+            else
+                PopulateDot11fWMMInfoStationPerSession(pMac, psessionEntry,
+                                                       &frm.WMMInfoStation);
         }
 
         if ( fWsmEnabled &&

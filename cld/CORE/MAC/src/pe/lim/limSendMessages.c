@@ -368,11 +368,34 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
      *   such that: BE_ACM=1, BK_ACM=1, VI_ACM=1, VO_ACM=0
      *   then all AC will be downgraded to AC_BE.
      */
-    limLog(pMac, LOG1, FL("adAdmitMask[UPLINK] = 0x%x "),  pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] );
-    limLog(pMac, LOG1, FL("adAdmitMask[DOWNLINK] = 0x%x "),  pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] );
+    if(!pMac->psOffloadEnabled)
+    {
+        limLog(pMac, LOG1, FL("adAdmitMask[UPLINK] = 0x%x "),
+                           pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] );
+        limLog(pMac, LOG1, FL("adAdmitMask[DOWNLINK] = 0x%x "),
+                           pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] );
+    }
+    else
+    {
+        limLog(pMac, LOG1, FL("adAdmitMask[UPLINK] = 0x%x "),
+                           psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] );
+        limLog(pMac, LOG1, FL("adAdmitMask[DOWNLINK] = 0x%x "),
+                           psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] );
+    }
     for (ac = EDCA_AC_BK; ac <= EDCA_AC_VO; ac++)
     {
-        acAdmitted = ( (pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] & (1 << ac)) >> ac );
+        if(!pMac->psOffloadEnabled)
+        {
+            acAdmitted = ( (pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &
+                           (1 << ac)) >> ac );
+        }
+        else
+        {
+            acAdmitted =
+                ((psessionEntry->gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &
+                 (1 << ac)) >> ac );
+        }
+
         limLog(pMac, LOG1, FL("For AC[%d]: acm=%d,  acAdmit=%d "), ac, plocalEdcaParams[ac].aci.acm, acAdmitted);
         if ( (plocalEdcaParams[ac].aci.acm == 1) && (acAdmitted == 0) )
         {
