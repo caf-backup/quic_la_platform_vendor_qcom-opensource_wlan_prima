@@ -13,7 +13,7 @@
 struct hdd_tgt_services {
 	u_int32_t sta_power_save;
 	u_int32_t uapsd;
-	u_int32_t dfs_chan_scan;
+	u_int32_t ap_dfs;
 	u_int32_t en_11ac;
 	u_int32_t arp_offload;
 };
