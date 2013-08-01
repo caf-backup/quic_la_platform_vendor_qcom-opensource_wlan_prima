@@ -1478,6 +1478,12 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	int len;
 	tSirScanOffloadEvent *scan_event;
 
+	/* Sanity check to find whether vdev id active or not */
+	if (!wma_handle->interfaces[scan_req->sessionId].handle) {
+		WMA_LOGA("vdev id [%d] is not active", scan_req->sessionId);
+		goto error1;
+	}
+
 	/* Fill individual elements of wmi_start_scan_req and
 	 * TLV for channel list, bssid, ssid etc ... */
 	vos_status = wma_get_buf_start_scan_cmd(wma_handle, scan_req,
