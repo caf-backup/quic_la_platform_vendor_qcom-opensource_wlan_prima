@@ -180,7 +180,6 @@ typedef struct s_vdev_tbl {
 struct scan_param{
 	u_int32_t scan_id;
 	u_int32_t scan_requestor_id;
-	u_int32_t vdev_id;
 };
 
 #ifndef QCA_WIFI_ISOC
@@ -231,6 +230,7 @@ struct wma_txrx_node {
 	struct beacon_info *beacon;
 #endif
 	vdev_cli_config_t config;
+	struct scan_param scan_info;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -304,7 +304,6 @@ typedef struct {
 	wda_tgt_cfg_cb tgt_cfg_update_cb;
 	HAL_REG_CAPABILITIES reg_cap;
 	u_int32_t scan_id;
-	struct scan_param cur_scan_info;
 	struct wma_txrx_node *interfaces;
 	pdev_cli_config_t pdevconfig;
 	u_int32_t peer_count;
