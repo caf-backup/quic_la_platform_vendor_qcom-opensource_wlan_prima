@@ -4199,9 +4199,9 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	wmi_scan_event *wmi_event = (wmi_scan_event *) event_buf;
 	tSirScanOffloadEvent *scan_event;
+	u_int8_t vdev_id = wmi_event->vdev_id;
 	v_U32_t scan_id =
-		wma_handle->interfaces[wmi_event->vdev_id].scan_info.scan_id;
-
+		wma_handle->interfaces[vdev_id].scan_info.scan_id;
 	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc
                                 (sizeof(tSirScanOffloadEvent));
 	if (!scan_event) {
@@ -4217,7 +4217,8 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	scan_event->scanId = wmi_event->scan_id;
 	scan_event->chanFreq = wmi_event->channel_freq;
 	scan_event->p2pScanType =
-        wma_handle->interfaces[wmi_event->vdev_id].scan_info.p2p_scan_type;
+		wma_handle->interfaces[vdev_id].scan_info.p2p_scan_type;
+	scan_event->sessionId = vdev_id;
 
 	if (wmi_event->reason == WMI_SCAN_REASON_COMPLETED)
 		scan_event->reasonCode = eSIR_SME_SUCCESS;
@@ -4226,7 +4227,7 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 
 	if (wmi_event->event == WMI_SCAN_EVENT_COMPLETED) {
 		if (wmi_event->scan_id == scan_id)
-			wma_reset_scan_info(wma_handle, wmi_event->vdev_id);
+			wma_reset_scan_info(wma_handle, vdev_id);
 		else
 			WMA_LOGE("Scan id not matched for SCAN COMPLETE event");
 	}
