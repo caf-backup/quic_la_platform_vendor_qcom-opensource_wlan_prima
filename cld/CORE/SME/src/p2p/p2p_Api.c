@@ -124,8 +124,12 @@ eHalStatus sme_remainOnChnRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
     eHalStatus                         status = eHAL_STATUS_SUCCESS;
     tListElem                          *pEntry = NULL;
     tSmeCmd                            *pCommand = NULL;
+    tANI_BOOLEAN fFound;
 
-    pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+    if (pMac->fP2pListenOffload)
+        pEntry = csrLLPeekHead(&pMac->sme.smeScanCmdActiveList, LL_ACCESS_LOCK);
+    else
+        pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
     if( pEntry )
     {
         pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
@@ -135,8 +139,19 @@ eHalStatus sme_remainOnChnRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
             /* process the msg */
             if( callback )
                 callback(pMac, pCommand->u.remainChlCmd.callbackCtx, 0);
-             
-            if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK ) )
+
+            if (pMac->fP2pListenOffload)
+            {
+                fFound = csrLLRemoveEntry( &pMac->sme.smeScanCmdActiveList,
+                        pEntry, LL_ACCESS_LOCK);
+            }
+            else
+            {
+                fFound = csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry,
+                        LL_ACCESS_LOCK);
+            }
+
+            if (fFound)
             {
                 //Now put this command back on the avilable command list
                 smeReleaseCommand(pMac, pCommand);
@@ -225,7 +240,11 @@ eHalStatus sme_remainOnChnReady( tHalHandle hHal, tANI_U8* pMsg)
     }
 #endif
 
-    pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+    if (pMac->fP2pListenOffload)
+        pEntry = csrLLPeekHead(&pMac->sme.smeScanCmdActiveList, LL_ACCESS_LOCK);
+    else
+        pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+
     if( pEntry )
     {
         pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);

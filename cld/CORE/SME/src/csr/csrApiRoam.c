@@ -15670,6 +15670,7 @@ void csrReleaseCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand)
 eHalStatus csrQueueSmeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fHighPriority )
 {
     eHalStatus status;
+
     if( (eSmeCommandScan == pCommand->command) && pMac->scan.fDropScanCmd )
     {
         smsLog(pMac, LOGW, FL(" drop scan (scan reason %d) command"),
@@ -15677,7 +15678,9 @@ eHalStatus csrQueueSmeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOL
         return eHAL_STATUS_CSR_WRONG_STATE;
     }
 
-    if ((pMac->fScanOffload) && (pCommand->command == eSmeCommandScan))
+    if (((pMac->fScanOffload) && (pCommand->command == eSmeCommandScan)) ||
+            ((pMac->fP2pListenOffload) &&
+             (pCommand->command == eSmeCommandRemainOnChannel)))
     {
         csrLLInsertTail(&pMac->sme.smeScanCmdPendingList,
                         &pCommand->Link, LL_ACCESS_LOCK);
