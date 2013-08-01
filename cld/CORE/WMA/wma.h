@@ -180,6 +180,7 @@ typedef struct s_vdev_tbl {
 struct scan_param{
 	u_int32_t scan_id;
 	u_int32_t scan_requestor_id;
+	tSirP2pScanType p2p_scan_type;
 };
 
 #ifndef QCA_WIFI_ISOC
