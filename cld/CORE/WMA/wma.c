@@ -3435,6 +3435,31 @@ static void wma_update_edca_params_for_ac(tSirMacEdcaParamRecord *edca_param,
 }
 
 /*
+ * Set TX power limit through vdev param
+ */
+static void wma_set_max_tx_power(WMA_HANDLE handle,
+						    tMaxTxPowerParams *tx_pwr_params)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+	u_int8_t vdev_id;
+	int ret = -1;
+
+	if (wma_find_vdev_by_addr(wma_handle,
+				tx_pwr_params->selfStaMacAddr,
+				&vdev_id) != NULL) {
+		WMA_LOGD("Set TX power limit [WMI_VDEV_PARAM_TX_PWRLIMIT] to %d",
+				tx_pwr_params->power);
+		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle, vdev_id,
+				WMI_VDEV_PARAM_TX_PWRLIMIT,
+				tx_pwr_params->power);
+		if (ret)
+			WMA_LOGE("Failed to set vdev param WMI_VDEV_PARAM_TX_PWRLIMIT");
+	}
+	else
+		WMA_LOGE("Failed to find vdev to set WMI_VDEV_PARAM_TX_PWRLIMIT");
+}
+
+/*
  * Function to update the EDCA parameters to the target
  */
 static VOS_STATUS wma_process_update_edca_param_req(WMA_HANDLE handle,
@@ -4186,6 +4211,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_EXIT_UAPSD_REQ:
 			wma_disable_uapsd_mode(wma_handle,
 					(tpDisableUapsdParams)msg->bodyptr);
+			break;
+		case WDA_SET_MAX_TX_POWER_REQ:
+			wma_set_max_tx_power(wma_handle,
+					(tpMaxTxPowerParams)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
