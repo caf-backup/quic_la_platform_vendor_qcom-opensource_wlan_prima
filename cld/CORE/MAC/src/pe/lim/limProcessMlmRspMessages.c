@@ -4824,10 +4824,37 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
             break;
         case SCAN_EVENT_START_FAILED:
         case SCAN_EVENT_COMPLETED:
-            limSendScanOffloadComplete(pMac, pScanEvent->reasonCode);
+            if (P2P_SCAN_TYPE_LISTEN == pScanEvent->p2pScanType)
+            {
+                limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RSP,
+                        eHAL_STATUS_SUCCESS,
+                        pMac->lim.gpLimRemainOnChanReq->sessionId, 0);
+                palFreeMemory( pMac->hHdd, pMac->lim.gpLimRemainOnChanReq );
+                pMac->lim.gpLimRemainOnChanReq = NULL;
+            }
+            else
+            {
+                limSendScanOffloadComplete(pMac, pScanEvent->reasonCode);
+            }
+            break;
+        case SCAN_EVENT_FOREIGN_CHANNEL:
+            if (P2P_SCAN_TYPE_LISTEN == pScanEvent->p2pScanType)
+            {
+                /*Send Ready on channel indication to SME */
+                if (pMac->lim.gpLimRemainOnChanReq)
+                {
+                    limSendSmeRsp(pMac, eWNI_SME_REMAIN_ON_CHN_RDY_IND,
+                            eHAL_STATUS_SUCCESS,
+                            pMac->lim.gpLimRemainOnChanReq->sessionId, 0);
+                }
+                else
+                {
+                    limLog(pMac, LOGE,
+                            FL(" NULL pointer of gpLimRemainOnChanReq"));
+                }
+            }
             break;
         case SCAN_EVENT_BSS_CHANNEL:
-        case SCAN_EVENT_FOREIGN_CHANNEL:
         case SCAN_EVENT_DEQUEUED:
         case SCAN_EVENT_PREEMPTED:
         default:

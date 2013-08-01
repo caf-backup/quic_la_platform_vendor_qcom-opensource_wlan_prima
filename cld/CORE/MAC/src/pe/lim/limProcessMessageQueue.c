@@ -1327,10 +1327,13 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limMsg->bodyptr = NULL;
             break;
         case eWNI_SME_ABORT_REMAIN_ON_CHAN_IND:
-            limAbortRemainOnChan(pMac);
+        {
+            tSirMbMsgP2p *pMbMsg = (tSirMbMsgP2p *)limMsg->bodyptr;
+            limAbortRemainOnChan(pMac, pMbMsg->sessionId);
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
             break;
+        }
 
         case SIR_HAL_P2P_NOA_START_IND:
         {

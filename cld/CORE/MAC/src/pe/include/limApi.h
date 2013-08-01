@@ -215,5 +215,34 @@ tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 \return none
 -----------------------------------------------------------------*/
 v_VOID_t peFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg);
+
+/*--------------------------------------------------------------------------
+
+  \brief limRemainOnChnRsp() - API for sending remain on channel response.
+
+  LIM calls this api to send the remain on channel response to SME.
+
+  \param pMac - Pointer to Global MAC structure
+  \param status - status of the response
+  \param data - pointer to msg
+
+  \return  void
+
+  --------------------------------------------------------------------------*/
+void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
+
+/*--------------------------------------------------------------------------
+
+  \brief limProcessAbortScanInd() - function for sending abort scan indication.
+
+  LIM calls this function for sending abort scan indication.
+
+  \param pMac - Pointer to Global MAC structure
+
+  \return  void
+
+  --------------------------------------------------------------------------*/
+void limProcessAbortScanInd(tpAniSirGlobal pMac, tANI_U8 sessionId);
+
 /************************************************************/
 #endif /* __LIM_API_H */
