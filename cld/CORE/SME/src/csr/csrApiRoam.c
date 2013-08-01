@@ -956,7 +956,8 @@ eCsrRoamState csrRoamStateChange( tpAniSirGlobal pMac, eCsrRoamState NewRoamStat
 {
     eCsrRoamState PreviousState;
           
-    smsLog( pMac, LOG1, "CSR RoamState: [ %d <== %d ]", NewRoamState, pMac->roam.curState[sessionId]);
+    smsLog( pMac, LOG1, "CSR RoamState[%hu]: [ %d <== %d ]", sessionId,
+            NewRoamState, pMac->roam.curState[sessionId]);
 
     PreviousState = pMac->roam.curState[sessionId];
     
@@ -13495,7 +13496,12 @@ void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
         palTimerFree(pMac->hHdd, pSession->hTimerJoinRetry);
 #endif
         palTimerFree(pMac->hHdd, pSession->hTimerIbssJoining);
-        purgeSmeSessionCmdList(pMac, sessionId);
+        purgeSmeSessionCmdList(pMac, sessionId, &pMac->sme.smeCmdPendingList);
+        if (pMac->fScanOffload)
+        {
+            purgeSmeSessionCmdList(pMac, sessionId,
+                    &pMac->sme.smeScanCmdPendingList);
+        }
         purgeCsrSessionCmdList(pMac, sessionId);
         csrInitSession(pMac, sessionId);
     }
@@ -13516,7 +13522,13 @@ eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId,
         }
         else
         { 
-            purgeSmeSessionCmdList(pMac, sessionId);
+            purgeSmeSessionCmdList(pMac, sessionId,
+                    &pMac->sme.smeCmdPendingList);
+            if (pMac->fScanOffload)
+            {
+                purgeSmeSessionCmdList(pMac, sessionId,
+                        &pMac->sme.smeScanCmdPendingList);
+            }
             purgeCsrSessionCmdList(pMac, sessionId);
             status = csrIssueDelStaForSessionReq( pMac, sessionId,
                                         pSession->selfMacAddr, callback, pContext);
