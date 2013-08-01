@@ -961,6 +961,33 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 {
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
 	void *txrx_hdl;
+	ol_txrx_peer_handle peer;
+	ol_txrx_pdev_handle pdev;
+	u_int8_t peer_id;
+	u_int8_t vdev_id = pdel_sta_self_req_param->sessionId;
+
+	if ((wma_handle->interfaces[vdev_id].type == WMI_VDEV_TYPE_AP) &&
+			((wma_handle->interfaces[vdev_id].sub_type ==
+			  WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE))) {
+
+		WMA_LOGA("P2P Device: removing self peer %pM",
+				pdel_sta_self_req_param->selfMacAddr);
+
+		pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+				wma_handle->vos_context);
+
+		peer = ol_txrx_find_peer_by_addr(pdev,
+				pdel_sta_self_req_param->selfMacAddr,
+				&peer_id);
+		if (!peer) {
+			WMA_LOGE("%s Failed to find peer %pM\n", __func__,
+					pdel_sta_self_req_param->selfMacAddr);
+		}
+		wma_remove_peer(wma_handle,
+				pdel_sta_self_req_param->selfMacAddr,
+				pdel_sta_self_req_param->sessionId,
+				peer);
+	}
 
 	/* remove the interface from ath_dev */
 	if (wma_unified_vdev_delete_send(wma_handle->wmi_handle, 
@@ -1093,6 +1120,27 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 		     self_sta_req->selfMacAddr,
 		     sizeof(wma_handle->interfaces[self_sta_req->sessionId].addr));
 
+	wma_handle->interfaces[self_sta_req->sessionId].type =
+		self_sta_req->type;
+	wma_handle->interfaces[self_sta_req->sessionId].sub_type =
+		self_sta_req->subType;
+
+	if ((self_sta_req->type == WMI_VDEV_TYPE_AP) &&
+			(self_sta_req->subType ==
+			 WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE)) {
+		WMA_LOGA("P2P Device: creating self peer %pM, vdev_id %hu",
+				self_sta_req->selfMacAddr,
+				self_sta_req->sessionId);
+		status = wma_create_peer(wma_handle, txrx_pdev,
+				txrx_vdev_handle, self_sta_req->selfMacAddr,
+				self_sta_req->sessionId);
+		if (status != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("%s: Failed to create peer\n", __func__);
+			status = VOS_STATUS_E_FAILURE;
+			wma_unified_vdev_delete_send(wma_handle->wmi_handle,
+					self_sta_req->sessionId);
+		}
+	}
 end:
 	self_sta_req->status = status;
 	wma_send_msg(wma_handle, WDA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
