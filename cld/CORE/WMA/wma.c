@@ -984,6 +984,60 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
 	return status;
 }
 
+static int wmi_unified_peer_create_send(wmi_unified_t wmi,
+					const u_int8_t *peer_addr,
+					u_int32_t vdev_id)
+{
+	wmi_peer_create_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(wmi_peer_create_cmd);
+
+	buf = wmi_buf_alloc(wmi, len);
+	if (!buf) {
+		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_peer_create_cmd *)wmi_buf_data(buf);
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	cmd->vdev_id = vdev_id;
+
+	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_CREATE_CMDID)) {
+		WMA_LOGP("failed to send peer create command\n");
+		adf_nbuf_free(buf);
+		return -EIO;
+	}
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	return 0;
+}
+
+static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
+				  ol_txrx_vdev_handle vdev, u8 *peer_addr,
+				  u_int8_t vdev_id)
+{
+	ol_txrx_peer_handle peer;
+
+	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
+	if (++wma->peer_count > wma->wlan_resource_config.num_peers) {
+		WMA_LOGP("%s, the peer count exceeds the limit %d\n",
+			 __func__, wma->peer_count - 1);
+		goto err;
+	}
+	peer = ol_txrx_peer_attach(pdev, vdev, peer_addr);
+	if (!peer)
+		goto err;
+
+	if (wmi_unified_peer_create_send(wma->wmi_handle, peer_addr,
+					 vdev_id) < 0) {
+		WMA_LOGP("%s : Unable to create peer in Target\n", __func__);
+		ol_txrx_peer_detach(peer);
+		goto err;
+	}
+	return VOS_STATUS_SUCCESS;
+err:
+	wma->peer_count--;
+	return VOS_STATUS_E_FAILURE;
+}
+
 /* function   : wma_vdev_attach
  * Descriptin :
  * Args       :
@@ -1522,60 +1576,6 @@ VOS_STATUS wma_update_channel_list(WMA_HANDLE handle,
 	}
 end:
 	return vos_status;
-}
-
-static int wmi_unified_peer_create_send(wmi_unified_t wmi,
-					const u_int8_t *peer_addr,
-					u_int32_t vdev_id)
-{
-	wmi_peer_create_cmd *cmd;
-	wmi_buf_t buf;
-	int32_t len = sizeof(wmi_peer_create_cmd);
-
-	buf = wmi_buf_alloc(wmi, len);
-	if (!buf) {
-		WMA_LOGP("%s: wmi_buf_alloc failed\n", __func__);
-		return -ENOMEM;
-	}
-	cmd = (wmi_peer_create_cmd *)wmi_buf_data(buf);
-	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
-	cmd->vdev_id = vdev_id;
-
-	if (wmi_unified_cmd_send(wmi, buf, len, WMI_PEER_CREATE_CMDID)) {
-		WMA_LOGP("failed to send peer create command\n");
-		adf_nbuf_free(buf);
-		return -EIO;
-	}
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
-	return 0;
-}
-
-static VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
-				  ol_txrx_vdev_handle vdev, u8 *peer_addr,
-				  u_int8_t vdev_id)
-{
-	ol_txrx_peer_handle peer;
-
-	WMA_LOGD("%s: peer_addr %pM vdev_id %d\n", __func__, peer_addr, vdev_id);
-	if (++wma->peer_count > wma->wlan_resource_config.num_peers) {
-		WMA_LOGP("%s, the peer count exceeds the limit %d\n",
-			 __func__, wma->peer_count - 1);
-		goto err;
-	}
-	peer = ol_txrx_peer_attach(pdev, vdev, peer_addr);
-	if (!peer)
-		goto err;
-
-	if (wmi_unified_peer_create_send(wma->wmi_handle, peer_addr,
-					 vdev_id) < 0) {
-		WMA_LOGP("%s : Unable to create peer in Target\n", __func__);
-		ol_txrx_peer_detach(peer);
-		goto err;
-	}
-	return VOS_STATUS_SUCCESS;
-err:
-	wma->peer_count--;
-	return VOS_STATUS_E_FAILURE;
 }
 
 static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset)
