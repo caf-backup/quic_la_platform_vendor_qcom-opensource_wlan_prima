@@ -1093,7 +1093,12 @@ static eHalStatus limSendHalStartScanOffloadReq(tpAniSirGlobal pMac,
     pScanOffloadReq->scanType = pScanReq->scanType;
     pScanOffloadReq->minChannelTime = pScanReq->minChannelTime;
     pScanOffloadReq->maxChannelTime = pScanReq->maxChannelTime;
-    pScanOffloadReq->p2pSearch = pScanReq->p2pSearch;
+
+    /* for normal scan, the value for p2pScanType should be 0
+       always */
+    if (pScanReq->p2pSearch)
+        pScanOffloadReq->p2pScanType = P2P_SCAN_TYPE_SEARCH;
+
     pScanOffloadReq->sessionId = pScanReq->sessionId;
     pScanOffloadReq->channelList.numChannels =
         pScanReq->channelList.numChannels;

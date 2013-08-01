@@ -4107,6 +4107,11 @@ typedef struct sSirWlanExcludeUnencryptParam
 }tSirWlanExcludeUnencryptParam,*tpSirWlanExcludeUnencryptParam;
 #endif
 
+typedef enum {
+    P2P_SCAN_TYPE_SEARCH = 1,    /* P2P Search */
+    P2P_SCAN_TYPE_LISTEN     /* P2P Listen */
+}tSirP2pScanType;
+
 typedef struct sSirScanOffloadReq {
     tANI_U8 sessionId;
     tSirMacAddr bssId;
@@ -4120,6 +4125,7 @@ typedef struct sSirScanOffloadReq {
     tANI_U32 minChannelTime;
     tANI_U32 maxChannelTime;
     tANI_BOOLEAN p2pSearch;
+    tSirP2pScanType p2pScanType;
     tANI_U16 uIEFieldLen;
     tANI_U16 uIEFieldOffset;
     tSirChannelList channelList;
@@ -4160,6 +4166,7 @@ typedef struct sSirScanOffloadEvent{
     tANI_U32 chanFreq;
     tANI_U32 requestor;
     tANI_U32 scanId;
+    tSirP2pScanType p2pScanType;
 } tSirScanOffloadEvent, *tpSirScanOffloadEvent;
 
 typedef struct sSirUpdateChanParam
