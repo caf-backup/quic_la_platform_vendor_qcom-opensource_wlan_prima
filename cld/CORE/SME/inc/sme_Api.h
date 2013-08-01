@@ -81,6 +81,7 @@ typedef struct _smeConfigParams
     tANI_BOOLEAN  isWESModeEnabled;
 #endif
     tANI_BOOLEAN  fScanOffload;
+    tANI_BOOLEAN  fP2pListenOffload;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 

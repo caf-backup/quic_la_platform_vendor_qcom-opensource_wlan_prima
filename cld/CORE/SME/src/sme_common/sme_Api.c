@@ -1430,6 +1430,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    /* update the directed scan offload setting */
    pMac->fScanOffload = pSmeConfigParams->fScanOffload;
 
+   /* update the p2p listen offload setting */
+   pMac->fP2pListenOffload = pSmeConfigParams->fP2pListenOffload;
+
    return status;
 }
 
@@ -3366,6 +3369,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
       }
 #endif
       pParam->fScanOffload = pMac->fScanOffload;
+      pParam->fP2pListenOffload = pMac->fP2pListenOffload;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 

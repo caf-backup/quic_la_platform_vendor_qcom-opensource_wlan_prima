@@ -1716,6 +1716,15 @@ typedef enum
 #define CFG_ENABLE_FW_UART_PRINT_ENABLE           ( 1 )
 #define CFG_ENABLE_FW_UART_PRINT_DEFAULT          ( CFG_ENABLE_FW_UART_PRINT_DISABLE )
 
+/*
+ * P2P Listen Offload
+ */
+#define CFG_P2P_LISTEN_OFFLOAD_NAME                     "gEnableP2pListenOffload"
+#define CFG_P2P_LISTEN_OFFLOAD_DISABLE                  ( 0 )
+#define CFG_P2P_LISTEN_OFFLOAD_ENABLE                   ( 1 )
+#define CFG_P2P_LISTEN_OFFLOAD_DEFAULT                  ( CFG_P2P_LISTEN_OFFLOAD_DISABLE )
+
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2088,6 +2097,7 @@ typedef struct
    v_BOOL_t                    enableTCPChkSumOffld;
    v_BOOL_t                    enablePowersaveOffload;
    v_BOOL_t                    enablefwprint;
+   v_BOOL_t                    fP2pListenOffload;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

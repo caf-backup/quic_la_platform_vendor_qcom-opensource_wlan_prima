@@ -2212,6 +2212,13 @@ REG_VARIABLE( CFG_ENABLE_FW_UART_PRINT_NAME, WLAN_PARAM_Integer,
              CFG_ENABLE_FW_UART_PRINT_DEFAULT,
              CFG_ENABLE_FW_UART_PRINT_DISABLE,
              CFG_ENABLE_FW_UART_PRINT_ENABLE),
+
+REG_VARIABLE( CFG_P2P_LISTEN_OFFLOAD_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, fP2pListenOffload,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_P2P_LISTEN_OFFLOAD_DEFAULT,
+             CFG_P2P_LISTEN_OFFLOAD_DISABLE,
+             CFG_P2P_LISTEN_OFFLOAD_ENABLE ),
 };
 
 /*
@@ -3964,6 +3971,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    sme_UpdateEnableSSR((tHalHandle)(pHddCtx->hHal), pHddCtx->cfg_ini->enableSSR);
    /* Update the Directed scan offload setting */
    smeConfig.fScanOffload =  pHddCtx->cfg_ini->fScanOffload;
+
+   /* Update the p2p listen offload setting */
+   smeConfig.fP2pListenOffload =  pHddCtx->cfg_ini->fP2pListenOffload;
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

@@ -1027,6 +1027,9 @@ typedef struct sAniSirGlobal
 
     /* Power Save offload Info */
     tPmcOffloadInfo pmcOffloadInfo;
+
+    /* P2P Listen Offload */
+    tANI_U8 fP2pListenOffload;
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS
