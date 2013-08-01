@@ -232,6 +232,8 @@ struct wma_txrx_node {
 #endif
 	vdev_cli_config_t config;
 	struct scan_param scan_info;
+	u_int32_t type;
+	u_int32_t sub_type;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
