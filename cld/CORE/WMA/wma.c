@@ -117,8 +117,9 @@ static void *wma_find_vdev_by_addr(tp_wma_handle wma, u_int8_t *addr,
 	u_int8_t i;
 
 	for (i = 0; i < wma->max_bssid; i++) {
-		if (vos_mem_compare(wma->interfaces[i].addr, addr,
-				sizeof(wma->interfaces[i].addr) == VOS_TRUE)) {
+		if (vos_is_macaddr_equal(
+			(v_MACADDR_t *) wma->interfaces[i].addr,
+			(v_MACADDR_t *) addr) == VOS_TRUE) {
 			*vdev_id = i;
 			return wma->interfaces[i].handle;
 		}
