@@ -1341,6 +1341,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		   frames only when this flag is set. Add this flag
 		   once the FW behavior for this flag is corrected. */
 		//cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+		cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 	}
 	else {
 		WMA_LOGD("P2P Scan");
@@ -1356,6 +1357,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 			cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
 			cmd->notify_scan_events |=
 				WMI_SCAN_EVENT_FOREIGN_CHANNEL;
+			cmd->repeat_probe_time = 0;
 			break;
 		case P2P_SCAN_TYPE_SEARCH:
 			WMA_LOGD("P2P_SCAN_TYPE_SEARCH");
@@ -1365,6 +1367,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 			   frames only when this flag is set. Add this flag
 			   once the FW behavior for this flag is corrected. */
 			//cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+			cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 			break;
 		default:
 			WMA_LOGE("Invalid scan type");
