@@ -60,7 +60,7 @@ int
 dbglog_parser_type_init(wmi_unified_t wmi_handle, int type);
 
 /** dbglog_int - Registers a WMI event handle for WMI_DBGMSG_EVENT
-* @brief wmi_handle - handle to wmi module 
+* @brief wmi_handle - handle to wmi module
 */
 int
 dbglog_init(wmi_unified_t wmi_handle);
@@ -71,34 +71,45 @@ dbglog_init(wmi_unified_t wmi_handle);
 int
 dbglog_deinit(wmi_unified_t wmi_handle);
 
-/** set the size of the report size 
+/** set the size of the report size
 * @brief wmi_handle - handle to Wmi module
 * @brief size - Report size
-*/ 
+*/
 int
 dbglog_set_report_size(wmi_unified_t  wmi_handle, A_UINT16 size);
 
-/** Set the resolution for time stamp 
+/** Set the resolution for time stamp
 * @brief wmi_handle - handle to Wmi module
 * @ brief tsr - time stamp resolution
 */
 int
 dbglog_set_timestamp_resolution(wmi_unified_t  wmi_handle, A_UINT16 tsr);
 
-/** Enable reporting. If it is set to false then Traget wont deliver 
+/** Enable reporting. If it is set to false then Traget wont deliver
 * any debug information
 */
 int
 dbglog_reporting_enable(wmi_unified_t  wmi_handle, A_BOOL isenable);
 
-/** Set the log level 
+/** Set the log level
 * @brief DBGLOG_INFO - Information lowest log level
-* @brief DBGLOG_WARNING 
+* @brief DBGLOG_WARNING
 * @brief DBGLOG_ERROR - default log level
-* @brief DBGLOG_FATAL 
 */
 int
 dbglog_set_log_lvl(wmi_unified_t  wmi_handle, DBGLOG_LOG_LVL log_lvl);
+
+/*
+ * set the debug log level for a given module
+ *  mod_id_lvl : the format is more user friendly.
+ *    module_id =  mod_id_lvl/10;
+ *    log_level =  mod_id_lvl%10;
+ * example : mod_id_lvl is 153. then module id is 15 and log level is 3. this format allows
+ *         user to pass a sinlge value (which is the most convenient way for most of the OSs)
+ *         to be passed from user to the driver.
+ */
+int
+dbglog_set_mod_log_lvl(wmi_unified_t  wmi_handle, A_UINT32 mod_id_lvl);
 
 /** Enable/Disable the logging for VAP */
 int
@@ -106,8 +117,19 @@ dbglog_vap_log_enable(wmi_unified_t  wmi_handle, A_UINT16 vap_id,
 			   A_BOOL isenable);
 /** Enable/Disable logging for Module */
 int
-dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id, 
+dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
 			      A_BOOL isenable);
+
+/** set vap enablie bitmap */
+void
+dbglog_set_vap_enable_btimap(wmi_unified_t  wmi_handle, A_UINT32 vap_enable_bitmap);
+
+/** set log level for all the modules specified in the bitmap. for all other modules
+  * with 0 in the bitmap (or) outside the bitmap , the log level be reset to DBGLOG_ERR.
+  */
+void
+dbglog_set_mod_enable_btimap(wmi_unified_t  wmi_handle,A_UINT32 log_level,
+   A_UINT32 *mod_enable_bitmap, A_UINT32 bitmap_len );
 
 /** Custome debug_print handlers */
 /* Args:
@@ -118,7 +140,7 @@ dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
    no of arguments
    pointer to the buffer holding the args
 */
-typedef A_BOOL (*module_dbg_print) (A_UINT32, A_UINT16, A_UINT32, A_UINT32, 
+typedef A_BOOL (*module_dbg_print) (A_UINT32, A_UINT16, A_UINT32, A_UINT32,
                                    A_UINT16, A_UINT32 *);
 
 /** Register module specific dbg print*/
