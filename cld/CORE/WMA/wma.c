@@ -344,6 +344,35 @@ static v_SINT_t wma_unified_debug_print_event_handler(v_VOID_t *handle,
 #endif
 }
 
+static int
+wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
+				u_int32_t param_id, u_int32_t param_value)
+{
+	int ret;
+	wmi_vdev_set_param_cmd *cmd;
+	wmi_buf_t buf;
+	u_int16_t len = sizeof(wmi_vdev_set_param_cmd);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
+		return -ENOMEM;
+	}
+	cmd = (wmi_vdev_set_param_cmd *)wmi_buf_data(buf);
+	cmd->vdev_id = if_id;
+	cmd->param_id = param_id;
+	cmd->param_value = param_value;
+	WMA_LOGD("Setting vdev %d param = %x, value = %u",
+				if_id, param_id, param_value);
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
+					WMI_VDEV_SET_PARAM_CMDID);
+	if (ret < 0) {
+		WMA_LOGE("Failed to send set param command ret = %d", ret);
+		wmi_buf_free(buf);
+	}
+	return ret;
+}
+
 static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 {
 	wmi_resource_config tgt_cfg = {
@@ -2127,35 +2156,6 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	if (ret < 0) {
 		WMA_LOGP("Failed to send peer assoc command ret = %d\n", ret);
 		adf_nbuf_free(buf);
-	}
-	return ret;
-}
-
-static int
-wmi_unified_vdev_set_param_send(wmi_unified_t wmi_handle, u_int32_t if_id,
-				u_int32_t param_id, u_int32_t param_value)
-{
-	int ret;
-	wmi_vdev_set_param_cmd *cmd;
-	wmi_buf_t buf;
-	u_int16_t len = sizeof(wmi_vdev_set_param_cmd);
-
-	buf = wmi_buf_alloc(wmi_handle, len);
-	if (!buf) {
-		WMA_LOGE("%s:wmi_buf_alloc failed", __func__);
-		return -ENOMEM;
-	}
-	cmd = (wmi_vdev_set_param_cmd *)wmi_buf_data(buf);
-	cmd->vdev_id = if_id;
-	cmd->param_id = param_id;
-	cmd->param_value = param_value;
-	WMA_LOGD("Setting vdev %d param = %x, value = %u",
-				if_id, param_id, param_value);
-	ret = wmi_unified_cmd_send(wmi_handle, buf, len,
-					WMI_VDEV_SET_PARAM_CMDID);
-	if (ret < 0) {
-		WMA_LOGE("Failed to send set param command ret = %d", ret);
-		wmi_buf_free(buf);
 	}
 	return ret;
 }
