@@ -1243,6 +1243,20 @@ eHalStatus sme_Open(tHalHandle hHal)
 
    }while (0);
 
+   if (pMac->fScanOffload)
+   {
+       /* If scan offload is enabled then lim has allow the sending of
+       scan request to firmware even in powersave mode. The firmware has
+       to take care of exiting from power save mode */
+       status = ccmCfgSetInt(hHal, WNI_CFG_SCAN_IN_POWERSAVE,
+                   eANI_BOOLEAN_TRUE, NULL, eANI_BOOLEAN_FALSE);
+
+       if (eHAL_STATUS_SUCCESS != status)
+       {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                   "Could not pass on WNI_CFG_SCAN_IN_POWERSAVE to CCM");
+       }
+   }
    return status;
 }
 
