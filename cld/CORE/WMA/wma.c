@@ -2282,24 +2282,6 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		WMA_LOGD("dbg pid %d pval %d", privcmd->param_id,
 				privcmd->param_value);
 		switch (privcmd->param_id) {
-		case WMI_DBGLOG_REPORT_SIZE:
-                        ret = dbglog_set_report_size(wma->wmi_handle, privcmd->param_value);
-			if (ret)
-				WMA_LOGE("dbglog_set_report_size"
-						" failed ret %d", ret);
-			break;
-		case WMI_DBGLOG_TSTAMP_RESOLUTION:
-                        ret = dbglog_set_timestamp_resolution(wma->wmi_handle, privcmd->param_value);
-			if (ret)
-				WMA_LOGE("dbglog_set_timestamp_resolution"
-						" failed ret %d", ret);
-			break;
-		case WMI_DBGLOG_REPORTING_ENABLED:
-                        ret = dbglog_reporting_enable(wma->wmi_handle, privcmd->param_value);
-			if (ret)
-				WMA_LOGE("dbglog_reporting_enable"
-						" failed ret %d", ret);
-			break;
 		case WMI_DBGLOG_LOG_LEVEL:
                         ret = dbglog_set_log_lvl(wma->wmi_handle, privcmd->param_value);
 			if (ret)
@@ -2326,6 +2308,12 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		case WMI_DBGLOG_MODULE_DISABLE:
                         ret = dbglog_module_log_enable(wma->wmi_handle, privcmd->param_value, FALSE);
+			if (ret)
+				WMA_LOGE("dbglog_module_log_enable"
+						" failed ret %d", ret);
+			break;
+	        case WMI_DBGLOG_MOD_LOG_LEVEL:
+                        ret = dbglog_set_mod_log_lvl(wma->wmi_handle, privcmd->param_value);
 			if (ret)
 				WMA_LOGE("dbglog_module_log_enable"
 						" failed ret %d", ret);
