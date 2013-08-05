@@ -1980,6 +1980,9 @@ typedef struct
    v_BOOL_t                    bSingleTidRc;
    v_U8_t                      mcastBcastFilterSetting;
    v_BOOL_t                    fhostArpOffload;
+#if defined (QCA_WIFI_2_0) && defined(FEATURE_WLAN_PNO_OFFLOAD)
+   v_BOOL_t                    PnoOffload;
+#endif
    v_BOOL_t                    burstSizeDefinition;
    v_U8_t                      tsInfoAckPolicy;
    

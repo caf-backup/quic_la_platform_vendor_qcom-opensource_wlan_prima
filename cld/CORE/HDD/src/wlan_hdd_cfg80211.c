@@ -585,11 +585,17 @@ int wlan_hdd_cfg80211_register(struct device *dev,
                  |  WIPHY_FLAG_TDLS_EXTERNAL_SETUP;
 #endif
 #ifdef FEATURE_WLAN_SCAN_PNO
-    wiphy->flags |= WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
-    wiphy->max_sched_scan_ssids = MAX_SCAN_SSID;
-    wiphy->max_match_sets       = SIR_PNO_MAX_SUPP_NETWORKS;
-#endif/*FEATURE_WLAN_SCAN_PNO*/
-
+#if defined (QCA_WIFI_2_0) && defined(FEATURE_WLAN_PNO_OFFLOAD)
+    if (pCfg->PnoOffload) {
+#endif
+        wiphy->flags |= WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
+        wiphy->max_sched_scan_ssids = MAX_SCAN_SSID;
+        wiphy->max_match_sets       = SIR_PNO_MAX_SUPP_NETWORKS;
+#if defined (QCA_WIFI_2_0) && defined(FEATURE_WLAN_PNO_OFFLOAD)
+        wiphy->max_sched_scan_ie_len = SIR_PNO_MAX_IE_LEN;
+    }
+#endif
+#endif /* FEATURE_WLAN_SCAN_PNO */
     /* even with WIPHY_FLAG_CUSTOM_REGULATORY,
        driver can still register regulatory callback and
        it will get CRDA setting in wiphy->band[], but
