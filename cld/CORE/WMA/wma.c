@@ -96,6 +96,8 @@
 
 #define WMA_DEFAULT_SCAN_PRIORITY            1
 #define WMA_DEFAULT_SCAN_REQUESTER_ID        1
+/* default value */
+#define DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD  20
 
 #define AGC_DUMP  1
 #define CHAN_DUMP 2
@@ -1072,6 +1074,33 @@ err:
 	return VOS_STATUS_E_FAILURE;
 }
 
+static void wma_set_sta_null_keep_alive(tp_wma_handle wma, u_int8_t vdev_id,
+				   v_U32_t timeperiod)
+{
+	wmi_buf_t buf;
+	wmi_vdev_set_keepalive_cmd *cmd;
+
+	WMA_LOGD("%s: Enter", __func__);
+	buf = wmi_buf_alloc(wma->wmi_handle, sizeof(wmi_vdev_set_keepalive_cmd));
+	if (!buf) {
+		 WMA_LOGE("wmi_buf_alloc failed");
+		 return;
+	}
+
+	cmd = (wmi_vdev_set_keepalive_cmd *)wmi_buf_data(buf);
+	cmd->keepaliveInterval = timeperiod;
+	cmd->vdev_id = vdev_id;
+	WMA_LOGD("Keep Alive: vdev_id:%d interval:%u", vdev_id, timeperiod);
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, sizeof(*cmd),
+				 WMI_VDEV_SET_KEEPALIVE_CMDID)) {
+		WMA_LOGE("Failed to set KeepAlive");
+		adf_nbuf_free(buf);
+	}
+
+	WMA_LOGD("%s: Exit", __func__);
+	return;
+}
+
 /* function   : wma_vdev_attach
  * Descriptin :
  * Args       :
@@ -1085,6 +1114,10 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 			wma_handle->vos_context);
 	enum wlan_op_mode txrx_vdev_type;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
+	tANI_U32 cfg_data_val;
+	struct sAniSirGlobal *mac =
+		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+						      wma_handle->vos_context);
 
 	/* Create a vdev in target */
 	if (wma_unified_vdev_create_send(wma_handle->wmi_handle,
@@ -1126,6 +1159,20 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	vos_mem_copy(wma_handle->interfaces[self_sta_req->sessionId].addr,
 		     self_sta_req->selfMacAddr,
 		     sizeof(wma_handle->interfaces[self_sta_req->sessionId].addr));
+	switch (self_sta_req->type) {
+	case WMI_VDEV_TYPE_STA:
+		if(wlan_cfgGetInt(mac, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD,
+				  &cfg_data_val ) != eSIR_SUCCESS) {
+			WMA_LOGE("Failed to get value for "
+				 "WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD");
+			cfg_data_val = DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD;
+		}
+
+		wma_set_sta_null_keep_alive(wma_handle,
+					    self_sta_req->sessionId,
+					    cfg_data_val);
+		break;
+	}
 
 	wma_handle->interfaces[self_sta_req->sessionId].type =
 		self_sta_req->type;
@@ -3968,6 +4015,23 @@ resp:
 	wma_send_msg(wma, WDA_EXIT_UAPSD_RSP, ps_req, 0);
 }
 
+static void wma_set_keepalive_req(tp_wma_handle wma,
+				  tSirKeepAliveReq *keepalive)
+{
+	WMA_LOGD("KEEPALIVE:PacketType:%d", keepalive->packetType);
+	if (keepalive->packetType == SIR_KEEP_ALIVE_NULL_PKT)
+		wma_set_sta_null_keep_alive(wma, keepalive->sessionId,
+					    keepalive->timePeriod);
+#ifdef QCA_WIFI_ISOC
+	else if (keepalive->packetType == SIR_KEEP_ALIVE_UNSOLICIT_ARP_RSP)
+		wma_set_sta_arp_keep_alive(wma, keepalive->sessionId,
+					   keepalive->hostIpv4Addr,
+					   keepalive->destIpv4Addr,
+					   keepalive->destMacAddr,
+					   keepalive->timePeriod);
+#endif
+	vos_mem_free(keepalive);
+}
 /*
  * This function sets the trigger uapsd
  * params such as service interval, delay
@@ -4206,6 +4270,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_MAX_TX_POWER_REQ:
 			wma_set_max_tx_power(wma_handle,
 					(tpMaxTxPowerParams)msg->bodyptr);
+			break;
+		case WDA_SET_KEEP_ALIVE:
+			wma_set_keepalive_req(wma_handle,
+					(tSirKeepAliveReq *)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
