@@ -6353,8 +6353,10 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    eHalStatus status = eHAL_STATUS_SUCCESS;
    tSirPrefNetworkFoundInd *pPrefNetworkFoundInd = (tSirPrefNetworkFoundInd *)pMsg;
+#ifndef FEATURE_WLAN_PNO_OFFLOAD
    v_U8_t dumpSsId[SIR_MAC_MAX_SSID_LENGTH + 1];
    tANI_U8 ssIdLength = 0;
+#endif
 
    if (NULL == pMsg)
    {
@@ -6363,6 +6365,15 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
    }
    else
    {
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+      /* Call Preferred Network Found Indication callback routine. */
+      if (pMac->pmc.prefNetwFoundCB != NULL)
+      {
+         pMac->pmc.prefNetwFoundCB(
+             pMac->pmc.preferredNetworkFoundIndCallbackContext,
+             pPrefNetworkFoundInd);
+      }
+#else
       if (pPrefNetworkFoundInd->ssId.length > 0)
       {
          ssIdLength = CSR_MIN(SIR_MAC_MAX_SSID_LENGTH,
@@ -6402,6 +6413,7 @@ eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
          smsLog(pMac, LOGE, "%s: callback failed - SSID is NULL", __func__);
          status = eHAL_STATUS_FAILURE;
       }
+#endif
    }
 
 
@@ -8829,3 +8841,31 @@ int sme_UpdateHTConfig(tHalHandle hHal, tANI_U8 sessionId, tANI_U16 htCapab,
 
    return 0;
 }
+
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+/*--------------------------------------------------------------------------
+
+  \brief sme_MoveCsrToScanStateForPno() - Request CSR module to be in Scan state
+                                          for PNO operation.
+
+  \param hHal - The handle returned by macOpen.
+  \param sessionId - A previous opened session's ID.
+
+  \return eHAL_STATUS_SUCCESS - CSR moved to Scan state.
+          eHAL_STATUS_INVALID_PARAMETER - Failed to acquire sme lock
+  --------------------------------------------------------------------------*/
+eHalStatus sme_MoveCsrToScanStateForPno (tHalHandle hHal, tANI_U8 sessionId)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status;
+
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        csrMoveToScanStateForPno( pMac, sessionId );
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return status;
+}
+#endif
