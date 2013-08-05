@@ -35,11 +35,15 @@
 #define VOS_DIGEST_SHA1_SIZE    20
 #define VOS_DIGEST_MD5_SIZE     16
 
-#define VOS_24_GHZ_BASE_FREQ    2407
-#define VOS_5_GHZ_BASE_FREQ 5000
-#define VOS_MAX_24_GHZ_CHANNEL  14
-#define VOS_CHAN_SPACING    5
-#define VOS_CHAN_14_FREQ    2484
+#define VOS_24_GHZ_BASE_FREQ   2407
+#define VOS_5_GHZ_BASE_FREQ    5000
+#define VOS_24_GHZ_CHANNEL_14  14
+#define VOS_24_GHZ_CHANNEL_15  15
+#define VOS_24_GHZ_CHANNEL_27  27
+#define VOS_CHAN_SPACING_5MHZ  5
+#define VOS_CHAN_SPACING_20MHZ 20
+#define VOS_CHAN_14_FREQ       2484
+#define VOS_CHAN_15_FREQ       2512
 
 /*-------------------------------------------------------------------------- 
   Type declarations

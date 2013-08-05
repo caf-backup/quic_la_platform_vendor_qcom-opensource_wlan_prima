@@ -683,11 +683,13 @@ err_tfm:
 
 v_U32_t vos_chan_to_freq(v_U8_t chan)
 {
-    if (chan < VOS_MAX_24_GHZ_CHANNEL)
-        return VOS_24_GHZ_BASE_FREQ + chan * VOS_CHAN_SPACING;
-    else if (chan == VOS_MAX_24_GHZ_CHANNEL)
+    if (chan < VOS_24_GHZ_CHANNEL_14)       // ch 0 - ch 13
+        return VOS_24_GHZ_BASE_FREQ + chan * VOS_CHAN_SPACING_5MHZ;
+    else if (chan == VOS_24_GHZ_CHANNEL_14) // ch 14
         return VOS_CHAN_14_FREQ;
-    else
-        return VOS_5_GHZ_BASE_FREQ + chan * VOS_CHAN_SPACING;
+    else if (chan < VOS_24_GHZ_CHANNEL_27)  // ch 15 - ch 26
+        return VOS_CHAN_15_FREQ +
+               (chan - VOS_24_GHZ_CHANNEL_15) * VOS_CHAN_SPACING_20MHZ;
+     else
+        return VOS_5_GHZ_BASE_FREQ + chan * VOS_CHAN_SPACING_5MHZ;
 }
-
