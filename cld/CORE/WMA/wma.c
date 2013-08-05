@@ -4390,6 +4390,52 @@ static void wma_config_pno(tp_wma_handle wma, tpSirPNOScanReq pno)
 	 * processing PNO request. */
 	vos_mem_free(pno);
 }
+
+/*
+ * After pushing cached scan results (that are stored in LIM) to SME,
+ * PE will post WDA_SME_SCAN_CACHE_UPDATED message indication to
+ * wma and intern this function handles that message. This function will
+ * check for PNO completion (by checking NLO match event) and post PNO
+ * completion back to SME if PNO operation is completed successfully.
+ */
+void wma_scan_cache_updated_ind(tp_wma_handle wma)
+{
+	tSirPrefNetworkFoundInd *nw_found_ind;
+	VOS_STATUS status;
+	vos_msg_t vos_msg;
+	u_int8_t len, i;
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		if (wma->interfaces[i].nlo_match_evt_received)
+			break;
+	}
+
+	if (i == wma->max_bssid) {
+		WMA_LOGD("PNO match event is not received in any vdev, skip scan cache update indication");
+		return;
+	}
+	wma->interfaces[i].nlo_match_evt_received = FALSE;
+
+	WMA_LOGD("Posting PNO completion to umac");
+
+	len = sizeof(tSirPrefNetworkFoundInd);
+	nw_found_ind = (tSirPrefNetworkFoundInd *) vos_mem_malloc(len);
+
+	nw_found_ind->mesgType = eWNI_SME_PREF_NETWORK_FOUND_IND;
+	nw_found_ind->mesgLen = len;
+
+	vos_msg.type = eWNI_SME_PREF_NETWORK_FOUND_IND;
+	vos_msg.bodyptr = (void *) nw_found_ind;
+	vos_msg.bodyval = 0;
+
+	status = vos_mq_post_message(VOS_MQ_ID_SME, &vos_msg);
+	if (status != VOS_STATUS_SUCCESS) {
+		WMA_LOGE("%s: Failed to post PNO completion match event to SME",
+			 __func__);
+		vos_mem_free(nw_found_ind);
+	}
+}
+
 #endif
 
 /* function   : wma_mc_process_msg
@@ -4541,6 +4587,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_PNO_REQ:
 			wma_config_pno(wma_handle,
 				       (tpSirPNOScanReq)msg->bodyptr);
+			break;
+
+		case WDA_SME_SCAN_CACHE_UPDATED:
+			wma_scan_cache_updated_ind(wma_handle);
 			break;
 #endif
 		default:
@@ -4789,6 +4839,72 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	return 0;
 }
 
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+
+/* Record NLO match event comes from FW. It's a indication that
+ * one of the profile is matched.
+ */
+static int wma_nlo_match_evt_handler(void *handle, u_int8_t *event,
+				     u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	wmi_nlo_event *nlo_event = (wmi_nlo_event *) event;
+	struct wma_txrx_node *node;
+
+	WMA_LOGD("PNO match event received for vdev %d",
+		 nlo_event->vdev_id);
+
+	node = &wma->interfaces[nlo_event->vdev_id];
+	if (node)
+		node->nlo_match_evt_received = TRUE;
+
+	return 0;
+}
+
+/* Handles NLO scan completion event. */
+static int wma_nlo_scan_cmp_evt_handler(void *handle, u_int8_t *event,
+					u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	wmi_nlo_event *nlo_event = (wmi_nlo_event *) event;
+	tSirScanOffloadEvent *scan_event;
+	struct wma_txrx_node *node;
+	VOS_STATUS status;
+
+	WMA_LOGD("PNO scan completion event received for vdev %d",
+		 nlo_event->vdev_id);
+
+	node = &wma->interfaces[nlo_event->vdev_id];
+
+	/* Handle scan completion event only after NLO match event. */
+	if (!node || !node->nlo_match_evt_received)
+		goto skip_pno_cmp_ind;
+
+	/* FW need explict stop to really stop PNO operation */
+	status = wma_pno_stop(wma, nlo_event->vdev_id);
+	if (status)
+		WMA_LOGE("Failed to stop PNO scan\n");
+
+	scan_event = (tSirScanOffloadEvent *) vos_mem_malloc(
+					      sizeof(tSirScanOffloadEvent));
+	if (scan_event) {
+		/* Posting scan completion msg would take scan cache result
+		 * from LIM module and update in scan cache maintained in SME.*/
+		WMA_LOGD("Posting Scan completion to umac");
+		scan_event->reasonCode = eSIR_SME_SUCCESS;
+		scan_event->event = SCAN_EVENT_COMPLETED;
+		wma_send_msg(wma, WDA_RX_SCAN_EVENT,
+			     (void *) scan_event, 0);
+	} else {
+		WMA_LOGE("Memory allocation failed for tSirScanOffloadEvent");
+	}
+
+skip_pno_cmp_ind:
+	return 0;
+}
+
+#endif
+
 /* function   : wma_start    
  * Descriptin :  
  * Args       :        
@@ -4844,6 +4960,34 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				   WMI_SERVICE_NLO)) {
+
+		WMA_LOGD("FW supports pno offload, registering nlo match handler");
+
+		status = wmi_unified_register_event_handler(
+				wma_handle->wmi_handle,
+				WMI_NLO_MATCH_EVENTID,
+				wma_nlo_match_evt_handler);
+		if (status) {
+			WMA_LOGE("Failed to register nlo match event cb");
+			vos_status = VOS_STATUS_E_FAILURE;
+			goto end;
+		}
+
+		status = wmi_unified_register_event_handler(
+				wma_handle->wmi_handle,
+				WMI_NLO_SCAN_COMPLETE_EVENTID,
+				wma_nlo_scan_cmp_evt_handler);
+		if (status) {
+			WMA_LOGE("Failed to register nlo scan comp event cb");
+			vos_status = VOS_STATUS_E_FAILURE;
+			goto end;
+		}
+	}
+#endif
+
 	vos_status = VOS_STATUS_SUCCESS;
 
 #ifndef QCA_WIFI_FTM
@@ -5092,6 +5236,11 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 						  WMI_SERVICE_ARPNS_OFFLOAD);
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+	/* PNO offload */
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NLO))
+		cfg->pno_offload = TRUE;
+#endif
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,
