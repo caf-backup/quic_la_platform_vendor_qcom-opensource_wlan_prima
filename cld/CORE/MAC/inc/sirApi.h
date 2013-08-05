@@ -3293,6 +3293,7 @@ typedef struct sSirKeepAliveReq
     tSirIpv4Addr    destIpv4Addr;
     tSirMacAddr     destMacAddr;
     tSirMacAddr     bssId;
+    tANI_U8         sessionId;
 } tSirKeepAliveReq, *tpSirKeepAliveReq;
 
 typedef struct sSirSmeAddStaSelfReq

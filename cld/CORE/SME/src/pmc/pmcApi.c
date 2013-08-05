@@ -2562,6 +2562,7 @@ eHalStatus pmcSetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest, tANI_U8
 
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_LOW, "buff TP %d "
               "input TP %d ", pRequestBuf->timePeriod, pRequest->timePeriod);
+    pRequestBuf->sessionId = sessionId;
 
     msg.type = WDA_SET_KEEP_ALIVE;
     msg.reserved = 0;
