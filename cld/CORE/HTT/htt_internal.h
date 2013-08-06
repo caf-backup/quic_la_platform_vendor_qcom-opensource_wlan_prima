@@ -248,6 +248,11 @@ htt_rx_desc(adf_nbuf_t msdu)
 
 #endif
 
+#if ATH_11AC_TXCOMPACT
+#define HTT_TX_SCHED htt_tx_sched
+#else
+#define HTT_TX_SCHED(pdev) /* no-op */
+#endif
 
 int
 htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems);

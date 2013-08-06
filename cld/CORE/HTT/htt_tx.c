@@ -20,12 +20,12 @@
 #include <adf_nbuf.h>       /* adf_nbuf_t, etc. */
 #include <adf_os_time.h>    /* adf_os_mdelay */
 
-#include <htt.h>            /* htt_tx_msdu_desc_t */
-#include <htc_api.h>        /* HTCFlushSurpriseRemove */
-#include <htc.h>            /* HTC_HDR_LENGTH */
-#include <ol_cfg.h>         /* ol_cfg_netbuf_frags_max, etc. */
-#include <ol_txrx_types.h>    /* OL_TXRX_MGMT_NUM_TYPES */
-
+#include <htt.h>             /* htt_tx_msdu_desc_t */
+#include <htc.h>             /* HTC_HDR_LENGTH */
+#include <htc_api.h>         /* HTCFlushSurpriseRemove */
+#include <ol_cfg.h>          /* ol_cfg_netbuf_frags_max, etc. */
+#include <ol_htt_tx_api.h>   /* HTT_TX_DESC_VADDR_OFFSET */
+#include <ol_txrx_htt_api.h> /* ol_tx_msdu_id_storage */
 #include <htt_internal.h>
 
 /*--- setup / tear-down functions -------------------------------------------*/
@@ -87,9 +87,6 @@ htt_tx_attach(struct htt_pdev_t *pdev, int desc_pool_elems)
     }
     *p = NULL;
 
-    /* allocate Tx MGMT desc pool */
-    htt_tx_mgmt_desc_pool_alloc(pdev, HTT_MAX_NUM_MGMT_DESCS);
-
     return 0; /* success */
 }
 
@@ -102,140 +99,9 @@ htt_tx_detach(struct htt_pdev_t *pdev)
         pdev->tx_descs.pool_vaddr,
         pdev->tx_descs.pool_paddr,
         adf_os_get_dma_mem_context((&pdev->tx_descs), memctx));
-
-    /* Free tx mgmt desc pool */
-    htt_tx_mgmt_desc_pool_free(pdev);
-
 }
 
 /*--- descriptor allocation functions ---------------------------------------*/
-
-void
-htt_tx_mgmt_desc_pool_alloc(struct htt_pdev_t *pdev, A_UINT32 num_elems)
-{
-    struct htt_tx_mgmt_desc_buf *msg_pool = NULL;
-    int i = 0;
-
-    msg_pool = (struct htt_tx_mgmt_desc_buf *)adf_os_mem_alloc(pdev->osdev,
-                                                               (num_elems *
-                                                               sizeof(struct htt_tx_mgmt_desc_buf)));
-
-    adf_os_assert(msg_pool);
-    adf_os_mem_zero(msg_pool, (num_elems * sizeof(struct htt_tx_mgmt_desc_buf)));
-
-    for(i = 0; i < num_elems; i++) {
-        msg_pool[i].msg_buf = adf_nbuf_alloc(pdev->osdev,
-                                              sizeof(struct htt_mgmt_tx_desc_t) + HTC_HEADER_LEN + 
-                                              HTC_HDR_ALIGNMENT_PADDING,
-                                              /* reserve room for HTC header */
-                                              HTC_HEADER_LEN + HTC_HDR_ALIGNMENT_PADDING,
-                                              4,
-                                              TRUE);
-        adf_nbuf_put_tail(msg_pool[i].msg_buf, sizeof(struct htt_mgmt_tx_desc_t));
-    }
-
-    pdev->tx_mgmt_desc_ctxt.pool = msg_pool;
-    pdev->tx_mgmt_desc_ctxt.pending_cnt = 0;
-}
-
-adf_nbuf_t
-htt_tx_mgmt_desc_alloc(
-    struct htt_pdev_t *pdev, A_UINT32 *desc_id, adf_nbuf_t mgmt_frm)
-{
-    A_UINT32  index;
-    ol_txrx_mgmt_tx_cb  cb = NULL;
-    A_UINT16 mgmt_type = (OL_TXRX_MGMT_NUM_TYPES-1);
-    void *ctxt = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].ctxt;
-    cb = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].ota_ack_cb;
-
-    /* acquire the lock */
-    adf_os_spin_lock_bh(&pdev->htt_tx_mutex);
-
-    for (index = 0; index < HTT_MAX_NUM_MGMT_DESCS; index++) {
-        if (!pdev->tx_mgmt_desc_ctxt.pool[index].is_inuse) {
-            pdev->tx_mgmt_desc_ctxt.pool[index].is_inuse = TRUE;
-            pdev->tx_mgmt_desc_ctxt.pool[index].mgmt_frm = mgmt_frm;
-            *desc_id = index;
-            pdev->tx_mgmt_desc_ctxt.pending_cnt++;
-	    adf_nbuf_init(pdev->tx_mgmt_desc_ctxt.pool[index].msg_buf,
-			  HTC_HEADER_LEN + HTC_HDR_ALIGNMENT_PADDING,
-			  4, sizeof(struct htt_mgmt_tx_desc_t));
-            adf_os_spin_unlock_bh(&pdev->htt_tx_mutex);
-            return pdev->tx_mgmt_desc_ctxt.pool[index].msg_buf;
-        }
-    }
-    /* We do not have any buffers available for now */
-    adf_os_spin_unlock_bh(&pdev->htt_tx_mutex);
-    if (cb) {
-        adf_os_print("%s Failed to allocate desc for mgmt frame\n", __func__);
-        cb(ctxt, mgmt_frm, 1);
-    }
-    return NULL;
-}
-
-void
-htt_tx_mgmt_desc_free(struct htt_pdev_t *pdev, A_UINT8 desc_id, A_UINT32 status)
-{
-    ol_txrx_mgmt_tx_cb  cb = NULL;
-    adf_nbuf_t    mgmt_frm;
-    A_UINT16 mgmt_type = (OL_TXRX_MGMT_NUM_TYPES-1);
-    void *ctxt = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].ctxt;
-    
-    cb = pdev->txrx_pdev->tx_mgmt.callbacks[mgmt_type].ota_ack_cb;
-
-    adf_os_assert(desc_id < HTT_MAX_NUM_MGMT_DESCS);
-
-    /* acquire lock here */
-    adf_os_spin_lock_bh(&pdev->htt_tx_mutex);
-    pdev->tx_mgmt_desc_ctxt.pool[desc_id].is_inuse = FALSE;
-    /* free the management frame */
-    pdev->tx_mgmt_desc_ctxt.pending_cnt--;
-    mgmt_frm = pdev->tx_mgmt_desc_ctxt.pool[desc_id].mgmt_frm;
-       pdev->tx_mgmt_desc_ctxt.pool[desc_id].mgmt_frm = NULL;
-    /* pull adf here by HTT_HTC_HDR_SIZE bytes */
-#if ATH_11AC_TXCOMPACT
-    adf_nbuf_pull_head(pdev->tx_mgmt_desc_ctxt.pool[desc_id].msg_buf,
-                       sizeof(HTC_FRAME_HDR));
-#endif
-    adf_nbuf_pull_head(pdev->tx_mgmt_desc_ctxt.pool[desc_id].msg_buf,
-                       (HTC_HDR_ALIGNMENT_PADDING));
-    adf_os_spin_unlock_bh(&pdev->htt_tx_mutex);
-     /* call back function to freeup management frame */
-    if (cb) {
-        cb(ctxt,
-           mgmt_frm,
-           status);
-    }
-
-    /*
-     * Freeup the Tx Management Buffer
-     * since umac doesn't take care of freeing
-     * the buffer. This is temporary workaround
-     * till Tx Mgmt Clean up changes are in
-     */
-     adf_nbuf_unmap(pdev->osdev, mgmt_frm, ADF_OS_DMA_TO_DEVICE);
-     adf_nbuf_free(mgmt_frm);
-}
-
-void
-htt_tx_mgmt_desc_pool_free(struct htt_pdev_t *pdev)
-{
-    A_UINT16 i = 0;
-#define TX_MGMT_DONE_WAIT_TIMEOUT 100
-    for (i = 0; i < TX_MGMT_DONE_WAIT_TIMEOUT; i++) {
-        if (!pdev->tx_mgmt_desc_ctxt.pending_cnt) {
-            break;
-        }
-        adf_os_mdelay(10);
-    }
-
-    /* Free up all the adf buffers */
-    for (i = 0; i < HTT_MAX_NUM_MGMT_DESCS; i++) {
-	    /* put adf_nbuf_t into free list */
-		adf_nbuf_free_pool(pdev->tx_mgmt_desc_ctxt.pool[i].msg_buf);
-    }
-    adf_os_mem_free(pdev->tx_mgmt_desc_ctxt.pool);
-}
 
 void *
 htt_tx_desc_alloc(htt_pdev_handle pdev, u_int32_t *paddr_lo)
@@ -302,6 +168,28 @@ htt_tx_desc_free(htt_pdev_handle pdev, void *tx_desc)
 }
 
 /*--- descriptor field access methods ---------------------------------------*/
+
+void htt_tx_desc_frags_table_set(
+    htt_pdev_handle pdev,
+    void *htt_tx_desc,
+    u_int32_t paddr,
+    int reset)
+{
+    u_int32_t *fragmentation_descr_field_ptr;
+
+    /* fragments table only applies to LL systems */
+    if (pdev->cfg.is_high_latency) {
+        return;
+    }
+    fragmentation_descr_field_ptr = (u_int32_t *)
+        ((u_int32_t *) htt_tx_desc) + HTT_TX_DESC_FRAGS_DESC_PADDR_OFFSET_DWORD;
+    if (reset) {
+        *fragmentation_descr_field_ptr =
+            HTT_TX_DESC_PADDR(pdev, htt_tx_desc) + HTT_TX_DESC_LEN;
+    } else {
+        *fragmentation_descr_field_ptr = paddr;
+    }
+}
 
 /* PUT THESE AS INLINE IN ol_htt_tx_api.h */
 
@@ -411,6 +299,31 @@ htt_tx_send_batch(htt_pdev_handle pdev, adf_nbuf_t head_msdu, int num_msdus)
 
 }
 
+int
+htt_tx_send_nonstd(
+    htt_pdev_handle pdev,
+    adf_nbuf_t msdu,
+    u_int16_t msdu_id,
+    enum htt_pkt_type pkt_type)
+{
+    int download_len;
+
+    /*
+     * The pkt_type could be checked to see what L2 header type is present,
+     * and then the L2 header could be examined to determine its length.
+     * But for simplicity, just use the maximum possible header size,
+     * rather than computing the actual header size.
+     */
+    download_len =
+        sizeof(struct htt_host_tx_desc_t) +
+        HTT_TX_HDR_SIZE_OUTER_HDR_MAX + /* worst case */
+        HTT_TX_HDR_SIZE_802_1Q +
+        HTT_TX_HDR_SIZE_LLC_SNAP +
+        ol_cfg_tx_download_size(pdev->ctrl_pdev);
+    adf_os_assert(download_len <= pdev->download_len);
+    return htt_tx_send_std(pdev, msdu, msdu_id);
+}
+
 #else  /*ATH_11AC_TXCOMPACT*/
 
 static inline int
@@ -501,15 +414,6 @@ htt_tx_send_batch(
 }
 
 int
-htt_tx_send_std(
-    htt_pdev_handle pdev,
-    adf_nbuf_t msdu,
-    u_int16_t msdu_id)
-{
-    return htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len);
-}
-
-int
 htt_tx_send_nonstd(
     htt_pdev_handle pdev,
     adf_nbuf_t msdu,
@@ -518,6 +422,12 @@ htt_tx_send_nonstd(
 {
     int download_len;
 
+    /*
+     * The pkt_type could be checked to see what L2 header type is present,
+     * and then the L2 header could be examined to determine its length.
+     * But for simplicity, just use the maximum possible header size,
+     * rather than computing the actual header size.
+     */
     download_len =
         sizeof(struct htt_host_tx_desc_t) +
         HTT_TX_HDR_SIZE_OUTER_HDR_MAX + /* worst case */
@@ -525,6 +435,15 @@ htt_tx_send_nonstd(
         HTT_TX_HDR_SIZE_LLC_SNAP +
         ol_cfg_tx_download_size(pdev->ctrl_pdev);
     return htt_tx_send_base(pdev, msdu, msdu_id, download_len);
+}
+
+int
+htt_tx_send_std(
+    htt_pdev_handle pdev,
+    adf_nbuf_t msdu,
+    u_int16_t msdu_id)
+{
+    return htt_tx_send_base(pdev, msdu, msdu_id, pdev->download_len);
 }
 
 #endif /*ATH_11AC_TXCOMPACT*/

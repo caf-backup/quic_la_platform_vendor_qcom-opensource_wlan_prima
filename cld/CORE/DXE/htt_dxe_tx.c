@@ -706,9 +706,11 @@ htt_dxe_tx_send_nonstd(
     u_int16_t msdu_id,
     enum htt_pkt_type pkt_type)
 {
-    /* FILL IN HERE */
-    adf_os_assert(0);
-    return 1;
+    /*
+     * Since the whole frame gets downloaded, frames with a non-standard
+     * L2 header are handled the same as any other frame.
+     */
+    return htt_dxe_tx_send_std(pdev, msdu, msdu_id);
 }
 
 #define htt_dxe_tx_send_batch htt_tx_send_batch

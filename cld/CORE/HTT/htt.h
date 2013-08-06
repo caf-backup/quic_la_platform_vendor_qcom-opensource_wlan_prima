@@ -143,6 +143,7 @@ enum htt_pkt_type {
     htt_pkt_type_raw = 0,
     htt_pkt_type_native_wifi = 1,
     htt_pkt_type_ethernet = 2,
+    htt_pkt_type_mgmt = 3,
 
     /* keep this last */
     htt_pkt_num_types

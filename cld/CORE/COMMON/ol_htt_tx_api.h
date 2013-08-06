@@ -516,6 +516,16 @@ htt_tx_desc_frag(
     *word = frag_len;
 }
 
+#ifdef QCA_WIFI_ISOC
+#define htt_tx_desc_frags_table_set(pdev, desc, paddr, reset) /* no-op */
+#else
+void htt_tx_desc_frags_table_set(
+    htt_pdev_handle pdev,
+    void *desc,
+    u_int32_t paddr,
+    int reset);
+#endif
+
 /**
  * @brief Specify the type and subtype of a tx frame.
  *

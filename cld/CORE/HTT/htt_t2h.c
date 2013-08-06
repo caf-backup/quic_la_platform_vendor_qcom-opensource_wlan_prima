@@ -22,7 +22,7 @@
 #include <ol_htt_tx_api.h>
 #include <ol_txrx_htt_api.h> /* htt_tx_status */
 
-#include <htt_internal.h>
+#include <htt_internal.h>    /* HTT_TX_SCHED, etc. */
 #include <pktlog_ac_fmt.h>
 #include <wdi_event.h>
 #include <ol_htt_tx_api.h>
@@ -242,8 +242,15 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
         }
     case HTT_T2H_MSG_TYPE_MGMT_TX_COMPL_IND:
         {
-            struct htt_mgmt_tx_compl_ind * compl_msg = (struct htt_mgmt_tx_compl_ind *)(msg_word + 1);
-            htt_tx_mgmt_desc_free(pdev, compl_msg->desc_id, compl_msg->status);
+            struct htt_mgmt_tx_compl_ind *compl_msg;
+
+            compl_msg = (struct htt_mgmt_tx_compl_ind *)(msg_word + 1);
+            if (pdev->cfg.is_high_latency) {
+                ol_tx_target_credit_update(pdev->txrx_pdev, 1);
+            }
+            ol_tx_single_completion_handler(
+                pdev->txrx_pdev, compl_msg->status, compl_msg->desc_id);
+            HTT_TX_SCHED(pdev);
             break;
         }
 #if TXRX_STATS_LEVEL != TXRX_STATS_LEVEL_OFF
@@ -377,12 +384,14 @@ htt_t2h_msg_handler(void *context, HTC_PACKET *pkt)
                  * because SDIO HIF may reuse skb before upper layer release it
                  */
                 ol_rx_indication_handler(
-                        pdev->txrx_pdev, htt_t2h_msg, peer_id, tid, num_mpdu_ranges);
+                    pdev->txrx_pdev, htt_t2h_msg, peer_id, tid,
+                    num_mpdu_ranges);
 
                 return;
             } else {
                 ol_rx_indication_handler(
-                        pdev->txrx_pdev, htt_t2h_msg, peer_id, tid, num_mpdu_ranges);
+                    pdev->txrx_pdev, htt_t2h_msg, peer_id, tid,
+                    num_mpdu_ranges);
             }
             break;
         }
@@ -415,10 +424,7 @@ htt_t2h_msg_handler(void *context, HTC_PACKET *pkt)
             }
             ol_tx_completion_handler(
                 pdev->txrx_pdev, num_msdus, status, msg_word + 1);
-#if ATH_11AC_TXCOMPACT
-
-            htt_tx_sched(pdev);
-#endif
+            HTT_TX_SCHED(pdev);
             break;
         }
     case HTT_T2H_MSG_TYPE_RX_PN_IND:
@@ -470,10 +476,7 @@ htt_t2h_msg_handler(void *context, HTC_PACKET *pkt)
                 }
             }
             ol_tx_inspect_handler(pdev->txrx_pdev, num_msdus, msg_word + 1);
-#if ATH_11AC_TXCOMPACT
-             htt_tx_sched(pdev); 
-#endif
-
+            HTT_TX_SCHED(pdev);
             break;
         }
     default:

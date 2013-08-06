@@ -153,6 +153,28 @@ void
 ol_tx_target_credit_init(struct ol_txrx_pdev_t *pdev, int credit_delta);
 
 /**
+ * @brief Process a tx completion message for a single MSDU.
+ * @details
+ *  The ol_tx_single_completion_handler function performs the same tx
+ *  completion processing as the ol_tx_completion_handler, but for a
+ *  single frame.
+ *  ol_tx_completion_handler is optimized to handle batch completions
+ *  as efficiently as possible; in contrast ol_tx_single_completion_handler
+ *  handles single frames as simply and generally as possible.
+ *  Thus, this ol_tx_single_completion_handler function is suitable for
+ *  intermittent usage, such as for tx mgmt frames.
+ *
+ * @param pdev - the data physical device that sent the tx frames
+ * @param status - whether transmission was successful
+ * @param tx_msdu_id - ID of the frame which completed transmission
+ */
+void
+ol_tx_single_completion_handler(
+    ol_txrx_pdev_handle pdev,
+    enum htt_tx_status status,
+    u_int16_t tx_desc_id);
+
+/**
  * @brief Update the amount of target credit.
  * @details
  *  When the target finishes with an old transmit frame, it can use the
