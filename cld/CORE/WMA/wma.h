@@ -981,4 +981,19 @@ VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 #define WMA_NLO_FREQ_THRESH	1000  /* in MHz */
 #endif
 
+/* U-APSD maximum service period of peer station */
+enum uapsd_peer_param_max_sp {
+	UAPSD_MAX_SP_LEN_UNLIMITED = 0,
+	UAPSD_MAX_SP_LEN_2 = 2,
+	UAPSD_MAX_SP_LEN_4 = 4,
+	UAPSD_MAX_SP_LEN_6 = 6
+};
+
+/* U-APSD Enabled AC's of peer station */
+enum uapsd_peer_param_enabled_ac {
+	UAPSD_VO_ENABLED = 0x01,
+	UAPSD_VI_ENABLED = 0x02,
+	UAPSD_BK_ENABLED = 0x04,
+	UAPSD_BE_ENABLED = 0x08
+};
 #endif
