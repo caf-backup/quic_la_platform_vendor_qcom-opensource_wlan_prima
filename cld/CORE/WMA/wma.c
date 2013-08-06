@@ -4251,6 +4251,147 @@ VOS_STATUS wma_trigger_uapsd_params(tp_wma_handle wma_handle, u_int32_t vdev_id,
 	return VOS_STATUS_SUCCESS;
 }
 
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+
+/* Request FW to start PNO operation */
+static VOS_STATUS wma_pno_start(tp_wma_handle wma, tpSirPNOScanReq pno)
+{
+	nlo_configured_parameters *nlo;
+	wmi_nlo_config_cmd *cmd;
+	int32_t len = sizeof(wmi_nlo_config_cmd);
+	wmi_buf_t buf;
+	u_int8_t i;
+	int ret;
+
+	WMA_LOGD("PNO Start");
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_nlo_config_cmd *) wmi_buf_data(buf);
+	cmd->vdev_id = pno->sessionId;
+	cmd->flags = WMI_NLO_CONFIG_START;
+
+	/* Copy channel info */
+	cmd->num_of_channels = MIN(pno->aNetworks[0].ucChannelCount,
+				   WMI_NLO_MAX_CHAN);
+	WMA_LOGD("Channel count: %d", cmd->num_of_channels);
+
+	for (i = 0; i < cmd->num_of_channels; i++) {
+		cmd->channel_list[i] = pno->aNetworks[0].aChannels[i];
+
+		if (cmd->channel_list[i] < WMA_NLO_FREQ_THRESH)
+			cmd->channel_list[i] =
+				vos_chan_to_freq(cmd->channel_list[i]);
+
+		WMA_LOGD("Ch[%d]: %d MHz", i, cmd->channel_list[i]);
+	}
+
+	cmd->no_of_ssids = MIN(pno->ucNetworksCount, WMI_NLO_MAX_SSIDS);
+	WMA_LOGD("SSID count : %d", cmd->no_of_ssids);
+
+	for (i = 0; i < cmd->no_of_ssids; i++) {
+		nlo = &cmd->nlo_list[i];
+
+		/* Copy ssid and it's length */
+		nlo->ssid.valid = TRUE;
+		nlo->ssid.ssid.ssid_len = pno->aNetworks[i].ssId.length;
+		vos_mem_copy(nlo->ssid.ssid.ssid, pno->aNetworks[i].ssId.ssId,
+			     nlo->ssid.ssid.ssid_len);
+		WMA_LOGD("index: %d ssid: %s len: %d", i, nlo->ssid.ssid.ssid,
+			 nlo->ssid.ssid.ssid_len);
+	}
+
+	/* TODO: PNO offload present in discrete firmware is implemented
+	 * by keeping Windows requirement. Following options are missing
+	 * in current discrete firmware to meet linux requirement.
+	 *     1) Option to configure Sched scan period.
+	 *     2) Option to configure RSSI threshold.
+	 *     3) Option to configure APP IE (comes from wpa_supplicant).
+	 * Until firmware team brings above changes, lets live with what's
+	 * available.
+	 */
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send nlo wmi cmd", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	wma->interfaces[pno->sessionId].pno_in_progress = TRUE;
+
+	WMA_LOGD("PNO start request sent successfully for vdev %d",
+		 pno->sessionId);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/* Request FW to stop ongoing PNO operation */
+static VOS_STATUS wma_pno_stop(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	wmi_nlo_config_cmd *cmd;
+	int32_t len = sizeof(wmi_nlo_config_cmd);
+	wmi_buf_t buf;
+	int ret;
+
+	if (!wma->interfaces[vdev_id].pno_in_progress) {
+		WMA_LOGD("No active pno session found for vdev %d, skip pno stop request",
+			 vdev_id);
+		return VOS_STATUS_SUCCESS;
+	}
+
+	WMA_LOGD("PNO Stop");
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_nlo_config_cmd *) wmi_buf_data(buf);
+	cmd->vdev_id = vdev_id;
+	cmd->flags = WMI_NLO_CONFIG_STOP;
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_NETWORK_LIST_OFFLOAD_CONFIG_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send nlo wmi cmd", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	wma->interfaces[vdev_id].pno_in_progress = FALSE;
+
+	WMA_LOGD("PNO stop request sent successfully for vdev %d",
+		 vdev_id);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static void wma_config_pno(tp_wma_handle wma, tpSirPNOScanReq pno)
+{
+	VOS_STATUS ret;
+
+	if (pno->enable)
+		ret = wma_pno_start(wma, pno);
+	else
+		ret = wma_pno_stop(wma, pno->sessionId);
+
+	if (ret)
+		WMA_LOGE("%s: PNO %s failed %d", __func__,
+			 pno->enable ? "start" : "stop", ret);
+
+	/* SME expects WMA to free tpSirPNOScanReq memory after
+	 * processing PNO request. */
+	vos_mem_free(pno);
+}
+#endif
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -4396,6 +4537,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_set_keepalive_req(wma_handle,
 					(tSirKeepAliveReq *)msg->bodyptr);
 			break;
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+		case WDA_SET_PNO_REQ:
+			wma_config_pno(wma_handle,
+				       (tpSirPNOScanReq)msg->bodyptr);
+			break;
+#endif
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
