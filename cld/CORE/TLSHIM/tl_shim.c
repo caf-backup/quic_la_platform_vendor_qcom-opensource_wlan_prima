@@ -34,7 +34,6 @@
 	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, ## args)
 #define TLSHIM_LOGP(args...) \
 	VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL, ## args)
-
 /************************/
 /*    Internal Func	*/
 /************************/
@@ -121,6 +120,8 @@ next_nbuf:
     }
 }
 #else
+/*AR9888/AR6320  noise floor approx value*/
+#define TLSHIM_TGT_NOISE_FLOOR_DBM (-96)
 
 static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 				       u_int32_t data_len)
@@ -151,7 +152,9 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 	 * TODO: Try to maintain rx metainfo as part of skb->data.
 	 */
 	rx_pkt->pkt_meta.channel = rx_event->hdr.channel;
-	rx_pkt->pkt_meta.snr = rx_pkt->pkt_meta.rssi = rx_event->hdr.snr;
+	/*Get the absolute rssi value from the current rssi value
+	 *the sinr value is hardcoded into 0 in the core stack*/
+	rx_pkt->pkt_meta.rssi = rx_event->hdr.snr + TLSHIM_TGT_NOISE_FLOOR_DBM;
 	/*
 	 * FIXME: Assigning the local timestamp as hw timestamp is not
 	 * available. Need to see if pe/lim really uses this data.
