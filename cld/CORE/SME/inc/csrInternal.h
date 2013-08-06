@@ -890,6 +890,9 @@ typedef struct tagCsrRoamSession
     tANI_BOOLEAN fIgnorePMKIDCache;
     //ht config
     tSirHTConfig        htConfig;
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+    eCsrRoamState lastRoamStateBeforePno;
+#endif
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
@@ -1289,6 +1292,9 @@ tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId);
 void csrSetOppositeBandChannelInfo( tpAniSirGlobal pMac );
 void csrConstructCurrentValidChannelList( tpAniSirGlobal pMac, tDblLinkList *pChannelSetList,
                                             tANI_U8 *pChannelList, tANI_U8 bSize, tANI_U8 *pNumChannels );
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+void csrMoveToScanStateForPno( tpAniSirGlobal pMac, tANI_U8 sessionId );
+#endif
 eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
             tSirPrefNetworkFoundInd *pPrefNetworkFoundInd);
 #endif

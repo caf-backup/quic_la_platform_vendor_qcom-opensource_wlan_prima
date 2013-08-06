@@ -7525,6 +7525,21 @@ tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel )
     return fValid;
 }
 
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+void csrMoveToScanStateForPno( tpAniSirGlobal pMac, tANI_U8 sessionId )
+{
+    tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
+
+    smsLog( pMac, LOG3, "Moving CSR to Scanning state for PNO");
+
+    // Take a back up of previous CSR state before moving to scanning state.
+    // CSR will be moved to previous state from scanning state after PNO
+    // completion.
+    pSession->lastRoamStateBeforePno =
+               csrRoamStateChange(pMac, eCSR_ROAMING_STATE_SCANNING, sessionId);
+}
+#endif
+
 eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
             tSirPrefNetworkFoundInd *pPrefNetworkFoundInd)
 {
