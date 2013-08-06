@@ -191,9 +191,21 @@ struct beacon_info {
 	u_int32_t len;
 	u_int8_t dma_mapped;
 	u_int32_t tim_ie_offset;
+	u_int8_t dtim_count;
 	u_int16_t seq_no;
 	adf_os_spinlock_t lock;
 };
+
+struct beacon_tim_ie {
+	u_int8_t tim_ie;
+	u_int8_t tim_len;
+	u_int8_t dtim_count;
+	u_int8_t dtim_period;
+	u_int8_t tim_bitctl;
+	u_int8_t tim_bitmap[1];
+} __ATTRIB_PACK;
+
+#define WMA_TIM_SUPPORTED_PVB_LENGTH (HAL_NUM_STA / 8) + 1
 
 #endif
 
