@@ -4788,6 +4788,39 @@ limSendBeaconInd(tpAniSirGlobal pMac, tpPESession psessionEntry){
     return;
 }
 
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+/**
+ * limSendSmeScanCacheUpdatedInd()
+ *
+ *FUNCTION:
+ * This function is used to post WDA_SME_SCAN_CACHE_UPDATED message to WDA.
+ * This message is the indication to WDA that all scan cache results
+ * are updated from LIM to SME. Mainly used only in PNO offload case.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * This function should be called after posting scan cache results to SME.
+ *
+ *NOTE:
+ * NA
+ *
+ * @return None
+ */
+void limSendSmeScanCacheUpdatedInd(void)
+{
+    vos_msg_t msg;
+
+    msg.type     = WDA_SME_SCAN_CACHE_UPDATED;
+    msg.reserved = 0;
+    msg.bodyptr  = NULL;
+
+    if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Not able to post WDA_SME_SCAN_CACHE_UPDATED message to WDA", __func__);
+}
+#endif
+
 void limSendScanOffloadComplete(tpAniSirGlobal pMac,
                                 tSirScanOffloadEvent *pScanEvent)
 {
@@ -4808,6 +4841,10 @@ void limSendScanOffloadComplete(tpAniSirGlobal pMac,
     limSendSmeScanRsp(pMac, scanRspLen, pScanEvent->reasonCode,
             pScanEvent->sessionId,
             0);
+
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+    limSendSmeScanCacheUpdatedInd();
+#endif
 }
 
 

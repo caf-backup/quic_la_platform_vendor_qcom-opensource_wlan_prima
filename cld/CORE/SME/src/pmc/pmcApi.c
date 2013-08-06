@@ -30,6 +30,7 @@
 #include "wlan_qct_wda.h"
 #include "limSessionUtils.h"
 #include "csrInsideApi.h"
+#include "sme_Api.h"
 
 extern void pmcReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 
@@ -2955,6 +2956,10 @@ eHalStatus pmcSetPreferredNetworkList
                                &pRequestBuf->us5GProbeTemplateLen,
                                pSession);
 
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+    sme_MoveCsrToScanStateForPno(hHal, sessionId);
+    pRequestBuf->sessionId = sessionId;
+#endif
 
     msg.type     = WDA_SET_PNO_REQ;
     msg.reserved = 0;

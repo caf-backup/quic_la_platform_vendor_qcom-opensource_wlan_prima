@@ -1183,6 +1183,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #ifdef QCA_WIFI_2_0
 #define WDA_CLI_SET_CMD             SIR_HAL_CLI_SET_CMD
 #define WDA_CLI_GET_CMD             SIR_HAL_CLI_GET_CMD
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+#define WDA_SME_SCAN_CACHE_UPDATED  SIR_HAL_SME_SCAN_CACHE_UPDATED
+#endif
 #endif
 
 #ifndef REMOVE_PKT_LOG

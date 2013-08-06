@@ -4697,6 +4697,87 @@ tANI_BOOLEAN csrScanIsWildCardScan( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         (pCommand->u.scanCmd.u.scanRequest.SSIDs.numOfSSIDs != 1) ));
 }
 
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+eHalStatus csrSavePnoScanResults(tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp)
+{
+    tSirBssDescription *pSirBssDescription;
+    tDot11fBeaconIEs *pIesLocal = NULL;
+    tANI_U32 cbScanResult = GET_FIELD_OFFSET( tSirSmeScanRsp, bssDescription )
+                            + sizeof(tSirBssDescription);  //We need at least one CB
+    tCsrScanResult *pScanResult = NULL;
+    tAniSSID tmpSsid;
+    v_TIME_t timer;
+    tANI_U32 cbParsed;
+    tANI_U32 cbBssDesc;
+    tANI_U8 ieLen;
+
+    if ((cbScanResult > pScanRsp->length ) ||
+        (( eSIR_SME_SUCCESS != pScanRsp->statusCode ) &&
+         ( eSIR_SME_MORE_SCAN_RESULTS_FOLLOW != pScanRsp->statusCode ) ) )
+                  return eHAL_STATUS_FAILURE;
+
+    cbParsed = GET_FIELD_OFFSET( tSirSmeScanRsp, bssDescription );
+    pSirBssDescription = pScanRsp->bssDescription;
+
+    while( cbParsed < pScanRsp->length )
+    {
+        // Check whether we have reach out limit
+        if ( CSR_SCAN_IS_OVER_BSS_LIMIT(pMac) )
+        {
+            smsLog( pMac, LOGW, FL( "BSS limit reached"));
+            return eHAL_STATUS_RESOURCES;
+        }
+
+        ieLen = (pSirBssDescription->length + sizeof( pSirBssDescription->length )
+                        - GET_FIELD_OFFSET( tSirBssDescription, ieFields ));
+
+        if ( !HAL_STATUS_SUCCESS(palAllocateMemory( pMac->hHdd,
+            (void **)&pScanResult, sizeof(tCsrScanResult) + ieLen)) )
+        {
+            smsLog(pMac, LOGE, FL(" Fail to allocate memory for frame"));
+            return eHAL_STATUS_RESOURCES;
+        }
+
+        palZeroMemory( pMac->hHdd, pScanResult, sizeof(tCsrScanResult) + ieLen);
+        pIesLocal = (tDot11fBeaconIEs *)( pScanResult->Result.pvIes );
+
+        if (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac,
+            pSirBssDescription, &pIesLocal)))
+        {
+            smsLog(pMac, LOGE, FL("  Cannot parse IEs"));
+            csrFreeScanResultEntry(pMac, pScanResult);
+            return eHAL_STATUS_RESOURCES;
+        }
+
+        cbBssDesc = pSirBssDescription->length +
+                    sizeof( pSirBssDescription->length );
+
+        vos_mem_copy(&pScanResult->Result.BssDescriptor, pSirBssDescription,
+                     cbBssDesc);
+
+        // Remove duplicate entry
+        csrRemoveDupBssDescription( pMac, &pScanResult->Result.BssDescriptor,
+                                    pIesLocal, &tmpSsid , &timer );
+        //Add to scan cache
+        csrScanAddResult(pMac, pScanResult, pIesLocal);
+
+        // skip over the BSS description to the next one...
+        cbParsed += cbBssDesc;
+        pSirBssDescription = (tSirBssDescription *)((tANI_U8 *)pSirBssDescription +
+                              cbBssDesc );
+    }
+
+    if ( eSIR_SME_SUCCESS == pScanRsp->statusCode )
+    {
+           // PNO is completed, rollback csr to old state
+           csrRoamStateChange(pMac,
+                       pMac->roam.roamSession[pScanRsp->sessionId].lastRoamStateBeforePno,
+                       pScanRsp->sessionId);
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+#endif
 
 eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
 {
@@ -4789,6 +4870,13 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
             status = eHAL_STATUS_FAILURE;
         }
     }
+#ifdef FEATURE_WLAN_PNO_OFFLOAD
+    else if (!HAL_STATUS_SUCCESS(csrSavePnoScanResults(pMac, pScanRsp)))
+    {
+        smsLog( pMac, LOGW, "CSR: Unable to store scan results for PNO" );
+        status = eHAL_STATUS_FAILURE;
+    }
+#endif
     else
     {
         smsLog( pMac, LOGW, "CSR: Scan Completion called but NO commands are ACTIVE ..." );
