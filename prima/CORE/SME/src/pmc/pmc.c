@@ -58,7 +58,7 @@ eHalStatus pmcEnterLowPowerState (tHalHandle hHal)
         return eHAL_STATUS_SUCCESS;
 
     /* Cancel any running timers. */
-    if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_stop(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer"));
         return eHAL_STATUS_FAILURE;
@@ -66,7 +66,7 @@ eHalStatus pmcEnterLowPowerState (tHalHandle hHal)
 
     pmcStopTrafficTimer(hHal);
 
-    if (palTimerStop(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
+    if (vos_timer_stop(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel exit power save mode timer"));
         return eHAL_STATUS_FAILURE;
@@ -441,7 +441,7 @@ eHalStatus pmcEnterImpsState (tHalHandle hHal)
     /* Set timer to come out of IMPS.only if impsPeriod is non-Zero*/
     if(0 != pMac->pmc.impsPeriod)
     {
-        if (palTimerStart(pMac->hHdd, pMac->pmc.hImpsTimer, pMac->pmc.impsPeriod * 1000, FALSE) != eHAL_STATUS_SUCCESS)
+        if (vos_timer_start(&pMac->pmc.hImpsTimer, pMac->pmc.impsPeriod) != VOS_STATUS_SUCCESS)
         {
             PMC_ABORT;
             pMac->pmc.ImpsReqTimerFailed = VOS_TRUE;
@@ -2574,6 +2574,7 @@ void pmcDiagEvtTimerExpired (tHalHandle hHal)
     {
         smsLog(pMac, LOGP, FL("Cannot re-arm DIAG evt timer"));
     }
+    vos_timer_start(&pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL);
 }
 
 eHalStatus pmcStartDiagEvtTimer (tHalHandle hHal)
@@ -2582,8 +2583,7 @@ eHalStatus pmcStartDiagEvtTimer (tHalHandle hHal)
 
     smsLog(pMac, LOG2, FL("Entering pmcStartDiagEvtTimer"));
 
-    if (palTimerStart(pMac->hHdd, pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL *
-                          1000, TRUE) != eHAL_STATUS_SUCCESS)
+    if ( vos_timer_start(&pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL) != VOS_STATUS_SUCCESS)
     {
        smsLog(pMac, LOGP, FL("Cannot start DIAG evt timer"));
        return eHAL_STATUS_FAILURE;
@@ -2596,6 +2596,6 @@ void pmcStopDiagEvtTimer (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     smsLog(pMac, LOG2, FL("Entering pmcStopDiagEvtTimer"));
-    (void)palTimerStop(pMac->hHdd, pMac->pmc.hDiagEvtTimer);
+    (void)vos_timer_stop(&pMac->pmc.hDiagEvtTimer);
 }
 #endif
