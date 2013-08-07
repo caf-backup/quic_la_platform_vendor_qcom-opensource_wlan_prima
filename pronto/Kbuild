@@ -46,6 +46,7 @@ HDD_OBJS := $(HDD_SRC_DIR)/wlan_hdd_main.o  \
             $(HDD_SRC_DIR)/wlan_hdd_hostapd.o  \
             $(HDD_SRC_DIR)/wlan_hdd_softap_tx_rx.o \
             $(HDD_SRC_DIR)/wlan_hdd_dev_pwr.o \
+            $(HDD_SRC_DIR)/wlan_hdd_debugfs.o \
             $(HDD_SRC_DIR)/bap_hdd_main.o
 
 ifeq ($(HAVE_CFG80211),1)
