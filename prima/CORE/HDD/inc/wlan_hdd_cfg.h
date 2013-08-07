@@ -1774,6 +1774,11 @@ typedef enum
 #define CFG_ENABLE_HEART_BEAT_OFFLOAD_MAX      ( 1 )
 #define CFG_ENABLE_HEART_BEAT_OFFLOAD_DEFAULT  ( 1 )
 
+#define CFG_ANTENNA_DIVERSITY_PARAM_NAME          "gAntennaDiversity"
+#define CFG_ANTENNA_DIVERSITY_PARAM_MIN           ( 0 )
+#define CFG_ANTENNA_DIVERSITY_PARAM_MAX           ( 3 )
+#define CFG_ANTENNA_DIVERSITY_PARAM_DEFAULT       ( 0 )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2157,6 +2162,7 @@ typedef struct
    v_BOOL_t                    enableOxygenNwk;
    v_U8_t                      flexConnectPowerFactor;
    v_BOOL_t                    enableIbssHeartBeatOffload;
+   v_U32_t                     antennaDiversity;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
