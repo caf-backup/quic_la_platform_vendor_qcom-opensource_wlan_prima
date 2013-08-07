@@ -235,6 +235,8 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     if (psessionEntry->ssidHidden)
     {
        pBcn1->SSID.present = 1; //rest of the fileds are 0 for hidden ssid
+       if(psessionEntry->ssId.length)
+          pBcn1->SSID.num_ssid = psessionEntry->ssId.length;
     }
     else
     {
