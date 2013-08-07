@@ -171,18 +171,6 @@ htt_h2t_aggr_cfg_msg(htt_pdev_handle htt_pdev,
                      int max_subfrms_amsdu);
 #endif
 
-/* This function sends down the 
- * HTT Management frame descripto to
- * Target 
- */
-int
-htt_h2t_mgmt_tx(htt_pdev_handle   pdev,
-                A_UINT32          paddr,
-                adf_nbuf_t        mgmt_frm,
-                A_UINT32          frag_len,
-                A_UINT16          vdev_id,
-                A_UINT8           *hdr);
-
 /**
  * @brief Get the FW status
  * @details

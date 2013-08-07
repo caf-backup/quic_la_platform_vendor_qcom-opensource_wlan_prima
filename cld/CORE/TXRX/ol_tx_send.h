@@ -41,9 +41,10 @@ ol_tx_send(
     adf_nbuf_t msdu);
 
 /**
- * @brief Send a tx batch download to the target. This function is different from above in that
-       It accepts a list of msdu's to be downloaded as a batch
+ * @brief Send a tx batch download to the target.
  * @details
+ *     This function is different from above in that
+ *     it accepts a list of msdu's to be downloaded as a batch
  *
  * @param pdev -  the phy dev
  * @param msdu_list - the Head pointer to the Tx Batch
@@ -55,5 +56,20 @@ ol_tx_send_batch(
     struct ol_txrx_pdev_t *pdev,
     adf_nbuf_t msdu_list, int num_msdus);
 
-
+/**
+ * @brief Send a tx frame with a non-std header or payload type to the target.
+ * @details
+ *
+ * @param pdev -  the phy dev
+ * @param vdev - the virtual device sending the data
+ *      (for specifying the transmitter address for multicast / broadcast data)
+ * @param netbuf - the tx frame
+ * @param pkt_type - what kind of non-std frame is being sent
+ */
+void
+ol_tx_send_nonstd(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_desc_t *tx_desc,
+    adf_nbuf_t msdu,
+    enum htt_pkt_type pkt_type);
 #endif /* _OL_TX_SEND__H_ */

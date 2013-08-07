@@ -75,7 +75,6 @@ ol_tx_desc_ll(
     u_int32_t num_frags;
 
     msdu_info->htt.info.vdev_id = vdev->vdev_id;
-    msdu_info->htt.info.frame_type = pdev->htt_pkt_type;
     msdu_info->htt.action.cksum_offload = adf_nbuf_get_tx_cksum(netbuf);
     switch (adf_nbuf_get_exemption_type(netbuf)) {
         case ADF_NBUF_EXEMPT_NO_EXEMPTION:
@@ -228,6 +227,16 @@ void ol_tx_desc_frame_free_nonstd(
         adf_nbuf_set_next(tx_desc->netbuf, NULL);
         adf_nbuf_tx_free(tx_desc->netbuf, had_error);
     } else if (tx_desc->pkt_type >= OL_TXRX_MGMT_TYPE_BASE) {
+        /* FIX THIS -
+         * The FW currently has trouble using the host's fragments table
+         * for management frames.  Until this is fixed, rather than
+         * specifying the fragment table to the FW, the host SW will
+         * specify just the address of the initial fragment.
+         * Now that the mgmt frame is done, the HTT tx desc's frags table
+         * pointer needs to be reset.
+         */
+        htt_tx_desc_frags_table_set(pdev->htt_pdev, tx_desc->htt_tx_desc, 0, 1);
+
         mgmt_type = tx_desc->pkt_type - OL_TXRX_MGMT_TYPE_BASE;
         /*
          * KW# 6158

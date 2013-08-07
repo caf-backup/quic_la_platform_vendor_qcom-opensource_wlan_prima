@@ -21,6 +21,16 @@
 #include <ipv6.h>          /* IPV6_HDR_LEN, etc. */
 #include <ip_prot.h>       /* IP_PROTOCOL_TCP, etc. */
 
+#if ATH_11AC_TXCOMPACT
+#define OL_TX_DESC_NO_REFS(tx_desc) 1
+#define OL_TX_DESC_REF_INIT(tx_desc) /* no-op */
+#define OL_TX_DESC_REF_INC(tx_desc) /* no-op */
+#else
+#define OL_TX_DESC_NO_REFS(tx_desc) \
+    adf_os_atomic_dec_and_test(&tx_desc->ref_cnt)
+#define OL_TX_DESC_REF_INIT(tx_desc) adf_os_atomic_init(&tx_desc->ref_cnt)
+#define OL_TX_DESC_REF_INC(tx_desc) adf_os_atomic_inc(&tx_desc->ref_cnt)
+#endif
 
 #ifndef ARRAY_LEN
 #define ARRAY_LEN(x) (sizeof(x)/sizeof(x[0]))
@@ -101,6 +111,20 @@ extern unsigned g_txrx_print_level;
 #define TXRX_PRINT(level, fmt, ...)
 #define TXRX_PRINT_VERBOSE(fmt, ...)
 #endif /* TXRX_PRINT_ENABLE */
+
+/*--- tx credit debug printouts ---*/
+
+#ifndef DEBUG_CREDIT
+#define DEBUG_CREDIT 0
+#endif
+
+#if DEBUG_CREDIT
+#define TX_CREDIT_DEBUG_PRINT(fmt, ...) adf_os_print(fmt, ## __VA_ARGS__)
+#else
+#define TX_CREDIT_DEBUG_PRINT(fmt, ...)
+#endif
+
+/*--- tx scheduler debug printouts ---*/
 
 #ifdef HOST_TX_SCHED_DEBUG
 #define TX_SCHED_DEBUG_PRINT(fmt, ...) adf_os_print(fmt, ## __VA_ARGS__)

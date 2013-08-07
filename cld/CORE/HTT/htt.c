@@ -212,6 +212,22 @@ htt_attach(
          */
         pdev->download_len += sizeof(struct htt_host_tx_desc_t);
 
+        /*
+         * The TXCOMPACT htt_tx_sched function uses pdev->download_len
+         * to apply for all requeued tx frames.  Thus, pdev->download_len
+         * has to be the largest download length of any tx frame that will
+         * be downloaded.
+         * This maximum download length is for management tx frames,
+         * which have an 802.11 header.
+         */
+        #if ATH_11AC_TXCOMPACT
+        pdev->download_len =
+            sizeof(struct htt_host_tx_desc_t) +
+            HTT_TX_HDR_SIZE_OUTER_HDR_MAX + /* worst case */
+            HTT_TX_HDR_SIZE_802_1Q +
+            HTT_TX_HDR_SIZE_LLC_SNAP +
+            ol_cfg_tx_download_size(pdev->ctrl_pdev);
+        #endif
         pdev->tx_send_complete_part2 = ol_tx_download_done_ll;
 
         /*

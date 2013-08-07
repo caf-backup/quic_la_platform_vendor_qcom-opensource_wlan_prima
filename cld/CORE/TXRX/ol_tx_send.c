@@ -4,27 +4,27 @@
  * Qualcomm Atheros Confidential and Proprietary.
  */
 
-#include <adf_os_atomic.h>   /* adf_os_atomic_inc, etc. */
-#include <adf_os_lock.h>     /* adf_os_spinlock */
-#include <adf_nbuf.h>        /* adf_nbuf_t */
+#include <adf_os_atomic.h>    /* adf_os_atomic_inc, etc. */
+#include <adf_os_lock.h>      /* adf_os_spinlock */
+#include <adf_nbuf.h>         /* adf_nbuf_t */
 
-#include <queue.h>           /* TAILQ */
+#include <queue.h>            /* TAILQ */
 
-#include <ol_txrx_api.h>     /* ol_txrx_vdev_handle, etc. */
-#include <ol_htt_tx_api.h>   /* htt_tx_compl_desc_id */
-#include <ol_txrx_htt_api.h> /* htt_tx_status */
+#include <ol_txrx_api.h>      /* ol_txrx_vdev_handle, etc. */
+#include <ol_htt_tx_api.h>    /* htt_tx_compl_desc_id */
+#include <ol_txrx_htt_api.h>  /* htt_tx_status */
 
 #include <ol_ctrl_txrx_api.h>
-#include <ol_txrx_types.h>   /* ol_txrx_vdev_t, etc */
-#include <ol_tx_desc.h>      /* ol_tx_desc_find, ol_tx_desc_frame_free */
-#include <ol_txrx_internal.h>
+#include <ol_txrx_types.h>    /* ol_txrx_vdev_t, etc */
+#include <ol_tx_desc.h>       /* ol_tx_desc_find, ol_tx_desc_frame_free */
+#include <ol_txrx_internal.h> /* OL_TX_DESC_NO_REFS, etc. */
 #include <ol_osif_txrx_api.h>
-#include <ol_tx.h>           /* ol_tx_reinject */
+#include <ol_tx.h>            /* ol_tx_reinject */
 
-#include <ol_cfg.h>          /* ol_cfg_is_high_latency */
+#include <ol_cfg.h>           /* ol_cfg_is_high_latency */
 #include <ol_tx_sched.h>
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
-#include <ol_txrx_encap.h>  /* OL_TX_RESTORE_HDR, etc*/
+#include <ol_txrx_encap.h>    /* OL_TX_RESTORE_HDR, etc*/
 #endif 
 
 #ifdef TX_CREDIT_RECLAIM_SUPPORT
@@ -43,24 +43,57 @@
 
 #endif /* TX_CREDIT_RECLAIM_SUPPORT */
 
+#if defined(CONFIG_HL_SUPPORT) || defined(TX_CREDIT_RECLAIM_SUPPORT)
+/*
+ * HL needs to keep track of the amount of credit available to download
+ * tx frames to the target - the download scheduler decides when to
+ * download frames, and which frames to download, based on the credit
+ * availability.
+ * LL systems that use TX_CREDIT_RECLAIM_SUPPORT also need to keep track
+ * of the target_tx_credit, to determine when to poll for tx completion
+ * messages.
+ */
+#define OL_TX_TARGET_CREDIT_ADJUST(factor, pdev, msdu) \
+    adf_os_atomic_add( \
+        factor * htt_tx_msdu_credit(msdu), &pdev->target_tx_credit)
+#define OL_TX_TARGET_CREDIT_DECR(pdev, msdu) \
+    OL_TX_TARGET_CREDIT_ADJUST(-1, pdev, msdu)
+#define OL_TX_TARGET_CREDIT_INCR(pdev, msdu) \
+    OL_TX_TARGET_CREDIT_ADJUST(1, pdev, msdu)
+#define OL_TX_TARGET_CREDIT_DECR_INT(pdev, delta) \
+    adf_os_atomic_add(-1 * delta, &pdev->target_tx_credit)
+#define OL_TX_TARGET_CREDIT_INCR_INT(pdev, delta) \
+    adf_os_atomic_add(delta, &pdev->target_tx_credit)
+#else
+/*
+ * LL does not need to keep track of target credit.
+ * Since the host tx descriptor pool size matches the target's,
+ * we know the target has space for the new tx frame if the host's
+ * tx descriptor allocation succeeded.
+ */
+#define OL_TX_TARGET_CREDIT_ADJUST(factor, pdev, msdu)  /* no-op */
+#define OL_TX_TARGET_CREDIT_DECR(pdev, msdu)  /* no-op */
+#define OL_TX_TARGET_CREDIT_INCR(pdev, msdu)  /* no-op */
+#define OL_TX_TARGET_CREDIT_DECR_INT(pdev, delta)  /* no-op */
+#define OL_TX_TARGET_CREDIT_INCR_INT(pdev, delta)  /* no-op */
+#endif
 
-void
-ol_tx_send(
+static inline u_int16_t
+ol_tx_send_base(
     struct ol_txrx_pdev_t *pdev,
     struct ol_tx_desc_t *tx_desc,
     adf_nbuf_t msdu)
 {
-    u_int16_t id;
-    int failed;
-#if DEBUG_HTT_CREDIT
-    adf_os_print("TX %d bytes\n", adf_nbuf_len(msdu));
-    adf_os_print(" <HTT> Decrease credit %d - 1 = %d, len:%d.\n",
-            adf_os_atomic_read(&pdev->target_tx_credit),
-            adf_os_atomic_read(&pdev->target_tx_credit) -1,
-            adf_nbuf_len(msdu));
-#endif
-    OL_TX_TARGET_CREDIT_DECR(pdev, msdu);
+    int msdu_credit_consumed;
 
+    TX_CREDIT_DEBUG_PRINT("TX %d bytes\n", adf_nbuf_len(msdu));
+    TX_CREDIT_DEBUG_PRINT(" <HTT> Decrease credit %d - 1 = %d, len:%d.\n",
+        adf_os_atomic_read(&pdev->target_tx_credit),
+        adf_os_atomic_read(&pdev->target_tx_credit) - 1,
+        adf_nbuf_len(msdu));
+
+    msdu_credit_consumed = htt_tx_msdu_credit(msdu);
+    OL_TX_TARGET_CREDIT_DECR_INT(pdev, msdu_credit_consumed);
     OL_TX_CREDIT_RECLAIM(pdev);
 
     /*
@@ -81,20 +114,28 @@ ol_tx_send(
      * described above.
      */
 
-#ifndef ATH_11AC_TXCOMPACT
-    adf_os_atomic_init(&tx_desc->ref_cnt);
-    adf_os_atomic_inc(&tx_desc->ref_cnt);
-    adf_os_atomic_inc(&tx_desc->ref_cnt); 
-#endif
+    OL_TX_DESC_REF_INIT(tx_desc);
+    OL_TX_DESC_REF_INC(tx_desc);
+    OL_TX_DESC_REF_INC(tx_desc);
 
+    return msdu_credit_consumed;
+}
+
+void
+ol_tx_send(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_desc_t *tx_desc,
+    adf_nbuf_t msdu)
+{
+    int msdu_credit_consumed;
+    u_int16_t id;
+    int failed;
+
+    msdu_credit_consumed = ol_tx_send_base(pdev, tx_desc, msdu);
     id = ol_tx_desc_id(pdev, tx_desc);
     failed = htt_tx_send_std(pdev->htt_pdev, msdu, id);
     if (adf_os_unlikely(failed)) {
-        /*
-         * It's inefficient to call htt_tx_msdu_credit a 2nd time here,
-         * but that's okay, since this error case should never happen.
-         */
-        OL_TX_TARGET_CREDIT_INCR(pdev, msdu);
+        OL_TX_TARGET_CREDIT_INCR_INT(pdev, msdu_credit_consumed);
         ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* had error */);
     }
 }
@@ -121,6 +162,27 @@ ol_tx_send_batch(
         ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* had error */);
 
         rejected = next;
+    }
+}
+
+void
+ol_tx_send_nonstd(
+    struct ol_txrx_pdev_t *pdev,
+    struct ol_tx_desc_t *tx_desc,
+    adf_nbuf_t msdu,
+    enum htt_pkt_type pkt_type)
+{
+    int msdu_credit_consumed;
+    u_int16_t id;
+    int failed;
+
+    msdu_credit_consumed = ol_tx_send_base(pdev, tx_desc, msdu);
+    id = ol_tx_desc_id(pdev, tx_desc);
+    failed = htt_tx_send_nonstd(
+        pdev->htt_pdev, msdu, id, pkt_type);
+    if (failed) {
+        OL_TX_TARGET_CREDIT_INCR_INT(pdev, msdu_credit_consumed);
+        ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* had error */);
     }
 }
 
@@ -156,10 +218,7 @@ ol_tx_download_done_base(
         OL_TX_TARGET_CREDIT_INCR(pdev, msdu);
         ol_tx_desc_frame_free_nonstd(pdev, tx_desc, 1 /* download err */);
     } else {
-#ifndef ATH_11AC_TXCOMPACT        
-        if (adf_os_atomic_dec_and_test(&tx_desc->ref_cnt)) 
-#endif            
-        {
+        if (OL_TX_DESC_NO_REFS(tx_desc)) {
             /*
              * The decremented value was zero - free the frame.
              * Use the tx status recorded previously during
@@ -225,12 +284,10 @@ ol_tx_target_credit_init(struct ol_txrx_pdev_t *pdev, int credit_delta)
 void
 ol_tx_target_credit_update(struct ol_txrx_pdev_t *pdev, int credit_delta)
 {
-#if DEBUG_HTT_CREDIT
-    adf_os_print(" <HTT> Increase credit %d + %d = %d\n",
+    TX_CREDIT_DEBUG_PRINT(" <HTT> Increase credit %d + %d = %d\n",
             adf_os_atomic_read(&pdev->target_tx_credit),
             credit_delta,
             adf_os_atomic_read(&pdev->target_tx_credit) + credit_delta);
-#endif
     adf_os_atomic_add(credit_delta, &pdev->target_tx_credit);
 }
 
@@ -372,15 +429,13 @@ ol_tx_completion_handler(
 
         /* Per SDU update of byte count */
         byte_cnt += adf_nbuf_len(netbuf);
-#ifndef ATH_11AC_TXCOMPACT
-        if (adf_os_atomic_dec_and_test(&tx_desc->ref_cnt)) 
-#endif        
-        {
+        if (OL_TX_DESC_NO_REFS(tx_desc)) {
             ol_tx_statistics(pdev->ctrl_pdev,
                 HTT_TX_DESC_VDEV_ID_GET(*((u_int32_t *)(tx_desc->htt_tx_desc))),
                 status != htt_tx_status_ok);
-            ol_tx_msdu_complete(pdev, tx_desc, tx_descs, netbuf, lcl_freelist,
-                                    tx_desc_last, status);
+            ol_tx_msdu_complete(
+                pdev, tx_desc, tx_descs, netbuf,
+                lcl_freelist, tx_desc_last, status);
         }
     }
 
@@ -407,6 +462,55 @@ ol_tx_completion_handler(
     }
     /* Do one shot statistics */
     TXRX_STATS_UPDATE_TX_STATS(pdev, status, num_msdus, byte_cnt);
+}
+
+/*
+ * ol_tx_single_completion_handler performs the same tx completion
+ * processing as ol_tx_completion_handler, but for a single frame.
+ * ol_tx_completion_handler is optimized to handle batch completions
+ * as efficiently as possible; in contrast ol_tx_single_completion_handler
+ * handles single frames as simply and generally as possible.
+ * Thus, this ol_tx_single_completion_handler function is suitable for
+ * intermittent usage, such as for tx mgmt frames.
+ */
+void
+ol_tx_single_completion_handler(
+    ol_txrx_pdev_handle pdev,
+    enum htt_tx_status status,
+    u_int16_t tx_desc_id)
+{
+    struct ol_tx_desc_t *tx_desc;
+    union ol_tx_desc_list_elem_t *td_array = pdev->tx_desc.array;
+    adf_nbuf_t  netbuf;
+
+    tx_desc = &td_array[tx_desc_id].tx_desc;
+    tx_desc->status = status;
+    netbuf = tx_desc->netbuf;
+
+    /* Do one shot statistics */
+    TXRX_STATS_UPDATE_TX_STATS(pdev, status, 1, adf_nbuf_len(netbuf));
+
+    if (OL_TX_DESC_NO_REFS(tx_desc)) {
+        ol_tx_desc_frame_free_nonstd(pdev, tx_desc, status != htt_tx_status_ok);
+    }
+
+    TX_CREDIT_DEBUG_PRINT(
+        " <HTT> Increase credit %d + %d = %d\n",
+        adf_os_atomic_read(&pdev->target_tx_credit),
+        1, adf_os_atomic_read(&pdev->target_tx_credit) + 1);
+
+    if (pdev->cfg.is_high_latency) {
+        /*
+         * Credit was already explicitly updated by HTT,
+         * but update the number of available tx descriptors,
+         * then invoke the scheduler, since new credit is probably
+         * available now.
+         */
+        adf_os_atomic_add(1, &pdev->tx_queue.rsrc_cnt);
+	ol_tx_sched(pdev);
+    } else {
+        adf_os_atomic_add(1, &pdev->target_tx_credit);
+    }
 }
 
 /* WARNING: ol_tx_inspect_handler()'s bahavior is similar to that of ol_tx_completion_handler().
@@ -465,16 +569,14 @@ ol_tx_inspect_handler(
     } else {
         ol_tx_desc_frame_list_free(pdev, &tx_descs, htt_tx_status_discard);
     }
-#if DEBUG_HTT_CREDIT
-    adf_os_print(" <HTT> Increase HTT credit %d + %d = %d..\n",
+    TX_CREDIT_DEBUG_PRINT(" <HTT> Increase HTT credit %d + %d = %d..\n",
             adf_os_atomic_read(&pdev->target_tx_credit),
             num_msdus,
             adf_os_atomic_read(&pdev->target_tx_credit) + num_msdus);
-#endif
 
     if (pdev->cfg.is_high_latency) {
         /* credit was already explicitly updated by HTT */
-    	ol_tx_sched(pdev);
+	ol_tx_sched(pdev);
     } else {
         OL_TX_TARGET_CREDIT_ADJUST(num_msdus, pdev, NULL) ;
     }
