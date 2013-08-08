@@ -2927,6 +2927,106 @@ static int wmi_unified_vdev_up_send(wmi_unified_t wmi,
 	return 0;
 }
 
+static int32_t wmi_unified_set_ap_ps_param(void *wma_ctx, u_int32_t vdev_id,
+			u_int8_t *peer_addr, u_int32_t param, u_int32_t value)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) wma_ctx;
+	wmi_ap_ps_peer_cmd *cmd;
+	wmi_buf_t buf;
+	int32_t err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle,
+			sizeof(wmi_ap_ps_peer_cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set_ap_ps_param cmd");
+		return -ENOMEM;
+	}
+	cmd = (wmi_ap_ps_peer_cmd *) wmi_buf_data(buf);
+	cmd->vdev_id = vdev_id;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_addr, &cmd->peer_macaddr);
+	cmd->param = param;
+	cmd->value = value;
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+				sizeof(wmi_ap_ps_peer_cmd),
+				WMI_AP_PS_PEER_PARAM_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_ap_ps_param cmd");
+		adf_os_mem_free(buf);
+		return -EIO;
+	}
+	return 0;
+}
+
+static int32_t wma_set_ap_peer_uapsd(tp_wma_handle wma, u_int32_t vdev_id,
+		u_int8_t *peer_addr, u_int8_t uapsd_value, u_int8_t max_sp)
+{
+	u_int32_t uapsd = 0;
+	u_int32_t max_sp_len = 0;
+	int32_t ret = 0;
+
+	if (uapsd_value & UAPSD_VO_ENABLED) {
+		uapsd |= WMI_AP_PS_UAPSD_AC3_DELIVERY_EN |
+			WMI_AP_PS_UAPSD_AC3_TRIGGER_EN;
+	}
+
+	if (uapsd_value & UAPSD_VI_ENABLED) {
+		uapsd |= WMI_AP_PS_UAPSD_AC2_DELIVERY_EN |
+			WMI_AP_PS_UAPSD_AC2_TRIGGER_EN;
+	}
+
+	if (uapsd_value & UAPSD_BK_ENABLED) {
+		uapsd |= WMI_AP_PS_UAPSD_AC1_DELIVERY_EN |
+			WMI_AP_PS_UAPSD_AC1_TRIGGER_EN;
+	}
+
+	if (uapsd_value & UAPSD_BE_ENABLED) {
+		uapsd |= WMI_AP_PS_UAPSD_AC0_DELIVERY_EN |
+			WMI_AP_PS_UAPSD_AC0_TRIGGER_EN;
+	}
+
+	switch (max_sp) {
+	case UAPSD_MAX_SP_LEN_2:
+		max_sp_len = WMI_AP_PS_PEER_PARAM_MAX_SP_2;
+		break;
+	case UAPSD_MAX_SP_LEN_4:
+		max_sp_len = WMI_AP_PS_PEER_PARAM_MAX_SP_4;
+		break;
+	case UAPSD_MAX_SP_LEN_6:
+		max_sp_len = WMI_AP_PS_PEER_PARAM_MAX_SP_6;
+		break;
+	default:
+		max_sp_len = WMI_AP_PS_PEER_PARAM_MAX_SP_UNLIMITED;
+		break;
+	}
+
+	WMA_LOGD("Set WMI_AP_PS_PEER_PARAM_UAPSD 0x%x for %pM",
+		uapsd, peer_addr);
+
+	ret = wmi_unified_set_ap_ps_param(wma, vdev_id,
+					peer_addr,
+					WMI_AP_PS_PEER_PARAM_UAPSD,
+					uapsd);
+	if (ret) {
+		WMA_LOGE("Failed to set WMI_AP_PS_PEER_PARAM_UAPSD for %pM",
+			peer_addr);
+		return ret;
+	}
+
+	WMA_LOGD("Set WMI_AP_PS_PEER_PARAM_MAX_SP 0x%x for %pM",
+		max_sp_len, peer_addr);
+
+	ret = wmi_unified_set_ap_ps_param(wma, vdev_id,
+					peer_addr,
+					WMI_AP_PS_PEER_PARAM_MAX_SP,
+					max_sp_len);
+	if (ret) {
+		WMA_LOGE("Failed to set WMI_AP_PS_PEER_PARAM_MAX_SP for %pM",
+			 peer_addr);
+		return ret;
+	}
+	return 0;
+}
+
 static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 {
 	enum ol_txrx_peer_state state = ol_txrx_peer_state_conn;
@@ -2994,6 +3094,21 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 			goto send_rsp;
 		}
 		state = ol_txrx_peer_state_auth;
+	}
+
+	if (add_sta->uAPSD) {
+		ret = wma_set_ap_peer_uapsd(wma, add_sta->smesessionId,
+					add_sta->staMac,
+					add_sta->uAPSD,
+					add_sta->maxSPLen);
+		if (ret) {
+			WMA_LOGE("Failed to set peer uapsd param for %pM",
+				 add_sta->staMac);
+			add_sta->status = VOS_STATUS_E_FAILURE;
+			wma_remove_peer(wma, add_sta->staMac,
+					add_sta->smesessionId, peer);
+			goto send_rsp;
+		}
 	}
 
 	WMA_LOGD("%s: Moving peer %pM to state %d\n",
