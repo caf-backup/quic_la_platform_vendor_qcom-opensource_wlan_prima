@@ -485,11 +485,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                  }
                  pHddApCtx->groupKey.keyLength = 0;
             }
-            else if ( pHddApCtx->wepKey[0].keyLength )
+            else
             {
-                int i=0;
                 for ( i = 0; i < CSR_MAX_NUM_KEY; i++ ) 
                 {
+                    if ( !pHddApCtx->wepKey[i].keyLength )
+                          continue;
+
                     if( VOS_STATUS_SUCCESS !=  WLANSAP_SetKeySta(
                                 (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
                                 &pHddApCtx->wepKey[i] ) )
