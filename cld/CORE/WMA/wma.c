@@ -1532,12 +1532,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		cmd->scan_ctrl_flags |= WMI_SCAN_ADD_BCAST_PROBE_REQ;
 		if (scan_req->scanType == eSIR_PASSIVE_SCAN)
 			cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
-		/* TODO: Add following line.
-		   WMI_SCAN_FILTER_PROBE_REQ should filter the probe
-		   request frames. But it is allowing the probe request
-		   frames only when this flag is set. Add this flag
-		   once the FW behavior for this flag is corrected. */
-		//cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+		cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
 		cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 	}
 	else {
@@ -1546,24 +1541,13 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		case P2P_SCAN_TYPE_LISTEN:
 			WMA_LOGD("P2P_SCAN_TYPE_LISTEN");
 			cmd->scan_ctrl_flags |= WMI_SCAN_FLAG_PASSIVE;
-			/* TODO: Remove this flag setting.
-			   WMI_SCAN_FILTER_PROBE_REQ should filter the probe
-			   request frames. But it is allowing the probe request
-			   frames only when this flag is set. remove this flag
-			   once the FW behavior for this flag is corrected. */
-			cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
 			cmd->notify_scan_events |=
 				WMI_SCAN_EVENT_FOREIGN_CHANNEL;
 			cmd->repeat_probe_time = 0;
 			break;
 		case P2P_SCAN_TYPE_SEARCH:
 			WMA_LOGD("P2P_SCAN_TYPE_SEARCH");
-			/* TODO: Add following line.
-			   WMI_SCAN_FILTER_PROBE_REQ should filter the probe
-			   request frames. But it is allowing the probe request
-			   frames only when this flag is set. Add this flag
-			   once the FW behavior for this flag is corrected. */
-			//cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
+			cmd->scan_ctrl_flags |= WMI_SCAN_FILTER_PROBE_REQ;
 			cmd->repeat_probe_time = scan_req->maxChannelTime/3;
 			break;
 		default:
