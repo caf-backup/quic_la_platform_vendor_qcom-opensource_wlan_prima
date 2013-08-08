@@ -290,6 +290,7 @@ static void wma_vdev_start_rsp_ap_mode(tp_wma_handle wma,
 		goto send_fail_resp;
 	}
 	bcn->len = 0;
+	bcn->dtim_count = 0;
 	bcn->dma_mapped = 0;
 	bcn->seq_no = MIN_SW_SEQ;
 	adf_os_spinlock_init(&bcn->lock);
@@ -617,10 +618,10 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 	struct ieee80211_frame *wh;
 	struct beacon_info *bcn;
 	wmi_tim_info *tim_info = &swba_event->bcn_info->tim_info;
-	u_int8_t *bcn_payload, *tim_bitctrl, *vir_bmap;
-	u_int8_t timoff = 0, vir_bmap_len, i;
+	u_int8_t *bcn_payload;
 	wmi_buf_t wmi_buf;
 	a_status_t ret;
+	struct beacon_tim_ie *tim_ie;
 
 	bcn = wma->interfaces[vdev_id].beacon;
 	if (!bcn->buf) {
@@ -636,31 +637,44 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 
 	adf_os_spin_lock_bh(&bcn->lock);
 
-	/*
-	 * TIM is update upto the station count defined
-	 * in macro HAL_NUM_STA.
-	 */
-	vir_bmap_len = (HAL_NUM_STA / 8) + 1;
-
 	bcn_payload = adf_nbuf_data(bcn->buf);
 
-	/* Clear TIM bitmap control and virtual bitmap values */
-	tim_bitctrl = &bcn_payload[bcn->tim_ie_offset + 4];
-	vir_bmap = tim_bitctrl + 1;
-	*tim_bitctrl = 0;
-	vos_mem_zero(vir_bmap, vir_bmap_len);
+	tim_ie = (struct beacon_tim_ie *)(&bcn_payload[bcn->tim_ie_offset]);
 
-	/* Update TIM IE if the target wants to update */
-	if (tim_info->tim_changed &&
-	    tim_info->tim_num_ps_pending) {
-		for (i = 0; i < tim_info->tim_len; i++) {
-			if (tim_info->tim_bitmap[i])
-				timoff = i & ~1;
-		}
-
-		*tim_bitctrl = timoff;
-		vos_mem_copy(vir_bmap, tim_info->tim_bitmap, vir_bmap_len);
+	if(tim_info->tim_changed) {
+		if(tim_info->tim_num_ps_pending)
+			vos_mem_copy(&tim_ie->tim_bitmap, tim_info->tim_bitmap,
+				WMA_TIM_SUPPORTED_PVB_LENGTH);
+		else
+			vos_mem_zero(&tim_ie->tim_bitmap,
+				WMA_TIM_SUPPORTED_PVB_LENGTH);
+		/*
+		 * Currently we support fixed number of
+		 * peers as limited by HAL_NUM_STA.
+		 * tim offset is always 0
+		 */
+		tim_ie->tim_bitctl = 0;
 	}
+
+	/* Update DTIM Count */
+	if (tim_ie->dtim_count == 0)
+		tim_ie->dtim_count = tim_ie->dtim_period - 1;
+	else
+		tim_ie->dtim_count--;
+
+	/*
+	 * DTIM count needs to be backedup so that
+	 * when umac updates the beacon template
+	 * current dtim count can be updated properly
+	 */
+	bcn->dtim_count = tim_ie->dtim_count;
+
+	/* update state for buffered multicast frames on DTIM */
+	if (tim_info->tim_mcast && (tim_ie->dtim_count == 0 ||
+		tim_ie->dtim_period == 1))
+		tim_ie->tim_bitctl |= 1;
+	else
+		tim_ie->tim_bitctl &= ~1;
 
 	/* To avoid sw generated frame sequence the same as H/W generated frame,
 	 * the value lower than min_sw_seq is reserved for HW generated frame */
@@ -693,6 +707,14 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 	cmd->data_len = bcn->len;
 	cmd->frame_ctrl = *((A_UINT16 *)wh->i_fc);
 	cmd->frag_ptr = adf_nbuf_get_frag_paddr_lo(bcn->buf, 0);
+
+	/* Notify Firmware of DTM and mcast/bcast traffic */
+	if (tim_ie->dtim_count == 0) {
+		cmd->dtim_flag |= WMI_BCN_SEND_DTIM_ZERO;
+		 /* deliver mcast/bcast traffic in next DTIM beacon */
+		if (tim_ie->tim_bitctl & 0x01)
+			cmd->dtim_flag |= WMI_BCN_SEND_DTIM_BITCTL_SET;
+	}
 
 	wmi_unified_cmd_send(wma->wmi_handle, wmi_buf, sizeof(*cmd),
 			     WMI_PDEV_SEND_BCN_CMDID);
@@ -3669,6 +3691,8 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 #ifndef QCA_WIFI_ISOC
 	struct beacon_info *bcn;
 	u_int32_t len;
+	u_int8_t *bcn_payload;
+	struct beacon_tim_ie *tim_ie;
 #endif
 	vdev = wma_find_vdev_by_addr(wma, bcn_info->bssId, &vdev_id);
 	if (!vdev) {
@@ -3703,6 +3727,17 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 			bcn_info->beacon + 4 /* Exclude beacon length field */,
 			len);
 	bcn->tim_ie_offset = bcn_info->timIeOffset - 4;
+
+	bcn_payload = adf_nbuf_data(bcn->buf);
+	tim_ie = (struct beacon_tim_ie *)(&bcn_payload[bcn->tim_ie_offset]);
+	/*
+	 * Intial Value of bcn->dtim_count will be 0.
+	 * But if the beacon gets updated then current dtim
+	 * count will be restored
+	 */
+	tim_ie->dtim_count = bcn->dtim_count;
+	tim_ie->tim_bitctl = 0;
+
 	adf_nbuf_put_tail(bcn->buf, len);
 
 	adf_os_spin_unlock_bh(&bcn->lock);
