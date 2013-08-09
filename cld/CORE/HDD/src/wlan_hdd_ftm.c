@@ -4458,19 +4458,20 @@ static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
 #if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC) && defined(QCA_WIFI_FTM)
 VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
 {
-    struct ar6k_testmode_cmd_data *cmd_data;
+    void *data;
+    u_int32_t data_len;
 
     if (!message)
         return VOS_STATUS_E_INVAL;
 
-    cmd_data = (struct ar6k_testmode_cmd_data *)message;
+    data_len = *((u_int32_t *)message);
+    data = (u_int32_t *)message + 1;
 
 #ifdef CONFIG_NL80211_TESTMODE
-    wlan_hdd_testmode_rx_event(cmd_data->data,
-                               (size_t)cmd_data->len);
+    wlan_hdd_testmode_rx_event(data, (size_t)data_len);
 #endif
 
-    vos_mem_free(cmd_data->data);
+    vos_mem_free(message);
 
     return VOS_STATUS_SUCCESS;
 }
