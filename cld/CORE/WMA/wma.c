@@ -6110,9 +6110,16 @@ int wma_utf_rsp(tp_wma_handle wma_handle, u_int8_t **payload, u_int32_t *len)
 	if (payload_len) {
 		ret = 0;
 
-		*payload = (u_int8_t *)vos_mem_malloc((v_SIZE_t)payload_len);
+		/*
+		 * The first 4 bytes holds the payload size
+		 * and the actual payload sits next to it
+		 */
+		*payload = (u_int8_t *)vos_mem_malloc((v_SIZE_t)payload_len
+						      + sizeof(A_UINT32));
 		*(A_UINT32*)&(*payload[0]) = wma_handle->utf_event_info.length;
-		memcpy(*payload, wma_handle->utf_event_info.data, payload_len);
+		memcpy(*payload + sizeof(A_UINT32),
+		       wma_handle->utf_event_info.data,
+		       payload_len);
 		wma_handle->utf_event_info.length = 0;
 		*len = payload_len;
 	}
@@ -6130,7 +6137,7 @@ static void wma_post_ftm_response(tp_wma_handle wma_handle)
 
 	ret = wma_utf_rsp(wma_handle, &payload, &data_len);
 
-	if (!ret) {
+	if (ret) {
 		WMA_LOGE("failed to get response buffer");
 		return;
 	}
@@ -6138,6 +6145,7 @@ static void wma_post_ftm_response(tp_wma_handle wma_handle)
 	msg.type = SYS_MSG_ID_FTM_RSP;
 	msg.bodyptr = payload;
 	msg.bodyval = 0;
+	msg.reserved = SYS_MSG_COOKIE;
 
 	status = vos_mq_post_message(VOS_MQ_ID_SYS, &msg);
 

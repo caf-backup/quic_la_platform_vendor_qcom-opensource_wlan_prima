@@ -255,6 +255,7 @@ struct wma_txrx_node {
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 #define MAX_UTF_EVENT_LENGTH	2048
 #define MAX_WMI_UTF_LEN		252
+#define SYS_MSG_COOKIE		(0xFACE)
 
 typedef struct {
 	A_UINT32 len;
