@@ -49,9 +49,11 @@
  *----
  * 2.0 FW rx PPDU desc added to RX_IND message
  * 2.1 Enable msdu_ext/frag_desc banking change for WIFI2.0
+ *----
+ * 3.0 Remove HTT_H2T_MSG_TYPE_MGMT_TX messages
  */
-#define HTT_CURRENT_VERSION_MAJOR 2
-#define HTT_CURRENT_VERSION_MINOR 1
+#define HTT_CURRENT_VERSION_MAJOR 3
+#define HTT_CURRENT_VERSION_MINOR 0
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -94,7 +96,8 @@ enum htt_h2t_msg_type {
     HTT_H2T_MSG_TYPE_AGGR_CFG    = 0x5,
 #endif
     HTT_H2T_MSG_TYPE_FRAG_DESC_BANK_CFG = 0x6,
-    HTT_H2T_MSG_TYPE_MGMT_TX     = 0x7,
+    DEPRECATED_HTT_H2T_MSG_TYPE_MGMT_TX = 0x7, /* no longer used */
+
     /* keep this last */
     HTT_H2T_NUM_MSGS
 };
