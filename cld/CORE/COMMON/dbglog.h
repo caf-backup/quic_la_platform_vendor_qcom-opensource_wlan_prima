@@ -162,10 +162,13 @@ PREPACK struct dbglog_hdr_s {
 
 #define MAX_MODULE_ID_BITMAP_WORDS 16 /* 16*32=512 module ids. should be more than sufficient */
 typedef struct {
+	A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_debug_log_config_cmd_fixed_param */
         A_UINT32 dbg_log_param; /** param types are defined above */
         A_UINT32 value;
+	/* The below array will follow this tlv ->fixed length module_id_bitmap[]
         A_UINT32 module_id_bitmap[MAX_MODULE_ID_BITMAP_WORDS];
-} wmi_debug_log_config_cmd;
+	 */
+} wmi_debug_log_config_cmd_fixed_param;
 
 #ifdef __cplusplus
 }

@@ -61,6 +61,22 @@ int wmi_unified_cmd_send(wmi_unified_t wmi_handle, wmi_buf_t buf, int len,
 	HTC_PACKET *pkt;
 	A_STATUS status;
 
+	/* Do sanity check on the TLV parameter structure. Can be #ifdef DEBUG if desired */
+	{
+		void *buf_ptr = (void *) adf_nbuf_data(buf);
+#if 0
+		if (wmitlv_check_command_tlv_params(NULL, buf_ptr, len, cmd_id) != 0)
+#else
+		/* TODO: Once all the TLV's are converted use #if 0 condition checking not equal to zero */
+		if (wmitlv_check_command_tlv_params(NULL, buf_ptr, len, cmd_id) < 0)
+#endif
+		{
+			adf_os_print("\nERROR: %s: Invalid WMI Parameter Buffer for Cmd:%d\n",
+				     __func__, cmd_id);
+			return -1;
+		}
+	}
+
 	if (adf_nbuf_push_head(buf, sizeof(WMI_CMD_HDR)) == NULL) {
 		pr_err("%s, Failed to send cmd %x, no memory\n",
 		       __func__, cmd_id);
@@ -188,40 +204,6 @@ end:
 	return status;
 }
 
-static int wmi_service_ready_event_rx(struct wmi_unified *wmi_handle,
-				      A_UINT8 *datap, int len)
-{
-	wmi_service_ready_event *ev = (wmi_service_ready_event *)datap;
-
-	if (len < sizeof(wmi_service_ready_event)) {
-		pr_err("%s: WMI UNIFIED SERVICE READY event - invalid length\n",
-		       __func__);
-		return A_EINVAL;
-	}
-
-	pr_info("%s: WMI UNIFIED SERVICE READY event\n", __func__);
-	wma_rx_service_ready_event(wmi_handle->scn_handle, ev);
-
-	return A_OK;
-}
-
-static int wmi_ready_event_rx(struct wmi_unified *wmi_handle,
-			      A_UINT8 *datap, int len)
-{
-	wmi_ready_event *ev = (wmi_ready_event *)datap;
-
-	if (len < sizeof(wmi_ready_event)) {
-		pr_err("%s: WMI UNIFIED READY event invalid length\n",
-		       __func__);
-		return A_EINVAL;
-	}
-
-	pr_info("%s: WMI UNIFIED READY event\n", __func__);
-	wma_rx_ready_event(wmi_handle->scn_handle, ev);
-
-	return A_OK;
-}
-
 /*
  * Temporarily added to support older WMI events. We should move all events to unified
  * when the target is ready to support it.
@@ -246,16 +228,13 @@ void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 
 void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 {
-	u_int16_t id;
+	u_int32_t id;
 	u_int8_t *data;
 	u_int32_t len;
+	void *wmi_cmd_struct_ptr = NULL;
+	int tlv_ok_status = 0;
 
 	id = WMI_GET_FIELD(adf_nbuf_data(evt_buf), WMI_CMD_HDR, COMMANDID);
-
-	if (id >= WMI_EVT_GRP_START_ID(WMI_GRP_START)) {
-		wmi_unified_event_rx(wmi_handle, evt_buf);
-		return;
-	}
 
 	if (adf_nbuf_pull_head(evt_buf, sizeof(WMI_CMD_HDR)) == NULL)
 		goto end;
@@ -263,18 +242,54 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 	data = adf_nbuf_data(evt_buf);
 	len = adf_nbuf_len(evt_buf);
 
+	/* Validate and pad(if necessary) the TLVs */
+	tlv_ok_status = wmitlv_check_and_pad_event_tlvs(wmi_handle->scn_handle,
+							data, len, id,
+							&wmi_cmd_struct_ptr);
+	if (tlv_ok_status != 0) {
+		if (tlv_ok_status == 1) {
+			pr_err("%s No TLV definition for command %d\n",
+			       __func__, id);
+			wmi_cmd_struct_ptr = data;
+		} else {
+			pr_err("%s: Error: id=0x%d, wmitlv_check_and_pad_tlvs ret=%d\n",
+				__func__, id, tlv_ok_status);
+			goto end;
+		}
+	}
+
+	if (id >= WMI_EVT_GRP_START_ID(WMI_GRP_START)) {
+		u_int32_t idx = 0;
+
+		idx = wmi_unified_get_event_handler_ix(wmi_handle, id) ;
+		if (idx == -1) {
+			pr_err("%s : event handler is not registered: event id 0x%x\n",
+			       __func__, id);
+			goto end;
+		}
+
+		/* Call the WMI registered event handler */
+		wmi_handle->event_handler[idx](wmi_handle->scn_handle,
+					       wmi_cmd_struct_ptr, len);
+		goto end;
+	}
+
 	switch (id) {
 	default:
 		pr_info("%s: Unhandled WMI event %d\n", __func__, id);
 		break;
 	case WMI_SERVICE_READY_EVENTID:
-		wmi_service_ready_event_rx(wmi_handle, data, len);
+		pr_info("%s: WMI UNIFIED SERVICE READY event\n", __func__);
+		wma_rx_service_ready_event(wmi_handle->scn_handle,
+					   wmi_cmd_struct_ptr);
 		break;
 	case WMI_READY_EVENTID:
-		wmi_ready_event_rx(wmi_handle, data, len);
+		pr_info("%s:  WMI UNIFIED READY event\n", __func__);
+		wma_rx_ready_event(wmi_handle->scn_handle, wmi_cmd_struct_ptr);
 		break;
 	}
 end:
+	wmitlv_free_allocated_event_tlvs(id, &wmi_cmd_struct_ptr);
 	adf_nbuf_free(evt_buf);
 }
 

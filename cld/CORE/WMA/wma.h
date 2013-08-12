@@ -55,6 +55,7 @@
 #include "i_vos_event.h"
 #include "wmi_services.h"
 #include "wmi_unified.h"
+#include "wmi_version.h"
 #include "halTypes.h"
 #include "cfgApi.h"
 #include "vos_status.h"
@@ -134,13 +135,6 @@
 typedef struct {
 	HTC_ENDPOINT_ID endpoint_id;
 }t_cfg_nv_param;
-
-struct wma_version {
-	u_int32_t    host_ver;
-	u_int32_t    target_ver;
-	u_int32_t    wlan_ver;
-	u_int32_t    abi_ver;
-};
 
 typedef enum
 {
@@ -296,7 +290,9 @@ typedef struct {
 	u_int8_t myaddr[ETH_ALEN]; /* current mac address */
 	u_int8_t hwaddr[ETH_ALEN]; /* mac address from EEPROM */
 
-	struct wma_version version;
+	wmi_abi_version target_abi_vers; /* The target firmware version */
+	/* The final negotiated ABI version to be used for communicating */
+	wmi_abi_version final_abi_vers;
 	bool wmi_ready;
 	u_int32_t wlan_init_status;
 	adf_os_device_t adf_dev;
@@ -976,4 +972,7 @@ enum uapsd_peer_param_enabled_ac {
 	UAPSD_BK_ENABLED = 0x04,
 	UAPSD_BE_ENABLED = 0x08
 };
+
+#define WMA_TXMIC_LEN 8
+#define WMA_RXMIC_LEN 8
 #endif
