@@ -3436,7 +3436,7 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 		key_info->defWEPIdx = def_key_idx;
 	} else {
 		num_keys = SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS;
-		if (key_params.key_type != eSIR_ED_NONE) {
+		if (key_info->encType != eSIR_ED_NONE) {
 			for (i = 0; i < num_keys; i++) {
 				if (key_info->key[i].keyDirection ==
 							eSIR_TX_DEFAULT) {
