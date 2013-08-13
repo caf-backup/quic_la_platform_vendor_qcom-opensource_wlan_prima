@@ -947,6 +947,8 @@ struct hdd_context_s
      * configured
      * */
     v_U8_t configuredMcastBcastFilter;
+
+    v_U8_t sus_res_mcastbcast_filter;
 };
 
 
