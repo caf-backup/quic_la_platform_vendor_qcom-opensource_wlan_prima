@@ -1779,6 +1779,10 @@ typedef enum
 #define CFG_ANTENNA_DIVERSITY_PARAM_MAX           ( 3 )
 #define CFG_ANTENNA_DIVERSITY_PARAM_DEFAULT       ( 0 )
 
+#define CFG_ENABLE_SNR_MONITORING_NAME              "gEnableSNRMonitoring"
+#define CFG_ENABLE_SNR_MONITORING_MIN               ( 0 )
+#define CFG_ENABLE_SNR_MONITORING_MAX               ( 1 )
+#define CFG_ENABLE_SNR_MONITORING_DEFAULT           ( 0 )
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2163,6 +2167,7 @@ typedef struct
    v_U8_t                      flexConnectPowerFactor;
    v_BOOL_t                    enableIbssHeartBeatOffload;
    v_U32_t                     antennaDiversity;
+   v_BOOL_t                    fEnableSNRMonitoring;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
