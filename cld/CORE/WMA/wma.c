@@ -4572,6 +4572,44 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma)
 
 #endif
 
+/* function    : wma_get_stats_req
+ * Description : return the statistics
+ * Args        : wma handle, pointer to tAniGetPEStatsReq
+ * Returns     : nothing
+ */
+static void wma_get_stats_req(WMA_HANDLE handle,
+		tAniGetPEStatsReq *get_stats_param)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	tAniGetPEStatsRsp *pGetPEStatsRspParams;
+
+	if(get_stats_param)
+		vos_mem_free(get_stats_param);
+
+	pGetPEStatsRspParams =
+		(tAniGetPEStatsRsp *)vos_mem_malloc(sizeof(tAniGetPEStatsRsp));
+
+	if(!pGetPEStatsRspParams) {
+		WMA_LOGE("%s: Memory Allocation Failure", __func__);
+		return;
+	}
+
+	vos_mem_zero(pGetPEStatsRspParams, sizeof(tAniGetPEStatsRsp));
+	pGetPEStatsRspParams->msgLen = sizeof(tAniGetPEStatsRsp);
+
+	/* TODO: As of now there is no WMI command to get the
+	 * statistics. If WMI command for getting stats is available,
+	 * then send the WMI command for getting the stats.
+	 * Return status as FAILURE for now */
+	pGetPEStatsRspParams->rc = eHAL_STATUS_FAILURE;
+
+	/* send response to UMAC*/
+	wma_send_msg(wma_handle, WDA_GET_STATISTICS_RSP, pGetPEStatsRspParams,
+			0) ;
+
+	return;
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -4727,6 +4765,12 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_scan_cache_updated_ind(wma_handle);
 			break;
 #endif
+
+		case WDA_GET_STATISTICS_REQ:
+			wma_get_stats_req(wma_handle,
+					(tAniGetPEStatsReq *) msg->bodyptr);
+			break;
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
