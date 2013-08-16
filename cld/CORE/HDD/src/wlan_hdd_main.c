@@ -1746,9 +1746,10 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
                                   struct hdd_tgt_ht_cap *cfg)
 {
     eHalStatus status;
-    tANI_U32 value;
+    tANI_U32 value, val32;
+    tANI_U16 val16;
     hdd_config_t *pconfig = hdd_ctx->cfg_ini;
-    tSirMacHTCapabilityInfo htCapInfo;
+    tSirMacHTCapabilityInfo *phtCapInfo;
     tANI_U8 mcs_set[SIZE_OF_SUPPORTED_MCS_SET];
 
     /* check and update RX STBC */
@@ -1782,20 +1783,21 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
     }
 
     /* get the HT capability info*/
-    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
-                          (tANI_U32 *)&htCapInfo);
+    status = ccmCfgGetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO, &val32);
     if (eHAL_STATUS_SUCCESS != status) {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                   "%s: could not get HT capability info",
                   __func__);
         return;
     }
+    val16 = (tANI_U16)val32;
+    phtCapInfo = (tSirMacHTCapabilityInfo *)&val16;
 
     /* Set the LDPC capability */
-    htCapInfo.advCodingCap = cfg->ht_rx_ldpc;
+    phtCapInfo->advCodingCap = cfg->ht_rx_ldpc;
 
-    if (htCapInfo.txSTBC && !cfg->ht_tx_stbc)
-        htCapInfo.txSTBC = cfg->ht_tx_stbc;
+    if (phtCapInfo->txSTBC && !cfg->ht_tx_stbc)
+        phtCapInfo->txSTBC = cfg->ht_tx_stbc;
 
     if (pconfig->ShortGI20MhzEnable && !cfg->ht_sgi_20)
         pconfig->ShortGI20MhzEnable = cfg->ht_sgi_20;
@@ -1804,7 +1806,7 @@ static void hdd_update_tgt_ht_cap(hdd_context_t *hdd_ctx,
         pconfig->ShortGI40MhzEnable = cfg->ht_sgi_40;
 
     status = ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_HT_CAP_INFO,
-                          *(tANI_U32 *)&htCapInfo, NULL, eANI_BOOLEAN_FALSE);
+                          *(tANI_U16 *)phtCapInfo, NULL, eANI_BOOLEAN_FALSE);
     if (status != eHAL_STATUS_SUCCESS)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                   "%s: could not set HT capabilty to CCM",
