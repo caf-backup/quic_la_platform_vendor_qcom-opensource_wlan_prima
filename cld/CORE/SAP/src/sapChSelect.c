@@ -362,7 +362,7 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
     pChans = pMac->scan.base20MHzChannels.channelList;
 
     // Fill the channel number in the spectrum in the operating freq band
-    for (channelnum = 0; channelnum < pSpectInfoParams->numSpectChans; channelnum++) {
+    for (channelnum = 0; channelnum < pSpectInfoParams->numSpectChans; channelnum++, pChans++) {
 
         if(*pChans == 14 ) //OFDM rates are not supported on channel 14
             continue;
@@ -371,7 +371,6 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
         pSpectCh->rssiAgr = SOFTAP_MIN_RSSI;// Initialise for all channels
         pSpectCh->channelWidth = SOFTAP_HT20_CHANNELWIDTH; // Initialise 20MHz for all the Channels 
         pSpectCh++;
-        pChans++;
     }
     return eSAP_TRUE;
 }
