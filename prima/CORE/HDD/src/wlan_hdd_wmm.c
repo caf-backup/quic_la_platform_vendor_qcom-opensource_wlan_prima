@@ -1252,7 +1252,8 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
    {
    case WLANTL_AC_VO:
       qosInfo.ts_info.up = SME_QOS_WMM_UP_VO;
-      qosInfo.ts_info.psb = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask & 0x01;
+      qosInfo.ts_info.psb = ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask &
+                              SME_QOS_UAPSD_VO) ? 1 : 0;
       qosInfo.ts_info.direction = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraDirAcVo;
       qosInfo.ts_info.tid = 255;
       qosInfo.mean_data_rate = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraMeanDataRateAcVo;
@@ -1264,7 +1265,8 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
       break;
    case WLANTL_AC_VI:
       qosInfo.ts_info.up = SME_QOS_WMM_UP_VI;
-      qosInfo.ts_info.psb = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask & 0x02;
+      qosInfo.ts_info.psb = ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask &
+                              SME_QOS_UAPSD_VI) ? 1 : 0;
       qosInfo.ts_info.direction = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraDirAcVi;
       qosInfo.ts_info.tid = 255;
       qosInfo.mean_data_rate = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraMeanDataRateAcVi;
@@ -1277,7 +1279,8 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
    default:
    case WLANTL_AC_BE:
       qosInfo.ts_info.up = SME_QOS_WMM_UP_BE;
-      qosInfo.ts_info.psb = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask & 0x08;
+      qosInfo.ts_info.psb = ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask &
+                              SME_QOS_UAPSD_BE) ? 1 : 0;
       qosInfo.ts_info.direction = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraDirAcBe;
       qosInfo.ts_info.tid = 255;
       qosInfo.mean_data_rate = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraMeanDataRateAcBe;
@@ -1289,7 +1292,8 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
       break;
    case WLANTL_AC_BK:
       qosInfo.ts_info.up = SME_QOS_WMM_UP_BK;
-      qosInfo.ts_info.psb = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask & 0x04;
+      qosInfo.ts_info.psb = ((WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask &
+                              SME_QOS_UAPSD_BK) ? 1 : 0;
       qosInfo.ts_info.direction = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraDirAcBk;
       qosInfo.ts_info.tid = 255;
       qosInfo.mean_data_rate = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->InfraMeanDataRateAcBk;
