@@ -1263,6 +1263,8 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	struct sAniSirGlobal *mac =
 		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 						      wma_handle->vos_context);
+	tANI_U32 cfg_val;
+	int ret;
 
 	/* Create a vdev in target */
 	if (wma_unified_vdev_create_send(wma_handle->wmi_handle,
@@ -1368,6 +1370,31 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 					self_sta_req->sessionId);
 		}
 	}
+
+	if (wlan_cfgGetInt(mac, WNI_CFG_RTS_THRESHOLD,
+			&cfg_val) == eSIR_SUCCESS) {
+		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+						      self_sta_req->sessionId,
+						      WMI_VDEV_PARAM_RTS_THRESHOLD,
+						      cfg_val);
+		if (ret)
+			WMA_LOGE("Failed to set WMI_VDEV_PARAM_RTS_THRESHOLD");
+	} else {
+		WMA_LOGE("Failed to get value for WNI_CFG_RTS_THRESHOLD, leaving unchanged");
+	}
+
+	if (wlan_cfgGetInt(mac, WNI_CFG_FRAGMENTATION_THRESHOLD,
+                        &cfg_val) == eSIR_SUCCESS) {
+		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+						      self_sta_req->sessionId,
+						      WMI_VDEV_PARAM_FRAGMENTATION_THRESHOLD,
+						      cfg_val);
+		if (ret)
+			WMA_LOGE("Failed to set WMI_VDEV_PARAM_FRAGMENTATION_THRESHOLD");
+	} else {
+		WMA_LOGE("Failed to get value for WNI_CFG_FRAGMENTATION_THRESHOLD, leaving unchanged");
+	}
+
 end:
 	self_sta_req->status = status;
 	wma_send_msg(wma_handle, WDA_ADD_STA_SELF_RSP, (void *)self_sta_req, 0);
@@ -2729,6 +2756,55 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 		return -EIO;
 	}
 	return 0;
+}
+
+/*
+ * Function    : wma_update_cfg_params
+ * Description : update the cfg parameters to target
+ * Args        : wma handle, cfg parameter
+ * Returns     : None
+ */
+static void
+wma_update_cfg_params(tp_wma_handle wma, tSirMsgQ *cfgParam)
+{
+	u_int8_t vdev_id;
+	u_int32_t param_id;
+	tANI_U32 cfg_val;
+	int ret;
+	/* get mac to acess CFG data base */
+	struct sAniSirGlobal *pmac;
+
+	switch(cfgParam->bodyval) {
+	case WNI_CFG_RTS_THRESHOLD:
+		param_id = WMI_VDEV_PARAM_RTS_THRESHOLD;
+		break;
+	case WNI_CFG_FRAGMENTATION_THRESHOLD:
+		param_id = WMI_VDEV_PARAM_FRAGMENTATION_THRESHOLD;
+		break;
+	default:
+		WMA_LOGD("Unhandled cfg parameter %d", cfgParam->bodyval);
+		return;
+	}
+
+	pmac = (struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+					wma->vos_context);
+
+	if (wlan_cfgGetInt(pmac, (tANI_U16) cfgParam->bodyval,
+			   &cfg_val) != eSIR_SUCCESS)
+	{
+		WMA_LOGE("Failed to get value for CFG PARAMS %d. returning without updating",
+			 cfgParam->bodyval);
+		return;
+	}
+
+	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
+		if (wma->interfaces[vdev_id].handle != 0) {
+			ret = wmi_unified_vdev_set_param_send(wma->wmi_handle,
+				vdev_id, param_id, cfg_val);
+			if (ret)
+				WMA_LOGE("Update cfg params failed for vdevId %d", vdev_id);
+		}
+	}
 }
 
 /* BSS set params functions */
@@ -4770,6 +4846,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_GET_STATISTICS_REQ:
 			wma_get_stats_req(wma_handle,
 					(tAniGetPEStatsReq *) msg->bodyptr);
+			break;
+
+		case WDA_CONFIG_PARAM_UPDATE_REQ:
+			wma_update_cfg_params(wma_handle,
+					(tSirMsgQ *)msg);
 			break;
 
 		default:
