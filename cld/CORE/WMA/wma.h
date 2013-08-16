@@ -381,27 +381,6 @@ typedef struct
   v_VOID_t *pIndUserData;
 }t_wma_start_req;
 
-/* Config format required by HAL for each CFG item*/
-typedef PACKED_PRE struct PACKED_POST
-{
-	/* Cfg Id. The Id required by HAL is exported by HAL
-	 * in shared header file between UMAC and HAL.*/
-	tANI_U16   uCfgId;
-
-	/* Length of the Cfg. This parameter is used to go to next cfg
-	 * in the TLV format.*/
-	tANI_U16   uCfgLen;
-
-	/* Padding bytes for unaligned address's */
-	tANI_U16   uCfgPadBytes;
-
-	/* Reserve bytes for making cfgVal to align address */
-	tANI_U16   uCfgReserve;
-
-	/* Following the uCfgLen field there should be a 'uCfgLen' bytes
-	 * containing the uCfgValue ; tANI_U8 uCfgValue[uCfgLen] */
-} tHalCfg, *tpHalCfg;
-
 /* Message types for messages exchanged between WDI and HAL */
 typedef enum 
 {
