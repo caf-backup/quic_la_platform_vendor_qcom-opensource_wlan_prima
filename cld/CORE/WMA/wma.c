@@ -73,6 +73,7 @@
 #include "ol_txrx_peer_find.h"
 
 #include "wlan_qct_wda.h"
+#include "wlan_qct_wda_msg.h"
 #include "limApi.h"
 
 #include "wdi_out.h"
