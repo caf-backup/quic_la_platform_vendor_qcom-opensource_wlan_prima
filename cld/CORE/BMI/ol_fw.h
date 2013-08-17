@@ -37,7 +37,4 @@
 int ol_download_firmware(struct ol_softc *scn);
 int ol_configure_target(struct ol_softc *scn);
 void ol_target_failure(void *instance, A_STATUS status);
-#ifdef QCA_WIFI_FTM
-extern tVOS_CON_MODE hdd_get_conparam(void);
-#endif
 #endif /* _OL_FW_H_ */

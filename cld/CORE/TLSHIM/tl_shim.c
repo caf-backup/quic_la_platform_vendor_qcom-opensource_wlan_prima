@@ -604,7 +604,7 @@ VOS_STATUS WLANTL_DeRegisterMgmtFrmClient(void *vos_ctx)
 #endif
 
 #ifdef QCA_WIFI_FTM
-	if (hdd_get_conparam() == VOS_FTM_MODE)
+	if (vos_get_conparam() == VOS_FTM_MODE)
 		return VOS_STATUS_SUCCESS;
 #endif
 
