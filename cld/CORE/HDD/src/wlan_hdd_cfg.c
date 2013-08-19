@@ -3205,12 +3205,11 @@ static VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 
 v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 {
    v_BOOL_t  fStatus = TRUE;
-#ifdef WLAN_SOFTAP_VSTA_FEATURE
    tANI_U32 val;
-#endif
+   tANI_U16 val16;
 
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
-   tSirMacHTCapabilityInfo htCapInfo;
+   tSirMacHTCapabilityInfo *phtCapInfo;
 
 
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SHORT_GI_20MHZ,
@@ -3694,11 +3693,13 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
          hddLog(LOGE, "Could not pass on WNI_CFG_HT_RX_STBC to CCM\n");
      }
 
-     ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_HT_CAP_INFO, (tANI_U32 *)&htCapInfo);
-     htCapInfo.rxSTBC = pConfig->enableRxSTBC;
+     ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_HT_CAP_INFO, &val);
+     val16 = (tANI_U16)val;
+     phtCapInfo = (tSirMacHTCapabilityInfo *)&val16;
+     phtCapInfo->rxSTBC = pConfig->enableRxSTBC;
 
      if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_HT_CAP_INFO,
-                     *(tANI_U32 *)&htCapInfo, NULL, eANI_BOOLEAN_FALSE)
+                     *(tANI_U16 *)phtCapInfo, NULL, eANI_BOOLEAN_FALSE)
          ==eHAL_STATUS_FAILURE)
      {
          fStatus = FALSE;
