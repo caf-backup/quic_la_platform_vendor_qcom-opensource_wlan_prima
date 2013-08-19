@@ -807,7 +807,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
         wma_handle->adf_dev = adf_dev;
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
-	if (hdd_get_conparam() == VOS_FTM_MODE)
+	if (vos_get_conparam() == VOS_FTM_MODE)
 		wma_utf_attach(wma_handle);
 #endif
 
@@ -6183,7 +6183,6 @@ static void wma_post_ftm_response(tp_wma_handle wma_handle)
 	ret = wma_utf_rsp(wma_handle, &payload, &data_len);
 
 	if (ret) {
-		WMA_LOGE("failed to get response buffer");
 		return;
 	}
 
@@ -6365,18 +6364,23 @@ wma_process_ftm_command(tp_wma_handle wma_handle,
 	u_int16_t len = 0;
 	int ret;
 
-	if (hdd_get_conparam() != VOS_FTM_MODE) {
-		WMA_LOGE("FTM command issued in non-FTM mode");
-		return VOS_STATUS_E_NOSUPPORT;
-	}
-
 	if (!msg_buffer)
 		return VOS_STATUS_E_INVAL;
+
+	if (vos_get_conparam() != VOS_FTM_MODE) {
+		WMA_LOGE("FTM command issued in non-FTM mode");
+		vos_mem_free(msg_buffer->data);
+		vos_mem_free(msg_buffer);
+		return VOS_STATUS_E_NOSUPPORT;
+	}
 
 	data = msg_buffer->data;
 	len = msg_buffer->len;
 
 	ret = wma_utf_cmd(wma_handle, data, len);
+
+	vos_mem_free(msg_buffer->data);
+	vos_mem_free(msg_buffer);
 
 	if (ret)
 		return VOS_STATUS_E_FAILURE;

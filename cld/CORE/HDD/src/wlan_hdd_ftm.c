@@ -4501,7 +4501,7 @@ VOS_STATUS wlan_hdd_ftm_testmode_cmd(void *data, int len)
     cmd_data->len = len;
     vos_mem_copy(cmd_data->data, data, len);
 
-    if (!wlan_ftm_postmsg((v_U8_t *)cmd_data, sizeof(*cmd_data))) {
+    if (wlan_ftm_postmsg((v_U8_t *)cmd_data, sizeof(*cmd_data))) {
         vos_mem_free(cmd_data->data);
         vos_mem_free(cmd_data);
         return VOS_STATUS_E_FAILURE;
