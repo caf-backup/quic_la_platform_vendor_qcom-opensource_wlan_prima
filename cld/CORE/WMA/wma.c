@@ -2098,6 +2098,8 @@ static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
 
 	switch (nw_type) {
 		case eSIR_11B_NW_TYPE:
+			phymode = MODE_11B;
+			break;
 		case eSIR_11G_NW_TYPE:
 			if (is_ht)
 				phymode = (is_cw40) ?
