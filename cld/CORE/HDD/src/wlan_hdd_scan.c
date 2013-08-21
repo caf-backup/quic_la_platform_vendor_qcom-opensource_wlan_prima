@@ -290,7 +290,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
    if (SIR_MAC_GET_ESS(capabilityInfo))
    {
-       event.u.mode = IW_MODE_INFRA;
+       event.u.mode = IW_MODE_MASTER;
    }
    else if (SIR_MAC_GET_IBSS(capabilityInfo))
    {
