@@ -74,7 +74,7 @@ when           who                what, where, why
 /*--------------------------------------------------------------------------
   defines and enum
   ------------------------------------------------------------------------*/
-  
+
 #define       MAX_SSID_LEN                 32
 #define       MAX_MAC_ADDRESS_ACCEPTED     16
 #define       MAX_MAC_ADDRESS_DENIED       MAX_MAC_ADDRESS_ACCEPTED
@@ -869,6 +869,38 @@ WLANSAP_StartBss
     v_PVOID_t  pvosGCtx, 
     tpWLAN_SAPEventCB pSapEventCallback, 
     tsap_Config_t *pConfig, v_PVOID_t  pUsrContext
+);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_SetMacACL
+
+  DESCRIPTION
+  This api function provides SAP to set mac list entry in accept list as well
+  as deny list
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+pvosGCtx: Pointer to vos global context structure
+pConfig:  Pointer to configuration structure passed down from
+          HDD(HostApd for Android)
+
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+============================================================================*/
+VOS_STATUS
+WLANSAP_SetMacACL
+(
+    v_PVOID_t  pvosGCtx,
+    tsap_Config_t *pConfig
 );
 
 /*==========================================================================
