@@ -38,6 +38,7 @@
 
 when        who          what, where, why
 --------    ---         ----------------------------------------------
+08/19/2013  rajekuma    Added reliable multicast support in WDA
 12/08/2010  seokyoun    Created. Move down HAL interfaces from TL to WDA
                         for UMAC convergence btween Volans/Libra and Prima
 =========================================================================== */
@@ -409,6 +410,10 @@ WDA_DS_BuildTxPacketInfo
   WDI_DS_TxMetaInfoType* pTxMetaInfo = NULL;
   v_SIZE_t               usMacAddrSize;
   wpt_FrameCtrl          *pFrameControl;
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+  WLANTL_CbType*         pTLCb;
+  WLANTL_RMCAST_SESSION* pRMcastSession;
+#endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -421,6 +426,20 @@ WDA_DS_BuildTxPacketInfo
                "WDA:Invalid parameter sent on WDA_DS_BuildTxPacketInfo" );
     return VOS_STATUS_E_FAULT;
   }
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+/*----------------------------------------------------------------
+    Extract TL control block
+   --------------------------------------------------------------*/
+  pTLCb = VOS_GET_TL_CB(pvosGCtx);
+  if ( NULL == pTLCb )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL %s: pTLCb is NULL", __func__));
+
+    return VOS_STATUS_E_FAILURE;
+  }
+#endif
 
   /*------------------------------------------------------------------------
     Extract TX Meta Info pointer from PAL packet
@@ -496,6 +515,38 @@ WDA_DS_BuildTxPacketInfo
 
   // ADDR2
   vos_copy_macaddr( (v_MACADDR_t*)pTxMetaInfo->addr2MACAddress, pAddr2 );
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+    /*look up for mcast MAC address in TL's active rmcast session list*/
+    if (((WDA_TLI_DATA_FRAME_TYPE >> 4) == pTxMetaInfo->frmType) &&
+       ((vos_is_macaddr_group((v_MACADDR_t*) pTxMetaInfo->fSTAMACAddress))))
+    {
+        pRMcastSession = WLANTL_RmcLookUpRmcastSession(pTLCb,
+            (v_MACADDR_t*)pTxMetaInfo->fSTAMACAddress);
+
+        if (pRMcastSession)
+        {
+            /*Set reliable multicast requested bit mask(8th BIT) in txFlag.
+            TX meta data TX flag is of 32 bites so 8th bit can be set. WDI
+            while filling TX BD can check for it and then route RMCAST data
+            frames from QID 1 which will change ACK_POLICY = TRUE*/
+            pTxMetaInfo->txFlags |= (HAL_RELIABLE_MCAST_REQUESTED_MASK);
+
+            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
+                "RMCAST active for " MAC_ADDRESS_STR " RMCAST session",
+                MAC_ADDR_ARRAY(pRMcastSession->reliableMcastAddr.bytes));
+        }
+        else
+        {
+            /*Multicast address does not find in TL's active reliable multicast
+            sessions list. Route this mutlicast data frame from default QID 0
+            which will change ACK_POLICY = FALSE*/
+            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
+                "RMCAST disabled for " MAC_ADDRESS_STR " RMCAST session",
+                MAC_ADDR_ARRAY(pTxMetaInfo->fSTAMACAddress));
+        }
+    }
+#endif /*End of WLAN_FEATURE_RELIABLE_MCAST*/
 
   /* Dump TX meta infro for debugging */
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,

@@ -516,6 +516,114 @@ void hdd_checkandupdate_dfssetting( hdd_adapter_t *pAdapter, char *country_code)
 
 }
 
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+/**---------------------------------------------------------------------------
+
+  \brief hdd_parse_setrmc_command() - HDD Parse reliable multicast command
+
+  This function parses the setrmc command passed in the format
+  SETRMC<space>1(to enable RMC) OR 0(to disable RMC)<space>McastIpV4Addr[0].
+     McastIpV4Addr[1].McastIpV4Addr[2].McastIpV4Addr[3]
+  This function currently only supports IP v4 address.
+  For example input commands:
+  1) SETRMC 1 224.0.0.1 -> This is translated into enable reliable multicast
+    for multicast IP address 224.0.0.1
+  2) SETRMC 0 224.0.0.1 -> This is translated into disable reliable multicast
+    for multicast IP address 224.0.0.1
+
+  \param  - pValue Pointer to input channel list
+  \param  - pIpAddr Pointer to local IP V4 address
+  \param  - pRmcEnable Pointer to local RMC enable variable
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int hdd_parse_setrmc_command(tANI_U8 *pValue, tANI_U8 *pIpAddr,
+    tANI_U8 *pRmcEnable)
+{
+    tANI_U8 *inPtr = pValue;
+    int tempInt;
+    int v = 0;
+    char buf[32];
+    tANI_U32 nInputIpV4Word0;
+    tANI_U32 nInputIpV4Word1;
+    tANI_U32 nInputIpV4Word2;
+    tANI_U32 nInputIpV4Word3;
+
+    inPtr = strnchr(pValue, strlen(pValue), SPACE_ASCII_VALUE);
+    /*no argument after the command*/
+    if (NULL == inPtr)
+    {
+        return -EINVAL;
+    }
+
+    /*no space after the command*/
+    else if (SPACE_ASCII_VALUE != *inPtr)
+    {
+        return -EINVAL;
+    }
+
+    /*removing empty spaces*/
+    while ((SPACE_ASCII_VALUE  == *inPtr) && ('\0' !=  *inPtr)) inPtr++;
+
+    /*no argument followed by spaces*/
+    if ('\0' == *inPtr)
+    {
+        return -EINVAL;
+    }
+
+    /*getting the first argument which enables or disables reliable
+      multicast for input IP v4 address*/
+    sscanf(inPtr, "%32s ", buf);
+    v = kstrtos32(buf, 10, &tempInt);
+    if ( (v < 0) ||
+         ( (0 != tempInt) &&
+           (1 != tempInt) ))
+    {
+       return -EINVAL;
+    }
+
+    *pRmcEnable = tempInt;
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+       "ucRmcEnable: %d", *pRmcEnable);
+
+    /*inPtr pointing to the beginning of first space after enable or disable
+      command in input string to extract IP v4 address*/
+    inPtr = strpbrk( inPtr, " " );
+
+    /*Removing empty space*/
+    while ((SPACE_ASCII_VALUE == *inPtr) && ('\0' != *inPtr)) inPtr++;
+
+    /*Extract IP v4 address from input string*/
+    sscanf(inPtr, "%u.%u.%u.%u", (unsigned int *)&nInputIpV4Word0,
+       (unsigned int *)&nInputIpV4Word1, (unsigned int *)&nInputIpV4Word2,
+       (unsigned int *)&nInputIpV4Word3);
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
+      "%s: Input IP v4 addr %u.%u.%u.%u", __func__, nInputIpV4Word0,
+      nInputIpV4Word1, nInputIpV4Word2, nInputIpV4Word3);
+
+    /*Validate input IP v4 address*/
+    if ( (nInputIpV4Word0 > 0xFF) || (nInputIpV4Word1 > 0xFF) ||
+         (nInputIpV4Word2 > 0xFF) || (nInputIpV4Word3 > 0xFF) )
+    {
+       return -EINVAL;
+    }
+
+    pIpAddr[0] = (tANI_U8)(nInputIpV4Word0 & 0xFF);
+    pIpAddr[1] = (tANI_U8)(nInputIpV4Word1 & 0xFF);
+    pIpAddr[2] = (tANI_U8)(nInputIpV4Word2 & 0xFF);
+    pIpAddr[3] = (tANI_U8)(nInputIpV4Word3 & 0xFF);
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
+      "%s: SETRMC %d input IP v4 addr %u.%u.%u.%u", __func__, *pRmcEnable,
+      pIpAddr[0], pIpAddr[1], pIpAddr[2], pIpAddr[3]);
+
+    return 0;
+}
+#endif /*End WLAN_FEATURE_RELIABLE_MCAST*/
+
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -2041,6 +2149,80 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                goto exit;
            }
        }
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+       else if (strncmp(command, "SETRMC", 6) == 0)
+       {
+          tANI_U8 *value = command;
+          tANI_U8 aMcastIpV4Addr[WLAN_IP_V4_ADDR_SIZE] = {0xFF, 0xFF, 0xFF, 0xFF};
+          tANI_U8 ucRmcEnable = 0;
+          tANI_U32 uIpV4Addr;
+          int  status;
+
+          if ((WLAN_HDD_IBSS != pAdapter->device_mode) &&
+              (WLAN_HDD_SOFTAP != pAdapter->device_mode))
+          {
+             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "Received SETRMC command in invalid mode %d \n"
+                "SETRMC command is only allowed in IBSS or SOFTAP mode",
+                pAdapter->device_mode);
+             ret = -EINVAL;
+             goto exit;
+          }
+
+          status = hdd_parse_setrmc_command(value, aMcastIpV4Addr, &ucRmcEnable);
+          if (status)
+          {
+             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "Invalid SETRMC command . Command Syntax \n"
+                "SETRMC 1 224.0.0.2 -> To enable reliable multicast "
+                "for multicast IP v4 address 224.0.0.2\n"
+                "SETRMC 0 224.0.0.2 -> To disable reliable multicast "
+                "for multicast IP v4 address 224.0.0.2");
+             ret = -EINVAL;
+             goto exit;
+          }
+
+          uIpV4Addr = ((aMcastIpV4Addr[3] << 24) | (aMcastIpV4Addr[2] << 16) |
+                       (aMcastIpV4Addr[1] << 8)  | (aMcastIpV4Addr[0]));
+
+          if (ipv4_is_multicast(uIpV4Addr))
+          {
+             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: SETRMC %d for IP v4 addr %u.%u.%u.%u", __func__,
+               ucRmcEnable, aMcastIpV4Addr[0], aMcastIpV4Addr[1],
+               aMcastIpV4Addr[2], aMcastIpV4Addr[3] );
+
+             if (ucRmcEnable)
+             {
+                status = sme_EnableReliableMcast( (tHalHandle)(pHddCtx->hHal),
+                         aMcastIpV4Addr, pAdapter->sessionId );
+             }
+             else
+             {
+                status = sme_DisableReliableMcast( (tHalHandle)(pHddCtx->hHal),
+                         aMcastIpV4Addr, pAdapter->sessionId );
+             }
+
+             if (VOS_STATUS_SUCCESS != status)
+             {
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: SETRMC %d failed status %d", __func__, ucRmcEnable,
+                  status);
+                ret = -EINVAL;
+                goto exit;
+             }
+          }
+          else
+          {
+             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               "%s: Invalid multicast IP v4 addr %u.%u.%u.%u",
+               __func__, aMcastIpV4Addr[0], aMcastIpV4Addr[1],
+               aMcastIpV4Addr[2], aMcastIpV4Addr[3] );
+             ret = -EINVAL;
+             goto exit;
+          }
+       }
+#endif
        else {
            hddLog( VOS_TRACE_LEVEL_WARN, "%s: Unsupported GUI command %s",
                    __func__, command);

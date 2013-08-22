@@ -40,6 +40,7 @@
 
   when        who     what, where, why
 ----------    ---    --------------------------------------------------------
+2013-08-19    rajekuma Added reliable multicast support
 2010-07-13    c_shinde Fixed an issue where WAPI rekeying was failing because 
                       WAI frame sent out during rekeying had the protected bit
                       set to 1.
@@ -570,6 +571,17 @@ WLANTL_Open
   }
 #endif
 
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+   /*Initialize RMC suppport in TL*/
+   status = WLANTL_RmcInit(pvosGCtx);
+   if (!VOS_IS_STATUS_SUCCESS(status))
+   {
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "Reliable multicast module init fail"));
+    return status;
+  }
+#endif
+
   pTLCb->isBMPS = VOS_FALSE;
   pmcRegisterDeviceStateUpdateInd( smeContext,
                                    WLANTL_PowerStateChangedCB, pvosGCtx );
@@ -823,6 +835,14 @@ WLANTL_Close
   {
     TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
                "Handoff Support module DeInit fail"));
+  }
+#endif
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+  if(VOS_STATUS_SUCCESS != WLANTL_RmcDeInit(pvosGCtx))
+  {
+    TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+               "Reliable multicast module DeInit fail"));
   }
 #endif
 
@@ -12388,3 +12408,521 @@ WLANTL_GetSTALinkCapacity
 
     return VOS_STATUS_SUCCESS;
 }/* WLANTL_GetSTALinkCapacity */
+
+
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+
+/*==========================================================================
+   FUNCTION WLANTL_RmcInit
+
+   DESCRIPTION This function initilizes RMC module in TL
+
+   PARAMETERS
+   pADapter : pointer to VOS global context
+
+   RETURN VALUE
+   VOS_STATUS_SUCCESS : for success
+   VOS_STATUS_FAILURE : for failure
+   VOS_STATUS_E_INVAL : for invalid input parameter
+
+============================================================================*/
+VOS_STATUS WLANTL_RmcInit
+(
+    v_PVOID_t   pAdapter
+)
+{
+    WLANTL_CbType   *pTLCb = VOS_GET_TL_CB(pAdapter);
+    VOS_STATUS       status = VOS_STATUS_SUCCESS;
+    tANI_U8          count;
+
+    /*sanity check*/
+    if (NULL == pTLCb)
+    {
+        TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TL handle"));
+        return VOS_STATUS_E_INVAL;
+    }
+
+    /*init active rmcast sessions list*/
+    for ( count = 0; count < WLANTL_RMCAST_HASH_TABLE_SIZE; count++ )
+    {
+        pTLCb->reliableMcastSession[count] = NULL;
+    }
+
+    vos_lock_init(&pTLCb->rmcLock);
+
+    return status;
+}
+
+
+/*==========================================================================
+   FUNCTION WLANTL_RmcDeInit
+
+   DESCRIPTION This function de-initilizes RMC module in TL
+
+   PARAMETERS
+   pADapter : pointer to VOS global context
+
+   RETURN VALUE
+   VOS_STATUS_SUCCESS : for success
+   VOS_STATUS_FAILURE : for failure
+   VOS_STATUS_E_INVAL : for invalid input parameter
+
+============================================================================*/
+VOS_STATUS WLANTL_RmcDeInit
+(
+    v_PVOID_t   pAdapter
+)
+{
+    WLANTL_CbType   *pTLCb = VOS_GET_TL_CB(pAdapter);
+    VOS_STATUS       status = VOS_STATUS_SUCCESS;
+    tANI_U8          count;
+    WLANTL_RMCAST_SESSION *pNode;
+    WLANTL_RMCAST_SESSION *pPrev;
+
+    /*sanity check*/
+    if (NULL == pTLCb)
+    {
+        TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "Invalid TL handle"));
+        return VOS_STATUS_E_INVAL;
+    }
+
+    /*free active rmcast sessions list*/
+    for ( count = 0; count < WLANTL_RMCAST_HASH_TABLE_SIZE; count++ )
+    {
+        pNode = pTLCb->reliableMcastSession[count];
+        while (pNode)
+        {
+            pPrev = pNode;
+            pNode = pNode->next;
+            vos_mem_free((v_VOID_t * )pPrev);
+        }
+    }
+
+    vos_lock_destroy(&pTLCb->rmcLock);
+
+    return status;
+}
+
+
+/*==========================================================================
+   FUNCTION WLANTL_RmcHashRmcastSession
+
+   DESCRIPTION This function creates hash on input RMCAST MAC address
+
+   PARAMETERS
+   pMcastAddr : pointer to input RMCAST MAC address
+
+   RETURN VALUE
+   tANI_U8 : A hash value between 0 to WLANTL_RMCAST_HASH_TABLE_SIZE - 1
+============================================================================*/
+tANI_U8 WLANTL_RmcHashRmcastSession ( v_MACADDR_t   *pMcastAddr )
+{
+    tANI_U32 sum;
+    tANI_U8  hash;
+
+    sum = (pMcastAddr->bytes[0] + pMcastAddr->bytes[1] + pMcastAddr->bytes[2] +
+           pMcastAddr->bytes[3] + pMcastAddr->bytes[4] + pMcastAddr->bytes[5]);
+
+    hash = (tANI_U8)(sum & ((WLANTL_RMCAST_HASH_TABLE_SIZE - 1)));
+
+    return hash;
+}
+
+
+/*===========================================================================
+   FUNCTION WLANTL_RmcLookUpRmcastSession
+
+   DESCRIPTION This function tries to find out RMCAST address in TL's active
+    list of reliable multicast sessions
+
+   PARAMETERS
+   pTLCb      : pointer to TL Cb
+   pMcastAddr : pointer to input RMCAST MAC address
+
+   RETURN VALUE
+   WLANTL_RMCAST_SESSION * :
+     NULL if input RMCAST MAC address does exist in active RMCAST sessions list
+     else pointer to RMCAST session found in active RMCAST sessions list
+=============================================================================*/
+WLANTL_RMCAST_SESSION* WLANTL_RmcLookUpRmcastSession
+(
+    WLANTL_CbType* pTLCb,
+    v_MACADDR_t     *pMcastAddr
+)
+{
+    WLANTL_RMCAST_SESSION *pNode;
+    tANI_U8               index;
+
+    /*sanity check*/
+    if (NULL == pMcastAddr)
+    {
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "Sanity check failed pMcastAddr %p", pMcastAddr));
+        return NULL;
+    }
+
+    index = WLANTL_RmcHashRmcastSession(pMcastAddr);
+    pNode = pTLCb->reliableMcastSession[index];
+    while ( pNode )
+    {
+        if (vos_is_macaddr_equal( &(pNode->reliableMcastAddr), pMcastAddr))
+        {
+            return pNode;
+        }
+        pNode = pNode->next;
+    }
+
+    return NULL;
+}
+
+/*===========================================================================
+   FUNCTION WLANTL_RmcAddRmcastSession
+
+   DESCRIPTION This function adds requested RMCAST address in TL's active
+    list of reliable multicast sessions
+
+   PARAMETERS
+   pTLCb      : pointer to TL Cb
+   pMcastAddr : pointer to input RMCAST MAC address
+
+   RETURN VALUE
+   WLANTL_RMCAST_SESSION * :
+     NULL if input RMCAST MAC address already exists in active RMCAST sessions
+     list else pointer to RMCAST session which is now added in active RMCAST
+     sessions list
+=============================================================================*/
+WLANTL_RMCAST_SESSION *WLANTL_RmcAddRmcastSession
+(
+  WLANTL_CbType* pTLCb,
+  v_MACADDR_t   *pMcastAddr
+)
+{
+    WLANTL_RMCAST_SESSION *pNode;
+    tANI_U8               index;
+
+    index = WLANTL_RmcHashRmcastSession(pMcastAddr);
+    pNode = WLANTL_RmcLookUpRmcastSession(pTLCb, pMcastAddr);
+    if ( NULL != pNode )
+    {
+        /*already exists*/
+        return NULL;
+    }
+    else
+    {
+        pNode = (WLANTL_RMCAST_SESSION *)vos_mem_malloc(sizeof(*pNode));
+        if (pNode)
+        {
+            vos_mem_copy( &(pNode->reliableMcastAddr), pMcastAddr,
+                sizeof(pNode->reliableMcastAddr) );
+            pNode->next = pTLCb->reliableMcastSession[index];
+            pTLCb->reliableMcastSession[index] = pNode;
+            return pNode;
+        }
+        else
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: vos_mem_malloc failed can't enable RMCAST session",
+                __func__);
+            return NULL;
+        }
+    }
+}
+
+/*===========================================================================
+   FUNCTION WLANTL_RmcDeleteRmcastSession
+
+   DESCRIPTION This function deleted requested RMCAST address from TL's active
+    list of reliable multicast sessions
+
+   PARAMETERS
+   pTLCb      : pointer to TL Cb
+   pMcastAddr : pointer to input RMCAST MAC address
+
+   RETURN VALUE
+   WLANTL_RMCAST_SESSION * :
+     0 if input RMCAST session does not exist in active RMCAST
+      sessions list
+     1 if input RMCAST session is successfully deleted from
+       TL's active list of reliable multicast sessions
+=============================================================================*/
+tANI_U8
+WLANTL_RmcDeleteRmcastSession
+(
+  WLANTL_CbType* pTLCb,
+  v_MACADDR_t   *pMcastAddr
+)
+{
+    WLANTL_RMCAST_SESSION *pHead;
+    WLANTL_RMCAST_SESSION *pNode;
+    WLANTL_RMCAST_SESSION *pPrev;
+    tANI_U8               index;
+
+    index = WLANTL_RmcHashRmcastSession(pMcastAddr);
+    pHead = pNode = pTLCb->reliableMcastSession[index];
+    while (pNode)
+    {
+        if (vos_is_macaddr_equal( &(pNode->reliableMcastAddr), pMcastAddr))
+        {
+            if (pHead == pNode)
+            {
+                pTLCb->reliableMcastSession[index] = pNode->next;
+            }
+            else
+            {
+                pPrev->next = pNode->next;
+            }
+            vos_mem_free((v_VOID_t * )pNode);
+            return 1;
+        }
+        pPrev = pNode;
+        pNode = pNode->next;
+    }
+
+    return 0;
+}
+
+/*=============================================================================
+  FUNCTION    WLANTL_ProcessRmcCommand
+
+  DESCRIPTION
+    This function adds/deletes input RMCAST session to/from TL's active hash
+    table of RMCAST sessions
+
+  DEPENDENCIES
+    Reliable multicast receive leader must be selected by FW before
+    UMAC calling this API
+
+  PARAMETERS
+
+   IN
+
+   pTLCb      : Pointer to TL context
+   pMcastAddr : Pointer to MAC ADDR of RMCAST session which needs to to added
+                or deleted
+   command    : If command is 1 then add requested RMCAST session in active
+                session hash table else delete it from active session hash
+                table
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAILURE:   When add or delete command failed
+
+    VOS_STATUS_SUCCESS:     Everything is good :)
+
+  SIDE EFFECTS
+==============================================================================*/
+VOS_STATUS
+WLANTL_ProcessRmcCommand
+(
+    WLANTL_CbType*  pTLCb,
+    v_MACADDR_t    *pMcastAddr,
+    tANI_U32        command
+)
+{
+    VOS_STATUS status;
+
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire( &(pTLCb->rmcLock))))
+    {
+        TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "%s Get Lock Fail", __func__));
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    /*add or delete node from active rmcast hash table*/
+    if (command)
+    {
+       /*add requested rmcast session in active rmcast session list*/
+        if (WLANTL_RmcAddRmcastSession(pTLCb, pMcastAddr))
+        {
+            TLLOGE( VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
+                "RMCAST session " MAC_ADDRESS_STR " added in TL hash table",
+                MAC_ADDR_ARRAY(pMcastAddr->bytes) ) );
+            status = VOS_STATUS_SUCCESS;
+        }
+        else
+        {
+            TLLOGE( VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "RMCAST session " MAC_ADDRESS_STR " already exists in TL hash"
+                " table", MAC_ADDR_ARRAY(pMcastAddr->bytes) ) );
+            status = VOS_STATUS_E_FAILURE;
+        }
+    }
+    else
+    {
+        /*delete requested rmcast session from active rmcast session list*/
+        if (WLANTL_RmcDeleteRmcastSession(pTLCb, pMcastAddr))
+        {
+            TLLOGE( VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
+                "RMCAST session " MAC_ADDRESS_STR " deleted from TL hash table",
+                MAC_ADDR_ARRAY(pMcastAddr->bytes)) );
+            status = VOS_STATUS_SUCCESS;
+        }
+        else
+        {
+            TLLOGE( VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "RMCAST session " MAC_ADDRESS_STR " doesn't exist in TL hash"
+                " table", MAC_ADDR_ARRAY(pMcastAddr->bytes) ) );
+            status = VOS_STATUS_E_FAILURE;
+        }
+    }
+
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&(pTLCb->rmcLock))))
+    {
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "%s Release Lock Fail", __func__));
+         return VOS_STATUS_E_FAILURE;
+    }
+
+    return status;
+}/* End of WLANTL_ProcessRmcCommand */
+
+/*=============================================================================
+  FUNCTION    WLANTL_EnableReliableMcast
+
+  DESCRIPTION
+    This function enables data path of reliable multicast in TL
+
+  DEPENDENCIES
+    Reliable multicast receive leader must be selected by FW before
+    UMAC calling this API
+
+  PARAMETERS
+
+   IN
+
+   pvosGCtx   : Pointer to VOS global context
+   pMcastAddr : Pointer to MAC ADDR of reliable multicast group leader
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:   Sanity  check on input failed
+
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+   Other return values are possible coming from the called functions.
+   Please check API for additional info.
+
+  SIDE EFFECTS
+
+==============================================================================*/
+VOS_STATUS
+WLANTL_EnableReliableMcast
+(
+    v_PVOID_t     pvosGCtx,
+    v_MACADDR_t   *pMcastAddr
+)
+{
+    WLANTL_CbType*  pTLCb;
+    VOS_STATUS status;
+
+    /*sanity check*/
+    if ( (NULL == pvosGCtx) || (NULL == pMcastAddr) )
+    {
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL %s: Sanity check failed pvosGCtx %p aMcastAddr %p",
+            __func__, pvosGCtx, pMcastAddr));
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    /*sanity check*/
+    pTLCb = VOS_GET_TL_CB(pvosGCtx);
+    if ( NULL == pTLCb )
+    {
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL %s: pTLCb is NULL", __func__));
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    if ( vos_is_macaddr_group( pMcastAddr ) )
+    {
+        status = WLANTL_ProcessRmcCommand(pTLCb, pMcastAddr, 1);
+    }
+    else
+    {
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL %s: Invalid MCAST addr" MAC_ADDRESS_STR, __func__,
+            MAC_ADDR_ARRAY(pMcastAddr->bytes)));
+        status = VOS_STATUS_E_FAILURE;
+    }
+
+    return status;
+} /* End of WLANTL_EnableReliableMcast */
+
+
+/*=============================================================================
+  FUNCTION    WLANTL_DisableReliableMcast
+
+  DESCRIPTION
+    This function disables data path of reliable multicast in TL
+
+  DEPENDENCIES
+    HDD should have recived IOCTL to disable reliable RMC
+
+  PARAMETERS
+
+   IN
+
+   pvosGCtx   : Pointer to VOS global context
+   pMcastAddr : Pointer to MAC ADDR of reliable multicast group leader
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:   Sanity  check on input failed
+
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+   Other return values are possible coming from the called functions.
+   Please check API for additional info.
+
+  SIDE EFFECTS
+
+==============================================================================*/
+VOS_STATUS
+WLANTL_DisableReliableMcast
+(
+    v_PVOID_t     pvosGCtx,
+    v_MACADDR_t   *pMcastAddr
+)
+{
+    WLANTL_CbType* pTLCb;
+    VOS_STATUS status;
+
+    /*Sanity check*/
+    if ((NULL == pvosGCtx) || (NULL == pMcastAddr))
+    {
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL %s: Sanity check failed pvosGCtx %p aMcastAddr %p",
+             __func__, pvosGCtx, pMcastAddr));
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    /*Sanity check*/
+    pTLCb = VOS_GET_TL_CB(pvosGCtx);
+    if (NULL == pTLCb)
+    {
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL %s: pTLCb is NULL", __func__));
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    if (vos_is_macaddr_group(pMcastAddr))
+    {
+        status = WLANTL_ProcessRmcCommand(pTLCb, pMcastAddr, 0);
+    }
+    else
+    {
+        TLLOGE( VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL %s: Invalid MCAST addr" MAC_ADDRESS_STR, __func__,
+            MAC_ADDR_ARRAY(pMcastAddr->bytes)));
+        status = VOS_STATUS_E_FAILURE;
+    }
+
+    return status;
+} /* End of WLANTL_DisableReliableMcast */
+
+#endif /*End of WLAN_FEATURE_RELIABLE_MCAST*/
