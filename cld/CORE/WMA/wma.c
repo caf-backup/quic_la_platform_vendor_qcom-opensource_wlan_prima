@@ -6708,8 +6708,7 @@ static void wma_post_ftm_response(tp_wma_handle wma_handle)
 
 static int
 wma_process_utf_event(WMA_HANDLE handle,
-		      u_int8_t *datap, u_int32_t dataplen,
-		      void *context)
+		      u_int8_t *datap, u_int32_t dataplen)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle)handle;
 	SEG_HDR_INFO_STRUCT segHdrInfo;
