@@ -2158,7 +2158,11 @@ void hdd_update_tgt_cfg(void *context, void *param)
 {
     hdd_context_t *hdd_ctx = (hdd_context_t *)context;
     struct hdd_tgt_cfg *cfg = (struct hdd_tgt_cfg *)param;
-    hdd_ctx->cfg_ini->nBandCapability = cfg->band_cap;
+
+    /*if FW supports both the bands then prioritize user configuration*/
+    if (cfg->band_cap != eCSR_BAND_ALL)
+        hdd_ctx->cfg_ini->nBandCapability = cfg->band_cap;
+
     memcpy(hdd_ctx->cfg_ini->crdaDefaultCountryCode, cfg->alpha2, 2);
     /* This can be extended to other configurations like ht, vht cap... */
 
