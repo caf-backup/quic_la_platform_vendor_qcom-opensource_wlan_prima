@@ -97,6 +97,13 @@ BMIrompatchDeactivate(HIF_DEVICE *device,
                       struct ol_softc *scn);
 
 A_STATUS
+BMISignStreamStart(HIF_DEVICE *device,
+                   A_UINT32 address,
+                   A_UCHAR *buffer,
+                   A_UINT32 length,
+                   struct ol_softc *scn);
+
+A_STATUS
 BMILZStreamStart(HIF_DEVICE *device,
                  A_UINT32 address,
                  struct ol_softc *scn);

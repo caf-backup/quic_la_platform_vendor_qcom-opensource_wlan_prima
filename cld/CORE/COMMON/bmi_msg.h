@@ -331,6 +331,18 @@ PREPACK struct bmi_target_info {
          *                  last NVRAM segment that was executed
          */
 
+#define BMI_SIGN_STREAM_START               17
+        /*
+         * Semantics: Trigger target start/end binary signature verification
+         * flow.
+         * Request format:
+         *    A_UINT32      command (BMI_SIGN_STREAM_START)
+         *    A_UINT32      address
+         *    A_UINT32      length, at most BMI_DATASZ_MAX
+         *    A_UINT8       data[length]
+         * Response format: none
+         */
+
 #ifndef ATH_TARGET
 #include "athendpack.h"
 #endif
