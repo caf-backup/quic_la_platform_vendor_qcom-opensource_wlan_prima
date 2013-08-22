@@ -29,6 +29,8 @@
 #include "wlan_defs.h"
 #include "wmix.h"
 #include "wmi_unified.h"
+#include "wmi_tlv_helper.h"
+#include "wmi_tlv_defs.h"
 
 #ifdef __cplusplus
 extern "C" {

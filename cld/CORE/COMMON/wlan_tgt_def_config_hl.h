@@ -181,5 +181,10 @@
  */
 #define CFG_TGT_NUM_MSDU_DESC    (16)
 
+/*
+ * Maximum number of frag table entries
+ */
+#define CFG_TGT_MAX_FRAG_TABLE_ENTRIES 2
+
 
 #endif  /*__WLAN_TGT_DEF_CONFIG_H__ */

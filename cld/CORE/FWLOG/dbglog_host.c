@@ -868,31 +868,47 @@ wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle, A_UINT32 param, A_UINT32 
                             A_UINT32 *module_id_bitmap, A_UINT32 bitmap_len)
 {
     wmi_buf_t buf;
-    wmi_debug_log_config_cmd *configmsg;
+    wmi_debug_log_config_cmd_fixed_param *configmsg;
     A_STATUS status = A_OK;
-    A_UINT32 i;
-    int len = sizeof(*configmsg);
+    int i;
+    int len;
+    int8_t *buf_ptr;
+    int32_t *module_id_bitmap_array; /* Used to fomr the second tlv*/
+
 
     ASSERT(bitmap_len < MAX_MODULE_ID_BITMAP_WORDS);
 
+    /* Allocate size for 2 tlvs - including tlv hdr space for second tlv*/
+    len = sizeof(wmi_debug_log_config_cmd_fixed_param) + WMI_TLV_HDR_SIZE +
+          (sizeof(int32_t) * MAX_MODULE_ID_BITMAP_WORDS);
     buf = wmi_buf_alloc(wmi_handle, len);
     if (buf == NULL)
         return A_NO_MEMORY;
 
-    configmsg = (wmi_debug_log_config_cmd *)(wmi_buf_data(buf));
+    configmsg = (wmi_debug_log_config_cmd_fixed_param *)(wmi_buf_data(buf));
+    buf_ptr = (int8_t *)configmsg;
+    WMITLV_SET_HDR(&configmsg->tlv_header,
+           WMITLV_TAG_STRUC_wmi_debug_log_config_cmd_fixed_param,
+       WMITLV_GET_STRUCT_TLVLEN(wmi_debug_log_config_cmd_fixed_param));
     configmsg->dbg_log_param = param;
     configmsg->value = val;
+    /* Filling in the data part of second tlv -- should follow first tlv _ WMI_TLV_HDR_SIZE*/
+    module_id_bitmap_array = (A_UINT32*)(buf_ptr +
+                             sizeof(wmi_debug_log_config_cmd_fixed_param) +
+                 WMI_TLV_HDR_SIZE);
+    WMITLV_SET_HDR(buf_ptr + sizeof(wmi_debug_log_config_cmd_fixed_param),
+                   WMITLV_TAG_ARRAY_UINT32,
+           sizeof(A_UINT32) * MAX_MODULE_ID_BITMAP_WORDS);
     if (module_id_bitmap) {
         for(i=0;i<bitmap_len;++i) {
-            configmsg->module_id_bitmap[i] = module_id_bitmap[i];
+            module_id_bitmap_array[i] = module_id_bitmap[i];
         }
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("wmi_dbg_cfg_send: param 0x%x val 0x%x \n ", param, val));
 
     status = wmi_unified_cmd_send(wmi_handle, buf,
-                sizeof(*configmsg),
-                WMI_DBGLOG_CFG_CMDID);
+                len, WMI_DBGLOG_CFG_CMDID);
 
     if (status != A_OK)
         adf_nbuf_free(buf);
@@ -1088,7 +1104,7 @@ dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 
 #endif /* WLAN_OPEN_SOURCE */
 
 int
-dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len)
+dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
 {
 #ifdef WLAN_OPEN_SOURCE
     tp_wma_handle wma = (tp_wma_handle)scn;
@@ -1102,6 +1118,18 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len)
     A_UINT16 numargs;
     adf_os_size_t   length;
     A_UINT32 dropped;
+    WMI_DEBUG_MESG_EVENTID_param_tlvs *param_buf;
+    u_int8_t *datap;
+    u_int32_t len;
+
+    param_buf = (WMI_DEBUG_MESG_EVENTID_param_tlvs *) data;
+    if (!param_buf) {
+    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Get NULL point message from FW\n"));
+    return -1;
+    }
+
+    datap = param_buf->bufp;
+    len = param_buf->num_bufp;
 
     dropped = *((A_UINT32 *)datap);
     datap += sizeof(dropped);

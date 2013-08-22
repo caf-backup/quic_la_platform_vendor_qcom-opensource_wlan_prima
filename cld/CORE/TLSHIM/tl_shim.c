@@ -129,13 +129,22 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
 	struct txrx_tl_shim_ctx *tl_shim = vos_get_context(VOS_MODULE_ID_TL,
 							   vos_ctx);
-	wmi_mgmt_rx_event *rx_event = (wmi_mgmt_rx_event *) data;
+	WMI_MGMT_RX_EVENTID_param_tlvs *param_tlvs = NULL;
+	wmi_mgmt_rx_hdr *hdr = NULL;
+
 	vos_pkt_t *rx_pkt;
 	adf_nbuf_t wbuf;
 	struct ieee80211_frame *wh;
 
-	if (!rx_event) {
-		TLSHIM_LOGE("RX event is NULL");
+	param_tlvs = (WMI_MGMT_RX_EVENTID_param_tlvs *) data;
+	if (!param_tlvs) {
+		TLSHIM_LOGE("Get NULL point message from FW");
+		return 0;
+	}
+
+	hdr = param_tlvs->hdr;
+	if (hdr == NULL) {
+		TLSHIM_LOGE("Rx event is NULL");
 		return 0;
 	}
 
@@ -151,23 +160,24 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 	 * Fill in meta information needed by pe/lim
 	 * TODO: Try to maintain rx metainfo as part of skb->data.
 	 */
-	rx_pkt->pkt_meta.channel = rx_event->hdr.channel;
+	rx_pkt->pkt_meta.channel = hdr->channel;
 	/*Get the absolute rssi value from the current rssi value
 	 *the sinr value is hardcoded into 0 in the core stack*/
-	rx_pkt->pkt_meta.rssi = rx_event->hdr.snr + TLSHIM_TGT_NOISE_FLOOR_DBM;
+	rx_pkt->pkt_meta.rssi = hdr->snr + TLSHIM_TGT_NOISE_FLOOR_DBM;
+	rx_pkt->pkt_meta.snr = hdr->snr;
 	/*
 	 * FIXME: Assigning the local timestamp as hw timestamp is not
 	 * available. Need to see if pe/lim really uses this data.
 	 */
 	rx_pkt->pkt_meta.timestamp = (u_int32_t) jiffies;
 	rx_pkt->pkt_meta.mpdu_hdr_len = sizeof(struct ieee80211_frame);
-	rx_pkt->pkt_meta.mpdu_len = rx_event->hdr.buf_len;
-	rx_pkt->pkt_meta.mpdu_data_len = rx_event->hdr.buf_len -
+	rx_pkt->pkt_meta.mpdu_len = hdr->buf_len;
+	rx_pkt->pkt_meta.mpdu_data_len = hdr->buf_len -
 					 rx_pkt->pkt_meta.mpdu_hdr_len;
 
 	/* Why not just use rx_event->hdr.buf_len? */
 	wbuf = adf_nbuf_alloc(NULL,
-			      roundup(data_len - sizeof(wmi_mgmt_rx_hdr), 4),
+			      roundup(hdr->buf_len, 4),
 			      0, 4, FALSE);
 	if (!wbuf) {
 		TLSHIM_LOGE("Failed to allocate wbuf for mgmt rx");
@@ -175,7 +185,7 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 		return 0;
 	}
 
-	adf_nbuf_put_tail(wbuf, rx_event->hdr.buf_len);
+	adf_nbuf_put_tail(wbuf, hdr->buf_len);
 	adf_nbuf_set_protocol(wbuf, ETH_P_CONTROL);
 	wh = (struct ieee80211_frame *) adf_nbuf_data(wbuf);
 
@@ -196,16 +206,16 @@ static int tlshim_mgmt_rx_wmi_handler(void *context, u_int8_t *data,
 		int i;
 		u_int32_t *destp, *srcp;
 		destp = (u_int32_t *) wh;
-		srcp =  (u_int32_t *) rx_event->bufp;
+		srcp =  (u_int32_t *) param_tlvs->bufp;
 		for (i = 0;
-		     i < (roundup(rx_event->hdr.buf_len, sizeof(u_int32_t)) / 4);
+		     i < (roundup(hdr->buf_len, sizeof(u_int32_t)) / 4);
 		     i++) {
 			*destp = cpu_to_le32(*srcp);
 			destp++; srcp++;
 		}
 	}
 #else
-	adf_os_mem_copy(wh, rx_event->bufp, rx_event->hdr.buf_len);
+	adf_os_mem_copy(wh, param_tlvs->bufp, hdr->buf_len);
 #endif
 
 	if (!tl_shim->mgmt_rx) {

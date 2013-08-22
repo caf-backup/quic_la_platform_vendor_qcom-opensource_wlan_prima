@@ -512,7 +512,8 @@ WMI_DIR := CORE/WMI
 
 WMI_INC := -I$(WLAN_ROOT)/$(WMI_DIR)
 
-WMI_OBJS := $(WMI_DIR)/wmi_unified.o
+WMI_OBJS := $(WMI_DIR)/wmi_unified.o \
+	    $(WMI_DIR)/wmi_tlv_helper.o
 
 ########### FWLOG ###########
 FWLOG_DIR := CORE/FWLOG

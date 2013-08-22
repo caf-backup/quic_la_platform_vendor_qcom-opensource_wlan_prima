@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2004-2010, 2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
 //------------------------------------------------------------------------------
 // <copyright file="wlan_defs.h" company="Atheros">
-//    Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
+//    Copyright (c) 2004-2010, 2013 Atheros Corporation.  All rights reserved.
 // $ATH_LICENSE_HOSTSDK0_C$
 //------------------------------------------------------------------------------
 //==============================================================================
@@ -109,8 +109,13 @@ enum {
     REGDMN_MODE_11AC_VHT40PLUS   = 0x40000,      /* 5Ghz, VHT40 + channels */
     REGDMN_MODE_11AC_VHT40MINUS  = 0x80000,      /* 5Ghz  VHT40 - channels */
     REGDMN_MODE_11AC_VHT80       = 0x100000,     /* 5Ghz, VHT80 channels */
-    REGDMN_MODE_ALL              = 0xffffffff
 };
+
+#define REGDMN_MODE_ALL       (0xFFFFFFFF)       /* REGDMN_MODE_ALL is defined out of the enum
+						  * to prevent the ARM compile "warning #66:
+						  * enumeration value is out of int range"
+						  * Anyway, this is a BIT-OR of all possible values.
+						  */
 
 #define REGDMN_CAP1_CHAN_HALF_RATE        0x00000001
 #define REGDMN_CAP1_CHAN_QUARTER_RATE     0x00000002
@@ -126,6 +131,7 @@ enum {
 #define REGDMN_EEPROM_EEREGCAP_EN_KK_NEW_11A    0x0800
 
 typedef struct {
+    A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMI_TLVTAG_STRUC_HAL_REG_CAPABILITIES */
     A_UINT32 eeprom_rd;      //regdomain value specified in EEPROM
     A_UINT32 eeprom_rd_ext;  //regdomain 
     A_UINT32 regcap1;        // CAP1 capabilities bit map.
@@ -179,6 +185,7 @@ typedef struct {
         (_dst).time_stamp      = (_ts);                               \
     } while (0)
 
+/* NOTE: NUM_DYN_BW and NUM_SCHED_ENTRIES cannot be changed without breaking WMI Compatibility */
 #define NUM_SCHED_ENTRIES           2
 #define NUM_DYN_BW_MAX              4
 /* Current Product only uses 20/40/80 */
@@ -245,6 +252,7 @@ typedef struct{
  * strucutre describing host memory chunk.
  */
 typedef struct {
+   A_UINT32   tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wlan_host_memory_chunk */
    /** id of the request that is passed up in service ready */
    A_UINT32 req_id; 
    /** the physical address the memory chunk */
@@ -260,6 +268,8 @@ typedef struct {
  * structure used by FW for requesting host memory 
  */
 typedef struct {
+    A_UINT32    tlv_header;     /* TLV tag and len; tag equals WMI_TLVTAG_STRUC_wlan_host_mem_req */
+
     /** ID of the request */
     A_UINT32    req_id;
     /** size of the  of each unit */

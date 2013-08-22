@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * Copyright (c) 2004-2010, 2013 Qualcomm Atheros, Inc..
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -105,7 +105,9 @@ extern "C" {
 #define WMI_CMD_PARAMS                               47
 #define WMI_EVENT_ALLOC_FAILURE                      48
 #define WMI_DBGID_DCS_PARAM_CMD                      49
-#define WMI_DBGID_DEFINITION_END                     50
+#define WMI_SEND_EVENT_WRONG_TLV                     50
+#define WMI_SEND_EVENT_NO_TLV_DEF                    51
+#define WMI_DBGID_DEFINITION_END                     52
 
 /*  PM Message definition*/
 #define PS_STA_DEFINITION_START                     0
