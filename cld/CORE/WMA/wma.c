@@ -4983,6 +4983,28 @@ static void wma_get_stats_req(WMA_HANDLE handle,
 	return;
 }
 
+static void wma_init_scan_req(tp_wma_handle wma_handle,
+				tInitScanParams *init_scan_param)
+{
+	WMA_LOGD("%s: Send dummy init scan response for legacy scan request",
+			__func__);
+	init_scan_param->status = eHAL_STATUS_SUCCESS;
+	/* send ini scan response message back to PE */
+	wma_send_msg(wma_handle, WDA_INIT_SCAN_RSP, (void *)init_scan_param,
+			0);
+}
+
+static void wma_finish_scan_req(tp_wma_handle wma_handle,
+				tFinishScanParams *finish_scan_param)
+{
+	WMA_LOGD("%s: Send dummy finish scan response for legacy scan request",
+			__func__);
+	finish_scan_param->status = eHAL_STATUS_SUCCESS;
+	/* send finish scan response message back to PE */
+	wma_send_msg(wma_handle, WDA_FINISH_SCAN_RSP, (void *)finish_scan_param,
+			0);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -5147,6 +5169,16 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_CONFIG_PARAM_UPDATE_REQ:
 			wma_update_cfg_params(wma_handle,
 					(tSirMsgQ *)msg);
+			break;
+
+		case WDA_INIT_SCAN_REQ:
+			wma_init_scan_req(wma_handle,
+					(tInitScanParams *)msg->bodyptr);
+			break;
+
+		case WDA_FINISH_SCAN_REQ:
+			wma_finish_scan_req(wma_handle,
+					(tFinishScanParams *)msg->bodyptr);
 			break;
 
 		default:
