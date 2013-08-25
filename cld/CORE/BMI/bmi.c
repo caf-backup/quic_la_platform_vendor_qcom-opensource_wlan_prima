@@ -631,6 +631,75 @@ BMILZData(HIF_DEVICE *device,
 }
 
 A_STATUS
+BMISignStreamStart(HIF_DEVICE *device,
+                   A_UINT32 address,
+                   A_UCHAR *buffer,
+                   A_UINT32 length,
+                   struct ol_softc *scn)
+{
+    A_UINT32 cid;
+    A_STATUS status;
+    A_UINT32 offset;
+    const A_UINT32 header = sizeof(cid) + sizeof(address) + sizeof(length);
+    A_UCHAR alignedBuffer[BMI_DATASZ_MAX + 4];
+    A_UCHAR *src;
+    A_UCHAR *pBMICmdBuf = scn->pBMICmdBuf;
+    A_UINT32 remaining, txlen;
+
+    ASSERT(BMI_COMMAND_FITS(BMI_DATASZ_MAX + header));
+    memset(pBMICmdBuf, 0, BMI_DATASZ_MAX + header);
+
+    if (scn->bmiDone) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Command disallowed\n"));
+        return A_ERROR;
+    }
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
+         ("BMI SIGN Stream Start: Enter (device: 0x%p, address: 0x%x, length: %d)\n",
+         device, address, length));
+
+    cid = BMI_SIGN_STREAM_START;
+    remaining = length;
+    while (remaining)
+    {
+        src = &buffer[length - remaining];
+        if (remaining < (BMI_DATASZ_MAX - header)) {
+            /*  Actually it shall be aligned binary from header definition.
+             *  Not necessary for align process. Kept for possible changes
+             */
+            if (remaining & 0x3) {
+                remaining = remaining + (4 - (remaining & 0x3));
+                memcpy(alignedBuffer, src, remaining);
+                src = alignedBuffer;
+            }
+            txlen = remaining;
+        } else {
+            txlen = (BMI_DATASZ_MAX - header);
+        }
+
+        offset = 0;
+        A_MEMCPY(&(pBMICmdBuf[offset]), &cid, sizeof(cid));
+        offset += sizeof(cid);
+        A_MEMCPY(&(pBMICmdBuf[offset]), &address, sizeof(address));
+        offset += sizeof(offset);
+        A_MEMCPY(&(pBMICmdBuf[offset]), &txlen, sizeof(txlen));
+        offset += sizeof(txlen);
+        A_MEMCPY(&(pBMICmdBuf[offset]), src, txlen);
+        offset += txlen;
+        status = HIFExchangeBMIMsg(device, pBMICmdBuf, offset, NULL, NULL, BMI_EXCHANGE_TIMEOUT_MS);
+        if (status != A_OK) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Unable to write to the device\n"));
+            return A_ERROR;
+        }
+        remaining -= txlen;
+    }
+
+    AR_DEBUG_PRINTF(ATH_DEBUG_BMI, ("BMI SIGN Stream Start: Exit\n"));
+
+    return A_OK;
+}
+
+A_STATUS
 BMILZStreamStart(HIF_DEVICE *device,
                  A_UINT32 address,
                  struct ol_softc *scn)

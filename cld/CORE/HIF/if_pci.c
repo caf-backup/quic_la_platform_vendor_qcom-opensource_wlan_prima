@@ -512,6 +512,8 @@ again:
 	    goto err_config;
 
     ol_sc->enableuartprint = 0;
+    ol_sc->enablesinglebinary = TRUE;
+
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);
 
     ret = hdd_wlan_startup(&pdev->dev, ol_sc);

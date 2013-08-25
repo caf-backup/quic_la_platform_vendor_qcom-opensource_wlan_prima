@@ -6239,8 +6239,11 @@ v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	WMI_MAC_ADDR_TO_CHAR_ARRAY (&ev->mac_addr, wma_handle->myaddr);
 	WMI_MAC_ADDR_TO_CHAR_ARRAY (&ev->mac_addr, wma_handle->hwaddr);
 
-#if !defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
-	wma_update_hdd_cfg(wma_handle);
+#ifndef QCA_WIFI_ISOC
+#ifdef QCA_WIFI_FTM
+	if (vos_get_conparam() != VOS_FTM_MODE)
+#endif
+		wma_update_hdd_cfg(wma_handle);
 #endif
 
 	vos_event_set(&wma_handle->wma_ready_event);

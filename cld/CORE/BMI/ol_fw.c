@@ -22,8 +22,257 @@
 #include "vos_api.h"
 #include "wma_api.h"
 
+#define ATH_MODULE_NAME bmi
+#include "a_debug.h"
+#include "fw_one_bin.h"
+#include "bin_sig.h"
+
 extern int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *datap, u_int32_t len);
+
+static int ol_transfer_single_bin_file(struct ol_softc *scn,
+				       u_int32_t address,
+				       bool compressed)
+{
+	int status = EOK;
+	const char *filename = AR61X4_SINGLE_FILE;
+	const struct firmware *fw_entry;
+	u_int32_t fw_entry_size;
+	u_int8_t *temp_eeprom = NULL;
+	FW_ONE_BIN_META_T *one_bin_meta_header = NULL;
+	FW_BIN_HEADER_T *one_bin_header = NULL;
+	SIGN_HEADER_T *sign_header = NULL;
+	unsigned char *fw_entry_data = NULL;
+	u_int32_t groupid = WLAN_GROUP_ID;
+	u_int32_t binary_offset = 0;
+	u_int32_t binary_len = 0;
+	u_int32_t next_tag_offset = 0;
+	u_int32_t param = 0;
+	bool meta_header = FALSE;
+	bool fw_sign = FALSE;
+	bool is_group = FALSE;
+
+#ifdef QCA_WIFI_FTM
+	if (vos_get_conparam() == VOS_FTM_MODE)
+		groupid = UTF_GROUP_ID;
+#endif
+
+	if (groupid == WLAN_GROUP_ID) {
+		AR_DEBUG_PRINTF(ATH_DEBUG_TRC,
+				("%s: Downloading mission mode firmware\n",
+				 __func__));
+	}
+	else {
+		AR_DEBUG_PRINTF(ATH_DEBUG_TRC,
+				("%s: Downloading test mode firmware\n",
+				__func__));
+	}
+
+	if (request_firmware(&fw_entry, filename, scn->sc_osdev->device) != 0)
+	{
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+				("%s: Failed to get %s\n",
+				__func__, filename));
+		return -ENOENT;
+	}
+
+	fw_entry_size = fw_entry->size;
+	fw_entry_data = (unsigned char *)fw_entry->data;
+	binary_len = fw_entry_size;
+
+	temp_eeprom = OS_MALLOC(scn->sc_osdev, fw_entry_size, GFP_ATOMIC);
+	if (!temp_eeprom) {
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+				("%s: Memory allocation failed\n",
+				__func__));
+		release_firmware(fw_entry);
+		return A_ERROR;
+	}
+
+	OS_MEMCPY(temp_eeprom, (u_int8_t *)fw_entry->data, fw_entry_size);
+
+	is_group = FALSE;
+	do {
+		if (!meta_header) {
+			if (fw_entry_size <= sizeof(FW_ONE_BIN_META_T)
+			    + sizeof(FW_BIN_HEADER_T))
+			{
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+						("%s: file size error!\n",
+						__func__));
+				status = A_ERROR;
+				goto exit;
+			}
+
+			one_bin_meta_header = (FW_ONE_BIN_META_T*)fw_entry_data;
+			if (one_bin_meta_header->magic_num != ONE_BIN_MAGIC_NUM)
+			{
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+					("%s: one binary magic num err: %d\n",
+					__func__,
+					one_bin_meta_header->magic_num));
+				status = A_ERROR;
+				goto exit;
+			}
+			if (one_bin_meta_header->fst_tag_off
+			    + sizeof(FW_BIN_HEADER_T) >= fw_entry_size)
+			{
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+					("%s: one binary first tag offset error: %d\n",
+					__func__, one_bin_meta_header->fst_tag_off));
+				status = A_ERROR;
+				goto exit;
+			}
+
+			one_bin_header = (FW_BIN_HEADER_T *)(
+					 (u_int8_t *)fw_entry_data
+					 + one_bin_meta_header->fst_tag_off);
+
+                        while (one_bin_header->bin_group_id != groupid)
+                        {
+				if (one_bin_header->next_tag_off
+				    + sizeof(FW_BIN_HEADER_T) > fw_entry_size)
+				{
+					AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+						("%s: tag offset is error: bin id: %d, bin len: %d, tag offset: %d \n",
+						__func__, one_bin_header->binary_id,
+						one_bin_header->binary_len,
+						one_bin_header->next_tag_off));
+					status = A_ERROR;
+					goto exit;
+				}
+
+				one_bin_header = (FW_BIN_HEADER_T *)(
+						(u_int8_t *)fw_entry_data
+						+ one_bin_header->next_tag_off);
+			}
+
+			meta_header = TRUE;
+		}
+
+		binary_offset = one_bin_header->binary_off;
+		binary_len = one_bin_header->binary_len;
+		next_tag_offset = one_bin_header->next_tag_off;
+
+		switch (one_bin_header->chip_id)
+		{
+		default:
+			fw_sign = FALSE;
+			break;
+		case AR6320_1_0_CHIP_ID:
+			fw_sign = FALSE;
+			break;
+		case AR6320_1_1_CHIP_ID:
+			fw_sign = TRUE;
+			break;
+		}
+
+		if (fw_sign)
+		{
+			if (binary_len < sizeof(SIGN_HEADER_T))
+			{
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+					("%s: sign header size is error: bin id: %d, bin len: %d, sign header size: %d \n",
+					__func__, one_bin_header->binary_id,
+					one_bin_header->binary_len,
+					sizeof(SIGN_HEADER_T)));
+				status = A_ERROR;
+				goto exit;
+			}
+			sign_header = (SIGN_HEADER_T *)(u_int8_t *)fw_entry_data
+					+ binary_offset;
+
+			status = BMISignStreamStart(scn->hif_hdl, address,
+						    (u_int8_t *)fw_entry_data
+						    + binary_offset,
+						    sizeof(SIGN_HEADER_T), scn);
+			if (status != EOK)
+			{
+				AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+					("%s: unable to start sign stream\n",
+					__func__));
+				status = A_ERROR;
+				goto exit;
+			}
+
+			binary_offset += sizeof(SIGN_HEADER_T);
+			binary_len = sign_header->rampatch_len
+				     - sizeof(SIGN_HEADER_T);
+		}
+
+		if (compressed)
+			status = BMIFastDownload(scn->hif_hdl, address,
+						 (u_int8_t *)fw_entry_data
+						 + binary_offset,
+						 binary_len, scn);
+		else
+			status = BMIWriteMemory(scn->hif_hdl, address,
+						(u_int8_t *)fw_entry_data
+						+ binary_offset,
+						binary_len, scn);
+
+		if (fw_sign)
+		{
+			binary_offset += binary_len;
+			binary_len = sign_header->total_len
+				     - sign_header->rampatch_len;
+
+			if (binary_len > 0)
+			{
+				status = BMISignStreamStart(scn->hif_hdl, 0,
+						(u_int8_t *)fw_entry_data
+						+ binary_offset,
+						binary_len, scn);
+				if (status != EOK)
+				{
+					AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+						("%s:sign stream error\n",
+						__func__));
+				}
+			}
+		}
+
+		if (one_bin_header->action == ACTION_DOWNLOAD_EXEC)
+		{
+			param = 0;
+			BMIExecute(scn->hif_hdl, address, &param, scn);
+		}
+
+		if ((next_tag_offset) > 0 &&
+		    (one_bin_header->bin_group_id == groupid))
+		{
+			one_bin_header = (FW_BIN_HEADER_T *)(
+					 (u_int8_t *)fw_entry_data
+					 + one_bin_header->next_tag_off);
+			if (one_bin_header->bin_group_id == groupid)
+				is_group = TRUE;
+			else
+				is_group = FALSE;
+		}
+		else {
+			is_group = FALSE;
+		}
+
+		if (!is_group)
+			next_tag_offset = 0;
+
+	} while (next_tag_offset > 0);
+
+exit:
+	if (temp_eeprom)
+		OS_FREE(temp_eeprom);
+
+	if (status != EOK) {
+		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+			("BMI operation failed: %d\n", __LINE__));
+		release_firmware(fw_entry);
+		return -1;
+	}
+
+	release_firmware(fw_entry);
+
+	return status;
+}
 
 static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
                     	 u_int32_t address, bool compressed)
@@ -34,6 +283,16 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	u_int32_t fw_entry_size;
 	u_int8_t *tempEeprom;
 	u_int32_t board_data_size;
+
+	if (scn->enablesinglebinary && file != ATH_BOARD_DATA_FILE) {
+		/*
+		 * Fallback to load split binaries if single binary is not found
+		 */
+		if (ol_transfer_single_bin_file(scn,
+						address,
+						compressed) != -ENOENT)
+			return -1;
+	}
 
 	switch (file) {
 	default:

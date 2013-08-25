@@ -26,8 +26,9 @@
 #define AR6320_REV1_VERSION	     0x5000000
 #define QCA_FIRMWARE_FILE            "athwlan.bin"
 #define QCA_UTF_FIRMWARE_FILE        "utf.bin"
-#define QCA_BOARD_DATA_FILE      "fakeBoardData_AR6004.bin"
+#define QCA_BOARD_DATA_FILE          "fakeBoardData_AR6004.bin"
 #define QCA_OTP_FILE                 "otp.bin"
+#define AR61X4_SINGLE_FILE           "qca61x4.bin"
 
 /* Configuration for statistics pushed by firmware */
 #define PDEV_DEFAULT_STATS_UPDATE_PERIOD    500
