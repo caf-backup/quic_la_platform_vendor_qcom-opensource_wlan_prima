@@ -131,7 +131,7 @@ endif
 endif
 
 #Enable FTM support
-CONFIG_QCA_WIFI_FTM := 0
+CONFIG_QCA_WIFI_FTM := 1
 
 #Enable Checksum Offload
 CONFIG_CHECKSUM_OFFLOAD := 1
