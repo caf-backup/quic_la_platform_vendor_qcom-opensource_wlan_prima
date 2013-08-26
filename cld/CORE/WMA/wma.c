@@ -1306,10 +1306,6 @@ static inline tANI_U32 wma_get_maxidle_time(struct sAniSirGlobal *mac,
 	case WMI_UNIFIED_VDEV_SUBTYPE_P2P_GO:
 		cfg_id = WNI_CFG_GO_KEEP_ALIVE_TIMEOUT;
 		break;
-	case WMI_UNIFIED_VDEV_SUBTYPE_P2P_DEVICE:
-		/*No need to set KEEPALIVE for P2P_DEVICE
-		 *subtype interface*/
-		return 0;
 	default:
 		/*For softAp the subtype value will be zero*/
 		cfg_id = WNI_CFG_AP_KEEP_ALIVE_TIMEOUT;
@@ -1321,6 +1317,46 @@ static inline tANI_U32 wma_get_maxidle_time(struct sAniSirGlobal *mac,
 	}
 
 	return max_idletime;
+}
+
+static void wma_set_sap_keepalive(tp_wma_handle wma, u_int8_t vdev_id)
+{
+	tANI_U32 cfg_data_val, min_inactive_time, max_unresponsive_time;
+	struct sAniSirGlobal *mac =
+		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
+						      wma->vos_context);
+
+	cfg_data_val = wma_get_maxidle_time(mac,
+					    wma->interfaces[vdev_id].sub_type);
+	if (!cfg_data_val) /*0 -> Disabled*/
+	    return;
+
+	min_inactive_time = MIN_IDLE_INACTIVE_TIME_SECS(cfg_data_val);
+	max_unresponsive_time =
+			     MAX_UNRESPONSIVE_TIME_SECS(cfg_data_val);
+
+	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
+					    vdev_id,
+	       WMI_VDEV_PARAM_AP_KEEPALIVE_MIN_IDLE_INACTIVE_TIME_SECS,
+		       (min_inactive_time < 0)? 0 : min_inactive_time))
+		WMA_LOGE("Failed to Set AP MIN IDLE INACTIVE TIME");
+
+	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
+					    vdev_id,
+	       WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_IDLE_INACTIVE_TIME_SECS,
+					    cfg_data_val))
+		WMA_LOGE("Failed to Set AP MAX IDLE INACTIVE TIME");
+
+	if (wmi_unified_vdev_set_param_send(wma->wmi_handle,
+					    vdev_id,
+		WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_UNRESPONSIVE_TIME_SECS,
+					    max_unresponsive_time))
+		WMA_LOGE("Failed to Set MAX UNRESPONSIVE TIME");
+
+	WMA_LOGD("%s:vdev_id:%d min_inactive_time:%d max_inactive_time:%d"
+		 " max_unresponsive_time:%d", __func__, vdev_id,
+		 (min_inactive_time > 0)? min_inactive_time : 0, cfg_data_val,
+		 max_unresponsive_time);
 }
 
 /* function   : wma_vdev_attach
@@ -1336,7 +1372,6 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 			wma_handle->vos_context);
 	enum wlan_op_mode txrx_vdev_type;
 	VOS_STATUS status = VOS_STATUS_SUCCESS;
-	tANI_U32 cfg_data_val, min_inactive_time, max_unresponsive_time;
 	struct sAniSirGlobal *mac =
 		(struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 						      wma_handle->vos_context);
@@ -1386,43 +1421,15 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	switch (self_sta_req->type) {
 	case WMI_VDEV_TYPE_STA:
 		if(wlan_cfgGetInt(mac, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD,
-				  &cfg_data_val ) != eSIR_SUCCESS) {
+				  &cfg_val ) != eSIR_SUCCESS) {
 			WMA_LOGE("Failed to get value for "
 				 "WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD");
-			cfg_data_val = DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD;
+			cfg_val = DEFAULT_INFRA_STA_KEEP_ALIVE_PERIOD;
 		}
 
 		wma_set_sta_null_keep_alive(wma_handle,
 					    self_sta_req->sessionId,
-					    cfg_data_val);
-		break;
-	case WMI_VDEV_TYPE_AP:
-		cfg_data_val = wma_get_maxidle_time(mac, self_sta_req->subType);
-		if (!cfg_data_val) /*0 -> Disabled*/
-		    break;
-
-		min_inactive_time = MIN_IDLE_INACTIVE_TIME_SECS(cfg_data_val);
-		max_unresponsive_time =
-				     MAX_UNRESPONSIVE_TIME_SECS(cfg_data_val);
-
-		if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
-						    self_sta_req->sessionId,
-		       WMI_VDEV_PARAM_AP_KEEPALIVE_MIN_IDLE_INACTIVE_TIME_SECS,
-			       (min_inactive_time < 0)? 0 : min_inactive_time))
-			WMA_LOGE("Failed to Set AP MIN IDLE INACTIVE TIME");
-
-		if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
-						    self_sta_req->sessionId,
-		       WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_IDLE_INACTIVE_TIME_SECS,
-						    cfg_data_val))
-			WMA_LOGE("Failed to Set AP MAX IDLE INACTIVE TIME");
-
-		if (wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
-						    self_sta_req->sessionId,
-			WMI_VDEV_PARAM_AP_KEEPALIVE_MAX_UNRESPONSIVE_TIME_SECS,
-						    max_unresponsive_time))
-			WMA_LOGE("Failed to Set MAX UNRESPONSIVE TIME");
-
+					    cfg_val);
 		break;
 	}
 
@@ -4159,6 +4166,7 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 	}
 	bcn->len = len;
 #endif
+	wma_set_sap_keepalive(wma, vdev_id);
 }
 
 #if !defined(REMOVE_PKT_LOG) && !defined(QCA_WIFI_ISOC)
