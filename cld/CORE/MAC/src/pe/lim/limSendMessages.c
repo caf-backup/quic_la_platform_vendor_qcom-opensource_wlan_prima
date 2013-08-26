@@ -153,11 +153,13 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
     if(NULL == psessionEntry)
     {
         MTRACE(macTraceMsgTx(pMac, NO_SESSION, msgQ.type));
+        return eSIR_FAILURE;
     }
     else
     {
         MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
     }
+    pBcnParams->smeSessionId = psessionEntry->smeSessionId;
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
     {
         palFreeMemory(pMac->hHdd, pBcnParams);
