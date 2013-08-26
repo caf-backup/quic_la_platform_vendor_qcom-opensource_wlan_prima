@@ -22,7 +22,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
 adf_nbuf_t
 ol_tx_non_std_ll(
     ol_txrx_vdev_handle data_vdev,
-    enum ol_txrx_osif_tx_spec tx_spec,
+    enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list);
 
 adf_nbuf_t
@@ -31,7 +31,7 @@ ol_tx_hl(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
 adf_nbuf_t
 ol_tx_non_std_hl(
     ol_txrx_vdev_handle data_vdev,
-    enum ol_txrx_osif_tx_spec tx_spec,
+    enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list);
 
 adf_nbuf_t 

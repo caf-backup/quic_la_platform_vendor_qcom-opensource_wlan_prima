@@ -91,27 +91,27 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 }
 
 static inline int
-OL_TXRX_TX_IS_RAW(enum ol_txrx_osif_tx_spec tx_spec)
+OL_TXRX_TX_IS_RAW(enum ol_tx_spec tx_spec)
 {
     return
         tx_spec &
-        (ol_txrx_osif_tx_spec_raw |
-         ol_txrx_osif_tx_spec_no_aggr |
-         ol_txrx_osif_tx_spec_no_encrypt);
+        (ol_tx_spec_raw |
+         ol_tx_spec_no_aggr |
+         ol_tx_spec_no_encrypt);
 }
 
 static inline u_int8_t
-OL_TXRX_TX_RAW_SUBTYPE(enum ol_txrx_osif_tx_spec tx_spec)
+OL_TXRX_TX_RAW_SUBTYPE(enum ol_tx_spec tx_spec)
 {
     u_int8_t sub_type = 0x1; /* 802.11 MAC header present */
 
-    if (tx_spec & ol_txrx_osif_tx_spec_no_aggr) {
+    if (tx_spec & ol_tx_spec_no_aggr) {
         sub_type |= 0x1 << HTT_TX_MSDU_DESC_RAW_SUBTYPE_NO_AGGR_S;
     }
-    if (tx_spec & ol_txrx_osif_tx_spec_no_encrypt) {
+    if (tx_spec & ol_tx_spec_no_encrypt) {
         sub_type |= 0x1 << HTT_TX_MSDU_DESC_RAW_SUBTYPE_NO_ENCRYPT_S;
     }
-    if (tx_spec & ol_txrx_osif_tx_spect_nwifi_no_encrypt) {
+    if (tx_spec & ol_tx_spec_nwifi_no_encrypt) {
         sub_type |= 0x1 << HTT_TX_MSDU_DESC_RAW_SUBTYPE_NO_ENCRYPT_S;
     }
     return sub_type;
@@ -120,7 +120,7 @@ OL_TXRX_TX_RAW_SUBTYPE(enum ol_txrx_osif_tx_spec tx_spec)
 adf_nbuf_t
 ol_tx_non_std_ll(
     ol_txrx_vdev_handle vdev,
-    enum ol_txrx_osif_tx_spec tx_spec,
+    enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list)
 {
     adf_nbuf_t msdu = msdu_list;
@@ -151,10 +151,12 @@ ol_tx_non_std_ll(
          */
         next = adf_nbuf_next(msdu);
 
-        if (tx_spec != ol_txrx_osif_tx_spec_std) {
-            if (tx_spec & ol_txrx_osif_tx_spec_tso) {
+        if (tx_spec != ol_tx_spec_std) {
+            if (tx_spec & ol_tx_spec_no_free) {
+                tx_desc->pkt_type = ol_tx_frm_no_free;
+            } else if (tx_spec & ol_tx_spec_tso) {
                 tx_desc->pkt_type = ol_tx_frm_tso;
-            } else if (tx_spec & ol_txrx_osif_tx_spect_nwifi_no_encrypt) {
+            } else if (tx_spec & ol_tx_spec_nwifi_no_encrypt) {
                 u_int8_t sub_type = OL_TXRX_TX_RAW_SUBTYPE(tx_spec);
                 htt_tx_desc_type(
                     htt_pdev, tx_desc->htt_tx_desc,
@@ -208,7 +210,7 @@ ol_tx_non_std_ll(
 static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
-    enum ol_txrx_osif_tx_spec tx_spec,
+    enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
@@ -247,8 +249,8 @@ ol_tx_hl_base(
 
 //        OL_TXRX_PROT_AN_LOG(pdev->prot_an_tx_sent, msdu);
 
-        if (tx_spec != ol_txrx_osif_tx_spec_std) {
-            if (tx_spec & ol_txrx_osif_tx_spec_tso) {
+        if (tx_spec != ol_tx_spec_std) {
+            if (tx_spec & ol_tx_spec_tso) {
                 tx_desc->pkt_type = ol_tx_frm_tso;
             }
             if (OL_TXRX_TX_IS_RAW(tx_spec)) {
@@ -348,7 +350,7 @@ MSDU_LOOP_BOTTOM:
 static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
-    enum ol_txrx_osif_tx_spec tx_spec,
+    enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list)
 {
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
@@ -383,8 +385,10 @@ ol_tx_hl_base(
         }
         OL_TXRX_PROT_AN_LOG(pdev->prot_an_tx_sent, msdu);
 
-        if (tx_spec != ol_txrx_osif_tx_spec_std) {
-            if (tx_spec & ol_txrx_osif_tx_spec_tso) {
+        if (tx_spec != ol_tx_spec_std) {
+            if (tx_spec & ol_tx_spec_no_free) {
+                tx_desc->pkt_type = ol_tx_frm_no_free;
+            } else if (tx_spec & ol_tx_spec_tso) {
                 tx_desc->pkt_type = ol_tx_frm_tso;
             }
             if (OL_TXRX_TX_IS_RAW(tx_spec)) {
@@ -450,16 +454,40 @@ MSDU_LOOP_BOTTOM:
 adf_nbuf_t
 ol_tx_hl(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
 {
-    return ol_tx_hl_base(vdev, ol_txrx_osif_tx_spec_std, msdu_list);
+    return ol_tx_hl_base(vdev, ol_tx_spec_std, msdu_list);
 }
 
 adf_nbuf_t
 ol_tx_non_std_hl(
     ol_txrx_vdev_handle vdev,
-    enum ol_txrx_osif_tx_spec tx_spec,
+    enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list)
 {
     return ol_tx_hl_base(vdev, tx_spec, msdu_list);
+}
+
+adf_nbuf_t
+ol_tx_non_std(
+    ol_txrx_vdev_handle vdev,
+    enum ol_tx_spec tx_spec,
+    adf_nbuf_t msdu_list)
+{
+    if (vdev->pdev->cfg.is_high_latency) {
+        return ol_tx_non_std_hl(vdev, tx_spec, msdu_list);
+    } else {
+        return ol_tx_non_std_ll(vdev, tx_spec, msdu_list);
+    }
+}
+
+void
+ol_txrx_data_tx_cb_set(
+    ol_txrx_vdev_handle vdev,
+    ol_txrx_data_tx_cb callback,
+    void *ctxt)
+{
+    struct ol_txrx_pdev_t *pdev = vdev->pdev;
+    pdev->tx_data_callback.func = callback;
+    pdev->tx_data_callback.ctxt = ctxt;
 }
 
 void
