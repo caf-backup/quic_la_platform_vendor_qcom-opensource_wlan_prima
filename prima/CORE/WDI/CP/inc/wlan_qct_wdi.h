@@ -371,6 +371,9 @@ typedef enum
   /* Periodic Tx Pattern FW Indication */
   WDI_PERIODIC_TX_PTRN_FW_IND,
 
+  /* LBP_Leader_Pick_New Indication */
+  WDI_LBP_LEADER_PICK_NEW,
+
   WDI_MAX_IND
 }WDI_LowLevelIndEnumType;
 
@@ -613,6 +616,118 @@ typedef struct
    wpt_macAddr staMacAddr;
 }WDI_IbssPeerInactivityIndType;
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+/*---------------------------------------------------------------------------
+ WDI_LbpLeaderReqParams
+-----------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint8       cmd;  /* command- suggest or become leader */
+
+    /* MAC address of MCAST Transmitter (source) */
+    wpt_macAddr mcastTransmitter;
+
+    /* MAC Address of Multicast Group (01-00-5E-xx-xx-xx) */
+    wpt_macAddr mcastGroup;
+
+    /* List of candidates for cmd = WLAN_HAL_SUGGEST_LEADER*/
+    wpt_macAddr blacklist[16]; /* HAL_NUM_MAX_LEADERS */
+
+    /*
+     * Request status callback offered by UMAC - it is called if the current
+     * req has returned PENDING as status; it delivers the status of sending
+     * the message over the BUS
+     */
+    WDI_ReqStatusCb    wdiReqStatusCB;
+
+} WDI_LbpLeaderReqParams;
+
+/*---------------------------------------------------------------------------
+ WDI_LbpUpdateIndParams
+-----------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint8       indication;  /* tLbpUpdateIndType */
+
+    wpt_uint8       role;  /* leader or transmitter */
+
+    /* MAC address of MCAST Transmitter (source) */
+    wpt_macAddr mcastTransmitter;
+
+    /* MAC Address of Multicast Group (01-00-5E-xx-xx-xx) */
+    wpt_macAddr mcastGroup;
+
+    /* MAC address of MCAST Leader (destination) */
+    wpt_macAddr mcastLeader;
+
+    /* List of candidates for cmd = WLAN_HAL_SUGGEST_LEADER*/
+    wpt_macAddr leader[16]; /* HAL_NUM_MAX_LEADERS */
+
+    /*
+     * Request status callback offered by UMAC - it is called if the current
+     * req has returned PENDING as status; it delivers the status of sending
+     * the message over the BUS
+     */
+    WDI_ReqStatusCb   wdiReqStatusCB;
+
+    /*
+     * The user data passed in by UMAC, it will be sent back when the above
+     * function pointer will be called
+     */
+    void   *pUserData;
+
+} WDI_LbpUpdateIndParams;
+
+typedef enum
+{
+  eWDI_SUGGEST_LEADER_CMD = 0,
+  eWDI_BECOME_LEADER_CMD  = 1,
+} eWDI_LeaderRspCmdType;
+
+/*---------------------------------------------------------------------------
+ WDI_LbpRspParamsType
+-----------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint8       status;  /* success or failure */
+
+    /*  Command Type */
+    eWDI_LeaderRspCmdType cmd;  /* suggest or become leader */
+
+    /* MAC address of MCAST Transmitter (source) */
+    wpt_macAddr mcastTransmitter;
+
+    /* MAC Address of Multicast Group (01-00-5E-xx-xx-xx) */
+    wpt_macAddr mcastGroup;
+
+    /* List of candidates for cmd = WLAN_HAL_SUGGEST_LEADER*/
+    wpt_macAddr leader[16]; /* HAL_NUM_MAX_LEADERS */
+} WDI_LbpRspParamsType;
+
+/*---------------------------------------------------------------------------
+ WDI_LbpPickNewLeader
+-----------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint8       indication;  /* pick_new */
+
+    wpt_uint8       role;  /* leader or transmitter */
+
+    /* MAC address of MCAST Transmitter (source) */
+    wpt_macAddr mcastTransmitter;
+
+    /* MAC Address of Multicast Group (01-00-5E-xx-xx-xx) */
+    wpt_macAddr mcastGroup;
+
+    /* MAC Address of Multicast Leader */
+    wpt_macAddr mcastLeader;
+
+    /* List of candidates for cmd = WLAN_HAL_LEADER_PICK_NEW*/
+    wpt_macAddr leader[16]; /* HAL_NUM_MAX_LEADERS */
+} WDI_LbpPickNewLeader;
+
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
 /*---------------------------------------------------------------------------
   WDI_LowLevelIndType
     Inidcation type and information about the indication being carried
@@ -672,6 +787,11 @@ typedef struct
 
     /* Periodic TX Pattern FW Indication */
     WDI_PeriodicTxPtrnFwIndType  wdiPeriodicTxPtrnFwInd;
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+    WDI_LbpPickNewLeader        wdiLbpPickNewLeaderInd;
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
   }  wdiIndicationData;
 }WDI_LowLevelIndType;
 
@@ -6961,6 +7081,11 @@ typedef void  (*WDI_LphbCfgCb)(WDI_Status   wdiStatus,
                                 void*        pUserData);
 #endif /* FEATURE_WLAN_LPHB */
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+typedef void  (*WDI_LbpLeaderRspCb)(WDI_LbpRspParamsType *wdiLbpResponse,
+                                    void*        pUserData);
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
 /*========================================================================
  *     Function Declarations and Documentation
  ==========================================================================*/
@@ -9686,6 +9811,49 @@ WDI_dhcpStopInd
 (
   WDI_DHCPInd *wdiDHCPInd
 );
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+/**
+ @brief WDI_lbpLeaderReq will be called when the upper MAC
+        requests the device to enable LBP reliable multicast.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state.
+
+
+ @param wdiLbpLeaderReq:
+
+ @see WDI_Start
+ @return Result of the function call
+*/
+WDI_Status
+WDI_LbpLeaderReq
+(
+  WDI_LbpLeaderReqParams  *wdiLbpLeaderReqParams,
+  WDI_LbpLeaderRspCb lbpLeaderRspCb,
+  void *usrData
+);
+
+/**
+ @brief WDI_lbpUpdateInd will be called when the upper MAC
+        requests the device to enable LBP reliable multicast.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state.
+
+
+ @param wdiLbpUpdateInd:
+
+
+ @see WDI_Start
+ @return Result of the function call
+*/
+WDI_Status
+WDI_LbpUpdateInd
+(
+  WDI_LbpUpdateIndParams  *wdiLbpUpdateIndParams
+);
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 /**

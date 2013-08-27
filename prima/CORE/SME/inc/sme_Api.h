@@ -2928,4 +2928,29 @@ eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
   --------------------------------------------------------------------------*/
 void sme_enable_disable_split_scan (tHalHandle hHal, tANI_U8 nNumStaChan,
                                     tANI_U8 nNumP2PChan);
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+/* ---------------------------------------------------------------------------
+    \fn sme_EnableReliableMcast
+    \brief  Used to enable Reliable Multicast using Leader Based Protocol
+    setting will not persist over reboots
+    \param  hHal
+    \param  mcastGroupIpAddr  multicast Group IP address
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
+                                   tANI_U32 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_DisableReliableMcast
+    \brief  Used to disable Reliable Multicast using Leader Based Protocol
+    setting will not persist over reboots
+    \param  hHal
+    \param  mcastGroupIpAddr  multicast Group IP address
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
+                                    tANI_U32 sessionId);
+#endif //#if defined WLAN_FEATURE_RELIABLE_MCAST
+
 #endif //#if !defined( __SME_API_H )

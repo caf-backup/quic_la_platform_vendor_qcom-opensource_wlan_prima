@@ -201,7 +201,8 @@ MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
             $(MAC_SRC_DIR)/pe/lim/limSession.o \
             $(MAC_SRC_DIR)/pe/lim/limSessionUtils.o \
             $(MAC_SRC_DIR)/pe/lim/limFT.o \
-            $(MAC_SRC_DIR)/pe/lim/limP2P.o
+            $(MAC_SRC_DIR)/pe/lim/limP2P.o \
+            $(MAC_SRC_DIR)/pe/lim/limRMC.o
 
 ifeq ($(CONFIG_QCOM_CCX),y)
 MAC_LIM_OBJS += $(MAC_SRC_DIR)/pe/lim/limProcessCcxFrame.o
@@ -443,7 +444,8 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DWCN_PRONTO_V1 \
         -DWLAN_SOFTAP_VSTA_FEATURE \
         -DWLAN_KD_READY_NOTIFIER \
-	-DFEATURE_WLAN_LPHB \
+	    -DFEATURE_WLAN_LPHB \
+        #-DWLAN_FEATURE_RELIABLE_MCAST \
         #-DBAP_DEBUG \
         #-DFEATURE_WLAN_BTAMP_UT \
         #-DVOLANS_PERF \

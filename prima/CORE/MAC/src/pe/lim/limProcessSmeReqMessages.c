@@ -35,6 +35,7 @@
 #include "limSendMessages.h"
 #include "limApi.h"
 #include "wmmApsd.h"
+#include "limRMC.h"
 
 #include "sapApi.h"
 
@@ -5541,6 +5542,16 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         case eWNI_SME_SET_TX_POWER_REQ:
             limSendSetTxPowerReq(pMac,  pMsgBuf);
             break ;
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+        case eWNI_SME_ENABLE_RMC_REQ:
+            limProcessRMCMessages(pMac, eLIM_RMC_ENABLE_REQ, pMsgBuf);
+            break ;
+
+        case eWNI_SME_DISABLE_RMC_REQ:
+            limProcessRMCMessages(pMac, eLIM_RMC_DISABLE_REQ, pMsgBuf);
+            break ;
+#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
 
         default:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);

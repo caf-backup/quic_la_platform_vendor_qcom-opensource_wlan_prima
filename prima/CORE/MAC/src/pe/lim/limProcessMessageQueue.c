@@ -52,6 +52,8 @@
 #include "wmmApsd.h"
 #endif
 
+#include "limRMC.h"
+
 #include "vos_types.h"
 #include "vos_packet.h"
 #include "vos_memory.h"
@@ -1324,6 +1326,17 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limMsg->bodyptr = NULL;
             break;
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+        case eWNI_SME_ENABLE_RMC_REQ:
+        case eWNI_SME_DISABLE_RMC_REQ:
+            /*
+             * These messages are from HDD
+             * No need to response to hdd
+             */
+            limProcessSmeReqMessages(pMac,limMsg);
+            break;
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
         case SIR_HAL_P2P_NOA_START_IND:
         {
             tpPESession psessionEntry = &pMac->lim.gpSession[0];
@@ -1986,6 +1999,28 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        limMsg->bodyptr = NULL;
        break;
     }
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+    case WDA_RMC_BECOME_LEADER:
+        limProcessRMCMessages(pMac, eLIM_RMC_BECOME_LEADER_RESP,
+                          (void *)limMsg->bodyptr);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break ;
+
+    case WDA_RMC_LEADER_SELECT_RESP:
+        limProcessRMCMessages(pMac, eLIM_RMC_LEADER_SELECT_RESP,
+                          (void *)limMsg->bodyptr);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break ;
+
+    case WDA_RMC_UPDATE_IND:
+        limProcessRMCMessages(pMac, eLIM_RMC_LEADER_PICK_NEW,
+                          (void *)limMsg->bodyptr);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break ;
+#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
 
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);

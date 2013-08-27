@@ -10783,6 +10783,226 @@ static VOS_STATUS WDA_ProcessDHCPStartInd (tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status) ;
  }
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+/*
+ * FUNCTION: WDA_RMCLeaderRspCallback
+ * Send LBP Leader Response back to PE
+ */
+void
+WDA_RMCLeaderRspCallback(WDI_LbpRspParamsType *wdiLbpResponse, void *pUserData)
+{
+    tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+    tWDA_CbContext *pWDA = pWdaParams->pWdaContext;
+
+    switch (wdiLbpResponse->cmd)
+    {
+        case eWDI_BECOME_LEADER_CMD :
+        {
+            tSirRmcBecomeLeaderInd *pRmcBecomeLeaderInd;
+
+            pRmcBecomeLeaderInd = (tSirRmcBecomeLeaderInd *)
+                                   vos_mem_malloc(sizeof(*pRmcBecomeLeaderInd));
+
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                        "Received eWDI_BECOME_LEADER_CMD from WDI");
+
+            pRmcBecomeLeaderInd->status = wdiLbpResponse->status;
+
+            /* Copy the mcast transmitter which should be us */
+            vos_mem_copy(pRmcBecomeLeaderInd->mcastTransmitter,
+                          wdiLbpResponse->mcastTransmitter,
+                          sizeof(tSirMacAddr));
+            /* Copy the mcast group address */
+            vos_mem_copy(pRmcBecomeLeaderInd->mcastGroup,
+                          wdiLbpResponse->mcastGroup,
+                          sizeof(tSirMacAddr));
+
+            WDA_SendMsg(pWDA, WDA_RMC_BECOME_LEADER,
+                               (void *)pRmcBecomeLeaderInd, 0) ;
+            break;
+        }
+        case eWDI_SUGGEST_LEADER_CMD :
+        {
+            tSirRmcLeaderSelectInd *pRmcLeaderSelectInd;
+
+            pRmcLeaderSelectInd = (tSirRmcLeaderSelectInd *)
+                                   vos_mem_malloc(sizeof(tSirRmcLeaderSelectInd));
+
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                              "Received eWDI_SUGGEST_LEADER_CMD from WDI");
+
+            pRmcLeaderSelectInd->status = wdiLbpResponse->status;
+
+            /* Copy the mcast transmitter which should be us */
+            vos_mem_copy(pRmcLeaderSelectInd->mcastTransmitter,
+                        wdiLbpResponse->mcastTransmitter,
+                        sizeof(tSirMacAddr));
+            /* Copy the mcast group address */
+            vos_mem_copy(pRmcLeaderSelectInd->mcastGroup,
+                        wdiLbpResponse->mcastGroup,
+                        sizeof(tSirMacAddr));
+            /* Copy the candidate leader list */
+            vos_mem_copy(pRmcLeaderSelectInd->leader,
+                        wdiLbpResponse->leader,
+                        sizeof(pRmcLeaderSelectInd->leader));
+
+            WDA_SendMsg(pWDA, WDA_RMC_LEADER_SELECT_RESP,
+                                       (void *)pRmcLeaderSelectInd, 0) ;
+            break;
+        }
+    }
+
+    /* free the config structure */
+    if (pWdaParams->wdaWdiApiMsgParam != NULL)
+    {
+        vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+    }
+    vos_mem_free(pWdaParams->wdaMsgParam);
+    vos_mem_free(pWdaParams);
+
+}
+
+/*
+ * FUNCTION: WDA_RMCLeaderReqCallback
+ * Free memory.
+ * Invoked when RMCLeader REQ failed in WDI and no RSP callback is generated.
+ */
+void WDA_RMCLeaderReqCallback(WDI_Status wdiStatus, void* pUserData)
+{
+    tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+
+    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+              "<------ %s, wdiStatus: %d", __func__, wdiStatus);
+
+    if (NULL == pWdaParams)
+    {
+        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: pWdaParams received NULL", __func__);
+        VOS_ASSERT(0);
+        return;
+    }
+
+    if (IS_WDI_STATUS_FAILURE(wdiStatus))
+    {
+        vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+        vos_mem_free(pWdaParams->wdaMsgParam);
+        vos_mem_free(pWdaParams);
+    }
+
+   return;
+}
+
+/*
+ * FUNCTION: WDA_ProcessRMCLeaderReq
+ * Forward LBP Leader Request to WDI
+ */
+static VOS_STATUS
+WDA_ProcessRMCLeaderReq(tWDA_CbContext *pWDA,
+                        tSirRmcLeaderReq *lbpLeaderReq)
+{
+    WDI_Status status;
+    WDI_LbpLeaderReqParams *wdiLeaderReq;
+    tWDA_ReqParams *pWdaParams;
+
+    wdiLeaderReq = (WDI_LbpLeaderReqParams *)
+                        vos_mem_malloc(sizeof(*wdiLeaderReq));
+
+    if (NULL == wdiLeaderReq)
+    {
+        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: VOS MEM Alloc Failure", __func__);
+        VOS_ASSERT(0);
+        vos_mem_free(lbpLeaderReq);
+        return VOS_STATUS_E_NOMEM;
+    }
+
+    pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams));
+    if (NULL == pWdaParams)
+    {
+        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __func__);
+        VOS_ASSERT(0);
+        vos_mem_free(lbpLeaderReq);
+        vos_mem_free(wdiLeaderReq);
+        return VOS_STATUS_E_NOMEM;
+    }
+
+    pWdaParams->wdaWdiApiMsgParam = (v_PVOID_t *)wdiLeaderReq;
+    /* Store param pointer as passed in by caller */
+    pWdaParams->wdaMsgParam = lbpLeaderReq;
+    pWdaParams->pWdaContext = pWDA;
+
+    wdiLeaderReq->cmd = lbpLeaderReq->cmd;
+
+    vos_mem_copy(wdiLeaderReq->mcastTransmitter,
+            lbpLeaderReq->mcastTransmitter, sizeof(tSirMacAddr));
+    vos_mem_copy(wdiLeaderReq->mcastGroup,
+            lbpLeaderReq->mcastGroup, sizeof(tSirMacAddr));
+    vos_mem_copy(wdiLeaderReq->blacklist,
+            lbpLeaderReq->blacklist, sizeof(wdiLeaderReq->blacklist));
+
+    wdiLeaderReq->wdiReqStatusCB = WDA_RMCLeaderReqCallback;
+
+    status = WDI_LbpLeaderReq(wdiLeaderReq,
+                 (WDI_LbpLeaderRspCb)WDA_RMCLeaderRspCallback,
+                 (void *)pWdaParams);
+    if (IS_WDI_STATUS_FAILURE(status))
+    {
+        vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+        vos_mem_free(pWdaParams->wdaMsgParam);
+        vos_mem_free(pWdaParams) ;
+        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                   "LBP Leader Request failed");
+    }
+    return CONVERT_WDI2VOS_STATUS(status) ;
+}
+
+/*
+ * FUNCTION: WDA_ProcessRMCUpdateInd
+ * Forward LBP Update Indication to WDI
+*/
+static VOS_STATUS
+WDA_ProcessRMCUpdateInd(tWDA_CbContext *pWDA,
+                         tSirRmcUpdateInd *lbpUpdateInd)
+{
+    WDI_Status status;
+    WDI_LbpUpdateIndParams wdiUpdateInd;
+
+    /* Copy the paramters for Update_Ind */
+
+    wdiUpdateInd.indication = lbpUpdateInd->indication;
+    wdiUpdateInd.role = lbpUpdateInd->role;
+
+    vos_mem_copy(wdiUpdateInd.mcastTransmitter,
+            lbpUpdateInd->mcastTransmitter, sizeof(tSirMacAddr));
+
+    vos_mem_copy(wdiUpdateInd.mcastGroup,
+            lbpUpdateInd->mcastGroup, sizeof(tSirMacAddr));
+
+    vos_mem_copy(wdiUpdateInd.mcastLeader,
+            lbpUpdateInd->mcastLeader, sizeof(tSirMacAddr));
+
+    wdiUpdateInd.wdiReqStatusCB = WDA_WdiIndicationCallback;
+    wdiUpdateInd.pUserData = pWDA;
+    status = WDI_LbpUpdateInd(&wdiUpdateInd);
+
+    if (WDI_STATUS_PENDING == status)
+    {
+        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                 "Pending received for %s:%d ",__func__,__LINE__ );
+    }
+    else if (WDI_STATUS_SUCCESS_SYNC != status)
+    {
+       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+               "Failure in %s:%d ",__func__,__LINE__ );
+    }
+
+    vos_mem_free(lbpUpdateInd);
+
+    return CONVERT_WDI2VOS_STATUS(status) ;
+}
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
 /*
  * FUNCTION: WDA_McProcessMsg
  * Trigger DAL-AL to start CFG download 
@@ -11446,6 +11666,18 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          break;
       }
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+      case WDA_RMC_LEADER_REQ:
+      {
+          WDA_ProcessRMCLeaderReq(pWDA, (tSirRmcLeaderReq *)pMsg->bodyptr);
+          break;
+      }
+      case WDA_RMC_UPDATE_IND:
+      {
+          WDA_ProcessRMCUpdateInd(pWDA, (tSirRmcUpdateInd *)pMsg->bodyptr);
+          break;
+      }
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
       default:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -11981,6 +12213,43 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          WDA_SendMsg(pWDA, WDA_IBSS_PEER_INACTIVITY_IND, (void *)pIbssInd, 0) ;
          break;
       }
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+      case WDI_LBP_LEADER_PICK_NEW :
+      {
+         tSirRmcUpdateInd   *pRmcUpdateInd =
+            (tSirRmcUpdateInd *)vos_mem_malloc(sizeof(tSirRmcUpdateInd));
+
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                              "Received WDI_LBP_UPDATE_IND from WDI");
+
+         pRmcUpdateInd->indication =
+           wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.indication;
+         pRmcUpdateInd->role =
+           wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.role;
+
+         /* Copy the mcast transmitter which should be us */
+         vos_mem_copy(pRmcUpdateInd->mcastTransmitter,
+              wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd. \
+              mcastTransmitter,
+              sizeof(tSirMacAddr));
+         /* Copy the mcast group address */
+         vos_mem_copy(pRmcUpdateInd->mcastGroup,
+              wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.mcastGroup,
+              sizeof(tSirMacAddr));
+         /* Copy the mcast leader address */
+         vos_mem_copy(pRmcUpdateInd->mcastLeader,
+              wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.mcastLeader,
+              sizeof(tSirMacAddr));
+         /* Copy the candidate leader list */
+         vos_mem_copy(pRmcUpdateInd->leader,
+              wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.leader,
+              sizeof(pRmcUpdateInd->leader));
+
+         WDA_SendMsg(pWDA, WDA_RMC_UPDATE_IND, (void *)pRmcUpdateInd, 0) ;
+         break;
+      }
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
       default:
       {
