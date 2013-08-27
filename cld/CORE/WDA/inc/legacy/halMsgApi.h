@@ -844,6 +844,7 @@ typedef struct
     tANI_U8 fRIFSMode;
 
     tANI_U16 paramChangeBitmap;
+    tANI_U8 smeSessionId;
 }tUpdateBeaconParams, *tpUpdateBeaconParams;
 
 #ifdef WLAN_FEATURE_11AC
