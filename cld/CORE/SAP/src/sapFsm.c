@@ -217,7 +217,7 @@ sapGotoChannelSel
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, calling sme_ScanRequest", __func__);
 
         halStatus = sme_ScanRequest(hHal,
-                            0,//Not used in csrScanRequest
+                            sapContext->sessionId,
                             &scanRequest,
                             &scanRequestID,//, when ID == 0 11D scan/active scan with callback, min-maxChntime set in csrScanRequest()?
                             &WLANSAP_ScanCallback,//csrScanCompleteCallback callback,
@@ -781,6 +781,26 @@ sapFsm
 
                 sapContext->sessionId = 0xff;
 
+                if ((sapContext->channel == AUTO_CHANNEL_SELECT) &&
+                    (sapContext->isScanSessionOpen == eSAP_FALSE))
+                {
+                    tANI_U32 type, subType;
+                    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+
+                    if(VOS_STATUS_SUCCESS == vos_get_vdev_types(VOS_STA_MODE,
+                           &type, &subType)) {
+                           /* Open SME Session for scan */
+                           if(eHAL_STATUS_SUCCESS  != sme_OpenSession(hHal,
+                                 NULL, sapContext, sapContext->self_mac_addr,
+                                 &sapContext->sessionId, type, subType))
+                           {
+                                 VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                                     "Error: In %s calling sme_OpenSession", __func__);
+                           } else {
+                                 sapContext->isScanSessionOpen = eSAP_TRUE;
+                           }
+                    }
+                }
                 /* Set SAP device role */
                 sapContext->sapsMachine = eSAP_CH_SELECT;
 
@@ -799,6 +819,27 @@ sapFsm
             break;
 
         case eSAP_CH_SELECT:
+            if (sapContext->isScanSessionOpen == eSAP_TRUE)
+            {
+                 /* scan completed, so close the session */
+                 tHalHandle  hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+                 if (NULL == hHal)
+                 {
+                     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, NULL hHal in state %s, msg %d",
+                             __func__, "eSAP_CH_SELECT", msg);
+                 } else {
+                     if(eHAL_STATUS_SUCCESS != sme_CloseSession(hHal,
+                                      sapContext->sessionId, NULL, NULL))
+                     {
+                         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s CloseSession error event msg %d",
+                                __func__, msg);
+                     } else {
+                         sapContext->isScanSessionOpen = eSAP_FALSE;
+                     }
+                 }
+                 sapContext->sessionId = 0xff;
+            }
+
             if (msg == eSAP_MAC_SCAN_COMPLETE)
             {
                  /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
