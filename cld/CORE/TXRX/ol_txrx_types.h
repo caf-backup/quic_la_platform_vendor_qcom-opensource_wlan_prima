@@ -105,9 +105,10 @@ typedef struct _privacy_excemption_filter {
 } privacy_exemption;
 
 enum ol_tx_frm_type {
-	ol_tx_frm_std = 0, /* regular frame - no added header fragments */
-	ol_tx_frm_tso,     /* TSO segment, with a modified IP header added */
-	ol_tx_frm_audio,   /* audio frames, with a custom LLC/SNAP header added */
+    ol_tx_frm_std = 0, /* regular frame - no added header fragments */
+    ol_tx_frm_tso,     /* TSO segment, with a modified IP header added */
+    ol_tx_frm_audio,   /* audio frames, with a custom LLC/SNAP header added */
+    ol_tx_frm_no_free, /* frame requires special tx completion callback */
 };
 
 struct ol_tx_desc_t {
@@ -405,8 +406,11 @@ struct ol_txrx_pdev_t {
 			unsigned tid,
 			adf_nbuf_t msdu_list);
 
-	/* rx mgmt function */
-	VOS_STATUS (*rx_mgmt) (void *g_vosctx, void *buf);
+    /* tx data delivery notification callback function */
+    struct {
+        ol_txrx_data_tx_cb func;
+        void *ctxt;
+    } tx_data_callback;
 
 	/* tx management delivery notification callback functions */
 	struct {

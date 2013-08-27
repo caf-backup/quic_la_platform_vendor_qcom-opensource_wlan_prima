@@ -387,12 +387,62 @@ ol_txrx_vdev_detach(
 void
 ol_txrx_pdev_detach(ol_txrx_pdev_handle data_pdev, int force);
 
+typedef void
+(*ol_txrx_data_tx_cb)(void *ctxt, adf_nbuf_t tx_frm, int had_error);
+
+/**
+ * @brief Store a delivery notification callback for specific data frames.
+ * @details
+ *  Through a non-std tx function, the txrx SW can be given tx data frames
+ *  that are specially marked to not be unmapped and freed by the tx SW
+ *  when transmission completes.  Rather, these specially-marked frames
+ *  are provided to the callback registered with this function.
+ *
+ * @param data_vdev - which vdev the callback is being registered with
+ *      (Currently the callback is stored in the pdev rather than the vdev.)
+ * @param callback - the function to call when tx frames marked as "no free"
+ *      are done being transmitted
+ * @param ctxt - the context argument provided to the callback function
+ */
+void
+ol_txrx_data_tx_cb_set(
+    ol_txrx_vdev_handle data_vdev,
+    ol_txrx_data_tx_cb callback,
+    void *ctxt);
+
+
+/**
+ * @brief Allow the control-path SW to send data frames.
+ * @details
+ *  Generally, all tx data frames come from the OS shim into the txrx layer.
+ *  However, there are rare cases such as TDLS messaging where the UMAC
+ *  control-path SW creates tx data frames.
+ *  This UMAC SW can call this function to provide the tx data frames to
+ *  the txrx layer.
+ *  The UMAC SW can request a callback for these data frames after their
+ *  transmission completes, by using the ol_txrx_data_tx_cb_set function
+ *  to register a tx completion callback, and by specifying
+ *  ol_tx_spec_no_free as the tx_spec arg when giving the frames to
+ *  ol_tx_non_std.
+ *  The MSDUs need to have the appropriate L2 header type (802.3 vs. 802.11),
+ *  as specified by ol_cfg_frame_type().
+ *
+ * @param data_vdev - which vdev should transmit the tx data frames
+ * @param tx_spec - what non-standard handling to apply to the tx data frames
+ * @param msdu_list - NULL-terminated list of tx MSDUs
+ */
+adf_nbuf_t
+ol_tx_non_std(
+    ol_txrx_vdev_handle data_vdev,
+    enum ol_tx_spec tx_spec,
+    adf_nbuf_t msdu_list);
+
 
 typedef void
 (*ol_txrx_mgmt_tx_cb)(void *ctxt, adf_nbuf_t tx_mgmt_frm, int had_error);
 
 /**
- * @brief Store a callback for delivery notifications for managements frames.
+ * @brief Store a callback for delivery notifications for management frames.
  * @details
  *  When the txrx SW receives notifications from the target that a tx frame
  *  has been delivered to its recipient, it will check if the tx frame
@@ -406,8 +456,8 @@ typedef void
  *
  * @param pdev - the data physical device object
  * @param type - the type of mgmt frame the callback is used for
- * @param download_cb - the callback for notification of delivery to target
- * @param ota_ack_cb - the callback for notification of delivery to peer
+ * @param download_cb - the callback for notification of delivery to the target
+ * @param ota_ack_cb - the callback for notification of delivery to the peer
  * @param ctxt - context to use with the callback
  */
 void

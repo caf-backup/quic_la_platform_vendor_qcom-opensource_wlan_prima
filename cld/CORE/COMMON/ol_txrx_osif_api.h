@@ -23,31 +23,6 @@ typedef adf_nbuf_t (*ol_txrx_tx_fp)(
     ol_txrx_vdev_handle data_vdev, adf_nbuf_t msdu_list);
 
 /**
- * @enum ol_txrx_osif_tx_spec
- * @brief indicate what non-standard transmission actions to apply
- * @details
- *  Indicate one or more of the following:
- *    - The tx frame already has a complete 802.11 header.
- *      Thus, skip 802.3/native-WiFi to 802.11 header encapsulation and
- *      A-MSDU aggregation.
- *    - The tx frame should not be aggregated (A-MPDU or A-MSDU)
- *    - The tx frame is already encrypted - don't attempt encryption.
- *    - The tx frame is a segment of a TCP jumbo frame.
- *  More than one of these specification can apply, though typically
- *  only a single specification is applied to a tx frame.
- *  A compound specification can be created, as a bit-OR of these
- *  specifications.
- */
-enum ol_txrx_osif_tx_spec {
-     ol_txrx_osif_tx_spec_std         = 0x0,  /* do regular processing */
-     ol_txrx_osif_tx_spec_raw         = 0x1,  /* skip encap + A-MSDU aggr */
-     ol_txrx_osif_tx_spec_no_aggr     = 0x2,  /* skip encap + all aggr */
-     ol_txrx_osif_tx_spec_no_encrypt  = 0x4,  /* skip encap + encrypt */
-     ol_txrx_osif_tx_spec_tso         = 0x8,  /* TCP segmented */
-     ol_txrx_osif_tx_spect_nwifi_no_encrypt = 0x10, /* skip encrypt for nwifi */
-};
-
-/**
  * @typedef ol_txrx_tx_non_std_fp
  * @brief top-level transmit function for non-standard tx frames
  * @details
@@ -69,7 +44,7 @@ enum ol_txrx_osif_tx_spec {
  */
 typedef adf_nbuf_t (*ol_txrx_tx_non_std_fp)(
     ol_txrx_vdev_handle data_vdev,
-    enum ol_txrx_osif_tx_spec tx_spec,
+    enum ol_tx_spec tx_spec,
     adf_nbuf_t msdu_list);
 
 struct txrx_rx_metainfo;

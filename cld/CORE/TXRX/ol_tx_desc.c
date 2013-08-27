@@ -210,6 +210,17 @@ void ol_tx_desc_frame_free_nonstd(
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
     OL_TX_RESTORE_HDR(tx_desc, (tx_desc->netbuf)); /* restore original hdr offset */
 #endif 
+    if (tx_desc->pkt_type == ol_tx_frm_no_free) {
+        /* free the tx desc but don't unmap or free the frame */
+        if (pdev->tx_data_callback.func) {
+            adf_nbuf_set_next(tx_desc->netbuf, NULL);
+            pdev->tx_data_callback.func(
+                pdev->tx_data_callback.ctxt, tx_desc->netbuf, had_error);
+            ol_tx_desc_free(pdev, tx_desc);
+            return;
+        }
+        /* let the code below unmap and free the frame */
+    }
     adf_nbuf_unmap(pdev->osdev, tx_desc->netbuf, ADF_OS_DMA_TO_DEVICE);
     /* check the frame type to see what kind of special steps are needed */
     if (tx_desc->pkt_type == ol_tx_frm_tso) {
