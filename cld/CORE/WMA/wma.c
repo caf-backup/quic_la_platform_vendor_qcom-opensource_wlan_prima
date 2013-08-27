@@ -658,6 +658,144 @@ static int wma_vdev_stop_resp_handler(void *handle, u_int8_t *cmd_param_info,
 }
 
 #ifndef QCA_WIFI_ISOC
+u_int8_t *wma_add_p2p_ie(u_int8_t *frm)
+{
+	u_int8_t wfa_oui[3] = WMA_P2P_WFA_OUI;
+	struct p2p_ie *p2p_ie=(struct p2p_ie *) frm;
+
+	p2p_ie->p2p_id = WMA_P2P_IE_ID;
+	p2p_ie->p2p_oui[0] = wfa_oui[0];
+	p2p_ie->p2p_oui[1] = wfa_oui[1];
+	p2p_ie->p2p_oui[2] = wfa_oui[2];
+	p2p_ie->p2p_oui_type = WMA_P2P_WFA_VER;
+	p2p_ie->p2p_len = 4;
+	return (frm + sizeof(struct p2p_ie));
+}
+
+static void wma_update_beacon_noa_ie(
+		struct beacon_info *bcn,
+		u_int16_t new_noa_sub_ie_len)
+{
+	struct p2p_ie *p2p_ie;
+	u_int8_t *buf;
+
+	/* if there is nothing to add, just return */
+	if (new_noa_sub_ie_len == 0) {
+		if (bcn->noa_sub_ie_len && bcn->noa_ie) {
+			WMA_LOGD("%s: NoA is present in previous beacon, "
+				"but not present in swba event, "
+				"So Reset the NoA",
+				__func__);
+			/* TODO: Assuming p2p noa ie is last ie in the beacon */
+			vos_mem_zero(bcn->noa_ie, bcn->noa_sub_ie_len);
+			bcn->len -= (bcn->noa_sub_ie_len +
+					sizeof(struct p2p_ie));
+			bcn->noa_ie = NULL;
+			bcn->noa_sub_ie_len = 0;
+		}
+		WMA_LOGD("%s: No need to update NoA", __func__);
+		return;
+	}
+
+	if (bcn->noa_sub_ie_len && bcn->noa_ie) {
+		/* NoA present in previous beacon, update it */
+		WMA_LOGD("%s: NoA present in previous beacon, "
+			"update the NoA IE, bcn->len %u"
+			"bcn->noa_sub_ie_len %u",
+			__func__, bcn->len, bcn->noa_sub_ie_len);
+		bcn->len -= (bcn->noa_sub_ie_len + sizeof(struct p2p_ie)) ;
+		vos_mem_zero(bcn->noa_ie,
+				(bcn->noa_sub_ie_len + sizeof(struct p2p_ie)));
+	} else { /* NoA is not present in previous beacon */
+		WMA_LOGD("%s: NoA not present in previous beacon, add it. "
+			"bcn->len %u", __func__, bcn->len);
+		buf = adf_nbuf_data(bcn->buf);
+		bcn->noa_ie = buf + bcn->len;
+	}
+
+	bcn->noa_sub_ie_len = new_noa_sub_ie_len;
+	wma_add_p2p_ie(bcn->noa_ie);
+	p2p_ie = (struct p2p_ie *) bcn->noa_ie;
+	p2p_ie->p2p_len += new_noa_sub_ie_len;
+	vos_mem_copy((bcn->noa_ie + sizeof(struct p2p_ie)), bcn->noa_sub_ie,
+			new_noa_sub_ie_len);
+
+	bcn->len += (new_noa_sub_ie_len + sizeof(struct p2p_ie));
+	WMA_LOGI("%s: Updated beacon length with NoA Ie is %u",
+		__func__, bcn->len);
+}
+
+static void wma_p2p_create_sub_ie_noa(
+		u_int8_t *buf,
+		struct p2p_sub_element_noa *noa,
+		u_int16_t *new_noa_sub_ie_len)
+{
+	u_int8_t tmp_octet = 0;
+	int i;
+	u_int8_t *buf_start = buf;
+
+	*buf++ = WMA_P2P_SUB_ELEMENT_NOA;     /* sub-element id */
+	ASSERT(noa->num_descriptors <= WMA_MAX_NOA_DESCRIPTORS);
+
+	/*
+	 * Length = (2 octets for Index and CTWin/Opp PS) and
+	 * (13 octets for each NOA Descriptors)
+	 */
+	P2PIE_PUT_LE16(buf, WMA_NOA_IE_SIZE(noa->num_descriptors));
+	buf += 2;
+
+	*buf++ = noa->index;        /* Instance Index */
+
+	tmp_octet = noa->ctwindow & WMA_P2P_NOA_IE_CTWIN_MASK;
+	if (noa->oppPS) {
+		tmp_octet |= WMA_P2P_NOA_IE_OPP_PS_SET;
+	}
+	*buf++ = tmp_octet;         /* Opp Ps and CTWin capabilities */
+
+	for (i = 0; i < noa->num_descriptors; i++) {
+		ASSERT(noa->noa_descriptors[i].type_count != 0);
+
+		*buf++ = noa->noa_descriptors[i].type_count;
+
+		P2PIE_PUT_LE32(buf, noa->noa_descriptors[i].duration);
+		buf += 4;
+		P2PIE_PUT_LE32(buf, noa->noa_descriptors[i].interval);
+		buf += 4;
+		P2PIE_PUT_LE32(buf, noa->noa_descriptors[i].start_time);
+		buf += 4;
+	}
+	*new_noa_sub_ie_len = (buf - buf_start);
+}
+
+static void wma_update_noa(struct beacon_info *beacon,
+		struct p2p_sub_element_noa *noa_ie)
+{
+	u_int16_t new_noa_sub_ie_len;
+
+	/* Call this function by holding the spinlock on beacon->lock */
+
+	if (noa_ie) {
+		if ((noa_ie->ctwindow == 0) && (noa_ie->oppPS == 0) &&
+				(noa_ie->num_descriptors == 0)) {
+			/* NoA is not present */
+			WMA_LOGD("%s: NoA is not present", __func__);
+			new_noa_sub_ie_len = 0;
+		}
+		else {
+			/* Create the binary blob containing NOA sub-IE */
+			WMA_LOGD("%s: Create NOA sub ie", __func__);
+			wma_p2p_create_sub_ie_noa(&beacon->noa_sub_ie[0],
+					noa_ie, &new_noa_sub_ie_len);
+		}
+	}
+	else {
+		WMA_LOGD("%s: No need to add NOA", __func__);
+		new_noa_sub_ie_len = 0;  /* no NOA IE sub-attributes */
+	}
+
+	wma_update_beacon_noa_ie(beacon, new_noa_sub_ie_len);
+}
+
 static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 				ol_txrx_pdev_handle pdev,
 				u_int8_t vdev_id,
@@ -671,6 +809,9 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 	wmi_buf_t wmi_buf;
 	a_status_t ret;
 	struct beacon_tim_ie *tim_ie;
+	wmi_p2p_noa_info *p2p_noa_info = param_buf->p2p_noa_info;
+	struct p2p_sub_element_noa noa_ie;
+	u_int8_t i;
 
 	bcn = wma->interfaces[vdev_id].beacon;
 	if (!bcn->buf) {
@@ -734,6 +875,37 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 	*(u_int16_t *)&wh->i_seq[0] = htole16(bcn->seq_no
 					      << IEEE80211_SEQ_SEQ_SHIFT);
 	bcn->seq_no++;
+
+	if (WMI_UNIFIED_NOA_ATTR_IS_MODIFIED(p2p_noa_info)) {
+		vos_mem_zero(&noa_ie, sizeof(noa_ie));
+
+		noa_ie.index = WMI_UNIFIED_NOA_ATTR_INDEX_GET(p2p_noa_info);
+		noa_ie.oppPS = WMI_UNIFIED_NOA_ATTR_OPP_PS_GET(p2p_noa_info);
+		noa_ie.ctwindow = WMI_UNIFIED_NOA_ATTR_CTWIN_GET(p2p_noa_info);
+		noa_ie.num_descriptors = WMI_UNIFIED_NOA_ATTR_NUM_DESC_GET(
+				p2p_noa_info);
+		WMA_LOGI("%s: index %lu, oppPs %lu, ctwindow %lu, "
+			"num_descriptors = %lu", __func__, noa_ie.index,
+			noa_ie.oppPS, noa_ie.ctwindow, noa_ie.num_descriptors);
+		for(i = 0; i < noa_ie.num_descriptors; i++) {
+			noa_ie.noa_descriptors[i].type_count =
+				p2p_noa_info->noa_descriptors[i].type_count;
+			noa_ie.noa_descriptors[i].duration =
+				p2p_noa_info->noa_descriptors[i].duration;
+			noa_ie.noa_descriptors[i].interval =
+				p2p_noa_info->noa_descriptors[i].interval;
+			noa_ie.noa_descriptors[i].start_time =
+				p2p_noa_info->noa_descriptors[i].start_time;
+			WMA_LOGI("%s: NoA descriptor[%d] type_count %lu, "
+				"duration %lu, interval %lu, start_time = %lu",
+				__func__, i,
+				noa_ie.noa_descriptors[i].type_count,
+				noa_ie.noa_descriptors[i].duration,
+				noa_ie.noa_descriptors[i].interval,
+				noa_ie.noa_descriptors[i].start_time);
+		}
+		wma_update_noa(bcn, &noa_ie);
+	}
 
 	if (bcn->dma_mapped) {
 		adf_nbuf_unmap_single(pdev->osdev, bcn->buf,

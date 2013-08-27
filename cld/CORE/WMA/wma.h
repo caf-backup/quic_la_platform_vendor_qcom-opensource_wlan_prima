@@ -180,6 +180,8 @@ struct scan_param{
 #ifndef QCA_WIFI_ISOC
 
 #define WMA_BCN_BUF_MAX_SIZE 2500
+#define WMA_NOA_IE_SIZE(num_desc) (2 + (13 * (num_desc)))
+#define WMA_MAX_NOA_DESCRIPTORS 4
 struct beacon_info {
 	adf_nbuf_t buf;
 	u_int32_t len;
@@ -187,6 +189,9 @@ struct beacon_info {
 	u_int32_t tim_ie_offset;
 	u_int8_t dtim_count;
 	u_int16_t seq_no;
+	u_int8_t noa_sub_ie[2 + WMA_NOA_IE_SIZE(WMA_MAX_NOA_DESCRIPTORS)];
+	u_int16_t noa_sub_ie_len;
+	u_int8_t *noa_ie;
 	adf_os_spinlock_t lock;
 };
 
@@ -975,4 +980,81 @@ enum uapsd_peer_param_enabled_ac {
 
 #define WMA_TXMIC_LEN 8
 #define WMA_RXMIC_LEN 8
+
+/*
+ * Length = (2 octets for Index and CTWin/Opp PS) and
+ * (13 octets for each NOA Descriptors)
+ */
+
+#define WMA_P2P_NOA_IE_OPP_PS_SET (0x80)
+#define WMA_P2P_NOA_IE_CTWIN_MASK (0x7F)
+
+#define WMA_P2P_IE_ID 0xdd
+#define WMA_P2P_WFA_OUI { 0x50,0x6f,0x9a }
+#define WMA_P2P_WFA_VER 0x09                 /* ver 1.0 */
+#define WMA_WSC_OUI { 0x00,0x50,0xF2 }       /* Microsoft WSC OUI byte */
+
+/* P2P Sub element defintions (according to table 5 of Wifi's P2P spec) */
+#define WMA_P2P_SUB_ELEMENT_STATUS                    0
+#define WMA_P2P_SUB_ELEMENT_MINOR_REASON              1
+#define WMA_P2P_SUB_ELEMENT_CAPABILITY                2
+#define WMA_P2P_SUB_ELEMENT_DEVICE_ID                 3
+#define WMA_P2P_SUB_ELEMENT_GO_INTENT                 4
+#define WMA_P2P_SUB_ELEMENT_CONFIGURATION_TIMEOUT     5
+#define WMA_P2P_SUB_ELEMENT_LISTEN_CHANNEL            6
+#define WMA_P2P_SUB_ELEMENT_GROUP_BSSID               7
+#define WMA_P2P_SUB_ELEMENT_EXTENDED_LISTEN_TIMING    8
+#define WMA_P2P_SUB_ELEMENT_INTENDED_INTERFACE_ADDR   9
+#define WMA_P2P_SUB_ELEMENT_MANAGEABILITY             10
+#define WMA_P2P_SUB_ELEMENT_CHANNEL_LIST              11
+#define WMA_P2P_SUB_ELEMENT_NOA                       12
+#define WMA_P2P_SUB_ELEMENT_DEVICE_INFO               13
+#define WMA_P2P_SUB_ELEMENT_GROUP_INFO                14
+#define WMA_P2P_SUB_ELEMENT_GROUP_ID                  15
+#define WMA_P2P_SUB_ELEMENT_INTERFACE                 16
+#define WMA_P2P_SUB_ELEMENT_OP_CHANNEL                17
+#define WMA_P2P_SUB_ELEMENT_INVITATION_FLAGS          18
+#define WMA_P2P_SUB_ELEMENT_VENDOR                    221
+
+/* Macros for handling unaligned memory accesses */
+#define P2PIE_PUT_LE16(a, val)          \
+	do {                    \
+		(a)[1] = ((u16) (val)) >> 8;    \
+		(a)[0] = ((u16) (val)) & 0xff;  \
+	} while (0)
+
+#define P2PIE_PUT_LE32(a, val)                  \
+	do {                            \
+		(a)[3] = (u8) ((((u32) (val)) >> 24) & 0xff);   \
+		(a)[2] = (u8) ((((u32) (val)) >> 16) & 0xff);   \
+		(a)[1] = (u8) ((((u32) (val)) >> 8) & 0xff);    \
+		(a)[0] = (u8) (((u32) (val)) & 0xff);       \
+	} while (0)
+
+/*
+ * P2P IE structural definition.
+ */
+struct p2p_ie {
+	u_int8_t  p2p_id;
+	u_int8_t  p2p_len;
+	u_int8_t  p2p_oui[3];
+	u_int8_t  p2p_oui_type;
+} __packed;
+
+struct p2p_noa_descriptor {
+	u_int8_t   type_count; /* 255: continuous schedule, 0: reserved */
+	u_int32_t  duration ;  /* Absent period duration in micro seconds */
+	u_int32_t  interval;   /* Absent period interval in micro seconds */
+	u_int32_t  start_time; /* 32 bit tsf time when in starts */
+} __packed;
+
+struct p2p_sub_element_noa {
+	u_int8_t p2p_sub_id;
+	u_int8_t p2p_sub_len;
+	u_int8_t index;           /* identifies instance of NOA su element */
+	u_int8_t oppPS:1,         /* oppPS state of the AP */
+		 ctwindow:7;      /* ctwindow in TUs */
+	u_int8_t num_descriptors; /* number of NOA descriptors */
+	struct p2p_noa_descriptor noa_descriptors[WMA_MAX_NOA_DESCRIPTORS];
+};
 #endif
