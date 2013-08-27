@@ -2942,6 +2942,50 @@ static int32_t wmi_unified_set_sta_ps_param(wmi_unified_t wmi_handle,
 	return 0;
 }
 
+static void
+wma_update_protection_mode(tp_wma_handle wma, u_int8_t vdev_id,
+			   u_int8_t llbcoexist)
+{
+	int ret;
+	enum ieee80211_protmode prot_mode;
+
+	prot_mode = llbcoexist ? IEEE80211_PROT_CTSONLY : IEEE80211_PROT_NONE;
+
+	ret = wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					      WMI_VDEV_PARAM_PROTECTION_MODE,
+					      prot_mode);
+
+	if (ret)
+		WMA_LOGE("Failed to send wmi protection mode cmd");
+	else
+		WMA_LOGD("Updated protection mode %d to target", prot_mode);
+}
+
+/*
+ * Function	: wma_process_update_beacon_params
+ * Description	: update the beacon parameters to target
+ * Args		: wma handle, beacon parameters
+ * Returns	: None
+ */
+static void
+wma_process_update_beacon_params(tp_wma_handle wma,
+				 tUpdateBeaconParams *bcn_params)
+{
+	if (!bcn_params) {
+		WMA_LOGE("bcn_params NULL");
+		return;
+	}
+
+	if (bcn_params->smeSessionId >= wma->max_bssid) {
+		WMA_LOGE("Invalid vdev id %d", bcn_params->smeSessionId);
+		return;
+	}
+
+	if (bcn_params->paramChangeBitmap & PARAM_llBCOEXIST_CHANGED)
+		wma_update_protection_mode(wma, bcn_params->smeSessionId,
+					   bcn_params->llbCoexist);
+}
+
 /*
  * Function    : wma_update_cfg_params
  * Description : update the cfg parameters to target
@@ -3023,6 +3067,9 @@ wma_vdev_set_bss_params(tp_wma_handle wma, int vdev_id, tpAddBssParams params)
 					      slot_time);
 	if (ret)
 		WMA_LOGE("failed to set WMI_VDEV_PARAM_SLOT_TIME\n");
+
+	/* Initialize protection mode in case of coexistence */
+	wma_update_protection_mode(wma, vdev_id, params->llbCoexist);
 }
 
 static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
@@ -3088,6 +3135,14 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 				    WMA_TARGET_REQ_TYPE_VDEV_START);
 		goto peer_cleanup;
 	}
+
+	/* Initialize protection mode to no protection */
+	if (wmi_unified_vdev_set_param_send(wma->wmi_handle, vdev_id,
+					    WMI_VDEV_PARAM_PROTECTION_MODE,
+					    IEEE80211_PROT_NONE)) {
+		WMA_LOGE("Failed to initialize protection mode");
+	}
+
 	return;
 
 peer_cleanup:
@@ -5181,6 +5236,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(tFinishScanParams *)msg->bodyptr);
 			break;
 
+		case WDA_UPDATE_BEACON_IND:
+			wma_process_update_beacon_params(wma_handle,
+					(tUpdateBeaconParams *)msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
