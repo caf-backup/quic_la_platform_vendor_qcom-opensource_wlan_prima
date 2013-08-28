@@ -283,14 +283,20 @@ static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 	u_int32_t fw_entry_size;
 	u_int8_t *tempEeprom;
 	u_int32_t board_data_size;
+	int ret;
 
 	if (scn->enablesinglebinary && file != ATH_BOARD_DATA_FILE) {
 		/*
 		 * Fallback to load split binaries if single binary is not found
 		 */
-		if (ol_transfer_single_bin_file(scn,
-						address,
-						compressed) != -ENOENT)
+		ret = ol_transfer_single_bin_file(scn,
+						  address,
+						  compressed);
+
+		if (!ret)
+			return ret;
+
+		if (ret != -ENOENT)
 			return -1;
 	}
 
