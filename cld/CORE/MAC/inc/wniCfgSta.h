@@ -2,7 +2,7 @@
  * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
- * Copyright (C) 2007-2009 QUALCOMM Incorporated. All rights reserved. Proprietary and Confidential.
+ * Copyright (C) 2007-2009 Qualcomm Technologies, Inc. All rights reserved. Proprietary and Confidential.
  */
 
 /*
