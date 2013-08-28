@@ -5240,6 +5240,12 @@ static void wma_finish_scan_req(tp_wma_handle wma_handle,
 			0);
 }
 
+static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
+{
+	msg->status = eHAL_STATUS_SUCCESS;
+	wma_send_msg(wma, WDA_ADD_TS_RSP, msg, 0);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -5420,6 +5426,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_update_beacon_params(wma_handle,
 					(tUpdateBeaconParams *)msg->bodyptr);
 			break;
+
+		case WDA_ADD_TS_REQ:
+			wma_add_ts_req(wma_handle, (tAddTsParams *)msg->bodyptr);
+			break;
+
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
