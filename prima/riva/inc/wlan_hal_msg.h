@@ -6163,6 +6163,8 @@ typedef PACKED_PRE struct PACKED_POST
 #endif
 
 #ifdef FEATURE_WLAN_TDLS
+#define HAL_MAX_SUPP_CHANNELS 128
+#define HAL_MAX_SUPP_OPER_CLASSES 32
 /*---------------------------------------------------------------------------
  * WLAN_HAL_TDLS_LINK_ESTABLISHED_REQ
  *-------------------------------------------------------------------------*/
@@ -6185,7 +6187,14 @@ typedef PACKED_PRE struct PACKED_POST
 
     /*TDLS Peer U-APSD Buffer STA Support*/
     tANI_U8        TPUBufferStaSupport;
-
+    /*TDLS Offchannel Support*/
+    tANI_U8        tdlsOffchannelSupport;
+    tANI_U8        peerCurrOperClass;
+    tANI_U8        selfCurrOperClass;
+    tANI_U8        validChannelsLen;
+    tANI_U8        validChannels[HAL_MAX_SUPP_CHANNELS];
+    tANI_U8        validOperClassesLen;
+    tANI_U8        validOperClasses[HAL_MAX_SUPP_OPER_CLASSES];
 }tTDLSLinkEstablishedType, *tpTDLSLinkEstablishedType;
 
 typedef PACKED_PRE struct PACKED_POST
