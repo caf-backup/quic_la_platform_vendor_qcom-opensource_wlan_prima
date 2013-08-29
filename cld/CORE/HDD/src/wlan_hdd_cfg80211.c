@@ -613,7 +613,9 @@ int wlan_hdd_cfg80211_register(struct device *dev,
 
     wiphy->max_scan_ie_len = 200 ; //TODO: define a macro
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
     wiphy->max_acl_mac_addrs = MAX_MAC_ADDRESS_ACCEPTED;
+#endif
 
     /* Supports STATION & AD-HOC modes right now */
     wiphy->interface_modes =   BIT(NL80211_IFTYPE_STATION)
@@ -7898,6 +7900,8 @@ nla_put_failure:
 }
 #endif
 
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 /*
  * FUNCTION: wlan_hdd_cfg80211_set_mac_acl
  * This function is used to set access control policy
@@ -8012,6 +8016,7 @@ static int wlan_hdd_cfg80211_set_mac_acl(struct wiphy *wiphy,
 
     return 0;
 }
+#endif
 
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops =
@@ -8080,6 +8085,8 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
      .sched_scan_start = wlan_hdd_cfg80211_sched_scan_start,
      .sched_scan_stop = wlan_hdd_cfg80211_sched_scan_stop,
 #endif /*FEATURE_WLAN_SCAN_PNO */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
      .set_mac_acl = wlan_hdd_cfg80211_set_mac_acl,
+#endif
 };
 

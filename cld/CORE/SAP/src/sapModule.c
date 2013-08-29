@@ -639,6 +639,7 @@ WLANSAP_StartBss
     return vosStatus;
 }// WLANSAP_StartBss
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 /*==========================================================================
   FUNCTION    WLANSAP_SetMacACL
 
@@ -712,7 +713,7 @@ WLANSAP_SetMacACL
 
     return vosStatus;
 }//WLANSAP_SetMacACL
-
+#endif
 /*==========================================================================
   FUNCTION    WLANSAP_StopBss
 
