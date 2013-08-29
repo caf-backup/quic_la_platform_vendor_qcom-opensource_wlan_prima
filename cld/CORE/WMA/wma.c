@@ -5839,13 +5839,21 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 
 	vos_status = VOS_STATUS_SUCCESS;
 
-#ifndef QCA_WIFI_FTM
+#ifdef QCA_WIFI_FTM
+	/*
+	 * Tx mgmt attach requires TXRX context which is not created
+	 * in FTM mode as WLANTL_Open will not be called in this mode.
+	 * So skip the TX mgmt attach.
+	 */
+	if (vos_get_conparam() == VOS_FTM_MODE)
+		goto end;
+#endif
+
 	vos_status = wma_tx_mgmt_attach(wma_handle);
 	if(vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("Failed to register tx management");
 		goto end;
 	}
-#endif
 
 end:
 	WMA_LOGD("%s: Exit", __func__);
@@ -5877,13 +5885,23 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 	wma_hal_stop_isoc(wma_handle);
 #endif
 
-#ifndef QCA_WIFI_FTM
+#ifdef QCA_WIFI_FTM
+	/*
+	 * Tx mgmt detach requires TXRX context which is not created
+	 * in FTM mode as WLANTL_Open will not be called in this mode.
+	 * So skip the TX mgmt detach.
+	 */
+	if (vos_get_conparam() == VOS_FTM_MODE) {
+		vos_status = VOS_STATUS_SUCCESS;
+		goto end;
+	}
+#endif
+
 	vos_status = wma_tx_mgmt_detach(wma_handle);
 	if(vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("Failed to deregister tx management");
 		goto end;
 	}
-#endif
 
 end:
 	WMA_LOGD("%s: Exit", __func__);
