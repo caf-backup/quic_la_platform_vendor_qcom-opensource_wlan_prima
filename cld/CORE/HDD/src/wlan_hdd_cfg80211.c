@@ -343,7 +343,7 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
 static const struct ieee80211_iface_limit
 wlan_hdd_iface_limit[] = {
     {
-        /* max = 3 ; Our driver create two interfaces during driver init
+        /* max = 4 ; Our driver create two interfaces during driver init
          * wlan0 and p2p0 interfaces. p2p0 is considered as station
          * interface until a group is formed. In JB architecture, once the
          * group is formed, interface type of p2p0 is changed to P2P GO or
@@ -359,9 +359,10 @@ wlan_hdd_iface_limit[] = {
          * delete interface. Ideally while removing the group, supplicant
          * should not try to change the 3rd interface mode to Station type.
          * Till we get a fix in wpa_supplicant, we advertize max STA
-         * interface type to 3
+         * interface type to 4 to support both p2p client and p2p GO
+         * combinations.
          */
-        .max = 3,
+        .max = 4,
         .types = BIT(NL80211_IFTYPE_STATION),
     },
     {
@@ -369,7 +370,7 @@ wlan_hdd_iface_limit[] = {
         .types = BIT(NL80211_IFTYPE_ADHOC) | BIT(NL80211_IFTYPE_AP),
     },
     {
-        .max = 1,
+        .max = 2,
         .types = BIT(NL80211_IFTYPE_P2P_GO) |
                  BIT(NL80211_IFTYPE_P2P_CLIENT),
     },
