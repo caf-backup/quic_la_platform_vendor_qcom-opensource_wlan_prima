@@ -760,9 +760,31 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       status = hdd_wmm_acquire_access( pAdapter, ac, &granted );
    }
 
-   /* FIXME: Is it fine to drop if wmm stream is not established ? */
-   if (!granted)
-	   goto drop_pkt;
+   if (!granted) {
+      /* ADDTS request for this AC is sent, for now
+       * send this packet through next avaiable lower
+       * Access category until ADDTS negotiation completes.
+       */
+      while (!likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed)) {
+         switch(ac) {
+            case WLANTL_AC_VO:
+               ac = WLANTL_AC_VI;
+               up = SME_QOS_WMM_UP_VI;
+               break;
+            case WLANTL_AC_VI:
+               ac = WLANTL_AC_BE;
+               up = SME_QOS_WMM_UP_BE;
+               break;
+            default:
+               ac = WLANTL_AC_BK;
+               up = SME_QOS_WMM_UP_BK;
+               break;
+         }
+      }
+      skb->priority = up;
+      skb->queue_mapping = hddLinuxUpToAcMap[up];
+   }
+
 
    /*
     * TODO: Should we stop net queues when txrx returns non-NULL?.
