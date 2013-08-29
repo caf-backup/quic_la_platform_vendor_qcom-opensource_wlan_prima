@@ -693,7 +693,7 @@ int ol_download_firmware(struct ol_softc *scn)
 		address = BMI_SEGMENTED_WRITE_ADDR;
 		printk("%s: Using 0x%x for the remainder of init\n", __func__, address);
 
-		if (scn->target_version != AR6320_REV1_VERSION) {
+		if ((scn->target_version != AR6320_REV1_VERSION) || (scn->target_version != AR6320_REV1_1_VERSION)) {
 			status = ol_transfer_bin_file(scn, ATH_OTP_FILE,
 						      address, TRUE);
 			if (status == EOK) {
@@ -724,7 +724,7 @@ int ol_download_firmware(struct ol_softc *scn)
 	}
 
 	if (scn->enableuartprint) {
-		if (scn->target_version == AR6320_REV1_VERSION)
+		if ((scn->target_version == AR6320_REV1_VERSION) || (scn->target_version == AR6320_REV1_VERSION))
 			param = 6;
 		else
 			/* Configure GPIO AR9888 UART */
