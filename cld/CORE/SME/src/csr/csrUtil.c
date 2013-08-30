@@ -2747,16 +2747,6 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                     }
                     break;
 
-                case VOS_P2P_CLIENT_MODE:
-                    if(pMac->roam.roamSession[sessionId].pCurRoamProfile &&
-                      (pMac->roam.roamSession[sessionId].pCurRoamProfile->csrPersona
-                                                  == VOS_P2P_CLIENT_MODE)) //check for P2P client mode
-                    {
-                        smsLog(pMac, LOGE, FL(" ****CLIENT mode already exists ****"));
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    break;
-
                 case VOS_P2P_GO_MODE:
                     if((pMac->roam.roamSession[sessionId].bssParams.bssPersona
                                       == VOS_P2P_GO_MODE) &&
