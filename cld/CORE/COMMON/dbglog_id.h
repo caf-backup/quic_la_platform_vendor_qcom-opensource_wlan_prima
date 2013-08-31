@@ -116,14 +116,20 @@ extern "C" {
 #define PS_STA_PSPOLL_SEQ_DONE                      3
 #define PS_STA_COEX_MODE                            4
 #define PS_STA_PSPOLL_ALLOW                         5
+#define PS_STA_SET_PARAM                            6
+#define PS_STA_SPECPOLL_TIMER_STARTED               7
+#define PS_STA_SPECPOLL_TIMER_STOPPED               8
 
-
-/** RESMGR OCS dbg ids */
-#define RESMGR_OCS_DEFINITION_START                 0
+/** RESMGR dbg ids */
+/* TODO: 1. Segregate IDs as per sub-module. (Give 100 per sub-module?)
+ *       2. Add chmgr IDs over here.
+ *       3. Update prints in dbglog_host.c
+ *       4. Deprecate WLAN_MODULE_RESMGR_CHAN_MANAGER */
+#define RESMGR_DEFINITION_START                     0
 #define RESMGR_OCS_ALLOCRAM_SIZE                    1
 #define RESMGR_OCS_RESOURCES                        2
-#define RESMGR_OCS_LINK_CREATE                      3
-#define RESMGR_OCS_LINK_DELETE                      4
+#define RESMGR_LINK_CREATE                          3
+#define RESMGR_LINK_DELETE                          4
 #define RESMGR_OCS_CHREQ_CREATE                     5
 #define RESMGR_OCS_CHREQ_DELETE                     6
 #define RESMGR_OCS_CHREQ_START                      7
@@ -160,7 +166,17 @@ extern "C" {
 #define RESMGR_OCS_ALLOCATED_QUOTA_STATS            38
 #define RESMGR_OCS_REQ_QUOTA_STATS                  39
 #define RESMGR_OCS_TRACKING_TIME_FIRED              40
-#define RESMGR_OCS_DEFINITION_END                   41
+#define RESMGR_VC_ARBITRATE_ATTRIBUTES              41
+#define RESMGR_OCS_LATENCY_STRICT_TIME_SLOT         42
+#define RESMGR_OCS_CURR_TSF                         43
+#define RESMGR_OCS_QUOTA_REM                        44
+#define RESMGR_OCS_LATENCY_CASE_NO                  45
+#define RESMGR_OCS_WIN_CAT_DUR                      46
+#define RESMGR_VC_UPDATE_CUR_VC                     47
+#define RESMGR_VC_REG_UNREG_LINK                    48
+#define RESMGR_VC_PRINT_LINK                        49
+#define RESMGR_OCS_MISS_TOLERANCE                   50
+#define RESMGR_DEFINITION_END                       51
 
 /* RESMGR CHNMGR debug ids */
 #define RESMGR_CHMGR_DEFINITION_START               0
@@ -169,7 +185,9 @@ extern "C" {
 #define RESMGR_CHMGR_RESUME_COMPLETE                3
 #define RESMGR_CHMGR_VDEV_PAUSE                     4
 #define RESMGR_CHMGR_VDEV_UNPAUSE                   5
-#define RESMGR_CHMGR_DEFINITION_END                 7
+#define RESMGR_CHMGR_CTS2S_TX_COMP                  6
+#define RESMGR_CHMGR_CFEND_TX_COMP                  7
+#define RESMGR_CHMGR_DEFINITION_END                 8
 
 /* VDEV manager debug ids */
 #define VDEV_MGR_DEFINITION_START                   0
@@ -179,7 +197,7 @@ extern "C" {
 #define VDEV_MGR_AP_KEEPALIVE_IDLE                  4
 #define VDEV_MGR_AP_KEEPALIVE_INACTIVE              5
 #define VDEV_MGR_AP_KEEPALIVE_UNRESPONSIVE          6
-#define VDEV_MGR_MANAGE_AP_STA_DRIFT                7
+#define VDEV_MGR_AP_TBTT_CONFIG                     7
 #define VDEV_MGR_FIRST_BCN_RECEIVED                 8
 #define VDEV_MGR_VDEV_START                         9
 #define VDEV_MGR_VDEV_UP                            10
@@ -432,8 +450,20 @@ extern "C" {
 #define COEX_PSP_STAT_2                             197
 #define COEX_PSP_RX_STATUS_STATE_2                  198
 #define COEX_PSP_ERROR                              199
+#define COEX_T2BT                                   200
+#define COEX_BT_DURATION                            201
+#define COEX_TX_MCI_GPM_WLAN_SCHED_INFO_TRIG        202
+#define COEX_TX_MCI_GPM_WLAN_SCHED_INFO_TRIG_RSP    203
+#define COEX_TX_MCI_GPM_SCAN_OP                     204
+#define COEX_TX_MCI_GPM_BT_PAUSE_GPM_TX             205
+#define COEX_CTS2S_SEND                             206
+#define COEX_CTS2S_RESULT                           207
+#define COEX_ENTER_OCS                              208
+#define COEX_EXIT_OCS                               209
+#define COEX_UPDATE_OCS                             210
+#define COEX_STATUS_OCS                             211
 
-#define COEX_DEBUG_ID_END                           200
+#define COEX_DEBUG_ID_END                           212
 
 #define SCAN_START_COMMAND_FAILED                   0
 #define SCAN_STOP_COMMAND_FAILED                    1
@@ -481,11 +511,7 @@ extern "C" {
 #define AP_PS_DBGID_SEND_COMPLETE                   15
 #define AP_PS_DBGID_SEND_N_COMPLETE                 16
 #define AP_PS_DBGID_DETECT_OUT_OF_SYNC_STA          17
-
-/* WLAN_MODULE_MGMT_TXRX Debugids*/
-#define MGMT_TXRX_DBGID_DEFINITION_START            0
-#define MGMT_TXRX_FORWARD_TO_HOST                   1
-#define MGMT_TXRX_DBGID_DEFINITION_END              2
+#define AP_PS_DBGID_DELIVER_CAB                     18
 
 /* WLAN_MODULE_MGMT_TXRX Debugids*/
 #define MGMT_TXRX_DBGID_DEFINITION_START            0
@@ -538,8 +564,17 @@ extern "C" {
 #define WAL_DBGID_MGMT_TX_FAIL                      42
 #define WAL_DBGID_SET_M4_SENT_MANUALLY              43
 #define WAL_DBGID_PROCESS_4_WAY_HANDSHAKE           44
-#define WAL_DBGID_DEFINITION_END                    45
-
+#define WAL_DBGID_WAL_CHANNEL_CHANGE_START          45
+#define WAL_DBGID_WAL_CHANNEL_CHANGE_COMPLETE       46
+#define WAL_DBGID_WHAL_CHANNEL_CHANGE_START         47
+#define WAL_DBGID_WHAL_CHANNEL_CHANGE_COMPLETE      48
+#define WAL_DBGID_TX_MGMT_DESCID_SEQ_TYPE_LEN       49
+#define WAL_DBGID_TX_DATA_MSDUID_SEQ_TYPE_LEN       50
+#define WAL_DBGID_TX_DISCARD                        51
+#define WAL_DBGID_TX_MGMT_COMP_DESCID_STATUS        52
+#define WAL_DBGID_TX_DATA_COMP_MSDUID_STATUS        53
+#define WAL_DBGID_RESET_PCU_CYCLE_CNT               54
+#define WAL_DBGID_DEFINITION_END                    55
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
@@ -638,6 +673,7 @@ extern "C" {
 #define CSA_OFFLOAD_WMI_EVENT_ERROR 10
 #define CSA_OFFLOAD_WMI_EVENT_SENT 11
 #define CSA_OFFLOAD_WMI_CHANSWITCH_RECV 12
+#define CSA_DBGID_DEFINITION_END 13
 
 /* Chatter module DBGIDs */
 #define WLAN_CHATTER_DBGID_DEFINITION_START 0
@@ -661,6 +697,41 @@ extern "C" {
 #define WOW_INIT 8
 #define WOW_RECV_MAGIC_PKT 9
 #define WOW_RECV_BITMAP_PATTERN 10
+#define WOW_DBGID_DEFINITION_END 11
+
+/* SWBMISS module DBGIDs */
+#define SWBMISS_DBGID_DEFINITION_START  0
+#define SWBMISS_ENABLED                 1
+#define SWBMISS_DISABLED                2
+#define SWBMISS_DBGID_DEFINITION_END    3
+
+/* DATA_TXRX module DBGIDs*/
+#define DATA_TXRX_DBGID_DEFINITION_START         0
+#define DATA_TXRX_DBGID_RX_DATA_SEQ_LEN_INFO     1
+#define DATA_TXRX_DBGID_DEFINITION_END           2
+
+/* TDLS module DBGIDs*/
+#define TDLS_DBGID_DEFINITION_START             0
+#define TDLS_DBGID_VDEV_CREATE                  1
+#define TDLS_DBGID_VDEV_DELETE                  2
+#define TDLS_DBGID_ENABLED_PASSIVE              3
+#define TDLS_DBGID_ENABLED_ACTIVE               4
+#define TDLS_DBGID_DISABLED                     5
+#define TDLS_DBGID_CONNTRACK_TIMER              6
+#define TDLS_DBGID_WAL_SET                      7
+#define TDLS_DBGID_WAL_GET                      8
+#define TDLS_DBGID_WAL_PEER_UPDATE_SET          9
+#define TDLS_DBGID_WAL_PEER_UPDATE_EVT         10
+#define TDLS_DBGID_WAL_VDEV_CREATE             11
+#define TDLS_DBGID_WAL_VDEV_DELETE             12
+#define TDLS_DBGID_WLAN_EVENT                  13
+#define TDLS_DBGID_WLAN_PEER_UPDATE_SET        14
+#define TDLS_DBGID_PEER_EVT_DRP_THRESH         15
+#define TDLS_DBGID_PEER_EVT_DRP_RATE           16
+#define TDLS_DBGID_PEER_EVT_DRP_RSSI           17
+#define TDLS_DBGID_PEER_EVT_DISCOVER           18
+#define TDLS_DBGID_PEER_EVT_DELETE             19
+
 #ifdef __cplusplus
 }
 #endif
