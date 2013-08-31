@@ -902,7 +902,6 @@ WLANSAP_SetMacACL
     v_PVOID_t  pvosGCtx,
     tsap_Config_t *pConfig
 );
-
 /*==========================================================================
   FUNCTION    WLANSAP_Stop
 
