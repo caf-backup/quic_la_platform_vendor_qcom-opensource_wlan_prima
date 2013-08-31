@@ -5246,6 +5246,63 @@ static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 	wma_send_msg(wma, WDA_ADD_TS_RSP, msg, 0);
 }
 
+static void wma_data_tx_ack_work_handler(struct work_struct *ack_work)
+{
+	struct wma_tx_ack_work_ctx *work = container_of(ack_work,
+		struct wma_tx_ack_work_ctx, ack_cmp_work);
+	pWDAAckFnTxComp ack_cb =
+		work->wma_handle->umac_data_ota_ack_cb;
+
+	WMA_LOGD("Data Tx Ack Cb Status %d",
+			work->status);
+
+	/* Call the Ack Cb registered by UMAC */
+	ack_cb((tpAniSirGlobal)(work->wma_handle->mac_context),
+				work->status ? 0 : 1);
+	work->wma_handle->umac_data_ota_ack_cb = NULL;
+	adf_os_mem_free(work);
+}
+
+/**
+  * wma_data_tx_ack_comp_hdlr - handles tx data ack completion
+  * @context: context with which the handler is registered
+  * @netbuf: tx data nbuf
+  * @err: status of tx completion
+  *
+  * This is the cb registered with TxRx for
+  * Ack Complete
+  */
+static void
+wma_data_tx_ack_comp_hdlr(void *wma_context,
+		adf_nbuf_t netbuf, int32_t status)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)wma_context;
+	ol_txrx_pdev_handle pdev =
+		vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
+
+	if(wma_handle && wma_handle->umac_data_ota_ack_cb) {
+		struct wma_tx_ack_work_ctx *ack_work;
+
+		ack_work =
+		adf_os_mem_alloc(NULL, sizeof(struct wma_tx_ack_work_ctx));
+
+		if(ack_work) {
+			INIT_WORK(&ack_work->ack_cmp_work,
+					wma_data_tx_ack_work_handler);
+			ack_work->wma_handle = wma_handle;
+			ack_work->sub_type = 0;
+			ack_work->status = status;
+
+			/* Schedue the Work */
+			schedule_work(&ack_work->ack_cmp_work);
+		}
+	}
+
+	/* unmap and freeing the tx buf as txrx is not taking care */
+	adf_nbuf_unmap_single(pdev->osdev, netbuf, ADF_OS_DMA_TO_DEVICE);
+	adf_nbuf_free(netbuf);
+}
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -5292,11 +5349,15 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_ADD_STA_SELF_REQ:
 			txrx_vdev_handle = wma_vdev_attach(wma_handle,
 					(tAddStaSelfParams *)msg->bodyptr);
-			if (!txrx_vdev_handle)
+			if (!txrx_vdev_handle) {
 				WMA_LOGE("Failed to attach vdev");
-			else
+			} else {
 				WLANTL_RegisterVdev(vos_context,
 						    txrx_vdev_handle);
+				/* Register with TxRx Module for Data Ack Complete Cb */
+				wdi_in_data_tx_cb_set(txrx_vdev_handle,
+					wma_data_tx_ack_comp_hdlr, wma_handle);
+			}
 			break;
 		case WDA_DEL_STA_SELF_REQ:
 			wma_vdev_detach(wma_handle, (tDelStaSelfParams *)msg->bodyptr);
@@ -5581,13 +5642,10 @@ wma_mgmt_tx_dload_comp_hldr(void *wma_context, adf_nbuf_t netbuf,
 }
 
 /**
-  * wma_mgmt_attach - attches mgmt fn with underlying layer
-  * DXE in case of Integrated, WMI incase of Discrete
+  * wma_tx_attach - attaches tx fn with underlying layer
   * @pwmaCtx: wma context
-  * @pmacCtx: mac Context
-  * @mgmt_frm_rxcb: Rx mgmt Callback
   */
-VOS_STATUS wma_tx_mgmt_attach(tp_wma_handle wma_handle)
+VOS_STATUS wma_tx_attach(tp_wma_handle wma_handle)
 {
 	/* Get the Vos Context */
 	pVosContextType vos_handle =
@@ -5615,11 +5673,11 @@ VOS_STATUS wma_tx_mgmt_attach(tp_wma_handle wma_handle)
 }
 
 /**
- * wma_tx_mgmt_detach - detaches mgmt fn with underlying layer
+ * wma_tx_detach - detaches mgmt fn with underlying layer
  * Deregister with TxRx for Tx Mgmt Download and Ack completion.
  * @tp_wma_handle: wma context
  */
-static VOS_STATUS wma_tx_mgmt_detach(tp_wma_handle wma_handle)
+static VOS_STATUS wma_tx_detach(tp_wma_handle wma_handle)
 {
 	u_int32_t frame_index = 0;
 
@@ -5642,6 +5700,9 @@ static VOS_STATUS wma_tx_mgmt_detach(tp_wma_handle wma_handle)
 
 	/* Reset Tx Frm Callbacks */
 	wma_handle->tx_frm_download_comp_cb = NULL;
+
+	/* Reset Tx Data Frame Ack Cb */
+	wma_handle->umac_data_ota_ack_cb = NULL;
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -5860,7 +5921,7 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		goto end;
 #endif
 
-	vos_status = wma_tx_mgmt_attach(wma_handle);
+	vos_status = wma_tx_attach(wma_handle);
 	if(vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("Failed to register tx management");
 		goto end;
@@ -5908,7 +5969,7 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 	}
 #endif
 
-	vos_status = wma_tx_mgmt_detach(wma_handle);
+	vos_status = wma_tx_detach(wma_handle);
 	if(vos_status != VOS_STATUS_SUCCESS) {
 		WMA_LOGP("Failed to deregister tx management");
 		goto end;
@@ -6553,6 +6614,98 @@ int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 	return 0;
 }
 
+static void
+wma_decap_to_8023 (adf_nbuf_t msdu, struct wma_decap_info_t *info)
+{
+	struct llc_snap_hdr_t *llc_hdr;
+	u_int16_t ether_type;
+	u_int16_t l2_hdr_space;
+	struct ieee80211_qosframe_addr4 *wh;
+	u_int8_t local_buf[ETHERNET_HDR_LEN];
+	u_int8_t *buf;
+	struct ethernet_hdr_t *ethr_hdr;
+
+	buf = (u_int8_t *)adf_nbuf_data(msdu);
+	llc_hdr = (struct llc_snap_hdr_t *)buf;
+	ether_type = (llc_hdr->ethertype[0] << 8)|llc_hdr->ethertype[1];
+	/* do llc remove if needed */
+	l2_hdr_space = 0;
+	if (IS_SNAP(llc_hdr)) {
+		if (IS_BTEP(llc_hdr)) {
+			/* remove llc*/
+			l2_hdr_space += sizeof(struct llc_snap_hdr_t);
+			llc_hdr = NULL;
+		} else if (IS_RFC1042(llc_hdr)) {
+			if (!(ether_type == ETHERTYPE_AARP ||
+				ether_type == ETHERTYPE_IPX)) {
+				/* remove llc*/
+				l2_hdr_space += sizeof(struct llc_snap_hdr_t);
+				llc_hdr = NULL;
+			}
+		}
+	}
+	if (l2_hdr_space > ETHERNET_HDR_LEN) {
+		buf = adf_nbuf_pull_head(msdu, l2_hdr_space - ETHERNET_HDR_LEN);
+	} else if (l2_hdr_space <  ETHERNET_HDR_LEN) {
+		buf = adf_nbuf_push_head(msdu, ETHERNET_HDR_LEN - l2_hdr_space);
+	}
+
+	/* mpdu hdr should be present in info,re-create ethr_hdr based on mpdu hdr*/
+	wh = (struct ieee80211_qosframe_addr4 *)info->hdr;
+	ethr_hdr = (struct ethernet_hdr_t *)local_buf;
+	switch (wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) {
+		case IEEE80211_FC1_DIR_NODS:
+			adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr1,
+							ETHERNET_ADDR_LEN);
+			adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr2,
+							ETHERNET_ADDR_LEN);
+			break;
+		case IEEE80211_FC1_DIR_TODS:
+			adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr3,
+							ETHERNET_ADDR_LEN);
+			adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr2,
+							ETHERNET_ADDR_LEN);
+			break;
+		case IEEE80211_FC1_DIR_FROMDS:
+			adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr1,
+							ETHERNET_ADDR_LEN);
+			adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr3,
+							ETHERNET_ADDR_LEN);
+			break;
+		case IEEE80211_FC1_DIR_DSTODS:
+			adf_os_mem_copy(ethr_hdr->dest_addr, wh->i_addr3,
+							ETHERNET_ADDR_LEN);
+			adf_os_mem_copy(ethr_hdr->src_addr, wh->i_addr4,
+							ETHERNET_ADDR_LEN);
+			break;
+	}
+
+	if (llc_hdr == NULL) {
+		ethr_hdr->ethertype[0] = (ether_type >> 8) & 0xff;
+		ethr_hdr->ethertype[1] = (ether_type) & 0xff;
+	} else {
+		u_int32_t pktlen = adf_nbuf_len(msdu) - sizeof(ethr_hdr->ethertype);
+		ether_type = (u_int16_t)pktlen;
+		ether_type = adf_nbuf_len(msdu) - sizeof(struct ethernet_hdr_t);
+		ethr_hdr->ethertype[0] = (ether_type >> 8) & 0xff;
+		ethr_hdr->ethertype[1] = (ether_type) & 0xff;
+	}
+	adf_os_mem_copy(buf, ethr_hdr, ETHERNET_HDR_LEN);
+}
+
+static int32_t
+wma_ieee80211_hdrsize(const void *data)
+{
+	const struct ieee80211_frame *wh = (const struct ieee80211_frame *)data;
+	int32_t size = sizeof(struct ieee80211_frame);
+
+	if ((wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) == IEEE80211_FC1_DIR_DSTODS)
+		size += IEEE80211_ADDR_LEN;
+	if (IEEE80211_QOS_HAS_SEQ(wh))
+		size += sizeof(u_int16_t);
+	return size;
+}
+
 /**
   * WDA_TxPacket - Sends Tx Frame to TxRx
   * This function sends the frame corresponding to the
@@ -6591,13 +6744,79 @@ VOS_STATUS WDA_TxPacket(void *wma_context, void *tx_frame, u_int16_t frmLen,
 
 	/*
 	 * Currently only support to
-	 * send Mgmt is added.
-	 * TODO: Cntrl and Data frames through
-	 * this path
+	 * send 80211 Mgmt and 80211 Data are added.
 	 */
-	if (frmType != HAL_TXRX_FRM_802_11_MGMT) {
-		WMA_LOGE("No Support to send other frames except Mgmt");
+	if (!((frmType == HAL_TXRX_FRM_802_11_MGMT) ||
+		 (frmType == HAL_TXRX_FRM_802_11_DATA))) {
+		WMA_LOGE("No Support to send other frames except 802.11 Mgmt/Data");
 		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (frmType == HAL_TXRX_FRM_802_11_DATA) {
+		adf_nbuf_t ret;
+		adf_nbuf_t skb = (adf_nbuf_t)tx_frame;
+		ol_txrx_pdev_handle pdev =
+		vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
+		struct wma_decap_info_t decap_info;
+		struct ieee80211_frame *wh =
+			(struct ieee80211_frame *)adf_nbuf_data(skb);
+
+		/*
+		 * 1) TxRx Module expects data input to be 802.3 format
+		 * So Decapsulation has to be done.
+		 * 2) Only one Outstanding Data pending for Ack is allowed
+		 */
+		if (tx_frm_ota_comp_cb) {
+			if(wma_handle->umac_data_ota_ack_cb) {
+				WMA_LOGE("Already one Data pending for Ack.Don't Allow");
+				return VOS_STATUS_E_FAILURE;
+			}
+		} else {
+			/*
+			 * Data Frames are sent through TxRx Non Standard Data Path
+			 * so Ack Complete Cb is must
+			 */
+			WMA_LOGE("No Ack Complete Cb. Don't Allow");
+			return VOS_STATUS_E_FAILURE;
+		}
+
+		/* Take out 802.11 header from skb */
+		decap_info.hdr_len = wma_ieee80211_hdrsize(wh);
+		adf_os_mem_copy(decap_info.hdr, wh, decap_info.hdr_len);
+		adf_nbuf_pull_head(skb, decap_info.hdr_len);
+
+		/*  Decapsulate to 802.3 format */
+		wma_decap_to_8023(skb, &decap_info);
+
+		/* Zero out skb's context buffer for the driver to use */
+		adf_os_mem_set(skb->cb, 0, sizeof(skb->cb));
+
+		/* Do the DMA Mapping */
+		adf_nbuf_map_single(pdev->osdev, skb, ADF_OS_DMA_TO_DEVICE);
+
+		/* Terminate the (single-element) list of tx frames */
+		skb->next = NULL;
+
+		/* Store the Ack Complete Cb */
+		wma_handle->umac_data_ota_ack_cb = tx_frm_ota_comp_cb;
+
+		/* Send the Data frame to TxRx in Non Standard Path */
+		ret = ol_tx_non_std(txrx_vdev, ol_tx_spec_no_free, skb);
+		if (ret) {
+			WMA_LOGE("TxRx Rejected. Fail to do Tx");
+			adf_nbuf_unmap_single(pdev->osdev, skb, ADF_OS_DMA_TO_DEVICE);
+			/* Call Download Cb so that umac can free the buffer */
+			if (tx_frm_download_comp_cb)
+				tx_frm_download_comp_cb(wma_handle->mac_context, tx_frame, 1);
+			wma_handle->umac_data_ota_ack_cb = NULL;
+			return VOS_STATUS_E_FAILURE;
+		}
+
+		/* Call Download Callback if passed */
+		if (tx_frm_download_comp_cb)
+			tx_frm_download_comp_cb(wma_handle->mac_context, tx_frame, 0);
+
+		return VOS_STATUS_SUCCESS;
 	}
 
 	is_high_latency = wdi_out_cfg_is_high_latency(

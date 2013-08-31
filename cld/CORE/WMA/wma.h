@@ -316,6 +316,7 @@ typedef struct {
 
 	/* Ack Complete Callback registered by umac */
 	pWDAAckFnTxComp umac_ota_ack_cb[SIR_MAC_MGMT_RESERVED15];
+	pWDAAckFnTxComp umac_data_ota_ack_cb;
 
 	v_BOOL_t needShutdown;
 #if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
@@ -1057,4 +1058,10 @@ struct p2p_sub_element_noa {
 	u_int8_t num_descriptors; /* number of NOA descriptors */
 	struct p2p_noa_descriptor noa_descriptors[WMA_MAX_NOA_DESCRIPTORS];
 };
+
+struct wma_decap_info_t {
+	u_int8_t hdr[sizeof(struct ieee80211_qosframe_addr4)];
+	int32_t hdr_len;
+};
+
 #endif
