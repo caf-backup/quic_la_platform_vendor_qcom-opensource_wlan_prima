@@ -142,8 +142,8 @@
 
 #define HDD_SAP_WAKE_LOCK_DURATION 10000 //in msecs
 
-/* Maximum number of interfaces allowed(STA, P2P Device, P2P Interface) */
-#define WLAN_MAX_INTERFACES 3
+/* Maximum number of interfaces allowed(STA, P2P Device, P2P Interfaces) */
+#define WLAN_MAX_INTERFACES 4
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 #define GTK_OFFLOAD_ENABLE  0
