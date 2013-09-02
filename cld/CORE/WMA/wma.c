@@ -302,6 +302,7 @@ static void wma_vdev_start_rsp_ap_mode(tp_wma_handle wma,
 		__func__, bcn, bcn->buf);
 #endif
 	add_bss->status = VOS_STATUS_SUCCESS;
+	add_bss->bssIdx = resp_event->vdev_id;
 send_fail_resp:
 	WMA_LOGD("%s: Sending add bss rsp to umac(vdev %d status %d)\n",
 		 __func__, resp_event->vdev_id, add_bss->status);
@@ -3377,6 +3378,7 @@ send_bss_resp:
 				  &params->staContext.staIdx);
 	params->status = (params->staContext.staIdx < 0) ?
 				VOS_STATUS_E_FAILURE : VOS_STATUS_SUCCESS;
+	params->bssIdx = params->staContext.smesessionId;
 	vos_mem_copy(params->staContext.staMac, params->bssId,
 		     sizeof(params->staContext.staMac));
 	WMA_LOGD("%s: opermode %d update_bss %d nw_type %d bssid %pM"
