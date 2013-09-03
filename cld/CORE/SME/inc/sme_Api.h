@@ -2706,7 +2706,9 @@ v_BOOL_t sme_IsPmcBmps(tHalHandle hHal);
 
     \- return void
     -------------------------------------------------------------------------*/
-void sme_SetTdlsPowerSaveProhibited(tHalHandle hHal, v_BOOL_t val);
+void sme_SetTdlsPowerSaveProhibited(tHalHandle hHal, tANI_U32 sessionId,
+                                            v_BOOL_t val);
+
 #endif
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
 typedef struct smeTdlsDisResult

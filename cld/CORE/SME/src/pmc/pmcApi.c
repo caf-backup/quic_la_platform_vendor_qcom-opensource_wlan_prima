@@ -4045,3 +4045,22 @@ void pmcOffloadMessageProcessor(tHalHandle hHal, tSirSmeRsp *pMsg)
             break;
     }
 }
+
+#ifdef FEATURE_WLAN_TDLS
+eHalStatus pmcOffloadSetTdlsProhibitBmpsStatus(tHalHandle hHal,
+	                                                   tANI_U32 sessionId,
+                                                       v_BOOL_t val)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tpPsOffloadPerSessionInfo pmc;
+
+    /* Get the Session specific PMC info */
+    pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
+
+    smsLog(pMac, LOGW,
+    FL("Set TdlsProhibitBmpsStatus %d for session %d"), val, sessionId);
+
+    pmc->isTdlsPowerSaveProhibited = val;
+	return eHAL_STATUS_SUCCESS;
+}
+#endif

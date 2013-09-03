@@ -8465,11 +8465,18 @@ v_BOOL_t sme_IsPmcBmps(tHalHandle hHal)
 
     \- return void
     -------------------------------------------------------------------------*/
-void sme_SetTdlsPowerSaveProhibited(tHalHandle hHal, v_BOOL_t val)
+void sme_SetTdlsPowerSaveProhibited(tHalHandle hHal, tANI_U32 sessionId, v_BOOL_t val)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    pMac->isTdlsPowerSaveProhibited = val;
+    if (!pMac->psOffloadEnabled)
+    {
+        pMac->isTdlsPowerSaveProhibited = val;
+    }
+    else
+    {
+        pmcOffloadSetTdlsProhibitBmpsStatus(hHal, sessionId, val);
+    }
     return;
 }
 #endif
