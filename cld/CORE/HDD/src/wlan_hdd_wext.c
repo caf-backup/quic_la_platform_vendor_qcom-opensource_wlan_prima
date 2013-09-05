@@ -3662,9 +3662,9 @@ static int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     v_BOOL_t band_24 = VOS_FALSE, band_5g = VOS_FALSE;
     v_BOOL_t ch_bond24 = VOS_FALSE, ch_bond5g = VOS_FALSE;
     tSmeConfigParams smeconfig;
-    tANI_U32 vhtchanwidth, chwidth;
+    tANI_U32 vhtchanwidth, chwidth = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
     eCsrPhyMode phymode = -EIO, old_phymode;
-    eCsrBand curr_band;
+    eCsrBand curr_band = eCSR_BAND_ALL;
 
     old_phymode = sme_GetPhyMode(hal);
 

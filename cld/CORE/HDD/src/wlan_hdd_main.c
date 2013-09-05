@@ -3704,7 +3704,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
    hdd_adapter_t *pAdapter = NULL;
    hdd_adapter_list_node_t *pHddAdapterNode = NULL;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
-   VOS_STATUS exitbmpsStatus;
+   VOS_STATUS exitbmpsStatus = VOS_STATUS_E_FAILURE;
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
 
