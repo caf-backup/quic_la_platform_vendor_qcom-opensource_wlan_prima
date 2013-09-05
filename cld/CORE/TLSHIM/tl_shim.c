@@ -426,7 +426,7 @@ adf_nbuf_t WLANTL_SendSTA_DataFrame(void *vos_ctx, u_int8_t sta_id,
 	skb->next = NULL;
 	ret = tl_shim->tx(peer->vdev, skb);
 	if (ret) {
-		TLSHIM_LOGE("Failed to tx");
+		TLSHIM_LOGW("Failed to tx");
 		adf_nbuf_unmap_single(adf_ctx, ret, ADF_OS_DMA_TO_DEVICE);
 		return ret;
 	}
