@@ -544,5 +544,10 @@ eHalStatus pmcOffloadStartUapsd(tHalHandle hHal,  tANI_U32 sessionId,
 
 eHalStatus pmcOffloadStopUapsd(tHalHandle hHal,  tANI_U32 sessionId);
 
+#ifdef FEATURE_WLAN_TDLS
+eHalStatus pmcOffloadSetTdlsProhibitBmpsStatus(tHalHandle hHal,
+                                               tANI_U32 sessionId,
+                                               v_BOOL_t val);
+#endif
 #endif
 

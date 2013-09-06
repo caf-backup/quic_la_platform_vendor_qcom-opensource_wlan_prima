@@ -308,6 +308,13 @@ typedef struct sPsOffloadPerSessionInfo
      * upon requesting uapsd
      */
     tDblLinkList uapsdCbList;
+
+    /*
+     * Whether TDLS session allows powersave or not
+     */
+#ifdef FEATURE_WLAN_TDLS
+    v_BOOL_t isTdlsPowerSaveProhibited;
+#endif
 }tPsOffloadPerSessionInfo,*tpPsOffloadPerSessionInfo;
 
 typedef struct sPmcOffloadInfo

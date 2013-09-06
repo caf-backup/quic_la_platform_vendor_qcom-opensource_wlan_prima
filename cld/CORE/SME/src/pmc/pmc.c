@@ -2760,6 +2760,10 @@ eHalStatus pmcOffloadStartPerSession(tHalHandle hHal, tANI_U32 sessionId)
     pmc->configStaPsEnabled = FALSE;
     pmc->pmcState = FULL_POWER;
     pmc->autoPsEntryTimerPeriod = AUTO_PS_ENTRY_TIMER_DEFAULT_VALUE;
+#ifdef FEATURE_WLAN_TDLS
+    pmc->isTdlsPowerSaveProhibited = FALSE;
+#endif
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2775,6 +2779,9 @@ eHalStatus pmcOffloadStopPerSession(tHalHandle hHal, tANI_U32 sessionId)
     pmc->pmcState = STOPPED;
     pmc->autoPsEntryTimerPeriod = AUTO_PS_ENTRY_TIMER_DEFAULT_VALUE;
     pmc->pMac = pMac;
+#ifdef FEATURE_WLAN_TDLS
+    pmc->isTdlsPowerSaveProhibited = FALSE;
+#endif
 
     pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
     pmcOffloadDoFullPowerCallbacks(pMac, sessionId, eHAL_STATUS_FAILURE);
@@ -2951,6 +2958,15 @@ eHalStatus pmcOffloadEnableStaPsCheck(tpAniSirGlobal pMac,
          pMac->pmcOffloadInfo.pmc[sessionId].pmcState);
        return eHAL_STATUS_FAILURE;
     }
+
+#ifdef FEATURE_WLAN_TDLS
+    if (pMac->pmcOffloadInfo.pmc[sessionId].isTdlsPowerSaveProhibited)
+    {
+       smsLog(pMac, LOGE,
+       "Dont enter BMPS.TDLS session active on session %d", sessionId);
+       return eHAL_STATUS_FAILURE;
+    }
+#endif
 
     /* Check that entry into a power save mode is allowed at this time. */
     if(!pmcOffloadPowerSaveCheck(pMac, sessionId))

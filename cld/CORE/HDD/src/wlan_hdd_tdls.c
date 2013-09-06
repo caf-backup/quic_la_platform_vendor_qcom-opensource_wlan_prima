@@ -552,7 +552,8 @@ int wlan_hdd_tdls_init(hdd_adapter_t *pAdapter)
 
     /* initialize TDLS global context */
     pHddCtx->connected_peer_count = 0;
-    sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pAdapter), 0);
+    sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                   pAdapter->sessionId, 0);
 
     pHddCtx->tdls_scan_ctxt.magic = 0;
     pHddCtx->tdls_scan_ctxt.attempt = 0;
@@ -1478,6 +1479,31 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter)
             }
         }
     }
+    else
+    {
+        if ((TDLS_CTX_MAGIC != pHddCtx->tdls_scan_ctxt.magic) &&
+            (0 == pHddCtx->connected_peer_count) &&
+            (0 == pHddTdlsCtx->discovery_sent_cnt))
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                      "%s: No TDLS peer connected/discovery sent. Enable BMPS",
+                      __func__);
+            sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                           pAdapter->sessionId, FALSE);
+            sme_PsOffloadEnablePowerSave(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                        pAdapter->sessionId);
+        }
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, TDLS_LOG_LEVEL,
+                      "%s: TDLS peer connected. Disable BMPS", __func__);
+            sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                           pAdapter->sessionId, TRUE);
+            sme_PsOffloadDisablePowerSave(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                        pAdapter->sessionId);
+
+        }
+    }
     return;
 }
 
@@ -1772,10 +1798,12 @@ void wlan_hdd_tdls_check_power_save_prohibited(hdd_adapter_t *pAdapter)
     if ((0 == pHddCtx->connected_peer_count) &&
         (0 == wlan_hdd_tdls_discovery_sent_cnt(pHddCtx)))
     {
-        sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pHddTdlsCtx->pAdapter), 0);
+        sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pHddTdlsCtx->pAdapter),
+                                       pAdapter->sessionId, 0);
         return;
     }
-    sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pHddTdlsCtx->pAdapter), 1);
+    sme_SetTdlsPowerSaveProhibited(WLAN_HDD_GET_HAL_CTX(pHddTdlsCtx->pAdapter),
+                                   pAdapter->sessionId, 1);
     return;
 }
 
