@@ -490,7 +490,7 @@ void ol_target_failure(void *instance, A_STATUS status)
 	if (HIFDiagReadMem(scn->hif_hdl,
 	            host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_dbglog_hdr)),
 	            (A_UCHAR *)&dbglog_hdr_address,
-	            sizeof(dbglog_hdr))!= A_OK)
+	            sizeof(dbglog_hdr_address))!= A_OK)
 	{
 	    printk("HifDiagReadiMem FW dbglog_hdr_address failed\n");
 	    return;
@@ -511,6 +511,11 @@ void ol_target_failure(void *instance, A_STATUS status)
 	            sizeof(dbglog_buf))!= A_OK)
 	{
 	    printk("HifDiagReadiMem FW dbglog_buf failed\n");
+	    return;
+	}
+
+	if (!dbglog_buf.length) {
+	    printk("Zero length fwlog after target assert\n");
 	    return;
 	}
 
