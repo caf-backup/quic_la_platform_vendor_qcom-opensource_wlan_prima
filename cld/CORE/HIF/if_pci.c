@@ -876,7 +876,7 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 
     if ((state.event == PM_EVENT_FREEZE) ||
         (state.event == PM_EVENT_SUSPEND)) {
-        if (wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos), 1))
+        if (wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos), 0))
             return (-1);
     }
 
