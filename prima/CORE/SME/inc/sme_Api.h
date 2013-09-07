@@ -82,6 +82,7 @@ typedef struct _smeConfigParams
     tANI_U8       RoamRssiDiff;
 #endif
     tANI_BOOLEAN  fScanOffload;
+    tANI_U8  isAmsduSupportInAMPDU;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 

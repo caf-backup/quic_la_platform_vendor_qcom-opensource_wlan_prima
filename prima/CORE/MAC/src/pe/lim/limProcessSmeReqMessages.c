@@ -1633,6 +1633,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             }
         }   
         handleHTCapabilityandHTInfo(pMac, psessionEntry);
+        psessionEntry->isAmsduSupportInAMPDU = pSmeJoinReq->isAmsduSupportInAMPDU;
 
         /* Store Session related parameters */
         /* Store PE session Id in session Table */
