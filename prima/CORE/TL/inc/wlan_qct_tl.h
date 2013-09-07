@@ -2816,4 +2816,82 @@ WLANTL_TLDebugMessage
   v_BOOL_t displaySnapshot
 );
 
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+/*=============================================================================
+  FUNCTION    WLANTL_EnableReliableMcast
+
+  DESCRIPTION
+    This function enables data path of reliable multicast in TL
+
+  DEPENDENCIES
+    Reliable multicast receive leader must be selected by FW before
+    UMAC calling this API
+
+  PARAMETERS
+
+   IN
+
+   pvosGCtx   : Pointer to VOS global context
+   pMcastAddr : Pointer to MAC ADDR of reliable multicast group leader
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:   Sanity  check on input failed
+
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+   Other return values are possible coming from the called functions.
+   Please check API for additional info.
+
+  SIDE EFFECTS
+
+==============================================================================*/
+
+VOS_STATUS
+WLANTL_EnableReliableMcast
+(
+    v_PVOID_t     pvosGCtx,
+    v_MACADDR_t   *pMcastAddr
+);
+
+
+/*=============================================================================
+  FUNCTION    WLANTL_DisableReliableMcast
+
+  DESCRIPTION
+    This function disables data path of reliable multicast in TL
+
+  DEPENDENCIES
+    HDD should have recived IOCTL to disable reliable RMC
+
+  PARAMETERS
+
+   IN
+
+   pvosGCtx   : Pointer to VOS global context
+   pMcastAddr : Pointer to MAC ADDR of reliable multicast group leader
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:   Sanity  check on input failed
+
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+   Other return values are possible coming from the called functions.
+   Please check API for additional info.
+
+  SIDE EFFECTS
+
+==============================================================================*/
+VOS_STATUS
+WLANTL_DisableReliableMcast
+(
+    v_PVOID_t     pvosGCtx,
+    v_MACADDR_t   *pMcastAddr
+);
+
+#endif /*End of WLAN_FEATURE_RELIABLE_MCAST*/
+
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

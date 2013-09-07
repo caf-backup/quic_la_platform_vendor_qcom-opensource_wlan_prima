@@ -361,7 +361,7 @@ WDI_FillTxBd
     wpt_uint8*             pTid, 
     wpt_uint8              ucDisableFrmXtl, 
     void*                  pTxBd, 
-    wpt_uint8              ucTxFlag, 
+    wpt_uint32             ucTxFlag,
     wpt_uint8              ucProtMgmtFrame,
     wpt_uint32             uTimeStamp,
     wpt_uint8*             staIndex
@@ -833,6 +833,13 @@ WDI_FillTxBd
    
             WDI_STATableGetStaType(pWDICtx, ucStaId, &ucSTAType);
             if(!ucUnicastDst)
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+              /*Check for reliable MCAST enabled bit if set then
+                queue frames in QID 1 else 0*/
+              if ( ucTxFlag & WDI_RELIABLE_MCAST_REQUESTED_MASK )
+                pBd->queueId = BTQM_QID1;
+              else
+#endif
                 pBd->queueId = BTQM_QID0;
 #ifndef HAL_SELF_STA_PER_BSS
             else if( ucUnicastDst && (ucStaId == pWDICtx->ucSelfStaId))

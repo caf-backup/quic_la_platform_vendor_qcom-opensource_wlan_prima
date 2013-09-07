@@ -36,6 +36,9 @@ Qualcomm Technologies Confidential and Proprietary
 #endif
 #include "smeInside.h"
 #include "wlan_qct_wda.h"
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+#include "wlan_qct_tl.h"
+#endif
 
 void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA);
 #ifdef WLANTL_DEBUG
@@ -2357,6 +2360,167 @@ dump_lim_get_pkts_rcvd_per_rssi_values( tpAniSirGlobal pMac, tANI_U32 arg1, tANI
 }
 #endif
 
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+
+static char *
+dump_lim_enable_reliable_mcast_data_path
+(
+    tpAniSirGlobal pMac,
+    tANI_U32 arg1,
+    tANI_U32 arg2,
+    tANI_U32 arg3,
+    tANI_U32 arg4,
+    char *p
+)
+{
+    v_MACADDR_t reliableMcastAddr;
+    v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+
+    limLog(pMac, LOGE,
+        FL("Enable RMCAST data path for IP V4 address %d.%d.%d.%d "),
+        arg1, arg2, arg3, arg4);
+
+    /*sanity check*/
+    if ((arg1 > 0xFF) || (arg2 > 0xFF) || (arg3 > 0xFF) ||( arg4 > 0xFF))
+    {
+        limLog(pMac, LOGE,
+           FL("Invalid IP V4 address %d.%d.%d.%d "),
+           arg1, arg2, arg3, arg4);
+        return p;
+    }
+
+    /*Input format is in IP address fromat for example
+    iwpriv wlan0 dump 371 224 192 168 1 translates into enable RMCAST for IP
+    addr 224.192.168.1
+    arg1 : 224 (0xE0)
+    arg2 : 192 (0xC0)
+    arg3 : 168 (0xA8)
+    arg4 : 1   (0x01)
+    This translates into enable RMCAST for MAC address 0x01 0x00 0x5e 0x0c
+    0xa8 0x01
+    This translates into MCAST address: 0x01: 0xaa: 0xbb: 0xcc: 0xdd: 0xee*/
+
+  /*Extract MCAST address from IP address input.
+    IP address can be mapped to Multicast MAC address by mapping the lower 23
+    bits (XX-XX-XX) of MCAST IP V4 address and prefixing it with 01-00-5E.
+    For example MCAST IP V4 address 224.192.168.1 will translate into MCAST MAC
+    address 0x01 0x00 0x5e 0xc0 0xa8 0x01 */
+
+  /*Validate input IP V4 address is indeed MCAST IP addess
+    In IPv4, addresses 224.0.0.0 through 239.255.255.255 (Previous class D )
+    are reserved as multicast addresses*/
+  if ((WLAN_IP_V4_MCAST_ADDR_START <= arg1) &&
+      (WLAN_IP_V4_MCAST_ADDR_START  >= arg1))
+  {
+    reliableMcastAddr.bytes[0] = (tANI_U8)(0x01);
+    reliableMcastAddr.bytes[1] = (tANI_U8)(0x00);
+    reliableMcastAddr.bytes[2] = (tANI_U8)(0x5e);
+    reliableMcastAddr.bytes[3] = (tANI_U8)(arg2 & 0x7f);
+
+    reliableMcastAddr.bytes[4] = (tANI_U8)(arg3);
+    reliableMcastAddr.bytes[5] = (tANI_U8)(arg4);
+
+    limLog(pMac, LOGE,
+     FL("Enable RMCAST data path for MCAST add 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x "),
+     reliableMcastAddr.bytes[0],
+     reliableMcastAddr.bytes[1],
+     reliableMcastAddr.bytes[2],
+     reliableMcastAddr.bytes[3],
+     reliableMcastAddr.bytes[4],
+     reliableMcastAddr.bytes[5]);
+
+    /*Enable TL data path*/
+    WLANTL_EnableReliableMcast( pVosContext, &reliableMcastAddr );
+  }
+  else
+  {
+    limLog(pMac, LOGE,
+     FL("Invalid input IP V4 address %d.%d.%d.%d "), arg1, arg2, arg3, arg4);
+  }
+
+  return p;
+}
+
+static char *
+dump_lim_disable_reliable_mcast_data_path
+(
+    tpAniSirGlobal pMac,
+    tANI_U32 arg1,
+    tANI_U32 arg2,
+    tANI_U32 arg3,
+    tANI_U32 arg4,
+    char *p
+)
+{
+    v_MACADDR_t reliableMcastAddr;
+    v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+
+    limLog(pMac, LOGE,
+        FL("Disable RMCAST data path for IP V4 address %d.%d.%d.%d "),
+        arg1, arg2, arg3, arg4);
+
+    /*sanity check*/
+    if ((arg1 > 0xFF) || (arg2 > 0xFF) || (arg3 > 0xFF) ||( arg4 > 0xFF))
+    {
+        limLog(pMac, LOGE,
+           FL("Invalid IP V4 address %d.%d.%d.%d "),
+           arg1, arg2, arg3, arg4);
+        return p;
+    }
+  /*Input format is in IP address format for example
+    iwpriv wlan0 dump 371 224 192 168 1 translates into disable RMCAST for IP
+    addr 224.192.168.1
+    arg1 : 224 (0xE0)
+    arg2 : 192 (0xC0)
+    arg3 : 168 (0xA8)
+    arg4 : 1   (0x01)
+    This translates into disable RMCAST for MAC address 0x01 0x00 0x5e 0x0c
+    0xa8 0x01
+    This translates into MCAST address: 0x01 :0xaa: 0xbb: 0xcc: 0xdd: 0xee*/
+
+  /*Extract MCAST address from IP address input.
+    IP address can be mapped to Multicast MAC address by mapping the lower 23
+    bits (XX-XX-XX) of MCAST IP V4 address and prefixing it with 01-00-5E.
+    For example MCAST IP V4 address 224.192.168.1 will translate into MCAST MAC
+    address 0x01 0x00 0x5e 0xc0 0xa8 0x01 */
+
+  /*Validate input IP V4 address is indeed MCAST IP addess
+    In IPv4, addresses 224.0.0.0 through 239.255.255.255 (Previous class D )
+    are reserved as multicast addresses*/
+  if ((WLAN_IP_V4_MCAST_ADDR_START <= arg1) &&
+      (WLAN_IP_V4_MCAST_ADDR_START  >= arg1))
+  {
+    reliableMcastAddr.bytes[0] = (tANI_U8)(0x01);
+    reliableMcastAddr.bytes[1] = (tANI_U8)(0x00);
+    reliableMcastAddr.bytes[2] = (tANI_U8)(0x5e);
+    reliableMcastAddr.bytes[3] = (tANI_U8)(arg2);
+
+    reliableMcastAddr.bytes[4] = (tANI_U8)(arg3);
+    reliableMcastAddr.bytes[5] = (tANI_U8)(arg4);
+
+    limLog(pMac, LOGE,
+     FL(" Disable RMCAST data path for MCAST add 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x "),
+     reliableMcastAddr.bytes[0],
+     reliableMcastAddr.bytes[1],
+     reliableMcastAddr.bytes[2],
+     reliableMcastAddr.bytes[3],
+     reliableMcastAddr.bytes[4],
+     reliableMcastAddr.bytes[5]);
+
+    /*Disable TL data path*/
+    WLANTL_DisableReliableMcast( pVosContext, &reliableMcastAddr );
+  }
+  else
+  {
+    limLog(pMac, LOGE,
+     FL(" Invalid input IP V4 address %d.%d.%d.%d "), arg1, arg2, arg3, arg4);
+  }
+
+  return p;
+}
+
+#endif
+
 static tDumpFuncEntry limMenuDumpTable[] = {
     {0,     "PE (300-499)",                                          NULL},
     {300,   "LIM: Dump state(s)/statistics <session id>",            dump_lim_info},
@@ -2432,6 +2596,13 @@ static tDumpFuncEntry limMenuDumpTable[] = {
     {369,   "PE.LIM: pkts/rateIdx: iwpriv wlan0 dump 368 <staId> <boolean to flush counter>",    dump_lim_get_pkts_rcvd_per_rate_idx},
     {370,   "PE.LIM: pkts/rssi: : iwpriv wlan0 dump 369 <staId> <boolean to flush counter>",    dump_lim_get_pkts_rcvd_per_rssi_values},
 #endif
+#ifdef WLAN_FEATURE_RELIABLE_MCAST
+    {371,   "PE.LIM: Enable RMCAST data path in TL for input MCAST addr",
+        dump_lim_enable_reliable_mcast_data_path },
+    {372,   "PE.LIM: Disable RMCAST data path in TL for input MCAST addr",
+        dump_lim_disable_reliable_mcast_data_path },
+#endif
+
 };
 
 
