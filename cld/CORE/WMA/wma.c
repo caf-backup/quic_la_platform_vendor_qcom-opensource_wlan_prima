@@ -5281,6 +5281,64 @@ static inline void wma_free_wow_ptrn(tp_wma_handle wma, u_int8_t ptrn_id)
 	wma->wow.no_of_ptrn_cached--;
 }
 
+/* Converts wow wakeup reason code to text format */
+static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason)
+{
+	switch (wake_reason) {
+	case WOW_REASON_UNSPECIFIED:
+		return "UNSPECIFIED";
+	case WOW_REASON_NLOD:
+		return "NLOD";
+	case WOW_REASON_AP_ASSOC_LOST:
+		return "AP_ASSOC_LOST";
+	case WOW_REASON_LOW_RSSI:
+		return "LOW_RSSI";
+	case WOW_REASON_DEAUTH_RECVD:
+		return "DEAUTH_RECVD";
+	case WOW_REASON_DISASSOC_RECVD:
+		return "DISASSOC_RECVD";
+	case WOW_REASON_GTK_HS_ERR:
+		return "GTK_HS_ERR";
+	case WOW_REASON_EAP_REQ:
+		return "EAP_REQ";
+	case WOW_REASON_FOURWAY_HS_RECV:
+		return "FOURWAY_HS_RECV";
+	case WOW_REASON_TIMER_INTR_RECV:
+		return "TIMER_INTR_RECV";
+	case WOW_REASON_PATTERN_MATCH_FOUND:
+		return "PATTERN_MATCH_FOUND";
+	case WOW_REASON_RECV_MAGIC_PATTERN:
+		return "RECV_MAGIC_PATTERN";
+	case WOW_REASON_P2P_DISC:
+		return "P2P_DISC";
+	}
+
+	return "unknown";
+}
+
+/*
+ * Handler to catch wow wakeup host event. This event will have
+ * reason why the firmware has woken the host.
+ */
+static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
+				     u_int32_t len)
+{
+	WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *param_buf;
+	WOW_EVENT_INFO_fixed_param *wake_info;
+
+	param_buf = (WMI_WOW_WAKEUP_HOST_EVENTID_param_tlvs *) event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid wow wakeup host event buf");
+		return -EINVAL;
+	}
+
+	wake_info = param_buf->fixed_param;
+	WMA_LOGD("WOW wakeup host event received (reason: %s)",
+		 wma_wow_wake_reason_str(wake_info->wake_reason));
+
+	return 0;
+}
+
 /* Configures wow wakeup events. */
 static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
 					   WOW_WAKE_EVENT_TYPE event,
@@ -6567,6 +6625,16 @@ VOS_STATUS wma_start(v_VOID_t *vos_ctx)
 		vos_status = VOS_STATUS_E_FAILURE;
 		goto end;
 	}
+
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						WMI_WOW_WAKEUP_HOST_EVENTID,
+						wma_wow_wakeup_host_event);
+	if (status) {
+		WMA_LOGP("Failed to register wow wakeup host event handler");
+		vos_status = VOS_STATUS_E_FAILURE;
+		goto end;
+	}
+
 #ifdef FEATURE_WLAN_PNO_OFFLOAD
 	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
 				   WMI_SERVICE_NLO)) {
