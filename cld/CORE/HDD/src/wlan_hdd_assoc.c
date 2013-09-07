@@ -1296,7 +1296,12 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                             pFTAssocRsp, assocRsplen,
                                             WLAN_STATUS_SUCCESS,
                                             GFP_KERNEL);
-                    cfg80211_put_bss(bss);
+            cfg80211_put_bss(
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+                             pHddCtx->wiphy,
+#endif
+                             bss);
+
                 }
             }
             else
@@ -1326,7 +1331,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                             WLAN_STATUS_SUCCESS,
                             GFP_KERNEL);
 
-                    cfg80211_put_bss(bss);
+            cfg80211_put_bss(
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+                             pHddCtx->wiphy,
+#endif
+                             bss);
                 }
             }
             // Register the Station with TL after associated...
@@ -1571,7 +1580,11 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
             }
 
             cfg80211_ibss_joined(pAdapter->dev, bss->bssid, GFP_KERNEL);
-            cfg80211_put_bss(bss);
+            cfg80211_put_bss(
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+                             pHddCtx->wiphy,
+#endif
+                             bss);
          }
 
          netif_carrier_on(pAdapter->dev);
