@@ -2124,6 +2124,9 @@ void pmmEnterWowlRequestHandler(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         return;
     }
 
+    if (pMac->psOffloadEnabled)
+        goto skip_pmm_state_check;
+
     pSessionEntry = peFindSessionByBssid(pMac, pSmeWowlParams->bssId,
                                          &peSessionId);
     if (NULL == pSessionEntry)
@@ -2152,6 +2155,8 @@ void pmmEnterWowlRequestHandler(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         goto end;
     }
 
+skip_pmm_state_check:
+
     if (palAllocateMemory(pMac->hHdd, (void **)&pHalWowlParams, sizeof(*pHalWowlParams)) != eHAL_STATUS_SUCCESS)
     {
         pmmLog(pMac, LOGP, FL("Fail to allocate memory for Enter Wowl Request "));
@@ -2172,7 +2177,8 @@ void pmmEnterWowlRequestHandler(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     pHalWowlParams->ucWoWBSSConnLoss = pSmeWowlParams->ucWoWBSSConnLoss;
 #endif // WLAN_WAKEUP_EVENTS
 
-    pHalWowlParams->bssIdx = pSessionEntry->bssIdx;
+    if (!pMac->psOffloadEnabled)
+        pHalWowlParams->bssIdx = pSessionEntry->bssIdx;
 
     if(wlan_cfgGetInt(pMac, WNI_CFG_WOWLAN_UCAST_PATTERN_FILTER_ENABLE, &cfgValue) != eSIR_SUCCESS)
     {
@@ -2255,10 +2261,13 @@ tSirRetStatus pmmSendWowlEnterRequest(tpAniSirGlobal pMac, tpSirHalWowlEnterPara
     msgQ.bodyptr = pHalWowlParams;
     msgQ.bodyval = 0;
 
-    /* Defer any incoming message until we get
-     * a WDA_WOWL_ENTER_RSP from HAL
-     */
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+    if (!pMac->psOffloadEnabled)
+    {
+        /* Defer any incoming message until we get
+         * a WDA_WOWL_ENTER_RSP from HAL
+         */
+        SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+    }
 
     retCode = wdaPostCtrlMsg(pMac, &msgQ);
     if( eSIR_SUCCESS != retCode )
@@ -2325,9 +2334,12 @@ void pmmExitWowlanRequestHandler(tpAniSirGlobal pMac)
 {
     tSirRetStatus retStatus = eSIR_SUCCESS;
     tSirResultCodes smeRspCode = eSIR_SME_SUCCESS;
-    tpPESession pSessionEntry;
+    tpPESession pSessionEntry = NULL;
     tpSirHalWowlExitParams  pHalWowlMsg = NULL;
     tANI_U8            PowersavesessionId = 0;
+
+    if (pMac->psOffloadEnabled)
+         goto skip_pe_session_lookup;
 
     PowersavesessionId = pMac->pmm.sessionId;
 
@@ -2337,6 +2349,8 @@ void pmmExitWowlanRequestHandler(tpAniSirGlobal pMac)
         smeRspCode = eSIR_SME_WOWL_EXIT_REQ_FAILED;
         goto failure;
     }
+
+skip_pe_session_lookup:
 
     if (palAllocateMemory(pMac->hHdd, (void **)&pHalWowlMsg, sizeof(*pHalWowlMsg)) != eHAL_STATUS_SUCCESS)
     {
@@ -2349,7 +2363,7 @@ void pmmExitWowlanRequestHandler(tpAniSirGlobal pMac)
     limDiagEventReport(pMac, WLAN_PE_DIAG_EXIT_WOWL_REQ_EVENT, NULL, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
-    if ( pMac->pmm.gPmmState != ePMM_STATE_WOWLAN )
+    if ( !pMac->psOffloadEnabled && pMac->pmm.gPmmState != ePMM_STATE_WOWLAN )
     {
         pmmLog(pMac, LOGE,
             FL("Exit WOWLAN Request received in invalid state PMM=%d "),
@@ -2359,7 +2373,9 @@ void pmmExitWowlanRequestHandler(tpAniSirGlobal pMac)
     }
 
     (void) palZeroMemory(pMac->hHdd, (tANI_U8 *)pHalWowlMsg, sizeof(*pHalWowlMsg) );
-    pHalWowlMsg->bssIdx = pSessionEntry->bssIdx;
+
+    if (!pMac->psOffloadEnabled)
+        pHalWowlMsg->bssIdx = pSessionEntry->bssIdx;
 
     if((retStatus = pmmSendExitWowlReq(pMac, pHalWowlMsg)) != eSIR_SUCCESS)
     {
@@ -2400,10 +2416,13 @@ tSirRetStatus  pmmSendExitWowlReq(tpAniSirGlobal pMac, tpSirHalWowlExitParams pH
 
     pmmLog(pMac, LOGW, FL("Sending WDA_WOWL_EXIT_REQ"));
 
-    /* we need to defer any incoming messages until
-     * we get a WDA_WOWL_EXIT_RSP from HAL.
-     */
-    SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+    if (!pMac->psOffloadEnabled)
+    {
+        /* we need to defer any incoming messages until
+         * we get a WDA_WOWL_EXIT_RSP from HAL.
+         */
+         SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
+    }
 
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
         pmmLog( pMac, LOGE,
@@ -3668,18 +3687,15 @@ void pmmOffloadProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             break;
 
         case eWNI_PMC_WOWL_ADD_BCAST_PTRN:
-            pmmLog(pMac, LOGE,
-                   "PMM: eWNI_PMC_WOWL_ADD_BCAST_PTRN not supported yet");
+            pmmSendWowlAddBcastPtrn(pMac, pMsg);
             break;
 
         case eWNI_PMC_WOWL_DEL_BCAST_PTRN:
-            pmmLog(pMac, LOGE,
-                   "PMM: eWNI_PMC_WOWL_DEL_BCAST_PTRN not supported yet");
+            pmmSendWowlDelBcastPtrn(pMac, pMsg);
             break;
 
         case eWNI_PMC_ENTER_WOWL_REQ:
-            pmmLog(pMac, LOGE,
-                   "PMM: eWNI_PMC_ENTER_WOWL_REQ not supported yet");
+            pmmEnterWowlRequestHandler(pMac, pMsg);
             break;
 
         case WDA_WOWL_ENTER_RSP:
@@ -3688,8 +3704,7 @@ void pmmOffloadProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             break;
 
         case eWNI_PMC_EXIT_WOWL_REQ:
-            pmmLog(pMac, LOGE,
-                   "PMM: eWNI_PMC_EXIT_WOWL_REQ not supported yet");
+            pmmExitWowlanRequestHandler(pMac);
             break;
 
         case WDA_WOWL_EXIT_RSP:
