@@ -111,6 +111,7 @@ eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value);
 int wma_suspend_target(WMA_HANDLE handle, int disable_target_intr);
 void wma_target_suspend_complete(void *context);
 int wma_resume_target(WMA_HANDLE handle);
+int wma_is_wow_enabled(WMA_HANDLE handle);
 #endif
 int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 			u_int32_t param_value, u_int32_t vdev_id);

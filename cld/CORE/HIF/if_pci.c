@@ -874,10 +874,11 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     A_PCI_WRITE32(sc->mem + FW_INDICATOR_ADDRESS, (state.event << 16));
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
 
-    if ((state.event == PM_EVENT_FREEZE) ||
-        (state.event == PM_EVENT_SUSPEND)) {
-        if (wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos), 0))
-            return (-1);
+    /* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
+    if (!wma_is_wow_enabled(vos_get_context(VOS_MODULE_ID_WDA, vos)) &&
+        (state.event == PM_EVENT_FREEZE || state.event == PM_EVENT_SUSPEND)) {
+           if (wma_suspend_target(vos_get_context(VOS_MODULE_ID_WDA, vos), 0))
+                return (-1);
     }
 
     pci_read_config_dword(pdev, OL_ATH_PCI_PM_CONTROL, &val);
@@ -925,8 +926,10 @@ hif_pci_resume(struct pci_dev *pdev)
     }
     val = A_PCI_READ32(sc->mem + FW_INDICATOR_ADDRESS) >> 16;
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_RESET);
-    if ((val == PM_EVENT_HIBERNATE) ||
-        (val == PM_EVENT_SUSPEND)) {
+
+    /* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
+    if (!wma_is_wow_enabled(vos_get_context(VOS_MODULE_ID_WDA, vos_context)) &&
+        (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
 	    return wma_resume_target(vos_get_context(VOS_MODULE_ID_WDA, vos_context));
     }
 

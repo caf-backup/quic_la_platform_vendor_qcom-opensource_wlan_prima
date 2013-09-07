@@ -5902,6 +5902,16 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma)
 	return ret;
 }
 
+/*
+ * Returns true if wow patterns are configured in fw and
+ * wow is also enabled. Other cases, returns false.
+ */
+int wma_is_wow_enabled(WMA_HANDLE handle)
+{
+	tp_wma_handle wma = (tp_wma_handle) handle;
+	return wma->wow.wow_enable;
+}
+
 /* function    : wma_get_stats_req
  * Description : return the statistics
  * Args        : wma handle, pointer to tAniGetPEStatsReq
