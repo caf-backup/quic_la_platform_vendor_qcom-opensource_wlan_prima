@@ -23,32 +23,16 @@ ifeq ($(call is-board-platform,msm8660),true)
 #        include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
 endif
 
-#Build/Package Prima Module only in case of 8960 target variants
-ifeq ($(call is-board-platform,msm8960),true)
-        include $(WLAN_BLD_DIR)/prima/Android.mk
-#        include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
-#        include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
-endif
-
-#Build/Package Pronto Module in case of 8974 target variants
-ifeq ($(call is-board-platform,msm8974),true)
-        include $(WLAN_BLD_DIR)/pronto/Android.mk
-#        include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
-#        include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
-endif
-
-#Build/Package Pronto Module in case of 8226, 8610 target variants
-ifeq ($(call is-board-platform-in-list,msm8226 msm8610),true)
-        include $(WLAN_BLD_DIR)/pronto/Android.mk
-#        include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
-#        include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
-endif
-
 #Build/Package Volans Module only in case of 7627a target
 ifeq ($(call is-board-platform,msm7627a),true)
         include $(WLAN_BLD_DIR)/volans/CORE/HDD/src/Android.mk
 #        include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
 #        include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
+endif
+
+#Build/Package Prima/Pronto Module in case of A & B family targets
+ifeq ($(BOARD_WLAN_DEVICE),qcwcn)
+        include $(WLAN_BLD_DIR)/prima/Android.mk
 endif
 
 endif
