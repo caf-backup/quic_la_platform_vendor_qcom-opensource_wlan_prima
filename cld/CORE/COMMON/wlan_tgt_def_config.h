@@ -52,12 +52,12 @@
  * reorder buffering, PN checking need to be done in target. This determines
  * maximum number of peers suported by target in offload mode
  */
-#define CFG_TGT_NUM_OFFLOAD_PEERS       0
+#define CFG_TGT_NUM_OFFLOAD_PEERS       (CFG_TGT_NUM_PEERS + CFG_TGT_NUM_VDEV)
 
 /*
  * Number of reorder buffers used in offload mode
  */
-#define CFG_TGT_NUM_OFFLOAD_REORDER_BUFFS   0
+#define CFG_TGT_NUM_OFFLOAD_REORDER_BUFFS   8
 
 /*
  * keys per peer node
