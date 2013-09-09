@@ -5265,6 +5265,335 @@ static inline void wma_free_wow_ptrn(tp_wma_handle wma, u_int8_t ptrn_id)
 	wma->wow.no_of_ptrn_cached--;
 }
 
+/* Configures wow wakeup events. */
+static VOS_STATUS wma_add_wow_wakeup_event(tp_wma_handle wma,
+					   WOW_WAKE_EVENT_TYPE event,
+					   v_BOOL_t enable)
+{
+	WMI_WOW_ADD_DEL_EVT_CMD_fixed_param *cmd;
+	u_int16_t len;
+	wmi_buf_t buf;
+	int ret;
+
+	len = sizeof(WMI_WOW_ADD_DEL_EVT_CMD_fixed_param);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	cmd = (WMI_WOW_ADD_DEL_EVT_CMD_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_WMI_WOW_ADD_DEL_EVT_CMD_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+				WMI_WOW_ADD_DEL_EVT_CMD_fixed_param));
+	cmd->vdev_id = 0;
+	cmd->is_add = enable;
+	cmd->event_bitmap = (1 << event);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_WOW_ENABLE_DISABLE_WAKE_EVENT_CMDID);
+	if (ret) {
+		WMA_LOGE("Failed to config wow wakeup event");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("Wakeup pattern 0x%x %s in fw", event,
+		 enable ? "enabled":"disabled");
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/* Sends WOW patterns to FW. */
+static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
+					      u_int8_t ptrn_id)
+{
+	WMI_WOW_ADD_PATTERN_CMD_fixed_param *cmd;
+	WOW_BITMAP_PATTERN_T *bitmap_pattern;
+	struct wma_wow_ptrn_cache *cache;
+	wmi_buf_t buf;
+	u_int8_t new_mask[SIR_WOWL_BCAST_PATTERN_MAX_SIZE];
+	u_int8_t *buf_ptr, pos, bit_to_check;
+#ifdef WMA_DUMP_WOW_PTRN
+	u_int8_t *tmp;
+#endif
+	int32_t len;
+	int ret;
+
+	len = sizeof(WMI_WOW_ADD_PATTERN_CMD_fixed_param) +
+		     WMI_TLV_HDR_SIZE +
+		     1 * sizeof(WOW_BITMAP_PATTERN_T) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(WOW_IPV4_SYNC_PATTERN_T) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(WOW_IPV6_SYNC_PATTERN_T) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(WOW_MAGIC_PATTERN_CMD) +
+		     WMI_TLV_HDR_SIZE +
+		     0 * sizeof(A_UINT32);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cache = wma->wow.cache[ptrn_id];
+	cmd = (WMI_WOW_ADD_PATTERN_CMD_fixed_param *)wmi_buf_data(buf);
+	buf_ptr = (u_int8_t *)cmd;
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_WMI_WOW_ADD_PATTERN_CMD_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+				WMI_WOW_ADD_PATTERN_CMD_fixed_param));
+	cmd->vdev_id = cache->ptrn_offset;
+	cmd->pattern_id = ptrn_id;
+	cmd->pattern_type = WOW_BITMAP_PATTERN;
+	buf_ptr += sizeof(WMI_WOW_ADD_PATTERN_CMD_fixed_param);
+
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC,
+		       sizeof(WOW_BITMAP_PATTERN_T));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	bitmap_pattern = (WOW_BITMAP_PATTERN_T *)buf_ptr;
+
+	WMITLV_SET_HDR(&bitmap_pattern->tlv_header,
+		       WMITLV_TAG_STRUC_WOW_BITMAP_PATTERN_T,
+		       WMITLV_GET_STRUCT_TLVLEN(WOW_BITMAP_PATTERN_T));
+
+	vos_mem_copy(&bitmap_pattern->patternbuf[0], cache->ptrn,
+		     cache->ptrn_len);
+	/*
+	 * Convert received pattern mask value from bit representaion
+	 * to byte representation.
+	 *
+	 * For example, received value from umac,
+	 *
+	 *      Mask value    : A1 (equivalent binary is "1010 0001")
+	 *      Pattern value : 12:00:13:00:00:00:00:44
+	 *
+	 * The value which goes to FW after the conversion from this
+	 * function (1 in mask value will become FF and 0 will
+	 * become 00),
+	 *
+	 *      Mask value    : FF:00:FF:00:0:00:00:FF
+	 *      Pattern value : 12:00:13:00:00:00:00:44
+	 */
+	vos_mem_zero(new_mask, sizeof(new_mask));
+	for (pos = 0; pos < cache->ptrn_len; pos++) {
+		bit_to_check = (WMA_NUM_BITS_IN_BYTE - 1) -
+					(pos % WMA_NUM_BITS_IN_BYTE);
+		bit_to_check = 0x1 << bit_to_check;
+		if (cache->mask[pos / WMA_NUM_BITS_IN_BYTE] & bit_to_check)
+			new_mask[pos] = WMA_WOW_PTRN_MASK_VALID;
+	}
+	vos_mem_copy(&bitmap_pattern->bitmaskbuf[0], new_mask, cache->ptrn_len);
+
+	bitmap_pattern->pattern_offset = cache->ptrn_offset;
+	bitmap_pattern->pattern_len = cache->ptrn_len;
+
+	if(bitmap_pattern->pattern_len > WOW_DEFAULT_BITMAP_PATTERN_SIZE)
+		bitmap_pattern->pattern_len = WOW_DEFAULT_BITMAP_PATTERN_SIZE;
+
+	if(bitmap_pattern->pattern_len > WOW_DEFAULT_BITMASK_SIZE)
+		bitmap_pattern->pattern_len = WOW_DEFAULT_BITMASK_SIZE;
+
+	bitmap_pattern->bitmask_len = bitmap_pattern->pattern_len;
+	bitmap_pattern->pattern_id = ptrn_id;
+
+	WMA_LOGD("pattern id: %d, pattern len: %d vdev id: %d",
+		 cmd->pattern_id, bitmap_pattern->pattern_len, cmd->vdev_id);
+
+#ifdef WMA_DUMP_WOW_PTRN
+	printk("Pattern : ");
+	tmp = (u_int8_t *) &bitmap_pattern->patternbuf[0];
+	for (pos = 0; pos < bitmap_pattern->pattern_len; pos++)
+		printk("%02X ", tmp[pos]);
+
+	printk("\nMask    : ");
+	tmp = (u_int8_t *) &bitmap_pattern->bitmaskbuf[0];
+	for (pos = 0; pos < bitmap_pattern->pattern_len; pos++)
+		printk("%02X ", tmp[pos]);
+#endif
+
+	buf_ptr += sizeof(WOW_BITMAP_PATTERN_T);
+
+	/* Fill TLV for WMITLV_TAG_STRUC_WOW_IPV4_SYNC_PATTERN_T but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for WMITLV_TAG_STRUC_WOW_IPV6_SYNC_PATTERN_T but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for WMITLV_TAG_STRUC_WOW_MAGIC_PATTERN_CMD but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_STRUC, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	/* Fill TLV for pattern_info_timeout but no data. */
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32, 0);
+	buf_ptr += WMI_TLV_HDR_SIZE;
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_WOW_ADD_WAKE_PATTERN_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send wow ptrn to fw", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/* Sends delete pattern request to FW for given pattern ID on particular vdev */
+static VOS_STATUS wma_del_wow_pattern_in_fw(tp_wma_handle wma,
+					    u_int8_t ptrn_id)
+{
+	WMI_WOW_DEL_PATTERN_CMD_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len;
+	int ret;
+
+	len = sizeof(WMI_WOW_DEL_PATTERN_CMD_fixed_param);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (WMI_WOW_DEL_PATTERN_CMD_fixed_param *) wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_WMI_WOW_DEL_PATTERN_CMD_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+				WMI_WOW_DEL_PATTERN_CMD_fixed_param));
+	cmd->vdev_id = 0;
+	cmd->pattern_id = ptrn_id;
+	cmd->pattern_type = WOW_BITMAP_PATTERN;
+
+	WMA_LOGD("Deleting pattern id: %d in fw", cmd->pattern_id);
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_WOW_DEL_WAKE_PATTERN_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to delete wow ptrn from fw", __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/* Enables WOW in firmware. */
+static VOS_STATUS wma_enable_wow_in_fw(tp_wma_handle wma)
+{
+	wmi_wow_enable_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len;
+	int ret;
+
+	len = sizeof(wmi_wow_enable_cmd_fixed_param);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_wow_enable_cmd_fixed_param *) wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_wow_enable_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(
+					wmi_wow_enable_cmd_fixed_param));
+	cmd->enable = TRUE;
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_WOW_ENABLE_CMDID);
+	if (ret) {
+		WMA_LOGE("Failed to enable wow in fw");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("WOW enabled successfully in fw");
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * Pushes wow patterns from local cache to FW and configures
+ * wakeup trigger events.
+ */
+static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
+{
+	struct wma_txrx_node *iface;
+	struct wma_wow_ptrn_cache *cache;
+	VOS_STATUS ret = VOS_STATUS_SUCCESS;
+	v_BOOL_t ptrn_match_event_enable = FALSE;
+	u_int8_t ptrn_id;
+
+	WMA_LOGD("Clearing already configured wow patterns in fw");
+
+	/* Clear existing wow patterns in FW. */
+	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++) {
+		ret = wma_del_wow_pattern_in_fw(wma, ptrn_id);
+		if(ret != VOS_STATUS_SUCCESS)
+			return ret;
+	}
+
+	WMA_LOGD("Configuring wow patterns to fw");
+
+	/* Send wow patterns to FW if there are any patterns cached
+	 * in local wow pattern cache. */
+	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++) {
+		cache = wma->wow.cache[ptrn_id];
+		if (!cache)
+			continue;
+
+		iface = &wma->interfaces[cache->vdev_id];
+		if(!iface->ptrn_match_enable)
+			continue;
+
+		ret = wma_send_wow_patterns_to_fw(wma, ptrn_id);
+		if (ret != VOS_STATUS_SUCCESS) {
+			WMA_LOGE("Failed to submit wow pattern to fw (ptrn_id %d)",
+				 ptrn_id);
+			return ret;
+		}
+
+		ptrn_match_event_enable = TRUE;
+	}
+
+	/*
+	 * Configure pattern match wakeup event. FW does pattern match
+	 * only if pattern match event is enabled.
+	 */
+	ret = wma_add_wow_wakeup_event(wma, WOW_PATTERN_MATCH_EVENT,
+				       ptrn_match_event_enable);
+	if (ret != VOS_STATUS_SUCCESS)
+		return ret;
+
+	WMA_LOGD("Pattern byte match is %s in fw",
+		 ptrn_match_event_enable ? "enabled" : "disabled");
+
+	/* Configure magic pattern wakeup event */
+	ret = wma_add_wow_wakeup_event(wma, WOW_MAGIC_PKT_RECVD_EVENT,
+				       wma->wow.magic_ptrn_enable);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGD("Failed to configure magic pattern matching");
+	} else {
+		WMA_LOGD("Magic pattern is %s in fw",
+			wma->wow.magic_ptrn_enable ? "enabled" : "disabled");
+	}
+
+	/* Enable WOW in FW. */
+	ret = wma_enable_wow_in_fw(wma);
+	if (ret == VOS_STATUS_SUCCESS)
+		wma->wow.wow_enable = TRUE;
+
+	return ret;
+}
+
 /* Adds received wow patterns in local wow pattern cache. */
 static VOS_STATUS wma_wow_add_pattern(tp_wma_handle wma,
 				      tpSirWowlAddBcastPtrn ptrn)
@@ -5305,6 +5634,7 @@ static VOS_STATUS wma_wow_add_pattern(tp_wma_handle wma,
 
 	/* Cache wow pattern info until platform goes to suspend. */
 	vos_mem_copy(cache->ptrn, ptrn->ucPattern, ptrn->ucPatternSize);
+	cache->vdev_id = ptrn->sessionId;
 	cache->ptrn_len = ptrn->ucPatternSize;
 	cache->ptrn_offset = ptrn->ucPatternByteOffset;
 	vos_mem_copy(cache->mask, ptrn->ucPatternMask, ptrn->ucPatternMaskSize);
