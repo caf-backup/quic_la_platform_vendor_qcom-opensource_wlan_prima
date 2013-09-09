@@ -232,6 +232,7 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
     g_hdd_wowl_ptrns[first_empty_slot][len] = '\0';
     localPattern.ucPatternId = first_empty_slot;
     localPattern.ucPatternByteOffset = 0;
+    localPattern.sessionId = sessionId;
 
     // Register the pattern downstream
     halStatus = sme_WowlAddBcastPattern( hHal, &localPattern, sessionId );
