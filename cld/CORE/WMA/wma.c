@@ -5664,6 +5664,36 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 			wma->wow.magic_ptrn_enable ? "enabled" : "disabled");
 	}
 
+	/* Configure deauth based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_DEAUTH_RECVD_EVENT,
+				       wma->wow.deauth_enable);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGD("Failed to configure deauth based wakeup");
+	} else {
+		WMA_LOGD("Deauth based wakeup is %s in fw",
+			 wma->wow.deauth_enable ? "enabled" : "disabled");
+	}
+
+	/* Configure disassoc based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_DISASSOC_RECVD_EVENT,
+				       wma->wow.disassoc_enable);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGD("Failed to configure disassoc based wakeup");
+	} else {
+		WMA_LOGD("Disassoc based wakeup is %s in fw",
+			 wma->wow.disassoc_enable ? "enabled" : "disabled");
+	}
+
+	/* Configure beacon miss based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_BMISS_EVENT,
+				       wma->wow.bmiss_enable);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGD("Failed to configure beacon miss based wakeup");
+	} else {
+		WMA_LOGD("Beacon miss based wakeup is %s in fw",
+			 wma->wow.bmiss_enable ? "enabled" : "disabled");
+	}
+
 	/* Enable WOW in FW. */
 	ret = wma_enable_wow_in_fw(wma);
 	if (ret == VOS_STATUS_SUCCESS)
@@ -5762,6 +5792,9 @@ static VOS_STATUS wma_wow_enter(tp_wma_handle wma,
 	iface->ptrn_match_enable = info->ucPatternFilteringEnable ?
 							    TRUE : FALSE;
 	wma->wow.magic_ptrn_enable = info->ucMagicPktEnable ? TRUE : FALSE;
+	wma->wow.deauth_enable = info->ucWowDeauthRcv ? TRUE : FALSE;
+	wma->wow.disassoc_enable = info->ucWowDeauthRcv ? TRUE : FALSE;
+	wma->wow.bmiss_enable = info->ucWowMaxMissedBeacons ? TRUE : FALSE;
 
 	return VOS_STATUS_SUCCESS;
 }
