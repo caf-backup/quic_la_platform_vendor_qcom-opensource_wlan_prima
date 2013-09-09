@@ -35,19 +35,22 @@
 
 #define ATH_MODULE_NAME fwlog
 #include <a_debug.h>
-
 #define FWLOG_DEBUG   ATH_DEBUG_MAKE_MODULE_MASK(0)
 
 #if defined(DEBUG)
+
 static ATH_DEBUG_MASK_DESCRIPTION g_fwlogDebugDescription[] = {
     {FWLOG_DEBUG,"fwlog"},
 };
 
-
 ATH_DEBUG_INSTANTIATE_MODULE_VAR(fwlog,
                                  "fwlog",
-                                 "Firmware Debug Log",
+                                "Firmware Debug Log",
+#ifdef FWDEBUG
                                  ATH_DEBUG_MASK_DEFAULTS | ATH_DEBUG_INFO | ATH_DEBUG_ERR,
+#else
+                                 ATH_DEBUG_MASK_DEFAULTS | ATH_DEBUG_ERR,
+#endif
                                  ATH_DEBUG_DESCRIPTION_COUNT(g_fwlogDebugDescription),
                                  g_fwlogDebugDescription);
 #endif
@@ -1002,16 +1005,16 @@ dbglog_printf(
     va_list ap;
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        printk(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id));
     } else {
-        printk(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] ", timestamp));
     }
 
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
 
-    printk("%s\n", buf);
+    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%s\n", buf));
 }
 
 void
@@ -1024,16 +1027,16 @@ dbglog_printf_no_line_break(
     va_list ap;
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        printk(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id));
     } else {
-        printk(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] ", timestamp));
     }
 
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
 
-    printk("%s", buf);
+    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%s", buf));
 }
 
 #define USE_NUMERIC 0
@@ -1045,22 +1048,22 @@ dbglog_default_print_handler(A_UINT32 mod_id, A_UINT16 vap_id, A_UINT32 dbg_id,
     int i;
 
     if (vap_id < DBGLOG_MAX_VDEVID) {
-        printk(DBGLOG_PRINT_PREFIX "[%u] vap-%u %s ( ", timestamp, vap_id, dbglog_get_msg(mod_id, dbg_id));
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] vap-%u %s ( ", timestamp, vap_id, dbglog_get_msg(mod_id, dbg_id)));
     } else {
-        printk(DBGLOG_PRINT_PREFIX "[%u] %s ( ", timestamp, dbglog_get_msg(mod_id, dbg_id));
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (DBGLOG_PRINT_PREFIX "[%u] %s ( ", timestamp, dbglog_get_msg(mod_id, dbg_id)));
     }
 
     for (i = 0; i < numargs; i++) {
 #if USE_NUMERIC
-        printk("%u", args[i]);
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%u", args[i]));
 #else
-        printk("%#x", args[i]);
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%#x", args[i]));
 #endif
         if ((i + 1) < numargs) {
-            printk(", ");
+            AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (", "));
         }
     }
-    printk(" )\n");
+    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (" )\n"));
 
     return TRUE;
 }
@@ -1097,16 +1100,16 @@ dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
 
             dbgidString = DBG_MSG_ARR[moduleid][debugid];
             if (dbgidString != NULL) {
-                printk("fw:%s(%x %x):%s\n",
+                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s(%x %x):%s\n",
                        dbgidString,
                        timestamp, buffer[count+1],
-                       parseArgsString);
+                       parseArgsString));
             } else {
                 /* host need sync with FW id */
-                printk("fw:%s:m:%x,id:%x(%x %x):%s\n",
+                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("fw:%s:m:%x,id:%x(%x %x):%s\n",
                        "UNKNOWN", moduleid, debugid,
                        timestamp, buffer[count+1],
-                       parseArgsString);
+                       parseArgsString));
             }
         }
 
@@ -2159,9 +2162,9 @@ A_BOOL dbglog_coex_print_handler(
                 dbglog_printf_no_line_break(timestamp, vap_id, "%s: %s",
                     dbg_id_str, coex_psp_error_type[args[0]]);
                 for (i = 1; i < numargs; i++) {
-                    printk(", %u", args[i]);
+                    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (", %u", args[i]));
                 }
-                printk("\n");
+                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("\n"));
             } else {
                 return FALSE;
             }
@@ -2206,9 +2209,9 @@ A_BOOL dbglog_coex_print_handler(
                 dbglog_printf_no_line_break(timestamp, vap_id, "%s: %u",
                         dbg_id_str, args[0]);
                 for (i = 1; i < numargs; i++) {
-                    printk(", %u", args[i]);
+                    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, (", %u", args[i]));
                 }
-                printk("\n");
+                AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("\n"));
             } else {
                 return FALSE;
             }
