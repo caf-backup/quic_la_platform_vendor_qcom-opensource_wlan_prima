@@ -399,8 +399,8 @@ extern eHalStatus pmcEnterWowl (
 #endif // WLAN_WAKEUP_EVENTS
     tpSirSmeWowlEnterParams wowlEnterParams, tANI_U8 sessionId);
 
-extern eHalStatus pmcExitWowl (tHalHandle hHal);
-
+extern eHalStatus pmcExitWowl (tHalHandle hHal,
+                               tpSirSmeWowlExitParams wowlExitParams);
 
 extern eHalStatus pmcSetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest,
                                           tANI_U8 sessionId);

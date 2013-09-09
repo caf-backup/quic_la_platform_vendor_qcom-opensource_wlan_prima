@@ -63,6 +63,7 @@ typedef struct sGenericPmcCmd
     {
         tExitBmpsInfo exitBmpsInfo;
         tSirSmeWowlEnterParams enterWowlInfo;
+        tSirSmeWowlExitParams  exitWowlInfo;
     }u;
 } tGenericPmcCmd;
 

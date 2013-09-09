@@ -325,6 +325,7 @@ v_BOOL_t hdd_enter_wowl (hdd_adapter_t *pAdapter, v_BOOL_t enable_mp, v_BOOL_t e
 
   wowParams.ucPatternFilteringEnable = enable_pbm;
   wowParams.ucMagicPktEnable = enable_mp;
+  wowParams.sessionId = pAdapter->sessionId;
   if(enable_mp)
   {
     vos_copy_macaddr( (v_MACADDR_t *)&(wowParams.magicPtrn),
@@ -356,10 +357,13 @@ v_BOOL_t hdd_enter_wowl (hdd_adapter_t *pAdapter, v_BOOL_t enable_mp, v_BOOL_t e
   ===========================================================================*/
 v_BOOL_t hdd_exit_wowl (hdd_adapter_t*pAdapter) 
 {
+  tSirSmeWowlExitParams wowParams;
   tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
   eHalStatus halStatus;
 
-  halStatus = sme_ExitWowl( hHal );
+  wowParams.sessionId = pAdapter->sessionId;
+
+  halStatus = sme_ExitWowl( hHal, &wowParams);
   if ( !HAL_STATUS_SUCCESS( halStatus ) )
   {
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
