@@ -5957,6 +5957,10 @@ VOS_STATUS wma_stop(v_VOID_t *vos_ctx, tANI_U8 reason)
 
 #ifdef QCA_WIFI_ISOC
 	wma_hal_stop_isoc(wma_handle);
+#else
+	/* Suspend the target and disable interrupt */
+	if (wma_suspend_target(wma_handle, 1))
+		WMA_LOGE("Failed to suspend target\n");
 #endif
 
 #ifdef QCA_WIFI_FTM
@@ -6971,13 +6975,6 @@ v_VOID_t wma_setneedshutdown(v_VOID_t *vos_ctx)
 		VOS_ASSERT(0);
 		return 0;
         }
-
-#ifndef QCA_WIFI_ISOC
-       /* Suspend the target and disable interrupt */
-       if (wma_suspend_target(wma_handle, 1)) {
-               WMA_LOGE("Failed to suspend target\n");
-       }
-#endif
 
 	WMA_LOGD("%s: Exit", __func__);
 	return wma_handle->needShutdown;
