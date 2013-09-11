@@ -84,6 +84,13 @@ typedef struct _smeConfigParams
     tANI_BOOLEAN  fScanOffload;
 } tSmeConfigParams, *tpSmeConfigParams;
 
+typedef enum
+{
+    eSME_ROAM_TRIGGER_NONE = 0,
+    eSME_ROAM_TRIGGER_SCAN = 1,
+    eSME_ROAM_TRIGGER_FAST_ROAM = 2,
+    eSME_ROAM_TRIGGER_MAX
+} tSmeFastRoamTrigger;
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
@@ -2943,4 +2950,12 @@ eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
                                     tANI_U32 sessionId);
 #endif //#if defined WLAN_FEATURE_RELIABLE_MCAST
 
+/*
+ * sme API to trigger fast BSS roam to a given BSSID independent of RSSI
+ * triggers
+ * return status
+*/
+eHalStatus smeIssueFastRoamNeighborAPEvent (tHalHandle hHal,
+                                            tANI_U8 *bssid,
+                                            tSmeFastRoamTrigger fastRoamTrig);
 #endif //#if !defined( __SME_API_H )
