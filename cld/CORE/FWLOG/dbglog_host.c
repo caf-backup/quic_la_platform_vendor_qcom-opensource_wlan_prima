@@ -1182,7 +1182,12 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
     A_UINT32 dropped;
     WMI_DEBUG_MESG_EVENTID_param_tlvs *param_buf;
     u_int8_t *datap;
-    u_int32_t len;
+    u_int32_t len, rem_len = datalen;
+
+    if (rem_len < sizeof(*param_buf)) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Not a valid fwlog event\n"));
+        return -1;
+    }
 
     param_buf = (WMI_DEBUG_MESG_EVENTID_param_tlvs *) data;
     if (!param_buf) {
@@ -1192,17 +1197,30 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
 
     datap = param_buf->bufp;
     len = param_buf->num_bufp;
+    rem_len -= sizeof(*param_buf);
+    if (rem_len < sizeof(dropped)) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Zero length fwlog\n"));
+        return -1;
+    }
 
     dropped = *((A_UINT32 *)datap);
-    datap += sizeof(dropped);
-    len -= sizeof(dropped);
     if (dropped > 0) {
         AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("%d log buffers are dropped \n", dropped));
     }
+    datap += sizeof(dropped);
+    len -= sizeof(dropped);
+    rem_len -= sizeof(dropped);
+    if (rem_len < sizeof(A_UINT32))
+        return -1;
 
     count = 0;
     buffer = (A_UINT32 *)datap;
     length = (len >> 2);
+
+    if (length > rem_len) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Invalid fwlog length\n"));
+        return -1;
+    }
 
     if ( dbglog_process_type == DBGLOG_PROCESS_PRINT_RAW) {
         return dbglog_print_raw_data(buffer, length);
