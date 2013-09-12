@@ -5824,7 +5824,9 @@ static VOS_STATUS wma_wow_exit(tp_wma_handle wma,
 static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 {
 	struct wma_txrx_node *iface;
+	v_BOOL_t connected = FALSE;
 	VOS_STATUS ret;
+	u_int8_t i;
 
 	if (info->sessionId > wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
@@ -5832,6 +5834,10 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	}
 
 	iface = &wma->interfaces[info->sessionId];
+	if (!iface) {
+		WMA_LOGD("vdev %d node is not found", info->sessionId);
+		return VOS_STATUS_SUCCESS;
+	}
 
 	if (!wma->wow.magic_ptrn_enable && !iface->ptrn_match_enable) {
 		WMA_LOGD("Both magic and pattern byte match are disabled");
@@ -5849,6 +5855,21 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	 */
 	if (++wma->no_of_suspend_ind < wma_get_vdev_count(wma))
 		return VOS_STATUS_SUCCESS;
+
+	wma->no_of_suspend_ind = 0;
+
+	/* At-least one vdev should be in connected state to enable WOW */
+	for (i = 0; i < wma->max_bssid; i++) {
+		if (wma->interfaces[i].conn_state) {
+			connected = TRUE;
+			break;
+		}
+	}
+
+	if (!connected) {
+		WMA_LOGD("All vdev are in disconnected state, skipping wow");
+		return VOS_STATUS_SUCCESS;
+	}
 
 	WMA_LOGD("WOW Suspend");
 
@@ -5919,7 +5940,6 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma)
 
 	WMA_LOGD("WOW Resume");
 
-	wma->no_of_suspend_ind = 0;
 	wma->wow.wow_enable = FALSE;
 
 	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
