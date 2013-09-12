@@ -2597,7 +2597,11 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 			break;
 	}
 	cmd->peer_flags |= WMI_PEER_AUTH;
-	if (params->wpa_rsn)
+	if (params->wpa_rsn
+#ifdef FEATURE_WLAN_WAPI
+	    || params->encryptType == eSIR_ED_WPI
+#endif
+	   )
 		cmd->peer_flags |= WMI_PEER_NEED_PTK_4_WAY;
 	if (params->wpa_rsn >> 1)
 		cmd->peer_flags |= WMI_PEER_NEED_GTK_2_WAY;
@@ -3766,11 +3770,23 @@ static wmi_buf_t wma_setup_install_key_cmd(tp_wma_handle wma_handle,
 		cmd->key_cipher = WMI_CIPHER_TKIP;
 		break;
 #ifdef FEATURE_WLAN_WAPI
+#define WPI_IV_LEN 16
 	case eSIR_ED_WPI:
+	{
+		/*initialize receive and transmit IV with default values*/
+		unsigned char tx_iv[16] = {0x36,0x5c,0x36,0x5c,0x36,0x5c,0x36,
+					   0x5c,0x36,0x5c,0x36,0x5c,0x36,0x5c,
+					   0x36,0x5c};
+		unsigned char rx_iv[16] = {0x5c,0x36,0x5c,0x36,0x5c,0x36,0x5c,
+					   0x36,0x5c,0x36,0x5c,0x36,0x5c,0x36,
+					   0x5c,0x36};
 		cmd->key_txmic_len = WMA_TXMIC_LEN;
 		cmd->key_rxmic_len = WMA_RXMIC_LEN;
+		vos_mem_copy(&cmd->wpi_key_rsc_counter, &rx_iv, WPI_IV_LEN);
+		vos_mem_copy(&cmd->wpi_key_tsc_counter, &tx_iv, WPI_IV_LEN);
 		cmd->key_cipher = WMI_CIPHER_WAPI;
 		break;
+	}
 #endif
 	case eSIR_ED_CCMP:
 		cmd->key_cipher = WMI_CIPHER_AES_CCM;
@@ -4004,7 +4020,6 @@ static void wma_set_stakey(tp_wma_handle wma_handle, tpSetStaKeyParams key_info)
 
 	/* TODO: Should we wait till we get HTT_T2H_MSG_TYPE_SEC_IND? */
 	key_info->status = eHAL_STATUS_SUCCESS;
-
 out:
 	wma_send_msg(wma_handle, WDA_SET_STAKEY_RSP, (void *) key_info, 0);
 }
