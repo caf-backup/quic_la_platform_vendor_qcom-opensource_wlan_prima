@@ -16180,3 +16180,72 @@ eHalStatus csrHandoffRequest(tpAniSirGlobal pMac,
    return status;
 }
 #endif /* WLAN_FEATURE_ROAM_SCAN_OFFLOAD */
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+eHalStatus csrEnableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32 sessionId)
+{
+   tSirSetRMCReq *pMsg = NULL;
+   eHalStatus status = eHAL_STATUS_SUCCESS;
+   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
+
+   if (!pSession)
+   {
+       smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+       return eHAL_STATUS_FAILURE;
+   }
+
+   status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tSirSetRMCReq));
+   if (HAL_STATUS_SUCCESS(status))
+   {
+       palZeroMemory(pMac->hHdd, (void *)pMsg, sizeof(tSirSetRMCReq));
+       pMsg->msgType = eWNI_SME_ENABLE_RMC_REQ;
+       pMsg->msgLen  = sizeof(tSirSetRMCReq);
+       palCopyMemory( pMac->hHdd, (v_U8_t *)pMsg->mcastGroupIpAddr,
+             mcastGroupIpAddr, SIR_IPV4_ADDR_LEN);
+       palCopyMemory(pMac->hHdd, (v_U8_t *)pMsg->mcastTransmitter,
+             &pSession->selfMacAddr, sizeof(tSirMacAddr));
+
+       status = palSendMBMessage(pMac->hHdd, pMsg);
+       if (!HAL_STATUS_SUCCESS(status))
+       {
+           smsLog(pMac, LOGE, FL(" csr enable RMC Post MSG Fail %d "), status);
+           //pMsg is freed by palSendMBMessage
+       }
+   }
+   return status;
+}
+
+eHalStatus csrDisableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32 sessionId)
+{
+   tSirSetRMCReq *pMsg = NULL;
+   eHalStatus status = eHAL_STATUS_SUCCESS;
+   tCsrRoamSession *pSession = CSR_GET_SESSION(pMac, sessionId);
+
+   if (!pSession)
+   {
+       smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+       return eHAL_STATUS_FAILURE;
+   }
+
+   status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tSirSetRMCReq));
+   if (HAL_STATUS_SUCCESS(status))
+   {
+       palZeroMemory(pMac->hHdd, (void *)pMsg, sizeof(tSirSetRMCReq));
+       pMsg->msgType = eWNI_SME_DISABLE_RMC_REQ;
+       pMsg->msgLen  = sizeof(tSirSetRMCReq);
+       palCopyMemory( pMac->hHdd, (v_U8_t *)pMsg->mcastGroupIpAddr,
+             mcastGroupIpAddr, SIR_IPV4_ADDR_LEN);
+       palCopyMemory(pMac->hHdd, (v_U8_t *)pMsg->mcastTransmitter,
+             &pSession->selfMacAddr, sizeof(tSirMacAddr));
+
+       status = palSendMBMessage(pMac->hHdd, pMsg);
+       if (!HAL_STATUS_SUCCESS(status))
+       {
+           smsLog(pMac, LOGE, FL(" csr disable RMC Post MSG Fail %d "), status);
+           //pMsg is freed by palSendMBMessage
+       }
+   }
+   return status;
+}
+
+#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */

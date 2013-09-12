@@ -1067,6 +1067,13 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_ADD_PERIODIC_TX_PTRN_IND    SIR_HAL_ADD_PERIODIC_TX_PTRN_IND
 #define WDA_DEL_PERIODIC_TX_PTRN_IND    SIR_HAL_DEL_PERIODIC_TX_PTRN_IND
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+#define WDA_RMC_BECOME_LEADER       SIR_HAL_RMC_BECOME_LEADER
+#define WDA_RMC_LEADER_SELECT_RESP  SIR_HAL_RMC_LEADER_SELECT_RESP
+#define WDA_RMC_LEADER_REQ          SIR_HAL_RMC_LEADER_REQ
+#define WDA_RMC_UPDATE_IND          SIR_HAL_RMC_UPDATE_IND
+#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);

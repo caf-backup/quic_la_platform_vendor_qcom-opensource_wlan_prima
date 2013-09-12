@@ -845,6 +845,15 @@ void limProcessLearnIntervalTimeout(tpAniSirGlobal pMac);
 tSirRetStatus limSendSaQueryResponseFrame( tpAniSirGlobal pMac, 
                    tANI_U8 *transId, tSirMacAddr peer,tpPESession psessionEntry);
 #endif
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+void limProcessRMCMessages(tpAniSirGlobal pMac, eRmcMessageType msgType,
+                             tANI_U32 *pMsgBuf);
+tSirRetStatus limSendRMCActionFrame(tpAniSirGlobal  pMac,
+                 tSirMacAddr peerMacAddr, tSirRMCInfo  *pRMC,
+                 tpPESession psessionEntry);
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
 // Inline functions
 
 /**

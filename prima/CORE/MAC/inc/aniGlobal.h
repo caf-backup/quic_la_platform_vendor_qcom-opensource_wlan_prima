@@ -69,6 +69,8 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif
 #include "p2p_Api.h"
 
+#include "limRMC.h"
+
 #if defined WLAN_FEATURE_VOWIFI_11R
 #include <limFTDefs.h>
 #endif
@@ -1040,6 +1042,9 @@ typedef struct sAniSirGlobal
     v_BOOL_t isTdlsPowerSaveProhibited;
 #endif
     tANI_U8 fScanOffload;
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+    tLimRmcContext  rmcContext;
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS

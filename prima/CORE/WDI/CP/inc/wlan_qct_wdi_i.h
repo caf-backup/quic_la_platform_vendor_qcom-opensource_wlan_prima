@@ -415,6 +415,8 @@ typedef enum
 
   /* WLAN FW LPHB config request */
   WDI_LPHB_CFG_REQ                              = 85,
+  /* Send LBP Leader Request */
+  WDI_LBP_LEADER_REQ                            = 86,
 
   WDI_MAX_REQ,
 
@@ -439,11 +441,14 @@ typedef enum
   /* Send a delete periodic Tx pattern indicationto HAL */
   WDI_DEL_PERIODIC_TX_PATTERN_IND,
 
+  /* Send LBP Update Indication */
+  WDI_LBP_UPDATE_IND,
+
   /*Keep adding the indications to the max request
     such that we keep them sepparate */
 
   WDI_MAX_UMAC_IND
-}WDI_RequestEnumType; 
+}WDI_RequestEnumType;
 
 /*--------------------------------------------------------------------------- 
    WLAN DAL Supported Response Types
@@ -700,6 +705,9 @@ typedef enum
   /* WLAN FW LPHB Config response */
   WDI_LPHB_CFG_RESP                             = 84,
 
+  /* Reliable Multicast Leader Response from FW to Host */
+  WDI_LBP_LEADER_RESP                           = 85,
+
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
@@ -759,13 +767,16 @@ typedef enum
   /* Periodic Tx Pattern Indication from FW to Host */
   WDI_HAL_PERIODIC_TX_PTRN_FW_IND     = WDI_HAL_IND_MIN + 16,
 
-  WDI_MAX_RESP
-}WDI_ResponseEnumType; 
+  /* Reliable Multicast Update Indication from FW to Host */
+  WDI_LBP_UPDATE_IND_TO_HOST           = WDI_HAL_IND_MIN + 17,
 
-typedef struct 
+  WDI_MAX_RESP
+}WDI_ResponseEnumType;
+
+typedef struct
 {
   /*Flag that marks a session as being in use*/
-  wpt_boolean         bInUse; 
+  wpt_boolean         bInUse;
 
   /*Flag that keeps track if a series of assoc requests for this BSS are
     currently pending in the queue or processed
@@ -5389,6 +5400,111 @@ WDI_Status WDI_ProcessLphbCfgRsp
   WDI_EventInfoType*     pEventData
 );
 #endif /* FEATURE_WLAN_LPHB */
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+/**
+ @brief Process LBP Leader Request and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+*/
+WDI_Status
+WDI_ProcessLBPLeaderReq
+(
+    WDI_ControlBlockType*  pWDICtx,
+    WDI_EventInfoType*     pEventData
+);
+
+/**
+*@brief Process Leader Selection response where the firmware
+        provides a list of candidates that can be used as leaders
+        a.k.a. a receiver that can ACK multicast frames
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessLBPLeaderResp
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process LBP Update Indication and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessLBPUpdateInd
+(
+    WDI_ControlBlockType*  pWDICtx,
+    WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief WDI_LbpUpdateInd will be called when the upper MAC
+        requests the device to enable LBP reliable multicast.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state.
+
+
+ @param wdiLbpUpdateIndParams:
+
+
+ @see WDI_Start
+ @return Result of the function call
+*/
+WDI_Status
+WDI_LbpUpdateInd
+(
+    WDI_LbpUpdateIndParams  *wdiLbpUpdateIndParams
+);
+
+/**
+*@brief Process Leader Selection response where the firmware
+        provides a list of candidates that can be used as leaders
+        a.k.a. a receiver that can ACK multicast frames
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessLBPLeaderResp
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+*@brief Process Update Indication where the firmware
+        provides a list of candidates that can be used as leaders
+        a.k.a. a receiver that can ACK multicast frames
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessLBPUpdateIndToHost
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
 #endif /*WLAN_QCT_WDI_I_H*/
 

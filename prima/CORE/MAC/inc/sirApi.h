@@ -4354,4 +4354,62 @@ typedef struct sSirDelPeriodicTxPtrn
     tANI_U32 ucPatternIdBitmap;
 } tSirDelPeriodicTxPtrn, *tpSirDelPeriodicTxPtrn;
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+
+#define SIR_RMC_NUM_MAX_LEADERS  8  /* HAL_NUM_MAX_LEADERS */
+typedef struct sSirSetRMCReq
+{
+    tANI_U16       msgType;
+    tANI_U16       msgLen;
+    tANI_U8        mcastGroupIpAddr[SIR_IPV4_ADDR_LEN];
+    tSirMacAddr    mcastTransmitter;
+} tSirSetRMCReq, *tpSirSetRMCReq;
+
+typedef struct sSirRMCInfo
+{
+    tANI_U8       dialogToken;
+    tANI_U8       action;
+    tSirMacAddr   mcastGroup;
+} tSirRMCInfo, *tpSirRMCInfo;
+
+typedef struct sSirRmcLeaderSelectInd
+{
+    tANI_U16      status;
+    tSirMacAddr   mcastTransmitter;
+    tSirMacAddr   mcastGroup;
+    tSirMacAddr   leader[SIR_RMC_NUM_MAX_LEADERS];
+} tSirRmcLeaderSelectInd, *tpSirRmcLeaderSelectInd;
+
+typedef struct sSirRmcBecomeLeaderInd
+{
+    tANI_U16      status;
+    tSirMacAddr   mcastTransmitter;
+    tSirMacAddr   mcastGroup;
+} tSirRmcBecomeLeaderInd, *tpSirRmcBecomeLeaderInd;
+
+typedef struct sSirRmcLeaderReq
+{
+    // Common for all types are requests
+    tANI_U16      msgType; // message type is same as the request type
+    tANI_U16      msgLen;  // length of the entire request
+    tANI_U8       cmd;     // tLeaderReqCmdType
+    tSirMacAddr   mcastTransmitter;
+    tSirMacAddr   mcastGroup;
+    tSirMacAddr   blacklist[SIR_RMC_NUM_MAX_LEADERS];
+} tSirRmcLeaderReq, *tpSirRmcLeaderReq;
+
+typedef struct sSirRmcUpdateInd
+{
+    // Common for all types are requests
+    tANI_U16      msgType;    // message type is same as the request type
+    tANI_U16      msgLen;     // length of the entire request
+    tANI_U8       indication; // tLbpUpdateIndType
+    tANI_U8       role;       // tLbpRoleType
+    tSirMacAddr   mcastTransmitter;
+    tSirMacAddr   mcastGroup;
+    tSirMacAddr   mcastLeader;
+    tSirMacAddr   leader[SIR_RMC_NUM_MAX_LEADERS];
+} tSirRmcUpdateInd, *tpSirRmcUpdateInd;
+
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 #endif /* __SIR_API_H */

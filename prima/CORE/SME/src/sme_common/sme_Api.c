@@ -8958,3 +8958,52 @@ eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
     return status;
 }
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+/* ---------------------------------------------------------------------------
+    \fn sme_EnableReliableMcast
+    \brief  Used to enable Reliable Multicast using Leader Based Protocol
+    setting will not persist over reboots
+    \param  hHal
+    \param  mcastGroupIpAddr  multicast Group IP address
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
+                                   tANI_U32 sessionId)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    smsLog(pMac, LOG1, FL("enable RMC"));
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (HAL_STATUS_SUCCESS(status))
+    {
+        status = csrEnableRMC(pMac, mcastGroupIpAddr, sessionId);
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return status;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_DisableReliableMcast
+    \brief  Used to disable Reliable Multicast using Leader Based Protocol
+    setting will not persist over reboots
+    \param  hHal
+    \param  mcastGroupIpAddr  multicast Group IP address
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
+                                    tANI_U32 sessionId)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   smsLog(pMac, LOG1, FL("disable RMC"));
+   status = sme_AcquireGlobalLock(&pMac->sme);
+   if (HAL_STATUS_SUCCESS(status))
+   {
+      status = csrDisableRMC(pMac, mcastGroupIpAddr, sessionId);
+      sme_ReleaseGlobalLock(&pMac->sme);
+   }
+   return status;
+}
+#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
