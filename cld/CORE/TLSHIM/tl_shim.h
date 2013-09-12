@@ -12,11 +12,13 @@ struct tlshim_buf {
 	adf_nbuf_t buf;
 };
 
+#define TLSHIM_FLUSH_CACHE_IN_PROGRESS 0
 struct tlshim_sta_info {
 	bool registered;
 	bool suspend_flush;
 	WLANTL_STARxCBType data_rx;
 	struct list_head cached_bufq;
+	unsigned long flags;
 };
 
 struct txrx_tl_shim_ctx {
