@@ -39,6 +39,7 @@ Qualcomm Technologies Confidential and Proprietary
 #ifdef WLAN_FEATURE_RELIABLE_MCAST
 #include "wlan_qct_tl.h"
 #endif
+#include "wlan_qct_wdi_dts.h"
 
 void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA);
 #ifdef WLANTL_DEBUG
@@ -2521,6 +2522,19 @@ dump_lim_disable_reliable_mcast_data_path
 
 #endif
 
+/* API to fill Rate Info based on mac efficiency
+ * arg 1: mac efficiency to be used to calculate mac thorughput for a given rate index
+ * arg 2: starting rateIndex to apply the macEfficiency to
+ * arg 3: ending rateIndex to apply the macEfficiency to
+ */
+static char *
+dump_limRateInfoBasedOnMacEff(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    limLog(pMac, LOGE, FL("arg1 %u, arg2 %u, arg3 %u"), arg1, arg2, arg3);
+    WDTS_FillRateInfo((tANI_U8)(arg1), (tANI_U16)(arg2), (tANI_U16)(arg3));
+    return p;
+}
+
 static tDumpFuncEntry limMenuDumpTable[] = {
     {0,     "PE (300-499)",                                          NULL},
     {300,   "LIM: Dump state(s)/statistics <session id>",            dump_lim_info},
@@ -2602,7 +2616,7 @@ static tDumpFuncEntry limMenuDumpTable[] = {
     {372,   "PE.LIM: Disable RMCAST data path in TL for input MCAST addr",
         dump_lim_disable_reliable_mcast_data_path },
 #endif
-
+    {373,   "PE.LIM: MAS RX stats MAC eff <MAC eff in percentage>",  dump_limRateInfoBasedOnMacEff},
 };
 
 
