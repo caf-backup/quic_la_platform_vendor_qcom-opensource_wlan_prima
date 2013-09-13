@@ -797,6 +797,50 @@ static void wma_update_noa(struct beacon_info *beacon,
 	wma_update_beacon_noa_ie(beacon, new_noa_sub_ie_len);
 }
 
+static void wma_update_probe_resp_noa(tp_wma_handle wma_handle,
+					struct p2p_sub_element_noa *noa_ie)
+{
+	tSirP2PNoaAttr *noa_attr = (tSirP2PNoaAttr *) vos_mem_malloc(
+							sizeof(tSirP2PNoaAttr));
+	WMA_LOGD("Received update NoA event");
+	if (!noa_attr) {
+		WMA_LOGE("Failed to allocate memory for tSirP2PNoaAttr");
+		return;
+	}
+
+	vos_mem_set(noa_attr, 0, sizeof(tSirP2PNoaAttr));
+
+	noa_attr->index = noa_ie->index;
+	noa_attr->oppPsFlag = noa_ie->oppPS;
+	noa_attr->ctWin = noa_ie->ctwindow;
+	if (!noa_ie->num_descriptors) {
+		WMA_LOGD("Zero NoA descriptors");
+	}
+	else {
+		WMA_LOGD("%d NoA descriptors", noa_ie->num_descriptors);
+		noa_attr->uNoa1IntervalCnt =
+			noa_ie->noa_descriptors[0].type_count;
+		noa_attr->uNoa1Duration =
+			noa_ie->noa_descriptors[0].duration;
+		noa_attr->uNoa1Interval =
+			noa_ie->noa_descriptors[0].interval;
+		noa_attr->uNoa1StartTime =
+			noa_ie->noa_descriptors[0].start_time;
+		if (noa_ie->num_descriptors > 1) {
+			noa_attr->uNoa2IntervalCnt =
+				noa_ie->noa_descriptors[1].type_count;
+			noa_attr->uNoa2Duration =
+				noa_ie->noa_descriptors[1].duration;
+			noa_attr->uNoa2Interval =
+				noa_ie->noa_descriptors[1].interval;
+			noa_attr->uNoa2StartTime =
+				noa_ie->noa_descriptors[1].start_time;
+		}
+	}
+	WMA_LOGI("Sending SIR_HAL_P2P_NOA_ATTR_IND to LIM");
+	wma_send_msg(wma_handle, SIR_HAL_P2P_NOA_ATTR_IND, (void *)noa_attr ,
+			0);
+}
 static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 				ol_txrx_pdev_handle pdev,
 				u_int8_t vdev_id,
@@ -906,6 +950,10 @@ static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 				noa_ie.noa_descriptors[i].start_time);
 		}
 		wma_update_noa(bcn, &noa_ie);
+
+		/* Send a msg to LIM to update the NoA IE in probe response
+		 * frames transmitted by the host */
+		wma_update_probe_resp_noa(wma, &noa_ie);
 	}
 
 	if (bcn->dma_mapped) {
