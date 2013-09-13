@@ -236,6 +236,9 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 	struct tlshim_buf *cache_buf, *tmp;
 	VOS_STATUS ret;
 
+	if (test_and_set_bit(TLSHIM_FLUSH_CACHE_IN_PROGRESS, &sta_info->flags))
+		return;
+
 	adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 	list_for_each_entry_safe(cache_buf, tmp,
 				 &sta_info->cached_bufq, list) {
@@ -254,6 +257,7 @@ static void tl_shim_flush_rx_frames(void *vos_ctx,
 		adf_os_spin_lock_bh(&tl_shim->bufq_lock);
 	}
 	adf_os_spin_unlock_bh(&tl_shim->bufq_lock);
+	clear_bit(TLSHIM_FLUSH_CACHE_IN_PROGRESS, &sta_info->flags);
 }
 
 /*
@@ -896,6 +900,7 @@ VOS_STATUS WLANTL_Open(void *vos_ctx, WLANTL_ConfigInfoType *tl_cfg)
 
 	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
 		tl_shim->sta_info[i].suspend_flush = 0;
+		tl_shim->sta_info[i].flags = 0;
 		INIT_LIST_HEAD(&tl_shim->sta_info[i].cached_bufq);
 	}
 
