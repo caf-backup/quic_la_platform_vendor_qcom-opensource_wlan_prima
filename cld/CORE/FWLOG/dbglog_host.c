@@ -1168,9 +1168,7 @@ dbglog_debugfs_raw_data(wmi_unified_t wmi_handle, const u_int8_t *buf, A_UINT32 
 int
 dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
 {
-#ifdef WLAN_OPEN_SOURCE
     tp_wma_handle wma = (tp_wma_handle)scn;
-#endif /* WLAN_OPEN_SOURCE */
     A_UINT32 count;
     A_UINT32 *buffer;
     A_UINT32 timestamp;
@@ -1182,25 +1180,22 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
     A_UINT32 dropped;
     WMI_DEBUG_MESG_EVENTID_param_tlvs *param_buf;
     u_int8_t *datap;
-    u_int32_t len, rem_len = datalen;
+    u_int32_t len;
 
-    if (rem_len < sizeof(*param_buf)) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Not a valid fwlog event\n"));
-        return -1;
-    }
+    /*when fw asser occurs,host can't use TLV format.*/
+    if (wma->is_fw_assert) {
+	datap = data;
+	len = datalen;
+	wma->is_fw_assert = 0;
+    } else {
+        param_buf = (WMI_DEBUG_MESG_EVENTID_param_tlvs *) data;
+        if (!param_buf) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Get NULL point message from FW\n"));
+            return -1;
+        }
 
-    param_buf = (WMI_DEBUG_MESG_EVENTID_param_tlvs *) data;
-    if (!param_buf) {
-    AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Get NULL point message from FW\n"));
-    return -1;
-    }
-
-    datap = param_buf->bufp;
-    len = param_buf->num_bufp;
-    rem_len -= sizeof(*param_buf);
-    if (rem_len < sizeof(dropped)) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Zero length fwlog\n"));
-        return -1;
+        datap = param_buf->bufp;
+        len = param_buf->num_bufp;
     }
 
     dropped = *((A_UINT32 *)datap);
@@ -1209,18 +1204,10 @@ dbglog_parse_debug_logs(ol_scn_t scn, u_int8_t *data, u_int32_t datalen)
     }
     datap += sizeof(dropped);
     len -= sizeof(dropped);
-    rem_len -= sizeof(dropped);
-    if (rem_len < sizeof(A_UINT32))
-        return -1;
 
     count = 0;
     buffer = (A_UINT32 *)datap;
     length = (len >> 2);
-
-    if (length > rem_len) {
-        AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("Invalid fwlog length\n"));
-        return -1;
-    }
 
     if ( dbglog_process_type == DBGLOG_PROCESS_PRINT_RAW) {
         return dbglog_print_raw_data(buffer, length);

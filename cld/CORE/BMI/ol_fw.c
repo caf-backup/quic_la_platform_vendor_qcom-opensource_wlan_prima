@@ -21,6 +21,7 @@
 #include "ol_cfg.h"
 #include "vos_api.h"
 #include "wma_api.h"
+#include "wma.h"
 
 #define ATH_MODULE_NAME bmi
 #include "a_debug.h"
@@ -456,7 +457,11 @@ void ol_target_failure(void *instance, A_STATUS status)
 	A_UINT32 dbglog_hdr_address;
 	struct dbglog_hdr_s dbglog_hdr;
 	struct dbglog_buf_s dbglog_buf;
+	struct dbglog_hdr_host dbglog_hdr_temp;
+	struct dbglog_buf_host dbglog_buf_temp;
 	A_UINT8 *dbglog_data;
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	tp_wma_handle wma = vos_get_context(VOS_MODULE_ID_WDA, vos_context);
 
 	printk("XXX TARGET ASSERTED XXX\n");
 	scn->target_status = OL_TRGET_STATUS_RESET;
@@ -498,26 +503,31 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 	if (HIFDiagReadMem(scn->hif_hdl,
 	            dbglog_hdr_address,
-	            (A_UCHAR *)&dbglog_hdr,
-	            sizeof(dbglog_hdr))!= A_OK)
+	            (A_UCHAR *)&dbglog_hdr_temp,
+	            sizeof(dbglog_hdr_temp))!= A_OK)
 	{
 	    printk("HifDiagReadiMem FW dbglog_hdr failed\n");
 	    return;
 	}
 
+	dbglog_hdr.dbuf = (struct dbglog_buf_s *)dbglog_hdr_temp.dbuf;
+	dbglog_hdr.dropped = dbglog_hdr_temp.dropped;
+
 	if (HIFDiagReadMem(scn->hif_hdl,
 	            (A_UINT32)dbglog_hdr.dbuf,
-	            (A_UCHAR *)&dbglog_buf,
-	            sizeof(dbglog_buf))!= A_OK)
+	            (A_UCHAR *)&dbglog_buf_temp,
+	            sizeof(dbglog_buf_temp))!= A_OK)
 	{
 	    printk("HifDiagReadiMem FW dbglog_buf failed\n");
 	    return;
 	}
 
-	if (!dbglog_buf.length) {
-	    printk("Zero length fwlog after target assert\n");
-	    return;
-	}
+	dbglog_buf.next = (struct dbglog_buf_s *)dbglog_buf_temp.next;
+	dbglog_buf.buffer = (A_UINT8 *)dbglog_buf_temp.buffer;
+	dbglog_buf.bufsize = dbglog_buf_temp.bufsize;
+	dbglog_buf.length = dbglog_buf_temp.length;
+	dbglog_buf.count = dbglog_buf_temp.count;
+	dbglog_buf.free = dbglog_buf_temp.free;
 
 	dbglog_data = adf_os_mem_alloc(scn->adf_dev,  dbglog_buf.length + 4);
 	if (dbglog_data) {
@@ -533,7 +543,8 @@ void ol_target_failure(void *instance, A_STATUS status)
 
 
 	        OS_MEMCPY(dbglog_data, &dbglog_hdr.dropped, 4);
-	        (void)dbglog_parse_debug_logs(scn, dbglog_data, dbglog_buf.length + 4);
+		wma->is_fw_assert = 1;
+	        (void)dbglog_parse_debug_logs(wma, dbglog_data, dbglog_buf.length + 4);
 	    }
 
 	    adf_os_mem_free(dbglog_data);

@@ -341,6 +341,7 @@ typedef struct {
 	/* UTF event information */
 	struct utf_event_info utf_event_info;
 #endif
+	u_int8_t is_fw_assert;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
