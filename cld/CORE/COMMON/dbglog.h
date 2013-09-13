@@ -91,6 +91,20 @@ PREPACK struct dbglog_hdr_s {
     A_UINT32             dropped;
 } POSTPACK;
 
+PREPACK struct dbglog_buf_host {
+    A_UINT32             next;
+    A_UINT32             buffer;
+    A_UINT32             bufsize;
+    A_UINT32             length;
+    A_UINT32             count;
+    A_UINT32             free;
+} POSTPACK;
+
+PREPACK struct dbglog_hdr_host {
+    A_UINT32             dbuf;
+    A_UINT32             dropped;
+} POSTPACK;
+
 #define DBGLOG_MAX_VDEVID 15 /* 0-15 */
 
 /** value representing all modules */
