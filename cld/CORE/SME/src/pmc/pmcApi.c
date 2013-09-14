@@ -2165,6 +2165,10 @@ eHalStatus pmcWowlAddBcastPattern (
         return eHAL_STATUS_FAILURE;
     }
 
+    /* No need to care PMC state transition when ps offload is enabled. */
+    if(pMac->psOffloadEnabled)
+        goto skip_pmc_state_transition;
+
     if( pMac->pmc.pmcState == STANDBY || pMac->pmc.pmcState == REQUEST_STANDBY )
     {
         smsLog(pMac, LOGE, FL("Cannot add WoWL Pattern as chip is in %s state"),
@@ -2193,6 +2197,8 @@ eHalStatus pmcWowlAddBcastPattern (
             //else let it through because it is in full power state
         }
     }
+
+skip_pmc_state_transition:
 
     if (pmcSendMessage(hHal, eWNI_PMC_WOWL_ADD_BCAST_PTRN, pattern, sizeof(tSirWowlAddBcastPtrn))
         != eHAL_STATUS_SUCCESS)
@@ -2246,6 +2252,10 @@ eHalStatus pmcWowlDelBcastPattern (
         return eHAL_STATUS_FAILURE;
     }
 
+    /* No need to care PMC state transition when ps offload is enabled. */
+    if(pMac->psOffloadEnabled)
+        goto skip_pmc_state_transition;
+
     if(pMac->pmc.pmcState == STANDBY || pMac->pmc.pmcState == REQUEST_STANDBY)
     {
         smsLog(pMac, LOGE, FL("Cannot delete WoWL Pattern as chip is in %s state"),
@@ -2276,6 +2286,8 @@ eHalStatus pmcWowlDelBcastPattern (
             //else let it through because it is in full power state
         }
     }
+
+skip_pmc_state_transition:
 
     if (pmcSendMessage(hHal, eWNI_PMC_WOWL_DEL_BCAST_PTRN, pattern, sizeof(tSirWowlDelBcastPtrn))
         != eHAL_STATUS_SUCCESS)
@@ -2363,6 +2375,10 @@ eHalStatus pmcEnterWowl (
        return eHAL_STATUS_FAILURE;
    }
 
+   /* No need worry about PMC state when power save offload is enabled. */
+   if( pMac->psOffloadEnabled )
+        goto skip_pmc_state_transition;
+
    vos_mem_copy(wowlEnterParams->bssId, pSession->connectedProfile.bssid, 
                sizeof(tSirMacAddr));
 
@@ -2412,6 +2428,7 @@ eHalStatus pmcEnterWowl (
       return eHAL_STATUS_FAILURE;
    }
 
+skip_pmc_state_transition:
    // To avoid race condition, set callback routines before sending message.
    /* cache the WOWL information */
    pMac->pmc.wowlEnterParams = *wowlEnterParams;
@@ -2427,7 +2444,8 @@ eHalStatus pmcEnterWowl (
    if (pmcRequestEnterWowlState(hHal, wowlEnterParams) != eHAL_STATUS_SUCCESS)
       return eHAL_STATUS_FAILURE;
 
-   pMac->pmc.wowlModeRequired = TRUE;
+   if(!pMac->psOffloadEnabled)
+      pMac->pmc.wowlModeRequired = TRUE;
 
    return eHAL_STATUS_PMC_PENDING;
 }
@@ -4000,17 +4018,35 @@ tANI_BOOLEAN pmcOffloadProcessCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand)
             break;
 
         case eSmeCommandEnterWowl:
-            smsLog(pMac, LOGE, "PMC: eSmeCommandEnterWowl "
-                      "is not supported");
+            status = pmcSendMessage(pMac, eWNI_PMC_ENTER_WOWL_REQ,
+                                   &pCommand->u.pmcCmd.u.enterWowlInfo,
+                                   sizeof(tSirSmeWowlEnterParams));
+            if ( !HAL_STATUS_SUCCESS( status ) )
+            {
+                smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_WOWL_REQ");
+                pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_FAILURE);
+            }
+            else
+            {
+                pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_SUCCESS);
+            }
             break;
 
         case eSmeCommandExitWowl:
-            smsLog(pMac, LOGE, "PMC: eSmeCommandEnterWowl "
-                      "is not supported");
+            status = pmcSendMessage(pMac, eWNI_PMC_EXIT_WOWL_REQ, NULL, 0);
+            if ( !HAL_STATUS_SUCCESS( status ) )
+            {
+                smsLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
+                pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_FAILURE);
+            }
+            else
+            {
+                pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_SUCCESS);
+            }
             break;
 
         case eSmeCommandEnterStandby:
-            smsLog(pMac, LOGE, "PMC: eSmeCommandEnterWowl "
+            smsLog(pMac, LOGE, "PMC: eSmeCommandEnterStandby "
                       "is not supported");
             break;
 

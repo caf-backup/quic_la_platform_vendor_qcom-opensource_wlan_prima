@@ -1622,6 +1622,18 @@ eHalStatus pmcRequestEnterWowlState(tHalHandle hHal, tpSirSmeWowlEnterParams wow
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    smsLog(pMac, LOG2, "PMC: entering pmcRequestEnterWowlState");
 
+   if(pMac->psOffloadEnabled)
+   {
+        if (pmcIssueCommand(hHal, 0, eSmeCommandEnterWowl, wowlEnterParams,
+             sizeof(tSirSmeWowlEnterParams), FALSE) != eHAL_STATUS_SUCCESS)
+         {
+            smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_WOWL_REQ");
+            return eHAL_STATUS_FAILURE;
+         }
+
+         return eHAL_STATUS_SUCCESS;
+   }
+
    switch (pMac->pmc.pmcState)
    {
       case FULL_POWER:
@@ -1738,6 +1750,18 @@ eHalStatus pmcRequestExitWowlState(tHalHandle hHal)
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
     smsLog(pMac, LOG2, "PMC: entering pmcRequestExitWowlState");
+
+    if (pMac->psOffloadEnabled)
+    {
+        if (pmcIssueCommand(hHal, 0, eSmeCommandExitWowl, NULL, 0, FALSE)
+                != eHAL_STATUS_SUCCESS)
+            {
+                smsLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
+                return eHAL_STATUS_FAILURE;
+            }
+
+        return eHAL_STATUS_SUCCESS;
+    }
 
     switch (pMac->pmc.pmcState)
     {
