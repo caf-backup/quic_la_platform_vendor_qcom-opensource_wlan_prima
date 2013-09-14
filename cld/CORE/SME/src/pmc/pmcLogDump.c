@@ -251,8 +251,10 @@ dump_pmc_enter_wowl( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32
 static char *
 dump_pmc_exit_wowl( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
+    tSirSmeWowlExitParams wowlExitParams;
+
     (void) arg1; (void) arg2; (void) arg3; (void) arg4;
-    (void)sme_ExitWowl(pMac);
+    (void)sme_ExitWowl(pMac, &wowlExitParams);
     return p;
 }
 
@@ -310,6 +312,7 @@ dump_pmc_test_Wowl( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 
     tSirWowlAddBcastPtrn addPattern;
     tSirWowlDelBcastPtrn delPattern;
     tSirSmeWowlEnterParams wowlEnterParams;
+    tSirSmeWowlExitParams wowlExitParams;
     tANI_U8            sessionId = 0;
 
     smeRsp.statusCode = eSIR_SME_SUCCESS;
@@ -346,7 +349,7 @@ dump_pmc_test_Wowl( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 
     pmcMessageProcessor(pMac, &smeRsp);
 
     //Exit Wowl
-    sme_ExitWowl(pMac);
+    sme_ExitWowl(pMac, &wowlExitParams);
     smeRsp.messageType = eWNI_PMC_EXIT_WOWL_RSP;
     pmcMessageProcessor(pMac, &smeRsp);
     return p;

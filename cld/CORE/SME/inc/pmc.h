@@ -236,7 +236,8 @@ extern const char* pmcGetPmcStateStr(tPmcState state);
 extern void pmcDoDeviceStateUpdateCallbacks (tHalHandle hHal, tPmcState state);
 extern eHalStatus pmcRequestEnterWowlState(tHalHandle hHal, tpSirSmeWowlEnterParams wowlEnterParams);
 extern eHalStatus pmcEnterWowlState (tHalHandle hHal);
-extern eHalStatus pmcRequestExitWowlState(tHalHandle hHal);
+extern eHalStatus pmcRequestExitWowlState(tHalHandle hHal,
+                                          tpSirSmeWowlExitParams wowlExitParams);
 extern void pmcDoEnterWowlCallbacks (tHalHandle hHal, eHalStatus callbackStatus);
 //The function will request for full power as well in addition to defer the message
 extern eHalStatus pmcDeferMsg( tpAniSirGlobal pMac, tANI_U16 messageType, 

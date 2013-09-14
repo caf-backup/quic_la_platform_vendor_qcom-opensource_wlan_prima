@@ -2932,6 +2932,8 @@ typedef struct sSirWowlDelBcastPtrn
 // SME->PE: Enter WOWLAN parameters 
 typedef struct sSirSmeWowlEnterParams
 {
+    tANI_U8  sessionId;
+
     /* Enables/disables magic packet filtering */
     tANI_U8   ucMagicPktEnable; 
 
@@ -2972,6 +2974,8 @@ typedef struct sSirSmeWowlEnterParams
 // PE<->HAL: Enter WOWLAN parameters 
 typedef struct sSirHalWowlEnterParams
 {
+    tANI_U8  sessionId;
+
     /* Enables/disables magic packet filtering */
     tANI_U8   ucMagicPktEnable; 
 
@@ -3060,9 +3064,18 @@ typedef struct sSirHalWowlEnterParams
     tANI_U8  bssIdx;
 } tSirHalWowlEnterParams, *tpSirHalWowlEnterParams;
 
+// SME->PE: Exit WOWLAN parameters
+typedef struct sSirSmeWowlExitParams
+{
+    tANI_U8  sessionId;
+
+} tSirSmeWowlExitParams, *tpSirSmeWowlExitParams;
+
 // PE<->HAL: Exit WOWLAN parameters 
 typedef struct sSirHalWowlExitParams
 {
+    tANI_U8  sessionId;
+
     /* Status code to be filled by HAL when it sends
      * SIR_HAL_WOWL_EXIT_RSP to PE. 
      */  

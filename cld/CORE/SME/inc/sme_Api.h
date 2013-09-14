@@ -1192,13 +1192,15 @@ extern eHalStatus sme_EnterWowl (
             SME will initiate exit from WoWLAN mode and device will be put in BMPS 
             mode. Any Buffered request for WoWL will be cleared after this API.
     \param  hHal - The handle returned by macOpen.
+    \param  wowlExitParams - Carries info on which smesession wowl exit
+                             is requested.
     \return eHalStatus
             eHAL_STATUS_FAILURE  Device cannot exit WoWLAN mode. This can happen
                                   only if the previous "Enter WOWL" transaction has
                                   not even completed.
             eHAL_STATUS_SUCCESS  Request accepted to exit WoWLAN mode. 
   ---------------------------------------------------------------------------*/
-extern eHalStatus sme_ExitWowl (tHalHandle hHal);
+extern eHalStatus sme_ExitWowl (tHalHandle hHal, tpSirSmeWowlExitParams wowlExitParams);
 
 /* ---------------------------------------------------------------------------
 

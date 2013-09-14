@@ -1262,7 +1262,7 @@ void pmmProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             break;
 
         case eWNI_PMC_EXIT_WOWL_REQ:
-            pmmExitWowlanRequestHandler(pMac);
+            pmmExitWowlanRequestHandler(pMac, pMsg);
             break;
 
         case WDA_WOWL_EXIT_RSP:
@@ -2222,6 +2222,7 @@ skip_pmm_state_check:
     }
     pHalWowlParams->ucWowMaxSleepUsec = (tANI_U8)cfgValue;
 
+    pHalWowlParams->sessionId = pSmeWowlParams->sessionId;
     //Send message to HAL
     if( eSIR_SUCCESS != (retCode = pmmSendWowlEnterRequest( pMac, pHalWowlParams)))
     {
@@ -2330,13 +2331,23 @@ void pmmEnterWowlanResponseHandler(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 \param   tpAniSirGlobal  pMac
 \return  None
  ------------------------------------------------------------*/
-void pmmExitWowlanRequestHandler(tpAniSirGlobal pMac)
+void pmmExitWowlanRequestHandler(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 {
+    tpSirSmeWowlExitParams  pSmeWowlParams = NULL;
+    tSirMbMsg *pMbMsg = (tSirMbMsg *)pMsg->bodyptr;
     tSirRetStatus retStatus = eSIR_SUCCESS;
     tSirResultCodes smeRspCode = eSIR_SME_SUCCESS;
     tpPESession pSessionEntry = NULL;
     tpSirHalWowlExitParams  pHalWowlMsg = NULL;
     tANI_U8            PowersavesessionId = 0;
+
+    pSmeWowlParams = (tpSirSmeWowlExitParams)(pMbMsg->data);
+    if (NULL == pSmeWowlParams)
+    {
+        limLog(pMac, LOGE,
+               FL("NULL message received"));
+        return;
+    }
 
     if (pMac->psOffloadEnabled)
          goto skip_pe_session_lookup;
@@ -2377,6 +2388,7 @@ skip_pe_session_lookup:
     if (!pMac->psOffloadEnabled)
         pHalWowlMsg->bssIdx = pSessionEntry->bssIdx;
 
+    pHalWowlMsg->sessionId = pSmeWowlParams->sessionId;
     if((retStatus = pmmSendExitWowlReq(pMac, pHalWowlMsg)) != eSIR_SUCCESS)
     {
         pmmLog(pMac, LOGE,
@@ -3704,7 +3716,7 @@ void pmmOffloadProcessMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             break;
 
         case eWNI_PMC_EXIT_WOWL_REQ:
-            pmmExitWowlanRequestHandler(pMac);
+            pmmExitWowlanRequestHandler(pMac, pMsg);
             break;
 
         case WDA_WOWL_EXIT_RSP:

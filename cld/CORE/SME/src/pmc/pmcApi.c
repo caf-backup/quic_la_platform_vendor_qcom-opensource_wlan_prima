@@ -2456,11 +2456,13 @@ skip_pmc_state_transition:
             SME will initiate exit from WoWLAN mode and device will be put in BMPS 
             mode.
     \param  hHal - The handle returned by macOpen.
+    \param  wowlExitParams - Carries info on which smesession
+                             wowl exit is requested.
     \return eHalStatus
             eHAL_STATUS_FAILURE  Device cannot exit WoWLAN mode.
             eHAL_STATUS_SUCCESS  Request accepted to exit WoWLAN mode. 
   ---------------------------------------------------------------------------*/
-eHalStatus pmcExitWowl (tHalHandle hHal)
+eHalStatus pmcExitWowl (tHalHandle hHal, tpSirSmeWowlExitParams wowlExitParams)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
@@ -2479,7 +2481,7 @@ eHalStatus pmcExitWowl (tHalHandle hHal)
    pMac->pmc.wowlModeRequired = FALSE;
 
    /* Enter REQUEST_EXIT_WOWL State*/
-   if (pmcRequestExitWowlState(hHal) != eHAL_STATUS_SUCCESS)
+   if (pmcRequestExitWowlState(hHal, wowlExitParams) != eHAL_STATUS_SUCCESS)
       return eHAL_STATUS_FAILURE;
 
    /* Clear the callback routines */
@@ -4033,7 +4035,9 @@ tANI_BOOLEAN pmcOffloadProcessCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand)
             break;
 
         case eSmeCommandExitWowl:
-            status = pmcSendMessage(pMac, eWNI_PMC_EXIT_WOWL_REQ, NULL, 0);
+            status = pmcSendMessage(pMac, eWNI_PMC_EXIT_WOWL_REQ,
+                                    &pCommand->u.pmcCmd.u.exitWowlInfo,
+                                    sizeof(tSirSmeWowlExitParams));
             if ( !HAL_STATUS_SUCCESS( status ) )
             {
                 smsLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");

@@ -1739,13 +1739,15 @@ eHalStatus pmcEnterWowlState (tHalHandle hHal)
 *
 * Parameters:
 *    hHal - HAL handle for device
-*
+*    wowlExitParams - Carries info on which smesession wowl exit is requested.
+
 * Returns:
 *    eHAL_STATUS_SUCCESS - Exit WOWL successful
 *    eHAL_STATUS_FAILURE - Exit WOWL unsuccessful
 *
 ******************************************************************************/
-eHalStatus pmcRequestExitWowlState(tHalHandle hHal)
+eHalStatus pmcRequestExitWowlState(tHalHandle hHal,
+                                   tpSirSmeWowlExitParams wowlExitParams)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
@@ -1753,7 +1755,7 @@ eHalStatus pmcRequestExitWowlState(tHalHandle hHal)
 
     if (pMac->psOffloadEnabled)
     {
-        if (pmcIssueCommand(hHal, 0, eSmeCommandExitWowl, NULL, 0, FALSE)
+        if (pmcIssueCommand(hHal, 0, eSmeCommandExitWowl, wowlExitParams, 0, FALSE)
                 != eHAL_STATUS_SUCCESS)
             {
                 smsLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
@@ -2064,7 +2066,16 @@ eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, tANI_U32 sessionId,
             status = eHAL_STATUS_SUCCESS;
             if( pvParam )
             {
-                pCommand->u.pmcCmd.fullPowerReason = *( (tRequestFullPowerReason *)pvParam );
+                if (pMac->psOffloadEnabled && cmdType == eSmeCommandExitWowl)
+                {
+                  pCommand->u.pmcCmd.u.exitWowlInfo =
+                                    *( ( tSirSmeWowlExitParams * )pvParam );
+                }
+                else
+                {
+                  pCommand->u.pmcCmd.fullPowerReason =
+                                    *( (tRequestFullPowerReason *)pvParam );
+                }
             }
             break;
 
