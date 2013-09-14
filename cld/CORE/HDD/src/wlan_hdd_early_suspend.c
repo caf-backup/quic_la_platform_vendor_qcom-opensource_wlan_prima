@@ -687,6 +687,15 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
 #endif
     }
 
+    if ((eConnectionState_Associated ==
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) ||
+        (eConnectionState_IbssConnected ==
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+                wlanSuspendParam->connectedState = TRUE;
+    else
+                wlanSuspendParam->connectedState = FALSE;
+
+    wlanSuspendParam->sessionId = pAdapter->sessionId;
     halStatus = sme_ConfigureSuspendInd(pHddCtx->hHal, wlanSuspendParam);
     if(eHAL_STATUS_SUCCESS == halStatus)
     {
@@ -799,10 +808,15 @@ void hdd_suspend_wlan(void)
          && (WLAN_HDD_SOFTAP != pAdapter->device_mode)
          && (WLAN_HDD_P2P_CLIENT != pAdapter->device_mode) )
 
-       {  // we skip this registration for modes other than STA, SAP and P2P client modes.
+       {
+#ifndef QCA_WIFI_2_0
+           // we skip this registration for modes other than STA, SAP and P2P client modes.
            status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
            pAdapterNode = pNext;
            continue;
+#else
+           goto send_suspend_ind;
+#endif
        }
 
 #ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
@@ -877,8 +891,10 @@ void hdd_suspend_wlan(void)
       }
    }
 
+#ifndef QCA_WIFI_2_0
    /*Suspend notification sent down to driver*/
    hdd_conf_suspend_ind(pHddCtx, pAdapter);
+#endif
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
        if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
@@ -904,6 +920,14 @@ void hdd_suspend_wlan(void)
                        __func__);
            }
        }
+#endif
+
+#ifdef QCA_WIFI_2_0
+send_suspend_ind:
+    /* Keep this suspend indication at the end (before processing next adaptor)
+     * for discrete. This indication is considered as trigger point to start
+     * WOW (if wow is enabled). */
+   hdd_conf_suspend_ind(pHddCtx, pAdapter);
 #endif
 
    status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
