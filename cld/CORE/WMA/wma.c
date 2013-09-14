@@ -125,6 +125,8 @@
 static void wma_send_msg(tp_wma_handle wma_handle, u_int16_t msg_type,
 			 void *body_ptr, u_int32_t body_val);
 
+static tANI_U32 gFwWlanFeatCaps;
+
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
 void wma_utf_attach(tp_wma_handle wma_handle);
 void wma_utf_detach(tp_wma_handle wma_handle);
@@ -2148,7 +2150,8 @@ end:
 	return vos_status;
 }
 
-static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset)
+static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset,
+                                      u8 vht_capable)
 {
 	WLAN_PHY_MODE phymode = MODE_UNKNOWN;
 
@@ -2156,13 +2159,22 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset)
 	if ((chan >= WMA_11G_CHANNEL_BEGIN) && (chan <= WMA_11G_CHANNEL_END)) {
 		switch (chan_offset) {
 		case PHY_SINGLE_CHANNEL_CENTERED:
-			phymode = MODE_11NG_HT20;
+			phymode = vht_capable ? MODE_11AC_VHT20 :MODE_11NG_HT20;
 			break;
 		case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
 		case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
-			phymode = MODE_11NG_HT40;
+			phymode = vht_capable ? MODE_11AC_VHT40 :MODE_11NG_HT40;
 			break;
-			/* TODO: Handle VHT mode */
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
+                        phymode = MODE_11AC_VHT80;
+                        break;
+
 		default:
 			break;
 		}
@@ -2172,21 +2184,48 @@ static WLAN_PHY_MODE wma_chan_to_mode(u8 chan, ePhyChanBondState chan_offset)
 	if ((chan >= WMA_11A_CHANNEL_BEGIN) && (chan <= WMA_11A_CHANNEL_END)) {
 		switch (chan_offset) {
 		case PHY_SINGLE_CHANNEL_CENTERED:
-			phymode = MODE_11NA_HT20;
+			phymode = vht_capable ? MODE_11AC_VHT20 :MODE_11NA_HT20;
 			break;
 		case PHY_DOUBLE_CHANNEL_LOW_PRIMARY:
 		case PHY_DOUBLE_CHANNEL_HIGH_PRIMARY:
-			phymode = MODE_11NA_HT40;
+			phymode = vht_capable ? MODE_11AC_VHT40 :MODE_11NA_HT40;
 			break;
-			/* TODO: Handle VHT mode */
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_CENTERED_40MHZ_CENTERED:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH:
+                case PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH:
+                        phymode = MODE_11AC_VHT80;
+                        break;
+
 		default:
 			break;
 		}
 	}
-	WMA_LOGD("%s: phymode %d channel %d offset %d\n", __func__,
-		 phymode, chan, chan_offset);
+	WMA_LOGD("%s: phymode %d channel %d offset %d vht_capable %d\n", __func__,
+		 phymode, chan, chan_offset, vht_capable);
 
 	return phymode;
+}
+
+tANI_U8 wma_getCenterChannel(tANI_U8 chan, tANI_U8 chan_offset)
+{
+        tANI_U8 band_center_chan = 0;
+
+        if ((chan_offset == PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED) ||
+            (chan_offset == PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW))
+               band_center_chan = chan + 2;
+        else if (chan_offset == PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW)
+               band_center_chan = chan + 6;
+        else if ((chan_offset == PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH) ||
+              (chan_offset == PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_CENTERED))
+               band_center_chan = chan - 2;
+        else if (chan_offset == PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH)
+               band_center_chan = chan - 6;
+
+        return band_center_chan;
 }
 
 static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
@@ -2220,10 +2259,17 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 
 	/* Fill channel info */
 	chan->mhz = vos_chan_to_freq(req->chan);
-	chanmode = wma_chan_to_mode(req->chan, req->chan_offset);
+	chanmode = wma_chan_to_mode(req->chan, req->chan_offset,
+                                    req->vht_capable);
 	WMI_SET_CHANNEL_MODE(chan, chanmode);
 	chan->band_center_freq1 = chan->mhz;
-	if ((chanmode == MODE_11NA_HT40) || (chanmode == MODE_11NG_HT40)) {
+
+	if (chanmode == MODE_11AC_VHT80)
+            chan->band_center_freq1 = vos_chan_to_freq(wma_getCenterChannel
+                                             (req->chan, req->chan_offset));
+
+	if ((chanmode == MODE_11NA_HT40) || (chanmode == MODE_11NG_HT40) ||
+            (chanmode == MODE_11AC_VHT40)) {
 		if (req->chan_offset == PHY_DOUBLE_CHANNEL_LOW_PRIMARY)
 			chan->band_center_freq1 += 10;
 		else
@@ -2275,9 +2321,9 @@ static VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 		       cmd->num_noa_descriptors *
 		       sizeof(wmi_p2p_noa_descriptor));
 	WMA_LOGD("%s: vdev_id %d freq %d channel %d chanmode %d is_dfs %d\
-		 beacon interval %d dtim %d\n", __func__, req->vdev_id,
+		 beacon interval %d dtim %d center_chan %d \n", __func__, req->vdev_id,
 		 chan->mhz, req->chan, chanmode, req->is_dfs,
-		 req->beacon_intval, cmd->dtim_period);
+		 req->beacon_intval, cmd->dtim_period, chan->band_center_freq1);
 
 	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				 WMI_VDEV_START_REQUEST_CMDID) < 0) {
@@ -2413,7 +2459,7 @@ send_resp:
 }
 
 static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
-				      u_int8_t is_cw40)
+				      u_int8_t is_cw40, u_int8_t is_vht, u_int8_t is_cw_vht)
 {
 	WLAN_PHY_MODE phymode = MODE_UNKNOWN;
 
@@ -2422,14 +2468,30 @@ static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
 			phymode = MODE_11B;
 			break;
 		case eSIR_11G_NW_TYPE:
-			if (is_ht)
+                        if (is_vht) {
+                               if (is_cw_vht)
+                                       phymode = MODE_11AC_VHT80;
+                               else
+                                       phymode = (is_cw40) ?
+                                               MODE_11AC_VHT40 :
+                                               MODE_11AC_VHT20;
+                        }
+                        else if (is_ht)
 				phymode = (is_cw40) ?
 					MODE_11NG_HT40 : MODE_11NG_HT20;
 			else
 				phymode = MODE_11G;
 			break;
 		case eSIR_11A_NW_TYPE:
-			if (is_ht)
+                        if (is_vht) {
+                                if (is_cw_vht)
+                                        phymode = MODE_11AC_VHT80;
+                                else
+                                        phymode = (is_cw40) ?
+                                                MODE_11AC_VHT40 :
+                                                MODE_11AC_VHT20;
+                        }
+                        else if (is_ht)
 				phymode = (is_cw40) ?
 					MODE_11NA_HT40 : MODE_11NA_HT20;
 			else
@@ -2439,8 +2501,10 @@ static WLAN_PHY_MODE wma_peer_phymode(tSirNwType nw_type, u_int8_t is_ht,
 			WMA_LOGP("Invalid nw type %d\n", nw_type);
 			break;
 	}
-	WMA_LOGD("%s: nw_type %d is_ht %d is_cw40 %d phymode %d\n", __func__,
-		 nw_type, is_ht, is_cw40, phymode);
+	WMA_LOGD("%s: nw_type %d is_ht %d is_cw40 %d is_vht %d is_cw_vht %d\
+                 phymode %d\n", __func__, nw_type, is_ht, is_cw40,
+                 is_vht, is_cw_vht, phymode);
+
 	return phymode;
 }
 
@@ -2456,6 +2520,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	u_int8_t rx_stbc;
 	u_int8_t *rate_pos, *buf_ptr;
 	wmi_rate_set peer_legacy_rates, peer_ht_rates;
+        wmi_vht_rate_set *mcs;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -2656,15 +2721,36 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		       WMITLV_GET_STRUCT_TLVLEN(wmi_vht_rate_set));
 
 	cmd->peer_nss = MAX((peer_ht_rates.num_rates + 7) / 8, 1);
-	cmd->peer_phymode = wma_peer_phymode(nw_type, params->htCapable,
-					     params->txChannelWidthSet);
 
-	WMA_LOGD("%s: vdev_id %d associd %d peer_flags %x rate_caps %x\
-		 peer_caps %x listen_intval %d ht_caps %x max_mpdu %d\
-		 nss %d phymode %d\n", __func__, cmd->vdev_id, cmd->peer_associd,
-		 cmd->peer_flags, cmd->peer_rate_caps, cmd->peer_caps,
-		 cmd->peer_listen_intval, cmd->peer_ht_caps, cmd->peer_max_mpdu,
-		 cmd->peer_nss, cmd->peer_phymode);
+	WMA_LOGD("peer_nss %d peer_ht_rates.num_rates %d \n", cmd->peer_nss,
+                  peer_ht_rates.num_rates);
+
+        mcs = (wmi_vht_rate_set *)buf_ptr;
+        if ( params->vhtCapable) {
+#define VHT2x2MCSMASK 0xc
+                mcs->rx_max_rate = params->supportedRates.vhtRxHighestDataRate;
+                mcs->rx_mcs_set  = params->supportedRates.vhtRxMCSMap;
+                mcs->tx_max_rate = params->supportedRates.vhtTxHighestDataRate;
+                mcs->tx_mcs_set  = params->supportedRates.vhtTxMCSMap;
+
+                cmd->peer_nss = ((mcs->rx_mcs_set & VHT2x2MCSMASK)
+                                    == VHT2x2MCSMASK) ? 1 : 2;
+	}
+
+	cmd->peer_phymode = wma_peer_phymode(nw_type, params->htCapable,
+                                             params->txChannelWidthSet,
+                                             params->vhtCapable,
+                                             params->vhtTxChannelWidthSet);
+
+        WMA_LOGD("%s: vdev_id %d associd %d peer_flags %x rate_caps %x\
+                 peer_caps %x listen_intval %d ht_caps %x max_mpdu %d\
+                 nss %d phymode %d peer_mpdu_density %d\n", __func__,
+                 cmd->vdev_id, cmd->peer_associd, cmd->peer_flags,
+                 cmd->peer_rate_caps, cmd->peer_caps,
+                 cmd->peer_listen_intval, cmd->peer_ht_caps,
+                 cmd->peer_max_mpdu, cmd->peer_nss, cmd->peer_phymode,
+                 cmd->peer_mpdu_density);
+
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_PEER_ASSOC_CMDID);
 	if (ret < 0) {
@@ -3299,6 +3385,7 @@ static void wma_add_bss_ap_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 	req.vdev_id = vdev_id;
 	req.chan = add_bss->currentOperChannel;
 	req.chan_offset = add_bss->currentExtChannel;
+        req.vht_capable = add_bss->vhtCapable;
 #if defined WLAN_FEATURE_VOWIF
 	req.max_txpow = add_bss->maxTxPower;
 #else
@@ -3339,6 +3426,7 @@ send_fail_resp:
 static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams params)
 {
 	ol_txrx_pdev_handle pdev;
+        wmi_vdev_txbf_en txbf_en;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 	if (params->operMode) {
@@ -3357,6 +3445,16 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams params)
 			ol_txrx_peer_state_update(pdev, params->bssId,
 						  ol_txrx_peer_state_conn);
 		}
+                /* This is set when Other partner is Bformer
+                and we are capable bformee(enabled both in ini and fw) */
+                txbf_en.sutxbfee =  params->staContext.vhtTxBFCapable;
+                txbf_en.mutxbfee = 0;
+                txbf_en.sutxbfer = 0;
+                txbf_en.mutxbfer = 0;
+
+                wmi_unified_vdev_set_param_send(wma->wmi_handle,
+                        params->staContext.smesessionId, WMI_VDEV_PARAM_TXBF,
+                        *((A_UINT8 *)&txbf_en));
 
 		wmi_unified_send_peer_assoc(wma, params->nwType,
 					    &params->staContext);
@@ -3542,6 +3640,7 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	u_int8_t peer_id;
 	VOS_STATUS status;
 	int32_t ret;
+        wmi_vdev_txbf_en txbf_en;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -3583,6 +3682,16 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 		wma_remove_peer(wma, add_sta->staMac, add_sta->smesessionId, peer);
 		goto send_rsp;
 	}
+        /* This is set when Other partner is Bformer
+        and we are capable bformee(enabled both in ini and fw) */
+        txbf_en.sutxbfee =  add_sta->vhtTxBFCapable;
+        txbf_en.mutxbfee = 0;
+        txbf_en.sutxbfer = 0;
+        txbf_en.mutxbfer = 0;
+
+        wmi_unified_vdev_set_param_send(wma->wmi_handle, add_sta->smesessionId,
+                                WMI_VDEV_PARAM_TXBF, *((A_UINT8 *)&txbf_en));
+
 	ret = wmi_unified_send_peer_assoc(wma, add_sta->nwType, add_sta);
 	if (ret) {
 		add_sta->status = VOS_STATUS_E_FAILURE;
@@ -5257,6 +5366,16 @@ static void wma_finish_scan_req(tp_wma_handle wma_handle,
 			0);
 }
 
+static void wma_process_update_opmode(tp_wma_handle wma_handle,
+                                tUpdateVHTOpMode *update_vht_opmode)
+{
+        WMA_LOGD("%s: Update Opmode", __func__);
+
+        wma_set_peer_param(wma_handle, update_vht_opmode->peer_mac,
+                           WMI_PEER_CHWIDTH, update_vht_opmode->opMode,
+                           update_vht_opmode->smesessionId);
+}
+
 static void wma_add_ts_req(tp_wma_handle wma, tAddTsParams *msg)
 {
 	msg->status = eHAL_STATUS_SUCCESS;
@@ -5499,7 +5618,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_finish_scan_req(wma_handle,
 					(tFinishScanParams *)msg->bodyptr);
 			break;
-
+                case WDA_UPDATE_OP_MODE:
+                        wma_process_update_opmode(wma_handle,
+                                       (tUpdateVHTOpMode *)msg->bodyptr);
+                        break;
 		case WDA_UPDATE_BEACON_IND:
 			wma_process_update_beacon_params(wma_handle,
 					(tUpdateBeaconParams *)msg->bodyptr);
@@ -6192,6 +6314,8 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	/* Enable 11AC */
 	cfg->en_11ac = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 					      WMI_SERVICE_11AC);
+        if (cfg->en_11ac)
+           gFwWlanFeatCaps |= DOT11AC;
 
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
@@ -6490,6 +6614,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	wma_handle->ht_cap_info = ev->ht_cap_info;
 #ifdef WLAN_FEATURE_11AC
 	wma_handle->vht_cap_info = ev->vht_cap_info;
+        wma_handle->vht_supp_mcs = ev->vht_supp_mcs;
 #endif
 	wma_handle->num_rf_chains = ev->num_rf_chains;
 
@@ -7498,3 +7623,9 @@ eHalStatus wma_set_htconfig(tANI_U8 vdev_id, tANI_U16 ht_capab, int value)
 
 	return (ret)? eHAL_STATUS_FAILURE : eHAL_STATUS_SUCCESS;
 }
+
+tANI_U8 wma_getFwWlanFeatCaps(tANI_U8 featEnumValue)
+{
+       return gFwWlanFeatCaps & featEnumValue;
+}
+

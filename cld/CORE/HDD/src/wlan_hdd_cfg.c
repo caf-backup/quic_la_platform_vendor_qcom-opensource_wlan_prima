@@ -1940,6 +1940,28 @@ REG_VARIABLE( CFG_VHT_ENABLE_TX_MCS_8_9, WLAN_PARAM_Integer,
               CFG_VHT_ENABLE_TX_MCS_8_9_DEFAULT,
               CFG_VHT_ENABLE_TX_MCS_8_9_MIN,
               CFG_VHT_ENABLE_TX_MCS_8_9_MAX),
+
+REG_VARIABLE( CFG_VHT_ENABLE_RX_MCS2x2_8_9, WLAN_PARAM_Integer,
+              hdd_config_t, vhtRxMCS2x2,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+              CFG_VHT_ENABLE_RX_MCS2x2_8_9_DEFAULT,
+              CFG_VHT_ENABLE_RX_MCS2x2_8_9_MIN,
+              CFG_VHT_ENABLE_RX_MCS2x2_8_9_MAX),
+
+REG_VARIABLE( CFG_VHT_ENABLE_TX_MCS2x2_8_9, WLAN_PARAM_Integer,
+              hdd_config_t, vhtTxMCS2x2,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+              CFG_VHT_ENABLE_TX_MCS2x2_8_9_DEFAULT,
+              CFG_VHT_ENABLE_TX_MCS2x2_8_9_MIN,
+              CFG_VHT_ENABLE_TX_MCS2x2_8_9_MAX),
+
+REG_VARIABLE( CFG_VHT_ENABLE_2x2_CAP_FEATURE, WLAN_PARAM_Integer,
+             hdd_config_t, enable2x2,
+             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+             CFG_VHT_ENABLE_2x2_CAP_FEATURE_DEFAULT,
+             CFG_VHT_ENABLE_2x2_CAP_FEATURE_MIN,
+             CFG_VHT_ENABLE_2x2_CAP_FEATURE_MAX ),
+
 #endif
 
 REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
@@ -3644,6 +3666,8 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 
            ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_VHT_BASIC_MCS_SET, &temp);
            temp = (temp & 0xFFFC) | pConfig->vhtRxMCS;
+           if (pConfig->enable2x2)
+               temp = (temp & 0xFFF3) | (pConfig->vhtRxMCS2x2 << 2);
 
            if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_BASIC_MCS_SET,
                            temp, NULL, eANI_BOOLEAN_FALSE)
@@ -3655,6 +3679,8 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 
            ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_VHT_RX_MCS_MAP, &temp);
            temp = (temp & 0xFFFC) | pConfig->vhtRxMCS;
+           if (pConfig->enable2x2)
+               temp = (temp & 0xFFF3) | (pConfig->vhtRxMCS2x2 << 2);
 
            if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_RX_MCS_MAP,
                            temp, NULL, eANI_BOOLEAN_FALSE)
@@ -3666,6 +3692,12 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 
            ccmCfgGetInt(pHddCtx->hHal, WNI_CFG_VHT_TX_MCS_MAP, &temp);
            temp = (temp & 0xFFFC) | pConfig->vhtTxMCS;
+           if (pConfig->enable2x2)
+               temp = (temp & 0xFFF3) | (pConfig->vhtTxMCS2x2 << 2);
+
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "vhtRxMCS2x2 - %x temp - %lu enable2x2 %d\n",
+                    pConfig->vhtRxMCS2x2, temp, pConfig->enable2x2);
 
            if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_VHT_TX_MCS_MAP,
                            temp, NULL, eANI_BOOLEAN_FALSE)
@@ -3860,6 +3892,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
     smeConfig.csrConfig.nVhtChannelWidth = pConfig->vhtChannelWidth;
     smeConfig.csrConfig.enableTxBF = pConfig->enableTxBF;
     smeConfig.csrConfig.txBFCsnValue = pConfig->txBFCsnValue;
+    smeConfig.csrConfig.enable2x2 = pConfig->enable2x2;
 #endif
    smeConfig.csrConfig.AdHocChannel5G            = pConfig->AdHocChannel5G;
    smeConfig.csrConfig.AdHocChannel24            = pConfig->AdHocChannel24G;

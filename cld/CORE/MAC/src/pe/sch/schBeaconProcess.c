@@ -487,7 +487,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
                     pStaDs->vhtSupportedChannelWidthSet = WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
                     pStaDs->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
                 }
-                limCheckVHTOpModeChange(pMac, psessionEntry, pBeacon->OperatingMode.chanWidth, pStaDs->staIndex); 
+                limCheckVHTOpModeChange(pMac, psessionEntry, pBeacon->OperatingMode.chanWidth, pStaDs->staIndex);
             }
         }
     }

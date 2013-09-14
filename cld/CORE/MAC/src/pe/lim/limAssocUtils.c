@@ -1527,18 +1527,23 @@ tSirRetStatus limPopulateVhtMcsSet(tpAniSirGlobal pMac,
 
         if( pPeerVHTCaps != NULL)
         {
+            tANI_U16 mcsMapMask = MCSMAPMASK1x1;
             pRates->vhtTxHighestDataRate = SIR_MIN(pRates->vhtTxHighestDataRate, pPeerVHTCaps->txSupDataRate);
             pRates->vhtRxHighestDataRate = SIR_MIN(pRates->vhtRxHighestDataRate, pPeerVHTCaps->rxHighSupDataRate);
 
-            // Acquire PEER MCS map if we exceed.
-            // We compare/update only the last 2 bits of the map as we support only single BSS.
-            // Firmware takes care of this comparison
-            pRates->vhtRxMCSMap &= ~(0x3); // Clearing the last 2 bits in the bitmap
-            pRates->vhtRxMCSMap |= (pPeerVHTCaps->rxMCSMap & 0x3); // Updating the last 2 bits in the bitmap
+            if (pMac->roam.configParam.enable2x2)
+                mcsMapMask = MCSMAPMASK2x2;
 
-            // Firmware takes care of this comparison
-            pRates->vhtTxMCSMap &= ~(0x3); // Clearing the last 2 bits in the bitmap
-            pRates->vhtTxMCSMap |= (pPeerVHTCaps->txMCSMap & 0x3); // Updating the last 2 bits in the bitmap
+            if ((pPeerVHTCaps->rxMCSMap & mcsMapMask) < (pRates->vhtRxMCSMap & mcsMapMask)) {
+                pRates->vhtRxMCSMap &= ~(mcsMapMask);
+                pRates->vhtRxMCSMap |= (pPeerVHTCaps->rxMCSMap & mcsMapMask);
+            }
+            if ((pPeerVHTCaps->txMCSMap & mcsMapMask) < (pRates->vhtTxMCSMap & mcsMapMask)) {
+                pRates->vhtTxMCSMap &= ~(mcsMapMask);
+                pRates->vhtTxMCSMap |= (pPeerVHTCaps->txMCSMap & mcsMapMask);
+            }
+            limLog( pMac, LOG1, FL("enable2x2 - %d vhtRxMCSMap - %x vhtTxMCSMap - %x\n"), pMac->roam.configParam.enable2x2, pRates->vhtRxMCSMap, pRates->vhtTxMCSMap);
+
         }
     }
     return eSIR_SUCCESS;

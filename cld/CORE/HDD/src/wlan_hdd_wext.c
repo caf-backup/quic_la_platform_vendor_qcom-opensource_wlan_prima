@@ -131,6 +131,9 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define RC_2_RATE_IDX(_rc)        ((_rc) & 0x7)
 #define HT_RC_2_STREAMS(_rc)    ((((_rc) & 0x78) >> 3) + 1)
 
+#define RC_2_RATE_IDX_11AC(_rc)        ((_rc) & 0xf)
+#define HT_RC_2_STREAMS_11AC(_rc)    ((((_rc) & 0x30) >> 4) + 1)
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_NONE    (SIOCIWFIRSTPRIV + 0)
 #define WE_SET_11D_STATE     1
@@ -173,6 +176,7 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DBGLOG_MOD_LOG_LEVEL         36
 #define WE_DBGLOG_TYPE                  37
 #define WE_SET_TXRX_FWSTATS             38
+#define WE_SET_VHT_RATE      39
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -4314,8 +4318,8 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            hdd_context_t *phddctx = WLAN_HDD_GET_CTX(pAdapter);
            /*updating channel bonding only on 5Ghz*/
            hddLog(LOG1, "WMI_VDEV_PARAM_CHWIDTH val %d", set_value);
-           if (set_value > eHT_CHANNEL_WIDTH_40MHZ) {
-                hddLog(LOGE, "Invalid channel width 0->20 1->40");
+           if (set_value > eHT_CHANNEL_WIDTH_80MHZ) {
+                hddLog(LOGE, "Invalid channel width 0->20 1->40 2->80");
                 return -EINVAL;
            }
 
@@ -4338,6 +4342,15 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                     return -EINVAL;
 
                 break;
+           case eHT_CHANNEL_WIDTH_80MHZ:
+                if (chwidth)
+                    smeconfig.csrConfig.channelBondingMode5GHz =
+                                     phddctx->cfg_ini->nChannelBondingMode5GHz;
+                else
+                    return -EINVAL;
+
+                break;
+
            default:
                 return -EINVAL;
            }
@@ -4423,6 +4436,27 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                } else
                    preamble = WMI_RATE_PREAMBLE_OFDM;
            }
+
+           hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x\
+                  nss %d", set_value, rix, preamble, nss);
+
+           set_value = (preamble << 6) | (nss << 4) | rix;
+           ret = process_wma_set_command((int)pAdapter->sessionId,
+                                         (int)WMI_VDEV_PARAM_FIXED_RATE,
+                                         set_value, VDEV_CMD);
+           break;
+         }
+
+        case WE_SET_VHT_RATE:
+        {
+           u_int8_t preamble, nss, rix;
+
+           rix = RC_2_RATE_IDX_11AC(set_value);
+           preamble = WMI_RATE_PREAMBLE_VHT;
+           nss = HT_RC_2_STREAMS_11AC(set_value) -1;
+
+           hddLog(LOG1, "WMI_VDEV_PARAM_FIXED_RATE val %d rix %d preamble %x\
+                  nss %d", set_value, rix, preamble, nss);
 
            set_value = (preamble << 6) | (nss << 4) | rix;
            ret = process_wma_set_command((int)pAdapter->sessionId,
@@ -7684,6 +7718,11 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "set11NRates" },
+
+    {   WE_SET_VHT_RATE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "set11ACRates" },
 
     {   WE_SET_AMPDU,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,

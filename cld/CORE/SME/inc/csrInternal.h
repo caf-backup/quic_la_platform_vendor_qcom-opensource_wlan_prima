@@ -606,6 +606,7 @@ typedef struct tagCsrConfig
     tANI_U32  nVhtChannelWidth;
     tANI_U8   txBFEnable;
     tANI_U8   txBFCsnValue;
+    tANI_U8   enable2x2;
 #endif
     tANI_U8   txLdpcEnable;
 

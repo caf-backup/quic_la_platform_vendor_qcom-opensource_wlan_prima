@@ -7624,6 +7624,10 @@ tANI_BOOLEAN limCheckVHTOpModeChange( tpAniSirGlobal pMac, tpPESession psessionE
     
     tempParam.opMode = chanWidth;
     tempParam.staId  = staId;
+    tempParam.smesessionId = psessionEntry->smeSessionId;
+    palCopyMemory( pMac->hHdd,  tempParam.peer_mac, psessionEntry->bssId,
+                   sizeof( tSirMacAddr ));
+
 
     limSendModeUpdate( pMac, &tempParam, psessionEntry );
 

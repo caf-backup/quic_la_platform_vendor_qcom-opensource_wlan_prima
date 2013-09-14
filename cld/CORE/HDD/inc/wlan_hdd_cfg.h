@@ -1255,6 +1255,21 @@ typedef enum
 #define CFG_VHT_ENABLE_TX_MCS_8_9_MAX           ( 2 )
 #define CFG_VHT_ENABLE_TX_MCS_8_9_DEFAULT       ( 0 )
 
+#define CFG_VHT_ENABLE_RX_MCS2x2_8_9               "gVhtRxMCS2x2"
+#define CFG_VHT_ENABLE_RX_MCS2x2_8_9_MIN           ( 0 )
+#define CFG_VHT_ENABLE_RX_MCS2x2_8_9_MAX           ( 2 )
+#define CFG_VHT_ENABLE_RX_MCS2x2_8_9_DEFAULT       ( 0 )
+
+#define CFG_VHT_ENABLE_TX_MCS2x2_8_9               "gVhtTxMCS2x2"
+#define CFG_VHT_ENABLE_TX_MCS2x2_8_9_MIN           ( 0 )
+#define CFG_VHT_ENABLE_TX_MCS2x2_8_9_MAX           ( 2 )
+#define CFG_VHT_ENABLE_TX_MCS2x2_8_9_DEFAULT       ( 0 )
+
+#define CFG_VHT_ENABLE_2x2_CAP_FEATURE         "gEnable2x2"
+#define CFG_VHT_ENABLE_2x2_CAP_FEATURE_MIN     ( 0 )
+#define CFG_VHT_ENABLE_2x2_CAP_FEATURE_MAX     ( 1 )
+#define CFG_VHT_ENABLE_2x2_CAP_FEATURE_DEFAULT ( 0 )
+
 #endif
 
 #define CFG_REPORT_MAX_LINK_SPEED                  "gReportMaxLinkSpeed"
@@ -2055,6 +2070,9 @@ typedef struct
    v_U8_t                      vhtTxMCS;
    v_BOOL_t                    enableTxBF;
    v_U8_t                      txBFCsnValue;
+   v_U8_t                      vhtRxMCS2x2;
+   v_U8_t                      vhtTxMCS2x2;
+   v_BOOL_t                    enable2x2;
 #endif
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;

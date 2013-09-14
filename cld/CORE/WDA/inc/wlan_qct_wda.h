@@ -123,7 +123,7 @@ typedef enum
 #ifdef QCA_WIFI_2_0
 
 #define IS_MCC_SUPPORTED 0
-#define IS_FEATURE_SUPPORTED_BY_FW(feat_enum_value) 0
+#define IS_FEATURE_SUPPORTED_BY_FW(feat_enum_value) wma_getFwWlanFeatCaps(feat_enum_value)
 
 #ifdef WLAN_ACTIVEMODE_OFFLOAD_FEATURE
 #define IS_ACTIVEMODE_OFFLOAD_FEATURE_ENABLE 1
@@ -1305,7 +1305,7 @@ WDA_DS_PeekRxPacketInfo
 
 #define WDA_featureCapsExchange WMA_featureCapsExchange
 #define WDA_disableCapablityFeature WMA_disableCapablityFeature
-#define WDA_getFwWlanFeatCaps WMA_getFwWlanFeatCaps
+#define WDA_getFwWlanFeatCaps wma_getFwWlanFeatCaps
 
 #define WDA_TransportChannelDebug(mac, disp_snapshot, \
 				  toggle_stall_detect) ({ \
