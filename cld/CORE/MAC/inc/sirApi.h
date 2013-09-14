@@ -2914,6 +2914,7 @@ typedef struct sSirWowlAddBcastPtrn
     tANI_U8  ucPatternExt[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra Pattern
     tANI_U8  ucPatternMaskExt[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Extra Pattern mask
     tSirMacAddr    bssId;           // BSSID
+    tANI_U8    sessionId;
 } tSirWowlAddBcastPtrn, *tpSirWowlAddBcastPtrn;
 
 
