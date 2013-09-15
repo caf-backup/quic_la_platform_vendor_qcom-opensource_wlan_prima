@@ -640,11 +640,6 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-    // Extract oxygenNwkIniFeatureEnabled
-    pStartBssReq->oxygenNwkIniFeatureEnabled = *pBuf++;
-    len--;
-    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-       return eSIR_FAILURE;
 
     // Extract rsnIe
     pStartBssReq->rsnIE.length = limGetU16(pBuf);
