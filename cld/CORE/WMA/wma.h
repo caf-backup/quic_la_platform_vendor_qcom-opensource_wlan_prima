@@ -234,6 +234,21 @@ typedef struct {
 	u_int32_t amsdu;
 } vdev_cli_config_t;
 
+struct wma_wow_ptrn_cache {
+	u_int8_t *ptrn;
+	u_int8_t ptrn_len;
+	u_int8_t ptrn_offset;
+	u_int8_t *mask;
+	u_int8_t mask_len;
+};
+
+struct wma_wow {
+	struct wma_wow_ptrn_cache *cache[WOW_MAX_BITMAP_FILTERS];
+	u_int8_t no_of_ptrn_cached;
+	v_BOOL_t magic_ptrn_enable;
+	v_BOOL_t wow_enable;
+};
+
 struct wma_txrx_node {
 	u_int8_t addr[ETH_ALEN];
 	u_int8_t bssid[ETH_ALEN];
@@ -249,6 +264,7 @@ struct wma_txrx_node {
 	v_BOOL_t nlo_match_evt_received;
 	v_BOOL_t pno_in_progress;
 #endif
+	v_BOOL_t ptrn_match_enable;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -342,6 +358,7 @@ typedef struct {
 	struct utf_event_info utf_event_info;
 #endif
 	u_int8_t is_fw_assert;
+	struct wma_wow wow;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
