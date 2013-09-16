@@ -269,6 +269,7 @@ struct wma_txrx_node {
 	v_BOOL_t pno_in_progress;
 #endif
 	v_BOOL_t ptrn_match_enable;
+	v_BOOL_t conn_state;
 };
 
 #if defined(QCA_WIFI_FTM) && !defined(QCA_WIFI_ISOC)
@@ -363,6 +364,7 @@ typedef struct {
 #endif
 	u_int8_t is_fw_assert;
 	struct wma_wow wow;
+	u_int8_t no_of_suspend_ind;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

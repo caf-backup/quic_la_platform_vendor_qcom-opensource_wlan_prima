@@ -183,6 +183,22 @@ static inline void *wma_find_vdev_by_id(tp_wma_handle wma, u_int8_t vdev_id)
 	return wma->interfaces[vdev_id].handle;
 }
 
+/* Function    : wma_get_vdev_count
+ * Discription : Returns number of active vdev.
+ * Args        : @wma - wma handle
+ * Returns     : Returns valid vdev count.
+ */
+static inline u_int8_t wma_get_vdev_count(tp_wma_handle wma)
+{
+	u_int8_t vdev_count = 0, i;
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		if (wma->interfaces[i].handle)
+			vdev_count++;
+	}
+	return vdev_count;
+}
+
 /* Function   : wma_is_vdev_in_ap_mode
  * Descriptin : Helper function to know whether given vdev id
  *              is in AP mode or not.
@@ -5551,7 +5567,11 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 			continue;
 
 		iface = &wma->interfaces[cache->vdev_id];
-		if(!iface->ptrn_match_enable)
+
+		/* Rule 1: vdev should be in connected state.
+		 * Rule 2: Pattern match should enabled for this vdev
+		 *         by the user. */
+		if(!iface->ptrn_match_enable || !iface->conn_state)
 			continue;
 
 		ret = wma_send_wow_patterns_to_fw(wma, ptrn_id);
@@ -5707,6 +5727,121 @@ static VOS_STATUS wma_wow_exit(tp_wma_handle wma,
 	wma->wow.magic_ptrn_enable = FALSE;
 
 	return VOS_STATUS_SUCCESS;
+}
+
+/* Handles suspend indication request received from umac. */
+static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
+{
+	struct wma_txrx_node *iface;
+	VOS_STATUS ret;
+
+	if (info->sessionId > wma->max_bssid) {
+		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	iface = &wma->interfaces[info->sessionId];
+
+	if (!wma->wow.magic_ptrn_enable && !iface->ptrn_match_enable) {
+		WMA_LOGD("Both magic and pattern byte match are disabled");
+		return VOS_STATUS_SUCCESS;
+	}
+
+	iface->conn_state = (info->connectedState) ? TRUE : FALSE;
+
+	/*
+	 * Once WOW is enabled in FW, host can't send anymore
+	 * data to fw. umac sends suspend indication on each
+	 * vdev during platform suspend. WMA has to wait until
+	 * suspend indication received on last vdev before
+	 * enabling wow in fw.
+	 */
+	if (++wma->no_of_suspend_ind < wma_get_vdev_count(wma))
+		return VOS_STATUS_SUCCESS;
+
+	WMA_LOGD("WOW Suspend");
+
+	/*
+	 * At this point, suspend indication is received on
+	 * last vdev. It's the time to enable wow in fw.
+	 */
+	ret = wma_feed_wow_config_to_fw(wma);
+	if (ret != VOS_STATUS_SUCCESS)
+		return ret;
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * Sends host wakeup indication to FW. On receiving this indication,
+ * FW will come out of WOW.
+ */
+static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
+{
+	wmi_wow_hostwakeup_from_sleep_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len;
+	int ret;
+
+	len = sizeof(wmi_wow_hostwakeup_from_sleep_cmd_fixed_param);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_wow_hostwakeup_from_sleep_cmd_fixed_param *)
+				wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_wow_hostwakeup_from_sleep_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+				wmi_wow_hostwakeup_from_sleep_cmd_fixed_param));
+
+	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				   WMI_WOW_HOSTWAKEUP_FROM_SLEEP_CMDID);
+	if (ret) {
+		WMA_LOGE("Failed to send host wakeup indication to fw");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGD("Host wakeup indication sent to fw");
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * UMAC sends resume indication request on each vdev. This function
+ * performs wow resume when very first resume indication received
+ * from umac. wow resume is applicable only if the driver is in
+ * wow suspend state.
+ */
+static VOS_STATUS wma_resume_req(tp_wma_handle wma)
+{
+	struct wma_txrx_node *iface;
+	int8_t vdev_id;
+	VOS_STATUS ret;
+
+	if (!wma->wow.wow_enable)
+		return VOS_STATUS_SUCCESS;
+
+	WMA_LOGD("WOW Resume");
+
+	wma->no_of_suspend_ind = 0;
+	wma->wow.wow_enable = FALSE;
+
+	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
+		if (!wma->interfaces[vdev_id].handle)
+			continue;
+
+		iface = &wma->interfaces[vdev_id];
+		iface->conn_state = FALSE;
+	}
+
+	ret = wma_send_host_wakeup_ind_to_fw(wma);
+
+	return ret;
 }
 
 /* function    : wma_get_stats_req
@@ -6035,6 +6170,13 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_WOWL_EXIT_REQ:
 			wma_wow_exit(wma_handle,
 				    (tpSirHalWowlExitParams)msg->bodyptr);
+			break;
+		case WDA_WLAN_SUSPEND_IND:
+			wma_suspend_req(wma_handle,
+					(tpSirWlanSuspendParam)msg->bodyptr);
+			break;
+		case WDA_WLAN_RESUME_REQ:
+			wma_resume_req(wma_handle);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
