@@ -251,6 +251,9 @@ struct wma_wow {
 	u_int8_t no_of_ptrn_cached;
 	v_BOOL_t magic_ptrn_enable;
 	v_BOOL_t wow_enable;
+	v_BOOL_t deauth_enable;
+	v_BOOL_t disassoc_enable;
+	v_BOOL_t bmiss_enable;
 };
 
 struct wma_txrx_node {
