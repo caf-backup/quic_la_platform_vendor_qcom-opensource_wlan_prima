@@ -234,7 +234,11 @@ typedef struct {
 	u_int32_t amsdu;
 } vdev_cli_config_t;
 
+#define WMA_WOW_PTRN_MASK_VALID     0xFF
+#define WMA_NUM_BITS_IN_BYTE           8
+
 struct wma_wow_ptrn_cache {
+	u_int8_t vdev_id;
 	u_int8_t *ptrn;
 	u_int8_t ptrn_len;
 	u_int8_t ptrn_offset;
