@@ -52,8 +52,8 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "ROAM";
     case WLAN_MODULE_RESMGR_CHAN_MANAGER:
         return "CHANMGR";
-    case WLAN_MODULE_RESMGR_OCS:
-        return "OCS";
+    case WLAN_MODULE_RESMGR:
+        return "RESMGR";
     case WLAN_MODULE_VDEV_MGR:
         return "VDEV";
     case WLAN_MODULE_SCAN:
@@ -90,6 +90,10 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "CACHEMGR";
     case WLAN_MODULE_ANI:
         return "ANI";
+    case WLAN_MODULE_TEST:
+        return "TESTPOINT";
+    case WLAN_MODULE_STA_SMPS:
+        return "STA_SMPS";
     default:
         return "UNKNOWN";
     }
@@ -496,11 +500,11 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "RESMGR_CHMGR_DEFINITION_END"
     },
     {
-        "RESMGR_OCS_DEFINITION_START",
+        "RESMGR_DEFINITION_START",
         "RESMGR_OCS_ALLOCRAM_SIZE",
         "RESMGR_OCS_RESOURCES",
-        "RESMGR_OCS_LINK_CREATE",
-        "RESMGR_OCS_LINK_DELETE",
+        "RESMGR_LINK_CREATE",
+        "RESMGR_LINK_DELETE",
         "RESMGR_OCS_CHREQ_CREATE",
         "RESMGR_OCS_CHREQ_DELETE",
         "RESMGR_OCS_CHREQ_START",
@@ -537,7 +541,16 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "RESMGR_OCS_ALLOCATED_QUOTA_STATS",
         "RESMGR_OCS_REQ_QUOTA_STATS",
         "RESMGR_OCS_TRACKING_TIME_FIRED",
-        "RESMGR_OCS_DEFINITION_END"
+        "RESMGR_VC_ARBITRATE_ATTRIBUTES",
+	"RESMGR_OCS_LATENCY_STRICT_TIME_SLOT",
+	"RESMGR_OCS_CURR_TSF",
+	"RESMGR_OCS_QUOTA_REM",
+        "RESMGR_OCS_LATENCY_CASE_NO",
+        "RESMGR_OCS_WIN_CAT_DUR",
+        "RESMGR_VC_UPDATE_CUR_VC",
+        "RESMGR_VC_REG_UNREG_LINK",
+        "RESMGR_VC_PRINT_LINK",
+        "RESMGR_DEFINITION_END"
     },
     {
         "VDEV_MGR_DEBID_DEFINITION_START", /* vdev Mgr */
@@ -602,7 +615,10 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "MGMT_TXRX_FORWARD_TO_HOST",
         "MGMT_TXRX_DBGID_DEFINITION_END",
     },
-    { "" /* Data TxRx */
+    { /* Data TxRx */
+        "DATA_TXRX_DBGID_DEFINITION_START",
+        "DATA_TXRX_DBGID_RX_DATA_SEQ_LEN_INFO",
+        "DATA_TXRX_DBGID_DEFINITION_END",
     },
     { "" /* HTT */
     },
@@ -670,6 +686,15 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WAL_DBGID_MGMT_TX_FAIL",
         "WAL_DBGID_SET_M4_SENT_MANUALLY",
         "WAL_DBGID_PROCESS_4_WAY_HANDSHAKE",
+        "WAL_DBGID_WAL_CHANNEL_CHANGE_START",
+        "WAL_DBGID_WAL_CHANNEL_CHANGE_COMPLETE",
+        "WAL_DBGID_WHAL_CHANNEL_CHANGE_START",
+        "WAL_DBGID_WHAL_CHANNEL_CHANGE_COMPLETE",
+        "WAL_DBGID_TX_MGMT_DESCID_SEQ_TYPE_LEN",
+        "WAL_DBGID_TX_DATA_MSDUID_SEQ_TYPE_LEN",
+        "WAL_DBGID_TX_DISCARD",
+        "WAL_DBGID_TX_MGMT_COMP_DESCID_STATUS",
+        "WAL_DBGID_TX_DATA_COMP_MSDUID_STATUS",
         "WAL_DBGID_DEFINITION_END",
     },
     {
@@ -768,6 +793,38 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WLAN_CHATTER_FILTER_FULL",
         "WLAN_CHATTER_FILTER_TM_ADJ",
         "WLAN_CHATTER_DBGID_DEFINITION_END",
+    },
+    {
+        "WOW_DBGID_DEFINITION_START",
+        "WOW_ENABLE_CMDID",
+        "WOW_RECV_DATA_PKT",
+        "WOW_WAKE_HOST_DATA",
+        "WOW_RECV_MGMT",
+        "WOW_WAKE_HOST_MGMT",
+        "WOW_RECV_EVENT",
+        "WOW_WAKE_HOST_EVENT",
+        "WOW_INIT",
+        "WOW_RECV_MAGIC_PKT",
+        "WOW_RECV_BITMAP_PATTERN",
+    },
+    {   /* WAL VDEV  */
+        ""
+    },
+    {   /* WAL PDEV  */
+        ""
+    },
+    {   /* TEST  */
+        "TP_CHANGE_CHANNEL",
+        "TP_LOCAL_SEND",
+    },
+    {   /* STA SMPS  */
+        ""
+    },
+    {
+        "SWBMISS_DBGID_DEFINITION_START",
+        "SWBMISS_ENABLED",
+        "SWBMISS_DISABLED",
+        "SWBMISS_DBGID_DEFINITION_END",
     }
 };
 
@@ -799,7 +856,7 @@ dbglog_printf(
     char buf[128];
     va_list ap;
 
-    if (vap_id < DBGLOG_VAPID_NUM_MAX) {
+    if (vap_id < DBGLOG_MAX_VDEVID) {
         printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
     } else {
         printf(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
@@ -821,7 +878,7 @@ dbglog_printf_no_line_break(
     char buf[128];
     va_list ap;
 
-    if (vap_id < DBGLOG_VAPID_NUM_MAX) {
+    if (vap_id < DBGLOG_MAX_VDEVID) {
         printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u ", timestamp, vap_id);
     } else {
         printf(DBGLOG_PRINT_PREFIX "[%u] ", timestamp);
@@ -842,7 +899,7 @@ dbglog_default_print_handler(A_UINT32 mod_id, A_UINT16 vap_id, A_UINT32 dbg_id,
 {
     int i;
 
-    if (vap_id < DBGLOG_VAPID_NUM_MAX) {
+    if (vap_id < DBGLOG_MAX_VDEVID) {
         printf(DBGLOG_PRINT_PREFIX "[%u] vap-%u %s ( ", timestamp, vap_id, dbglog_get_msg(mod_id, dbg_id));
     } else {
         printf(DBGLOG_PRINT_PREFIX "[%u] %s ( ", timestamp, dbglog_get_msg(mod_id, dbg_id));
@@ -863,17 +920,17 @@ dbglog_default_print_handler(A_UINT32 mod_id, A_UINT16 vap_id, A_UINT32 dbg_id,
     return TRUE;
 }
 
-int
-dbglog_print_raw_data(A_UINT8 *buf, A_UINT32 length)
+#define DBGLOG_PARSE_ARGS_STRING_LENGTH    (DBGLOG_NUM_ARGS_MAX * 11 + 10)
+static int
+dbglog_print_raw_data(A_UINT32 *buffer, A_UINT32 length)
 {
     A_UINT32 timestamp;
     A_UINT32 debugid;
     A_UINT32 moduleid;
     A_UINT16 numargs, curArgs;
     A_UINT32 count = 0, totalWriteLen, writeLen;
-    char parseArgsString[DBGLOG_NUM_ARGS_MAX * 11 + 10]; /* 0x11223344,*/
+    char parseArgsString[DBGLOG_PARSE_ARGS_STRING_LENGTH];
     char *dbgidString;
-    A_UINT32 *buffer;
 
     buffer = (A_UINT32 *)buf;
 
@@ -929,13 +986,14 @@ dbglog_parse_debug_logs(u_int8_t *datap, u_int16_t len)
     A_UINT32 length = len >> 2;
 
     buffer = (A_UINT32 *)datap;
+    length = (len >> 2);
 
     while ((count + 2) < length) {
 
         timestamp = DBGLOG_GET_TIME_STAMP(buffer[count]);
         debugid = DBGLOG_GET_DBGID(buffer[count+1]);
         moduleid = DBGLOG_GET_MODULEID(buffer[count+1]);
-        vapid = DBGLOG_GET_VAPID(buffer[count+1]);
+        vapid = DBGLOG_GET_VDEVID(buffer[count+1]);
         numargs = DBGLOG_GET_NUMARGS(buffer[count+1]);
 
         if ((count + 2 + numargs) > length)
@@ -989,9 +1047,9 @@ dbglog_sm_print(
         const char *events[], A_UINT32 num_events)
 {
     A_UINT8 type, arg1, arg2, arg3;
-    A_UINT32 extra;
+    A_UINT32 extra, extra2, extra3;
 
-    if (numargs != 2) {
+    if (numargs != 4) {
         return;
     }
 
@@ -1001,35 +1059,37 @@ dbglog_sm_print(
     arg3 = (args[0] >>  0) & 0xff;
 
     extra = args[1];
+    extra2 = args[2];
+    extra3 = args[3];
 
     switch (type) {
     case 0: /* state transition */
         if (arg1 < num_states && arg2 < num_states) {
-            dbglog_printf(timestamp, vap_id, "%s: %s => %s (%#x)",
-                    module_prefix, states[arg1], states[arg2], extra);
+            dbglog_printf(timestamp, vap_id, "%s: %s => %s (%#x, %#x, %#x)",
+                    module_prefix, states[arg1], states[arg2], extra, extra2, extra3);
         } else {
-            dbglog_printf(timestamp, vap_id, "%s: %u => %u (%#x)",
-                    module_prefix, arg1, arg2, extra);
+            dbglog_printf(timestamp, vap_id, "%s: %u => %u (%#x, %#x, %#x)",
+                    module_prefix, arg1, arg2, extra, extra2, extra3);
         }
         break;
     case 1: /* dispatch event */
         if (arg1 < num_states && arg2 < num_events) {
-            dbglog_printf(timestamp, vap_id, "%s: %s < %s (%#x)",
-                    module_prefix, states[arg1], events[arg2], extra);
+            dbglog_printf(timestamp, vap_id, "%s: %s < %s (%#x, %#x, %#x)",
+                    module_prefix, states[arg1], events[arg2], extra, extra2, extra3);
         } else {
-            dbglog_printf(timestamp, vap_id, "%s: %u < %u (%#x)",
-                    module_prefix, arg1, arg2, extra);
+            dbglog_printf(timestamp, vap_id, "%s: %u < %u (%#x, %#x, %#x)",
+                    module_prefix, arg1, arg2, extra, extra2, extra3);
         }
         break;
     case 2: /* warning */
         switch (arg1) {
         case 0: /* unhandled event */
             if (arg2 < num_states && arg3 < num_events) {
-                dbglog_printf(timestamp, vap_id, "%s: unhandled event %s in state %s (%#x)",
-                        module_prefix, events[arg3], states[arg2], extra);
+                dbglog_printf(timestamp, vap_id, "%s: unhandled event %s in state %s (%#x, %#x, %#x)",
+                        module_prefix, events[arg3], states[arg2], extra, extra2, extra3);
             } else {
-                dbglog_printf(timestamp, vap_id, "%s: unhandled event %u in state %u (%#x)",
-                        module_prefix, arg3, arg2, extra);
+                dbglog_printf(timestamp, vap_id, "%s: unhandled event %u in state %u (%#x, %#x, %#x)",
+                        module_prefix, arg3, arg2, extra, extra2, extra3);
             }
             break;
         default:
@@ -1099,17 +1159,21 @@ dbglog_sta_powersave_print_handler(
         break;
     case PS_STA_DELIVER_EVENT:
         if (numargs == 2) {
-            dbglog_printf(timestamp, vap_id, "STA PS: %s %u",
+            dbglog_printf(timestamp, vap_id, "STA PS: %s %s",
                     (args[0] == 0 ? "PAUSE_COMPLETE" :
                     (args[0] == 1 ? "UNPAUSE_COMPLETE" :
                     (args[0] == 2 ? "SLEEP" :
                     (args[0] == 3 ? "AWAKE" : "UNKNOWN")))),
-                    args[1]);
+                    (args[1] == 0 ? "SUCCESS" :
+                     (args[1] == 1 ? "TXQ_FLUSH_TIMEOUT" :
+                      (args[1] == 2 ? "NO_ACK" :
+                       (args[1] == 3 ? "RX_LEAK_TIMEOUT" :
+                        (args[1] == 4 ? "PSPOLL_UAPSD_BUSY_TIMEOUT" : "UNKNOWN"))))));
         }
         break;
     case PS_STA_PSPOLL_SEQ_DONE:
         if (numargs == 5) {
-            dbglog_printf(timestamp, vap_id, "STA PS-Poll Seq done: queue=%uus complete=%uus response=%uus duration=%uus fc=%x qos[0]=%x status=%u",
+            dbglog_printf(timestamp, vap_id, "STA PS poll: queue=%u comp=%u rsp=%u rsp_dur=%u fc=%x qos=%x %s",
                     args[0], args[1], args[2], args[3],
                     (args[4] >> 16) & 0xffff,
                     (args[4] >> 8) & 0xff,
@@ -1117,7 +1181,7 @@ dbglog_sta_powersave_print_handler(
                     (args[4] & 0xff) == 1 ? "NO_ACK" :
                     (args[4] & 0xff) == 2 ? "DROPPED" :
                     (args[4] & 0xff) == 3 ? "FILTERED" :
-                    (args[4] & 0xff) == 4 ? "RESPONSE_TIMEOUT" : "UNKNOWN");
+                    (args[4] & 0xff) == 4 ? "RSP_TIMEOUT" : "UNKNOWN");
         }
         break;
     case PS_STA_COEX_MODE:
@@ -1387,6 +1451,13 @@ dbglog_ap_powersave_print_handler(
                    args[0], args[1], args[2], args[3]);
         }
         break;
+    case AP_PS_DBGID_DELIVER_CAB:
+        if (numargs == 4) {
+            dbglog_printf(timestamp, vap_id,
+                    "AP PS: CAB %s n_mpdus=%u, flags=%x, extra=%u",
+                   (args[0] == 17) ? "MGMT" : "DATA", args[1], args[2], args[3]);
+        }
+        break;
     default:
         return FALSE;
     }
@@ -1484,6 +1555,25 @@ dbglog_wal_print_handler(
         dbglog_printf(timestamp, vap_id, "WAL %s vdev down, count=%u",
                 WAL_VDEV_TYPE(args[0]), args[1]);
         break;
+    case WAL_DBGID_TX_MGMT_DESCID_SEQ_TYPE_LEN:
+        dbglog_printf(timestamp, vap_id, "WAL Tx Mgmt frame desc_id=0x%x, seq=0x%x, type=0x%x, len=0x%x islocal=0x%x",
+                args[0], args[1], args[2], (args[3] & 0xffff0000) >> 16, args[3] & 0x0000ffff);
+        break;
+    case WAL_DBGID_TX_MGMT_COMP_DESCID_STATUS:
+        dbglog_printf(timestamp, vap_id, "WAL Tx Mgmt frame completion desc_id=0x%x, status=0x%x, islocal=0x%x",
+                args[0], args[1], args[2]);
+        break;
+    case WAL_DBGID_TX_DATA_MSDUID_SEQ_TYPE_LEN:
+        dbglog_printf(timestamp, vap_id, "WAL Tx Data frame msdu_id=0x%x, seq=0x%x, type=0x%x, len=0x%x",
+                args[0], args[1], args[2], args[3]);
+        break;
+    case WAL_DBGID_TX_DATA_COMP_MSDUID_STATUS:
+        dbglog_printf(timestamp, vap_id, "WAL Tx Data frame completion desc_id=0x%x, status=0x%x, seq=0x%x",
+                args[0], args[1], args[2]);
+        break;
+    case WAL_DBGID_TX_DISCARD:
+        dbglog_printf(timestamp, vap_id, "WAL Tx enqueue discard msdu_id=0x%x", args[0]);
+        break;
     default:
         return FALSE;
     }
@@ -1544,9 +1634,9 @@ A_BOOL dbglog_coex_print_handler(
 
     static const char * wlan_rx_xput_status[] = {
         "WLAN_XPUT_NORMAL",
-        "WLAN_XPUT_RX_UNDER_THRESH",
-        "WLAN_XPUT_RX_CRITICAL",
-        "WLAN_XPUT_RX_RECOVERY_TIMEOUT",
+        "WLAN_XPUT_UNDER_THRESH",
+        "WLAN_XPUT_CRITICAL",
+        "WLAN_XPUT_RECOVERY_TIMEOUT",
     };
 
     static const char * coex_sched_req[] = {
@@ -1592,12 +1682,12 @@ A_BOOL dbglog_coex_print_handler(
     };
 
     static const char * coex_bt_scheme[] = {
-        "IDLE_CONTROL",
-        "ACTIVE_ASYNCHRONOUS_CONTROL",
-        "PASSIVE_SYNCHRONOUS_CONTROL",
-        "ACTIVE_SYNCHRONOUS_CONTROL",
-        "DEFAULT_CONTROL",
-        "CONCURRENCY_CONTROL",
+        "IDLE_CTRL",
+        "ACTIVE_ASYNC_CTRL",
+        "PASSIVE_SYNC_CTRL",
+        "ACTIVE_SYNC_CTRL",
+        "DEFAULT_CTRL",
+        "CONCURRENCY_CTRL",
     };
 
     static const char * wal_peer_rx_rate_stats_event_sent[] = {
@@ -1624,9 +1714,12 @@ A_BOOL dbglog_coex_print_handler(
         "DONE_FILTERED",
         "WLAN_START",
         "NONWLAN_START",
-        "NONWLAN_INTERVAL_UPDATE",
+        "NONWLAN_INTVL_UPDATE",
         "NULL_TX",
-        "NULL_TX_COMPLETE",
+        "NULL_TX_COMPLT",
+        "BMISS_FIRST",
+        "NULL_TX_FAIL",
+        "RX_NO_MORE_DATA_DATAFRM",
     };
 
     static const char * coex_pspoll_state[] = {
@@ -1681,7 +1774,7 @@ A_BOOL dbglog_coex_print_handler(
                     dbglog_printf(timestamp, vap_id, "%s: %s, DETERMINE_DURATION, %s, %s, %s",
                         dbg_id_str, coex_sched_req[args[0]], coex_trf_mgmt_type[args[2]], wlan_rx_xput_status[args[3]], wlan_rssi_type[args[4]]);
                 } else {
-                    dbglog_printf(timestamp, vap_id, "%s: %s, Intvl Duration(%u), %s, %s, %s",
+                    dbglog_printf(timestamp, vap_id, "%s: %s, IntvlDur(%u), %s, %s, %s",
                         dbg_id_str, coex_sched_req[args[0]], args[1], coex_trf_mgmt_type[args[2]], wlan_rx_xput_status[args[3]], wlan_rssi_type[args[4]]);
                 }
             } else {
@@ -1753,8 +1846,8 @@ A_BOOL dbglog_coex_print_handler(
             }
             break;
         case COEX_PSP_MGR_ENTER:
-            if (numargs >= 5 && args[0] < 20 && args[1] < 6 && args[3] < 2) {
-                dbglog_printf(timestamp, vap_id, "%s: %s, %s, PsPollAvg(%u), %s, CurrTime(%u)",
+            if (numargs >= 5 && args[0] < 23 && args[1] < 6 && args[3] < 2) {
+                dbglog_printf(timestamp, vap_id, "%s: %s, %s, PsPollAvg(%u), %s, CurrT(%u)",
                     dbg_id_str, wlan_psp_stimulus[args[0]], coex_pspoll_state[args[1]], args[2], coex_scheduler_interval[args[3]], args[4]);
             } else {
                 return FALSE;
@@ -1770,10 +1863,10 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_TRF_SHAPE_PSP:
             if (numargs == 2 && args[0] < 6) {
-                dbglog_printf(timestamp, vap_id, "%s: %s, CurrTime(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: %s, CurrT(%u)",
                     dbg_id_str, coex_pspoll_state[args[0]], args[1]);
             } else if (numargs >= 5 && args[0] < 6 && args[1] < 7) {
-                dbglog_printf(timestamp, vap_id, "%s: %s, %s, Duration(%u), WlanOverride(%u), PrioritizeWlanDuringCollisions(%u)",
+                    dbglog_printf(timestamp, vap_id, "%s: %s, %s, Dur(%u), WlanOverride(%u), PrioritizeWlanDuringCollis(%u)",
                         dbg_id_str, coex_sched_type[args[0]], wlan_weight[args[1]], args[2], args[3], args[4]);
             } else {
                 return FALSE;
@@ -1781,7 +1874,7 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_PSP_SPEC_POLL:
             if (numargs >= 5) {
-                dbglog_printf(timestamp, vap_id, "%s: PsPollSpecEnable(%u), Count(%u), NextTimeStamp(%u), AllowSpecPsPollTx(%u), Intvl(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: PsPollSpecEna(%u), Count(%u), NextTS(%u), AllowSpecPsPollTx(%u), Intvl(%u)",
                     dbg_id_str, args[0], args[1], args[2], args[3], args[4]);
             } else {
                 return FALSE;
@@ -1825,7 +1918,7 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_PSP_STAT_2:
             if (numargs >= 5) {
-                dbglog_printf(timestamp, vap_id, "%s: DataPt(%u), PrevPSP(%u), NextApRespIndex(%u), NumOfValidDataPts(%u), PsPollAvg(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: DataPt(%u), Max(%u), NextApRespIndex(%u), NumOfValidDataPts(%u), PsPollAvg(%u)",
                     dbg_id_str, args[0], args[1], args[2], args[3], args[4]);
             } else {
                 return FALSE;
@@ -1833,8 +1926,60 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_PSP_RX_STATUS_STATE_1:
             if (numargs >= 5) {
-                dbglog_printf(timestamp, vap_id, "%s: RespExpectedTimeStamp(%u), RespActualTimeStamp(%u), IsOverrun(%u), RespOverunUnderrunTime(%u), ApRespRxDuration(%u)",
-                    dbg_id_str, args[0], args[1], args[2], args[3], args[4]);
+                if (args[2]) {
+                    dbglog_printf(timestamp, vap_id, "%s: RsExpectedTS(%u), RespActualTS(%u), Overrun, RsOverrunT(%u), RsRxDur(%u)",
+                        dbg_id_str, args[0], args[1], args[3], args[4]);
+                } else {
+                    dbglog_printf(timestamp, vap_id, "%s: RsExpectedTS(%u), RespActualTS(%u), Underrun, RsUnderrunT(%u), RsRxDur(%u)",
+                        dbg_id_str, args[0], args[1], args[3], args[4]);
+                }
+            } else {
+                return FALSE;
+            }
+            break;
+        //Translate following into decimal
+        case COEX_SINGLECHAIN_DBG_1:
+        case COEX_SINGLECHAIN_DBG_2:
+        case COEX_SINGLECHAIN_DBG_3:
+        case COEX_MULTICHAIN_DBG_1:
+        case COEX_MULTICHAIN_DBG_2:
+        case COEX_MULTICHAIN_DBG_3:
+            if (numargs > 0) {
+                dbglog_printf_no_line_break(timestamp, vap_id, "%s: %u",
+                        dbg_id_str, args[0]);
+                for (i = 1; i < numargs; i++) {
+                    printf(", %u", args[i]);
+                }
+                printf("\n");
+            } else {
+                return FALSE;
+            }
+            break;
+        case COEX_LinkID:
+            if (numargs >= 4) {
+                if (args[0]) {  //Add profile
+                    dbglog_printf(timestamp, vap_id, "%s Alloc: LocalID(%u), RemoteID(%u), MinFreeLocalID(%u)",
+                        dbg_id_str, args[1], args[2], args[3]);
+                } else {  //Remove profile
+                    dbglog_printf(timestamp, vap_id, "%s Dealloc: LocalID(%u), RemoteID(%u), MinFreeLocalID(%u)",
+                        dbg_id_str, args[1], args[2], args[3]);
+                }
+            } else {
+                return FALSE;
+            }
+            break;
+        case COEX_BT_DURATION:
+            if (numargs == 3) {
+                dbglog_printf(timestamp, vap_id, "%s: Result(%u), NumOfValidSchedMsgs(%u) PrioLowerLimit(%u)",
+                    dbg_id_str, args[0], args[1], args[2]);
+            } else {
+                return FALSE;
+            }
+            break;
+        case COEX_T2BT:
+            if (numargs == 3) {
+                dbglog_printf(timestamp, vap_id, "%s: Result(%u), BtTime1(%u), PrioLowerLimit(%u)",
+                    dbg_id_str, args[0], args[1], args[2]);
             } else {
                 return FALSE;
             }

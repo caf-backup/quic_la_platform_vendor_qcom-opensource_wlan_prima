@@ -42,8 +42,8 @@ typedef enum {
 #define DBGLOG_PRINT_PREFIX "FWLOG: "
 
 struct dbglog_slot {
-    __le32 timestamp;
-    __le32 length;
+    unsigned int timestamp;
+    unsigned int length;
 
     /* max ATH6KL_FWLOG_PAYLOAD_SIZE bytes */
     u_int8_t payload[0];
