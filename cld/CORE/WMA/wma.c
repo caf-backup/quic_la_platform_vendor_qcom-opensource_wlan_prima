@@ -5245,6 +5245,140 @@ void wma_scan_cache_updated_ind(tp_wma_handle wma)
 
 #endif
 
+#define WMA_DUMP_WOW_PTRN
+
+/* Frees memory associated to given pattern ID in wow pattern cache. */
+static inline void wma_free_wow_ptrn(tp_wma_handle wma, u_int8_t ptrn_id)
+{
+	if (wma->wow.no_of_ptrn_cached <= 0 ||
+	    !wma->wow.cache[ptrn_id])
+		return;
+
+	WMA_LOGD("Deleting wow pattern %d from cache which belongs to vdev id %d",
+		 ptrn_id, wma->wow.cache[ptrn_id]->vdev_id);
+
+	vos_mem_free(wma->wow.cache[ptrn_id]->ptrn);
+	vos_mem_free(wma->wow.cache[ptrn_id]->mask);
+	vos_mem_free(wma->wow.cache[ptrn_id]);
+	wma->wow.cache[ptrn_id] = NULL;
+
+	wma->wow.no_of_ptrn_cached--;
+}
+
+/* Adds received wow patterns in local wow pattern cache. */
+static VOS_STATUS wma_wow_add_pattern(tp_wma_handle wma,
+				      tpSirWowlAddBcastPtrn ptrn)
+{
+	struct wma_wow_ptrn_cache *cache;
+
+	WMA_LOGD("wow add pattern");
+
+	/* Free if there are any pattern cached already in the same slot. */
+	if (wma->wow.cache[ptrn->ucPatternId])
+		wma_free_wow_ptrn(wma, ptrn->ucPatternId);
+
+	wma->wow.cache[ptrn->ucPatternId] = (struct wma_wow_ptrn_cache *)
+					     vos_mem_malloc(sizeof(*cache));
+
+	cache = wma->wow.cache[ptrn->ucPatternId];
+	if (!cache) {
+		WMA_LOGE("Unable to alloc memory for wow");
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cache->ptrn = (u_int8_t *) vos_mem_malloc(ptrn->ucPatternSize);
+	if (!cache->ptrn) {
+		WMA_LOGE("Unable to alloce memory to cache wow pattern");
+		vos_mem_free(cache);
+		wma->wow.cache[ptrn->ucPatternId] = NULL;
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cache->mask = (u_int8_t *) vos_mem_malloc(ptrn->ucPatternMaskSize);
+	if (!cache->mask) {
+		WMA_LOGE("Unable to alloc memory to cache wow ptrn mask");
+		vos_mem_free(cache->ptrn);
+		vos_mem_free(cache);
+		wma->wow.cache[ptrn->ucPatternId] = NULL;
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	/* Cache wow pattern info until platform goes to suspend. */
+	vos_mem_copy(cache->ptrn, ptrn->ucPattern, ptrn->ucPatternSize);
+	cache->ptrn_len = ptrn->ucPatternSize;
+	cache->ptrn_offset = ptrn->ucPatternByteOffset;
+	vos_mem_copy(cache->mask, ptrn->ucPatternMask, ptrn->ucPatternMaskSize);
+	cache->mask_len = ptrn->ucPatternMaskSize;
+	wma->wow.no_of_ptrn_cached++;
+
+	WMA_LOGD("wow pattern stored in cache (slot_id: %d, vdev id: %d)",
+		 ptrn->ucPatternId, cache->vdev_id);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/* Deletes given pattern from local wow pattern cache. */
+static VOS_STATUS wma_wow_del_pattern(tp_wma_handle wma,
+				      tpSirWowlDelBcastPtrn ptrn)
+{
+	WMA_LOGD("wow delete pattern");
+
+	if (!wma->wow.cache[ptrn->ucPatternId]) {
+		WMA_LOGE("wow pattern not found (pattern id: %d) in cache",
+			 ptrn->ucPatternId);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	wma_free_wow_ptrn(wma, ptrn->ucPatternId);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * Records pattern enable/disable status locally. This choice will
+ * take effect when the driver enter into suspend state.
+ */
+static VOS_STATUS wma_wow_enter(tp_wma_handle wma,
+				tpSirHalWowlEnterParams info)
+{
+	struct wma_txrx_node *iface;
+
+	WMA_LOGD("wow enable req received for vdev id: %d", info->sessionId);
+
+	if (info->sessionId > wma->max_bssid) {
+		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	iface = &wma->interfaces[info->sessionId];
+	iface->ptrn_match_enable = info->ucPatternFilteringEnable ?
+							    TRUE : FALSE;
+	wma->wow.magic_ptrn_enable = info->ucMagicPktEnable ? TRUE : FALSE;
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/* Clears all wow states */
+static VOS_STATUS wma_wow_exit(tp_wma_handle wma,
+			       tpSirHalWowlExitParams info)
+{
+	struct wma_txrx_node *iface;
+
+	WMA_LOGD("wow disable req received for vdev id: %d", info->sessionId);
+
+	if (info->sessionId > wma->max_bssid) {
+		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	iface = &wma->interfaces[info->sessionId];
+	iface->ptrn_match_enable = FALSE;
+
+	wma->wow.magic_ptrn_enable = FALSE;
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /* function    : wma_get_stats_req
  * Description : return the statistics
  * Args        : wma handle, pointer to tAniGetPEStatsReq
@@ -5556,7 +5690,22 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_ADD_TS_REQ:
 			wma_add_ts_req(wma_handle, (tAddTsParams *)msg->bodyptr);
 			break;
-
+		case WDA_WOWL_ADD_BCAST_PTRN:
+			wma_wow_add_pattern(wma_handle,
+					   (tpSirWowlAddBcastPtrn)msg->bodyptr);
+			break;
+		case WDA_WOWL_DEL_BCAST_PTRN:
+			wma_wow_del_pattern(wma_handle,
+					   (tpSirWowlDelBcastPtrn)msg->bodyptr);
+			break;
+		case WDA_WOWL_ENTER_REQ:
+			wma_wow_enter(wma_handle,
+				      (tpSirHalWowlEnterParams)msg->bodyptr);
+			break;
+		case WDA_WOWL_EXIT_REQ:
+			wma_wow_exit(wma_handle,
+				    (tpSirHalWowlExitParams)msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -6074,6 +6223,7 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 #if !defined(QCA_WIFI_ISOC) && !defined(CONFIG_HL_SUPPORT)
 	u_int32_t idx;
 #endif
+	u_int8_t ptrn_id;
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
 	WMA_LOGD("%s: Enter", __func__);
@@ -6085,6 +6235,10 @@ VOS_STATUS wma_close(v_VOID_t *vos_ctx)
 		WMA_LOGP("Invalid handle");
 		return VOS_STATUS_E_INVAL;
 	}
+
+	/* Free wow pattern cache */
+	for (ptrn_id = 0; ptrn_id < WOW_MAX_BITMAP_FILTERS; ptrn_id++)
+		wma_free_wow_ptrn(wma_handle, ptrn_id);
 
 	/* unregister Firmware debug log */
 	vos_status = dbglog_deinit(wma_handle->wmi_handle);
