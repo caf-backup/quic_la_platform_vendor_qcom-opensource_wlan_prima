@@ -4026,11 +4026,6 @@ tANI_BOOLEAN pmcOffloadProcessCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand)
             if ( !HAL_STATUS_SUCCESS( status ) )
             {
                 smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_WOWL_REQ");
-                pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_FAILURE);
-            }
-            else
-            {
-                pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_SUCCESS);
             }
             break;
 
@@ -4040,12 +4035,7 @@ tANI_BOOLEAN pmcOffloadProcessCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand)
                                     sizeof(tSirSmeWowlExitParams));
             if ( !HAL_STATUS_SUCCESS( status ) )
             {
-                smsLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
-                pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_FAILURE);
-            }
-            else
-            {
-                pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_SUCCESS);
+                smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
             }
             break;
 
