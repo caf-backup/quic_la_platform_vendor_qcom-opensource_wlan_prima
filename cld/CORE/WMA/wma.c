@@ -1116,19 +1116,6 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_PEER_STA_KICKOUT_EVENTID,
 					   wma_peer_sta_kickout_event_handler);
-#ifndef QCA_WIFI_ISOC
-	 if (!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
-				     WMI_SERVICE_BEACON_OFFLOAD)) {
-
-		WMA_LOGD("%s: FW doesn't have beacon offload capability, "
-			 "enabling host based beaconing support\n", __func__);
-
-		/* SWBA event handler for beacon transmission */
-		wmi_unified_register_event_handler(wma_handle->wmi_handle,
-						   WMI_HOST_SWBA_EVENTID,
-						   wma_beacon_swba_handler);
-	}
-#endif
 	/* Firmware debug log */
 	vos_status = dbglog_init(wma_handle->wmi_handle);
 	if (vos_status != VOS_STATUS_SUCCESS) {
@@ -6447,6 +6434,7 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	struct wma_target_cap target_cap;
 	WMI_SERVICE_READY_EVENTID_param_tlvs *param_buf;
 	wmi_service_ready_event_fixed_param *ev;
+	int status;
 
 	WMA_LOGD("%s: Enter", __func__);
 
@@ -6481,6 +6469,23 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	vos_mem_copy(wma_handle->wmi_service_bitmap,
 		     param_buf->wmi_service_bitmap,
 		     sizeof(wma_handle->wmi_service_bitmap));
+#ifndef QCA_WIFI_ISOC
+	 if (!WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				     WMI_SERVICE_BEACON_OFFLOAD)) {
+
+		WMA_LOGD("%s: FW doesn't have beacon offload capability, "
+			 "enabling host based beaconing support\n", __func__);
+
+		/* SWBA event handler for beacon transmission */
+		status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+						   WMI_HOST_SWBA_EVENTID,
+						   wma_beacon_swba_handler);
+		if (status) {
+			WMA_LOGE("Failed to register swba beacon event cb");
+			return;
+		}
+	}
+#endif
 	vos_mem_copy(target_cap.wmi_service_bitmap,
 		     param_buf->wmi_service_bitmap,
 		     sizeof(wma_handle->wmi_service_bitmap));
