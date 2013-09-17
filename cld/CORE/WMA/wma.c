@@ -448,6 +448,9 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 		CFG_TGT_DEFAULT_GTK_OFFLOAD_MAX_VDEV,
 		CFG_TGT_NUM_MSDU_DESC,
 		CFG_TGT_MAX_FRAG_TABLE_ENTRIES,
+		0,
+		0,
+		CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV,
 	};
 
 	WMITLV_SET_HDR(&tgt_cfg.tlv_header,WMITLV_TAG_STRUC_wmi_resource_config,
