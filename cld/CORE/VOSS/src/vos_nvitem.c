@@ -2259,8 +2259,13 @@ static int create_crda_regulatory_entry_from_regd(struct wiphy *wiphy,
  * This function is used to create a CRDA regulatory settings entry into internal
  * regulatory setting table.
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+void wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
+                struct regulatory_request *request)
+#else
 int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
                 struct regulatory_request *request)
+#endif
 {
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
     wiphy_dbg(wiphy, "info: cfg80211 reg_notifier callback for country"
@@ -2269,7 +2274,11 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
     {
        wiphy_dbg(wiphy, "info: set by user\n");
        if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+          return;
+#else
           return 0;
+#endif
        // ToDo
        /* Don't change default country code to CRDA country code by user req */
        /* Shouldcall sme_ChangeCountryCode to send a message to trigger read
@@ -2281,7 +2290,11 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
     {
        wiphy_dbg(wiphy, "info: set by country IE\n");
        if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+          return;
+#else
           return 0;
+#endif
        // ToDo
        /* Intersect of 11d and crda settings */
 
@@ -2325,5 +2338,9 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
        /* Haven't seen any condition that will set by driver after init.
           If we do, then we should also call sme_ChangeCountryCode */
     }
-return 0;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+    return;
+#else
+    return 0;
+#endif
 }
