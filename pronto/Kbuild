@@ -26,6 +26,9 @@ HAVE_CFG80211 := 0
 endif
 endif
 
+#Flag to enable new Linux Regulatoryimplementation
+CONFIG_ENABLE_LINUX_REG := n
+
 ############## HDD ###################
 HDD_INC := $(WLAN_CORE_DIR)/HDD/inc/
 HDD_SRC_DIR := ../prima/CORE/HDD/src
@@ -573,6 +576,9 @@ OBJS := $(VOSS_OBJS) \
                 $(WDI_OBJS)  \
                 $(DXE_OBJS)  \
 
+ifeq ($(CONFIG_ENABLE_LINUX_REG), y)
+CDEFINES += -DCONFIG_ENABLE_LINUX_REG
+endif
 
 # Module information used by KBuild framework
 obj-m   := $(MODNAME).o
