@@ -858,6 +858,10 @@ hif_pci_remove(struct pci_dev *pdev)
 
 #define OL_ATH_PCI_PM_CONTROL 0x44
 
+#ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
+void hdd_suspend_wlan(void);
+#endif
+
 static int
 hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 {
@@ -866,6 +870,11 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 
     u32 val;
 
+#ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
+    hdd_suspend_wlan();
+    /* TODO: Wait until tx queue drains. Remove this hard coded delay */
+    msleep(3*1000); /* 3 sec */
+#endif
     /* Make sure to wake Target before accessing Target memory */
     A_PCI_WRITE32(sc->mem + PCIE_LOCAL_BASE_ADDRESS + PCIE_SOC_WAKE_ADDRESS, PCIE_SOC_WAKE_V_MASK);
     while (!hif_pci_targ_is_awake(sc, sc->mem)) {
@@ -889,6 +898,10 @@ hif_pci_suspend(struct pci_dev *pdev, pm_message_t state)
     }
     return 0;
 }
+
+#ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
+void hdd_resume_wlan(void);
+#endif
 
 static int
 hif_pci_resume(struct pci_dev *pdev)
@@ -932,6 +945,10 @@ hif_pci_resume(struct pci_dev *pdev)
         (val == PM_EVENT_HIBERNATE || val == PM_EVENT_SUSPEND)) {
 	    return wma_resume_target(vos_get_context(VOS_MODULE_ID_WDA, vos_context));
     }
+
+#ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
+    hdd_resume_wlan();
+#endif
 
     return 0;
 }
