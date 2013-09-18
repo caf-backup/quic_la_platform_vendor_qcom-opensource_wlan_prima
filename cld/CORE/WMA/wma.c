@@ -226,6 +226,46 @@ static bool wma_is_vdev_in_ap_mode(tp_wma_handle wma, u_int8_t vdev_id)
 	return false;
 }
 
+/*
+ * Function     : wma_find_bssid_by_vdev_id
+ * Description  : Get the BSS ID corresponding to the vdev ID
+ * Args         : @wma - wma handle, @vdev_id - vdev ID
+ * Returns      : Returns pointer to bssid on success,
+ *                otherwise returns NULL.
+ */
+static inline u_int8_t *wma_find_bssid_by_vdev_id(tp_wma_handle wma,
+						  u_int8_t vdev_id)
+{
+	if (vdev_id >= wma->max_bssid)
+		return NULL;
+
+	return wma->interfaces[vdev_id].bssid;
+}
+
+/*
+ * Function	: wma_find_vdev_by_bssid
+ * Description	: Get the VDEV ID corresponding from BSS ID
+ * Args		: @wma - wma handle, @vdev_id - vdev ID
+ * Returns	: Returns pointer to bssid on success,
+ *                otherwise returns NULL.
+ */
+static void *wma_find_vdev_by_bssid(tp_wma_handle wma, u_int8_t *bssid,
+				    u_int8_t *vdev_id)
+{
+	int i;
+
+	for (i = 0; i < wma->max_bssid; i++) {
+		if (vos_is_macaddr_equal(
+			(v_MACADDR_t *)wma->interfaces[i].bssid,
+			(v_MACADDR_t *)bssid) == VOS_TRUE) {
+			*vdev_id = i;
+			return wma->interfaces[i].handle;
+		}
+	}
+
+	return NULL;
+}
+
 #ifdef BIG_ENDIAN_HOST
 
 /* ############# function definitions ############ */
@@ -1041,6 +1081,81 @@ static int wma_beacon_swba_handler(void *handle, u_int8_t *event, u_int32_t len)
 			wma_send_bcn_buf_ll(wma, pdev, vdev_id, param_buf);
 		break;
 	}
+	return 0;
+}
+#endif
+
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+static int wma_gtk_offload_status_event(void *handle, u_int8_t *event,
+					u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_GTK_OFFLOAD_STATUS_EVENT_fixed_param *status;
+	WMI_GTK_OFFLOAD_STATUS_EVENTID_param_tlvs *param_buf;
+	tpSirGtkOffloadGetInfoRspParams resp;
+	vos_msg_t vos_msg;
+	u_int8_t *bssid;
+
+	WMA_LOGD("%s Enter", __func__);
+
+	param_buf = (WMI_GTK_OFFLOAD_STATUS_EVENTID_param_tlvs *)event;
+	if (!param_buf) {
+		WMA_LOGE("param_buf is NULL");
+		return -EINVAL;
+	}
+
+	status = (WMI_GTK_OFFLOAD_STATUS_EVENT_fixed_param *)param_buf->fixed_param;
+
+	if (len < sizeof(WMI_GTK_OFFLOAD_STATUS_EVENT_fixed_param)) {
+		WMA_LOGE("Invalid length for GTK status");
+		return -EINVAL;
+	}
+	bssid = wma_find_bssid_by_vdev_id(wma, status->vdev_id);
+	if (!bssid) {
+		WMA_LOGE("invalid bssid for vdev id %d", status->vdev_id);
+		return -ENOENT;
+	}
+
+	resp = vos_mem_malloc(sizeof(*resp));
+	if (!resp) {
+		WMA_LOGE("%s: Failed to alloc response", __func__);
+		return -ENOMEM;
+	}
+	vos_mem_zero(resp, sizeof(*resp));
+	resp->mesgType = eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP;
+	resp->mesgLen = sizeof(*resp);
+	resp->ulStatus = VOS_STATUS_SUCCESS;
+	resp->ulTotalRekeyCount = status->refresh_cnt;
+	/* TODO: Is the total rekey count and GTK rekey count same? */
+	resp->ulGTKRekeyCount = status->refresh_cnt;
+
+	vos_mem_copy(&resp->ullKeyReplayCounter,  &status->replay_counter,
+		     GTK_REPLAY_COUNTER_BYTES);
+
+	vos_mem_copy(resp->bssId, bssid, ETH_ALEN);
+
+#ifdef IGTK_OFFLOAD
+	/* TODO: Is the refresh count same for GTK and IGTK? */
+	resp->ulIGTKRekeyCount = status->refresh_cnt;
+#endif
+
+	vos_msg.type = eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP;
+	vos_msg.bodyptr = (void *)resp;
+	vos_msg.bodyval = 0;
+
+	if (vos_mq_post_message(VOS_MQ_ID_SME, (vos_msg_t*)&vos_msg)
+			!= VOS_STATUS_SUCCESS) {
+		WMA_LOGE("Failed to post GTK response to SME");
+		vos_mem_free(resp);
+		return -EINVAL;
+	}
+
+	WMA_LOGD("GTK: got target status with replaycouter %x. vdev %d. " \
+		 "Refresh GTK %d times exchanges since last set operation.",
+		 status->replay_counter, status->vdev_id, status->refresh_cnt);
+
+	WMA_LOGD("%s Exit", __func__);
+
 	return 0;
 }
 #endif
@@ -5790,7 +5905,17 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma)
 		WMA_LOGD("Beacon miss based wakeup is %s in fw",
 			 wma->wow.bmiss_enable ? "enabled" : "disabled");
 	}
-
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+	/* Configure GTK based wakeup */
+	ret = wma_add_wow_wakeup_event(wma, WOW_GTK_ERR_EVENT,
+				       wma->wow.gtk_err_enable);
+	if (ret != VOS_STATUS_SUCCESS) {
+		WMA_LOGD("Failed to configure GTK based wakeup");
+	} else {
+		WMA_LOGD("GTK based wakeup is %s in fw",
+			 wma->wow.gtk_err_enable ? "enabled" : "disabled");
+	}
+#endif
 	/* Enable WOW in FW. */
 	ret = wma_enable_wow_in_fw(wma);
 	if (ret == VOS_STATUS_SUCCESS)
@@ -6211,6 +6336,128 @@ wma_data_tx_ack_comp_hdlr(void *wma_context,
 	adf_nbuf_free(netbuf);
 }
 
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+#define GTK_OFFLOAD_ENABLE	0
+#define GTK_OFFLOAD_DISABLE	1
+
+static VOS_STATUS wma_process_gtk_offload_req(tp_wma_handle wma,
+					      tpSirGtkOffloadParams params)
+{
+	u_int8_t vdev_id;
+	int len;
+	wmi_buf_t buf;
+	WMI_GTK_OFFLOAD_CMD_fixed_param *cmd;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	WMA_LOGD("%s Enter", __func__);
+
+	/* Get the vdev id */
+	if (!wma_find_vdev_by_bssid(wma, params->bssId, &vdev_id)) {
+		WMA_LOGE("vdev handle is invalid for %pM", params->bssId);
+		status = VOS_STATUS_E_INVAL;
+		goto out;
+	}
+
+	len = sizeof(*cmd);
+
+	/* alloc wmi buffer */
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("wmi_buf_alloc failed for WMI_GTK_OFFLOAD_CMD");
+		status = VOS_STATUS_E_NOMEM;
+		goto out;
+	}
+
+	cmd = (WMI_GTK_OFFLOAD_CMD_fixed_param *)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_WMI_GTK_OFFLOAD_CMD_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+				WMI_GTK_OFFLOAD_CMD_fixed_param));
+
+	cmd->vdev_id = vdev_id;
+
+	/* Request target to enable GTK offload */
+	if (params->ulFlags == GTK_OFFLOAD_ENABLE) {
+		cmd->flags = GTK_OFFLOAD_ENABLE_OPCODE;
+		wma->wow.gtk_err_enable = TRUE;
+
+		/* Copy the keys and replay counter */
+		vos_mem_copy(cmd->KCK, params->aKCK, GTK_OFFLOAD_KCK_BYTES);
+		vos_mem_copy(cmd->KEK, params->aKEK, GTK_OFFLOAD_KEK_BYTES);
+		vos_mem_copy(cmd->replay_counter, &params->ullKeyReplayCounter,
+			     GTK_REPLAY_COUNTER_BYTES);
+	} else {
+		wma->wow.gtk_err_enable = FALSE;
+		cmd->flags = GTK_OFFLOAD_DISABLE_OPCODE;
+	}
+
+	/* send the wmi command */
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				 WMI_GTK_OFFLOAD_CMDID)) {
+		WMA_LOGE("Failed to send WMI_GTK_OFFLOAD_CMDID");
+		wmi_buf_free(buf);
+		status = VOS_STATUS_E_FAILURE;
+	}
+out:
+	vos_mem_free(params);
+	WMA_LOGD("%s Exit", __func__);
+	return status;
+}
+
+static VOS_STATUS wma_process_gtk_offload_getinfo_req(tp_wma_handle wma,
+					tpSirGtkOffloadGetInfoRspParams params)
+{
+	u_int8_t vdev_id;
+	int len;
+	wmi_buf_t buf;
+	WMI_GTK_OFFLOAD_CMD_fixed_param *cmd;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	WMA_LOGD("%s Enter", __func__);
+
+	/* Get the vdev id */
+	if (!wma_find_vdev_by_bssid(wma, params->bssId, &vdev_id)) {
+		WMA_LOGE("vdev handle is invalid for %pM", params->bssId);
+		status = VOS_STATUS_E_INVAL;
+		goto out;
+	}
+
+	len = sizeof(*cmd);
+
+	/* alloc wmi buffer */
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("wmi_buf_alloc failed for WMI_GTK_OFFLOAD_CMD");
+		status = VOS_STATUS_E_NOMEM;
+		goto out;
+	}
+
+	cmd = (WMI_GTK_OFFLOAD_CMD_fixed_param *)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_WMI_GTK_OFFLOAD_CMD_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+				WMI_GTK_OFFLOAD_CMD_fixed_param));
+
+	/* Request for GTK offload status */
+	cmd->flags = GTK_OFFLOAD_REQUEST_STATUS_OPCODE;
+	cmd->vdev_id = vdev_id;
+
+	/* send the wmi command */
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				 WMI_GTK_OFFLOAD_CMDID)) {
+		WMA_LOGE("Failed to send WMI_GTK_OFFLOAD_CMDID for req info");
+		wmi_buf_free(buf);
+		status = VOS_STATUS_E_FAILURE;
+	}
+out:
+	vos_mem_free(params);
+	WMA_LOGD("%s Exit", __func__);
+	return status;
+}
+#endif
+
 /* function   : wma_mc_process_msg
  * Descriptin :
  * Args       :
@@ -6426,6 +6673,19 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_resume_req(wma_handle,
 				       (tpSirWlanResumeParam)msg->bodyptr);
 			break;
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+		case WDA_GTK_OFFLOAD_REQ:
+			wma_process_gtk_offload_req(
+					wma_handle,
+					(tpSirGtkOffloadParams)msg->bodyptr);
+			break;
+
+		case WDA_GTK_OFFLOAD_GETINFO_REQ:
+			wma_process_gtk_offload_getinfo_req(
+				wma_handle,
+				(tpSirGtkOffloadGetInfoRspParams)msg->bodyptr);
+			break;
+#endif /* WLAN_FEATURE_GTK_OFFLOAD */
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -7449,6 +7709,19 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 						   wma_beacon_swba_handler);
 		if (status) {
 			WMA_LOGE("Failed to register swba beacon event cb");
+			return;
+		}
+	}
+#endif
+#ifdef WLAN_FEATURE_GTK_OFFLOAD
+	if (WMI_SERVICE_IS_ENABLED(wma_handle->wmi_service_bitmap,
+				   WMI_SERVICE_GTK_OFFLOAD)) {
+		status = wmi_unified_register_event_handler(
+						   wma_handle->wmi_handle,
+						   WMI_GTK_OFFLOAD_STATUS_EVENTID,
+						   wma_gtk_offload_status_event);
+		if (status) {
+			WMA_LOGE("Failed to register GTK offload event cb");
 			return;
 		}
 	}
