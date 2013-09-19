@@ -415,6 +415,13 @@ typedef enum
 
    WLAN_HAL_RATE_UPDATE_IND                 = 229,
 
+   /* Tx Fail for weak link notification */
+   WLAN_HAL_TX_FAIL_MONITOR_IND             = 230,
+   WLAN_HAL_TX_FAIL_IND                     = 231,
+
+   /* Multi-hop IP routing offload */
+   WLAN_HAL_IP_FORWARD_TABLE_UPDATE_IND     = 232,
+
   WLAN_HAL_MSG_MAX = WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -6715,7 +6722,6 @@ typedef PACKED_PRE struct PACKED_POST
 /*---------------------------------------------------------------------------
  WLAN_HAL_RATE_UPDATE_IND
  *-------------------------------------------------------------------------*/
-
 typedef PACKED_PRE struct PACKED_POST
 {
     /* 0 implies UCAST RA, positive value implies fixed rate, -1 implies ignore this param */
@@ -6752,6 +6758,67 @@ typedef PACKED_PRE struct PACKED_POST
     tHalMsgHeader header;
     tHalRateUpdateParams halRateUpdateParams;
 }  tHalRateUpdateInd, * tpHalRateUpdateInd;
+
+/*---------------------------------------------------------------------------
+* WLAN_HAL_TX_FAIL_IND
+*--------------------------------------------------------------------------*/
+// Northbound indication from FW to host on weak link detection
+typedef PACKED_PRE struct PACKED_POST
+{
+   // Sequence number increases by 1 whenever the device driver
+   // sends a notification event. This is cleared as 0 when the
+   // JOIN IBSS commamd is issued
+    tANI_U16 seqNo;
+    tANI_U16 staId;
+    tANI_U8 macAddr[HAL_MAC_ADDR_LEN];
+} tHalTXFailIndParams, *tpHalTXFailIndParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tHalTXFailIndParams txFailIndParams;
+}  tHalTXFailIndMsg, *tpHalTXFailIndMsg;
+
+/*---------------------------------------------------------------------------
+* WLAN_HAL_TX_FAIL_MONITOR_IND
+*--------------------------------------------------------------------------*/
+// Southbound message from Host to monitor the Tx failures
+typedef PACKED_PRE struct PACKED_POST
+{
+    // tx_fail_count = 0 should disable the TX Fail monitor,
+    // non-zero value should enable it.
+    tANI_U8 tx_fail_count;
+} tTXFailMonitorInfo, *tpTXFailMonitorInfo;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader  header;
+    tTXFailMonitorInfo txFailMonitor;
+} tTXFailMonitorInd, *tpTXFailMonitorInd;
+
+/*---------------------------------------------------------------------------
+* WLAN_HAL_IP_FORWARD_TABLE_UPDATE_IND
+*--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8 destIpv4Addr[HAL_IPV4_ADDR_LEN];
+   tANI_U8 nextHopMacAddr[HAL_MAC_ADDR_LEN];
+} tDestIpNextHopMacPair;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8 numEntries;
+   tDestIpNextHopMacPair destIpMacPair[1];
+} tWlanIpForwardTableUpdateIndParam;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tWlanIpForwardTableUpdateIndParam ipForwardTableParams;
+} tWlanIpForwardTableUpdateInd;
+
+/*---------------------------------------------------------------------------
+ *-------------------------------------------------------------------------*/
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)
