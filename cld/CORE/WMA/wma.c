@@ -704,7 +704,8 @@ static void wma_update_beacon_noa_ie(
 				"So Reset the NoA",
 				__func__);
 			/* TODO: Assuming p2p noa ie is last ie in the beacon */
-			vos_mem_zero(bcn->noa_ie, bcn->noa_sub_ie_len);
+			vos_mem_zero(bcn->noa_ie, (bcn->noa_sub_ie_len +
+						sizeof(struct p2p_ie)) );
 			bcn->len -= (bcn->noa_sub_ie_len +
 					sizeof(struct p2p_ie));
 			bcn->noa_ie = NULL;
