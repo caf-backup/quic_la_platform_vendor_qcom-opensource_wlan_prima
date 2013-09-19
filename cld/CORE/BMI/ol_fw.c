@@ -752,7 +752,7 @@ int ol_download_firmware(struct ol_softc *scn)
 		BMIWriteMemory(scn->hif_hdl,
 				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_serial_enable)),
 				(u_int8_t *)&param, 4, scn);
-	}else {
+	} else {
 		/*
 		 * Explicitly setting UART prints to zero as target turns it on
 		 * based on scratch registers.
@@ -760,6 +760,30 @@ int ol_download_firmware(struct ol_softc *scn)
 		param = 0;
 		BMIWriteMemory(scn->hif_hdl,
 				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s,hi_serial_enable)),
+				(u_int8_t *)&param, 4, scn);
+	}
+
+	if (scn->enablefwlog) {
+		BMIReadMemory(scn->hif_hdl,
+				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_option_flag)),
+				(u_int8_t *)&param, 4, scn);
+
+		param &= ~(HI_OPTION_DISABLE_DBGLOG);
+		BMIWriteMemory(scn->hif_hdl,
+				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_option_flag)),
+				(u_int8_t *)&param, 4, scn);
+	} else {
+		/*
+		 * Explicitly setting fwlog prints to zero as target turns it on
+		 * based on scratch registers.
+		 */
+		BMIReadMemory(scn->hif_hdl,
+				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_option_flag)),
+				(u_int8_t *)&param, 4, scn);
+
+		param |= HI_OPTION_DISABLE_DBGLOG;
+		BMIWriteMemory(scn->hif_hdl,
+				host_interest_item_address(scn->target_type, offsetof(struct host_interest_s, hi_option_flag)),
 				(u_int8_t *)&param, 4, scn);
 	}
 

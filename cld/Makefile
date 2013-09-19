@@ -49,9 +49,6 @@
 #Whether to build debug version
 BUILD_DEBUG_VERSION := 1
 
-#Whether to build firmware debug support
-BUILD_INCLUDE_FWDEBUG_SUPPORT := 0
-
 #Enable this flag to build driver in diag version
 BUILD_DIAG_VERSION := 0
 
@@ -817,11 +814,6 @@ CDEFINES +=	-DWLAN_DEBUG \
 		-DPE_DEBUG_LOGE \
 		-DDEBUG
 endif
-
-ifeq ($(BUILD_INCLUDE_FWDEBUG_SUPPORT),1)
-CDEFINES +=	-DFWDEBUG
-endif
-
 
 ifeq ($(CONFIG_SLUB_DEBUG_ON),y)
 CDEFINES += -DTIMER_MANAGER

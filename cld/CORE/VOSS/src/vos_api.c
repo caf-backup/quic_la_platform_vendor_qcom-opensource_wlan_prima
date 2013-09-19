@@ -318,6 +318,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 #ifndef QCA_WIFI_ISOC
    scn = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);
    scn->enableuartprint = pHddCtx->cfg_ini->enablefwprint;
+   scn->enablefwlog     = pHddCtx->cfg_ini->enablefwlog;
 
    /* Initialize BMI and Download firmware */
    if (bmi_download_firmware(scn)) {

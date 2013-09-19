@@ -119,22 +119,12 @@ extern int logger_write(const enum logidx idx,
                 const char __kernel * const tag,
                 const char __kernel * const fmt,
                 ...);
-#ifdef FWDEBUG
-#define A_ANDROID_PRINTF(mask, module, tags, args...) do {  \
-    if (enablelogcat) \
-        logger_write(LOG_MAIN_IDX, android_logger_lv(module, mask), tags, args); \
-    else \
-        printk(args); \
-} while (0)
-
-#else
 #define A_ANDROID_PRINTF(mask, module, tags, args...) do {  \
     if (enablelogcat) \
         logger_write(LOG_MAIN_IDX, android_logger_lv(module, mask), tags, args); \
     else \
         printk(KERN_ALERT args); \
 } while (0)
-#endif
 #ifdef DEBUG
 #define A_LOGGER_MODULE_NAME(x) #x
 #define A_LOGGER(mask, mod, args...) \
@@ -142,13 +132,8 @@ extern int logger_write(const enum logidx idx,
 #endif 
 #define A_PRINTF(args...) A_ANDROID_PRINTF(ATH_DEBUG_INFO, NULL, "ar6k_driver", args)
 #else
-#ifdef FWDEBUG
 #define A_LOGGER(mask, mod, args...)    printk(args)
 #define A_PRINTF(args...)               printk(args)
-#else
-#define A_LOGGER(mask, mod, args...)    printk(KERN_ALERT args)
-#define A_PRINTF(args...)               printk(KERN_ALERT args)
-#endif
 #endif /* ANDROID */
 #define A_PRINTF_LOG(args...)           printk(args)
 #define A_SNPRINTF(buf, len, args...)	snprintf (buf, len, args)
