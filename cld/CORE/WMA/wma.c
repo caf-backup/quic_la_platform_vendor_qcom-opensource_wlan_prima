@@ -5407,7 +5407,7 @@ static VOS_STATUS wma_send_wow_patterns_to_fw(tp_wma_handle wma,
 		       WMITLV_TAG_STRUC_WMI_WOW_ADD_PATTERN_CMD_fixed_param,
 		       WMITLV_GET_STRUCT_TLVLEN(
 				WMI_WOW_ADD_PATTERN_CMD_fixed_param));
-	cmd->vdev_id = cache->ptrn_offset;
+	cmd->vdev_id = cache->vdev_id;
 	cmd->pattern_id = ptrn_id;
 	cmd->pattern_type = WOW_BITMAP_PATTERN;
 	buf_ptr += sizeof(WMI_WOW_ADD_PATTERN_CMD_fixed_param);
