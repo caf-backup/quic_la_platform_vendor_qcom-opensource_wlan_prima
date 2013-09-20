@@ -636,7 +636,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 }
              }
 #endif
-            pScanInfo =  &pHddCtx->scan_info;
+            pScanInfo =  &pHostapdAdapter->scan_info;
             // Lets do abort scan to ensure smooth authentication for client
             if ((pScanInfo != NULL) && pScanInfo->mScanPending)
             {
@@ -2949,6 +2949,10 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
         init_completion(&pHostapdAdapter->offchannel_tx_event);
 #endif
+        init_completion(&pHostapdAdapter->scan_info.scan_req_completion_event);
+        init_completion(&pHostapdAdapter->scan_info.abortscan_event_var);
+        vos_event_init(&pHostapdAdapter->scan_info.scan_finished_event);
+        pHostapdAdapter->scan_info.scan_pending_option = WEXT_SCAN_PENDING_GIVEUP;
 
         SET_NETDEV_DEV(pWlanHostapdDev, pHddCtx->parent_dev);
     }
