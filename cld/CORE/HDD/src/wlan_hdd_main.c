@@ -161,6 +161,7 @@ static VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTa
 
 #if defined (QCA_WIFI_2_0) && \
     !defined (QCA_WIFI_ISOC)
+struct completion wlan_start_comp;
 extern void hif_init_adf_ctx(adf_os_device_t adf_ctx, v_VOID_t *hif_sc);
 extern int hif_register_driver(void);
 extern void hif_unregister_driver(void);
@@ -5607,7 +5608,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       if(!VOS_IS_STATUS_SUCCESS( status ))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_watchdog_open failed",__func__);
-         goto err_wiphy_reg;
+         goto err_config;
       }
    }
 
@@ -5667,6 +5668,7 @@ register_wiphy:
    {
       if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
       {
+          wiphy_unregister(wiphy);
           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
           goto err_free_hdd_context;
       }
@@ -5689,7 +5691,7 @@ register_wiphy:
    if ( VOS_STATUS_SUCCESS != status )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed hdd_set_sme_config", __func__);
-      goto err_vosclose;
+      goto err_wiphy_reg;
    }
 
    //Initialize the WMM module
@@ -5697,7 +5699,7 @@ register_wiphy:
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __func__);
-      goto err_vosclose;
+      goto err_wiphy_reg;
    }
 
    /* In the integrated architecture we update the configuration from
@@ -5708,7 +5710,7 @@ register_wiphy:
    if (FALSE == hdd_update_config_dat(pHddCtx))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: config update failed",__func__ );
-      goto err_vosclose;
+      goto err_wiphy_reg;
    }
 
    // Apply the NV to cfg.dat
@@ -5781,7 +5783,7 @@ register_wiphy:
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed to set MAC Address. "
                 "HALStatus is %08d [x%08x]",__func__, halStatus, halStatus );
-         goto err_vosclose;
+         goto err_wiphy_reg;
       }
    }
 
@@ -5791,7 +5793,7 @@ register_wiphy:
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
-      goto err_vosclose;
+      goto err_wiphy_reg;
    }
 
    /* Exchange capability info between Host and FW and also get versioning info from FW */
@@ -6007,6 +6009,9 @@ register_wiphy:
       hdd_set_idle_ps_config(pHddCtx, TRUE);
    }
 
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+   complete(&wlan_start_comp);
+#endif
    goto success;
 
 err_nl_srv:
@@ -6040,6 +6045,9 @@ err_close_adapter:
 err_vosstop:
    vos_stop(pVosContext);
 
+err_wiphy_reg:
+   wiphy_unregister(wiphy);
+
 err_vosclose:    
    status = vos_sched_close( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(status))    {
@@ -6055,9 +6063,6 @@ err_clkvote:
 err_wdclose:
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
-
-err_wiphy_reg:
-   wiphy_unregister(wiphy) ; 
 
 err_config:
    kfree(pHddCtx->cfg_ini);
@@ -6187,7 +6192,21 @@ static int hdd_driver_init( void)
 
 #if defined(QCA_WIFI_2_0) && \
     !defined(QCA_WIFI_ISOC)
-   if(hif_register_driver())
+#define WLAN_WAIT_TIME_WLANSTART 2000
+   init_completion(&wlan_start_comp);
+   ret_status = hif_register_driver();
+   if (!ret_status) {
+       ret_status = wait_for_completion_interruptible_timeout(
+                           &wlan_start_comp,
+                           msecs_to_jiffies(WLAN_WAIT_TIME_WLANSTART));
+       if (!ret_status) {
+           hif_unregister_driver();
+           ret_status = -1;
+       } else
+           ret_status = 0;
+   }
+
+   if (ret_status)
    {
        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
                __func__);
