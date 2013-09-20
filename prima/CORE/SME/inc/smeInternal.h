@@ -98,6 +98,19 @@ typedef enum eSmeState
 #define SME_IS_START(pMac)  (SME_STATE_STOP != (pMac)->sme.state)
 #define SME_IS_READY(pMac)  (SME_STATE_READY == (pMac)->sme.state)
 
+#ifdef FEATURE_CESIUM_PROPRIETARY
+
+/* HDD Callback function */
+typedef void(*pIbssPeerInfoCb)(void *pUserData, void *infoParam);
+
+/* Peer info */
+typedef struct tagSmePeerInfoHddCbkInfo
+{
+   void *pUserData;
+   pIbssPeerInfoCb peerInfoCbk;
+}tSmePeerInfoHddCbkInfo;
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
 
 typedef struct tagSmeStruct
 {
@@ -118,6 +131,9 @@ typedef struct tagSmeStruct
     tDblLinkList smeScanCmdPendingList;
     //active scan command list
     tDblLinkList smeScanCmdActiveList;
+#ifdef FEATURE_CESIUM_PROPRIETARY
+    tSmePeerInfoHddCbkInfo peerInfoParams;
+#endif /* FEATURE_CESIUM_PROPRIETARY */
 } tSmeStruct, *tpSmeStruct;
 
 

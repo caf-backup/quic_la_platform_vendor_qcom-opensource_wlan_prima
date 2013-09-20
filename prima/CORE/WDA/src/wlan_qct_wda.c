@@ -195,6 +195,12 @@ VOS_STATUS WDA_ProcessUpdateOpMode(tWDA_CbContext *pWDA,
 VOS_STATUS WDA_ProcessLPHBConfReq(tWDA_CbContext *pWDA,
                                   tSirLPHBReq *pData);
 #endif /* FEATURE_WLAN_LPHB */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+void WDA_IBSSPeerInfoRequestHandler(v_PVOID_t pVosContext,
+                                                v_PVOID_t pData);
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
 /*
  * FUNCTION: WDA_open
  * Allocate the WDA context 
@@ -11081,6 +11087,138 @@ WDA_ProcessRMCUpdateInd(tWDA_CbContext *pWDA,
 }
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
+#ifdef FEATURE_CESIUM_PROPRIETARY
+void WDA_GetIbssPeerInfoRspCallback(WDI_IbssPeerInfoRspParams *peerInfoRspParams
+                                    ,void* pUserData)
+{
+
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
+   WDI_IbssPeerInfoParams *pIbssPeerInfoParams =
+       (WDI_IbssPeerInfoParams *)peerInfoRspParams->wdiPeerInfoParams;
+   tWDA_CbContext *pWDA;
+   tpSirIbssGetPeerInfoRspParams pIbssGetPeerInfoRsp;
+   vos_msg_t vosMsg;
+   v_U32_t   bufSize = 0, wdaCnt = 0;
+
+   pIbssGetPeerInfoRsp =
+                  vos_mem_malloc(sizeof(tpSirIbssGetPeerInfoRspParams));
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__func__);
+   VOS_ASSERT(NULL != pWdaParams);
+
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext ;
+
+   bufSize = (peerInfoRspParams->wdiNumPeers * sizeof(WDI_IbssPeerInfoParams));
+
+   if (peerInfoRspParams->wdiNumPeers > 32)
+   {
+      pr_info("%s] Number of peers is more than 32, returning\n", __func__);
+      /* free the mem and return */
+      vos_mem_free((v_VOID_t *) pIbssGetPeerInfoRsp);
+      if(pWdaParams->wdaMsgParam)
+         vos_mem_free(pWdaParams->wdaMsgParam);
+      if(pWdaParams->wdaWdiApiMsgParam)
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams);
+      return;
+   }
+
+   /* Message Header */
+   pIbssGetPeerInfoRsp->mesgType = eWNI_SME_IBSS_PEER_INFO_RSP;
+   pIbssGetPeerInfoRsp->mesgLen = sizeof(tpSirIbssGetPeerInfoRspParams) + bufSize;
+   pIbssGetPeerInfoRsp->ibssPeerInfoRspParams.status = peerInfoRspParams->wdiStatus;
+   pIbssGetPeerInfoRsp->ibssPeerInfoRspParams.numPeers = peerInfoRspParams->wdiNumPeers;
+
+   for (wdaCnt = 0; wdaCnt < peerInfoRspParams->wdiNumPeers; wdaCnt++)
+   {
+      WDI_IbssPeerInfoParams *pWdiTmp = &pIbssPeerInfoParams[wdaCnt];
+      tSirIbssPeerInfoParams *pSmeTmp =
+          &pIbssGetPeerInfoRsp->ibssPeerInfoRspParams.peerInfoParams[wdaCnt];
+
+      pSmeTmp->staIdx = pWdiTmp->wdiStaIdx;
+      pSmeTmp->mcsIndex = pWdiTmp->wdiMcsIndex;
+      pSmeTmp->rssi = pWdiTmp->wdiRssi;
+      pSmeTmp->txRate = pWdiTmp->wdiTxRate;
+      pSmeTmp->txRateFlags = pWdiTmp->wdiTxRateFlags;
+   }
+
+   /* VOS message wrapper */
+   vosMsg.type = eWNI_SME_IBSS_PEER_INFO_RSP;
+   vosMsg.bodyptr = (void *)pIbssGetPeerInfoRsp;
+   vosMsg.bodyval = 0;
+
+   if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME, (vos_msg_t*)&vosMsg))
+   {
+      /* free the mem and return */
+      vos_mem_free((v_VOID_t *) pIbssGetPeerInfoRsp);
+   }
+
+   if(pWdaParams->wdaMsgParam)
+      vos_mem_free(pWdaParams->wdaMsgParam);
+   if(pWdaParams->wdaWdiApiMsgParam)
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams);
+
+   return;
+}
+
+static VOS_STATUS
+WDA_ProcessIbssPeerInfoReq(tWDA_CbContext *pWDA,
+                      tSirIbssGetPeerInfoReqParams *ibssPeerInfoReqParams)
+{
+   WDI_Status status;
+   WDI_IbssPeerInfoReqType *wdiPeerInfoReq;
+   tWDA_ReqParams *pWdaParams;
+
+   wdiPeerInfoReq = (WDI_IbssPeerInfoReqType *)
+                    vos_mem_malloc(sizeof(WDI_IbssPeerInfoReqType));
+   if (NULL == wdiPeerInfoReq)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+               "%s: VOS MEM Alloc Failure", __func__);
+      VOS_ASSERT(0);
+      vos_mem_free(ibssPeerInfoReqParams);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams));
+   if (NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                         "%s: VOS MEM Alloc Failure", __func__);
+      VOS_ASSERT(0);
+      vos_mem_free(wdiPeerInfoReq);
+      vos_mem_free(ibssPeerInfoReqParams);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   pWdaParams->wdaWdiApiMsgParam = (v_PVOID_t *)wdiPeerInfoReq;
+   /* Store param pointer as passed in by caller */
+   pWdaParams->wdaMsgParam = ibssPeerInfoReqParams;
+   pWdaParams->pWdaContext = pWDA;
+
+   wdiPeerInfoReq->wdiAllPeerInfoReqd =
+                 ibssPeerInfoReqParams->allPeerInfoReqd;
+   wdiPeerInfoReq->wdiStaIdx =
+                 ibssPeerInfoReqParams->staIdx;
+
+   status = WDI_IbssPeerInfoReq(wdiPeerInfoReq,
+               (WDI_IbssPeerInfoReqCb)WDA_GetIbssPeerInfoRspCallback,
+               (void *)pWdaParams);
+   if (IS_WDI_STATUS_FAILURE(status))
+   {
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams->wdaMsgParam);
+      vos_mem_free(pWdaParams) ;
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "IBSS Peer Info Request failed");
+   }
+   return CONVERT_WDI2VOS_STATUS(status) ;
+
+}
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
 /*
  * FUNCTION: WDA_McProcessMsg
  * Trigger DAL-AL to start CFG download 
@@ -11756,6 +11894,15 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
           break;
       }
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+      case WDA_GET_IBSS_PEER_INFO_REQ:
+      {
+          WDA_ProcessIbssPeerInfoReq(pWDA,
+                            (tSirIbssGetPeerInfoReqParams *)pMsg->bodyptr);
+          break;
+      }
+#endif /* FEATURE_CESIUM_PROPRIETARY */
       default:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,

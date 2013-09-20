@@ -500,6 +500,32 @@ typedef enum{
     HDD_SSR_DISABLED,
 }e_hdd_ssr_required;
 
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/*---------------------------------------------------------------------------
+  hdd_ibss_peer_info_params_t
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    v_U8_t  staIdx;       //StaIdx
+    v_U32_t txRate;       //Current Tx Rate
+    v_U32_t mcsIndex;     //MCS Index
+    v_U32_t txRateFlags;  //TxRate Flags
+    v_S7_t  rssi;         //RSSI
+}hdd_ibss_peer_info_params_t;
+
+typedef struct
+{
+    /** Request status */
+    v_U32_t                       status;
+
+    /** Number of peers */
+    v_U8_t                        numIBSSPeers;
+
+    /** Peer Info parameters */
+    hdd_ibss_peer_info_params_t  ibssPeerList[HDD_MAX_NUM_IBSS_STA];
+}hdd_ibss_peer_info_t;
+#endif
+
 struct hdd_station_ctx
 {
   /** Handle to the Wireless Extension State */
@@ -527,6 +553,9 @@ struct hdd_station_ctx
 
    /*Save the wep/wpa-none keys*/
    tCsrRoamSetKey ibss_enc_key;
+#ifdef FEATURE_CESIUM_PROPRIETARY
+   hdd_ibss_peer_info_t ibss_peer_info;
+#endif
 
    v_BOOL_t hdd_ReassocScenario;
 };
@@ -746,6 +775,11 @@ struct hdd_adapter_s
    struct completion tdls_link_establish_req_comp;
    eHalStatus tdlsAddStaStatus;
 #endif
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+   struct completion ibss_peer_info_comp;
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
    /* Track whether the linkup handling is needed  */
    v_BOOL_t isLinkUpSvcNeeded;
 

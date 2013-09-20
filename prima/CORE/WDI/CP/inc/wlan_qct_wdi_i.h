@@ -418,6 +418,10 @@ typedef enum
   /* Send LBP Leader Request */
   WDI_LBP_LEADER_REQ                            = 86,
 
+#ifdef FEATURE_CESIUM_PROPRIETARY
+  WDI_HAL_IBSS_PEER_INFO_REQ                    = 87,
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
   WDI_MAX_REQ,
 
   /*Send a suspend Indication down to HAL*/
@@ -707,6 +711,10 @@ typedef enum
 
   /* Reliable Multicast Leader Response from FW to Host */
   WDI_LBP_LEADER_RESP                           = 85,
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+  WDI_HAL_IBSS_PEER_INFO_RSP                    = 86,
+#endif /* FEATURE_CESIUM_PROPRIETARY */
 
   /*-------------------------------------------------------------------------
     Indications
@@ -5505,6 +5513,42 @@ WDI_ProcessLBPUpdateIndToHost
   WDI_EventInfoType*     pEventData
 );
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+
+/**
+ @brief Process LBP Update Indication and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessIbssPeerInfoReq
+(
+    WDI_ControlBlockType*  pWDICtx,
+    WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process LBP Update Indication and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessIbssPeerInfoRsp
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
 
 #endif /*WLAN_QCT_WDI_I_H*/
 

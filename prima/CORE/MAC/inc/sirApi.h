@@ -4403,4 +4403,46 @@ typedef struct sSirRmcUpdateInd
 } tSirRmcUpdateInd, *tpSirRmcUpdateInd;
 
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/*---------------------------------------------------------------------------
+* tSirIbssGetPeerInfoReqParams
+*--------------------------------------------------------------------------*/
+typedef struct
+{
+    tANI_BOOLEAN    allPeerInfoReqd; // If set, all IBSS peers stats are reported
+    tANI_U8         staIdx;          // If allPeerInfoReqd is not set, only stats
+                                     // of peer with staIdx is reported
+}tSirIbssGetPeerInfoReqParams, *tpSirIbssGetPeerInfoReqParams;
+
+/*---------------------------------------------------------------------------
+* tSirIbssGetPeerInfoParams
+*--------------------------------------------------------------------------*/
+typedef struct
+{
+   tANI_U8  staIdx;      //StaIdx
+   tANI_U32 txRate;       //Tx Rate
+   tANI_U32 mcsIndex;    //MCS Index
+   tANI_U32 txRateFlags; //TxRate Flags
+   tANI_S8  rssi;        //RSSI
+}tSirIbssPeerInfoParams;
+
+typedef struct
+{
+   tANI_U32   status;
+   tANI_U8    numPeers;
+   tSirIbssPeerInfoParams  peerInfoParams[32];
+}tSirPeerInfoRspParams, *tpSirIbssPeerInfoRspParams;
+
+/*---------------------------------------------------------------------------
+* tSirIbssGetPeerInfoRspParams
+*--------------------------------------------------------------------------*/
+typedef struct
+{
+   tANI_U16   mesgType;
+   tANI_U16   mesgLen;
+   tSirPeerInfoRspParams ibssPeerInfoRspParams;
+} tSirIbssGetPeerInfoRspParams, *tpSirIbssGetPeerInfoRspParams;
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
 #endif /* __SIR_API_H */
