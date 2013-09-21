@@ -1047,6 +1047,5 @@ EXTRA_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-function
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Module information used by KBuild framework
-obj-$(CONFIG_PRIMA_WLAN) += $(MODNAME).o
-obj-$(CONFIG_PRONTO_WLAN) += $(MODNAME).o
+obj-$(CONFIG_QCA_CLD_WLAN) += $(MODNAME).o
 $(MODNAME)-y := $(OBJS)

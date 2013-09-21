@@ -30,9 +30,14 @@ ifeq ($(call is-board-platform,msm7627a),true)
 #        include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
 endif
 
-#Build/Package Prima/Pronto Module in case of A & B family targets
-ifeq ($(BOARD_WLAN_DEVICE),qcwcn)
-        include $(WLAN_BLD_DIR)/prima/Android.mk
+#Build/Package CLD Module only in case of apq8084 target
+ifeq ($(call is-board-platform,apq8084),true)
+        include $(WLAN_BLD_DIR)/cld/Android.mk
+else
+	#Build/Package Prima/Pronto Module in case of A & B family targets
+        ifeq ($(BOARD_WLAN_DEVICE),qcwcn)
+                include $(WLAN_BLD_DIR)/prima/Android.mk
+        endif
 endif
 
 endif
