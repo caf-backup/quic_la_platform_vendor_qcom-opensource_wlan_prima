@@ -462,8 +462,9 @@ extern "C" {
 #define COEX_EXIT_OCS                               209
 #define COEX_UPDATE_OCS                             210
 #define COEX_STATUS_OCS                             211
+#define COEX_STATS_BT                               212
 
-#define COEX_DEBUG_ID_END                           212
+#define COEX_DEBUG_ID_END                           213
 
 #define SCAN_START_COMMAND_FAILED                   0
 #define SCAN_STOP_COMMAND_FAILED                    1
@@ -491,7 +492,8 @@ extern "C" {
 #define RATECTRL_DBGID_UNEXPECTED_FRAME             4
 #define RATECTRL_DBGID_WAL_RCQUERY                  5
 #define RATECTRL_DBGID_WAL_RCUPDATE                 6
-#define RATECTRL_DBGID_DEFINITION_END               7
+#define RATECTRL_DBGID_GTX_UPDATE                   7
+#define RATECTRL_DBGID_DEFINITION_END               8
 
 #define AP_PS_DBGID_DEFINITION_START                0
 #define AP_PS_DBGID_UPDATE_TIM                      1
@@ -574,7 +576,10 @@ extern "C" {
 #define WAL_DBGID_TX_MGMT_COMP_DESCID_STATUS        52
 #define WAL_DBGID_TX_DATA_COMP_MSDUID_STATUS        53
 #define WAL_DBGID_RESET_PCU_CYCLE_CNT               54
-#define WAL_DBGID_DEFINITION_END                    55
+#define WAL_DBGID_SETUP_RSSI_INTERRUPTS             55
+#define WAL_DBGID_BRSSI_CONFIG                      56
+#define WAL_DBGID_CURRENT_BRSSI_AVE                 57
+#define WAL_DBGID_DEFINITION_END                    58
 
 #define ANI_DBGID_POLL                               0
 #define ANI_DBGID_CONTROL                            1
@@ -705,6 +710,40 @@ extern "C" {
 #define SWBMISS_DISABLED                2
 #define SWBMISS_DBGID_DEFINITION_END    3
 
+/* WLAN module DBGIDS */
+#define ROAM_DBGID_DEFINITION_START 0
+#define ROAM_MODULE_INIT           1
+#define ROAM_DEV_START             2
+#define ROAM_CONFIG_RSSI_THRESH    3
+#define ROAM_CONFIG_SCAN_PERIOD    4
+#define ROAM_CONFIG_AP_PROFILE     5
+#define ROAM_CONFIG_CHAN_LIST      6
+#define ROAM_CONFIG_SCAN_PARAMS    7
+#define ROAM_CONFIG_RSSI_CHANGE    8
+#define ROAM_SCAN_TIMER_START      9
+#define ROAM_SCAN_TIMER_EXPIRE    10
+#define ROAM_SCAN_TIMER_STOP      11
+#define ROAM_SCAN_STARTED         12
+#define ROAM_SCAN_COMPLETE        13
+#define ROAM_SCAN_CANCELLED       14
+#define ROAM_CANDIDATE_FOUND      15
+#define ROAM_RSSI_ACTIVE_SCAN     16
+#define ROAM_RSSI_ACTIVE_ROAM     17
+#define ROAM_RSSI_GOOD            18
+#define ROAM_BMISS_FIRST_RECV     19
+#define ROAM_DEV_STOP             20
+#define ROAM_FW_OFFLOAD_ENABLE    21
+#define ROAM_CANDIDATE_SSID_MATCH 22
+#define ROAM_CANDIDATE_SECURITY_MATCH 23
+#define ROAM_LOW_RSSI_INTERRUPT   24
+#define ROAM_HIGH_RSSI_INTERRUPT  25
+#define ROAM_SCAN_REQUESTED       26
+#define ROAM_BETTER_CANDIDATE_FOUND 27
+#define ROAM_BETTER_AP_EVENT 28
+#define ROAM_CANCEL_LOW_PRIO_SCAN 29
+#define ROAM_FINAL_BMISS_RECVD    30
+#define ROAM_CONFIG_SCAN_MODE     31
+#define ROAM_DBGID_DEFINITION_END 32
 /* DATA_TXRX module DBGIDs*/
 #define DATA_TXRX_DBGID_DEFINITION_START         0
 #define DATA_TXRX_DBGID_RX_DATA_SEQ_LEN_INFO     1
@@ -731,6 +770,17 @@ extern "C" {
 #define TDLS_DBGID_PEER_EVT_DRP_RSSI           17
 #define TDLS_DBGID_PEER_EVT_DISCOVER           18
 #define TDLS_DBGID_PEER_EVT_DELETE             19
+/* SMPS module DBGIDs */
+#define STA_SMPS_DBGID_DEFINITION_START                 0
+#define STA_SMPS_DBGID_CREATE_PDEV_INSTANCE             1
+#define STA_SMPS_DBGID_CREATE_VIRTUAL_CHAN_INSTANCE     2
+#define STA_SMPS_DBGID_DELETE_VIRTUAL_CHAN_INSTANCE     3
+#define STA_SMPS_DBGID_CREATE_STA_INSTANCE              4
+#define STA_SMPS_DBGID_DELETE_STA_INSTANCE              5
+#define STA_SMPS_DBGID_VIRTUAL_CHAN_SMPS_START          6
+#define STA_SMPS_DBGID_VIRTUAL_CHAN_SMPS_STOP           7
+#define STA_SMPS_DBGID_SEND_SMPS_ACTION_FRAME           8
+#define SMPS_DBGID_DEFINITION_END                       9
 
 #ifdef __cplusplus
 }
