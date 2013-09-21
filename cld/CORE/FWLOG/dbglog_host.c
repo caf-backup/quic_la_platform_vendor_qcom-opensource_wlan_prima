@@ -122,6 +122,8 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "TESTPOINT";
     case WLAN_MODULE_STA_SMPS:
         return "STA_SMPS";
+    case WLAN_MODULE_TDLS:
+        return "TDLS";
     default:
         return "UNKNOWN";
     }
@@ -483,6 +485,19 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "COEX_PSP_STAT_2",      //                       197
         "COEX_PSP_RX_STATUS_STATE_2",   //               198
         "COEX_PSP_ERROR",       //                       199
+        "COEX_T2BT",    // 200
+        "COEX_BT_DURATION", // 201
+        "COEX_TX_MCI_GPM_WLAN_SCHED_INFO_TRIG", // 202
+        "COEX_TX_MCI_GPM_WLAN_SCHED_INFO_TRIG_RSP", // 203
+        "COEX_TX_MCI_GPM_SCAN_OP",  // 204
+        "COEX_TX_MCI_GPM_BT_PAUSE_GPM_TX",	// 205
+        "COEX_CTS2S_SEND",	// 206
+        "COEX_CTS2S_RESULT",	// 207
+        "COEX_ENTER_OCS",	// 208
+        "COEX_EXIT_OCS",	// 209
+        "COEX_UPDATE_OCS",	// 210
+        "COEX_STATUS_OCS",	// 211
+        "COEX_STATS_BT",	// 212
         "COEX_DEBUG_MESSAGE_END"
     },
     {
@@ -578,6 +593,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "RESMGR_VC_UPDATE_CUR_VC",
         "RESMGR_VC_REG_UNREG_LINK",
         "RESMGR_VC_PRINT_LINK",
+        "RESMGR_OCS_MISS_TOLERANCE",
         "RESMGR_DEFINITION_END"
     },
     {
@@ -723,6 +739,7 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "WAL_DBGID_TX_DISCARD",
         "WAL_DBGID_TX_MGMT_COMP_DESCID_STATUS",
         "WAL_DBGID_TX_DATA_COMP_MSDUID_STATUS",
+        "WAL_DBGID_RESET_PCU_CYCLE_CNT",
         "WAL_DBGID_DEFINITION_END",
     },
     {
@@ -853,7 +870,32 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         "SWBMISS_ENABLED",
         "SWBMISS_DISABLED",
         "SWBMISS_DBGID_DEFINITION_END",
-    }
+    },
+    {   /* WMMAC */
+        ""
+    },
+    {   /* TDLS */
+        "TDLS_DBGID_DEFINITION_START",
+        "TDLS_DBGID_VDEV_CREATE",
+        "TDLS_DBGID_VDEV_DELETE",
+        "TDLS_DBGID_ENABLED_PASSIVE",
+        "TDLS_DBGID_ENABLED_ACTIVE",
+        "TDLS_DBGID_DISABLED",
+        "TDLS_DBGID_CONNTRACK_TIMER",
+        "TDLS_DBGID_WAL_SET",
+        "TDLS_DBGID_WAL_GET",
+        "TDLS_DBGID_WAL_PEER_UPDATE_SET",
+        "TDLS_DBGID_WAL_PEER_UPDATE_EVT",
+        "TDLS_DBGID_WAL_VDEV_CREATE",
+        "TDLS_DBGID_WAL_VDEV_DELETE",
+        "TDLS_DBGID_WLAN_EVENT",
+        "TDLS_DBGID_WLAN_PEER_UPDATE_SET",
+        "TDLS_DBGID_PEER_EVT_DRP_THRESH",
+        "TDLS_DBGID_PEER_EVT_DRP_RATE",
+        "TDLS_DBGID_PEER_EVT_DRP_RSSI",
+        "TDLS_DBGID_PEER_EVT_DISCOVER",
+        "TDLS_DBGID_PEER_EVT_DELETE",
+    },
 };
 
 int dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
@@ -1375,6 +1417,7 @@ dbglog_sta_powersave_print_handler(
         "SEND_N_COMPLETE",
         "TIDQ_PAUSE_COMPLETE",
         "SEND_PSPOLL",
+        "SEND_SPEC_PSPOLL",
     };
 
     switch (dbg_id) {
@@ -1461,6 +1504,13 @@ dbglog_sta_powersave_print_handler(
                         param, value);
             }
         }
+        break;
+    case PS_STA_SPECPOLL_TIMER_STARTED:
+        dbglog_printf(timestamp, vap_id, "SPEC Poll Timer Started: Beacon time Remaining:%d wakeup interval:%d", args[0], args[1]);
+        break;
+    case PS_STA_SPECPOLL_TIMER_STOPPED:
+        dbglog_printf(timestamp, vap_id,
+                        "SPEC Poll Timer Stopped");
         break;
     default:
         return FALSE;
@@ -1837,6 +1887,9 @@ dbglog_wal_print_handler(
         dbglog_printf(timestamp, vap_id, "WAL Tx Data frame completion desc_id=0x%x, status=0x%x, seq=0x%x",
                 args[0], args[1], args[2]);
         break;
+    case WAL_DBGID_RESET_PCU_CYCLE_CNT:
+        dbglog_printf(timestamp, vap_id, "WAL PCU cycle counter value at reset:%x", args[0]);
+        break;
     case WAL_DBGID_TX_DISCARD:
         dbglog_printf(timestamp, vap_id, "WAL Tx enqueue discard msdu_id=0x%x", args[0]);
         break;
@@ -2049,7 +2102,7 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_SCHED_RESULT:
             if (numargs >= 5 && args[0] < 6) {
-                dbglog_printf(timestamp, vap_id, "%s: %s, CoexMgrPolicy(%u), WlanIsIdleOverride(%u), HidConcurrentTxOverride(%u), minRSSI(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: %s, CoexMgrPolicy(%u), WlanIsIdleOverride(%u), HidConcurTxOverride(%u), minRSSI(%u)",
                     dbg_id_str, coex_sched_type[args[0]], args[1], args[2], args[3], args[4]);
             } else {
                 return FALSE;
@@ -2081,7 +2134,7 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_RX_RATE:
             if (numargs >= 5 && args[4] < 3) {
-                dbglog_printf(timestamp, vap_id, "%s: NumUnderThreshPeers(%u), MinDirectRate(%u), LastRateSample(%u), DeltaTime(%u), %s",
+                dbglog_printf(timestamp, vap_id, "%s: NumUnderThreshPeers(%u), MinDirectRate(%u), LastRateSample(%u), DeltaT(%u), %s",
                     dbg_id_str, args[0], args[1], args[2], args[3], wal_peer_rx_rate_stats_event_sent[args[4]]);
             } else {
                 return FALSE;
@@ -2121,7 +2174,7 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_PSP_MGR_RESULT:
             if (numargs >= 5 && args[0] < 6) {
-                dbglog_printf(timestamp, vap_id, "%s: %s, PsPollAvg(%u), EstimationOverun(%u), EstimationUnderun(%u), NotReadyError(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: %s, PsPollAvg(%u), EstimationOverrun(%u), EstimationUnderun(%u), NotReadyErr(%u)",
                     dbg_id_str, coex_pspoll_state[args[0]], args[1], args[2], args[3], args[4]);
             } else {
                 return FALSE;
@@ -2148,7 +2201,7 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_PSP_READY_STATE:
             if (numargs >= 5) {
-                dbglog_printf(timestamp, vap_id, "%s: T2BT(%u), CoexSchedulerEndTimeStamp(%u), MoreData(%u), PSPRespExpectedTimeStamp(%u), NonWlanIdleTime(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: T2BT(%u), CoexSchedulerEndTS(%u), MoreData(%u), PSPRespExpectedTS(%u), NonWlanIdleT(%u)",
                     dbg_id_str, args[0], args[1], args[2], args[3], args[4]);
             } else {
                 return FALSE;
@@ -2156,7 +2209,7 @@ A_BOOL dbglog_coex_print_handler(
             break;
         case COEX_PSP_NONWLAN_INTERVAL:
             if (numargs >= 4) {
-                dbglog_printf(timestamp, vap_id, "%s: NonWlanBaseIntvl(%u), NonWlanIdleTime(%u), PSPSpecIntvl(%u), ApResponseTimeout(%u)",
+                dbglog_printf(timestamp, vap_id, "%s: NonWlanBaseIntvl(%u), NonWlanIdleT(%u), PSPSpecIntvl(%u), ApRespTimeout(%u)",
                     dbg_id_str, args[0], args[1], args[2], args[3]);
             } else {
                 return FALSE;
@@ -2352,18 +2405,65 @@ A_BOOL dbglog_smps_print_handler(A_UINT32 mod_id,
                                            A_UINT16 numargs,
                                            A_UINT32 *args)
 {
+    static const char *states[] = {
+        "S_INACTIVE",
+        "S_STATIC",
+        "S_DYNAMIC",
+        "S_STALLED",
+        "S_INACTIVE_WAIT",
+        "S_STATIC_WAIT",
+        "S_DYNAMIC_WAIT",
+    };
+
+    static const char *events[] = {
+        "E_STOP",
+        "E_STOP_COMPL",
+        "E_START",
+        "E_STATIC",
+        "E_STATIC_COMPL",
+        "E_DYNAMIC",
+        "E_DYNAMIC_COMPL",
+        "E_STALL",
+        "E_RSSI_ABOVE_THRESH",
+        "E_RSSI_BELOW_THRESH",
+        "E_FORCED_NONE",
+    };
     switch(dbg_id) {
-    case 1:
-        if(numargs == 1) {}
+    case DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG:
+        dbglog_sm_print(timestamp, vap_id, numargs, args, "STA_SMPS SM",
+                states, ARRAY_LENGTH(states), events, ARRAY_LENGTH(events));
         break;
-    case 2:
-        if(numargs == 4) {}
+    case STA_SMPS_DBGID_CREATE_PDEV_INSTANCE:
+        dbglog_printf(timestamp, vap_id, "STA_SMPS Create PDEV ctx %#x",
+                args[0]);
         break;
-    case 3:
-        if(numargs == 2) {}
+    case STA_SMPS_DBGID_CREATE_VIRTUAL_CHAN_INSTANCE:
+        dbglog_printf(timestamp, vap_id, "STA_SMPS Create Virtual Chan ctx %#x",
+                args[0]);
         break;
-    case 4:
-        if(numargs == 3) {}
+    case STA_SMPS_DBGID_DELETE_VIRTUAL_CHAN_INSTANCE:
+        dbglog_printf(timestamp, vap_id, "STA_SMPS Delete Virtual Chan ctx %#x",
+                args[0]);
+        break;
+    case STA_SMPS_DBGID_CREATE_STA_INSTANCE:
+        dbglog_printf(timestamp, vap_id, "STA_SMPS Create STA ctx %#x",
+                args[0]);
+        break;
+    case STA_SMPS_DBGID_DELETE_STA_INSTANCE:
+        dbglog_printf(timestamp, vap_id, "STA_SMPS Delete STA ctx %#x",
+                args[0]);
+        break;
+    case STA_SMPS_DBGID_VIRTUAL_CHAN_SMPS_START:
+        break;
+    case STA_SMPS_DBGID_VIRTUAL_CHAN_SMPS_STOP:
+        break;
+    case STA_SMPS_DBGID_SEND_SMPS_ACTION_FRAME:
+        dbglog_printf(timestamp, vap_id, "STA_SMPS STA %#x Signal SMPS mode as %s; cb_flags %#x",
+                args[0],
+                (args[1] == 0 ? "DISABLED":
+                 (args[1] == 0x1 ? "STATIC" :
+                  (args[1] == 0x3 ? "DYNAMIC" : "UNKNOWN"))),
+                args[2]);
         break;
     default:
         dbglog_printf(
@@ -2518,6 +2618,8 @@ dbglog_init(wmi_unified_t wmi_handle)
     dbglog_reg_modprint(WLAN_MODULE_ANI, dbglog_ani_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_COEX, dbglog_coex_print_handler);
     dbglog_reg_modprint(WLAN_MODULE_BEACON,dbglog_beacon_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_DATA_TXRX,dbglog_data_txrx_print_handler);
+    dbglog_reg_modprint(WLAN_MODULE_STA_SMPS, dbglog_smps_print_handler);
 
     res = wmi_unified_register_event_handler(wmi_handle, WMI_DEBUG_MESG_EVENTID,
                        dbglog_parse_debug_logs);
