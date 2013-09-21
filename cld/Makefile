@@ -134,7 +134,7 @@ endif
 endif
 
 ############ COMMON ############
-COMMON_DIR :=	CORE/COMMON
+COMMON_DIR :=	CORE/SERVICES/COMMON
 COMMON_INC :=	-I$(WLAN_ROOT)/$(COMMON_DIR)
 
 ############ ADF ##############
@@ -185,24 +185,30 @@ DXE_SRC_DIR :=  $(DXE_DIR)/src
 DXE_INC :=      -I$(WLAN_ROOT)/$(DXE_INC_DIR) \
                 -I$(WLAN_ROOT)/$(DXE_SRC_DIR)
 
+HIF_DXE_DIR :=  CORE/SERVICES/HIF/DXE
+HIF_DXE_INC :=  -I$(WLAN_ROOT)/$(HIF_DXE_DIR)
+
 ifeq ($(CONFIG_QCA_WIFI_2_0), 0)
 DXE_OBJS =      $(DXE_SRC_DIR)/wlan_qct_dxe.o \
                 $(DXE_SRC_DIR)/wlan_qct_dxe_cfg_i.o
 else
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 1)
-DXE_INC +=      -I$(WLAN_ROOT)/$(DXE_DIR) \
-		-I$(WLAN_ROOT)/$(DXE_DIR)/linux
+HIF_DXE_INC :=  -I$(WLAN_ROOT)/$(HIF_DXE_DIR) \
+		-I$(WLAN_ROOT)/$(HIF_DXE_DIR)/linux
 
-DXE_OBJS :=     $(DXE_DIR)/hif_dxe.o \
-                $(DXE_DIR)/hif_dxe_config.o \
-                $(DXE_DIR)/linux/hif_dxe_os.o \
-                $(DXE_DIR)/dmux_dxe.o \
+HIF_DXE_OBJS:=  $(HIF_DXE_DIR)/hif_dxe.o \
+                $(HIF_DXE_DIR)/hif_dxe_config.o \
+                $(HIF_DXE_DIR)/linux/hif_dxe_os.o \
+                $(HIF_DXE_DIR)/dmux_dxe.o \
                 $(DXE_DIR)/htt_dxe_tx.o \
                 $(DXE_DIR)/htt_dxe_fw_stats.o \
                 $(DXE_DIR)/htt_dxe_h2t.o \
                 $(DXE_DIR)/htt_dxe_t2h.o \
                 $(DXE_DIR)/htt_dxe.o \
                 $(DXE_DIR)/htt_dxe_rx.o
+
+DXE_INC += $(HIF_DXE_INC)
+DXE_OBJS := $(HIF_DXE_OBJS)
 endif
 endif
 
@@ -487,7 +493,7 @@ VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
 endif
 
 ########### BMI ###########
-BMI_DIR := CORE/BMI
+BMI_DIR := CORE/SERVICES/BMI
 
 BMI_INC := -I$(WLAN_ROOT)/$(BMI_DIR)
 
@@ -495,7 +501,7 @@ BMI_OBJS := $(BMI_DIR)/bmi.o \
             $(BMI_DIR)/ol_fw.o
 
 ########### WMI ###########
-WMI_DIR := CORE/WMI
+WMI_DIR := CORE/SERVICES/WMI
 
 WMI_INC := -I$(WLAN_ROOT)/$(WMI_DIR)
 
@@ -503,20 +509,20 @@ WMI_OBJS := $(WMI_DIR)/wmi_unified.o \
 	    $(WMI_DIR)/wmi_tlv_helper.o
 
 ########### FWLOG ###########
-FWLOG_DIR := CORE/FWLOG
+FWLOG_DIR := CORE/UTILS/FWLOG
 
 FWLOG_INC := -I$(WLAN_ROOT)/$(FWLOG_DIR)
 
 FWLOG_OBJS := $(FWLOG_DIR)/dbglog_host.o
 
 ############ TLSHIM ############
-TLSHIM_DIR := CORE/TLSHIM
+TLSHIM_DIR := CORE/CLD_TXRX/TLSHIM
 TLSHIM_INC := -I$(WLAN_ROOT)/$(TLSHIM_DIR)
 
 TLSHIM_OBJS := $(TLSHIM_DIR)/tl_shim.o
 
 ############ TXRX ############
-TXRX_DIR :=     CORE/TXRX
+TXRX_DIR :=     CORE/CLD_TXRX/TXRX
 TXRX_INC :=     -I$(WLAN_ROOT)/$(TXRX_DIR)
 
 TXRX_OBJS := $(TXRX_DIR)/ol_txrx.o \
@@ -539,7 +545,7 @@ TXRX_OBJS := $(TXRX_DIR)/ol_txrx.o \
                 $(TXRX_DIR)/ol_tx_sched.o
 
 ############ PKTLOG ############
-PKTLOG_DIR :=      CORE/PKTLOG
+PKTLOG_DIR :=      CORE/UTILS/PKTLOG
 PKTLOG_INC :=      -I$(WLAN_ROOT)/$(PKTLOG_DIR)/include
 
 PKTLOG_OBJS :=	$(PKTLOG_DIR)/pktlog_ac.o \
@@ -547,7 +553,7 @@ PKTLOG_OBJS :=	$(PKTLOG_DIR)/pktlog_ac.o \
 		$(PKTLOG_DIR)/linux_ac.o
 
 ############ HTT ############
-HTT_DIR :=      CORE/HTT
+HTT_DIR :=      CORE/CLD_TXRX/HTT
 HTT_INC :=      -I$(WLAN_ROOT)/$(HTT_DIR)
 
 ifeq ($(CONFIG_QCA_WIFI_ISOC), 0)
@@ -560,7 +566,7 @@ HTT_OBJS := $(HTT_DIR)/htt_tx.o \
 endif
 
 ############## HTC ##########
-HTC_DIR := CORE/HTC
+HTC_DIR := CORE/SERVICES/HTC
 
 HTC_INC := -I$(WLAN_ROOT)/$(HTC_DIR)
 
@@ -575,19 +581,23 @@ HTC_OBJS := $(HTC_DIR)/htc.o \
 endif
 
 ########### HIF ###########
-HIF_DIR := CORE/HIF
+HIF_DIR := CORE/SERVICES/HIF
+HIF_PCIE_DIR := $(HIF_DIR)/PCIe
 
-HIF_INC := -I$(WLAN_ROOT)/$(HIF_DIR)
+HIF_INC := -I$(WLAN_ROOT)/$(HIF_PCIE_DIR)
 
-HIF_OBJS := $(HIF_DIR)/copy_engine.o \
-            $(HIF_DIR)/hif_pci.o \
-            $(HIF_DIR)/if_pci.o \
-            $(HIF_DIR)/ath_procfs.o \
-            $(HIF_DIR)/regtable.o \
-            $(HIF_DIR)/mp_dev.o
+HIF_OBJS := $(HIF_DIR)/ath_procfs.o
+
+HIF_PCIE_OBJS := $(HIF_PCIE_DIR)/copy_engine.o \
+                 $(HIF_PCIE_DIR)/hif_pci.o \
+                 $(HIF_PCIE_DIR)/if_pci.o \
+                 $(HIF_PCIE_DIR)/regtable.o \
+                 $(HIF_PCIE_DIR)/mp_dev.o
+
+HIF_OBJS += $(HIF_PCIE_OBJS)
 
 ############ WMA ############
-WMA_DIR :=      CORE/WMA
+WMA_DIR :=      CORE/SERVICES/WMA
 
 WMA_INC :=      -I$(WLAN_ROOT)/$(WMA_DIR)
 
