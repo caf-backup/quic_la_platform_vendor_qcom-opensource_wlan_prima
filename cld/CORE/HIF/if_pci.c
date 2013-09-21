@@ -512,6 +512,7 @@ again:
 	    goto err_config;
 
     ol_sc->enableuartprint = 0;
+    ol_sc->enablefwlog = 0;
     ol_sc->enablesinglebinary = FALSE;
 
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);

@@ -46,11 +46,7 @@ static ATH_DEBUG_MASK_DESCRIPTION g_fwlogDebugDescription[] = {
 ATH_DEBUG_INSTANTIATE_MODULE_VAR(fwlog,
                                  "fwlog",
                                 "Firmware Debug Log",
-#ifdef FWDEBUG
                                  ATH_DEBUG_MASK_DEFAULTS | ATH_DEBUG_INFO | ATH_DEBUG_ERR,
-#else
-                                 ATH_DEBUG_MASK_DEFAULTS | ATH_DEBUG_ERR,
-#endif
                                  ATH_DEBUG_DESCRIPTION_COUNT(g_fwlogDebugDescription),
                                  g_fwlogDebugDescription);
 #endif
