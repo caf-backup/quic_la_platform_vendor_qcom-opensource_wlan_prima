@@ -383,17 +383,26 @@ again:
         goto err_region;
     }
 
-    ret =  pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
-    if (ret) {
-        printk(KERN_ERR "ath: 32-bit DMA not available\n");
-        goto err_dma;
+    ret =  pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
+    if (!ret) {
+        ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+
+        if (ret) {
+            printk(KERN_ERR "ath: Cannot enable 64-bit consistent DMA\n");
+            goto err_dma;
+        }
+    } else {
+        ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+
+        if (!ret) {
+            ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+            if (ret) {
+                printk(KERN_ERR "ath: Cannot enable 32-bit consistent DMA\n");
+                goto err_dma;
+            }
+        }
     }
 
-    ret = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
-    if (ret) {
-        printk(KERN_ERR "ath: Cannot enable 32-bit consistent DMA\n");
-        goto err_dma;
-    }
 
     /* Set bus master bit in PCI_COMMAND to enable DMA */
     pci_set_master(pdev);
@@ -552,10 +561,10 @@ err_alloc:
     printk("%s: HIF PCI Free needs to happen here \n", __func__);
     pci_iounmap(pdev, mem);
 err_iomap:
-    pci_release_region(pdev, BAR_NUM);
-err_region:
     pci_clear_master(pdev);
 err_dma:
+    pci_release_region(pdev, BAR_NUM);
+err_region:
     pci_disable_device(pdev);
 
     if (probe_again && (probe_again <= ATH_PCI_PROBE_RETRY_MAX)) {
