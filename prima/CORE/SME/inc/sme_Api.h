@@ -2933,22 +2933,20 @@ void sme_enable_disable_split_scan (tHalHandle hHal, tANI_U8 nNumStaChan,
     \brief  Used to enable Reliable Multicast using Leader Based Protocol
     setting will not persist over reboots
     \param  hHal
-    \param  mcastGroupIpAddr  multicast Group IP address
+    \param  sessionId
     \- return eHalStatus
     -------------------------------------------------------------------------*/
-eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
-                                   tANI_U32 sessionId);
+eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U32 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_DisableReliableMcast
     \brief  Used to disable Reliable Multicast using Leader Based Protocol
     setting will not persist over reboots
     \param  hHal
-    \param  mcastGroupIpAddr  multicast Group IP address
+    \param  sessionId
     \- return eHalStatus
     -------------------------------------------------------------------------*/
-eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
-                                    tANI_U32 sessionId);
+eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U32 sessionId);
 #endif //#if defined WLAN_FEATURE_RELIABLE_MCAST
 
 /*

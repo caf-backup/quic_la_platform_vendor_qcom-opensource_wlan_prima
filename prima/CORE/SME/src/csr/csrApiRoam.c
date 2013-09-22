@@ -16211,7 +16211,7 @@ eHalStatus csrHandoffRequest(tpAniSirGlobal pMac,
 #endif /* WLAN_FEATURE_ROAM_SCAN_OFFLOAD */
 
 #if defined WLAN_FEATURE_RELIABLE_MCAST
-eHalStatus csrEnableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32 sessionId)
+eHalStatus csrEnableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
    tSirSetRMCReq *pMsg = NULL;
    eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -16229,8 +16229,6 @@ eHalStatus csrEnableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32 
        palZeroMemory(pMac->hHdd, (void *)pMsg, sizeof(tSirSetRMCReq));
        pMsg->msgType = eWNI_SME_ENABLE_RMC_REQ;
        pMsg->msgLen  = sizeof(tSirSetRMCReq);
-       palCopyMemory( pMac->hHdd, (v_U8_t *)pMsg->mcastGroupIpAddr,
-             mcastGroupIpAddr, SIR_IPV4_ADDR_LEN);
        palCopyMemory(pMac->hHdd, (v_U8_t *)pMsg->mcastTransmitter,
              &pSession->selfMacAddr, sizeof(tSirMacAddr));
 
@@ -16244,7 +16242,7 @@ eHalStatus csrEnableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32 
    return status;
 }
 
-eHalStatus csrDisableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32 sessionId)
+eHalStatus csrDisableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
    tSirSetRMCReq *pMsg = NULL;
    eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -16262,8 +16260,6 @@ eHalStatus csrDisableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32
        palZeroMemory(pMac->hHdd, (void *)pMsg, sizeof(tSirSetRMCReq));
        pMsg->msgType = eWNI_SME_DISABLE_RMC_REQ;
        pMsg->msgLen  = sizeof(tSirSetRMCReq);
-       palCopyMemory( pMac->hHdd, (v_U8_t *)pMsg->mcastGroupIpAddr,
-             mcastGroupIpAddr, SIR_IPV4_ADDR_LEN);
        palCopyMemory(pMac->hHdd, (v_U8_t *)pMsg->mcastTransmitter,
              &pSession->selfMacAddr, sizeof(tSirMacAddr));
 

@@ -2749,18 +2749,19 @@ typedef __ani_attr_pre_packed struct sSirPhy11aHdr
 #define SIR_MAC_RMC_DISABLE_REQ                 1
 #define SIR_MAC_RMC_LEADER_INFORM_SELECTED      2
 #define SIR_MAC_RMC_LEADER_INFORM_CANCELLED     3
-#define SIR_MAC_RMC_LEADER_INFORM_ACK           4
 
 // Reliable multicast protocol version
 #define SIR_MAC_RMC_VER 0x01
 
 // Organization Identifier
-#define SIR_MAC_RMC_OUI             "\x00\x00\xF0"
+#define SIR_MAC_RMC_OUI             "\x00\x16\x32"
 #define SIR_MAC_RMC_OUI_SIZE        3
 
 // Magic code for Oxygen network
 #define SIR_MAC_OXYGEN_MAGIC_CODE       "OXYGEN"
 #define SIR_MAC_OXYGEN_MAGIC_CODE_SIZE  6
+
+#define SIR_MAC_RMC_MCAST_ADDRESS  "\x01\x00\x5E\x00\x02\x0A"
 
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
 

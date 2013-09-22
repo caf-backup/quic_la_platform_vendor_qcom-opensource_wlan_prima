@@ -2084,9 +2084,11 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               }
 #if defined (WLAN_FEATURE_RELIABLE_MCAST)
               else if ((eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole) &&
-                  (VOS_TRUE == vos_mem_compare(psessionEntry->selfMacAddr,
-                    &pHdr->da[0], sizeof(tSirMacAddr))) &&
-                   vos_mem_compare(pVendorSpecific->Oui, Oui, 3))
+                  ((VOS_TRUE == vos_mem_compare(SIR_MAC_RMC_MCAST_ADDRESS,
+                    &pHdr->da[0], sizeof(tSirMacAddr))) ||
+                   (VOS_TRUE == vos_mem_compare(psessionEntry->selfMacAddr,
+                     &pHdr->da[0], sizeof(tSirMacAddr)))) &&
+                   vos_mem_compare(pVendorSpecific->Oui, SIR_MAC_RMC_OUI, 3))
               {
                   tANI_U8 MagicCode[] =
                          { 0x4f, 0x58, 0x59, 0x47, 0x45, 0x4e }; /* "OXYGEN" */
@@ -2116,13 +2118,6 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                                  FL("Action RMC LEADER_INFORM_CANCELLED."));)
                               limProcessRMCMessages(pMac,
                                  eLIM_RMC_OTA_LEADER_INFORM_CANCELLED,
-                                 (tANI_U32 *)pRxPacketInfo);
-                              break;
-                          case SIR_MAC_RMC_LEADER_INFORM_ACK:
-                              PELOG1(limLog(pMac, LOG1,
-                                 FL("Action RMC LEADER_INFORM_ACK."));)
-                              limProcessRMCMessages(pMac,
-                                 eLIM_RMC_OTA_LEADER_INFORM_ACK,
                                  (tANI_U32 *)pRxPacketInfo);
                               break;
                       }

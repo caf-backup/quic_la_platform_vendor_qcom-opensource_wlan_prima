@@ -1354,6 +1354,6 @@ tANI_BOOLEAN csrRoamIsStaMode(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif
 
 #if defined WLAN_FEATURE_RELIABLE_MCAST
-eHalStatus csrEnableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32 sessionId);
-eHalStatus csrDisableRMC(tpAniSirGlobal pMac, v_U8_t *mcastGroupIpAddr, tANI_U32 sessionId);
+eHalStatus csrEnableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId);
+eHalStatus csrDisableRMC(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
