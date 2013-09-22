@@ -2,6 +2,8 @@
 
  * Copyright (c) 2005, Atheros Communications Inc.
 
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+
  *
 
  * Permission to use, copy, modify, and/or distribute this software for any

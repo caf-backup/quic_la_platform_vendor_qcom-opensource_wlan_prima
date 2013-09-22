@@ -1,15 +1,9 @@
 /*
- * Copyright (c) 2012-3 Qualcomm Atheros, Inc.
+ * Copyright (c) 2004-2010, Atheros Communications Inc.  All rights reserved.
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
-//------------------------------------------------------------------------------
-// Copyright (c) 2004-2010 Atheros Corporation.  All rights reserved.
-// $ATH_LICENSE_HOSTSDK0_C$
-//------------------------------------------------------------------------------
-//==============================================================================
-// Author(s): ="Atheros"
-//==============================================================================
 
 /*
  * IMPORTANT NOTE: For all change to WMI Interface, the ABI version number _must_ be updated.
