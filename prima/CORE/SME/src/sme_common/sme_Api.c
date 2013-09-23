@@ -1607,6 +1607,29 @@ eHalStatus sme_UnprotectedMgmtFrmInd( tHalHandle hHal,
 }
 #endif
 
+#ifdef FEATURE_CESIUM_PROPRIETARY
+eHalStatus sme_IbssPeerInfoResponseHandleer( tHalHandle hHal,
+                                      tpSirIbssGetPeerInfoRspParams pIbssPeerInfoParams)
+{
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if (NULL == pMac)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+           "%s: pMac is null", __func__);
+       return eHAL_STATUS_FAILURE;
+   }
+   if (pMac->sme.peerInfoParams.peerInfoCbk == NULL)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+           "%s: HDD callback is null", __func__);
+       return eHAL_STATUS_FAILURE;
+   }
+   pMac->sme.peerInfoParams.peerInfoCbk(pMac->sme.peerInfoParams.pUserData,
+                                        &pIbssPeerInfoParams->ibssPeerInfoRspParams);
+   return eHAL_STATUS_SUCCESS;
+}
+#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 /*--------------------------------------------------------------------------
 
@@ -1961,6 +1984,23 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
 
                 break;
 #endif /* FEATURE_WLAN_LPHB */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+          case eWNI_SME_IBSS_PEER_INFO_RSP:
+              if (pMsg->bodyptr)
+              {
+                  sme_IbssPeerInfoResponseHandleer(pMac, pMsg->bodyptr);
+                  vos_mem_free(pMsg->bodyptr);
+              }
+              else
+              {
+                  smsLog(pMac, LOGE,
+                         "Empty rsp message for (eWNI_SME_IBSS_PEER_INFO_RSP),"
+                         " nothing to process");
+              }
+              break ;
+
+#endif /* FEATURE_CESIUM_PROPRIETARY */
 
           default:
 
@@ -9072,3 +9112,61 @@ eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
    return status;
 }
 #endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/* ---------------------------------------------------------------------------
+    \fn sme_GetIBSSPeerInfo
+    \brief  Used to disable Reliable Multicast using Leader Based Protocol
+    setting will not persist over reboots
+    \param  hHal
+    \param  ibssPeerInfoReq  multicast Group IP address
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_RequestIBSSPeerInfo(tHalHandle hHal, void *pUserData,
+                                            pIbssPeerInfoCb peerInfoCbk,
+                                            tANI_BOOLEAN allPeerInfoReqd,
+                                            tANI_U8 staIdx)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   vos_msg_t vosMessage;
+   tSirIbssGetPeerInfoReqParams *pIbssInfoReqParams;
+
+   status = sme_AcquireGlobalLock(&pMac->sme);
+   if ( eHAL_STATUS_SUCCESS == status)
+   {
+       pMac->sme.peerInfoParams.peerInfoCbk = peerInfoCbk;
+       pMac->sme.peerInfoParams.pUserData = pUserData;
+
+       pIbssInfoReqParams = (tSirIbssGetPeerInfoReqParams *)
+                        vos_mem_malloc(sizeof(tSirIbssGetPeerInfoReqParams));
+       if (NULL == pIbssInfoReqParams)
+       {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Not able to allocate memory for dhcp start", __func__);
+           sme_ReleaseGlobalLock( &pMac->sme );
+           return eHAL_STATUS_FAILURE;
+       }
+       pIbssInfoReqParams->allPeerInfoReqd = allPeerInfoReqd;
+       pIbssInfoReqParams->staIdx = staIdx;
+
+       vosMessage.type = WDA_GET_IBSS_PEER_INFO_REQ;
+       vosMessage.bodyptr = pIbssInfoReqParams;
+       vosMessage.reserved = 0;
+
+       vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
+       if ( VOS_STATUS_SUCCESS != vosStatus )
+       {
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                        "%s: Post WDA_GET_IBSS_PEER_INFO_REQ MSG failed", __func__);
+          vos_mem_free(pIbssInfoReqParams);
+          vosStatus = eHAL_STATUS_FAILURE;
+       }
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (vosStatus);
+}
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+

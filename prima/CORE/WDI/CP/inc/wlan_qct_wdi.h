@@ -5277,6 +5277,59 @@ typedef struct
   void*             pUserData;
 } WDI_DelPeriodicTxPtrnParamsType;
 
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/*---------------------------------------------------------------------------
+  WDI_IbssPeerInfoParams
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint8  wdiStaIdx;       //StaIdx
+    wpt_uint32 wdiTxRate;       //Tx Rate
+    wpt_uint32 wdiMcsIndex;     //MCS Index
+    wpt_uint32 wdiTxRateFlags;  //TxRate Flags
+    wpt_int8   wdiRssi;         //RSSI
+}WDI_IbssPeerInfoParams;
+
+/*---------------------------------------------------------------------------
+  WDI_IbssPeerInfoRspParams
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint32        wdiStatus;                  // Return status
+    wpt_uint8         wdiNumPeers;                // Number of peers
+    WDI_IbssPeerInfoParams *wdiPeerInfoParams; // Peer Info parameters
+}WDI_IbssPeerInfoRspParams;
+
+/*---------------------------------------------------------------------------
+  WDI_GetIbssPeerInfoRspType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    WDI_IbssPeerInfoRspParams  wdiPeerInfoRspParams;
+
+    /*Request status callback offered by UMAC - it is called if the current
+      req has returned PENDING as status; it delivers the status of sending
+      the message over the BUS */
+    WDI_ReqStatusCb   wdiReqStatusCB;
+
+    /*The user data passed in by UMAC, it will be sent back when the above
+      function pointer will be called */
+    void*             pUserData;
+}WDI_GetIbssPeerInfoRspType;
+
+/*---------------------------------------------------------------------------
+  WDI_IbssPeerInfoReqType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_boolean wdiAllPeerInfoReqd; // Request info for all peers
+    wpt_uint8   wdiStaIdx;          // STA Index
+    wpt_uint8   wdiBssIdx;          // BSS Index
+}WDI_IbssPeerInfoReqType;
+
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
+
 /*----------------------------------------------------------------------------
  *   WDI callback types
  *--------------------------------------------------------------------------*/
@@ -7085,6 +7138,12 @@ typedef void  (*WDI_LphbCfgCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_LbpLeaderRspCb)(WDI_LbpRspParamsType *wdiLbpResponse,
                                     void*        pUserData);
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+typedef void  (*WDI_IbssPeerInfoReqCb)(WDI_IbssPeerInfoRspParams *pInfoRspParams,
+                                            void*        pUserData);
+
+#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -10091,5 +10150,24 @@ WDI_Status WDI_LPHBConfReq
  }
 #endif 
 
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/**
+ @brief Process LBP Update Indication and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+
+WDI_Status
+WDI_IbssPeerInfoReq
+(
+   WDI_IbssPeerInfoReqType*   wdiPeerInfoReqParams,
+   WDI_IbssPeerInfoReqCb      wdiIbssPeerInfoReqCb,
+  void*                         pUserData
+);
+#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 #endif /* #ifndef WLAN_QCT_WDI_H */

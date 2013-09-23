@@ -35,6 +35,9 @@
 #include "btcApi.h"
 #include "vos_nvitem.h"
 #include "p2p_Api.h"
+#ifdef FEATURE_CESIUM_PROPRIETARY
+#include "smeInternal.h"
+#endif
 
 #ifdef FEATURE_OEM_DATA_SUPPORT
 #include "oemDataApi.h"
@@ -2950,6 +2953,21 @@ eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
 eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
                                     tANI_U32 sessionId);
 #endif //#if defined WLAN_FEATURE_RELIABLE_MCAST
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/* ---------------------------------------------------------------------------
+    \fn sme_GetIBSSPeerInfo
+    \brief  Used to disable Reliable Multicast using Leader Based Protocol
+    setting will not persist over reboots
+    \param  hHal
+    \param  ibssPeerInfoReq  multicast Group IP address
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_RequestIBSSPeerInfo(tHalHandle hHal, void *pUserData,
+                                            pIbssPeerInfoCb peerInfoCbk,
+                                            tANI_BOOLEAN allPeerInfoReqd,
+                                            tANI_U8 staIdx);
+#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 /*
  * sme API to trigger fast BSS roam to a given BSSID independent of RSSI

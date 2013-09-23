@@ -364,6 +364,11 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
 #else
   NULL,
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+  WDI_ProcessIbssPeerInfoReq,           /* WDI_HAL_IBSS_PEER_INFO_REQ */
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
   /*-------------------------------------------------------------------------
     Indications
   -------------------------------------------------------------------------*/
@@ -571,6 +576,11 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #else
     NULL,
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+  WDI_ProcessIbssPeerInfoRsp,       /* WDI_HAL_GET_IBSS_PEER_INFO_RSP */
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
   /*---------------------------------------------------------------------
     Indications
   ---------------------------------------------------------------------*/
@@ -1039,6 +1049,11 @@ static char *WDI_getRespMsgString(wpt_uint16 wdiRespMsgId)
     CASE_RETURN_STRING( WDI_LBP_LEADER_RESP );
     CASE_RETURN_STRING( WDI_LBP_UPDATE_IND_TO_HOST );
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+    CASE_RETURN_STRING( WDI_HAL_IBSS_PEER_INFO_REQ );
+    CASE_RETURN_STRING( WDI_HAL_IBSS_PEER_INFO_RSP );
+#endif /* FEATURE_CESIUM_PROPRIETARY */
     default:
         return "Unknown WDI MessageId";
   }
@@ -22625,6 +22640,12 @@ WDI_2_HAL_REQ_TYPE
   case WDI_LBP_UPDATE_IND:
     return WLAN_HAL_LBP_UPDATE_IND;
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+  case WDI_HAL_IBSS_PEER_INFO_REQ:
+    return WLAN_HAL_GET_IBSS_PEER_INFO_REQ;
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
   default:
     return WLAN_HAL_MSG_MAX;
   }
@@ -22879,6 +22900,12 @@ case WLAN_HAL_DEL_STA_SELF_RSP:
   case WLAN_HAL_LBP_UPDATE_IND:
     return WDI_LBP_UPDATE_IND_TO_HOST;
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+  case WLAN_HAL_GET_IBSS_PEER_INFO_RSP:
+    return WDI_HAL_IBSS_PEER_INFO_RSP;
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
   default:
     return eDRIVER_TYPE_MAX;
   }
@@ -28765,3 +28792,225 @@ WDI_ProcessLBPUpdateInd
 } /* WDI_ProcessLBPUpdateInd */
 
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/**
+ @brief Process LBP Update Indication and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_IbssPeerInfoReq
+(
+   WDI_IbssPeerInfoReqType*   wdiPeerInfoReqParams,
+   WDI_IbssPeerInfoReqCb      wdiIbssPeerInfoReqCb,
+   void*                      pUserData
+)
+{
+
+   WDI_EventInfoType  wdiEventData;
+
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+   /*------------------------------------------------------------------------
+     Sanity Check
+   ------------------------------------------------------------------------*/
+    if ( eWLAN_PAL_FALSE == gWDIInitialized )
+    {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+              "WDI API call before module is initialized - Fail request");
+
+        return WDI_STATUS_E_NOT_ALLOWED;
+    }
+
+    /*------------------------------------------------------------------------
+      Fill in Event data and post to the Main FSM
+     ------------------------------------------------------------------------*/
+    wdiEventData.wdiRequest      = WDI_HAL_IBSS_PEER_INFO_REQ;
+    wdiEventData.pEventData      = wdiPeerInfoReqParams;
+    wdiEventData.uEventDataSize  = sizeof(WDI_IbssPeerInfoReqType);
+    wdiEventData.pCBfnc          = wdiIbssPeerInfoReqCb;
+    wdiEventData.pUserData       = pUserData;
+
+    return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+}
+
+/**
+ @brief Process LBP Update Indication and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessIbssPeerInfoReq
+(
+    WDI_ControlBlockType*  pWDICtx,
+    WDI_EventInfoType*     pEventData
+)
+{
+    WDI_Status              wdiStatus;
+    wpt_uint8*              pSendBuffer        = NULL;
+    wpt_uint16              usDataOffset       = 0;
+    wpt_uint16              usSendSize         = 0;
+    WDI_IbssPeerInfoReqType *pwdiInfoReq        = NULL;
+    tHalIbssPeerInfoReq     *pPeerInfoReq;
+    WDI_StaStruct*   pSTATable = (WDI_StaStruct*) pWDICtx->staTable;
+
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+           "%s", __func__);
+
+    /*-------------------------------------------------------------------------
+      Sanity check
+    -------------------------------------------------------------------------*/
+    if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ))
+    {
+       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                   "%s: Invalid parameters", __func__);
+       WDI_ASSERT(0);
+       return WDI_STATUS_E_FAILURE;
+    }
+    pwdiInfoReq = (WDI_IbssPeerInfoReqType *)pEventData->pEventData;
+    /*-----------------------------------------------------------------------
+      Get message buffer
+    -----------------------------------------------------------------------*/
+
+    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx,
+                          WDI_HAL_IBSS_PEER_INFO_REQ,
+                          sizeof(tHalIbssPeerInfoReqParams),
+                          &pSendBuffer, &usDataOffset, &usSendSize))||
+                          ( usSendSize < (usDataOffset +
+                                 sizeof(tHalIbssPeerInfoReqParams) )))
+    {
+       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "Unable to get send buffer in IBSS Peer Info Req %p ",
+                  pEventData);
+       WDI_ASSERT(0);
+       return WDI_STATUS_E_FAILURE;
+    }
+
+    pPeerInfoReq = (tHalIbssPeerInfoReq *)pSendBuffer;
+    if (VOS_FALSE == pwdiInfoReq->wdiAllPeerInfoReqd)
+    {
+       if (pSTATable[pwdiInfoReq->wdiStaIdx].valid)
+       {
+          pPeerInfoReq->ibssPeerInfoReqParams.bssIdx =
+                        pSTATable[pwdiInfoReq->wdiStaIdx].bssIdx;
+       }
+       else
+       {
+          WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
+                   "Unable to find BSSIDX for STAIDX %d ",
+                    pwdiInfoReq->wdiStaIdx);
+          return WDI_STATUS_E_FAILURE;
+       }
+    }
+    else
+      pPeerInfoReq->ibssPeerInfoReqParams.bssIdx = 0;
+
+    pPeerInfoReq->ibssPeerInfoReqParams.staIdx = pwdiInfoReq->wdiStaIdx;
+    pPeerInfoReq->ibssPeerInfoReqParams.allPeerInfoReqd = pwdiInfoReq->wdiAllPeerInfoReqd;
+
+    pWDICtx->pReqStatusUserData = pEventData->pUserData;
+    pWDICtx->pfncRspCB = pEventData->pCBfnc;
+
+    /*-------------------------------------------------------------------------
+     Send IBSS Peer Info request to HAL
+    -------------------------------------------------------------------------*/
+    wdiStatus = WDI_SendMsg(pWDICtx, pSendBuffer,
+                            usSendSize, pWDICtx->pfncRspCB,
+                            pWDICtx->pReqStatusUserData,
+                            WDI_HAL_IBSS_PEER_INFO_RSP);
+    return wdiStatus;
+}
+
+/**
+ @brief Process LBP Update Indication and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessIbssPeerInfoRsp
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+   WDI_IbssPeerInfoReqCb     wdiPeerInfoCb   = NULL;
+   tHalIbssPeerInfoRspParams halPeerInfoRspParams;
+   tHalIbssPeerParams        *pHalPeerInfoParams;
+   WDI_IbssPeerInfoRspParams wdiPeerInfoRspParams;
+   wpt_uint32                allocSize=0;
+   WDI_IbssPeerInfoParams   *pPeerInfoParams;
+   wpt_uint8                 wdiCount=0;
+
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   wdiPeerInfoCb = (WDI_IbssPeerInfoReqCb)pWDICtx->pfncRspCB;
+
+   /*-------------------------------------------------------------------------
+     Sanity check
+   -------------------------------------------------------------------------*/
+   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+       ( NULL == pEventData->pEventData))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __func__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE;
+   }
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+   wpalMemoryCopy( &halPeerInfoRspParams,
+                   pEventData->pEventData,
+                   sizeof(halPeerInfoRspParams));
+
+   pHalPeerInfoParams =
+             ((tHalIbssPeerInfoRspParams *)pEventData->pEventData)->ibssPeerParams;
+   /* Size of peer info data received from DAL */
+   allocSize = (sizeof(WDI_IbssPeerInfoParams) * (halPeerInfoRspParams.numOfPeers));
+
+   wdiPeerInfoRspParams.wdiStatus =
+                  WDI_HAL_2_WDI_STATUS(halPeerInfoRspParams.status);
+   wdiPeerInfoRspParams.wdiNumPeers =
+                  halPeerInfoRspParams.numOfPeers;
+
+   pPeerInfoParams = (WDI_IbssPeerInfoParams*)wpalMemoryAllocate(allocSize);
+   for (wdiCount = 0; wdiCount < halPeerInfoRspParams.numOfPeers; wdiCount++)
+   {
+      tHalIbssPeerParams        *pHalTemp = &pHalPeerInfoParams[wdiCount];
+      WDI_IbssPeerInfoParams    *pWdiTemp = &pPeerInfoParams[wdiCount];
+      pWdiTemp->wdiStaIdx = pHalTemp->staIdx;
+      pWdiTemp->wdiRssi = pHalTemp->rssi;
+      pWdiTemp->wdiMcsIndex = pHalTemp->mcsIndex;
+      pWdiTemp->wdiTxRate = pHalTemp->txRate;
+      pWdiTemp->wdiTxRateFlags = pHalTemp->txRateFlags;
+   }
+
+   wdiPeerInfoRspParams.wdiPeerInfoParams = pPeerInfoParams;
+
+   /*Notify UMAC*/
+   if (wdiPeerInfoCb)
+   {
+      wdiPeerInfoCb(&wdiPeerInfoRspParams, pWDICtx->pRspCBUserData);
+   }
+
+   /* wdiPeerInfoRspParams.wdiPeerInfoParams is freed in WDA callback handler */
+
+   return WDI_STATUS_SUCCESS;
+
+}
+#endif /* FEATURE_CESIUM_PROPRIETARY */

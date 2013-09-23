@@ -3289,6 +3289,10 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       init_completion(&pAdapter->tdls_mgmt_comp);
       init_completion(&pAdapter->tdls_link_establish_req_comp);
 #endif
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+      init_completion(&pAdapter->ibss_peer_info_comp);
+#endif /* FEATURE_CESIUM_PROPRIETARY */
       init_completion(&pHddCtx->mc_sus_event_var);
       init_completion(&pHddCtx->tx_sus_event_var);
       init_completion(&pHddCtx->rx_sus_event_var);

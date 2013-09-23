@@ -1079,6 +1079,12 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_RMC_UPDATE_IND          SIR_HAL_RMC_UPDATE_IND
 #endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
 
+#ifdef FEATURE_CESIUM_PROPRIETARY
+/* IBSS peer info related message */
+#define WDA_GET_IBSS_PEER_INFO_REQ  SIR_HAL_IBSS_PEER_INFO_REQ
+#define WDA_GET_IBSS_PEER_INFO_RSP  SIR_HAL_IBSS_PEER_INFO_RSP
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
