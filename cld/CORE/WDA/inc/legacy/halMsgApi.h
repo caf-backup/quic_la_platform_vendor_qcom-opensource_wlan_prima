@@ -852,6 +852,8 @@ typedef struct
 {
    tANI_U16   opMode;
    tANI_U16  staId;
+   tANI_U16  smesessionId;
+   tSirMacAddr peer_mac;
 }tUpdateVHTOpMode, *tpUpdateVHTOpMode;
 #endif
 

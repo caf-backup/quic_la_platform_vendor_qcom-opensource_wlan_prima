@@ -453,7 +453,7 @@ __limProcessOperatingModeActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo
             pSta->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
         }
         limCheckVHTOpModeChange( pMac, psessionEntry, 
-                                 (pOperatingModeframe->OperatingMode.chanWidth), pSta->staIndex);\
+                                 (pOperatingModeframe->OperatingMode.chanWidth), pSta->staIndex);
     }
     palFreeMemory(pMac->hHdd, pOperatingModeframe);
     return;

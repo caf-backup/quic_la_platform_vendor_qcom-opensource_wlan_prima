@@ -358,6 +358,7 @@ typedef struct {
 	u_int32_t ht_cap_info;
 #ifdef WLAN_FEATURE_11AC
 	u_int32_t vht_cap_info;
+	u_int32_t  vht_supp_mcs;
 #endif
 	u_int32_t num_rf_chains;
 
@@ -934,6 +935,7 @@ struct wma_vdev_start_req {
 	tSirMacSSid ssid;
 	u_int8_t hidden_ssid;
 	u_int8_t pmf_enabled;
+	u_int8_t vht_capable;
 };
 
 struct wma_set_key_params {
