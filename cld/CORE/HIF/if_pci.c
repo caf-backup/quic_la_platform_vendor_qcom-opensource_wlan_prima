@@ -37,6 +37,7 @@ unsigned int msienable = 0;
 module_param(msienable, int, 0644);
 
 int hif_pci_configure(struct hif_pci_softc *sc, hif_handle_t *hif_hdl);
+void hif_nointrs(struct hif_pci_softc *sc);
 
 static struct pci_device_id hif_pci_id_table[] = {
 	{ 0x168c, 0x003c, PCI_ANY_ID, PCI_ANY_ID },
@@ -528,8 +529,10 @@ again:
 
     ret = hdd_wlan_startup(&pdev->dev, ol_sc);
 
-    if (ret)
+    if (ret) {
+        hif_nointrs(sc);
 	goto err_config;
+    }
 
 #ifndef REMOVE_PKT_LOG
     /*
