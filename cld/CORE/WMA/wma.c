@@ -5773,6 +5773,7 @@ static VOS_STATUS wma_wow_enter(tp_wma_handle wma,
 
 	if (info->sessionId > wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
+		vos_mem_free(info);
 		return VOS_STATUS_E_INVAL;
 	}
 
@@ -5783,6 +5784,8 @@ static VOS_STATUS wma_wow_enter(tp_wma_handle wma,
 	wma->wow.deauth_enable = info->ucWowDeauthRcv ? TRUE : FALSE;
 	wma->wow.disassoc_enable = info->ucWowDeauthRcv ? TRUE : FALSE;
 	wma->wow.bmiss_enable = info->ucWowMaxMissedBeacons ? TRUE : FALSE;
+
+	vos_mem_free(info);
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -5797,13 +5800,14 @@ static VOS_STATUS wma_wow_exit(tp_wma_handle wma,
 
 	if (info->sessionId > wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
+		vos_mem_free(info);
 		return VOS_STATUS_E_INVAL;
 	}
 
 	iface = &wma->interfaces[info->sessionId];
 	iface->ptrn_match_enable = FALSE;
-
 	wma->wow.magic_ptrn_enable = FALSE;
+	vos_mem_free(info);
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -5818,17 +5822,20 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 
 	if (info->sessionId > wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
+		vos_mem_free(info);
 		return VOS_STATUS_E_INVAL;
 	}
 
 	iface = &wma->interfaces[info->sessionId];
 	if (!iface) {
 		WMA_LOGD("vdev %d node is not found", info->sessionId);
+		vos_mem_free(info);
 		return VOS_STATUS_SUCCESS;
 	}
 
 	if (!wma->wow.magic_ptrn_enable && !iface->ptrn_match_enable) {
 		WMA_LOGD("Both magic and pattern byte match are disabled");
+		vos_mem_free(info);
 		return VOS_STATUS_SUCCESS;
 	}
 
@@ -5841,8 +5848,10 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	 * suspend indication received on last vdev before
 	 * enabling wow in fw.
 	 */
-	if (++wma->no_of_suspend_ind < wma_get_vdev_count(wma))
+	if (++wma->no_of_suspend_ind < wma_get_vdev_count(wma)) {
+		vos_mem_free(info);
 		return VOS_STATUS_SUCCESS;
+	}
 
 	wma->no_of_suspend_ind = 0;
 
@@ -5856,6 +5865,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 
 	if (!connected) {
 		WMA_LOGD("All vdev are in disconnected state, skipping wow");
+		vos_mem_free(info);
 		return VOS_STATUS_SUCCESS;
 	}
 
@@ -5866,9 +5876,12 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 	 * last vdev. It's the time to enable wow in fw.
 	 */
 	ret = wma_feed_wow_config_to_fw(wma);
-	if (ret != VOS_STATUS_SUCCESS)
+	if (ret != VOS_STATUS_SUCCESS) {
+		vos_mem_free(info);
 		return ret;
+	}
 
+	vos_mem_free(info);
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -5917,14 +5930,16 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
  * from umac. wow resume is applicable only if the driver is in
  * wow suspend state.
  */
-static VOS_STATUS wma_resume_req(tp_wma_handle wma)
+static VOS_STATUS wma_resume_req(tp_wma_handle wma, tpSirWlanResumeParam info)
 {
 	struct wma_txrx_node *iface;
 	int8_t vdev_id;
 	VOS_STATUS ret;
 
-	if (!wma->wow.wow_enable)
+	if (!wma->wow.wow_enable) {
+		vos_mem_free(info);
 		return VOS_STATUS_SUCCESS;
+	}
 
 	WMA_LOGD("WOW Resume");
 
@@ -5939,6 +5954,7 @@ static VOS_STATUS wma_resume_req(tp_wma_handle wma)
 	}
 
 	ret = wma_send_host_wakeup_ind_to_fw(wma);
+	vos_mem_free(info);
 
 	return ret;
 }
@@ -6285,7 +6301,8 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 					(tpSirWlanSuspendParam)msg->bodyptr);
 			break;
 		case WDA_WLAN_RESUME_REQ:
-			wma_resume_req(wma_handle);
+			wma_resume_req(wma_handle,
+				       (tpSirWlanResumeParam)msg->bodyptr);
 			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
