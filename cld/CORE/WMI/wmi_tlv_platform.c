@@ -31,7 +31,8 @@
 /* Following macro definitions use OS or platform specific functions */
 /* Following macro definitions use QCA MAIN windows host driver(applicable for Perigrene and its future platforms,
     Pronto and its future platforms) specific APIs */
-  #define wmi_tlv_print_verbose WMA_LOGD
+  #define dummy_print(fmt, ...) {}
+  #define wmi_tlv_print_verbose dummy_print
   #define wmi_tlv_print_error   adf_os_print
   #define wmi_tlv_OS_MEMCPY     OS_MEMCPY
   #define wmi_tlv_OS_MEMZERO    OS_MEMZERO
