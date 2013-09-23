@@ -517,12 +517,12 @@ WDA_DS_BuildTxPacketInfo
   vos_copy_macaddr( (v_MACADDR_t*)pTxMetaInfo->addr2MACAddress, pAddr2 );
 
 #ifdef WLAN_FEATURE_RELIABLE_MCAST
-    /*look up for mcast MAC address in TL's active rmcast session list*/
+    /*look up for mcast transmitter MAC address in TL's active rmcast list*/
     if (((WDA_TLI_DATA_FRAME_TYPE >> 4) == pTxMetaInfo->frmType) &&
        ((vos_is_macaddr_group((v_MACADDR_t*) pTxMetaInfo->fSTAMACAddress))))
     {
         pRMcastSession = WLANTL_RmcLookUpRmcastSession(pTLCb,
-            (v_MACADDR_t*)pTxMetaInfo->fSTAMACAddress);
+            (v_MACADDR_t*)pTxMetaInfo->addr2MACAddress);
 
         if (pRMcastSession)
         {

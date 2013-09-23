@@ -60,30 +60,27 @@ typedef enum
 
 typedef struct sLimRmcGroupContext
 {
-    tANI_U8              is_valid;
-    tSirMacAddr          groupAddr;
     tSirMacAddr          transmitter;
-    eRmcMcastTxState     state;
     eRmcLeaderState      isLeader;
-    tSirMacAddr          leaderList[SIR_RMC_NUM_MAX_LEADERS];
-    tANI_U8              leader_index;
-    tpPESession          psessionEntry;
     struct sLimRmcGroupContext *next;
-    struct sLimRmcGroupContext *next_pending;
 } tLimRmcGroupContext, *tpLimRmcGroupContext;
 
 typedef struct sLimRmcContext
 {
-    TX_TIMER             gRmcResponseTimer;
-    tLimRmcGroupContext *pendingRespQueue;
+    tSirMacAddr          leader;
+    eRmcMcastTxState     state;
+    TX_TIMER             gRmcLeaderSelectTimer;
+    tANI_U32             rmcTimerValInTicks;
     vos_lock_t           lkRmcLock;
-    tLimRmcGroupContext *rmcGroupTxHashTable[RMC_MCAST_GROUPS_HASH_SIZE];
     tLimRmcGroupContext *rmcGroupRxHashTable[RMC_MCAST_GROUPS_HASH_SIZE];
 } tLimRmcContext, *tpLimRmcContext;
 
 
 void limRmcInit(tpAniSirGlobal pMac);
 void limRmcCleanup(tpAniSirGlobal pMac);
+void limRmcTransmitterDelete(tpAniSirGlobal pMac, tSirMacAddr transmitter);
+void limRmcIbssDelete(tpAniSirGlobal pMac);
+void limRmcDumpStatus(tpAniSirGlobal pMac);
 
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */
 

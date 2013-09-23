@@ -2821,7 +2821,7 @@ WLANTL_TLDebugMessage
   FUNCTION    WLANTL_EnableReliableMcast
 
   DESCRIPTION
-    This function enables data path of reliable multicast in TL
+    This function enables data path of reliable multicast transmitter in TL
 
   DEPENDENCIES
     Reliable multicast receive leader must be selected by FW before
@@ -2832,7 +2832,7 @@ WLANTL_TLDebugMessage
    IN
 
    pvosGCtx   : Pointer to VOS global context
-   pMcastAddr : Pointer to MAC ADDR of reliable multicast group leader
+   pMcastAddr : Pointer to MAC ADDR of reliable multicast transmitter
 
   RETURN VALUE
     The result code associated with performing the operation
@@ -2860,7 +2860,7 @@ WLANTL_EnableReliableMcast
   FUNCTION    WLANTL_DisableReliableMcast
 
   DESCRIPTION
-    This function disables data path of reliable multicast in TL
+    This function disables data path of reliable multicast transmitter in TL
 
   DEPENDENCIES
     HDD should have recived IOCTL to disable reliable RMC
@@ -2870,7 +2870,7 @@ WLANTL_EnableReliableMcast
    IN
 
    pvosGCtx   : Pointer to VOS global context
-   pMcastAddr : Pointer to MAC ADDR of reliable multicast group leader
+   pMcastAddr : Pointer to MAC ADDR of reliable multicast transmitter
 
   RETURN VALUE
     The result code associated with performing the operation

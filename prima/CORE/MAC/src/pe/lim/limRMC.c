@@ -86,23 +86,21 @@
  *NOTE:
  * NA
  *
- * @param  groupAddr - multicast group address
- *         transmitter - address of multicast transmitter
+ * @param  transmitter - address of multicast transmitter
  *
  * @return Hash index
  */
 
 static tANI_U8
-__rmcGroupHashFunction(tSirMacAddr mcastGroupAddr, tSirMacAddr transmitter)
+__rmcGroupHashFunction(tSirMacAddr transmitter)
 {
     tANI_U16 hash;
 
     /*
-     * Generate a hash using both group address and the
-     * transmitter address
+     * Generate a hash using transmitter address
      */
-    hash = mcastGroupAddr[3] + mcastGroupAddr[4] + mcastGroupAddr[5];
-    hash += transmitter[3] + transmitter[4] + transmitter[5];
+    hash = transmitter[0] + transmitter[1] + transmitter[2] +
+            transmitter[3] + transmitter[4] + transmitter[5];
 
     return hash & (RMC_MCAST_GROUPS_HASH_SIZE - 1);
 }
@@ -129,29 +127,23 @@ __rmcGroupHashFunction(tSirMacAddr mcastGroupAddr, tSirMacAddr transmitter)
  */
 
 static tLimRmcGroupContext *
-__rmcGroupLookupHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
-                          tSirMacAddr transmitter, eRmcRole role)
+__rmcGroupLookupHashEntry(tpAniSirGlobal pMac, tSirMacAddr transmitter)
 {
     tANI_U8 index;
     tLimRmcGroupContext *entry;
 
-    index = __rmcGroupHashFunction(mcastGroupAddr, transmitter);
+    index = __rmcGroupHashFunction(transmitter);
 
     /* Pick the correct hash table based on role */
-    entry = (eRMC_TRANSMITTER_ROLE == role) ?
-                 pMac->rmcContext.rmcGroupTxHashTable[index] :
-                 pMac->rmcContext.rmcGroupRxHashTable[index];
+    entry = pMac->rmcContext.rmcGroupRxHashTable[index];
 
-    PELOG1(limLog(pMac, LOG1, FL("RMC: Hash Lookup:[%d] group " MAC_ADDRESS_STR
-                         " transmitter " MAC_ADDRESS_STR " entry %p"), index,
-                         MAC_ADDR_ARRAY(mcastGroupAddr),
-                         MAC_ADDR_ARRAY(transmitter), entry);)
+    PELOG1(limLog(pMac, LOG1, FL("RMC: Hash Lookup:[%d] transmitter "
+                         MAC_ADDRESS_STR ), index,
+                         MAC_ADDR_ARRAY(transmitter));)
     while (entry)
     {
-        if ((vos_mem_compare(mcastGroupAddr,
-            entry->groupAddr, sizeof(v_MACADDR_t))) &&
-            (vos_mem_compare(transmitter, entry->transmitter,
-             sizeof(v_MACADDR_t))))
+        if (vos_mem_compare(transmitter, entry->transmitter,
+             sizeof(v_MACADDR_t)))
         {
             return entry;
         }
@@ -176,39 +168,33 @@ __rmcGroupLookupHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
  *NOTE:
  * NA
  *
- * @param  groupAddr - multicast group address
- *         transmitter - address of multicast transmitter
- *         role - transmitter or leader
+ * @param  transmitter - address of multicast transmitter
  *
  * @return pointer to tLimRmcGroupContext
  */
 static tLimRmcGroupContext *
-__rmcGroupInsertHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
-                          tSirMacAddr transmitter, eRmcRole role)
+__rmcGroupInsertHashEntry(tpAniSirGlobal pMac, tSirMacAddr transmitter)
 {
     tANI_U8 index;
     tLimRmcGroupContext *entry;
     tLimRmcGroupContext **head;
 
-    index = __rmcGroupHashFunction(mcastGroupAddr, transmitter);
+    index = __rmcGroupHashFunction(transmitter);
 
     PELOG1(limLog(pMac, LOG1, FL("RMC: Hash Insert:[%d] group " MAC_ADDRESS_STR
                              " transmitter " MAC_ADDRESS_STR), index,
                              MAC_ADDR_ARRAY(mcastGroupAddr),
                              MAC_ADDR_ARRAY(transmitter));)
 
-    /* Pick the correct hash table based on role */
-    head = (eRMC_TRANSMITTER_ROLE == role) ?
-                 &pMac->rmcContext.rmcGroupTxHashTable[index] :
-                 &pMac->rmcContext.rmcGroupRxHashTable[index];
+    head = &pMac->rmcContext.rmcGroupRxHashTable[index];
 
-    entry = __rmcGroupLookupHashEntry(pMac, mcastGroupAddr, transmitter, role);
+    entry = __rmcGroupLookupHashEntry(pMac, transmitter);
 
     if (entry)
     {
         /* If the entry exists, return it at the end */
         PELOGE(limLog(pMac, LOGE, FL("RMC: Hash Insert:"
-                 MAC_ADDRESS_STR "exists"), MAC_ADDR_ARRAY(mcastGroupAddr));)
+                 MAC_ADDRESS_STR "exists"), MAC_ADDR_ARRAY(transmitter));)
     }
     else
     {
@@ -218,11 +204,8 @@ __rmcGroupInsertHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
 
         if (entry)
         {
-            vos_mem_copy(entry->groupAddr, mcastGroupAddr, sizeof(tSirMacAddr));
             vos_mem_copy(entry->transmitter, transmitter, sizeof(tSirMacAddr));
-            entry->state = eRMC_LEADER_NOT_SELECTED;
             entry->isLeader = eRMC_IS_NOT_A_LEADER;
-            entry->leader_index = 0;
 
             /* chain this entry */
             entry->next = *head;
@@ -231,7 +214,7 @@ __rmcGroupInsertHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
         else
         {
             PELOGE(limLog(pMac, LOGE, FL("RMC: Hash Insert:" MAC_ADDRESS_STR
-                             " alloc failed"), MAC_ADDR_ARRAY(mcastGroupAddr));)
+                             " alloc failed"), MAC_ADDR_ARRAY(transmitter));)
         }
     }
 
@@ -253,35 +236,27 @@ __rmcGroupInsertHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
  * Make sure (for the transmitter role) that the entry is
  * not in the Pending Response queue.
  *
- * @param  groupAddr - multicast group address
- *         transmitter - address of multicast transmitter
- *         role - transmitter or leader
+ * @param  transmitter - address of multicast transmitter
  *
  * @return status
  */
 static tSirRetStatus
-__rmcGroupDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
-                          tSirMacAddr transmitter, eRmcRole role)
+__rmcGroupDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr transmitter)
 {
     tSirRetStatus status = eSIR_FAILURE;
     tANI_U8 index;
     tLimRmcGroupContext *entry, *prev, **head;
 
-    index = __rmcGroupHashFunction(mcastGroupAddr, transmitter);
+    index = __rmcGroupHashFunction(transmitter);
 
-    /* Pick the correct hash table based on role */
-    head = (eRMC_TRANSMITTER_ROLE == role) ?
-                 &pMac->rmcContext.rmcGroupTxHashTable[index] :
-                 &pMac->rmcContext.rmcGroupRxHashTable[index];
+    head = &pMac->rmcContext.rmcGroupRxHashTable[index];
     entry = *head;
     prev = NULL;
 
     while (entry)
     {
-        if ((vos_mem_compare(mcastGroupAddr,
-            entry->groupAddr, sizeof(v_MACADDR_t))) &&
-            (vos_mem_compare(transmitter, entry->transmitter,
-             sizeof(v_MACADDR_t))))
+        if (vos_mem_compare(transmitter, entry->transmitter,
+             sizeof(v_MACADDR_t)))
         {
             if (*head == entry)
             {
@@ -292,9 +267,8 @@ __rmcGroupDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
                 prev->next = entry->next;
             }
 
-            PELOG1(limLog(pMac, LOG1, FL("RMC: Hash Delete: entry %p group "
-                         MAC_ADDRESS_STR " transmitter " MAC_ADDRESS_STR),
-                             entry, MAC_ADDR_ARRAY(mcastGroupAddr),
+            PELOG1(limLog(pMac, LOG1, FL("RMC: Hash Delete: entry %p "
+                         " transmitter " MAC_ADDRESS_STR), entry
                              MAC_ADDR_ARRAY(transmitter));)
 
             /* free the group entry */
@@ -309,6 +283,48 @@ __rmcGroupDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
     }
 
     return status;
+}
+
+/**
+ *  __rmcGroupDeleteAllEntries()
+ *
+ *FUNCTION:
+ * This function is called to delete all RMC group entries
+ * for either transmitter or leader, depending on the parameter.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *  Should be called with lkRmcLock held.
+ *
+ *NOTE:
+ *
+ * @param  pMac
+ *         role - transmitter or leader
+ * @return
+ */
+static void
+__rmcGroupDeleteAllEntries(tpAniSirGlobal pMac)
+{
+    tLimRmcGroupContext *entry, **head;
+    int index;
+
+    PELOG1(limLog(pMac, LOG1, FL("RMC: Hash_Delete_All"),);)
+
+    for (index = 0; index < RMC_MCAST_GROUPS_HASH_SIZE; index++)
+    {
+        head = &pMac->rmcContext.rmcGroupRxHashTable[index];
+
+        entry = *head;
+
+        while (entry)
+        {
+            *head = entry->next;
+            /* free the group entry */
+            vos_mem_free(entry);
+            entry = *head;
+        }
+    }
 }
 
 /* End RMC utility routines */
@@ -333,7 +349,6 @@ __rmcGroupDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
 static void
 __limPostMsgLeaderReq ( tpAniSirGlobal pMac,
                         tANI_U8 cmd,
-                        tSirMacAddr mcastGroup,
                         tSirMacAddr mcastTransmitter)
 {
     tSirMsgQ msg;
@@ -350,7 +365,6 @@ __limPostMsgLeaderReq ( tpAniSirGlobal pMac,
 
     vos_mem_copy(pLeaderReq->mcastTransmitter, mcastTransmitter,
                  sizeof(tSirMacAddr));
-    vos_mem_copy(pLeaderReq->mcastGroup, mcastGroup, sizeof(tSirMacAddr));
 
     /* Initialize black list */
     vos_mem_zero(pLeaderReq->blacklist, sizeof(pLeaderReq->blacklist));
@@ -403,7 +417,6 @@ static void
 __limPostMsgUpdateInd ( tpAniSirGlobal pMac,
                         tANI_U8 indication,
                         tANI_U8 role,
-                        tSirMacAddr mcastGroup,
                         tSirMacAddr mcastTransmitter,
                         tSirMacAddr mcastLeader)
 {
@@ -425,10 +438,8 @@ __limPostMsgUpdateInd ( tpAniSirGlobal pMac,
     vos_mem_copy(pUpdateInd->mcastTransmitter,
             mcastTransmitter, sizeof(tSirMacAddr));
 
-    vos_mem_copy(pUpdateInd->mcastGroup, mcastGroup, sizeof(tSirMacAddr));
-
-    vos_mem_copy(pUpdateInd->mcastLeader, mcastLeader, sizeof(tSirMacAddr));
-
+    vos_mem_copy(pUpdateInd->mcastLeader,
+            mcastLeader, sizeof(tSirMacAddr));
 
     msg.type = WDA_RMC_UPDATE_IND;
     msg.bodyptr = pUpdateInd;
@@ -504,143 +515,8 @@ __limMcastTxStateToString(eRmcMcastTxState state)
     }
 }
 
-/*
- * RMC Pending Response routines
- *
- * The pending response queue maintains a queue of outstanding LEADER_INFORM
- * requests sent to candidate leaders.  If a LEADER_INFORM_ACK is not received
- * within the configured period, we attempt to request other leaders from the
- * firmware provided list of candidate leaders.
- * If all the receivers from the leader list are exhausted, we disable RMC
- * for the multicast group.
- *
- * The __rmcPendingRespQueueAdd is called when a LEADER_INFORM request is sent.
- * For normal operations, it is expected that the LEADER_INFORM_ACK will be
- * received, at which point we call __rmcPendingRespQueueRemove.
- */
-
 /**
- * __rmcPendingRespQueueAdd()
- *
- *FUNCTION:
- * This function is called to add a new entry to the pending
- * queue.
- *
- *LOGIC:  If the list is empty, add the new item, and start the
- *        timer. If the list it not empty, simply add the new
- *        entry to the list.
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * NA
- *
- * @param  param - Message corresponding to the timer that expired
- *
- * @return None
- */
-void
-__rmcPendingRespQueueAdd(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
-                            tSirMacAddr transmitter)
-{
-    tLimRmcGroupContext *entry, *new_entry;
-
-    /* Find the group entry */
-    new_entry = __rmcGroupLookupHashEntry(pMac, mcastGroupAddr,
-                            transmitter, eRMC_TRANSMITTER_ROLE);
-
-    if (!new_entry)
-    {
-        limLog(pMac, LOGE,
-            FL("__rmcPendingRespQueueAdd Group entry not found"));
-        return;
-    }
-
-    if (pMac->rmcContext.pendingRespQueue)
-    {
-        /*
-         * Add the new entry at the end of the queue.
-         * The timer should already be active.
-         */
-        entry = pMac->rmcContext.pendingRespQueue;
-        while (entry->next_pending)
-        {
-            entry = entry->next_pending;
-        }
-        entry->next_pending = new_entry;
-        new_entry->next_pending = NULL;
-    }
-    else
-    {
-        /*
-         * The list is empty, so add it to the pending queue and
-         * activate the timer.
-         */
-        pMac->rmcContext.pendingRespQueue = new_entry;
-        new_entry->next_pending = NULL;
-        if (tx_timer_activate(&pMac->rmcContext.gRmcResponseTimer)!= TX_SUCCESS)
-        {
-            limLog(pMac, LOGE,
-             FL("__rmcPendingRespQueueAdd:Activate RMC Response timer failed"));
-        }
-    }
-}
-
-/**
- * __rmcPendingRespQueueRemove()
- *
- *FUNCTION:
- * This function is called to remove a new entry to the pending
- * queue.
- *
- *LOGIC:  If the list is empty after removal, deactivate the timer.
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * NA
- *
- * @param  tpAniSirGlobal and tLimRmcGroupContext
- *
- * @return None
- */
-void
-__rmcPendingRespQueueRemove(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
-                            tSirMacAddr transmitter)
-{
-    tLimRmcGroupContext *entry, *prev = NULL;
-
-    entry = pMac->rmcContext.pendingRespQueue;
-
-    while (entry)
-    {
-        if (vos_mem_compare(mcastGroupAddr,
-            entry->groupAddr, sizeof(v_MACADDR_t)))
-        {
-            /* Check if the first node is being removed.*/
-            if (NULL == prev)
-            {
-                pMac->rmcContext.pendingRespQueue = entry->next_pending;
-            }
-            else
-            {
-                prev->next_pending = entry->next_pending;
-            }
-
-            break;
-        }
-
-        prev = entry;
-        entry = entry->next_pending;
-    }
-
-    return;
-}
-
-/**
- * __rmcResponseTimerHandler()
+ * __rmcLeaderSelectTimerHandler()
  *
  *FUNCTION:
  * This function is called upon timer expiry.
@@ -664,154 +540,120 @@ __rmcPendingRespQueueRemove(tpAniSirGlobal pMac, tSirMacAddr mcastGroupAddr,
  */
 
 void
-__rmcResponseTimerHandler(void *pMacGlobal, tANI_U32 param)
+__rmcLeaderSelectTimerHandler(void *pMacGlobal, tANI_U32 param)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)pMacGlobal;
-    tLimRmcGroupContext *pending;
-    tLimRmcGroupContext *new_head;
+    tSirMacAddr zeroMacAddr = { 0, 0, 0, 0, 0, 0 };
     tSirRetStatus status;
+    tSirRMCInfo RMC;
+    tpPESession psessionEntry;
+    tANI_U32 cfgValue;
+
+    /*
+     * This API relies on a single active IBSS session.
+     */
+    psessionEntry = limIsIBSSSessionActive(pMac);
+    if (NULL == psessionEntry)
+    {
+        PELOGE(limLog(pMac, LOGE,
+             FL("RMC:__rmcLeaderSelectTimerHandler:No active IBSS"));)
+        return;
+    }
+
+    if (wlan_cfgGetInt(pMac, WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY,
+                  &cfgValue) != eSIR_SUCCESS)
+    {
+        /**
+         * Could not get Action Period Frequency value
+         * from CFG. Log error.
+         */
+        limLog(pMac, LOGE, FL("could not retrieve ActionPeriodFrequency"));
+    }
+
+    cfgValue = SYS_MS_TO_TICKS(cfgValue);
+
+    if (pMac->rmcContext.rmcTimerValInTicks != cfgValue)
+    {
+        limLog(pMac, LOG1, FL("RMC LeaderSelect timer value changed"));
+        if (tx_timer_change(&pMac->rmcContext.gRmcLeaderSelectTimer,
+                 cfgValue, 0) != TX_SUCCESS)
+        {
+            limLog(pMac, LOGE,
+                FL("Unable to change LeaderSelect Timer val"));
+        }
+        pMac->rmcContext.rmcTimerValInTicks = cfgValue;
+    }
 
     /* Acquire RMC lock */
     if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
     {
-        limLog(pMac, LOGE, FL("__rmcResponseTimerHandler lock acquire failed"));
-        if (tx_timer_activate(&pMac->rmcContext.gRmcResponseTimer)!= TX_SUCCESS)
+        limLog(pMac, LOGE,
+             FL("__rmcLeaderSelectTimerHandler lock acquire failed"));
+        if (tx_timer_activate(&pMac->rmcContext.gRmcLeaderSelectTimer)!= TX_SUCCESS)
+        {
+            limLog(pMac, LOGE, FL("could not activate RMC LeaderSelect timer"));
+        }
+        return;
+    }
+
+    vos_mem_copy(&RMC.mcastLeader, &pMac->rmcContext.leader,
+                     sizeof(tSirMacAddr));
+
+    if (VOS_FALSE == vos_mem_compare(&zeroMacAddr,
+                            &pMac->rmcContext.leader, sizeof(tSirMacAddr)))
+    {
+        limLog(pMac, LOG1,
+               FL("RMC Periodic Leader_Select Leader " MAC_ADDRESS_STR),
+                   MAC_ADDR_ARRAY(pMac->rmcContext.leader));
+        /*
+         * Re-arm timer
+         */
+        if (tx_timer_activate(&pMac->rmcContext.gRmcLeaderSelectTimer)!=
+            TX_SUCCESS)
         {
             limLog(pMac, LOGE, FL("could not activate RMC Response timer"));
         }
-        return;
-    }
 
-    pending = pMac->rmcContext.pendingRespQueue;
-
-    /*
-     * Check if there is anything to process.
-     * Do not reschedule timer if nothing is pending.
-     */
-    if (NULL == pending)
-    {
-        if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
+        /* Release RMC lock */
+        if (!VOS_IS_STATUS_SUCCESS
+                (vos_lock_release(&pMac->rmcContext.lkRmcLock)))
         {
             limLog(pMac, LOGE,
-                FL("RMC: __rmcResponseTimerHandler lock release failed"));
+                FL("RMC: __rmcLeaderSelectTimerHandler lock release failed"));
         }
-        return;
     }
-
-    new_head = pending->next_pending;
-
-    /*
-     * Handle multicast groups that are waiting for LEADER_INFORM_ACK.
-     */
-    if (eRMC_LEADER_OTA_REQUEST_SENT == pending->state)
+    else
     {
-        tANI_U8 next_leader_index =
-                 (pending->leader_index + 1) & (SIR_RMC_NUM_MAX_LEADERS - 1);
-        tSirMacAddr zeroMacAddr = { 0, 0, 0, 0, 0, 0 };
-        tSirMacAddr *leader = &pending->leaderList[pending->leader_index];
-
         limLog(pMac, LOGE,
-               FL("RMC Response timeout for" MAC_ADDRESS_STR
-                   "leader" MAC_ADDRESS_STR),
-                   MAC_ADDR_ARRAY(pending->groupAddr), MAC_ADDR_ARRAY(*leader));
+               FL("RMC Deactivating timer because no leader was selected"));
 
-        /*
-         * If we have wrapped around on the leader_index, or we have
-         * exhausted our leader list, we disable RMC for this mcast group.
-         */
-        if (next_leader_index !=  0 &&
-            (VOS_FALSE == vos_mem_compare(&zeroMacAddr,
-                            &pending->leaderList[next_leader_index],
-                            sizeof(tSirMacAddr))))
+        /* Release RMC lock */
+        if (!VOS_IS_STATUS_SUCCESS
+                (vos_lock_release(&pMac->rmcContext.lkRmcLock)))
         {
-            tSirRMCInfo RMC;
-
-            /*
-             * Send Leader_Inform Action frame to the candidate leader.
-             * Candidate leader is at leader_index.
-             */
-            RMC.dialogToken = 0;
-            RMC.action = SIR_MAC_RMC_LEADER_INFORM_SELECTED;
-            vos_mem_copy(&RMC.mcastGroup, &pending->groupAddr,
-                         sizeof(tSirMacAddr));
-
-            status = limSendRMCActionFrame(pMac,
-                          pending->leaderList[next_leader_index],
-                          &RMC,
-                          pending->psessionEntry);
-
-            if (eSIR_FAILURE == status)
-            {
-                PELOGE(limLog(pMac, LOGE,
-                 FL("RMC:__rmcResponseTimerHandler Action frame send failed"));)
-            }
-
-            pending->leader_index = next_leader_index;
-            pending->state = eRMC_LEADER_OTA_REQUEST_SENT;
-
-            leader = &pending->leaderList[next_leader_index];
             limLog(pMac, LOGE,
-               FL("RMC Response timeout trying new leader " MAC_ADDRESS_STR),
-                     *leader[0], *leader[1], *leader[2],
-                     *leader[3], *leader[4], *leader[5]);
-            /*
-             * Re-arm timer and keep the same pending head
-             */
-            if (tx_timer_activate(&pMac->rmcContext.gRmcResponseTimer)!=
-                TX_SUCCESS)
-            {
-                limLog(pMac, LOGE, FL("could not activate RMC Response timer"));
-            }
-
-            if (!VOS_IS_STATUS_SUCCESS
-                    (vos_lock_release(&pMac->rmcContext.lkRmcLock)))
-            {
-                limLog(pMac, LOGE,
-                    FL("RMC: __rmcResponseTimerHandler lock release failed"));
-            }
-
-            return;
+                FL("RMC: __rmcLeaderSelectTimerHandler lock release failed"));
         }
+
+        return;
     }
 
-
-    limLog(pMac, LOGE,
-           FL("RMC:All attempts exhausted for" MAC_ADDRESS_STR),
-           pending->groupAddr[0], pending->groupAddr[1], pending->groupAddr[2],
-           pending->groupAddr[3], pending->groupAddr[4], pending->groupAddr[5]);
-
     /*
-     * Delete hash entry for this Group address.
+     * Handle periodic transmission of Leader_Select Action frame.
      */
-    status = __rmcGroupDeleteHashEntry(pMac, pending->groupAddr,
-                         pending->transmitter, eRMC_TRANSMITTER_ROLE);
+
+    RMC.dialogToken = 0;
+    RMC.action = SIR_MAC_RMC_LEADER_INFORM_SELECTED;
+
+    status = limSendRMCActionFrame(pMac,
+                          SIR_MAC_RMC_MCAST_ADDRESS,
+                          &RMC,
+                          psessionEntry);
+
     if (eSIR_FAILURE == status)
     {
         PELOGE(limLog(pMac, LOGE,
-                 FL("RMC: __rmcResponseTimerHandler delete failed"));)
-    }
-
-    /*
-     * Update the pending queue
-     */
-    pMac->rmcContext.pendingRespQueue = new_head;
-
-    /*
-     * Re-arm timer if the queue has items
-     */
-    if (pMac->rmcContext.pendingRespQueue)
-    {
-        if (tx_timer_activate(&pMac->rmcContext.gRmcResponseTimer)!= TX_SUCCESS)
-        {
-            limLog(pMac, LOGE, FL("could not activate RMC Response timer"));
-        }
-    }
-
-    /* Release RMC lock */
-    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
-    {
-        limLog(pMac, LOGE,
-            FL("RMC: __rmcResponseTimerHandler lock release failed"));
+         FL("RMC:__rmcLeaderSelectTimerHandler Action frame send failed"));)
     }
 
     return;
@@ -839,8 +681,6 @@ static void
 __limProcessRMCEnableRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tSirSetRMCReq *setRmcReq = (tSirSetRMCReq *)pMsgBuf;
-    tLimRmcGroupContext *entry;
-    tSirMacAddr mcastGroup;
 
     if (!setRmcReq)
     {
@@ -848,35 +688,11 @@ __limProcessRMCEnableRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    /*
-     * Convert Multicast IP address to the Multicast Group MAC Address
-     * (01-00-5E-xx-xx-xx).
-     */
-    mcastGroup[0] = 0x01;
-    mcastGroup[1] = 0x00;
-    mcastGroup[2] = 0x5e;
-    mcastGroup[3] = setRmcReq->mcastGroupIpAddr[1] & 0x7f; // mask off bit-23
-    mcastGroup[4] = setRmcReq->mcastGroupIpAddr[2];
-    mcastGroup[5] = setRmcReq->mcastGroupIpAddr[3];
-
-    /*
-     * Insert an entry for this Multicast Group address
-     */
-    entry = __rmcGroupInsertHashEntry(pMac, mcastGroup,
-                     setRmcReq->mcastTransmitter, eRMC_TRANSMITTER_ROLE);
-    if (NULL == entry)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC: Enable:Hash insert failed"));)
-        return;
-    }
-
     /* Send LBP_LEADER_REQ to f/w */
-    __limPostMsgLeaderReq(pMac, eRMC_SUGGEST_LEADER_CMD, mcastGroup,
+    __limPostMsgLeaderReq(pMac, eRMC_SUGGEST_LEADER_CMD,
                         setRmcReq->mcastTransmitter);
 
-    // TODO start timer
-
-    entry->state = eRMC_LEADER_ENABLE_REQUESTED;
+    pMac->rmcContext.state = eRMC_LEADER_ENABLE_REQUESTED;
 }
 
 /**
@@ -903,12 +719,10 @@ __limProcessRMCDisableRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tpPESession psessionEntry;
     tSirRMCInfo RMC;
     tSirSetRMCReq *setRmcReq = (tSirSetRMCReq *)pMsgBuf;
-    tSirMacAddr mcastGroup;
     tSirRetStatus status;
-    tLimRmcGroupContext *entry;
     v_PVOID_t pvosGCtx;
     VOS_STATUS vos_status;
-    v_MACADDR_t vosMcast;
+    v_MACADDR_t vosMcastTransmitter;
 
     /*
      * This API relies on a single active IBSS session.
@@ -926,96 +740,50 @@ __limProcessRMCDisableRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    /*
-     * Convert Multicast IP address to the Multicast Group MAC Address
-     * (01-00-5E-xx-xx-xx).
-     */
-    mcastGroup[0] = 0x01;
-    mcastGroup[1] = 0x00;
-    mcastGroup[2] = 0x5e;
-    mcastGroup[3] = setRmcReq->mcastGroupIpAddr[1] & 0x7f; // mask off bit-23
-    mcastGroup[4] = setRmcReq->mcastGroupIpAddr[2];
-    mcastGroup[5] = setRmcReq->mcastGroupIpAddr[3];
+    /* Cancel pending timer */
+    tx_timer_deactivate(&pMac->rmcContext.gRmcLeaderSelectTimer);
 
-    /* Copy it into v_MACADDR_t format for TL */
-    vosMcast.bytes[0] = mcastGroup[0];
-    vosMcast.bytes[1] = mcastGroup[1];
-    vosMcast.bytes[2] = mcastGroup[2];
-    vosMcast.bytes[3] = mcastGroup[3];
-    vosMcast.bytes[4] = mcastGroup[4];
-    vosMcast.bytes[5] = mcastGroup[5];
+    vosMcastTransmitter.bytes[0] = psessionEntry->selfMacAddr[0];
+    vosMcastTransmitter.bytes[1] = psessionEntry->selfMacAddr[1];
+    vosMcastTransmitter.bytes[2] = psessionEntry->selfMacAddr[2];
+    vosMcastTransmitter.bytes[3] = psessionEntry->selfMacAddr[3];
+    vosMcastTransmitter.bytes[4] = psessionEntry->selfMacAddr[4];
+    vosMcastTransmitter.bytes[5] = psessionEntry->selfMacAddr[5];
 
     /* Disable RMC in TL */
     pvosGCtx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
-    vos_status = WLANTL_DisableReliableMcast(pvosGCtx, &vosMcast);
+    vos_status = WLANTL_DisableReliableMcast(pvosGCtx, &vosMcastTransmitter);
 
     if (VOS_STATUS_SUCCESS != vos_status)
     {
         PELOGE(limLog(pMac, LOGE, FL("RMC:Disable: TL disable failed"));)
     }
 
-    /* Acquire RMC lock */
-    if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
-    {
-        limLog(pMac, LOGE, FL("RMC:Disable lock acquire failed"));
-        return;
-    }
-
-    /*
-     * Find the entry for this Group Address.
-     */
-    entry = __rmcGroupLookupHashEntry(pMac, mcastGroup,
-                        setRmcReq->mcastTransmitter, eRMC_TRANSMITTER_ROLE);
-
-    if (!entry)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC:Disable: No entry"));)
-        goto done;
-    }
-
-    if (entry->state == eRMC_LEADER_ACTIVE)
+    if (pMac->rmcContext.state == eRMC_LEADER_ACTIVE)
     {
         /*
          * Send Leader_Inform_Cancelled Action frame to the Leader.
          */
         RMC.dialogToken = 0;
         RMC.action = SIR_MAC_RMC_LEADER_INFORM_CANCELLED;
-        vos_mem_copy(&RMC.mcastGroup, &mcastGroup, sizeof(tSirMacAddr));
+        vos_mem_copy(&RMC.mcastLeader, &pMac->rmcContext.leader, sizeof(tSirMacAddr));
 
-        status = limSendRMCActionFrame(pMac, entry->leaderList[entry->leader_index],
+        status = limSendRMCActionFrame(pMac, pMac->rmcContext.leader,
                              &RMC, psessionEntry);
         if (eSIR_FAILURE == status)
         {
             PELOGE(limLog(pMac, LOGE, FL("RMC:Disable: Action frame send failed"));)
         }
+
+        pMac->rmcContext.state = eRMC_LEADER_NOT_SELECTED;
     }
 
     /* send LBP_UPDATE_IND */
     __limPostMsgUpdateInd(pMac, eRMC_LEADER_CANCELLED, eRMC_TRANSMITTER_ROLE,
-                         mcastGroup, setRmcReq->mcastTransmitter,
-                         entry->leaderList[entry->leader_index]);
+                         setRmcReq->mcastTransmitter, pMac->rmcContext.leader);
 
-    /*
-     * Remove  the groupfrom pending queue if present.
-     */
-    __rmcPendingRespQueueRemove(pMac, mcastGroup, setRmcReq->mcastTransmitter);
+    vos_mem_zero(pMac->rmcContext.leader, sizeof(tSirMacAddr));
 
-    /*
-     * Delete hash entry for this Group address.
-     */
-    status = __rmcGroupDeleteHashEntry(pMac, mcastGroup,
-                        setRmcReq->mcastTransmitter, eRMC_TRANSMITTER_ROLE);
-    if (eSIR_FAILURE == status)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC: Disable:hash delete failed"));)
-    }
-
-done:
-    /* Release RMC lock */
-    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
-    {
-        limLog(pMac, LOGE, FL("RMC: Disable: lock release failed"));
-    }
 }
 
 /**
@@ -1040,9 +808,11 @@ static void
 __limProcessRMCLeaderSelectResponse(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tSirRmcLeaderSelectInd *pRmcLeaderSelectInd;
-    tLimRmcGroupContext *entry;
     tpPESession psessionEntry;
     tSirRetStatus status;
+    v_PVOID_t pvosGCtx;
+    VOS_STATUS vos_status;
+    v_MACADDR_t vosMcastTransmitter;
     tSirRMCInfo RMC;
 
     if (NULL == pMsgBuf)
@@ -1063,6 +833,21 @@ __limProcessRMCLeaderSelectResponse(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     pRmcLeaderSelectInd = (tSirRmcLeaderSelectInd *)pMsgBuf;
 
+    if (pMac->rmcContext.state != eRMC_LEADER_ENABLE_REQUESTED)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Select_Resp:Bad state %s"),
+                        __limMcastTxStateToString(pMac->rmcContext.state) );)
+        return;
+    }
+
+    if (pRmcLeaderSelectInd->status)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("RMC:Leader_Select_Resp:FW Status %d"),
+                        pRmcLeaderSelectInd->status);)
+
+        return;
+    }
+
     /* Acquire RMC lock */
     if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
     {
@@ -1070,57 +855,31 @@ __limProcessRMCLeaderSelectResponse(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    /*
-     * Find the entry for this Group Address.
-     */
-    entry = __rmcGroupLookupHashEntry(pMac,
-                       pRmcLeaderSelectInd->mcastGroup,
-                       pRmcLeaderSelectInd->mcastTransmitter,
-                       eRMC_TRANSMITTER_ROLE);
-    if (!entry)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC:Leader_Select_Resp: No entry"));)
-        /*
-         * Not marking error because there is nothing to delete from hash.
-         */
-        goto done;
-    }
+    /* Cache the current leader */
+    vos_mem_copy(&pMac->rmcContext.leader, &pRmcLeaderSelectInd->leader[0],
+                 sizeof(tSirMacAddr));
 
-    if (entry->state != eRMC_LEADER_ENABLE_REQUESTED)
+    /* Release RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS
+            (vos_lock_release(&pMac->rmcContext.lkRmcLock)))
     {
-        PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Select_Resp:Bad state %s"),
-                        __limMcastTxStateToString(entry->state) );)
-        status = eSIR_FAILURE;
-        goto done;
+        limLog(pMac, LOGE, FL("RMC: Leader_Select_Resp: lock release failed"));
     }
-
-    if (pRmcLeaderSelectInd->status)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC:Leader_Select_Resp:FW Status %d"),
-                        pRmcLeaderSelectInd->status);)
-        status = eSIR_FAILURE;
-        goto done;
-    }
-
-    entry->psessionEntry = psessionEntry;
 
     RMC.dialogToken = 0;
     RMC.action = SIR_MAC_RMC_LEADER_INFORM_SELECTED;
-    vos_mem_copy(&RMC.mcastGroup, &pRmcLeaderSelectInd->mcastGroup,
+    vos_mem_copy(&RMC.mcastLeader, &pRmcLeaderSelectInd->leader[0],
                  sizeof(tSirMacAddr));
 
-    /* Cache the leader list for this multicast group */
-    vos_mem_copy(entry->leaderList, pRmcLeaderSelectInd->leader,
-                 sizeof(entry->leaderList));
-
     PELOG1(limLog(pMac, LOG1, FL("RMC: Leader_Select :leader " MAC_ADDRESS_STR),
-             MAC_ADDR_ARRAY(pRmcLeaderSelectInd->leader[entry->leader_index]));)
+             MAC_ADDR_ARRAY(pRmcLeaderSelectInd->leader[0]));)
+
     /*
      * Send Leader_Inform Action frame to the candidate leader.
      * Candidate leader is at leader_index.
      */
     status = limSendRMCActionFrame(pMac,
-                          pRmcLeaderSelectInd->leader[entry->leader_index],
+                          SIR_MAC_RMC_MCAST_ADDRESS,
                           &RMC,
                           psessionEntry);
 
@@ -1130,31 +889,29 @@ __limProcessRMCLeaderSelectResponse(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
          FL("RMC: Leader_Select_Resp: Action send failed"));)
     }
 
-    entry->state = eRMC_LEADER_OTA_REQUEST_SENT;
+    /* send LBP_UPDATE_IND */
+    __limPostMsgUpdateInd(pMac, eRMC_LEADER_ACCEPTED, eRMC_TRANSMITTER_ROLE,
+                 psessionEntry->selfMacAddr, pMac->rmcContext.leader);
 
-    /* Add request to the pending response queue. */
-    __rmcPendingRespQueueAdd(pMac, pRmcLeaderSelectInd->mcastGroup,
-                       pRmcLeaderSelectInd->mcastTransmitter);
+    vosMcastTransmitter.bytes[0] = psessionEntry->selfMacAddr[0];
+    vosMcastTransmitter.bytes[1] = psessionEntry->selfMacAddr[1];
+    vosMcastTransmitter.bytes[2] = psessionEntry->selfMacAddr[2];
+    vosMcastTransmitter.bytes[3] = psessionEntry->selfMacAddr[3];
+    vosMcastTransmitter.bytes[4] = psessionEntry->selfMacAddr[4];
+    vosMcastTransmitter.bytes[5] = psessionEntry->selfMacAddr[5];
 
-done:
-    if (eSIR_FAILURE == status)
-    {
-        status = __rmcGroupDeleteHashEntry(pMac,
-                       pRmcLeaderSelectInd->mcastGroup,
-                       pRmcLeaderSelectInd->mcastTransmitter,
-                       eRMC_TRANSMITTER_ROLE);
-        if (eSIR_FAILURE == status)
-        {
-            PELOGE(limLog(pMac, LOGE,
-                      FL("RMC: Leader_Select_Resp:hash delete failed"));)
-        }
-    }
+    /* Enable TL */
+    pvosGCtx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
+    vos_status = WLANTL_EnableReliableMcast(pvosGCtx, &vosMcastTransmitter);
 
-    /* Release RMC lock */
-    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
+    /* Set leader state to Active. */
+    pMac->rmcContext.state = eRMC_LEADER_ACTIVE;
+
+    /* Start timer to send periodic Leader_Select */
+    if (tx_timer_activate(&pMac->rmcContext.gRmcLeaderSelectTimer)!= TX_SUCCESS)
     {
         limLog(pMac, LOGE,
-            FL("RMC: Leader_Select_Resp: lock release failed"));
+         FL("Leader_Select_Resp:Activate RMC Response timer failed"));
     }
 }
 
@@ -1180,10 +937,13 @@ static void
 __limProcessRMCLeaderPickNew(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tSirRmcUpdateInd *pRmcUpdateInd;
-    tLimRmcGroupContext *entry;
     tpPESession psessionEntry;
     tSirRetStatus status;
     tSirRMCInfo RMC;
+    v_PVOID_t pvosGCtx;
+    VOS_STATUS vos_status;
+    v_MACADDR_t vosMcastTransmitter;
+    tSirMacAddr zeroMacAddr = { 0, 0, 0, 0, 0, 0 };
 
     if (NULL == pMsgBuf)
     {
@@ -1201,6 +961,8 @@ __limProcessRMCLeaderPickNew(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
+    pvosGCtx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
+
     pRmcUpdateInd = (tSirRmcUpdateInd *)pMsgBuf;
 
     /* Acquire RMC lock */
@@ -1210,57 +972,82 @@ __limProcessRMCLeaderPickNew(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    /*
-     * Find the entry for this Group Address.
-     */
-    entry = __rmcGroupLookupHashEntry(pMac,
-                           pRmcUpdateInd->mcastGroup,
-                           pRmcUpdateInd->mcastTransmitter,
-                           eRMC_TRANSMITTER_ROLE);
-    if (!entry)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC:Leader_Pick_New: No entry"));)
-        goto done;
-    }
 
-    if (entry->state != eRMC_LEADER_ACTIVE)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Pick_New:Bad state %s"),
-                        __limMcastTxStateToString(entry->state) );)
-        goto done;
-    }
-
+    /* Fill out Action frame parameters */
     RMC.dialogToken = 0;
-    vos_mem_copy(&RMC.mcastGroup, &pRmcUpdateInd->mcastGroup,
+
+    /*
+     * Check the multicast Leader address sent by firmware.
+     * Prepare to send Leader_Inform_Cancel only if this address
+     * is valid.
+     */
+    if (VOS_FALSE == vos_mem_compare(&zeroMacAddr,
+                        &pRmcUpdateInd->mcastLeader,
+                        sizeof(tSirMacAddr)))
+    {
+
+        vos_mem_copy(&RMC.mcastLeader, &pRmcUpdateInd->mcastLeader,
+                     sizeof(tSirMacAddr));
+
+        /*
+         * Send Leader_Inform_Cancelled Action frame to the current leader.
+         */
+        RMC.action = SIR_MAC_RMC_LEADER_INFORM_CANCELLED;
+        status = limSendRMCActionFrame(pMac,
+                         pRmcUpdateInd->mcastLeader,
+                         &RMC, psessionEntry);
+        if (eSIR_FAILURE == status)
+        {
+            PELOGE(limLog(pMac, LOGE,
+                FL("RMC:Leader_Pick_New: Inform_Cancel Action send failed"));)
+            goto done;
+        }
+
+        vosMcastTransmitter.bytes[0] = psessionEntry->selfMacAddr[0];
+        vosMcastTransmitter.bytes[1] = psessionEntry->selfMacAddr[1];
+        vosMcastTransmitter.bytes[2] = psessionEntry->selfMacAddr[2];
+        vosMcastTransmitter.bytes[3] = psessionEntry->selfMacAddr[3];
+        vosMcastTransmitter.bytes[4] = psessionEntry->selfMacAddr[4];
+        vosMcastTransmitter.bytes[5] = psessionEntry->selfMacAddr[5];
+
+        /* Disable RMC in TL */
+        vos_status = WLANTL_DisableReliableMcast(pvosGCtx, &vosMcastTransmitter);
+
+        if (VOS_STATUS_SUCCESS != vos_status)
+        {
+            PELOGE(limLog(pMac, LOGE,
+                 FL("RMC:Leader_Pick_New: TL disable failed"));)
+        }
+    }
+
+    /*
+     * Cache the leader list for this multicast group
+     * If no leader list was given, this will essentially zero out
+     * the list.
+     */
+    vos_mem_copy(pMac->rmcContext.leader, pRmcUpdateInd->leader[0],
                  sizeof(tSirMacAddr));
 
+    pMac->rmcContext.state = eRMC_LEADER_NOT_SELECTED;
+
     /*
-     * Send Leader_Inform_Cancelled Action frame to the current leader.
+     * Verify that the Pick_New indication has any candidate leaders.
      */
-    RMC.action = SIR_MAC_RMC_LEADER_INFORM_CANCELLED;
-    status = limSendRMCActionFrame(pMac, entry->leaderList[entry->leader_index],
-                         &RMC, psessionEntry);
-    if (eSIR_FAILURE == status)
+    if (VOS_TRUE == vos_mem_compare(&zeroMacAddr,
+                        pMac->rmcContext.leader,
+                        sizeof(tSirMacAddr)))
     {
         PELOGE(limLog(pMac, LOGE,
-           FL("RMC:Leader_Pick_New: Inform_Cancel Action send failed"));)
+           FL("RMC:Leader_Pick_New: No candidate leaders available"));)
         goto done;
     }
-
-
-    /* Cache the leader list for this multicast group */
-    vos_mem_copy(entry->leaderList, pRmcUpdateInd->leader,
-                 sizeof(entry->leaderList));
-
-    /* Reset leader index */
-    entry->leader_index = 0;
 
     /*
      * Send Leader_Inform Action frame to the new candidate leader.
      */
 
     RMC.action = SIR_MAC_RMC_LEADER_INFORM_SELECTED;
-    status = limSendRMCActionFrame(pMac, entry->leaderList[entry->leader_index],
+    status = limSendRMCActionFrame(pMac, pMac->rmcContext.leader,
                          &RMC, psessionEntry);
     if (eSIR_FAILURE == status)
     {
@@ -1269,12 +1056,36 @@ __limProcessRMCLeaderPickNew(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         goto done;
     }
 
+    /* send LBP_UPDATE_IND */
+    __limPostMsgUpdateInd(pMac, eRMC_LEADER_ACCEPTED, eRMC_TRANSMITTER_ROLE,
+                         psessionEntry->selfMacAddr, pMac->rmcContext.leader);
 
-    entry->state = eRMC_LEADER_OTA_REQUEST_SENT;
+    vosMcastTransmitter.bytes[0] = psessionEntry->selfMacAddr[0];
+    vosMcastTransmitter.bytes[1] = psessionEntry->selfMacAddr[1];
+    vosMcastTransmitter.bytes[2] = psessionEntry->selfMacAddr[2];
+    vosMcastTransmitter.bytes[3] = psessionEntry->selfMacAddr[3];
+    vosMcastTransmitter.bytes[4] = psessionEntry->selfMacAddr[4];
+    vosMcastTransmitter.bytes[5] = psessionEntry->selfMacAddr[5];
 
-    /* Add request to the pending response queue. */
-    __rmcPendingRespQueueAdd(pMac, pRmcUpdateInd->mcastGroup,
-                           pRmcUpdateInd->mcastTransmitter);
+    /* Enable TL */
+    vos_status = WLANTL_EnableReliableMcast(pvosGCtx, &vosMcastTransmitter);
+
+    if (VOS_STATUS_SUCCESS != vos_status)
+    {
+        PELOGE(limLog(pMac, LOGE,
+            FL("RMC:Leader_Pick_New: TL enable failed"));)
+        goto done;
+    }
+
+    /* Set leader state to Active. */
+    pMac->rmcContext.state = eRMC_LEADER_ACTIVE;
+
+    /* Start timer to send periodic Leader_Select */
+    if (tx_timer_activate(&pMac->rmcContext.gRmcLeaderSelectTimer)!= TX_SUCCESS)
+    {
+        limLog(pMac, LOGE,
+         FL("Leader_Pick_New:Activate RMC Response timer failed"));
+    }
 
 done:
     /* Release RMC lock */
@@ -1283,120 +1094,6 @@ done:
         limLog(pMac, LOGE,
             FL("RMC: Leader_Pick_New: lock release failed"));
     }
-}
-
-/**
- * __limProcessRMCLeaderInformAck()
- *
- *FUNCTION:
- * This function is called to processes eLIM_RMC_OTA_LEADER_INFORM_ACK
- * message from the "Leader Inform Ack" Action frame from the Leader.
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- *
- *NOTE:
- *
- * @param pMac       Pointer to Global MAC structure
- * @param pMsgBuf    A pointer to the RMC message buffer
- *
- * @return None
- */
-static void
-__limProcessRMCLeaderInformAck(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
-{
-    tpSirMacMgmtHdr pHdr;
-    tLimRmcGroupContext *entry;
-    tANI_U8 *pFrameData;
-    tSirMacAddr mcastGroup;
-    v_PVOID_t pvosGCtx;
-    VOS_STATUS vos_status;
-    v_MACADDR_t vosMcast;
-
-    if (!pMsgBuf)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Inform_Ack:NULL msg"));)
-        return;
-    }
-
-    pHdr = WDA_GET_RX_MAC_HEADER((tANI_U8 *)pMsgBuf);
-    pFrameData = WDA_GET_RX_MPDU_DATA((tANI_U8 *)pMsgBuf) +
-                    sizeof(tSirMacOxygenNetworkFrameHdr);
-
-    if (!pFrameData)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Inform_Ack:NULL data"));)
-        return;
-    }
-
-    /* Copy the multicast group address from the Action frame payload. */
-    vos_mem_copy(&mcastGroup, pFrameData, sizeof(tSirMacAddr));
-
-    /* Acquire RMC lock */
-    if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
-    {
-        limLog(pMac, LOGE, FL("RMC:Leader_Inform_Ack lock acquire failed"));
-        return;
-    }
-
-    /*
-     * Find the entry for this Group Address.
-     */
-    entry = __rmcGroupLookupHashEntry(pMac, mcastGroup, pHdr->da,
-                                            eRMC_TRANSMITTER_ROLE);
-    if (!entry)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC:Leader_Inform_Ack: No entry"));)
-        goto done;
-    }
-
-    if (entry->state != eRMC_LEADER_OTA_REQUEST_SENT)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Inform_Ack:Bad state %s"),
-                        __limMcastTxStateToString(entry->state) );)
-        goto done;
-    }
-
-    /* send LBP_UPDATE_IND */
-    __limPostMsgUpdateInd(pMac, eRMC_LEADER_ACCEPTED, eRMC_TRANSMITTER_ROLE,
-                         mcastGroup, pHdr->da, pHdr->sa);
-
-    /* Copy it into v_MACADDR_t format for TL */
-    vosMcast.bytes[0] = mcastGroup[0];
-    vosMcast.bytes[1] = mcastGroup[1];
-    vosMcast.bytes[2] = mcastGroup[2];
-    vosMcast.bytes[3] = mcastGroup[3];
-    vosMcast.bytes[4] = mcastGroup[4];
-    vosMcast.bytes[5] = mcastGroup[5];
-
-    /* Enable TL */
-    pvosGCtx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *) pMac);
-    vos_status = WLANTL_EnableReliableMcast(pvosGCtx, &vosMcast);
-
-    if (VOS_STATUS_SUCCESS != vos_status)
-    {
-        PELOGE(limLog(pMac, LOGE,
-            FL("RMC:Leader_Inform_Ack: TL enable failed"));)
-    }
-
-    /* Set leader state to Active. */
-    entry->state = eRMC_LEADER_ACTIVE;
-
-    /*
-     * Since we recevied the response from the leader, remove the entry
-     * from the pending queue.
-     */
-    __rmcPendingRespQueueRemove(pMac, mcastGroup, pHdr->da);
-
-done:
-    /* Release RMC lock */
-    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
-    {
-        limLog(pMac, LOGE, FL("RMC: Leader_Inform_Ack: lock release failed"));
-    }
-
-    return;
 }
 
 /**
@@ -1423,8 +1120,9 @@ __limProcessRMCLeaderInformSelected(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tpSirMacMgmtHdr pHdr;
     tANI_U8 *pFrameData;
-    tSirMacAddr mcastGroup;
+    tANI_U32 frameLen;
     tLimRmcGroupContext *entry;
+    tpPESession psessionEntry;
 
     if (!pMsgBuf)
     {
@@ -1432,7 +1130,29 @@ __limProcessRMCLeaderInformSelected(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
+    /*
+     * This API relies on a single active IBSS session.
+     */
+    psessionEntry = limIsIBSSSessionActive(pMac);
+    if (NULL == psessionEntry)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("RMC:Become_Leader_Resp:No active IBSS"));)
+        return;
+    }
+
+    /*
+     * Get the frame header
+     */
     pHdr = WDA_GET_RX_MAC_HEADER((tANI_U8 *)pMsgBuf);
+
+    frameLen = WDA_GET_RX_PAYLOAD_LEN((tANI_U8 *)pMsgBuf);
+    if (frameLen < sizeof(tSirMacOxygenNetworkFrameHdr))
+    {
+        PELOGE(limLog(pMac, LOGE,
+             FL("RMC: Leader_Inform:Bad length %d "), frameLen);)
+        return;
+    }
+
     pFrameData = WDA_GET_RX_MPDU_DATA((tANI_U8 *)pMsgBuf) +
                     sizeof(tSirMacOxygenNetworkFrameHdr);
 
@@ -1441,22 +1161,76 @@ __limProcessRMCLeaderInformSelected(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Inform:NULL data"));)
         return;
     }
-    /* Copy the multicast group address from the Action frame payload. */
-    vos_mem_copy(&mcastGroup, pFrameData, sizeof(tSirMacAddr));
 
-    /* Add the group address to the hash */
-    entry = __rmcGroupInsertHashEntry(pMac, mcastGroup, pHdr->sa,
-                                 eRMC_LEADER_ROLE);
-    if (NULL == entry)
+    /* Acquire RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
     {
-        PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Inform:Hash insert failed"));)
+        limLog(pMac, LOGE, FL("RMC:Become_Leader_Resp:lock acquire failed"));
         return;
     }
 
-    /* Send LBP_LEADER_REQ to f/w */
-    __limPostMsgLeaderReq(pMac, eRMC_BECOME_LEADER_CMD, mcastGroup, pHdr->sa);
+    /*
+     * Check if this transmitter exists in our database.
+     */
+    entry = __rmcGroupLookupHashEntry(pMac, pHdr->sa);
 
-    entry->isLeader = eRMC_LEADER_PENDING;
+    /*
+     * Check if we are being advertised as the leader.
+     * The leader address is from the Action frame payload.
+     */
+    if (VOS_FALSE == vos_mem_compare(pFrameData, psessionEntry->selfMacAddr,
+                                     sizeof(tSirMacAddr)))
+    {
+        /*
+         * If we were the leader for this transmitter, tell the firmware
+         * that we are not any more.  This is a implicit Leader_Cancel.
+         */
+        if (entry)
+        {
+            PELOGE(limLog(pMac, LOGE,
+                 FL("RMC: Leader_Inform: Leader Cancelled"));)
+            /* send LBP_UPDATE_IND */
+            __limPostMsgUpdateInd(pMac, eRMC_LEADER_CANCELLED,
+                      eRMC_LEADER_ROLE, pHdr->sa, psessionEntry->selfMacAddr);
+        }
+    }
+    else
+    {
+        /*
+         * If we have been selected as the new leader for this transmitter,
+         * add it to your database.  If we are already in the database, there
+         * is nothing to do.
+         */
+        if (NULL == entry)
+        {
+            /* Add the transmitter address to the hash */
+            entry = __rmcGroupInsertHashEntry(pMac, pHdr->sa);
+            if (entry)
+            {
+                if (entry->isLeader != eRMC_LEADER_PENDING)
+                {
+                    /* Send LBP_LEADER_REQ to f/w */
+                    __limPostMsgLeaderReq(pMac, eRMC_BECOME_LEADER_CMD,
+                                         pHdr->sa);
+                    entry->isLeader = eRMC_LEADER_PENDING;
+                }
+            }
+            else
+            {
+                PELOGE(limLog(pMac, LOGE,
+                         FL("RMC: Leader_Inform:Hash insert failed"));)
+            }
+
+        }
+    }
+
+    /* Release RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
+    {
+        limLog(pMac, LOGE,
+            FL("RMC: Leader_Inform: lock release failed"));
+    }
+
 }
 
 /**
@@ -1482,9 +1256,7 @@ __limProcessRMCBecomeLeaderResp(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tSirRmcBecomeLeaderInd *pRmcBecomeLeaderInd;
     tLimRmcGroupContext *entry;
-    tpPESession psessionEntry;
-    tSirRetStatus status;
-    tSirRMCInfo RMC;
+    tSirRetStatus status = eSIR_SUCCESS;
 
     if (NULL == pMsgBuf)
     {
@@ -1492,21 +1264,7 @@ __limProcessRMCBecomeLeaderResp(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    /*
-     * This API relies on a single active IBSS session.
-     */
-    psessionEntry = limIsIBSSSessionActive(pMac);
-    if (NULL == psessionEntry)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC:Become_Leader_Resp:No active IBSS"));)
-        return;
-    }
-
     pRmcBecomeLeaderInd = (tSirRmcBecomeLeaderInd *)pMsgBuf;
-    RMC.dialogToken = 0;
-    RMC.action = SIR_MAC_RMC_LEADER_INFORM_ACK;
-    vos_mem_copy(&RMC.mcastGroup, &pRmcBecomeLeaderInd->mcastGroup,
-                 sizeof(tSirMacAddr));
 
     /* Acquire RMC lock */
     if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
@@ -1515,23 +1273,21 @@ __limProcessRMCBecomeLeaderResp(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-    if (pRmcBecomeLeaderInd->status)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("RMC:Become_Leader_Resp:FW Status %d"),
-                        pRmcBecomeLeaderInd->status);)
-        status = eSIR_FAILURE;
-        goto done;
-    }
-
     /*
      * Find the entry for this Group Address.
      */
     entry = __rmcGroupLookupHashEntry(pMac,
-                  pRmcBecomeLeaderInd->mcastGroup,
-                  pRmcBecomeLeaderInd->mcastTransmitter, eRMC_LEADER_ROLE);
+                  pRmcBecomeLeaderInd->mcastTransmitter);
     if (NULL == entry)
     {
         PELOGE(limLog(pMac, LOGE, FL("RMC: Become_Leader_Resp: No entry"));)
+        goto done;
+    }
+
+    if (pRmcBecomeLeaderInd->status)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("RMC:Become_Leader_Resp:FW Status %d"),
+                        pRmcBecomeLeaderInd->status);)
         status = eSIR_FAILURE;
         goto done;
     }
@@ -1544,30 +1300,13 @@ __limProcessRMCBecomeLeaderResp(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         goto done;
     }
 
-
-    /*
-     * Send Leader_Inform_Ack Action frame to mcast transmitter.
-     */
-    status = limSendRMCActionFrame(pMac, pRmcBecomeLeaderInd->mcastTransmitter,
-                         &RMC, psessionEntry);
-    if (eSIR_FAILURE == status)
-    {
-        PELOGE(limLog(pMac, LOGE,
-           FL("RMC:Become_Leader_Resp: Action send failed"));)
-        status = eSIR_FAILURE;
-        goto done;
-    }
-
-
     entry->isLeader = eRMC_IS_A_LEADER;
 
 done:
     if (eSIR_FAILURE == status)
     {
         status = __rmcGroupDeleteHashEntry(pMac,
-                       pRmcBecomeLeaderInd->mcastGroup,
-                       pRmcBecomeLeaderInd->mcastTransmitter,
-                       eRMC_LEADER_ROLE);
+                       pRmcBecomeLeaderInd->mcastTransmitter);
         if (eSIR_FAILURE == status)
         {
             PELOGE(limLog(pMac, LOGE,
@@ -1609,9 +1348,10 @@ __limProcessRMCLeaderInformCancelled(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tpSirMacMgmtHdr pHdr;
     tANI_U8 *pFrameData;
-    tSirMacAddr mcastGroup;
+    tANI_U32 frameLen;
     tSirRetStatus status;
     tLimRmcGroupContext *entry;
+    tpPESession psessionEntry;
 
     if (!pMsgBuf)
     {
@@ -1619,7 +1359,27 @@ __limProcessRMCLeaderInformCancelled(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
+    /*
+     * This API relies on a single active IBSS session.
+     */
+    psessionEntry = limIsIBSSSessionActive(pMac);
+    if (NULL == psessionEntry)
+    {
+        PELOGE(limLog(pMac, LOGE,
+             FL("RMC:Leader_Inform_Cancel:No active IBSS"));)
+        return;
+    }
+
     pHdr = WDA_GET_RX_MAC_HEADER((tANI_U8 *)pMsgBuf);
+
+    frameLen = WDA_GET_RX_PAYLOAD_LEN((tANI_U8 *)pMsgBuf);
+    if (frameLen < sizeof(tSirMacOxygenNetworkFrameHdr))
+    {
+        PELOGE(limLog(pMac, LOGE,
+             FL("RMC: Leader_Inform:Bad length %d "), frameLen);)
+        return;
+    }
+
     pFrameData = WDA_GET_RX_MPDU_DATA((tANI_U8 *)pMsgBuf) +
                     sizeof(tSirMacOxygenNetworkFrameHdr);
 
@@ -1628,8 +1388,6 @@ __limProcessRMCLeaderInformCancelled(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Inform_Cancel:NULL data"));)
         return;
     }
-    /* Copy the multicast group address from the Action frame payload. */
-    vos_mem_copy(&mcastGroup, pFrameData, sizeof(tSirMacAddr));
 
     /* Acquire RMC lock */
     if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
@@ -1641,8 +1399,7 @@ __limProcessRMCLeaderInformCancelled(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     /*
      * Find the entry for this Group Address.
      */
-    entry = __rmcGroupLookupHashEntry(pMac, mcastGroup,
-                                     pHdr->sa, eRMC_LEADER_ROLE);
+    entry = __rmcGroupLookupHashEntry(pMac, pHdr->sa);
     if (NULL == entry)
     {
         PELOGE(limLog(pMac, LOGE, FL("RMC: Leader_Inform_Cancel: No entry"));)
@@ -1650,14 +1407,13 @@ __limProcessRMCLeaderInformCancelled(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
     /* send LBP_UPDATE_END */
-    __limPostMsgUpdateInd(pMac, eRMC_LEADER_CANCELLED, eRMC_LEADER_ROLE,
-                         mcastGroup, pHdr->sa, pHdr->da);
+    __limPostMsgUpdateInd(pMac, eRMC_LEADER_CANCELLED,
+                     eRMC_LEADER_ROLE, pHdr->sa, psessionEntry->selfMacAddr);
 
     /*
      * Delete hash entry for this Group address.
      */
-    status = __rmcGroupDeleteHashEntry(pMac, mcastGroup, pHdr->sa,
-                                       eRMC_LEADER_ROLE);
+    status = __rmcGroupDeleteHashEntry(pMac, pHdr->sa);
     if (eSIR_FAILURE == status)
     {
         PELOGE(limLog(pMac, LOGE,
@@ -1697,14 +1453,14 @@ limProcessRMCMessages(tpAniSirGlobal pMac, eRmcMessageType msgType,
                       tANI_U32 *pMsgBuf)
 {
 
-   if (pMsgBuf == NULL)
+    if (pMsgBuf == NULL)
     {
-           PELOGE(limLog(pMac, LOGE, FL("Buffer is Pointing to NULL"));)
-           return;
+        PELOGE(limLog(pMac, LOGE, FL("RMC: Buffer is Pointing to NULL"));)
+        return;
     }
 
-    PELOGE(limLog(pMac, LOGE, FL("RMC: limProcessRMCMessages: %s"),
-                        __limLeaderMessageToString(msgType) );)
+    limLog(pMac, LOG1, FL("RMC: limProcessRMCMessages: %s"),
+                        __limLeaderMessageToString(msgType));
 
     switch (msgType)
     {
@@ -1727,9 +1483,6 @@ limProcessRMCMessages(tpAniSirGlobal pMac, eRmcMessageType msgType,
             __limProcessRMCLeaderPickNew(pMac, pMsgBuf);
             break;
 
-        case eLIM_RMC_OTA_LEADER_INFORM_ACK:
-            __limProcessRMCLeaderInformAck(pMac, pMsgBuf);
-            break;
         /*
          * End - messages processed by RMC multicast transmitter.
          */
@@ -1759,9 +1512,39 @@ limProcessRMCMessages(tpAniSirGlobal pMac, eRmcMessageType msgType,
     return;
 } /*** end limProcessRMCMessages() ***/
 
+/**
+ * limRmcInit()
+ *
+ *FUNCTION:
+ * This function is called to initialize RMC module.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param pMac       Pointer to Global MAC structure
+ *
+ * @return None
+ */
 void
 limRmcInit(tpAniSirGlobal pMac)
 {
+    tANI_U32 cfgValue;
+
+    if (wlan_cfgGetInt(pMac, WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY,
+                  &cfgValue) != eSIR_SUCCESS)
+    {
+        /**
+         * Could not get Action Period Frequency value
+         * from CFG. Log error.
+         */
+        limLog(pMac, LOGP, FL("could not retrieve ActionPeriodFrequency"));
+    }
+
+    cfgValue = SYS_MS_TO_TICKS(cfgValue);
+
     vos_mem_zero(&pMac->rmcContext, sizeof(pMac->rmcContext));
 
     if (!VOS_IS_STATUS_SUCCESS(vos_lock_init(&pMac->rmcContext.lkRmcLock)))
@@ -1769,18 +1552,36 @@ limRmcInit(tpAniSirGlobal pMac)
         PELOGE(limLog(pMac, LOGE, FL("RMC lock init failed!"));)
     }
 
-    if (tx_timer_create(&pMac->rmcContext.gRmcResponseTimer,
+    if (tx_timer_create(&pMac->rmcContext.gRmcLeaderSelectTimer,
                             "RMC RSP TIMEOUT",
-                            __rmcResponseTimerHandler,
+                            __rmcLeaderSelectTimerHandler,
                             0 /* param */,
-                            50 /* ms */, 0,
+                            cfgValue, 0,
                             TX_NO_ACTIVATE) != TX_SUCCESS)
     {
         /*  Could not create RMC response timer. */
         limLog(pMac, LOGE, FL("could not create RMC response timer"));
     }
+
+    pMac->rmcContext.rmcTimerValInTicks = cfgValue;
 }
 
+/**
+ * limRmcCleanup()
+ *
+ *FUNCTION:
+ * This function is called to clean up RMC module.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS: limRmcIbssDelete should have been called before this.
+ *
+ *NOTE:
+ *
+ * @param pMac       Pointer to Global MAC structure
+ *
+ * @return None
+ */
 void
 limRmcCleanup(tpAniSirGlobal pMac)
 {
@@ -1789,7 +1590,159 @@ limRmcCleanup(tpAniSirGlobal pMac)
         PELOGE(limLog(pMac, LOGE, FL("RMC lock destroy failed!"));)
     }
 
-    tx_timer_delete(&pMac->rmcContext.gRmcResponseTimer);
+    tx_timer_delete(&pMac->rmcContext.gRmcLeaderSelectTimer);
 }
 
+/**
+ * limRmcTransmitterDelete()
+ *
+ *FUNCTION:
+ * This function is called on a Leader to handle deletion of the transmitter.
+ * It is called when the IBSS module wants to delete a peer. If the peer
+ * exists in our database, we delete the entries associated with this peer.
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param pMac       Pointer to Global MAC structure
+ *        transmitter Address of the transmitter
+ * @return None
+ */
+void
+limRmcTransmitterDelete(tpAniSirGlobal pMac, tSirMacAddr transmitter)
+{
+    /* Acquire RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
+    {
+        limLog(pMac, LOGE,
+             FL("RMC: limRMCTransmitterDelete lock acquire failed"));
+        return;
+    }
+
+    /* Delete this transmitter from Leader database. */
+    __rmcGroupDeleteHashEntry(pMac, transmitter);
+
+    /* Release RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
+    {
+        limLog(pMac, LOGE,
+            FL("RMC: limRMCTransmitterDelete lock release failed"));
+    }
+}
+
+/**
+ * limRmcIbssDelete()
+ *
+ *FUNCTION:
+ * This function is called when the IBSS is being deleted for either
+ * transmitter or leader STA.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param pMac       Pointer to Global MAC structure
+ *
+ * @return None
+ */
+void
+limRmcIbssDelete(tpAniSirGlobal pMac)
+{
+    /* Acquire RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
+    {
+        limLog(pMac, LOGE,
+             FL("RMC: limRmcIbssDelete lock acquire failed"));
+        return;
+    }
+
+    /* Cancel pending timer */
+    tx_timer_deactivate(&pMac->rmcContext.gRmcLeaderSelectTimer);
+
+    /* Delete all entries from Leader database. */
+    __rmcGroupDeleteAllEntries(pMac);
+
+    /* Release RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
+    {
+        limLog(pMac, LOGE,
+            FL("RMC: limRmcIbssDelete lock release failed"));
+    }
+
+    limLog(pMac, LOG1, FL("RMC: limRmcIbssDelete complete"));
+}
+
+/**
+ * limRmcDumpStatus()
+ *
+ *FUNCTION:
+ * This function is called to display RMC status for transmitter and leader.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param pMac       Pointer to Global MAC structure
+ *
+ * @return char *   Pointer to buffer with RMC information.
+ */
+void
+limRmcDumpStatus(tpAniSirGlobal pMac)
+{
+    tLimRmcGroupContext *entry;
+    int index, count;
+
+    /* Acquire RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
+    {
+        limLog(pMac, LOGE,
+             FL("RMC: limRmcDumpStatus lock acquire failed"));
+        return;
+    }
+
+
+    limLog(pMac, LOGE, FL(" ----- RMC Transmitter Information ----- \n"));
+    limLog(pMac, LOGE,
+         FL("   Leader Address   |  RMC State \n"));
+
+    if (pMac->rmcContext.state != eRMC_LEADER_NOT_SELECTED)
+    {
+        limLog(pMac,LOGE, FL( MAC_ADDRESS_STR " | %s\n"),
+                         MAC_ADDR_ARRAY(pMac->rmcContext.leader),
+                        __limMcastTxStateToString(pMac->rmcContext.state));
+    }
+
+    limLog( pMac,LOGE, FL(" ----- RMC Leader Information ----- \n"));
+    limLog( pMac,LOGE, FL("  Transmitter Address\n"));
+
+    count = 0;
+    for (index = 0; index < RMC_MCAST_GROUPS_HASH_SIZE; index++)
+    {
+        entry = pMac->rmcContext.rmcGroupRxHashTable[index];
+
+        while (entry)
+        {
+            count++;
+            limLog( pMac,LOGE, FL("%d. " MAC_ADDRESS_STR " \n"),
+                    count, MAC_ADDR_ARRAY(entry->transmitter));
+            entry = entry->next;
+        }
+    }
+
+    /* Release RMC lock */
+    if (!VOS_IS_STATUS_SUCCESS(vos_lock_release(&pMac->rmcContext.lkRmcLock)))
+    {
+        limLog(pMac, LOGE,
+            FL("RMC: limRmcDumpStatus lock release failed"));
+    }
+
+    return;
+
+}
 #endif /* WLAN_FEATURE_RELIABLE_MCAST */

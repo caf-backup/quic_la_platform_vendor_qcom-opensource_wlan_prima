@@ -4572,3 +4572,15 @@ HAL
 3   50    10
 *
 *
+
+* RMC action period frequency (milli seconds)
+*
+WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY    I    4    7
+V    RW    NP
+HAL
+0   0xFFFFFFFF    300
+V    RW    NP
+HAL
+0   0xFFFFFFFF    300
+*
+*

@@ -12795,7 +12795,7 @@ WLANTL_ProcessRmcCommand
    IN
 
    pvosGCtx   : Pointer to VOS global context
-   pMcastAddr : Pointer to MAC ADDR of reliable multicast group leader
+   pMcastTransmitterAddr : Pointer to MAC ADDR of reliable multicast transmitter
 
   RETURN VALUE
     The result code associated with performing the operation
@@ -12814,18 +12814,18 @@ VOS_STATUS
 WLANTL_EnableReliableMcast
 (
     v_PVOID_t     pvosGCtx,
-    v_MACADDR_t   *pMcastAddr
+    v_MACADDR_t   *pMcastTransmitterAddr
 )
 {
     WLANTL_CbType*  pTLCb;
     VOS_STATUS status;
 
     /*sanity check*/
-    if ( (NULL == pvosGCtx) || (NULL == pMcastAddr) )
+    if ( (NULL == pvosGCtx) || (NULL == pMcastTransmitterAddr) )
     {
         TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL %s: Sanity check failed pvosGCtx %p aMcastAddr %p",
-            __func__, pvosGCtx, pMcastAddr));
+            __func__, pvosGCtx, pMcastTransmitterAddr));
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -12838,17 +12838,7 @@ WLANTL_EnableReliableMcast
         return VOS_STATUS_E_FAILURE;
     }
 
-    if ( vos_is_macaddr_group( pMcastAddr ) )
-    {
-        status = WLANTL_ProcessRmcCommand(pTLCb, pMcastAddr, 1);
-    }
-    else
-    {
-        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL %s: Invalid MCAST addr" MAC_ADDRESS_STR, __func__,
-            MAC_ADDR_ARRAY(pMcastAddr->bytes)));
-        status = VOS_STATUS_E_FAILURE;
-    }
+    status = WLANTL_ProcessRmcCommand(pTLCb, pMcastTransmitterAddr , 1);
 
     return status;
 } /* End of WLANTL_EnableReliableMcast */
@@ -12868,7 +12858,7 @@ WLANTL_EnableReliableMcast
    IN
 
    pvosGCtx   : Pointer to VOS global context
-   pMcastAddr : Pointer to MAC ADDR of reliable multicast group leader
+   pMcastAddr : Pointer to MAC ADDR of reliable multicast transmitter
 
   RETURN VALUE
     The result code associated with performing the operation
@@ -12887,18 +12877,18 @@ VOS_STATUS
 WLANTL_DisableReliableMcast
 (
     v_PVOID_t     pvosGCtx,
-    v_MACADDR_t   *pMcastAddr
+    v_MACADDR_t   *pMcastTransmitterAddr
 )
 {
     WLANTL_CbType* pTLCb;
     VOS_STATUS status;
 
     /*Sanity check*/
-    if ((NULL == pvosGCtx) || (NULL == pMcastAddr))
+    if ((NULL == pvosGCtx) || (NULL == pMcastTransmitterAddr))
     {
         TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL %s: Sanity check failed pvosGCtx %p aMcastAddr %p",
-             __func__, pvosGCtx, pMcastAddr));
+             __func__, pvosGCtx, pMcastTransmitterAddr));
         return VOS_STATUS_E_FAILURE;
     }
 
@@ -12911,17 +12901,7 @@ WLANTL_DisableReliableMcast
         return VOS_STATUS_E_FAILURE;
     }
 
-    if (vos_is_macaddr_group(pMcastAddr))
-    {
-        status = WLANTL_ProcessRmcCommand(pTLCb, pMcastAddr, 0);
-    }
-    else
-    {
-        TLLOGE( VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL %s: Invalid MCAST addr" MAC_ADDRESS_STR, __func__,
-            MAC_ADDR_ARRAY(pMcastAddr->bytes)));
-        status = VOS_STATUS_E_FAILURE;
-    }
+    status = WLANTL_ProcessRmcCommand(pTLCb, pMcastTransmitterAddr, 0);
 
     return status;
 } /* End of WLANTL_DisableReliableMcast */

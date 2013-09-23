@@ -6105,7 +6105,7 @@ limSendRMCActionFrame(tpAniSirGlobal  pMac,
     vos_mem_copy(&RMC.MagicCode.magic, SIR_MAC_OXYGEN_MAGIC_CODE,
                      SIR_MAC_OXYGEN_MAGIC_CODE_SIZE);
 
-    vos_mem_copy(&RMC.McastGroup.mac, pRMC->mcastGroup, sizeof(tSirMacAddr));
+    vos_mem_copy(&RMC.Leader.mac, pRMC->mcastLeader, sizeof(tSirMacAddr));
 
     nStatus = dot11fGetPackedRMCSize( pMac, &RMC, &nPayload );
     if ( DOT11F_FAILED( nStatus ) )

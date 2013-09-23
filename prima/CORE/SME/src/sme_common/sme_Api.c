@@ -9088,11 +9088,10 @@ eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
     \brief  Used to enable Reliable Multicast using Leader Based Protocol
     setting will not persist over reboots
     \param  hHal
-    \param  mcastGroupIpAddr  multicast Group IP address
+    \param  sessionId
     \- return eHalStatus
     -------------------------------------------------------------------------*/
-eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
-                                   tANI_U32 sessionId)
+eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U32 sessionId)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -9101,7 +9100,7 @@ eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
     status = sme_AcquireGlobalLock(&pMac->sme);
     if (HAL_STATUS_SUCCESS(status))
     {
-        status = csrEnableRMC(pMac, mcastGroupIpAddr, sessionId);
+        status = csrEnableRMC(pMac, sessionId);
         sme_ReleaseGlobalLock(&pMac->sme);
     }
     return status;
@@ -9112,11 +9111,10 @@ eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
     \brief  Used to disable Reliable Multicast using Leader Based Protocol
     setting will not persist over reboots
     \param  hHal
-    \param  mcastGroupIpAddr  multicast Group IP address
+    \param  sessionId
     \- return eHalStatus
     -------------------------------------------------------------------------*/
-eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
-                                    tANI_U32 sessionId)
+eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U32 sessionId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -9125,7 +9123,7 @@ eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U8 *mcastGroupIpAddr,
    status = sme_AcquireGlobalLock(&pMac->sme);
    if (HAL_STATUS_SUCCESS(status))
    {
-      status = csrDisableRMC(pMac, mcastGroupIpAddr, sessionId);
+      status = csrDisableRMC(pMac, sessionId);
       sme_ReleaseGlobalLock(&pMac->sme);
    }
    return status;

@@ -4352,7 +4352,6 @@ typedef struct sSirSetRMCReq
 {
     tANI_U16       msgType;
     tANI_U16       msgLen;
-    tANI_U8        mcastGroupIpAddr[SIR_IPV4_ADDR_LEN];
     tSirMacAddr    mcastTransmitter;
 } tSirSetRMCReq, *tpSirSetRMCReq;
 
@@ -4360,7 +4359,7 @@ typedef struct sSirRMCInfo
 {
     tANI_U8       dialogToken;
     tANI_U8       action;
-    tSirMacAddr   mcastGroup;
+    tSirMacAddr   mcastLeader;
 } tSirRMCInfo, *tpSirRMCInfo;
 
 typedef struct sSirRmcLeaderSelectInd
