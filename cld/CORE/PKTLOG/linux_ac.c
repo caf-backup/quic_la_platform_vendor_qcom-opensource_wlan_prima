@@ -405,6 +405,17 @@ static int pktlog_attach(struct ol_softc *scn)
 	pl_info_lnx->proc_entry = NULL;
 	pl_info_lnx->sysctl_header = NULL;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
+	proc_entry = proc_create_data(proc_name, PKTLOG_PROC_PERM,
+				      g_pktlog_pde, &pktlog_fops,
+				      &pl_info_lnx->info);
+
+	if (proc_entry == NULL) {
+		printk(PKTLOG_TAG "%s: create_proc_entry failed for %s\n",
+		       __func__, proc_name);
+		goto attach_fail1;
+	}
+#else
 	proc_entry = create_proc_entry(proc_name, PKTLOG_PROC_PERM,
 				       g_pktlog_pde);
 
@@ -419,6 +430,8 @@ static int pktlog_attach(struct ol_softc *scn)
 	proc_entry->owner = THIS_MODULE;
 #endif
 	proc_entry->proc_fops = &pktlog_fops;
+#endif
+
 	pl_info_lnx->proc_entry = proc_entry;
 
 	if (pktlog_sysctl_register(scn)) {
@@ -455,9 +468,8 @@ static void pktlog_detach(struct ol_softc *scn)
 	struct ol_pktlog_dev_t *pl_dev = (struct ol_pktlog_dev_t *)
 					 get_pl_handle(scn);
 	struct ath_pktlog_info *pl_info = pl_dev->pl_info;
-	struct ath_pktlog_info_lnx *pl_info_lnx = PL_INFO_LNX(pl_info);
 
-	remove_proc_entry(pl_info_lnx->proc_entry->name, g_pktlog_pde);
+	remove_proc_entry(WLANDEV_BASENAME, g_pktlog_pde);
 	pktlog_sysctl_unregister(pl_dev);
 	pktlog_cleanup(pl_info);
 
@@ -494,9 +506,14 @@ pktlog_read(struct file *file, char *buf, size_t nbytes, loff_t *ppos)
 	int rem_len;
 	int start_offset, end_offset;
 	int fold_offset, ppos_data, cur_rd_offset;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
+	struct ath_pktlog_info *pl_info = (struct ath_pktlog_info *)
+					  PDE_DATA(file->f_dentry->d_inode);
+#else
 	struct proc_dir_entry *proc_entry = PDE(file->f_dentry->d_inode);
 	struct ath_pktlog_info *pl_info = (struct ath_pktlog_info *)
 					  proc_entry->data;
+#endif
 	struct ath_pktlog_buf *log_buf = pl_info->buf;
 
 	if (log_buf == NULL)
@@ -730,9 +747,14 @@ static struct vm_operations_struct pktlog_vmops = {
 
 static int pktlog_mmap(struct file *file, struct vm_area_struct *vma)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
+	struct ath_pktlog_info *pl_info = (struct ath_pktlog_info *)
+					  PDE_DATA(file->f_dentry->d_inode);
+#else
 	struct proc_dir_entry *proc_entry = PDE(file->f_dentry->d_inode);
 	struct ath_pktlog_info *pl_info = (struct ath_pktlog_info *)
 					  proc_entry->data;
+#endif
 
 	if (vma->vm_pgoff != 0) {
 		/* Entire buffer should be mapped */
