@@ -2593,7 +2593,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	 */
 	cmd->peer_flags = 0;
 
-	if (params->wmmEnabled || params->htCapable)
+	if (params->wmmEnabled)
 		cmd->peer_flags |= WMI_PEER_QOS;
 
 	if (params->uAPSD) {
