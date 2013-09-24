@@ -549,6 +549,7 @@ again:
     }
 
 #ifndef REMOVE_PKT_LOG
+#ifndef QCA_WIFI_FTM
     /*
      * pktlog initialization
      */
@@ -556,6 +557,7 @@ again:
 
     if (pktlogmod_init(ol_sc))
         printk(KERN_ERR "%s: pktlogmod_init failed\n", __func__);
+#endif
 #endif
 
 #ifdef WLAN_BTAMP_FEATURE
@@ -839,7 +841,9 @@ hif_pci_remove(struct pci_dev *pdev)
     scn = sc->ol_sc;
 
 #ifndef REMOVE_PKT_LOG
+#ifndef QCA_WIFI_FTM
     pktlogmod_exit(scn);
+#endif
 #endif
 
     __hdd_wlan_exit();
