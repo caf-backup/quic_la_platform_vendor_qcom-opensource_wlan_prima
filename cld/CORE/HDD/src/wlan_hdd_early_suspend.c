@@ -918,14 +918,14 @@ static void hdd_conf_resume_ind(hdd_adapter_t *pAdapter)
             return;
         }
 
-        //Disable supported OffLoads
-        hdd_conf_hostoffload(pAdapter, FALSE);
-
         wlanResumeParam->configuredMcstBcstFilterSetting =
                                    pHddCtx->configuredMcastBcastFilter;
         halStatus = sme_ConfigureResumeReq(pHddCtx->hHal, wlanResumeParam);
         if (eHAL_STATUS_SUCCESS != halStatus)
             vos_mem_free(wlanResumeParam);
+
+        /* Disable supported OffLoads */
+        hdd_conf_hostoffload(pAdapter, FALSE);
         pHddCtx->hdd_mcastbcast_filter_set = FALSE;
     }
 
