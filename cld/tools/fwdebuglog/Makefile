@@ -4,8 +4,8 @@ TARGET_VERS ?= v2
 
 all:
 	$(CC) -g3 -Wall  \
-		-I ../../CORE/COMMON/ \
-		-I ../../CORE/HIF/ \
+		-I ../../CORE/SERVICES/COMMON/ \
+		-I ../../CORE/SERVICES/HIF/ \
 		cld-fwlog-record.c -o cld-fwlog-record
 	$(CC) -g3 -Wall  \
 		-I ../../CORE/COMMON/ \
