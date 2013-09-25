@@ -448,6 +448,9 @@ typedef enum
   /* Send LBP Update Indication */
   WDI_LBP_UPDATE_IND,
 
+  /* Send Rate Update Indication */
+  WDI_RATE_UPDATE_IND,
+
   /*Keep adding the indications to the max request
     such that we keep them sepparate */
 
@@ -5408,6 +5411,22 @@ WDI_Status WDI_ProcessLphbCfgRsp
   WDI_EventInfoType*     pEventData
 );
 #endif /* FEATURE_WLAN_LPHB */
+
+/**
+ @brief Process Rate Update Indication and post it to HAL
+
+ @param  pWDICtx:    pointer to the WLAN DAL context
+         pEventData: pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessRateUpdateInd
+(
+    WDI_ControlBlockType*  pWDICtx,
+    WDI_EventInfoType*     pEventData
+);
 
 #if defined WLAN_FEATURE_RELIABLE_MCAST
 /**
