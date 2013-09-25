@@ -72,6 +72,11 @@ LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
 include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
+# Create Symbolic link
+$(shell mkdir -p $(TARGET_OUT)/lib/modules; \
+	ln -sf /system/lib/modules/$(WLAN_CHIPSET)/proprietary_$(WLAN_CHIPSET)_wlan.ko \
+	       $(TARGET_OUT)/lib/modules/wlan.ko)
+
 endif # DLKM check
 
 endif # supported target check
