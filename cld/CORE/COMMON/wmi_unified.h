@@ -2030,6 +2030,8 @@ typedef enum {
     WMI_DBGLOG_MOD_LOG_LEVEL,
     /** set type of the debug output */
     WMI_DBGLOG_TYPE,
+    /** Enable Disable debug */
+    WMI_DBGLOG_REPORT_ENABLE
 } WMI_DBG_PARAM;
 
 typedef struct {

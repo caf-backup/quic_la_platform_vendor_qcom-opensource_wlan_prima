@@ -89,7 +89,7 @@ dbglog_set_timestamp_resolution(wmi_unified_t  wmi_handle, A_UINT16 tsr);
 * any debug information
 */
 int
-dbglog_reporting_enable(wmi_unified_t  wmi_handle, A_BOOL isenable);
+dbglog_report_enable(wmi_unified_t  wmi_handle, A_BOOL isenable);
 
 /** Set the log level
 * @brief DBGLOG_INFO - Information lowest log level
@@ -122,13 +122,13 @@ dbglog_module_log_enable(wmi_unified_t  wmi_handle, A_UINT32 mod_id,
 
 /** set vap enablie bitmap */
 void
-dbglog_set_vap_enable_btimap(wmi_unified_t  wmi_handle, A_UINT32 vap_enable_bitmap);
+dbglog_set_vap_enable_bitmap(wmi_unified_t  wmi_handle, A_UINT32 vap_enable_bitmap);
 
 /** set log level for all the modules specified in the bitmap. for all other modules
   * with 0 in the bitmap (or) outside the bitmap , the log level be reset to DBGLOG_ERR.
   */
 void
-dbglog_set_mod_enable_btimap(wmi_unified_t  wmi_handle,A_UINT32 log_level,
+dbglog_set_mod_enable_bitmap(wmi_unified_t  wmi_handle,A_UINT32 log_level,
    A_UINT32 *mod_enable_bitmap, A_UINT32 bitmap_len );
 
 /** Custome debug_print handlers */

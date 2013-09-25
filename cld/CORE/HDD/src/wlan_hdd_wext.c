@@ -176,7 +176,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_DBGLOG_MOD_LOG_LEVEL         36
 #define WE_DBGLOG_TYPE                  37
 #define WE_SET_TXRX_FWSTATS             38
-#define WE_SET_VHT_RATE      39
+#define WE_SET_VHT_RATE                 39
+#define WE_DBGLOG_REPORT_ENABLE         40
 #endif
 
 /* Private ioctls and their sub-ioctls */
@@ -4582,6 +4583,14 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                                            set_value, DBG_CMD);
               break;
          }
+        case WE_DBGLOG_REPORT_ENABLE:
+        {
+             hddLog(LOG1, "WE_DBGLOG_REPORT_ENABLE val %d", set_value);
+             ret = process_wma_set_command((int)pAdapter->sessionId,
+                                          (int)WMI_DBGLOG_REPORT_ENABLE,
+                                          set_value, DBG_CMD);
+             break;
+        }
 
 	case WE_SET_TXRX_FWSTATS:
 	{
@@ -7784,6 +7793,10 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0,
         "dl_type" },
+    {   WE_DBGLOG_REPORT_ENABLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "dl_report" },
 
     {   WE_SET_TXRX_FWSTATS,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,

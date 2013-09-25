@@ -3028,6 +3028,12 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 				WMA_LOGE("dbglog_parser_type_init"
 						" failed ret %d", ret);
 			break;
+		case WMI_DBGLOG_REPORT_ENABLE:
+                        ret = dbglog_report_enable(wma->wmi_handle, privcmd->param_value);
+			if (ret)
+				WMA_LOGE("dbglog_report_enable"
+						" failed ret %d", ret);
+			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);
 			break;
