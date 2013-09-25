@@ -1029,6 +1029,7 @@ typedef struct sSirSmeJoinReq
 #ifdef WLAN_FEATURE_11AC
     tANI_U8             txBFIniFeatureEnabled;
     tANI_U8             txBFCsnValue;
+    tANI_U8             txMuBformee;
 #endif
 
     tAniTitanCBNeighborInfo cbNeighbors;
