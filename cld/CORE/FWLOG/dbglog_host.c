@@ -1014,6 +1014,47 @@ wmi_config_debug_module_cmd(wmi_unified_t  wmi_handle, A_UINT32 param, A_UINT32 
     return status;
 }
 
+void
+dbglog_set_vap_enable_bitmap(wmi_unified_t  wmi_handle, A_UINT32 vap_enable_bitmap)
+{
+     wmi_config_debug_module_cmd(wmi_handle,
+		       WMI_DEBUG_LOG_PARAM_VDEV_ENABLE_BITMAP,
+		       vap_enable_bitmap, NULL,0 );
+}
+
+void
+dbglog_set_mod_enable_bitmap(wmi_unified_t  wmi_handle,A_UINT32 log_level, A_UINT32 *mod_enable_bitmap, A_UINT32 bitmap_len )
+{
+     wmi_config_debug_module_cmd(wmi_handle,
+			WMI_DEBUG_LOG_PARAM_MOD_ENABLE_BITMAP,
+			log_level,
+			mod_enable_bitmap,bitmap_len);
+}
+
+int dbglog_report_enable(wmi_unified_t  wmi_handle, bool isenable)
+{
+    int bitmap[2] = {0};
+
+    if (isenable > TRUE) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("dbglog_report_enable:Invalid value %d\n",
+        isenable));
+        return -EINVAL;
+    }
+
+    if(isenable){
+	/* set the vap enable bitmap */
+        dbglog_set_vap_enable_bitmap(wmi_handle, 0xFFFF);
+	bitmap[0] = 0xFFFFFFFF;
+	bitmap[1] = 0x1F;
+	/* set the module level bitmap  */
+	dbglog_set_mod_enable_bitmap(wmi_handle, 0x0, bitmap, 2);
+    } else {
+        dbglog_set_vap_enable_bitmap(wmi_handle, bitmap[0]);
+        dbglog_set_mod_enable_bitmap(wmi_handle, DBGLOG_LVL_MAX, bitmap, 2);
+    }
+    return 0;
+}
+
 static char *
 dbglog_get_msg(A_UINT32 moduleid, A_UINT32 debugid)
 {
