@@ -28948,7 +28948,6 @@ WDI_ProcessIbssPeerInfoRsp
 )
 {
    WDI_IbssPeerInfoReqCb     wdiPeerInfoCb   = NULL;
-   tHalIbssPeerInfoRspParams halPeerInfoRspParams;
    tHalIbssPeerParams        *pHalPeerInfoParams;
    WDI_IbssPeerInfoRspParams wdiPeerInfoRspParams;
    wpt_uint32                allocSize=0;
@@ -28974,22 +28973,29 @@ WDI_ProcessIbssPeerInfoRsp
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
    -------------------------------------------------------------------------*/
-   wpalMemoryCopy( &halPeerInfoRspParams,
-                   pEventData->pEventData,
-                   sizeof(halPeerInfoRspParams));
-
    pHalPeerInfoParams =
              ((tHalIbssPeerInfoRspParams *)pEventData->pEventData)->ibssPeerParams;
-   /* Size of peer info data received from DAL */
-   allocSize = (sizeof(WDI_IbssPeerInfoParams) * (halPeerInfoRspParams.numOfPeers));
-
    wdiPeerInfoRspParams.wdiStatus =
-                  WDI_HAL_2_WDI_STATUS(halPeerInfoRspParams.status);
+             WDI_HAL_2_WDI_STATUS(((tHalIbssPeerInfoRspParams *)pEventData->pEventData)->status);
    wdiPeerInfoRspParams.wdiNumPeers =
-                  halPeerInfoRspParams.numOfPeers;
+             ((tHalIbssPeerInfoRspParams *)pEventData->pEventData)->numOfPeers;
+
+   /* Size of peer info data received from DAL */
+   allocSize = (sizeof(WDI_IbssPeerInfoParams) * (wdiPeerInfoRspParams.wdiNumPeers));
 
    pPeerInfoParams = (WDI_IbssPeerInfoParams*)wpalMemoryAllocate(allocSize);
-   for (wdiCount = 0; wdiCount < halPeerInfoRspParams.numOfPeers; wdiCount++)
+
+   if (NULL == pPeerInfoParams ||
+       wdiPeerInfoRspParams.wdiNumPeers > WDI_MAX_IBSS_PEER_SUPPORED_STAS)
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                   "Number of stations %d exceed max supported stations %d ",
+                    wdiPeerInfoRspParams.wdiNumPeers,
+                    WDI_MAX_IBSS_PEER_SUPPORED_STAS);
+      return WDI_STATUS_MEM_FAILURE;
+   }
+
+   for (wdiCount = 0; wdiCount < wdiPeerInfoRspParams.wdiNumPeers; wdiCount++)
    {
       tHalIbssPeerParams        *pHalTemp = &pHalPeerInfoParams[wdiCount];
       WDI_IbssPeerInfoParams    *pWdiTemp = &pPeerInfoParams[wdiCount];
@@ -29008,9 +29014,10 @@ WDI_ProcessIbssPeerInfoRsp
       wdiPeerInfoCb(&wdiPeerInfoRspParams, pWDICtx->pRspCBUserData);
    }
 
-   /* wdiPeerInfoRspParams.wdiPeerInfoParams is freed in WDA callback handler */
+   /* Free the allocation */
+   vos_mem_free (pPeerInfoParams);
 
    return WDI_STATUS_SUCCESS;
-
 }
+
 #endif /* FEATURE_CESIUM_PROPRIETARY */

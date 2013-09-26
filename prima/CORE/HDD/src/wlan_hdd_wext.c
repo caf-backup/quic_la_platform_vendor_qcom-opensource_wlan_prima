@@ -417,7 +417,7 @@ void hdd_get_ibss_peer_info_cb(v_VOID_t *pUserData, v_VOID_t *pPeerInfoRsp)
       for (i = 0; i < pPeerInfo->numIBSSPeers; i++)
       {
          memcpy(&pStaCtx->ibss_peer_info.ibssPeerList[i],
-                &pPeerInfo->ibssPeerList[i], sizeof(hdd_ibss_peer_info_t));
+                &pPeerInfo->ibssPeerList[i], sizeof(hdd_ibss_peer_info_params_t));
       }
    }
    else
