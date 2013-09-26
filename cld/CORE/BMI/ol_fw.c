@@ -721,6 +721,20 @@ int ol_download_firmware(struct ol_softc *scn)
 			}
 		}
 	}
+	if (scn->target_version == AR6320_REV1_1_VERSION){
+		/* To disable PCIe use 96 AXI memory as internal buffering,
+		 *  highest bit of PCIE_TXBUF_ADDRESS need be set as 1
+		 */
+		u_int32_t addr = 0x3A058; /* PCIE_TXBUF_ADDRESS */
+		u_int32_t value = 0;
+		/* Disable PCIe AXI memory */
+		BMIReadMemory(scn->hif_hdl, addr, (A_UCHAR*)&value, 4, scn);
+		value |= 0x80000000; /* PCIE_TXBUF_BYPASS_SET(1) */
+		BMIWriteMemory(scn->hif_hdl, addr, (A_UCHAR*)&value, 4, scn);
+		value = 0;
+		BMIReadMemory(scn->hif_hdl, addr, (A_UCHAR*)&value, 4, scn);
+		printk("Disable PCIe use AXI memory:0x%08X-0x%08X\n", addr, value);
+	}
 
 	/* Download Target firmware - TODO point to target specific files in runtime */
 	address = BMI_SEGMENTED_WRITE_ADDR;
@@ -740,7 +754,7 @@ int ol_download_firmware(struct ol_softc *scn)
 	}
 
 	if (scn->enableuartprint) {
-		if ((scn->target_version == AR6320_REV1_VERSION) || (scn->target_version == AR6320_REV1_VERSION))
+		if ((scn->target_version == AR6320_REV1_VERSION) || (scn->target_version == AR6320_REV1_1_VERSION))
 			param = 6;
 		else
 			/* Configure GPIO AR9888 UART */
