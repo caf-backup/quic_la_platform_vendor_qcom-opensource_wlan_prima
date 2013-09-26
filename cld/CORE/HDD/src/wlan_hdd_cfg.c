@@ -1969,6 +1969,12 @@ REG_VARIABLE( CFG_VHT_ENABLE_2x2_CAP_FEATURE, WLAN_PARAM_Integer,
              CFG_VHT_ENABLE_2x2_CAP_FEATURE_MIN,
              CFG_VHT_ENABLE_2x2_CAP_FEATURE_MAX ),
 
+REG_VARIABLE( CFG_ENABLE_VHT_FOR_24GHZ_NAME, WLAN_PARAM_Integer,
+             hdd_config_t, enableVhtFor24GHzBand,
+             VAR_FLAGS_OPTIONAL,
+             CFG_ENABLE_VHT_FOR_24GHZ_DEFAULT,
+             CFG_ENABLE_VHT_FOR_24GHZ_MIN,
+             CFG_ENABLE_VHT_FOR_24GHZ_MAX),
 #endif
 
 REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
@@ -2627,6 +2633,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [thermalMitigationEnable] Value = [%u] ",pHddCtx->cfg_ini->thermalMitigationEnable);
 #ifdef WLAN_FEATURE_11AC
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gVhtChannelWidth] value = [%u]\n",pHddCtx->cfg_ini->vhtChannelWidth);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableVhtFor24GHzBand] Value = [%u] ",pHddCtx->cfg_ini->enableVhtFor24GHzBand);
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [enableFirstScan2GOnly] Value = [%u] ",pHddCtx->cfg_ini->enableFirstScan2GOnly);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [skipDfsChnlInP2pSearch] Value = [%u] ",pHddCtx->cfg_ini->skipDfsChnlInP2pSearch);
@@ -3907,6 +3914,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
     smeConfig.csrConfig.enableTxBF = pConfig->enableTxBF;
     smeConfig.csrConfig.txBFCsnValue = pConfig->txBFCsnValue;
     smeConfig.csrConfig.enable2x2 = pConfig->enable2x2;
+    smeConfig.csrConfig.enableVhtFor24GHz = pConfig->enableVhtFor24GHzBand;
 #endif
    smeConfig.csrConfig.AdHocChannel5G            = pConfig->AdHocChannel5G;
    smeConfig.csrConfig.AdHocChannel24            = pConfig->AdHocChannel24G;

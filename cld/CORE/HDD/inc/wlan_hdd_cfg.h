@@ -1708,6 +1708,12 @@ typedef enum
 #define CFG_LIST_OF_NON_11AC_COUNTRY_CODE                    "gListOfNon11acCountryCode"
 #define CFG_LIST_OF_NON_11AC_COUNTRY_CODE_DEFAULT            "RU,UA,ZA"
 
+/* Parameter to control VHT support in 2.4 GHz band */
+#define CFG_ENABLE_VHT_FOR_24GHZ_NAME             "gEnableVhtFor24GHzBand"
+#define CFG_ENABLE_VHT_FOR_24GHZ_MIN              (0)
+#define CFG_ENABLE_VHT_FOR_24GHZ_MAX              (1)
+#define CFG_ENABLE_VHT_FOR_24GHZ_DEFAULT          (0)
+
 /*
  * SCAN Offload
  */
@@ -2088,6 +2094,7 @@ typedef struct
    v_U8_t                      vhtRxMCS2x2;
    v_U8_t                      vhtTxMCS2x2;
    v_BOOL_t                    enable2x2;
+   v_BOOL_t                    enableVhtFor24GHzBand;
 #endif
    v_U8_t                      enableModulatedDTIM;
    v_U32_t                     fEnableMCAddrList;
