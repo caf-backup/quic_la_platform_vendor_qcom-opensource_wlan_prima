@@ -254,6 +254,7 @@ struct wma_wow {
 	v_BOOL_t deauth_enable;
 	v_BOOL_t disassoc_enable;
 	v_BOOL_t bmiss_enable;
+	v_BOOL_t gtk_err_enable;
 };
 
 struct wma_txrx_node {
