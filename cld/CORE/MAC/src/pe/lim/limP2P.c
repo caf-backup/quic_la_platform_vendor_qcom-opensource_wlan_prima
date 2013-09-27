@@ -803,7 +803,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     tANI_U8             origLen = 0;
     tANI_U8             sessionId = 0;
     v_U8_t              *pP2PIe = NULL;
-    tpPESession         psessionEntry;
+    tpPESession         psessionEntry = NULL;
     v_U8_t              *pPresenceRspNoaAttr = NULL;
     v_U8_t              *pNewP2PIe = NULL;
     v_U16_t             remainLen = 0;
