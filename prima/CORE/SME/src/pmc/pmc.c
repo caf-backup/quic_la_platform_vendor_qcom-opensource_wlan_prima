@@ -51,7 +51,7 @@ eHalStatus pmcEnterLowPowerState (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcEnterLowPowerState"));
+    pmcLog(pMac, LOG2, FL("Entering pmcEnterLowPowerState"));
 
     /* If already in Low Power State, just return. */
     if (pMac->pmc.pmcState == LOW_POWER)
@@ -60,7 +60,7 @@ eHalStatus pmcEnterLowPowerState (tHalHandle hHal)
     /* Cancel any running timers. */
     if (vos_timer_stop(&pMac->pmc.hImpsTimer) != VOS_STATUS_SUCCESS)
     {
-        smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer"));
+        pmcLog(pMac, LOGE, FL("Cannot cancel IMPS timer"));
         return eHAL_STATUS_FAILURE;
     }
 
@@ -68,7 +68,7 @@ eHalStatus pmcEnterLowPowerState (tHalHandle hHal)
 
     if (vos_timer_stop(&pMac->pmc.hExitPowerSaveTimer) != VOS_STATUS_SUCCESS)
     {
-        smsLog(pMac, LOGE, FL("Cannot cancel exit power save mode timer"));
+        pmcLog(pMac, LOGE, FL("Cannot cancel exit power save mode timer"));
         return eHAL_STATUS_FAILURE;
     }
 
@@ -101,12 +101,12 @@ eHalStatus pmcExitLowPowerState (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcExitLowPowerState"));
+    pmcLog(pMac, LOG2, FL("Entering pmcExitLowPowerState"));
 
     /* Must be in Low Power State if we are going to exit that state. */
     if (pMac->pmc.pmcState != LOW_POWER)
     {
-        smsLog(pMac, LOGE, FL("Cannot exit Low Power State if not in that state"));
+        pmcLog(pMac, LOGE, FL("Cannot exit Low Power State if not in that state"));
         return eHAL_STATUS_FAILURE;
     }
 
@@ -145,7 +145,7 @@ eHalStatus pmcEnterFullPowerState (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcEnterFullPowerState"));
+    pmcLog(pMac, LOG2, FL("Entering pmcEnterFullPowerState"));
 
     /* Take action based on the current state. */
     switch (pMac->pmc.pmcState)
@@ -181,15 +181,15 @@ eHalStatus pmcEnterFullPowerState (tHalHandle hHal)
 
     /* Cannot go directly to Full Power State from these states. */
     default:
-        smsLog(pMac, LOGE, FL("Trying to enter Full Power State from state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Trying to enter Full Power State from state %d"), pMac->pmc.pmcState);
         PMC_ABORT;
         return eHAL_STATUS_FAILURE;
     }
 
-    smsLog(pMac, LOG1, "PMC: Enter full power done: Cancel XO Core ON vote");
+    pmcLog(pMac, LOG1, "PMC: Enter full power done: Cancel XO Core ON vote");
     if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
     {
-        smsLog(pMac, LOGE, "Could not cancel XO Core ON vote. Not returning failure. "
+        pmcLog(pMac, LOGE, "Could not cancel XO Core ON vote. Not returning failure. "
                                 "Power consumed will be high");
     }
 
@@ -219,7 +219,7 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
     vos_call_status_type callType;
     VOS_STATUS status;
 
-    smsLog(pMac, LOG2, FL("Entering pmcEnterRequestFullPowerState"));
+    pmcLog(pMac, LOG2, FL("Entering pmcEnterRequestFullPowerState"));
 
     /* Take action based on the current state of the device. */
     switch (pMac->pmc.pmcState)
@@ -227,12 +227,12 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
 
     /* Should not request full power if already there. */
     case FULL_POWER:
-        smsLog(pMac, LOGE, FL("Requesting Full Power State when already there"));
+        pmcLog(pMac, LOGE, FL("Requesting Full Power State when already there"));
         return eHAL_STATUS_FAILURE;
 
     /* Only power events can take device out of Low Power State. */
     case LOW_POWER:
-        smsLog(pMac, LOGE, FL("Cannot request exit from Low Power State"));
+        pmcLog(pMac, LOGE, FL("Cannot request exit from Low Power State"));
         return eHAL_STATUS_FAILURE;
 
     /* Cannot go directly to Request Full Power state from these states.
@@ -244,7 +244,7 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
     case REQUEST_BMPS:
     case REQUEST_ENTER_WOWL:
     case REQUEST_EXIT_WOWL:
-        smsLog(pMac, LOGW, FL("Request for full power is being buffered. "
+        pmcLog(pMac, LOGW, FL("Request for full power is being buffered. "
             "Current state is %d"), pMac->pmc.pmcState);
         //Ignore the new reason if request for full power is already pending
         if( !pMac->pmc.requestFullPowerPending )
@@ -311,7 +311,7 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
         if (pmcIssueCommand(hHal, eSmeCommandExitImps, NULL, 0, FALSE) !=
             eHAL_STATUS_SUCCESS)
         {
-            smsLog(pMac, LOGE, "PMC: failure to send message "
+            pmcLog(pMac, LOGE, "PMC: failure to send message "
             "eWNI_PMC_EXIT_IMPS_REQ");
             return eHAL_STATUS_FAILURE;
         }
@@ -324,7 +324,7 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
         if (pmcIssueCommand(hHal, eSmeCommandExitUapsd, &fullPowerReason, sizeof(tRequestFullPowerReason), FALSE) !=
             eHAL_STATUS_SUCCESS)
         {
-            smsLog(pMac, LOGE, "PMC: failure to send message "
+            pmcLog(pMac, LOGE, "PMC: failure to send message "
             "eWNI_PMC_EXIT_UAPSD_REQ");
             return eHAL_STATUS_FAILURE;
         }
@@ -335,7 +335,7 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
         if (pmcIssueCommand(hHal, eSmeCommandExitWowl, &fullPowerReason, sizeof(tRequestFullPowerReason), FALSE) !=
             eHAL_STATUS_SUCCESS)
         {
-            smsLog(pMac, LOGP, "PMC: failure to send message "
+            pmcLog(pMac, LOGP, "PMC: failure to send message "
             "eWNI_PMC_EXIT_WOWL_REQ");
             return eHAL_STATUS_FAILURE;
         }
@@ -343,7 +343,8 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
 
     /* Cannot go directly to Request Full Power State from these states. */
     default:
-        smsLog(pMac, LOGE, FL("Trying to enter Request Full Power State from state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE,
+               FL("Trying to enter Request Full Power State from state %d"), pMac->pmc.pmcState);
         PMC_ABORT;
         return eHAL_STATUS_FAILURE;
     }
@@ -369,12 +370,12 @@ eHalStatus pmcEnterRequestImpsState (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcEnterRequestImpsState"));
+    pmcLog(pMac, LOG2, FL("Entering pmcEnterRequestImpsState"));
 
     /* Can enter Request IMPS State only from Full Power State. */
     if (pMac->pmc.pmcState != FULL_POWER)
     {
-        smsLog(pMac, LOGE, FL("Trying to enter Request IMPS State from state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Trying to enter Request IMPS State from state %d"), pMac->pmc.pmcState);
         return eHAL_STATUS_FAILURE;
     }
 
@@ -384,14 +385,14 @@ eHalStatus pmcEnterRequestImpsState (tHalHandle hHal)
     /* Tell MAC to have device enter IMPS mode. */
     if (pmcIssueCommand(hHal, eSmeCommandEnterImps, NULL, 0, FALSE) != eHAL_STATUS_SUCCESS)
     {
-        smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_IMPS_REQ");
+        pmcLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_IMPS_REQ");
         pMac->pmc.pmcState = FULL_POWER;
         if(pmcShouldBmpsTimerRun(pMac))
             (void)pmcStartTrafficTimer(hHal, pMac->pmc.bmpsConfig.trafficMeasurePeriod);
         return eHAL_STATUS_FAILURE;
      }
 
-    smsLog(pMac, LOG2, FL("eWNI_PMC_ENTER_IMPS_REQ sent to PE"));
+    pmcLog(pMac, LOG2, FL("eWNI_PMC_ENTER_IMPS_REQ sent to PE"));
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -417,12 +418,12 @@ eHalStatus pmcEnterImpsState (tHalHandle hHal)
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     vos_call_status_type callType;
     VOS_STATUS status;
-    smsLog(pMac, LOG2, FL("Entering pmcEnterImpsState"));
+    pmcLog(pMac, LOG2, FL("Entering pmcEnterImpsState"));
 
     /* Can enter IMPS State only from Request IMPS State. */
     if (pMac->pmc.pmcState != REQUEST_IMPS)
     {
-        smsLog(pMac, LOGE, FL("Trying to enter IMPS State from state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Trying to enter IMPS State from state %d"), pMac->pmc.pmcState);
         return eHAL_STATUS_FAILURE;
     }
 
@@ -448,14 +449,16 @@ eHalStatus pmcEnterImpsState (tHalHandle hHal)
             if (!(pMac->pmc.ImpsReqTimerfailCnt & 0xF))
             {
                 pMac->pmc.ImpsReqTimerfailCnt++;
-                smsLog(pMac, LOGE, FL("Cannot start IMPS timer, FailCnt - %d"), pMac->pmc.ImpsReqTimerfailCnt);
+                pmcLog(pMac, LOGE,
+                       FL("Cannot start IMPS timer, FailCnt - %d"), pMac->pmc.ImpsReqTimerfailCnt);
             }
             pmcEnterRequestFullPowerState(hHal, eSME_REASON_OTHER);
             return eHAL_STATUS_FAILURE;
         }
         if (pMac->pmc.ImpsReqTimerfailCnt)
         {
-           smsLog(pMac, LOGE, FL("Start IMPS timer was failed %d times before success"), pMac->pmc.ImpsReqTimerfailCnt);
+           pmcLog(pMac, LOGE,
+                  FL("Start IMPS timer was failed %d times before success"), pMac->pmc.ImpsReqTimerfailCnt);
         }
         pMac->pmc.ImpsReqTimerfailCnt = 0;
     }
@@ -493,12 +496,13 @@ eHalStatus pmcEnterRequestBmpsState (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcEnterRequestBmpsState"));
+    pmcLog(pMac, LOG2, FL("Entering pmcEnterRequestBmpsState"));
 
     /* Can enter Request BMPS State only from Full Power State. */
     if (pMac->pmc.pmcState != FULL_POWER)
     {
-        smsLog(pMac, LOGE, FL("Trying to enter Request BMPS State from state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE,
+               FL("Trying to enter Request BMPS State from state %d"), pMac->pmc.pmcState);
         return eHAL_STATUS_FAILURE;
     }
 
@@ -512,7 +516,7 @@ eHalStatus pmcEnterRequestBmpsState (tHalHandle hHal)
         pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_TRUE;
         if(pmcIssueCommand(hHal, eSmeCommandEnterBmps, NULL, 0, FALSE) != eHAL_STATUS_SUCCESS)
         {
-            smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_BMPS_REQ");
+            pmcLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_BMPS_REQ");
             pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
             pMac->pmc.pmcState = FULL_POWER;
             if(pmcShouldBmpsTimerRun(pMac))
@@ -524,7 +528,7 @@ eHalStatus pmcEnterRequestBmpsState (tHalHandle hHal)
     }
     else
     {
-        smsLog(pMac, LOGE, "PMC: enter BMPS command already queued");
+        pmcLog(pMac, LOGE, "PMC: enter BMPS command already queued");
         //restart the timer if needed
         if(pmcShouldBmpsTimerRun(pMac))
         {
@@ -533,7 +537,7 @@ eHalStatus pmcEnterRequestBmpsState (tHalHandle hHal)
         return eHAL_STATUS_SUCCESS;
     }
 
-    smsLog(pMac, LOGW, FL("eWNI_PMC_ENTER_BMPS_REQ sent to PE"));
+    pmcLog(pMac, LOGW, FL("eWNI_PMC_ENTER_BMPS_REQ sent to PE"));
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -558,7 +562,7 @@ eHalStatus pmcEnterBmpsState (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcEnterBmpsState"));
+    pmcLog(pMac, LOG2, FL("Entering pmcEnterBmpsState"));
 
     /* Can enter BMPS State only from 5 states. */
     if (pMac->pmc.pmcState != REQUEST_BMPS &&
@@ -567,7 +571,7 @@ eHalStatus pmcEnterBmpsState (tHalHandle hHal)
         pMac->pmc.pmcState != REQUEST_ENTER_WOWL &&
         pMac->pmc.pmcState != REQUEST_EXIT_WOWL)
     {
-        smsLog(pMac, LOGE, FL("Trying to enter BMPS State from state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Trying to enter BMPS State from state %d"), pMac->pmc.pmcState);
         return eHAL_STATUS_FAILURE;
     }
 
@@ -584,7 +588,7 @@ eHalStatus pmcEnterBmpsState (tHalHandle hHal)
     {
 
         /* Start exit BMPS sequence now. */
-        smsLog(pMac, LOGW, FL("Pending Full Power request found on entering BMPS mode. "
+        pmcLog(pMac, LOGW, FL("Pending Full Power request found on entering BMPS mode. "
                   "Start exit BMPS exit sequence"));
         //Note: Reason must have been set when requestFullPowerPending flag was set.
         pmcEnterRequestFullPowerState(hHal, pMac->pmc.requestFullPowerReason);
@@ -594,14 +598,14 @@ eHalStatus pmcEnterBmpsState (tHalHandle hHal)
     /*This should never happen ideally. WOWL and UAPSD not supported at the same time */
     if (pMac->pmc.wowlModeRequired && pMac->pmc.uapsdSessionRequired)
     {
-        smsLog(pMac, LOGW, FL("Both UAPSD and WOWL is required on entering BMPS mode. "
+        pmcLog(pMac, LOGW, FL("Both UAPSD and WOWL is required on entering BMPS mode. "
                "UAPSD will be prioritized over WOWL"));
     }
 
     /* Do we need Uapsd?*/
     if (pMac->pmc.uapsdSessionRequired)
     {
-        smsLog(pMac, LOGW, FL("UAPSD session is required on entering BMPS mode. "
+        pmcLog(pMac, LOGW, FL("UAPSD session is required on entering BMPS mode. "
                   "Start UAPSD entry sequence"));
         pmcEnterRequestStartUapsdState(hHal);
         return eHAL_STATUS_SUCCESS;
@@ -610,7 +614,7 @@ eHalStatus pmcEnterBmpsState (tHalHandle hHal)
     /* Do we need WOWL?*/
     if (pMac->pmc.wowlModeRequired)
     {
-        smsLog(pMac, LOGW, FL("WOWL is required on entering BMPS mode. "
+        pmcLog(pMac, LOGW, FL("WOWL is required on entering BMPS mode. "
                   "Start WOWL entry sequence"));
         pmcRequestEnterWowlState(hHal, &(pMac->pmc.wowlEnterParams));
     }
@@ -642,7 +646,7 @@ tANI_BOOLEAN pmcPowerSaveCheck (tHalHandle hHal)
     tANI_BOOLEAN (*checkRoutine) (void *checkContext);
     tANI_BOOLEAN bResult=FALSE;
 
-    smsLog(pMac, LOG2, FL("Entering pmcPowerSaveCheck"));
+    pmcLog(pMac, LOG2, FL("Entering pmcPowerSaveCheck"));
 
     /* Call the routines in the power save check routine list.  If any
        return FALSE, then we cannot go into power save mode. */
@@ -658,7 +662,7 @@ tANI_BOOLEAN pmcPowerSaveCheck (tHalHandle hHal)
         {
             if (!checkRoutine(pPowerSaveCheckEntry->checkContext))
             {
-                smsLog(pMac, LOGE, FL("pmcPowerSaveCheck fail!"));
+                pmcLog(pMac, LOGE, FL("pmcPowerSaveCheck fail!"));
                 bResult = FALSE;
                 break;
             }
@@ -694,7 +698,7 @@ eHalStatus pmcSendPowerSaveConfigMessage (tHalHandle hHal)
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     tSirPowerSaveCfg powerSaveConfig;
 
-    smsLog(pMac, LOG2, FL("Entering pmcSendPowerSaveConfigMessage"));
+    pmcLog(pMac, LOG2, FL("Entering pmcSendPowerSaveConfigMessage"));
 
     palZeroMemory(pMac->hHdd, &(powerSaveConfig), sizeof(tSirPowerSaveCfg));
 
@@ -755,7 +759,7 @@ eHalStatus pmcSendPowerSaveConfigMessage (tHalHandle hHal)
     if (pmcSendMessage(hHal, eWNI_PMC_PWR_SAVE_CFG, &powerSaveConfig, sizeof(tSirPowerSaveCfg))
         != eHAL_STATUS_SUCCESS)
     {
-        smsLog(pMac, LOGE, FL("Send of eWNI_PMC_PWR_SAVE_CFG to PE failed"));
+        pmcLog(pMac, LOGE, FL("Send of eWNI_PMC_PWR_SAVE_CFG to PE failed"));
         return eHAL_STATUS_FAILURE;
     }
 
@@ -785,12 +789,12 @@ eHalStatus pmcSendMessage (tpAniSirGlobal pMac, tANI_U16 messageType, void *pMes
 {
     tSirMbMsg *pMsg;
 
-    smsLog(pMac, LOG2, FL("Entering pmcSendMessage, message type %d"), messageType);
+    pmcLog(pMac, LOG2, FL("Entering pmcSendMessage, message type %d"), messageType);
 
     /* Allocate and fill in message. */
     if (palAllocateMemory(pMac->hHdd, (void **)&pMsg, WNI_CFG_MB_HDR_LEN + messageSize) != eHAL_STATUS_SUCCESS)
     {
-        smsLog(pMac, LOGE, FL("Cannot allocate memory for message"));
+        pmcLog(pMac, LOGE, FL("Cannot allocate memory for message"));
         PMC_ABORT;
         return eHAL_STATUS_FAILURE;
     }
@@ -800,7 +804,7 @@ eHalStatus pmcSendMessage (tpAniSirGlobal pMac, tANI_U16 messageType, void *pMes
     {
         if (palCopyMemory(pMac->hHdd, pMsg->data, pMessageData, messageSize) != eHAL_STATUS_SUCCESS)
         {
-            smsLog(pMac, LOGE, FL("Cannot copy message data"));
+            pmcLog(pMac, LOGE, FL("Cannot copy message data"));
             PMC_ABORT;
             return eHAL_STATUS_FAILURE;
         }
@@ -809,7 +813,7 @@ eHalStatus pmcSendMessage (tpAniSirGlobal pMac, tANI_U16 messageType, void *pMes
     /* Send message. */
     if (palSendMBMessage(pMac->hHdd, pMsg) != eHAL_STATUS_SUCCESS)
     {
-        smsLog(pMac, LOGE, FL("Cannot send message"));
+        pmcLog(pMac, LOGE, FL("Cannot send message"));
         PMC_ABORT;
         return eHAL_STATUS_FAILURE;
     }
@@ -840,7 +844,7 @@ void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
     tListElem *pEntry;
     tpRequestFullPowerEntry pRequestFullPowerEntry;
 
-    smsLog(pMac, LOG2, FL("Entering pmcDoCallbacks"));
+    pmcLog(pMac, LOG2, FL("Entering pmcDoCallbacks"));
 
     /* Call IMPS callback routine. */
     if (pMac->pmc.impsCallbackRoutine != NULL)
@@ -857,7 +861,7 @@ void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
            pRequestFullPowerEntry->callbackRoutine(pRequestFullPowerEntry->callbackContext, callbackStatus);
         if (palFreeMemory(pMac->hHdd, pRequestFullPowerEntry) != eHAL_STATUS_SUCCESS)
         {
-            smsLog(pMac, LOGE, FL("Cannot free request full power routine list entry"));
+            pmcLog(pMac, LOGE, FL("Cannot free request full power routine list entry"));
             PMC_ABORT;
         }
     }
@@ -886,7 +890,7 @@ eHalStatus pmcStartTrafficTimer (tHalHandle hHal, tANI_U32 expirationTime)
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     VOS_STATUS vosStatus;
 
-    smsLog(pMac, LOG2, FL("Entering pmcStartTrafficTimer"));
+    pmcLog(pMac, LOG2, FL("Entering pmcStartTrafficTimer"));
 
     vosStatus = vos_timer_start(&pMac->pmc.hTrafficTimer, expirationTime);
     if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
@@ -894,11 +898,11 @@ eHalStatus pmcStartTrafficTimer (tHalHandle hHal, tANI_U32 expirationTime)
         if( VOS_STATUS_E_ALREADY == vosStatus )
         {
             //Consider this ok since the timer is already started.
-            smsLog(pMac, LOGW, FL("  traffic timer is already started"));
+            pmcLog(pMac, LOGW, FL("  traffic timer is already started"));
         }
         else
         {
-            smsLog(pMac, LOGP, FL("Cannot start traffic timer"));
+            pmcLog(pMac, LOGP, FL("Cannot start traffic timer"));
             return eHAL_STATUS_FAILURE;
         }
     }
@@ -923,7 +927,7 @@ eHalStatus pmcStartTrafficTimer (tHalHandle hHal, tANI_U32 expirationTime)
 void pmcStopTrafficTimer (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    smsLog(pMac, LOG2, FL("Entering pmcStopTrafficTimer"));
+    pmcLog(pMac, LOG2, FL("Entering pmcStopTrafficTimer"));
     vos_timer_stop(&pMac->pmc.hTrafficTimer);
 }
 
@@ -946,12 +950,12 @@ void pmcImpsTimerExpired (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcImpsTimerExpired"));
+    pmcLog(pMac, LOG2, FL("Entering pmcImpsTimerExpired"));
 
     /* If timer expires and we are in a state other than IMPS State then something is wrong. */
     if (pMac->pmc.pmcState != IMPS)
     {
-        smsLog(pMac, LOGE, FL("Got IMPS timer expiration in state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Got IMPS timer expiration in state %d"), pMac->pmc.pmcState);
         PMC_ABORT;
         return;
     }
@@ -981,23 +985,24 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     VOS_STATUS vosStatus;
 
-    smsLog(pMac, LOG2, FL("BMPS Traffic timer expired"));
+    pmcLog(pMac, LOG2, FL("BMPS Traffic timer expired"));
 
     /* If timer expires and we are in a state other than Full Power State then something is wrong. */
     if (pMac->pmc.pmcState != FULL_POWER)
     {
-        smsLog(pMac, LOGE, FL("Got traffic timer expiration in state %d"), pMac->pmc.pmcState);
+        pmcLog(pMac, LOGE, FL("Got traffic timer expiration in state %d"), pMac->pmc.pmcState);
         return;
     }
 
     /* Untill DHCP is not completed remain in power active */
     if(pMac->pmc.remainInPowerActiveTillDHCP)
     {
-        smsLog(pMac, LOG2, FL("BMPS Traffic Timer expired before DHCP completion ignore enter BMPS"));
+        pmcLog(pMac, LOG2, FL("BMPS Traffic Timer expired before DHCP completion ignore enter BMPS"));
         pMac->pmc.remainInPowerActiveThreshold++;
         if( pMac->pmc.remainInPowerActiveThreshold >= DHCP_REMAIN_POWER_ACTIVE_THRESHOLD)
         {
-           smsLog(pMac, LOGE, FL("Remain in power active DHCP threshold reached FALLBACK to enable enter BMPS"));
+           pmcLog(pMac, LOGE,
+                  FL("Remain in power active DHCP threshold reached FALLBACK to enable enter BMPS"));
            /*FALLBACK: reset the flag to make BMPS entry possible*/
            pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
            pMac->pmc.remainInPowerActiveThreshold = 0;
@@ -1006,7 +1011,7 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
         vosStatus = vos_timer_start(&pMac->pmc.hTrafficTimer, pMac->pmc.bmpsConfig.trafficMeasurePeriod);
         if ( !VOS_IS_STATUS_SUCCESS(vosStatus) && (VOS_STATUS_E_ALREADY != vosStatus) )
         {
-            smsLog(pMac, LOGP, FL("Cannot re-start traffic timer"));
+            pmcLog(pMac, LOGP, FL("Cannot re-start traffic timer"));
         }
         return;
     }
@@ -1017,32 +1022,32 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
     /* Check if the timer should be running */
     if (!pmcShouldBmpsTimerRun(pMac))
     {
-        smsLog(pMac, LOGE, FL("BMPS timer should not be running"));
+        pmcLog(pMac, LOGE, FL("BMPS timer should not be running"));
         return;
     }
 
 #ifdef FEATURE_WLAN_TDLS
     if (pMac->isTdlsPowerSaveProhibited)
     {
-       smsLog(pMac, LOGE, FL("TDLS peer(s) connected/discovery sent. Dont enter BMPS"));
+       pmcLog(pMac, LOGE, FL("TDLS peer(s) connected/discovery sent. Dont enter BMPS"));
        return;
     }
 #endif
 
     if (pmcPowerSaveCheck(hHal))
     {
-        smsLog(pMac, LOGW, FL("BMPS entry criteria satisfied. Requesting BMPS state"));
+        pmcLog(pMac, LOGW, FL("BMPS entry criteria satisfied. Requesting BMPS state"));
         (void)pmcEnterRequestBmpsState(hHal);
     }
     else
     {
         /*Some module voted against Power Save. So timer should be restarted again to retry BMPS */
-        smsLog(pMac, LOGE, FL("Power Save check failed. Retry BMPS again later"));
+        pmcLog(pMac, LOGE, FL("Power Save check failed. Retry BMPS again later"));
         //Since hTrafficTimer is a vos_timer now, we need to restart the timer here
         vosStatus = vos_timer_start(&pMac->pmc.hTrafficTimer, pMac->pmc.bmpsConfig.trafficMeasurePeriod);
         if ( !VOS_IS_STATUS_SUCCESS(vosStatus) && (VOS_STATUS_E_ALREADY != vosStatus) )
         {
-            smsLog(pMac, LOGP, FL("Cannot start traffic timer"));
+            pmcLog(pMac, LOGP, FL("Cannot start traffic timer"));
             return;
         }
     }
@@ -1067,7 +1072,7 @@ void pmcExitPowerSaveTimerExpired (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcExitPowerSaveTimerExpired"));
+    pmcLog(pMac, LOG2, FL("Entering pmcExitPowerSaveTimerExpired"));
 
     /* Make sure process of exiting power save mode might hasn't already been started due to another trigger. */
     if (pMac->pmc.requestFullPowerPending)
@@ -1098,7 +1103,7 @@ void pmcDoBmpsCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
    tListElem *pEntry;
    tpRequestBmpsEntry pRequestBmpsEntry;
 
-   smsLog(pMac, LOG2, "PMC: entering pmcDoBmpsCallbacks");
+   pmcLog(pMac, LOG2, "PMC: entering pmcDoBmpsCallbacks");
 
    /* Call the routines in the request BMPS callback routine list. */
    csrLLLock(&pMac->pmc.requestBmpsList);
@@ -1140,7 +1145,7 @@ void pmcDoStartUapsdCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
    tListElem *pEntry;
    tpStartUapsdEntry pStartUapsdEntry;
 
-   smsLog(pMac, LOG2, "PMC: entering pmcDoStartUapsdCallbacks");
+   pmcLog(pMac, LOG2, "PMC: entering pmcDoStartUapsdCallbacks");
    csrLLLock(&pMac->pmc.requestStartUapsdList);
    /* Call the routines in the request start UAPSD callback routine list. */
    pEntry = csrLLRemoveHead(&pMac->pmc.requestStartUapsdList, FALSE);
@@ -1175,7 +1180,7 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    v_BOOL_t fFullPower = VOS_FALSE;     //need to get back to full power state
 
-   smsLog(pMac, LOG2, "PMC: entering pmcEnterRequestStartUapsdState");
+   pmcLog(pMac, LOG2, "PMC: entering pmcEnterRequestStartUapsdState");
 
    /* Can enter UAPSD State only from FULL_POWER or BMPS State. */
    switch (pMac->pmc.pmcState)
@@ -1184,7 +1189,7 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
          /* Check that entry into a power save mode is allowed at this time. */
          if (!pmcPowerSaveCheck(hHal))
          {
-            smsLog(pMac, LOGW, "PMC: Power save check failed. UAPSD request "
+            pmcLog(pMac, LOGW, "PMC: Power save check failed. UAPSD request "
                       "will be accepted and buffered");
             /* UAPSD mode will be attempted when we enter BMPS later */
             pMac->pmc.uapsdSessionRequired = TRUE;
@@ -1205,7 +1210,7 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
                   That is why no need to buffer the UAPSD request*/
                if(pmcEnterRequestBmpsState(hHal) != eHAL_STATUS_SUCCESS)
                {
-                   smsLog(pMac, LOGE, "PMC: Device in Full Power. Enter Request Bmps failed. "
+                   pmcLog(pMac, LOGE, "PMC: Device in Full Power. Enter Request Bmps failed. "
                             "UAPSD request will be dropped ");
                   return eHAL_STATUS_FAILURE;
                }
@@ -1229,7 +1234,7 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
             if (pmcIssueCommand(hHal, eSmeCommandEnterUapsd, NULL, 0, FALSE) !=
                eHAL_STATUS_SUCCESS)
             {
-               smsLog(pMac, LOGE, "PMC: failure to send message "
+               pmcLog(pMac, LOGE, "PMC: failure to send message "
                   "eWNI_PMC_ENTER_BMPS_REQ");
                return eHAL_STATUS_FAILURE;
             }
@@ -1238,7 +1243,7 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
          else
          {
             //Not ready for UAPSD at this time, save it first and wake up the chip
-            smsLog(pMac, LOGE, " PMC state = %d",pMac->pmc.pmcState);
+            pmcLog(pMac, LOGE, " PMC state = %d",pMac->pmc.pmcState);
             pMac->pmc.uapsdSessionRequired = TRUE;
             /* While BTC traffic is going on, STA can be in BMPS
              * and need not go to Full Power */
@@ -1270,7 +1275,7 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
         break;
 
       default:
-         smsLog(pMac, LOGE, "PMC: trying to enter UAPSD State from state %d",
+         pmcLog(pMac, LOGE, "PMC: trying to enter UAPSD State from state %d",
             pMac->pmc.pmcState);
          return eHAL_STATUS_FAILURE;
    }
@@ -1280,7 +1285,7 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
       if( eHAL_STATUS_PMC_PENDING != pmcRequestFullPower( pMac, NULL, NULL, eSME_REASON_OTHER ) )
       {
          //This is an error
-         smsLog(pMac, LOGE, FL(" fail to request full power because BTC"));
+         pmcLog(pMac, LOGE, FL(" fail to request full power because BTC"));
       }
    }
 
@@ -1306,12 +1311,12 @@ eHalStatus pmcEnterUapsdState (tHalHandle hHal)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-   smsLog(pMac, LOG2, "PMC: entering pmcEnterUapsdState");
+   pmcLog(pMac, LOG2, "PMC: entering pmcEnterUapsdState");
 
    /* Can enter UAPSD State only from Request UAPSD State. */
    if (pMac->pmc.pmcState != REQUEST_START_UAPSD )
    {
-      smsLog(pMac, LOGE, "PMC: trying to enter UAPSD State from state %d",
+      pmcLog(pMac, LOGE, "PMC: trying to enter UAPSD State from state %d",
       pMac->pmc.pmcState);
       return eHAL_STATUS_FAILURE;
    }
@@ -1355,7 +1360,7 @@ eHalStatus pmcEnterRequestStopUapsdState (tHalHandle hHal)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-   smsLog(pMac, LOG2, "PMC: entering pmcEnterRequestStopUapsdState");
+   pmcLog(pMac, LOG2, "PMC: entering pmcEnterRequestStopUapsdState");
 
    /* If already in REQUEST_STOP_UAPSD, simply return */
    if (pMac->pmc.pmcState == REQUEST_STOP_UAPSD)
@@ -1366,7 +1371,7 @@ eHalStatus pmcEnterRequestStopUapsdState (tHalHandle hHal)
    /* Can enter Request Stop UAPSD State only from UAPSD */
    if (pMac->pmc.pmcState != UAPSD)
    {
-      smsLog(pMac, LOGE, "PMC: trying to enter Request Stop UAPSD State from "
+      pmcLog(pMac, LOGE, "PMC: trying to enter Request Stop UAPSD State from "
          "state %d", pMac->pmc.pmcState);
       return eHAL_STATUS_FAILURE;
    }
@@ -1375,7 +1380,7 @@ eHalStatus pmcEnterRequestStopUapsdState (tHalHandle hHal)
    if (pmcIssueCommand(hHal, eSmeCommandExitUapsd, NULL, 0, FALSE) !=
       eHAL_STATUS_SUCCESS)
    {
-      smsLog(pMac, LOGE, "PMC: failure to send message "
+      pmcLog(pMac, LOGE, "PMC: failure to send message "
          "eWNI_PMC_EXIT_UAPSD_REQ");
       return eHAL_STATUS_FAILURE;
    }
@@ -1402,12 +1407,12 @@ eHalStatus pmcEnterRequestStandbyState (tHalHandle hHal)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-   smsLog(pMac, LOG2, "PMC: entering pmcEnterRequestStandbyState");
+   pmcLog(pMac, LOG2, "PMC: entering pmcEnterRequestStandbyState");
 
    /* Can enter Standby State only from Full Power State. */
    if (pMac->pmc.pmcState != FULL_POWER)
    {
-      smsLog(pMac, LOGE, "PMC: trying to enter Standby State from "
+      pmcLog(pMac, LOGE, "PMC: trying to enter Standby State from "
          "state %d", pMac->pmc.pmcState);
       return eHAL_STATUS_FAILURE;
    }
@@ -1420,7 +1425,7 @@ eHalStatus pmcEnterRequestStandbyState (tHalHandle hHal)
    if (pmcIssueCommand(hHal, eSmeCommandEnterStandby, NULL, 0, FALSE) !=
       eHAL_STATUS_SUCCESS)
    {
-      smsLog(pMac, LOGE, "PMC: failure to send message "
+      pmcLog(pMac, LOGE, "PMC: failure to send message "
          "eWNI_PMC_ENTER_IMPS_REQ");
       pMac->pmc.pmcState = FULL_POWER;
 
@@ -1453,12 +1458,12 @@ eHalStatus pmcEnterStandbyState (tHalHandle hHal)
    vos_call_status_type callType;
    VOS_STATUS status;
 
-   smsLog(pMac, LOG2, "PMC: entering pmcEnterStandbyState");
+   pmcLog(pMac, LOG2, "PMC: entering pmcEnterStandbyState");
 
    /* Can enter STANDBY State only from REQUEST_STANDBY State. */
    if (pMac->pmc.pmcState != REQUEST_STANDBY)
    {
-      smsLog(pMac, LOGE, "PMC: trying to enter STANDBY State from state %d",
+      pmcLog(pMac, LOGE, "PMC: trying to enter STANDBY State from state %d",
          pMac->pmc.pmcState);
       return eHAL_STATUS_FAILURE;
    }
@@ -1506,7 +1511,7 @@ void pmcDoStandbyCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-   smsLog(pMac, LOG2, "PMC: entering pmcDoStandbyCallbacks");
+   pmcLog(pMac, LOG2, "PMC: entering pmcDoStandbyCallbacks");
 
    /* Call Standby callback routine. */
    if (pMac->pmc.standbyCallbackRoutine != NULL)
@@ -1585,7 +1590,7 @@ void pmcDoDeviceStateUpdateCallbacks (tHalHandle hHal, tPmcState state)
     tpDeviceStateUpdateIndEntry pDeviceStateUpdateIndEntry;
     void (*callbackRoutine) (void *callbackContext, tPmcState pmcState);
 
-    smsLog(pMac, LOG2, FL("PMC - Update registered modules of new device "
+    pmcLog(pMac, LOG2, FL("PMC - Update registered modules of new device "
            "state: %s"), pmcGetPmcStateStr(state));
 
     /* Call the routines in the update device state routine list. */
@@ -1617,7 +1622,7 @@ void pmcDoDeviceStateUpdateCallbacks (tHalHandle hHal, tPmcState state)
 eHalStatus pmcRequestEnterWowlState(tHalHandle hHal, tpSirSmeWowlEnterParams wowlEnterParams)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-   smsLog(pMac, LOG2, "PMC: entering pmcRequestEnterWowlState");
+   pmcLog(pMac, LOG2, "PMC: entering pmcRequestEnterWowlState");
 
    switch (pMac->pmc.pmcState)
    {
@@ -1625,14 +1630,14 @@ eHalStatus pmcRequestEnterWowlState(tHalHandle hHal, tpSirSmeWowlEnterParams wow
          /* Put device in BMPS mode first. This step should NEVER fail. */
          if(pmcEnterRequestBmpsState(hHal) != eHAL_STATUS_SUCCESS)
          {
-            smsLog(pMac, LOGE, "PMC: Device in Full Power. pmcEnterRequestBmpsState failed. "
+            pmcLog(pMac, LOGE, "PMC: Device in Full Power. pmcEnterRequestBmpsState failed. "
                     "Cannot enter WOWL");
             return eHAL_STATUS_FAILURE;
          }
          break;
 
       case REQUEST_BMPS:
-         smsLog(pMac, LOGW, "PMC: BMPS transaction going on. WOWL request "
+         pmcLog(pMac, LOGW, "PMC: BMPS transaction going on. WOWL request "
                     "will be buffered");
          break;
 
@@ -1644,24 +1649,24 @@ eHalStatus pmcRequestEnterWowlState(tHalHandle hHal, tpSirSmeWowlEnterParams wow
          if (pmcIssueCommand(hHal, eSmeCommandEnterWowl, wowlEnterParams, sizeof(tSirSmeWowlEnterParams), FALSE) !=
             eHAL_STATUS_SUCCESS)
          {
-            smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_WOWL_REQ");
+            pmcLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_WOWL_REQ");
             return eHAL_STATUS_FAILURE;
          }
          break;
 
       case REQUEST_ENTER_WOWL:
          //Multiple enter WOWL requests at the same time are not accepted
-         smsLog(pMac, LOGE, "PMC: Enter WOWL transaction already going on. New WOWL request "
+         pmcLog(pMac, LOGE, "PMC: Enter WOWL transaction already going on. New WOWL request "
                     "will be rejected");
          return eHAL_STATUS_FAILURE;
 
       case REQUEST_EXIT_WOWL:
-         smsLog(pMac, LOGW, "PMC: Exit WOWL transaction going on. New WOWL request "
+         pmcLog(pMac, LOGW, "PMC: Exit WOWL transaction going on. New WOWL request "
                    "will be buffered");
          break;
 
       default:
-         smsLog(pMac, LOGE, "PMC: Trying to enter WOWL State from state %s",
+         pmcLog(pMac, LOGE, "PMC: Trying to enter WOWL State from state %s",
             pmcGetPmcStateStr(pMac->pmc.pmcState));
          return eHAL_STATUS_FAILURE;
    }
@@ -1688,12 +1693,12 @@ eHalStatus pmcEnterWowlState (tHalHandle hHal)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-   smsLog(pMac, LOG2, "PMC: entering pmcEnterWowlState");
+   pmcLog(pMac, LOG2, "PMC: entering pmcEnterWowlState");
 
    /* Can enter WOWL State only from Request WOWL State. */
    if (pMac->pmc.pmcState != REQUEST_ENTER_WOWL )
    {
-      smsLog(pMac, LOGP, "PMC: trying to enter WOWL State from state %d",
+      pmcLog(pMac, LOGP, "PMC: trying to enter WOWL State from state %d",
         pMac->pmc.pmcState);
       return eHAL_STATUS_FAILURE;
    }
@@ -1734,7 +1739,7 @@ eHalStatus pmcRequestExitWowlState(tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, "PMC: entering pmcRequestExitWowlState");
+    pmcLog(pMac, LOG2, "PMC: entering pmcRequestExitWowlState");
 
     switch (pMac->pmc.pmcState)
     {
@@ -1743,17 +1748,17 @@ eHalStatus pmcRequestExitWowlState(tHalHandle hHal)
             if (pmcIssueCommand(hHal, eSmeCommandExitWowl, NULL, 0, FALSE) !=
                 eHAL_STATUS_SUCCESS)
             {
-                smsLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
+                pmcLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
                 return eHAL_STATUS_FAILURE;
             }
             break;
 
         case REQUEST_ENTER_WOWL:
-            smsLog(pMac, LOGP, "PMC: Rcvd exit WOWL even before enter WOWL was completed");
+            pmcLog(pMac, LOGP, "PMC: Rcvd exit WOWL even before enter WOWL was completed");
             return eHAL_STATUS_FAILURE;
 
         default:
-            smsLog(pMac, LOGW, "PMC: Got exit WOWL in state %s. Nothing to do as already out of WOWL",
+            pmcLog(pMac, LOGW, "PMC: Got exit WOWL in state %s. Nothing to do as already out of WOWL",
             pmcGetPmcStateStr(pMac->pmc.pmcState));
             break;
     }
@@ -1778,7 +1783,7 @@ void pmcDoEnterWowlCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-   smsLog(pMac, LOG2, "PMC: entering pmcDoWowlCallbacks");
+   pmcLog(pMac, LOG2, "PMC: entering pmcDoWowlCallbacks");
 
    /* Call Wowl callback routine. */
    if (pMac->pmc.enterWowlCallbackRoutine != NULL)
@@ -1805,7 +1810,7 @@ static void pmcProcessDeferredMsg( tpAniSirGlobal pMac )
                     &pDeferredMsg->u.wowlAddPattern, sizeof(tSirWowlAddBcastPtrn))
                     != eHAL_STATUS_SUCCESS)
             {
-                smsLog(pMac, LOGE, FL("Send of eWNI_PMC_WOWL_ADD_BCAST_PTRN to PE failed"));
+                pmcLog(pMac, LOGE, FL("Send of eWNI_PMC_WOWL_ADD_BCAST_PTRN to PE failed"));
             }
             break;
 
@@ -1815,7 +1820,7 @@ static void pmcProcessDeferredMsg( tpAniSirGlobal pMac )
                     &pDeferredMsg->u.wowlDelPattern, sizeof(tSirWowlDelBcastPtrn))
                     != eHAL_STATUS_SUCCESS)
             {
-                smsLog(pMac, LOGE, FL("Send of eWNI_PMC_WOWL_ADD_BCAST_PTRN to PE failed"));
+                pmcLog(pMac, LOGE, FL("Send of eWNI_PMC_WOWL_ADD_BCAST_PTRN to PE failed"));
             }
             break;
 
@@ -1825,12 +1830,12 @@ static void pmcProcessDeferredMsg( tpAniSirGlobal pMac )
                     &pDeferredMsg->u.powerSaveConfig, sizeof(tSirPowerSaveCfg))
                 != eHAL_STATUS_SUCCESS)
             {
-                smsLog(pMac, LOGE, FL("Send of eWNI_PMC_PWR_SAVE_CFG to PE failed"));
+                pmcLog(pMac, LOGE, FL("Send of eWNI_PMC_PWR_SAVE_CFG to PE failed"));
             }
             break;
 
         default:
-            smsLog(pMac, LOGE, FL("unknown message (%d)"), pDeferredMsg->messageType);
+            pmcLog(pMac, LOGE, FL("unknown message (%d)"), pDeferredMsg->messageType);
             break;
         }
         //Need to free the memory here
@@ -1846,7 +1851,7 @@ eHalStatus pmcDeferMsg( tpAniSirGlobal pMac, tANI_U16 messageType, void *pData, 
 
     if( !HAL_STATUS_SUCCESS( palAllocateMemory( pMac->hHdd, (void **)&pDeferredMsg, sizeof(tPmcDeferredMsg) ) ) )
     {
-        smsLog(pMac, LOGE, FL("Cannot allocate memory for callback context"));
+        pmcLog(pMac, LOGE, FL("Cannot allocate memory for callback context"));
         return eHAL_STATUS_RESOURCES;
     }
     palZeroMemory( pMac->hHdd, pDeferredMsg, sizeof(tPmcDeferredMsg) );
@@ -1857,7 +1862,7 @@ eHalStatus pmcDeferMsg( tpAniSirGlobal pMac, tANI_U16 messageType, void *pData, 
         if( !HAL_STATUS_SUCCESS( palCopyMemory( pMac->hHdd, &pDeferredMsg->u.data,
                                     pData, size ) ) )
         {
-            smsLog(pMac, LOGE, FL("Cannot copy pattern for callback context"));
+            pmcLog(pMac, LOGE, FL("Cannot copy pattern for callback context"));
             palFreeMemory( pMac->hHdd, pDeferredMsg );
             return eHAL_STATUS_FAILURE;
         }
@@ -1875,7 +1880,7 @@ eHalStatus pmcDeferMsg( tpAniSirGlobal pMac, tANI_U16 messageType, void *pData, 
         }
         if( !HAL_STATUS_SUCCESS( status ) )
         {
-            smsLog(pMac, LOGE, FL("failed to request full power status = %d"), status);
+            pmcLog(pMac, LOGE, FL("failed to request full power status = %d"), status);
         }
     }
 
@@ -1910,54 +1915,54 @@ void pmcAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
             switch( pCommand->command )
             {
             case eSmeCommandEnterImps:
-                smsLog(pMac, LOGE, FL("aborting request to enter IMPS"));
+                pmcLog(pMac, LOGE, FL("aborting request to enter IMPS"));
                 pmcEnterFullPowerState(pMac);
                 break;
 
             case eSmeCommandExitImps:
-                smsLog(pMac, LOGE, FL("aborting request to exit IMPS "));
+                pmcLog(pMac, LOGE, FL("aborting request to exit IMPS "));
                 pmcEnterFullPowerState(pMac);
                 break;
 
             case eSmeCommandEnterBmps:
-                smsLog(pMac, LOGE, FL("aborting request to enter BMPS "));
+                pmcLog(pMac, LOGE, FL("aborting request to enter BMPS "));
                 pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
                 pmcEnterFullPowerState(pMac);
                 pmcDoBmpsCallbacks(pMac, eHAL_STATUS_FAILURE);
                 break;
 
             case eSmeCommandExitBmps:
-                smsLog(pMac, LOGE, FL("aborting request to exit BMPS "));
+                pmcLog(pMac, LOGE, FL("aborting request to exit BMPS "));
                 pmcEnterFullPowerState(pMac);
                 break;
 
             case eSmeCommandEnterUapsd:
-                smsLog(pMac, LOGE, FL("aborting request to enter UAPSD "));
+                pmcLog(pMac, LOGE, FL("aborting request to enter UAPSD "));
                 //Since there is no retry for UAPSD, tell the requester here we are done with failure
                 pMac->pmc.uapsdSessionRequired = FALSE;
                 pmcDoStartUapsdCallbacks(pMac, eHAL_STATUS_FAILURE);
                 break;
 
             case eSmeCommandExitUapsd:
-                smsLog(pMac, LOGE, FL("aborting request to exit UAPSD "));
+                pmcLog(pMac, LOGE, FL("aborting request to exit UAPSD "));
                 break;
 
             case eSmeCommandEnterWowl:
-                smsLog(pMac, LOGE, FL("aborting request to enter WOWL "));
+                pmcLog(pMac, LOGE, FL("aborting request to enter WOWL "));
                 pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_FAILURE);
                 break;
 
             case eSmeCommandExitWowl:
-                smsLog(pMac, LOGE, FL("aborting request to exit WOWL "));
+                pmcLog(pMac, LOGE, FL("aborting request to exit WOWL "));
                 break;
 
             case eSmeCommandEnterStandby:
-                smsLog(pMac, LOGE, FL("aborting request to enter Standby "));
+                pmcLog(pMac, LOGE, FL("aborting request to enter Standby "));
                 pmcDoStandbyCallbacks(pMac, eHAL_STATUS_FAILURE);
                 break;
 
             default:
-                smsLog(pMac, LOGE, FL("Request for PMC command (%d) is dropped"), pCommand->command);
+                pmcLog(pMac, LOGE, FL("Request for PMC command (%d) is dropped"), pCommand->command);
                 break;
             }
         }// !stopping
@@ -1993,11 +1998,13 @@ eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void
         }
         else
         {
-            smsLog( pMac, LOGE, FL(" fail to get command buffer for command 0x%X curState = %d"), cmdType, pMac->pmc.pmcState );
+            pmcLog( pMac, LOGE,
+                    FL(" fail to get command buffer for command 0x%X curState = %d"), cmdType, pMac->pmc.pmcState );
             //For certain PMC command, we cannot fail
             if( PMC_IS_COMMAND_CANNOT_FAIL(cmdType) )
             {
-                smsLog( pMac, LOGE, FL(" command 0x%X  cannot fail try allocating memory for it"), cmdType );
+                pmcLog( pMac, LOGE,
+                        FL(" command 0x%X  cannot fail try allocating memory for it"), cmdType );
                 status = palAllocateMemory(pMac->hHdd, (void **)&pCommand, sizeof(tSmeCmd));
                 if(!HAL_STATUS_SUCCESS(status))
                 {
@@ -2048,7 +2055,7 @@ eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void
             }
             else
             {
-                smsLog( pMac, LOGE, (" exit BMPS must have a reason code") );
+                pmcLog( pMac, LOGE, (" exit BMPS must have a reason code") );
             }
             break;
 
@@ -2061,7 +2068,7 @@ eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void
             break;
 
         default:
-            smsLog( pMac, LOGE, FL("  invalid command type %d"), cmdType );
+            pmcLog( pMac, LOGE, FL("  invalid command type %d"), cmdType );
             status = eHAL_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -2133,7 +2140,8 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 }
                 if( !HAL_STATUS_SUCCESS( status ) )
                 {
-                    smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_IMPS_REQ or pmcEnterImpsCheck failed");
+                    pmcLog(pMac, LOGE,
+                           "PMC: failure to send message eWNI_PMC_ENTER_IMPS_REQ or pmcEnterImpsCheck failed");
                     pmcEnterFullPowerState( pMac );
                     if(pmcShouldBmpsTimerRun(pMac))
                         (void)pmcStartTrafficTimer(pMac, pMac->pmc.bmpsConfig.trafficMeasurePeriod);
@@ -2156,12 +2164,13 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 if ( HAL_STATUS_SUCCESS( status ) )
                 {
                     pMac->pmc.pmcState = REQUEST_FULL_POWER;
-                    smsLog(pMac, LOG2, FL("eWNI_PMC_EXIT_IMPS_REQ sent to PE"));
+                    pmcLog(pMac, LOG2, FL("eWNI_PMC_EXIT_IMPS_REQ sent to PE"));
                     fRemoveCmd = eANI_BOOLEAN_FALSE;
                 }
                 else
                 {
-                    smsLog(pMac, LOGE, FL("eWNI_PMC_EXIT_IMPS_REQ fail to be sent to PE status %d"), status);
+                    pmcLog(pMac, LOGE,
+                           FL("eWNI_PMC_EXIT_IMPS_REQ fail to be sent to PE status %d"), status);
                     //Callbacks are called with success srarus, do we need to pass in real status??
                     pmcEnterFullPowerState(pMac);
                 }
@@ -2177,11 +2186,11 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 {
                     /* Change PMC state */
                     pMac->pmc.pmcState = REQUEST_BMPS;
-                    smsLog(pMac, LOG2, "PMC: Enter BMPS req done: Force XO Core ON");
+                    pmcLog(pMac, LOG2, "PMC: Enter BMPS req done: Force XO Core ON");
                     vstatus = vos_chipVoteXOCore(NULL, NULL, NULL, VOS_TRUE);
                     if ( !VOS_IS_STATUS_SUCCESS(vstatus) )
                     {
-                        smsLog(pMac, LOGE, "Could not turn XO Core ON. Can't go to BMPS");
+                        pmcLog(pMac, LOGE, "Could not turn XO Core ON. Can't go to BMPS");
                     }
                     else /* XO Core turn ON was successful */
                     {
@@ -2193,13 +2202,13 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                     }
                     else
                     {
-                        smsLog(pMac, LOGE, "Fail to send enter BMPS msg to PE");
+                        pmcLog(pMac, LOGE, "Fail to send enter BMPS msg to PE");
                             /* Cancel the vote for XO Core */
-                            smsLog(pMac, LOGW, "In module init: Cancel the vote for XO CORE ON "
+                            pmcLog(pMac, LOGW, "In module init: Cancel the vote for XO CORE ON "
                                                              "since send enter bmps failed");
                             if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
                             {
-                                smsLog(pMac, LOGE, "Could not cancel XO Core ON vote."
+                                pmcLog(pMac, LOGE, "Could not cancel XO Core ON vote."
                                                    "Not returning failure."
                                                    "Power consumed will be high");
                             }
@@ -2209,7 +2218,8 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 }
                 if( !HAL_STATUS_SUCCESS( status ) )
                 {
-                    smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_BMPS_REQ status %d", status);
+                    pmcLog(pMac, LOGE,
+                           "PMC: failure to send message eWNI_PMC_ENTER_BMPS_REQ status %d", status);
                     pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
                     pmcEnterFullPowerState(pMac);
                     //Do not call UAPSD callback here since it may be retried
@@ -2231,12 +2241,12 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 {
                     pMac->pmc.pmcState = REQUEST_FULL_POWER;
                     fRemoveCmd = eANI_BOOLEAN_FALSE;
-                    smsLog(pMac, LOG2, FL("eWNI_PMC_EXIT_BMPS_REQ sent to PE"));
+                    pmcLog(pMac, LOG2, FL("eWNI_PMC_EXIT_BMPS_REQ sent to PE"));
 
                 }
                 else
                 {
-                    smsLog(pMac, LOGE, FL("eWNI_PMC_EXIT_BMPS_REQ fail to be sent to PE status %d"), status);
+                    pmcLog(pMac, LOGE, FL("eWNI_PMC_EXIT_BMPS_REQ fail to be sent to PE status %d"), status);
                     pmcEnterFullPowerState(pMac);
                 }
             }
@@ -2254,7 +2264,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 }
                 else
                 {
-                    smsLog(pMac, LOGE, "PMC: failure to send message "
+                    pmcLog(pMac, LOGE, "PMC: failure to send message "
                        "eWNI_PMC_ENTER_BMPS_REQ");
                     //there is no retry for re-entering UAPSD so tell the requester we are done witgh failure.
                     pMac->pmc.uapsdSessionRequired = FALSE;
@@ -2286,7 +2296,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                }
                else
                {
-                   smsLog(pMac, LOGE, "PMC: failure to send message "
+                   pmcLog(pMac, LOGE, "PMC: failure to send message "
                       "eWNI_PMC_EXIT_UAPSD_REQ");
                    pmcEnterBmpsState(pMac);
                }
@@ -2306,7 +2316,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 }
                 else
                 {
-                    smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_WOWL_REQ");
+                    pmcLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_WOWL_REQ");
                     pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_FAILURE);
                 }
             }
@@ -2330,7 +2340,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 }
                 else
                 {
-                    smsLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
+                    pmcLog(pMac, LOGP, "PMC: failure to send message eWNI_PMC_EXIT_WOWL_REQ");
                     pmcEnterBmpsState(pMac);
                 }
             }
@@ -2373,7 +2383,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 }
                 else
                 {
-                    smsLog(pMac, LOGE, "PMC: failure to send message "
+                    pmcLog(pMac, LOGE, "PMC: failure to send message "
                         "eWNI_PMC_ENTER_IMPS_REQ");
                     pmcEnterFullPowerState(pMac);
                     pmcDoStandbyCallbacks(pMac, eHAL_STATUS_FAILURE);
@@ -2386,7 +2396,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
             break;
 
         default:
-            smsLog( pMac, LOGE, FL("  invalid command type %d"), pCommand->command );
+            pmcLog( pMac, LOGE, FL("  invalid command type %d"), pCommand->command );
             break;
         }
 
@@ -2400,8 +2410,8 @@ eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac )
 
     if( !PMC_IS_READY(pMac) )
     {
-        smsLog(pMac, LOGE, FL("Requesting IMPS when PMC not ready"));
-        smsLog(pMac, LOGE, FL("pmcReady = %d pmcState = %s"),
+        pmcLog(pMac, LOGE, FL("Requesting IMPS when PMC not ready"));
+        pmcLog(pMac, LOGE, FL("pmcReady = %d pmcState = %s"),
             pMac->pmc.pmcReady, pmcGetPmcStateStr(pMac->pmc.pmcState));
         return eHAL_STATUS_FAILURE;
     }
@@ -2409,21 +2419,21 @@ eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac )
     /* Check if IMPS is enabled. */
     if (!pMac->pmc.impsEnabled)
     {
-        smsLog(pMac, LOG2, FL("IMPS is disabled"));
+        pmcLog(pMac, LOG2, FL("IMPS is disabled"));
         return eHAL_STATUS_PMC_DISABLED;
     }
 
     /* Check if IMPS enabled for current power source. */
     if ((pMac->pmc.powerSource == AC_POWER) && !pMac->pmc.impsConfig.enterOnAc)
     {
-        smsLog(pMac, LOG2, FL("IMPS is disabled when operating on AC power"));
+        pmcLog(pMac, LOG2, FL("IMPS is disabled when operating on AC power"));
         return eHAL_STATUS_PMC_AC_POWER;
     }
 
     /* Check that entry into a power save mode is allowed at this time. */
     if (!pmcPowerSaveCheck(pMac))
     {
-        smsLog(pMac, LOG2, FL("IMPS cannot be entered now"));
+        pmcLog(pMac, LOG2, FL("IMPS cannot be entered now"));
         return eHAL_STATUS_PMC_NOT_NOW;
     }
 
@@ -2431,7 +2441,7 @@ eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac )
        running sessions agree. */
     if (!pmcAllowImps(pMac))
     {
-        smsLog(pMac, LOG2, FL("IMPS cannot be entered now"));
+        pmcLog(pMac, LOG2, FL("IMPS cannot be entered now"));
         return eHAL_STATUS_PMC_NOT_NOW;
     }
 
@@ -2439,14 +2449,14 @@ eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac )
     if ((pMac->pmc.pmcState == REQUEST_IMPS) || (pMac->pmc.pmcState == IMPS) ||
         (pMac->pmc.pmcState == REQUEST_FULL_POWER))
     {
-        smsLog(pMac, LOG2, FL("Already in IMPS"));
+        pmcLog(pMac, LOG2, FL("Already in IMPS"));
         return eHAL_STATUS_PMC_ALREADY_IN_IMPS;
     }
 
     /* Check whether driver load unload is in progress */
     if(vos_is_load_unload_in_progress( VOS_MODULE_ID_VOSS, NULL))
     {
-       smsLog(pMac, LOGW, FL("Driver load/unload is in progress"));
+       pmcLog(pMac, LOGW, FL("Driver load/unload is in progress"));
        return eHAL_STATUS_PMC_NOT_NOW;
     }
 
@@ -2462,14 +2472,14 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
    /* Check if BMPS is enabled. */
    if (!pMac->pmc.bmpsEnabled)
    {
-      smsLog(pMac, LOGE, "PMC: Cannot initiate BMPS. BMPS is disabled");
+      pmcLog(pMac, LOGE, "PMC: Cannot initiate BMPS. BMPS is disabled");
       return eHAL_STATUS_PMC_DISABLED;
    }
 
    if( !PMC_IS_READY(pMac) )
    {
-       smsLog(pMac, LOGE, FL("Requesting BMPS when PMC not ready"));
-       smsLog(pMac, LOGE, FL("pmcReady = %d pmcState = %s"),
+       pmcLog(pMac, LOGE, FL("Requesting BMPS when PMC not ready"));
+       pmcLog(pMac, LOGE, FL("pmcReady = %d pmcState = %s"),
            pMac->pmc.pmcReady, pmcGetPmcStateStr(pMac->pmc.pmcState));
        return eHAL_STATUS_FAILURE;
    }
@@ -2477,20 +2487,21 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
    /* Check that we are associated with a single active session. */
    if (!pmcValidateConnectState( pMac ))
    {
-      smsLog(pMac, LOGE, "PMC: STA not associated with an AP with single active session. BMPS cannot be entered");
+      pmcLog(pMac, LOGE, "PMC: STA not associated with an AP with single active session. BMPS cannot be entered");
       return eHAL_STATUS_FAILURE;
    }
 
    /* BMPS can only be requested when device is in Full Power */
    if (pMac->pmc.pmcState != FULL_POWER)
    {
-      smsLog(pMac, LOGE, "PMC: Device not in full power. Cannot request BMPS. pmcState %d", pMac->pmc.pmcState);
+      pmcLog(pMac, LOGE,
+             "PMC: Device not in full power. Cannot request BMPS. pmcState %d", pMac->pmc.pmcState);
       return eHAL_STATUS_FAILURE;
    }
    /* Check that entry into a power save mode is allowed at this time. */
    if (!pmcPowerSaveCheck(pMac))
    {
-      smsLog(pMac, LOGE, "PMC: Power save check failed. BMPS cannot be entered now");
+      pmcLog(pMac, LOGE, "PMC: Power save check failed. BMPS cannot be entered now");
       return eHAL_STATUS_PMC_NOT_NOW;
    }
 
@@ -2498,13 +2509,15 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
     //BMPS_WORKAROUND_NOT_NEEDED
     if(!IS_FEATURE_SUPPORTED_BY_FW(SLM_SESSIONIZATION))
     {
-        smsLog(pMac, LOG1, FL("doBMPSWorkaround %u"), pMac->roam.configParam.doBMPSWorkaround);
+        pmcLog(pMac, LOG1, FL("doBMPSWorkaround %u"), pMac->roam.configParam.doBMPSWorkaround);
         if (pMac->roam.configParam.doBMPSWorkaround)
         {
             pMac->roam.configParam.doBMPSWorkaround = 0;
-            smsLog(pMac, LOG1, FL("reset doBMPSWorkaround to disabled %u"), pMac->roam.configParam.doBMPSWorkaround);
+            pmcLog(pMac, LOG1,
+                   FL("reset doBMPSWorkaround to disabled %u"), pMac->roam.configParam.doBMPSWorkaround);
             csrDisconnectAllActiveSessions(pMac);
-            smsLog(pMac, LOGE, "PMC: doBMPSWorkaround was enabled. First Disconnect all sessions. pmcState %d", pMac->pmc.pmcState);
+            pmcLog(pMac, LOGE,
+                   "PMC: doBMPSWorkaround was enabled. First Disconnect all sessions. pmcState %d", pMac->pmc.pmcState);
             return eHAL_STATUS_FAILURE;
         }
      }
@@ -2523,13 +2536,14 @@ tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac )
           pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd ||
           pMac->pmc.wowlModeRequired )))
     {
-        smsLog(pMac, LOG1, FL("BMPS is not enabled or not required"));
+        pmcLog(pMac, LOG1, FL("BMPS is not enabled or not required"));
         return eANI_BOOLEAN_FALSE;
     }
 
     if(pMac->pmc.isHostPsEn && pMac->pmc.remainInPowerActiveTillDHCP)
     {
-        smsLog(pMac, LOG1, FL("Host controlled ps enabled and host wants active mode, so dont allow BMPS"));
+        pmcLog(pMac, LOG1,
+               FL("Host controlled ps enabled and host wants active mode, so dont allow BMPS"));
         return eANI_BOOLEAN_FALSE;
     }
 
@@ -2538,14 +2552,14 @@ tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac )
         (vos_get_concurrency_mode()& VOS_SAP) ||
         (vos_get_concurrency_mode()& VOS_P2P_GO))))
     {
-        smsLog(pMac, LOG1, FL("Multiple Sessions/GO/SAP sessions . BMPS should not be started"));
+        pmcLog(pMac, LOG1, FL("Multiple Sessions/GO/SAP sessions . BMPS should not be started"));
         return eANI_BOOLEAN_FALSE;
     }
     /* Check if there is an Infra session. BMPS is possible only if there is
      * an Infra session */
     if (!csrIsInfraConnected(pMac))
     {
-        smsLog(pMac, LOG1, FL("No Infra Session or multiple sessions. BMPS should not be started"));
+        pmcLog(pMac, LOG1, FL("No Infra Session or multiple sessions. BMPS should not be started"));
         return eANI_BOOLEAN_FALSE;
     }
     return eANI_BOOLEAN_TRUE;
@@ -2567,12 +2581,12 @@ void pmcDiagEvtTimerExpired (tHalHandle hHal)
 
     WLAN_VOS_DIAG_EVENT_REPORT(&psRequest, EVENT_WLAN_POWERSAVE_GENERIC);
 
-    smsLog(pMac, LOGW, FL("DIAG event timer expired"));
+    pmcLog(pMac, LOGW, FL("DIAG event timer expired"));
 
     /* re-arm timer */
     if (pmcStartDiagEvtTimer(hHal) != eHAL_STATUS_SUCCESS)
     {
-        smsLog(pMac, LOGP, FL("Cannot re-arm DIAG evt timer"));
+        pmcLog(pMac, LOGP, FL("Cannot re-arm DIAG evt timer"));
     }
     vos_timer_start(&pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL);
 }
@@ -2581,11 +2595,11 @@ eHalStatus pmcStartDiagEvtTimer (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
-    smsLog(pMac, LOG2, FL("Entering pmcStartDiagEvtTimer"));
+    pmcLog(pMac, LOG2, FL("Entering pmcStartDiagEvtTimer"));
 
     if ( vos_timer_start(&pMac->pmc.hDiagEvtTimer, PMC_DIAG_EVT_TIMER_INTERVAL) != VOS_STATUS_SUCCESS)
     {
-       smsLog(pMac, LOGP, FL("Cannot start DIAG evt timer"));
+       pmcLog(pMac, LOGP, FL("Cannot start DIAG evt timer"));
        return eHAL_STATUS_FAILURE;
     }
 
@@ -2595,7 +2609,7 @@ eHalStatus pmcStartDiagEvtTimer (tHalHandle hHal)
 void pmcStopDiagEvtTimer (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    smsLog(pMac, LOG2, FL("Entering pmcStopDiagEvtTimer"));
+    pmcLog(pMac, LOG2, FL("Entering pmcStopDiagEvtTimer"));
     (void)vos_timer_stop(&pMac->pmc.hDiagEvtTimer);
 }
 #endif
