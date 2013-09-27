@@ -1150,4 +1150,9 @@ VOS_STATUS hdd_issta_p2p_clientconnected(hdd_context_t *pHddCtx);
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType, tANI_U8 sessionId);
 #endif
+
+#ifdef FEATURE_CESIUM_PROPRIETARY
+v_MACADDR_t* hdd_wlan_get_ibss_mac_addr_from_staid(hdd_adapter_t *pAdapter, v_U8_t staIdx);
+#endif /* FEATURE_CESIUM_PROPRIETARY */
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
