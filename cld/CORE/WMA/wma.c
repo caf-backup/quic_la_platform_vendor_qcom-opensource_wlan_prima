@@ -859,15 +859,15 @@ static void wma_update_noa(struct beacon_info *beacon,
 static void wma_update_probe_resp_noa(tp_wma_handle wma_handle,
 					struct p2p_sub_element_noa *noa_ie)
 {
-	tSirP2PNoaAttr *noa_attr = (tSirP2PNoaAttr *) vos_mem_malloc(
-							sizeof(tSirP2PNoaAttr));
+	tSirP2PNoaAttr *noa_attr = (tSirP2PNoaAttr *) adf_os_mem_alloc(
+						NULL, sizeof(tSirP2PNoaAttr));
 	WMA_LOGD("Received update NoA event");
 	if (!noa_attr) {
 		WMA_LOGE("Failed to allocate memory for tSirP2PNoaAttr");
 		return;
 	}
 
-	vos_mem_set(noa_attr, 0, sizeof(tSirP2PNoaAttr));
+	adf_os_mem_set(noa_attr, 0, sizeof(tSirP2PNoaAttr));
 
 	noa_attr->index = noa_ie->index;
 	noa_attr->oppPsFlag = noa_ie->oppPS;
@@ -900,6 +900,7 @@ static void wma_update_probe_resp_noa(tp_wma_handle wma_handle,
 	wma_send_msg(wma_handle, SIR_HAL_P2P_NOA_ATTR_IND, (void *)noa_attr ,
 			0);
 }
+
 static void wma_send_bcn_buf_ll(tp_wma_handle wma,
 				ol_txrx_pdev_handle pdev,
 				u_int8_t vdev_id,
