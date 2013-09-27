@@ -1052,6 +1052,31 @@ typedef struct {
   */
     A_UINT32 max_frag_entries;
 
+    /**
+     * @brief num_tdls_vdevs - Max. number of vdevs that can support TDLS
+     * @brief num_msdu_desc - Number of vdev that can support beacon offload
+     */
+
+    A_UINT32  num_tdls_vdevs; /* number of vdevs allowed to do tdls */
+
+    /**
+     * @brief num_tdls_conn_table_entries - Number of peers tracked by tdls vdev
+     * @details
+     *      Each TDLS enabled vdev can track outgoing transmits/rssi/rates to/of
+     *      peers in a connection tracking table for possible TDLS link creation
+     *      or deletion. This controls the number of tracked peers per vdev.
+     */
+    A_UINT32  num_tdls_conn_table_entries; /* number of peers to track per TDLS vdev */
+
+    /**
+     * @brief beacon_tx_offload_max_vdev - Maximum number of vdev supported
+     * @details
+     *      Maximum number vdevs supported for beacon tx offload. The firmware
+     *      should be informed by this variable in WMI_INIT_CMD so that the firmware
+     *      memory allocated accordingly.
+     */
+    A_UINT32 beacon_tx_offload_max_vdev;
+
 } wmi_resource_config;
 
 
