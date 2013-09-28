@@ -14,6 +14,13 @@ WLAN_SELECT := CONFIG_PRONTO_WLAN=m
 WLAN_ISOC_SELECT := WLAN_ISOC=y
 endif
 
+# Build/Package options for 8084 target
+ifeq ($(call is-board-platform,apq8084),true)
+WLAN_CHIPSET := qca_cld
+WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
+WLAN_ISOC_SELECT := WLAN_ISOC=n
+endif
+
 # Build/Package only in case of supported target
 ifneq ($(WLAN_CHIPSET),)
 
