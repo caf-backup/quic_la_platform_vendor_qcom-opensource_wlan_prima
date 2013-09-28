@@ -5676,6 +5676,9 @@ register_wiphy:
           goto err_free_hdd_context;
       }
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
+#if defined(QCA_WIFI_2_0) && !defined(QCA_WIFI_ISOC)
+      complete(&wlan_start_comp);
+#endif
       return VOS_STATUS_SUCCESS;
    }
 
