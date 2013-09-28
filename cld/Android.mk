@@ -77,6 +77,15 @@ $(shell mkdir -p $(TARGET_OUT)/lib/modules; \
 	ln -sf /system/lib/modules/$(WLAN_CHIPSET)/proprietary_$(WLAN_CHIPSET)_wlan.ko \
 	       $(TARGET_OUT)/lib/modules/wlan.ko)
 
+# Copy config ini files to target
+$(shell mkdir -p $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
+$(shell rm -f $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_SHIPSET)/WCNSS_qcom_cfg.ini)
+$(shell rm -f $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_SHIPSET)/WCNSS_cfg.dat)
+$(shell rm -f $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_SHIPSET)/WCNSS_qcom_wlan_nv.bin)
+$(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_qcom_cfg.ini $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
+$(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_cfg.dat $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
+$(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_qcom_wlan_nv.bin $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
+
 endif # DLKM check
 
 endif # supported target check
