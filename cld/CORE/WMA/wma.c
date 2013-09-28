@@ -2692,6 +2692,8 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	u_int8_t *rate_pos, *buf_ptr;
 	wmi_rate_set peer_legacy_rates, peer_ht_rates;
         wmi_vht_rate_set *mcs;
+	u_int32_t num_peer_legacy_rates;
+	u_int32_t num_peer_ht_rates;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -2712,6 +2714,10 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		rate_pos[peer_legacy_rates.num_rates++] =
 			params->supportedRates.llaRates[i];
 	}
+
+	/* Set the Legacy Rates to Word Aligned */
+	num_peer_legacy_rates = roundup(peer_legacy_rates.num_rates,
+					sizeof(u_int32_t));
 
 	/* HT Rateset */
 	max_rates = sizeof(peer_ht_rates.rates) /
@@ -2744,11 +2750,15 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 			     peer_ht_rates.num_rates);
 	}
 
+	/* Set the Peer HT Rates to Word Aligned */
+	num_peer_ht_rates = roundup(peer_ht_rates.num_rates,
+					sizeof(u_int32_t));
+
 	len = sizeof(*cmd) +
 		WMI_TLV_HDR_SIZE + /* Place holder for peer legacy rate array */
-		(peer_legacy_rates.num_rates * sizeof(u_int8_t)) + /* peer legacy rate array size */
+		(num_peer_legacy_rates * sizeof(u_int8_t)) + /* peer legacy rate array size */
 		WMI_TLV_HDR_SIZE + /* Place holder for peer Ht rate array */
-		(peer_ht_rates.num_rates * sizeof(u_int8_t)) + /* peer HT rate array size */
+		(num_peer_ht_rates * sizeof(u_int8_t)) + /* peer HT rate array size */
 		sizeof(wmi_vht_rate_set);
 
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
@@ -2871,23 +2881,23 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	/* Update peer legacy rate information */
 	buf_ptr += sizeof(*cmd);
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE,
-		       peer_legacy_rates.num_rates);
+		       num_peer_legacy_rates);
 	buf_ptr += WMI_TLV_HDR_SIZE;
 	cmd->num_peer_legacy_rates = peer_legacy_rates.num_rates;
 	vos_mem_copy(buf_ptr, peer_legacy_rates.rates,
 		     peer_legacy_rates.num_rates);
 
 	/* Update peer HT rate information */
-	buf_ptr += peer_legacy_rates.num_rates;
+	buf_ptr += num_peer_legacy_rates;
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_BYTE,
-		       peer_ht_rates.num_rates);
+		       num_peer_ht_rates);
 	buf_ptr += WMI_TLV_HDR_SIZE;
 	cmd->num_peer_ht_rates = peer_ht_rates.num_rates;
 	vos_mem_copy(buf_ptr, peer_ht_rates.rates,
 		     peer_ht_rates.num_rates);
 
-	/* TODO: VHT Rates */
-	buf_ptr += peer_ht_rates.num_rates;
+	/* VHT Rates */
+	buf_ptr += num_peer_ht_rates;
 	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_STRUC_wmi_vht_rate_set,
 		       WMITLV_GET_STRUCT_TLVLEN(wmi_vht_rate_set));
 
