@@ -32,7 +32,10 @@ endif
 
 #Build/Package CLD Module only in case of apq8084 target
 ifeq ($(call is-board-platform,apq8084),true)
-        include $(WLAN_BLD_DIR)/cld/Android.mk
+        include $(WLAN_BLD_DIR)/qcacld-2.0/Android.mk
+        include $(WLAN_BLD_DIR)/qcacld-2.0/tools/athdiag/Android.mk
+        include $(WLAN_BLD_DIR)/qcacld-2.0/tools/fwdebuglog/Android.mk
+        include $(WLAN_BLD_DIR)/qcacld-2.0/tools/pktlog/Android.mk
 else
 	#Build/Package Prima/Pronto Module in case of A & B family targets
         ifeq ($(BOARD_WLAN_DEVICE),qcwcn)
