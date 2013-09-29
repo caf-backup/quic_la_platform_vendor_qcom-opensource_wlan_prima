@@ -1,4 +1,10 @@
 /*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
+/*
  * NB: Inappropriate references to "HTC" are used in this (and other)
  * HIF implementations.  HTC is typically the calling layer, but it
  * theoretically could be some alternative.

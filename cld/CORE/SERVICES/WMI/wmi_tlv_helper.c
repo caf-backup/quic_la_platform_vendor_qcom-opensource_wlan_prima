@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+
 /* wmi_tlv_platform.c file will be different for different components like Pronto firmware, Pronto windows host driver,
      Pronto LA host driver because their memory management functions are different */
 #include "wmi_tlv_platform.c"
