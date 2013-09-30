@@ -6289,6 +6289,7 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
     tCsrRoamProfile *pRoamProfile;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     int status;
+    tANI_U8 addIE[WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN] = {0};
 
     ENTER();
 
@@ -6315,6 +6316,39 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
     if (eCSR_BSS_TYPE_START_IBSS != pRoamProfile->BSSType)
     {
         hddLog (VOS_TRACE_LEVEL_ERROR, "%s: BSS Type is not set to IBSS",
+                __func__);
+        return -EINVAL;
+    }
+
+    /* Clearing add IE of beacon */
+    if (ccmCfgSetStr(pHddCtx->hHal,
+        WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &addIE[0],
+        WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN,
+        NULL, eANI_BOOLEAN_FALSE) != eHAL_STATUS_SUCCESS)
+    {
+        hddLog (VOS_TRACE_LEVEL_ERROR,
+                "%s: unable to clear PROBE_RSP_BCN_ADDNIE_DATA", __func__);
+        return -EINVAL;
+    }
+    if (ccmCfgSetInt(pHddCtx->hHal,
+        WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 0, NULL,
+        eANI_BOOLEAN_FALSE) != eHAL_STATUS_SUCCESS)
+    {
+        hddLog (VOS_TRACE_LEVEL_ERROR,
+                "%s: unable to clear WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG",
+                __func__);
+        return -EINVAL;
+    }
+
+    // Reset WNI_CFG_PROBE_RSP Flags
+    wlan_hdd_reset_prob_rspies(pAdapter);
+
+    if (ccmCfgSetInt(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                     WNI_CFG_PROBE_RSP_ADDNIE_FLAG, 0,NULL,
+                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+    {
+        hddLog (VOS_TRACE_LEVEL_ERROR,
+                "%s: unable to clear WNI_CFG_PROBE_RSP_ADDNIE_FLAG",
                 __func__);
         return -EINVAL;
     }
