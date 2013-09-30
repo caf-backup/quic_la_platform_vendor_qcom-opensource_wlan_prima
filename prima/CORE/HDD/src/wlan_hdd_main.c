@@ -134,6 +134,11 @@ static int wlan_hdd_inited;
 #define SIZE_OF_GETROAMMODE             11    /* size of GETROAMMODE */
 
 /*
+ * Ibss prop IE from command will be of size 5 + 1(Element ID) + 1(length)
+ */
+#define WLAN_HDD_IBSS_PROP_IE_SIZE 7
+
+/*
  * Driver miracast parameters 0-Disabled
  * 1-Source, 2-Sink
  */
@@ -2216,6 +2221,98 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                   "%s: Set MC Rate Fail %d", __func__, rc);
                ret = -EFAULT;
                goto exit;
+           }
+       }
+       else if ((strncmp(command, "SETIBSSBEACONOUIDATA", 20) == 0) &&
+                (WLAN_HDD_IBSS == pAdapter->device_mode))
+       {
+           tANI_U8 *value = command;
+           unsigned int oui_data;
+           unsigned int data;
+           tANI_U32 present, len;
+           tANI_U8 addIE[WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN] = {0};
+           tANI_U8 ibssPropIe[WLAN_HDD_IBSS_PROP_IE_SIZE] = {0xDD,0x05,0x00,0x00,0x00,0x00,0x00};
+
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     "%s: received command %s", __func__, ((char *) value));
+
+           /* moving to arguments of commands */
+           value = value + 21;
+
+           sscanf(value, "%06x %04x", (unsigned int *)&oui_data,
+                      (unsigned int *)&data);
+
+           ibssPropIe[2] = (oui_data & 0x00ff0000) >> 16;
+           ibssPropIe[3] = (oui_data & 0x0000ff00) >> 8;
+           ibssPropIe[4] = (oui_data & 0x000000ff);
+
+           ibssPropIe[5] = (data & 0x0000ff00) >> 8;
+           ibssPropIe[6] = (data & 0x000000ff);
+
+           if ((ccmCfgGetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                             WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG,
+                             &present)) != eHAL_STATUS_SUCCESS)
+           {
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              "%s: unable to ftch WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG", __func__);
+              ret = -EFAULT;
+              goto exit;
+           }
+
+           if (present)
+           {
+              if((wlan_cfgGetStrLen(PMAC_STRUCT((WLAN_HDD_GET_CTX(pAdapter))->hHal),
+                      WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &len)) != eSIR_SUCCESS)
+              {
+                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+               "%s:unable to fetch WNI_CFG_PROBE_RSP_BCN_ADDNIE_LEN", __func__);
+                 ret = -EFAULT;
+                 goto exit;
+              }
+
+              if(len <= WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN && len &&
+                ((len + WLAN_HDD_IBSS_PROP_IE_SIZE) <= SCH_MAX_BEACON_SIZE))
+              {
+
+                 if ((ccmCfgGetStr((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                        WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &addIE[0], &len))
+                        != eHAL_STATUS_SUCCESS)
+                 {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s:unable to fetch WNI_PROBE_RSP_BCN_ADDNIE_DATA", __func__);
+                    ret = -EFAULT;
+                    goto exit;
+                 }
+              }
+           }
+           else {
+              len = 0;
+           }
+
+           if (len <= WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN &&
+              ((len + WLAN_HDD_IBSS_PROP_IE_SIZE) <= SCH_MAX_BEACON_SIZE))
+           {
+              vos_mem_copy (&addIE[len], ibssPropIe, WLAN_HDD_IBSS_PROP_IE_SIZE);
+              len += WLAN_HDD_IBSS_PROP_IE_SIZE;
+           }
+
+           if (ccmCfgSetStr((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+               WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &addIE[0], len, NULL,
+               eANI_BOOLEAN_FALSE) != eHAL_STATUS_SUCCESS)
+           {
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s:unable to set WNI_CFG_PRBE_RSP_BCN_ADDNIE_DATA", __func__);
+              ret = -EFAULT;
+              goto exit;
+           }
+           if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+               WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 1,NULL,
+               eANI_BOOLEAN_FALSE) != eHAL_STATUS_SUCCESS)
+           {
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s:unble to set WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG", __func__);
+              ret = -EFAULT;
+              goto exit;
            }
        }
 #ifdef WLAN_FEATURE_RELIABLE_MCAST
