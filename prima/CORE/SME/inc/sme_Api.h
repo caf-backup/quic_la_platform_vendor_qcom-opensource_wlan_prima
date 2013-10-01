@@ -2952,6 +2952,15 @@ eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U32 sessionId);
 eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U32 sessionId);
 #endif //#if defined WLAN_FEATURE_RELIABLE_MCAST
 
+/* ---------------------------------------------------------------------------
+    \fn sme_SendRateUpdateInd
+    \brief  API to Update rate
+    \param  hHal - The handle returned by macOpen
+    \param  rateUpdateParams - Pointer to rate update params
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateParams);
+
 #ifdef FEATURE_CESIUM_PROPRIETARY
 /* ---------------------------------------------------------------------------
     \fn sme_GetIBSSPeerInfo

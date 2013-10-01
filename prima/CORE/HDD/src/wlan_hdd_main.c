@@ -652,6 +652,105 @@ static int hdd_parse_setrmcactionperiod_command(tANI_U8 *pValue,
 
     return 0;
 }
+
+/**---------------------------------------------------------------------------
+
+  \brief hdd_parse_setrmcrate_command() - HDD Parse reliable multicast
+    set rate command
+
+  This function parses the SETRMCTXRATE command passed in the format
+  SETRMCTXRATE<space>X(multicast rate in Mbps)
+  For example input commands:
+  1) SETRMCTXRATE 6 -> This is translated into set RMC multicast rate
+     to 6 Mbps
+  1) SETRMCTXRATE 0 -> This is translated into disabling fixed multicast rate
+     and enabling multicast RA in firmware
+
+  \param  - pValue Pointer to SETRMCTXRATE command
+  \param  - pRate Pointer to local RMC multicast rate variable
+  \param  - pTxFlags Pointer to local RMC multicast rate variable
+
+  \return - 0 for success non-zero for failure
+
+  --------------------------------------------------------------------------*/
+static int hdd_parse_setrmcrate_command(tANI_U8 *pValue,
+           tANI_U32 *pRate, tTxrateinfoflags *pTxFlags)
+{
+    tANI_U8 *inPtr = pValue;
+    int tempInt;
+    int v = 0;
+    char buf[32];
+    *pRate = 0;
+    *pTxFlags = 0;
+
+    inPtr = strnchr(pValue, strlen(pValue), SPACE_ASCII_VALUE);
+    /*no argument after the command*/
+    if (NULL == inPtr)
+    {
+        return -EINVAL;
+    }
+
+    /*no space after the command*/
+    else if (SPACE_ASCII_VALUE != *inPtr)
+    {
+        return -EINVAL;
+    }
+
+    /*removing empty spaces*/
+    while ((SPACE_ASCII_VALUE  == *inPtr) && ('\0' !=  *inPtr)) inPtr++;
+
+    /*no argument followed by spaces*/
+    if ('\0' == *inPtr)
+    {
+        return 0;
+    }
+
+    /*
+     * getting the first argument which sets multicast rate.
+     */
+    sscanf(inPtr, "%32s ", buf);
+    v = kstrtos32(buf, 10, &tempInt);
+    if ( v < 0)
+    {
+       return -EINVAL;
+    }
+
+    /*
+     * Validate the multicast rate.
+     */
+    switch (tempInt)
+    {
+        default:
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+            "Unsupported rate: %d", tempInt);
+            return -EINVAL;
+        case 0:
+        case 6:
+        case 9:
+        case 12:
+        case 18:
+        case 24:
+        case 36:
+        case 48:
+        case 54:
+            *pTxFlags = eHAL_TX_RATE_LEGACY;
+            *pRate = tempInt * 10;
+            break;
+        case 65:
+            *pTxFlags = eHAL_TX_RATE_HT20;
+            *pRate = tempInt * 10;
+            break;
+        case 72:
+            *pTxFlags = eHAL_TX_RATE_HT20 | eHAL_TX_RATE_SGI;
+            *pRate = 722; /* fractional rate 72.2 Mbps */
+            break;
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+       "Rate: %d", *pRate);
+
+    return 0;
+}
 #endif /*End WLAN_FEATURE_RELIABLE_MCAST*/
 
 #ifdef FEATURE_CESIUM_PROPRIETARY
@@ -2956,6 +3055,58 @@ setcfg:
       }
 #endif /* FEATURE_CESIUM_PROPRIETARY */
 
+       else if (strncmp(command, "SETRMCTXRATE", 12) == 0)
+       {
+          tANI_U8 *value = command;
+          tANI_U32 uRate = 0;
+          tTxrateinfoflags txFlags = 0;
+          tSirRateUpdateInd *rateUpdateParams;
+          int  status;
+
+          if ((WLAN_HDD_IBSS != pAdapter->device_mode) &&
+              (WLAN_HDD_SOFTAP != pAdapter->device_mode))
+          {
+             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "Received SETRMCTXRATE command in invalid mode %d \n"
+                "SETRMC command is only allowed in IBSS or SOFTAP mode",
+                pAdapter->device_mode);
+             ret = -EINVAL;
+             goto exit;
+          }
+
+          status = hdd_parse_setrmcrate_command(value, &uRate, &txFlags);
+          if (status)
+          {
+             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "Invalid SETRMCTXRATE command ");
+             ret = -EINVAL;
+             goto exit;
+          }
+
+          rateUpdateParams = vos_mem_malloc(sizeof(tSirRateUpdateInd));
+          if (NULL == rateUpdateParams)
+          {
+             ret = -EINVAL;
+             goto exit;
+          }
+
+          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+               "%s: uRate %d ", __func__, uRate);
+
+          vos_mem_zero(rateUpdateParams, sizeof(tSirRateUpdateInd ));
+
+          /* -1 implies ignore this param */
+          rateUpdateParams->ucastDataRate = -1;
+
+          /*
+           * Fill the user specifieed RMC rate param
+           * and the derived tx flags.
+           */
+          rateUpdateParams->reliableMcastDataRate = uRate;
+          rateUpdateParams->reliableMcastDataRateTxFlag = txFlags;
+
+          status = sme_SendRateUpdateInd((tHalHandle)(pHddCtx->hHal), rateUpdateParams);
+       }
 #endif
        else {
            hddLog( VOS_TRACE_LEVEL_WARN, "%s: Unsupported GUI command %s",
